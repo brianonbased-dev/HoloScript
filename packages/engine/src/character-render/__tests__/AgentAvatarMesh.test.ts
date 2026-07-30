@@ -1190,4 +1190,62 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     expect(expressive.jointDeformation?.maxWeightSumError).toBe(0);
     expect(expressive.handSurface?.upperBodyProfile).toBe('coherent-expressive-anatomy-v7');
   });
+
+  it('emits an H3X dense portrait cranium stitched to the authored neck ring', () => {
+    const dense = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceRadialSegments: 44,
+      faceVerticalSegments: 30,
+      facialDetailProfile: 'portrait-cranial-v3',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      upperBodyRadialSegments: 24,
+    });
+
+    expect(dense.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v3',
+      profile: 'portrait-cranial-v3',
+      radialSegments: 44,
+      verticalSegments: 30,
+    });
+    expect(dense.anatomy.cranialNeck).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-cranial-neck.v1',
+      profile: 'indexed-neck-cranium-stitch-v1',
+      neckRadialSegments: 24,
+      cranialRadialSegments: 44,
+      bridgeTriangleCount: 68,
+      axialSeparation: 0.0108,
+    });
+    expect(dense.anatomy.cranialNeck?.maxSeamGap).toBeLessThan(0.02);
+    expect(dense.jointDeformation).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v4',
+      profile: 'expressive-cranial-neck-volume-v4',
+      regionVertexCounts: {
+        neck: 96,
+        cranialNeck: 68,
+      },
+      cranialNeckContinuity: {
+        profile: 'dual-influence-neck-head-stitch-v1',
+        neckToHeadWeight: 0.35,
+        headToNeckWeight: 0.45,
+      },
+    });
+
+    const legacyClamp = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceRadialSegments: 44,
+      faceVerticalSegments: 30,
+      facialDetailProfile: 'portrait-silhouette-v2',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      upperBodyRadialSegments: 24,
+    });
+    expect(legacyClamp.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v2',
+      radialSegments: 32,
+      verticalSegments: 24,
+    });
+    expect(legacyClamp.anatomy.cranialNeck).toBeUndefined();
+    expect(legacyClamp.jointDeformation?.schemaVersion).toBe(
+      'holoscript.agent-avatar-joint-deformation.v3'
+    );
+  });
 });

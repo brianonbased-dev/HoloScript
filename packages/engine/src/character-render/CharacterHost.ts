@@ -56,6 +56,7 @@ import {
 } from './AgentAvatarHair';
 import {
   applyNativeFacialMorph,
+  type NativeMorphNormalPolicy,
   type NativeMorphReceipt,
   type NativeMorphWeights,
 } from './AgentAvatarMorph';
@@ -120,6 +121,11 @@ export interface CharacterHostOptions {
   chinProjection?: number;
   /** Portrait-silhouette-v2 temple-width multiplier. */
   templeWidth?: number;
+  /**
+   * Expression-time normal handling. The compatibility default preserves authored normals;
+   * H3X can opt into deterministic recomputation around deformed facial vertices.
+   */
+  expressionNormalPolicy?: NativeMorphNormalPolicy;
   /** Neutral-head width multiplier (0.84..1.2). */
   faceWidth?: number;
   /** Neutral-head vertical-length multiplier (0.86..1.16). */
@@ -391,6 +397,7 @@ export class CharacterHost {
   readonly entityId: string;
   private readonly built: CharacterMeshData;
   private readonly faceTopology: AgentAvatarFaceTopology;
+  private readonly expressionNormalPolicy: NativeMorphNormalPolicy;
   private readonly bindWorld: Map<string, Mat4>;
   private readonly inverseBind: Map<string, Mat4>;
   private readonly material: MaterialSpec;
@@ -410,6 +417,7 @@ export class CharacterHost {
   private readonly clothSimulation: DeterministicClothSimulation | null;
   private lastClothReceipt: ClothSimulationReceipt | null = null;
   private deformationBasePositions: Float32Array<ArrayBuffer>;
+  private readonly deformationBaseNormals: Float32Array<ArrayBuffer>;
   private morphWeights: NativeMorphWeights = {};
   private lastMorphReceipt: NativeMorphReceipt | null = null;
   private modelMatrix: Mat4;
@@ -422,6 +430,7 @@ export class CharacterHost {
   constructor(opts: CharacterHostOptions) {
     this.entityId = opts.entityId;
     this.faceTopology = opts.faceTopology ?? 'procedural-head-v1';
+    this.expressionNormalPolicy = opts.expressionNormalPolicy ?? 'legacy-static-v1';
     this.built = buildCharacterMesh({
       entityId: opts.entityId,
       heightScale: opts.heightScale,
@@ -476,6 +485,7 @@ export class CharacterHost {
       clusterSpread: opts.hairClusterSpread,
     });
     this.deformationBasePositions = new Float32Array(this.built.mesh.positions);
+    this.deformationBaseNormals = new Float32Array(this.built.mesh.normals);
     this.bindWorld = computeBindWorld();
     this.inverseBind = computeInverseBind(this.bindWorld);
     const skinTone = opts.skinTone ?? 0xe8c4a0;
@@ -692,6 +702,7 @@ export class CharacterHost {
       this.applyMorphWeights(this.morphWeights);
     } else {
       this.built.mesh.positions = new Float32Array(this.deformationBasePositions);
+      this.built.mesh.normals = new Float32Array(this.deformationBaseNormals);
     }
     this.lastClothReceipt = sampled.receipt;
     return { ...sampled.receipt };
@@ -722,6 +733,16 @@ export class CharacterHost {
               ...this.built.anatomy.upperBody,
               vertexRange: { ...this.built.anatomy.upperBody.vertexRange },
               indexRange: { ...this.built.anatomy.upperBody.indexRange },
+            },
+          }
+        : {}),
+      ...(this.built.anatomy.cranialNeck
+        ? {
+            cranialNeck: {
+              ...this.built.anatomy.cranialNeck,
+              neckVertexRange: { ...this.built.anatomy.cranialNeck.neckVertexRange },
+              cranialVertexRange: { ...this.built.anatomy.cranialNeck.cranialVertexRange },
+              indexRange: { ...this.built.anatomy.cranialNeck.indexRange },
             },
           }
         : {}),
@@ -837,10 +858,18 @@ export class CharacterHost {
         eyeVertexRange: this.built.eyeVertexRange,
         orbitalVertexRange: this.built.orbital?.vertexRange,
         topology: this.faceTopology,
+        baseNormals: this.deformationBaseNormals,
+        indices: this.built.mesh.indices,
+        normalPolicy: this.expressionNormalPolicy,
       },
       this.morphWeights
     );
     this.built.mesh.positions = morphed.positions;
+    if (morphed.normals) {
+      this.built.mesh.normals = morphed.normals;
+    } else {
+      this.built.mesh.normals = new Float32Array(this.deformationBaseNormals);
+    }
     this.lastMorphReceipt = morphed.receipt;
     return {
       ...morphed.receipt,

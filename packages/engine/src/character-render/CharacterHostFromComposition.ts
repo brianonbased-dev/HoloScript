@@ -44,7 +44,11 @@ import {
   type AgentAvatarHairStyle,
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
-import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
+import type {
+  NativeMorphNormalPolicy,
+  NativeMorphReceipt,
+  NativeMorphWeights,
+} from './AgentAvatarMorph';
 import {
   deriveCharacterEnvironmentLightReceipt,
   type CharacterEnvironmentLightOptions,
@@ -129,6 +133,10 @@ export interface CharacterHostFromCompositionResult {
     hairGuides?: number;
     hairCardsPerGuide?: number;
     hairSegments?: number;
+    /** Portrait-cranial-v3 longitude budget selected by this authored tier. */
+    faceRadialSegments?: number;
+    /** Portrait-cranial-v3 latitude budget selected by this authored tier. */
+    faceVerticalSegments?: number;
     /** Source-authored switching semantics shared by every selected tier. */
     transition?: CharacterLODTransitionReceipt;
   };
@@ -153,6 +161,7 @@ export interface CharacterHostFromCompositionResult {
     cheekboneScale?: number;
     chinProjection?: number;
     templeWidth?: number;
+    expressionNormalPolicy?: NativeMorphNormalPolicy;
     faceWidth?: number;
     faceLength?: number;
     jawTaper?: number;
@@ -545,6 +554,8 @@ export function buildCharacterHostFromComposition(
       const authoredHairGuides = asNum(selected.hair_guides);
       const authoredHairCardsPerGuide = asNum(selected.hair_cards_per_guide);
       const authoredHairSegments = asNum(selected.hair_segments);
+      const authoredFaceRadialSegments = asNum(selected.face_radial_segments);
+      const authoredFaceVerticalSegments = asNum(selected.face_vertical_segments);
       const hairGuides =
         authoredHairGuides === undefined
           ? undefined
@@ -557,6 +568,14 @@ export function buildCharacterHostFromComposition(
         authoredHairSegments === undefined
           ? undefined
           : Math.max(2, Math.min(16, Math.round(authoredHairSegments)));
+      const faceRadialSegments =
+        authoredFaceRadialSegments === undefined
+          ? undefined
+          : Math.max(12, Math.min(48, Math.round(authoredFaceRadialSegments)));
+      const faceVerticalSegments =
+        authoredFaceVerticalSegments === undefined
+          ? undefined
+          : Math.max(8, Math.min(36, Math.round(authoredFaceVerticalSegments)));
       lod = {
         level: requestedLevel,
         distance: Math.max(0, asNum(selected.distance) ?? 0),
@@ -564,6 +583,8 @@ export function buildCharacterHostFromComposition(
         ...(hairGuides === undefined ? {} : { hairGuides }),
         ...(hairCardsPerGuide === undefined ? {} : { hairCardsPerGuide }),
         ...(hairSegments === undefined ? {} : { hairSegments }),
+        ...(faceRadialSegments === undefined ? {} : { faceRadialSegments }),
+        ...(faceVerticalSegments === undefined ? {} : { faceVerticalSegments }),
         ...(transition ? { transition } : {}),
       };
       report.mapped.push(`@lod(level=${requestedLevel})`);
@@ -759,6 +780,7 @@ export function buildCharacterHostFromComposition(
   let cheekboneScale: number | undefined;
   let chinProjection: number | undefined;
   let templeWidth: number | undefined;
+  let expressionNormalPolicy: NativeMorphNormalPolicy | undefined;
   let faceWidth = 1;
   let faceLength = 1;
   let jawTaper = 0.22;
@@ -782,13 +804,15 @@ export function buildCharacterHostFromComposition(
     if (authoredTopology === 'procedural-head-v1' || authoredTopology === 'neutral-anatomical-v2') {
       faceTopology = authoredTopology;
       if (faceTopology === 'neutral-anatomical-v2') {
+        const authoredFaceRadialSegments = asNum(cfgVal(faceTrait, 'radial_segments'));
+        const authoredFaceVerticalSegments = asNum(cfgVal(faceTrait, 'vertical_segments'));
         faceRadialSegments = Math.max(
           12,
-          Math.min(32, Math.round(asNum(cfgVal(faceTrait, 'radial_segments')) ?? 20))
+          Math.min(32, Math.round(authoredFaceRadialSegments ?? 20))
         );
         faceVerticalSegments = Math.max(
           8,
-          Math.min(24, Math.round(asNum(cfgVal(faceTrait, 'vertical_segments')) ?? 14))
+          Math.min(24, Math.round(authoredFaceVerticalSegments ?? 14))
         );
         faceTearline = cfgVal(faceTrait, 'tearline', 'include_tearline') !== false;
         authoredFaceWidth = asNum(faceTrait.config.face_width ?? faceTrait.config.faceWidth);
@@ -842,15 +866,38 @@ export function buildCharacterHostFromComposition(
         if (
           authoredFacialDetailProfile === 'legacy-landmarks-v1' ||
           authoredFacialDetailProfile === 'civic-landmarks-v1' ||
-          authoredFacialDetailProfile === 'portrait-silhouette-v2'
+          authoredFacialDetailProfile === 'portrait-silhouette-v2' ||
+          authoredFacialDetailProfile === 'portrait-cranial-v3'
         ) {
-          facialDetailProfile = authoredFacialDetailProfile;
-          eyeScale = clamp(asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1, 0.72, 1.08);
-          browHeight = clamp(asNum(cfgVal(faceTrait, 'brow_height')) ?? 1.05, 0.65, 1.65);
-          browThickness = clamp(asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16, 0.08, 0.32);
-          earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
-          mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
-          if (facialDetailProfile === 'portrait-silhouette-v2') {
+          if (
+            authoredFacialDetailProfile === 'portrait-cranial-v3' &&
+            upperBodyProfile !== 'coherent-expressive-anatomy-v7'
+          ) {
+            report.stubbed.push({
+              trait: '@face(facial_detail_profile)',
+              reason:
+                'portrait-cranial-v3 requires coherent-expressive-anatomy-v7 for indexed neck-cranium continuity',
+            });
+          } else {
+            facialDetailProfile = authoredFacialDetailProfile;
+            eyeScale = clamp(
+              asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1,
+              0.72,
+              1.08
+            );
+            browHeight = clamp(asNum(cfgVal(faceTrait, 'brow_height')) ?? 1.05, 0.65, 1.65);
+            browThickness = clamp(
+              asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16,
+              0.08,
+              0.32
+            );
+            earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
+            mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
+          }
+          if (
+            facialDetailProfile === 'portrait-silhouette-v2' ||
+            facialDetailProfile === 'portrait-cranial-v3'
+          ) {
             cheekboneScale = clamp(asNum(cfgVal(faceTrait, 'cheekbone_scale')) ?? 1, 0.82, 1.22);
             chinProjection = clamp(asNum(cfgVal(faceTrait, 'chin_projection')) ?? 1, 0.72, 1.28);
             templeWidth = clamp(asNum(cfgVal(faceTrait, 'temple_width')) ?? 1, 0.88, 1.12);
@@ -861,16 +908,39 @@ export function buildCharacterHostFromComposition(
                 'cheekbone_scale, chin_projection, and temple_width require portrait_silhouette_v2',
             });
           }
-          report.mapped.push(
-            `@face(facial_detail_profile=${facialDetailProfile},eye_scale=${eyeScale},` +
-              `brow_height=${browHeight},brow_thickness=${browThickness},` +
-              `ear_scale=${earScale},mouth_depth=${mouthDepth}` +
-              (facialDetailProfile === 'portrait-silhouette-v2'
-                ? `,cheekbone_scale=${cheekboneScale},chin_projection=${chinProjection},` +
-                  `temple_width=${templeWidth}`
-                : '') +
-              ')'
-          );
+          if (facialDetailProfile) {
+            if (facialDetailProfile === 'portrait-cranial-v3') {
+              faceRadialSegments = Math.max(
+                12,
+                Math.min(
+                  48,
+                  Math.round(lod?.faceRadialSegments ?? authoredFaceRadialSegments ?? 40)
+                )
+              );
+              faceVerticalSegments = Math.max(
+                8,
+                Math.min(
+                  36,
+                  Math.round(lod?.faceVerticalSegments ?? authoredFaceVerticalSegments ?? 28)
+                )
+              );
+              anatomyAuthored = true;
+              report.mapped.push(
+                `@lod(face_segments=${faceRadialSegments}x${faceVerticalSegments})`
+              );
+            }
+            report.mapped.push(
+              `@face(facial_detail_profile=${facialDetailProfile},eye_scale=${eyeScale},` +
+                `brow_height=${browHeight},brow_thickness=${browThickness},` +
+                `ear_scale=${earScale},mouth_depth=${mouthDepth}` +
+                (facialDetailProfile === 'portrait-silhouette-v2' ||
+                facialDetailProfile === 'portrait-cranial-v3'
+                  ? `,cheekbone_scale=${cheekboneScale},chin_projection=${chinProjection},` +
+                    `temple_width=${templeWidth}`
+                  : '') +
+                ')'
+            );
+          }
         } else if (authoredFacialDetailProfile) {
           report.stubbed.push({
             trait: '@face(facial_detail_profile)',
@@ -888,6 +958,33 @@ export function buildCharacterHostFromComposition(
           report.stubbed.push({
             trait: '@face(facial_landmark_controls)',
             reason: 'facial landmark controls require a supported facial_detail_profile',
+          });
+        }
+        const authoredExpressionNormalPolicy = asStr(
+          cfgVal(faceTrait, 'expression_normal_policy', 'expressionNormalPolicy')
+        )
+          ?.toLowerCase()
+          .replace(/_/g, '-');
+        if (
+          authoredExpressionNormalPolicy === 'recompute-affected-v1' &&
+          facialDetailProfile === 'portrait-cranial-v3'
+        ) {
+          expressionNormalPolicy = authoredExpressionNormalPolicy;
+          report.mapped.push(
+            `@face(expression_normal_policy=${expressionNormalPolicy})`
+          );
+        } else if (authoredExpressionNormalPolicy === 'legacy-static-v1') {
+          expressionNormalPolicy = authoredExpressionNormalPolicy;
+          report.mapped.push(
+            `@face(expression_normal_policy=${expressionNormalPolicy})`
+          );
+        } else if (authoredExpressionNormalPolicy) {
+          report.stubbed.push({
+            trait: '@face(expression_normal_policy)',
+            reason:
+              authoredExpressionNormalPolicy === 'recompute-affected-v1'
+                ? 'recompute-affected-v1 requires portrait-cranial-v3'
+                : `policy '${authoredExpressionNormalPolicy}' has no native expression-normal channel`,
           });
         }
       } else if (
@@ -941,6 +1038,7 @@ export function buildCharacterHostFromComposition(
         ...(cheekboneScale === undefined ? {} : { cheekboneScale }),
         ...(chinProjection === undefined ? {} : { chinProjection }),
         ...(templeWidth === undefined ? {} : { templeWidth }),
+        ...(expressionNormalPolicy === undefined ? {} : { expressionNormalPolicy }),
         ...(authoredFaceWidth === undefined ? {} : { faceWidth }),
         ...(authoredFaceLength === undefined ? {} : { faceLength }),
         ...(authoredJawTaper === undefined ? {} : { jawTaper }),
@@ -1405,6 +1503,7 @@ export function buildCharacterHostFromComposition(
     cheekboneScale,
     chinProjection,
     templeWidth,
+    expressionNormalPolicy,
     faceWidth,
     faceLength,
     jawTaper,

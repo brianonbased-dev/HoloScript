@@ -43,4 +43,24 @@ describe('native procedural-head morph channel', () => {
     expect(reset.changedVertexCount).toBe(0);
     expect(Array.from(host.getDrawSpec().mesh.positions)).toEqual(neutral);
   });
+
+  it('restores neutral normals when an H3X expression is reset to zero', () => {
+    const host = new CharacterHost({
+      entityId: 'h3x-normal-reset',
+      faceTopology: 'neutral-anatomical-v2',
+      facialDetailProfile: 'portrait-cranial-v3',
+      faceRadialSegments: 44,
+      faceVerticalSegments: 30,
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      expressionNormalPolicy: 'recompute-affected-v1',
+    });
+    const neutralNormals = Array.from(host.getDrawSpec().mesh.normals);
+    const expressive = host.applyMorphWeights({ smile: 0.8, jaw_open: 0.35 });
+    expect(expressive.normalsRecomputed).toBe(true);
+    expect(Array.from(host.getDrawSpec().mesh.normals)).not.toEqual(neutralNormals);
+
+    const reset = host.applyMorphWeights({ smile: 0, jaw_open: 0 });
+    expect(reset.normalsRecomputed).toBe(true);
+    expect(Array.from(host.getDrawSpec().mesh.normals)).toEqual(neutralNormals);
+  });
 });

@@ -91,6 +91,7 @@ export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
   'legacy-landmarks-v1',
   'civic-landmarks-v1',
   'portrait-silhouette-v2',
+  'portrait-cranial-v3',
 ] as const;
 export type AgentAvatarFacialDetailProfile = (typeof AGENT_AVATAR_FACIAL_DETAIL_PROFILES)[number];
 
@@ -111,8 +112,9 @@ export interface AgentAvatarOrbitalGeometryReceipt {
 export interface AgentAvatarFacialLandmarkReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-facial-landmarks.v1'
-    | 'holoscript.agent-avatar-facial-landmarks.v2';
-  profile: 'civic-landmarks-v1' | 'portrait-silhouette-v2';
+    | 'holoscript.agent-avatar-facial-landmarks.v2'
+    | 'holoscript.agent-avatar-facial-landmarks.v3';
+  profile: 'civic-landmarks-v1' | 'portrait-silhouette-v2' | 'portrait-cranial-v3';
   radialSegments: number;
   verticalSegments: number;
   eyeScale: number;
@@ -130,8 +132,26 @@ export interface AgentAvatarFacialLandmarkReceipt {
   indexRange: { indexStart: number; indexCount: number };
 }
 
+export interface AgentAvatarCranialNeckGeometryReceipt {
+  schemaVersion: 'holoscript.agent-avatar-cranial-neck.v1';
+  profile: 'indexed-neck-cranium-stitch-v1';
+  neckRadialSegments: number;
+  cranialRadialSegments: number;
+  bridgeTriangleCount: number;
+  /** Bind-space separation between the upper neck ring and truncated cranial ring. */
+  axialSeparation: number;
+  /** Largest closest-sample distance between the two stitched boundary loops. */
+  maxSeamGap: number;
+  neckVertexRange: { vertexStart: number; vertexCount: number };
+  cranialVertexRange: { vertexStart: number; vertexCount: number };
+  indexRange: { indexStart: number; indexCount: number };
+}
+
 export interface AgentAvatarAnatomyReceipt {
-  schemaVersion: 'holoscript.agent-avatar-anatomy.v1' | 'holoscript.agent-avatar-anatomy.v2';
+  schemaVersion:
+    | 'holoscript.agent-avatar-anatomy.v1'
+    | 'holoscript.agent-avatar-anatomy.v2'
+    | 'holoscript.agent-avatar-anatomy.v3';
   faceWidth: number;
   faceLength: number;
   jawTaper: number;
@@ -139,17 +159,21 @@ export interface AgentAvatarAnatomyReceipt {
   torsoScale: number;
   /** Present only when the connected native upper-body surface is actually emitted. */
   upperBody?: AgentAvatarUpperBodyGeometryReceipt;
+  /** H3X indexed transition between the authored upper-neck and truncated cranial loops. */
+  cranialNeck?: AgentAvatarCranialNeckGeometryReceipt;
 }
 
 export interface AgentAvatarJointDeformationReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-joint-deformation.v1'
     | 'holoscript.agent-avatar-joint-deformation.v2'
-    | 'holoscript.agent-avatar-joint-deformation.v3';
+    | 'holoscript.agent-avatar-joint-deformation.v3'
+    | 'holoscript.agent-avatar-joint-deformation.v4';
   profile:
     | 'dual-influence-upper-limb-v1'
     | 'portrait-shoulder-volume-v2'
-    | 'expressive-neck-scapular-volume-v3';
+    | 'expressive-neck-scapular-volume-v3'
+    | 'expressive-cranial-neck-volume-v4';
   influencedVertexCount: number;
   jointPairCount: number;
   maxSecondaryWeight: number;
@@ -162,6 +186,8 @@ export interface AgentAvatarJointDeformationReceipt {
     fingerJoint: number;
     /** V7 axial rings blended between spine2 and neck. */
     neck?: number;
+    /** H3X stitched neck and lower-cranium loops blended between neck and head. */
+    cranialNeck?: number;
   };
   /** V2 source-derived shoulder transition contract. */
   shoulderVolume?: {
@@ -177,6 +203,12 @@ export interface AgentAvatarJointDeformationReceipt {
     scapularProtraction: { left: number; right: number };
     neckBlendRingCount: 4;
     neckInfluenceWeights: readonly [number, number, number, number];
+  };
+  /** H3X head/neck deformation continuity over the indexed cranial stitch. */
+  cranialNeckContinuity?: {
+    profile: 'dual-influence-neck-head-stitch-v1';
+    neckToHeadWeight: 0.35;
+    headToNeckWeight: 0.45;
   };
 }
 
@@ -389,9 +421,9 @@ export interface AgentAvatarMeshOptions {
   buildScale?: number;
   /** Source-authored facial topology. Legacy remains the default for compatibility. */
   faceTopology?: AgentAvatarFaceTopology;
-  /** Longitude segments for neutral-anatomical-v2 (12..32). */
+  /** Longitude segments (12..32 legacy; 12..48 for portrait-cranial-v3). */
   faceRadialSegments?: number;
-  /** Latitude segments for neutral-anatomical-v2 (8..24). */
+  /** Latitude segments (8..24 legacy; 8..36 for portrait-cranial-v3). */
   faceVerticalSegments?: number;
   /** Emit native eyelid/tearline rim topology around the procedural eyes. */
   faceTearline?: boolean;
@@ -2814,6 +2846,83 @@ function pushCivicFacialLandmarks(
   }
 }
 
+function stitchCranialNeckLoops(
+  acc: MeshAccum,
+  neckVertexStart: number,
+  neckRadialSegments: number,
+  cranialVertexStart: number,
+  cranialRadialSegments: number,
+  heightScale: number
+): AgentAvatarCranialNeckGeometryReceipt {
+  const indexStart = acc.indices.length;
+  let neckIndex = 0;
+  let cranialIndex = 0;
+  while (neckIndex < neckRadialSegments || cranialIndex < cranialRadialSegments) {
+    const neckNext = (neckIndex + 1) / neckRadialSegments;
+    const cranialNext = (cranialIndex + 1) / cranialRadialSegments;
+    const neckA = neckVertexStart + (neckIndex % neckRadialSegments);
+    const neckB = neckVertexStart + ((neckIndex + 1) % neckRadialSegments);
+    const cranialA = cranialVertexStart + (cranialIndex % cranialRadialSegments);
+    const cranialB = cranialVertexStart + ((cranialIndex + 1) % cranialRadialSegments);
+    if (Math.abs(neckNext - cranialNext) < 1e-12) {
+      acc.indices.push(neckA, neckB, cranialB, neckA, cranialB, cranialA);
+      neckIndex++;
+      cranialIndex++;
+    } else if (neckNext < cranialNext) {
+      acc.indices.push(neckA, neckB, cranialA);
+      neckIndex++;
+    } else {
+      acc.indices.push(neckA, cranialB, cranialA);
+      cranialIndex++;
+    }
+  }
+
+  const pointAt = (vertex: number): Vec3 => ({
+    x: acc.positions[vertex * 3],
+    y: acc.positions[vertex * 3 + 1],
+    z: acc.positions[vertex * 3 + 2],
+  });
+  const neckPoints = Array.from({ length: neckRadialSegments }, (_, index) =>
+    pointAt(neckVertexStart + index)
+  );
+  const cranialPoints = Array.from({ length: cranialRadialSegments }, (_, index) =>
+    pointAt(cranialVertexStart + index)
+  );
+  const nearestDistance = (point: Vec3, candidates: readonly Vec3[]): number =>
+    Math.min(...candidates.map((candidate) => distance(point, candidate)));
+  const maxSeamGap =
+    Math.max(
+      ...neckPoints.map((point) => nearestDistance(point, cranialPoints)),
+      ...cranialPoints.map((point) => nearestDistance(point, neckPoints))
+    ) * heightScale;
+  const averageY = (points: readonly Vec3[]): number =>
+    points.reduce((sum, point) => sum + point.y, 0) / Math.max(1, points.length);
+
+  return {
+    schemaVersion: 'holoscript.agent-avatar-cranial-neck.v1',
+    profile: 'indexed-neck-cranium-stitch-v1',
+    neckRadialSegments,
+    cranialRadialSegments,
+    bridgeTriangleCount: (acc.indices.length - indexStart) / 3,
+    axialSeparation: round6(
+      Math.abs(averageY(cranialPoints) - averageY(neckPoints)) * heightScale
+    ),
+    maxSeamGap: round6(maxSeamGap),
+    neckVertexRange: {
+      vertexStart: neckVertexStart,
+      vertexCount: neckRadialSegments,
+    },
+    cranialVertexRange: {
+      vertexStart: cranialVertexStart,
+      vertexCount: cranialRadialSegments,
+    },
+    indexRange: {
+      indexStart,
+      indexCount: acc.indices.length - indexStart,
+    },
+  };
+}
+
 /**
  * Source-selectable neutral facial foundation. This is intentionally bounded: it is not a scan
  * or a production blendshape rig, but it replaces the visible block head with a smooth,
@@ -2843,10 +2952,18 @@ function pushNeutralAnatomicalHead(
   jawTaperAmount: number,
   cheekboneScale: number,
   chinProjection: number,
-  templeWidth: number
+  templeWidth: number,
+  cranialNeckAnchor:
+    | {
+        vertexStart: number;
+        radialSegments: number;
+      }
+    | undefined,
+  heightScale: number
 ): {
   orbital?: AgentAvatarOrbitalGeometryReceipt;
   facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
+  cranialNeck?: AgentAvatarCranialNeckGeometryReceipt;
 } {
   const center = {
     x: headBase.x,
@@ -2857,10 +2974,17 @@ function pushNeutralAnatomicalHead(
   const radiusY = headLength * 0.62 * faceLength;
   const radiusZ = radius * 1.08;
   const base = acc.positions.length / 3;
-  const portraitSilhouette = facialDetailProfile === 'portrait-silhouette-v2';
+  const portraitCranial = facialDetailProfile === 'portrait-cranial-v3';
+  const portraitSilhouette =
+    facialDetailProfile === 'portrait-silhouette-v2' || portraitCranial;
+  const cranialMinimumY = headBase.y + headLength * 0.054;
+  const lowerNormalizedY = portraitCranial
+    ? clampFloat((cranialMinimumY - center.y) / radiusY, -0.76, -0.9, -0.62)
+    : -1;
+  const thetaLimit = Math.acos(lowerNormalizedY);
 
   for (let latitude = 0; latitude <= verticalSegments; latitude++) {
-    const theta = (latitude / verticalSegments) * Math.PI;
+    const theta = (latitude / verticalSegments) * thetaLimit;
     const normalizedY = Math.cos(theta);
     const ring = Math.sin(theta);
     const lowerFace = Math.max(0, -normalizedY);
@@ -2906,6 +3030,17 @@ function pushNeutralAnatomicalHead(
       acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
     }
   }
+  const cranialNeck =
+    portraitCranial && cranialNeckAnchor
+      ? stitchCranialNeckLoops(
+          acc,
+          cranialNeckAnchor.vertexStart,
+          cranialNeckAnchor.radialSegments,
+          base + verticalSegments * stride,
+          radialSegments,
+          heightScale
+        )
+      : undefined;
 
   const faceZ = center.z + radiusZ * 0.965;
   pushSmoothEllipsoid(
@@ -3014,7 +3149,8 @@ function pushNeutralAnatomicalHead(
   let facialLandmarks: AgentAvatarFacialLandmarkReceipt | undefined;
   if (
     facialDetailProfile === 'civic-landmarks-v1' ||
-    facialDetailProfile === 'portrait-silhouette-v2'
+    facialDetailProfile === 'portrait-silhouette-v2' ||
+    facialDetailProfile === 'portrait-cranial-v3'
   ) {
     const landmarkVertexStart = acc.positions.length / 3;
     const landmarkIndexStart = acc.indices.length;
@@ -3035,9 +3171,11 @@ function pushNeutralAnatomicalHead(
       jointIdx
     );
     facialLandmarks = {
-      schemaVersion: portraitSilhouette
-        ? 'holoscript.agent-avatar-facial-landmarks.v2'
-        : 'holoscript.agent-avatar-facial-landmarks.v1',
+      schemaVersion: portraitCranial
+        ? 'holoscript.agent-avatar-facial-landmarks.v3'
+        : portraitSilhouette
+          ? 'holoscript.agent-avatar-facial-landmarks.v2'
+          : 'holoscript.agent-avatar-facial-landmarks.v1',
       profile: facialDetailProfile,
       radialSegments,
       verticalSegments,
@@ -3066,6 +3204,7 @@ function pushNeutralAnatomicalHead(
   return {
     ...(orbital ? { orbital } : {}),
     ...(facialLandmarks ? { facialLandmarks } : {}),
+    ...(cranialNeck ? { cranialNeck } : {}),
   };
 }
 
@@ -3085,7 +3224,8 @@ interface DualInfluenceBuild {
  */
 function buildDualInfluenceJointDeformation(
   acc: MeshAccum,
-  upperBody: AgentAvatarUpperBodyGeometryReceipt
+  upperBody: AgentAvatarUpperBodyGeometryReceipt,
+  cranialNeck?: AgentAvatarCranialNeckGeometryReceipt
 ): DualInfluenceBuild {
   const expressive = upperBody.profile === 'expressive-anatomy-v7';
   const portrait = upperBody.profile === 'portrait-anatomy-v6' || expressive;
@@ -3094,13 +3234,14 @@ function buildDualInfluenceJointDeformation(
   const primaryJointWeights = new Float32Array(acc.jointWeights);
   const secondaryJointIndices = new Uint32Array(acc.jointIndices);
   const secondaryJointWeights = new Float32Array(acc.jointWeights.length);
-  const regionVertexCounts = {
+  const regionVertexCounts: AgentAvatarJointDeformationReceipt['regionVertexCounts'] = {
     shoulder: 0,
     elbow: 0,
     wrist: 0,
     digitRoot: 0,
     fingerJoint: 0,
     ...(expressive ? { neck: 0 } : {}),
+    ...(cranialNeck ? { cranialNeck: 0 } : {}),
   };
   const jointPairs = new Set<string>();
   let maxSecondaryWeight = 0;
@@ -3246,9 +3387,29 @@ function buildDualInfluenceJointDeformation(
     assignRing(axial, radial, 9, 'neck', 'spine2', neckInfluenceWeights[2], 'neck');
     assignRing(axial, radial, 10, 'neck', 'spine2', neckInfluenceWeights[3], 'neck');
   }
+  if (cranialNeck) {
+    assignRing(
+      cranialNeck.neckVertexRange.vertexStart,
+      cranialNeck.neckRadialSegments,
+      0,
+      'neck',
+      'head',
+      0.35,
+      'cranialNeck'
+    );
+    assignRing(
+      cranialNeck.cranialVertexRange.vertexStart,
+      cranialNeck.cranialRadialSegments,
+      0,
+      'head',
+      'neck',
+      0.45,
+      'cranialNeck'
+    );
+  }
 
   const influencedVertexCount = Object.values(regionVertexCounts).reduce(
-    (sum, count) => sum + count,
+    (sum, count) => sum + (count ?? 0),
     0
   );
   return {
@@ -3256,16 +3417,20 @@ function buildDualInfluenceJointDeformation(
     secondaryJointIndices,
     secondaryJointWeights,
     receipt: {
-      schemaVersion: expressive
-        ? 'holoscript.agent-avatar-joint-deformation.v3'
-        : portrait
-          ? 'holoscript.agent-avatar-joint-deformation.v2'
-          : 'holoscript.agent-avatar-joint-deformation.v1',
-      profile: expressive
-        ? 'expressive-neck-scapular-volume-v3'
-        : portrait
-          ? 'portrait-shoulder-volume-v2'
-          : 'dual-influence-upper-limb-v1',
+      schemaVersion: cranialNeck
+        ? 'holoscript.agent-avatar-joint-deformation.v4'
+        : expressive
+          ? 'holoscript.agent-avatar-joint-deformation.v3'
+          : portrait
+            ? 'holoscript.agent-avatar-joint-deformation.v2'
+            : 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: cranialNeck
+        ? 'expressive-cranial-neck-volume-v4'
+        : expressive
+          ? 'expressive-neck-scapular-volume-v3'
+          : portrait
+            ? 'portrait-shoulder-volume-v2'
+            : 'dual-influence-upper-limb-v1',
       influencedVertexCount,
       jointPairCount: jointPairs.size,
       maxSecondaryWeight: round6(maxSecondaryWeight),
@@ -3302,6 +3467,15 @@ function buildDualInfluenceJointDeformation(
             },
           }
         : {}),
+      ...(cranialNeck
+        ? {
+            cranialNeckContinuity: {
+              profile: 'dual-influence-neck-head-stitch-v1' as const,
+              neckToHeadWeight: 0.35 as const,
+              headToNeckWeight: 0.45 as const,
+            },
+          }
+        : {}),
     },
   };
 }
@@ -3318,8 +3492,20 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const buildScale = opts.buildScale ?? 1;
   const heightScale = opts.heightScale ?? 1;
   const faceTopology = opts.faceTopology ?? 'procedural-head-v1';
-  const faceRadialSegments = clampInt(opts.faceRadialSegments, 20, 12, 32);
-  const faceVerticalSegments = clampInt(opts.faceVerticalSegments, 14, 8, 24);
+  const facialDetailProfile = opts.facialDetailProfile ?? 'legacy-landmarks-v1';
+  const portraitCranial = facialDetailProfile === 'portrait-cranial-v3';
+  const faceRadialSegments = clampInt(
+    opts.faceRadialSegments,
+    portraitCranial ? 40 : 20,
+    12,
+    portraitCranial ? 48 : 32
+  );
+  const faceVerticalSegments = clampInt(
+    opts.faceVerticalSegments,
+    portraitCranial ? 28 : 14,
+    8,
+    portraitCranial ? 36 : 24
+  );
   const orbitalProfile = opts.orbitalProfile ?? 'tearline-rim-v1';
   const eyeRecess = clampFloat(
     opts.eyeRecess,
@@ -3329,7 +3515,6 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   );
   const lidOpening = clampFloat(opts.lidOpening, 0.56, 0.42, 0.78);
   const canthalTilt = clampFloat(opts.canthalTilt, 0.12, -0.25, 0.25);
-  const facialDetailProfile = opts.facialDetailProfile ?? 'legacy-landmarks-v1';
   const eyeScale = clampFloat(opts.eyeScale, 1, 0.72, 1.08);
   const browHeight = clampFloat(opts.browHeight, 1.05, 0.65, 1.65);
   const browThickness = clampFloat(opts.browThickness, 0.16, 0.08, 0.32);
@@ -3360,6 +3545,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   };
   let orbital: AgentAvatarOrbitalGeometryReceipt | undefined;
   let facialLandmarks: AgentAvatarFacialLandmarkReceipt | undefined;
+  let cranialNeck: AgentAvatarCranialNeckGeometryReceipt | undefined;
   const coherentProfile = upperBodyProfile === 'legacy-segments-v1' ? undefined : upperBodyProfile;
   const upperBodyBase = coherentProfile
     ? pushCoherentUpperBody(
@@ -3554,10 +3740,22 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
           jawTaper,
           cheekboneScale,
           chinProjection,
-          templeWidth
+          templeWidth,
+          facialDetailProfile === 'portrait-cranial-v3' &&
+            upperBodyProfile === 'coherent-expressive-anatomy-v7' &&
+            upperBody
+            ? {
+                vertexStart:
+                  upperBody.vertexRange.vertexStart +
+                  (upperBody.ringCount - 1) * upperBody.radialSegments,
+                radialSegments: upperBody.radialSegments,
+              }
+            : undefined,
+          heightScale
         );
         orbital = faceGeometry.orbital;
         facialLandmarks = faceGeometry.facialLandmarks;
+        cranialNeck = faceGeometry.cranialNeck;
       } else {
         pushBox(acc, a, b, radiusFor(bone.name, buildScale, torsoScale), jointIdx);
       }
@@ -3579,7 +3777,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
       upperBodyProfile === 'coherent-portrait-anatomy-v6' ||
       upperBodyProfile === 'coherent-expressive-anatomy-v7') &&
     upperBody
-      ? buildDualInfluenceJointDeformation(acc, upperBody)
+      ? buildDualInfluenceJointDeformation(acc, upperBody, cranialNeck)
       : undefined;
 
   return {
@@ -3601,9 +3799,11 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     boneOrder: BONE_ORDER,
     anatomy: {
       schemaVersion:
-        upperBodyProfile === 'coherent-expressive-anatomy-v7'
-          ? 'holoscript.agent-avatar-anatomy.v2'
-          : 'holoscript.agent-avatar-anatomy.v1',
+        cranialNeck
+          ? 'holoscript.agent-avatar-anatomy.v3'
+          : upperBodyProfile === 'coherent-expressive-anatomy-v7'
+            ? 'holoscript.agent-avatar-anatomy.v2'
+            : 'holoscript.agent-avatar-anatomy.v1',
       faceWidth,
       faceLength,
       jawTaper,
@@ -3650,6 +3850,16 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
                     }
                   : {}),
               })) as [AgentAvatarUpperLimbGeometryReceipt, AgentAvatarUpperLimbGeometryReceipt],
+            },
+          }
+        : {}),
+      ...(cranialNeck
+        ? {
+            cranialNeck: {
+              ...cranialNeck,
+              neckVertexRange: { ...cranialNeck.neckVertexRange },
+              cranialVertexRange: { ...cranialNeck.cranialVertexRange },
+              indexRange: { ...cranialNeck.indexRange },
             },
           }
         : {}),

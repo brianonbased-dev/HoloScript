@@ -1775,4 +1775,151 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.report.mapped.some((entry) => entry.startsWith('@expression('))).toBe(true);
     expect(result.report.stubbed).toEqual([]);
   });
+
+  it('maps H3X close-up face LODs, cranial continuity, and expression normals', () => {
+    const composition: ParsedComposition = {
+      objects: [
+        {
+          id: 'openai',
+          traits: [
+            {
+              name: 'lod',
+              config: {
+                levels: [
+                  {
+                    level: 0,
+                    distance: 0,
+                    garment_segments: 24,
+                    face_radial_segments: 44,
+                    face_vertical_segments: 30,
+                  },
+                  {
+                    level: 2,
+                    distance: 16,
+                    garment_segments: 12,
+                    face_radial_segments: 24,
+                    face_vertical_segments: 16,
+                  },
+                ],
+              },
+            },
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                radial_segments: 28,
+                vertical_segments: 20,
+                orbital_profile: 'recessed_lids_v1',
+                facial_detail_profile: 'portrait_cranial_v3',
+                expression_normal_policy: 'recompute_affected_v1',
+              },
+            },
+            {
+              name: 'expression',
+              config: {
+                blink_left: 0.2,
+                brow_raise_right: 0.35,
+                smile: 0.42,
+                jaw_open: 0.1,
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const closeup = buildCharacterHostFromComposition(composition, { lodLevel: 0 });
+    const distance = buildCharacterHostFromComposition(composition, { lodLevel: 2 });
+
+    expect(closeup.ok).toBe(true);
+    expect(closeup.lod).toMatchObject({
+      level: 0,
+      faceRadialSegments: 44,
+      faceVerticalSegments: 30,
+    });
+    expect(distance.lod).toMatchObject({
+      level: 2,
+      faceRadialSegments: 24,
+      faceVerticalSegments: 16,
+    });
+    expect(closeup.face).toMatchObject({
+      topology: 'neutral-anatomical-v2',
+      radialSegments: 44,
+      verticalSegments: 30,
+      facialDetailProfile: 'portrait-cranial-v3',
+      expressionNormalPolicy: 'recompute-affected-v1',
+    });
+    expect(closeup.anatomy?.cranialNeck).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-cranial-neck.v1',
+      profile: 'indexed-neck-cranium-stitch-v1',
+    });
+    expect(closeup.expression).toMatchObject({
+      schemaVersion: 'holoscript.native-facial-morph.v3',
+      normalsRecomputed: true,
+      normalPolicy: 'recompute-affected-v1',
+    });
+    expect(closeup.host!.getDrawSpec().mesh.vertexCount).toBeGreaterThan(
+      distance.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(closeup.report.mapped).toContain('@lod(face_segments=44x30)');
+    expect(closeup.report.mapped).toContain(
+      '@face(expression_normal_policy=recompute-affected-v1)'
+    );
+    expect(closeup.report.stubbed).toEqual([]);
+  });
+
+  it('fails closed when H3X cranial continuity or expression-normal prerequisites are absent', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'unsupported-h3x',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_portrait_anatomy_v6',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                facial_detail_profile: 'portrait_cranial_v3',
+                expression_normal_policy: 'recompute_affected_v1',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.face).toMatchObject({
+      topology: 'neutral-anatomical-v2',
+      radialSegments: 20,
+      verticalSegments: 14,
+    });
+    expect(result.face?.facialDetailProfile).toBeUndefined();
+    expect(result.face?.expressionNormalPolicy).toBeUndefined();
+    expect(result.anatomy?.cranialNeck).toBeUndefined();
+    expect(result.report.stubbed).toEqual([
+      {
+        trait: '@face(facial_detail_profile)',
+        reason:
+          'portrait-cranial-v3 requires coherent-expressive-anatomy-v7 for indexed neck-cranium continuity',
+      },
+      {
+        trait: '@face(expression_normal_policy)',
+        reason: 'recompute-affected-v1 requires portrait-cranial-v3',
+      },
+    ]);
+  });
 });
