@@ -100,5 +100,19 @@ describe('AgentAvatarMorph expression controls', () => {
     expect(first.normals).toBeDefined();
     expect(Array.from(first.normals!)).not.toEqual(Array.from(built.mesh.normals));
     expect(Array.from(first.normals!)).toEqual(Array.from(second.normals!));
+    let opposingNormalCount = 0;
+    for (let offset = 0; offset < first.normals!.length; offset += 3) {
+      const changed =
+        first.normals![offset] !== built.mesh.normals[offset] ||
+        first.normals![offset + 1] !== built.mesh.normals[offset + 1] ||
+        first.normals![offset + 2] !== built.mesh.normals[offset + 2];
+      if (!changed) continue;
+      const dot =
+        first.normals![offset] * built.mesh.normals[offset] +
+        first.normals![offset + 1] * built.mesh.normals[offset + 1] +
+        first.normals![offset + 2] * built.mesh.normals[offset + 2];
+      if (dot < -1e-5) opposingNormalCount++;
+    }
+    expect(opposingNormalCount).toBe(0);
   });
 });

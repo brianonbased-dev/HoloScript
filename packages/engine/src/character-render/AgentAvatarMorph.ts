@@ -218,9 +218,16 @@ function recomputeAffectedNormals(
     const p = vertex * 3;
     const length = Math.hypot(accumulated[p], accumulated[p + 1], accumulated[p + 2]);
     if (length <= 1e-12) continue;
-    const x = accumulated[p] / length;
-    const y = accumulated[p + 1] / length;
-    const z = accumulated[p + 2] / length;
+    let x = accumulated[p] / length;
+    let y = accumulated[p + 1] / length;
+    let z = accumulated[p + 2] / length;
+    const neutralDot =
+      x * baseNormals[p] + y * baseNormals[p + 1] + z * baseNormals[p + 2];
+    if (neutralDot < 0) {
+      x = -x;
+      y = -y;
+      z = -z;
+    }
     if (normals[p] !== x || normals[p + 1] !== y || normals[p + 2] !== z) {
       changedVertexCount++;
     }
