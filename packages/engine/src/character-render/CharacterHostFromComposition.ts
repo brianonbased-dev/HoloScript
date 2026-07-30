@@ -36,6 +36,13 @@ import type {
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
 import {
+  deriveCharacterMicroMotionConfig,
+  sampleCharacterMicroMotion,
+  type CharacterMicroMotionApplicationReceipt,
+  type CharacterMicroMotionConfig,
+  type CharacterMicroMotionSample,
+} from './AgentAvatarMicroMotion';
+import {
   resolveAgentAvatarGroomProfile,
   resolveAgentAvatarHairCoverageProfile,
   resolveAgentAvatarHairStyle,
@@ -143,6 +150,19 @@ export interface CharacterHostFromCompositionResult {
   };
   /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
   cloth?: ClothSimulationConfig;
+  /** Absolute-time character presence channels and the exact native blink binding. */
+  microMotion?: {
+    config: CharacterMicroMotionConfig;
+    sourceTimeSeconds: number;
+    sample: CharacterMicroMotionSample;
+    application: CharacterMicroMotionApplicationReceipt;
+    bindings: {
+      blink: 'native-procedural-head-morph';
+      gaze: 'sampled-channel-only';
+      breath: 'sampled-channel-only';
+      cloth: 'sampled-channel-only';
+    };
+  };
   /** Source-authored native facial topology selection. */
   face?: {
     topology: AgentAvatarFaceTopology;
@@ -1641,7 +1661,65 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 12. @locomotion → gait descriptor (caller drives the per-frame clock).
+  // 13. @micro_motion → deterministic absolute-time presence channels. Blink is applied to real
+  //     native eyelid geometry; gaze, breath, and cloth phase remain honest sampled channels.
+  let microMotion: CharacterHostFromCompositionResult['microMotion'];
+  const microMotionTrait = traits.get('micro_motion');
+  if (microMotionTrait) {
+    const profile = (asStr(cfgVal(microMotionTrait, 'profile')) ?? 'human_presence_v1')
+      .toLowerCase()
+      .replace(/_/g, '-');
+    if (profile === 'human-presence-v1') {
+      const yawRadians =
+        asNum(cfgVal(microMotionTrait, 'saccade_yaw_radians')) ??
+        ((asNum(cfgVal(microMotionTrait, 'saccade_yaw_degrees')) ?? 2.6) * Math.PI) / 180;
+      const pitchRadians =
+        asNum(cfgVal(microMotionTrait, 'saccade_pitch_radians')) ??
+        ((asNum(cfgVal(microMotionTrait, 'saccade_pitch_degrees')) ?? 1.45) * Math.PI) / 180;
+      const config = deriveCharacterMicroMotionConfig({
+        profile: 'human-presence-v1',
+        seed: asStr(cfgVal(microMotionTrait, 'seed')) ?? entityId,
+        blinkIntervalSeconds: asNum(cfgVal(microMotionTrait, 'blink_interval_seconds')),
+        blinkDurationSeconds: asNum(cfgVal(microMotionTrait, 'blink_duration_seconds')),
+        saccadeIntervalSeconds: asNum(cfgVal(microMotionTrait, 'saccade_interval_seconds')),
+        saccadeSettleSeconds: asNum(cfgVal(microMotionTrait, 'saccade_settle_seconds')),
+        saccadeYawRadians: yawRadians,
+        saccadePitchRadians: pitchRadians,
+        breathRateHz: asNum(cfgVal(microMotionTrait, 'breath_rate_hz')),
+        breathAmplitude: asNum(cfgVal(microMotionTrait, 'breath_amplitude')),
+        clothRate: asNum(cfgVal(microMotionTrait, 'cloth_rate')),
+      });
+      const sourceTimeSeconds = clamp(
+        asNum(cfgVal(microMotionTrait, 'source_time_seconds')) ?? 0,
+        0,
+        86_400
+      );
+      const sample = sampleCharacterMicroMotion(config, sourceTimeSeconds);
+      const application = host.applyMicroMotionSample(sample);
+      microMotion = {
+        config,
+        sourceTimeSeconds,
+        sample,
+        application,
+        bindings: {
+          blink: 'native-procedural-head-morph',
+          gaze: 'sampled-channel-only',
+          breath: 'sampled-channel-only',
+          cloth: 'sampled-channel-only',
+        },
+      };
+      report.mapped.push(
+        '@micro_motion(profile=human-presence-v1,blink=native,gaze=channel,breath=channel,cloth=channel)'
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@micro_motion',
+        reason: `profile '${profile}' unsupported; no timing channels fabricated`,
+      });
+    }
+  }
+
+  // 14. @locomotion → gait descriptor (caller drives the per-frame clock).
   let gait: { mode: GaitMode; speed: number } | undefined;
   const loco = traits.get('locomotion');
   if (loco) {
@@ -1735,6 +1813,7 @@ export function buildCharacterHostFromComposition(
     materialColor: color,
     lod,
     cloth,
+    microMotion,
     face,
     anatomy,
     skin,

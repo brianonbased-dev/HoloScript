@@ -71,6 +71,10 @@ import {
   type ClothSimulationConfig,
   type ClothSimulationReceipt,
 } from './AgentAvatarCloth';
+import type {
+  CharacterMicroMotionApplicationReceipt,
+  CharacterMicroMotionSample,
+} from './AgentAvatarMicroMotion';
 import {
   fromRotationTranslation,
   fromTranslation,
@@ -437,6 +441,7 @@ export class CharacterHost {
   private deformationBasePositions: Float32Array<ArrayBuffer>;
   private readonly deformationBaseNormals: Float32Array<ArrayBuffer>;
   private morphWeights: NativeMorphWeights = {};
+  private microMotionBlinkWeight = 0;
   private lastMorphReceipt: NativeMorphReceipt | null = null;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
@@ -727,8 +732,8 @@ export class CharacterHost {
     if (!this.clothSimulation) return null;
     const sampled = this.clothSimulation.sample(timeSeconds);
     this.deformationBasePositions = new Float32Array(sampled.positions);
-    if (Object.keys(this.morphWeights).length > 0) {
-      this.applyMorphWeights(this.morphWeights);
+    if (Object.keys(this.morphWeights).length > 0 || this.microMotionBlinkWeight > 0) {
+      this.applyResolvedMorphWeights();
     } else {
       this.built.mesh.positions = new Float32Array(this.deformationBasePositions);
       this.built.mesh.normals = new Float32Array(this.deformationBaseNormals);
@@ -884,6 +889,39 @@ export class CharacterHost {
    */
   applyMorphWeights(weights: NativeMorphWeights): NativeMorphReceipt {
     this.morphWeights = { ...weights };
+    return this.applyResolvedMorphWeights();
+  }
+
+  /**
+   * Bind one absolute-time micro-motion sample to real native eyelid deformation.
+   *
+   * Gaze and breath stay receipt-visible but are not silently treated as eye or skeleton
+   * transforms. Authored expression weights remain the baseline and are not overwritten by the
+   * procedural blink channel.
+   */
+  applyMicroMotionSample(
+    sample: CharacterMicroMotionSample
+  ): CharacterMicroMotionApplicationReceipt {
+    this.microMotionBlinkWeight = Math.max(0, Math.min(1, sample.blink.weight));
+    const morph = this.applyResolvedMorphWeights();
+    return {
+      schemaVersion: 'holoscript.character-micro-motion-application.v1',
+      sampleDigest: sample.sampleDigest,
+      blinkWeight: this.microMotionBlinkWeight,
+      nativeBlinkApplied: true,
+      changedVertexCount: morph.changedVertexCount,
+      positionDigest: morph.positionDigest,
+    };
+  }
+
+  private applyResolvedMorphWeights(): NativeMorphReceipt {
+    const authoredBlink = typeof this.morphWeights.blink === 'number' ? this.morphWeights.blink : 0;
+    const resolvedWeights: NativeMorphWeights = {
+      ...this.morphWeights,
+      ...(this.microMotionBlinkWeight > 0 || authoredBlink > 0
+        ? { blink: Math.max(authoredBlink, this.microMotionBlinkWeight) }
+        : {}),
+    };
     const morphed = applyNativeFacialMorph(
       this.deformationBasePositions,
       this.built.mesh.jointIndices,
@@ -896,7 +934,7 @@ export class CharacterHost {
         indices: this.built.mesh.indices,
         normalPolicy: this.expressionNormalPolicy,
       },
-      this.morphWeights
+      resolvedWeights
     );
     this.built.mesh.positions = morphed.positions;
     if (morphed.normals) {

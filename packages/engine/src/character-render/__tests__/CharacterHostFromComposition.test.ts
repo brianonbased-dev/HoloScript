@@ -2198,4 +2198,87 @@ describe('buildCharacterHostFromComposition', () => {
       },
     ]);
   });
+
+  it('maps @micro_motion to native blink and honest sampled-only presence channels', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'openai',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'face',
+              config: { topology: 'neutral_anatomical_v2' },
+            },
+            {
+              name: 'micro_motion',
+              config: {
+                profile: 'human_presence_v1',
+                seed: 'openai',
+                source_time_seconds: 7.25,
+                blink_interval_seconds: 3.9,
+                saccade_yaw_degrees: 2.2,
+                breath_rate_hz: 0.24,
+                cloth_rate: 0.85,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.microMotion).toMatchObject({
+      sourceTimeSeconds: 7.25,
+      config: {
+        schemaVersion: 'holoscript.character-micro-motion-config.v1',
+        profile: 'human-presence-v1',
+        seed: 'openai',
+        blinkIntervalSeconds: 3.9,
+        breathRateHz: 0.24,
+        clothRate: 0.85,
+      },
+      sample: {
+        schemaVersion: 'holoscript.character-micro-motion-sample.v1',
+        absoluteTime: true,
+        gaze: { nativeTransformApplied: false },
+        breath: { nativeTransformApplied: false },
+        cloth: { nativeSimulationApplied: false },
+      },
+      application: {
+        schemaVersion: 'holoscript.character-micro-motion-application.v1',
+        nativeBlinkApplied: true,
+      },
+      bindings: {
+        blink: 'native-procedural-head-morph',
+        gaze: 'sampled-channel-only',
+        breath: 'sampled-channel-only',
+        cloth: 'sampled-channel-only',
+      },
+    });
+    expect(result.microMotion?.sample.sampleDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+    expect(result.report.mapped).toContain(
+      '@micro_motion(profile=human-presence-v1,blink=native,gaze=channel,breath=channel,cloth=channel)'
+    );
+    expect(result.report.stubbed).toEqual([]);
+  });
+
+  it('fails closed on an unsupported @micro_motion profile', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'unsupported-motion',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'micro_motion', config: { profile: 'cinematic_ai_guess_v9' } },
+          ],
+        },
+      ],
+    });
+
+    expect(result.microMotion).toBeUndefined();
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@micro_motion',
+      reason: "profile 'cinematic-ai-guess-v9' unsupported; no timing channels fabricated",
+    });
+  });
 });

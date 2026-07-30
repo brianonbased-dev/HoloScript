@@ -73,6 +73,8 @@ export interface CharacterDrawSpecBundle {
   };
   /** Present when source-authored deterministic cloth simulation is operative. */
   cloth?: unknown;
+  /** Present when source-authored absolute-time character micro-motion is operative. */
+  microMotion?: unknown;
   /** Present when source-authored native facial topology is operative. */
   face?: unknown;
   /** Present when source-authored native face/upper-body proportions are operative. */
@@ -172,6 +174,7 @@ export class CharacterWebGPUCompiler {
     // current engine source. Feature-detect the optional receipt so this sovereign compiler stays
     // compatible across that normal source/declaration skew.
     const morph = 'morph' in result ? result.morph : undefined;
+    const microMotion = 'microMotion' in result ? result.microMotion : undefined;
     const face = 'face' in result ? result.face : undefined;
     const anatomy = 'anatomy' in result ? result.anatomy : undefined;
     const skin = 'skin' in result ? result.skin : undefined;
@@ -213,6 +216,7 @@ export class CharacterWebGPUCompiler {
       materialGroups: spec.materialGroups ?? null,
       ...(result.lod ? { lod: result.lod } : {}),
       ...(result.cloth ? { cloth: result.cloth } : {}),
+      ...(microMotion ? { microMotion } : {}),
       ...(face ? { face } : {}),
       ...(anatomy ? { anatomy } : {}),
       ...(skin ? { skin } : {}),

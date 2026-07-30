@@ -175,6 +175,16 @@ export {
 export { gaitPose, type GaitMode, type AvatarPoseMap } from './gait';
 
 export {
+  deriveCharacterMicroMotionConfig,
+  sampleCharacterMicroMotion,
+  type CharacterMicroMotionApplicationReceipt,
+  type CharacterMicroMotionConfig,
+  type CharacterMicroMotionConfigInput,
+  type CharacterMicroMotionProfile,
+  type CharacterMicroMotionSample,
+} from './AgentAvatarMicroMotion';
+
+export {
   buildCharacterHostFromComposition,
   type ParsedComposition,
   type CompObject,

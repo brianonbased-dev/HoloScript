@@ -928,4 +928,55 @@ describe('CharacterWebGPUCompiler', () => {
       )
     ).toBe(true);
   });
+
+  it('serializes source-authored absolute-time micro-motion without fabricating native bindings', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits!.push({
+      type: 'ObjectTrait',
+      name: 'micro_motion',
+      config: {
+        profile: 'human_presence_v1',
+        seed: 'openai',
+        source_time_seconds: 11.5,
+        blink_interval_seconds: 4.1,
+        blink_duration_seconds: 0.17,
+        saccade_interval_seconds: 1.35,
+        breath_rate_hz: 0.23,
+        breath_amplitude: 0.014,
+        cloth_rate: 0.9,
+      },
+    });
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    expect(bundle.microMotion).toMatchObject({
+      sourceTimeSeconds: 11.5,
+      config: {
+        schemaVersion: 'holoscript.character-micro-motion-config.v1',
+        profile: 'human-presence-v1',
+        seed: 'openai',
+        blinkIntervalSeconds: 4.1,
+        blinkDurationSeconds: 0.17,
+        saccadeIntervalSeconds: 1.35,
+        breathRateHz: 0.23,
+        breathAmplitude: 0.014,
+        clothRate: 0.9,
+      },
+      sample: {
+        schemaVersion: 'holoscript.character-micro-motion-sample.v1',
+        absoluteTime: true,
+        gaze: { nativeTransformApplied: false },
+        breath: { nativeTransformApplied: false },
+        cloth: { nativeSimulationApplied: false },
+      },
+      application: {
+        schemaVersion: 'holoscript.character-micro-motion-application.v1',
+        nativeBlinkApplied: true,
+      },
+    });
+    expect(
+      (bundle.microMotion as { config: { configDigest: string } }).config.configDigest
+    ).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+  });
 });

@@ -3,6 +3,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import { CharacterHost } from '../CharacterHost';
+import {
+  deriveCharacterMicroMotionConfig,
+  sampleCharacterMicroMotion,
+} from '../AgentAvatarMicroMotion';
 
 describe('native procedural-head morph channel', () => {
   it('applies FACS/viseme aliases to mesh vertices with a deterministic receipt', () => {
@@ -62,5 +66,27 @@ describe('native procedural-head morph channel', () => {
     const reset = host.applyMorphWeights({ smile: 0, jaw_open: 0 });
     expect(reset.normalsRecomputed).toBe(true);
     expect(Array.from(host.getDrawSpec().mesh.normals)).toEqual(neutralNormals);
+  });
+
+  it('layers deterministic blink over authored expression without losing the baseline', () => {
+    const host = new CharacterHost({
+      entityId: 'micro-motion-morph',
+      faceTopology: 'neutral-anatomical-v2',
+    });
+    const baseline = host.applyMorphWeights({ smile: 0.45 });
+    const config = deriveCharacterMicroMotionConfig({ seed: 'micro-motion-morph' });
+    const samples = Array.from({ length: 1_201 }, (_, index) =>
+      sampleCharacterMicroMotion(config, index / 120)
+    );
+    const blink = samples.find((sample) => sample.blink.weight > 0.95)!;
+    const idle = samples.find((sample) => sample.blink.weight === 0)!;
+    const applied = host.applyMicroMotionSample(blink);
+    const restored = host.applyMicroMotionSample(idle);
+
+    expect(applied.nativeBlinkApplied).toBe(true);
+    expect(applied.changedVertexCount).toBeGreaterThan(baseline.changedVertexCount);
+    expect(applied.positionDigest).not.toBe(baseline.positionDigest);
+    expect(restored.changedVertexCount).toBe(baseline.changedVertexCount);
+    expect(restored.positionDigest).toBe(baseline.positionDigest);
   });
 });
