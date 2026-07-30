@@ -172,6 +172,11 @@ test('unstamped runtimes rebuild the sovereign absorb and MCP owners once', () =
 });
 
 test('package input stamps suppress unchanged-input rebuild loops across unrelated commits', () => {
+  // Same intent as before -- a group whose inputs did not change must not
+  // rebuild just because an unrelated commit landed -- but coverage is now
+  // decided by CONTENT DIGEST rather than mtime. mtime could not tell "these
+  // bytes were built" from "these bytes merely look old" (task_..._nsog), so a
+  // stamp that carries only mtimes no longer grants coverage.
   const freshness = {
     id: 'wasm',
     stale: true,
@@ -180,17 +185,20 @@ test('package input stamps suppress unchanged-input rebuild loops across unrelat
   };
   const stamp = {
     gitHead: 'abc123',
-    inputMtimeMsByGroup: {
-      wasm: 2000,
-    },
+    inputDigestByGroup: { wasm: 'sha256:unchanged-inputs' },
+    inputMtimeMsByGroup: { wasm: 2000 },
   };
 
-  assert.equal(buildStampCoversInput(freshness, stamp), true);
-  assert.equal(
-    buildStampCoversInput({ ...freshness, newestInputMtimeMs: 2001 }, stamp),
-    false
-  );
-  assert.equal(buildStampCoversInput(freshness, null), false);
+  // Inputs unchanged -> covered -> no rebuild loop.
+  assert.equal(buildStampCoversInput(freshness, stamp, 'sha256:unchanged-inputs'), true);
+  // Inputs actually changed -> not covered, regardless of what mtime says.
+  assert.equal(buildStampCoversInput(freshness, stamp, 'sha256:different-bytes'), false);
+  assert.equal(buildStampCoversInput(freshness, null, 'sha256:unchanged-inputs'), false);
+
+  // Deliberate behaviour change: a legacy mtime-only stamp is no longer trusted.
+  // Costs one rebuild after upgrade instead of blessing possibly-stale output.
+  const legacyStamp = { gitHead: 'abc123', inputMtimeMsByGroup: { wasm: 2000 } };
+  assert.equal(buildStampCoversInput(freshness, legacyStamp, 'sha256:unchanged-inputs'), false);
 });
 
 test('repair groups cover every direct MCP workspace dependency', () => {
