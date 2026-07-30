@@ -244,6 +244,34 @@ describe('eyes — refractive eye geometry (pure data)', () => {
     );
     expect(packedCodes).toEqual([1, 2, 3, 4]);
   });
+
+  it('emits H4A calibrated iris, pupil, cornea, lid, and wetline proportions', () => {
+    const host = new CharacterHost({
+      entityId: 'h4a-ocular',
+      faceTopology: 'neutral-anatomical-v2',
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      lidOpening: 0.52,
+      ocularProfile: 'layered-ocular-calibrated-v3',
+      irisScale: 0.46,
+      pupilScale: 0.36,
+    });
+
+    expect(host.getOcularGeometryReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v3',
+      profile: 'layered-ocular-calibrated-v3',
+      calibrationProfile: 'portrait-ocular-balance-v1',
+      tearMeniscusProfile: 'lower-cornea-meniscus-v1',
+      irisScale: 0.46,
+      pupilScale: 0.36,
+      lidOpening: 0.52,
+      corneaRadiusScale: 1.038,
+    });
+    expect(
+      host
+        .getDrawSpec()
+        .materialGroups?.filter((group) => group.material.shadingModel === 'refractive-eye')
+    ).toHaveLength(8);
+  });
 });
 
 describe('eyes — rendered (native WebGPU)', () => {

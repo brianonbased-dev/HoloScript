@@ -314,9 +314,7 @@ describe('hair — procedural geometry (pure data)', () => {
     );
     expect(Array.from(replay.positions)).toEqual(Array.from(breakup.positions));
     expect(replay.groom).toEqual(breakup.groom);
-    expect(resolveAgentAvatarGroomProfile('Scalp Flow Breakup V3')).toBe(
-      'scalp-flow-breakup-v3'
-    );
+    expect(resolveAgentAvatarGroomProfile('Scalp Flow Breakup V3')).toBe('scalp-flow-breakup-v3');
   });
 
   it('turns source-authored crown whorl into deterministic de-clumped scalp-flow topology', () => {
@@ -467,6 +465,27 @@ describe('hair — procedural geometry (pure data)', () => {
       'alpha-to-coverage-v1'
     );
     expect(resolveAgentAvatarHairCoverageProfile('painted_fuzz_v9')).toBeUndefined();
+  });
+
+  it('emits H4A dense hair-material brow and lash framing with the portrait groom', () => {
+    const portrait = buildAgentAvatarHair({
+      faceTopology: 'neutral-anatomical-v2',
+      groomProfile: 'scalp-flow-portrait-v4',
+      guides: 96,
+      cardsPerGuide: 2,
+      segments: 6,
+    });
+
+    expect(portrait.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v4',
+      profile: 'scalp-flow-portrait-v4',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+      browCardCount: 2,
+      lashCardCount: 4,
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(portrait.groom!.facialFramingVertexCount).toBeGreaterThan(200);
+    expect(portrait.groom!.cardCount).toBeGreaterThan(100);
   });
 });
 

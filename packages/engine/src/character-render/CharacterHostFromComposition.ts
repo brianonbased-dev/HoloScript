@@ -877,11 +877,13 @@ export function buildCharacterHostFromComposition(
           authoredFacialDetailProfile === 'civic-landmarks-v1' ||
           authoredFacialDetailProfile === 'portrait-silhouette-v2' ||
           authoredFacialDetailProfile === 'portrait-cranial-v3' ||
-          authoredFacialDetailProfile === 'portrait-soft-tissue-v4'
+          authoredFacialDetailProfile === 'portrait-soft-tissue-v4' ||
+          authoredFacialDetailProfile === 'portrait-facial-volume-v5'
         ) {
           if (
             (authoredFacialDetailProfile === 'portrait-cranial-v3' ||
-              authoredFacialDetailProfile === 'portrait-soft-tissue-v4') &&
+              authoredFacialDetailProfile === 'portrait-soft-tissue-v4' ||
+              authoredFacialDetailProfile === 'portrait-facial-volume-v5') &&
             upperBodyProfile !== 'coherent-expressive-anatomy-v7'
           ) {
             report.stubbed.push({
@@ -901,7 +903,8 @@ export function buildCharacterHostFromComposition(
           if (
             facialDetailProfile === 'portrait-silhouette-v2' ||
             facialDetailProfile === 'portrait-cranial-v3' ||
-            facialDetailProfile === 'portrait-soft-tissue-v4'
+            facialDetailProfile === 'portrait-soft-tissue-v4' ||
+            facialDetailProfile === 'portrait-facial-volume-v5'
           ) {
             cheekboneScale = clamp(asNum(cfgVal(faceTrait, 'cheekbone_scale')) ?? 1, 0.82, 1.22);
             chinProjection = clamp(asNum(cfgVal(faceTrait, 'chin_projection')) ?? 1, 0.72, 1.28);
@@ -916,7 +919,8 @@ export function buildCharacterHostFromComposition(
           if (facialDetailProfile) {
             if (
               facialDetailProfile === 'portrait-cranial-v3' ||
-              facialDetailProfile === 'portrait-soft-tissue-v4'
+              facialDetailProfile === 'portrait-soft-tissue-v4' ||
+              facialDetailProfile === 'portrait-facial-volume-v5'
             ) {
               faceRadialSegments = Math.max(
                 12,
@@ -943,7 +947,8 @@ export function buildCharacterHostFromComposition(
                 `ear_scale=${earScale},mouth_depth=${mouthDepth}` +
                 (facialDetailProfile === 'portrait-silhouette-v2' ||
                 facialDetailProfile === 'portrait-cranial-v3' ||
-                facialDetailProfile === 'portrait-soft-tissue-v4'
+                facialDetailProfile === 'portrait-soft-tissue-v4' ||
+                facialDetailProfile === 'portrait-facial-volume-v5'
                   ? `,cheekbone_scale=${cheekboneScale},chin_projection=${chinProjection},` +
                     `temple_width=${templeWidth}`
                   : '') +
@@ -977,7 +982,8 @@ export function buildCharacterHostFromComposition(
         if (
           authoredExpressionNormalPolicy === 'recompute-affected-v1' &&
           (facialDetailProfile === 'portrait-cranial-v3' ||
-            facialDetailProfile === 'portrait-soft-tissue-v4')
+            facialDetailProfile === 'portrait-soft-tissue-v4' ||
+            facialDetailProfile === 'portrait-facial-volume-v5')
         ) {
           expressionNormalPolicy = authoredExpressionNormalPolicy;
           report.mapped.push(`@face(expression_normal_policy=${expressionNormalPolicy})`);
@@ -1012,6 +1018,7 @@ export function buildCharacterHostFromComposition(
       if (
         authoredOcularProfile === 'layered-ocular-v1' ||
         authoredOcularProfile === 'layered-ocular-tearfilm-v2' ||
+        authoredOcularProfile === 'layered-ocular-calibrated-v3' ||
         authoredOcularProfile === 'legacy-composite-v1'
       ) {
         ocularProfile = authoredOcularProfile;
@@ -1332,7 +1339,8 @@ export function buildCharacterHostFromComposition(
       style === 'stormglass_hooded_tunic' ||
       style === 'stormglass_open_civic_tunic' ||
       style === 'stormglass_tailored_fieldcoat' ||
-      style === 'stormglass_structured_fieldcoat'
+      style === 'stormglass_structured_fieldcoat' ||
+      style === 'stormglass_portrait_fieldcoat'
     ) {
       garmentStyle = style;
       const authoredColor = asRgb(cfgVal(clothing, 'color', 'base_color'));

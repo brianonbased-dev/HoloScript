@@ -22,7 +22,8 @@ export type SovereignGarmentStyle =
   | 'stormglass_hooded_tunic'
   | 'stormglass_open_civic_tunic'
   | 'stormglass_tailored_fieldcoat'
-  | 'stormglass_structured_fieldcoat';
+  | 'stormglass_structured_fieldcoat'
+  | 'stormglass_portrait_fieldcoat';
 export type { SovereignMantleStyle } from './AgentAvatarMantleCatalog';
 
 export interface GarmentMeshPart {
@@ -50,7 +51,8 @@ export interface AgentAvatarGarmentGeometryReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-garment-geometry.v1'
     | 'holoscript.agent-avatar-garment-geometry.v2'
-    | 'holoscript.agent-avatar-garment-geometry.v3';
+    | 'holoscript.agent-avatar-garment-geometry.v3'
+    | 'holoscript.agent-avatar-garment-geometry.v4';
   style: SovereignGarmentStyle;
   radialSegments: number;
   faceCoverage: 'closed-hood-visor' | 'open-v-collar' | 'open-lapel-collar';
@@ -60,7 +62,10 @@ export interface AgentAvatarGarmentGeometryReceipt {
     | 'constructed-panel-clearance-v2';
   collarProfile: 'legacy-hood-collar-v1' | 'tailored-open-v-collar-v1' | 'tailored-lapel-v2';
   /** Present only when separately indexed sewn-panel topology is emitted. */
-  constructionProfile?: 'four-panel-fieldcoat-v1' | 'structured-fieldcoat-shell-v2';
+  constructionProfile?:
+    | 'four-panel-fieldcoat-v1'
+    | 'structured-fieldcoat-shell-v2'
+    | 'portrait-full-fieldcoat-v3';
   /** Independently indexed torso panels, excluding placket, lapels, yokes, and sleeves. */
   constructedPanelCount?: number;
   /** Topological panel boundaries intentionally left un-welded as garment seams. */
@@ -73,6 +78,10 @@ export interface AgentAvatarGarmentGeometryReceipt {
   closureCount?: number;
   /** Independently emitted cuff bands, one per sleeve. */
   cuffBandCount?: number;
+  /** H4A visible full-coat framing from the collar to the split lower hem. */
+  coatLength?: number;
+  frontHemSplitDepth?: number;
+  portraitFramingProfile?: 'full-coat-closures-cuffs-v1';
   /** Source-owned material-detail profile joined by CharacterHost. */
   fabricSurfaceProfile?: 'stormglass-crossweave-normal-v1';
   torsoScale: number;
@@ -298,7 +307,8 @@ function pushFieldcoatFinish(
   target: MeshAccum,
   buildScale: number,
   shoulderScale: number,
-  structured = false
+  structured = false,
+  portraitFullLength = false
 ): void {
   pushOpenCollar(target, buildScale, shoulderScale);
   const z = 0.198 * buildScale;
@@ -349,8 +359,9 @@ function pushFieldcoatFinish(
     );
   }
 
-  for (let closure = 0; closure < 5; closure++) {
-    const y = 0.76 + closure * 0.105;
+  const closureCount = portraitFullLength ? 7 : 5;
+  for (let closure = 0; closure < closureCount; closure++) {
+    const y = (portraitFullLength ? 0.67 : 0.76) + closure * (portraitFullLength ? 0.095 : 0.105);
     pushTube(
       target,
       v(0, y, facingZ),
@@ -362,6 +373,23 @@ function pushFieldcoatFinish(
       0.08,
       0.08
     );
+  }
+  if (portraitFullLength) {
+    for (const side of [-1, 1] as const) {
+      const innerX = side * 0.022 * buildScale;
+      const outerX = side * 0.12 * buildScale;
+      pushQuadSurface(
+        target,
+        [
+          v(innerX, 0.14, facingZ + 0.001 * buildScale),
+          v(outerX, 0.1, facingZ - 0.008 * buildScale),
+          v(outerX, 0.7, facingZ),
+          v(innerX, 0.68, facingZ + 0.003 * buildScale),
+        ],
+        'hips',
+        0.72
+      );
+    }
   }
 }
 
@@ -570,7 +598,8 @@ export function buildAgentAvatarGarment(
   const shoulderScale = Math.max(0.85, Math.min(1.25, options.shoulderScale ?? 1));
   const segments = Math.max(6, Math.min(32, Math.round(options.radialSegments ?? 24)));
   const openCivic = options.style === 'stormglass_open_civic_tunic';
-  const structured = options.style === 'stormglass_structured_fieldcoat';
+  const portraitFullLength = options.style === 'stormglass_portrait_fieldcoat';
+  const structured = options.style === 'stormglass_structured_fieldcoat' || portraitFullLength;
   const constructed = options.style === 'stormglass_tailored_fieldcoat' || structured;
   const openFace = openCivic || constructed;
   const torsoBuild = buildScale * torsoScale;
@@ -670,7 +699,7 @@ export function buildAgentAvatarGarment(
     );
     pushVisor(visor, segments, buildScale);
   } else if (constructed) {
-    pushFieldcoatFinish(cloth, buildScale, shoulderScale, structured);
+    pushFieldcoatFinish(cloth, buildScale, shoulderScale, structured, portraitFullLength);
   } else {
     pushOpenCollar(cloth, buildScale, shoulderScale);
   }
@@ -736,11 +765,13 @@ export function buildAgentAvatarGarment(
     visor: visorMesh,
     mantle: mantleMesh,
     receipt: {
-      schemaVersion: structured
-        ? 'holoscript.agent-avatar-garment-geometry.v3'
-        : constructed
-          ? 'holoscript.agent-avatar-garment-geometry.v2'
-        : 'holoscript.agent-avatar-garment-geometry.v1',
+      schemaVersion: portraitFullLength
+        ? 'holoscript.agent-avatar-garment-geometry.v4'
+        : structured
+          ? 'holoscript.agent-avatar-garment-geometry.v3'
+          : constructed
+            ? 'holoscript.agent-avatar-garment-geometry.v2'
+            : 'holoscript.agent-avatar-garment-geometry.v1',
       style: options.style,
       radialSegments: segments,
       faceCoverage:
@@ -761,18 +792,27 @@ export function buildAgentAvatarGarment(
           : 'legacy-hood-collar-v1',
       ...(constructed
         ? {
-            constructionProfile: structured
-              ? ('structured-fieldcoat-shell-v2' as const)
-              : ('four-panel-fieldcoat-v1' as const),
+            constructionProfile: portraitFullLength
+              ? ('portrait-full-fieldcoat-v3' as const)
+              : structured
+                ? ('structured-fieldcoat-shell-v2' as const)
+                : ('four-panel-fieldcoat-v1' as const),
             constructedPanelCount: 4,
             constructionSeamCount: 8,
             shoulderYokeCount: 2,
             ...(structured
               ? {
                   shellThickness: round6(0.008 * buildScale * heightScale),
-                  closureCount: 5,
+                  closureCount: portraitFullLength ? 7 : 5,
                   cuffBandCount: 2,
                   fabricSurfaceProfile: 'stormglass-crossweave-normal-v1' as const,
+                  ...(portraitFullLength
+                    ? {
+                        coatLength: round6(1.29 * buildScale * heightScale),
+                        frontHemSplitDepth: round6(0.58 * buildScale * heightScale),
+                        portraitFramingProfile: 'full-coat-closures-cuffs-v1' as const,
+                      }
+                    : {}),
                 }
               : {}),
           }

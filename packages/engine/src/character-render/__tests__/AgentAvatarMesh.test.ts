@@ -1323,4 +1323,32 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
       h3y.orbital!.vertexRange.vertexCount
     );
   });
+
+  it('emits H4A source-controlled nasal, philtrum, malar, jaw, lip, and brow volume', () => {
+    const portrait = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      facialDetailProfile: 'portrait-facial-volume-v5',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      upperBodyRadialSegments: 24,
+      faceRadialSegments: 44,
+      faceVerticalSegments: 30,
+      cheekboneScale: 1.14,
+      chinProjection: 1.08,
+      jawTaper: 0.2,
+      mouthDepth: 0.76,
+    });
+
+    expect(portrait.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v5',
+      profile: 'portrait-facial-volume-v5',
+      facialVolumeProfile: 'nasal-malar-mandibular-volume-v1',
+      malarVolumeScale: 1.14,
+      mandibularTaper: 0.2,
+      browArcSegments: 22,
+      lipTopology: 'connected-cupid-bow-ribbon-v1',
+    });
+    expect(portrait.facialLandmarks!.noseBridgeVertexCount).toBeGreaterThan(200);
+    expect(portrait.facialLandmarks!.philtrumVertexCount).toBeGreaterThan(80);
+    expect(portrait.anatomy.cranialNeck).toBeDefined();
+  });
 });

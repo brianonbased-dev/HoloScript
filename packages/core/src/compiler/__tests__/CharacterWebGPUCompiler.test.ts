@@ -795,6 +795,75 @@ describe('CharacterWebGPUCompiler', () => {
     ).toBe(true);
   });
 
+  it('serializes the H4A sovereign portrait receipts from authored source', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) => {
+      if (trait.name === 'body') {
+        return {
+          ...trait,
+          config: {
+            ...trait.config,
+            upper_body_profile: 'coherent_expressive_anatomy_v7',
+            upper_body_radial_segments: 24,
+          },
+        };
+      }
+      if (trait.name === 'hair') {
+        return {
+          ...trait,
+          config: {
+            ...trait.config,
+            style: 'medium_wavy',
+            groom_profile: 'scalp_flow_portrait_v4',
+          },
+        };
+      }
+      return trait;
+    });
+    composition.objects[0]!.traits!.push(
+      {
+        type: 'ObjectTrait',
+        name: 'face',
+        config: {
+          topology: 'neutral_anatomical_v2',
+          facial_detail_profile: 'portrait_facial_volume_v5',
+          orbital_profile: 'anatomical_lid_blend_v3',
+          ocular_profile: 'layered_ocular_calibrated_v3',
+          cheekbone_scale: 1.14,
+          jaw_taper: 0.2,
+          lid_opening: 0.52,
+          iris_scale: 0.46,
+          pupil_scale: 0.36,
+        },
+      },
+      {
+        type: 'ObjectTrait',
+        name: 'clothing',
+        config: { style: 'stormglass_portrait_fieldcoat' },
+      }
+    );
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    expect(bundle.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v5',
+      facialVolumeProfile: 'nasal-malar-mandibular-volume-v1',
+    });
+    expect(bundle.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v4',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+    });
+    expect(bundle.ocular).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v3',
+      calibrationProfile: 'portrait-ocular-balance-v1',
+    });
+    expect(bundle.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v4',
+      constructionProfile: 'portrait-full-fieldcoat-v3',
+    });
+  });
+
   it('throws on a composition with no character object (no fabricated body — false case)', async () => {
     await expect(new CharacterWebGPUCompiler().compile(emptyComp())).rejects.toThrow(
       /no character object/

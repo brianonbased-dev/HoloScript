@@ -85,6 +85,8 @@ export interface CharacterDrawSpecBundle {
   garment?: unknown;
   /** Present when source-authored native procedural groom geometry is operative. */
   groom?: unknown;
+  /** Present when source-authored layered ocular geometry is operative. */
+  ocular?: unknown;
   /** Present when source-authored native procedural-head morph targets are operative. */
   morph?: unknown;
   /** Present when source-authored local-bone rotations are operative. */
@@ -176,6 +178,7 @@ export class CharacterWebGPUCompiler {
     const facialLandmarks = 'facialLandmarks' in result ? result.facialLandmarks : undefined;
     const garment = 'garment' in result ? result.garment : undefined;
     const groom = 'groom' in result ? result.groom : undefined;
+    const ocular = 'ocular' in result ? result.ocular : undefined;
     const pose = 'pose' in result ? result.pose : undefined;
     const jointDeformation = 'jointDeformation' in result ? result.jointDeformation : undefined;
     const handSurface = 'handSurface' in result ? result.handSurface : undefined;
@@ -216,6 +219,7 @@ export class CharacterWebGPUCompiler {
       ...(facialLandmarks ? { facialLandmarks } : {}),
       ...(garment ? { garment } : {}),
       ...(groom ? { groom } : {}),
+      ...(ocular ? { ocular } : {}),
       ...(morph ? { morph } : {}),
       ...(pose ? { pose } : {}),
       ...(jointDeformation ? { jointDeformation } : {}),

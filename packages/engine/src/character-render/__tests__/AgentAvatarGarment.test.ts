@@ -193,4 +193,29 @@ describe('AgentAvatarGarment — coherent upper-body fit', () => {
     expect(structured.cloth.vertexCount).toBeGreaterThan(tailored.cloth.vertexCount);
     expect(structured.cloth.indices.length).toBeGreaterThan(tailored.cloth.indices.length);
   });
+
+  it('builds H4A full portrait coat framing with a split hem and visible hardware', () => {
+    const portrait = buildAgentAvatarGarment({
+      style: 'stormglass_portrait_fieldcoat',
+      radialSegments: 24,
+    });
+    const structured = buildAgentAvatarGarment({
+      style: 'stormglass_structured_fieldcoat',
+      radialSegments: 24,
+    });
+
+    expect(portrait.receipt).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v4',
+      style: 'stormglass_portrait_fieldcoat',
+      constructionProfile: 'portrait-full-fieldcoat-v3',
+      closureCount: 7,
+      cuffBandCount: 2,
+      coatLength: 1.29,
+      frontHemSplitDepth: 0.58,
+      portraitFramingProfile: 'full-coat-closures-cuffs-v1',
+      fabricSurfaceProfile: 'stormglass-crossweave-normal-v1',
+    });
+    expect(portrait.cloth.vertexCount).toBeGreaterThan(structured.cloth.vertexCount);
+    expect(portrait.cloth.indices.length).toBeGreaterThan(structured.cloth.indices.length);
+  });
 });

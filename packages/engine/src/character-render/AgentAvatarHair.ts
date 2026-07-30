@@ -52,6 +52,7 @@ export const AGENT_AVATAR_OCULAR_PROFILES = [
   'legacy-composite-v1',
   'layered-ocular-v1',
   'layered-ocular-tearfilm-v2',
+  'layered-ocular-calibrated-v3',
 ] as const;
 
 export type AgentAvatarOcularProfile = (typeof AGENT_AVATAR_OCULAR_PROFILES)[number];
@@ -68,13 +69,20 @@ export interface OcularMeshData extends HairMeshData {
 export interface AgentAvatarOcularGeometryReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-ocular-geometry.v1'
-    | 'holoscript.agent-avatar-ocular-geometry.v2';
+    | 'holoscript.agent-avatar-ocular-geometry.v2'
+    | 'holoscript.agent-avatar-ocular-geometry.v3';
   profile: AgentAvatarOcularProfile;
   eyeCount: 2;
   regionCount: 4;
   /** H3Z independently indexed lower-cornea wetline. */
   tearMeniscusProfile?: 'lower-cornea-meniscus-v1';
   tearMeniscusIndexCount?: number;
+  /** H4A proportions shared with the source-authored lid and wetline response. */
+  calibrationProfile?: 'portrait-ocular-balance-v1';
+  irisScale?: number;
+  pupilScale?: number;
+  lidOpening?: number;
+  corneaRadiusScale?: number;
 }
 
 export const AGENT_AVATAR_HAIR_STYLES = [
@@ -92,6 +100,7 @@ export const AGENT_AVATAR_GROOM_PROFILES = [
   'scalp-flow-v1',
   'scalp-flow-containment-v2',
   'scalp-flow-breakup-v3',
+  'scalp-flow-portrait-v4',
 ] as const;
 
 export type AgentAvatarGroomProfile = (typeof AGENT_AVATAR_GROOM_PROFILES)[number];
@@ -120,7 +129,8 @@ export interface AgentAvatarGroomGeometryReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-groom-geometry.v1'
     | 'holoscript.agent-avatar-groom-geometry.v2'
-    | 'holoscript.agent-avatar-groom-geometry.v3';
+    | 'holoscript.agent-avatar-groom-geometry.v3'
+    | 'holoscript.agent-avatar-groom-geometry.v4';
   profile: AgentAvatarGroomProfile;
   rootLift: number;
   tipTaper: number;
@@ -153,6 +163,11 @@ export interface AgentAvatarGroomGeometryReceipt {
   breakupProfile?: 'contained-flyaway-breakup-v1';
   flyawayGuideCount?: number;
   flyawayCardCount?: number;
+  /** H4A hair-material facial framing emitted with the scalp groom. */
+  facialFramingProfile?: 'portrait-brow-lash-ribbons-v1';
+  browCardCount?: number;
+  lashCardCount?: number;
+  facialFramingVertexCount?: number;
   /** Source-derived native shading/coverage contract joined by CharacterHost. */
   material?: AgentAvatarHairMaterialReceipt;
 }
@@ -258,6 +273,9 @@ const GROOM_PROFILE_ALIASES: Readonly<Record<string, AgentAvatarGroomProfile>> =
   scalp_flow_breakup_v3: 'scalp-flow-breakup-v3',
   scalp_flow_breakup: 'scalp-flow-breakup-v3',
   breakup: 'scalp-flow-breakup-v3',
+  scalp_flow_portrait_v4: 'scalp-flow-portrait-v4',
+  scalp_flow_portrait: 'scalp-flow-portrait-v4',
+  portrait: 'scalp-flow-portrait-v4',
 };
 
 const HAIR_COVERAGE_PROFILE_ALIASES: Readonly<Record<string, HairCoverageProfile>> = {
@@ -375,7 +393,8 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const cardW = (o.cardWidth ?? profile.cardWidth) * bs;
   const tipLen = (o.length ?? profile.length) * bs;
   const groomProfile = o.groomProfile ?? 'radial-cards-v1';
-  const breakup = groomProfile === 'scalp-flow-breakup-v3';
+  const portraitFraming = groomProfile === 'scalp-flow-portrait-v4';
+  const breakup = groomProfile === 'scalp-flow-breakup-v3' || portraitFraming;
   const containment = groomProfile === 'scalp-flow-containment-v2' || breakup;
   const scalpFlow = groomProfile === 'scalp-flow-v1' || containment;
   const neutralScalp = scalpFlow && o.faceTopology === 'neutral-anatomical-v2';
@@ -426,6 +445,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   let scalpCapTriangleCount = 0;
   let flyawayGuideCount = 0;
   let flyawayCardCount = 0;
+  let browCardCount = 0;
+  let lashCardCount = 0;
+  let facialFramingVertexCount = 0;
 
   const scalpMetric = (position: Vec3, clearance = 0): number => {
     const rel = sub(position, center);
@@ -687,6 +709,62 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     }
   }
 
+  if (portraitFraming && neutralScalp) {
+    const framingVertexStart = positions.length / 3;
+    const eyeY = head.y + 0.12 * bs;
+    const faceZ = head.z + headR * 1.12;
+    const pushFacialRibbon = (
+      ribbonCenter: Vec3,
+      halfWidth: number,
+      archHeight: number,
+      thickness: number,
+      segmentCount: number
+    ): void => {
+      const base = positions.length / 3;
+      for (let segment = 0; segment <= segmentCount; segment++) {
+        const u = segment / segmentCount;
+        const x = (u * 2 - 1) * halfWidth;
+        const arch = archHeight * (1 - Math.pow(u * 2 - 1, 2));
+        for (const edge of [-1, 1] as const) {
+          pushHairVertex(
+            v(ribbonCenter.x + x, ribbonCenter.y + arch + edge * thickness * 0.5, ribbonCenter.z),
+            v(0, 0, 1),
+            v(1, 0, 0),
+            u,
+            edge < 0 ? 0 : 1,
+            u
+          );
+        }
+      }
+      for (let segment = 0; segment < segmentCount; segment++) {
+        const a = base + segment * 2;
+        indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+      }
+    };
+
+    for (const side of [-1, 1] as const) {
+      const eyeX = head.x + side * 0.035 * bs * faceWidth;
+      pushFacialRibbon(v(eyeX, eyeY + 0.019 * bs, faceZ), 0.026 * bs, 0.006 * bs, 0.0042 * bs, 22);
+      browCardCount++;
+      pushFacialRibbon(
+        v(eyeX, eyeY + 0.0062 * bs, faceZ + 0.001 * bs),
+        0.019 * bs,
+        0.0025 * bs,
+        0.0014 * bs,
+        18
+      );
+      pushFacialRibbon(
+        v(eyeX, eyeY - 0.0068 * bs, faceZ + 0.0005 * bs),
+        0.017 * bs,
+        -0.0015 * bs,
+        0.001 * bs,
+        16
+      );
+      lashCardCount += 2;
+    }
+    facialFramingVertexCount = positions.length / 3 - framingVertexStart;
+  }
+
   // Uniform height scale about the floor (matches the body's heightScale).
   const pos = new Float32Array(positions);
   if (hScale !== 1) for (let i = 0; i < pos.length; i++) pos[i] *= hScale;
@@ -701,11 +779,13 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     jointWeights: new Float32Array(jw),
     vertexCount: positions.length / 3,
     groom: {
-      schemaVersion: breakup
-        ? 'holoscript.agent-avatar-groom-geometry.v3'
-        : containment
-          ? 'holoscript.agent-avatar-groom-geometry.v2'
-        : 'holoscript.agent-avatar-groom-geometry.v1',
+      schemaVersion: portraitFraming
+        ? 'holoscript.agent-avatar-groom-geometry.v4'
+        : breakup
+          ? 'holoscript.agent-avatar-groom-geometry.v3'
+          : containment
+            ? 'holoscript.agent-avatar-groom-geometry.v2'
+            : 'holoscript.agent-avatar-groom-geometry.v1',
       profile: groomProfile,
       rootLift: rootLift / bs,
       tipTaper,
@@ -734,6 +814,14 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
             breakupProfile: 'contained-flyaway-breakup-v1' as const,
             flyawayGuideCount,
             flyawayCardCount,
+          }
+        : {}),
+      ...(portraitFraming
+        ? {
+            facialFramingProfile: 'portrait-brow-lash-ribbons-v1' as const,
+            browCardCount,
+            lashCardCount,
+            facialFramingVertexCount,
           }
         : {}),
     },
@@ -840,6 +928,7 @@ export function buildAgentAvatarOcularRegions(
     faceWidth?: AgentAvatarMeshOptions['faceWidth'];
     irisScale?: number;
     pupilScale?: number;
+    lidOpening?: number;
     ocularProfile?: AgentAvatarOcularProfile;
   } = {}
 ): OcularMeshData {
@@ -862,7 +951,9 @@ export function buildAgentAvatarOcularRegions(
   const irisScale = Math.max(0.34, Math.min(0.62, o.irisScale ?? 0.48));
   const pupilScale = Math.max(0.2, Math.min(0.72, o.pupilScale ?? 0.42));
   const ocularProfile = o.ocularProfile ?? 'layered-ocular-v1';
-  const tearfilm = ocularProfile === 'layered-ocular-tearfilm-v2';
+  const calibrated = ocularProfile === 'layered-ocular-calibrated-v3';
+  const tearfilm = ocularProfile === 'layered-ocular-tearfilm-v2' || calibrated;
+  const lidOpening = clamp(o.lidOpening ?? 0.54, 0.42, 0.78);
 
   const positions: number[] = [];
   const normals: number[] = [];
@@ -896,8 +987,8 @@ export function buildAgentAvatarOcularRegions(
 
   const appendSphere = (center: Vec3): void => {
     const start = indices.length;
-    const lat = 10;
-    const lon = 16;
+    const lat = calibrated ? 12 : 10;
+    const lon = calibrated ? 20 : 16;
     const base = positions.length / 3;
     for (let y = 0; y <= lat; y++) {
       const theta = (y / lat) * Math.PI;
@@ -935,7 +1026,7 @@ export function buildAgentAvatarOcularRegions(
     region: 'iris' | 'pupil'
   ): void => {
     const start = indices.length;
-    const segments = 24;
+    const segments = calibrated ? 32 : 24;
     const z = center.z + zOffset;
     const base = appendVertex(v(center.x, center.y, z), v(0, 0, 1), [0.5, 0.5]);
     for (let segment = 0; segment <= segments; segment++) {
@@ -955,10 +1046,11 @@ export function buildAgentAvatarOcularRegions(
 
   const appendCornea = (center: Vec3): void => {
     const start = indices.length;
-    const segments = 24;
-    const rings = 5;
-    const maxAngle = Math.PI * 0.26;
-    const corneaRadius = radius * 1.055;
+    const segments = calibrated ? 32 : 24;
+    const rings = calibrated ? 6 : 5;
+    const maxAngle = Math.PI * (calibrated ? 0.235 : 0.26);
+    const corneaRadiusScale = calibrated ? 1.038 : 1.055;
+    const corneaRadius = radius * corneaRadiusScale;
     const centerVertex = appendVertex(
       v(center.x, center.y, center.z + corneaRadius),
       v(0, 0, 1),
@@ -1057,9 +1149,11 @@ export function buildAgentAvatarOcularRegions(
     vertexCount: positions.length / 3,
     regionRanges,
     receipt: {
-      schemaVersion: tearfilm
-        ? 'holoscript.agent-avatar-ocular-geometry.v2'
-        : 'holoscript.agent-avatar-ocular-geometry.v1',
+      schemaVersion: calibrated
+        ? 'holoscript.agent-avatar-ocular-geometry.v3'
+        : tearfilm
+          ? 'holoscript.agent-avatar-ocular-geometry.v2'
+          : 'holoscript.agent-avatar-ocular-geometry.v1',
       profile: ocularProfile,
       eyeCount: 2,
       regionCount: 4,
@@ -1067,6 +1161,15 @@ export function buildAgentAvatarOcularRegions(
         ? {
             tearMeniscusProfile: 'lower-cornea-meniscus-v1' as const,
             tearMeniscusIndexCount,
+          }
+        : {}),
+      ...(calibrated
+        ? {
+            calibrationProfile: 'portrait-ocular-balance-v1' as const,
+            irisScale,
+            pupilScale,
+            lidOpening,
+            corneaRadiusScale: 1.038,
           }
         : {}),
     },
@@ -1199,7 +1302,9 @@ export function buildCharacterMesh(
   const eyes: OcularMeshData =
     opts.includeEyes === false
       ? emptyOcular()
-      : ocularProfile === 'layered-ocular-v1' || ocularProfile === 'layered-ocular-tearfilm-v2'
+      : ocularProfile === 'layered-ocular-v1' ||
+          ocularProfile === 'layered-ocular-tearfilm-v2' ||
+          ocularProfile === 'layered-ocular-calibrated-v3'
         ? buildAgentAvatarOcularRegions({
             buildScale: opts.buildScale,
             heightScale: opts.heightScale,
@@ -1210,6 +1315,7 @@ export function buildCharacterMesh(
             faceWidth: opts.faceWidth,
             irisScale: opts.irisScale,
             pupilScale: opts.pupilScale,
+            lidOpening: opts.lidOpening,
             ocularProfile,
           })
         : {

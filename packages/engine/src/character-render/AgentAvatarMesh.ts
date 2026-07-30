@@ -98,6 +98,7 @@ export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
   'portrait-silhouette-v2',
   'portrait-cranial-v3',
   'portrait-soft-tissue-v4',
+  'portrait-facial-volume-v5',
 ] as const;
 export type AgentAvatarFacialDetailProfile = (typeof AGENT_AVATAR_FACIAL_DETAIL_PROFILES)[number];
 
@@ -125,12 +126,14 @@ export interface AgentAvatarFacialLandmarkReceipt {
     | 'holoscript.agent-avatar-facial-landmarks.v1'
     | 'holoscript.agent-avatar-facial-landmarks.v2'
     | 'holoscript.agent-avatar-facial-landmarks.v3'
-    | 'holoscript.agent-avatar-facial-landmarks.v4';
+    | 'holoscript.agent-avatar-facial-landmarks.v4'
+    | 'holoscript.agent-avatar-facial-landmarks.v5';
   profile:
     | 'civic-landmarks-v1'
     | 'portrait-silhouette-v2'
     | 'portrait-cranial-v3'
-    | 'portrait-soft-tissue-v4';
+    | 'portrait-soft-tissue-v4'
+    | 'portrait-facial-volume-v5';
   radialSegments: number;
   verticalSegments: number;
   eyeScale: number;
@@ -148,6 +151,13 @@ export interface AgentAvatarFacialLandmarkReceipt {
   lipTopology?: 'connected-cupid-bow-ribbon-v1';
   lipSurfaceVertexCount?: number;
   lipSurfaceTriangleCount?: number;
+  /** H4A source-controlled facial masses instead of one undifferentiated face ellipsoid. */
+  facialVolumeProfile?: 'nasal-malar-mandibular-volume-v1';
+  noseBridgeVertexCount?: number;
+  philtrumVertexCount?: number;
+  malarVolumeScale?: number;
+  mandibularTaper?: number;
+  browArcSegments?: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -2640,6 +2650,69 @@ function pushFacialArc(
   }
 }
 
+function pushPortraitNasalPhiltrumVolume(
+  acc: MeshAccum,
+  center: Vec3,
+  radiusX: number,
+  radiusY: number,
+  radiusZ: number,
+  faceZ: number,
+  jointIdx: number
+): { noseBridgeVertexCount: number; philtrumVertexCount: number } {
+  const noseVertexStart = acc.positions.length / 3;
+  pushSmoothEllipsoid(
+    acc,
+    {
+      x: center.x,
+      y: center.y + radiusY * 0.015,
+      z: faceZ + radiusZ * 0.045,
+    },
+    radiusX * 0.07,
+    radiusY * 0.235,
+    radiusZ * 0.058,
+    8,
+    14,
+    jointIdx
+  );
+  pushSmoothEllipsoid(
+    acc,
+    {
+      x: center.x,
+      y: center.y - radiusY * 0.16,
+      z: faceZ + radiusZ * 0.09,
+    },
+    radiusX * 0.125,
+    radiusY * 0.105,
+    radiusZ * 0.085,
+    7,
+    14,
+    jointIdx
+  );
+  const noseBridgeVertexCount = acc.positions.length / 3 - noseVertexStart;
+
+  const philtrumVertexStart = acc.positions.length / 3;
+  for (const side of [-1, 1] as const) {
+    pushSmoothEllipsoid(
+      acc,
+      {
+        x: center.x + side * radiusX * 0.024,
+        y: center.y - radiusY * 0.315,
+        z: faceZ + radiusZ * 0.026,
+      },
+      radiusX * 0.016,
+      radiusY * 0.066,
+      radiusZ * 0.012,
+      5,
+      8,
+      jointIdx
+    );
+  }
+  return {
+    noseBridgeVertexCount,
+    philtrumVertexCount: acc.positions.length / 3 - philtrumVertexStart,
+  };
+}
+
 /**
  * Append upper and lower skin shells around one procedural globe.
  *
@@ -2865,7 +2938,8 @@ function pushCivicFacialLandmarks(
   earScale: number,
   mouthDepth: number,
   jointIdx: number,
-  includeLegacyLips = true
+  includeLegacyLips = true,
+  browSegments = 14
 ): void {
   const facePlaneZ = center.z + radiusZ * 1.006;
   const browY = eyeY + eyeRadius * browHeight;
@@ -2880,7 +2954,7 @@ function pushCivicFacialLandmarks(
       eyeRadius * 1.18,
       eyeRadius * 0.42,
       eyeRadius * browThickness,
-      14,
+      browSegments,
       Math.PI * 0.08,
       Math.PI * 0.92,
       jointIdx
@@ -3071,7 +3145,8 @@ function pushNeutralAnatomicalHead(
   const radiusY = headLength * 0.62 * faceLength;
   const radiusZ = radius * 1.08;
   const base = acc.positions.length / 3;
-  const softTissue = facialDetailProfile === 'portrait-soft-tissue-v4';
+  const facialVolume = facialDetailProfile === 'portrait-facial-volume-v5';
+  const softTissue = facialDetailProfile === 'portrait-soft-tissue-v4' || facialVolume;
   const portraitCranial = facialDetailProfile === 'portrait-cranial-v3' || softTissue;
   const portraitSilhouette = facialDetailProfile === 'portrait-silhouette-v2' || portraitCranial;
   const cranialMinimumY = headBase.y + headLength * 0.054;
@@ -3089,6 +3164,7 @@ function pushNeutralAnatomicalHead(
     const cheekBand = Math.exp(-Math.pow((normalizedY + 0.08) / 0.26, 2));
     const templeBand = Math.exp(-Math.pow((normalizedY - 0.42) / 0.22, 2));
     const chinBand = Math.exp(-Math.pow((normalizedY + 0.82) / 0.16, 2));
+    const mandibularBand = Math.exp(-Math.pow((normalizedY + 0.54) / 0.2, 2));
     const silhouetteScale = portraitSilhouette
       ? 1 + cheekBand * (cheekboneScale - 1) * 0.34 + templeBand * (templeWidth - 1) * 0.5
       : 1;
@@ -3100,9 +3176,12 @@ function pushNeutralAnatomicalHead(
       const x = cos * ring * radiusX * jawTaper * silhouetteScale;
       const y = normalizedY * radiusY;
       // A flatter face and fuller occiput read more human than a perfect ellipsoid.
+      const malarDirection = Math.pow(Math.abs(cos), 0.55);
       const portraitProjection = portraitSilhouette
         ? front *
-          (cheekBand * (cheekboneScale - 1) * 0.035 + chinBand * (chinProjection - 1) * 0.12)
+          (cheekBand * (cheekboneScale - 1) * (facialVolume ? 0.052 * malarDirection : 0.035) +
+            chinBand * (chinProjection - 1) * 0.12 +
+            (facialVolume ? mandibularBand * (1 - jawTaperAmount) * 0.008 : 0))
         : 0;
       const zScale = 1 - front * 0.045 + Math.max(0, -sin) * 0.035 + portraitProjection;
       const z = sin * ring * radiusZ * zScale;
@@ -3140,20 +3219,25 @@ function pushNeutralAnatomicalHead(
       : undefined;
 
   const faceZ = center.z + radiusZ * 0.965;
-  pushSmoothEllipsoid(
-    acc,
-    {
-      x: center.x,
-      y: center.y - radiusY * 0.075,
-      z: faceZ + radiusZ * 0.075,
-    },
-    radiusX * 0.12,
-    radiusY * 0.21,
-    radiusZ * 0.08,
-    7,
-    10,
-    jointIdx
-  );
+  const facialVolumeCounts = facialVolume
+    ? pushPortraitNasalPhiltrumVolume(acc, center, radiusX, radiusY, radiusZ, faceZ, jointIdx)
+    : undefined;
+  if (!facialVolume) {
+    pushSmoothEllipsoid(
+      acc,
+      {
+        x: center.x,
+        y: center.y - radiusY * 0.075,
+        z: faceZ + radiusZ * 0.075,
+      },
+      radiusX * 0.12,
+      radiusY * 0.21,
+      radiusZ * 0.08,
+      7,
+      10,
+      jointIdx
+    );
+  }
 
   let orbital: AgentAvatarOrbitalGeometryReceipt | undefined;
   if (includeTearline) {
@@ -3312,16 +3396,19 @@ function pushNeutralAnatomicalHead(
       earScale,
       mouthDepth,
       jointIdx,
-      !softTissue
+      !softTissue,
+      facialVolume ? 22 : 14
     );
     facialLandmarks = {
-      schemaVersion: softTissue
-        ? 'holoscript.agent-avatar-facial-landmarks.v4'
-        : portraitCranial
-          ? 'holoscript.agent-avatar-facial-landmarks.v3'
-          : portraitSilhouette
-            ? 'holoscript.agent-avatar-facial-landmarks.v2'
-            : 'holoscript.agent-avatar-facial-landmarks.v1',
+      schemaVersion: facialVolume
+        ? 'holoscript.agent-avatar-facial-landmarks.v5'
+        : softTissue
+          ? 'holoscript.agent-avatar-facial-landmarks.v4'
+          : portraitCranial
+            ? 'holoscript.agent-avatar-facial-landmarks.v3'
+            : portraitSilhouette
+              ? 'holoscript.agent-avatar-facial-landmarks.v2'
+              : 'holoscript.agent-avatar-facial-landmarks.v1',
       profile: facialDetailProfile,
       radialSegments,
       verticalSegments,
@@ -3342,6 +3429,16 @@ function pushNeutralAnatomicalHead(
             lipTopology: 'connected-cupid-bow-ribbon-v1' as const,
             lipSurfaceVertexCount: lipSurface.vertexCount,
             lipSurfaceTriangleCount: lipSurface.triangleCount,
+          }
+        : {}),
+      ...(facialVolumeCounts
+        ? {
+            facialVolumeProfile: 'nasal-malar-mandibular-volume-v1' as const,
+            noseBridgeVertexCount: facialVolumeCounts.noseBridgeVertexCount,
+            philtrumVertexCount: facialVolumeCounts.philtrumVertexCount,
+            malarVolumeScale: cheekboneScale,
+            mandibularTaper: jawTaperAmount,
+            browArcSegments: 22,
           }
         : {}),
       vertexRange: {
@@ -3648,7 +3745,8 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const facialDetailProfile = opts.facialDetailProfile ?? 'legacy-landmarks-v1';
   const portraitCranial =
     facialDetailProfile === 'portrait-cranial-v3' ||
-    facialDetailProfile === 'portrait-soft-tissue-v4';
+    facialDetailProfile === 'portrait-soft-tissue-v4' ||
+    facialDetailProfile === 'portrait-facial-volume-v5';
   const faceRadialSegments = clampInt(
     opts.faceRadialSegments,
     portraitCranial ? 40 : 20,

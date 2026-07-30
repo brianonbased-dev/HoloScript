@@ -388,14 +388,16 @@ const EYE_BASE: Omit<RefractiveEyeMaterialSpec, 'color'> = {
 /** H3Z source-owned cross-weave tile; compact pure data, not an external texture dependency. */
 const STORMGLASS_CROSSWEAVE_TILE: WovenClothTextureTile = {
   size: 4,
-  albedo: [0.94, 1.02, 0.96, 1.04, 1.03, 0.95, 1.01, 0.97, 0.96, 1.04, 0.94, 1.02, 1.01, 0.97, 1.03, 0.95],
-  normalXY: [
-    0.42, 0.5, 0.58, 0.5, 0.42, 0.5, 0.58, 0.5,
-    0.5, 0.58, 0.5, 0.42, 0.5, 0.58, 0.5, 0.42,
-    0.58, 0.5, 0.42, 0.5, 0.58, 0.5, 0.42, 0.5,
-    0.5, 0.42, 0.5, 0.58, 0.5, 0.42, 0.5, 0.58,
+  albedo: [
+    0.94, 1.02, 0.96, 1.04, 1.03, 0.95, 1.01, 0.97, 0.96, 1.04, 0.94, 1.02, 1.01, 0.97, 1.03, 0.95,
   ],
-  roughness: [0.76, 0.68, 0.74, 0.66, 0.69, 0.77, 0.67, 0.75, 0.74, 0.66, 0.76, 0.68, 0.67, 0.75, 0.69, 0.77],
+  normalXY: [
+    0.42, 0.5, 0.58, 0.5, 0.42, 0.5, 0.58, 0.5, 0.5, 0.58, 0.5, 0.42, 0.5, 0.58, 0.5, 0.42, 0.58,
+    0.5, 0.42, 0.5, 0.58, 0.5, 0.42, 0.5, 0.5, 0.42, 0.5, 0.58, 0.5, 0.42, 0.5, 0.58,
+  ],
+  roughness: [
+    0.76, 0.68, 0.74, 0.66, 0.69, 0.77, 0.67, 0.75, 0.74, 0.66, 0.76, 0.68, 0.67, 0.75, 0.69, 0.77,
+  ],
   repeat: 12,
   normalScale: 0.82,
 };
@@ -639,7 +641,8 @@ export class CharacterHost {
       sheen: 0.42,
       weaveScale: 18,
       rimStrength: 0.32,
-      ...(opts.garmentStyle === 'stormglass_structured_fieldcoat'
+      ...(opts.garmentStyle === 'stormglass_structured_fieldcoat' ||
+      opts.garmentStyle === 'stormglass_portrait_fieldcoat'
         ? {
             textureTile: {
               ...STORMGLASS_CROSSWEAVE_TILE,
@@ -941,7 +944,8 @@ export class CharacterHost {
   getDrawSpec(): CharacterDrawSpec {
     const layeredEyes =
       this.built.ocularProfile === 'layered-ocular-v1' ||
-      this.built.ocularProfile === 'layered-ocular-tearfilm-v2';
+      this.built.ocularProfile === 'layered-ocular-tearfilm-v2' ||
+      this.built.ocularProfile === 'layered-ocular-calibrated-v3';
     const opaqueEyeGroups: MaterialGroup[] = layeredEyes
       ? [
           ...this.built.ocularRanges.sclera.map((range) => ({

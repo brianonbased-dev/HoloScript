@@ -2078,6 +2078,79 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.report.stubbed).toEqual([]);
   });
 
+  it('maps the H4A facial-volume, portrait groom, calibrated ocular, and full-coat stack', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'h4a-portrait',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                facial_detail_profile: 'portrait_facial_volume_v5',
+                orbital_profile: 'anatomical_lid_blend_v3',
+                ocular_profile: 'layered_ocular_calibrated_v3',
+                cheekbone_scale: 1.14,
+                chin_projection: 1.08,
+                jaw_taper: 0.2,
+                lid_opening: 0.52,
+                iris_scale: 0.46,
+                pupil_scale: 0.36,
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                style: 'medium_wavy',
+                groom_profile: 'scalp_flow_portrait_v4',
+              },
+            },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_portrait_fieldcoat',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v5',
+      facialVolumeProfile: 'nasal-malar-mandibular-volume-v1',
+      malarVolumeScale: 1.14,
+      mandibularTaper: 0.2,
+    });
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v4',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+      browCardCount: 2,
+      lashCardCount: 4,
+    });
+    expect(result.ocular).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v3',
+      calibrationProfile: 'portrait-ocular-balance-v1',
+      lidOpening: 0.52,
+    });
+    expect(result.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v4',
+      constructionProfile: 'portrait-full-fieldcoat-v3',
+      closureCount: 7,
+      cuffBandCount: 2,
+    });
+    expect(result.report.stubbed).toEqual([]);
+  });
+
   it('fails closed when H3X cranial continuity or expression-normal prerequisites are absent', () => {
     const result = buildCharacterHostFromComposition({
       objects: [
