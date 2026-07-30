@@ -70,7 +70,11 @@ export const AGENT_AVATAR_HAIR_STYLES = [
 
 export type AgentAvatarHairStyle = (typeof AGENT_AVATAR_HAIR_STYLES)[number];
 
-export const AGENT_AVATAR_GROOM_PROFILES = ['radial-cards-v1', 'scalp-flow-v1'] as const;
+export const AGENT_AVATAR_GROOM_PROFILES = [
+  'radial-cards-v1',
+  'scalp-flow-v1',
+  'scalp-flow-containment-v2',
+] as const;
 
 export type AgentAvatarGroomProfile = (typeof AGENT_AVATAR_GROOM_PROFILES)[number];
 
@@ -95,7 +99,9 @@ export interface AgentAvatarHairMaterialReceipt {
 }
 
 export interface AgentAvatarGroomGeometryReceipt {
-  schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1';
+  schemaVersion:
+    | 'holoscript.agent-avatar-groom-geometry.v1'
+    | 'holoscript.agent-avatar-groom-geometry.v2';
   profile: AgentAvatarGroomProfile;
   rootLift: number;
   tipTaper: number;
@@ -118,6 +124,12 @@ export interface AgentAvatarGroomGeometryReceipt {
   rootTangentRadialDotP95: number;
   /** Hair vertices inside a deterministic upper-face prism in bind space. */
   frontalOcclusionVertexCount: number;
+  /** H3Y exterior projection used to keep cards and guides outside the authored scalp. */
+  containmentProfile?: 'ellipsoidal-scalp-exterior-v1';
+  /** Vertices projected outward because their authored position crossed the scalp surface. */
+  containmentAdjustedVertexCount?: number;
+  /** Final vertices remaining inside the scalp ellipsoid after containment. */
+  scalpPenetrationVertexCount?: number;
   /** Source-derived native shading/coverage contract joined by CharacterHost. */
   material?: AgentAvatarHairMaterialReceipt;
 }
@@ -217,6 +229,9 @@ const GROOM_PROFILE_ALIASES: Readonly<Record<string, AgentAvatarGroomProfile>> =
   legacy: 'radial-cards-v1',
   scalp_flow_v1: 'scalp-flow-v1',
   scalp_flow: 'scalp-flow-v1',
+  scalp_flow_containment_v2: 'scalp-flow-containment-v2',
+  scalp_flow_containment: 'scalp-flow-containment-v2',
+  containment: 'scalp-flow-containment-v2',
 };
 
 const HAIR_COVERAGE_PROFILE_ALIASES: Readonly<Record<string, HairCoverageProfile>> = {
@@ -334,7 +349,8 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const cardW = (o.cardWidth ?? profile.cardWidth) * bs;
   const tipLen = (o.length ?? profile.length) * bs;
   const groomProfile = o.groomProfile ?? 'radial-cards-v1';
-  const scalpFlow = groomProfile === 'scalp-flow-v1';
+  const containment = groomProfile === 'scalp-flow-containment-v2';
+  const scalpFlow = groomProfile === 'scalp-flow-v1' || containment;
   const neutralScalp = scalpFlow && o.faceTopology === 'neutral-anatomical-v2';
   const rootLift = scalpFlow ? clamp(o.rootLift ?? 0.003, 0, 0.02) * bs : 0;
   const tipTaper = scalpFlow ? clamp(o.tipTaper ?? 0.12, 0.02, 1) : 1;
@@ -377,8 +393,28 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const rootTangentRadialDots: number[] = [];
   let emittedGuideCount = 0;
   let frontalOcclusionVertexCount = 0;
+  let containmentAdjustedVertexCount = 0;
+  let scalpPenetrationVertexCount = 0;
   let scalpCapVertexCount = 0;
   let scalpCapTriangleCount = 0;
+
+  const scalpMetric = (position: Vec3, clearance = 0): number => {
+    const rel = sub(position, center);
+    return Math.hypot(
+      rel.x / (scalpRadius.x + clearance),
+      rel.y / (scalpRadius.y + clearance),
+      rel.z / (scalpRadius.z + clearance)
+    );
+  };
+  const containToScalpExterior = (position: Vec3): Vec3 => {
+    if (!containment) return position;
+    const clearance = 0.0015 * bs;
+    const rel = sub(position, center);
+    const metric = scalpMetric(position, clearance);
+    if (metric >= 1) return position;
+    containmentAdjustedVertexCount++;
+    return add(center, scl(rel, 1 / Math.max(metric, 1e-6)));
+  };
 
   const pushHairVertex = (
     position: Vec3,
@@ -388,13 +424,14 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     uvX = 0.5,
     uvY = strandT
   ): void => {
-    positions.push(position.x, position.y, position.z);
+    const containedPosition = containToScalpExterior(position);
+    positions.push(containedPosition.x, containedPosition.y, containedPosition.z);
     normals.push(normal.x, normal.y, normal.z);
     tangents.push(tangent.x, tangent.y, tangent.z, strandT);
     uvs.push(uvX, uvY);
     ji.push(HEAD_INDEX);
     jw.push(1);
-    const rel = sub(position, head);
+    const rel = sub(containedPosition, head);
     if (
       Math.abs(rel.x) < headR * 0.9 &&
       rel.y > 0.01 * bs &&
@@ -402,6 +439,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       rel.z > headR * 0.35
     ) {
       frontalOcclusionVertexCount++;
+    }
+    if (containment && scalpMetric(containedPosition) < 1 - 1e-6) {
+      scalpPenetrationVertexCount++;
     }
   };
 
@@ -583,7 +623,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     jointWeights: new Float32Array(jw),
     vertexCount: positions.length / 3,
     groom: {
-      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v1',
+      schemaVersion: containment
+        ? 'holoscript.agent-avatar-groom-geometry.v2'
+        : 'holoscript.agent-avatar-groom-geometry.v1',
       profile: groomProfile,
       rootLift: rootLift / bs,
       tipTaper,
@@ -600,6 +642,13 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       triangleCount: indices.length / 3,
       rootTangentRadialDotP95: p95(rootTangentRadialDots),
       frontalOcclusionVertexCount,
+      ...(containment
+        ? {
+            containmentProfile: 'ellipsoidal-scalp-exterior-v1' as const,
+            containmentAdjustedVertexCount,
+            scalpPenetrationVertexCount,
+          }
+        : {}),
     },
   };
 }

@@ -128,8 +128,46 @@ describe('AgentAvatarGarment — coherent upper-body fit', () => {
     });
     expect(garment.receipt.shoulderShellHalfWidth).toBeLessThan(0.4);
     expect(garment.receipt.sleeveRootRadius).toBeLessThan(0.1);
-    expect(garment.receipt.sleeveWristRadius).toBeLessThan(
-      garment.receipt.sleeveRootRadius
+    expect(garment.receipt.sleeveWristRadius).toBeLessThan(garment.receipt.sleeveRootRadius);
+  });
+
+  it('builds H3Y as independently indexed panels, lapels, placket, and shoulder yokes', () => {
+    const fieldcoat = buildAgentAvatarGarment({
+      style: 'stormglass_tailored_fieldcoat',
+      buildScale: 1,
+      heightScale: 1,
+      torsoScale: 0.98,
+      shoulderScale: 1.08,
+      radialSegments: 24,
+    });
+    const openShell = buildAgentAvatarGarment({
+      style: 'stormglass_open_civic_tunic',
+      buildScale: 1,
+      heightScale: 1,
+      torsoScale: 0.98,
+      shoulderScale: 1.08,
+      radialSegments: 24,
+    });
+
+    expect(fieldcoat.receipt).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v2',
+      style: 'stormglass_tailored_fieldcoat',
+      faceCoverage: 'open-lapel-collar',
+      fitProfile: 'constructed-panel-clearance-v2',
+      collarProfile: 'tailored-lapel-v2',
+      constructionProfile: 'four-panel-fieldcoat-v1',
+      constructedPanelCount: 4,
+      constructionSeamCount: 8,
+      shoulderYokeCount: 2,
+      sleeveRootRadius: 0.082,
+      sleeveWristRadius: 0.044,
+    });
+    expect(fieldcoat.receipt.shoulderShellHalfWidth).toBeLessThan(
+      openShell.receipt.shoulderShellHalfWidth
     );
+    expect(fieldcoat.receipt.tunicIndexRange.indexCount).toBe(
+      openShell.receipt.tunicIndexRange.indexCount
+    );
+    expect(fieldcoat.cloth.vertexCount).toBeGreaterThan(openShell.cloth.vertexCount);
   });
 });

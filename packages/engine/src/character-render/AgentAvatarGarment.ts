@@ -1,12 +1,12 @@
 /**
  * AgentAvatarGarment — sovereign procedural clothing for native skinned characters.
  *
- * The operative presets are `stormglass_hooded_tunic` (faceless cowl) and
- * `stormglass_open_civic_tunic` (open face with a shaped V collar). Both use the same tapered
- * craftfolk tunic, articulated sleeves, and detachable family mantles authored through
- * `@clothing`. Geometry is pure data, carries UVs plus cloth-dynamic weights, is skinned to
- * the existing humanoid palette, and has an authored radial-detail channel so `@lod` can
- * produce genuinely different meshes without an external DCC.
+ * The operative presets include the compatibility hooded/open tunics plus the H3Y
+ * `stormglass_tailored_fieldcoat`. The fieldcoat is built from four independently indexed
+ * torso panels, a front placket, lapels, shoulder yokes, and articulated sleeves rather than
+ * one continuous shoulder shell. Geometry is pure data, carries UVs plus cloth-dynamic
+ * weights, is skinned to the existing humanoid palette, and has an authored detail channel
+ * so `@lod` can produce genuinely different meshes without an external DCC.
  */
 
 import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
@@ -18,7 +18,10 @@ import {
 } from './AgentAvatarMantleCatalog';
 import { getTranslation, type Vec3 } from './skin-math';
 
-export type SovereignGarmentStyle = 'stormglass_hooded_tunic' | 'stormglass_open_civic_tunic';
+export type SovereignGarmentStyle =
+  | 'stormglass_hooded_tunic'
+  | 'stormglass_open_civic_tunic'
+  | 'stormglass_tailored_fieldcoat';
 export type { SovereignMantleStyle } from './AgentAvatarMantleCatalog';
 
 export interface GarmentMeshPart {
@@ -43,12 +46,25 @@ export interface AgentAvatarGarmentData {
 }
 
 export interface AgentAvatarGarmentGeometryReceipt {
-  schemaVersion: 'holoscript.agent-avatar-garment-geometry.v1';
+  schemaVersion:
+    | 'holoscript.agent-avatar-garment-geometry.v1'
+    | 'holoscript.agent-avatar-garment-geometry.v2';
   style: SovereignGarmentStyle;
   radialSegments: number;
-  faceCoverage: 'closed-hood-visor' | 'open-v-collar';
-  fitProfile: 'legacy-shell-v1' | 'coherent-upper-body-clearance-v1';
-  collarProfile: 'legacy-hood-collar-v1' | 'tailored-open-v-collar-v1';
+  faceCoverage: 'closed-hood-visor' | 'open-v-collar' | 'open-lapel-collar';
+  fitProfile:
+    | 'legacy-shell-v1'
+    | 'coherent-upper-body-clearance-v1'
+    | 'constructed-panel-clearance-v2';
+  collarProfile: 'legacy-hood-collar-v1' | 'tailored-open-v-collar-v1' | 'tailored-lapel-v2';
+  /** Present only when separately indexed sewn-panel topology is emitted. */
+  constructionProfile?: 'four-panel-fieldcoat-v1';
+  /** Independently indexed torso panels, excluding placket, lapels, yokes, and sleeves. */
+  constructedPanelCount?: number;
+  /** Topological panel boundaries intentionally left un-welded as garment seams. */
+  constructionSeamCount?: number;
+  /** Shoulder pieces connecting the torso panels to articulated sleeve roots. */
+  shoulderYokeCount?: number;
   torsoScale: number;
   shoulderScale: number;
   /** Emitted bind-space half width of the upper shoulder shell. */
@@ -194,6 +210,113 @@ function pushLoft(target: MeshAccum, rings: LoftRing[], segments: number): void 
   }
 }
 
+function pushPanelLoft(
+  target: MeshAccum,
+  rings: LoftRing[],
+  segments: number,
+  angleStart: number,
+  angleEnd: number
+): void {
+  const base = target.positions.length / 3;
+  for (let ringIndex = 0; ringIndex < rings.length; ringIndex += 1) {
+    const ring = rings[ringIndex];
+    const jointIndex = BONE_INDEX.get(ring.bone) ?? 0;
+    for (let segment = 0; segment <= segments; segment += 1) {
+      const t = segment / segments;
+      const angle = angleStart + (angleEnd - angleStart) * t;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+      const frontDrop = Math.max(0, sine) * (ring.frontDrop ?? 0);
+      target.positions.push(
+        cosine * ring.rx,
+        ring.y - frontDrop,
+        (ring.centerZ ?? 0) + sine * ring.rz
+      );
+      const normal = normalize(
+        v(cosine / Math.max(ring.rx, 1e-4), 0, sine / Math.max(ring.rz, 1e-4))
+      );
+      target.normals.push(normal.x, normal.y, normal.z);
+      target.tangents.push(-sine, 0, cosine, 0);
+      target.uvs.push(t, ringIndex / Math.max(rings.length - 1, 1));
+      target.jointIndices.push(jointIndex);
+      target.jointWeights.push(1);
+      target.clothWeights.push(ring.clothWeight ?? 0);
+    }
+  }
+
+  const stride = segments + 1;
+  for (let ring = 0; ring < rings.length - 1; ring += 1) {
+    const lower = base + ring * stride;
+    const upper = lower + stride;
+    for (let segment = 0; segment < segments; segment += 1) {
+      target.indices.push(
+        lower + segment,
+        upper + segment,
+        upper + segment + 1,
+        lower + segment,
+        upper + segment + 1,
+        lower + segment + 1
+      );
+    }
+  }
+}
+
+function pushQuadSurface(
+  target: MeshAccum,
+  points: readonly [Vec3, Vec3, Vec3, Vec3],
+  bone: string,
+  clothWeight: number
+): void {
+  const base = target.positions.length / 3;
+  const jointIndex = BONE_INDEX.get(bone) ?? 0;
+  const normal = normalize(cross(sub(points[1], points[0]), sub(points[3], points[0])));
+  const tangent = normalize(sub(points[1], points[0]));
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index];
+    target.positions.push(point.x, point.y, point.z);
+    target.normals.push(normal.x, normal.y, normal.z);
+    target.tangents.push(tangent.x, tangent.y, tangent.z, 0);
+    target.uvs.push(index === 1 || index === 2 ? 1 : 0, index >= 2 ? 1 : 0);
+    target.jointIndices.push(jointIndex);
+    target.jointWeights.push(1);
+    target.clothWeights.push(clothWeight);
+  }
+  target.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+
+function pushFieldcoatFinish(target: MeshAccum, buildScale: number, shoulderScale: number): void {
+  pushOpenCollar(target, buildScale, shoulderScale);
+  const z = 0.198 * buildScale;
+  pushQuadSurface(
+    target,
+    [
+      v(-0.014 * buildScale, 0.62, z),
+      v(0.014 * buildScale, 0.62, z),
+      v(0.014 * buildScale, 1.315, z + 0.008 * buildScale),
+      v(-0.014 * buildScale, 1.315, z + 0.008 * buildScale),
+    ],
+    'spine1',
+    0.12
+  );
+
+  const yokeScale = buildScale * shoulderScale;
+  for (const side of [-1, 1] as const) {
+    const innerX = side * 0.205 * yokeScale;
+    const outerX = side * 0.318 * yokeScale;
+    pushQuadSurface(
+      target,
+      [
+        v(innerX, 1.382, 0.16 * buildScale),
+        v(outerX, 1.405, 0.095 * buildScale),
+        v(outerX, 1.405, -0.09 * buildScale),
+        v(innerX, 1.382, -0.145 * buildScale),
+      ],
+      'spine2',
+      0
+    );
+  }
+}
+
 function pushTube(
   target: MeshAccum,
   start: Vec3,
@@ -284,11 +407,7 @@ function pushVisor(target: MeshAccum, segments: number, buildScale: number): voi
  * skinned ribbon rather than a painted neckline, so the authored style changes uploaded
  * topology while keeping the face, eyes, and groom unobstructed.
  */
-function pushOpenCollar(
-  target: MeshAccum,
-  buildScale: number,
-  shoulderScale: number
-): void {
+function pushOpenCollar(target: MeshAccum, buildScale: number, shoulderScale: number): void {
   const jointIndex = BONE_INDEX.get('spine2') ?? 0;
   const z = 0.193 * buildScale;
   const halfWidth = 0.011 * buildScale;
@@ -403,68 +522,85 @@ export function buildAgentAvatarGarment(
   const shoulderScale = Math.max(0.85, Math.min(1.25, options.shoulderScale ?? 1));
   const segments = Math.max(6, Math.min(32, Math.round(options.radialSegments ?? 24)));
   const openCivic = options.style === 'stormglass_open_civic_tunic';
+  const constructed = options.style === 'stormglass_tailored_fieldcoat';
+  const openFace = openCivic || constructed;
   const torsoBuild = buildScale * torsoScale;
   const openShoulderBuild = buildScale * Math.max(1, shoulderScale);
-  const shoulderShellHalfWidth = openCivic
-    ? 0.32 * openShoulderBuild
-    : 0.325 * buildScale;
-  const sleeveRootRadius = (openCivic ? 0.086 : 0.11) * buildScale;
-  const sleeveElbowRadius = (openCivic ? 0.064 : 0.068) * buildScale;
-  const sleeveWristRadius = (openCivic ? 0.047 : 0.052) * buildScale;
+  const shoulderShellHalfWidth = constructed
+    ? 0.285 * openShoulderBuild
+    : openCivic
+      ? 0.32 * openShoulderBuild
+      : 0.325 * buildScale;
+  const sleeveRootRadius = (constructed ? 0.082 : openCivic ? 0.086 : 0.11) * buildScale;
+  const sleeveElbowRadius = (constructed ? 0.061 : openCivic ? 0.064 : 0.068) * buildScale;
+  const sleeveWristRadius = (constructed ? 0.044 : openCivic ? 0.047 : 0.052) * buildScale;
   const cloth = accum();
   const visor = accum();
   const mantle = accum();
 
   // Tapered craftfolk tunic: broad grounded hem, narrow waist, protective shoulder cowl.
   const tunicIndexStart = cloth.indices.length;
-  pushLoft(
-    cloth,
-    [
-      { y: 0.08, rx: 0.31 * buildScale, rz: 0.22 * buildScale, bone: 'hips', clothWeight: 1 },
-      { y: 0.38, rx: 0.28 * buildScale, rz: 0.2 * buildScale, bone: 'hips', clothWeight: 0.82 },
-      { y: 0.62, rx: 0.245 * buildScale, rz: 0.175 * buildScale, bone: 'hips', clothWeight: 0.62 },
-      {
-        y: 0.82,
-        rx: openCivic ? 0.215 * torsoBuild : 0.2 * buildScale,
-        rz: openCivic ? 0.16 * torsoBuild : 0.145 * buildScale,
-        bone: 'spine',
-        clothWeight: 0.42,
-      },
-      {
-        y: 1.04,
-        rx: openCivic ? 0.22 * torsoBuild : 0.19 * buildScale,
-        rz: openCivic ? 0.165 * torsoBuild : 0.14 * buildScale,
-        bone: 'spine1',
-        clothWeight: 0.22,
-      },
-      {
-        y: 1.24,
-        rx: openCivic ? 0.255 * torsoBuild : 0.225 * buildScale,
-        rz: openCivic ? 0.19 * torsoBuild : 0.15 * buildScale,
-        bone: 'spine2',
-        clothWeight: 0.08,
-      },
-      {
-        y: 1.36,
-        rx: openCivic ? 0.29 * openShoulderBuild : 0.285 * buildScale,
-        rz: (openCivic ? 0.205 : 0.17) * buildScale,
-        bone: 'spine2',
-        centerZ: openCivic ? 0.015 * buildScale : 0,
-        clothWeight: 0,
-        frontDrop: openCivic ? 0.035 : 0,
-      },
-      {
-        y: openCivic ? 1.435 : 1.43,
-        rx: shoulderShellHalfWidth,
-        rz: 0.18 * buildScale,
-        bone: 'spine2',
-        centerZ: openCivic ? 0.04 * buildScale : 0,
-        clothWeight: 0,
-        frontDrop: openCivic ? 0.08 : 0,
-      },
-    ],
-    segments
-  );
+  const torsoRings: LoftRing[] = [
+    { y: 0.08, rx: 0.31 * buildScale, rz: 0.22 * buildScale, bone: 'hips', clothWeight: 1 },
+    { y: 0.38, rx: 0.28 * buildScale, rz: 0.2 * buildScale, bone: 'hips', clothWeight: 0.82 },
+    { y: 0.62, rx: 0.245 * buildScale, rz: 0.175 * buildScale, bone: 'hips', clothWeight: 0.62 },
+    {
+      y: 0.82,
+      rx: openFace ? 0.215 * torsoBuild : 0.2 * buildScale,
+      rz: openFace ? 0.16 * torsoBuild : 0.145 * buildScale,
+      bone: 'spine',
+      clothWeight: 0.42,
+    },
+    {
+      y: 1.04,
+      rx: openFace ? 0.22 * torsoBuild : 0.19 * buildScale,
+      rz: openFace ? 0.165 * torsoBuild : 0.14 * buildScale,
+      bone: 'spine1',
+      clothWeight: 0.22,
+    },
+    {
+      y: 1.24,
+      rx: constructed ? 0.245 * torsoBuild : openCivic ? 0.255 * torsoBuild : 0.225 * buildScale,
+      rz: openFace ? 0.19 * torsoBuild : 0.15 * buildScale,
+      bone: 'spine2',
+      clothWeight: 0.08,
+    },
+    {
+      y: 1.36,
+      rx: constructed
+        ? 0.265 * openShoulderBuild
+        : openCivic
+          ? 0.29 * openShoulderBuild
+          : 0.285 * buildScale,
+      rz: (openFace ? 0.205 : 0.17) * buildScale,
+      bone: 'spine2',
+      centerZ: openFace ? 0.015 * buildScale : 0,
+      clothWeight: 0,
+      frontDrop: openFace ? 0.035 : 0,
+    },
+    {
+      y: constructed ? 1.39 : openCivic ? 1.435 : 1.43,
+      rx: shoulderShellHalfWidth,
+      rz: (constructed ? 0.158 : 0.18) * buildScale,
+      bone: 'spine2',
+      centerZ: openFace ? 0.04 * buildScale : 0,
+      clothWeight: 0,
+      frontDrop: constructed ? 0.065 : openCivic ? 0.08 : 0,
+    },
+  ];
+  if (constructed) {
+    const panelSegments = Math.max(2, Math.round(segments / 4));
+    for (const [angleStart, angleEnd] of [
+      [0, Math.PI * 0.5],
+      [Math.PI * 0.5, Math.PI],
+      [Math.PI, Math.PI * 1.5],
+      [Math.PI * 1.5, Math.PI * 2],
+    ] as const) {
+      pushPanelLoft(cloth, torsoRings, panelSegments, angleStart, angleEnd);
+    }
+  } else {
+    pushLoft(cloth, torsoRings, segments);
+  }
   const tunicIndexRange = {
     indexStart: tunicIndexStart,
     indexCount: cloth.indices.length - tunicIndexStart,
@@ -484,6 +620,8 @@ export function buildAgentAvatarGarment(
       segments
     );
     pushVisor(visor, segments, buildScale);
+  } else if (constructed) {
+    pushFieldcoatFinish(cloth, buildScale, shoulderScale);
   } else {
     pushOpenCollar(cloth, buildScale, shoulderScale);
   }
@@ -534,13 +672,35 @@ export function buildAgentAvatarGarment(
     visor: visorMesh,
     mantle: mantleMesh,
     receipt: {
-      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v1',
+      schemaVersion: constructed
+        ? 'holoscript.agent-avatar-garment-geometry.v2'
+        : 'holoscript.agent-avatar-garment-geometry.v1',
       style: options.style,
       radialSegments: segments,
       faceCoverage:
-        options.style === 'stormglass_hooded_tunic' ? 'closed-hood-visor' : 'open-v-collar',
-      fitProfile: openCivic ? 'coherent-upper-body-clearance-v1' : 'legacy-shell-v1',
-      collarProfile: openCivic ? 'tailored-open-v-collar-v1' : 'legacy-hood-collar-v1',
+        options.style === 'stormglass_hooded_tunic'
+          ? 'closed-hood-visor'
+          : constructed
+            ? 'open-lapel-collar'
+            : 'open-v-collar',
+      fitProfile: constructed
+        ? 'constructed-panel-clearance-v2'
+        : openCivic
+          ? 'coherent-upper-body-clearance-v1'
+          : 'legacy-shell-v1',
+      collarProfile: constructed
+        ? 'tailored-lapel-v2'
+        : openCivic
+          ? 'tailored-open-v-collar-v1'
+          : 'legacy-hood-collar-v1',
+      ...(constructed
+        ? {
+            constructionProfile: 'four-panel-fieldcoat-v1' as const,
+            constructedPanelCount: 4,
+            constructionSeamCount: 8,
+            shoulderYokeCount: 2,
+          }
+        : {}),
       torsoScale,
       shoulderScale,
       shoulderShellHalfWidth: round6(shoulderShellHalfWidth * heightScale),

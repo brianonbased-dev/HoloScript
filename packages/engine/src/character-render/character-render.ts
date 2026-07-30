@@ -88,7 +88,10 @@ export interface CharacterRenderOptions {
   heightScale?: number;
 }
 
-export type CharacterEnvironmentLightProfile = 'legacy-key-v1' | 'analytic-three-point-v1';
+export type CharacterEnvironmentLightProfile =
+  | 'legacy-key-v1'
+  | 'analytic-three-point-v1'
+  | 'directional-reflection-probe-v1';
 
 export interface CharacterEnvironmentLightOptions {
   profile?: CharacterEnvironmentLightProfile;
@@ -105,8 +108,12 @@ export interface CharacterEnvironmentLightOptions {
 }
 
 export interface CharacterEnvironmentLightReceipt {
-  schemaVersion: 'holoscript.character-environment-light.v1';
+  schemaVersion:
+    | 'holoscript.character-environment-light.v1'
+    | 'holoscript.character-environment-light.v2';
   profile: CharacterEnvironmentLightProfile;
+  /** H3Y reinterprets the three authored lobes as a low-frequency reflection probe. */
+  responseProfile?: 'three-lobe-diffuse-specular-probe-v1';
   key: {
     direction: [number, number, number];
     color: [number, number, number];
@@ -160,10 +167,16 @@ export function deriveCharacterEnvironmentLightReceipt(
   legacyLightDirection: [number, number, number] = [0.4, 0.7, 0.6]
 ): CharacterEnvironmentLightReceipt {
   const profile = options.profile ?? 'legacy-key-v1';
-  const analytic = profile === 'analytic-three-point-v1';
+  const analytic = profile !== 'legacy-key-v1';
+  const reflectionProbe = profile === 'directional-reflection-probe-v1';
   return {
-    schemaVersion: 'holoscript.character-environment-light.v1',
+    schemaVersion: reflectionProbe
+      ? 'holoscript.character-environment-light.v2'
+      : 'holoscript.character-environment-light.v1',
     profile,
+    ...(reflectionProbe
+      ? { responseProfile: 'three-lobe-diffuse-specular-probe-v1' as const }
+      : {}),
     key: {
       direction: normalizedDirection(options.keyDirection, legacyLightDirection),
       color: clampedLightColor(options.keyColor, [1, 1, 1]),
@@ -727,7 +740,12 @@ export async function renderCharacter(
   frame.set(environment.rim.color, 56);
   frame[59] = environment.rim.intensity;
   frame[60] = environment.exposure;
-  frame[61] = environment.profile === 'analytic-three-point-v1' ? 1 : 0;
+  frame[61] =
+    environment.profile === 'directional-reflection-probe-v1'
+      ? 2
+      : environment.profile === 'analytic-three-point-v1'
+        ? 1
+        : 0;
   frame[39] = 0;
   const frameBuf = device.createBuffer({
     size: frame.byteLength,

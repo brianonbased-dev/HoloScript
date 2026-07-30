@@ -1875,6 +1875,117 @@ describe('buildCharacterHostFromComposition', () => {
     expect(closeup.report.stubbed).toEqual([]);
   });
 
+  it('maps H3Y constructed clothing, soft tissue, groom containment, and probe response', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'gemini',
+          traits: [
+            {
+              name: 'lod',
+              config: {
+                levels: [
+                  {
+                    level: 0,
+                    distance: 0,
+                    garment_segments: 24,
+                    hair_guides: 72,
+                    hair_cards_per_guide: 2,
+                    hair_segments: 6,
+                    face_radial_segments: 44,
+                    face_vertical_segments: 30,
+                  },
+                ],
+              },
+            },
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                orbital_profile: 'anatomical_lid_fold_v2',
+                facial_detail_profile: 'portrait_soft_tissue_v4',
+                expression_normal_policy: 'recompute_affected_v1',
+                mouth_depth: 0.68,
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                style: 'medium_wavy',
+                groom_profile: 'scalp_flow_containment_v2',
+                card_width: 0.014,
+                root_lift: 0.001,
+                tip_taper: 0.08,
+                hairline_bias: 0.18,
+              },
+            },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_tailored_fieldcoat',
+                color: '#28445e',
+              },
+            },
+            {
+              name: 'environment_light',
+              config: {
+                profile: 'directional_reflection_probe_v1',
+                key_direction: [0.42, 0.74, 0.52],
+                key_color: [1, 0.78, 0.62],
+                key_intensity: 1.18,
+                fill_direction: [-0.62, 0.18, 0.76],
+                fill_color: [0.42, 0.64, 1],
+                fill_intensity: 0.42,
+                rim_direction: [0.68, 0.4, -0.62],
+                rim_color: [1, 0.42, 0.24],
+                rim_intensity: 0.62,
+                exposure: 1.04,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.face).toMatchObject({
+      orbitalProfile: 'anatomical-lid-fold-v2',
+      facialDetailProfile: 'portrait-soft-tissue-v4',
+      expressionNormalPolicy: 'recompute-affected-v1',
+    });
+    expect(result.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v4',
+      lipTopology: 'connected-cupid-bow-ribbon-v1',
+    });
+    expect(result.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v2',
+      constructionProfile: 'four-panel-fieldcoat-v1',
+      constructedPanelCount: 4,
+    });
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v2',
+      profile: 'scalp-flow-containment-v2',
+      containmentProfile: 'ellipsoidal-scalp-exterior-v1',
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(result.environmentLight?.receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v2',
+      profile: 'directional-reflection-probe-v1',
+      responseProfile: 'three-lobe-diffuse-specular-probe-v1',
+    });
+    expect(result.report.mapped).toContain(
+      '@environment_light(profile=directional-reflection-probe-v1)'
+    );
+    expect(result.report.stubbed).toEqual([]);
+  });
+
   it('fails closed when H3X cranial continuity or expression-normal prerequisites are absent', () => {
     const result = buildCharacterHostFromComposition({
       objects: [
@@ -1918,7 +2029,7 @@ describe('buildCharacterHostFromComposition', () => {
       },
       {
         trait: '@face(expression_normal_policy)',
-        reason: 'recompute-affected-v1 requires portrait-cranial-v3',
+        reason: 'recompute-affected-v1 requires a portrait cranial profile',
       },
     ]);
   });

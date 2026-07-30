@@ -85,13 +85,18 @@ export const AGENT_AVATAR_UPPER_BODY_PROFILES = [
   'coherent-expressive-anatomy-v7',
 ] as const;
 export type AgentAvatarUpperBodyProfile = (typeof AGENT_AVATAR_UPPER_BODY_PROFILES)[number];
-export const AGENT_AVATAR_ORBITAL_PROFILES = ['tearline-rim-v1', 'recessed-lids-v1'] as const;
+export const AGENT_AVATAR_ORBITAL_PROFILES = [
+  'tearline-rim-v1',
+  'recessed-lids-v1',
+  'anatomical-lid-fold-v2',
+] as const;
 export type AgentAvatarOrbitalProfile = (typeof AGENT_AVATAR_ORBITAL_PROFILES)[number];
 export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
   'legacy-landmarks-v1',
   'civic-landmarks-v1',
   'portrait-silhouette-v2',
   'portrait-cranial-v3',
+  'portrait-soft-tissue-v4',
 ] as const;
 export type AgentAvatarFacialDetailProfile = (typeof AGENT_AVATAR_FACIAL_DETAIL_PROFILES)[number];
 
@@ -105,6 +110,8 @@ export interface AgentAvatarOrbitalGeometryReceipt {
   canthalTilt: number;
   /** Globe size relative to the compatibility procedural eye radius. */
   eyeScale?: number;
+  /** Present only when an independently indexed upper-lid crease is emitted. */
+  lidFoldProfile?: 'upper-crease-continuity-v1';
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -113,8 +120,13 @@ export interface AgentAvatarFacialLandmarkReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-facial-landmarks.v1'
     | 'holoscript.agent-avatar-facial-landmarks.v2'
-    | 'holoscript.agent-avatar-facial-landmarks.v3';
-  profile: 'civic-landmarks-v1' | 'portrait-silhouette-v2' | 'portrait-cranial-v3';
+    | 'holoscript.agent-avatar-facial-landmarks.v3'
+    | 'holoscript.agent-avatar-facial-landmarks.v4';
+  profile:
+    | 'civic-landmarks-v1'
+    | 'portrait-silhouette-v2'
+    | 'portrait-cranial-v3'
+    | 'portrait-soft-tissue-v4';
   radialSegments: number;
   verticalSegments: number;
   eyeScale: number;
@@ -128,6 +140,10 @@ export interface AgentAvatarFacialLandmarkReceipt {
   chinProjection?: number;
   /** V2 temple-width multiplier applied to the native head surface. */
   templeWidth?: number;
+  /** H3Y connected upper/seam/lower lip surface replacing separate ellipsoid volumes. */
+  lipTopology?: 'connected-cupid-bow-ribbon-v1';
+  lipSurfaceVertexCount?: number;
+  lipSurfaceTriangleCount?: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -2685,6 +2701,30 @@ function pushOrbitalLidShell(
   pushLid(false);
 }
 
+function pushAnatomicalLidFold(
+  acc: MeshAccum,
+  center: Vec3,
+  eyeRadius: number,
+  facePlaneZ: number,
+  jointIdx: number
+): void {
+  pushFacialArc(
+    acc,
+    {
+      x: center.x,
+      y: center.y + eyeRadius * 0.16,
+      z: facePlaneZ + eyeRadius * 0.015,
+    },
+    eyeRadius * 1.12,
+    eyeRadius * 0.48,
+    eyeRadius * 0.055,
+    18,
+    Math.PI * 0.12,
+    Math.PI * 0.88,
+    jointIdx
+  );
+}
+
 function pushSmoothEllipsoid(
   acc: MeshAccum,
   center: Vec3,
@@ -2756,6 +2796,51 @@ function pushNeutralMouthSeam(
   }
 }
 
+function pushAnatomicalLipSurface(
+  acc: MeshAccum,
+  center: Vec3,
+  halfWidth: number,
+  halfHeight: number,
+  depth: number,
+  segments: number,
+  jointIdx: number
+): { vertexCount: number; triangleCount: number } {
+  const base = acc.positions.length / 3;
+  for (let segment = 0; segment <= segments; segment++) {
+    const t = segment / segments;
+    const normalizedX = t * 2 - 1;
+    const volume = Math.sqrt(Math.max(0, 1 - normalizedX * normalizedX));
+    const cupidBow = 0.78 + 0.22 * Math.cos(normalizedX * Math.PI * 2);
+    const seamY =
+      halfHeight * (0.12 * Math.cos(t * Math.PI * 2) - 0.055 * Math.cos(t * Math.PI * 4));
+    const upperY = halfHeight * volume * cupidBow;
+    const lowerY = -halfHeight * volume * (0.72 + 0.08 * Math.cos(normalizedX * Math.PI));
+    const x = center.x + normalizedX * halfWidth;
+    for (const [y, z, normalY] of [
+      [upperY, depth * (0.62 + volume * 0.38), 0.24],
+      [seamY, depth * (0.18 + volume * 0.12), 0],
+      [lowerY, depth * (0.56 + volume * 0.32), -0.2],
+    ] as const) {
+      const normal = normalize({ x: normalizedX * 0.08, y: normalY, z: 1 });
+      acc.positions.push(x, center.y + y, center.z + z);
+      acc.normals.push(normal.x, normal.y, normal.z);
+      acc.tangents.push(1, 0, 0, 1);
+      acc.jointIndices.push(jointIdx);
+      acc.jointWeights.push(1);
+    }
+  }
+  for (let segment = 0; segment < segments; segment++) {
+    const a = base + segment * 3;
+    const b = a + 3;
+    acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
+    acc.indices.push(a + 1, b + 1, a + 2, a + 2, b + 1, b + 2);
+  }
+  return {
+    vertexCount: (segments + 1) * 3,
+    triangleCount: segments * 4,
+  };
+}
+
 function pushCivicFacialLandmarks(
   acc: MeshAccum,
   center: Vec3,
@@ -2768,7 +2853,8 @@ function pushCivicFacialLandmarks(
   browThickness: number,
   earScale: number,
   mouthDepth: number,
-  jointIdx: number
+  jointIdx: number,
+  includeLegacyLips = true
 ): void {
   const facePlaneZ = center.z + radiusZ * 1.006;
   const browY = eyeY + eyeRadius * browHeight;
@@ -2823,26 +2909,28 @@ function pushCivicFacialLandmarks(
     );
   }
 
-  const mouthCenter = {
-    x: center.x,
-    y: center.y - radiusY * 0.39,
-    z: center.z + radiusZ * 1.003,
-  };
-  for (const direction of [-1, 1] as const) {
-    pushSmoothEllipsoid(
-      acc,
-      {
-        x: mouthCenter.x,
-        y: mouthCenter.y + direction * radiusY * 0.018,
-        z: mouthCenter.z + radiusZ * 0.02 * mouthDepth,
-      },
-      radiusX * (direction > 0 ? 0.27 : 0.25),
-      radiusY * (direction > 0 ? 0.028 : 0.024),
-      radiusZ * 0.022 * mouthDepth,
-      5,
-      14,
-      jointIdx
-    );
+  if (includeLegacyLips) {
+    const mouthCenter = {
+      x: center.x,
+      y: center.y - radiusY * 0.39,
+      z: center.z + radiusZ * 1.003,
+    };
+    for (const direction of [-1, 1] as const) {
+      pushSmoothEllipsoid(
+        acc,
+        {
+          x: mouthCenter.x,
+          y: mouthCenter.y + direction * radiusY * 0.018,
+          z: mouthCenter.z + radiusZ * 0.02 * mouthDepth,
+        },
+        radiusX * (direction > 0 ? 0.27 : 0.25),
+        radiusY * (direction > 0 ? 0.028 : 0.024),
+        radiusZ * 0.022 * mouthDepth,
+        5,
+        14,
+        jointIdx
+      );
+    }
   }
 }
 
@@ -2904,9 +2992,7 @@ function stitchCranialNeckLoops(
     neckRadialSegments,
     cranialRadialSegments,
     bridgeTriangleCount: (acc.indices.length - indexStart) / 3,
-    axialSeparation: round6(
-      Math.abs(averageY(cranialPoints) - averageY(neckPoints)) * heightScale
-    ),
+    axialSeparation: round6(Math.abs(averageY(cranialPoints) - averageY(neckPoints)) * heightScale),
     maxSeamGap: round6(maxSeamGap),
     neckVertexRange: {
       vertexStart: neckVertexStart,
@@ -2974,9 +3060,9 @@ function pushNeutralAnatomicalHead(
   const radiusY = headLength * 0.62 * faceLength;
   const radiusZ = radius * 1.08;
   const base = acc.positions.length / 3;
-  const portraitCranial = facialDetailProfile === 'portrait-cranial-v3';
-  const portraitSilhouette =
-    facialDetailProfile === 'portrait-silhouette-v2' || portraitCranial;
+  const softTissue = facialDetailProfile === 'portrait-soft-tissue-v4';
+  const portraitCranial = facialDetailProfile === 'portrait-cranial-v3' || softTissue;
+  const portraitSilhouette = facialDetailProfile === 'portrait-silhouette-v2' || portraitCranial;
   const cranialMinimumY = headBase.y + headLength * 0.054;
   const lowerNormalizedY = portraitCranial
     ? clampFloat((cranialMinimumY - center.y) / radiusY, -0.76, -0.9, -0.62)
@@ -3064,7 +3150,7 @@ function pushNeutralAnatomicalHead(
     const orbitalIndexStart = acc.indices.length;
     const buildScale = radius / 0.09;
     const eyeY = headBase.y + 0.12 * buildScale;
-    if (orbitalProfile === 'recessed-lids-v1') {
+    if (orbitalProfile === 'recessed-lids-v1' || orbitalProfile === 'anatomical-lid-fold-v2') {
       const eyeRadius = 0.0145 * buildScale * eyeScale;
       const eyeCenterZ = headBase.z + radius * 0.91 - eyeRadius * eyeRecess;
       const facePlaneZ = headBase.z + radius * 1.025;
@@ -3083,6 +3169,19 @@ function pushNeutralAnatomicalHead(
           side,
           jointIdx
         );
+        if (orbitalProfile === 'anatomical-lid-fold-v2') {
+          pushAnatomicalLidFold(
+            acc,
+            {
+              x: headBase.x + side * 0.035 * buildScale * faceWidth,
+              y: eyeY,
+              z: eyeCenterZ,
+            },
+            eyeRadius,
+            facePlaneZ,
+            jointIdx
+          );
+        }
       }
     } else {
       const eyeZ = headBase.z + radius * 1.045;
@@ -3122,6 +3221,9 @@ function pushNeutralAnatomicalHead(
       lidOpening,
       canthalTilt,
       ...(eyeScale === 1 ? {} : { eyeScale }),
+      ...(orbitalProfile === 'anatomical-lid-fold-v2'
+        ? { lidFoldProfile: 'upper-crease-continuity-v1' as const }
+        : {}),
       vertexRange: {
         vertexStart: orbitalVertexStart,
         vertexCount: acc.positions.length / 3 - orbitalVertexStart,
@@ -3133,29 +3235,47 @@ function pushNeutralAnatomicalHead(
     };
   }
 
-  pushNeutralMouthSeam(
-    acc,
-    {
-      x: center.x,
-      y: center.y - radiusY * 0.39,
-      z: faceZ + radiusZ * 0.035,
-    },
-    radiusX * 0.3,
-    radiusY * 0.025,
-    radiusX * 0.012,
-    14,
-    jointIdx
-  );
+  if (!softTissue) {
+    pushNeutralMouthSeam(
+      acc,
+      {
+        x: center.x,
+        y: center.y - radiusY * 0.39,
+        z: faceZ + radiusZ * 0.035,
+      },
+      radiusX * 0.3,
+      radiusY * 0.025,
+      radiusX * 0.012,
+      14,
+      jointIdx
+    );
+  }
   let facialLandmarks: AgentAvatarFacialLandmarkReceipt | undefined;
   if (
     facialDetailProfile === 'civic-landmarks-v1' ||
     facialDetailProfile === 'portrait-silhouette-v2' ||
-    facialDetailProfile === 'portrait-cranial-v3'
+    facialDetailProfile === 'portrait-cranial-v3' ||
+    softTissue
   ) {
     const landmarkVertexStart = acc.positions.length / 3;
     const landmarkIndexStart = acc.indices.length;
     const buildScale = radius / 0.09;
     const eyeRadius = 0.0145 * buildScale * eyeScale;
+    const lipSurface = softTissue
+      ? pushAnatomicalLipSurface(
+          acc,
+          {
+            x: center.x,
+            y: center.y - radiusY * 0.39,
+            z: faceZ + radiusZ * 0.026,
+          },
+          radiusX * 0.285,
+          radiusY * 0.052,
+          radiusZ * 0.034 * mouthDepth,
+          17,
+          jointIdx
+        )
+      : undefined;
     pushCivicFacialLandmarks(
       acc,
       center,
@@ -3168,14 +3288,17 @@ function pushNeutralAnatomicalHead(
       browThickness,
       earScale,
       mouthDepth,
-      jointIdx
+      jointIdx,
+      !softTissue
     );
     facialLandmarks = {
-      schemaVersion: portraitCranial
-        ? 'holoscript.agent-avatar-facial-landmarks.v3'
-        : portraitSilhouette
-          ? 'holoscript.agent-avatar-facial-landmarks.v2'
-          : 'holoscript.agent-avatar-facial-landmarks.v1',
+      schemaVersion: softTissue
+        ? 'holoscript.agent-avatar-facial-landmarks.v4'
+        : portraitCranial
+          ? 'holoscript.agent-avatar-facial-landmarks.v3'
+          : portraitSilhouette
+            ? 'holoscript.agent-avatar-facial-landmarks.v2'
+            : 'holoscript.agent-avatar-facial-landmarks.v1',
       profile: facialDetailProfile,
       radialSegments,
       verticalSegments,
@@ -3189,6 +3312,13 @@ function pushNeutralAnatomicalHead(
             cheekboneScale,
             chinProjection,
             templeWidth,
+          }
+        : {}),
+      ...(lipSurface
+        ? {
+            lipTopology: 'connected-cupid-bow-ribbon-v1' as const,
+            lipSurfaceVertexCount: lipSurface.vertexCount,
+            lipSurfaceTriangleCount: lipSurface.triangleCount,
           }
         : {}),
       vertexRange: {
@@ -3493,7 +3623,9 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const heightScale = opts.heightScale ?? 1;
   const faceTopology = opts.faceTopology ?? 'procedural-head-v1';
   const facialDetailProfile = opts.facialDetailProfile ?? 'legacy-landmarks-v1';
-  const portraitCranial = facialDetailProfile === 'portrait-cranial-v3';
+  const portraitCranial =
+    facialDetailProfile === 'portrait-cranial-v3' ||
+    facialDetailProfile === 'portrait-soft-tissue-v4';
   const faceRadialSegments = clampInt(
     opts.faceRadialSegments,
     portraitCranial ? 40 : 20,
@@ -3509,7 +3641,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const orbitalProfile = opts.orbitalProfile ?? 'tearline-rim-v1';
   const eyeRecess = clampFloat(
     opts.eyeRecess,
-    orbitalProfile === 'recessed-lids-v1' ? 0.28 : 0,
+    orbitalProfile === 'recessed-lids-v1' || orbitalProfile === 'anatomical-lid-fold-v2' ? 0.28 : 0,
     0,
     0.45
   );
@@ -3741,9 +3873,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
           cheekboneScale,
           chinProjection,
           templeWidth,
-          facialDetailProfile === 'portrait-cranial-v3' &&
-            upperBodyProfile === 'coherent-expressive-anatomy-v7' &&
-            upperBody
+          portraitCranial && upperBodyProfile === 'coherent-expressive-anatomy-v7' && upperBody
             ? {
                 vertexStart:
                   upperBody.vertexRange.vertexStart +
@@ -3798,12 +3928,11 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     jointCount: JOINT_COUNT,
     boneOrder: BONE_ORDER,
     anatomy: {
-      schemaVersion:
-        cranialNeck
-          ? 'holoscript.agent-avatar-anatomy.v3'
-          : upperBodyProfile === 'coherent-expressive-anatomy-v7'
-            ? 'holoscript.agent-avatar-anatomy.v2'
-            : 'holoscript.agent-avatar-anatomy.v1',
+      schemaVersion: cranialNeck
+        ? 'holoscript.agent-avatar-anatomy.v3'
+        : upperBodyProfile === 'coherent-expressive-anatomy-v7'
+          ? 'holoscript.agent-avatar-anatomy.v2'
+          : 'holoscript.agent-avatar-anatomy.v1',
       faceWidth,
       faceLength,
       jawTaper,

@@ -188,6 +188,27 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     }
   });
 
+  it('adds H3Y upper-lid folds as operative topology around the recessed globes', () => {
+    const fitted = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      orbitalProfile: 'anatomical-lid-fold-v2',
+      eyeRecess: 0.31,
+      lidOpening: 0.53,
+      canthalTilt: 0.11,
+    });
+
+    expect(fitted.orbital).toMatchObject({
+      profile: 'anatomical-lid-fold-v2',
+      eyeRecess: 0.31,
+      lidOpening: 0.53,
+      canthalTilt: 0.11,
+      lidFoldProfile: 'upper-crease-continuity-v1',
+    });
+    expect(fitted.orbital?.vertexRange.vertexCount).toBe(228);
+    expect(fitted.orbital?.indexRange.indexCount).toBe(648);
+  });
+
   it('applies and receipts bounded neutral-face and upper-body proportions', () => {
     const baseline = buildAgentAvatarMesh({
       faceTopology: 'neutral-anatomical-v2',
@@ -1247,5 +1268,35 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     expect(legacyClamp.jointDeformation?.schemaVersion).toBe(
       'holoscript.agent-avatar-joint-deformation.v3'
     );
+  });
+
+  it('replaces separate lip ellipsoids with one H3Y cupid-bow soft-tissue surface', () => {
+    const softTissue = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceRadialSegments: 44,
+      faceVerticalSegments: 30,
+      orbitalProfile: 'anatomical-lid-fold-v2',
+      facialDetailProfile: 'portrait-soft-tissue-v4',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      upperBodyRadialSegments: 24,
+      mouthDepth: 0.68,
+    });
+
+    expect(softTissue.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v4',
+      profile: 'portrait-soft-tissue-v4',
+      radialSegments: 44,
+      verticalSegments: 30,
+      mouthDepth: 0.68,
+      lipTopology: 'connected-cupid-bow-ribbon-v1',
+      lipSurfaceVertexCount: 54,
+      lipSurfaceTriangleCount: 68,
+    });
+    expect(softTissue.anatomy.cranialNeck).toBeDefined();
+    expect(softTissue.orbital?.lidFoldProfile).toBe('upper-crease-continuity-v1');
+    expect(softTissue.jointDeformation).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v4',
+      profile: 'expressive-cranial-neck-volume-v4',
+    });
   });
 });

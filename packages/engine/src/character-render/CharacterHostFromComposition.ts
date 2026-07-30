@@ -836,12 +836,15 @@ export function buildCharacterHostFromComposition(
           .replace(/_/g, '-');
         if (
           authoredOrbitalProfile === 'tearline-rim-v1' ||
-          authoredOrbitalProfile === 'recessed-lids-v1'
+          authoredOrbitalProfile === 'recessed-lids-v1' ||
+          authoredOrbitalProfile === 'anatomical-lid-fold-v2'
         ) {
           orbitalProfile = authoredOrbitalProfile;
           eyeRecess = clamp(
             asNum(cfgVal(faceTrait, 'eye_recess', 'globe_recess')) ??
-              (orbitalProfile === 'recessed-lids-v1' ? 0.28 : 0),
+              (orbitalProfile === 'recessed-lids-v1' || orbitalProfile === 'anatomical-lid-fold-v2'
+                ? 0.28
+                : 0),
             0,
             0.45
           );
@@ -867,36 +870,32 @@ export function buildCharacterHostFromComposition(
           authoredFacialDetailProfile === 'legacy-landmarks-v1' ||
           authoredFacialDetailProfile === 'civic-landmarks-v1' ||
           authoredFacialDetailProfile === 'portrait-silhouette-v2' ||
-          authoredFacialDetailProfile === 'portrait-cranial-v3'
+          authoredFacialDetailProfile === 'portrait-cranial-v3' ||
+          authoredFacialDetailProfile === 'portrait-soft-tissue-v4'
         ) {
           if (
-            authoredFacialDetailProfile === 'portrait-cranial-v3' &&
+            (authoredFacialDetailProfile === 'portrait-cranial-v3' ||
+              authoredFacialDetailProfile === 'portrait-soft-tissue-v4') &&
             upperBodyProfile !== 'coherent-expressive-anatomy-v7'
           ) {
             report.stubbed.push({
               trait: '@face(facial_detail_profile)',
               reason:
-                'portrait-cranial-v3 requires coherent-expressive-anatomy-v7 for indexed neck-cranium continuity',
+                `${authoredFacialDetailProfile} requires coherent-expressive-anatomy-v7 ` +
+                'for indexed neck-cranium continuity',
             });
           } else {
             facialDetailProfile = authoredFacialDetailProfile;
-            eyeScale = clamp(
-              asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1,
-              0.72,
-              1.08
-            );
+            eyeScale = clamp(asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1, 0.72, 1.08);
             browHeight = clamp(asNum(cfgVal(faceTrait, 'brow_height')) ?? 1.05, 0.65, 1.65);
-            browThickness = clamp(
-              asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16,
-              0.08,
-              0.32
-            );
+            browThickness = clamp(asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16, 0.08, 0.32);
             earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
             mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
           }
           if (
             facialDetailProfile === 'portrait-silhouette-v2' ||
-            facialDetailProfile === 'portrait-cranial-v3'
+            facialDetailProfile === 'portrait-cranial-v3' ||
+            facialDetailProfile === 'portrait-soft-tissue-v4'
           ) {
             cheekboneScale = clamp(asNum(cfgVal(faceTrait, 'cheekbone_scale')) ?? 1, 0.82, 1.22);
             chinProjection = clamp(asNum(cfgVal(faceTrait, 'chin_projection')) ?? 1, 0.72, 1.28);
@@ -909,7 +908,10 @@ export function buildCharacterHostFromComposition(
             });
           }
           if (facialDetailProfile) {
-            if (facialDetailProfile === 'portrait-cranial-v3') {
+            if (
+              facialDetailProfile === 'portrait-cranial-v3' ||
+              facialDetailProfile === 'portrait-soft-tissue-v4'
+            ) {
               faceRadialSegments = Math.max(
                 12,
                 Math.min(
@@ -934,7 +936,8 @@ export function buildCharacterHostFromComposition(
                 `brow_height=${browHeight},brow_thickness=${browThickness},` +
                 `ear_scale=${earScale},mouth_depth=${mouthDepth}` +
                 (facialDetailProfile === 'portrait-silhouette-v2' ||
-                facialDetailProfile === 'portrait-cranial-v3'
+                facialDetailProfile === 'portrait-cranial-v3' ||
+                facialDetailProfile === 'portrait-soft-tissue-v4'
                   ? `,cheekbone_scale=${cheekboneScale},chin_projection=${chinProjection},` +
                     `temple_width=${templeWidth}`
                   : '') +
@@ -967,23 +970,20 @@ export function buildCharacterHostFromComposition(
           .replace(/_/g, '-');
         if (
           authoredExpressionNormalPolicy === 'recompute-affected-v1' &&
-          facialDetailProfile === 'portrait-cranial-v3'
+          (facialDetailProfile === 'portrait-cranial-v3' ||
+            facialDetailProfile === 'portrait-soft-tissue-v4')
         ) {
           expressionNormalPolicy = authoredExpressionNormalPolicy;
-          report.mapped.push(
-            `@face(expression_normal_policy=${expressionNormalPolicy})`
-          );
+          report.mapped.push(`@face(expression_normal_policy=${expressionNormalPolicy})`);
         } else if (authoredExpressionNormalPolicy === 'legacy-static-v1') {
           expressionNormalPolicy = authoredExpressionNormalPolicy;
-          report.mapped.push(
-            `@face(expression_normal_policy=${expressionNormalPolicy})`
-          );
+          report.mapped.push(`@face(expression_normal_policy=${expressionNormalPolicy})`);
         } else if (authoredExpressionNormalPolicy) {
           report.stubbed.push({
             trait: '@face(expression_normal_policy)',
             reason:
               authoredExpressionNormalPolicy === 'recompute-affected-v1'
-                ? 'recompute-affected-v1 requires portrait-cranial-v3'
+                ? 'recompute-affected-v1 requires a portrait cranial profile'
                 : `policy '${authoredExpressionNormalPolicy}' has no native expression-normal channel`,
           });
         }
@@ -1321,7 +1321,11 @@ export function buildCharacterHostFromComposition(
   const clothing = traits.get('clothing');
   if (clothing) {
     const style = asStr(cfgVal(clothing, 'style', 'type', 'preset'))?.toLowerCase();
-    if (style === 'stormglass_hooded_tunic' || style === 'stormglass_open_civic_tunic') {
+    if (
+      style === 'stormglass_hooded_tunic' ||
+      style === 'stormglass_open_civic_tunic' ||
+      style === 'stormglass_tailored_fieldcoat'
+    ) {
       garmentStyle = style;
       const authoredColor = asRgb(cfgVal(clothing, 'color', 'base_color'));
       if (authoredColor) {
@@ -1665,7 +1669,11 @@ export function buildCharacterHostFromComposition(
     const profile = (asStr(cfgVal(environmentTrait, 'profile')) ?? 'analytic-three-point-v1')
       .toLowerCase()
       .replace(/_/g, '-') as CharacterEnvironmentLightOptions['profile'];
-    if (profile === 'analytic-three-point-v1' || profile === 'legacy-key-v1') {
+    if (
+      profile === 'analytic-three-point-v1' ||
+      profile === 'legacy-key-v1' ||
+      profile === 'directional-reflection-probe-v1'
+    ) {
       const options: CharacterEnvironmentLightOptions = {
         profile,
         keyDirection: asVec3(cfgVal(environmentTrait, 'key_direction')),
@@ -1687,7 +1695,7 @@ export function buildCharacterHostFromComposition(
     } else {
       report.stubbed.push({
         trait: '@environment_light',
-        reason: `profile '${profile}' has no native analytic renderer binding`,
+        reason: `profile '${profile}' has no native environment renderer binding`,
       });
     }
   }

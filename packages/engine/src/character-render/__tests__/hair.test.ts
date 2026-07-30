@@ -110,9 +110,9 @@ describe('hair — procedural geometry (pure data)', () => {
     });
     expect(c.mesh.secondaryJointIndices).toHaveLength(c.mesh.vertexCount);
     expect(c.mesh.secondaryJointWeights).toHaveLength(c.mesh.vertexCount);
-    expect(
-      Array.from(c.mesh.secondaryJointWeights!).filter((weight) => weight > 0)
-    ).toHaveLength(1008);
+    expect(Array.from(c.mesh.secondaryJointWeights!).filter((weight) => weight > 0)).toHaveLength(
+      1008
+    );
 
     const bodyEnd = c.bodyVertexRange.vertexStart + c.bodyVertexRange.vertexCount;
     for (let vertex = bodyEnd; vertex < c.mesh.vertexCount; vertex++) {
@@ -241,7 +241,49 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(Array.from(replay.positions)).toEqual(Array.from(scalpFlow.positions));
     expect(replay.groom).toEqual(scalpFlow.groom);
     expect(resolveAgentAvatarGroomProfile('Scalp Flow V1')).toBe('scalp-flow-v1');
+    expect(resolveAgentAvatarGroomProfile('Scalp Flow Containment V2')).toBe(
+      'scalp-flow-containment-v2'
+    );
     expect(resolveAgentAvatarGroomProfile('billboard_wig_v9')).toBeUndefined();
+  });
+
+  it('projects H3Y groom cards outside the authored ellipsoidal scalp', () => {
+    const common = {
+      style: 'medium_wavy' as const,
+      faceTopology: 'neutral-anatomical-v2' as const,
+      faceWidth: 0.94,
+      faceLength: 1.08,
+      guides: 72,
+      cardsPerGuide: 2,
+      segments: 6,
+      cardWidth: 0.014,
+      rootLift: 0.001,
+      tipTaper: 0.08,
+      hairlineBias: 0.18,
+    };
+    const baseline = buildAgentAvatarHair({
+      ...common,
+      groomProfile: 'scalp-flow-v1',
+    });
+    const contained = buildAgentAvatarHair({
+      ...common,
+      groomProfile: 'scalp-flow-containment-v2',
+    });
+    const replay = buildAgentAvatarHair({
+      ...common,
+      groomProfile: 'scalp-flow-containment-v2',
+    });
+
+    expect(contained.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v2',
+      profile: 'scalp-flow-containment-v2',
+      containmentProfile: 'ellipsoidal-scalp-exterior-v1',
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(contained.groom!.containmentAdjustedVertexCount).toBeGreaterThan(0);
+    expect(Array.from(contained.positions)).not.toEqual(Array.from(baseline.positions));
+    expect(Array.from(replay.positions)).toEqual(Array.from(contained.positions));
+    expect(replay.groom).toEqual(contained.groom);
   });
 
   it('turns source-authored crown whorl into deterministic de-clumped scalp-flow topology', () => {

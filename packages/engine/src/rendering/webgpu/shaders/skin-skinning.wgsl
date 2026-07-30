@@ -116,11 +116,36 @@ fn environmentDiffuse(n : vec3<f32>, twoSided : bool) -> vec3<f32> {
     frame.rimColor.rgb * frame.rimColor.w * rimN;
 }
 
+// H3Y bounded reflection probe: the existing three source-authored directional colour lobes
+// become a low-frequency radiance field when envParams.y == 2. This is intentionally not a
+// photographic HDRI sampler; it adds view-dependent probe reflections without growing the
+// shared Frame uniform or breaking the XR binding contract.
+fn directionalReflectionProbe(direction : vec3<f32>, roughness : f32) -> vec3<f32> {
+  if (frame.envParams.y < 1.5) {
+    return vec3<f32>(0.0);
+  }
+  let d = normalize(direction);
+  let exponent = mix(18.0, 2.2, clamp(roughness, 0.0, 1.0));
+  let keyLobe = pow(max(dot(d, normalize(frame.keyDirection.xyz)), 0.0), exponent);
+  let fillLobe = pow(max(dot(d, normalize(frame.fillDirection.xyz)), 0.0), exponent);
+  let rimLobe = pow(max(dot(d, normalize(frame.rimDirection.xyz)), 0.0), exponent);
+  let broad =
+    frame.keyColor.rgb * frame.keyColor.w +
+    frame.fillColor.rgb * frame.fillColor.w +
+    frame.rimColor.rgb * frame.rimColor.w;
+  return broad * 0.035 +
+    frame.keyColor.rgb * frame.keyColor.w * keyLobe +
+    frame.fillColor.rgb * frame.fillColor.w * fillLobe +
+    frame.rimColor.rgb * frame.rimColor.w * rimLobe;
+}
+
 @fragment
 fn fs_lambert(in : VSOut) -> @location(0) vec4<f32> {
   let n = normalize(in.wN);
+  let v = normalize(frame.cameraPos.xyz - in.wP);
   let lit = vec3<f32>(0.35) + environmentDiffuse(n, true) * 0.65;
-  return vec4<f32>(mat.color.rgb * lit * frame.envParams.x, mat.color.a);
+  let reflection = directionalReflectionProbe(reflect(-v, n), 0.78);
+  return vec4<f32>((mat.color.rgb * lit + reflection * 0.08) * frame.envParams.x, mat.color.a);
 }
 
 fn fresnel(cosT : f32, f0 : f32) -> f32 {
@@ -224,10 +249,12 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
 
   let albedoVariation = clamp(mat.texFlags.x, 0.0, 0.08);
   let microAlbedo = 1.0 + (pore - 0.5) * albedoVariation;
+  let probeSpecular = directionalReflectionProbe(reflect(-V, N), rough);
   var color =
     mat.color.rgb * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
     transmit +
-    frame.keyColor.rgb * vec3<f32>(spec) * frame.keyColor.w;
+    frame.keyColor.rgb * vec3<f32>(spec) * frame.keyColor.w +
+    probeSpecular * fresnel(max(dot(N, V), 0.0), mat.params.x) * 0.45;
   color *= frame.envParams.x;
   color = color / (color + vec3<f32>(1.0)); // Reinhard
   return vec4<f32>(color, mat.color.a);
@@ -301,9 +328,11 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
     vec3<f32>(0.25) + environmentDiffuse(N, false) * 0.6,
     frame.envParams.y > 0.5
   );
+  let probeSpecular = directionalReflectionProbe(reflect(-V, N), 0.32);
   var col = base * rootDarken * environment
           + frame.keyColor.rgb * vec3<f32>(specR * 0.35) * frame.keyColor.w
-          + base * specTRT * 0.3;
+          + base * specTRT * 0.3
+          + probeSpecular * (specR * 0.18 + specTRT * 0.12);
   return vec4<f32>(col * frame.envParams.x, alpha);
 }
 
@@ -352,7 +381,10 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
     let f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
     let fres = f0 + (1.0 - f0) * pow(1.0 - facing, 5.0);
     let alpha = clamp(mat.color.a + fres * 0.55 + catchlight * 0.25, 0.0, 0.82);
-    let col = frame.keyColor.rgb * (catchlight * 1.15 + fres * 0.28) * frame.keyColor.w;
+    let probe = directionalReflectionProbe(reflect(-V, N), 0.04);
+    let col =
+      frame.keyColor.rgb * (catchlight * 1.15 + fres * 0.28) * frame.keyColor.w +
+      probe * (0.22 + fres * 0.5);
     return vec4<f32>(col, alpha);
   }
 
@@ -366,7 +398,8 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
 
   let col =
     base * (vec3<f32>(0.3) + environmentDiffuse(N, false) * 0.7) +
-    frame.keyColor.rgb * vec3<f32>(catchlight + fres * 0.3) * frame.keyColor.w;
+    frame.keyColor.rgb * vec3<f32>(catchlight + fres * 0.3) * frame.keyColor.w +
+    directionalReflectionProbe(reflect(-V, N), 0.12) * 0.12;
   return vec4<f32>(col * frame.envParams.x, mat.color.a);
 }
 
@@ -413,11 +446,12 @@ fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
   let rim = pow(1.0 - ndv, 4.0) * rimStrength;
 
   let albedo = mix(1.0, sampleTile(mat.albedoTile, tiledUv), mat.texFlags.x);
+  let probeReflection = directionalReflectionProbe(reflect(-V, N), rough);
   var col =
     mat.color.rgb * albedo * weave *
     (vec3<f32>(0.18) + environmentDiffuse(N, false) * 0.82);
   col += mat.color.rgb * fibreSheen * 0.35;
-  col += vec3<f32>(roughSpec + rim * 0.12);
+  col += vec3<f32>(roughSpec + rim * 0.12) + probeReflection * (0.08 + fibreSheen * 0.16);
   col = col / (col + vec3<f32>(1.0));
   return vec4<f32>(col * frame.envParams.x, mat.color.a);
 }
