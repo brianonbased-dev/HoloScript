@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest';
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
+const conformanceManifest = JSON.parse(
+  readFileSync(join(packageRoot, 'conformance', 'generated', 'manifest.json'), 'utf8')
+);
 
 describe('@holoscript/std native source tracer', () => {
   it('ships compiler-visible sources and executable numeric ABIs under an explicit boundary', () => {
@@ -28,6 +31,12 @@ describe('@holoscript/std native source tracer', () => {
     expect(packageJson.exports['./native/abi/vector-v1.hs']).toBe('./src/abi/vector-v1.hs');
     expect(packageJson.exports['./native/abi/collections-list3-v1.hs']).toBe(
       './src/abi/collections-list3-v1.hs'
+    );
+    expect(packageJson.exports['./host-abi']).toBe(
+      './conformance/host-abi/std-host-binding.mjs'
+    );
+    expect(packageJson.exports['./host-abi/descriptor']).toBe(
+      './conformance/host-abi/std-host-abi.v0.json'
     );
     expect(packageJson.holoscript).toMatchObject({
       artifact: 'library',
@@ -149,19 +158,28 @@ describe('@holoscript/std native source tracer', () => {
     expect(packageJson.holoscript.runtimeBoundary).toContain(
       'signed-zero preservation remains unproven'
     );
-    expect(packageJson.holoscript.runtimeBoundary).toContain('receipt-proven');
-    expect(packageJson.holoscript.runtimeBoundary).toContain('40 ops and 170 vectors');
+    expect(conformanceManifest.counts).toMatchObject({
+      ops: 40,
+      vectors: 192,
+      projectionVectors: 125,
+      packagedHandlers: 59,
+      packagedVectors: 67,
+      excluded: 1,
+    });
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      'direct execution of the shipped math.hsplus and collections.hsplus packaged handlers'
+      'manifest-derived std ABI conformance corpus'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      '35-function first-order host-ABI binding surface'
+      'every non-lifecycle handler in the shipped math.hsplus and collections.hsplus bytes'
+    );
+    expect(packageJson.holoscript.runtimeBoundary).toContain(
+      'explicit holoscript.std-iterable.v0 and bounded holoscript.std-callable.v0 data contracts'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain(
       'immutable fixed-size List3<i32> projection'
     );
     expect(packageJson.holoscript.runtimeBoundary).toContain(
-      'higher-order List, Map, and Set operations (function-valued parameters) remain preview'
+      'General guest closures, callback escape, asynchronous callbacks, side effects'
     );
   });
 
