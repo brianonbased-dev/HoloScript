@@ -32,6 +32,8 @@ export const COMPUTE_CAPACITY_LEASE_SCHEMA_VERSION =
   'holoscript.compute-capacity-lease.v1' as const;
 export const COMPUTE_SUBJECT_ATTESTATION_SCHEMA_VERSION =
   'holoscript.compute-subject-attestation.v1' as const;
+export const COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION =
+  'holoscript.compute-budget-evidence.v1' as const;
 export const COMPUTE_CAPACITY_LEASE_MAX_TTL_MS = 24 * 60 * 60 * 1000;
 export const COMPUTE_EVIDENCE_MAX_FUTURE_SKEW_MS = 60 * 1000;
 export const COMPUTE_CAPACITY_SNAPSHOT_MAX_TTL_MS = 60 * 1000;
@@ -42,7 +44,8 @@ export type ComputeEvidenceRole =
   | 'bridge_admitter'
   | 'placement_planner'
   | 'lease_issuer'
-  | 'execution_attestor';
+  | 'execution_attestor'
+  | 'budget_ledger_attestor';
 export type ComputeCapacityLane = 'local_device' | 'owned_fleet' | 'managed_bridge';
 export type ComputeCapacityHealth = 'ready' | 'degraded' | 'unavailable';
 export type ComputePlacementVerdict = 'admitted' | 'rejected';
@@ -94,8 +97,14 @@ export interface ComputeEvidenceTrustAnchor {
   readonly algorithm: 'ed25519';
   readonly roles: readonly ComputeEvidenceRole[];
   readonly principalDigests: readonly string[];
-  readonly lanes: readonly ComputeCapacityLane[];
-  readonly capacityRefs: readonly string[];
+  /** Required when authenticating placement, capacity, lease, or execution evidence. */
+  readonly lanes?: readonly ComputeCapacityLane[];
+  /** Required when authenticating placement, capacity, lease, or execution evidence. */
+  readonly capacityRefs?: readonly string[];
+  /** Required when authenticating budget-ledger evidence. */
+  readonly teamIds?: readonly string[];
+  /** Required when authenticating budget-ledger evidence. */
+  readonly budgetRailIds?: readonly string[];
   readonly validFrom: string;
   readonly validUntil: string;
   readonly revokedAt?: string;
@@ -109,6 +118,84 @@ export interface ComputeIssuerAttestation {
   readonly algorithm: 'ed25519';
   readonly claimsDigest: string;
   readonly signature: string;
+}
+
+export type ComputeBudgetEvidenceStatus =
+  | 'authorized'
+  | 'held'
+  | 'released'
+  | 'settled'
+  | 'rejected';
+
+export interface ComputeBudgetAccountProjection {
+  readonly heldAmountMinorUnits: number;
+  readonly settledAmountMinorUnits: number;
+  readonly version: number;
+}
+
+export interface ComputeBudgetEvidenceBinding {
+  readonly teamId: string;
+  readonly budgetRailId: string;
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly workUnitDigest: string;
+  readonly currency: 'USD';
+  readonly maxAmountMinorUnits: number;
+  readonly policyDigest: string;
+  readonly periodDigest: string;
+  readonly nonceDigest: string;
+  readonly idempotencyKeyHash: string;
+}
+
+/**
+ * Signed evidence for a prepared enterprise budget-ledger transition.
+ *
+ * `held` and `settled` authenticate the ledger assertion and its exact CAS
+ * projections. They do not prove that a database committed the projection,
+ * that a provider reserved capacity, that execution occurred, or that a
+ * payment was made. `settled` evidence is metered budget consumption and must
+ * bind a separate measured-cost receipt, including when the measured cost is
+ * zero.
+ */
+export interface ComputeBudgetEvidence extends ComputeBudgetEvidenceBinding {
+  readonly schemaVersion: typeof COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION;
+  readonly verificationScope: 'issuer_attested';
+  readonly evidenceScope: 'budget_ledger_only';
+  readonly receiptId: string;
+  readonly status: ComputeBudgetEvidenceStatus;
+  readonly heldAmountMinorUnits: number;
+  readonly settledAmountMinorUnits: number;
+  readonly accountBefore: ComputeBudgetAccountProjection;
+  readonly accountAfter: ComputeBudgetAccountProjection;
+  readonly measuredCostReceiptId?: string;
+  readonly issuedAt: string;
+  readonly validFrom: string;
+  readonly validUntil: string;
+  readonly attestation: ComputeIssuerAttestation;
+}
+
+export interface BuildComputeBudgetEvidenceInput extends ComputeBudgetEvidenceBinding {
+  readonly status: ComputeBudgetEvidenceStatus;
+  readonly heldAmountMinorUnits: number;
+  readonly settledAmountMinorUnits: number;
+  readonly accountBefore: ComputeBudgetAccountProjection;
+  readonly accountAfter: ComputeBudgetAccountProjection;
+  readonly measuredCostReceiptId?: string;
+  readonly issuedAt: string;
+  readonly validFrom: string;
+  readonly validUntil: string;
+  readonly signer: ComputeEvidenceSigner;
+}
+
+export interface VerifyComputeBudgetEvidenceInput extends ComputeBudgetEvidenceBinding {
+  readonly evidence: ComputeBudgetEvidence;
+  readonly verifiedAt: string;
+  readonly trustAnchors: readonly ComputeEvidenceTrustAnchor[];
+}
+
+export interface ComputeBudgetEvidenceVerification extends ComputeEvidenceValidation {
+  readonly verificationScope: 'issuer_authenticated';
 }
 
 export interface ComputeCapacitySnapshot {
@@ -330,6 +417,14 @@ const ROLES = new Set<ComputeEvidenceRole>([
   'placement_planner',
   'lease_issuer',
   'execution_attestor',
+  'budget_ledger_attestor',
+]);
+const BUDGET_EVIDENCE_STATUSES = new Set<ComputeBudgetEvidenceStatus>([
+  'authorized',
+  'held',
+  'released',
+  'settled',
+  'rejected',
 ]);
 const BRIDGE_REASONS = new Set<ComputeBridgeAdmissionReason>([
   'policy_admitted',
@@ -533,13 +628,21 @@ function attestationTrustErrors(
   attestation: ComputeIssuerAttestation,
   expectedRole: ComputeEvidenceRole,
   trustAnchors: readonly ComputeEvidenceTrustAnchor[],
-  scope: {
-    readonly principalDigest?: string;
-    readonly lane: ComputeCapacityLane;
-    readonly capacityRef: string;
-    readonly assertedAt: string;
-    readonly verifiedAt?: string;
-  }
+  scope:
+    | {
+        readonly principalDigest?: string;
+        readonly lane: ComputeCapacityLane;
+        readonly capacityRef: string;
+        readonly assertedAt: string;
+        readonly verifiedAt?: string;
+      }
+    | {
+        readonly principalDigest: string;
+        readonly teamId: string;
+        readonly budgetRailId: string;
+        readonly assertedAt: string;
+        readonly verifiedAt?: string;
+      }
 ): string[] {
   const errors: string[] = [];
   validateAttestation(claims, attestation, expectedRole, 'attestation', errors);
@@ -551,7 +654,7 @@ function attestationTrustErrors(
     return [`no trust anchor admits ${expectedRole} ${attestation.issuer}/${attestation.keyId}`];
   }
   const anchor = matchingAnchors[0];
-  if (
+  const commonScopeInvalid =
     anchor.algorithm !== 'ed25519' ||
     !Array.isArray(anchor.roles) ||
     anchor.roles.length === 0 ||
@@ -560,26 +663,47 @@ function attestationTrustErrors(
     !Array.isArray(anchor.principalDigests) ||
     anchor.principalDigests.length === 0 ||
     new Set(anchor.principalDigests).size !== anchor.principalDigests.length ||
-    anchor.principalDigests.some((digest) => !SHA256_LABEL.test(digest)) ||
-    !Array.isArray(anchor.lanes) ||
-    anchor.lanes.length === 0 ||
-    new Set(anchor.lanes).size !== anchor.lanes.length ||
-    anchor.lanes.some((lane) => !LANES.has(lane)) ||
-    !Array.isArray(anchor.capacityRefs) ||
-    anchor.capacityRefs.length === 0 ||
-    new Set(anchor.capacityRefs).size !== anchor.capacityRefs.length ||
-    anchor.capacityRefs.some((reference) => !SHA256_LABEL.test(reference))
-  ) {
+    anchor.principalDigests.some((digest) => !SHA256_LABEL.test(digest));
+  const placementScopeInvalid =
+    'lane' in scope &&
+    (!Array.isArray(anchor.lanes) ||
+      anchor.lanes.length === 0 ||
+      new Set(anchor.lanes).size !== anchor.lanes.length ||
+      anchor.lanes.some((lane) => !LANES.has(lane)) ||
+      !Array.isArray(anchor.capacityRefs) ||
+      anchor.capacityRefs.length === 0 ||
+      new Set(anchor.capacityRefs).size !== anchor.capacityRefs.length ||
+      anchor.capacityRefs.some((reference) => !SHA256_LABEL.test(reference)));
+  const budgetScopeInvalid =
+    'teamId' in scope &&
+    (!Array.isArray(anchor.teamIds) ||
+      anchor.teamIds.length === 0 ||
+      new Set(anchor.teamIds).size !== anchor.teamIds.length ||
+      anchor.teamIds.some((teamId) => !hasText(teamId)) ||
+      !Array.isArray(anchor.budgetRailIds) ||
+      anchor.budgetRailIds.length === 0 ||
+      new Set(anchor.budgetRailIds).size !== anchor.budgetRailIds.length ||
+      anchor.budgetRailIds.some((budgetRailId) => !hasText(budgetRailId)));
+  if (commonScopeInvalid || placementScopeInvalid || budgetScopeInvalid) {
     errors.push('trust anchor scope is invalid');
   }
   if (!anchor.roles.includes(expectedRole)) {
     errors.push(`trust anchor does not admit role ${expectedRole}`);
   }
-  if (!anchor.lanes.includes(scope.lane)) {
-    errors.push(`trust anchor does not admit lane ${scope.lane}`);
-  }
-  if (!anchor.capacityRefs.includes(scope.capacityRef)) {
-    errors.push('trust anchor does not admit the bound capacity reference');
+  if ('lane' in scope) {
+    if (!anchor.lanes?.includes(scope.lane)) {
+      errors.push(`trust anchor does not admit lane ${scope.lane}`);
+    }
+    if (!anchor.capacityRefs?.includes(scope.capacityRef)) {
+      errors.push('trust anchor does not admit the bound capacity reference');
+    }
+  } else {
+    if (!anchor.teamIds?.includes(scope.teamId)) {
+      errors.push('trust anchor does not admit the bound team');
+    }
+    if (!anchor.budgetRailIds?.includes(scope.budgetRailId)) {
+      errors.push('trust anchor does not admit the bound budget rail');
+    }
   }
   if (
     scope.principalDigest !== undefined &&
@@ -658,6 +782,369 @@ function validateReceiptId(value: Record<string, unknown>, path: string, errors:
   } catch (error) {
     errors.push(`${path} cannot be canonicalized: ${String(error)}`);
   }
+}
+
+function validateBudgetAccountProjection(
+  value: unknown,
+  path: string,
+  errors: string[]
+): value is ComputeBudgetAccountProjection {
+  const startingErrorCount = errors.length;
+  if (!isRecord(value)) {
+    errors.push(`${path} must be an object`);
+    return false;
+  }
+  rejectUnknownKeys(
+    value,
+    ['heldAmountMinorUnits', 'settledAmountMinorUnits', 'version'],
+    path,
+    errors
+  );
+  if (!safeNonNegativeInteger(value.heldAmountMinorUnits)) {
+    errors.push(`${path}.heldAmountMinorUnits must be a non-negative safe integer`);
+  }
+  if (!safeNonNegativeInteger(value.settledAmountMinorUnits)) {
+    errors.push(`${path}.settledAmountMinorUnits must be a non-negative safe integer`);
+  }
+  if (!safeNonNegativeInteger(value.version)) {
+    errors.push(`${path}.version must be a non-negative safe integer`);
+  }
+  return errors.length === startingErrorCount;
+}
+
+function sameBudgetAccountProjection(
+  left: ComputeBudgetAccountProjection,
+  right: ComputeBudgetAccountProjection
+): boolean {
+  return (
+    left.heldAmountMinorUnits === right.heldAmountMinorUnits &&
+    left.settledAmountMinorUnits === right.settledAmountMinorUnits &&
+    left.version === right.version
+  );
+}
+
+function safeIntegerSum(left: number, right: number): number | undefined {
+  const sum = left + right;
+  return Number.isSafeInteger(sum) ? sum : undefined;
+}
+
+function validateBudgetTransition(
+  status: ComputeBudgetEvidenceStatus,
+  maxAmountMinorUnits: number,
+  heldAmountMinorUnits: number,
+  settledAmountMinorUnits: number,
+  accountBefore: ComputeBudgetAccountProjection,
+  accountAfter: ComputeBudgetAccountProjection,
+  errors: string[]
+): void {
+  if (status === 'authorized' || status === 'rejected') {
+    if (heldAmountMinorUnits !== 0 || settledAmountMinorUnits !== 0) {
+      errors.push(`${status} evidence cannot claim held or settled amounts`);
+    }
+    if (!sameBudgetAccountProjection(accountBefore, accountAfter)) {
+      errors.push(`${status} evidence cannot mutate the account projection`);
+    }
+    return;
+  }
+
+  if (maxAmountMinorUnits === 0) {
+    errors.push(`${status} evidence requires a positive maxAmountMinorUnits hold`);
+  }
+
+  const nextVersion = safeIntegerSum(accountBefore.version, 1);
+  if (nextVersion === undefined || accountAfter.version !== nextVersion) {
+    errors.push(`${status} evidence accountAfter.version must increment exactly once`);
+  }
+
+  if (status === 'held') {
+    if (heldAmountMinorUnits !== maxAmountMinorUnits) {
+      errors.push('held evidence must hold exactly maxAmountMinorUnits');
+    }
+    if (settledAmountMinorUnits !== 0) {
+      errors.push('held evidence cannot claim settled budget consumption');
+    }
+    const expectedHeld = safeIntegerSum(accountBefore.heldAmountMinorUnits, maxAmountMinorUnits);
+    if (expectedHeld === undefined) {
+      errors.push('held evidence account projection exceeds the safe-integer range');
+    } else if (accountAfter.heldAmountMinorUnits !== expectedHeld) {
+      errors.push('held evidence accountAfter.heldAmountMinorUnits must add the exact hold');
+    }
+    if (accountAfter.settledAmountMinorUnits !== accountBefore.settledAmountMinorUnits) {
+      errors.push('held evidence cannot mutate settled account consumption');
+    }
+    return;
+  }
+
+  if (heldAmountMinorUnits !== 0) {
+    errors.push(`${status} evidence must report zero remaining heldAmountMinorUnits`);
+  }
+  if (accountBefore.heldAmountMinorUnits < maxAmountMinorUnits) {
+    errors.push(`${status} evidence accountBefore does not contain the exact hold`);
+  } else if (
+    accountAfter.heldAmountMinorUnits !==
+    accountBefore.heldAmountMinorUnits - maxAmountMinorUnits
+  ) {
+    errors.push(`${status} evidence accountAfter.heldAmountMinorUnits must release the exact hold`);
+  }
+
+  if (status === 'released') {
+    if (settledAmountMinorUnits !== 0) {
+      errors.push('released evidence cannot claim settled budget consumption');
+    }
+    if (accountAfter.settledAmountMinorUnits !== accountBefore.settledAmountMinorUnits) {
+      errors.push('released evidence cannot mutate settled account consumption');
+    }
+    return;
+  }
+
+  if (settledAmountMinorUnits > maxAmountMinorUnits) {
+    errors.push('settledAmountMinorUnits must not exceed maxAmountMinorUnits');
+  }
+  const expectedSettled = safeIntegerSum(
+    accountBefore.settledAmountMinorUnits,
+    settledAmountMinorUnits
+  );
+  if (expectedSettled === undefined) {
+    errors.push('settled evidence account projection exceeds the safe-integer range');
+  } else if (accountAfter.settledAmountMinorUnits !== expectedSettled) {
+    errors.push(
+      'settled evidence accountAfter.settledAmountMinorUnits must add metered budget consumption'
+    );
+  }
+}
+
+/** Build a signed assertion for a prepared budget-ledger transition. This does not commit it. */
+export function buildComputeBudgetEvidence(
+  input: BuildComputeBudgetEvidenceInput
+): ComputeBudgetEvidence {
+  const { signer, ...inputClaims } = input;
+  const claims = {
+    schemaVersion: COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION,
+    verificationScope: 'issuer_attested' as const,
+    evidenceScope: 'budget_ledger_only' as const,
+    ...inputClaims,
+  };
+  const evidence = assembleAttestedReceipt(claims, 'budget_ledger_attestor', signer);
+  const validation = validateComputeBudgetEvidence(evidence);
+  if (!validation.valid) {
+    throw new TypeError(`Invalid compute budget evidence: ${validation.errors.join('; ')}`);
+  }
+  return evidence;
+}
+
+/** Validate canonical structure, hash, transition arithmetic, and signature envelope shape. */
+export function validateComputeBudgetEvidence(value: unknown): ComputeEvidenceValidation {
+  const errors: string[] = [];
+  if (!isRecord(value)) {
+    return { valid: false, errors: ['Compute budget evidence must be an object'] };
+  }
+  rejectUnknownKeys(
+    value,
+    [
+      'schemaVersion',
+      'verificationScope',
+      'evidenceScope',
+      'receiptId',
+      'teamId',
+      'budgetRailId',
+      'principalDigest',
+      'jobId',
+      'attempt',
+      'workUnitDigest',
+      'currency',
+      'status',
+      'maxAmountMinorUnits',
+      'heldAmountMinorUnits',
+      'settledAmountMinorUnits',
+      'accountBefore',
+      'accountAfter',
+      'measuredCostReceiptId',
+      'policyDigest',
+      'periodDigest',
+      'nonceDigest',
+      'idempotencyKeyHash',
+      'issuedAt',
+      'validFrom',
+      'validUntil',
+      'attestation',
+    ],
+    'budgetEvidence',
+    errors
+  );
+  if (value.schemaVersion !== COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION) {
+    errors.push(`schemaVersion must be ${COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION}`);
+  }
+  if (value.verificationScope !== 'issuer_attested') {
+    errors.push('verificationScope must be issuer_attested');
+  }
+  if (value.evidenceScope !== 'budget_ledger_only') {
+    errors.push('evidenceScope must be budget_ledger_only');
+  }
+  if (!hasText(value.teamId)) errors.push('teamId is required');
+  if (!hasText(value.budgetRailId)) errors.push('budgetRailId is required');
+  for (const [field, candidate] of [
+    ['principalDigest', value.principalDigest],
+    ['jobId', value.jobId],
+    ['workUnitDigest', value.workUnitDigest],
+    ['policyDigest', value.policyDigest],
+    ['periodDigest', value.periodDigest],
+    ['nonceDigest', value.nonceDigest],
+    ['idempotencyKeyHash', value.idempotencyKeyHash],
+  ] as const) {
+    if (typeof candidate !== 'string' || !SHA256_LABEL.test(candidate)) {
+      errors.push(`${field} must be a sha256 label`);
+    }
+  }
+  if (!Number.isSafeInteger(value.attempt) || (value.attempt as number) < 1) {
+    errors.push('attempt must be a positive safe integer');
+  }
+  if (value.currency !== 'USD') errors.push('currency must be USD');
+  const statusValid =
+    typeof value.status === 'string' &&
+    BUDGET_EVIDENCE_STATUSES.has(value.status as ComputeBudgetEvidenceStatus);
+  if (!statusValid) errors.push('status is invalid');
+  const maxValid = safeNonNegativeInteger(value.maxAmountMinorUnits);
+  const heldValid = safeNonNegativeInteger(value.heldAmountMinorUnits);
+  const settledValid = safeNonNegativeInteger(value.settledAmountMinorUnits);
+  if (!maxValid) errors.push('maxAmountMinorUnits must be a non-negative safe integer');
+  if (!heldValid) errors.push('heldAmountMinorUnits must be a non-negative safe integer');
+  if (!settledValid) errors.push('settledAmountMinorUnits must be a non-negative safe integer');
+  const accountBeforeValid = validateBudgetAccountProjection(
+    value.accountBefore,
+    'accountBefore',
+    errors
+  );
+  const accountAfterValid = validateBudgetAccountProjection(
+    value.accountAfter,
+    'accountAfter',
+    errors
+  );
+  if (
+    statusValid &&
+    maxValid &&
+    heldValid &&
+    settledValid &&
+    accountBeforeValid &&
+    accountAfterValid
+  ) {
+    validateBudgetTransition(
+      value.status as ComputeBudgetEvidenceStatus,
+      value.maxAmountMinorUnits as number,
+      value.heldAmountMinorUnits as number,
+      value.settledAmountMinorUnits as number,
+      value.accountBefore as unknown as ComputeBudgetAccountProjection,
+      value.accountAfter as unknown as ComputeBudgetAccountProjection,
+      errors
+    );
+  }
+  if (
+    value.measuredCostReceiptId !== undefined &&
+    (typeof value.measuredCostReceiptId !== 'string' ||
+      !SHA256_LABEL.test(value.measuredCostReceiptId))
+  ) {
+    errors.push('measuredCostReceiptId must be a sha256 label');
+  }
+  if (value.status !== 'settled' && value.measuredCostReceiptId !== undefined) {
+    errors.push('measuredCostReceiptId is only allowed for settled evidence');
+  }
+  if (value.status === 'settled' && value.measuredCostReceiptId === undefined) {
+    errors.push('settled evidence requires measuredCostReceiptId');
+  }
+
+  const issuedAt = parseIso(value.issuedAt);
+  const validFrom = parseIso(value.validFrom);
+  const validUntil = parseIso(value.validUntil);
+  if (!Number.isFinite(issuedAt)) errors.push('issuedAt must be an ISO timestamp');
+  if (!Number.isFinite(validFrom)) errors.push('validFrom must be an ISO timestamp');
+  if (!Number.isFinite(validUntil)) errors.push('validUntil must be an ISO timestamp');
+  if (Number.isFinite(validFrom) && Number.isFinite(validUntil) && validUntil <= validFrom) {
+    errors.push('validUntil must follow validFrom');
+  }
+  if (
+    Number.isFinite(issuedAt) &&
+    Number.isFinite(validFrom) &&
+    Number.isFinite(validUntil) &&
+    (issuedAt < validFrom || issuedAt >= validUntil)
+  ) {
+    errors.push('issuedAt must fall within the validity interval');
+  }
+
+  validateReceiptId(value, 'budgetEvidence', errors);
+  if (value.receiptId !== undefined && value.attestation !== undefined) {
+    validateAttestation(
+      withoutEnvelope(value as unknown as ComputeBudgetEvidence),
+      value.attestation,
+      'budget_ledger_attestor',
+      'budgetEvidence.attestation',
+      errors
+    );
+  } else if (value.attestation === undefined) {
+    errors.push('budgetEvidence.attestation must be an object');
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+/** Authenticate a structurally valid budget assertion and bind it to the expected job context. */
+export function verifyComputeBudgetEvidence(
+  input: VerifyComputeBudgetEvidenceInput
+): ComputeBudgetEvidenceVerification {
+  const structural = validateComputeBudgetEvidence(input.evidence);
+  const errors = [...structural.errors];
+  if (!structural.valid) {
+    return { valid: false, errors, verificationScope: 'issuer_authenticated' };
+  }
+
+  for (const field of [
+    'teamId',
+    'budgetRailId',
+    'principalDigest',
+    'jobId',
+    'attempt',
+    'workUnitDigest',
+    'currency',
+    'maxAmountMinorUnits',
+    'policyDigest',
+    'periodDigest',
+    'nonceDigest',
+    'idempotencyKeyHash',
+  ] as const) {
+    if (input.evidence[field] !== input[field]) {
+      errors.push(`budget evidence does not bind the expected ${field}`);
+    }
+  }
+
+  const verifiedAt = parseIso(input.verifiedAt);
+  if (!Number.isFinite(verifiedAt)) {
+    errors.push('verifiedAt must be an ISO timestamp');
+  } else {
+    const validFrom = parseIso(input.evidence.validFrom);
+    const validUntil = parseIso(input.evidence.validUntil);
+    if (verifiedAt < validFrom || verifiedAt >= validUntil) {
+      errors.push('budget evidence is not active at verification time');
+    }
+  }
+
+  errors.push(
+    ...attestationTrustErrors(
+      withoutEnvelope(input.evidence),
+      input.evidence.attestation,
+      'budget_ledger_attestor',
+      input.trustAnchors,
+      {
+        principalDigest: input.evidence.principalDigest,
+        teamId: input.evidence.teamId,
+        budgetRailId: input.evidence.budgetRailId,
+        assertedAt: input.evidence.issuedAt,
+        verifiedAt: input.verifiedAt,
+      }
+    )
+  );
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    verificationScope: 'issuer_authenticated',
+  };
 }
 
 function validateCostEstimate(

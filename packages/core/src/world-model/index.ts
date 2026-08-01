@@ -32,6 +32,7 @@ export {
   COMPUTE_PLACEMENT_PLAN_SCHEMA_VERSION,
   COMPUTE_CAPACITY_LEASE_SCHEMA_VERSION,
   COMPUTE_SUBJECT_ATTESTATION_SCHEMA_VERSION,
+  COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION,
   COMPUTE_CAPACITY_LEASE_MAX_TTL_MS,
   COMPUTE_EVIDENCE_MAX_FUTURE_SKEW_MS,
   COMPUTE_CAPACITY_SNAPSHOT_MAX_TTL_MS,
@@ -52,6 +53,9 @@ export {
   attestComputeExecutionReceipt,
   validateComputeSubjectAttestation,
   verifyComputeExecutionEvidence,
+  buildComputeBudgetEvidence,
+  validateComputeBudgetEvidence,
+  verifyComputeBudgetEvidence,
 } from './ComputePlacementEvidence';
 
 export {
@@ -273,6 +277,13 @@ export type {
   ComputeEvidenceSigner,
   ComputeEvidenceTrustAnchor,
   ComputeIssuerAttestation,
+  ComputeBudgetEvidenceStatus,
+  ComputeBudgetAccountProjection,
+  ComputeBudgetEvidenceBinding,
+  ComputeBudgetEvidence,
+  BuildComputeBudgetEvidenceInput,
+  VerifyComputeBudgetEvidenceInput,
+  ComputeBudgetEvidenceVerification,
   ComputeCapacitySnapshot,
   BuildComputeCapacitySnapshotInput,
   ComputeBridgeAdmission,
