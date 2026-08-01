@@ -48,6 +48,7 @@
     "scout:logs": "npx pm2 logs holoscout --lines 100",
     "smoke:bitnet": "tsx scripts/bitnet-smoke.ts",
     "smoke:auth": "node scripts/smoke-mcp-auth.mjs",
+    "smoke:browser-session": "tsx scripts/holobrowser-session-smoke.ts",
     "test": "vitest run --passWithNoTests",
     "test:release": "vitest run src/policy/__tests__/PolicyInterceptor.test.ts src/policy/__tests__/PolicyPackPackaging.test.ts src/__tests__/policy-interceptor-integration.test.ts src/__tests__/secrets-broker-handler-auth.test.ts src/holomesh/identity/__tests__/signing-middleware.test.ts src/security/__tests__/gates.injection.test.ts src/__tests__/fork-sandbox-gate.test.ts src/__tests__/fork-sandbox-canary.test.ts src/__tests__/service.test.ts src/__tests__/public-consumer-benchmark.test.ts",
     "test:public-consumer": "node scripts/public-consumer-benchmark.mjs --pack-current --baseline benchmarks/public-consumer-baseline.json --receipt ../../.scratch/mcp-server-public-consumer-release.json",

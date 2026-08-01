@@ -21,6 +21,39 @@ export interface BrowserSessionConfig {
   timeout?: number;
 }
 
+export type BrowserControlMode = 'agent' | 'human';
+
+export interface BrowserSessionLease {
+  ownerId: string;
+  tokenHash: string;
+  issuedAt: number;
+  expiresAt: number;
+}
+
+export interface BrowserOperationReceipt {
+  schema: 'holoscript.browser-operation.v1';
+  operation: string;
+  sessionId: string;
+  ownerId: string;
+  controlMode: BrowserControlMode;
+  controlEpoch: number;
+  at: string;
+  digest: string;
+  details: Record<string, unknown>;
+}
+
+export interface BrowserSessionSnapshot {
+  sessionId: string;
+  ownerId: string;
+  controlMode: BrowserControlMode;
+  controlEpoch: number;
+  createdAt: number;
+  lastActivity: number;
+  leaseExpiresAt: number;
+  url: string;
+  receiptCount: number;
+}
+
 /**
  * HoloScript scene validation result
  */
@@ -94,6 +127,16 @@ export interface BrowserSession {
   createdAt: number;
   /** Last activity timestamp */
   lastActivity: number;
+  /** Lease custody; only a hash of the bearer token is retained. */
+  lease: BrowserSessionLease;
+  /** Whether the agent or a local human currently owns interaction. */
+  controlMode: BrowserControlMode;
+  /** Monotonic takeover/resume generation used to reject stale resumes. */
+  controlEpoch: number;
+  /** In-memory causal operation chain for the session. */
+  receipts: BrowserOperationReceipt[];
+  /** Origins the agent may navigate or resume into. */
+  allowedOrigins: string[];
 }
 
 /**

@@ -83,6 +83,7 @@ hs_ai_review
 hs_ai_scaffold
 generate_3d_object
 holo_generate_mesh
+browser_session
 browser_launch
 browser_execute
 browser_screenshot

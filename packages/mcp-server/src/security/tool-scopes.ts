@@ -166,6 +166,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   get_compilation_status: ['tools:read'],
 
   // === Browser control ===
+  browser_session: ['tools:browser'],
   browser_launch: ['tools:browser'],
   browser_execute: ['tools:browser'],
   browser_screenshot: ['tools:browser'],
@@ -639,6 +640,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   render_preview: 'high',
   create_share_link: 'high',
   edit_holo: 'high',
+  browser_session: 'high',
   browser_launch: 'high',
   browser_execute: 'high',
   browser_screenshot: 'high',

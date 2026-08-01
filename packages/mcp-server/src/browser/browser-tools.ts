@@ -39,6 +39,195 @@ export const BrowserScreenshotSchema = z.object({
   fullPage: z.boolean().optional().default(false).describe('Capture full page'),
 });
 
+const BrowserTypedActionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('click'), selector: z.string().min(1) }),
+  z.object({ type: z.literal('fill'), selector: z.string().min(1), value: z.string() }),
+  z.object({ type: z.literal('press'), selector: z.string().min(1), key: z.string().min(1) }),
+  z.object({
+    type: z.literal('scroll'),
+    deltaX: z.number().finite().optional().default(0),
+    deltaY: z.number().finite(),
+  }),
+  z.object({ type: z.literal('wait'), milliseconds: z.number().int().min(0).max(30_000) }),
+]);
+
+const LeasedBrowserOperationSchema = z.object({
+  sessionId: z.string().min(1),
+  leaseToken: z.string().min(32),
+});
+
+export const BrowserSessionSchema = z.discriminatedUnion('operation', [
+  z.object({
+    operation: z.literal('open'),
+    ownerId: z.string().min(1),
+    url: z.string().url(),
+    width: z.number().int().min(320).max(7680).optional().default(1280),
+    height: z.number().int().min(240).max(4320).optional().default(720),
+    headless: z.boolean().optional().default(false),
+    leaseTtlMs: z.number().int().min(10_000).max(3_600_000).optional().default(300_000),
+    allowedOrigins: z.array(z.string().min(1)).max(32).optional(),
+  }),
+  LeasedBrowserOperationSchema.extend({ operation: z.literal('navigate'), url: z.string().url() }),
+  LeasedBrowserOperationSchema.extend({
+    operation: z.literal('act'),
+    action: BrowserTypedActionSchema,
+  }),
+  LeasedBrowserOperationSchema.extend({
+    operation: z.literal('screenshot'),
+    type: z.enum(['png', 'jpeg']).optional().default('png'),
+    quality: z.number().int().min(0).max(100).optional().default(90),
+    fullPage: z.boolean().optional().default(false),
+  }),
+  LeasedBrowserOperationSchema.extend({ operation: z.literal('takeover') }),
+  LeasedBrowserOperationSchema.extend({
+    operation: z.literal('resume'),
+    expectedControlEpoch: z.number().int().min(1),
+  }),
+  LeasedBrowserOperationSchema.extend({ operation: z.literal('status') }),
+  LeasedBrowserOperationSchema.extend({ operation: z.literal('close') }),
+]);
+
+function assertBrowserSessionProtocol(url: string): void {
+  const protocol = new URL(url).protocol;
+  if (!['http:', 'https:', 'data:', 'file:'].includes(protocol)) {
+    throw new Error(`Browser session protocol is not allowed: ${protocol}`);
+  }
+}
+
+function browserOrigin(url: string): string {
+  const parsed = new URL(url);
+  return parsed.origin === 'null' ? parsed.protocol : parsed.origin;
+}
+
+function assertBrowserSessionOrigin(url: string, allowedOrigins: string[]): void {
+  const origin = browserOrigin(url);
+  if (!allowedOrigins.includes(origin)) {
+    throw new Error(`Browser session origin is not leased: ${origin}`);
+  }
+}
+
+/**
+ * Sovereign managed-browser session lifecycle. One narrow MCP surface owns the
+ * full open -> navigate -> act -> screenshot -> takeover -> resume -> close
+ * sequence while the existing preview tools remain backward compatible.
+ */
+export async function browserSession(args: z.infer<typeof BrowserSessionSchema>) {
+  if (args.operation === 'open') {
+    assertBrowserSessionProtocol(args.url);
+    const initialOrigin = browserOrigin(args.url);
+    const allowedOrigins = args.allowedOrigins?.length ? args.allowedOrigins : [initialOrigin];
+    if (!allowedOrigins.includes(initialOrigin)) {
+      throw new Error(`Browser session initial origin is not leased: ${initialOrigin}`);
+    }
+    const { session, leaseToken } = await browserPool.createLeasedSession({
+      ownerId: args.ownerId,
+      leaseTtlMs: args.leaseTtlMs,
+      allowedOrigins,
+      config: {
+        width: args.width,
+        height: args.height,
+        headless: args.headless,
+      },
+    });
+    try {
+      await session.page.goto(args.url, { waitUntil: 'domcontentloaded' });
+    } catch (error) {
+      await browserPool.destroySession(session.id);
+      throw error;
+    }
+    const receipt = browserPool.recordOperation(session, 'open', { url: session.page.url() });
+    return {
+      success: true,
+      operation: args.operation,
+      leaseToken,
+      session: browserPool.snapshot(session),
+      receipt,
+    };
+  }
+
+  const session = browserPool.requireLease(args.sessionId, args.leaseToken, {
+    allowHumanControl: ['resume', 'status', 'close'].includes(args.operation),
+  });
+
+  if (args.operation === 'navigate') {
+    assertBrowserSessionProtocol(args.url);
+    assertBrowserSessionOrigin(args.url, session.allowedOrigins);
+    const beforeUrl = session.page.url();
+    await session.page.goto(args.url, { waitUntil: 'domcontentloaded' });
+    const receipt = browserPool.recordOperation(session, 'navigate', {
+      beforeUrl,
+      afterUrl: session.page.url(),
+    });
+    return {
+      success: true,
+      operation: args.operation,
+      session: browserPool.snapshot(session),
+      receipt,
+    };
+  }
+
+  if (args.operation === 'act') {
+    const beforeUrl = session.page.url();
+    const action = args.action;
+    if (action.type === 'click') await session.page.click(action.selector);
+    else if (action.type === 'fill') await session.page.fill(action.selector, action.value);
+    else if (action.type === 'press') await session.page.press(action.selector, action.key);
+    else if (action.type === 'scroll') await session.page.mouse.wheel(action.deltaX, action.deltaY);
+    else await session.page.waitForTimeout(action.milliseconds);
+    const receipt = browserPool.recordOperation(session, 'act', {
+      action: action.type,
+      beforeUrl,
+      afterUrl: session.page.url(),
+    });
+    return {
+      success: true,
+      operation: args.operation,
+      session: browserPool.snapshot(session),
+      receipt,
+    };
+  }
+
+  if (args.operation === 'screenshot') {
+    const screenshot = await session.page.screenshot({
+      type: args.type,
+      quality: args.type === 'jpeg' ? args.quality : undefined,
+      fullPage: args.fullPage,
+    });
+    const receipt = browserPool.recordOperation(session, 'screenshot', {
+      format: args.type,
+      size: screenshot.length,
+    });
+    return {
+      success: true,
+      operation: args.operation,
+      session: browserPool.snapshot(session),
+      image: `data:image/${args.type};base64,${screenshot.toString('base64')}`,
+      receipt,
+    };
+  }
+
+  if (args.operation === 'takeover') {
+    const result = browserPool.takeOver(args.sessionId, args.leaseToken);
+    return { success: true, operation: args.operation, ...result };
+  }
+  if (args.operation === 'resume') {
+    assertBrowserSessionOrigin(session.page.url(), session.allowedOrigins);
+    const result = browserPool.resume(args.sessionId, args.leaseToken, args.expectedControlEpoch);
+    return { success: true, operation: args.operation, ...result };
+  }
+  if (args.operation === 'status') {
+    return {
+      success: true,
+      operation: args.operation,
+      session: browserPool.snapshot(session),
+      lastReceipt: session.receipts.at(-1) ?? null,
+    };
+  }
+
+  const closed = await browserPool.closeLeasedSession(args.sessionId, args.leaseToken);
+  return { success: closed.closed && !closed.residue, operation: args.operation, ...closed };
+}
+
 /**
  * Launch HoloScript preview in browser
  *
@@ -214,6 +403,11 @@ export async function holoshellFaraStep(args: z.infer<typeof FaraRunSchema>) {
  * Export MCP tool definitions
  */
 export const browserTools = {
+  browser_session: {
+    description: 'Operate a leased, takeover-safe sovereign browser session with causal receipts',
+    inputSchema: BrowserSessionSchema,
+    handler: browserSession,
+  },
   browser_launch: {
     description: 'Launch HoloScript file in browser preview with AI control',
     inputSchema: BrowserLaunchSchema,

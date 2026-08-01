@@ -615,6 +615,47 @@ export const textTo3DTools: Tool[] = [
  */
 export const browserControlTools: Tool[] = [
   {
+    name: 'browser_session',
+    description:
+      'Operate one leased sovereign browser session through open, navigate, typed actions, ' +
+      'screenshots, local human takeover, guarded resume, status, and residue-checked close.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        operation: {
+          type: 'string',
+          enum: ['open', 'navigate', 'act', 'screenshot', 'takeover', 'resume', 'status', 'close'],
+          description: 'Lifecycle operation to perform',
+        },
+        ownerId: { type: 'string', description: 'Lease owner identity; required for open' },
+        url: { type: 'string', description: 'URL for open or navigate' },
+        sessionId: { type: 'string', description: 'Session returned by open' },
+        leaseToken: { type: 'string', description: 'Bearer lease returned once by open' },
+        leaseTtlMs: { type: 'number', description: 'Lease lifetime, 10 seconds to 1 hour' },
+        allowedOrigins: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Origins leased to the agent; defaults to the opening URL origin only',
+        },
+        width: { type: 'number', description: 'Viewport width' },
+        height: { type: 'number', description: 'Viewport height' },
+        headless: { type: 'boolean', description: 'Disable a visible local window' },
+        action: {
+          type: 'object',
+          description: 'Typed click, fill, press, scroll, or wait action',
+        },
+        type: { type: 'string', enum: ['png', 'jpeg'], description: 'Screenshot format' },
+        quality: { type: 'number', description: 'JPEG quality' },
+        fullPage: { type: 'boolean', description: 'Capture the full page' },
+        expectedControlEpoch: {
+          type: 'number',
+          description: 'Takeover epoch required for safe agent resume',
+        },
+      },
+      required: ['operation'],
+    },
+  },
+  {
     name: 'browser_launch',
     description:
       'Launch HoloScript file in browser preview with AI control. ' +

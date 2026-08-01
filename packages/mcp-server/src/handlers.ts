@@ -47,9 +47,11 @@ import {
   browserLaunch,
   browserExecute,
   browserScreenshot,
+  browserSession,
   BrowserLaunchSchema,
   BrowserExecuteSchema,
   BrowserScreenshotSchema,
+  BrowserSessionSchema,
 } from './browser/browser-tools';
 import {
   buildToolManifest,
@@ -440,6 +442,8 @@ export async function handleTool(
     }
 
     // Browser control tools
+    case 'browser_session':
+      return browserSession(BrowserSessionSchema.parse(args));
     case 'browser_launch':
       return browserLaunch(BrowserLaunchSchema.parse(args));
     case 'browser_execute':

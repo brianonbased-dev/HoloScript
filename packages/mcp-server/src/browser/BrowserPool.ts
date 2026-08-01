@@ -3,8 +3,15 @@
  * Manages lifecycle of browser sessions for AI agent control
  */
 
-import { chromium, type Browser, type Page, type BrowserContext } from 'playwright';
-import type { BrowserSession, BrowserSessionConfig, BrowserPoolStats } from './types.js';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { chromium, type Browser } from 'playwright';
+import type {
+  BrowserOperationReceipt,
+  BrowserPoolStats,
+  BrowserSession,
+  BrowserSessionConfig,
+  BrowserSessionSnapshot,
+} from './types.js';
 import {
   createChromiumLaunchError,
   isMissingChromiumExecutableError,
@@ -26,6 +33,21 @@ const DEFAULT_CONFIG: Required<BrowserSessionConfig> = {
  * Maximum session idle time before automatic cleanup (5 minutes)
  */
 const MAX_IDLE_TIME = 5 * 60 * 1000;
+const DEFAULT_LEASE_TTL_MS = 5 * 60 * 1000;
+
+function hashLeaseToken(token: string): string {
+  return createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+function sameToken(left: string, right: string): boolean {
+  const leftBuffer = Buffer.from(left, 'hex');
+  const rightBuffer = Buffer.from(right, 'hex');
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function receiptDigest(receipt: Omit<BrowserOperationReceipt, 'digest'>): string {
+  return createHash('sha256').update(JSON.stringify(receipt), 'utf8').digest('hex');
+}
 
 /**
  * Manages a pool of browser sessions for HoloScript preview
@@ -42,14 +64,19 @@ export class BrowserPool {
   /**
    * Create a new browser session
    */
-  async createSession(config: BrowserSessionConfig = {}): Promise<BrowserSession> {
+  private async createSessionWithLease(
+    config: BrowserSessionConfig,
+    ownerId: string,
+    leaseTtlMs: number,
+    allowedOrigins: string[]
+  ): Promise<{ session: BrowserSession; leaseToken: string }> {
     const mergedConfig = { ...DEFAULT_CONFIG, ...config };
     const sessionId = `holoscript-${Date.now()}-${++this.sessionCounter}`;
 
     // Use system Chromium when available (Railway/Docker/CI)
     const executableResolution = resolveChromiumExecutable();
     const isServer =
-      !!executableResolution.executablePath || process.env.CI === 'true' || !process.env.DISPLAY;
+      process.env.CI === 'true' || (process.platform !== 'win32' && !process.env.DISPLAY);
     const launchOptions: Parameters<typeof chromium.launch>[0] = {
       headless: isServer ? true : mergedConfig.headless,
       args: [
@@ -98,20 +125,55 @@ export class BrowserPool {
       console.error(`[Browser Error ${sessionId}]:`, error.message);
     });
 
+    const now = Date.now();
+    const leaseToken = randomBytes(32).toString('base64url');
     const session: BrowserSession = {
       id: sessionId,
       browser,
       context,
       page,
-      config: mergedConfig,
-      createdAt: Date.now(),
-      lastActivity: Date.now(),
+      config: { ...mergedConfig, headless: launchOptions.headless === true },
+      createdAt: now,
+      lastActivity: now,
+      lease: {
+        ownerId,
+        tokenHash: hashLeaseToken(leaseToken),
+        issuedAt: now,
+        expiresAt: now + leaseTtlMs,
+      },
+      controlMode: 'agent',
+      controlEpoch: 0,
+      receipts: [],
+      allowedOrigins,
     };
 
     this.sessions.set(sessionId, session);
     this.stats.totalCreated++;
 
-    return session;
+    return { session, leaseToken };
+  }
+
+  async createSession(config: BrowserSessionConfig = {}): Promise<BrowserSession> {
+    return (
+      await this.createSessionWithLease(config, 'legacy-browser-tool', DEFAULT_LEASE_TTL_MS, [])
+    ).session;
+  }
+
+  async createLeasedSession(options: {
+    ownerId: string;
+    leaseTtlMs?: number;
+    config?: BrowserSessionConfig;
+    allowedOrigins?: string[];
+  }): Promise<{ session: BrowserSession; leaseToken: string }> {
+    const ownerId = options.ownerId.trim();
+    if (!ownerId) throw new Error('Browser session ownerId is required');
+    const leaseTtlMs = options.leaseTtlMs ?? DEFAULT_LEASE_TTL_MS;
+    if (!Number.isSafeInteger(leaseTtlMs) || leaseTtlMs < 10_000 || leaseTtlMs > 3_600_000) {
+      throw new Error('Browser session leaseTtlMs must be an integer between 10000 and 3600000');
+    }
+    return this.createSessionWithLease(options.config ?? {}, ownerId, leaseTtlMs, [
+      ...new Set(options.allowedOrigins ?? []),
+    ]);
   }
 
   /**
@@ -125,6 +187,120 @@ export class BrowserPool {
     return session;
   }
 
+  requireLease(
+    sessionId: string,
+    leaseToken: string,
+    options: { allowHumanControl?: boolean } = {}
+  ): BrowserSession {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Browser session not found: ${sessionId}`);
+    if (!sameToken(session.lease.tokenHash, hashLeaseToken(leaseToken))) {
+      throw new Error(`Browser session lease rejected: ${sessionId}`);
+    }
+    if (Date.now() >= session.lease.expiresAt) {
+      throw new Error(`Browser session lease expired: ${sessionId}`);
+    }
+    if (session.controlMode === 'human' && !options.allowHumanControl) {
+      throw new Error(`Browser session is under human control: ${sessionId}`);
+    }
+    session.lastActivity = Date.now();
+    return session;
+  }
+
+  recordOperation(
+    session: BrowserSession,
+    operation: string,
+    details: Record<string, unknown> = {}
+  ): BrowserOperationReceipt {
+    const body: Omit<BrowserOperationReceipt, 'digest'> = {
+      schema: 'holoscript.browser-operation.v1',
+      operation,
+      sessionId: session.id,
+      ownerId: session.lease.ownerId,
+      controlMode: session.controlMode,
+      controlEpoch: session.controlEpoch,
+      at: new Date().toISOString(),
+      details: {
+        previousDigest: session.receipts.at(-1)?.digest ?? null,
+        ...details,
+      },
+    };
+    const receipt = { ...body, digest: receiptDigest(body) };
+    session.receipts.push(receipt);
+    return receipt;
+  }
+
+  snapshot(session: BrowserSession): BrowserSessionSnapshot {
+    return {
+      sessionId: session.id,
+      ownerId: session.lease.ownerId,
+      controlMode: session.controlMode,
+      controlEpoch: session.controlEpoch,
+      createdAt: session.createdAt,
+      lastActivity: session.lastActivity,
+      leaseExpiresAt: session.lease.expiresAt,
+      url: session.page.url(),
+      receiptCount: session.receipts.length,
+    };
+  }
+
+  takeOver(
+    sessionId: string,
+    leaseToken: string
+  ): {
+    session: BrowserSessionSnapshot;
+    receipt: BrowserOperationReceipt;
+  } {
+    const session = this.requireLease(sessionId, leaseToken);
+    if (session.config.headless) {
+      throw new Error(`Browser session cannot enter human control while headless: ${sessionId}`);
+    }
+    session.controlMode = 'human';
+    session.controlEpoch += 1;
+    const receipt = this.recordOperation(session, 'takeover', {
+      visible: !session.config.headless,
+    });
+    return { session: this.snapshot(session), receipt };
+  }
+
+  resume(
+    sessionId: string,
+    leaseToken: string,
+    expectedControlEpoch: number
+  ): { session: BrowserSessionSnapshot; receipt: BrowserOperationReceipt } {
+    const session = this.requireLease(sessionId, leaseToken, { allowHumanControl: true });
+    if (session.controlMode !== 'human') {
+      throw new Error(`Browser session is not awaiting human handback: ${sessionId}`);
+    }
+    if (session.controlEpoch !== expectedControlEpoch) {
+      throw new Error(
+        `Browser session control epoch mismatch: expected ${expectedControlEpoch}, current ${session.controlEpoch}`
+      );
+    }
+    session.controlMode = 'agent';
+    session.controlEpoch += 1;
+    const receipt = this.recordOperation(session, 'resume', {
+      previousControlEpoch: expectedControlEpoch,
+    });
+    return { session: this.snapshot(session), receipt };
+  }
+
+  async closeLeasedSession(
+    sessionId: string,
+    leaseToken: string
+  ): Promise<{
+    closed: boolean;
+    residue: boolean;
+    receipt: BrowserOperationReceipt;
+  }> {
+    const session = this.requireLease(sessionId, leaseToken, { allowHumanControl: true });
+    const receipt = this.recordOperation(session, 'close', {
+      receiptCount: session.receipts.length + 1,
+    });
+    const closed = await this.destroySession(sessionId);
+    return { closed, residue: this.sessions.has(sessionId), receipt };
+  }
+
   /**
    * Destroy a session and cleanup resources
    */
@@ -134,20 +310,27 @@ export class BrowserPool {
       return false;
     }
 
+    const errors: unknown[] = [];
     try {
       await session.context.close();
+    } catch (error) {
+      errors.push(error);
+      console.error(`Error closing browser context ${sessionId}:`, error);
+    }
+    try {
       await session.browser.close();
-
+    } catch (error) {
+      errors.push(error);
+      console.error(`Error closing browser process ${sessionId}:`, error);
+    }
+    if (errors.length === 0) {
       const lifetime = Date.now() - session.createdAt;
       this.stats.lifetimes.push(lifetime);
       this.stats.totalDestroyed++;
-
       this.sessions.delete(sessionId);
       return true;
-    } catch (error) {
-      console.error(`Error destroying session ${sessionId}:`, error);
-      return false;
     }
+    return false;
   }
 
   /**
