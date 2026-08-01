@@ -714,6 +714,21 @@ export interface PhotogrammetryTrait extends BaseTrait {
 
 export interface ComputeTrait extends BaseTrait {
   shader?: string;
+  shader_source?: string;
+  workgroup_size?: [number, number, number];
+  dispatch?: [number, number, number];
+  intent?: string;
+  allowed_accelerators?: Array<'cpu' | 'gpu' | 'npu' | 'other'>;
+  placement_policy?: 'local_only' | 'owned_fleet' | 'external_bridge_requested';
+  data_classification?: 'public' | 'internal' | 'confidential' | 'restricted';
+  quality_metric?: string;
+  quality_operator?: 'eq' | 'lte' | 'gte';
+  quality_threshold?: number;
+  quality_reference?: 'none' | 'cpu_reference';
+  deadline_ms?: number;
+  budget_currency?: 'USD';
+  max_cost_minor_units?: number;
+  allow_fallback?: boolean;
 }
 
 export interface GPUParticleTrait extends BaseTrait {

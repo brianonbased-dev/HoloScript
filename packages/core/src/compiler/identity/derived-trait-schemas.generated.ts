@@ -4788,8 +4788,69 @@ export const DERIVED_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'webgpu',
     properties: [
       {
+        name: 'workgroup_size',
+        type: 'any',
+      },
+      {
+        name: 'dispatch',
+        type: 'any',
+      },
+      {
         name: 'shader_source',
         type: 'string',
+      },
+      {
+        name: 'intent',
+        type: 'string',
+      },
+      {
+        name: 'allowed_accelerators',
+        type: 'any',
+      },
+      {
+        name: 'placement_policy',
+        type: 'enum',
+        enumValues: ['local_only', 'owned_fleet', 'external_bridge_requested'],
+      },
+      {
+        name: 'data_classification',
+        type: 'enum',
+        enumValues: ['public', 'internal', 'confidential', 'restricted'],
+      },
+      {
+        name: 'quality_metric',
+        type: 'string',
+      },
+      {
+        name: 'quality_operator',
+        type: 'enum',
+        enumValues: ['eq', 'lte', 'gte'],
+      },
+      {
+        name: 'quality_threshold',
+        type: 'number',
+      },
+      {
+        name: 'quality_reference',
+        type: 'enum',
+        enumValues: ['none', 'cpu_reference'],
+      },
+      {
+        name: 'deadline_ms',
+        type: 'number',
+      },
+      {
+        name: 'budget_currency',
+        type: 'enum',
+        enumValues: ['USD'],
+      },
+      {
+        name: 'max_cost_minor_units',
+        type: 'number',
+      },
+      {
+        name: 'allow_fallback',
+        type: 'boolean',
       },
       {
         name: 'auto_dispatch',

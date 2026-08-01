@@ -1,5 +1,13 @@
+import { createHash } from 'crypto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TSLCompiler, type TSLCompilerOptions } from '../TSLCompiler';
+import {
+  buildComputeWorkUnit,
+  compileComputeWorkUnits,
+  validateComputeWorkUnitContract,
+  verifyComputeWorkUnitEvidence,
+} from '../ComputeWorkUnitCompiler';
+import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -464,15 +472,160 @@ describe('TSLCompiler', () => {
       expect(cs).toContain('RigidBody');
     });
 
-    it('generates compute shader for @compute trait', () => {
-      const comp = makeComposition({
-        objects: [makeObject('CustomCompute', [{ name: 'compute' }])],
-      });
-      const result = compiler.compile(comp, 'test-token');
+    it('generates a backend shader and carries the sovereign @compute work unit', () => {
+      const source = `
+        composition "ComputeFabric" {
+          object "CustomCompute" @compute {
+            intent: "Advance a thermal field with a bounded numerical error.",
+            allowed_accelerators: ["cpu", "gpu"],
+            placement_policy: "local_only",
+            data_classification: "confidential",
+            quality_metric: "max_abs_error",
+            quality_operator: "lte",
+            quality_threshold: 0.00001,
+            quality_reference: "cpu_reference",
+            deadline_ms: 5000,
+            budget_currency: "USD",
+            max_cost_minor_units: 0,
+            allow_fallback: true
+          } {}
+        }
+      `;
+      const parsed = new HoloCompositionParser().parse(source);
+      expect(parsed.success).toBe(true);
+      const result = compiler.compile(parsed.ast!, 'test-token');
 
       expect(result['CustomCompute.compute.compute.wgsl']).toBeDefined();
       const cs = result['CustomCompute.compute.compute.wgsl'];
       expect(cs).toContain('cs_generic');
+
+      const manifest = JSON.parse(result['CustomCompute.compute-work-unit.json']);
+      expect(manifest).toMatchObject({
+        schemaVersion: 'holoscript.compute-work-unit.v1',
+        intent: 'Advance a thermal field with a bounded numerical error.',
+        producer_surface: '@compute',
+        compute: {
+          source: {
+            objectName: 'CustomCompute',
+            sourceDigestKind: 'canonical_ast',
+            compiler: 'ComputeWorkUnitCompiler',
+            compilerVersion: '1.0.0',
+          },
+          policy: {
+            placement: 'local_only',
+            externalAccess: 'denied',
+            allowedAccelerators: ['cpu', 'gpu'],
+          },
+          quality: {
+            metric: 'max_abs_error',
+            operator: 'lte',
+            threshold: 1e-5,
+            reference: 'cpu_reference',
+          },
+          budget: { deadlineMs: 5000, currency: 'USD', maxCostMinorUnits: 0 },
+        },
+      });
+      expect(manifest.compute.source.sourceDigest).toMatch(/^[a-f0-9]{64}$/);
+      expect(manifest.compute.source.artifact).toBeUndefined();
+      expect(manifest.compute.source.artifactDigest).toBeUndefined();
+      expect(manifest.source_evidence).toBe(`sha256:${manifest.compute.source.sourceDigest}`);
+      expect(validateComputeWorkUnitContract(manifest)).toEqual({ valid: true, errors: [] });
+      expect(verifyComputeWorkUnitEvidence(manifest, { composition: parsed.ast! })).toEqual({
+        valid: true,
+        errors: [],
+      });
+      expect(manifest.forbidden_actions).toContain('network:external');
+    });
+
+    it('compiles an exact-source work unit without invoking TSLCompiler', () => {
+      const source = `
+        composition "SovereignCompute" {
+          object "ThermalStep" @compute {
+            intent: "Advance a thermal field exactly once."
+          } {}
+        }
+      `;
+      const parsed = new HoloCompositionParser().parse(source);
+      expect(parsed.success).toBe(true);
+
+      const compiled = compileComputeWorkUnits(parsed.ast!, { sourceText: source });
+
+      expect(compiled).toHaveLength(1);
+      expect(compiled[0].workUnit.compute.source).toMatchObject({
+        compiler: 'ComputeWorkUnitCompiler',
+        sourceDigestKind: 'source_utf8',
+        sourceDigest: createHash('sha256').update(source).digest('hex'),
+      });
+      expect(verifyComputeWorkUnitEvidence(compiled[0].workUnit, { sourceText: source })).toEqual({
+        valid: true,
+        errors: [],
+      });
+
+      const tampered = {
+        ...compiled[0].workUnit,
+        intent: 'A different outcome that was not authored.',
+      };
+      expect(verifyComputeWorkUnitEvidence(tampered, { sourceText: source }).errors).toContain(
+        'work unit does not match the authored compute source'
+      );
+
+      const bridgeTampered = buildComputeWorkUnit(
+        {
+          intent: compiled[0].workUnit.intent,
+          placement_policy: 'external_bridge_requested',
+        },
+        compiled[0].workUnit.compute.source
+      );
+      expect(validateComputeWorkUnitContract(bridgeTampered)).toEqual({ valid: true, errors: [] });
+      expect(
+        verifyComputeWorkUnitEvidence(bridgeTampered, { sourceText: source }).errors
+      ).toContain('work unit does not match the authored compute source');
+
+      expect(() =>
+        compileComputeWorkUnits(parsed.ast!, {
+          sourceText: source.replace('Advance a thermal field exactly once.', 'Render a frame.'),
+        })
+      ).toThrow('sourceText must parse to the supplied composition');
+    });
+
+    it('does not emit a compute work unit for a legacy shader-only @compute trait', () => {
+      const comp = makeComposition({
+        objects: [makeObject('LegacyCompute', [{ name: 'compute' }])],
+      });
+
+      const result = compiler.compile(comp, 'test-token');
+
+      expect(result['LegacyCompute.compute.compute.wgsl']).toBeDefined();
+      expect(result['LegacyCompute.compute-work-unit.json']).toBeUndefined();
+    });
+
+    it('fails closed for an unsupported authored accelerator class', () => {
+      const parsed = new HoloCompositionParser().parse(`
+        composition "InvalidComputeFabric" {
+          object "InvalidCompute" @compute {
+            intent: "Do not silently rewrite this accelerator request.",
+            allowed_accelerators: ["cuda"]
+          } {}
+        }
+      `);
+      expect(parsed.success).toBe(true);
+
+      expect(() => compiler.compile(parsed.ast!, 'test-token')).toThrow('allowed_accelerators');
+    });
+
+    it('fails closed when an authored intent is present but is not text', () => {
+      const parsed = new HoloCompositionParser().parse(`
+        composition "InvalidIntentFabric" {
+          object "InvalidIntent" @compute {
+            intent: 123
+          } {}
+        }
+      `);
+      expect(parsed.success).toBe(true);
+
+      expect(() => compiler.compile(parsed.ast!, 'test-token')).toThrow(
+        '@compute intent on InvalidIntent must be text when present'
+      );
     });
 
     it('does not generate compute shaders when disabled', () => {
@@ -484,6 +637,28 @@ describe('TSLCompiler', () => {
 
       const computeKeys = Object.keys(result).filter((k) => k.includes('.compute.'));
       expect(computeKeys).toHaveLength(0);
+    });
+
+    it('still emits the sovereign work unit when backend shader generation is disabled', () => {
+      const parsed = new HoloCompositionParser().parse(`
+        composition "DisabledComputeFabric" {
+          object "DisabledCompute" @compute {
+            intent: "Compile only when the selected backend is enabled."
+          } {}
+        }
+      `);
+      expect(parsed.success).toBe(true);
+
+      const result = new TSLCompiler({ enableCompute: false }).compile(parsed.ast!, 'test-token');
+
+      expect(result['DisabledCompute.compute.compute.wgsl']).toBeUndefined();
+      const manifest = JSON.parse(result['DisabledCompute.compute-work-unit.json']);
+      expect(manifest.compute.source.compiler).toBe('ComputeWorkUnitCompiler');
+      expect(manifest.compute.source.artifact).toBeUndefined();
+      expect(verifyComputeWorkUnitEvidence(manifest, { composition: parsed.ast! })).toEqual({
+        valid: true,
+        errors: [],
+      });
     });
 
     it('includes compute pipeline in pipeline setup', () => {

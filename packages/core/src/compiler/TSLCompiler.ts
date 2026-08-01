@@ -36,6 +36,7 @@ import type {
   HoloLight,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { compileComputeWorkUnits } from './ComputeWorkUnitCompiler';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
@@ -616,6 +617,13 @@ export class TSLCompiler extends CompilerBase {
       for (const [computeName, computeCode] of Object.entries(objOutput.computeShaders)) {
         result[`${safeName}.compute.${computeName}.wgsl`] = computeCode;
       }
+    }
+
+    // The sovereign compiler owns authored compute semantics. TSL only carries
+    // the resulting contract beside any backend-specific shader artifacts.
+    for (const { objectName, workUnit } of compileComputeWorkUnits(composition)) {
+      const safeName = this.sanitizeName(objectName);
+      result[`${safeName}.compute-work-unit.json`] = JSON.stringify(workUnit, null, 2);
     }
 
     // 3b. v4.2: Domain Block shader generation

@@ -8,6 +8,21 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import type { ComputeWorkUnitSourceConfig } from '../compiler/ComputeWorkUnitCompiler';
+
+export type {
+  ComputeAccelerator,
+  ComputeBudgetCurrency,
+  ComputeDataClassification,
+  ComputePlacementPolicy,
+  ComputeQualityOperator,
+  ComputeQualityReference,
+  ComputeSourceDigestKind,
+  ComputeWorkUnitContract,
+  ComputeWorkUnitSourceBinding,
+  ComputeWorkUnitSourceConfig,
+  ComputeWorkUnitValidation,
+} from '../compiler/ComputeWorkUnitCompiler';
 
 // =============================================================================
 // TYPES
@@ -35,7 +50,7 @@ interface ComputeState {
   executionCount: number;
 }
 
-interface ComputeConfig {
+export interface ComputeConfig extends ComputeWorkUnitSourceConfig {
   workgroup_size: [number, number, number];
   dispatch: [number, number, number];
   shader_source: string;
@@ -60,6 +75,18 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
     auto_dispatch: false,
     dispatch_on_update: false,
     shared_memory_size: 0,
+    intent: '',
+    allowed_accelerators: ['cpu'],
+    placement_policy: 'local_only',
+    data_classification: 'confidential',
+    quality_metric: 'exact_result',
+    quality_operator: 'eq',
+    quality_threshold: 0,
+    quality_reference: 'none',
+    deadline_ms: 0,
+    budget_currency: 'USD',
+    max_cost_minor_units: 0,
+    allow_fallback: true,
   },
 
   onAttach(node, config, context) {

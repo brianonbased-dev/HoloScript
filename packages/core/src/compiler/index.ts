@@ -86,6 +86,31 @@ export { AndroidXRCompiler } from './AndroidXRCompiler';
 export { IOSCompiler } from './IOSCompiler';
 
 // Low-level compilers
+export {
+  COMPUTE_WORK_UNIT_COMPILER_VERSION,
+  COMPUTE_WORK_UNIT_SCHEMA_VERSION,
+  buildComputeWorkUnit,
+  compileComputeWorkUnits,
+  computeCanonicalAstDigest,
+  validateComputeWorkUnitContract,
+  verifyComputeWorkUnitEvidence,
+} from './ComputeWorkUnitCompiler';
+export type {
+  CompiledComputeWorkUnit,
+  ComputeAccelerator,
+  ComputeBudgetCurrency,
+  ComputeWorkUnitCompilationOptions,
+  ComputeDataClassification,
+  ComputePlacementPolicy,
+  ComputeQualityOperator,
+  ComputeQualityReference,
+  ComputeSourceDigestKind,
+  ComputeWorkUnitContract,
+  ComputeWorkUnitEvidenceInput,
+  ComputeWorkUnitSourceBinding,
+  ComputeWorkUnitSourceConfig,
+  ComputeWorkUnitValidation,
+} from './ComputeWorkUnitCompiler';
 export { WASMCompiler } from './WASMCompiler';
 export { WebGPUCompiler } from './WebGPUCompiler';
 export type { WebGPUCompilerOptions } from './WebGPUCompiler';
