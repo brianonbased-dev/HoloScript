@@ -23,6 +23,7 @@ import {
   listDeviceProfiles,
   type DeviceFacts,
 } from './device-release-plan';
+import { materializeDevicePackage } from './device-package-materialization';
 import {
   buildHeadlessPosePhysicsReceipt,
   headlessAstToSceneReceipt,
@@ -251,8 +252,10 @@ async function runNodeDeviceCommand(options: ReturnType<typeof parseArgs>): Prom
     return;
   }
 
-  if (subcommand !== 'plan') {
-    throw new Error(`Unknown node subcommand "${subcommand}". Use "node profiles" or "node plan"`);
+  if (subcommand !== 'plan' && subcommand !== 'materialize') {
+    throw new Error(
+      `Unknown node subcommand "${subcommand}". Use "node profiles", "node plan", or "node materialize"`
+    );
   }
   if (!options.input) {
     throw new Error('node plan requires a .holo, .hsplus, or .hs source file');
@@ -270,13 +273,48 @@ async function runNodeDeviceCommand(options: ReturnType<typeof parseArgs>): Prom
       ? path.basename(absoluteSourcePath)
       : relativeCandidate;
   const device = options.device ?? 'auto';
-  const plan = createDeviceReleasePlan({
+  const releaseInput = {
     sourcePath: relativeSourcePath,
     source: fs.readFileSync(absoluteSourcePath, 'utf8'),
     device,
     compilerVersion: getCliVersionString(),
     deviceFacts: device === 'auto' ? await detectLocalDeviceFacts() : undefined,
-  });
+  };
+
+  if (subcommand === 'materialize') {
+    const materialization = materializeDevicePackage(releaseInput);
+    const defaultDirectory = `${path.basename(absoluteSourcePath, path.extname(absoluteSourcePath))}.holonode-${materialization.receipt.profileId}`;
+    const outputDirectory = path.resolve(options.output ?? defaultDirectory);
+    if (fs.existsSync(outputDirectory) && fs.readdirSync(outputDirectory).length > 0) {
+      throw new Error(`Output directory is not empty: ${outputDirectory}`);
+    }
+    fs.mkdirSync(outputDirectory, { recursive: true });
+
+    for (const [relativePath, contents] of Object.entries(materialization.files)) {
+      const outputPath = path.resolve(outputDirectory, relativePath);
+      const outputPrefix = `${outputDirectory}${path.sep}`;
+      if (!outputPath.startsWith(outputPrefix)) {
+        throw new Error(`Materialized file escaped output directory: ${relativePath}`);
+      }
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, contents, 'utf8');
+    }
+
+    if (options.json) {
+      printJson({ outputDirectory, receipt: materialization.receipt });
+      return;
+    }
+    console.log(
+      `\x1b[36mDevice package source materialized: ${materialization.receipt.profileId}\x1b[0m`
+    );
+    console.log(`  Output: ${outputDirectory}`);
+    console.log(`  Files: ${materialization.receipt.files.length + 1}`);
+    console.log(`  Phase: ${materialization.receipt.phase}`);
+    console.log(`  Receipt SHA-256: ${materialization.receipt.materializationSha256}`);
+    return;
+  }
+
+  const plan = createDeviceReleasePlan(releaseInput);
 
   if (options.output) {
     const outputPath = path.resolve(options.output);
@@ -777,7 +815,7 @@ async function main(): Promise<void> {
       } catch (error: unknown) {
         cliError('E003', error instanceof Error ? error.message : String(error), {
           usage:
-            'holoscript node plan <source.holo|source.hsplus|source.hs> --device <profile|auto> [--json] [-o receipt.json]',
+            'holoscript node <plan|materialize> <source.holo|source.hsplus|source.hs> --device <profile|auto> [--json] [-o path]',
           hint: 'Run `holoscript node profiles --json` to inspect selectable public device profiles.',
         });
         process.exit(1);

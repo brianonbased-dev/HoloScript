@@ -1,5 +1,6 @@
 import {
   DETERMINISTIC_HOLO_WORLD_PROJECTION,
+  DEVICE_PACKAGE_MATERIALIZATION_SCHEMA,
   DEVICE_RELEASE_PLAN_SCHEMA,
   HEADLESS_OBSERVER_PROJECTION_SCHEMA,
   HEADLESS_OBSERVER_PROOF_SCHEMA,
@@ -20,6 +21,7 @@ import {
   executeHoloWorldProjection,
   createDeviceReleasePlan,
   listDeviceProfiles,
+  materializeDevicePackage,
   observeHeadlessExperimentReceipt,
   runHeadlessExperimentSources,
   verifyHeadlessExperimentSourceRunReceipt,
@@ -36,6 +38,7 @@ import {
   type HoloWorldProjectionProvenance,
   type HsPlanKernelExecutionProvenance,
   type DeviceReleasePlan,
+  type DevicePackageMaterialization,
 } from '../dist/index.js';
 
 declare const untrustedSourceRunReceipt: unknown;
@@ -65,6 +68,14 @@ const devicePlan: DeviceReleasePlan = createDeviceReleasePlan({
 });
 const devicePlanSchema: 'holoscript-device-release-plan/v0.1.0' = DEVICE_RELEASE_PLAN_SCHEMA;
 const publicDeviceProfiles = listDeviceProfiles();
+const deviceMaterialization: DevicePackageMaterialization = materializeDevicePackage({
+  sourcePath: 'public-holon-node.holo',
+  source: sources.worldSource,
+  device: 'linux-arm64',
+  compilerVersion: 'consumer-test',
+});
+const deviceMaterializationSchema: 'holoscript-device-package-materialization/v0.1.0' =
+  DEVICE_PACKAGE_MATERIALIZATION_SCHEMA;
 
 const sourceRunVerdict = verifyHeadlessExperimentSourceRunReceipt(
   untrustedSourceRunReceipt,
@@ -176,6 +187,8 @@ void [
   devicePlan,
   devicePlanSchema,
   publicDeviceProfiles,
+  deviceMaterialization,
+  deviceMaterializationSchema,
   planVerdict,
   worldVerdict,
   physicsReceipt,

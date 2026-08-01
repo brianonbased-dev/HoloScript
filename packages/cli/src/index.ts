@@ -78,6 +78,13 @@ export {
   type DeviceReleasePlan,
   type DeviceReleasePlanInput,
 } from './device-release-plan';
+export {
+  DEVICE_PACKAGE_MATERIALIZATION_SCHEMA,
+  materializeDevicePackage,
+  type DevicePackageFileReceipt,
+  type DevicePackageMaterialization,
+  type DevicePackageMaterializationReceipt,
+} from './device-package-materialization';
 
 // Physics Smoke Receipts
 export {
