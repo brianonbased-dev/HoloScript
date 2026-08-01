@@ -2289,6 +2289,9 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.facialLandmarks).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v6',
       facialPlaneProfile: 'brow-malar-jaw-plane-field-v1',
+      continuousSoftTissueProfile: 'connected-nasal-oral-head-field-v1',
+      detachedNasalPrimitiveVertexCount: 0,
+      detachedLipPrimitiveVertexCount: 0,
       eyeSpacing: 1.14,
       noseBridgeWidth: 0.76,
       noseLength: 1.22,

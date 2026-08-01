@@ -179,6 +179,13 @@ export interface AgentAvatarFacialLandmarkReceipt {
   facialPlaneProfile?: 'brow-malar-jaw-plane-field-v1';
   facialPlaneStrength?: number;
   facialPlaneVertexCount?: number;
+  /** H4K nasal, philtrum, lip, and oral-fissure deformation carried by the head shell itself. */
+  continuousSoftTissueProfile?: 'connected-nasal-oral-head-field-v1';
+  continuousSoftTissueVertexCount?: number;
+  /** Explicit proof that H4K did not append a separate nasal volume. */
+  detachedNasalPrimitiveVertexCount?: 0;
+  /** Explicit proof that H4K did not append a separate lip volume. */
+  detachedLipPrimitiveVertexCount?: 0;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -3216,11 +3223,60 @@ function pushNeutralAnatomicalHead(
     : -1;
   const thetaLimit = Math.acos(lowerNormalizedY);
   let facialPlaneVertexCount = 0;
+  let continuousSoftTissueVertexCount = 0;
+  const sampleContinuousSoftTissue = (
+    normalizedX: number,
+    normalizedY: number
+  ): { projection: number; influence: number } => {
+    const gaussian = (value: number, sigma: number): number =>
+      Math.exp(-0.5 * Math.pow(value / Math.max(1e-4, sigma), 2));
+    const bridgeCenterY = 0.015 + (noseLength - 1) * 0.035;
+    const tipCenterY = -0.16 - (noseLength - 1) * 0.085;
+    const bridge =
+      gaussian(normalizedX, 0.078 * noseBridgeWidth) *
+      gaussian(normalizedY - bridgeCenterY, 0.225 * noseLength);
+    const tip =
+      gaussian(normalizedX, 0.115 * (0.72 + noseBridgeWidth * 0.28)) *
+      gaussian(normalizedY - tipCenterY, 0.09 * noseLength);
+    const alarSpread = 0.105 * (0.76 + noseBridgeWidth * 0.24);
+    const alar =
+      (gaussian(normalizedX - alarSpread, 0.052 * noseBridgeWidth) +
+        gaussian(normalizedX + alarSpread, 0.052 * noseBridgeWidth)) *
+      gaussian(normalizedY - (tipCenterY - 0.025), 0.066 * noseLength);
+    const philtrum =
+      (gaussian(normalizedX - 0.026 * noseBridgeWidth, 0.018) +
+        gaussian(normalizedX + 0.026 * noseBridgeWidth, 0.018)) *
+      gaussian(normalizedY + 0.31 + (noseLength - 1) * 0.08, 0.055);
+    const horizontalLip = Math.exp(
+      -0.5 * Math.pow(normalizedX / Math.max(0.08, 0.25 * mouthWidth), 4)
+    );
+    const upperLip = horizontalLip * gaussian(normalizedY + 0.355, 0.045);
+    const lowerLip = horizontalLip * gaussian(normalizedY + 0.425, 0.052);
+    const oralFissure =
+      Math.exp(-0.5 * Math.pow(normalizedX / Math.max(0.08, 0.265 * mouthWidth), 6)) *
+      gaussian(normalizedY + 0.393, 0.018);
+    const projection =
+      bridge * 0.072 * noseProjection +
+      tip * 0.145 * noseProjection +
+      alar * 0.038 * noseProjection +
+      philtrum * 0.011 +
+      upperLip * 0.034 * mouthDepth * upperLipFullness +
+      lowerLip * 0.036 * mouthDepth * lowerLipFullness -
+      oralFissure * 0.018;
+    return {
+      projection,
+      influence: Math.max(bridge, tip, alar * 0.5, philtrum, upperLip, lowerLip, oralFissure),
+    };
+  };
 
   for (let latitude = 0; latitude <= verticalSegments; latitude++) {
     const theta = (latitude / verticalSegments) * thetaLimit;
-    const normalizedY = Math.cos(theta);
-    const ring = Math.sin(theta);
+    const normalizedY = facialPlanes
+      ? 1 - (latitude / verticalSegments) * (1 - lowerNormalizedY)
+      : Math.cos(theta);
+    const ring = facialPlanes
+      ? Math.sqrt(Math.max(0, 1 - normalizedY * normalizedY))
+      : Math.sin(theta);
     const lowerFace = Math.max(0, -normalizedY);
     const jawTaper = 1 - lowerFace * jawTaperAmount;
     const cheekBand = Math.exp(-Math.pow((normalizedY + 0.08) / 0.26, 2));
@@ -3264,12 +3320,39 @@ function pushNeutralAnatomicalHead(
           planeFront *
           (browPlane * (0.012 + lateral * 0.012) + malarPlane * 0.034 - jawPlane * 0.012)
         : 0;
-      const z = sin * ring * radiusZ * zScale + facialPlaneProjection;
-      const normal = normalize({
+      const normalizedFaceX = x / radiusX;
+      const frontGate = facialPlanes ? Math.pow(front, 3.5) : 0;
+      const softTissue = facialPlanes
+        ? sampleContinuousSoftTissue(normalizedFaceX, normalizedY)
+        : { projection: 0, influence: 0 };
+      const continuousProjection = radiusZ * softTissue.projection * frontGate;
+      if (facialPlanes && softTissue.influence * frontGate > 0.035) {
+        continuousSoftTissueVertexCount++;
+      }
+      const z = sin * ring * radiusZ * zScale + facialPlaneProjection + continuousProjection;
+      const baseNormal = normalize({
         x: x / (radiusX * radiusX),
         y: y / (radiusY * radiusY),
         z: z / (radiusZ * radiusZ),
       });
+      const derivativeStep = 0.004;
+      const derivativeX = facialPlanes
+        ? (sampleContinuousSoftTissue(normalizedFaceX + derivativeStep, normalizedY).projection -
+            sampleContinuousSoftTissue(normalizedFaceX - derivativeStep, normalizedY).projection) /
+          (derivativeStep * 2)
+        : 0;
+      const derivativeY = facialPlanes
+        ? (sampleContinuousSoftTissue(normalizedFaceX, normalizedY + derivativeStep).projection -
+            sampleContinuousSoftTissue(normalizedFaceX, normalizedY - derivativeStep).projection) /
+          (derivativeStep * 2)
+        : 0;
+      const normal = facialPlanes
+        ? normalize({
+            x: baseNormal.x - derivativeX * (radiusZ / radiusX) * frontGate,
+            y: baseNormal.y - derivativeY * (radiusZ / radiusY) * frontGate,
+            z: baseNormal.z,
+          })
+        : baseNormal;
       acc.positions.push(center.x + x, center.y + y, center.z + z);
       acc.normals.push(normal.x, normal.y, normal.z);
       acc.tangents.push(1, 0, 0, 1);
@@ -3299,20 +3382,21 @@ function pushNeutralAnatomicalHead(
       : undefined;
 
   const faceZ = center.z + radiusZ * 0.965;
-  const facialVolumeCounts = facialVolume
-    ? pushPortraitNasalPhiltrumVolume(
-        acc,
-        center,
-        radiusX,
-        radiusY,
-        radiusZ,
-        faceZ,
-        noseBridgeWidth,
-        noseLength,
-        noseProjection,
-        jointIdx
-      )
-    : undefined;
+  const facialVolumeCounts =
+    facialVolume && !facialPlanes
+      ? pushPortraitNasalPhiltrumVolume(
+          acc,
+          center,
+          radiusX,
+          radiusY,
+          radiusZ,
+          faceZ,
+          noseBridgeWidth,
+          noseLength,
+          noseProjection,
+          jointIdx
+        )
+      : undefined;
   if (!facialVolume) {
     pushSmoothEllipsoid(
       acc,
@@ -3462,23 +3546,24 @@ function pushNeutralAnatomicalHead(
     const landmarkIndexStart = acc.indices.length;
     const buildScale = radius / 0.09;
     const eyeRadius = 0.0145 * buildScale * eyeScale;
-    const lipSurface = softTissue
-      ? pushAnatomicalLipSurface(
-          acc,
-          {
-            x: center.x,
-            y: center.y - radiusY * 0.39,
-            z: faceZ + radiusZ * 0.026,
-          },
-          radiusX * 0.285 * mouthWidth,
-          radiusY * 0.052,
-          radiusZ * 0.034 * mouthDepth,
-          upperLipFullness,
-          lowerLipFullness,
-          17,
-          jointIdx
-        )
-      : undefined;
+    const lipSurface =
+      softTissue && !facialPlanes
+        ? pushAnatomicalLipSurface(
+            acc,
+            {
+              x: center.x,
+              y: center.y - radiusY * 0.39,
+              z: faceZ + radiusZ * 0.026,
+            },
+            radiusX * 0.285 * mouthWidth,
+            radiusY * 0.052,
+            radiusZ * 0.034 * mouthDepth,
+            upperLipFullness,
+            lowerLipFullness,
+            17,
+            jointIdx
+          )
+        : undefined;
     pushCivicFacialLandmarks(
       acc,
       center,
@@ -3555,6 +3640,10 @@ function pushNeutralAnatomicalHead(
             facialPlaneProfile: 'brow-malar-jaw-plane-field-v1' as const,
             facialPlaneStrength,
             facialPlaneVertexCount,
+            continuousSoftTissueProfile: 'connected-nasal-oral-head-field-v1' as const,
+            continuousSoftTissueVertexCount,
+            detachedNasalPrimitiveVertexCount: 0 as const,
+            detachedLipPrimitiveVertexCount: 0 as const,
           }
         : {}),
       vertexRange: {

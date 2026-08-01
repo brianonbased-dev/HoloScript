@@ -603,6 +603,9 @@ describe('hair — procedural geometry (pure data)', () => {
       profile: 'portrait-facial-planes-v6',
       facialPlaneProfile: 'brow-malar-jaw-plane-field-v1',
       facialPlaneStrength: 0.8,
+      continuousSoftTissueProfile: 'connected-nasal-oral-head-field-v1',
+      detachedNasalPrimitiveVertexCount: 0,
+      detachedLipPrimitiveVertexCount: 0,
       eyeSpacing: 1.16,
       noseBridgeWidth: 0.72,
       noseLength: 1.24,
@@ -612,6 +615,7 @@ describe('hair — procedural geometry (pure data)', () => {
       lowerLipFullness: 1.38,
     });
     expect(portrait.facialLandmarks!.facialPlaneVertexCount).toBeGreaterThan(100);
+    expect(portrait.facialLandmarks!.continuousSoftTissueVertexCount).toBeGreaterThan(20);
     expect(Array.from(portrait.mesh.positions)).not.toEqual(
       Array.from(anatomyBaseline.mesh.positions)
     );
