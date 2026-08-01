@@ -134,7 +134,7 @@ WorkUnit
 This separates three facts that are often collapsed incorrectly:
 
 - **observed:** a resource appeared healthy and eligible at a measured time;
-- **reserved:** the allocator atomically changed the exact slot from available to leased;
+- **logical slot reserved:** the HoloScript allocator atomically changed its exact slot from available to leased; this is not provider-side possession unless separate provider evidence proves that fact;
 - **executed:** authenticated terminal evidence matches the WorkUnit, plan, lease, hardware, quality, and cost.
 
 ## What already exists in HoloMesh fleet
@@ -162,7 +162,7 @@ That fleet state is an **observation**. It does not currently provide:
 - a WorkUnit-total quote;
 - a provider-neutral user/enterprise response.
 
-The existing in-memory vault lease and stores with memory fallback cannot establish those facts. GPU allocation must use Postgres without an in-memory fallback and must return a reservation claim only after commit plus exact read-back.
+The existing in-memory vault lease and stores with memory fallback cannot establish those facts. GPU allocation must use Postgres without an in-memory fallback. Commit plus immutable-journal read-back may prove only that the HoloScript logical slot was leased; it cannot by itself prove provider reservation, active possession, or execution.
 
 ### Normalization rules
 
@@ -180,6 +180,8 @@ The initial normalizer fails closed unless:
 - the durable allocation cursor matches the opaque capacity reference.
 
 `availableSlots` is derived only from that durable cursor. It is never inferred from utilization, running counts, resource-flow consumers, or fleet health.
+
+Fresh spend and headroom evidence is admission telemetry, not an atomic budget hold. Concurrent jobs can each observe the same remaining headroom. A.GPU.007 therefore requires a durable team/rail budget ledger that compare-and-swaps an integer-minor-unit hold in the same transaction as the logical-slot lease, then reconciles or releases that hold from measured cost. Until that exists, the normalizer may reject work above observed headroom but must not claim a global spend cap is concurrency-safe.
 
 ## Durable lifecycle and concurrency model
 
@@ -220,7 +222,7 @@ The same key and same request returns the exact stored public response. The same
 | Capacity | Admission control, quotas, fair queueing, reservations, priorities, preemption rules, concurrency and deadline policy |
 | Reliability | Fenced leases, heartbeats, expiry cleanup, retry policy, checkpointing, zone/provider failure handling, disaster recovery |
 | Observability | Per-job logs/metrics/traces, GPU telemetry, queue latency, health and diagnostics, SLO burn alerts, audit trail |
-| Financial control | Preflight estimate, cap/headroom admission, rate lock or expiry, real usage, markup/tax separation, refunds/reconciliation, anomaly guard |
+| Financial control | Preflight estimate, observed cap/headroom admission, atomic integer-minor-unit budget hold, rate lock or expiry, real usage, markup/tax separation, refunds/reconciliation, anomaly guard |
 | Evidence | Source, placement, lease, transition, execution, quality, hardware, cost and aggregate receipts with explicit verification scope |
 | Governance | Retention and export, policy versions, reviewer/auditor access, incident workflow, deletion receipts, legal/compliance mappings |
 
@@ -335,4 +337,3 @@ The service is ready for a bounded beta only when all of the following are indep
 - [AWS Capacity Blocks](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-blocks.html)
 - [Google accelerator-optimized machines](https://docs.cloud.google.com/compute/docs/accelerator-optimized-machines)
 - [Azure GPU-optimized VM families](https://learn.microsoft.com/en-sg/azure/virtual-machines/sizes/overview)
-
