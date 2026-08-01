@@ -69,14 +69,40 @@ describe('compiler-born device package materialization', () => {
     expect(bundle.files['packaging/device-profile.json']).not.toContain('tensorrt');
   });
 
-  it('refuses to route Android through the Linux materializer', () => {
-    expect(() =>
-      materializeDevicePackage({
-        sourcePath: 'public-holon-node.holo',
-        source: SOURCE,
-        device: 'android-arm64',
-        compilerVersion: '8.0.13',
-      })
-    ).toThrow(/Android materialization requires the Android compiler path/);
+  it('materializes Android through its compiler without root or signing custody', () => {
+    const bundle = materializeDevicePackage({
+      sourcePath: 'public-holon-node.holo',
+      source: SOURCE,
+      device: 'android-arm64',
+      compilerVersion: '8.0.13',
+    });
+
+    expect(bundle.receipt).toMatchObject({
+      profileId: 'android-arm64',
+      compiler: {
+        name: 'AndroidCompiler',
+        classification: 'bridge',
+        sourceCompiled: true,
+      },
+    });
+    expect(bundle.files['app/src/main/java/dev/holoscript/holonode/HoloNodeActivity.kt']).toContain(
+      'class HoloNodeActivity'
+    );
+    expect(bundle.files['app/src/main/AndroidManifest.xml']).toContain('uses-permission');
+    expect(bundle.files['settings.gradle.kts']).toContain('dependencyResolutionManagement');
+    expect(bundle.files['packaging/android-admission.json']).toContain('"rootRequired": false');
+    expect(bundle.files['packaging/android-admission.json']).toContain(
+      '"signingCredentialBundled": false'
+    );
+    const deliveredText = JSON.stringify(bundle.files).toLowerCase();
+    const forbiddenCustodyMarkers = [
+      'holomesh_wallet',
+      '.env',
+      ['begin', 'private', 'key'].join(' '),
+      ['key', 'store'].join(''),
+    ];
+    for (const marker of forbiddenCustodyMarkers) {
+      expect(deliveredText).not.toContain(marker);
+    }
   });
 });

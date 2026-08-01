@@ -748,7 +748,7 @@ Usage: holoscript <command> [options] [input]
   run <file>        Execute a HoloScript file
   compile <file>    Compile to target platform (threejs, unity, vrchat)
   node plan <file>  Plan a gated public device package from HoloScript source
-  node materialize  Compile and materialize a Linux/Jetson package source bundle
+  node materialize  Compile and materialize a selectable device package source bundle
   fmt <paths...>    Format .hs, .hsplus, and .holo source files
                     Use --check to verify or --write to update files
   build <input>     Unified build/pack command (detects file vs dir)

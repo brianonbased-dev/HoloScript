@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { HoloCompositionParser } from '@holoscript/core';
+import { AndroidCompiler, HoloCompositionParser } from '@holoscript/core';
 import { DialectRegistry } from '@holoscript/core/compiler/index';
 
 import {
@@ -25,7 +25,7 @@ export interface DevicePackageMaterializationReceipt {
   readonly planSha256: string;
   readonly sourceSha256: string;
   readonly compiler: {
-    readonly name: 'NodeServiceCompiler';
+    readonly name: 'AndroidCompiler' | 'NodeServiceCompiler';
     readonly classification: 'bridge';
     readonly sourceCompiled: true;
     readonly outputSha256: string;
@@ -45,6 +45,10 @@ export interface DevicePackageMaterialization {
 
 interface MultiFileCompiler {
   compile(composition: unknown, agentToken: string): unknown;
+}
+
+interface AndroidFileCompiler {
+  compileToFiles(composition: unknown, agentToken?: string): Record<string, string>;
 }
 
 function sha256(value: string): string {
@@ -84,6 +88,43 @@ WantedBy=default.target
 `;
 }
 
+function androidSettings(): string {
+  return `pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "HoloNode"
+include(":app")
+`;
+}
+
+function androidAdmission(): string {
+  return `${JSON.stringify(
+    {
+      schema: 'holoscript-android-device-admission/v0.1.0',
+      requiredAbi: ['arm64-v8a'],
+      rootRequired: false,
+      signingCredentialBundled: false,
+      signingRequiredForRelease: true,
+      permissionReviewRequired: true,
+      physicalDeviceRequired: true,
+      updateRollbackProofRequired: true,
+    },
+    null,
+    2
+  )}\n`;
+}
+
 function materializationGates(): DevicePackageMaterializationReceipt['gates'] {
   return [
     { id: 'born-from-holoscript', status: 'passed' },
@@ -100,10 +141,6 @@ export function materializeDevicePackage(
   input: DeviceReleasePlanInput
 ): DevicePackageMaterialization {
   const plan = createDeviceReleasePlan(input);
-  if (plan.profile.operatingSystem === 'android') {
-    throw new Error('Android materialization requires the Android compiler path');
-  }
-
   const parsed = new HoloCompositionParser().parse(input.source);
   if (!parsed.success || !parsed.ast) {
     const errors = (parsed.errors as Array<{ message?: string } | string>)
@@ -112,26 +149,53 @@ export function materializeDevicePackage(
     throw new Error(`HoloScript source failed canonical parsing: ${errors || 'unknown error'}`);
   }
 
-  const compiler = DialectRegistry.create('node-service', {
-    includeDocker: true,
-    nodeVersion: '20',
-    typescript: true,
-  }) as unknown as MultiFileCompiler;
-  const compiledOutput = compiler.compile(parsed.ast, '');
-  if (
-    !compiledOutput ||
-    typeof compiledOutput !== 'object' ||
-    Array.isArray(compiledOutput) ||
-    !Object.values(compiledOutput).every((contents) => typeof contents === 'string')
-  ) {
-    throw new Error('NodeServiceCompiler did not return a multi-file text bundle');
+  let compilerName: DevicePackageMaterializationReceipt['compiler']['name'];
+  let compiledFiles: Record<string, string>;
+  let platformFiles: Record<string, string>;
+
+  if (plan.profile.operatingSystem === 'android') {
+    compilerName = 'AndroidCompiler';
+    const compiler = new AndroidCompiler({
+      packageName: 'dev.holoscript.holonode',
+      className: 'HoloNode',
+      minSdk: 26,
+      targetSdk: 34,
+    }) as unknown as AndroidFileCompiler;
+    compiledFiles = Object.fromEntries(
+      Object.entries(compiler.compileToFiles(parsed.ast, '')).sort(([left], [right]) =>
+        left.localeCompare(right)
+      )
+    );
+    platformFiles = {
+      'settings.gradle.kts': androidSettings(),
+      'packaging/android-admission.json': androidAdmission(),
+    };
+  } else {
+    compilerName = 'NodeServiceCompiler';
+    const compiler = DialectRegistry.create('node-service', {
+      includeDocker: true,
+      nodeVersion: '20',
+      typescript: true,
+    }) as unknown as MultiFileCompiler;
+    const compiledOutput = compiler.compile(parsed.ast, '');
+    if (
+      !compiledOutput ||
+      typeof compiledOutput !== 'object' ||
+      Array.isArray(compiledOutput) ||
+      !Object.values(compiledOutput).every((contents) => typeof contents === 'string')
+    ) {
+      throw new Error('NodeServiceCompiler did not return a multi-file text bundle');
+    }
+    const compiled = compiledOutput as Record<string, string>;
+    compiledFiles = Object.fromEntries(
+      Object.entries(compiled)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([path, contents]) => [`app/${path}`, contents])
+    );
+    platformFiles = {
+      'packaging/systemd/user/holonode.service': rootlessSystemdUnit(),
+    };
   }
-  const compiled = compiledOutput as Record<string, string>;
-  const compiledFiles = Object.fromEntries(
-    Object.entries(compiled)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([path, contents]) => [`app/${path}`, contents])
-  );
 
   const sourcePathParts = plan.source.path.split('/');
   const sourceFileName = sourcePathParts[sourcePathParts.length - 1] || 'node.holo';
@@ -140,7 +204,7 @@ export function materializeDevicePackage(
     [`source/${sourceFileName}`]: input.source,
     'packaging/device-profile.json': `${JSON.stringify(plan.profile, null, 2)}\n`,
     'packaging/release-plan.json': `${JSON.stringify(plan, null, 2)}\n`,
-    'packaging/systemd/user/holonode.service': rootlessSystemdUnit(),
+    ...platformFiles,
   };
 
   const compilerOutputSha256 = stableFileHash(compiledFiles);
@@ -166,7 +230,7 @@ export function materializeDevicePackage(
     planSha256: plan.planSha256,
     sourceSha256: plan.source.sha256,
     compiler: {
-      name: 'NodeServiceCompiler' as const,
+      name: compilerName,
       classification: 'bridge' as const,
       sourceCompiled: true as const,
       outputSha256: compilerOutputSha256,
