@@ -33,7 +33,7 @@ struct Frame {
 struct Material {
   color        : vec4<f32>,  // rgb baseColor (linear); a = opacity
   scatterColor : vec4<f32>,  // rgb subsurface tint (linear); w = roughness
-  scatterDist  : vec4<f32>,  // rgb scatter radius; w = analytic skin-microdetail strength
+  scatterDist  : vec4<f32>,  // rgb scatter radius; w > 1 encodes anatomical-complexion strength
   params       : vec4<f32>,  // x = specularF0, y = thickness, z = transmitStrength, w = ambient
   texFlags     : vec4<f32>,  // skin xyz = albedo/roughness/normal amplitudes; w = microdetail scale / cloth UV repeat
   albedoTile   : array<vec4<f32>, 4>,
@@ -217,6 +217,47 @@ fn analyticPoreNormal(
   );
 }
 
+// H4I bounded anatomical complexion field. It is evaluated in the same posed body-local
+// coordinate space as the analytic pores, so it moves with the head without textures or a
+// second draw. Broad masks tolerate the supported 0.8..1.2 authoring scale range while keeping
+// the effect confined to the face. A zero strength is byte-for-byte the legacy colour path.
+fn anatomicalComplexion(bodyP : vec3<f32>, strength : f32) -> vec3<f32> {
+  let front = smoothstep(0.025, 0.075, bodyP.z);
+  let headBand =
+    smoothstep(1.48, 1.56, bodyP.y) *
+    (1.0 - smoothstep(1.77, 1.86, bodyP.y));
+  let faceMask = front * headBand;
+  let absX = abs(bodyP.x);
+  let cheek = exp(
+    -pow((absX - 0.045) / 0.034, 2.0) -
+    pow((bodyP.y - 1.64) / 0.048, 2.0)
+  ) * faceMask;
+  let nose = exp(
+    -pow(bodyP.x / 0.024, 2.0) -
+    pow((bodyP.y - 1.64) / 0.075, 2.0)
+  ) * faceMask;
+  let underEye = exp(
+    -pow((absX - 0.038) / 0.028, 2.0) -
+    pow((bodyP.y - 1.69) / 0.021, 2.0)
+  ) * faceMask;
+  let lip = exp(
+    -pow(bodyP.x / 0.047, 2.0) -
+    pow((bodyP.y - 1.575) / 0.018, 2.0)
+  ) * faceMask;
+  let jaw = exp(
+    -pow(absX / 0.085, 4.0) -
+    pow((bodyP.y - 1.535) / 0.035, 2.0)
+  ) * faceMask;
+  let warmth = clamp(cheek * 0.68 + nose * 0.42 + lip * 0.48, 0.0, 1.0);
+  let coolDepth = clamp(underEye * 0.5 + jaw * 0.18, 0.0, 1.0);
+  let authored = vec3<f32>(
+    1.0 + warmth * 0.12 - coolDepth * 0.025,
+    1.0 - warmth * 0.055 - coolDepth * 0.055,
+    1.0 - warmth * 0.085 - coolDepth * 0.035
+  );
+  return mix(vec3<f32>(1.0), authored, clamp(strength, 0.0, 1.0));
+}
+
 // ── Skin: single-pass subsurface approximation of the CPU Burley model. ──
 @fragment
 fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
@@ -266,9 +307,11 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
 
   let albedoVariation = clamp(mat.texFlags.x, 0.0, 0.08);
   let microAlbedo = 1.0 + (pore - 0.5) * albedoVariation;
+  let complexionStrength = max(mat.scatterDist.w - 1.0, 0.0);
+  let complexion = anatomicalComplexion(in.bodyP, complexionStrength);
   let probeSpecular = directionalReflectionProbe(reflect(-V, N), rough);
   var color =
-    mat.color.rgb * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
+    mat.color.rgb * complexion * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
     transmit +
     frame.keyColor.rgb * vec3<f32>(spec) * frame.keyColor.w +
     probeSpecular * fresnel(max(dot(N, V), 0.0), mat.params.x) * 0.45;
@@ -329,6 +372,9 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   var alpha = mat.color.a;
   let coverageMode = mat.scatterDist.w > 0.5;
   let isCard = in.uv.y >= 0.0;
+  // The scalp shell supplies coverage, not a lacquered highlight. Preserve full
+  // anisotropic response on cards/locks while letting their mass define the groom.
+  let geometrySpecularScale = select(0.3, 1.0, isCard);
   if (coverageMode && isCard) {
     let halfWidth = clamp(mat.scatterDist.x, 0.2, 1.0);
     let softness = clamp(mat.scatterDist.y, 0.01, 0.5);
@@ -359,9 +405,9 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   );
   let probeSpecular = directionalReflectionProbe(reflect(-V, N), 0.32);
   var col = base * rootDarken * environment
-          + frame.keyColor.rgb * vec3<f32>(specR * 0.35) * frame.keyColor.w
+          + frame.keyColor.rgb * vec3<f32>(specR * 0.35 * geometrySpecularScale) * frame.keyColor.w
           + base * specTRT * 0.3
-          + probeSpecular * (specR * 0.18 + specTRT * 0.12);
+          + probeSpecular * (specR * 0.18 + specTRT * 0.12) * geometrySpecularScale;
   return vec4<f32>(col * frame.envParams.x, alpha);
 }
 

@@ -17,6 +17,7 @@
 import {
   CharacterHost,
   type AgentAvatarMaterialCalibrationProfile,
+  type AgentAvatarSkinComplexionProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
   type AgentAvatarSkinSurfaceResponseProfile,
@@ -1120,6 +1121,8 @@ export function buildCharacterHostFromComposition(
   let skinAlbedoVariationStrength: number | undefined;
   let skinRoughnessVariationStrength: number | undefined;
   let skinNormalMicrodetailStrength: number | undefined;
+  let skinComplexionProfile: AgentAvatarSkinComplexionProfile | undefined;
+  let skinComplexionStrength: number | undefined;
   let materialCalibrationProfile: AgentAvatarMaterialCalibrationProfile | undefined;
   const authoredMaterialCalibrationProfile = asStr(
     sss?.config.material_calibration_profile ??
@@ -1260,6 +1263,45 @@ export function buildCharacterHostFromComposition(
     report.stubbed.push({
       trait: '@subsurface_scattering(surface_response_controls)',
       reason: 'decoupled surface controls require calibrated-skin-surface-v1',
+    });
+  }
+  const authoredSkinComplexionProfile = asStr(
+    sss?.config.complexion_profile ?? sss?.config.complexionProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const authoredSkinComplexionStrength = asNum(
+    sss?.config.complexion_strength ?? sss?.config.complexionStrength
+  );
+  if (authoredSkinComplexionProfile === 'anatomical-complexion-v1') {
+    if (
+      faceTopology === 'neutral-anatomical-v2' &&
+      skinSurfaceResponseProfile === 'calibrated-skin-surface-v1'
+    ) {
+      skinComplexionProfile = authoredSkinComplexionProfile;
+      skinComplexionStrength = clamp(authoredSkinComplexionStrength ?? 0.55, 0, 1);
+      report.mapped.push(
+        `@subsurface_scattering(complexion_profile=${skinComplexionProfile},` +
+          `complexion_strength=${skinComplexionStrength})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@subsurface_scattering(complexion_profile)',
+        reason:
+          'anatomical-complexion-v1 requires neutral-anatomical-v2 and calibrated-skin-surface-v1',
+      });
+    }
+  } else if (authoredSkinComplexionProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(complexion_profile)',
+      reason: `profile '${authoredSkinComplexionProfile}' has no native anatomical complexion response`,
+    });
+  }
+  if (!authoredSkinComplexionProfile && authoredSkinComplexionStrength !== undefined) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(complexion_strength)',
+      reason: 'complexion_strength requires anatomical-complexion-v1',
     });
   }
 
@@ -1577,6 +1619,8 @@ export function buildCharacterHostFromComposition(
     skinAlbedoVariationStrength,
     skinRoughnessVariationStrength,
     skinNormalMicrodetailStrength,
+    skinComplexionProfile,
+    skinComplexionStrength,
     melanin,
     melaninRedness,
     hairTone,

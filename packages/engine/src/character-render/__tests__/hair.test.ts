@@ -487,6 +487,31 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(portrait.groom!.facialFramingVertexCount).toBeGreaterThan(200);
     expect(portrait.groom!.cardCount).toBeGreaterThan(100);
   });
+
+  it('emits H4I massed cap relief and broad silhouette cards without scalp penetration', () => {
+    const volume = buildAgentAvatarHair({
+      faceTopology: 'neutral-anatomical-v2',
+      groomProfile: 'scalp-flow-volume-v5',
+      style: 'medium_wavy',
+      guides: 96,
+      cardsPerGuide: 2,
+      segments: 6,
+      clusterCount: 8,
+    });
+
+    expect(resolveAgentAvatarGroomProfile('scalp_flow_volume_v5')).toBe('scalp-flow-volume-v5');
+    expect(volume.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v5',
+      profile: 'scalp-flow-volume-v5',
+      silhouetteProfile: 'massed-silhouette-clumps-v1',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+      massGuideCount: 8,
+      massCardCount: 16,
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(volume.groom!.scalpCapMaxLift).toBeGreaterThan(0.008);
+    expect(volume.groom!.cardCount).toBeGreaterThan(120);
+  });
 });
 
 describe('hair — rendered (native WebGPU)', () => {

@@ -224,6 +224,10 @@ export interface SkinSSSMaterialSpec extends MaterialSpec {
   roughnessVariationStrength?: number;
   /** Tangent-plane analytic normal perturbation amplitude (0..0.35). */
   normalMicrodetailStrength?: number;
+  /** Opt-in bind-space facial colour response. Omission preserves the uniform legacy albedo. */
+  complexionProfile?: 'anatomical-complexion-v1';
+  /** Bounded influence of cheek, nose, under-eye, lip, and jaw colour zones (0..1). */
+  complexionStrength?: number;
 }
 
 /** Source-authored hair-card edge treatment. `opaque-v1` preserves the legacy solid-card path. */

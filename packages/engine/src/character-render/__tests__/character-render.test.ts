@@ -349,6 +349,36 @@ describe('character-render — material groups (skin-SSS) + lambert fallback', (
     expect(absoluteChannelDiff(smoothPixels, detailedPixels)).toBeGreaterThan(100);
   });
 
+  itGpu('anatomical complexion changes native skin pixels without changing geometry', async () => {
+    const counterfactual = new CharacterHost({
+      entityId: 'anatomical-complexion-proof',
+      materialCalibrationProfile: 'fixed-light-human-v1',
+      skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
+      skinComplexionStrength: 0,
+    });
+    const authored = new CharacterHost({
+      entityId: 'anatomical-complexion-proof',
+      materialCalibrationProfile: 'fixed-light-human-v1',
+      skinSurfaceResponseProfile: 'calibrated-skin-surface-v1',
+      skinComplexionProfile: 'anatomical-complexion-v1',
+      skinComplexionStrength: 0.64,
+    });
+    const counterfactualSpec = counterfactual.getDrawSpec();
+    const authoredSpec = authored.getDrawSpec();
+    const counterfactualPixels = await renderCharacter(testDevice!, counterfactualSpec, {
+      size: 128,
+      lightDir: [0.58, 0.44, 0.68],
+    });
+    const authoredPixels = await renderCharacter(testDevice!, authoredSpec, {
+      size: 128,
+      lightDir: [0.58, 0.44, 0.68],
+    });
+
+    expect(authoredSpec.mesh.positions).toEqual(counterfactualSpec.mesh.positions);
+    expect(figurePixels(authoredPixels)).toBeGreaterThan(150);
+    expect(absoluteChannelDiff(authoredPixels, counterfactualPixels)).toBeGreaterThan(100);
+  });
+
   itGpu(
     'decoupled fine-normal response changes native pixels without changing geometry',
     async () => {

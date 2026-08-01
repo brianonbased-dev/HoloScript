@@ -327,7 +327,12 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[8] = m.scatterRadii[0];
     out[9] = m.scatterRadii[1];
     out[10] = m.scatterRadii[2];
-    out[11] = coupledStrength;
+    // scatterDist.w historically carried coupledStrength but was not consumed by the shader.
+    // Values above 1 are therefore a backwards-safe opt-in code for anatomical complexion.
+    out[11] =
+      m.complexionProfile === 'anatomical-complexion-v1'
+        ? 1 + Math.max(0, Math.min(1, m.complexionStrength ?? 0.55))
+        : coupledStrength;
     out[12] = m.specularF0;
     out[13] = m.thickness;
     out[14] = m.transmitStrength;

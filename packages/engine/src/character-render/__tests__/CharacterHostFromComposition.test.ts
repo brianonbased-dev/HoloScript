@@ -419,6 +419,51 @@ describe('buildCharacterHostFromComposition', () => {
     }
   });
 
+  it('maps H4I anatomical complexion into the backwards-safe skin uniform code', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H4IResident',
+          traits: [
+            { name: 'body', config: { skin_tone: '#B9826F' } },
+            { name: 'face', config: { topology: 'neutral_anatomical_v2' } },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 104,
+                microdetail_strength: 0.09,
+                surface_response_profile: 'calibrated_skin_surface_v1',
+                complexion_profile: 'anatomical_complexion_v1',
+                complexion_strength: 0.62,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const skinGroup = result.host
+      ?.getDrawSpec()
+      .materialGroups?.find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v4',
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      complexionProfile: 'anatomical-complexion-v1',
+      complexionStrength: 0.62,
+    });
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(complexion_profile=anatomical-complexion-v1,' +
+        'complexion_strength=0.62)'
+    );
+    expect(skinGroup?.material.shadingModel).toBe('skin-sss');
+    if (skinGroup?.material.shadingModel === 'skin-sss') {
+      expect(packCharacterMaterial(skinGroup.material)[11]).toBeCloseTo(1.62);
+    }
+  });
+
   it('fails closed when anatomy, groom, or microdetail controls lack their native profiles', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

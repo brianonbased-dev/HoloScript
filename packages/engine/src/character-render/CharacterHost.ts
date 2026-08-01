@@ -191,6 +191,10 @@ export interface CharacterHostOptions {
   skinRoughnessVariationStrength?: number;
   /** Tangent-plane analytic fine-normal response amplitude. */
   skinNormalMicrodetailStrength?: number;
+  /** Source-authored bind-space facial colour response. */
+  skinComplexionProfile?: AgentAvatarSkinComplexionProfile;
+  /** Bounded strength of the anatomical complexion response. */
+  skinComplexionStrength?: number;
   /** Hair eumelanin 0..1 (0 = white/blond, ~0.9 = black). Default 0.7 (dark brown). */
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
@@ -265,6 +269,7 @@ export interface CharacterHostOptions {
 
 export type AgentAvatarSkinMicrodetailProfile = 'none' | 'analytic-pore-v1';
 export type AgentAvatarSkinSurfaceResponseProfile = 'calibrated-skin-surface-v1';
+export type AgentAvatarSkinComplexionProfile = 'anatomical-complexion-v1';
 export type AgentAvatarMaterialCalibrationProfile = 'legacy-v1' | 'fixed-light-human-v1';
 
 interface AgentAvatarSkinMaterialReceiptBase {
@@ -295,9 +300,19 @@ export interface AgentAvatarSkinMaterialReceiptV3 extends AgentAvatarSkinMateria
   normalMicrodetailStrength: number;
 }
 
+export interface AgentAvatarSkinMaterialReceiptV4 extends Omit<
+  AgentAvatarSkinMaterialReceiptV3,
+  'schemaVersion'
+> {
+  schemaVersion: 'holoscript.agent-avatar-skin-material.v4';
+  complexionProfile: AgentAvatarSkinComplexionProfile;
+  complexionStrength: number;
+}
+
 export type AgentAvatarSkinMaterialReceipt =
   | AgentAvatarSkinMaterialReceiptV2
-  | AgentAvatarSkinMaterialReceiptV3;
+  | AgentAvatarSkinMaterialReceiptV3
+  | AgentAvatarSkinMaterialReceiptV4;
 
 /** Human-skin SSS preset (SubsurfaceScattering.ts humanSkin + SkinSSRenderer defaults). */
 const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
@@ -568,6 +583,12 @@ export class CharacterHost {
               0,
               Math.min(0.35, opts.skinNormalMicrodetailStrength ?? 0.08)
             ),
+          }
+        : {}),
+      ...(opts.skinComplexionProfile === 'anatomical-complexion-v1'
+        ? {
+            complexionProfile: opts.skinComplexionProfile,
+            complexionStrength: Math.max(0, Math.min(1, opts.skinComplexionStrength ?? 0.55)),
           }
         : {}),
     };
@@ -860,6 +881,18 @@ export class CharacterHost {
       roughness: this.skinMaterial.roughness,
     };
     if (this.skinMaterial.surfaceResponseProfile === 'calibrated-skin-surface-v1') {
+      if (this.skinMaterial.complexionProfile === 'anatomical-complexion-v1') {
+        return {
+          schemaVersion: 'holoscript.agent-avatar-skin-material.v4',
+          ...base,
+          surfaceResponseProfile: this.skinMaterial.surfaceResponseProfile,
+          albedoVariationStrength: this.skinMaterial.albedoVariationStrength ?? 0,
+          roughnessVariationStrength: this.skinMaterial.roughnessVariationStrength ?? 0,
+          normalMicrodetailStrength: this.skinMaterial.normalMicrodetailStrength ?? 0,
+          complexionProfile: this.skinMaterial.complexionProfile,
+          complexionStrength: this.skinMaterial.complexionStrength ?? 0,
+        };
+      }
       return {
         schemaVersion: 'holoscript.agent-avatar-skin-material.v3',
         ...base,
