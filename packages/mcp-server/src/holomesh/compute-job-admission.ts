@@ -232,9 +232,9 @@ function nonEmptyCanonicalText(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value === value.trim();
 }
 
-function nonNegativeInteger(value: unknown): value is number {
+function positiveInteger(value: unknown): value is number {
   return (
-    typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0)
+    typeof value === 'number' && Number.isSafeInteger(value) && value >= 1 && !Object.is(value, -0)
   );
 }
 
@@ -483,7 +483,7 @@ function validateReceiptStructure(
     typeof value.principalDigest === 'string' &&
     SHA256_LABEL.test(value.principalDigest) &&
     nonEmptyCanonicalText(value.jobId) &&
-    nonNegativeInteger(value.attempt) &&
+    positiveInteger(value.attempt) &&
     typeof value.operation === 'string' &&
     ADMISSION_OPERATION_SET.has(value.operation) &&
     typeof value.requestDigest === 'string' &&
@@ -545,7 +545,7 @@ function assertPrepareInput(input: PrepareComputeJobAdmissionInput): void {
   if (!nonEmptyCanonicalText(input.teamId)) throw new TypeError('teamId is invalid');
   if (!SHA256_LABEL.test(input.principalDigest)) throw new TypeError('principalDigest is invalid');
   if (!nonEmptyCanonicalText(input.jobId)) throw new TypeError('jobId is invalid');
-  if (!nonNegativeInteger(input.attempt)) throw new TypeError('attempt is invalid');
+  if (!positiveInteger(input.attempt)) throw new TypeError('attempt is invalid');
   if (!ADMISSION_OPERATION_SET.has(input.operation)) throw new TypeError('operation is invalid');
   if (!SHA256_LABEL.test(input.requestDigest)) throw new TypeError('requestDigest is invalid');
   if (!SHA256_LABEL.test(input.trustPolicyDigest)) {
@@ -754,7 +754,7 @@ function validateExpectedContext(
     typeof value.principalDigest === 'string' &&
     SHA256_LABEL.test(value.principalDigest) &&
     nonEmptyCanonicalText(value.jobId) &&
-    nonNegativeInteger(value.attempt) &&
+    positiveInteger(value.attempt) &&
     typeof value.operation === 'string' &&
     ADMISSION_OPERATION_SET.has(value.operation) &&
     typeof value.requestDigest === 'string' &&

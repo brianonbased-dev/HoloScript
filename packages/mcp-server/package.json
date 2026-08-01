@@ -50,6 +50,7 @@
     "smoke:auth": "node scripts/smoke-mcp-auth.mjs",
     "smoke:browser-session": "tsx scripts/holobrowser-session-smoke.ts",
     "test": "vitest run --passWithNoTests",
+    "test:compute-postgres": "node -e \"if(!process.env.HOLOMESH_COMPUTE_POSTGRES_TEST_URL)throw new Error('HOLOMESH_COMPUTE_POSTGRES_TEST_URL is required')\" && vitest run src/holomesh/__tests__/compute-job-store.postgres.test.ts",
     "test:release": "vitest run src/policy/__tests__/PolicyInterceptor.test.ts src/policy/__tests__/PolicyPackPackaging.test.ts src/__tests__/policy-interceptor-integration.test.ts src/__tests__/secrets-broker-handler-auth.test.ts src/holomesh/identity/__tests__/signing-middleware.test.ts src/security/__tests__/gates.injection.test.ts src/__tests__/fork-sandbox-gate.test.ts src/__tests__/fork-sandbox-canary.test.ts src/__tests__/service.test.ts src/__tests__/public-consumer-benchmark.test.ts",
     "test:public-consumer": "node scripts/public-consumer-benchmark.mjs --pack-current --baseline benchmarks/public-consumer-baseline.json --receipt ../../.scratch/mcp-server-public-consumer-release.json",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp',{recursive:true})\" && vitest run --coverage --passWithNoTests",

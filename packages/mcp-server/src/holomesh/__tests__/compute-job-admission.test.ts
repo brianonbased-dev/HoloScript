@@ -434,7 +434,8 @@ describe('compute job admission receipts', () => {
     }
   });
 
-  it('fails preparation on noncanonical timestamps, excessive TTL, or lifecycle mismatch', () => {
+  it('fails preparation on zero attempt, noncanonical timestamps, excessive TTL, or lifecycle mismatch', () => {
+    expect(() => prepareComputeJobAdmission(prepareInput({ attempt: 0 }))).toThrow(/attempt/);
     expect(() =>
       prepareComputeJobAdmission(prepareInput({ verifiedAt: '2026-08-01T12:00:00Z' }))
     ).toThrow(/validity window/);
