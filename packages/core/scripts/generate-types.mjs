@@ -8646,6 +8646,281 @@ export declare function buildComputeExecutionReceipt(input: BuildComputeExecutio
 /** Validate structure and canonical receipt ID only. This does not verify WorkUnit, plan, lease, or trust evidence. */
 export declare function validateComputeExecutionReceipt(value: unknown): ComputeExecutionReceiptValidation;
 
+export declare const COMPUTE_CAPACITY_SNAPSHOT_SCHEMA_VERSION: 'holoscript.compute-capacity-snapshot.v1';
+export declare const COMPUTE_BRIDGE_ADMISSION_SCHEMA_VERSION: 'holoscript.compute-bridge-admission.v1';
+export declare const COMPUTE_PLACEMENT_PLAN_SCHEMA_VERSION: 'holoscript.compute-placement-plan.v1';
+export declare const COMPUTE_CAPACITY_LEASE_SCHEMA_VERSION: 'holoscript.compute-capacity-lease.v1';
+export declare const COMPUTE_SUBJECT_ATTESTATION_SCHEMA_VERSION: 'holoscript.compute-subject-attestation.v1';
+export declare const COMPUTE_CAPACITY_LEASE_MAX_TTL_MS: number;
+export declare const COMPUTE_EVIDENCE_MAX_FUTURE_SKEW_MS: number;
+export declare const COMPUTE_CAPACITY_SNAPSHOT_MAX_TTL_MS: number;
+export declare const COMPUTE_BRIDGE_ADMISSION_MAX_TTL_MS: number;
+export type ComputeEvidenceRole =
+  | 'capacity_observer'
+  | 'bridge_admitter'
+  | 'placement_planner'
+  | 'lease_issuer'
+  | 'execution_attestor';
+export type ComputeCapacityLane = 'local_device' | 'owned_fleet' | 'managed_bridge';
+export type ComputeCapacityHealth = 'ready' | 'degraded' | 'unavailable';
+export type ComputePlacementVerdict = 'admitted' | 'rejected';
+export type ComputeBridgeAdmissionVerdict = 'admitted' | 'rejected';
+export type ComputeBridgeAdmissionReason =
+  | 'policy_admitted'
+  | 'tenant_policy_denied'
+  | 'data_classification_denied'
+  | 'budget_denied'
+  | 'bridge_unavailable';
+export type ComputePlacementReason =
+  | 'capacity_evidence_untrusted'
+  | 'telemetry_future'
+  | 'telemetry_stale'
+  | 'telemetry_degraded'
+  | 'capacity_unavailable'
+  | 'placement_forbidden'
+  | 'accelerator_unavailable'
+  | 'data_classification_unsupported'
+  | 'cost_unavailable'
+  | 'budget_exceeded'
+  | 'bridge_admission_required'
+  | 'bridge_admission_invalid'
+  | 'bridge_admission_untrusted'
+  | 'bridge_admission_future'
+  | 'bridge_admission_expired'
+  | 'bridge_admission_denied'
+  | 'bridge_fallback_unexplained';
+export type ComputeCapacityCostEstimate =
+  | { readonly measurementState: 'measured'; readonly currency: 'USD'; readonly estimatedMinorUnits: number }
+  | { readonly measurementState: 'not_measured'; readonly reason: 'meter_unavailable' }
+  | { readonly measurementState: 'not_applicable' };
+export interface ComputeEvidenceSigner {
+  readonly issuer: string;
+  readonly keyId: string;
+  readonly sign: (message: Uint8Array) => string;
+}
+export interface ComputeEvidenceTrustAnchor {
+  readonly issuer: string;
+  readonly keyId: string;
+  readonly algorithm: 'ed25519';
+  readonly roles: readonly ComputeEvidenceRole[];
+  readonly principalDigests: readonly string[];
+  readonly lanes: readonly ComputeCapacityLane[];
+  readonly capacityRefs: readonly string[];
+  readonly validFrom: string;
+  readonly validUntil: string;
+  readonly revokedAt?: string;
+  readonly publicKeyPem: string;
+}
+export interface ComputeIssuerAttestation {
+  readonly role: ComputeEvidenceRole;
+  readonly issuer: string;
+  readonly keyId: string;
+  readonly algorithm: 'ed25519';
+  readonly claimsDigest: string;
+  readonly signature: string;
+}
+export interface ComputeCapacitySnapshot {
+  readonly schemaVersion: typeof COMPUTE_CAPACITY_SNAPSHOT_SCHEMA_VERSION;
+  readonly verificationScope: 'issuer_attested';
+  readonly receiptId: string;
+  readonly lane: ComputeCapacityLane;
+  readonly capacityRef: string;
+  readonly accelerator: import('../compiler/index.js').ComputeAccelerator;
+  readonly health: ComputeCapacityHealth;
+  readonly availableSlots: number;
+  readonly allowedDataClassifications: readonly import('../compiler/index.js').ComputeDataClassification[];
+  readonly observedAt: string;
+  readonly validUntil: string;
+  readonly estimatedCost: ComputeCapacityCostEstimate;
+  readonly attestation: ComputeIssuerAttestation;
+}
+export interface BuildComputeCapacitySnapshotInput {
+  readonly lane: ComputeCapacityLane;
+  readonly capacityRef: string;
+  readonly accelerator: import('../compiler/index.js').ComputeAccelerator;
+  readonly health: ComputeCapacityHealth;
+  readonly availableSlots: number;
+  readonly allowedDataClassifications: readonly import('../compiler/index.js').ComputeDataClassification[];
+  readonly observedAt: string;
+  readonly validUntil: string;
+  readonly estimatedCost: ComputeCapacityCostEstimate;
+  readonly signer: ComputeEvidenceSigner;
+}
+export interface ComputeBridgeAdmission {
+  readonly schemaVersion: typeof COMPUTE_BRIDGE_ADMISSION_SCHEMA_VERSION;
+  readonly verificationScope: 'issuer_attested';
+  readonly receiptId: string;
+  readonly principalDigest: string;
+  readonly bridgeRef: string;
+  readonly workUnitDigest: string;
+  readonly dataClassification: import('../compiler/index.js').ComputeDataClassification;
+  readonly budget: { readonly currency: 'USD'; readonly maxCostMinorUnits: number };
+  readonly verdict: ComputeBridgeAdmissionVerdict;
+  readonly reason: ComputeBridgeAdmissionReason;
+  readonly issuedAt: string;
+  readonly validUntil: string;
+  readonly attestation: ComputeIssuerAttestation;
+}
+export interface BuildComputeBridgeAdmissionInput {
+  readonly principalDigest: string;
+  readonly bridgeRef: string;
+  readonly workUnitDigest: string;
+  readonly dataClassification: import('../compiler/index.js').ComputeDataClassification;
+  readonly budget: { readonly currency: 'USD'; readonly maxCostMinorUnits: number };
+  readonly verdict: ComputeBridgeAdmissionVerdict;
+  readonly reason: ComputeBridgeAdmissionReason;
+  readonly issuedAt: string;
+  readonly validUntil: string;
+  readonly signer: ComputeEvidenceSigner;
+}
+export interface ComputePlacementPlan {
+  readonly schemaVersion: typeof COMPUTE_PLACEMENT_PLAN_SCHEMA_VERSION;
+  readonly verificationScope: 'issuer_attested';
+  readonly receiptId: string;
+  readonly principalDigest: string;
+  readonly workUnitDigest: string;
+  readonly sourceEvidence: string;
+  readonly capacitySnapshotReceiptId: string;
+  readonly bridgeAdmissionReceiptId?: string;
+  readonly lane: ComputeCapacityLane;
+  readonly capacityRef: string;
+  readonly accelerator: import('../compiler/index.js').ComputeAccelerator;
+  readonly estimatedCost: ComputeCapacityCostEstimate;
+  readonly verdict: ComputePlacementVerdict;
+  readonly reasonCodes: readonly ComputePlacementReason[];
+  readonly checkedAt: string;
+  readonly validUntil: string;
+  readonly attestation: ComputeIssuerAttestation;
+}
+export interface PlanComputePlacementInput {
+  readonly principalDigest: string;
+  readonly workUnit: import('../compiler/index.js').ComputeWorkUnitContract;
+  readonly capacitySnapshot: ComputeCapacitySnapshot;
+  readonly bridgeAdmission?: ComputeBridgeAdmission;
+  readonly checkedAt: string;
+  readonly trustAnchors: readonly ComputeEvidenceTrustAnchor[];
+  readonly signer: ComputeEvidenceSigner;
+}
+export interface VerifyComputePlacementPlanInput extends Omit<PlanComputePlacementInput, 'signer'> {
+  readonly plan: ComputePlacementPlan;
+  readonly verifiedAt: string;
+}
+export interface ComputeCapacityLease {
+  readonly schemaVersion: typeof COMPUTE_CAPACITY_LEASE_SCHEMA_VERSION;
+  readonly verificationScope: 'issuer_attested';
+  readonly receiptId: string;
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly holderDigest: string;
+  readonly workUnitDigest: string;
+  readonly planReceiptId: string;
+  readonly capacitySnapshotReceiptId: string;
+  readonly lane: ComputeCapacityLane;
+  readonly capacityRef: string;
+  readonly accelerator: import('../compiler/index.js').ComputeAccelerator;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+  readonly fencingEpoch: number;
+  readonly fencingTokenHash: string;
+  readonly attestation: ComputeIssuerAttestation;
+}
+export interface ComputeCapacityAllocationCursor {
+  readonly capacityRef: string;
+  readonly slotState: 'available' | 'leased';
+  readonly currentEpoch: number;
+  readonly currentLeaseReceiptId?: string;
+  readonly version: number;
+  readonly etag: string;
+}
+export interface PrepareComputeCapacityLeaseInput {
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly holderDigest: string;
+  readonly workUnit: import('../compiler/index.js').ComputeWorkUnitContract;
+  readonly capacitySnapshot: ComputeCapacitySnapshot;
+  readonly bridgeAdmission?: ComputeBridgeAdmission;
+  readonly plan: ComputePlacementPlan;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+  readonly fencingToken: string | Uint8Array;
+  readonly allocationCursor: ComputeCapacityAllocationCursor;
+  readonly trustAnchors: readonly ComputeEvidenceTrustAnchor[];
+  readonly signer: ComputeEvidenceSigner;
+}
+export interface PreparedComputeCapacityLease {
+  readonly expectedAllocation: ComputeCapacityAllocationCursor;
+  readonly nextAllocation: ComputeCapacityAllocationCursor;
+  readonly lease: ComputeCapacityLease;
+}
+export interface VerifyComputeCapacityLeaseReceiptInput extends Omit<
+  PrepareComputeCapacityLeaseInput,
+  'issuedAt' | 'expiresAt' | 'fencingToken' | 'allocationCursor' | 'signer'
+> {
+  readonly lease: ComputeCapacityLease;
+  readonly at: string;
+}
+export interface AuthorizeComputeCapacityLeaseUseInput extends VerifyComputeCapacityLeaseReceiptInput {
+  readonly presentedFencingToken: string | Uint8Array;
+  readonly allocationCursor: ComputeCapacityAllocationCursor;
+}
+export interface ComputeSubjectAttestation {
+  readonly schemaVersion: typeof COMPUTE_SUBJECT_ATTESTATION_SCHEMA_VERSION;
+  readonly verificationScope: 'issuer_attested';
+  readonly receiptId: string;
+  readonly principalDigest: string;
+  readonly subject: { readonly schemaVersion: string; readonly receiptId: string };
+  readonly issuedAt: string;
+  readonly attestation: ComputeIssuerAttestation;
+}
+export interface AttestComputeExecutionReceiptInput {
+  readonly principalDigest: string;
+  readonly executionReceipt: ComputeExecutionReceipt;
+  readonly issuedAt: string;
+  readonly signer: ComputeEvidenceSigner;
+}
+export interface VerifyComputeExecutionEvidenceInput {
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly holderDigest: string;
+  readonly workUnit: import('../compiler/index.js').ComputeWorkUnitContract;
+  readonly capacitySnapshot: ComputeCapacitySnapshot;
+  readonly bridgeAdmission?: ComputeBridgeAdmission;
+  readonly plan: ComputePlacementPlan;
+  readonly lease: ComputeCapacityLease;
+  readonly executionReceipt: ComputeExecutionReceipt;
+  readonly executionAttestation: ComputeSubjectAttestation;
+  readonly verifiedAt: string;
+  readonly trustAnchors: readonly ComputeEvidenceTrustAnchor[];
+}
+export interface ComputeEvidenceValidation {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+}
+export interface ComputeExecutionEvidenceVerification extends ComputeEvidenceValidation {
+  readonly verificationScope: 'issuer_authenticated';
+}
+export declare function computeCapacityAllocationEtag(
+  cursor: Omit<ComputeCapacityAllocationCursor, 'etag'>
+): string;
+export declare function validateComputeCapacityAllocationCursor(value: unknown): ComputeEvidenceValidation;
+export declare function buildComputeCapacitySnapshot(input: BuildComputeCapacitySnapshotInput): ComputeCapacitySnapshot;
+export declare function validateComputeCapacitySnapshot(value: unknown): ComputeEvidenceValidation;
+export declare function buildComputeBridgeAdmission(input: BuildComputeBridgeAdmissionInput): ComputeBridgeAdmission;
+export declare function validateComputeBridgeAdmission(value: unknown): ComputeEvidenceValidation;
+export declare function planComputePlacement(input: PlanComputePlacementInput): ComputePlacementPlan;
+export declare function validateComputePlacementPlan(value: unknown): ComputeEvidenceValidation;
+export declare function verifyComputePlacementPlan(input: VerifyComputePlacementPlanInput): ComputeEvidenceValidation;
+export declare function prepareComputeCapacityLease(input: PrepareComputeCapacityLeaseInput): PreparedComputeCapacityLease;
+export declare function validateComputeCapacityLease(value: unknown): ComputeEvidenceValidation;
+export declare function verifyComputeCapacityLeaseReceipt(input: VerifyComputeCapacityLeaseReceiptInput): ComputeEvidenceValidation;
+export declare function authorizeComputeCapacityLeaseUse(input: AuthorizeComputeCapacityLeaseUseInput): ComputeEvidenceValidation;
+export declare function attestComputeExecutionReceipt(input: AttestComputeExecutionReceiptInput): ComputeSubjectAttestation;
+export declare function validateComputeSubjectAttestation(value: unknown): ComputeEvidenceValidation;
+export declare function verifyComputeExecutionEvidence(input: VerifyComputeExecutionEvidenceInput): ComputeExecutionEvidenceVerification;
+
 export declare const COMPUTE_UTILITY_OBSERVATION_SCHEMA_VERSION: 'holoscript.compute-utility-observation.v1';
 export declare const COMPUTE_UTILITY_AGGREGATE_SCHEMA_VERSION: 'holoscript.compute-utility-aggregate.v1';
 export declare const COMPUTE_UTILITY_MINIMUM_AGGREGATE: 10;

@@ -253,9 +253,17 @@ export function validateComputeExecutionReceipt(value: unknown): ComputeExecutio
       'placement',
       errors
     );
-    if (!hasText(placement.planReceiptId)) errors.push('placement.planReceiptId is required');
-    if (!hasText(placement.capacityLeaseReceiptId)) {
-      errors.push('placement.capacityLeaseReceiptId is required');
+    if (
+      typeof placement.planReceiptId !== 'string' ||
+      !SHA256_LABEL.test(placement.planReceiptId)
+    ) {
+      errors.push('placement.planReceiptId must be a sha256 label');
+    }
+    if (
+      typeof placement.capacityLeaseReceiptId !== 'string' ||
+      !SHA256_LABEL.test(placement.capacityLeaseReceiptId)
+    ) {
+      errors.push('placement.capacityLeaseReceiptId must be a sha256 label');
     }
     if (
       typeof placement.outcome !== 'string' ||

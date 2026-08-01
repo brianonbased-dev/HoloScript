@@ -27,6 +27,34 @@ export {
 } from './ComputeExecutionReceipt';
 
 export {
+  COMPUTE_CAPACITY_SNAPSHOT_SCHEMA_VERSION,
+  COMPUTE_BRIDGE_ADMISSION_SCHEMA_VERSION,
+  COMPUTE_PLACEMENT_PLAN_SCHEMA_VERSION,
+  COMPUTE_CAPACITY_LEASE_SCHEMA_VERSION,
+  COMPUTE_SUBJECT_ATTESTATION_SCHEMA_VERSION,
+  COMPUTE_CAPACITY_LEASE_MAX_TTL_MS,
+  COMPUTE_EVIDENCE_MAX_FUTURE_SKEW_MS,
+  COMPUTE_CAPACITY_SNAPSHOT_MAX_TTL_MS,
+  COMPUTE_BRIDGE_ADMISSION_MAX_TTL_MS,
+  computeCapacityAllocationEtag,
+  validateComputeCapacityAllocationCursor,
+  buildComputeCapacitySnapshot,
+  validateComputeCapacitySnapshot,
+  buildComputeBridgeAdmission,
+  validateComputeBridgeAdmission,
+  planComputePlacement,
+  validateComputePlacementPlan,
+  verifyComputePlacementPlan,
+  prepareComputeCapacityLease,
+  validateComputeCapacityLease,
+  verifyComputeCapacityLeaseReceipt,
+  authorizeComputeCapacityLeaseUse,
+  attestComputeExecutionReceipt,
+  validateComputeSubjectAttestation,
+  verifyComputeExecutionEvidence,
+} from './ComputePlacementEvidence';
+
+export {
   COMPUTE_UTILITY_OBSERVATION_SCHEMA_VERSION,
   COMPUTE_UTILITY_AGGREGATE_SCHEMA_VERSION,
   COMPUTE_UTILITY_MINIMUM_AGGREGATE,
@@ -217,6 +245,38 @@ export type {
   BuildComputeExecutionReceiptInput,
   ComputeExecutionReceiptValidation,
 } from './ComputeExecutionReceipt';
+
+export type {
+  ComputeEvidenceRole,
+  ComputeCapacityLane,
+  ComputeCapacityHealth,
+  ComputePlacementVerdict,
+  ComputeBridgeAdmissionVerdict,
+  ComputeBridgeAdmissionReason,
+  ComputePlacementReason,
+  ComputeCapacityCostEstimate,
+  ComputeEvidenceSigner,
+  ComputeEvidenceTrustAnchor,
+  ComputeIssuerAttestation,
+  ComputeCapacitySnapshot,
+  BuildComputeCapacitySnapshotInput,
+  ComputeBridgeAdmission,
+  BuildComputeBridgeAdmissionInput,
+  ComputePlacementPlan,
+  PlanComputePlacementInput,
+  VerifyComputePlacementPlanInput,
+  ComputeCapacityLease,
+  ComputeCapacityAllocationCursor,
+  PrepareComputeCapacityLeaseInput,
+  PreparedComputeCapacityLease,
+  VerifyComputeCapacityLeaseReceiptInput,
+  AuthorizeComputeCapacityLeaseUseInput,
+  ComputeSubjectAttestation,
+  AttestComputeExecutionReceiptInput,
+  VerifyComputeExecutionEvidenceInput,
+  ComputeEvidenceValidation,
+  ComputeExecutionEvidenceVerification,
+} from './ComputePlacementEvidence';
 
 export type {
   ComputeUtilityNotMeasuredReason,

@@ -111,8 +111,8 @@ describe.skipIf(!REQUIRE_LIVE_GPU)('ThermalSolver live GPU parity', () => {
           sourceEvidence: workUnit.source_evidence,
         },
         placement: {
-          planReceiptId: 'fixture:local-only-placement-plan',
-          capacityLeaseReceiptId: 'fixture:exclusive-test-device-lease',
+          planReceiptId: `sha256:${'1'.repeat(64)}`,
+          capacityLeaseReceiptId: `sha256:${'2'.repeat(64)}`,
           outcome: 'local_device',
         },
         execution: {

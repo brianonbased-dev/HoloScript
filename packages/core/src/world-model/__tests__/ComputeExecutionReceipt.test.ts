@@ -79,8 +79,8 @@ function input(): BuildComputeExecutionReceiptInput {
       sourceEvidence: SOURCE_EVIDENCE,
     },
     placement: {
-      planReceiptId: 'fixture:local-placement-plan',
-      capacityLeaseReceiptId: 'fixture:exclusive-device-lease',
+      planReceiptId: `sha256:${'1'.repeat(64)}`,
+      capacityLeaseReceiptId: `sha256:${'2'.repeat(64)}`,
       outcome: 'local_device',
     },
     execution: {
@@ -129,6 +129,25 @@ describe('ComputeExecutionReceipt', () => {
         'hardware measurements must include the quality observation',
         'receiptId does not match the canonical body',
       ])
+    );
+  });
+
+  it('requires content-addressed placement and lease bindings', () => {
+    const valid = input();
+    const invalid = {
+      ...valid,
+      placement: {
+        ...valid.placement,
+        planReceiptId: 'fixture:unverified-plan',
+        capacityLeaseReceiptId: 'fixture:unverified-lease',
+      },
+    };
+
+    expect(() => buildComputeExecutionReceipt(invalid)).toThrow(
+      'placement.planReceiptId must be a sha256 label'
+    );
+    expect(() => buildComputeExecutionReceipt(invalid)).toThrow(
+      'placement.capacityLeaseReceiptId must be a sha256 label'
     );
   });
 
