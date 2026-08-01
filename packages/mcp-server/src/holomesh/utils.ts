@@ -63,8 +63,10 @@ export function hasTeamPermission(team: Team, agentId: string, permission: strin
   if (agentId === 'system') return true;
   const member = getTeamMember(team, agentId);
   if (!member) return false;
-  // Admin rooms: every joined member carries full permissions.
-  if (team.adminRoom === true) return true;
+  // Admin rooms grant the legacy collaboration permissions, but compute
+  // authority remains role-explicit. An admin-room guest must not inherit GPU
+  // submission or cross-principal cancellation authority.
+  if (team.adminRoom === true && !permission.startsWith('compute:')) return true;
   return (TEAM_ROLE_PERMISSIONS[member.role as keyof typeof TEAM_ROLE_PERMISSIONS] ?? []).includes(
     permission
   );

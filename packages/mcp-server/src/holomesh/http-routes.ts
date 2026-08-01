@@ -40,6 +40,7 @@ import { handleInviteRoutes } from './routes/invite-routes';
 import { handleStoryWeaverGenerationRoutes } from './routes/storyweaver-generation-routes';
 import { handleWebhookRoutes } from './routes/webhook-routes';
 import { handleGithubWebhookRoutes } from './routes/github-webhook-routes';
+import { handleComputeJobRoutes } from './routes/compute-job-routes';
 import { GossipProtocol, type GossipPacket } from '@holoscript/framework';
 
 const meshGossip = new GossipProtocol();
@@ -209,6 +210,7 @@ export async function handleHoloMeshRoute(
   if (await handleAdminRoutes(req, res, pathname, method, url)) return true;
   if (await handleBountyRoutes(req, res, pathname, method, url)) return true;
   if (await handleBoardRoutes(req, res, pathname, method, url)) return true;
+  if (await handleComputeJobRoutes(req, res, pathname, method, url)) return true;
   if (await handleHoloDoorRoutes(req, res, pathname, method, url)) return true;
   if (await handleIdentityExportRoutes(req, res, pathname, method, url)) return true;
   if (await handleAttestationRoutes(req, res, pathname, method, url)) return true;
