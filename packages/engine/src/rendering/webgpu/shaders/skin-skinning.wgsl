@@ -258,6 +258,20 @@ fn anatomicalComplexion(bodyP : vec3<f32>, strength : f32) -> vec3<f32> {
   return mix(vec3<f32>(1.0), authored, clamp(strength, 0.0, 1.0));
 }
 
+// H4J UV-driven portrait breakup. The procedural atlas dedicates its left half to the head,
+// so this remains stable under pose while avoiding a hidden image or provider-owned texture.
+fn portraitTextureSpace(uv : vec2<f32>, strength : f32) -> vec3<f32> {
+  let headIsland = 1.0 - step(0.5, uv.x);
+  let localUv = vec2<f32>(fract(uv.x * 2.0), clamp((uv.y - 0.52) / 0.46, 0.0, 1.0));
+  let fine =
+    sin(localUv.x * 113.0 + localUv.y * 37.0) *
+    sin(localUv.y * 149.0 - localUv.x * 29.0);
+  let broad = sin(localUv.x * 19.0 + localUv.y * 11.0);
+  let freckles = smoothstep(0.78, 0.98, fine * 0.5 + 0.5) * headIsland;
+  let signal = (broad * 0.018 - freckles * 0.032) * clamp(strength, 0.0, 1.0);
+  return vec3<f32>(1.0 + signal * 0.72, 1.0 + signal * 0.34, 1.0 + signal * 0.2);
+}
+
 // ── Skin: single-pass subsurface approximation of the CPU Burley model. ──
 @fragment
 fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
@@ -309,9 +323,11 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   let microAlbedo = 1.0 + (pore - 0.5) * albedoVariation;
   let complexionStrength = max(mat.scatterDist.w - 1.0, 0.0);
   let complexion = anatomicalComplexion(in.bodyP, complexionStrength);
+  let textureSpaceStrength = select(0.0, mat.albedoTile[0].y, mat.albedoTile[0].x > 1.5);
+  let portraitTexture = portraitTextureSpace(in.uv, textureSpaceStrength);
   let probeSpecular = directionalReflectionProbe(reflect(-V, N), rough);
   var color =
-    mat.color.rgb * complexion * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
+    mat.color.rgb * complexion * portraitTexture * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
     transmit +
     frame.keyColor.rgb * vec3<f32>(spec) * frame.keyColor.w +
     probeSpecular * fresnel(max(dot(N, V), 0.0), mat.params.x) * 0.45;
@@ -334,7 +350,8 @@ fn melaninColor(m : f32, red : f32) -> vec3<f32> {
 // ── Hair: tangent-aware dual-lobe response + analytic card-width coverage. ──
 // Material packing (from fillMaterial 'marschner-hair'): scatterColor = (melanin, redness,
 // primaryExp, secondaryExp); scatterDist = (coverage, edgeSoftness, anisotropyStrength,
-// coverageProfileCode); params.x = longitudinalShift; params.y = source RGB chroma weight;
+// coverageProfileCode); params = (longitudinalShift, source RGB chroma weight,
+// layered density strength, root-shadow strength);
 // color.rgb = source hair colour; color.a = opacity.
 @fragment
 fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
@@ -380,6 +397,10 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
     let softness = clamp(mat.scatterDist.y, 0.01, 0.5);
     let edge = abs(in.uv.x * 2.0 - 1.0);
     alpha *= 1.0 - smoothstep(halfWidth - softness, halfWidth, edge);
+    let densityStrength = clamp(mat.params.z, 0.0, 1.0);
+    let densityBreakup = 0.72 + 0.28 *
+      (0.5 + 0.5 * sin(in.uv.y * 67.0 + in.uv.x * 23.0));
+    alpha *= mix(1.0, densityBreakup, densityStrength * smoothstep(0.12, 1.0, in.strandT));
     if (alpha < 0.01) {
       discard;
     }
@@ -397,7 +418,8 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
     vec3<f32>(1.0)
   );
   let base = mix(melaninBase, sourceChroma, sourceWeight);
-  let rootDarken = mix(0.55, 1.0, in.strandT);
+  let authoredRootShadow = clamp(mat.params.w, 0.0, 1.0);
+  let rootDarken = mix(0.55 - authoredRootShadow * 0.16, 1.0, in.strandT);
   let environment = select(
     vec3<f32>(kkDiffuse * 0.6 + 0.25),
     vec3<f32>(0.25) + environmentDiffuse(N, false) * 0.6,

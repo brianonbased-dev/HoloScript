@@ -2212,6 +2212,140 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.report.stubbed).toEqual([]);
   });
 
+  it('maps the H4J facial-plane, UV skin, and layered hair-density stack', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'openai',
+          traits: [
+            {
+              name: 'body',
+              config: { upper_body_profile: 'coherent_expressive_anatomy_v7' },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                facial_detail_profile: 'portrait_facial_planes_v6',
+                facial_plane_strength: 0.81,
+                orbital_profile: 'anatomical_lid_blend_v3',
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                microdetail_profile: 'analytic_pore_v1',
+                surface_response_profile: 'calibrated_skin_surface_v1',
+                complexion_profile: 'anatomical_complexion_v1',
+                texture_space_profile: 'portrait_texture_space_v1',
+                texture_space_strength: 0.52,
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                groom_profile: 'scalp_flow_density_v6',
+                coverage_profile: 'alpha_to_coverage_v1',
+                density_profile: 'layered_card_density_v1',
+                density_strength: 0.77,
+                root_shadow_strength: 0.63,
+              },
+            },
+            {
+              name: 'environment_light',
+              config: {
+                profile: 'stormglass_room_basis_v2',
+                key_direction: [-0.42, 0.7, 0.57],
+                fill_direction: [0.68, 0.26, 0.31],
+                rim_direction: [0.18, 0.44, -0.88],
+                exposure: 1.04,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.face).toMatchObject({
+      facialDetailProfile: 'portrait-facial-planes-v6',
+      facialPlaneStrength: 0.81,
+    });
+    expect(result.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v6',
+      facialPlaneProfile: 'brow-malar-jaw-plane-field-v1',
+    });
+    expect(result.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v5',
+      textureSpaceProfile: 'portrait-texture-space-v1',
+      textureSpaceStrength: 0.52,
+      uv: {
+        schemaVersion: 'holoscript.agent-avatar-skin-uv.v1',
+        profile: 'portrait-atlas-v1',
+      },
+    });
+    expect(
+      result.skin?.schemaVersion === 'holoscript.agent-avatar-skin-material.v5' &&
+        result.skin.uv.headIslandVertexCount
+    ).toBeGreaterThan(100);
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v6',
+      densityLayerProfile: 'cross-card-undercoat-v1',
+      material: {
+        schemaVersion: 'holoscript.agent-avatar-hair-material.v3',
+        densityProfile: 'layered-card-density-v1',
+        densityStrength: 0.77,
+        rootShadowStrength: 0.63,
+      },
+    });
+    expect(result.environmentLight?.receipt).toMatchObject({
+      profile: 'stormglass-room-basis-v2',
+      responseProfile: 'source-authored-room-basis-v2',
+    });
+    expect(result.report.stubbed).toEqual([]);
+  });
+
+  it('fails closed when H4J UV skin and density profiles lack their geometry prerequisites', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'unsupported-h4j',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'face', config: { topology: 'neutral_anatomical_v2' } },
+            {
+              name: 'subsurface_scattering',
+              config: { texture_space_profile: 'portrait_texture_space_v1' },
+            },
+            {
+              name: 'hair',
+              config: {
+                groom_profile: 'scalp_flow_volume_v5',
+                coverage_profile: 'opaque_v1',
+                density_profile: 'layered_card_density_v1',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.skin).toBeUndefined();
+    expect(result.groom?.material).not.toMatchObject({
+      densityProfile: 'layered-card-density-v1',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@subsurface_scattering(texture_space_profile)',
+      reason:
+        'portrait-texture-space-v1 requires neutral-anatomical-v2, ' +
+        'portrait-facial-planes-v6, and calibrated-skin-surface-v1',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@hair(density_profile)',
+      reason: 'layered-card-density-v1 requires scalp-flow-density-v6 and alpha-to-coverage-v1',
+    });
+  });
+
   it('fails closed when H3X cranial continuity or expression-normal prerequisites are absent', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

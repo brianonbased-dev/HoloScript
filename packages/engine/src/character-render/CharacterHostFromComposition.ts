@@ -21,6 +21,7 @@ import {
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
   type AgentAvatarSkinSurfaceResponseProfile,
+  type AgentAvatarSkinTextureSpaceProfile,
 } from './CharacterHost';
 import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
 import type { HairCoverageProfile } from '../native-render/draw-spec';
@@ -183,6 +184,7 @@ export interface CharacterHostFromCompositionResult {
     cheekboneScale?: number;
     chinProjection?: number;
     templeWidth?: number;
+    facialPlaneStrength?: number;
     expressionNormalPolicy?: NativeMorphNormalPolicy;
     faceWidth?: number;
     faceLength?: number;
@@ -804,6 +806,7 @@ export function buildCharacterHostFromComposition(
   let cheekboneScale: number | undefined;
   let chinProjection: number | undefined;
   let templeWidth: number | undefined;
+  let facialPlaneStrength: number | undefined;
   let expressionNormalPolicy: NativeMorphNormalPolicy | undefined;
   let faceWidth = 1;
   let faceLength = 1;
@@ -899,12 +902,14 @@ export function buildCharacterHostFromComposition(
           authoredFacialDetailProfile === 'portrait-silhouette-v2' ||
           authoredFacialDetailProfile === 'portrait-cranial-v3' ||
           authoredFacialDetailProfile === 'portrait-soft-tissue-v4' ||
-          authoredFacialDetailProfile === 'portrait-facial-volume-v5'
+          authoredFacialDetailProfile === 'portrait-facial-volume-v5' ||
+          authoredFacialDetailProfile === 'portrait-facial-planes-v6'
         ) {
           if (
             (authoredFacialDetailProfile === 'portrait-cranial-v3' ||
               authoredFacialDetailProfile === 'portrait-soft-tissue-v4' ||
-              authoredFacialDetailProfile === 'portrait-facial-volume-v5') &&
+              authoredFacialDetailProfile === 'portrait-facial-volume-v5' ||
+              authoredFacialDetailProfile === 'portrait-facial-planes-v6') &&
             upperBodyProfile !== 'coherent-expressive-anatomy-v7'
           ) {
             report.stubbed.push({
@@ -925,11 +930,19 @@ export function buildCharacterHostFromComposition(
             facialDetailProfile === 'portrait-silhouette-v2' ||
             facialDetailProfile === 'portrait-cranial-v3' ||
             facialDetailProfile === 'portrait-soft-tissue-v4' ||
-            facialDetailProfile === 'portrait-facial-volume-v5'
+            facialDetailProfile === 'portrait-facial-volume-v5' ||
+            facialDetailProfile === 'portrait-facial-planes-v6'
           ) {
             cheekboneScale = clamp(asNum(cfgVal(faceTrait, 'cheekbone_scale')) ?? 1, 0.82, 1.22);
             chinProjection = clamp(asNum(cfgVal(faceTrait, 'chin_projection')) ?? 1, 0.72, 1.28);
             templeWidth = clamp(asNum(cfgVal(faceTrait, 'temple_width')) ?? 1, 0.88, 1.12);
+            if (facialDetailProfile === 'portrait-facial-planes-v6') {
+              facialPlaneStrength = clamp(
+                asNum(cfgVal(faceTrait, 'facial_plane_strength')) ?? 0.72,
+                0,
+                1
+              );
+            }
           } else if (hasPortraitSilhouetteControls) {
             report.stubbed.push({
               trait: '@face(portrait_silhouette_controls)',
@@ -941,7 +954,8 @@ export function buildCharacterHostFromComposition(
             if (
               facialDetailProfile === 'portrait-cranial-v3' ||
               facialDetailProfile === 'portrait-soft-tissue-v4' ||
-              facialDetailProfile === 'portrait-facial-volume-v5'
+              facialDetailProfile === 'portrait-facial-volume-v5' ||
+              facialDetailProfile === 'portrait-facial-planes-v6'
             ) {
               faceRadialSegments = Math.max(
                 12,
@@ -969,9 +983,13 @@ export function buildCharacterHostFromComposition(
                 (facialDetailProfile === 'portrait-silhouette-v2' ||
                 facialDetailProfile === 'portrait-cranial-v3' ||
                 facialDetailProfile === 'portrait-soft-tissue-v4' ||
-                facialDetailProfile === 'portrait-facial-volume-v5'
+                facialDetailProfile === 'portrait-facial-volume-v5' ||
+                facialDetailProfile === 'portrait-facial-planes-v6'
                   ? `,cheekbone_scale=${cheekboneScale},chin_projection=${chinProjection},` +
-                    `temple_width=${templeWidth}`
+                    `temple_width=${templeWidth}` +
+                    (facialDetailProfile === 'portrait-facial-planes-v6'
+                      ? `,facial_plane_strength=${facialPlaneStrength}`
+                      : '')
                   : '') +
                 ')'
             );
@@ -1004,7 +1022,8 @@ export function buildCharacterHostFromComposition(
           authoredExpressionNormalPolicy === 'recompute-affected-v1' &&
           (facialDetailProfile === 'portrait-cranial-v3' ||
             facialDetailProfile === 'portrait-soft-tissue-v4' ||
-            facialDetailProfile === 'portrait-facial-volume-v5')
+            facialDetailProfile === 'portrait-facial-volume-v5' ||
+            facialDetailProfile === 'portrait-facial-planes-v6')
         ) {
           expressionNormalPolicy = authoredExpressionNormalPolicy;
           report.mapped.push(`@face(expression_normal_policy=${expressionNormalPolicy})`);
@@ -1073,6 +1092,7 @@ export function buildCharacterHostFromComposition(
         ...(cheekboneScale === undefined ? {} : { cheekboneScale }),
         ...(chinProjection === undefined ? {} : { chinProjection }),
         ...(templeWidth === undefined ? {} : { templeWidth }),
+        ...(facialPlaneStrength === undefined ? {} : { facialPlaneStrength }),
         ...(expressionNormalPolicy === undefined ? {} : { expressionNormalPolicy }),
         ...(authoredFaceWidth === undefined ? {} : { faceWidth }),
         ...(authoredFaceLength === undefined ? {} : { faceLength }),
@@ -1123,6 +1143,8 @@ export function buildCharacterHostFromComposition(
   let skinNormalMicrodetailStrength: number | undefined;
   let skinComplexionProfile: AgentAvatarSkinComplexionProfile | undefined;
   let skinComplexionStrength: number | undefined;
+  let skinTextureSpaceProfile: AgentAvatarSkinTextureSpaceProfile | undefined;
+  let skinTextureSpaceStrength: number | undefined;
   let materialCalibrationProfile: AgentAvatarMaterialCalibrationProfile | undefined;
   const authoredMaterialCalibrationProfile = asStr(
     sss?.config.material_calibration_profile ??
@@ -1304,6 +1326,47 @@ export function buildCharacterHostFromComposition(
       reason: 'complexion_strength requires anatomical-complexion-v1',
     });
   }
+  const authoredSkinTextureSpaceProfile = asStr(
+    sss?.config.texture_space_profile ?? sss?.config.textureSpaceProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const authoredSkinTextureSpaceStrength = asNum(
+    sss?.config.texture_space_strength ?? sss?.config.textureSpaceStrength
+  );
+  if (authoredSkinTextureSpaceProfile === 'portrait-texture-space-v1') {
+    if (
+      faceTopology === 'neutral-anatomical-v2' &&
+      facialDetailProfile === 'portrait-facial-planes-v6' &&
+      skinSurfaceResponseProfile === 'calibrated-skin-surface-v1'
+    ) {
+      skinTextureSpaceProfile = authoredSkinTextureSpaceProfile;
+      skinTextureSpaceStrength = clamp(authoredSkinTextureSpaceStrength ?? 0.48, 0, 1);
+      report.mapped.push(
+        `@subsurface_scattering(texture_space_profile=${skinTextureSpaceProfile},` +
+          `texture_space_strength=${skinTextureSpaceStrength})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@subsurface_scattering(texture_space_profile)',
+        reason:
+          'portrait-texture-space-v1 requires neutral-anatomical-v2, ' +
+          'portrait-facial-planes-v6, and calibrated-skin-surface-v1',
+      });
+    }
+  } else if (authoredSkinTextureSpaceProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(texture_space_profile)',
+      reason: `profile '${authoredSkinTextureSpaceProfile}' has no native UV-space skin response`,
+    });
+  }
+  if (!authoredSkinTextureSpaceProfile && authoredSkinTextureSpaceStrength !== undefined) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(texture_space_strength)',
+      reason: 'texture_space_strength requires portrait-texture-space-v1',
+    });
+  }
 
   // 6. @hair(color/style) → authored Marschner response plus deterministic card geometry.
   //    Unknown style names are recorded as unsupported rather than borrowing the default.
@@ -1324,6 +1387,9 @@ export function buildCharacterHostFromComposition(
   let hairEdgeSoftness: number | undefined;
   let hairAnisotropyStrength: number | undefined;
   let hairLongitudinalShift: number | undefined;
+  let hairDensityProfile: 'layered-card-density-v1' | undefined;
+  let hairDensityStrength: number | undefined;
+  let hairRootShadowStrength: number | undefined;
   let authoredHairStyle: string | undefined;
   let authoredGroomProfile: string | undefined;
   let authoredCoverageProfile: string | undefined;
@@ -1372,6 +1438,39 @@ export function buildCharacterHostFromComposition(
     hairEdgeSoftness = asNum(cfgVal(hair, 'edge_softness', 'edgeSoftness'));
     hairAnisotropyStrength = asNum(cfgVal(hair, 'anisotropy_strength', 'anisotropyStrength'));
     hairLongitudinalShift = asNum(cfgVal(hair, 'longitudinal_shift', 'longitudinalShift'));
+    const authoredDensityProfile = asStr(cfgVal(hair, 'density_profile', 'densityProfile'))
+      ?.trim()
+      .toLowerCase()
+      .replace(/_/g, '-');
+    const authoredDensityStrength = asNum(cfgVal(hair, 'density_strength', 'densityStrength'));
+    const authoredRootShadowStrength = asNum(
+      cfgVal(hair, 'root_shadow_strength', 'rootShadowStrength')
+    );
+    if (authoredDensityProfile === 'layered-card-density-v1') {
+      if (
+        hairGroomProfile === 'scalp-flow-density-v6' &&
+        hairCoverageProfile === 'alpha-to-coverage-v1'
+      ) {
+        hairDensityProfile = authoredDensityProfile;
+        hairDensityStrength = clamp(authoredDensityStrength ?? 0.72, 0, 1);
+        hairRootShadowStrength = clamp(authoredRootShadowStrength ?? 0.58, 0, 1);
+      } else {
+        report.stubbed.push({
+          trait: '@hair(density_profile)',
+          reason: 'layered-card-density-v1 requires scalp-flow-density-v6 and alpha-to-coverage-v1',
+        });
+      }
+    } else if (authoredDensityProfile) {
+      report.stubbed.push({
+        trait: '@hair(density_profile)',
+        reason: `density profile '${authoredDensityProfile}' has no native material response`,
+      });
+    } else if (authoredDensityStrength !== undefined || authoredRootShadowStrength !== undefined) {
+      report.stubbed.push({
+        trait: '@hair(density_controls)',
+        reason: 'density controls require layered-card-density-v1',
+      });
+    }
     if (hairColor && /^#?[0-9a-fA-F]{6}$/.test(hairColor)) {
       const rgb = parseInt(hairColor.replace('#', ''), 16);
       hairTone = rgb;
@@ -1511,6 +1610,13 @@ export function buildCharacterHostFromComposition(
             `anisotropy_strength=${hairAnisotropyStrength ?? 'profile-default'},` +
             `longitudinal_shift=${hairLongitudinalShift ?? 'profile-default'})`
         );
+        if (hairDensityProfile) {
+          report.mapped.push(
+            `@hair(density_profile=${hairDensityProfile},` +
+              `density_strength=${hairDensityStrength},` +
+              `root_shadow_strength=${hairRootShadowStrength})`
+          );
+        }
       } else if (
         hairStrandCoverage !== undefined ||
         hairEdgeSoftness !== undefined ||
@@ -1587,6 +1693,7 @@ export function buildCharacterHostFromComposition(
     cheekboneScale,
     chinProjection,
     templeWidth,
+    facialPlaneStrength,
     expressionNormalPolicy,
     faceWidth,
     faceLength,
@@ -1621,6 +1728,8 @@ export function buildCharacterHostFromComposition(
     skinNormalMicrodetailStrength,
     skinComplexionProfile,
     skinComplexionStrength,
+    skinTextureSpaceProfile,
+    skinTextureSpaceStrength,
     melanin,
     melaninRedness,
     hairTone,
@@ -1641,6 +1750,9 @@ export function buildCharacterHostFromComposition(
     hairEdgeSoftness: hairCoverageProfile ? hairEdgeSoftness : undefined,
     hairAnisotropyStrength: hairCoverageProfile ? hairAnisotropyStrength : undefined,
     hairLongitudinalShift: hairCoverageProfile ? hairLongitudinalShift : undefined,
+    hairDensityProfile,
+    hairDensityStrength,
+    hairRootShadowStrength,
     position,
     garmentStyle,
     garmentColor,

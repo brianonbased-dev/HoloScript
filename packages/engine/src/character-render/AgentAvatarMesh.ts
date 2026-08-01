@@ -99,6 +99,7 @@ export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
   'portrait-cranial-v3',
   'portrait-soft-tissue-v4',
   'portrait-facial-volume-v5',
+  'portrait-facial-planes-v6',
 ] as const;
 export type AgentAvatarFacialDetailProfile = (typeof AGENT_AVATAR_FACIAL_DETAIL_PROFILES)[number];
 
@@ -127,13 +128,15 @@ export interface AgentAvatarFacialLandmarkReceipt {
     | 'holoscript.agent-avatar-facial-landmarks.v2'
     | 'holoscript.agent-avatar-facial-landmarks.v3'
     | 'holoscript.agent-avatar-facial-landmarks.v4'
-    | 'holoscript.agent-avatar-facial-landmarks.v5';
+    | 'holoscript.agent-avatar-facial-landmarks.v5'
+    | 'holoscript.agent-avatar-facial-landmarks.v6';
   profile:
     | 'civic-landmarks-v1'
     | 'portrait-silhouette-v2'
     | 'portrait-cranial-v3'
     | 'portrait-soft-tissue-v4'
-    | 'portrait-facial-volume-v5';
+    | 'portrait-facial-volume-v5'
+    | 'portrait-facial-planes-v6';
   radialSegments: number;
   verticalSegments: number;
   eyeScale: number;
@@ -158,6 +161,10 @@ export interface AgentAvatarFacialLandmarkReceipt {
   malarVolumeScale?: number;
   mandibularTaper?: number;
   browArcSegments?: number;
+  /** H4J continuous brow, malar, and mandibular plane treatment on the native head shell. */
+  facialPlaneProfile?: 'brow-malar-jaw-plane-field-v1';
+  facialPlaneStrength?: number;
+  facialPlaneVertexCount?: number;
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -483,6 +490,8 @@ export interface AgentAvatarMeshOptions {
   chinProjection?: number;
   /** Portrait-silhouette-v2 temple-width multiplier (0.88..1.12). */
   templeWidth?: number;
+  /** Portrait-facial-planes-v6 brow/malar/jaw plane strength (0..1). */
+  facialPlaneStrength?: number;
   /** Neutral-head width multiplier (0.84..1.2). */
   faceWidth?: number;
   /** Neutral-head vertical-length multiplier (0.86..1.16). */
@@ -3124,6 +3133,7 @@ function pushNeutralAnatomicalHead(
   cheekboneScale: number,
   chinProjection: number,
   templeWidth: number,
+  facialPlaneStrength: number,
   cranialNeckAnchor:
     | {
         vertexStart: number;
@@ -3145,7 +3155,8 @@ function pushNeutralAnatomicalHead(
   const radiusY = headLength * 0.62 * faceLength;
   const radiusZ = radius * 1.08;
   const base = acc.positions.length / 3;
-  const facialVolume = facialDetailProfile === 'portrait-facial-volume-v5';
+  const facialPlanes = facialDetailProfile === 'portrait-facial-planes-v6';
+  const facialVolume = facialDetailProfile === 'portrait-facial-volume-v5' || facialPlanes;
   const softTissue = facialDetailProfile === 'portrait-soft-tissue-v4' || facialVolume;
   const portraitCranial = facialDetailProfile === 'portrait-cranial-v3' || softTissue;
   const portraitSilhouette = facialDetailProfile === 'portrait-silhouette-v2' || portraitCranial;
@@ -3154,6 +3165,7 @@ function pushNeutralAnatomicalHead(
     ? clampFloat((cranialMinimumY - center.y) / radiusY, -0.76, -0.9, -0.62)
     : -1;
   const thetaLimit = Math.acos(lowerNormalizedY);
+  let facialPlaneVertexCount = 0;
 
   for (let latitude = 0; latitude <= verticalSegments; latitude++) {
     const theta = (latitude / verticalSegments) * thetaLimit;
@@ -3173,7 +3185,19 @@ function pushNeutralAnatomicalHead(
       const cos = Math.cos(phi);
       const sin = Math.sin(phi);
       const front = Math.max(0, sin);
-      const x = cos * ring * radiusX * jawTaper * silhouetteScale;
+      const lateral = Math.abs(cos);
+      const planeFront = facialPlanes ? Math.pow(front, 1.7) : 0;
+      const browPlane = Math.exp(-Math.pow((normalizedY - 0.23) / 0.16, 2));
+      const malarPlane =
+        Math.exp(-Math.pow((normalizedY + 0.06) / 0.2, 2)) *
+        Math.exp(-Math.pow((lateral - 0.58) / 0.24, 2));
+      const jawPlane = Math.exp(-Math.pow((normalizedY + 0.57) / 0.2, 2)) * (0.3 + lateral * 0.7);
+      const planeInfluence = planeFront * Math.max(browPlane, malarPlane, jawPlane);
+      if (planeInfluence > 0.04) facialPlaneVertexCount++;
+      const facialPlaneWidth = facialPlanes
+        ? 1 + facialPlaneStrength * planeFront * (malarPlane * 0.028 - jawPlane * 0.018)
+        : 1;
+      const x = cos * ring * radiusX * jawTaper * silhouetteScale * facialPlaneWidth;
       const y = normalizedY * radiusY;
       // A flatter face and fuller occiput read more human than a perfect ellipsoid.
       const malarDirection = Math.pow(Math.abs(cos), 0.55);
@@ -3184,7 +3208,13 @@ function pushNeutralAnatomicalHead(
             (facialVolume ? mandibularBand * (1 - jawTaperAmount) * 0.008 : 0))
         : 0;
       const zScale = 1 - front * 0.045 + Math.max(0, -sin) * 0.035 + portraitProjection;
-      const z = sin * ring * radiusZ * zScale;
+      const facialPlaneProjection = facialPlanes
+        ? facialPlaneStrength *
+          radiusZ *
+          planeFront *
+          (browPlane * (0.012 + lateral * 0.012) + malarPlane * 0.034 - jawPlane * 0.012)
+        : 0;
+      const z = sin * ring * radiusZ * zScale + facialPlaneProjection;
       const normal = normalize({
         x: x / (radiusX * radiusX),
         y: y / (radiusY * radiusY),
@@ -3400,15 +3430,17 @@ function pushNeutralAnatomicalHead(
       facialVolume ? 22 : 14
     );
     facialLandmarks = {
-      schemaVersion: facialVolume
-        ? 'holoscript.agent-avatar-facial-landmarks.v5'
-        : softTissue
-          ? 'holoscript.agent-avatar-facial-landmarks.v4'
-          : portraitCranial
-            ? 'holoscript.agent-avatar-facial-landmarks.v3'
-            : portraitSilhouette
-              ? 'holoscript.agent-avatar-facial-landmarks.v2'
-              : 'holoscript.agent-avatar-facial-landmarks.v1',
+      schemaVersion: facialPlanes
+        ? 'holoscript.agent-avatar-facial-landmarks.v6'
+        : facialVolume
+          ? 'holoscript.agent-avatar-facial-landmarks.v5'
+          : softTissue
+            ? 'holoscript.agent-avatar-facial-landmarks.v4'
+            : portraitCranial
+              ? 'holoscript.agent-avatar-facial-landmarks.v3'
+              : portraitSilhouette
+                ? 'holoscript.agent-avatar-facial-landmarks.v2'
+                : 'holoscript.agent-avatar-facial-landmarks.v1',
       profile: facialDetailProfile,
       radialSegments,
       verticalSegments,
@@ -3439,6 +3471,13 @@ function pushNeutralAnatomicalHead(
             malarVolumeScale: cheekboneScale,
             mandibularTaper: jawTaperAmount,
             browArcSegments: 22,
+          }
+        : {}),
+      ...(facialPlanes
+        ? {
+            facialPlaneProfile: 'brow-malar-jaw-plane-field-v1' as const,
+            facialPlaneStrength,
+            facialPlaneVertexCount,
           }
         : {}),
       vertexRange: {
@@ -3746,7 +3785,8 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const portraitCranial =
     facialDetailProfile === 'portrait-cranial-v3' ||
     facialDetailProfile === 'portrait-soft-tissue-v4' ||
-    facialDetailProfile === 'portrait-facial-volume-v5';
+    facialDetailProfile === 'portrait-facial-volume-v5' ||
+    facialDetailProfile === 'portrait-facial-planes-v6';
   const faceRadialSegments = clampInt(
     opts.faceRadialSegments,
     portraitCranial ? 40 : 20,
@@ -3780,6 +3820,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const cheekboneScale = clampFloat(opts.cheekboneScale, 1, 0.82, 1.22);
   const chinProjection = clampFloat(opts.chinProjection, 1, 0.72, 1.28);
   const templeWidth = clampFloat(opts.templeWidth, 1, 0.88, 1.12);
+  const facialPlaneStrength = clampFloat(opts.facialPlaneStrength, 0.72, 0, 1);
   const faceWidth = clampFloat(opts.faceWidth, 1, 0.84, 1.2);
   const faceLength = clampFloat(opts.faceLength, 1, 0.86, 1.16);
   const jawTaper = clampFloat(opts.jawTaper, 0.22, 0.08, 0.38);
@@ -3998,6 +4039,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
           cheekboneScale,
           chinProjection,
           templeWidth,
+          facialPlaneStrength,
           portraitCranial && upperBodyProfile === 'coherent-expressive-anatomy-v7' && upperBody
             ? {
                 vertexStart:

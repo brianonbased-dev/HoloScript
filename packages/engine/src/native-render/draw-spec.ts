@@ -228,6 +228,10 @@ export interface SkinSSSMaterialSpec extends MaterialSpec {
   complexionProfile?: 'anatomical-complexion-v1';
   /** Bounded influence of cheek, nose, under-eye, lip, and jaw colour zones (0..1). */
   complexionStrength?: number;
+  /** Opt-in UV-driven portrait breakup over the analytic skin response. */
+  textureSpaceProfile?: 'portrait-texture-space-v1';
+  /** Bounded contribution of the UV-space albedo and microsurface signal (0..1). */
+  textureSpaceStrength?: number;
 }
 
 /** Source-authored hair-card edge treatment. `opaque-v1` preserves the legacy solid-card path. */
@@ -255,6 +259,12 @@ export interface MarschnerHairMaterialSpec extends MaterialSpec {
   anisotropyStrength: number;
   /** Tangent/normal longitudinal lobe shift (-0.35..0.35). */
   longitudinalShift: number;
+  /** Opt-in layered density/root response over the alpha-to-coverage card path. */
+  densityProfile?: 'layered-card-density-v1';
+  /** Layered-card opacity modulation; operative only for layered-card-density-v1. */
+  densityStrength?: number;
+  /** Root darkening/occlusion response; operative only for layered-card-density-v1. */
+  rootShadowStrength?: number;
 }
 
 /** Refractive eye: iris/sclera blend + pupil + wet specular catchlight + Fresnel rim. */

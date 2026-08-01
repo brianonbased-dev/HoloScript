@@ -115,9 +115,7 @@ export interface CharacterEnvironmentLightReceipt {
     | 'holoscript.character-environment-light.v3';
   profile: CharacterEnvironmentLightProfile;
   /** H3Y reinterprets the three authored lobes as a low-frequency reflection probe. */
-  responseProfile?:
-    | 'three-lobe-diffuse-specular-probe-v1'
-    | 'source-authored-room-basis-v2';
+  responseProfile?: 'three-lobe-diffuse-specular-probe-v1' | 'source-authored-room-basis-v2';
   /** H3Z is a procedural room basis, not a photographic or imported HDRI. */
   photographicHdri?: false;
   key: {
@@ -190,7 +188,7 @@ export function deriveCharacterEnvironmentLightReceipt(
         }
       : reflectionProbe
         ? { responseProfile: 'three-lobe-diffuse-specular-probe-v1' as const }
-      : {}),
+        : {}),
     key: {
       direction: normalizedDirection(options.keyDirection, legacyLightDirection),
       color: clampedLightColor(options.keyColor, [1, 1, 1]),
@@ -347,6 +345,12 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
       : coupledStrength;
     out[18] = decoupled ? Math.max(0, Math.min(0.35, m.normalMicrodetailStrength ?? 0.08)) : 0;
     out[19] = microdetailEnabled ? Math.max(20, Math.min(180, m.microdetailScale ?? 80)) : 0;
+    if (m.textureSpaceProfile === 'portrait-texture-space-v1') {
+      // The skin shader does not sample cloth tiles. Reuse the first otherwise-neutral texel
+      // as a backwards-safe profile code + strength without growing the shared uniform.
+      out[20] = 2;
+      out[21] = Math.max(0, Math.min(1, m.textureSpaceStrength ?? 0.48));
+    }
   } else if (m.shadingModel === 'marschner-hair') {
     out[4] = m.melanin;
     out[5] = m.melaninRedness;
@@ -358,6 +362,14 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[11] = m.coverageProfile === 'alpha-to-coverage-v1' ? 1 : 0;
     out[12] = m.longitudinalShift;
     out[13] = Math.max(0, Math.min(1, m.sourceColorWeight ?? 0));
+    out[14] =
+      m.densityProfile === 'layered-card-density-v1'
+        ? Math.max(0, Math.min(1, m.densityStrength ?? 0.72))
+        : 0;
+    out[15] =
+      m.densityProfile === 'layered-card-density-v1'
+        ? Math.max(0, Math.min(1, m.rootShadowStrength ?? 0.58))
+        : 0;
   } else if (m.shadingModel === 'refractive-eye') {
     out[4] = m.ior; // scatterColor.x = ior (Fresnel rim)
     out[5] =

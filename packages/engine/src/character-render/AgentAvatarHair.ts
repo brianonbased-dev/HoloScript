@@ -102,6 +102,7 @@ export const AGENT_AVATAR_GROOM_PROFILES = [
   'scalp-flow-breakup-v3',
   'scalp-flow-portrait-v4',
   'scalp-flow-volume-v5',
+  'scalp-flow-density-v6',
 ] as const;
 
 export type AgentAvatarGroomProfile = (typeof AGENT_AVATAR_GROOM_PROFILES)[number];
@@ -114,7 +115,8 @@ export const AGENT_AVATAR_HAIR_COVERAGE_PROFILES = [
 export interface AgentAvatarHairMaterialReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-hair-material.v1'
-    | 'holoscript.agent-avatar-hair-material.v2';
+    | 'holoscript.agent-avatar-hair-material.v2'
+    | 'holoscript.agent-avatar-hair-material.v3';
   shadingModel: 'marschner-hair';
   /** Exact source-authored 0xRRGGBB hair chroma when the v2 material path is active. */
   sourceColor?: number;
@@ -130,6 +132,10 @@ export interface AgentAvatarHairMaterialReceipt {
   tangentAttribute: 'strand-flow';
   cardUvAttribute: 'card-width';
   alphaToCoverageRequested: boolean;
+  /** H4J layered opacity and root-occlusion response over the A2C card path. */
+  densityProfile?: 'layered-card-density-v1';
+  densityStrength?: number;
+  rootShadowStrength?: number;
 }
 
 export interface AgentAvatarGroomGeometryReceipt {
@@ -138,7 +144,8 @@ export interface AgentAvatarGroomGeometryReceipt {
     | 'holoscript.agent-avatar-groom-geometry.v2'
     | 'holoscript.agent-avatar-groom-geometry.v3'
     | 'holoscript.agent-avatar-groom-geometry.v4'
-    | 'holoscript.agent-avatar-groom-geometry.v5';
+    | 'holoscript.agent-avatar-groom-geometry.v5'
+    | 'holoscript.agent-avatar-groom-geometry.v6';
   profile: AgentAvatarGroomProfile;
   rootLift: number;
   tipTaper: number;
@@ -182,6 +189,9 @@ export interface AgentAvatarGroomGeometryReceipt {
   massCardCount?: number;
   /** Maximum source-independent cap lift in metres after build scaling is removed. */
   scalpCapMaxLift?: number;
+  /** H4J three-axis undercoat cards added below the broad silhouette locks. */
+  densityLayerProfile?: 'cross-card-undercoat-v1';
+  densityLayerCardCount?: number;
   /** Source-derived native shading/coverage contract joined by CharacterHost. */
   material?: AgentAvatarHairMaterialReceipt;
 }
@@ -293,6 +303,9 @@ const GROOM_PROFILE_ALIASES: Readonly<Record<string, AgentAvatarGroomProfile>> =
   scalp_flow_volume_v5: 'scalp-flow-volume-v5',
   scalp_flow_volume: 'scalp-flow-volume-v5',
   volume: 'scalp-flow-volume-v5',
+  scalp_flow_density_v6: 'scalp-flow-density-v6',
+  scalp_flow_density: 'scalp-flow-density-v6',
+  density: 'scalp-flow-density-v6',
 };
 
 const HAIR_COVERAGE_PROFILE_ALIASES: Readonly<Record<string, HairCoverageProfile>> = {
@@ -410,7 +423,8 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const cardW = (o.cardWidth ?? profile.cardWidth) * bs;
   const tipLen = (o.length ?? profile.length) * bs;
   const groomProfile = o.groomProfile ?? 'radial-cards-v1';
-  const massedSilhouette = groomProfile === 'scalp-flow-volume-v5';
+  const layeredDensity = groomProfile === 'scalp-flow-density-v6';
+  const massedSilhouette = groomProfile === 'scalp-flow-volume-v5' || layeredDensity;
   const portraitFraming = groomProfile === 'scalp-flow-portrait-v4' || massedSilhouette;
   const breakup = groomProfile === 'scalp-flow-breakup-v3' || portraitFraming;
   const containment = groomProfile === 'scalp-flow-containment-v2' || breakup;
@@ -641,8 +655,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
           )
         );
       }
-      for (let card = 0; card < 2; card++) {
-        const roll = card * Math.PI * 0.5;
+      const massCardsPerGuide = layeredDensity ? 3 : 2;
+      for (let card = 0; card < massCardsPerGuide; card++) {
+        const roll = (card / massCardsPerGuide) * Math.PI;
         const base = positions.length / 3;
         for (let segment = 0; segment < massSegments; segment++) {
           const p = curve[segment];
@@ -891,15 +906,17 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     jointWeights: new Float32Array(jw),
     vertexCount: positions.length / 3,
     groom: {
-      schemaVersion: massedSilhouette
-        ? 'holoscript.agent-avatar-groom-geometry.v5'
-        : portraitFraming
-          ? 'holoscript.agent-avatar-groom-geometry.v4'
-          : breakup
-            ? 'holoscript.agent-avatar-groom-geometry.v3'
-            : containment
-              ? 'holoscript.agent-avatar-groom-geometry.v2'
-              : 'holoscript.agent-avatar-groom-geometry.v1',
+      schemaVersion: layeredDensity
+        ? 'holoscript.agent-avatar-groom-geometry.v6'
+        : massedSilhouette
+          ? 'holoscript.agent-avatar-groom-geometry.v5'
+          : portraitFraming
+            ? 'holoscript.agent-avatar-groom-geometry.v4'
+            : breakup
+              ? 'holoscript.agent-avatar-groom-geometry.v3'
+              : containment
+                ? 'holoscript.agent-avatar-groom-geometry.v2'
+                : 'holoscript.agent-avatar-groom-geometry.v1',
       profile: groomProfile,
       rootLift: rootLift / bs,
       tipTaper,
@@ -944,6 +961,12 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
             massGuideCount,
             massCardCount,
             scalpCapMaxLift: scalpCapMaxLift / bs,
+          }
+        : {}),
+      ...(layeredDensity
+        ? {
+            densityLayerProfile: 'cross-card-undercoat-v1' as const,
+            densityLayerCardCount: massCardCount,
           }
         : {}),
     },
@@ -1322,6 +1345,8 @@ export interface CharacterMeshData {
   ocular?: AgentAvatarOcularGeometryReceipt;
   ocularProfile: AgentAvatarOcularProfile;
   orbital: AgentAvatarMeshData['orbital'];
+  /** H4J analytic body/head UV atlas receipt, present only when explicitly authored. */
+  skinUv?: AgentAvatarSkinUvReceipt;
   bodyVertexRange: { vertexStart: number; vertexCount: number };
   hairVertexRange: { vertexStart: number; vertexCount: number };
   eyeVertexRange: { vertexStart: number; vertexCount: number };
@@ -1338,6 +1363,71 @@ export interface CharacterMeshData {
   mantleRange: { indexStart: number; indexCount: number };
   /** One authored mobility value per combined mesh vertex for deterministic cloth dynamics. */
   clothSimulationWeights: Float32Array<ArrayBuffer>;
+}
+
+export type AgentAvatarSkinUvProfile = 'portrait-atlas-v1';
+
+export interface AgentAvatarSkinUvReceipt {
+  schemaVersion: 'holoscript.agent-avatar-skin-uv.v1';
+  profile: AgentAvatarSkinUvProfile;
+  vertexCount: number;
+  nonDegenerateVertexCount: number;
+  headIslandVertexCount: number;
+  uRange: [number, number];
+  vRange: [number, number];
+}
+
+function buildPortraitSkinUv(positions: Float32Array): {
+  uvs: Float32Array<ArrayBuffer>;
+  receipt: AgentAvatarSkinUvReceipt;
+} {
+  const vertexCount = positions.length / 3;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index < vertexCount; index++) {
+    const y = positions[index * 3 + 1];
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  }
+  const spanY = Math.max(1e-6, maxY - minY);
+  const headStartY = minY + spanY * 0.82;
+  const headSpan = Math.max(1e-6, maxY - headStartY);
+  const uvs = new Float32Array(vertexCount * 2);
+  let headIslandVertexCount = 0;
+  let minU = 1;
+  let maxU = 0;
+  let minV = 1;
+  let maxV = 0;
+  for (let index = 0; index < vertexCount; index++) {
+    const x = positions[index * 3];
+    const y = positions[index * 3 + 1];
+    const z = positions[index * 3 + 2];
+    const angular = Math.atan2(x, z) / (Math.PI * 2);
+    const isHead = y >= headStartY;
+    const u = isHead ? 0.25 + angular * 0.5 : 0.75 + angular * 0.5;
+    const atlasV = isHead
+      ? 0.52 + clamp((y - headStartY) / headSpan, 0, 1) * 0.46
+      : 0.02 + clamp((y - minY) / Math.max(1e-6, headStartY - minY), 0, 1) * 0.46;
+    uvs[index * 2] = u;
+    uvs[index * 2 + 1] = atlasV;
+    if (isHead) headIslandVertexCount++;
+    minU = Math.min(minU, u);
+    maxU = Math.max(maxU, u);
+    minV = Math.min(minV, atlasV);
+    maxV = Math.max(maxV, atlasV);
+  }
+  return {
+    uvs,
+    receipt: {
+      schemaVersion: 'holoscript.agent-avatar-skin-uv.v1',
+      profile: 'portrait-atlas-v1',
+      vertexCount,
+      nonDegenerateVertexCount: vertexCount,
+      headIslandVertexCount,
+      uRange: [minU, maxU],
+      vRange: [minV, maxV],
+    },
+  };
 }
 
 /** Offset a set of mesh-local indices by a vertex base (for concatenation). */
@@ -1380,6 +1470,7 @@ export function buildCharacterMesh(
       ocularProfile?: AgentAvatarOcularProfile;
       irisScale?: number;
       pupilScale?: number;
+      skinUvProfile?: AgentAvatarSkinUvProfile;
     } = {}
 ): CharacterMeshData {
   const body = buildAgentAvatarMesh(opts);
@@ -1471,6 +1562,8 @@ export function buildCharacterMesh(
   };
 
   const bodyVC = body.vertexCount;
+  const skinUv =
+    opts.skinUvProfile === 'portrait-atlas-v1' ? buildPortraitSkinUv(body.positions) : undefined;
   const hairVC = hair.vertexCount;
   const hairIdx = offsetIndices(hair.indices, bodyVC);
   const eyeIdx = offsetIndices(eyes.indices, bodyVC + hairVC);
@@ -1520,7 +1613,10 @@ export function buildCharacterMesh(
       catF32(
         catF32(
           catF32(
-            catF32(zeroUv(bodyVC), hair.uvs?.length === hairVC * 2 ? hair.uvs : zeroUv(hairVC)),
+            catF32(
+              skinUv?.uvs ?? zeroUv(bodyVC),
+              hair.uvs?.length === hairVC * 2 ? hair.uvs : zeroUv(hairVC)
+            ),
             eyes.uvs.length === eyes.vertexCount * 2 ? eyes.uvs : zeroUv(eyes.vertexCount)
           ),
           garment.cloth.uvs
@@ -1626,6 +1722,7 @@ export function buildCharacterMesh(
     ...(eyes.receipt ? { ocular: eyes.receipt } : {}),
     ocularProfile,
     orbital: body.orbital,
+    ...(skinUv ? { skinUv: skinUv.receipt } : {}),
     bodyVertexRange: { vertexStart: 0, vertexCount: bodyVC },
     hairVertexRange: { vertexStart: bodyVC, vertexCount: hairVC },
     eyeVertexRange: {
