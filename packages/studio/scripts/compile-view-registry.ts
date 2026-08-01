@@ -199,15 +199,15 @@ function build(): void {
         const parsed = parseHolo(readFileSync(full, 'utf-8'));
         if (!parsed.success || !parsed.ast) {
           throw new Error(
-            `${f}: parse failed â€” ${JSON.stringify(parsed.errors?.[0] ?? 'unknown')}`
+            `${f}: parse failed -- ${JSON.stringify(parsed.errors?.[0] ?? 'unknown')}`
           );
         }
         const id = basename(f, '.holo');
         const componentName = compileNativeFragment(parsed.ast, id);
-        console.log(`  âœ“ fragments/${f} (native compiled â†’ ${componentName})`);
+        console.log(`  [ok] fragments/${f} (native compiled -> ${componentName})`);
       } catch (err) {
         errorCount++;
-        console.error(`  âœ— ${err instanceof Error ? err.message : String(err)}`);
+        console.error(`  [error] ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
