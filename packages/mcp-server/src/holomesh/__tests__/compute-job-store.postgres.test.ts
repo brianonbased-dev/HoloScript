@@ -1151,6 +1151,14 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
     await expect(store.readWorkUnit(TEAM_ID, first.workUnit.digest)).resolves.toEqual(
       first.workUnit
     );
+    await expect(
+      store.readEvidence({
+        teamId: TEAM_ID,
+        jobId: first.job.receipt.jobId,
+        attempt: first.job.receipt.attempt,
+        receiptIds: first.evidence.map((envelope) => envelope.receiptId),
+      })
+    ).resolves.toEqual(first.evidence);
 
     await expect(
       store.createJob({ ...regenerated, semanticRequestDigest: digest('other semantics') })
@@ -1410,6 +1418,13 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
       capacityRef: loserCommand.nextAllocation?.cursor.capacityRef as string,
     });
     expect(winnerJob.bytes).toBe(winnerCommand.nextJob.bytes);
+    await expect(
+      store.readActiveBudgetHold({
+        teamId: TEAM_ID,
+        jobId: winnerCommand.nextJob.receipt.jobId,
+        attempt: winnerCommand.nextJob.receipt.attempt,
+      })
+    ).resolves.toEqual(winnerCommand.budgetEvidence);
     expect(winnerCapacity.projection.bytes).toBe(winnerCommand.nextAllocation?.bytes);
     expect(loserJob.bytes).toBe(loserCommand.expectedJob.bytes);
     expect(loserJob.receipt.state).toBe('queued');

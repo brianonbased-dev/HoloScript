@@ -1172,6 +1172,8 @@ export interface ReadRegisteredComputeBudgetInput {
   readonly periodDigest: string;
 }
 
+export interface ReadActiveComputeBudgetHoldInput extends ReadComputeJobInput {}
+
 export interface RegisteredComputeBudget {
   readonly projection: ComputeBudgetRegistrationProjection;
   readonly registrationBytes: string;
@@ -1182,6 +1184,11 @@ export interface ReadComputeJobInput {
   readonly teamId: string;
   readonly jobId: string;
   readonly attempt: number;
+}
+
+export interface ReadComputeEvidenceInput extends ReadComputeJobInput {
+  /** Exact immutable receipt ids already bound to this durable job attempt. */
+  readonly receiptIds: readonly string[];
 }
 
 export interface ReadRegisteredComputeCapacityInput {
@@ -1318,7 +1325,9 @@ export class ComputeJobStoreReadbackError extends Error {
 }
 
 export class ComputeJobStoreNotFoundError extends Error {
-  constructor(readonly resource: 'job' | 'capacity' | 'budget' | 'work_unit') {
+  constructor(
+    readonly resource: 'job' | 'capacity' | 'budget' | 'budget_hold' | 'work_unit' | 'evidence'
+  ) {
     super(`${resource} is not registered in the durable compute store`);
     this.name = 'ComputeJobStoreNotFoundError';
   }
@@ -3008,6 +3017,59 @@ export class PostgresComputeJobStore {
     }
   }
 
+  async readEvidence(input: ReadComputeEvidenceInput): Promise<readonly ComputeDurableEnvelope[]> {
+    assertText(input.teamId, 'teamId');
+    assertDigest(input.jobId, 'jobId');
+    assertPositiveInteger(input.attempt, 'attempt');
+    if (!Array.isArray(input.receiptIds) || input.receiptIds.length === 0) {
+      throw new TypeError('receiptIds must contain at least one evidence receipt id');
+    }
+    if (input.receiptIds.length > 16) {
+      throw new TypeError('receiptIds exceeds the bounded evidence read limit');
+    }
+    const receiptIds = [...input.receiptIds];
+    receiptIds.forEach((receiptId, index) => assertDigest(receiptId, `receiptIds[${index}]`));
+    if (new Set(receiptIds).size !== receiptIds.length) {
+      throw new TypeError('receiptIds must not contain duplicates');
+    }
+
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query<EvidenceBytesRow>(
+        `/* compute:evidence-read */
+         SELECT DISTINCT e.receipt_id AS id, e.schema_version, e.evidence_bytes AS bytes
+         FROM holomesh_compute_evidence e
+         JOIN holomesh_compute_evidence_refs r
+           ON r.team_id = e.team_id AND r.evidence_receipt_id = e.receipt_id
+         WHERE e.team_id = $1 AND r.job_id = $2 AND r.attempt = $3
+           AND e.receipt_id = ANY($4::text[])
+         ORDER BY e.receipt_id`,
+        [input.teamId, input.jobId, input.attempt, receiptIds]
+      );
+      if (result.rows.length !== receiptIds.length) {
+        throw new ComputeJobStoreNotFoundError('evidence');
+      }
+      const byReceiptId = new Map<string, ComputeDurableEnvelope>();
+      for (const [index, row] of result.rows.entries()) {
+        const envelope: ComputeDurableEnvelope = {
+          receiptId: row.id,
+          schemaVersion: row.schema_version,
+          bytes: row.bytes,
+        };
+        assertEnvelope(envelope, `evidence-read[${index}]`);
+        byReceiptId.set(envelope.receiptId, envelope);
+      }
+      if (byReceiptId.size !== receiptIds.length) {
+        throw new ComputeJobStoreReadbackError(
+          'durable evidence rows contain duplicate or conflicting receipt ids'
+        );
+      }
+      return receiptIds.map((receiptId) => byReceiptId.get(receiptId) as ComputeDurableEnvelope);
+    } finally {
+      client.release();
+    }
+  }
+
   async readRegisteredCapacity(
     input: ReadRegisteredComputeCapacityInput
   ): Promise<RegisteredComputeCapacity> {
@@ -3432,6 +3494,68 @@ export class PostgresComputeJobStore {
         registrationBytes: command.registrationBytes,
         accountBytes: row.account_bytes,
       };
+    } finally {
+      client.release();
+    }
+  }
+
+  async readActiveBudgetHold(
+    input: ReadActiveComputeBudgetHoldInput
+  ): Promise<ComputeBudgetEvidenceEnvelope> {
+    assertText(input.teamId, 'teamId');
+    assertDigest(input.jobId, 'jobId');
+    assertPositiveInteger(input.attempt, 'attempt');
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query<BudgetHoldRow>(
+        `/* compute:budget-hold-read */
+         SELECT budget_rail_id, currency, policy_digest, period_digest,
+                max_amount_minor_units, held_amount_minor_units,
+                settled_amount_minor_units, status, initial_receipt_id,
+                current_receipt_id, current_evidence_bytes, measured_cost_receipt_id
+         FROM holomesh_compute_budget_holds
+         WHERE team_id = $1 AND job_id = $2 AND attempt = $3 AND status = 'held'`,
+        [input.teamId, input.jobId, input.attempt]
+      );
+      if (result.rows.length !== 1) throw new ComputeJobStoreNotFoundError('budget_hold');
+      const row = result.rows[0];
+      const payload = parseJsonObject(
+        row.current_evidence_bytes,
+        'budget-hold-read.current_evidence_bytes'
+      );
+      const envelope = prepareBudgetEvidenceEnvelope(
+        {
+          receipt: payload as unknown as ComputeBudgetEvidence,
+          bytes: row.current_evidence_bytes,
+        },
+        'budget-hold-read'
+      );
+      const receipt = envelope.receipt;
+      if (
+        row.status !== 'held' ||
+        row.current_receipt_id !== receipt.receiptId ||
+        row.initial_receipt_id !== receipt.receiptId ||
+        receipt.status !== 'held' ||
+        receipt.teamId !== input.teamId ||
+        receipt.jobId !== input.jobId ||
+        receipt.attempt !== input.attempt ||
+        row.budget_rail_id !== receipt.budgetRailId ||
+        row.currency !== receipt.currency ||
+        row.policy_digest !== receipt.policyDigest ||
+        row.period_digest !== receipt.periodDigest ||
+        asSafeInteger(row.max_amount_minor_units, 'budget-hold-read.max') !==
+          receipt.maxAmountMinorUnits ||
+        asSafeInteger(row.held_amount_minor_units, 'budget-hold-read.held') !==
+          receipt.heldAmountMinorUnits ||
+        asSafeInteger(row.settled_amount_minor_units, 'budget-hold-read.settled') !==
+          receipt.settledAmountMinorUnits ||
+        row.measured_cost_receipt_id !== null
+      ) {
+        throw new ComputeJobStoreReadbackError(
+          'durable active budget hold columns do not match exact evidence bytes'
+        );
+      }
+      return envelope;
     } finally {
       client.release();
     }

@@ -1436,6 +1436,10 @@ class FakeClient implements ComputeJobStoreClient {
       const row = state.budgetHolds[`${values[0]}:${values[1]}:${values[2]}`];
       return this.result<Row>(row ? [row] : []);
     }
+    if (marker === 'budget-hold-read') {
+      const row = state.budgetHolds[`${values[0]}:${values[1]}:${values[2]}`];
+      return this.result<Row>(row?.status === 'held' ? [row] : []);
+    }
     if (marker === 'budget-account-update') {
       const account = state.budgetAccount;
       if (this.pool.options.budgetAccountUpdateConflict || !account) {
@@ -1871,6 +1875,20 @@ class FakeClient implements ComputeJobStoreClient {
         })
       );
     }
+    if (marker === 'evidence-read') {
+      const ids = values[3] as string[];
+      return this.result<Row>(
+        ids.flatMap((id) => {
+          const evidence = state.evidence[`${values[0]}:${id}`];
+          const referenced = Object.keys(state.evidenceRefs).some(
+            (key) => key.startsWith(`${values[0]}:`) && key.endsWith(`:${id}`)
+          );
+          return evidence && referenced
+            ? [{ id, schema_version: evidence.schema_version, bytes: evidence.bytes }]
+            : [];
+        })
+      );
+    }
     if (marker === 'outbox-readback') {
       const ids = values[1] as string[];
       return this.result<Row>(
@@ -1961,6 +1979,29 @@ describe('PostgresComputeJobStore', () => {
     expect(current.receipt).toEqual(command.job.receipt);
     const durableWorkUnit = await store.readWorkUnit(TEAM_ID, command.workUnit.digest);
     expect(durableWorkUnit).toEqual(command.workUnit);
+    const durableEvidence = await store.readEvidence({
+      teamId: TEAM_ID,
+      jobId: JOB_ID,
+      attempt: 1,
+      receiptIds: command.evidence.map((envelope) => envelope.receiptId),
+    });
+    expect(durableEvidence).toEqual(command.evidence);
+    await expect(
+      store.readEvidence({
+        teamId: TEAM_ID,
+        jobId: JOB_ID,
+        attempt: 1,
+        receiptIds: [command.evidence[0].receiptId, command.evidence[0].receiptId],
+      })
+    ).rejects.toThrow('receiptIds must not contain duplicates');
+    await expect(
+      store.readEvidence({
+        teamId: TEAM_ID,
+        jobId: JOB_ID,
+        attempt: 1,
+        receiptIds: [digest('missing durable evidence')],
+      })
+    ).rejects.toMatchObject({ resource: 'evidence' });
 
     const advancedBytes = canonicalJson({ laterState: true });
     if (!pool.state.job) throw new Error('fake job disappeared');
@@ -2128,6 +2169,13 @@ describe('PostgresComputeJobStore', () => {
         budgetEvidenceReceiptId: command.budgetEvidence?.receipt.receiptId,
       },
     });
+    await expect(
+      store.readActiveBudgetHold({
+        teamId: TEAM_ID,
+        jobId: command.expectedJob.receipt.jobId,
+        attempt: command.expectedJob.receipt.attempt,
+      })
+    ).resolves.toEqual(command.budgetEvidence);
     expect(command.publicResponseBytes).toContain('"providerReservation":"not_asserted"');
     expect(command.publicResponseBytes).not.toContain(BUDGET_RAIL_ID);
     const afterCommit = structuredClone(pool.state.budgetAccount);
