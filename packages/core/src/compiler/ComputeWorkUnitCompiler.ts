@@ -398,6 +398,15 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(canonicalize(value));
 }
 
+/** Return the stable content address used by placement and execution receipts. */
+export function computeWorkUnitDigest(workUnit: ComputeWorkUnitContract): string {
+  const validation = validateComputeWorkUnitContract(workUnit);
+  if (!validation.valid) {
+    throw new TypeError(`Cannot digest invalid compute work unit: ${validation.errors.join('; ')}`);
+  }
+  return `sha256:${sha256(canonicalJson(workUnit))}`;
+}
+
 /** Build one already-source-bound producer contract. */
 export function buildComputeWorkUnit(
   config: Partial<ComputeWorkUnitSourceConfig>,

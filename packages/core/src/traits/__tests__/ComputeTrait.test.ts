@@ -3,6 +3,7 @@ import { computeHandler } from '../ComputeTrait';
 import {
   COMPUTE_WORK_UNIT_SCHEMA_VERSION,
   buildComputeWorkUnit,
+  computeWorkUnitDigest,
   validateComputeWorkUnitContract,
 } from '../../compiler/ComputeWorkUnitCompiler';
 import {
@@ -80,6 +81,15 @@ describe('ComputeTrait', () => {
     });
     expect(workUnit.forbidden_actions).toContain('network:external');
     expect(validateComputeWorkUnitContract(workUnit)).toEqual({ valid: true, errors: [] });
+    const digest = computeWorkUnitDigest(workUnit);
+    const reordered = Object.fromEntries(
+      Object.entries(workUnit).reverse()
+    ) as unknown as typeof workUnit;
+    expect(digest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(computeWorkUnitDigest(reordered)).toBe(digest);
+    expect(computeWorkUnitDigest({ ...workUnit, intent: `${workUnit.intent} changed` })).not.toBe(
+      digest
+    );
   });
 
   it('rejects a compute work unit that silently enables bridge placement or spend', () => {

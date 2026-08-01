@@ -6003,6 +6003,107 @@ const compilerDTS = `/**
  * @holoscript/core/compiler — Multi-Target Compiler Type Declarations
  */
 
+import type { HoloComposition } from '../index.js';
+
+export type ComputeAccelerator = 'cpu' | 'gpu' | 'npu' | 'other';
+export type ComputePlacementPolicy = 'local_only' | 'owned_fleet' | 'external_bridge_requested';
+export type ComputeDataClassification = 'public' | 'internal' | 'confidential' | 'restricted';
+export type ComputeQualityOperator = 'eq' | 'lte' | 'gte';
+export type ComputeQualityReference = 'none' | 'cpu_reference';
+export type ComputeBudgetCurrency = 'USD';
+export type ComputeSourceDigestKind = 'source_utf8' | 'canonical_ast';
+export const COMPUTE_WORK_UNIT_SCHEMA_VERSION: 'holoscript.compute-work-unit.v1';
+export const COMPUTE_WORK_UNIT_COMPILER_VERSION: '1.0.0';
+export interface ComputeWorkUnitSourceConfig {
+  intent: string;
+  allowed_accelerators: readonly ComputeAccelerator[];
+  placement_policy: ComputePlacementPolicy;
+  data_classification: ComputeDataClassification;
+  quality_metric: string;
+  quality_operator: ComputeQualityOperator;
+  quality_threshold: number;
+  quality_reference: ComputeQualityReference;
+  deadline_ms: number;
+  budget_currency: ComputeBudgetCurrency;
+  max_cost_minor_units: number;
+  allow_fallback: boolean;
+}
+export interface ComputeWorkUnitSourceBinding {
+  readonly objectName: string;
+  readonly sourceDigest: string;
+  readonly sourceDigestKind: ComputeSourceDigestKind;
+  readonly compiler: 'ComputeWorkUnitCompiler';
+  readonly compilerVersion: typeof COMPUTE_WORK_UNIT_COMPILER_VERSION;
+  readonly artifact?: string;
+  readonly artifactDigest?: string;
+}
+export interface ComputeWorkUnitContract {
+  readonly schemaVersion: typeof COMPUTE_WORK_UNIT_SCHEMA_VERSION;
+  readonly intent: string;
+  readonly source_evidence: string;
+  readonly producer_surface: '@compute';
+  readonly executor_lane: 'compute';
+  readonly allowed_actions: readonly string[];
+  readonly forbidden_actions: readonly string[];
+  readonly required_runtime_evidence: readonly string[];
+  readonly done_criteria: string;
+  readonly verification_mode: 'producer_contract';
+  readonly verifier_command_or_receipt: 'verifyComputeWorkUnitEvidence';
+  readonly compute: {
+    readonly source: ComputeWorkUnitSourceBinding;
+    readonly policy: {
+      readonly placement: ComputePlacementPolicy;
+      readonly externalAccess: 'denied' | 'requires_admission';
+      readonly bridgeAdmission: 'not_applicable' | 'runtime_receipt_required';
+      readonly allowedAccelerators: readonly ComputeAccelerator[];
+      readonly dataClassification: ComputeDataClassification;
+      readonly allowFallback: boolean;
+    };
+    readonly quality: {
+      readonly metric: string;
+      readonly operator: ComputeQualityOperator;
+      readonly threshold: number;
+      readonly reference: ComputeQualityReference;
+    };
+    readonly budget: {
+      readonly deadlineMs: number;
+      readonly currency: ComputeBudgetCurrency;
+      readonly maxCostMinorUnits: number;
+    };
+  };
+}
+export interface ComputeWorkUnitValidation {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+}
+export interface CompiledComputeWorkUnit {
+  readonly objectName: string;
+  readonly workUnit: ComputeWorkUnitContract;
+}
+export interface ComputeWorkUnitCompilationOptions {
+  readonly sourceText?: string;
+}
+export interface ComputeWorkUnitEvidenceInput {
+  readonly sourceText?: string;
+  readonly composition?: HoloComposition;
+  readonly artifacts?: Readonly<Record<string, string | Uint8Array>>;
+}
+export function buildComputeWorkUnit(
+  config: Partial<ComputeWorkUnitSourceConfig>,
+  source: ComputeWorkUnitSourceBinding
+): ComputeWorkUnitContract;
+export function compileComputeWorkUnits(
+  composition: HoloComposition,
+  options?: ComputeWorkUnitCompilationOptions
+): CompiledComputeWorkUnit[];
+export function computeCanonicalAstDigest(composition: HoloComposition): string;
+export function computeWorkUnitDigest(workUnit: ComputeWorkUnitContract): string;
+export function validateComputeWorkUnitContract(value: unknown): ComputeWorkUnitValidation;
+export function verifyComputeWorkUnitEvidence(
+  value: unknown,
+  evidence: ComputeWorkUnitEvidenceInput
+): ComputeWorkUnitValidation;
+
 export interface CapabilityTokenCredential {
   token: string;
   scope: string[];
@@ -8404,6 +8505,146 @@ export interface TwoAgentHandoffCatchTrajectoryBuild { readonly result: any; rea
 export function buildDeterministicFailureTrajectory(actions?: readonly any[], options?: any): DeterministicFailureTrajectoryBuild;
 export function buildHumanoidRockThrowTrajectory(options?: any): HumanoidRockThrowTrajectoryBuild;
 export function buildTwoAgentHandoffCatchTrajectory(options?: any): TwoAgentHandoffCatchTrajectoryBuild;
+
+// --- Portable hardware and compute execution receipts ---
+export declare const HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION: 'holoscript.hardware-receipt-metadata.v1';
+export type HardwareReceiptSchemaVersion = typeof HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION;
+export interface HardwareReceiptTarget {
+  readonly id: string;
+  readonly kind: string;
+  readonly architecture: string;
+  readonly artifactKind: string;
+}
+export interface HardwareReceiptDevice {
+  readonly vendor: string;
+  readonly model: string;
+  readonly accelerator: string | null;
+  readonly driverVersions?: Readonly<Record<string, string>>;
+  readonly deviceHash?: string;
+}
+export interface HardwareReceiptRuntime {
+  readonly name: string;
+  readonly version: string;
+  readonly hostOS: string;
+  readonly adapterFingerprint?: string;
+}
+export interface HardwareReceiptConstraint {
+  readonly id: string;
+  readonly description: string;
+  readonly limit: string | number | boolean;
+  readonly unit?: string;
+  readonly source?: string;
+}
+export interface HardwareReceiptMeasuredResult {
+  readonly metric: string;
+  readonly value: number;
+  readonly unit: string;
+  readonly method: string;
+  readonly sampleCount?: number;
+  readonly tolerance?: number;
+}
+export interface HardwareReceiptReplayInput {
+  readonly kind: string;
+  readonly uri: string;
+  readonly sha256: string;
+  readonly description?: string;
+}
+export interface HardwareReceiptProvenance {
+  readonly capturedAt: string;
+  readonly sourceCompositionHash: string;
+  readonly commit?: string;
+  readonly commandHash?: string;
+  readonly trustReceiptId?: string;
+  readonly simulationContractId?: string;
+}
+export interface HardwareReceiptOwner {
+  readonly agent: string;
+  readonly team?: string;
+  readonly contact?: string;
+}
+export interface PortableHardwareReceiptMetadata {
+  readonly schemaVersion: HardwareReceiptSchemaVersion;
+  readonly target: HardwareReceiptTarget;
+  readonly device: HardwareReceiptDevice;
+  readonly runtime: HardwareReceiptRuntime;
+  readonly compilerVersion: string;
+  readonly constraints: readonly HardwareReceiptConstraint[];
+  readonly measuredResults: readonly HardwareReceiptMeasuredResult[];
+  readonly replayInputs: readonly HardwareReceiptReplayInput[];
+  readonly provenance: HardwareReceiptProvenance;
+  readonly owner: HardwareReceiptOwner;
+}
+export interface HardwareReceiptMetadataValidation {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+}
+export declare function validatePortableHardwareReceiptMetadata(receipt: unknown): HardwareReceiptMetadataValidation;
+export declare function isPortableHardwareReceiptMetadata(receipt: unknown): receipt is PortableHardwareReceiptMetadata;
+
+export declare const COMPUTE_EXECUTION_RECEIPT_SCHEMA_VERSION: 'holoscript.compute-execution-receipt.v1';
+export type ComputeExecutionAccelerator = 'cpu' | 'gpu' | 'npu' | 'other';
+export type ComputeExecutionTerminalStatus = 'succeeded' | 'failed' | 'cancelled';
+export type ComputeExecutionQualityOperator = 'eq' | 'lte' | 'gte';
+export type ComputeExecutionQualityReference = 'none' | 'cpu_reference';
+export type ComputeExecutionPlacementOutcome = 'local_device' | 'owned_fleet' | 'external_bridge';
+export type ComputeExecutionCost =
+  | { readonly measurementState: 'measured'; readonly currency: 'USD'; readonly actualMinorUnits: number }
+  | { readonly measurementState: 'not_measured'; readonly reason: 'meter_unavailable' | 'not_applicable' };
+export interface ComputeExecutionWorkUnitBinding {
+  readonly digest: string;
+  readonly sourceEvidence: string;
+}
+export interface ComputeExecutionPlacementBinding {
+  readonly planReceiptId: string;
+  readonly capacityLeaseReceiptId: string;
+  readonly outcome: ComputeExecutionPlacementOutcome;
+}
+export interface ComputeExecutionOutcome {
+  readonly actualAccelerator: ComputeExecutionAccelerator;
+  readonly fallbackAllowed: boolean;
+  readonly fallbackUsed: boolean;
+  readonly fallbackReason?: string;
+  readonly terminalStatus: ComputeExecutionTerminalStatus;
+  readonly startedAt: string;
+  readonly completedAt: string;
+  readonly durationMs: number;
+}
+export interface ComputeExecutionQualityResult {
+  readonly metric: string;
+  readonly operator: ComputeExecutionQualityOperator;
+  readonly threshold: number;
+  readonly reference: ComputeExecutionQualityReference;
+  readonly observedValue: number;
+  readonly passed: boolean;
+}
+export interface ComputeExecutionReceipt {
+  readonly schemaVersion: typeof COMPUTE_EXECUTION_RECEIPT_SCHEMA_VERSION;
+  /** This validates structure/content addressing only, not external provenance. */
+  readonly verificationScope: 'structural_only';
+  readonly receiptId: string;
+  readonly workUnit: ComputeExecutionWorkUnitBinding;
+  readonly placement: ComputeExecutionPlacementBinding;
+  readonly execution: ComputeExecutionOutcome;
+  readonly quality: ComputeExecutionQualityResult;
+  readonly cost: ComputeExecutionCost;
+  readonly hardware: PortableHardwareReceiptMetadata;
+}
+export interface BuildComputeExecutionReceiptInput {
+  readonly workUnit: ComputeExecutionWorkUnitBinding;
+  readonly placement: ComputeExecutionPlacementBinding;
+  readonly execution: Omit<ComputeExecutionOutcome, 'durationMs'>;
+  readonly quality: ComputeExecutionQualityResult;
+  readonly cost: ComputeExecutionCost;
+  readonly hardware: PortableHardwareReceiptMetadata;
+}
+export interface ComputeExecutionReceiptValidation {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+}
+/** Build a structurally valid, content-addressed receipt. This does not authenticate its references. */
+export declare function buildComputeExecutionReceipt(input: BuildComputeExecutionReceiptInput): ComputeExecutionReceipt;
+/** Validate structure and canonical receipt ID only. This does not verify WorkUnit, plan, lease, or trust evidence. */
+export declare function validateComputeExecutionReceipt(value: unknown): ComputeExecutionReceiptValidation;
 
 // --- N4 exact-plus-learned residual world loop ---
 export type N4ResidualTarget = 'object.drag' | 'event.gust' | 'event.contact';

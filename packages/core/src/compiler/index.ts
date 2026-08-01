@@ -92,6 +92,7 @@ export {
   buildComputeWorkUnit,
   compileComputeWorkUnits,
   computeCanonicalAstDigest,
+  computeWorkUnitDigest,
   validateComputeWorkUnitContract,
   verifyComputeWorkUnitEvidence,
 } from './ComputeWorkUnitCompiler';

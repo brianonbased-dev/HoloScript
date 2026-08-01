@@ -21,6 +21,12 @@ export {
 } from './HardwareReceiptMetadata';
 
 export {
+  COMPUTE_EXECUTION_RECEIPT_SCHEMA_VERSION,
+  buildComputeExecutionReceipt,
+  validateComputeExecutionReceipt,
+} from './ComputeExecutionReceipt';
+
+export {
   buildAdversarialTrajectoryReport,
   serializeReport,
   isReportCountsConsistent,
@@ -185,3 +191,19 @@ export type {
   PortableHardwareReceiptMetadata,
   HardwareReceiptMetadataValidation,
 } from './HardwareReceiptMetadata';
+
+export type {
+  ComputeExecutionAccelerator,
+  ComputeExecutionTerminalStatus,
+  ComputeExecutionQualityOperator,
+  ComputeExecutionQualityReference,
+  ComputeExecutionPlacementOutcome,
+  ComputeExecutionCost,
+  ComputeExecutionWorkUnitBinding,
+  ComputeExecutionPlacementBinding,
+  ComputeExecutionOutcome,
+  ComputeExecutionQualityResult,
+  ComputeExecutionReceipt,
+  BuildComputeExecutionReceiptInput,
+  ComputeExecutionReceiptValidation,
+} from './ComputeExecutionReceipt';
