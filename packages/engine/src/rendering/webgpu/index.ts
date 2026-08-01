@@ -78,11 +78,15 @@ export {
   type TemporalFrameGraphReceipt,
   type TemporalFrameGraphResult,
 } from './TemporalFrameGraph';
-export type {
-  DepthGrid,
-  MotionVectorGrid,
-  ReactiveMaskGrid,
-} from './TemporalInputs';
+export {
+  CharacterTemporalFrameGraph,
+  type CharacterTemporalFrameGraphInput,
+  type CharacterTemporalFrameGraphOptions,
+  type CharacterTemporalFrameGraphReceipt,
+  type CharacterTemporalFrameGraphResult,
+  type CharacterTemporalStageDurations,
+} from './CharacterTemporalFrameGraph';
+export type { DepthGrid, MotionVectorGrid, ReactiveMaskGrid } from './TemporalInputs';
 
 // Debug tools
 export { PhysicsDebugDrawer } from './PhysicsDebugDrawer';

@@ -195,6 +195,19 @@ export {
 } from './CharacterMotionVectors';
 
 export {
+  CharacterTextureRenderer,
+  type CharacterTextureRendererOptions,
+  type CharacterTextureRenderEncodeOptions,
+  type CharacterTextureRenderReceipt,
+} from './CharacterTextureRenderer';
+
+export {
+  CharacterMotionTextureRasterizer,
+  type CharacterMotionTextureRasterizerOptions,
+  type CharacterMotionTextureRasterReceipt,
+} from './CharacterMotionTextureRasterizer';
+
+export {
   buildCharacterHostFromComposition,
   type ParsedComposition,
   type CompObject,
