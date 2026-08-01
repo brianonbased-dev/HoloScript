@@ -709,7 +709,27 @@ function exactLeaseAuthorization(fixture: LifecycleFixture, atTime: string) {
   };
 }
 
-function makeRunningSequence(fixture: LifecycleFixture): {
+function leaseUseGuard(
+  fixture: LifecycleFixture,
+  activeBudgetHold: NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+): NonNullable<CommitComputeJobTransitionCommand['leaseUseGuard']> {
+  return {
+    holderDigest: exactLeaseAuthorization(fixture, STARTING_AT).holderDigest,
+    verifiedFencingTokenHash: fixture.lease.fencingTokenHash,
+    allocation: {
+      teamId: TEAM_ID,
+      lane: 'owned_fleet',
+      cursor: fixture.nextAllocation,
+      bytes: canonicalJson(fixture.nextAllocation),
+    },
+    activeBudgetHold,
+  };
+}
+
+function makeRunningSequence(
+  fixture: LifecycleFixture,
+  activeBudgetHold: NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+): {
   readonly start: CommitComputeJobTransitionCommand;
   readonly running: CommitComputeJobTransitionCommand;
   readonly runningJob: ComputeJobReceipt;
@@ -727,6 +747,7 @@ function makeRunningSequence(fixture: LifecycleFixture): {
     idempotencyKeyDigest: preparedStart.transition.request.idempotencyKeyHash,
     requestDigest: preparedStart.transition.request.requestHash,
     ...transitionCommand(preparedStart, [fixture.lease], fixture.unit),
+    leaseUseGuard: leaseUseGuard(fixture, activeBudgetHold),
   };
   const preparedRunning = prepareComputeJobTransition({
     expectedJob: preparedStart.nextJob,
@@ -740,6 +761,7 @@ function makeRunningSequence(fixture: LifecycleFixture): {
     idempotencyKeyDigest: preparedRunning.transition.request.idempotencyKeyHash,
     requestDigest: preparedRunning.transition.request.requestHash,
     ...transitionCommand(preparedRunning, [fixture.lease], fixture.unit),
+    leaseUseGuard: leaseUseGuard(fixture, activeBudgetHold),
   };
   return { start, running, runningJob: preparedRunning.nextJob };
 }
@@ -976,8 +998,12 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
     await store.registerCapacity(makeCapacityRegistration(fixture));
     await store.createJob(makeCreateCommand(fixture));
     await store.commitTransition(makeQueueCommand(fixture));
-    await store.commitTransition(makeBudgetedAcquireCommand(fixture));
-    const running = makeRunningSequence(fixture);
+    const acquire = makeBudgetedAcquireCommand(fixture);
+    await store.commitTransition(acquire);
+    const running = makeRunningSequence(
+      fixture,
+      acquire.budgetEvidence as NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+    );
     await store.commitTransition(running.start);
     await store.commitTransition(running.running);
     return running.runningJob;
@@ -1301,6 +1327,56 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
       committed_idempotency: '3',
       pending_idempotency: '0',
     });
+  });
+
+  it('rejects start when the leased allocator cursor rotates before the commit lock', async () => {
+    const fixture = lifecycleFixture('alpha', CAPACITY, BUDGET_LIMIT_MINOR_UNITS);
+    await store.registerBudget(makeBudgetRegistration());
+    await store.registerCapacity(makeCapacityRegistration(fixture));
+    await store.createJob(makeCreateCommand(fixture));
+    await store.commitTransition(makeQueueCommand(fixture));
+    const acquire = makeBudgetedAcquireCommand(fixture);
+    await store.commitTransition(acquire);
+    const running = makeRunningSequence(
+      fixture,
+      acquire.budgetEvidence as NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+    );
+
+    const rotatedBody = {
+      capacityRef: CAPACITY,
+      slotState: 'leased' as const,
+      currentEpoch: fixture.nextAllocation.currentEpoch + 1,
+      currentLeaseReceiptId: digest('postgres-rotated-lease'),
+      version: fixture.nextAllocation.version + 1,
+    };
+    const rotated = { ...rotatedBody, etag: computeCapacityAllocationEtag(rotatedBody) };
+    await pool.query(
+      `UPDATE holomesh_compute_allocations
+       SET slot_state = $1, current_epoch = $2,
+           current_lease_receipt_id = $3, version = $4,
+           etag = $5, cursor_bytes = $6
+       WHERE team_id = $7 AND capacity_ref = $8`,
+      [
+        rotated.slotState,
+        rotated.currentEpoch,
+        rotated.currentLeaseReceiptId,
+        rotated.version,
+        rotated.etag,
+        canonicalJson(rotated),
+        TEAM_ID,
+        CAPACITY,
+      ]
+    );
+
+    await expect(store.commitTransition(running.start)).rejects.toMatchObject({
+      code: 'allocation_cas_conflict',
+    });
+    await expect(
+      store.readJob({ teamId: TEAM_ID, jobId: fixture.jobId, attempt: 1 })
+    ).resolves.toMatchObject({ receipt: { state: 'leased' } });
+    await expect(
+      store.readRegisteredCapacity({ teamId: TEAM_ID, capacityRef: CAPACITY })
+    ).resolves.toMatchObject({ projection: { cursor: rotated } });
   });
 
   it('serializes concurrent period registration and rejects overlapping limits on one rail', async () => {

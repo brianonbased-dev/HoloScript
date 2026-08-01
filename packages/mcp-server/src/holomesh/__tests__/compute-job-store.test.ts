@@ -607,6 +607,24 @@ function makePaidAllocationCommand(variant = 'paid-alpha'): CommitComputeJobTran
   });
 }
 
+function leaseUseGuard(
+  fixture: LifecycleFixture,
+  variant: string,
+  activeBudgetHold?: NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+): NonNullable<CommitComputeJobTransitionCommand['leaseUseGuard']> {
+  return {
+    holderDigest: digest(`holder:${variant}`),
+    verifiedFencingTokenHash: fixture.lease.fencingTokenHash,
+    allocation: {
+      teamId: TEAM_ID,
+      lane: 'owned_fleet',
+      cursor: fixture.nextAllocation,
+      bytes: canonicalJson(fixture.nextAllocation),
+    },
+    ...(activeBudgetHold ? { activeBudgetHold } : {}),
+  };
+}
+
 function makePaidReleaseCommand(variant = 'paid-alpha'): CommitComputeJobTransitionCommand {
   const fixture = lifecycleFixture(variant, 1, 'create-job-1', 'queue-job-1', 500);
   const prepared = prepareComputeJobTransition({
@@ -686,6 +704,11 @@ function makePaidSettlementSequence(variant = 'paid-settle'): {
     idempotencyKeyDigest: preparedStart.transition.request.idempotencyKeyHash,
     requestDigest: preparedStart.transition.request.requestHash,
     ...transitionCommand(preparedStart, [fixture.lease], fixture.unit),
+    leaseUseGuard: leaseUseGuard(
+      fixture,
+      variant,
+      acquire.budgetEvidence as NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+    ),
   };
   const preparedRunning = prepareComputeJobTransition({
     expectedJob: preparedStart.nextJob,
@@ -699,6 +722,11 @@ function makePaidSettlementSequence(variant = 'paid-settle'): {
     idempotencyKeyDigest: preparedRunning.transition.request.idempotencyKeyHash,
     requestDigest: preparedRunning.transition.request.requestHash,
     ...transitionCommand(preparedRunning, [fixture.lease], fixture.unit),
+    leaseUseGuard: leaseUseGuard(
+      fixture,
+      variant,
+      acquire.budgetEvidence as NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+    ),
   };
   const executionReceipt = buildComputeExecutionReceipt({
     workUnit: {
@@ -858,6 +886,7 @@ function makeStartCommand(variant = 'alpha'): CommitComputeJobTransitionCommand 
     idempotencyKeyDigest: prepared.transition.request.idempotencyKeyHash,
     requestDigest: prepared.transition.request.requestHash,
     ...transitionCommand(prepared, [fixture.lease], fixture.unit),
+    leaseUseGuard: leaseUseGuard(fixture, variant),
   };
 }
 
@@ -1148,7 +1177,7 @@ function pgBigint(value: unknown): string {
 function initialState(command?: CommitComputeJobTransitionCommand): FakeState {
   const expected = command?.expectedJob.receipt;
   const lease = expected?.lease;
-  const allocation = command?.expectedAllocation;
+  const allocation = command?.expectedAllocation ?? command?.leaseUseGuard?.allocation;
   const eligibility = command?.expectedCapacityEligibilityBytes
     ? (JSON.parse(command.expectedCapacityEligibilityBytes) as ReturnType<
         typeof eligibilityBinding
@@ -1432,7 +1461,7 @@ class FakeClient implements ComputeJobStoreClient {
         },
       ]);
     }
-    if (marker === 'budget-hold-lock') {
+    if (marker === 'budget-hold-lock' || marker === 'lease-use-budget-hold-lock') {
       const row = state.budgetHolds[`${values[0]}:${values[1]}:${values[2]}`];
       return this.result<Row>(row ? [row] : []);
     }
@@ -1611,6 +1640,9 @@ class FakeClient implements ComputeJobStoreClient {
           ? [{ ...state.allocation, ...state.capacityBinding }]
           : []
       );
+    }
+    if (marker === 'lease-use-allocation-lock') {
+      return this.result<Row>(state.allocation ? [state.allocation] : []);
     }
     if (marker === 'job-update') {
       if (this.pool.options.jobUpdateConflict || !state.job) return this.result<Row>([], 0);
@@ -1808,7 +1840,8 @@ class FakeClient implements ComputeJobStoreClient {
       if (
         this.pool.options.admissionCommitAdmitted === false ||
         this.pool.options.transitionFinalPolicyAdmitted === false ||
-        (values[20] === true && this.pool.options.budgetPeriodFinalAdmitted === false) ||
+        ((values[20] === true || values[25] === true) &&
+          this.pool.options.budgetPeriodFinalAdmitted === false) ||
         !row ||
         row.status !== 'pending' ||
         row.request_digest !== values[9] ||
@@ -2356,7 +2389,7 @@ describe('PostgresComputeJobStore', () => {
       false,
     ]);
     const finalGate = pool.queries.find((entry) => entry.marker === 'idempotency-commit');
-    expect(finalGate?.values.slice(17)).toEqual([
+    expect(finalGate?.values.slice(17, 25)).toEqual([
       true,
       BUDGET_VALID_FROM,
       BUDGET_VALID_UNTIL,
@@ -2366,6 +2399,7 @@ describe('PostgresComputeJobStore', () => {
       BUDGET_PERIOD_DIGEST,
       BUDGET_POLICY_DIGEST,
     ]);
+    expect(finalGate?.values.slice(25)).toEqual([false, null, null, null, null, null, null, null]);
     await expect(
       store.readRegisteredBudget({
         teamId: TEAM_ID,
@@ -2959,7 +2993,7 @@ describe('PostgresComputeJobStore', () => {
       reasonCodes: ['final_policy_expired_at_database_clock'],
     });
     const finalGate = pool.queries.find((entry) => entry.marker === 'idempotency-commit');
-    expect(finalGate?.values.slice(12)).toEqual([
+    expect(finalGate?.values.slice(12, 25)).toEqual([
       true,
       LEASE_EXPIRES_AT,
       true,
@@ -2974,6 +3008,7 @@ describe('PostgresComputeJobStore', () => {
       null,
       null,
     ]);
+    expect(finalGate?.values.slice(25)).toEqual([false, null, null, null, null, null, null, null]);
     expect(pool.queries.at(-1)?.marker).toBe('rollback');
     expect(pool.state).toEqual(before);
   });
@@ -2989,9 +3024,10 @@ describe('PostgresComputeJobStore', () => {
       reasonCodes: ['final_policy_expired_at_database_clock'],
     });
     const markers = pool.queries.map((entry) => entry.marker);
-    expect(markers.some((marker) => marker.includes('allocation'))).toBe(false);
+    expect(markers).toContain('lease-use-allocation-lock');
+    expect(markers).not.toContain('allocation-update');
     const finalGate = pool.queries.find((entry) => entry.marker === 'idempotency-commit');
-    expect(finalGate?.values.slice(12)).toEqual([
+    expect(finalGate?.values.slice(12, 25)).toEqual([
       true,
       LEASE_EXPIRES_AT,
       false,
@@ -3006,8 +3042,49 @@ describe('PostgresComputeJobStore', () => {
       null,
       null,
     ]);
+    expect(finalGate?.values.slice(25)).toEqual([false, null, null, null, null, null, null, null]);
     expect(pool.queries.at(-1)?.marker).toBe('rollback');
     expect(pool.state).toEqual(before);
+  });
+
+  it('requires an exact fence guard and rejects allocator rotation under the start transaction', async () => {
+    const command = makeStartCommand('guarded-start');
+
+    const missingPool = new FakePool(command);
+    const missingStore = await PostgresComputeJobStore.create(storeOptions({ pool: missingPool }));
+    await expect(
+      missingStore.commitTransition({ ...command, leaseUseGuard: undefined })
+    ).rejects.toThrow('start and mark_running require a transactional lease-use guard');
+
+    const wrongHashPool = new FakePool(command);
+    const wrongHashStore = await PostgresComputeJobStore.create(
+      storeOptions({ pool: wrongHashPool })
+    );
+    await expect(
+      wrongHashStore.commitTransition({
+        ...command,
+        leaseUseGuard: {
+          ...(command.leaseUseGuard as NonNullable<
+            CommitComputeJobTransitionCommand['leaseUseGuard']
+          >),
+          verifiedFencingTokenHash: digest('counterfeit-fence'),
+        },
+      })
+    ).rejects.toThrow('lease-use guard does not bind the exact holder, fence hash');
+
+    const stalePool = new FakePool(command);
+    if (!stalePool.state.allocation) throw new Error('fake guarded allocation missing');
+    stalePool.state.allocation.current_epoch = String(
+      Number(stalePool.state.allocation.current_epoch) + 1
+    );
+    const before = structuredClone(stalePool.state);
+    const staleStore = await PostgresComputeJobStore.create(storeOptions({ pool: stalePool }));
+    await expect(staleStore.commitTransition(command)).rejects.toMatchObject({
+      code: 'allocation_cas_conflict',
+    });
+    expect(stalePool.queries.map((entry) => entry.marker)).toContain('lease-use-allocation-lock');
+    expect(stalePool.queries.at(-1)?.marker).toBe('rollback');
+    expect(stalePool.state).toEqual(before);
   });
 
   it('detects denormalized job-column mutation even when canonical job bytes are unchanged', async () => {

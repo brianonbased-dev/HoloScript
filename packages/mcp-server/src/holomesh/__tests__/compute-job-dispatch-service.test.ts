@@ -28,6 +28,7 @@ import {
   type ComputeExecutorIdentity,
   type ComputeExecutorGrantSealer,
 } from '../compute-job-dispatch-service';
+import { ComputeJobStartError, createComputeJobStartService } from '../compute-job-start-service';
 import {
   ComputeJobStoreConflictError,
   ComputeJobStoreNotFoundError,
@@ -286,6 +287,7 @@ class FakeDispatchStore implements ComputeDispatchStore {
     if (command.transition.receipt.action === 'acquire_lease' && this.failAcquireWith) {
       throw new ComputeJobStoreConflictError(this.failAcquireWith, 'synthetic acquire conflict');
     }
+    for (const item of command.evidence) this.evidence.set(item.receiptId, item);
     this.job = command.nextJob;
     if (command.nextAllocation) {
       this.capacity = {
@@ -480,6 +482,39 @@ function expectDispatchError(error: unknown, code: string): boolean {
   return true;
 }
 
+function expectStartError(error: unknown, code: string): boolean {
+  expect(error).toBeInstanceOf(ComputeJobStartError);
+  expect(error).toMatchObject({ code });
+  return true;
+}
+
+function createStartService(harness: ReturnType<typeof createHarness>) {
+  return createComputeJobStartService({
+    store: harness.store,
+    executorIdentity: harness.identity,
+    evidenceTrustAnchors: [harness.evidence.anchor, harness.budget.anchor],
+    admissionSigner: harness.admissionSigner,
+    admissionTrustPolicyDigest: ADMISSION_POLICY_DIGEST,
+    admissionKeyValidUntil: VALID_UNTIL,
+    now: () => '2026-08-01T12:00:06.000Z',
+  });
+}
+
+function grantFencingToken(
+  harness: ReturnType<typeof createHarness>,
+  grant: Awaited<ReturnType<typeof harness.service.dispatch>>['grant']
+): Buffer {
+  const plaintext = Buffer.from(
+    openX25519ComputeExecutorGrant(grant, harness.executorKeys.privateKey)
+  );
+  try {
+    const claims = JSON.parse(plaintext.toString('utf8')) as JsonObject;
+    return Buffer.from(String(claims.fencingTokenBase64), 'base64');
+  } finally {
+    plaintext.fill(0);
+  }
+}
+
 describe('compute-job-dispatch-service', () => {
   it('queues, acquires one logical slot with a budget hold, and only then seals the fence', async () => {
     const harness = createHarness();
@@ -660,5 +695,149 @@ describe('compute-job-dispatch-service', () => {
     expect(() => openX25519ComputeExecutorGrant(result.grant, wrongKey)).toThrow(
       'recipient key does not match'
     );
+  });
+
+  it('redeems the sealed fence once into a guarded start transition without exposing it', async () => {
+    const harness = createHarness();
+    const dispatched = await harness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const fencingToken = grantFencingToken(harness, dispatched.grant);
+    const sentinel = fencingToken.toString('base64');
+    try {
+      const started = await createStartService(harness).start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken,
+      });
+
+      expect(harness.store.commands.map((command) => command.transition.receipt.action)).toEqual([
+        'queue',
+        'acquire_lease',
+        'start',
+      ]);
+      const command = harness.store.commands.at(-1);
+      expect(command).toMatchObject({
+        operation: 'compute_job.start',
+        nextJob: { receipt: { state: 'starting' } },
+        leaseUseGuard: {
+          holderDigest: computeExecutorHolderDigest(harness.identity),
+          verifiedFencingTokenHash: harness.store.job.receipt.lease?.fencingTokenHash,
+          allocation: {
+            cursor: {
+              slotState: 'leased',
+              currentLeaseReceiptId: dispatched.grant.leaseReceiptId,
+              currentEpoch: dispatched.grant.fencingEpoch,
+            },
+          },
+          activeBudgetHold: harness.store.activeBudgetHold,
+        },
+      });
+      expect(started).toMatchObject({
+        disposition: 'committed',
+        state: 'starting',
+        providerReservation: 'not_asserted',
+        execution: 'not_asserted',
+      });
+      expect(JSON.stringify(command)).not.toContain(sentinel);
+      expect(JSON.stringify(started)).not.toContain(sentinel);
+    } finally {
+      fencingToken.fill(0);
+    }
+  });
+
+  it('rejects the wrong fence, stale allocator, and missing paid hold before start commit', async () => {
+    const wrongFenceHarness = createHarness();
+    const wrongFenceGrant = await wrongFenceHarness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    await expect(
+      createStartService(wrongFenceHarness).start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: wrongFenceGrant.grant.leaseReceiptId,
+        fencingToken: Buffer.alloc(32, 0x11),
+      })
+    ).rejects.toSatisfy((error: unknown) => expectStartError(error, 'lease_unauthorized'));
+    expect(
+      wrongFenceHarness.store.commands.filter((item) => item.operation === 'compute_job.start')
+    ).toHaveLength(0);
+
+    const staleHarness = createHarness();
+    const staleGrant = await staleHarness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const staleToken = grantFencingToken(staleHarness, staleGrant.grant);
+    staleHarness.store.capacity = {
+      ...staleHarness.store.capacity,
+      projection: {
+        ...staleHarness.store.capacity.projection,
+        cursor: availableCursor(),
+        bytes: canonicalJson(availableCursor()),
+      },
+    };
+    try {
+      await expect(
+        createStartService(staleHarness).start({
+          jobId: JOB_ID,
+          attempt: 1,
+          leaseReceiptId: staleGrant.grant.leaseReceiptId,
+          fencingToken: staleToken,
+        })
+      ).rejects.toSatisfy((error: unknown) => expectStartError(error, 'lease_unauthorized'));
+    } finally {
+      staleToken.fill(0);
+    }
+
+    const budgetHarness = createHarness();
+    const budgetGrant = await budgetHarness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const budgetToken = grantFencingToken(budgetHarness, budgetGrant.grant);
+    budgetHarness.store.activeBudgetHold = undefined;
+    try {
+      await expect(
+        createStartService(budgetHarness).start({
+          jobId: JOB_ID,
+          attempt: 1,
+          leaseReceiptId: budgetGrant.grant.leaseReceiptId,
+          fencingToken: budgetToken,
+        })
+      ).rejects.toSatisfy((error: unknown) => expectStartError(error, 'budget_unavailable'));
+    } finally {
+      budgetToken.fill(0);
+    }
+    expect(
+      budgetHarness.store.commands.filter((item) => item.operation === 'compute_job.start')
+    ).toHaveLength(0);
+  });
+
+  it('rejects injected authority before reads and rejects sequential grant redemption', async () => {
+    const harness = createHarness();
+    const startService = createStartService(harness);
+    const beforeReads = harness.store.readJobCalls;
+    await expect(
+      startService.start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: digest('attacker-lease'),
+        fencingToken: Buffer.alloc(32),
+        teamId: 'attacker-team',
+      } as unknown as Parameters<typeof startService.start>[0])
+    ).rejects.toSatisfy((error: unknown) => expectStartError(error, 'invalid_request'));
+    expect(harness.store.readJobCalls).toBe(beforeReads);
+
+    const dispatched = await harness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const token = grantFencingToken(harness, dispatched.grant);
+    try {
+      const selector = {
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      };
+      await expect(startService.start(selector)).resolves.toMatchObject({ state: 'starting' });
+      await expect(startService.start(selector)).rejects.toSatisfy((error: unknown) =>
+        expectStartError(error, 'grant_not_redeemable')
+      );
+      expect(
+        harness.store.commands.filter((item) => item.operation === 'compute_job.start')
+      ).toHaveLength(1);
+    } finally {
+      token.fill(0);
+    }
   });
 });

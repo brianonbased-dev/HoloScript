@@ -1253,9 +1253,22 @@ export interface CommitComputeJobTransitionCommand {
   readonly allocationCommit?: ComputeAllocatorCommitEnvelope;
   /** Exact canonical issuer-attested core budget evidence; never payment or invoice evidence. */
   readonly budgetEvidence?: ComputeBudgetEvidenceEnvelope;
+  /**
+   * Server-local proof that start/running authorization checked the fencing
+   * preimage, plus the exact allocator and paid-hold rows to recheck under the
+   * commit transaction. Raw fencing material is deliberately excluded.
+   */
+  readonly leaseUseGuard?: ComputeLeaseUseGuard;
   readonly outbox: readonly ComputeOutboxEnvelope[];
   /** Exact public response JSON. It may contain hashes, never bearer material. */
   readonly publicResponseBytes: string;
+}
+
+export interface ComputeLeaseUseGuard {
+  readonly holderDigest: string;
+  readonly verifiedFencingTokenHash: string;
+  readonly allocation: ComputeAllocationProjection;
+  readonly activeBudgetHold?: ComputeBudgetEvidenceEnvelope;
 }
 
 export interface CommitComputeJobTransitionResult {
@@ -2065,6 +2078,24 @@ function prepareCommand(
   const budgetEvidence = input.budgetEvidence
     ? prepareBudgetEvidenceEnvelope(input.budgetEvidence, 'budgetEvidence')
     : undefined;
+  const leaseUseGuard = input.leaseUseGuard
+    ? {
+        holderDigest: input.leaseUseGuard.holderDigest,
+        verifiedFencingTokenHash: input.leaseUseGuard.verifiedFencingTokenHash,
+        allocation: prepareAllocationProjection(
+          input.leaseUseGuard.allocation,
+          'leaseUseGuard.allocation'
+        ),
+        ...(input.leaseUseGuard.activeBudgetHold
+          ? {
+              activeBudgetHold: prepareBudgetEvidenceEnvelope(
+                input.leaseUseGuard.activeBudgetHold,
+                'leaseUseGuard.activeBudgetHold'
+              ),
+            }
+          : {}),
+      }
+    : undefined;
   const command: CommitComputeJobTransitionCommand = {
     operation: input.operation,
     idempotencyKeyDigest: input.idempotencyKeyDigest,
@@ -2081,6 +2112,7 @@ function prepareCommand(
     transition,
     ...(allocationCommit ? { allocationCommit } : {}),
     ...(budgetEvidence ? { budgetEvidence } : {}),
+    ...(leaseUseGuard ? { leaseUseGuard } : {}),
     ...(input.expectedCapacityEligibilityBytes !== undefined
       ? { expectedCapacityEligibilityBytes: input.expectedCapacityEligibilityBytes }
       : {}),
@@ -2097,6 +2129,16 @@ function prepareCommand(
   }
   assertDigest(command.idempotencyKeyDigest, 'idempotencyKeyDigest');
   assertDigest(command.requestDigest, 'requestDigest');
+  const requiresLeaseUseGuard =
+    command.transition.receipt.action === 'start' ||
+    command.transition.receipt.action === 'mark_running';
+  if (requiresLeaseUseGuard !== (command.leaseUseGuard !== undefined)) {
+    throw new TypeError(
+      requiresLeaseUseGuard
+        ? 'start and mark_running require a transactional lease-use guard'
+        : 'lease-use guard is forbidden outside start and mark_running'
+    );
+  }
 
   const lifecycle = verifyComputeJobTransition({
     expectedJob: command.expectedJob.receipt,
@@ -2272,6 +2314,57 @@ function prepareCommand(
       ) {
         throw new TypeError(
           'settled budget evidence must bind the exact measured lifecycle execution cost'
+        );
+      }
+    }
+  }
+
+  if (command.leaseUseGuard) {
+    const guard = command.leaseUseGuard;
+    const lease = command.expectedJob.receipt.lease;
+    assertDigest(guard.holderDigest, 'leaseUseGuard.holderDigest');
+    assertDigest(guard.verifiedFencingTokenHash, 'leaseUseGuard.verifiedFencingTokenHash');
+    if (
+      !lease ||
+      lease.holderDigest !== guard.holderDigest ||
+      lease.fencingTokenHash !== guard.verifiedFencingTokenHash ||
+      guard.allocation.teamId !== command.expectedJob.teamId ||
+      guard.allocation.lane !== lease.lane ||
+      guard.allocation.cursor.slotState !== 'leased' ||
+      guard.allocation.cursor.capacityRef !== lease.capacityRef ||
+      guard.allocation.cursor.currentLeaseReceiptId !== lease.receiptId ||
+      guard.allocation.cursor.currentEpoch !== lease.fencingEpoch
+    ) {
+      throw new TypeError(
+        'lease-use guard does not bind the exact holder, fence hash, and leased allocator cursor'
+      );
+    }
+    const requiresActiveBudgetHold = maxAmountMinorUnits > 0;
+    if (requiresActiveBudgetHold !== (guard.activeBudgetHold !== undefined)) {
+      throw new TypeError(
+        requiresActiveBudgetHold
+          ? 'positive-cost lease use requires the exact active signed budget hold'
+          : 'active budget hold is forbidden for a zero-cost lease'
+      );
+    }
+    if (guard.activeBudgetHold) {
+      const hold = guard.activeBudgetHold.receipt;
+      if (
+        hold.status !== 'held' ||
+        hold.teamId !== command.expectedJob.teamId ||
+        hold.principalDigest !== command.expectedJob.receipt.principalDigest ||
+        hold.jobId !== command.expectedJob.receipt.jobId ||
+        hold.attempt !== command.expectedJob.receipt.attempt ||
+        hold.workUnitDigest !== expectedWorkUnit.digest ||
+        hold.currency !== expectedWorkUnit.contract.compute.budget.currency ||
+        hold.maxAmountMinorUnits !== maxAmountMinorUnits ||
+        hold.heldAmountMinorUnits !== maxAmountMinorUnits ||
+        hold.settledAmountMinorUnits !== 0 ||
+        Date.parse(hold.validFrom) > Date.parse(command.transition.receipt.transitionedAt) ||
+        Date.parse(hold.validUntil) <= Date.parse(command.transition.receipt.transitionedAt)
+      ) {
+        throw new TypeError(
+          'active budget hold does not authorize this exact job, WorkUnit, amount, and transition time'
         );
       }
     }
@@ -4325,6 +4418,9 @@ export class PostgresComputeJobStore {
   ): Promise<CommitComputeJobTransitionResult> {
     // Copy and validate once. Every retry consumes these exact same strings.
     const prepared = prepareCommand(input);
+    const authenticatedLeaseUseBudgetHold = prepared.leaseUseGuard?.activeBudgetHold
+      ? this.authenticateBudgetEvidence(prepared.leaseUseGuard.activeBudgetHold)
+      : undefined;
     const command: CommitComputeJobTransitionCommand = {
       ...prepared,
       admission: this.authenticateAdmission({
@@ -4349,6 +4445,16 @@ export class PostgresComputeJobStore {
             budgetEvidence: this.authenticateBudgetEvidence(
               prepared.budgetEvidence
             ) as ComputeBudgetEvidenceEnvelope,
+          }
+        : {}),
+      ...(prepared.leaseUseGuard
+        ? {
+            leaseUseGuard: {
+              ...prepared.leaseUseGuard,
+              ...(authenticatedLeaseUseBudgetHold
+                ? { activeBudgetHold: authenticatedLeaseUseBudgetHold }
+                : {}),
+            },
           }
         : {}),
     };
@@ -4531,6 +4637,52 @@ export class PostgresComputeJobStore {
             'allocation_cas_conflict',
             'capacity policy or lease is not current at the database clock'
           );
+        }
+      }
+
+      if (command.leaseUseGuard) {
+        const guard = command.leaseUseGuard;
+        const allocationLock = await client.query<AllocationRow>(
+          `/* compute:lease-use-allocation-lock */
+           SELECT lane, slot_state, current_epoch, current_lease_receipt_id,
+                  version, etag, cursor_bytes
+           FROM holomesh_compute_allocations
+           WHERE team_id = $1 AND capacity_ref = $2
+           FOR UPDATE`,
+          [guard.allocation.teamId, guard.allocation.cursor.capacityRef]
+        );
+        if (
+          allocationLock.rows.length !== 1 ||
+          !this.allocationCursorMatches(allocationLock.rows[0], guard.allocation)
+        ) {
+          throw new ComputeJobStoreConflictError(
+            'allocation_cas_conflict',
+            'lease-use allocator cursor changed before commit'
+          );
+        }
+        if (guard.activeBudgetHold) {
+          const budget = guard.activeBudgetHold.receipt;
+          const holdLock = await client.query<BudgetHoldRow>(
+            `/* compute:lease-use-budget-hold-lock */
+             SELECT budget_rail_id, currency, policy_digest, period_digest,
+                    max_amount_minor_units, held_amount_minor_units,
+                    settled_amount_minor_units, status, initial_receipt_id,
+                    current_receipt_id, current_evidence_bytes,
+                    measured_cost_receipt_id
+             FROM holomesh_compute_budget_holds
+             WHERE team_id = $1 AND job_id = $2 AND attempt = $3
+             FOR UPDATE`,
+            [budget.teamId, budget.jobId, budget.attempt]
+          );
+          if (
+            holdLock.rows.length !== 1 ||
+            !this.activeBudgetHoldMatches(holdLock.rows[0], guard.activeBudgetHold)
+          ) {
+            throw new ComputeJobStoreConflictError(
+              'budget_cas_conflict',
+              'lease-use budget hold changed before commit'
+            );
+          }
         }
       }
 
@@ -5121,7 +5273,22 @@ export class PostgresComputeJobStore {
                  AND ba.currency = $23 AND ba.period_digest = $24
                  AND ba.policy_digest = $25
                  AND ba.valid_from <= clock_timestamp()
-                 AND ba.valid_until > clock_timestamp()
+               AND ba.valid_until > clock_timestamp()
+             )
+           )
+           AND (
+             NOT $26::boolean OR (
+               $27::timestamptz <= clock_timestamp() AND
+               $28::timestamptz > clock_timestamp() AND
+               $29::timestamptz <= clock_timestamp() + INTERVAL '60 seconds' AND
+               EXISTS (
+                 SELECT 1 FROM holomesh_compute_budget_accounts ba
+                 WHERE ba.team_id = $6 AND ba.budget_rail_id = $30
+                   AND ba.currency = $31 AND ba.period_digest = $32
+                   AND ba.policy_digest = $33
+                   AND ba.valid_from <= clock_timestamp()
+                   AND ba.valid_until > clock_timestamp()
+               )
              )
            )
            AND EXISTS (
@@ -5155,6 +5322,16 @@ export class PostgresComputeJobStore {
           command.budgetEvidence?.receipt.currency ?? null,
           command.budgetEvidence?.receipt.periodDigest ?? null,
           command.budgetEvidence?.receipt.policyDigest ?? null,
+          command.leaseUseGuard?.activeBudgetHold !== undefined,
+          command.leaseUseGuard?.activeBudgetHold?.receipt.validFrom ?? null,
+          command.leaseUseGuard?.activeBudgetHold
+            ? this.budgetEvidenceEffectiveValidUntil(command.leaseUseGuard.activeBudgetHold)
+            : null,
+          command.leaseUseGuard?.activeBudgetHold?.receipt.issuedAt ?? null,
+          command.leaseUseGuard?.activeBudgetHold?.receipt.budgetRailId ?? null,
+          command.leaseUseGuard?.activeBudgetHold?.receipt.currency ?? null,
+          command.leaseUseGuard?.activeBudgetHold?.receipt.periodDigest ?? null,
+          command.leaseUseGuard?.activeBudgetHold?.receipt.policyDigest ?? null,
         ]
       );
       if (rowCount(idempotencyCommit) !== 1) {
@@ -5208,14 +5385,7 @@ export class PostgresComputeJobStore {
       'expectedCapacityDataPolicyBytes'
     );
     return (
-      row.lane === expected.lane &&
-      row.slot_state === expected.cursor.slotState &&
-      asSafeInteger(row.current_epoch, 'allocation.current_epoch') ===
-        expected.cursor.currentEpoch &&
-      row.current_lease_receipt_id === nullable(expected.cursor.currentLeaseReceiptId) &&
-      asSafeInteger(row.version, 'allocation.version') === expected.cursor.version &&
-      row.etag === expected.cursor.etag &&
-      row.cursor_bytes === expected.bytes &&
+      this.allocationCursorMatches(row, expected) &&
       row.eligibility_bytes === expectedEligibilityBytes &&
       row.data_policy_bytes === expectedDataPolicyBytes &&
       row.provider === eligibility.provider &&
@@ -5225,6 +5395,46 @@ export class PostgresComputeJobStore {
       dbTimestampMatches(row.data_policy_valid_until, dataPolicy.validUntil) &&
       canonicalJson(row.allowed_data_classifications) ===
         canonicalJson(dataPolicy.allowedDataClassifications)
+    );
+  }
+
+  private allocationCursorMatches(
+    row: AllocationRow,
+    expected: ComputeAllocationProjection
+  ): boolean {
+    return (
+      row.lane === expected.lane &&
+      row.slot_state === expected.cursor.slotState &&
+      asSafeInteger(row.current_epoch, 'allocation.current_epoch') ===
+        expected.cursor.currentEpoch &&
+      row.current_lease_receipt_id === nullable(expected.cursor.currentLeaseReceiptId) &&
+      asSafeInteger(row.version, 'allocation.version') === expected.cursor.version &&
+      row.etag === expected.cursor.etag &&
+      row.cursor_bytes === expected.bytes
+    );
+  }
+
+  private activeBudgetHoldMatches(
+    row: BudgetHoldRow,
+    expected: ComputeBudgetEvidenceEnvelope
+  ): boolean {
+    const receipt = expected.receipt;
+    return (
+      row.budget_rail_id === receipt.budgetRailId &&
+      row.currency === receipt.currency &&
+      row.policy_digest === receipt.policyDigest &&
+      row.period_digest === receipt.periodDigest &&
+      asSafeInteger(row.max_amount_minor_units, 'budget.hold.max') ===
+        receipt.maxAmountMinorUnits &&
+      asSafeInteger(row.held_amount_minor_units, 'budget.hold.held') ===
+        receipt.heldAmountMinorUnits &&
+      asSafeInteger(row.settled_amount_minor_units, 'budget.hold.settled') ===
+        receipt.settledAmountMinorUnits &&
+      row.status === 'held' &&
+      row.initial_receipt_id === receipt.receiptId &&
+      row.current_receipt_id === receipt.receiptId &&
+      row.current_evidence_bytes === expected.bytes &&
+      row.measured_cost_receipt_id === null
     );
   }
 

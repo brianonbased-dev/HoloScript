@@ -28,6 +28,7 @@ import {
   prepareComputeJobTransition,
   type ComputeBridgeAdmission,
   type ComputeBudgetEvidence,
+  type ComputeCapacityLease,
   type ComputeCapacitySnapshot,
   type ComputeEvidenceSigner,
   type ComputeEvidenceTrustAnchor,
@@ -51,6 +52,7 @@ import {
   type ComputeBudgetEvidenceEnvelope,
   type ComputeDurableEnvelope,
   type ComputeJobProjection,
+  type ComputeLeaseUseGuard,
   type ComputeWorkUnitEnvelope,
   type ReadActiveComputeBudgetHoldInput,
   type ReadComputeEvidenceInput,
@@ -442,9 +444,8 @@ export function computeExecutorHolderDigest(identity: ComputeExecutorIdentity): 
   });
 }
 
-function validateIdentity(
+export function assertComputeExecutorIdentityActive(
   identity: ComputeExecutorIdentity,
-  sealer: ComputeExecutorGrantSealer,
   at: string
 ): void {
   requiredText(identity.teamId, 'executorIdentity.teamId');
@@ -457,9 +458,7 @@ function validateIdentity(
     identity.source !== 'registered_pop_key' ||
     canonicalJson(identity.capabilities) !==
       canonicalJson(['compute:dispatch', 'compute:execute']) ||
-    !SHA256_LABEL.test(identity.recipientKeyThumbprint) ||
-    identity.recipientKeyThumbprint !== sealer.recipientKeyThumbprint ||
-    sealer.algorithm !== COMPUTE_EXECUTOR_GRANT_ALGORITHM
+    !SHA256_LABEL.test(identity.recipientKeyThumbprint)
   ) {
     throw new ComputeJobDispatchError(
       'executor_identity_invalid',
@@ -485,6 +484,23 @@ function validateIdentity(
     throw new ComputeJobDispatchError(
       'executor_identity_invalid',
       'registered executor identity is not active'
+    );
+  }
+}
+
+function validateIdentity(
+  identity: ComputeExecutorIdentity,
+  sealer: ComputeExecutorGrantSealer,
+  at: string
+): void {
+  assertComputeExecutorIdentityActive(identity, at);
+  if (
+    identity.recipientKeyThumbprint !== sealer.recipientKeyThumbprint ||
+    sealer.algorithm !== COMPUTE_EXECUTOR_GRANT_ALGORITHM
+  ) {
+    throw new ComputeJobDispatchError(
+      'executor_identity_invalid',
+      'dispatcher requires one registered headless PoP executor with exact compute scopes'
     );
   }
 }
@@ -543,20 +559,22 @@ function parseEvidence<T extends { readonly receiptId: string; readonly schemaVe
   return value as unknown as T;
 }
 
-interface PlacementContext {
+export interface ComputePlacementContext {
   readonly workUnit: ComputeWorkUnitEnvelope;
   readonly evidence: readonly ComputeDurableEnvelope[];
   readonly capacitySnapshot: ComputeCapacitySnapshot;
   readonly bridgeAdmission?: ComputeBridgeAdmission;
   readonly plan: ComputePlacementPlan;
   readonly capacity: RegisteredComputeCapacity;
+  readonly lease?: ComputeCapacityLease;
+  readonly leaseEnvelope?: ComputeDurableEnvelope;
 }
 
-async function readPlacementContext(
+export async function readComputePlacementContext(
   store: ComputeDispatchStore,
   teamId: string,
   job: ComputeJobProjection
-): Promise<PlacementContext> {
+): Promise<ComputePlacementContext> {
   const workUnit = await store.readWorkUnit(teamId, job.receipt.workUnit.digest);
   if (
     workUnit.digest !== job.receipt.workUnit.digest ||
@@ -602,7 +620,32 @@ async function readPlacementContext(
     teamId,
     capacityRef: plan.capacityRef,
   });
-  return { workUnit, evidence, capacitySnapshot, bridgeAdmission, plan, capacity };
+  let lease: ComputeCapacityLease | undefined;
+  let leaseEnvelope: ComputeDurableEnvelope | undefined;
+  if (job.receipt.lease) {
+    const leaseEvidence = await store.readEvidence({
+      teamId,
+      jobId: job.receipt.jobId,
+      attempt: job.receipt.attempt,
+      receiptIds: [job.receipt.lease.receiptId],
+    });
+    leaseEnvelope = leaseEvidence[0];
+    lease = parseEvidence<ComputeCapacityLease>(
+      leaseEnvelope,
+      'holoscript.compute-capacity-lease.v1',
+      'capacity lease'
+    );
+  }
+  return {
+    workUnit,
+    evidence,
+    capacitySnapshot,
+    bridgeAdmission,
+    plan,
+    capacity,
+    ...(lease ? { lease } : {}),
+    ...(leaseEnvelope ? { leaseEnvelope } : {}),
+  };
 }
 
 function transitionIdempotencyKey(
@@ -624,7 +667,7 @@ function minTimestamp(...values: string[]): string {
   return new Date(Math.min(...values.map((value) => Date.parse(value)))).toISOString();
 }
 
-function transitionCommand(input: {
+export function buildComputeTransitionCommand(input: {
   readonly operation: ComputeJobAdmissionOperation;
   readonly teamId: string;
   readonly expectedJob: ComputeJobProjection;
@@ -639,6 +682,7 @@ function transitionCommand(input: {
     readonly preparedLease: ReturnType<typeof prepareComputeCapacityLease>;
   };
   readonly budgetEvidence?: ComputeBudgetEvidence;
+  readonly leaseUseGuard?: ComputeLeaseUseGuard;
 }): CommitComputeJobTransitionCommand {
   const requestDigest = input.prepared.transition.request.requestHash;
   const admission = createComputeJobAdmissionEnvelope(
@@ -719,6 +763,7 @@ function transitionCommand(input: {
           },
         }
       : {}),
+    ...(input.leaseUseGuard ? { leaseUseGuard: input.leaseUseGuard } : {}),
     outbox: [buildComputeJobOutboxEnvelope(artifacts)],
     publicResponseBytes: buildComputeJobPublicResponseBytes(artifacts),
   };
@@ -1019,7 +1064,7 @@ export function createComputeJobDispatchService(
         );
       }
 
-      let context = await readPlacementContext(options.store, teamId, job);
+      let context = await readComputePlacementContext(options.store, teamId, job);
       if (job.receipt.state === 'preflighted') {
         const prepared = prepareComputeJobTransition({
           expectedJob: job.receipt,
@@ -1043,7 +1088,7 @@ export function createComputeJobDispatchService(
           new Date(Date.parse(dispatchedAt) + admissionTtlMs).toISOString()
         );
         await options.store.commitTransition(
-          transitionCommand({
+          buildComputeTransitionCommand({
             operation: 'compute_job.queue',
             teamId,
             expectedJob: job,
@@ -1067,7 +1112,7 @@ export function createComputeJobDispatchService(
             true
           );
         }
-        context = await readPlacementContext(options.store, teamId, job);
+        context = await readComputePlacementContext(options.store, teamId, job);
       }
 
       if (job.receipt.state !== 'queued') {
@@ -1221,7 +1266,7 @@ export function createComputeJobDispatchService(
           expiresAt,
           new Date(Date.parse(dispatchedAt) + admissionTtlMs).toISOString()
         );
-        const command = transitionCommand({
+        const command = buildComputeTransitionCommand({
           operation: 'compute_job.acquire_lease',
           teamId,
           expectedJob: job,
