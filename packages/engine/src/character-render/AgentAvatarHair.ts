@@ -537,7 +537,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     const capLift = rootLift * 0.45;
     const capClumpCount =
       clusterCount >= 5 ? Math.min(5, Math.max(3, Math.round(clusterCount / 2))) : 4;
-    const topMassLift = massedSilhouette ? 0.012 * bs : 0;
+    const topMassLift = massedSilhouette ? (layeredDensity ? 0.0075 : 0.012) * bs : 0;
     scalpCapMaxLift = capLift + topMassLift;
     const topFlow = v(0, 0, -1);
     pushHairVertex(
@@ -568,7 +568,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const phi = maxPhi * ringT;
         const clumpWave = 0.5 + 0.5 * Math.sin(theta * capClumpCount + ringT * 2.1);
         const massLift = massedSilhouette
-          ? (0.006 + clumpWave * 0.008) * (1 - ringT * 0.3) * bs
+          ? layeredDensity
+            ? (0.004 + clumpWave * 0.005) * (1 - ringT * 0.3) * bs
+            : (0.006 + clumpWave * 0.008) * (1 - ringT * 0.3) * bs
           : 0;
         scalpCapMaxLift = Math.max(scalpCapMaxLift, capLift + massLift);
         const dir = v(
@@ -620,8 +622,12 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   if (massedSilhouette && neutralScalp) {
     const massGuideBudget = Math.min(24, Math.max(12, Math.round(guideCount / 8)));
     const massSegments = 5;
-    const massLength = Math.min(tipLen * 0.52, 0.065 * bs);
-    const massWidth = Math.max(cardW * 3.4, 0.018 * bs);
+    const massLength = layeredDensity
+      ? Math.min(tipLen * 0.42, 0.045 * bs)
+      : Math.min(tipLen * 0.52, 0.065 * bs);
+    const massWidth = layeredDensity
+      ? Math.max(cardW * 2.5, 0.013 * bs)
+      : Math.max(cardW * 3.4, 0.018 * bs);
     for (let guide = 0; guide < massGuideBudget; guide++) {
       const guideT = massGuideBudget <= 1 ? 0 : guide / (massGuideBudget - 1);
       const phi = 0.2 + guideT * 0.92;
@@ -633,7 +639,10 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       );
       if (dir.z > 0.08 && dir.y < 0.78 + hairlineBias * 0.55) continue;
       const rootNormal = scalpNormal(dir);
-      const ridge = (0.008 + 0.005 * (0.5 + 0.5 * Math.sin(theta * 3.0))) * bs;
+      const ridge =
+        (layeredDensity
+          ? 0.004 + 0.003 * (0.5 + 0.5 * Math.sin(theta * 3.0))
+          : 0.008 + 0.005 * (0.5 + 0.5 * Math.sin(theta * 3.0))) * bs;
       const root = scalpPoint(dir, rootLift + ridge);
       const side = nrm(cross(rootNormal, v(0, 1, 0)));
       const authoredBack = v(profile.sweepX * 0.45, -0.24, -1 + profile.sweepZ);
@@ -671,7 +680,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
           );
           const faceNormal = nrm(cross(right, flow));
           const strandT = segment / (massSegments - 1);
-          const width = massWidth * (1 - strandT * 0.55);
+          const width = massWidth * (1 - strandT * (layeredDensity ? 0.32 : 0.55));
           for (const edge of [-1, 1] as const) {
             pushHairVertex(
               add(p, scl(right, edge * width * 0.5)),
