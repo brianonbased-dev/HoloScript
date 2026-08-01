@@ -95,12 +95,12 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
   let radius = pos_in.w;
   var vel = vel_in.xyz;
   let mass = vel_in.w;
-  let active = state_in.x;
+  let active_flag = state_in.x;
   let sleeping = state_in.y;
   let health = state_in.z;
   let userData = state_in.w;
 
-  if (active < 0.5 || sleeping > 0.5) {
+  if (active_flag < 0.5 || sleeping > 0.5) {
     positions_out[idx] = pos_in;
     velocities_out[idx] = vel_in;
     states_out[idx] = state_in;
@@ -113,6 +113,9 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
   let groundResult = resolveGroundCollision(pos, vel, radius);
   vel = groundResult.xyz;
   let hitGround = groundResult.w;
+  if (hitGround > 0.5) {
+    pos.y = uniforms.groundY + radius;
+  }
 
   vel = checkParticleCollision(idx, pos, vel, radius, mass);
 
@@ -135,6 +138,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 
   positions_out[idx] = vec4<f32>(pos, radius);
   velocities_out[idx] = vec4<f32>(vel, mass);
-  states_out[idx] = vec4<f32>(active, newSleeping, health, sleepCounter);
+  states_out[idx] = vec4<f32>(active_flag, newSleeping, health, sleepCounter);
 }
 `;

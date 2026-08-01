@@ -245,8 +245,8 @@ describe('Compute Pipeline', () => {
 
     bufferManager.uploadParticleData(initialData);
 
-    // Run 100 steps (falling and bouncing)
-    const steps = 100;
+    // Run long enough for a 10 m drop with restitution to settle.
+    const steps = 400;
     const uniforms = {
       dt: 0.016,
       gravity: 9.8,

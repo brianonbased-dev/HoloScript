@@ -18,7 +18,7 @@ import {
  * Validates the CSR-Vector SpMV and Fused CG Update kernels.
  */
 describe('GPU Structural Verification', () => {
-  it('produces numerically identical results to CPU reference (Cantilever Bending)', async () => {
+  it('agrees numerically with the CPU reference (Cantilever Bending)', async () => {
     const lx = 1,
       ly = 1,
       lz = 5;
@@ -101,12 +101,15 @@ describe('GPU Structural Verification', () => {
 
       // 5. Compare results
       let maxDiff = 0;
+      let maxMagnitude = 0;
       for (let i = 0; i < cpuDisp.length; i++) {
         maxDiff = Math.max(maxDiff, Math.abs(cpuDisp[i] - gpuDisp[i]));
+        maxMagnitude = Math.max(maxMagnitude, Math.abs(cpuDisp[i]), Math.abs(gpuDisp[i]));
       }
-
-      // Expect high agreement (within CG tolerance)
-      expect(maxDiff).toBeLessThan(1e-7);
+      // GPU storage and kernels use float32 while the CPU reference uses float64.
+      // Require both a small absolute floor and sub-0.05% scale-relative error.
+      const allowedDiff = Math.max(1e-7, maxMagnitude * 5e-4);
+      expect(maxDiff).toBeLessThan(allowedDiff);
 
       // Verify zero-copy buffer is available (only when WebGPU was actually used)
       const buffer = gpuSolver.getDisplacementBuffer();

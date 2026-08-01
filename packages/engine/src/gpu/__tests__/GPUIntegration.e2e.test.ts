@@ -119,7 +119,8 @@ describe('GPU Physics Integration (End-to-End)', () => {
       };
 
       // Run simulation with collision detection
-      const steps = 60; // 1 second at 60 FPS
+      // Allow the 10-15 m drop and its restitution bounces to settle.
+      const steps = 400;
       for (let step = 0; step < steps; step++) {
         // Step 1: Physics simulation
         await physicsPipeline.step(uniforms);
