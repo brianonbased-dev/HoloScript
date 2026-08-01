@@ -91,6 +91,12 @@ export const AGENT_AVATAR_HAIR_STYLES = [
   'long',
   'swept_ridge',
   'cropped_coils',
+  'structured_updo',
+  'weathered_waves',
+  'braided_crown',
+  'silver_curls',
+  'asymmetric_crop',
+  'high_bun',
 ] as const;
 
 export type AgentAvatarHairStyle = (typeof AGENT_AVATAR_HAIR_STYLES)[number];
@@ -192,6 +198,16 @@ export interface AgentAvatarGroomGeometryReceipt {
   /** H4J three-axis undercoat cards added below the broad silhouette locks. */
   densityLayerProfile?: 'cross-card-undercoat-v1';
   densityLayerCardCount?: number;
+  /** Art-directed silhouette feature that must alter emitted geometry, not only metadata. */
+  styleFeatureProfile?:
+    | 'stacked-updo-mass-v1'
+    | 'weathered-wave-beard-v1'
+    | 'braided-crown-loop-v1'
+    | 'silver-curl-clusters-v1'
+    | 'asymmetric-length-field-v1'
+    | 'high-bun-mass-v1';
+  styleFeatureVertexCount?: number;
+  styleFeatureTriangleCount?: number;
   /** Source-derived native shading/coverage contract joined by CharacterHost. */
   material?: AgentAvatarHairMaterialReceipt;
 }
@@ -270,6 +286,78 @@ const HAIR_STYLE_PROFILES: Record<AgentAvatarHairStyle, HairStyleProfile> = {
     sweepX: 0,
     sweepZ: 0,
   },
+  structured_updo: {
+    guides: 180,
+    cardsPerGuide: 2,
+    segments: 7,
+    cardWidth: 0.011,
+    length: 0.15,
+    gravityBlend: 0.5,
+    waveAmplitude: 0.08,
+    waveTurns: 1.2,
+    sweepX: -0.08,
+    sweepZ: -0.12,
+  },
+  weathered_waves: {
+    guides: 168,
+    cardsPerGuide: 2,
+    segments: 8,
+    cardWidth: 0.013,
+    length: 0.22,
+    gravityBlend: 0.88,
+    waveAmplitude: 0.24,
+    waveTurns: 1.8,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+  braided_crown: {
+    guides: 190,
+    cardsPerGuide: 2,
+    segments: 7,
+    cardWidth: 0.01,
+    length: 0.14,
+    gravityBlend: 0.46,
+    waveAmplitude: 0.12,
+    waveTurns: 2.2,
+    sweepX: 0,
+    sweepZ: -0.08,
+  },
+  silver_curls: {
+    guides: 196,
+    cardsPerGuide: 2,
+    segments: 8,
+    cardWidth: 0.011,
+    length: 0.12,
+    gravityBlend: 0.38,
+    waveAmplitude: 0.4,
+    waveTurns: 3.2,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+  asymmetric_crop: {
+    guides: 154,
+    cardsPerGuide: 2,
+    segments: 6,
+    cardWidth: 0.013,
+    length: 0.16,
+    gravityBlend: 0.52,
+    waveAmplitude: 0.1,
+    waveTurns: 1.1,
+    sweepX: 0.55,
+    sweepZ: -0.1,
+  },
+  high_bun: {
+    guides: 176,
+    cardsPerGuide: 2,
+    segments: 7,
+    cardWidth: 0.011,
+    length: 0.16,
+    gravityBlend: 0.46,
+    waveAmplitude: 0.06,
+    waveTurns: 1.1,
+    sweepX: 0.04,
+    sweepZ: -0.14,
+  },
 };
 
 const HAIR_STYLE_ALIASES: Readonly<Record<string, AgentAvatarHairStyle>> = {
@@ -284,6 +372,18 @@ const HAIR_STYLE_ALIASES: Readonly<Record<string, AgentAvatarHairStyle>> = {
   swept_ridge: 'swept_ridge',
   cropped_coils: 'cropped_coils',
   coils: 'cropped_coils',
+  structured_updo: 'structured_updo',
+  updo: 'structured_updo',
+  weathered_waves: 'weathered_waves',
+  weathered: 'weathered_waves',
+  braided_crown: 'braided_crown',
+  crown_braids: 'braided_crown',
+  silver_curls: 'silver_curls',
+  curls: 'silver_curls',
+  asymmetric_crop: 'asymmetric_crop',
+  side_crop: 'asymmetric_crop',
+  high_bun: 'high_bun',
+  bun: 'high_bun',
 };
 
 const GROOM_PROFILE_ALIASES: Readonly<Record<string, AgentAvatarGroomProfile>> = {
@@ -416,7 +516,8 @@ const p95 = (values: number[]): number => {
 export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const bs = o.buildScale ?? 1;
   const hScale = o.heightScale ?? 1;
-  const profile = HAIR_STYLE_PROFILES[o.style ?? 'medium_wavy'];
+  const selectedStyle = o.style ?? 'medium_wavy';
+  const profile = HAIR_STYLE_PROFILES[selectedStyle];
   const guideCount = o.guides ?? profile.guides;
   const cardsPerGuide = o.cardsPerGuide ?? profile.cardsPerGuide;
   const segs = o.segments ?? profile.segments;
@@ -483,6 +584,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   let massGuideCount = 0;
   let massCardCount = 0;
   let scalpCapMaxLift = 0;
+  let styleFeatureVertexCount = 0;
+  let styleFeatureTriangleCount = 0;
+  let styleFeatureProfile: AgentAvatarGroomGeometryReceipt['styleFeatureProfile'];
 
   const scalpMetric = (position: Vec3, clearance = 0): number => {
     const rel = sub(position, center);
@@ -528,6 +632,69 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     }
     if (containment && scalpMetric(containedPosition) < 1 - 1e-6) {
       scalpPenetrationVertexCount++;
+    }
+  };
+
+  const pushStyleStrip = (curve: Vec3[], width: number): void => {
+    if (curve.length < 2) return;
+    const vertexStart = positions.length / 3;
+    const triangleStart = indices.length / 3;
+    const base = positions.length / 3;
+    for (let point = 0; point < curve.length; point++) {
+      const flow =
+        point < curve.length - 1
+          ? nrm(sub(curve[point + 1], curve[point]))
+          : nrm(sub(curve[point], curve[point - 1]));
+      const outward = nrm(sub(curve[point], center));
+      const firstRight = cross(flow, outward);
+      const right = len(firstRight) > 1e-6 ? nrm(firstRight) : nrm(cross(flow, v(0, 0, 1)));
+      const faceNormal = nrm(cross(right, flow));
+      const strandT = point / (curve.length - 1);
+      const pointWidth = width * (1 - strandT * 0.3);
+      for (const side of [-1, 1] as const) {
+        pushHairVertex(
+          add(curve[point], scl(right, side * pointWidth * 0.5)),
+          faceNormal,
+          flow,
+          strandT,
+          side < 0 ? 0 : 1,
+          strandT
+        );
+      }
+      if (point < curve.length - 1) {
+        const offset = base + point * 2;
+        indices.push(offset, offset + 1, offset + 2, offset + 1, offset + 3, offset + 2);
+      }
+    }
+    styleFeatureVertexCount += positions.length / 3 - vertexStart;
+    styleFeatureTriangleCount += indices.length / 3 - triangleStart;
+  };
+
+  const pushEllipsoidHairMass = (
+    massCenter: Vec3,
+    radii: Vec3,
+    stripCount: number,
+    pointCount: number,
+    width: number
+  ): void => {
+    for (let strip = 0; strip < stripCount; strip++) {
+      const longitude = (strip / stripCount) * Math.PI * 2;
+      const curve: Vec3[] = [];
+      for (let point = 0; point < pointCount; point++) {
+        const latitude = -Math.PI * 0.5 + (point / (pointCount - 1)) * Math.PI;
+        const ring = Math.cos(latitude);
+        curve.push(
+          add(
+            massCenter,
+            v(
+              radii.x * ring * Math.cos(longitude),
+              radii.y * Math.sin(latitude),
+              radii.z * ring * Math.sin(longitude)
+            )
+          )
+        );
+      }
+      pushStyleStrip(curve, width);
     }
   };
 
@@ -728,6 +895,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
 
     // Guide curve: hug the skull at the root, fall under gravity toward the tip.
     const curve: Vec3[] = [];
+    const styleLengthScale =
+      selectedStyle === 'asymmetric_crop' ? clamp(0.85 + dir.x * 0.55, 0.3, 1.4) : 1;
+    const guideTipLength = tipLen * styleLengthScale;
     const side = nrm(cross(rootNormal, v(0, 1, 0)));
     const authoredBack = v(profile.sweepX * 0.45, -0.32, -1 + profile.sweepZ);
     const projectedBack = sub(authoredBack, scl(rootNormal, dot(authoredBack, rootNormal)));
@@ -758,7 +928,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
             scl(side, wave)
           );
       const flow = nrm(styledFlow);
-      curve.push(i === 0 ? root : add(curve[i - 1], scl(flow, tipLen / (segs - 1))));
+      curve.push(i === 0 ? root : add(curve[i - 1], scl(flow, guideTipLength / (segs - 1))));
     }
     if (curve.length > 1) {
       rootTangentRadialDots.push(Math.abs(dot(nrm(sub(curve[1], curve[0])), rootNormal)));
@@ -793,6 +963,108 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
           indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
         }
       }
+    }
+  }
+
+  if (neutralScalp) {
+    if (selectedStyle === 'structured_updo') {
+      styleFeatureProfile = 'stacked-updo-mass-v1';
+      pushEllipsoidHairMass(
+        add(center, v(-0.012 * bs, scalpRadius.y * 0.92, -0.018 * bs)),
+        v(0.047 * bs, 0.058 * bs, 0.044 * bs),
+        14,
+        7,
+        0.012 * bs
+      );
+      pushEllipsoidHairMass(
+        add(center, v(0.012 * bs, scalpRadius.y * 1.31, -0.022 * bs)),
+        v(0.036 * bs, 0.043 * bs, 0.035 * bs),
+        12,
+        7,
+        0.01 * bs
+      );
+    } else if (selectedStyle === 'high_bun') {
+      styleFeatureProfile = 'high-bun-mass-v1';
+      pushEllipsoidHairMass(
+        add(center, v(0, scalpRadius.y * 1.2, -0.022 * bs)),
+        v(0.056 * bs, 0.066 * bs, 0.052 * bs),
+        18,
+        8,
+        0.012 * bs
+      );
+    } else if (selectedStyle === 'braided_crown') {
+      styleFeatureProfile = 'braided-crown-loop-v1';
+      for (let strand = 0; strand < 3; strand++) {
+        const curve: Vec3[] = [];
+        for (let point = 0; point <= 36; point++) {
+          const angle = (point / 36) * Math.PI * 2;
+          const braidPhase = angle * 9 + (strand / 3) * Math.PI * 2;
+          curve.push(
+            add(
+              center,
+              v(
+                (scalpRadius.x * 0.88 + Math.cos(braidPhase) * 0.0045 * bs) * Math.cos(angle),
+                scalpRadius.y * 0.55 + Math.sin(braidPhase) * 0.005 * bs,
+                (scalpRadius.z * 0.9 + Math.cos(braidPhase) * 0.0045 * bs) * Math.sin(angle)
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.009 * bs);
+      }
+    } else if (selectedStyle === 'weathered_waves') {
+      styleFeatureProfile = 'weathered-wave-beard-v1';
+      for (let lock = 0; lock < 13; lock++) {
+        const lateral = -1 + (lock / 12) * 2;
+        const curve: Vec3[] = [];
+        for (let point = 0; point < 7; point++) {
+          const strandT = point / 6;
+          curve.push(
+            add(
+              center,
+              v(
+                lateral * scalpRadius.x * (0.54 - strandT * 0.18),
+                -scalpRadius.y * (0.3 + strandT * (0.7 + 0.18 * (1 - Math.abs(lateral)))),
+                scalpRadius.z * (0.9 - strandT * 0.2) +
+                  Math.sin(strandT * Math.PI * 2 + lock) * 0.003 * bs
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.009 * bs);
+      }
+    } else if (selectedStyle === 'silver_curls') {
+      styleFeatureProfile = 'silver-curl-clusters-v1';
+      for (let lock = 0; lock < 18; lock++) {
+        const azimuth = lock * 2.399963;
+        const dir = nrm(
+          v(Math.cos(azimuth) * 0.72, 0.55 + (lock % 3) * 0.12, Math.sin(azimuth) * 0.72)
+        );
+        const root = scalpPoint(dir, rootLift + 0.003 * bs);
+        const tangent = nrm(cross(dir, v(0, 1, 0)));
+        const curve: Vec3[] = [];
+        for (let point = 0; point < 9; point++) {
+          const strandT = point / 8;
+          const turn = strandT * Math.PI * 3.5;
+          curve.push(
+            add(
+              root,
+              add(
+                v(0, -0.055 * bs * strandT, 0),
+                add(
+                  scl(tangent, Math.cos(turn) * 0.009 * bs),
+                  scl(dir, Math.sin(turn) * 0.009 * bs)
+                )
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.006 * bs);
+      }
+    } else if (selectedStyle === 'asymmetric_crop') {
+      styleFeatureProfile = 'asymmetric-length-field-v1';
+      styleFeatureVertexCount = emittedGuideCount * cardsPerGuide * segs * 2;
+      styleFeatureTriangleCount = emittedGuideCount * cardsPerGuide * (segs - 1) * 2;
     }
   }
 
@@ -976,6 +1248,13 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         ? {
             densityLayerProfile: 'cross-card-undercoat-v1' as const,
             densityLayerCardCount: massCardCount,
+          }
+        : {}),
+      ...(styleFeatureProfile
+        ? {
+            styleFeatureProfile,
+            styleFeatureVertexCount,
+            styleFeatureTriangleCount,
           }
         : {}),
     },

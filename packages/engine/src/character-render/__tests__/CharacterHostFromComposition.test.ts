@@ -2244,6 +2244,7 @@ describe('buildCharacterHostFromComposition', () => {
             {
               name: 'hair',
               config: {
+                style: 'high_bun',
                 groom_profile: 'scalp_flow_density_v6',
                 coverage_profile: 'alpha_to_coverage_v1',
                 density_profile: 'layered_card_density_v1',
@@ -2291,6 +2292,7 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.groom).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-groom-geometry.v6',
       densityLayerProfile: 'cross-card-undercoat-v1',
+      styleFeatureProfile: 'high-bun-mass-v1',
       material: {
         schemaVersion: 'holoscript.agent-avatar-hair-material.v3',
         densityProfile: 'layered-card-density-v1',
@@ -2298,6 +2300,8 @@ describe('buildCharacterHostFromComposition', () => {
         rootShadowStrength: 0.63,
       },
     });
+    expect(result.groom!.styleFeatureVertexCount).toBeGreaterThan(0);
+    expect(result.groom!.styleFeatureTriangleCount).toBeGreaterThan(0);
     expect(result.environmentLight?.receipt).toMatchObject({
       profile: 'stormglass-room-basis-v2',
       responseProfile: 'source-authored-room-basis-v2',

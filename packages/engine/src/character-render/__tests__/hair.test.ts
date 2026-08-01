@@ -163,6 +163,55 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(resolveAgentAvatarHairStyle('not_a_style')).toBeUndefined();
   });
 
+  it('emits operative six-resident silhouette features instead of preset-only labels', () => {
+    const expected = new Map([
+      ['structured_updo', 'stacked-updo-mass-v1'],
+      ['weathered_waves', 'weathered-wave-beard-v1'],
+      ['braided_crown', 'braided-crown-loop-v1'],
+      ['silver_curls', 'silver-curl-clusters-v1'],
+      ['asymmetric_crop', 'asymmetric-length-field-v1'],
+      ['high_bun', 'high-bun-mass-v1'],
+    ] as const);
+    const geometrySignatures = new Set<string>();
+
+    for (const [style, styleFeatureProfile] of expected) {
+      const hair = buildAgentAvatarHair({
+        style,
+        faceTopology: 'neutral-anatomical-v2',
+        groomProfile: 'scalp-flow-density-v6',
+        guides: 72,
+        cardsPerGuide: 2,
+        segments: 6,
+      });
+      const replay = buildAgentAvatarHair({
+        style,
+        faceTopology: 'neutral-anatomical-v2',
+        groomProfile: 'scalp-flow-density-v6',
+        guides: 72,
+        cardsPerGuide: 2,
+        segments: 6,
+      });
+
+      expect(hair.groom).toMatchObject({
+        styleFeatureProfile,
+        scalpPenetrationVertexCount: 0,
+      });
+      expect(hair.groom!.styleFeatureVertexCount).toBeGreaterThan(0);
+      expect(hair.groom!.styleFeatureTriangleCount).toBeGreaterThan(0);
+      expect(Array.from(replay.positions)).toEqual(Array.from(hair.positions));
+      expect(replay.groom).toEqual(hair.groom);
+      geometrySignatures.add(
+        `${hair.vertexCount}:${hair.indices.length}:${Array.from(hair.positions.slice(-18))
+          .map((value) => value.toFixed(5))
+          .join(',')}`
+      );
+    }
+
+    expect(geometrySignatures.size).toBe(expected.size);
+    expect(resolveAgentAvatarHairStyle('crown braids')).toBe('braided_crown');
+    expect(resolveAgentAvatarHairStyle('side crop')).toBe('asymmetric_crop');
+  });
+
   it('source-authored hair topology budgets reduce guides, cards, and curve segments', () => {
     const lod0 = buildAgentAvatarHair({
       style: 'cropped_coils',
