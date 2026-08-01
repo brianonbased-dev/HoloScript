@@ -8,5 +8,9 @@
     "skipLibCheck": true,
     "types": []
   },
-  "files": ["HoloContainmentPerceiver.consumer.ts", "HSPlusStructuredFields.consumer.ts"]
+  "files": [
+    "ComputeBudgetEvidence.consumer.ts",
+    "HoloContainmentPerceiver.consumer.ts",
+    "HSPlusStructuredFields.consumer.ts"
+  ]
 }

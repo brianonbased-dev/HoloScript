@@ -8651,6 +8651,7 @@ export declare const COMPUTE_BRIDGE_ADMISSION_SCHEMA_VERSION: 'holoscript.comput
 export declare const COMPUTE_PLACEMENT_PLAN_SCHEMA_VERSION: 'holoscript.compute-placement-plan.v1';
 export declare const COMPUTE_CAPACITY_LEASE_SCHEMA_VERSION: 'holoscript.compute-capacity-lease.v1';
 export declare const COMPUTE_SUBJECT_ATTESTATION_SCHEMA_VERSION: 'holoscript.compute-subject-attestation.v1';
+export declare const COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION: 'holoscript.compute-budget-evidence.v1';
 export declare const COMPUTE_CAPACITY_LEASE_MAX_TTL_MS: number;
 export declare const COMPUTE_EVIDENCE_MAX_FUTURE_SKEW_MS: number;
 export declare const COMPUTE_CAPACITY_SNAPSHOT_MAX_TTL_MS: number;
@@ -8660,7 +8661,8 @@ export type ComputeEvidenceRole =
   | 'bridge_admitter'
   | 'placement_planner'
   | 'lease_issuer'
-  | 'execution_attestor';
+  | 'execution_attestor'
+  | 'budget_ledger_attestor';
 export type ComputeCapacityLane = 'local_device' | 'owned_fleet' | 'managed_bridge';
 export type ComputeCapacityHealth = 'ready' | 'degraded' | 'unavailable';
 export type ComputePlacementVerdict = 'admitted' | 'rejected';
@@ -8704,8 +8706,10 @@ export interface ComputeEvidenceTrustAnchor {
   readonly algorithm: 'ed25519';
   readonly roles: readonly ComputeEvidenceRole[];
   readonly principalDigests: readonly string[];
-  readonly lanes: readonly ComputeCapacityLane[];
-  readonly capacityRefs: readonly string[];
+  readonly lanes?: readonly ComputeCapacityLane[];
+  readonly capacityRefs?: readonly string[];
+  readonly teamIds?: readonly string[];
+  readonly budgetRailIds?: readonly string[];
   readonly validFrom: string;
   readonly validUntil: string;
   readonly revokedAt?: string;
@@ -8718,6 +8722,67 @@ export interface ComputeIssuerAttestation {
   readonly algorithm: 'ed25519';
   readonly claimsDigest: string;
   readonly signature: string;
+}
+export type ComputeBudgetEvidenceStatus =
+  | 'authorized'
+  | 'held'
+  | 'released'
+  | 'settled'
+  | 'rejected';
+export interface ComputeBudgetAccountProjection {
+  readonly heldAmountMinorUnits: number;
+  readonly settledAmountMinorUnits: number;
+  readonly version: number;
+}
+export interface ComputeBudgetEvidenceBinding {
+  readonly teamId: string;
+  readonly budgetRailId: string;
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly workUnitDigest: string;
+  readonly currency: 'USD';
+  readonly maxAmountMinorUnits: number;
+  readonly policyDigest: string;
+  readonly periodDigest: string;
+  readonly nonceDigest: string;
+  readonly idempotencyKeyHash: string;
+}
+export interface ComputeBudgetEvidence extends ComputeBudgetEvidenceBinding {
+  readonly schemaVersion: typeof COMPUTE_BUDGET_EVIDENCE_SCHEMA_VERSION;
+  readonly verificationScope: 'issuer_attested';
+  readonly evidenceScope: 'budget_ledger_only';
+  readonly receiptId: string;
+  readonly status: ComputeBudgetEvidenceStatus;
+  readonly heldAmountMinorUnits: number;
+  readonly settledAmountMinorUnits: number;
+  readonly accountBefore: ComputeBudgetAccountProjection;
+  readonly accountAfter: ComputeBudgetAccountProjection;
+  readonly measuredCostReceiptId?: string;
+  readonly issuedAt: string;
+  readonly validFrom: string;
+  readonly validUntil: string;
+  readonly attestation: ComputeIssuerAttestation;
+}
+export interface BuildComputeBudgetEvidenceInput extends ComputeBudgetEvidenceBinding {
+  readonly status: ComputeBudgetEvidenceStatus;
+  readonly heldAmountMinorUnits: number;
+  readonly settledAmountMinorUnits: number;
+  readonly accountBefore: ComputeBudgetAccountProjection;
+  readonly accountAfter: ComputeBudgetAccountProjection;
+  readonly measuredCostReceiptId?: string;
+  readonly issuedAt: string;
+  readonly validFrom: string;
+  readonly validUntil: string;
+  readonly signer: ComputeEvidenceSigner;
+}
+export interface VerifyComputeBudgetEvidenceInput extends ComputeBudgetEvidenceBinding {
+  readonly evidence: ComputeBudgetEvidence;
+  readonly verifiedAt: string;
+  readonly trustAnchors: readonly ComputeEvidenceTrustAnchor[];
+}
+export interface ComputeBudgetEvidenceVerification extends ComputeEvidenceValidation {
+  readonly verificationScope: 'issuer_authenticated';
 }
 export interface ComputeCapacitySnapshot {
   readonly schemaVersion: typeof COMPUTE_CAPACITY_SNAPSHOT_SCHEMA_VERSION;
@@ -8920,6 +8985,9 @@ export declare function authorizeComputeCapacityLeaseUse(input: AuthorizeCompute
 export declare function attestComputeExecutionReceipt(input: AttestComputeExecutionReceiptInput): ComputeSubjectAttestation;
 export declare function validateComputeSubjectAttestation(value: unknown): ComputeEvidenceValidation;
 export declare function verifyComputeExecutionEvidence(input: VerifyComputeExecutionEvidenceInput): ComputeExecutionEvidenceVerification;
+export declare function buildComputeBudgetEvidence(input: BuildComputeBudgetEvidenceInput): ComputeBudgetEvidence;
+export declare function validateComputeBudgetEvidence(value: unknown): ComputeEvidenceValidation;
+export declare function verifyComputeBudgetEvidence(input: VerifyComputeBudgetEvidenceInput): ComputeBudgetEvidenceVerification;
 
 // --- Provider-neutral compute job lifecycle projections ---
 export declare const COMPUTE_JOB_SCHEMA_VERSION: 'holoscript.compute-job.v1';
