@@ -10,7 +10,7 @@ export function AdminDashboardComponent() {
   return (
     <div
       className="holoscript-2d-root w-full h-full"
-      data-holo-view-contract="4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16"
+      data-holo-view-contract="1a14871e7e25c12d8c9d5375bb6f13461967188495348a7b8147234b58bd136e"
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
@@ -37,7 +37,7 @@ export function AdminDashboardComponent() {
               data-holo-projects="stats.sessions.revoked"
               className="text-sm text-[10px] text-studio-muted"
             >
-              {`${stats?.sessions?.revoked ?? 0} revoked`}
+              {`${stats?.sessions?.revoked ?? '0'} revoked`}
             </span>
           </div>
           <div
@@ -72,7 +72,7 @@ export function AdminDashboardComponent() {
               data-holo-projects="stats.tenants.suspended"
               className="text-sm text-[10px] text-studio-muted"
             >
-              {`${stats?.tenants?.suspended ?? 0} suspended`}
+              {`${stats?.tenants?.suspended ?? '0'} suspended`}
             </span>
           </div>
           <div
@@ -92,7 +92,7 @@ export function AdminDashboardComponent() {
               data-holo-projects="stats.quotas.tracked"
               className="text-sm text-[10px] text-studio-muted"
             >
-              {`${stats?.quotas?.tracked ?? 0} tracked`}
+              {`${stats?.quotas?.tracked ?? '0'} tracked`}
             </span>
           </div>
         </div>
@@ -156,13 +156,28 @@ export const holoViewContract = {
     { element: 'AuditEvent', node: 'entry.event', identity: true },
     { element: 'AuditOutcome', node: 'entry.outcome', identity: false },
     { element: 'AuditRow', node: 'recent', identity: false },
-    { element: 'QuotasSub', node: 'stats.quotas.tracked', identity: false },
+    {
+      element: 'QuotasSub',
+      node: 'stats.quotas.tracked',
+      identity: false,
+      transform: { suffix: ' tracked' },
+    },
     { element: 'QuotasValue', node: 'stats.quotas.exceeded', identity: false },
-    { element: 'SessionsSub', node: 'stats.sessions.revoked', identity: false },
+    {
+      element: 'SessionsSub',
+      node: 'stats.sessions.revoked',
+      identity: false,
+      transform: { suffix: ' revoked' },
+    },
     { element: 'SessionsValue', node: 'stats.sessions.authenticated', identity: true },
-    { element: 'TenantsSub', node: 'stats.tenants.suspended', identity: false },
+    {
+      element: 'TenantsSub',
+      node: 'stats.tenants.suspended',
+      identity: false,
+      transform: { suffix: ' suspended' },
+    },
     { element: 'TenantsValue', node: 'stats.tenants.active', identity: true },
   ],
   stateRoots: ['auditLog', 'entry', 'recent', 'stats'],
-  contractHash: '4f0e9c40712c98d5acd7130f4ac62dd1b4a3c34e6c2d6b7672fbc73a7c578e16',
+  contractHash: '1a14871e7e25c12d8c9d5375bb6f13461967188495348a7b8147234b58bd136e',
 } as const;

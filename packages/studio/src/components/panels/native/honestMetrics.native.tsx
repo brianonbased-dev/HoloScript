@@ -10,7 +10,7 @@ export function HonestMetricsComponent() {
   return (
     <div
       className="holoscript-2d-root w-full h-full"
-      data-holo-view-contract="f2b121d39295a30e7a82c5ac7772cce6dce9387c284778abae200dc2823ef02d"
+      data-holo-view-contract="9f2ec322d0eb31bca6e34a0a1d9477446ba72be68d4cdf30133bf685c9fa18e9"
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
@@ -61,7 +61,7 @@ export function HonestMetricsComponent() {
             data-holo-projects="growth"
             className="text-3xl font-bold text-lg font-semibold text-studio-text"
           >
-            {`${growth ?? 0}%`}
+            {`${growth ?? '0'}%`}
             <sup className="holo-prov-mark" title="provenance: derived">
               °
             </sup>
@@ -125,11 +125,11 @@ export default HonestMetricsComponent;
 export const holoViewContract = {
   version: 'holo-view-contract-v1',
   projections: [
-    { element: 'DerivedValue', node: 'growth', identity: false },
+    { element: 'DerivedValue', node: 'growth', identity: false, transform: { suffix: '%' } },
     { element: 'GenerativeValue', node: 'aiEstimate', identity: true },
     { element: 'InferredValue', node: 'forecast', identity: true },
     { element: 'MeasuredValue', node: 'sessions', identity: true },
   ],
   stateRoots: ['aiEstimate', 'forecast', 'growth', 'sessions'],
-  contractHash: 'f2b121d39295a30e7a82c5ac7772cce6dce9387c284778abae200dc2823ef02d',
+  contractHash: '9f2ec322d0eb31bca6e34a0a1d9477446ba72be68d4cdf30133bf685c9fa18e9',
 } as const;

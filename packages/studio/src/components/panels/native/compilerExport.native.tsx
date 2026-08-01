@@ -10,7 +10,7 @@ export function CompilerExportComponent() {
   return (
     <div
       className="holoscript-2d-root w-full h-full"
-      data-holo-view-contract="0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768"
+      data-holo-view-contract="021e37f323911d1533b8697cb104abd76b2093769616064f100f51d37a7544e8"
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
@@ -130,8 +130,13 @@ export const holoViewContract = {
     { element: 'SliderValue', node: 'nodes', identity: true },
     { element: 'TargetName', node: 't.target', identity: true },
     { element: 'TargetRow', node: 'targets', identity: false },
-    { element: 'TargetSize', node: 't.sizeKb', identity: false },
+    {
+      element: 'TargetSize',
+      node: 't.sizeKb',
+      identity: false,
+      transform: { precision: 2, suffix: ' KB' },
+    },
   ],
   stateRoots: ['nodes', 't', 'targets'],
-  contractHash: '0b140a688f2e5a31a36b9761893338fd67707fc91f5ec41cbe57ce872a981768',
+  contractHash: '021e37f323911d1533b8697cb104abd76b2093769616064f100f51d37a7544e8',
 } as const;
