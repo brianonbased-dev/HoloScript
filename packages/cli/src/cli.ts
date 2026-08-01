@@ -24,6 +24,7 @@ import {
   type DeviceFacts,
 } from './device-release-plan';
 import { materializeDevicePackage } from './device-package-materialization';
+import { buildDeviceArtifacts } from './device-artifact-build';
 import {
   buildHeadlessPosePhysicsReceipt,
   headlessAstToSceneReceipt,
@@ -252,9 +253,9 @@ async function runNodeDeviceCommand(options: ReturnType<typeof parseArgs>): Prom
     return;
   }
 
-  if (subcommand !== 'plan' && subcommand !== 'materialize') {
+  if (subcommand !== 'plan' && subcommand !== 'materialize' && subcommand !== 'build') {
     throw new Error(
-      `Unknown node subcommand "${subcommand}". Use "node profiles", "node plan", or "node materialize"`
+      `Unknown node subcommand "${subcommand}". Use "node profiles", "node plan", "node materialize", or "node build"`
     );
   }
   if (!options.input) {
@@ -280,6 +281,22 @@ async function runNodeDeviceCommand(options: ReturnType<typeof parseArgs>): Prom
     compilerVersion: getCliVersionString(),
     deviceFacts: device === 'auto' ? await detectLocalDeviceFacts() : undefined,
   };
+
+  if (subcommand === 'build') {
+    const defaultDirectory = `${path.basename(absoluteSourcePath, path.extname(absoluteSourcePath))}.holonode-${device}-artifacts`;
+    const build = buildDeviceArtifacts(releaseInput, options.output ?? defaultDirectory);
+    if (options.json) {
+      printJson(build);
+      return;
+    }
+    console.log(`\x1b[36mDevice artifacts built: ${build.receipt.profileId}\x1b[0m`);
+    console.log(`  Output: ${build.outputDirectory}`);
+    for (const artifact of build.receipt.artifacts) {
+      console.log(`  ${artifact.format}: ${artifact.path} (${artifact.sha256})`);
+    }
+    console.log('  Reproducibility: byte-identical');
+    return;
+  }
 
   if (subcommand === 'materialize') {
     const materialization = materializeDevicePackage(releaseInput);
@@ -815,7 +832,7 @@ async function main(): Promise<void> {
       } catch (error: unknown) {
         cliError('E003', error instanceof Error ? error.message : String(error), {
           usage:
-            'holoscript node <plan|materialize> <source.holo|source.hsplus|source.hs> --device <profile|auto> [--json] [-o path]',
+            'holoscript node <plan|materialize|build> <source.holo|source.hsplus|source.hs> --device <profile|auto> [--json] [-o path]',
           hint: 'Run `holoscript node profiles --json` to inspect selectable public device profiles.',
         });
         process.exit(1);

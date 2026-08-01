@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/core",
-  "version": "8.0.18",
+  "version": "8.0.19",
   "description": "Core parser, AST, type/trait system, compiler infrastructure, and runtime for the HoloScript general-purpose semantic systems language",
   "type": "module",
   "main": "./dist/index.js",

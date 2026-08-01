@@ -308,7 +308,9 @@ export function parseArgs(args: string[]): CLIOptions {
 
     // Commands
     if (!arg.startsWith('-')) {
-      if (
+      if (options.command === 'node' && !options.subcommand) {
+        options.subcommand = arg;
+      } else if (
         [
           'parse',
           'validate',
@@ -381,8 +383,6 @@ export function parseArgs(args: string[]): CLIOptions {
         options.subcommand = arg;
       } else if (options.command === 'world-model' && !options.subcommand) {
         // Subcommands for world-model: replay, trajectory-replay, trajectory-generate
-        options.subcommand = arg;
-      } else if (options.command === 'node' && !options.subcommand) {
         options.subcommand = arg;
       } else if (['add', 'remove'].includes(options.command)) {
         // Collect package names for add/remove commands
@@ -749,6 +749,7 @@ Usage: holoscript <command> [options] [input]
   compile <file>    Compile to target platform (threejs, unity, vrchat)
   node plan <file>  Plan a gated public device package from HoloScript source
   node materialize  Compile and materialize a selectable device package source bundle
+  node build <file> Build reproducible OCI and rootless systemd artifacts for Linux devices
   fmt <paths...>    Format .hs, .hsplus, and .holo source files
                     Use --check to verify or --write to update files
   build <input>     Unified build/pack command (detects file vs dir)

@@ -148,6 +148,21 @@ describe('NodeServiceCompiler', () => {
       expect(result['index.ts']).toContain("import express from 'express'");
     });
 
+    it('does not import an environment module when none is emitted', () => {
+      const result = compiler.compile(makeComposition(), 'test-token');
+      expect(result['config/env.ts']).toBeUndefined();
+      expect(result['index.ts']).not.toContain("import './config/env'");
+    });
+
+    it('imports the environment module when it is emitted', () => {
+      const result = compiler.compile(
+        makeServiceComposition('EnvAPI', { env_name: 'API_TOKEN' }, [], ['env']),
+        'test-token'
+      );
+      expect(result['config/env.ts']).toBeDefined();
+      expect(result['index.ts']).toContain("import './config/env'");
+    });
+
     it('creates express app', () => {
       const result = compiler.compile(makeComposition(), 'test-token');
       expect(result['index.ts']).toContain('const app = express()');

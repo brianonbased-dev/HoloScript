@@ -43,7 +43,14 @@ describe('compiler-born device package materialization', () => {
     expect(first.files['packaging/systemd/user/holonode.service']).toContain(
       'NoNewPrivileges=true'
     );
+    expect(first.files['packaging/systemd/user/holonode.service']).toContain(
+      'WorkingDirectory=%h/.local/share/holonode/current'
+    );
     expect(first.files['packaging/systemd/user/holonode.service']).not.toContain('User=root');
+    expect(first.files['packaging/systemd/install.sh']).toContain('systemctl --user enable');
+    expect(first.files['packaging/systemd/install.sh']).not.toContain('sudo');
+    expect(first.files['packaging/systemd/rollback.sh']).toContain('STATE_ROOT/previous');
+    expect(first.files['packaging/systemd/rollback.sh']).not.toContain('sudo');
     expect(first.files['source/public-holon-node.holo']).toBe(SOURCE);
     expect(first.receipt.files.every((file) => /^[a-f0-9]{64}$/.test(file.sha256))).toBe(true);
     expect(first.receipt.gates).toEqual([

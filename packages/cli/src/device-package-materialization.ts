@@ -72,7 +72,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/.local/share/holonode/app
+WorkingDirectory=%h/.local/share/holonode/current
 ExecStart=/usr/bin/env npm start
 Restart=on-failure
 RestartSec=5
@@ -85,6 +85,59 @@ Environment=NODE_ENV=production
 
 [Install]
 WantedBy=default.target
+`;
+}
+
+function systemdInstallScript(): string {
+  return `#!/bin/sh
+set -eu
+
+BUNDLE_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+APP_SOURCE="$BUNDLE_ROOT/app"
+STATE_ROOT="${'$'}HOME/.local/share/holonode"
+RELEASES_ROOT="$STATE_ROOT/releases"
+UNIT_ROOT="${'$'}HOME/.config/systemd/user"
+RELEASE_ID=$(cat "$BUNDLE_ROOT/packaging/systemd/release-id")
+case "$RELEASE_ID" in
+  *[!a-f0-9]*|'') printf '%s\n' "Invalid HoloNode release identifier" >&2; exit 1 ;;
+esac
+RELEASE_ROOT="$RELEASES_ROOT/$RELEASE_ID"
+
+mkdir -p "$RELEASES_ROOT" "$UNIT_ROOT"
+if [ ! -d "$RELEASE_ROOT" ]; then
+  mkdir -p "$RELEASE_ROOT"
+  cp -R "$APP_SOURCE/." "$RELEASE_ROOT/"
+  (cd "$RELEASE_ROOT" && npm ci --ignore-scripts && npm run build && npm prune --omit=dev)
+fi
+
+if [ -L "$STATE_ROOT/current" ]; then
+  CURRENT_TARGET=$(readlink "$STATE_ROOT/current")
+  ln -sfn "$CURRENT_TARGET" "$STATE_ROOT/previous"
+fi
+ln -sfn "$RELEASE_ROOT" "$STATE_ROOT/current"
+cp "$BUNDLE_ROOT/packaging/systemd/user/holonode.service" "$UNIT_ROOT/holonode.service"
+systemctl --user daemon-reload
+systemctl --user enable --now holonode.service
+printf '%s\n' "$RELEASE_ID"
+`;
+}
+
+function systemdRollbackScript(): string {
+  return `#!/bin/sh
+set -eu
+
+STATE_ROOT="${'$'}HOME/.local/share/holonode"
+if [ ! -L "$STATE_ROOT/previous" ]; then
+  printf '%s\n' "No previous HoloNode release is available" >&2
+  exit 1
+fi
+
+PREVIOUS_TARGET=$(readlink "$STATE_ROOT/previous")
+CURRENT_TARGET=$(readlink "$STATE_ROOT/current")
+ln -sfn "$PREVIOUS_TARGET" "$STATE_ROOT/current"
+ln -sfn "$CURRENT_TARGET" "$STATE_ROOT/previous"
+systemctl --user restart holonode.service
+printf '%s\n' "$PREVIOUS_TARGET"
 `;
 }
 
@@ -194,6 +247,8 @@ export function materializeDevicePackage(
     );
     platformFiles = {
       'packaging/systemd/user/holonode.service': rootlessSystemdUnit(),
+      'packaging/systemd/install.sh': systemdInstallScript(),
+      'packaging/systemd/rollback.sh': systemdRollbackScript(),
     };
   }
 

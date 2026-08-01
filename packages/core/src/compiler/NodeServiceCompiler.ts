@@ -615,7 +615,9 @@ export class NodeServiceCompiler extends CompilerBase {
 
     if (isExpress) {
       lines.push(`import express from 'express';`);
-      lines.push(`import './config/env';`);
+      if (this.collectEnvVars().length > 0) {
+        lines.push(`import './config/env';`);
+      }
       const hasConnectors = this.collectConnectors().length > 0;
       if (hasConnectors) {
         lines.push(`import { initConnectors } from './connectors';`);

@@ -21,4 +21,16 @@ describe('node device command parsing', () => {
       json: true,
     });
   });
+
+  it('keeps node build scoped under node instead of the top-level build command', () => {
+    expect(
+      parseArgs(['node', 'build', 'public-node.holo', '--device', 'jetson-orin', '--json'])
+    ).toMatchObject({
+      command: 'node',
+      subcommand: 'build',
+      input: 'public-node.holo',
+      device: 'jetson-orin',
+      json: true,
+    });
+  });
 });
