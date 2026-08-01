@@ -177,10 +177,17 @@ export interface CharacterHostFromCompositionResult {
     canthalTilt?: number;
     facialDetailProfile?: AgentAvatarFacialDetailProfile;
     eyeScale?: number;
+    eyeSpacing?: number;
     browHeight?: number;
     browThickness?: number;
     earScale?: number;
     mouthDepth?: number;
+    noseBridgeWidth?: number;
+    noseLength?: number;
+    noseProjection?: number;
+    mouthWidth?: number;
+    upperLipFullness?: number;
+    lowerLipFullness?: number;
     cheekboneScale?: number;
     chinProjection?: number;
     templeWidth?: number;
@@ -799,10 +806,17 @@ export function buildCharacterHostFromComposition(
   let canthalTilt: number | undefined;
   let facialDetailProfile: AgentAvatarFacialDetailProfile | undefined;
   let eyeScale: number | undefined;
+  let eyeSpacing: number | undefined;
   let browHeight: number | undefined;
   let browThickness: number | undefined;
   let earScale: number | undefined;
   let mouthDepth: number | undefined;
+  let noseBridgeWidth: number | undefined;
+  let noseLength: number | undefined;
+  let noseProjection: number | undefined;
+  let mouthWidth: number | undefined;
+  let upperLipFullness: number | undefined;
+  let lowerLipFullness: number | undefined;
   let cheekboneScale: number | undefined;
   let chinProjection: number | undefined;
   let templeWidth: number | undefined;
@@ -921,10 +935,17 @@ export function buildCharacterHostFromComposition(
           } else {
             facialDetailProfile = authoredFacialDetailProfile;
             eyeScale = clamp(asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1, 0.72, 1.08);
+            eyeSpacing = clamp(asNum(cfgVal(faceTrait, 'eye_spacing')) ?? 1, 0.82, 1.2);
             browHeight = clamp(asNum(cfgVal(faceTrait, 'brow_height')) ?? 1.05, 0.65, 1.65);
             browThickness = clamp(asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16, 0.08, 0.32);
             earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
             mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
+            noseBridgeWidth = clamp(asNum(cfgVal(faceTrait, 'nose_bridge_width')) ?? 1, 0.65, 1.45);
+            noseLength = clamp(asNum(cfgVal(faceTrait, 'nose_length')) ?? 1, 0.72, 1.3);
+            noseProjection = clamp(asNum(cfgVal(faceTrait, 'nose_projection')) ?? 1, 0.65, 1.45);
+            mouthWidth = clamp(asNum(cfgVal(faceTrait, 'mouth_width')) ?? 1, 0.75, 1.25);
+            upperLipFullness = clamp(asNum(cfgVal(faceTrait, 'upper_lip_fullness')) ?? 1, 0.6, 1.5);
+            lowerLipFullness = clamp(asNum(cfgVal(faceTrait, 'lower_lip_fullness')) ?? 1, 0.6, 1.6);
           }
           if (
             facialDetailProfile === 'portrait-silhouette-v2' ||
@@ -978,8 +999,11 @@ export function buildCharacterHostFromComposition(
             }
             report.mapped.push(
               `@face(facial_detail_profile=${facialDetailProfile},eye_scale=${eyeScale},` +
-                `brow_height=${browHeight},brow_thickness=${browThickness},` +
-                `ear_scale=${earScale},mouth_depth=${mouthDepth}` +
+                `eye_spacing=${eyeSpacing},brow_height=${browHeight},` +
+                `brow_thickness=${browThickness},ear_scale=${earScale},mouth_depth=${mouthDepth},` +
+                `nose_bridge_width=${noseBridgeWidth},nose_length=${noseLength},` +
+                `nose_projection=${noseProjection},mouth_width=${mouthWidth},` +
+                `upper_lip_fullness=${upperLipFullness},lower_lip_fullness=${lowerLipFullness}` +
                 (facialDetailProfile === 'portrait-silhouette-v2' ||
                 facialDetailProfile === 'portrait-cranial-v3' ||
                 facialDetailProfile === 'portrait-soft-tissue-v4' ||
@@ -1085,10 +1109,17 @@ export function buildCharacterHostFromComposition(
         ...(canthalTilt === undefined ? {} : { canthalTilt }),
         ...(facialDetailProfile === undefined ? {} : { facialDetailProfile }),
         ...(eyeScale === undefined ? {} : { eyeScale }),
+        ...(eyeSpacing === undefined ? {} : { eyeSpacing }),
         ...(browHeight === undefined ? {} : { browHeight }),
         ...(browThickness === undefined ? {} : { browThickness }),
         ...(earScale === undefined ? {} : { earScale }),
         ...(mouthDepth === undefined ? {} : { mouthDepth }),
+        ...(noseBridgeWidth === undefined ? {} : { noseBridgeWidth }),
+        ...(noseLength === undefined ? {} : { noseLength }),
+        ...(noseProjection === undefined ? {} : { noseProjection }),
+        ...(mouthWidth === undefined ? {} : { mouthWidth }),
+        ...(upperLipFullness === undefined ? {} : { upperLipFullness }),
+        ...(lowerLipFullness === undefined ? {} : { lowerLipFullness }),
         ...(cheekboneScale === undefined ? {} : { cheekboneScale }),
         ...(chinProjection === undefined ? {} : { chinProjection }),
         ...(templeWidth === undefined ? {} : { templeWidth }),
@@ -1686,10 +1717,17 @@ export function buildCharacterHostFromComposition(
     canthalTilt,
     facialDetailProfile,
     eyeScale,
+    eyeSpacing,
     browHeight,
     browThickness,
     earScale,
     mouthDepth,
+    noseBridgeWidth,
+    noseLength,
+    noseProjection,
+    mouthWidth,
+    upperLipFullness,
+    lowerLipFullness,
     cheekboneScale,
     chinProjection,
     templeWidth,

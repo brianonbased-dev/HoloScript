@@ -569,6 +569,13 @@ describe('hair — procedural geometry (pure data)', () => {
       upperBodyProfile: 'coherent-expressive-anatomy-v7',
       facialDetailProfile: 'portrait-facial-planes-v6',
       facialPlaneStrength: 0.8,
+      eyeSpacing: 1.16,
+      noseBridgeWidth: 0.72,
+      noseLength: 1.24,
+      noseProjection: 1.31,
+      mouthWidth: 1.17,
+      upperLipFullness: 0.74,
+      lowerLipFullness: 1.38,
       skinUvProfile: 'portrait-atlas-v1',
       includeHair: false,
       includeEyes: false,
@@ -581,14 +588,33 @@ describe('hair — procedural geometry (pure data)', () => {
       includeHair: false,
       includeEyes: false,
     });
+    const anatomyBaseline = buildCharacterMesh({
+      entityId: 'h4j-anatomy-baseline',
+      faceTopology: 'neutral-anatomical-v2',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      facialDetailProfile: 'portrait-facial-planes-v6',
+      facialPlaneStrength: 0.8,
+      includeHair: false,
+      includeEyes: false,
+    });
 
     expect(portrait.facialLandmarks).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v6',
       profile: 'portrait-facial-planes-v6',
       facialPlaneProfile: 'brow-malar-jaw-plane-field-v1',
       facialPlaneStrength: 0.8,
+      eyeSpacing: 1.16,
+      noseBridgeWidth: 0.72,
+      noseLength: 1.24,
+      noseProjection: 1.31,
+      mouthWidth: 1.17,
+      upperLipFullness: 0.74,
+      lowerLipFullness: 1.38,
     });
     expect(portrait.facialLandmarks!.facialPlaneVertexCount).toBeGreaterThan(100);
+    expect(Array.from(portrait.mesh.positions)).not.toEqual(
+      Array.from(anatomyBaseline.mesh.positions)
+    );
     expect(portrait.skinUv).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-skin-uv.v1',
       profile: 'portrait-atlas-v1',

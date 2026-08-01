@@ -2229,6 +2229,13 @@ describe('buildCharacterHostFromComposition', () => {
                 facial_detail_profile: 'portrait_facial_planes_v6',
                 facial_plane_strength: 0.81,
                 orbital_profile: 'anatomical_lid_blend_v3',
+                eye_spacing: 1.14,
+                nose_bridge_width: 0.76,
+                nose_length: 1.22,
+                nose_projection: 1.27,
+                mouth_width: 1.16,
+                upper_lip_fullness: 0.78,
+                lower_lip_fullness: 1.34,
               },
             },
             {
@@ -2271,10 +2278,24 @@ describe('buildCharacterHostFromComposition', () => {
     expect(result.face).toMatchObject({
       facialDetailProfile: 'portrait-facial-planes-v6',
       facialPlaneStrength: 0.81,
+      eyeSpacing: 1.14,
+      noseBridgeWidth: 0.76,
+      noseLength: 1.22,
+      noseProjection: 1.27,
+      mouthWidth: 1.16,
+      upperLipFullness: 0.78,
+      lowerLipFullness: 1.34,
     });
     expect(result.facialLandmarks).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v6',
       facialPlaneProfile: 'brow-malar-jaw-plane-field-v1',
+      eyeSpacing: 1.14,
+      noseBridgeWidth: 0.76,
+      noseLength: 1.22,
+      noseProjection: 1.27,
+      mouthWidth: 1.16,
+      upperLipFullness: 0.78,
+      lowerLipFullness: 1.34,
     });
     expect(result.skin).toMatchObject({
       schemaVersion: 'holoscript.agent-avatar-skin-material.v5',

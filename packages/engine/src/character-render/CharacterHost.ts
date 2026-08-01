@@ -115,6 +115,8 @@ export interface CharacterHostOptions {
   facialDetailProfile?: AgentAvatarFacialDetailProfile;
   /** Procedural ocular globe scale (0.72..1.08). */
   eyeScale?: number;
+  /** Interocular spacing relative to the anatomical-head baseline. */
+  eyeSpacing?: number;
   /** Brow rise above the upper lid, in eye-radius units. */
   browHeight?: number;
   /** Brow ribbon thickness, in eye-radius units. */
@@ -123,6 +125,18 @@ export interface CharacterHostOptions {
   earScale?: number;
   /** Lip-volume depth multiplier. */
   mouthDepth?: number;
+  /** Nasal bridge width relative to the portrait facial-volume baseline. */
+  noseBridgeWidth?: number;
+  /** Nasal vertical length relative to the portrait facial-volume baseline. */
+  noseLength?: number;
+  /** Nasal forward projection relative to the portrait facial-volume baseline. */
+  noseProjection?: number;
+  /** Mouth width relative to the anatomical lip baseline. */
+  mouthWidth?: number;
+  /** Upper-lip soft-tissue fullness relative to the anatomical lip baseline. */
+  upperLipFullness?: number;
+  /** Lower-lip soft-tissue fullness relative to the anatomical lip baseline. */
+  lowerLipFullness?: number;
   /** Portrait-silhouette-v2 cheek-volume multiplier. */
   cheekboneScale?: number;
   /** Portrait-silhouette-v2 forward chin projection. */
@@ -514,10 +528,17 @@ export class CharacterHost {
       canthalTilt: opts.canthalTilt,
       facialDetailProfile: opts.facialDetailProfile,
       eyeScale: opts.eyeScale,
+      eyeSpacing: opts.eyeSpacing,
       browHeight: opts.browHeight,
       browThickness: opts.browThickness,
       earScale: opts.earScale,
       mouthDepth: opts.mouthDepth,
+      noseBridgeWidth: opts.noseBridgeWidth,
+      noseLength: opts.noseLength,
+      noseProjection: opts.noseProjection,
+      mouthWidth: opts.mouthWidth,
+      upperLipFullness: opts.upperLipFullness,
+      lowerLipFullness: opts.lowerLipFullness,
       cheekboneScale: opts.cheekboneScale,
       chinProjection: opts.chinProjection,
       templeWidth: opts.templeWidth,

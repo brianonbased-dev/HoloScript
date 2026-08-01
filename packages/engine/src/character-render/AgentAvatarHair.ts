@@ -1297,6 +1297,7 @@ export function buildAgentAvatarEyes(
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
     eyeScale?: number;
+    eyeSpacing?: AgentAvatarMeshOptions['eyeSpacing'];
     faceWidth?: AgentAvatarMeshOptions['faceWidth'];
   } = {}
 ): HairMeshData {
@@ -1314,7 +1315,8 @@ export function buildAgentAvatarEyes(
     o.orbitalProfile === 'anatomical-lid-blend-v3';
   const eyeRecess = recessed ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - r * eyeRecess;
-  const eyeX = 0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2);
+  const eyeX =
+    0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2) * clamp(o.eyeSpacing ?? 1, 0.82, 1.2);
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
 
   const positions: number[] = [];
@@ -1382,6 +1384,7 @@ export function buildAgentAvatarOcularRegions(
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
     eyeScale?: number;
+    eyeSpacing?: AgentAvatarMeshOptions['eyeSpacing'];
     faceWidth?: AgentAvatarMeshOptions['faceWidth'];
     irisScale?: number;
     pupilScale?: number;
@@ -1403,7 +1406,8 @@ export function buildAgentAvatarOcularRegions(
     o.orbitalProfile === 'anatomical-lid-blend-v3';
   const eyeRecess = recessed ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - radius * eyeRecess;
-  const eyeX = 0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2);
+  const eyeX =
+    0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2) * clamp(o.eyeSpacing ?? 1, 0.82, 1.2);
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
   const irisScale = Math.max(0.34, Math.min(0.62, o.irisScale ?? 0.48));
   const pupilScale = Math.max(0.2, Math.min(0.72, o.pupilScale ?? 0.42));
@@ -1837,6 +1841,7 @@ export function buildCharacterMesh(
             orbitalProfile: opts.orbitalProfile,
             eyeRecess: opts.eyeRecess,
             eyeScale: opts.eyeScale,
+            eyeSpacing: opts.eyeSpacing,
             faceWidth: opts.faceWidth,
             irisScale: opts.irisScale,
             pupilScale: opts.pupilScale,
@@ -1851,6 +1856,7 @@ export function buildCharacterMesh(
               orbitalProfile: opts.orbitalProfile,
               eyeRecess: opts.eyeRecess,
               eyeScale: opts.eyeScale,
+              eyeSpacing: opts.eyeSpacing,
               faceWidth: opts.faceWidth,
             }),
             uvs: new Float32Array(),
