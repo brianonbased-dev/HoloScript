@@ -1,5 +1,6 @@
 import {
   DETERMINISTIC_HOLO_WORLD_PROJECTION,
+  DEVICE_RELEASE_PLAN_SCHEMA,
   HEADLESS_OBSERVER_PROJECTION_SCHEMA,
   HEADLESS_OBSERVER_PROOF_SCHEMA,
   HEADLESS_SOURCE_RUN_RECEIPT_SCHEMA,
@@ -17,6 +18,8 @@ import {
   SINGLE_EXECUTION_POST_SEAL_OBSERVER,
   executeHoloCpuPhysicsReceipt,
   executeHoloWorldProjection,
+  createDeviceReleasePlan,
+  listDeviceProfiles,
   observeHeadlessExperimentReceipt,
   runHeadlessExperimentSources,
   verifyHeadlessExperimentSourceRunReceipt,
@@ -32,6 +35,7 @@ import {
   type HeadlessObserverProjection,
   type HoloWorldProjectionProvenance,
   type HsPlanKernelExecutionProvenance,
+  type DeviceReleasePlan,
 } from '../dist/index.js';
 
 declare const untrustedSourceRunReceipt: unknown;
@@ -52,6 +56,15 @@ const sources: HeadlessExperimentSourceRunSources = {
   planSource: 'export function main(): string { return "[]" }',
   behaviorSource: 'state Canary {}',
 };
+
+const devicePlan: DeviceReleasePlan = createDeviceReleasePlan({
+  sourcePath: 'public-holon-node.holo',
+  source: sources.worldSource,
+  device: 'linux-arm64',
+  compilerVersion: 'consumer-test',
+});
+const devicePlanSchema: 'holoscript-device-release-plan/v0.1.0' = DEVICE_RELEASE_PLAN_SCHEMA;
+const publicDeviceProfiles = listDeviceProfiles();
 
 const sourceRunVerdict = verifyHeadlessExperimentSourceRunReceipt(
   untrustedSourceRunReceipt,
@@ -160,6 +173,9 @@ const handlerOpcodes: readonly [] = verifiedPlanProvenance.vm.profile.registered
 
 void [
   sourceRunVerdict,
+  devicePlan,
+  devicePlanSchema,
+  publicDeviceProfiles,
   planVerdict,
   worldVerdict,
   physicsReceipt,

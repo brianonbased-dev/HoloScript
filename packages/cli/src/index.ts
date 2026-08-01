@@ -64,6 +64,21 @@ export {
 
 export { hologramCommand, type HologramCommandOptions } from './commands/hologram';
 
+export {
+  DEVICE_RELEASE_PLAN_SCHEMA,
+  createDeviceReleasePlan,
+  getDeviceProfile,
+  listDeviceProfiles,
+  resolveDeviceProfile,
+  type DeviceFacts,
+  type DeviceProfile,
+  type DeviceProfileId,
+  type DeviceProfileSelection,
+  type DeviceReleaseGate,
+  type DeviceReleasePlan,
+  type DeviceReleasePlanInput,
+} from './device-release-plan';
+
 // Physics Smoke Receipts
 export {
   runPhysicsSmoke,

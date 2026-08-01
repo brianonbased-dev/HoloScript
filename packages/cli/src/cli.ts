@@ -19,6 +19,11 @@ import { executeCanonicalCodebaseQuery } from './commands/codebase-query';
 import { runPhysicsSmoke, printSmokeReceipt } from './smoke';
 import { runHeadlessExperimentSources } from './headless-experiment';
 import {
+  createDeviceReleasePlan,
+  listDeviceProfiles,
+  type DeviceFacts,
+} from './device-release-plan';
+import {
   buildHeadlessPosePhysicsReceipt,
   headlessAstToSceneReceipt,
   holoCompositionToHeadlessAst,
@@ -212,6 +217,87 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
+}
+
+async function detectLocalDeviceFacts(): Promise<DeviceFacts> {
+  const fs = await import('node:fs');
+  const nvidiaTegra =
+    process.platform === 'linux' &&
+    (fs.existsSync('/etc/nv_tegra_release') ||
+      (fs.existsSync('/proc/device-tree/model') &&
+        fs.readFileSync('/proc/device-tree/model', 'utf8').toLowerCase().includes('nvidia')));
+
+  return {
+    platform: process.platform,
+    architecture: process.arch,
+    nvidiaTegra,
+  };
+}
+
+async function runNodeDeviceCommand(options: ReturnType<typeof parseArgs>): Promise<void> {
+  const subcommand = options.subcommand ?? 'profiles';
+  if (subcommand === 'profiles') {
+    const profiles = listDeviceProfiles();
+    if (options.json) {
+      printJson({ schema: 'holoscript-device-profile-list/v0.1.0', profiles });
+      return;
+    }
+    console.log('\x1b[36mPublic device profiles\x1b[0m');
+    for (const profile of profiles) {
+      console.log(
+        `  ${profile.id}: ${profile.operatingSystem}/${profile.architecture} -> ${profile.packageFormats.join(', ')}`
+      );
+    }
+    return;
+  }
+
+  if (subcommand !== 'plan') {
+    throw new Error(`Unknown node subcommand "${subcommand}". Use "node profiles" or "node plan"`);
+  }
+  if (!options.input) {
+    throw new Error('node plan requires a .holo, .hsplus, or .hs source file');
+  }
+
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const absoluteSourcePath = path.resolve(options.input);
+  if (!fs.existsSync(absoluteSourcePath)) {
+    throw new Error(`HoloScript source not found: ${absoluteSourcePath}`);
+  }
+  const relativeCandidate = path.relative(process.cwd(), absoluteSourcePath).replace(/\\/g, '/');
+  const relativeSourcePath =
+    relativeCandidate === '..' || relativeCandidate.startsWith('../')
+      ? path.basename(absoluteSourcePath)
+      : relativeCandidate;
+  const device = options.device ?? 'auto';
+  const plan = createDeviceReleasePlan({
+    sourcePath: relativeSourcePath,
+    source: fs.readFileSync(absoluteSourcePath, 'utf8'),
+    device,
+    compilerVersion: getCliVersionString(),
+    deviceFacts: device === 'auto' ? await detectLocalDeviceFacts() : undefined,
+  });
+
+  if (options.output) {
+    const outputPath = path.resolve(options.output);
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, `${JSON.stringify(plan, null, 2)}\n`, 'utf8');
+  }
+
+  if (options.json) {
+    printJson(plan);
+    return;
+  }
+
+  console.log(`\x1b[36mDevice release plan: ${plan.profile.id}\x1b[0m`);
+  console.log(`  Source: ${plan.source.path} (${plan.source.sha256})`);
+  console.log(`  Compiler target: ${plan.provenance.compilerTarget}`);
+  console.log(
+    `  Planned artifacts: ${plan.plannedArtifacts.map((entry) => entry.format).join(', ')}`
+  );
+  console.log(`  Gates required: ${plan.gates.length}`);
+  console.log(`  Plan SHA-256: ${plan.planSha256}`);
+  if (options.output) console.log(`  Receipt: ${path.resolve(options.output)}`);
 }
 
 const COMPILE_TARGET_ALIASES: Record<string, string> = {
@@ -683,6 +769,21 @@ async function main(): Promise<void> {
       printHelp();
       process.exit(0);
       break;
+
+    case 'node': {
+      try {
+        await runNodeDeviceCommand(options);
+        process.exit(0);
+      } catch (error: unknown) {
+        cliError('E003', error instanceof Error ? error.message : String(error), {
+          usage:
+            'holoscript node plan <source.holo|source.hsplus|source.hs> --device <profile|auto> [--json] [-o receipt.json]',
+          hint: 'Run `holoscript node profiles --json` to inspect selectable public device profiles.',
+        });
+        process.exit(1);
+      }
+      break;
+    }
 
     case 'validate':
     case 'parse': {

@@ -37,6 +37,7 @@ export interface CLIOptions {
     | 'ast'
     | 'repl'
     | 'watch'
+    | 'node'
     | 'compile'
     | 'fmt'
     | 'build'
@@ -278,6 +279,8 @@ export interface CLIOptions {
   tier?: 'free' | 'pro' | 'enterprise';
   /** Compile output format (e.g. react, html) */
   compileFormat?: string;
+  /** Public deployment device profile or auto-detection request */
+  device?: string;
 }
 
 const DEFAULT_OPTIONS: CLIOptions = {
@@ -313,6 +316,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'ast',
           'repl',
           'watch',
+          'node',
           'compile',
           'fmt',
           'build',
@@ -377,6 +381,8 @@ export function parseArgs(args: string[]): CLIOptions {
         options.subcommand = arg;
       } else if (options.command === 'world-model' && !options.subcommand) {
         // Subcommands for world-model: replay, trajectory-replay, trajectory-generate
+        options.subcommand = arg;
+      } else if (options.command === 'node' && !options.subcommand) {
         options.subcommand = arg;
       } else if (['add', 'remove'].includes(options.command)) {
         // Collect package names for add/remove commands
@@ -511,6 +517,12 @@ export function parseArgs(args: string[]): CLIOptions {
       }
       case '--platform':
         options.platform = args[++i] as EdgePlatform;
+        break;
+      case '--device':
+        options.device = args[++i];
+        if (!options.device || options.device.startsWith('-')) {
+          throw new Error('--device requires a device profile or "auto"');
+        }
         break;
       case '--host':
         options.host = args[++i];
@@ -735,6 +747,7 @@ Usage: holoscript <command> [options] [input]
   parse <file>      Parse a HoloScript file and validate syntax
   run <file>        Execute a HoloScript file
   compile <file>    Compile to target platform (threejs, unity, vrchat)
+  node plan <file>  Plan a gated public device package from HoloScript source
   fmt <paths...>    Format .hs, .hsplus, and .holo source files
                     Use --check to verify or --write to update files
   build <input>     Unified build/pack command (detects file vs dir)
