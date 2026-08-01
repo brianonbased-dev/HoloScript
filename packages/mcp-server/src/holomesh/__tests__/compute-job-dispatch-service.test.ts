@@ -17,6 +17,7 @@ import {
 } from '@holoscript/core/world-model';
 import { describe, expect, it, vi } from 'vitest';
 import type { ComputeJobAdmissionSigner } from '../compute-job-admission';
+import { COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION } from '../compute-execution-ownership';
 import {
   computeExecutorHolderDigest,
   ComputeJobDispatchError,
@@ -30,9 +31,14 @@ import {
 } from '../compute-job-dispatch-service';
 import { ComputeJobStartError, createComputeJobStartService } from '../compute-job-start-service';
 import {
+  ComputeJobRunningError,
+  createComputeJobRunningService,
+} from '../compute-job-running-service';
+import {
   ComputeJobStoreConflictError,
   ComputeJobStoreNotFoundError,
   type CommitComputeJobTransitionCommand,
+  type CommitComputeExecutionHeartbeatCommand,
   type ComputeBudgetEvidenceEnvelope,
   type ComputeDurableEnvelope,
   type ComputeJobProjection,
@@ -195,6 +201,7 @@ function envelope(value: {
 
 class FakeDispatchStore implements ComputeDispatchStore {
   readonly commands: CommitComputeJobTransitionCommand[] = [];
+  readonly heartbeatCommands: CommitComputeExecutionHeartbeatCommand[] = [];
   readonly evidence = new Map<string, ComputeDurableEnvelope>();
   readJobCalls = 0;
   activeBudgetHold?: ComputeBudgetEvidenceEnvelope;
@@ -319,6 +326,22 @@ class FakeDispatchStore implements ComputeDispatchStore {
         budgetEvidenceReceiptId: command.budgetEvidence?.receipt.receiptId,
         evidenceReceiptIds: command.evidence.map((item) => item.receiptId),
         outboxEventIds: command.outbox.map((item) => item.eventId),
+      },
+    };
+  }
+
+  async commitExecutionHeartbeat(command: CommitComputeExecutionHeartbeatCommand) {
+    this.heartbeatCommands.push(command);
+    this.evidence.set(command.ownership.receiptId, command.ownership);
+    return {
+      disposition: 'committed' as const,
+      ownershipReceiptId: command.ownership.receiptId,
+      sequence: command.ownership.receipt.sequence,
+      heartbeatAt: command.ownership.receipt.heartbeatAt,
+      heartbeatValidUntil: command.ownership.receipt.heartbeatValidUntil,
+      readBack: {
+        evidenceReceiptId: command.ownership.receiptId,
+        outboxEventId: command.outbox[0].eventId,
       },
     };
   }
@@ -488,6 +511,12 @@ function expectStartError(error: unknown, code: string): boolean {
   return true;
 }
 
+function expectRunningError(error: unknown, code: string): boolean {
+  expect(error).toBeInstanceOf(ComputeJobRunningError);
+  expect(error).toMatchObject({ code });
+  return true;
+}
+
 function createStartService(harness: ReturnType<typeof createHarness>) {
   return createComputeJobStartService({
     store: harness.store,
@@ -497,6 +526,19 @@ function createStartService(harness: ReturnType<typeof createHarness>) {
     admissionTrustPolicyDigest: ADMISSION_POLICY_DIGEST,
     admissionKeyValidUntil: VALID_UNTIL,
     now: () => '2026-08-01T12:00:06.000Z',
+  });
+}
+
+function createRunningService(harness: ReturnType<typeof createHarness>, at: string) {
+  return createComputeJobRunningService({
+    store: harness.store,
+    executorIdentity: harness.identity,
+    evidenceTrustAnchors: [harness.evidence.anchor, harness.budget.anchor],
+    admissionSigner: harness.admissionSigner,
+    admissionTrustPolicyDigest: ADMISSION_POLICY_DIGEST,
+    admissionKeyValidUntil: VALID_UNTIL,
+    now: () => at,
+    heartbeatTtlMs: 30_000,
   });
 }
 
@@ -836,6 +878,156 @@ describe('compute-job-dispatch-service', () => {
       expect(
         harness.store.commands.filter((item) => item.operation === 'compute_job.start')
       ).toHaveLength(1);
+    } finally {
+      token.fill(0);
+    }
+  });
+
+  it('binds a fenced running acknowledgement into admission and two durable outbox events', async () => {
+    const harness = createHarness();
+    const dispatched = await harness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const token = grantFencingToken(harness, dispatched.grant);
+    try {
+      await createStartService(harness).start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const running = await createRunningService(harness, '2026-08-01T12:00:07.000Z').markRunning({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+
+      const command = harness.store.commands.at(-1);
+      expect(command).toMatchObject({
+        operation: 'compute_job.mark_running',
+        nextJob: { receipt: { state: 'running' } },
+        leaseUseGuard: {
+          holderDigest: computeExecutorHolderDigest(harness.identity),
+          activeBudgetHold: harness.store.activeBudgetHold,
+        },
+      });
+      const ownership = command?.evidence.find(
+        (item) => item.schemaVersion === COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION
+      );
+      expect(JSON.parse(ownership?.bytes ?? '{}')).toMatchObject({
+        kind: 'running_acknowledgement',
+        sequence: 0,
+        holderDigest: computeExecutorHolderDigest(harness.identity),
+        providerReservation: 'not_asserted',
+        execution: 'not_asserted',
+        startPermission: 'outbox_after_commit',
+      });
+      expect(command?.transition.receipt.evidenceReceiptIds).toEqual([
+        dispatched.grant.leaseReceiptId,
+      ]);
+      expect(command?.admission.receipt.evidenceBindings.map((item) => item.receiptId)).toEqual(
+        [dispatched.grant.leaseReceiptId, running.ownershipReceiptId].sort()
+      );
+      expect(command?.outbox.map((item) => item.eventType).sort()).toEqual([
+        'compute_execution.claimed',
+        'compute_job.running',
+      ]);
+      expect(running).toMatchObject({
+        state: 'running',
+        startPermission: 'outbox_after_commit',
+        providerReservation: 'not_asserted',
+        execution: 'not_asserted',
+      });
+    } finally {
+      token.fill(0);
+    }
+  });
+
+  it('refreshes the exact ownership chain without mutating running job state', async () => {
+    const harness = createHarness();
+    const dispatched = await harness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const token = grantFencingToken(harness, dispatched.grant);
+    try {
+      await createStartService(harness).start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const running = await createRunningService(harness, '2026-08-01T12:00:07.000Z').markRunning({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const runningJobReceiptId = harness.store.job.receipt.receiptId;
+      const heartbeat = await createRunningService(harness, '2026-08-01T12:00:08.000Z').heartbeat({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        previousOwnershipReceiptId: running.ownershipReceiptId,
+        heartbeatAt: '2026-08-01T12:00:08.000Z',
+        fencingToken: token,
+      });
+
+      expect(heartbeat).toMatchObject({
+        state: 'running',
+        sequence: 1,
+        providerReservation: 'not_asserted',
+        execution: 'not_asserted',
+      });
+      expect(harness.store.job.receipt.receiptId).toBe(runningJobReceiptId);
+      expect(harness.store.heartbeatCommands).toHaveLength(1);
+      expect(harness.store.heartbeatCommands[0]).toMatchObject({
+        previousOwnershipReceiptId: running.ownershipReceiptId,
+        ownership: {
+          receipt: {
+            kind: 'heartbeat',
+            sequence: 1,
+            previousReceiptId: running.ownershipReceiptId,
+          },
+        },
+        outbox: [{ eventType: 'compute_execution.heartbeat' }],
+      });
+    } finally {
+      token.fill(0);
+    }
+  });
+
+  it('rejects a wrong running fence and injected heartbeat authority before custody writes', async () => {
+    const harness = createHarness();
+    const dispatched = await harness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const token = grantFencingToken(harness, dispatched.grant);
+    try {
+      await createStartService(harness).start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const service = createRunningService(harness, '2026-08-01T12:00:07.000Z');
+      await expect(
+        service.markRunning({
+          jobId: JOB_ID,
+          attempt: 1,
+          leaseReceiptId: dispatched.grant.leaseReceiptId,
+          fencingToken: Buffer.alloc(32, 0x11),
+        })
+      ).rejects.toSatisfy((error: unknown) => expectRunningError(error, 'lease_unauthorized'));
+      expect(
+        harness.store.commands.filter((command) => command.operation === 'compute_job.mark_running')
+      ).toHaveLength(0);
+      await expect(
+        service.heartbeat({
+          jobId: JOB_ID,
+          attempt: 1,
+          leaseReceiptId: dispatched.grant.leaseReceiptId,
+          previousOwnershipReceiptId: digest('forged-ownership'),
+          heartbeatAt: '2026-08-01T12:00:07.000Z',
+          fencingToken: token,
+          teamId: 'attacker-team',
+        } as unknown as Parameters<typeof service.heartbeat>[0])
+      ).rejects.toSatisfy((error: unknown) => expectRunningError(error, 'invalid_request'));
+      expect(harness.store.heartbeatCommands).toHaveLength(0);
     } finally {
       token.fill(0);
     }

@@ -42,6 +42,10 @@ import {
   type ComputeJobAdmissionSigner,
 } from './compute-job-admission';
 import {
+  buildComputeExecutionOwnershipOutboxEnvelope,
+  type ComputeExecutionOwnershipEnvelope,
+} from './compute-execution-ownership';
+import {
   buildComputeJobOutboxEnvelope,
   buildComputeJobPublicResponseBytes,
   ComputeJobStoreConflictError,
@@ -49,6 +53,8 @@ import {
   ComputeJobStoreReadbackError,
   ComputeJobStoreUnavailableError,
   type CommitComputeJobTransitionCommand,
+  type CommitComputeExecutionHeartbeatCommand,
+  type CommitComputeExecutionHeartbeatResult,
   type ComputeBudgetEvidenceEnvelope,
   type ComputeDurableEnvelope,
   type ComputeJobProjection,
@@ -156,6 +162,9 @@ export interface ComputeDispatchStore {
       readonly outboxEventIds: readonly string[];
     };
   }>;
+  commitExecutionHeartbeat(
+    command: CommitComputeExecutionHeartbeatCommand
+  ): Promise<CommitComputeExecutionHeartbeatResult>;
 }
 
 export interface ComputeExecutorGrantCiphertext {
@@ -683,8 +692,19 @@ export function buildComputeTransitionCommand(input: {
   };
   readonly budgetEvidence?: ComputeBudgetEvidence;
   readonly leaseUseGuard?: ComputeLeaseUseGuard;
+  readonly executionOwnership?: ComputeExecutionOwnershipEnvelope;
 }): CommitComputeJobTransitionCommand {
   const requestDigest = input.prepared.transition.request.requestHash;
+  const evidence: readonly ComputeDurableEnvelope[] = input.executionOwnership
+    ? [
+        ...input.evidence,
+        {
+          receiptId: input.executionOwnership.receiptId,
+          schemaVersion: input.executionOwnership.schemaVersion,
+          bytes: input.executionOwnership.bytes,
+        },
+      ]
+    : input.evidence;
   const admission = createComputeJobAdmissionEnvelope(
     prepareAndSignComputeJobAdmission(
       {
@@ -695,7 +715,7 @@ export function buildComputeTransitionCommand(input: {
         operation: input.operation,
         requestDigest,
         workUnit: input.workUnit.contract,
-        evidence: input.evidence,
+        evidence,
         trustPolicyDigest: input.admissionTrustPolicyDigest,
         lifecycle: {
           kind: 'transition',
@@ -727,7 +747,7 @@ export function buildComputeTransitionCommand(input: {
       bytes: canonicalJson(input.prepared.nextJob),
     },
     expectedWorkUnit: input.workUnit,
-    evidence: input.evidence,
+    evidence,
     admission,
     transition: {
       receipt: input.prepared.transition,
@@ -764,7 +784,12 @@ export function buildComputeTransitionCommand(input: {
         }
       : {}),
     ...(input.leaseUseGuard ? { leaseUseGuard: input.leaseUseGuard } : {}),
-    outbox: [buildComputeJobOutboxEnvelope(artifacts)],
+    outbox: [
+      buildComputeJobOutboxEnvelope(artifacts),
+      ...(input.executionOwnership
+        ? [buildComputeExecutionOwnershipOutboxEnvelope(input.executionOwnership.receipt)]
+        : []),
+    ],
     publicResponseBytes: buildComputeJobPublicResponseBytes(artifacts),
   };
 }

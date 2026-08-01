@@ -57,6 +57,13 @@ import {
   type ComputeJobAdmissionSigner,
   type ComputeJobAdmissionTrustAnchor,
 } from '../compute-job-admission';
+import {
+  buildComputeExecutionOwnershipOutboxEnvelope,
+  createComputeExecutionOwnershipEnvelope,
+  prepareAndSignComputeExecutionOwnership,
+  verifyComputeExecutionOwnership,
+  type ComputeExecutionOwnershipEnvelope,
+} from '../compute-execution-ownership';
 
 type JsonObject = Record<string, unknown>;
 
@@ -440,9 +447,21 @@ function projection(receiptValue: ComputeJobReceipt) {
 function transitionCommand(
   prepared: PreparedComputeJobTransition,
   evidence: readonly { readonly receiptId: string; readonly schemaVersion: string }[],
-  unit: ComputeWorkUnitContract
+  unit: ComputeWorkUnitContract,
+  executionOwnership?: ComputeExecutionOwnershipEnvelope
 ): Omit<CommitComputeJobTransitionCommand, 'operation' | 'idempotencyKeyDigest' | 'requestDigest'> {
-  const durableEvidence = evidence.map(evidenceEnvelope);
+  const durableEvidence = [
+    ...evidence.map(evidenceEnvelope),
+    ...(executionOwnership
+      ? [
+          {
+            receiptId: executionOwnership.receiptId,
+            schemaVersion: executionOwnership.schemaVersion,
+            bytes: executionOwnership.bytes,
+          },
+        ]
+      : []),
+  ];
   const operation = `compute_job.${prepared.transition.action}` as ComputeJobAdmissionOperation;
   const artifacts = {
     job: prepared.nextJob,
@@ -476,7 +495,12 @@ function transitionCommand(
           },
         }
       : {}),
-    outbox: [buildComputeJobOutboxEnvelope(artifacts)],
+    outbox: [
+      buildComputeJobOutboxEnvelope(artifacts),
+      ...(executionOwnership
+        ? [buildComputeExecutionOwnershipOutboxEnvelope(executionOwnership.receipt)]
+        : []),
+    ],
     publicResponseBytes: buildComputeJobPublicResponseBytes(artifacts),
   };
 }
@@ -717,11 +741,36 @@ function makePaidSettlementSequence(variant = 'paid-settle'): {
     transitionedAt: RUNNING_AT,
     idempotencyKey: `running-paid-job-${variant}`,
   });
+  const executionOwnership = createComputeExecutionOwnershipEnvelope(
+    prepareAndSignComputeExecutionOwnership(
+      {
+        kind: 'running_acknowledgement',
+        teamId: TEAM_ID,
+        principalDigest: PRINCIPAL,
+        jobId: JOB_ID,
+        attempt: 1,
+        workUnitDigest: computeWorkUnitDigest(fixture.unit),
+        leaseReceiptId: fixture.lease.receiptId,
+        holderDigest: digest(`holder:${variant}`),
+        fencingTokenHash: fixture.lease.fencingTokenHash,
+        capacityRef: fixture.lease.capacityRef,
+        fencingEpoch: fixture.lease.fencingEpoch,
+        sequence: 0,
+        acknowledgedAt: RUNNING_AT,
+        heartbeatAt: RUNNING_AT,
+        heartbeatValidUntil: SNAPSHOT_VALID_UNTIL,
+        trustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+        issuer: ADMISSION_SIGNER.issuer,
+        keyId: ADMISSION_SIGNER.keyId,
+      },
+      ADMISSION_SIGNER
+    )
+  );
   const running: CommitComputeJobTransitionCommand = {
     operation: 'compute_job.mark_running',
     idempotencyKeyDigest: preparedRunning.transition.request.idempotencyKeyHash,
     requestDigest: preparedRunning.transition.request.requestHash,
-    ...transitionCommand(preparedRunning, [fixture.lease], fixture.unit),
+    ...transitionCommand(preparedRunning, [fixture.lease], fixture.unit, executionOwnership),
     leaseUseGuard: leaseUseGuard(
       fixture,
       variant,
@@ -1954,6 +2003,69 @@ afterEach(() => {
 });
 
 describe('PostgresComputeJobStore', () => {
+  it('authenticates ownership and rejects a content-addressed counterfeit signer', () => {
+    const fixture = lifecycleFixture('ownership-crypto');
+    const input = {
+      kind: 'running_acknowledgement' as const,
+      teamId: TEAM_ID,
+      principalDigest: PRINCIPAL,
+      jobId: JOB_ID,
+      attempt: 1,
+      workUnitDigest: computeWorkUnitDigest(fixture.unit),
+      leaseReceiptId: fixture.lease.receiptId,
+      holderDigest: digest('holder:ownership-crypto'),
+      fencingTokenHash: fixture.lease.fencingTokenHash,
+      capacityRef: fixture.lease.capacityRef,
+      fencingEpoch: fixture.lease.fencingEpoch,
+      sequence: 0,
+      acknowledgedAt: RUNNING_AT,
+      heartbeatAt: RUNNING_AT,
+      heartbeatValidUntil: SNAPSHOT_VALID_UNTIL,
+      trustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+      issuer: ADMISSION_SIGNER.issuer,
+      keyId: ADMISSION_SIGNER.keyId,
+    };
+    const expected = {
+      kind: input.kind,
+      teamId: input.teamId,
+      principalDigest: input.principalDigest,
+      jobId: input.jobId,
+      attempt: input.attempt,
+      workUnitDigest: input.workUnitDigest,
+      leaseReceiptId: input.leaseReceiptId,
+      holderDigest: input.holderDigest,
+      fencingTokenHash: input.fencingTokenHash,
+      capacityRef: input.capacityRef,
+      fencingEpoch: input.fencingEpoch,
+      trustPolicyDigest: input.trustPolicyDigest,
+      sequence: 0,
+    };
+    const trusted = prepareAndSignComputeExecutionOwnership(input, ADMISSION_SIGNER);
+    expect(
+      verifyComputeExecutionOwnership({
+        receipt: trusted,
+        expected,
+        trustAnchors: [ADMISSION_TRUST_ANCHOR],
+        at: STORE_VERIFICATION_AT,
+      })
+    ).toMatchObject({ valid: true, receipt: trusted });
+
+    const attackerKeys = generateKeyPairSync('ed25519');
+    const counterfeit = prepareAndSignComputeExecutionOwnership(input, {
+      issuer: ADMISSION_SIGNER.issuer,
+      keyId: ADMISSION_SIGNER.keyId,
+      privateKey: attackerKeys.privateKey,
+    });
+    expect(
+      verifyComputeExecutionOwnership({
+        receipt: counterfeit,
+        expected,
+        trustAnchors: [ADMISSION_TRUST_ANCHOR],
+        at: STORE_VERIFICATION_AT,
+      })
+    ).toEqual({ valid: false, errors: ['ownership signature is invalid'] });
+  });
+
   it('requires PostgreSQL configuration and has no memory fallback', async () => {
     delete process.env.DATABASE_URL;
 
@@ -2399,7 +2511,19 @@ describe('PostgresComputeJobStore', () => {
       BUDGET_PERIOD_DIGEST,
       BUDGET_POLICY_DIGEST,
     ]);
-    expect(finalGate?.values.slice(25)).toEqual([false, null, null, null, null, null, null, null]);
+    expect(finalGate?.values.slice(25)).toEqual([
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      null,
+      null,
+    ]);
     await expect(
       store.readRegisteredBudget({
         teamId: TEAM_ID,
@@ -2911,7 +3035,7 @@ describe('PostgresComputeJobStore', () => {
       }),
     };
     await expect(store.commitTransition({ ...command, outbox: [forgedEvent] })).rejects.toThrow(
-      'outbox event must be derived from the exact lifecycle receipts'
+      'outbox events must derive from exact lifecycle and ownership receipts'
     );
     expect(pool.queries.map((entry) => entry.marker)).toEqual(['schema', 'schema-verify']);
   });
@@ -3008,7 +3132,19 @@ describe('PostgresComputeJobStore', () => {
       null,
       null,
     ]);
-    expect(finalGate?.values.slice(25)).toEqual([false, null, null, null, null, null, null, null]);
+    expect(finalGate?.values.slice(25)).toEqual([
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      null,
+      null,
+    ]);
     expect(pool.queries.at(-1)?.marker).toBe('rollback');
     expect(pool.state).toEqual(before);
   });
@@ -3042,7 +3178,19 @@ describe('PostgresComputeJobStore', () => {
       null,
       null,
     ]);
-    expect(finalGate?.values.slice(25)).toEqual([false, null, null, null, null, null, null, null]);
+    expect(finalGate?.values.slice(25)).toEqual([
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      null,
+      null,
+    ]);
     expect(pool.queries.at(-1)?.marker).toBe('rollback');
     expect(pool.state).toEqual(before);
   });

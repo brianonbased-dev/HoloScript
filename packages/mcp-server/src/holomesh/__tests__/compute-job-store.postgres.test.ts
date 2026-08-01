@@ -40,6 +40,7 @@ import {
   ComputeJobStoreConflictError,
   PostgresComputeJobStore,
   type CommitComputeJobTransitionCommand,
+  type CommitComputeExecutionHeartbeatCommand,
   type CreateComputeJobCommand,
   type CreateComputeJobStoreOptions,
   type RegisterComputeBudgetCommand,
@@ -55,6 +56,12 @@ import {
   type ComputeJobAdmissionSigner,
   type ComputeJobAdmissionTrustAnchor,
 } from '../compute-job-admission';
+import {
+  buildComputeExecutionOwnershipOutboxEnvelope,
+  createComputeExecutionOwnershipEnvelope,
+  prepareAndSignComputeExecutionOwnership,
+  type ComputeExecutionOwnershipEnvelope,
+} from '../compute-execution-ownership';
 
 type JsonObject = Record<string, unknown>;
 
@@ -397,9 +404,21 @@ function projection(receipt: ComputeJobReceipt) {
 function transitionCommand(
   prepared: PreparedComputeJobTransition,
   evidence: readonly { readonly receiptId: string; readonly schemaVersion: string }[],
-  unit: ComputeWorkUnitContract
+  unit: ComputeWorkUnitContract,
+  executionOwnership?: ComputeExecutionOwnershipEnvelope
 ): Omit<CommitComputeJobTransitionCommand, 'operation' | 'idempotencyKeyDigest' | 'requestDigest'> {
-  const durableEvidence = evidence.map(evidenceEnvelope);
+  const durableEvidence = [
+    ...evidence.map(evidenceEnvelope),
+    ...(executionOwnership
+      ? [
+          {
+            receiptId: executionOwnership.receiptId,
+            schemaVersion: executionOwnership.schemaVersion,
+            bytes: executionOwnership.bytes,
+          },
+        ]
+      : []),
+  ];
   const operation = `compute_job.${prepared.transition.action}` as ComputeJobAdmissionOperation;
   const artifacts = {
     job: prepared.nextJob,
@@ -433,7 +452,12 @@ function transitionCommand(
           },
         }
       : {}),
-    outbox: [buildComputeJobOutboxEnvelope(artifacts)],
+    outbox: [
+      buildComputeJobOutboxEnvelope(artifacts),
+      ...(executionOwnership
+        ? [buildComputeExecutionOwnershipOutboxEnvelope(executionOwnership.receipt)]
+        : []),
+    ],
     publicResponseBytes: buildComputeJobPublicResponseBytes(artifacts),
   };
 }
@@ -733,6 +757,7 @@ function makeRunningSequence(
   readonly start: CommitComputeJobTransitionCommand;
   readonly running: CommitComputeJobTransitionCommand;
   readonly runningJob: ComputeJobReceipt;
+  readonly ownership: ComputeExecutionOwnershipEnvelope;
 } {
   const variant = fixtureVariant(fixture);
   const preparedStart = prepareComputeJobTransition({
@@ -756,14 +781,39 @@ function makeRunningSequence(
     transitionedAt: RUNNING_AT,
     idempotencyKey: `postgres-running-job-${variant}`,
   });
+  const ownership = createComputeExecutionOwnershipEnvelope(
+    prepareAndSignComputeExecutionOwnership(
+      {
+        kind: 'running_acknowledgement',
+        teamId: TEAM_ID,
+        principalDigest: PRINCIPAL,
+        jobId: fixture.jobId,
+        attempt: 1,
+        workUnitDigest: computeWorkUnitDigest(fixture.unit),
+        leaseReceiptId: fixture.lease.receiptId,
+        holderDigest: exactLeaseAuthorization(fixture, RUNNING_AT).holderDigest,
+        fencingTokenHash: fixture.lease.fencingTokenHash,
+        capacityRef: fixture.lease.capacityRef,
+        fencingEpoch: fixture.lease.fencingEpoch,
+        sequence: 0,
+        acknowledgedAt: RUNNING_AT,
+        heartbeatAt: RUNNING_AT,
+        heartbeatValidUntil: LEASE_EXPIRES_AT,
+        trustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+        issuer: ADMISSION_SIGNER.issuer,
+        keyId: ADMISSION_SIGNER.keyId,
+      },
+      ADMISSION_SIGNER
+    )
+  );
   const running: CommitComputeJobTransitionCommand = {
     operation: 'compute_job.mark_running',
     idempotencyKeyDigest: preparedRunning.transition.request.idempotencyKeyHash,
     requestDigest: preparedRunning.transition.request.requestHash,
-    ...transitionCommand(preparedRunning, [fixture.lease], fixture.unit),
+    ...transitionCommand(preparedRunning, [fixture.lease], fixture.unit, ownership),
     leaseUseGuard: leaseUseGuard(fixture, activeBudgetHold),
   };
-  return { start, running, runningJob: preparedRunning.nextJob };
+  return { start, running, runningJob: preparedRunning.nextJob, ownership };
 }
 
 function measuredExecutionEvidence(
@@ -1327,6 +1377,96 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
       committed_idempotency: '3',
       pending_idempotency: '0',
     });
+  });
+
+  it('appends and exactly replays a fenced running heartbeat without changing the job', async () => {
+    const fixture = lifecycleFixture('alpha', CAPACITY, BUDGET_LIMIT_MINOR_UNITS);
+    await store.registerBudget(makeBudgetRegistration());
+    await store.registerCapacity(makeCapacityRegistration(fixture));
+    await store.createJob(makeCreateCommand(fixture));
+    await store.commitTransition(makeQueueCommand(fixture));
+    const acquire = makeBudgetedAcquireCommand(fixture);
+    await store.commitTransition(acquire);
+    const activeBudgetHold = acquire.budgetEvidence as NonNullable<
+      CommitComputeJobTransitionCommand['budgetEvidence']
+    >;
+    const running = makeRunningSequence(fixture, activeBudgetHold);
+    await store.commitTransition(running.start);
+    const runningCommit = await store.commitTransition(running.running);
+    expect(runningCommit.readBack.evidenceReceiptIds).toContain(running.ownership.receiptId);
+
+    const heartbeatAt = at(12_000);
+    const ownership = createComputeExecutionOwnershipEnvelope(
+      prepareAndSignComputeExecutionOwnership(
+        {
+          kind: 'heartbeat',
+          teamId: TEAM_ID,
+          principalDigest: PRINCIPAL,
+          jobId: fixture.jobId,
+          attempt: 1,
+          workUnitDigest: computeWorkUnitDigest(fixture.unit),
+          leaseReceiptId: fixture.lease.receiptId,
+          holderDigest: exactLeaseAuthorization(fixture, heartbeatAt).holderDigest,
+          fencingTokenHash: fixture.lease.fencingTokenHash,
+          capacityRef: fixture.lease.capacityRef,
+          fencingEpoch: fixture.lease.fencingEpoch,
+          sequence: 1,
+          previousReceiptId: running.ownership.receiptId,
+          acknowledgedAt: running.ownership.receipt.acknowledgedAt,
+          heartbeatAt,
+          heartbeatValidUntil: LEASE_EXPIRES_AT,
+          trustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+          issuer: ADMISSION_SIGNER.issuer,
+          keyId: ADMISSION_SIGNER.keyId,
+        },
+        ADMISSION_SIGNER
+      )
+    );
+    const command: CommitComputeExecutionHeartbeatCommand = {
+      expectedJob: projection(running.runningJob),
+      expectedWorkUnit: workUnitEnvelope(fixture.unit),
+      previousOwnershipReceiptId: running.ownership.receiptId,
+      ownership,
+      leaseUseGuard: leaseUseGuard(fixture, activeBudgetHold),
+      outbox: [buildComputeExecutionOwnershipOutboxEnvelope(ownership.receipt)],
+    };
+
+    await expect(store.commitExecutionHeartbeat(command)).resolves.toMatchObject({
+      disposition: 'committed',
+      ownershipReceiptId: ownership.receiptId,
+      sequence: 1,
+      heartbeatAt,
+      readBack: {
+        evidenceReceiptId: ownership.receiptId,
+        outboxEventId: command.outbox[0].eventId,
+      },
+    });
+    await expect(store.commitExecutionHeartbeat(command)).resolves.toMatchObject({
+      disposition: 'replayed',
+      ownershipReceiptId: ownership.receiptId,
+      sequence: 1,
+    });
+    await expect(
+      store.readJob({ teamId: TEAM_ID, jobId: fixture.jobId, attempt: 1 })
+    ).resolves.toMatchObject({
+      receipt: { state: 'running', receiptId: running.runningJob.receiptId },
+    });
+    const custody = await pool.query<{ evidence_count: string; heartbeat_events: string }>(
+      `SELECT
+         COUNT(*) FILTER (
+           WHERE e.schema_version = 'holomesh.compute-execution-ownership.v1'
+         )::text AS evidence_count,
+         (
+           SELECT COUNT(*)::text
+           FROM holomesh_compute_outbox o
+           WHERE o.team_id = $1
+             AND o.event_type = 'compute_execution.heartbeat'
+         ) AS heartbeat_events
+       FROM holomesh_compute_evidence e
+       WHERE e.team_id = $1`,
+      [TEAM_ID]
+    );
+    expect(custody.rows[0]).toEqual({ evidence_count: '2', heartbeat_events: '1' });
   });
 
   it('rejects start when the leased allocator cursor rotates before the commit lock', async () => {
