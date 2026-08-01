@@ -1,0 +1,132 @@
+composition "GpuJobs" {
+  @verified_view
+  @native_fragment
+
+  object "Root" {
+    @layout { flex: "column", gap: "6px" }
+    @theme { className: "border-t border-studio-border/40 pt-2" }
+    @hook {
+      name: "useGpuComputeJobs"
+      import: "@/hooks/useGpuComputeJobs"
+      returns: "sourceText, setSourceText, state, jobId, jobReceiptId, verificationScope, providerReservation, execution, error, busy, canRefresh, canCancel, submit, refresh, cancel"
+    }
+
+    object "Title" {
+      @text { variant: "h3", content: "GPU JOBS" }
+      @theme { className: "text-[10px] font-semibold text-studio-text" }
+    }
+
+    object "Boundary" {
+      @layout { flex: "column", gap: "1px" }
+      @theme { className: "rounded border border-studio-border/30 bg-studio-panel/20 px-1.5 py-1 text-[8px] text-studio-muted" }
+      object "VerificationBoundary" {
+        @text { variant: "caption", content: "Verification: durable job state only" }
+        @theme { className: "text-[8px] text-studio-muted" }
+      }
+      object "ReservationBoundary" {
+        @text { variant: "caption", content: "Provider reservation: not asserted" }
+        @theme { className: "text-[8px] text-studio-muted" }
+      }
+      object "ExecutionBoundary" {
+        @text { variant: "caption", content: "Execution evidence: not asserted" }
+        @theme { className: "text-[8px] text-studio-muted" }
+      }
+    }
+
+    object "SourceLabel" {
+      @text { variant: "caption", content: "Compiler-authored @compute source" }
+      @theme { className: "text-[8px] uppercase tracking-wide text-studio-muted" }
+    }
+
+    object "SourceInput" {
+      @theme { tag: "textarea", className: "min-h-28 w-full resize-y rounded border border-studio-border/50 bg-studio-panel px-1.5 py-1 font-mono text-[8px] text-studio-text" }
+      @input { placeholder: "Author one intent-bearing @compute WorkUnit" }
+      @model { state: "sourceText" }
+      @projects { node: "sourceText" }
+    }
+
+    object "Actions" {
+      @layout { flex: "row", gap: "4px" }
+      object "SubmitButton" {
+        @button { content: "Submit", type: "button" }
+        @event { on: "click", handler: "submit()" }
+        @theme { className: "rounded bg-studio-accent px-2 py-1 text-[8px] font-semibold text-black disabled:opacity-40" }
+      }
+      object "RefreshButton" {
+        @when { state: "canRefresh", eq: true }
+        @button { content: "Refresh", type: "button" }
+        @event { on: "click", handler: "refresh()" }
+        @theme { className: "rounded border border-studio-border/50 px-2 py-1 text-[8px] text-studio-text" }
+      }
+      object "CancelButton" {
+        @when { state: "canCancel", eq: true }
+        @button { content: "Cancel", type: "button" }
+        @event { on: "click", handler: "cancel()" }
+        @theme { className: "rounded border border-amber-400/50 px-2 py-1 text-[8px] text-amber-200" }
+      }
+    }
+
+    object "Busy" {
+      @when { state: "busy", eq: true }
+      @text { variant: "caption", content: "Updating durable job state..." }
+      @theme { className: "text-[8px] text-studio-muted" }
+    }
+
+    object "Error" {
+      @when { state: "error", path: "length", gt: 0 }
+      @text { variant: "caption" }
+      @bind { state: "error", fallback: "Compute request failed" }
+      @theme { className: "rounded border border-red-400/30 bg-red-400/10 px-1.5 py-1 text-[8px] text-red-300" }
+      @projects { node: "error" }
+    }
+
+    object "Job" {
+      @when { state: "jobId", path: "length", gt: 0 }
+      @layout { flex: "column", gap: "1px" }
+      @theme { className: "rounded border border-studio-border/40 bg-studio-panel/30 px-1.5 py-1" }
+      object "StateRow" {
+        @layout { flex: "row", justify: "space-between", gap: "4px" }
+        object "StateLabel" {
+          @text { variant: "caption", content: "State" }
+          @theme { className: "text-[8px] text-studio-muted" }
+        }
+        object "StateValue" {
+          @text { variant: "caption" }
+          @bind { state: "state", fallback: "unknown" }
+          @theme { className: "text-[8px] font-semibold text-studio-accent" }
+          @projects { node: "state" }
+        }
+      }
+      object "JobId" {
+        @text { variant: "caption" }
+        @bind { state: "jobId", fallback: "" }
+        @theme { className: "truncate font-mono text-[7px] text-studio-muted" }
+        @projects { node: "jobId" }
+      }
+      object "JobReceipt" {
+        @text { variant: "caption" }
+        @bind { state: "jobReceiptId", fallback: "" }
+        @theme { className: "truncate font-mono text-[7px] text-studio-muted" }
+        @projects { node: "jobReceiptId" }
+      }
+      object "VerificationScope" {
+        @text { variant: "caption" }
+        @bind { state: "verificationScope", fallback: "durable_job_state_only" }
+        @theme { className: "text-[7px] text-studio-muted" }
+        @projects { node: "verificationScope" }
+      }
+      object "ReservationState" {
+        @text { variant: "caption" }
+        @bind { state: "providerReservation", prefix: "reservation: ", fallback: "not_asserted" }
+        @theme { className: "text-[7px] text-studio-muted" }
+        @projects { node: "providerReservation" }
+      }
+      object "ExecutionState" {
+        @text { variant: "caption" }
+        @bind { state: "execution", prefix: "execution: ", fallback: "not_asserted" }
+        @theme { className: "text-[7px] text-studio-muted" }
+        @projects { node: "execution" }
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { provisionUser } from '@/lib/workspace/provisionUser';
+import { putUserSecret } from '@/lib/secrets/userSecretStore';
 import { getGitHubToken } from '@/app/api/github/_shared';
 
 import { corsHeaders } from '../../_lib/cors';
@@ -76,8 +77,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let holomeshCredentialStored = false;
+  const holomeshApiKey = result.user?.holomeshApiKey;
+  if (typeof holomeshApiKey === 'string' && holomeshApiKey.length > 0) {
+    try {
+      await putUserSecret({
+        ownerId: session.user.id,
+        name: 'HOLOMESH_API_KEY',
+        value: holomeshApiKey,
+      });
+      holomeshCredentialStored = true;
+    } catch {
+      // Provisioning predates the optional encrypted vault. Keep the existing
+      // one-time credential response available when vault custody is absent or
+      // temporarily unavailable, without logging or returning vault details.
+    }
+  }
+
   return NextResponse.json({
     success: true,
+    holomeshCredentialStored,
     user: {
       workspaceId: result.user?.workspaceId,
       repoUrl: result.user?.repoUrl,
@@ -89,7 +108,7 @@ export async function POST(request: NextRequest) {
       daemonStarted: result.user?.daemonStarted,
       // HoloMesh agent identity — display once to user so they can store in .env
       holomeshAgentId: result.user?.holomeshAgentId,
-      holomeshApiKey: result.user?.holomeshApiKey,
+      holomeshApiKey,
       holomeshWalletAddress: result.user?.holomeshWalletAddress,
     },
     steps: result.steps,

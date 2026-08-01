@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { GpuJobsComponent } from './native/gpuJobs.native';
+import { GpuComputeTeamProvider } from '@/hooks/useGpuComputeJobs';
 
 const SETTINGS_KEY = 'fleet-dispatch-settings';
 
@@ -1003,6 +1005,10 @@ export function FleetPanel() {
         </div>
         <div className="text-[8px] text-studio-muted mt-1">Source: latest team fleet snapshot</div>
       </div>
+
+      <GpuComputeTeamProvider teamId={teamId}>
+        <GpuJobsComponent />
+      </GpuComputeTeamProvider>
 
       {/* SCHEDULES SECTION */}
       {missionSchedules.length > 0 && (

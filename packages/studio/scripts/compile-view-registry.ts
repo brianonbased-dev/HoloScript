@@ -21,6 +21,7 @@ import { Native2DCompiler } from '../../core/src/compiler/Native2DCompiler';
 
 const STUDIO_ROOT = join(import.meta.dirname || __dirname, '..');
 const PANELS_DIR = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'panels');
+const NATIVE_FRAGMENTS_DIR = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'fragments');
 const NATIVE_OUT_DIR = join(STUDIO_ROOT, 'src', 'components', 'panels', 'native');
 const OUT_PATH = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'viewRegistry.generated.ts');
 const COMPONENTS_OUT_PATH = join(
@@ -108,6 +109,24 @@ function compileNativePanel(ast: any, id: string): string {
   return `${capitalized}Component`;
 }
 
+/** Compile HoloScript-owned fragments that mount inside an existing Studio panel. */
+function compileNativeFragment(ast: any, id: string): string {
+  const componentName =
+    typeof ast.name === 'string' && ast.name.trim()
+      ? ast.name.replace(/[^a-zA-Z0-9]/g, '')
+      : id.charAt(0).toUpperCase() + id.slice(1);
+  if (!componentName) throw new Error(`${id}.holo: composition name is invalid`);
+  const hasFragmentTrait = (ast.traits ?? []).some((t: any) => t.name === 'native_fragment');
+  if (!hasFragmentTrait) throw new Error(`${id}.holo: missing @native_fragment trait`);
+  const compiler = new Native2DCompiler();
+  const code = compiler.generateReactComponent(componentName, ast.objects ?? [], ast, {
+    format: 'react',
+  });
+  mkdirSync(NATIVE_OUT_DIR, { recursive: true });
+  writeFileSync(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code, 'utf-8');
+  return `${componentName}Component`;
+}
+
 /** Map the .holo @view source fields onto the StudioViewDefinition shape (order stripped). */
 function toDefinition(v: ViewMeta) {
   return {
@@ -167,6 +186,29 @@ function build(): void {
     } catch (err) {
       errorCount++;
       console.error(`  ✗ ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  if (existsSync(NATIVE_FRAGMENTS_DIR)) {
+    const fragments = readdirSync(NATIVE_FRAGMENTS_DIR)
+      .filter((f) => extname(f) === '.holo')
+      .sort();
+    for (const f of fragments) {
+      const full = join(NATIVE_FRAGMENTS_DIR, f);
+      try {
+        const parsed = parseHolo(readFileSync(full, 'utf-8'));
+        if (!parsed.success || !parsed.ast) {
+          throw new Error(
+            `${f}: parse failed â€” ${JSON.stringify(parsed.errors?.[0] ?? 'unknown')}`
+          );
+        }
+        const id = basename(f, '.holo');
+        const componentName = compileNativeFragment(parsed.ast, id);
+        console.log(`  âœ“ fragments/${f} (native compiled â†’ ${componentName})`);
+      } catch (err) {
+        errorCount++;
+        console.error(`  âœ— ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
   }
 

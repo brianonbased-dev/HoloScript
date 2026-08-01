@@ -135,6 +135,45 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       // HTML target uses the onsubmit attribute
       expect(html(c)).toContain('onsubmit="submitNewsletter(e)"');
     });
+
+    it('WORKS: a themed textarea remains a textarea and keeps two-way @model binding', () => {
+      const textarea = comp(
+        [
+          obj('Source', [
+            trait('theme', { tag: 'textarea' }),
+            trait('input', { placeholder: 'Author source' }),
+            trait('model', { state: 'sourceText' }),
+          ]),
+        ],
+        {
+          type: 'State',
+          properties: [{ type: 'StateProperty', key: 'sourceText', value: '' }],
+        } as HoloComposition['state']
+      );
+
+      const r = react(textarea);
+      expect(r).toContain('<textarea');
+      expect(r).toContain('value={sourceText}');
+      expect(r).toContain('onChange={(e) => setSourceText(e.target.value)}');
+      expect(r).toContain('placeholder="Author source"');
+    });
+
+    it('WORKS: a prefixed string binding preserves its explicit fallback', () => {
+      const formatted = comp([
+        obj('Reservation', [
+          trait('text', { variant: 'caption' }),
+          trait('bind', {
+            state: 'providerReservation',
+            prefix: 'reservation: ',
+            fallback: 'not_asserted',
+          }),
+        ]),
+      ]);
+
+      const r = react(formatted);
+      expect(r).toContain('providerReservation ?? "not_asserted"');
+      expect(r).not.toContain('providerReservation ?? 0');
+    });
   });
 
   // 3 ─────────────────────────────────────────────────────────────────────────

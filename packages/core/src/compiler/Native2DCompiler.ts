@@ -426,7 +426,9 @@ export default ${safeName}Component;${contractExport}
         'main',
         'footer',
         'form',
+        'select',
         'style',
+        'textarea',
         'a',
         'header',
         'h1',
@@ -2032,8 +2034,9 @@ export default ${safeName}Component;${contractExport}
    * `{state?.path ?? fallback}` (unchanged, byte-identical, when no formatting keys
    * are present). When `precision`, `suffix`, or `prefix` is supplied, the value is
    * wrapped in a template literal: e.g. `precision:1, suffix:"ms"` →
-   * `{`${(snap?.path ?? 0).toFixed(1)}ms`}`. `prefix`/`suffix` are guarded literals;
-   * `precision` must be an integer.
+   * `{`${(snap?.path ?? 0).toFixed(1)}ms`}`. String-formatted bindings preserve an
+   * explicit fallback; precision formatting retains a numeric zero fallback.
+   * `prefix`/`suffix` are guarded literals; `precision` must be an integer.
    */
   private buildBindContentExpr(bind: Record<string, any>): string {
     const baseExpr = this.buildStatePathExpr(String(bind.state), String(bind.path || ''), '@bind');
@@ -2060,7 +2063,7 @@ export default ${safeName}Component;${contractExport}
       : '';
     const valueExpr = hasPrecision
       ? `(${baseExpr} ?? 0).toFixed(${bind.precision})`
-      : `(${baseExpr} ?? 0)`;
+      : `(${baseExpr} ?? ${JSON.stringify(bind.fallback ?? 0)})`;
     return `{\`${prefix}\${${valueExpr}}${suffix}\`}`;
   }
 
