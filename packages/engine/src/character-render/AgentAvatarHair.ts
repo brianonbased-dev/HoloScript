@@ -972,28 +972,35 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       pushEllipsoidHairMass(
         add(center, v(-0.012 * bs, scalpRadius.y * 0.92, -0.018 * bs)),
         v(0.047 * bs, 0.058 * bs, 0.044 * bs),
-        14,
-        7,
-        0.012 * bs
+        24,
+        9,
+        0.016 * bs
       );
       pushEllipsoidHairMass(
         add(center, v(0.012 * bs, scalpRadius.y * 1.31, -0.022 * bs)),
         v(0.036 * bs, 0.043 * bs, 0.035 * bs),
-        12,
-        7,
-        0.01 * bs
+        22,
+        9,
+        0.014 * bs
       );
     } else if (selectedStyle === 'high_bun') {
       styleFeatureProfile = 'high-bun-mass-v1';
       pushEllipsoidHairMass(
         add(center, v(0, scalpRadius.y * 1.2, -0.022 * bs)),
         v(0.056 * bs, 0.066 * bs, 0.052 * bs),
-        18,
-        8,
-        0.012 * bs
+        28,
+        10,
+        0.016 * bs
       );
     } else if (selectedStyle === 'braided_crown') {
       styleFeatureProfile = 'braided-crown-loop-v1';
+      pushEllipsoidHairMass(
+        add(center, v(0, scalpRadius.y * 0.82, -0.026 * bs)),
+        v(0.05 * bs, 0.056 * bs, 0.048 * bs),
+        24,
+        9,
+        0.014 * bs
+      );
       for (let strand = 0; strand < 3; strand++) {
         const curve: Vec3[] = [];
         for (let point = 0; point <= 36; point++) {
@@ -1010,12 +1017,12 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
             )
           );
         }
-        pushStyleStrip(curve, 0.009 * bs);
+        pushStyleStrip(curve, 0.012 * bs);
       }
     } else if (selectedStyle === 'weathered_waves') {
       styleFeatureProfile = 'weathered-wave-beard-v1';
-      for (let lock = 0; lock < 13; lock++) {
-        const lateral = -1 + (lock / 12) * 2;
+      for (let lock = 0; lock < 25; lock++) {
+        const lateral = -1 + (lock / 24) * 2;
         const curve: Vec3[] = [];
         for (let point = 0; point < 7; point++) {
           const strandT = point / 6;
@@ -1024,18 +1031,35 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
               center,
               v(
                 lateral * scalpRadius.x * (0.54 - strandT * 0.18),
-                -scalpRadius.y * (0.3 + strandT * (0.7 + 0.18 * (1 - Math.abs(lateral)))),
+                -scalpRadius.y * (0.26 + strandT * (0.48 + 0.12 * (1 - Math.abs(lateral)))),
                 scalpRadius.z * (0.9 - strandT * 0.2) +
                   Math.sin(strandT * Math.PI * 2 + lock) * 0.003 * bs
               )
             )
           );
         }
-        pushStyleStrip(curve, 0.009 * bs);
+        pushStyleStrip(curve, 0.012 * bs);
+      }
+      for (const side of [-1, 1] as const) {
+        const curve: Vec3[] = [];
+        for (let point = 0; point < 7; point++) {
+          const strandT = point / 6;
+          curve.push(
+            add(
+              center,
+              v(
+                side * scalpRadius.x * (0.03 + strandT * 0.46),
+                -scalpRadius.y * (0.31 + strandT * 0.04),
+                scalpRadius.z * (0.925 - strandT * 0.035)
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.011 * bs);
       }
     } else if (selectedStyle === 'silver_curls') {
       styleFeatureProfile = 'silver-curl-clusters-v1';
-      for (let lock = 0; lock < 18; lock++) {
+      for (let lock = 0; lock < 30; lock++) {
         const azimuth = lock * 2.399963;
         const dir = nrm(
           v(Math.cos(azimuth) * 0.72, 0.55 + (lock % 3) * 0.12, Math.sin(azimuth) * 0.72)
@@ -1043,23 +1067,23 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const root = scalpPoint(dir, rootLift + 0.003 * bs);
         const tangent = nrm(cross(dir, v(0, 1, 0)));
         const curve: Vec3[] = [];
-        for (let point = 0; point < 9; point++) {
-          const strandT = point / 8;
-          const turn = strandT * Math.PI * 3.5;
+        for (let point = 0; point < 7; point++) {
+          const strandT = point / 6;
+          const turn = strandT * Math.PI * 3;
           curve.push(
             add(
               root,
               add(
-                v(0, -0.055 * bs * strandT, 0),
+                v(0, -0.035 * bs * strandT, 0),
                 add(
-                  scl(tangent, Math.cos(turn) * 0.009 * bs),
-                  scl(dir, Math.sin(turn) * 0.009 * bs)
+                  scl(tangent, Math.cos(turn) * 0.005 * bs),
+                  scl(dir, Math.sin(turn) * 0.005 * bs)
                 )
               )
             )
           );
         }
-        pushStyleStrip(curve, 0.006 * bs);
+        pushStyleStrip(curve, 0.008 * bs);
       }
     } else if (selectedStyle === 'asymmetric_crop') {
       styleFeatureProfile = 'asymmetric-length-field-v1';
