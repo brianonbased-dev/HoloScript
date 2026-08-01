@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/cli",
-  "version": "8.0.13",
+  "version": "8.0.14",
   "description": "Command-line interface for HoloScript — run, compile, validate, serve, and analyze .hs, .hsplus, and .holo programs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
