@@ -65,6 +65,21 @@ export {
 } from './ComputeUtilityDiscovery';
 
 export {
+  COMPUTE_JOB_SCHEMA_VERSION,
+  COMPUTE_JOB_TRANSITION_SCHEMA_VERSION,
+  COMPUTE_ALLOCATOR_COMMIT_SCHEMA_VERSION,
+  COMPUTE_JOB_REQUEST_SCHEMA_VERSION,
+  computeJobIdempotencyKeyHash,
+  computeJobRequestHash,
+  validateComputeJobReceipt,
+  prepareComputeJob,
+  prepareComputeJobTransition,
+  validateComputeJobTransitionReceipt,
+  validateComputeAllocatorCommitReceipt,
+  verifyComputeJobTransition,
+} from './ComputeJobLifecycle';
+
+export {
   buildAdversarialTrajectoryReport,
   serializeReport,
   isReportCountsConsistent,
@@ -293,3 +308,39 @@ export type {
   ComputeUtilityAggregateResult,
   ComputeUtilityValidation,
 } from './ComputeUtilityDiscovery';
+
+export type {
+  ComputeJobState,
+  ComputeJobTerminalState,
+  ComputeJobTransitionAction,
+  ComputeJobFailureReason,
+  ComputeJobCancellationReason,
+  ComputeJobReasonCode,
+  ComputeJobExecutionUnobservedReason,
+  ComputeJobCompletionDisposition,
+  ComputeAllocatorCommitOperation,
+  ComputeJobRequest,
+  ComputeJobRequestBinding,
+  ComputeJobWorkUnitBinding,
+  ComputeJobPlacementBinding,
+  ComputeJobLeaseBinding,
+  ComputeJobTerminalEvidence,
+  ComputeJobTerminal,
+  ComputeJobReceipt,
+  ComputeJobStateReference,
+  ComputeJobTransitionReceipt,
+  ComputeAllocatorCommitReceipt,
+  PrepareComputeJobInput,
+  PreparedComputeJob,
+  PrepareQueueComputeJobInput,
+  PrepareLeaseComputeJobInput,
+  PrepareStartComputeJobInput,
+  PrepareRunningComputeJobInput,
+  PrepareSucceededComputeJobInput,
+  PrepareFailedComputeJobInput,
+  PrepareCancelledComputeJobInput,
+  PrepareComputeJobTransitionInput,
+  PreparedComputeJobTransition,
+  VerifyComputeJobTransitionInput,
+  ComputeJobLifecycleValidation,
+} from './ComputeJobLifecycle';

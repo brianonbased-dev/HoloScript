@@ -8921,6 +8921,269 @@ export declare function attestComputeExecutionReceipt(input: AttestComputeExecut
 export declare function validateComputeSubjectAttestation(value: unknown): ComputeEvidenceValidation;
 export declare function verifyComputeExecutionEvidence(input: VerifyComputeExecutionEvidenceInput): ComputeExecutionEvidenceVerification;
 
+// --- Provider-neutral compute job lifecycle projections ---
+export declare const COMPUTE_JOB_SCHEMA_VERSION: 'holoscript.compute-job.v1';
+export declare const COMPUTE_JOB_TRANSITION_SCHEMA_VERSION: 'holoscript.compute-job-transition.v1';
+export declare const COMPUTE_ALLOCATOR_COMMIT_SCHEMA_VERSION: 'holoscript.compute-allocator-commit.v1';
+export declare const COMPUTE_JOB_REQUEST_SCHEMA_VERSION: 'holoscript.compute-job-request.v1';
+export type ComputeJobState =
+  | 'preflighted'
+  | 'queued'
+  | 'leased'
+  | 'starting'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled';
+export type ComputeJobTerminalState = 'succeeded' | 'failed' | 'cancelled';
+export type ComputeJobTransitionAction =
+  | 'queue'
+  | 'acquire_lease'
+  | 'start'
+  | 'mark_running'
+  | 'succeed'
+  | 'fail'
+  | 'cancel';
+export type ComputeJobFailureReason =
+  | 'queue_rejected'
+  | 'lease_unavailable'
+  | 'lease_expired'
+  | 'start_failed'
+  | 'executor_lost'
+  | 'execution_failed'
+  | 'deadline_exceeded'
+  | 'receipt_unavailable'
+  | 'system_failed';
+export type ComputeJobCancellationReason =
+  | 'user_cancelled'
+  | 'policy_cancelled'
+  | 'system_cancelled';
+export type ComputeJobReasonCode =
+  | 'execution_succeeded'
+  | ComputeJobFailureReason
+  | ComputeJobCancellationReason;
+export type ComputeJobExecutionUnobservedReason =
+  | 'executor_lost'
+  | 'lease_expired'
+  | 'receipt_unavailable';
+export type ComputeJobCompletionDisposition =
+  | 'work_unit_succeeded'
+  | 'terminal_execution_observed'
+  | 'execution_not_started'
+  | 'execution_unobserved';
+export type ComputeAllocatorCommitOperation = 'acquire' | 'release';
+export interface ComputeJobRequest {
+  readonly schemaVersion: typeof COMPUTE_JOB_REQUEST_SCHEMA_VERSION;
+  readonly operation: 'create' | 'transition';
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly expectedJobReceiptId?: string;
+  readonly expectedJobVersion?: number;
+  readonly action?: ComputeJobTransitionAction;
+  readonly reasonCode?: ComputeJobReasonCode;
+  readonly executionUnobservedReason?: ComputeJobExecutionUnobservedReason;
+  readonly evidenceReceiptIds: readonly string[];
+  readonly expectedAllocationEtag?: string;
+}
+export interface ComputeJobRequestBinding {
+  readonly idempotencyKeyHash: string;
+  readonly requestHash: string;
+}
+export interface ComputeJobWorkUnitBinding {
+  readonly digest: string;
+  readonly sourceEvidence: string;
+}
+export interface ComputeJobPlacementBinding {
+  readonly capacitySnapshotReceiptId: string;
+  readonly bridgeAdmissionReceiptId?: string;
+  readonly planReceiptId: string;
+}
+export interface ComputeJobLeaseBinding {
+  readonly receiptId: string;
+  readonly holderDigest: string;
+  readonly capacityRef: string;
+  readonly lane: ComputeCapacityLane;
+  readonly accelerator: import('../compiler/index.js').ComputeAccelerator;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+  readonly fencingEpoch: number;
+  readonly fencingTokenHash: string;
+}
+export type ComputeJobTerminalEvidence =
+  | {
+      readonly kind: 'attested_execution';
+      readonly executionReceiptId: string;
+      readonly executionAttestationReceiptId: string;
+    }
+  | {
+      readonly kind: 'execution_not_started';
+      readonly reasonCode: ComputeJobFailureReason | ComputeJobCancellationReason;
+    }
+  | {
+      readonly kind: 'execution_unobserved';
+      readonly reasonCode: ComputeJobExecutionUnobservedReason;
+    };
+export interface ComputeJobTerminal {
+  readonly state: ComputeJobTerminalState;
+  readonly at: string;
+  readonly reasonCode: ComputeJobReasonCode;
+  readonly completionDisposition: ComputeJobCompletionDisposition;
+  readonly evidence: ComputeJobTerminalEvidence;
+}
+export interface ComputeJobReceipt {
+  readonly schemaVersion: typeof COMPUTE_JOB_SCHEMA_VERSION;
+  readonly verificationScope: 'structural_only';
+  readonly receiptId: string;
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly version: number;
+  readonly previousJobReceiptId?: string;
+  readonly state: ComputeJobState;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly deadlineAt: string | null;
+  readonly workUnit: ComputeJobWorkUnitBinding;
+  readonly placement: ComputeJobPlacementBinding;
+  readonly request: ComputeJobRequestBinding;
+  readonly lease?: ComputeJobLeaseBinding;
+  readonly executionStartedAt?: string;
+  readonly terminal?: ComputeJobTerminal;
+}
+export interface ComputeJobStateReference {
+  readonly state: ComputeJobState;
+  readonly version: number;
+  readonly receiptId: string;
+}
+export interface ComputeJobTransitionReceipt {
+  readonly schemaVersion: typeof COMPUTE_JOB_TRANSITION_SCHEMA_VERSION;
+  readonly verificationScope: 'structural_only';
+  readonly receiptId: string;
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly workUnitDigest: string;
+  readonly action: ComputeJobTransitionAction;
+  readonly from: ComputeJobStateReference;
+  readonly to: ComputeJobStateReference;
+  readonly request: ComputeJobRequestBinding;
+  readonly transitionedAt: string;
+  readonly evidenceReceiptIds: readonly string[];
+  readonly allocatorCommitReceiptId?: string;
+}
+export interface ComputeAllocatorCommitReceipt {
+  readonly schemaVersion: typeof COMPUTE_ALLOCATOR_COMMIT_SCHEMA_VERSION;
+  readonly verificationScope: 'prepared_cas';
+  readonly receiptId: string;
+  readonly operation: ComputeAllocatorCommitOperation;
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly fromJobReceiptId: string;
+  readonly toJobReceiptId: string;
+  readonly leaseReceiptId: string;
+  readonly capacityRef: string;
+  readonly fencingEpoch: number;
+  readonly expectedAllocation: ComputeCapacityAllocationCursor;
+  readonly nextAllocation: ComputeCapacityAllocationCursor;
+  readonly preparedAt: string;
+}
+export interface PrepareComputeJobInput {
+  readonly principalDigest: string;
+  readonly jobId: string;
+  readonly attempt: number;
+  readonly workUnit: import('../compiler/index.js').ComputeWorkUnitContract;
+  readonly placementVerification: VerifyComputePlacementPlanInput;
+  readonly preparedAt: string;
+  readonly idempotencyKey: string | Uint8Array;
+}
+export interface PreparedComputeJob {
+  readonly job: ComputeJobReceipt;
+  readonly requestBinding: ComputeJobRequestBinding;
+}
+interface PrepareComputeJobTransitionBase {
+  readonly expectedJob: ComputeJobReceipt;
+  readonly transitionedAt: string;
+  readonly idempotencyKey: string | Uint8Array;
+}
+export interface PrepareQueueComputeJobInput extends PrepareComputeJobTransitionBase {
+  readonly action: 'queue';
+  readonly placementVerification: VerifyComputePlacementPlanInput;
+}
+export interface PrepareLeaseComputeJobInput extends PrepareComputeJobTransitionBase {
+  readonly action: 'acquire_lease';
+  readonly preparedLease: PreparedComputeCapacityLease;
+  readonly leaseVerification: VerifyComputeCapacityLeaseReceiptInput;
+}
+export interface PrepareStartComputeJobInput extends PrepareComputeJobTransitionBase {
+  readonly action: 'start';
+  readonly leaseAuthorization: AuthorizeComputeCapacityLeaseUseInput;
+}
+export interface PrepareRunningComputeJobInput extends PrepareComputeJobTransitionBase {
+  readonly action: 'mark_running';
+  readonly leaseAuthorization: AuthorizeComputeCapacityLeaseUseInput;
+}
+export interface PrepareSucceededComputeJobInput extends PrepareComputeJobTransitionBase {
+  readonly action: 'succeed';
+  readonly executionVerification: VerifyComputeExecutionEvidenceInput;
+  readonly allocationCursor: ComputeCapacityAllocationCursor;
+}
+export interface PrepareFailedComputeJobInput extends PrepareComputeJobTransitionBase {
+  readonly action: 'fail';
+  readonly reasonCode: ComputeJobFailureReason;
+  readonly executionVerification?: VerifyComputeExecutionEvidenceInput;
+  readonly executionUnobservedReason?: ComputeJobExecutionUnobservedReason;
+  readonly allocationCursor?: ComputeCapacityAllocationCursor;
+}
+export interface PrepareCancelledComputeJobInput extends PrepareComputeJobTransitionBase {
+  readonly action: 'cancel';
+  readonly reasonCode: ComputeJobCancellationReason;
+  readonly executionVerification?: VerifyComputeExecutionEvidenceInput;
+  readonly executionUnobservedReason?: ComputeJobExecutionUnobservedReason;
+  readonly allocationCursor?: ComputeCapacityAllocationCursor;
+}
+export type PrepareComputeJobTransitionInput =
+  | PrepareQueueComputeJobInput
+  | PrepareLeaseComputeJobInput
+  | PrepareStartComputeJobInput
+  | PrepareRunningComputeJobInput
+  | PrepareSucceededComputeJobInput
+  | PrepareFailedComputeJobInput
+  | PrepareCancelledComputeJobInput;
+export interface PreparedComputeJobTransition {
+  readonly expectedJob: ComputeJobReceipt;
+  readonly nextJob: ComputeJobReceipt;
+  readonly transition: ComputeJobTransitionReceipt;
+  readonly allocatorCommit?: ComputeAllocatorCommitReceipt;
+}
+export interface VerifyComputeJobTransitionInput {
+  readonly expectedJob: ComputeJobReceipt;
+  readonly nextJob: ComputeJobReceipt;
+  readonly transition: ComputeJobTransitionReceipt;
+  readonly allocatorCommit?: ComputeAllocatorCommitReceipt;
+}
+export interface ComputeJobLifecycleValidation {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+}
+export declare function computeJobIdempotencyKeyHash(key: string | Uint8Array): string;
+export declare function computeJobRequestHash(request: ComputeJobRequest): string;
+export declare function validateComputeJobReceipt(value: unknown): ComputeJobLifecycleValidation;
+export declare function prepareComputeJob(input: PrepareComputeJobInput): PreparedComputeJob;
+export declare function prepareComputeJobTransition(
+  input: PrepareComputeJobTransitionInput
+): PreparedComputeJobTransition;
+export declare function validateComputeJobTransitionReceipt(
+  value: unknown
+): ComputeJobLifecycleValidation;
+export declare function validateComputeAllocatorCommitReceipt(
+  value: unknown
+): ComputeJobLifecycleValidation;
+export declare function verifyComputeJobTransition(
+  input: VerifyComputeJobTransitionInput
+): ComputeJobLifecycleValidation;
+
 export declare const COMPUTE_UTILITY_OBSERVATION_SCHEMA_VERSION: 'holoscript.compute-utility-observation.v1';
 export declare const COMPUTE_UTILITY_AGGREGATE_SCHEMA_VERSION: 'holoscript.compute-utility-aggregate.v1';
 export declare const COMPUTE_UTILITY_MINIMUM_AGGREGATE: 10;
