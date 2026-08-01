@@ -85,6 +85,15 @@ export {
   type DevicePackageMaterialization,
   type DevicePackageMaterializationReceipt,
 } from './device-package-materialization';
+export {
+  DEVICE_RELEASE_INDEX_SCHEMA,
+  createSignedDeviceReleaseIndex,
+  verifySignedDeviceReleaseIndex,
+  type CreateSignedDeviceReleaseIndexInput,
+  type DeviceReleaseIndexEntry,
+  type DeviceReleaseIndexVerification,
+  type SignedDeviceReleaseIndex,
+} from './device-release-index';
 
 // Physics Smoke Receipts
 export {

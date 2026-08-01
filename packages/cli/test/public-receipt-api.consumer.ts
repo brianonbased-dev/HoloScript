@@ -1,6 +1,7 @@
 import {
   DETERMINISTIC_HOLO_WORLD_PROJECTION,
   DEVICE_PACKAGE_MATERIALIZATION_SCHEMA,
+  DEVICE_RELEASE_INDEX_SCHEMA,
   DEVICE_RELEASE_PLAN_SCHEMA,
   HEADLESS_OBSERVER_PROJECTION_SCHEMA,
   HEADLESS_OBSERVER_PROOF_SCHEMA,
@@ -22,6 +23,8 @@ import {
   createDeviceReleasePlan,
   listDeviceProfiles,
   materializeDevicePackage,
+  createSignedDeviceReleaseIndex,
+  verifySignedDeviceReleaseIndex,
   observeHeadlessExperimentReceipt,
   runHeadlessExperimentSources,
   verifyHeadlessExperimentSourceRunReceipt,
@@ -76,6 +79,10 @@ const deviceMaterialization: DevicePackageMaterialization = materializeDevicePac
 });
 const deviceMaterializationSchema: 'holoscript-device-package-materialization/v0.1.0' =
   DEVICE_PACKAGE_MATERIALIZATION_SCHEMA;
+const deviceReleaseIndexSchema: 'holoscript-device-release-index/v0.1.0' =
+  DEVICE_RELEASE_INDEX_SCHEMA;
+const releaseIndexSigner: typeof createSignedDeviceReleaseIndex = createSignedDeviceReleaseIndex;
+const releaseIndexVerifier: typeof verifySignedDeviceReleaseIndex = verifySignedDeviceReleaseIndex;
 
 const sourceRunVerdict = verifyHeadlessExperimentSourceRunReceipt(
   untrustedSourceRunReceipt,
@@ -189,6 +196,9 @@ void [
   publicDeviceProfiles,
   deviceMaterialization,
   deviceMaterializationSchema,
+  deviceReleaseIndexSchema,
+  releaseIndexSigner,
+  releaseIndexVerifier,
   planVerdict,
   worldVerdict,
   physicsReceipt,
