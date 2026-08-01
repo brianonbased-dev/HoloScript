@@ -1,0 +1,141 @@
+{
+  "schema": "holoscript.paper6.quaternion-cross-vendor-pair.v1",
+  "captured_at": "2026-08-01T12:20:48.361Z",
+  "status": "two-machine-two-vendor-pass",
+  "claim_scope": "Exact integer WGSL/BigInt-oracle byte agreement on two named machines and two GPU vendors under one controller.",
+  "nonclaims": [
+    "Not the shipped AnimationClip nlerp policy.",
+    "Not MinimaxSLERP and not a minimax transcendental library.",
+    "Not a universal claim about ordinary WGSL f32 arithmetic.",
+    "Not an independent-laboratory replication; both devices were driven by one controller.",
+    "Not an interpolation accuracy or performance result."
+  ],
+  "contract": {
+    "version": "paper6-q14-cordic-slerp-v1",
+    "algorithm": "fixed-point approximate shortest-arc SLERP via integer CORDIC",
+    "quaternion_encoding": "signed Q14 i32",
+    "time_encoding": "unsigned Q15 u32",
+    "output_encoding": "four signed Q14 i32 words per case",
+    "canonical_hash_encoding": "little-endian signed i32 words"
+  },
+  "source": {
+    "experiment_base_git_commit": "b22aa90fcb38e0c761d9f93f75eb0cb54993f046",
+    "paths": [
+      "packages/engine/src/animation/paper/QuaternionInterpolationContract.ts",
+      "packages/engine/src/animation/paper/QuaternionInterpolationWGSL.ts",
+      "packages/engine/tests/quaternion-interpolation-webgpu.spec.ts",
+      "packages/engine/playwright.config.ts"
+    ],
+    "hashes": {
+      "contract_ts_sha256": "dffa22ef092b83c5ec4f61346e6ae12987a3587a9c9d515be0b28ff0e0ff3bf7",
+      "wgsl_wrapper_ts_sha256": "bfbcb2960371cfba76618e42a95c8d708a8fd5177a12f27523d74ef282b3c94c",
+      "kernel_wgsl_sha256": "bdc510c041dfe13a92f86660bab28775775161934eb35aefee9ae6fd1f12c47e",
+      "harness_ts_sha256": "28f87ca4bdb6c66704374a8e4567870a774be9036fc17a697a4ffba488097d99",
+      "playwright_config_ts_sha256": "e680ac071ef8788913f3bf67398ac7f63d774312e4923eb06f9a9e40e2198d20"
+    },
+    "validator_git_commit": "848fd99e2a5935e32c05575d4ac8dbfa021ef270",
+    "validator_path": "packages/engine/scripts/pair-paper6-quaternion-receipts.mjs",
+    "validator_sha256": "c2843b2fb07ec90544d66b517ecac6eeceef31731f45ffec1169521b226a333d"
+  },
+  "fixture": {
+    "case_count": 1114,
+    "row_bytes": 48,
+    "input_sha256": "01ea6512a4286134c978920875d3e007c38bbe4178ec3bd26ec412af33ec8c92",
+    "oracle_output_sha256": "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+    "negative_control_input_sha256": "16eddb7e9d00b6f384c59bbd691c3df9050d7416395597f1c4c353919de94348",
+    "negative_control_oracle_output_sha256": "001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b"
+  },
+  "receipts": [
+    {
+      "label": "left",
+      "path": ".bench-logs-evidence/paper-6-q14-cordic-slerp-h3-win-rtx3060-r3.json",
+      "sha256": "75d101b8a377e176d2730f8f34cd7a5fb7654d1a74587204d7df5568581888e0",
+      "run_id": "add7cd66-64ab-4f25-aaaa-d6db9ad92c5f",
+      "captured_at": "2026-07-17T20:00:19.316Z",
+      "normalized_vendor": "nvidia",
+      "machine_fingerprint_sha256": "9d2451ac8b1c91022bba8c0a8041fcf8708fc56c1e3f9c7157446e89a0b793b4",
+      "mode": "webgpu-browser",
+      "hardware_label": "h3-win-rtx3060",
+      "adapter": {
+        "vendor": "nvidia",
+        "architecture": "ampere",
+        "device": "0x2520",
+        "description": "NVIDIA GeForce RTX 3060 Laptop GPU",
+        "driver": "D3D12 driver version 32.0.16.1062",
+        "isFallbackAdapter": false
+      },
+      "browser_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+      "host_device": {
+        "platform": "win32",
+        "release": "10.0.26200",
+        "arch": "x64",
+        "hostname_sha256": "104ab9213e28e4ff5ba0b4086457503e8a4656815cfec7bcf2799d76a3db081d",
+        "cpu_model": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz"
+      },
+      "repeated_dispatch_output_sha256": [
+        "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+        "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+        "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84"
+      ],
+      "negative_control_gpu_output_sha256": "001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b"
+    },
+    {
+      "label": "right",
+      "path": ".bench-logs-evidence/paper-6-q14-cordic-slerp-s23-adreno740-r2.json",
+      "sha256": "9a4dc4490f424b3a82513f477b396efcf8eb4fbabd78876f09e3e6a545f0ca1a",
+      "run_id": "7cda4f4a-95c1-47d5-ba80-4635c6b060c3",
+      "captured_at": "2026-07-17T20:03:52.605Z",
+      "normalized_vendor": "qualcomm",
+      "machine_fingerprint_sha256": "ab4f25917e15474e1671da706a316d72467baeff4c7b9d8b3376e489206d27db",
+      "mode": "webgpu-browser-android-cdp",
+      "hardware_label": "Samsung Galaxy S23 Ultra / Adreno 740",
+      "adapter": {
+        "vendor": "qualcomm",
+        "architecture": "adreno-7xx",
+        "device": "",
+        "description": "",
+        "driver": "",
+        "isFallbackAdapter": false
+      },
+      "browser_user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36",
+      "host_device": {
+        "serial_sha256": "e2aefebe4b00dee2c133674ebad6dca6dde913860f676e987b7104c2770c227c",
+        "manufacturer": "samsung",
+        "model": "SM-S918U",
+        "android_release": "16",
+        "android_sdk": "36",
+        "abi": "arm64-v8a",
+        "board_platform": "kalama",
+        "gles_renderer": "Qualcomm, Adreno (TM) 740, OpenGL ES 3.2 V@0676.77.1 (GIT@3df4c357f0, I515341007c, 1769513954) (Date:01/27/26)",
+        "build_fingerprint_sha256": "739ed370510bb65e97d0b0bfbd414cc10fd7f36754eaa5d3f8947e417ada1455",
+        "chrome_package": "com.android.chrome",
+        "chrome_version": "150.0.7871.115"
+      },
+      "repeated_dispatch_output_sha256": [
+        "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+        "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84",
+        "fd4bd0dfb66ed1f41bdc193aa382d51ad0fdf84190d6c3d15ca47156678e7a84"
+      ],
+      "negative_control_gpu_output_sha256": "001d06d03a32aed3144104da883a477ea05d5fcb507a9d18b82a1b5fbe55416b"
+    }
+  ],
+  "comparison": {
+    "source_and_config_identity_equal": true,
+    "fixture_identity_equal": true,
+    "oracle_output_equal": true,
+    "repeated_gpu_outputs_equal_to_oracle": true,
+    "negative_control_outputs_equal_to_oracle": true,
+    "machine_fingerprints_distinct": true,
+    "normalized_vendors_distinct": true,
+    "normalized_vendors": [
+      "nvidia",
+      "qualcomm"
+    ]
+  },
+  "verdict": {
+    "two_machine_receipts_distinct": true,
+    "two_gpu_vendors_distinct": true,
+    "integer_contract_cross_vendor_byte_agreement": true,
+    "independent_lab_replication": false
+  }
+}

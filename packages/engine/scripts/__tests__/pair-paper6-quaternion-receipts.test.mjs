@@ -21,7 +21,7 @@ const actualRtxReceipt = path.join(evidenceRoot, 'paper-6-q14-cordic-slerp-h3-wi
 const actualS23Receipt = path.join(evidenceRoot, 'paper-6-q14-cordic-slerp-s23-adreno740-r2.json');
 const actualAggregate = path.join(
   evidenceRoot,
-  'paper-6-q14-cordic-slerp-cross-vendor-rtx3060-s23-r1.json'
+  'paper-6-q14-cordic-slerp-cross-vendor-rtx3060-s23-r2.json'
 );
 
 function buildReceipt({ vendor, architecture, mode = 'webgpu-browser', identitySeed = vendor }) {
