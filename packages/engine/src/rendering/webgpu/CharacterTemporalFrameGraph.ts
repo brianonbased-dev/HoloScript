@@ -68,6 +68,20 @@ export interface CharacterTemporalStageDurations {
   aggregateNanoseconds: number | null;
 }
 
+/** Caller-owned timestamp ranges used when this graph is nested in a larger frame graph. */
+export interface CharacterTemporalTimestampWrites {
+  color?: GPURenderPassTimestampWrites;
+  motionDepth?: GPURenderPassTimestampWrites;
+  temporalResolve?: GPUComputePassTimestampWrites;
+}
+
+export interface CharacterTemporalCompletionAccounting {
+  evidenceFrameReadbackCount: 0 | 1;
+  timestampMetadataReadbackCount: 0 | 1;
+  gpuTimestampQueryRequested: boolean;
+  gpuTimestampQueryEnabled: boolean;
+}
+
 export interface CharacterTemporalFrameGraphReceipt {
   schemaVersion: 'holoscript.webgpu-character-temporal-frame-graph.v1';
   backend: 'webgpu';
@@ -109,6 +123,21 @@ export interface CharacterTemporalFrameGraphResult {
   outputTexture: GPUTexture;
   pixels: PixelGrid | null;
   receipt: CharacterTemporalFrameGraphReceipt;
+}
+
+/**
+ * A recorded character frame whose history commit and receipt finalization are
+ * deliberately deferred to the owner of the command encoder.
+ */
+export interface EncodedCharacterTemporalFrame {
+  readonly outputTexture: GPUTexture;
+  readonly frameIndex: number;
+  encodeHistoryCommit(encoder: GPUCommandEncoder): void;
+  complete(
+    durations: CharacterTemporalStageDurations,
+    accounting: CharacterTemporalCompletionAccounting
+  ): CharacterTemporalFrameGraphReceipt;
+  cancel(): void;
 }
 
 function assertDimensions(width: number, height: number): void {
@@ -191,7 +220,7 @@ export class CharacterTemporalFrameGraph {
       label: `${this.label}-output-color`,
       size: [this.width, this.height],
       format: 'rgba8unorm',
-      usage: TEXTURE_STORAGE_BINDING | TEXTURE_COPY_SRC,
+      usage: TEXTURE_STORAGE_BINDING | TEXTURE_COPY_SRC | TEXTURE_BINDING,
     });
     this.historyColor = device.createTexture({
       label: `${this.label}-history-color`,
@@ -240,13 +269,28 @@ export class CharacterTemporalFrameGraph {
     this.historyInitialized = false;
   }
 
-  async execute(
-    input: CharacterTemporalFrameGraphInput
-  ): Promise<CharacterTemporalFrameGraphResult> {
+  /** Persistent temporal output, exposed for zero-copy downstream composition. */
+  get outputTexture(): GPUTexture {
+    return this.outputColor;
+  }
+
+  /**
+   * Record color, motion/depth, and temporal resolve into a caller-owned
+   * encoder. The caller must commit history and call complete() after the
+   * submitted work has finished, or call cancel() if encoding is abandoned.
+   */
+  encodeInto(
+    encoder: GPUCommandEncoder,
+    input: CharacterTemporalFrameGraphInput,
+    timestampWrites: CharacterTemporalTimestampWrites = {}
+  ): EncodedCharacterTemporalFrame {
     if (this.destroyed) throw new Error('character temporal frame graph is destroyed');
-    if (this.executing)
+    if (this.executing) {
       throw new Error('character temporal frame graph execute calls must be serialized');
+    }
     this.executing = true;
+
+    let encodedResolve: ReturnType<typeof encodeTemporalTextureResolveGPU> | null = null;
     try {
       const currentViewProjection = input.currentViewProjection ?? framingMatrix();
       const previousViewProjection = input.previousViewProjection ?? currentViewProjection;
@@ -257,28 +301,21 @@ export class CharacterTemporalFrameGraph {
         currentViewProjection,
         previousViewProjection,
       });
+      const encodedFrameIndex = this.frameIndex;
       const historyInitializedBeforeFrame = this.historyInitialized;
       const historyConsumed = input.historyValid && historyInitializedBeforeFrame;
-      const encoder = this.device.createCommandEncoder({
-        label: `${this.label}-frame-${this.frameIndex}`,
-      });
-      const renderTimestampWrites = this.timestampQuerySet
-        ? { querySet: this.timestampQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 }
-        : undefined;
-      const motionTimestampWrites = this.timestampQuerySet
-        ? { querySet: this.timestampQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 }
-        : undefined;
-      const resolveTimestampWrites = this.timestampQuerySet
-        ? { querySet: this.timestampQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 }
-        : undefined;
 
       const color = this.characterRenderer.encode(encoder, this.currentColor, input.currentSpec, {
         ...input.renderOptions,
         viewProj: currentViewProjection,
-        timestampWrites: renderTimestampWrites,
+        timestampWrites: timestampWrites.color,
       });
-      const motionDepth = this.motionRasterizer.encode(encoder, motionFrame, motionTimestampWrites);
-      const encodedResolve = encodeTemporalTextureResolveGPU(
+      const motionDepth = this.motionRasterizer.encode(
+        encoder,
+        motionFrame,
+        timestampWrites.motionDepth
+      );
+      encodedResolve = encodeTemporalTextureResolveGPU(
         this.device,
         encoder,
         {
@@ -298,25 +335,134 @@ export class CharacterTemporalFrameGraph {
           depthHistoryAvailable: historyConsumed,
           reactiveMaskAvailable: false,
           disocclusionDepthThreshold: input.disocclusionDepthThreshold,
-          timestampWrites: resolveTimestampWrites,
+          timestampWrites: timestampWrites.temporalResolve,
           pipeline: this.resolvePipeline,
           outputTexture: this.outputColor,
         }
       );
 
-      // These history copies are deliberately after the aggregate timestamp endpoint.
-      encoder.copyTextureToTexture({ texture: this.outputColor }, { texture: this.historyColor }, [
-        this.width,
-        this.height,
-      ]);
-      encoder.copyTextureToTexture(
-        { texture: this.motionRasterizer.depthTexture },
-        { texture: this.historyDepth },
-        [this.width, this.height]
-      );
+      let active = true;
+      let historyCommitted = false;
+      const release = (): void => {
+        if (!active) return;
+        active = false;
+        encodedResolve?.destroy();
+        this.executing = false;
+      };
+
+      return {
+        outputTexture: this.outputColor,
+        frameIndex: encodedFrameIndex,
+        encodeHistoryCommit: (historyEncoder): void => {
+          if (!active) throw new Error('encoded character temporal frame is no longer active');
+          if (historyCommitted) {
+            throw new Error('encoded character temporal frame history is already committed');
+          }
+          historyEncoder.copyTextureToTexture(
+            { texture: this.outputColor },
+            { texture: this.historyColor },
+            [this.width, this.height]
+          );
+          historyEncoder.copyTextureToTexture(
+            { texture: this.motionRasterizer.depthTexture },
+            { texture: this.historyDepth },
+            [this.width, this.height]
+          );
+          historyCommitted = true;
+        },
+        complete: (durations, accounting): CharacterTemporalFrameGraphReceipt => {
+          if (!active) throw new Error('encoded character temporal frame is no longer active');
+          if (!historyCommitted) {
+            throw new Error('encoded character temporal frame history must be committed');
+          }
+          const gpuTimestampMeasured =
+            accounting.gpuTimestampQueryEnabled &&
+            Object.values(durations).every((duration) => duration !== null);
+          const receipt: CharacterTemporalFrameGraphReceipt = {
+            schemaVersion: 'holoscript.webgpu-character-temporal-frame-graph.v1',
+            backend: 'webgpu',
+            deviceExecutionMeasured: true,
+            width: this.width,
+            height: this.height,
+            frameIndex: encodedFrameIndex,
+            historyInitializedBeforeFrame,
+            historyConsumed,
+            historyCommitted: true,
+            fixedTopology: true,
+            persistentGpuResources: true,
+            zeroCopyColorToTemporalResolve: true,
+            zeroCopyMotionDepthToTemporalResolve: true,
+            zeroCopyResolveToHistory: true,
+            intermediateFrameReadbackCount: 0,
+            evidenceFrameReadbackCount: accounting.evidenceFrameReadbackCount,
+            timestampMetadataReadbackCount: accounting.timestampMetadataReadbackCount,
+            commandBufferCount: 1,
+            queueSubmissionCount: 1,
+            gpuTimestampQuerySupported: this.timestampQuerySupported,
+            gpuTimestampQueryRequested: accounting.gpuTimestampQueryRequested,
+            gpuTimestampQueryEnabled: accounting.gpuTimestampQueryEnabled,
+            gpuTimestampMeasured,
+            timingClassification: gpuTimestampMeasured
+              ? 'gpu-timestamp-query'
+              : accounting.gpuTimestampQueryRequested
+                ? 'feature-not-enabled'
+                : 'not-requested',
+            timedScope: gpuTimestampMeasured
+              ? 'character-color-through-temporal-resolve-gpu-scope'
+              : 'not-measured',
+            cpuMotionDerivationExcludedFromTimedScope: true,
+            cpuToGpuUploadsExcludedFromTimedScope: true,
+            historyCopiesExcludedFromTimedScope: true,
+            evidenceAndTimestampReadbackExcludedFromTimedScope: true,
+            durations,
+            motionDerivation: motionFrame.receipt,
+            color,
+            motionDepth,
+            resolve: encodedResolve!.receipt,
+          };
+          this.historyInitialized = true;
+          this.frameIndex += 1;
+          release();
+          return receipt;
+        },
+        cancel: release,
+      };
+    } catch (error) {
+      encodedResolve?.destroy();
+      this.executing = false;
+      throw error;
+    }
+  }
+
+  async execute(
+    input: CharacterTemporalFrameGraphInput
+  ): Promise<CharacterTemporalFrameGraphResult> {
+    let encoded: EncodedCharacterTemporalFrame | null = null;
+    let evidenceReadback: GPUBuffer | null = null;
+    try {
+      const encoder = this.device.createCommandEncoder({
+        label: `${this.label}-frame-${this.frameIndex}`,
+      });
+      const renderTimestampWrites = this.timestampQuerySet
+        ? { querySet: this.timestampQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 }
+        : undefined;
+      const motionTimestampWrites = this.timestampQuerySet
+        ? { querySet: this.timestampQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 }
+        : undefined;
+      const resolveTimestampWrites = this.timestampQuerySet
+        ? { querySet: this.timestampQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 }
+        : undefined;
+      encoded = this.encodeInto(encoder, input, {
+        color: renderTimestampWrites,
+        motionDepth: motionTimestampWrites,
+        temporalResolve: resolveTimestampWrites,
+      });
+
+      // Deliberately after the aggregate timestamp endpoint.
+      encoded.encodeHistoryCommit(encoder);
 
       const evidenceBytesPerRow = alignedBytesPerRow(this.width);
-      const evidenceReadback = input.capturePixels
+      evidenceReadback = input.capturePixels
         ? this.device.createBuffer({
             label: `${this.label}-frame-${this.frameIndex}-evidence`,
             size: evidenceBytesPerRow * this.height,
@@ -384,55 +530,17 @@ export class CharacterTemporalFrameGraph {
         pixels = { width: this.width, height: this.height, data };
       }
 
-      encodedResolve.destroy();
-      this.historyInitialized = true;
-      const gpuTimestampMeasured = Object.values(durations).every((duration) => duration !== null);
-      const receipt: CharacterTemporalFrameGraphReceipt = {
-        schemaVersion: 'holoscript.webgpu-character-temporal-frame-graph.v1',
-        backend: 'webgpu',
-        deviceExecutionMeasured: true,
-        width: this.width,
-        height: this.height,
-        frameIndex: this.frameIndex,
-        historyInitializedBeforeFrame,
-        historyConsumed,
-        historyCommitted: true,
-        fixedTopology: true,
-        persistentGpuResources: true,
-        zeroCopyColorToTemporalResolve: true,
-        zeroCopyMotionDepthToTemporalResolve: true,
-        zeroCopyResolveToHistory: true,
-        intermediateFrameReadbackCount: 0,
+      const receipt = encoded.complete(durations, {
         evidenceFrameReadbackCount: input.capturePixels ? 1 : 0,
         timestampMetadataReadbackCount: this.timestampQueryEnabled ? 1 : 0,
-        commandBufferCount: 1,
-        queueSubmissionCount: 1,
-        gpuTimestampQuerySupported: this.timestampQuerySupported,
         gpuTimestampQueryRequested: this.timestampQueryRequested,
         gpuTimestampQueryEnabled: this.timestampQueryEnabled,
-        gpuTimestampMeasured,
-        timingClassification: gpuTimestampMeasured
-          ? 'gpu-timestamp-query'
-          : this.timestampQueryRequested
-            ? 'feature-not-enabled'
-            : 'not-requested',
-        timedScope: gpuTimestampMeasured
-          ? 'character-color-through-temporal-resolve-gpu-scope'
-          : 'not-measured',
-        cpuMotionDerivationExcludedFromTimedScope: true,
-        cpuToGpuUploadsExcludedFromTimedScope: true,
-        historyCopiesExcludedFromTimedScope: true,
-        evidenceAndTimestampReadbackExcludedFromTimedScope: true,
-        durations,
-        motionDerivation: motionFrame.receipt,
-        color,
-        motionDepth,
-        resolve: encodedResolve.receipt,
-      };
-      this.frameIndex += 1;
+      });
+      encoded = null;
       return { outputTexture: this.outputColor, pixels, receipt };
     } finally {
-      this.executing = false;
+      evidenceReadback?.destroy();
+      encoded?.cancel();
     }
   }
 

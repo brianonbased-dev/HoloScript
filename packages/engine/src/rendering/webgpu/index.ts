@@ -80,12 +80,28 @@ export {
 } from './TemporalFrameGraph';
 export {
   CharacterTemporalFrameGraph,
+  type CharacterTemporalCompletionAccounting,
   type CharacterTemporalFrameGraphInput,
   type CharacterTemporalFrameGraphOptions,
   type CharacterTemporalFrameGraphReceipt,
   type CharacterTemporalFrameGraphResult,
   type CharacterTemporalStageDurations,
+  type CharacterTemporalTimestampWrites,
+  type EncodedCharacterTemporalFrame,
 } from './CharacterTemporalFrameGraph';
+export {
+  CharacterWorldFrameGraph,
+  type CharacterWorldCompositeReceipt,
+  type CharacterWorldFrameDurations,
+  type CharacterWorldFrameGraphInput,
+  type CharacterWorldFrameGraphOptions,
+  type CharacterWorldFrameGraphReceipt,
+  type CharacterWorldFrameGraphResult,
+  type CharacterWorldResidentDefinition,
+  type CharacterWorldResidentDurations,
+  type CharacterWorldResidentFrameInput,
+  type CharacterWorldResidentReceipt,
+} from './CharacterWorldFrameGraph';
 export type { DepthGrid, MotionVectorGrid, ReactiveMaskGrid } from './TemporalInputs';
 
 // Debug tools
