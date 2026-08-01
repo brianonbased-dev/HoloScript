@@ -21,6 +21,7 @@ import {
   COMPUTE_JOB_REQUEST_SCHEMA_VERSION,
   computeJobRequestHash,
   validateComputeBridgeAdmission,
+  validateComputeBudgetEvidence,
   validateComputeAllocatorCommitReceipt,
   validateComputeCapacityAllocationCursor,
   validateComputeCapacityLease,
@@ -31,9 +32,14 @@ import {
   validateComputePlacementPlan,
   validateComputeSubjectAttestation,
   verifyComputeJobTransition,
+  verifyComputeBudgetEvidence,
   type ComputeAllocatorCommitReceipt,
   type ComputeCapacityAllocationCursor,
   type ComputeCapacityLane,
+  type ComputeBudgetAccountProjection,
+  type ComputeBudgetEvidence,
+  type ComputeEvidenceTrustAnchor,
+  type ComputeExecutionReceipt,
   type ComputeJobReceipt,
   type ComputeJobTransitionReceipt,
 } from '@holoscript/core/world-model';
@@ -60,13 +66,21 @@ import { createHoloMeshPostgresPoolOptions } from './postgres-pool-options';
 export const COMPUTE_JOB_PUBLIC_RESPONSE_SCHEMA_VERSION =
   'holoscript.compute-job-public-response.v1' as const;
 export const COMPUTE_JOB_OUTBOX_SCHEMA_VERSION = 'holoscript.compute-job-outbox.v1' as const;
-export const COMPUTE_JOB_STORE_SCHEMA_VERSION = 'holoscript.compute-job-store-schema.v1' as const;
+export const COMPUTE_JOB_STORE_LEGACY_V1_SCHEMA_VERSION =
+  'holoscript.compute-job-store-schema.v1' as const;
+export const COMPUTE_JOB_STORE_LEGACY_V1_SCHEMA_FINGERPRINT =
+  'sha256:6b2e289875176e00cc7129a3ce0a1d00e4672f8da9bd5869406924bd4db3fa3f' as const;
+export const COMPUTE_JOB_STORE_SCHEMA_VERSION = 'holoscript.compute-job-store-schema.v2' as const;
 export const COMPUTE_JOB_STORE_SCHEMA_MANIFEST = {
   schemaVersion: COMPUTE_JOB_STORE_SCHEMA_VERSION,
   relations: [
     'holomesh_compute_store_meta',
     'holomesh_compute_jobs',
     'holomesh_compute_allocations',
+    'holomesh_compute_budget_accounts',
+    'holomesh_compute_budget_registrations',
+    'holomesh_compute_budget_holds',
+    'holomesh_compute_budget_commits',
     'holomesh_compute_capacity_bindings',
     'holomesh_compute_capacity_registrations',
     'holomesh_compute_admissions',
@@ -90,19 +104,29 @@ export const COMPUTE_JOB_STORE_SCHEMA_MANIFEST = {
   schemaCatalogVerification: 'full_relations_columns_constraints_indexes_triggers_sha256',
   requiredIndexes: [
     'idx_compute_allocation_current_lease',
+    'idx_compute_budget_account_scope',
+    'idx_compute_budget_hold_scope',
     'idx_compute_admission_refs_job',
     'idx_compute_evidence_refs_job',
     'idx_compute_job_command_work_unit',
     'idx_compute_outbox_delivery',
   ],
   createPreparationCustody: 'immutable_exact_canonical_command_bytes',
+  budgetCustody: {
+    arithmetic: 'checked_bigint_minor_units',
+    accountScope: 'team_budget_rail_currency_period',
+    periodExclusivity: 'serializable_rail_lock_nonoverlapping_validity',
+    evidence: 'issuer_attested_budget_ledger_only',
+    effectiveExpiry: 'min_evidence_anchor_revocation_db_clock',
+    settlementMeaning: 'metered_budget_consumption_not_payment_or_invoice',
+  },
   readbackAuthority: 'immutable_journals',
 } as const;
 export const COMPUTE_JOB_STORE_SCHEMA_FINGERPRINT = contentDigest(
   COMPUTE_JOB_STORE_SCHEMA_MANIFEST
 );
 export const COMPUTE_JOB_STORE_CATALOG_DIGEST =
-  'sha256:1af8b14bd28e271def87dac35dbab6870ec43a2bf63de34eb2569daae3bc0404' as const;
+  'sha256:fa35521b67988cc3e11eb61c268169825b78bddba45845c0a5e03967935f9885' as const;
 
 export const COMPUTE_JOB_STORE_SCHEMA_SQL = `
 /* compute:schema */
@@ -127,6 +151,10 @@ BEGIN
       AND c.relkind = 'r' AND c.relname = ANY(ARRAY[
       'holomesh_compute_jobs',
       'holomesh_compute_allocations',
+      'holomesh_compute_budget_accounts',
+      'holomesh_compute_budget_registrations',
+      'holomesh_compute_budget_holds',
+      'holomesh_compute_budget_commits',
       'holomesh_compute_capacity_bindings',
       'holomesh_compute_capacity_registrations',
       'holomesh_compute_admissions',
@@ -146,8 +174,13 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM holomesh_compute_store_meta
     WHERE singleton = TRUE AND (
-      schema_version <> '${COMPUTE_JOB_STORE_SCHEMA_VERSION}' OR
-      schema_fingerprint <> '${COMPUTE_JOB_STORE_SCHEMA_FINGERPRINT}'
+      NOT (
+        schema_version = '${COMPUTE_JOB_STORE_SCHEMA_VERSION}' AND
+        schema_fingerprint = '${COMPUTE_JOB_STORE_SCHEMA_FINGERPRINT}'
+      ) AND NOT (
+        schema_version = '${COMPUTE_JOB_STORE_LEGACY_V1_SCHEMA_VERSION}' AND
+        schema_fingerprint = '${COMPUTE_JOB_STORE_LEGACY_V1_SCHEMA_FINGERPRINT}'
+      )
     )
   ) THEN
     RAISE EXCEPTION 'compute custody schema version or fingerprint differs';
@@ -201,6 +234,114 @@ CREATE TABLE IF NOT EXISTS holomesh_compute_allocations (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_compute_allocation_current_lease
   ON holomesh_compute_allocations (team_id, current_lease_receipt_id)
   WHERE current_lease_receipt_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS holomesh_compute_budget_accounts (
+  team_id                    TEXT NOT NULL,
+  budget_rail_id             TEXT NOT NULL,
+  currency                   TEXT NOT NULL CHECK (currency = 'USD'),
+  policy_digest              TEXT NOT NULL CHECK (policy_digest ~ '^sha256:[0-9a-f]{64}$'),
+  period_digest              TEXT NOT NULL CHECK (period_digest ~ '^sha256:[0-9a-f]{64}$'),
+  valid_from                 TIMESTAMPTZ NOT NULL,
+  valid_until                TIMESTAMPTZ NOT NULL,
+  limit_amount_minor_units   BIGINT NOT NULL CHECK (limit_amount_minor_units >= 0),
+  held_amount_minor_units    BIGINT NOT NULL CHECK (held_amount_minor_units >= 0),
+  settled_amount_minor_units BIGINT NOT NULL CHECK (settled_amount_minor_units >= 0),
+  version                    BIGINT NOT NULL CHECK (version >= 0),
+  account_bytes              TEXT NOT NULL,
+  created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (team_id, budget_rail_id, currency, period_digest),
+  CONSTRAINT holomesh_compute_budget_accounts_valid_window_check
+    CHECK (valid_until > valid_from),
+  CONSTRAINT holomesh_compute_budget_accounts_settled_limit_check
+    CHECK (settled_amount_minor_units <= limit_amount_minor_units),
+  CONSTRAINT holomesh_compute_budget_accounts_held_limit_check
+    CHECK (held_amount_minor_units <= limit_amount_minor_units - settled_amount_minor_units)
+);
+CREATE INDEX IF NOT EXISTS idx_compute_budget_account_scope
+  ON holomesh_compute_budget_accounts
+    (team_id, budget_rail_id, currency, valid_until, period_digest);
+
+CREATE TABLE IF NOT EXISTS holomesh_compute_budget_registrations (
+  team_id                    TEXT NOT NULL,
+  budget_rail_id             TEXT NOT NULL,
+  currency                   TEXT NOT NULL CHECK (currency = 'USD'),
+  policy_digest              TEXT NOT NULL CHECK (policy_digest ~ '^sha256:[0-9a-f]{64}$'),
+  period_digest              TEXT NOT NULL CHECK (period_digest ~ '^sha256:[0-9a-f]{64}$'),
+  valid_from                 TIMESTAMPTZ NOT NULL,
+  valid_until                TIMESTAMPTZ NOT NULL,
+  limit_amount_minor_units   BIGINT NOT NULL CHECK (limit_amount_minor_units >= 0),
+  initial_account_bytes      TEXT NOT NULL,
+  registration_bytes         TEXT NOT NULL,
+  registered_at              TEXT NOT NULL,
+  committed_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (team_id, budget_rail_id, currency, period_digest),
+  CONSTRAINT holomesh_compute_budget_registrations_valid_window_check
+    CHECK (valid_until > valid_from)
+);
+
+CREATE TABLE IF NOT EXISTS holomesh_compute_budget_holds (
+  team_id                    TEXT NOT NULL,
+  job_id                     TEXT NOT NULL CHECK (job_id ~ '^sha256:[0-9a-f]{64}$'),
+  attempt                    BIGINT NOT NULL CHECK (attempt >= 1),
+  budget_rail_id             TEXT NOT NULL,
+  currency                   TEXT NOT NULL CHECK (currency = 'USD'),
+  policy_digest              TEXT NOT NULL CHECK (policy_digest ~ '^sha256:[0-9a-f]{64}$'),
+  period_digest              TEXT NOT NULL CHECK (period_digest ~ '^sha256:[0-9a-f]{64}$'),
+  max_amount_minor_units     BIGINT NOT NULL CHECK (max_amount_minor_units > 0),
+  held_amount_minor_units    BIGINT NOT NULL CHECK (held_amount_minor_units >= 0),
+  settled_amount_minor_units BIGINT NOT NULL CHECK (settled_amount_minor_units >= 0),
+  status                     TEXT NOT NULL CHECK (status IN ('held', 'released', 'settled')),
+  initial_receipt_id         TEXT NOT NULL CHECK (initial_receipt_id ~ '^sha256:[0-9a-f]{64}$'),
+  current_receipt_id         TEXT NOT NULL CHECK (current_receipt_id ~ '^sha256:[0-9a-f]{64}$'),
+  current_evidence_bytes     TEXT NOT NULL,
+  measured_cost_receipt_id   TEXT CHECK (
+                               measured_cost_receipt_id IS NULL OR
+                               measured_cost_receipt_id ~ '^sha256:[0-9a-f]{64}$'
+                             ),
+  created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (team_id, job_id, attempt),
+  UNIQUE (team_id, initial_receipt_id),
+  CONSTRAINT holomesh_compute_budget_holds_account_fk
+    FOREIGN KEY (team_id, budget_rail_id, currency, period_digest)
+    REFERENCES holomesh_compute_budget_accounts
+      (team_id, budget_rail_id, currency, period_digest) ON DELETE RESTRICT,
+  CONSTRAINT holomesh_compute_budget_holds_state_check CHECK (
+    (status = 'held' AND held_amount_minor_units = max_amount_minor_units
+                     AND settled_amount_minor_units = 0
+                     AND measured_cost_receipt_id IS NULL) OR
+    (status = 'released' AND held_amount_minor_units = 0
+                         AND settled_amount_minor_units = 0
+                         AND measured_cost_receipt_id IS NULL) OR
+    (status = 'settled' AND held_amount_minor_units = 0
+                        AND settled_amount_minor_units <= max_amount_minor_units
+                        AND measured_cost_receipt_id IS NOT NULL)
+  )
+);
+CREATE INDEX IF NOT EXISTS idx_compute_budget_hold_scope
+  ON holomesh_compute_budget_holds
+    (team_id, budget_rail_id, currency, period_digest, status);
+
+CREATE TABLE IF NOT EXISTS holomesh_compute_budget_commits (
+  team_id                 TEXT NOT NULL,
+  budget_evidence_receipt_id TEXT NOT NULL CHECK (budget_evidence_receipt_id ~ '^sha256:[0-9a-f]{64}$'),
+  transition_receipt_id   TEXT NOT NULL CHECK (transition_receipt_id ~ '^sha256:[0-9a-f]{64}$'),
+  job_id                  TEXT NOT NULL CHECK (job_id ~ '^sha256:[0-9a-f]{64}$'),
+  attempt                 BIGINT NOT NULL CHECK (attempt >= 1),
+  budget_rail_id          TEXT NOT NULL,
+  currency                TEXT NOT NULL CHECK (currency = 'USD'),
+  period_digest           TEXT NOT NULL CHECK (period_digest ~ '^sha256:[0-9a-f]{64}$'),
+  nonce_digest            TEXT NOT NULL CHECK (nonce_digest ~ '^sha256:[0-9a-f]{64}$'),
+  status                  TEXT NOT NULL CHECK (status IN ('held', 'released', 'settled')),
+  evidence_bytes          TEXT NOT NULL,
+  next_account_bytes      TEXT NOT NULL,
+  committed_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (team_id, budget_evidence_receipt_id),
+  UNIQUE (team_id, transition_receipt_id),
+  UNIQUE (team_id, nonce_digest),
+  UNIQUE (team_id, budget_rail_id, currency, period_digest, job_id, attempt, status)
+);
 
 CREATE TABLE IF NOT EXISTS holomesh_compute_capacity_bindings (
   team_id                  TEXT NOT NULL,
@@ -376,19 +517,51 @@ CREATE TABLE IF NOT EXISTS holomesh_compute_idempotency (
   public_response_bytes        TEXT,
   created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   committed_at                 TIMESTAMPTZ,
-  PRIMARY KEY (team_id, principal_digest, operation, key_digest),
-  CHECK (
-    (status = 'pending' AND transition_receipt_id IS NULL
-                        AND allocation_commit_receipt_id IS NULL
-                        AND admission_receipt_id IS NULL
-                        AND public_response_bytes IS NULL
-                        AND committed_at IS NULL) OR
-    (status = 'committed' AND transition_receipt_id IS NOT NULL
-                          AND admission_receipt_id IS NOT NULL
-                          AND public_response_bytes IS NOT NULL
-                          AND committed_at IS NOT NULL)
-  )
+  PRIMARY KEY (team_id, principal_digest, operation, key_digest)
 );
+
+DO $compute_idempotency_budget_column$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'holomesh_compute_idempotency'
+      AND column_name = 'budget_evidence_receipt_id'
+  ) THEN
+    ALTER TABLE holomesh_compute_idempotency
+      ADD COLUMN budget_schema_v2_placeholder TEXT;
+    ALTER TABLE holomesh_compute_idempotency
+      DROP COLUMN budget_schema_v2_placeholder;
+    ALTER TABLE holomesh_compute_idempotency
+      ADD COLUMN budget_evidence_receipt_id TEXT;
+  END IF;
+END
+$compute_idempotency_budget_column$;
+ALTER TABLE holomesh_compute_idempotency
+  DROP CONSTRAINT IF EXISTS holomesh_compute_idempotency_check;
+DO $compute_idempotency_state_constraint$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'holomesh_compute_idempotency'::regclass
+      AND conname = 'holomesh_compute_idempotency_state_check'
+  ) THEN
+    ALTER TABLE holomesh_compute_idempotency
+      ADD CONSTRAINT holomesh_compute_idempotency_state_check CHECK (
+        (status = 'pending' AND transition_receipt_id IS NULL
+                            AND allocation_commit_receipt_id IS NULL
+                            AND budget_evidence_receipt_id IS NULL
+                            AND admission_receipt_id IS NULL
+                            AND public_response_bytes IS NULL
+                            AND committed_at IS NULL) OR
+        (status = 'committed' AND transition_receipt_id IS NOT NULL
+                              AND admission_receipt_id IS NOT NULL
+                              AND public_response_bytes IS NOT NULL
+                              AND committed_at IS NOT NULL)
+      );
+  END IF;
+END
+$compute_idempotency_state_constraint$;
 
 CREATE TABLE IF NOT EXISTS holomesh_compute_job_creation_idempotency (
   team_id               TEXT NOT NULL,
@@ -495,7 +668,9 @@ CREATE INDEX IF NOT EXISTS idx_compute_outbox_delivery
 INSERT INTO holomesh_compute_store_meta
   (singleton, schema_version, schema_fingerprint)
 VALUES (TRUE, '${COMPUTE_JOB_STORE_SCHEMA_VERSION}', '${COMPUTE_JOB_STORE_SCHEMA_FINGERPRINT}')
-ON CONFLICT (singleton) DO NOTHING;
+ON CONFLICT (singleton) DO UPDATE
+SET schema_version = EXCLUDED.schema_version,
+    schema_fingerprint = EXCLUDED.schema_fingerprint;
 `;
 
 export const COMPUTE_JOB_STORE_SCHEMA_VERIFY_SQL = `
@@ -505,6 +680,10 @@ WITH required_relations(table_name) AS (
     ('holomesh_compute_store_meta'),
     ('holomesh_compute_jobs'),
     ('holomesh_compute_allocations'),
+    ('holomesh_compute_budget_accounts'),
+    ('holomesh_compute_budget_registrations'),
+    ('holomesh_compute_budget_holds'),
+    ('holomesh_compute_budget_commits'),
     ('holomesh_compute_capacity_bindings'),
     ('holomesh_compute_capacity_registrations'),
     ('holomesh_compute_admissions'),
@@ -522,6 +701,10 @@ WITH required_relations(table_name) AS (
     ('holomesh_compute_store_meta', 2, 1, 0, 0),
     ('holomesh_compute_jobs', 8, 1, 0, 0),
     ('holomesh_compute_allocations', 7, 1, 0, 0),
+    ('holomesh_compute_budget_accounts', 10, 1, 0, 0),
+    ('holomesh_compute_budget_registrations', 5, 1, 0, 0),
+    ('holomesh_compute_budget_holds', 13, 1, 1, 1),
+    ('holomesh_compute_budget_commits', 8, 1, 3, 0),
     ('holomesh_compute_capacity_bindings', 2, 1, 1, 1),
     ('holomesh_compute_capacity_registrations', 3, 1, 0, 0),
     ('holomesh_compute_admissions', 15, 1, 0, 0),
@@ -555,6 +738,8 @@ WITH required_relations(table_name) AS (
 ), required_bigint_attempts(table_name) AS (
   VALUES
     ('holomesh_compute_jobs'),
+    ('holomesh_compute_budget_holds'),
+    ('holomesh_compute_budget_commits'),
     ('holomesh_compute_admissions'),
     ('holomesh_compute_admission_refs'),
     ('holomesh_compute_evidence_refs'),
@@ -564,6 +749,10 @@ WITH required_relations(table_name) AS (
     ('holomesh_compute_job_creation_idempotency')
 ), required_timestamptz_columns(table_name, column_name) AS (
   VALUES
+    ('holomesh_compute_budget_accounts', 'valid_from'),
+    ('holomesh_compute_budget_accounts', 'valid_until'),
+    ('holomesh_compute_budget_registrations', 'valid_from'),
+    ('holomesh_compute_budget_registrations', 'valid_until'),
     ('holomesh_compute_capacity_bindings', 'valid_until'),
     ('holomesh_compute_capacity_bindings', 'data_policy_valid_until'),
     ('holomesh_compute_admissions', 'verified_at'),
@@ -692,9 +881,10 @@ SELECT
     JOIN pg_catalog.pg_namespace n
       ON n.oid = c.relnamespace AND n.nspname = current_schema()
     WHERE c.relname = 'holomesh_compute_idempotency'
-      AND con.conname = 'holomesh_compute_idempotency_check'
+      AND con.conname = 'holomesh_compute_idempotency_state_check'
       AND pg_get_constraintdef(con.oid, true) LIKE '%status = ''pending''%'
       AND pg_get_constraintdef(con.oid, true) LIKE '%status = ''committed''%'
+      AND pg_get_constraintdef(con.oid, true) LIKE '%budget_evidence_receipt_id IS NULL%'
       AND pg_get_constraintdef(con.oid, true) LIKE '%admission_receipt_id IS NULL%'
       AND pg_get_constraintdef(con.oid, true) LIKE '%admission_receipt_id IS NOT NULL%'
   ) AND EXISTS (
@@ -802,6 +992,16 @@ SELECT
       AND indexdef LIKE '%WHERE (current_lease_receipt_id IS NOT NULL)%'
   ) AND EXISTS (
     SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'idx_compute_budget_account_scope'
+      AND indexdef NOT LIKE 'CREATE UNIQUE INDEX%'
+      AND indexdef LIKE '%(team_id, budget_rail_id, currency, valid_until, period_digest)%'
+  ) AND EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'idx_compute_budget_hold_scope'
+      AND indexdef NOT LIKE 'CREATE UNIQUE INDEX%'
+      AND indexdef LIKE '%(team_id, budget_rail_id, currency, period_digest, status)%'
+  ) AND EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
       AND indexname = 'idx_compute_job_command_work_unit'
       AND indexdef NOT LIKE 'CREATE UNIQUE INDEX%'
       AND indexdef LIKE '%(team_id, work_unit_digest)%'
@@ -892,6 +1092,12 @@ export interface ComputeAllocatorCommitEnvelope {
   readonly bytes: string;
 }
 
+export interface ComputeBudgetEvidenceEnvelope {
+  readonly receipt: ComputeBudgetEvidence;
+  /** Exact canonical bytes of the core signed budget evidence receipt. */
+  readonly bytes: string;
+}
+
 export interface ComputeOutboxEnvelope {
   readonly eventId: string;
   readonly aggregateKind: string;
@@ -925,6 +1131,51 @@ export interface RegisterComputeCapacityResult {
   readonly lane: ComputeCapacityLane;
   readonly etag: string;
   readonly cursorBytes: string;
+}
+
+/**
+ * Server-local provisioning projection for one enterprise budget period.
+ * This is not payment authority, an invoice, or provider settlement.
+ */
+export interface ComputeBudgetRegistrationProjection {
+  readonly teamId: string;
+  readonly budgetRailId: string;
+  readonly currency: 'USD';
+  readonly policyDigest: string;
+  readonly periodDigest: string;
+  readonly validFrom: string;
+  readonly validUntil: string;
+  readonly limitAmountMinorUnits: number;
+  readonly account: ComputeBudgetAccountProjection;
+}
+
+export interface RegisterComputeBudgetCommand {
+  readonly projection: ComputeBudgetRegistrationProjection;
+  /** Exact canonical JSON bytes for the server-local projection above. */
+  readonly registrationBytes: string;
+  readonly registeredAt: string;
+}
+
+export interface RegisterComputeBudgetResult {
+  readonly disposition: 'committed' | 'replayed';
+  readonly teamId: string;
+  readonly budgetRailId: string;
+  readonly currency: 'USD';
+  readonly periodDigest: string;
+  readonly accountBytes: string;
+}
+
+export interface ReadRegisteredComputeBudgetInput {
+  readonly teamId: string;
+  readonly budgetRailId: string;
+  readonly currency: 'USD';
+  readonly periodDigest: string;
+}
+
+export interface RegisteredComputeBudget {
+  readonly projection: ComputeBudgetRegistrationProjection;
+  readonly registrationBytes: string;
+  readonly accountBytes: string;
 }
 
 export interface ReadComputeJobInput {
@@ -993,6 +1244,8 @@ export interface CommitComputeJobTransitionCommand {
   readonly admission: ComputeJobAdmissionEnvelope;
   readonly transition: ComputeTransitionEnvelope;
   readonly allocationCommit?: ComputeAllocatorCommitEnvelope;
+  /** Exact canonical issuer-attested core budget evidence; never payment or invoice evidence. */
+  readonly budgetEvidence?: ComputeBudgetEvidenceEnvelope;
   readonly outbox: readonly ComputeOutboxEnvelope[];
   /** Exact public response JSON. It may contain hashes, never bearer material. */
   readonly publicResponseBytes: string;
@@ -1003,10 +1256,13 @@ export interface CommitComputeJobTransitionResult {
   readonly publicResponseBytes: string;
   readonly transitionReceiptId: string;
   readonly allocationCommitReceiptId?: string;
+  /** Signed budget evidence persisted by this committed transition. */
+  readonly budgetEvidenceReceiptId?: string;
   readonly readBack: {
     readonly jobReceiptId: string;
     readonly admissionReceiptId: string;
     readonly allocationEtag?: string;
+    readonly budgetEvidenceReceiptId?: string;
     readonly evidenceReceiptIds: readonly string[];
     readonly outboxEventIds: readonly string[];
   };
@@ -1017,6 +1273,9 @@ export type ComputeJobStoreConflictCode =
   | 'idempotency_incomplete'
   | 'job_cas_conflict'
   | 'allocation_cas_conflict'
+  | 'budget_cas_conflict'
+  | 'budget_insufficient'
+  | 'budget_registration_conflict'
   | 'job_already_exists'
   | 'capacity_registration_conflict'
   | 'immutable_receipt_conflict';
@@ -1059,7 +1318,7 @@ export class ComputeJobStoreReadbackError extends Error {
 }
 
 export class ComputeJobStoreNotFoundError extends Error {
-  constructor(readonly resource: 'job' | 'capacity' | 'work_unit') {
+  constructor(readonly resource: 'job' | 'capacity' | 'budget' | 'work_unit') {
     super(`${resource} is not registered in the durable compute store`);
     this.name = 'ComputeJobStoreNotFoundError';
   }
@@ -1068,6 +1327,8 @@ export class ComputeJobStoreNotFoundError extends Error {
 export interface CreateComputeJobStoreOptions {
   readonly admissionTrustAnchors: readonly ComputeJobAdmissionTrustAnchor[];
   readonly admissionTrustPolicyDigest: string;
+  /** Required only when committing positive-cost enterprise budget evidence. */
+  readonly budgetEvidenceTrustAnchors?: readonly ComputeEvidenceTrustAnchor[];
   /** Injectable server clock for deterministic tests. PostgreSQL is rechecked before commit. */
   readonly now?: () => string;
   readonly pool?: ComputeJobStorePool;
@@ -1080,6 +1341,7 @@ interface IdempotencyRow extends Record<string, unknown> {
   status: 'pending' | 'committed';
   transition_receipt_id: string | null;
   allocation_commit_receipt_id: string | null;
+  budget_evidence_receipt_id: string | null;
   admission_receipt_id: string | null;
   public_response_bytes: string | null;
 }
@@ -1159,6 +1421,46 @@ interface CapacityRegistrationJournalRow extends Record<string, unknown> {
   registered_at: string;
 }
 
+interface BudgetAccountRow extends Record<string, unknown> {
+  team_id: string;
+  budget_rail_id: string;
+  currency: 'USD';
+  policy_digest: string;
+  period_digest: string;
+  valid_from: Date | string;
+  valid_until: Date | string;
+  limit_amount_minor_units: string | number;
+  held_amount_minor_units: string | number;
+  settled_amount_minor_units: string | number;
+  version: string | number;
+  account_bytes: string;
+}
+
+interface BudgetRegistrationJournalRow extends Record<string, unknown> {
+  policy_digest: string;
+  valid_from: Date | string;
+  valid_until: Date | string;
+  limit_amount_minor_units: string | number;
+  initial_account_bytes: string;
+  registration_bytes: string;
+  registered_at: string;
+}
+
+interface BudgetHoldRow extends Record<string, unknown> {
+  budget_rail_id: string;
+  currency: 'USD';
+  policy_digest: string;
+  period_digest: string;
+  max_amount_minor_units: string | number;
+  held_amount_minor_units: string | number;
+  settled_amount_minor_units: string | number;
+  status: 'held' | 'released' | 'settled';
+  initial_receipt_id: string;
+  current_receipt_id: string;
+  current_evidence_bytes: string;
+  measured_cost_receipt_id: string | null;
+}
+
 interface AdmissionRow extends Record<string, unknown> {
   receipt_id: string;
   schema_version: string;
@@ -1191,12 +1493,15 @@ interface ReadbackRow extends Record<string, unknown> {
   public_response_bytes: string;
   transition_receipt_id: string;
   allocation_commit_receipt_id: string | null;
+  budget_evidence_receipt_id: string | null;
   admission_receipt_id: string;
   transition_bytes: string;
   to_job_bytes: string;
   commit_bytes: string | null;
   next_cursor_bytes: string | null;
   committed_next_etag: string | null;
+  budget_evidence_bytes: string | null;
+  next_account_bytes: string | null;
 }
 
 interface JobCreationReadbackRow extends Record<string, unknown> {
@@ -1610,6 +1915,24 @@ function prepareAllocatorCommitEnvelope(
   };
 }
 
+function prepareBudgetEvidenceEnvelope(
+  envelope: ComputeBudgetEvidenceEnvelope,
+  label: string
+): ComputeBudgetEvidenceEnvelope {
+  const payload = parseJsonObject(envelope.bytes, `${label}.bytes`);
+  const validation = validateComputeBudgetEvidence(payload);
+  if (!validation.valid) {
+    throw new TypeError(`${label}.bytes is invalid: ${validation.errors.join('; ')}`);
+  }
+  if (canonicalJson(payload) !== canonicalJson(envelope.receipt)) {
+    throw new TypeError(`${label}.bytes do not encode the supplied budget evidence receipt`);
+  }
+  return {
+    receipt: payload as unknown as ComputeBudgetEvidence,
+    bytes: envelope.bytes,
+  };
+}
+
 export interface BuildComputeJobPublicArtifactsInput {
   readonly job: ComputeJobReceipt;
   readonly transition?: ComputeJobTransitionReceipt;
@@ -1730,6 +2053,9 @@ function prepareCommand(
   const allocationCommit = input.allocationCommit
     ? prepareAllocatorCommitEnvelope(input.allocationCommit, 'allocationCommit')
     : undefined;
+  const budgetEvidence = input.budgetEvidence
+    ? prepareBudgetEvidenceEnvelope(input.budgetEvidence, 'budgetEvidence')
+    : undefined;
   const command: CommitComputeJobTransitionCommand = {
     operation: input.operation,
     idempotencyKeyDigest: input.idempotencyKeyDigest,
@@ -1745,6 +2071,7 @@ function prepareCommand(
     admission,
     transition,
     ...(allocationCommit ? { allocationCommit } : {}),
+    ...(budgetEvidence ? { budgetEvidence } : {}),
     ...(input.expectedCapacityEligibilityBytes !== undefined
       ? { expectedCapacityEligibilityBytes: input.expectedCapacityEligibilityBytes }
       : {}),
@@ -1868,6 +2195,79 @@ function prepareCommand(
     }
   }
 
+  const maxAmountMinorUnits = expectedWorkUnit.contract.compute.budget.maxCostMinorUnits;
+  const allocatorOperation = command.allocationCommit?.receipt.operation;
+  const requiresBudgetEvidence = maxAmountMinorUnits > 0 && allocatorOperation !== undefined;
+  if (requiresBudgetEvidence !== (command.budgetEvidence !== undefined)) {
+    throw new TypeError(
+      requiresBudgetEvidence
+        ? 'positive-cost allocation mutations require exact signed budget evidence'
+        : 'budget evidence is forbidden without a positive-cost allocation mutation'
+    );
+  }
+  if (command.budgetEvidence) {
+    const budget = command.budgetEvidence.receipt;
+    const terminalEvidence = command.nextJob.receipt.terminal?.evidence;
+    const expectedStatus =
+      allocatorOperation === 'acquire'
+        ? 'held'
+        : command.transition.receipt.action === 'succeed'
+          ? 'settled'
+          : command.transition.receipt.action === 'fail' ||
+              command.transition.receipt.action === 'cancel'
+            ? terminalEvidence?.kind === 'execution_not_started'
+              ? 'released'
+              : terminalEvidence?.kind === 'attested_execution'
+                ? 'settled'
+                : undefined
+            : undefined;
+    if (!expectedStatus || budget.status !== expectedStatus) {
+      throw new TypeError(
+        'budget evidence must hold on acquire, release only execution-not-started terminality, and settle measured execution; unobserved execution retains its hold and fails closed'
+      );
+    }
+    if (
+      budget.teamId !== command.expectedJob.teamId ||
+      budget.principalDigest !== command.expectedJob.receipt.principalDigest ||
+      budget.jobId !== command.expectedJob.receipt.jobId ||
+      budget.attempt !== command.expectedJob.receipt.attempt ||
+      budget.workUnitDigest !== expectedWorkUnit.digest ||
+      budget.currency !== expectedWorkUnit.contract.compute.budget.currency ||
+      budget.maxAmountMinorUnits !== maxAmountMinorUnits ||
+      budget.idempotencyKeyHash !== command.idempotencyKeyDigest
+    ) {
+      throw new TypeError('budget evidence does not bind the exact job, WorkUnit, and request');
+    }
+    if (
+      Date.parse(budget.validFrom) > Date.parse(command.transition.receipt.transitionedAt) ||
+      Date.parse(budget.validUntil) <= Date.parse(command.transition.receipt.transitionedAt)
+    ) {
+      throw new TypeError('budget evidence is not active at the lifecycle transition time');
+    }
+    if (budget.status === 'settled') {
+      const executionEnvelope = command.evidence.find(
+        (entry) => entry.schemaVersion === COMPUTE_EXECUTION_RECEIPT_SCHEMA_VERSION
+      );
+      if (!executionEnvelope) {
+        throw new TypeError('settled budget evidence requires the lifecycle execution receipt');
+      }
+      const execution = parseJsonObject(
+        executionEnvelope.bytes,
+        'budgetEvidence.measuredExecutionReceipt'
+      ) as unknown as ComputeExecutionReceipt;
+      if (
+        execution.receiptId !== budget.measuredCostReceiptId ||
+        execution.cost.measurementState !== 'measured' ||
+        execution.cost.currency !== budget.currency ||
+        execution.cost.actualMinorUnits !== budget.settledAmountMinorUnits
+      ) {
+        throw new TypeError(
+          'settled budget evidence must bind the exact measured lifecycle execution cost'
+        );
+      }
+    }
+  }
+
   assertPublicArtifacts(command.publicResponseBytes, command.outbox, {
     job: command.nextJob.receipt,
     transition: command.transition.receipt,
@@ -1913,6 +2313,60 @@ function prepareCapacityRegistration(
       allowedDataClassifications: [...dataPolicy.allowedDataClassifications],
     },
     dataPolicyBytes: input.dataPolicyBytes,
+    registeredAt,
+  };
+}
+
+function prepareBudgetRegistration(
+  input: RegisterComputeBudgetCommand
+): RegisterComputeBudgetCommand {
+  const projection = input.projection;
+  assertText(projection.teamId, 'projection.teamId');
+  assertText(projection.budgetRailId, 'projection.budgetRailId');
+  if (projection.currency !== 'USD') throw new TypeError('projection.currency must be USD');
+  assertDigest(projection.policyDigest, 'projection.policyDigest');
+  assertDigest(projection.periodDigest, 'projection.periodDigest');
+  const validFrom = canonicalTimestamp(projection.validFrom, 'projection.validFrom');
+  const validUntil = canonicalTimestamp(projection.validUntil, 'projection.validUntil');
+  const registeredAt = canonicalTimestamp(input.registeredAt, 'registeredAt');
+  assertNonnegativeInteger(projection.limitAmountMinorUnits, 'projection.limitAmountMinorUnits');
+  assertNonnegativeInteger(
+    projection.account.heldAmountMinorUnits,
+    'projection.account.heldAmountMinorUnits'
+  );
+  assertNonnegativeInteger(
+    projection.account.settledAmountMinorUnits,
+    'projection.account.settledAmountMinorUnits'
+  );
+  assertNonnegativeInteger(projection.account.version, 'projection.account.version');
+  if (
+    projection.account.heldAmountMinorUnits !== 0 ||
+    projection.account.settledAmountMinorUnits !== 0 ||
+    projection.account.version !== 0
+  ) {
+    throw new TypeError('budget registration requires a fresh zeroed account projection');
+  }
+  if (Date.parse(validUntil) <= Date.parse(validFrom)) {
+    throw new TypeError('budget registration validUntil must follow validFrom');
+  }
+  if (
+    Date.parse(registeredAt) < Date.parse(validFrom) ||
+    Date.parse(registeredAt) >= Date.parse(validUntil)
+  ) {
+    throw new TypeError('registeredAt must fall within the budget period');
+  }
+  const payload = parseJsonObject(input.registrationBytes, 'registrationBytes');
+  if (canonicalJson(payload) !== canonicalJson(projection)) {
+    throw new TypeError('registrationBytes do not encode the exact budget period projection');
+  }
+  return {
+    projection: {
+      ...projection,
+      validFrom,
+      validUntil,
+      account: { ...projection.account },
+    },
+    registrationBytes: input.registrationBytes,
     registeredAt,
   };
 }
@@ -2081,6 +2535,7 @@ export class PostgresComputeJobStore {
     private readonly maxTransactionRetries: number,
     private readonly admissionTrustAnchors: readonly ComputeJobAdmissionTrustAnchor[],
     private readonly admissionTrustPolicyDigest: string,
+    private readonly budgetEvidenceTrustAnchors: readonly ComputeEvidenceTrustAnchor[],
     private readonly now: () => string
   ) {}
 
@@ -2102,6 +2557,21 @@ export class PostgresComputeJobStore {
           allowedTeamIds: Object.freeze([...anchor.allowedTeamIds]),
           allowedPrincipalDigests: Object.freeze([...anchor.allowedPrincipalDigests]),
           allowedTrustPolicyDigests: Object.freeze([...anchor.allowedTrustPolicyDigests]),
+        })
+      )
+    );
+    const budgetEvidenceTrustAnchors = Object.freeze(
+      (options.budgetEvidenceTrustAnchors ?? []).map((anchor) =>
+        Object.freeze({
+          ...anchor,
+          roles: Object.freeze([...anchor.roles]),
+          principalDigests: Object.freeze([...anchor.principalDigests]),
+          ...(anchor.lanes ? { lanes: Object.freeze([...anchor.lanes]) } : {}),
+          ...(anchor.capacityRefs ? { capacityRefs: Object.freeze([...anchor.capacityRefs]) } : {}),
+          ...(anchor.teamIds ? { teamIds: Object.freeze([...anchor.teamIds]) } : {}),
+          ...(anchor.budgetRailIds
+            ? { budgetRailIds: Object.freeze([...anchor.budgetRailIds]) }
+            : {}),
         })
       )
     );
@@ -2142,6 +2612,7 @@ export class PostgresComputeJobStore {
       retries,
       admissionTrustAnchors,
       options.admissionTrustPolicyDigest,
+      budgetEvidenceTrustAnchors,
       now
     );
     try {
@@ -2224,6 +2695,58 @@ export class PostgresComputeJobStore {
       receipt: verification.receipt,
       bytes: verification.canonicalReceiptBytes,
     };
+  }
+
+  private authenticateBudgetEvidence(
+    envelope: ComputeBudgetEvidenceEnvelope | undefined
+  ): ComputeBudgetEvidenceEnvelope | undefined {
+    if (!envelope) return undefined;
+    if (this.budgetEvidenceTrustAnchors.length === 0) {
+      throw new ComputeJobStoreAdmissionError(['budget_evidence_trust_anchor_missing']);
+    }
+    const receipt = envelope.receipt;
+    this.budgetEvidenceEffectiveValidUntil(envelope);
+    const verification = verifyComputeBudgetEvidence({
+      evidence: receipt,
+      teamId: receipt.teamId,
+      budgetRailId: receipt.budgetRailId,
+      principalDigest: receipt.principalDigest,
+      jobId: receipt.jobId,
+      attempt: receipt.attempt,
+      workUnitDigest: receipt.workUnitDigest,
+      currency: receipt.currency,
+      maxAmountMinorUnits: receipt.maxAmountMinorUnits,
+      policyDigest: receipt.policyDigest,
+      periodDigest: receipt.periodDigest,
+      nonceDigest: receipt.nonceDigest,
+      idempotencyKeyHash: receipt.idempotencyKeyHash,
+      verifiedAt: this.verificationTime(),
+      trustAnchors: this.budgetEvidenceTrustAnchors,
+    });
+    if (!verification.valid) {
+      throw new ComputeJobStoreAdmissionError(
+        verification.errors.map((error) => `budget_evidence:${error}`)
+      );
+    }
+    return envelope;
+  }
+
+  private budgetEvidenceEffectiveValidUntil(envelope: ComputeBudgetEvidenceEnvelope): string {
+    const receipt = envelope.receipt;
+    const anchors = this.budgetEvidenceTrustAnchors.filter(
+      (anchor) =>
+        anchor.issuer === receipt.attestation.issuer && anchor.keyId === receipt.attestation.keyId
+    );
+    if (anchors.length !== 1) {
+      throw new ComputeJobStoreAdmissionError(['budget_evidence_anchor_not_unique']);
+    }
+    const anchor = anchors[0];
+    const candidates = [
+      receipt.validUntil,
+      anchor.validUntil,
+      ...(anchor.revokedAt ? [anchor.revokedAt] : []),
+    ].map((value) => Date.parse(canonicalTimestamp(value, 'budget authority expiry')));
+    return new Date(Math.min(...candidates)).toISOString();
   }
 
   private async assertAdmissionCurrentAtDatabaseClock(
@@ -2840,6 +3363,351 @@ export class PostgresComputeJobStore {
     );
   }
 
+  async readRegisteredBudget(
+    input: ReadRegisteredComputeBudgetInput
+  ): Promise<RegisteredComputeBudget> {
+    assertText(input.teamId, 'teamId');
+    assertText(input.budgetRailId, 'budgetRailId');
+    if (input.currency !== 'USD') throw new TypeError('currency must be USD');
+    assertDigest(input.periodDigest, 'periodDigest');
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query<BudgetAccountRow & BudgetRegistrationJournalRow>(
+        `/* compute:budget-read */
+         SELECT a.team_id, a.budget_rail_id, a.currency, a.policy_digest,
+                a.period_digest, a.valid_from, a.valid_until,
+                a.limit_amount_minor_units, a.held_amount_minor_units,
+                a.settled_amount_minor_units, a.version, a.account_bytes,
+                r.initial_account_bytes, r.registration_bytes, r.registered_at
+         FROM holomesh_compute_budget_accounts a
+         JOIN holomesh_compute_budget_registrations r
+           ON r.team_id = a.team_id AND r.budget_rail_id = a.budget_rail_id
+          AND r.currency = a.currency AND r.period_digest = a.period_digest
+         WHERE a.team_id = $1 AND a.budget_rail_id = $2
+           AND a.currency = $3 AND a.period_digest = $4`,
+        [input.teamId, input.budgetRailId, input.currency, input.periodDigest]
+      );
+      if (result.rows.length !== 1) throw new ComputeJobStoreNotFoundError('budget');
+      const row = result.rows[0];
+      const payload = parseJsonObject(row.registration_bytes, 'budget-read.registration_bytes');
+      const command = prepareBudgetRegistration({
+        projection: payload as unknown as ComputeBudgetRegistrationProjection,
+        registrationBytes: row.registration_bytes,
+        registeredAt: row.registered_at,
+      });
+      if (
+        !this.budgetAccountMatches(row, command) ||
+        !this.budgetRegistrationJournalMatches(row, command)
+      ) {
+        throw new ComputeJobStoreReadbackError(
+          'durable budget account columns do not match exact registration bytes'
+        );
+      }
+      const heldAmountMinorUnits = asSafeInteger(
+        row.held_amount_minor_units,
+        'budget-read.held_amount_minor_units'
+      );
+      const settledAmountMinorUnits = asSafeInteger(
+        row.settled_amount_minor_units,
+        'budget-read.settled_amount_minor_units'
+      );
+      const version = asSafeInteger(row.version, 'budget-read.version');
+      if (heldAmountMinorUnits === null || settledAmountMinorUnits === null || version === null) {
+        throw new ComputeJobStoreReadbackError(
+          'durable budget account counters are unexpectedly null'
+        );
+      }
+      const account: ComputeBudgetAccountProjection = {
+        heldAmountMinorUnits,
+        settledAmountMinorUnits,
+        version,
+      };
+      if (row.account_bytes !== canonicalJson(account)) {
+        throw new ComputeJobStoreReadbackError(
+          'durable budget account bytes do not match its counters'
+        );
+      }
+      return {
+        projection: { ...command.projection, account },
+        registrationBytes: command.registrationBytes,
+        accountBytes: row.account_bytes,
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async registerBudget(input: RegisterComputeBudgetCommand): Promise<RegisterComputeBudgetResult> {
+    const command = prepareBudgetRegistration(input);
+    let retry = 0;
+    while (true) {
+      try {
+        return await this.registerBudgetOnce(command);
+      } catch (error) {
+        if (RETRYABLE_SQL_STATES.has(sqlState(error) ?? '') && retry < this.maxTransactionRetries) {
+          retry += 1;
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  private async registerBudgetOnce(
+    command: RegisterComputeBudgetCommand
+  ): Promise<RegisterComputeBudgetResult> {
+    const client = await this.pool.connect();
+    const projection = command.projection;
+    const accountBytes = canonicalJson(projection.account);
+    let committed = false;
+    let disposition: RegisterComputeBudgetResult['disposition'] = 'committed';
+    const key = [
+      projection.teamId,
+      projection.budgetRailId,
+      projection.currency,
+      projection.periodDigest,
+    ];
+    try {
+      await client.query('/* compute:begin */ BEGIN ISOLATION LEVEL SERIALIZABLE');
+      await client.query(
+        `/* compute:budget-register-lock */
+         SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
+        [`budget:${projection.teamId}:${projection.budgetRailId}:${projection.currency}`]
+      );
+      const overlap = await client.query<{ period_digest: string }>(
+        `/* compute:budget-registration-overlap-lock */
+         SELECT period_digest
+         FROM holomesh_compute_budget_accounts
+         WHERE team_id = $1 AND budget_rail_id = $2 AND currency = $3
+           AND period_digest <> $4
+           AND valid_from < $6::timestamptz
+           AND valid_until > $5::timestamptz
+         FOR UPDATE`,
+        [
+          projection.teamId,
+          projection.budgetRailId,
+          projection.currency,
+          projection.periodDigest,
+          projection.validFrom,
+          projection.validUntil,
+        ]
+      );
+      if (overlap.rows.length !== 0) {
+        throw new ComputeJobStoreConflictError(
+          'budget_registration_conflict',
+          'budget rail already has an overlapping registered period'
+        );
+      }
+      const clock = await client.query<PolicyClockRow>(
+        `/* compute:budget-registration-clock */
+         SELECT (
+           $1::timestamptz <= clock_timestamp() AND
+           $2::timestamptz > clock_timestamp() AND
+           $3::timestamptz <= clock_timestamp() + INTERVAL '60 seconds'
+         ) AS admitted`,
+        [projection.validFrom, projection.validUntil, command.registeredAt]
+      );
+      if (clock.rows.length !== 1 || clock.rows[0].admitted !== true) {
+        throw new ComputeJobStoreConflictError(
+          'budget_registration_conflict',
+          'budget period is not current at the database clock'
+        );
+      }
+
+      const existing = await client.query<BudgetAccountRow & BudgetRegistrationJournalRow>(
+        `/* compute:budget-registration-lock */
+         SELECT a.team_id, a.budget_rail_id, a.currency, a.policy_digest,
+                a.period_digest, a.valid_from, a.valid_until,
+                a.limit_amount_minor_units, a.held_amount_minor_units,
+                a.settled_amount_minor_units, a.version, a.account_bytes,
+                r.initial_account_bytes, r.registration_bytes, r.registered_at
+         FROM holomesh_compute_budget_accounts a
+         JOIN holomesh_compute_budget_registrations r
+           ON r.team_id = a.team_id AND r.budget_rail_id = a.budget_rail_id
+          AND r.currency = a.currency AND r.period_digest = a.period_digest
+         WHERE a.team_id = $1 AND a.budget_rail_id = $2
+           AND a.currency = $3 AND a.period_digest = $4
+         FOR UPDATE OF a, r`,
+        key
+      );
+      if (existing.rows.length > 1) {
+        throw new ComputeJobStoreConflictError(
+          'budget_registration_conflict',
+          'budget period registration is not unique'
+        );
+      }
+      if (existing.rows.length === 1) {
+        if (
+          !this.budgetAccountMatches(existing.rows[0], command) ||
+          !this.budgetRegistrationJournalMatches(existing.rows[0], command)
+        ) {
+          throw new ComputeJobStoreConflictError(
+            'budget_registration_conflict',
+            'budget period already binds different policy, limit, validity, or bytes'
+          );
+        }
+        disposition = 'replayed';
+      } else {
+        const accountInsert = await client.query(
+          `/* compute:budget-account-insert */
+           INSERT INTO holomesh_compute_budget_accounts
+             (team_id, budget_rail_id, currency, policy_digest, period_digest,
+              valid_from, valid_until, limit_amount_minor_units,
+              held_amount_minor_units, settled_amount_minor_units, version, account_bytes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           ON CONFLICT (team_id, budget_rail_id, currency, period_digest) DO NOTHING
+           RETURNING period_digest`,
+          [
+            projection.teamId,
+            projection.budgetRailId,
+            projection.currency,
+            projection.policyDigest,
+            projection.periodDigest,
+            projection.validFrom,
+            projection.validUntil,
+            projection.limitAmountMinorUnits,
+            projection.account.heldAmountMinorUnits,
+            projection.account.settledAmountMinorUnits,
+            projection.account.version,
+            accountBytes,
+          ]
+        );
+        if (rowCount(accountInsert) !== 1) {
+          throw new ComputeJobStoreConflictError(
+            'budget_registration_conflict',
+            'budget account insert lost its period race'
+          );
+        }
+        const registrationInsert = await client.query(
+          `/* compute:budget-registration-insert */
+           INSERT INTO holomesh_compute_budget_registrations
+             (team_id, budget_rail_id, currency, policy_digest, period_digest,
+              valid_from, valid_until, limit_amount_minor_units,
+              initial_account_bytes, registration_bytes, registered_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           ON CONFLICT (team_id, budget_rail_id, currency, period_digest) DO NOTHING
+           RETURNING period_digest`,
+          [
+            projection.teamId,
+            projection.budgetRailId,
+            projection.currency,
+            projection.policyDigest,
+            projection.periodDigest,
+            projection.validFrom,
+            projection.validUntil,
+            projection.limitAmountMinorUnits,
+            accountBytes,
+            command.registrationBytes,
+            command.registeredAt,
+          ]
+        );
+        if (rowCount(registrationInsert) !== 1) {
+          throw new ComputeJobStoreConflictError(
+            'budget_registration_conflict',
+            'budget registration journal insert lost its period race'
+          );
+        }
+      }
+
+      const finalClock = await client.query<PolicyClockRow>(
+        `/* compute:budget-registration-final-clock */
+         UPDATE holomesh_compute_budget_registrations
+         SET committed_at = committed_at
+         WHERE team_id = $1 AND budget_rail_id = $2
+           AND currency = $3 AND period_digest = $4
+           AND valid_from <= clock_timestamp()
+           AND valid_until > clock_timestamp()
+         RETURNING TRUE AS admitted`,
+        key
+      );
+      if (rowCount(finalClock) !== 1 || finalClock.rows[0]?.admitted !== true) {
+        throw new ComputeJobStoreConflictError(
+          'budget_registration_conflict',
+          'budget period expired before the final database commit gate'
+        );
+      }
+      await client.query('/* compute:commit */ COMMIT');
+      committed = true;
+
+      const readback = await client.query<BudgetRegistrationJournalRow>(
+        `/* compute:budget-registration-readback */
+         SELECT policy_digest, valid_from, valid_until, limit_amount_minor_units,
+                initial_account_bytes, registration_bytes, registered_at
+         FROM holomesh_compute_budget_registrations
+         WHERE team_id = $1 AND budget_rail_id = $2
+           AND currency = $3 AND period_digest = $4`,
+        key
+      );
+      if (
+        readback.rows.length !== 1 ||
+        !this.budgetRegistrationJournalMatches(readback.rows[0], command)
+      ) {
+        throw new ComputeJobStoreReadbackError(
+          'committed budget registration bytes did not read back exactly'
+        );
+      }
+      return {
+        disposition,
+        teamId: projection.teamId,
+        budgetRailId: projection.budgetRailId,
+        currency: projection.currency,
+        periodDigest: projection.periodDigest,
+        accountBytes,
+      };
+    } catch (error) {
+      if (!committed) await rollbackQuietly(client);
+      if (committed && !(error instanceof ComputeJobStoreReadbackError)) {
+        throw new ComputeJobStoreReadbackError(
+          `committed budget registration readback failed: ${(error as Error).message}`
+        );
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  private budgetAccountMatches(
+    row: BudgetAccountRow,
+    command: RegisterComputeBudgetCommand
+  ): boolean {
+    const projection = command.projection;
+    const account = {
+      heldAmountMinorUnits: asSafeInteger(row.held_amount_minor_units, 'budget.held'),
+      settledAmountMinorUnits: asSafeInteger(row.settled_amount_minor_units, 'budget.settled'),
+      version: asSafeInteger(row.version, 'budget.version'),
+    };
+    return (
+      row.team_id === projection.teamId &&
+      row.budget_rail_id === projection.budgetRailId &&
+      row.currency === projection.currency &&
+      row.policy_digest === projection.policyDigest &&
+      row.period_digest === projection.periodDigest &&
+      dbTimestampMatches(row.valid_from, projection.validFrom) &&
+      dbTimestampMatches(row.valid_until, projection.validUntil) &&
+      asSafeInteger(row.limit_amount_minor_units, 'budget.limit') ===
+        projection.limitAmountMinorUnits &&
+      row.account_bytes === canonicalJson(account)
+    );
+  }
+
+  private budgetRegistrationJournalMatches(
+    row: BudgetRegistrationJournalRow,
+    command: RegisterComputeBudgetCommand
+  ): boolean {
+    const projection = command.projection;
+    return (
+      row.policy_digest === projection.policyDigest &&
+      dbTimestampMatches(row.valid_from, projection.validFrom) &&
+      dbTimestampMatches(row.valid_until, projection.validUntil) &&
+      asSafeInteger(row.limit_amount_minor_units, 'budget.registration.limit') ===
+        projection.limitAmountMinorUnits &&
+      row.initial_account_bytes === canonicalJson(projection.account) &&
+      row.registration_bytes === command.registrationBytes &&
+      row.registered_at === command.registeredAt
+    );
+  }
+
   private async persistCreateJobPreparation(
     candidate: CreateComputeJobCommand
   ): Promise<CreateComputeJobCommand> {
@@ -3352,6 +4220,13 @@ export class PostgresComputeJobStore {
           transitionReceiptId: prepared.transition.receipt.receiptId,
         },
       }),
+      ...(prepared.budgetEvidence
+        ? {
+            budgetEvidence: this.authenticateBudgetEvidence(
+              prepared.budgetEvidence
+            ) as ComputeBudgetEvidenceEnvelope,
+          }
+        : {}),
     };
     let retry = 0;
     while (true) {
@@ -3398,7 +4273,8 @@ export class PostgresComputeJobStore {
       const idempotencyLock = await client.query<IdempotencyRow>(
         `/* compute:idempotency-lock */
          SELECT request_digest, status, transition_receipt_id,
-                allocation_commit_receipt_id, admission_receipt_id,
+                 allocation_commit_receipt_id, budget_evidence_receipt_id,
+                 admission_receipt_id,
                 public_response_bytes
          FROM holomesh_compute_idempotency
          WHERE team_id = $1 AND principal_digest = $2 AND operation = $3 AND key_digest = $4
@@ -3428,6 +4304,8 @@ export class PostgresComputeJobStore {
         if (
           idempotency.transition_receipt_id !== transition.receiptId ||
           idempotency.allocation_commit_receipt_id !== (allocatorCommit?.receiptId ?? null) ||
+          idempotency.budget_evidence_receipt_id !==
+            (command.budgetEvidence?.receipt.receiptId ?? null) ||
           idempotency.admission_receipt_id !== command.admission.receipt.receiptId
         ) {
           throw new ComputeJobStoreConflictError(
@@ -3529,6 +4407,261 @@ export class PostgresComputeJobStore {
             'allocation_cas_conflict',
             'capacity policy or lease is not current at the database clock'
           );
+        }
+      }
+
+      if (command.budgetEvidence) {
+        const budget = command.budgetEvidence.receipt;
+        const accountKey = [
+          budget.teamId,
+          budget.budgetRailId,
+          budget.currency,
+          budget.periodDigest,
+        ];
+        const accountLock = await client.query<BudgetAccountRow>(
+          `/* compute:budget-account-lock */
+           SELECT team_id, budget_rail_id, currency, policy_digest, period_digest,
+                  valid_from, valid_until, limit_amount_minor_units,
+                  held_amount_minor_units, settled_amount_minor_units,
+                  version, account_bytes
+           FROM holomesh_compute_budget_accounts
+           WHERE team_id = $1 AND budget_rail_id = $2
+             AND currency = $3 AND period_digest = $4
+           FOR UPDATE`,
+          accountKey
+        );
+        if (accountLock.rows.length !== 1) {
+          throw new ComputeJobStoreConflictError(
+            'budget_cas_conflict',
+            'signed budget evidence does not resolve to one registered period'
+          );
+        }
+        const account = accountLock.rows[0];
+        const beforeBytes = canonicalJson(budget.accountBefore);
+        const afterBytes = canonicalJson(budget.accountAfter);
+        const accountIdentityMatches =
+          account.team_id === budget.teamId &&
+          account.budget_rail_id === budget.budgetRailId &&
+          account.currency === budget.currency &&
+          account.policy_digest === budget.policyDigest &&
+          account.period_digest === budget.periodDigest;
+        const accountBeforeMatches =
+          asSafeInteger(account.held_amount_minor_units, 'budget.account.held') ===
+            budget.accountBefore.heldAmountMinorUnits &&
+          asSafeInteger(account.settled_amount_minor_units, 'budget.account.settled') ===
+            budget.accountBefore.settledAmountMinorUnits &&
+          asSafeInteger(account.version, 'budget.account.version') ===
+            budget.accountBefore.version &&
+          account.account_bytes === beforeBytes;
+        if (!accountIdentityMatches || !accountBeforeMatches) {
+          throw new ComputeJobStoreConflictError(
+            'budget_cas_conflict',
+            'budget account policy, period, version, counters, or exact bytes changed before commit'
+          );
+        }
+        const limit = asSafeInteger(
+          account.limit_amount_minor_units,
+          'budget.account.limit_amount_minor_units'
+        );
+        if (limit === null) {
+          throw new ComputeJobStoreConflictError(
+            'budget_cas_conflict',
+            'budget account limit is unexpectedly null'
+          );
+        }
+        if (
+          budget.accountAfter.settledAmountMinorUnits > limit ||
+          budget.accountAfter.heldAmountMinorUnits >
+            limit - budget.accountAfter.settledAmountMinorUnits
+        ) {
+          throw new ComputeJobStoreConflictError(
+            'budget_insufficient',
+            'enterprise budget has insufficient unheld, unconsumed integer minor units'
+          );
+        }
+        const budgetClock = await client.query<PolicyClockRow>(
+          `/* compute:budget-policy-clock */
+           SELECT (
+             $1::timestamptz <= clock_timestamp() AND
+             $2::timestamptz > clock_timestamp() AND
+             $3::timestamptz <= clock_timestamp() + INTERVAL '60 seconds' AND
+             (
+               NOT $4::boolean OR (
+                 $5::timestamptz <= clock_timestamp() AND
+                 $6::timestamptz > clock_timestamp()
+               )
+             )
+           ) AS admitted`,
+          [
+            budget.validFrom,
+            this.budgetEvidenceEffectiveValidUntil(command.budgetEvidence),
+            budget.issuedAt,
+            budget.status === 'held',
+            account.valid_from,
+            account.valid_until,
+          ]
+        );
+        if (budgetClock.rows.length !== 1 || budgetClock.rows[0].admitted !== true) {
+          throw new ComputeJobStoreConflictError(
+            'budget_cas_conflict',
+            'budget evidence, trust anchor, or acquisition period is not current at the database clock'
+          );
+        }
+
+        const holdLock = await client.query<BudgetHoldRow>(
+          `/* compute:budget-hold-lock */
+           SELECT budget_rail_id, currency, policy_digest, period_digest,
+                  max_amount_minor_units, held_amount_minor_units,
+                  settled_amount_minor_units, status, initial_receipt_id,
+                  current_receipt_id, current_evidence_bytes,
+                  measured_cost_receipt_id
+           FROM holomesh_compute_budget_holds
+           WHERE team_id = $1 AND job_id = $2 AND attempt = $3
+           FOR UPDATE`,
+          [budget.teamId, budget.jobId, budget.attempt]
+        );
+        if (budget.status === 'held') {
+          if (holdLock.rows.length !== 0) {
+            throw new ComputeJobStoreConflictError(
+              'budget_cas_conflict',
+              'job attempt already has a durable budget hold'
+            );
+          }
+        } else {
+          const hold = holdLock.rows[0];
+          if (
+            holdLock.rows.length !== 1 ||
+            hold.budget_rail_id !== budget.budgetRailId ||
+            hold.currency !== budget.currency ||
+            hold.policy_digest !== budget.policyDigest ||
+            hold.period_digest !== budget.periodDigest ||
+            asSafeInteger(hold.max_amount_minor_units, 'budget.hold.max') !==
+              budget.maxAmountMinorUnits ||
+            asSafeInteger(hold.held_amount_minor_units, 'budget.hold.held') !==
+              budget.maxAmountMinorUnits ||
+            asSafeInteger(hold.settled_amount_minor_units, 'budget.hold.settled') !== 0 ||
+            hold.status !== 'held' ||
+            hold.current_receipt_id !== hold.initial_receipt_id ||
+            hold.measured_cost_receipt_id !== null
+          ) {
+            throw new ComputeJobStoreConflictError(
+              'budget_cas_conflict',
+              'release or metered settlement does not match one current durable hold'
+            );
+          }
+        }
+
+        const accountUpdate = await client.query(
+          `/* compute:budget-account-update */
+           UPDATE holomesh_compute_budget_accounts
+           SET held_amount_minor_units = $1, settled_amount_minor_units = $2,
+               version = $3, account_bytes = $4, updated_at = NOW()
+           WHERE team_id = $5 AND budget_rail_id = $6
+             AND currency = $7 AND period_digest = $8 AND policy_digest = $9
+             AND valid_from = $10::timestamptz AND valid_until = $11::timestamptz
+             AND held_amount_minor_units = $12
+             AND settled_amount_minor_units = $13 AND version = $14
+             AND account_bytes = $15
+             AND $2::bigint <= limit_amount_minor_units
+             AND $1::bigint <= limit_amount_minor_units - $2::bigint
+             AND (
+               NOT $16::boolean OR (
+                 valid_from <= clock_timestamp() AND valid_until > clock_timestamp()
+               )
+             )
+           RETURNING version`,
+          [
+            budget.accountAfter.heldAmountMinorUnits,
+            budget.accountAfter.settledAmountMinorUnits,
+            budget.accountAfter.version,
+            afterBytes,
+            ...accountKey,
+            budget.policyDigest,
+            account.valid_from,
+            account.valid_until,
+            budget.accountBefore.heldAmountMinorUnits,
+            budget.accountBefore.settledAmountMinorUnits,
+            budget.accountBefore.version,
+            beforeBytes,
+            budget.status === 'held',
+          ]
+        );
+        if (rowCount(accountUpdate) !== 1) {
+          throw new ComputeJobStoreConflictError(
+            'budget_cas_conflict',
+            'budget account CAS updated no row'
+          );
+        }
+
+        if (budget.status === 'held') {
+          const holdInsert = await client.query(
+            `/* compute:budget-hold-insert */
+             INSERT INTO holomesh_compute_budget_holds
+               (team_id, job_id, attempt, budget_rail_id, currency,
+                policy_digest, period_digest, max_amount_minor_units,
+                held_amount_minor_units, settled_amount_minor_units, status,
+                initial_receipt_id, current_receipt_id, current_evidence_bytes,
+                measured_cost_receipt_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                     $11, $12, $13, $14, $15)
+             ON CONFLICT DO NOTHING
+             RETURNING current_receipt_id`,
+            [
+              budget.teamId,
+              budget.jobId,
+              budget.attempt,
+              budget.budgetRailId,
+              budget.currency,
+              budget.policyDigest,
+              budget.periodDigest,
+              budget.maxAmountMinorUnits,
+              budget.heldAmountMinorUnits,
+              budget.settledAmountMinorUnits,
+              budget.status,
+              budget.receiptId,
+              budget.receiptId,
+              command.budgetEvidence.bytes,
+              null,
+            ]
+          );
+          if (rowCount(holdInsert) !== 1) {
+            throw new ComputeJobStoreConflictError(
+              'budget_cas_conflict',
+              'budget hold insert lost its job-attempt race'
+            );
+          }
+        } else {
+          const holdUpdate = await client.query(
+            `/* compute:budget-hold-update */
+             UPDATE holomesh_compute_budget_holds
+             SET held_amount_minor_units = $1, settled_amount_minor_units = $2,
+                 status = $3, current_receipt_id = $4,
+                 current_evidence_bytes = $5, measured_cost_receipt_id = $6,
+                 updated_at = NOW()
+             WHERE team_id = $7 AND job_id = $8 AND attempt = $9
+               AND status = 'held' AND held_amount_minor_units = $10
+               AND settled_amount_minor_units = 0
+               AND current_receipt_id = initial_receipt_id
+             RETURNING current_receipt_id`,
+            [
+              budget.heldAmountMinorUnits,
+              budget.settledAmountMinorUnits,
+              budget.status,
+              budget.receiptId,
+              command.budgetEvidence.bytes,
+              budget.measuredCostReceiptId ?? null,
+              budget.teamId,
+              budget.jobId,
+              budget.attempt,
+              budget.maxAmountMinorUnits,
+            ]
+          );
+          if (rowCount(holdUpdate) !== 1) {
+            throw new ComputeJobStoreConflictError(
+              'budget_cas_conflict',
+              'budget hold release or metered settlement CAS updated no row'
+            );
+          }
         }
       }
 
@@ -3744,6 +4877,40 @@ export class PostgresComputeJobStore {
         }
       }
 
+      if (command.budgetEvidence) {
+        const budget = command.budgetEvidence.receipt;
+        const budgetCommitInsert = await client.query(
+          `/* compute:budget-commit-insert */
+           INSERT INTO holomesh_compute_budget_commits
+             (team_id, budget_evidence_receipt_id, transition_receipt_id,
+              job_id, attempt, budget_rail_id, currency, period_digest,
+              nonce_digest, status, evidence_bytes, next_account_bytes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           ON CONFLICT DO NOTHING
+           RETURNING budget_evidence_receipt_id`,
+          [
+            budget.teamId,
+            budget.receiptId,
+            transition.receiptId,
+            budget.jobId,
+            budget.attempt,
+            budget.budgetRailId,
+            budget.currency,
+            budget.periodDigest,
+            budget.nonceDigest,
+            budget.status,
+            command.budgetEvidence.bytes,
+            canonicalJson(budget.accountAfter),
+          ]
+        );
+        if (rowCount(budgetCommitInsert) !== 1) {
+          throw new ComputeJobStoreConflictError(
+            'immutable_receipt_conflict',
+            'budget evidence receipt, transition binding, or nonce was not inserted uniquely'
+          );
+        }
+      }
+
       for (const event of command.outbox) {
         const outboxInsert = await client.query(
           `/* compute:outbox-insert */
@@ -3798,29 +4965,51 @@ export class PostgresComputeJobStore {
         `/* compute:idempotency-commit */
          UPDATE holomesh_compute_idempotency
          SET status = 'committed', transition_receipt_id = $1,
-              allocation_commit_receipt_id = $2, admission_receipt_id = $3,
-              public_response_bytes = $4,
+              allocation_commit_receipt_id = $2, budget_evidence_receipt_id = $3,
+              admission_receipt_id = $4, public_response_bytes = $5,
               committed_at = clock_timestamp()
-         WHERE team_id = $5 AND principal_digest = $6 AND operation = $7
-           AND key_digest = $8 AND request_digest = $9 AND status = 'pending'
-           AND $10::timestamptz > clock_timestamp()
-           AND $11::timestamptz <= clock_timestamp() + INTERVAL '60 seconds'
-           AND (NOT $12::boolean OR $13::timestamptz > clock_timestamp())
+         WHERE team_id = $6 AND principal_digest = $7 AND operation = $8
+           AND key_digest = $9 AND request_digest = $10 AND status = 'pending'
+           AND $11::timestamptz > clock_timestamp()
+           AND $12::timestamptz <= clock_timestamp() + INTERVAL '60 seconds'
+           AND (NOT $13::boolean OR $14::timestamptz > clock_timestamp())
            AND (
-             NOT $14::boolean OR (
-               $15::timestamptz > clock_timestamp() AND
-               $16::timestamptz > clock_timestamp()
+             NOT $15::boolean OR (
+               $16::timestamptz > clock_timestamp() AND
+               $17::timestamptz > clock_timestamp()
+             )
+           )
+           AND (
+             NOT $18::boolean OR (
+               $19::timestamptz <= clock_timestamp() AND
+               $20::timestamptz > clock_timestamp() AND
+               EXISTS (
+                 SELECT 1 FROM holomesh_compute_budget_commits bc
+                 WHERE bc.team_id = $6 AND bc.transition_receipt_id = $1
+                   AND bc.budget_evidence_receipt_id = $3
+               )
+             )
+           )
+           AND (
+             NOT $21::boolean OR EXISTS (
+               SELECT 1 FROM holomesh_compute_budget_accounts ba
+               WHERE ba.team_id = $6 AND ba.budget_rail_id = $22
+                 AND ba.currency = $23 AND ba.period_digest = $24
+                 AND ba.policy_digest = $25
+                 AND ba.valid_from <= clock_timestamp()
+                 AND ba.valid_until > clock_timestamp()
              )
            )
            AND EXISTS (
              SELECT 1 FROM holomesh_compute_admission_refs r
-             WHERE r.team_id = $5 AND r.operation_receipt_id = $1
-               AND r.admission_receipt_id = $3
+             WHERE r.team_id = $6 AND r.operation_receipt_id = $1
+               AND r.admission_receipt_id = $4
            )
          RETURNING key_digest`,
         [
           transition.receiptId,
           allocatorCommit?.receiptId ?? null,
+          command.budgetEvidence?.receipt.receiptId ?? null,
           command.admission.receipt.receiptId,
           command.publicResponseBytes,
           ...idempotencyKey,
@@ -3832,6 +5021,16 @@ export class PostgresComputeJobStore {
           requiresCapacityCurrent,
           finalEligibility?.validUntil ?? null,
           finalDataPolicy?.validUntil ?? null,
+          command.budgetEvidence !== undefined,
+          command.budgetEvidence?.receipt.validFrom ?? null,
+          command.budgetEvidence
+            ? this.budgetEvidenceEffectiveValidUntil(command.budgetEvidence)
+            : null,
+          command.budgetEvidence?.receipt.status === 'held',
+          command.budgetEvidence?.receipt.budgetRailId ?? null,
+          command.budgetEvidence?.receipt.currency ?? null,
+          command.budgetEvidence?.receipt.periodDigest ?? null,
+          command.budgetEvidence?.receipt.policyDigest ?? null,
         ]
       );
       if (rowCount(idempotencyCommit) !== 1) {
@@ -3921,16 +5120,21 @@ export class PostgresComputeJobStore {
       `/* compute:readback */
        SELECT i.request_digest, i.status, i.public_response_bytes,
                i.transition_receipt_id, i.allocation_commit_receipt_id,
-               i.admission_receipt_id,
+               i.budget_evidence_receipt_id, i.admission_receipt_id,
                t.transition_bytes, t.to_job_bytes,
                c.commit_bytes, c.next_cursor_bytes,
-               c.next_etag AS committed_next_etag
+               c.next_etag AS committed_next_etag,
+               bc.evidence_bytes AS budget_evidence_bytes,
+               bc.next_account_bytes
        FROM holomesh_compute_idempotency i
        JOIN holomesh_compute_transitions t
          ON t.team_id = i.team_id AND t.transition_receipt_id = i.transition_receipt_id
        LEFT JOIN holomesh_compute_allocation_commits c
          ON c.team_id = i.team_id
          AND c.allocation_commit_receipt_id = i.allocation_commit_receipt_id
+       LEFT JOIN holomesh_compute_budget_commits bc
+         ON bc.team_id = i.team_id
+        AND bc.budget_evidence_receipt_id = i.budget_evidence_receipt_id
        WHERE i.team_id = $1 AND i.principal_digest = $2
          AND i.operation = $3 AND i.key_digest = $4`,
       [
@@ -3948,15 +5152,19 @@ export class PostgresComputeJobStore {
       row.public_response_bytes !== expectedPublicResponseBytes ||
       row.transition_receipt_id !== command.transition.receipt.receiptId ||
       row.allocation_commit_receipt_id !== (command.allocationCommit?.receipt.receiptId ?? null) ||
+      row.budget_evidence_receipt_id !== (command.budgetEvidence?.receipt.receiptId ?? null) ||
       row.admission_receipt_id !== command.admission.receipt.receiptId ||
       row.transition_bytes !== command.transition.bytes ||
       row.to_job_bytes !== command.nextJob.bytes ||
       row.commit_bytes !== (command.allocationCommit?.bytes ?? null) ||
       row.next_cursor_bytes !== (command.nextAllocation?.bytes ?? null) ||
-      row.committed_next_etag !== (command.nextAllocation?.cursor.etag ?? null)
+      row.committed_next_etag !== (command.nextAllocation?.cursor.etag ?? null) ||
+      row.budget_evidence_bytes !== (command.budgetEvidence?.bytes ?? null) ||
+      row.next_account_bytes !==
+        (command.budgetEvidence ? canonicalJson(command.budgetEvidence.receipt.accountAfter) : null)
     ) {
       throw new ComputeJobStoreReadbackError(
-        'committed idempotency, transition, or allocation bytes did not read back exactly'
+        'committed idempotency, transition, allocation, or budget bytes did not read back exactly'
       );
     }
 
@@ -4028,10 +5236,16 @@ export class PostgresComputeJobStore {
       ...(row.allocation_commit_receipt_id
         ? { allocationCommitReceiptId: row.allocation_commit_receipt_id }
         : {}),
+      ...(row.budget_evidence_receipt_id
+        ? { budgetEvidenceReceiptId: row.budget_evidence_receipt_id }
+        : {}),
       readBack: {
         jobReceiptId: command.nextJob.receipt.receiptId,
         admissionReceiptId,
         ...(allocationEtag ? { allocationEtag } : {}),
+        ...(row.budget_evidence_receipt_id
+          ? { budgetEvidenceReceiptId: row.budget_evidence_receipt_id }
+          : {}),
         evidenceReceiptIds: [...evidenceBytes.keys()].sort(),
         outboxEventIds: [...outboxBytes.keys()].sort(),
       },

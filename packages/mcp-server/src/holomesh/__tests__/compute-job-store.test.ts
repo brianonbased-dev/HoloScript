@@ -7,7 +7,11 @@ import {
   type ComputeWorkUnitContract,
 } from '@holoscript/core/compiler';
 import {
+  HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION,
+  attestComputeExecutionReceipt,
+  buildComputeBudgetEvidence,
   buildComputeCapacitySnapshot,
+  buildComputeExecutionReceipt,
   computeCapacityAllocationEtag,
   planComputePlacement,
   prepareComputeCapacityLease,
@@ -16,6 +20,9 @@ import {
   type ComputeCapacityAllocationCursor,
   type ComputeCapacityLease,
   type ComputeCapacitySnapshot,
+  type ComputeBudgetAccountProjection,
+  type ComputeBudgetEvidence,
+  type ComputeBudgetEvidenceStatus,
   type ComputeEvidenceRole,
   type ComputeEvidenceSigner,
   type ComputeEvidenceTrustAnchor,
@@ -37,6 +44,7 @@ import {
   type ComputeJobStoreClient,
   type ComputeJobStorePool,
   type CreateComputeJobStoreOptions,
+  type RegisterComputeBudgetCommand,
   type RegisterComputeCapacityCommand,
 } from '../compute-job-store';
 import {
@@ -84,6 +92,10 @@ const PREFLIGHTED_AT = at(2_000);
 const QUEUED_AT = at(3_000);
 const LEASE_ISSUED_AT = at(4_000);
 const STARTING_AT = at(6_000);
+const RUNNING_AT = at(7_000);
+const COMPLETED_AT = at(8_000);
+const ATTESTED_AT = at(9_000);
+const SUCCEEDED_AT = at(10_000);
 const SNAPSHOT_VALID_UNTIL = at(60_000);
 const LEASE_EXPIRES_AT = at(5 * 60_000);
 const ELIGIBILITY_VALID_UNTIL = at(60 * 60_000);
@@ -92,6 +104,11 @@ const ADMISSION_VERIFIED_AT = at(5_000);
 const ADMISSION_VALID_UNTIL = at(4 * 60_000);
 const STORE_VERIFICATION_AT = at(10_000);
 const ADMISSION_TRUST_POLICY_DIGEST = digest('compute-job-store-trust-policy-v1');
+const BUDGET_RAIL_ID = 'enterprise-gpu-usd';
+const BUDGET_POLICY_DIGEST = digest('enterprise-gpu-budget-policy-v1');
+const BUDGET_PERIOD_DIGEST = digest('enterprise-gpu-budget-period-2026-08');
+const BUDGET_VALID_FROM = at(-1_000);
+const BUDGET_VALID_UNTIL = at(60 * 60_000);
 const ALL_ROLES: readonly ComputeEvidenceRole[] = [
   'capacity_observer',
   'bridge_admitter',
@@ -129,6 +146,25 @@ function evidenceAuthority(): {
 const authority = evidenceAuthority();
 const TRUST_ANCHORS = [authority.anchor] as const;
 
+const budgetKeyPair = generateKeyPairSync('ed25519');
+const BUDGET_SIGNER: ComputeEvidenceSigner = {
+  issuer: 'urn:holoscript:test:compute-budget-ledger',
+  keyId: 'compute-budget-ledger-key-1',
+  sign: (message) => sign(null, Buffer.from(message), budgetKeyPair.privateKey).toString('base64'),
+};
+const BUDGET_TRUST_ANCHOR: ComputeEvidenceTrustAnchor = {
+  issuer: BUDGET_SIGNER.issuer,
+  keyId: BUDGET_SIGNER.keyId,
+  algorithm: 'ed25519',
+  roles: ['budget_ledger_attestor'],
+  principalDigests: [PRINCIPAL],
+  teamIds: [TEAM_ID],
+  budgetRailIds: [BUDGET_RAIL_ID],
+  validFrom: at(-24 * 60 * 60_000),
+  validUntil: at(24 * 60 * 60_000),
+  publicKeyPem: budgetKeyPair.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+};
+
 const admissionKeyPair = generateKeyPairSync('ed25519');
 const ADMISSION_SIGNER: ComputeJobAdmissionSigner = {
   issuer: 'urn:holoscript:test:compute-job-admission',
@@ -154,12 +190,16 @@ function storeOptions(
   return {
     admissionTrustAnchors: [ADMISSION_TRUST_ANCHOR],
     admissionTrustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+    budgetEvidenceTrustAnchors: [BUDGET_TRUST_ANCHOR],
     now: () => STORE_VERIFICATION_AT,
     ...overrides,
   };
 }
 
-function workUnit(dataClassification: 'internal' | 'confidential' = 'internal') {
+function workUnit(
+  dataClassification: 'internal' | 'confidential' = 'internal',
+  maxCostMinorUnits = 0
+) {
   return buildComputeWorkUnit(
     {
       intent: 'Run a bounded GPU fleet workload.',
@@ -172,7 +212,7 @@ function workUnit(dataClassification: 'internal' | 'confidential' = 'internal') 
       quality_reference: 'cpu_reference',
       deadline_ms: 10 * 60_000,
       budget_currency: 'USD',
-      max_cost_minor_units: 0,
+      max_cost_minor_units: maxCostMinorUnits,
       allow_fallback: false,
     },
     {
@@ -211,9 +251,10 @@ function lifecycleFixture(
   variant = 'alpha',
   attempt = 1,
   createIdempotencyKey = 'create-job-1',
-  queueIdempotencyKey = 'queue-job-1'
+  queueIdempotencyKey = 'queue-job-1',
+  maxCostMinorUnits = 0
 ): LifecycleFixture {
-  const unit = workUnit();
+  const unit = workUnit('internal', maxCostMinorUnits);
   const snapshot = buildComputeCapacitySnapshot({
     lane: 'owned_fleet',
     capacityRef: CAPACITY,
@@ -223,7 +264,14 @@ function lifecycleFixture(
     allowedDataClassifications: ['internal'],
     observedAt: OBSERVED_AT,
     validUntil: SNAPSHOT_VALID_UNTIL,
-    estimatedCost: { measurementState: 'not_applicable' },
+    estimatedCost:
+      maxCostMinorUnits > 0
+        ? {
+            measurementState: 'measured',
+            currency: 'USD',
+            estimatedMinorUnits: maxCostMinorUnits,
+          }
+        : { measurementState: 'not_applicable' },
     signer: authority.signer,
   });
   const plan = planComputePlacement({
@@ -447,8 +495,11 @@ function makeJobOnlyCommand(
   };
 }
 
-function makeAllocationCommand(variant = 'alpha'): CommitComputeJobTransitionCommand {
-  const fixture = lifecycleFixture(variant);
+function makeAllocationCommand(
+  variant = 'alpha',
+  maxCostMinorUnits = 0
+): CommitComputeJobTransitionCommand {
+  const fixture = lifecycleFixture(variant, 1, 'create-job-1', 'queue-job-1', maxCostMinorUnits);
   const prepared = fixture.acquired;
   const eligibility = eligibilityBinding();
   const dataPolicy = dataPolicyBinding();
@@ -472,6 +523,312 @@ function makeAllocationCommand(variant = 'alpha'): CommitComputeJobTransitionCom
     expectedCapacityEligibilityBytes: canonicalJson(eligibility),
     expectedCapacityDataPolicyBytes: canonicalJson(dataPolicy),
   };
+}
+
+function makeBudgetRegistration(
+  limitAmountMinorUnits = 700,
+  validity: { readonly validFrom?: string; readonly validUntil?: string } = {}
+): RegisterComputeBudgetCommand {
+  const projection = {
+    teamId: TEAM_ID,
+    budgetRailId: BUDGET_RAIL_ID,
+    currency: 'USD' as const,
+    policyDigest: BUDGET_POLICY_DIGEST,
+    periodDigest: BUDGET_PERIOD_DIGEST,
+    validFrom: validity.validFrom ?? BUDGET_VALID_FROM,
+    validUntil: validity.validUntil ?? BUDGET_VALID_UNTIL,
+    limitAmountMinorUnits,
+    account: {
+      heldAmountMinorUnits: 0,
+      settledAmountMinorUnits: 0,
+      version: 0,
+    },
+  };
+  return {
+    projection,
+    registrationBytes: canonicalJson(projection),
+    registeredAt: REGISTERED_AT,
+  };
+}
+
+function withBudgetEvidence(
+  command: CommitComputeJobTransitionCommand,
+  input: {
+    readonly status: Extract<ComputeBudgetEvidenceStatus, 'held' | 'released' | 'settled'>;
+    readonly accountBefore: ComputeBudgetAccountProjection;
+    readonly accountAfter: ComputeBudgetAccountProjection;
+    readonly maxAmountMinorUnits?: number;
+    readonly settledAmountMinorUnits?: number;
+    readonly measuredCostReceiptId?: string;
+    readonly nonceLabel?: string;
+    readonly validFrom?: string;
+    readonly validUntil?: string;
+  }
+): CommitComputeJobTransitionCommand {
+  const maxAmountMinorUnits = input.maxAmountMinorUnits ?? 500;
+  const receipt: ComputeBudgetEvidence = buildComputeBudgetEvidence({
+    teamId: command.expectedJob.teamId,
+    budgetRailId: BUDGET_RAIL_ID,
+    principalDigest: command.expectedJob.receipt.principalDigest,
+    jobId: command.expectedJob.receipt.jobId,
+    attempt: command.expectedJob.receipt.attempt,
+    workUnitDigest: command.expectedWorkUnit.digest,
+    currency: 'USD',
+    maxAmountMinorUnits,
+    policyDigest: BUDGET_POLICY_DIGEST,
+    periodDigest: BUDGET_PERIOD_DIGEST,
+    nonceDigest: digest(
+      input.nonceLabel ??
+        `${command.transition.receipt.action}:${command.transition.receipt.receiptId}`
+    ),
+    idempotencyKeyHash: command.idempotencyKeyDigest,
+    status: input.status,
+    heldAmountMinorUnits: input.status === 'held' ? maxAmountMinorUnits : 0,
+    settledAmountMinorUnits: input.settledAmountMinorUnits ?? 0,
+    accountBefore: input.accountBefore,
+    accountAfter: input.accountAfter,
+    ...(input.measuredCostReceiptId ? { measuredCostReceiptId: input.measuredCostReceiptId } : {}),
+    issuedAt: command.transition.receipt.transitionedAt,
+    validFrom: input.validFrom ?? BUDGET_VALID_FROM,
+    validUntil: input.validUntil ?? BUDGET_VALID_UNTIL,
+    signer: BUDGET_SIGNER,
+  });
+  return {
+    ...command,
+    budgetEvidence: { receipt, bytes: canonicalJson(receipt) },
+  };
+}
+
+function makePaidAllocationCommand(variant = 'paid-alpha'): CommitComputeJobTransitionCommand {
+  return withBudgetEvidence(makeAllocationCommand(variant, 500), {
+    status: 'held',
+    accountBefore: { heldAmountMinorUnits: 0, settledAmountMinorUnits: 0, version: 0 },
+    accountAfter: { heldAmountMinorUnits: 500, settledAmountMinorUnits: 0, version: 1 },
+  });
+}
+
+function makePaidReleaseCommand(variant = 'paid-alpha'): CommitComputeJobTransitionCommand {
+  const fixture = lifecycleFixture(variant, 1, 'create-job-1', 'queue-job-1', 500);
+  const prepared = prepareComputeJobTransition({
+    expectedJob: fixture.acquired.nextJob,
+    action: 'cancel',
+    reasonCode: 'user_cancelled',
+    allocationCursor: fixture.nextAllocation,
+    transitionedAt: STARTING_AT,
+    idempotencyKey: `cancel-paid-job-${variant}`,
+  });
+  const allocator = prepared.allocatorCommit;
+  if (!allocator) throw new Error('paid release fixture did not prepare an allocator release');
+  const eligibility = eligibilityBinding();
+  const dataPolicy = dataPolicyBinding();
+  const base: CommitComputeJobTransitionCommand = {
+    operation: 'compute_job.cancel',
+    idempotencyKeyDigest: prepared.transition.request.idempotencyKeyHash,
+    requestDigest: prepared.transition.request.requestHash,
+    ...transitionCommand(prepared, [], fixture.unit),
+    expectedAllocation: {
+      teamId: TEAM_ID,
+      lane: 'owned_fleet',
+      cursor: allocator.expectedAllocation,
+      bytes: canonicalJson(allocator.expectedAllocation),
+    },
+    nextAllocation: {
+      teamId: TEAM_ID,
+      lane: 'owned_fleet',
+      cursor: allocator.nextAllocation,
+      bytes: canonicalJson(allocator.nextAllocation),
+    },
+    expectedCapacityEligibilityBytes: canonicalJson(eligibility),
+    expectedCapacityDataPolicyBytes: canonicalJson(dataPolicy),
+  };
+  return withBudgetEvidence(base, {
+    status: 'released',
+    accountBefore: { heldAmountMinorUnits: 500, settledAmountMinorUnits: 0, version: 1 },
+    accountAfter: { heldAmountMinorUnits: 0, settledAmountMinorUnits: 0, version: 2 },
+  });
+}
+
+function makePaidSettlementSequence(variant = 'paid-settle'): {
+  acquire: CommitComputeJobTransitionCommand;
+  start: CommitComputeJobTransitionCommand;
+  running: CommitComputeJobTransitionCommand;
+  succeed: CommitComputeJobTransitionCommand;
+} {
+  const fixture = lifecycleFixture(variant, 1, 'create-job-1', 'queue-job-1', 500);
+  const acquire = withBudgetEvidence(makeAllocationCommand(variant, 500), {
+    status: 'held',
+    accountBefore: { heldAmountMinorUnits: 0, settledAmountMinorUnits: 0, version: 0 },
+    accountAfter: { heldAmountMinorUnits: 500, settledAmountMinorUnits: 0, version: 1 },
+  });
+  const authorizeLease = (atTime: string) => ({
+    principalDigest: PRINCIPAL,
+    jobId: JOB_ID,
+    attempt: 1,
+    holderDigest: digest(`holder:${variant}`),
+    workUnit: fixture.unit,
+    capacitySnapshot: fixture.snapshot,
+    plan: fixture.plan,
+    lease: fixture.lease,
+    at: atTime,
+    trustAnchors: TRUST_ANCHORS,
+    presentedFencingToken: `fencing-token-${variant}-${'x'.repeat(48)}`,
+    allocationCursor: fixture.nextAllocation,
+  });
+  const preparedStart = prepareComputeJobTransition({
+    expectedJob: fixture.acquired.nextJob,
+    action: 'start',
+    leaseAuthorization: authorizeLease(STARTING_AT),
+    transitionedAt: STARTING_AT,
+    idempotencyKey: `start-paid-job-${variant}`,
+  });
+  const start: CommitComputeJobTransitionCommand = {
+    operation: 'compute_job.start',
+    idempotencyKeyDigest: preparedStart.transition.request.idempotencyKeyHash,
+    requestDigest: preparedStart.transition.request.requestHash,
+    ...transitionCommand(preparedStart, [fixture.lease], fixture.unit),
+  };
+  const preparedRunning = prepareComputeJobTransition({
+    expectedJob: preparedStart.nextJob,
+    action: 'mark_running',
+    leaseAuthorization: authorizeLease(RUNNING_AT),
+    transitionedAt: RUNNING_AT,
+    idempotencyKey: `running-paid-job-${variant}`,
+  });
+  const running: CommitComputeJobTransitionCommand = {
+    operation: 'compute_job.mark_running',
+    idempotencyKeyDigest: preparedRunning.transition.request.idempotencyKeyHash,
+    requestDigest: preparedRunning.transition.request.requestHash,
+    ...transitionCommand(preparedRunning, [fixture.lease], fixture.unit),
+  };
+  const executionReceipt = buildComputeExecutionReceipt({
+    workUnit: {
+      digest: computeWorkUnitDigest(fixture.unit),
+      sourceEvidence: fixture.unit.source_evidence,
+    },
+    placement: {
+      planReceiptId: fixture.plan.receiptId,
+      capacityLeaseReceiptId: fixture.lease.receiptId,
+      outcome: 'owned_fleet',
+    },
+    execution: {
+      actualAccelerator: 'gpu',
+      fallbackAllowed: false,
+      fallbackUsed: false,
+      terminalStatus: 'succeeded',
+      startedAt: RUNNING_AT,
+      completedAt: COMPLETED_AT,
+    },
+    quality: {
+      metric: fixture.unit.compute.quality.metric,
+      operator: fixture.unit.compute.quality.operator,
+      threshold: fixture.unit.compute.quality.threshold,
+      reference: fixture.unit.compute.quality.reference,
+      observedValue: 0,
+      passed: true,
+    },
+    cost: { measurementState: 'measured', currency: 'USD', actualMinorUnits: 350 },
+    hardware: {
+      schemaVersion: HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION,
+      target: {
+        id: 'fake-owned-gpu',
+        kind: 'compute-node',
+        architecture: 'x86_64',
+        artifactKind: 'gpu-kernel',
+      },
+      device: { vendor: 'Example', model: 'Test GPU', accelerator: 'gpu' },
+      runtime: { name: 'CUDA', version: 'test', hostOS: 'test-os' },
+      compilerVersion: COMPUTE_WORK_UNIT_COMPILER_VERSION,
+      constraints: [{ id: 'max-abs-error', description: 'Match CPU reference.', limit: 1e-5 }],
+      measuredResults: [
+        {
+          metric: 'max_abs_error',
+          value: 0,
+          unit: 'normalized',
+          method: 'CPU reference comparison',
+          sampleCount: 1,
+        },
+        {
+          metric: 'gpu_execution_observed',
+          value: 1,
+          unit: 'boolean',
+          method: 'instrumented dispatch',
+          sampleCount: 1,
+        },
+      ],
+      replayInputs: [
+        {
+          kind: 'composition',
+          uri: 'holoscript://tests/compute-budget-settlement',
+          sha256: 'd'.repeat(64),
+        },
+      ],
+      provenance: {
+        capturedAt: COMPLETED_AT,
+        sourceCompositionHash: fixture.unit.source_evidence,
+        commit: 'test-commit',
+      },
+      owner: { agent: 'test-runtime', team: 'HoloMesh' },
+    },
+  });
+  const executionAttestation = attestComputeExecutionReceipt({
+    principalDigest: PRINCIPAL,
+    executionReceipt,
+    issuedAt: ATTESTED_AT,
+    signer: authority.signer,
+  });
+  const preparedSucceed = prepareComputeJobTransition({
+    expectedJob: preparedRunning.nextJob,
+    action: 'succeed',
+    executionVerification: {
+      principalDigest: PRINCIPAL,
+      jobId: JOB_ID,
+      attempt: 1,
+      holderDigest: digest(`holder:${variant}`),
+      workUnit: fixture.unit,
+      capacitySnapshot: fixture.snapshot,
+      plan: fixture.plan,
+      lease: fixture.lease,
+      executionReceipt,
+      executionAttestation,
+      verifiedAt: SUCCEEDED_AT,
+      trustAnchors: TRUST_ANCHORS,
+    },
+    allocationCursor: fixture.nextAllocation,
+    transitionedAt: SUCCEEDED_AT,
+    idempotencyKey: `succeed-paid-job-${variant}`,
+  });
+  const allocator = preparedSucceed.allocatorCommit;
+  if (!allocator) throw new Error('paid success fixture did not prepare an allocator release');
+  const eligibility = eligibilityBinding();
+  const dataPolicy = dataPolicyBinding();
+  const baseSucceed: CommitComputeJobTransitionCommand = {
+    operation: 'compute_job.succeed',
+    idempotencyKeyDigest: preparedSucceed.transition.request.idempotencyKeyHash,
+    requestDigest: preparedSucceed.transition.request.requestHash,
+    ...transitionCommand(preparedSucceed, [executionReceipt, executionAttestation], fixture.unit),
+    expectedAllocation: {
+      teamId: TEAM_ID,
+      lane: 'owned_fleet',
+      cursor: allocator.expectedAllocation,
+      bytes: canonicalJson(allocator.expectedAllocation),
+    },
+    nextAllocation: {
+      teamId: TEAM_ID,
+      lane: 'owned_fleet',
+      cursor: allocator.nextAllocation,
+      bytes: canonicalJson(allocator.nextAllocation),
+    },
+    expectedCapacityEligibilityBytes: canonicalJson(eligibility),
+    expectedCapacityDataPolicyBytes: canonicalJson(dataPolicy),
+  };
+  const succeed = withBudgetEvidence(baseSucceed, {
+    status: 'settled',
+    accountBefore: { heldAmountMinorUnits: 500, settledAmountMinorUnits: 0, version: 1 },
+    accountAfter: { heldAmountMinorUnits: 0, settledAmountMinorUnits: 350, version: 2 },
+    settledAmountMinorUnits: 350,
+    measuredCostReceiptId: executionReceipt.receiptId,
+  });
+  return { acquire, start, running, succeed };
 }
 
 function makeStartCommand(variant = 'alpha'): CommitComputeJobTransitionCommand {
@@ -579,6 +936,7 @@ interface FakeIdempotencyRow {
   status: 'pending' | 'committed';
   transition_receipt_id: string | null;
   allocation_commit_receipt_id: string | null;
+  budget_evidence_receipt_id: string | null;
   admission_receipt_id: string | null;
   public_response_bytes: string | null;
 }
@@ -644,6 +1002,53 @@ interface FakeCapacityRegistrationJournalRow {
   registered_at: string;
 }
 
+interface FakeBudgetAccountRow {
+  team_id: string;
+  budget_rail_id: string;
+  currency: 'USD';
+  policy_digest: string;
+  period_digest: string;
+  valid_from: string;
+  valid_until: string;
+  limit_amount_minor_units: string;
+  held_amount_minor_units: string;
+  settled_amount_minor_units: string;
+  version: string;
+  account_bytes: string;
+}
+
+interface FakeBudgetRegistrationJournalRow {
+  policy_digest: string;
+  valid_from: string;
+  valid_until: string;
+  limit_amount_minor_units: string;
+  initial_account_bytes: string;
+  registration_bytes: string;
+  registered_at: string;
+}
+
+interface FakeBudgetHoldRow {
+  budget_rail_id: string;
+  currency: 'USD';
+  policy_digest: string;
+  period_digest: string;
+  max_amount_minor_units: string;
+  held_amount_minor_units: string;
+  settled_amount_minor_units: string;
+  status: 'held' | 'released' | 'settled';
+  initial_receipt_id: string;
+  current_receipt_id: string;
+  current_evidence_bytes: string;
+  measured_cost_receipt_id: string | null;
+}
+
+interface FakeBudgetCommitRow {
+  transition_receipt_id: string;
+  nonce_digest: string;
+  evidence_bytes: string;
+  next_account_bytes: string;
+}
+
 interface FakeEvidenceRow {
   schema_version: string;
   bytes: string;
@@ -683,6 +1088,10 @@ interface FakeState {
   allocation: FakeAllocationRow | null;
   capacityBinding: FakeCapacityBindingRow | null;
   capacityRegistrationJournal: FakeCapacityRegistrationJournalRow | null;
+  budgetAccount: FakeBudgetAccountRow | null;
+  budgetRegistrationJournal: FakeBudgetRegistrationJournalRow | null;
+  budgetHolds: Record<string, FakeBudgetHoldRow>;
+  budgetCommits: Record<string, FakeBudgetCommitRow>;
   idempotency: Record<string, FakeIdempotencyRow>;
   jobCommandPreparations: Record<string, FakeJobCommandPreparationRow>;
   jobCreationIdempotency: Record<string, FakeJobCreationIdempotencyRow>;
@@ -706,12 +1115,19 @@ interface FakePoolOptions {
   retryCode?: '40001' | '40P01';
   jobUpdateConflict?: boolean;
   allocationUpdateConflict?: boolean;
+  budgetAccountUpdateConflict?: boolean;
   capacityPolicyAdmitted?: boolean;
   capacityFinalPolicyAdmitted?: boolean;
   allocationPolicyAdmitted?: boolean;
   admissionPolicyAdmitted?: boolean;
   admissionCommitAdmitted?: boolean;
   transitionFinalPolicyAdmitted?: boolean;
+  budgetRegistrationAdmitted?: boolean;
+  budgetRegistrationFinalAdmitted?: boolean;
+  budgetRegistrationOverlaps?: boolean;
+  budgetPolicyAdmitted?: boolean;
+  budgetPeriodAdmitted?: boolean;
+  budgetPeriodFinalAdmitted?: boolean;
   corruptReadback?: boolean;
   throwRawReadback?: boolean;
 }
@@ -783,6 +1199,10 @@ function initialState(command?: CommitComputeJobTransitionCommand): FakeState {
           }
         : null,
     capacityRegistrationJournal: null,
+    budgetAccount: null,
+    budgetRegistrationJournal: null,
+    budgetHolds: {},
+    budgetCommits: {},
     idempotency: {},
     jobCommandPreparations: {},
     jobCreationIdempotency: {},
@@ -940,6 +1360,166 @@ class FakeClient implements ComputeJobStoreClient {
         state.capacityRegistrationJournal ? [state.capacityRegistrationJournal] : []
       );
     }
+    if (marker === 'budget-register-lock') return this.result<Row>([]);
+    if (marker === 'budget-registration-overlap-lock') {
+      return this.result<Row>(
+        this.pool.options.budgetRegistrationOverlaps
+          ? [{ period_digest: digest('overlapping-budget-period') }]
+          : []
+      );
+    }
+    if (marker === 'budget-registration-clock') {
+      return this.result<Row>([
+        { admitted: this.pool.options.budgetRegistrationAdmitted !== false },
+      ]);
+    }
+    if (marker === 'budget-registration-final-clock') {
+      const admitted = this.pool.options.budgetRegistrationFinalAdmitted !== false;
+      return this.result<Row>(admitted ? [{ admitted: true }] : [], admitted ? 1 : 0);
+    }
+    if (
+      marker === 'budget-registration-lock' ||
+      marker === 'budget-registration-readback' ||
+      marker === 'budget-read'
+    ) {
+      return this.result<Row>(
+        state.budgetAccount && state.budgetRegistrationJournal
+          ? [{ ...state.budgetAccount, ...state.budgetRegistrationJournal }]
+          : []
+      );
+    }
+    if (marker === 'budget-account-insert') {
+      if (state.budgetAccount) return this.result<Row>([], 0);
+      state.budgetAccount = {
+        team_id: values[0] as string,
+        budget_rail_id: values[1] as string,
+        currency: values[2] as 'USD',
+        policy_digest: values[3] as string,
+        period_digest: values[4] as string,
+        valid_from: values[5] as string,
+        valid_until: values[6] as string,
+        limit_amount_minor_units: pgBigint(values[7]),
+        held_amount_minor_units: pgBigint(values[8]),
+        settled_amount_minor_units: pgBigint(values[9]),
+        version: pgBigint(values[10]),
+        account_bytes: values[11] as string,
+      };
+      return this.result<Row>([{ period_digest: values[4] }], 1);
+    }
+    if (marker === 'budget-registration-insert') {
+      if (state.budgetRegistrationJournal) return this.result<Row>([], 0);
+      state.budgetRegistrationJournal = {
+        policy_digest: values[3] as string,
+        valid_from: values[5] as string,
+        valid_until: values[6] as string,
+        limit_amount_minor_units: pgBigint(values[7]),
+        initial_account_bytes: values[8] as string,
+        registration_bytes: values[9] as string,
+        registered_at: values[10] as string,
+      };
+      return this.result<Row>([{ period_digest: values[4] }], 1);
+    }
+    if (marker === 'budget-account-lock') {
+      return this.result<Row>(state.budgetAccount ? [state.budgetAccount] : []);
+    }
+    if (marker === 'budget-policy-clock') {
+      const requiresCurrentPeriod = values[3] === true;
+      return this.result<Row>([
+        {
+          admitted:
+            this.pool.options.budgetPolicyAdmitted !== false &&
+            (!requiresCurrentPeriod || this.pool.options.budgetPeriodAdmitted !== false),
+        },
+      ]);
+    }
+    if (marker === 'budget-hold-lock') {
+      const row = state.budgetHolds[`${values[0]}:${values[1]}:${values[2]}`];
+      return this.result<Row>(row ? [row] : []);
+    }
+    if (marker === 'budget-account-update') {
+      const account = state.budgetAccount;
+      if (this.pool.options.budgetAccountUpdateConflict || !account) {
+        return this.result<Row>([], 0);
+      }
+      if (
+        account.team_id !== values[4] ||
+        account.budget_rail_id !== values[5] ||
+        account.currency !== values[6] ||
+        account.period_digest !== values[7] ||
+        account.policy_digest !== values[8] ||
+        account.valid_from !== values[9] ||
+        account.valid_until !== values[10] ||
+        account.held_amount_minor_units !== pgBigint(values[11]) ||
+        account.settled_amount_minor_units !== pgBigint(values[12]) ||
+        account.version !== pgBigint(values[13]) ||
+        account.account_bytes !== values[14]
+      ) {
+        return this.result<Row>([], 0);
+      }
+      account.held_amount_minor_units = pgBigint(values[0]);
+      account.settled_amount_minor_units = pgBigint(values[1]);
+      account.version = pgBigint(values[2]);
+      account.account_bytes = values[3] as string;
+      return this.result<Row>([{ version: values[2] }], 1);
+    }
+    if (marker === 'budget-hold-insert') {
+      const key = `${values[0]}:${values[1]}:${values[2]}`;
+      if (state.budgetHolds[key]) return this.result<Row>([], 0);
+      state.budgetHolds[key] = {
+        budget_rail_id: values[3] as string,
+        currency: values[4] as 'USD',
+        policy_digest: values[5] as string,
+        period_digest: values[6] as string,
+        max_amount_minor_units: pgBigint(values[7]),
+        held_amount_minor_units: pgBigint(values[8]),
+        settled_amount_minor_units: pgBigint(values[9]),
+        status: values[10] as FakeBudgetHoldRow['status'],
+        initial_receipt_id: values[11] as string,
+        current_receipt_id: values[12] as string,
+        current_evidence_bytes: values[13] as string,
+        measured_cost_receipt_id: values[14] as string | null,
+      };
+      return this.result<Row>([{ current_receipt_id: values[12] }], 1);
+    }
+    if (marker === 'budget-hold-update') {
+      const key = `${values[6]}:${values[7]}:${values[8]}`;
+      const hold = state.budgetHolds[key];
+      if (
+        !hold ||
+        hold.status !== 'held' ||
+        hold.held_amount_minor_units !== pgBigint(values[9]) ||
+        hold.settled_amount_minor_units !== '0' ||
+        hold.current_receipt_id !== hold.initial_receipt_id
+      ) {
+        return this.result<Row>([], 0);
+      }
+      hold.held_amount_minor_units = pgBigint(values[0]);
+      hold.settled_amount_minor_units = pgBigint(values[1]);
+      hold.status = values[2] as FakeBudgetHoldRow['status'];
+      hold.current_receipt_id = values[3] as string;
+      hold.current_evidence_bytes = values[4] as string;
+      hold.measured_cost_receipt_id = values[5] as string | null;
+      return this.result<Row>([{ current_receipt_id: values[3] }], 1);
+    }
+    if (marker === 'budget-commit-insert') {
+      const key = `${values[0]}:${values[1]}`;
+      const transitionAlreadyBound = Object.values(state.budgetCommits).some(
+        (row) => row.transition_receipt_id === values[2]
+      );
+      const nonceAlreadyBound = Object.values(state.budgetCommits).some(
+        (row) => row.nonce_digest === values[8]
+      );
+      if (state.budgetCommits[key] || transitionAlreadyBound || nonceAlreadyBound) {
+        return this.result<Row>([], 0);
+      }
+      state.budgetCommits[key] = {
+        transition_receipt_id: values[2] as string,
+        nonce_digest: values[8] as string,
+        evidence_bytes: values[10] as string,
+        next_account_bytes: values[11] as string,
+      };
+      return this.result<Row>([{ budget_evidence_receipt_id: values[1] }], 1);
+    }
     if (marker === 'job-command-preparation-insert') {
       const key = idempotencyKey(values);
       if (state.jobCommandPreparations[key]) return this.result<Row>([], 0);
@@ -1008,6 +1588,7 @@ class FakeClient implements ComputeJobStoreClient {
         status: 'pending',
         transition_receipt_id: null,
         allocation_commit_receipt_id: null,
+        budget_evidence_receipt_id: null,
         admission_receipt_id: null,
         public_response_bytes: null,
       };
@@ -1214,25 +1795,31 @@ class FakeClient implements ComputeJobStoreClient {
       return this.result<Row>([{ key_digest: values[7] }], 1);
     }
     if (marker === 'idempotency-commit') {
-      const key = idempotencyKey(values.slice(4, 8));
+      const key = idempotencyKey(values.slice(5, 9));
       const row = state.idempotency[key];
-      const admissionRefPresent = Object.values(state.admissionRefs).includes(values[2] as string);
+      const admissionRefPresent = Object.values(state.admissionRefs).includes(values[3] as string);
+      const budgetCommit = values[2] ? state.budgetCommits[`${values[5]}:${values[2]}`] : undefined;
+      const budgetCommitPresent =
+        values[17] !== true || budgetCommit?.transition_receipt_id === values[0];
       if (
         this.pool.options.admissionCommitAdmitted === false ||
         this.pool.options.transitionFinalPolicyAdmitted === false ||
+        (values[20] === true && this.pool.options.budgetPeriodFinalAdmitted === false) ||
         !row ||
         row.status !== 'pending' ||
-        row.request_digest !== values[8] ||
-        !admissionRefPresent
+        row.request_digest !== values[9] ||
+        !admissionRefPresent ||
+        !budgetCommitPresent
       ) {
         return this.result<Row>([], 0);
       }
       row.status = 'committed';
       row.transition_receipt_id = values[0] as string;
       row.allocation_commit_receipt_id = values[1] as string | null;
-      row.admission_receipt_id = values[2] as string;
-      row.public_response_bytes = values[3] as string;
-      return this.result<Row>([{ key_digest: values[7] }], 1);
+      row.budget_evidence_receipt_id = values[2] as string | null;
+      row.admission_receipt_id = values[3] as string;
+      row.public_response_bytes = values[4] as string;
+      return this.result<Row>([{ key_digest: values[8] }], 1);
     }
     if (marker === 'readback') {
       if (this.pool.options.throwRawReadback) throw new Error('raw readback transport failure');
@@ -1242,6 +1829,9 @@ class FakeClient implements ComputeJobStoreClient {
         state.transitions[`${values[0]}:${idempotency.transition_receipt_id}`];
       const allocationCommit = idempotency.allocation_commit_receipt_id
         ? state.allocationCommits[`${values[0]}:${idempotency.allocation_commit_receipt_id}`]
+        : null;
+      const budgetCommit = idempotency.budget_evidence_receipt_id
+        ? state.budgetCommits[`${values[0]}:${idempotency.budget_evidence_receipt_id}`]
         : null;
       return this.result<Row>([
         {
@@ -1254,6 +1844,8 @@ class FakeClient implements ComputeJobStoreClient {
           commit_bytes: allocationCommit?.bytes ?? null,
           next_cursor_bytes: allocationCommit?.next_cursor_bytes ?? null,
           committed_next_etag: allocationCommit?.next_etag ?? null,
+          budget_evidence_bytes: budgetCommit?.evidence_bytes ?? null,
+          next_account_bytes: budgetCommit?.next_account_bytes ?? null,
         },
       ]);
     }
@@ -1464,6 +2056,445 @@ describe('PostgresComputeJobStore', () => {
     await expect(store.registerCapacity(makeCapacityRegistration(99))).rejects.toMatchObject({
       code: 'capacity_registration_conflict',
     });
+  });
+
+  it('registers an exact period-scoped integer budget and replays its immutable registration', async () => {
+    const registration = makeBudgetRegistration();
+    const pool = new FakePool();
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+
+    await expect(store.registerBudget(registration)).resolves.toMatchObject({
+      disposition: 'committed',
+      teamId: TEAM_ID,
+      budgetRailId: BUDGET_RAIL_ID,
+      currency: 'USD',
+      periodDigest: BUDGET_PERIOD_DIGEST,
+      accountBytes: canonicalJson(registration.projection.account),
+    });
+    await expect(store.registerBudget(registration)).resolves.toMatchObject({
+      disposition: 'replayed',
+    });
+    await expect(
+      store.readRegisteredBudget({
+        teamId: TEAM_ID,
+        budgetRailId: BUDGET_RAIL_ID,
+        currency: 'USD',
+        periodDigest: BUDGET_PERIOD_DIGEST,
+      })
+    ).resolves.toEqual({
+      projection: registration.projection,
+      registrationBytes: registration.registrationBytes,
+      accountBytes: canonicalJson(registration.projection.account),
+    });
+
+    await expect(store.registerBudget(makeBudgetRegistration(701))).rejects.toMatchObject({
+      code: 'budget_registration_conflict',
+    });
+  });
+
+  it('atomically holds signed enterprise budget with the allocation and replays without double-hold', async () => {
+    const command = makePaidAllocationCommand();
+    const registration = makeBudgetRegistration();
+    const pool = new FakePool(command);
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+    await store.registerBudget(registration);
+    pool.queries.length = 0;
+
+    const committed = await store.commitTransition(command);
+    const markers = pool.queries.map((entry) => entry.marker);
+    expect(markers.indexOf('allocation-lock')).toBeLessThan(markers.indexOf('budget-account-lock'));
+    expect(markers.indexOf('budget-account-lock')).toBeLessThan(
+      markers.indexOf('budget-account-update')
+    );
+    expect(markers.indexOf('budget-account-update')).toBeLessThan(markers.indexOf('job-update'));
+    expect(markers.indexOf('job-update')).toBeLessThan(markers.indexOf('allocation-update'));
+    expect(pool.queries.find((entry) => entry.marker === 'job-update')?.values).toHaveLength(15);
+    expect(pool.state.budgetAccount).toMatchObject({
+      held_amount_minor_units: '500',
+      settled_amount_minor_units: '0',
+      version: '1',
+      account_bytes: canonicalJson({
+        heldAmountMinorUnits: 500,
+        settledAmountMinorUnits: 0,
+        version: 1,
+      }),
+    });
+    expect(Object.values(pool.state.budgetHolds)).toHaveLength(1);
+    expect(Object.values(pool.state.budgetCommits)).toHaveLength(1);
+    expect(committed).toMatchObject({
+      disposition: 'committed',
+      budgetEvidenceReceiptId: command.budgetEvidence?.receipt.receiptId,
+      readBack: {
+        budgetEvidenceReceiptId: command.budgetEvidence?.receipt.receiptId,
+      },
+    });
+    expect(command.publicResponseBytes).toContain('"providerReservation":"not_asserted"');
+    expect(command.publicResponseBytes).not.toContain(BUDGET_RAIL_ID);
+    const afterCommit = structuredClone(pool.state.budgetAccount);
+
+    await expect(store.commitTransition(command)).resolves.toMatchObject({
+      disposition: 'replayed',
+      budgetEvidenceReceiptId: command.budgetEvidence?.receipt.receiptId,
+    });
+    expect(pool.state.budgetAccount).toEqual(afterCommit);
+    expect(Object.values(pool.state.budgetHolds)).toHaveLength(1);
+    expect(Object.values(pool.state.budgetCommits)).toHaveLength(1);
+
+    await expect(store.registerBudget(registration)).resolves.toMatchObject({
+      disposition: 'replayed',
+    });
+  });
+
+  it('rolls back job, allocation, and budget together on insufficient funds or budget CAS loss', async () => {
+    const command = makePaidAllocationCommand();
+
+    const insufficientPool = new FakePool(command);
+    const insufficientStore = await PostgresComputeJobStore.create(
+      storeOptions({ pool: insufficientPool })
+    );
+    await insufficientStore.registerBudget(makeBudgetRegistration(499));
+    const beforeInsufficient = structuredClone(insufficientPool.state);
+    await expect(insufficientStore.commitTransition(command)).rejects.toMatchObject({
+      code: 'budget_insufficient',
+    });
+    expect(insufficientPool.queries.at(-1)?.marker).toBe('rollback');
+    expect(insufficientPool.state).toEqual(beforeInsufficient);
+
+    const casPool = new FakePool(command, { budgetAccountUpdateConflict: true });
+    const casStore = await PostgresComputeJobStore.create(storeOptions({ pool: casPool }));
+    await casStore.registerBudget(makeBudgetRegistration());
+    const beforeCas = structuredClone(casPool.state);
+    await expect(casStore.commitTransition(command)).rejects.toMatchObject({
+      code: 'budget_cas_conflict',
+    });
+    expect(casPool.queries.map((entry) => entry.marker)).not.toContain('job-update');
+    expect(casPool.queries.at(-1)?.marker).toBe('rollback');
+    expect(casPool.state).toEqual(beforeCas);
+  });
+
+  it('fails closed and fully rolls back held acquisition when its registered period expires', async () => {
+    const command = makePaidAllocationCommand('paid-expired-period-acquire');
+    const registration = makeBudgetRegistration(700, { validUntil: at(5_000) });
+    const cases: readonly {
+      readonly gate: 'early' | 'final';
+      readonly options: FakePoolOptions;
+    }[] = [
+      { gate: 'early', options: { budgetPeriodAdmitted: false } },
+      { gate: 'final', options: { budgetPeriodFinalAdmitted: false } },
+    ];
+
+    for (const testCase of cases) {
+      const pool = new FakePool(command, testCase.options);
+      const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+      await store.registerBudget(registration);
+      pool.queries.length = 0;
+      const before = structuredClone(pool.state);
+
+      const rejection: unknown = await store
+        .commitTransition(command)
+        .catch((error: unknown) => error);
+      if (testCase.gate === 'early') {
+        expect(rejection).toMatchObject({ code: 'budget_cas_conflict' });
+      } else {
+        expect(rejection).toMatchObject({
+          name: 'ComputeJobStoreAdmissionError',
+          reasonCodes: ['final_policy_expired_at_database_clock'],
+        });
+      }
+      const budgetClock = pool.queries.find((entry) => entry.marker === 'budget-policy-clock');
+      expect(budgetClock?.values).toEqual([
+        BUDGET_VALID_FROM,
+        BUDGET_VALID_UNTIL,
+        LEASE_ISSUED_AT,
+        true,
+        registration.projection.validFrom,
+        registration.projection.validUntil,
+      ]);
+      const finalGate = pool.queries.find((entry) => entry.marker === 'idempotency-commit');
+      if (testCase.gate === 'early') {
+        expect(finalGate).toBeUndefined();
+      } else {
+        expect(finalGate?.values[20]).toBe(true);
+      }
+      expect(pool.queries.at(-1)?.marker).toBe('rollback');
+      expect(pool.state).toEqual(before);
+    }
+  });
+
+  it('releases the exact budget hold only with the owning allocator release and replays once', async () => {
+    const acquire = makePaidAllocationCommand();
+    const cancel = makePaidReleaseCommand();
+    const pool = new FakePool(acquire);
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+    await store.registerBudget(makeBudgetRegistration());
+    await store.commitTransition(acquire);
+
+    const released = await store.commitTransition(cancel);
+    expect(released).toMatchObject({
+      disposition: 'committed',
+      budgetEvidenceReceiptId: cancel.budgetEvidence?.receipt.receiptId,
+    });
+    expect(pool.state.budgetAccount).toMatchObject({
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '0',
+      version: '2',
+    });
+    expect(Object.values(pool.state.budgetHolds)[0]).toMatchObject({
+      status: 'released',
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '0',
+      measured_cost_receipt_id: null,
+    });
+    const releasedAccount = structuredClone(pool.state.budgetAccount);
+    await expect(store.commitTransition(cancel)).resolves.toMatchObject({
+      disposition: 'replayed',
+    });
+    expect(pool.state.budgetAccount).toEqual(releasedAccount);
+    expect(Object.values(pool.state.budgetCommits)).toHaveLength(2);
+  });
+
+  it('releases an exact pre-expiry hold after its registered period ends while evidence stays current', async () => {
+    const acquire = makePaidAllocationCommand('paid-expired-period-release');
+    const cancel = makePaidReleaseCommand('paid-expired-period-release');
+    const registration = makeBudgetRegistration(700, { validUntil: at(5_000) });
+    const pool = new FakePool(acquire);
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+    await store.registerBudget(registration);
+    await store.commitTransition(acquire);
+    pool.queries.length = 0;
+
+    const released = await store.commitTransition(cancel);
+
+    expect(released).toMatchObject({
+      disposition: 'committed',
+      budgetEvidenceReceiptId: cancel.budgetEvidence?.receipt.receiptId,
+      readBack: { budgetEvidenceReceiptId: cancel.budgetEvidence?.receipt.receiptId },
+    });
+    expect(pool.state.job).toMatchObject({ state: 'cancelled' });
+    expect(pool.state.allocation).toMatchObject({
+      slot_state: 'available',
+      current_lease_receipt_id: null,
+    });
+    expect(pool.state.budgetAccount).toMatchObject({
+      valid_until: registration.projection.validUntil,
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '0',
+      version: '2',
+    });
+    expect(Object.values(pool.state.budgetHolds)[0]).toMatchObject({
+      status: 'released',
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '0',
+      current_receipt_id: cancel.budgetEvidence?.receipt.receiptId,
+    });
+    expect(Object.values(pool.state.budgetCommits)).toHaveLength(2);
+    const budgetClock = pool.queries.find((entry) => entry.marker === 'budget-policy-clock');
+    expect(budgetClock?.values).toEqual([
+      BUDGET_VALID_FROM,
+      BUDGET_VALID_UNTIL,
+      STARTING_AT,
+      false,
+      registration.projection.validFrom,
+      registration.projection.validUntil,
+    ]);
+    const accountUpdate = pool.queries.find((entry) => entry.marker === 'budget-account-update');
+    expect(accountUpdate?.values.slice(9)).toEqual([
+      registration.projection.validFrom,
+      registration.projection.validUntil,
+      500,
+      0,
+      1,
+      canonicalJson({ heldAmountMinorUnits: 500, settledAmountMinorUnits: 0, version: 1 }),
+      false,
+    ]);
+    const finalGate = pool.queries.find((entry) => entry.marker === 'idempotency-commit');
+    expect(finalGate?.values.slice(17)).toEqual([
+      true,
+      BUDGET_VALID_FROM,
+      BUDGET_VALID_UNTIL,
+      false,
+      BUDGET_RAIL_ID,
+      'USD',
+      BUDGET_PERIOD_DIGEST,
+      BUDGET_POLICY_DIGEST,
+    ]);
+    await expect(
+      store.readRegisteredBudget({
+        teamId: TEAM_ID,
+        budgetRailId: BUDGET_RAIL_ID,
+        currency: 'USD',
+        periodDigest: BUDGET_PERIOD_DIGEST,
+      })
+    ).resolves.toMatchObject({
+      projection: {
+        validUntil: registration.projection.validUntil,
+        account: { heldAmountMinorUnits: 0, settledAmountMinorUnits: 0, version: 2 },
+      },
+    });
+  });
+
+  it('settles measured budget consumption with the successful allocator release exactly once', async () => {
+    const sequence = makePaidSettlementSequence();
+    const pool = new FakePool(sequence.acquire);
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+    await store.registerBudget(makeBudgetRegistration());
+    await store.commitTransition(sequence.acquire);
+    await store.commitTransition(sequence.start);
+    await store.commitTransition(sequence.running);
+
+    const settled = await store.commitTransition(sequence.succeed);
+    expect(settled).toMatchObject({
+      disposition: 'committed',
+      budgetEvidenceReceiptId: sequence.succeed.budgetEvidence?.receipt.receiptId,
+    });
+    expect(pool.state.budgetAccount).toMatchObject({
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '350',
+      version: '2',
+    });
+    expect(Object.values(pool.state.budgetHolds)[0]).toMatchObject({
+      status: 'settled',
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '350',
+      measured_cost_receipt_id: sequence.succeed.budgetEvidence?.receipt.measuredCostReceiptId,
+    });
+    const settledAccount = structuredClone(pool.state.budgetAccount);
+    await expect(store.commitTransition(sequence.succeed)).resolves.toMatchObject({
+      disposition: 'replayed',
+    });
+    expect(pool.state.budgetAccount).toEqual(settledAccount);
+    expect(Object.values(pool.state.budgetCommits)).toHaveLength(2);
+    expect(sequence.succeed.publicResponseBytes).toContain('"providerReservation":"not_asserted"');
+  });
+
+  it('settles measured consumption after the held budget period ends without leaking job or slot', async () => {
+    const sequence = makePaidSettlementSequence('paid-expired-period-settlement');
+    const registration = makeBudgetRegistration(700, { validUntil: at(5_000) });
+    const pool = new FakePool(sequence.acquire);
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+    await store.registerBudget(registration);
+    await store.commitTransition(sequence.acquire);
+    await store.commitTransition(sequence.start);
+    await store.commitTransition(sequence.running);
+    pool.queries.length = 0;
+
+    const settled = await store.commitTransition(sequence.succeed);
+
+    expect(settled).toMatchObject({
+      disposition: 'committed',
+      budgetEvidenceReceiptId: sequence.succeed.budgetEvidence?.receipt.receiptId,
+      readBack: { budgetEvidenceReceiptId: sequence.succeed.budgetEvidence?.receipt.receiptId },
+    });
+    expect(pool.state.job).toMatchObject({ state: 'succeeded' });
+    expect(pool.state.allocation).toMatchObject({
+      slot_state: 'available',
+      current_lease_receipt_id: null,
+    });
+    expect(pool.state.budgetAccount).toMatchObject({
+      valid_until: registration.projection.validUntil,
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '350',
+      version: '2',
+    });
+    expect(Object.values(pool.state.budgetHolds)[0]).toMatchObject({
+      status: 'settled',
+      held_amount_minor_units: '0',
+      settled_amount_minor_units: '350',
+      measured_cost_receipt_id: sequence.succeed.budgetEvidence?.receipt.measuredCostReceiptId,
+      current_receipt_id: sequence.succeed.budgetEvidence?.receipt.receiptId,
+    });
+    expect(Object.values(pool.state.budgetCommits)).toHaveLength(2);
+    const budgetClock = pool.queries.find((entry) => entry.marker === 'budget-policy-clock');
+    expect(budgetClock?.values).toEqual([
+      BUDGET_VALID_FROM,
+      BUDGET_VALID_UNTIL,
+      SUCCEEDED_AT,
+      false,
+      registration.projection.validFrom,
+      registration.projection.validUntil,
+    ]);
+    expect(pool.queries.find((entry) => entry.marker === 'budget-account-update')?.values[15]).toBe(
+      false
+    );
+    expect(pool.queries.find((entry) => entry.marker === 'idempotency-commit')?.values[20]).toBe(
+      false
+    );
+    await expect(
+      store.readRegisteredBudget({
+        teamId: TEAM_ID,
+        budgetRailId: BUDGET_RAIL_ID,
+        currency: 'USD',
+        periodDigest: BUDGET_PERIOD_DIGEST,
+      })
+    ).resolves.toMatchObject({
+      projection: {
+        validUntil: registration.projection.validUntil,
+        account: { heldAmountMinorUnits: 0, settledAmountMinorUnits: 350, version: 2 },
+      },
+    });
+  });
+
+  it('fails closed on absent trust, forged signatures, and database-clock budget expiry', async () => {
+    const command = makePaidAllocationCommand();
+
+    const noTrustPool = new FakePool(command);
+    const noTrustStore = await PostgresComputeJobStore.create(
+      storeOptions({ pool: noTrustPool, budgetEvidenceTrustAnchors: [] })
+    );
+    await noTrustStore.registerBudget(makeBudgetRegistration());
+    await expect(noTrustStore.commitTransition(command)).rejects.toMatchObject({
+      name: 'ComputeJobStoreAdmissionError',
+      reasonCodes: ['budget_evidence_trust_anchor_missing'],
+    });
+
+    const forgedKeyPair = generateKeyPairSync('ed25519');
+    const originalBudget = command.budgetEvidence!.receipt;
+    const forgedReceipt = buildComputeBudgetEvidence({
+      teamId: originalBudget.teamId,
+      budgetRailId: originalBudget.budgetRailId,
+      principalDigest: originalBudget.principalDigest,
+      jobId: originalBudget.jobId,
+      attempt: originalBudget.attempt,
+      workUnitDigest: originalBudget.workUnitDigest,
+      currency: originalBudget.currency,
+      maxAmountMinorUnits: originalBudget.maxAmountMinorUnits,
+      policyDigest: originalBudget.policyDigest,
+      periodDigest: originalBudget.periodDigest,
+      nonceDigest: originalBudget.nonceDigest,
+      idempotencyKeyHash: originalBudget.idempotencyKeyHash,
+      status: originalBudget.status,
+      heldAmountMinorUnits: originalBudget.heldAmountMinorUnits,
+      settledAmountMinorUnits: originalBudget.settledAmountMinorUnits,
+      accountBefore: originalBudget.accountBefore,
+      accountAfter: originalBudget.accountAfter,
+      issuedAt: originalBudget.issuedAt,
+      validFrom: originalBudget.validFrom,
+      validUntil: originalBudget.validUntil,
+      signer: {
+        issuer: BUDGET_SIGNER.issuer,
+        keyId: BUDGET_SIGNER.keyId,
+        sign: (message) =>
+          sign(null, Buffer.from(message), forgedKeyPair.privateKey).toString('base64'),
+      },
+    });
+    const forgedPool = new FakePool(command);
+    const forgedStore = await PostgresComputeJobStore.create(storeOptions({ pool: forgedPool }));
+    await forgedStore.registerBudget(makeBudgetRegistration());
+    await expect(
+      forgedStore.commitTransition({
+        ...command,
+        budgetEvidence: { receipt: forgedReceipt, bytes: canonicalJson(forgedReceipt) },
+      })
+    ).rejects.toMatchObject({ name: 'ComputeJobStoreAdmissionError' });
+
+    const expiredPool = new FakePool(command, { budgetPolicyAdmitted: false });
+    const expiredStore = await PostgresComputeJobStore.create(storeOptions({ pool: expiredPool }));
+    await expiredStore.registerBudget(makeBudgetRegistration());
+    const beforeExpired = structuredClone(expiredPool.state);
+    await expect(expiredStore.commitTransition(command)).rejects.toMatchObject({
+      code: 'budget_cas_conflict',
+    });
+    expect(expiredPool.state).toEqual(beforeExpired);
   });
 
   it('has no independent allocation update or reclaim path while an owning job is nonterminal', async () => {
@@ -1880,12 +2911,20 @@ describe('PostgresComputeJobStore', () => {
       reasonCodes: ['final_policy_expired_at_database_clock'],
     });
     const finalGate = pool.queries.find((entry) => entry.marker === 'idempotency-commit');
-    expect(finalGate?.values.slice(11)).toEqual([
+    expect(finalGate?.values.slice(12)).toEqual([
       true,
       LEASE_EXPIRES_AT,
       true,
       ELIGIBILITY_VALID_UNTIL,
       ELIGIBILITY_VALID_UNTIL,
+      false,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
     ]);
     expect(pool.queries.at(-1)?.marker).toBe('rollback');
     expect(pool.state).toEqual(before);
@@ -1904,7 +2943,21 @@ describe('PostgresComputeJobStore', () => {
     const markers = pool.queries.map((entry) => entry.marker);
     expect(markers.some((marker) => marker.includes('allocation'))).toBe(false);
     const finalGate = pool.queries.find((entry) => entry.marker === 'idempotency-commit');
-    expect(finalGate?.values.slice(11)).toEqual([true, LEASE_EXPIRES_AT, false, null, null]);
+    expect(finalGate?.values.slice(12)).toEqual([
+      true,
+      LEASE_EXPIRES_AT,
+      false,
+      null,
+      null,
+      false,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+    ]);
     expect(pool.queries.at(-1)?.marker).toBe('rollback');
     expect(pool.state).toEqual(before);
   });
