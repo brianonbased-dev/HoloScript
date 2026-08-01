@@ -21,6 +21,13 @@ export interface WebGPUContextOptions {
   fallbackToCPU?: boolean;
 }
 
+export interface WebGPUAdapterIdentity {
+  readonly vendor?: string;
+  readonly architecture?: string;
+  readonly device?: string;
+  readonly description?: string;
+}
+
 type WebGpuBindingModule = {
   create?: (flags: string[]) => unknown;
   globals?: Record<string, unknown>;
@@ -38,10 +45,12 @@ async function ensureNodeWebGpu(): Promise<boolean> {
   nodeWebGpuBootstrapAttempted = true;
 
   try {
-    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
-      specifier: string
-    ) => Promise<unknown>;
-    const mod = (await dynamicImport('webgpu')) as WebGpuBindingModule;
+    // A variable specifier keeps browser bundlers from traversing the native Node
+    // package while still letting Node/Vitest resolve it from this module.
+    const nodeBindingSpecifier = 'webgpu';
+    const mod = (await import(
+      /* @vite-ignore */ /* webpackIgnore: true */ nodeBindingSpecifier
+    )) as WebGpuBindingModule;
     const gpu = typeof mod.create === 'function' ? mod.create([]) : undefined;
     if (!gpu || typeof (gpu as { requestAdapter?: unknown }).requestAdapter !== 'function') {
       return false;
@@ -171,10 +180,9 @@ export class WebGPUContext {
 
       // Handle device lost
       this.device.lost.then((info) => {
+        if (info.reason === 'destroyed') return;
         console.error('WebGPU device lost:', info.message, info.reason);
-        if (info.reason !== 'destroyed') {
-          this.handleDeviceLost(info);
-        }
+        this.handleDeviceLost(info);
       });
 
       // Handle uncaptured errors
@@ -215,6 +223,19 @@ export class WebGPUContext {
       throw new Error('WebGPU adapter not available');
     }
     return this.adapter;
+  }
+
+  /** Serializable identity from the exact adapter backing this context. */
+  getAdapterIdentity(): WebGPUAdapterIdentity | null {
+    if (!this.adapter) return null;
+    const info = (this.adapter as GPUAdapter & { info?: WebGPUAdapterIdentity }).info;
+    if (!info) return {};
+    const identity: Record<string, string> = {};
+    for (const key of ['vendor', 'architecture', 'device', 'description'] as const) {
+      const value = info[key];
+      if (typeof value === 'string' && value.length > 0) identity[key] = value;
+    }
+    return identity;
   }
 
   /**

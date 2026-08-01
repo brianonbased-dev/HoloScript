@@ -1,7 +1,94 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { RegularGridStencilSolver } from '../../gpu/RegularGridStencilSolver';
 import { ThermalSolver } from '../ThermalSolver';
 
 describe('ThermalSolver', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('rejects a required-GPU policy when GPU execution is disabled', () => {
+    expect(
+      () =>
+        new ThermalSolver({
+          gridResolution: [3, 3, 3],
+          domainSize: [3, 3, 3],
+          timeStep: 0.1,
+          materials: {},
+          defaultMaterial: 'air',
+          boundaryConditions: [],
+          sources: [],
+          useGPU: false,
+          requireGPU: true,
+        })
+    ).toThrow('requireGPU=true requires useGPU=true');
+  });
+
+  it('does not permit the synchronous CPU path under a required-GPU policy', () => {
+    const solver = new ThermalSolver({
+      gridResolution: [3, 3, 3],
+      domainSize: [3, 3, 3],
+      timeStep: 0.1,
+      materials: {},
+      defaultMaterial: 'air',
+      boundaryConditions: [],
+      sources: [],
+      useGPU: true,
+      requireGPU: true,
+    });
+
+    expect(() => solver.step(0.1)).toThrow('requires GPU execution; use stepAsync()');
+    expect(solver.getStats().stepCount).toBe(0);
+    solver.dispose();
+  });
+
+  it('fails without mutating the field when a required GPU dispatch is unavailable', async () => {
+    vi.spyOn(RegularGridStencilSolver.prototype, 'stepThermalExplicit').mockResolvedValue(null);
+    const solver = new ThermalSolver({
+      gridResolution: [3, 3, 3],
+      domainSize: [3, 3, 3],
+      timeStep: 0.01,
+      materials: {},
+      defaultMaterial: 'air',
+      boundaryConditions: [{ type: 'dirichlet', faces: ['x-'], value: 100 }],
+      sources: [],
+      initialTemperature: 20,
+      useGPU: true,
+      requireGPU: true,
+    });
+    const before = solver.getTemperatureField();
+
+    await expect(solver.stepAsync(0.01)).rejects.toThrow(
+      'required GPU execution, but no GPU dispatch completed'
+    );
+
+    expect(solver.getTemperatureField()).toEqual(before);
+    expect(solver.getStats()).toMatchObject({ stepCount: 0, usedGPU: false });
+    solver.dispose();
+  });
+
+  it('clears prior GPU-success state when the next required dispatch fails', async () => {
+    vi.spyOn(RegularGridStencilSolver.prototype, 'stepThermalExplicit')
+      .mockResolvedValueOnce(new Float32Array(27).fill(20))
+      .mockResolvedValueOnce(null);
+    const solver = new ThermalSolver({
+      gridResolution: [3, 3, 3],
+      domainSize: [3, 3, 3],
+      timeStep: 0.01,
+      materials: {},
+      defaultMaterial: 'air',
+      boundaryConditions: [],
+      sources: [],
+      initialTemperature: 20,
+      useGPU: true,
+      requireGPU: true,
+    });
+
+    await solver.stepAsync(0.01);
+    expect(solver.getStats()).toMatchObject({ stepCount: 1, usedGPU: true });
+    await expect(solver.stepAsync(0.01)).rejects.toThrow('no GPU dispatch completed');
+    expect(solver.getStats()).toMatchObject({ stepCount: 1, usedGPU: false });
+    solver.dispose();
+  });
+
   it('initializes with uniform temperature', () => {
     const solver = new ThermalSolver({
       gridResolution: [5, 5, 5],

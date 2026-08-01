@@ -1,4 +1,4 @@
-import { WebGPUContext } from './WebGPUContext';
+import { WebGPUContext, type WebGPUAdapterIdentity } from './WebGPUContext';
 import { REGULAR_GRID_STENCIL_WGSL } from './shaders/regular_grid_stencils';
 
 interface GridShape {
@@ -78,15 +78,19 @@ export interface AcousticStencilParams extends GridShape {
 
 export class RegularGridStencilSolver {
   private context: WebGPUContext;
+  private readonly ownsContext: boolean;
   private thermalPipeline: GPUComputePipeline | null = null;
   private acousticPipeline: GPUComputePipeline | null = null;
   private bindGroupLayout: GPUBindGroupLayout | null = null;
+  private destroyed = false;
 
-  constructor(context = new WebGPUContext({ fallbackToCPU: true })) {
-    this.context = context;
+  constructor(context?: WebGPUContext) {
+    this.ownsContext = context === undefined;
+    this.context = context ?? new WebGPUContext({ fallbackToCPU: true });
   }
 
   async initialize(): Promise<boolean> {
+    if (this.destroyed) throw new Error('RegularGridStencilSolver has been destroyed');
     await this.context.initialize();
     if (!this.context.isSupported()) return false;
 
@@ -165,9 +169,16 @@ export class RegularGridStencilSolver {
   }
 
   destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
     this.thermalPipeline = null;
     this.acousticPipeline = null;
     this.bindGroupLayout = null;
+    if (this.ownsContext) this.context.destroy();
+  }
+
+  getAdapterIdentity(): WebGPUAdapterIdentity | null {
+    return this.context.getAdapterIdentity();
   }
 
   private async ensureReady(): Promise<boolean> {

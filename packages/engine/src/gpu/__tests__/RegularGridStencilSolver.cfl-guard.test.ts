@@ -21,12 +21,56 @@
  * and expect a thrown RangeError before any GPU work begins.
  */
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { RegularGridStencilSolver } from '../RegularGridStencilSolver';
+import { WebGPUContext } from '../WebGPUContext';
 
 // The solver falls back to CPU when WebGPU is unavailable (test environment).
 // The CFL guard must fire BEFORE attempting WebGPU dispatch, so the guard is
 // reachable in any environment.
+
+describe('RegularGridStencilSolver context ownership', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('destroys an internally-created context exactly once', () => {
+    const destroy = vi.spyOn(WebGPUContext.prototype, 'destroy');
+    const solver = new RegularGridStencilSolver();
+
+    solver.destroy();
+    solver.destroy();
+
+    expect(destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not destroy a borrowed context', () => {
+    const context = new WebGPUContext();
+    const destroy = vi.spyOn(context, 'destroy');
+    const solver = new RegularGridStencilSolver(context);
+
+    solver.destroy();
+
+    expect(destroy).not.toHaveBeenCalled();
+  });
+
+  it('cannot reopen an owned context after destruction', async () => {
+    const solver = new RegularGridStencilSolver();
+    solver.destroy();
+
+    await expect(
+      solver.stepThermalExplicit(new Float32Array(1), new Float32Array(1), {
+        nx: 1,
+        ny: 1,
+        nz: 1,
+        dx: 1,
+        dy: 1,
+        dz: 1,
+        dt: 0.1,
+        alpha: 1e-6,
+        rhoCp: 1,
+      })
+    ).rejects.toThrow('has been destroyed');
+  });
+});
 
 describe('RegularGridStencilSolver — CFL guards', () => {
   describe('Thermal explicit stencil', () => {

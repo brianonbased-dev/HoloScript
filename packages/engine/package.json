@@ -798,6 +798,7 @@
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage",
     "test:bench": "vitest run --config vitest.bench.config.ts",
+    "test:gpu:thermal": "cross-env HOLOSCRIPT_REQUIRE_LIVE_GPU=1 vitest run src/simulation/__tests__/ThermalSolver.gpu-parity.test.ts",
     "test:watch": "vitest",
     "build:paper6-bench": "esbuild src/animation/paper/benchmarks/paper-6-webgpu-matrix.entry.ts --bundle --format=iife --global-name=Paper6Bench --outfile=benchmark-paper6-webgpu.js",
     "benchmark:paper6:webgpu": "playwright test tests/paper-6-webgpu-matrix.spec.ts",
@@ -843,13 +844,17 @@
   },
   "peerDependencies": {
     "@holoscript/uaal": "workspace:^",
-    "puppeteer": "^23.0.0"
+    "puppeteer": "^23.0.0",
+    "webgpu": "^0.3.8"
   },
   "peerDependenciesMeta": {
     "@holoscript/uaal": {
       "optional": true
     },
     "puppeteer": {
+      "optional": true
+    },
+    "webgpu": {
       "optional": true
     }
   },
@@ -861,8 +866,10 @@
     "@webgpu/types": ">=0.1.40",
     "@vitest/coverage-v8": "^4.1.5",
     "@playwright/test": "^1.58.2",
+    "cross-env": "^7.0.3",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "webgpu": "^0.3.8"
   }
 }

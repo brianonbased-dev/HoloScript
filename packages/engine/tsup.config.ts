@@ -80,6 +80,7 @@ export default defineConfig({
     'react-dom',
     'puppeteer',
     'puppeteer-core',
+    'webgpu',
     /^@puppeteer\//,
   ],
   target: 'esnext',

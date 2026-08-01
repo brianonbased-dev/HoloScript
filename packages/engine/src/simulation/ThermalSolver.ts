@@ -72,6 +72,7 @@ import { applyBoundaryConditions, type BoundaryCondition } from './BoundaryCondi
 import { getMaterial, thermalDiffusivity, type ThermalMaterial } from './MaterialDatabase';
 import { jacobiIterationAnisotropic } from './ConvergenceControl';
 import { RegularGridStencilSolver } from '../gpu/RegularGridStencilSolver';
+import type { WebGPUAdapterIdentity } from '../gpu/WebGPUContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -106,6 +107,8 @@ export interface ThermalConfig {
   implicitTolerance?: number;
   /** Use WebGPU explicit stencil kernel when available. Implicit Jacobi stays CPU. */
   useGPU?: boolean;
+  /** Fail the step instead of falling back when a GPU dispatch is unavailable. */
+  requireGPU?: boolean;
 }
 
 export interface ThermalStats {
@@ -132,6 +135,7 @@ export class ThermalSolver {
   private stepCount = 0;
   private useImplicit = false;
   private useGPU = false;
+  private requireGPU = false;
   private lastStepUsedGPU = false;
   private lastStepMs = 0;
   private gpuStencil: RegularGridStencilSolver | null = null;
@@ -146,6 +150,10 @@ export class ThermalSolver {
     this.material = { ...matBase, ...matOverride } as ThermalMaterial;
     this.alpha = thermalDiffusivity(this.material);
     this.useGPU = config.useGPU ?? false;
+    this.requireGPU = config.requireGPU ?? false;
+    if (this.requireGPU && !this.useGPU) {
+      throw new TypeError('ThermalSolver requireGPU=true requires useGPU=true');
+    }
 
     // Initialize grids
     this.temperature = new RegularGrid3D(config.gridResolution, config.domainSize);
@@ -175,6 +183,10 @@ export class ThermalSolver {
    * Advance the thermal field by dt seconds.
    */
   step(dt: number): void {
+    this.lastStepUsedGPU = false;
+    if (this.requireGPU) {
+      throw new Error('ThermalSolver requires GPU execution; use stepAsync()');
+    }
     const t0 = performance.now();
     const effectiveDt = dt > 0 ? dt : this.config.timeStep;
 
@@ -197,8 +209,17 @@ export class ThermalSolver {
    * Existing synchronous callers keep using step(); GPU aliases call this.
    */
   async stepAsync(dt: number): Promise<void> {
+    this.lastStepUsedGPU = false;
     const t0 = performance.now();
     const effectiveDt = dt > 0 ? dt : this.config.timeStep;
+
+    if (this.requireGPU && this.useImplicit) {
+      throw new Error(
+        'ThermalSolver requires GPU execution, but this step requires the CPU implicit solver'
+      );
+    }
+
+    const rollback = this.requireGPU ? new Float32Array(this.temperature.data) : null;
 
     this.applyThermalBoundaryConditions(effectiveDt);
 
@@ -208,6 +229,10 @@ export class ThermalSolver {
     }
 
     if (!usedGPU) {
+      if (this.requireGPU) {
+        this.temperature.data.set(rollback!);
+        throw new Error('ThermalSolver required GPU execution, but no GPU dispatch completed');
+      }
       if (this.useImplicit) {
         this.stepImplicit(effectiveDt);
       } else {
@@ -461,6 +486,11 @@ export class ThermalSolver {
       usedGPU: this.lastStepUsedGPU,
       lastStepMs: this.lastStepMs,
     };
+  }
+
+  /** Identity of the exact adapter used by the live GPU stencil, when initialized. */
+  getGPUAdapterIdentity(): WebGPUAdapterIdentity | null {
+    return this.gpuStencil?.getAdapterIdentity() ?? null;
   }
 
   dispose(): void {
