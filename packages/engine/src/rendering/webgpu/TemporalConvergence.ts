@@ -297,6 +297,66 @@ export interface TemporalResolveResult {
   receipt: TemporalResolveReceipt;
 }
 
+/**
+ * GPU-resident inputs for a temporal resolve pass. Every texture stays owned
+ * by the caller; the encoder never maps or reads back an intermediate frame.
+ */
+export interface TemporalTextureResolveInputs {
+  currentColor: GPUTexture;
+  historyColor: GPUTexture;
+  motionVectors: GPUTexture;
+  currentDepth: GPUTexture;
+  historyDepth: GPUTexture;
+  reactiveMask: GPUTexture;
+}
+
+export interface TemporalTextureResolveOptions {
+  width: number;
+  height: number;
+  feedback: number;
+  historyValid: boolean;
+  motionVectorsAvailable: boolean;
+  depthHistoryAvailable: boolean;
+  reactiveMaskAvailable: boolean;
+  /** Absolute NDC-depth delta above which history is rejected. Default 0.01. */
+  disocclusionDepthThreshold?: number;
+  /** Optional pass timestamps supplied by a caller-owned query set. */
+  timestampWrites?: GPUComputePassTimestampWrites;
+  /** Persistent pipeline supplied by a frame graph to avoid per-frame compilation. */
+  pipeline?: GPUComputePipeline;
+  /** Optional persistent target. When omitted the caller must destroy the returned target. */
+  outputTexture?: GPUTexture;
+}
+
+export interface TemporalTextureResolveReceipt {
+  schemaVersion: 'holoscript.webgpu-temporal-texture-resolve.v1';
+  backend: 'webgpu';
+  width: number;
+  height: number;
+  feedback: number;
+  historyValid: boolean;
+  neighborhoodClamping: true;
+  motionVectorsConsumed: boolean;
+  reactiveMaskConsumed: boolean;
+  disocclusionInputConsumed: boolean;
+  disocclusionDepthThreshold: number;
+  zeroCopyTextureInputs: true;
+  intermediateCpuReadbackCount: 0;
+  gpuTimestampWritesEncoded: boolean;
+  persistentPipelineConsumed: boolean;
+  timingClassification: 'caller-query-set' | 'not-requested';
+  workgroupSize: [8, 8, 1];
+  dispatch: [number, number, 1];
+}
+
+export interface EncodedTemporalTextureResolve {
+  outputTexture: GPUTexture;
+  outputTextureOwnedByCaller: boolean;
+  receipt: TemporalTextureResolveReceipt;
+  /** Release the uniform buffer and an internally-created output texture. */
+  destroy(): void;
+}
+
 function assertPixelGrid(grid: PixelGrid, label: string): void {
   if (!Number.isInteger(grid.width) || !Number.isInteger(grid.height)) {
     throw new RangeError(`${label} dimensions must be integers`);
@@ -533,6 +593,136 @@ fn resolve(@builtin(global_invocation_id) id: vec3u) {
   textureStore(resolvedFrame, pixel, mix(current, history, weight));
 }
 `;
+
+function assertTextureResolveOptions(options: TemporalTextureResolveOptions): number {
+  if (
+    !Number.isInteger(options.width) ||
+    !Number.isInteger(options.height) ||
+    options.width <= 0 ||
+    options.height <= 0
+  ) {
+    throw new RangeError('temporal texture resolve dimensions must be positive integers');
+  }
+  if (!Number.isFinite(options.feedback) || options.feedback < 0 || options.feedback >= 1) {
+    throw new RangeError('temporal resolve feedback must be in [0, 1)');
+  }
+  const threshold = options.disocclusionDepthThreshold ?? 0.01;
+  if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
+    throw new RangeError('temporal disocclusionDepthThreshold must be in [0, 1]');
+  }
+  return threshold;
+}
+
+/** Create the reusable compute pipeline used by texture-native temporal graphs. */
+export function createTemporalTextureResolvePipelineGPU(
+  device: GPUDevice
+): GPUComputePipeline {
+  const module = device.createShaderModule({ code: TEMPORAL_RESOLVE_WGSL });
+  return device.createComputePipeline({
+    layout: 'auto',
+    compute: { module, entryPoint: 'resolve' },
+  });
+}
+
+/**
+ * Encode a texture-native temporal resolve into a caller-owned command encoder.
+ *
+ * This is the zero-copy integration seam: current color, history, velocity,
+ * depth, mask, and output remain GPU textures for the entire pass. Timestamp
+ * writes are accepted but resolved by the caller so timing and readback policy
+ * remain explicit at the frame-graph boundary.
+ */
+export function encodeTemporalTextureResolveGPU(
+  device: GPUDevice,
+  encoder: GPUCommandEncoder,
+  inputs: TemporalTextureResolveInputs,
+  options: TemporalTextureResolveOptions
+): EncodedTemporalTextureResolve {
+  const disocclusionDepthThreshold = assertTextureResolveOptions(options);
+  const historyValid = options.historyValid;
+  const motionVectorsConsumed = historyValid && options.motionVectorsAvailable;
+  const disocclusionInputConsumed = historyValid && options.depthHistoryAvailable;
+  const reactiveMaskConsumed = historyValid && options.reactiveMaskAvailable;
+  const outputTextureOwnedByCaller = !!options.outputTexture;
+  const outputTexture =
+    options.outputTexture ??
+    device.createTexture({
+      size: [options.width, options.height],
+      format: 'rgba8unorm',
+      usage: TEXTURE_STORAGE_BINDING | TEXTURE_COPY_SRC,
+    });
+  const params = new Float32Array([
+    options.feedback,
+    historyValid ? 1 : 0,
+    motionVectorsConsumed ? 1 : 0,
+    disocclusionInputConsumed ? 1 : 0,
+    reactiveMaskConsumed ? 1 : 0,
+    disocclusionDepthThreshold,
+    0,
+    0,
+  ]);
+  const paramsBuffer = device.createBuffer({
+    size: params.byteLength,
+    usage: BUFFER_UNIFORM | BUFFER_COPY_DST,
+  });
+  device.queue.writeBuffer(paramsBuffer, 0, params);
+
+  const pipeline = options.pipeline ?? createTemporalTextureResolvePipelineGPU(device);
+  const bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: inputs.currentColor.createView() },
+      { binding: 1, resource: inputs.historyColor.createView() },
+      { binding: 2, resource: outputTexture.createView() },
+      { binding: 3, resource: { buffer: paramsBuffer } },
+      { binding: 4, resource: inputs.motionVectors.createView() },
+      { binding: 5, resource: inputs.currentDepth.createView() },
+      { binding: 6, resource: inputs.historyDepth.createView() },
+      { binding: 7, resource: inputs.reactiveMask.createView() },
+    ],
+  });
+  const dispatch: [number, number, 1] = [
+    Math.ceil(options.width / 8),
+    Math.ceil(options.height / 8),
+    1,
+  ];
+  const pass = encoder.beginComputePass(
+    options.timestampWrites ? { timestampWrites: options.timestampWrites } : undefined
+  );
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, bindGroup);
+  pass.dispatchWorkgroups(...dispatch);
+  pass.end();
+
+  return {
+    outputTexture,
+    outputTextureOwnedByCaller,
+    receipt: {
+      schemaVersion: 'holoscript.webgpu-temporal-texture-resolve.v1',
+      backend: 'webgpu',
+      width: options.width,
+      height: options.height,
+      feedback: options.feedback,
+      historyValid,
+      neighborhoodClamping: true,
+      motionVectorsConsumed,
+      reactiveMaskConsumed,
+      disocclusionInputConsumed,
+      disocclusionDepthThreshold,
+      zeroCopyTextureInputs: true,
+      intermediateCpuReadbackCount: 0,
+      gpuTimestampWritesEncoded: !!options.timestampWrites,
+      persistentPipelineConsumed: !!options.pipeline,
+      timingClassification: options.timestampWrites ? 'caller-query-set' : 'not-requested',
+      workgroupSize: [8, 8, 1],
+      dispatch,
+    },
+    destroy(): void {
+      paramsBuffer.destroy();
+      if (!outputTextureOwnedByCaller) outputTexture.destroy();
+    },
+  };
+}
 
 /**
  * Execute one neighborhood-clamped temporal resolve on a live GPUDevice.

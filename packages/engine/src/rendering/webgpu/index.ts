@@ -52,6 +52,8 @@ export { WebGPURenderer } from './WebGPURenderer';
 export {
   TEMPORAL_CONVERGENCE_PROFILES,
   TemporalConvergenceController,
+  createTemporalTextureResolvePipelineGPU,
+  encodeTemporalTextureResolveGPU,
   jitterProjectionMatrix,
   resolveTemporalFrameGPU,
   temporalHaltonJitter,
@@ -64,7 +66,18 @@ export {
   type TemporalResolveOptions,
   type TemporalResolveReceipt,
   type TemporalResolveResult,
+  type EncodedTemporalTextureResolve,
+  type TemporalTextureResolveInputs,
+  type TemporalTextureResolveOptions,
+  type TemporalTextureResolveReceipt,
 } from './TemporalConvergence';
+export {
+  TemporalFrameGraph,
+  type TemporalFrameGraphInput,
+  type TemporalFrameGraphOptions,
+  type TemporalFrameGraphReceipt,
+  type TemporalFrameGraphResult,
+} from './TemporalFrameGraph';
 export type {
   DepthGrid,
   MotionVectorGrid,

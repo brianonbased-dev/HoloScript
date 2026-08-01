@@ -8,6 +8,7 @@ import {
   resolveTemporalFrameGPU,
   temporalHaltonJitter,
 } from '../TemporalConvergence';
+import { TemporalFrameGraph } from '../TemporalFrameGraph';
 
 describe('TemporalConvergenceController', () => {
   it('invalidates deterministically on initial, camera, resident, and LOD changes', () => {
@@ -252,5 +253,153 @@ describe('resolveTemporalFrameGPU', () => {
       fullyReactivePixelCount: 1,
       gpuTimestampMeasured: false,
     });
+  });
+});
+
+function solidColorTexture(
+  device: GPUDevice,
+  size: number,
+  color: [number, number, number, number]
+): GPUTexture {
+  const texture = device.createTexture({
+    size: [size, size],
+    format: 'rgba8unorm',
+    usage: 0x04 | 0x02,
+  });
+  const data = new Uint8Array(size * size * 4);
+  for (let pixel = 0; pixel < size * size; pixel += 1) data.set(color, pixel * 4);
+  device.queue.writeTexture(
+    { texture },
+    data,
+    { bytesPerRow: size * 4, rowsPerImage: size },
+    [size, size]
+  );
+  return texture;
+}
+
+function solidDepthTexture(device: GPUDevice, size: number, depth: number): GPUTexture {
+  const texture = device.createTexture({
+    size: [size, size],
+    format: 'r32float',
+    usage: 0x04 | 0x02 | 0x01,
+  });
+  const data = new Float32Array(size * size).fill(depth);
+  device.queue.writeTexture(
+    { texture },
+    data,
+    { bytesPerRow: size * 4, rowsPerImage: size },
+    [size, size]
+  );
+  return texture;
+}
+
+describe('TemporalFrameGraph', () => {
+  itGpu('keeps history on the GPU and rejects it throughout repeated LOD transitions', async () => {
+    const size = 64;
+    const device = testDevice!;
+    const graph = new TemporalFrameGraph(device, {
+      width: size,
+      height: size,
+      enableGpuTimestamps: true,
+      label: 'lod-history-stress',
+    });
+    const controller = TemporalConvergenceController.fromProfile('browser-balanced');
+    const depth = solidDepthTexture(device, size, 0.5);
+    const colors = [
+      solidColorTexture(device, size, [220, 40, 30, 255]),
+      solidColorTexture(device, size, [30, 80, 220, 255]),
+      solidColorTexture(device, size, [30, 200, 90, 255]),
+    ];
+
+    const initialPlan = controller.beginFrame({
+      cameraStateId: 'camera',
+      residentStateId: 'resident',
+      lodLevel: 0,
+    });
+    const initial = await graph.execute({
+      currentColor: colors[0],
+      currentDepth: depth,
+      feedback: initialPlan.feedback,
+      historyValid: initialPlan.historyValid,
+      capturePixels: true,
+    });
+    expect([...initial.pixels!.data.subarray(0, 4)]).toEqual([220, 40, 30, 255]);
+    expect(initial.receipt).toMatchObject({
+      historyConsumed: false,
+      zeroCopyTextureInputs: true,
+      zeroCopyHistory: true,
+      intermediateFrameReadbackCount: 0,
+      evidenceFrameReadbackCount: 1,
+      commandBufferCount: 1,
+      queueSubmissionCount: 1,
+      readbackExcludedFromTimedScope: true,
+      resolve: { persistentPipelineConsumed: true },
+    });
+
+    const stablePlan = controller.beginFrame({
+      cameraStateId: 'camera',
+      residentStateId: 'resident',
+      lodLevel: 0,
+    });
+    const stable = await graph.execute({
+      currentColor: colors[1],
+      currentDepth: depth,
+      feedback: stablePlan.feedback,
+      historyValid: stablePlan.historyValid,
+    });
+    expect(stable.receipt.historyConsumed).toBe(true);
+
+    let lodInvalidationCount = 0;
+    for (let frame = 0; frame < 24; frame += 1) {
+      const lodLevel = Math.floor(frame / 3) % 2 === 0 ? 0 : 2;
+      const plan = controller.beginFrame({
+        cameraStateId: 'camera',
+        residentStateId: 'resident',
+        lodLevel,
+      });
+      const result = await graph.execute({
+        currentColor: colors[lodLevel === 0 ? 0 : 2],
+        currentDepth: depth,
+        feedback: plan.feedback,
+        historyValid: plan.historyValid,
+      });
+      expect(result.receipt.intermediateFrameReadbackCount).toBe(0);
+      expect(result.receipt.resolve.zeroCopyTextureInputs).toBe(true);
+      if (plan.invalidationReason === 'lod-change') {
+        lodInvalidationCount += 1;
+        expect(result.receipt.historyConsumed).toBe(false);
+      }
+    }
+    expect(lodInvalidationCount).toBeGreaterThanOrEqual(7);
+
+    const finalPlan = controller.beginFrame({
+      cameraStateId: 'camera',
+      residentStateId: 'resident',
+      lodLevel: 0,
+    });
+    const final = await graph.execute({
+      currentColor: colors[0],
+      currentDepth: depth,
+      feedback: finalPlan.feedback,
+      historyValid: finalPlan.historyValid,
+      capturePixels: true,
+    });
+    if (graph.timestampQueryEnabled) {
+      expect(final.receipt).toMatchObject({
+        gpuTimestampMeasured: true,
+        timingClassification: 'gpu-timestamp-query',
+        timedScope: 'temporal-resolve-compute-pass',
+      });
+      expect(final.receipt.resolveDurationNanoseconds).toBeGreaterThan(0);
+    } else {
+      expect(final.receipt).toMatchObject({
+        gpuTimestampMeasured: false,
+        timingClassification: 'feature-not-enabled',
+      });
+    }
+
+    graph.destroy();
+    depth.destroy();
+    for (const color of colors) color.destroy();
   });
 });
