@@ -3232,17 +3232,20 @@ function pushNeutralAnatomicalHead(
       Math.exp(-0.5 * Math.pow(value / Math.max(1e-4, sigma), 2));
     const bridgeCenterY = 0.015 + (noseLength - 1) * 0.035;
     const tipCenterY = -0.16 - (noseLength - 1) * 0.085;
+    // The closeup shell samples 44 radial columns. Keep the nasal field broad
+    // enough to span neighbouring columns so it shades as soft tissue rather
+    // than a single dark ridge down the centre of the face.
     const bridge =
-      gaussian(normalizedX, 0.078 * noseBridgeWidth) *
-      gaussian(normalizedY - bridgeCenterY, 0.225 * noseLength);
+      gaussian(normalizedX, 0.14 * noseBridgeWidth) *
+      gaussian(normalizedY - bridgeCenterY, 0.245 * noseLength);
     const tip =
-      gaussian(normalizedX, 0.115 * (0.72 + noseBridgeWidth * 0.28)) *
-      gaussian(normalizedY - tipCenterY, 0.09 * noseLength);
-    const alarSpread = 0.105 * (0.76 + noseBridgeWidth * 0.24);
+      gaussian(normalizedX, 0.18 * (0.72 + noseBridgeWidth * 0.28)) *
+      gaussian(normalizedY - tipCenterY, 0.105 * noseLength);
+    const alarSpread = 0.12 * (0.76 + noseBridgeWidth * 0.24);
     const alar =
-      (gaussian(normalizedX - alarSpread, 0.052 * noseBridgeWidth) +
-        gaussian(normalizedX + alarSpread, 0.052 * noseBridgeWidth)) *
-      gaussian(normalizedY - (tipCenterY - 0.025), 0.066 * noseLength);
+      (gaussian(normalizedX - alarSpread, 0.075 * noseBridgeWidth) +
+        gaussian(normalizedX + alarSpread, 0.075 * noseBridgeWidth)) *
+      gaussian(normalizedY - (tipCenterY - 0.025), 0.078 * noseLength);
     const philtrum =
       (gaussian(normalizedX - 0.026 * noseBridgeWidth, 0.018) +
         gaussian(normalizedX + 0.026 * noseBridgeWidth, 0.018)) *
@@ -3256,9 +3259,9 @@ function pushNeutralAnatomicalHead(
       Math.exp(-0.5 * Math.pow(normalizedX / Math.max(0.08, 0.265 * mouthWidth), 6)) *
       gaussian(normalizedY + 0.393, 0.018);
     const projection =
-      bridge * 0.072 * noseProjection +
-      tip * 0.145 * noseProjection +
-      alar * 0.038 * noseProjection +
+      bridge * 0.042 * noseProjection +
+      tip * 0.088 * noseProjection +
+      alar * 0.026 * noseProjection +
       philtrum * 0.011 +
       upperLip * 0.034 * mouthDepth * upperLipFullness +
       lowerLip * 0.036 * mouthDepth * lowerLipFullness -
@@ -3348,8 +3351,8 @@ function pushNeutralAnatomicalHead(
         : 0;
       const normal = facialPlanes
         ? normalize({
-            x: baseNormal.x - derivativeX * (radiusZ / radiusX) * frontGate,
-            y: baseNormal.y - derivativeY * (radiusZ / radiusY) * frontGate,
+            x: baseNormal.x - derivativeX * (radiusZ / radiusX) * frontGate * 0.42,
+            y: baseNormal.y - derivativeY * (radiusZ / radiusY) * frontGate * 0.42,
             z: baseNormal.z,
           })
         : baseNormal;
