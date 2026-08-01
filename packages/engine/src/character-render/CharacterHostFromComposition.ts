@@ -1267,6 +1267,7 @@ export function buildCharacterHostFromComposition(
   //    Unknown style names are recorded as unsupported rather than borrowing the default.
   let melanin: number | undefined;
   let melaninRedness: number | undefined;
+  let hairTone: number | undefined;
   let hairStyle: AgentAvatarHairStyle | undefined;
   let hairGroomProfile: AgentAvatarGroomProfile | undefined;
   let hairCardWidth: number | undefined;
@@ -1331,6 +1332,7 @@ export function buildCharacterHostFromComposition(
     hairLongitudinalShift = asNum(cfgVal(hair, 'longitudinal_shift', 'longitudinalShift'));
     if (hairColor && /^#?[0-9a-fA-F]{6}$/.test(hairColor)) {
       const rgb = parseInt(hairColor.replace('#', ''), 16);
+      hairTone = rgb;
       const r = ((rgb >> 16) & 0xff) / 255;
       const g = ((rgb >> 8) & 0xff) / 255;
       const b = (rgb & 0xff) / 255;
@@ -1577,6 +1579,7 @@ export function buildCharacterHostFromComposition(
     skinNormalMicrodetailStrength,
     melanin,
     melaninRedness,
+    hairTone,
     hairStyle,
     hairGuides: lod?.hairGuides,
     hairCardsPerGuide: lod?.hairCardsPerGuide,

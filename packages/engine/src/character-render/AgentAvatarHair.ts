@@ -111,8 +111,14 @@ export const AGENT_AVATAR_HAIR_COVERAGE_PROFILES = [
 ] as const satisfies readonly HairCoverageProfile[];
 
 export interface AgentAvatarHairMaterialReceipt {
-  schemaVersion: 'holoscript.agent-avatar-hair-material.v1';
+  schemaVersion:
+    | 'holoscript.agent-avatar-hair-material.v1'
+    | 'holoscript.agent-avatar-hair-material.v2';
   shadingModel: 'marschner-hair';
+  /** Exact source-authored 0xRRGGBB hair chroma when the v2 material path is active. */
+  sourceColor?: number;
+  /** Bounded source-chroma contribution; omission preserves the v1 melanin-only response. */
+  sourceColorWeight?: number;
   coverageProfile: HairCoverageProfile;
   strandCoverage: number;
   edgeSoftness: number;

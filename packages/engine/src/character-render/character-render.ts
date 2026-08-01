@@ -352,6 +352,7 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[10] = m.anisotropyStrength;
     out[11] = m.coverageProfile === 'alpha-to-coverage-v1' ? 1 : 0;
     out[12] = m.longitudinalShift;
+    out[13] = Math.max(0, Math.min(1, m.sourceColorWeight ?? 0));
   } else if (m.shadingModel === 'refractive-eye') {
     out[4] = m.ior; // scatterColor.x = ior (Fresnel rim)
     out[5] =

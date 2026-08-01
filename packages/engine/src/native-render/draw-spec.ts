@@ -234,6 +234,11 @@ export interface MarschnerHairMaterialSpec extends MaterialSpec {
   shadingModel: 'marschner-hair';
   melanin: number;
   melaninRedness: number;
+  /**
+   * Weight of source-authored RGB chroma over the melanin response. Zero preserves the
+   * historical melanin-only path; authored @hair(color) uses a bounded non-zero weight.
+   */
+  sourceColorWeight?: number;
   primaryExp: number;
   secondaryExp: number;
   /** Analytic card-width coverage; alpha-to-coverage requests a multisampled render target. */

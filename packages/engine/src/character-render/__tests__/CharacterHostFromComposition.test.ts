@@ -88,14 +88,28 @@ describe('buildCharacterHostFromComposition', () => {
     expect(dark.report.mapped).toContain('@hair(color)');
     expect(dark.report.mapped).toContain('@hair(style=short)');
 
-    const melaninOf = (r: ReturnType<typeof make>): number => {
+    const materialOf = (r: ReturnType<typeof make>) => {
       const g = r.host
         ?.getDrawSpec()
         .materialGroups?.find((x) => x.material.shadingModel === 'marschner-hair');
-      return g && g.material.shadingModel === 'marschner-hair' ? g.material.melanin : NaN;
+      return g && g.material.shadingModel === 'marschner-hair' ? g.material : undefined;
     };
     // Darker authored hair → more eumelanin: the .holo colour reaches the draw spec, not a constant.
-    expect(melaninOf(dark)).toBeGreaterThan(melaninOf(blonde));
+    expect(materialOf(dark)?.melanin).toBeGreaterThan(materialOf(blonde)?.melanin ?? 0);
+    expect(materialOf(dark)?.color).toBe(0x1a0e08);
+    expect(materialOf(blonde)?.color).toBe(0xe8d088);
+    expect(materialOf(dark)?.sourceColorWeight).toBe(0.55);
+    expect(materialOf(dark)?.color).not.toBe(materialOf(blonde)?.color);
+    const packed = packCharacterMaterial(materialOf(dark)!);
+    [0x1a / 255, 0x0e / 255, 0x08 / 255].forEach((channel, index) =>
+      expect(packed[index]).toBeCloseTo(channel)
+    );
+    expect(packed[13]).toBeCloseTo(0.55);
+    expect(dark.host?.getHairMaterialReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hair-material.v2',
+      sourceColor: 0x1a0e08,
+      sourceColorWeight: 0.55,
+    });
     expect(dark.report.warnings.some((w) => w.includes('style'))).toBe(false);
   });
 
@@ -146,7 +160,9 @@ describe('buildCharacterHostFromComposition', () => {
       tipTaper: 0.1,
       hairlineBias: 0.16,
       material: {
-        schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+        schemaVersion: 'holoscript.agent-avatar-hair-material.v2',
+        sourceColor: 0x39251c,
+        sourceColorWeight: 0.55,
         coverageProfile: 'alpha-to-coverage-v1',
         strandCoverage: 0.74,
         edgeSoftness: 0.16,

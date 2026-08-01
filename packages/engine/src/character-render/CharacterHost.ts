@@ -195,6 +195,8 @@ export interface CharacterHostOptions {
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
   melaninRedness?: number;
+  /** Exact source-authored @hair(color) value. Omission preserves melanin-only hair shading. */
+  hairTone?: number;
   /** Source-authored deterministic procedural hair geometry profile. */
   hairStyle?: AgentAvatarHairStyle;
   /** Source-authored scalp guide budget selected by @lod. */
@@ -596,8 +598,10 @@ export class CharacterHost {
     };
     this.hairMaterial = {
       ...HAIR_BASE,
+      color: opts.hairTone ?? HAIR_BASE.color,
       melanin: opts.melanin ?? 0.7,
       melaninRedness: opts.melaninRedness ?? 0.2,
+      sourceColorWeight: opts.hairTone === undefined ? 0 : 0.55,
       coverageProfile: opts.hairCoverageProfile ?? HAIR_BASE.coverageProfile,
       strandCoverage: Math.max(
         0.2,
@@ -873,8 +877,7 @@ export class CharacterHost {
 
   /** Source-derived native hair response joined to geometry and compiler receipts. */
   getHairMaterialReceipt(): AgentAvatarHairMaterialReceipt {
-    return {
-      schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+    const base = {
       shadingModel: 'marschner-hair',
       coverageProfile: this.hairMaterial.coverageProfile,
       strandCoverage: this.hairMaterial.strandCoverage,
@@ -886,7 +889,19 @@ export class CharacterHost {
       tangentAttribute: 'strand-flow',
       cardUvAttribute: 'card-width',
       alphaToCoverageRequested: this.hairMaterial.coverageProfile === 'alpha-to-coverage-v1',
-    };
+    } as const;
+    const sourceColorWeight = this.hairMaterial.sourceColorWeight ?? 0;
+    return sourceColorWeight > 0
+      ? {
+          schemaVersion: 'holoscript.agent-avatar-hair-material.v2',
+          ...base,
+          sourceColor: this.hairMaterial.color,
+          sourceColorWeight,
+        }
+      : {
+          schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+          ...base,
+        };
   }
 
   /**

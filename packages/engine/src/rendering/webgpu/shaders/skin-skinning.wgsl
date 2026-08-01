@@ -291,7 +291,8 @@ fn melaninColor(m : f32, red : f32) -> vec3<f32> {
 // ── Hair: tangent-aware dual-lobe response + analytic card-width coverage. ──
 // Material packing (from fillMaterial 'marschner-hair'): scatterColor = (melanin, redness,
 // primaryExp, secondaryExp); scatterDist = (coverage, edgeSoftness, anisotropyStrength,
-// coverageProfileCode); params.x = longitudinalShift; color.a = opacity.
+// coverageProfileCode); params.x = longitudinalShift; params.y = source RGB chroma weight;
+// color.rgb = source hair colour; color.a = opacity.
 @fragment
 fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   let N = normalize(in.wN);
@@ -338,7 +339,18 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
     }
   }
 
-  let base = melaninColor(mat.scatterColor.x, mat.scatterColor.y);
+  let melaninBase = melaninColor(mat.scatterColor.x, mat.scatterColor.y);
+  let sourceWeight = clamp(mat.params.y, 0.0, 1.0);
+  // Preserve the melanin model's energy while restoring the hue discarded by the old
+  // RGB-to-two-scalar bridge. The zero-weight path is exactly the legacy response.
+  let sourceLuminance = max(dot(mat.color.rgb, vec3<f32>(0.299, 0.587, 0.114)), 0.02);
+  let melaninLuminance = dot(melaninBase, vec3<f32>(0.299, 0.587, 0.114));
+  let sourceChroma = clamp(
+    mat.color.rgb * (melaninLuminance / sourceLuminance),
+    vec3<f32>(0.0),
+    vec3<f32>(1.0)
+  );
+  let base = mix(melaninBase, sourceChroma, sourceWeight);
   let rootDarken = mix(0.55, 1.0, in.strandT);
   let environment = select(
     vec3<f32>(kkDiffuse * 0.6 + 0.25),
