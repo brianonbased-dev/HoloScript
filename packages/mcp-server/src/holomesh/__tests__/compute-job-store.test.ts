@@ -520,7 +520,10 @@ function makeCapacityRegistration(instanceId = 42): RegisterComputeCapacityComma
   };
 }
 
-function makeCreateJobCommand(createIdempotencyKey = 'create-job-1'): CreateComputeJobCommand {
+function makeCreateJobCommand(
+  createIdempotencyKey = 'create-job-1',
+  admissionVerifiedAt = ADMISSION_VERIFIED_AT
+): CreateComputeJobCommand {
   const fixture = lifecycleFixture('alpha', 1, createIdempotencyKey);
   const job = fixture.preflighted;
   const artifacts = { job };
@@ -528,6 +531,15 @@ function makeCreateJobCommand(createIdempotencyKey = 'create-job-1'): CreateComp
   return {
     operation: 'compute_job.create',
     idempotencyKeyDigest: job.request.idempotencyKeyHash,
+    semanticRequestDigest: digest(
+      canonicalJson({
+        teamId: TEAM_ID,
+        principalDigest: job.principalDigest,
+        jobId: job.jobId,
+        attempt: job.attempt,
+        workUnitDigest: job.workUnit.digest,
+      })
+    ),
     requestDigest: job.request.requestHash,
     job: projection(job),
     workUnit: workUnitEnvelope(fixture.unit),
@@ -538,6 +550,7 @@ function makeCreateJobCommand(createIdempotencyKey = 'create-job-1'): CreateComp
       unit: fixture.unit,
       evidence,
       lifecycle: { kind: 'create', createdJobReceiptId: job.receiptId },
+      verifiedAt: admissionVerifiedAt,
     }),
     outbox: [buildComputeJobOutboxEnvelope(artifacts)],
     publicResponseBytes: buildComputeJobPublicResponseBytes(artifacts),
@@ -577,6 +590,16 @@ interface FakeJobCreationIdempotencyRow {
   admission_receipt_id: string | null;
   created_job_bytes: string | null;
   public_response_bytes: string | null;
+}
+
+interface FakeJobCommandPreparationRow {
+  team_id: string;
+  principal_digest: string;
+  operation: string;
+  key_digest: string;
+  semantic_request_digest: string;
+  work_unit_digest: string;
+  command_bytes: string;
 }
 
 interface FakeJobRow {
@@ -661,6 +684,7 @@ interface FakeState {
   capacityBinding: FakeCapacityBindingRow | null;
   capacityRegistrationJournal: FakeCapacityRegistrationJournalRow | null;
   idempotency: Record<string, FakeIdempotencyRow>;
+  jobCommandPreparations: Record<string, FakeJobCommandPreparationRow>;
   jobCreationIdempotency: Record<string, FakeJobCreationIdempotencyRow>;
   admissions: Record<string, FakeAdmissionRow>;
   admissionRefs: Record<string, string>;
@@ -760,6 +784,7 @@ function initialState(command?: CommitComputeJobTransitionCommand): FakeState {
         : null,
     capacityRegistrationJournal: null,
     idempotency: {},
+    jobCommandPreparations: {},
     jobCreationIdempotency: {},
     admissions: {},
     admissionRefs: {},
@@ -913,6 +938,31 @@ class FakeClient implements ComputeJobStoreClient {
     ) {
       return this.result<Row>(
         state.capacityRegistrationJournal ? [state.capacityRegistrationJournal] : []
+      );
+    }
+    if (marker === 'job-command-preparation-insert') {
+      const key = idempotencyKey(values);
+      if (state.jobCommandPreparations[key]) return this.result<Row>([], 0);
+      state.jobCommandPreparations[key] = {
+        team_id: values[0] as string,
+        principal_digest: values[1] as string,
+        operation: values[2] as string,
+        key_digest: values[3] as string,
+        semantic_request_digest: values[4] as string,
+        work_unit_digest: values[5] as string,
+        command_bytes: values[6] as string,
+      };
+      return this.result<Row>([{ key_digest: values[3] }], 1);
+    }
+    if (marker === 'job-command-preparation-lock') {
+      const row = state.jobCommandPreparations[idempotencyKey(values)];
+      return this.result<Row>(row ? [row] : []);
+    }
+    if (marker === 'work-unit-read') {
+      return this.result<Row>(
+        Object.values(state.jobCommandPreparations).filter(
+          (row) => row.team_id === values[0] && row.work_unit_digest === values[1]
+        )
       );
     }
     if (marker === 'job-create-idempotency-insert') {
@@ -1317,6 +1367,8 @@ describe('PostgresComputeJobStore', () => {
     const current = await store.readJob({ teamId: TEAM_ID, jobId: JOB_ID, attempt: 1 });
     expect(current.bytes).toBe(command.job.bytes);
     expect(current.receipt).toEqual(command.job.receipt);
+    const durableWorkUnit = await store.readWorkUnit(TEAM_ID, command.workUnit.digest);
+    expect(durableWorkUnit).toEqual(command.workUnit);
 
     const advancedBytes = canonicalJson({ laterState: true });
     if (!pool.state.job) throw new Error('fake job disappeared');
@@ -1338,6 +1390,48 @@ describe('PostgresComputeJobStore', () => {
       code: 'job_already_exists',
     });
     expect(pool.state.job?.job_bytes).toBe(advancedBytes);
+  });
+
+  it('reuses the first exact prepared command when admission timestamps regenerate', async () => {
+    const first = makeCreateJobCommand();
+    const regenerated = makeCreateJobCommand('create-job-1', at(6_000));
+    expect(regenerated.semanticRequestDigest).toBe(first.semanticRequestDigest);
+    expect(regenerated.admission.bytes).not.toBe(first.admission.bytes);
+
+    const pool = new FakePool();
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+    await expect(store.createJob(first)).resolves.toMatchObject({ disposition: 'committed' });
+    const preparation = Object.values(pool.state.jobCommandPreparations)[0];
+    if (!preparation) throw new Error('fake command preparation missing');
+    const firstCommandBytes = preparation.command_bytes;
+    expect(firstCommandBytes).not.toContain('create-job-1');
+
+    await expect(store.createJob(regenerated)).resolves.toMatchObject({
+      disposition: 'replayed',
+      readBack: { admissionReceiptId: first.admission.receipt.receiptId },
+    });
+    expect(preparation.command_bytes).toBe(firstCommandBytes);
+  });
+
+  it('rejects semantic idempotency reuse and corrupt immutable preparation bytes', async () => {
+    const command = makeCreateJobCommand();
+    const pool = new FakePool();
+    const store = await PostgresComputeJobStore.create(storeOptions({ pool }));
+    await store.createJob(command);
+
+    await expect(
+      store.createJob({ ...command, semanticRequestDigest: digest('different semantics') })
+    ).rejects.toMatchObject({ code: 'idempotency_key_reused' });
+
+    const preparation = Object.values(pool.state.jobCommandPreparations)[0];
+    if (!preparation) throw new Error('fake command preparation missing');
+    preparation.command_bytes = `${preparation.command_bytes} `;
+    await expect(store.createJob(command)).rejects.toMatchObject({
+      code: 'immutable_receipt_conflict',
+    });
+    await expect(store.readWorkUnit(TEAM_ID, command.workUnit.digest)).rejects.toBeInstanceOf(
+      ComputeJobStoreReadbackError
+    );
   });
 
   it('registers capacity create-only and keeps provider identity on the internal read surface', async () => {

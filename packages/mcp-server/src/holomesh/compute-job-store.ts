@@ -76,6 +76,7 @@ export const COMPUTE_JOB_STORE_SCHEMA_MANIFEST = {
     'holomesh_compute_transitions',
     'holomesh_compute_allocation_commits',
     'holomesh_compute_idempotency',
+    'holomesh_compute_job_command_preparations',
     'holomesh_compute_job_creation_idempotency',
     'holomesh_compute_outbox',
   ],
@@ -91,15 +92,17 @@ export const COMPUTE_JOB_STORE_SCHEMA_MANIFEST = {
     'idx_compute_allocation_current_lease',
     'idx_compute_admission_refs_job',
     'idx_compute_evidence_refs_job',
+    'idx_compute_job_command_work_unit',
     'idx_compute_outbox_delivery',
   ],
+  createPreparationCustody: 'immutable_exact_canonical_command_bytes',
   readbackAuthority: 'immutable_journals',
 } as const;
 export const COMPUTE_JOB_STORE_SCHEMA_FINGERPRINT = contentDigest(
   COMPUTE_JOB_STORE_SCHEMA_MANIFEST
 );
 export const COMPUTE_JOB_STORE_CATALOG_DIGEST =
-  'sha256:168960adc98553bfbf5ae9722a250ea244cae62d387b033ec0cdfd951b01cee0' as const;
+  'sha256:1af8b14bd28e271def87dac35dbab6870ec43a2bf63de34eb2569daae3bc0404' as const;
 
 export const COMPUTE_JOB_STORE_SCHEMA_SQL = `
 /* compute:schema */
@@ -133,6 +136,7 @@ BEGIN
       'holomesh_compute_transitions',
       'holomesh_compute_allocation_commits',
       'holomesh_compute_idempotency',
+      'holomesh_compute_job_command_preparations',
       'holomesh_compute_job_creation_idempotency',
       'holomesh_compute_outbox'
     ])
@@ -416,6 +420,60 @@ CREATE TABLE IF NOT EXISTS holomesh_compute_job_creation_idempotency (
   )
 );
 
+CREATE TABLE IF NOT EXISTS holomesh_compute_job_command_preparations (
+  team_id                 TEXT NOT NULL,
+  principal_digest        TEXT NOT NULL CHECK (principal_digest ~ '^sha256:[0-9a-f]{64}$'),
+  operation               TEXT NOT NULL CHECK (operation = 'compute_job.create'),
+  key_digest              TEXT NOT NULL CHECK (key_digest ~ '^sha256:[0-9a-f]{64}$'),
+  semantic_request_digest TEXT NOT NULL CHECK (semantic_request_digest ~ '^sha256:[0-9a-f]{64}$'),
+  work_unit_digest        TEXT NOT NULL CHECK (work_unit_digest ~ '^sha256:[0-9a-f]{64}$'),
+  command_bytes           TEXT NOT NULL CHECK (octet_length(command_bytes) > 0),
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (team_id, principal_digest, operation, key_digest)
+);
+CREATE INDEX IF NOT EXISTS idx_compute_job_command_work_unit
+  ON holomesh_compute_job_command_preparations (team_id, work_unit_digest);
+
+DO $compute_preparation_function$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = current_schema()
+      AND p.proname = 'holomesh_compute_reject_job_command_preparation_mutation'
+      AND pg_catalog.pg_get_function_identity_arguments(p.oid) = ''
+  ) THEN
+    EXECUTE $compute_function_sql$
+CREATE FUNCTION holomesh_compute_reject_job_command_preparation_mutation()
+RETURNS trigger LANGUAGE plpgsql AS $compute_immutable_body$
+BEGIN
+  RAISE EXCEPTION 'compute job command preparations are immutable' USING ERRCODE = '55000';
+END
+$compute_immutable_body$
+$compute_function_sql$;
+  END IF;
+END
+$compute_preparation_function$;
+
+DO $compute_preparation_trigger$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_trigger t
+    JOIN pg_catalog.pg_class c ON c.oid = t.tgrelid
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = current_schema()
+      AND c.relname = 'holomesh_compute_job_command_preparations'
+      AND t.tgname = 'holomesh_compute_job_command_preparations_immutable'
+      AND NOT t.tgisinternal
+  ) THEN
+    CREATE TRIGGER holomesh_compute_job_command_preparations_immutable
+      BEFORE UPDATE OR DELETE ON holomesh_compute_job_command_preparations
+      FOR EACH ROW
+      EXECUTE FUNCTION holomesh_compute_reject_job_command_preparation_mutation();
+  END IF;
+END
+$compute_preparation_trigger$;
+
 CREATE TABLE IF NOT EXISTS holomesh_compute_outbox (
   team_id         TEXT NOT NULL,
   event_id        TEXT NOT NULL CHECK (event_id ~ '^sha256:[0-9a-f]{64}$'),
@@ -456,6 +514,7 @@ WITH required_relations(table_name) AS (
     ('holomesh_compute_transitions'),
     ('holomesh_compute_allocation_commits'),
     ('holomesh_compute_idempotency'),
+    ('holomesh_compute_job_command_preparations'),
     ('holomesh_compute_job_creation_idempotency'),
     ('holomesh_compute_outbox')
 ), required_constraints(table_name, checks, primary_keys, uniques, foreign_keys) AS (
@@ -472,6 +531,7 @@ WITH required_relations(table_name) AS (
     ('holomesh_compute_transitions', 8, 1, 1, 0),
     ('holomesh_compute_allocation_commits', 13, 1, 2, 0),
     ('holomesh_compute_idempotency', 8, 1, 0, 0),
+    ('holomesh_compute_job_command_preparations', 6, 1, 0, 0),
     ('holomesh_compute_job_creation_idempotency', 8, 1, 0, 0),
     ('holomesh_compute_outbox', 3, 1, 0, 0)
 ), actual_constraints AS (
@@ -560,11 +620,15 @@ WITH required_relations(table_name) AS (
       SELECT jsonb_agg(
         jsonb_build_array(
           r.relname, t.tgname, t.tgenabled,
-          pg_catalog.pg_get_triggerdef(t.oid, true)
+          pg_catalog.pg_get_triggerdef(t.oid, true),
+          l.lanname, p.prosrc, p.provolatile, p.prosecdef,
+          p.proleakproof, p.proparallel, p.proconfig
         ) ORDER BY r.relname, t.tgname
       )
       FROM compute_relations r
       JOIN pg_catalog.pg_trigger t ON t.tgrelid = r.oid
+      JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
+      JOIN pg_catalog.pg_language l ON l.oid = p.prolang
       WHERE NOT t.tgisinternal
     ), '[]'::jsonb)
   )::text
@@ -582,6 +646,18 @@ SELECT
     WHERE a.table_name IS NULL OR a.checks <> r.checks
       OR a.primary_keys <> r.primary_keys OR a.uniques <> r.uniques
       OR a.foreign_keys <> r.foreign_keys
+  ) AND EXISTS (
+    SELECT 1 FROM pg_catalog.pg_trigger t
+    JOIN pg_catalog.pg_class c ON c.oid = t.tgrelid
+    JOIN pg_catalog.pg_namespace n
+      ON n.oid = c.relnamespace AND n.nspname = current_schema()
+    JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
+    WHERE c.relname = 'holomesh_compute_job_command_preparations'
+      AND t.tgname = 'holomesh_compute_job_command_preparations_immutable'
+      AND t.tgenabled = 'O' AND NOT t.tgisinternal
+      AND pg_catalog.pg_get_triggerdef(t.oid, true) LIKE '%BEFORE DELETE OR UPDATE%'
+      AND p.proname = 'holomesh_compute_reject_job_command_preparation_mutation'
+      AND p.prosrc LIKE '%compute job command preparations are immutable%'
   ) AND EXISTS (
     SELECT 1 FROM pg_catalog.pg_constraint con
     JOIN pg_catalog.pg_class c ON c.oid = con.conrelid
@@ -724,6 +800,11 @@ SELECT
       AND indexdef LIKE 'CREATE UNIQUE INDEX%'
       AND indexdef LIKE '%(team_id, current_lease_receipt_id)%'
       AND indexdef LIKE '%WHERE (current_lease_receipt_id IS NOT NULL)%'
+  ) AND EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'idx_compute_job_command_work_unit'
+      AND indexdef NOT LIKE 'CREATE UNIQUE INDEX%'
+      AND indexdef LIKE '%(team_id, work_unit_digest)%'
   ) AND EXISTS (
     SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
       AND indexname = 'idx_compute_admission_refs_job'
@@ -870,6 +951,8 @@ export interface CreateComputeJobCommand {
   readonly operation: string;
   /** Digest only. The plaintext idempotency key must never reach this store. */
   readonly idempotencyKeyDigest: string;
+  /** Stable digest of caller-visible request semantics, excluding regenerated evidence bytes. */
+  readonly semanticRequestDigest: string;
   readonly requestDigest: string;
   readonly job: ComputeJobProjection;
   /** Exact compiler-produced WorkUnit bytes bound by both job and admission receipts. */
@@ -976,7 +1059,7 @@ export class ComputeJobStoreReadbackError extends Error {
 }
 
 export class ComputeJobStoreNotFoundError extends Error {
-  constructor(readonly resource: 'job' | 'capacity') {
+  constructor(readonly resource: 'job' | 'capacity' | 'work_unit') {
     super(`${resource} is not registered in the durable compute store`);
     this.name = 'ComputeJobStoreNotFoundError';
   }
@@ -1007,6 +1090,16 @@ interface JobCreationIdempotencyRow extends Record<string, unknown> {
   job_receipt_id: string | null;
   admission_receipt_id: string | null;
   public_response_bytes: string | null;
+}
+
+interface JobCommandPreparationRow extends Record<string, unknown> {
+  team_id: string;
+  principal_digest: string;
+  operation: string;
+  key_digest: string;
+  semantic_request_digest: string;
+  work_unit_digest: string;
+  command_bytes: string;
 }
 
 interface JobRow extends Record<string, unknown> {
@@ -1833,6 +1926,7 @@ function prepareCreateJobCommand(input: CreateComputeJobCommand): CreateComputeJ
     throw new TypeError('operation must be derived as compute_job.create');
   }
   assertDigest(input.idempotencyKeyDigest, 'idempotencyKeyDigest');
+  assertDigest(input.semanticRequestDigest, 'semanticRequestDigest');
   assertDigest(input.requestDigest, 'requestDigest');
   if (receipt.version !== 0 || receipt.state !== 'preflighted' || receipt.lease !== undefined) {
     throw new TypeError('createJob accepts only an initial preflighted lifecycle receipt');
@@ -1884,6 +1978,7 @@ function prepareCreateJobCommand(input: CreateComputeJobCommand): CreateComputeJ
   return {
     operation: input.operation,
     idempotencyKeyDigest: input.idempotencyKeyDigest,
+    semanticRequestDigest: input.semanticRequestDigest,
     requestDigest: input.requestDigest,
     job,
     workUnit,
@@ -1892,6 +1987,32 @@ function prepareCreateJobCommand(input: CreateComputeJobCommand): CreateComputeJ
     outbox,
     publicResponseBytes: input.publicResponseBytes,
   };
+}
+
+function parsePreparedCreateJobCommandBytes(bytes: string): CreateComputeJobCommand {
+  const payload = parseJsonObject(bytes, 'job-command-preparation.command_bytes');
+  const command = prepareCreateJobCommand(payload as unknown as CreateComputeJobCommand);
+  if (canonicalJson(command) !== bytes) {
+    throw new TypeError(
+      'prepared create command bytes do not normalize to their exact stored bytes'
+    );
+  }
+  return command;
+}
+
+function preparationRowMatchesCommand(
+  row: JobCommandPreparationRow,
+  command: CreateComputeJobCommand
+): boolean {
+  return (
+    row.team_id === command.job.teamId &&
+    row.principal_digest === command.job.receipt.principalDigest &&
+    row.operation === command.operation &&
+    row.key_digest === command.idempotencyKeyDigest &&
+    row.semantic_request_digest === command.semanticRequestDigest &&
+    row.work_unit_digest === command.workUnit.digest &&
+    row.command_bytes === canonicalJson(command)
+  );
 }
 
 function asSafeInteger(value: string | number | null, label: string): number | null {
@@ -2311,6 +2432,59 @@ export class PostgresComputeJobStore {
     }
   }
 
+  async readWorkUnit(teamId: string, digest: string): Promise<ComputeWorkUnitEnvelope> {
+    assertText(teamId, 'teamId');
+    assertDigest(digest, 'digest');
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query<JobCommandPreparationRow>(
+        `/* compute:work-unit-read */
+         SELECT team_id, principal_digest, operation, key_digest,
+                semantic_request_digest, work_unit_digest, command_bytes
+         FROM holomesh_compute_job_command_preparations
+         WHERE team_id = $1 AND work_unit_digest = $2
+         ORDER BY principal_digest, operation, key_digest`,
+        [teamId, digest]
+      );
+      if (result.rows.length === 0) throw new ComputeJobStoreNotFoundError('work_unit');
+
+      let first: ComputeWorkUnitEnvelope | undefined;
+      for (const row of result.rows) {
+        let command: CreateComputeJobCommand;
+        try {
+          command = parsePreparedCreateJobCommandBytes(row.command_bytes);
+        } catch {
+          throw new ComputeJobStoreReadbackError(
+            'durable WorkUnit preparation bytes are corrupt or non-canonical'
+          );
+        }
+        if (
+          !preparationRowMatchesCommand(row, command) ||
+          command.job.teamId !== teamId ||
+          command.workUnit.digest !== digest
+        ) {
+          throw new ComputeJobStoreReadbackError(
+            'durable WorkUnit preparation columns do not match exact command bytes'
+          );
+        }
+        if (
+          first &&
+          (first.digest !== command.workUnit.digest ||
+            first.bytes !== command.workUnit.bytes ||
+            canonicalJson(first.contract) !== canonicalJson(command.workUnit.contract))
+        ) {
+          throw new ComputeJobStoreReadbackError(
+            'durable WorkUnit digest resolves to conflicting exact bytes'
+          );
+        }
+        first = command.workUnit;
+      }
+      return first as ComputeWorkUnitEnvelope;
+    } finally {
+      client.release();
+    }
+  }
+
   async readRegisteredCapacity(
     input: ReadRegisteredComputeCapacityInput
   ): Promise<RegisteredComputeCapacity> {
@@ -2666,9 +2840,101 @@ export class PostgresComputeJobStore {
     );
   }
 
-  async createJob(input: CreateComputeJobCommand): Promise<CreateComputeJobResult> {
-    const prepared = prepareCreateJobCommand(input);
-    const command: CreateComputeJobCommand = {
+  private async persistCreateJobPreparation(
+    candidate: CreateComputeJobCommand
+  ): Promise<CreateComputeJobCommand> {
+    let retry = 0;
+    while (true) {
+      try {
+        return await this.persistCreateJobPreparationOnce(candidate);
+      } catch (error) {
+        if (RETRYABLE_SQL_STATES.has(sqlState(error) ?? '') && retry < this.maxTransactionRetries) {
+          retry += 1;
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  private async persistCreateJobPreparationOnce(
+    candidate: CreateComputeJobCommand
+  ): Promise<CreateComputeJobCommand> {
+    const client = await this.pool.connect();
+    const receipt = candidate.job.receipt;
+    const commandBytes = canonicalJson(candidate);
+    const key = [
+      candidate.job.teamId,
+      receipt.principalDigest,
+      candidate.operation,
+      candidate.idempotencyKeyDigest,
+    ];
+    let committed = false;
+    try {
+      await client.query('/* compute:begin */ BEGIN ISOLATION LEVEL SERIALIZABLE');
+      await client.query(
+        `/* compute:job-command-preparation-insert */
+         INSERT INTO holomesh_compute_job_command_preparations
+           (team_id, principal_digest, operation, key_digest,
+            semantic_request_digest, work_unit_digest, command_bytes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (team_id, principal_digest, operation, key_digest) DO NOTHING
+         RETURNING key_digest`,
+        [...key, candidate.semanticRequestDigest, candidate.workUnit.digest, commandBytes]
+      );
+      const locked = await client.query<JobCommandPreparationRow>(
+        `/* compute:job-command-preparation-lock */
+         SELECT team_id, principal_digest, operation, key_digest,
+                semantic_request_digest, work_unit_digest, command_bytes
+         FROM holomesh_compute_job_command_preparations
+         WHERE team_id = $1 AND principal_digest = $2
+           AND operation = $3 AND key_digest = $4
+         FOR UPDATE`,
+        key
+      );
+      if (locked.rows.length !== 1) {
+        throw new ComputeJobStoreConflictError(
+          'idempotency_incomplete',
+          'job command preparation could not be locked exactly once'
+        );
+      }
+      const row = locked.rows[0];
+      if (row.semantic_request_digest !== candidate.semanticRequestDigest) {
+        throw new ComputeJobStoreConflictError(
+          'idempotency_key_reused',
+          'job command preparation key is bound to different request semantics'
+        );
+      }
+
+      let stored: CreateComputeJobCommand;
+      try {
+        stored = parsePreparedCreateJobCommandBytes(row.command_bytes);
+      } catch {
+        throw new ComputeJobStoreConflictError(
+          'immutable_receipt_conflict',
+          'stored job command preparation is corrupt or non-canonical'
+        );
+      }
+      if (!preparationRowMatchesCommand(row, stored)) {
+        throw new ComputeJobStoreConflictError(
+          'immutable_receipt_conflict',
+          'stored job command preparation columns bind different exact bytes'
+        );
+      }
+
+      await client.query('/* compute:commit */ COMMIT');
+      committed = true;
+      return stored;
+    } catch (error) {
+      if (!committed) await rollbackQuietly(client);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  private authenticateCreateJobCommand(prepared: CreateComputeJobCommand): CreateComputeJobCommand {
+    return {
       ...prepared,
       admission: this.authenticateAdmission({
         admission: prepared.admission,
@@ -2686,6 +2952,13 @@ export class PostgresComputeJobStore {
         },
       }),
     };
+  }
+
+  async createJob(input: CreateComputeJobCommand): Promise<CreateComputeJobResult> {
+    const candidate = prepareCreateJobCommand(input);
+    const authenticatedCandidate = this.authenticateCreateJobCommand(candidate);
+    const prepared = await this.persistCreateJobPreparation(authenticatedCandidate);
+    const command = this.authenticateCreateJobCommand(prepared);
     let retry = 0;
     while (true) {
       try {

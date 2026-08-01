@@ -27,6 +27,7 @@ import {
 import {
   buildComputeJobOutboxEnvelope,
   buildComputeJobPublicResponseBytes,
+  COMPUTE_JOB_STORE_SCHEMA_SQL,
   ComputeJobStoreConflictError,
   PostgresComputeJobStore,
   type CommitComputeJobTransitionCommand,
@@ -326,6 +327,7 @@ function admissionEnvelope(input: {
   readonly unit: ComputeWorkUnitContract;
   readonly evidence: readonly ReturnType<typeof evidenceEnvelope>[];
   readonly lifecycle: ComputeJobAdmissionLifecycleBinding;
+  readonly verifiedAt?: string;
 }): ComputeJobAdmissionEnvelope {
   return createComputeJobAdmissionEnvelope(
     prepareAndSignComputeJobAdmission(
@@ -340,7 +342,7 @@ function admissionEnvelope(input: {
         evidence: input.evidence,
         trustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
         lifecycle: input.lifecycle,
-        verifiedAt: ADMISSION_VERIFIED_AT,
+        verifiedAt: input.verifiedAt ?? ADMISSION_VERIFIED_AT,
         validUntil: ADMISSION_VALID_UNTIL,
         issuer: ADMISSION_SIGNER.issuer,
         keyId: ADMISSION_SIGNER.keyId,
@@ -398,12 +400,24 @@ function transitionCommand(
   };
 }
 
-function makeCreateCommand(fixture: LifecycleFixture): CreateComputeJobCommand {
+function makeCreateCommand(
+  fixture: LifecycleFixture,
+  admissionVerifiedAt = ADMISSION_VERIFIED_AT
+): CreateComputeJobCommand {
   const job = fixture.preflighted;
   const evidence = [fixture.snapshot, fixture.plan].map(evidenceEnvelope);
   return {
     operation: 'compute_job.create',
     idempotencyKeyDigest: job.request.idempotencyKeyHash,
+    semanticRequestDigest: digest(
+      canonicalJson({
+        teamId: TEAM_ID,
+        principalDigest: job.principalDigest,
+        jobId: job.jobId,
+        attempt: job.attempt,
+        workUnitDigest: job.workUnit.digest,
+      })
+    ),
     requestDigest: job.request.requestHash,
     job: projection(job),
     workUnit: workUnitEnvelope(fixture.unit),
@@ -415,6 +429,7 @@ function makeCreateCommand(fixture: LifecycleFixture): CreateComputeJobCommand {
       unit: fixture.unit,
       evidence,
       lifecycle: { kind: 'create', createdJobReceiptId: job.receiptId },
+      verifiedAt: admissionVerifiedAt,
     }),
     outbox: [buildComputeJobOutboxEnvelope({ job })],
     publicResponseBytes: buildComputeJobPublicResponseBytes({ job }),
@@ -517,6 +532,7 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
       TRUNCATE TABLE
         holomesh_compute_admission_refs,
         holomesh_compute_admissions,
+        holomesh_compute_job_command_preparations,
         holomesh_compute_job_creation_idempotency,
         holomesh_compute_idempotency,
         holomesh_compute_allocation_commits,
@@ -542,6 +558,7 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
       DROP TABLE IF EXISTS
         holomesh_compute_admission_refs,
         holomesh_compute_admissions,
+        holomesh_compute_job_command_preparations,
         holomesh_compute_job_creation_idempotency,
         holomesh_compute_idempotency,
         holomesh_compute_allocation_commits,
@@ -567,6 +584,55 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
       'SELECT COUNT(*)::text AS count FROM holomesh_compute_store_meta WHERE singleton = TRUE'
     );
     expect(metadata.rows[0]?.count).toBe('1');
+  });
+
+  it('persists first-prepared create bytes, rejects semantic reuse, and reads exact WorkUnit bytes', async () => {
+    const fixture = lifecycleFixture('alpha');
+    const first = makeCreateCommand(fixture);
+    const regenerated = makeCreateCommand(fixture, at(6_000));
+    expect(regenerated.semanticRequestDigest).toBe(first.semanticRequestDigest);
+    expect(regenerated.admission.bytes).not.toBe(first.admission.bytes);
+
+    await expect(store.createJob(first)).resolves.toMatchObject({ disposition: 'committed' });
+    const prepared = await pool.query<{ command_bytes: string }>(
+      `SELECT command_bytes
+       FROM holomesh_compute_job_command_preparations
+       WHERE team_id = $1 AND principal_digest = $2
+         AND operation = $3 AND key_digest = $4`,
+      [TEAM_ID, PRINCIPAL, first.operation, first.idempotencyKeyDigest]
+    );
+    expect(prepared.rows).toHaveLength(1);
+    const firstCommandBytes = prepared.rows[0]?.command_bytes;
+    expect(firstCommandBytes).not.toContain('postgres-create-job-alpha');
+
+    await expect(store.createJob(regenerated)).resolves.toMatchObject({
+      disposition: 'replayed',
+      readBack: { admissionReceiptId: first.admission.receipt.receiptId },
+    });
+    const replayed = await pool.query<{ command_bytes: string }>(
+      `SELECT command_bytes
+       FROM holomesh_compute_job_command_preparations
+       WHERE team_id = $1 AND principal_digest = $2
+         AND operation = $3 AND key_digest = $4`,
+      [TEAM_ID, PRINCIPAL, first.operation, first.idempotencyKeyDigest]
+    );
+    expect(replayed.rows[0]?.command_bytes).toBe(firstCommandBytes);
+    await expect(store.readWorkUnit(TEAM_ID, first.workUnit.digest)).resolves.toEqual(
+      first.workUnit
+    );
+
+    await expect(
+      store.createJob({ ...regenerated, semanticRequestDigest: digest('other semantics') })
+    ).rejects.toMatchObject({ code: 'idempotency_key_reused' });
+    await expect(
+      pool.query(
+        `UPDATE holomesh_compute_job_command_preparations
+         SET command_bytes = command_bytes
+         WHERE team_id = $1 AND principal_digest = $2
+           AND operation = $3 AND key_digest = $4`,
+        [TEAM_ID, PRINCIPAL, first.operation, first.idempotencyKeyDigest]
+      )
+    ).rejects.toMatchObject({ code: '55000' });
   });
 
   it('atomically admits exactly one of two distinct jobs competing for one capacity', async () => {
@@ -813,5 +879,32 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
 
     const verified = await PostgresComputeJobStore.create(storeOptions(DATABASE_URL as string));
     await verified.close();
+  });
+
+  it('fails closed when the immutable preparation trigger function body drifts', async () => {
+    try {
+      await pool.query(`
+        CREATE OR REPLACE FUNCTION holomesh_compute_reject_job_command_preparation_mutation()
+        RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          RETURN OLD;
+        END
+        $$
+      `);
+
+      await expect(
+        PostgresComputeJobStore.create(storeOptions(DATABASE_URL as string))
+      ).rejects.toMatchObject({
+        name: 'ComputeJobStoreUnavailableError',
+        message: 'PostgreSQL compute schema initialization failed',
+      });
+    } finally {
+      await pool.query(`
+        DROP TRIGGER IF EXISTS holomesh_compute_job_command_preparations_immutable
+          ON holomesh_compute_job_command_preparations;
+        DROP FUNCTION IF EXISTS holomesh_compute_reject_job_command_preparation_mutation()
+      `);
+      await pool.query(COMPUTE_JOB_STORE_SCHEMA_SQL);
+    }
   });
 });
