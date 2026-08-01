@@ -27,6 +27,16 @@ export {
 } from './ComputeExecutionReceipt';
 
 export {
+  COMPUTE_UTILITY_OBSERVATION_SCHEMA_VERSION,
+  COMPUTE_UTILITY_AGGREGATE_SCHEMA_VERSION,
+  COMPUTE_UTILITY_MINIMUM_AGGREGATE,
+  buildComputeUtilityObservation,
+  validateComputeUtilityObservation,
+  aggregateComputeUtilityObservations,
+  validateComputeUtilityAggregate,
+} from './ComputeUtilityDiscovery';
+
+export {
   buildAdversarialTrajectoryReport,
   serializeReport,
   isReportCountsConsistent,
@@ -207,3 +217,19 @@ export type {
   BuildComputeExecutionReceiptInput,
   ComputeExecutionReceiptValidation,
 } from './ComputeExecutionReceipt';
+
+export type {
+  ComputeUtilityNotMeasuredReason,
+  ComputeUtilityFallbackBucket,
+  ComputeUtilityQualityBucket,
+  ComputeUtilityLatencyBucket,
+  ComputeUtilityCostBucket,
+  ComputeUtilityBuckets,
+  ComputeUtilityObservation,
+  BuildComputeUtilityObservationInput,
+  ComputeUtilityMeasurementResult,
+  ComputeUtilityAggregateBucket,
+  ComputeUtilityAggregate,
+  ComputeUtilityAggregateResult,
+  ComputeUtilityValidation,
+} from './ComputeUtilityDiscovery';

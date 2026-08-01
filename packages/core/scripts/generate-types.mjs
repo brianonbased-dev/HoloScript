@@ -8646,6 +8646,86 @@ export declare function buildComputeExecutionReceipt(input: BuildComputeExecutio
 /** Validate structure and canonical receipt ID only. This does not verify WorkUnit, plan, lease, or trust evidence. */
 export declare function validateComputeExecutionReceipt(value: unknown): ComputeExecutionReceiptValidation;
 
+export declare const COMPUTE_UTILITY_OBSERVATION_SCHEMA_VERSION: 'holoscript.compute-utility-observation.v1';
+export declare const COMPUTE_UTILITY_AGGREGATE_SCHEMA_VERSION: 'holoscript.compute-utility-aggregate.v1';
+export declare const COMPUTE_UTILITY_MINIMUM_AGGREGATE: 10;
+export type ComputeUtilityNotMeasuredReason =
+  | 'analytics_unset'
+  | 'analytics_disabled'
+  | 'consent_unset'
+  | 'consent_denied';
+export type ComputeUtilityFallbackBucket =
+  | 'not_allowed'
+  | 'allowed_not_used'
+  | 'used_cpu'
+  | 'used_gpu'
+  | 'used_npu'
+  | 'used_other';
+export type ComputeUtilityQualityBucket = 'passed' | 'failed';
+export type ComputeUtilityLatencyBucket =
+  | 'lt_100ms'
+  | '100ms_to_lt_1s'
+  | '1s_to_lt_10s'
+  | '10s_to_lt_60s'
+  | '60s_plus';
+export type ComputeUtilityCostBucket =
+  | 'not_measured'
+  | 'zero'
+  | 'minor_1_10'
+  | 'minor_11_100'
+  | 'minor_101_1000'
+  | 'minor_1001_plus';
+export interface ComputeUtilityBuckets {
+  readonly requestedAccelerator: import('../compiler/index.js').ComputeAccelerator;
+  readonly placementOutcome: ComputeExecutionPlacementOutcome;
+  readonly fallback: ComputeUtilityFallbackBucket;
+  readonly terminalStatus: ComputeExecutionTerminalStatus;
+  readonly quality: ComputeUtilityQualityBucket;
+  readonly latency: ComputeUtilityLatencyBucket;
+  readonly cost: ComputeUtilityCostBucket;
+}
+export interface ComputeUtilityObservation {
+  readonly schemaVersion: typeof COMPUTE_UTILITY_OBSERVATION_SCHEMA_VERSION;
+  readonly privacyClass: 'local_private';
+  readonly evidenceScope: 'structural_only';
+  readonly observationId: string;
+  readonly workUnitDigest: string;
+  readonly executionReceiptId: string;
+  readonly buckets: ComputeUtilityBuckets;
+}
+export interface BuildComputeUtilityObservationInput {
+  readonly analyticsEnabled?: boolean;
+  readonly consentGranted?: boolean;
+  readonly workUnit: import('../compiler/index.js').ComputeWorkUnitContract;
+  readonly executionReceipt: ComputeExecutionReceipt;
+}
+export type ComputeUtilityMeasurementResult =
+  | { readonly measurementState: 'not_measured'; readonly reason: ComputeUtilityNotMeasuredReason }
+  | { readonly measurementState: 'measured'; readonly observation: ComputeUtilityObservation };
+export interface ComputeUtilityAggregateBucket extends ComputeUtilityBuckets {
+  readonly count: number;
+}
+export interface ComputeUtilityAggregate {
+  readonly schemaVersion: typeof COMPUTE_UTILITY_AGGREGATE_SCHEMA_VERSION;
+  readonly privacyClass: 'aggregate_only';
+  readonly evidenceScope: 'structural_only';
+  readonly aggregateId: string;
+  readonly minimumBucketCount: typeof COMPUTE_UTILITY_MINIMUM_AGGREGATE;
+  readonly buckets: readonly ComputeUtilityAggregateBucket[];
+}
+export type ComputeUtilityAggregateResult =
+  | { readonly measurementState: 'not_measured'; readonly reason: 'no_observations' }
+  | { readonly measurementState: 'measured_suppressed'; readonly reason: 'minimum_aggregate_not_met' }
+  | { readonly measurementState: 'measured'; readonly aggregate: ComputeUtilityAggregate };
+export interface ComputeUtilityValidation {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+}
+export declare function buildComputeUtilityObservation(input: BuildComputeUtilityObservationInput): ComputeUtilityMeasurementResult;
+export declare function validateComputeUtilityObservation(value: unknown): ComputeUtilityValidation;
+export declare function aggregateComputeUtilityObservations(observations: readonly ComputeUtilityObservation[]): ComputeUtilityAggregateResult;
+export declare function validateComputeUtilityAggregate(value: unknown): ComputeUtilityValidation;
+
 // --- N4 exact-plus-learned residual world loop ---
 export type N4ResidualTarget = 'object.drag' | 'event.gust' | 'event.contact';
 export type N4Arm =
