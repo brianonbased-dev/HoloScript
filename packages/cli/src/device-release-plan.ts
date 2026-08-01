@@ -85,7 +85,7 @@ const DEVICE_PROFILES: Readonly<Record<DeviceProfileId, DeviceProfile>> = Object
     compilerTarget: 'node',
     packageFormats: Object.freeze(['oci', 'systemd-bundle'] as const),
     serviceManager: 'systemd',
-    privilegeModel: 'exact-sudo-allowlist',
+    privilegeModel: 'non-root',
     acceleration: Object.freeze(['cpu', 'cuda', 'tensorrt'] as const),
     certification: 'planned',
   }),

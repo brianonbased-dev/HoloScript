@@ -25,7 +25,7 @@ describe('public device release planning', () => {
       compilerTarget: 'node',
       architecture: 'arm64',
       serviceManager: 'systemd',
-      privilegeModel: 'exact-sudo-allowlist',
+      privilegeModel: 'non-root',
       packageFormats: ['oci', 'systemd-bundle'],
     });
     expect(getDeviceProfile('android-arm64')).toMatchObject({
