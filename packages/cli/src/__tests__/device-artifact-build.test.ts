@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import AdmZip from 'adm-zip';
@@ -31,6 +31,31 @@ function fakeRunner(commands: string[]): DeviceArtifactCommandRunner {
         'utf8'
       );
       return { stdout: 'locked', stderr: '' };
+    }
+    if (command.includes('gradle')) {
+      const apk = join(
+        options.cwd,
+        'app',
+        'build',
+        'outputs',
+        'apk',
+        'release',
+        'app-release-unsigned.apk'
+      );
+      const aab = join(
+        options.cwd,
+        'app',
+        'build',
+        'outputs',
+        'bundle',
+        'release',
+        'app-release.aab'
+      );
+      mkdirSync(join(apk, '..'), { recursive: true });
+      mkdirSync(join(aab, '..'), { recursive: true });
+      writeFileSync(apk, Buffer.from('deterministic-apk-fixture'));
+      writeFileSync(aab, Buffer.from('deterministic-aab-fixture'));
+      return { stdout: 'android built', stderr: '' };
     }
     if (args[1] === 'imagetools') {
       return { stdout: JSON.stringify({ digest: BASE_DIGEST }), stderr: '' };
@@ -67,6 +92,9 @@ describe('device artifact build', () => {
       baseImage: { reference: 'node:20-alpine', digest: BASE_DIGEST },
       reproducibility: { byteIdentical: true, sourceDateEpoch: '0' },
     });
+    if (result.receipt.schema !== 'holoscript-device-artifact-build/v0.1.0') {
+      throw new Error(`Unexpected receipt schema: ${result.receipt.schema}`);
+    }
     expect(result.receipt.reproducibility.ociSha256).toBe(
       result.receipt.reproducibility.repeatedOciSha256
     );
@@ -96,20 +124,38 @@ describe('device artifact build', () => {
     expect(archive.getEntry('app/package-lock.json')).not.toBeNull();
   });
 
-  it('keeps Android on its separate artifact lane', () => {
+  it('builds reproducible unsigned APK and AAB artifacts without signing custody', () => {
     const root = mkdtempSync(join(tmpdir(), 'holoscript-device-artifact-'));
     roots.push(root);
-    expect(() =>
-      buildDeviceArtifacts(
-        {
-          sourcePath: 'public-holon-node.holo',
-          source: SOURCE,
-          device: 'android-arm64',
-          compilerVersion: '8.0.15',
-        },
-        join(root, 'output'),
-        fakeRunner([])
-      )
-    ).toThrow('Android artifacts require the Android build lane');
+    const commands: string[] = [];
+    const result = buildDeviceArtifacts(
+      {
+        sourcePath: 'public-holon-node.holo',
+        source: SOURCE,
+        device: 'android-arm64',
+        compilerVersion: '8.0.17',
+      },
+      join(root, 'output'),
+      fakeRunner(commands)
+    );
+
+    expect(result.receipt).toMatchObject({
+      schema: 'holoscript-android-device-artifact-build/v0.1.0',
+      phase: 'artifact-built',
+      profileId: 'android-arm64',
+      reproducibility: { byteIdentical: true, sourceDateEpoch: '0' },
+      toolchain: { compileSdk: 36, targetSdk: 36, abi: 'arm64-v8a' },
+    });
+    expect(result.receipt.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ format: 'apk', signing: 'unsigned' }),
+        expect.objectContaining({ format: 'aab', signing: 'unsigned' }),
+      ])
+    );
+    expect(result.receipt.gates).toContainEqual({ id: 'signing-custody', status: 'required' });
+    expect(commands.filter((command) => command.includes('assembleRelease'))).toHaveLength(2);
+    expect(readFileSync(join(root, 'output', 'build.gradle.kts'), 'utf8')).toContain(
+      'com.android.application'
+    );
   });
 });

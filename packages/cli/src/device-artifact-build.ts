@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -19,6 +20,8 @@ import {
 import type { DeviceReleasePlanInput } from './device-release-plan';
 
 export const DEVICE_ARTIFACT_BUILD_SCHEMA = 'holoscript-device-artifact-build/v0.1.0';
+export const ANDROID_DEVICE_ARTIFACT_BUILD_SCHEMA =
+  'holoscript-android-device-artifact-build/v0.1.0';
 
 const NODE_BASE_IMAGE = 'node:20-alpine';
 const SOURCE_DATE_EPOCH = '0';
@@ -67,7 +70,40 @@ export interface DeviceArtifactReceipt {
 
 export interface DeviceArtifactBuildResult {
   readonly outputDirectory: string;
-  readonly receipt: DeviceArtifactReceipt;
+  readonly receipt: DeviceArtifactReceipt | AndroidDeviceArtifactReceipt;
+}
+
+export interface AndroidDeviceArtifactReceipt {
+  readonly schema: typeof ANDROID_DEVICE_ARTIFACT_BUILD_SCHEMA;
+  readonly phase: 'artifact-built';
+  readonly profileId: 'android-arm64';
+  readonly materializationSha256: string;
+  readonly inputTreeSha256: string;
+  readonly toolchain: {
+    readonly gradleCommand: string;
+    readonly compileSdk: 36;
+    readonly targetSdk: 36;
+    readonly abi: 'arm64-v8a';
+  };
+  readonly reproducibility: {
+    readonly sourceDateEpoch: typeof SOURCE_DATE_EPOCH;
+    readonly apkSha256: string;
+    readonly repeatedApkSha256: string;
+    readonly aabSha256: string;
+    readonly repeatedAabSha256: string;
+    readonly byteIdentical: true;
+  };
+  readonly artifacts: readonly {
+    readonly format: 'apk' | 'aab';
+    readonly path: string;
+    readonly bytes: number;
+    readonly sha256: string;
+    readonly signing: 'unsigned';
+  }[];
+  readonly gates: readonly {
+    readonly id: string;
+    readonly status: 'passed' | 'required';
+  }[];
 }
 
 function sha256(value: string | Buffer): string {
@@ -79,9 +115,13 @@ function defaultCommandRunner(
   args: readonly string[],
   options: { readonly cwd: string; readonly env?: Readonly<Record<string, string>> }
 ): DeviceArtifactCommandResult {
-  const useWindowsCommandShell = process.platform === 'win32' && command === 'npm';
+  const useWindowsCommandShell =
+    process.platform === 'win32' &&
+    (command === 'npm' || command === 'gradle' || /\.(?:bat|cmd)$/i.test(command));
   const executable = useWindowsCommandShell ? (process.env.ComSpec ?? 'cmd.exe') : command;
-  const commandArgs = useWindowsCommandShell ? ['/d', '/s', '/c', 'npm.cmd', ...args] : [...args];
+  const commandArgs = useWindowsCommandShell
+    ? ['/d', '/s', '/c', command === 'npm' ? 'npm.cmd' : command, ...args]
+    : [...args];
   const result = spawnSync(executable, commandArgs, {
     cwd: options.cwd,
     encoding: 'utf8',
@@ -220,19 +260,149 @@ function buildOci(
   if (!existsSync(outputPath)) throw new Error(`Docker did not write OCI artifact: ${outputPath}`);
 }
 
+function resolveGradleCommand(): string {
+  const configured = process.env.HOLOSCRIPT_GRADLE?.trim();
+  if (configured) return configured;
+  const gradleHome = process.env.GRADLE_HOME?.trim();
+  if (gradleHome) {
+    return join(gradleHome, 'bin', process.platform === 'win32' ? 'gradle.bat' : 'gradle');
+  }
+  return process.platform === 'win32' ? 'gradle.bat' : 'gradle';
+}
+
+function buildAndroidArtifacts(
+  materialization: DevicePackageMaterialization,
+  outputDirectory: string,
+  runner: DeviceArtifactCommandRunner
+): DeviceArtifactBuildResult {
+  const gradleCommand = resolveGradleCommand();
+  const inputTreeSha256 = stableTreeHash(outputDirectory);
+  const artifactsDirectory = join(outputDirectory, 'artifacts');
+  mkdirSync(artifactsDirectory, { recursive: true });
+  const buildArgs = [
+    'clean',
+    'assembleRelease',
+    'bundleRelease',
+    '--no-daemon',
+    '--console=plain',
+  ] as const;
+  const env = { SOURCE_DATE_EPOCH };
+  const emittedApkPath = join(
+    outputDirectory,
+    'app',
+    'build',
+    'outputs',
+    'apk',
+    'release',
+    'app-release-unsigned.apk'
+  );
+  const emittedAabPath = join(
+    outputDirectory,
+    'app',
+    'build',
+    'outputs',
+    'bundle',
+    'release',
+    'app-release.aab'
+  );
+  const runBuild = (): void => {
+    runner(gradleCommand, buildArgs, { cwd: outputDirectory, env });
+    if (!existsSync(emittedApkPath)) {
+      throw new Error(`Gradle did not write unsigned release APK: ${emittedApkPath}`);
+    }
+    if (!existsSync(emittedAabPath)) {
+      throw new Error(`Gradle did not write release AAB: ${emittedAabPath}`);
+    }
+  };
+
+  runBuild();
+  const apkPath = join(artifactsDirectory, 'holonode-android-arm64.unsigned.apk');
+  const aabPath = join(artifactsDirectory, 'holonode-android-arm64.unsigned.aab');
+  copyFileSync(emittedApkPath, apkPath);
+  copyFileSync(emittedAabPath, aabPath);
+  const apkSha256 = sha256(readFileSync(apkPath));
+  const aabSha256 = sha256(readFileSync(aabPath));
+
+  runBuild();
+  const repeatedApkSha256 = sha256(readFileSync(emittedApkPath));
+  const repeatedAabSha256 = sha256(readFileSync(emittedAabPath));
+  if (apkSha256 !== repeatedApkSha256) {
+    throw new Error(`APK reproducibility mismatch: ${apkSha256} != ${repeatedApkSha256}`);
+  }
+  if (aabSha256 !== repeatedAabSha256) {
+    throw new Error(`AAB reproducibility mismatch: ${aabSha256} != ${repeatedAabSha256}`);
+  }
+
+  const artifacts = [
+    {
+      format: 'apk' as const,
+      path: relative(outputDirectory, apkPath).replace(/\\/g, '/'),
+      bytes: statSync(apkPath).size,
+      sha256: apkSha256,
+      signing: 'unsigned' as const,
+    },
+    {
+      format: 'aab' as const,
+      path: relative(outputDirectory, aabPath).replace(/\\/g, '/'),
+      bytes: statSync(aabPath).size,
+      sha256: aabSha256,
+      signing: 'unsigned' as const,
+    },
+  ];
+  const receipt: AndroidDeviceArtifactReceipt = {
+    schema: ANDROID_DEVICE_ARTIFACT_BUILD_SCHEMA,
+    phase: 'artifact-built',
+    profileId: 'android-arm64',
+    materializationSha256: materialization.receipt.materializationSha256,
+    inputTreeSha256,
+    toolchain: {
+      gradleCommand: gradleCommand.replace(/\\/g, '/').split('/').pop() ?? gradleCommand,
+      compileSdk: 36,
+      targetSdk: 36,
+      abi: 'arm64-v8a',
+    },
+    reproducibility: {
+      sourceDateEpoch: SOURCE_DATE_EPOCH,
+      apkSha256,
+      repeatedApkSha256,
+      aabSha256,
+      repeatedAabSha256,
+      byteIdentical: true,
+    },
+    artifacts,
+    gates: [
+      { id: 'born-from-holoscript', status: 'passed' },
+      { id: 'device-profile', status: 'passed' },
+      { id: 'reproducible-build', status: 'passed' },
+      { id: 'platform-security', status: 'passed' },
+      { id: 'signing-custody', status: 'required' },
+      { id: 'physical-device', status: 'required' },
+      { id: 'cold-public-consumer', status: 'required' },
+      { id: 'upgrade-rollback', status: 'required' },
+    ],
+  };
+  writeFileSync(
+    join(artifactsDirectory, 'holonode-android-arm64.artifact-receipt.json'),
+    `${JSON.stringify(receipt, null, 2)}\n`,
+    'utf8'
+  );
+  return { outputDirectory, receipt };
+}
+
 export function buildDeviceArtifacts(
   input: DeviceReleasePlanInput,
   outputDirectoryInput: string,
   runner: DeviceArtifactCommandRunner = defaultCommandRunner
 ): DeviceArtifactBuildResult {
   const materialization = materializeDevicePackage(input);
-  if (materialization.receipt.profileId === 'android-arm64') {
-    throw new Error('Android artifacts require the Android build lane; use a Linux device profile');
-  }
-  const profileId = materialization.receipt.profileId;
   const outputDirectory = resolve(outputDirectoryInput);
   assertEmptyOutputDirectory(outputDirectory);
   writeMaterialization(materialization, outputDirectory);
+
+  if (materialization.receipt.profileId === 'android-arm64') {
+    return buildAndroidArtifacts(materialization, outputDirectory, runner);
+  }
+  const profileId = materialization.receipt.profileId;
 
   const appDirectory = join(outputDirectory, 'app');
   runner('npm', ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'], {

@@ -161,6 +161,28 @@ include(":app")
 `;
 }
 
+function androidRootBuild(): string {
+  return `plugins {
+  id("com.android.application") version "8.9.1" apply false
+  id("org.jetbrains.kotlin.android") version "2.3.21" apply false
+  id("org.jetbrains.kotlin.plugin.compose") version "2.3.21" apply false
+}
+`;
+}
+
+function androidGradleProperties(): string {
+  return `org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+kotlin.code.style=official
+android.nonTransitiveRClass=true
+`;
+}
+
+function androidProguardRules(): string {
+  return `# Project-specific ProGuard rules for the compiler-generated Android app.
+`;
+}
+
 function androidAdmission(): string {
   return `${JSON.stringify(
     {
@@ -221,6 +243,9 @@ export function materializeDevicePackage(
     );
     platformFiles = {
       'settings.gradle.kts': androidSettings(),
+      'build.gradle.kts': androidRootBuild(),
+      'gradle.properties': androidGradleProperties(),
+      'app/proguard-rules.pro': androidProguardRules(),
       'packaging/android-admission.json': androidAdmission(),
     };
   } else {

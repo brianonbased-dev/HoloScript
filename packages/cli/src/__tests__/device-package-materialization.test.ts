@@ -97,6 +97,10 @@ describe('compiler-born device package materialization', () => {
     );
     expect(bundle.files['app/src/main/AndroidManifest.xml']).toContain('uses-permission');
     expect(bundle.files['settings.gradle.kts']).toContain('dependencyResolutionManagement');
+    expect(bundle.files['build.gradle.kts']).toContain('com.android.application');
+    expect(bundle.files['build.gradle.kts']).toContain('org.jetbrains.kotlin.plugin.compose');
+    expect(bundle.files['gradle.properties']).toContain('android.useAndroidX=true');
+    expect(bundle.files['app/proguard-rules.pro']).toContain('compiler-generated Android app');
     expect(bundle.files['packaging/android-admission.json']).toContain('"rootRequired": false');
     expect(bundle.files['packaging/android-admission.json']).toContain(
       '"signingCredentialBundled": false'
