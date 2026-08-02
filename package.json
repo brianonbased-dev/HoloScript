@@ -13,6 +13,8 @@
   "scripts": {
     "preinstall": "node scripts/check-pnpm-package-manager.mjs",
     "build": "node scripts/check-pnpm-package-manager.mjs && node scripts/check-pnpm-install-needed.mjs && corepack pnpm --filter @holoscript/core run build && corepack pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
+    "baseline:audit": "node scripts/holo-ci/baseline-audit.mjs",
+    "baseline:audit:test": "node --test scripts/__tests__/baseline-audit.test.mjs",
     "build:parallel": "corepack pnpm -r build",
     "holoqr:generate-native": "tsx apps/quest-universal-qr-scanner/generate-native.mts",
     "check:holoqr-born-from-source": "node --test scripts/__tests__/holoqr-release-source-gate.test.mjs && node apps/quest-universal-qr-scanner/scripts/build-release.mjs --source-gate-only",
