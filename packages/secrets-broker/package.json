@@ -9,6 +9,7 @@
   "sideEffects": false,
   "files": [
     "dist",
+    "src/repository_identity.hsplus",
     "LICENSE",
     "README.md"
   ],
@@ -17,14 +18,22 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./repository-identity": {
+      "types": "./dist/repository-identity.d.ts",
+      "import": "./dist/repository-identity.js",
+      "require": "./dist/repository-identity.cjs"
+    },
+    "./repository-identity/source": "./src/repository_identity.hsplus"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "check:repository-identity-native": "pnpm run build && node ./scripts/check-repository-identity-native.mjs",
+    "prepack": "pnpm run check:repository-identity-native"
   },
   "keywords": [
     "holoscript",
@@ -54,5 +63,16 @@
   "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
   "bugs": {
     "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "holoscript": {
+    "repositoryIdentity": {
+      "authority": "HoloKey",
+      "implementationStatus": "bootstrap-contract-only",
+      "authenticatedDurableReadback": false,
+      "source": "./src/repository_identity.hsplus",
+      "publicEntry": "./repository-identity",
+      "publicationGate": "pnpm run check:repository-identity-native",
+      "legacyProjection": "holorepo.* v1 wire schemas are deprecated compatibility only"
+    }
   }
 }
