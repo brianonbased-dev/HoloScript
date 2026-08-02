@@ -17,6 +17,9 @@ const DEFAULT_MANIFEST = join(
   'systems-preview-release-manifest.json'
 );
 const USER_AGENT = 'HoloScript-systems-preview-public-canary/1';
+const DEFAULT_COLD_CONSUMER_TIMEOUT_MS = 900_000;
+const DEFAULT_COLD_INSTALL_TIMEOUT_MS = 600_000;
+const DEFAULT_COLD_PROBE_TIMEOUT_MS = 540_000;
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -168,7 +171,14 @@ async function fetchResponse(fetchImpl, url, timeoutMs, accept) {
     redirect: 'follow',
     signal: AbortSignal.timeout(timeoutMs),
   });
-  if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`);
+  if (!response.ok) {
+    const remaining = response.headers?.get?.('x-ratelimit-remaining');
+    const reset = response.headers?.get?.('x-ratelimit-reset');
+    const rateLimit = remaining !== null && remaining !== undefined
+      ? `; X-RateLimit-Remaining=${remaining}${reset ? `; X-RateLimit-Reset=${reset}` : ''}`
+      : '';
+    throw new Error(`${url} returned HTTP ${response.status}${rateLimit}`);
+  }
   return response;
 }
 
@@ -208,23 +218,48 @@ async function verifyDownloadedGitHubAssets(github, { fetchImpl, timeoutMs }) {
   return github;
 }
 
-function runColdConsumer(rootDir, manifest, timeoutMs) {
+export function runColdConsumer(
+  rootDir,
+  manifest,
+  timeoutMs,
+  {
+    scratchRoot = null,
+    minFreeBytes = 0,
+    installTimeoutMs = DEFAULT_COLD_INSTALL_TIMEOUT_MS,
+    probeTimeoutMs = DEFAULT_COLD_PROBE_TIMEOUT_MS,
+    preferOffline = true,
+  } = {},
+) {
   const packageIdentity = `${manifest.releaseIdentity.registryPackage.name}@${manifest.releaseIdentity.registryPackage.version}`;
+  const coldTimeoutMs = Math.max(timeoutMs, DEFAULT_COLD_CONSUMER_TIMEOUT_MS);
+  const coldArgs = [
+    'scripts/holo-ci/check-registry-cold-start.mjs',
+    '--package',
+    packageIdentity,
+    '--probe',
+    'systems-toolchain',
+    '--json',
+  ];
+  if (scratchRoot) coldArgs.push('--scratch-root', resolve(scratchRoot));
+  if (scratchRoot) coldArgs.push('--npm-cache-root', resolve(scratchRoot, 'npm-cache'));
+  if (preferOffline) coldArgs.push('--prefer-offline');
+  if (minFreeBytes !== undefined && minFreeBytes !== null) {
+    coldArgs.push('--min-free-bytes', String(minFreeBytes));
+  }
+  coldArgs.push(
+    '--install-timeout-ms',
+    String(installTimeoutMs),
+    '--probe-timeout-ms',
+    String(probeTimeoutMs),
+  );
   const result = spawnSync(
     process.execPath,
-    [
-      'scripts/holo-ci/check-registry-cold-start.mjs',
-      '--package',
-      packageIdentity,
-      '--probe',
-      'systems-toolchain',
-      '--json',
-    ],
+    coldArgs,
     {
       cwd: rootDir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: Math.max(timeoutMs, 300_000),
+      timeout: coldTimeoutMs,
       windowsHide: true,
     }
   );
@@ -245,12 +280,26 @@ function runColdConsumer(rootDir, manifest, timeoutMs) {
     wasmPrograms: receipt?.probe?.wasm?.programCount || null,
     nativePrograms: receipt?.probe?.native?.programCount || null,
     finalDisposition: receipt?.finalDisposition || null,
+    timeoutMs: coldTimeoutMs,
+    scratchRoot: receipt?.isolation?.scratchRoot || scratchRoot || null,
+    capacity: receipt?.isolation?.capacity || null,
+    timeouts: receipt?.isolation?.timeouts || {
+      installMs: installTimeoutMs,
+      probeMs: probeTimeoutMs,
+    },
+    npmCachePreference: receipt?.isolation?.npmCachePreference || (preferOffline ? '--prefer-offline' : '--prefer-online'),
+    cleanup: receipt?.isolation?.cleanup || null,
+    failureReason: receipt?.failure?.reason || null,
+    failureDetail: receipt?.failure?.detail || null,
     error: ok
       ? null
-      : errorMessage(
-          result.error ||
-            String(result.stderr || result.stdout || `cold consumer exited ${result.status}`)
-        ).slice(0, 2000),
+      : result.error?.code === 'ETIMEDOUT'
+        ? `cold consumer timed out after ${coldTimeoutMs}ms; scratch=${scratchRoot || '<default>'}`
+        : errorMessage(
+            result.error ||
+              receipt?.failure?.detail ||
+              String(result.stderr || result.stdout || `cold consumer exited ${result.status}`)
+          ).slice(0, 2000),
   };
 }
 
@@ -261,6 +310,8 @@ export async function runSystemsPreviewPublicCanary({
   timeoutMs = 60_000,
   downloadGitHubAssets = true,
   coldConsume = true,
+  coldScratchRoot = null,
+  coldMinFreeBytes = 0,
 } = {}) {
   const errors = [];
   const warnings = [];
@@ -318,7 +369,12 @@ export async function runSystemsPreviewPublicCanary({
     };
   }
 
-  if (coldConsume) coldConsumer = runColdConsumer(rootDir, manifest, timeoutMs);
+  if (coldConsume) {
+    coldConsumer = runColdConsumer(rootDir, manifest, timeoutMs, {
+      scratchRoot: coldScratchRoot,
+      minFreeBytes: coldMinFreeBytes,
+    });
+  }
 
   errors.push(...(registry.errors || []), ...(github.errors || []), ...(services.errors || []));
   warnings.push(...(services.warnings || []));
@@ -343,7 +399,7 @@ export async function runSystemsPreviewPublicCanary({
   };
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = [...argv];
   const valueAfter = (flag) => {
     const index = args.indexOf(flag);
@@ -358,6 +414,8 @@ function parseArgs(argv) {
     coldConsume: !args.includes('--no-cold-consume'),
     downloadGitHubAssets: !args.includes('--no-asset-downloads'),
     timeoutMs: Number(valueAfter('--timeout-ms') || 60_000),
+    coldScratchRoot: valueAfter('--scratch-root') ? resolve(valueAfter('--scratch-root')) : null,
+    coldMinFreeBytes: Number(valueAfter('--min-free-bytes') || 0),
   };
 }
 
@@ -374,6 +432,8 @@ async function main() {
     timeoutMs: options.timeoutMs,
     downloadGitHubAssets: options.downloadGitHubAssets,
     coldConsume: options.coldConsume,
+    coldScratchRoot: options.coldScratchRoot,
+    coldMinFreeBytes: options.coldMinFreeBytes,
   });
   if (options.outPath) {
     mkdirSync(dirname(options.outPath), { recursive: true });
