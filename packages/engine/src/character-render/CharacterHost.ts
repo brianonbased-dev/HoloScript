@@ -41,6 +41,7 @@ import {
   type AgentAvatarFaceTopology,
   type AgentAvatarHandSurfaceReceipt,
   type AgentAvatarJointDeformationReceipt,
+  type AgentAvatarOrbitalGeometryReceipt,
   type AgentAvatarOrbitalProfile,
   type AgentAvatarUpperBodyProfile,
   type AvatarPose,
@@ -913,6 +914,20 @@ export class CharacterHost {
           ...this.built.facialLandmarks,
           vertexRange: { ...this.built.facialLandmarks.vertexRange },
           indexRange: { ...this.built.facialLandmarks.indexRange },
+        }
+      : null;
+  }
+
+  /** Exact native orbital construction receipt, including H4K head-shell stitching. */
+  getOrbitalGeometryReceipt(): AgentAvatarOrbitalGeometryReceipt | null {
+    return this.built.orbital
+      ? {
+          ...this.built.orbital,
+          ...(this.built.orbital.headSurfaceVertexRange
+            ? { headSurfaceVertexRange: { ...this.built.orbital.headSurfaceVertexRange } }
+            : {}),
+          vertexRange: { ...this.built.orbital.vertexRange },
+          indexRange: { ...this.built.orbital.indexRange },
         }
       : null;
   }

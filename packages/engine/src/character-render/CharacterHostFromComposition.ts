@@ -32,6 +32,7 @@ import type {
   AgentAvatarFaceTopology,
   AgentAvatarHandSurfaceReceipt,
   AgentAvatarJointDeformationReceipt,
+  AgentAvatarOrbitalGeometryReceipt,
   AgentAvatarOrbitalProfile,
   AgentAvatarUpperBodyProfile,
 } from './AgentAvatarMesh';
@@ -209,6 +210,8 @@ export interface CharacterHostFromCompositionResult {
   skin?: AgentAvatarSkinMaterialReceipt;
   /** Exact native civic facial landmark topology when source-authored. */
   facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
+  /** Exact native orbital topology when a tearline/lid profile is source-authored. */
+  orbital?: AgentAvatarOrbitalGeometryReceipt;
   /** Exact native garment preset and topology when source-authored. */
   garment?: AgentAvatarGarmentGeometryReceipt;
   /** Exact native ocular topology when a layered eye profile is source-authored. */
@@ -2003,6 +2006,7 @@ export function buildCharacterHostFromComposition(
   const facialLandmarks = facialDetailProfile
     ? (host.getFacialLandmarkReceipt() ?? undefined)
     : undefined;
+  const orbital = orbitalProfile ? (host.getOrbitalGeometryReceipt() ?? undefined) : undefined;
   const garment = garmentStyle ? (host.getGarmentGeometryReceipt() ?? undefined) : undefined;
   const ocular = ocularProfile ? (host.getOcularGeometryReceipt() ?? undefined) : undefined;
   return {
@@ -2017,6 +2021,7 @@ export function buildCharacterHostFromComposition(
     anatomy,
     skin,
     facialLandmarks,
+    orbital,
     garment,
     ocular,
     groom,

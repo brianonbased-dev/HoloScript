@@ -1274,6 +1274,17 @@ describe('buildCharacterHostFromComposition', () => {
       canthalTilt: 0.08,
       ocularProfile: 'layered-ocular-calibrated-v3',
     });
+    expect(result.orbital).toMatchObject({
+      profile: 'integrated-lid-rim-v4',
+      lidFoldProfile: 'upper-crease-continuity-v1',
+      lidTransitionProfile: 'cubic-lid-blend-v1',
+      lidTransitionRows: 5,
+      integratedLidProfile: 'indexed-occluding-lid-rim-v1',
+      integratedLidVertexCount: 380,
+    });
+    expect(result.orbital!.headStitchTriangleCount).toBeGreaterThan(72);
+    expect(result.orbital!.globeOcclusionMargin).toBeCloseTo(0.012, 6);
+    expect(result.orbital!.headSurfaceVertexRange!.vertexCount).toBeGreaterThan(300);
   });
 
   it('@face rejects unimplemented topology names instead of relabeling the legacy cap', () => {
