@@ -57,6 +57,7 @@ import {
   type CommitComputeExecutionHeartbeatResult,
   type ComputeBudgetEvidenceEnvelope,
   type ComputeDurableEnvelope,
+  type ComputeExecutionRecoveryGuard,
   type ComputeJobProjection,
   type ComputeLeaseUseGuard,
   type ComputeWorkUnitEnvelope,
@@ -140,6 +141,9 @@ export interface ComputeDispatchStore {
   readJob(input: ReadComputeJobInput): Promise<ComputeJobProjection>;
   readWorkUnit(teamId: string, digest: string): Promise<ComputeWorkUnitEnvelope>;
   readEvidence(input: ReadComputeEvidenceInput): Promise<readonly ComputeDurableEnvelope[]>;
+  readCurrentExecutionOwnership(
+    input: ReadComputeJobInput
+  ): Promise<ComputeExecutionOwnershipEnvelope>;
   readRegisteredCapacity(
     input: ReadRegisteredComputeCapacityInput
   ): Promise<RegisteredComputeCapacity>;
@@ -688,11 +692,15 @@ export function buildComputeTransitionCommand(input: {
   readonly admissionValidUntil: string;
   readonly allocation?: {
     readonly capacity: RegisteredComputeCapacity;
-    readonly preparedLease: ReturnType<typeof prepareComputeCapacityLease>;
+    readonly expectedAllocation: ReturnType<
+      typeof prepareComputeCapacityLease
+    >['expectedAllocation'];
+    readonly nextAllocation: ReturnType<typeof prepareComputeCapacityLease>['nextAllocation'];
   };
   readonly budgetEvidence?: ComputeBudgetEvidence;
   readonly leaseUseGuard?: ComputeLeaseUseGuard;
   readonly executionOwnership?: ComputeExecutionOwnershipEnvelope;
+  readonly executionRecoveryGuard?: ComputeExecutionRecoveryGuard;
 }): CommitComputeJobTransitionCommand {
   const requestDigest = input.prepared.transition.request.requestHash;
   const evidence: readonly ComputeDurableEnvelope[] = input.executionOwnership
@@ -758,14 +766,14 @@ export function buildComputeTransitionCommand(input: {
           expectedAllocation: {
             teamId: input.teamId,
             lane: input.allocation.capacity.projection.lane,
-            cursor: input.allocation.preparedLease.expectedAllocation,
-            bytes: canonicalJson(input.allocation.preparedLease.expectedAllocation),
+            cursor: input.allocation.expectedAllocation,
+            bytes: canonicalJson(input.allocation.expectedAllocation),
           },
           nextAllocation: {
             teamId: input.teamId,
             lane: input.allocation.capacity.projection.lane,
-            cursor: input.allocation.preparedLease.nextAllocation,
-            bytes: canonicalJson(input.allocation.preparedLease.nextAllocation),
+            cursor: input.allocation.nextAllocation,
+            bytes: canonicalJson(input.allocation.nextAllocation),
           },
           expectedCapacityEligibilityBytes: input.allocation.capacity.eligibilityBytes,
           expectedCapacityDataPolicyBytes: input.allocation.capacity.dataPolicyBytes,
@@ -784,6 +792,9 @@ export function buildComputeTransitionCommand(input: {
         }
       : {}),
     ...(input.leaseUseGuard ? { leaseUseGuard: input.leaseUseGuard } : {}),
+    ...(input.executionRecoveryGuard
+      ? { executionRecoveryGuard: input.executionRecoveryGuard }
+      : {}),
     outbox: [
       buildComputeJobOutboxEnvelope(artifacts),
       ...(input.executionOwnership
@@ -1301,7 +1312,11 @@ export function createComputeJobDispatchService(
           admissionSigner: options.admissionSigner,
           admissionTrustPolicyDigest: options.admissionTrustPolicyDigest,
           admissionValidUntil,
-          allocation: { capacity: context.capacity, preparedLease },
+          allocation: {
+            capacity: context.capacity,
+            expectedAllocation: preparedLease.expectedAllocation,
+            nextAllocation: preparedLease.nextAllocation,
+          },
           budgetEvidence,
         });
         const committed = await options.store.commitTransition(command);

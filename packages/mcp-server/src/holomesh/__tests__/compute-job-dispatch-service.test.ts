@@ -35,6 +35,11 @@ import {
   createComputeJobRunningService,
 } from '../compute-job-running-service';
 import {
+  ComputeJobReapingError,
+  createComputeJobReapingService,
+  type ComputeExecutionReaperIdentity,
+} from '../compute-job-reaping-service';
+import {
   ComputeJobStoreConflictError,
   ComputeJobStoreNotFoundError,
   type CommitComputeJobTransitionCommand,
@@ -246,6 +251,26 @@ class FakeDispatchStore implements ComputeDispatchStore {
       if (!item) throw new ComputeJobStoreNotFoundError('evidence');
       return item;
     });
+  }
+
+  async readCurrentExecutionOwnership(input: ReadComputeJobInput) {
+    if (
+      input.teamId !== this.job.teamId ||
+      input.jobId !== this.job.receipt.jobId ||
+      input.attempt !== this.job.receipt.attempt
+    ) {
+      throw new ComputeJobStoreNotFoundError('execution_ownership');
+    }
+    const ownership = [...this.evidence.values()]
+      .filter((item) => item.schemaVersion === COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION)
+      .map((item) => ({ item, receipt: JSON.parse(item.bytes) as { sequence?: number } }))
+      .sort((left, right) => (right.receipt.sequence ?? -1) - (left.receipt.sequence ?? -1))[0];
+    if (!ownership) throw new ComputeJobStoreNotFoundError('execution_ownership');
+    return {
+      ...ownership.item,
+      schemaVersion: COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION,
+      receipt: JSON.parse(ownership.item.bytes),
+    };
   }
 
   async readRegisteredCapacity(
@@ -517,6 +542,12 @@ function expectRunningError(error: unknown, code: string): boolean {
   return true;
 }
 
+function expectReapingError(error: unknown, code: string): boolean {
+  expect(error).toBeInstanceOf(ComputeJobReapingError);
+  expect(error).toMatchObject({ code });
+  return true;
+}
+
 function createStartService(harness: ReturnType<typeof createHarness>) {
   return createComputeJobStartService({
     store: harness.store,
@@ -529,7 +560,11 @@ function createStartService(harness: ReturnType<typeof createHarness>) {
   });
 }
 
-function createRunningService(harness: ReturnType<typeof createHarness>, at: string) {
+function createRunningService(
+  harness: ReturnType<typeof createHarness>,
+  at: string,
+  heartbeatTtlMs = 30_000
+) {
   return createComputeJobRunningService({
     store: harness.store,
     executorIdentity: harness.identity,
@@ -538,7 +573,28 @@ function createRunningService(harness: ReturnType<typeof createHarness>, at: str
     admissionTrustPolicyDigest: ADMISSION_POLICY_DIGEST,
     admissionKeyValidUntil: VALID_UNTIL,
     now: () => at,
-    heartbeatTtlMs: 30_000,
+    heartbeatTtlMs,
+  });
+}
+
+function createReapingService(harness: ReturnType<typeof createHarness>, at: string) {
+  const identity: ComputeExecutionReaperIdentity = {
+    kind: 'execution_reaper',
+    surface: 'headless',
+    source: 'registered_service_key',
+    teamId: TEAM_ID,
+    reaperId: 'fleet-heartbeat-reaper-1',
+    capabilities: ['compute:reap'],
+    validFrom: VALID_FROM,
+    validUntil: VALID_UNTIL,
+  };
+  return createComputeJobReapingService({
+    store: harness.store,
+    reaperIdentity: identity,
+    admissionSigner: harness.admissionSigner,
+    admissionTrustPolicyDigest: ADMISSION_POLICY_DIGEST,
+    admissionKeyValidUntil: VALID_UNTIL,
+    now: () => at,
   });
 }
 
@@ -1028,6 +1084,126 @@ describe('compute-job-dispatch-service', () => {
         } as unknown as Parameters<typeof service.heartbeat>[0])
       ).rejects.toSatisfy((error: unknown) => expectRunningError(error, 'invalid_request'));
       expect(harness.store.heartbeatCommands).toHaveLength(0);
+    } finally {
+      token.fill(0);
+    }
+  });
+
+  it('reaps an expired current heartbeat, releases only the logical slot, and retains the paid hold', async () => {
+    const harness = createHarness();
+    const dispatched = await harness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const token = grantFencingToken(harness, dispatched.grant);
+    try {
+      await createStartService(harness).start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const running = await createRunningService(
+        harness,
+        '2026-08-01T12:00:07.000Z',
+        5_000
+      ).markRunning({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const runningJobReceiptId = harness.store.job.receipt.receiptId;
+      const held = harness.store.activeBudgetHold;
+      const result = await createReapingService(harness, running.heartbeatValidUntil).reap({
+        jobId: JOB_ID,
+        attempt: 1,
+        expectedJobReceiptId: runningJobReceiptId,
+        expectedOwnershipReceiptId: running.ownershipReceiptId,
+      });
+
+      const command = harness.store.commands.at(-1);
+      expect(command).toMatchObject({
+        operation: 'compute_job.fail',
+        expectedJob: { receipt: { state: 'running', receiptId: runningJobReceiptId } },
+        nextJob: {
+          receipt: {
+            state: 'failed',
+            terminal: {
+              reasonCode: 'executor_lost',
+              completionDisposition: 'execution_unobserved',
+              evidence: { kind: 'execution_unobserved', reasonCode: 'executor_lost' },
+            },
+          },
+        },
+        nextAllocation: { cursor: { slotState: 'available', currentEpoch: 1 } },
+        executionRecoveryGuard: {
+          expiredOwnership: { receiptId: running.ownershipReceiptId },
+          activeBudgetHold: held,
+        },
+      });
+      expect(command?.budgetEvidence).toBeUndefined();
+      expect(command?.evidence.map((item) => item.receiptId)).toEqual([running.ownershipReceiptId]);
+      expect(command?.admission.receipt.evidenceBindings.map((item) => item.receiptId)).toEqual([
+        running.ownershipReceiptId,
+      ]);
+      expect(command?.outbox.map((item) => item.eventType)).toEqual(['compute_job.failed']);
+      expect(harness.store.activeBudgetHold).toEqual(held);
+      expect(result).toMatchObject({
+        state: 'failed',
+        reasonCode: 'executor_lost',
+        completionDisposition: 'execution_unobserved',
+        ownershipReceiptId: running.ownershipReceiptId,
+        leaseDisposition: 'logical_slot_released',
+        budgetDisposition: 'retained_for_reconciliation',
+        providerReservation: 'not_asserted',
+        execution: 'not_asserted',
+      });
+    } finally {
+      token.fill(0);
+    }
+  });
+
+  it('rejects an early reap and a stale ownership selector before a terminal write', async () => {
+    const harness = createHarness();
+    const dispatched = await harness.service.dispatch({ jobId: JOB_ID, attempt: 1 });
+    const token = grantFencingToken(harness, dispatched.grant);
+    try {
+      await createStartService(harness).start({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const running = await createRunningService(
+        harness,
+        '2026-08-01T12:00:07.000Z',
+        5_000
+      ).markRunning({
+        jobId: JOB_ID,
+        attempt: 1,
+        leaseReceiptId: dispatched.grant.leaseReceiptId,
+        fencingToken: token,
+      });
+      const runningJobReceiptId = harness.store.job.receipt.receiptId;
+
+      await expect(
+        createReapingService(harness, '2026-08-01T12:00:11.999Z').reap({
+          jobId: JOB_ID,
+          attempt: 1,
+          expectedJobReceiptId: runningJobReceiptId,
+          expectedOwnershipReceiptId: running.ownershipReceiptId,
+        })
+      ).rejects.toSatisfy((error: unknown) => expectReapingError(error, 'heartbeat_current'));
+      await expect(
+        createReapingService(harness, running.heartbeatValidUntil).reap({
+          jobId: JOB_ID,
+          attempt: 1,
+          expectedJobReceiptId: runningJobReceiptId,
+          expectedOwnershipReceiptId: digest('stale-ownership-selector'),
+        })
+      ).rejects.toSatisfy((error: unknown) => expectReapingError(error, 'ownership_conflict'));
+      expect(
+        harness.store.commands.filter((command) => command.operation === 'compute_job.fail')
+      ).toHaveLength(0);
+      expect(harness.store.job.receipt.state).toBe('running');
     } finally {
       token.fill(0);
     }

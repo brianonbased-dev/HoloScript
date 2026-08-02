@@ -1268,6 +1268,8 @@ export interface CommitComputeJobTransitionCommand {
    * commit transaction. Raw fencing material is deliberately excluded.
    */
   readonly leaseUseGuard?: ComputeLeaseUseGuard;
+  /** Latest signed ownership and retained paid-hold CAS for expiry reaping. */
+  readonly executionRecoveryGuard?: ComputeExecutionRecoveryGuard;
   readonly outbox: readonly ComputeOutboxEnvelope[];
   /** Exact public response JSON. It may contain hashes, never bearer material. */
   readonly publicResponseBytes: string;
@@ -1277,6 +1279,17 @@ export interface ComputeLeaseUseGuard {
   readonly holderDigest: string;
   readonly verifiedFencingTokenHash: string;
   readonly allocation: ComputeAllocationProjection;
+  readonly activeBudgetHold?: ComputeBudgetEvidenceEnvelope;
+}
+
+/**
+ * Server-local CAS guard for heartbeat expiry recovery. The signed ownership
+ * receipt must still be the latest durable receipt when the database clock
+ * reaches its half-open expiry. A paid hold is checked and retained verbatim;
+ * it is never released or settled without execution evidence.
+ */
+export interface ComputeExecutionRecoveryGuard {
+  readonly expiredOwnership: ComputeExecutionOwnershipEnvelope;
   readonly activeBudgetHold?: ComputeBudgetEvidenceEnvelope;
 }
 
@@ -1370,7 +1383,14 @@ export class ComputeJobStoreReadbackError extends Error {
 
 export class ComputeJobStoreNotFoundError extends Error {
   constructor(
-    readonly resource: 'job' | 'capacity' | 'budget' | 'budget_hold' | 'work_unit' | 'evidence'
+    readonly resource:
+      | 'job'
+      | 'capacity'
+      | 'budget'
+      | 'budget_hold'
+      | 'work_unit'
+      | 'evidence'
+      | 'execution_ownership'
   ) {
     super(`${resource} is not registered in the durable compute store`);
     this.name = 'ComputeJobStoreNotFoundError';
@@ -1991,6 +2011,21 @@ function prepareBudgetEvidenceEnvelope(
   };
 }
 
+function prepareExecutionOwnershipEnvelope(
+  input: ComputeExecutionOwnershipEnvelope,
+  label: string
+): ComputeExecutionOwnershipEnvelope {
+  const ownership = createComputeExecutionOwnershipEnvelope(input.receipt);
+  if (
+    input.receiptId !== ownership.receiptId ||
+    input.schemaVersion !== ownership.schemaVersion ||
+    input.bytes !== ownership.bytes
+  ) {
+    throw new TypeError(`${label} must contain the exact canonical signed ownership receipt`);
+  }
+  return ownership;
+}
+
 export interface BuildComputeJobPublicArtifactsInput {
   readonly job: ComputeJobReceipt;
   readonly transition?: ComputeJobTransitionReceipt;
@@ -2146,6 +2181,22 @@ function prepareCommand(
           : {}),
       }
     : undefined;
+  const executionRecoveryGuard = input.executionRecoveryGuard
+    ? {
+        expiredOwnership: prepareExecutionOwnershipEnvelope(
+          input.executionRecoveryGuard.expiredOwnership,
+          'executionRecoveryGuard.expiredOwnership'
+        ),
+        ...(input.executionRecoveryGuard.activeBudgetHold
+          ? {
+              activeBudgetHold: prepareBudgetEvidenceEnvelope(
+                input.executionRecoveryGuard.activeBudgetHold,
+                'executionRecoveryGuard.activeBudgetHold'
+              ),
+            }
+          : {}),
+      }
+    : undefined;
   const command: CommitComputeJobTransitionCommand = {
     operation: input.operation,
     idempotencyKeyDigest: input.idempotencyKeyDigest,
@@ -2163,6 +2214,7 @@ function prepareCommand(
     ...(allocationCommit ? { allocationCommit } : {}),
     ...(budgetEvidence ? { budgetEvidence } : {}),
     ...(leaseUseGuard ? { leaseUseGuard } : {}),
+    ...(executionRecoveryGuard ? { executionRecoveryGuard } : {}),
     ...(input.expectedCapacityEligibilityBytes !== undefined
       ? { expectedCapacityEligibilityBytes: input.expectedCapacityEligibilityBytes }
       : {}),
@@ -2187,6 +2239,20 @@ function prepareCommand(
       requiresLeaseUseGuard
         ? 'start and mark_running require a transactional lease-use guard'
         : 'lease-use guard is forbidden outside start and mark_running'
+    );
+  }
+  const terminalEvidence = command.nextJob.receipt.terminal?.evidence;
+  const terminalReason = command.nextJob.receipt.terminal?.reasonCode;
+  const requiresExecutionRecoveryGuard =
+    command.transition.receipt.action === 'fail' &&
+    command.expectedJob.receipt.state === 'running' &&
+    terminalEvidence?.kind === 'execution_unobserved' &&
+    (terminalReason === 'executor_lost' || terminalReason === 'lease_expired');
+  if (requiresExecutionRecoveryGuard !== (command.executionRecoveryGuard !== undefined)) {
+    throw new TypeError(
+      requiresExecutionRecoveryGuard
+        ? 'expired running ownership requires a transactional execution-recovery guard'
+        : 'execution-recovery guard is forbidden outside expired running failure'
     );
   }
 
@@ -2224,24 +2290,37 @@ function prepareCommand(
   if (evidenceIds.size !== command.evidence.length) {
     throw new TypeError('evidence receipt ids must be unique');
   }
-  const executionOwnershipEnvelope = command.evidence.find(
+  const executionOwnershipEnvelopes = command.evidence.filter(
     (entry) => entry.schemaVersion === COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION
   );
+  if (executionOwnershipEnvelopes.length > 1) {
+    throw new TypeError('at most one execution ownership receipt may bind a transition');
+  }
+  const executionOwnershipEnvelope = executionOwnershipEnvelopes[0];
   const executionOwnership = executionOwnershipEnvelope
     ? (parseJsonObject(
         executionOwnershipEnvelope.bytes,
         'executionOwnership.bytes'
       ) as unknown as ComputeExecutionOwnershipReceipt)
     : undefined;
-  if (
-    (command.transition.receipt.action === 'mark_running') !==
-    (executionOwnership !== undefined)
-  ) {
+  const requiresExecutionOwnershipEvidence =
+    command.transition.receipt.action === 'mark_running' ||
+    command.executionRecoveryGuard !== undefined;
+  if (requiresExecutionOwnershipEvidence !== (executionOwnership !== undefined)) {
     throw new TypeError(
-      command.transition.receipt.action === 'mark_running'
-        ? 'mark_running requires one execution-ownership acknowledgement'
-        : 'execution ownership evidence is forbidden outside mark_running'
+      requiresExecutionOwnershipEvidence
+        ? 'running acknowledgement or expiry recovery requires one execution ownership receipt'
+        : 'execution ownership evidence is forbidden outside running acknowledgement or expiry recovery'
     );
+  }
+  if (
+    command.executionRecoveryGuard &&
+    (!executionOwnershipEnvelope ||
+      executionOwnershipEnvelope.receiptId !==
+        command.executionRecoveryGuard.expiredOwnership.receiptId ||
+      executionOwnershipEnvelope.bytes !== command.executionRecoveryGuard.expiredOwnership.bytes)
+  ) {
+    throw new TypeError('execution recovery must bind the exact expired ownership evidence');
   }
   const lifecycleEvidenceIds = command.evidence
     .filter((entry) => entry.schemaVersion !== COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION)
@@ -2323,7 +2402,10 @@ function prepareCommand(
 
   const maxAmountMinorUnits = expectedWorkUnit.contract.compute.budget.maxCostMinorUnits;
   const allocatorOperation = command.allocationCommit?.receipt.operation;
-  const requiresBudgetEvidence = maxAmountMinorUnits > 0 && allocatorOperation !== undefined;
+  const requiresBudgetEvidence =
+    maxAmountMinorUnits > 0 &&
+    allocatorOperation !== undefined &&
+    command.executionRecoveryGuard === undefined;
   if (requiresBudgetEvidence !== (command.budgetEvidence !== undefined)) {
     throw new TypeError(
       requiresBudgetEvidence
@@ -2445,7 +2527,78 @@ function prepareCommand(
     }
   }
 
-  if (executionOwnership) {
+  if (command.executionRecoveryGuard) {
+    const recovery = command.executionRecoveryGuard;
+    const ownership = recovery.expiredOwnership.receipt;
+    const lease = command.expectedJob.receipt.lease;
+    const allocation = command.expectedAllocation;
+    const allocator = command.allocationCommit?.receipt;
+    const terminal = command.nextJob.receipt.terminal;
+    const reapedAt = Date.parse(command.transition.receipt.transitionedAt);
+    if (
+      !lease ||
+      !allocation ||
+      !allocator ||
+      allocator.operation !== 'release' ||
+      terminal?.evidence.kind !== 'execution_unobserved' ||
+      (terminal.reasonCode !== 'executor_lost' && terminal.reasonCode !== 'lease_expired') ||
+      terminal.evidence.reasonCode !== terminal.reasonCode ||
+      ownership.teamId !== command.expectedJob.teamId ||
+      ownership.principalDigest !== command.expectedJob.receipt.principalDigest ||
+      ownership.jobId !== command.expectedJob.receipt.jobId ||
+      ownership.attempt !== command.expectedJob.receipt.attempt ||
+      ownership.workUnitDigest !== expectedWorkUnit.digest ||
+      ownership.leaseReceiptId !== lease.receiptId ||
+      ownership.holderDigest !== lease.holderDigest ||
+      ownership.fencingTokenHash !== lease.fencingTokenHash ||
+      ownership.capacityRef !== lease.capacityRef ||
+      ownership.fencingEpoch !== lease.fencingEpoch ||
+      ownership.trustPolicyDigest !== command.admission.receipt.trustPolicyDigest ||
+      allocation.teamId !== command.expectedJob.teamId ||
+      allocation.lane !== lease.lane ||
+      canonicalJson(allocation.cursor) !== canonicalJson(allocator.expectedAllocation)
+    ) {
+      throw new TypeError(
+        'execution recovery does not bind the running job, current lease, allocator release, and expired ownership'
+      );
+    }
+    if (Date.parse(ownership.heartbeatValidUntil) > reapedAt) {
+      throw new TypeError('execution recovery cannot reap a current heartbeat');
+    }
+    if (
+      (terminal.reasonCode === 'executor_lost' && reapedAt >= Date.parse(lease.expiresAt)) ||
+      (terminal.reasonCode === 'lease_expired' && reapedAt < Date.parse(lease.expiresAt))
+    ) {
+      throw new TypeError('execution recovery reason must derive from the lease boundary');
+    }
+    const requiresRetainedHold = maxAmountMinorUnits > 0;
+    if (requiresRetainedHold !== (recovery.activeBudgetHold !== undefined)) {
+      throw new TypeError(
+        requiresRetainedHold
+          ? 'paid execution recovery requires the exact retained signed budget hold'
+          : 'a retained budget hold is forbidden for zero-cost execution recovery'
+      );
+    }
+    if (recovery.activeBudgetHold) {
+      const hold = recovery.activeBudgetHold.receipt;
+      if (
+        hold.status !== 'held' ||
+        hold.teamId !== command.expectedJob.teamId ||
+        hold.principalDigest !== command.expectedJob.receipt.principalDigest ||
+        hold.jobId !== command.expectedJob.receipt.jobId ||
+        hold.attempt !== command.expectedJob.receipt.attempt ||
+        hold.workUnitDigest !== expectedWorkUnit.digest ||
+        hold.currency !== expectedWorkUnit.contract.compute.budget.currency ||
+        hold.maxAmountMinorUnits !== maxAmountMinorUnits ||
+        hold.heldAmountMinorUnits !== maxAmountMinorUnits ||
+        hold.settledAmountMinorUnits !== 0
+      ) {
+        throw new TypeError('execution recovery budget hold does not bind the unobserved job');
+      }
+    }
+  }
+
+  if (executionOwnership && command.transition.receipt.action === 'mark_running') {
     const lease = command.expectedJob.receipt.lease;
     const guard = command.leaseUseGuard;
     if (
@@ -2485,7 +2638,7 @@ function prepareCommand(
       transition: command.transition.receipt,
       ...(command.allocationCommit ? { allocationCommit: command.allocationCommit.receipt } : {}),
     },
-    executionOwnership
+    command.transition.receipt.action === 'mark_running' ? executionOwnership : undefined
   );
   return command;
 }
@@ -3020,7 +3173,8 @@ export class PostgresComputeJobStore {
   }
 
   private authenticateBudgetEvidence(
-    envelope: ComputeBudgetEvidenceEnvelope | undefined
+    envelope: ComputeBudgetEvidenceEnvelope | undefined,
+    verificationAt = this.verificationTime()
   ): ComputeBudgetEvidenceEnvelope | undefined {
     if (!envelope) return undefined;
     if (this.budgetEvidenceTrustAnchors.length === 0) {
@@ -3042,7 +3196,7 @@ export class PostgresComputeJobStore {
       periodDigest: receipt.periodDigest,
       nonceDigest: receipt.nonceDigest,
       idempotencyKeyHash: receipt.idempotencyKeyHash,
-      verifiedAt: this.verificationTime(),
+      verifiedAt: canonicalTimestamp(verificationAt, 'budgetEvidence.verificationAt'),
       trustAnchors: this.budgetEvidenceTrustAnchors,
     });
     if (!verification.valid) {
@@ -3060,6 +3214,7 @@ export class PostgresComputeJobStore {
     readonly kind: 'running_acknowledgement' | 'heartbeat';
     readonly sequence?: number;
     readonly previousReceiptId?: string;
+    readonly verificationAt?: string;
   }): ComputeExecutionOwnershipEnvelope {
     const lease = input.expectedJob.receipt.lease;
     if (!lease) {
@@ -3085,7 +3240,10 @@ export class PostgresComputeJobStore {
         ...(input.previousReceiptId ? { previousReceiptId: input.previousReceiptId } : {}),
       },
       trustAnchors: this.admissionTrustAnchors,
-      at: this.verificationTime(),
+      at: canonicalTimestamp(
+        input.verificationAt ?? this.verificationTime(),
+        'executionOwnership.verificationAt'
+      ),
     });
     if (!verification.valid) {
       throw new ComputeJobStoreAdmissionError(
@@ -3168,6 +3326,55 @@ export class PostgresComputeJobStore {
     );
     if (clock.rows.length !== 1 || clock.rows[0].admitted !== true) {
       throw new ComputeJobStoreAdmissionError(['execution_ownership_expired_at_database_clock']);
+    }
+  }
+
+  private async assertExecutionRecoveryCurrentAndExpired(
+    client: ComputeJobStoreClient,
+    command: CommitComputeJobTransitionCommand
+  ): Promise<void> {
+    const recovery = command.executionRecoveryGuard;
+    if (!recovery) return;
+    const receipt = recovery.expiredOwnership.receipt;
+    const current = await client.query<EvidenceBytesRow>(
+      `/* compute:execution-recovery-current-lock */
+       SELECT e.receipt_id AS id, e.schema_version, e.evidence_bytes AS bytes
+       FROM holomesh_compute_evidence e
+       JOIN holomesh_compute_evidence_refs r
+         ON r.team_id = e.team_id AND r.evidence_receipt_id = e.receipt_id
+       WHERE e.team_id = $1 AND r.job_id = $2 AND r.attempt = $3
+         AND e.schema_version = $4
+       ORDER BY ((e.evidence_bytes::jsonb ->> 'sequence')::bigint) DESC,
+                e.receipt_id DESC
+       LIMIT 1
+       FOR UPDATE OF e, r`,
+      [
+        command.expectedJob.teamId,
+        command.expectedJob.receipt.jobId,
+        command.expectedJob.receipt.attempt,
+        COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION,
+      ]
+    );
+    if (
+      current.rows.length !== 1 ||
+      current.rows[0].id !== receipt.receiptId ||
+      current.rows[0].schema_version !== recovery.expiredOwnership.schemaVersion ||
+      current.rows[0].bytes !== recovery.expiredOwnership.bytes
+    ) {
+      throw new ComputeJobStoreConflictError(
+        'execution_ownership_conflict',
+        'execution recovery does not target the latest ownership receipt'
+      );
+    }
+    const clock = await client.query<PolicyClockRow>(
+      `/* compute:execution-recovery-expiry-clock */
+       SELECT ($1::timestamptz <= clock_timestamp()) AS admitted`,
+      [receipt.heartbeatValidUntil]
+    );
+    if (clock.rows.length !== 1 || clock.rows[0].admitted !== true) {
+      throw new ComputeJobStoreAdmissionError([
+        'execution_ownership_not_expired_at_database_clock',
+      ]);
     }
   }
 
@@ -3461,6 +3668,59 @@ export class PostgresComputeJobStore {
         );
       }
       return receiptIds.map((receiptId) => byReceiptId.get(receiptId) as ComputeDurableEnvelope);
+    } finally {
+      client.release();
+    }
+  }
+
+  async readCurrentExecutionOwnership(
+    input: ReadComputeJobInput
+  ): Promise<ComputeExecutionOwnershipEnvelope> {
+    assertText(input.teamId, 'teamId');
+    assertDigest(input.jobId, 'jobId');
+    assertPositiveInteger(input.attempt, 'attempt');
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query<EvidenceBytesRow>(
+        `/* compute:execution-ownership-read-current */
+         SELECT e.receipt_id AS id, e.schema_version, e.evidence_bytes AS bytes
+         FROM holomesh_compute_evidence e
+         JOIN holomesh_compute_evidence_refs r
+           ON r.team_id = e.team_id AND r.evidence_receipt_id = e.receipt_id
+         WHERE e.team_id = $1 AND r.job_id = $2 AND r.attempt = $3
+           AND e.schema_version = $4
+         ORDER BY ((e.evidence_bytes::jsonb ->> 'sequence')::bigint) DESC,
+                  e.receipt_id DESC
+         LIMIT 1`,
+        [input.teamId, input.jobId, input.attempt, COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION]
+      );
+      if (result.rows.length !== 1) {
+        throw new ComputeJobStoreNotFoundError('execution_ownership');
+      }
+      const row = result.rows[0];
+      const receipt = parseJsonObject(
+        row.bytes,
+        'execution-ownership-read-current.bytes'
+      ) as unknown as ComputeExecutionOwnershipReceipt;
+      const envelope = prepareExecutionOwnershipEnvelope(
+        {
+          receiptId: row.id,
+          schemaVersion: COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION,
+          receipt,
+          bytes: row.bytes,
+        },
+        'execution-ownership-read-current'
+      );
+      if (
+        envelope.receipt.teamId !== input.teamId ||
+        envelope.receipt.jobId !== input.jobId ||
+        envelope.receipt.attempt !== input.attempt
+      ) {
+        throw new ComputeJobStoreReadbackError(
+          'current execution ownership does not bind the requested job attempt'
+        );
+      }
+      return envelope;
     } finally {
       client.release();
     }
@@ -5089,20 +5349,52 @@ export class PostgresComputeJobStore {
     const preparedOwnershipEvidence = prepared.evidence.find(
       (entry) => entry.schemaVersion === COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION
     );
+    const preparedOwnershipReceipt = preparedOwnershipEvidence
+      ? (parseJsonObject(
+          preparedOwnershipEvidence.bytes,
+          'executionOwnership.bytes'
+        ) as unknown as ComputeExecutionOwnershipReceipt)
+      : undefined;
+    const recoveryLease = prepared.expectedJob.receipt.lease;
+    const ownershipGuard =
+      prepared.leaseUseGuard ??
+      (prepared.executionRecoveryGuard && recoveryLease && prepared.expectedAllocation
+        ? {
+            holderDigest: recoveryLease.holderDigest,
+            verifiedFencingTokenHash: recoveryLease.fencingTokenHash,
+            allocation: prepared.expectedAllocation,
+            ...(prepared.executionRecoveryGuard.activeBudgetHold
+              ? { activeBudgetHold: prepared.executionRecoveryGuard.activeBudgetHold }
+              : {}),
+          }
+        : undefined);
     const authenticatedOwnership = preparedOwnershipEvidence
       ? this.authenticateExecutionOwnership({
           envelope: {
             ...preparedOwnershipEvidence,
             schemaVersion: COMPUTE_EXECUTION_OWNERSHIP_SCHEMA_VERSION,
-            receipt: parseJsonObject(
-              preparedOwnershipEvidence.bytes,
-              'executionOwnership.bytes'
-            ) as unknown as ComputeExecutionOwnershipReceipt,
+            receipt: preparedOwnershipReceipt as ComputeExecutionOwnershipReceipt,
           },
           expectedJob: prepared.expectedJob,
-          leaseUseGuard: prepared.leaseUseGuard as ComputeLeaseUseGuard,
-          kind: 'running_acknowledgement',
-          sequence: 0,
+          leaseUseGuard: ownershipGuard as ComputeLeaseUseGuard,
+          kind: prepared.executionRecoveryGuard
+            ? (preparedOwnershipReceipt as ComputeExecutionOwnershipReceipt).kind
+            : 'running_acknowledgement',
+          sequence: prepared.executionRecoveryGuard
+            ? (preparedOwnershipReceipt as ComputeExecutionOwnershipReceipt).sequence
+            : 0,
+          ...((preparedOwnershipReceipt as ComputeExecutionOwnershipReceipt).previousReceiptId
+            ? {
+                previousReceiptId: (preparedOwnershipReceipt as ComputeExecutionOwnershipReceipt)
+                  .previousReceiptId,
+              }
+            : {}),
+          ...(prepared.executionRecoveryGuard
+            ? {
+                verificationAt: (preparedOwnershipReceipt as ComputeExecutionOwnershipReceipt)
+                  .heartbeatAt,
+              }
+            : {}),
         })
       : undefined;
     const authenticatedEvidence: readonly ComputeDurableEnvelope[] = prepared.evidence.map(
@@ -5117,6 +5409,12 @@ export class PostgresComputeJobStore {
     );
     const authenticatedLeaseUseBudgetHold = prepared.leaseUseGuard?.activeBudgetHold
       ? this.authenticateBudgetEvidence(prepared.leaseUseGuard.activeBudgetHold)
+      : undefined;
+    const authenticatedRecoveryBudgetHold = prepared.executionRecoveryGuard?.activeBudgetHold
+      ? this.authenticateBudgetEvidence(
+          prepared.executionRecoveryGuard.activeBudgetHold,
+          prepared.executionRecoveryGuard.activeBudgetHold.receipt.issuedAt
+        )
       : undefined;
     const command: CommitComputeJobTransitionCommand = {
       ...prepared,
@@ -5151,6 +5449,16 @@ export class PostgresComputeJobStore {
               ...prepared.leaseUseGuard,
               ...(authenticatedLeaseUseBudgetHold
                 ? { activeBudgetHold: authenticatedLeaseUseBudgetHold }
+                : {}),
+            },
+          }
+        : {}),
+      ...(prepared.executionRecoveryGuard && authenticatedOwnership
+        ? {
+            executionRecoveryGuard: {
+              expiredOwnership: authenticatedOwnership,
+              ...(authenticatedRecoveryBudgetHold
+                ? { activeBudgetHold: authenticatedRecoveryBudgetHold }
                 : {}),
             },
           }
@@ -5256,7 +5564,9 @@ export class PostgresComputeJobStore {
         }
         disposition = 'replayed';
         await this.assertAdmissionCurrentAtDatabaseClock(client, command.admission);
-        if (executionOwnership) {
+        if (command.executionRecoveryGuard) {
+          await this.assertExecutionRecoveryCurrentAndExpired(client, command);
+        } else if (executionOwnership) {
           await this.assertExecutionOwnershipCurrentAtDatabaseClock(client, executionOwnership);
         }
         await client.query('/* compute:commit */ COMMIT');
@@ -5279,6 +5589,8 @@ export class PostgresComputeJobStore {
           'job version, receipt, or exact bytes changed before commit'
         );
       }
+
+      await this.assertExecutionRecoveryCurrentAndExpired(client, command);
 
       if (command.expectedAllocation) {
         const allocationLock = await client.query<AllocationRow>(
@@ -5397,6 +5709,34 @@ export class PostgresComputeJobStore {
               'lease-use budget hold changed before commit'
             );
           }
+        }
+      }
+
+      if (command.executionRecoveryGuard?.activeBudgetHold) {
+        const budget = command.executionRecoveryGuard.activeBudgetHold.receipt;
+        const holdLock = await client.query<BudgetHoldRow>(
+          `/* compute:execution-recovery-budget-hold-lock */
+           SELECT budget_rail_id, currency, policy_digest, period_digest,
+                  max_amount_minor_units, held_amount_minor_units,
+                  settled_amount_minor_units, status, initial_receipt_id,
+                  current_receipt_id, current_evidence_bytes,
+                  measured_cost_receipt_id
+           FROM holomesh_compute_budget_holds
+           WHERE team_id = $1 AND job_id = $2 AND attempt = $3
+           FOR UPDATE`,
+          [budget.teamId, budget.jobId, budget.attempt]
+        );
+        if (
+          holdLock.rows.length !== 1 ||
+          !this.activeBudgetHoldMatches(
+            holdLock.rows[0],
+            command.executionRecoveryGuard.activeBudgetHold
+          )
+        ) {
+          throw new ComputeJobStoreConflictError(
+            'budget_cas_conflict',
+            'execution recovery paid hold changed before logical lease release'
+          );
         }
       }
 
@@ -6052,9 +6392,9 @@ export class PostgresComputeJobStore {
           command.leaseUseGuard?.activeBudgetHold?.receipt.currency ?? null,
           command.leaseUseGuard?.activeBudgetHold?.receipt.periodDigest ?? null,
           command.leaseUseGuard?.activeBudgetHold?.receipt.policyDigest ?? null,
-          executionOwnership !== undefined,
-          executionOwnership?.receipt.heartbeatAt ?? null,
-          executionOwnership
+          executionOwnership !== undefined && command.executionRecoveryGuard === undefined,
+          command.executionRecoveryGuard ? null : (executionOwnership?.receipt.heartbeatAt ?? null),
+          executionOwnership && !command.executionRecoveryGuard
             ? this.executionOwnershipEffectiveValidUntil(executionOwnership)
             : null,
         ]

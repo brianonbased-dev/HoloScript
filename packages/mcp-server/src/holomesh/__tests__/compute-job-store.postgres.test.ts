@@ -62,6 +62,11 @@ import {
   prepareAndSignComputeExecutionOwnership,
   type ComputeExecutionOwnershipEnvelope,
 } from '../compute-execution-ownership';
+import {
+  createComputeJobReapingService,
+  type ComputeExecutionReaperIdentity,
+} from '../compute-job-reaping-service';
+import { buildComputeTransitionCommand } from '../compute-job-dispatch-service';
 
 type JsonObject = Record<string, unknown>;
 
@@ -183,6 +188,19 @@ function storeOptions(databaseUrl: string): CreateComputeJobStoreOptions {
     admissionTrustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
     budgetEvidenceTrustAnchors: [authority.anchor],
     now: () => STORE_VERIFICATION_AT,
+  };
+}
+
+function reaperIdentity(): ComputeExecutionReaperIdentity {
+  return {
+    kind: 'execution_reaper',
+    surface: 'headless',
+    source: 'registered_service_key',
+    teamId: TEAM_ID,
+    reaperId: 'postgres-heartbeat-reaper-1',
+    capabilities: ['compute:reap'],
+    validFrom: ADMISSION_TRUST_ANCHOR.validFrom,
+    validUntil: ADMISSION_TRUST_ANCHOR.validUntil,
   };
 }
 
@@ -752,7 +770,8 @@ function leaseUseGuard(
 
 function makeRunningSequence(
   fixture: LifecycleFixture,
-  activeBudgetHold: NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+  activeBudgetHold: NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>,
+  heartbeatValidUntil = LEASE_EXPIRES_AT
 ): {
   readonly start: CommitComputeJobTransitionCommand;
   readonly running: CommitComputeJobTransitionCommand;
@@ -798,7 +817,7 @@ function makeRunningSequence(
         sequence: 0,
         acknowledgedAt: RUNNING_AT,
         heartbeatAt: RUNNING_AT,
-        heartbeatValidUntil: LEASE_EXPIRES_AT,
+        heartbeatValidUntil,
         trustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
         issuer: ADMISSION_SIGNER.issuer,
         keyId: ADMISSION_SIGNER.keyId,
@@ -1042,7 +1061,8 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
 
   async function persistBudgetedRunning(
     fixture: LifecycleFixture,
-    registration = makeBudgetRegistration()
+    registration = makeBudgetRegistration(),
+    heartbeatValidUntil = LEASE_EXPIRES_AT
   ): Promise<ComputeJobReceipt> {
     await store.registerBudget(registration);
     await store.registerCapacity(makeCapacityRegistration(fixture));
@@ -1052,7 +1072,8 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
     await store.commitTransition(acquire);
     const running = makeRunningSequence(
       fixture,
-      acquire.budgetEvidence as NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>
+      acquire.budgetEvidence as NonNullable<CommitComputeJobTransitionCommand['budgetEvidence']>,
+      heartbeatValidUntil
     );
     await store.commitTransition(running.start);
     await store.commitTransition(running.running);
@@ -1468,6 +1489,255 @@ describe.skipIf(!DATABASE_URL)('PostgresComputeJobStore real PostgreSQL integrat
     );
     expect(custody.rows[0]).toEqual({ evidence_count: '2', heartbeat_events: '1' });
   });
+
+  it('atomically reaps the latest expired heartbeat, releases the logical slot, and retains the paid hold', async () => {
+    const fixture = lifecycleFixture('alpha', CAPACITY, BUDGET_LIMIT_MINOR_UNITS);
+    const heartbeatValidUntil = new Date(Date.now() + 3_000).toISOString();
+    const runningJob = await persistBudgetedRunning(
+      fixture,
+      makeBudgetRegistration(),
+      heartbeatValidUntil
+    );
+    const ownership = await store.readCurrentExecutionOwnership({
+      teamId: TEAM_ID,
+      jobId: fixture.jobId,
+      attempt: 1,
+    });
+    expect(ownership.receipt.heartbeatValidUntil).toBe(heartbeatValidUntil);
+    await waitUntilDatabasePeriodExpires(heartbeatValidUntil);
+
+    const reapingStore = await PostgresComputeJobStore.create({
+      ...storeOptions(DATABASE_URL as string),
+      pool,
+      now: () => new Date().toISOString(),
+    });
+    const result = await (async () => {
+      try {
+        const service = createComputeJobReapingService({
+          store: reapingStore,
+          reaperIdentity: reaperIdentity(),
+          admissionSigner: ADMISSION_SIGNER,
+          admissionTrustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+          admissionKeyValidUntil: ADMISSION_TRUST_ANCHOR.validUntil,
+          now: () => new Date().toISOString(),
+        });
+        return await service.reap({
+          jobId: fixture.jobId,
+          attempt: 1,
+          expectedJobReceiptId: runningJob.receiptId,
+          expectedOwnershipReceiptId: ownership.receiptId,
+        });
+      } finally {
+        await reapingStore.close();
+      }
+    })();
+
+    expect(result).toMatchObject({
+      disposition: 'committed',
+      state: 'failed',
+      reasonCode: 'executor_lost',
+      completionDisposition: 'execution_unobserved',
+      ownershipReceiptId: ownership.receiptId,
+      leaseDisposition: 'logical_slot_released',
+      budgetDisposition: 'retained_for_reconciliation',
+      providerReservation: 'not_asserted',
+      execution: 'not_asserted',
+    });
+    expect(JSON.parse(result.publicResponseBytes)).toMatchObject({
+      state: 'failed',
+      providerReservation: 'not_asserted',
+      execution: 'not_asserted',
+    });
+    const custody = await pool.query<{
+      job_state: string;
+      slot_state: string;
+      current_epoch: string;
+      current_lease_receipt_id: string | null;
+      held: string;
+      hold_status: string;
+      budget_commits: string;
+      ownership_refs: string;
+      failed_events: string;
+    }>(
+      `SELECT j.state AS job_state, a.slot_state,
+              a.current_epoch::text, a.current_lease_receipt_id,
+              b.held_amount_minor_units::text AS held,
+              h.status AS hold_status,
+              (SELECT COUNT(*) FROM holomesh_compute_budget_commits)::text AS budget_commits,
+              (
+                SELECT COUNT(*)::text FROM holomesh_compute_evidence_refs r
+                WHERE r.team_id = j.team_id AND r.job_id = j.job_id
+                  AND r.attempt = j.attempt AND r.evidence_receipt_id = $2
+              ) AS ownership_refs,
+              (
+                SELECT COUNT(*)::text FROM holomesh_compute_outbox o
+                WHERE o.team_id = j.team_id AND o.event_type = 'compute_job.failed'
+              ) AS failed_events
+       FROM holomesh_compute_jobs j
+       JOIN holomesh_compute_allocations a
+         ON a.team_id = j.team_id AND a.capacity_ref = j.capacity_ref
+       JOIN holomesh_compute_budget_accounts b ON b.team_id = j.team_id
+       JOIN holomesh_compute_budget_holds h
+         ON h.team_id = j.team_id AND h.job_id = j.job_id AND h.attempt = j.attempt
+       WHERE j.team_id = $1 AND j.job_id = $3 AND j.attempt = 1`,
+      [TEAM_ID, ownership.receiptId, fixture.jobId]
+    );
+    expect(custody.rows).toEqual([
+      {
+        job_state: 'failed',
+        slot_state: 'available',
+        current_epoch: '1',
+        current_lease_receipt_id: null,
+        held: String(BUDGET_LIMIT_MINOR_UNITS),
+        hold_status: 'held',
+        budget_commits: '1',
+        ownership_refs: '2',
+        failed_events: '1',
+      },
+    ]);
+  });
+
+  it('refuses a stale reap when a newer heartbeat wins before the expiry lock', async () => {
+    const fixture = lifecycleFixture('alpha', CAPACITY, BUDGET_LIMIT_MINOR_UNITS);
+    const firstExpiry = new Date(Date.now() + 5_000).toISOString();
+    const runningJob = await persistBudgetedRunning(fixture, makeBudgetRegistration(), firstExpiry);
+    const raceStore = await PostgresComputeJobStore.create({
+      ...storeOptions(DATABASE_URL as string),
+      pool,
+      now: () => new Date().toISOString(),
+    });
+    try {
+      const firstOwnership = await raceStore.readCurrentExecutionOwnership({
+        teamId: TEAM_ID,
+        jobId: fixture.jobId,
+        attempt: 1,
+      });
+      const workUnit = await raceStore.readWorkUnit(TEAM_ID, runningJob.workUnit.digest);
+      const capacity = await raceStore.readRegisteredCapacity({
+        teamId: TEAM_ID,
+        capacityRef: fixture.lease.capacityRef,
+      });
+      const activeBudgetHold = await raceStore.readActiveBudgetHold({
+        teamId: TEAM_ID,
+        jobId: fixture.jobId,
+        attempt: 1,
+      });
+      const preparedReap = prepareComputeJobTransition({
+        expectedJob: runningJob,
+        action: 'fail',
+        reasonCode: 'executor_lost',
+        executionUnobservedReason: 'executor_lost',
+        allocationCursor: capacity.projection.cursor,
+        transitionedAt: firstExpiry,
+        idempotencyKey: 'postgres-stale-heartbeat-reap',
+      });
+      const allocator = preparedReap.allocatorCommit;
+      if (!allocator) throw new Error('stale reap did not prepare allocator release');
+      const staleReapCommand = buildComputeTransitionCommand({
+        operation: 'compute_job.fail',
+        teamId: TEAM_ID,
+        expectedJob: projection(runningJob),
+        prepared: preparedReap,
+        workUnit,
+        evidence: [
+          {
+            receiptId: firstOwnership.receiptId,
+            schemaVersion: firstOwnership.schemaVersion,
+            bytes: firstOwnership.bytes,
+          },
+        ],
+        admissionSigner: ADMISSION_SIGNER,
+        admissionTrustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+        admissionValidUntil: new Date(Date.parse(firstExpiry) + 20_000).toISOString(),
+        allocation: {
+          capacity,
+          expectedAllocation: allocator.expectedAllocation,
+          nextAllocation: allocator.nextAllocation,
+        },
+        executionRecoveryGuard: {
+          expiredOwnership: firstOwnership,
+          activeBudgetHold,
+        },
+      });
+
+      const heartbeatAt = new Date().toISOString();
+      const nextOwnership = createComputeExecutionOwnershipEnvelope(
+        prepareAndSignComputeExecutionOwnership(
+          {
+            kind: 'heartbeat',
+            teamId: TEAM_ID,
+            principalDigest: PRINCIPAL,
+            jobId: fixture.jobId,
+            attempt: 1,
+            workUnitDigest: workUnit.digest,
+            leaseReceiptId: fixture.lease.receiptId,
+            holderDigest: firstOwnership.receipt.holderDigest,
+            fencingTokenHash: fixture.lease.fencingTokenHash,
+            capacityRef: fixture.lease.capacityRef,
+            fencingEpoch: fixture.lease.fencingEpoch,
+            sequence: firstOwnership.receipt.sequence + 1,
+            previousReceiptId: firstOwnership.receiptId,
+            acknowledgedAt: firstOwnership.receipt.acknowledgedAt,
+            heartbeatAt,
+            heartbeatValidUntil: new Date(Date.parse(heartbeatAt) + 30_000).toISOString(),
+            trustPolicyDigest: ADMISSION_TRUST_POLICY_DIGEST,
+            issuer: ADMISSION_SIGNER.issuer,
+            keyId: ADMISSION_SIGNER.keyId,
+          },
+          ADMISSION_SIGNER
+        )
+      );
+      await expect(
+        raceStore.commitExecutionHeartbeat({
+          expectedJob: projection(runningJob),
+          expectedWorkUnit: workUnit,
+          previousOwnershipReceiptId: firstOwnership.receiptId,
+          ownership: nextOwnership,
+          leaseUseGuard: {
+            holderDigest: firstOwnership.receipt.holderDigest,
+            verifiedFencingTokenHash: fixture.lease.fencingTokenHash,
+            allocation: capacity.projection,
+            activeBudgetHold,
+          },
+          outbox: [buildComputeExecutionOwnershipOutboxEnvelope(nextOwnership.receipt)],
+        })
+      ).resolves.toMatchObject({ disposition: 'committed', sequence: 1 });
+      await waitUntilDatabasePeriodExpires(firstExpiry);
+
+      await expect(raceStore.commitTransition(staleReapCommand)).rejects.toMatchObject({
+        code: 'execution_ownership_conflict',
+      });
+      await expect(
+        raceStore.readJob({ teamId: TEAM_ID, jobId: fixture.jobId, attempt: 1 })
+      ).resolves.toMatchObject({ receipt: { state: 'running' } });
+      const unchanged = await pool.query<{
+        slot_state: string;
+        held: string;
+        hold_status: string;
+      }>(
+        `SELECT a.slot_state,
+                  b.held_amount_minor_units::text AS held,
+                  h.status AS hold_status
+           FROM holomesh_compute_allocations a
+           JOIN holomesh_compute_jobs j
+             ON j.team_id = a.team_id AND j.capacity_ref = a.capacity_ref
+           JOIN holomesh_compute_budget_accounts b ON b.team_id = j.team_id
+           JOIN holomesh_compute_budget_holds h
+             ON h.team_id = j.team_id AND h.job_id = j.job_id AND h.attempt = j.attempt
+           WHERE j.team_id = $1 AND j.job_id = $2 AND j.attempt = 1`,
+        [TEAM_ID, fixture.jobId]
+      );
+      expect(unchanged.rows).toEqual([
+        {
+          slot_state: 'leased',
+          held: String(BUDGET_LIMIT_MINOR_UNITS),
+          hold_status: 'held',
+        },
+      ]);
+    } finally {
+      await raceStore.close();
+    }
+  }, 15_000);
 
   it('rejects start when the leased allocator cursor rotates before the commit lock', async () => {
     const fixture = lifecycleFixture('alpha', CAPACITY, BUDGET_LIMIT_MINOR_UNITS);
