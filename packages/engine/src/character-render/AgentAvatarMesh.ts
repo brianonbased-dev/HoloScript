@@ -90,6 +90,7 @@ export const AGENT_AVATAR_ORBITAL_PROFILES = [
   'recessed-lids-v1',
   'anatomical-lid-fold-v2',
   'anatomical-lid-blend-v3',
+  'integrated-lid-rim-v4',
 ] as const;
 export type AgentAvatarOrbitalProfile = (typeof AGENT_AVATAR_ORBITAL_PROFILES)[number];
 export const AGENT_AVATAR_FACIAL_DETAIL_PROFILES = [
@@ -118,6 +119,16 @@ export interface AgentAvatarOrbitalGeometryReceipt {
   /** H3Z additional skin rows blending the lid aperture into the face plane. */
   lidTransitionProfile?: 'cubic-lid-blend-v1';
   lidTransitionRows?: number;
+  /** H4K occluding lid surface indexed back into the native head shell. */
+  integratedLidProfile?: 'indexed-occluding-lid-rim-v1';
+  /** Number of operative lid-surface vertices before the separate crease arcs. */
+  integratedLidVertexCount?: number;
+  /** Triangles whose indices bridge the outer lid boundary to native head vertices. */
+  headStitchTriangleCount?: number;
+  /** Minimum inner-rim lead over the globe surface, in eye-radius units. */
+  globeOcclusionMargin?: number;
+  /** Native head-shell vertices eligible as stitch anchors. */
+  headSurfaceVertexRange?: { vertexStart: number; vertexCount: number };
   vertexRange: { vertexStart: number; vertexCount: number };
   indexRange: { indexStart: number; indexCount: number };
 }
@@ -2775,12 +2786,44 @@ function pushOrbitalLidShell(
   canthalTilt: number,
   side: -1 | 1,
   jointIdx: number,
-  transitionRows = 2
-): void {
+  transitionRows = 2,
+  headSurface?: { vertexStart: number; vertexCount: number }
+): {
+  lidSurfaceVertexCount: number;
+  headStitchTriangleCount: number;
+  globeOcclusionMargin: number;
+} {
+  const lidVertexStart = acc.positions.length / 3;
   const segments = 18;
   const apertureHalfWidth = eyeRadius * 1.08;
   const apertureHalfHeight = eyeRadius * lidOpening;
   const outerHalfHeight = eyeRadius * 1.34;
+  const requestedGlobeOcclusionMargin = headSurface ? 0.012 : 0;
+  let measuredGlobeOcclusionMargin = Infinity;
+  let headStitchTriangleCount = 0;
+
+  const nearestHeadVertex = (vertex: number): number => {
+    if (!headSurface) return vertex;
+    const offset = vertex * 3;
+    const x = acc.positions[offset];
+    const y = acc.positions[offset + 1];
+    const z = acc.positions[offset + 2];
+    let nearest = headSurface.vertexStart;
+    let nearestDistance = Infinity;
+    const end = headSurface.vertexStart + headSurface.vertexCount;
+    for (let candidate = headSurface.vertexStart; candidate < end; candidate++) {
+      const candidateOffset = candidate * 3;
+      const dx = acc.positions[candidateOffset] - x;
+      const dy = acc.positions[candidateOffset + 1] - y;
+      const dz = acc.positions[candidateOffset + 2] - z;
+      const distance = dx * dx + dy * dy + dz * dz;
+      if (distance < nearestDistance) {
+        nearest = candidate;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  };
 
   const pushLid = (upper: boolean): void => {
     const base = acc.positions.length / 3;
@@ -2795,7 +2838,15 @@ function pushOrbitalLidShell(
       const outerY =
         center.y + tilt + direction * outerHalfHeight * (0.74 + almond * 0.26) * lowerOpeningScale;
       const x = center.x + normalizedX * apertureHalfWidth;
-      const innerZ = center.z + eyeRadius * (0.84 + almond * 0.07);
+      const innerZ = headSurface
+        ? center.z + eyeRadius * (1 + requestedGlobeOcclusionMargin + almond * 0.022)
+        : center.z + eyeRadius * (0.84 + almond * 0.07);
+      if (headSurface) {
+        measuredGlobeOcclusionMargin = Math.min(
+          measuredGlobeOcclusionMargin,
+          (innerZ - (center.z + eyeRadius)) / eyeRadius
+        );
+      }
       const outerZ = facePlaneZ - eyeRadius * Math.abs(normalizedX) * 0.035;
       const normal = normalize({
         x: normalizedX * 0.08,
@@ -2826,10 +2877,32 @@ function pushOrbitalLidShell(
         acc.indices.push(a, b, a + 1, a + 1, b, b + 1);
       }
     }
+
+    if (headSurface) {
+      for (let segment = 0; segment < segments; segment++) {
+        const outerA = base + segment * transitionRows + transitionRows - 1;
+        const outerB = outerA + transitionRows;
+        const headA = nearestHeadVertex(outerA);
+        const headB = nearestHeadVertex(outerB);
+        acc.indices.push(outerA, headA, outerB);
+        headStitchTriangleCount++;
+        if (headA !== headB) {
+          acc.indices.push(outerB, headA, headB);
+          headStitchTriangleCount++;
+        }
+      }
+    }
   };
 
   pushLid(true);
   pushLid(false);
+  return {
+    lidSurfaceVertexCount: acc.positions.length / 3 - lidVertexStart,
+    headStitchTriangleCount,
+    globeOcclusionMargin: Number.isFinite(measuredGlobeOcclusionMargin)
+      ? measuredGlobeOcclusionMargin
+      : 0,
+  };
 }
 
 function pushAnatomicalLidFold(
@@ -3421,18 +3494,22 @@ function pushNeutralAnatomicalHead(
   if (includeTearline) {
     const orbitalVertexStart = acc.positions.length / 3;
     const orbitalIndexStart = acc.indices.length;
+    let integratedLidVertexCount = 0;
+    let headStitchTriangleCount = 0;
+    let globeOcclusionMargin = 0;
     const buildScale = radius / 0.09;
     const eyeY = headBase.y + 0.12 * buildScale;
     if (
       orbitalProfile === 'recessed-lids-v1' ||
       orbitalProfile === 'anatomical-lid-fold-v2' ||
-      orbitalProfile === 'anatomical-lid-blend-v3'
+      orbitalProfile === 'anatomical-lid-blend-v3' ||
+      orbitalProfile === 'integrated-lid-rim-v4'
     ) {
       const eyeRadius = 0.0145 * buildScale * eyeScale;
       const eyeCenterZ = headBase.z + radius * 0.91 - eyeRadius * eyeRecess;
       const facePlaneZ = headBase.z + radius * 1.025;
       for (const side of [-1, 1] as const) {
-        pushOrbitalLidShell(
+        const lid = pushOrbitalLidShell(
           acc,
           {
             x: headBase.x + side * 0.035 * buildScale * faceWidth * eyeSpacing,
@@ -3445,11 +3522,25 @@ function pushNeutralAnatomicalHead(
           canthalTilt,
           side,
           jointIdx,
-          orbitalProfile === 'anatomical-lid-blend-v3' ? 4 : 2
+          orbitalProfile === 'integrated-lid-rim-v4'
+            ? 5
+            : orbitalProfile === 'anatomical-lid-blend-v3'
+              ? 4
+              : 2,
+          orbitalProfile === 'integrated-lid-rim-v4'
+            ? {
+                vertexStart: base,
+                vertexCount: (verticalSegments + 1) * (radialSegments + 1),
+              }
+            : undefined
         );
+        integratedLidVertexCount += lid.lidSurfaceVertexCount;
+        headStitchTriangleCount += lid.headStitchTriangleCount;
+        globeOcclusionMargin = Math.max(globeOcclusionMargin, lid.globeOcclusionMargin);
         if (
           orbitalProfile === 'anatomical-lid-fold-v2' ||
-          orbitalProfile === 'anatomical-lid-blend-v3'
+          orbitalProfile === 'anatomical-lid-blend-v3' ||
+          orbitalProfile === 'integrated-lid-rim-v4'
         ) {
           pushAnatomicalLidFold(
             acc,
@@ -3506,11 +3597,28 @@ function pushNeutralAnatomicalHead(
       canthalTilt,
       ...(eyeScale === 1 ? {} : { eyeScale }),
       ...(orbitalProfile === 'anatomical-lid-fold-v2' ||
-      orbitalProfile === 'anatomical-lid-blend-v3'
+      orbitalProfile === 'anatomical-lid-blend-v3' ||
+      orbitalProfile === 'integrated-lid-rim-v4'
         ? { lidFoldProfile: 'upper-crease-continuity-v1' as const }
         : {}),
-      ...(orbitalProfile === 'anatomical-lid-blend-v3'
-        ? { lidTransitionProfile: 'cubic-lid-blend-v1' as const, lidTransitionRows: 4 }
+      ...(orbitalProfile === 'anatomical-lid-blend-v3' ||
+      orbitalProfile === 'integrated-lid-rim-v4'
+        ? {
+            lidTransitionProfile: 'cubic-lid-blend-v1' as const,
+            lidTransitionRows: orbitalProfile === 'integrated-lid-rim-v4' ? 5 : 4,
+          }
+        : {}),
+      ...(orbitalProfile === 'integrated-lid-rim-v4'
+        ? {
+            integratedLidProfile: 'indexed-occluding-lid-rim-v1' as const,
+            integratedLidVertexCount,
+            headStitchTriangleCount,
+            globeOcclusionMargin,
+            headSurfaceVertexRange: {
+              vertexStart: base,
+              vertexCount: (verticalSegments + 1) * (radialSegments + 1),
+            },
+          }
         : {}),
       vertexRange: {
         vertexStart: orbitalVertexStart,
@@ -3973,7 +4081,8 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
     opts.eyeRecess,
     orbitalProfile === 'recessed-lids-v1' ||
       orbitalProfile === 'anatomical-lid-fold-v2' ||
-      orbitalProfile === 'anatomical-lid-blend-v3'
+      orbitalProfile === 'anatomical-lid-blend-v3' ||
+      orbitalProfile === 'integrated-lid-rim-v4'
       ? 0.28
       : 0,
     0,

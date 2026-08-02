@@ -1239,6 +1239,43 @@ describe('buildCharacterHostFromComposition', () => {
     });
   });
 
+  it('@face maps the integrated lid-rim profile without a stub fallback', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'IntegratedLids',
+          traits: [
+            { name: 'body', config: { height: 1.8, build_scale: 1.02 } },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                tearline: true,
+                orbital_profile: 'integrated_lid_rim_v4',
+                eye_recess: 0.34,
+                lid_opening: 0.44,
+                canthal_tilt: 0.08,
+                ocular_profile: 'layered_ocular_calibrated_v3',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain('@face(orbital_profile=integrated-lid-rim-v4)');
+    expect(result.face).toMatchObject({
+      topology: 'neutral-anatomical-v2',
+      tearline: true,
+      orbitalProfile: 'integrated-lid-rim-v4',
+      eyeRecess: 0.34,
+      lidOpening: 0.44,
+      canthalTilt: 0.08,
+      ocularProfile: 'layered-ocular-calibrated-v3',
+    });
+  });
+
   it('@face rejects unimplemented topology names instead of relabeling the legacy cap', () => {
     const result = buildCharacterHostFromComposition({
       objects: [

@@ -1312,7 +1312,8 @@ export function buildAgentAvatarEyes(
   const recessed =
     o.orbitalProfile === 'recessed-lids-v1' ||
     o.orbitalProfile === 'anatomical-lid-fold-v2' ||
-    o.orbitalProfile === 'anatomical-lid-blend-v3';
+    o.orbitalProfile === 'anatomical-lid-blend-v3' ||
+    o.orbitalProfile === 'integrated-lid-rim-v4';
   const eyeRecess = recessed ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - r * eyeRecess;
   const eyeX =
@@ -1403,7 +1404,8 @@ export function buildAgentAvatarOcularRegions(
   const recessed =
     o.orbitalProfile === 'recessed-lids-v1' ||
     o.orbitalProfile === 'anatomical-lid-fold-v2' ||
-    o.orbitalProfile === 'anatomical-lid-blend-v3';
+    o.orbitalProfile === 'anatomical-lid-blend-v3' ||
+    o.orbitalProfile === 'integrated-lid-rim-v4';
   const eyeRecess = recessed ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - radius * eyeRecess;
   const eyeX =

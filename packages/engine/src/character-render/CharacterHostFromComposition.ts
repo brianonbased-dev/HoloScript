@@ -879,14 +879,16 @@ export function buildCharacterHostFromComposition(
           authoredOrbitalProfile === 'tearline-rim-v1' ||
           authoredOrbitalProfile === 'recessed-lids-v1' ||
           authoredOrbitalProfile === 'anatomical-lid-fold-v2' ||
-          authoredOrbitalProfile === 'anatomical-lid-blend-v3'
+          authoredOrbitalProfile === 'anatomical-lid-blend-v3' ||
+          authoredOrbitalProfile === 'integrated-lid-rim-v4'
         ) {
           orbitalProfile = authoredOrbitalProfile;
           eyeRecess = clamp(
             asNum(cfgVal(faceTrait, 'eye_recess', 'globe_recess')) ??
               (orbitalProfile === 'recessed-lids-v1' ||
               orbitalProfile === 'anatomical-lid-fold-v2' ||
-              orbitalProfile === 'anatomical-lid-blend-v3'
+              orbitalProfile === 'anatomical-lid-blend-v3' ||
+              orbitalProfile === 'integrated-lid-rim-v4'
                 ? 0.28
                 : 0),
             0,
