@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/std",
-  "version": "7.0.14",
+  "version": "7.0.15",
   "description": "HoloScript Standard Library - Core types and utilities",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -51,7 +51,11 @@
     "./native/abi/scalar-f64-v1.hs": "./src/abi/scalar-f64-v1.hs",
     "./native/abi/vector-v1.hs": "./src/abi/vector-v1.hs",
     "./native/abi/collections-list3-v1.hs": "./src/abi/collections-list3-v1.hs",
-    "./host-abi": "./conformance/host-abi/std-host-binding.mjs",
+    "./host-abi": {
+      "types": "./conformance/host-abi/std-host-binding.d.ts",
+      "import": "./conformance/host-abi/std-host-binding.mjs",
+      "default": "./conformance/host-abi/std-host-binding.mjs"
+    },
     "./host-abi/descriptor": "./conformance/host-abi/std-host-abi.v0.json",
     "./conformance/ops": "./conformance/std-abi-ops.v0.json",
     "./conformance/packaged-extensions": "./conformance/std-abi-packaged-extensions.v0.json",

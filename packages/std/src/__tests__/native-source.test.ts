@@ -32,9 +32,17 @@ describe('@holoscript/std native source tracer', () => {
     expect(packageJson.exports['./native/abi/collections-list3-v1.hs']).toBe(
       './src/abi/collections-list3-v1.hs'
     );
-    expect(packageJson.exports['./host-abi']).toBe(
-      './conformance/host-abi/std-host-binding.mjs'
-    );
+    expect(packageJson.exports['./host-abi']).toEqual({
+      types: './conformance/host-abi/std-host-binding.d.ts',
+      import: './conformance/host-abi/std-host-binding.mjs',
+      default: './conformance/host-abi/std-host-binding.mjs',
+    });
+    expect(
+      readFileSync(
+        join(packageRoot, 'conformance', 'host-abi', 'std-host-binding.d.ts'),
+        'utf8'
+      )
+    ).toContain('export function createStdHostBindings(): StdHostBindings;');
     expect(packageJson.exports['./host-abi/descriptor']).toBe(
       './conformance/host-abi/std-host-abi.v0.json'
     );
