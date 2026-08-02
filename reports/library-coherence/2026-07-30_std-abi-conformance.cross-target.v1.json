@@ -1,0 +1,68 @@
+{
+  "schema": "holoscript.std-abi-conformance.cross-target.v0",
+  "generatedAtISO": "2026-07-30T06:20:35.136Z",
+  "targets": [
+    {
+      "target": "node",
+      "schema": "holoscript.std-abi-conformance.node.v0",
+      "path": "reports/library-coherence/2026-07-30_std-abi-conformance.node.v1.json",
+      "receiptSha256": "sha256:26a93e0584eed9f00c3b0e1c38ffb457b689ca7f739a709eb3436660f0d06a4b",
+      "vectors": 192,
+      "passed": 192,
+      "failed": 0,
+      "environment": {
+        "node": "v24.15.0",
+        "arch": "x64",
+        "platform": "win32"
+      }
+    },
+    {
+      "target": "browser-wasm",
+      "schema": "holoscript.std-abi-conformance.browser.v0",
+      "path": "reports/library-coherence/2026-07-30_std-abi-conformance.browser.v1.json",
+      "receiptSha256": "sha256:fb26e33f091980734f6ce067602485e11b4adae61418e4532c5806f85ab0e2fb",
+      "vectors": 192,
+      "passed": 192,
+      "failed": 0,
+      "environment": {
+        "browser": "chromium",
+        "browserVersion": "148.0.7778.96",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36",
+        "browserPlatform": "Win32",
+        "webAssemblyAvailable": true,
+        "launcherNode": "v24.15.0",
+        "launcherArch": "x64",
+        "launcherPlatform": "win32"
+      }
+    },
+    {
+      "target": "owned-metal",
+      "schema": "holoscript.std-abi-conformance.owned-metal.v0",
+      "path": "reports/library-coherence/2026-07-30_std-abi-conformance.owned-metal.v1.json",
+      "receiptSha256": "sha256:42d763e8d8f4f380ea0c7e1095934dcd1ea1aa209869decbf6c27fa53ebceea1",
+      "vectors": 192,
+      "passed": 192,
+      "failed": 0,
+      "environment": {
+        "node": "v20.20.2",
+        "arch": "arm64",
+        "platform": "linux",
+        "hostLabel": "jetson-orin",
+        "hostname": "holojetson",
+        "cpus": "Cortex-A78AE"
+      }
+    }
+  ],
+  "comparison": {
+    "method": "per-vector equality across the targets each vector declares (default: all): exact (Object.is, recursive, key-set strict) for tolerance-0 vectors; absolute-difference bound for vectors whose corpus entry declares a non-zero tolerance (libm transcendental ulp variance)",
+    "comparedVectors": 192,
+    "toleranceBoundedVectors": 11,
+    "targetScopedVectors": 67,
+    "problems": []
+  },
+  "verdict": "EQUAL",
+  "claimBoundary": {
+    "note": "Equality is claimed only for the targets, corpus pin, and vector set named above. Each per-target receipt carries its own execution claim boundary; this receipt adds only cross-target value agreement."
+  },
+  "receiptHash": "sha256:9527de7852991e0e6a8f4d9634d8855a4f3cf2a3484c2f5288d190c3833e7fe4"
+}

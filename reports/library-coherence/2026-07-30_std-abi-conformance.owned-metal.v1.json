@@ -1,0 +1,1992 @@
+{
+  "schema": "holoscript.std-abi-conformance.owned-metal.v0",
+  "generatedAtISO": "2026-07-30T06:20:13.029Z",
+  "target": "owned-metal",
+  "executionRuntime": {
+    "engine": "compiler-wasm evaluate_trait_handler_v6 (WebAssembly)",
+    "evaluatorExport": "evaluate_trait_handler_v6",
+    "executedProjection": "std-abi-conformance.trait.hsplus (bundle copy, pin-verified)",
+    "wasmArtifactSha256": "sha256:fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
+    "sourceCommit": "05aee6eef275c1fa3dede3875e5b5f61f86651b8"
+  },
+  "sources": {
+    "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
+      "sha256": "sha256:83e3eb90693ad332c8adacddc77003d073ab578c506d83283b7a2c4b76c3fac0"
+    },
+    "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
+      "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
+    }
+  },
+  "hostAbi": {
+    "schema": "holoscript.std-host-abi.v0",
+    "bindingModuleSha256": "sha256:24276207657d239290568e375219396a9dbbbe0338bd38f2d66f54ac5698b4be",
+    "descriptorSha256": "sha256:3ea38d26f88a10e83fed63832c82a88de1d1d731319ab81a6625c2b7e84b0efc",
+    "claim": "host-binding vectors cross the wasm guest/host boundary into the bundled canonical JS binding on this hardware"
+  },
+  "environment": {
+    "node": "v20.20.2",
+    "arch": "arm64",
+    "platform": "linux",
+    "hostLabel": "jetson-orin",
+    "hostname": "holojetson",
+    "cpus": "Cortex-A78AE"
+  },
+  "summary": {
+    "vectors": 192,
+    "passed": 192,
+    "failed": 0,
+    "packagedVectors": 67,
+    "packagedSkipped": 0
+  },
+  "packagedExecution": {
+    "evaluatorExport": "evaluate_trait_handler_v6",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
+    "sources": {
+      "std_math": {
+        "bundleFile": "packaged-std_math.hsplus",
+        "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
+      },
+      "std_list": {
+        "bundleFile": "packaged-std_list.hsplus",
+        "sha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90"
+      },
+      "std_map": {
+        "bundleFile": "packaged-std_map.hsplus",
+        "sha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90"
+      },
+      "std_set": {
+        "bundleFile": "packaged-std_set.hsplus",
+        "sha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90"
+      }
+    },
+    "claim": "packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via evaluate_trait_handler_v6"
+  },
+  "results": [
+    {
+      "id": "lerp-mid",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "lerp-start",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2
+      }
+    },
+    {
+      "id": "lerp-end",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 4
+      }
+    },
+    {
+      "id": "lerp-signed",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2.5
+      }
+    },
+    {
+      "id": "lerp-fractional",
+      "op": "on_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2.2
+      }
+    },
+    {
+      "id": "clamp-inside",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "clamp-below",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "clamp-above",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "clamp-fractional",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "clamp-degenerate-range",
+      "op": "on_clamp",
+      "pass": true,
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "smoothstep-quarter",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "smoothstep-below-edge",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "smoothstep-above-edge",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "smoothstep-wide-range",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "smoothstep-offset-range",
+      "op": "on_smoothstep",
+      "pass": true,
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "remap-mid",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 50
+      }
+    },
+    {
+      "id": "remap-low-edge",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "remap-signed-out",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "remap-expand",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 4
+      }
+    },
+    {
+      "id": "remap-degrees",
+      "op": "on_remap",
+      "pass": true,
+      "actual": {
+        "value": 108
+      }
+    },
+    {
+      "id": "deg2rad-zero",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "deg2rad-half-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 3.141592653589793
+      }
+    },
+    {
+      "id": "deg2rad-quarter-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 1.5707963267948966
+      }
+    },
+    {
+      "id": "deg2rad-full-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 6.283185307179586
+      }
+    },
+    {
+      "id": "deg2rad-one-radian",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "rad2deg-zero",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 180
+      }
+    },
+    {
+      "id": "rad2deg-half-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 90
+      }
+    },
+    {
+      "id": "rad2deg-tau",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 360
+      }
+    },
+    {
+      "id": "rad2deg-one",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "actual": {
+        "value": 57.29577951308232
+      }
+    },
+    {
+      "id": "dot-basic",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": 32
+      }
+    },
+    {
+      "id": "dot-orthogonal",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "dot-fractional",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": -0.25
+      }
+    },
+    {
+      "id": "dot-ones",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "dot-negative",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "actual": {
+        "value": -20
+      }
+    },
+    {
+      "id": "cross-basis",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "cross-general",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "cross-fractional",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": -1.1875,
+        "y": -6.125,
+        "z": -4.125
+      }
+    },
+    {
+      "id": "cross-sequential",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "cross-parallel",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vlerp-mid",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "vlerp-start",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 1,
+        "y": 2,
+        "z": 3
+      }
+    },
+    {
+      "id": "vlerp-end",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 4,
+        "y": 5,
+        "z": 6
+      }
+    },
+    {
+      "id": "vlerp-quarter",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": -2,
+        "y": 4,
+        "z": 1
+      }
+    },
+    {
+      "id": "vlerp-fractional-t",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "actual": {
+        "x": 1.9,
+        "y": 2.9,
+        "z": 3.9
+      }
+    },
+    {
+      "id": "vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vlen-122",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "vlen-unit",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "vlen-fractional",
+      "op": "on_vec3_length",
+      "pass": true,
+      "actual": {
+        "value": 0.8660254037844386
+      }
+    },
+    {
+      "id": "vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-ones",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0.5773502691896258,
+        "y": 0.5773502691896258,
+        "z": 0.5773502691896258
+      }
+    },
+    {
+      "id": "vnorm-axis",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-512",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "actual": {
+        "x": 0,
+        "y": 0.38461538461538464,
+        "z": 0.9230769230769231
+      }
+    },
+    {
+      "id": "vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vdist-same",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "vdist-diagonal",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 1.7320508075688772
+      }
+    },
+    {
+      "id": "vdist-mixed",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 3.5355339059327378
+      }
+    },
+    {
+      "id": "vdist-236",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "qaxis-x-third",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.8660254037844387,
+        "x": 0.49999999999999994,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-y-one",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.8775825618903728,
+        "x": 0,
+        "y": 0.479425538604203,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-diagonal",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "actual": {
+        "w": 0.5000000000000001,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "qslerp-quarter-general",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.889117318538694,
+        "x": 0.17870630796170991,
+        "y": 0.21613343763264042,
+        "z": 0.31777837561756156
+      }
+    },
+    {
+      "id": "qslerp-shortest-nlerp",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qslerp-shortest-spherical",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.6668859288553503,
+        "x": 0.4616902584383194,
+        "y": 0.3847418820319328,
+        "z": 0.4360407996361905
+      }
+    },
+    {
+      "id": "qslerp-near-parallel",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.9991095955268614,
+        "x": 0.010501677514422186,
+        "y": 0.02050327514720522,
+        "z": 0.030504872779988257
+      }
+    },
+    {
+      "id": "qslerp-t0-positive",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "actual": {
+        "w": 0.9,
+        "x": 0.1,
+        "y": 0.2,
+        "z": 0.3
+      }
+    },
+    {
+      "id": "quat-identity",
+      "op": "on_quat_identity",
+      "pass": true,
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "qmul-identity-left",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-identity-right",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-general",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-half-turns",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "actual": {
+        "w": 0.5000000000000001,
+        "x": 0.5000000000000001,
+        "y": 0.5000000000000001,
+        "z": 0.5000000000000001
+      }
+    },
+    {
+      "id": "hclamp-above",
+      "op": "on_host_clamp",
+      "pass": true,
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "hclamp-inside",
+      "op": "on_host_clamp",
+      "pass": true,
+      "actual": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "hlerp-mid",
+      "op": "on_host_lerp",
+      "pass": true,
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "hlerp-frac",
+      "op": "on_host_lerp",
+      "pass": true,
+      "actual": {
+        "value": 2.2
+      }
+    },
+    {
+      "id": "hslerp-mid",
+      "op": "on_host_quat_slerp",
+      "pass": true,
+      "actual": {
+        "value": {
+          "w": 0.9238795325112867,
+          "x": 0,
+          "y": 0,
+          "z": 0.38268343236508984
+        }
+      }
+    },
+    {
+      "id": "hslerp-general",
+      "op": "on_host_quat_slerp",
+      "pass": true,
+      "actual": {
+        "value": {
+          "w": 0.889117318538694,
+          "x": 0.17870630796170991,
+          "y": 0.21613343763264042,
+          "z": 0.31777837561756156
+        }
+      }
+    },
+    {
+      "id": "hrange-default-step",
+      "op": "on_host_list_range",
+      "pass": true,
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hrange-up",
+      "op": "on_host_list_range",
+      "pass": true,
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hrange-down",
+      "op": "on_host_list_range",
+      "pass": true,
+      "actual": {
+        "value": [
+          10,
+          8,
+          6
+        ]
+      }
+    },
+    {
+      "id": "hrepeat-str",
+      "op": "on_host_list_repeat",
+      "pass": true,
+      "actual": {
+        "value": [
+          "ha",
+          "ha",
+          "ha"
+        ]
+      }
+    },
+    {
+      "id": "hrepeat-zero",
+      "op": "on_host_list_repeat",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hreverse-nums",
+      "op": "on_host_list_reverse",
+      "pass": true,
+      "actual": {
+        "value": [
+          4,
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "id": "hreverse-mixed",
+      "op": "on_host_list_reverse",
+      "pass": true,
+      "actual": {
+        "value": [
+          true,
+          1,
+          "a"
+        ]
+      }
+    },
+    {
+      "id": "hflatten-nested",
+      "op": "on_host_list_flatten",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hflatten-flat",
+      "op": "on_host_list_flatten",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hunique-dupes",
+      "op": "on_host_list_unique",
+      "pass": true,
+      "actual": {
+        "value": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "hunique-strings",
+      "op": "on_host_list_unique",
+      "pass": true,
+      "actual": {
+        "value": [
+          "b",
+          "a"
+        ]
+      }
+    },
+    {
+      "id": "hget-mid",
+      "op": "on_host_list_get",
+      "pass": true,
+      "actual": {
+        "value": 20
+      }
+    },
+    {
+      "id": "hget-first",
+      "op": "on_host_list_get",
+      "pass": true,
+      "actual": {
+        "value": "x"
+      }
+    },
+    {
+      "id": "hcontains-yes",
+      "op": "on_host_list_contains",
+      "pass": true,
+      "actual": {
+        "value": true
+      }
+    },
+    {
+      "id": "hcontains-no",
+      "op": "on_host_list_contains",
+      "pass": true,
+      "actual": {
+        "value": false
+      }
+    },
+    {
+      "id": "hindexof-hit",
+      "op": "on_host_list_index_of",
+      "pass": true,
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "hindexof-miss",
+      "op": "on_host_list_index_of",
+      "pass": true,
+      "actual": {
+        "value": -1
+      }
+    },
+    {
+      "id": "hjoin-default-separator",
+      "op": "on_host_list_join",
+      "pass": true,
+      "actual": {
+        "value": "a,b,c"
+      }
+    },
+    {
+      "id": "hjoin-dash",
+      "op": "on_host_list_join",
+      "pass": true,
+      "actual": {
+        "value": "a-b-c"
+      }
+    },
+    {
+      "id": "hjoin-nums",
+      "op": "on_host_list_join",
+      "pass": true,
+      "actual": {
+        "value": "1,2.5,3"
+      }
+    },
+    {
+      "id": "hzip-even",
+      "op": "on_host_list_zip",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            "x"
+          ],
+          [
+            2,
+            "y"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hzip-uneven",
+      "op": "on_host_list_zip",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hchunk-2",
+      "op": "on_host_list_chunk",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hchunk-big",
+      "op": "on_host_list_chunk",
+      "pass": true,
+      "actual": {
+        "value": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hmapset-new",
+      "op": "on_host_map_set",
+      "pass": true,
+      "actual": {
+        "value": {
+          "a": 1,
+          "b": 2
+        }
+      }
+    },
+    {
+      "id": "hmapset-overwrite",
+      "op": "on_host_map_set",
+      "pass": true,
+      "actual": {
+        "value": {
+          "a": 9
+        }
+      }
+    },
+    {
+      "id": "hmapget-hit",
+      "op": "on_host_map_get",
+      "pass": true,
+      "actual": {
+        "value": 2
+      }
+    },
+    {
+      "id": "hmapget-nested",
+      "op": "on_host_map_get",
+      "pass": true,
+      "actual": {
+        "value": {
+          "deep": true
+        }
+      }
+    },
+    {
+      "id": "hmapkeys-sorted",
+      "op": "on_host_map_keys",
+      "pass": true,
+      "actual": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "id": "hmapkeys-empty",
+      "op": "on_host_map_keys",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hmapmerge-bwins",
+      "op": "on_host_map_merge",
+      "pass": true,
+      "actual": {
+        "value": {
+          "x": 1,
+          "y": 9,
+          "z": 3
+        }
+      }
+    },
+    {
+      "id": "hmapmerge-empty",
+      "op": "on_host_map_merge",
+      "pass": true,
+      "actual": {
+        "value": {
+          "k": "v"
+        }
+      }
+    },
+    {
+      "id": "hmapsize-3",
+      "op": "on_host_map_size",
+      "pass": true,
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "hmapsize-0",
+      "op": "on_host_map_size",
+      "pass": true,
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "hsetadd-new",
+      "op": "on_host_set_add",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetadd-dupe",
+      "op": "on_host_set_add",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "hsethas-yes",
+      "op": "on_host_set_has",
+      "pass": true,
+      "actual": {
+        "value": true
+      }
+    },
+    {
+      "id": "hsethas-no",
+      "op": "on_host_set_has",
+      "pass": true,
+      "actual": {
+        "value": false
+      }
+    },
+    {
+      "id": "hsetunion-overlap",
+      "op": "on_host_set_union",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hsetunion-strings",
+      "op": "on_host_set_union",
+      "pass": true,
+      "actual": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "id": "hsetinter-common",
+      "op": "on_host_set_intersection",
+      "pass": true,
+      "actual": {
+        "value": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetinter-none",
+      "op": "on_host_set_intersection",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hsetdiff-some",
+      "op": "on_host_set_difference",
+      "pass": true,
+      "actual": {
+        "value": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetdiff-all",
+      "op": "on_host_set_difference",
+      "pass": true,
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "pkg-clamp-above",
+      "op": "on_clamp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 10
+    },
+    {
+      "id": "pkg-clamp-inside",
+      "op": "on_clamp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lerp-mid",
+      "op": "on_lerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-lerp-frac",
+      "op": "on_lerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 2.2
+    },
+    {
+      "id": "pkg-smoothstep-quarter",
+      "op": "on_smoothstep",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-smoothstep-offset",
+      "op": "on_smoothstep",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-remap-mid",
+      "op": "on_remap",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 50
+    },
+    {
+      "id": "pkg-deg2rad-half",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3.141592653589793
+    },
+    {
+      "id": "pkg-rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 180
+    },
+    {
+      "id": "pkg-vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 7
+    },
+    {
+      "id": "pkg-vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vdot-basic",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 32
+    },
+    {
+      "id": "pkg-vcross-general",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "pkg-vlerp-mid",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "pkg-vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-qidentity",
+      "op": "on_quat_identity",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-qmul-general",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "pkg-qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "pkg-qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "pkg-lrange-default-step",
+      "op": "on_range",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lrange-explicit-step",
+      "op": "on_range",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        8,
+        6,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "pkg-ljoin-default-separator",
+      "op": "on_join",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a,b,3"
+    },
+    {
+      "id": "pkg-ljoin-explicit-separator",
+      "op": "on_join",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a-b-3"
+    },
+    {
+      "id": "pkg-lreverse",
+      "op": "on_reverse",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "pkg-lflatten",
+      "op": "on_flatten",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lunique",
+      "op": "on_unique",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        3,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "pkg-lget",
+      "op": "on_get",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 20
+    },
+    {
+      "id": "pkg-lfirst",
+      "op": "on_first",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "x"
+    },
+    {
+      "id": "pkg-llast",
+      "op": "on_last",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "y"
+    },
+    {
+      "id": "pkg-lcontains",
+      "op": "on_contains",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lindexof",
+      "op": "on_index_of",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 1
+    },
+    {
+      "id": "pkg-llength",
+      "op": "on_length",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lisempty",
+      "op": "on_is_empty",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lzip",
+      "op": "on_zip",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          "x"
+        ],
+        [
+          2,
+          "y"
+        ]
+      ]
+    },
+    {
+      "id": "pkg-lchunk",
+      "op": "on_chunk",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5
+        ]
+      ]
+    },
+    {
+      "id": "pkg-mset",
+      "op": "on_set",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    {
+      "id": "pkg-mkeys",
+      "op": "on_keys",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "pkg-mmerge",
+      "op": "on_merge",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "x": 1,
+        "y": 9,
+        "z": 3
+      }
+    },
+    {
+      "id": "pkg-msize",
+      "op": "on_size",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": 2
+    },
+    {
+      "id": "pkg-sadd",
+      "op": "on_add",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sunion",
+      "op": "on_union",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-sinter",
+      "op": "on_intersection",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sdiff",
+      "op": "on_difference",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "packaged-list-of",
+      "op": "on_of",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        "x",
+        true
+      ]
+    },
+    {
+      "id": "packaged-list-from-map",
+      "op": "on_from",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          "a",
+          1
+        ],
+        [
+          "b",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "packaged-list-from-string",
+      "op": "on_from",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        "A",
+        "😀"
+      ]
+    },
+    {
+      "id": "packaged-list-repeat",
+      "op": "on_repeat",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        "x",
+        "x",
+        "x"
+      ]
+    },
+    {
+      "id": "packaged-list-map-callable",
+      "op": "on_map",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        20,
+        31
+      ]
+    },
+    {
+      "id": "packaged-list-flat-map-callable",
+      "op": "on_flat_map",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        10,
+        2,
+        20
+      ]
+    },
+    {
+      "id": "packaged-list-filter-callable",
+      "op": "on_filter",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        2,
+        4
+      ]
+    },
+    {
+      "id": "packaged-list-reduce-callable",
+      "op": "on_reduce",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 9
+    },
+    {
+      "id": "packaged-list-sort-callable",
+      "op": "on_sort",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "packaged-list-to-array",
+      "op": "on_to_array",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        {
+          "x": true
+        }
+      ]
+    },
+    {
+      "id": "packaged-list-to-set",
+      "op": "on_to_set",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "packaged-map-get",
+      "op": "on_get",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": 1
+    },
+    {
+      "id": "packaged-map-has",
+      "op": "on_has",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": true
+    },
+    {
+      "id": "packaged-map-delete",
+      "op": "on_delete",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "b": 2
+      }
+    },
+    {
+      "id": "packaged-map-values",
+      "op": "on_values",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "packaged-map-entries",
+      "op": "on_entries",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        [
+          "a",
+          1
+        ],
+        [
+          "b",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "packaged-map-values-callable",
+      "op": "on_map_values",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": {
+          "key": "a",
+          "value": 1
+        },
+        "b": {
+          "key": "b",
+          "value": 2
+        }
+      }
+    },
+    {
+      "id": "packaged-map-filter-callable",
+      "op": "on_filter_entries",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": 1
+      }
+    },
+    {
+      "id": "packaged-set-has",
+      "op": "on_has",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": true
+    },
+    {
+      "id": "packaged-set-delete",
+      "op": "on_delete",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "packaged-set-to-array",
+      "op": "on_to_array",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "packaged-set-size",
+      "op": "on_size",
+      "pass": true,
+      "packaged": true,
+      "trait": "std_set",
+      "actual": 3
+    }
+  ],
+  "claimBoundary": {
+    "provesOwnedMetalWasmExecution": true,
+    "provesNodeDeterministicSubsetExecution": false,
+    "note": "Executed the self-pinned runner and generated trait projection from HoloScript 05aee6eef275c1fa3dede3875e5b5f61f86651b8 through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts."
+  },
+  "receiptHash": "sha256:67de6eda8481db020d5804c8687f7d8c4647ac936114f0c8b21f27a63ae9a60c"
+}

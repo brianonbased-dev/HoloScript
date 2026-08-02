@@ -150,6 +150,18 @@ export function evaluate_trait_handler_v5(source: string, trait_name: string, ha
  */
 export function evaluate_trait_handler_v6(source: string, trait_name: string, handler_name: string, args_json: string, host_bindings: any): string;
 
+/**
+ * Evaluate one packaged trait's `@on_spawn` body into an inert lifecycle
+ * effect-intent envelope.
+ *
+ * The v8 lifecycle boundary validates and records source-ordered packaged
+ * factory bindings plus `emit(event, payload)` operations. It never invokes a
+ * host function, dispatches an event, starts a timer, performs I/O, or mutates
+ * runtime state. The injected host bindings are inspected only to validate
+ * namespace custody and collision-free packaged factory handles.
+ */
+export function evaluate_trait_spawn_v1(source: string, trait_name: string, host_bindings: any): string;
+
 export function init(): void;
 
 /**

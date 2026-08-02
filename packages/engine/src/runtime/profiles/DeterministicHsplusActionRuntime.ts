@@ -42,9 +42,35 @@ export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V6 =
 export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7 =
   'holoscript-engine-hsplus-deterministic-action-subset-v7-packaged-traits' as const;
 
+export const ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V8 =
+  'holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents' as const;
+
 export type DeterministicHostBindings = Readonly<
   Record<string, Readonly<Record<string, (...args: HeadlessJsonValue[]) => unknown>>>
 >;
+
+export type DeterministicLifecycleOperation =
+  | Readonly<{
+      kind: 'bind_factory';
+      alias: string;
+      factory: string;
+      namespaces: readonly string[];
+    }>
+  | Readonly<{
+      kind: 'emit';
+      event: string;
+      payload: HeadlessJsonValue;
+    }>;
+
+export interface DeterministicLifecycleEffectIntent {
+  readonly schema: 'holoscript.lifecycle-effect-intent.v0';
+  readonly subsetId: typeof ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V8;
+  readonly trait: string;
+  readonly handler: 'on_spawn';
+  readonly operations: readonly DeterministicLifecycleOperation[];
+  readonly result: null;
+  readonly dispatched: false;
+}
 
 export interface DeterministicHsplusActionRuntimeOptions {
   /**
@@ -112,6 +138,7 @@ const MAX_AST_NODES = 512;
 const MAX_AST_NODES_V3 = 4096;
 const MAX_AST_DEPTH = 32;
 const MAX_EVENT_NAME_LENGTH = 128;
+const MAX_LIFECYCLE_OPERATIONS = 64;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const RESERVED_PARAMETER_NAMES = new Set(['state']);
@@ -552,6 +579,28 @@ function parseSpawnFactoryAliases(
     aliases.set(statement.target, namespaces);
   }
   return aliases;
+}
+
+function parseStructuredSpawnAction(trait: RawHsplusTrait): HoloAction {
+  const spawn = trait.handlers.get('on_spawn');
+  if (!spawn) fail(`@trait "${trait.name}" has no on_spawn handler`);
+  if (spawn.params.length !== 0) {
+    fail(`@trait "${trait.name}" on_spawn must declare zero parameters`);
+  }
+
+  const structured = parseHolo(syntheticActionSource(trait.name, spawn, 'spawn'));
+  if (!structured.success || !structured.ast) {
+    fail(
+      `@trait "${trait.name}" on_spawn structured parse failed: ${structured.errors
+        .map((error: { message: string }) => error.message)
+        .join('; ')}`
+    );
+  }
+  const action = structured.ast.logic?.actions?.[0];
+  if (!action || action.name !== 'on_spawn') {
+    fail(`@trait "${trait.name}" on_spawn did not preserve its structured action`);
+  }
+  return action;
 }
 
 function bindPackagedFactoryAliases(
@@ -1580,8 +1629,10 @@ export class DeterministicHsplusActionRuntime {
  * The canonical HoloScriptPlusParser consumes the original source bytes and
  * preserves each authored handler body. Each invoked body is then parsed by
  * the same structured action parser/evaluator used above. Approved zero-arg
- * std factories are statically lifted from `@on_spawn`; no lifecycle side
- * effect is executed.
+ * std factories are statically lifted from `@on_spawn`; ordinary handler
+ * invocation never executes lifecycle side effects. `invokeLifecycle()` is a
+ * separate bounded rail that evaluates `on_spawn` into an ordered, inert
+ * effect-intent envelope. It never dispatches an event or host capability.
  */
 export class DeterministicHsplusTraitRuntime {
   private readonly trait: RawHsplusTrait;
@@ -1627,6 +1678,105 @@ export class DeterministicHsplusTraitRuntime {
     return {};
   }
 
+  invokeLifecycle(): DeterministicLifecycleEffectIntent {
+    const action = parseStructuredSpawnAction(this.trait);
+    const spawn = this.trait.handlers.get('on_spawn');
+    if (!spawn) fail(`@trait "${this.trait.name}" has no on_spawn handler`);
+    if (action.body.length > MAX_LIFECYCLE_OPERATIONS) {
+      fail(
+        `@trait "${this.trait.name}" on_spawn exceeds ${MAX_LIFECYCLE_OPERATIONS} operations`
+      );
+    }
+
+    // Constructing the alias surface validates backing namespaces and union
+    // collisions, but does not call any host function.
+    const boundHostBindings = bindPackagedFactoryAliases(
+      this.trait,
+      spawn,
+      this.hostBindings
+    );
+    const environment: EvaluationEnvironment = {
+      state: {},
+      args: {},
+      numericBuiltins: true,
+      localBindings: true,
+      locals: {},
+      hostBindings: boundHostBindings,
+      nullCoalescing: true,
+    };
+    const operations: DeterministicLifecycleOperation[] = [];
+    const aliases = new Set<string>();
+
+    for (const statement of action.body) {
+      if (statement.type === 'Assignment') {
+        if (
+          statement.operator !== '=' ||
+          !IDENTIFIER.test(statement.target) ||
+          DANGEROUS_KEYS.has(statement.target) ||
+          statement.value.type !== 'CallExpression' ||
+          statement.value.callee.type !== 'Identifier' ||
+          statement.value.arguments.length !== 0
+        ) {
+          fail(
+            `@trait "${this.trait.name}" on_spawn assignment is outside the lifecycle subset`
+          );
+        }
+        const namespaces = PACKAGED_FACTORIES.get(statement.value.callee.name);
+        if (!namespaces) {
+          fail(
+            `@trait "${this.trait.name}" on_spawn factory "${statement.value.callee.name}" is not admitted`
+          );
+        }
+        if (aliases.has(statement.target)) {
+          fail(
+            `@trait "${this.trait.name}" on_spawn declares duplicate factory alias "${statement.target}"`
+          );
+        }
+        aliases.add(statement.target);
+        operations.push({
+          kind: 'bind_factory',
+          alias: statement.target,
+          factory: statement.value.callee.name,
+          namespaces: [...namespaces],
+        });
+        continue;
+      }
+
+      if (statement.type === 'EmitStatement') {
+        if (
+          statement.event.length === 0 ||
+          new TextEncoder().encode(statement.event).byteLength > MAX_EVENT_NAME_LENGTH ||
+          /[\u0000-\u001f\u007f]/u.test(statement.event)
+        ) {
+          fail(`@trait "${this.trait.name}" on_spawn event name is invalid`);
+        }
+        const payload = statement.data
+          ? evaluateExpression(statement.data, environment)
+          : null;
+        operations.push({
+          kind: 'emit',
+          event: statement.event,
+          payload: toStrictJson(payload, `event "${statement.event}" payload`),
+        });
+        continue;
+      }
+
+      fail(
+        `@trait "${this.trait.name}" on_spawn statement "${String(statement.type)}" is outside the lifecycle subset`
+      );
+    }
+
+    return {
+      schema: 'holoscript.lifecycle-effect-intent.v0',
+      subsetId: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V8,
+      trait: this.trait.name,
+      handler: 'on_spawn',
+      operations,
+      result: null,
+      dispatched: false,
+    };
+  }
+
   invoke(entry: HeadlessExperimentScheduleEntry): HeadlessExperimentInvocationResult {
     if (entry.kind !== 'observation') {
       fail('packaged trait handlers are admitted as deterministic observations only');
@@ -1634,6 +1784,9 @@ export class DeterministicHsplusTraitRuntime {
     const handler = this.trait.handlers.get(entry.entrypoint);
     if (!handler) {
       fail(`@trait "${this.trait.name}" has no handler "${entry.entrypoint}"`);
+    }
+    if (handler.name === 'on_spawn') {
+      fail('on_spawn must execute through invokeLifecycle()');
     }
     let runtime = this.handlerRuntimes.get(handler.name);
     if (!runtime) {
