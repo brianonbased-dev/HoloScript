@@ -266,6 +266,14 @@ describe('AndroidCompiler', () => {
       expect(result.buildGradle).toContain('dependencies');
     });
 
+    it('emits caller-supplied Android release identity', () => {
+      const releaseCompiler = new AndroidCompiler({ versionCode: 1000, versionName: '0.1.0' });
+      const result = releaseCompiler.compile(createComposition());
+
+      expect(result.buildGradle).toContain('versionCode = 1000');
+      expect(result.buildGradle).toContain('versionName = "0.1.0"');
+    });
+
     it('includes the SceneView dependency (pulls ARCore + Filament transitively)', () => {
       const composition = createComposition();
       const result = compiler.compile(composition);

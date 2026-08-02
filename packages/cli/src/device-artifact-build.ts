@@ -15,6 +15,7 @@ import AdmZip from 'adm-zip';
 
 import {
   materializeDevicePackage,
+  type AndroidUpdateContract,
   type DevicePackageMaterialization,
 } from './device-package-materialization';
 import type { DeviceReleasePlanInput } from './device-release-plan';
@@ -85,6 +86,8 @@ export interface AndroidDeviceArtifactReceipt {
     readonly targetSdk: 36;
     readonly abi: 'arm64-v8a';
   };
+  readonly release: AndroidUpdateContract['release'];
+  readonly rollback: AndroidUpdateContract['rollback'];
   readonly reproducibility: {
     readonly sourceDateEpoch: typeof SOURCE_DATE_EPOCH;
     readonly apkSha256: string;
@@ -276,6 +279,9 @@ function buildAndroidArtifacts(
   runner: DeviceArtifactCommandRunner
 ): DeviceArtifactBuildResult {
   const gradleCommand = resolveGradleCommand();
+  const updateContract = JSON.parse(
+    materialization.files['packaging/android-update-contract.json']
+  ) as AndroidUpdateContract;
   const inputTreeSha256 = stableTreeHash(outputDirectory);
   const artifactsDirectory = join(outputDirectory, 'artifacts');
   mkdirSync(artifactsDirectory, { recursive: true });
@@ -361,6 +367,8 @@ function buildAndroidArtifacts(
       targetSdk: 36,
       abi: 'arm64-v8a',
     },
+    release: updateContract.release,
+    rollback: updateContract.rollback,
     reproducibility: {
       sourceDateEpoch: SOURCE_DATE_EPOCH,
       apkSha256,

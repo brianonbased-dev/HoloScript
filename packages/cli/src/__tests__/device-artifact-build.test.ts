@@ -145,6 +145,15 @@ describe('device artifact build', () => {
       profileId: 'android-arm64',
       reproducibility: { byteIdentical: true, sourceDateEpoch: '0' },
       toolchain: { compileSdk: 36, targetSdk: 36, abi: 'arm64-v8a' },
+      release: {
+        applicationId: 'dev.holoscript.holonode',
+        versionName: '0.1.0',
+        versionCode: 1000,
+      },
+      rollback: {
+        strategy: 'forward-fix',
+        directDowngradeAllowed: false,
+      },
     });
     expect(result.receipt.artifacts).toEqual(
       expect.arrayContaining([
