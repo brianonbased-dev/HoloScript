@@ -14,6 +14,7 @@
     "bin",
     "dist",
     "!dist/**/*.map",
+    "src/traits/trait-registry.json",
     "README.md",
     "LICENSE"
   ],

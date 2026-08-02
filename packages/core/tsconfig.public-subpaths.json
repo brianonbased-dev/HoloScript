@@ -2,6 +2,8 @@
   "extends": "./tsconfig.json",
   "include": [
     "src/math/tropicalSpmv.ts",
+    "src/parser/HoloCompositionTypes.ts",
+    "src/parser/NFTMarketplaceTypes.ts",
     "src/traits/engines/index.ts",
     "src/parameter-envelope/index.ts",
     "src/plugin-manifest/index.ts",
