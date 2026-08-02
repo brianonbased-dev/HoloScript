@@ -24,6 +24,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadDotenv } from '../load-dotenv.mjs';
+import { findPackedTargetFindings } from './package-pack-contract.mjs';
 
 loadDotenv();
 
@@ -236,6 +237,27 @@ function packageManagerWarning() {
   }
 }
 
+function assertPackedTargets(manifest, packageDir) {
+  const output = runNpm(['pack', '--dry-run', '--json', '--ignore-scripts'], {
+    cwd: packageDir,
+    timeout: 300_000,
+  });
+  const parsed = JSON.parse(output.trim());
+  const pack = Array.isArray(parsed) ? parsed[0] : parsed;
+  const files = (pack?.files || []).map((file) => file.path);
+  const findings = findPackedTargetFindings(manifest, files);
+  if (findings.length > 0) {
+    throw new Error(
+      `packed target contract failed for ${manifest.name}@${manifest.version}:\n${findings
+        .map((finding) => `- ${finding.note}`)
+        .join('\n')}`
+    );
+  }
+  console.log(
+    `[publish-npm-package] packed-target PASS ${manifest.name}@${manifest.version} files=${files.length}`
+  );
+}
+
 const packages = workspacePackages();
 const record = packages.get(PACKAGE_NAME);
 if (!record) {
@@ -273,6 +295,7 @@ try {
       `[publish-npm-package] rewrite ${rewrite.field}.${rewrite.depName}: ${rewrite.from} -> ${rewrite.to}`
     );
   }
+  assertPackedTargets(manifest, record.dir);
   runNpm(publishArgs, {
     cwd: record.dir,
     stdio: 'inherit',

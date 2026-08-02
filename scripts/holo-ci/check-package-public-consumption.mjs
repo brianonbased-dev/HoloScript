@@ -13,9 +13,10 @@
  * For each package it:
  *   1. resolves the ACTUAL published fileset via `npm pack --dry-run --json`
  *   2. scans every included file's CONTENT for private-process leaks
- *   3. checks package.json completeness (license, access, files, entrypoint, metadata)
- *   4. checks the README carries an install path, usage example, and consumption contract
- *   5. checks the tarball boundary (no ../, no .scratch/, LICENSE present)
+ *   3. proves every declared JS, type, bin, export, and HoloScript target is in that fileset
+ *   4. checks package.json completeness (license, access, files, entrypoint, metadata)
+ *   5. checks the README carries an install path, usage example, and consumption contract
+ *   6. checks the tarball boundary (no ../, no .scratch/, LICENSE present)
  *
  * BLOCKER findings fail the gate (exit 1); WARN findings surface but do not block.
  *
@@ -30,6 +31,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findPackedTargetFindings } from './package-pack-contract.mjs';
 
 // HoloScript port of ai-ecosystem/scripts/check-package-public-consumption.mjs. Keep the leak
 // patterns + secret/README-contract logic in LOCKSTEP with that file (the shared tuned ratchet);
@@ -379,6 +381,7 @@ function checkPackage(pkgDir) {
     return { package: pkgDir, name: pkg.name, ok: false, findings };
   }
   const files = (pack.files || []).map((f) => f.path);
+  findings.push(...findPackedTargetFindings(pkg, files));
   const hasReadme = files.some((f) => /^README(\.md)?$/iu.test(f));
   const hasLicense = files.some((f) => /^LICENSE/iu.test(f));
   if (!hasReadme) add('BLOCKER', 'no-readme-in-tarball', 'README not in published files');
@@ -713,6 +716,57 @@ function runSelfTest() {
         process.stdout.write(`  ok   ${fx.file}: ${fx.expect ? `caught ${fx.expect}` : 'clean'}\n`);
       }
     }
+
+    const missingTargets = findPackedTargetFindings(
+      {
+        main: 'dist/index.cjs',
+        types: 'dist/index.d.ts',
+        exports: { '.': { import: './dist/index.js', require: './dist/index.cjs' } },
+        holoscript: { entrypoint: './src/library.hsplus' },
+      },
+      ['package.json', 'dist/index.cjs', 'src/library.hsplus']
+    );
+    const missingNotes = missingTargets.map((finding) => finding.note);
+    if (
+      missingTargets.length !== 2 ||
+      !missingNotes.some((note) => note.includes('types declares')) ||
+      !missingNotes.some((note) => note.includes('exports["."]["import"] declares'))
+    ) {
+      failures += 1;
+      process.stdout.write(
+        `  FAIL packed-target-missing: expected missing types and ESM findings, got ${JSON.stringify(missingTargets)}\n`
+      );
+    } else {
+      process.stdout.write('  ok   packed-target-missing: caught missing types and ESM files\n');
+    }
+
+    const completeTargets = findPackedTargetFindings(
+      {
+        main: './dist/index.cjs',
+        exports: {
+          '.': { import: './dist/index.js', require: './dist/index.cjs' },
+          './features/*': './dist/features/*.js',
+        },
+        bin: { holo: './bin/holo.js' },
+        holoscript: { entrypoint: './src/library.hsplus' },
+      },
+      [
+        'package.json',
+        'dist/index.js',
+        'dist/index.cjs',
+        'dist/features/math.js',
+        'bin/holo.js',
+        'src/library.hsplus',
+      ]
+    );
+    if (completeTargets.length !== 0) {
+      failures += 1;
+      process.stdout.write(
+        `  FAIL packed-target-complete: expected no findings, got ${JSON.stringify(completeTargets)}\n`
+      );
+    } else {
+      process.stdout.write('  ok   packed-target-complete: static and wildcard targets are closed\n');
+    }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -721,7 +775,7 @@ function runSelfTest() {
     process.exit(1);
   }
   process.stdout.write(
-    '\nSELF-TEST PASSED: every seeded leak is blocked and every generic value stays clean.\n'
+    '\nSELF-TEST PASSED: seeded leaks and missing packed targets block; valid values and targets stay clean.\n'
   );
 }
 
