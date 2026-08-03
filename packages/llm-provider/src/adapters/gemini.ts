@@ -257,6 +257,12 @@ interface GeminiResponse {
     promptTokenCount: number;
     candidatesTokenCount: number;
     totalTokenCount: number;
+    /**
+     * Tokens served from Gemini context caching. A SUBSET of
+     * `promptTokenCount`, not an addition to it. Absent when no cached
+     * content was used.
+     */
+    cachedContentTokenCount?: number;
   };
   error?: {
     code: number;
@@ -654,6 +660,10 @@ export function parseGeminiResponse(
       promptTokens: usage?.promptTokenCount ?? 0,
       completionTokens: usage?.candidatesTokenCount ?? 0,
       totalTokens: usage?.totalTokenCount ?? 0,
+      // Left undefined (not 0) when Gemini omits the field — undefined means
+      // "not reported", 0 would falsely assert a cache miss. Gemini has no
+      // cache-write counter, so `cacheWriteTokens` is never set here.
+      cacheReadTokens: usage?.cachedContentTokenCount,
     },
     model: fallbackModel,
     provider: 'gemini' as const,

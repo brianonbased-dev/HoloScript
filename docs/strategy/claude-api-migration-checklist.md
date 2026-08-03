@@ -106,7 +106,12 @@ Verified 2026-05-11 by reading `packages/llm-provider/src/adapters/anthropic.ts`
 - [ ] **Add SDK version-floor CI test** (✅ see `packages/llm-provider/src/__tests__/sdk-version-floor.test.ts`).
 - [ ] **Add retired-model regression test** — scan all TS files for hardcoded retired model IDs, fail CI if any found.
 - [ ] **Add "Opus 4.7 compatibility" test** — spin up a mock Anthropic server, run adapter + brittney flow, assert no 400s from unsupported params.
-- [ ] **Add cache-hit telemetry** — log `usage.cache_read_input_tokens` at each call site. Fail a smoke test if cache hit rate is zero across 10 consecutive identical-prefix calls.
+- [x] **Add cache-hit telemetry** — done 2026-08-03. `TokenUsage` now carries `cacheReadTokens` / `cacheWriteTokens`, mapped in `AnthropicAdapter.mapUsage()` for both `complete()` and `streamCompletion()`. Smoke tests in `anthropic-prompt-caching.test.ts` assert a non-zero hit rate across 10 consecutive identical-prefix calls, plus an inverse test proving a varying prefix drives the rate to zero.
+  - **This was an accounting bug, not just missing observability.** Anthropic's `input_tokens` is only the *uncached remainder*, so the previous `input_tokens + output_tokens` sum under-reported the prompt by the entire cached prefix — worst exactly when caching worked best. `promptTokens` now means the full prompt (cached slice included), matching the OpenAI-shaped adapters.
+  - Consumers updated: `holoscript-agent`'s ablation pricer now splits cache read/write out at their own multipliers instead of billing everything at the base input rate.
+- [x] **Add cache-miss diagnostics** — done 2026-08-03. Beta `cache-diagnosis-2026-04-07` via `provider.anthropic.cacheDiagnostics`; response carries `cacheMissReason` naming the divergence point. Claude API only (not Bedrock, not Google Cloud).
+  - **Verified as of 2026-08-03:** the emitted request shape — `anthropic-beta: cache-diagnosis-2026-04-07` on the header and `diagnostics.previous_message_id` in the body — is asserted by unit tests in `anthropic-prompt-caching.test.ts`, as is the response mapping of `cache_miss_reason`.
+  - **Not yet verified:** that the live API returns a populated `cache_miss_reason` for this request shape, since that needs a real key. **To close:** run one two-turn conversation against the live API with a deliberately mutated system prompt on turn 2 and assert `cacheMissReason.type === 'system_changed'`. Until then treat an always-absent `cacheMissReason` as inconclusive rather than as "no divergence".
 
 ### Docs
 
@@ -121,7 +126,8 @@ Every HoloScript package that uses the Claude API now inherits, via `@holoscript
 
 1. ✅ **Opus 4.7 safe** — no sampling params sent on 4.7, no 400 errors
 2. ✅ **Streaming by default** for long outputs — no HTTP timeouts (`stream().finalMessage()` + `streamCompletion()` generator)
-3. ✅ **Prompt caching** on system+tools block AND extended message-turn breakpoints — ~90% cost reduction on hot prefixes within 5-min/1-hr TTL
+3. ✅ **Prompt caching** on system+tools block AND extended message-turn breakpoints — ~90% cost reduction on hot prefixes, with `cacheReadTokens` telemetry to prove it is actually landing.
+   - **Corrected 2026-08-03:** this line previously claimed "within 5-min/1-hr TTL". Only the 5-minute TTL was ever emitted — `ttl` was typed on `CacheControlEphemeral` but no code path set it. The 1-hour TTL now ships behind `AnthropicProviderConfig.promptCacheTtl`, defaulting to `'5m'` so the existing prefix bytes are unchanged. Callers whose ticks are spaced beyond 5 minutes (scheduled runners, Jetson edge loops) should set `'1h'` — until they do, they pay the 1.25× write premium on every call and never read back, which is strictly worse than caching off.
 4. ✅ **Typed SDK exceptions** — proper retry logic; `withRetry` on `complete()`, surfaced distinctly through `streamCompletion()` (no retry to avoid SSE corruption)
 5. ✅ **Adaptive thinking** on Opus/Sonnet 4.x — defaulted, with effort routing
 6. ⚠️ **Structured outputs** via `output_config.format` — pass-through plumbed, schema codegen still open

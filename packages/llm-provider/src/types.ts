@@ -552,12 +552,33 @@ export interface LLMCompletionResponse {
    */
   moderationResult?: InlineModerationResult;
 
+  /**
+   * Prompt-cache divergence report (Anthropic, beta `cache-diagnosis-2026-04-07`).
+   *
+   * Present only when `provider.anthropic.cacheDiagnostics` was set AND the
+   * API produced a comparison that found a divergence. Absent means one of:
+   * not requested, first turn, comparison still pending, or no divergence —
+   * all of which are "nothing to act on", so they collapse to `undefined`
+   * rather than forcing callers to discriminate four null-ish states.
+   *
+   * `type` is the first divergence point only; later ones may be hidden
+   * behind it, so fix this one and re-measure.
+   */
+  cacheMissReason?: { type: string; cacheMissedInputTokens?: number };
+
   /** Raw response from the provider (for debugging) */
   raw?: unknown;
 }
 
 export interface TokenUsage {
-  /** Tokens in the prompt/input */
+  /**
+   * Tokens in the prompt/input.
+   *
+   * This is the FULL prompt, including any portion served from or written to
+   * a provider-side prompt cache. `cacheReadTokens` and `cacheWriteTokens`
+   * are subsets of this number, not additions to it — do not add them back
+   * in when computing totals.
+   */
   promptTokens: number;
 
   /** Tokens in the completion/output */
@@ -565,6 +586,28 @@ export interface TokenUsage {
 
   /** Total tokens used */
   totalTokens: number;
+
+  /**
+   * Subset of `promptTokens` served from a provider-side prompt cache, billed
+   * at a discount (Anthropic: ~0.1x base input rate).
+   *
+   * This is the only signal that prompt caching is actually working — a run
+   * of calls with a stable prefix and `cacheReadTokens === 0` means something
+   * is silently invalidating the cache. Omitted by providers that do not
+   * report cache usage; treat `undefined` as "unknown", not as "zero".
+   */
+  cacheReadTokens?: number;
+
+  /**
+   * Subset of `promptTokens` written to a provider-side prompt cache, billed
+   * at a premium (Anthropic: 1.25x base input for the 5-minute TTL, 2x for
+   * the 1-hour TTL).
+   *
+   * Cost models MUST price this separately from the rest of `promptTokens`;
+   * charging it at the base input rate under-reports every cache write.
+   * Omitted by providers that do not report cache usage.
+   */
+  cacheWriteTokens?: number;
 
   /** False when compatibility zeroes are present because the provider omitted usage. */
   reported?: boolean;
@@ -725,10 +768,17 @@ export interface AnthropicProviderConfig extends LLMProviderConfig {
    *
    * Cost shape: cache writes cost ~1.25× input on the FIRST request with
    * a given prefix; subsequent reads cost ~0.1× input. For a stable
-   * `system` ≥ the model's minimum cacheable prefix (Opus 4.7 / Opus 4.6
-   * / Haiku 4.5: 4096 tokens; Sonnet 4.6: 2048 tokens; Opus 4.8: 1024 tokens), break-even is
-   * 2 requests with 5-min TTL. Below the minimum the request is sent
-   * unchanged — no error, just no cache benefit.
+   * `system` at or above the model's minimum cacheable prefix, break-even
+   * is 2 requests with the 5-min TTL. The minimum is per-model and NOT
+   * monotonic across generations:
+   *   512   Opus 5, Fable 5, Mythos 5
+   *   1024  Opus 4.8, Sonnet 5, Sonnet 4.6, Sonnet 4.5, Opus 4.1
+   *   2048  Opus 4.7, Mythos Preview, Haiku 3.5
+   *   4096  Opus 4.6, Opus 4.5, Haiku 4.5
+   * Below the minimum the request is sent unchanged — no error, just no
+   * cache benefit. Confirm with `TokenUsage.cacheReadTokens` rather than
+   * reasoning about the threshold; a below-minimum prefix and a silently
+   * invalidated one look identical from the outside.
    *
    * Default: `true`. Caching is the right default for almost every Claude
    * API call: agent runners get the full ~10× per-tick reduction; code-gen
@@ -755,6 +805,31 @@ export interface AnthropicProviderConfig extends LLMProviderConfig {
    * where mid-turn breakpoints add cost without reuse.
    */
   maxCacheBreakpoints?: number;
+
+  /**
+   * Time-to-live for prompt cache entries. Applies to every breakpoint this
+   * adapter emits.
+   *
+   * `'5m'` (default) costs 1.25× base input to write and 0.1× to read —
+   * break-even at 2 requests. `'1h'` costs 2× to write, same 0.1× to read —
+   * break-even at 3.
+   *
+   * **Choose by the gap between calls, not by volume.** A caller whose
+   * requests are spaced further apart than 5 minutes gets a cold cache on
+   * every single call with the default: it pays the 1.25× write premium and
+   * never reads, which is strictly worse than disabling caching outright.
+   * Scheduled runners, edge/Jetson tick loops, and any cron-driven agent are
+   * the cases that want `'1h'`. Interactive and tight tool-loop callers
+   * should stay on `'5m'`.
+   *
+   * Verify the choice rather than assuming it: `TokenUsage.cacheReadTokens`
+   * staying at 0 across consecutive same-prefix calls means the entry is
+   * expiring before reuse, and the TTL needs to go up (or caching should be
+   * turned off for that caller).
+   *
+   * Default: `'5m'`.
+   */
+  promptCacheTtl?: '5m' | '1h';
 }
 
 export interface GeminiProviderConfig extends LLMProviderConfig {
@@ -1207,6 +1282,43 @@ export interface AnthropicProviderExtensions {
   taskBudget?: { type: 'tokens'; total: number };
   /** Beta `compact-2026-01-12` — server-side conversation compaction (4.6+). */
   compaction?: { type: 'compact_20260112' };
+  /**
+   * Beta `cache-diagnosis-2026-04-07` — diagnose unexpected prompt-cache misses.
+   *
+   * Set this and the response carries a `cacheMissReason` naming the first
+   * point where the prompt prefix diverged from the previous request
+   * (`model_changed` / `system_changed` / `tools_changed` / `messages_changed`),
+   * instead of leaving you to diff prompt bytes by hand.
+   *
+   * `previousMessageId` is caller-owned, not adapter-tracked: one adapter
+   * instance serves many concurrent conversations, so the id has to travel
+   * with the conversation. Pass `null` on the first turn to opt in with
+   * nothing to compare against, then the prior response's message id.
+   *
+   * Claude API only — unavailable on Amazon Bedrock and Google Cloud. Pair it
+   * with `TokenUsage.cacheReadTokens`: that field says whether the cache hit,
+   * this one says why it didn't.
+   */
+  cacheDiagnostics?: { previousMessageId: string | null };
+  /**
+   * KVFlow-derived hints for cache-breakpoint placement.
+   *
+   * Breakpoints are a scarce budget (4 per request, one spent on the
+   * system+tools prefix). Without hints the adapter allocates the rest by
+   * recency, which systematically spends them on the conversation tail —
+   * the most ephemeral, least reusable content in the request.
+   *
+   * Supply hints to rank by reuse value instead: `shared-prefix` beats
+   * `role-overlay` beats `scene-turn`, and within a scope a lower
+   * `stepsToExecution` (sooner reuse) wins. Partial hints are fine — unhinted
+   * turns fall back to recency behind any hinted ones.
+   *
+   * `messageIndex` addresses YOUR `messages` array, system entries included;
+   * the adapter translates to its own indexing. Build these from a
+   * `KVFlowCacheManager` / `AgentStepGraph`, or hand-roll them — the planner
+   * (`planCacheBreakpoints`) takes plain data, not a manager handle.
+   */
+  cacheHints?: import('./kvflow/breakpoint-planner').CacheBreakpointHint[];
   /** Opt-in beta headers (e.g. `managed-agents-2026-04-01`, `advisor-tool-2026-03-01`). */
   betaHeaders?: string[];
   /**

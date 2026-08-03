@@ -26,19 +26,62 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Hoisted mock state so we can inspect what client.messages.stream() saw.
 // vi.hoisted() runs BEFORE vi.mock(), so the closure variable is in scope
 // when the mock factory captures it.
-const { streamCalls } = vi.hoisted(() => ({ streamCalls: [] as Array<Record<string, unknown>> }));
+const { streamCalls, mockUsage, cacheSim, mockResponseExtras, streamOptionsCalls } = vi.hoisted(
+  () => ({
+    streamCalls: [] as Array<Record<string, unknown>>,
+    // Mutable so the cache-telemetry tests can drive what the SDK reports back.
+    // Reset to the default shape in beforeEach; every other test relies on it.
+    mockUsage: { current: { input_tokens: 10, output_tokens: 5 } as Record<string, number> },
+    // Opt-in prefix-match cache simulation for the hit-rate smoke test.
+    cacheSim: { enabled: false, seen: new Set<string>() },
+    // Extra top-level fields spliced onto the mock response (e.g. `diagnostics`).
+    mockResponseExtras: { current: {} as Record<string, unknown> },
+    // Second argument to stream() — carries the `anthropic-beta` header and the
+    // abort signal. Beta tokens are NOT in the body, so they must be inspected
+    // here rather than in `streamCalls`.
+    streamOptionsCalls: [] as Array<Record<string, unknown> | undefined>,
+  })
+);
 
 vi.mock('@anthropic-ai/sdk', () => {
+  /**
+   * Stand-in for Anthropic's prefix-match caching, used only by the hit-rate
+   * smoke test (`cacheSim.enabled`). Everything else gets `mockUsage.current`
+   * verbatim.
+   *
+   * The cached prefix is `tools → system`, so the simulation keys on exactly
+   * those bytes and only counts a hit when a `cache_control` breakpoint was
+   * actually sent. That makes the smoke test fail for BOTH real-world causes
+   * of a dead cache: the adapter silently ceasing to emit breakpoints, and
+   * the prefix bytes varying between otherwise-identical calls.
+   */
+  function simulateUsage(args: Record<string, unknown>): Record<string, number> {
+    const usage = { ...mockUsage.current };
+    if (!cacheSim.enabled) return usage;
+
+    const hasBreakpoint = JSON.stringify(args.system ?? null).includes('cache_control');
+    if (!hasBreakpoint) return usage;
+
+    const prefixKey = JSON.stringify([args.tools ?? null, args.system ?? null]);
+    if (cacheSim.seen.has(prefixKey)) {
+      return { ...usage, cache_read_input_tokens: 4000, cache_creation_input_tokens: 0 };
+    }
+    cacheSim.seen.add(prefixKey);
+    return { ...usage, cache_read_input_tokens: 0, cache_creation_input_tokens: 4000 };
+  }
+
   class MockAnthropic {
     public readonly messages = {
-      stream: (args: Record<string, unknown>) => {
+      stream: (args: Record<string, unknown>, options?: Record<string, unknown>) => {
         streamCalls.push(args);
+        streamOptionsCalls.push(options);
         return {
           finalMessage: async () => ({
             content: [{ type: 'text', text: 'ok' }],
-            usage: { input_tokens: 10, output_tokens: 5 },
+            usage: simulateUsage(args),
             model: (args.model as string) ?? 'claude-opus-4-7',
             stop_reason: 'end_turn',
+            ...mockResponseExtras.current,
           }),
           get request_id() {
             return 'req_caching_test';
@@ -63,6 +106,11 @@ import { AnthropicAdapter } from '../adapters/anthropic';
 describe('AnthropicAdapter prompt caching', () => {
   beforeEach(() => {
     streamCalls.length = 0;
+    streamOptionsCalls.length = 0;
+    mockUsage.current = { input_tokens: 10, output_tokens: 5 };
+    cacheSim.enabled = false;
+    cacheSim.seen.clear();
+    mockResponseExtras.current = {};
   });
 
   it('default config: system is array form with ephemeral cache_control on the last block (caching ON by default)', async () => {
@@ -398,5 +446,311 @@ describe('AnthropicAdapter prompt caching', () => {
     expect(args.system).toBe('System.');
     const msgs = args.messages as Array<Record<string, unknown>>;
     expect(JSON.stringify(msgs)).not.toContain('cache_control');
+  });
+
+  /**
+   * Cache telemetry — `mapUsage()`.
+   *
+   * Regression guard for the accounting bug these tests close: Anthropic's
+   * `input_tokens` is ONLY the uncached remainder, so the old
+   * `input_tokens + output_tokens` sum silently dropped the entire cached
+   * prefix. The error scaled with cache hit rate — totals were most wrong
+   * exactly when caching worked best.
+   *
+   * `complete()` and `streamCompletion()` share `mapUsage()`, so these cover
+   * both paths.
+   */
+  it('cache telemetry: a cache READ is folded into promptTokens and surfaced separately', async () => {
+    mockUsage.current = {
+      input_tokens: 12,
+      output_tokens: 7,
+      cache_read_input_tokens: 4000,
+      cache_creation_input_tokens: 0,
+    };
+    const res = await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [
+        { role: 'system', content: 'Stable system prefix.' },
+        { role: 'user', content: 'Tick.' },
+      ],
+    });
+
+    // 12 uncached + 4000 read = 4012. The pre-fix code reported 12.
+    expect(res.usage.promptTokens).toBe(4012);
+    expect(res.usage.totalTokens).toBe(4019);
+    expect(res.usage.cacheReadTokens).toBe(4000);
+    expect(res.usage.cacheWriteTokens).toBe(0);
+  });
+
+  it('cache telemetry: a cache WRITE is folded in and surfaced separately', async () => {
+    mockUsage.current = {
+      input_tokens: 12,
+      output_tokens: 7,
+      cache_read_input_tokens: 0,
+      cache_creation_input_tokens: 5120,
+    };
+    const res = await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [
+        { role: 'system', content: 'Stable system prefix.' },
+        { role: 'user', content: 'Cold cache.' },
+      ],
+    });
+
+    expect(res.usage.promptTokens).toBe(5132);
+    // Callers must price this at the write premium, not base input.
+    expect(res.usage.cacheWriteTokens).toBe(5120);
+  });
+
+  it('cache telemetry: absent cache fields default to 0 without NaN-ing totals', async () => {
+    mockUsage.current = { input_tokens: 10, output_tokens: 5 };
+    const res = await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [{ role: 'user', content: 'No caching.' }],
+    });
+
+    expect(res.usage.promptTokens).toBe(10);
+    expect(res.usage.totalTokens).toBe(15);
+    expect(res.usage.cacheReadTokens).toBe(0);
+    expect(Number.isNaN(res.usage.totalTokens)).toBe(false);
+  });
+
+  /** TTL selection — `promptCacheTtl`. */
+  const ttlOf = (call: Record<string, unknown>) =>
+    (call.system as Array<{ cache_control?: { type: string; ttl?: string } }>)[0].cache_control;
+
+  it('ttl: defaults to 5m, expressed by OMITTING ttl (keeps prefix bytes stable)', async () => {
+    await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [
+        { role: 'system', content: 'System.' },
+        { role: 'user', content: 'U' },
+      ],
+    });
+    // Sending `ttl: '5m'` would be semantically identical but would change the
+    // serialized prefix, invalidating entries written by a previous build.
+    expect(ttlOf(streamCalls[0])).toEqual({ type: 'ephemeral' });
+  });
+
+  it('ttl: 1h applies uniformly to system AND message breakpoints', async () => {
+    // Uniformity matters: the API requires 1h breakpoints to precede 5m ones,
+    // and a single TTL per request makes that unorderable.
+    await new AnthropicAdapter({ apiKey: 'test-key', promptCacheTtl: '1h' }).complete({
+      messages: [
+        { role: 'system', content: 'System.' },
+        { role: 'user', content: 'U1' },
+        { role: 'assistant', content: 'A1' },
+        { role: 'user', content: 'U2' },
+      ],
+    });
+
+    const breakpoints = JSON.stringify(streamCalls[0]).match(/"cache_control":\{[^}]*\}/g) ?? [];
+    expect(breakpoints.length).toBeGreaterThan(1);
+    for (const bp of breakpoints) expect(bp).toContain('"ttl":"1h"');
+  });
+
+  /**
+   * Cache hit-rate smoke test — closes the open item from
+   * docs/strategy/claude-api-migration-checklist.md. Previously impossible to
+   * write: the adapter discarded the counters, so there was nothing to assert.
+   */
+  it('smoke: 10 consecutive identical-prefix calls yield a non-zero hit rate', async () => {
+    cacheSim.enabled = true;
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const system = 'You are a HoloScript code generator. '.repeat(200);
+    const reads: number[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      const res = await adapter.complete({
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: `Request ${i}` },
+        ],
+      });
+      reads.push(res.usage.cacheReadTokens ?? 0);
+    }
+
+    expect(reads[0]).toBe(0); // first call writes
+    expect(reads.slice(1).every((r) => r > 0)).toBe(true);
+    expect(reads.filter((r) => r > 0).length / reads.length).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('smoke: a varying system prefix produces a zero hit rate (guards the guard)', async () => {
+    // Proves the smoke test above can actually fail. This is the exact
+    // silent-invalidator shape — a per-request value inside the cached prefix.
+    cacheSim.enabled = true;
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const reads: number[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      const res = await adapter.complete({
+        messages: [
+          { role: 'system', content: `You are a generator. Request id: ${i}` },
+          { role: 'user', content: 'Same question every time.' },
+        ],
+      });
+      reads.push(res.usage.cacheReadTokens ?? 0);
+    }
+
+    expect(reads.every((r) => r === 0)).toBe(true);
+  });
+
+  /** Cache diagnostics — request shape and response mapping only. */
+  it('diagnostics: off by default — no beta token, no diagnostics body field', async () => {
+    await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [
+        { role: 'system', content: 'System.' },
+        { role: 'user', content: 'U' },
+      ],
+    });
+    expect(streamCalls[0]).not.toHaveProperty('diagnostics');
+    // Single-arg stream() call on the common path preserves the literal-object
+    // request shape the 30s-wall comment in complete() depends on.
+    expect(streamOptionsCalls[0]).toBeUndefined();
+  });
+
+  it('diagnostics: emits the beta token (header) and previous_message_id (body)', async () => {
+    await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [
+        { role: 'system', content: 'System.' },
+        { role: 'user', content: 'U' },
+      ],
+      provider: { anthropic: { cacheDiagnostics: { previousMessageId: 'msg_prev_123' } } },
+    });
+
+    // Both halves are required — body field alone is a 400, header alone a no-op.
+    const headers = streamOptionsCalls[0]?.headers as Record<string, string> | undefined;
+    expect(headers?.['anthropic-beta']).toContain('cache-diagnosis-2026-04-07');
+    expect(JSON.stringify(streamCalls[0])).toContain('"previous_message_id":"msg_prev_123"');
+  });
+
+  it('diagnostics: surfaces cache_miss_reason, and collapses pending/empty to undefined', async () => {
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    mockResponseExtras.current = {
+      diagnostics: {
+        cache_miss_reason: { type: 'system_changed', cache_missed_input_tokens: 41850 },
+      },
+    };
+    const hit = await adapter.complete({
+      messages: [{ role: 'user', content: 'U' }],
+      provider: { anthropic: { cacheDiagnostics: { previousMessageId: 'msg_1' } } },
+    });
+    expect(hit.cacheMissReason).toEqual({
+      type: 'system_changed',
+      cacheMissedInputTokens: 41850,
+    });
+
+    // `{cache_miss_reason: null}` = still running; `diagnostics: null` = no
+    // divergence. Neither is actionable, so neither should surface.
+    for (const diagnostics of [null, { cache_miss_reason: null }]) {
+      mockResponseExtras.current = { diagnostics };
+      const res = await adapter.complete({
+        messages: [{ role: 'user', content: 'U' }],
+        provider: { anthropic: { cacheDiagnostics: { previousMessageId: 'msg_1' } } },
+      });
+      expect(res.cacheMissReason).toBeUndefined();
+    }
+  });
+
+  /**
+   * KVFlow-informed breakpoint placement.
+   *
+   * The pathology this fixes: recency spends the scarce budget on the most
+   * RECENT assistant turns, which in an agent tool-loop are the most ephemeral
+   * (`scene-turn`) content in the request — the least likely to ever be read
+   * back. Hints let reuse value win instead.
+   */
+  const cachedAssistantTexts = (call: Record<string, unknown>) =>
+    (call.messages as Array<{ role: string; content: unknown }>)
+      .filter((m) => m.role === 'assistant' && JSON.stringify(m.content).includes('cache_control'))
+      .map((m) => JSON.stringify(m.content));
+
+  it('kvflow: without hints, breakpoints fall on the most RECENT assistant turns', async () => {
+    await new AnthropicAdapter({ apiKey: 'test-key', maxCacheBreakpoints: 2 }).complete({
+      messages: [
+        { role: 'system', content: 'System.' },
+        { role: 'user', content: 'U1' },
+        { role: 'assistant', content: 'OLD-STABLE' },
+        { role: 'user', content: 'U2' },
+        { role: 'assistant', content: 'NEW-CHURN' },
+        { role: 'user', content: 'U3' },
+      ],
+    });
+
+    // budget = 2 - 1 (system) = 1 → legacy recency picks the newest turn.
+    const cached = cachedAssistantTexts(streamCalls[0]);
+    expect(cached).toHaveLength(1);
+    expect(cached[0]).toContain('NEW-CHURN');
+  });
+
+  it('kvflow: a shared-prefix hint outranks recency', async () => {
+    await new AnthropicAdapter({ apiKey: 'test-key', maxCacheBreakpoints: 2 }).complete({
+      messages: [
+        { role: 'system', content: 'System.' },
+        { role: 'user', content: 'U1' },
+        { role: 'assistant', content: 'OLD-STABLE' },
+        { role: 'user', content: 'U2' },
+        { role: 'assistant', content: 'NEW-CHURN' },
+        { role: 'user', content: 'U3' },
+      ],
+      provider: {
+        anthropic: {
+          cacheHints: [
+            // Indices address request.messages (system INCLUDED) — index 2 is
+            // OLD-STABLE, index 4 is NEW-CHURN.
+            { messageIndex: 2, scope: 'shared-prefix', stepsToExecution: 1 },
+            { messageIndex: 4, scope: 'scene-turn', stepsToExecution: 0 },
+          ],
+        },
+      },
+    });
+
+    // Reuse value beats recency: the stable span keeps the single breakpoint.
+    const cached = cachedAssistantTexts(streamCalls[0]);
+    expect(cached).toHaveLength(1);
+    expect(cached[0]).toContain('OLD-STABLE');
+    expect(cached[0]).not.toContain('NEW-CHURN');
+  });
+
+  it('kvflow: hint indices are translated across removed system messages', async () => {
+    // The adapter strips system messages before building its own array, so a
+    // caller-space index of 2 must land on the adapter-space assistant turn.
+    // Getting this wrong is a silent off-by-one that caches the wrong span.
+    await new AnthropicAdapter({ apiKey: 'test-key', maxCacheBreakpoints: 2 }).complete({
+      messages: [
+        { role: 'system', content: 'System A.' },
+        { role: 'system', content: 'System B.' },
+        { role: 'user', content: 'U1' },
+        { role: 'assistant', content: 'TARGET' },
+        { role: 'user', content: 'U2' },
+        { role: 'assistant', content: 'OTHER' },
+      ],
+      provider: {
+        anthropic: {
+          cacheHints: [{ messageIndex: 3, scope: 'shared-prefix', stepsToExecution: 0 }],
+        },
+      },
+    });
+
+    const cached = cachedAssistantTexts(streamCalls[0]);
+    expect(cached).toHaveLength(1);
+    expect(cached[0]).toContain('TARGET');
+  });
+
+  it('kvflow: a hint aimed at a system message is dropped, falling back to recency', async () => {
+    // Specified behaviour, not an accident: system content is covered by the
+    // system+tools breakpoint, so there is no message turn to mark.
+    await new AnthropicAdapter({ apiKey: 'test-key', maxCacheBreakpoints: 2 }).complete({
+      messages: [
+        { role: 'system', content: 'System.' },
+        { role: 'user', content: 'U1' },
+        { role: 'assistant', content: 'OLD' },
+        { role: 'user', content: 'U2' },
+        { role: 'assistant', content: 'NEW' },
+      ],
+      provider: {
+        anthropic: { cacheHints: [{ messageIndex: 0, scope: 'shared-prefix' }] },
+      },
+    });
+
+    const cached = cachedAssistantTexts(streamCalls[0]);
+    expect(cached).toHaveLength(1);
+    expect(cached[0]).toContain('NEW');
   });
 });

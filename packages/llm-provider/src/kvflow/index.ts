@@ -51,3 +51,10 @@ export type {
   CarouselSummary,
   CarouselEarlyWarningConfig,
 } from './KVFlowEarlyWarning';
+
+// Breakpoint planning — the bridge from KVFlow scheduling knowledge to
+// provider-side cache breakpoint placement. Backend-agnostic by design:
+// Anthropic's prompt cache is the first consumer, HoloLlama and HoloServe
+// face the same "which prefix spans stay hot" question.
+export { planCacheBreakpoints } from './breakpoint-planner';
+export type { CacheBreakpointHint } from './breakpoint-planner';

@@ -347,6 +347,27 @@ export function resolveOpenAIToolControls(
   };
 }
 
+/**
+ * Extract OpenAI's cached-prompt-token count.
+ *
+ * OpenAI caches automatically (no `cache_control`, no opt-in) and reports the
+ * cached slice under `prompt_tokens_details.cached_tokens` on Chat Completions
+ * or `input_tokens_details.cached_tokens` on the Responses API.
+ *
+ * Two differences from Anthropic worth preserving in the mapping:
+ *   - `prompt_tokens` ALREADY includes the cached slice, so it is a subset to
+ *     be reported, never a number to add back in.
+ *   - There is no cache-WRITE concept — writes are free and unreported — so
+ *     `cacheWriteTokens` is deliberately left undefined rather than set to 0.
+ *     Undefined means "this provider does not report it"; 0 would falsely
+ *     assert that no write happened.
+ */
+function parseOpenAICachedTokens(usage: Record<string, unknown>): number | undefined {
+  const details =
+    asRecord(usage.prompt_tokens_details) ?? asRecord(usage.input_tokens_details) ?? undefined;
+  return details ? numberField(details.cached_tokens) : undefined;
+}
+
 function parseOpenAIUsage(value: unknown): TokenUsage {
   const usage = asRecord(value) ?? {};
   const reportedPrompt = numberField(usage.input_tokens) ?? numberField(usage.prompt_tokens);
@@ -356,12 +377,13 @@ function parseOpenAIUsage(value: unknown): TokenUsage {
   const promptTokens = reportedPrompt ?? 0;
   const completionTokens = reportedCompletion ?? 0;
   const totalTokens = reportedTotal ?? promptTokens + completionTokens;
+  const cacheReadTokens = parseOpenAICachedTokens(usage);
 
   return reportedPrompt === undefined &&
     reportedCompletion === undefined &&
     reportedTotal === undefined
     ? { promptTokens, completionTokens, totalTokens, reported: false }
-    : { promptTokens, completionTokens, totalTokens };
+    : { promptTokens, completionTokens, totalTokens, cacheReadTokens };
 }
 
 function mapOpenAIResponseFinishReason(
@@ -648,12 +670,11 @@ export class OpenAIAdapter extends BaseLLMAdapter {
 
         return {
           content,
+          // Routed through the shared parser so the Chat Completions path
+          // picks up `prompt_tokens_details.cached_tokens` too, rather than
+          // silently dropping cache telemetry that the Responses path reports.
           usage: usage
-            ? {
-                promptTokens: usage.prompt_tokens ?? 0,
-                completionTokens: usage.completion_tokens ?? 0,
-                totalTokens: usage.total_tokens ?? 0,
-              }
+            ? parseOpenAIUsage(usage)
             : { promptTokens: 0, completionTokens: 0, totalTokens: 0, reported: false },
           model: response.model ?? model,
           reportedModel: response.model ?? null,
