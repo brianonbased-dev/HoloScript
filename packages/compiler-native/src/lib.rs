@@ -6280,6 +6280,7 @@ fn collect_typed_function_specs<'a>(
                                 | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+                                | INTEGER_BITWISE_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -17122,6 +17123,7 @@ fn lower_reference_initializer(
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+                    | INTEGER_BITWISE_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"

@@ -518,6 +518,29 @@ fn compiles_native_integer_bitwise_and_shift_operations() {
 }
 
 #[test]
+fn compiles_native_bitwise_operations_over_borrowed_slices() {
+    let source = r#"
+        function read_mix(bytes: &[i32]): i32 {
+            return (load(bytes[0]) & 15) | (load(bytes[1]) << 4)
+        }
+
+        function main(): i32 {
+            slot words: [i32; 2] = [1, 1]
+            return read_mix(&words[0..2])
+        }
+    "#;
+    let executable = scratch_executable("native-bitwise-borrowed-slice");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native bitwise borrowed slice source");
+    assert_eq!(artifact.machine_contract, INTEGER_BITWISE_MACHINE_CONTRACT);
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native bitwise borrowed slice executable");
+    assert_eq!(status.code(), Some(17));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
 fn native_integer_shift_count_outside_operand_width_traps() {
     let source = r#"
         function main(): i32 {
