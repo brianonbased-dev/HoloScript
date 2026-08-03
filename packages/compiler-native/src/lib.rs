@@ -68,6 +68,8 @@
 //! operations and logical shifts, trapping when a shift count is outside the operand width.
 //! `hs-machine-v43` adds the explicit `u8_to_i32` widening intrinsic for byte-oriented code;
 //! it accepts only a proven `u8` operand and never widens a memory load implicitly.
+//! `hs-machine-v44` adds the explicit checked `i32_to_u8` narrowing intrinsic; it traps when the
+//! value is outside the byte range and never narrows a value implicitly.
 //! The v35/v37/v39 finite-float contracts trap on non-finite parameters, division-by-zero results,
 //! and arithmetic overflow before a non-finite value can cross a function or storage boundary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
@@ -140,6 +142,7 @@ pub const BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v40";
 pub const INTEGER_ARITHMETIC_MACHINE_CONTRACT: &str = "hs-machine-v41";
 pub const INTEGER_BITWISE_MACHINE_CONTRACT: &str = "hs-machine-v42";
 pub const U8_WIDENING_MACHINE_CONTRACT: &str = "hs-machine-v43";
+pub const I32_NARROWING_MACHINE_CONTRACT: &str = "hs-machine-v44";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -352,11 +355,14 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
+    let carries_i32_narrowing = has_i32_narrowing_machine_metadata(&ast);
     let carries_u8_widening = has_u8_widening_machine_metadata(&ast);
     let carries_bitwise = has_bitwise_machine_metadata(&ast);
     let carries_u8 = has_u8_machine_metadata(&ast);
     let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
-    let machine_contract = if carries_u8_widening {
+    let machine_contract = if carries_i32_narrowing {
+        I32_NARROWING_MACHINE_CONTRACT
+    } else if carries_u8_widening {
         U8_WIDENING_MACHINE_CONTRACT
     } else if carries_bitwise {
         INTEGER_BITWISE_MACHINE_CONTRACT
@@ -447,7 +453,12 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_u8_widening_machine_metadata(&ast) {
+    if has_i32_narrowing_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, I32_NARROWING_MACHINE_CONTRACT, true)?,
+            machine_contract: I32_NARROWING_MACHINE_CONTRACT,
+        })
+    } else if has_u8_widening_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, U8_WIDENING_MACHINE_CONTRACT, true)?,
             machine_contract: U8_WIDENING_MACHINE_CONTRACT,
@@ -778,12 +789,18 @@ fn compile_project_unit(
 ) -> Result<CompiledObject, NativeCompileError> {
     let ast = project::load_project_ast(entry)?;
     let carries_uncertainty = has_uncertain_aggregate_machine_metadata(&ast);
+    let carries_i32_narrowing = has_i32_narrowing_machine_metadata(&ast);
+    let carries_u8_widening = has_u8_widening_machine_metadata(&ast);
     let carries_u8 = has_u8_machine_metadata(&ast);
     let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
     let carries_f32 = has_f32_machine_metadata(&ast);
     let carries_f64 = has_f64_machine_metadata(&ast);
     let mut compiled = compile_ast_unit(ast)?;
-    if carries_u8 {
+    if carries_i32_narrowing {
+        compiled.machine_contract = I32_NARROWING_MACHINE_CONTRACT;
+    } else if carries_u8_widening {
+        compiled.machine_contract = U8_WIDENING_MACHINE_CONTRACT;
+    } else if carries_u8 {
         compiled.machine_contract = BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT;
     } else if carries_recursive_aggregate && (carries_f32 || carries_f64) {
         compiled.machine_contract = FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT;
@@ -1099,6 +1116,66 @@ fn node_uses_u8_widening(node: &AstNode) -> bool {
             .argument
             .as_deref()
             .is_some_and(node_uses_u8_widening),
+        _ => false,
+    }
+}
+
+fn has_i32_narrowing_machine_metadata(ast: &Ast) -> bool {
+    has_typed_machine_metadata(ast)
+        && ast.body.iter().any(|node| match node {
+            AstNode::Function(function) => function.body.iter().any(node_uses_i32_narrowing),
+            _ => false,
+        })
+}
+
+fn node_uses_i32_narrowing(node: &AstNode) -> bool {
+    match node {
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_i32_narrowing)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_i32_narrowing))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_i32_narrowing),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_i32_narrowing),
+        AstNode::For(for_node) => {
+            for_node
+                .init
+                .as_deref()
+                .is_some_and(node_uses_i32_narrowing)
+                || for_node
+                    .test
+                    .as_deref()
+                    .is_some_and(node_uses_i32_narrowing)
+                || for_node
+                    .update
+                    .as_deref()
+                    .is_some_and(node_uses_i32_narrowing)
+                || for_node.body.iter().any(node_uses_i32_narrowing)
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_i32_narrowing),
+        AstNode::VariableDeclaration(local) => node_uses_i32_narrowing(&local.value),
+        AstNode::StackSlotDeclaration(slot) => node_uses_i32_narrowing(&slot.value),
+        AstNode::UnaryExpression(unary) => node_uses_i32_narrowing(&unary.argument),
+        AstNode::BinaryExpression(binary) => {
+            node_uses_i32_narrowing(&binary.left) || node_uses_i32_narrowing(&binary.right)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_i32_narrowing(&assignment.target)
+                || node_uses_i32_narrowing(&assignment.value)
+        }
+        AstNode::CallExpression(call) => {
+            matches!(
+                call.callee.as_ref(),
+                AstNode::Identifier(callee) if callee.name == "i32_to_u8"
+            ) || node_uses_i32_narrowing(&call.callee)
+                || call.arguments.iter().any(node_uses_i32_narrowing)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(node_uses_i32_narrowing),
         _ => false,
     }
 }
@@ -2951,6 +3028,7 @@ fn latest_reference_contract(machine_contract: &str) -> bool {
         BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
             | INTEGER_BITWISE_MACHINE_CONTRACT
             | U8_WIDENING_MACHINE_CONTRACT
+            | I32_NARROWING_MACHINE_CONTRACT
             | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
             | FLOAT32_MACHINE_CONTRACT
             | FLOAT64_MACHINE_CONTRACT
@@ -2990,6 +3068,7 @@ fn u8_enabled(machine_contract: &str) -> bool {
         BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
             | INTEGER_BITWISE_MACHINE_CONTRACT
             | U8_WIDENING_MACHINE_CONTRACT
+            | I32_NARROWING_MACHINE_CONTRACT
     )
 }
 
@@ -6347,6 +6426,7 @@ fn collect_typed_function_specs<'a>(
                                 | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
                                 | INTEGER_BITWISE_MACHINE_CONTRACT
                                 | U8_WIDENING_MACHINE_CONTRACT
+                                | I32_NARROWING_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -17191,6 +17271,7 @@ fn lower_reference_initializer(
                     | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
                     | INTEGER_BITWISE_MACHINE_CONTRACT
                     | U8_WIDENING_MACHINE_CONTRACT
+                    | I32_NARROWING_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -17951,6 +18032,40 @@ fn lower_typed_expression(
                 return Ok(TypedValue {
                     value: builder.ins().uextend(types::I32, value.value),
                     machine_type: MachineType::I32,
+                });
+            }
+            if callee.name == "i32_to_u8" {
+                if call.arguments.len() != 1 {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `i32_to_u8` expects exactly one `i32` argument, found {}",
+                        call.arguments.len()
+                    )));
+                }
+                let value = lower_typed_expression(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    &call.arguments[0],
+                    MachineType::I32,
+                    &format!("argument to `i32_to_u8` in {context}"),
+                    machine_contract,
+                    memory_enabled,
+                )?;
+                let negative = builder
+                    .ins()
+                    .icmp_imm(IntCC::SignedLessThan, value.value, 0);
+                let too_large = builder
+                    .ins()
+                    .icmp_imm(IntCC::SignedGreaterThan, value.value, 255);
+                let invalid = builder.ins().bor(negative, too_large);
+                builder.ins().trapnz(invalid, TrapCode::unwrap_user(8));
+                return Ok(TypedValue {
+                    value: builder.ins().ireduce(types::I8, value.value),
+                    machine_type: MachineType::U8,
                 });
             }
             if memory_enabled && matches!(callee.name.as_str(), "isKnown" | "unknownReason") {
@@ -18942,7 +19057,9 @@ fn known_expression_type(
             let AstNode::Identifier(callee) = call.callee.as_ref() else {
                 return None;
             };
-            if callee.name == "u8_to_i32" {
+            if callee.name == "i32_to_u8" {
+                Some(MachineType::U8)
+            } else if callee.name == "u8_to_i32" {
                 Some(MachineType::I32)
             } else if callee.name == "isKnown" {
                 Some(MachineType::Bool)

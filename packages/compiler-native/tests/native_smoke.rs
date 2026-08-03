@@ -581,6 +581,64 @@ fn u8_to_i32_rejects_non_u8_values_without_implicit_coercion() {
 }
 
 #[test]
+fn compiles_native_explicit_i32_to_u8_narrowing_over_borrowed_slices() {
+    let source = r#"
+        function write_byte(bytes: &mut [u8]): i32 {
+            store(bytes[0], i32_to_u8(42))
+            return u8_to_i32(load(bytes[0]))
+        }
+
+        function main(): i32 {
+            slot bytes: [u8; 1] = [0]
+            return write_byte(&mut bytes[0..1])
+        }
+    "#;
+    let executable = scratch_executable("native-i32-to-u8-borrowed-slice");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native explicit i32-to-u8 borrowed slice source");
+    assert_eq!(artifact.machine_contract, "hs-machine-v44");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native explicit i32-to-u8 borrowed slice executable");
+    assert_eq!(status.code(), Some(42));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn i32_to_u8_rejects_non_i32_values_without_implicit_coercion() {
+    let error = compile_object(
+        r#"
+            function main(): i32 {
+                let value: u8 = 7
+                return u8_to_i32(i32_to_u8(value))
+            }
+        "#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("i32_to_u8 must reject non-i32 values");
+    assert!(error
+        .to_string()
+        .contains("expects `i32`, found `u8`; implicit coercions are forbidden"));
+}
+
+#[test]
+fn native_i32_to_u8_out_of_range_traps() {
+    let source = r#"
+        function main(): i32 {
+            return u8_to_i32(i32_to_u8(256))
+        }
+    "#;
+    let executable = scratch_executable("native-i32-to-u8-range-trap");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native out-of-range i32-to-u8 source");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native out-of-range i32-to-u8 executable");
+    assert!(!status.success(), "out-of-range narrowing must trap");
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
 fn native_integer_shift_count_outside_operand_width_traps() {
     let source = r#"
         function main(): i32 {
