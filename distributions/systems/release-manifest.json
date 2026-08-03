@@ -1,13 +1,13 @@
 {
   "schema": "holoscript.systems-artifact-envelope/v1",
   "releaseManifestSchema": "holoscript.systems-preview-release/v1",
-  "canonicalManifestSha256": "c2d3820da1eaa11966854a17f074c293e0ab131a9ae67aa501a7ccbcb4e6fb8f",
+  "canonicalManifestSha256": "5b4822928ac155746f82d59ca4e07d0ca0a8fad3059c149c9c6c584cde347f64",
   "distributionId": "holoscript-systems-toolchain",
   "version": "0.1.0",
   "channel": "outward-preview",
   "machineContract": "hs-machine-v32",
   "hostPlatform": "win32-x64",
-  "sourceCommit": "a3afbd31b03bc8fd16f61321b59cad1d77727807",
+  "sourceCommit": "a5b2072fcce24946f7ea476e5bc72c3f6f22a7cb",
   "components": {
     "npm-core": "@holoscript/core@8.0.17",
     "npm-cli": "@holoscript/cli@8.0.11",
@@ -15,7 +15,7 @@
     "wasm-validation-runtime": "holoscript-wasm@3.0.0"
   },
   "embeddedArtifactDigests": {
-    "native/win32-x64/holoscriptc.exe": "8ee59dbedf1bc6a254fd498374943b19292a0494a5c11744e9596a11015497f3",
+    "native/win32-x64/holoscriptc.exe": "11e2af81a33cf3f678cf8236793ccbbacc43dd1a76cc89b2a6daaa7c54577508",
     "wasm/holoscript_wasm_bg.wasm": "60b1fa9f0a071e6447b8674635b9ae6e3fdb9493d945ec94e3d6de4b8fc9c945"
   },
   "conformanceCorpus": {
