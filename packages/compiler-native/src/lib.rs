@@ -66,6 +66,8 @@
 //! subset, trapping on zero divisors and the signed minimum divided by negative one.
 //! `hs-machine-v42` composes the current reference-capable typed surface with integer bitwise
 //! operations and logical shifts, trapping when a shift count is outside the operand width.
+//! `hs-machine-v43` adds the explicit `u8_to_i32` widening intrinsic for byte-oriented code;
+//! it accepts only a proven `u8` operand and never widens a memory load implicitly.
 //! The v35/v37/v39 finite-float contracts trap on non-finite parameters, division-by-zero results,
 //! and arithmetic overflow before a non-finite value can cross a function or storage boundary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
@@ -137,6 +139,7 @@ pub const FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v39";
 pub const BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v40";
 pub const INTEGER_ARITHMETIC_MACHINE_CONTRACT: &str = "hs-machine-v41";
 pub const INTEGER_BITWISE_MACHINE_CONTRACT: &str = "hs-machine-v42";
+pub const U8_WIDENING_MACHINE_CONTRACT: &str = "hs-machine-v43";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -349,10 +352,13 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
+    let carries_u8_widening = has_u8_widening_machine_metadata(&ast);
     let carries_bitwise = has_bitwise_machine_metadata(&ast);
     let carries_u8 = has_u8_machine_metadata(&ast);
     let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
-    let machine_contract = if carries_bitwise {
+    let machine_contract = if carries_u8_widening {
+        U8_WIDENING_MACHINE_CONTRACT
+    } else if carries_bitwise {
         INTEGER_BITWISE_MACHINE_CONTRACT
     } else if carries_u8 {
         BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
@@ -441,7 +447,12 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_bitwise_machine_metadata(&ast) {
+    if has_u8_widening_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, U8_WIDENING_MACHINE_CONTRACT, true)?,
+            machine_contract: U8_WIDENING_MACHINE_CONTRACT,
+        })
+    } else if has_bitwise_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, INTEGER_BITWISE_MACHINE_CONTRACT, true)?,
             machine_contract: INTEGER_BITWISE_MACHINE_CONTRACT,
@@ -1037,6 +1048,59 @@ fn has_u8_machine_metadata(ast: &Ast) -> bool {
             .any(|annotation| annotation_mentions_u8(annotation)),
         _ => false,
     })
+}
+
+fn has_u8_widening_machine_metadata(ast: &Ast) -> bool {
+    has_typed_machine_metadata(ast)
+        && ast.body.iter().any(|node| match node {
+            AstNode::Function(function) => function.body.iter().any(node_uses_u8_widening),
+            _ => false,
+        })
+}
+
+fn node_uses_u8_widening(node: &AstNode) -> bool {
+    match node {
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_u8_widening)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_u8_widening))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_u8_widening),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_u8_widening),
+        AstNode::For(for_node) => {
+            for_node.init.as_deref().is_some_and(node_uses_u8_widening)
+                || for_node.test.as_deref().is_some_and(node_uses_u8_widening)
+                || for_node
+                    .update
+                    .as_deref()
+                    .is_some_and(node_uses_u8_widening)
+                || for_node.body.iter().any(node_uses_u8_widening)
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_u8_widening),
+        AstNode::VariableDeclaration(local) => node_uses_u8_widening(&local.value),
+        AstNode::StackSlotDeclaration(slot) => node_uses_u8_widening(&slot.value),
+        AstNode::UnaryExpression(unary) => node_uses_u8_widening(&unary.argument),
+        AstNode::BinaryExpression(binary) => {
+            node_uses_u8_widening(&binary.left) || node_uses_u8_widening(&binary.right)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_u8_widening(&assignment.target) || node_uses_u8_widening(&assignment.value)
+        }
+        AstNode::CallExpression(call) => {
+            matches!(
+                call.callee.as_ref(),
+                AstNode::Identifier(callee) if callee.name == "u8_to_i32"
+            ) || node_uses_u8_widening(&call.callee)
+                || call.arguments.iter().any(node_uses_u8_widening)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(node_uses_u8_widening),
+        _ => false,
+    }
 }
 
 fn has_integer_division_machine_metadata(ast: &Ast) -> bool {
@@ -2886,6 +2950,7 @@ fn latest_reference_contract(machine_contract: &str) -> bool {
         machine_contract,
         BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
             | INTEGER_BITWISE_MACHINE_CONTRACT
+            | U8_WIDENING_MACHINE_CONTRACT
             | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
             | FLOAT32_MACHINE_CONTRACT
             | FLOAT64_MACHINE_CONTRACT
@@ -2922,7 +2987,9 @@ fn f32_enabled(machine_contract: &str) -> bool {
 fn u8_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT | INTEGER_BITWISE_MACHINE_CONTRACT
+        BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+            | INTEGER_BITWISE_MACHINE_CONTRACT
+            | U8_WIDENING_MACHINE_CONTRACT
     )
 }
 
@@ -2997,9 +3064,7 @@ fn lower_checked_integer_shift(
         .ins()
         .icmp_imm(IntCC::SignedGreaterThanOrEqual, shift, width);
     let invalid = builder.ins().bor(negative, too_large);
-    builder
-        .ins()
-        .trapnz(invalid, TrapCode::unwrap_user(7));
+    builder.ins().trapnz(invalid, TrapCode::unwrap_user(7));
 
     if right_shift {
         builder.ins().ushr(value, shift)
@@ -6281,6 +6346,7 @@ fn collect_typed_function_specs<'a>(
                                 | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
                                 | INTEGER_BITWISE_MACHINE_CONTRACT
+                                | U8_WIDENING_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -17124,6 +17190,7 @@ fn lower_reference_initializer(
                     | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
                     | INTEGER_BITWISE_MACHINE_CONTRACT
+                    | U8_WIDENING_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -17859,6 +17926,32 @@ fn lower_typed_expression(
                     context,
                     machine_contract,
                 );
+            }
+            if callee.name == "u8_to_i32" {
+                if call.arguments.len() != 1 {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `u8_to_i32` expects exactly one `u8` argument, found {}",
+                        call.arguments.len()
+                    )));
+                }
+                let value = lower_typed_expression(
+                    builder,
+                    module,
+                    functions,
+                    locals,
+                    stack_slots,
+                    references,
+                    borrow_states,
+                    &call.arguments[0],
+                    MachineType::U8,
+                    &format!("argument to `u8_to_i32` in {context}"),
+                    machine_contract,
+                    memory_enabled,
+                )?;
+                return Ok(TypedValue {
+                    value: builder.ins().uextend(types::I32, value.value),
+                    machine_type: MachineType::I32,
+                });
             }
             if memory_enabled && matches!(callee.name.as_str(), "isKnown" | "unknownReason") {
                 return lower_uncertain_metadata_read(
@@ -18849,7 +18942,9 @@ fn known_expression_type(
             let AstNode::Identifier(callee) = call.callee.as_ref() else {
                 return None;
             };
-            if callee.name == "isKnown" {
+            if callee.name == "u8_to_i32" {
+                Some(MachineType::I32)
+            } else if callee.name == "isKnown" {
                 Some(MachineType::Bool)
             } else if callee.name == "unknownReason" {
                 Some(MachineType::I32)

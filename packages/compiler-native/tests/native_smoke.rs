@@ -19,10 +19,10 @@ use holoscript_native::{
     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT,
     COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
     FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    INTEGER_ARITHMETIC_MACHINE_CONTRACT, NATIVE_AGGREGATE_ABI_VERSION,
-    INTEGER_BITWISE_MACHINE_CONTRACT,
-    NATIVE_MEANING_GAP_REASON_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
+    INTEGER_ARITHMETIC_MACHINE_CONTRACT, INTEGER_BITWISE_MACHINE_CONTRACT,
+    NATIVE_AGGREGATE_ABI_VERSION, NATIVE_MEANING_GAP_REASON_ABI_VERSION,
+    OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -538,6 +538,46 @@ fn compiles_native_bitwise_operations_over_borrowed_slices() {
         .expect("run native bitwise borrowed slice executable");
     assert_eq!(status.code(), Some(17));
     remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn compiles_native_explicit_u8_to_i32_widening_over_borrowed_slices() {
+    let source = r#"
+        function read_byte(bytes: &[u8]): i32 {
+            return u8_to_i32(load(bytes[0]))
+        }
+
+        function main(): i32 {
+            slot bytes: [u8; 1] = [255]
+            return read_byte(&bytes[0..1])
+        }
+    "#;
+    let executable = scratch_executable("native-u8-to-i32-borrowed-slice");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native explicit u8-to-i32 borrowed slice source");
+    assert_eq!(artifact.machine_contract, "hs-machine-v43");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native explicit u8-to-i32 borrowed slice executable");
+    assert_eq!(status.code(), Some(255));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn u8_to_i32_rejects_non_u8_values_without_implicit_coercion() {
+    let error = compile_object(
+        r#"
+            function main(): i32 {
+                let value: i32 = 7
+                return u8_to_i32(value)
+            }
+        "#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("u8_to_i32 must reject non-u8 values");
+    assert!(error
+        .to_string()
+        .contains("expects `u8`, found `i32`; implicit coercions are forbidden"));
 }
 
 #[test]
