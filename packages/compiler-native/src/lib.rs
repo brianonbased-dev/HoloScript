@@ -7269,9 +7269,7 @@ fn lower_typed_statements(
                     )));
                 }
                 let value = match local.value.as_ref() {
-                    AstNode::CallExpression(call)
-                        if call_consumes_owned_arguments(call, functions) =>
-                    {
+                    AstNode::CallExpression(call) if call_requires_owned_state(call, functions) => {
                         lower_scalar_call_with_ownership(
                             builder,
                             module,
@@ -7613,7 +7611,7 @@ fn lower_typed_statements(
                     MachineResult::Scalar(result_type) => {
                         let value = match argument {
                             AstNode::CallExpression(call)
-                                if call_consumes_owned_arguments(call, functions) =>
+                                if call_requires_owned_state(call, functions) =>
                             {
                                 lower_scalar_call_with_ownership(
                                     builder,
@@ -9453,6 +9451,23 @@ fn call_consumes_owned_arguments(
     })
 }
 
+fn call_requires_owned_state(
+    call: &CallExpression,
+    functions: &HashMap<String, TypedFunctionAbi>,
+) -> bool {
+    call_consumes_owned_arguments(call, functions)
+        || functions
+            .get(match call.callee.as_ref() {
+                AstNode::Identifier(identifier) => &identifier.name,
+                _ => return false,
+            })
+            .is_some_and(|abi| {
+                abi.params
+                    .iter()
+                    .any(|parameter| matches!(parameter, MachineParameter::Slice { .. }))
+            })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn lower_scalar_call_with_ownership(
     builder: &mut FunctionBuilder<'_>,
@@ -9629,6 +9644,7 @@ fn lower_call_arguments_with_ownership(
                     locals,
                     stack_slots,
                     references,
+                    Some(owned_buffers),
                     borrow_states,
                     &mut call_borrows,
                     argument,
@@ -17742,6 +17758,7 @@ fn lower_typed_expression(
                             locals,
                             stack_slots,
                             references,
+                            None,
                             borrow_states,
                             &mut call_borrows,
                             argument,
@@ -17806,6 +17823,7 @@ fn lower_borrowed_slice_call_argument(
     locals: &HashMap<String, TypedValue>,
     stack_slots: &HashMap<String, TypedStackSlot>,
     references: &HashMap<String, TypedReference>,
+    owned_buffers: Option<&HashMap<String, OwnedBuffer>>,
     borrow_states: &HashMap<String, BorrowState>,
     call_borrows: &mut HashMap<CallBorrowRoot, BorrowState>,
     argument: &AstNode,
@@ -17881,6 +17899,62 @@ fn lower_borrowed_slice_call_argument(
             argument_index + 1,
             borrow.operator
         )));
+    }
+    if let AstNode::Identifier(root) = borrow.argument.as_ref() {
+        if let Some(owned_buffers) = owned_buffers {
+            if let Some(owner) = owned_buffers.get(&root.name) {
+                match owner.state {
+                    OwnedBufferState::Live => {}
+                    OwnedBufferState::Moved => {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} cannot borrow owned buffer `{}` after move",
+                            root.name
+                        )));
+                    }
+                    OwnedBufferState::Dropped => {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} cannot borrow owned buffer `{}` after drop",
+                            root.name
+                        )));
+                    }
+                }
+                if owner.element_type != expected_element {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} slice argument {} to `{callee_name}` expects elements of `{}`, but owned buffer `{}` stores `{}`",
+                        argument_index + 1,
+                        expected_element.name(),
+                        root.name,
+                        owner.element_type.name()
+                    )));
+                }
+                let active = borrow_states.get(&root.name).copied().unwrap_or_default();
+                let siblings = call_borrows
+                    .entry(CallBorrowRoot::Owned(root.name.clone()))
+                    .or_default();
+                if mutable {
+                    if active.exclusive
+                        || active.shared > 0
+                        || siblings.exclusive
+                        || siblings.shared > 0
+                    {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} cannot mutably borrow owned buffer `{}` for call to `{callee_name}` because an active or sibling borrow exists",
+                            root.name
+                        )));
+                    }
+                    siblings.exclusive = true;
+                } else {
+                    if active.exclusive || siblings.exclusive {
+                        return Err(NativeCompileError::new(format!(
+                            "{machine_contract} cannot immutably borrow owned buffer `{}` for call to `{callee_name}` because an exclusive borrow exists",
+                            root.name
+                        )));
+                    }
+                    siblings.shared += 1;
+                }
+                return Ok((owner.base, owner.length));
+            }
+        }
     }
     let AstNode::MemberExpression(range_access) = borrow.argument.as_ref() else {
         return Err(NativeCompileError::new(format!(
