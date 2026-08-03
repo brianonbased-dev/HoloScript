@@ -67,10 +67,15 @@
   "holoscript": {
     "repositoryIdentity": {
       "authority": "HoloKey",
-      "implementationStatus": "bounded-native-sha256-binding-with-bootstrap-contract",
+      "implementationStatus": "bounded-native-canonical-fixture-sha256-with-bootstrap-contract",
       "authenticatedDurableReadback": false,
       "nativeContentBinding": {
         "scope": "single-sha256-block-borrowed-u8-max-55-bytes",
+        "fixtureByteLength": 33,
+        "verifiedDigestBytes": 32
+      },
+      "nativeCanonicalFixture": {
+        "scope": "source-authored-fixed-authority-state-json",
         "fixtureByteLength": 33,
         "verifiedDigestBytes": 32
       },

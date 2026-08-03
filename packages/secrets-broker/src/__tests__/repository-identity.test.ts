@@ -962,7 +962,13 @@ describe('HoloKey repository identity authority', () => {
 
   it('publishes the bounded native SHA-256 byte-binding entrypoint', () => {
     const source = readFileSync(new URL('../repository_identity.hsplus', import.meta.url), 'utf8');
-    expect(source.match(/^export function /gmu)).toHaveLength(4);
+    expect(source.match(/^export function /gmu)).toHaveLength(5);
     expect(source).toContain('export function repository_identity_sha256_byte');
+  });
+
+  it('publishes a source-authored bounded canonical identity fixture entrypoint', () => {
+    const source = readFileSync(new URL('../repository_identity.hsplus', import.meta.url), 'utf8');
+    expect(source.match(/^export function /gmu)).toHaveLength(5);
+    expect(source).toContain('export function repository_identity_canonical_sha256_byte');
   });
 });

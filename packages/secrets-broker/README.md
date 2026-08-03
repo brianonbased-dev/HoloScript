@@ -132,15 +132,23 @@ must equal the expected SHA-256 digest:
 
 `defc35bec5e0abb739f1f23da5d319956af5144ae854fd28dc8bd5c39b11f700`:
 
+The same gate also compiles the source-authored
+`repository_identity_canonical_sha256_byte` entrypoint and executes 32 fresh
+compiler-generated programs, one for each byte of that fixed canonical
+authority/state fixture. This is a source-authored canonical-fixture proof,
+not a claim that the language can traverse or canonicalize arbitrary objects.
+The second proof must produce the same 32-byte digest shown above.
+
 ```bash
 pnpm --filter @holoscript/secrets-broker run check:repository-identity-native
 ```
 
-The bounded byte-binding proof is not a general canonical-JSON implementation
-and does not itself authenticate or persist an authority record. The compiler
-still cannot materialize the full importable ESM/CJS package surface for
-arbitrary bounded canonical JSON, detached signature verification, atomic
-compare-and-commit, or authenticated durable HoloKey authority-root readback.
+The bounded byte-binding and fixed-fixture canonical proofs are not a general
+canonical-JSON implementation and do not themselves authenticate or persist
+an authority record. The compiler still cannot materialize the full importable
+ESM/CJS package surface for arbitrary bounded canonical JSON, detached
+signature verification, atomic compare-and-commit, or authenticated durable
+HoloKey authority-root readback.
 The command therefore emits a machine-readable
 `HOLOKEY_NATIVE_AUTHORITY_SURFACE_INCOMPLETE` and
 `HOLOREPO_IDENTITY_MUTATOR_MIGRATION_INCOMPLETE` blockers and exits nonzero even

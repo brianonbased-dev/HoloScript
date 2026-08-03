@@ -166,6 +166,23 @@ export function repository_identity_sha256_byte(bytes: &[u8], requested: i32): i
   return (load(digest[word_index]) >> byte_shift) & 255
 }
 
+// Source-authored bounded canonical fixture proof. This intentionally
+// materializes only the reviewed HoloKey authority/state record; it does not
+// claim arbitrary object traversal or general canonical-JSON support.
+export function repository_identity_canonical_sha256_byte(requested: i32): i32 {
+  if (requested < 0) { return 0 }
+  if (requested > 31) { return 0 }
+
+  slot canonical: [u8; 33] = [
+    123, 34, 97, 117, 116, 104, 111, 114,
+    105, 116, 121, 34, 58, 34, 72, 111,
+    108, 111, 75, 101, 121, 34, 44, 34,
+    115, 116, 97, 116, 101, 34, 58, 49,
+    125
+  ]
+  return repository_identity_sha256_byte(&canonical[0..33], requested)
+}
+
 export function repository_transition_allowed(state: i32, requested: i32): i32 {
   if (state == 0) {
     if (requested == 0) { return 1 }
