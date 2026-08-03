@@ -639,6 +639,46 @@ fn native_i32_to_u8_out_of_range_traps() {
 }
 
 #[test]
+fn compiles_native_slice_length_for_borrowed_u8_views() {
+    let source = r#"
+        function read_length(bytes: &[u8]): i32 {
+            return slice_length(bytes)
+        }
+
+        function main(): i32 {
+            slot bytes: [u8; 3] = [1, 2, 3]
+            return read_length(&bytes[0..3])
+        }
+    "#;
+    let executable = scratch_executable("native-slice-length-borrowed-u8");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("native slice_length source should compile");
+    assert_eq!(artifact.machine_contract, "hs-machine-v45");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native slice_length executable");
+    assert_eq!(status.code(), Some(3));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn slice_length_rejects_scalar_arguments() {
+    let error = compile_object(
+        r#"
+            function main(): i32 {
+                let value: i32 = 7
+                return slice_length(value)
+            }
+        "#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("slice_length must reject scalar arguments");
+    assert!(error
+        .to_string()
+        .contains("`slice_length` argument `value` is not a typed slice reference"));
+}
+
+#[test]
 fn native_integer_shift_count_outside_operand_width_traps() {
     let source = r#"
         function main(): i32 {

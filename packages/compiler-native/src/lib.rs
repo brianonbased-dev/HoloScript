@@ -70,6 +70,8 @@
 //! it accepts only a proven `u8` operand and never widens a memory load implicitly.
 //! `hs-machine-v44` adds the explicit checked `i32_to_u8` narrowing intrinsic; it traps when the
 //! value is outside the byte range and never narrows a value implicitly.
+//! `hs-machine-v45` adds the explicit `slice_length` metadata intrinsic; it reads only the
+//! compiler-proven half-open length of a borrowed slice and never scans or guesses a buffer.
 //! The v35/v37/v39 finite-float contracts trap on non-finite parameters, division-by-zero results,
 //! and arithmetic overflow before a non-finite value can cross a function or storage boundary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
@@ -143,6 +145,7 @@ pub const INTEGER_ARITHMETIC_MACHINE_CONTRACT: &str = "hs-machine-v41";
 pub const INTEGER_BITWISE_MACHINE_CONTRACT: &str = "hs-machine-v42";
 pub const U8_WIDENING_MACHINE_CONTRACT: &str = "hs-machine-v43";
 pub const I32_NARROWING_MACHINE_CONTRACT: &str = "hs-machine-v44";
+pub const SLICE_LENGTH_MACHINE_CONTRACT: &str = "hs-machine-v45";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -355,12 +358,15 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
+    let carries_slice_length = has_slice_length_machine_metadata(&ast);
     let carries_i32_narrowing = has_i32_narrowing_machine_metadata(&ast);
     let carries_u8_widening = has_u8_widening_machine_metadata(&ast);
     let carries_bitwise = has_bitwise_machine_metadata(&ast);
     let carries_u8 = has_u8_machine_metadata(&ast);
     let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
-    let machine_contract = if carries_i32_narrowing {
+    let machine_contract = if carries_slice_length {
+        SLICE_LENGTH_MACHINE_CONTRACT
+    } else if carries_i32_narrowing {
         I32_NARROWING_MACHINE_CONTRACT
     } else if carries_u8_widening {
         U8_WIDENING_MACHINE_CONTRACT
@@ -453,7 +459,12 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_i32_narrowing_machine_metadata(&ast) {
+    if has_slice_length_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, SLICE_LENGTH_MACHINE_CONTRACT, true)?,
+            machine_contract: SLICE_LENGTH_MACHINE_CONTRACT,
+        })
+    } else if has_i32_narrowing_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, I32_NARROWING_MACHINE_CONTRACT, true)?,
             machine_contract: I32_NARROWING_MACHINE_CONTRACT,
@@ -789,6 +800,7 @@ fn compile_project_unit(
 ) -> Result<CompiledObject, NativeCompileError> {
     let ast = project::load_project_ast(entry)?;
     let carries_uncertainty = has_uncertain_aggregate_machine_metadata(&ast);
+    let carries_slice_length = has_slice_length_machine_metadata(&ast);
     let carries_i32_narrowing = has_i32_narrowing_machine_metadata(&ast);
     let carries_u8_widening = has_u8_widening_machine_metadata(&ast);
     let carries_u8 = has_u8_machine_metadata(&ast);
@@ -796,7 +808,9 @@ fn compile_project_unit(
     let carries_f32 = has_f32_machine_metadata(&ast);
     let carries_f64 = has_f64_machine_metadata(&ast);
     let mut compiled = compile_ast_unit(ast)?;
-    if carries_i32_narrowing {
+    if carries_slice_length {
+        compiled.machine_contract = SLICE_LENGTH_MACHINE_CONTRACT;
+    } else if carries_i32_narrowing {
         compiled.machine_contract = I32_NARROWING_MACHINE_CONTRACT;
     } else if carries_u8_widening {
         compiled.machine_contract = U8_WIDENING_MACHINE_CONTRACT;
@@ -1116,6 +1130,59 @@ fn node_uses_u8_widening(node: &AstNode) -> bool {
             .argument
             .as_deref()
             .is_some_and(node_uses_u8_widening),
+        _ => false,
+    }
+}
+
+fn has_slice_length_machine_metadata(ast: &Ast) -> bool {
+    has_typed_machine_metadata(ast)
+        && ast.body.iter().any(|node| match node {
+            AstNode::Function(function) => function.body.iter().any(node_uses_slice_length),
+            _ => false,
+        })
+}
+
+fn node_uses_slice_length(node: &AstNode) -> bool {
+    match node {
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_slice_length)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_slice_length))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_slice_length),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_slice_length),
+        AstNode::For(for_node) => {
+            for_node.init.as_deref().is_some_and(node_uses_slice_length)
+                || for_node.test.as_deref().is_some_and(node_uses_slice_length)
+                || for_node
+                    .update
+                    .as_deref()
+                    .is_some_and(node_uses_slice_length)
+                || for_node.body.iter().any(node_uses_slice_length)
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_slice_length),
+        AstNode::VariableDeclaration(local) => node_uses_slice_length(&local.value),
+        AstNode::StackSlotDeclaration(slot) => node_uses_slice_length(&slot.value),
+        AstNode::UnaryExpression(unary) => node_uses_slice_length(&unary.argument),
+        AstNode::BinaryExpression(binary) => {
+            node_uses_slice_length(&binary.left) || node_uses_slice_length(&binary.right)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_slice_length(&assignment.target) || node_uses_slice_length(&assignment.value)
+        }
+        AstNode::CallExpression(call) => {
+            matches!(
+                call.callee.as_ref(),
+                AstNode::Identifier(callee) if callee.name == "slice_length"
+            ) || node_uses_slice_length(&call.callee)
+                || call.arguments.iter().any(node_uses_slice_length)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(node_uses_slice_length),
         _ => false,
     }
 }
@@ -3029,6 +3096,7 @@ fn latest_reference_contract(machine_contract: &str) -> bool {
             | INTEGER_BITWISE_MACHINE_CONTRACT
             | U8_WIDENING_MACHINE_CONTRACT
             | I32_NARROWING_MACHINE_CONTRACT
+            | SLICE_LENGTH_MACHINE_CONTRACT
             | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
             | FLOAT32_MACHINE_CONTRACT
             | FLOAT64_MACHINE_CONTRACT
@@ -3069,6 +3137,7 @@ fn u8_enabled(machine_contract: &str) -> bool {
             | INTEGER_BITWISE_MACHINE_CONTRACT
             | U8_WIDENING_MACHINE_CONTRACT
             | I32_NARROWING_MACHINE_CONTRACT
+            | SLICE_LENGTH_MACHINE_CONTRACT
     )
 }
 
@@ -6427,6 +6496,7 @@ fn collect_typed_function_specs<'a>(
                                 | INTEGER_BITWISE_MACHINE_CONTRACT
                                 | U8_WIDENING_MACHINE_CONTRACT
                                 | I32_NARROWING_MACHINE_CONTRACT
+                                | SLICE_LENGTH_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -17272,6 +17342,7 @@ fn lower_reference_initializer(
                     | INTEGER_BITWISE_MACHINE_CONTRACT
                     | U8_WIDENING_MACHINE_CONTRACT
                     | I32_NARROWING_MACHINE_CONTRACT
+                    | SLICE_LENGTH_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -18007,6 +18078,55 @@ fn lower_typed_expression(
                     context,
                     machine_contract,
                 );
+            }
+            if callee.name == "slice_length" {
+                if call.arguments.len() != 1 {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `slice_length` expects exactly one borrowed slice argument, found {}",
+                        call.arguments.len()
+                    )));
+                }
+                if expected != MachineType::I32 {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `slice_length` returns `i32`, but {context} expects `{}`",
+                        expected.name()
+                    )));
+                }
+                let AstNode::Identifier(identifier) = &call.arguments[0] else {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `slice_length` requires a named borrowed slice reference"
+                    )));
+                };
+                let reference = references.get(&identifier.name).ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} `slice_length` argument `{}` is not a typed slice reference",
+                        identifier.name
+                    ))
+                })?;
+                let TypedReferenceLayout::Slice { storage, .. } = &reference.layout else {
+                    return Err(NativeCompileError::new(format!(
+                        "{machine_contract} `slice_length` argument `{}` is not a slice reference",
+                        identifier.name
+                    )));
+                };
+                validate_reference_lease(
+                    reference,
+                    &identifier.name,
+                    borrow_states,
+                    machine_contract,
+                )?;
+                let length = match storage {
+                    SliceStorage::Stack { length, .. } => {
+                        builder.ins().iconst(types::I32, i64::from(*length))
+                    }
+                    SliceStorage::Parameter { length, .. }
+                    | SliceStorage::Heap { length, .. }
+                    | SliceStorage::Returned { length, .. } => *length,
+                };
+                return Ok(TypedValue {
+                    value: length,
+                    machine_type: MachineType::I32,
+                });
             }
             if callee.name == "u8_to_i32" {
                 if call.arguments.len() != 1 {
