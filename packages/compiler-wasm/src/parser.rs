@@ -1943,9 +1943,60 @@ impl Parser {
     }
 
     fn parse_and_expression(&mut self) -> Result<AstNode, ParseError> {
-        let mut left = self.parse_equality_expression()?;
+        let mut left = self.parse_bitwise_or_expression()?;
 
         while self.check(TokenType::And) {
+            let op = self.advance().value.clone();
+            let right = self.parse_bitwise_or_expression()?;
+            left = AstNode::BinaryExpression(BinaryExpression {
+                operator: op,
+                left: Box::new(left),
+                right: Box::new(right),
+                loc: None,
+            });
+        }
+
+        Ok(left)
+    }
+
+    fn parse_bitwise_or_expression(&mut self) -> Result<AstNode, ParseError> {
+        let mut left = self.parse_bitwise_xor_expression()?;
+
+        while self.check(TokenType::BitOr) {
+            let op = self.advance().value.clone();
+            let right = self.parse_bitwise_xor_expression()?;
+            left = AstNode::BinaryExpression(BinaryExpression {
+                operator: op,
+                left: Box::new(left),
+                right: Box::new(right),
+                loc: None,
+            });
+        }
+
+        Ok(left)
+    }
+
+    fn parse_bitwise_xor_expression(&mut self) -> Result<AstNode, ParseError> {
+        let mut left = self.parse_bitwise_and_expression()?;
+
+        while self.check(TokenType::Caret) {
+            let op = self.advance().value.clone();
+            let right = self.parse_bitwise_and_expression()?;
+            left = AstNode::BinaryExpression(BinaryExpression {
+                operator: op,
+                left: Box::new(left),
+                right: Box::new(right),
+                loc: None,
+            });
+        }
+
+        Ok(left)
+    }
+
+    fn parse_bitwise_and_expression(&mut self) -> Result<AstNode, ParseError> {
+        let mut left = self.parse_equality_expression()?;
+
+        while self.check(TokenType::Ampersand) {
             let op = self.advance().value.clone();
             let right = self.parse_equality_expression()?;
             left = AstNode::BinaryExpression(BinaryExpression {
@@ -2019,9 +2070,26 @@ impl Parser {
     }
 
     fn parse_additive_expression(&mut self) -> Result<AstNode, ParseError> {
-        let mut left = self.parse_multiplicative_expression()?;
+        let mut left = self.parse_shift_expression()?;
 
         while self.check(TokenType::Plus) || self.check(TokenType::Minus) {
+            let op = self.advance().value.clone();
+            let right = self.parse_shift_expression()?;
+            left = AstNode::BinaryExpression(BinaryExpression {
+                operator: op,
+                left: Box::new(left),
+                right: Box::new(right),
+                loc: None,
+            });
+        }
+
+        Ok(left)
+    }
+
+    fn parse_shift_expression(&mut self) -> Result<AstNode, ParseError> {
+        let mut left = self.parse_multiplicative_expression()?;
+
+        while self.check(TokenType::ShiftLeft) || self.check(TokenType::ShiftRight) {
             let op = self.advance().value.clone();
             let right = self.parse_multiplicative_expression()?;
             left = AstNode::BinaryExpression(BinaryExpression {

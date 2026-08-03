@@ -64,6 +64,8 @@
 //! observable through compiler-produced code.
 //! `hs-machine-v41` adds checked signed integer division and remainder to the typed arithmetic
 //! subset, trapping on zero divisors and the signed minimum divided by negative one.
+//! `hs-machine-v42` composes the current reference-capable typed surface with integer bitwise
+//! operations and logical shifts, trapping when a shift count is outside the operand width.
 //! The v35/v37/v39 finite-float contracts trap on non-finite parameters, division-by-zero results,
 //! and arithmetic overflow before a non-finite value can cross a function or storage boundary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
@@ -134,6 +136,7 @@ pub const FLOAT32_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v38";
 pub const FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v39";
 pub const BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v40";
 pub const INTEGER_ARITHMETIC_MACHINE_CONTRACT: &str = "hs-machine-v41";
+pub const INTEGER_BITWISE_MACHINE_CONTRACT: &str = "hs-machine-v42";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -346,9 +349,12 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
+    let carries_bitwise = has_bitwise_machine_metadata(&ast);
     let carries_u8 = has_u8_machine_metadata(&ast);
     let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
-    let machine_contract = if carries_u8 {
+    let machine_contract = if carries_bitwise {
+        INTEGER_BITWISE_MACHINE_CONTRACT
+    } else if carries_u8 {
         BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
     } else if carries_recursive_aggregate
         && (has_f32_machine_metadata(&ast) || has_f64_machine_metadata(&ast))
@@ -435,7 +441,12 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_u8_machine_metadata(&ast) {
+    if has_bitwise_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, INTEGER_BITWISE_MACHINE_CONTRACT, true)?,
+            machine_contract: INTEGER_BITWISE_MACHINE_CONTRACT,
+        })
+    } else if has_u8_machine_metadata(&ast) {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT, true)?,
             machine_contract: BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT,
@@ -1083,6 +1094,65 @@ fn node_uses_integer_division(node: &AstNode) -> bool {
             .argument
             .as_deref()
             .is_some_and(node_uses_integer_division),
+        _ => false,
+    }
+}
+
+fn has_bitwise_machine_metadata(ast: &Ast) -> bool {
+    has_typed_machine_metadata(ast)
+        && ast.body.iter().any(|node| match node {
+            AstNode::Function(function) => function.body.iter().any(node_uses_bitwise_operation),
+            _ => false,
+        })
+}
+
+fn node_uses_bitwise_operation(node: &AstNode) -> bool {
+    match node {
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_bitwise_operation)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_bitwise_operation))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_bitwise_operation),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_bitwise_operation),
+        AstNode::For(for_node) => {
+            for_node
+                .init
+                .as_deref()
+                .is_some_and(node_uses_bitwise_operation)
+                || for_node
+                    .test
+                    .as_deref()
+                    .is_some_and(node_uses_bitwise_operation)
+                || for_node
+                    .update
+                    .as_deref()
+                    .is_some_and(node_uses_bitwise_operation)
+                || for_node.body.iter().any(node_uses_bitwise_operation)
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_bitwise_operation),
+        AstNode::VariableDeclaration(local) => node_uses_bitwise_operation(&local.value),
+        AstNode::StackSlotDeclaration(slot) => node_uses_bitwise_operation(&slot.value),
+        AstNode::UnaryExpression(unary) => node_uses_bitwise_operation(&unary.argument),
+        AstNode::BinaryExpression(binary) => {
+            matches!(binary.operator.as_str(), "&" | "|" | "^" | "<<" | ">>")
+                || node_uses_bitwise_operation(&binary.left)
+                || node_uses_bitwise_operation(&binary.right)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_bitwise_operation(&assignment.target)
+                || node_uses_bitwise_operation(&assignment.value)
+        }
+        AstNode::CallExpression(call) => {
+            node_uses_bitwise_operation(&call.callee)
+                || call.arguments.iter().any(node_uses_bitwise_operation)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(node_uses_bitwise_operation),
         _ => false,
     }
 }
@@ -2815,6 +2885,7 @@ fn latest_reference_contract(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
         BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+            | INTEGER_BITWISE_MACHINE_CONTRACT
             | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
             | FLOAT32_MACHINE_CONTRACT
             | FLOAT64_MACHINE_CONTRACT
@@ -2849,7 +2920,10 @@ fn f32_enabled(machine_contract: &str) -> bool {
 }
 
 fn u8_enabled(machine_contract: &str) -> bool {
-    machine_contract == BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+    matches!(
+        machine_contract,
+        BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT | INTEGER_BITWISE_MACHINE_CONTRACT
+    )
 }
 
 fn trap_non_finite_float(
@@ -2903,6 +2977,34 @@ fn lower_checked_integer_division(
         builder.ins().srem(numerator, denominator)
     } else {
         builder.ins().sdiv(numerator, denominator)
+    }
+}
+
+fn lower_checked_integer_shift(
+    builder: &mut FunctionBuilder<'_>,
+    value: Value,
+    shift: Value,
+    machine_type: MachineType,
+    right_shift: bool,
+) -> Value {
+    let width = match machine_type {
+        MachineType::I32 => 32,
+        MachineType::I64 => 64,
+        _ => unreachable!("checked integer shifts require i32 or i64"),
+    };
+    let negative = builder.ins().icmp_imm(IntCC::SignedLessThan, shift, 0);
+    let too_large = builder
+        .ins()
+        .icmp_imm(IntCC::SignedGreaterThanOrEqual, shift, width);
+    let invalid = builder.ins().bor(negative, too_large);
+    builder
+        .ins()
+        .trapnz(invalid, TrapCode::unwrap_user(7));
+
+    if right_shift {
+        builder.ins().ushr(value, shift)
+    } else {
+        builder.ins().ishl(value, shift)
     }
 }
 
@@ -17706,6 +17808,21 @@ fn lower_typed_expression(
                 ),
                 (MachineType::I32 | MachineType::I64, "%") => {
                     lower_checked_integer_division(builder, left.value, right.value, expected, true)
+                }
+                (MachineType::I32 | MachineType::I64, "&") => {
+                    builder.ins().band(left.value, right.value)
+                }
+                (MachineType::I32 | MachineType::I64, "|") => {
+                    builder.ins().bor(left.value, right.value)
+                }
+                (MachineType::I32 | MachineType::I64, "^") => {
+                    builder.ins().bxor(left.value, right.value)
+                }
+                (MachineType::I32 | MachineType::I64, "<<") => {
+                    lower_checked_integer_shift(builder, left.value, right.value, expected, false)
+                }
+                (MachineType::I32 | MachineType::I64, ">>") => {
+                    lower_checked_integer_shift(builder, left.value, right.value, expected, true)
                 }
                 (_, operator) => {
                     return Err(NativeCompileError::new(format!(

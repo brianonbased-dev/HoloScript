@@ -227,7 +227,17 @@ impl<'a> Lexer<'a> {
             }
             '<' => {
                 self.advance();
-                if let Some(&(_, '=')) = self.chars.peek() {
+                if let Some(&(_, '<')) = self.chars.peek() {
+                    self.advance();
+                    Token::new(
+                        TokenType::ShiftLeft,
+                        "<<",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
+                } else if let Some(&(_, '=')) = self.chars.peek() {
                     self.advance();
                     Token::new(
                         TokenType::Le,
@@ -250,7 +260,17 @@ impl<'a> Lexer<'a> {
             }
             '>' => {
                 self.advance();
-                if let Some(&(_, '=')) = self.chars.peek() {
+                if let Some(&(_, '>')) = self.chars.peek() {
+                    self.advance();
+                    Token::new(
+                        TokenType::ShiftRight,
+                        ">>",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    )
+                } else if let Some(&(_, '=')) = self.chars.peek() {
                     self.advance();
                     Token::new(
                         TokenType::Ge,
@@ -308,7 +328,7 @@ impl<'a> Lexer<'a> {
                     )
                 } else {
                     Token::new(
-                        TokenType::Invalid,
+                        TokenType::BitOr,
                         "|",
                         start_line,
                         start_column,
@@ -317,6 +337,7 @@ impl<'a> Lexer<'a> {
                     )
                 }
             }
+            '^' => self.single_char_token(TokenType::Caret, "^"),
 
             // Brackets
             '{' => self.single_char_token(TokenType::LBrace, "{"),

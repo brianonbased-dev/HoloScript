@@ -20,6 +20,7 @@ use holoscript_native::{
     COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
     FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
     INTEGER_ARITHMETIC_MACHINE_CONTRACT, NATIVE_AGGREGATE_ABI_VERSION,
+    INTEGER_BITWISE_MACHINE_CONTRACT,
     NATIVE_MEANING_GAP_REASON_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
     OWNED_BUFFER_ABI_VERSION, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
@@ -491,6 +492,46 @@ fn native_integer_division_by_zero_traps() {
         .status()
         .expect("run native integer zero-divisor executable");
     assert!(!status.success(), "integer division by zero must trap");
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn compiles_native_integer_bitwise_and_shift_operations() {
+    let source = r#"
+        function main(): i32 {
+            let shifted: i32 = (256 >> 3) + (1 << 2)
+            let masked: i32 = shifted & 31
+            let combined: i32 = (masked | 2) ^ 1
+            let logical: i32 = -1 >> 31
+            return combined + logical
+        }
+    "#;
+    let executable = scratch_executable("native-integer-bitwise-shift");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native integer bitwise and shift source");
+    assert_eq!(artifact.machine_contract, INTEGER_BITWISE_MACHINE_CONTRACT);
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native integer bitwise and shift executable");
+    assert_eq!(status.code(), Some(8));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn native_integer_shift_count_outside_operand_width_traps() {
+    let source = r#"
+        function main(): i32 {
+            let count: i32 = 32
+            return 1 << count
+        }
+    "#;
+    let executable = scratch_executable("native-integer-shift-count-trap");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native invalid-shift-count source");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native invalid-shift-count executable");
+    assert!(!status.success(), "out-of-width shift counts must trap");
     remove_scratch_executable_with_retry(&artifact.executable);
 }
 
