@@ -62,6 +62,8 @@
 //! `hs-machine-v40` adds bounded unsigned-byte scalars and one-byte owned buffers, preserving
 //! the existing affine ownership and slice ABI while making byte-oriented native storage
 //! observable through compiler-produced code.
+//! `hs-machine-v41` adds checked signed integer division and remainder to the typed arithmetic
+//! subset, trapping on zero divisors and the signed minimum divided by negative one.
 //! The v35/v37/v39 finite-float contracts trap on non-finite parameters, division-by-zero results,
 //! and arithmetic overflow before a non-finite value can cross a function or storage boundary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
@@ -131,6 +133,7 @@ pub const FLOAT32_MACHINE_CONTRACT: &str = "hs-machine-v37";
 pub const FLOAT32_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v38";
 pub const FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v39";
 pub const BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v40";
+pub const INTEGER_ARITHMETIC_MACHINE_CONTRACT: &str = "hs-machine-v41";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -355,6 +358,8 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
         FLOAT32_MACHINE_CONTRACT
     } else if has_f64_machine_metadata(&ast) {
         FLOAT64_MACHINE_CONTRACT
+    } else if has_integer_division_machine_metadata(&ast) {
+        INTEGER_ARITHMETIC_MACHINE_CONTRACT
     } else if has_uncertain_aggregate_machine_metadata(&ast) {
         UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
     } else if has_conditional_borrow_summary_machine_metadata(&ast) {
@@ -455,6 +460,11 @@ fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
         Ok(CompiledObject {
             bytes: lower_typed_ast_to_object(&ast, FLOAT64_MACHINE_CONTRACT, true)?,
             machine_contract: FLOAT64_MACHINE_CONTRACT,
+        })
+    } else if has_integer_division_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, INTEGER_ARITHMETIC_MACHINE_CONTRACT, true)?,
+            machine_contract: INTEGER_ARITHMETIC_MACHINE_CONTRACT,
         })
     } else if has_uncertain_aggregate_machine_metadata(&ast) {
         Ok(CompiledObject {
@@ -1016,6 +1026,65 @@ fn has_u8_machine_metadata(ast: &Ast) -> bool {
             .any(|annotation| annotation_mentions_u8(annotation)),
         _ => false,
     })
+}
+
+fn has_integer_division_machine_metadata(ast: &Ast) -> bool {
+    has_typed_machine_metadata(ast)
+        && ast.body.iter().any(|node| match node {
+            AstNode::Function(function) => function.body.iter().any(node_uses_integer_division),
+            _ => false,
+        })
+}
+
+fn node_uses_integer_division(node: &AstNode) -> bool {
+    match node {
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_integer_division)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_integer_division))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_integer_division),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_integer_division),
+        AstNode::For(for_node) => {
+            for_node
+                .init
+                .as_deref()
+                .is_some_and(node_uses_integer_division)
+                || for_node
+                    .test
+                    .as_deref()
+                    .is_some_and(node_uses_integer_division)
+                || for_node
+                    .update
+                    .as_deref()
+                    .is_some_and(node_uses_integer_division)
+                || for_node.body.iter().any(node_uses_integer_division)
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_integer_division),
+        AstNode::VariableDeclaration(local) => node_uses_integer_division(&local.value),
+        AstNode::StackSlotDeclaration(slot) => node_uses_integer_division(&slot.value),
+        AstNode::UnaryExpression(unary) => node_uses_integer_division(&unary.argument),
+        AstNode::BinaryExpression(binary) => {
+            matches!(binary.operator.as_str(), "/" | "%")
+                || node_uses_integer_division(&binary.left)
+                || node_uses_integer_division(&binary.right)
+        }
+        AstNode::Assignment(assignment) => {
+            node_uses_integer_division(&assignment.target)
+                || node_uses_integer_division(&assignment.value)
+        }
+        AstNode::CallExpression(call) => {
+            node_uses_integer_division(&call.callee)
+                || call.arguments.iter().any(node_uses_integer_division)
+        }
+        AstNode::Return(return_node) => return_node
+            .argument
+            .as_deref()
+            .is_some_and(node_uses_integer_division),
+        _ => false,
+    }
 }
 
 fn has_aggregate_machine_metadata(ast: &Ast) -> bool {
@@ -2801,6 +2870,40 @@ fn trap_non_finite_float(
     };
     let infinite = builder.ins().fcmp(FloatCC::GreaterThan, magnitude, maximum);
     builder.ins().trapnz(infinite, TrapCode::unwrap_user(13));
+}
+
+fn lower_checked_integer_division(
+    builder: &mut FunctionBuilder<'_>,
+    numerator: Value,
+    denominator: Value,
+    machine_type: MachineType,
+    remainder: bool,
+) -> Value {
+    let zero = builder.ins().iconst(machine_type.ir_type(), 0);
+    let denominator_is_zero = builder.ins().icmp(IntCC::Equal, denominator, zero);
+    builder
+        .ins()
+        .trapnz(denominator_is_zero, TrapCode::unwrap_user(5));
+
+    let minimum = match machine_type {
+        MachineType::I32 => i64::from(i32::MIN),
+        MachineType::I64 => i64::MIN,
+        _ => unreachable!("checked integer division requires i32 or i64"),
+    };
+    let numerator_is_minimum = builder.ins().icmp_imm(IntCC::Equal, numerator, minimum);
+    let denominator_is_negative_one = builder.ins().icmp_imm(IntCC::Equal, denominator, -1);
+    let signed_overflow = builder
+        .ins()
+        .band(numerator_is_minimum, denominator_is_negative_one);
+    builder
+        .ins()
+        .trapnz(signed_overflow, TrapCode::unwrap_user(6));
+
+    if remainder {
+        builder.ins().srem(numerator, denominator)
+    } else {
+        builder.ins().sdiv(numerator, denominator)
+    }
 }
 
 fn bool_enabled(machine_contract: &str) -> bool {
@@ -17594,6 +17697,16 @@ fn lower_typed_expression(
                 (_, "+") => builder.ins().iadd(left.value, right.value),
                 (_, "-") => builder.ins().isub(left.value, right.value),
                 (_, "*") => builder.ins().imul(left.value, right.value),
+                (MachineType::I32 | MachineType::I64, "/") => lower_checked_integer_division(
+                    builder,
+                    left.value,
+                    right.value,
+                    expected,
+                    false,
+                ),
+                (MachineType::I32 | MachineType::I64, "%") => {
+                    lower_checked_integer_division(builder, left.value, right.value, expected, true)
+                }
                 (_, operator) => {
                     return Err(NativeCompileError::new(format!(
                         "{machine_contract} does not support binary operator `{operator}` for `{}`",

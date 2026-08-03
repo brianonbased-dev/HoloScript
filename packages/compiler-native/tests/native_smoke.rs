@@ -19,9 +19,9 @@ use holoscript_native::{
     BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT,
     COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
     FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
-    NATIVE_AGGREGATE_ABI_VERSION, NATIVE_MEANING_GAP_REASON_ABI_VERSION,
-    OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
-    UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
+    INTEGER_ARITHMETIC_MACHINE_CONTRACT, NATIVE_AGGREGATE_ABI_VERSION,
+    NATIVE_MEANING_GAP_REASON_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
+    OWNED_BUFFER_ABI_VERSION, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -450,6 +450,48 @@ function main(): i32 {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove u8 buffer smoke-test executable");
+}
+
+#[test]
+fn compiles_native_integer_division_and_remainder_operations() {
+    let source = r#"
+        function main(): i32 {
+            let quotient: i32 = 29 / 5
+            let remainder: i32 = 29 % 5
+            return quotient + remainder
+        }
+    "#;
+    let executable = scratch_executable("native-integer-division-remainder");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native integer division and remainder source");
+    assert_eq!(
+        artifact.machine_contract,
+        INTEGER_ARITHMETIC_MACHINE_CONTRACT
+    );
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native integer division and remainder executable");
+    assert_eq!(status.code(), Some(9));
+    fs::remove_file(&artifact.executable)
+        .expect("remove native integer division and remainder executable");
+}
+
+#[test]
+fn native_integer_division_by_zero_traps() {
+    let source = r#"
+        function main(): i32 {
+            let divisor: i32 = 0
+            return 1 / divisor
+        }
+    "#;
+    let executable = scratch_executable("native-integer-division-by-zero");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native integer zero-divisor source");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native integer zero-divisor executable");
+    assert!(!status.success(), "integer division by zero must trap");
+    remove_scratch_executable_with_retry(&artifact.executable);
 }
 
 #[test]
