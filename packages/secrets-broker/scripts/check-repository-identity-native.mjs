@@ -170,6 +170,35 @@ const NATIVE_SHA256_FIXTURE_TEXT = '{"authority":"HoloKey","state":1}';
 const NATIVE_SHA256_FIXTURE_BYTES = Buffer.from(NATIVE_SHA256_FIXTURE_TEXT, 'utf8');
 const NATIVE_SHA256_EXPECTED_HEX =
   'defc35bec5e0abb739f1f23da5d319956af5144ae854fd28dc8bd5c39b11f700';
+const NATIVE_CANONICAL_AUTHORITY_STATE_CASES = [
+  {
+    authorityText: 'HoloKey',
+    state: 0,
+    fixtureUtf8: '{"authority":"HoloKey","state":0}',
+    expectedDigestHex:
+      'e5f1ae3abbd49d7d5c8337f48b4e4977e1cc4b2af1b060c34aca98f3adf0f955',
+  },
+  {
+    authorityText: 'HoloKey',
+    state: 1,
+    fixtureUtf8: NATIVE_SHA256_FIXTURE_TEXT,
+    expectedDigestHex: NATIVE_SHA256_EXPECTED_HEX,
+  },
+  {
+    authorityText: 'HoloKey',
+    state: 2,
+    fixtureUtf8: '{"authority":"HoloKey","state":2}',
+    expectedDigestHex:
+      '8ba60913f757e36944088292678619be55947828227270e2e5d4bc676d25cf0c',
+  },
+  {
+    authorityText: 'Jetson-1',
+    state: 2,
+    fixtureUtf8: '{"authority":"Jetson-1","state":2}',
+    expectedDigestHex:
+      'a2aff97e82e3bda37a1eb4fcc4b9ddd66c55dc007b4bbc5432f32a8e8c24ea82',
+  },
+];
 const MODULE_PROBE_SCHEMA = 'holokey.repository-identity-module-probe.v1';
 const REFLECT_OWN_KEYS = Reflect.ownKeys;
 const REFLECT_APPLY = Reflect.apply;
@@ -2049,6 +2078,7 @@ const report = {
     nativeExecutionPhases: [],
     nativeContentBindingPhases: [],
     nativeCanonicalFixturePhases: [],
+    nativeCanonicalAuthorityStatePhases: [],
     nativeExecutionIsolation: 'fresh-generated-executable-without-descendant-containment-claim',
     custodyPolicySelfTest: TOOL_CUSTODY_POLICY_SELF_TEST,
   },
@@ -2056,6 +2086,7 @@ const report = {
     afterNativeRows: null,
     afterNativeContentBinding: null,
     afterNativeCanonicalFixture: null,
+    afterNativeCanonicalAuthorityState: null,
     beforeModuleProbe: null,
     afterEarlyExitSelfTest: null,
     beforeMissingChallengeFixture: null,
@@ -2097,6 +2128,23 @@ const report = {
     actualDigestHex: null,
     machineContract: null,
     implementations: [],
+    passed: false,
+  },
+  nativeCanonicalAuthorityState: {
+    schema: 'holokey.repository-identity-native-canonical-authority-state.v1',
+    scope: 'source-authored-bounded-ascii-authority-state-canonical-json',
+    cases: NATIVE_CANONICAL_AUTHORITY_STATE_CASES.map((fixture) => ({
+      authorityText: fixture.authorityText,
+      state: fixture.state,
+      fixtureUtf8: fixture.fixtureUtf8,
+      fixtureByteLength: Buffer.byteLength(fixture.fixtureUtf8, 'utf8'),
+      fixtureSha256: `sha256:${fixture.expectedDigestHex}`,
+      expectedDigestHex: fixture.expectedDigestHex,
+      actualDigestHex: null,
+      machineContract: null,
+      implementations: [],
+      passed: false,
+    })),
     passed: false,
   },
   equivalence: {
@@ -2266,11 +2314,11 @@ try {
   }
   const sourceText = sourceBytes.toString('utf8');
   const exportDeclarations = sourceText.match(/^export function /gmu) ?? [];
-    if (exportDeclarations.length !== 5 || /(?:^|\n)function main\s*\(/u.test(sourceText)) {
+    if (exportDeclarations.length !== 6 || /(?:^|\n)function main\s*\(/u.test(sourceText)) {
       report.blockers.push({
         code: 'HOLOKEY_NATIVE_SOURCE_DERIVATION_UNSAFE',
         message:
-          'The reviewed source no longer matches the bounded five-export/no-entry derivation contract.',
+          'The reviewed source no longer matches the bounded six-export/no-entry derivation contract.',
     });
     throw new Error('source-derivation-unsafe');
   }
@@ -2922,6 +2970,235 @@ try {
       message: 'The compiler-native source-authored canonical identity fixture did not reproduce the reviewed digest.',
     });
     throw new Error('native-canonical-fixture-binding-failed');
+  }
+
+  for (const [caseIndex, fixture] of NATIVE_CANONICAL_AUTHORITY_STATE_CASES.entries()) {
+    const authorityBytes = Buffer.from(fixture.authorityText, 'utf8');
+    const authorityLiteral = [...authorityBytes].join(', ');
+    const fixtureReport = report.nativeCanonicalAuthorityState.cases[caseIndex];
+    const actualDigestBytes = [];
+    for (let byteIndex = 0; byteIndex < 32; byteIndex += 1) {
+      const entryPath = resolve(
+        scratchRoot,
+        `canonical-authority-state-${caseIndex}-${byteIndex}.hs`
+      );
+      const executablePath = resolve(
+        scratchRoot,
+        process.platform === 'win32'
+          ? `canonical-authority-state-${caseIndex}-${byteIndex}.exe`
+          : `canonical-authority-state-${caseIndex}-${byteIndex}`
+      );
+      writeFileSync(
+        entryPath,
+        `${compilerInputBase}\nfunction main(): i32 {\n  slot authority: [u8; ${authorityBytes.length}] = [${authorityLiteral}]\n  return repository_identity_canonical_authority_state_sha256_byte(&authority[0..${authorityBytes.length}], ${fixture.state}, ${byteIndex})\n}\n`,
+        'utf8'
+      );
+      const beforeCompile = captureFileAnchors(coreAnchorSpecifications);
+      if (!beforeCompile.verified) {
+        report.compiler.nativeCanonicalAuthorityStatePhases.push({
+          caseIndex,
+          authorityText: fixture.authorityText,
+          state: fixture.state,
+          byteIndex,
+          phase: 'before-spawn',
+          before: beforeCompile,
+          after: captureFileAnchors(coreAnchorSpecifications),
+          verified: false,
+        });
+        report.blockers.push({
+          code: 'HOLOKEY_NATIVE_TOOLCHAIN_CUSTODY_DRIFT',
+          message: `A source or toolchain anchor drifted immediately before bounded authority-state canonical SHA-256 byte ${byteIndex}.`,
+          caseIndex,
+          byteIndex,
+          phase: 'before-spawn',
+        });
+        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-before-spawn-custody-drift`);
+      }
+      const compile = spawnSync(
+        compilerSnapshotPath,
+        [entryPath, '-o', executablePath, '--linker', linkerPath],
+        {
+          cwd: scratchRoot,
+          encoding: 'utf8',
+          windowsHide: true,
+          timeout: 60_000,
+          maxBuffer: MAX_OUTPUT_BYTES,
+          env: toolchain.env,
+        }
+      );
+      const afterCompile = captureFileAnchors(coreAnchorSpecifications);
+      const compilePhase = executionPhaseReceipt(byteIndex, beforeCompile, afterCompile);
+      if (!compilePhase.verified) {
+        report.compiler.nativeCanonicalAuthorityStatePhases.push({
+          caseIndex,
+          authorityText: fixture.authorityText,
+          state: fixture.state,
+          byteIndex,
+          phase: 'after-spawn',
+          before: beforeCompile,
+          after: afterCompile,
+          verified: false,
+        });
+        report.blockers.push({
+          code: 'HOLOKEY_NATIVE_TOOLCHAIN_CUSTODY_DRIFT',
+          message: `A source or toolchain anchor drifted immediately after bounded authority-state canonical SHA-256 byte ${byteIndex} compilation.`,
+          caseIndex,
+          byteIndex,
+          phase: 'after-spawn',
+        });
+        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-after-spawn-custody-drift`);
+      }
+      const compileReceipt = safeJson(compile.stdout ?? '');
+      if (
+        compile.error ||
+        compile.status !== 0 ||
+        (compile.stderr ?? '') !== '' ||
+        !compileReceipt ||
+        !strictObjectKeys(compileReceipt, [
+          'machine_contract',
+          'object_bytes',
+          'object_sha256',
+          'executable',
+        ]) ||
+        compileReceipt.machine_contract !== EXPECTED_ROW_MACHINE_CONTRACT ||
+        !Number.isSafeInteger(compileReceipt.object_bytes) ||
+        compileReceipt.object_bytes < 1 ||
+        !/^[a-f0-9]{64}$/u.test(String(compileReceipt.object_sha256 ?? '')) ||
+        typeof compileReceipt.executable !== 'string' ||
+        resolve(compileReceipt.executable) !== executablePath ||
+        !ownedRegularFile(executablePath, scratchRoot)
+      ) {
+        report.blockers.push({
+          code: 'HOLOKEY_NATIVE_CANONICAL_AUTHORITY_STATE_MATERIALIZATION_FAILED',
+          message: `The owned compiler did not materialize bounded authority-state canonical SHA-256 byte ${byteIndex}.`,
+          caseIndex,
+          authorityText: fixture.authorityText,
+          state: fixture.state,
+          byteIndex,
+          compilerExitCode: compile.status,
+          compilerError: compile.error?.code ?? null,
+          compilerStdout: boundedOutput(compile.stdout),
+          compilerStderr: boundedOutput(compile.stderr),
+        });
+        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-materialization-failed`);
+      }
+      report.compiler.machineContracts.push(compileReceipt.machine_contract);
+      fixtureReport.machineContract = compileReceipt.machine_contract;
+      const entrySha256 = sha256File(entryPath);
+      const executableSha256 = sha256File(executablePath);
+      const nativeAnchorSpecifications = {
+        ...coreAnchorSpecifications,
+        entry: {
+          path: entryPath,
+          label: `scratch/canonical-authority-state-${caseIndex}-${byteIndex}.hs`,
+          expectedSha256: entrySha256,
+        },
+        executable: {
+          path: executablePath,
+          label: `scratch/${process.platform === 'win32' ? `canonical-authority-state-${caseIndex}-${byteIndex}.exe` : `canonical-authority-state-${caseIndex}-${byteIndex}`}`,
+          expectedSha256: executableSha256,
+        },
+      };
+      const beforeNative = captureFileAnchors(nativeAnchorSpecifications);
+      const expectedByte = Buffer.from(fixture.expectedDigestHex, 'hex')[byteIndex];
+      const native = spawnSync(executablePath, [], {
+        cwd: scratchRoot,
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 10_000,
+        maxBuffer: 16 * 1024,
+        env: {},
+      });
+      const afterNative = captureFileAnchors(nativeAnchorSpecifications);
+      const nativePhase = executionPhaseReceipt(byteIndex, beforeNative, afterNative);
+      report.compiler.nativeCanonicalAuthorityStatePhases.push({
+        caseIndex,
+        authorityText: fixture.authorityText,
+        state: fixture.state,
+        byteIndex,
+        before: beforeCompile,
+        after: afterCompile,
+        nativeBefore: beforeNative,
+        nativeAfter: afterNative,
+        verified: compilePhase.verified && nativePhase.verified,
+      });
+      if (!beforeNative.verified || !nativePhase.verified) {
+        report.blockers.push({
+          code: 'HOLOKEY_NATIVE_CANONICAL_AUTHORITY_STATE_EXECUTABLE_CUSTODY_DRIFT',
+          message: `An anchor or generated executable drifted around bounded authority-state canonical SHA-256 byte ${byteIndex}.`,
+          caseIndex,
+          authorityText: fixture.authorityText,
+          state: fixture.state,
+          byteIndex,
+        });
+        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-execution-custody-drift`);
+      }
+      if (
+        native.error ||
+        native.signal ||
+        (native.stdout ?? '') !== '' ||
+        (native.stderr ?? '') !== '' ||
+        native.status !== expectedByte
+      ) {
+        report.blockers.push({
+          code: 'HOLOKEY_NATIVE_CANONICAL_AUTHORITY_STATE_BINDING_FAILED',
+          message: `Compiler-generated bounded authority-state canonical SHA-256 byte ${byteIndex} did not match the reviewed digest.`,
+          caseIndex,
+          authorityText: fixture.authorityText,
+          state: fixture.state,
+          byteIndex,
+          expectedByte,
+          nativeExitCode: native.status,
+          nativeSignal: native.signal,
+        });
+        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-binding-failed`);
+      }
+      actualDigestBytes.push(native.status);
+      fixtureReport.implementations.push({
+        byteIndex,
+        expectedByte,
+        entrySha256,
+        executableSha256,
+        objectSha256: `sha256:${compileReceipt.object_sha256}`,
+      });
+    }
+    fixtureReport.actualDigestHex = Buffer.from(actualDigestBytes).toString('hex');
+    fixtureReport.passed =
+      fixtureReport.fixtureSha256 === `sha256:${fixture.expectedDigestHex}` &&
+      fixtureReport.actualDigestHex === fixture.expectedDigestHex &&
+      fixtureReport.implementations.length === 32;
+    if (!fixtureReport.passed) {
+      report.blockers.push({
+        code: 'HOLOKEY_NATIVE_CANONICAL_AUTHORITY_STATE_BINDING_FAILED',
+        message: `The compiler-native bounded authority-state canonicalizer did not reproduce fixture ${caseIndex}.`,
+        caseIndex,
+        authorityText: fixture.authorityText,
+        state: fixture.state,
+      });
+      throw new Error(`native-canonical-authority-state-${caseIndex}-binding-failed`);
+    }
+  }
+  report.nativeCanonicalAuthorityState.passed =
+    report.nativeCanonicalAuthorityState.cases.length === NATIVE_CANONICAL_AUTHORITY_STATE_CASES.length &&
+    report.nativeCanonicalAuthorityState.cases.every((fixture) => fixture.passed) &&
+    report.compiler.nativeCanonicalAuthorityStatePhases.length ===
+      NATIVE_CANONICAL_AUTHORITY_STATE_CASES.length * 32;
+  report.anchorCustody.afterNativeCanonicalAuthorityState = captureFileAnchors(
+    coreAnchorSpecifications
+  );
+  if (!report.anchorCustody.afterNativeCanonicalAuthorityState.verified) {
+    report.blockers.push({
+      code: 'HOLOKEY_NATIVE_ANCHOR_CUSTODY_DRIFT',
+      message: 'A source or toolchain anchor drifted after bounded authority-state canonicalization.',
+    });
+    throw new Error('native-canonical-authority-state-anchor-custody-drift');
+  }
+  if (!report.nativeCanonicalAuthorityState.passed) {
+    report.blockers.push({
+      code: 'HOLOKEY_NATIVE_CANONICAL_AUTHORITY_STATE_BINDING_FAILED',
+      message: 'The compiler-native bounded authority-state canonicalizer did not reproduce all reviewed fixture digests.',
+    });
+    throw new Error('native-canonical-authority-state-binding-failed');
   }
 
   const requiredBuildFiles = [

@@ -183,6 +183,176 @@ export function repository_identity_canonical_sha256_byte(requested: i32): i32 {
   return repository_identity_sha256_byte(&canonical[0..33], requested)
 }
 
+// Source-authored bounded schema canonicalization proof. This accepts only a
+// portable ASCII authority identifier and the reviewed three-state domain;
+// arbitrary canonical JSON, escaping, and detached signatures remain outside
+// this deliberately small one-block contract.
+export function repository_identity_canonical_authority_state_sha256_byte(
+  authority: &[u8], state: i32, requested: i32
+): i32 {
+  let authority_length: i32 = slice_length(authority)
+  if (authority_length < 1) { return 0 }
+  if (authority_length > 24) { return 0 }
+  if (state < 0) { return 0 }
+  if (state > 2) { return 0 }
+  if (requested < 0) { return 0 }
+  if (requested > 31) { return 0 }
+
+  slot scan: i32 = 0
+  while (load(scan) < authority_length) {
+    let byte: i32 = u8_to_i32(load(authority[load(scan)]))
+    slot valid: i32 = 0
+    if (byte >= 48) {
+      if (byte <= 57) { store(valid, 1) }
+    }
+    if (byte >= 65) {
+      if (byte <= 90) { store(valid, 1) }
+    }
+    if (byte >= 97) {
+      if (byte <= 122) { store(valid, 1) }
+    }
+    if (byte == 45) { store(valid, 1) }
+    if (byte == 46) { store(valid, 1) }
+    if (byte == 95) { store(valid, 1) }
+    if (load(valid) == 0) { return 0 }
+    store(scan, load(scan) + 1)
+  }
+
+  slot canonical: [u8; 55] = [
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0
+  ]
+  store(canonical[0], i32_to_u8(123))
+  store(canonical[1], i32_to_u8(34))
+  store(canonical[2], i32_to_u8(97))
+  store(canonical[3], i32_to_u8(117))
+  store(canonical[4], i32_to_u8(116))
+  store(canonical[5], i32_to_u8(104))
+  store(canonical[6], i32_to_u8(111))
+  store(canonical[7], i32_to_u8(114))
+  store(canonical[8], i32_to_u8(105))
+  store(canonical[9], i32_to_u8(116))
+  store(canonical[10], i32_to_u8(121))
+  store(canonical[11], i32_to_u8(34))
+  store(canonical[12], i32_to_u8(58))
+  store(canonical[13], i32_to_u8(34))
+
+  slot cursor: i32 = 14
+  slot authority_index: i32 = 0
+  while (load(authority_index) < authority_length) {
+    store(
+      canonical[load(cursor)],
+      load(authority[load(authority_index)])
+    )
+    store(cursor, load(cursor) + 1)
+    store(authority_index, load(authority_index) + 1)
+  }
+
+  store(canonical[load(cursor)], i32_to_u8(34))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(44))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(34))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(115))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(116))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(97))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(116))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(101))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(34))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(58))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(48 + state))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(125))
+  store(cursor, load(cursor) + 1)
+
+  if (authority_length == 1) {
+    return repository_identity_sha256_byte(&canonical[0..27], requested)
+  }
+  if (authority_length == 2) {
+    return repository_identity_sha256_byte(&canonical[0..28], requested)
+  }
+  if (authority_length == 3) {
+    return repository_identity_sha256_byte(&canonical[0..29], requested)
+  }
+  if (authority_length == 4) {
+    return repository_identity_sha256_byte(&canonical[0..30], requested)
+  }
+  if (authority_length == 5) {
+    return repository_identity_sha256_byte(&canonical[0..31], requested)
+  }
+  if (authority_length == 6) {
+    return repository_identity_sha256_byte(&canonical[0..32], requested)
+  }
+  if (authority_length == 7) {
+    return repository_identity_sha256_byte(&canonical[0..33], requested)
+  }
+  if (authority_length == 8) {
+    return repository_identity_sha256_byte(&canonical[0..34], requested)
+  }
+  if (authority_length == 9) {
+    return repository_identity_sha256_byte(&canonical[0..35], requested)
+  }
+  if (authority_length == 10) {
+    return repository_identity_sha256_byte(&canonical[0..36], requested)
+  }
+  if (authority_length == 11) {
+    return repository_identity_sha256_byte(&canonical[0..37], requested)
+  }
+  if (authority_length == 12) {
+    return repository_identity_sha256_byte(&canonical[0..38], requested)
+  }
+  if (authority_length == 13) {
+    return repository_identity_sha256_byte(&canonical[0..39], requested)
+  }
+  if (authority_length == 14) {
+    return repository_identity_sha256_byte(&canonical[0..40], requested)
+  }
+  if (authority_length == 15) {
+    return repository_identity_sha256_byte(&canonical[0..41], requested)
+  }
+  if (authority_length == 16) {
+    return repository_identity_sha256_byte(&canonical[0..42], requested)
+  }
+  if (authority_length == 17) {
+    return repository_identity_sha256_byte(&canonical[0..43], requested)
+  }
+  if (authority_length == 18) {
+    return repository_identity_sha256_byte(&canonical[0..44], requested)
+  }
+  if (authority_length == 19) {
+    return repository_identity_sha256_byte(&canonical[0..45], requested)
+  }
+  if (authority_length == 20) {
+    return repository_identity_sha256_byte(&canonical[0..46], requested)
+  }
+  if (authority_length == 21) {
+    return repository_identity_sha256_byte(&canonical[0..47], requested)
+  }
+  if (authority_length == 22) {
+    return repository_identity_sha256_byte(&canonical[0..48], requested)
+  }
+  if (authority_length == 23) {
+    return repository_identity_sha256_byte(&canonical[0..49], requested)
+  }
+  if (authority_length == 24) {
+    return repository_identity_sha256_byte(&canonical[0..50], requested)
+  }
+  return 0
+}
+
 export function repository_transition_allowed(state: i32, requested: i32): i32 {
   if (state == 0) {
     if (requested == 0) { return 1 }

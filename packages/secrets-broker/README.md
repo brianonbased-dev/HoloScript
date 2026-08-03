@@ -139,13 +139,21 @@ authority/state fixture. This is a source-authored canonical-fixture proof,
 not a claim that the language can traverse or canonicalize arbitrary objects.
 The second proof must produce the same 32-byte digest shown above.
 
+The source now also exposes a bounded schema canonicalizer,
+`repository_identity_canonical_authority_state_sha256_byte`. It accepts a
+borrowed portable-ASCII authority identifier up to 24 bytes and state `0`,
+`1`, or `2`, emits the canonical authority/state JSON form, and proves four
+fixtures (`HoloKey` at each state plus `Jetson-1` at state `2`) through 128
+fresh native executables. This is a bounded schema proof, not arbitrary JSON
+traversal or escaping support.
+
 ```bash
 pnpm --filter @holoscript/secrets-broker run check:repository-identity-native
 ```
 
-The bounded byte-binding and fixed-fixture canonical proofs are not a general
-canonical-JSON implementation and do not themselves authenticate or persist
-an authority record. The compiler still cannot materialize the full importable
+The bounded byte-binding, fixed-fixture, and authority/state schema proofs are
+not a general canonical-JSON implementation and do not themselves authenticate
+or persist an authority record. The compiler still cannot materialize the full importable
 ESM/CJS package surface for arbitrary bounded canonical JSON, detached
 signature verification, atomic compare-and-commit, or authenticated durable
 HoloKey authority-root readback.
