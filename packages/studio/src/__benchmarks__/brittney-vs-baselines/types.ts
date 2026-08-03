@@ -63,6 +63,18 @@ export interface ConfigRunResult {
   tool_rounds: number;
   usage: TokenUsage;
   model_id: string;
+  /**
+   * Set by configs that run on self-hosted compute (Ollama, HoloServe,
+   * HoloLlama-launched llama-server) so cost accounting can price them at
+   * zero API spend.
+   *
+   * This exists because `model_id` alone is not a reliable locality signal:
+   * a HoloServe route reports the raw GGUF name (`qwen2.5-coder-7b-instruct-q4_k_m`),
+   * which is indistinguishable from an unknown cloud model by pattern alone.
+   * `cost-tracker` guesses from the id as a fallback, but an explicit flag is
+   * the only thing that gets it right for arbitrary local model names.
+   */
+  local_compute?: boolean;
   scene_mutations: SceneMutation[];
   cael_chain_fnv1a?: string;
   error?: string;

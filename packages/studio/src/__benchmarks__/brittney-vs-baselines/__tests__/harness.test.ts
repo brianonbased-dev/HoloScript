@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { ConfigRunner, ConfigRunResult, RubricCriterion, Task } from '../types';
-import { CostTracker, costOf } from '../cost-tracker';
+import { CostTracker, costOf, pricingFor, MODEL_PRICING } from '../cost-tracker';
 import { aggregateByConfig, paretoFrontier, renderParetoMarkdown } from '../pareto';
 import { runBenchmark } from '../runner';
 import { loadAllTasks, loadQuickSubset } from '../tasks';
@@ -83,15 +83,17 @@ function fakeAnthropicForJudge(
 
 describe('cost-tracker', () => {
   it('sums standard input + output costs by model pricing', () => {
+    // Opus 4.7 is $5/$25 per MTok. It was listed at $15/$75 until 2026-08-03
+    // — Claude 3 Opus rates, a full generation stale and 3x too high.
     const cost = costOf({ input_tokens: 1_000_000, output_tokens: 1_000_000 }, 'claude-opus-4-7');
-    expect(cost).toBeCloseTo(15 + 75, 5);
+    expect(cost).toBeCloseTo(5 + 25, 5);
   });
 
   it('respects budget exceeded threshold', () => {
     const tracker = new CostTracker(1.0);
     expect(tracker.exceeded()).toBe(false);
     tracker.add({ input_tokens: 100_000, output_tokens: 100_000 }, 'claude-opus-4-7');
-    expect(tracker.used()).toBeCloseTo(15 * 0.1 + 75 * 0.1, 5);
+    expect(tracker.used()).toBeCloseTo(5 * 0.1 + 25 * 0.1, 5);
     expect(tracker.exceeded()).toBe(true);
   });
 
@@ -105,7 +107,95 @@ describe('cost-tracker', () => {
       },
       'claude-opus-4-7'
     );
-    expect(cost).toBeCloseTo(15 + 18.75 + 1.5, 5);
+    // 1 MTok uncached input at 5.00, 1 MTok cache write at 1.25x, 1 MTok
+    // cache read at 0.1x.
+    expect(cost).toBeCloseTo(5 + 6.25 + 0.5, 5);
+  });
+
+  it('prices current-generation models instead of falling back', () => {
+    // Every one of these previously fell through to the `claude-opus-4-7`
+    // entry at $15/$75 — Opus 5 was billed at 3x, Sonnet 5 at 5x.
+    expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-opus-5')).toBeCloseTo(5, 5);
+    expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-opus-4-8')).toBeCloseTo(
+      5,
+      5
+    );
+    expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-sonnet-5')).toBeCloseTo(
+      3,
+      5
+    );
+    expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-fable-5')).toBeCloseTo(
+      10,
+      5
+    );
+  });
+
+  it('prices a dated snapshot as its alias', () => {
+    // The old `split('-').slice(0, 3)` normalization mapped this to
+    // `claude-haiku-4`, which is not a key, so it hit the fallback.
+    expect(
+      costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-haiku-4-5-20251001')
+    ).toBeCloseTo(1, 5);
+    expect(pricingFor('claude-haiku-4-5-20251001')).toBe(pricingFor('claude-haiku-4-5'));
+  });
+
+  it('prices locally-hosted models at zero, not at cloud rates', () => {
+    // Ollama reports tag-style ids. These were billed as Opus 4.7 ($15/$75)
+    // before 2026-08-03 — a local run showed up as the most expensive config
+    // in the Pareto comparison.
+    for (const id of ['qwen2.5-coder:7b', 'llama3.1:8b', 'ollama-error']) {
+      expect(costOf({ input_tokens: 1_000_000, output_tokens: 1_000_000 }, id)).toBe(0);
+    }
+  });
+
+  it('prices an unclassifiable local model at zero when the config declares it', () => {
+    // A HoloServe / HoloLlama route reports a raw GGUF name with no colon and
+    // no recognizable prefix — pattern-matching cannot classify it, so without
+    // the explicit flag it would take the conservative cloud fallback.
+    const gguf = 'qwen2.5-coder-7b-instruct-q4_k_m';
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const usage = { input_tokens: 1_000_000, output_tokens: 1_000_000 };
+      expect(costOf(usage, gguf)).toBeGreaterThan(0); // guessed: unknown → cloud fallback
+      expect(costOf(usage, gguf, { localCompute: true })).toBe(0); // declared: free
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('prices a decorated model id as the model it names', () => {
+    // fable5-ultracode reports "claude-fable-5 [ultracode reference transcript replay]".
+    expect(pricingFor('claude-fable-5 [ultracode reference transcript replay]')).toBe(
+      MODEL_PRICING['claude-fable-5']
+    );
+  });
+
+  it('does not treat an unrecognized cloud model as local', () => {
+    // Guards the local predicate against over-matching: a `claude-*` id it
+    // does not know must still take the conservative fallback, never $0.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(pricingFor('claude-some-future-model')).toBe(MODEL_PRICING['claude-fable-5']);
+      expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-some-future-model')).
+        toBeGreaterThan(0);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('falls back to the most expensive known pricing for an unknown model', () => {
+    // Budget guards must fail safe by over-estimating, never under.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(pricingFor('claude-does-not-exist-9')).toBe(MODEL_PRICING['claude-fable-5']);
+      const priciest = Math.max(
+        ...Object.values(MODEL_PRICING).map((p) => p.input_per_mtok_usd)
+      );
+      expect(pricingFor('claude-does-not-exist-9').input_per_mtok_usd).toBe(priciest);
+      expect(warn).toHaveBeenCalledOnce();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

@@ -178,8 +178,9 @@ async function executeCell(opts: ExecuteCellOptions): Promise<RunOutcome> {
   let outcome: RunOutcome;
   try {
     const cfgResult = await opts.config.run(opts.task, ac.signal);
-    const runCost = costOf(cfgResult.usage, cfgResult.model_id);
-    opts.tracker.add(cfgResult.usage, cfgResult.model_id);
+    const costOpts = { localCompute: cfgResult.local_compute };
+    const runCost = costOf(cfgResult.usage, cfgResult.model_id, costOpts);
+    opts.tracker.add(cfgResult.usage, cfgResult.model_id, costOpts);
 
     let completion = false;
     let perCriterion: RunOutcome['per_criterion'] = [];
