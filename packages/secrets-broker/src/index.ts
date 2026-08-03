@@ -736,3 +736,5 @@ export {
   type ResolveServiceIdentityOpts,
   type NormalizedServiceSecretRef,
 } from './service-identity';
+// Repository identity is intentionally available only through the dedicated
+// `@holoscript/secrets-broker/repository-identity` authority-contract subpath.

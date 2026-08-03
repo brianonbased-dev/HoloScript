@@ -1,0 +1,201 @@
+// HoloKey repository identity authority -- native transition and byte-binding kernel.
+//
+// State codes: 0 provisional, 1 active, 2 revoked.
+// Action codes: 0 promote, 1 rotate, 2 revoke, 3 migrate, 4 recover.
+//
+// The transition table remains the source-level authority for state/action
+// admission. The byte-binding entrypoint is deliberately bounded: it accepts
+// a borrowed UTF-8 byte view of at most 55 bytes, hashes one SHA-256 block, and
+// returns one selected digest byte. Returning one byte keeps the native process
+// adapter within its portable exit-code range while the publication checker
+// executes all 32 byte positions. This is a compiler-native content-binding
+// proof, not a claim that this small kernel is the complete JSON canonicalizer,
+// detached-signature verifier, or durable HoloKey store.
+
+function repository_sha256_rotr(value: i32, amount: i32): i32 {
+  return (value >> amount) | (value << (32 - amount))
+}
+
+function repository_sha256_choose(left: i32, middle: i32, right: i32): i32 {
+  return (left & middle) ^ ((left ^ -1) & right)
+}
+
+function repository_sha256_majority(left: i32, middle: i32, right: i32): i32 {
+  return (left & middle) ^ (left & right) ^ (middle & right)
+}
+
+function repository_sha256_big_sigma_zero(value: i32): i32 {
+  return repository_sha256_rotr(value, 2)
+    ^ repository_sha256_rotr(value, 13)
+    ^ repository_sha256_rotr(value, 22)
+}
+
+function repository_sha256_big_sigma_one(value: i32): i32 {
+  return repository_sha256_rotr(value, 6)
+    ^ repository_sha256_rotr(value, 11)
+    ^ repository_sha256_rotr(value, 25)
+}
+
+function repository_sha256_small_sigma_zero(value: i32): i32 {
+  return repository_sha256_rotr(value, 7)
+    ^ repository_sha256_rotr(value, 18)
+    ^ (value >> 3)
+}
+
+function repository_sha256_small_sigma_one(value: i32): i32 {
+  return repository_sha256_rotr(value, 17)
+    ^ repository_sha256_rotr(value, 19)
+    ^ (value >> 10)
+}
+
+export function repository_identity_sha256_byte(bytes: &[u8], requested: i32): i32 {
+  let message_length: i32 = slice_length(bytes)
+  if (message_length > 55) { return 0 }
+  if (requested < 0) { return 0 }
+  if (requested > 31) { return 0 }
+
+  slot block: [i32; 16] = [
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0
+  ]
+  slot index: i32 = 0
+  while (load(index) < message_length) {
+    let byte: i32 = u8_to_i32(load(bytes[load(index)]))
+    let word_index: i32 = load(index) / 4
+    let byte_shift: i32 = (3 - (load(index) % 4)) * 8
+    store(block[word_index], load(block[word_index]) | (byte << byte_shift))
+    store(index, load(index) + 1)
+  }
+
+  let pad_word: i32 = message_length / 4
+  let pad_shift: i32 = (3 - (message_length % 4)) * 8
+  store(block[pad_word], load(block[pad_word]) | (128 << pad_shift))
+  store(block[15], message_length * 8)
+
+  slot schedule: [i32; 64] = [
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0
+  ]
+  slot schedule_index: i32 = 0
+  while (load(schedule_index) < 16) {
+    store(
+      schedule[load(schedule_index)],
+      load(block[load(schedule_index)])
+    )
+    store(schedule_index, load(schedule_index) + 1)
+  }
+
+  while (load(schedule_index) < 64) {
+    let prior_two: i32 = load(schedule[load(schedule_index) - 2])
+    let prior_seven: i32 = load(schedule[load(schedule_index) - 7])
+    let prior_fifteen: i32 = load(schedule[load(schedule_index) - 15])
+    let prior_sixteen: i32 = load(schedule[load(schedule_index) - 16])
+    let expanded: i32 = repository_sha256_small_sigma_one(prior_two)
+      + prior_seven
+      + repository_sha256_small_sigma_zero(prior_fifteen)
+      + prior_sixteen
+    store(schedule[load(schedule_index)], expanded)
+    store(schedule_index, load(schedule_index) + 1)
+  }
+
+  slot constants: [i32; 64] = [
+    1116352408, 1899447441, -1245643825, -373957723,
+    961987163, 1508970993, -1841331548, -1424204075,
+    -670586216, 310598401, 607225278, 1426881987,
+    1925078388, -2132889090, -1680079193, -1046744716,
+    -459576895, -272742522, 264347078, 604807628,
+    770255983, 1249150122, 1555081692, 1996064986,
+    -1740746414, -1473132947, -1341970488, -1084653625,
+    -958395405, -710438585, 113926993, 338241895,
+    666307205, 773529912, 1294757372, 1396182291,
+    1695183700, 1986661051, -2117940946, -1838011259,
+    -1564481375, -1474664885, -1035236496, -949202525,
+    -778901479, -694614492, -200395387, 275423344,
+    430227734, 506948616, 659060556, 883997877,
+    958139571, 1322822218, 1537002063, 1747873779,
+    1955562222, 2024104815, -2067236844, -1933114872,
+    -1866530822, -1538233109, -1090935817, -965641998
+  ]
+
+  slot first: i32 = 1779033703
+  slot second: i32 = -1150833019
+  slot third: i32 = 1013904242
+  slot fourth: i32 = -1521486534
+  slot fifth: i32 = 1359893119
+  slot sixth: i32 = -1694144372
+  slot seventh: i32 = 528734635
+  slot eighth: i32 = 1541459225
+  slot round: i32 = 0
+  while (load(round) < 64) {
+    let temp_one: i32 = load(eighth)
+      + repository_sha256_big_sigma_one(load(fifth))
+      + repository_sha256_choose(load(fifth), load(sixth), load(seventh))
+      + load(constants[load(round)])
+      + load(schedule[load(round)])
+    let temp_two: i32 = repository_sha256_big_sigma_zero(load(first))
+      + repository_sha256_majority(load(first), load(second), load(third))
+    store(eighth, load(seventh))
+    store(seventh, load(sixth))
+    store(sixth, load(fifth))
+    store(fifth, load(fourth) + temp_one)
+    store(fourth, load(third))
+    store(third, load(second))
+    store(second, load(first))
+    store(first, temp_one + temp_two)
+    store(round, load(round) + 1)
+  }
+
+  slot digest: [i32; 8] = [0, 0, 0, 0, 0, 0, 0, 0]
+  store(digest[0], load(first) + 1779033703)
+  store(digest[1], load(second) + -1150833019)
+  store(digest[2], load(third) + 1013904242)
+  store(digest[3], load(fourth) + -1521486534)
+  store(digest[4], load(fifth) + 1359893119)
+  store(digest[5], load(sixth) + -1694144372)
+  store(digest[6], load(seventh) + 528734635)
+  store(digest[7], load(eighth) + 1541459225)
+
+  let word_index: i32 = requested / 4
+  let byte_shift: i32 = (3 - (requested % 4)) * 8
+  return (load(digest[word_index]) >> byte_shift) & 255
+}
+
+export function repository_transition_allowed(state: i32, requested: i32): i32 {
+  if (state == 0) {
+    if (requested == 0) { return 1 }
+    return 0
+  }
+  if (state == 1) {
+    if (requested == 1) { return 1 }
+    if (requested == 2) { return 1 }
+    if (requested == 3) { return 1 }
+    return 0
+  }
+  if (state == 2) {
+    if (requested == 4) { return 1 }
+    return 0
+  }
+  return 0
+}
+
+export function repository_transition_row_mask(state: i32): i32 {
+  return
+      repository_transition_allowed(state, 0) * 1
+    + repository_transition_allowed(state, 1) * 2
+    + repository_transition_allowed(state, 2) * 4
+    + repository_transition_allowed(state, 3) * 8
+    + repository_transition_allowed(state, 4) * 16
+}
+
+export function repository_transition_table_mask(): i32 {
+  return
+      repository_transition_row_mask(0)
+    + repository_transition_row_mask(1) * 32
+    + repository_transition_row_mask(2) * 1024
+}
