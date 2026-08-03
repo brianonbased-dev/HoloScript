@@ -59,6 +59,9 @@
 //! `hs-machine-v37` adds scalar IEEE-754 `f32` with single-precision literals and operations
 //! while retaining the v35 f64 subset. `hs-machine-v38` composes that float lowering with modules.
 //! `hs-machine-v39` composes the v38 float surface with recursively laid-out by-value aggregates.
+//! `hs-machine-v40` adds bounded unsigned-byte scalars and one-byte owned buffers, preserving
+//! the existing affine ownership and slice ABI while making byte-oriented native storage
+//! observable through compiler-produced code.
 //! The v35/v37/v39 finite-float contracts trap on non-finite parameters, division-by-zero results,
 //! and arithmetic overflow before a non-finite value can cross a function or storage boundary.
 //! Everything outside the selected contract fails closed with a native compile diagnostic.
@@ -127,6 +130,7 @@ pub const FLOAT64_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v36";
 pub const FLOAT32_MACHINE_CONTRACT: &str = "hs-machine-v37";
 pub const FLOAT32_MODULE_MACHINE_CONTRACT: &str = "hs-machine-v38";
 pub const FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT: &str = "hs-machine-v39";
+pub const BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT: &str = "hs-machine-v40";
 pub const OWNED_BUFFER_ABI_VERSION: u32 = 1;
 pub const NATIVE_AGGREGATE_ABI_VERSION: u32 = 1;
 pub const NATIVE_MEANING_GAP_REASON_ABI_VERSION: u32 = 1;
@@ -339,8 +343,11 @@ pub fn inspect_native_layouts(source: &str) -> Result<Vec<NativeStructLayout>, N
             .join("; ");
         NativeCompileError::new(format!("HoloScript parse failed: {rendered}"))
     })?;
+    let carries_u8 = has_u8_machine_metadata(&ast);
     let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
-    let machine_contract = if carries_recursive_aggregate
+    let machine_contract = if carries_u8 {
+        BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+    } else if carries_recursive_aggregate
         && (has_f32_machine_metadata(&ast) || has_f64_machine_metadata(&ast))
     {
         FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
@@ -423,7 +430,12 @@ fn compile_unit(
 }
 
 fn compile_ast_unit(ast: Ast) -> Result<CompiledObject, NativeCompileError> {
-    if has_recursive_aggregate_machine_metadata(&ast)
+    if has_u8_machine_metadata(&ast) {
+        Ok(CompiledObject {
+            bytes: lower_typed_ast_to_object(&ast, BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT, true)?,
+            machine_contract: BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT,
+        })
+    } else if has_recursive_aggregate_machine_metadata(&ast)
         && (has_f32_machine_metadata(&ast) || has_f64_machine_metadata(&ast))
     {
         Ok(CompiledObject {
@@ -734,11 +746,14 @@ fn compile_project_unit(
 ) -> Result<CompiledObject, NativeCompileError> {
     let ast = project::load_project_ast(entry)?;
     let carries_uncertainty = has_uncertain_aggregate_machine_metadata(&ast);
+    let carries_u8 = has_u8_machine_metadata(&ast);
     let carries_recursive_aggregate = has_recursive_aggregate_machine_metadata(&ast);
     let carries_f32 = has_f32_machine_metadata(&ast);
     let carries_f64 = has_f64_machine_metadata(&ast);
     let mut compiled = compile_ast_unit(ast)?;
-    if carries_recursive_aggregate && (carries_f32 || carries_f64) {
+    if carries_u8 {
+        compiled.machine_contract = BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT;
+    } else if carries_recursive_aggregate && (carries_f32 || carries_f64) {
         compiled.machine_contract = FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT;
     } else if carries_f32 {
         compiled.machine_contract = FLOAT32_MODULE_MACHINE_CONTRACT;
@@ -935,6 +950,71 @@ fn has_f32_machine_metadata(ast: &Ast) -> bool {
                         if local.type_annotation.as_deref() == Some("f32")
                 )
             })
+    })
+}
+
+fn annotation_mentions_u8(annotation: &str) -> bool {
+    annotation
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .any(|part| part == "u8")
+}
+
+fn node_uses_u8_machine_type(node: &AstNode) -> bool {
+    match node {
+        AstNode::VariableDeclaration(local) => local
+            .type_annotation
+            .as_deref()
+            .is_some_and(annotation_mentions_u8),
+        AstNode::StackSlotDeclaration(slot) => annotation_mentions_u8(&slot.type_annotation),
+        AstNode::If(if_node) => {
+            if_node.consequent.iter().any(node_uses_u8_machine_type)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alternate| alternate.iter().any(node_uses_u8_machine_type))
+        }
+        AstNode::While(while_node) => while_node.body.iter().any(node_uses_u8_machine_type),
+        AstNode::ForOf(for_node) => for_node.body.iter().any(node_uses_u8_machine_type),
+        AstNode::For(for_node) => {
+            for_node
+                .init
+                .as_deref()
+                .is_some_and(node_uses_u8_machine_type)
+                || for_node
+                    .test
+                    .as_deref()
+                    .is_some_and(node_uses_u8_machine_type)
+                || for_node
+                    .update
+                    .as_deref()
+                    .is_some_and(node_uses_u8_machine_type)
+                || for_node.body.iter().any(node_uses_u8_machine_type)
+        }
+        AstNode::LexicalScope(scope) => scope.body.iter().any(node_uses_u8_machine_type),
+        _ => false,
+    }
+}
+
+fn has_u8_machine_metadata(ast: &Ast) -> bool {
+    ast.body.iter().any(|node| match node {
+        AstNode::Function(function) => {
+            function
+                .return_type
+                .as_deref()
+                .is_some_and(annotation_mentions_u8)
+                || function
+                    .param_types
+                    .iter()
+                    .flatten()
+                    .any(|annotation| annotation_mentions_u8(annotation))
+                || function.body.iter().any(node_uses_u8_machine_type)
+        }
+        AstNode::StructDeclaration(structure) => structure
+            .field_types
+            .iter()
+            .flatten()
+            .any(|annotation| annotation_mentions_u8(annotation)),
+        _ => false,
     })
 }
 
@@ -2570,6 +2650,7 @@ fn node_uses_reference_syntax(node: &AstNode) -> bool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MachineType {
     Bool,
+    U8,
     I32,
     I64,
     F32,
@@ -2584,12 +2665,19 @@ impl MachineType {
     ) -> Result<Self, NativeCompileError> {
         match name {
             "bool" if bool_enabled(machine_contract) => Ok(Self::Bool),
+            "u8" if u8_enabled(machine_contract) => Ok(Self::U8),
             "i32" => Ok(Self::I32),
             "i64" => Ok(Self::I64),
             "f32" if f32_enabled(machine_contract) => Ok(Self::F32),
             "f64" if f64_enabled(machine_contract) => Ok(Self::F64),
             other => {
-                let supported = if f32_enabled(machine_contract) {
+                let supported = if u8_enabled(machine_contract) && f32_enabled(machine_contract) {
+                    "`bool`, `i32`, `i64`, `f32`, `f64`, and `u8`"
+                } else if u8_enabled(machine_contract) && f64_enabled(machine_contract) {
+                    "`bool`, `i32`, `i64`, `f64`, and `u8`"
+                } else if u8_enabled(machine_contract) {
+                    "`bool`, `i32`, `i64`, and `u8`"
+                } else if f32_enabled(machine_contract) {
                     "`bool`, `i32`, `i64`, `f32`, and `f64`"
                 } else if f64_enabled(machine_contract) {
                     "`bool`, `i32`, `i64`, and `f64`"
@@ -2608,6 +2696,7 @@ impl MachineType {
     fn ir_type(self) -> cranelift::codegen::ir::Type {
         match self {
             Self::Bool => types::I8,
+            Self::U8 => types::I8,
             Self::I32 => types::I32,
             Self::I64 => types::I64,
             Self::F32 => types::F32,
@@ -2618,6 +2707,7 @@ impl MachineType {
     fn name(self) -> &'static str {
         match self {
             Self::Bool => "bool",
+            Self::U8 => "u8",
             Self::I32 => "i32",
             Self::I64 => "i64",
             Self::F32 => "f32",
@@ -2628,6 +2718,7 @@ impl MachineType {
     fn stack_size(self) -> u32 {
         match self {
             Self::Bool => 1,
+            Self::U8 => 1,
             Self::I32 => 4,
             Self::I64 => 8,
             Self::F32 => 4,
@@ -2638,6 +2729,7 @@ impl MachineType {
     fn stack_align_shift(self) -> u8 {
         match self {
             Self::Bool => 0,
+            Self::U8 => 0,
             Self::I32 => 2,
             Self::I64 => 3,
             Self::F32 => 2,
@@ -2653,7 +2745,8 @@ impl MachineType {
 fn latest_reference_contract(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+        BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+            | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
             | FLOAT32_MACHINE_CONTRACT
             | FLOAT64_MACHINE_CONTRACT
             | UNCERTAIN_AGGREGATE_MACHINE_CONTRACT
@@ -2673,14 +2766,21 @@ fn f64_enabled(machine_contract: &str) -> bool {
         FLOAT64_MACHINE_CONTRACT
             | FLOAT32_MACHINE_CONTRACT
             | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+            | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
     )
 }
 
 fn f32_enabled(machine_contract: &str) -> bool {
     matches!(
         machine_contract,
-        FLOAT32_MACHINE_CONTRACT | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+        FLOAT32_MACHINE_CONTRACT
+            | FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT
+            | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
     )
+}
+
+fn u8_enabled(machine_contract: &str) -> bool {
+    machine_contract == BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
 }
 
 fn trap_non_finite_float(
@@ -5188,6 +5288,9 @@ fn lower_typed_ast_to_object(
         let value = builder.inst_results(call)[0];
         let exit_code = match source_main.result {
             MachineResult::Scalar(MachineType::Bool) => builder.ins().uextend(types::I32, value),
+            MachineResult::Scalar(MachineType::U8) => {
+                unreachable!("typed main cannot return a u8 process exit code")
+            }
             MachineResult::Scalar(MachineType::I32) => value,
             MachineResult::Scalar(MachineType::I64) => builder.ins().ireduce(types::I32, value),
             MachineResult::Scalar(MachineType::F32) => {
@@ -5971,6 +6074,7 @@ fn collect_typed_function_specs<'a>(
                                 | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                                 | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                                 | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                                | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
                         ) =>
                     {
                         params.push(MachineParameter::Slice {
@@ -16796,6 +16900,7 @@ fn lower_reference_initializer(
                     | BORROWED_AGGREGATE_BUFFER_WHOLE_SLICE_RETURN_MACHINE_CONTRACT
                     | COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
                     | CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT
+                    | BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
             ) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} does not enable borrowed slice values"
@@ -17222,6 +17327,18 @@ fn lower_typed_expression(
                         number.raw
                     )));
                 }
+                MachineType::U8 => number
+                    .raw
+                    .parse::<u16>()
+                    .ok()
+                    .filter(|value| *value <= u16::from(u8::MAX))
+                    .map(i64::from)
+                    .ok_or_else(|| {
+                        NativeCompileError::new(format!(
+                            "{machine_contract} {context} requires a `u8` literal in the range 0..=255; found `{}`",
+                            number.raw
+                        ))
+                    })?,
                 MachineType::I32 => number.raw.parse::<i32>().map(i64::from).map_err(|_| {
                     NativeCompileError::new(format!(
                         "{machine_contract} {context} requires an `i32` literal; found `{}`",
@@ -17291,7 +17408,7 @@ fn lower_typed_expression(
             require_type(value, expected, context, machine_contract)?
         }
         AstNode::UnaryExpression(unary) if unary.operator == "-" => {
-            if expected == MachineType::Bool {
+            if matches!(expected, MachineType::Bool | MachineType::U8) {
                 return Err(NativeCompileError::new(format!(
                     "{machine_contract} unary `-` requires an integer operand"
                 )));
@@ -18744,14 +18861,26 @@ fn lower_typed_comparison(
         };
         builder.ins().fcmp(condition, left.value, right.value)
     } else {
-        let condition = match binary.operator.as_str() {
-            "==" => IntCC::Equal,
-            "!=" => IntCC::NotEqual,
-            "<" => IntCC::SignedLessThan,
-            "<=" => IntCC::SignedLessThanOrEqual,
-            ">" => IntCC::SignedGreaterThan,
-            ">=" => IntCC::SignedGreaterThanOrEqual,
-            _ => unreachable!("comparison operators are filtered by the caller"),
+        let condition = if operand_type == MachineType::U8 {
+            match binary.operator.as_str() {
+                "==" => IntCC::Equal,
+                "!=" => IntCC::NotEqual,
+                "<" => IntCC::UnsignedLessThan,
+                "<=" => IntCC::UnsignedLessThanOrEqual,
+                ">" => IntCC::UnsignedGreaterThan,
+                ">=" => IntCC::UnsignedGreaterThanOrEqual,
+                _ => unreachable!("comparison operators are filtered by the caller"),
+            }
+        } else {
+            match binary.operator.as_str() {
+                "==" => IntCC::Equal,
+                "!=" => IntCC::NotEqual,
+                "<" => IntCC::SignedLessThan,
+                "<=" => IntCC::SignedLessThanOrEqual,
+                ">" => IntCC::SignedGreaterThan,
+                ">=" => IntCC::SignedGreaterThanOrEqual,
+                _ => unreachable!("comparison operators are filtered by the caller"),
+            }
         };
         builder.ins().icmp(condition, left.value, right.value)
     };

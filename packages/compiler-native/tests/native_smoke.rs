@@ -16,11 +16,12 @@ use holoscript_native::{
     BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
-    CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION,
-    NATIVE_MEANING_GAP_REASON_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
+    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT,
+    COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
+    FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    NATIVE_AGGREGATE_ABI_VERSION, NATIVE_MEANING_GAP_REASON_ABI_VERSION,
+    OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -416,6 +417,51 @@ fn compiles_typed_functions_calls_and_local_bindings() {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove typed smoke-test executable");
+}
+
+#[test]
+fn compiles_bounded_u8_buffers_with_native_byte_width_and_readback() {
+    let source = r#"
+function read_byte(): u8 {
+    let bytes: [u8] = buffer(1, 255)
+    let view: &[u8] = &bytes
+    return load(view[0])
+}
+
+function main(): i32 {
+    if (read_byte() > 127) {
+        return 5
+    }
+    return 0
+}
+"#;
+    let executable = scratch_executable("native-u8-buffer");
+
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("bounded u8 buffer source should compile to a native executable");
+
+    assert_eq!(
+        artifact.machine_contract,
+        BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+    );
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("bounded u8 buffer executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable).expect("remove u8 buffer smoke-test executable");
+}
+
+#[test]
+fn bounded_u8_literals_fail_closed_outside_byte_range() {
+    let error = compile_object(
+        r#"function invalid(): u8 { return 256 } function main(): i32 { return 5 }"#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("u8 literals outside the byte range must fail closed");
+    assert!(error
+        .to_string()
+        .contains("u8` literal in the range 0..=255"));
 }
 
 #[test]
