@@ -30,6 +30,8 @@ import {
   LLMCreditExhaustedError,
   LLMProviderError,
 } from '../types';
+import { planCacheBreakpoints } from '../kvflow/breakpoint-planner';
+import type { CacheBreakpointHint } from '../kvflow/breakpoint-planner';
 
 /** Beta token for the advisor tool (`advisor-tool-2026-03-01`). */
 export const ANTHROPIC_ADVISOR_BETA = 'advisor-tool-2026-03-01';
@@ -39,6 +41,14 @@ export const ANTHROPIC_FILES_BETA = 'files-api-2025-04-14';
 export const ANTHROPIC_COMPACT_BETA = 'compact-2026-01-12';
 /** Beta token for per-loop task budgets (`task-budgets-2026-03-13`). */
 export const ANTHROPIC_TASK_BUDGETS_BETA = 'task-budgets-2026-03-13';
+/**
+ * Beta token for prompt-cache diagnostics (`cache-diagnosis-2026-04-07`).
+ *
+ * Turns "cacheReadTokens is 0 and I don't know why" into a named divergence
+ * point (`system_changed` / `tools_changed` / `messages_changed` /
+ * `model_changed`). Claude API only — not Bedrock, not Google Cloud.
+ */
+export const ANTHROPIC_CACHE_DIAGNOSTICS_BETA = 'cache-diagnosis-2026-04-07';
 /**
  * Dedicated Memory Stores beta (`agent-memory-2026-07-22`, added 2026-07-02). Replaces
  * `managed-agents-2026-04-01` on memory-store endpoints — sending BOTH returns 400
@@ -121,6 +131,9 @@ export function collectAnthropicBetaHeaders(request: LLMCompletionRequest): stri
   if (request.provider?.anthropic?.taskBudget) {
     tokens.push(ANTHROPIC_TASK_BUDGETS_BETA);
   }
+  if (request.provider?.anthropic?.cacheDiagnostics) {
+    tokens.push(ANTHROPIC_CACHE_DIAGNOSTICS_BETA);
+  }
   const explicit = request.provider?.anthropic?.betaHeaders;
   if (explicit && explicit.length > 0) {
     for (const h of explicit) {
@@ -169,8 +182,13 @@ export function collectAnthropicBetaHeaders(request: LLMCompletionRequest): stri
 export function buildAnthropicExtensionBody(request: LLMCompletionRequest): {
   compaction?: { type: string };
   task_budget?: { type: string; total: number };
+  diagnostics?: { previous_message_id: string | null };
 } {
-  const out: { compaction?: { type: string }; task_budget?: { type: string; total: number } } = {};
+  const out: {
+    compaction?: { type: string };
+    task_budget?: { type: string; total: number };
+    diagnostics?: { previous_message_id: string | null };
+  } = {};
   const compaction = request.provider?.anthropic?.compaction;
   if (compaction) {
     out.compaction = { type: compaction.type };
@@ -179,7 +197,41 @@ export function buildAnthropicExtensionBody(request: LLMCompletionRequest): {
   if (taskBudget) {
     out.task_budget = { type: taskBudget.type, total: taskBudget.total };
   }
+  // Cache diagnostics. `previous_message_id` is supplied by the CALLER, not
+  // tracked on the adapter: a single adapter instance is shared across
+  // concurrent conversations (see sovereign-resolver), so adapter-held state
+  // would cross-wire ids between unrelated threads and produce
+  // `previous_message_not_found` at best, misleading divergences at worst.
+  const cacheDiagnostics = request.provider?.anthropic?.cacheDiagnostics;
+  if (cacheDiagnostics) {
+    out.diagnostics = { previous_message_id: cacheDiagnostics.previousMessageId ?? null };
+  }
   return out;
+}
+
+/**
+ * Pull the cache-diagnostics verdict off a response, if the API produced one.
+ *
+ * The wire field has four meaningful states (absent / null / pending /
+ * populated), but only the last is actionable — the other three all mean
+ * "nothing diverged, or nothing to compare". They collapse to `undefined` so
+ * callers get a single truthiness check instead of a four-way discriminant.
+ */
+function mapAnthropicCacheMissReason(
+  response: unknown
+): { type: string; cacheMissedInputTokens?: number } | undefined {
+  if (!isRecord(response)) return undefined;
+  const diagnostics = response.diagnostics;
+  if (!isRecord(diagnostics)) return undefined;
+  const reason = diagnostics.cache_miss_reason;
+  if (!isRecord(reason)) return undefined;
+  const type = typeof reason.type === 'string' ? reason.type : undefined;
+  if (!type) return undefined;
+  const missed = reason.cache_missed_input_tokens;
+  return {
+    type,
+    cacheMissedInputTokens: typeof missed === 'number' ? missed : undefined,
+  };
 }
 
 function collectAnthropicUploadBetas(request: LLMFileUploadRequest): string[] {
@@ -534,26 +586,125 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   private readonly apiVersion: string;
   private readonly enablePromptCaching: boolean;
   private readonly maxCacheBreakpoints: number;
+  private readonly promptCacheTtl: '5m' | '1h';
 
   constructor(config: AnthropicProviderConfig) {
     super(config);
-    // Default to Opus 4.8 — most capable and 3× cheaper than 4.7 ($10/$50 vs $30/$150 per MTok).
-    // Callers explicitly opt down to Sonnet/Haiku when they want further cost/speed tradeoffs.
-    // NEVER silently downgrade. Updated 2026-06-08 (A-020).
+    // Default to Opus 4.8. Callers explicitly opt down to Sonnet/Haiku when
+    // they want further cost/speed tradeoffs. NEVER silently downgrade.
+    // Updated 2026-06-08 (A-020).
+    //
+    // Correction 2026-08-03: this comment previously claimed Opus 4.8 was
+    // "3× cheaper than 4.7 ($10/$50 vs $30/$150 per MTok)". Both figures were
+    // wrong and so was the conclusion — Opus 4.8 and Opus 4.7 are the SAME
+    // price, $5/$25 per MTok. There is no cost argument between them; 4.8 is
+    // the default because it is the more capable model.
     this.defaultHoloScriptModel = config.defaultModel ?? 'claude-opus-4-8';
     this.apiVersion = config.apiVersion ?? '2023-06-01';
-    // Default ON. The Anthropic API skill explicitly recommends prompt
-    // caching as the default for every call — below-minimum prefixes (under
-    // 2-4K tokens depending on model) skip caching entirely with no cost
-    // penalty, and above-minimum stable prefixes get ~10× per-tick savings
-    // once cached. The only pathological case is a hot path with above-
-    // minimum prefixes that never repeat (paying 1.25× writes with zero
-    // reads); that caller can opt out with `enablePromptCaching: false`.
+    // Default ON. Prompt caching is the recommended default for every call —
+    // a below-minimum prefix skips caching entirely with no cost penalty, and
+    // an above-minimum stable prefix gets ~10× per-tick savings once cached.
+    // The minimum is per-model and NOT monotonic (512 on Opus 5 / Fable 5,
+    // up to 4096 on Opus 4.6 / Haiku 4.5) — see `promptCacheTtl` and the
+    // table at the systemField construction site.
+    //
+    // Two pathological cases warrant `enablePromptCaching: false`: a hot path
+    // whose above-minimum prefixes never repeat, and a caller whose requests
+    // are spaced beyond the TTL (that one should try `promptCacheTtl: '1h'`
+    // first). Both are identifiable from `TokenUsage.cacheReadTokens` sitting
+    // at 0 while `cacheWriteTokens` keeps climbing.
     this.enablePromptCaching = config.enablePromptCaching ?? true;
     // Anthropic's hard limit is 4 breakpoints per request. One is always
     // used for the system+tools prefix; the rest are distributed across
-    // message turns (most recent assistant turn first).
+    // message turns (most recent assistant turn first, or by KVFlow reuse
+    // ranking when `provider.anthropic.cacheHints` are supplied).
     this.maxCacheBreakpoints = config.maxCacheBreakpoints ?? 4;
+    this.promptCacheTtl = config.promptCacheTtl ?? '5m';
+  }
+
+  /**
+   * The `cache_control` value stamped on every breakpoint this adapter emits.
+   *
+   * Centralised so all four emission sites (system prefix in `complete()` and
+   * `streamCompletion()`, plus the two message-turn shapes) stay identical.
+   * That uniformity also sidesteps the API's ordering rule that 1-hour
+   * breakpoints must precede 5-minute ones: with a single TTL per request
+   * there is no mixed ordering to get wrong.
+   */
+  private cacheControl(): { type: 'ephemeral'; ttl?: '1h' } {
+    // '5m' is the API default and is expressed by omitting `ttl` entirely,
+    // rather than sending `ttl: '5m'` — keeps the cached prefix bytes
+    // identical to what earlier versions of this adapter sent.
+    return this.promptCacheTtl === '1h'
+      ? { type: 'ephemeral' as const, ttl: '1h' as const }
+      : { type: 'ephemeral' as const };
+  }
+
+  /**
+   * Map Anthropic's usage block onto the provider-neutral `TokenUsage` shape.
+   *
+   * The subtlety this exists for: Anthropic's `input_tokens` is ONLY the
+   * uncached remainder of the prompt. The cached prefix is reported
+   * separately as `cache_read_input_tokens` (served from cache, ~0.1x) and
+   * `cache_creation_input_tokens` (written to cache, 1.25x at 5m / 2x at 1h).
+   * The real prompt size is the sum of all three.
+   *
+   * Summing only input+output therefore under-reports the prompt by the
+   * entire cached prefix — and under-reports it hardest exactly when caching
+   * is working best, which is the worst possible direction for a cost model
+   * to be wrong in. Folding the cache fields back into `promptTokens` also
+   * makes this adapter comparable to the OpenAI-shaped adapters, which
+   * already count cached tokens INSIDE `prompt_tokens`.
+   *
+   * Fields are optional on the SDK response — a mocked or older-shaped usage
+   * block may omit them, so both default to 0 rather than NaN-ing the sum.
+   */
+  private mapUsage(usage: {
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens?: number | null;
+    cache_creation_input_tokens?: number | null;
+  }): TokenUsage {
+    const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+    const cacheWriteTokens = usage.cache_creation_input_tokens ?? 0;
+    const promptTokens = usage.input_tokens + cacheReadTokens + cacheWriteTokens;
+
+    return {
+      promptTokens,
+      completionTokens: usage.output_tokens,
+      totalTokens: promptTokens + usage.output_tokens,
+      cacheReadTokens,
+      cacheWriteTokens,
+    };
+  }
+
+  /**
+   * Translate caller-space cache hints into this adapter's message indexing.
+   *
+   * Hints address `request.messages` (system entries included); the adapter's
+   * array has system messages removed by `separateSystemMessages()`. A hint
+   * aimed at a system message has no message-turn to mark and is dropped —
+   * system content is covered by the system+tools breakpoint, not a message
+   * breakpoint. That drop is asserted in tests so it is specified behaviour
+   * rather than an accident.
+   */
+  private translateCacheHints(request: LLMCompletionRequest): CacheBreakpointHint[] | undefined {
+    const hints = request.provider?.anthropic?.cacheHints;
+    if (!hints || hints.length === 0) return undefined;
+
+    const providerIndexByRequestIndex = new Map<number, number>();
+    let providerIndex = 0;
+    request.messages.forEach((m, requestIndex) => {
+      if (m.role !== 'system') {
+        providerIndexByRequestIndex.set(requestIndex, providerIndex);
+        providerIndex++;
+      }
+    });
+
+    return hints.flatMap((h) => {
+      const translated = providerIndexByRequestIndex.get(h.messageIndex);
+      return translated === undefined ? [] : [{ ...h, messageIndex: translated }];
+    });
   }
 
   protected getDefaultModel(): string {
@@ -651,15 +802,24 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         // breakpoint caches BOTH tools AND system together — the exact prefix
         // an agent runner reuses across ticks. The first request pays ~1.25×
         // input on the cached prefix; subsequent ticks within TTL pay ~0.1×.
-        // Below the model's minimum cacheable prefix (~2-4K tokens) the
-        // request is processed unchanged — no error, no benefit.
+        // Below the model's minimum cacheable prefix the request is processed
+        // unchanged — no error, no benefit, `cache_creation_input_tokens: 0`.
+        // The minimum is per-model and NOT monotonic across generations, so
+        // do not assume newer means stricter:
+        //   512   Opus 5, Fable 5, Mythos 5
+        //   1024  Opus 4.8, Sonnet 5, Sonnet 4.6, Sonnet 4.5, Opus 4.1
+        //   2048  Opus 4.7, Mythos Preview, Haiku 3.5
+        //   4096  Opus 4.6, Opus 4.5, Haiku 4.5
+        // A 3K-token prefix caches on Opus 5 and silently does not on Haiku
+        // 4.5. Verify with `usage.cacheReadTokens` (see mapUsage) rather than
+        // reasoning about the threshold.
         const systemField =
           this.enablePromptCaching && system
             ? [
                 {
                   type: 'text' as const,
                   text: system,
-                  cache_control: { type: 'ephemeral' as const },
+                  cache_control: this.cacheControl(),
                 },
               ]
             : system || undefined;
@@ -673,7 +833,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
             role: m.role as 'user' | 'assistant',
             content: m.content as never,
           })),
-          !!(this.enablePromptCaching && system)
+          !!(this.enablePromptCaching && system),
+          this.translateCacheHints(request)
         );
 
         // Beta header for the advisor tool / explicit caller-supplied betas.
@@ -778,11 +939,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
         return {
           content,
-          usage: {
-            promptTokens: usage.input_tokens,
-            completionTokens: usage.output_tokens,
-            totalTokens: usage.input_tokens + usage.output_tokens,
-          },
+          usage: this.mapUsage(usage),
+          cacheMissReason: mapAnthropicCacheMissReason(response),
           model: response.model,
           reportedModel: response.model,
           provider: 'anthropic',
@@ -854,7 +1012,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
 
     const systemField =
       this.enablePromptCaching && system
-        ? [{ type: 'text' as const, text: system, cache_control: { type: 'ephemeral' as const } }]
+        ? [{ type: 'text' as const, text: system, cache_control: this.cacheControl() }]
         : system || undefined;
 
     const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
@@ -865,7 +1023,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         role: m.role as 'user' | 'assistant',
         content: m.content as never,
       })),
-      !!(this.enablePromptCaching && system)
+      !!(this.enablePromptCaching && system),
+      this.translateCacheHints(request)
     );
 
     // Beta header for the advisor tool / explicit caller-supplied betas.
@@ -1031,11 +1190,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     if (!streamErrored) {
       try {
         const final = await stream.finalMessage();
-        usage = {
-          promptTokens: final.usage.input_tokens,
-          completionTokens: final.usage.output_tokens,
-          totalTokens: final.usage.input_tokens + final.usage.output_tokens,
-        };
+        usage = this.mapUsage(final.usage);
         finalModel = final.model;
         finishReason =
           final.stop_reason === 'tool_use' ? 'tool_use' : this.mapStopReason(final.stop_reason);
@@ -1084,7 +1239,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
    */
   private buildMessagesWithCacheBreakpoints(
     messages: Array<{ role: 'user' | 'assistant'; content: unknown }>,
-    systemBreakpointUsed: boolean
+    systemBreakpointUsed: boolean,
+    hints?: CacheBreakpointHint[]
   ): Array<{ role: 'user' | 'assistant'; content: unknown }> {
     if (!this.enablePromptCaching) {
       return messages.map((m) => ({ role: m.role, content: m.content }));
@@ -1096,25 +1252,29 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       return messages.map((m) => ({ role: m.role, content: m.content }));
     }
 
-    let breakpointsRemaining = budget;
-
-    // Walk backwards to find assistant turns to cache, then apply forward.
-    // This two-pass approach avoids mutating during iteration and keeps the
-    // forward-order output stable.
-    const assistantTurnIndices: number[] = [];
-    for (let i = messages.length - 1; i >= 0 && assistantTurnIndices.length < budget; i--) {
-      if (messages[i].role === 'assistant') {
-        assistantTurnIndices.push(i);
-      }
+    // Eligible turns: every assistant turn, in forward order. The adapter owns
+    // eligibility; the planner only chooses among these. (Assistant turns are
+    // the boundary that repeats byte-identically across agent ticks — see the
+    // rationale in this method's doc comment.)
+    const eligibleIndices: number[] = [];
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'assistant') eligibleIndices.push(i);
     }
-    // Reverse so we mark in forward order (most-recent assistant turns first
-    // in the reversed list = last in forward order).
-    assistantTurnIndices.reverse();
+
+    // With KVFlow hints, rank by reuse value (scope, then steps-to-execution).
+    // Without them, keep the legacy recency policy: the last `budget` assistant
+    // turns. Recency is the right default when nothing is known about reuse —
+    // it is only wrong when better information exists and goes unused, which is
+    // precisely the gap `planCacheBreakpoints` closes.
+    const selected = new Set(
+      hints && hints.length > 0
+        ? planCacheBreakpoints(eligibleIndices, hints, budget)
+        : eligibleIndices.slice(-budget)
+    );
 
     const result: Array<{ role: 'user' | 'assistant'; content: unknown }> = messages.map((m, i) => {
-      const shouldCache = assistantTurnIndices.includes(i) && breakpointsRemaining > 0;
+      const shouldCache = selected.has(i);
       if (shouldCache && typeof m.content === 'string') {
-        breakpointsRemaining--;
         // Single string content → wrap in array form to add cache_control
         // on the last (only) block.
         return {
@@ -1123,20 +1283,19 @@ export class AnthropicAdapter extends BaseLLMAdapter {
             {
               type: 'text' as const,
               text: m.content,
-              cache_control: { type: 'ephemeral' as const },
+              cache_control: this.cacheControl(),
             },
           ],
         };
       }
       if (shouldCache && Array.isArray(m.content)) {
-        breakpointsRemaining--;
         // Structured content (tool_use blocks from prior assistant turns):
         // add cache_control to the LAST content block.
         const blocks = [...(m.content as Array<Record<string, unknown>>)];
         if (blocks.length > 0) {
           blocks[blocks.length - 1] = {
             ...blocks[blocks.length - 1],
-            cache_control: { type: 'ephemeral' as const },
+            cache_control: this.cacheControl(),
           };
         }
         return { role: m.role, content: blocks };

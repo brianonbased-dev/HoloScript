@@ -172,15 +172,29 @@ describe('retired model regression guard', () => {
   // Fails if any source file hardcodes a retired Claude model ID.
   // These are known-broken; using them produces 404s from the API.
 
+  // AUDIT NOTE (2026-08-03): this list had gone stale by four models. A guard
+  // that silently stops covering newly-retired IDs is worse than no guard —
+  // it reads as green while the thing it protects against has expanded. When
+  // a model's retirement date passes, add it here in the same commit.
   const BANNED_MODELS = [
     'claude-3-5-sonnet-20241022', // Retired 2025-10-28
+    'claude-3-5-sonnet-20240620', // Retired 2025-10-28  (was missing)
     'claude-3-5-haiku-20241022', // Retired 2026-02-19
     'claude-3-opus-20240229', // Retired 2026-01-05
     'claude-3-sonnet-20240229', // Retired 2025-07-21
     'claude-3-7-sonnet-20250219', // Retired 2026-02-19
+    'claude-3-haiku-20240307', // Retired 2026-04-19  (was missing)
+    'claude-opus-4-20250514', // Retired 2026-06-15  (was missing)
+    'claude-sonnet-4-20250514', // Retired 2026-06-15  (was missing)
     'claude-2.1', // Retired 2025-07-21
     'claude-2.0', // Retired 2025-07-21
   ];
+
+  // Deprecated but not yet retired — NOT banned, because they still resolve.
+  // Promote each into BANNED_MODELS on its retirement date.
+  //   claude-opus-4-1  retires 2026-08-05
+  // Verified 2026-08-03: no source file references it, so promoting it on the
+  // 5th should be a no-op rather than a migration.
 
   // Files allowed to mention retired models (for documentation / historical purposes)
   const ALLOWED_FILES = [

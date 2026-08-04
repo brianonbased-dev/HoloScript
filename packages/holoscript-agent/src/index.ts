@@ -467,9 +467,33 @@ async function cmdAblate(rest: string[]): Promise<void> {
       p.pricePerCallUsd != null
         ? () => p.pricePerCallUsd!
         : p.pricePerMtokInput != null && p.pricePerMtokOutput != null
-          ? (u) =>
-              (u.promptTokens * p.pricePerMtokInput! + u.completionTokens * p.pricePerMtokOutput!) /
-              1_000_000
+          ? (u) => {
+              // `promptTokens` is the FULL prompt and INCLUDES any portion
+              // served from or written to the provider's prompt cache, so the
+              // cache components have to be split back out and priced at their
+              // own multipliers. Billing a cache read at the base input rate
+              // over-states it by 10x, and an agent on a stable system prefix
+              // reads from cache on nearly every tick — this is the dominant
+              // term, not a rounding error.
+              //
+              // No-op for adapters that don't report cache usage: both fields
+              // are undefined there, so uncachedInput === promptTokens and the
+              // arithmetic collapses to the previous formula.
+              const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL (1-hour is 2x)
+              const CACHE_READ_MULTIPLIER = 0.1;
+
+              const cacheRead = u.cacheReadTokens ?? 0;
+              const cacheWrite = u.cacheWriteTokens ?? 0;
+              const uncachedInput = Math.max(0, u.promptTokens - cacheRead - cacheWrite);
+
+              return (
+                (uncachedInput * p.pricePerMtokInput! +
+                  cacheWrite * p.pricePerMtokInput! * CACHE_WRITE_MULTIPLIER +
+                  cacheRead * p.pricePerMtokInput! * CACHE_READ_MULTIPLIER +
+                  u.completionTokens * p.pricePerMtokOutput!) /
+                1_000_000
+              );
+            }
           : undefined,
   }));
 

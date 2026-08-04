@@ -123,10 +123,15 @@ describe('AnthropicAdapter.streamCompletion — chunk translation', () => {
     expect(chunks[chunks.length - 1].type).toBe('message_stop');
     if (stops[0].type === 'message_stop') {
       expect(stops[0].finishReason).toBe('stop');
+      // streamCompletion() maps usage through AnthropicAdapter.mapUsage(), so
+      // the cache counts are always present. This mock's usage block carries
+      // no cache fields, so both settle to 0 and the totals are unaffected.
       expect(stops[0].usage).toEqual({
         promptTokens: 12,
         completionTokens: 4,
         totalTokens: 16,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
       });
       expect(stops[0].model).toBe('claude-sonnet-4-6');
     }

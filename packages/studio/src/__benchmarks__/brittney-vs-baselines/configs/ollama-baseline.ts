@@ -214,6 +214,11 @@ export function makeOllamaBaseline(opts: OllamaBaselineOptions): ConfigRunner {
           tool_rounds: message?.tool_calls?.length ? 1 : 0,
           usage,
           model_id: response.model,
+          // Self-hosted: no API spend. Ollama reports the raw model name
+          // (`qwen2.5-coder:7b`, or a bare GGUF name for a HoloServe-backed
+          // route), which cost-tracker cannot classify as local by pattern
+          // alone — so state it explicitly rather than rely on the guess.
+          local_compute: true,
           scene_mutations: mutations,
           thinking_content: thinkingText || undefined,
           error: gateError,
