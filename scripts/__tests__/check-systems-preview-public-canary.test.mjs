@@ -9,6 +9,7 @@ import {
   evaluateGitHubRelease,
   evaluateRegistryState,
   githubReleaseApiUrl,
+  parseArgs,
 } from '../holo-ci/check-systems-preview-public-canary.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -100,5 +101,19 @@ assert.throws(
   () => githubReleaseApiUrl('https://example.com/not-a-release'),
   /unsupported GitHub release URL/u
 );
+
+{
+  const options = parseArgs([
+    '--scratch-root',
+    'D:\\HoloScriptCanaryScratch',
+    '--min-free-bytes',
+    '26843545600',
+    '--timeout-ms',
+    '60000',
+  ]);
+  assert.equal(options.coldScratchRoot, 'D:\\HoloScriptCanaryScratch');
+  assert.equal(options.coldMinFreeBytes, 26843545600);
+  assert.equal(options.timeoutMs, 60000);
+}
 
 console.log('[systems-preview-public-canary] tests PASS');

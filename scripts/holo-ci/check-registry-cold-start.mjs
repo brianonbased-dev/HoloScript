@@ -8,19 +8,46 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statfsSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
 const args = process.argv.slice(2);
+function valueAfterFlag(flag) {
+  const index = args.indexOf(flag);
+  return index >= 0 ? args[index + 1] || null : null;
+}
+
 const JSON_OUT = args.includes('--json');
 const KEEP_TEMP = args.includes('--keep-temp');
+const PREFER_OFFLINE = args.includes('--prefer-offline');
+const NPM_CACHE_PREFERENCE = PREFER_OFFLINE ? '--prefer-offline' : '--prefer-online';
 const packageIdx = args.indexOf('--package');
 const outIdx = args.indexOf('--out');
 const probeIdx = args.indexOf('--probe');
 const registryIdx = args.indexOf('--registry');
 const mirrorIdx = args.indexOf('--mirror-url');
+const scratchRootArg = valueAfterFlag('--scratch-root');
+const minFreeBytesArg = valueAfterFlag('--min-free-bytes');
+const npmCacheRootArg = valueAfterFlag('--npm-cache-root');
+const installTimeoutArg = valueAfterFlag('--install-timeout-ms');
+const probeTimeoutArg = valueAfterFlag('--probe-timeout-ms');
+const SCRATCH_ROOT = resolve(
+  scratchRootArg || process.env.HOLOSCRIPT_CANARY_SCRATCH_ROOT || tmpdir(),
+);
+const NPM_CACHE_ROOT = npmCacheRootArg ? resolve(npmCacheRootArg) : null;
+const MIN_FREE_BYTES = minFreeBytesArg === null ? 0 : Number(minFreeBytesArg);
+const INSTALL_TIMEOUT_MS = installTimeoutArg === null ? 180_000 : Number(installTimeoutArg);
+const PROBE_TIMEOUT_MS = probeTimeoutArg === null ? 300_000 : Number(probeTimeoutArg);
 const PACKAGE_SPEC = packageIdx >= 0 ? args[packageIdx + 1] : '@holoscript/core@latest';
 const LOCAL_PACKAGE_PATH = existsSync(resolve(PACKAGE_SPEC)) ? resolve(PACKAGE_SPEC) : null;
 const INSTALL_SPEC = LOCAL_PACKAGE_PATH || PACKAGE_SPEC;
@@ -40,6 +67,7 @@ const PUBLIC_FALLBACK_DISABLED =
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const PYTHON_BIN = process.env.PYTHON || 'python';
 const PUBLIC_NPM_REGISTRIES = new Set(['https://registry.npmjs.org']);
+let ACTIVE_WORK_DIR = null;
 const PACKAGE_IMPORT_PROBES = {
   'agent-protocol-public-api': ['@holoscript/agent-protocol'],
   'llm-provider-public-api': ['@holoscript/llm-provider'],
@@ -244,12 +272,98 @@ function truncate(value, max = 2000) {
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
 
+function inspectScratchCapacity(root = SCRATCH_ROOT, minimumBytes = MIN_FREE_BYTES) {
+  if (!Number.isFinite(minimumBytes) || minimumBytes < 0) {
+    return {
+      ok: false,
+      reason: 'invalid-min-free-bytes',
+      root,
+      minFreeBytes: minimumBytes,
+      freeBytes: null,
+    };
+  }
+  try {
+    mkdirSync(root, { recursive: true });
+  } catch (error) {
+    return {
+      ok: false,
+      reason: 'scratch-root-unavailable',
+      root,
+      minFreeBytes: minimumBytes,
+      freeBytes: null,
+      detail: truncate(error),
+    };
+  }
+  try {
+    const stats = statfsSync(root);
+    const blockSize = Number(stats.bsize);
+    const freeBlocks = Number(stats.bavail);
+    const freeBytes = blockSize * freeBlocks;
+    const ok = Number.isFinite(freeBytes) && freeBytes >= minimumBytes;
+    return {
+      ok,
+      reason: ok ? null : 'scratch-capacity-insufficient',
+      root,
+      blockSize,
+      freeBytes,
+      minFreeBytes: minimumBytes,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: 'scratch-capacity-unavailable',
+      root,
+      minFreeBytes: minimumBytes,
+      freeBytes: null,
+      detail: truncate(error),
+    };
+  }
+}
+
+function cleanupActiveWork(receipt) {
+  if (!ACTIVE_WORK_DIR) return;
+  const work = ACTIVE_WORK_DIR;
+  ACTIVE_WORK_DIR = null;
+  if (KEEP_TEMP) {
+    if (receipt?.isolation) {
+      receipt.isolation.cleanup = {
+        attempted: false,
+        ok: true,
+        retained: true,
+        reason: 'keep-temp',
+      };
+    }
+    return;
+  }
+  try {
+    rmSync(work, {
+      recursive: true,
+      force: true,
+      maxRetries: 120,
+      retryDelay: 1000,
+    });
+    if (receipt?.isolation) {
+      receipt.isolation.cleanup = { attempted: true, ok: true, retained: false };
+    }
+  } catch (error) {
+    if (receipt?.isolation) {
+      receipt.isolation.cleanup = {
+        attempted: true,
+        ok: false,
+        retained: true,
+        detail: truncate(error),
+      };
+    }
+  }
+}
+
 function fail(receipt, reason, error) {
   receipt.ok = false;
   receipt.failure = {
     reason,
     detail: truncate(error?.stderr || error?.stdout || error?.message || error),
   };
+  cleanupActiveWork(receipt);
   emit(receipt);
   process.exit(1);
 }
@@ -273,6 +387,7 @@ function redactReceiptPaths(value) {
   for (const [path, replacement] of [
     [LOCAL_PACKAGE_PATH, '<local-artifact>'],
     [process.cwd(), '<repo>'],
+    [SCRATCH_ROOT, '<scratch-root>'],
     [tmpdir(), '<temp-root>'],
   ]) {
     if (path) redacted = redacted.replaceAll(path, replacement);
@@ -1063,8 +1178,58 @@ console.log(JSON.stringify({
 }
 
 function main() {
-  const work = mkdtempSync(join(tmpdir(), 'hs-registry-cold-start-'));
-  const npmCacheDir = join(work, 'npm-cache');
+  const scratchCapacity = inspectScratchCapacity();
+  if (!scratchCapacity.ok) {
+    const receipt = {
+      schema: 'holoscript.registry-cold-start.receipt.v1',
+      generatedAt: new Date().toISOString(),
+      ok: false,
+      package: { spec: DISPLAY_PACKAGE_SPEC, metadata: null, installed: null },
+      registry: {
+        requestedUrl: REGISTRY_URL,
+        url: REGISTRY_URL || process.env.npm_config_registry || null,
+        publicFallbackAllowed: !PUBLIC_FALLBACK_DISABLED,
+        publicFallbackDisabled: PUBLIC_FALLBACK_DISABLED,
+        clientPolicy: REGISTRY_URL ? 'explicit-registry' : 'npm-config',
+        publicRegistryUrls: [...PUBLIC_NPM_REGISTRIES],
+      },
+      environment: {
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+      },
+      isolation: {
+        scratchRoot: SCRATCH_ROOT,
+        npmCacheRoot: NPM_CACHE_ROOT,
+        tempDir: null,
+        npmCacheDir: null,
+        tempDirKept: KEEP_TEMP,
+        capacity: scratchCapacity,
+        npmCachePreference: NPM_CACHE_PREFERENCE,
+        timeouts: {
+          installMs: INSTALL_TIMEOUT_MS,
+          probeMs: PROBE_TIMEOUT_MS,
+        },
+        cleanup: { attempted: false, ok: true, retained: false },
+        repoAccess: false,
+      },
+      probeKind: PROBE,
+      probe: null,
+      finalDisposition: 'repo_less_scratch_preflight_failed',
+      failure: {
+        reason: scratchCapacity.reason,
+        detail: scratchCapacity.detail ||
+          `scratch root ${SCRATCH_ROOT} has ${scratchCapacity.freeBytes ?? 'unknown'} free bytes; ` +
+          `${MIN_FREE_BYTES} required`,
+      },
+    };
+    emit(receipt);
+    process.exit(1);
+  }
+
+  const work = mkdtempSync(join(SCRATCH_ROOT, 'hs-registry-cold-start-'));
+  ACTIVE_WORK_DIR = work;
+  const npmCacheDir = NPM_CACHE_ROOT || join(work, 'npm-cache');
   mkdirSync(npmCacheDir, { recursive: true });
   writeConsumerPackageJson(work);
   const installOmit = installOmitArgs();
@@ -1094,14 +1259,22 @@ function main() {
       arch: process.arch,
     },
     isolation: {
+      scratchRoot: SCRATCH_ROOT,
+      npmCacheRoot: NPM_CACHE_ROOT,
+      capacity: scratchCapacity,
+      npmCachePreference: NPM_CACHE_PREFERENCE,
       tempDir: work,
       npmCacheDir,
       tempDirKept: KEEP_TEMP,
+      timeouts: {
+        installMs: INSTALL_TIMEOUT_MS,
+        probeMs: PROBE_TIMEOUT_MS,
+      },
       repoAccess: false,
       installCommand:
         `npm install ${DISPLAY_PACKAGE_SPEC}${REGISTRY_URL ? ` --registry ${REGISTRY_URL}` : ''} ` +
         '--ignore-scripts --no-audit --no-fund ' +
-        `${installOmit.join(' ')} --prefer-online --cache <temp>/npm-cache --loglevel=error`,
+        `${installOmit.join(' ')} ${NPM_CACHE_PREFERENCE} --cache ${NPM_CACHE_ROOT ? '<scratch-root>/npm-cache' : '<temp>/npm-cache'} --loglevel=error`,
     },
     probeKind: PROBE,
     source:
@@ -1171,12 +1344,12 @@ function main() {
         '--no-audit',
         '--no-fund',
         ...installOmit,
-        '--prefer-online',
+        NPM_CACHE_PREFERENCE,
         '--cache',
         npmCacheDir,
         '--loglevel=error',
       ]),
-      { cwd: work, timeout: 180_000, env: npmEnv() }
+      { cwd: work, timeout: INSTALL_TIMEOUT_MS, env: npmEnv() }
     );
   } catch (error) {
     fail(receipt, 'npm-install-failed', error);
@@ -1242,7 +1415,7 @@ function main() {
     const probe = JSON.parse(
       run('node', [probeFile], {
         cwd: work,
-        timeout: PROBE === 'systems-toolchain' ? 300_000 : 60_000,
+        timeout: PROBE === 'systems-toolchain' ? PROBE_TIMEOUT_MS : 60_000,
       })
     );
     receipt.probe = probe;
@@ -1266,7 +1439,7 @@ function main() {
   } catch (error) {
     fail(receipt, 'probe-crashed', error);
   } finally {
-    if (!KEEP_TEMP) rmSync(work, { recursive: true, force: true });
+    cleanupActiveWork(receipt);
   }
 
   emit(receipt);
