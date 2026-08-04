@@ -14,7 +14,8 @@ import {
   getSovereignMantleCatalogEntry,
   listSovereignMantleStyles,
 } from '../AgentAvatarMantleCatalog';
-import { packCharacterMaterial } from '../character-render';
+import { BONE_ORDER } from '../AgentAvatarMesh';
+import { deriveCharacterMaterialPlateReceipt, packCharacterMaterial } from '../character-render';
 
 describe('buildCharacterHostFromComposition', () => {
   it('maps @body/@subsurface_scattering/@locomotion from a template-using object', () => {
@@ -87,14 +88,28 @@ describe('buildCharacterHostFromComposition', () => {
     expect(dark.report.mapped).toContain('@hair(color)');
     expect(dark.report.mapped).toContain('@hair(style=short)');
 
-    const melaninOf = (r: ReturnType<typeof make>): number => {
+    const materialOf = (r: ReturnType<typeof make>) => {
       const g = r.host
         ?.getDrawSpec()
         .materialGroups?.find((x) => x.material.shadingModel === 'marschner-hair');
-      return g && g.material.shadingModel === 'marschner-hair' ? g.material.melanin : NaN;
+      return g && g.material.shadingModel === 'marschner-hair' ? g.material : undefined;
     };
     // Darker authored hair → more eumelanin: the .holo colour reaches the draw spec, not a constant.
-    expect(melaninOf(dark)).toBeGreaterThan(melaninOf(blonde));
+    expect(materialOf(dark)?.melanin).toBeGreaterThan(materialOf(blonde)?.melanin ?? 0);
+    expect(materialOf(dark)?.color).toBe(0x1a0e08);
+    expect(materialOf(blonde)?.color).toBe(0xe8d088);
+    expect(materialOf(dark)?.sourceColorWeight).toBe(0.55);
+    expect(materialOf(dark)?.color).not.toBe(materialOf(blonde)?.color);
+    const packed = packCharacterMaterial(materialOf(dark)!);
+    [0x1a / 255, 0x0e / 255, 0x08 / 255].forEach((channel, index) =>
+      expect(packed[index]).toBeCloseTo(channel)
+    );
+    expect(packed[13]).toBeCloseTo(0.55);
+    expect(dark.host?.getHairMaterialReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hair-material.v2',
+      sourceColor: 0x1a0e08,
+      sourceColorWeight: 0.55,
+    });
     expect(dark.report.warnings.some((w) => w.includes('style'))).toBe(false);
   });
 
@@ -145,7 +160,9 @@ describe('buildCharacterHostFromComposition', () => {
       tipTaper: 0.1,
       hairlineBias: 0.16,
       material: {
-        schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+        schemaVersion: 'holoscript.agent-avatar-hair-material.v2',
+        sourceColor: 0x39251c,
+        sourceColorWeight: 0.55,
         coverageProfile: 'alpha-to-coverage-v1',
         strandCoverage: 0.74,
         edgeSoftness: 0.16,
@@ -305,8 +322,9 @@ describe('buildCharacterHostFromComposition', () => {
       shoulderScale: 1.12,
       torsoScale: 0.94,
     });
-    expect(result.skin).toEqual({
-      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+    expect(result.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'legacy-v1',
       shadingModel: 'skin-sss',
       microdetailProfile: 'analytic-pore-v1',
       microdetailScale: 96,
@@ -332,6 +350,117 @@ describe('buildCharacterHostFromComposition', () => {
       const packed = packCharacterMaterial(skinGroup.material);
       expect(packed[11]).toBeCloseTo(0.09);
       expect(packed[19]).toBe(96);
+    }
+  });
+
+  it('maps decoupled albedo, roughness, and fine-normal skin response into the native ABI', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3TResident',
+          traits: [
+            { name: 'body', config: { skin_tone: '#B9826F' } },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 104,
+                microdetail_strength: 0.09,
+                surface_response_profile: 'calibrated_skin_surface_v1',
+                albedo_variation_strength: 0.024,
+                roughness_variation_strength: 0.072,
+                normal_microdetail_strength: 0.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const skinGroup = result.host
+      ?.getDrawSpec()
+      .materialGroups?.find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.skin).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v3',
+      calibrationProfile: 'fixed-light-human-v1',
+      shadingModel: 'skin-sss',
+      color: 0xb9826f,
+      scatterColor: [0.8, 0.25, 0.13],
+      scatterRadii: [3.67, 1.37, 0.68],
+      specularF0: 0.028,
+      thickness: 0.24,
+      transmitStrength: 0.32,
+      ambient: 0.09,
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 104,
+      microdetailStrength: 0.09,
+      roughness: 0.5,
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      albedoVariationStrength: 0.024,
+      roughnessVariationStrength: 0.072,
+      normalMicrodetailStrength: 0.14,
+    });
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(surface_response_profile=calibrated-skin-surface-v1,' +
+        'albedo_variation_strength=0.024,roughness_variation_strength=0.072,' +
+        'normal_microdetail_strength=0.14)'
+    );
+    expect(skinGroup?.material.shadingModel).toBe('skin-sss');
+    if (skinGroup?.material.shadingModel === 'skin-sss') {
+      expect(skinGroup.material.surfaceResponseProfile).toBe('calibrated-skin-surface-v1');
+      const packed = packCharacterMaterial(skinGroup.material);
+      expect(packed[16]).toBeCloseTo(0.024);
+      expect(packed[17]).toBeCloseTo(0.072);
+      expect(packed[18]).toBeCloseTo(0.14);
+      expect(packed[19]).toBe(104);
+    }
+  });
+
+  it('maps H4I anatomical complexion into the backwards-safe skin uniform code', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H4IResident',
+          traits: [
+            { name: 'body', config: { skin_tone: '#B9826F' } },
+            { name: 'face', config: { topology: 'neutral_anatomical_v2' } },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 104,
+                microdetail_strength: 0.09,
+                surface_response_profile: 'calibrated_skin_surface_v1',
+                complexion_profile: 'anatomical_complexion_v1',
+                complexion_strength: 0.62,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const skinGroup = result.host
+      ?.getDrawSpec()
+      .materialGroups?.find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v4',
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      complexionProfile: 'anatomical-complexion-v1',
+      complexionStrength: 0.62,
+    });
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(complexion_profile=anatomical-complexion-v1,' +
+        'complexion_strength=0.62)'
+    );
+    expect(skinGroup?.material.shadingModel).toBe('skin-sss');
+    if (skinGroup?.material.shadingModel === 'skin-sss') {
+      expect(packCharacterMaterial(skinGroup.material)[11]).toBeCloseTo(1.62);
     }
   });
 
@@ -364,6 +493,634 @@ describe('buildCharacterHostFromComposition', () => {
     });
     expect(result.anatomy).toBeUndefined();
     expect(result.skin).toBeUndefined();
+  });
+
+  it('fails closed when decoupled skin controls lack their operative profiles', () => {
+    const missingSurfaceProfile = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'MissingSurfaceProfile',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                microdetail_profile: 'analytic_pore_v1',
+                normal_microdetail_strength: 0.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const missingMicrodetailProfile = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'MissingMicrodetailProfile',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                surface_response_profile: 'calibrated_skin_surface_v1',
+                normal_microdetail_strength: 0.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(missingSurfaceProfile.report.stubbed).toContainEqual({
+      trait: '@subsurface_scattering(surface_response_controls)',
+      reason: 'decoupled surface controls require calibrated-skin-surface-v1',
+    });
+    expect(missingSurfaceProfile.skin?.schemaVersion).toBe(
+      'holoscript.agent-avatar-skin-material.v2'
+    );
+    expect(missingMicrodetailProfile.report.stubbed).toContainEqual({
+      trait: '@subsurface_scattering(surface_response_profile)',
+      reason: 'calibrated-skin-surface-v1 requires analytic-pore-v1 microdetail',
+    });
+    expect(missingMicrodetailProfile.skin).toBeUndefined();
+  });
+
+  it('maps the coherent upper-body profile into the emitted native topology receipt', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3KResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                shoulder_scale: 1.1,
+                torso_scale: 0.95,
+                upper_body_profile: 'coherent_shoulder_neck_torso_v1',
+                upper_body_radial_segments: 18,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-shoulder-neck-torso-v1,' + 'upper_body_radial_segments=18)'
+    );
+    expect(result.anatomy?.upperBody).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'coherent-shoulder-neck-torso-v1',
+      radialSegments: 18,
+      ringCount: 10,
+      shoulderHalfWidth: 0.264,
+      waistHalfWidth: 0.152,
+      neckRadius: 0.054,
+    });
+    expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
+  });
+
+  it('maps the anatomical limb profile into native deltoid and digit receipts', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3MResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                upper_body_profile: 'coherent_anatomical_limbs_v2',
+                upper_body_radial_segments: 24,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-anatomical-limbs-v2,' + 'upper_body_radial_segments=24)'
+    );
+    expect(result.anatomy?.upperBody).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'anatomical-shoulder-neck-torso-v2',
+      radialSegments: 24,
+      ringCount: 12,
+    });
+    expect(result.anatomy?.upperBody?.upperLimbs).toHaveLength(2);
+    for (const limb of result.anatomy?.upperBody?.upperLimbs ?? []) {
+      expect(limb).toMatchObject({
+        schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
+        profile: 'anatomical-deltoid-hand-v2',
+        radialSegments: 24,
+        ringCount: 9,
+        deltoidBlendRingCount: 3,
+        connectedSurfaceCount: 6,
+      });
+      expect(limb.digits?.map((digit) => digit.digit)).toEqual([
+        'thumb',
+        'index',
+        'middle',
+        'ring',
+        'pinky',
+      ]);
+    }
+    expect(
+      result.anatomy?.upperBody?.upperLimbs.reduce(
+        (count, limb) => count + (limb.digits?.length ?? 0),
+        0
+      )
+    ).toBe(10);
+    expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
+  });
+
+  it('maps v3 hand landmarks and isolates authored keratin nail material ranges', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3NResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                upper_body_profile: 'coherent_hand_landmarks_v3',
+                upper_body_radial_segments: 24,
+                nail_tone: '#F0CABC',
+                nail_roughness: 0.23,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-hand-landmarks-v3,' + 'upper_body_radial_segments=24)'
+    );
+    expect(result.report.mapped).toContain('@body(nail_tone=15780540,nail_roughness=0.23)');
+    expect(result.anatomy?.upperBody).toMatchObject({
+      profile: 'anatomical-hand-landmarks-v3',
+      radialSegments: 24,
+      ringCount: 12,
+    });
+    const landmarkRanges = (result.anatomy?.upperBody?.upperLimbs ?? []).flatMap((limb) => {
+      expect(limb.profile).toBe('anatomical-landmark-hand-v3');
+      expect(limb.connectedSurfaceCount).toBe(24);
+      expect(limb.handLandmarks).toHaveLength(18);
+      return (
+        limb.handLandmarks
+          ?.filter((landmark) => landmark.materialRole === 'keratin-nail')
+          .map((landmark) => landmark.indexRange) ?? []
+      );
+    });
+    expect(landmarkRanges).toHaveLength(10);
+
+    const groups = result.host?.getDrawSpec().materialGroups ?? [];
+    const nailGroups = groups.filter(
+      (group) =>
+        group.material.shadingModel === 'skin-sss' &&
+        group.material.color === 0xf0cabc &&
+        group.material.roughness === 0.23
+    );
+    expect(nailGroups.map(({ indexStart, indexCount }) => ({ indexStart, indexCount }))).toEqual(
+      landmarkRanges
+    );
+    const skinGroups = groups.filter(
+      (group) => group.material.shadingModel === 'skin-sss' && group.material.color === 0xb9826f
+    );
+    expect(skinGroups).toHaveLength(3);
+    for (const nail of nailGroups) {
+      for (const skin of skinGroups) {
+        expect(
+          nail.indexStart + nail.indexCount <= skin.indexStart ||
+            skin.indexStart + skin.indexCount <= nail.indexStart
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('maps fixed-light skin, keratin, and nail-bed calibration into the native draw schedule', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3QResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                upper_body_profile: 'coherent_deforming_hands_v4',
+                upper_body_radial_segments: 24,
+                nail_tone: '#E6BEB2',
+                nail_roughness: 0.24,
+                nail_bed_tone: '#C9827C',
+                nail_bed_roughness: 0.36,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                scatter_color: '#A65D50',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 94,
+                microdetail_strength: 0.074,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(material_calibration_profile=fixed-light-human-v1)'
+    );
+    expect(result.report.mapped).toContain('@body(nail_bed_tone=13206140,nail_bed_roughness=0.36)');
+    expect(result.anatomy?.upperBody?.profile).toBe('anatomical-deforming-hands-v4');
+    expect(result.anatomy?.upperBody?.upperLimbs.map((limb) => limb.palmProfile)).toEqual([
+      'arched-thenar-palm-v1',
+      'arched-thenar-palm-v1',
+    ]);
+    expect(result.host?.getSkinMaterialReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'fixed-light-human-v1',
+      color: 0xb9826f,
+      roughness: 0.5,
+      thickness: 0.24,
+      transmitStrength: 0.32,
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 94,
+      microdetailStrength: 0.074,
+    });
+
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-material-plate.v2',
+      roleCounts: {
+        'keratin-nail': 20,
+        'nail-bed': 10,
+      },
+      keratinIndexCount: 2160,
+      nailBedIndexCount: 720,
+      nailSurfaceIndexCount: 2880,
+      skinNailOverlapIndexCount: 0,
+      skinNailBedOverlapIndexCount: 0,
+      nailBedKeratinOverlapIndexCount: 0,
+      nailSeparatedFromSkin: true,
+      nailBedSeparatedFromKeratin: true,
+      calibratedNailSurface: true,
+    });
+  });
+
+  it('scales the fixed-light nail partition for V5 cuticle-contoured plates', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3SResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                upper_body_profile: 'coherent_hand_surface_v5',
+                upper_body_radial_segments: 24,
+                nail_tone: '#E6BEB2',
+                nail_roughness: 0.24,
+                nail_bed_tone: '#C9827C',
+                nail_bed_roughness: 0.36,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                scatter_color: '#A65D50',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 94,
+                microdetail_strength: 0.074,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.handSurface).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hand-surface.v1',
+      profile: 'tapered-digit-commissure-cuticle-wrist-v1',
+    });
+
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-material-plate.v2',
+      roleCounts: {
+        'keratin-nail': 20,
+        'nail-bed': 10,
+      },
+      keratinIndexCount: 4320,
+      nailBedIndexCount: 1440,
+      nailSurfaceIndexCount: 5760,
+      skinNailOverlapIndexCount: 0,
+      skinNailBedOverlapIndexCount: 0,
+      nailBedKeratinOverlapIndexCount: 0,
+      nailSeparatedFromSkin: true,
+      nailBedSeparatedFromKeratin: true,
+      calibratedNailSurface: true,
+    });
+  });
+
+  it('maps V6 portrait anatomy, facial silhouette, calibrated skin, and an arms-down pose', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'OpenAIResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                upper_body_profile: 'coherent_portrait_anatomy_v6',
+                upper_body_radial_segments: 24,
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                nail_tone: '#E6BEB2',
+                nail_roughness: 0.24,
+                nail_bed_tone: '#C9827C',
+                nail_bed_roughness: 0.36,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                radial_segments: 28,
+                vertical_segments: 20,
+                facial_detail_profile: 'portrait_silhouette_v2',
+                cheekbone_scale: 1.14,
+                chin_projection: 1.12,
+                temple_width: 0.94,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                scatter_color: '#A65D50',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 94,
+                microdetail_strength: 0.074,
+              },
+            },
+            {
+              name: 'pose',
+              config: {
+                name: 'portrait-arms-down',
+                bones: {
+                  left_upper_arm: [0, 0, -0.564642, 0.825336],
+                  right_upper_arm: [0, 0, 0.564642, 0.825336],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.anatomy?.upperBody?.profile).toBe('portrait-anatomy-v6');
+    expect(result.anatomy?.upperBody?.upperLimbs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          profile: 'portrait-deltoid-hand-surface-v6',
+          shoulderBlendRingCount: 6,
+          minimumShoulderRadiusRatio: 0.7,
+        }),
+      ])
+    );
+    expect(result.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v2',
+      profile: 'portrait-silhouette-v2',
+      cheekboneScale: 1.14,
+      chinProjection: 1.12,
+      templeWidth: 0.94,
+    });
+    expect(result.face).toMatchObject({
+      facialDetailProfile: 'portrait-silhouette-v2',
+      cheekboneScale: 1.14,
+      chinProjection: 1.12,
+      templeWidth: 0.94,
+    });
+    expect(result.jointDeformation).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v2',
+      profile: 'portrait-shoulder-volume-v2',
+      regionVertexCounts: { shoulder: 288 },
+      shoulderVolume: {
+        blendRingCount: 6,
+        minimumAuthoredRadiusRatio: 0.7,
+      },
+    });
+    expect(result.handSurface?.upperBodyProfile).toBe('coherent-portrait-anatomy-v6');
+    expect(result.pose).toMatchObject({
+      name: 'portrait-arms-down',
+      boneCount: 2,
+      boneNames: ['left_upper_arm', 'right_upper_arm'],
+    });
+    expect(result.host!.getDrawSpec().mesh.secondaryJointIndices).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(result.host!.getSkinMaterialReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'fixed-light-human-v1',
+      microdetailProfile: 'analytic-pore-v1',
+    });
+    expect(
+      result.report.mapped.some((entry) =>
+        entry.includes('@body(upper_body_profile=coherent-portrait-anatomy-v6')
+      )
+    ).toBe(true);
+    expect(
+      result.report.mapped.some((entry) =>
+        entry.includes('@face(facial_detail_profile=portrait-silhouette-v2')
+      )
+    ).toBe(true);
+  });
+
+  it('does not silently accept portrait silhouette controls on a civic face profile', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'CivicResident',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                facial_detail_profile: 'civic_landmarks_v1',
+                cheekbone_scale: 1.14,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@face(portrait_silhouette_controls)',
+      reason: 'cheekbone_scale, chin_projection, and temple_width require portrait_silhouette_v2',
+    });
+    expect(result.face?.cheekboneScale).toBeUndefined();
+  });
+
+  it('applies a validated source-authored operative pose and rejects unknown joint claims', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'OpenAIResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_deforming_hands_v4',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'pose',
+              config: {
+                name: 'attentive-open-palm',
+                bones: {
+                  left_shoulder: [0, 0, 1, 1],
+                  provider_magic_joint: [0, 0, 0, 1],
+                  left_index_proximal: [0, 0, 0, 0],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.pose).toEqual({
+      schemaVersion: 'holoscript.character-source-pose.v1',
+      name: 'attentive-open-palm',
+      space: 'local-bone',
+      quaternionOrder: 'xyzw',
+      boneCount: 1,
+      boneNames: ['left_shoulder'],
+      normalizedQuaternionCount: 1,
+    });
+    expect(result.jointDeformation).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+      maxSecondaryWeight: 0.55,
+      maxWeightSumError: 0,
+      regionVertexCounts: {
+        shoulder: 96,
+        elbow: 96,
+        wrist: 96,
+        digitRoot: 240,
+        fingerJoint: 480,
+      },
+    });
+    expect(result.host!.getDrawSpec().mesh.secondaryJointIndices).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(result.host!.getDrawSpec().mesh.secondaryJointWeights).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(result.report.mapped).toContain('@pose(name=attentive-open-palm,bones=left_shoulder)');
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@pose(bone=provider_magic_joint)',
+      reason: 'bone is not part of the operative humanoid_65 palette',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@pose(bone=left_index_proximal)',
+      reason: 'rotation must be a finite non-zero local quaternion in xyzw order',
+    });
+
+    const shoulderMatrixStart = BONE_ORDER.indexOf('left_shoulder') * 16;
+    const shoulderMatrix = Array.from(
+      result.host!.getDrawSpec().jointMatrices.slice(shoulderMatrixStart, shoulderMatrixStart + 16)
+    );
+    expect(shoulderMatrix).not.toEqual([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  });
+
+  it('does not silently enable nail-bed controls without the fixed-light calibration profile', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'LegacyResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_hand_landmarks_v3',
+                nail_bed_tone: '#C9827C',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(nail_bed_material_controls)',
+      reason: 'nail-bed controls require fixed-light-human-v1 material calibration',
+    });
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt.schemaVersion).toBe('holoscript.character-material-plate.v1');
+    expect(receipt.roleCounts['nail-bed']).toBeUndefined();
+    expect(receipt.calibratedNailSurface).toBe(false);
+  });
+
+  it('fails closed on unsupported upper-body profiles and orphan topology controls', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnsupportedH3KBody',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'provider_mesh_magic_v9',
+                upper_body_radial_segments: 20,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.mapped.some((entry) => entry.includes('upper_body_profile='))).toBe(false);
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(upper_body_profile)',
+      reason: "profile 'provider-mesh-magic-v9' has no native upper-body geometry implementation",
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(upper_body_topology_controls)',
+      reason: 'upper-body topology controls require a supported upper_body_profile',
+    });
+    expect(result.anatomy).toBeUndefined();
   });
 
   it('@face selects the neutral anatomical topology and receipts it through morph output', () => {
@@ -990,5 +1747,605 @@ describe('buildCharacterHostFromComposition', () => {
     expect(r.ok).toBe(true);
     expect(r.report.resolvedVia).toBe('objectId');
     expect(r.report.objectId).toBe('hero');
+  });
+
+  it('maps V7 scapular asymmetry, @expression, and analytic environment light end to end', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'claude',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+                left_scapular_elevation: 0.65,
+                right_scapular_elevation: -0.25,
+                left_scapular_protraction: 0.4,
+                right_scapular_protraction: -0.3,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                orbital_profile: 'recessed_lids_v1',
+                facial_detail_profile: 'portrait_silhouette_v2',
+              },
+            },
+            {
+              name: 'expression',
+              config: {
+                blink_left: 0.72,
+                blink_right: 0.18,
+                brow_raise_right: 0.44,
+                smile: 0.26,
+                jaw_open: 0.08,
+              },
+            },
+            {
+              name: 'environment_light',
+              config: {
+                profile: 'analytic_three_point_v1',
+                key_direction: [0.42, 0.74, 0.52],
+                key_color: [1, 0.82, 0.68],
+                key_intensity: 1.25,
+                fill_direction: [-0.62, 0.18, 0.76],
+                fill_color: [0.48, 0.64, 1],
+                fill_intensity: 0.34,
+                rim_direction: [0.68, 0.4, -0.62],
+                rim_color: [1, 0.48, 0.28],
+                rim_intensity: 0.58,
+                exposure: 1.08,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.jointDeformation).toMatchObject({
+      profile: 'expressive-neck-scapular-volume-v3',
+      regionVertexCounts: { neck: 96 },
+      expressiveAsymmetry: {
+        scapularElevation: { left: 0.65, right: -0.25 },
+        scapularProtraction: { left: 0.4, right: -0.3 },
+      },
+    });
+    expect(result.expression).toMatchObject({
+      schemaVersion: 'holoscript.native-facial-morph.v2',
+      appliedTargets: [
+        { target: 'blink_left', weight: 0.72 },
+        { target: 'blink_right', weight: 0.18 },
+        { target: 'brow_raise_right', weight: 0.44 },
+        { target: 'smile', weight: 0.26 },
+        { target: 'jaw_open', weight: 0.08 },
+      ],
+    });
+    expect(result.environmentLight?.receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v1',
+      profile: 'analytic-three-point-v1',
+      key: { color: [1, 0.82, 0.68], intensity: 1.25 },
+      fill: { color: [0.48, 0.64, 1], intensity: 0.34 },
+      rim: { color: [1, 0.48, 0.28], intensity: 0.58 },
+      exposure: 1.08,
+    });
+    expect(result.report.mapped).toContain('@environment_light(profile=analytic-three-point-v1)');
+    expect(result.report.mapped.some((entry) => entry.startsWith('@expression('))).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+  });
+
+  it('maps H3X close-up face LODs, cranial continuity, and expression normals', () => {
+    const composition: ParsedComposition = {
+      objects: [
+        {
+          id: 'openai',
+          traits: [
+            {
+              name: 'lod',
+              config: {
+                levels: [
+                  {
+                    level: 0,
+                    distance: 0,
+                    garment_segments: 24,
+                    face_radial_segments: 44,
+                    face_vertical_segments: 30,
+                  },
+                  {
+                    level: 2,
+                    distance: 16,
+                    garment_segments: 12,
+                    face_radial_segments: 24,
+                    face_vertical_segments: 16,
+                  },
+                ],
+              },
+            },
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                radial_segments: 28,
+                vertical_segments: 20,
+                orbital_profile: 'recessed_lids_v1',
+                facial_detail_profile: 'portrait_cranial_v3',
+                expression_normal_policy: 'recompute_affected_v1',
+              },
+            },
+            {
+              name: 'expression',
+              config: {
+                blink_left: 0.2,
+                brow_raise_right: 0.35,
+                smile: 0.42,
+                jaw_open: 0.1,
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const closeup = buildCharacterHostFromComposition(composition, { lodLevel: 0 });
+    const distance = buildCharacterHostFromComposition(composition, { lodLevel: 2 });
+
+    expect(closeup.ok).toBe(true);
+    expect(closeup.lod).toMatchObject({
+      level: 0,
+      faceRadialSegments: 44,
+      faceVerticalSegments: 30,
+    });
+    expect(distance.lod).toMatchObject({
+      level: 2,
+      faceRadialSegments: 24,
+      faceVerticalSegments: 16,
+    });
+    expect(closeup.face).toMatchObject({
+      topology: 'neutral-anatomical-v2',
+      radialSegments: 44,
+      verticalSegments: 30,
+      facialDetailProfile: 'portrait-cranial-v3',
+      expressionNormalPolicy: 'recompute-affected-v1',
+    });
+    expect(closeup.anatomy?.cranialNeck).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-cranial-neck.v1',
+      profile: 'indexed-neck-cranium-stitch-v1',
+    });
+    expect(closeup.expression).toMatchObject({
+      schemaVersion: 'holoscript.native-facial-morph.v3',
+      normalsRecomputed: true,
+      normalPolicy: 'recompute-affected-v1',
+    });
+    expect(closeup.host!.getDrawSpec().mesh.vertexCount).toBeGreaterThan(
+      distance.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(closeup.report.mapped).toContain('@lod(face_segments=44x30)');
+    expect(closeup.report.mapped).toContain(
+      '@face(expression_normal_policy=recompute-affected-v1)'
+    );
+    expect(closeup.report.stubbed).toEqual([]);
+  });
+
+  it('maps H3Y constructed clothing, soft tissue, groom containment, and probe response', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'gemini',
+          traits: [
+            {
+              name: 'lod',
+              config: {
+                levels: [
+                  {
+                    level: 0,
+                    distance: 0,
+                    garment_segments: 24,
+                    hair_guides: 72,
+                    hair_cards_per_guide: 2,
+                    hair_segments: 6,
+                    face_radial_segments: 44,
+                    face_vertical_segments: 30,
+                  },
+                ],
+              },
+            },
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                orbital_profile: 'anatomical_lid_fold_v2',
+                facial_detail_profile: 'portrait_soft_tissue_v4',
+                expression_normal_policy: 'recompute_affected_v1',
+                mouth_depth: 0.68,
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                style: 'medium_wavy',
+                groom_profile: 'scalp_flow_containment_v2',
+                card_width: 0.014,
+                root_lift: 0.001,
+                tip_taper: 0.08,
+                hairline_bias: 0.18,
+              },
+            },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_tailored_fieldcoat',
+                color: '#28445e',
+              },
+            },
+            {
+              name: 'environment_light',
+              config: {
+                profile: 'directional_reflection_probe_v1',
+                key_direction: [0.42, 0.74, 0.52],
+                key_color: [1, 0.78, 0.62],
+                key_intensity: 1.18,
+                fill_direction: [-0.62, 0.18, 0.76],
+                fill_color: [0.42, 0.64, 1],
+                fill_intensity: 0.42,
+                rim_direction: [0.68, 0.4, -0.62],
+                rim_color: [1, 0.42, 0.24],
+                rim_intensity: 0.62,
+                exposure: 1.04,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.face).toMatchObject({
+      orbitalProfile: 'anatomical-lid-fold-v2',
+      facialDetailProfile: 'portrait-soft-tissue-v4',
+      expressionNormalPolicy: 'recompute-affected-v1',
+    });
+    expect(result.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v4',
+      lipTopology: 'connected-cupid-bow-ribbon-v1',
+    });
+    expect(result.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v2',
+      constructionProfile: 'four-panel-fieldcoat-v1',
+      constructedPanelCount: 4,
+    });
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v2',
+      profile: 'scalp-flow-containment-v2',
+      containmentProfile: 'ellipsoidal-scalp-exterior-v1',
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(result.environmentLight?.receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v2',
+      profile: 'directional-reflection-probe-v1',
+      responseProfile: 'three-lobe-diffuse-specular-probe-v1',
+    });
+    expect(result.report.mapped).toContain(
+      '@environment_light(profile=directional-reflection-probe-v1)'
+    );
+    expect(result.report.stubbed).toEqual([]);
+  });
+
+  it('maps H3Z material depth, groom breakup, ocular wetline, and room response', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'openai',
+          traits: [
+            {
+              name: 'lod',
+              config: {
+                levels: [
+                  {
+                    level: 0,
+                    distance: 0,
+                    garment_segments: 24,
+                    hair_guides: 72,
+                    hair_cards_per_guide: 2,
+                    hair_segments: 6,
+                  },
+                ],
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                tearline: true,
+                orbital_profile: 'anatomical_lid_blend_v3',
+                ocular_profile: 'layered_ocular_tearfilm_v2',
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                style: 'medium_wavy',
+                groom_profile: 'scalp_flow_breakup_v3',
+                card_width: 0.014,
+                root_lift: 0.001,
+              },
+            },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_structured_fieldcoat',
+                color: '#28445e',
+              },
+            },
+            {
+              name: 'environment_light',
+              config: {
+                profile: 'stormglass_room_basis_v2',
+                key_direction: [0.42, 0.74, 0.52],
+                fill_direction: [-0.62, 0.18, 0.76],
+                rim_direction: [0.68, 0.4, -0.62],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.face).toMatchObject({
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      ocularProfile: 'layered-ocular-tearfilm-v2',
+    });
+    expect(result.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v3',
+      constructionProfile: 'structured-fieldcoat-shell-v2',
+      closureCount: 5,
+      cuffBandCount: 2,
+      fabricSurfaceProfile: 'stormglass-crossweave-normal-v1',
+    });
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v3',
+      profile: 'scalp-flow-breakup-v3',
+      breakupProfile: 'contained-flyaway-breakup-v1',
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(result.ocular).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v2',
+      profile: 'layered-ocular-tearfilm-v2',
+      tearMeniscusProfile: 'lower-cornea-meniscus-v1',
+    });
+    expect(result.environmentLight?.receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-environment-light.v3',
+      profile: 'stormglass-room-basis-v2',
+      responseProfile: 'source-authored-room-basis-v2',
+      photographicHdri: false,
+    });
+    expect(result.report.stubbed).toEqual([]);
+  });
+
+  it('maps the H4A facial-volume, portrait groom, calibrated ocular, and full-coat stack', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'h4a-portrait',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_expressive_anatomy_v7',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                facial_detail_profile: 'portrait_facial_volume_v5',
+                orbital_profile: 'anatomical_lid_blend_v3',
+                ocular_profile: 'layered_ocular_calibrated_v3',
+                cheekbone_scale: 1.14,
+                chin_projection: 1.08,
+                jaw_taper: 0.2,
+                lid_opening: 0.52,
+                iris_scale: 0.46,
+                pupil_scale: 0.36,
+              },
+            },
+            {
+              name: 'hair',
+              config: {
+                style: 'medium_wavy',
+                groom_profile: 'scalp_flow_portrait_v4',
+              },
+            },
+            {
+              name: 'clothing',
+              config: {
+                style: 'stormglass_portrait_fieldcoat',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v5',
+      facialVolumeProfile: 'nasal-malar-mandibular-volume-v1',
+      malarVolumeScale: 1.14,
+      mandibularTaper: 0.2,
+    });
+    expect(result.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v4',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+      browCardCount: 2,
+      lashCardCount: 4,
+    });
+    expect(result.ocular).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v3',
+      calibrationProfile: 'portrait-ocular-balance-v1',
+      lidOpening: 0.52,
+    });
+    expect(result.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v4',
+      constructionProfile: 'portrait-full-fieldcoat-v3',
+      closureCount: 7,
+      cuffBandCount: 2,
+    });
+    expect(result.report.stubbed).toEqual([]);
+  });
+
+  it('fails closed when H3X cranial continuity or expression-normal prerequisites are absent', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'unsupported-h3x',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_portrait_anatomy_v6',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'face',
+              config: {
+                topology: 'neutral_anatomical_v2',
+                facial_detail_profile: 'portrait_cranial_v3',
+                expression_normal_policy: 'recompute_affected_v1',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.face).toMatchObject({
+      topology: 'neutral-anatomical-v2',
+      radialSegments: 20,
+      verticalSegments: 14,
+    });
+    expect(result.face?.facialDetailProfile).toBeUndefined();
+    expect(result.face?.expressionNormalPolicy).toBeUndefined();
+    expect(result.anatomy?.cranialNeck).toBeUndefined();
+    expect(result.report.stubbed).toEqual([
+      {
+        trait: '@face(facial_detail_profile)',
+        reason:
+          'portrait-cranial-v3 requires coherent-expressive-anatomy-v7 for indexed neck-cranium continuity',
+      },
+      {
+        trait: '@face(expression_normal_policy)',
+        reason: 'recompute-affected-v1 requires a portrait cranial profile',
+      },
+    ]);
+  });
+
+  it('maps @micro_motion to native blink, ocular gaze, and upper-chest breathing', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'openai',
+          traits: [
+            { name: 'body', config: {} },
+            {
+              name: 'face',
+              config: { topology: 'neutral_anatomical_v2' },
+            },
+            {
+              name: 'micro_motion',
+              config: {
+                profile: 'human_presence_v1',
+                seed: 'openai',
+                source_time_seconds: 7.25,
+                blink_interval_seconds: 3.9,
+                saccade_yaw_degrees: 2.2,
+                breath_rate_hz: 0.24,
+                cloth_rate: 0.85,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.microMotion).toMatchObject({
+      sourceTimeSeconds: 7.25,
+      config: {
+        schemaVersion: 'holoscript.character-micro-motion-config.v1',
+        profile: 'human-presence-v1',
+        seed: 'openai',
+        blinkIntervalSeconds: 3.9,
+        breathRateHz: 0.24,
+        clothRate: 0.85,
+      },
+      sample: {
+        schemaVersion: 'holoscript.character-micro-motion-sample.v1',
+        absoluteTime: true,
+        gaze: { nativeTransformApplied: false },
+        breath: { nativeTransformApplied: false },
+        cloth: { nativeSimulationApplied: false },
+      },
+      application: {
+        schemaVersion: 'holoscript.character-micro-motion-application.v2',
+        nativeBlinkApplied: true,
+        nativeGazeApplied: true,
+        nativeBreathApplied: true,
+      },
+      bindings: {
+        blink: 'native-procedural-head-morph',
+        gaze: 'native-ocular-globe-rotation',
+        breath: 'native-upper-chest-deformation',
+        cloth: 'sampled-channel-only',
+      },
+    });
+    expect(result.microMotion?.sample.sampleDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+    expect(result.microMotion?.application.gazeChangedVertexCount).toBeGreaterThan(0);
+    expect(result.microMotion?.application.breathChangedVertexCount).toBeGreaterThan(0);
+    expect(result.microMotion?.application.positionDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+    expect(result.microMotion?.application.normalDigest).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
+    expect(result.report.mapped).toContain(
+      '@micro_motion(profile=human-presence-v1,blink=native,gaze=native-ocular,breath=native-chest,cloth=channel)'
+    );
+    expect(result.report.stubbed).toEqual([]);
+  });
+
+  it('fails closed on an unsupported @micro_motion profile', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          id: 'unsupported-motion',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'micro_motion', config: { profile: 'cinematic_ai_guess_v9' } },
+          ],
+        },
+      ],
+    });
+
+    expect(result.microMotion).toBeUndefined();
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@micro_motion',
+      reason: "profile 'cinematic-ai-guess-v9' unsupported; no timing channels fabricated",
+    });
   });
 });

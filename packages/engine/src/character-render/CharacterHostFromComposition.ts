@@ -16,19 +16,33 @@
 
 import {
   CharacterHost,
+  type AgentAvatarMaterialCalibrationProfile,
+  type AgentAvatarSkinComplexionProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
+  type AgentAvatarSkinSurfaceResponseProfile,
 } from './CharacterHost';
+import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
 import type { HairCoverageProfile } from '../native-render/draw-spec';
 import type {
   AgentAvatarAnatomyReceipt,
   AgentAvatarFacialDetailProfile,
   AgentAvatarFacialLandmarkReceipt,
   AgentAvatarFaceTopology,
+  AgentAvatarHandSurfaceReceipt,
+  AgentAvatarJointDeformationReceipt,
   AgentAvatarOrbitalProfile,
+  AgentAvatarUpperBodyProfile,
 } from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
+import {
+  deriveCharacterMicroMotionConfig,
+  sampleCharacterMicroMotion,
+  type CharacterMicroMotionApplicationReceipt,
+  type CharacterMicroMotionConfig,
+  type CharacterMicroMotionSample,
+} from './AgentAvatarMicroMotion';
 import {
   resolveAgentAvatarGroomProfile,
   resolveAgentAvatarHairCoverageProfile,
@@ -36,9 +50,20 @@ import {
   type AgentAvatarGroomGeometryReceipt,
   type AgentAvatarGroomProfile,
   type AgentAvatarHairStyle,
+  type AgentAvatarOcularGeometryReceipt,
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
-import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
+import type {
+  NativeMorphNormalPolicy,
+  NativeMorphReceipt,
+  NativeMorphWeights,
+} from './AgentAvatarMorph';
+import {
+  deriveCharacterEnvironmentLightReceipt,
+  type CharacterEnvironmentLightOptions,
+  type CharacterEnvironmentLightReceipt,
+} from './character-render';
+import type { Quat } from './skin-math';
 import {
   type AgentAvatarGarmentGeometryReceipt,
   type SovereignGarmentStyle,
@@ -92,6 +117,16 @@ export interface CharacterLODTransitionReceipt {
   hysteresisBand: number;
 }
 
+export interface CharacterPoseReceipt {
+  schemaVersion: 'holoscript.character-source-pose.v1';
+  name: string;
+  space: 'local-bone';
+  quaternionOrder: 'xyzw';
+  boneCount: number;
+  boneNames: readonly string[];
+  normalizedQuaternionCount: number;
+}
+
 export interface CharacterHostFromCompositionResult {
   ok: boolean;
   host?: CharacterHost;
@@ -107,11 +142,28 @@ export interface CharacterHostFromCompositionResult {
     hairGuides?: number;
     hairCardsPerGuide?: number;
     hairSegments?: number;
+    /** Portrait-cranial-v3 longitude budget selected by this authored tier. */
+    faceRadialSegments?: number;
+    /** Portrait-cranial-v3 latitude budget selected by this authored tier. */
+    faceVerticalSegments?: number;
     /** Source-authored switching semantics shared by every selected tier. */
     transition?: CharacterLODTransitionReceipt;
   };
   /** Operative deterministic cloth configuration, when @cloth_simulation is supported. */
   cloth?: ClothSimulationConfig;
+  /** Absolute-time presence channels and exact native blink/gaze/breath bindings. */
+  microMotion?: {
+    config: CharacterMicroMotionConfig;
+    sourceTimeSeconds: number;
+    sample: CharacterMicroMotionSample;
+    application: CharacterMicroMotionApplicationReceipt;
+    bindings: {
+      blink: 'native-procedural-head-morph';
+      gaze: 'native-ocular-globe-rotation';
+      breath: 'native-upper-chest-deformation';
+      cloth: 'sampled-channel-only';
+    };
+  };
   /** Source-authored native facial topology selection. */
   face?: {
     topology: AgentAvatarFaceTopology;
@@ -128,6 +180,10 @@ export interface CharacterHostFromCompositionResult {
     browThickness?: number;
     earScale?: number;
     mouthDepth?: number;
+    cheekboneScale?: number;
+    chinProjection?: number;
+    templeWidth?: number;
+    expressionNormalPolicy?: NativeMorphNormalPolicy;
     faceWidth?: number;
     faceLength?: number;
     jawTaper?: number;
@@ -146,10 +202,25 @@ export interface CharacterHostFromCompositionResult {
   facialLandmarks?: AgentAvatarFacialLandmarkReceipt;
   /** Exact native garment preset and topology when source-authored. */
   garment?: AgentAvatarGarmentGeometryReceipt;
+  /** Exact native ocular topology when a layered eye profile is source-authored. */
+  ocular?: AgentAvatarOcularGeometryReceipt;
   /** Derived native groom geometry evidence when hair is operative. */
   groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
   morph?: NativeMorphReceipt;
+  /** First-class source expression receipt; shares the native FACS substrate with @morph. */
+  expression?: NativeMorphReceipt;
+  /** Source-authored analytic environment and its exact renderer binding receipt. */
+  environmentLight?: {
+    options: CharacterEnvironmentLightOptions;
+    receipt: CharacterEnvironmentLightReceipt;
+  };
+  /** Source-authored local-bone pose that was applied to the operative native host. */
+  pose?: CharacterPoseReceipt;
+  /** Operative dual-influence deformation emitted by the selected native body profile. */
+  jointDeformation?: AgentAvatarJointDeformationReceipt;
+  /** Operative V5 anatomical hand-surface topology emitted by the selected native body profile. */
+  handSurface?: AgentAvatarHandSurfaceReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
   mantle?: {
     style: SovereignMantleStyle;
@@ -180,6 +251,91 @@ const asVec3 = (v: unknown): [number, number, number] | undefined =>
   Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((x) => typeof x === 'number')
     ? [v[0] as number, v[1] as number, v[2] as number]
     : undefined;
+const HUMANOID_BONE_NAME_SET = new Set<string>(HUMANOID_BONE_NAMES);
+
+function asNormalizedQuat(v: unknown): { value: Quat; normalized: boolean } | undefined {
+  const record = asRecord(v);
+  const components = Array.isArray(v)
+    ? v.slice(0, 4)
+    : record
+      ? [record.x, record.y, record.z, record.w]
+      : [];
+  if (
+    components.length !== 4 ||
+    !components.every((component) => typeof component === 'number' && Number.isFinite(component))
+  ) {
+    return undefined;
+  }
+  const [x, y, z, w] = components as [number, number, number, number];
+  const magnitude = Math.hypot(x, y, z, w);
+  if (magnitude < 1e-8) return undefined;
+  return {
+    value: {
+      x: x / magnitude,
+      y: y / magnitude,
+      z: z / magnitude,
+      w: w / magnitude,
+    },
+    normalized: Math.abs(magnitude - 1) > 1e-6,
+  };
+}
+
+function authoredSourcePose(
+  trait: TraitRec,
+  report: CharacterHostFromCompositionResult['report']
+): { pose: Map<string, Quat>; receipt: CharacterPoseReceipt } | undefined {
+  const authoredBones = asRecord(cfgVal(trait, 'bones', 'rotations', 'joints'));
+  if (!authoredBones) {
+    report.stubbed.push({
+      trait: '@pose',
+      reason: 'pose requires a bones record of HUMANOID_65 local xyzw quaternions',
+    });
+    return undefined;
+  }
+
+  const pose = new Map<string, Quat>();
+  let normalizedQuaternionCount = 0;
+  for (const [boneName, authoredQuaternion] of Object.entries(authoredBones)) {
+    if (!HUMANOID_BONE_NAME_SET.has(boneName)) {
+      report.stubbed.push({
+        trait: `@pose(bone=${boneName})`,
+        reason: `bone is not part of the operative ${SUPPORTED_RIG} palette`,
+      });
+      continue;
+    }
+    const quaternion = asNormalizedQuat(authoredQuaternion);
+    if (!quaternion) {
+      report.stubbed.push({
+        trait: `@pose(bone=${boneName})`,
+        reason: 'rotation must be a finite non-zero local quaternion in xyzw order',
+      });
+      continue;
+    }
+    pose.set(boneName, quaternion.value);
+    if (quaternion.normalized) normalizedQuaternionCount++;
+  }
+  if (pose.size === 0) {
+    report.stubbed.push({
+      trait: '@pose',
+      reason: 'no supported, valid local-bone rotations were authored',
+    });
+    return undefined;
+  }
+
+  const name = asStr(cfgVal(trait, 'name', 'pose_name', 'poseName'))?.trim() || 'source-operative';
+  const boneNames = [...pose.keys()].sort();
+  const receipt: CharacterPoseReceipt = {
+    schemaVersion: 'holoscript.character-source-pose.v1',
+    name,
+    space: 'local-bone',
+    quaternionOrder: 'xyzw',
+    boneCount: boneNames.length,
+    boneNames,
+    normalizedQuaternionCount,
+  };
+  report.mapped.push(`@pose(name=${name},bones=${boneNames.join(',')})`);
+  return { pose, receipt };
+}
 
 function authoredLODTransition(
   trait: TraitRec,
@@ -291,6 +447,25 @@ function authoredMorphWeights(trait: TraitRec): NativeMorphWeights {
   return weights;
 }
 
+/** @expression accepts both a targets record and direct first-class FACS controls. */
+function authoredExpressionWeights(trait: TraitRec): NativeMorphWeights {
+  const weights = { ...authoredMorphWeights(trait) } as Record<string, number>;
+  for (const key of [
+    'blink',
+    'blink_left',
+    'blink_right',
+    'brow_raise',
+    'brow_raise_left',
+    'brow_raise_right',
+    'smile',
+    'jaw_open',
+  ]) {
+    const value = asNum(trait.config[key]);
+    if (value !== undefined) weights[key] = value;
+  }
+  return weights;
+}
+
 /** Merge an object's own traits over its `using` template's traits (template carries the set). */
 function mergeTraits(obj: CompObject, templates: CompTemplate[]): TraitMap {
   const m: TraitMap = new Map();
@@ -314,7 +489,7 @@ function allObjects(comp: ParsedComposition): CompObject[] {
   return out;
 }
 
-const BODY_TRAITS = ['body', 'skeleton', 'poseable'];
+const BODY_TRAITS = ['body', 'skeleton', 'poseable', 'pose'];
 
 /**
  * Project a LocomotionConfig / VR-locomotion mode onto a skeletal gait. Movement modes →
@@ -403,6 +578,8 @@ export function buildCharacterHostFromComposition(
       const authoredHairGuides = asNum(selected.hair_guides);
       const authoredHairCardsPerGuide = asNum(selected.hair_cards_per_guide);
       const authoredHairSegments = asNum(selected.hair_segments);
+      const authoredFaceRadialSegments = asNum(selected.face_radial_segments);
+      const authoredFaceVerticalSegments = asNum(selected.face_vertical_segments);
       const hairGuides =
         authoredHairGuides === undefined
           ? undefined
@@ -415,6 +592,14 @@ export function buildCharacterHostFromComposition(
         authoredHairSegments === undefined
           ? undefined
           : Math.max(2, Math.min(16, Math.round(authoredHairSegments)));
+      const faceRadialSegments =
+        authoredFaceRadialSegments === undefined
+          ? undefined
+          : Math.max(12, Math.min(48, Math.round(authoredFaceRadialSegments)));
+      const faceVerticalSegments =
+        authoredFaceVerticalSegments === undefined
+          ? undefined
+          : Math.max(8, Math.min(36, Math.round(authoredFaceVerticalSegments)));
       lod = {
         level: requestedLevel,
         distance: Math.max(0, asNum(selected.distance) ?? 0),
@@ -422,6 +607,8 @@ export function buildCharacterHostFromComposition(
         ...(hairGuides === undefined ? {} : { hairGuides }),
         ...(hairCardsPerGuide === undefined ? {} : { hairCardsPerGuide }),
         ...(hairSegments === undefined ? {} : { hairSegments }),
+        ...(faceRadialSegments === undefined ? {} : { faceRadialSegments }),
+        ...(faceVerticalSegments === undefined ? {} : { faceVerticalSegments }),
         ...(transition ? { transition } : {}),
       };
       report.mapped.push(`@lod(level=${requestedLevel})`);
@@ -449,6 +636,16 @@ export function buildCharacterHostFromComposition(
   let buildScale = 1;
   let shoulderScale = 1;
   let torsoScale = 1;
+  let upperBodyProfile: AgentAvatarUpperBodyProfile | undefined;
+  let upperBodyRadialSegments: number | undefined;
+  let leftScapularElevation: number | undefined;
+  let rightScapularElevation: number | undefined;
+  let leftScapularProtraction: number | undefined;
+  let rightScapularProtraction: number | undefined;
+  let nailTone: number | undefined;
+  let nailRoughness: number | undefined;
+  let nailBedTone: number | undefined;
+  let nailBedRoughness: number | undefined;
   let anatomyAuthored = false;
   const body = traits.get('body');
   if (body) {
@@ -468,6 +665,124 @@ export function buildCharacterHostFromComposition(
       anatomyAuthored = true;
       report.mapped.push(`@body(shoulder_scale=${shoulderScale},torso_scale=${torsoScale})`);
     }
+    const authoredUpperBodyProfile = asStr(
+      body.config.upper_body_profile ?? body.config.upperBodyProfile
+    )
+      ?.toLowerCase()
+      .replace(/_/g, '-');
+    const authoredUpperBodyRadialSegments = asNum(
+      body.config.upper_body_radial_segments ?? body.config.upperBodyRadialSegments
+    );
+    if (
+      authoredUpperBodyProfile === 'coherent-shoulder-neck-torso-v1' ||
+      authoredUpperBodyProfile === 'coherent-anatomical-limbs-v2' ||
+      authoredUpperBodyProfile === 'coherent-hand-landmarks-v3' ||
+      authoredUpperBodyProfile === 'coherent-deforming-hands-v4' ||
+      authoredUpperBodyProfile === 'coherent-hand-surface-v5' ||
+      authoredUpperBodyProfile === 'coherent-portrait-anatomy-v6' ||
+      authoredUpperBodyProfile === 'coherent-expressive-anatomy-v7' ||
+      authoredUpperBodyProfile === 'legacy-segments-v1'
+    ) {
+      upperBodyProfile = authoredUpperBodyProfile;
+      anatomyAuthored = true;
+      if (upperBodyProfile !== 'legacy-segments-v1') {
+        upperBodyRadialSegments = Math.max(
+          12,
+          Math.min(32, Math.round(authoredUpperBodyRadialSegments ?? 24))
+        );
+        report.mapped.push(
+          `@body(upper_body_profile=${upperBodyProfile},` +
+            `upper_body_radial_segments=${upperBodyRadialSegments})`
+        );
+      } else {
+        report.mapped.push(`@body(upper_body_profile=${upperBodyProfile})`);
+        if (authoredUpperBodyRadialSegments !== undefined) {
+          report.stubbed.push({
+            trait: '@body(upper_body_topology_controls)',
+            reason: 'upper-body topology controls require the coherent upper_body_profile',
+          });
+        }
+      }
+      const authoredNailTone = packRgb(asRgb(body.config.nail_tone ?? body.config.nailTone));
+      const authoredNailRoughness = asNum(body.config.nail_roughness ?? body.config.nailRoughness);
+      const authoredNailBedTone = packRgb(
+        asRgb(body.config.nail_bed_tone ?? body.config.nailBedTone)
+      );
+      const authoredNailBedRoughness = asNum(
+        body.config.nail_bed_roughness ?? body.config.nailBedRoughness
+      );
+      if (
+        upperBodyProfile === 'coherent-hand-landmarks-v3' ||
+        upperBodyProfile === 'coherent-deforming-hands-v4' ||
+        upperBodyProfile === 'coherent-hand-surface-v5' ||
+        upperBodyProfile === 'coherent-portrait-anatomy-v6' ||
+        upperBodyProfile === 'coherent-expressive-anatomy-v7'
+      ) {
+        nailTone = authoredNailTone;
+        nailRoughness =
+          authoredNailRoughness === undefined
+            ? undefined
+            : clamp(authoredNailRoughness, 0.08, 0.65);
+        nailBedTone = authoredNailBedTone;
+        nailBedRoughness =
+          authoredNailBedRoughness === undefined
+            ? undefined
+            : clamp(authoredNailBedRoughness, 0.12, 0.72);
+        if (authoredNailTone !== undefined || authoredNailRoughness !== undefined) {
+          report.mapped.push(
+            `@body(nail_tone=${authoredNailTone ?? 'profile-default'},` +
+              `nail_roughness=${nailRoughness ?? 'profile-default'})`
+          );
+        }
+      } else if (
+        authoredNailTone !== undefined ||
+        authoredNailRoughness !== undefined ||
+        authoredNailBedTone !== undefined ||
+        authoredNailBedRoughness !== undefined
+      ) {
+        report.stubbed.push({
+          trait: '@body(nail_material_controls)',
+          reason:
+            'nail material controls require a native hand-landmark profile from V3 through V7',
+        });
+      }
+      const hasScapularControls =
+        body.config.left_scapular_elevation !== undefined ||
+        body.config.right_scapular_elevation !== undefined ||
+        body.config.left_scapular_protraction !== undefined ||
+        body.config.right_scapular_protraction !== undefined;
+      if (upperBodyProfile === 'coherent-expressive-anatomy-v7') {
+        leftScapularElevation = clamp(asNum(body.config.left_scapular_elevation) ?? 0, -1, 1);
+        rightScapularElevation = clamp(asNum(body.config.right_scapular_elevation) ?? 0, -1, 1);
+        leftScapularProtraction = clamp(asNum(body.config.left_scapular_protraction) ?? 0, -1, 1);
+        rightScapularProtraction = clamp(asNum(body.config.right_scapular_protraction) ?? 0, -1, 1);
+        report.mapped.push(
+          `@body(scapular_elevation=${leftScapularElevation}:${rightScapularElevation},` +
+            `scapular_protraction=${leftScapularProtraction}:${rightScapularProtraction})`
+        );
+      } else if (hasScapularControls) {
+        report.stubbed.push({
+          trait: '@body(scapular_controls)',
+          reason: 'independent scapular controls require coherent-expressive-anatomy-v7',
+        });
+      }
+    } else if (authoredUpperBodyProfile) {
+      report.stubbed.push({
+        trait: '@body(upper_body_profile)',
+        reason: `profile '${authoredUpperBodyProfile}' has no native upper-body geometry implementation`,
+      });
+      if (authoredUpperBodyRadialSegments !== undefined) {
+        report.stubbed.push({
+          trait: '@body(upper_body_topology_controls)',
+          reason: 'upper-body topology controls require a supported upper_body_profile',
+        });
+      }
+    } else if (authoredUpperBodyRadialSegments !== undefined) {
+      report.stubbed.push({
+        trait: '@body(upper_body_topology_controls)',
+        reason: 'upper-body topology controls require a supported upper_body_profile',
+      });
+    }
   }
 
   // 4. @face → a source-selectable native facial topology. The legacy cap remains the default;
@@ -486,6 +801,10 @@ export function buildCharacterHostFromComposition(
   let browThickness: number | undefined;
   let earScale: number | undefined;
   let mouthDepth: number | undefined;
+  let cheekboneScale: number | undefined;
+  let chinProjection: number | undefined;
+  let templeWidth: number | undefined;
+  let expressionNormalPolicy: NativeMorphNormalPolicy | undefined;
   let faceWidth = 1;
   let faceLength = 1;
   let jawTaper = 0.22;
@@ -509,13 +828,15 @@ export function buildCharacterHostFromComposition(
     if (authoredTopology === 'procedural-head-v1' || authoredTopology === 'neutral-anatomical-v2') {
       faceTopology = authoredTopology;
       if (faceTopology === 'neutral-anatomical-v2') {
+        const authoredFaceRadialSegments = asNum(cfgVal(faceTrait, 'radial_segments'));
+        const authoredFaceVerticalSegments = asNum(cfgVal(faceTrait, 'vertical_segments'));
         faceRadialSegments = Math.max(
           12,
-          Math.min(32, Math.round(asNum(cfgVal(faceTrait, 'radial_segments')) ?? 20))
+          Math.min(32, Math.round(authoredFaceRadialSegments ?? 20))
         );
         faceVerticalSegments = Math.max(
           8,
-          Math.min(24, Math.round(asNum(cfgVal(faceTrait, 'vertical_segments')) ?? 14))
+          Math.min(24, Math.round(authoredFaceVerticalSegments ?? 14))
         );
         faceTearline = cfgVal(faceTrait, 'tearline', 'include_tearline') !== false;
         authoredFaceWidth = asNum(faceTrait.config.face_width ?? faceTrait.config.faceWidth);
@@ -539,12 +860,18 @@ export function buildCharacterHostFromComposition(
           .replace(/_/g, '-');
         if (
           authoredOrbitalProfile === 'tearline-rim-v1' ||
-          authoredOrbitalProfile === 'recessed-lids-v1'
+          authoredOrbitalProfile === 'recessed-lids-v1' ||
+          authoredOrbitalProfile === 'anatomical-lid-fold-v2' ||
+          authoredOrbitalProfile === 'anatomical-lid-blend-v3'
         ) {
           orbitalProfile = authoredOrbitalProfile;
           eyeRecess = clamp(
             asNum(cfgVal(faceTrait, 'eye_recess', 'globe_recess')) ??
-              (orbitalProfile === 'recessed-lids-v1' ? 0.28 : 0),
+              (orbitalProfile === 'recessed-lids-v1' ||
+              orbitalProfile === 'anatomical-lid-fold-v2' ||
+              orbitalProfile === 'anatomical-lid-blend-v3'
+                ? 0.28
+                : 0),
             0,
             0.45
           );
@@ -562,21 +889,93 @@ export function buildCharacterHostFromComposition(
         )
           ?.toLowerCase()
           .replace(/_/g, '-');
+        const hasPortraitSilhouetteControls =
+          faceTrait.config.cheekbone_scale !== undefined ||
+          faceTrait.config.chin_projection !== undefined ||
+          faceTrait.config.temple_width !== undefined;
         if (
           authoredFacialDetailProfile === 'legacy-landmarks-v1' ||
-          authoredFacialDetailProfile === 'civic-landmarks-v1'
+          authoredFacialDetailProfile === 'civic-landmarks-v1' ||
+          authoredFacialDetailProfile === 'portrait-silhouette-v2' ||
+          authoredFacialDetailProfile === 'portrait-cranial-v3' ||
+          authoredFacialDetailProfile === 'portrait-soft-tissue-v4' ||
+          authoredFacialDetailProfile === 'portrait-facial-volume-v5'
         ) {
-          facialDetailProfile = authoredFacialDetailProfile;
-          eyeScale = clamp(asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1, 0.72, 1.08);
-          browHeight = clamp(asNum(cfgVal(faceTrait, 'brow_height')) ?? 1.05, 0.65, 1.65);
-          browThickness = clamp(asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16, 0.08, 0.32);
-          earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
-          mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
-          report.mapped.push(
-            `@face(facial_detail_profile=${facialDetailProfile},eye_scale=${eyeScale},` +
-              `brow_height=${browHeight},brow_thickness=${browThickness},` +
-              `ear_scale=${earScale},mouth_depth=${mouthDepth})`
-          );
+          if (
+            (authoredFacialDetailProfile === 'portrait-cranial-v3' ||
+              authoredFacialDetailProfile === 'portrait-soft-tissue-v4' ||
+              authoredFacialDetailProfile === 'portrait-facial-volume-v5') &&
+            upperBodyProfile !== 'coherent-expressive-anatomy-v7'
+          ) {
+            report.stubbed.push({
+              trait: '@face(facial_detail_profile)',
+              reason:
+                `${authoredFacialDetailProfile} requires coherent-expressive-anatomy-v7 ` +
+                'for indexed neck-cranium continuity',
+            });
+          } else {
+            facialDetailProfile = authoredFacialDetailProfile;
+            eyeScale = clamp(asNum(cfgVal(faceTrait, 'eye_scale', 'globe_scale')) ?? 1, 0.72, 1.08);
+            browHeight = clamp(asNum(cfgVal(faceTrait, 'brow_height')) ?? 1.05, 0.65, 1.65);
+            browThickness = clamp(asNum(cfgVal(faceTrait, 'brow_thickness')) ?? 0.16, 0.08, 0.32);
+            earScale = clamp(asNum(cfgVal(faceTrait, 'ear_scale')) ?? 1, 0.7, 1.3);
+            mouthDepth = clamp(asNum(cfgVal(faceTrait, 'mouth_depth')) ?? 0.72, 0.25, 1.4);
+          }
+          if (
+            facialDetailProfile === 'portrait-silhouette-v2' ||
+            facialDetailProfile === 'portrait-cranial-v3' ||
+            facialDetailProfile === 'portrait-soft-tissue-v4' ||
+            facialDetailProfile === 'portrait-facial-volume-v5'
+          ) {
+            cheekboneScale = clamp(asNum(cfgVal(faceTrait, 'cheekbone_scale')) ?? 1, 0.82, 1.22);
+            chinProjection = clamp(asNum(cfgVal(faceTrait, 'chin_projection')) ?? 1, 0.72, 1.28);
+            templeWidth = clamp(asNum(cfgVal(faceTrait, 'temple_width')) ?? 1, 0.88, 1.12);
+          } else if (hasPortraitSilhouetteControls) {
+            report.stubbed.push({
+              trait: '@face(portrait_silhouette_controls)',
+              reason:
+                'cheekbone_scale, chin_projection, and temple_width require portrait_silhouette_v2',
+            });
+          }
+          if (facialDetailProfile) {
+            if (
+              facialDetailProfile === 'portrait-cranial-v3' ||
+              facialDetailProfile === 'portrait-soft-tissue-v4' ||
+              facialDetailProfile === 'portrait-facial-volume-v5'
+            ) {
+              faceRadialSegments = Math.max(
+                12,
+                Math.min(
+                  48,
+                  Math.round(lod?.faceRadialSegments ?? authoredFaceRadialSegments ?? 40)
+                )
+              );
+              faceVerticalSegments = Math.max(
+                8,
+                Math.min(
+                  36,
+                  Math.round(lod?.faceVerticalSegments ?? authoredFaceVerticalSegments ?? 28)
+                )
+              );
+              anatomyAuthored = true;
+              report.mapped.push(
+                `@lod(face_segments=${faceRadialSegments}x${faceVerticalSegments})`
+              );
+            }
+            report.mapped.push(
+              `@face(facial_detail_profile=${facialDetailProfile},eye_scale=${eyeScale},` +
+                `brow_height=${browHeight},brow_thickness=${browThickness},` +
+                `ear_scale=${earScale},mouth_depth=${mouthDepth}` +
+                (facialDetailProfile === 'portrait-silhouette-v2' ||
+                facialDetailProfile === 'portrait-cranial-v3' ||
+                facialDetailProfile === 'portrait-soft-tissue-v4' ||
+                facialDetailProfile === 'portrait-facial-volume-v5'
+                  ? `,cheekbone_scale=${cheekboneScale},chin_projection=${chinProjection},` +
+                    `temple_width=${templeWidth}`
+                  : '') +
+                ')'
+            );
+          }
         } else if (authoredFacialDetailProfile) {
           report.stubbed.push({
             trait: '@face(facial_detail_profile)',
@@ -588,11 +987,37 @@ export function buildCharacterHostFromComposition(
           faceTrait.config.brow_height !== undefined ||
           faceTrait.config.brow_thickness !== undefined ||
           faceTrait.config.ear_scale !== undefined ||
-          faceTrait.config.mouth_depth !== undefined
+          faceTrait.config.mouth_depth !== undefined ||
+          hasPortraitSilhouetteControls
         ) {
           report.stubbed.push({
             trait: '@face(facial_landmark_controls)',
             reason: 'facial landmark controls require a supported facial_detail_profile',
+          });
+        }
+        const authoredExpressionNormalPolicy = asStr(
+          cfgVal(faceTrait, 'expression_normal_policy', 'expressionNormalPolicy')
+        )
+          ?.toLowerCase()
+          .replace(/_/g, '-');
+        if (
+          authoredExpressionNormalPolicy === 'recompute-affected-v1' &&
+          (facialDetailProfile === 'portrait-cranial-v3' ||
+            facialDetailProfile === 'portrait-soft-tissue-v4' ||
+            facialDetailProfile === 'portrait-facial-volume-v5')
+        ) {
+          expressionNormalPolicy = authoredExpressionNormalPolicy;
+          report.mapped.push(`@face(expression_normal_policy=${expressionNormalPolicy})`);
+        } else if (authoredExpressionNormalPolicy === 'legacy-static-v1') {
+          expressionNormalPolicy = authoredExpressionNormalPolicy;
+          report.mapped.push(`@face(expression_normal_policy=${expressionNormalPolicy})`);
+        } else if (authoredExpressionNormalPolicy) {
+          report.stubbed.push({
+            trait: '@face(expression_normal_policy)',
+            reason:
+              authoredExpressionNormalPolicy === 'recompute-affected-v1'
+                ? 'recompute-affected-v1 requires a portrait cranial profile'
+                : `policy '${authoredExpressionNormalPolicy}' has no native expression-normal channel`,
           });
         }
       } else if (
@@ -613,6 +1038,8 @@ export function buildCharacterHostFromComposition(
         .replace(/_/g, '-');
       if (
         authoredOcularProfile === 'layered-ocular-v1' ||
+        authoredOcularProfile === 'layered-ocular-tearfilm-v2' ||
+        authoredOcularProfile === 'layered-ocular-calibrated-v3' ||
         authoredOcularProfile === 'legacy-composite-v1'
       ) {
         ocularProfile = authoredOcularProfile;
@@ -643,6 +1070,10 @@ export function buildCharacterHostFromComposition(
         ...(browThickness === undefined ? {} : { browThickness }),
         ...(earScale === undefined ? {} : { earScale }),
         ...(mouthDepth === undefined ? {} : { mouthDepth }),
+        ...(cheekboneScale === undefined ? {} : { cheekboneScale }),
+        ...(chinProjection === undefined ? {} : { chinProjection }),
+        ...(templeWidth === undefined ? {} : { templeWidth }),
+        ...(expressionNormalPolicy === undefined ? {} : { expressionNormalPolicy }),
         ...(authoredFaceWidth === undefined ? {} : { faceWidth }),
         ...(authoredFaceLength === undefined ? {} : { faceLength }),
         ...(authoredJawTaper === undefined ? {} : { jawTaper }),
@@ -686,6 +1117,36 @@ export function buildCharacterHostFromComposition(
   let skinMicrodetailProfile: AgentAvatarSkinMicrodetailProfile | undefined;
   let skinMicrodetailScale: number | undefined;
   let skinMicrodetailStrength: number | undefined;
+  let skinSurfaceResponseProfile: AgentAvatarSkinSurfaceResponseProfile | undefined;
+  let skinAlbedoVariationStrength: number | undefined;
+  let skinRoughnessVariationStrength: number | undefined;
+  let skinNormalMicrodetailStrength: number | undefined;
+  let skinComplexionProfile: AgentAvatarSkinComplexionProfile | undefined;
+  let skinComplexionStrength: number | undefined;
+  let materialCalibrationProfile: AgentAvatarMaterialCalibrationProfile | undefined;
+  const authoredMaterialCalibrationProfile = asStr(
+    sss?.config.material_calibration_profile ??
+      sss?.config.materialCalibrationProfile ??
+      sss?.config.calibration_profile ??
+      sss?.config.calibrationProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  if (
+    authoredMaterialCalibrationProfile === 'fixed-light-human-v1' ||
+    authoredMaterialCalibrationProfile === 'legacy-v1'
+  ) {
+    materialCalibrationProfile = authoredMaterialCalibrationProfile;
+    report.mapped.push(
+      `@subsurface_scattering(material_calibration_profile=${materialCalibrationProfile})`
+    );
+  } else if (authoredMaterialCalibrationProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(material_calibration_profile)',
+      reason: `profile '${authoredMaterialCalibrationProfile}' has no native material calibration`,
+    });
+  }
   const authoredSkinMicrodetailProfile = asStr(
     sss?.config.microdetail_profile ?? sss?.config.microdetailProfile
   )
@@ -722,6 +1183,21 @@ export function buildCharacterHostFromComposition(
       reason: `profile '${authoredSkinMicrodetailProfile}' has no native skin material channel`,
     });
   }
+  if (nailBedTone !== undefined || nailBedRoughness !== undefined) {
+    if (materialCalibrationProfile === 'fixed-light-human-v1') {
+      report.mapped.push(
+        `@body(nail_bed_tone=${nailBedTone ?? 'profile-default'},` +
+          `nail_bed_roughness=${nailBedRoughness ?? 'profile-default'})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@body(nail_bed_material_controls)',
+        reason: 'nail-bed controls require fixed-light-human-v1 material calibration',
+      });
+      nailBedTone = undefined;
+      nailBedRoughness = undefined;
+    }
+  }
   if (
     !skinMicrodetailProfile &&
     (authoredSkinMicrodetailScale !== undefined || authoredSkinMicrodetailStrength !== undefined)
@@ -731,11 +1207,109 @@ export function buildCharacterHostFromComposition(
       reason: 'microdetail controls require a supported microdetail_profile',
     });
   }
+  const authoredSkinSurfaceResponseProfile = asStr(
+    sss?.config.surface_response_profile ?? sss?.config.surfaceResponseProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const authoredSkinAlbedoVariationStrength = asNum(
+    sss?.config.albedo_variation_strength ?? sss?.config.albedoVariationStrength
+  );
+  const authoredSkinRoughnessVariationStrength = asNum(
+    sss?.config.roughness_variation_strength ?? sss?.config.roughnessVariationStrength
+  );
+  const authoredSkinNormalMicrodetailStrength = asNum(
+    sss?.config.normal_microdetail_strength ?? sss?.config.normalMicrodetailStrength
+  );
+  if (authoredSkinSurfaceResponseProfile === 'calibrated-skin-surface-v1') {
+    if (skinMicrodetailProfile === 'analytic-pore-v1') {
+      skinSurfaceResponseProfile = authoredSkinSurfaceResponseProfile;
+      skinAlbedoVariationStrength = clamp(
+        authoredSkinAlbedoVariationStrength ?? (skinMicrodetailStrength ?? 0.06) * 0.35,
+        0,
+        0.08
+      );
+      skinRoughnessVariationStrength = clamp(
+        authoredSkinRoughnessVariationStrength ?? skinMicrodetailStrength ?? 0.06,
+        0,
+        0.2
+      );
+      skinNormalMicrodetailStrength = clamp(authoredSkinNormalMicrodetailStrength ?? 0.08, 0, 0.35);
+      report.mapped.push(
+        `@subsurface_scattering(surface_response_profile=${skinSurfaceResponseProfile},` +
+          `albedo_variation_strength=${skinAlbedoVariationStrength},` +
+          `roughness_variation_strength=${skinRoughnessVariationStrength},` +
+          `normal_microdetail_strength=${skinNormalMicrodetailStrength})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@subsurface_scattering(surface_response_profile)',
+        reason: 'calibrated-skin-surface-v1 requires analytic-pore-v1 microdetail',
+      });
+    }
+  } else if (authoredSkinSurfaceResponseProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(surface_response_profile)',
+      reason: `profile '${authoredSkinSurfaceResponseProfile}' has no native skin-surface response`,
+    });
+  }
+  if (
+    !authoredSkinSurfaceResponseProfile &&
+    (authoredSkinAlbedoVariationStrength !== undefined ||
+      authoredSkinRoughnessVariationStrength !== undefined ||
+      authoredSkinNormalMicrodetailStrength !== undefined)
+  ) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(surface_response_controls)',
+      reason: 'decoupled surface controls require calibrated-skin-surface-v1',
+    });
+  }
+  const authoredSkinComplexionProfile = asStr(
+    sss?.config.complexion_profile ?? sss?.config.complexionProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  const authoredSkinComplexionStrength = asNum(
+    sss?.config.complexion_strength ?? sss?.config.complexionStrength
+  );
+  if (authoredSkinComplexionProfile === 'anatomical-complexion-v1') {
+    if (
+      faceTopology === 'neutral-anatomical-v2' &&
+      skinSurfaceResponseProfile === 'calibrated-skin-surface-v1'
+    ) {
+      skinComplexionProfile = authoredSkinComplexionProfile;
+      skinComplexionStrength = clamp(authoredSkinComplexionStrength ?? 0.55, 0, 1);
+      report.mapped.push(
+        `@subsurface_scattering(complexion_profile=${skinComplexionProfile},` +
+          `complexion_strength=${skinComplexionStrength})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@subsurface_scattering(complexion_profile)',
+        reason:
+          'anatomical-complexion-v1 requires neutral-anatomical-v2 and calibrated-skin-surface-v1',
+      });
+    }
+  } else if (authoredSkinComplexionProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(complexion_profile)',
+      reason: `profile '${authoredSkinComplexionProfile}' has no native anatomical complexion response`,
+    });
+  }
+  if (!authoredSkinComplexionProfile && authoredSkinComplexionStrength !== undefined) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(complexion_strength)',
+      reason: 'complexion_strength requires anatomical-complexion-v1',
+    });
+  }
 
   // 6. @hair(color/style) → authored Marschner response plus deterministic card geometry.
   //    Unknown style names are recorded as unsupported rather than borrowing the default.
   let melanin: number | undefined;
   let melaninRedness: number | undefined;
+  let hairTone: number | undefined;
   let hairStyle: AgentAvatarHairStyle | undefined;
   let hairGroomProfile: AgentAvatarGroomProfile | undefined;
   let hairCardWidth: number | undefined;
@@ -800,6 +1374,7 @@ export function buildCharacterHostFromComposition(
     hairLongitudinalShift = asNum(cfgVal(hair, 'longitudinal_shift', 'longitudinalShift'));
     if (hairColor && /^#?[0-9a-fA-F]{6}$/.test(hairColor)) {
       const rgb = parseInt(hairColor.replace('#', ''), 16);
+      hairTone = rgb;
       const r = ((rgb >> 16) & 0xff) / 255;
       const g = ((rgb >> 8) & 0xff) / 255;
       const b = (rgb & 0xff) / 255;
@@ -824,7 +1399,13 @@ export function buildCharacterHostFromComposition(
   const clothing = traits.get('clothing');
   if (clothing) {
     const style = asStr(cfgVal(clothing, 'style', 'type', 'preset'))?.toLowerCase();
-    if (style === 'stormglass_hooded_tunic' || style === 'stormglass_open_civic_tunic') {
+    if (
+      style === 'stormglass_hooded_tunic' ||
+      style === 'stormglass_open_civic_tunic' ||
+      style === 'stormglass_tailored_fieldcoat' ||
+      style === 'stormglass_structured_fieldcoat' ||
+      style === 'stormglass_portrait_fieldcoat'
+    ) {
       garmentStyle = style;
       const authoredColor = asRgb(cfgVal(clothing, 'color', 'base_color'));
       if (authoredColor) {
@@ -1003,11 +1584,26 @@ export function buildCharacterHostFromComposition(
     browThickness,
     earScale,
     mouthDepth,
+    cheekboneScale,
+    chinProjection,
+    templeWidth,
+    expressionNormalPolicy,
     faceWidth,
     faceLength,
     jawTaper,
     shoulderScale,
     torsoScale,
+    upperBodyProfile,
+    upperBodyRadialSegments,
+    leftScapularElevation,
+    rightScapularElevation,
+    leftScapularProtraction,
+    rightScapularProtraction,
+    nailTone,
+    nailRoughness,
+    nailBedTone,
+    nailBedRoughness,
+    materialCalibrationProfile,
     ocularProfile,
     irisScale,
     pupilScale,
@@ -1019,8 +1615,15 @@ export function buildCharacterHostFromComposition(
     skinMicrodetailProfile,
     skinMicrodetailScale,
     skinMicrodetailStrength,
+    skinSurfaceResponseProfile,
+    skinAlbedoVariationStrength,
+    skinRoughnessVariationStrength,
+    skinNormalMicrodetailStrength,
+    skinComplexionProfile,
+    skinComplexionStrength,
     melanin,
     melaninRedness,
+    hairTone,
     hairStyle,
     hairGuides: lod?.hairGuides,
     hairCardsPerGuide: lod?.hairCardsPerGuide,
@@ -1049,40 +1652,121 @@ export function buildCharacterHostFromComposition(
     includeEyes,
   });
 
-  // 11. @morph → bounded native procedural-head FACS/viseme vertex deformation.
+  // 11. @pose → validated source-authored local-bone quaternions on the operative host.
+  const poseTrait = traits.get('pose');
+  const poseMapping = poseTrait ? authoredSourcePose(poseTrait, report) : undefined;
+  if (poseMapping) host.setPose(poseMapping.pose);
+
+  // 12. @morph/@expression → one absolute native FACS/viseme deformation state.
   let morph: NativeMorphReceipt | undefined;
+  let expression: NativeMorphReceipt | undefined;
   const morphTrait = traits.get('morph');
-  if (morphTrait) {
-    const weights = authoredMorphWeights(morphTrait);
-    if (Object.keys(weights).length === 0) {
-      report.stubbed.push({
-        trait: '@morph',
-        reason: 'no initial targets authored; runtime channel is available via applyMorphWeights',
-      });
-    } else {
-      const receipt = host.applyMorphWeights(weights);
-      if (receipt.appliedTargets.length > 0) {
-        morph = receipt;
+  const expressionTrait = traits.get('expression');
+  const morphWeights = morphTrait ? authoredMorphWeights(morphTrait) : {};
+  const expressionWeights = expressionTrait ? authoredExpressionWeights(expressionTrait) : {};
+  const weights = { ...morphWeights, ...expressionWeights };
+  if (morphTrait && Object.keys(morphWeights).length === 0) {
+    report.stubbed.push({
+      trait: '@morph',
+      reason: 'no initial targets authored; runtime channel is available via applyMorphWeights',
+    });
+  }
+  if (expressionTrait && Object.keys(expressionWeights).length === 0) {
+    report.stubbed.push({
+      trait: '@expression',
+      reason: 'no supported first-class expression controls were authored',
+    });
+  }
+  if (Object.keys(weights).length > 0) {
+    const receipt = host.applyMorphWeights(weights);
+    if (receipt.appliedTargets.length > 0) {
+      morph = receipt;
+      if (morphTrait && Object.keys(morphWeights).length > 0) {
         report.mapped.push(
           `@morph(targets=${receipt.appliedTargets.map(({ target }) => target).join(',')})`
         );
       }
-      for (const target of receipt.ignoredTargets) {
-        report.stubbed.push({
-          trait: `@morph(target=${target})`,
-          reason: 'target has no native procedural-head deformation channel',
-        });
+      if (expressionTrait && Object.keys(expressionWeights).length > 0) {
+        expression = receipt;
+        report.mapped.push(
+          `@expression(targets=${receipt.appliedTargets.map(({ target }) => target).join(',')})`
+        );
       }
-      if (receipt.appliedTargets.length === 0) {
-        report.stubbed.push({
-          trait: '@morph',
-          reason: 'none of the authored targets have native procedural-head channels',
-        });
-      }
+    }
+    for (const target of receipt.ignoredTargets) {
+      const sourceTrait = expressionWeights[target] !== undefined ? '@expression' : '@morph';
+      report.stubbed.push({
+        trait: `${sourceTrait}(target=${target})`,
+        reason: 'target has no native procedural-head deformation channel',
+      });
+    }
+    if (receipt.appliedTargets.length === 0) {
+      report.stubbed.push({
+        trait: expressionTrait ? '@expression' : '@morph',
+        reason: 'none of the authored targets have native procedural-head channels',
+      });
     }
   }
 
-  // 12. @locomotion → gait descriptor (caller drives the per-frame clock).
+  // 13. @micro_motion → deterministic absolute-time presence channels. Blink is applied to real
+  //     native eyelid, ocular-globe, and upper-chest geometry; cloth remains sampled-only.
+  let microMotion: CharacterHostFromCompositionResult['microMotion'];
+  const microMotionTrait = traits.get('micro_motion');
+  if (microMotionTrait) {
+    const profile = (asStr(cfgVal(microMotionTrait, 'profile')) ?? 'human_presence_v1')
+      .toLowerCase()
+      .replace(/_/g, '-');
+    if (profile === 'human-presence-v1') {
+      const yawRadians =
+        asNum(cfgVal(microMotionTrait, 'saccade_yaw_radians')) ??
+        ((asNum(cfgVal(microMotionTrait, 'saccade_yaw_degrees')) ?? 2.6) * Math.PI) / 180;
+      const pitchRadians =
+        asNum(cfgVal(microMotionTrait, 'saccade_pitch_radians')) ??
+        ((asNum(cfgVal(microMotionTrait, 'saccade_pitch_degrees')) ?? 1.45) * Math.PI) / 180;
+      const config = deriveCharacterMicroMotionConfig({
+        profile: 'human-presence-v1',
+        seed: asStr(cfgVal(microMotionTrait, 'seed')) ?? entityId,
+        blinkIntervalSeconds: asNum(cfgVal(microMotionTrait, 'blink_interval_seconds')),
+        blinkDurationSeconds: asNum(cfgVal(microMotionTrait, 'blink_duration_seconds')),
+        saccadeIntervalSeconds: asNum(cfgVal(microMotionTrait, 'saccade_interval_seconds')),
+        saccadeSettleSeconds: asNum(cfgVal(microMotionTrait, 'saccade_settle_seconds')),
+        saccadeYawRadians: yawRadians,
+        saccadePitchRadians: pitchRadians,
+        breathRateHz: asNum(cfgVal(microMotionTrait, 'breath_rate_hz')),
+        breathAmplitude: asNum(cfgVal(microMotionTrait, 'breath_amplitude')),
+        clothRate: asNum(cfgVal(microMotionTrait, 'cloth_rate')),
+      });
+      const sourceTimeSeconds = clamp(
+        asNum(cfgVal(microMotionTrait, 'source_time_seconds')) ?? 0,
+        0,
+        86_400
+      );
+      const sample = sampleCharacterMicroMotion(config, sourceTimeSeconds);
+      const application = host.applyMicroMotionSample(sample);
+      microMotion = {
+        config,
+        sourceTimeSeconds,
+        sample,
+        application,
+        bindings: {
+          blink: 'native-procedural-head-morph',
+          gaze: 'native-ocular-globe-rotation',
+          breath: 'native-upper-chest-deformation',
+          cloth: 'sampled-channel-only',
+        },
+      };
+      report.mapped.push(
+        '@micro_motion(profile=human-presence-v1,blink=native,gaze=native-ocular,breath=native-chest,cloth=channel)'
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@micro_motion',
+        reason: `profile '${profile}' unsupported; no timing channels fabricated`,
+      });
+    }
+  }
+
+  // 14. @locomotion → gait descriptor (caller drives the per-frame clock).
   let gait: { mode: GaitMode; speed: number } | undefined;
   const loco = traits.get('locomotion');
   if (loco) {
@@ -1120,14 +1804,55 @@ export function buildCharacterHostFromComposition(
     }
   }
 
+  let environmentLight: CharacterHostFromCompositionResult['environmentLight'];
+  const environmentTrait = traits.get('environment_light');
+  if (environmentTrait) {
+    const profile = (asStr(cfgVal(environmentTrait, 'profile')) ?? 'analytic-three-point-v1')
+      .toLowerCase()
+      .replace(/_/g, '-') as CharacterEnvironmentLightOptions['profile'];
+    if (
+      profile === 'analytic-three-point-v1' ||
+      profile === 'legacy-key-v1' ||
+      profile === 'directional-reflection-probe-v1' ||
+      profile === 'stormglass-room-basis-v2'
+    ) {
+      const options: CharacterEnvironmentLightOptions = {
+        profile,
+        keyDirection: asVec3(cfgVal(environmentTrait, 'key_direction')),
+        keyColor: asRgb(cfgVal(environmentTrait, 'key_color')),
+        keyIntensity: asNum(cfgVal(environmentTrait, 'key_intensity')),
+        fillDirection: asVec3(cfgVal(environmentTrait, 'fill_direction')),
+        fillColor: asRgb(cfgVal(environmentTrait, 'fill_color')),
+        fillIntensity: asNum(cfgVal(environmentTrait, 'fill_intensity')),
+        rimDirection: asVec3(cfgVal(environmentTrait, 'rim_direction')),
+        rimColor: asRgb(cfgVal(environmentTrait, 'rim_color')),
+        rimIntensity: asNum(cfgVal(environmentTrait, 'rim_intensity')),
+        exposure: asNum(cfgVal(environmentTrait, 'exposure')),
+      };
+      environmentLight = {
+        options,
+        receipt: deriveCharacterEnvironmentLightReceipt(options),
+      };
+      report.mapped.push(`@environment_light(profile=${profile})`);
+    } else {
+      report.stubbed.push({
+        trait: '@environment_light',
+        reason: `profile '${profile}' has no native environment renderer binding`,
+      });
+    }
+  }
+
   const groom =
     hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
   const anatomy = anatomyAuthored ? host.getAnatomyReceipt() : undefined;
+  const jointDeformation = host.getJointDeformationReceipt() ?? undefined;
+  const handSurface = host.getHandSurfaceReceipt() ?? undefined;
   const skin = skinMicrodetailProfile ? host.getSkinMaterialReceipt() : undefined;
   const facialLandmarks = facialDetailProfile
     ? (host.getFacialLandmarkReceipt() ?? undefined)
     : undefined;
   const garment = garmentStyle ? (host.getGarmentGeometryReceipt() ?? undefined) : undefined;
+  const ocular = ocularProfile ? (host.getOcularGeometryReceipt() ?? undefined) : undefined;
   return {
     ok: true,
     host,
@@ -1135,13 +1860,20 @@ export function buildCharacterHostFromComposition(
     materialColor: color,
     lod,
     cloth,
+    microMotion,
     face,
     anatomy,
     skin,
     facialLandmarks,
     garment,
+    ocular,
     groom,
     morph,
+    expression,
+    environmentLight,
+    pose: poseMapping?.receipt,
+    jointDeformation,
+    handSurface,
     mantle,
     report,
   };

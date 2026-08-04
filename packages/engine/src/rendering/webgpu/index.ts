@@ -48,5 +48,61 @@ export {
 // Renderer
 export { WebGPURenderer } from './WebGPURenderer';
 
+// Deterministic temporal history policy and native WebGPU resolve
+export {
+  TEMPORAL_CONVERGENCE_PROFILES,
+  TemporalConvergenceController,
+  createTemporalTextureResolvePipelineGPU,
+  encodeTemporalTextureResolveGPU,
+  jitterProjectionMatrix,
+  resolveTemporalFrameGPU,
+  temporalHaltonJitter,
+  type TemporalConvergenceConfig,
+  type TemporalConvergenceProfile,
+  type TemporalConvergenceReceipt,
+  type TemporalFramePlan,
+  type TemporalFrameSignals,
+  type TemporalInvalidationReason,
+  type TemporalResolveOptions,
+  type TemporalResolveReceipt,
+  type TemporalResolveResult,
+  type EncodedTemporalTextureResolve,
+  type TemporalTextureResolveInputs,
+  type TemporalTextureResolveOptions,
+  type TemporalTextureResolveReceipt,
+} from './TemporalConvergence';
+export {
+  TemporalFrameGraph,
+  type TemporalFrameGraphInput,
+  type TemporalFrameGraphOptions,
+  type TemporalFrameGraphReceipt,
+  type TemporalFrameGraphResult,
+} from './TemporalFrameGraph';
+export {
+  CharacterTemporalFrameGraph,
+  type CharacterTemporalCompletionAccounting,
+  type CharacterTemporalFrameGraphInput,
+  type CharacterTemporalFrameGraphOptions,
+  type CharacterTemporalFrameGraphReceipt,
+  type CharacterTemporalFrameGraphResult,
+  type CharacterTemporalStageDurations,
+  type CharacterTemporalTimestampWrites,
+  type EncodedCharacterTemporalFrame,
+} from './CharacterTemporalFrameGraph';
+export {
+  CharacterWorldFrameGraph,
+  type CharacterWorldCompositeReceipt,
+  type CharacterWorldFrameDurations,
+  type CharacterWorldFrameGraphInput,
+  type CharacterWorldFrameGraphOptions,
+  type CharacterWorldFrameGraphReceipt,
+  type CharacterWorldFrameGraphResult,
+  type CharacterWorldResidentDefinition,
+  type CharacterWorldResidentDurations,
+  type CharacterWorldResidentFrameInput,
+  type CharacterWorldResidentReceipt,
+} from './CharacterWorldFrameGraph';
+export type { DepthGrid, MotionVectorGrid, ReactiveMaskGrid } from './TemporalInputs';
+
 // Debug tools
 export { PhysicsDebugDrawer } from './PhysicsDebugDrawer';

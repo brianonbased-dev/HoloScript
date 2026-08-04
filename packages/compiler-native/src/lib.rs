@@ -19222,18 +19222,37 @@ fn resolve_array_access<'a>(
                 root.name
             ))
         })?;
-        let StackSlotLayout::FixedArray(layout) = &stack_slot.layout else {
-            let message = if matches!(stack_slot.layout, StackSlotLayout::Aggregate(_)) {
-                format!(
-                    "{machine_contract} `{operation}` does not support computed aggregate field access"
-                )
-            } else {
-                format!(
-                    "{machine_contract} scalar stack slot `{}` does not support indexed access",
+        if let StackSlotLayout::Aggregate(layout) = &stack_slot.layout {
+            let element_type =
+                homogeneous_scalar_aggregate_element_type(layout).ok_or_else(|| {
+                    NativeCompileError::new(format!(
+                        "{machine_contract} `{operation}` runtime aggregate indexing requires a flat, contiguous, homogeneous scalar layout; `{}` is not eligible",
+                        layout.name
+                    ))
+                })?;
+            if parse_slice_range(&member.property, machine_contract)?.is_some() {
+                return Err(NativeCompileError::new(format!(
+                    "{machine_contract} aggregate slice projections are not enabled for `{}`",
                     root.name
-                )
-            };
-            return Err(NativeCompileError::new(message));
+                )));
+            }
+            return finish_array_access(
+                root.name.as_str(),
+                stack_slot,
+                element_type,
+                member.property.as_ref(),
+                0,
+                u32::try_from(layout.fields.len()).expect("aggregate field count is addressable"),
+                format!("{}[index]", root.name),
+                StackAccessProvenance::Owner,
+                machine_contract,
+            );
+        }
+        let StackSlotLayout::FixedArray(layout) = &stack_slot.layout else {
+            return Err(NativeCompileError::new(format!(
+                "{machine_contract} scalar stack slot `{}` does not support indexed access",
+                root.name
+            )));
         };
         if let Some((start, end)) = parse_slice_range(&member.property, machine_contract)? {
             validate_slice_range(start, end, layout.length, &root.name, machine_contract)?;
@@ -19302,6 +19321,34 @@ fn resolve_array_access<'a>(
         StackAccessProvenance::Owner,
         machine_contract,
     )
+}
+
+fn homogeneous_scalar_aggregate_element_type(layout: &AggregateLayout) -> Option<MachineType> {
+    let first = layout.fields.first()?;
+    let AggregateFieldType::Scalar(element_type) = &first.field_type else {
+        return None;
+    };
+    let element_type = *element_type;
+    let element_size = element_type.stack_size();
+    let contiguous = layout.fields.iter().enumerate().all(|(index, field)| {
+        let expected_offset = u32::try_from(index)
+            .ok()
+            .and_then(|index| index.checked_mul(element_size));
+        matches!(
+            &field.field_type,
+            AggregateFieldType::Scalar(candidate) if *candidate == element_type
+        ) && field.size == element_size
+            && Some(field.offset) == expected_offset
+    });
+    if !contiguous
+        || layout.size
+            != u32::try_from(layout.fields.len())
+                .ok()?
+                .checked_mul(element_size)?
+    {
+        return None;
+    }
+    Some(element_type)
 }
 
 fn parse_slice_range(

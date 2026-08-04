@@ -89,6 +89,7 @@
     "benchmark:holoabsorb-refresh": "node scripts/bench-holoabsorb-refresh.mjs",
     "benchmark:holoabsorb-transport": "node scripts/bench-holoabsorb-transport.mjs",
     "benchmark:paper5-visual-agent": "node scripts/bench-paper-5-visual-agent-study.mjs",
+    "execute:paper5-visual-v4": "node scripts/execute-paper-5-visual-v4.mjs",
     "prepare:paper5-visual-v4": "node scripts/prepare-paper-5-visual-v4.mjs",
     "generate:language-registry": "tsx scripts/check-language-registry.mjs --write",
     "check:language-registry": "tsx scripts/check-language-registry.mjs",

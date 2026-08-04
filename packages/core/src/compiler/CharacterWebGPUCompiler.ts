@@ -39,6 +39,8 @@ export interface CharacterDrawSpecBundle {
     indices: number[];
     jointIndices: number[];
     jointWeights: number[];
+    secondaryJointIndices?: number[];
+    secondaryJointWeights?: number[];
   };
   /** jointCount × 16 column-major floats (skin = worldPose · inverseBind). */
   jointMatrices: number[];
@@ -71,6 +73,8 @@ export interface CharacterDrawSpecBundle {
   };
   /** Present when source-authored deterministic cloth simulation is operative. */
   cloth?: unknown;
+  /** Present when source-authored absolute-time character micro-motion is operative. */
+  microMotion?: unknown;
   /** Present when source-authored native facial topology is operative. */
   face?: unknown;
   /** Present when source-authored native face/upper-body proportions are operative. */
@@ -83,8 +87,16 @@ export interface CharacterDrawSpecBundle {
   garment?: unknown;
   /** Present when source-authored native procedural groom geometry is operative. */
   groom?: unknown;
+  /** Present when source-authored layered ocular geometry is operative. */
+  ocular?: unknown;
   /** Present when source-authored native procedural-head morph targets are operative. */
   morph?: unknown;
+  /** Present when source-authored local-bone rotations are operative. */
+  pose?: unknown;
+  /** Present when the selected native profile emits dual-influence deformation zones. */
+  jointDeformation?: unknown;
+  /** Present when the selected native profile emits the V5 anatomical hand surface. */
+  handSurface?: unknown;
   /** Present when a detachable public/story mantle is authored. */
   mantle?: unknown;
   /** Honest mapped/stubbed report from the authoring bridge. */
@@ -162,12 +174,21 @@ export class CharacterWebGPUCompiler {
     // current engine source. Feature-detect the optional receipt so this sovereign compiler stays
     // compatible across that normal source/declaration skew.
     const morph = 'morph' in result ? result.morph : undefined;
+    const microMotion = 'microMotion' in result ? result.microMotion : undefined;
     const face = 'face' in result ? result.face : undefined;
     const anatomy = 'anatomy' in result ? result.anatomy : undefined;
     const skin = 'skin' in result ? result.skin : undefined;
     const facialLandmarks = 'facialLandmarks' in result ? result.facialLandmarks : undefined;
     const garment = 'garment' in result ? result.garment : undefined;
     const groom = 'groom' in result ? result.groom : undefined;
+    const ocular = 'ocular' in result ? result.ocular : undefined;
+    const pose = 'pose' in result ? result.pose : undefined;
+    const jointDeformation = 'jointDeformation' in result ? result.jointDeformation : undefined;
+    const handSurface = 'handSurface' in result ? result.handSurface : undefined;
+    const dualInfluenceMesh = spec.mesh as typeof spec.mesh & {
+      secondaryJointIndices?: ArrayLike<number>;
+      secondaryJointWeights?: ArrayLike<number>;
+    };
     const bundle: CharacterDrawSpecBundle = {
       format: 'character-webgpu/drawspec',
       version: 1,
@@ -182,6 +203,12 @@ export class CharacterWebGPUCompiler {
         indices: num(spec.mesh.indices),
         jointIndices: num(spec.mesh.jointIndices),
         jointWeights: num(spec.mesh.jointWeights),
+        ...(dualInfluenceMesh.secondaryJointIndices
+          ? { secondaryJointIndices: num(dualInfluenceMesh.secondaryJointIndices) }
+          : {}),
+        ...(dualInfluenceMesh.secondaryJointWeights
+          ? { secondaryJointWeights: num(dualInfluenceMesh.secondaryJointWeights) }
+          : {}),
       },
       jointMatrices: num(spec.jointMatrices),
       material: spec.material,
@@ -189,13 +216,18 @@ export class CharacterWebGPUCompiler {
       materialGroups: spec.materialGroups ?? null,
       ...(result.lod ? { lod: result.lod } : {}),
       ...(result.cloth ? { cloth: result.cloth } : {}),
+      ...(microMotion ? { microMotion } : {}),
       ...(face ? { face } : {}),
       ...(anatomy ? { anatomy } : {}),
       ...(skin ? { skin } : {}),
       ...(facialLandmarks ? { facialLandmarks } : {}),
       ...(garment ? { garment } : {}),
       ...(groom ? { groom } : {}),
+      ...(ocular ? { ocular } : {}),
       ...(morph ? { morph } : {}),
+      ...(pose ? { pose } : {}),
+      ...(jointDeformation ? { jointDeformation } : {}),
+      ...(handSurface ? { handSurface } : {}),
       ...(result.mantle ? { mantle: result.mantle } : {}),
       report: result.report,
     };

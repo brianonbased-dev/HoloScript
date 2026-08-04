@@ -10,15 +10,22 @@
 //   @group(0) = Frame{mvp,model,cameraPos,lightDir} + joints palette   (shared, set once)
 //   @group(1) = Material                                               (per group/draw)
 //
-// Vertex stage: single-bone linear-blend skinning (rigid procedural body); emits world
-// position + world normal so the fragment stages have view/light geometry. cullMode 'none'
-// downstream, so the lit terms are two-sided where appropriate.
+// Vertex stage: backward-compatible dual-influence linear-blend skinning. Legacy meshes bind
+// their secondary index to the primary with weight zero; V4 hands author normalized pairs.
+// Emits world position + world normal so the fragment stages have view/light geometry.
+// cullMode 'none' downstream, so the lit terms are two-sided where appropriate.
 
 struct Frame {
   mvp       : mat4x4<f32>,
   model     : mat4x4<f32>,   // root placement → world position for view dir
   cameraPos : vec4<f32>,     // xyz world camera; w unused
-  lightDir  : vec4<f32>,     // xyz world light direction; w unused
+  keyDirection  : vec4<f32>,
+  keyColor      : vec4<f32>,
+  fillDirection : vec4<f32>,
+  fillColor     : vec4<f32>,
+  rimDirection  : vec4<f32>,
+  rimColor      : vec4<f32>,
+  envParams     : vec4<f32>, // x exposure; y analytic-three-point enabled
 };
 @group(0) @binding(0) var<uniform> frame : Frame;
 @group(0) @binding(1) var<storage, read> joints : array<mat4x4<f32>>;
@@ -26,9 +33,9 @@ struct Frame {
 struct Material {
   color        : vec4<f32>,  // rgb baseColor (linear); a = opacity
   scatterColor : vec4<f32>,  // rgb subsurface tint (linear); w = roughness
-  scatterDist  : vec4<f32>,  // rgb scatter radius; w = analytic skin-microdetail strength
+  scatterDist  : vec4<f32>,  // rgb scatter radius; w > 1 encodes anatomical-complexion strength
   params       : vec4<f32>,  // x = specularF0, y = thickness, z = transmitStrength, w = ambient
-  texFlags     : vec4<f32>,  // xyz = texture flags; w = skin microdetail scale / cloth UV repeat
+  texFlags     : vec4<f32>,  // skin xyz = albedo/roughness/normal amplitudes; w = microdetail scale / cloth UV repeat
   albedoTile   : array<vec4<f32>, 4>,
   normalXTile  : array<vec4<f32>, 4>,
   normalYTile  : array<vec4<f32>, 4>,
@@ -43,6 +50,8 @@ struct VSIn {
   @location(3) jointWeight : f32,
   @location(4) tangent : vec4<f32>,   // xyz strand-flow tangent; w = strandT
   @location(5) uv : vec2<f32>,
+  @location(6) secondaryJointIndex : u32,
+  @location(7) secondaryJointWeight : f32,
 };
 struct VSOut {
   @builtin(position) clip : vec4<f32>,
@@ -56,13 +65,28 @@ struct VSOut {
 
 @vertex
 fn vs(in : VSIn) -> VSOut {
-  let skin = joints[in.jointIndex];
-  let sp = mix(vec4<f32>(in.pos, 1.0), skin * vec4<f32>(in.pos, 1.0), in.jointWeight);
+  let primarySkin = joints[in.jointIndex];
+  let secondarySkin = joints[in.secondaryJointIndex];
+  let primaryWeight = clamp(in.jointWeight, 0.0, 1.0);
+  let secondaryWeight = clamp(in.secondaryJointWeight, 0.0, 1.0 - primaryWeight);
+  let totalWeight = primaryWeight + secondaryWeight;
+  let bindP = vec4<f32>(in.pos, 1.0);
+  let sp =
+    bindP * (1.0 - totalWeight) +
+    primarySkin * bindP * primaryWeight +
+    secondarySkin * bindP * secondaryWeight;
+  let skinnedNormal =
+    (primarySkin * vec4<f32>(in.normal, 0.0)).xyz * primaryWeight +
+    (secondarySkin * vec4<f32>(in.normal, 0.0)).xyz * secondaryWeight;
+  let skinnedTangent =
+    (primarySkin * vec4<f32>(in.tangent.xyz, 0.0)).xyz * primaryWeight +
+    (secondarySkin * vec4<f32>(in.tangent.xyz, 0.0)).xyz * secondaryWeight;
+  let hasSkin = totalWeight > 0.000001;
   var o : VSOut;
   o.clip = frame.mvp * vec4<f32>(sp.xyz, 1.0);
   o.wP = (frame.model * vec4<f32>(sp.xyz, 1.0)).xyz;
-  o.wN = (skin * vec4<f32>(in.normal, 0.0)).xyz;
-  o.wT = (skin * vec4<f32>(in.tangent.xyz, 0.0)).xyz; // tangent rides the bone too
+  o.wN = select(in.normal, skinnedNormal / max(totalWeight, 0.000001), hasSkin);
+  o.wT = select(in.tangent.xyz, skinnedTangent / max(totalWeight, 0.000001), hasSkin);
   o.strandT = in.tangent.w;
   o.uv = in.uv;
   o.bodyP = sp.xyz;
@@ -70,13 +94,75 @@ fn vs(in : VSIn) -> VSOut {
 }
 
 // ── Fallback: flat two-sided half-Lambert (identical look to the Phase-0 shader). ──
+fn environmentDiffuse(n : vec3<f32>, twoSided : bool) -> vec3<f32> {
+  let keyN = select(
+    max(dot(n, normalize(frame.keyDirection.xyz)), 0.0),
+    abs(dot(n, normalize(frame.keyDirection.xyz))),
+    twoSided
+  );
+  let fillN = select(
+    max(dot(n, normalize(frame.fillDirection.xyz)), 0.0),
+    abs(dot(n, normalize(frame.fillDirection.xyz))),
+    twoSided
+  );
+  let rimN = select(
+    max(dot(n, normalize(frame.rimDirection.xyz)), 0.0),
+    abs(dot(n, normalize(frame.rimDirection.xyz))),
+    twoSided
+  );
+  return
+    frame.keyColor.rgb * frame.keyColor.w * keyN +
+    frame.fillColor.rgb * frame.fillColor.w * fillN +
+    frame.rimColor.rgb * frame.rimColor.w * rimN;
+}
+
+// H3Y bounded reflection probe: the existing three source-authored directional colour lobes
+// become a low-frequency radiance field when envParams.y == 2. This is intentionally not a
+// photographic HDRI sampler; it adds view-dependent probe reflections without growing the
+// shared Frame uniform or breaking the XR binding contract.
+fn directionalReflectionProbe(direction : vec3<f32>, roughness : f32) -> vec3<f32> {
+  if (frame.envParams.y < 1.5) {
+    return vec3<f32>(0.0);
+  }
+  let d = normalize(direction);
+  let exponent = mix(18.0, 2.2, clamp(roughness, 0.0, 1.0));
+  if (frame.envParams.y > 2.5) {
+    // H3Z source-authored Stormglass room basis. The existing light vectors become a broad
+    // window, ceiling, and floor response; no photographic HDRI or additional binding is used.
+    let window = pow(max(dot(d, normalize(frame.keyDirection.xyz)), 0.0), exponent * 0.72);
+    let wall = pow(max(dot(d, normalize(frame.fillDirection.xyz)), 0.0), exponent * 0.46);
+    let edge = pow(max(dot(d, normalize(frame.rimDirection.xyz)), 0.0), exponent * 0.58);
+    let ceiling = pow(max(d.y, 0.0), mix(5.0, 1.5, roughness));
+    let floor = pow(max(-d.y, 0.0), mix(7.0, 2.0, roughness));
+    let roomAmbient =
+      frame.keyColor.rgb * frame.keyColor.w * 0.045 +
+      frame.fillColor.rgb * frame.fillColor.w * 0.055 +
+      frame.rimColor.rgb * frame.rimColor.w * 0.025;
+    return roomAmbient +
+      frame.keyColor.rgb * frame.keyColor.w * (window + ceiling * 0.18) +
+      frame.fillColor.rgb * frame.fillColor.w * (wall * 0.78 + floor * 0.12) +
+      frame.rimColor.rgb * frame.rimColor.w * edge * 0.72;
+  }
+  let keyLobe = pow(max(dot(d, normalize(frame.keyDirection.xyz)), 0.0), exponent);
+  let fillLobe = pow(max(dot(d, normalize(frame.fillDirection.xyz)), 0.0), exponent);
+  let rimLobe = pow(max(dot(d, normalize(frame.rimDirection.xyz)), 0.0), exponent);
+  let broad =
+    frame.keyColor.rgb * frame.keyColor.w +
+    frame.fillColor.rgb * frame.fillColor.w +
+    frame.rimColor.rgb * frame.rimColor.w;
+  return broad * 0.035 +
+    frame.keyColor.rgb * frame.keyColor.w * keyLobe +
+    frame.fillColor.rgb * frame.fillColor.w * fillLobe +
+    frame.rimColor.rgb * frame.rimColor.w * rimLobe;
+}
+
 @fragment
 fn fs_lambert(in : VSOut) -> @location(0) vec4<f32> {
   let n = normalize(in.wN);
-  let l = normalize(frame.lightDir.xyz);
-  let ndl = abs(dot(n, l));
-  let lit = 0.35 + 0.65 * ndl;
-  return vec4<f32>(mat.color.rgb * lit, mat.color.a);
+  let v = normalize(frame.cameraPos.xyz - in.wP);
+  let lit = vec3<f32>(0.35) + environmentDiffuse(n, true) * 0.65;
+  let reflection = directionalReflectionProbe(reflect(-v, n), 0.78);
+  return vec4<f32>((mat.color.rgb * lit + reflection * 0.08) * frame.envParams.x, mat.color.a);
 }
 
 fn fresnel(cosT : f32, f0 : f32) -> f32 {
@@ -96,12 +182,97 @@ fn analyticPoreSignal(p : vec3<f32>) -> f32 {
   return 0.5 + 0.5 * (primary * 0.62 + secondary * 0.38);
 }
 
+fn analyticPoreNormal(
+  baseN : vec3<f32>,
+  authoredTangent : vec3<f32>,
+  p : vec3<f32>,
+  scale : f32,
+  strength : f32
+) -> vec3<f32> {
+  let projectedTangent = authoredTangent - baseN * dot(authoredTangent, baseN);
+  let fallbackAxis = select(
+    vec3<f32>(0.0, 1.0, 0.0),
+    vec3<f32>(1.0, 0.0, 0.0),
+    abs(baseN.y) > 0.92
+  );
+  let fallbackTangent = normalize(cross(fallbackAxis, baseN));
+  let T = normalize(select(fallbackTangent, projectedTangent, length(projectedTangent) > 0.0001));
+  let B = normalize(cross(baseN, T));
+  let q = p * scale;
+  let epsilon = 0.035;
+  let dx =
+    analyticPoreSignal(q + vec3<f32>(epsilon, 0.0, 0.0)) -
+    analyticPoreSignal(q - vec3<f32>(epsilon, 0.0, 0.0));
+  let dy =
+    analyticPoreSignal(q + vec3<f32>(0.0, epsilon, 0.0)) -
+    analyticPoreSignal(q - vec3<f32>(0.0, epsilon, 0.0));
+  let dz =
+    analyticPoreSignal(q + vec3<f32>(0.0, 0.0, epsilon)) -
+    analyticPoreSignal(q - vec3<f32>(0.0, 0.0, epsilon));
+  let gradient = vec3<f32>(dx, dy, dz) / (2.0 * epsilon);
+  let tangentSlope = dot(gradient, T);
+  let bitangentSlope = dot(gradient, B);
+  return normalize(
+    baseN - (T * tangentSlope + B * bitangentSlope) * clamp(strength, 0.0, 0.35)
+  );
+}
+
+// H4I bounded anatomical complexion field. It is evaluated in the same posed body-local
+// coordinate space as the analytic pores, so it moves with the head without textures or a
+// second draw. Broad masks tolerate the supported 0.8..1.2 authoring scale range while keeping
+// the effect confined to the face. A zero strength is byte-for-byte the legacy colour path.
+fn anatomicalComplexion(bodyP : vec3<f32>, strength : f32) -> vec3<f32> {
+  let front = smoothstep(0.025, 0.075, bodyP.z);
+  let headBand =
+    smoothstep(1.48, 1.56, bodyP.y) *
+    (1.0 - smoothstep(1.77, 1.86, bodyP.y));
+  let faceMask = front * headBand;
+  let absX = abs(bodyP.x);
+  let cheek = exp(
+    -pow((absX - 0.045) / 0.034, 2.0) -
+    pow((bodyP.y - 1.64) / 0.048, 2.0)
+  ) * faceMask;
+  let nose = exp(
+    -pow(bodyP.x / 0.024, 2.0) -
+    pow((bodyP.y - 1.64) / 0.075, 2.0)
+  ) * faceMask;
+  let underEye = exp(
+    -pow((absX - 0.038) / 0.028, 2.0) -
+    pow((bodyP.y - 1.69) / 0.021, 2.0)
+  ) * faceMask;
+  let lip = exp(
+    -pow(bodyP.x / 0.047, 2.0) -
+    pow((bodyP.y - 1.575) / 0.018, 2.0)
+  ) * faceMask;
+  let jaw = exp(
+    -pow(absX / 0.085, 4.0) -
+    pow((bodyP.y - 1.535) / 0.035, 2.0)
+  ) * faceMask;
+  let warmth = clamp(cheek * 0.68 + nose * 0.42 + lip * 0.48, 0.0, 1.0);
+  let coolDepth = clamp(underEye * 0.5 + jaw * 0.18, 0.0, 1.0);
+  let authored = vec3<f32>(
+    1.0 + warmth * 0.12 - coolDepth * 0.025,
+    1.0 - warmth * 0.055 - coolDepth * 0.055,
+    1.0 - warmth * 0.085 - coolDepth * 0.035
+  );
+  return mix(vec3<f32>(1.0), authored, clamp(strength, 0.0, 1.0));
+}
+
 // ── Skin: single-pass subsurface approximation of the CPU Burley model. ──
 @fragment
 fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
-  let N = normalize(in.wN);
-  let L = normalize(frame.lightDir.xyz);
+  let baseN = normalize(in.wN);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
+  let microScale = max(mat.texFlags.w, 0.0);
+  let pore = select(0.5, analyticPoreSignal(in.bodyP * microScale), microScale > 0.0);
+  let N = analyticPoreNormal(
+    baseN,
+    in.wT,
+    in.bodyP,
+    microScale,
+    select(0.0, mat.texFlags.z, microScale > 0.0)
+  );
   let ndl = dot(N, L);
 
   // Per-channel wrap widths from relative scatter radii — red widest, so light leaks
@@ -114,29 +285,37 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   // Redden the terminator: tint where light grazes toward the subsurface colour.
   let term = smoothstep(0.0, 0.5, 1.0 - max(ndl, 0.0));
   let tint = mix(vec3<f32>(1.0), mat.scatterColor.rgb, term);
-  let sss = diffuse * tint;
+  let fillDiffuse = max(dot(N, normalize(frame.fillDirection.xyz)), 0.0);
+  let rimDiffuse = max(dot(N, normalize(frame.rimDirection.xyz)), 0.0);
+  let sss =
+    diffuse * tint * frame.keyColor.rgb * frame.keyColor.w +
+    vec3<f32>(fillDiffuse) * frame.fillColor.rgb * frame.fillColor.w +
+    vec3<f32>(rimDiffuse) * frame.rimColor.rgb * frame.rimColor.w;
 
   // Thin-slab back transmission (relative radii, NO unit fold-in — stays visible).
   let backLobe = pow(saturate(dot(-V, L)), 3.0);
   let transmit = mat.scatterColor.rgb * backLobe * mat.params.z * (1.0 - mat.params.y);
 
   // Source-authored analytic pore response. A zero strength or scale is exactly the legacy path.
-  let microStrength = clamp(mat.scatterDist.w, 0.0, 0.2);
-  let microScale = max(mat.texFlags.w, 0.0);
-  let pore = select(0.5, analyticPoreSignal(in.bodyP * microScale), microScale > 0.0);
-
   // Specular: roughness→Beckmann-ish exponent (clamped so pow() never NaNs).
-  let rough = clamp(mat.scatterColor.w + (pore - 0.5) * microStrength, 0.05, 1.0);
+  let roughnessVariation = clamp(mat.texFlags.y, 0.0, 0.2);
+  let rough = clamp(mat.scatterColor.w + (pore - 0.5) * roughnessVariation, 0.05, 1.0);
   let H = normalize(L + V);
   let ndh = max(dot(N, H), 0.0);
   let expo = 2.0 / (rough * rough) - 2.0;
   let spec = pow(ndh, expo) * fresnel(max(dot(V, H), 0.0), mat.params.x);
 
-  let microAlbedo = 1.0 + (pore - 0.5) * microStrength * 0.35;
+  let albedoVariation = clamp(mat.texFlags.x, 0.0, 0.08);
+  let microAlbedo = 1.0 + (pore - 0.5) * albedoVariation;
+  let complexionStrength = max(mat.scatterDist.w - 1.0, 0.0);
+  let complexion = anatomicalComplexion(in.bodyP, complexionStrength);
+  let probeSpecular = directionalReflectionProbe(reflect(-V, N), rough);
   var color =
-    mat.color.rgb * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
+    mat.color.rgb * complexion * microAlbedo * (vec3<f32>(mat.params.w) + sss) +
     transmit +
-    vec3<f32>(spec);
+    frame.keyColor.rgb * vec3<f32>(spec) * frame.keyColor.w +
+    probeSpecular * fresnel(max(dot(N, V), 0.0), mat.params.x) * 0.45;
+  color *= frame.envParams.x;
   color = color / (color + vec3<f32>(1.0)); // Reinhard
   return vec4<f32>(color, mat.color.a);
 }
@@ -155,14 +334,15 @@ fn melaninColor(m : f32, red : f32) -> vec3<f32> {
 // ── Hair: tangent-aware dual-lobe response + analytic card-width coverage. ──
 // Material packing (from fillMaterial 'marschner-hair'): scatterColor = (melanin, redness,
 // primaryExp, secondaryExp); scatterDist = (coverage, edgeSoftness, anisotropyStrength,
-// coverageProfileCode); params.x = longitudinalShift; color.a = opacity.
+// coverageProfileCode); params.x = longitudinalShift; params.y = source RGB chroma weight;
+// color.rgb = source hair colour; color.a = opacity.
 @fragment
 fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   let N = normalize(in.wN);
   let shift = clamp(mat.params.x, -0.35, 0.35);
   let T = normalize(in.wT + N * shift);
   let TSecondary = normalize(in.wT - N * shift * 0.65);
-  let L = normalize(frame.lightDir.xyz);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
   let H = normalize(L + V);
 
@@ -192,6 +372,9 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
   var alpha = mat.color.a;
   let coverageMode = mat.scatterDist.w > 0.5;
   let isCard = in.uv.y >= 0.0;
+  // The scalp shell supplies coverage, not a lacquered highlight. Preserve full
+  // anisotropic response on cards/locks while letting their mass define the groom.
+  let geometrySpecularScale = select(0.3, 1.0, isCard);
   if (coverageMode && isCard) {
     let halfWidth = clamp(mat.scatterDist.x, 0.2, 1.0);
     let softness = clamp(mat.scatterDist.y, 0.01, 0.5);
@@ -202,12 +385,30 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
     }
   }
 
-  let base = melaninColor(mat.scatterColor.x, mat.scatterColor.y);
+  let melaninBase = melaninColor(mat.scatterColor.x, mat.scatterColor.y);
+  let sourceWeight = clamp(mat.params.y, 0.0, 1.0);
+  // Preserve the melanin model's energy while restoring the hue discarded by the old
+  // RGB-to-two-scalar bridge. The zero-weight path is exactly the legacy response.
+  let sourceLuminance = max(dot(mat.color.rgb, vec3<f32>(0.299, 0.587, 0.114)), 0.02);
+  let melaninLuminance = dot(melaninBase, vec3<f32>(0.299, 0.587, 0.114));
+  let sourceChroma = clamp(
+    mat.color.rgb * (melaninLuminance / sourceLuminance),
+    vec3<f32>(0.0),
+    vec3<f32>(1.0)
+  );
+  let base = mix(melaninBase, sourceChroma, sourceWeight);
   let rootDarken = mix(0.55, 1.0, in.strandT);
-  var col = base * rootDarken * (kkDiffuse * 0.6 + 0.25)
-          + vec3<f32>(specR * 0.35)
-          + base * specTRT * 0.3;
-  return vec4<f32>(col, alpha);
+  let environment = select(
+    vec3<f32>(kkDiffuse * 0.6 + 0.25),
+    vec3<f32>(0.25) + environmentDiffuse(N, false) * 0.6,
+    frame.envParams.y > 0.5
+  );
+  let probeSpecular = directionalReflectionProbe(reflect(-V, N), 0.32);
+  var col = base * rootDarken * environment
+          + frame.keyColor.rgb * vec3<f32>(specR * 0.35 * geometrySpecularScale) * frame.keyColor.w
+          + base * specTRT * 0.3
+          + probeSpecular * (specR * 0.18 + specTRT * 0.12) * geometrySpecularScale;
+  return vec4<f32>(col * frame.envParams.x, alpha);
 }
 
 // ── Eye: legacy composite or one native sclera/iris/pupil/cornea geometry region. ──
@@ -215,9 +416,8 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
 @fragment
 fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
   let N = normalize(in.wN);
-  let L = normalize(frame.lightDir.xyz);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
-  let ndl = max(dot(N, L), 0.0);
   let facing = max(dot(N, V), 0.0); // 1 at the front of the eyeball, 0 at the rim
   let H = normalize(L + V);
   let ndh = max(dot(N, H), 0.0);
@@ -227,8 +427,10 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
 
   if (region == 1) {
     let fres = pow(1.0 - facing, 4.0) * 0.06;
-    let col = mat.color.rgb * (0.38 + 0.62 * ndl) + vec3<f32>(catchlight * 0.18 + fres);
-    return vec4<f32>(col, mat.color.a);
+    let col =
+      mat.color.rgb * (vec3<f32>(0.38) + environmentDiffuse(N, false) * 0.62) +
+      frame.keyColor.rgb * (catchlight * 0.18 + fres) * frame.keyColor.w;
+    return vec4<f32>(col * frame.envParams.x, mat.color.a);
   }
 
   if (region == 2) {
@@ -236,19 +438,34 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
     let fibre = 0.84 + 0.16 * sin((in.uv.x * 1.7 + in.uv.y) * 76.0);
     let limbal = 1.0 - smoothstep(0.72, 1.0, radial) * 0.48;
     let inner = mix(0.72, 1.0, smoothstep(0.08, 0.62, radial));
-    let col = mat.color.rgb * fibre * limbal * inner * (0.34 + 0.66 * ndl);
-    return vec4<f32>(col, mat.color.a);
+    let col =
+      mat.color.rgb * fibre * limbal * inner *
+      (vec3<f32>(0.34) + environmentDiffuse(N, false) * 0.66);
+    return vec4<f32>(col * frame.envParams.x, mat.color.a);
   }
 
   if (region == 3) {
-    return vec4<f32>(mat.color.rgb * (0.18 + 0.22 * ndl), mat.color.a);
+    return vec4<f32>(
+      mat.color.rgb * (vec3<f32>(0.18) + environmentDiffuse(N, false) * 0.22) *
+        frame.envParams.x,
+      mat.color.a
+    );
   }
 
   if (region == 4) {
     let f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
     let fres = f0 + (1.0 - f0) * pow(1.0 - facing, 5.0);
-    let alpha = clamp(mat.color.a + fres * 0.55 + catchlight * 0.25, 0.0, 0.82);
-    let col = vec3<f32>(catchlight * 1.15 + fres * 0.28);
+    let tearMeniscus = select(0.0, 1.0, in.uv.y > 1.0);
+    let alpha = clamp(
+      mat.color.a + fres * 0.55 + catchlight * 0.25 + tearMeniscus * 0.24,
+      0.0,
+      0.9
+    );
+    let probe = directionalReflectionProbe(reflect(-V, N), 0.04);
+    let col =
+      frame.keyColor.rgb * (catchlight * 1.15 + fres * 0.28) * frame.keyColor.w +
+      probe * (0.22 + fres * 0.5 + tearMeniscus * 0.32) +
+      vec3<f32>(tearMeniscus * (0.12 + catchlight * 0.45));
     return vec4<f32>(col, alpha);
   }
 
@@ -260,8 +477,11 @@ fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
 
   let fres = pow(1.0 - facing, 4.0) * (ior - 1.0); // corneal rim
 
-  let col = base * (0.3 + 0.7 * ndl) + vec3<f32>(catchlight) + vec3<f32>(fres * 0.3);
-  return vec4<f32>(col, mat.color.a);
+  let col =
+    base * (vec3<f32>(0.3) + environmentDiffuse(N, false) * 0.7) +
+    frame.keyColor.rgb * vec3<f32>(catchlight + fres * 0.3) * frame.keyColor.w +
+    directionalReflectionProbe(reflect(-V, N), 0.12) * 0.12;
+  return vec4<f32>(col * frame.envParams.x, mat.color.a);
 }
 
 // ── Woven cloth: broad rough specular + grazing fibre sheen + micro-weave breakup. ──
@@ -284,10 +504,9 @@ fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
   let bitangent = normalize(cross(baseN, tangent));
   let mappedN = normalize(tangent * normalX + bitangent * normalY + baseN);
   let N = normalize(mix(baseN, mappedN, mat.texFlags.y));
-  let L = normalize(frame.lightDir.xyz);
+  let L = normalize(frame.keyDirection.xyz);
   let V = normalize(frame.cameraPos.xyz - in.wP);
   let H = normalize(L + V);
-  let ndl = max(dot(N, L), 0.0);
   let ndv = max(dot(N, V), 0.0);
   let ndh = max(dot(N, H), 0.0);
 
@@ -308,9 +527,12 @@ fn fs_woven_cloth(in : VSOut) -> @location(0) vec4<f32> {
   let rim = pow(1.0 - ndv, 4.0) * rimStrength;
 
   let albedo = mix(1.0, sampleTile(mat.albedoTile, tiledUv), mat.texFlags.x);
-  var col = mat.color.rgb * albedo * weave * (0.18 + 0.82 * ndl);
+  let probeReflection = directionalReflectionProbe(reflect(-V, N), rough);
+  var col =
+    mat.color.rgb * albedo * weave *
+    (vec3<f32>(0.18) + environmentDiffuse(N, false) * 0.82);
   col += mat.color.rgb * fibreSheen * 0.35;
-  col += vec3<f32>(roughSpec + rim * 0.12);
+  col += vec3<f32>(roughSpec + rim * 0.12) + probeReflection * (0.08 + fibreSheen * 0.16);
   col = col / (col + vec3<f32>(1.0));
-  return vec4<f32>(col, mat.color.a);
+  return vec4<f32>(col * frame.envParams.x, mat.color.a);
 }

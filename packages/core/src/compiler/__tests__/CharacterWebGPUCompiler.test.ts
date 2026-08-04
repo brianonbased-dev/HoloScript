@@ -288,8 +288,16 @@ describe('CharacterWebGPUCompiler', () => {
       torsoScale: 0.94,
     });
     expect(bundle.skin).toEqual({
-      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'legacy-v1',
       shadingModel: 'skin-sss',
+      color: 0xcc4d33,
+      scatterColor: [0.8, 0.25, 0.13],
+      scatterRadii: [3.67, 1.37, 0.68],
+      specularF0: 0.028,
+      thickness: 0.3,
+      transmitStrength: 0.4,
+      ambient: 0.12,
       microdetailProfile: 'analytic-pore-v1',
       microdetailScale: 96,
       microdetailStrength: 0.09,
@@ -299,6 +307,54 @@ describe('CharacterWebGPUCompiler', () => {
     expect(skinGroup?.material.microdetailProfile).toBe('analytic-pore-v1');
     expect(report.mapped).toContain('@hair(crown_whorl=0.42)');
     expect(report.stubbed).toEqual([]);
+  });
+
+  it('serializes the decoupled calibrated skin-surface response', async () => {
+    const composition = characterComp();
+    const skinTrait = composition.objects[0]!.traits!.find(
+      (trait) => trait.name === 'subsurface_scattering'
+    )!;
+    skinTrait.config = {
+      color: '#B9826F',
+      material_calibration_profile: 'fixed_light_human_v1',
+      microdetail_profile: 'analytic_pore_v1',
+      microdetail_scale: 104,
+      microdetail_strength: 0.09,
+      surface_response_profile: 'calibrated_skin_surface_v1',
+      albedo_variation_strength: 0.024,
+      roughness_variation_strength: 0.072,
+      normal_microdetail_strength: 0.14,
+    };
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const skinGroup = (
+      bundle.materialGroups as Array<{
+        material: {
+          shadingModel: string;
+          surfaceResponseProfile?: string;
+          albedoVariationStrength?: number;
+          roughnessVariationStrength?: number;
+          normalMicrodetailStrength?: number;
+        };
+      }>
+    ).find((group) => group.material.shadingModel === 'skin-sss');
+
+    expect(bundle.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v3',
+      calibrationProfile: 'fixed-light-human-v1',
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      albedoVariationStrength: 0.024,
+      roughnessVariationStrength: 0.072,
+      normalMicrodetailStrength: 0.14,
+    });
+    expect(skinGroup?.material).toMatchObject({
+      surfaceResponseProfile: 'calibrated-skin-surface-v1',
+      albedoVariationStrength: 0.024,
+      roughnessVariationStrength: 0.072,
+      normalMicrodetailStrength: 0.14,
+    });
   });
 
   it('serializes source-authored neutral anatomical facial topology', async () => {
@@ -669,9 +725,268 @@ describe('CharacterWebGPUCompiler', () => {
     ).toEqual(['skin-sss', 'woven-cloth', 'lambert', 'woven-cloth']);
   });
 
+  it('serializes V4 dual influences and the operative source pose receipt', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) =>
+      trait.name === 'body'
+        ? {
+            ...trait,
+            config: {
+              ...trait.config,
+              upper_body_profile: 'coherent_deforming_hands_v4',
+              upper_body_radial_segments: 24,
+            },
+          }
+        : trait
+    );
+    composition.objects[0]!.traits!.push({
+      type: 'ObjectTrait',
+      name: 'pose',
+      config: {
+        name: 'compiler-operative-open-palm',
+        bones: {
+          left_shoulder: [0, 0, 0.173648, 0.984808],
+          left_hand: [0, 0, -0.258819, 0.965926],
+          left_index_proximal: [0, 0, 0.130526, 0.991445],
+        },
+      },
+    });
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    const secondaryIndices = bundle.mesh.secondaryJointIndices!;
+    const secondaryWeights = bundle.mesh.secondaryJointWeights!;
+
+    expect(secondaryIndices).toHaveLength(bundle.vertexCount);
+    expect(secondaryWeights).toHaveLength(bundle.vertexCount);
+    expect(secondaryWeights.filter((weight) => weight > 0)).toHaveLength(1008);
+    for (let vertex = 0; vertex < bundle.vertexCount; vertex++) {
+      expect(bundle.mesh.jointWeights[vertex] + secondaryWeights[vertex]).toBeCloseTo(1, 6);
+    }
+    expect(bundle.pose).toEqual({
+      schemaVersion: 'holoscript.character-source-pose.v1',
+      name: 'compiler-operative-open-palm',
+      space: 'local-bone',
+      quaternionOrder: 'xyzw',
+      boneCount: 3,
+      boneNames: ['left_hand', 'left_index_proximal', 'left_shoulder'],
+      normalizedQuaternionCount: 0,
+    });
+    expect(bundle.jointDeformation).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+      maxSecondaryWeight: 0.55,
+      maxWeightSumError: 0,
+      regionVertexCounts: {
+        shoulder: 96,
+        elbow: 96,
+        wrist: 96,
+        digitRoot: 240,
+        fingerJoint: 480,
+      },
+    });
+    expect(
+      (bundle.report as { mapped: string[] }).mapped.some((entry) =>
+        entry.startsWith('@pose(name=compiler-operative-open-palm')
+      )
+    ).toBe(true);
+  });
+
+  it('serializes the H4A sovereign portrait receipts from authored source', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) => {
+      if (trait.name === 'body') {
+        return {
+          ...trait,
+          config: {
+            ...trait.config,
+            upper_body_profile: 'coherent_expressive_anatomy_v7',
+            upper_body_radial_segments: 24,
+          },
+        };
+      }
+      if (trait.name === 'hair') {
+        return {
+          ...trait,
+          config: {
+            ...trait.config,
+            style: 'medium_wavy',
+            groom_profile: 'scalp_flow_portrait_v4',
+          },
+        };
+      }
+      return trait;
+    });
+    composition.objects[0]!.traits!.push(
+      {
+        type: 'ObjectTrait',
+        name: 'face',
+        config: {
+          topology: 'neutral_anatomical_v2',
+          facial_detail_profile: 'portrait_facial_volume_v5',
+          orbital_profile: 'anatomical_lid_blend_v3',
+          ocular_profile: 'layered_ocular_calibrated_v3',
+          cheekbone_scale: 1.14,
+          jaw_taper: 0.2,
+          lid_opening: 0.52,
+          iris_scale: 0.46,
+          pupil_scale: 0.36,
+        },
+      },
+      {
+        type: 'ObjectTrait',
+        name: 'clothing',
+        config: { style: 'stormglass_portrait_fieldcoat' },
+      }
+    );
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    expect(bundle.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v5',
+      facialVolumeProfile: 'nasal-malar-mandibular-volume-v1',
+    });
+    expect(bundle.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v4',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+    });
+    expect(bundle.ocular).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v3',
+      calibrationProfile: 'portrait-ocular-balance-v1',
+    });
+    expect(bundle.garment).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-garment-geometry.v4',
+      constructionProfile: 'portrait-full-fieldcoat-v3',
+    });
+  });
+
   it('throws on a composition with no character object (no fabricated body — false case)', async () => {
     await expect(new CharacterWebGPUCompiler().compile(emptyComp())).rejects.toThrow(
       /no character object/
     );
+  });
+
+  it('serializes the sovereign V5 hand-surface receipt from the authored body profile', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits = composition.objects[0]!.traits!.map((trait) =>
+      trait.name === 'body'
+        ? {
+            ...trait,
+            config: {
+              ...trait.config,
+              upper_body_profile: 'coherent_hand_surface_v5',
+              upper_body_radial_segments: 24,
+            },
+          }
+        : trait
+    );
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    expect(bundle.anatomy).toMatchObject({
+      upperBody: {
+        profile: 'anatomical-hand-surface-v5',
+        upperLimbs: [
+          { profile: 'tapered-hand-surface-v5', ringCount: 13 },
+          { profile: 'tapered-hand-surface-v5', ringCount: 13 },
+        ],
+      },
+    });
+    expect(bundle.handSurface).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hand-surface.v1',
+      profile: 'tapered-digit-commissure-cuticle-wrist-v1',
+      upperBodyProfile: 'coherent-hand-surface-v5',
+      regionVertexCounts: {
+        wristTransition: 288,
+        digitSections: 1690,
+        metacarpalKnuckles: 260,
+        interdigitalCommissures: 560,
+        nailCuticles: 980,
+      },
+      regionIndexCounts: {
+        wristTransition: 1728,
+        digitSections: 9720,
+        metacarpalKnuckles: 1440,
+        interdigitalCommissures: 3264,
+        nailCuticles: 5760,
+      },
+    });
+    expect(bundle.mesh.secondaryJointWeights?.filter((weight) => weight > 0)).toHaveLength(1008);
+    expect(bundle.jointDeformation).toMatchObject({
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+    });
+    expect(
+      (bundle.report as { mapped: string[] }).mapped.some((entry) =>
+        entry.includes('upper_body_profile=coherent-hand-surface-v5')
+      )
+    ).toBe(true);
+  });
+
+  it('serializes source-authored absolute-time micro-motion with native gaze and breathing', async () => {
+    const composition = characterComp();
+    composition.objects[0]!.traits!.push({
+      type: 'ObjectTrait',
+      name: 'micro_motion',
+      config: {
+        profile: 'human_presence_v1',
+        seed: 'openai',
+        source_time_seconds: 11.5,
+        blink_interval_seconds: 4.1,
+        blink_duration_seconds: 0.17,
+        saccade_interval_seconds: 1.35,
+        breath_rate_hz: 0.23,
+        breath_amplitude: 0.014,
+        cloth_rate: 0.9,
+      },
+    });
+
+    const bundle = JSON.parse(
+      await new CharacterWebGPUCompiler().compile(composition)
+    ) as CharacterDrawSpecBundle;
+    expect(bundle.microMotion).toMatchObject({
+      sourceTimeSeconds: 11.5,
+      config: {
+        schemaVersion: 'holoscript.character-micro-motion-config.v1',
+        profile: 'human-presence-v1',
+        seed: 'openai',
+        blinkIntervalSeconds: 4.1,
+        blinkDurationSeconds: 0.17,
+        saccadeIntervalSeconds: 1.35,
+        breathRateHz: 0.23,
+        breathAmplitude: 0.014,
+        clothRate: 0.9,
+      },
+      sample: {
+        schemaVersion: 'holoscript.character-micro-motion-sample.v1',
+        absoluteTime: true,
+        gaze: { nativeTransformApplied: false },
+        breath: { nativeTransformApplied: false },
+        cloth: { nativeSimulationApplied: false },
+      },
+      application: {
+        schemaVersion: 'holoscript.character-micro-motion-application.v2',
+        nativeBlinkApplied: true,
+        nativeGazeApplied: true,
+        nativeBreathApplied: true,
+      },
+    });
+    expect(
+      (bundle.microMotion as { application: { gazeChangedVertexCount: number } }).application
+        .gazeChangedVertexCount
+    ).toBeGreaterThan(0);
+    expect(
+      (bundle.microMotion as { application: { breathChangedVertexCount: number } }).application
+        .breathChangedVertexCount
+    ).toBeGreaterThan(0);
+    expect(
+      (bundle.microMotion as { config: { configDigest: string } }).config.configDigest
+    ).toMatch(/^fnv1a32:[0-9a-f]{8}$/);
   });
 });

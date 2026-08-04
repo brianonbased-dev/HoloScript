@@ -21,9 +21,15 @@ export {
   JOINT_COUNT,
   AGENT_AVATAR_ORBITAL_PROFILES,
   AGENT_AVATAR_FACIAL_DETAIL_PROFILES,
+  AGENT_AVATAR_UPPER_BODY_PROFILES,
   type AgentAvatarMeshData,
   type AgentAvatarMeshOptions,
   type AgentAvatarAnatomyReceipt,
+  type AgentAvatarCranialNeckGeometryReceipt,
+  type AgentAvatarJointDeformationReceipt,
+  type AgentAvatarHandSurfaceReceipt,
+  type AgentAvatarUpperBodyGeometryReceipt,
+  type AgentAvatarUpperBodyProfile,
   type AgentAvatarFacialDetailProfile,
   type AgentAvatarFacialLandmarkReceipt,
   type AgentAvatarFaceTopology,
@@ -85,6 +91,7 @@ export {
   NATIVE_FACIAL_MORPH_TARGETS,
   type NativeFacialMorphGeometry,
   type NativeFacialMorphTarget,
+  type NativeMorphNormalPolicy,
   type NativeMorphReceipt,
   type NativeMorphResult,
   type NativeMorphWeights,
@@ -101,6 +108,7 @@ export {
 
 export {
   CharacterHost,
+  type AgentAvatarMaterialCalibrationProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
   type CharacterHostOptions,
@@ -117,8 +125,21 @@ export {
 export {
   renderCharacter,
   framingMatrix,
+  deriveCharacterDetailFrame,
+  deriveCharacterMaterialPlateReceipt,
+  deriveCharacterRenderPipelineReceipt,
+  deriveCharacterEnvironmentLightReceipt,
   packCharacterMaterial,
+  type CharacterDetailFrameOptions,
+  type CharacterDetailFrameReceipt,
+  type CharacterMaterialGroupReceipt,
+  type CharacterMaterialPlateReceipt,
   type CharacterRenderOptions,
+  type CharacterEnvironmentLightOptions,
+  type CharacterEnvironmentLightProfile,
+  type CharacterEnvironmentLightReceipt,
+  type CharacterRenderPipelineReceipt,
+  type CharacterVertexRange,
 } from './character-render';
 
 // Render "Part 2" — native WebGPU Gaussian-splat variant (photoreal mesh/skin upgrade route).
@@ -154,6 +175,39 @@ export {
 export { gaitPose, type GaitMode, type AvatarPoseMap } from './gait';
 
 export {
+  deriveCharacterMicroMotionConfig,
+  sampleCharacterMicroMotion,
+  type CharacterMicroMotionApplicationReceipt,
+  type CharacterMicroMotionConfig,
+  type CharacterMicroMotionConfigInput,
+  type CharacterMicroMotionProfile,
+  type CharacterMicroMotionSample,
+} from './AgentAvatarMicroMotion';
+
+export {
+  deriveCharacterMotionVectorFrame,
+  rasterizeCharacterMotionVectorsGPU,
+  type CharacterMotionRasterReceipt,
+  type CharacterMotionRasterResult,
+  type CharacterMotionVectorFrame,
+  type CharacterMotionVectorOptions,
+  type CharacterMotionVectorReceipt,
+} from './CharacterMotionVectors';
+
+export {
+  CharacterTextureRenderer,
+  type CharacterTextureRendererOptions,
+  type CharacterTextureRenderEncodeOptions,
+  type CharacterTextureRenderReceipt,
+} from './CharacterTextureRenderer';
+
+export {
+  CharacterMotionTextureRasterizer,
+  type CharacterMotionTextureRasterizerOptions,
+  type CharacterMotionTextureRasterReceipt,
+} from './CharacterMotionTextureRasterizer';
+
+export {
   buildCharacterHostFromComposition,
   type ParsedComposition,
   type CompObject,
@@ -161,6 +215,7 @@ export {
   type CompTemplate,
   type CharacterHostFromCompositionOptions,
   type CharacterHostFromCompositionResult,
+  type CharacterPoseReceipt,
 } from './CharacterHostFromComposition';
 
 export * as SkinMath from './skin-math';

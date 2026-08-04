@@ -1546,6 +1546,13 @@ function enforceAbsorbJobControl(jobId: string | undefined, phase: string): void
   const job = absorbJobs.get(jobId);
   if (!job) return;
   updateAbsorbMemoryBudget(job, phase);
+  // Cache publication is an atomic authority boundary. A resource guard may
+  // observe the temporary serialization/write peak immediately after the new
+  // generation manifest has already selected durable bytes. At that point the
+  // operation cannot truthfully become "cancelled with prior cache preserved":
+  // the new cache is committed. Retain the cancellation as a resource caveat
+  // and let the job settle complete with its durable writer receipt.
+  if (job.cacheCommitted) return;
   if (!job.abortController.signal.aborted) return;
   if (job.abortController.signal.reason instanceof Error) {
     throw job.abortController.signal.reason;
@@ -1568,10 +1575,119 @@ function isAbsorbCancellation(err: unknown, jobId?: string): boolean {
   return job?.abortController.signal.aborted === true;
 }
 
+function completeRefreshReceiptAfterCommit(
+  receipt: AbsorbRefreshProgressReceipt | undefined
+): AbsorbRefreshProgressReceipt | undefined {
+  if (!receipt) return undefined;
+  const completed = {
+    ...receipt,
+    status: 'complete' as const,
+    // Progress receipts remain observational by schema. Authority comes from
+    // the atomically selected generation manifest, represented by the two
+    // publication fields below.
+    authoritative: false as const,
+    cachePublished: true,
+    publishedGraphAuthoritative: true,
+    priorAuthoritativeCachePreserved: false,
+    completedBatchCount: receipt.totalBatches,
+    completedCandidateFiles: receipt.totalCandidateFiles,
+    remainingCandidateFiles: 0,
+    progressPercent: 100,
+    updatedAt: new Date().toISOString(),
+  };
+  delete (completed as Partial<AbsorbRefreshProgressReceipt>).error;
+  return completed;
+}
+
+function settleCommittedAbsorbJobAfterCancellation(
+  jobId: string,
+  err?: unknown,
+  sourceResult: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const job = absorbJobs.get(jobId);
+  if (!job) {
+    return {
+      schemaVersion: 'holoscript.absorb-post-commit-resource-caveat.v1',
+      kind: 'AbsorbPostCommitResourceCaveatReceipt',
+      status: 'complete',
+      completed: true,
+      jobId,
+      cacheCommitted: true,
+    };
+  }
+  const completedAt = Date.now();
+  const sourceRequestedAt =
+    typeof sourceResult.requestedAt === 'string'
+      ? Date.parse(sourceResult.requestedAt)
+      : Number.NaN;
+  const cancellation =
+    job.cancellation ??
+    ({
+      reason:
+        (sourceResult.reason as AbsorbCancellationReason | undefined) ?? 'cancel_requested',
+      message:
+        typeof sourceResult.message === 'string'
+          ? sourceResult.message
+          : err instanceof Error
+            ? err.message
+            : 'Cancellation arrived after cache commit',
+      requestedAt: Number.isFinite(sourceRequestedAt) ? sourceRequestedAt : completedAt,
+      phaseAtRequest:
+        typeof sourceResult.phaseAtRequest === 'string'
+          ? sourceResult.phaseAtRequest
+          : job.phase,
+    } satisfies AbsorbCancellationState);
+  cancellation.completedAt = completedAt;
+  job.cancellation = cancellation;
+  job.cacheCommitted = true;
+  job.status = 'complete';
+  job.progress = 100;
+  job.phase = 'Complete (cache committed; resource caveat recorded)';
+  job.completedAt = completedAt;
+  const sourceRefresh =
+    sourceResult.refreshProgressReceipt &&
+    typeof sourceResult.refreshProgressReceipt === 'object'
+      ? (sourceResult.refreshProgressReceipt as AbsorbRefreshProgressReceipt)
+      : job.refreshProgressReceipt;
+  const refreshProgressReceipt = completeRefreshReceiptAfterCommit(sourceRefresh);
+  if (refreshProgressReceipt) job.refreshProgressReceipt = refreshProgressReceipt;
+  const receipt = {
+    schemaVersion: 'holoscript.absorb-post-commit-resource-caveat.v1',
+    kind: 'AbsorbPostCommitResourceCaveatReceipt',
+    status: 'complete',
+    completed: true,
+    jobId,
+    rootDir: job.rootDir,
+    cacheCommitted: true,
+    cachePreserved: false,
+    filesProcessed: job.filesProcessed,
+    totalFiles: job.totalFiles,
+    resourceCaveat: {
+      reason: cancellation.reason,
+      message: cancellation.message,
+      phaseAtRequest: cancellation.phaseAtRequest,
+      requestedAt: new Date(cancellation.requestedAt).toISOString(),
+      completedAt: new Date(completedAt).toISOString(),
+    },
+    ...(refreshProgressReceipt && {
+      refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(refreshProgressReceipt),
+      resumeToken: refreshProgressReceipt.resumeToken,
+    }),
+    memoryBudget: { ...job.memoryBudget },
+    sourceDriftRetry: { ...job.sourceDriftRetry },
+  };
+  job.result = receipt;
+  releaseAbsorbWriterLease(job);
+  return receipt;
+}
+
 function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, unknown> {
   const job = absorbJobs.get(jobId);
   if (!job) {
     return { error: 'absorb_cancelled', cancelled: true, jobId };
+  }
+  if (job.cacheCommitted) {
+    return settleCommittedAbsorbJobAfterCancellation(jobId, err);
   }
   const completedAt = Date.now();
   const cancellation =
@@ -2162,6 +2278,11 @@ function startIsolatedBackgroundAbsorbJob(jobId: string, args: Record<string, un
     mergeWorkerStatus(activeJob, workerStatus);
     if (resultError === 'absorb_cancelled' || workerStatus?.status === 'cancelled') {
       const resultRecord = result as Record<string, unknown>;
+      if (resultRecord.cacheCommitted === true || workerStatus?.cacheCommitted === true) {
+        activeJob.cacheCommitted = true;
+        settleCommittedAbsorbJobAfterCancellation(jobId, undefined, resultRecord);
+        return;
+      }
       const completedAt = Date.now();
       activeJob.status = 'cancelled';
       activeJob.progress = 100;
@@ -2484,11 +2605,17 @@ interface GraphCacheEnvelope {
 }
 
 interface CodebaseCacheGenerationManifest {
-  schemaVersion: 'holoscript.absorb-cache-generation.v1';
+  schemaVersion:
+    | 'holoscript.absorb-cache-generation.v1'
+    | 'holoscript.absorb-cache-generation.v2';
   kind: 'AbsorbCacheGeneration';
   generationId: string;
   workspaceRoot: string;
   graphFile: string;
+  /** v2: SHA-256 of the exact selected graph envelope bytes. */
+  graphCacheSha256?: string;
+  /** v2: byte length of the exact selected graph envelope. */
+  graphCacheBytes?: number;
   embeddingsFile: string | null;
   embeddingCacheSha256: string | null;
   publishedAt: string;
@@ -2718,8 +2845,9 @@ function readCacheGenerationManifest(
     const manifest = JSON.parse(
       fs.readFileSync(paths.generationManifestFile, 'utf-8')
     ) as Partial<CodebaseCacheGenerationManifest>;
+    const isV2 = manifest.schemaVersion === 'holoscript.absorb-cache-generation.v2';
     if (
-      manifest.schemaVersion !== 'holoscript.absorb-cache-generation.v1' ||
+      (manifest.schemaVersion !== 'holoscript.absorb-cache-generation.v1' && !isV2) ||
       manifest.kind !== 'AbsorbCacheGeneration' ||
       typeof manifest.generationId !== 'string' ||
       !/^[a-f0-9]{32}$/.test(manifest.generationId) ||
@@ -2732,7 +2860,14 @@ function readCacheGenerationManifest(
         manifest.embeddingsFile.replace(/\\/g, '/') !==
           `${manifest.generationId}/embeddings-cache.bin`) ||
       (manifest.embeddingCacheSha256 !== null &&
-        typeof manifest.embeddingCacheSha256 !== 'string') ||
+        (typeof manifest.embeddingCacheSha256 !== 'string' ||
+          !/^[a-f0-9]{64}$/.test(manifest.embeddingCacheSha256))) ||
+      (isV2 &&
+        (typeof manifest.graphCacheSha256 !== 'string' ||
+          !/^[a-f0-9]{64}$/.test(manifest.graphCacheSha256) ||
+          typeof manifest.graphCacheBytes !== 'number' ||
+          !Number.isSafeInteger(manifest.graphCacheBytes) ||
+          manifest.graphCacheBytes <= 0)) ||
       typeof manifest.publishedAt !== 'string'
     ) {
       return null;
@@ -4179,10 +4314,21 @@ function atomicWriteFileSync(
   }
 }
 
-function writeUtf8ChunksSync(fileDescriptor: number, value: string): void {
+interface GraphCacheArtifactIdentity {
+  sha256: string;
+  bytes: number;
+}
+
+function writeUtf8ChunksSync(
+  fileDescriptor: number,
+  value: string,
+  identity?: { hash: ReturnType<typeof createHash>; bytes: number }
+): void {
   const chunkCharacters = 1024 * 1024;
   for (let offset = 0; offset < value.length; offset += chunkCharacters) {
     const buffer = Buffer.from(value.slice(offset, offset + chunkCharacters), 'utf-8');
+    identity?.hash.update(buffer);
+    if (identity) identity.bytes += buffer.length;
     let written = 0;
     while (written < buffer.length) {
       const bytesWritten = fs.writeSync(fileDescriptor, buffer, written, buffer.length - written);
@@ -4200,7 +4346,10 @@ function writeUtf8ChunksSync(fileDescriptor: number, value: string): void {
  * monorepo; JSON.stringify(envelope) used to duplicate and escape that entire
  * string on the V8 heap immediately before publication.
  */
-function atomicWriteGraphCacheEnvelopeSync(targetPath: string, envelope: GraphCacheEnvelope): void {
+function atomicWriteGraphCacheEnvelopeSync(
+  targetPath: string,
+  envelope: GraphCacheEnvelope
+): GraphCacheArtifactIdentity {
   const dir = path.dirname(targetPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -4210,27 +4359,32 @@ function atomicWriteGraphCacheEnvelopeSync(targetPath: string, envelope: GraphCa
     `${path.basename(targetPath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
   let fileDescriptor: number | undefined;
+  const identity = { hash: createHash('sha256'), bytes: 0 };
 
   try {
     const { graphJson, ...metadata } = envelope;
     const metadataJson = JSON.stringify(metadata);
     fileDescriptor = fs.openSync(tempPath, 'wx');
-    writeUtf8ChunksSync(fileDescriptor, metadataJson.slice(0, -1));
-    writeUtf8ChunksSync(fileDescriptor, ',"graphJson":"');
+    writeUtf8ChunksSync(fileDescriptor, metadataJson.slice(0, -1), identity);
+    writeUtf8ChunksSync(fileDescriptor, ',"graphJson":"', identity);
     const chunkCharacters = 1024 * 1024;
     for (let offset = 0; offset < graphJson.length; offset += chunkCharacters) {
       const escaped = JSON.stringify(graphJson.slice(offset, offset + chunkCharacters)).slice(
         1,
         -1
       );
-      writeUtf8ChunksSync(fileDescriptor, escaped);
+      writeUtf8ChunksSync(fileDescriptor, escaped, identity);
     }
-    writeUtf8ChunksSync(fileDescriptor, '"}');
+    writeUtf8ChunksSync(fileDescriptor, '"}', identity);
     fs.fsyncSync(fileDescriptor);
     fs.closeSync(fileDescriptor);
     fileDescriptor = undefined;
     fs.renameSync(tempPath, targetPath);
     fsyncDirectoryBestEffort(dir);
+    return {
+      sha256: identity.hash.digest('hex'),
+      bytes: identity.bytes,
+    };
   } catch (err) {
     try {
       if (fileDescriptor !== undefined) fs.closeSync(fileDescriptor);
@@ -4261,10 +4415,10 @@ function saveGraphCache(
   targetPath?: string,
   cacheGenerationId?: string,
   rootAuthorityPins?: GraphRootAuthorityPin[]
-): boolean {
+): GraphCacheArtifactIdentity | null {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
-    return false;
+    return null;
   }
   try {
     const normalizedScanPolicy = normalizeScanPolicy(scanPolicy);
@@ -4309,14 +4463,13 @@ function saveGraphCache(
       embeddingCacheMtimeMs: embeddingCacheIdentity?.mtimeMs ?? null,
     };
     const cacheFile = targetPath ?? getCacheFile(rootDir);
-    atomicWriteGraphCacheEnvelopeSync(cacheFile, envelope);
-    return true;
+    return atomicWriteGraphCacheEnvelopeSync(cacheFile, envelope);
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(
       `[CacheDebug][codebase] save miss path=${targetPath ?? getCacheFile(rootDir)} error=${(err as Error)?.message ?? String(err)}`
     );
-    return false;
+    return null;
   }
 }
 
@@ -4510,7 +4663,7 @@ function publishCacheGeneration(
       throw new Error('Injected cache publication failure after embeddings write');
     }
 
-    const graphSaved = saveGraphCache(
+    const graphIdentity = saveGraphCache(
       options.graph,
       options.rootDir,
       options.stats,
@@ -4526,16 +4679,18 @@ function publishCacheGeneration(
       generationId,
       options.rootAuthorityPins
     );
-    if (!graphSaved) {
+    if (!graphIdentity) {
       throw new Error('Unable to write graph artifact for cache generation');
     }
 
     const manifest: CodebaseCacheGenerationManifest = {
-      schemaVersion: 'holoscript.absorb-cache-generation.v1',
+      schemaVersion: 'holoscript.absorb-cache-generation.v2',
       kind: 'AbsorbCacheGeneration',
       generationId,
       workspaceRoot,
       graphFile: path.relative(paths.generationsDirectory, graphFile).replace(/\\/g, '/'),
+      graphCacheSha256: graphIdentity.sha256,
+      graphCacheBytes: graphIdentity.bytes,
       embeddingsFile: publishedEmbeddingsFile
         ? path.relative(paths.generationsDirectory, publishedEmbeddingsFile).replace(/\\/g, '/')
         : null,
@@ -4694,33 +4849,55 @@ function readGraphCache(
   const requestedRootDirs = explicitRootDirs ?? [resolveCacheWorkspaceRoot(rootDir)];
   const paths = resolveCachePathsForRoots(rootDir, requestedRootDirs);
   const selected = readCacheGenerationManifest(rootDir, requestedRootDirs);
-  const candidates = [
-    ...(selected
-      ? [
-          {
-            cacheFile: selected.graphFile,
-            generationId: selected.manifest.generationId,
-            embeddingSha256: selected.manifest.embeddingCacheSha256,
-          },
-        ]
-      : []),
-    { cacheFile: paths.graphFile, generationId: undefined, embeddingSha256: undefined },
-    ...(paths.layout === 'flat'
+  const generationManifestPresent = fs.existsSync(paths.generationManifestFile);
+  const candidates = selected
+    ? [
+        {
+          cacheFile: selected.graphFile,
+          generationId: selected.manifest.generationId,
+          graphSha256: selected.manifest.graphCacheSha256,
+          graphBytes: selected.manifest.graphCacheBytes,
+          embeddingSha256: selected.manifest.embeddingCacheSha256,
+        },
+      ]
+    : generationManifestPresent
       ? []
       : [
           {
-            cacheFile: paths.legacyGraphFile,
+            cacheFile: paths.graphFile,
             generationId: undefined,
+            graphSha256: undefined,
+            graphBytes: undefined,
             embeddingSha256: undefined,
           },
-        ]),
-  ];
+          ...(paths.layout === 'flat'
+            ? []
+            : [
+                {
+                  cacheFile: paths.legacyGraphFile,
+                  generationId: undefined,
+                  graphSha256: undefined,
+                  graphBytes: undefined,
+                  embeddingSha256: undefined,
+                },
+              ]),
+        ];
 
   for (const candidate of candidates) {
-    const { cacheFile, generationId, embeddingSha256 } = candidate;
+    const { cacheFile, generationId, graphSha256, graphBytes, embeddingSha256 } = candidate;
     if (!fs.existsSync(cacheFile)) continue;
     try {
       const raw = fs.readFileSync(cacheFile, 'utf-8');
+      if (
+        graphSha256 &&
+        (Buffer.byteLength(raw, 'utf-8') !== graphBytes ||
+          createHash('sha256').update(raw, 'utf-8').digest('hex') !== graphSha256)
+      ) {
+        console.warn(
+          `[CacheDebug][codebase] selected generation ${generationId} graph bytes do not match its manifest`
+        );
+        continue;
+      }
       const envelope: GraphCacheEnvelope = JSON.parse(raw);
       if (envelope.version !== 1 && envelope.version !== 2) continue;
       if (generationId && envelope.cacheGenerationId !== generationId) {
@@ -10926,6 +11103,9 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
     }
     return { error: 'Job not found', jobId };
   }
+  const recoveredTerminal = isTerminalAbsorbJob(job)
+    ? findAbsorbWriterReceipt(jobId, job.rootDir)
+    : null;
   if (job.status !== 'complete' && job.status !== 'error' && job.status !== 'cancelled') {
     refreshIsolatedAbsorbProgressFromDisk(job);
     updateAbsorbMemoryBudget(job, job.phase);
@@ -10989,6 +11169,16 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
 
   if (job.error) {
     response.error = job.error;
+  }
+
+  if (recoveredTerminal) {
+    Object.assign(
+      response,
+      buildRecoveredAbsorbStatus(
+        recoveredTerminal,
+        args.includeResult === true && job.result === undefined
+      )
+    );
   }
 
   if (

@@ -97,6 +97,30 @@ describe('hair — procedural geometry (pure data)', () => {
     }
   });
 
+  it('preserves V4 dual influences through the combined character mesh', () => {
+    const c = buildCharacterMesh({
+      upperBodyProfile: 'coherent-deforming-hands-v4',
+      upperBodyRadialSegments: 24,
+    });
+    expect(c.jointDeformation).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+    });
+    expect(c.mesh.secondaryJointIndices).toHaveLength(c.mesh.vertexCount);
+    expect(c.mesh.secondaryJointWeights).toHaveLength(c.mesh.vertexCount);
+    expect(Array.from(c.mesh.secondaryJointWeights!).filter((weight) => weight > 0)).toHaveLength(
+      1008
+    );
+
+    const bodyEnd = c.bodyVertexRange.vertexStart + c.bodyVertexRange.vertexCount;
+    for (let vertex = bodyEnd; vertex < c.mesh.vertexCount; vertex++) {
+      expect(c.mesh.secondaryJointIndices![vertex]).toBe(c.mesh.jointIndices[vertex]);
+      expect(c.mesh.secondaryJointWeights![vertex]).toBe(0);
+    }
+  });
+
   it('neutral anatomical faces use a smaller embedded ocular surface', () => {
     const legacy = buildCharacterMesh({ includeHair: false });
     const anatomical = buildCharacterMesh({
@@ -217,7 +241,80 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(Array.from(replay.positions)).toEqual(Array.from(scalpFlow.positions));
     expect(replay.groom).toEqual(scalpFlow.groom);
     expect(resolveAgentAvatarGroomProfile('Scalp Flow V1')).toBe('scalp-flow-v1');
+    expect(resolveAgentAvatarGroomProfile('Scalp Flow Containment V2')).toBe(
+      'scalp-flow-containment-v2'
+    );
     expect(resolveAgentAvatarGroomProfile('billboard_wig_v9')).toBeUndefined();
+  });
+
+  it('projects H3Y groom cards outside the authored ellipsoidal scalp', () => {
+    const common = {
+      style: 'medium_wavy' as const,
+      faceTopology: 'neutral-anatomical-v2' as const,
+      faceWidth: 0.94,
+      faceLength: 1.08,
+      guides: 72,
+      cardsPerGuide: 2,
+      segments: 6,
+      cardWidth: 0.014,
+      rootLift: 0.001,
+      tipTaper: 0.08,
+      hairlineBias: 0.18,
+    };
+    const baseline = buildAgentAvatarHair({
+      ...common,
+      groomProfile: 'scalp-flow-v1',
+    });
+    const contained = buildAgentAvatarHair({
+      ...common,
+      groomProfile: 'scalp-flow-containment-v2',
+    });
+    const replay = buildAgentAvatarHair({
+      ...common,
+      groomProfile: 'scalp-flow-containment-v2',
+    });
+
+    expect(contained.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v2',
+      profile: 'scalp-flow-containment-v2',
+      containmentProfile: 'ellipsoidal-scalp-exterior-v1',
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(contained.groom!.containmentAdjustedVertexCount).toBeGreaterThan(0);
+    expect(Array.from(contained.positions)).not.toEqual(Array.from(baseline.positions));
+    expect(Array.from(replay.positions)).toEqual(Array.from(contained.positions));
+    expect(replay.groom).toEqual(contained.groom);
+  });
+
+  it('emits deterministic H3Z scalp-contained flyaway breakup', () => {
+    const options = {
+      style: 'medium_wavy' as const,
+      faceTopology: 'neutral-anatomical-v2' as const,
+      guides: 72,
+      cardsPerGuide: 2,
+      segments: 6,
+      groomProfile: 'scalp-flow-breakup-v3' as const,
+      rootLift: 0.001,
+      cardWidth: 0.014,
+    };
+    const breakup = buildAgentAvatarHair(options);
+    const replay = buildAgentAvatarHair(options);
+
+    expect(breakup.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v3',
+      profile: 'scalp-flow-breakup-v3',
+      containmentProfile: 'ellipsoidal-scalp-exterior-v1',
+      breakupProfile: 'contained-flyaway-breakup-v1',
+      flyawayGuideCount: 12,
+      flyawayCardCount: 12,
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(breakup.groom?.cardCount).toBe(
+      breakup.groom!.emittedGuideCount * 2 + breakup.groom!.flyawayCardCount!
+    );
+    expect(Array.from(replay.positions)).toEqual(Array.from(breakup.positions));
+    expect(replay.groom).toEqual(breakup.groom);
+    expect(resolveAgentAvatarGroomProfile('Scalp Flow Breakup V3')).toBe('scalp-flow-breakup-v3');
   });
 
   it('turns source-authored crown whorl into deterministic de-clumped scalp-flow topology', () => {
@@ -368,6 +465,52 @@ describe('hair — procedural geometry (pure data)', () => {
       'alpha-to-coverage-v1'
     );
     expect(resolveAgentAvatarHairCoverageProfile('painted_fuzz_v9')).toBeUndefined();
+  });
+
+  it('emits H4A dense hair-material brow and lash framing with the portrait groom', () => {
+    const portrait = buildAgentAvatarHair({
+      faceTopology: 'neutral-anatomical-v2',
+      groomProfile: 'scalp-flow-portrait-v4',
+      guides: 96,
+      cardsPerGuide: 2,
+      segments: 6,
+    });
+
+    expect(portrait.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v4',
+      profile: 'scalp-flow-portrait-v4',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+      browCardCount: 2,
+      lashCardCount: 4,
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(portrait.groom!.facialFramingVertexCount).toBeGreaterThan(200);
+    expect(portrait.groom!.cardCount).toBeGreaterThan(100);
+  });
+
+  it('emits H4I massed cap relief and broad silhouette cards without scalp penetration', () => {
+    const volume = buildAgentAvatarHair({
+      faceTopology: 'neutral-anatomical-v2',
+      groomProfile: 'scalp-flow-volume-v5',
+      style: 'medium_wavy',
+      guides: 96,
+      cardsPerGuide: 2,
+      segments: 6,
+      clusterCount: 8,
+    });
+
+    expect(resolveAgentAvatarGroomProfile('scalp_flow_volume_v5')).toBe('scalp-flow-volume-v5');
+    expect(volume.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v5',
+      profile: 'scalp-flow-volume-v5',
+      silhouetteProfile: 'massed-silhouette-clumps-v1',
+      facialFramingProfile: 'portrait-brow-lash-ribbons-v1',
+      massGuideCount: 8,
+      massCardCount: 16,
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(volume.groom!.scalpCapMaxLift).toBeGreaterThan(0.008);
+    expect(volume.groom!.cardCount).toBeGreaterThan(120);
   });
 });
 

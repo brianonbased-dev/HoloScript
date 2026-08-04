@@ -3,8 +3,9 @@
 // Executable cross-target immutable collection projection for the HoloScript standard library.
 //
 // StdList3I32 is a fixed-size, affine POD value. Replacement and reversal construct fresh values;
-// they never mutate their input. This contract does not claim dynamic indexing, variable length,
-// iteration, allocation, or general List, Map, or Set parity.
+// they never mutate their input. Runtime indexing is bounds checked over the three homogeneous
+// scalar fields. This contract does not claim indexed mutation, variable length, iteration,
+// allocation, or general List, Map, or Set parity.
 
 struct StdList3I32 { first: i32, second: i32, third: i32 }
 
@@ -19,6 +20,10 @@ export function std_collections_list3_make_i32(
 
 export function std_collections_list3_sum_i32(value: StdList3I32): i32 {
   return load(value.first) + load(value.second) + load(value.third)
+}
+
+export function std_collections_list3_get_i32(value: StdList3I32, index: i32): i32 {
+  return load(value[index])
 }
 
 export function std_collections_list3_replace_second_i32(

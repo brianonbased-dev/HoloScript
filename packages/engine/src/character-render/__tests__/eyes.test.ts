@@ -116,6 +116,48 @@ describe('eyes — refractive eye geometry (pure data)', () => {
     ).toBe(combined.eyeRange.indexCount);
   });
 
+  it('adds H3Z lower-cornea tear menisci as operative layered geometry', () => {
+    const layered = buildAgentAvatarOcularRegions({
+      faceTopology: 'neutral-anatomical-v2',
+      ocularProfile: 'layered-ocular-v1',
+    });
+    const tearfilm = buildAgentAvatarOcularRegions({
+      faceTopology: 'neutral-anatomical-v2',
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      ocularProfile: 'layered-ocular-tearfilm-v2',
+    });
+
+    expect(tearfilm.receipt).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v2',
+      profile: 'layered-ocular-tearfilm-v2',
+      tearMeniscusProfile: 'lower-cornea-meniscus-v1',
+      tearMeniscusIndexCount: 192,
+    });
+    expect(tearfilm.vertexCount).toBeGreaterThan(layered.vertexCount);
+    expect(
+      Array.from(tearfilm.uvs).filter((_, index) => index % 2 === 1 && tearfilm.uvs[index] > 1)
+        .length
+    ).toBeGreaterThan(0);
+
+    const host = new CharacterHost({
+      entityId: 'tearfilm-eye',
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      ocularProfile: 'layered-ocular-tearfilm-v2',
+      garmentStyle: 'stormglass_structured_fieldcoat',
+    });
+    expect(host.getOcularGeometryReceipt()?.tearMeniscusIndexCount).toBe(192);
+    const garmentGroup = host
+      .getDrawSpec()
+      .materialGroups?.find((group) => group.materialRole === 'garment');
+    expect(
+      garmentGroup?.material.shadingModel === 'woven-cloth'
+        ? garmentGroup.material.textureTile?.normalScale
+        : undefined
+    ).toBe(0.82);
+  });
+
   it('recessed orbital fit moves the layered globes behind native eyelid shells', () => {
     const exposed = buildAgentAvatarOcularRegions({
       faceTopology: 'neutral-anatomical-v2',
@@ -201,6 +243,34 @@ describe('eyes — refractive eye geometry (pure data)', () => {
         })[5]
     );
     expect(packedCodes).toEqual([1, 2, 3, 4]);
+  });
+
+  it('emits H4A calibrated iris, pupil, cornea, lid, and wetline proportions', () => {
+    const host = new CharacterHost({
+      entityId: 'h4a-ocular',
+      faceTopology: 'neutral-anatomical-v2',
+      orbitalProfile: 'anatomical-lid-blend-v3',
+      lidOpening: 0.52,
+      ocularProfile: 'layered-ocular-calibrated-v3',
+      irisScale: 0.46,
+      pupilScale: 0.36,
+    });
+
+    expect(host.getOcularGeometryReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-ocular-geometry.v3',
+      profile: 'layered-ocular-calibrated-v3',
+      calibrationProfile: 'portrait-ocular-balance-v1',
+      tearMeniscusProfile: 'lower-cornea-meniscus-v1',
+      irisScale: 0.46,
+      pupilScale: 0.36,
+      lidOpening: 0.52,
+      corneaRadiusScale: 1.038,
+    });
+    expect(
+      host
+        .getDrawSpec()
+        .materialGroups?.filter((group) => group.material.shadingModel === 'refractive-eye')
+    ).toHaveLength(8);
   });
 });
 

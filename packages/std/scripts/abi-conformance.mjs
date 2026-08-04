@@ -36,7 +36,7 @@ const borrowedBufferReadExamplePath = join(
   'native',
   'owned-buffer-mutable-slice-exit-nine.hs'
 );
-const expectedDigest = 207;
+const expectedDigest = 235;
 
 const selfTest = `
 struct StdBorrowPacket { code: i32 }
@@ -95,6 +95,13 @@ function main(): i32 {
   slot collection_reversed: StdList3I32 = std_collections_list3_reverse_i32(move(collection_updated))
   let collection_weighted: i32 = std_collections_list3_weighted_digest_i32(move(collection_reversed))
   let collection_digest: i32 = collection_original_sum + collection_weighted
+  slot collection_index_zero_source: StdList3I32 = std_collections_list3_make_i32(2, 4, 6)
+  slot collection_index_one_source: StdList3I32 = std_collections_list3_make_i32(2, 4, 6)
+  slot collection_index_two_source: StdList3I32 = std_collections_list3_make_i32(2, 4, 6)
+  let collection_index_zero: i32 = std_collections_list3_get_i32(move(collection_index_zero_source), 0)
+  let collection_index_one: i32 = std_collections_list3_get_i32(move(collection_index_one_source), 1)
+  let collection_index_two: i32 = std_collections_list3_get_i32(move(collection_index_two_source), 2)
+  let collection_index_digest: i32 = collection_index_zero + collection_index_one * 2 + collection_index_two * 3
   let i32_digest: i32 = scalar_digest + dot + (cross_x + 4) * 2 + (cross_y + 1) * 3 + (cross_z + 5) * 4 + length_sq
   let f64_below: f64 = std_math_clamp_f64(0.0 - 1.5, 0.0, 2.0)
   let f64_inside: f64 = std_math_clamp_f64(1.25, 0.0, 2.0)
@@ -107,8 +114,8 @@ function main(): i32 {
   let f32_lerp: f32 = std_math_lerp_f32(16777216.0, 16777218.0, 0.5)
   let f32_inverse: f32 = std_math_inverse_lerp_f32(0.0, 10.0, 1.0)
   let f32_remap: f32 = std_math_remap_f32(0.1, 0.0, 1.0, 10.0, 18.0)
-  if (owned_transfer_result == 5 && borrow_write == 9 && borrow_read == 9 && bounds_volume == 60 && collection_digest == 42 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
-    return i32_digest + 46 + collection_digest
+  if (owned_transfer_result == 5 && borrow_write == 9 && borrow_read == 9 && bounds_volume == 60 && collection_digest == 42 && collection_index_digest == 28 && f64_below == 0.0 && f64_inside == 1.25 && f64_above == 2.0 && f64_lerp == 4.0 && f64_inverse == 0.25 && f64_remap == 12.0 && f32_below == 0.0 && f32_inside == 1.0000001192092896 && f32_lerp == 16777216.0 && f32_inverse == 0.10000000149011612 && f32_remap == 10.800000190734863) {
+    return i32_digest + 46 + collection_digest + collection_index_digest
   }
   return 1
 }
@@ -164,6 +171,22 @@ function main(): i32 {
   let value: f32 = finite_probe(3.4e38, 2.0)
   if (value == 0.0) { return 0 }
   return 0
+}
+`,
+  },
+];
+
+const collectionBoundsFailureProbes = [
+  {
+    id: 'list3-index-out-of-bounds',
+    source: `
+struct StdList3I32 { first: i32, second: i32, third: i32 }
+function get(value: StdList3I32, index: i32): i32 {
+  return load(value[index])
+}
+function main(): i32 {
+  slot value: StdList3I32 = StdList3I32(2, 4, 6)
+  return get(move(value), 3)
 }
 `,
   },
@@ -314,7 +337,12 @@ function runBrowser(command, url, profilePath) {
   });
 }
 
-function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
+function browserHtml(
+  source,
+  finiteFailureProbes,
+  collectionFailureProbes,
+  borrowedBufferReadSource
+) {
   return `<!doctype html>
 <html>
   <head>
@@ -326,6 +354,7 @@ function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
     <script type="module">
       const source = ${JSON.stringify(source)};
       const finiteFailureProbes = ${JSON.stringify(finiteFailureProbes)};
+      const collectionFailureProbes = ${JSON.stringify(collectionFailureProbes)};
       const borrowedBufferReadSource = ${JSON.stringify(borrowedBufferReadSource)};
       const output = document.querySelector('#result');
 
@@ -357,6 +386,12 @@ function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
         ).length;
         const aggregateInstructionCount =
           flatAggregateInstructionCount + nestedAggregateInstructionCount;
+        const indexedAggregateInstructionCount = compiled.instructions.filter(
+          (instruction) =>
+            instruction.opCode === UAALOpCode.EXEC &&
+            instruction.operands?.[0] === 'hs.aggregate.value.v1' &&
+            instruction.operands?.[1] === 'project_index'
+        ).length;
         const ownedBufferInstructionCounts = {
           allocate: compiled.instructions.filter(
             (instruction) => instruction.opCode === UAALOpCode.OP_HS_BUFFER_ALLOC
@@ -461,6 +496,22 @@ function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
             instructionCount: probeCompiled.instructions.length,
           });
         }
+        const collectionBoundsFailureProbes = [];
+        for (const probe of collectionFailureProbes) {
+          const probeCompiled = JSON.parse(compile_to_uaal(probe.source));
+          if (probeCompiled.error) throw new Error(probeCompiled.error);
+          const probeVm = new UAALVirtualMachine({ recordLog: true });
+          registerHoloScriptStdUaalExecHandler(probeVm, UAALOpCode.EXEC);
+          const probeResult = await probeVm.execute(probeCompiled);
+          const probeLog = probeVm.exportLog();
+          const probeReplay = await replayUAALLog(probeCompiled, probeLog);
+          collectionBoundsFailureProbes.push({
+            id: probe.id,
+            status: probeResult.taskStatus,
+            replayValid: probeReplay.valid,
+            instructionCount: probeCompiled.instructions.length,
+          });
+        }
         output.textContent = JSON.stringify({
           status: result.taskStatus,
           value: result.stackTop,
@@ -468,6 +519,7 @@ function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
           aggregateInstructionCount,
           flatAggregateInstructionCount,
           nestedAggregateInstructionCount,
+          indexedAggregateInstructionCount,
           ownedBufferInstructionCounts,
           aggregateReferenceInstructionCounts,
           bytecodeSha256,
@@ -475,6 +527,7 @@ function browserHtml(source, finiteFailureProbes, borrowedBufferReadSource) {
           replayValid: replay.valid,
           borrowedBufferReadProbe,
           nonFiniteFailureProbes,
+          collectionBoundsFailureProbes,
           lastSteps: result.taskStatus === 'ERROR' ? log.steps.slice(-8) : undefined,
           wasm: typeof WebAssembly === 'object',
           userAgent: navigator.userAgent,
@@ -498,6 +551,7 @@ async function executeBrowserWasm(source) {
   const html = browserHtml(
     source,
     nonFiniteFailureProbes,
+    collectionBoundsFailureProbes,
     readFileSync(borrowedBufferReadExamplePath, 'utf8')
   );
   const routeMap = new Map([
@@ -591,6 +645,7 @@ async function executeBrowserWasm(source) {
       result.replayValid !== true ||
       result.aggregateInstructionCount < 1 ||
       result.nestedAggregateInstructionCount < 1 ||
+      result.indexedAggregateInstructionCount !== 1 ||
       result.ownedBufferInstructionCounts?.allocate < 1 ||
       result.ownedBufferInstructionCounts?.move < 1 ||
       result.ownedBufferInstructionCounts?.drop < 1 ||
@@ -611,6 +666,10 @@ async function executeBrowserWasm(source) {
       result.nonFiniteFailureProbes.some(
         (probe) => probe.status !== 'ERROR' || probe.replayValid !== true
       ) ||
+      result.collectionBoundsFailureProbes?.length !== collectionBoundsFailureProbes.length ||
+      result.collectionBoundsFailureProbes.some(
+        (probe) => probe.status !== 'ERROR' || probe.replayValid !== true
+      ) ||
       !/^[0-9a-f]{64}$/.test(result.bytecodeSha256)
     ) {
       throw new Error(`browser-WASM result mismatch: ${JSON.stringify(result)}`);
@@ -624,6 +683,7 @@ async function executeBrowserWasm(source) {
       aggregateInstructionCount: result.aggregateInstructionCount,
       flatAggregateInstructionCount: result.flatAggregateInstructionCount,
       nestedAggregateInstructionCount: result.nestedAggregateInstructionCount,
+      indexedAggregateInstructionCount: result.indexedAggregateInstructionCount,
       ownedBufferInstructionCounts: result.ownedBufferInstructionCounts,
       aggregateReferenceInstructionCounts: result.aggregateReferenceInstructionCounts,
       bytecodeSha256: result.bytecodeSha256,
@@ -631,6 +691,7 @@ async function executeBrowserWasm(source) {
       replayValid: result.replayValid,
       borrowedBufferReadProbe: result.borrowedBufferReadProbe,
       nonFiniteFailureProbes: result.nonFiniteFailureProbes,
+      collectionBoundsFailureProbes: result.collectionBoundsFailureProbes,
       result: result.value,
     };
   } finally {
@@ -691,6 +752,18 @@ async function executeNode() {
   const collectionWeighted =
     collectionReversed.get(0) + collectionReversed.get(1) * 2 + collectionReversed.get(2) * 3;
   const collectionDigest = collectionOriginalSum + collectionWeighted;
+  const collectionIndexedValues = [0, 1, 2].map((index) => collectionOriginal.get(index));
+  const collectionIndexDigest =
+    collectionIndexedValues[0] +
+    collectionIndexedValues[1] * 2 +
+    collectionIndexedValues[2] * 3;
+  const collectionBoundsFailureProbes = [
+    {
+      id: 'list3-index-out-of-bounds',
+      rejected: collectionOriginal.get(3) === undefined,
+      result: collectionOriginal.get(3),
+    },
+  ];
   const collectionOriginalPreserved =
     collectionOriginal.get(0) === 2 &&
     collectionOriginal.get(1) === 4 &&
@@ -750,10 +823,12 @@ async function executeNode() {
   const result =
     boundsVolume === 60 &&
     collectionDigest === 42 &&
+    collectionIndexDigest === 28 &&
+    collectionBoundsFailureProbes.every((probe) => probe.rejected) &&
     collectionOriginalPreserved &&
     floatingPointMatches &&
     binary32Matches
-      ? i32Digest + 46 + collectionDigest
+      ? i32Digest + 46 + collectionDigest + collectionIndexDigest
       : 1;
   if (result !== expectedDigest) {
     throw new Error(`Node std result mismatch: expected ${expectedDigest}, received ${result}`);
@@ -771,6 +846,9 @@ async function executeNode() {
       reversed: collectionReversed.toArray(),
       originalPreserved: collectionOriginalPreserved,
       digest: collectionDigest,
+      indexedValues: collectionIndexedValues,
+      indexDigest: collectionIndexDigest,
+      boundsFailureProbes: collectionBoundsFailureProbes,
     },
     floatingPointResults,
     binary32Results,
@@ -918,6 +996,9 @@ const browserWasm = await executeBrowserWasm(executableSource);
 const ownedMetal = {
   ...executeOwnedMetal(executableSource),
   nonFiniteFailureProbes: nonFiniteFailureProbes.map(executeOwnedMetalFailureProbe),
+  collectionBoundsFailureProbes: collectionBoundsFailureProbes.map(
+    executeOwnedMetalFailureProbe
+  ),
 };
 const results = [node.result, browserWasm.result, ownedMetal.result];
 if (!results.every((value) => value === expectedDigest)) {
@@ -927,7 +1008,7 @@ if (!results.every((value) => value === expectedDigest)) {
 console.log(
   JSON.stringify(
     {
-      schema: 'holoscript.std.math-abi-conformance.v11',
+      schema: 'holoscript.std.math-abi-conformance.v12',
       status: 'pass',
       abis: [
         {
@@ -1032,25 +1113,33 @@ console.log(
         provesNestedAggregateLayout:
           'StdAabb3I32{min:StdVec3I32{x:i32,y:i32,z:i32},max:StdVec3I32{x:i32,y:i32,z:i32}}',
         provesImmutableFixedSizeList3I32: true,
+        provesBoundsCheckedRuntimeIndexedList3I32: {
+          indices: [0, 1, 2],
+          nodeReference: node.immutableCollectionProjection,
+          browserWasmUaalFailureReceipts: browserWasm.collectionBoundsFailureProbes,
+          ownedMetalFailureReceipts: ownedMetal.collectionBoundsFailureProbes,
+        },
         collectionValueAbi: 'hs.aggregate.value.v1',
         collectionLayout: 'StdList3I32{first:i32,second:i32,third:i32}',
         collectionOperations: [
           'construct',
-          'sum',
-          'persistent replace second',
+            'sum',
+            'bounds-checked runtime get',
+            'persistent replace second',
           'reverse',
           'digest',
         ],
-        collectionLimits: [
-          'fixed size of three i32 values',
-          'no dynamic indexing',
-          'no variable-length allocation',
+          collectionLimits: [
+            'fixed size of three i32 values',
+            'read-only runtime indexing over homogeneous scalar fields',
+            'no indexed mutation',
+            'no variable-length allocation',
           'no iteration ABI',
           'no general List, Map, or Set parity',
         ],
         aggregateValueLimits: [
           'recursive immutable POD records',
-          'explicit scalar or declared aggregate fields only',
+          'explicit declared fields plus read-only runtime indexing over flat homogeneous scalar fields',
           'affine whole-value moves',
           'owned buffers support allocation, whole-owner moves across parameters and returns, explicit drop, and automatic local or parameter cleanup',
           'immutable local and call-scoped borrowed slices support bounds-checked scalar element reads without owner transfer; immutable slice parameters may forward synchronously to exactly typed immutable slice parameters',

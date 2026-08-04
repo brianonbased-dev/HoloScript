@@ -21,6 +21,7 @@
 import skinSkinningWGSL from '../rendering/webgpu/shaders/skin-skinning.wgsl?raw';
 import type {
   CharacterDrawSpec,
+  CharacterMaterialRole,
   CharacterMaterialSpec,
   MaterialGroup,
   ShadingModel,
@@ -78,11 +79,229 @@ export interface CharacterRenderOptions {
   viewProj?: Mat4;
   /** World-space light direction (default upper-front-right). */
   lightDir?: [number, number, number];
+  /** Optional analytic environment authored by @environment_light. Omission is byte-compatible legacy key light. */
+  environmentLight?: CharacterEnvironmentLightOptions;
   /** World camera position (for view dir / Fresnel; default in front on +Z for the ortho view). */
   cameraPos?: [number, number, number];
   /** Clear RGBA, 0..1 (default dark). */
   clear?: [number, number, number, number];
   heightScale?: number;
+}
+
+export type CharacterEnvironmentLightProfile =
+  | 'legacy-key-v1'
+  | 'analytic-three-point-v1'
+  | 'directional-reflection-probe-v1'
+  | 'stormglass-room-basis-v2';
+
+export interface CharacterEnvironmentLightOptions {
+  profile?: CharacterEnvironmentLightProfile;
+  keyDirection?: [number, number, number];
+  keyColor?: [number, number, number];
+  keyIntensity?: number;
+  fillDirection?: [number, number, number];
+  fillColor?: [number, number, number];
+  fillIntensity?: number;
+  rimDirection?: [number, number, number];
+  rimColor?: [number, number, number];
+  rimIntensity?: number;
+  exposure?: number;
+}
+
+export interface CharacterEnvironmentLightReceipt {
+  schemaVersion:
+    | 'holoscript.character-environment-light.v1'
+    | 'holoscript.character-environment-light.v2'
+    | 'holoscript.character-environment-light.v3';
+  profile: CharacterEnvironmentLightProfile;
+  /** H3Y reinterprets the three authored lobes as a low-frequency reflection probe. */
+  responseProfile?:
+    | 'three-lobe-diffuse-specular-probe-v1'
+    | 'source-authored-room-basis-v2';
+  /** H3Z is a procedural room basis, not a photographic or imported HDRI. */
+  photographicHdri?: false;
+  key: {
+    direction: [number, number, number];
+    color: [number, number, number];
+    intensity: number;
+  };
+  fill: {
+    direction: [number, number, number];
+    color: [number, number, number];
+    intensity: number;
+  };
+  rim: {
+    direction: [number, number, number];
+    color: [number, number, number];
+    intensity: number;
+  };
+  exposure: number;
+}
+
+const clampLight = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number
+): number => Math.min(max, Math.max(min, Number.isFinite(value) ? (value as number) : fallback));
+
+function normalizedDirection(
+  value: [number, number, number] | undefined,
+  fallback: [number, number, number]
+): [number, number, number] {
+  const candidate = value ?? fallback;
+  const length = Math.hypot(candidate[0], candidate[1], candidate[2]);
+  if (!Number.isFinite(length) || length < 1e-6) return [...fallback];
+  return [candidate[0] / length, candidate[1] / length, candidate[2] / length];
+}
+
+function clampedLightColor(
+  value: [number, number, number] | undefined,
+  fallback: [number, number, number]
+): [number, number, number] {
+  const candidate = value ?? fallback;
+  return candidate.map((channel, index) => clampLight(channel, fallback[index], 0, 4)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+/** Resolve the exact analytic lights uploaded to the native WebGPU frame uniform. */
+export function deriveCharacterEnvironmentLightReceipt(
+  options: CharacterEnvironmentLightOptions = {},
+  legacyLightDirection: [number, number, number] = [0.4, 0.7, 0.6]
+): CharacterEnvironmentLightReceipt {
+  const profile = options.profile ?? 'legacy-key-v1';
+  const analytic = profile !== 'legacy-key-v1';
+  const reflectionProbe = profile === 'directional-reflection-probe-v1';
+  const roomBasis = profile === 'stormglass-room-basis-v2';
+  return {
+    schemaVersion: roomBasis
+      ? 'holoscript.character-environment-light.v3'
+      : reflectionProbe
+        ? 'holoscript.character-environment-light.v2'
+        : 'holoscript.character-environment-light.v1',
+    profile,
+    ...(roomBasis
+      ? {
+          responseProfile: 'source-authored-room-basis-v2' as const,
+          photographicHdri: false as const,
+        }
+      : reflectionProbe
+        ? { responseProfile: 'three-lobe-diffuse-specular-probe-v1' as const }
+      : {}),
+    key: {
+      direction: normalizedDirection(options.keyDirection, legacyLightDirection),
+      color: clampedLightColor(options.keyColor, [1, 1, 1]),
+      intensity: clampLight(options.keyIntensity, 1, 0, 8),
+    },
+    fill: {
+      direction: normalizedDirection(options.fillDirection, [-0.55, 0.25, 0.8]),
+      color: clampedLightColor(options.fillColor, [0.54, 0.67, 1]),
+      intensity: analytic ? clampLight(options.fillIntensity, 0.32, 0, 8) : 0,
+    },
+    rim: {
+      direction: normalizedDirection(options.rimDirection, [0.65, 0.45, -0.62]),
+      color: clampedLightColor(options.rimColor, [1, 0.58, 0.32]),
+      intensity: analytic ? clampLight(options.rimIntensity, 0.48, 0, 8) : 0,
+    },
+    exposure: clampLight(options.exposure, 1, 0.25, 4),
+  };
+}
+
+export interface CharacterVertexRange {
+  vertexStart: number;
+  vertexCount: number;
+}
+
+export interface CharacterDetailFrameOptions {
+  /** Empty space around the selected bounds (default 1.35). */
+  padding?: number;
+  /** Lower bound on the square half-extent in world units (default 0.04). */
+  minHalfExtent?: number;
+  /** Symmetric world-space depth half-extent used for clip depth (default 1.5). */
+  depthHalfExtent?: number;
+}
+
+export interface CharacterDetailFrameReceipt {
+  schemaVersion: 'holoscript.character-detail-frame.v1';
+  vertexRangeCount: number;
+  selectedVertexCount: number;
+  bounds: {
+    min: [number, number, number];
+    max: [number, number, number];
+  };
+  center: [number, number, number];
+  halfExtent: number;
+  padding: number;
+  matrix: Mat4;
+}
+
+/**
+ * Derive a deterministic square orthographic close-up from source-owned mesh
+ * vertex ranges. This keeps detail plates tied to native geometry instead of
+ * hand-tuned screenshots.
+ */
+export function deriveCharacterDetailFrame(
+  mesh: CharacterDrawSpec['mesh'],
+  vertexRanges: readonly CharacterVertexRange[],
+  options: CharacterDetailFrameOptions = {}
+): CharacterDetailFrameReceipt {
+  if (vertexRanges.length === 0) {
+    throw new Error('deriveCharacterDetailFrame requires at least one vertex range');
+  }
+  const padding = Math.max(1, options.padding ?? 1.35);
+  const minHalfExtent = Math.max(0.001, options.minHalfExtent ?? 0.04);
+  const depthHalfExtent = Math.max(0.001, options.depthHalfExtent ?? 1.5);
+  const min = [Infinity, Infinity, Infinity] as [number, number, number];
+  const max = [-Infinity, -Infinity, -Infinity] as [number, number, number];
+  let selectedVertexCount = 0;
+
+  for (const range of vertexRanges) {
+    const start = Math.trunc(range.vertexStart);
+    const count = Math.trunc(range.vertexCount);
+    if (start < 0 || count <= 0 || start + count > mesh.vertexCount) {
+      throw new RangeError(
+        `character detail vertex range ${start}:${count} exceeds mesh vertexCount=${mesh.vertexCount}`
+      );
+    }
+    selectedVertexCount += count;
+    for (let vertex = start; vertex < start + count; vertex += 1) {
+      const offset = vertex * 3;
+      for (let axis = 0; axis < 3; axis += 1) {
+        const value = mesh.positions[offset + axis];
+        min[axis] = Math.min(min[axis], value);
+        max[axis] = Math.max(max[axis], value);
+      }
+    }
+  }
+
+  const center: [number, number, number] = [
+    (min[0] + max[0]) * 0.5,
+    (min[1] + max[1]) * 0.5,
+    (min[2] + max[2]) * 0.5,
+  ];
+  const halfExtent =
+    Math.max(minHalfExtent, (max[0] - min[0]) * 0.5, (max[1] - min[1]) * 0.5) * padding;
+  const matrix = new Float32Array(16);
+  matrix[0] = 1 / halfExtent;
+  matrix[5] = 1 / halfExtent;
+  matrix[10] = -1 / (2 * depthHalfExtent);
+  matrix[12] = -center[0] / halfExtent;
+  matrix[13] = -center[1] / halfExtent;
+  matrix[14] = 0.5;
+  matrix[15] = 1;
+  return {
+    schemaVersion: 'holoscript.character-detail-frame.v1',
+    vertexRangeCount: vertexRanges.length,
+    selectedVertexCount,
+    bounds: { min, max },
+    center,
+    halfExtent,
+    padding,
+    matrix,
+  };
 }
 
 /** Pack a CharacterMaterialSpec into the 84-float Material uniform (see skin-skinning.wgsl). */
@@ -97,6 +316,10 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
   out[3] = m.opacity;
   if (m.shadingModel === 'skin-sss') {
     const microdetailEnabled = m.microdetailProfile === 'analytic-pore-v1';
+    const coupledStrength = microdetailEnabled
+      ? Math.max(0, Math.min(0.2, m.microdetailStrength ?? 0))
+      : 0;
+    const decoupled = m.surfaceResponseProfile === 'calibrated-skin-surface-v1';
     out[4] = m.scatterColor[0];
     out[5] = m.scatterColor[1];
     out[6] = m.scatterColor[2];
@@ -104,11 +327,25 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[8] = m.scatterRadii[0];
     out[9] = m.scatterRadii[1];
     out[10] = m.scatterRadii[2];
-    out[11] = microdetailEnabled ? Math.max(0, Math.min(0.2, m.microdetailStrength ?? 0)) : 0;
+    // scatterDist.w historically carried coupledStrength but was not consumed by the shader.
+    // Values above 1 are therefore a backwards-safe opt-in code for anatomical complexion.
+    out[11] =
+      m.complexionProfile === 'anatomical-complexion-v1'
+        ? 1 + Math.max(0, Math.min(1, m.complexionStrength ?? 0.55))
+        : coupledStrength;
     out[12] = m.specularF0;
     out[13] = m.thickness;
     out[14] = m.transmitStrength;
     out[15] = m.ambient;
+    // texFlags.xyz are operative skin-surface amplitudes. Legacy materials receive
+    // their exact historical coupled response and a zero fine-normal perturbation.
+    out[16] = decoupled
+      ? Math.max(0, Math.min(0.08, m.albedoVariationStrength ?? coupledStrength * 0.35))
+      : coupledStrength * 0.35;
+    out[17] = decoupled
+      ? Math.max(0, Math.min(0.2, m.roughnessVariationStrength ?? coupledStrength))
+      : coupledStrength;
+    out[18] = decoupled ? Math.max(0, Math.min(0.35, m.normalMicrodetailStrength ?? 0.08)) : 0;
     out[19] = microdetailEnabled ? Math.max(20, Math.min(180, m.microdetailScale ?? 80)) : 0;
   } else if (m.shadingModel === 'marschner-hair') {
     out[4] = m.melanin;
@@ -120,6 +357,7 @@ export function packCharacterMaterial(m: CharacterMaterialSpec): Float32Array<Ar
     out[10] = m.anisotropyStrength;
     out[11] = m.coverageProfile === 'alpha-to-coverage-v1' ? 1 : 0;
     out[12] = m.longitudinalShift;
+    out[13] = Math.max(0, Math.min(1, m.sourceColorWeight ?? 0));
   } else if (m.shadingModel === 'refractive-eye') {
     out[4] = m.ior; // scatterColor.x = ior (Fresnel rim)
     out[5] =
@@ -175,6 +413,165 @@ export interface CharacterRenderPipelineReceipt {
   alphaToCoverageGroupCount: number;
 }
 
+export interface CharacterMaterialGroupReceipt {
+  drawOrdinal: number;
+  materialRole: CharacterMaterialRole;
+  indexStart: number;
+  indexCount: number;
+  shadingModel: ShadingModel;
+  color: number;
+  roughness: number;
+  transparent: boolean;
+  scatterColor?: [number, number, number];
+  scatterRadii?: [number, number, number];
+  specularF0?: number;
+  thickness?: number;
+  transmitStrength?: number;
+  ambient?: number;
+}
+
+export interface CharacterMaterialPlateReceipt {
+  schemaVersion:
+    | 'holoscript.character-material-plate.v1'
+    | 'holoscript.character-material-plate.v2';
+  rendererEntrypoint: 'renderCharacter';
+  backend: 'webgpu';
+  sourceMaterialGroups: boolean;
+  deviceExecutionMeasured: false;
+  scheduledDrawCount: number;
+  roleCounts: Partial<Record<CharacterMaterialRole, number>>;
+  skinIndexCount: number;
+  /** Compatibility alias for keratinIndexCount. */
+  nailIndexCount: number;
+  keratinIndexCount: number;
+  nailBedIndexCount: number;
+  nailSurfaceIndexCount: number;
+  skinNailOverlapIndexCount: number;
+  skinNailBedOverlapIndexCount: number;
+  nailBedKeratinOverlapIndexCount: number;
+  nailSeparatedFromSkin: boolean;
+  nailBedSeparatedFromKeratin: boolean;
+  calibratedNailSurface: boolean;
+  groups: CharacterMaterialGroupReceipt[];
+}
+
+function orderedMaterialGroups(spec: CharacterDrawSpec): MaterialGroup[] {
+  const groups: MaterialGroup[] =
+    spec.materialGroups && spec.materialGroups.length > 0
+      ? spec.materialGroups
+      : [
+          {
+            indexStart: 0,
+            indexCount: spec.mesh.indices.length,
+            material: { ...spec.material, shadingModel: 'lambert' },
+            materialRole: 'fallback',
+          },
+        ];
+  return [...groups].sort(
+    (a, b) => Number(a.transparent ?? false) - Number(b.transparent ?? false)
+  );
+}
+
+function overlapIndexCount(a: MaterialGroup, b: MaterialGroup): number {
+  return Math.max(
+    0,
+    Math.min(a.indexStart + a.indexCount, b.indexStart + b.indexCount) -
+      Math.max(a.indexStart, b.indexStart)
+  );
+}
+
+/**
+ * Describe the exact draw schedule used by `renderCharacter`. The receipt is
+ * deliberately pure-data (`deviceExecutionMeasured=false`); callers attach a
+ * GPU-readback witness only after a live device actually renders the plate.
+ */
+export function deriveCharacterMaterialPlateReceipt(
+  spec: CharacterDrawSpec
+): CharacterMaterialPlateReceipt {
+  const ordered = orderedMaterialGroups(spec);
+  const groups = ordered.map((group, drawOrdinal): CharacterMaterialGroupReceipt => {
+    const optical =
+      group.material.shadingModel === 'skin-sss'
+        ? {
+            scatterColor: [...group.material.scatterColor] as [number, number, number],
+            scatterRadii: [...group.material.scatterRadii] as [number, number, number],
+            specularF0: group.material.specularF0,
+            thickness: group.material.thickness,
+            transmitStrength: group.material.transmitStrength,
+            ambient: group.material.ambient,
+          }
+        : {};
+    return {
+      drawOrdinal,
+      materialRole: group.materialRole ?? 'fallback',
+      indexStart: group.indexStart,
+      indexCount: group.indexCount,
+      shadingModel: group.material.shadingModel,
+      color: group.material.color,
+      roughness: group.material.roughness,
+      transparent: !!group.transparent,
+      ...optical,
+    };
+  });
+  const roleCounts: Partial<Record<CharacterMaterialRole, number>> = {};
+  for (const group of groups) {
+    roleCounts[group.materialRole] = (roleCounts[group.materialRole] ?? 0) + 1;
+  }
+  const skin = ordered.filter((group) => group.materialRole === 'skin');
+  const keratin = ordered.filter((group) => group.materialRole === 'keratin-nail');
+  const nailBeds = ordered.filter((group) => group.materialRole === 'nail-bed');
+  const skinIndexCount = skin.reduce((sum, group) => sum + group.indexCount, 0);
+  const keratinIndexCount = keratin.reduce((sum, group) => sum + group.indexCount, 0);
+  const nailBedIndexCount = nailBeds.reduce((sum, group) => sum + group.indexCount, 0);
+  const skinNailOverlapIndexCount = skin.reduce(
+    (sum, skinGroup) =>
+      sum +
+      keratin.reduce((inner, nailGroup) => inner + overlapIndexCount(skinGroup, nailGroup), 0),
+    0
+  );
+  const skinNailBedOverlapIndexCount = skin.reduce(
+    (sum, skinGroup) =>
+      sum + nailBeds.reduce((inner, nailBed) => inner + overlapIndexCount(skinGroup, nailBed), 0),
+    0
+  );
+  const nailBedKeratinOverlapIndexCount = nailBeds.reduce(
+    (sum, nailBed) =>
+      sum +
+      keratin.reduce((inner, keratinGroup) => inner + overlapIndexCount(nailBed, keratinGroup), 0),
+    0
+  );
+  return {
+    schemaVersion:
+      nailBeds.length > 0
+        ? 'holoscript.character-material-plate.v2'
+        : 'holoscript.character-material-plate.v1',
+    rendererEntrypoint: 'renderCharacter',
+    backend: 'webgpu',
+    sourceMaterialGroups: !!spec.materialGroups?.length,
+    deviceExecutionMeasured: false,
+    scheduledDrawCount: groups.length,
+    roleCounts,
+    skinIndexCount,
+    nailIndexCount: keratinIndexCount,
+    keratinIndexCount,
+    nailBedIndexCount,
+    nailSurfaceIndexCount: keratinIndexCount + nailBedIndexCount,
+    skinNailOverlapIndexCount,
+    skinNailBedOverlapIndexCount,
+    nailBedKeratinOverlapIndexCount,
+    nailSeparatedFromSkin:
+      keratin.length > 0 && skinNailOverlapIndexCount === 0 && skinNailBedOverlapIndexCount === 0,
+    nailBedSeparatedFromKeratin: nailBeds.length > 0 && nailBedKeratinOverlapIndexCount === 0,
+    calibratedNailSurface:
+      keratin.length > 0 &&
+      nailBeds.length > 0 &&
+      skinNailOverlapIndexCount === 0 &&
+      skinNailBedOverlapIndexCount === 0 &&
+      nailBedKeratinOverlapIndexCount === 0,
+    groups,
+  };
+}
+
 /** Pure-data pipeline derivation used by both tests and the live GPU renderer. */
 export function deriveCharacterRenderPipelineReceipt(
   spec: CharacterDrawSpec
@@ -208,7 +605,10 @@ export async function renderCharacter(
   const hs = opts.heightScale ?? 1;
   const viewProj = opts.viewProj ?? framingMatrix(hs);
   const clear = opts.clear ?? [0.07, 0.07, 0.09, 1];
-  const light = opts.lightDir ?? [0.4, 0.7, 0.6];
+  const environment = deriveCharacterEnvironmentLightReceipt(
+    opts.environmentLight,
+    opts.lightDir ?? [0.4, 0.7, 0.6]
+  );
   const camera = opts.cameraPos ?? [0, 0.9 * hs, 6];
   const format: GPUTextureFormat = 'rgba8unorm';
   const { mesh } = spec;
@@ -237,6 +637,8 @@ export async function renderCharacter(
     { arrayStride: 4, attributes: [{ shaderLocation: 3, offset: 0, format: 'float32' }] },
     { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }] },
     { arrayStride: 8, attributes: [{ shaderLocation: 5, offset: 0, format: 'float32x2' }] },
+    { arrayStride: 4, attributes: [{ shaderLocation: 6, offset: 0, format: 'uint32' }] },
+    { arrayStride: 4, attributes: [{ shaderLocation: 7, offset: 0, format: 'float32' }] },
   ];
 
   const pipelineCache = new Map<string, GPURenderPipeline>();
@@ -321,24 +723,51 @@ export async function renderCharacter(
     usage: BUF_VERTEX | BUF_COPY_DST,
   });
   device.queue.writeBuffer(uvBuf, 0, uvData);
+  const secondaryJointIndices = mesh.secondaryJointIndices ?? mesh.jointIndices;
+  const secondaryJointWeights = mesh.secondaryJointWeights ?? new Float32Array(mesh.vertexCount);
+  const secondaryJiBuf = device.createBuffer({
+    size: secondaryJointIndices.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
+  device.queue.writeBuffer(secondaryJiBuf, 0, secondaryJointIndices);
+  const secondaryJwBuf = device.createBuffer({
+    size: secondaryJointWeights.byteLength,
+    usage: BUF_VERTEX | BUF_COPY_DST,
+  });
+  device.queue.writeBuffer(secondaryJwBuf, 0, secondaryJointWeights);
   const idxBuf = device.createBuffer({
     size: mesh.indices.byteLength,
     usage: BUF_INDEX | BUF_COPY_DST,
   });
   device.queue.writeBuffer(idxBuf, 0, mesh.indices);
 
-  // Shared frame uniform: mvp(16) + model(16) + cameraPos(4) + lightDir(4) = 40 floats.
+  // Shared frame uniform: transforms/camera + three analytic lights + exposure = 64 floats.
   const mvp = multiply(viewProj, spec.modelMatrix);
-  const frame = new Float32Array(40);
+  const frame = new Float32Array(64);
   frame.set(mvp, 0);
   frame.set(spec.modelMatrix, 16);
   frame[32] = camera[0];
   frame[33] = camera[1];
   frame[34] = camera[2];
   frame[35] = 0;
-  frame[36] = light[0];
-  frame[37] = light[1];
-  frame[38] = light[2];
+  frame.set(environment.key.direction, 36);
+  frame.set(environment.key.color, 40);
+  frame[43] = environment.key.intensity;
+  frame.set(environment.fill.direction, 44);
+  frame.set(environment.fill.color, 48);
+  frame[51] = environment.fill.intensity;
+  frame.set(environment.rim.direction, 52);
+  frame.set(environment.rim.color, 56);
+  frame[59] = environment.rim.intensity;
+  frame[60] = environment.exposure;
+  frame[61] =
+    environment.profile === 'stormglass-room-basis-v2'
+      ? 3
+      : environment.profile === 'directional-reflection-probe-v1'
+        ? 2
+        : environment.profile === 'analytic-three-point-v1'
+          ? 1
+          : 0;
   frame[39] = 0;
   const frameBuf = device.createBuffer({
     size: frame.byteLength,
@@ -363,20 +792,7 @@ export async function renderCharacter(
 
   // Normalise to material groups; absent → one lambert group over the whole index buffer
   // (byte-for-byte the pre-material-groups behavior).
-  const groups: MaterialGroup[] =
-    spec.materialGroups && spec.materialGroups.length > 0
-      ? spec.materialGroups
-      : [
-          {
-            indexStart: 0,
-            indexCount: mesh.indices.length,
-            material: { ...spec.material, shadingModel: 'lambert' },
-          },
-        ];
-  // Opaque groups before transparent (depth-correct refraction/blend ordering).
-  const ordered = [...groups].sort(
-    (a, b) => Number(a.transparent ?? false) - Number(b.transparent ?? false)
-  );
+  const ordered = orderedMaterialGroups(spec);
 
   const texture = device.createTexture({
     size: [size, size],
@@ -424,6 +840,8 @@ export async function renderCharacter(
   pass.setVertexBuffer(3, jwBuf);
   pass.setVertexBuffer(4, tanBuf);
   pass.setVertexBuffer(5, uvBuf);
+  pass.setVertexBuffer(6, secondaryJiBuf);
+  pass.setVertexBuffer(7, secondaryJwBuf);
   pass.setIndexBuffer(idxBuf, 'uint32');
   pass.setBindGroup(0, frameBindGroup);
 
@@ -476,6 +894,8 @@ export async function renderCharacter(
   jwBuf.destroy();
   tanBuf.destroy();
   uvBuf.destroy();
+  secondaryJiBuf.destroy();
+  secondaryJwBuf.destroy();
   idxBuf.destroy();
   frameBuf.destroy();
   jointBuf.destroy();

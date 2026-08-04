@@ -1,0 +1,398 @@
+{
+  "schemaVersion": "holoscript.holoabsorb.refresh-benchmark.v3",
+  "productName": "HoloAbsorb",
+  "status": "pass",
+  "completedAt": "2026-07-29T20:09:02.246Z",
+  "repositoryCommit": "700365e1f76fb9cc5134d883723d0aec3b4dcaa1",
+  "fixture": {
+    "files": 120,
+    "symbolsPerFile": 24,
+    "changedFiles": 15,
+    "initialHead": "667f7d1b6887caf305ceec7d7e2b894f244e07a9",
+    "refreshedHead": "0eaea240d78ea83f5cc24f7d2f32078e6ecc52cb",
+    "churnHead": "6c732f25ed5625ba3d27af941ca9e8e3a2aae1d0",
+    "churnCommits": 3,
+    "churnTriggerBatches": 1,
+    "visualFiles": 40,
+    "visualSymbolsPerFile": 8,
+    "repairScaleFiles": 2000,
+    "repairScaleMissing": 5,
+    "repairScaleSymbolsPerFile": 6,
+    "retainedAt": null
+  },
+  "thresholds": {
+    "maxChangedFiles": 20,
+    "maxResponseBytes": 65536,
+    "maxPeakRssDeltaBytes": 536870912,
+    "maxDefaultHeadCheckOverheadRatio": 0.05
+  },
+  "measurements": {
+    "initial": {
+      "durationMs": 2651.364,
+      "responseBytes": 8135,
+      "peakRssDeltaBytes": 144596992,
+      "totalFiles": 120,
+      "totalSymbols": 2880
+    },
+    "refreshed": {
+      "durationMs": 3045.763,
+      "responseBytes": 8344,
+      "peakRssDeltaBytes": 81055744,
+      "embeddingRefresh": {
+        "kind": "EmbeddingRefreshReceipt",
+        "previousSymbols": 2880,
+        "totalSymbols": 2895,
+        "reusedSymbols": 2880,
+        "embeddedSymbols": 15,
+        "retiredSymbols": 0,
+        "reuseRatio": 0.994819,
+        "batchCount": 91
+      }
+    },
+    "incompleteCacheRepair": {
+      "durationMs": 3517.284,
+      "fullRefreshToRepairSpeedup": 0.866,
+      "peakRssDeltaBytes": 16605184,
+      "fixture": {
+        "removedFiles": 15,
+        "remainingFiles": 105,
+        "cacheHash": "7448df632f0db67c43a60dbc00a773225f8420f1d23100a782584f16816a9baa",
+        "generationManifest": {
+          "manifestPath": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-cache-XbzbTK\\cache-generation.json",
+          "manifestHash": "08f13941e9ab232b9d2a2782df141a1ec125c79a118eae40acfd328f7fb50788",
+          "graphCacheSha256": "7448df632f0db67c43a60dbc00a773225f8420f1d23100a782584f16816a9baa",
+          "graphCacheBytes": 994761
+        }
+      },
+      "receipt": {
+        "kind": "IncompleteCacheRepairPlan",
+        "mode": "authority-safe-delta",
+        "selectedCandidateFiles": 120,
+        "cachedGraphFiles": 105,
+        "missingFiles": 15,
+        "changedFiles": 0,
+        "removedFiles": 0,
+        "parsedFiles": 15
+      },
+      "graphAuthoritative": true,
+      "sourcePinValidated": true,
+      "embeddingSkipped": true,
+      "embeddingSkipReason": "outputFormat:stats"
+    },
+    "incompleteCacheRepairScale": {
+      "baselineDurationMs": 8871.182,
+      "repairDurationMs": 9849.278,
+      "fullRefreshToRepairSpeedup": 0.901,
+      "baselinePeakRssDeltaBytes": 44032000,
+      "repairPeakRssDeltaBytes": 109707264,
+      "fixture": {
+        "removedFiles": 5,
+        "remainingFiles": 1995,
+        "cacheHash": "c02677019f3c7e1980367f9a113b9caf7ad7255758e7ea338245f347ebd80584",
+        "generationManifest": {
+          "manifestPath": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-repair-scale-cache-Vp8g7O\\cache-generation.json",
+          "manifestHash": "437ebd1bfba8d13cb120e4c1255cd507aa0df9e905f99589efce4f5f3dc7bbee",
+          "graphCacheSha256": "c02677019f3c7e1980367f9a113b9caf7ad7255758e7ea338245f347ebd80584",
+          "graphCacheBytes": 5681017
+        }
+      },
+      "receipt": {
+        "kind": "IncompleteCacheRepairPlan",
+        "mode": "authority-safe-delta",
+        "selectedCandidateFiles": 2000,
+        "cachedGraphFiles": 1995,
+        "missingFiles": 5,
+        "changedFiles": 0,
+        "removedFiles": 0,
+        "parsedFiles": 5
+      },
+      "graphAuthoritative": true,
+      "sourcePinValidated": true
+    },
+    "memoryGuard": {
+      "durationMs": 11.811,
+      "requestedMinSystemFreeMb": 5997,
+      "reason": "system_memory_reserve_exhausted",
+      "phaseAtRequest": "Initializing",
+      "guardPhase": "preflight resource guard",
+      "cachePreserved": true,
+      "cacheHashBefore": "907b46e15c833d7b56bae7f8daf8bc8ae64914c93e1048610672d7b7a8c6d2ab",
+      "cacheHashAfter": "907b46e15c833d7b56bae7f8daf8bc8ae64914c93e1048610672d7b7a8c6d2ab"
+    },
+    "churn": {
+      "durationMs": 12356.194,
+      "events": [
+        {
+          "index": 1,
+          "file": "src/module-119.ts",
+          "receiptResumeToken": "a547ee44ffaa44a89319556ec8c41ab4",
+          "completedBatchCountAtCommit": 1,
+          "beforeHead": "0eaea240d78ea83f5cc24f7d2f32078e6ecc52cb",
+          "afterHead": "06f71f895383675d46944bb535f0d80e88d113ce",
+          "committedAt": "2026-07-29T20:07:40.828Z"
+        },
+        {
+          "index": 2,
+          "file": "src/module-118.ts",
+          "receiptResumeToken": "a547ee44ffaa44a89319556ec8c41ab4",
+          "completedBatchCountAtCommit": 2,
+          "beforeHead": "06f71f895383675d46944bb535f0d80e88d113ce",
+          "afterHead": "5182286b502831f69f5c45d2b983497e5ae20ad7",
+          "committedAt": "2026-07-29T20:07:42.392Z"
+        },
+        {
+          "index": 3,
+          "file": "src/module-117.ts",
+          "receiptResumeToken": "a547ee44ffaa44a89319556ec8c41ab4",
+          "completedBatchCountAtCommit": 3,
+          "beforeHead": "5182286b502831f69f5c45d2b983497e5ae20ad7",
+          "afterHead": "6c732f25ed5625ba3d27af941ca9e8e3a2aae1d0",
+          "committedAt": "2026-07-29T20:07:44.906Z"
+        }
+      ],
+      "controllerErrors": [],
+      "sourceDriftRetry": {
+        "enabled": true,
+        "strictResumeToken": false,
+        "maxRetries": 4,
+        "debounceMs": 25,
+        "checkIntervalMs": 0,
+        "maxCheckOverheadRatio": 0.04,
+        "detectionCount": 3,
+        "retryCount": 3,
+        "headCheckCount": 38,
+        "headCheckDurationMs": 2320.668,
+        "maxHeadCheckDurationMs": 178.82,
+        "effectiveCheckIntervalMs": 0,
+        "exhausted": false,
+        "lastHeadCheckDurationMs": 51.012,
+        "lastDetectedAt": "2026-07-29T20:07:45.102Z",
+        "lastExpectedCommit": "5182286b502831f69f5c45d2b983497e5ae20ad7",
+        "lastObservedCommit": "6c732f25ed5625ba3d27af941ca9e8e3a2aae1d0",
+        "lastRootDir": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-bench-OIUwe2",
+        "lastDebounceDurationMs": 168
+      },
+      "refreshProgressReceipt": {
+        "schemaVersion": "holoscript.absorb-refresh-progress-receipt.v1",
+        "kind": "AbsorbRefreshProgressReceipt",
+        "resumeToken": "a547ee44ffaa44a89319556ec8c41ab4",
+        "rootDir": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-bench-OIUwe2",
+        "targetGitCommitHash": "6c732f25ed5625ba3d27af941ca9e8e3a2aae1d0",
+        "targetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "planHash": "b3661bf1c3174156d18999a2c7e915dbfcf80358582d1b282919f603ec17df12",
+        "selectedFilesHash": "996998d72dbb3aa5bf217f73d42c3ba606f2f0bda2939ec4b88d7aabf51df847",
+        "scanPolicyHash": "{\"maxFiles\":20000}",
+        "status": "complete",
+        "authoritative": false,
+        "cachePublished": true,
+        "publishedGraphAuthoritative": true,
+        "priorAuthoritativeCachePreserved": false,
+        "resumable": false,
+        "totalCandidateFiles": 120,
+        "totalBatches": 30,
+        "completedBatchCount": 30,
+        "completedCandidateFiles": 120,
+        "remainingCandidateFiles": 0,
+        "progressPercent": 100,
+        "resumeMode": "content-addressed-overlay",
+        "reusedBatchCount": 3,
+        "invalidatedBatchCount": 0,
+        "selection": {
+          "maxFiles": 20000,
+          "workspaceCandidateFiles": 120,
+          "selectedCandidateFiles": 120,
+          "truncated": false,
+          "truncationReason": null
+        },
+        "receiptFile": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-cache-XbzbTK\\absorb-refreshes\\a547ee44ffaa44a89319556ec8c41ab4\\progress-receipt.json",
+        "checkpointDirectory": "C:\\Users\\josep\\AppData\\Local\\Temp\\holoabsorb-refresh-cache-XbzbTK\\absorb-refreshes\\a547ee44ffaa44a89319556ec8c41ab4",
+        "ownerProcessId": 7672,
+        "ownerHost": "Work",
+        "ownerWriterLeaseSha256": "e0fd40da0f4eec9cc7d51b1a252782913f744c331e182b12cd5a4243af346383",
+        "createdAt": "2026-07-29T20:07:39.742Z",
+        "updatedAt": "2026-07-29T20:07:51.311Z",
+        "baseTargetGitCommitHash": "5182286b502831f69f5c45d2b983497e5ae20ad7",
+        "baseTargetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "targetLag": {
+          "sourceResumeToken": "a547ee44ffaa44a89319556ec8c41ab4",
+          "sourceTargetGitCommitHash": "5182286b502831f69f5c45d2b983497e5ae20ad7",
+          "targetGitCommitHash": "6c732f25ed5625ba3d27af941ca9e8e3a2aae1d0",
+          "sourceTargetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "targetWorktreeFingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sourceSelectedCandidateFiles": 120,
+          "targetSelectedCandidateFiles": 120,
+          "selectedCandidateFileDelta": 0
+        },
+        "completedBatchesOmitted": 30,
+        "latestCompletedBatch": {
+          "index": 30,
+          "label": "src (30/30)",
+          "candidateFiles": 4,
+          "scannedFiles": 4,
+          "resultFile": "batch-00030.json",
+          "sha256": "c91bbdf9326d3bf2638dbf37a5d0380c9582d38de9243b23a6ee80f1ca49d7ba",
+          "inputSha256": "b8fcfb96071fb5d904850670f68a640605097ab347888e24a9bf467c8987f745"
+        }
+      },
+      "observedCheckpointReceipts": [
+        {
+          "resumeToken": "5f2e503e557d418f85eeba00e9387ab8",
+          "status": "complete",
+          "targetGitCommitHash": "667f7d1b6887caf305ceec7d7e2b894f244e07a9",
+          "completedBatchCount": 2,
+          "totalBatches": 2,
+          "resumeMode": "new",
+          "reusedBatchCount": 0,
+          "invalidatedBatchCount": 0,
+          "priorAuthoritativeCachePreserved": false,
+          "cachePublished": true
+        },
+        {
+          "resumeToken": "ebd168662f754099bb057bf53c0177f6",
+          "status": "complete",
+          "targetGitCommitHash": "0eaea240d78ea83f5cc24f7d2f32078e6ecc52cb",
+          "completedBatchCount": 2,
+          "totalBatches": 2,
+          "resumeMode": "new",
+          "reusedBatchCount": 0,
+          "invalidatedBatchCount": 0,
+          "priorAuthoritativeCachePreserved": false,
+          "cachePublished": true
+        },
+        {
+          "resumeToken": "a547ee44ffaa44a89319556ec8c41ab4",
+          "status": "complete",
+          "targetGitCommitHash": "6c732f25ed5625ba3d27af941ca9e8e3a2aae1d0",
+          "completedBatchCount": 30,
+          "totalBatches": 30,
+          "resumeMode": "content-addressed-overlay",
+          "reusedBatchCount": 3,
+          "invalidatedBatchCount": 0,
+          "priorAuthoritativeCachePreserved": false,
+          "cachePublished": true
+        }
+      ]
+    },
+    "headChecks": [
+      {
+        "label": "control-single-check",
+        "intervalMs": 1000000000,
+        "durationMs": 5331.209,
+        "totalBatches": 120,
+        "headCheckCount": 1,
+        "headCheckDurationMs": 62.855,
+        "maxHeadCheckDurationMs": 62.855,
+        "effectiveCheckIntervalMs": 1000000000,
+        "headCheckOverheadRatio": 0.01179
+      },
+      {
+        "label": "production-default",
+        "intervalMs": 1000,
+        "durationMs": 3801.661,
+        "totalBatches": 120,
+        "headCheckCount": 3,
+        "headCheckDurationMs": 136.232,
+        "maxHeadCheckDurationMs": 46.028,
+        "effectiveCheckIntervalMs": 1151,
+        "headCheckOverheadRatio": 0.035835
+      },
+      {
+        "label": "eager-every-batch",
+        "intervalMs": 0,
+        "durationMs": 13270.446,
+        "totalBatches": 120,
+        "headCheckCount": 120,
+        "headCheckDurationMs": 8888.142,
+        "maxHeadCheckDurationMs": 332.304,
+        "effectiveCheckIntervalMs": 0,
+        "headCheckOverheadRatio": 0.66977
+      }
+    ],
+    "visual": {
+      "durationMs": 6757.447,
+      "totalFiles": 40,
+      "totalSymbols": 320,
+      "totalImports": 39,
+      "holoSourceBytes": 20797,
+      "topology": {
+        "expectedFiles": 40,
+        "visibleExpectedFiles": 40,
+        "fileCoverage": 1,
+        "sceneObjects": 50,
+        "sceneEdges": 39,
+        "expectedVisibleEdges": 39,
+        "matchedEdges": 39,
+        "spuriousEdges": 0,
+        "edgeRecall": 1,
+        "edgePrecision": 1,
+        "endpointIntegrity": true,
+        "finitePositionRatio": 1,
+        "uniquePositionRatio": 1
+      }
+    },
+    "graphCacheBytes": 1137338,
+    "freshProcessStatus": {
+      "graphAuthoritative": true,
+      "freshForCurrentRepo": true,
+      "gitCommitMatchesHead": true
+    },
+    "freshProcessQuery": {
+      "totalFiles": 120,
+      "totalSymbols": 2898,
+      "totalImports": 119,
+      "totalCalls": 137,
+      "totalEventEdges": 0,
+      "totalLoc": 3137,
+      "filesByLanguage": {
+        "typescript": 120
+      },
+      "symbolsByType": {
+        "function": 2898
+      },
+      "communities": 0
+    }
+  },
+  "checks": {
+    "boundedDelta": true,
+    "initialGraphNotInlined": true,
+    "refreshedGraphNotInlined": true,
+    "initialResponseBounded": true,
+    "refreshedResponseBounded": true,
+    "graphCacheLargerThanResponse": true,
+    "changedSymbolReuse": true,
+    "incompleteCacheDeltaRepair": true,
+    "incompleteCacheDeltaBounded": true,
+    "incompleteCacheDeltaAuthoritative": true,
+    "incompleteCacheDeltaSkippedEmbeddings": true,
+    "incompleteCacheDeltaTimingRecorded": true,
+    "repairScaleDeltaBounded": true,
+    "repairScaleDeltaAuthoritative": true,
+    "repairScaleTimingRecorded": true,
+    "peakRssBounded": true,
+    "memoryGuardRefusedBeforePlanning": true,
+    "memoryGuardPreservedCache": true,
+    "churnCommitsApplied": true,
+    "churnRecoveredAtLatestHead": true,
+    "churnReusedCheckpointWork": true,
+    "headCheckTelemetryPresent": true,
+    "defaultHeadChecksRateLimited": true,
+    "defaultHeadCheckOverheadBounded": true,
+    "eagerHeadChecksCoverBatches": true,
+    "freshProcessStatus": true,
+    "freshProcessQuery": true,
+    "visualFileCoverage": true,
+    "visualEdgeRecall": true,
+    "visualEdgePrecision": true,
+    "visualEndpointIntegrity": true,
+    "visualFinitePositions": true
+  },
+  "claimBoundaries": [
+    "The refresh, churn, memory, and visual workloads use deterministic temporary repositories and isolated caches; they do not mutate or publish into the live canonical HoloScript graph cache.",
+    "The incomplete-cache lane removes graph entries and their file hashes, then atomically rebinds the benchmark-only generation manifest to those fixture bytes so it remains a valid but incomplete generation. Production generation manifests remain immutable. Parsed-file counts and exact-set validation are stronger evidence than timing alone.",
+    "HEAD-check overhead is measured inside the production source-pin path and is local-host specific; it is not a network or fleet throughput claim.",
+    "The visual lane proves file coverage, import-edge fidelity, endpoint integrity, and finite spatial positions on a bounded synthetic graph. It does not prove that literal pixels improve agent answer accuracy.",
+    "Literal-pixel agent-accuracy claims remain governed by the separately preregistered Paper 5 visual protocol and its external annotation/model-family custody gates.",
+    "This benchmark is not a production-monorepo throughput claim."
+  ],
+  "claimBoundary": "This deterministic local corpus proves bounded refresh resilience and graph-to-scene topology fidelity; it is not a production-monorepo or visual-agent-superiority claim."
+}
