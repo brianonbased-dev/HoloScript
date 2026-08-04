@@ -10,14 +10,29 @@ export interface PricingPeriodUsdPerMTok {
 }
 
 export const ANTHROPIC_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
-  'claude-opus-4-8': { input: 10, output: 50 }, // 3× cheaper than 4.7 on total cost; A-020 2026-06-08
+  // Corrected 2026-08-03: Opus 4.8 was listed at $10/$50 with a comment
+  // claiming it was "3× cheaper than 4.7" — while pricing it at DOUBLE the
+  // 4.7 row directly beneath it. Both models are $5/$25. Because
+  // `claude-opus-4-8` is CLOUD_DEFAULT_MODEL, every agent on the default
+  // model was billed 2× actual against HOLOSCRIPT_AGENT_BUDGET_USD_DAY and
+  // tripped its daily cap at half the real spend.
+  'claude-opus-5': { input: 5, output: 25 },
+  'claude-opus-4-8': { input: 5, output: 25 },
   'claude-opus-4-7': { input: 5, output: 25 },
   'claude-opus-4-6': { input: 5, output: 25 },
+  'claude-fable-5': { input: 10, output: 50 },
   'claude-sonnet-5': { input: 2, output: 10 }, // Intro pricing through 2026-08-31; schedule below flips after.
   'claude-sonnet-4-6': { input: 3, output: 15 },
   'claude-haiku-4-5-20251001': { input: 1, output: 5 },
   'claude-haiku-4-5': { input: 1, output: 5 },
 };
+
+/**
+ * Prompt-cache price multipliers, relative to a model's base input rate.
+ * Uniform across the Claude line.
+ */
+export const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL; the 1-hour TTL is 2x
+export const CACHE_READ_MULTIPLIER = 0.1;
 
 export const ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK: Record<
   string,
@@ -56,6 +71,37 @@ export function resolveAnthropicPricing(
   return ANTHROPIC_PRICING_USD_PER_MTOK[model];
 }
 
+/**
+ * Price a `TokenUsage` against a per-MTok rate, splitting the prompt-cache
+ * components out at their own multipliers.
+ *
+ * `promptTokens` is the FULL prompt and INCLUDES any portion served from or
+ * written to a provider-side prompt cache. Billing all of it at the base input
+ * rate over-states a cache read by 10×, and an agent on a stable system prefix
+ * reads from cache on nearly every tick — so this is the dominant term, not a
+ * rounding error.
+ *
+ * No-op for providers that do not report cache usage: both fields are
+ * undefined there, `uncachedInput === promptTokens`, and the arithmetic
+ * collapses to the plain input+output formula this replaced.
+ */
+function priceUsageWithCacheSplit(
+  usage: TokenUsage,
+  price: { input: number; output: number }
+): number {
+  const cacheRead = usage.cacheReadTokens ?? 0;
+  const cacheWrite = usage.cacheWriteTokens ?? 0;
+  const uncachedInput = Math.max(0, usage.promptTokens - cacheRead - cacheWrite);
+
+  return (
+    (uncachedInput * price.input +
+      cacheWrite * price.input * CACHE_WRITE_MULTIPLIER +
+      cacheRead * price.input * CACHE_READ_MULTIPLIER +
+      usage.completionTokens * price.output) /
+    1_000_000
+  );
+}
+
 export function defaultAnthropicPricer(model: string, usage: TokenUsage): number {
   const price = resolveAnthropicPricing(model);
   if (!price) {
@@ -63,7 +109,7 @@ export function defaultAnthropicPricer(model: string, usage: TokenUsage): number
       `No pricing configured for model "${model}" — add to ANTHROPIC_PRICING_USD_PER_MTOK or pass a custom pricer`
     );
   }
-  return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
+  return priceUsageWithCacheSplit(usage, price);
 }
 
 /**
@@ -107,7 +153,7 @@ export function defaultXAIPricer(model: string, usage: TokenUsage): number {
         `or pass a custom pricer`
     );
   }
-  return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
+  return priceUsageWithCacheSplit(usage, price);
 }
 
 // OpenRouter pricing is per-model and varies by upstream — populated lazily.
@@ -132,7 +178,7 @@ export function defaultOpenAIPricer(model: string, usage: TokenUsage): number {
         `(verify via official OpenAI models/pricing docs) or pass a custom pricer`
     );
   }
-  return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
+  return priceUsageWithCacheSplit(usage, price);
 }
 
 export const OPENROUTER_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> =
@@ -146,7 +192,7 @@ export function defaultOpenRouterPricer(model: string, usage: TokenUsage): numbe
         `or pass a custom pricer`
     );
   }
-  return (usage.promptTokens * price.input + usage.completionTokens * price.output) / 1_000_000;
+  return priceUsageWithCacheSplit(usage, price);
 }
 
 // =============================================================================
