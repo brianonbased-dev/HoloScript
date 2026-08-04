@@ -1,0 +1,45 @@
+// HoloKey repository identity authority -- native transition kernel.
+//
+// State codes: 0 provisional, 1 active, 2 revoked.
+// Action codes: 0 promote, 1 rotate, 2 revoke, 3 migrate, 4 recover.
+//
+// This source is authoritative for the state/action transition table. The
+// package publication gate compiles three entry modules with the owned
+// holoscriptc, observes one five-bit mask per state, and reconstructs the exact
+// 15-bit table without relying on non-portable process exit codes above 255.
+// The gate remains fail-closed until the compiler can also materialize the
+// canonical JSON, SHA-256, signature capability, and atomic store semantics.
+
+export function repository_transition_allowed(state: i32, requested: i32): i32 {
+  if (state == 0) {
+    if (requested == 0) { return 1 }
+    return 0
+  }
+  if (state == 1) {
+    if (requested == 1) { return 1 }
+    if (requested == 2) { return 1 }
+    if (requested == 3) { return 1 }
+    return 0
+  }
+  if (state == 2) {
+    if (requested == 4) { return 1 }
+    return 0
+  }
+  return 0
+}
+
+export function repository_transition_row_mask(state: i32): i32 {
+  return
+      repository_transition_allowed(state, 0) * 1
+    + repository_transition_allowed(state, 1) * 2
+    + repository_transition_allowed(state, 2) * 4
+    + repository_transition_allowed(state, 3) * 8
+    + repository_transition_allowed(state, 4) * 16
+}
+
+export function repository_transition_table_mask(): i32 {
+  return
+      repository_transition_row_mask(0)
+    + repository_transition_row_mask(1) * 32
+    + repository_transition_row_mask(2) * 1024
+}

@@ -23,6 +23,8 @@ This package now carries both pure contracts and runtime-safe server primitives:
 - `createServiceSecretResolver()` for "vault first, then `process.env`" service migration.
 - `@needs_key` trait helpers for request-scoped secret resolution.
 - Resolve receipts and access-policy checks that never emit secret plaintext.
+- Repository identity origination and transitions through explicit HoloKey
+  clock, signature-verifier, and atomic authority-store capabilities.
 
 `@holoscript/config` uses this package as its default HoloKey-aware secret bridge, so callers such as Absorb and HoloLlama can resolve service config from HoloKey without taking a direct dependency on broker internals.
 
@@ -34,7 +36,110 @@ The npm package is the custody primitive, not the whole deployed product:
 - Studio UX lives in `packages/studio`.
 - Wallet identity, x402 signing, and long-lived seat custody remain in the HoloMesh identity layer.
 - Protocol commercialization belongs to the `/protocol` economic layer.
+- After verifier-facade migration, HoloRepo may verify or project deprecated
+  `holorepo.*` v1 repository-identity wires but must not originate, rotate,
+  revoke, migrate, or recover them. The current packed HoloRepo still exports
+  legacy mutators, so this production ownership migration is not complete.
 - Production deployments must provide a production-grade KEK source; the env KEK provider is dev/bootstrap only and is rejected by the production gate.
+
+## Repository identity authority contract
+
+HoloKey is the designated sole durable owner of repository identity. This
+package supplies its authority contract and a bootstrap implementation; it does
+not yet prove that an authenticated durable HoloKey root issued or read back an
+identity. Import the dedicated entry point so that boundary remains visible:
+
+```typescript
+import {
+  buildProvisionalRepositoryIdentity,
+  buildRepositoryAuthorityIntent,
+  transitionRepositoryIdentity,
+} from '@holoscript/secrets-broker/repository-identity';
+```
+
+The same entry point also exposes the read-only compatibility boundary used by
+HoloRepo:
+
+```typescript
+import {
+  projectHoloKeyIdentityEvidence,
+  verifyHoloKeyIdentityEvidence,
+} from '@holoscript/secrets-broker/repository-identity';
+```
+
+Those functions accept an explicit
+`holokey.repository-identity-evidence.v1` envelope, validate the HoloKey
+identity content binding, and return compatibility/readback evidence without
+issuing, persisting, or mutating identity. The current envelope is deliberately
+marked `caller-injected-contract-capabilities` with
+`authenticatedDurableReadback: false`; it is not an authenticated HoloKey root
+receipt.
+
+Provisional contract-object construction requires an injected trusted clock. A
+transition additionally requires a signature-verifier capability and an
+authority store whose single
+`compareAndCommit` operation atomically binds the expected checkpoint, nonce,
+signed payload, semantic intent, successor identity, and transition receipt.
+The CAS request carries the intent issue/expiry timestamps in clear typed fields
+as well as their content hashes, so the store can enforce the deadline at the
+atomic commit point. The bootstrap module also re-reads its trusted clock after
+signature verification to reject approvals that cross expiry before CAS.
+The store may return `replayed-exact` only for the identical commit request;
+stale checkpoints, reused nonces with changed content, and forks are conflicts.
+Rotate-to-current-controller and migrate-to-identical-repository requests are
+semantic no-ops and are rejected; callers must choose the action that actually
+changes the governed state.
+Recovery key sets and thresholds are capped at `MAX_APPROVALS - 1` so the
+required successor approval always fits within the shared approval bound.
+
+Only portable key references, detached public signatures, and digest-bound
+verification receipts cross this API. Raw private keys, seed phrases, bearer
+tokens, credential URLs, local paths, coercive objects, getters, proxies,
+cycles, sparse arrays, and unbounded JSON are rejected.
+
+Signature receipts use explicit byte semantics: `signingMessageHash` is SHA-256
+over the raw UTF-8 bytes of the canonical JSON signing message and therefore
+equals `payloadHash`; `signatureDigest` is SHA-256 over the decoded
+65-byte EIP-191 signature, not over a JSON-quoted string.
+
+The `holorepo.*` v1 constants and `projectLegacyRepositoryIdentity()` exist only
+for a deprecated read-only compatibility projection. Projection requires the
+same-module local bootstrap contract result; a
+deserialized record with self-consistent unkeyed hashes is intentionally
+refused because hashes and a closure brand do not prove authenticated HoloKey
+issuance. The projection explicitly reports
+`local-bootstrap-contract-only` and
+`authenticatedDurableReadback: false`. Closure brands are module-instance
+local, so ESM and CJS results cannot be mixed in one authority lifecycle; use
+one module system consistently until authenticated durable readback replaces
+that bootstrap boundary. These schemas are not accepted by the authority
+contract mutation path and must be removed from HoloRepo in its next major
+version.
+
+### Native publication status
+
+The source-level transition table lives at the exported
+`@holoscript/secrets-broker/repository-identity/source` path. The native gate
+invokes the repository-owned `holoscriptc`, executes three independently
+compiled five-bit state-row programs, reconstructs the complete 15-bit
+state/action table, and requires both native source and bootstrap adapter to
+equal the reviewed bitmask `16833`:
+
+```bash
+pnpm --filter @holoscript/secrets-broker run check:repository-identity-native
+```
+
+That compiler currently cannot materialize the full importable ESM/CJS package
+surface for bounded canonical JSON, SHA-256 binding, signature verification,
+atomic compare-and-commit, or authenticated durable HoloKey authority-root
+readback. The command therefore emits a machine-readable
+`HOLOKEY_NATIVE_AUTHORITY_SURFACE_INCOMPLETE` and
+`HOLOREPO_IDENTITY_MUTATOR_MIGRATION_INCOMPLETE` blockers and exits nonzero even
+when the complete transition-table equivalence check passes. `prepack` runs
+this gate, so the repository-identity authority cannot be published until the
+language builds the entire implementation and HoloRepo becomes a verifier
+facade. The TypeScript module is a bootstrap contract implementation, not an
+authority-root or graduation receipt.
 
 ## HoloKey service migration
 
@@ -126,6 +231,8 @@ A surface can step down its trust tier, but cannot escalate above its default.
 ```bash
 corepack pnpm --filter @holoscript/secrets-broker run build
 corepack pnpm --filter @holoscript/secrets-broker run test
+# Expected to remain nonzero until holoscriptc materializes the full authority:
+corepack pnpm --filter @holoscript/secrets-broker run check:repository-identity-native
 ```
 
 ## Package boundary & release posture
