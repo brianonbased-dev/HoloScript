@@ -16,11 +16,13 @@ use holoscript_native::{
     BORROWED_SCALAR_FIELD_FORWARD_RETURN_MACHINE_CONTRACT,
     BORROWED_SCALAR_FIELD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_ELEMENT_RETURN_MACHINE_CONTRACT,
     BORROWED_SLICE_FORWARD_RETURN_MACHINE_CONTRACT, BORROWED_SLICE_RETURN_MACHINE_CONTRACT,
-    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
-    CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT,
-    HOST_ALLOCATOR_PROVENANCE_ID, NATIVE_AGGREGATE_ABI_VERSION,
-    NATIVE_MEANING_GAP_REASON_ABI_VERSION, OWNED_AGGREGATE_MACHINE_CONTRACT,
-    OWNED_BUFFER_ABI_VERSION, UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
+    BORROWED_SUBSLICE_RETURN_MACHINE_CONTRACT, BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT,
+    COMPOSITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT, CONDITIONAL_BORROW_SUMMARY_MACHINE_CONTRACT,
+    FLOAT_RECURSIVE_AGGREGATE_MACHINE_CONTRACT, HOST_ALLOCATOR_PROVENANCE_ID,
+    INTEGER_ARITHMETIC_MACHINE_CONTRACT, INTEGER_BITWISE_MACHINE_CONTRACT,
+    NATIVE_AGGREGATE_ABI_VERSION, NATIVE_MEANING_GAP_REASON_ABI_VERSION,
+    OWNED_AGGREGATE_MACHINE_CONTRACT, OWNED_BUFFER_ABI_VERSION,
+    UNCERTAIN_AGGREGATE_MACHINE_CONTRACT,
 };
 
 const EXIT_FIVE: &str = include_str!("../../../examples/native/exit-five.hs");
@@ -416,6 +418,294 @@ fn compiles_typed_functions_calls_and_local_bindings() {
     assert_eq!(status.code(), Some(5));
 
     fs::remove_file(&artifact.executable).expect("remove typed smoke-test executable");
+}
+
+#[test]
+fn compiles_bounded_u8_buffers_with_native_byte_width_and_readback() {
+    let source = r#"
+function read_byte(): u8 {
+    let bytes: [u8] = buffer(1, 255)
+    let view: &[u8] = &bytes
+    return load(view[0])
+}
+
+function main(): i32 {
+    if (read_byte() > 127) {
+        return 5
+    }
+    return 0
+}
+"#;
+    let executable = scratch_executable("native-u8-buffer");
+
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("bounded u8 buffer source should compile to a native executable");
+
+    assert_eq!(
+        artifact.machine_contract,
+        BOUNDED_BYTE_BUFFER_MACHINE_CONTRACT
+    );
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("bounded u8 buffer executable should run");
+    assert_eq!(status.code(), Some(5));
+
+    fs::remove_file(&artifact.executable).expect("remove u8 buffer smoke-test executable");
+}
+
+#[test]
+fn compiles_native_integer_division_and_remainder_operations() {
+    let source = r#"
+        function main(): i32 {
+            let quotient: i32 = 29 / 5
+            let remainder: i32 = 29 % 5
+            return quotient + remainder
+        }
+    "#;
+    let executable = scratch_executable("native-integer-division-remainder");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native integer division and remainder source");
+    assert_eq!(
+        artifact.machine_contract,
+        INTEGER_ARITHMETIC_MACHINE_CONTRACT
+    );
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native integer division and remainder executable");
+    assert_eq!(status.code(), Some(9));
+    fs::remove_file(&artifact.executable)
+        .expect("remove native integer division and remainder executable");
+}
+
+#[test]
+fn native_integer_division_by_zero_traps() {
+    let source = r#"
+        function main(): i32 {
+            let divisor: i32 = 0
+            return 1 / divisor
+        }
+    "#;
+    let executable = scratch_executable("native-integer-division-by-zero");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native integer zero-divisor source");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native integer zero-divisor executable");
+    assert!(!status.success(), "integer division by zero must trap");
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn compiles_native_integer_bitwise_and_shift_operations() {
+    let source = r#"
+        function main(): i32 {
+            let shifted: i32 = (256 >> 3) + (1 << 2)
+            let masked: i32 = shifted & 31
+            let combined: i32 = (masked | 2) ^ 1
+            let logical: i32 = -1 >> 31
+            return combined + logical
+        }
+    "#;
+    let executable = scratch_executable("native-integer-bitwise-shift");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native integer bitwise and shift source");
+    assert_eq!(artifact.machine_contract, INTEGER_BITWISE_MACHINE_CONTRACT);
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native integer bitwise and shift executable");
+    assert_eq!(status.code(), Some(8));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn compiles_native_bitwise_operations_over_borrowed_slices() {
+    let source = r#"
+        function read_mix(bytes: &[i32]): i32 {
+            return (load(bytes[0]) & 15) | (load(bytes[1]) << 4)
+        }
+
+        function main(): i32 {
+            slot words: [i32; 2] = [1, 1]
+            return read_mix(&words[0..2])
+        }
+    "#;
+    let executable = scratch_executable("native-bitwise-borrowed-slice");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native bitwise borrowed slice source");
+    assert_eq!(artifact.machine_contract, INTEGER_BITWISE_MACHINE_CONTRACT);
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native bitwise borrowed slice executable");
+    assert_eq!(status.code(), Some(17));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn compiles_native_explicit_u8_to_i32_widening_over_borrowed_slices() {
+    let source = r#"
+        function read_byte(bytes: &[u8]): i32 {
+            return u8_to_i32(load(bytes[0]))
+        }
+
+        function main(): i32 {
+            slot bytes: [u8; 1] = [255]
+            return read_byte(&bytes[0..1])
+        }
+    "#;
+    let executable = scratch_executable("native-u8-to-i32-borrowed-slice");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native explicit u8-to-i32 borrowed slice source");
+    assert_eq!(artifact.machine_contract, "hs-machine-v43");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native explicit u8-to-i32 borrowed slice executable");
+    assert_eq!(status.code(), Some(255));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn u8_to_i32_rejects_non_u8_values_without_implicit_coercion() {
+    let error = compile_object(
+        r#"
+            function main(): i32 {
+                let value: i32 = 7
+                return u8_to_i32(value)
+            }
+        "#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("u8_to_i32 must reject non-u8 values");
+    assert!(error
+        .to_string()
+        .contains("expects `u8`, found `i32`; implicit coercions are forbidden"));
+}
+
+#[test]
+fn compiles_native_explicit_i32_to_u8_narrowing_over_borrowed_slices() {
+    let source = r#"
+        function write_byte(bytes: &mut [u8]): i32 {
+            store(bytes[0], i32_to_u8(42))
+            return u8_to_i32(load(bytes[0]))
+        }
+
+        function main(): i32 {
+            slot bytes: [u8; 1] = [0]
+            return write_byte(&mut bytes[0..1])
+        }
+    "#;
+    let executable = scratch_executable("native-i32-to-u8-borrowed-slice");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native explicit i32-to-u8 borrowed slice source");
+    assert_eq!(artifact.machine_contract, "hs-machine-v44");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native explicit i32-to-u8 borrowed slice executable");
+    assert_eq!(status.code(), Some(42));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn i32_to_u8_rejects_non_i32_values_without_implicit_coercion() {
+    let error = compile_object(
+        r#"
+            function main(): i32 {
+                let value: u8 = 7
+                return u8_to_i32(i32_to_u8(value))
+            }
+        "#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("i32_to_u8 must reject non-i32 values");
+    assert!(error
+        .to_string()
+        .contains("expects `i32`, found `u8`; implicit coercions are forbidden"));
+}
+
+#[test]
+fn native_i32_to_u8_out_of_range_traps() {
+    let source = r#"
+        function main(): i32 {
+            return u8_to_i32(i32_to_u8(256))
+        }
+    "#;
+    let executable = scratch_executable("native-i32-to-u8-range-trap");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native out-of-range i32-to-u8 source");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native out-of-range i32-to-u8 executable");
+    assert!(!status.success(), "out-of-range narrowing must trap");
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn compiles_native_slice_length_for_borrowed_u8_views() {
+    let source = r#"
+        function read_length(bytes: &[u8]): i32 {
+            return slice_length(bytes)
+        }
+
+        function main(): i32 {
+            slot bytes: [u8; 3] = [1, 2, 3]
+            return read_length(&bytes[0..3])
+        }
+    "#;
+    let executable = scratch_executable("native-slice-length-borrowed-u8");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("native slice_length source should compile");
+    assert_eq!(artifact.machine_contract, "hs-machine-v45");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native slice_length executable");
+    assert_eq!(status.code(), Some(3));
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn slice_length_rejects_scalar_arguments() {
+    let error = compile_object(
+        r#"
+            function main(): i32 {
+                let value: i32 = 7
+                return slice_length(value)
+            }
+        "#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("slice_length must reject scalar arguments");
+    assert!(error
+        .to_string()
+        .contains("`slice_length` argument `value` is not a typed slice reference"));
+}
+
+#[test]
+fn native_integer_shift_count_outside_operand_width_traps() {
+    let source = r#"
+        function main(): i32 {
+            let count: i32 = 32
+            return 1 << count
+        }
+    "#;
+    let executable = scratch_executable("native-integer-shift-count-trap");
+    let artifact = compile_executable(source, &executable, &NativeCompileOptions::host())
+        .expect("compile native invalid-shift-count source");
+    let status = Command::new(&artifact.executable)
+        .status()
+        .expect("run native invalid-shift-count executable");
+    assert!(!status.success(), "out-of-width shift counts must trap");
+    remove_scratch_executable_with_retry(&artifact.executable);
+}
+
+#[test]
+fn bounded_u8_literals_fail_closed_outside_byte_range() {
+    let error = compile_object(
+        r#"function invalid(): u8 { return 256 } function main(): i32 { return 5 }"#,
+        &NativeCompileOptions::host(),
+    )
+    .expect_err("u8 literals outside the byte range must fail closed");
+    assert!(error
+        .to_string()
+        .contains("u8` literal in the range 0..=255"));
 }
 
 #[test]

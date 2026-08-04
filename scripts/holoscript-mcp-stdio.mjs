@@ -25,7 +25,8 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { startMcpProcessLifecycle } from './lib/mcp-process-lifecycle.mjs';
 
@@ -373,6 +374,77 @@ function newestInputMtimeMs(
   return newest;
 }
 
+/*
+ * mtime is not identity.
+ *
+ * The stamp recorded each group's newest input mtime and treated
+ * `newestInputMtimeMs <= stampedMtime` as proof the build covered those bytes.
+ * Two ways that lies (task_1785348595166_nsog):
+ *
+ *   1. Source bytes change while the mtime is preserved or backdated — a fresh
+ *      checkout, an archive extraction, `touch -d`, a restored backup. The
+ *      comparison still passes, so a stale dist is blessed as verified.
+ *   2. Source is mutated AFTER its group builds but BEFORE writeBuildStamp
+ *      runs. The stamp then records the NEW mtime as though those unbuilt bytes
+ *      had been verified.
+ *
+ * So identity is the content itself. These digests are what the stamp binds and
+ * what coverage compares; mtime stays only as a cheap staleness hint for
+ * deciding what to rebuild.
+ */
+export function buildGroupInputDigest(
+  group,
+  {
+    root = ROOT,
+    exists = existsSync,
+    stat = statSync,
+    readDirectory = (path) => readdirSync(path, { withFileTypes: true }),
+    readFile = readFileSync,
+  } = {}
+) {
+  const packageRoot = packageRootForBuildGroup(group);
+  if (!packageRoot) return null;
+  const absolutePackageRoot = resolve(root, packageRoot);
+  const entries = [];
+
+  const observe = (path) => {
+    if (!exists(path)) return;
+    const entry = stat(path);
+    if (entry.isFile()) {
+      const relativePath = relative(root, path).replaceAll('\\', '/');
+      const hash = createHash('sha256').update(readFile(path)).digest('hex');
+      entries.push(`${relativePath}:${hash}`);
+      return;
+    }
+    if (!entry.isDirectory()) return;
+    for (const child of readDirectory(path)) {
+      observe(resolve(path, child.name));
+    }
+  };
+
+  for (const directoryName of BUILD_INPUT_DIRECTORIES) {
+    observe(resolve(absolutePackageRoot, directoryName));
+  }
+  for (const fileName of BUILD_INPUT_NAMES) {
+    observe(resolve(absolutePackageRoot, fileName));
+  }
+  // Shared inputs change every group's meaning, so they belong in every digest.
+  for (const fileName of GLOBAL_BUILD_INPUTS) {
+    observe(resolve(root, fileName));
+  }
+
+  entries.sort();
+  return `sha256:${createHash('sha256').update(entries.join('\n')).digest('hex')}`;
+}
+
+/** Input digest for every group, in one pass. */
+export function buildInputDigestByGroup(options = {}) {
+  const groups = options.groups ?? BUILD_GROUPS;
+  return Object.fromEntries(
+    groups.map((group) => [group.id, buildGroupInputDigest(group, options)])
+  );
+}
+
 export function buildGroupFreshness(
   group,
   {
@@ -431,14 +503,26 @@ export function buildBootstrapGroups(stamp, groups = BUILD_GROUPS) {
   return groups.filter((group) => ['absorb-service', 'mcp-server'].includes(group.id));
 }
 
-export function buildStampCoversInput(freshness, stamp) {
+/**
+ * Does the stamp actually cover the bytes on disk right now?
+ *
+ * Answered by content digest, not mtime. Fails CLOSED on anything unknown: no
+ * stamp, a pre-digest stamp from an older launcher, or an unreadable digest all
+ * mean "not covered", which costs one rebuild instead of blessing stale output.
+ *
+ * `currentDigest` is injectable so callers that already computed the digest do
+ * not pay for it twice.
+ */
+export function buildStampCoversInput(freshness, stamp, currentDigest = undefined) {
   if (!stamp) return false;
-  const verifiedInputMtimeMs = Number(stamp.inputMtimeMsByGroup?.[freshness.id]);
-  return (
-    Number.isFinite(verifiedInputMtimeMs) &&
-    freshness.newestInputMtimeMs !== null &&
-    freshness.newestInputMtimeMs <= verifiedInputMtimeMs
-  );
+  const verifiedDigest = stamp.inputDigestByGroup?.[freshness.id];
+  if (typeof verifiedDigest !== 'string' || verifiedDigest.length === 0) return false;
+  const observed =
+    currentDigest === undefined
+      ? buildGroupInputDigest(BUILD_GROUPS.find((group) => group.id === freshness.id))
+      : currentDigest;
+  if (typeof observed !== 'string' || observed.length === 0) return false;
+  return observed === verifiedDigest;
 }
 
 function currentGitHead(root = ROOT, spawnSyncImpl = spawnSync) {
@@ -480,21 +564,45 @@ function commitChangedBuildGroups({
   return buildGroupsForChangedFiles(String(result.stdout || '').split(/\r?\n/));
 }
 
-function writeBuildStamp({
+export function writeBuildStamp({
   root = ROOT,
   path = BUILD_STAMP_PATH,
   gitHead = currentGitHead(root),
   builtGroups = [],
+  groups = BUILD_GROUPS,
+  /**
+   * Digests captured BEFORE the build ran. Passing them makes the stamp record
+   * the bytes the build actually consumed; any group whose bytes moved during
+   * the build is refused rather than stamped.
+   */
+  verifiedInputDigestByGroup = null,
 } = {}) {
   mkdirSync(dirname(path), { recursive: true });
+  const observedDigests = buildInputDigestByGroup({ root, groups });
+  if (verifiedInputDigestByGroup) {
+    const drifted = Object.keys(observedDigests).filter(
+      (id) =>
+        verifiedInputDigestByGroup[id] !== undefined &&
+        verifiedInputDigestByGroup[id] !== observedDigests[id]
+    );
+    if (drifted.length > 0) {
+      // Fail closed. Stamping here is exactly the second false-green: source
+      // mutated after its group built, recorded as though it had been verified.
+      throw new Error(
+        `refusing to stamp: build inputs changed during the build for ${drifted.join(', ')}`
+      );
+    }
+  }
   const payload = {
     schemaVersion: 'holoscript.local-mcp-build-stamp.v1',
     kind: 'HoloScriptLocalMcpBuildStamp',
     gitHead,
     verifiedAt: new Date().toISOString(),
     builtGroups,
+    // Content identity is the authority; mtimes are retained as a diagnostic.
+    inputDigestByGroup: observedDigests,
     inputMtimeMsByGroup: Object.fromEntries(
-      BUILD_GROUPS.map((group) => {
+      groups.map((group) => {
         const freshness = buildGroupFreshness(group, { root });
         return [group.id, freshness.newestInputMtimeMs];
       })
@@ -658,12 +766,21 @@ function ensureBuild({ noBuild = false } = {}) {
       buildGroupFreshness(group),
     ])
   );
+  // Captured BEFORE any build runs, so the stamp can only ever record bytes the
+  // build actually consumed.
+  const preBuildDigestByGroup = buildInputDigestByGroup();
   const mtimeStale = BUILD_GROUPS.filter((group) => {
     const freshness = freshnessByGroup.get(group);
-    return (
-      freshness?.stale === true &&
-      (commitStale.includes(group) || !buildStampCoversInput(freshness, existingStamp))
+    if (!freshness) return false;
+    const covered = buildStampCoversInput(
+      freshness,
+      existingStamp,
+      preBuildDigestByGroup[group.id]
     );
+    // A preserved or backdated mtime can hide changed bytes, so a digest that
+    // does not match the stamp makes the group stale even when it looks fresh.
+    if (!covered) return true;
+    return freshness.stale === true && commitStale.includes(group);
   });
   // A first-run import probe proves only that the old JavaScript is loadable.
   // Rebuild the two sovereign transport owners once so a copied checkout with
@@ -710,6 +827,7 @@ function ensureBuild({ noBuild = false } = {}) {
       builtGroups: rebuiltAllAfterProbeFailure
         ? BUILD_GROUPS.map((group) => group.id)
         : stale.map((group) => group.id),
+      verifiedInputDigestByGroup: preBuildDigestByGroup,
     });
   } catch (error) {
     stderr(

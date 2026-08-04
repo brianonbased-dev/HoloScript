@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-30T17:12:08Z",
+  "generatedAt": "2026-08-03T01:25:45Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "cf1c0c596b79128ffc7e885758000d36fc891c2d",
+  "sourceCommit": "8365173d41685ca8447640d5e0b17485167e79b0",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 523870,
-    "wasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
-    "previousWasmSha256": "4282e6b0ffa193b97bf4f4e52acd1ae27d4b06d9b3633c7ef30b5dc2f5a9a35d",
+    "wasmBytes": 515702,
+    "wasmSha256": "2c2e9d8e410b2829a1a7c78e4a5a79d0a069013dfc15ca8c994c18cb648745e8",
+    "previousWasmSha256": "fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
     "repeatBuildSha256Matched": true,
-    "note": "Clean HoloRepo-candidate rebuild adding bounds-checked runtime indexing for flat homogeneous scalar aggregate values. The List3<i32> std ABI uses read-only dynamic projection while heterogeneous layouts, indexed mutation, and out-of-bounds access fail closed. A repeat Node build reproduced the SHA-256, and both web builds from the same source were byte-identical."
+    "note": "Clean current-canon rebuild after the hs-machine-v42 parser/source promotion. wasm-pack nodejs release output reproduced the current compiler-wasm source and the generated WASM digest is pinned here."
   }
 }

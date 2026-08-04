@@ -52,7 +52,7 @@ import type { EmbeddingRefreshReceipt } from '../engine/EmbeddingIndex';
 import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
 import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
-import { detectLanguage } from '../engine/adapters';
+import { detectLanguage, getSupportedLanguages } from '../engine/adapters';
 import { auditHoloAbsorbManifest, buildHoloAbsorbManifest } from '../holoabsorb/index';
 
 // =============================================================================
@@ -2646,7 +2646,10 @@ interface NormalizedCoveragePolicy {
   suffixes: string[];
   pathFragments: string[];
   nameFragments: string[];
+  /** Detection-space ids (see resolveLanguageFilter), not raw caller ids. */
   languages: Set<string> | null;
+  /** Extension narrowing implied by sub-language ids such as `javascript`. */
+  languageExtensions: Set<string> | null;
   includeHidden: boolean;
   includeBuildArtifacts: boolean;
   respectGitIgnore: boolean;
@@ -3071,8 +3074,110 @@ function addCoverageNameOrPath(
   names.add(name);
 }
 
+/*
+ * Coverage policy language ids were compared straight against detectLanguage(),
+ * but those are two DIFFERENT id spaces.
+ *
+ * language-registry.json advertises `javascript` as a supported language with
+ * `.js/.jsx/.mjs/.cjs`. The runtime disagrees: LANGUAGE_TRAITS ships no
+ * javascript adapter, the typescript trait claims those extensions, and
+ * getSupportedLanguages() returns go, python, ruby, rust, typescript,
+ * holoscript. Verified live: detectLanguage() returns 'typescript' for every
+ * one of .js/.jsx/.mjs/.cjs/.ts/.tsx.
+ *
+ * So `languages: ['javascript']` — a value the registry says is valid —
+ * excluded EVERY file as languageFilter. Zero candidates then made
+ * expectedGraphFileCount zero, and `complete = graphFileCount >= 0` is
+ * vacuously true with ratio 1, so an EMPTY graph became authoritative for an
+ * advertised language (task_1785348595166_b6ob).
+ *
+ * Fix at the policy boundary: resolve caller ids into the detection id space,
+ * carry the extension narrowing that a sub-language id implies, and reject ids
+ * that resolve to nothing rather than silently filtering everything away.
+ */
+/**
+ * True when a scan selected zero candidates out of a NON-empty repository.
+ *
+ * Completeness is computed as `graphFileCount >= expectedGraphFileCount`, which
+ * is vacuously satisfied at zero. Without this guard an over-narrow filter
+ * publishes an empty graph as authoritative with ratio 1.
+ */
+export function isVacuousCoverage(
+  expectedGraphFileCount: number,
+  gitVisibleFileCount: number
+): boolean {
+  return expectedGraphFileCount === 0 && gitVisibleFileCount > 0;
+}
+
+const LANGUAGE_ID_ALIASES: Record<string, { canonical: string; extensions: string[] }> = {
+  javascript: {
+    canonical: 'typescript',
+    extensions: ['.js', '.jsx', '.mjs', '.cjs'],
+  },
+};
+
+export interface ResolvedLanguageFilter {
+  /** Detection-space ids to compare against detectLanguage(). */
+  canonical: Set<string>;
+  /**
+   * Extension allowlist, when EVERY requested id narrowed to specific
+   * extensions. Null means "no extension narrowing" so the adapter's full
+   * extension set is accepted.
+   */
+  extensions: Set<string> | null;
+  unknown: string[];
+}
+
+export function resolveLanguageFilter(
+  languages: readonly string[] | null | undefined,
+  supportedLanguages: readonly string[]
+): ResolvedLanguageFilter | null {
+  if (!languages || languages.length === 0) return null;
+  const supported = new Set(supportedLanguages.map((id) => id.toLowerCase()));
+  const canonical = new Set<string>();
+  const extensions = new Set<string>();
+  const unknown: string[] = [];
+  let everyRequestNarrowed = true;
+
+  for (const raw of languages) {
+    const id = String(raw || '').trim().toLowerCase();
+    if (!id) continue;
+    const alias = LANGUAGE_ID_ALIASES[id];
+    if (alias) {
+      canonical.add(alias.canonical);
+      for (const ext of alias.extensions) extensions.add(ext);
+      continue;
+    }
+    if (supported.has(id)) {
+      canonical.add(id);
+      // A first-class id accepts everything its adapter claims, so no narrowing.
+      everyRequestNarrowed = false;
+      continue;
+    }
+    unknown.push(id);
+  }
+
+  return {
+    canonical,
+    extensions: everyRequestNarrowed && extensions.size > 0 ? extensions : null,
+    unknown,
+  };
+}
+
 function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoveragePolicy {
   const receipt = normalizeScanPolicy(policy);
+  const resolvedLanguages = resolveLanguageFilter(receipt.languages, getSupportedLanguages());
+  if (resolvedLanguages && resolvedLanguages.unknown.length > 0) {
+    // Fail closed. An unrecognised id used to filter every file away and then
+    // report vacuous complete coverage, which is worse than an error.
+    throw new Error(
+      `unknown scan language id(s): ${resolvedLanguages.unknown.join(', ')}. `
+        + `supported: ${[...getSupportedLanguages(), ...Object.keys(LANGUAGE_ID_ALIASES)].sort().join(', ')}`
+    );
+  }
+  if (resolvedLanguages && resolvedLanguages.canonical.size === 0) {
+    throw new Error('scan language filter resolved to no languages');
+  }
   const names = new Set<string>();
   const suffixes: string[] = [];
   const pathFragments: string[] = [];
@@ -3102,7 +3207,8 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
     suffixes: Array.from(new Set(suffixes)),
     pathFragments: Array.from(new Set(pathFragments)),
     nameFragments: Array.from(new Set(nameFragments)),
-    languages: receipt.languages ? new Set(receipt.languages) : null,
+    languages: resolvedLanguages ? resolvedLanguages.canonical : null,
+    languageExtensions: resolvedLanguages ? resolvedLanguages.extensions : null,
     includeHidden: receipt.includeHidden === true,
     includeBuildArtifacts,
     respectGitIgnore: receipt.respectGitIgnore !== false,
@@ -3146,6 +3252,13 @@ function coveragePathExclusionReason(
 
   const language = detectLanguage(filePath) || 'plaintext';
   if (policy.languages && !policy.languages.has(language)) return 'languageFilter';
+  // A sub-language id such as `javascript` shares its adapter with typescript,
+  // so the canonical id alone cannot narrow the request. Apply the extension
+  // allowlist it implies, keeping a JavaScript-only scan to .js/.jsx/.mjs/.cjs.
+  if (policy.languageExtensions) {
+    const extWithDot = dot >= 0 ? basename.slice(dot) : '';
+    if (!policy.languageExtensions.has(extWithDot)) return 'languageFilter';
+  }
   return null;
 }
 
@@ -3311,7 +3424,11 @@ function buildGraphCoverageStatus(
   }
   const complete =
     safeGraphFileCount >= expectedGraphFileCount &&
-    (exactFileSetMatch === undefined || exactFileSetMatch);
+    (exactFileSetMatch === undefined || exactFileSetMatch) &&
+    // `count >= 0` is vacuously true, so a filter that excluded every file used
+    // to report complete coverage over an EMPTY graph. Coverage of nothing is
+    // not completeness when the repository itself is non-empty.
+    !isVacuousCoverage(expectedGraphFileCount, workspaceCandidates.gitVisibleFileCount);
   const extraGraphFiles = exactFileSetChecked
     ? unexpectedGraphFilePaths.length
     : Math.max(0, safeGraphFileCount - expectedGraphFileCount);
@@ -3424,7 +3541,11 @@ function buildGraphCoverageStatusForRoots(
 
   const selectedCandidateCount = policy.includeUntracked ? workspace.size : tracked.size;
   const expectedGraphFileCount = Math.min(selectedCandidateCount, policy.maxFiles);
-  const complete = safeGraphFileCount >= expectedGraphFileCount;
+  // Same vacuous-completeness guard as the single-root path above: an
+  // over-narrow filter must not publish an empty graph as authoritative.
+  const complete =
+    safeGraphFileCount >= expectedGraphFileCount &&
+    !isVacuousCoverage(expectedGraphFileCount, workspaceGitVisibleFileCount);
   const extraGraphFiles = Math.max(0, safeGraphFileCount - expectedGraphFileCount);
   return {
     available: true,

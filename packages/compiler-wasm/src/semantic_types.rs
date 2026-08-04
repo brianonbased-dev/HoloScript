@@ -384,7 +384,9 @@ impl TypeChecker {
                     "+" if is_string_evidence(&left) || is_string_evidence(&right) => {
                         TypeEvidence::Known("string".to_string())
                     }
-                    "+" | "-" | "*" | "/" | "%" => numeric_result_evidence(&left, &right),
+                    "+" | "-" | "*" | "/" | "%" | "&" | "|" | "^" | "<<" | ">>" => {
+                        numeric_result_evidence(&left, &right)
+                    }
                     "??" => match left {
                         TypeEvidence::Unknown | TypeEvidence::Null => right,
                         known => known,
