@@ -91,6 +91,12 @@ export const AGENT_AVATAR_HAIR_STYLES = [
   'long',
   'swept_ridge',
   'cropped_coils',
+  'structured_updo',
+  'weathered_waves',
+  'braided_crown',
+  'silver_curls',
+  'asymmetric_crop',
+  'high_bun',
 ] as const;
 
 export type AgentAvatarHairStyle = (typeof AGENT_AVATAR_HAIR_STYLES)[number];
@@ -102,6 +108,7 @@ export const AGENT_AVATAR_GROOM_PROFILES = [
   'scalp-flow-breakup-v3',
   'scalp-flow-portrait-v4',
   'scalp-flow-volume-v5',
+  'scalp-flow-density-v6',
 ] as const;
 
 export type AgentAvatarGroomProfile = (typeof AGENT_AVATAR_GROOM_PROFILES)[number];
@@ -114,7 +121,8 @@ export const AGENT_AVATAR_HAIR_COVERAGE_PROFILES = [
 export interface AgentAvatarHairMaterialReceipt {
   schemaVersion:
     | 'holoscript.agent-avatar-hair-material.v1'
-    | 'holoscript.agent-avatar-hair-material.v2';
+    | 'holoscript.agent-avatar-hair-material.v2'
+    | 'holoscript.agent-avatar-hair-material.v3';
   shadingModel: 'marschner-hair';
   /** Exact source-authored 0xRRGGBB hair chroma when the v2 material path is active. */
   sourceColor?: number;
@@ -130,6 +138,10 @@ export interface AgentAvatarHairMaterialReceipt {
   tangentAttribute: 'strand-flow';
   cardUvAttribute: 'card-width';
   alphaToCoverageRequested: boolean;
+  /** H4J layered opacity and root-occlusion response over the A2C card path. */
+  densityProfile?: 'layered-card-density-v1';
+  densityStrength?: number;
+  rootShadowStrength?: number;
 }
 
 export interface AgentAvatarGroomGeometryReceipt {
@@ -138,7 +150,8 @@ export interface AgentAvatarGroomGeometryReceipt {
     | 'holoscript.agent-avatar-groom-geometry.v2'
     | 'holoscript.agent-avatar-groom-geometry.v3'
     | 'holoscript.agent-avatar-groom-geometry.v4'
-    | 'holoscript.agent-avatar-groom-geometry.v5';
+    | 'holoscript.agent-avatar-groom-geometry.v5'
+    | 'holoscript.agent-avatar-groom-geometry.v6';
   profile: AgentAvatarGroomProfile;
   rootLift: number;
   tipTaper: number;
@@ -182,6 +195,19 @@ export interface AgentAvatarGroomGeometryReceipt {
   massCardCount?: number;
   /** Maximum source-independent cap lift in metres after build scaling is removed. */
   scalpCapMaxLift?: number;
+  /** H4J three-axis undercoat cards added below the broad silhouette locks. */
+  densityLayerProfile?: 'cross-card-undercoat-v1';
+  densityLayerCardCount?: number;
+  /** Art-directed silhouette feature that must alter emitted geometry, not only metadata. */
+  styleFeatureProfile?:
+    | 'stacked-updo-mass-v1'
+    | 'weathered-wave-beard-v1'
+    | 'braided-crown-loop-v1'
+    | 'silver-curl-clusters-v1'
+    | 'asymmetric-length-field-v1'
+    | 'high-bun-mass-v1';
+  styleFeatureVertexCount?: number;
+  styleFeatureTriangleCount?: number;
   /** Source-derived native shading/coverage contract joined by CharacterHost. */
   material?: AgentAvatarHairMaterialReceipt;
 }
@@ -260,6 +286,78 @@ const HAIR_STYLE_PROFILES: Record<AgentAvatarHairStyle, HairStyleProfile> = {
     sweepX: 0,
     sweepZ: 0,
   },
+  structured_updo: {
+    guides: 180,
+    cardsPerGuide: 2,
+    segments: 7,
+    cardWidth: 0.011,
+    length: 0.15,
+    gravityBlend: 0.5,
+    waveAmplitude: 0.08,
+    waveTurns: 1.2,
+    sweepX: -0.08,
+    sweepZ: -0.12,
+  },
+  weathered_waves: {
+    guides: 168,
+    cardsPerGuide: 2,
+    segments: 8,
+    cardWidth: 0.013,
+    length: 0.22,
+    gravityBlend: 0.88,
+    waveAmplitude: 0.24,
+    waveTurns: 1.8,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+  braided_crown: {
+    guides: 190,
+    cardsPerGuide: 2,
+    segments: 7,
+    cardWidth: 0.01,
+    length: 0.14,
+    gravityBlend: 0.46,
+    waveAmplitude: 0.12,
+    waveTurns: 2.2,
+    sweepX: 0,
+    sweepZ: -0.08,
+  },
+  silver_curls: {
+    guides: 196,
+    cardsPerGuide: 2,
+    segments: 8,
+    cardWidth: 0.011,
+    length: 0.12,
+    gravityBlend: 0.38,
+    waveAmplitude: 0.4,
+    waveTurns: 3.2,
+    sweepX: 0,
+    sweepZ: 0,
+  },
+  asymmetric_crop: {
+    guides: 154,
+    cardsPerGuide: 2,
+    segments: 6,
+    cardWidth: 0.013,
+    length: 0.16,
+    gravityBlend: 0.52,
+    waveAmplitude: 0.1,
+    waveTurns: 1.1,
+    sweepX: 0.55,
+    sweepZ: -0.1,
+  },
+  high_bun: {
+    guides: 176,
+    cardsPerGuide: 2,
+    segments: 7,
+    cardWidth: 0.011,
+    length: 0.16,
+    gravityBlend: 0.46,
+    waveAmplitude: 0.06,
+    waveTurns: 1.1,
+    sweepX: 0.04,
+    sweepZ: -0.14,
+  },
 };
 
 const HAIR_STYLE_ALIASES: Readonly<Record<string, AgentAvatarHairStyle>> = {
@@ -274,6 +372,18 @@ const HAIR_STYLE_ALIASES: Readonly<Record<string, AgentAvatarHairStyle>> = {
   swept_ridge: 'swept_ridge',
   cropped_coils: 'cropped_coils',
   coils: 'cropped_coils',
+  structured_updo: 'structured_updo',
+  updo: 'structured_updo',
+  weathered_waves: 'weathered_waves',
+  weathered: 'weathered_waves',
+  braided_crown: 'braided_crown',
+  crown_braids: 'braided_crown',
+  silver_curls: 'silver_curls',
+  curls: 'silver_curls',
+  asymmetric_crop: 'asymmetric_crop',
+  side_crop: 'asymmetric_crop',
+  high_bun: 'high_bun',
+  bun: 'high_bun',
 };
 
 const GROOM_PROFILE_ALIASES: Readonly<Record<string, AgentAvatarGroomProfile>> = {
@@ -293,6 +403,9 @@ const GROOM_PROFILE_ALIASES: Readonly<Record<string, AgentAvatarGroomProfile>> =
   scalp_flow_volume_v5: 'scalp-flow-volume-v5',
   scalp_flow_volume: 'scalp-flow-volume-v5',
   volume: 'scalp-flow-volume-v5',
+  scalp_flow_density_v6: 'scalp-flow-density-v6',
+  scalp_flow_density: 'scalp-flow-density-v6',
+  density: 'scalp-flow-density-v6',
 };
 
 const HAIR_COVERAGE_PROFILE_ALIASES: Readonly<Record<string, HairCoverageProfile>> = {
@@ -403,14 +516,16 @@ const p95 = (values: number[]): number => {
 export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   const bs = o.buildScale ?? 1;
   const hScale = o.heightScale ?? 1;
-  const profile = HAIR_STYLE_PROFILES[o.style ?? 'medium_wavy'];
+  const selectedStyle = o.style ?? 'medium_wavy';
+  const profile = HAIR_STYLE_PROFILES[selectedStyle];
   const guideCount = o.guides ?? profile.guides;
   const cardsPerGuide = o.cardsPerGuide ?? profile.cardsPerGuide;
   const segs = o.segments ?? profile.segments;
   const cardW = (o.cardWidth ?? profile.cardWidth) * bs;
   const tipLen = (o.length ?? profile.length) * bs;
   const groomProfile = o.groomProfile ?? 'radial-cards-v1';
-  const massedSilhouette = groomProfile === 'scalp-flow-volume-v5';
+  const layeredDensity = groomProfile === 'scalp-flow-density-v6';
+  const massedSilhouette = groomProfile === 'scalp-flow-volume-v5' || layeredDensity;
   const portraitFraming = groomProfile === 'scalp-flow-portrait-v4' || massedSilhouette;
   const breakup = groomProfile === 'scalp-flow-breakup-v3' || portraitFraming;
   const containment = groomProfile === 'scalp-flow-containment-v2' || breakup;
@@ -469,6 +584,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   let massGuideCount = 0;
   let massCardCount = 0;
   let scalpCapMaxLift = 0;
+  let styleFeatureVertexCount = 0;
+  let styleFeatureTriangleCount = 0;
+  let styleFeatureProfile: AgentAvatarGroomGeometryReceipt['styleFeatureProfile'];
 
   const scalpMetric = (position: Vec3, clearance = 0): number => {
     const rel = sub(position, center);
@@ -517,13 +635,76 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     }
   };
 
+  const pushStyleStrip = (curve: Vec3[], width: number): void => {
+    if (curve.length < 2) return;
+    const vertexStart = positions.length / 3;
+    const triangleStart = indices.length / 3;
+    const base = positions.length / 3;
+    for (let point = 0; point < curve.length; point++) {
+      const flow =
+        point < curve.length - 1
+          ? nrm(sub(curve[point + 1], curve[point]))
+          : nrm(sub(curve[point], curve[point - 1]));
+      const outward = nrm(sub(curve[point], center));
+      const firstRight = cross(flow, outward);
+      const right = len(firstRight) > 1e-6 ? nrm(firstRight) : nrm(cross(flow, v(0, 0, 1)));
+      const faceNormal = nrm(cross(right, flow));
+      const strandT = point / (curve.length - 1);
+      const pointWidth = width * (1 - strandT * 0.3);
+      for (const side of [-1, 1] as const) {
+        pushHairVertex(
+          add(curve[point], scl(right, side * pointWidth * 0.5)),
+          faceNormal,
+          flow,
+          strandT,
+          side < 0 ? 0 : 1,
+          strandT
+        );
+      }
+      if (point < curve.length - 1) {
+        const offset = base + point * 2;
+        indices.push(offset, offset + 1, offset + 2, offset + 1, offset + 3, offset + 2);
+      }
+    }
+    styleFeatureVertexCount += positions.length / 3 - vertexStart;
+    styleFeatureTriangleCount += indices.length / 3 - triangleStart;
+  };
+
+  const pushEllipsoidHairMass = (
+    massCenter: Vec3,
+    radii: Vec3,
+    stripCount: number,
+    pointCount: number,
+    width: number
+  ): void => {
+    for (let strip = 0; strip < stripCount; strip++) {
+      const longitude = (strip / stripCount) * Math.PI * 2;
+      const curve: Vec3[] = [];
+      for (let point = 0; point < pointCount; point++) {
+        const latitude = -Math.PI * 0.5 + (point / (pointCount - 1)) * Math.PI;
+        const ring = Math.cos(latitude);
+        curve.push(
+          add(
+            massCenter,
+            v(
+              radii.x * ring * Math.cos(longitude),
+              radii.y * Math.sin(latitude),
+              radii.z * ring * Math.sin(longitude)
+            )
+          )
+        );
+      }
+      pushStyleStrip(curve, width);
+    }
+  };
+
   if (scalpFlow) {
     const radialSegments = 28;
     const rings = 7;
     const capLift = rootLift * 0.45;
     const capClumpCount =
       clusterCount >= 5 ? Math.min(5, Math.max(3, Math.round(clusterCount / 2))) : 4;
-    const topMassLift = massedSilhouette ? 0.012 * bs : 0;
+    const topMassLift = massedSilhouette ? (layeredDensity ? 0.0075 : 0.012) * bs : 0;
     scalpCapMaxLift = capLift + topMassLift;
     const topFlow = v(0, 0, -1);
     pushHairVertex(
@@ -554,7 +735,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
         const phi = maxPhi * ringT;
         const clumpWave = 0.5 + 0.5 * Math.sin(theta * capClumpCount + ringT * 2.1);
         const massLift = massedSilhouette
-          ? (0.006 + clumpWave * 0.008) * (1 - ringT * 0.3) * bs
+          ? layeredDensity
+            ? (0.004 + clumpWave * 0.005) * (1 - ringT * 0.3) * bs
+            : (0.006 + clumpWave * 0.008) * (1 - ringT * 0.3) * bs
           : 0;
         scalpCapMaxLift = Math.max(scalpCapMaxLift, capLift + massLift);
         const dir = v(
@@ -606,8 +789,12 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   if (massedSilhouette && neutralScalp) {
     const massGuideBudget = Math.min(24, Math.max(12, Math.round(guideCount / 8)));
     const massSegments = 5;
-    const massLength = Math.min(tipLen * 0.52, 0.065 * bs);
-    const massWidth = Math.max(cardW * 3.4, 0.018 * bs);
+    const massLength = layeredDensity
+      ? Math.min(tipLen * 0.42, 0.045 * bs)
+      : Math.min(tipLen * 0.52, 0.065 * bs);
+    const massWidth = layeredDensity
+      ? Math.max(cardW * 2.5, 0.013 * bs)
+      : Math.max(cardW * 3.4, 0.018 * bs);
     for (let guide = 0; guide < massGuideBudget; guide++) {
       const guideT = massGuideBudget <= 1 ? 0 : guide / (massGuideBudget - 1);
       const phi = 0.2 + guideT * 0.92;
@@ -619,7 +806,10 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
       );
       if (dir.z > 0.08 && dir.y < 0.78 + hairlineBias * 0.55) continue;
       const rootNormal = scalpNormal(dir);
-      const ridge = (0.008 + 0.005 * (0.5 + 0.5 * Math.sin(theta * 3.0))) * bs;
+      const ridge =
+        (layeredDensity
+          ? 0.004 + 0.003 * (0.5 + 0.5 * Math.sin(theta * 3.0))
+          : 0.008 + 0.005 * (0.5 + 0.5 * Math.sin(theta * 3.0))) * bs;
       const root = scalpPoint(dir, rootLift + ridge);
       const side = nrm(cross(rootNormal, v(0, 1, 0)));
       const authoredBack = v(profile.sweepX * 0.45, -0.24, -1 + profile.sweepZ);
@@ -641,8 +831,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
           )
         );
       }
-      for (let card = 0; card < 2; card++) {
-        const roll = card * Math.PI * 0.5;
+      const massCardsPerGuide = layeredDensity ? 3 : 2;
+      for (let card = 0; card < massCardsPerGuide; card++) {
+        const roll = (card / massCardsPerGuide) * Math.PI;
         const base = positions.length / 3;
         for (let segment = 0; segment < massSegments; segment++) {
           const p = curve[segment];
@@ -656,7 +847,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
           );
           const faceNormal = nrm(cross(right, flow));
           const strandT = segment / (massSegments - 1);
-          const width = massWidth * (1 - strandT * 0.55);
+          const width = massWidth * (1 - strandT * (layeredDensity ? 0.32 : 0.55));
           for (const edge of [-1, 1] as const) {
             pushHairVertex(
               add(p, scl(right, edge * width * 0.5)),
@@ -704,6 +895,9 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
 
     // Guide curve: hug the skull at the root, fall under gravity toward the tip.
     const curve: Vec3[] = [];
+    const styleLengthScale =
+      selectedStyle === 'asymmetric_crop' ? clamp(0.85 + dir.x * 0.55, 0.3, 1.4) : 1;
+    const guideTipLength = tipLen * styleLengthScale;
     const side = nrm(cross(rootNormal, v(0, 1, 0)));
     const authoredBack = v(profile.sweepX * 0.45, -0.32, -1 + profile.sweepZ);
     const projectedBack = sub(authoredBack, scl(rootNormal, dot(authoredBack, rootNormal)));
@@ -734,7 +928,7 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
             scl(side, wave)
           );
       const flow = nrm(styledFlow);
-      curve.push(i === 0 ? root : add(curve[i - 1], scl(flow, tipLen / (segs - 1))));
+      curve.push(i === 0 ? root : add(curve[i - 1], scl(flow, guideTipLength / (segs - 1))));
     }
     if (curve.length > 1) {
       rootTangentRadialDots.push(Math.abs(dot(nrm(sub(curve[1], curve[0])), rootNormal)));
@@ -769,6 +963,132 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
           indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
         }
       }
+    }
+  }
+
+  if (neutralScalp) {
+    if (selectedStyle === 'structured_updo') {
+      styleFeatureProfile = 'stacked-updo-mass-v1';
+      pushEllipsoidHairMass(
+        add(center, v(-0.012 * bs, scalpRadius.y * 0.92, -0.018 * bs)),
+        v(0.047 * bs, 0.058 * bs, 0.044 * bs),
+        24,
+        9,
+        0.016 * bs
+      );
+      pushEllipsoidHairMass(
+        add(center, v(0.012 * bs, scalpRadius.y * 1.31, -0.022 * bs)),
+        v(0.036 * bs, 0.043 * bs, 0.035 * bs),
+        22,
+        9,
+        0.014 * bs
+      );
+    } else if (selectedStyle === 'high_bun') {
+      styleFeatureProfile = 'high-bun-mass-v1';
+      pushEllipsoidHairMass(
+        add(center, v(0, scalpRadius.y * 1.2, -0.022 * bs)),
+        v(0.056 * bs, 0.066 * bs, 0.052 * bs),
+        28,
+        10,
+        0.016 * bs
+      );
+    } else if (selectedStyle === 'braided_crown') {
+      styleFeatureProfile = 'braided-crown-loop-v1';
+      pushEllipsoidHairMass(
+        add(center, v(0, scalpRadius.y * 0.82, -0.026 * bs)),
+        v(0.05 * bs, 0.056 * bs, 0.048 * bs),
+        24,
+        9,
+        0.014 * bs
+      );
+      for (let strand = 0; strand < 3; strand++) {
+        const curve: Vec3[] = [];
+        for (let point = 0; point <= 36; point++) {
+          const angle = (point / 36) * Math.PI * 2;
+          const braidPhase = angle * 9 + (strand / 3) * Math.PI * 2;
+          curve.push(
+            add(
+              center,
+              v(
+                (scalpRadius.x * 0.88 + Math.cos(braidPhase) * 0.0045 * bs) * Math.cos(angle),
+                scalpRadius.y * 0.55 + Math.sin(braidPhase) * 0.005 * bs,
+                (scalpRadius.z * 0.9 + Math.cos(braidPhase) * 0.0045 * bs) * Math.sin(angle)
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.012 * bs);
+      }
+    } else if (selectedStyle === 'weathered_waves') {
+      styleFeatureProfile = 'weathered-wave-beard-v1';
+      for (let lock = 0; lock < 25; lock++) {
+        const lateral = -1 + (lock / 24) * 2;
+        const curve: Vec3[] = [];
+        for (let point = 0; point < 7; point++) {
+          const strandT = point / 6;
+          curve.push(
+            add(
+              center,
+              v(
+                lateral * scalpRadius.x * (0.54 - strandT * 0.18),
+                -scalpRadius.y * (0.26 + strandT * (0.48 + 0.12 * (1 - Math.abs(lateral)))),
+                scalpRadius.z * (0.9 - strandT * 0.2) +
+                  Math.sin(strandT * Math.PI * 2 + lock) * 0.003 * bs
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.012 * bs);
+      }
+      for (const side of [-1, 1] as const) {
+        const curve: Vec3[] = [];
+        for (let point = 0; point < 7; point++) {
+          const strandT = point / 6;
+          curve.push(
+            add(
+              center,
+              v(
+                side * scalpRadius.x * (0.03 + strandT * 0.46),
+                -scalpRadius.y * (0.31 + strandT * 0.04),
+                scalpRadius.z * (0.925 - strandT * 0.035)
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.011 * bs);
+      }
+    } else if (selectedStyle === 'silver_curls') {
+      styleFeatureProfile = 'silver-curl-clusters-v1';
+      for (let lock = 0; lock < 30; lock++) {
+        const azimuth = lock * 2.399963;
+        const dir = nrm(
+          v(Math.cos(azimuth) * 0.72, 0.55 + (lock % 3) * 0.12, Math.sin(azimuth) * 0.72)
+        );
+        const root = scalpPoint(dir, rootLift + 0.003 * bs);
+        const tangent = nrm(cross(dir, v(0, 1, 0)));
+        const curve: Vec3[] = [];
+        for (let point = 0; point < 7; point++) {
+          const strandT = point / 6;
+          const turn = strandT * Math.PI * 3;
+          curve.push(
+            add(
+              root,
+              add(
+                v(0, -0.035 * bs * strandT, 0),
+                add(
+                  scl(tangent, Math.cos(turn) * 0.005 * bs),
+                  scl(dir, Math.sin(turn) * 0.005 * bs)
+                )
+              )
+            )
+          );
+        }
+        pushStyleStrip(curve, 0.008 * bs);
+      }
+    } else if (selectedStyle === 'asymmetric_crop') {
+      styleFeatureProfile = 'asymmetric-length-field-v1';
+      styleFeatureVertexCount = emittedGuideCount * cardsPerGuide * segs * 2;
+      styleFeatureTriangleCount = emittedGuideCount * cardsPerGuide * (segs - 1) * 2;
     }
   }
 
@@ -891,15 +1211,17 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
     jointWeights: new Float32Array(jw),
     vertexCount: positions.length / 3,
     groom: {
-      schemaVersion: massedSilhouette
-        ? 'holoscript.agent-avatar-groom-geometry.v5'
-        : portraitFraming
-          ? 'holoscript.agent-avatar-groom-geometry.v4'
-          : breakup
-            ? 'holoscript.agent-avatar-groom-geometry.v3'
-            : containment
-              ? 'holoscript.agent-avatar-groom-geometry.v2'
-              : 'holoscript.agent-avatar-groom-geometry.v1',
+      schemaVersion: layeredDensity
+        ? 'holoscript.agent-avatar-groom-geometry.v6'
+        : massedSilhouette
+          ? 'holoscript.agent-avatar-groom-geometry.v5'
+          : portraitFraming
+            ? 'holoscript.agent-avatar-groom-geometry.v4'
+            : breakup
+              ? 'holoscript.agent-avatar-groom-geometry.v3'
+              : containment
+                ? 'holoscript.agent-avatar-groom-geometry.v2'
+                : 'holoscript.agent-avatar-groom-geometry.v1',
       profile: groomProfile,
       rootLift: rootLift / bs,
       tipTaper,
@@ -946,6 +1268,19 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
             scalpCapMaxLift: scalpCapMaxLift / bs,
           }
         : {}),
+      ...(layeredDensity
+        ? {
+            densityLayerProfile: 'cross-card-undercoat-v1' as const,
+            densityLayerCardCount: massCardCount,
+          }
+        : {}),
+      ...(styleFeatureProfile
+        ? {
+            styleFeatureProfile,
+            styleFeatureVertexCount,
+            styleFeatureTriangleCount,
+          }
+        : {}),
     },
   };
 }
@@ -962,6 +1297,7 @@ export function buildAgentAvatarEyes(
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
     eyeScale?: number;
+    eyeSpacing?: AgentAvatarMeshOptions['eyeSpacing'];
     faceWidth?: AgentAvatarMeshOptions['faceWidth'];
   } = {}
 ): HairMeshData {
@@ -976,10 +1312,12 @@ export function buildAgentAvatarEyes(
   const recessed =
     o.orbitalProfile === 'recessed-lids-v1' ||
     o.orbitalProfile === 'anatomical-lid-fold-v2' ||
-    o.orbitalProfile === 'anatomical-lid-blend-v3';
+    o.orbitalProfile === 'anatomical-lid-blend-v3' ||
+    o.orbitalProfile === 'integrated-lid-rim-v4';
   const eyeRecess = recessed ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - r * eyeRecess;
-  const eyeX = 0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2);
+  const eyeX =
+    0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2) * clamp(o.eyeSpacing ?? 1, 0.82, 1.2);
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
 
   const positions: number[] = [];
@@ -1047,6 +1385,7 @@ export function buildAgentAvatarOcularRegions(
     orbitalProfile?: AgentAvatarMeshOptions['orbitalProfile'];
     eyeRecess?: number;
     eyeScale?: number;
+    eyeSpacing?: AgentAvatarMeshOptions['eyeSpacing'];
     faceWidth?: AgentAvatarMeshOptions['faceWidth'];
     irisScale?: number;
     pupilScale?: number;
@@ -1065,10 +1404,12 @@ export function buildAgentAvatarOcularRegions(
   const recessed =
     o.orbitalProfile === 'recessed-lids-v1' ||
     o.orbitalProfile === 'anatomical-lid-fold-v2' ||
-    o.orbitalProfile === 'anatomical-lid-blend-v3';
+    o.orbitalProfile === 'anatomical-lid-blend-v3' ||
+    o.orbitalProfile === 'integrated-lid-rim-v4';
   const eyeRecess = recessed ? Math.max(0, Math.min(0.45, o.eyeRecess ?? 0.28)) : 0;
   const eyeZ = head.z + headR * (anatomical ? 0.91 : 0.85) - radius * eyeRecess;
-  const eyeX = 0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2);
+  const eyeX =
+    0.035 * bs * clamp(o.faceWidth ?? 1, 0.84, 1.2) * clamp(o.eyeSpacing ?? 1, 0.82, 1.2);
   const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
   const irisScale = Math.max(0.34, Math.min(0.62, o.irisScale ?? 0.48));
   const pupilScale = Math.max(0.2, Math.min(0.72, o.pupilScale ?? 0.42));
@@ -1322,6 +1663,8 @@ export interface CharacterMeshData {
   ocular?: AgentAvatarOcularGeometryReceipt;
   ocularProfile: AgentAvatarOcularProfile;
   orbital: AgentAvatarMeshData['orbital'];
+  /** H4J analytic body/head UV atlas receipt, present only when explicitly authored. */
+  skinUv?: AgentAvatarSkinUvReceipt;
   bodyVertexRange: { vertexStart: number; vertexCount: number };
   hairVertexRange: { vertexStart: number; vertexCount: number };
   eyeVertexRange: { vertexStart: number; vertexCount: number };
@@ -1338,6 +1681,71 @@ export interface CharacterMeshData {
   mantleRange: { indexStart: number; indexCount: number };
   /** One authored mobility value per combined mesh vertex for deterministic cloth dynamics. */
   clothSimulationWeights: Float32Array<ArrayBuffer>;
+}
+
+export type AgentAvatarSkinUvProfile = 'portrait-atlas-v1';
+
+export interface AgentAvatarSkinUvReceipt {
+  schemaVersion: 'holoscript.agent-avatar-skin-uv.v1';
+  profile: AgentAvatarSkinUvProfile;
+  vertexCount: number;
+  nonDegenerateVertexCount: number;
+  headIslandVertexCount: number;
+  uRange: [number, number];
+  vRange: [number, number];
+}
+
+function buildPortraitSkinUv(positions: Float32Array): {
+  uvs: Float32Array<ArrayBuffer>;
+  receipt: AgentAvatarSkinUvReceipt;
+} {
+  const vertexCount = positions.length / 3;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index < vertexCount; index++) {
+    const y = positions[index * 3 + 1];
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  }
+  const spanY = Math.max(1e-6, maxY - minY);
+  const headStartY = minY + spanY * 0.82;
+  const headSpan = Math.max(1e-6, maxY - headStartY);
+  const uvs = new Float32Array(vertexCount * 2);
+  let headIslandVertexCount = 0;
+  let minU = 1;
+  let maxU = 0;
+  let minV = 1;
+  let maxV = 0;
+  for (let index = 0; index < vertexCount; index++) {
+    const x = positions[index * 3];
+    const y = positions[index * 3 + 1];
+    const z = positions[index * 3 + 2];
+    const angular = Math.atan2(x, z) / (Math.PI * 2);
+    const isHead = y >= headStartY;
+    const u = isHead ? 0.25 + angular * 0.5 : 0.75 + angular * 0.5;
+    const atlasV = isHead
+      ? 0.52 + clamp((y - headStartY) / headSpan, 0, 1) * 0.46
+      : 0.02 + clamp((y - minY) / Math.max(1e-6, headStartY - minY), 0, 1) * 0.46;
+    uvs[index * 2] = u;
+    uvs[index * 2 + 1] = atlasV;
+    if (isHead) headIslandVertexCount++;
+    minU = Math.min(minU, u);
+    maxU = Math.max(maxU, u);
+    minV = Math.min(minV, atlasV);
+    maxV = Math.max(maxV, atlasV);
+  }
+  return {
+    uvs,
+    receipt: {
+      schemaVersion: 'holoscript.agent-avatar-skin-uv.v1',
+      profile: 'portrait-atlas-v1',
+      vertexCount,
+      nonDegenerateVertexCount: vertexCount,
+      headIslandVertexCount,
+      uRange: [minU, maxU],
+      vRange: [minV, maxV],
+    },
+  };
 }
 
 /** Offset a set of mesh-local indices by a vertex base (for concatenation). */
@@ -1380,6 +1788,7 @@ export function buildCharacterMesh(
       ocularProfile?: AgentAvatarOcularProfile;
       irisScale?: number;
       pupilScale?: number;
+      skinUvProfile?: AgentAvatarSkinUvProfile;
     } = {}
 ): CharacterMeshData {
   const body = buildAgentAvatarMesh(opts);
@@ -1434,6 +1843,7 @@ export function buildCharacterMesh(
             orbitalProfile: opts.orbitalProfile,
             eyeRecess: opts.eyeRecess,
             eyeScale: opts.eyeScale,
+            eyeSpacing: opts.eyeSpacing,
             faceWidth: opts.faceWidth,
             irisScale: opts.irisScale,
             pupilScale: opts.pupilScale,
@@ -1448,6 +1858,7 @@ export function buildCharacterMesh(
               orbitalProfile: opts.orbitalProfile,
               eyeRecess: opts.eyeRecess,
               eyeScale: opts.eyeScale,
+              eyeSpacing: opts.eyeSpacing,
               faceWidth: opts.faceWidth,
             }),
             uvs: new Float32Array(),
@@ -1471,6 +1882,8 @@ export function buildCharacterMesh(
   };
 
   const bodyVC = body.vertexCount;
+  const skinUv =
+    opts.skinUvProfile === 'portrait-atlas-v1' ? buildPortraitSkinUv(body.positions) : undefined;
   const hairVC = hair.vertexCount;
   const hairIdx = offsetIndices(hair.indices, bodyVC);
   const eyeIdx = offsetIndices(eyes.indices, bodyVC + hairVC);
@@ -1520,7 +1933,10 @@ export function buildCharacterMesh(
       catF32(
         catF32(
           catF32(
-            catF32(zeroUv(bodyVC), hair.uvs?.length === hairVC * 2 ? hair.uvs : zeroUv(hairVC)),
+            catF32(
+              skinUv?.uvs ?? zeroUv(bodyVC),
+              hair.uvs?.length === hairVC * 2 ? hair.uvs : zeroUv(hairVC)
+            ),
             eyes.uvs.length === eyes.vertexCount * 2 ? eyes.uvs : zeroUv(eyes.vertexCount)
           ),
           garment.cloth.uvs
@@ -1626,6 +2042,7 @@ export function buildCharacterMesh(
     ...(eyes.receipt ? { ocular: eyes.receipt } : {}),
     ocularProfile,
     orbital: body.orbital,
+    ...(skinUv ? { skinUv: skinUv.receipt } : {}),
     bodyVertexRange: { vertexStart: 0, vertexCount: bodyVC },
     hairVertexRange: { vertexStart: bodyVC, vertexCount: hairVC },
     eyeVertexRange: {

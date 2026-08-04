@@ -1324,6 +1324,45 @@ describe('AgentAvatarMesh — procedural humanoid (pure data)', () => {
     );
   });
 
+  it('builds H4K occluding lid rims indexed into the native head shell', () => {
+    const integrated = buildAgentAvatarMesh({
+      faceTopology: 'neutral-anatomical-v2',
+      faceTearline: true,
+      faceRadialSegments: 44,
+      faceVerticalSegments: 36,
+      orbitalProfile: 'integrated-lid-rim-v4',
+      eyeRecess: 0.34,
+      lidOpening: 0.44,
+      eyeScale: 0.78,
+      facialDetailProfile: 'portrait-facial-planes-v6',
+    });
+
+    expect(integrated.orbital).toMatchObject({
+      profile: 'integrated-lid-rim-v4',
+      lidFoldProfile: 'upper-crease-continuity-v1',
+      lidTransitionProfile: 'cubic-lid-blend-v1',
+      lidTransitionRows: 5,
+      integratedLidProfile: 'indexed-occluding-lid-rim-v1',
+      integratedLidVertexCount: 380,
+      headSurfaceVertexRange: {
+        vertexCount: 1665,
+      },
+    });
+    expect(integrated.orbital!.headStitchTriangleCount).toBeGreaterThan(72);
+    expect(integrated.orbital!.globeOcclusionMargin).toBeCloseTo(0.012, 6);
+
+    const orbital = integrated.orbital!;
+    let headReferencedIndexCount = 0;
+    for (
+      let offset = orbital.indexRange.indexStart;
+      offset < orbital.indexRange.indexStart + orbital.indexRange.indexCount;
+      offset++
+    ) {
+      if (integrated.indices[offset] < orbital.vertexRange.vertexStart) headReferencedIndexCount++;
+    }
+    expect(headReferencedIndexCount).toBeGreaterThan(0);
+  });
+
   it('emits H4A source-controlled nasal, philtrum, malar, jaw, lip, and brow volume', () => {
     const portrait = buildAgentAvatarMesh({
       faceTopology: 'neutral-anatomical-v2',

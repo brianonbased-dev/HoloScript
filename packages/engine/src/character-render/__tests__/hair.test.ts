@@ -163,6 +163,55 @@ describe('hair — procedural geometry (pure data)', () => {
     expect(resolveAgentAvatarHairStyle('not_a_style')).toBeUndefined();
   });
 
+  it('emits operative six-resident silhouette features instead of preset-only labels', () => {
+    const expected = new Map([
+      ['structured_updo', 'stacked-updo-mass-v1'],
+      ['weathered_waves', 'weathered-wave-beard-v1'],
+      ['braided_crown', 'braided-crown-loop-v1'],
+      ['silver_curls', 'silver-curl-clusters-v1'],
+      ['asymmetric_crop', 'asymmetric-length-field-v1'],
+      ['high_bun', 'high-bun-mass-v1'],
+    ] as const);
+    const geometrySignatures = new Set<string>();
+
+    for (const [style, styleFeatureProfile] of expected) {
+      const hair = buildAgentAvatarHair({
+        style,
+        faceTopology: 'neutral-anatomical-v2',
+        groomProfile: 'scalp-flow-density-v6',
+        guides: 72,
+        cardsPerGuide: 2,
+        segments: 6,
+      });
+      const replay = buildAgentAvatarHair({
+        style,
+        faceTopology: 'neutral-anatomical-v2',
+        groomProfile: 'scalp-flow-density-v6',
+        guides: 72,
+        cardsPerGuide: 2,
+        segments: 6,
+      });
+
+      expect(hair.groom).toMatchObject({
+        styleFeatureProfile,
+        scalpPenetrationVertexCount: 0,
+      });
+      expect(hair.groom!.styleFeatureVertexCount).toBeGreaterThan(0);
+      expect(hair.groom!.styleFeatureTriangleCount).toBeGreaterThan(0);
+      expect(Array.from(replay.positions)).toEqual(Array.from(hair.positions));
+      expect(replay.groom).toEqual(hair.groom);
+      geometrySignatures.add(
+        `${hair.vertexCount}:${hair.indices.length}:${Array.from(hair.positions.slice(-18))
+          .map((value) => value.toFixed(5))
+          .join(',')}`
+      );
+    }
+
+    expect(geometrySignatures.size).toBe(expected.size);
+    expect(resolveAgentAvatarHairStyle('crown braids')).toBe('braided_crown');
+    expect(resolveAgentAvatarHairStyle('side crop')).toBe('asymmetric_crop');
+  });
+
   it('source-authored hair topology budgets reduce guides, cards, and curve segments', () => {
     const lod0 = buildAgentAvatarHair({
       style: 'cropped_coils',
@@ -511,6 +560,121 @@ describe('hair — procedural geometry (pure data)', () => {
     });
     expect(volume.groom!.scalpCapMaxLift).toBeGreaterThan(0.008);
     expect(volume.groom!.cardCount).toBeGreaterThan(120);
+  });
+
+  it('emits H4J facial planes, an opt-in portrait UV atlas, and layered rooted hair', () => {
+    const portrait = buildCharacterMesh({
+      entityId: 'h4j-portrait',
+      faceTopology: 'neutral-anatomical-v2',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      facialDetailProfile: 'portrait-facial-planes-v6',
+      facialPlaneStrength: 0.8,
+      eyeSpacing: 1.16,
+      noseBridgeWidth: 0.72,
+      noseLength: 1.24,
+      noseProjection: 1.31,
+      mouthWidth: 1.17,
+      upperLipFullness: 0.74,
+      lowerLipFullness: 1.38,
+      skinUvProfile: 'portrait-atlas-v1',
+      includeHair: false,
+      includeEyes: false,
+    });
+    const legacyUv = buildCharacterMesh({
+      entityId: 'h4j-legacy-uv',
+      faceTopology: 'neutral-anatomical-v2',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      facialDetailProfile: 'portrait-facial-planes-v6',
+      includeHair: false,
+      includeEyes: false,
+    });
+    const anatomyBaseline = buildCharacterMesh({
+      entityId: 'h4j-anatomy-baseline',
+      faceTopology: 'neutral-anatomical-v2',
+      upperBodyProfile: 'coherent-expressive-anatomy-v7',
+      facialDetailProfile: 'portrait-facial-planes-v6',
+      facialPlaneStrength: 0.8,
+      includeHair: false,
+      includeEyes: false,
+    });
+
+    expect(portrait.facialLandmarks).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-facial-landmarks.v6',
+      profile: 'portrait-facial-planes-v6',
+      facialPlaneProfile: 'brow-malar-jaw-plane-field-v1',
+      facialPlaneStrength: 0.8,
+      continuousSoftTissueProfile: 'connected-nasal-oral-head-field-v1',
+      detachedNasalPrimitiveVertexCount: 0,
+      detachedLipPrimitiveVertexCount: 0,
+      eyeSpacing: 1.16,
+      noseBridgeWidth: 0.72,
+      noseLength: 1.24,
+      noseProjection: 1.31,
+      mouthWidth: 1.17,
+      upperLipFullness: 0.74,
+      lowerLipFullness: 1.38,
+    });
+    expect(portrait.facialLandmarks!.facialPlaneVertexCount).toBeGreaterThan(100);
+    expect(portrait.facialLandmarks!.continuousSoftTissueVertexCount).toBeGreaterThan(20);
+    expect(Array.from(portrait.mesh.positions)).not.toEqual(
+      Array.from(anatomyBaseline.mesh.positions)
+    );
+    expect(portrait.skinUv).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-uv.v1',
+      profile: 'portrait-atlas-v1',
+      vertexCount: portrait.bodyVertexRange.vertexCount,
+      nonDegenerateVertexCount: portrait.bodyVertexRange.vertexCount,
+    });
+    expect(portrait.skinUv!.headIslandVertexCount).toBeGreaterThan(100);
+    expect(
+      new Set(Array.from(portrait.mesh.uvs!.slice(0, portrait.bodyVertexRange.vertexCount * 2)))
+        .size
+    ).toBeGreaterThan(16);
+    expect(
+      Array.from(legacyUv.mesh.uvs!.slice(0, legacyUv.bodyVertexRange.vertexCount * 2)).every(
+        (value) => value === 0
+      )
+    ).toBe(true);
+
+    const volume = buildAgentAvatarHair({
+      faceTopology: 'neutral-anatomical-v2',
+      groomProfile: 'scalp-flow-volume-v5',
+      guides: 96,
+      cardsPerGuide: 2,
+      segments: 6,
+    });
+    const density = buildAgentAvatarHair({
+      faceTopology: 'neutral-anatomical-v2',
+      groomProfile: 'scalp-flow-density-v6',
+      guides: 96,
+      cardsPerGuide: 2,
+      segments: 6,
+    });
+    expect(resolveAgentAvatarGroomProfile('scalp_flow_density_v6')).toBe('scalp-flow-density-v6');
+    expect(density.groom).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-groom-geometry.v6',
+      profile: 'scalp-flow-density-v6',
+      densityLayerProfile: 'cross-card-undercoat-v1',
+      scalpPenetrationVertexCount: 0,
+    });
+    expect(density.groom!.densityLayerCardCount).toBeGreaterThan(volume.groom!.massCardCount ?? 0);
+
+    const host = new CharacterHost({
+      entityId: 'h4j-density-receipt',
+      hairGroomProfile: 'scalp-flow-density-v6',
+      hairCoverageProfile: 'alpha-to-coverage-v1',
+      hairDensityProfile: 'layered-card-density-v1',
+      hairDensityStrength: 0.76,
+      hairRootShadowStrength: 0.61,
+    });
+    expect(host.getGroomGeometryReceipt()?.material).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-hair-material.v3',
+      coverageProfile: 'alpha-to-coverage-v1',
+      densityProfile: 'layered-card-density-v1',
+      densityStrength: 0.76,
+      rootShadowStrength: 0.61,
+      alphaToCoverageRequested: true,
+    });
   });
 });
 

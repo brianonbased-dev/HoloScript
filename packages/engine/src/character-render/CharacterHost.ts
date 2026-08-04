@@ -41,6 +41,7 @@ import {
   type AgentAvatarFaceTopology,
   type AgentAvatarHandSurfaceReceipt,
   type AgentAvatarJointDeformationReceipt,
+  type AgentAvatarOrbitalGeometryReceipt,
   type AgentAvatarOrbitalProfile,
   type AgentAvatarUpperBodyProfile,
   type AvatarPose,
@@ -51,6 +52,7 @@ import {
   type AgentAvatarGroomProfile,
   type AgentAvatarHairMaterialReceipt,
   type AgentAvatarHairStyle,
+  type AgentAvatarSkinUvReceipt,
   type AgentAvatarOcularGeometryReceipt,
   type AgentAvatarOcularProfile,
   type CharacterMeshData,
@@ -114,6 +116,8 @@ export interface CharacterHostOptions {
   facialDetailProfile?: AgentAvatarFacialDetailProfile;
   /** Procedural ocular globe scale (0.72..1.08). */
   eyeScale?: number;
+  /** Interocular spacing relative to the anatomical-head baseline. */
+  eyeSpacing?: number;
   /** Brow rise above the upper lid, in eye-radius units. */
   browHeight?: number;
   /** Brow ribbon thickness, in eye-radius units. */
@@ -122,12 +126,26 @@ export interface CharacterHostOptions {
   earScale?: number;
   /** Lip-volume depth multiplier. */
   mouthDepth?: number;
+  /** Nasal bridge width relative to the portrait facial-volume baseline. */
+  noseBridgeWidth?: number;
+  /** Nasal vertical length relative to the portrait facial-volume baseline. */
+  noseLength?: number;
+  /** Nasal forward projection relative to the portrait facial-volume baseline. */
+  noseProjection?: number;
+  /** Mouth width relative to the anatomical lip baseline. */
+  mouthWidth?: number;
+  /** Upper-lip soft-tissue fullness relative to the anatomical lip baseline. */
+  upperLipFullness?: number;
+  /** Lower-lip soft-tissue fullness relative to the anatomical lip baseline. */
+  lowerLipFullness?: number;
   /** Portrait-silhouette-v2 cheek-volume multiplier. */
   cheekboneScale?: number;
   /** Portrait-silhouette-v2 forward chin projection. */
   chinProjection?: number;
   /** Portrait-silhouette-v2 temple-width multiplier. */
   templeWidth?: number;
+  /** Portrait-facial-planes-v6 brow/malar/jaw plane strength. */
+  facialPlaneStrength?: number;
   /**
    * Expression-time normal handling. The compatibility default preserves authored normals;
    * H3X can opt into deterministic recomputation around deformed facial vertices.
@@ -195,6 +213,10 @@ export interface CharacterHostOptions {
   skinComplexionProfile?: AgentAvatarSkinComplexionProfile;
   /** Bounded strength of the anatomical complexion response. */
   skinComplexionStrength?: number;
+  /** UV-driven portrait texture-space response. */
+  skinTextureSpaceProfile?: AgentAvatarSkinTextureSpaceProfile;
+  /** Bounded UV-space albedo and microsurface contribution. */
+  skinTextureSpaceStrength?: number;
   /** Hair eumelanin 0..1 (0 = white/blond, ~0.9 = black). Default 0.7 (dark brown). */
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
@@ -235,6 +257,12 @@ export interface CharacterHostOptions {
   hairAnisotropyStrength?: number;
   /** Longitudinal tangent/normal lobe shift (-0.35..0.35). */
   hairLongitudinalShift?: number;
+  /** Layered card density and root-occlusion response. */
+  hairDensityProfile?: MarschnerHairMaterialSpec['densityProfile'];
+  /** Layered analytic card-opacity contribution. */
+  hairDensityStrength?: number;
+  /** Analytic root darkening/occlusion contribution. */
+  hairRootShadowStrength?: number;
   /** Iris colour 0xRRGGBB (default warm brown #4a3520). */
   irisColor?: number;
   /** Native eye construction profile; legacy composite remains the compatibility default. */
@@ -270,6 +298,7 @@ export interface CharacterHostOptions {
 export type AgentAvatarSkinMicrodetailProfile = 'none' | 'analytic-pore-v1';
 export type AgentAvatarSkinSurfaceResponseProfile = 'calibrated-skin-surface-v1';
 export type AgentAvatarSkinComplexionProfile = 'anatomical-complexion-v1';
+export type AgentAvatarSkinTextureSpaceProfile = 'portrait-texture-space-v1';
 export type AgentAvatarMaterialCalibrationProfile = 'legacy-v1' | 'fixed-light-human-v1';
 
 interface AgentAvatarSkinMaterialReceiptBase {
@@ -309,10 +338,21 @@ export interface AgentAvatarSkinMaterialReceiptV4 extends Omit<
   complexionStrength: number;
 }
 
+export interface AgentAvatarSkinMaterialReceiptV5 extends Omit<
+  AgentAvatarSkinMaterialReceiptV4,
+  'schemaVersion'
+> {
+  schemaVersion: 'holoscript.agent-avatar-skin-material.v5';
+  textureSpaceProfile: AgentAvatarSkinTextureSpaceProfile;
+  textureSpaceStrength: number;
+  uv: AgentAvatarSkinUvReceipt;
+}
+
 export type AgentAvatarSkinMaterialReceipt =
   | AgentAvatarSkinMaterialReceiptV2
   | AgentAvatarSkinMaterialReceiptV3
-  | AgentAvatarSkinMaterialReceiptV4;
+  | AgentAvatarSkinMaterialReceiptV4
+  | AgentAvatarSkinMaterialReceiptV5;
 
 /** Human-skin SSS preset (SubsurfaceScattering.ts humanSkin + SkinSSRenderer defaults). */
 const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
@@ -489,13 +529,21 @@ export class CharacterHost {
       canthalTilt: opts.canthalTilt,
       facialDetailProfile: opts.facialDetailProfile,
       eyeScale: opts.eyeScale,
+      eyeSpacing: opts.eyeSpacing,
       browHeight: opts.browHeight,
       browThickness: opts.browThickness,
       earScale: opts.earScale,
       mouthDepth: opts.mouthDepth,
+      noseBridgeWidth: opts.noseBridgeWidth,
+      noseLength: opts.noseLength,
+      noseProjection: opts.noseProjection,
+      mouthWidth: opts.mouthWidth,
+      upperLipFullness: opts.upperLipFullness,
+      lowerLipFullness: opts.lowerLipFullness,
       cheekboneScale: opts.cheekboneScale,
       chinProjection: opts.chinProjection,
       templeWidth: opts.templeWidth,
+      facialPlaneStrength: opts.facialPlaneStrength,
       faceWidth: opts.faceWidth,
       faceLength: opts.faceLength,
       jawTaper: opts.jawTaper,
@@ -527,6 +575,10 @@ export class CharacterHost {
       crownWhorl: opts.hairCrownWhorl,
       clusterCount: opts.hairClusterCount,
       clusterSpread: opts.hairClusterSpread,
+      skinUvProfile:
+        opts.skinTextureSpaceProfile === 'portrait-texture-space-v1'
+          ? 'portrait-atlas-v1'
+          : undefined,
     });
     this.deformationBasePositions = new Float32Array(this.built.mesh.positions);
     this.deformationBaseNormals = new Float32Array(this.built.mesh.normals);
@@ -591,6 +643,12 @@ export class CharacterHost {
             complexionStrength: Math.max(0, Math.min(1, opts.skinComplexionStrength ?? 0.55)),
           }
         : {}),
+      ...(opts.skinTextureSpaceProfile === 'portrait-texture-space-v1'
+        ? {
+            textureSpaceProfile: opts.skinTextureSpaceProfile,
+            textureSpaceStrength: Math.max(0, Math.min(1, opts.skinTextureSpaceStrength ?? 0.48)),
+          }
+        : {}),
     };
     this.nailMaterial = {
       ...(fixedLight
@@ -637,6 +695,13 @@ export class CharacterHost {
         -0.35,
         Math.min(0.35, opts.hairLongitudinalShift ?? HAIR_BASE.longitudinalShift)
       ),
+      ...(opts.hairDensityProfile === 'layered-card-density-v1'
+        ? {
+            densityProfile: opts.hairDensityProfile,
+            densityStrength: Math.max(0, Math.min(1, opts.hairDensityStrength ?? 0.72)),
+            rootShadowStrength: Math.max(0, Math.min(1, opts.hairRootShadowStrength ?? 0.58)),
+          }
+        : {}),
     };
     this.eyeMaterial = { ...EYE_BASE, color: opts.irisColor ?? 0x4a3520 };
     this.scleraMaterial = {
@@ -853,6 +918,20 @@ export class CharacterHost {
       : null;
   }
 
+  /** Exact native orbital construction receipt, including H4K head-shell stitching. */
+  getOrbitalGeometryReceipt(): AgentAvatarOrbitalGeometryReceipt | null {
+    return this.built.orbital
+      ? {
+          ...this.built.orbital,
+          ...(this.built.orbital.headSurfaceVertexRange
+            ? { headSurfaceVertexRange: { ...this.built.orbital.headSurfaceVertexRange } }
+            : {}),
+          vertexRange: { ...this.built.orbital.vertexRange },
+          indexRange: { ...this.built.orbital.indexRange },
+        }
+      : null;
+  }
+
   /** Exact native garment preset and emitted topology, when @clothing is operative. */
   getGarmentGeometryReceipt(): AgentAvatarGarmentGeometryReceipt | null {
     return this.built.garment ? { ...this.built.garment } : null;
@@ -882,6 +961,28 @@ export class CharacterHost {
     };
     if (this.skinMaterial.surfaceResponseProfile === 'calibrated-skin-surface-v1') {
       if (this.skinMaterial.complexionProfile === 'anatomical-complexion-v1') {
+        if (
+          this.skinMaterial.textureSpaceProfile === 'portrait-texture-space-v1' &&
+          this.built.skinUv
+        ) {
+          return {
+            schemaVersion: 'holoscript.agent-avatar-skin-material.v5',
+            ...base,
+            surfaceResponseProfile: this.skinMaterial.surfaceResponseProfile,
+            albedoVariationStrength: this.skinMaterial.albedoVariationStrength ?? 0,
+            roughnessVariationStrength: this.skinMaterial.roughnessVariationStrength ?? 0,
+            normalMicrodetailStrength: this.skinMaterial.normalMicrodetailStrength ?? 0,
+            complexionProfile: this.skinMaterial.complexionProfile,
+            complexionStrength: this.skinMaterial.complexionStrength ?? 0,
+            textureSpaceProfile: this.skinMaterial.textureSpaceProfile,
+            textureSpaceStrength: this.skinMaterial.textureSpaceStrength ?? 0,
+            uv: {
+              ...this.built.skinUv,
+              uRange: [...this.built.skinUv.uRange],
+              vRange: [...this.built.skinUv.vRange],
+            },
+          };
+        }
         return {
           schemaVersion: 'holoscript.agent-avatar-skin-material.v4',
           ...base,
@@ -924,6 +1025,18 @@ export class CharacterHost {
       alphaToCoverageRequested: this.hairMaterial.coverageProfile === 'alpha-to-coverage-v1',
     } as const;
     const sourceColorWeight = this.hairMaterial.sourceColorWeight ?? 0;
+    if (this.hairMaterial.densityProfile === 'layered-card-density-v1') {
+      return {
+        schemaVersion: 'holoscript.agent-avatar-hair-material.v3',
+        ...base,
+        ...(sourceColorWeight > 0
+          ? { sourceColor: this.hairMaterial.color, sourceColorWeight }
+          : {}),
+        densityProfile: this.hairMaterial.densityProfile,
+        densityStrength: this.hairMaterial.densityStrength ?? 0,
+        rootShadowStrength: this.hairMaterial.rootShadowStrength ?? 0,
+      };
+    }
     return sourceColorWeight > 0
       ? {
           schemaVersion: 'holoscript.agent-avatar-hair-material.v2',
