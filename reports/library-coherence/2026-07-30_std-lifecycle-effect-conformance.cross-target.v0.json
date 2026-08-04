@@ -1,0 +1,35 @@
+{
+  "schema": "holoscript.std-lifecycle-effect-conformance.cross-target.v0",
+  "generatedAtISO": "2026-07-30T14:07:33.011Z",
+  "targets": [
+    {
+      "target": "node",
+      "path": "reports/library-coherence/2026-07-30_std-lifecycle-effect-conformance.node.v0.json",
+      "receiptSha256": "sha256:203ac38eca88096e88ff6bb81f3e36111dcab33318bc9ec28e757c11268669d6"
+    },
+    {
+      "target": "node-wasm",
+      "path": "reports/library-coherence/2026-07-30_std-lifecycle-effect-conformance.wasm.v0.json",
+      "receiptSha256": "sha256:8b37d35f0a7bab79f661da72c23904ef13cf9aee2074baab5495b4a7334dd70a"
+    },
+    {
+      "target": "browser-wasm",
+      "path": "reports/library-coherence/2026-07-30_std-lifecycle-effect-conformance.browser.v0.json",
+      "receiptSha256": "sha256:b6b5d664b36029b5332a227a9e74b68131d2ad7e35add15373afd4f2e53aa469"
+    },
+    {
+      "target": "owned-metal",
+      "path": "reports/library-coherence/2026-07-30_std-lifecycle-effect-conformance.owned-metal.v0.json",
+      "receiptSha256": "sha256:9a3eedce120c43092e9cac10e08a3f92d500d85ba28994224f79fc9c4ddf9b12"
+    }
+  ],
+  "comparison": {
+    "method": "recursive key-set-strict exact equality",
+    "comparedVectors": 4,
+    "problems": []
+  },
+  "verdict": "EQUAL",
+  "claimBoundary": {
+    "note": "This receipt proves equality only for the pinned lifecycle corpus and target receipts named above; it does not claim real effect dispatch."
+  }
+}

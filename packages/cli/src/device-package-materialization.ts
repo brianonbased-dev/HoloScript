@@ -10,6 +10,36 @@ import {
 
 export const DEVICE_PACKAGE_MATERIALIZATION_SCHEMA =
   'holoscript-device-package-materialization/v0.1.0';
+export const ANDROID_UPDATE_CONTRACT_SCHEMA = 'holoscript-android-update-contract/v0.1.0';
+
+const ANDROID_APPLICATION_ID = 'dev.holoscript.holonode';
+
+export interface AndroidReleaseIdentity {
+  readonly applicationId: typeof ANDROID_APPLICATION_ID;
+  readonly versionName: string;
+  readonly versionCode: number;
+}
+
+export interface AndroidUpdateContract {
+  readonly schema: typeof ANDROID_UPDATE_CONTRACT_SCHEMA;
+  readonly release: AndroidReleaseIdentity & {
+    readonly sourceSha256: string;
+    readonly releaseSha256: string;
+  };
+  readonly upgrade: {
+    readonly requireSameApplicationId: true;
+    readonly requireSameSigningCertificate: true;
+    readonly requireIncreasingVersionCode: true;
+  };
+  readonly rollback: {
+    readonly strategy: 'forward-fix';
+    readonly directDowngradeAllowed: false;
+    readonly predecessorSourceRequired: true;
+    readonly predecessorArtifactRequired: true;
+    readonly rollbackVersionCodeMustExceedCurrent: true;
+    readonly deviceDataBackupRestoreProofRequired: true;
+  };
+}
 
 export interface DevicePackageFileReceipt {
   readonly path: string;
@@ -53,6 +83,61 @@ interface AndroidFileCompiler {
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function androidReleaseIdentity(composition: unknown): AndroidReleaseIdentity {
+  const metadata =
+    composition && typeof composition === 'object'
+      ? (composition as { metadata?: Record<string, unknown> }).metadata
+      : undefined;
+  const versionName = metadata?.version;
+  if (typeof versionName !== 'string') {
+    throw new Error('Android device packages require metadata.version in HoloScript source');
+  }
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?$/.exec(versionName);
+  if (!match) {
+    throw new Error('Android metadata.version must be semantic major.minor.patch');
+  }
+  const major = Number.parseInt(match[1], 10);
+  const minor = Number.parseInt(match[2], 10);
+  const patch = Number.parseInt(match[3], 10);
+  if (minor > 999 || patch > 999) {
+    throw new Error('Android metadata.version minor and patch components must be at most 999');
+  }
+  const versionCode = major * 1_000_000 + minor * 1_000 + patch;
+  if (!Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2_100_000_000) {
+    throw new Error('Android metadata.version does not map to a valid positive versionCode');
+  }
+  return { applicationId: ANDROID_APPLICATION_ID, versionName, versionCode };
+}
+
+function androidUpdateContract(
+  release: AndroidReleaseIdentity,
+  sourceSha256: string
+): AndroidUpdateContract {
+  return {
+    schema: ANDROID_UPDATE_CONTRACT_SCHEMA,
+    release: {
+      ...release,
+      sourceSha256,
+      releaseSha256: sha256(
+        `${release.applicationId}\0${release.versionCode}\0${release.versionName}\0${sourceSha256}`
+      ),
+    },
+    upgrade: {
+      requireSameApplicationId: true,
+      requireSameSigningCertificate: true,
+      requireIncreasingVersionCode: true,
+    },
+    rollback: {
+      strategy: 'forward-fix',
+      directDowngradeAllowed: false,
+      predecessorSourceRequired: true,
+      predecessorArtifactRequired: true,
+      rollbackVersionCodeMustExceedCurrent: true,
+      deviceDataBackupRestoreProofRequired: true,
+    },
+  };
 }
 
 function stableFileHash(files: Readonly<Record<string, string>>): string {
@@ -230,9 +315,12 @@ export function materializeDevicePackage(
 
   if (plan.profile.operatingSystem === 'android') {
     compilerName = 'AndroidCompiler';
+    const release = androidReleaseIdentity(parsed.ast);
     const compiler = new AndroidCompiler({
-      packageName: 'dev.holoscript.holonode',
+      packageName: release.applicationId,
       className: 'HoloNode',
+      versionCode: release.versionCode,
+      versionName: release.versionName,
       minSdk: 26,
       targetSdk: 34,
     }) as unknown as AndroidFileCompiler;
@@ -247,6 +335,11 @@ export function materializeDevicePackage(
       'gradle.properties': androidGradleProperties(),
       'app/proguard-rules.pro': androidProguardRules(),
       'packaging/android-admission.json': androidAdmission(),
+      'packaging/android-update-contract.json': `${JSON.stringify(
+        androidUpdateContract(release, plan.source.sha256),
+        null,
+        2
+      )}\n`,
     };
   } else {
     compilerName = 'NodeServiceCompiler';

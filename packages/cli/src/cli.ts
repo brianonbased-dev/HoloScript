@@ -270,7 +270,9 @@ async function runNodeDeviceCommand(options: ReturnType<typeof parseArgs>): Prom
   }
   const relativeCandidate = path.relative(process.cwd(), absoluteSourcePath).replace(/\\/g, '/');
   const relativeSourcePath =
-    relativeCandidate === '..' || relativeCandidate.startsWith('../')
+    path.isAbsolute(relativeCandidate) ||
+    relativeCandidate === '..' ||
+    relativeCandidate.startsWith('../')
       ? path.basename(absoluteSourcePath)
       : relativeCandidate;
   const device = options.device ?? 'auto';

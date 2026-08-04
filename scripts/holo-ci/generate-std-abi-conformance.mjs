@@ -93,6 +93,30 @@ const ops = JSON.parse(readFileSync(opsPath, 'utf8'));
 if (ops.schema !== 'holoscript.std-abi-ops.v0') {
   fail(`unexpected ops schema ${ops.schema}`);
 }
+let packagedExecution = ops.packagedExecution ?? null;
+let packagedExtensionsPath = null;
+if (packagedExecution?.extensionsFile) {
+  packagedExtensionsPath = join(repoRoot, ...packagedExecution.extensionsFile.split('/'));
+  const extensions = JSON.parse(readFileSync(packagedExtensionsPath, 'utf8'));
+  if (extensions.schema !== 'holoscript.std-abi-packaged-extensions.v0') {
+    fail(`unexpected packaged extensions schema ${extensions.schema}`);
+  }
+  const identities = new Set(
+    packagedExecution.handlers.map((handler) => `${handler.trait}.${handler.handler}`)
+  );
+  for (const handler of extensions.handlers) {
+    const identity = `${handler.trait}.${handler.handler}`;
+    if (identities.has(identity)) fail(`duplicate packaged handler ${identity}`);
+    if (!packagedExecution.sources?.[handler.trait]) {
+      fail(`${identity}: no packaged source is declared for trait ${handler.trait}`);
+    }
+    identities.add(identity);
+  }
+  packagedExecution = {
+    ...packagedExecution,
+    handlers: [...packagedExecution.handlers, ...extensions.handlers],
+  };
+}
 
 const reference = await import(
   pathToFileURL(join(repoRoot, 'packages', 'std', 'dist', 'math.js')).href
@@ -240,16 +264,18 @@ for (const op of ops.ops) {
 // through the cumulative v6 evaluator. Both statically lift whitelisted
 // on_spawn factories without executing lifecycle side effects.
 
-if (ops.packagedExecution) {
-  for (const handler of ops.packagedExecution.handlers) {
-    let expectFn;
-    if (handler.expectRef.host) {
+if (packagedExecution) {
+  for (const handler of packagedExecution.handlers) {
+    let expectFn = null;
+    if (handler.expectRef?.host) {
       expectFn = resolveHostFunction(
         handler.expectRef.host,
         `${handler.trait}.${handler.handler}`
       ).fn;
-    } else {
+    } else if (handler.expectRef?.twin) {
       expectFn = resolveReference(handler.expectRef.twin);
+    } else if (handler.expectRef?.literal !== true) {
+      fail(`${handler.trait}.${handler.handler}: unsupported expectRef`);
     }
     for (const vector of handler.vectors) {
       const expectArgs = vector.expectArgs ?? vector.args;
@@ -262,7 +288,15 @@ if (ops.packagedExecution) {
         }
         return expectArgs[param];
       });
-      let expected = expectFn(...structuredClone(orderedArgs));
+      let expected;
+      if (handler.expectRef.literal === true) {
+        if (!Object.prototype.hasOwnProperty.call(vector, 'expected')) {
+          fail(`${handler.handler}/${vector.id}: literal oracle requires vector.expected`);
+        }
+        expected = structuredClone(vector.expected);
+      } else {
+        expected = expectFn(...structuredClone(orderedArgs));
+      }
       if (handler.wrap) {
         expected = wrapReferenceResult(handler.wrap, expected, `${handler.handler}/${vector.id}`);
       }
@@ -280,7 +314,7 @@ if (ops.packagedExecution) {
         ...(vector.expectArgs ? { expectArgs } : {}),
         expected,
         tolerance: handler.tolerance ?? 0,
-        targets: ops.packagedExecution.targets,
+        targets: packagedExecution.targets,
       });
     }
   }
@@ -304,13 +338,13 @@ const runtime = createDeterministicHsplusActionRuntime(actionSource, {
 if (typeof createDeterministicHsplusTraitRuntime !== 'function') {
   fail('engine dist does not export createDeterministicHsplusTraitRuntime');
 }
-if (ops.packagedExecution?.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7) {
+if (packagedExecution?.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7) {
   fail(
-    `packaged engine subset mismatch: ops=${ops.packagedExecution?.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
+    `packaged engine subset mismatch: ops=${packagedExecution?.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
   );
 }
 const packagedRuntimes = new Map(
-  Object.entries(ops.packagedExecution?.sources ?? {}).map(([traitName, sourcePath]) => [
+  Object.entries(packagedExecution?.sources ?? {}).map(([traitName, sourcePath]) => [
     traitName,
     createDeterministicHsplusTraitRuntime(
       readFileSync(join(repoRoot, ...sourcePath.split('/')), 'utf8'),
@@ -363,10 +397,20 @@ const vectorsJsonl = `${vectors.map((vector) => JSON.stringify(vector)).join('\n
 const actionPath = join(generatedDir, 'std-abi-conformance.action.hsplus');
 const traitPath = join(generatedDir, 'std-abi-conformance.trait.hsplus');
 const vectorsPath = join(generatedDir, 'std-abi-vectors.v0.jsonl');
+const packagedExecutionPath = join(generatedDir, 'std-abi-packaged-execution.v0.json');
+const packagedExecutionJson = `${JSON.stringify(
+  {
+    schema: 'holoscript.std-abi-packaged-execution.v0',
+    ...packagedExecution,
+  },
+  null,
+  2
+)}\n`;
 
 writeFileSync(actionPath, actionSource);
 writeFileSync(traitPath, traitSource);
 writeFileSync(vectorsPath, vectorsJsonl);
+writeFileSync(packagedExecutionPath, packagedExecutionJson);
 
 const stdPackageJson = JSON.parse(
   readFileSync(join(repoRoot, 'packages', 'std', 'package.json'), 'utf8')
@@ -376,6 +420,8 @@ const manifest = {
   schema: 'holoscript.std-abi-conformance-manifest.v0',
   stdPackageVersion: stdPackageJson.version,
   opsFile: 'packages/std/conformance/std-abi-ops.v0.json',
+  packagedExecutionFile:
+    'packages/std/conformance/generated/std-abi-packaged-execution.v0.json',
   files: {
     'packages/std/conformance/std-abi-ops.v0.json': {
       sha256: sha256(readFileSync(opsPath)),
@@ -388,6 +434,9 @@ const manifest = {
     },
     'packages/std/conformance/generated/std-abi-vectors.v0.jsonl': {
       sha256: sha256(Buffer.from(vectorsJsonl)),
+    },
+    'packages/std/conformance/generated/std-abi-packaged-execution.v0.json': {
+      sha256: sha256(Buffer.from(packagedExecutionJson)),
     },
     'packages/std/src/math.hsplus': {
       sha256: sha256(readFileSync(join(repoRoot, 'packages', 'std', 'src', 'math.hsplus'))),
@@ -409,12 +458,19 @@ const manifest = {
         )
       ),
     },
+    ...(packagedExtensionsPath
+      ? {
+          [packagedExecution.extensionsFile]: {
+            sha256: sha256(readFileSync(packagedExtensionsPath)),
+          },
+        }
+      : {}),
   },
   counts: {
     ops: ops.ops.length,
     vectors: vectors.length,
     projectionVectors: vectors.filter((vector) => !vector.packaged).length,
-    packagedHandlers: ops.packagedExecution?.handlers.length ?? 0,
+    packagedHandlers: packagedExecution?.handlers.length ?? 0,
     packagedVectors: vectors.filter((vector) => vector.packaged).length,
     excluded: ops.excluded.length,
   },

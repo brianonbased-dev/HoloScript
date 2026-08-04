@@ -102,6 +102,21 @@ describe('compiler-born device package materialization', () => {
     expect(bundle.files['gradle.properties']).toContain('android.useAndroidX=true');
     expect(bundle.files['app/proguard-rules.pro']).toContain('compiler-generated Android app');
     expect(bundle.files['packaging/android-admission.json']).toContain('"rootRequired": false');
+    expect(bundle.files['app/build.gradle.kts']).toContain('versionCode = 1000');
+    expect(bundle.files['app/build.gradle.kts']).toContain('versionName = "0.1.0"');
+    expect(JSON.parse(bundle.files['packaging/android-update-contract.json'])).toMatchObject({
+      schema: 'holoscript-android-update-contract/v0.1.0',
+      release: {
+        applicationId: 'dev.holoscript.holonode',
+        versionName: '0.1.0',
+        versionCode: 1000,
+      },
+      rollback: {
+        strategy: 'forward-fix',
+        directDowngradeAllowed: false,
+        rollbackVersionCodeMustExceedCurrent: true,
+      },
+    });
     expect(bundle.files['packaging/android-admission.json']).toContain(
       '"signingCredentialBundled": false'
     );
@@ -115,5 +130,16 @@ describe('compiler-born device package materialization', () => {
     for (const marker of forbiddenCustodyMarkers) {
       expect(deliveredText).not.toContain(marker);
     }
+  });
+
+  it('rejects Android packaging without a valid source-owned semantic version', () => {
+    expect(() =>
+      materializeDevicePackage({
+        sourcePath: 'public-holon-node.holo',
+        source: 'composition "Unversioned" { object "Node" {} }',
+        device: 'android-arm64',
+        compilerVersion: '8.0.18',
+      })
+    ).toThrow('metadata.version');
   });
 });

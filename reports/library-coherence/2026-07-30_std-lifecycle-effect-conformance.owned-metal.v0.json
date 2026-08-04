@@ -1,0 +1,159 @@
+{
+  "schema": "holoscript.std-lifecycle-effect-conformance.owned-metal.v0",
+  "generatedAtISO": "2026-07-30T14:07:07.887Z",
+  "target": "owned-metal",
+  "hostLabel": "jetson-orin",
+  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+  "sources": {
+    "packages/std/conformance/generated/std-lifecycle-effects.v0.json": {
+      "sha256": "sha256:83e80bcad2b46e6f125504f9f8e04b80b430b5869674adbac90992c449028f74"
+    }
+  },
+  "executionRuntime": {
+    "engine": "@holoscript/wasm evaluate_trait_spawn_v1 in owned-metal Node WebAssembly",
+    "sourceCommit": "68d5c16cfc29e6d3653bd36fcab92d7afe26cdc6",
+    "wasmSha256": "sha256:4282e6b0ffa193b97bf4f4e52acd1ae27d4b06d9b3633c7ef30b5dc2f5a9a35d",
+    "node": "v20.20.2",
+    "platform": "linux",
+    "arch": "arm64"
+  },
+  "environment": {
+    "hostname": "holojetson",
+    "cpus": 6,
+    "totalMemoryBytes": 7990083584
+  },
+  "results": [
+    {
+      "id": "packaged-std-math-on-spawn",
+      "trait": "std_math",
+      "pass": true,
+      "actual": {
+        "dispatched": false,
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "alias": "math",
+            "factory": "get_std_math_lib",
+            "kind": "bind_factory",
+            "namespaces": [
+              "math"
+            ]
+          },
+          {
+            "event": "std_math_ready",
+            "kind": "emit",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_math"
+      },
+      "actualSha256": "sha256:1f8474c24e0f1c97de0770ece9eb774ea570127c1ab627f2856d5d788b34e158"
+    },
+    {
+      "id": "packaged-std-list-on-spawn",
+      "trait": "std_list",
+      "pass": true,
+      "actual": {
+        "dispatched": false,
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "alias": "list_lib",
+            "factory": "get_std_collections_lib",
+            "kind": "bind_factory",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "event": "std_list_ready",
+            "kind": "emit",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_list"
+      },
+      "actualSha256": "sha256:8be5774e19f768485c7f102090eddde874c7820ee7f29aeeb93b3d13b2d9816c"
+    },
+    {
+      "id": "packaged-std-map-on-spawn",
+      "trait": "std_map",
+      "pass": true,
+      "actual": {
+        "dispatched": false,
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "alias": "map_lib",
+            "factory": "get_std_collections_lib",
+            "kind": "bind_factory",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "event": "std_map_ready",
+            "kind": "emit",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_map"
+      },
+      "actualSha256": "sha256:650c3679185278174d798ff5d3a06dcee4592e1af7c28e7bc08581cb99f96860"
+    },
+    {
+      "id": "packaged-std-set-on-spawn",
+      "trait": "std_set",
+      "pass": true,
+      "actual": {
+        "dispatched": false,
+        "handler": "on_spawn",
+        "operations": [
+          {
+            "alias": "set_lib",
+            "factory": "get_std_collections_lib",
+            "kind": "bind_factory",
+            "namespaces": [
+              "list_lib",
+              "map_lib",
+              "set_lib"
+            ]
+          },
+          {
+            "event": "std_set_ready",
+            "kind": "emit",
+            "payload": {}
+          }
+        ],
+        "result": null,
+        "schema": "holoscript.lifecycle-effect-intent.v0",
+        "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+        "trait": "std_set"
+      },
+      "actualSha256": "sha256:8a5c7bca0adb33633d650f223a7ae9daa2a013ab47d9e5635ac94e9806067288"
+    }
+  ],
+  "summary": {
+    "vectors": 4,
+    "passed": 4,
+    "failed": 0,
+    "dispatched": false
+  },
+  "claimBoundary": {
+    "proved": "Commit-bound packaged on_spawn bytes evaluated to ordered inert lifecycle intents on the named owned-metal host.",
+    "notClaimed": "No event was dispatched and no host function, timer, asynchronous work, I/O, retry, rollback, or runtime mutation was executed."
+  }
+}

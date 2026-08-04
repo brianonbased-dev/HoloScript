@@ -1,0 +1,58 @@
+{
+  "schema": "holoscript.std-lifecycle-effect-abi.v0",
+  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents",
+  "envelopeSchema": "holoscript.lifecycle-effect-intent.v0",
+  "handler": "on_spawn",
+  "dispatched": false,
+  "ordering": "source-order",
+  "operations": {
+    "bind_factory": {
+      "assignment": "bare safe identifier = whitelisted zero-argument factory call",
+      "factories": {
+        "get_std_math_lib": [
+          "math"
+        ],
+        "get_std_collections_lib": [
+          "list_lib",
+          "map_lib",
+          "set_lib"
+        ]
+      },
+      "runtimeBehavior": "validate namespace custody and collision-free handle construction without invoking a host function"
+    },
+    "emit": {
+      "shape": "emit(string-literal event, strict-json payload)",
+      "eventName": "1..128 UTF-8 bytes with no control characters",
+      "runtimeBehavior": "record an inert intent; do not dispatch"
+    }
+  },
+  "limits": {
+    "maxOperations": 64,
+    "maxEventNameUtf8Bytes": 128,
+    "maxSourceBytes": 262144,
+    "maxCanonicalValueBytes": 1048576
+  },
+  "failClosed": [
+    "handler parameters",
+    "unknown or argument-bearing factories",
+    "duplicate or unsafe aliases",
+    "namespace function-name collisions",
+    "namespace-handle escape",
+    "non-strict-JSON payloads",
+    "all statements and effects outside the admitted operations"
+  ],
+  "claimBoundary": {
+    "proved": "actual packaged on_spawn bytes parse and evaluate to the same ordered inert effect-intent envelope on admitted targets",
+    "notClaimed": [
+      "event dispatch",
+      "host-function execution",
+      "timers",
+      "asynchronous work",
+      "I/O",
+      "retries",
+      "rollback",
+      "runtime state mutation",
+      "effect exactly-once delivery"
+    ]
+  }
+}

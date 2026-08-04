@@ -111,6 +111,13 @@
 //! right operand, while `null` evaluates and returns the right operand. This is
 //! strict null semantics, never truthiness. The v1–v5 modes stay pinned.
 //!
+//! A separate lifecycle entrypoint — `evaluate_trait_spawn_v1`, subset id
+//! `holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents`
+//! — parses the real `@on_spawn` body and returns an ordered, inert intent
+//! envelope. It admits only whitelisted zero-argument std factory bindings and
+//! `emit(event, payload)` statements. Factory construction validates namespace
+//! custody/collisions; no host function or event dispatcher is invoked.
+//!
 //! Error/result boundary follows the crate convention of always returning JSON:
 //! `{"ok":true,"value":<json>}` or `{"ok":false,"error":{"code":"…","message":"…"}}`.
 
@@ -155,6 +162,12 @@ pub const DETERMINISTIC_SUBSET_V5: &str =
 /// grammar plus strict, source-ordered, short-circuiting null coalescing.
 pub const DETERMINISTIC_SUBSET_V6: &str =
     "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing";
+
+/// Subset identifier for inert, ordered `@on_spawn` lifecycle effect intents.
+pub const DETERMINISTIC_SUBSET_V8: &str =
+    "holoscript-engine-hsplus-deterministic-action-subset-v8-lifecycle-effect-intents";
+
+pub const LIFECYCLE_EFFECT_SCHEMA: &str = "holoscript.lifecycle-effect-intent.v0";
 
 /// Evaluation mode threaded through the statement/expression walkers. v1 keeps
 /// `numeric_builtins` off (every `CallExpression` is `unsupported-call`, same
@@ -220,6 +233,9 @@ const FACTORIES: &[(&str, &[&str])] = &[
         &["list_lib", "map_lib", "set_lib"],
     ),
 ];
+
+const MAX_LIFECYCLE_OPERATIONS: usize = 64;
+const MAX_EVENT_NAME_BYTES: usize = 128;
 
 /// Callee-position lookup result for one `ns.fn` host-binding reference.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -464,6 +480,210 @@ pub fn evaluate_trait_handler_v6_json(
             host: Some(host),
         },
     )
+}
+
+/// Evaluate one packaged trait's `@on_spawn` body into an inert lifecycle
+/// effect-intent envelope. This never dispatches an event or host function.
+pub fn evaluate_trait_spawn_v1_json(
+    source: &str,
+    trait_name: &str,
+    host: &dyn HostDispatcher,
+) -> String {
+    match evaluate_spawn_v1(source, trait_name, host) {
+        Ok(value) => serde_json::json!({ "ok": true, "value": value }).to_string(),
+        Err(error) => serde_json::json!({
+            "ok": false,
+            "error": { "code": error.code, "message": error.message }
+        })
+        .to_string(),
+    }
+}
+
+fn evaluate_spawn_v1(
+    source: &str,
+    trait_name: &str,
+    host: &dyn HostDispatcher,
+) -> Result<serde_json::Value, EvalError> {
+    let ast = crate::parse_ast(source).map_err(|diagnostics| {
+        let detail = diagnostics
+            .iter()
+            .map(|d| format!("{} (line {}, column {})", d.message, d.line, d.column))
+            .collect::<Vec<_>>()
+            .join("; ");
+        err("parse-error", format!("source failed to parse: {detail}"))
+    })?;
+    let (_, spawn) = find_handler(&ast.body, trait_name, "on_spawn")?;
+    if !spawn.params.is_empty() {
+        return Err(err(
+            "lifecycle-parameters",
+            format!("@trait \"{trait_name}\" on_spawn must declare zero parameters"),
+        ));
+    }
+    let Some(body) = spawn.parsed_body.as_ref() else {
+        return Err(err(
+            "unparsed-body",
+            format!("@trait \"{trait_name}\" on_spawn body did not parse as statements"),
+        ));
+    };
+    if body.len() > MAX_LIFECYCLE_OPERATIONS {
+        return Err(err(
+            "lifecycle-budget",
+            format!(
+                "@trait \"{trait_name}\" on_spawn exceeds {MAX_LIFECYCLE_OPERATIONS} operations"
+            ),
+        ));
+    }
+
+    let ctx = EvalCtx {
+        mode: MODE_V6,
+        host: Some(host),
+    };
+    let mut scope = BTreeMap::new();
+    let mut operations = Vec::with_capacity(body.len());
+
+    for statement in body {
+        match statement {
+            AstNode::Assignment(assignment) => {
+                if assignment.operator != "=" {
+                    return Err(err(
+                        "unsupported-lifecycle-statement",
+                        "on_spawn factory bindings require plain `=` assignment",
+                    ));
+                }
+                let AstNode::Identifier(alias) = assignment.target.as_ref() else {
+                    return Err(err(
+                        "unsupported-lifecycle-statement",
+                        "on_spawn factory binding target must be a bare identifier",
+                    ));
+                };
+                if !is_safe_identifier(&alias.name) {
+                    return Err(err(
+                        "unsafe-key",
+                        format!("on_spawn factory alias \"{}\" is unsafe", alias.name),
+                    ));
+                }
+                if scope.contains_key(&alias.name) {
+                    return Err(err(
+                        "duplicate-lifecycle-alias",
+                        format!(
+                            "on_spawn declares duplicate factory alias \"{}\"",
+                            alias.name
+                        ),
+                    ));
+                }
+                let AstNode::CallExpression(call) = assignment.value.as_ref() else {
+                    return Err(err(
+                        "unsupported-lifecycle-statement",
+                        "on_spawn assignments may only bind whitelisted factories",
+                    ));
+                };
+                if !call.arguments.is_empty() {
+                    return Err(err(
+                        "factory-arity",
+                        format!(
+                            "on_spawn factory binding takes zero arguments, got {}",
+                            call.arguments.len()
+                        ),
+                    ));
+                }
+                let AstNode::Identifier(callee) = call.callee.as_ref() else {
+                    return Err(err(
+                        "unsupported-lifecycle-statement",
+                        "on_spawn factory callee must be a bare identifier",
+                    ));
+                };
+                let Some((factory, namespaces)) =
+                    FACTORIES.iter().find(|(name, _)| *name == callee.name)
+                else {
+                    return Err(err(
+                        "unknown-lifecycle-factory",
+                        format!("on_spawn factory \"{}\" is not admitted", callee.name),
+                    ));
+                };
+                let handle = construct_factory_handle(factory, namespaces, &ctx)?;
+                scope.insert(alias.name.clone(), Value::NsHandle(handle));
+                operations.push(serde_json::json!({
+                    "kind": "bind_factory",
+                    "alias": alias.name,
+                    "factory": factory,
+                    "namespaces": namespaces,
+                }));
+            }
+            AstNode::CallExpression(call) => {
+                let AstNode::Identifier(callee) = call.callee.as_ref() else {
+                    return Err(err(
+                        "unsupported-lifecycle-statement",
+                        "on_spawn effect callee must be a bare identifier",
+                    ));
+                };
+                if callee.name != "emit" {
+                    return Err(err(
+                        "unsupported-lifecycle-effect",
+                        format!("on_spawn effect \"{}\" is not admitted", callee.name),
+                    ));
+                }
+                if call.arguments.len() != 2 {
+                    return Err(err(
+                        "lifecycle-effect-arity",
+                        format!(
+                            "emit takes exactly 2 arguments, got {}",
+                            call.arguments.len()
+                        ),
+                    ));
+                }
+                let Value::Str(event) = eval_expr(&call.arguments[0], &scope, &ctx)? else {
+                    return Err(err(
+                        "invalid-event-name",
+                        "emit event name must evaluate to a string",
+                    ));
+                };
+                if event.is_empty()
+                    || event.as_bytes().len() > MAX_EVENT_NAME_BYTES
+                    || event.chars().any(char::is_control)
+                {
+                    return Err(err(
+                        "invalid-event-name",
+                        format!("emit event name must be 1..={MAX_EVENT_NAME_BYTES} UTF-8 bytes"),
+                    ));
+                }
+                let payload = eval_expr(&call.arguments[1], &scope, &ctx)?;
+                if let Some(handle) = find_handle(&payload) {
+                    return Err(err(
+                        "namespace-handle-escape",
+                        format!(
+                            "emit payload contains a namespace handle from {}()",
+                            handle.factory
+                        ),
+                    ));
+                }
+                operations.push(serde_json::json!({
+                    "kind": "emit",
+                    "event": event,
+                    "payload": value_to_json(&payload),
+                }));
+            }
+            AstNode::Comment(_) => {}
+            other => {
+                return Err(err(
+                    "unsupported-lifecycle-statement",
+                    format!(
+                        "on_spawn statement {} is outside the lifecycle subset",
+                        node_kind(other)
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok(serde_json::json!({
+        "schema": LIFECYCLE_EFFECT_SCHEMA,
+        "subsetId": DETERMINISTIC_SUBSET_V8,
+        "trait": trait_name,
+        "handler": "on_spawn",
+        "operations": operations,
+        "result": serde_json::Value::Null,
+        "dispatched": false,
+    }))
 }
 
 fn evaluate_with_ctx_json(
@@ -1854,6 +2074,19 @@ pub fn evaluate_trait_handler_v6_js(
         bindings: host_bindings,
     };
     evaluate_trait_handler_v6_json(source, trait_name, handler_name, args_json, &dispatcher)
+}
+
+/// Wasm-boundary entry for inert `@on_spawn` lifecycle effect intents.
+#[cfg(target_arch = "wasm32")]
+pub fn evaluate_trait_spawn_v1_js(
+    source: &str,
+    trait_name: &str,
+    host_bindings: &wasm_bindgen::JsValue,
+) -> String {
+    let dispatcher = js_host::JsHostDispatcher {
+        bindings: host_bindings,
+    };
+    evaluate_trait_spawn_v1_json(source, trait_name, &dispatcher)
 }
 
 #[cfg(test)]
@@ -3359,6 +3592,11 @@ mod tests {
         serde_json::from_str(&raw).expect("v6 evaluator must always return JSON")
     }
 
+    fn run_spawn(source: &str, trait_name: &str) -> serde_json::Value {
+        let raw = evaluate_trait_spawn_v1_json(source, trait_name, &MockHost);
+        serde_json::from_str(&raw).expect("spawn evaluator must always return JSON")
+    }
+
     /// Configurable mock for v5 construction-time paths (collision / missing
     /// namespace): `(namespace, functions)` rows back lookup + enumeration;
     /// invoke always throws because these tests must fail BEFORE any invoke.
@@ -3538,6 +3776,106 @@ mod tests {
         );
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         expect_err(&parsed, "unknown-host-binding");
+    }
+
+    #[test]
+    fn v8_lifecycle_boundary_returns_ordered_inert_effect_intent() {
+        let result = run_spawn(SPAWN_TRAIT, "std_spawn_conformance");
+        assert_eq!(
+            expect_ok(&result),
+            &serde_json::json!({
+                "schema": "holoscript.lifecycle-effect-intent.v0",
+                "subsetId": DETERMINISTIC_SUBSET_V8,
+                "trait": "std_spawn_conformance",
+                "handler": "on_spawn",
+                "operations": [
+                    {
+                        "kind": "bind_factory",
+                        "alias": "m2",
+                        "factory": "get_std_math_lib",
+                        "namespaces": ["math"]
+                    },
+                    {
+                        "kind": "emit",
+                        "event": "std_spawn_ready",
+                        "payload": {}
+                    }
+                ],
+                "result": null,
+                "dispatched": false
+            })
+        );
+    }
+
+    #[test]
+    fn v8_lifecycle_boundary_executes_all_packaged_on_spawn_sources_as_authored() {
+        const MATH_SOURCE: &str = include_str!("../../std/src/math.hsplus");
+        const COLLECTIONS_SOURCE: &str = include_str!("../../std/src/collections.hsplus");
+
+        for (source, trait_name, alias, factory, namespaces, event) in [
+            (
+                MATH_SOURCE,
+                "std_math",
+                "math",
+                "get_std_math_lib",
+                serde_json::json!(["math"]),
+                "std_math_ready",
+            ),
+            (
+                COLLECTIONS_SOURCE,
+                "std_list",
+                "list_lib",
+                "get_std_collections_lib",
+                serde_json::json!(["list_lib", "map_lib", "set_lib"]),
+                "std_list_ready",
+            ),
+            (
+                COLLECTIONS_SOURCE,
+                "std_map",
+                "map_lib",
+                "get_std_collections_lib",
+                serde_json::json!(["list_lib", "map_lib", "set_lib"]),
+                "std_map_ready",
+            ),
+            (
+                COLLECTIONS_SOURCE,
+                "std_set",
+                "set_lib",
+                "get_std_collections_lib",
+                serde_json::json!(["list_lib", "map_lib", "set_lib"]),
+                "std_set_ready",
+            ),
+        ] {
+            let result = run_spawn(source, trait_name);
+            let value = expect_ok(&result);
+            assert_eq!(value["dispatched"], false, "{trait_name}: {result}");
+            assert_eq!(
+                value["operations"],
+                serde_json::json!([
+                    {
+                        "kind": "bind_factory",
+                        "alias": alias,
+                        "factory": factory,
+                        "namespaces": namespaces
+                    },
+                    {
+                        "kind": "emit",
+                        "event": event,
+                        "payload": {}
+                    }
+                ]),
+                "{trait_name}: {result}"
+            );
+        }
+    }
+
+    #[test]
+    fn v8_lifecycle_boundary_fails_closed_on_unsupported_statement() {
+        let result = run_spawn(
+            "@trait t { @on_spawn => { value = 1 emit(\"never\", {}) } }",
+            "t",
+        );
+        expect_err(&result, "unsupported-lifecycle-statement");
     }
 
     #[test]

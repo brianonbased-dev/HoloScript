@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-07-27T21:44:53Z",
+  "generatedAt": "2026-07-30T14:05:46Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "1b3782765d46ddc386c002401c5a53b3b28ad932",
+  "sourceCommit": "68d5c16cfc29e6d3653bd36fcab92d7afe26cdc6",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release",
@@ -16,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 512760,
-    "wasmSha256": "fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
-    "previousWasmSha256": "5f814a5671a2986277935d818267143ae5c4d806e48c3f630257d9c7902fd564",
+    "wasmBytes": 520453,
+    "wasmSha256": "4282e6b0ffa193b97bf4f4e52acd1ae27d4b06d9b3633c7ef30b5dc2f5a9a35d",
+    "previousWasmSha256": "fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
     "repeatBuildSha256Matched": true,
-    "note": "Clean current-main rebuild adding the cumulative v6 deterministic evaluator with strict, short-circuiting null coalescing while keeping v1-v5 pinned. A repeat Node build reproduced the SHA-256, and two web builds from the same source were byte-identical."
+    "note": "Clean HoloRepo-candidate rebuild adding deterministic subset v8 lifecycle effect-intent evaluation. The evaluator executes shipped on_spawn source into ordered inert intents without dispatching host effects. A repeat Node build reproduced the SHA-256, and both web builds from the same source were byte-identical."
   }
 }

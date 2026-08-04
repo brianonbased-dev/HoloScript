@@ -386,8 +386,8 @@ android {
         applicationId = "${pkg}"
         minSdk = ${minSdk}
         targetSdk = ${sdk}
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = ${compiler.options.versionCode}
+        versionName = "${compiler.escapeStringValue(compiler.options.versionName, 'Kotlin')}"
     }
 
     buildTypes {

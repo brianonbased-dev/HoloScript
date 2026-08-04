@@ -8,6 +8,7 @@ export const evaluate_trait_handler_v2: (a: number, b: number, c: number, d: num
 export const evaluate_trait_handler_v4: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
 export const evaluate_trait_handler_v5: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
 export const evaluate_trait_handler_v6: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
+export const evaluate_trait_spawn_v1: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
 export const init: () => void;
 export const parse: (a: number, b: number, c: number) => void;
 export const parse_pretty: (a: number, b: number, c: number) => void;

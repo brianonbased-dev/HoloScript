@@ -12,7 +12,9 @@
     "map": "JSON object; string keys only; semantically unordered — key-order-observing operations return ascending key order",
     "set": "JSON array in canonical set form: deduplicated and sorted ascending by the canonical JSON encoding of each element; set-typed inputs are re-canonicalized defensively",
     "quat": "JSON object { x, y, z, w } of numbers",
-    "equality": "structural: two values are equal when their canonical JSON encodings are identical"
+    "equality": "structural: two values are equal when their canonical JSON encodings are identical",
+    "iterable": "a JSON array or string, or a holoscript.std-iterable.v0 descriptor: {schema,kind:list|set,values} or {schema,kind:map,value}; list preserves order, set canonicalizes, map emits [key,value] pairs in ascending key order",
+    "callable": "a holoscript.std-callable.v0 descriptor {schema,arity,body}; body is a bounded strict-JSON expression AST using exactly one of {arg}, {const}, {get}, {array}, {object}, or {op,args}; maximum 128 nodes, depth 16, and 1,000,000 invocations"
   },
   "referenceOracle": "packages/std TypeScript twin (math.ts / collections.ts). The binding is twin-derived with fail-closed rails added; where the twin uses JS reference identity (indexOf/includes/Set dedupe) the ABI hardens to structural equality, so twin agreement is asserted only on vectors whose semantics coincide (scalar elements). Functions with twinRef null are binding-defined.",
   "namespaces": {
@@ -23,8 +25,14 @@
     },
     "list_lib": {
       "list_of": { "params": ["items:list"], "returns": "list", "twinRef": null, "semantics": "identity over the already-JSON argument array" },
+      "list_from": { "params": ["iterable:iterable"], "returns": "list", "twinRef": null, "semantics": "materializes the explicit JSON iterable ABI; arrays and strings are admitted directly, descriptors make list/set/map intent explicit" },
       "list_range": { "params": ["start:number", "end:number", "step:number"], "returns": "list", "twinRef": null, "semantics": "start inclusive, end exclusive, sign-aware like the twin loop; step 0 or step sign moving away from end is an error", "errors": ["zero-step"] },
       "list_repeat": { "params": ["value:any", "count:number"], "returns": "list", "twinRef": null, "semantics": "count copies; count must be a non-negative integer", "errors": ["bad-count"] },
+      "list_map": { "params": ["lst:list", "fn:callable(2)"], "returns": "list", "twinRef": null, "semantics": "invokes fn(item,index) in ascending index order" },
+      "list_flat_map": { "params": ["lst:list", "fn:callable(2)"], "returns": "list", "twinRef": null, "semantics": "invokes fn(item,index) in ascending index order; every callback result must be a list and is concatenated one level" },
+      "list_filter": { "params": ["lst:list", "predicate:callable(2)"], "returns": "list", "twinRef": null, "semantics": "keeps items whose predicate(item,index) result is exactly boolean true" },
+      "list_reduce": { "params": ["lst:list", "fn:callable(3)", "initial:any"], "returns": "any", "twinRef": null, "semantics": "left fold invoking fn(acc,item,index) in ascending index order" },
+      "list_sort": { "params": ["lst:list", "comparator:callable(2)"], "returns": "list", "twinRef": null, "semantics": "stable sort; comparator(a,b) must return a finite number and source index breaks zero-result ties" },
       "list_reverse": { "params": ["lst:list"], "returns": "list", "twinRef": null, "semantics": "reversed copy" },
       "list_flatten": { "params": ["lst:list"], "returns": "list", "twinRef": null, "semantics": "one level of nesting removed; non-array elements pass through" },
       "list_unique": { "params": ["lst:list"], "returns": "list", "twinRef": null, "semantics": "first occurrence kept, structural equality" },
@@ -37,7 +45,9 @@
       "list_is_empty": { "params": ["lst:list"], "returns": "boolean", "twinRef": null, "semantics": "length == 0" },
       "list_join": { "params": ["lst:list", "sep:string"], "returns": "string", "twinRef": null, "semantics": "elements must be strings or numbers; anything else is an error (no implicit toString)", "errors": ["unjoinable-element"] },
       "list_zip": { "params": ["a:list", "b:list"], "returns": "list", "twinRef": null, "semantics": "pairs [a[i], b[i]] up to the shorter length" },
-      "list_chunk": { "params": ["lst:list", "size:number"], "returns": "list", "twinRef": null, "semantics": "consecutive sublists of at most size; size must be a positive integer", "errors": ["bad-size"] }
+      "list_chunk": { "params": ["lst:list", "size:number"], "returns": "list", "twinRef": null, "semantics": "consecutive sublists of at most size; size must be a positive integer", "errors": ["bad-size"] },
+      "list_to_array": { "params": ["lst:list"], "returns": "list", "twinRef": null, "semantics": "shallow list copy" },
+      "list_to_set": { "params": ["lst:list"], "returns": "set", "twinRef": null, "semantics": "canonical structural set projection" }
     },
     "map_lib": {
       "map_set": { "params": ["m:map", "key:string", "value:any"], "returns": "map", "twinRef": null, "semantics": "copy with key set" },
@@ -47,6 +57,8 @@
       "map_keys": { "params": ["m:map"], "returns": "list", "twinRef": null, "semantics": "ascending key order" },
       "map_values": { "params": ["m:map"], "returns": "list", "twinRef": null, "semantics": "values in ascending key order" },
       "map_entries": { "params": ["m:map"], "returns": "list", "twinRef": null, "semantics": "[key, value] pairs in ascending key order" },
+      "map_map_values": { "params": ["m:map", "fn:callable(2)"], "returns": "map", "twinRef": null, "semantics": "preserves keys and invokes fn(value,key) in ascending key order" },
+      "map_filter": { "params": ["m:map", "predicate:callable(2)"], "returns": "map", "twinRef": null, "semantics": "keeps entries whose predicate(value,key) result is exactly boolean true; traversal is ascending key order" },
       "map_merge": { "params": ["a:map", "b:map"], "returns": "map", "twinRef": null, "semantics": "b wins on key collisions, like the twin" },
       "map_size": { "params": ["m:map"], "returns": "number", "twinRef": null, "semantics": "key count" }
     },
@@ -57,11 +69,13 @@
       "set_union": { "params": ["a:set", "b:set"], "returns": "set", "twinRef": null, "semantics": "canonical union" },
       "set_intersection": { "params": ["a:set", "b:set"], "returns": "set", "twinRef": null, "semantics": "canonical intersection" },
       "set_difference": { "params": ["a:set", "b:set"], "returns": "set", "twinRef": null, "semantics": "canonical a-minus-b" },
-      "set_size": { "params": ["s:set"], "returns": "number", "twinRef": null, "semantics": "element count after canonicalization" }
+      "set_size": { "params": ["s:set"], "returns": "number", "twinRef": null, "semantics": "element count after canonicalization" },
+      "set_to_array": { "params": ["s:set"], "returns": "list", "twinRef": null, "semantics": "canonical structural set projected as a JSON list" }
     }
   },
-  "excludedHigherOrder": {
-    "reason": "list_map, list_flat_map, list_filter, list_reduce, list_sort(comparator), map_map_values, and map_filter take function-valued parameters; the deterministic subsets have no function values or closures",
-    "unlock": "a bounded guest-callback design (host re-enters the guest evaluator per element) or declarative predicate/projection mini-expressions"
+  "generalClosureBoundary": {
+    "admitted": "all callback-bearing packaged collection handlers execute through bounded holoscript.std-callable.v0 descriptors carried as strict JSON",
+    "notClaimed": "general guest closures, captured lexical state, callback escape, asynchronous callbacks, side effects, and arbitrary host JavaScript functions",
+    "reason": "the deterministic ABI is portable across Node, browser WebAssembly, fresh npm consumers, and owned metal only when callback code and budgets are explicit data"
   }
 }

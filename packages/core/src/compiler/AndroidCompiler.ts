@@ -70,6 +70,8 @@ import {
 export interface AndroidCompilerOptions {
   packageName?: string;
   className?: string;
+  versionCode?: number;
+  versionName?: string;
   indent?: string;
   minSdk?: number;
   targetSdk?: number;
@@ -94,6 +96,8 @@ export class AndroidCompiler extends CompilerBase {
     this.options = {
       packageName: options.packageName || 'com.holoscript.generated',
       className: options.className || 'GeneratedARScene',
+      versionCode: options.versionCode ?? 1,
+      versionName: options.versionName || '1.0',
       indent: options.indent || '    ',
       minSdk: options.minSdk || 26,
       targetSdk: options.targetSdk || 34,

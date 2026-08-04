@@ -1,32 +1,37 @@
 #!/usr/bin/env node
 /**
- * Published-surface std ABI consumer check.
+ * Fresh-consumer std ABI check.
  *
- * Creates a fresh temporary consumer, installs the named PUBLISHED versions of
- * @holoscript/wasm and @holoscript/std from the public npm registry (scripts
- * disabled, no local source paths), then executes shipped packaged handlers
- * from the installed bytes through the wasm evaluator's highest
- * packaged-capable export (v6 preferred, v5 fallback): pure arithmetic,
- * numeric builtins, a host-binding delegation, and a null-coalescing default. Proves the published artifacts carry the evaluator
- * chain and the executable native sources; writes a durable receipt.
+ * Installs @holoscript/wasm and @holoscript/std into a new temporary project
+ * with lifecycle scripts disabled, verifies every conformance file against the
+ * manifest shipped inside @holoscript/std, imports the published canonical
+ * host binding, and executes the complete projection + packaged-source corpus
+ * through the installed WebAssembly evaluator. No repository source, inline
+ * host mirror, or workspace dependency participates in execution.
  *
- * The canonical host-binding module ships in the repository, not (yet) in the
- * std tarball, so this check inlines a minimal math/list host binding whose
- * semantics mirror packages/std/conformance/host-abi/std-host-binding.mjs and
- * records that boundary in the receipt.
- *
- * Usage:
+ * Registry usage:
  *   node scripts/holo-ci/check-std-abi-published-consumer.mjs
  *     [--wasm-version <v>] [--std-version <v>] [--out <path>] [--keep]
+ *
+ * Pre-publish tarball usage:
+ *   node scripts/holo-ci/check-std-abi-published-consumer.mjs
+ *     --std-spec <path-to-tgz> [--wasm-spec <package-spec>]
  */
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..', '..');
@@ -36,12 +41,20 @@ function flagValue(name, fallback) {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : fallback;
 }
+
 const wasmVersion = flagValue('--wasm-version', '6.1.14');
-const stdVersion = flagValue('--std-version', '7.0.11');
+const stdVersion = flagValue('--std-version', '7.0.12');
+const wasmSpec = flagValue('--wasm-spec', `@holoscript/wasm@${wasmVersion}`);
+const stdSpec = flagValue('--std-spec', `@holoscript/std@${stdVersion}`);
 const outPath = resolve(
   flagValue(
     '--out',
-    join(repoRoot, 'reports', 'library-coherence', '2026-07-28_std-abi-published-consumer.v0.json')
+    join(
+      repoRoot,
+      'reports',
+      'library-coherence',
+      `${new Date().toISOString().slice(0, 10)}_std-abi-published-consumer.v1.json`
+    )
   )
 );
 const keep = args.includes('--keep');
@@ -55,14 +68,51 @@ function fail(message) {
   process.exit(1);
 }
 
+function compareValues(actual, expected, tolerance, path, mismatches) {
+  if (typeof actual !== typeof expected) {
+    mismatches.push(`${path}: type ${typeof actual} vs ${typeof expected}`);
+    return;
+  }
+  if (expected !== null && typeof expected === 'object') {
+    const actualKeys = Object.keys(actual).sort();
+    const expectedKeys = Object.keys(expected).sort();
+    if (actualKeys.join(',') !== expectedKeys.join(',')) {
+      mismatches.push(`${path}: keys [${actualKeys}] vs [${expectedKeys}]`);
+      return;
+    }
+    for (const key of expectedKeys) {
+      compareValues(actual[key], expected[key], tolerance, `${path}.${key}`, mismatches);
+    }
+    return;
+  }
+  if (typeof expected === 'number' && tolerance > 0) {
+    if (Math.abs(actual - expected) > tolerance) {
+      mismatches.push(`${path}: |${actual} - ${expected}| > ${tolerance}`);
+    }
+    return;
+  }
+  if (!Object.is(actual, expected)) {
+    mismatches.push(`${path}: ${JSON.stringify(actual)} vs ${JSON.stringify(expected)}`);
+  }
+}
+
+function traitNameOf(source) {
+  const match = /@trait\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/.exec(source);
+  if (!match) fail('published trait projection does not declare a top-level @trait');
+  return match[1];
+}
+
 const consumerDir = mkdtempSync(join(tmpdir(), 'std-abi-published-'));
-const checks = [];
 let verdict = 'FAILED';
 
 try {
   writeFileSync(
     join(consumerDir, 'package.json'),
-    JSON.stringify({ name: 'std-abi-published-consumer', private: true, version: '0.0.0' }, null, 2)
+    `${JSON.stringify(
+      { name: 'std-abi-published-consumer', private: true, version: '0.0.0' },
+      null,
+      2
+    )}\n`
   );
   execFileSync(
     'npm',
@@ -73,125 +123,192 @@ try {
       '--no-fund',
       '--registry',
       'https://registry.npmjs.org/',
-      `@holoscript/wasm@${wasmVersion}`,
-      `@holoscript/std@${stdVersion}`,
+      wasmSpec,
+      stdSpec,
     ],
-    { cwd: consumerDir, stdio: 'pipe', timeout: 300000, shell: process.platform === 'win32' }
+    {
+      cwd: consumerDir,
+      stdio: 'pipe',
+      timeout: 300000,
+      shell: process.platform === 'win32',
+    }
   );
 
   const require = createRequire(join(consumerDir, 'noop.js'));
-  const wasm = require(
-    join(consumerDir, 'node_modules', '@holoscript', 'wasm', 'pkg-node', 'holoscript_wasm.js')
-  );
+  const wasmRoot = join(consumerDir, 'node_modules', '@holoscript', 'wasm');
   const stdRoot = join(consumerDir, 'node_modules', '@holoscript', 'std');
-  const mathSource = readFileSync(join(stdRoot, 'src', 'math.hsplus'), 'utf8');
-  const collectionsSource = readFileSync(join(stdRoot, 'src', 'collections.hsplus'), 'utf8');
-  const installedWasm = readFileSync(
-    join(consumerDir, 'node_modules', '@holoscript', 'wasm', 'pkg-node', 'holoscript_wasm_bg.wasm')
+  const wasm = require(join(wasmRoot, 'pkg-node', 'holoscript_wasm.js'));
+  const evaluatorExport = 'evaluate_trait_handler_v6';
+  if (typeof wasm[evaluatorExport] !== 'function') {
+    fail(`installed @holoscript/wasm does not export ${evaluatorExport}`);
+  }
+
+  const stdPackage = JSON.parse(readFileSync(join(stdRoot, 'package.json'), 'utf8'));
+  const manifestPath = join(stdRoot, 'conformance', 'generated', 'manifest.json');
+  const manifestBytes = readFileSync(manifestPath);
+  const manifest = JSON.parse(manifestBytes.toString('utf8'));
+  if (manifest.schema !== 'holoscript.std-abi-conformance-manifest.v0') {
+    fail(`unexpected installed manifest schema ${manifest.schema}`);
+  }
+
+  const verifiedFiles = {};
+  for (const [repoRelativePath, pin] of Object.entries(manifest.files)) {
+    const packagePrefix = 'packages/std/';
+    if (!repoRelativePath.startsWith(packagePrefix)) {
+      fail(`installed manifest path is outside @holoscript/std: ${repoRelativePath}`);
+    }
+    const packageRelativePath = repoRelativePath.slice(packagePrefix.length);
+    const absolute = join(stdRoot, ...packageRelativePath.split('/'));
+    if (!existsSync(absolute)) fail(`installed manifest file is absent: ${packageRelativePath}`);
+    const actual = sha256(readFileSync(absolute));
+    if (actual !== pin.sha256) {
+      fail(
+        `installed manifest sha mismatch for ${packageRelativePath}: ${pin.sha256} vs ${actual}`
+      );
+    }
+    verifiedFiles[packageRelativePath] = { sha256: actual };
+  }
+
+  const bindingPath = join(
+    stdRoot,
+    'conformance',
+    'host-abi',
+    'std-host-binding.mjs'
+  );
+  const { createStdHostBindings, STD_HOST_ABI_SCHEMA } = await import(
+    pathToFileURL(bindingPath).href
+  );
+  const hostBindings = createStdHostBindings();
+  const hostFunctionCount = Object.values(hostBindings).reduce(
+    (count, namespace) =>
+      count + Object.values(namespace).filter((value) => typeof value === 'function').length,
+    0
   );
 
-  const evaluatorExport =
-    typeof wasm.evaluate_trait_handler_v6 === 'function'
-      ? 'evaluate_trait_handler_v6'
-      : 'evaluate_trait_handler_v5';
-  if (typeof wasm[evaluatorExport] !== 'function') {
-    fail('published @holoscript/wasm has no packaged-capable evaluator export');
+  const projectionPath = join(
+    stdRoot,
+    'conformance',
+    'generated',
+    'std-abi-conformance.trait.hsplus'
+  );
+  const vectorsPath = join(
+    stdRoot,
+    'conformance',
+    'generated',
+    'std-abi-vectors.v0.jsonl'
+  );
+  const packagedExecutionPath = join(
+    stdRoot,
+    'conformance',
+    'generated',
+    'std-abi-packaged-execution.v0.json'
+  );
+  const projectionSource = readFileSync(projectionPath, 'utf8');
+  const vectors = readFileSync(vectorsPath, 'utf8')
+    .split('\n')
+    .filter((line) => line.trim().length > 0)
+    .map((line) => JSON.parse(line));
+  const packagedExecution = JSON.parse(readFileSync(packagedExecutionPath, 'utf8'));
+  if (packagedExecution.schema !== 'holoscript.std-abi-packaged-execution.v0') {
+    fail(`unexpected packaged execution schema ${packagedExecution.schema}`);
   }
 
-  const bindings = {
-    math: {
-      clamp: (value, lo, hi) => Math.max(lo, Math.min(hi, value)),
-      lerp: (a, b, t) => a + (b - a) * t,
-      quat_slerp: null,
-    },
-    list_lib: {
-      list_range: (start, end, step) => {
-        const out = [];
-        for (let i = start; step > 0 ? i < end : i > end; i += step) out.push(i);
-        return out;
-      },
-    },
-    // The collections factory builds a union handle over all three namespaces,
-    // so they must exist even when a check only exercises list functions.
-    map_lib: {},
-    set_lib: {},
-  };
-  delete bindings.math.quat_slerp;
+  const packagedSources = Object.fromEntries(
+    Object.entries(packagedExecution.sources).map(([trait, repoRelativePath]) => {
+      const packageRelativePath = repoRelativePath.replace(/^packages\/std\//u, '');
+      return [trait, readFileSync(join(stdRoot, ...packageRelativePath.split('/')), 'utf8')];
+    })
+  );
+  const projectionTrait = traitNameOf(projectionSource);
+  const results = vectors.map((vector) => {
+    const source = vector.packaged ? packagedSources[vector.trait] : projectionSource;
+    const trait = vector.packaged ? vector.trait : projectionTrait;
+    const outcome = {
+      id: vector.id,
+      op: vector.op,
+      execution: vector.packaged ? 'packaged-source' : 'projection',
+      pass: false,
+    };
+    try {
+      const envelope = JSON.parse(
+        wasm[evaluatorExport](
+          source,
+          trait,
+          vector.op,
+          JSON.stringify(vector.args ?? {}),
+          hostBindings
+        )
+      );
+      if (!envelope?.ok) {
+        outcome.error = `${envelope?.error?.code ?? 'unknown'}: ${
+          envelope?.error?.message ?? 'no error payload'
+        }`;
+        return outcome;
+      }
+      const mismatches = [];
+      compareValues(envelope.value, vector.expected, vector.tolerance ?? 0, 'value', mismatches);
+      outcome.actual = envelope.value;
+      outcome.pass = mismatches.length === 0;
+      if (mismatches.length > 0) outcome.mismatches = mismatches;
+      return outcome;
+    } catch (error) {
+      outcome.error = String(error?.message ?? error);
+      return outcome;
+    }
+  });
 
-  const cases = [
-    {
-      id: 'published-pure-lerp',
-      source: 'math',
-      trait: 'std_math',
-      handler: 'on_lerp',
-      args: { a: 0, b: 10, t: 0.5 },
-      expect: 5,
-    },
-    {
-      id: 'published-builtin-vec3-length',
-      source: 'math',
-      trait: 'std_math',
-      handler: 'on_vec3_length',
-      args: { v: { x: 3, y: 4, z: 0 } },
-      expect: 5,
-    },
-    {
-      id: 'published-host-clamp',
-      source: 'math',
-      trait: 'std_math',
-      handler: 'on_clamp',
-      args: { value: 42, min: 0, max: 10 },
-      expect: 10,
-    },
-    {
-      id: 'published-coalesced-range',
-      source: 'collections',
-      trait: 'std_list',
-      handler: 'on_range',
-      args: { start: 0, end: 3, step: null },
-      expect: [0, 1, 2],
-    },
-  ];
-
-  for (const testCase of cases) {
-    const raw = wasm[evaluatorExport](
-      testCase.source === 'math' ? mathSource : collectionsSource,
-      testCase.trait,
-      testCase.handler,
-      JSON.stringify(testCase.args),
-      bindings
-    );
-    const envelope = JSON.parse(raw);
-    const pass =
-      envelope.ok === true && JSON.stringify(envelope.value) === JSON.stringify(testCase.expect);
-    checks.push({ ...testCase, pass, actual: envelope.ok ? envelope.value : envelope.error });
-    if (!pass) console.error(`  x ${testCase.id}: ${raw}`);
-  }
-
-  verdict = checks.every((check) => check.pass) ? 'OK' : 'FAILED';
-
+  const failed = results.filter((result) => !result.pass);
+  verdict = failed.length === 0 ? 'OK' : 'FAILED';
+  const installedWasm = readFileSync(
+    join(wasmRoot, 'pkg-node', 'holoscript_wasm_bg.wasm')
+  );
+  const registryInstalled =
+    stdSpec === `@holoscript/std@${stdVersion}` &&
+    wasmSpec === `@holoscript/wasm@${wasmVersion}`;
   const receipt = {
-    schema: 'holoscript.std-abi-published-consumer.v0',
+    schema: 'holoscript.std-abi-published-consumer.v1',
     generatedAtISO: new Date().toISOString(),
     verdict,
-    localSourceUsed: false,
     registry: 'https://registry.npmjs.org/',
+    registryInstalled,
+    localSourceUsed: false,
+    packageBytesOnly: true,
+    requestedSpecs: { wasm: wasmSpec, std: stdSpec },
     packages: {
-      '@holoscript/wasm': { version: wasmVersion, installedWasmSha256: sha256(installedWasm) },
+      '@holoscript/wasm': {
+        version: JSON.parse(readFileSync(join(wasmRoot, 'package.json'), 'utf8')).version,
+        installedWasmSha256: sha256(installedWasm),
+      },
       '@holoscript/std': {
-        version: stdVersion,
-        installedMathHsplusSha256: sha256(Buffer.from(mathSource)),
-        installedCollectionsHsplusSha256: sha256(Buffer.from(collectionsSource)),
+        version: stdPackage.version,
+        manifestSha256: sha256(manifestBytes),
+        verifiedFiles,
       },
     },
     evaluatorExport,
-    checks,
+    hostAbi: {
+      schema: STD_HOST_ABI_SCHEMA,
+      bindingModuleSha256: sha256(readFileSync(bindingPath)),
+      functionCount: hostFunctionCount,
+      source: '@holoscript/std/host-abi installed bytes',
+    },
+    summary: {
+      vectors: vectors.length,
+      passed: results.length - failed.length,
+      failed: failed.length,
+      packagedVectors: results.filter((result) => result.execution === 'packaged-source').length,
+      projectionVectors: results.filter((result) => result.execution === 'projection').length,
+    },
+    results,
     claimBoundary: {
-      provesPublishedEvaluatorChain: verdict === 'OK',
-      provesPublishedPackagedSourcesExecute: verdict === 'OK',
-      hostBindings:
-        'minimal inline binding mirroring the repo-canonical std-host-binding.mjs; the canonical binding module is repository-tracked and not yet published',
-      note: 'Executed in a fresh temporary consumer with install scripts disabled and no local source paths.',
+      provesFreshInstall: true,
+      provesRegistryInstall: registryInstalled,
+      provesFullInstalledCorpus: verdict === 'OK',
+      provesCanonicalPublishedBinding: verdict === 'OK',
+      provesBrowserExecution: false,
+      provesOwnedMetalExecution: false,
+      note:
+        'Every executed source, vector, manifest, and host-binding byte came from packages installed into a fresh consumer with lifecycle scripts disabled. Registry publication is claimed only when requestedSpecs are exact registry versions.',
     },
   };
   const receiptForHash = { ...receipt };
@@ -200,11 +317,18 @@ try {
 
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, `${JSON.stringify(receipt, null, 2)}\n`);
+  if (failed.length > 0) {
+    for (const result of failed.slice(0, 10)) {
+      console.error(
+        `  x ${result.id}: ${result.error ?? (result.mismatches ?? []).join('; ')}`
+      );
+    }
+  }
 } finally {
   if (!keep) rmSync(consumerDir, { recursive: true, force: true });
 }
 
-if (verdict !== 'OK') fail(`published-consumer checks failed; receipt at ${outPath}`);
+if (verdict !== 'OK') fail(`fresh-consumer corpus failed; receipt at ${outPath}`);
 console.log(
-  `[std-abi-published-consumer] OK: @holoscript/wasm@${wasmVersion} + @holoscript/std@${stdVersion} execute the packaged std handlers from published bytes; receipt at ${outPath}`
+  `[std-abi-published-consumer] OK: full installed corpus passed with canonical @holoscript/std host binding; receipt at ${outPath}`
 );

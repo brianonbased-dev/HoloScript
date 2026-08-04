@@ -20,6 +20,8 @@ export default defineConfig({
     'math/tropical-spmv': 'src/math/tropicalSpmv.ts',
     constants: 'src/constants.ts',
     parser: 'src/parser/index.ts',
+    'parser/HoloCompositionTypes': 'src/parser/HoloCompositionTypes.ts',
+    'parser/NFTMarketplaceTypes': 'src/parser/NFTMarketplaceTypes.ts',
     runtime: 'src/runtime.ts',
     'type-checker': 'src/HoloScriptTypeChecker.ts',
     debugger: 'src/HoloScriptDebugger.ts',

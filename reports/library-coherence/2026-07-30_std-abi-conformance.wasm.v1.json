@@ -1,0 +1,2184 @@
+{
+  "schema": "holoscript.std-abi-conformance.wasm.v0",
+  "generatedAtISO": "2026-07-30T06:12:05.803Z",
+  "target": "browser-wasm",
+  "executionRuntime": "node-webassembly",
+  "wasmArtifact": {
+    "path": "packages/compiler-wasm/pkg-node",
+    "sha256": "sha256:fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
+    "byteIdenticalWebArtifact": {
+      "path": "packages/compiler-wasm/pkg",
+      "sha256": "sha256:fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
+      "matches": true
+    }
+  },
+  "evaluatorExport": "evaluate_trait_handler_v6",
+  "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
+  "packagedExecution": {
+    "evaluatorExport": "evaluate_trait_handler_v6",
+    "subsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
+    "sources": {
+      "packages/std/src/math.hsplus": {
+        "sha256": "sha256:1df247922014a7e7b7ff87445070ef8ff4fcc3a510a1cd075c10c64d4c39f955"
+      },
+      "packages/std/src/collections.hsplus": {
+        "sha256": "sha256:e66cb497736e6defa5f2d68eecbebf1910cfecceb37b878eb6a840afde2c8a90"
+      }
+    },
+    "vectors": 67,
+    "claim": "These vectors execute every non-lifecycle SHIPPED packaged handler body from hash-bound source bytes. The engine v7 adapter consumes the canonical HoloScriptPlusParser @trait AST and reparses each preserved authored body through the structured deterministic evaluator; the wasm lane uses its cumulative v6 evaluator. Both statically lift whitelisted factory aliases from @on_spawn, do not execute on_spawn side effects, preserve strict short-circuiting ?? defaults, and carry iterable/callback parameters as the explicit holoscript.std-iterable.v0 and bounded holoscript.std-callable.v0 strict-JSON contracts."
+  },
+  "hostAbi": {
+    "schema": "holoscript.std-host-abi.v0",
+    "bindingModuleSha256": "sha256:24276207657d239290568e375219396a9dbbbe0338bd38f2d66f54ac5698b4be",
+    "descriptorSha256": "sha256:3ea38d26f88a10e83fed63832c82a88de1d1d731319ab81a6625c2b7e84b0efc"
+  },
+  "sources": {
+    "traitProjectionSha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8",
+    "vectorsSha256": "sha256:83e3eb90693ad332c8adacddc77003d073ab578c506d83283b7a2c4b76c3fac0",
+    "manifestSha256": "sha256:b85e461eb185d3778959e902cb29794cb2f889f59186664630648f1b1523e238",
+    "packages/std/conformance/generated/std-abi-conformance.trait.hsplus": {
+      "sha256": "sha256:8ba6459c030ec1f640ba5af63e1c52ff3699e52fa87e655edef00846aff655b8"
+    },
+    "packages/std/conformance/generated/std-abi-vectors.v0.jsonl": {
+      "sha256": "sha256:83e3eb90693ad332c8adacddc77003d073ab578c506d83283b7a2c4b76c3fac0"
+    }
+  },
+  "environment": {
+    "node": "v24.15.0",
+    "arch": "x64",
+    "platform": "win32"
+  },
+  "summary": {
+    "vectors": 192,
+    "passed": 192,
+    "failed": 0,
+    "excludedOps": [
+      {
+        "op": "on_spawn",
+        "trait": "*",
+        "reason": "lifecycle side effects are not pure value ABI operations; factory aliases are statically lifted without executing emit or other spawn effects",
+        "unlock": "a separately receipted lifecycle/effect ABI"
+      }
+    ]
+  },
+  "results": [
+    {
+      "id": "lerp-mid",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "lerp-start",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:49c987621f206f09e5fbe23b516b55a36f838cb14867961f1d84a554d3a35b6b",
+      "actual": {
+        "value": 2
+      }
+    },
+    {
+      "id": "lerp-end",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
+      "actual": {
+        "value": 4
+      }
+    },
+    {
+      "id": "lerp-signed",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:65e3e354e4f6da71cc9878cc4719ebe24853cd2da61128a5ce830df569327dd0",
+      "actual": {
+        "value": 2.5
+      }
+    },
+    {
+      "id": "lerp-fractional",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:f3d01953f83fd65fd3ced14c952014f33ffa6d31e96a0d7bdcb489504973fd6e",
+      "actual": {
+        "value": 2.2
+      }
+    },
+    {
+      "id": "clamp-inside",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "clamp-below",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "clamp-above",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "clamp-fractional",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:68da71bdd6fb631e3752113b5e21644440fdbb640467f34eca0d1e239b103907",
+      "actual": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "clamp-degenerate-range",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "smoothstep-quarter",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "smoothstep-below-edge",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "smoothstep-above-edge",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "smoothstep-wide-range",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "smoothstep-offset-range",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:f1b9d2d1ab7eed3471610e86e38930ab522b46e1f042564b816e8f924e4b85bf",
+      "actual": {
+        "value": 0.15625
+      }
+    },
+    {
+      "id": "remap-mid",
+      "op": "on_remap",
+      "pass": true,
+      "expectedHash": "sha256:b3ff35319045aae558b55e787ba2ece9f2edb99905342c076ee98f9f834a36fe",
+      "actual": {
+        "value": 50
+      }
+    },
+    {
+      "id": "remap-low-edge",
+      "op": "on_remap",
+      "pass": true,
+      "expectedHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "remap-signed-out",
+      "op": "on_remap",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "remap-expand",
+      "op": "on_remap",
+      "pass": true,
+      "expectedHash": "sha256:07953a67895cdbe07665002609a1c24dc503557aadb8db223e398fd2e7593132",
+      "actual": {
+        "value": 4
+      }
+    },
+    {
+      "id": "remap-degrees",
+      "op": "on_remap",
+      "pass": true,
+      "expectedHash": "sha256:c3201745e51019dd67d6d52f91c5ce47375cc89faa453a2d74805766d104975b",
+      "actual": {
+        "value": 108
+      }
+    },
+    {
+      "id": "deg2rad-zero",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "deg2rad-half-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "expectedHash": "sha256:31a41bcf8d1b809fb4ec548ffa177891c57f5ead03f4e4ab299a8d98d8115bd9",
+      "actual": {
+        "value": 3.141592653589793
+      }
+    },
+    {
+      "id": "deg2rad-quarter-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "expectedHash": "sha256:26ee119068557061a4f0d224a1803865c7554d62dabb8c30caf6a8cf92714026",
+      "actual": {
+        "value": 1.5707963267948966
+      }
+    },
+    {
+      "id": "deg2rad-full-turn",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "expectedHash": "sha256:76a484ac879a700be60c17eaebc8c482752baf4aa8b024c285345e590a5479f9",
+      "actual": {
+        "value": 6.283185307179586
+      }
+    },
+    {
+      "id": "deg2rad-one-radian",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "expectedHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "rad2deg-zero",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "expectedHash": "sha256:62378053df4337279c981b7ca793aff5f926763a9bbd1bd597d83c1fcbb77006",
+      "actual": {
+        "value": 180
+      }
+    },
+    {
+      "id": "rad2deg-half-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "expectedHash": "sha256:fc6296b76cc2f0af3813ce38df2ba83e71f32eea8f24c7971e1c7cc1a1c8f755",
+      "actual": {
+        "value": 90
+      }
+    },
+    {
+      "id": "rad2deg-tau",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "expectedHash": "sha256:55dc8b779accbf812fcc4e9d158c0440df288bdf50053758ebc8e9f6fa8569e1",
+      "actual": {
+        "value": 360
+      }
+    },
+    {
+      "id": "rad2deg-one",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "expectedHash": "sha256:09fb5fdd9d8dcc373b8f830d89b8a03d0bff3dc043f5c72b17737a95eeb56d2f",
+      "actual": {
+        "value": 57.29577951308232
+      }
+    },
+    {
+      "id": "dot-basic",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "expectedHash": "sha256:b933ac6266196e74ee34e23a38c28fef1ee6115f37981f96ec90578f594e937a",
+      "actual": {
+        "value": 32
+      }
+    },
+    {
+      "id": "dot-orthogonal",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "dot-fractional",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "expectedHash": "sha256:827d22168a228126ef43590fdafdb5baa54fff5d74066eb4526ab384c741e506",
+      "actual": {
+        "value": -0.25
+      }
+    },
+    {
+      "id": "dot-ones",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "expectedHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "dot-negative",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "expectedHash": "sha256:bea2fc65f4b20033fe6d180fd2acb49923a17e314e8b6330ee6bfbbef70dd680",
+      "actual": {
+        "value": -20
+      }
+    },
+    {
+      "id": "cross-basis",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "expectedHash": "sha256:283753ed40e3875ab019d55a36a6111df2761bc6f2078d5df196f688c34693b4",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "cross-general",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "expectedHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "cross-fractional",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "expectedHash": "sha256:54a75194d5faabc67b6f81f862196a6814e8aa9395e90ff5efe01f66427a3fba",
+      "actual": {
+        "x": -1.1875,
+        "y": -6.125,
+        "z": -4.125
+      }
+    },
+    {
+      "id": "cross-sequential",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "expectedHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "cross-parallel",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "expectedHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vlerp-mid",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "expectedHash": "sha256:f3ff8d804e9661ca21c32a5391cc62daf1c2dca047dcd377e8e796212bd8e0e0",
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "vlerp-start",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "expectedHash": "sha256:bd15c4f7a60dfdd589b642ef04c905ea126c83b40116c0c62143616499066a12",
+      "actual": {
+        "x": 1,
+        "y": 2,
+        "z": 3
+      }
+    },
+    {
+      "id": "vlerp-end",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "expectedHash": "sha256:7161f7bf5e9490c07b4ee0c2dc9d05bc1c32a3eec2d6f793587127d25c06a702",
+      "actual": {
+        "x": 4,
+        "y": 5,
+        "z": 6
+      }
+    },
+    {
+      "id": "vlerp-quarter",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "expectedHash": "sha256:6666813a18a95580a37cdd3b2e7b521a7dbd0a4292a3e0a691d6f39c27655ed4",
+      "actual": {
+        "x": -2,
+        "y": 4,
+        "z": 1
+      }
+    },
+    {
+      "id": "vlerp-fractional-t",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "expectedHash": "sha256:162488e26f24c738808c67b7f7c8bf54ce1b988236a8eaa8d5adeb71701dbfd6",
+      "actual": {
+        "x": 1.9,
+        "y": 2.9,
+        "z": 3.9
+      }
+    },
+    {
+      "id": "vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vlen-122",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "vlen-unit",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "vlen-fractional",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:08538985f27f70319116ea038c85d6567a0c3e48e22a8057412bbcc517ee4ee6",
+      "actual": {
+        "value": 0.8660254037844386
+      }
+    },
+    {
+      "id": "vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:cba0cdb8d7bfbfc02363847be339164850d856fdf4ebc7ef7711909baf727ec2",
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-ones",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:d0b00d86b122992a0691f2460b7e12be6440a4859961bbe7f0becaee4eaac0a5",
+      "actual": {
+        "x": 0.5773502691896258,
+        "y": 0.5773502691896258,
+        "z": 0.5773502691896258
+      }
+    },
+    {
+      "id": "vnorm-axis",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:38bb7ef226d764d43fb42c67f1061bb50e89b94674e9803d0bdc56a6147bc3f6",
+      "actual": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "vnorm-512",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:68d48d78e0adfdf77380ead478ebe8d4542cbf760cef3bb581284757017c3c74",
+      "actual": {
+        "x": 0,
+        "y": 0.38461538461538464,
+        "z": 0.9230769230769231
+      }
+    },
+    {
+      "id": "vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "expectedHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "vdist-same",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "vdist-diagonal",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "expectedHash": "sha256:3b9246b7546705c8ce13c00715e383c5028af8604ecc15ddacd02c9dbf3f6270",
+      "actual": {
+        "value": 1.7320508075688772
+      }
+    },
+    {
+      "id": "vdist-mixed",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "expectedHash": "sha256:dec2b1e39579f14a9d7efee92af9c597de903cf75cc1a7b3fab626f18038859f",
+      "actual": {
+        "value": 3.5355339059327378
+      }
+    },
+    {
+      "id": "vdist-236",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "expectedHash": "sha256:9d709bba0358da8fdf5600bb3692fa32d0aa2a19a08152cf4307e0b4240e71ac",
+      "actual": {
+        "value": 7
+      }
+    },
+    {
+      "id": "qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "expectedHash": "sha256:dc15ffbd68614839ba0fbd666321587edf302234186bf98c28259243b0b63f13",
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "qaxis-x-third",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "expectedHash": "sha256:e844354ee3e5972e94b8dff1d0002d517f25817001b05971c8cf2421dea90dd7",
+      "actual": {
+        "w": 0.8660254037844387,
+        "x": 0.49999999999999994,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-y-one",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "expectedHash": "sha256:3081b84285ca228d894085f2bd2f785eb7baf97044ba6bda0e3e8a869a6f3b25",
+      "actual": {
+        "w": 0.8775825618903728,
+        "x": 0,
+        "y": 0.479425538604203,
+        "z": 0
+      }
+    },
+    {
+      "id": "qaxis-diagonal",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "expectedHash": "sha256:cad2049f69fdd99a33420f1d725b51abf09d1152c5d4afd17b911520945cce13",
+      "actual": {
+        "w": 0.5000000000000001,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:90c0b43d66c20aa27a70eefd9e5ce796aa42f1a70edab125f60301b48affdf48",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "qslerp-quarter-general",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:83084f48f05a47e40626ae4c2243770befd3fd43ef824ec4875dff7f6ff0f5d5",
+      "actual": {
+        "w": 0.889117318538694,
+        "x": 0.17870630796170991,
+        "y": 0.21613343763264042,
+        "z": 0.31777837561756156
+      }
+    },
+    {
+      "id": "qslerp-shortest-nlerp",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:3361c4e7ea453f7a050ffd60bc84307957733d76909bae2601375dd208557bf4",
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qslerp-shortest-spherical",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:3de15e73536aa77a408ab4537992e0a326a85f2361f178c351081d0bb2a377f1",
+      "actual": {
+        "w": 0.6668859288553503,
+        "x": 0.4616902584383194,
+        "y": 0.3847418820319328,
+        "z": 0.4360407996361905
+      }
+    },
+    {
+      "id": "qslerp-near-parallel",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:f47bb4fbfb7c8fe41266c8c817323a3736d16c138fbf7c9e8e6030c445f88263",
+      "actual": {
+        "w": 0.9991095955268614,
+        "x": 0.010501677514422186,
+        "y": 0.02050327514720522,
+        "z": 0.030504872779988257
+      }
+    },
+    {
+      "id": "qslerp-t0-positive",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:fca35c15f623f9be34ae5c9d2b442215ba0d5792d84f5f37ddcc65af017f77a0",
+      "actual": {
+        "w": 0.9,
+        "x": 0.1,
+        "y": 0.2,
+        "z": 0.3
+      }
+    },
+    {
+      "id": "quat-identity",
+      "op": "on_quat_identity",
+      "pass": true,
+      "expectedHash": "sha256:ae4521a018cf2320f1ece95ba13cdc13bb3fdebe7807353b5bc15de37ddfa585",
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "qmul-identity-left",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "expectedHash": "sha256:3361c4e7ea453f7a050ffd60bc84307957733d76909bae2601375dd208557bf4",
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-identity-right",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "expectedHash": "sha256:3361c4e7ea453f7a050ffd60bc84307957733d76909bae2601375dd208557bf4",
+      "actual": {
+        "w": 0.5,
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-general",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "expectedHash": "sha256:5d597c24ab9cb723541de11b52efb6b0d7fb7b14a06685ea6b627701e81462e5",
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "qmul-half-turns",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "expectedHash": "sha256:fd812f4ee6efe4149d5ee1b77790312d8e27831954362f799a36dc0a1847d31c",
+      "actual": {
+        "w": 0.5000000000000001,
+        "x": 0.5000000000000001,
+        "y": 0.5000000000000001,
+        "z": 0.5000000000000001
+      }
+    },
+    {
+      "id": "hclamp-above",
+      "op": "on_host_clamp",
+      "pass": true,
+      "expectedHash": "sha256:a9c584f4ba45a8095ab3c1dc364c168e09006b78402318909271a8895ad8c9a5",
+      "actual": {
+        "value": 10
+      }
+    },
+    {
+      "id": "hclamp-inside",
+      "op": "on_host_clamp",
+      "pass": true,
+      "expectedHash": "sha256:68da71bdd6fb631e3752113b5e21644440fdbb640467f34eca0d1e239b103907",
+      "actual": {
+        "value": 0.5
+      }
+    },
+    {
+      "id": "hlerp-mid",
+      "op": "on_host_lerp",
+      "pass": true,
+      "expectedHash": "sha256:36060134d807a85bd4de45d03754fc36d6f73b2349587345f0f71b5548caeaee",
+      "actual": {
+        "value": 5
+      }
+    },
+    {
+      "id": "hlerp-frac",
+      "op": "on_host_lerp",
+      "pass": true,
+      "expectedHash": "sha256:f3d01953f83fd65fd3ced14c952014f33ffa6d31e96a0d7bdcb489504973fd6e",
+      "actual": {
+        "value": 2.2
+      }
+    },
+    {
+      "id": "hslerp-mid",
+      "op": "on_host_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:f213b9aec31f742032b1a84441adb5256e538e6c5930193412664b494cd83a9d",
+      "actual": {
+        "value": {
+          "w": 0.9238795325112867,
+          "x": 0,
+          "y": 0,
+          "z": 0.38268343236508984
+        }
+      }
+    },
+    {
+      "id": "hslerp-general",
+      "op": "on_host_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:a0abfe6573356835746101a356a8a5bbebe21f0c55bc1c08967304841b3da38c",
+      "actual": {
+        "value": {
+          "w": 0.889117318538694,
+          "x": 0.17870630796170991,
+          "y": 0.21613343763264042,
+          "z": 0.31777837561756156
+        }
+      }
+    },
+    {
+      "id": "hrange-default-step",
+      "op": "on_host_list_range",
+      "pass": true,
+      "expectedHash": "sha256:d25839a629724fbed7178b139b9e32ca7c2e9638e9715b330cb04f5e7d660132",
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hrange-up",
+      "op": "on_host_list_range",
+      "pass": true,
+      "expectedHash": "sha256:d25839a629724fbed7178b139b9e32ca7c2e9638e9715b330cb04f5e7d660132",
+      "actual": {
+        "value": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hrange-down",
+      "op": "on_host_list_range",
+      "pass": true,
+      "expectedHash": "sha256:5ddb350ee60967202f1ad60320120e8be72153a04979bf98d56e11a360c4560c",
+      "actual": {
+        "value": [
+          10,
+          8,
+          6
+        ]
+      }
+    },
+    {
+      "id": "hrepeat-str",
+      "op": "on_host_list_repeat",
+      "pass": true,
+      "expectedHash": "sha256:b5e9fbe051fa4f8ca4380534f5be11083d905453e083f73759a6d0a85fb863cd",
+      "actual": {
+        "value": [
+          "ha",
+          "ha",
+          "ha"
+        ]
+      }
+    },
+    {
+      "id": "hrepeat-zero",
+      "op": "on_host_list_repeat",
+      "pass": true,
+      "expectedHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hreverse-nums",
+      "op": "on_host_list_reverse",
+      "pass": true,
+      "expectedHash": "sha256:6e794437ff47de309d520ae92409cf34b7518fcc13c5d9ae11b614e327ca17d2",
+      "actual": {
+        "value": [
+          4,
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "id": "hreverse-mixed",
+      "op": "on_host_list_reverse",
+      "pass": true,
+      "expectedHash": "sha256:c64f16b2387f481be40fe8c6b81f4cb9d6fe507bad2735d9824723bd8f72bf0d",
+      "actual": {
+        "value": [
+          true,
+          1,
+          "a"
+        ]
+      }
+    },
+    {
+      "id": "hflatten-nested",
+      "op": "on_host_list_flatten",
+      "pass": true,
+      "expectedHash": "sha256:3f5decddbd2553e79b1334b9b93a33442687b0466a58949edba33faef6152516",
+      "actual": {
+        "value": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hflatten-flat",
+      "op": "on_host_list_flatten",
+      "pass": true,
+      "expectedHash": "sha256:7c7ec933c4eb5852ff73742661f089a5a7bcb6d05005e6bb26895959c080dc26",
+      "actual": {
+        "value": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hunique-dupes",
+      "op": "on_host_list_unique",
+      "pass": true,
+      "expectedHash": "sha256:9dfd2d83a544f190bdf93605ff6d857ad356107ee5a89d04845c98966cfe04f5",
+      "actual": {
+        "value": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "hunique-strings",
+      "op": "on_host_list_unique",
+      "pass": true,
+      "expectedHash": "sha256:75adeb552c110b810d3c0b0cf6cf8ee08b5e9f8892d1fa185db9a9ded604a992",
+      "actual": {
+        "value": [
+          "b",
+          "a"
+        ]
+      }
+    },
+    {
+      "id": "hget-mid",
+      "op": "on_host_list_get",
+      "pass": true,
+      "expectedHash": "sha256:e6c58fba679eee5ed1eb4106ccc6326427262d7964fde981e9e22779edf2c554",
+      "actual": {
+        "value": 20
+      }
+    },
+    {
+      "id": "hget-first",
+      "op": "on_host_list_get",
+      "pass": true,
+      "expectedHash": "sha256:da1fa454c2b3e417928b12414a470b10a5c5151532a990a6c4b19d801d42c259",
+      "actual": {
+        "value": "x"
+      }
+    },
+    {
+      "id": "hcontains-yes",
+      "op": "on_host_list_contains",
+      "pass": true,
+      "expectedHash": "sha256:8c5aaab6e1efdec7f7f9f65cc0de77461c36a46e6b7c9ee7a35299dd6e8449ee",
+      "actual": {
+        "value": true
+      }
+    },
+    {
+      "id": "hcontains-no",
+      "op": "on_host_list_contains",
+      "pass": true,
+      "expectedHash": "sha256:1e544d43b574a8e36402bd746d6a6260b4e1169718052ad5354a5b58c6ad01c5",
+      "actual": {
+        "value": false
+      }
+    },
+    {
+      "id": "hindexof-hit",
+      "op": "on_host_list_index_of",
+      "pass": true,
+      "expectedHash": "sha256:48208f9428d64634bd8e28ff345bf0eab60d53c18fa2fbdb0b9bc1e84df2b5f6",
+      "actual": {
+        "value": 1
+      }
+    },
+    {
+      "id": "hindexof-miss",
+      "op": "on_host_list_index_of",
+      "pass": true,
+      "expectedHash": "sha256:f32d4354160a457984a54414824b84c196a5ddf65d6ee6c992317a5fb7a53b0c",
+      "actual": {
+        "value": -1
+      }
+    },
+    {
+      "id": "hjoin-default-separator",
+      "op": "on_host_list_join",
+      "pass": true,
+      "expectedHash": "sha256:c4dfe2fd7ba3fcb227bbf7fa3078d36656e4e81619b521dfba1b55d6e5e3df5d",
+      "actual": {
+        "value": "a,b,c"
+      }
+    },
+    {
+      "id": "hjoin-dash",
+      "op": "on_host_list_join",
+      "pass": true,
+      "expectedHash": "sha256:b6f8701770c83f7a820b648b6e502bf5bb3c350058b1b824a6776f3db3ea629c",
+      "actual": {
+        "value": "a-b-c"
+      }
+    },
+    {
+      "id": "hjoin-nums",
+      "op": "on_host_list_join",
+      "pass": true,
+      "expectedHash": "sha256:4dc44d25b0fe00d022c05a06c65e319bfac4f3539cc39defb6f1e00ac8fe64f7",
+      "actual": {
+        "value": "1,2.5,3"
+      }
+    },
+    {
+      "id": "hzip-even",
+      "op": "on_host_list_zip",
+      "pass": true,
+      "expectedHash": "sha256:0656de277c9d2badffa0fa67f295c4ee3793c4e977c3f6eb6305f51332a5dfe6",
+      "actual": {
+        "value": [
+          [
+            1,
+            "x"
+          ],
+          [
+            2,
+            "y"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hzip-uneven",
+      "op": "on_host_list_zip",
+      "pass": true,
+      "expectedHash": "sha256:c551595fed9ab98b1056dbbc365cfdd8ddaf2c180f37f7d4c9453a3e685eabef",
+      "actual": {
+        "value": [
+          [
+            1,
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hchunk-2",
+      "op": "on_host_list_chunk",
+      "pass": true,
+      "expectedHash": "sha256:823340c3703549fbca3eaa0c6da55e5a9e9422b5d10388485eb0d2d74cea13a0",
+      "actual": {
+        "value": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hchunk-big",
+      "op": "on_host_list_chunk",
+      "pass": true,
+      "expectedHash": "sha256:168b4db401a857e942f2cc9a116e2a67f7e6e92fc298b30cf7528c0955e0fd41",
+      "actual": {
+        "value": [
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hmapset-new",
+      "op": "on_host_map_set",
+      "pass": true,
+      "expectedHash": "sha256:4626c53c4710a519a0ac00f0f0be2f70182a5930d690984513c49c3ba4459799",
+      "actual": {
+        "value": {
+          "a": 1,
+          "b": 2
+        }
+      }
+    },
+    {
+      "id": "hmapset-overwrite",
+      "op": "on_host_map_set",
+      "pass": true,
+      "expectedHash": "sha256:c2350acf60852d7da6f1bc81a6d3857bb2b68e1a748010a3098d33470ba6061a",
+      "actual": {
+        "value": {
+          "a": 9
+        }
+      }
+    },
+    {
+      "id": "hmapget-hit",
+      "op": "on_host_map_get",
+      "pass": true,
+      "expectedHash": "sha256:49c987621f206f09e5fbe23b516b55a36f838cb14867961f1d84a554d3a35b6b",
+      "actual": {
+        "value": 2
+      }
+    },
+    {
+      "id": "hmapget-nested",
+      "op": "on_host_map_get",
+      "pass": true,
+      "expectedHash": "sha256:90b4538ae68205e89bc71c21e0e61d07f358c2783aeb272a7855c0570e55f942",
+      "actual": {
+        "value": {
+          "deep": true
+        }
+      }
+    },
+    {
+      "id": "hmapkeys-sorted",
+      "op": "on_host_map_keys",
+      "pass": true,
+      "expectedHash": "sha256:e70f5a82f3950291664adc68c38eaac5d83fc2426643dbb49404547ea21d67fa",
+      "actual": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "id": "hmapkeys-empty",
+      "op": "on_host_map_keys",
+      "pass": true,
+      "expectedHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hmapmerge-bwins",
+      "op": "on_host_map_merge",
+      "pass": true,
+      "expectedHash": "sha256:de25848781bd35f4e894d2542b3fb2da435c20d7719a1078618ba807cd306651",
+      "actual": {
+        "value": {
+          "x": 1,
+          "y": 9,
+          "z": 3
+        }
+      }
+    },
+    {
+      "id": "hmapmerge-empty",
+      "op": "on_host_map_merge",
+      "pass": true,
+      "expectedHash": "sha256:00191d4d07450ffc2105f4919c18a4c882bd7888b675bbcc2169e94f44651c44",
+      "actual": {
+        "value": {
+          "k": "v"
+        }
+      }
+    },
+    {
+      "id": "hmapsize-3",
+      "op": "on_host_map_size",
+      "pass": true,
+      "expectedHash": "sha256:d428e15b36ff064e22b6f8db60bd7a59bcfc07a04ccd0f15d9a96dc060c72e3c",
+      "actual": {
+        "value": 3
+      }
+    },
+    {
+      "id": "hmapsize-0",
+      "op": "on_host_map_size",
+      "pass": true,
+      "expectedHash": "sha256:23d7b286bd429460b92a2a1c21b6afc34110446c5034c17363fda363aa0a7c5d",
+      "actual": {
+        "value": 0
+      }
+    },
+    {
+      "id": "hsetadd-new",
+      "op": "on_host_set_add",
+      "pass": true,
+      "expectedHash": "sha256:7c7ec933c4eb5852ff73742661f089a5a7bcb6d05005e6bb26895959c080dc26",
+      "actual": {
+        "value": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetadd-dupe",
+      "op": "on_host_set_add",
+      "pass": true,
+      "expectedHash": "sha256:50a15f5305d210a1fe11e43d0f1b312bfc87d6d8fadeda9b516f550a113d3911",
+      "actual": {
+        "value": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "hsethas-yes",
+      "op": "on_host_set_has",
+      "pass": true,
+      "expectedHash": "sha256:8c5aaab6e1efdec7f7f9f65cc0de77461c36a46e6b7c9ee7a35299dd6e8449ee",
+      "actual": {
+        "value": true
+      }
+    },
+    {
+      "id": "hsethas-no",
+      "op": "on_host_set_has",
+      "pass": true,
+      "expectedHash": "sha256:1e544d43b574a8e36402bd746d6a6260b4e1169718052ad5354a5b58c6ad01c5",
+      "actual": {
+        "value": false
+      }
+    },
+    {
+      "id": "hsetunion-overlap",
+      "op": "on_host_set_union",
+      "pass": true,
+      "expectedHash": "sha256:3f5decddbd2553e79b1334b9b93a33442687b0466a58949edba33faef6152516",
+      "actual": {
+        "value": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "hsetunion-strings",
+      "op": "on_host_set_union",
+      "pass": true,
+      "expectedHash": "sha256:e70f5a82f3950291664adc68c38eaac5d83fc2426643dbb49404547ea21d67fa",
+      "actual": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "id": "hsetinter-common",
+      "op": "on_host_set_intersection",
+      "pass": true,
+      "expectedHash": "sha256:56d304f4ede9a9235faf444c89cf6b0a8fa550263458e7cb54743c29306dfe7c",
+      "actual": {
+        "value": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetinter-none",
+      "op": "on_host_set_intersection",
+      "pass": true,
+      "expectedHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "hsetdiff-some",
+      "op": "on_host_set_difference",
+      "pass": true,
+      "expectedHash": "sha256:22ca83915ea21f247f10dcf202ac0a12f072a9a39e271f53112410c4463069b2",
+      "actual": {
+        "value": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "id": "hsetdiff-all",
+      "op": "on_host_set_difference",
+      "pass": true,
+      "expectedHash": "sha256:99bcfca61a865fe7ac5bb675250de956e8e0fb175d59adac80bb2fb177154a2c",
+      "actual": {
+        "value": []
+      }
+    },
+    {
+      "id": "pkg-clamp-above",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 10
+    },
+    {
+      "id": "pkg-clamp-inside",
+      "op": "on_clamp",
+      "pass": true,
+      "expectedHash": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lerp-mid",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-lerp-frac",
+      "op": "on_lerp",
+      "pass": true,
+      "expectedHash": "sha256:914204c25f3f144ddec3469c61a6faea695c87590ab78a5eb25b0f3904cf84e0",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 2.2
+    },
+    {
+      "id": "pkg-smoothstep-quarter",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:c58f7e4851eb4844304fda0b6775020202c338e6632c63bd86ec2bc28d432401",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-smoothstep-offset",
+      "op": "on_smoothstep",
+      "pass": true,
+      "expectedHash": "sha256:c58f7e4851eb4844304fda0b6775020202c338e6632c63bd86ec2bc28d432401",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 0.15625
+    },
+    {
+      "id": "pkg-remap-mid",
+      "op": "on_remap",
+      "pass": true,
+      "expectedHash": "sha256:1a6562590ef19d1045d06c4055742d38288e9e6dcd71ccde5cee80f1d5a774eb",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 50
+    },
+    {
+      "id": "pkg-deg2rad-half",
+      "op": "on_deg_to_rad",
+      "pass": true,
+      "expectedHash": "sha256:f0a1b7875844c3ae0d28f3cc44e9a6241da33e2623a69f0a71263158dffb4e87",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 3.141592653589793
+    },
+    {
+      "id": "pkg-rad2deg-pi",
+      "op": "on_rad_to_deg",
+      "pass": true,
+      "expectedHash": "sha256:7b69759630f869f2723875f873935fed29d2d12b10ef763c1c33b8e0004cb405",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 180
+    },
+    {
+      "id": "pkg-vlen-345",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-vlen-236",
+      "op": "on_vec3_length",
+      "pass": true,
+      "expectedHash": "sha256:7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 7
+    },
+    {
+      "id": "pkg-vnorm-345",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:cba0cdb8d7bfbfc02363847be339164850d856fdf4ebc7ef7711909baf727ec2",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vnorm-zero",
+      "op": "on_vec3_normalize",
+      "pass": true,
+      "expectedHash": "sha256:35461afe4a2d42dcc8948534195c5e79c22332615508a7a0627de91e52c3b5c8",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-vdot-basic",
+      "op": "on_vec3_dot",
+      "pass": true,
+      "expectedHash": "sha256:e29c9c180c6279b0b02abd6a1801c7c04082cf486ec027aa13515e4f3884bb6b",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 32
+    },
+    {
+      "id": "pkg-vcross-general",
+      "op": "on_vec3_cross",
+      "pass": true,
+      "expectedHash": "sha256:63aa1b78f4e87ade4a651e51934e0330668f8b1d7e3454647e0b22ffd5e289ec",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": -3,
+        "y": 6,
+        "z": -3
+      }
+    },
+    {
+      "id": "pkg-vlerp-mid",
+      "op": "on_vec3_lerp",
+      "pass": true,
+      "expectedHash": "sha256:f3ff8d804e9661ca21c32a5391cc62daf1c2dca047dcd377e8e796212bd8e0e0",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "x": 5,
+        "y": 10,
+        "z": 15
+      }
+    },
+    {
+      "id": "pkg-vdist-345",
+      "op": "on_vec3_distance",
+      "pass": true,
+      "expectedHash": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": 5
+    },
+    {
+      "id": "pkg-qidentity",
+      "op": "on_quat_identity",
+      "pass": true,
+      "expectedHash": "sha256:ae4521a018cf2320f1ece95ba13cdc13bb3fdebe7807353b5bc15de37ddfa585",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 1,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "pkg-qmul-general",
+      "op": "on_quat_multiply",
+      "pass": true,
+      "expectedHash": "sha256:5d597c24ab9cb723541de11b52efb6b0d7fb7b14a06685ea6b627701e81462e5",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.525,
+        "x": 0.435,
+        "y": 0.47000000000000003,
+        "z": 0.5
+      }
+    },
+    {
+      "id": "pkg-qaxis-z-quarter",
+      "op": "on_quat_from_axis_angle",
+      "pass": true,
+      "expectedHash": "sha256:dc15ffbd68614839ba0fbd666321587edf302234186bf98c28259243b0b63f13",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.7071067811865476,
+        "x": 0,
+        "y": 0,
+        "z": 0.7071067811865475
+      }
+    },
+    {
+      "id": "pkg-qslerp-mid",
+      "op": "on_quat_slerp",
+      "pass": true,
+      "expectedHash": "sha256:90c0b43d66c20aa27a70eefd9e5ce796aa42f1a70edab125f60301b48affdf48",
+      "packaged": true,
+      "trait": "std_math",
+      "actual": {
+        "w": 0.9238795325112867,
+        "x": 0,
+        "y": 0,
+        "z": 0.38268343236508984
+      }
+    },
+    {
+      "id": "pkg-lrange-default-step",
+      "op": "on_range",
+      "pass": true,
+      "expectedHash": "sha256:7f2c5f390b0c7e30e5a644380decea0554bbb62cfc03eff193d13a8c1a117708",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lrange-explicit-step",
+      "op": "on_range",
+      "pass": true,
+      "expectedHash": "sha256:2c9cc32262e3a74b2e4fe3f7637722f90c60d62142d1c1ca2ddc335ca99ae1ed",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        8,
+        6,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "pkg-ljoin-default-separator",
+      "op": "on_join",
+      "pass": true,
+      "expectedHash": "sha256:1b28d531ba89d6542cbffca65e20946ef37079573c9c7a7654083597383cf9b6",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a,b,3"
+    },
+    {
+      "id": "pkg-ljoin-explicit-separator",
+      "op": "on_join",
+      "pass": true,
+      "expectedHash": "sha256:1d340a69dbc44d7e47bf3f634cbb8704cdd59b540f28b7c0821dd51ced831133",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "a-b-3"
+    },
+    {
+      "id": "pkg-lreverse",
+      "op": "on_reverse",
+      "pass": true,
+      "expectedHash": "sha256:645df3cb5a5e94f93e31cd6f50cc78a55f50923bd4c691f1ab5c85277a651326",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "pkg-lflatten",
+      "op": "on_flatten",
+      "pass": true,
+      "expectedHash": "sha256:f6bd10506e9a4daed7c03eda2f2fde54be3bd58eee49dab471c18a888ffbdb6f",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-lunique",
+      "op": "on_unique",
+      "pass": true,
+      "expectedHash": "sha256:51bda7ab4e44726cde71fcb6e4b515357059bb6b6dd5146d1fc50f73f11678c6",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        3,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "pkg-lget",
+      "op": "on_get",
+      "pass": true,
+      "expectedHash": "sha256:f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 20
+    },
+    {
+      "id": "pkg-lfirst",
+      "op": "on_first",
+      "pass": true,
+      "expectedHash": "sha256:ba2df4903a2c14e86dc3bcca58911b44ac1d2514b7227bf6eb08cfb978f55a1b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "x"
+    },
+    {
+      "id": "pkg-llast",
+      "op": "on_last",
+      "pass": true,
+      "expectedHash": "sha256:2bc983a5942276eb00a75e2113a69694318cd28c7de0fc83c0598d9db50eb777",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": "y"
+    },
+    {
+      "id": "pkg-lcontains",
+      "op": "on_contains",
+      "pass": true,
+      "expectedHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lindexof",
+      "op": "on_index_of",
+      "pass": true,
+      "expectedHash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 1
+    },
+    {
+      "id": "pkg-llength",
+      "op": "on_length",
+      "pass": true,
+      "expectedHash": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 3
+    },
+    {
+      "id": "pkg-lisempty",
+      "op": "on_is_empty",
+      "pass": true,
+      "expectedHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": true
+    },
+    {
+      "id": "pkg-lzip",
+      "op": "on_zip",
+      "pass": true,
+      "expectedHash": "sha256:2abdd03b9c7c716d17e92019de41c0f0a51476c76a166cd908ab0544fd5223e4",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          "x"
+        ],
+        [
+          2,
+          "y"
+        ]
+      ]
+    },
+    {
+      "id": "pkg-lchunk",
+      "op": "on_chunk",
+      "pass": true,
+      "expectedHash": "sha256:1dd1a08e7a06987aef9472a406ded6d7d1ffec2c9bcca8ee5616d18609f8166a",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5
+        ]
+      ]
+    },
+    {
+      "id": "pkg-mset",
+      "op": "on_set",
+      "pass": true,
+      "expectedHash": "sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    {
+      "id": "pkg-mkeys",
+      "op": "on_keys",
+      "pass": true,
+      "expectedHash": "sha256:0473ef2dc0d324ab659d3580c1134e9d812035905c4781fdd6d529b0c6860e13",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "pkg-mmerge",
+      "op": "on_merge",
+      "pass": true,
+      "expectedHash": "sha256:01c2fbcb7a3bad04680445a61ce56ea5c1b5fe25bc774132c6771a96b43a17f7",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "x": 1,
+        "y": 9,
+        "z": 3
+      }
+    },
+    {
+      "id": "pkg-msize",
+      "op": "on_size",
+      "pass": true,
+      "expectedHash": "sha256:d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": 2
+    },
+    {
+      "id": "pkg-sadd",
+      "op": "on_add",
+      "pass": true,
+      "expectedHash": "sha256:a615eeaee21de5179de080de8c3052c8da901138406ba71c38c032845f7d54f4",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sunion",
+      "op": "on_union",
+      "pass": true,
+      "expectedHash": "sha256:f6bd10506e9a4daed7c03eda2f2fde54be3bd58eee49dab471c18a888ffbdb6f",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "pkg-sinter",
+      "op": "on_intersection",
+      "pass": true,
+      "expectedHash": "sha256:18b058689d010062a25cd7fb949b2abfea1757d2de45ca3abdda17db956e506b",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "pkg-sdiff",
+      "op": "on_difference",
+      "pass": true,
+      "expectedHash": "sha256:2335c54ffe3749ceafac20eea51040b4fa52beab7682f26d5d1bb75d1878478b",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "packaged-list-of",
+      "op": "on_of",
+      "pass": true,
+      "expectedHash": "sha256:923319e5b3ed791993755b10b935ff857270fa78268334f804a1201a12126ffe",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        "x",
+        true
+      ]
+    },
+    {
+      "id": "packaged-list-from-map",
+      "op": "on_from",
+      "pass": true,
+      "expectedHash": "sha256:cda25b5537fd16060f51eb839e5891c35559f199e9b4bd755b916dd61da60d71",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        [
+          "a",
+          1
+        ],
+        [
+          "b",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "packaged-list-from-string",
+      "op": "on_from",
+      "pass": true,
+      "expectedHash": "sha256:1e689212d92c8792489078dea99167dc26a3e990b3812406b1c1a2e7cc17f272",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        "A",
+        "😀"
+      ]
+    },
+    {
+      "id": "packaged-list-repeat",
+      "op": "on_repeat",
+      "pass": true,
+      "expectedHash": "sha256:fdd1b1e2ca84996a1c74b95885826b2aacc4462dd549b3b546906a4c4fed02d7",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        "x",
+        "x",
+        "x"
+      ]
+    },
+    {
+      "id": "packaged-list-map-callable",
+      "op": "on_map",
+      "pass": true,
+      "expectedHash": "sha256:94d1e0625c0510385699bfa4ab88d868c363ee12a4b3a191ce794e8ef1f8571e",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        20,
+        31
+      ]
+    },
+    {
+      "id": "packaged-list-flat-map-callable",
+      "op": "on_flat_map",
+      "pass": true,
+      "expectedHash": "sha256:ca1519f0047078c0ff5df711bb5fb00b1bec1ca4bbd56f1529f10b808c8592b1",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        10,
+        2,
+        20
+      ]
+    },
+    {
+      "id": "packaged-list-filter-callable",
+      "op": "on_filter",
+      "pass": true,
+      "expectedHash": "sha256:f25ed8cd5464710aff6e5d655a575ac273cb9c19d696e53fa13de05db97454ca",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        2,
+        4
+      ]
+    },
+    {
+      "id": "packaged-list-reduce-callable",
+      "op": "on_reduce",
+      "pass": true,
+      "expectedHash": "sha256:19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": 9
+    },
+    {
+      "id": "packaged-list-sort-callable",
+      "op": "on_sort",
+      "pass": true,
+      "expectedHash": "sha256:b8c9ed3c7746923ad2d109ef65f5d7ff398cef67e03a4ced20611f09aaf86790",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "packaged-list-to-array",
+      "op": "on_to_array",
+      "pass": true,
+      "expectedHash": "sha256:c93f3ba44164a5ca82830e4c4eaa8495b8d034b58b98711872aaa7bb42eef6a2",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        {
+          "x": true
+        }
+      ]
+    },
+    {
+      "id": "packaged-list-to-set",
+      "op": "on_to_set",
+      "pass": true,
+      "expectedHash": "sha256:a615eeaee21de5179de080de8c3052c8da901138406ba71c38c032845f7d54f4",
+      "packaged": true,
+      "trait": "std_list",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "packaged-map-get",
+      "op": "on_get",
+      "pass": true,
+      "expectedHash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": 1
+    },
+    {
+      "id": "packaged-map-has",
+      "op": "on_has",
+      "pass": true,
+      "expectedHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": true
+    },
+    {
+      "id": "packaged-map-delete",
+      "op": "on_delete",
+      "pass": true,
+      "expectedHash": "sha256:0ab1a6d394cd30195f0642b67ae1180c375ffadf5dd7f39c390668b5fdb6da93",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "b": 2
+      }
+    },
+    {
+      "id": "packaged-map-values",
+      "op": "on_values",
+      "pass": true,
+      "expectedHash": "sha256:49a64717d5d4cb19952e6eac2946415cf6879adacf9908e7d872332d32c6e684",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "packaged-map-entries",
+      "op": "on_entries",
+      "pass": true,
+      "expectedHash": "sha256:cda25b5537fd16060f51eb839e5891c35559f199e9b4bd755b916dd61da60d71",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": [
+        [
+          "a",
+          1
+        ],
+        [
+          "b",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "packaged-map-values-callable",
+      "op": "on_map_values",
+      "pass": true,
+      "expectedHash": "sha256:6640bda660bcc2e8b45ca7ea08a0562b7ab0edc0cff7548b5e09e54cf5b83602",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": {
+          "key": "a",
+          "value": 1
+        },
+        "b": {
+          "key": "b",
+          "value": 2
+        }
+      }
+    },
+    {
+      "id": "packaged-map-filter-callable",
+      "op": "on_filter_entries",
+      "pass": true,
+      "expectedHash": "sha256:015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862",
+      "packaged": true,
+      "trait": "std_map",
+      "actual": {
+        "a": 1
+      }
+    },
+    {
+      "id": "packaged-set-has",
+      "op": "on_has",
+      "pass": true,
+      "expectedHash": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": true
+    },
+    {
+      "id": "packaged-set-delete",
+      "op": "on_delete",
+      "pass": true,
+      "expectedHash": "sha256:2335c54ffe3749ceafac20eea51040b4fa52beab7682f26d5d1bb75d1878478b",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "packaged-set-to-array",
+      "op": "on_to_array",
+      "pass": true,
+      "expectedHash": "sha256:a615eeaee21de5179de080de8c3052c8da901138406ba71c38c032845f7d54f4",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "packaged-set-size",
+      "op": "on_size",
+      "pass": true,
+      "expectedHash": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+      "packaged": true,
+      "trait": "std_set",
+      "actual": 3
+    }
+  ],
+  "claimBoundary": {
+    "provesBrowserExecution": false,
+    "note": "Executed in Node's WebAssembly runtime against the byte-identical wasm shipped for browsers; a browser smoke run is a separate receipt."
+  },
+  "receiptHash": "sha256:98b2b9f67557a606695af0aef8a4d7e254d951579e5cb239cc3638c44eb649b9"
+}

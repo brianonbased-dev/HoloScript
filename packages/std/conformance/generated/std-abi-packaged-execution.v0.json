@@ -1,0 +1,1840 @@
+{
+  "schema": "holoscript.std-abi-packaged-execution.v0",
+  "extensionsFile": "packages/std/conformance/std-abi-packaged-extensions.v0.json",
+  "sources": {
+    "std_math": "packages/std/src/math.hsplus",
+    "std_list": "packages/std/src/collections.hsplus",
+    "std_map": "packages/std/src/collections.hsplus",
+    "std_set": "packages/std/src/collections.hsplus"
+  },
+  "targets": [
+    "node",
+    "browser-wasm",
+    "owned-metal"
+  ],
+  "engineSubsetId": "holoscript-engine-hsplus-deterministic-action-subset-v7-packaged-traits",
+  "wasmSubsetId": "holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing",
+  "claim": "These vectors execute every non-lifecycle SHIPPED packaged handler body from hash-bound source bytes. The engine v7 adapter consumes the canonical HoloScriptPlusParser @trait AST and reparses each preserved authored body through the structured deterministic evaluator; the wasm lane uses its cumulative v6 evaluator. Both statically lift whitelisted factory aliases from @on_spawn, do not execute on_spawn side effects, preserve strict short-circuiting ?? defaults, and carry iterable/callback parameters as the explicit holoscript.std-iterable.v0 and bounded holoscript.std-callable.v0 strict-JSON contracts.",
+  "excludedHandlers": [
+    {
+      "handler": "on_spawn",
+      "trait": "*",
+      "reason": "lifecycle side effects; factory aliases statically lifted instead"
+    }
+  ],
+  "handlers": [
+    {
+      "trait": "std_math",
+      "handler": "on_clamp",
+      "params": [
+        "value",
+        "min",
+        "max"
+      ],
+      "expectRef": {
+        "host": [
+          "math",
+          "clamp"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-clamp-above",
+          "args": {
+            "value": 42,
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "id": "pkg-clamp-inside",
+          "args": {
+            "value": 3,
+            "min": 0,
+            "max": 10
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_lerp",
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
+      "expectRef": {
+        "twin": [
+          "lerp"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lerp-mid",
+          "args": {
+            "a": 0,
+            "b": 10,
+            "t": 0.5
+          }
+        },
+        {
+          "id": "pkg-lerp-frac",
+          "args": {
+            "a": 1.5,
+            "b": 3.25,
+            "t": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_smoothstep",
+      "params": [
+        "edge0",
+        "edge1",
+        "x"
+      ],
+      "expectRef": {
+        "twin": [
+          "smoothstep"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-smoothstep-quarter",
+          "args": {
+            "edge0": 0,
+            "edge1": 1,
+            "x": 0.25
+          }
+        },
+        {
+          "id": "pkg-smoothstep-offset",
+          "args": {
+            "edge0": 2,
+            "edge1": 6,
+            "x": 3
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_remap",
+      "params": [
+        "value",
+        "in_min",
+        "in_max",
+        "out_min",
+        "out_max"
+      ],
+      "expectRef": {
+        "twin": [
+          "remap"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-remap-mid",
+          "args": {
+            "value": 5,
+            "in_min": 0,
+            "in_max": 10,
+            "out_min": 0,
+            "out_max": 100
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_deg_to_rad",
+      "params": [
+        "degrees"
+      ],
+      "expectRef": {
+        "twin": [
+          "degToRad"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-deg2rad-half",
+          "args": {
+            "degrees": 180
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_rad_to_deg",
+      "params": [
+        "radians"
+      ],
+      "expectRef": {
+        "twin": [
+          "radToDeg"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-rad2deg-pi",
+          "args": {
+            "radians": 3.141592653589793
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_vec3_length",
+      "params": [
+        "v"
+      ],
+      "expectRef": {
+        "twin": [
+          "vec3Math",
+          "length"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-vlen-345",
+          "args": {
+            "v": {
+              "x": 3,
+              "y": 4,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "pkg-vlen-236",
+          "args": {
+            "v": {
+              "x": 2,
+              "y": 3,
+              "z": 6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_vec3_normalize",
+      "params": [
+        "v"
+      ],
+      "expectRef": {
+        "twin": [
+          "vec3Math",
+          "normalize"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-vnorm-345",
+          "args": {
+            "v": {
+              "x": 3,
+              "y": 4,
+              "z": 0
+            }
+          }
+        },
+        {
+          "id": "pkg-vnorm-zero",
+          "args": {
+            "v": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          }
+        }
+      ],
+      "wrap": "vec3",
+      "wrapNote": "the twin vec3() helper returns a hybrid array with non-enumerable x/y/z shims on the zero branch; the packaged handler returns a plain {x,y,z} object, which is the conformance target shape"
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_vec3_dot",
+      "params": [
+        "a",
+        "b"
+      ],
+      "expectRef": {
+        "twin": [
+          "vec3Math",
+          "dot"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-vdot-basic",
+          "args": {
+            "a": {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            },
+            "b": {
+              "x": 4,
+              "y": 5,
+              "z": 6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_vec3_cross",
+      "params": [
+        "a",
+        "b"
+      ],
+      "expectRef": {
+        "twin": [
+          "vec3Math",
+          "cross"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-vcross-general",
+          "args": {
+            "a": {
+              "x": 2,
+              "y": 3,
+              "z": 4
+            },
+            "b": {
+              "x": 5,
+              "y": 6,
+              "z": 7
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_vec3_lerp",
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
+      "expectRef": {
+        "twin": [
+          "vec3Math",
+          "lerp"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-vlerp-mid",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "b": {
+              "x": 10,
+              "y": 20,
+              "z": 30
+            },
+            "t": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_vec3_distance",
+      "params": [
+        "a",
+        "b"
+      ],
+      "expectRef": {
+        "twin": [
+          "vec3Math",
+          "distance"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-vdist-345",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "b": {
+              "x": 3,
+              "y": 4,
+              "z": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_quat_identity",
+      "params": [],
+      "expectRef": {
+        "twin": [
+          "quatMath",
+          "identity"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-qidentity",
+          "args": {}
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_quat_multiply",
+      "params": [
+        "a",
+        "b"
+      ],
+      "expectRef": {
+        "twin": [
+          "quatMath",
+          "multiply"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-qmul-general",
+          "args": {
+            "a": {
+              "x": 0.1,
+              "y": 0.2,
+              "z": 0.3,
+              "w": 0.9
+            },
+            "b": {
+              "x": 0.4,
+              "y": 0.25,
+              "z": 0.35,
+              "w": 0.8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_quat_from_axis_angle",
+      "params": [
+        "axis",
+        "angle_rad"
+      ],
+      "expectRef": {
+        "twin": [
+          "quatMath",
+          "fromAxisAngle"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-qaxis-z-quarter",
+          "args": {
+            "axis": {
+              "x": 0,
+              "y": 0,
+              "z": 1
+            },
+            "angle_rad": 1.5707963267948966
+          }
+        }
+      ],
+      "tolerance": 1e-15
+    },
+    {
+      "trait": "std_math",
+      "handler": "on_quat_slerp",
+      "params": [
+        "a",
+        "b",
+        "t"
+      ],
+      "expectRef": {
+        "host": [
+          "math",
+          "quat_slerp"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-qslerp-mid",
+          "args": {
+            "a": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "b": {
+              "x": 0,
+              "y": 0,
+              "z": 0.7071067811865476,
+              "w": 0.7071067811865476
+            },
+            "t": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_range",
+      "params": [
+        "start",
+        "end",
+        "step"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_range"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lrange-default-step",
+          "args": {
+            "start": 0,
+            "end": 5,
+            "step": null
+          },
+          "expectArgs": {
+            "start": 0,
+            "end": 5,
+            "step": 1
+          }
+        },
+        {
+          "id": "pkg-lrange-explicit-step",
+          "args": {
+            "start": 8,
+            "end": 0,
+            "step": -2
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_join",
+      "params": [
+        "lst",
+        "sep"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_join"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-ljoin-default-separator",
+          "args": {
+            "lst": [
+              "a",
+              "b",
+              3
+            ],
+            "sep": null
+          },
+          "expectArgs": {
+            "lst": [
+              "a",
+              "b",
+              3
+            ],
+            "sep": ","
+          }
+        },
+        {
+          "id": "pkg-ljoin-explicit-separator",
+          "args": {
+            "lst": [
+              "a",
+              "b",
+              3
+            ],
+            "sep": "-"
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_reverse",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_reverse"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lreverse",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_flatten",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_flatten"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lflatten",
+          "args": {
+            "lst": [
+              [
+                1,
+                2
+              ],
+              [
+                3
+              ],
+              4
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_unique",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_unique"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lunique",
+          "args": {
+            "lst": [
+              3,
+              1,
+              3,
+              2,
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_get",
+      "params": [
+        "lst",
+        "index"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_get"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lget",
+          "args": {
+            "lst": [
+              10,
+              20,
+              30
+            ],
+            "index": 1
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_first",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_first"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lfirst",
+          "args": {
+            "lst": [
+              "x",
+              "y"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_last",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_last"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-llast",
+          "args": {
+            "lst": [
+              "x",
+              "y"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_contains",
+      "params": [
+        "lst",
+        "item"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_contains"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lcontains",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3
+            ],
+            "item": 2
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_index_of",
+      "params": [
+        "lst",
+        "item"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_index_of"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lindexof",
+          "args": {
+            "lst": [
+              "a",
+              "b",
+              "c"
+            ],
+            "item": "b"
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_length",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_length"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-llength",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_is_empty",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_is_empty"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lisempty",
+          "args": {
+            "lst": []
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_zip",
+      "params": [
+        "lst_a",
+        "lst_b"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_zip"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lzip",
+          "args": {
+            "lst_a": [
+              1,
+              2
+            ],
+            "lst_b": [
+              "x",
+              "y"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_chunk",
+      "params": [
+        "lst",
+        "size"
+      ],
+      "expectRef": {
+        "host": [
+          "list_lib",
+          "list_chunk"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-lchunk",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "size": 2
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_set",
+      "params": [
+        "m",
+        "key",
+        "value"
+      ],
+      "expectRef": {
+        "host": [
+          "map_lib",
+          "map_set"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-mset",
+          "args": {
+            "m": {
+              "a": 1
+            },
+            "key": "b",
+            "value": 2
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_keys",
+      "params": [
+        "m"
+      ],
+      "expectRef": {
+        "host": [
+          "map_lib",
+          "map_keys"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-mkeys",
+          "args": {
+            "m": {
+              "b": 1,
+              "a": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_merge",
+      "params": [
+        "m_a",
+        "m_b"
+      ],
+      "expectRef": {
+        "host": [
+          "map_lib",
+          "map_merge"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-mmerge",
+          "args": {
+            "m_a": {
+              "x": 1,
+              "y": 2
+            },
+            "m_b": {
+              "y": 9,
+              "z": 3
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_size",
+      "params": [
+        "m"
+      ],
+      "expectRef": {
+        "host": [
+          "map_lib",
+          "map_size"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-msize",
+          "args": {
+            "m": {
+              "a": 1,
+              "b": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_add",
+      "params": [
+        "s",
+        "item"
+      ],
+      "expectRef": {
+        "host": [
+          "set_lib",
+          "set_add"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-sadd",
+          "args": {
+            "s": [
+              1,
+              3
+            ],
+            "item": 2
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_union",
+      "params": [
+        "s_a",
+        "s_b"
+      ],
+      "expectRef": {
+        "host": [
+          "set_lib",
+          "set_union"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-sunion",
+          "args": {
+            "s_a": [
+              3,
+              1,
+              2
+            ],
+            "s_b": [
+              2,
+              4
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_intersection",
+      "params": [
+        "s_a",
+        "s_b"
+      ],
+      "expectRef": {
+        "host": [
+          "set_lib",
+          "set_intersection"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-sinter",
+          "args": {
+            "s_a": [
+              1,
+              2,
+              3
+            ],
+            "s_b": [
+              2,
+              3,
+              4
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_difference",
+      "params": [
+        "s_a",
+        "s_b"
+      ],
+      "expectRef": {
+        "host": [
+          "set_lib",
+          "set_difference"
+        ]
+      },
+      "vectors": [
+        {
+          "id": "pkg-sdiff",
+          "args": {
+            "s_a": [
+              1,
+              2,
+              3
+            ],
+            "s_b": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_of",
+      "params": [
+        "items"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-of",
+          "args": {
+            "items": [
+              1,
+              "x",
+              true
+            ]
+          },
+          "expected": [
+            1,
+            "x",
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_from",
+      "params": [
+        "iterable"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-from-map",
+          "args": {
+            "iterable": {
+              "schema": "holoscript.std-iterable.v0",
+              "kind": "map",
+              "value": {
+                "b": 2,
+                "a": 1
+              }
+            }
+          },
+          "expected": [
+            [
+              "a",
+              1
+            ],
+            [
+              "b",
+              2
+            ]
+          ]
+        },
+        {
+          "id": "packaged-list-from-string",
+          "args": {
+            "iterable": "A😀"
+          },
+          "expected": [
+            "A",
+            "😀"
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_repeat",
+      "params": [
+        "value",
+        "count"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-repeat",
+          "args": {
+            "value": "x",
+            "count": 3
+          },
+          "expected": [
+            "x",
+            "x",
+            "x"
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_map",
+      "params": [
+        "lst",
+        "fn"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-map-callable",
+          "args": {
+            "lst": [
+              2,
+              3
+            ],
+            "fn": {
+              "schema": "holoscript.std-callable.v0",
+              "arity": 2,
+              "body": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "arg": 0
+                      },
+                      {
+                        "const": 10
+                      }
+                    ]
+                  },
+                  {
+                    "arg": 1
+                  }
+                ]
+              }
+            }
+          },
+          "expected": [
+            20,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_flat_map",
+      "params": [
+        "lst",
+        "fn"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-flat-map-callable",
+          "args": {
+            "lst": [
+              1,
+              2
+            ],
+            "fn": {
+              "schema": "holoscript.std-callable.v0",
+              "arity": 2,
+              "body": {
+                "array": [
+                  {
+                    "arg": 0
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "arg": 0
+                      },
+                      {
+                        "const": 10
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "expected": [
+            1,
+            10,
+            2,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_filter",
+      "params": [
+        "lst",
+        "predicate"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-filter-callable",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "predicate": {
+              "schema": "holoscript.std-callable.v0",
+              "arity": 2,
+              "body": {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "mod",
+                    "args": [
+                      {
+                        "arg": 0
+                      },
+                      {
+                        "const": 2
+                      }
+                    ]
+                  },
+                  {
+                    "const": 0
+                  }
+                ]
+              }
+            }
+          },
+          "expected": [
+            2,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_reduce",
+      "params": [
+        "lst",
+        "fn",
+        "initial_value"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-reduce-callable",
+          "args": {
+            "lst": [
+              1,
+              2,
+              3
+            ],
+            "fn": {
+              "schema": "holoscript.std-callable.v0",
+              "arity": 3,
+              "body": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "arg": 0
+                      },
+                      {
+                        "arg": 1
+                      }
+                    ]
+                  },
+                  {
+                    "arg": 2
+                  }
+                ]
+              }
+            },
+            "initial_value": 0
+          },
+          "expected": 9
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_sort",
+      "params": [
+        "lst",
+        "comparator"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-sort-callable",
+          "args": {
+            "lst": [
+              3,
+              1,
+              2,
+              1
+            ],
+            "comparator": {
+              "schema": "holoscript.std-callable.v0",
+              "arity": 2,
+              "body": {
+                "op": "sub",
+                "args": [
+                  {
+                    "arg": 0
+                  },
+                  {
+                    "arg": 1
+                  }
+                ]
+              }
+            }
+          },
+          "expected": [
+            1,
+            1,
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_to_array",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-to-array",
+          "args": {
+            "lst": [
+              1,
+              {
+                "x": true
+              }
+            ]
+          },
+          "expected": [
+            1,
+            {
+              "x": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_list",
+      "handler": "on_to_set",
+      "params": [
+        "lst"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-list-to-set",
+          "args": {
+            "lst": [
+              3,
+              1,
+              3,
+              2
+            ]
+          },
+          "expected": [
+            1,
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_get",
+      "params": [
+        "m",
+        "key"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-map-get",
+          "args": {
+            "m": {
+              "a": 1
+            },
+            "key": "a"
+          },
+          "expected": 1
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_has",
+      "params": [
+        "m",
+        "key"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-map-has",
+          "args": {
+            "m": {
+              "a": 1
+            },
+            "key": "a"
+          },
+          "expected": true
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_delete",
+      "params": [
+        "m",
+        "key"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-map-delete",
+          "args": {
+            "m": {
+              "a": 1,
+              "b": 2
+            },
+            "key": "a"
+          },
+          "expected": {
+            "b": 2
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_values",
+      "params": [
+        "m"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-map-values",
+          "args": {
+            "m": {
+              "b": 2,
+              "a": 1
+            }
+          },
+          "expected": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_entries",
+      "params": [
+        "m"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-map-entries",
+          "args": {
+            "m": {
+              "b": 2,
+              "a": 1
+            }
+          },
+          "expected": [
+            [
+              "a",
+              1
+            ],
+            [
+              "b",
+              2
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_map_values",
+      "params": [
+        "m",
+        "fn"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-map-values-callable",
+          "args": {
+            "m": {
+              "b": 2,
+              "a": 1
+            },
+            "fn": {
+              "schema": "holoscript.std-callable.v0",
+              "arity": 2,
+              "body": {
+                "object": {
+                  "key": {
+                    "arg": 1
+                  },
+                  "value": {
+                    "arg": 0
+                  }
+                }
+              }
+            }
+          },
+          "expected": {
+            "a": {
+              "key": "a",
+              "value": 1
+            },
+            "b": {
+              "key": "b",
+              "value": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_map",
+      "handler": "on_filter_entries",
+      "params": [
+        "m",
+        "predicate"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-map-filter-callable",
+          "args": {
+            "m": {
+              "b": 2,
+              "a": 1
+            },
+            "predicate": {
+              "schema": "holoscript.std-callable.v0",
+              "arity": 2,
+              "body": {
+                "op": "ne",
+                "args": [
+                  {
+                    "arg": 1
+                  },
+                  {
+                    "const": "b"
+                  }
+                ]
+              }
+            }
+          },
+          "expected": {
+            "a": 1
+          }
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_has",
+      "params": [
+        "s",
+        "item"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-set-has",
+          "args": {
+            "s": [
+              3,
+              1,
+              2
+            ],
+            "item": 2
+          },
+          "expected": true
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_delete",
+      "params": [
+        "s",
+        "item"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-set-delete",
+          "args": {
+            "s": [
+              3,
+              1,
+              2
+            ],
+            "item": 2
+          },
+          "expected": [
+            1,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_to_array",
+      "params": [
+        "s"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-set-to-array",
+          "args": {
+            "s": [
+              3,
+              1,
+              3,
+              2
+            ]
+          },
+          "expected": [
+            1,
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "trait": "std_set",
+      "handler": "on_size",
+      "params": [
+        "s"
+      ],
+      "expectRef": {
+        "literal": true
+      },
+      "vectors": [
+        {
+          "id": "packaged-set-size",
+          "args": {
+            "s": [
+              3,
+              1,
+              3,
+              2
+            ]
+          },
+          "expected": 3
+        }
+      ]
+    }
+  ]
+}

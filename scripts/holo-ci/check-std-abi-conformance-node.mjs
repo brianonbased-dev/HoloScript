@@ -72,6 +72,12 @@ const vectors = vectorsRaw
 const opsDefinition = JSON.parse(
   readFileSync(join(repoRoot, ...manifest.opsFile.split('/')), 'utf8')
 );
+const packagedExecution = JSON.parse(
+  readFileSync(join(repoRoot, ...manifest.packagedExecutionFile.split('/')), 'utf8')
+);
+if (packagedExecution.schema !== 'holoscript.std-abi-packaged-execution.v0') {
+  fail(`unexpected packaged execution schema ${packagedExecution.schema}`);
+}
 
 // --- Load execution engine and reference twin --------------------------------
 
@@ -87,10 +93,10 @@ if (typeof createDeterministicHsplusTraitRuntime !== 'function') {
   fail('engine dist does not export createDeterministicHsplusTraitRuntime');
 }
 if (
-  opsDefinition.packagedExecution?.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7
+  packagedExecution.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7
 ) {
   fail(
-    `packaged engine subset mismatch: ops=${opsDefinition.packagedExecution?.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
+    `packaged engine subset mismatch: ops=${packagedExecution.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
   );
 }
 
@@ -142,16 +148,19 @@ function packagedReferenceKey(trait, handler) {
 }
 
 const packagedReferenceByHandler = new Map(
-  (opsDefinition.packagedExecution?.handlers ?? []).map((handler) => {
-    const fn = handler.expectRef.host
+  packagedExecution.handlers.map((handler) => {
+    const fn = handler.expectRef?.host
       ? hostBindings?.[handler.expectRef.host[0]]?.[handler.expectRef.host[1]]
-      : resolveReference(handler.expectRef.twin);
+      : handler.expectRef?.twin
+        ? resolveReference(handler.expectRef.twin)
+        : null;
     return [
       packagedReferenceKey(handler.trait, handler.handler),
       {
         fn: typeof fn === 'function' ? fn : null,
         params: handler.params,
         wrap: handler.wrap,
+        literal: handler.expectRef?.literal === true,
       },
     ];
   })
@@ -159,7 +168,7 @@ const packagedReferenceByHandler = new Map(
 
 function createPackagedRuntimes() {
   return new Map(
-    Object.entries(opsDefinition.packagedExecution?.sources ?? {}).map(
+    Object.entries(packagedExecution.sources).map(
       ([traitName, sourcePath]) => [
         traitName,
         createDeterministicHsplusTraitRuntime(
@@ -233,9 +242,11 @@ function runVector(runtime, vector, expectedOverride) {
   const ref = vector.packaged
     ? packagedReferenceByHandler.get(packagedReferenceKey(vector.trait, vector.op))
     : referenceByOp.get(vector.op);
-  if (!ref || !ref.fn) {
+  if (!ref) {
     mismatches.push('reference: twin function unavailable');
-  } else {
+  } else if (!ref.literal && !ref.fn) {
+    mismatches.push('reference: twin function unavailable');
+  } else if (!ref.literal) {
     const referenceArgs = vector.expectArgs ?? vector.args;
     const orderedArgs = ref.params.map((param) => referenceArgs[param]);
     const rawTwinValue = ref.fn(...orderedArgs);
@@ -325,19 +336,19 @@ const receipt = {
   packagedExecution: {
     subsetId: ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7,
     sources: Object.fromEntries(
-      Object.values(opsDefinition.packagedExecution?.sources ?? {}).map((sourcePath) => [
+      Object.values(packagedExecution.sources).map((sourcePath) => [
         sourcePath,
         manifest.files[sourcePath],
       ])
     ),
     vectors: nodeVectors.filter((vector) => vector.packaged).length,
-    claim:
-      'The engine consumed the hash-bound packaged source through HoloScriptPlusParser, statically lifted whitelisted factory aliases without executing on_spawn, reparsed each preserved authored handler body through the structured deterministic evaluator, and executed it under the cumulative v7 subset.',
+    claim: packagedExecution.claim,
   },
   referenceTwin: {
     module: 'packages/std/dist/math.js',
     stdPackageVersion: stdPackageJson.version,
-    comparison: 'three-way: runtime value vs frozen corpus expectation vs live twin recomputation',
+    comparison:
+      'runtime value vs frozen corpus expectation, plus live twin recomputation where the manifest names a compatible twin; bounded iterable/callable vectors use literal independent oracles',
   },
   sources: manifest.files,
   ...(hostBindings
