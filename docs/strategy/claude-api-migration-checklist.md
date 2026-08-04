@@ -103,8 +103,10 @@ Verified 2026-05-11 by reading `packages/llm-provider/src/adapters/anthropic.ts`
 
 ### Testing & Telemetry
 
-- [ ] **Add SDK version-floor CI test** (✅ see `packages/llm-provider/src/__tests__/sdk-version-floor.test.ts`).
-- [ ] **Add retired-model regression test** — scan all TS files for hardcoded retired model IDs, fail CI if any found.
+- [x] **Add SDK version-floor CI test** — exists at `packages/llm-provider/src/__tests__/sdk-version-floor.test.ts`. (Box corrected 2026-08-03; the item shipped but was never ticked.)
+- [x] **Add retired-model regression test** — exists in the same file (`describe('retired model regression guard')`); it walks source files and fails on any hardcoded retired model ID.
+  - **This one needs ongoing maintenance, which the unticked box was hiding.** Audited 2026-08-03: the ban list had gone stale by four models whose retirement dates had passed (`claude-3-5-sonnet-20240620`, `claude-3-haiku-20240307`, `claude-opus-4-20250514`, `claude-sonnet-4-20250514`). A guard that silently stops covering newly-retired IDs reads green while its blast radius grows. **When a model's retirement date passes, add it to `BANNED_MODELS` in the same commit.**
+  - Next due: `claude-opus-4-1` retires **2026-08-05**. Verified 2026-08-03 that no source file references it, so promoting it should be a no-op rather than a migration.
 - [ ] **Add "Opus 4.7 compatibility" test** — spin up a mock Anthropic server, run adapter + brittney flow, assert no 400s from unsupported params.
 - [x] **Add cache-hit telemetry** — done 2026-08-03. `TokenUsage` now carries `cacheReadTokens` / `cacheWriteTokens`, mapped in `AnthropicAdapter.mapUsage()` for both `complete()` and `streamCompletion()`. Smoke tests in `anthropic-prompt-caching.test.ts` assert a non-zero hit rate across 10 consecutive identical-prefix calls, plus an inverse test proving a varying prefix drives the rate to zero.
   - **This was an accounting bug, not just missing observability.** Anthropic's `input_tokens` is only the *uncached remainder*, so the previous `input_tokens + output_tokens` sum under-reported the prompt by the entire cached prefix — worst exactly when caching worked best. `promptTokens` now means the full prompt (cached slice included), matching the OpenAI-shaped adapters.

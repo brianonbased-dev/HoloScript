@@ -6,6 +6,22 @@
 
 ---
 
+## KVFlow Breakpoint Planning for HoloLlama / HoloServe (local KV residency)
+
+**What might be valuable**: `planCacheBreakpoints()` (`packages/llm-provider/src/kvflow/breakpoint-planner.ts`, landed 2026-08-03) ranks a scarce cache-breakpoint budget by reuse value — `KVFlowScope` (`shared-prefix` > `role-overlay` > `scene-turn`) then `stepsToExecution` — instead of blind recency, which systematically spends the budget on the churny conversation tail. It was written deliberately backend-agnostic: a pure function over plain data, no `KVFlowCacheManager` handle, no Anthropic vocabulary anywhere in it. Anthropic's prompt cache is only the first consumer. **HoloLlama (the OpenAI-compatible Ollama replacement) and HoloServe (the novel inference engine) face the identical question — which prefix spans stay resident.** Local KV-cache residency and cloud prompt caching are the same problem viewed from two sides, and KVFlow already models the scheduling signal both need. Wiring the planner into local inference would make one eviction policy serve cloud and sovereign backends alike, which is a genuinely unusual claim: most stacks treat provider-side prompt caching and local KV paging as unrelated subsystems.
+
+**Why not now**: (a) HoloLlama is currently a launcher/config layer that emits llama-server specs (`cacheRamMiB`, `promptCacheLimitMiB`) and does no token accounting of its own — there is no place to apply a plan yet. (b) HoloServe emits flat `{prompt_tokens, completion_tokens, total_tokens}` with no cache dimension at all, so there is no cached-prefix signal to schedule against; it would first need a cached-token count in its `holo` response extension block (it controls its own wire format, so this is cheap when wanted). (c) The local adapter path (`local-llm.ts`) maps Ollama's `prompt_eval_count` straight to `promptTokens`, and whether that field is the uncached remainder on a KV hit is **unverified** — one measured call decides whether the local telemetry gap is even real. Sequence: verify (c), then add HoloServe cache telemetry (b), then wire the planner (a). Nothing is lost meanwhile — the planner is already exported from `kvflow/index.ts` and used in production by the Anthropic adapter.
+
+---
+
+## Unify the Two `TokenUsage` Shapes (benchmark harness ↔ llm-provider)
+
+**What might be valuable**: The benchmark harness (`packages/studio/src/__benchmarks__/brittney-vs-baselines/types.ts`) defines its own snake_case `TokenUsage` (`input_tokens`, `cache_read_input_tokens`) separate from `@holoscript/llm-provider`'s camelCase one. Collapsing them would remove a whole class of drift and let the harness consume adapters directly instead of talking to the raw SDK.
+
+**Why not now**: Every benchmark config returns the snake_case shape, so this is a real refactor across many config files rather than a type alias. The thing that actually mattered — both shapes pricing prompt-cache read/write correctly — is now true independently (2026-08-03), and the benchmark's pricing has since been re-sourced from the shared `cost-guard` schedule, so the remaining duplication is shape-only, not value-only. Doing it half-way would add a conversion shim nobody asked for. Worth its own focused pass when someone is already touching the harness configs.
+
+---
+
 ## Resurrect Apex-Poison Compilers as Fire-and-Forget Export Targets
 
 **What might be valuable**: R3FCompiler, BabylonCompiler, PlayCanvasCompiler, ThreeJSCompiler, ARCompiler, VRRCompiler, Native2DCompiler, PhoneSleeveVRCompiler, and FlatSemanticCompiler were retired from the DialectRegistry and MCP surface (2026-06-17) because they duplicate the native runtime and constitute apex-poison substrate for agents. However, a one-way fire-and-forget export path (an author writes `.holo`, compiles once to `.tsx`/`.ts`/`.html`, and never debugs the output) could serve specific handoff scenarios: embed a HoloScript scene on a legacy web page, export a Babylon.js snapshot for a partner, or ship a WebXR demo without the full HoloScript runtime. If agents are structurally prevented from reading or editing the generated output (enforced by CI), the poison axis disappears.
