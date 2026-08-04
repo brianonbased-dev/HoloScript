@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { ConfigRunner, ConfigRunResult, RubricCriterion, Task } from '../types';
-import { CostTracker, costOf, pricingFor, MODEL_PRICING } from '../cost-tracker';
+import { CostTracker, costOf, pricingFor } from '../cost-tracker';
 import { aggregateByConfig, paretoFrontier, renderParetoMarkdown } from '../pareto';
 import { runBenchmark } from '../runner';
 import { loadAllTasks, loadQuickSubset } from '../tasks';
@@ -120,10 +120,14 @@ describe('cost-tracker', () => {
       5,
       5
     );
-    expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-sonnet-5')).toBeCloseTo(
-      3,
-      5
-    );
+    // Pinned to a date past the promotional window so this assertion does not
+    // silently change meaning on 2026-09-01. The date-sensitive behaviour has
+    // its own test below.
+    expect(
+      costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-sonnet-5', {
+        at: '2026-09-01',
+      })
+    ).toBeCloseTo(3, 5);
     expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-fable-5')).toBeCloseTo(
       10,
       5
@@ -136,7 +140,9 @@ describe('cost-tracker', () => {
     expect(
       costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-haiku-4-5-20251001')
     ).toBeCloseTo(1, 5);
-    expect(pricingFor('claude-haiku-4-5-20251001')).toBe(pricingFor('claude-haiku-4-5'));
+    // toEqual, not toBe: pricing objects are derived per call from the shared
+    // cost-guard table rather than being shared singletons.
+    expect(pricingFor('claude-haiku-4-5-20251001')).toEqual(pricingFor('claude-haiku-4-5'));
   });
 
   it('prices locally-hosted models at zero, not at cloud rates', () => {
@@ -165,8 +171,8 @@ describe('cost-tracker', () => {
 
   it('prices a decorated model id as the model it names', () => {
     // fable5-ultracode reports "claude-fable-5 [ultracode reference transcript replay]".
-    expect(pricingFor('claude-fable-5 [ultracode reference transcript replay]')).toBe(
-      MODEL_PRICING['claude-fable-5']
+    expect(pricingFor('claude-fable-5 [ultracode reference transcript replay]')).toEqual(
+      pricingFor('claude-fable-5')
     );
   });
 
@@ -175,9 +181,10 @@ describe('cost-tracker', () => {
     // does not know must still take the conservative fallback, never $0.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      expect(pricingFor('claude-some-future-model')).toBe(MODEL_PRICING['claude-fable-5']);
-      expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-some-future-model')).
-        toBeGreaterThan(0);
+      expect(pricingFor('claude-some-future-model')).toEqual(pricingFor('claude-fable-5'));
+      expect(
+        costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-some-future-model')
+      ).toBeGreaterThan(0);
     } finally {
       warn.mockRestore();
     }
@@ -187,15 +194,44 @@ describe('cost-tracker', () => {
     // Budget guards must fail safe by over-estimating, never under.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      expect(pricingFor('claude-does-not-exist-9')).toBe(MODEL_PRICING['claude-fable-5']);
-      const priciest = Math.max(
-        ...Object.values(MODEL_PRICING).map((p) => p.input_per_mtok_usd)
-      );
-      expect(pricingFor('claude-does-not-exist-9').input_per_mtok_usd).toBe(priciest);
+      const fallback = pricingFor('claude-does-not-exist-9');
+      // No known model may be pricier than the fallback, or the fallback is
+      // no longer conservative.
+      for (const id of ['claude-fable-5', 'claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5']) {
+        expect(fallback.input_per_mtok_usd).toBeGreaterThanOrEqual(
+          pricingFor(id).input_per_mtok_usd
+        );
+      }
       expect(warn).toHaveBeenCalledOnce();
     } finally {
       warn.mockRestore();
     }
+  });
+
+  /**
+   * Date-bounded pricing, delegated to the shared cost-guard schedule.
+   * Sonnet 5 runs promotional $2/$10 through 2026-08-31 and reverts to
+   * $3/$15 on 09-01. The old local table could not express this and
+   * hardcoded the standard rate as a deliberate workaround.
+   */
+  it('prices Sonnet 5 at the rate in effect on the run date', () => {
+    const oneMTokIn = { input_tokens: 1_000_000, output_tokens: 0 };
+
+    // During the promotional window.
+    expect(costOf(oneMTokIn, 'claude-sonnet-5', { at: '2026-08-15' })).toBeCloseTo(2, 5);
+    // After it lapses.
+    expect(costOf(oneMTokIn, 'claude-sonnet-5', { at: '2026-09-01' })).toBeCloseTo(3, 5);
+  });
+
+  it('resolves pricing from the shared cost-guard table, not a local copy', () => {
+    // Regression guard for the drift this refactor removed: the benchmark's
+    // own table had Opus 4.7 at $15/$75 and no Opus 5 entry at all.
+    expect(pricingFor('claude-opus-4-7').input_per_mtok_usd).toBe(5);
+    expect(pricingFor('claude-opus-4-8').input_per_mtok_usd).toBe(5);
+    expect(pricingFor('claude-opus-5').input_per_mtok_usd).toBe(5);
+    // Cache rates stay derived from the base input rate.
+    expect(pricingFor('claude-opus-5').cache_read_per_mtok_usd).toBeCloseTo(0.5, 5);
+    expect(pricingFor('claude-opus-5').cache_write_per_mtok_usd).toBeCloseTo(6.25, 5);
   });
 });
 

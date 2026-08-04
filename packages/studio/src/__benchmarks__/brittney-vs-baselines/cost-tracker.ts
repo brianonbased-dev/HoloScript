@@ -1,4 +1,12 @@
+import {
+  ANTHROPIC_PRICING_USD_PER_MTOK,
+  CACHE_READ_MULTIPLIER,
+  CACHE_WRITE_MULTIPLIER,
+  resolveAnthropicPricing,
+} from '@holoscript/holoscript-agent/cost-guard';
 import type { TokenUsage } from './types';
+
+export { CACHE_READ_MULTIPLIER, CACHE_WRITE_MULTIPLIER };
 
 export interface ModelPricing {
   input_per_mtok_usd: number;
@@ -8,50 +16,53 @@ export interface ModelPricing {
 }
 
 /**
- * Prompt-cache price multipliers, relative to a model's base input rate.
- * Uniform across the Claude line, so per-model cache rates are derived
- * rather than hand-maintained.
+ * Rates come from `@holoscript/holoscript-agent/cost-guard`, which is the
+ * single source of truth for Anthropic pricing across the repo — the same
+ * table the live agent spend guard bills against.
+ *
+ * This module previously carried its own hardcoded copy. That copy drifted:
+ * it listed Opus 4.7 at $15/$75 (Claude 3 Opus rates, a generation stale and
+ * 3x high) and had no entry at all for Opus 5, Opus 4.8 or Sonnet 5. Two
+ * tables meant two chances to be wrong, and the benchmark's was the one
+ * nobody was billing against, so nobody noticed.
+ *
+ * The shared source is also DATE-BOUNDED via `resolveAnthropicPricing(id, at)`,
+ * which this module could not express on its own. Sonnet 5 runs promotional
+ * $2/$10 through 2026-08-31 and reverts to $3/$15 on 09-01; the old local copy
+ * deliberately hardcoded the standard rate to avoid baking in an expiring
+ * number. That workaround is no longer needed — a benchmark run is now priced
+ * at the rate actually in effect on its run date, and a historical run can be
+ * re-costed correctly by passing `at`.
+ *
+ * Cache rates stay derived from the base input rate rather than hand-listed,
+ * so they cannot drift from it.
  */
-export const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL; the 1-hour TTL is 2x
-export const CACHE_READ_MULTIPLIER = 0.1;
-
-function priced(input_per_mtok_usd: number, output_per_mtok_usd: number): ModelPricing {
+function toModelPricing(price: { input: number; output: number }): ModelPricing {
   return {
-    input_per_mtok_usd,
-    output_per_mtok_usd,
-    cache_write_per_mtok_usd: input_per_mtok_usd * CACHE_WRITE_MULTIPLIER,
-    cache_read_per_mtok_usd: input_per_mtok_usd * CACHE_READ_MULTIPLIER,
+    input_per_mtok_usd: price.input,
+    output_per_mtok_usd: price.output,
+    cache_write_per_mtok_usd: price.input * CACHE_WRITE_MULTIPLIER,
+    cache_read_per_mtok_usd: price.input * CACHE_READ_MULTIPLIER,
   };
 }
 
-/**
- * First-party Anthropic API list prices, USD per million tokens.
- *
- * Only models whose rates are known are listed — an absent model takes the
- * conservative fallback in `pricingFor()` rather than a guessed rate.
- *
- * Note: Sonnet 5 carries promotional pricing of $2/$10 through 2026-08-31.
- * The standard $3/$15 is used here deliberately: over-estimating is the safe
- * direction for a budget guard, and baking in a rate with an expiry date
- * would silently become wrong the day it lapses.
- *
- * These are first-party rates. Amazon Bedrock and Google Vertex are
- * partner-operated and priced separately.
- */
-export const MODEL_PRICING: Record<string, ModelPricing> = {
-  'claude-fable-5': priced(10, 50),
-  'claude-mythos-5': priced(10, 50),
-  'claude-opus-5': priced(5, 25),
-  'claude-opus-4-8': priced(5, 25),
-  'claude-opus-4-7': priced(5, 25),
-  'claude-opus-4-6': priced(5, 25),
-  'claude-sonnet-5': priced(3, 15),
-  'claude-sonnet-4-6': priced(3, 15),
-  'claude-haiku-4-5': priced(1, 5),
-};
-
 /** Most expensive known model — the conservative fallback for unknown IDs. */
 const FALLBACK_MODEL_ID = 'claude-fable-5';
+
+/**
+ * The conservative fallback rate, computed from the shared table rather than
+ * pinned to a literal, so adding a pricier model automatically raises the
+ * ceiling instead of silently leaving it stale.
+ */
+function fallbackPricing(at?: Date | string): ModelPricing {
+  let worst = resolveAnthropicPricing(FALLBACK_MODEL_ID, at);
+  for (const id of Object.keys(ANTHROPIC_PRICING_USD_PER_MTOK)) {
+    const candidate = resolveAnthropicPricing(id, at);
+    if (candidate && (!worst || candidate.input > worst.input)) worst = candidate;
+  }
+  // The shared table always has entries, but stay total rather than assert.
+  return toModelPricing(worst ?? { input: 10, output: 50 });
+}
 
 /**
  * Locally-hosted models bill no API cost.
@@ -80,23 +91,33 @@ function isLocalModelId(model_id: string): boolean {
 
 const warnedUnknownModels = new Set<string>();
 
-export function pricingFor(model_id: string): ModelPricing {
-  if (model_id in MODEL_PRICING) return MODEL_PRICING[model_id];
+/**
+ * Resolve pricing for a model id, at a point in time.
+ *
+ * @param at Date the run happened. Defaults to now. Pass the run's own
+ *   timestamp to re-cost a historical benchmark at the rate that was actually
+ *   in effect, rather than at today's.
+ */
+export function pricingFor(model_id: string, at?: Date | string): ModelPricing {
+  const direct = resolveAnthropicPricing(model_id, at);
+  if (direct) return toModelPricing(direct);
 
   // Strip a trailing bracketed annotation before lookup. Some configs decorate
   // the ID for provenance — `fable5-ultracode` reports
   // "claude-fable-5 [ultracode reference transcript replay]" — and that should
   // price as the model it names, by intent rather than by fallback coincidence.
   const undecorated = model_id.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
-  if (undecorated in MODEL_PRICING) return MODEL_PRICING[undecorated];
+  const byUndecorated = resolveAnthropicPricing(undecorated, at);
+  if (byUndecorated) return toModelPricing(byUndecorated);
 
   // Dated snapshots (`claude-haiku-4-5-20251001`) price as their alias.
-  // The previous `split('-').slice(0, 3)` normalization was broken for the
+  // The original `split('-').slice(0, 3)` normalization was broken for the
   // current four-segment ID scheme — it mapped `claude-sonnet-4-6` to
   // `claude-sonnet-4`, which is not a key, so every Sonnet/Haiku ID fell
   // through to the fallback.
   const undated = undecorated.replace(/-\d{8}$/, '');
-  if (undated in MODEL_PRICING) return MODEL_PRICING[undated];
+  const byUndated = resolveAnthropicPricing(undated, at);
+  if (byUndated) return toModelPricing(byUndated);
 
   // Locally-hosted model: no API cost. Checked before the unknown-model
   // fallback so local baselines stop being priced at frontier cloud rates
@@ -113,21 +134,22 @@ export function pricingFor(model_id: string): ModelPricing {
     console.warn(
       `[cost-tracker] No pricing entry for "${model_id}"; falling back to ` +
         `"${FALLBACK_MODEL_ID}" rates (most expensive known). Costs for this ` +
-        `model are an upper bound, not an estimate. Add it to MODEL_PRICING.`
+        `model are an upper bound, not an estimate. Add it to ` +
+        `ANTHROPIC_PRICING_USD_PER_MTOK in @holoscript/holoscript-agent/cost-guard.`
     );
   }
-  return MODEL_PRICING[FALLBACK_MODEL_ID];
+  return fallbackPricing(at);
 }
 
 export function costOf(
   usage: TokenUsage,
   model_id: string,
-  opts?: { localCompute?: boolean }
+  opts?: { localCompute?: boolean; at?: Date | string }
 ): number {
   // An explicit locality flag from the config beats id pattern-matching:
   // self-hosted routes report raw model names (GGUF filenames, HoloServe
   // artifact ids) that no prefix rule can reliably classify.
-  const p = opts?.localCompute ? LOCAL_MODEL_PRICING : pricingFor(model_id);
+  const p = opts?.localCompute ? LOCAL_MODEL_PRICING : pricingFor(model_id, opts?.at);
   const standardInput = usage.input_tokens / 1_000_000;
   const output = usage.output_tokens / 1_000_000;
   const cacheCreate = (usage.cache_creation_input_tokens ?? 0) / 1_000_000;
@@ -144,7 +166,11 @@ export function costOf(
 export class CostTracker {
   private total = 0;
   constructor(private readonly budget_usd_max: number) {}
-  add(usage: TokenUsage, model_id: string, opts?: { localCompute?: boolean }): number {
+  add(
+    usage: TokenUsage,
+    model_id: string,
+    opts?: { localCompute?: boolean; at?: Date | string }
+  ): number {
     const delta = costOf(usage, model_id, opts);
     this.total += delta;
     return delta;
