@@ -1,12 +1,11 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-07-30T17:12:08Z",
+  "generatedAt": "2026-08-04T19:33:19Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "cf1c0c596b79128ffc7e885758000d36fc891c2d",
+  "sourceCommit": "580d91e32dfaff6162a51df20dfd79da737165e2",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
-    "wasm-pack build --target web --out-dir pkg --release",
-    "wasm-pack build --target web --out-dir pkg --release"
+    "node scripts/build-wasm.mjs (wasm-pack build --target web --out-dir pkg --release)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -16,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 523870,
-    "wasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
-    "previousWasmSha256": "4282e6b0ffa193b97bf4f4e52acd1ae27d4b06d9b3633c7ef30b5dc2f5a9a35d",
-    "repeatBuildSha256Matched": true,
-    "note": "Clean HoloRepo-candidate rebuild adding bounds-checked runtime indexing for flat homogeneous scalar aggregate values. The List3<i32> std ABI uses read-only dynamic projection while heterogeneous layouts, indexed mutation, and out-of-bounds access fail closed. A repeat web build reproduced the SHA-256, and both Node builds from the same source were byte-identical."
+    "wasmBytes": 526813,
+    "wasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
+    "previousWasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
+    "repeatBuildSha256Matched": null,
+    "note": "Regenerated from the merged compiler-artifact-refresh stack on current canon (merge of holoscript-native-compiler-artifact-refresh-v1-20260803 onto 7b00ee93d). Fresh release build with the receipted toolchain; digest pinned from the produced artifact."
   }
 }

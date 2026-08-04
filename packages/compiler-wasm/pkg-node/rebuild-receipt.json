@@ -1,11 +1,10 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-08-03T01:25:45Z",
+  "generatedAt": "2026-08-04T19:33:19Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "8365173d41685ca8447640d5e0b17485167e79b0",
+  "sourceCommit": "580d91e32dfaff6162a51df20dfd79da737165e2",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --target nodejs --out-dir pkg-node --release",
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
   ],
   "toolchain": {
@@ -16,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 515702,
-    "wasmSha256": "2c2e9d8e410b2829a1a7c78e4a5a79d0a069013dfc15ca8c994c18cb648745e8",
-    "previousWasmSha256": "fe92111ed02d6c14bdd4d318a3dd3b8ec5438a0625d0c43a31f02b9905f768ca",
-    "repeatBuildSha256Matched": true,
-    "note": "Clean current-canon rebuild after the hs-machine-v42 parser/source promotion. wasm-pack nodejs release output reproduced the current compiler-wasm source and the generated WASM digest is pinned here."
+    "wasmBytes": 526813,
+    "wasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
+    "previousWasmSha256": "2c2e9d8e410b2829a1a7c78e4a5a79d0a069013dfc15ca8c994c18cb648745e8",
+    "repeatBuildSha256Matched": null,
+    "note": "Regenerated from the merged compiler-artifact-refresh stack on current canon (merge of holoscript-native-compiler-artifact-refresh-v1-20260803 onto 7b00ee93d). Fresh release build with the receipted toolchain; digest pinned from the produced artifact."
   }
 }
