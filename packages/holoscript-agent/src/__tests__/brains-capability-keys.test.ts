@@ -26,6 +26,7 @@ import { loadBrain } from '../brain.js';
 import {
   pickProvider,
   NoEligibleProviderError,
+  BUILT_IN_CANDIDATES,
   type RoutingCandidate,
   type BrainRequirements,
 } from '../capability-router.js';
@@ -185,12 +186,8 @@ describe('paper-researcher resolves to an eligible provider after the camelCase 
   }
 
   // A provider matching the paper-researcher profile: large context window + live
-  // web search, WITHOUT image-generation or a code-execution sandbox. Synthetic
-  // (like capability-router.test.ts) so the assertion isolates the routing LOGIC
-  // from whichever real providers happen to ship — every real large-context+web
-  // provider (anthropic/gemini/xai) also declares imageGeneration or
-  // codeExecutionSandbox, which this brain avoids, so a fixed synthetic fixture is
-  // the deterministic way to prove the keys now route.
+  // web search. Synthetic (like capability-router.test.ts) so the assertion
+  // isolates the routing LOGIC from whichever real providers happen to ship.
   const RESEARCH_FIT: RoutingCandidate = {
     name: 'anthropic',
     capabilities: caps({
@@ -200,7 +197,10 @@ describe('paper-researcher resolves to an eligible provider after the camelCase 
     }),
   };
 
-  // Satisfies requires (context + web search) but is excluded by avoids: imageGeneration.
+  // Satisfies requires (context + web search). Used to have imageGeneration
+  // trip the brain's old avoids filter; avoids is now empty (task_1783725666154_l157),
+  // so this candidate is eligible too but ranks below RESEARCH_FIT on prefers
+  // (it doesn't declare visibleReasoning).
   const IMAGE_GEN: RoutingCandidate = {
     name: 'openai',
     capabilities: caps({
@@ -216,7 +216,11 @@ describe('paper-researcher resolves to an eligible provider after the camelCase 
     // The fix landed: exact camelCase keys parsed from the real file.
     expect(brain.requires).toEqual(['contextWindow', 'liveWebSearch']);
     expect(brain.prefers).toEqual(['visibleReasoning']);
-    expect(brain.avoids).toEqual(['imageGeneration', 'codeExecutionSandbox']);
+    // avoids is intentionally empty (task_1783725666154_l157): a provider merely
+    // SUPPORTING imageGeneration/codeExecutionSandbox doesn't mean this brain's
+    // calls would ever trigger them, and the old avoids excluded every real
+    // large-context+web-search provider, making the brain unroutable.
+    expect(brain.avoids).toEqual([]);
     expect(invalidCapabilityKeys([...brain.requires, ...brain.prefers, ...brain.avoids])).toEqual(
       []
     );
@@ -230,10 +234,37 @@ describe('paper-researcher resolves to an eligible provider after the camelCase 
     expect(decision.picked).toBe('anthropic');
     expect(decision.reason).toBe('capability-best-fit');
     expect(decision.matchedPrefers).toContain('visibleReasoning');
-    expect(decision.excludedByAvoids).toContain('openai'); // imageGeneration → avoided
-    // False cases (G.GOLD.013): must NOT throw and must NOT pick the avoided provider.
-    expect(decision.picked).not.toBe('openai');
+    // Nothing is avoided anymore — openai is eligible, just outranked on prefers.
+    expect(decision.excludedByAvoids).toEqual([]);
+    expect(decision.alternatives).toContain('openai');
     expect(decision.unsatisfiedRequires).toEqual([]);
+  });
+
+  it('resolves against the REAL built-in provider set without throwing (task_1783725666154_l157)', async () => {
+    // This is the actual production call site (supervisor.ts): the brain
+    // routed against every real shipped adapter, not a hand-picked fixture.
+    // Before the avoids fix this threw NoEligibleProviderError — anthropic
+    // was excluded for supporting codeExecutionSandbox, and openai/gemini/xai
+    // were all excluded for supporting imageGeneration, leaving zero eligible
+    // candidates.
+    const brain = await loadBrain(resolve(BRAINS_DIR, 'paper-researcher.hsplus'));
+    const req: BrainRequirements = {
+      requires: brain.requires,
+      prefers: brain.prefers,
+      avoids: brain.avoids,
+    };
+
+    let decision;
+    expect(() => {
+      decision = pickProvider({ brain: req, candidates: BUILT_IN_CANDIDATES });
+    }).not.toThrow();
+
+    // anthropic/openai/gemini/xai all satisfy requires + declare visibleReasoning
+    // (tied on prefers); anthropic wins on BUILT_IN_CANDIDATES's declared order.
+    expect(decision!.picked).toBe('anthropic');
+    expect(decision!.reason).toBe('capability-best-fit');
+    expect(decision!.excludedByAvoids).toEqual([]);
+    expect(decision!.unsatisfiedRequires).toEqual([]);
   });
 
   it('regression: the pre-fix snake_case requires made EVERY provider ineligible', () => {
