@@ -521,10 +521,15 @@ fi
 # outside the canonical homes is a mirror and is blocked. The uAAL/HSI-IR overload this prevents
 # was the root cause of the 2026-07 language-design loop (two IRs for one meaning stratum).
 echo "  ├─ Language-strata gate (one meaning, defined once)..."
-# Runs UNCONDITIONALLY (fast full-tree static walk, <2s): staged-file trigger-matching proved
-# fragile on the stage-2 landing commit itself — its git-mv renames (index status R) slipped the
-# ACM diff-filter and skipped the gate (2026-07-17). A move IS how a mirror escapes; always check.
-STRATA_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-language-strata.mjs --strict 2>&1)
+# Runs UNCONDITIONALLY: staged-file trigger-matching proved fragile on the stage-2 landing commit
+# itself — its git-mv renames (index status R) slipped the ACM diff-filter and skipped the gate
+# (2026-07-17). A move IS how a mirror escapes; always check.
+# Budget raised 30s -> 60s (2026-08-05, task_1783725666154_l157 follow-up): the "<2s" full-tree
+# walk this comment used to describe now measures ~30-32s on repeated direct runs (repo growth),
+# so the old 30s budget was clipping a passing check mid-flight and false-failing every commit that
+# touched this gate — confirmed by three direct `node ... --strict` runs, all exit 0 (no real
+# mirror), all landing in the 30.1s-32.1s band, both from a candidate worktree and the main checkout.
+STRATA_OUT=$(run_with_timeout 60 node scripts/holo-ci/check-language-strata.mjs --strict 2>&1)
 STRATA_STATUS=$?
 if [ "$STRATA_STATUS" -ne 0 ]; then
     echo -e "  ${RED}❌ Meaning-stratum mirror (second definition outside @holoscript/meaning)${NC}"
