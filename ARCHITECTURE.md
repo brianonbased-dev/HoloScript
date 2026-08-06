@@ -118,3 +118,27 @@ diverge across packages; read each `package.json` before citing a version.
 5. **Domain vocabulary stays in plugins**, never in core (`packages/plugins/`).
 6. **`workspace:*`** for internal deps. Never pin internal versions.
 7. **Core↔Engine Boundary:** `@holoscript/core` (L0) must never have a runtime dependency on `@holoscript/engine` (L1). The runtime mutual dependency cycle is explicitly severed. Any shared types must be extracted to `core-types` or imported as `import type`.
+
+> **Rules 1 and 7 are enforced by `scripts/holo-ci/check-workspace-acyclic.mjs`**
+> (pre-commit Gate 5g7). Until 2026-08-05 they had no gate, which is how commit
+> `7f2ba28b3` silently reverted `b53e815f9` and left the workspace unbuildable
+> from a clean checkout. The gate covers three defect classes, because acyclicity
+> alone does not guarantee a build order exists:
+>
+> 1. **cycles** over `workspace:`-spec edges, across all four dependency fields —
+>    `devDependencies` participate in pnpm's ordering, and that is exactly how
+>    core closed the 11-package cycle;
+> 2. **build-order inversions that are not cycles** — a semver back-edge creates
+>    no pnpm edge, so `A --workspace--> B` plus `B --semver--> A` plus a `--dts`
+>    build in B inverts the order with no cycle to detect;
+> 3. **unordered build-time deps** — a sibling needed for type emit but declared
+>    only with a semver range gives pnpm no ordering constraint at all. This is
+>    what deleting a cycle edge leaves behind, so fixing rule 1 carelessly
+>    *creates* this one.
+>
+> Note the interaction with rule 6: a build-time need on a sibling must be
+> declared `workspace:` (devDependencies is the honest field). A semver
+> `peerDependencies` entry remains correct for what a published consumer must
+> supply — it is simply not an ordering declaration. Both can coexist on the same
+> sibling, and for 16 packages they now do.
+> Full analysis: `decisions/2026-08-05_workspace-build-cycle.md` in `holo-dev`.

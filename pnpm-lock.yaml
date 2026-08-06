@@ -857,105 +857,6 @@ importers:
       '@gltf-transform/functions':
         specifier: ^3.7.0
         version: 3.10.1(@types/node@24.13.2)
-      '@holoscript/alphafold-plugin':
-        specifier: workspace:^
-        version: link:../plugins/alphafold-plugin
-      '@holoscript/domain-plugin-template':
-        specifier: workspace:^
-        version: link:../plugins/domain-plugin-template
-      '@holoscript/medical-plugin':
-        specifier: workspace:^
-        version: link:../plugins/medical-plugin
-      '@holoscript/narupa-plugin':
-        specifier: workspace:^
-        version: link:../plugins/scientific-plugin
-      '@holoscript/plugin-banking-finance':
-        specifier: workspace:^
-        version: link:../plugins/banking-finance-plugin
-      '@holoscript/plugin-civil-engineering':
-        specifier: workspace:^
-        version: link:../plugins/civil-engineering-plugin
-      '@holoscript/plugin-culture-keyword':
-        specifier: workspace:^
-        version: link:../plugins/culture-keyword-plugin
-      '@holoscript/plugin-economic-primitives':
-        specifier: workspace:^
-        version: link:../plugins/economic-primitives-plugin
-      '@holoscript/plugin-education-lms':
-        specifier: workspace:^
-        version: link:../plugins/education-lms-plugin
-      '@holoscript/plugin-emergency-response':
-        specifier: workspace:^
-        version: link:../plugins/emergency-response
-      '@holoscript/plugin-fashion':
-        specifier: workspace:^
-        version: link:../plugins/fashion-plugin
-      '@holoscript/plugin-film-vfx':
-        specifier: workspace:^
-        version: link:../plugins/film-vfx-plugin
-      '@holoscript/plugin-film3d-volumetrics':
-        specifier: workspace:^
-        version: link:../plugins/film3d-volumetrics-plugin
-      '@holoscript/plugin-fitness-wellness':
-        specifier: workspace:^
-        version: link:../plugins/fitness-wellness-plugin
-      '@holoscript/plugin-forensics':
-        specifier: workspace:^
-        version: link:../plugins/forensics-plugin
-      '@holoscript/plugin-geolocation-gis':
-        specifier: workspace:^
-        version: link:../plugins/geolocation-gis-plugin
-      '@holoscript/plugin-hardware-invention':
-        specifier: workspace:^
-        version: link:../plugins/hardware-invention-plugin
-      '@holoscript/plugin-hr-workforce':
-        specifier: workspace:^
-        version: link:../plugins/hr-workforce-plugin
-      '@holoscript/plugin-insurance':
-        specifier: workspace:^
-        version: link:../plugins/insurance-plugin
-      '@holoscript/plugin-legal-document':
-        specifier: workspace:^
-        version: link:../plugins/legal-document-plugin
-      '@holoscript/plugin-manufacturing-qc':
-        specifier: workspace:^
-        version: link:../plugins/manufacturing-qc-plugin
-      '@holoscript/plugin-neuroscience':
-        specifier: workspace:^
-        version: link:../plugins/neuroscience-plugin
-      '@holoscript/plugin-restaurant':
-        specifier: workspace:^
-        version: link:../plugins/restaurant-plugin
-      '@holoscript/plugin-retail-ecommerce':
-        specifier: workspace:^
-        version: link:../plugins/retail-ecommerce-plugin
-      '@holoscript/plugin-therapy':
-        specifier: workspace:^
-        version: link:../plugins/therapy-plugin
-      '@holoscript/plugin-threat-intelligence':
-        specifier: workspace:^
-        version: link:../plugins/threat-intelligence-plugin
-      '@holoscript/plugin-trait-audit':
-        specifier: workspace:^
-        version: link:../plugins/trait-audit-plugin
-      '@holoscript/plugin-travel-hospitality':
-        specifier: workspace:^
-        version: link:../plugins/travel-hospitality-plugin
-      '@holoscript/plugin-urban-planning':
-        specifier: workspace:^
-        version: link:../plugins/urban-planning-plugin
-      '@holoscript/plugin-wine-food-beverage':
-        specifier: workspace:^
-        version: link:../plugins/wine-food-beverage-plugin
-      '@holoscript/plugin-wisdom-gotcha':
-        specifier: workspace:^
-        version: link:../plugins/wisdom-gotcha-plugin
-      '@holoscript/radio-astronomy-plugin':
-        specifier: workspace:^
-        version: link:../plugins/radio-astronomy-plugin
-      '@holoscript/robotics-plugin':
-        specifier: workspace:^
-        version: link:../plugins/robotics-plugin
       '@huggingface/transformers':
         specifier: ^3.8.1
         version: 3.8.1(@types/node@24.13.2)
@@ -1017,12 +918,6 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     devDependencies:
-      '@holoscript/engine':
-        specifier: workspace:*
-        version: link:../engine
-      '@holoscript/framework':
-        specifier: workspace:*
-        version: link:../framework
       '@types/jsonwebtoken':
         specifier: ^9.0.7
         version: 9.0.10
@@ -2404,105 +2299,6 @@ importers:
       '@gltf-transform/functions':
         specifier: ^3.7.0
         version: 3.10.1(@types/node@24.13.2)
-      '@holoscript/alphafold-plugin':
-        specifier: workspace:^
-        version: link:../plugins/alphafold-plugin
-      '@holoscript/domain-plugin-template':
-        specifier: workspace:^
-        version: link:../plugins/domain-plugin-template
-      '@holoscript/medical-plugin':
-        specifier: workspace:^
-        version: link:../plugins/medical-plugin
-      '@holoscript/narupa-plugin':
-        specifier: workspace:^
-        version: link:../plugins/scientific-plugin
-      '@holoscript/plugin-banking-finance':
-        specifier: workspace:^
-        version: link:../plugins/banking-finance-plugin
-      '@holoscript/plugin-civil-engineering':
-        specifier: workspace:^
-        version: link:../plugins/civil-engineering-plugin
-      '@holoscript/plugin-culture-keyword':
-        specifier: workspace:^
-        version: link:../plugins/culture-keyword-plugin
-      '@holoscript/plugin-economic-primitives':
-        specifier: workspace:^
-        version: link:../plugins/economic-primitives-plugin
-      '@holoscript/plugin-education-lms':
-        specifier: workspace:^
-        version: link:../plugins/education-lms-plugin
-      '@holoscript/plugin-emergency-response':
-        specifier: workspace:^
-        version: link:../plugins/emergency-response
-      '@holoscript/plugin-fashion':
-        specifier: workspace:^
-        version: link:../plugins/fashion-plugin
-      '@holoscript/plugin-film-vfx':
-        specifier: workspace:^
-        version: link:../plugins/film-vfx-plugin
-      '@holoscript/plugin-film3d-volumetrics':
-        specifier: workspace:^
-        version: link:../plugins/film3d-volumetrics-plugin
-      '@holoscript/plugin-fitness-wellness':
-        specifier: workspace:^
-        version: link:../plugins/fitness-wellness-plugin
-      '@holoscript/plugin-forensics':
-        specifier: workspace:^
-        version: link:../plugins/forensics-plugin
-      '@holoscript/plugin-geolocation-gis':
-        specifier: workspace:^
-        version: link:../plugins/geolocation-gis-plugin
-      '@holoscript/plugin-hardware-invention':
-        specifier: workspace:^
-        version: link:../plugins/hardware-invention-plugin
-      '@holoscript/plugin-hr-workforce':
-        specifier: workspace:^
-        version: link:../plugins/hr-workforce-plugin
-      '@holoscript/plugin-insurance':
-        specifier: workspace:^
-        version: link:../plugins/insurance-plugin
-      '@holoscript/plugin-legal-document':
-        specifier: workspace:^
-        version: link:../plugins/legal-document-plugin
-      '@holoscript/plugin-manufacturing-qc':
-        specifier: workspace:^
-        version: link:../plugins/manufacturing-qc-plugin
-      '@holoscript/plugin-neuroscience':
-        specifier: workspace:^
-        version: link:../plugins/neuroscience-plugin
-      '@holoscript/plugin-restaurant':
-        specifier: workspace:^
-        version: link:../plugins/restaurant-plugin
-      '@holoscript/plugin-retail-ecommerce':
-        specifier: workspace:^
-        version: link:../plugins/retail-ecommerce-plugin
-      '@holoscript/plugin-therapy':
-        specifier: workspace:^
-        version: link:../plugins/therapy-plugin
-      '@holoscript/plugin-threat-intelligence':
-        specifier: workspace:^
-        version: link:../plugins/threat-intelligence-plugin
-      '@holoscript/plugin-trait-audit':
-        specifier: workspace:^
-        version: link:../plugins/trait-audit-plugin
-      '@holoscript/plugin-travel-hospitality':
-        specifier: workspace:^
-        version: link:../plugins/travel-hospitality-plugin
-      '@holoscript/plugin-urban-planning':
-        specifier: workspace:^
-        version: link:../plugins/urban-planning-plugin
-      '@holoscript/plugin-wine-food-beverage':
-        specifier: workspace:^
-        version: link:../plugins/wine-food-beverage-plugin
-      '@holoscript/plugin-wisdom-gotcha':
-        specifier: workspace:^
-        version: link:../plugins/wisdom-gotcha-plugin
-      '@holoscript/radio-astronomy-plugin':
-        specifier: workspace:^
-        version: link:../plugins/radio-astronomy-plugin
-      '@holoscript/robotics-plugin':
-        specifier: workspace:^
-        version: link:../plugins/robotics-plugin
       '@huggingface/transformers':
         specifier: ^3.8.1
         version: 3.8.1(@types/node@24.13.2)
@@ -2561,9 +2357,6 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     devDependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../core
       '@types/pixelmatch':
         specifier: ^5.2.6
         version: 5.2.6
@@ -2605,7 +2398,7 @@ importers:
         version: link:../../engine
 
   packages/plugins/alphafold-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2613,7 +2406,7 @@ importers:
   packages/plugins/assimp-plugin: {}
 
   packages/plugins/banking-finance-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2631,7 +2424,7 @@ importers:
         version: link:../../core
 
   packages/plugins/domain-plugin-template:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2649,11 +2442,10 @@ importers:
         version: link:../../core
 
   packages/plugins/emergency-response:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2687,16 +2479,16 @@ importers:
 
   packages/plugins/film-vfx-plugin:
     dependencies:
+      loro-crdt:
+        specifier: ^1.0.0
+        version: 1.13.2
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
       '@holoscript/crdt-spatial':
         specifier: workspace:*
         version: link:../../crdt-spatial
-      loro-crdt:
-        specifier: ^1.0.0
-        version: 1.13.2
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2733,11 +2525,10 @@ importers:
         version: link:../../core
 
   packages/plugins/forensics-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2752,11 +2543,10 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/game-security-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2783,11 +2573,10 @@ importers:
         version: link:../../core
 
   packages/plugins/hardware-invention-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2837,7 +2626,7 @@ importers:
   packages/plugins/marble-genie3-plugin: {}
 
   packages/plugins/medical-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2864,13 +2653,13 @@ importers:
 
   packages/plugins/qm-bridge:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../../engine
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../../core
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -2879,11 +2668,10 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/radio-astronomy-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../../engine
@@ -2909,7 +2697,7 @@ importers:
         version: link:../../core
 
   packages/plugins/robotics-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2917,7 +2705,7 @@ importers:
   packages/plugins/scenethesis-plugin: {}
 
   packages/plugins/scientific-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2927,11 +2715,10 @@ importers:
   packages/plugins/talkinghead-plugin: {}
 
   packages/plugins/therapy-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2946,11 +2733,10 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/threat-intelligence-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -23530,8 +23316,8 @@ snapshots:
       '@typescript-eslint/parser': 8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-react: 7.37.5(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-react-hooks: 5.2.0(eslint@9.39.4(jiti@1.21.7))
@@ -23554,7 +23340,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -23565,22 +23351,22 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.12.2
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-module-utils@2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -23591,7 +23377,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
+      eslint-module-utils: 2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
       hasown: 2.0.4
       is-core-module: 2.16.2
       is-glob: 4.0.3
