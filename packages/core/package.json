@@ -264,6 +264,7 @@
     "test:release": "vitest run src/reconstruction/__tests__/PublicReconstructionExports.test.ts src/reconstruction/__tests__/PerceiverConsensus.test.ts",
     "test:public-types": "tsc -p test/public-types/tsconfig.json",
     "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
+    "test:baseline": "node scripts/check-core-test-baseline.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "typecheck:narrow": "tsc --noEmit -p tsconfig.narrow.json",

@@ -18,12 +18,27 @@
  *
  * So a change is "baseline-clean" iff it introduces zero failures outside the
  * captured baseline. Run AFTER a change to prove it added no regressions:
- *   node scripts/check-core-test-baseline.mjs
+ *   node scripts/check-core-test-baseline.mjs                 # runs the suite (~19 min)
+ *   pnpm --filter @holoscript/core test:baseline              # same, by name
+ *
+ * Classify a run that ALREADY happened — no second suite execution:
+ *   pnpm --filter @holoscript/core test > run.log 2>&1
+ *   node scripts/check-core-test-baseline.mjs --from-log run.log
+ *
+ * The 19 minutes is the SUITE's cost, not this classifier's. --from-log exists so
+ * the gate can attach to whatever surface already runs the suite rather than
+ * paying for a duplicate run — which is what kept it off pre-push (measured
+ * 18m54s, 2026-08-05).
  *
  * Refresh the baseline on a clean tree (run the suite ≥2× yourself first, then):
  *   node scripts/check-core-test-baseline.mjs --update   # rewrites stableFailures
+ *   node scripts/check-core-test-baseline.mjs --update --from-log run.log
+ * Reseed ONLY when failures were genuinely resolved. Reseeding to make a red run
+ * green converts an unrecorded regression into accepted noise.
  *
- * Exit codes: 0 = no new failures, 1 = new failures (regressions), 2 = setup error.
+ * Exit codes: 0 = no new failures, 1 = new failures (regressions), 2 = setup error
+ * (including: the log carries no vitest summary, so the run cannot be confirmed
+ * to have happened — this gate fails CLOSED rather than reporting a false green).
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -34,6 +49,23 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const coreRoot = resolve(__dir, '..');
 const manifestPath = resolve(coreRoot, 'test-baseline.json');
 const UPDATE = process.argv.includes('--update');
+
+// --from-log <path>: classify a run that ALREADY happened instead of spawning a
+// new one. The 19 minutes this gate costs is the suite's cost, not the
+// classifier's — decoupling them is what lets the gate attach to a surface that
+// already runs the suite, instead of paying for a second full run.
+const fromLogIdx = process.argv.indexOf('--from-log');
+const fromLog = fromLogIdx === -1 ? null : process.argv[fromLogIdx + 1];
+if (fromLogIdx !== -1 && (!fromLog || fromLog.startsWith('--'))) {
+  console.error('[baseline-gate] --from-log requires a path argument');
+  process.exit(2);
+}
+
+// A log with no recognizable vitest summary does not prove the suite ran, and a
+// run that never happened has zero FAIL lines — which would otherwise classify
+// as "no new failures" and exit 0. Fail CLOSED instead: an unverifiable run is a
+// setup error, never a pass.
+const SUITE_RAN = /^\s*Test Files\s+/m;
 
 let manifest;
 try {
@@ -46,14 +78,62 @@ try {
 const flakyFiles = new Set(manifest.flakyFiles?.files ?? []);
 const stableFailures = new Set(manifest.stableFailures?.tests ?? []);
 
-// Run the full sharded suite, capturing combined output.
-console.error('[baseline-gate] running full core suite (sharded) — this takes a few minutes…');
-const proc = spawnSync(
-  process.execPath,
-  ['--max-old-space-size=16384', resolve(coreRoot, 'run-vitest.mjs')],
-  { cwd: coreRoot, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env: process.env }
-);
-const out = `${proc.stdout ?? ''}\n${proc.stderr ?? ''}`;
+// Captured BEFORE the suite runs, and this ordering is load-bearing. The core
+// suite rewrites tracked files inside packages/core as a side effect (the
+// holotorch parity receipts under src/reconstruction/holotorch/receipts/ are
+// regenerated on every run). Sampling cleanliness afterwards would therefore
+// report dirty for every legitimate run and the receipt would never validate.
+// The question the receipt answers is "was the tree clean when testing STARTED",
+// i.e. did this run exercise what HEAD contains.
+const startedDirty = (() => {
+  const r = spawnSync('git', ['status', '--porcelain', '--', '.'], {
+    cwd: coreRoot,
+    encoding: 'utf8',
+  });
+  return r.status === 0 ? r.stdout.trim().length > 0 : true;
+})();
+
+// Obtain the run output: either read a completed run's log, or produce one.
+let out;
+let source;
+
+if (fromLog) {
+  const logPath = resolve(fromLog);
+  source = logPath;
+  try {
+    out = readFileSync(logPath, 'utf8');
+  } catch (e) {
+    console.error(`[baseline-gate] cannot read --from-log ${logPath}: ${e.message}`);
+    process.exit(2);
+  }
+  console.error(`[baseline-gate] classifying a previously captured run: ${logPath}`);
+} else {
+  source = 'live run';
+  console.error('[baseline-gate] running full core suite (sharded) — this takes a few minutes…');
+  const proc = spawnSync(
+    process.execPath,
+    ['--max-old-space-size=16384', resolve(coreRoot, 'run-vitest.mjs')],
+    { cwd: coreRoot, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, env: process.env }
+  );
+  // A suite that never started produces no FAIL lines, which would otherwise
+  // read as "clean". Surface the spawn failure instead of inheriting its silence.
+  if (proc.error) {
+    console.error(`[baseline-gate] could not run the suite: ${proc.error.message}`);
+    process.exit(2);
+  }
+  out = `${proc.stdout ?? ''}\n${proc.stderr ?? ''}`;
+}
+
+// Fail closed on an unverifiable run — see SUITE_RAN above. Without this, an
+// empty/truncated log or a suite that crashed on startup exits 0 ("no new
+// failures") and reports green for a run that never produced a result.
+if (!SUITE_RAN.test(out)) {
+  console.error(
+    `[baseline-gate] no vitest summary found in ${source} — cannot confirm the suite ran.`
+  );
+  console.error('[baseline-gate] refusing to report a verdict on an unverifiable run.');
+  process.exit(2);
+}
 
 // Parse vitest " FAIL  <id>" lines into normalized failure identifiers.
 const failures = new Set();
@@ -87,6 +167,50 @@ console.error(
   `[baseline-gate] total failures=${failures.size} | known-stable=${knownStable.length} | known-flaky=${knownFlaky.length} | NEW=${newFailures.length}`
 );
 
+// Emit a receipt bound to the CONTENT of packages/core at HEAD, not to a commit
+// sha — so an amend or rebase that leaves core's tree untouched keeps the proof
+// valid, while any real change to core invalidates it. This is what lets a
+// ~15-minute suite gate a push in milliseconds: the cost is paid once, whenever
+// the developer chooses, and the receipt proves it was paid for THIS core tree.
+function coreTreeSha() {
+  const r = spawnSync('git', ['rev-parse', 'HEAD:packages/core'], {
+    cwd: coreRoot,
+    encoding: 'utf8',
+  });
+  return r.status === 0 ? r.stdout.trim() : null;
+}
+const receiptPath = resolve(coreRoot, '.test-baseline-receipt.json');
+const dirty = startedDirty;
+try {
+  writeFileSync(
+    receiptPath,
+    JSON.stringify(
+      {
+        '//': 'Local proof that the core baseline gate ran for this packages/core tree. Not committed. Consumed by scripts/holo-ci/check-core-baseline-receipt.mjs on pre-push.',
+        schema: 'holoscript.core-baseline-receipt.v1',
+        result: newFailures.length > 0 ? 'new-failures' : 'clean',
+        coreTreeSha: coreTreeSha(),
+        // A run against a dirty tree did not test what HEAD contains, so the
+        // receipt records that and the gate refuses to honour it.
+        capturedFromDirtyWorkingTree: dirty,
+        totals: {
+          failures: failures.size,
+          knownStable: knownStable.length,
+          knownFlaky: knownFlaky.length,
+          new: newFailures.length,
+        },
+        newFailures: newFailures.sort(),
+        source,
+        capturedAtIso: new Date().toISOString(),
+      },
+      null,
+      2
+    ) + '\n'
+  );
+} catch (e) {
+  console.error(`[baseline-gate] warning: could not write receipt: ${e.message}`);
+}
+
 if (newFailures.length > 0) {
   console.error('\n[baseline-gate] NEW FAILURES (not in baseline — likely regressions):');
   for (const id of newFailures.sort()) console.error(`  ✗ ${id}`);
@@ -99,4 +223,11 @@ if (newFailures.length > 0) {
 console.error(
   '\n[baseline-gate] OK — no failures outside the captured baseline (no new regressions).'
 );
+if (dirty) {
+  console.error(
+    '[baseline-gate] NOTE: working tree was dirty — this run did not test what HEAD contains,'
+  );
+  console.error('[baseline-gate]       so the receipt will not satisfy the pre-push gate.');
+  console.error('[baseline-gate]       Commit your changes, then re-run to produce a valid proof.');
+}
 process.exit(0);

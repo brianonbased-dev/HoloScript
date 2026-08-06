@@ -10,6 +10,8 @@
  * It does not claim that Pillar coordinates are hidden cognitive coordinates.
  */
 
+import { createHash } from 'node:crypto';
+
 import type { PillarSlice } from './SemanticCollaborationContract';
 
 export const TOURNAMENT_FRAME_BYTES = 64;
@@ -322,10 +324,17 @@ function hash32(value: string): number {
   return hash >>> 0;
 }
 
+// node:crypto rather than crypto.subtle — same digest, same receipt bytes.
+// A tournament evaluation issues 14,356 serially-awaited digests; each
+// crypto.subtle round-trip goes through the 4-slot libuv threadpool and measures
+// ~4.54 ms here versus ~0.005 ms for createHash, which put the run at ~86 s
+// against a 30 s testTimeout and made the gate machine-speed-dependent.
+// The async signature is kept so every call site is unchanged — the awaits now
+// resolve as microtasks instead of threadpool round-trips.
+// Matches the existing idiom in reconstruction/ProvenanceReceipt.ts.
+// eslint-disable-next-line @typescript-eslint/require-await
 async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
-  const input = bytes.slice().buffer as ArrayBuffer;
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', input);
-  return new Uint8Array(digest);
+  return new Uint8Array(createHash('sha256').update(bytes).digest());
 }
 
 function toHex(bytes: Uint8Array): string {
