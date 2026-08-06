@@ -21,7 +21,7 @@ import { ConfigLoader } from './config/loader';
 import { HoloScriptConfig } from './config/schema';
 import { importUnity } from './importers/unity-importer';
 import { importGodot } from './importers/godot-importer';
-import { importGltfToFile } from './importers/gltf-importer';
+import { importGltfToFileAsync } from './importers/glb-decompress';
 
 export class HoloScriptCLI {
   private parser: HoloScriptParser;
@@ -398,7 +398,7 @@ export class HoloScriptCLI {
           break;
         case 'gltf':
           try {
-            importGltfToFile(inputPath, outputPath);
+            await importGltfToFileAsync(inputPath, outputPath);
             const sceneName =
               this.options.sceneName || path.basename(inputPath, path.extname(inputPath));
             result = {
