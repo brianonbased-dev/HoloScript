@@ -34,6 +34,7 @@ import { getMcpServerSizing } from './server-sizing';
 import { handlePartnerRegistryValidateRoute } from './partner-registry-route';
 import { tools } from './tools';
 import { handleTool } from './handlers';
+import { getCompilerWasmBuildIdentity } from './parserBuildIdentity';
 import { _handleSingleToolLogic } from './index';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { PluginManager } from './PluginManager';
@@ -1118,6 +1119,13 @@ const httpServer = http.createServer(async (req, res) => {
         uptime: process.uptime(),
         sessions: transports.size,
         tools: tools.length + PluginManager.getTools().length,
+        // task_1784330208777_288f: ties validate_holoscript's `validator: "rust-wasm"`
+        // to a resolvable source commit + WASM digest, read from compiler-wasm's own
+        // build receipt. null when the receipt isn't present (Node-only deploy that
+        // skipped the Rust workspace build) rather than fabricated.
+        parser: {
+          compilerWasm: getCompilerWasmBuildIdentity(),
+        },
         // W.131 follow-up: surface team-store backend so external probes can
         // diagnose Pattern Gamma (in-memory + ephemeral container = team state
         // wiped on every redeploy) without code-spelunking. teamStore.usesPostgres
