@@ -2186,6 +2186,62 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.online[0].ideType).toBe('cursor');
     });
 
+    it('GET /api/holomesh/team/:id marks each member online or offline', async () => {
+      // Regression guard (task_1777939860298_m9ep, layer b). This endpoint used
+      // to return `members: team.members` raw. A TeamMember stores joinedAt and
+      // nothing else time-based, so a caller could not distinguish a seat that
+      // heartbeated seconds ago from one dormant for months, and reasonably
+      // concluded liveness was not tracked — while /members had joined presence
+      // all along. If someone drops the join, this goes red instead of the
+      // roster silently going dark again.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `roster-liveness-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      // Owner is a member but has NOT heartbeated yet -> offline.
+      const beforeReq = mockReq('GET', `/api/holomesh/team/${tid}`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const beforeRes = mockRes();
+      await handleHoloMeshRoute(beforeReq, beforeRes, `/api/holomesh/team/${tid}`);
+      expect(beforeRes._status).toBe(200);
+      expect(beforeRes._body.team.members).toHaveLength(1);
+      expect(beforeRes._body.team.members[0].online).toBe(false);
+      expect(beforeRes._body.team.members[0].lastHeartbeat).toBeNull();
+      expect(beforeRes._body.team.online_count).toBe(0);
+
+      // Heartbeat, then the same member must read as online with a timestamp.
+      const presReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'cursor' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      await handleHoloMeshRoute(presReq, mockRes(), `/api/holomesh/team/${tid}/presence`);
+
+      const afterReq = mockReq('GET', `/api/holomesh/team/${tid}`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const afterRes = mockRes();
+      await handleHoloMeshRoute(afterReq, afterRes, `/api/holomesh/team/${tid}`);
+      expect(afterRes._status).toBe(200);
+      expect(afterRes._body.team.members[0].online).toBe(true);
+      expect(typeof afterRes._body.team.members[0].lastHeartbeat).toBe('string');
+      expect(afterRes._body.team.online_count).toBe(1);
+
+      // Identity fields must survive the enrichment spread.
+      expect(afterRes._body.team.members[0].agentId).toBe(
+        beforeRes._body.team.members[0].agentId
+      );
+      expect(afterRes._body.team.members[0].role).toBe('owner');
+    });
+
     it('POST /api/holomesh/team/:id/presence accepts mobile surface with faster decay', async () => {
       const createReq = mockReq(
         'POST',
