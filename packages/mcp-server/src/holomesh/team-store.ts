@@ -22,12 +22,22 @@ import {
   type HoloMeshPostgresPoolOptions,
 } from './postgres-pool-options';
 
-export type TeamStorePostgresPoolOptions = HoloMeshPostgresPoolOptions;
+const POSTGRES_OPERATION_TIMEOUT_MS = 5_000;
+const DEFAULT_LOAD_ATTEMPT_TIMEOUT_MS = 6_000;
+
+export type TeamStorePostgresPoolOptions = HoloMeshPostgresPoolOptions & {
+  connectionTimeoutMillis: number;
+  query_timeout: number;
+};
 
 export function createTeamStorePostgresPoolOptions(
   databaseUrl: string
 ): TeamStorePostgresPoolOptions {
-  return createHoloMeshPostgresPoolOptions(databaseUrl);
+  return {
+    ...createHoloMeshPostgresPoolOptions(databaseUrl),
+    connectionTimeoutMillis: POSTGRES_OPERATION_TIMEOUT_MS,
+    query_timeout: POSTGRES_OPERATION_TIMEOUT_MS,
+  };
 }
 
 // ── Schema DDL ───────────────────────────────────────────────────────────────
@@ -49,6 +59,49 @@ export interface TeamStoreBackend {
   delete(teamId: string): Promise<void>;
   getAll(): Promise<Map<string, Team>>;
   close?(): Promise<void>;
+}
+
+export interface TeamStoreLoadOptions {
+  maxAttempts?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+  attemptTimeoutMs?: number;
+  sleep?: (delayMs: number) => Promise<void>;
+}
+
+function finiteIntegerOption(
+  value: number | undefined,
+  fallback: number,
+  name: string,
+  minimum: number
+): number {
+  const resolved = value ?? fallback;
+  if (!Number.isFinite(resolved)) {
+    throw new RangeError(`${name} must be finite`);
+  }
+  const normalized = Math.trunc(resolved);
+  if (normalized < minimum) {
+    throw new RangeError(`${name} must be at least ${minimum}`);
+  }
+  return normalized;
+}
+
+async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          const error = new Error(`durable team load timed out after ${timeoutMs}ms`);
+          error.name = 'TeamStoreLoadTimeoutError';
+          reject(error);
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 // ── In-Memory Backend (legacy, local dev) ───────────────────────────────────
@@ -77,11 +130,10 @@ export class InMemoryTeamStoreBackend implements TeamStoreBackend {
 
 export class PostgresTeamStoreBackend implements TeamStoreBackend {
   private pool: Pool;
-  private ready: Promise<void>;
+  private ready: Promise<void> | null = null;
 
   constructor(pool: Pool) {
     this.pool = pool;
-    this.ready = this.ensureSchema();
   }
 
   private async ensureSchema(): Promise<void> {
@@ -93,15 +145,30 @@ export class PostgresTeamStoreBackend implements TeamStoreBackend {
     }
   }
 
+  /**
+   * Schema initialization is intentionally re-armable. Railway private DNS can
+   * return a transient EAI_AGAIN while a container is starting; retaining the
+   * rejected Promise would make every later retry fail without reconnecting.
+   */
+  private ensureReady(): Promise<void> {
+    if (!this.ready) {
+      this.ready = this.ensureSchema().catch((error: unknown) => {
+        this.ready = null;
+        throw error;
+      });
+    }
+    return this.ready;
+  }
+
   async get(teamId: string): Promise<Team | undefined> {
-    await this.ready;
+    await this.ensureReady();
     const result = await this.pool.query('SELECT data FROM holomesh_teams WHERE id = $1', [teamId]);
     if (result.rows.length === 0) return undefined;
     return result.rows[0].data as Team;
   }
 
   async set(teamId: string, team: Team): Promise<void> {
-    await this.ready;
+    await this.ensureReady();
     await this.pool.query(
       `INSERT INTO holomesh_teams (id, data, updated_at)
        VALUES ($1, $2, NOW())
@@ -111,12 +178,12 @@ export class PostgresTeamStoreBackend implements TeamStoreBackend {
   }
 
   async delete(teamId: string): Promise<void> {
-    await this.ready;
+    await this.ensureReady();
     await this.pool.query('DELETE FROM holomesh_teams WHERE id = $1', [teamId]);
   }
 
   async getAll(): Promise<Map<string, Team>> {
-    await this.ready;
+    await this.ensureReady();
     const result = await this.pool.query('SELECT id, data FROM holomesh_teams');
     const map = new Map<string, Team>();
     for (const row of result.rows) {
@@ -148,7 +215,7 @@ export class TeamStore {
   readonly [Symbol.toStringTag] = 'TeamStore';
   private backend: TeamStoreBackend;
   private local: Map<string, Team> = new Map();
-  private usePostgres: boolean;
+  private readonly usePostgres: boolean;
 
   constructor(backend: TeamStoreBackend, usePostgres: boolean) {
     this.backend = backend;
@@ -222,17 +289,6 @@ export class TeamStore {
     // We don't clear the backend — that's a separate explicit operation.
   }
 
-  fallbackToMemory(): void {
-    const memory = new InMemoryTeamStoreBackend();
-    for (const [teamId, team] of this.local.entries()) {
-      memory.set(teamId, team).catch((e) => {
-        console.error('[TeamStore] memory fallback seed failed:', e);
-      });
-    }
-    this.backend = memory;
-    this.usePostgres = false;
-  }
-
   forEach(
     callbackfn: (value: Team, key: string, map: Map<string, Team>) => void,
     thisArg?: any
@@ -256,10 +312,47 @@ export class TeamStore {
     return this.local[Symbol.iterator]();
   }
 
-  /** Load all teams from backend into local cache (startup / refresh) */
-  async loadAll(): Promise<void> {
-    const all = await this.backend.getAll();
-    this.local = all;
+  /**
+   * Load all teams from the durable backend into the local cache.
+   *
+   * PostgreSQL startup gets a bounded retry window because Railway private DNS
+   * can briefly return EAI_AGAIN while service networking converges. The store
+   * never demotes itself to writable memory when DATABASE_URL selected durable
+   * custody: exhausting the window rejects startup instead of presenting an
+   * empty split-brain board as healthy.
+   */
+  async loadAll(options: TeamStoreLoadOptions = {}): Promise<void> {
+    const requestedMaxAttempts = finiteIntegerOption(options.maxAttempts, 8, 'maxAttempts', 1);
+    const maxAttempts = this.usePostgres ? requestedMaxAttempts : 1;
+    const baseDelayMs = finiteIntegerOption(options.baseDelayMs, 250, 'baseDelayMs', 0);
+    const requestedMaxDelayMs = finiteIntegerOption(options.maxDelayMs, 4_000, 'maxDelayMs', 0);
+    const maxDelayMs = Math.max(baseDelayMs, requestedMaxDelayMs);
+    const attemptTimeoutMs = finiteIntegerOption(
+      options.attemptTimeoutMs,
+      DEFAULT_LOAD_ATTEMPT_TIMEOUT_MS,
+      'attemptTimeoutMs',
+      1
+    );
+    const sleep =
+      options.sleep ??
+      ((delayMs: number) => new Promise((resolve) => setTimeout(resolve, delayMs)));
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const load = this.backend.getAll();
+        const all = this.usePostgres ? await withTimeout(load, attemptTimeoutMs) : await load;
+        this.local = all;
+        return;
+      } catch (error) {
+        if (attempt === maxAttempts) throw error;
+        const delayMs = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
+        const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        console.warn(
+          `[TeamStore] durable load attempt ${attempt}/${maxAttempts} failed; retrying in ${delayMs}ms: ${detail}`
+        );
+        await sleep(delayMs);
+      }
+    }
   }
 
   /** Persist a single team immediately (awaitable) */
@@ -285,7 +378,8 @@ export function createTeamStore(): TeamStore {
       console.error('[TeamStore] PostgreSQL backend active (multi-instance)');
       return new TeamStore(backend, true);
     } catch (e) {
-      console.warn('[TeamStore] DATABASE_URL set but pg failed to load:', e);
+      console.error('[TeamStore] DATABASE_URL set but PostgreSQL backend failed to initialize:', e);
+      throw e;
     }
   }
   console.error('[TeamStore] In-memory backend (single-instance / dev)');
