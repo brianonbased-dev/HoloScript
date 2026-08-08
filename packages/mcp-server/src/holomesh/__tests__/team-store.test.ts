@@ -76,7 +76,8 @@ describe('TeamStore PostgreSQL custody options', () => {
       connectionString: 'postgres://unit-test/team-store',
       ssl: { rejectUnauthorized: false },
       connectionTimeoutMillis: 5_000,
-      query_timeout: 5_000,
+      statement_timeout: 5_000,
+      query_timeout: 6_000,
     });
 
     process.env.DATABASE_SSL = 'false';
@@ -84,7 +85,8 @@ describe('TeamStore PostgreSQL custody options', () => {
       connectionString: 'postgres://unit-test/team-store',
       ssl: false,
       connectionTimeoutMillis: 5_000,
-      query_timeout: 5_000,
+      statement_timeout: 5_000,
+      query_timeout: 6_000,
     });
   });
 
@@ -155,7 +157,7 @@ describe('TeamStore PostgreSQL custody options', () => {
     expect(store.get(team.id)).toEqual(team);
   });
 
-  it('times out a hung durable load and keeps the retry window finite', async () => {
+  it('treats a hung durable load timeout as terminal instead of fanning out', async () => {
     const backend = new HangingTeamStoreBackend(0);
     const store = new TeamStore(backend, true);
 
@@ -169,7 +171,7 @@ describe('TeamStore PostgreSQL custody options', () => {
       })
     ).rejects.toThrow('durable team load timed out after 5ms');
 
-    expect(backend.attempts).toBe(2);
+    expect(backend.attempts).toBe(1);
     expect(store.usesPostgres).toBe(true);
   });
 

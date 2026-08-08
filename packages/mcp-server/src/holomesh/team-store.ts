@@ -22,11 +22,14 @@ import {
   type HoloMeshPostgresPoolOptions,
 } from './postgres-pool-options';
 
-const POSTGRES_OPERATION_TIMEOUT_MS = 5_000;
-const DEFAULT_LOAD_ATTEMPT_TIMEOUT_MS = 6_000;
+const POSTGRES_CONNECTION_TIMEOUT_MS = 5_000;
+const POSTGRES_STATEMENT_TIMEOUT_MS = 5_000;
+const POSTGRES_QUERY_TIMEOUT_MS = 6_000;
+const DEFAULT_LOAD_ATTEMPT_TIMEOUT_MS = 20_000;
 
 export type TeamStorePostgresPoolOptions = HoloMeshPostgresPoolOptions & {
   connectionTimeoutMillis: number;
+  statement_timeout: number;
   query_timeout: number;
 };
 
@@ -35,8 +38,9 @@ export function createTeamStorePostgresPoolOptions(
 ): TeamStorePostgresPoolOptions {
   return {
     ...createHoloMeshPostgresPoolOptions(databaseUrl),
-    connectionTimeoutMillis: POSTGRES_OPERATION_TIMEOUT_MS,
-    query_timeout: POSTGRES_OPERATION_TIMEOUT_MS,
+    connectionTimeoutMillis: POSTGRES_CONNECTION_TIMEOUT_MS,
+    statement_timeout: POSTGRES_STATEMENT_TIMEOUT_MS,
+    query_timeout: POSTGRES_QUERY_TIMEOUT_MS,
   };
 }
 
@@ -86,6 +90,13 @@ function finiteIntegerOption(
   return normalized;
 }
 
+class TeamStoreLoadTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`durable team load timed out after ${timeoutMs}ms`);
+    this.name = 'TeamStoreLoadTimeoutError';
+  }
+}
+
 async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -93,9 +104,7 @@ async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise
       operation,
       new Promise<never>((_, reject) => {
         timeout = setTimeout(() => {
-          const error = new Error(`durable team load timed out after ${timeoutMs}ms`);
-          error.name = 'TeamStoreLoadTimeoutError';
-          reject(error);
+          reject(new TeamStoreLoadTimeoutError(timeoutMs));
         }, timeoutMs);
       }),
     ]);
@@ -344,6 +353,11 @@ export class TeamStore {
         this.local = all;
         return;
       } catch (error) {
+        // The wrapper cannot cancel an arbitrary backend Promise. Treat its
+        // deadline as terminal so a second load never fans out while the first
+        // is still pending. PostgreSQL operations have their own connection,
+        // server statement, and client query deadlines above.
+        if (error instanceof TeamStoreLoadTimeoutError) throw error;
         if (attempt === maxAttempts) throw error;
         const delayMs = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
         const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
