@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
 
 import {
+  buildFarmProposalReceipt,
   buildSubstrateClosure,
   createHoloSystemConfig,
   discoverConsumptionSurfaceCatalog,
@@ -32,6 +33,7 @@ Usage:
   holosystem inspect [file|-] [--json]
   holosystem catalog --seeds <file> --portfolio <file> --manifest <file> [--lineage <file>] [--active-batches <file>] [--promotions <file>] [--output <file>] [--json]
   holosystem lineage --portfolio <file> [--concurrency <1-12>] [--output <file>] [--json]
+  holosystem farm --catalog <file> --portfolio <file> --lineage <file> [--output <file>] [--force] [--json]
   holosystem substrate-import --lock <package-lock.json> --config <file> [--output <file>] [--force] [--json]
   holosystem substrate-import-debian --status <status> (--packages <Packages> | --sources <json>) --maintainer-scripts <json> --config <file> [--output <file>] [--force] [--json]
   holosystem native-build-source --source <directory> [--json]
@@ -52,6 +54,8 @@ Defaults:
   create writes holosystem.config.json and never overwrites it without --force.
   inspect reads holosystem.config.json. Use - to read JSON from stdin.
   catalog, lineage, substrate imports, and substrate read caller-owned evidence and never read credentials.
+  farm is proposal-only: it selects and records bounded work but never claims, executes, accepts, publishes, or mutates it.
+  Every farm proposal requires caller authority before any downstream action.
 `;
 
 function die(message, { json = false, code = 1 } = {}) {
@@ -207,6 +211,29 @@ function writeJsonOutput(path, value, { force = false } = {}) {
   if (existsSync(absolute) && !force)
     throw new Error(`${path} already exists; use --force to replace it.`);
   writeFileSync(absolute, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+function comparablePath(path) {
+  const absolute = resolve(process.cwd(), path);
+  let canonical = absolute;
+  try {
+    canonical = existsSync(absolute)
+      ? realpathSync.native(absolute)
+      : resolve(realpathSync.native(dirname(absolute)), basename(absolute));
+  } catch {
+    // The eventual read/write reports an unobservable path. Lexical comparison still fails closed
+    // for direct aliases without inventing a broader filesystem capability.
+  }
+  return process.platform === 'win32' ? canonical.toLowerCase() : canonical;
+}
+
+function sameExistingFile(left, right) {
+  const leftAbsolute = resolve(process.cwd(), left);
+  const rightAbsolute = resolve(process.cwd(), right);
+  if (!existsSync(leftAbsolute) || !existsSync(rightAbsolute)) return false;
+  const leftIdentity = statSync(leftAbsolute, { bigint: true });
+  const rightIdentity = statSync(rightAbsolute, { bigint: true });
+  return leftIdentity.dev === rightIdentity.dev && leftIdentity.ino === rightIdentity.ino;
 }
 
 function writeSourceCanonProjection(path, value, { force = false } = {}) {
@@ -399,6 +426,104 @@ async function runLineage(args) {
     if (options.output) process.stdout.write(`Wrote ${options.output}\n`);
   }
   if (lineage.status !== 'complete') process.exitCode = 2;
+}
+
+function runFarm(args) {
+  let parsed;
+  try {
+    parsed = parseArguments(args, {
+      catalog: 'value',
+      portfolio: 'value',
+      lineage: 'value',
+      output: 'value',
+      force: 'boolean',
+      json: 'boolean',
+    });
+  } catch (error) {
+    die(error.message, { json: args.includes('--json'), code: 2 });
+  }
+  const { options, positionals } = parsed;
+  if (positionals.length > 0) {
+    die('farm does not accept positional arguments.', { json: options.json, code: 2 });
+  }
+  if (options.force && !options.output) {
+    die('--force requires --output for farm.', { json: options.json, code: 2 });
+  }
+
+  let catalog;
+  let portfolio;
+  let lineage;
+  try {
+    catalog = readJsonFile(options.catalog, 'catalog');
+    portfolio = readJsonFile(options.portfolio, 'portfolio');
+    lineage = readJsonFile(options.lineage, 'lineage');
+  } catch (error) {
+    const cannotConclude = error instanceof SyntaxError || typeof error.code === 'string';
+    die(`Cannot read proposal-only farm inputs: ${error.message}`, {
+      json: options.json,
+      code: cannotConclude ? 1 : 2,
+    });
+  }
+  if (options.output) {
+    let inputAlias;
+    try {
+      const outputPath = comparablePath(options.output);
+      inputAlias = [options.catalog, options.portfolio, options.lineage].find(
+        (path) =>
+          comparablePath(path) === outputPath || sameExistingFile(path, options.output)
+      );
+    } catch (error) {
+      die(`Cannot verify proposal-only farm output identity: ${error.message}`, {
+        json: options.json,
+        code: 2,
+      });
+    }
+    if (inputAlias) {
+      die(`--output must not alias farm input ${inputAlias}.`, {
+        json: options.json,
+        code: 2,
+      });
+    }
+  }
+
+  let farm;
+  try {
+    farm = buildFarmProposalReceipt({
+      catalog,
+      portfolio,
+      lineage,
+      sourceReceipts: {
+        catalog: options.catalog,
+        portfolio: options.portfolio,
+        lineage: options.lineage,
+      },
+    });
+  } catch (error) {
+    die(`Cannot build proposal-only farm receipt: ${error.message}`, {
+      json: options.json,
+      code: 2,
+    });
+  }
+  try {
+    if (options.output) writeJsonOutput(options.output, farm, { force: options.force });
+  } catch (error) {
+    die(`Cannot write proposal-only farm receipt: ${error.message}`, {
+      json: options.json,
+      code: 2,
+    });
+  }
+
+  if (options.json) outputJson(farm);
+  else {
+    process.stdout.write(
+      `Farm proposal-only: ${farm.status}\nAccepted: no\nChanges applied: 0\nAuthority required: yes\n`
+    );
+    if (farm.nextWork.length > 0) {
+      process.stdout.write(`Proposed: ${farm.nextWork[0].id}\n`);
+    }
+    if (options.output) process.stdout.write(`Wrote ${options.output}\n`);
+  }
+  if (farm.status === 'blocked') process.exitCode = 2;
 }
 
 function runSubstrateImport(args) {
@@ -756,6 +881,8 @@ if (!command || command === '--help' || command === '-h' || command === 'help') 
   await runCatalog(argv.slice(1));
 } else if (command === 'lineage') {
   await runLineage(argv.slice(1));
+} else if (command === 'farm') {
+  runFarm(argv.slice(1));
 } else if (command === 'substrate-import') {
   runSubstrateImport(argv.slice(1));
 } else if (command === 'substrate-import-debian') {

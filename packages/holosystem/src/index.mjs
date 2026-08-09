@@ -69,8 +69,10 @@ export {
 export {
   HOLOSYSTEM_CATALOG_SCHEMA,
   HOLOSYSTEM_CONSUMER_INPUT_SCHEMA,
+  HOLOSYSTEM_FARM_SCHEMA,
   HOLOSYSTEM_LINEAGE_SCHEMA,
   HOLOSYSTEM_NEXT_WORK_SCHEMA,
+  buildFarmProposalReceipt,
   buildConsumptionSurfaceCatalog,
   buildSourceLineageReceipt,
   discoverConsumptionSurfaceCatalog,

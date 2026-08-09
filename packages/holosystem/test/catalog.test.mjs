@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 import {
   HOLOSYSTEM_CATALOG_SCHEMA,
+  HOLOSYSTEM_FARM_SCHEMA,
   HOLOSYSTEM_LINEAGE_SCHEMA,
   buildConsumptionSurfaceCatalog,
+  buildFarmProposalReceipt,
   buildSourceLineageReceipt,
   discoverSourceLineage,
   hashConsumerInput,
@@ -44,6 +47,100 @@ const portfolio = {
     },
   ],
 };
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => [key, stableValue(child)])
+  );
+}
+
+function sha256(value) {
+  return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+}
+
+function hashCurrentPortfolioReceipt(receipt) {
+  const unsigned = { ...receipt, generatedAt: null };
+  delete unsigned.receiptHash;
+  return sha256(stableValue(unsigned));
+}
+
+function refinalizePortfolioReceipt(receipt) {
+  receipt.receiptHash = `sha256:${'0'.repeat(64)}`;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const serializedBytes = Buffer.byteLength(`${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+    if (receipt.bounds.serializedBytes === serializedBytes) break;
+    receipt.bounds.serializedBytes = serializedBytes;
+  }
+  receipt.receiptHash = hashCurrentPortfolioReceipt(receipt);
+  assert.equal(
+    receipt.bounds.serializedBytes,
+    Buffer.byteLength(`${JSON.stringify(receipt, null, 2)}\n`, 'utf8')
+  );
+  return receipt;
+}
+
+function finalizePortfolioReceipt(value = portfolio) {
+  const receipt = {
+    schema: 'holosystem.portfolio-consumer-gate.v1',
+    generatedAt: '2026-08-09T00:00:00.000Z',
+    status: value.packages.some((item) => item.classification !== 'passing') ? 'failed' : 'passed',
+    admissible: value.packages.every((item) => item.classification === 'passing'),
+    scope: structuredClone(value.scope || {}),
+    summary: { total: value.packages.length },
+    packages: structuredClone(value.packages),
+    bounds: {
+      maxPackages: 200,
+      maxFindings: 50,
+      maxStringLength: 240,
+      maxSerializedBytes: 196608,
+      packagesEmitted: value.packages.length,
+      packagesOmitted: 0,
+      findingsEmitted: 0,
+      findingsOmitted: 0,
+      truncated: false,
+      serializedBytes: 0,
+    },
+    receiptHash: `sha256:${'0'.repeat(64)}`,
+  };
+  return refinalizePortfolioReceipt(receipt);
+}
+
+function rehashInsertionReceipt(receipt) {
+  receipt.receiptHash = sha256({ ...receipt, generatedAt: null, receiptHash: undefined });
+  return receipt;
+}
+
+function farmInputs({ packages = portfolio.packages, activeProofBatches = [] } = {}) {
+  const portfolioReceipt = finalizePortfolioReceipt({ ...portfolio, packages });
+  const lineage = buildSourceLineageReceipt({
+    portfolio: portfolioReceipt,
+    metadata: [],
+    now: new Date('2026-08-09T00:00:01.000Z'),
+  });
+  const catalog = buildConsumptionSurfaceCatalog({
+    seeds: { github: { products: [] }, mcp: { sourceAudit: { tools: 1 } } },
+    portfolio: portfolioReceipt,
+    lineage,
+    activeProofBatches,
+    mcpHealth: { tools: 1 },
+    skills: { ok: true, count: 0 },
+    now: new Date('2026-08-09T00:00:02.000Z'),
+  });
+  return {
+    catalog,
+    portfolio: portfolioReceipt,
+    lineage,
+    sourceReceipts: {
+      catalog: 'receipts/catalog.json',
+      portfolio: 'receipts/portfolio.json',
+      lineage: 'receipts/lineage.json',
+    },
+  };
+}
 
 test('catalog keeps rails separate and projects proof, lineage, and activity state', () => {
   const lineage = buildSourceLineageReceipt({
@@ -121,6 +218,452 @@ test('catalog keeps rails separate and projects proof, lineage, and activity sta
   assert.doesNotMatch(JSON.stringify(receipt.activity), /do-not-project/u);
   assert.equal(receipt.boundaries.noGrandTotal, true);
   assert.equal('total' in receipt, false);
+});
+
+test('farm builds an action-ready proposal bound to current canonical input receipts', () => {
+  const inputs = farmInputs({
+    activeProofBatches: [
+      {
+        id: 'completed-proof',
+        status: 'completed',
+        packages: [{ ecosystem: 'npm', name: '@example/ready' }],
+        receiptHash: `sha256:${'a'.repeat(64)}`,
+      },
+    ],
+  });
+  const receipt = buildFarmProposalReceipt({
+    ...inputs,
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+
+  assert.equal(receipt.schema, HOLOSYSTEM_FARM_SCHEMA);
+  assert.equal(receipt.status, 'action-ready');
+  assert.equal(receipt.mode, 'propose-only');
+  assert.equal(receipt.publicFirst, true);
+  assert.equal(receipt.requiresAuthority, true);
+  assert.equal(receipt.accepted, false);
+  assert.deepEqual(receipt.changesApplied, []);
+  assert.deepEqual(receipt.decision, inputs.catalog.activity.nextWork);
+  assert.equal(receipt.decisionProof.source, 'catalog.activity.nextWork');
+  assert.equal(receipt.decisionProof.equivalentToCanonicalSelection, true);
+  assert.equal(receipt.proofBatches[0].id, 'completed-proof');
+  assert.equal(receipt.nextWork.length, 1);
+  assert.equal(receipt.nextWork[0].name, '@example/stale');
+  assert.equal(receipt.nextWork[0].status, 'proposed');
+  assert.equal(receipt.nextWork[0].requiresAuthority, true);
+  assert.deepEqual(receipt.sourceReceipts, [
+    'receipts/catalog.json',
+    'receipts/portfolio.json',
+    'receipts/lineage.json',
+  ]);
+  for (const binding of Object.values(receipt.sourceReceiptBindings)) {
+    assert.match(binding.receiptHash, /^sha256:[0-9a-f]{64}$/u);
+    assert.match(binding.contentHash, /^sha256:[0-9a-f]{64}$/u);
+  }
+  assert.equal(receipt.boundaries.executesTasks, false);
+  assert.equal(receipt.boundaries.acquiresAuthority, false);
+});
+
+test('farm recomputes an absent catalog decision and returns an idle proposal', () => {
+  const passingPackages = portfolio.packages.map((item) => ({
+    ...item,
+    classification: 'passing',
+    issues: [],
+  }));
+  const inputs = farmInputs({ packages: passingPackages });
+  delete inputs.catalog.activity.nextWork;
+  rehashInsertionReceipt(inputs.catalog);
+
+  const receipt = buildFarmProposalReceipt({
+    ...inputs,
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+
+  assert.equal(receipt.status, 'idle');
+  assert.equal(receipt.decision.status, 'idle');
+  assert.equal(receipt.decisionProof.source, 'canonical-recompute');
+  assert.equal(receipt.decisionProof.catalogDecisionPresent, false);
+  assert.equal(receipt.decisionProof.equivalentToCanonicalSelection, true);
+  assert.deepEqual(receipt.nextWork, []);
+});
+
+test('farm canonical selection excludes running, claimed, and queued proof batches', () => {
+  const packages = [
+    {
+      ecosystem: 'npm',
+      name: '@example/running',
+      expectedVersion: '1.0.0',
+      classification: 'failed',
+      issues: ['import-failed'],
+    },
+    {
+      ecosystem: 'npm',
+      name: '@example/claimed',
+      expectedVersion: '1.0.0',
+      classification: 'stale',
+      issues: ['integrity-mismatch'],
+    },
+    {
+      ecosystem: 'pypi',
+      name: 'queued-example',
+      expectedVersion: '1.0.0',
+      classification: 'missing',
+      issues: ['import-missing'],
+    },
+  ];
+  const activeProofBatches = [
+    { status: 'running', packages: [packages[0]] },
+    { status: 'claimed', packages: [packages[1]] },
+    { status: 'queued', packages: [packages[2]] },
+  ];
+  const receipt = buildFarmProposalReceipt({
+    ...farmInputs({ packages, activeProofBatches }),
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+
+  assert.equal(receipt.status, 'idle');
+  assert.deepEqual(receipt.nextWork, []);
+  assert.deepEqual(receipt.decisionProof.activeStatusesExcluded, [
+    'running',
+    'claimed',
+    'queued',
+  ]);
+});
+
+test('farm blocks a running 101-artifact batch instead of proposing its projected omission', () => {
+  const packages = Array.from({ length: 101 }, (_, index) => ({
+    ecosystem: 'npm',
+    name: `@example/active-${String(index).padStart(3, '0')}`,
+    expectedVersion: '1.0.0',
+    classification: 'missing',
+    issues: ['import-missing'],
+  }));
+  const receipt = buildFarmProposalReceipt({
+    ...farmInputs({
+      packages,
+      activeProofBatches: [{ status: 'running', packages }],
+    }),
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+
+  assert.equal(receipt.status, 'blocked');
+  assert.deepEqual(receipt.blockers, ['proof-batch-package-projection-may-be-truncated']);
+  assert.equal(receipt.proofBatches[0].packages.length, 100);
+  assert.equal(receipt.proofBatches[0].projection.packagesOmitted, 1);
+  assert.equal(receipt.decisionProof.equivalentToCanonicalSelection, false);
+  assert.deepEqual(receipt.nextWork, []);
+});
+
+test('farm fails closed at the exact 100-package batch projection cap', () => {
+  const packages = Array.from({ length: 100 }, (_, index) => ({
+    ecosystem: 'npm',
+    name: `@example/active-${String(index).padStart(3, '0')}`,
+    expectedVersion: '1.0.0',
+    classification: 'missing',
+    issues: ['import-missing'],
+  }));
+  const receipt = buildFarmProposalReceipt({
+    ...farmInputs({
+      packages,
+      activeProofBatches: [{ status: 'running', packages }],
+    }),
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+
+  assert.equal(receipt.status, 'blocked');
+  assert.deepEqual(receipt.blockers, ['proof-batch-package-projection-may-be-truncated']);
+  assert.equal(receipt.proofBatches[0].projection.atCap, true);
+  assert.deepEqual(receipt.nextWork, []);
+});
+
+test('farm blocks when catalog proof-batch history reaches its projection cap', () => {
+  const activeProofBatches = Array.from({ length: 25 }, (_, index) => ({
+    id: `completed-${index}`,
+    status: 'completed',
+    packages: [],
+  }));
+  const receipt = buildFarmProposalReceipt({
+    ...farmInputs({ activeProofBatches }),
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+
+  assert.equal(receipt.status, 'blocked');
+  assert.deepEqual(receipt.blockers, ['proof-batch-history-may-be-truncated']);
+  assert.deepEqual(receipt.nextWork, []);
+  assert.ok(receipt.stopConditions.includes('proof-batch-history-may-be-truncated'));
+});
+
+test('farm blocks an incomplete catalog without proposing its otherwise valid decision', () => {
+  const inputs = farmInputs();
+  inputs.catalog.status = 'incomplete-discovery';
+  rehashInsertionReceipt(inputs.catalog);
+
+  const receipt = buildFarmProposalReceipt(inputs);
+  assert.equal(receipt.status, 'blocked');
+  assert.deepEqual(receipt.blockers, ['catalog-not-current']);
+  assert.deepEqual(receipt.nextWork, []);
+});
+
+test('farm blocks truncated portfolio evidence without proposing omitted work', () => {
+  const inputs = farmInputs();
+  inputs.portfolio.summary.total += 1;
+  inputs.portfolio.bounds.packagesOmitted = 1;
+  inputs.portfolio.bounds.truncated = true;
+  refinalizePortfolioReceipt(inputs.portfolio);
+  inputs.catalog.inputReceipts.portfolio.receiptHash = inputs.portfolio.receiptHash;
+  rehashInsertionReceipt(inputs.catalog);
+
+  const receipt = buildFarmProposalReceipt(inputs);
+  assert.equal(receipt.status, 'blocked');
+  assert.deepEqual(receipt.blockers, ['portfolio-evidence-truncated']);
+  assert.deepEqual(receipt.nextWork, []);
+});
+
+test('farm rejects inconsistent portfolio totals before they can produce false idle', () => {
+  const inputs = farmInputs({ packages: [] });
+  inputs.portfolio.summary.total = 1;
+  refinalizePortfolioReceipt(inputs.portfolio);
+
+  assert.equal(inputs.catalog.activity.nextWork.status, 'idle');
+  assert.throws(
+    () => buildFarmProposalReceipt(inputs),
+    (error) => error.code === 'farm-portfolio-invariants-invalid'
+  );
+});
+
+test('farm enforces every portfolio emission and truncation invariant', () => {
+  const mutations = [
+    (receipt) => {
+      receipt.summary.total = -1;
+    },
+    (receipt) => {
+      receipt.bounds.packagesEmitted = -1;
+    },
+    (receipt) => {
+      receipt.bounds.packagesOmitted = -1;
+    },
+    (receipt) => {
+      receipt.packages.pop();
+    },
+    (receipt) => {
+      receipt.summary.total += 1;
+    },
+    (receipt) => {
+      receipt.summary.total += 1;
+      receipt.bounds.packagesOmitted = 1;
+      receipt.bounds.truncated = false;
+    },
+  ];
+
+  for (const mutate of mutations) {
+    const inputs = farmInputs();
+    mutate(inputs.portfolio);
+    refinalizePortfolioReceipt(inputs.portfolio);
+    assert.throws(
+      () => buildFarmProposalReceipt(inputs),
+      (error) => error.code === 'farm-portfolio-invariants-invalid'
+    );
+  }
+});
+
+test('farm rejects malformed emitted package identities before selection', () => {
+  const base = {
+    ecosystem: 'npm',
+    name: '@example/candidate',
+    expectedVersion: '1.0.0',
+    classification: 'missing',
+    issues: ['import-missing'],
+  };
+  const mutations = [
+    (row) => {
+      row.name = '';
+    },
+    (row) => {
+      row.name = '   ';
+    },
+    (row) => {
+      row.name = ' @example/candidate ';
+    },
+    (row) => {
+      row.ecosystem = '';
+    },
+    (row) => {
+      row.ecosystem = 'cargo';
+    },
+    (row) => {
+      row.classification = 'unknown';
+    },
+  ];
+
+  for (const mutate of mutations) {
+    const row = structuredClone(base);
+    mutate(row);
+    const inputs = farmInputs({ packages: [row] });
+    assert.throws(
+      () => buildFarmProposalReceipt(inputs),
+      (error) => error.code === 'farm-portfolio-row-invalid'
+    );
+  }
+});
+
+test('farm accepts real-shaped npm and pypi package identities', () => {
+  const inputs = farmInputs({
+    packages: [structuredClone(portfolio.packages[1]), structuredClone(portfolio.packages[2])],
+  });
+  const receipt = buildFarmProposalReceipt(inputs);
+
+  assert.equal(receipt.status, 'action-ready');
+  assert.equal(receipt.nextWork[0].ecosystem, 'npm');
+  assert.equal(receipt.nextWork[0].name, '@example/stale');
+});
+
+test('farm next-work ids are collision-resistant, deterministic, readable, and bounded', () => {
+  const proposalFor = (name) => {
+    const receipt = buildFarmProposalReceipt({
+      ...farmInputs({
+        packages: [
+          {
+            ecosystem: 'npm',
+            name,
+            expectedVersion: '1.0.0',
+            classification: 'missing',
+            issues: ['import-missing'],
+          },
+        ],
+      }),
+      now: new Date('2026-08-09T00:00:03.000Z'),
+    });
+    return receipt.nextWork[0];
+  };
+
+  const scoped = proposalFor('@a/b');
+  const dashed = proposalFor('-a-b');
+  const repeated = proposalFor('@a/b');
+  assert.notEqual(scoped.id, dashed.id);
+  assert.equal(scoped.id, repeated.id);
+  assert.match(scoped.id, /^consume-npm-a-b-[0-9a-f]{64}$/u);
+  assert.ok(
+    scoped.id.endsWith(createHash('sha256').update('npm\0@a/b', 'utf8').digest('hex'))
+  );
+
+  const long = proposalFor(`@scope/${'a'.repeat(500)}`);
+  for (const proposal of [scoped, dashed, long]) {
+    assert.match(proposal.id, /^[a-z0-9][a-z0-9._-]*$/u);
+    assert.ok(proposal.id.length <= 128);
+  }
+});
+
+test('farm cannot clear a missing input-receipt binding by changing generatedAt', () => {
+  const inputs = farmInputs();
+  delete inputs.catalog.inputReceipts;
+  rehashInsertionReceipt(inputs.catalog);
+
+  const before = buildFarmProposalReceipt(inputs);
+  assert.equal(before.status, 'blocked');
+  assert.deepEqual(before.blockers, ['catalog-input-receipts-unbound']);
+
+  inputs.catalog.generatedAt = '2030-08-09T00:00:00.000Z';
+  const after = buildFarmProposalReceipt(inputs);
+  assert.equal(after.status, 'blocked');
+  assert.deepEqual(after.blockers, ['catalog-input-receipts-unbound']);
+  assert.deepEqual(after.nextWork, []);
+});
+
+test('farm blocks mismatched or out-of-order integrity-bound catalog inputs', () => {
+  const mismatch = farmInputs();
+  mismatch.catalog.inputReceipts.portfolio.receiptHash = `sha256:${'f'.repeat(64)}`;
+  rehashInsertionReceipt(mismatch.catalog);
+  const mismatchReceipt = buildFarmProposalReceipt(mismatch);
+  assert.equal(mismatchReceipt.status, 'blocked');
+  assert.deepEqual(mismatchReceipt.blockers, ['catalog-input-receipts-mismatch']);
+
+  const outOfOrder = farmInputs();
+  outOfOrder.catalog.inputReceipts.observedAt = '2026-08-08T23:59:59.000Z';
+  rehashInsertionReceipt(outOfOrder.catalog);
+  const outOfOrderReceipt = buildFarmProposalReceipt(outOfOrder);
+  assert.equal(outOfOrderReceipt.status, 'blocked');
+  assert.deepEqual(outOfOrderReceipt.blockers, ['catalog-evidence-sequence-invalid']);
+});
+
+test('farm rejects malformed inputs and exact-schema mismatches', () => {
+  const inputs = farmInputs();
+  assert.throws(
+    () => buildFarmProposalReceipt({ ...inputs, catalog: null }),
+    (error) => error.code === 'farm-input-invalid'
+  );
+
+  const wrongSchema = structuredClone(inputs.catalog);
+  wrongSchema.schema = 'holoscript.holosystem.consumption-catalog.v0';
+  assert.throws(
+    () => buildFarmProposalReceipt({ ...inputs, catalog: wrongSchema }),
+    (error) => error.code === 'farm-input-schema-mismatch'
+  );
+
+  assert.throws(
+    () =>
+      buildFarmProposalReceipt({
+        ...inputs,
+        sourceReceipts: { catalog: '', portfolio: '', lineage: '' },
+      }),
+    (error) => error.code === 'farm-source-receipt-ref-invalid'
+  );
+});
+
+test('farm rejects a self-consistent but forged catalog decision', () => {
+  const inputs = farmInputs();
+  const forged = structuredClone(inputs.catalog);
+  forged.activity.nextWork.selected = structuredClone(forged.activity.nextWork.candidates[1]);
+  rehashInsertionReceipt(forged.activity.nextWork);
+  rehashInsertionReceipt(forged);
+
+  assert.throws(
+    () => buildFarmProposalReceipt({ ...inputs, catalog: forged }),
+    (error) => error.code === 'farm-catalog-decision-inconsistent'
+  );
+});
+
+test('farm receipt hash is deterministic and detects proposal or input-reference tampering', () => {
+  const inputs = farmInputs();
+  const left = buildFarmProposalReceipt({
+    ...inputs,
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+  const right = buildFarmProposalReceipt({
+    ...inputs,
+    now: new Date('2026-08-09T00:01:03.000Z'),
+  });
+  assert.notEqual(left.generatedAt, right.generatedAt);
+  assert.equal(left.receiptHash, right.receiptHash);
+
+  const tampered = structuredClone(left);
+  tampered.accepted = true;
+  assert.notEqual(
+    left.receiptHash,
+    sha256(stableValue({ ...tampered, generatedAt: null, receiptHash: undefined }))
+  );
+
+  const differentSource = buildFarmProposalReceipt({
+    ...inputs,
+    sourceReceipts: { ...inputs.sourceReceipts, catalog: 'receipts/other-catalog.json' },
+    now: new Date('2026-08-09T00:00:03.000Z'),
+  });
+  assert.notEqual(left.receiptHash, differentSource.receiptHash);
+});
+
+test('farm rejects the legacy portfolio hash that normalized serializedBytes to zero', () => {
+  const inputs = farmInputs();
+  const legacyUnsigned = {
+    ...inputs.portfolio,
+    generatedAt: null,
+    bounds: { ...inputs.portfolio.bounds, serializedBytes: 0 },
+  };
+  delete legacyUnsigned.receiptHash;
+  inputs.portfolio.receiptHash = sha256(stableValue(legacyUnsigned));
+
+  assert.throws(
+    () => buildFarmProposalReceipt(inputs),
+    (error) => error.code === 'farm-input-receipt-hash-invalid'
+  );
 });
 
 test('lineage receipt maps registry artifacts without local machine paths', () => {
