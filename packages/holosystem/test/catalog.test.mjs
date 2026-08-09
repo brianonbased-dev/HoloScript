@@ -200,6 +200,7 @@ function reconciliationFixture() {
         repository: null,
         directory: null,
         revision: null,
+        owner: null,
         evidenceKind: 'unmapped',
         evidenceUrl: null,
         manifestPath: null,
@@ -226,6 +227,7 @@ function reconciliationFixture() {
         repository: null,
         directory: null,
         revision: null,
+        owner: null,
         evidenceKind: 'unmapped',
         evidenceUrl: null,
         manifestPath: null,
@@ -255,6 +257,7 @@ function reconciliationFixture() {
         repository: null,
         directory: null,
         revision: null,
+        owner: null,
         evidenceKind: 'unmapped',
         evidenceUrl: null,
         manifestPath: null,
@@ -286,6 +289,108 @@ function reconciliationFixture() {
     artifacts,
     receiptHash: null,
   });
+}
+
+function typedEvidenceReconciliationFixture() {
+  const receipt = reconciliationFixture();
+  const repository = 'https://github.com/example/public-source';
+  const revision = 'c'.repeat(40);
+  const sourceCommit = 'd'.repeat(40);
+  const candidateCommit = 'e'.repeat(40);
+  const aliasRegistry = registryEvidence(
+    'npm',
+    npmIntegrity(0x44),
+    'create-example-app',
+    '1.5.0'
+  );
+  const releaseRegistry = registryEvidence(
+    'npm',
+    npmIntegrity(0x45),
+    '@example/systems-linux-x64',
+    '0.2.0'
+  );
+  receipt.artifacts.push(
+    {
+      ecosystem: 'npm',
+      name: 'create-example-app',
+      version: '1.5.0',
+      registry: aliasRegistry,
+      source: {
+        repository: null,
+        directory: null,
+        revision: null,
+        owner: null,
+        evidenceKind: 'unmapped',
+        evidenceUrl: null,
+        manifestPath: null,
+        manifestSha256: null,
+        canonical: false,
+        disposition: {
+          status: 'public-package-alias',
+          repository,
+          revision,
+          evidenceUrl: `${repository}/blob/${revision}/docs/package-policy.md`,
+          evidencePath: 'docs/package-policy.md',
+          evidenceSha256: `sha256:${'3'.repeat(64)}`,
+          reason: 'Public policy binds the alias to the retained implementation without parity.',
+          aliasOf: 'create-example',
+          sourceDirectory: 'packages/create-example',
+          implementationManifestPath: 'packages/create-example/package.json',
+          implementationManifestSha256: `sha256:${'4'.repeat(64)}`,
+          implementationName: 'create-example',
+          implementationVersion: '1.4.0',
+          parityClaimed: false,
+        },
+      },
+    },
+    {
+      ecosystem: 'npm',
+      name: '@example/systems-linux-x64',
+      version: '0.2.0',
+      registry: releaseRegistry,
+      source: {
+        repository: null,
+        directory: null,
+        revision: null,
+        owner: null,
+        evidenceKind: 'unmapped',
+        evidenceUrl: null,
+        manifestPath: null,
+        manifestSha256: null,
+        canonical: false,
+        disposition: {
+          status: 'public-release-manifest-binding',
+          repository,
+          revision,
+          evidenceUrl: `${repository}/blob/${revision}/scripts/release-manifest.json`,
+          manifestPath: 'scripts/release-manifest.json',
+          manifestSha256: `sha256:${'5'.repeat(64)}`,
+          publicReadbackReceiptPath: 'artifacts/public-readback.json',
+          publicReadbackReceiptSha256: `sha256:${'6'.repeat(64)}`,
+          publicReadbackEvidenceUrl:
+            `${repository}/blob/${revision}/artifacts/public-readback.json`,
+          sourceCommit,
+          candidateCommit,
+          reason: 'Public release evidence binds this package without a source-manifest claim.',
+          package: {
+            name: '@example/systems-linux-x64',
+            version: '0.2.0',
+            integrity: releaseRegistry.integrity,
+            tarballUrl: releaseRegistry.tarball,
+            shasum: '7'.repeat(40),
+          },
+        },
+      },
+    }
+  );
+  Object.assign(receipt.summary, {
+    total: 6,
+    sourceUnmapped: 5,
+    sourceLineageResolved: 5,
+    publicPackageAlias: 1,
+    publicReleaseManifestBinding: 1,
+  });
+  return rehashReconciliationReceipt(receipt);
 }
 
 function farmInputs({ packages = portfolio.packages, activeProofBatches = [] } = {}) {
@@ -936,6 +1041,275 @@ test('lineage receipt normalizes a sealed package-source reconciliation receipt'
   assert.doesNotMatch(JSON.stringify(receipt), /[A-Z]:\\/u);
 });
 
+test('lineage receipt preserves typed alias and release-manifest evidence without canonicalizing it', () => {
+  const reconciliation = typedEvidenceReconciliationFixture();
+  const reconciliationPortfolio = {
+    packages: reconciliation.artifacts.map((artifact) => ({
+      ecosystem: artifact.ecosystem,
+      name: artifact.name,
+      expectedVersion: artifact.version,
+    })),
+  };
+  const receipt = buildSourceLineageReceipt({
+    portfolio: reconciliationPortfolio,
+    metadata: reconciliation,
+    now: new Date('2026-08-09T00:02:00.000Z'),
+  });
+
+  assert.deepEqual(receipt.summary, {
+    total: 6,
+    mapped: 5,
+    gaps: 1,
+    byKind: {
+      repository: 1,
+      'revision-cohort': 0,
+      migration: 1,
+      unknown: 1,
+      retirement: 1,
+      alias: 1,
+      'release-manifest': 1,
+    },
+  });
+  const alias = receipt.artifacts[4];
+  assert.equal(alias.lineageKind, 'alias');
+  assert.equal(alias.mapped, true);
+  assert.equal(alias.canonical, false);
+  assert.equal(alias.sourceRepository, null);
+  assert.equal(alias.sourceDirectory, null);
+  assert.equal(alias.lineageEvidence.disposition.aliasOf, 'create-example');
+  assert.equal(alias.lineageEvidence.disposition.parityClaimed, false);
+  assert.equal(
+    alias.lineageEvidence.disposition.implementationManifestPath,
+    'packages/create-example/package.json'
+  );
+  const release = receipt.artifacts[5];
+  assert.equal(release.lineageKind, 'release-manifest');
+  assert.equal(release.mapped, true);
+  assert.equal(release.canonical, false);
+  assert.equal(release.sourceRepository, null);
+  assert.equal(release.sourceDirectory, null);
+  assert.equal(release.lineageEvidence.disposition.package.name, release.name);
+  assert.equal(
+    release.lineageEvidence.disposition.package.integrity,
+    release.integrity
+  );
+  assert.equal(receipt.boundaries.typedAliasesDoNotProveParity, true);
+  assert.equal(receipt.boundaries.releaseManifestBindingsAreNoncanonical, true);
+  assert.doesNotMatch(JSON.stringify(receipt), /[A-Z]:\\/u);
+});
+
+test('lineage receipt treats an exact dot source directory as repository root', () => {
+  const reconciliation = reconciliationFixture();
+  const canonical = reconciliation.artifacts[0].source;
+  canonical.directory = '.';
+  canonical.manifestPath = 'package.json';
+  canonical.evidenceUrl =
+    `${canonical.repository}/blob/${canonical.revision}/${canonical.manifestPath}`;
+  canonical.disposition.evidenceUrl = canonical.evidenceUrl;
+  rehashReconciliationReceipt(reconciliation);
+  const portfolio = {
+    packages: reconciliation.artifacts.map((artifact) => ({
+      ecosystem: artifact.ecosystem,
+      name: artifact.name,
+      expectedVersion: artifact.version,
+    })),
+  };
+  const receipt = buildSourceLineageReceipt({ portfolio, metadata: reconciliation });
+  assert.equal(receipt.artifacts[0].sourceDirectory, null);
+  assert.equal(receipt.artifacts[0].lineageKind, 'repository');
+  assert.equal(receipt.artifacts[0].canonical, true);
+});
+
+test('lineage reconciliation fails closed on typed alias, release, and blob-evidence tamper', () => {
+  const reconciliation = typedEvidenceReconciliationFixture();
+  const fullPortfolio = {
+    packages: reconciliation.artifacts.map((artifact) => ({
+      ecosystem: artifact.ecosystem,
+      name: artifact.name,
+      expectedVersion: artifact.version,
+    })),
+  };
+  const assertDispositionInvalid = (mutate) => {
+    const candidate = structuredClone(reconciliation);
+    mutate(candidate);
+    rehashReconciliationReceipt(candidate);
+    assert.throws(
+      () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: candidate }),
+      (error) => error.code === 'lineage-reconciliation-disposition-invalid'
+    );
+  };
+
+  assertDispositionInvalid((candidate) => {
+    candidate.artifacts[4].source.disposition.parityClaimed = true;
+  });
+  assertDispositionInvalid((candidate) => {
+    candidate.artifacts[4].source.disposition.implementationName = 'unrelated-package';
+  });
+  assertDispositionInvalid((candidate) => {
+    candidate.artifacts[4].source.disposition.aliasOf = candidate.artifacts[4].name;
+    candidate.artifacts[4].source.disposition.implementationName = candidate.artifacts[4].name;
+  });
+  assertDispositionInvalid((candidate) => {
+    candidate.artifacts[4].source.disposition.implementationManifestSha256 = 'sha256:bad';
+  });
+  assertDispositionInvalid((candidate) => {
+    const disposition = candidate.artifacts[4].source.disposition;
+    disposition.evidencePath = disposition.implementationManifestPath;
+    disposition.evidenceSha256 = disposition.implementationManifestSha256;
+    disposition.evidenceUrl =
+      `${disposition.repository}/blob/${disposition.revision}/${disposition.evidencePath}`;
+  });
+  assertDispositionInvalid((candidate) => {
+    candidate.artifacts[5].source.disposition.package.integrity = npmIntegrity(0x46);
+  });
+  assertDispositionInvalid((candidate) => {
+    candidate.artifacts[5].source.disposition.publicReadbackEvidenceUrl += '#fragment';
+  });
+  assertDispositionInvalid((candidate) => {
+    candidate.artifacts[5].source.disposition.manifestSha256 = 'sha256:bad';
+  });
+  assertDispositionInvalid((candidate) => {
+    const disposition = candidate.artifacts[5].source.disposition;
+    disposition.publicReadbackReceiptPath = disposition.manifestPath;
+    disposition.publicReadbackReceiptSha256 = disposition.manifestSha256;
+    disposition.publicReadbackEvidenceUrl = disposition.evidenceUrl;
+  });
+  assertDispositionInvalid((candidate) => {
+    const disposition = candidate.artifacts[5].source.disposition;
+    disposition.candidateCommit = disposition.sourceCommit;
+  });
+
+  for (const artifactIndex of [4, 5]) {
+    const crossEcosystem = structuredClone(reconciliation);
+    const artifact = crossEcosystem.artifacts[artifactIndex];
+    artifact.ecosystem = 'pypi';
+    if (artifactIndex === 5) artifact.name = 'example-systems-linux-x64';
+    artifact.registry = registryEvidence(
+      'pypi',
+      `sha256:${'9'.repeat(64)}`,
+      artifact.name,
+      artifact.version
+    );
+    if (artifactIndex === 5) {
+      artifact.source.disposition.package.name = artifact.name;
+      artifact.source.disposition.package.integrity = artifact.registry.integrity;
+      artifact.source.disposition.package.tarballUrl = artifact.registry.tarball;
+    }
+    rehashReconciliationReceipt(crossEcosystem);
+    const crossPortfolio = {
+      packages: crossEcosystem.artifacts.map((item) => ({
+        ecosystem: item.ecosystem,
+        name: item.name,
+        expectedVersion: item.version,
+      })),
+    };
+    assert.throws(
+      () => buildSourceLineageReceipt({ portfolio: crossPortfolio, metadata: crossEcosystem }),
+      (error) => error.code === 'lineage-reconciliation-disposition-invalid'
+    );
+  }
+
+  const assertReleaseGroupConflict = (mutate) => {
+    const candidate = structuredClone(reconciliation);
+    const secondRelease = structuredClone(candidate.artifacts[5]);
+    secondRelease.name = '@example/systems-win32-x64';
+    secondRelease.registry = registryEvidence(
+      'npm',
+      npmIntegrity(0x47),
+      secondRelease.name,
+      secondRelease.version
+    );
+    secondRelease.source.disposition.package.name = secondRelease.name;
+    secondRelease.source.disposition.package.integrity = secondRelease.registry.integrity;
+    secondRelease.source.disposition.package.tarballUrl = secondRelease.registry.tarball;
+    secondRelease.source.disposition.package.shasum = 'a'.repeat(40);
+    mutate(secondRelease.source.disposition);
+    candidate.artifacts.push(secondRelease);
+    Object.assign(candidate.summary, {
+      total: 7,
+      sourceUnmapped: 6,
+      sourceLineageResolved: 6,
+      publicReleaseManifestBinding: 2,
+    });
+    rehashReconciliationReceipt(candidate);
+    const portfolio = {
+      packages: candidate.artifacts.map((item) => ({
+        ecosystem: item.ecosystem,
+        name: item.name,
+        expectedVersion: item.version,
+      })),
+    };
+    assert.throws(
+      () => buildSourceLineageReceipt({ portfolio, metadata: candidate }),
+      (error) => error.code === 'lineage-reconciliation-evidence-conflict'
+    );
+  };
+  assertReleaseGroupConflict((disposition) => {
+    disposition.manifestSha256 = `sha256:${'f'.repeat(64)}`;
+  });
+  assertReleaseGroupConflict((disposition) => {
+    disposition.sourceCommit = 'f'.repeat(40);
+  });
+
+  const contradictoryAlias = structuredClone(reconciliation);
+  const secondAlias = structuredClone(contradictoryAlias.artifacts[4]);
+  secondAlias.name = 'create-another-app';
+  secondAlias.registry = registryEvidence(
+    'npm',
+    npmIntegrity(0x48),
+    secondAlias.name,
+    secondAlias.version
+  );
+  secondAlias.source.disposition.aliasOf = 'create-another';
+  secondAlias.source.disposition.implementationName = 'create-another';
+  contradictoryAlias.artifacts.push(secondAlias);
+  Object.assign(contradictoryAlias.summary, {
+    total: 7,
+    sourceUnmapped: 6,
+    sourceLineageResolved: 6,
+    publicPackageAlias: 2,
+  });
+  rehashReconciliationReceipt(contradictoryAlias);
+  const contradictoryAliasPortfolio = {
+    packages: contradictoryAlias.artifacts.map((item) => ({
+      ecosystem: item.ecosystem,
+      name: item.name,
+      expectedVersion: item.version,
+    })),
+  };
+  assert.throws(
+    () =>
+      buildSourceLineageReceipt({
+        portfolio: contradictoryAliasPortfolio,
+        metadata: contradictoryAlias,
+      }),
+    (error) => error.code === 'lineage-reconciliation-evidence-conflict'
+  );
+
+  const historicalBlob = structuredClone(reconciliation);
+  const retirement = historicalBlob.artifacts[2].source.disposition;
+  retirement.evidencePath = 'docs/package-policy.md';
+  retirement.evidenceSha256 = `sha256:${'8'.repeat(64)}`;
+  retirement.evidenceUrl =
+    `${retirement.repository}/blob/${retirement.revision}/${retirement.evidencePath}`;
+  rehashReconciliationReceipt(historicalBlob);
+  const projected = buildSourceLineageReceipt({
+    portfolio: fullPortfolio,
+    metadata: historicalBlob,
+  });
+  assert.equal(
+    projected.artifacts[2].lineageEvidence.disposition.evidencePath,
+    'docs/package-policy.md'
+  );
+  const brokenHistoricalBlob = structuredClone(historicalBlob);
+  brokenHistoricalBlob.artifacts[2].source.disposition.evidenceSha256 = 'sha256:bad';
+  rehashReconciliationReceipt(brokenHistoricalBlob);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: brokenHistoricalBlob }),
+    (error) => error.code === 'lineage-reconciliation-disposition-invalid'
+  );
+});
+
 test('lineage reconciliation fails closed on tamper, duplicate, forged source, and partial portfolio', () => {
   const reconciliation = reconciliationFixture();
   const fullPortfolio = {
@@ -1015,6 +1389,23 @@ test('lineage reconciliation fails closed on tamper, duplicate, forged source, a
   assert.throws(
     () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: malformedIntegrity }),
     (error) => error.code === 'lineage-reconciliation-artifact-invalid'
+  );
+
+  const registrySelfSuccessor = structuredClone(reconciliation);
+  registrySelfSuccessor.artifacts[1].registry.successor = registrySelfSuccessor.artifacts[1].name;
+  rehashReconciliationReceipt(registrySelfSuccessor);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: registrySelfSuccessor }),
+    (error) => error.code === 'lineage-reconciliation-successor-invalid'
+  );
+
+  const historicalSelfSuccessor = structuredClone(reconciliation);
+  historicalSelfSuccessor.artifacts[2].source.disposition.successor =
+    historicalSelfSuccessor.artifacts[2].name;
+  rehashReconciliationReceipt(historicalSelfSuccessor);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: historicalSelfSuccessor }),
+    (error) => error.code === 'lineage-reconciliation-successor-invalid'
   );
 
   const malformedVersion = structuredClone(reconciliation);

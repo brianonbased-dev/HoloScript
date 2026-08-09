@@ -13,6 +13,8 @@ const RECONCILIATION_DISPOSITIONS = new Set([
   'canonical-public-source',
   'deprecated-registry-artifact',
   'public-historical-deprecation',
+  'public-package-alias',
+  'public-release-manifest-binding',
   'public-manifest-identity-mismatch',
   'source-not-publicly-verifiable',
 ]);
@@ -20,6 +22,8 @@ const RESOLVED_RECONCILIATION_DISPOSITIONS = new Set([
   'canonical-public-source',
   'deprecated-registry-artifact',
   'public-historical-deprecation',
+  'public-package-alias',
+  'public-release-manifest-binding',
 ]);
 const PYTHON_PUBLIC_VERSION_PATTERN =
   /^(?:([1-9][0-9]*)!)?((?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*))*)(?:(a|b|rc)([0-9]+))?(?:\.post([0-9]+))?(?:\.dev([0-9]+))?(?:\+([a-z0-9]+(?:[.-][a-z0-9]+)*))?$/u;
@@ -396,6 +400,7 @@ function exactReconciliationIdentity(ecosystem, name, version) {
 
 function exactPublicRepositoryPath(value, { nullable = false } = {}) {
   if (value === null && nullable) return null;
+  if (value === '.' && nullable) return null;
   if (
     typeof value !== 'string' ||
     value !== value.trim() ||
@@ -414,6 +419,11 @@ function exactInteger(value, expected, field) {
       `Reconciliation summary ${field} does not recompute from artifacts.`
     );
   }
+}
+
+function exactAdditiveInteger(value, expected, field) {
+  if (value === undefined && expected === 0) return;
+  exactInteger(value, expected, field);
 }
 
 function sameSortedStrings(value, expected) {
@@ -468,6 +478,9 @@ function normalizeReconciliationMetadata(receipt) {
   }
 
   const seen = new Set();
+  const publicEvidenceHashes = new Map();
+  const publicManifestIdentities = new Map();
+  const releaseEvidenceGroups = new Map();
   const projected = [];
   const unresolved = [];
   const counts = {
@@ -475,7 +488,29 @@ function normalizeReconciliationMetadata(receipt) {
     resolved: 0,
     deprecatedRegistry: 0,
     historicalDeprecation: 0,
+    packageAlias: 0,
+    releaseManifestBinding: 0,
     sourceNotPublic: 0,
+  };
+  const bindPublicEvidenceHash = (url, digest, artifactKey) => {
+    const prior = publicEvidenceHashes.get(url);
+    if (prior && prior !== digest) {
+      throw lineageInputError(
+        'lineage-reconciliation-evidence-conflict',
+        `Public evidence ${url} has contradictory hashes, including ${artifactKey}.`
+      );
+    }
+    publicEvidenceHashes.set(url, digest);
+  };
+  const bindPublicManifestIdentity = (url, identity, artifactKey) => {
+    const prior = publicManifestIdentities.get(url);
+    if (prior && prior !== identity) {
+      throw lineageInputError(
+        'lineage-reconciliation-evidence-conflict',
+        `Public manifest ${url} has contradictory identities, including ${artifactKey}.`
+      );
+    }
+    publicManifestIdentities.set(url, identity);
   };
 
   for (const artifact of receipt.artifacts) {
@@ -535,6 +570,12 @@ function normalizeReconciliationMetadata(receipt) {
         `Registry successor for ${key} is malformed.`
       );
     }
+    if (ecosystem === 'npm' && registrySuccessor === name) {
+      throw lineageInputError(
+        'lineage-reconciliation-successor-invalid',
+        `Registry successor for ${key} cannot name the same package.`
+      );
+    }
     let deprecated = safeEvidenceText(registry.deprecated);
     if (registry.deprecated !== null && registry.deprecated !== undefined && !deprecated) {
       throw lineageInputError(
@@ -546,6 +587,7 @@ function normalizeReconciliationMetadata(receipt) {
     let dispositionRevision = null;
     let dispositionEvidenceUrl = exactPublicEvidenceUrl(disposition.evidenceUrl);
     let dispositionReason = safeEvidenceText(disposition.reason);
+    let dispositionDetails = {};
 
     if (status === 'canonical-public-source') {
       sourceRepository = strictGitHubRepository(source.repository);
@@ -580,6 +622,8 @@ function normalizeReconciliationMetadata(receipt) {
         );
       }
       lineageKind = 'repository';
+      bindPublicEvidenceHash(expectedEvidenceUrl, source.manifestSha256, key);
+      bindPublicManifestIdentity(expectedEvidenceUrl, key, key);
       mapped = true;
       canonical = true;
       successor = registrySuccessor;
@@ -591,6 +635,7 @@ function normalizeReconciliationMetadata(receipt) {
         source.repository !== null ||
         source.directory !== null ||
         source.revision !== null ||
+        source.owner !== null ||
         source.evidenceUrl !== null ||
         source.manifestPath !== null ||
         source.manifestSha256 !== null
@@ -614,6 +659,12 @@ function normalizeReconciliationMetadata(receipt) {
         );
       }
       successor = registrySuccessor || dispositionSuccessor;
+      if (ecosystem === 'npm' && successor === name) {
+        throw lineageInputError(
+          'lineage-reconciliation-successor-invalid',
+          `Disposition successor for ${key} cannot name the same package.`
+        );
+      }
       if (status === 'deprecated-registry-artifact') {
         if (
           !deprecated ||
@@ -625,16 +676,26 @@ function normalizeReconciliationMetadata(receipt) {
           );
         }
         counts.deprecatedRegistry += 1;
-      } else {
+        lineageKind = successor ? 'migration' : 'retirement';
+      } else if (status === 'public-historical-deprecation') {
         dispositionRepository = strictGitHubRepository(disposition.repository);
         dispositionRevision = fullGitRevision(disposition.revision);
-        const expectedEvidenceUrl =
-          dispositionRepository && dispositionRevision
-            ? `${dispositionRepository}/commit/${dispositionRevision}`
-            : null;
+        const evidencePath = disposition.evidencePath === null || disposition.evidencePath === undefined
+          ? null
+          : exactPublicRepositoryPath(disposition.evidencePath);
+        const evidenceSha256 = disposition.evidenceSha256 === null || disposition.evidenceSha256 === undefined
+          ? null
+          : disposition.evidenceSha256;
+        const expectedEvidenceUrl = dispositionRepository && dispositionRevision
+          ? evidencePath
+            ? `${dispositionRepository}/blob/${dispositionRevision}/${evidencePath}`
+            : `${dispositionRepository}/commit/${dispositionRevision}`
+          : null;
         if (
           !dispositionRepository ||
           !dispositionRevision ||
+          evidencePath === undefined ||
+          (evidencePath ? !/^sha256:[0-9a-f]{64}$/u.test(evidenceSha256 || '') : evidenceSha256 !== null) ||
           disposition.evidenceUrl !== expectedEvidenceUrl ||
           dispositionEvidenceUrl !== expectedEvidenceUrl ||
           !dispositionReason
@@ -645,9 +706,166 @@ function normalizeReconciliationMetadata(receipt) {
           );
         }
         deprecated = dispositionReason;
+        if (evidencePath) {
+          bindPublicEvidenceHash(expectedEvidenceUrl, evidenceSha256, key);
+        }
         counts.historicalDeprecation += 1;
+        lineageKind = successor ? 'migration' : 'retirement';
+        dispositionDetails = { evidencePath, evidenceSha256 };
+      } else if (status === 'public-package-alias') {
+        dispositionRepository = strictGitHubRepository(disposition.repository);
+        dispositionRevision = fullGitRevision(disposition.revision);
+        const evidencePath = exactPublicRepositoryPath(disposition.evidencePath);
+        const sourceDirectory = exactPublicRepositoryPath(disposition.sourceDirectory);
+        const implementationManifestPath = exactPublicRepositoryPath(disposition.implementationManifestPath);
+        const aliasOf = namedPackageSuccessor(disposition.aliasOf);
+        const implementationName = namedPackageSuccessor(disposition.implementationName);
+        const expectedEvidenceUrl = dispositionRepository && dispositionRevision && evidencePath
+          ? `${dispositionRepository}/blob/${dispositionRevision}/${evidencePath}`
+          : null;
+        if (
+          ecosystem !== 'npm' ||
+          !dispositionRepository ||
+          !dispositionRevision ||
+          !evidencePath ||
+          !/^sha256:[0-9a-f]{64}$/u.test(disposition.evidenceSha256 || '') ||
+          disposition.evidenceUrl !== expectedEvidenceUrl ||
+          dispositionEvidenceUrl !== expectedEvidenceUrl ||
+          !dispositionReason ||
+          !aliasOf ||
+          aliasOf === name ||
+          !sourceDirectory ||
+          implementationManifestPath !== `${sourceDirectory}/package.json` ||
+          implementationManifestPath === evidencePath ||
+          !/^sha256:[0-9a-f]{64}$/u.test(disposition.implementationManifestSha256 || '') ||
+          disposition.implementationManifestSha256 === disposition.evidenceSha256 ||
+          !implementationName ||
+          implementationName !== aliasOf ||
+          !exactPublicVersion(disposition.implementationVersion) ||
+          disposition.parityClaimed !== false ||
+          successor !== null ||
+          deprecated !== null
+        ) {
+          throw lineageInputError(
+            'lineage-reconciliation-disposition-invalid',
+            `Package alias for ${key} lacks exact noncanonical public evidence.`
+          );
+        }
+        counts.packageAlias += 1;
+        bindPublicEvidenceHash(expectedEvidenceUrl, disposition.evidenceSha256, key);
+        bindPublicEvidenceHash(
+          `${dispositionRepository}/blob/${dispositionRevision}/${implementationManifestPath}`,
+          disposition.implementationManifestSha256,
+          key
+        );
+        bindPublicManifestIdentity(
+          `${dispositionRepository}/blob/${dispositionRevision}/${implementationManifestPath}`,
+          `npm:${implementationName}@${disposition.implementationVersion}`,
+          key
+        );
+        lineageKind = 'alias';
+        dispositionDetails = {
+          evidencePath,
+          evidenceSha256: disposition.evidenceSha256,
+          aliasOf,
+          sourceDirectory,
+          implementationManifestPath,
+          implementationManifestSha256: disposition.implementationManifestSha256,
+          implementationName,
+          implementationVersion: disposition.implementationVersion,
+          parityClaimed: false,
+        };
+      } else if (status === 'public-release-manifest-binding') {
+        dispositionRepository = strictGitHubRepository(disposition.repository);
+        dispositionRevision = fullGitRevision(disposition.revision);
+        const manifestPath = exactPublicRepositoryPath(disposition.manifestPath);
+        const readbackPath = exactPublicRepositoryPath(disposition.publicReadbackReceiptPath);
+        const sourceCommit = fullGitRevision(disposition.sourceCommit);
+        const candidateCommit = fullGitRevision(disposition.candidateCommit);
+        const expectedEvidenceUrl = dispositionRepository && dispositionRevision && manifestPath
+          ? `${dispositionRepository}/blob/${dispositionRevision}/${manifestPath}`
+          : null;
+        const expectedReadbackUrl = dispositionRepository && dispositionRevision && readbackPath
+          ? `${dispositionRepository}/blob/${dispositionRevision}/${readbackPath}`
+          : null;
+        const packageBinding = disposition.package;
+        if (
+          ecosystem !== 'npm' ||
+          !dispositionRepository ||
+          !dispositionRevision ||
+          !manifestPath ||
+          !/^sha256:[0-9a-f]{64}$/u.test(disposition.manifestSha256 || '') ||
+          disposition.evidenceUrl !== expectedEvidenceUrl ||
+          dispositionEvidenceUrl !== expectedEvidenceUrl ||
+          !readbackPath ||
+          readbackPath === manifestPath ||
+          !/^sha256:[0-9a-f]{64}$/u.test(disposition.publicReadbackReceiptSha256 || '') ||
+          disposition.publicReadbackReceiptSha256 === disposition.manifestSha256 ||
+          disposition.publicReadbackEvidenceUrl !== expectedReadbackUrl ||
+          exactPublicEvidenceUrl(disposition.publicReadbackEvidenceUrl) !== expectedReadbackUrl ||
+          !sourceCommit ||
+          !candidateCommit ||
+          sourceCommit === candidateCommit ||
+          dispositionRevision === sourceCommit ||
+          dispositionRevision === candidateCommit ||
+          !dispositionReason ||
+          packageBinding?.name !== name ||
+          packageBinding?.version !== version ||
+          packageBinding?.integrity !== registry.integrity ||
+          packageBinding?.tarballUrl !== registry.tarball ||
+          !/^[0-9a-f]{40}$/u.test(packageBinding?.shasum || '') ||
+          successor !== null ||
+          deprecated !== null
+        ) {
+          throw lineageInputError(
+            'lineage-reconciliation-disposition-invalid',
+            `Release-manifest binding for ${key} lacks exact noncanonical public evidence.`
+          );
+        }
+        const releaseGroup = JSON.stringify({
+          repository: dispositionRepository,
+          revision: dispositionRevision,
+          manifestPath,
+          manifestSha256: disposition.manifestSha256,
+          publicReadbackReceiptPath: readbackPath,
+          publicReadbackReceiptSha256: disposition.publicReadbackReceiptSha256,
+          publicReadbackEvidenceUrl: expectedReadbackUrl,
+          sourceCommit,
+          candidateCommit,
+        });
+        const priorReleaseGroup = releaseEvidenceGroups.get(expectedEvidenceUrl);
+        if (priorReleaseGroup && priorReleaseGroup !== releaseGroup) {
+          throw lineageInputError(
+            'lineage-reconciliation-evidence-conflict',
+            `Release evidence ${expectedEvidenceUrl} has contradictory shared fields.`
+          );
+        }
+        releaseEvidenceGroups.set(expectedEvidenceUrl, releaseGroup);
+        counts.releaseManifestBinding += 1;
+        bindPublicEvidenceHash(expectedEvidenceUrl, disposition.manifestSha256, key);
+        bindPublicEvidenceHash(
+          expectedReadbackUrl,
+          disposition.publicReadbackReceiptSha256,
+          key
+        );
+        lineageKind = 'release-manifest';
+        dispositionDetails = {
+          manifestPath,
+          manifestSha256: disposition.manifestSha256,
+          publicReadbackReceiptPath: readbackPath,
+          publicReadbackReceiptSha256: disposition.publicReadbackReceiptSha256,
+          publicReadbackEvidenceUrl: expectedReadbackUrl,
+          sourceCommit,
+          candidateCommit,
+          package: {
+            name,
+            version,
+            integrity: packageBinding.integrity,
+            tarballUrl: packageBinding.tarballUrl,
+            shasum: packageBinding.shasum,
+          },
+        };
       }
-      lineageKind = successor ? 'migration' : 'retirement';
       mapped = true;
     } else {
       if (
@@ -656,6 +874,7 @@ function normalizeReconciliationMetadata(receipt) {
         source.repository !== null ||
         source.directory !== null ||
         source.revision !== null ||
+        source.owner !== null ||
         source.evidenceUrl !== null ||
         source.manifestPath !== null ||
         source.manifestSha256 !== null
@@ -696,6 +915,7 @@ function normalizeReconciliationMetadata(receipt) {
           revision: dispositionRevision,
           reason: dispositionReason,
           successor,
+          ...dispositionDetails,
         },
         evidenceKind: source.evidenceKind,
         manifestSha256: source.manifestSha256 || null,
@@ -722,6 +942,16 @@ function normalizeReconciliationMetadata(receipt) {
     receipt.summary.publicHistoricalDeprecation,
     counts.historicalDeprecation,
     'publicHistoricalDeprecation'
+  );
+  exactAdditiveInteger(
+    receipt.summary.publicPackageAlias,
+    counts.packageAlias,
+    'publicPackageAlias'
+  );
+  exactAdditiveInteger(
+    receipt.summary.publicReleaseManifestBinding,
+    counts.releaseManifestBinding,
+    'publicReleaseManifestBinding'
   );
   exactInteger(
     receipt.summary.sourceNotPubliclyVerifiable,
@@ -1040,6 +1270,12 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
   };
   const retirement = artifacts.filter((artifact) => artifact.lineageKind === 'retirement').length;
   if (retirement > 0) byKind.retirement = retirement;
+  const alias = artifacts.filter((artifact) => artifact.lineageKind === 'alias').length;
+  if (alias > 0) byKind.alias = alias;
+  const releaseManifest = artifacts.filter(
+    (artifact) => artifact.lineageKind === 'release-manifest'
+  ).length;
+  if (releaseManifest > 0) byKind['release-manifest'] = releaseManifest;
   const receipt = {
     schema: HOLOSYSTEM_LINEAGE_SCHEMA,
     generatedAt: now.toISOString(),
@@ -1069,6 +1305,8 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
         ? {
             migrationClaimsRequireNamedSuccessors: true,
             typedRetirementsMayResolveWithoutSuccessor: true,
+            typedAliasesDoNotProveParity: true,
+            releaseManifestBindingsAreNoncanonical: true,
             sourceReceiptRequiresIndependentPinning: true,
             remoteEvidenceInheritedNotRefetched: true,
           }
