@@ -114,6 +114,180 @@ function rehashInsertionReceipt(receipt) {
   return receipt;
 }
 
+function registryEvidence(ecosystem, integrity, name, version) {
+  const pythonFilename = `${name.replaceAll('-', '_')}-${version}-py3-none-any.whl`;
+  const tarball = ecosystem === 'npm'
+    ? `https://registry.npmjs.org/${name}/-/${name.split('/').at(-1)}-${version}.tgz`
+    : `https://files.pythonhosted.org/packages/fixture/${pythonFilename}`;
+  return {
+    status: 200,
+    integrity,
+    tarball,
+    integrityBinding: {
+      status: 'registry-digest-match',
+      integrity,
+      url: tarball,
+      filename: ecosystem === 'pypi' ? pythonFilename : null,
+      packageType: ecosystem === 'pypi' ? 'bdist_wheel' : 'npm-tarball',
+    },
+    evidenceUrl:
+      ecosystem === 'npm'
+        ? `https://www.npmjs.com/package/${name}/v/${version}`
+        : `https://pypi.org/project/${name}/${version}`,
+    deprecated: null,
+    successor: null,
+  };
+}
+
+function npmIntegrity(byte) {
+  return `sha512-${Buffer.alloc(64, byte).toString('base64')}`;
+}
+
+function rehashReconciliationReceipt(receipt) {
+  const unsigned = structuredClone(receipt);
+  delete unsigned.receiptHash;
+  receipt.receiptHash = sha256(unsigned);
+  return receipt;
+}
+
+function reconciliationFixture() {
+  const revision = 'a'.repeat(40);
+  const historicalRevision = 'b'.repeat(40);
+  const repository = 'https://github.com/example/public-source';
+  const canonicalEvidence = `${repository}/blob/${revision}/packages/ready/package.json`;
+  const artifacts = [
+    {
+      ecosystem: 'npm',
+      name: '@example/ready',
+      version: '1.0.0',
+      registry: {
+        ...registryEvidence('npm', npmIntegrity(0x41), '@example/ready', '1.0.0'),
+        deprecated: 'Deprecated: use @example/current.',
+        successor: '@example/current',
+      },
+      source: {
+        repository,
+        directory: 'packages/ready',
+        revision,
+        owner: 'example',
+        evidenceKind: 'public-git-exact-manifest',
+        evidenceUrl: canonicalEvidence,
+        manifestPath: 'packages/ready/package.json',
+        manifestSha256: `sha256:${'1'.repeat(64)}`,
+        canonical: true,
+        disposition: {
+          status: 'canonical-public-source',
+          evidenceUrl: canonicalEvidence,
+          reason: null,
+        },
+      },
+    },
+    {
+      ecosystem: 'npm',
+      name: '@example/migrated',
+      version: '2.0.0',
+      registry: {
+        ...registryEvidence(
+          'npm',
+          npmIntegrity(0x42),
+          '@example/migrated',
+          '2.0.0'
+        ),
+        deprecated: 'Deprecated: use @example/current.',
+        successor: '@example/current',
+      },
+      source: {
+        repository: null,
+        directory: null,
+        revision: null,
+        evidenceKind: 'unmapped',
+        evidenceUrl: null,
+        manifestPath: null,
+        manifestSha256: null,
+        canonical: false,
+        disposition: {
+          status: 'deprecated-registry-artifact',
+          evidenceUrl: 'https://www.npmjs.com/package/@example/migrated/v/2.0.0',
+          reason: 'Deprecated: use @example/current.',
+        },
+      },
+    },
+    {
+      ecosystem: 'npm',
+      name: '@example/retired',
+      version: '3.0.0',
+      registry: registryEvidence(
+        'npm',
+        npmIntegrity(0x43),
+        '@example/retired',
+        '3.0.0'
+      ),
+      source: {
+        repository: null,
+        directory: null,
+        revision: null,
+        evidenceKind: 'unmapped',
+        evidenceUrl: null,
+        manifestPath: null,
+        manifestSha256: null,
+        canonical: false,
+        disposition: {
+          status: 'public-historical-deprecation',
+          repository,
+          revision: historicalRevision,
+          evidenceUrl: `${repository}/commit/${historicalRevision}`,
+          reason: 'Public history retires this package without a named successor.',
+          successor: null,
+        },
+      },
+    },
+    {
+      ecosystem: 'pypi',
+      name: 'example-python',
+      version: '3.0.0',
+      registry: registryEvidence(
+        'pypi',
+        `sha256:${'2'.repeat(64)}`,
+        'example-python',
+        '3.0.0'
+      ),
+      source: {
+        repository: null,
+        directory: null,
+        revision: null,
+        evidenceKind: 'unmapped',
+        evidenceUrl: null,
+        manifestPath: null,
+        manifestSha256: null,
+        canonical: false,
+        disposition: {
+          status: 'source-not-publicly-verifiable',
+          evidenceUrl: 'https://pypi.org/project/example-python/3.0.0',
+          reason: null,
+        },
+      },
+    },
+  ];
+  return rehashReconciliationReceipt({
+    schema: 'holosystem.package-source-lineage-reconciliation.v1',
+    generatedAt: '2026-08-09T00:00:00.000Z',
+    status: 'partial',
+    summary: {
+      total: 4,
+      sourceMapped: 1,
+      sourceUnmapped: 3,
+      sourceLineageResolved: 3,
+      sourceLineageUnresolved: 1,
+      deprecatedRegistryDisposition: 1,
+      publicHistoricalDeprecation: 1,
+      sourceNotPubliclyVerifiable: 1,
+      residuals: { 'canonical-source': ['pypi:example-python@3.0.0'] },
+    },
+    artifacts,
+    receiptHash: null,
+  });
+}
+
 function farmInputs({ packages = portfolio.packages, activeProofBatches = [] } = {}) {
   const portfolioReceipt = finalizePortfolioReceipt({ ...portfolio, packages });
   const lineage = buildSourceLineageReceipt({
@@ -708,6 +882,208 @@ test('lineage receipt maps registry artifacts without local machine paths', () =
   assert.doesNotMatch(JSON.stringify(receipt), /[A-Z]:\\/u);
 });
 
+test('lineage receipt normalizes a sealed package-source reconciliation receipt', () => {
+  const reconciliation = reconciliationFixture();
+  const reconciliationPortfolio = {
+    packages: reconciliation.artifacts.map((artifact) => ({
+      ecosystem: artifact.ecosystem,
+      name: artifact.name,
+      expectedVersion: artifact.version,
+    })),
+  };
+  const receipt = buildSourceLineageReceipt({
+    portfolio: reconciliationPortfolio,
+    metadata: reconciliation,
+    now: new Date('2026-08-09T00:01:00.000Z'),
+  });
+
+  assert.equal(receipt.status, 'partial');
+  assert.deepEqual(receipt.summary, {
+    total: 4,
+    mapped: 3,
+    gaps: 1,
+    byKind: {
+      repository: 1,
+      'revision-cohort': 0,
+      migration: 1,
+      unknown: 1,
+      retirement: 1,
+    },
+  });
+  assert.deepEqual(receipt.sourceReceipt, {
+    schema: reconciliation.schema,
+    generatedAt: reconciliation.generatedAt,
+    receiptHash: reconciliation.receiptHash,
+  });
+  const [canonical, migration, retirement, unresolved] = receipt.artifacts;
+  assert.equal(canonical.canonical, true);
+  assert.equal(canonical.sourceRevision, 'a'.repeat(40));
+  assert.equal(canonical.successor, '@example/current');
+  assert.equal(canonical.lineageEvidence.sourceReceiptHash, reconciliation.receiptHash);
+  assert.equal(migration.lineageKind, 'migration');
+  assert.equal(migration.successor, '@example/current');
+  assert.equal(migration.canonical, false);
+  assert.equal(retirement.lineageKind, 'retirement');
+  assert.equal(retirement.mapped, true);
+  assert.equal(retirement.successor, null);
+  assert.equal(unresolved.lineageKind, 'unknown');
+  assert.equal(unresolved.mapped, false);
+  assert.equal(receipt.boundaries.deprecatedPackagesRequireNamedSuccessors, false);
+  assert.equal(receipt.boundaries.migrationClaimsRequireNamedSuccessors, true);
+  assert.equal(receipt.boundaries.typedRetirementsMayResolveWithoutSuccessor, true);
+  assert.equal(receipt.boundaries.sourceReceiptRequiresIndependentPinning, true);
+  assert.equal(receipt.boundaries.remoteEvidenceInheritedNotRefetched, true);
+  assert.doesNotMatch(JSON.stringify(receipt), /[A-Z]:\\/u);
+});
+
+test('lineage reconciliation fails closed on tamper, duplicate, forged source, and partial portfolio', () => {
+  const reconciliation = reconciliationFixture();
+  const fullPortfolio = {
+    packages: reconciliation.artifacts.map((artifact) => ({
+      ecosystem: artifact.ecosystem,
+      name: artifact.name,
+      expectedVersion: artifact.version,
+    })),
+  };
+
+  const tampered = structuredClone(reconciliation);
+  tampered.summary.sourceLineageResolved = 4;
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: tampered }),
+    (error) => error.code === 'lineage-reconciliation-hash-invalid'
+  );
+
+  const duplicate = structuredClone(reconciliation);
+  duplicate.artifacts.push(structuredClone(duplicate.artifacts[0]));
+  rehashReconciliationReceipt(duplicate);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: duplicate }),
+    (error) => error.code === 'lineage-reconciliation-duplicate-artifact'
+  );
+
+  const forged = structuredClone(reconciliation);
+  forged.artifacts[0].source.repository = 'file:///C:/private/source';
+  rehashReconciliationReceipt(forged);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: forged }),
+    (error) => error.code === 'lineage-reconciliation-canonical-proof-invalid'
+  );
+
+  const fragmented = structuredClone(reconciliation);
+  fragmented.artifacts[0].source.directory = 'packages/ready#fragment';
+  fragmented.artifacts[0].source.manifestPath = 'packages/ready#fragment/package.json';
+  fragmented.artifacts[0].source.evidenceUrl =
+    'https://github.com/example/public-source/blob/' +
+    `${'a'.repeat(40)}/packages/ready#fragment/package.json`;
+  fragmented.artifacts[0].source.disposition.evidenceUrl =
+    fragmented.artifacts[0].source.evidenceUrl;
+  rehashReconciliationReceipt(fragmented);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: fragmented }),
+    (error) => error.code === 'lineage-reconciliation-canonical-proof-invalid'
+  );
+
+  const mismatchedDirectory = structuredClone(reconciliation);
+  mismatchedDirectory.artifacts[0].source.directory = 'packages/unrelated';
+  rehashReconciliationReceipt(mismatchedDirectory);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: mismatchedDirectory }),
+    (error) => error.code === 'lineage-reconciliation-canonical-proof-invalid'
+  );
+
+  const unresolvedLocalPath = structuredClone(reconciliation);
+  unresolvedLocalPath.artifacts[3].source.evidenceKind = 'C:/private/evidence';
+  unresolvedLocalPath.artifacts[3].source.manifestSha256 = 'C:/private/hash';
+  rehashReconciliationReceipt(unresolvedLocalPath);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: unresolvedLocalPath }),
+    (error) => error.code === 'lineage-reconciliation-disposition-invalid'
+  );
+
+  const invalidGeneratedAt = structuredClone(reconciliation);
+  invalidGeneratedAt.generatedAt = 'C:/private/timestamp';
+  rehashReconciliationReceipt(invalidGeneratedAt);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: invalidGeneratedAt }),
+    (error) => error.code === 'lineage-reconciliation-generated-at-invalid'
+  );
+
+  const malformedIntegrity = structuredClone(reconciliation);
+  malformedIntegrity.artifacts[0].registry.integrity = 'sha512-A';
+  malformedIntegrity.artifacts[0].registry.integrityBinding.integrity = 'sha512-A';
+  rehashReconciliationReceipt(malformedIntegrity);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: malformedIntegrity }),
+    (error) => error.code === 'lineage-reconciliation-artifact-invalid'
+  );
+
+  const malformedVersion = structuredClone(reconciliation);
+  malformedVersion.artifacts[0].version = 'definitely-not-semver';
+  rehashReconciliationReceipt(malformedVersion);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: malformedVersion }),
+    (error) => error.code === 'lineage-reconciliation-artifact-invalid'
+  );
+
+  for (const version of ['01.2.3', '1.2.3-.']) {
+    const malformedSemver = structuredClone(reconciliation);
+    malformedSemver.artifacts[0].version = version;
+    rehashReconciliationReceipt(malformedSemver);
+    assert.throws(
+      () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: malformedSemver }),
+      (error) => error.code === 'lineage-reconciliation-artifact-invalid'
+    );
+  }
+
+  const unrelatedWheel = structuredClone(reconciliation);
+  const unrelatedFilename = 'unrelated_distribution-99.0-py3-none-any.whl';
+  const unrelatedUrl = `https://files.pythonhosted.org/packages/fixture/${unrelatedFilename}`;
+  unrelatedWheel.artifacts[3].registry.tarball = unrelatedUrl;
+  unrelatedWheel.artifacts[3].registry.integrityBinding.url = unrelatedUrl;
+  unrelatedWheel.artifacts[3].registry.integrityBinding.filename = unrelatedFilename;
+  rehashReconciliationReceipt(unrelatedWheel);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: unrelatedWheel }),
+    (error) => error.code === 'lineage-reconciliation-artifact-invalid'
+  );
+
+  const equivalentPythonVersion = structuredClone(reconciliation);
+  const duplicatePython = structuredClone(equivalentPythonVersion.artifacts[3]);
+  duplicatePython.version = '3.0.0.0';
+  equivalentPythonVersion.artifacts.push(duplicatePython);
+  rehashReconciliationReceipt(equivalentPythonVersion);
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: equivalentPythonVersion }),
+    (error) => error.code === 'lineage-reconciliation-duplicate-artifact'
+  );
+
+  const malformedPortfolio = structuredClone(fullPortfolio);
+  malformedPortfolio.packages[0].name += ' ';
+  assert.throws(
+    () => buildSourceLineageReceipt({ portfolio: malformedPortfolio, metadata: reconciliation }),
+    (error) => error.code === 'lineage-reconciliation-portfolio-mismatch'
+  );
+
+  const alternateObjectView = structuredClone(reconciliation);
+  alternateObjectView.artifacts[3].source.disposition.status = 'public-historical-deprecation';
+  alternateObjectView.toJSON = () => reconciliation;
+  const snapshotted = buildSourceLineageReceipt({
+    portfolio: fullPortfolio,
+    metadata: alternateObjectView,
+  });
+  assert.equal(snapshotted.summary.mapped, 3);
+  assert.equal(snapshotted.summary.gaps, 1);
+
+  assert.throws(
+    () =>
+      buildSourceLineageReceipt({
+        portfolio: { packages: fullPortfolio.packages.slice(0, -1) },
+        metadata: reconciliation,
+      }),
+    (error) => error.code === 'lineage-reconciliation-portfolio-mismatch'
+  );
+});
+
 test('lineage v1 consumers preserve additive fields and tolerate an unfamiliar kind', () => {
   const receipt = buildSourceLineageReceipt({
     portfolio,
@@ -1162,6 +1538,60 @@ test('registry lineage extracts a named npm deprecation successor', async () => 
   assert.equal(receipt.status, 'complete');
   assert.equal(receipt.artifacts[0].lineageKind, 'migration');
   assert.equal(receipt.artifacts[0].successor, '@example/current');
+});
+
+test('registry lineage does not promote articles in generic migration prose as successors', async () => {
+  for (const deprecated of [
+    'Deprecated: use the @holoscript scoped packages instead.',
+    'Deprecated: use the holoscript CLI instead.',
+    'Deprecated: use our maintained CLI instead.',
+    'Deprecated: use npm install @example/current.',
+    'Deprecated: use version 2.',
+    'Deprecated: use Node 18.',
+  ]) {
+    const receipt = await discoverSourceLineage({
+      portfolio: {
+        packages: [{ ecosystem: 'npm', name: '@example/retired', expectedVersion: '1.0.0' }],
+      },
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            name: '@example/retired',
+            version: '1.0.0',
+            deprecated,
+            dist: { integrity: 'sha512-retired' },
+          };
+        },
+      }),
+    });
+    assert.equal(receipt.artifacts[0].successor, null);
+    assert.equal(receipt.artifacts[0].lineageKind, 'unknown');
+    assert.equal(receipt.artifacts[0].mapped, false);
+  }
+});
+
+test('registry lineage accepts a deliberately quoted bare npm successor', async () => {
+  const receipt = await discoverSourceLineage({
+    portfolio: {
+      packages: [{ ecosystem: 'npm', name: '@example/retired', expectedVersion: '1.0.0' }],
+    },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          name: '@example/retired',
+          version: '1.0.0',
+          deprecated: 'Deprecated: use `example-current`.',
+          dist: { integrity: 'sha512-retired' },
+        };
+      },
+    }),
+  });
+  assert.equal(receipt.artifacts[0].successor, 'example-current');
+  assert.equal(receipt.artifacts[0].lineageKind, 'migration');
 });
 
 test('consumer input rejects local specs and hashes stable public evidence', () => {

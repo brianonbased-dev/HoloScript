@@ -7,6 +7,22 @@ export const HOLOSYSTEM_CONSUMER_INPUT_SCHEMA = 'holoscript.holosystem.consumer-
 export const HOLOSYSTEM_FARM_SCHEMA = 'holosystem.self-improvement-farm.v2';
 
 const HOLOSYSTEM_PORTFOLIO_SCHEMA = 'holosystem.portfolio-consumer-gate.v1';
+const PACKAGE_SOURCE_RECONCILIATION_SCHEMA =
+  'holosystem.package-source-lineage-reconciliation.v1';
+const RECONCILIATION_DISPOSITIONS = new Set([
+  'canonical-public-source',
+  'deprecated-registry-artifact',
+  'public-historical-deprecation',
+  'public-manifest-identity-mismatch',
+  'source-not-publicly-verifiable',
+]);
+const RESOLVED_RECONCILIATION_DISPOSITIONS = new Set([
+  'canonical-public-source',
+  'deprecated-registry-artifact',
+  'public-historical-deprecation',
+]);
+const PYTHON_PUBLIC_VERSION_PATTERN =
+  /^(?:([1-9][0-9]*)!)?((?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*))*)(?:(a|b|rc)([0-9]+))?(?:\.post([0-9]+))?(?:\.dev([0-9]+))?(?:\+([a-z0-9]+(?:[.-][a-z0-9]+)*))?$/u;
 const FARM_PROOF_BATCH_PROJECTION_CAP = 25;
 const FARM_PROOF_BATCH_PACKAGE_PROJECTION_CAP = 100;
 const FARM_NEXT_WORK_ID_MAX_LENGTH = 128;
@@ -52,7 +68,9 @@ function hashStable(value) {
 function exactPublicVersion(value) {
   return (
     typeof value === 'string' &&
-    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value) &&
+    /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u.test(
+      value
+    ) &&
     !/^(?:file|workspace|link|portal|git|https?):/iu.test(value)
   );
 }
@@ -150,6 +168,589 @@ function portableDirectory(value) {
     return null;
   }
   return normalized.replace(/\/$/u, '') || null;
+}
+
+function lineageInputError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function reconciliationArtifactKey(ecosystem, name, version) {
+  const normalizedEcosystem = String(ecosystem || '').trim().toLowerCase();
+  const rawName = String(name || '').trim().toLowerCase();
+  const normalizedName = normalizedEcosystem === 'pypi'
+    ? rawName.replace(/[._-]+/gu, '-')
+    : rawName;
+  const rawVersion = String(version || '').trim();
+  const normalizedVersion = normalizedEcosystem === 'pypi'
+    ? canonicalPythonVersionKey(rawVersion) || rawVersion
+    : rawVersion;
+  return `${normalizedEcosystem}:${normalizedName}@${normalizedVersion}`;
+}
+
+function canonicalPythonVersionKey(version) {
+  const match = typeof version === 'string' ? version.match(PYTHON_PUBLIC_VERSION_PATTERN) : null;
+  if (!match) return null;
+  const release = match[2].split('.');
+  while (release.length > 1 && release.at(-1) === '0') release.pop();
+  const epoch = match[1] ? `${match[1]}!` : '';
+  const prerelease = match[3] ? `${match[3]}${BigInt(match[4])}` : '';
+  const post = match[5] ? `.post${BigInt(match[5])}` : '';
+  const dev = match[6] ? `.dev${BigInt(match[6])}` : '';
+  const local = match[7] ? `+${match[7].replaceAll('-', '.')}` : '';
+  return `${epoch}${release.join('.')}${prerelease}${post}${dev}${local}`;
+}
+
+function strictGitHubRepository(value) {
+  if (typeof value !== 'string' || !value.trim() || value !== value.trim()) return null;
+  try {
+    const url = new URL(value);
+    const segments = url.pathname.split('/').filter(Boolean);
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname.toLowerCase() !== 'github.com' ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      segments.length !== 2 ||
+      segments.some((segment) => !/^[A-Za-z0-9_.-]+$/u.test(segment)) ||
+      segments[1].toLowerCase().endsWith('.git')
+    ) {
+      return null;
+    }
+    return `https://github.com/${segments[0]}/${segments[1]}`;
+  } catch {
+    return null;
+  }
+}
+
+function exactPublicEvidenceUrl(value) {
+  if (typeof value !== 'string' || !value.trim() || value !== value.trim()) return null;
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== 'https:' ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      !['github.com', 'www.npmjs.com', 'pypi.org'].includes(url.hostname.toLowerCase())
+    ) {
+      return null;
+    }
+    return url.href.replace(/\/$/u, '');
+  } catch {
+    return null;
+  }
+}
+
+function exactRegistryIntegrity(ecosystem, value) {
+  if (ecosystem === 'npm') {
+    if (typeof value !== 'string' || !/^sha512-[A-Za-z0-9+/]+={0,2}$/u.test(value)) {
+      return false;
+    }
+    const encoded = value.slice('sha512-'.length);
+    try {
+      const digest = Buffer.from(encoded, 'base64');
+      return digest.length === 64 && digest.toString('base64') === encoded;
+    } catch {
+      return false;
+    }
+  }
+  if (ecosystem === 'pypi') {
+    return typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+  }
+  return false;
+}
+
+function exactIsoTimestamp(value) {
+  if (typeof value !== 'string') return false;
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+}
+
+function exactRegistryArtifactUrl(ecosystem, value) {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    const expectedHost = ecosystem === 'npm' ? 'registry.npmjs.org' : 'files.pythonhosted.org';
+    return (
+      url.protocol === 'https:' &&
+      url.hostname.toLowerCase() === expectedHost &&
+      !url.port &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash
+    );
+  } catch {
+    return false;
+  }
+}
+
+function expectedRegistryEvidenceUrl(ecosystem, name, version) {
+  return ecosystem === 'npm'
+    ? `https://www.npmjs.com/package/${name}/v/${version}`
+    : `https://pypi.org/project/${name}/${version}`;
+}
+
+function exactRegistryBinding(ecosystem, name, version, registry) {
+  const binding = registry?.integrityBinding;
+  if (
+    !binding ||
+    binding.status !== 'registry-digest-match' ||
+    binding.integrity !== registry.integrity ||
+    binding.url !== registry.tarball ||
+    !exactRegistryArtifactUrl(ecosystem, registry.tarball) ||
+    exactPublicEvidenceUrl(registry.evidenceUrl) !==
+      expectedRegistryEvidenceUrl(ecosystem, name, version)
+  ) {
+    return false;
+  }
+  if (ecosystem === 'npm') {
+    const baseName = name.split('/').at(-1);
+    return (
+      registry.tarball === `https://registry.npmjs.org/${name}/-/${baseName}-${version}.tgz` &&
+      binding.filename === null &&
+      binding.packageType === 'npm-tarball'
+    );
+  }
+  try {
+    const filename = decodeURIComponent(new URL(registry.tarball).pathname.split('/').at(-1));
+    if (typeof binding.filename !== 'string' || binding.filename !== filename) return false;
+    const distribution = name.replaceAll('-', '_');
+    if (binding.packageType === 'bdist_wheel') {
+      const wheel = filename.match(/^([A-Za-z0-9_.]+)-([A-Za-z0-9.!+]+)(?:-[A-Za-z0-9_.]+)?-[A-Za-z0-9_.]+-[A-Za-z0-9_.]+-[A-Za-z0-9_.]+\.whl$/u);
+      return Boolean(
+        wheel &&
+          wheel[1].toLowerCase().replace(/[._-]+/gu, '-') === name &&
+          wheel[2].toLowerCase().replaceAll('_', '.') === version.toLowerCase()
+      );
+    }
+    if (binding.packageType === 'sdist') {
+      return [
+        `${distribution}-${version}.tar.gz`,
+        `${distribution}-${version}.zip`,
+        `${name}-${version}.tar.gz`,
+        `${name}-${version}.zip`,
+      ].includes(filename);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function safeEvidenceText(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (
+    !normalized ||
+    normalized.length > 500 ||
+    /[\u0000-\u001f\u007f]/u.test(normalized) ||
+    /(?:^|[\s([{"'])(?:[A-Za-z]:[\\/]|file:\/\/|~[\\/])/iu.test(normalized)
+  ) {
+    return null;
+  }
+  return normalized;
+}
+
+function namedPackageSuccessor(value) {
+  if (typeof value !== 'string' || value !== value.trim()) return null;
+  return /^(?:@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)$/u.test(
+    value
+  )
+    ? value
+    : null;
+}
+
+function exactReconciliationIdentity(ecosystem, name, version) {
+  if (
+    typeof name !== 'string' ||
+    typeof version !== 'string' ||
+    name !== name.trim() ||
+    version !== version.trim() ||
+    name.length > 214 ||
+    version.length > 128 ||
+    /[\u0000-\u0020\u007f]/u.test(name) ||
+    /[\u0000-\u0020\u007f]/u.test(version) ||
+    /[\\/?#%]/u.test(version)
+  ) {
+    return false;
+  }
+  if (ecosystem === 'npm') {
+    return namedPackageSuccessor(name) === name && exactPublicVersion(version);
+  }
+  return (
+    ecosystem === 'pypi' &&
+    /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u.test(name) &&
+    !/[._]/u.test(name) &&
+    PYTHON_PUBLIC_VERSION_PATTERN.test(version)
+  );
+}
+
+function exactPublicRepositoryPath(value, { nullable = false } = {}) {
+  if (value === null && nullable) return null;
+  if (
+    typeof value !== 'string' ||
+    value !== value.trim() ||
+    /[\\?#%\u0000-\u001f\u007f]/u.test(value)
+  ) {
+    return undefined;
+  }
+  const normalized = portableDirectory(value);
+  return normalized === value ? normalized : undefined;
+}
+
+function exactInteger(value, expected, field) {
+  if (!Number.isInteger(value) || value !== expected) {
+    throw lineageInputError(
+      'lineage-reconciliation-summary-invalid',
+      `Reconciliation summary ${field} does not recompute from artifacts.`
+    );
+  }
+}
+
+function sameSortedStrings(value, expected) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) return false;
+  const actual = value.slice().sort();
+  const wanted = expected.slice().sort();
+  return actual.length === wanted.length && actual.every((item, index) => item === wanted[index]);
+}
+
+function normalizeReconciliationMetadata(receipt) {
+  if (Array.isArray(receipt)) {
+    return { items: receipt, reconciliation: null };
+  }
+  if (!receipt || typeof receipt !== 'object') {
+    throw lineageInputError(
+      'lineage-reconciliation-schema-invalid',
+      `Lineage metadata must be an array or ${PACKAGE_SOURCE_RECONCILIATION_SCHEMA}.`
+    );
+  }
+  receipt = clone(receipt);
+  if (!receipt || typeof receipt !== 'object' || receipt.schema !== PACKAGE_SOURCE_RECONCILIATION_SCHEMA) {
+    throw lineageInputError(
+      'lineage-reconciliation-schema-invalid',
+      `Lineage metadata must be an array or ${PACKAGE_SOURCE_RECONCILIATION_SCHEMA}.`
+    );
+  }
+  if (!/^sha256:[0-9a-f]{64}$/u.test(receipt.receiptHash || '')) {
+    throw lineageInputError(
+      'lineage-reconciliation-hash-invalid',
+      'Reconciliation receiptHash is missing or malformed.'
+    );
+  }
+  if (!exactIsoTimestamp(receipt.generatedAt)) {
+    throw lineageInputError(
+      'lineage-reconciliation-generated-at-invalid',
+      'Reconciliation generatedAt must be a canonical ISO timestamp.'
+    );
+  }
+  const unsigned = clone(receipt);
+  delete unsigned.receiptHash;
+  if (hashReceipt(unsigned) !== receipt.receiptHash) {
+    throw lineageInputError(
+      'lineage-reconciliation-hash-invalid',
+      'Reconciliation receiptHash does not match the supplied bytes.'
+    );
+  }
+  if (!Array.isArray(receipt.artifacts) || !receipt.summary || typeof receipt.summary !== 'object') {
+    throw lineageInputError(
+      'lineage-reconciliation-shape-invalid',
+      'Reconciliation artifacts and summary are required.'
+    );
+  }
+
+  const seen = new Set();
+  const projected = [];
+  const unresolved = [];
+  const counts = {
+    canonical: 0,
+    resolved: 0,
+    deprecatedRegistry: 0,
+    historicalDeprecation: 0,
+    sourceNotPublic: 0,
+  };
+
+  for (const artifact of receipt.artifacts) {
+    const ecosystem = artifact?.ecosystem;
+    const name = artifact?.name;
+    const version = artifact?.version;
+    if (
+      !['npm', 'pypi'].includes(ecosystem) ||
+      !exactReconciliationIdentity(ecosystem, name, version)
+    ) {
+      throw lineageInputError(
+        'lineage-reconciliation-artifact-invalid',
+        'Every reconciliation artifact requires a supported ecosystem, name, and version.'
+      );
+    }
+    const key = reconciliationArtifactKey(ecosystem, name, version);
+    const residualKey = `${ecosystem}:${name}@${version}`;
+    if (seen.has(key)) {
+      throw lineageInputError(
+        'lineage-reconciliation-duplicate-artifact',
+        `Reconciliation artifact ${key} is duplicated.`
+      );
+    }
+    seen.add(key);
+
+    const registry = artifact.registry;
+    const source = artifact.source;
+    const disposition = source?.disposition;
+    const status = disposition?.status;
+    if (
+      !registry ||
+      !source ||
+      !RECONCILIATION_DISPOSITIONS.has(status) ||
+      registry.status !== 200 ||
+      !exactRegistryIntegrity(ecosystem, registry.integrity) ||
+      !exactRegistryBinding(ecosystem, name, version, registry)
+    ) {
+      throw lineageInputError(
+        'lineage-reconciliation-artifact-invalid',
+        `Reconciliation artifact ${key} has invalid registry or disposition evidence.`
+      );
+    }
+
+    let sourceRepository = null;
+    let sourceDirectory = null;
+    let sourceRevision = null;
+    let lineageKind = 'unknown';
+    let mapped = false;
+    let canonical = false;
+    let successor = null;
+    const registrySuccessor = registry.successor === null || registry.successor === undefined
+      ? null
+      : namedPackageSuccessor(registry.successor);
+    if (registry.successor !== null && registry.successor !== undefined && !registrySuccessor) {
+      throw lineageInputError(
+        'lineage-reconciliation-successor-invalid',
+        `Registry successor for ${key} is malformed.`
+      );
+    }
+    let deprecated = safeEvidenceText(registry.deprecated);
+    if (registry.deprecated !== null && registry.deprecated !== undefined && !deprecated) {
+      throw lineageInputError(
+        'lineage-reconciliation-disposition-invalid',
+        `Registry deprecation for ${key} is malformed.`
+      );
+    }
+    let dispositionRepository = null;
+    let dispositionRevision = null;
+    let dispositionEvidenceUrl = exactPublicEvidenceUrl(disposition.evidenceUrl);
+    let dispositionReason = safeEvidenceText(disposition.reason);
+
+    if (status === 'canonical-public-source') {
+      sourceRepository = strictGitHubRepository(source.repository);
+      sourceRevision = fullGitRevision(source.revision);
+      sourceDirectory = exactPublicRepositoryPath(source.directory, { nullable: true });
+      const manifestPath = exactPublicRepositoryPath(source.manifestPath);
+      const manifestFilename = ecosystem === 'npm' ? 'package.json' : 'pyproject.toml';
+      const expectedManifestPath = sourceDirectory
+        ? `${sourceDirectory}/${manifestFilename}`
+        : manifestFilename;
+      const expectedEvidenceUrl =
+        sourceRepository && sourceRevision && manifestPath
+          ? `${sourceRepository}/blob/${sourceRevision}/${manifestPath}`
+          : null;
+      if (
+        source.canonical !== true ||
+        !sourceRepository ||
+        !sourceRevision ||
+        sourceDirectory === undefined ||
+        !manifestPath ||
+        manifestPath !== expectedManifestPath ||
+        !/^sha256:[0-9a-f]{64}$/u.test(source.manifestSha256 || '') ||
+        !['public-git-exact-manifest', 'public-git-exact-manifest-verified'].includes(
+          source.evidenceKind
+        ) ||
+        source.evidenceUrl !== expectedEvidenceUrl ||
+        disposition.evidenceUrl !== expectedEvidenceUrl
+      ) {
+        throw lineageInputError(
+          'lineage-reconciliation-canonical-proof-invalid',
+          `Canonical proof for ${key} is incomplete or non-public.`
+        );
+      }
+      lineageKind = 'repository';
+      mapped = true;
+      canonical = true;
+      successor = registrySuccessor;
+      counts.canonical += 1;
+    } else if (RESOLVED_RECONCILIATION_DISPOSITIONS.has(status)) {
+      if (
+        source.canonical !== false ||
+        source.evidenceKind !== 'unmapped' ||
+        source.repository !== null ||
+        source.directory !== null ||
+        source.revision !== null ||
+        source.evidenceUrl !== null ||
+        source.manifestPath !== null ||
+        source.manifestSha256 !== null
+      ) {
+        throw lineageInputError(
+          'lineage-reconciliation-disposition-invalid',
+          `Noncanonical disposition ${status} for ${key} cannot claim canonical source.`
+        );
+      }
+      const dispositionSuccessor = disposition.successor === null || disposition.successor === undefined
+        ? null
+        : namedPackageSuccessor(disposition.successor);
+      if (
+        (registry.successor !== null && registry.successor !== undefined && !registrySuccessor) ||
+        (disposition.successor !== null && disposition.successor !== undefined && !dispositionSuccessor) ||
+        (registrySuccessor && dispositionSuccessor && registrySuccessor !== dispositionSuccessor)
+      ) {
+        throw lineageInputError(
+          'lineage-reconciliation-successor-invalid',
+          `Disposition successor for ${key} is malformed or contradictory.`
+        );
+      }
+      successor = registrySuccessor || dispositionSuccessor;
+      if (status === 'deprecated-registry-artifact') {
+        if (
+          !deprecated ||
+          dispositionEvidenceUrl !== expectedRegistryEvidenceUrl(ecosystem, name, version)
+        ) {
+          throw lineageInputError(
+            'lineage-reconciliation-disposition-invalid',
+            `Registry retirement for ${key} lacks public deprecation evidence.`
+          );
+        }
+        counts.deprecatedRegistry += 1;
+      } else {
+        dispositionRepository = strictGitHubRepository(disposition.repository);
+        dispositionRevision = fullGitRevision(disposition.revision);
+        const expectedEvidenceUrl =
+          dispositionRepository && dispositionRevision
+            ? `${dispositionRepository}/commit/${dispositionRevision}`
+            : null;
+        if (
+          !dispositionRepository ||
+          !dispositionRevision ||
+          disposition.evidenceUrl !== expectedEvidenceUrl ||
+          dispositionEvidenceUrl !== expectedEvidenceUrl ||
+          !dispositionReason
+        ) {
+          throw lineageInputError(
+            'lineage-reconciliation-disposition-invalid',
+            `Historical retirement for ${key} lacks exact public commit evidence.`
+          );
+        }
+        deprecated = dispositionReason;
+        counts.historicalDeprecation += 1;
+      }
+      lineageKind = successor ? 'migration' : 'retirement';
+      mapped = true;
+    } else {
+      if (
+        source.canonical !== false ||
+        source.evidenceKind !== 'unmapped' ||
+        source.repository !== null ||
+        source.directory !== null ||
+        source.revision !== null ||
+        source.evidenceUrl !== null ||
+        source.manifestPath !== null ||
+        source.manifestSha256 !== null
+      ) {
+        throw lineageInputError(
+          'lineage-reconciliation-disposition-invalid',
+          `Unresolved disposition ${status} for ${key} cannot claim canonical source.`
+        );
+      }
+      if (status === 'source-not-publicly-verifiable') counts.sourceNotPublic += 1;
+      unresolved.push(residualKey);
+    }
+
+    if (mapped) counts.resolved += 1;
+    projected.push({
+      ecosystem,
+      name,
+      version,
+      sourceRepository,
+      sourceDirectory,
+      registryStatus: registry.status,
+      registryError: null,
+      integrity: registry.integrity,
+      sourceRevision,
+      deprecated,
+      successor,
+      lineageKind,
+      mapped,
+      canonical,
+      lineageEvidence: {
+        kind: 'package-source-lineage-reconciliation',
+        sourceReceiptSchema: receipt.schema,
+        sourceReceiptHash: receipt.receiptHash,
+        disposition: {
+          status,
+          evidenceUrl: dispositionEvidenceUrl,
+          repository: dispositionRepository,
+          revision: dispositionRevision,
+          reason: dispositionReason,
+          successor,
+        },
+        evidenceKind: source.evidenceKind,
+        manifestSha256: source.manifestSha256 || null,
+      },
+    });
+  }
+
+  const total = projected.length;
+  exactInteger(receipt.summary.total, total, 'total');
+  exactInteger(receipt.summary.sourceMapped, counts.canonical, 'sourceMapped');
+  exactInteger(receipt.summary.sourceUnmapped, total - counts.canonical, 'sourceUnmapped');
+  exactInteger(receipt.summary.sourceLineageResolved, counts.resolved, 'sourceLineageResolved');
+  exactInteger(
+    receipt.summary.sourceLineageUnresolved,
+    total - counts.resolved,
+    'sourceLineageUnresolved'
+  );
+  exactInteger(
+    receipt.summary.deprecatedRegistryDisposition,
+    counts.deprecatedRegistry,
+    'deprecatedRegistryDisposition'
+  );
+  exactInteger(
+    receipt.summary.publicHistoricalDeprecation,
+    counts.historicalDeprecation,
+    'publicHistoricalDeprecation'
+  );
+  exactInteger(
+    receipt.summary.sourceNotPubliclyVerifiable,
+    counts.sourceNotPublic,
+    'sourceNotPubliclyVerifiable'
+  );
+  if (!sameSortedStrings(receipt.summary.residuals?.['canonical-source'], unresolved)) {
+    throw lineageInputError(
+      'lineage-reconciliation-residuals-invalid',
+      'Canonical-source residual membership does not match unresolved artifacts.'
+    );
+  }
+  const expectedStatus = unresolved.length === 0 ? 'complete' : 'partial';
+  if (receipt.status !== expectedStatus) {
+    throw lineageInputError(
+      'lineage-reconciliation-status-invalid',
+      `Reconciliation status must be ${expectedStatus}.`
+    );
+  }
+
+  return {
+    items: projected,
+    reconciliation: {
+      schema: receipt.schema,
+      generatedAt: typeof receipt.generatedAt === 'string' ? receipt.generatedAt : null,
+      receiptHash: receipt.receiptHash,
+      artifactKeys: seen,
+    },
+  };
 }
 
 export function normalizeRepositoryUrl(value) {
@@ -277,11 +878,59 @@ function catalogInputReceiptIdentity(receipt) {
 }
 
 export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new Date() }) {
+  const normalizedMetadata = normalizeReconciliationMetadata(metadata);
+  const reconciliation = normalizedMetadata.reconciliation;
+  const portfolioKeys = new Set();
+  if (reconciliation) {
+    for (const row of list(portfolio?.packages)) {
+      const version = row.expectedVersion || row.observedVersion;
+      if (!exactReconciliationIdentity(row.ecosystem, row.name, version)) {
+        throw lineageInputError(
+          'lineage-reconciliation-portfolio-mismatch',
+          'Portfolio identities and versions must be canonical public package identities.'
+        );
+      }
+      const key = reconciliationArtifactKey(row.ecosystem, row.name, version);
+      if (portfolioKeys.has(key)) {
+        throw lineageInputError(
+          'lineage-reconciliation-duplicate-portfolio-artifact',
+          `Portfolio artifact ${key} is duplicated.`
+        );
+      }
+      portfolioKeys.add(key);
+    }
+    if (
+      portfolioKeys.size !== reconciliation.artifactKeys.size ||
+      [...portfolioKeys].some((key) => !reconciliation.artifactKeys.has(key))
+    ) {
+      throw lineageInputError(
+        'lineage-reconciliation-portfolio-mismatch',
+        'Portfolio identities and versions must exactly match the reconciliation receipt.'
+      );
+    }
+  }
   const metadataByArtifact = new Map(
-    list(metadata).map((item) => [artifactKey(item.ecosystem, item.name), item])
+    normalizedMetadata.items.map((item) => [
+      reconciliation
+        ? reconciliationArtifactKey(item.ecosystem, item.name, item.version)
+        : artifactKey(item.ecosystem, item.name),
+      item,
+    ])
   );
   const directArtifacts = list(portfolio?.packages).map((row) => {
-    const source = metadataByArtifact.get(artifactKey(row.ecosystem, row.name)) || {};
+    const requestedVersion = row.expectedVersion || row.observedVersion || null;
+    const source = metadataByArtifact.get(
+      reconciliation
+        ? reconciliationArtifactKey(row.ecosystem, row.name, requestedVersion)
+        : artifactKey(row.ecosystem, row.name)
+    ) || {};
+    const version = requestedVersion || source.version || null;
+    if (reconciliation && source.version !== version) {
+      throw lineageInputError(
+        'lineage-reconciliation-portfolio-mismatch',
+        `Portfolio version for ${artifactKey(row.ecosystem, row.name)} does not match its proof.`
+      );
+    }
     const sourceRepository = normalizeRepositoryUrl(source.sourceRepository || source.repository);
     const deprecated =
       typeof source.deprecated === 'string' && source.deprecated.trim()
@@ -293,9 +942,9 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
         : null;
     const migrationMapped = Boolean(deprecated && successor);
     return {
-      ecosystem: row.ecosystem,
-      name: row.name,
-      version: row.expectedVersion || row.observedVersion || source.version || null,
+      ecosystem: reconciliation ? source.ecosystem : row.ecosystem,
+      name: reconciliation ? source.name : row.name,
+      version,
       sourceRepository,
       sourceDirectory: portableDirectory(source.sourceDirectory || source.directory),
       registryStatus: Number.isInteger(source.registryStatus) ? source.registryStatus : null,
@@ -304,8 +953,20 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       sourceRevision: typeof source.sourceRevision === 'string' ? source.sourceRevision : null,
       deprecated,
       successor,
-      lineageKind: sourceRepository ? 'repository' : migrationMapped ? 'migration' : 'unknown',
-      mapped: Boolean(sourceRepository) || migrationMapped,
+      lineageKind: reconciliation
+        ? source.lineageKind
+        : sourceRepository
+          ? 'repository'
+          : migrationMapped
+            ? 'migration'
+            : 'unknown',
+      mapped: reconciliation ? source.mapped === true : Boolean(sourceRepository) || migrationMapped,
+      ...(reconciliation
+        ? {
+            canonical: source.canonical === true,
+            lineageEvidence: clone(source.lineageEvidence),
+          }
+        : {}),
     };
   });
 
@@ -320,6 +981,7 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       artifact,
       revision,
       eligible:
+        !reconciliation &&
         artifact.ecosystem === 'npm' &&
         artifact.registryStatus === 200 &&
         Boolean(nonemptyString(artifact.integrity)) &&
@@ -376,6 +1038,8 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
     migration: artifacts.filter((artifact) => artifact.lineageKind === 'migration').length,
     unknown: artifacts.filter((artifact) => artifact.lineageKind === 'unknown').length,
   };
+  const retirement = artifacts.filter((artifact) => artifact.lineageKind === 'retirement').length;
+  if (retirement > 0) byKind.retirement = retirement;
   const receipt = {
     schema: HOLOSYSTEM_LINEAGE_SCHEMA,
     generatedAt: now.toISOString(),
@@ -387,11 +1051,28 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       byKind,
     },
     artifacts,
+    ...(reconciliation
+      ? {
+          sourceReceipt: {
+            schema: reconciliation.schema,
+            generatedAt: reconciliation.generatedAt,
+            receiptHash: reconciliation.receiptHash,
+          },
+        }
+      : {}),
     boundaries: {
       registryMetadataIsEvidence: true,
       localPathsForbidden: true,
       unknownLineageBlocksSourceClaims: true,
-      deprecatedPackagesRequireNamedSuccessors: true,
+      deprecatedPackagesRequireNamedSuccessors: !reconciliation,
+      ...(reconciliation
+        ? {
+            migrationClaimsRequireNamedSuccessors: true,
+            typedRetirementsMayResolveWithoutSuccessor: true,
+            sourceReceiptRequiresIndependentPinning: true,
+            remoteEvidenceInheritedNotRefetched: true,
+          }
+        : {}),
       additiveSchema: true,
       lineageKindOpen: true,
     },
@@ -1020,10 +1701,14 @@ function pypiRepository(info) {
 
 function npmMigrationSuccessor(message) {
   if (typeof message !== 'string' || !message.trim()) return null;
-  const match = message.match(
-    /\buse\s+(@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)\b/iu
-  );
-  return match?.[1] || null;
+  const scoped = message.match(
+    /\buse\s+(@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*)\b/iu
+  )?.[1];
+  if (namedPackageSuccessor(scoped)) return scoped;
+  const quotedBare = message.match(
+    /\buse\s+[`'"]([a-z0-9][a-z0-9._-]*)[`'"]/iu
+  )?.[1];
+  return namedPackageSuccessor(quotedBare);
 }
 
 export async function discoverSourceLineage({
