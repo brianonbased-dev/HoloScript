@@ -349,6 +349,37 @@ export type {
   FleetPlacementReceipt,
 } from './fleet-placement';
 
+// HoloServe dispatch — a loopback-only control-plane bridge. Signature
+// verification, durable CAS, and injected callback behavior remain caller-custodied.
+export {
+  HOLOSERVE_COMPLETION_OUTPUT_SCHEMA,
+  HOLOSERVE_DISPATCH_AUTHORITY_SCHEMA,
+  HOLOSERVE_DISPATCH_EXECUTION_BINDING_SCHEMA,
+  HOLOSERVE_DISPATCH_LEASE_SCHEMA,
+  HOLOSERVE_DISPATCH_LEASE_RELEASE_SCHEMA,
+  HOLOSERVE_PLACEMENT_DISPATCH_RECEIPT_SCHEMA,
+  HoloServePlacementDispatchError,
+  dispatchHoloServePlacement,
+} from './holoserve-placement-dispatch';
+export type {
+  HoloServeDispatchProfile,
+  HoloServeDispatchVerificationContext,
+  HoloServeDispatchAuthority,
+  HoloServeDispatchLease,
+  HoloServeDispatchLeaseRelease,
+  HoloServeDispatchLeaseContext,
+  HoloServeDispatchLeaseReleaseContext,
+  HoloServeCompletionExecutionContext,
+  HoloServePlacementDispatchReceipt,
+  HoloServePlacementDispatchResult,
+  HoloServeDispatchVerifier,
+  HoloServeEndpointResolver,
+  HoloServeLeaseAcquirer,
+  HoloServeLeaseReleaser,
+  HoloServeCompletionExecutor,
+  HoloServePlacementDispatchOptions,
+} from './holoserve-placement-dispatch';
+
 // Quest Generator (Phase 2 Hololand Integration)
 export { QuestGenerator } from './QuestGenerator';
 export type { QuestNarrativeRequest, QuestNarrativeResponse } from './QuestGenerator';

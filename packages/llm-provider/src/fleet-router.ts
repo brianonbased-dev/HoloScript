@@ -314,7 +314,13 @@ export interface FleetRoute extends FleetCandidate {
 /** Minimal `fetch` shape so tests can inject a fake without a real network. */
 export type FetchLike = (
   url: string,
-  init?: { method?: string; headers?: Record<string, string>; signal?: AbortSignal; body?: string }
+  init?: {
+    method?: string;
+    headers?: Record<string, string>;
+    signal?: AbortSignal;
+    body?: string;
+    redirect?: 'error' | 'follow' | 'manual';
+  }
 ) => Promise<{ ok: boolean; json(): Promise<unknown> }>;
 
 export interface FleetRouteOptions {
