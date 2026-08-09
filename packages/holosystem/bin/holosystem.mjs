@@ -4,6 +4,7 @@ import { basename, dirname, resolve } from 'node:path';
 
 import {
   buildFarmProposalReceipt,
+  buildSourceLineageReceipt,
   buildSubstrateClosure,
   createHoloSystemConfig,
   discoverConsumptionSurfaceCatalog,
@@ -32,7 +33,7 @@ Usage:
   holosystem create --stdout
   holosystem inspect [file|-] [--json]
   holosystem catalog --seeds <file> --portfolio <file> --manifest <file> [--lineage <file>] [--active-batches <file>] [--promotions <file>] [--output <file>] [--json]
-  holosystem lineage --portfolio <file> [--concurrency <1-12>] [--output <file>] [--json]
+  holosystem lineage --portfolio <file> [--reconciliation <file> | --concurrency <1-12>] [--output <file>] [--json]
   holosystem farm --catalog <file> --portfolio <file> --lineage <file> [--output <file>] [--force] [--json]
   holosystem substrate-import --lock <package-lock.json> --config <file> [--output <file>] [--force] [--json]
   holosystem substrate-import-debian --status <status> (--packages <Packages> | --sources <json>) --maintainer-scripts <json> --config <file> [--output <file>] [--force] [--json]
@@ -396,6 +397,7 @@ async function runLineage(args) {
   try {
     parsed = parseArguments(args, {
       portfolio: 'value',
+      reconciliation: 'value',
       concurrency: 'value',
       output: 'value',
       force: 'boolean',
@@ -407,13 +409,47 @@ async function runLineage(args) {
   const { options, positionals } = parsed;
   if (positionals.length > 0)
     die('lineage does not accept positional arguments.', { json: options.json });
+  if (options.reconciliation && options.concurrency) {
+    die('--reconciliation cannot be combined with --concurrency.', {
+      json: options.json,
+      code: 2,
+    });
+  }
+  if (options.output) {
+    let inputAlias;
+    try {
+      const outputPath = comparablePath(options.output);
+      inputAlias = [options.portfolio, options.reconciliation]
+        .filter(Boolean)
+        .find(
+          (path) =>
+            comparablePath(path) === outputPath || sameExistingFile(path, options.output)
+        );
+    } catch (error) {
+      die(`Cannot verify lineage output identity: ${error.message}`, {
+        json: options.json,
+        code: 2,
+      });
+    }
+    if (inputAlias) {
+      die(`--output must not alias lineage input ${inputAlias}.`, {
+        json: options.json,
+        code: 2,
+      });
+    }
+  }
   let lineage;
   try {
     const portfolio = readJsonFile(options.portfolio, 'portfolio');
-    lineage = await discoverSourceLineage({
-      portfolio,
-      concurrency: options.concurrency ? Number(options.concurrency) : 6,
-    });
+    lineage = options.reconciliation
+      ? buildSourceLineageReceipt({
+          portfolio,
+          metadata: readJsonFile(options.reconciliation, 'reconciliation'),
+        })
+      : await discoverSourceLineage({
+          portfolio,
+          concurrency: options.concurrency ? Number(options.concurrency) : 6,
+        });
     if (options.output) writeJsonOutput(options.output, lineage, { force: options.force });
   } catch (error) {
     die(`Cannot build lineage: ${error.message}`, { json: options.json, code: 2 });
