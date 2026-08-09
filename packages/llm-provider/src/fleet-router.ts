@@ -26,10 +26,17 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve as resolvePath, sep } from 'node:path';
 import { isBlacklistedModel } from './model-policy';
+import { DEFAULT_FLEET_PLACEMENT_POLICY, planFleetPlacement } from './fleet-placement';
+import type {
+  FleetPlacementManifest,
+  FleetPlacementOptions,
+  FleetPlacementPolicy,
+  FleetPlacementReceipt,
+} from './fleet-placement';
 
 /** Serving backend a fleet node runs. Default (unset) = Ollama. */
 export type FleetBackend = 'ollama' | 'llama.cpp' | 'pytorch-holo';
@@ -39,6 +46,8 @@ const HOLOSERVE_BINDING_SCHEMA = 'holoscript.holoserve-model-artifact-binding.v0
 const HOLOSERVE_BINS_SCHEMA = 'holoscript.holoserve-bins-binding.v0.1.0';
 const SHA256_RE = /^sha256:[0-9a-f]{64}$/u;
 const PORTABLE_MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/u;
+const SAFE_NODE_HANDLE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/u;
+const WINDOWS_RESERVED_NODE_HANDLE_RE = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/iu;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -55,6 +64,25 @@ export interface HoloServeArtifactAdmission {
 
 function isRecord(value: unknown): value is JsonRecord {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isSafeNodeHandle(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    SAFE_NODE_HANDLE_RE.test(value) &&
+    !value.endsWith('.') &&
+    !WINDOWS_RESERVED_NODE_HANDLE_RE.test(value)
+  );
+}
+
+function isContainedPath(root: string, candidate: string): boolean {
+  const pathFromRoot = relative(root, candidate);
+  return (
+    pathFromRoot.length > 0 &&
+    pathFromRoot !== '..' &&
+    !pathFromRoot.startsWith(`..${sep}`) &&
+    !isAbsolute(pathFromRoot)
+  );
 }
 
 function hasExactKeys(value: JsonRecord, expected: readonly string[]): boolean {
@@ -235,7 +263,18 @@ export interface FleetSpec {
   primary?: string;
   /** VRAM-resident bytes above which the primary is "saturated" → spill. Default 6 GB. */
   primaryMaxLoadBytes?: number;
+  /**
+   * Fail-closed placement policy authored by `@model_fleet`. The v1 planner is
+   * metadata-only: exact warm artifacts, one worker island, direct data plane,
+   * and no spend, provisioning, remote code, generic RPC, or cross-worker TP.
+   */
+  placementPolicy: FleetPlacementPolicy;
 }
+
+/** Placement inputs whose safety policy is supplied by the authored fleet spec. */
+export type FleetModelPlacementOptions = Omit<FleetPlacementOptions, 'manifest'> & {
+  manifest: Omit<FleetPlacementManifest, 'policy'>;
+};
 
 /** Live per-node inventory + load. */
 export interface NodeDiscovery {
@@ -279,7 +318,7 @@ export type FetchLike = (
 ) => Promise<{ ok: boolean; json(): Promise<unknown> }>;
 
 export interface FleetRouteOptions {
-  /** Requested model (e.g. the brain's @provider_policy prefer). Blacklisted → ignored. */
+  /** Requested model (e.g. the brain's @provider_policy prefer). Blacklisted → fail closed. */
   model?: string;
   /** Per-fetch timeout in ms (default 6000 — node discovery should be snappy). */
   timeoutMs?: number;
@@ -329,6 +368,42 @@ function listField(block: string, key: string): string[] | undefined {
     .filter((s) => s.length > 0);
 }
 
+function fieldCount(block: string, key: string): number {
+  return [...block.matchAll(new RegExp(`\\b${key}\\s*:`, 'g'))].length;
+}
+
+/**
+ * Parse the safety boundary for content-addressed fleet placement. Missing
+ * fields inherit the safe v1 defaults for older compositions. Any explicitly
+ * declared alternate value is rejected rather than silently weakened.
+ */
+function parsePlacementPolicy(block: string): FleetPlacementPolicy | null {
+  const stringFields = [
+    ['artifact_mode', 'warm_only'],
+    ['data_plane', 'direct_worker'],
+    ['parallel_scope', 'single_worker'],
+    ['spend', 'forbidden'],
+    ['provisioning', 'forbidden'],
+  ] as const;
+  const boolFields = ['remote_code', 'generic_rpc', 'inter_worker_tensor_transport'] as const;
+
+  for (const [sourceKey, required] of stringFields) {
+    const count = fieldCount(block, sourceKey);
+    if (count > 1) return null;
+    if (count === 0) continue;
+    const value = scalarString(block, sourceKey);
+    if (value !== required) return null;
+  }
+  for (const sourceKey of boolFields) {
+    const count = fieldCount(block, sourceKey);
+    if (count > 1) return null;
+    if (count === 0) continue;
+    const value = scalarBool(block, sourceKey);
+    if (value !== false) return null;
+  }
+  return { ...DEFAULT_FLEET_PLACEMENT_POLICY };
+}
+
 /**
  * Parse a `@model_fleet { … }` block out of a `.hsplus` brain. Returns null when
  * the brain declares no fleet (so the caller falls back to single-node routing).
@@ -354,13 +429,23 @@ export function parseFleetSpec(brainSrc: string): FleetSpec | null {
   while ((m = subRe.exec(fleet)) !== null) {
     const sub = matchBraces(fleet, m.index + m[0].length - 1);
     if (!sub) continue;
-    const handle = scalarString(sub.inner, 'node');
-    if (handle) {
+    const nodeCount = fieldCount(sub.inner, 'node');
+    if (nodeCount > 0) {
+      if (nodeCount !== 1) return null;
+      const handle = scalarString(sub.inner, 'node');
+      if (!isSafeNodeHandle(handle)) return null;
+      const backendCount = fieldCount(sub.inner, 'backend');
+      if (backendCount > 1) return null;
       const backendRaw = scalarString(sub.inner, 'backend');
-      const backend: FleetBackend | undefined =
-        backendRaw === 'llama.cpp' || backendRaw === 'ollama' || backendRaw === 'pytorch-holo'
-          ? backendRaw
-          : undefined;
+      if (
+        backendCount === 1 &&
+        backendRaw !== 'llama.cpp' &&
+        backendRaw !== 'ollama' &&
+        backendRaw !== 'pytorch-holo'
+      ) {
+        return null;
+      }
+      const backend = backendRaw as FleetBackend | undefined;
       nodes.push({
         handle,
         models: listField(sub.inner, 'models') ?? [],
@@ -376,6 +461,8 @@ export function parseFleetSpec(brainSrc: string): FleetSpec | null {
   }
 
   const primaryMaxLoadGb = scalarString(topLevel, 'primary_max_load_gb');
+  const placementPolicy = parsePlacementPolicy(topLevel);
+  if (!placementPolicy) return null;
   return {
     nodes,
     strategy: scalarString(topLevel, 'strategy') ?? 'least-loaded',
@@ -386,6 +473,7 @@ export function parseFleetSpec(brainSrc: string): FleetSpec | null {
       primaryMaxLoadGb && Number.isFinite(Number(primaryMaxLoadGb))
         ? Number(primaryMaxLoadGb) * 1_000_000_000
         : undefined,
+    placementPolicy,
   };
 }
 
@@ -396,6 +484,24 @@ export async function loadFleetSpec(brainPath: string): Promise<FleetSpec | null
   } catch {
     return null;
   }
+}
+
+/**
+ * Plan one digest-bound worker placement under the policy authored by
+ * `@model_fleet`. The pure planner performs no lease, provisioning, network,
+ * artifact, spend, RPC, or tensor-transport side effect.
+ */
+export function planFleetModelPlacement(
+  spec: FleetSpec,
+  options: FleetModelPlacementOptions
+): FleetPlacementReceipt {
+  return planFleetPlacement({
+    ...options,
+    manifest: {
+      ...options.manifest,
+      policy: { ...spec.placementPolicy },
+    },
+  });
 }
 
 // ── Endpoint resolution (sovereign-devices registry) ───────────────────────────
@@ -426,8 +532,16 @@ export async function resolveNodeEndpoint(
   handle: string,
   registryDir?: string
 ): Promise<string | null> {
+  if (!isSafeNodeHandle(handle)) return null;
   try {
-    const file = join(registryDirDefault(registryDir), `${handle}.json`);
+    const registryRoot = await realpath(registryDirDefault(registryDir));
+    const requestedFile = resolvePath(registryRoot, `${handle}.json`);
+    if (!isContainedPath(registryRoot, requestedFile)) return null;
+
+    // Resolve the file itself before reading so an in-registry symlink or junction
+    // cannot escape the sovereign-device root after the lexical handle check.
+    const file = await realpath(requestedFile);
+    if (!isContainedPath(registryRoot, file)) return null;
     const dev = JSON.parse(await readFile(file, 'utf8')) as RegistryDevice;
     const cap = (dev.capabilities ?? []).find((c) => c.id === 'local-llm');
     const endpoint = cap?.endpoint;
@@ -442,7 +556,7 @@ export async function resolveNodeEndpoint(
 // ── Live discovery (/api/tags + /api/ps) ────────────────────────────────────────
 
 interface TagsResponse {
-  models?: Array<{ name?: string }>;
+  models: Array<{ name: string }>;
 }
 interface PsResponse {
   models?: Array<{ name?: string; size_vram?: number }>;
@@ -465,6 +579,59 @@ interface SlotsResponse extends Array<{
   is_processing?: boolean;
   model?: string;
 }> {}
+
+function isOllamaTagsResponse(value: unknown): value is TagsResponse {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.models) &&
+    value.models.every(
+      (model) => isRecord(model) && typeof model.name === 'string' && model.name.length > 0
+    )
+  );
+}
+
+function validOptionalString(record: JsonRecord, key: string): boolean {
+  return (
+    !Object.prototype.hasOwnProperty.call(record, key) ||
+    (typeof record[key] === 'string' && (record[key] as string).length > 0)
+  );
+}
+
+function isPropsResponse(value: unknown): value is PropsResponse {
+  if (!isRecord(value)) return false;
+  if (!validOptionalString(value, 'model') || !validOptionalString(value, 'model_path'))
+    return false;
+  if (!validOptionalString(value, 'backend')) return false;
+
+  if (Object.prototype.hasOwnProperty.call(value, 'default_generation_settings')) {
+    const settings = value.default_generation_settings;
+    if (!isRecord(settings)) return false;
+    if (!validOptionalString(settings, 'model') || !validOptionalString(settings, 'model_path'))
+      return false;
+    if (
+      Object.prototype.hasOwnProperty.call(settings, 'n_ctx') &&
+      (!Number.isSafeInteger(settings.n_ctx) || (settings.n_ctx as number) <= 0)
+    )
+      return false;
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(value, 'total_slots') &&
+    (!Number.isSafeInteger(value.total_slots) || (value.total_slots as number) < 0)
+  )
+    return false;
+  if (
+    Object.prototype.hasOwnProperty.call(value, 'models') &&
+    (!Array.isArray(value.models) ||
+      value.models.some((model) => typeof model !== 'string' || model.length === 0))
+  )
+    return false;
+  return true;
+}
+
+function isExactLlamaCppHealth(value: unknown): boolean {
+  return isRecord(value) && hasExactKeys(value, ['status']) && value.status === 'ok';
+}
 
 async function fetchJson<T>(
   fetchImpl: FetchLike,
@@ -496,19 +663,27 @@ export async function discoverNode(
   const timeoutMs = opts.timeoutMs ?? 6000;
   const base = baseURL.replace(/\/$/, '');
 
-  const tags = await fetchJson<TagsResponse>(fetchImpl, `${base}/api/tags`, timeoutMs);
-  if (!tags) return null; // unreachable → not a routable node this turn
+  const tags = await fetchJson<unknown>(fetchImpl, `${base}/api/tags`, timeoutMs);
+  if (!isOllamaTagsResponse(tags)) return null;
 
-  const installed = (tags.models ?? [])
-    .map((x) => x.name)
-    .filter((n): n is string => typeof n === 'string' && !isBlocked(n));
+  const installed = tags.models.map((model) => model.name).filter((name) => !isBlocked(name));
 
   const ps = await fetchJson<PsResponse>(fetchImpl, `${base}/api/ps`, timeoutMs);
+  if (!ps || !Array.isArray(ps.models)) return null;
   const warm = new Set<string>();
   let loadScore = 0;
-  for (const p of ps?.models ?? []) {
-    if (typeof p.name === 'string') warm.add(p.name);
-    if (typeof p.size_vram === 'number') loadScore += p.size_vram;
+  for (const p of ps.models) {
+    if (
+      !isRecord(p) ||
+      typeof p.name !== 'string' ||
+      p.name.length === 0 ||
+      !Number.isSafeInteger(p.size_vram) ||
+      (p.size_vram ?? -1) < 0
+    ) {
+      return null;
+    }
+    warm.add(p.name);
+    loadScore += p.size_vram as number;
   }
 
   return { handle, baseURL: base, installed, warm, loadScore, backend: 'ollama' };
@@ -539,7 +714,14 @@ export async function discoverLlamaCppNode(
   isBlocked: (name: string) => boolean,
   opts: { timeoutMs?: number; fetchImpl?: FetchLike } = {}
 ): Promise<NodeDiscovery | null> {
-  return discoverSingleModelServer(handle, baseURL, isBlocked, 'llama.cpp', () => true, opts);
+  return discoverSingleModelServer(
+    handle,
+    baseURL,
+    isBlocked,
+    'llama.cpp',
+    isExactLlamaCppHealth,
+    opts
+  );
 }
 
 /**
@@ -590,7 +772,9 @@ async function discoverSingleModelServer(
   const initialHoloAdmission = backend === 'pytorch-holo' ? admitHoloServeHealth(health) : null;
   if (backend === 'pytorch-holo' && !initialHoloAdmission) return null;
 
-  const props = await fetchJson<PropsResponse>(fetchImpl, `${base}/props`, timeoutMs);
+  const rawProps = await fetchJson<unknown>(fetchImpl, `${base}/props`, timeoutMs);
+  if (!isPropsResponse(rawProps)) return null;
+  const props = rawProps;
   const rawModel =
     props?.default_generation_settings?.model ??
     props?.model ??
@@ -605,7 +789,7 @@ async function discoverSingleModelServer(
   if (initialHoloAdmission && rawModel !== initialHoloAdmission.defaultModel) return null;
   if (initialHoloAdmission) {
     if (
-      props?.backend !== 'pytorch-holo' ||
+      props.backend !== 'pytorch-holo' ||
       props.model !== initialHoloAdmission.defaultModel ||
       props.default_generation_settings?.model !== initialHoloAdmission.defaultModel ||
       !Number.isInteger(props.default_generation_settings?.n_ctx) ||
@@ -623,8 +807,19 @@ async function discoverSingleModelServer(
   const warm = new Set<string>(installed);
 
   const slots = await fetchJson<SlotsResponse>(fetchImpl, `${base}/slots`, timeoutMs);
+  if (!Array.isArray(slots) || slots.length === 0) return null;
+  if (!initialHoloAdmission) {
+    for (const slot of slots) {
+      if (!isRecord(slot)) return null;
+      const hasState = Object.prototype.hasOwnProperty.call(slot, 'state');
+      const hasProcessing = Object.prototype.hasOwnProperty.call(slot, 'is_processing');
+      if (!hasState && !hasProcessing) return null;
+      if (hasState && (!Number.isInteger(slot.state) || (slot.state as number) < 0)) return null;
+      if (hasProcessing && typeof slot.is_processing !== 'boolean') return null;
+    }
+  }
   if (initialHoloAdmission) {
-    if (!Array.isArray(slots) || slots.length !== props?.total_slots) return null;
+    if (slots.length !== props.total_slots) return null;
     const slotIds = new Set<number>();
     for (const slot of slots) {
       if (!isRecord(slot)) return null;
@@ -642,11 +837,9 @@ async function discoverSingleModelServer(
       slotIds.add(slot.id as number);
     }
   }
-  const busySlots = Array.isArray(slots)
-    ? slots.filter(
-        (s) => s?.is_processing === true || (typeof s?.state === 'number' && s.state !== 0)
-      ).length
-    : 0;
+  const busySlots = slots.filter(
+    (s) => s.is_processing === true || (typeof s.state === 'number' && s.state !== 0)
+  ).length;
   // Scale busy slots into a byte-ish magnitude comparable to Ollama's size_vram-based
   // loadScore, so a busy llama.cpp node does not read as ~1e9x freer than a resident
   // Ollama node in the shared least-loaded sort. Idle (0 slots) = 0 = genuinely free;
@@ -676,8 +869,8 @@ async function discoverSingleModelServer(
  * Route one request across the fleet: pick the least-loaded reachable GPU that
  * has a usable model, preferring a node where the model is already warm.
  *
- * Returns null only when NO fleet node is reachable (caller falls back to the
- * single-endpoint local picker / configured provider).
+ * Returns null when no fleet node is reachable or an explicit model request is
+ * policy-blocked (callers must not silently substitute a different model).
  */
 /**
  * Ollama stores a model pulled by bare name (`ollama pull nomic-embed-text`) as
@@ -702,6 +895,10 @@ export async function pickFleetModel(
   const isBlocked = (name: string): boolean =>
     isBlacklistedModel(name) || extraBlacklist.some((b) => name.toLowerCase().includes(b));
 
+  // A denied explicit request is a policy decision, not a fallback hint. Reject it
+  // before resolving or probing endpoints so another model cannot mask the denial.
+  if (opts.model && isBlocked(opts.model)) return null;
+
   const resolveEndpoint =
     opts.resolveEndpoint ?? ((h: string) => resolveNodeEndpoint(h, opts.registryDir));
 
@@ -709,25 +906,29 @@ export async function pickFleetModel(
   const discovered = (
     await Promise.all(
       spec.nodes.map(async (n) => {
-        const endpoint = await resolveEndpoint(n.handle);
-        if (!endpoint) return null;
-        const discover =
-          n.backend === 'llama.cpp'
-            ? discoverLlamaCppNode
-            : n.backend === 'pytorch-holo'
-              ? discoverPytorchHoloNode
-              : discoverNode;
-        return discover(n.handle, endpoint, isBlocked, {
-          timeoutMs: opts.timeoutMs,
-          fetchImpl: opts.fetchImpl,
-        });
+        try {
+          const endpoint = await resolveEndpoint(n.handle);
+          if (!endpoint) return null;
+          const discover =
+            n.backend === 'llama.cpp'
+              ? discoverLlamaCppNode
+              : n.backend === 'pytorch-holo'
+                ? discoverPytorchHoloNode
+                : discoverNode;
+          return await discover(n.handle, endpoint, isBlocked, {
+            timeoutMs: opts.timeoutMs,
+            fetchImpl: opts.fetchImpl,
+          });
+        } catch {
+          return null;
+        }
       })
     )
   ).filter((d): d is NodeDiscovery => d !== null && d.installed.length > 0);
 
   if (discovered.length === 0) return null;
 
-  const requested = opts.model && !isBlocked(opts.model) ? opts.model : undefined;
+  const requested = opts.model;
 
   // Choose the target model: the requested one if any reachable node has it;
   // else the first declared model that is actually installed somewhere; else the
