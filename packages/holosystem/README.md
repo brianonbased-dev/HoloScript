@@ -35,10 +35,24 @@ npx holosystem catalog \
 ```
 
 `lineage` reads registry metadata and records canonical repository URLs and
-portable package directories. Unknown lineage remains a named gap; local source
+portable package directories. When an exact npm version has no repository field,
+the receipt may infer its repository from a revision cohort only when both the
+target and its direct-metadata anchors have successful registry responses,
+nonempty integrity values, the same full 40-hex `gitHead`, and exact matching
+versions. Every anchor must resolve to one normalized repository; conflicts fail
+closed. These entries use `lineageKind: "revision-cohort"`, keep
+`sourceDirectory` null, and carry the exact sorted anchors in `lineageEvidence`.
+They are evidence-backed inferences, not direct package metadata, and inferred
+entries never become anchors. Unknown lineage remains a named gap; local source
 paths are never emitted. `catalog` performs public GitHub, service, container,
 MCP-health, and public-skill discovery, then joins those results with the
 caller's package admission, lineage, proof-batch, and promotion receipts.
+
+`holoscript.holosystem.source-lineage.v1` is an additive receipt contract.
+Consumers must treat `lineageKind` as an open enum, preserve unfamiliar kinds
+and their evidence, and use `mapped` for the broad mapped/unmapped decision.
+New summary keys and new evidence-backed lineage kinds may be added within v1;
+removing a field or changing an existing kind's meaning requires a new schema.
 
 ```js
 import {

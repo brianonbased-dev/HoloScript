@@ -32,6 +32,16 @@ function exactPublicVersion(value) {
   );
 }
 
+function fullGitRevision(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  return /^[0-9a-f]{40}$/u.test(normalized) ? normalized : null;
+}
+
+function nonemptyString(value) {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
 export function inspectPublicDependencySpecs(dependencies = {}) {
   const packages = Object.entries(dependencies)
     .sort(([left], [right]) => left.localeCompare(right))
@@ -185,7 +195,7 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
   const metadataByArtifact = new Map(
     list(metadata).map((item) => [artifactKey(item.ecosystem, item.name), item])
   );
-  const artifacts = list(portfolio?.packages).map((row) => {
+  const directArtifacts = list(portfolio?.packages).map((row) => {
     const source = metadataByArtifact.get(artifactKey(row.ecosystem, row.name)) || {};
     const sourceRepository = normalizeRepositoryUrl(source.sourceRepository || source.repository);
     const deprecated =
@@ -213,7 +223,74 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       mapped: Boolean(sourceRepository) || migrationMapped,
     };
   });
+
+  const cohortInputs = directArtifacts.map((artifact) => {
+    const source = metadataByArtifact.get(artifactKey(artifact.ecosystem, artifact.name)) || {};
+    const revision = fullGitRevision(artifact.sourceRevision);
+    const exactVersionMatch =
+      exactPublicVersion(artifact.version) &&
+      typeof source.version === 'string' &&
+      source.version === artifact.version;
+    return {
+      artifact,
+      revision,
+      eligible:
+        artifact.ecosystem === 'npm' &&
+        artifact.registryStatus === 200 &&
+        Boolean(nonemptyString(artifact.integrity)) &&
+        Boolean(revision) &&
+        exactVersionMatch,
+    };
+  });
+
+  const anchorsByRevision = new Map();
+  for (const input of cohortInputs) {
+    if (!input.eligible || input.artifact.lineageKind !== 'repository') continue;
+    const repositories = anchorsByRevision.get(input.revision) || new Map();
+    const anchors = repositories.get(input.artifact.sourceRepository) || [];
+    anchors.push({
+      ecosystem: input.artifact.ecosystem,
+      name: input.artifact.name,
+      version: input.artifact.version,
+      integrity: input.artifact.integrity,
+    });
+    repositories.set(input.artifact.sourceRepository, anchors);
+    anchorsByRevision.set(input.revision, repositories);
+  }
+
+  const artifacts = cohortInputs.map(({ artifact, eligible, revision }) => {
+    if (!eligible || artifact.mapped) return artifact;
+    const repositories = anchorsByRevision.get(revision);
+    if (!repositories || repositories.size !== 1) return artifact;
+    const [[repository, unsortedAnchors]] = repositories;
+    const anchors = unsortedAnchors.slice().sort((left, right) => {
+      const leftKey = `${left.ecosystem}\u0000${left.name}\u0000${left.version}\u0000${left.integrity}`;
+      const rightKey = `${right.ecosystem}\u0000${right.name}\u0000${right.version}\u0000${right.integrity}`;
+      return leftKey.localeCompare(rightKey);
+    });
+    return {
+      ...artifact,
+      sourceRepository: repository,
+      sourceDirectory: null,
+      lineageKind: 'revision-cohort',
+      lineageEvidence: {
+        kind: 'revision-cohort',
+        revisionKind: 'npm.gitHead',
+        revision,
+        repository,
+        anchors,
+      },
+      mapped: true,
+    };
+  });
   const mapped = artifacts.filter((artifact) => artifact.mapped).length;
+  const byKind = {
+    repository: artifacts.filter((artifact) => artifact.lineageKind === 'repository').length,
+    'revision-cohort': artifacts.filter((artifact) => artifact.lineageKind === 'revision-cohort')
+      .length,
+    migration: artifacts.filter((artifact) => artifact.lineageKind === 'migration').length,
+    unknown: artifacts.filter((artifact) => artifact.lineageKind === 'unknown').length,
+  };
   const receipt = {
     schema: HOLOSYSTEM_LINEAGE_SCHEMA,
     generatedAt: now.toISOString(),
@@ -222,6 +299,7 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       total: artifacts.length,
       mapped,
       gaps: artifacts.length - mapped,
+      byKind,
     },
     artifacts,
     boundaries: {
@@ -229,6 +307,8 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
       localPathsForbidden: true,
       unknownLineageBlocksSourceClaims: true,
       deprecatedPackagesRequireNamedSuccessors: true,
+      additiveSchema: true,
+      lineageKindOpen: true,
     },
   };
   receipt.receiptHash = hashReceipt({ ...receipt, generatedAt: null });
@@ -406,6 +486,10 @@ export function buildConsumptionSurfaceCatalog({
       ...lineageSummary,
       status: lineage?.status || 'unproven',
       evidence: evidenceRefs.sourceLineage,
+      contract: {
+        additiveSchema: lineage?.boundaries?.additiveSchema === true,
+        lineageKindOpen: lineage?.boundaries?.lineageKindOpen === true,
+      },
     },
     agentSurface: {
       deployedMcpTools: deployedTools,
