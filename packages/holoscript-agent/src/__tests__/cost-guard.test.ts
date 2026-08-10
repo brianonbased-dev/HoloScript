@@ -15,6 +15,8 @@ import {
   ANTHROPIC_PRICING_USD_PER_MTOK,
   ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK,
   resolveAnthropicPricing,
+  resolveModelPricingOrFallback,
+  resetUnpricedModelWarnings,
 } from '../cost-guard.js';
 import type { CostState } from '../types.js';
 
@@ -72,14 +74,220 @@ describe('defaultAnthropicPricer', () => {
     }
   });
 
-  it('throws on unknown model so callers cannot silently undercount', () => {
-    expect(() =>
-      defaultAnthropicPricer('claude-imaginary-9000', {
-        promptTokens: 1,
-        completionTokens: 1,
-        totalTokens: 2,
-      })
-    ).toThrowError(/No pricing configured/);
+  // REPLACED 2026-08-09 (task_1786310573633_wj1m). This used to assert
+  // `.toThrowError(/No pricing configured/)` under the heading "so callers
+  // cannot silently undercount". The throw produced the exact opposite: it
+  // landed at runner.ts:1038, AFTER the paid `provider.complete()` calls and
+  // BEFORE `state.spentUsd += costUsd`, outside the enclosing try — and both
+  // driver loops swallowed it. So an unpriced model did not undercount by a
+  // little, it undercounted to ZERO, forever, and the `isOverBudget()`
+  // pre-flight never tripped. The new contract over-estimates instead: an
+  // unpriced model bills at the most expensive known rate and warns once.
+  it('bills an unknown model at the most expensive known rate instead of throwing', () => {
+    resetUnpricedModelWarnings();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const usage = { promptTokens: 1_000_000, completionTokens: 0, totalTokens: 1_000_000 };
+      const cost = defaultAnthropicPricer('claude-imaginary-9000', usage);
+
+      // No known model may be pricier than the fallback, or it is not a ceiling.
+      for (const id of Object.keys(ANTHROPIC_PRICING_USD_PER_MTOK)) {
+        expect(cost).toBeGreaterThanOrEqual(defaultAnthropicPricer(id, usage) - 1e-9);
+      }
+      expect(cost).toBeGreaterThan(0);
+      expect(warn).toHaveBeenCalledOnce();
+      expect(warn.mock.calls[0][0]).toMatch(/UPPER BOUND/);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('warns at most once per unpriced model id', () => {
+    resetUnpricedModelWarnings();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const usage = { promptTokens: 10, completionTokens: 10, totalTokens: 20 };
+      defaultAnthropicPricer('claude-imaginary-9001', usage);
+      defaultAnthropicPricer('claude-imaginary-9001', usage);
+      defaultAnthropicPricer('claude-imaginary-9002', usage);
+      expect(warn).toHaveBeenCalledTimes(2);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  // The six ids the adapter's own supported-model table names but the pricing
+  // table cannot price, plus a dated snapshot. Every one of these was reachable
+  // in production and would have zeroed the budget guard.
+  it('prices every supported-but-unlisted model without throwing', () => {
+    resetUnpricedModelWarnings();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const usage = { promptTokens: 1_000, completionTokens: 1_000, totalTokens: 2_000 };
+      for (const id of [
+        'claude-mythos-5',
+        'claude-sonnet-4-5',
+        'claude-opus-4-1',
+        'claude-mythos-preview',
+        'claude-haiku-3-5',
+        'claude-opus-4-5',
+        'claude-opus-5-20260801',
+      ]) {
+        expect(() => defaultAnthropicPricer(id, usage)).not.toThrow();
+        expect(defaultAnthropicPricer(id, usage)).toBeGreaterThan(0);
+      }
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('resolves dated snapshots and bracketed annotations to the model they name', () => {
+    const usage = { promptTokens: 1_000_000, completionTokens: 0, totalTokens: 1_000_000 };
+    // A dated snapshot prices as its alias, not as the fallback ceiling.
+    expect(defaultAnthropicPricer('claude-opus-5-20260801', usage)).toBeCloseTo(
+      defaultAnthropicPricer('claude-opus-5', usage),
+      9
+    );
+    expect(
+      defaultAnthropicPricer('claude-fable-5 [ultracode reference transcript replay]', usage)
+    ).toBeCloseTo(defaultAnthropicPricer('claude-fable-5', usage), 9);
+    expect(resolveModelPricingOrFallback('claude-opus-5-20260801').source).toBe('undated');
+    expect(resolveModelPricingOrFallback('claude-opus-5 [replay]').source).toBe('undecorated');
+    expect(resolveModelPricingOrFallback('claude-opus-5').source).toBe('exact');
+  });
+
+  it('never sniffs an unrecognized id to a free rate for the live guard', () => {
+    resetUnpricedModelWarnings();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      // Ollama-shaped ids are $0 ONLY when the caller opts in (the offline
+      // benchmark does). The live guard must not, or any unrecognized id is a
+      // free pass past the budget.
+      expect(resolveModelPricingOrFallback('qwen2.5-coder:7b').source).toBe('fallback');
+      expect(resolveModelPricingOrFallback('qwen2.5-coder:7b', { localIdsFree: true }).source).toBe(
+        'local'
+      );
+      expect(
+        defaultAnthropicPricer('qwen2.5-coder:7b', {
+          promptTokens: 1_000_000,
+          completionTokens: 0,
+          totalTokens: 1_000_000,
+        })
+      ).toBeGreaterThan(0);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});
+
+// ===========================================================================
+// task_1786310573633_wj1m — the budget guard must trip on an unpriced model.
+//
+// This is the end-to-end assertion the A-010 review asked for: "feed the
+// repaired guard a genuinely unpriced model and confirm isOverBudget() still
+// trips." Everything above tests the pricer; this tests the money.
+// ===========================================================================
+describe('CostGuard budget enforcement with unpriced models', () => {
+  let dir: string;
+  let statePath: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'cost-guard-unpriced-'));
+    statePath = join(dir, 'cost.json');
+    resetUnpricedModelWarnings();
+  });
+
+  it('accrues spend and trips isOverBudget for a model with no pricing row', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const guard = new CostGuard({ statePath, dailyBudgetUsd: 1 });
+      expect(guard.isOverBudget()).toBe(false);
+
+      const res = guard.recordUsage('claude-mythos-5', {
+        promptTokens: 1_000_000,
+        completionTokens: 1_000_000,
+        totalTokens: 2_000_000,
+      });
+
+      // The regression this closes: spentUsd stayed 0 forever.
+      expect(res.costUsd).toBeGreaterThan(0);
+      expect(res.spentUsd).toBeGreaterThan(0);
+      expect(guard.getState().spentUsd).toBeGreaterThan(1);
+      expect(guard.isOverBudget()).toBe(true);
+      expect(guard.getRemainingUsd()).toBe(0);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('still accounts for the spend when the pricer throws outright', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      // Every non-Anthropic default pricer still throws by design on an unknown
+      // model. That must not be able to skip the accrual — the provider call is
+      // already paid for by the time recordUsage runs.
+      const guard = new CostGuard({
+        statePath,
+        dailyBudgetUsd: 1,
+        pricer: () => {
+          throw new Error('No OpenRouter pricing configured for model "mystery/model"');
+        },
+      });
+
+      const res = guard.recordUsage('mystery/model', {
+        promptTokens: 1_000_000,
+        completionTokens: 1_000_000,
+        totalTokens: 2_000_000,
+      });
+
+      expect(res.costUsd).toBeGreaterThan(0);
+      expect(guard.isOverBudget()).toBe(true);
+      expect(warn).toHaveBeenCalled();
+      // Persisted, not just in memory — a restarted supervisor must see it.
+      const persisted = JSON.parse(readFileSync(statePath, 'utf8')) as CostState;
+      expect(persisted.spentUsd).toBeGreaterThan(1);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('treats a NaN cost as a pricing failure rather than poisoning the budget', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      // NaN is worse than a throw: it propagates into spentUsd, and
+      // `NaN >= budget` is false, so the guard silently never trips again.
+      const guard = new CostGuard({
+        statePath,
+        dailyBudgetUsd: 1,
+        pricer: () => Number.NaN,
+      });
+
+      guard.recordUsage('broken-pricer-model', {
+        promptTokens: 1_000_000,
+        completionTokens: 1_000_000,
+        totalTokens: 2_000_000,
+      });
+
+      expect(Number.isFinite(guard.getState().spentUsd)).toBe(true);
+      expect(guard.isOverBudget()).toBe(true);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('keeps a zero-cost local pricer at zero (no false budget trip)', () => {
+    const guard = new CostGuard({
+      statePath,
+      dailyBudgetUsd: 1,
+      pricer: defaultLocalLlmPricer,
+    });
+    guard.recordUsage('Qwen/Qwen2.5-0.5B-Instruct', {
+      promptTokens: 5_000_000,
+      completionTokens: 5_000_000,
+      totalTokens: 10_000_000,
+    });
+    expect(guard.getState().spentUsd).toBe(0);
+    expect(guard.isOverBudget()).toBe(false);
   });
 });
 

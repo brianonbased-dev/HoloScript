@@ -1,8 +1,7 @@
 import {
-  ANTHROPIC_PRICING_USD_PER_MTOK,
   CACHE_READ_MULTIPLIER,
   CACHE_WRITE_MULTIPLIER,
-  resolveAnthropicPricing,
+  resolveModelPricingOrFallback,
 } from '@holoscript/holoscript-agent/cost-guard';
 import type { TokenUsage } from './types';
 
@@ -46,36 +45,12 @@ function toModelPricing(price: { input: number; output: number }): ModelPricing 
   };
 }
 
-/** Most expensive known model — the conservative fallback for unknown IDs. */
-const FALLBACK_MODEL_ID = 'claude-fable-5';
-
-/**
- * The conservative fallback rate, computed from the shared table rather than
- * pinned to a literal, so adding a pricier model automatically raises the
- * ceiling instead of silently leaving it stale.
- */
-function fallbackPricing(at?: Date | string): ModelPricing {
-  let worst = resolveAnthropicPricing(FALLBACK_MODEL_ID, at);
-  for (const id of Object.keys(ANTHROPIC_PRICING_USD_PER_MTOK)) {
-    const candidate = resolveAnthropicPricing(id, at);
-    if (candidate && (!worst || candidate.input > worst.input)) worst = candidate;
-  }
-  // The shared table always has entries, but stay total rather than assert.
-  return toModelPricing(worst ?? { input: 10, output: 50 });
-}
-
 /**
  * Locally-hosted models bill no API cost.
  *
  * ASSUMPTION: local compute is treated as free. If you would rather amortize
  * GPU/power cost per token, replace this with a real rate — the benchmark's
  * cloud-vs-local Pareto comparison is only as honest as this number.
- *
- * Matching is deliberately narrow: an ID is local only if it is NOT a
- * `claude-*` ID and it looks like an Ollama tag (`qwen2.5-coder:7b`) or is
- * explicitly namespaced. Anything else unrecognized still takes the
- * conservative cloud fallback, so a genuinely unknown cloud model is never
- * silently costed at zero.
  */
 export const LOCAL_MODEL_PRICING: ModelPricing = {
   input_per_mtok_usd: 0,
@@ -84,61 +59,53 @@ export const LOCAL_MODEL_PRICING: ModelPricing = {
   cache_read_per_mtok_usd: 0,
 };
 
-function isLocalModelId(model_id: string): boolean {
-  if (model_id.startsWith('claude-')) return false;
-  return /:/.test(model_id) || /^(ollama|local|holoserve|bitnet)[-/]?/i.test(model_id);
-}
-
 const warnedUnknownModels = new Set<string>();
 
 /**
  * Resolve pricing for a model id, at a point in time.
+ *
+ * The resolution ORDER (exact → undecorated → undated → local → most-expensive
+ * fallback) is no longer implemented here. It lives in
+ * `resolveModelPricingOrFallback` in `@holoscript/holoscript-agent/cost-guard`,
+ * alongside the rate table it resolves against, and this function is now a thin
+ * projection of it into the benchmark's four-field `ModelPricing` shape.
+ *
+ * That consolidation is the same lesson as the table itself (see the header
+ * comment above): this module's private copy of the RATES drifted a full
+ * generation before it was merged upstream. A private copy of the RESOLUTION
+ * would drift the same way — and this copy was the tested one, while the live
+ * agent spend guard had no equivalent at all and threw instead, which is the
+ * defect this consolidation closes.
+ *
+ * `localIdsFree` is on here and off in the live guard, deliberately: an offline
+ * benchmark must cost local baselines at $0 or its Pareto comparison is a lie,
+ * whereas the live guard learns locality from provider dispatch and must never
+ * let an unrecognized id sniff its way to a free pass.
  *
  * @param at Date the run happened. Defaults to now. Pass the run's own
  *   timestamp to re-cost a historical benchmark at the rate that was actually
  *   in effect, rather than at today's.
  */
 export function pricingFor(model_id: string, at?: Date | string): ModelPricing {
-  const direct = resolveAnthropicPricing(model_id, at);
-  if (direct) return toModelPricing(direct);
+  const resolved = resolveModelPricingOrFallback(model_id, { at, localIdsFree: true });
 
-  // Strip a trailing bracketed annotation before lookup. Some configs decorate
-  // the ID for provenance — `fable5-ultracode` reports
-  // "claude-fable-5 [ultracode reference transcript replay]" — and that should
-  // price as the model it names, by intent rather than by fallback coincidence.
-  const undecorated = model_id.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
-  const byUndecorated = resolveAnthropicPricing(undecorated, at);
-  if (byUndecorated) return toModelPricing(byUndecorated);
+  if (resolved.source === 'local') return LOCAL_MODEL_PRICING;
 
-  // Dated snapshots (`claude-haiku-4-5-20251001`) price as their alias.
-  // The original `split('-').slice(0, 3)` normalization was broken for the
-  // current four-segment ID scheme — it mapped `claude-sonnet-4-6` to
-  // `claude-sonnet-4`, which is not a key, so every Sonnet/Haiku ID fell
-  // through to the fallback.
-  const undated = undecorated.replace(/-\d{8}$/, '');
-  const byUndated = resolveAnthropicPricing(undated, at);
-  if (byUndated) return toModelPricing(byUndated);
-
-  // Locally-hosted model: no API cost. Checked before the unknown-model
-  // fallback so local baselines stop being priced at frontier cloud rates
-  // (they were billed as Opus 4.7 at $15/$75 before 2026-08-03).
-  if (isLocalModelId(undecorated)) return LOCAL_MODEL_PRICING;
-
-  // Unknown model. Fall back to the MOST EXPENSIVE known pricing rather than
-  // an arbitrary entry: this feeds `CostTracker.exceeded()`, so the safe
-  // failure mode is to over-estimate and stop early, never to under-estimate
-  // and overspend. Warn once per ID so a missing entry is visible instead of
-  // silently distorting a whole benchmark run.
-  if (!warnedUnknownModels.has(model_id)) {
+  // Unknown model: the shared resolver has already substituted the MOST
+  // EXPENSIVE known rate, because this feeds `CostTracker.exceeded()` and the
+  // safe failure mode is to over-estimate and stop early. Warn once per ID so a
+  // missing entry is visible instead of silently distorting a whole run.
+  if (resolved.source === 'fallback' && !warnedUnknownModels.has(model_id)) {
     warnedUnknownModels.add(model_id);
     console.warn(
       `[cost-tracker] No pricing entry for "${model_id}"; falling back to ` +
-        `"${FALLBACK_MODEL_ID}" rates (most expensive known). Costs for this ` +
+        `"${resolved.resolvedFrom}" rates (most expensive known). Costs for this ` +
         `model are an upper bound, not an estimate. Add it to ` +
         `ANTHROPIC_PRICING_USD_PER_MTOK in @holoscript/holoscript-agent/cost-guard.`
     );
   }
-  return fallbackPricing(at);
+
+  return toModelPricing(resolved.price);
 }
 
 export function costOf(
