@@ -144,6 +144,12 @@ export default defineConfig({
     execArgv: ['--max-old-space-size=16384'],
     // Increase timeout for slower tests
     testTimeout: 30000,
+    // testTimeout does NOT cover beforeAll/afterAll — those keep Vitest's 10s
+    // default unless hookTimeout is set explicitly. compiler-worker.test.ts boots
+    // a real worker_thread whose cold TypeScript graph load measures ~25s (vs
+    // ~1.3s warm), so a 10s hook budget failed the whole suite on any cold
+    // machine or contended shard while every assertion in it was correct.
+    hookTimeout: 60000,
     // Clear mocks between tests (reset call counts)
     clearMocks: true,
     // Restore all spyOn/mock implementations between tests

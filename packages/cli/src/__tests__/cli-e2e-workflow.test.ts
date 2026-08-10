@@ -4,6 +4,7 @@ import { HoloScriptCLI } from '../HoloScriptCLI';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { makeSkinnedTriangleGlb, compressDraco } from '../importers/__tests__/glb-fixtures';
 
 vi.mock('@holoscript/llm-provider', () => ({
   createProviderManager: vi.fn(() => ({
@@ -83,6 +84,26 @@ describe('CLI E2E Workflow', () => {
       const cli = new HoloScriptCLI(opts);
       const exitCode = await cli.run();
       expect(exitCode).toBe(0);
+    });
+  });
+
+  it('import command: a Draco-compressed .glb carries a real mesh into .holo (task_1783963445707_4l5i)', async () => {
+    await withTempDir(async (dir) => {
+      const inputFile = path.join(dir, 'compressed_model.glb');
+      const outputFile = path.join(dir, 'compressed_model.holo');
+      const compressed = await compressDraco(makeSkinnedTriangleGlb());
+      await fs.writeFile(inputFile, Buffer.from(compressed));
+
+      const opts = parseArgs(['import', inputFile, '-o', outputFile]);
+      const cli = new HoloScriptCLI(opts);
+      const exitCode = await cli.run();
+
+      expect(exitCode).toBe(0);
+      const holo = await fs.readFile(outputFile, 'utf8');
+      // A real mesh shape from the decompressed geometry — not the degraded
+      // `file.glb#Node` text pointer the native extractor falls back to on a
+      // compressed primitive it can't read raw.
+      expect(holo).toContain(' mesh {');
     });
   });
 

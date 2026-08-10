@@ -33,9 +33,10 @@ The following components are and will remain MIT-licensed open source:
 
   - HoloScript language specification (.holo and .hsplus formats)
   - Parser and AST (HoloScriptPlusParser, HoloComposition types)
-  - All 139 trait definitions and handler implementations
-  - All 8 compiler targets (R3F, Unity, Godot, visionOS, WebGPU, Babylon,
-    Android XR, OpenXR)
+  - All trait definitions and handler implementations
+    (live count: docs/NUMBERS.md "Trait files")
+  - All compiler targets
+    (live count and list: docs/NUMBERS.md "Compilers", "Export targets")
   - Core LSP service (embedded in @holoscript/core)
   - VS Code extension
   - CLI tools (holoscript, holoscript-format, holoscript-lint)
@@ -70,6 +71,17 @@ Traits that reference AI capabilities (e.g., @llm_agent, @dialogue with LLM
 mode, @accessible auto-generation) define open interfaces. The AI inference
 that powers these capabilities is provided by Infinity Assistant's commercial
 services.
+
+================================================================================
+LICENSING EXCEPTIONS
+================================================================================
+
+  @holoscript/mcp-server-adversarial — intentionally UNLICENSED, private
+    (npm "private": true, never published). Paper 21 sandbox-only adversarial
+    MCP attack proof-of-concepts (Whitewasher, Sybil, Score Manipulator, Slow
+    Poisoner, Eclipse); refuses to load outside HOLOMESH_ADVERSARIAL_SANDBOX=1.
+    Not part of the MIT / ELv2 / proprietary-commercial tiers above — it is
+    internal security-research tooling, not a distributable component.
 
 ================================================================================
 THIRD-PARTY NOTICES

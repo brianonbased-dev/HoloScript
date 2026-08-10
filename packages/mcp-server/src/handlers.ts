@@ -22,6 +22,7 @@ import {
   type NativeAutoRigPlan,
 } from '@holoscript/core';
 import { validate_detailed as validateCanonicalHsDetailed } from '@holoscript/wasm/node';
+import { getCompilerWasmBuildIdentity } from './parserBuildIdentity';
 
 import {
   suggestUniversalTraits,
@@ -1145,6 +1146,12 @@ async function handleValidate(args: Record<string, unknown>) {
       valid: validation.valid && errors.length === 0,
       format: detectedFormat,
       validator,
+      // Ties `validator: "rust-wasm"` to a resolvable source commit + WASM
+      // digest so a caller can tell WHICH build actually answered, not just
+      // that a build did (task_1784330208777_288f). null when the compiler-wasm
+      // rebuild receipt isn't present (e.g. a Node-only deploy that skipped the
+      // Rust workspace build) — never fabricated.
+      ...(validator === 'rust-wasm' && { compilerWasm: getCompilerWasmBuildIdentity() }),
       errors,
       ...(includeWarnings && { warnings }),
       summary:

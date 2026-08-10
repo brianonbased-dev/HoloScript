@@ -109,3 +109,24 @@ export async function importGltfAsync(inputPath: string): Promise<string> {
   }
   return importGltf(inputPath);
 }
+
+/**
+ * {@link importGltfAsync} + write the result to `outputPath` — the decompression-aware
+ * counterpart to {@link importGltfToFile}, for CLI/library callers that need a file on disk
+ * rather than the `.holo` string.
+ */
+export async function importGltfToFileAsync(
+  inputPath: string,
+  outputPath: string
+): Promise<void> {
+  const holoCode = await importGltfAsync(inputPath);
+
+  const resolvedOutput = path.resolve(outputPath);
+  const outputDir = path.dirname(resolvedOutput);
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  fs.writeFileSync(resolvedOutput, holoCode, 'utf8');
+}

@@ -8,9 +8,15 @@
  */
 import { describe, expect, test } from 'vitest';
 import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   parseFleetSpec,
+  planFleetModelPlacement,
   pickFleetModel,
+  resolveNodeEndpoint,
+  discoverNode,
   discoverLlamaCppNode,
   discoverPytorchHoloNode,
   embedAcrossFleet,
@@ -18,6 +24,7 @@ import {
   type FleetSpec,
   type FetchLike,
 } from '../fleet-router';
+import { FLEET_PLACEMENT_MANIFEST_SCHEMA } from '../fleet-placement';
 
 // A faithful slice of compositions/model-fleet.hsplus (the authored spec).
 const BRAIN_SRC = `
@@ -42,6 +49,14 @@ You are the Local Model Fleet.
   endpoints: "resolved by handle"
   strategy: "least-loaded"
   warm_preferred: true
+  artifact_mode: "warm_only"
+  data_plane: "direct_worker"
+  parallel_scope: "single_worker"
+  spend: "forbidden"
+  provisioning: "forbidden"
+  remote_code: false
+  generic_rpc: false
+  inter_worker_tensor_transport: false
   blacklist: ["qwen2.5"]
 }
 
@@ -78,6 +93,36 @@ const ENDPOINTS: Record<string, string> = {
 const resolveEndpoint = async (h: string): Promise<string | null> => ENDPOINTS[h] ?? null;
 
 describe('parseFleetSpec', () => {
+  test('consumes the canonical authored composition with the safe placement policy', () => {
+    const authored = readFileSync(
+      new URL('../../../../compositions/model-fleet.hsplus', import.meta.url),
+      'utf8'
+    );
+    const spec = parseFleetSpec(authored);
+
+    expect(spec).not.toBeNull();
+    expect(spec!.nodes.map((node) => node.handle)).not.toContain('holo-runtime-m1');
+    expect(
+      spec!.nodes.every(
+        (node) =>
+          node.backend === undefined ||
+          node.backend === 'ollama' ||
+          node.backend === 'llama.cpp' ||
+          node.backend === 'pytorch-holo'
+      )
+    ).toBe(true);
+    expect(spec?.placementPolicy).toEqual({
+      artifactMode: 'warm_only',
+      dataPlane: 'direct_worker',
+      parallelScope: 'single_worker',
+      spend: 'forbidden',
+      provisioning: 'forbidden',
+      remoteCode: false,
+      genericRpc: false,
+      interWorkerTensorTransport: false,
+    });
+  });
+
   test('extracts both nodes by handle, strategy, warm-preferred, blacklist', () => {
     const spec = parseFleetSpec(BRAIN_SRC);
     expect(spec).not.toBeNull();
@@ -85,6 +130,16 @@ describe('parseFleetSpec', () => {
     expect(spec!.strategy).toBe('least-loaded');
     expect(spec!.warmPreferred).toBe(true);
     expect(spec!.blacklist).toEqual(['qwen2.5']);
+    expect(spec!.placementPolicy).toEqual({
+      artifactMode: 'warm_only',
+      dataPlane: 'direct_worker',
+      parallelScope: 'single_worker',
+      spend: 'forbidden',
+      provisioning: 'forbidden',
+      remoteCode: false,
+      genericRpc: false,
+      interWorkerTensorTransport: false,
+    });
   });
 
   test('node model hints are parsed, not leaked into fleet-level blacklist', () => {
@@ -98,6 +153,127 @@ describe('parseFleetSpec', () => {
 
   test('returns null when no @model_fleet block is present', () => {
     expect(parseFleetSpec('#version 6.0.0\nidentity { domain: "x" }')).toBeNull();
+  });
+
+  test('rejects path-traversal and non-basename node handles', () => {
+    for (const handle of [
+      '../outside',
+      String.raw`..\outside`,
+      'nested/worker',
+      'C:/outside',
+      'CON',
+      'NUL',
+      'jetson.',
+    ]) {
+      expect(parseFleetSpec(`@model_fleet { worker { node: "${handle}" } }`)).toBeNull();
+    }
+  });
+
+  test('rejects duplicate or non-string node fields while ignoring runtime_id-only blocks', () => {
+    expect(
+      parseFleetSpec(
+        '@model_fleet { worker { node: "worker-1" node: "../outside" } runtime { runtime_id: "holo-runtime-m1" } }'
+      )
+    ).toBeNull();
+    expect(parseFleetSpec('@model_fleet { worker { node: 42 } }')).toBeNull();
+    expect(
+      parseFleetSpec(
+        '@model_fleet { runtime { runtime_id: "holo-runtime-m1" } worker { node: "worker-1" } }'
+      )?.nodes.map((node) => node.handle)
+    ).toEqual(['worker-1']);
+  });
+
+  test('rejects an explicitly unsupported backend instead of downgrading to Ollama', () => {
+    expect(
+      parseFleetSpec('@model_fleet { worker { node: "worker-1" backend: "vllm" } }')
+    ).toBeNull();
+  });
+
+  test('rejects an explicitly unsafe placement policy', () => {
+    const unsafe = BRAIN_SRC.replace('provisioning: "forbidden"', 'provisioning: "allowed"');
+    expect(parseFleetSpec(unsafe)).toBeNull();
+  });
+
+  test('rejects duplicate placement-policy fields instead of accepting first-match ambiguity', () => {
+    const duplicate = BRAIN_SRC.replace(
+      'provisioning: "forbidden"',
+      'provisioning: "forbidden"\n  provisioning: "allowed"'
+    );
+    expect(parseFleetSpec(duplicate)).toBeNull();
+  });
+
+  test('older fleet declarations inherit the safe placement boundary', () => {
+    const legacy = '@model_fleet { nodeA { node: "jetson-orin" } strategy: "least-loaded" }';
+    expect(parseFleetSpec(legacy)?.placementPolicy).toEqual({
+      artifactMode: 'warm_only',
+      dataPlane: 'direct_worker',
+      parallelScope: 'single_worker',
+      spend: 'forbidden',
+      provisioning: 'forbidden',
+      remoteCode: false,
+      genericRpc: false,
+      interWorkerTensorTransport: false,
+    });
+  });
+
+  test('injects the authored policy into a digest-bound plan', () => {
+    const digest = (character: string): string => `sha256:${character.repeat(64)}`;
+    const result = planFleetModelPlacement(parseFleetSpec(BRAIN_SRC)!, {
+      decisionTime: '2026-08-08T23:30:15.000Z',
+      leaseLedgerVersion: 0,
+      capabilities: [],
+      manifest: {
+        schema: FLEET_PLACEMENT_MANIFEST_SCHEMA,
+        requestId: 'request-001',
+        idempotencyKey: 'request-001-attempt-1',
+        upstreamAttestationReceiptDigest: digest('a'),
+        laneId: 'frontier-serve-01',
+        laneManifestDigest: digest('b'),
+        modelReleaseDigest: digest('c'),
+        runtimeProfileDigest: digest('d'),
+        licensePolicyDigest: digest('e'),
+        resources: {
+          gpuCount: 1,
+          gpuMemoryMiB: 8_192,
+          hostMemoryMiB: 16_384,
+          scratchBytes: 0,
+          slots: 1,
+        },
+        allowedCustodyTiers: ['sovereign-overflow'],
+        admittedWorkerSpecDigests: [digest('1')],
+        dataClass: 'internal-nonsecret',
+      },
+    });
+
+    expect(result.status).toBe('unplaced');
+    expect(result.outcomeCode).toBe('NO_CANDIDATES');
+    expect(result.requestDigest).toMatch(/^sha256:[0-9a-f]{64}$/u);
+    expect(result.errors).toEqual([]);
+  });
+});
+
+describe('resolveNodeEndpoint', () => {
+  test('keeps registry reads contained and preserves safe handle resolution', async () => {
+    const fixtureRoot = mkdtempSync(join(tmpdir(), 'fleet-router-registry-'));
+    const registryDir = join(fixtureRoot, 'registry');
+    mkdirSync(registryDir);
+    const registryEntry = JSON.stringify({
+      capabilities: [{ id: 'local-llm', endpoint: 'http://owned-metal.invalid:11434' }],
+    });
+    writeFileSync(join(registryDir, 'jetson-orin.json'), registryEntry, 'utf8');
+    // This valid JSON proves that a traversal would have escaped the registry before hardening.
+    writeFileSync(join(fixtureRoot, 'outside.json'), registryEntry, 'utf8');
+
+    try {
+      await expect(resolveNodeEndpoint('jetson-orin', registryDir)).resolves.toBe(
+        'http://owned-metal.invalid:11434'
+      );
+      for (const unsafeHandle of ['../outside', String.raw`..\outside`, 'CON', 'NUL', 'jetson.']) {
+        await expect(resolveNodeEndpoint(unsafeHandle, registryDir)).resolves.toBeNull();
+      }
+    } finally {
+      rmSync(fixtureRoot, { recursive: true, force: true });
+    }
   });
 });
 
@@ -181,6 +357,68 @@ describe('pickFleetModel routing', () => {
     expect(route).toBeNull();
   });
 
+  test('drops an Ollama node when required /api/ps load telemetry is non-OK', async () => {
+    const fetchImpl: FetchLike = async (url: string) => {
+      if (url.endsWith('/api/tags')) {
+        return {
+          ok: true,
+          json: async () => ({ models: [{ name: 'qwen3:4b-instruct' }] }),
+        };
+      }
+      if (url.endsWith('/api/ps')) return { ok: false, json: async () => ({}) };
+      throw new Error('unexpected route');
+    };
+
+    const discovered = await discoverNode(
+      'jetson-orin',
+      'http://holojetson.local:11434',
+      () => false,
+      { fetchImpl }
+    );
+    expect(discovered).toBeNull();
+  });
+
+  test('drops malformed Ollama /api/tags payloads before reading model names', async () => {
+    for (const tagsBody of [{}, { models: 'not-an-array' }, { models: [{ name: 7 }] }]) {
+      const fetchImpl: FetchLike = async (url: string) => ({
+        ok: true,
+        json: async () => (url.endsWith('/api/tags') ? tagsBody : { models: [] }),
+      });
+      const discovered = await discoverNode(
+        'jetson-orin',
+        'http://holojetson.local:11434',
+        () => false,
+        { fetchImpl }
+      );
+      expect(discovered).toBeNull();
+    }
+  });
+
+  test('contains one node discovery exception and still routes to a healthy peer', async () => {
+    const throwingTags = Object.defineProperty({}, 'models', {
+      enumerable: true,
+      get: () => {
+        throw new Error('malformed tags getter');
+      },
+    });
+    const healthyPeer = fakeFetch({
+      'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] },
+    });
+    const fetchImpl: FetchLike = async (url, init) => {
+      if (url.startsWith('http://holojetson.local:11434')) {
+        return { ok: true, json: async () => throwingTags };
+      }
+      return healthyPeer(url, init);
+    };
+
+    const route = await pickFleetModel(SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint,
+      fetchImpl,
+    });
+    expect(route?.handle).toBe('laptop-rtx3060');
+  });
+
   test('blacklisted models are never installed candidates nor routed to', async () => {
     const fetchImpl = fakeFetch({
       'http://holojetson.local:11434': { tags: ['qwen2.5-coder:7b'], ps: [] }, // only a blacklisted model
@@ -196,16 +434,17 @@ describe('pickFleetModel routing', () => {
     expect(route!.model).toBe('qwen3:4b-instruct');
   });
 
-  test('a blacklisted requested model is ignored in favour of a clean installed one', async () => {
-    const fetchImpl = fakeFetch({
-      'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] },
-    });
+  test('an explicitly requested blacklisted model fails closed before endpoint discovery', async () => {
+    let resolutionAttempts = 0;
     const route = await pickFleetModel(SPEC, {
       model: 'qwen2.5-coder:7b',
-      resolveEndpoint,
-      fetchImpl,
+      resolveEndpoint: async () => {
+        resolutionAttempts += 1;
+        return 'http://should-not-be-contacted.invalid:11434';
+      },
     });
-    expect(route!.model).toBe('qwen3:4b-instruct'); // declared-and-installed fallback, not the blacklisted request
+    expect(route).toBeNull();
+    expect(resolutionAttempts).toBe(0);
   });
 
   test('a node with no resolvable endpoint (not registered) is skipped', async () => {
@@ -370,7 +609,16 @@ describe('primary-node preference (jetson main, laptop overflow)', () => {
  * slot count, and health; `ollama` reuses the tags/ps shape.
  */
 function fakeFetchLlama(
-  llama: Record<string, { model: string; busySlots?: number; healthy?: boolean }>,
+  llama: Record<
+    string,
+    {
+      model: string;
+      busySlots?: number;
+      healthy?: boolean;
+      healthBody?: unknown;
+      propsBody?: unknown;
+    }
+  >,
   ollama: Record<string, { tags: string[]; ps?: Array<{ name: string; vram: number }> }> = {}
 ): FetchLike {
   return async (url: string) => {
@@ -381,15 +629,24 @@ function fakeFetchLlama(
       if (url.endsWith('/health')) {
         return n.healthy === false
           ? { ok: false, json: async () => ({}) }
-          : { ok: true, json: async () => ({ status: 'ok' }) };
+          : {
+              ok: true,
+              json: async () =>
+                Object.prototype.hasOwnProperty.call(n, 'healthBody')
+                  ? n.healthBody
+                  : { status: 'ok' },
+            };
       }
       if (url.endsWith('/props')) {
         return {
           ok: true,
-          json: async () => ({
-            default_generation_settings: { model: n.model },
-            model_path: `/models/${n.model}.gguf`,
-          }),
+          json: async () =>
+            Object.prototype.hasOwnProperty.call(n, 'propsBody')
+              ? n.propsBody
+              : {
+                  default_generation_settings: { model: n.model },
+                  model_path: `/models/${n.model}.gguf`,
+                },
         };
       }
       // /slots — an array of slot objects; state !== 0 (or is_processing) counts as busy.
@@ -496,6 +753,88 @@ describe('llama.cpp backend node kind', () => {
       fetchImpl,
     });
     expect(d).toBeNull();
+  });
+
+  test('discoverLlamaCppNode requires the exact ready /health body', async () => {
+    for (const healthBody of [
+      { status: 'loading model' },
+      { status: 'error' },
+      {},
+      { status: 'ok', extra: true },
+      'ok',
+    ]) {
+      const fetchImpl = fakeFetchLlama({
+        'http://192.168.0.23:18080': { model: 'fara-7b', healthBody },
+      });
+      const discovered = await discoverLlamaCppNode(
+        'laptop-fara',
+        'http://192.168.0.23:18080',
+        () => false,
+        { fetchImpl }
+      );
+      expect(discovered).toBeNull();
+    }
+  });
+
+  test('discoverLlamaCppNode rejects malformed /props payloads before model use', async () => {
+    for (const propsBody of [
+      null,
+      [],
+      { model: 7 },
+      { default_generation_settings: 'invalid' },
+      { default_generation_settings: { model: 7 } },
+    ]) {
+      const fetchImpl = fakeFetchLlama({
+        'http://192.168.0.23:18080': { model: 'fara-7b', propsBody },
+      });
+      const discovered = await discoverLlamaCppNode(
+        'laptop-fara',
+        'http://192.168.0.23:18080',
+        () => false,
+        { fetchImpl }
+      );
+      expect(discovered).toBeNull();
+    }
+  });
+
+  test('drops malformed llama /props while a healthy Ollama peer still answers', async () => {
+    const fetchImpl = fakeFetchLlama(
+      {
+        'http://192.168.0.23:18080': {
+          model: 'fara-7b',
+          propsBody: { default_generation_settings: { model: 7 } },
+        },
+      },
+      { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }
+    );
+    const route = await pickFleetModel(LLAMA_SPEC, {
+      model: 'qwen3:4b-instruct',
+      resolveEndpoint: resolveLlama,
+      fetchImpl,
+    });
+    expect(route?.handle).toBe('jetson-orin');
+  });
+
+  test('discoverLlamaCppNode returns null when required /slots telemetry is non-OK', async () => {
+    const fetchImpl: FetchLike = async (url: string) => {
+      if (url.endsWith('/health')) return { ok: true, json: async () => ({ status: 'ok' }) };
+      if (url.endsWith('/props')) {
+        return {
+          ok: true,
+          json: async () => ({ default_generation_settings: { model: 'fara-7b' } }),
+        };
+      }
+      if (url.endsWith('/slots')) return { ok: false, json: async () => [] };
+      throw new Error('unexpected route');
+    };
+
+    const discovered = await discoverLlamaCppNode(
+      'laptop-fara',
+      'http://192.168.0.23:18080',
+      () => false,
+      { fetchImpl }
+    );
+    expect(discovered).toBeNull();
   });
 
   test('discoverLlamaCppNode drops the node when /health passes but /props yields no model', async () => {

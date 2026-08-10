@@ -65,6 +65,26 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 $files"
 done
 
+# --- Gate: core test baseline receipt (scoped to packages/core) -------------
+# WHY: packages/core/test-baseline.json classifies core suite failures into
+# flaky / known-stable / NEW so a real regression is distinguishable from the
+# suite's known noise. Its classifier (packages/core/scripts/check-core-test-baseline.mjs)
+# was committed 2026-05-31 and registered NOWHERE for 66 days; the first time it
+# was ever run — 2026-08-05 — it immediately surfaced 5 unrecorded failures.
+#
+# The suite costs ~15 min, which cannot run at push time without simply training
+# `--no-verify`. So the proof is produced out of band and only CHECKED here, in
+# milliseconds, against the content hash of packages/core at HEAD.
+# See decisions/2026-08-05_holoscript-native-testing.md.
+# Emergency bypass (NOT for main): git push --no-verify
+if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/core/'; then
+  if [ -f scripts/holo-ci/check-core-baseline-receipt.mjs ]; then
+    if ! node scripts/holo-ci/check-core-baseline-receipt.mjs; then
+      exit 1
+    fi
+  fi
+fi
+
 # Gate only when a manifest or the lockfile is part of the push.
 if [ "$force_check" = "0" ] && ! printf '%s\n' "$changed" | grep -qE '(^|/)package\.json$|(^|/)pnpm-lock\.yaml$'; then
   exit 0

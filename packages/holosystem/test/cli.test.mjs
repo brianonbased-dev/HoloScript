@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
-import { generateKeyPairSync, sign } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash, generateKeyPairSync, sign } from 'node:crypto';
+import { linkSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-import { createRebuildAttestationPayload } from '../src/index.mjs';
+import {
+  HOLOSYSTEM_FARM_SCHEMA,
+  buildConsumptionSurfaceCatalog,
+  buildSourceLineageReceipt,
+  createRebuildAttestationPayload,
+} from '../src/index.mjs';
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const CLI = join(PACKAGE_ROOT, 'bin', 'holosystem.mjs');
@@ -36,6 +41,240 @@ function initializeRepository(cwd, files) {
   git(cwd, ['commit', '--quiet', '-m', 'test: source canon fixture']);
 }
 
+function withReceiptHash(value) {
+  const receipt = structuredClone(value);
+  delete receipt.receiptHash;
+  receipt.receiptHash = `sha256:${createHash('sha256')
+    .update(JSON.stringify({ ...receipt, generatedAt: null }))
+    .digest('hex')}`;
+  return receipt;
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => [key, stableValue(child)])
+  );
+}
+
+function withPortfolioReceiptHash(value) {
+  const receipt = structuredClone(value);
+  receipt.bounds = {
+    maxPackages: 200,
+    maxFindings: 50,
+    maxStringLength: 240,
+    maxSerializedBytes: 196608,
+    packagesEmitted: receipt.packages.length,
+    packagesOmitted: 0,
+    findingsEmitted: 0,
+    findingsOmitted: 0,
+    truncated: false,
+    serializedBytes: 0,
+  };
+  receipt.receiptHash = `sha256:${'0'.repeat(64)}`;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const serializedBytes = Buffer.byteLength(`${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+    if (receipt.bounds.serializedBytes === serializedBytes) break;
+    receipt.bounds.serializedBytes = serializedBytes;
+  }
+  const unsigned = { ...receipt, generatedAt: null };
+  delete unsigned.receiptHash;
+  receipt.receiptHash = `sha256:${createHash('sha256')
+    .update(JSON.stringify(stableValue(unsigned)))
+    .digest('hex')}`;
+  assert.equal(
+    receipt.bounds.serializedBytes,
+    Buffer.byteLength(`${JSON.stringify(receipt, null, 2)}\n`, 'utf8')
+  );
+  return receipt;
+}
+
+function withReconciliationReceiptHash(value) {
+  const receipt = structuredClone(value);
+  delete receipt.receiptHash;
+  receipt.receiptHash = `sha256:${createHash('sha256')
+    .update(JSON.stringify(receipt))
+    .digest('hex')}`;
+  return receipt;
+}
+
+function writeReconciledLineageInputs(cwd) {
+  const generatedAt = '2026-08-09T00:00:00.000Z';
+  const name = '@example/ready';
+  const version = '1.0.0';
+  const integrity = `sha512-${Buffer.alloc(64, 0x41).toString('base64')}`;
+  const tarball = 'https://registry.npmjs.org/@example/ready/-/ready-1.0.0.tgz';
+  const repository = 'https://github.com/example/public-source';
+  const revision = 'a'.repeat(40);
+  const manifestPath = 'packages/ready/package.json';
+  const evidenceUrl = `${repository}/blob/${revision}/${manifestPath}`;
+  const portfolio = withPortfolioReceiptHash({
+    schema: 'holosystem.portfolio-consumer-gate.v1',
+    generatedAt,
+    status: 'passed',
+    admissible: true,
+    scope: {
+      registries: {
+        npm: { declaredComplete: true },
+        pypi: { declaredComplete: true },
+      },
+    },
+    summary: { total: 1, passing: 1, stale: 0, missing: 0, failed: 0 },
+    packages: [
+      {
+        ecosystem: 'npm',
+        name,
+        expectedVersion: version,
+        observedVersion: version,
+        classification: 'passing',
+        issues: [],
+      },
+    ],
+  });
+  const reconciliation = withReconciliationReceiptHash({
+    schema: 'holosystem.package-source-lineage-reconciliation.v1',
+    generatedAt,
+    status: 'complete',
+    summary: {
+      total: 1,
+      sourceMapped: 1,
+      sourceUnmapped: 0,
+      sourceLineageResolved: 1,
+      sourceLineageUnresolved: 0,
+      deprecatedRegistryDisposition: 0,
+      publicHistoricalDeprecation: 0,
+      publicPackageAlias: 0,
+      publicReleaseManifestBinding: 0,
+      sourceNotPubliclyVerifiable: 0,
+      residuals: { 'canonical-source': [] },
+    },
+    artifacts: [
+      {
+        ecosystem: 'npm',
+        name,
+        version,
+        registry: {
+          status: 200,
+          integrity,
+          tarball,
+          integrityBinding: {
+            status: 'registry-digest-match',
+            integrity,
+            url: tarball,
+            filename: null,
+            packageType: 'npm-tarball',
+          },
+          evidenceUrl: `https://www.npmjs.com/package/${name}/v/${version}`,
+          deprecated: null,
+          successor: null,
+        },
+        source: {
+          repository,
+          directory: 'packages/ready',
+          revision,
+          owner: 'example',
+          evidenceKind: 'public-git-exact-manifest',
+          evidenceUrl,
+          manifestPath,
+          manifestSha256: `sha256:${'1'.repeat(64)}`,
+          canonical: true,
+          disposition: {
+            status: 'canonical-public-source',
+            evidenceUrl,
+            reason: null,
+          },
+        },
+      },
+    ],
+  });
+  writeFileSync(join(cwd, 'portfolio.json'), JSON.stringify(portfolio), 'utf8');
+  writeFileSync(join(cwd, 'reconciliation.json'), JSON.stringify(reconciliation), 'utf8');
+  return { portfolio, reconciliation };
+}
+
+function writeFarmInputs(cwd, { idle = false, proofBatchCount = 0 } = {}) {
+  const generatedAt = '2026-08-09T00:00:00.000Z';
+  const row = idle
+    ? {
+        ecosystem: 'npm',
+        name: '@example/ready',
+        expectedVersion: '1.0.0',
+        observedVersion: '1.0.0',
+        classification: 'passing',
+        issues: [],
+      }
+    : {
+        ecosystem: 'npm',
+        name: '@example/stale',
+        expectedVersion: '2.0.0',
+        observedVersion: '1.9.0',
+        classification: 'stale',
+        issues: ['integrity-mismatch', 'import-stale', 'readback-stale'],
+      };
+  const portfolio = withPortfolioReceiptHash({
+    schema: 'holosystem.portfolio-consumer-gate.v1',
+    generatedAt,
+    status: idle ? 'passed' : 'failed',
+    admissible: idle,
+    scope: {
+      registries: {
+        npm: { declaredComplete: true },
+        pypi: { declaredComplete: true },
+      },
+    },
+    summary: {
+      total: 1,
+      passing: idle ? 1 : 0,
+      stale: idle ? 0 : 1,
+      missing: 0,
+      failed: 0,
+    },
+    packages: [row],
+  });
+  const lineage = buildSourceLineageReceipt({
+    portfolio,
+    metadata: [
+      {
+        ecosystem: row.ecosystem,
+        name: row.name,
+        version: row.expectedVersion,
+        sourceRepository: 'https://github.com/example/repo',
+        sourceDirectory: idle ? 'packages/ready' : 'packages/stale',
+      },
+    ],
+    now: new Date(generatedAt),
+  });
+  const catalog = buildConsumptionSurfaceCatalog({
+    seeds: { github: { products: [] }, mcp: { sourceAudit: { tools: 1 } } },
+    manifest: { npm: [{ name: row.name }], pypi: [] },
+    portfolio,
+    lineage,
+    skills: { ok: true, count: 0 },
+    mcpHealth: { tools: 1, version: '1.0.0' },
+    activeProofBatches: Array.from({ length: proofBatchCount }, (_, index) => ({
+      id: `proof-${index + 1}`,
+      status: 'completed',
+      generatedAt,
+      packages: [],
+      summary: { total: 0, passing: 0, failed: 0 },
+      receiptHash: `sha256:${String(index + 1).padStart(64, '0')}`,
+    })),
+    evidence: {
+      operatingSet: 'package-manifest.json',
+      packageAdmission: 'portfolio.json',
+      sourceLineage: 'lineage.json',
+    },
+    now: new Date(generatedAt),
+  });
+  writeFileSync(join(cwd, 'catalog.json'), JSON.stringify(catalog), 'utf8');
+  writeFileSync(join(cwd, 'portfolio.json'), JSON.stringify(portfolio), 'utf8');
+  writeFileSync(join(cwd, 'lineage.json'), JSON.stringify(lineage), 'utf8');
+  return { catalog, portfolio, lineage };
+}
+
 test('package bin is wired to the executable CLI and help is available', () => {
   const manifest = JSON.parse(readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf8'));
   const result = run(['--help'], { cwd: PACKAGE_ROOT });
@@ -46,9 +285,352 @@ test('package bin is wired to the executable CLI and help is available', () => {
   assert.match(result.stdout, /holosystem inspect/u);
   assert.match(result.stdout, /holosystem catalog/u);
   assert.match(result.stdout, /holosystem lineage/u);
+  assert.match(result.stdout, /holosystem farm/u);
+  assert.match(result.stdout, /farm is proposal-only/u);
   assert.match(result.stdout, /holosystem source-canon/u);
   assert.match(result.stdout, /holosystem substrate/u);
   assert.match(result.stdout, /holosystem substrate-import/u);
+});
+
+test('lineage projects a sealed reconciliation receipt without registry access', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-lineage-cli-'));
+  try {
+    const fixtures = writeReconciledLineageInputs(cwd);
+    const result = run(
+      [
+        'lineage',
+        '--portfolio',
+        'portfolio.json',
+        '--reconciliation',
+        'reconciliation.json',
+        '--output',
+        'lineage.json',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(result.status, 0, result.stderr);
+    const lineage = JSON.parse(result.stdout);
+    assert.equal(lineage.status, 'complete');
+    assert.equal(lineage.summary.mapped, 1);
+    assert.equal(lineage.summary.gaps, 0);
+    assert.equal(
+      lineage.artifacts[0].lineageEvidence.sourceReceiptHash,
+      fixtures.reconciliation.receiptHash
+    );
+    assert.deepEqual(JSON.parse(readFileSync(join(cwd, 'lineage.json'), 'utf8')), lineage);
+
+    const originalPortfolio = readFileSync(join(cwd, 'portfolio.json'), 'utf8');
+    const originalReconciliation = readFileSync(join(cwd, 'reconciliation.json'), 'utf8');
+    for (const alias of ['portfolio.json', 'reconciliation.json']) {
+      const unsafeOutput = run(
+        [
+          'lineage',
+          '--portfolio',
+          'portfolio.json',
+          '--reconciliation',
+          'reconciliation.json',
+          '--output',
+          alias,
+          '--force',
+          '--json',
+        ],
+        { cwd }
+      );
+      assert.equal(unsafeOutput.status, 2);
+      assert.match(unsafeOutput.stderr, /must not alias lineage input/u);
+      assert.equal(readFileSync(join(cwd, 'portfolio.json'), 'utf8'), originalPortfolio);
+      assert.equal(readFileSync(join(cwd, 'reconciliation.json'), 'utf8'), originalReconciliation);
+    }
+    try {
+      linkSync(join(cwd, 'reconciliation.json'), join(cwd, 'reconciliation-hardlink.json'));
+      const hardlinkOutput = run(
+        [
+          'lineage',
+          '--portfolio',
+          'portfolio.json',
+          '--reconciliation',
+          'reconciliation.json',
+          '--output',
+          'reconciliation-hardlink.json',
+          '--force',
+          '--json',
+        ],
+        { cwd }
+      );
+      assert.equal(hardlinkOutput.status, 2);
+      assert.match(hardlinkOutput.stderr, /must not alias lineage input/u);
+      assert.equal(readFileSync(join(cwd, 'reconciliation.json'), 'utf8'), originalReconciliation);
+    } catch (error) {
+      if (!new Set(['EACCES', 'EINVAL', 'ENOSYS', 'ENOTSUP', 'EPERM', 'EXDEV']).has(error.code)) {
+        throw error;
+      }
+    }
+    try {
+      symlinkSync('reconciliation.json', join(cwd, 'reconciliation-symlink.json'), 'file');
+      const symlinkOutput = run(
+        [
+          'lineage',
+          '--portfolio',
+          'portfolio.json',
+          '--reconciliation',
+          'reconciliation.json',
+          '--output',
+          'reconciliation-symlink.json',
+          '--force',
+          '--json',
+        ],
+        { cwd }
+      );
+      assert.equal(symlinkOutput.status, 2);
+      assert.match(symlinkOutput.stderr, /must not alias lineage input/u);
+      assert.equal(readFileSync(join(cwd, 'reconciliation.json'), 'utf8'), originalReconciliation);
+    } catch (error) {
+      if (!new Set(['EACCES', 'EINVAL', 'ENOSYS', 'ENOTSUP', 'EPERM']).has(error.code)) {
+        throw error;
+      }
+    }
+
+    const incompatible = run(
+      [
+        'lineage',
+        '--portfolio',
+        'portfolio.json',
+        '--reconciliation',
+        'reconciliation.json',
+        '--concurrency',
+        '2',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(incompatible.status, 2);
+    assert.match(incompatible.stderr, /cannot be combined/u);
+
+    const tampered = structuredClone(fixtures.reconciliation);
+    tampered.artifacts[0].source.revision = 'b'.repeat(40);
+    writeFileSync(join(cwd, 'reconciliation.json'), JSON.stringify(tampered), 'utf8');
+    const rejected = run(
+      [
+        'lineage',
+        '--portfolio',
+        'portfolio.json',
+        '--reconciliation',
+        'reconciliation.json',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(rejected.status, 2);
+    assert.match(rejected.stderr, /receiptHash does not match/u);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('farm emits action-ready and idle proposal-only receipts without applying work', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-farm-cli-'));
+  try {
+    writeFarmInputs(cwd);
+    const actionReady = run(
+      [
+        'farm',
+        '--catalog',
+        'catalog.json',
+        '--portfolio',
+        'portfolio.json',
+        '--lineage',
+        'lineage.json',
+        '--output',
+        'farm.json',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(actionReady.status, 0, actionReady.stderr);
+    const actionReceipt = JSON.parse(actionReady.stdout);
+    assert.equal(actionReceipt.schema, HOLOSYSTEM_FARM_SCHEMA);
+    assert.equal(actionReceipt.status, 'action-ready');
+    assert.equal(actionReceipt.mode, 'propose-only');
+    assert.equal(actionReceipt.accepted, false);
+    assert.deepEqual(actionReceipt.changesApplied, []);
+    assert.equal(actionReceipt.requiresAuthority, true);
+    assert.equal(actionReceipt.nextWork.length, 1);
+    assert.equal(actionReceipt.nextWork[0].requiresAuthority, true);
+    assert.deepEqual(actionReceipt.sourceReceipts, [
+      'catalog.json',
+      'portfolio.json',
+      'lineage.json',
+    ]);
+    assert.equal(actionReceipt.sourceReceiptBindings.catalog.source, 'catalog.json');
+    assert.equal(actionReceipt.sourceReceiptBindings.portfolio.source, 'portfolio.json');
+    assert.equal(actionReceipt.sourceReceiptBindings.lineage.source, 'lineage.json');
+    assert.deepEqual(JSON.parse(readFileSync(join(cwd, 'farm.json'), 'utf8')), actionReceipt);
+
+    const overwrite = run(
+      [
+        'farm',
+        '--catalog',
+        'catalog.json',
+        '--portfolio',
+        'portfolio.json',
+        '--lineage',
+        'lineage.json',
+        '--output',
+        'farm.json',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(overwrite.status, 2);
+    assert.match(overwrite.stderr, /already exists/u);
+
+    const forced = run(
+      [
+        'farm',
+        '--catalog',
+        'catalog.json',
+        '--portfolio',
+        'portfolio.json',
+        '--lineage',
+        'lineage.json',
+        '--output',
+        'farm.json',
+        '--force',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(forced.status, 0, forced.stderr);
+    assert.equal(JSON.parse(forced.stdout).status, 'action-ready');
+
+    writeFarmInputs(cwd, { idle: true });
+    const idle = run(
+      [
+        'farm',
+        '--catalog',
+        'catalog.json',
+        '--portfolio',
+        'portfolio.json',
+        '--lineage',
+        'lineage.json',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(idle.status, 0, idle.stderr);
+    const idleReceipt = JSON.parse(idle.stdout);
+    assert.equal(idleReceipt.status, 'idle');
+    assert.equal(idleReceipt.accepted, false);
+    assert.deepEqual(idleReceipt.changesApplied, []);
+    assert.equal(idleReceipt.requiresAuthority, true);
+    assert.deepEqual(idleReceipt.nextWork, []);
+
+    writeFarmInputs(cwd, { proofBatchCount: 25 });
+    const blocked = run(
+      [
+        'farm',
+        '--catalog',
+        'catalog.json',
+        '--portfolio',
+        'portfolio.json',
+        '--lineage',
+        'lineage.json',
+        '--json',
+      ],
+      { cwd }
+    );
+    assert.equal(blocked.status, 2, blocked.stderr);
+    const blockedReceipt = JSON.parse(blocked.stdout);
+    assert.equal(blockedReceipt.status, 'blocked');
+    assert.equal(blockedReceipt.accepted, false);
+    assert.deepEqual(blockedReceipt.changesApplied, []);
+    assert.equal(blockedReceipt.requiresAuthority, true);
+    assert.deepEqual(blockedReceipt.nextWork, []);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('farm rejects missing, unknown, malformed, wrong-schema, and inconsistent inputs', (t) => {
+  const cwd = mkdtempSync(join(tmpdir(), 'holosystem-farm-cli-'));
+  try {
+    const fixtures = writeFarmInputs(cwd);
+    const base = [
+      'farm',
+      '--catalog',
+      'catalog.json',
+      '--portfolio',
+      'portfolio.json',
+      '--lineage',
+      'lineage.json',
+      '--json',
+    ];
+
+    const missing = run(['farm', '--catalog', 'catalog.json', '--json'], { cwd });
+    assert.equal(missing.status, 2);
+    assert.match(missing.stderr, /--portfolio is required/u);
+
+    const unknown = run([...base, '--execute'], { cwd });
+    assert.equal(unknown.status, 2);
+    assert.match(unknown.stderr, /Unknown option --execute/u);
+
+    const originalCatalog = readFileSync(join(cwd, 'catalog.json'), 'utf8');
+    for (const alias of ['catalog.json', './catalog.json']) {
+      const unsafeOutput = run(
+        [...base.slice(0, -1), '--output', alias, '--force', '--json'],
+        { cwd }
+      );
+      assert.equal(unsafeOutput.status, 2);
+      assert.match(unsafeOutput.stderr, /must not alias farm input/u);
+      assert.equal(readFileSync(join(cwd, 'catalog.json'), 'utf8'), originalCatalog);
+    }
+    try {
+      linkSync(join(cwd, 'catalog.json'), join(cwd, 'catalog-hardlink.json'));
+      const hardlinkOutput = run(
+        [...base.slice(0, -1), '--output', 'catalog-hardlink.json', '--force', '--json'],
+        { cwd }
+      );
+      assert.equal(hardlinkOutput.status, 2);
+      assert.match(hardlinkOutput.stderr, /must not alias farm input/u);
+      assert.equal(readFileSync(join(cwd, 'catalog.json'), 'utf8'), originalCatalog);
+      assert.equal(readFileSync(join(cwd, 'catalog-hardlink.json'), 'utf8'), originalCatalog);
+    } catch (error) {
+      if (!new Set(['EACCES', 'EINVAL', 'ENOSYS', 'ENOTSUP', 'EPERM', 'EXDEV']).has(error.code)) {
+        throw error;
+      }
+      t.diagnostic(`Hardlink negative skipped: filesystem returned ${error.code}.`);
+    }
+
+    writeFileSync(join(cwd, 'catalog.json'), '{ malformed', 'utf8');
+    const malformed = run(base, { cwd });
+    assert.equal(malformed.status, 1);
+    assert.match(malformed.stderr, /Cannot read proposal-only farm inputs/u);
+
+    writeFileSync(
+      join(cwd, 'catalog.json'),
+      JSON.stringify(withReceiptHash({ ...fixtures.catalog, schema: 'wrong.catalog.v1' })),
+      'utf8'
+    );
+    const wrongSchema = run(base, { cwd });
+    assert.equal(wrongSchema.status, 2);
+    assert.match(wrongSchema.stderr, /schema/iu);
+
+    const inconsistent = structuredClone(fixtures.catalog);
+    inconsistent.activity.nextWork.selected.name = '@example/detached';
+    inconsistent.activity.nextWork.candidates[0].name = '@example/detached';
+    inconsistent.activity.nextWork = withReceiptHash(inconsistent.activity.nextWork);
+    writeFileSync(join(cwd, 'catalog.json'), JSON.stringify(withReceiptHash(inconsistent)), 'utf8');
+    const detached = run(base, { cwd });
+    assert.equal(detached.status, 2);
+    assert.match(detached.stderr, /does not match canonical selection|inconsistent|decision/iu);
+
+    const forceWithoutOutput = run([...base.slice(0, -1), '--force', '--json'], { cwd });
+    assert.equal(forceWithoutOutput.status, 2);
+    assert.match(forceWithoutOutput.stderr, /--force requires --output/u);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
 });
 
 test('source-canon blocks foreign tracked source and writes only a HoloScript projection', () => {

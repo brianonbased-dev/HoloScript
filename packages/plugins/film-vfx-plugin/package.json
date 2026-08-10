@@ -52,6 +52,8 @@
     }
   },
   "devDependencies": {
+    "@holoscript/crdt-spatial": "workspace:^",
+    "@holoscript/core": "workspace:^",
     "typescript": "^5.9.3",
     "@types/node": "^24.10.1",
     "rimraf": "^5.0.5",

@@ -223,6 +223,15 @@ export function claimTask(
  * commits; sibling variants were found in the trace scrub. Keep this list in
  * sync with ai-ecosystem `scripts/holotune-emit-board.mjs` FABRICATED_EVIDENCE_RES
  * (the corpus-side gate) — the server gate here is the authoritative one.
+ *
+ * SCOPE LIMIT worth stating, because "authoritative" invites the wrong
+ * assumption: this gate can only judge the evidence TEXT. The `commit` field is
+ * checked for SHAPE alone (`/^[0-9a-f]{7,40}$/i`, board-routes.ts), and that is
+ * not an oversight to fix here — the board server has no access to anyone's git
+ * repositories, so whether a sha exists is only answerable at the client. See
+ * ai-ecosystem `hooks/lib/commit-existence.mjs` (commit 2b7f557d0bff), which
+ * resolves the hash against real repos before closing. A well-formed but
+ * fabricated sha will still pass THIS layer.
  */
 export const FABRICATED_EVIDENCE_PATTERNS: ReadonlyArray<RegExp> = [
   /^Task completed via tool calls\. Artifact written \(tool_iters:\d+\)\.?$/i,
@@ -236,6 +245,14 @@ export const FABRICATED_EVIDENCE_PATTERNS: ReadonlyArray<RegExp> = [
   /\b(?:a1b2c3d4(?:e5f6(?:7890(?:abcdef)?)?)?|7g8h9i0j1k2l)\b/i, // sequential placeholder hashes
   /\b(?:blocked implementation|awaiting founder approval)\b/i, // failure/deferral represented as completion
   /\binternal reference,\s*not pushed\b/i, // explicitly non-custodied source claim
+  // Bare stub tokens standing in for evidence (2026-08-05). The list above
+  // catches elaborate fabrications while the cheapest one walked through: a
+  // PATCH done carrying verification_evidence of exactly "PLACEHOLDER" closed
+  // P1 task_1785837552806_4rsl. The done log is append-only and a completed
+  // task cannot be reopened or updated, so that entry is permanent. Anchored
+  // and length-bounded so a real sentence merely CONTAINING one of these words
+  // ("replaced the TODO with a real fixture") is untouched.
+  /^(?:placeholder|todo|tbd|t\.b\.d\.?|n\/?a|none|na|stub|dummy|test|testing|foo|bar|baz|asdf|xxx+|\.+|-+|x)[\s.!-]*$/i,
 ];
 
 /** True (with the matching pattern) iff the evidence string is a known fabricated/unverified closeout marker. */

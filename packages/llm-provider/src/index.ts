@@ -294,6 +294,7 @@ export type { LocalModelChoice } from './local-model-picker';
 export {
   parseFleetSpec,
   loadFleetSpec,
+  planFleetModelPlacement,
   resolveNodeEndpoint,
   discoverNode,
   discoverLlamaCppNode,
@@ -307,12 +308,77 @@ export type {
   FleetNode,
   FleetBackend,
   FleetSpec,
+  FleetModelPlacementOptions,
   NodeDiscovery,
   FleetCandidate,
   FleetRoute,
   FleetRouteOptions,
   FetchLike,
 } from './fleet-router';
+
+// Digest-bound frontier placement — a pure, deterministic control-plane plan.
+// It selects one already-running worker island and explicitly cannot provision,
+// spend, fetch artifacts, issue a lease, proxy tokens, or coordinate tensor traffic.
+export {
+  DEFAULT_FLEET_PLACEMENT_POLICY,
+  FLEET_PLACEMENT_ALGORITHM,
+  FLEET_PLACEMENT_MANIFEST_SCHEMA,
+  FLEET_PLACEMENT_RECEIPT_SCHEMA,
+  FLEET_WORKER_CAPABILITY_SCHEMA,
+  planFleetPlacement,
+} from './fleet-placement';
+export type {
+  FleetPlacementPolicy,
+  FleetPlacementResources,
+  FleetPlacementManifest,
+  FleetWorkerState,
+  FleetWorkerFreshness,
+  FleetWorkerIsland,
+  FleetWorkerCapability,
+  FleetPlacementOptions,
+  FleetPlacementStatus,
+  FleetPlacementOutcomeCode,
+  FleetPlacementRejectionCode,
+  FleetPlacementInvalidCode,
+  FleetPlacementValidationError,
+  FleetPlacementRank,
+  FleetPlacementCandidate,
+  FleetPlacementSelection,
+  FleetPlacementSideEffects,
+  FleetPlacementAttestationSummary,
+  FleetPlacementReceipt,
+} from './fleet-placement';
+
+// HoloServe dispatch — a loopback-only control-plane bridge. Signature
+// verification, durable CAS, and injected callback behavior remain caller-custodied.
+export {
+  HOLOSERVE_COMPLETION_OUTPUT_SCHEMA,
+  HOLOSERVE_DISPATCH_AUTHORITY_SCHEMA,
+  HOLOSERVE_DISPATCH_EXECUTION_BINDING_SCHEMA,
+  HOLOSERVE_DISPATCH_LEASE_SCHEMA,
+  HOLOSERVE_DISPATCH_LEASE_RELEASE_SCHEMA,
+  HOLOSERVE_PLACEMENT_DISPATCH_RECEIPT_SCHEMA,
+  HoloServePlacementDispatchError,
+  dispatchHoloServePlacement,
+} from './holoserve-placement-dispatch';
+export type {
+  HoloServeDispatchProfile,
+  HoloServeDispatchVerificationContext,
+  HoloServeDispatchAuthority,
+  HoloServeDispatchLease,
+  HoloServeDispatchLeaseRelease,
+  HoloServeDispatchLeaseContext,
+  HoloServeDispatchLeaseReleaseContext,
+  HoloServeCompletionExecutionContext,
+  HoloServePlacementDispatchReceipt,
+  HoloServePlacementDispatchResult,
+  HoloServeDispatchVerifier,
+  HoloServeEndpointResolver,
+  HoloServeLeaseAcquirer,
+  HoloServeLeaseReleaser,
+  HoloServeCompletionExecutor,
+  HoloServePlacementDispatchOptions,
+} from './holoserve-placement-dispatch';
 
 // Quest Generator (Phase 2 Hololand Integration)
 export { QuestGenerator } from './QuestGenerator';

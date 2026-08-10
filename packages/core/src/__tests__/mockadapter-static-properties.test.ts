@@ -401,7 +401,17 @@ describe('Feature 5: LLM provider model constant arrays', () => {
   });
 
   it('GEMINI_MODELS keeps the legacy baseline and includes current Gemini 3 models', () => {
-    expect(GEMINI_MODELS.length).toBe(7);
+    // Asserted by membership, not by count. GEMINI_MODELS is owned by
+    // @holoscript/llm-provider and ratchets whenever a model ships or is retired
+    // (4 deliberate changes since 2026-05-31). A pinned length made this a
+    // tripwire for intentional roster updates while asserting nothing about
+    // correctness — it went green by coincidence on 2026-07-03 when an addition
+    // happened to restore the count to 7. Membership is what the title claims.
+    expect(GEMINI_MODELS.length).toBeGreaterThanOrEqual(7);
+    expect(GEMINI_MODELS).toContain('gemini-1.5-pro');
+    expect(GEMINI_MODELS).toContain('gemini-3.6-flash');
+    expect(GEMINI_MODELS).toContain('gemini-3.5-flash-lite');
+    expect(GEMINI_MODELS).not.toContain('gemini-2.0-flash');
   });
 
   it('GEMINI_MODELS includes gemini-3.5-flash', () => {

@@ -82,6 +82,52 @@ describe('isFabricatedEvidence (trust-audit 2026-07-13)', () => {
       expect(isFabricatedEvidence(evidence), evidence).toMatchObject({ fabricated: true });
     }
   });
+
+  it('rejects bare stub tokens standing in for evidence (2026-08-05)', () => {
+    // The elaborate fabrications were covered; the cheapest one was not. A PATCH
+    // done carrying verification_evidence of exactly "PLACEHOLDER" closed P1
+    // task_1785837552806_4rsl, and because the done log is append-only and a
+    // completed task cannot be reopened or updated, that entry is permanent.
+    const stubs = [
+      'PLACEHOLDER',
+      'placeholder',
+      '  PLACEHOLDER  ',
+      'PLACEHOLDER.',
+      'TODO',
+      'TBD',
+      'N/A',
+      'none',
+      'stub',
+      'dummy',
+      'test',
+      'foo',
+      'asdf',
+      'xxx',
+      'x',
+      '---',
+      '...',
+    ];
+    for (const evidence of stubs) {
+      expect(isFabricatedEvidence(evidence), evidence).toMatchObject({ fabricated: true });
+    }
+  });
+
+  it('does not reject real evidence that merely mentions a stub word', () => {
+    // The stub rule is anchored end-to-end on purpose. Substantive evidence
+    // routinely contains "TODO", "test" or "none" as ordinary words, and
+    // rejecting those would push agents toward vaguer prose to get past the
+    // gate — the opposite of what it is for.
+    const substantive = [
+      'Replaced the TODO with a real fixture; pnpm test — 41/41 green; commit 2b7f557d0bff.',
+      'vitest run packages/framework — 18/18 passing, none skipped, tsc --noEmit exit 0.',
+      'Ran the placeholder-detection suite: 6 new cases, all red before the patch.',
+      'x402 settlement probe returned 200; receipt at runtime/receipts/2026-08-06-x402.json',
+      'No behavioral change: test-only commit adding coverage for the stub path.',
+    ];
+    for (const evidence of substantive) {
+      expect(isFabricatedEvidence(evidence), evidence).toMatchObject({ fabricated: false });
+    }
+  });
 });
 
 describe('claim TTL + cap primitives (trust-audit 2026-07-13)', () => {

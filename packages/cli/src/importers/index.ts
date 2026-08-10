@@ -7,3 +7,9 @@
 export { importUnity, UnityImportResult, UnityImportOptions } from './unity-importer';
 export { importGodot, GodotImportResult, GodotImportOptions } from './godot-importer';
 export { importGltf, importGltfToFile } from './gltf-importer';
+export {
+  importGltfAsync,
+  importGltfToFileAsync,
+  isGlbCompressed,
+  decompressGlb,
+} from './glb-decompress';
