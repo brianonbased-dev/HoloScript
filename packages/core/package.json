@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/core",
-  "version": "8.0.20",
+  "version": "8.0.21",
   "description": "Core parser, AST, type/trait system, compiler infrastructure, and runtime for the HoloScript general-purpose semantic systems language",
   "type": "module",
   "main": "./dist/index.js",
@@ -262,7 +262,7 @@
     "dev": "tsup --watch",
     "test": "node --max-old-space-size=16384 run-vitest.mjs",
     "test:release": "vitest run src/reconstruction/__tests__/PublicReconstructionExports.test.ts src/reconstruction/__tests__/PerceiverConsensus.test.ts",
-    "test:public-types": "tsc -p test/public-types/tsconfig.json",
+    "test:public-types": "tsc -p test/public-types/tsconfig.json && tsc -p test/public-types/tsconfig.root-only.json",
     "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
     "test:baseline": "node scripts/check-core-test-baseline.mjs",
     "test:watch": "vitest",
