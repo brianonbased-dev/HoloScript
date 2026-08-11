@@ -13,7 +13,7 @@ overrides:
   '@holoscript/crdt-spatial': workspace:*
   '@holoscript/engine': workspace:*
   '@holoscript/framework': workspace:*
-  '@holoscript/hololand-platform': workspace:*
+  '@hololand/platform-services': workspace:*
   '@holoscript/llm-provider': workspace:*
   '@holoscript/mcp-server': workspace:*
   '@holoscript/mesh': workspace:*
@@ -304,6 +304,10 @@ importers:
       zod:
         specifier: '>=4.4.3'
         version: 4.4.3
+    devDependencies:
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
     optionalDependencies:
       '@huggingface/transformers':
         specifier: ^3.8.1
@@ -332,10 +336,6 @@ importers:
       web-tree-sitter:
         specifier: ^0.24.0
         version: 0.24.7
-    devDependencies:
-      tsup:
-        specifier: ^8.0.1
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
 
   packages/adapter-postgres:
     dependencies:
@@ -502,6 +502,9 @@ importers:
       '@gltf-transform/extensions':
         specifier: ^3.7.0
         version: 3.10.1
+      '@hololand/platform-services':
+        specifier: workspace:*
+        version: link:../hololand-platform
       '@holoscript/absorb-service':
         specifier: workspace:*
         version: link:../absorb-service
@@ -520,9 +523,6 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
-      '@holoscript/hololand-platform':
-        specifier: workspace:*
-        version: link:../hololand-platform
       '@holoscript/llm-provider':
         specifier: workspace:*
         version: link:../llm-provider
@@ -847,6 +847,49 @@ importers:
       zod:
         specifier: '>=4.4.3'
         version: 4.4.3
+    devDependencies:
+      '@types/jsonwebtoken':
+        specifier: ^9.0.7
+        version: 9.0.10
+      '@types/pixelmatch':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      '@types/react':
+        specifier: 19.2.14
+        version: 19.2.14
+      '@types/three':
+        specifier: ^0.170.0
+        version: 0.170.0
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      '@vitest/coverage-v8':
+        specifier: ^4.1.5
+        version: 4.1.8(vitest@4.1.8)
+      '@webgpu/types':
+        specifier: '>=0.1.40'
+        version: 0.1.70
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
+      typedoc:
+        specifier: ^0.28.19
+        version: 0.28.19(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
+      vscode-languageserver:
+        specifier: ^9.0.1
+        version: 9.0.1
+      vscode-languageserver-textdocument:
+        specifier: ^1.0.12
+        version: 1.0.12
     optionalDependencies:
       '@gltf-transform/core':
         specifier: ^3.7.0
@@ -857,105 +900,6 @@ importers:
       '@gltf-transform/functions':
         specifier: ^3.7.0
         version: 3.10.1(@types/node@24.13.2)
-      '@holoscript/alphafold-plugin':
-        specifier: workspace:^
-        version: link:../plugins/alphafold-plugin
-      '@holoscript/domain-plugin-template':
-        specifier: workspace:^
-        version: link:../plugins/domain-plugin-template
-      '@holoscript/medical-plugin':
-        specifier: workspace:^
-        version: link:../plugins/medical-plugin
-      '@holoscript/narupa-plugin':
-        specifier: workspace:^
-        version: link:../plugins/scientific-plugin
-      '@holoscript/plugin-banking-finance':
-        specifier: workspace:^
-        version: link:../plugins/banking-finance-plugin
-      '@holoscript/plugin-civil-engineering':
-        specifier: workspace:^
-        version: link:../plugins/civil-engineering-plugin
-      '@holoscript/plugin-culture-keyword':
-        specifier: workspace:^
-        version: link:../plugins/culture-keyword-plugin
-      '@holoscript/plugin-economic-primitives':
-        specifier: workspace:^
-        version: link:../plugins/economic-primitives-plugin
-      '@holoscript/plugin-education-lms':
-        specifier: workspace:^
-        version: link:../plugins/education-lms-plugin
-      '@holoscript/plugin-emergency-response':
-        specifier: workspace:^
-        version: link:../plugins/emergency-response
-      '@holoscript/plugin-fashion':
-        specifier: workspace:^
-        version: link:../plugins/fashion-plugin
-      '@holoscript/plugin-film-vfx':
-        specifier: workspace:^
-        version: link:../plugins/film-vfx-plugin
-      '@holoscript/plugin-film3d-volumetrics':
-        specifier: workspace:^
-        version: link:../plugins/film3d-volumetrics-plugin
-      '@holoscript/plugin-fitness-wellness':
-        specifier: workspace:^
-        version: link:../plugins/fitness-wellness-plugin
-      '@holoscript/plugin-forensics':
-        specifier: workspace:^
-        version: link:../plugins/forensics-plugin
-      '@holoscript/plugin-geolocation-gis':
-        specifier: workspace:^
-        version: link:../plugins/geolocation-gis-plugin
-      '@holoscript/plugin-hardware-invention':
-        specifier: workspace:^
-        version: link:../plugins/hardware-invention-plugin
-      '@holoscript/plugin-hr-workforce':
-        specifier: workspace:^
-        version: link:../plugins/hr-workforce-plugin
-      '@holoscript/plugin-insurance':
-        specifier: workspace:^
-        version: link:../plugins/insurance-plugin
-      '@holoscript/plugin-legal-document':
-        specifier: workspace:^
-        version: link:../plugins/legal-document-plugin
-      '@holoscript/plugin-manufacturing-qc':
-        specifier: workspace:^
-        version: link:../plugins/manufacturing-qc-plugin
-      '@holoscript/plugin-neuroscience':
-        specifier: workspace:^
-        version: link:../plugins/neuroscience-plugin
-      '@holoscript/plugin-restaurant':
-        specifier: workspace:^
-        version: link:../plugins/restaurant-plugin
-      '@holoscript/plugin-retail-ecommerce':
-        specifier: workspace:^
-        version: link:../plugins/retail-ecommerce-plugin
-      '@holoscript/plugin-therapy':
-        specifier: workspace:^
-        version: link:../plugins/therapy-plugin
-      '@holoscript/plugin-threat-intelligence':
-        specifier: workspace:^
-        version: link:../plugins/threat-intelligence-plugin
-      '@holoscript/plugin-trait-audit':
-        specifier: workspace:^
-        version: link:../plugins/trait-audit-plugin
-      '@holoscript/plugin-travel-hospitality':
-        specifier: workspace:^
-        version: link:../plugins/travel-hospitality-plugin
-      '@holoscript/plugin-urban-planning':
-        specifier: workspace:^
-        version: link:../plugins/urban-planning-plugin
-      '@holoscript/plugin-wine-food-beverage':
-        specifier: workspace:^
-        version: link:../plugins/wine-food-beverage-plugin
-      '@holoscript/plugin-wisdom-gotcha':
-        specifier: workspace:^
-        version: link:../plugins/wisdom-gotcha-plugin
-      '@holoscript/radio-astronomy-plugin':
-        specifier: workspace:^
-        version: link:../plugins/radio-astronomy-plugin
-      '@holoscript/robotics-plugin':
-        specifier: workspace:^
-        version: link:../plugins/robotics-plugin
       '@huggingface/transformers':
         specifier: ^3.8.1
         version: 3.8.1(@types/node@24.13.2)
@@ -1016,55 +960,6 @@ importers:
       ws:
         specifier: ^8.21.0
         version: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-    devDependencies:
-      '@holoscript/engine':
-        specifier: workspace:*
-        version: link:../engine
-      '@holoscript/framework':
-        specifier: workspace:*
-        version: link:../framework
-      '@types/jsonwebtoken':
-        specifier: ^9.0.7
-        version: 9.0.10
-      '@types/pixelmatch':
-        specifier: ^5.2.6
-        version: 5.2.6
-      '@types/pngjs':
-        specifier: ^6.0.5
-        version: 6.0.5
-      '@types/react':
-        specifier: 19.2.14
-        version: 19.2.14
-      '@types/three':
-        specifier: ^0.170.0
-        version: 0.170.0
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.1
-      '@vitest/coverage-v8':
-        specifier: ^4.1.5
-        version: 4.1.8(vitest@4.1.8)
-      '@webgpu/types':
-        specifier: '>=0.1.40'
-        version: 0.1.70
-      tsup:
-        specifier: ^8.0.1
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
-      typedoc:
-        specifier: ^0.28.19
-        version: 0.28.19(typescript@5.9.3)
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.5
-        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
-      vscode-languageserver:
-        specifier: ^9.0.1
-        version: 9.0.1
-      vscode-languageserver-textdocument:
-        specifier: ^1.0.12
-        version: 1.0.12
 
   packages/core-types: {}
 
@@ -1864,7 +1759,7 @@ importers:
         version: 2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.4.3)
       wagmi:
         specifier: ^3.6.15
-        version: 3.6.16(pwmx2m3vqxkrlwc2lhnwvabk64)
+        version: 3.6.16(51d5c9208971abf190438c796a9de0e4)
       zustand:
         specifier: ^4.5.0
         version: 4.5.7(@types/react@19.2.14)(react@19.2.7)
@@ -1905,6 +1800,9 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@hololand/platform-services':
+        specifier: workspace:*
+        version: link:../hololand-platform
       '@holoscript/absorb-service':
         specifier: workspace:*
         version: link:../absorb-service
@@ -1920,9 +1818,6 @@ importers:
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../framework
-      '@holoscript/hololand-platform':
-        specifier: workspace:*
-        version: link:../hololand-platform
       '@holoscript/holomap':
         specifier: workspace:^
         version: link:../holomap
@@ -2111,6 +2006,40 @@ importers:
       zod:
         specifier: '>=4.4.3'
         version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.13.2
+      '@types/pixelmatch':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      '@types/three':
+        specifier: ^0.170.0
+        version: 0.170.0
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      '@vitest/coverage-v8':
+        specifier: ^4.1.5
+        version: 4.1.8(vitest@4.1.8)
+      '@webgpu/types':
+        specifier: '>=0.1.40'
+        version: 0.1.70
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
+      typedoc:
+        specifier: ^0.28.19
+        version: 0.28.19(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
       '@gltf-transform/core':
         specifier: ^3.7.0
@@ -2277,40 +2206,6 @@ importers:
       ws:
         specifier: ^8.21.0
         version: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-    devDependencies:
-      '@types/node':
-        specifier: ^24.10.1
-        version: 24.13.2
-      '@types/pixelmatch':
-        specifier: ^5.2.6
-        version: 5.2.6
-      '@types/pngjs':
-        specifier: ^6.0.5
-        version: 6.0.5
-      '@types/three':
-        specifier: ^0.170.0
-        version: 0.170.0
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.1
-      '@vitest/coverage-v8':
-        specifier: ^4.1.5
-        version: 4.1.8(vitest@4.1.8)
-      '@webgpu/types':
-        specifier: '>=0.1.40'
-        version: 0.1.70
-      tsup:
-        specifier: ^8.0.1
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
-      typedoc:
-        specifier: ^0.28.19
-        version: 0.28.19(typescript@5.9.3)
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.5
-        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/mvc-schema:
     dependencies:
@@ -2394,6 +2289,37 @@ importers:
       zod:
         specifier: '>=4.4.3'
         version: 4.4.3
+    devDependencies:
+      '@types/pixelmatch':
+        specifier: ^5.2.6
+        version: 5.2.6
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      '@types/three':
+        specifier: ^0.170.0
+        version: 0.170.0
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      '@vitest/coverage-v8':
+        specifier: ^4.1.5
+        version: 4.1.8(vitest@4.1.8)
+      '@webgpu/types':
+        specifier: '>=0.1.40'
+        version: 0.1.70
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
+      typedoc:
+        specifier: ^0.28.19
+        version: 0.28.19(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
     optionalDependencies:
       '@gltf-transform/core':
         specifier: ^3.7.0
@@ -2404,105 +2330,6 @@ importers:
       '@gltf-transform/functions':
         specifier: ^3.7.0
         version: 3.10.1(@types/node@24.13.2)
-      '@holoscript/alphafold-plugin':
-        specifier: workspace:^
-        version: link:../plugins/alphafold-plugin
-      '@holoscript/domain-plugin-template':
-        specifier: workspace:^
-        version: link:../plugins/domain-plugin-template
-      '@holoscript/medical-plugin':
-        specifier: workspace:^
-        version: link:../plugins/medical-plugin
-      '@holoscript/narupa-plugin':
-        specifier: workspace:^
-        version: link:../plugins/scientific-plugin
-      '@holoscript/plugin-banking-finance':
-        specifier: workspace:^
-        version: link:../plugins/banking-finance-plugin
-      '@holoscript/plugin-civil-engineering':
-        specifier: workspace:^
-        version: link:../plugins/civil-engineering-plugin
-      '@holoscript/plugin-culture-keyword':
-        specifier: workspace:^
-        version: link:../plugins/culture-keyword-plugin
-      '@holoscript/plugin-economic-primitives':
-        specifier: workspace:^
-        version: link:../plugins/economic-primitives-plugin
-      '@holoscript/plugin-education-lms':
-        specifier: workspace:^
-        version: link:../plugins/education-lms-plugin
-      '@holoscript/plugin-emergency-response':
-        specifier: workspace:^
-        version: link:../plugins/emergency-response
-      '@holoscript/plugin-fashion':
-        specifier: workspace:^
-        version: link:../plugins/fashion-plugin
-      '@holoscript/plugin-film-vfx':
-        specifier: workspace:^
-        version: link:../plugins/film-vfx-plugin
-      '@holoscript/plugin-film3d-volumetrics':
-        specifier: workspace:^
-        version: link:../plugins/film3d-volumetrics-plugin
-      '@holoscript/plugin-fitness-wellness':
-        specifier: workspace:^
-        version: link:../plugins/fitness-wellness-plugin
-      '@holoscript/plugin-forensics':
-        specifier: workspace:^
-        version: link:../plugins/forensics-plugin
-      '@holoscript/plugin-geolocation-gis':
-        specifier: workspace:^
-        version: link:../plugins/geolocation-gis-plugin
-      '@holoscript/plugin-hardware-invention':
-        specifier: workspace:^
-        version: link:../plugins/hardware-invention-plugin
-      '@holoscript/plugin-hr-workforce':
-        specifier: workspace:^
-        version: link:../plugins/hr-workforce-plugin
-      '@holoscript/plugin-insurance':
-        specifier: workspace:^
-        version: link:../plugins/insurance-plugin
-      '@holoscript/plugin-legal-document':
-        specifier: workspace:^
-        version: link:../plugins/legal-document-plugin
-      '@holoscript/plugin-manufacturing-qc':
-        specifier: workspace:^
-        version: link:../plugins/manufacturing-qc-plugin
-      '@holoscript/plugin-neuroscience':
-        specifier: workspace:^
-        version: link:../plugins/neuroscience-plugin
-      '@holoscript/plugin-restaurant':
-        specifier: workspace:^
-        version: link:../plugins/restaurant-plugin
-      '@holoscript/plugin-retail-ecommerce':
-        specifier: workspace:^
-        version: link:../plugins/retail-ecommerce-plugin
-      '@holoscript/plugin-therapy':
-        specifier: workspace:^
-        version: link:../plugins/therapy-plugin
-      '@holoscript/plugin-threat-intelligence':
-        specifier: workspace:^
-        version: link:../plugins/threat-intelligence-plugin
-      '@holoscript/plugin-trait-audit':
-        specifier: workspace:^
-        version: link:../plugins/trait-audit-plugin
-      '@holoscript/plugin-travel-hospitality':
-        specifier: workspace:^
-        version: link:../plugins/travel-hospitality-plugin
-      '@holoscript/plugin-urban-planning':
-        specifier: workspace:^
-        version: link:../plugins/urban-planning-plugin
-      '@holoscript/plugin-wine-food-beverage':
-        specifier: workspace:^
-        version: link:../plugins/wine-food-beverage-plugin
-      '@holoscript/plugin-wisdom-gotcha':
-        specifier: workspace:^
-        version: link:../plugins/wisdom-gotcha-plugin
-      '@holoscript/radio-astronomy-plugin':
-        specifier: workspace:^
-        version: link:../plugins/radio-astronomy-plugin
-      '@holoscript/robotics-plugin':
-        specifier: workspace:^
-        version: link:../plugins/robotics-plugin
       '@huggingface/transformers':
         specifier: ^3.8.1
         version: 3.8.1(@types/node@24.13.2)
@@ -2560,40 +2387,6 @@ importers:
       ws:
         specifier: ^8.21.0
         version: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-    devDependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../core
-      '@types/pixelmatch':
-        specifier: ^5.2.6
-        version: 5.2.6
-      '@types/pngjs':
-        specifier: ^6.0.5
-        version: 6.0.5
-      '@types/three':
-        specifier: ^0.170.0
-        version: 0.170.0
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.1
-      '@vitest/coverage-v8':
-        specifier: ^4.1.5
-        version: 4.1.8(vitest@4.1.8)
-      '@webgpu/types':
-        specifier: '>=0.1.40'
-        version: 0.1.70
-      tsup:
-        specifier: ^8.0.1
-        version: 8.5.1(jiti@1.21.7)(postcss@8.5.18)(tsx@4.22.4)(typescript@5.9.3)(yaml@2.9.0)
-      typedoc:
-        specifier: ^0.28.19
-        version: 0.28.19(typescript@5.9.3)
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.5
-        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/aerospace-plugin:
     dependencies:
@@ -2605,7 +2398,7 @@ importers:
         version: link:../../engine
 
   packages/plugins/alphafold-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2613,7 +2406,7 @@ importers:
   packages/plugins/assimp-plugin: {}
 
   packages/plugins/banking-finance-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2631,7 +2424,7 @@ importers:
         version: link:../../core
 
   packages/plugins/domain-plugin-template:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2649,11 +2442,10 @@ importers:
         version: link:../../core
 
   packages/plugins/emergency-response:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2687,16 +2479,16 @@ importers:
 
   packages/plugins/film-vfx-plugin:
     dependencies:
+      loro-crdt:
+        specifier: ^1.0.0
+        version: 1.13.2
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
       '@holoscript/crdt-spatial':
         specifier: workspace:*
         version: link:../../crdt-spatial
-      loro-crdt:
-        specifier: ^1.0.0
-        version: 1.13.2
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2733,11 +2525,10 @@ importers:
         version: link:../../core
 
   packages/plugins/forensics-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2752,11 +2543,10 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/game-security-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2783,11 +2573,10 @@ importers:
         version: link:../../core
 
   packages/plugins/hardware-invention-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2837,7 +2626,7 @@ importers:
   packages/plugins/marble-genie3-plugin: {}
 
   packages/plugins/medical-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2864,13 +2653,13 @@ importers:
 
   packages/plugins/qm-bridge:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../../engine
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../../core
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -2879,11 +2668,10 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/radio-astronomy-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../../engine
@@ -2909,7 +2697,7 @@ importers:
         version: link:../../core
 
   packages/plugins/robotics-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2917,7 +2705,7 @@ importers:
   packages/plugins/scenethesis-plugin: {}
 
   packages/plugins/scientific-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
@@ -2927,11 +2715,10 @@ importers:
   packages/plugins/talkinghead-plugin: {}
 
   packages/plugins/therapy-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2946,11 +2733,10 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/threat-intelligence-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-    devDependencies:
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -5694,89 +5480,105 @@ packages:
     resolution: {integrity: sha512-dqVSFynCox4C/J8kT16V7SIFAns0IjgLwkvYT7p8LQVmJ5OS5b6tI9IGflxTeuBS//zXeFIUbwt5dwxyZ17cnA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-arm@1.3.2':
     resolution: {integrity: sha512-1eMLzy92I4J6rmi4mAT8yC3HxOtniyGELlzGbNMLLeqe052ahFQ0h6LFq+lh5DsDIdYViIDst08abvSbcEdLXQ==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-ppc64@1.3.2':
     resolution: {integrity: sha512-3z0NHDxD6n5I9gc05U1eW1AyRm+Gznzq3naMrthPNqE6oYykcogW0l/jfpJdjYnuNl8R7yI9pNbE1XiUeyq0Aw==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-riscv64@1.3.2':
     resolution: {integrity: sha512-bsb4rI+NldGOsXuej2r8OdSS8+zXDVaCWxyWrcv6kneTOlgAHtZABRzBBCwdsPiD90J4myNJuHpg6kA20ImW/w==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-s390x@1.3.2':
     resolution: {integrity: sha512-/ABshyj8gCpyIrNXnHn4LorDJ0HHm1VhXPBlxZ8zAtfVPAaSafXPGn+sUSIRiwaSBy0mmFjSjiXI5mkcwdChKQ==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linux-x64@1.3.2':
     resolution: {integrity: sha512-ITPEtgffGJ0S6G9dRyw/366tJQqFRcHWPHhC+Stpg3Z8AEMrDrTr2lhdz4f/Y/HMbRh//7Z5mBzEpVdi62Oc3w==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-libvips-linuxmusl-arm64@1.3.2':
     resolution: {integrity: sha512-zE9EdiUzUmg5mDT5a1rk5fYJ6GWPloTwWBYDS14naqHsL+EaMpDj1AWnpLgh3u0YCORv2Tt50wrcrpYqkP97Kw==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-libvips-linuxmusl-x64@1.3.2':
     resolution: {integrity: sha512-m0lrLiUt+lBYnCFr8qV/65yMR4E/c7/wf78I5eKTdkEakFAlZ9QlzEM3QIhhAwVeUhLAHLcCq7a7Vszq/oFNZQ==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-linux-arm64@0.35.3':
     resolution: {integrity: sha512-QgKDspHPnrU+GQ55XPhGwyhC8acLVOOSyAvo1oVfFmrIXLkDNmGWzAfDZ4xK8oSA1qBQrALcHX0G5UZni/SuFQ==}
     engines: {node: '>=20.9.0'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-arm@0.35.3':
     resolution: {integrity: sha512-affVWCTLooy8TSxbDx2qkzuDeaWLNVBA+P//FNBirHsXpP2fuBhk5AuboYUnrDnzoXes8GFjpTx0SBFOCRg+FA==}
     engines: {node: '>=20.9.0'}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-ppc64@0.35.3':
     resolution: {integrity: sha512-sMd8rDxmpLOwv/7N44klFjOD5DUO7FLdjiXDI0hoxYaf7Ar262dQIEkosE98bps+5HPLtp/EvNqeqQtOycP/IA==}
     engines: {node: '>=20.9.0'}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-riscv64@0.35.3':
     resolution: {integrity: sha512-0Eob78yjlYPfL5vMNWAW55l3R9Y6BQS/gOfe0ZcP9mEz9ohhKSt4im1hayiknXgf8AWrFqMvJcKIdmLmEe7yeQ==}
     engines: {node: '>=20.9.0'}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-s390x@0.35.3':
     resolution: {integrity: sha512-KgAxQ0DxpNOq1rG2t5cgTgShJFGSuU7XO45cqC+1NVOuZnP6tlgZRuSYOfNupGkHID0o3cJOsw4DVeJpMovcGw==}
     engines: {node: '>=20.9.0'}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linux-x64@0.35.3':
     resolution: {integrity: sha512-8pqvxubL2PGdhlPy6GLqzDYMUjyRmKAwKHYKixpdJYBUK7PJ0C029XdsnpFIdgRZG68fZiGdHVWcKPvtiPB4cA==}
     engines: {node: '>=20.9.0'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@img/sharp-linuxmusl-arm64@0.35.3':
     resolution: {integrity: sha512-Vz0iQjzzcSX3HCbfwFfCSG/9SCIqyO0mH2sXyiHaAYfBk0cRsCWXRyQYX0ovCK/PAQBbTzQ0dsPQHh5MAFL59w==}
     engines: {node: '>=20.9.0'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-linuxmusl-x64@0.35.3':
     resolution: {integrity: sha512-6O1NPKcDVj9QEdg7Hx549EX8U0rp6yXQERqru6yRN7fGBn32UvIRJUlWnk+8xDCiG76hXVBbX82NZ/ZKr0euIg==}
     engines: {node: '>=20.9.0'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@img/sharp-wasm32@0.35.3':
     resolution: {integrity: sha512-cZ0XkcYGpHZkqW6iCkqTcmUC0CD9DhD5d/qeZlZkfRBn6GnHniZXLUo5+9xw8Iv76YE6LQFN9YNBlKREcCG76w==}
@@ -6190,24 +5992,28 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@next/swc-linux-arm64-musl@16.2.11':
     resolution: {integrity: sha512-eIjcpx2fnnFSSkZDbTxy74KnokUXDjfoLClpWelfgHLf621aTqswhwXQ7GkD5K5rplrS6LZ/Bj+mVuvzluBOEg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@next/swc-linux-x64-gnu@16.2.11':
     resolution: {integrity: sha512-8WgzpaWMs46qJT9kiV47cje86L0x/Mu9t8/Gwj+pnbgW3rETVfCnaScPjlYUwNScpOozdcIMHWmAvuZJUonR2w==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@next/swc-linux-x64-musl@16.2.11':
     resolution: {integrity: sha512-I3UgPds7G4ZYnTb/H+5GBGuUT2DhAk6j0mL6A4s63RjFs74wB2hOWP0vaxsK+3NJraExt3eYEPQ/UtT0x/64Nw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@next/swc-win32-arm64-msvc@16.2.11':
     resolution: {integrity: sha512-n89CjtcThnjrwgJMAiI5xbqwLY51zvwC9tSlArmVndAJLYVl9T9UAdlkXTmZvE++idoXe8KdglQlhNRdUp1c6g==}
@@ -6486,48 +6292,56 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-parser/binding-linux-arm64-musl@0.127.0':
     resolution: {integrity: sha512-EoTCZneNFU/P2qrpEM+RHmQwt+CvDkyGESG6qhr7KaegXLZwePfbrkCDfAk8/rhxbDUVGsZILX+2tqPzFtoFWA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-parser/binding-linux-ppc64-gnu@0.127.0':
     resolution: {integrity: sha512-zALjmZYgxFLHjXeudcDF0xFGNydTAtkAeXAr2EuC17ywCyFxcmQra4w0BMde0Yi/re4Bi4iwEoEXtYN7l6eBLQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-parser/binding-linux-riscv64-gnu@0.127.0':
     resolution: {integrity: sha512-fPP8M6zQLS7Jz7o9d5ArUSuAuSK3e+WCYVrCpdzeCOejidtZExJ9tjhDrAd3HEPqARBCPmdpqxESPFqy44vkBQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-parser/binding-linux-riscv64-musl@0.127.0':
     resolution: {integrity: sha512-7IcC4Ao02oGpfnjt+X/oF4U2mllo2qoSkw5xxiXNKL9MCTsTiAC6616beOuehdxGcnz1bRoPC1RQ2f1GQDdN+g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-parser/binding-linux-s390x-gnu@0.127.0':
     resolution: {integrity: sha512-pbXIhiNFHoqWeqDNLiJ9JkpHz1IM9k4DXa66x+1GTWMG7iLxtkXgE53iiuKSXwmk3zIYmaPVfBvgcAhS583K4Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-parser/binding-linux-x64-gnu@0.127.0':
     resolution: {integrity: sha512-MYCguB9RvBvlSd6gbuNI7QwiLoCCAlGnlRJFPrzLI6U1/9wkC/WK6LtBAUln55H1Ctqw45PWmqrobKoMhsYQzQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-parser/binding-linux-x64-musl@0.127.0':
     resolution: {integrity: sha512-5eY0B/bxf1xIUxb4NOTvOI3KWtBQfPWYyKAzgcrCt0mDibSZygVpO1Pz8bkeiSZ5Jj9+M09dkggG3H8I5d0Uyg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-parser/binding-openharmony-arm64@0.127.0':
     resolution: {integrity: sha512-Gld0ajrFTUXNtdw20fVBuTQx66FA75nIVg+//pPfR3sXkuABB4mTBhl3r9JNzrJpgW//qiwxf0nWXUWGJSL3UQ==}
@@ -6603,41 +6417,49 @@ packages:
     resolution: {integrity: sha512-0bJnmYFp62JdZ4nVMDUZ/C58BCZOCcqgKtnUlp7L9Ojf/czIN+3j72YlLPeWLkzlr6SlYvIQA4SGV/HyO0d+qg==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-resolver/binding-linux-arm64-musl@11.20.0':
     resolution: {integrity: sha512-wKHHzPKZo7Ufhv/Bt6yxT7FOgnIgW4gwXcJUipkShGp68W3wGVqvr1Sr0fY65lN0Oy6y41+g2kIDvkgZaMMUkw==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-resolver/binding-linux-ppc64-gnu@11.20.0':
     resolution: {integrity: sha512-RN8goF7Ie0B79L4i4G6OeBocTgSC56vJbQ65VJje+oXnldVpLnOU7j/AQ/dP94TcCS+Yh6WG8u3Qt4ETteXFNQ==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-resolver/binding-linux-riscv64-gnu@11.20.0':
     resolution: {integrity: sha512-5l1yU6/xQEqLZRzxqmMxJfWPslpwCmBsdDGaBvABPehxquCXDC7dd7oraNdKSJUMDXSM7VvVj8H2D2FTjU7oWw==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-resolver/binding-linux-riscv64-musl@11.20.0':
     resolution: {integrity: sha512-xHEvkbgz6UC+A3JOyDQy76LkUaxsNSfIr3/GV8slwZsnuooJiIB34gzJfsyvR4JdCYNUUPsRJc/w/oWkODu+hg==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-resolver/binding-linux-s390x-gnu@11.20.0':
     resolution: {integrity: sha512-aWPDUUmSeyHvlW+SoEUd+JIJsQhVhu6a5tBpDRMu058naPAchTgAVGCFy35zjbnFlt0i8hLWziff6HX0D3LU4g==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-resolver/binding-linux-x64-gnu@11.20.0':
     resolution: {integrity: sha512-x2YeSimvhJjKLVD8KSu8f/rqU1potcdEMkApIPJqjZWN7c2Fpt4g2X32WDg1p+XDAmyT7nuQGe0vnhvXeLbH+g==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@oxc-resolver/binding-linux-x64-musl@11.20.0':
     resolution: {integrity: sha512-kcRLEIxpZefeYfLChjpgFf3ilBzRDZ+yobMrpRsQlSrxuFGtm3U6PMU7AaEpMqo3NfDGVyJJseAjnRLzMFHjwQ==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@oxc-resolver/binding-openharmony-arm64@11.20.0':
     resolution: {integrity: sha512-HHcfnApSZGtKhTiHqe8OZruOZe5XuFQH5/E0Yhj3u8fnFvzkM4/k6WjacUf4SvA0SPEAbfbgYmVPuo0VX/fIBQ==}
@@ -6954,21 +6776,25 @@ packages:
     resolution: {integrity: sha512-3xhtIdqufAiO49v8tbbkPDyDkd7uRRB8vx+vSPi9+THUI/h0uqi+ylENHtsWj7veEDCiTB3Y4ZjsmotEVMHQJA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@remotion/compositor-linux-arm64-musl@4.0.477':
     resolution: {integrity: sha512-qenbQpmSm9XQn2uaW3yt+P5YBgQuCb+jitTfQunhR1l0tk6oC2kKPn14qKu9jAs7vZPH11bV8V76DcYUhqdbAQ==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@remotion/compositor-linux-x64-gnu@4.0.477':
     resolution: {integrity: sha512-P+5MRPkaRskoUgseJxEko53KvW/Rzu0Ow/htyzJjC9XpigtjYTJPKRKOjw4/ihPYJoVDH+e9s/jyOF06odzLVA==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@remotion/compositor-linux-x64-musl@4.0.477':
     resolution: {integrity: sha512-uas9/X85QfI6p5vTOCcjqmCBizIK6QeZlIXVrKc1fcmSzhk3udjbzx9XDDo71m6Bz8IfWeqV1ZkX/5pLJYufFg==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@remotion/compositor-win32-x64-msvc@4.0.477':
     resolution: {integrity: sha512-7oldAftiUrFDI1U5z0zN87xfhpuJuIrLrNP16GFgj0JZN4AzRQT/iGYoH5+H2/clT910mlq4YtrfAv1RsHe4Cg==}
@@ -7095,36 +6921,42 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rolldown/binding-linux-arm64-musl@1.0.3':
     resolution: {integrity: sha512-VWkUHwWriDciit80wleYwKILoR/KMvxh/IdwS/paX+ZgpuRpCrKLUdadJbc0NpBEiyhpYawsJ73j9aCvOH+f7Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rolldown/binding-linux-ppc64-gnu@1.0.3':
     resolution: {integrity: sha512-5f1laC0SlIR0yDbFCd8acUhvJIag6N3zC5P7oUPN6wX0aOma+uKJ0wBDH5aq7I1PVI2ttTlhJwzwRIBnLiSGEg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@rolldown/binding-linux-s390x-gnu@1.0.3':
     resolution: {integrity: sha512-Iq4ko0r4XsgbrF/LunNgHtAGLRRVE2kXonAXQ/MV0mC6jQpMOhW1SvtZja2EhC/kd05++bP78dsqBeIQyYJ6Yg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@rolldown/binding-linux-x64-gnu@1.0.3':
     resolution: {integrity: sha512-B8m6tD5+/N5FeNQFbKlLA/2yVq9ycQP1SeedyEYYKWBNR3ZQbkvIUcNnDNM03lO1l5F2roiiFJGgvoLLyZXtSg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rolldown/binding-linux-x64-musl@1.0.3':
     resolution: {integrity: sha512-pSdpdUJHkuCxun9LE7jvgUB9qsRgaiyNNCX7m/AvHTcq67AiT/Yhoxvw5zPfhrM8k/BfP8ce/hMOpthKDpEUow==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rolldown/binding-openharmony-arm64@1.0.3':
     resolution: {integrity: sha512-OXXS3RKJgX2uLwM+gYyuH5omcH8fL1LJs96pZGgtetVCahON57+d4SJHzTgZiOjxgGkSnpXpOsWuPDGAKAigEg==}
@@ -7198,66 +7030,79 @@ packages:
     resolution: {integrity: sha512-T1dMEQhXA/jkJ/jyMIw9IovK8bSUq7A8kLIlvZTb/6YIVsp2zLavr4F3oyllHWo7eIVJRyE5n3tUjQJEbE1IuQ==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.62.0':
     resolution: {integrity: sha512-2as0LgT7qQpyceQq6VUJYnumUMUrgGQCWIiDIN9DE0/tglsk6o66uCB4f3djRawAltvfCNLyZZrsqbPA6inCsA==}
     cpu: [arm]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.62.0':
     resolution: {integrity: sha512-bVURMg+6eNN9C/yc0aVjooZcwTTtYF4YW3xta5pP0//r3o1V8gXEHXWCndj47w/HhwsFroZrFhR+6uQP5T0n0g==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.62.0':
     resolution: {integrity: sha512-Ful8pM/2yYI83PViWdFdpZhdI8HJ5qsXANe5atypbHDf+KIBBDsZsbyy8hbXnULVvW9NsTh5DHwbcBftyLTfiw==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-loong64-gnu@4.62.0':
     resolution: {integrity: sha512-9Gp/DgrkzfUBmNPVTyPTvay+4xEP7M/clXpj3efXBcm6uTIVIgDg4rqUpqKXvLEuFRVuEpSAOkhgNeecvaZ4Cg==}
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-loong64-musl@4.62.0':
     resolution: {integrity: sha512-m9tsJz54LUXkSYM8+8PG81B9IKK5r+2T0clMq4QrS16xFosufU7firBDAZEsDheDs7wTlP7h3++S7lMsU955HA==}
     cpu: [loong64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-ppc64-gnu@4.62.0':
     resolution: {integrity: sha512-3UvJ5PNVU16aJf6M3tFI24pWzAl2/ynfbyRN3ICyQajK1lSkrnVYNnLz3v04J32qKa0FczJc22zeToc0lr2A3w==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-musl@4.62.0':
     resolution: {integrity: sha512-vRWUAbYLGHBZS6Q8Msb2sfnf1fvJf+47t8l/TwOerM2qArzy+IeNMTHrYLHXh95h8MoatPHI5hhSZNs+mGXKPg==}
     cpu: [ppc64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-riscv64-gnu@4.62.0':
     resolution: {integrity: sha512-c00T5SYENHAt86cfW47URaP3Us5vLC/4QO7GYud1G5VNRffCwwCuBspwqYrriuJB+5m0WFzClCn9wed0FBjKvg==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.62.0':
     resolution: {integrity: sha512-krrCDilhXOwFkSkO3Wm9I/f9H0L92XHHwy2fwxjukxIbh0dem8gZqOW5Y8BsHrpJv5qwlRBV+Wl4ZFyRWhUpwg==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.62.0':
     resolution: {integrity: sha512-7pfYFSTc4/rUC/FtAI0Qp6QthDBCIi6/AuP1xYqFk5vanI6KnL5dWKP60OM/05LOsbwTmIcvr6eXC4CJuJ75IA==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.62.0':
     resolution: {integrity: sha512-7SDIalKeIpG0Ifogbbdn58HmSotYMlf23K3dCJEmiVd9Fg36Vmni82iPQec27N3wY4Bvbxftkxz6vSx9OcouTg==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.62.0':
     resolution: {integrity: sha512-eRZevouTH2i1HeAVLqJuLnt256krQkGY0TN6WsTmsIhuzbh457HuWDMakKwmi0Cjadux983CoSr8Lim2QhUIFw==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-openbsd-x64@4.62.0':
     resolution: {integrity: sha512-3oVS7FLGa4U1qcvao9ylGxrjXZyUQqR8UwxEcnUEyPX53O/C/mKDZegNXTdHCP+h3e6ta/f1EN38Yif1mmZHYg==}
@@ -7303,21 +7148,25 @@ packages:
     resolution: {integrity: sha512-P0QrGRPbTWu6RKWfN0bDtbnEps3rXH0MWIMreZABoUrVmNQKtXR6e73J3ub6a+di5s2+K0M2LJ9Bh2/H4UsDUA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-arm64-musl@1.7.11':
     resolution: {integrity: sha512-6ky7R43VMjWwmx3Yx7Jl7faLBBMAgMDt+/bN35RgwjiPgsIByz65EwytUVuW9rikB43BGHvA/eqlnjLrUzNBqw==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-x64-gnu@1.7.11':
     resolution: {integrity: sha512-cuOJMfCOvb2Wgsry5enXJ3iT1FGUjdPqtGUBVupQlEG4ntSYsQ2PtF4wIDVasR3wdxC5nQbipOrDiN/u6fYsdQ==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-x64-musl@1.7.11':
     resolution: {integrity: sha512-CoK37hva4AmHGh3VCsQXmGr40L36m1/AdnN5LEjUX6kx5rEH7/1nEBN6Ii72pejqDVvk9anEROmPDiPw10tpFg==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-wasm32-wasi@1.7.11':
     resolution: {integrity: sha512-OtrmnPUVJMxjNa3eDMfHyPdtlLRmmp/aIm0fQHlAOATbZvlGm12q7rhPW5BXTu1yh+1rQ1/uqvz+SzKEZXuJaQ==}
@@ -8008,30 +7857,35 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@tauri-apps/cli-linux-arm64-musl@2.11.2':
     resolution: {integrity: sha512-X1rm0BERqAAggtYTESSgXrS3sz4Sb/OiPiz54UqISlXW+GkR3vNIGnsy/lejNmoXGVqri3Q53BCfQiclOIyRPw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@tauri-apps/cli-linux-riscv64-gnu@2.11.2':
     resolution: {integrity: sha512-usbMLJbT3KtkOrBMDVeGYNM35aTHXx38SJSzTMSqqjeUIOQ+iVPjb2yAGNAE+KqmBbAx4FOFIyMeKXx2M/JKGQ==}
     engines: {node: '>= 10'}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@tauri-apps/cli-linux-x64-gnu@2.11.2':
     resolution: {integrity: sha512-Ru4gwJKPG0ctVGchRGpRup4Y4lW2SSfFnrbQcyHhCliKy4g8Qz97TrUgCur4CbWyAgKxvGh3SjrkA0LDYzDGiw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@tauri-apps/cli-linux-x64-musl@2.11.2':
     resolution: {integrity: sha512-eUm7T6clN1MMmNSRQ9gaWsQdyehQx2Gmn5hht/QUlqZQI/qcP2OJK5dnaxqwFzCr2HdsEo9ydxaqcS1oJzMvUw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@tauri-apps/cli-win32-arm64-msvc@2.11.2':
     resolution: {integrity: sha512-HeeZW80jU+gVTOEX4X/hC6NVSAdDVXajwP5fxIZ/3z9WvUC7qrudX2GMTilYq6Dg0e0sk0XgsAJD1hZ5wPBXUA==}
@@ -8581,51 +8435,61 @@ packages:
     resolution: {integrity: sha512-zJc0H99FEPoFfSrNpa91HYfxzfAJCr502oxNK1cfdC9hlaFI43RT+JFCann9JUgZmLzzntChHyn13Sgn9ljHNg==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-arm64-musl@1.12.2':
     resolution: {integrity: sha512-KQ3Lki6l+Pz1k/eBipN41ES+YUK30beLGb9YqcB1O542cyLCNE6GaxrfcY3T6EezmGGk84wb5XyO9loTM9tkcA==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@unrs/resolver-binding-linux-loong64-gnu@1.12.2':
     resolution: {integrity: sha512-3SJGEh1DborhG6pyxvhPzCT4bbSIVihsvgJc13P1bHG7KLdNDaF9T3gsTwFc7Jw/5Y5/iWOjkEx7Zy0NvCGX3Q==}
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-loong64-musl@1.12.2':
     resolution: {integrity: sha512-jiuG/Obbel7uw1PwHNFfrkiKhLAF6mnyZ6aWlOAVN9WqKm8v0OFGnciJIHu8+CMvXLQ8AD51LPzAoUfT21D5Ew==}
     cpu: [loong64]
     os: [linux]
+    libc: [musl]
 
   '@unrs/resolver-binding-linux-ppc64-gnu@1.12.2':
     resolution: {integrity: sha512-q7xRvVpmcfeL+LlZg8Pbbo6QaTZwDU5BaGZbwfhkEsXJn3Was8xYfE0RBH266xZt0rM6B7i8xAYIvjthuUIWHg==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-riscv64-gnu@1.12.2':
     resolution: {integrity: sha512-0CVdx6lcnT3Q9inOH8tsMIOJ6ImndllMjqJHg8RLVdB7Vq4SfkEXl9mCSsVNuNA4MCYycRicCUxPCabVHJRr6A==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-riscv64-musl@1.12.2':
     resolution: {integrity: sha512-iOwlRo9vnp6R6ohHQS11n0NnfdXx/omhkocmIfaPRpQhKZ+3BDMkkdRVh53qjkFkpPddf+FETA28NwGN7l5l+w==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@unrs/resolver-binding-linux-s390x-gnu@1.12.2':
     resolution: {integrity: sha512-HYJtLfXq94q8iZNFT1lknx258wlkkWhZeUXJRqzKBBUJ00CvZ+N33zgbCqimLjsyw5Va6uUxhVa12mI+kaveEw==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-x64-gnu@1.12.2':
     resolution: {integrity: sha512-mPsUhunKKDih5O96Y6enDQyHc1SqBPlY1E/SfMWDM3EdJ95Z9CArPeCVwCCqbP45ljvivdEk8Fxn+SIb1rDAJQ==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@unrs/resolver-binding-linux-x64-musl@1.12.2':
     resolution: {integrity: sha512-azrt6+5ydLd8Vt210AAFis/lZevSfPw93EJRIJG+xPu4WCJ8K0kppCTpMyLPcKT7H15M4Jnt2tMp5bOvCkRC6A==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@unrs/resolver-binding-openharmony-arm64@1.12.2':
     resolution: {integrity: sha512-YZ9hP4O0X9PQb8eO980qmLNGH4zT3I9+SZTdt0Pr0YyuGQhYKoOZkV02VzrzyOZJ5xIJ3UFIenKkUkGg8GjgWQ==}
@@ -12206,24 +12070,28 @@ packages:
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   lightningcss-linux-arm64-musl@1.32.0:
     resolution: {integrity: sha512-UpQkoenr4UJEzgVIYpI80lDFvRmPVg6oqboNHfoH4CQIfNA+HOrZ7Mo7KZP02dC6LjghPQJeBsvXhJod/wnIBg==}
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   lightningcss-linux-x64-gnu@1.32.0:
     resolution: {integrity: sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   lightningcss-linux-x64-musl@1.32.0:
     resolution: {integrity: sha512-bYcLp+Vb0awsiXg/80uCRezCYHNg1/l3mt0gzHnWV9XP1W5sKa5/TCdGWaR/zBM2PeF/HbsQv/j2URNOiVuxWg==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   lightningcss-win32-arm64-msvc@1.32.0:
     resolution: {integrity: sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw==}
@@ -18594,7 +18462,7 @@ snapshots:
       react-remove-scroll: 2.7.2(@types/react@19.2.14)(react@19.2.7)
       ua-parser-js: 2.0.10
       viem: 2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.4.3)
-      wagmi: 3.6.16(pwmx2m3vqxkrlwc2lhnwvabk64)
+      wagmi: 3.6.16(51d5c9208971abf190438c796a9de0e4)
     transitivePeerDependencies:
       - '@types/react'
       - babel-plugin-macros
@@ -21184,7 +21052,7 @@ snapshots:
 
   '@vue/shared@3.5.38': {}
 
-  '@wagmi/connectors@8.0.15(cp2cc3no6xkzne56v565ge7yj4)':
+  '@wagmi/connectors@8.0.15(74261d57ab297aad4063753a6412b5bd)':
     dependencies:
       '@wagmi/core': 3.5.0(@tanstack/query-core@5.101.0)(@types/react@19.2.14)(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.7))(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.4.3))
       viem: 2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.4.3)
@@ -23530,8 +23398,8 @@ snapshots:
       '@typescript-eslint/parser': 8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-react: 7.37.5(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-react-hooks: 5.2.0(eslint@9.39.4(jiti@1.21.7))
@@ -23554,7 +23422,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -23565,22 +23433,22 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.12.2
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-module-utils@2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.4(jiti@1.21.7))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7)):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -23591,7 +23459,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.4(jiti@1.21.7)
       eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.4(jiti@1.21.7))
+      eslint-module-utils: 2.13.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7)))(eslint@9.39.4(jiti@1.21.7))
       hasown: 2.0.4
       is-core-module: 2.16.2
       is-glob: 4.0.3
@@ -26989,7 +26857,7 @@ snapshots:
       '@tanstack/react-query': 5.101.0(react@19.2.7)
       react: 19.2.7
       typescript: 5.9.3
-      wagmi: 3.6.16(pwmx2m3vqxkrlwc2lhnwvabk64)
+      wagmi: 3.6.16(51d5c9208971abf190438c796a9de0e4)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -29445,10 +29313,10 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  wagmi@3.6.16(pwmx2m3vqxkrlwc2lhnwvabk64):
+  wagmi@3.6.16(51d5c9208971abf190438c796a9de0e4):
     dependencies:
       '@tanstack/react-query': 5.101.0(react@19.2.7)
-      '@wagmi/connectors': 8.0.15(cp2cc3no6xkzne56v565ge7yj4)
+      '@wagmi/connectors': 8.0.15(74261d57ab297aad4063753a6412b5bd)
       '@wagmi/core': 3.5.0(@tanstack/query-core@5.101.0)(@types/react@19.2.14)(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.7))(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.4.3))
       react: 19.2.7
       use-sync-external-store: 1.4.0(react@19.2.7)

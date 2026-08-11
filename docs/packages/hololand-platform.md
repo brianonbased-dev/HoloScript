@@ -1,6 +1,6 @@
-# @holoscript/hololand-platform
+# @hololand/platform-services
 
-`@holoscript/hololand-platform` is the HoloLand VR-world services package. It
+`@hololand/platform-services` is the HoloLand VR-world services package. It
 packages world-state services, affective memory, collaboration primitives,
 device-lab receipts, headset sharing, HoloTunnel sharing, NPC memory, portal
 entry receipts, and adversarial trajectory tooling for HoloLand consumers.
@@ -8,7 +8,7 @@ entry receipts, and adversarial trajectory tooling for HoloLand consumers.
 ## Install
 
 ```bash
-npm install @holoscript/hololand-platform
+npm install @hololand/platform-services
 ```
 
 ## Use
@@ -18,7 +18,7 @@ import {
   AffectiveMemory,
   buildHoloTunnelSharePacket,
   stewardTick,
-} from '@holoscript/hololand-platform';
+} from '@hololand/platform-services';
 ```
 
 ## CLIs
@@ -44,7 +44,7 @@ need HoloLand world services or device receipts directly.
 ## Validation
 
 ```bash
-corepack pnpm --filter @holoscript/hololand-platform run test
+corepack pnpm --filter @hololand/platform-services run test
 corepack pnpm run check:publish-surface
 corepack pnpm run check:package-architecture
 corepack pnpm run package:opportunity-map

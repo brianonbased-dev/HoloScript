@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 export const ADVERSARIAL_TRAJECTORY_SCHEMA = 'holoscript.adversarial-trajectory.v1' as const;
 export const ADVERSARIAL_TRAJECTORY_GENERATOR =
-  '@holoscript/hololand-platform/adversarial-trajectory' as const;
+  '@hololand/platform-services/adversarial-trajectory' as const;
 
 export type PredicateName = 'violation' | 'novelty' | 'learnability' | 'regression' | 'invalidity';
 
@@ -695,7 +695,7 @@ function finalizeTrajectoryDraft(
     predicateHash: expectedPredicateHash,
     status: draft.status,
   });
-  const replayCommand = `pnpm --filter @holoscript/hololand-platform run adversarial-trajectory -- replay ${draft.id} --report ${reportPath}`;
+  const replayCommand = `pnpm --filter @hololand/platform-services run adversarial-trajectory -- replay ${draft.id} --report ${reportPath}`;
 
   return {
     id: draft.id,

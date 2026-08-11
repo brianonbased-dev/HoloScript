@@ -69,7 +69,7 @@ export interface HeadsetShareReceipt {
   receiptId: string;
   taskId?: string;
   createdAt: string;
-  generatedBy: '@holoscript/hololand-platform/headset-share';
+  generatedBy: '@hololand/platform-services/headset-share';
   shareId: string;
   transport?: HeadsetTransportKind;
   url: string;
@@ -323,7 +323,7 @@ export function buildHeadsetShareReceipt(options: {
     schemaVersion: 'hololand-headset-share-receipt/v1',
     ...(options.taskId ? { taskId: options.taskId } : {}),
     createdAt: now,
-    generatedBy: '@holoscript/hololand-platform/headset-share',
+    generatedBy: '@hololand/platform-services/headset-share',
     shareId: options.shareId,
     transport: options.transport,
     url: options.url,

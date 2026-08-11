@@ -451,7 +451,7 @@ describe('buildPortalEntryReceipt', () => {
   it('builds a valid receipt with defaults', () => {
     const receipt = buildReceipt();
     expect(receipt.schemaVersion).toBe(PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION);
-    expect(receipt.generatedBy).toBe('@holoscript/hololand-platform/portal-entry');
+    expect(receipt.generatedBy).toBe('@hololand/platform-services/portal-entry');
     expect(receipt.receiptId).toMatch(/^pentry_[0-9a-f]{16}$/);
     expect(receipt.overallStatus).toBe('admitted');
     expect(validatePortalEntryReceipt(receipt)).toEqual({ valid: true, errors: [] });

@@ -32,7 +32,7 @@
         "@holoscript/core-types",
         "@holoscript/engine",
         "@holoscript/framework",
-        "@holoscript/hololand-platform",
+        "@hololand/platform-services",
         "@holoscript/holoembed",
         "@holoscript/mesh",
         "@holoscript/platform",

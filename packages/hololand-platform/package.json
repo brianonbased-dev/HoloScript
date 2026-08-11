@@ -1,5 +1,5 @@
 {
-  "name": "@holoscript/hololand-platform",
+  "name": "@hololand/platform-services",
   "version": "6.1.1",
   "description": "Hololand VR Platform Services (Affective Memory, State, etc)",
   "type": "module",
