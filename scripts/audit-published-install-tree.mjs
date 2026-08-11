@@ -2,12 +2,27 @@
 /**
  * Published-tree install audit.
  *
- * Crawls the PUBLISHED npm runtime dependency graph from a root package (default
- * @holoscript/cli@latest) and fails if any reachable published package.json:
+ * Crawls the PUBLISHED npm runtime dependency graph from one or more root
+ * packages (default @holoscript/cli@latest) and fails if any reachable
+ * published package.json:
  *   1. contains a `workspace:` spec in any dependency field (the
  *      EUNSUPPORTEDPROTOCOL leak — workspace protocol not resolved at publish),
  *   2. pins an @holoscript/* runtime dependency to a version that does not
- *      exist on the registry (the ETARGET / 404 phantom-pin failure mode).
+ *      exist on the registry (the ETARGET / 404 phantom-pin failure mode),
+ *   3. forces two or more MAJORS of the same @holoscript/* package into one
+ *      tree (the silent-duplicate failure mode).
+ *
+ * Check 3 exists because checks 1 and 2 are both "does it resolve?" questions,
+ * and the worst failure mode answers yes. A pin like runtime@6.1.1 ->
+ * core@^6.1.2 is valid and resolves to a real published version. It just
+ * resolves to a SECOND copy, because something else in the tree already
+ * required core@^8. npm installs both, exits 0, and prints no warning. The
+ * consumer gets two parsers and two trait registries; anything crossing between
+ * them fails instanceof with nothing pointing at the cause. Measured 2026-08-11:
+ * `npm i @holoscript/engine@6.1.6 @holoscript/runtime@6.1.1` in an empty
+ * directory yielded five copies of @holoscript/core across three majors.
+ *
+ * A loud failure is kinder than that, which is what this turns it into.
  *
  * Note: peerDependencies are scanned for workspace leaks but are not crawled as
  * independent install branches. npm satisfies peers against already-installed
@@ -39,8 +54,13 @@ const REGISTRY = process.env.npm_config_registry || 'https://registry.npmjs.org'
 const TOKEN = process.env.NPM_TOKEN || process.env.npm_token || '';
 const JSON_OUT = process.argv.includes('--json');
 const SELF_TEST = process.argv.includes('--self-test');
-const ROOT_SPEC =
-  process.argv.find((a, i) => i >= 2 && !a.startsWith('--')) || '@holoscript/cli@latest';
+// Every non-flag positional is a root. Multiple roots matter: a package can be
+// unreachable from @holoscript/cli and still be a public entry point that
+// carries the defect — @holoscript/runtime is exactly that case.
+const ROOT_SPECS = (() => {
+  const positional = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  return positional.length ? positional : ['@holoscript/cli@latest'];
+})();
 
 const DEP_FIELDS = ['dependencies', 'peerDependencies', 'optionalDependencies'];
 const CRAWL_FIELDS = new Set(['dependencies']);
@@ -226,6 +246,42 @@ function isInternal(name) {
   return name.startsWith('@holoscript/') || name.startsWith('holoscript-');
 }
 
+function majorOf(version) {
+  const parsed = parseSemver(version);
+  return parsed ? String(parsed.major) : null;
+}
+
+/**
+ * Group every internal package that resolved to two or more distinct majors.
+ *
+ * `resolved` is name -> Map(version -> via-path). Two majors in this map means
+ * the tree cannot be satisfied by a single copy: npm must install both, and it
+ * does so silently. Prerelease majors count as their own major, which is
+ * intended — a 7.0.0-rc alongside 8.x is the same hazard.
+ */
+function findMultiMajor(resolved) {
+  const out = [];
+  for (const [name, versions] of resolved) {
+    if (!isInternal(name)) continue;
+    const byMajor = new Map();
+    for (const [version, via] of versions) {
+      const major = majorOf(version);
+      if (major === null) continue;
+      if (!byMajor.has(major)) byMajor.set(major, { major, versions: [], via });
+      byMajor.get(major).versions.push(version);
+    }
+    if (byMajor.size > 1) {
+      out.push({
+        pkg: name,
+        majors: [...byMajor.values()]
+          .sort((a, b) => Number(a.major) - Number(b.major))
+          .map((m) => ({ major: m.major, versions: m.versions.sort(), via: m.via })),
+      });
+    }
+  }
+  return out.sort((a, b) => a.pkg.localeCompare(b.pkg));
+}
+
 function assertSelf(condition, name) {
   if (!condition) throw new Error(`self-test failed: ${name}`);
 }
@@ -247,18 +303,60 @@ function runSelfTest() {
   assertSelf(CRAWL_FIELDS.has('dependencies'), 'dependencies are crawled');
   assertSelf(!CRAWL_FIELDS.has('peerDependencies'), 'peerDependencies are not crawled');
   assertSelf(!CRAWL_FIELDS.has('optionalDependencies'), 'optionalDependencies are not crawled');
+
+  // ── multi-major detection ────────────────────────────────────────────────
+  const oneMajor = new Map([
+    ['@holoscript/core', new Map([['8.0.20', ['root']], ['8.0.6', ['root', 'a']]])],
+  ]);
+  assertSelf(findMultiMajor(oneMajor).length === 0, 'two minors of one major are not a finding');
+
+  const twoMajors = new Map([
+    [
+      '@holoscript/core',
+      new Map([
+        ['8.0.20', ['@holoscript/cli@8.0.18']],
+        ['6.1.4', ['@holoscript/cli@8.0.18', '@holoscript/sdk@6.1.1 dependencies.@holoscript/core=^6.1.2']],
+      ]),
+    ],
+  ]);
+  const found = findMultiMajor(twoMajors);
+  assertSelf(found.length === 1, 'two majors of one package IS a finding');
+  assertSelf(found[0].pkg === '@holoscript/core', 'finding names the duplicated package');
+  assertSelf(found[0].majors.length === 2, 'finding lists both majors');
+  assertSelf(found[0].majors[0].major === '6', 'majors are sorted ascending');
+  // The v6 edge is the one reached through sdk, so it carries the longer path.
+  // That path is the whole point of the report: it names who to republish.
+  assertSelf(found[0].majors[0].via.length === 2, 'finding carries the path that required it');
+  assertSelf(found[0].majors[1].major === '8', 'the newer major is reported too');
+
+  const externalDupe = new Map([['three', new Map([['0.170.0', ['root']], ['0.150.0', ['root']]])]]);
+  assertSelf(
+    findMultiMajor(externalDupe).length === 0,
+    'external packages are out of scope — we do not control their versioning'
+  );
+
+  assertSelf(majorOf('8.0.20') === '8', 'majorOf reads the major');
+  assertSelf(majorOf('not-a-version') === null, 'majorOf rejects garbage rather than guessing');
+
   console.log('[audit-published-install-tree] self-test PASS');
 }
 
+function splitSpec(rootSpec) {
+  const at = rootSpec.lastIndexOf('@');
+  return at > 0
+    ? { name: rootSpec.slice(0, at), spec: rootSpec.slice(at + 1) }
+    : { name: rootSpec, spec: 'latest' };
+}
+
 async function main() {
-  const at = ROOT_SPEC.lastIndexOf('@');
-  const rootName = at > 0 ? ROOT_SPEC.slice(0, at) : ROOT_SPEC;
-  const rootSpec = at > 0 ? ROOT_SPEC.slice(at + 1) : 'latest';
+  const roots = ROOT_SPECS.map(splitSpec);
 
   const seen = new Set();
-  const queue = [{ name: rootName, spec: rootSpec, via: [`${rootName}@${rootSpec}`] }];
+  const queue = roots.map(({ name, spec }) => ({ name, spec, via: [`${name}@${spec}`] }));
   const leaks = [];
   const phantoms = [];
+  // name -> Map(resolvedVersion -> the via-path that first required it)
+  const resolved = new Map();
   let scanned = 0;
 
   while (queue.length) {
@@ -281,6 +379,15 @@ async function main() {
         });
       continue;
     }
+    // Record before the seen-check: the same name@version is commonly reached
+    // by several paths, but a DIFFERENT version reached later still needs to
+    // land in this map or the multi-major check goes blind.
+    if (isInternal(name)) {
+      if (!resolved.has(name)) resolved.set(name, new Map());
+      const versions = resolved.get(name);
+      if (!versions.has(ver)) versions.set(ver, via);
+    }
+
     const key = `${name}@${ver}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -312,15 +419,29 @@ async function main() {
   phantoms.length = 0;
   phantoms.push(...uniquePhantoms);
 
-  const ok = leaks.length === 0 && phantoms.length === 0;
+  const multiMajor = findMultiMajor(resolved);
+  const ok = leaks.length === 0 && phantoms.length === 0 && multiMajor.length === 0;
+  const rootLabel = roots.map((r) => `${r.name}@${r.spec}`).join(' ');
 
   if (JSON_OUT) {
     console.log(
-      JSON.stringify({ root: `${rootName}@${rootSpec}`, scanned, ok, leaks, phantoms }, null, 2)
+      JSON.stringify(
+        {
+          root: rootLabel,
+          roots: roots.map((r) => `${r.name}@${r.spec}`),
+          scanned,
+          ok,
+          leaks,
+          phantoms,
+          multiMajor,
+        },
+        null,
+        2
+      )
     );
   } else {
     console.log(
-      `[audit-published-install-tree] root=${rootName}@${rootSpec} scanned=${scanned} packages`
+      `[audit-published-install-tree] roots=${rootLabel} scanned=${scanned} packages`
     );
     if (leaks.length) {
       console.error(
@@ -341,6 +462,27 @@ async function main() {
         );
         if (p.via?.length) console.error(`      via: ${p.via.join(' -> ')}`);
       }
+    }
+    if (multiMajor.length) {
+      console.error(
+        `\n  MULTI-MAJOR (${multiMajor.length}) — these install SILENTLY as duplicate copies:`
+      );
+      for (const m of multiMajor) {
+        console.error(
+          `    ${m.pkg} resolves to ${m.majors.length} majors: ${m.majors
+            .map((x) => `v${x.major} (${x.versions.join(', ')})`)
+            .join('  +  ')}`
+        );
+        for (const x of m.majors) {
+          console.error(`      v${x.major} required via: ${x.via.join(' -> ')}`);
+        }
+      }
+      console.error(
+        '\n    npm exits 0 for these. The consumer gets one copy per major — duplicate\n' +
+          '    parsers, duplicate trait registries, and instanceof failures with no error\n' +
+          '    naming the cause. Fix by republishing whichever dependant still pins the\n' +
+          '    older major, so every path resolves to one line.'
+      );
     }
     console.log(
       ok
