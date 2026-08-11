@@ -54,6 +54,31 @@ const REGISTRY = process.env.npm_config_registry || 'https://registry.npmjs.org'
 const TOKEN = process.env.NPM_TOKEN || process.env.npm_token || '';
 const JSON_OUT = process.argv.includes('--json');
 const SELF_TEST = process.argv.includes('--self-test');
+
+/**
+ * Severity of the multi-major finding. Defaults to `fail`.
+ *
+ * `warn` exists for ONE position: the pre-publish audit inside `release:publish`.
+ * That call inspects the ALREADY-PUBLISHED tree, so a multi-major finding there
+ * is pre-existing — and the release being gated is frequently the thing that
+ * fixes it. Blocking there deadlocks: you cannot publish the fix because the
+ * unfixed state blocks the publish.
+ *
+ * The post-publish call keeps the default `fail`. That one inspects what was
+ * just shipped, where a multi-major finding is a regression you caused and there
+ * is no deadlock, because the fix is already on the registry.
+ *
+ * Leaks and phantom pins are unaffected and block in both positions.
+ */
+const MULTI_MAJOR_SEVERITY = (() => {
+  const arg = process.argv.find((a) => a.startsWith('--multi-major='));
+  const value = arg ? arg.slice('--multi-major='.length) : 'fail';
+  if (value !== 'warn' && value !== 'fail') {
+    console.error(`[audit-published-install-tree] --multi-major must be warn|fail, got "${value}"`);
+    process.exit(2);
+  }
+  return value;
+})();
 // Every non-flag positional is a root. Multiple roots matter: a package can be
 // unreachable from @holoscript/cli and still be a public entry point that
 // carries the defect — @holoscript/runtime is exactly that case.
@@ -420,7 +445,8 @@ async function main() {
   phantoms.push(...uniquePhantoms);
 
   const multiMajor = findMultiMajor(resolved);
-  const ok = leaks.length === 0 && phantoms.length === 0 && multiMajor.length === 0;
+  const multiMajorBlocks = multiMajor.length > 0 && MULTI_MAJOR_SEVERITY === 'fail';
+  const ok = leaks.length === 0 && phantoms.length === 0 && !multiMajorBlocks;
   const rootLabel = roots.map((r) => `${r.name}@${r.spec}`).join(' ');
 
   if (JSON_OUT) {
@@ -465,7 +491,9 @@ async function main() {
     }
     if (multiMajor.length) {
       console.error(
-        `\n  MULTI-MAJOR (${multiMajor.length}) — these install SILENTLY as duplicate copies:`
+        `\n  MULTI-MAJOR (${multiMajor.length})${
+          multiMajorBlocks ? '' : ' [warn — pre-existing, not blocking this run]'
+        } — these install SILENTLY as duplicate copies:`
       );
       for (const m of multiMajor) {
         console.error(
