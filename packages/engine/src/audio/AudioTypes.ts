@@ -656,6 +656,18 @@ export interface ISequencer {
   // Tempo
   setBPM(bpm: number): void;
   getBPM(): number;
+  /**
+   * Live tempo change that preserves the current beat position (re-anchors
+   * the transport instead of rescaling elapsed time, so no beat burst /
+   * stall). Optional: SequencerImpl provides it; plain setBPM remains the
+   * stop-and-restart-safe path.
+   */
+  setTempoAnchored?(bpm: number): void;
+  /**
+   * Host-driven scheduler step for deterministic clocks (tests, contracted
+   * simulation runs). Optional: SequencerImpl provides it.
+   */
+  tick?(): void;
 
   // Looping
   setLoop(enabled: boolean, startBeat?: number, endBeat?: number): void;

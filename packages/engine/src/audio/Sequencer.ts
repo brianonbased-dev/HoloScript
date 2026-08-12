@@ -234,6 +234,66 @@ export class SequencerImpl implements ISequencer {
     this.bpm = bpm;
   }
 
+  /**
+   * Change tempo LIVE without breaking musical time.
+   *
+   * The plain `bpm` setter leaves `startTime` untouched, so while playing,
+   * `elapsedBeats = secondsToBeats(now - startTime)` is silently rescaled by
+   * the new BPM — raising the tempo makes the scheduler believe many beats
+   * have already elapsed and it fires them all in one tick (a beat burst);
+   * lowering it freezes/regresses the beat counter. That makes the setter
+   * unusable for anything that conducts tempo in real time.
+   *
+   * This method re-anchors `startTime` so the current beat position is
+   * preserved exactly under the new BPM, and drops not-yet-triggered
+   * scheduled notes so the look-ahead window re-schedules them at the
+   * re-timed positions. Beat/bar event continuity is preserved
+   * (`lastScheduledBeat` remains valid because elapsedBeats is unchanged).
+   *
+   * When not playing, this is equivalent to the plain setter.
+   */
+  public setTempoAnchored(newBpm: number): void {
+    if (!(newBpm > 0 && newBpm <= 999)) return;
+    if (this._state !== 'playing') {
+      this.bpm = newBpm;
+      return;
+    }
+
+    const now = this.context.currentTime;
+    // Beat position under the OLD tempo — this is what must be preserved.
+    const elapsedBeats = this.secondsToBeats(now - this.startTime);
+
+    this._bpm = newBpm;
+    // Re-anchor: same elapsedBeats at `now` under the NEW tempo.
+    this.startTime = now - this.beatsToSeconds(elapsedBeats);
+
+    // Notes pre-committed under the old tempo that have not sounded yet are
+    // stale — drop them; the normal look-ahead pass re-schedules them at the
+    // new times. Triggered notes are history and stay.
+    for (let i = this.scheduledNotes.length - 1; i >= 0; i--) {
+      const sn = this.scheduledNotes[i];
+      if (!sn.triggered && sn.startTime > now) {
+        this.scheduledNotes.splice(i, 1);
+      }
+    }
+
+    this.emit({
+      type: 'bpmChanged',
+      timestamp: now,
+      data: { bpm: newBpm, anchored: true },
+    });
+  }
+
+  /**
+   * Host-driven scheduler step. The internal 25ms interval keeps working for
+   * browser use; deterministic hosts (tests, contracted simulation runs,
+   * headless verifiers) advance their injected IAudioContext clock and call
+   * tick() explicitly — same code path, no wall-clock dependence.
+   */
+  public tick(): void {
+    this.schedulerTick();
+  }
+
   public getBPM(): number {
     return this.bpm;
   }
@@ -715,11 +775,16 @@ export class SequencerImpl implements ISequencer {
         const noteEndBeat = noteStartBeat + (note.duration ?? 0.25);
 
         if (noteStartBeat >= elapsedBeats && noteStartBeat < lookAheadEnd) {
-          // Check if already scheduled
+          // Check if already scheduled. Both sides must be ABSOLUTE context
+          // times — the previous comparison held sn.startTime (absolute,
+          // startTime-offset included) against a startTime-relative value, so
+          // it never matched and every note in the look-ahead window was
+          // re-pushed on every 25ms tick (duplicate triggers on any listener).
+          const absoluteStart = this.startTime + this.beatsToSeconds(noteStartBeat);
           const alreadyScheduled = this.scheduledNotes.some(
             (sn) =>
               sn.track === trackId &&
-              Math.abs(sn.startTime - this.beatsToSeconds(noteStartBeat)) < 0.001 &&
+              Math.abs(sn.startTime - absoluteStart) < 0.001 &&
               sn.note.pitch === note.pitch
           );
 
@@ -727,7 +792,7 @@ export class SequencerImpl implements ISequencer {
             this.scheduledNotes.push({
               track: trackId,
               note,
-              startTime: this.startTime + this.beatsToSeconds(noteStartBeat),
+              startTime: absoluteStart,
               endTime: this.startTime + this.beatsToSeconds(noteEndBeat),
               triggered: false,
               released: false,
