@@ -548,6 +548,34 @@ own scoped effort. NMoS: build-internal (F.133) — chart.js is a library to _re
 
 ---
 
+## Conducting-Ensemble Musicianship Model + Cue-Learning Personal Orchestra (VR maestro game)
+
+> Recorded 2026-08-12 while opening Gate 1 (`apps/tempo-latency-probe`) of the VR conducting game.
+> Gate 1 deliberately measures the LATENCY FLOOR (instant `setTempoAnchored` following); these two
+> follow-ons are the musical ceiling, deferred so the floor gets measured first.
+
+**What might be valuable**: (1) **Ensemble musicianship model** — real orchestras don't snap to a
+new tempo; they anticipate and breathe. A smoothing/prediction layer between the conducted BPM and
+`setTempoAnchored` (predict the conductor's future timing from recent habits, as Music Plus One
+showed in 2001 with per-note Gaussian habit models learned in <10 rehearsals) would turn "metronome
+that obeys" into "ensemble that follows" — the felt difference between a tool and musicians. (2)
+**Cue-learning personal orchestra** — the game's endgame and strongest moat: per-player gesture
+models (CHI 2016: conducting-gesture models are personal and non-transferable, error 0.46 same-user
+vs 0.80 cross-user) so a player's ensemble learns THEIR left hand, THEIR rubato. Research says
+per-player learning works with a handful of sessions; nothing has ever shipped it. Ecosystem fit:
+holotune LoRA fine-tuning + agent-NPC substrate are the in-house machinery. Research record: memory
+`vr-conducting-game-idea`; report artifact "The Conducting Game — Research Report" (2026-08-12).
+
+**Why not now**: Gate 1 must measure the raw gesture→audible latency floor first — a musicianship
+layer on top of an unmeasured floor hides the number the whole gate exists to produce, and the
+smoothing model's parameters (how much lag feels "human") can only be tuned against that measured
+floor. The cue-learning orchestra additionally needs the game's progression shell (gates 2+) and a
+per-player data path before any model has something to learn from. Sequence: measure floor (Gate 1)
+→ musicianship layer as a toggleable mode with the SAME latency instrumentation (Gate 2+) →
+cue-learning models once per-player session data exists.
+
+---
+
 ## Epistemic "unknown role" state for motif (would make `resolveMotif` closeable)
 
 > Recorded 2026-07-12 (claude1, uAAL loop A4). Motif was FLAGGED not-cleanly-closeable for the
