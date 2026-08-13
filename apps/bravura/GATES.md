@@ -396,6 +396,104 @@ than the spec's original wording. The certified probe path survived all
 three fixes unchanged (receipt above) — the beat definition got stricter
 only where real strokes never live.
 
+## Gate 7 — The second instrument and the cue (opened 2026-08-13)
+
+### F.076 four-question gate
+
+1. **Falsifiable claim.** (a) A second instrument stands in the room:
+   tubular chimes — brass frame, five graduated tubes, bell voices rendered
+   by the engine SynthEngine (inharmonic partials, long ring), striking on
+   beats 1 and 3 of the bar with the conductor's dynamics, glowing per
+   strike. (b) Ensemble state: chimes idle dark and silent; a sustained
+   point at them (≈250 ms) toggles a pending entrance/exit that lands
+   QUANTIZED on the next bar's downbeat — musical, never mid-bar. (c) Cue
+   detection: VR left-hand index ray (wrist→index-tip) or controller grip
+   ray within ~20° of the chimes; desktop cursor within the chimes'
+   projected screen radius. The ray math is unit-checked in-page with
+   synthetic vectors. (d) Lesson 8 "The Cue": the drum leads at 90; the HUD
+   counts bars; the chimes enter on bar 3's downbeat — point at them ON the
+   entrance; graded by cue-to-entrance offset (±0.5 beat full marks, ±1
+   they still enter, beyond/miss they stay silent). Three trials. An
+   on-time synthetic cue scores high; a late cue low; no cue = miss and no
+   entrance heard. (e) Probe self-test stays green (shared-module change is
+   one additive click counter).
+2. **Real seam.** Chimes ride the SAME beat events and velocity the timpani
+   does (one engine grid, one dynamics stream); entrance quantization reads
+   the engine's own bar structure (beat-in-bar from the sequencer's beat
+   events). Cueing is app-level (bravura), pointing input reuses the
+   already-captured hand joints / grip matrices / cursor.
+3. **Failing-if-broken evidence.** Deterministic drivers: on-time cue ×3,
+   late cue, no-cue; free-play toggle run asserting the entrance lands on a
+   downbeat (click-log timestamps vs grid); bell-voice waveform stats
+   (long-ring decay); screenshot of the two-instrument room; in-page ray
+   unit checks; probe regression.
+4. **Scope + blast.** `apps/bravura/**` plus one additive conductor field
+   (public click/beat-in-bar counters for lessons). Out of scope, named:
+   more instruments/sections beyond the chimes, gaze-based cueing, cue
+   DURING self-conducted tempo (lesson isolates the skill with the drum
+   leading; free play composes them), stereo/spatial panning per instrument
+   position (seeded — the engine has HRTF spatialization unbuilt into the
+   room), fermata/cutoff. Regression: probe (guarded), lesson 1–7 behavior
+   (untouched paths; spot-checked by the downbeat lesson's driver rerun if
+   shared code shifts).
+
+### Premortem (inline)
+
+1. **Pointing false-positives while conducting** (the beat hand sweeps past
+   the chimes' direction). Guards: cue needs 250 ms sustained pointing; in
+   VR the BEAT hand is excluded (left hand or either controller cues); on
+   desktop the cursor must sit within the chimes' radius, and waving is
+   vertical while the chimes sit far to the side.
+2. **The chimes drown the timpani** (long ring stacking). Guard: bell gain
+   trimmed, strikes only on beats 1/3, ring capped ~2.5 s, master path
+   already clip-checked by waveform stats.
+3. **Quantized entrance feels unresponsive** ("I pointed, nothing
+   happened"). Guard: immediate visual acknowledgment — the chimes glow
+   faintly the moment the cue registers (pending state), then sound on the
+   downbeat; the HUD names it ("chimes: joining on 1").
+4. **Desktop screen-projection drift** (resize changes the projected
+   radius). Guard: projection recomputed per frame from the live matrices.
+5. **Lesson count-in confusion.** The HUD counts bars and beats big and
+   plain, and the entrance bar is named in the prompt.
+
+### Gate 7 exit criteria — closed 2026-08-13
+
+- [x] Chimes render (screenshot: dim brass tubes waiting beside the spotlit
+      timpani — idle state reads as "present but uninvited") and ring
+      properly (bell stats: peak 0.78 no-clip, RMS quarters
+      0.090→0.027→0.012→0.001 over a 2.8 s buffer — true bell decay).
+- [x] All six ray/projection unit checks pass in-page (straight-on, 40°
+      reject, 90° angle, grip-forward, screen-center projection, behind-
+      camera null).
+- [x] Free-play toggle, log-verified: exactly **2 cues → 2 transitions**,
+      entrance and exit both landing quantized on downbeats (4.8 s apart =
+      exactly two bars). This receipt came from a REDESIGN forced by the
+      first field run: **ten cues fired from two intended points** —
+      boundary jitter re-armed the tracker endlessly (and a parked cursor
+      would toggle forever). Cues are now per-EPISODE: gaps <0.6 s merge,
+      only a clean departure arms a new cue; a parked cursor fires exactly
+      once.
+- [x] Lesson 8 receipts: on-time ×3 → **95** ("on it", 0.02–0.07 beats,
+      all entrances heard); mixed → **60 warn**: "on it (0.03)" / "0.91
+      beats late — they still made it" (audible entrance at ±1 beat) /
+      "no cue" (miss — the chimes stayed silent; no reward for a missed
+      invitation).
+- [x] Probe regression green, unchanged: 1.17 / 2.11 beats, offset 59 ms.
+      Committed; in-headset run standing.
+
+### Gate 7 findings
+
+1. **The room is an ensemble now**: two instruments on one engine grid and
+   one dynamics stream; entrances/exits are musical facts (quantized to
+   the bar) rather than UI toggles, and the pending glow acknowledges the
+   cue the instant it lands.
+2. **A cue is an episode, not a level.** Anything held (a parked cursor, a
+   steady point) must fire once, not oscillate — found in the first field
+   run's receipt, fixed in the tracker's shape, provable in the cue log.
+3. The lesson isolates the skill (drum leads, you cue); free play composes
+   both (conduct AND cue). Spatial audio per instrument position is the
+   named seed for when the engine's HRTF stack enters the room.
+
 ### Gate 3 findings
 
 1. **The audio pipeline carried over untouched** — the timpani is literally

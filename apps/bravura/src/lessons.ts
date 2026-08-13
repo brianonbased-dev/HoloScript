@@ -16,6 +16,8 @@ import { Conductor } from '../../tempo-latency-probe/src/conductor';
 import { median, StepTrial } from '../../tempo-latency-probe/src/beatDetector';
 import { trialVerdict } from '../../tempo-latency-probe/src/verdict';
 
+import { Chimes } from './chimes';
+
 export type LessonId =
   | 'steady'
   | 'onbeat'
@@ -23,7 +25,8 @@ export type LessonId =
   | 'tempo'
   | 'pattern4'
   | 'pattern3'
-  | 'downbeat';
+  | 'downbeat'
+  | 'cue';
 
 export interface LessonResult {
   id: LessonId;
@@ -51,10 +54,15 @@ const TITLES: Record<LessonId, string> = {
   pattern4: 'The Four',
   pattern3: 'The Three',
   downbeat: 'The Downbeat',
+  cue: 'The Cue',
 };
 
 const DOWNBEAT_TARGET_BPM = 90;
 const DOWNBEAT_TRIALS = 3;
+const CUE_BPM = 90;
+const CUE_TRIALS = 3;
+/** The chimes enter on the downbeat two bars after the count-in starts. */
+const CUE_ENTRANCE_CLICKS = 8;
 
 interface PatternCfg {
   bar: number;
@@ -97,6 +105,15 @@ export class Lessons {
   private dbPhase: 'demo' | 'still' | 'go' = 'demo';
   private dbCountSnap = 0;
   private dbTrials: { bpm: number | null; casual: boolean; hesitations: number }[] = [];
+  /** The chimes instance (set by the host so the cue lesson can drive them). */
+  chimes: Chimes | null = null;
+  private cuePhase: 'sync' | 'count' = 'sync';
+  private cueClickSnap = 0;
+  private cueI0 = 0;
+  /** Audio-clock time of the entrance downbeat, exposed for drivers. */
+  cueTargetTime = 0;
+  private cueLogSnap = 0;
+  private cueTrials: { deltaBeats: number | null; entered: boolean }[] = [];
 
   startAll(conductor: Conductor, now: number, ids?: LessonId[]): void {
     this.results.length = 0;
@@ -108,6 +125,7 @@ export class Lessons {
       'pattern4',
       'pattern3',
       'downbeat',
+      'cue',
     ];
     this.conductor = conductor;
     this.next(now);
@@ -153,6 +171,14 @@ export class Lessons {
       this.dbTrials = [];
       if (c.seq.state !== 'playing') c.seq.start();
       c.seq.setTempoAnchored(DOWNBEAT_TARGET_BPM);
+    } else if (id === 'cue') {
+      c.followMode = 'lead';
+      this.cueTrials = [];
+      this.cuePhase = 'sync';
+      this.cueClickSnap = c.clickCount;
+      this.chimes?.reset('idle');
+      if (c.seq.state !== 'playing') c.seq.start();
+      c.seq.setTempoAnchored(CUE_BPM);
     } else {
       c.followMode = 'follow';
     }
@@ -215,6 +241,7 @@ export class Lessons {
 
     if (id === 'tempo') return this.tickTempo(c, now, beats);
     if (id === 'downbeat') return this.tickDownbeat(c, now);
+    if (id === 'cue') return this.tickCue(c, now);
 
     // pattern4 / pattern3
     const cfg = PATTERNS[id as 'pattern4' | 'pattern3'];
@@ -461,6 +488,98 @@ export class Lessons {
       sub: 'Breathe UP — and strike the downbeat. Your breath sets the speed.',
       progress: `${Math.ceil(10 - (now - this.phaseT0))} s`,
       card: null,
+    };
+  }
+
+  private tickCue(c: Conductor, now: number): LessonUi {
+    const trialNo = this.cueTrials.length + 1;
+    const period = 60 / CUE_BPM;
+
+    if (this.cuePhase === 'sync') {
+      this.uiPhase = 'sync';
+      const lc = c.lastClick;
+      if (lc && lc.index > this.cueClickSnap && lc.beatInBar === 0) {
+        this.cueI0 = lc.index;
+        this.cueTargetTime = lc.scheduledAt + CUE_ENTRANCE_CLICKS * period;
+        this.cueLogSnap = this.chimes?.cueLog.length ?? 0;
+        this.cuePhase = 'count';
+      }
+      return {
+        prompt: 'Lesson 8 · The Cue',
+        sub: 'The chimes wait in the dark. They enter on bar 3, beat 1 — point at them ON it.',
+        progress: `trial ${trialNo} / ${CUE_TRIALS}`,
+        card: null,
+      };
+    }
+
+    // count
+    this.uiPhase = 'count';
+    const n = c.clickCount - this.cueI0;
+    const bar = Math.floor(n / 4) + 1;
+    const beat = (n % 4) + 1;
+
+    if (now > this.cueTargetTime + 2 * period) {
+      const cues = (this.chimes?.cueLog ?? []).slice(this.cueLogSnap);
+      let best: number | null = null;
+      for (const ct of cues) {
+        const d = (ct - this.cueTargetTime) / period;
+        if (best === null || Math.abs(d) < Math.abs(best)) best = d;
+      }
+      const entered = best !== null && Math.abs(best) <= 1;
+      if (!entered) this.chimes?.reset('idle'); // no reward for a missed invitation
+      this.cueTrials.push({ deltaBeats: best, entered });
+      if (this.cueTrials.length >= CUE_TRIALS) return this.finish(this.scoreCue(), now);
+      this.chimes?.reset('idle');
+      this.cuePhase = 'sync';
+      this.cueClickSnap = c.clickCount;
+      return this.tickCue(c, now);
+    }
+
+    return {
+      prompt: 'Lesson 8 · The Cue',
+      sub:
+        bar < 3
+          ? 'Count with the drum — they enter on bar 3, beat 1.'
+          : 'NOW — point at the chimes.',
+      progress: `bar ${Math.min(bar, 4)} · beat ${beat}   (trial ${trialNo}/${CUE_TRIALS})`,
+      card: null,
+    };
+  }
+
+  private scoreCue(): LessonResult {
+    const per = this.cueTrials.map((tr) => {
+      if (tr.deltaBeats === null) return { pts: 10, line: 'no cue' };
+      const a = Math.abs(tr.deltaBeats);
+      const dir = tr.deltaBeats > 0 ? 'late' : 'early';
+      if (a <= 0.5) return { pts: 95, line: `on it (${tr.deltaBeats.toFixed(2)} beats)` };
+      if (a <= 1) return { pts: 75, line: `${a.toFixed(2)} beats ${dir} — they still made it` };
+      if (a <= 2) return { pts: 45, line: `${a.toFixed(2)} beats ${dir} — entrance lost` };
+      return { pts: 20, line: `${a.toFixed(2)} beats ${dir}` };
+    });
+    const score = Math.round(per.reduce((s, p) => s + p.pts, 0) / Math.max(per.length, 1));
+    const cls: LessonResult['cls'] = score >= 80 ? 'good' : score >= 50 ? 'warn' : 'bad';
+    const verdict =
+      cls === 'good'
+        ? `You brought them in like an old friend. (${per.map((p) => p.line).join('; ')}.)`
+        : cls === 'warn'
+          ? `The invitation wavered — cue ON their first note, not around it. (${per
+              .map((p) => p.line)
+              .join('; ')}.)`
+          : `The chimes never felt invited — count the bars, point on their 1. (${per
+              .map((p) => p.line)
+              .join('; ')}.)`;
+    return {
+      id: 'cue',
+      title: TITLES.cue,
+      score,
+      verdict,
+      cls,
+      raw: {
+        d1: this.cueTrials[0]?.deltaBeats ?? null,
+        d2: this.cueTrials[1]?.deltaBeats ?? null,
+        d3: this.cueTrials[2]?.deltaBeats ?? null,
+        entered: this.cueTrials.filter((t) => t.entered).length,
+      },
     };
   }
 

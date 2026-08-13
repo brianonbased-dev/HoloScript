@@ -16,6 +16,8 @@ import { Timpani, makeTimpaniBuffers } from './timpani';
 import { startBravuraXR, BravuraXRHandle, XRFrameData } from './xrSession';
 import { Hud } from './hud';
 import { Lessons, LessonResult } from './lessons';
+import { Chimes } from './chimes';
+import { CueTracker, rayPointsAt, rayAngleTo, gripRay, projectToScreen, Vec3 } from './cueing';
 
 declare const GIT_COMMIT: string;
 
@@ -29,6 +31,10 @@ declare global {
       timpaniStats(): { hi: number[]; lo: number[] } | null;
       snapshotStats(): { size: [number, number]; nonBlack: number; maxLum: number };
       lessons: Lessons;
+      chimes: Chimes | null;
+      cueTracker: CueTracker;
+      forcePointing(v: boolean): void;
+      cueingChecks(): Record<string, boolean>;
       startLessons(ids?: Parameters<Lessons['startAll']>[2]): void;
     };
   }
@@ -61,6 +67,13 @@ let desktopPointerHandler: ((e: PointerEvent) => void) | null = null;
 const lessons = new Lessons();
 let lessonsSummaryShown = false;
 let wasResting = false;
+let chimes: Chimes | null = null;
+const cueTracker = new CueTracker();
+const CHIMES_X = 1.35;
+const CHIMES_Z = -1.7;
+let chimesCenter: Vec3 = [CHIMES_X, 1.05, CHIMES_Z];
+let cursorCss = { x: -9999, y: -9999 };
+let forcedPointing = false;
 
 const HUD_MODEL = multiply(
   multiply(translation(0.78, 1.34, -1.42), rotationY(-0.35)),
@@ -86,6 +99,10 @@ function ensureScene(): void {
   if (!gl) throw new Error('WebGL unavailable');
   renderer = new Renderer(gl);
   timpani = new Timpani(renderer, 0, -1.35, 0);
+  chimes = new Chimes(renderer, ensureAudio(), CHIMES_X, CHIMES_Z, -0.5);
+  chimesCenter = chimes.center(CHIMES_X, CHIMES_Z);
+  lessons.chimes = chimes;
+  cueTracker.onCue = (t) => chimes?.cue(t);
   hud = new Hud();
   hudTex = renderer.createHudTexture(hud.canvas);
   meshes = {
@@ -100,7 +117,10 @@ function newConductor(kind: 'desktop' | 'vr'): Conductor {
   const ctx = ensureAudio();
   if (!timpaniBuffers) timpaniBuffers = makeTimpaniBuffers(ctx);
   const c = new Conductor(ctx, kind === 'desktop' ? DESKTOP_CONFIG : XR_CONFIG, {
-    onClick: (t, isDownbeat, velocity) => timpani?.strike(t, isDownbeat, velocity ?? 1),
+    onClick: (t, isDownbeat, velocity, beatInBar, scheduledAt) => {
+      timpani?.strike(t, isDownbeat, velocity ?? 1);
+      chimes?.onBeat(scheduledAt ?? t, beatInBar ?? (isDownbeat ? 0 : 1), velocity ?? 1);
+    },
   });
   c.setClickBuffers(timpaniBuffers.hi, timpaniBuffers.lo);
   // An orchestra that loses its conductor falls quiet (founder question
@@ -119,6 +139,7 @@ function drawScene(data?: Pick<XRFrameData, 'hands' | 'controllers'>): void {
 
   r.draw(meshes.floor, translation(0, 0, 0), FLOOR);
   timpani.draw(r);
+  chimes?.draw(r);
 
   if (data) {
     for (const side of ['left', 'right'] as const) {
@@ -184,6 +205,15 @@ function pumpHud(): void {
         : null,
     offsetMs: s.medianBeatOffsetMs,
     lesson: lessonUi,
+    ensemble: cueTracker.isPointingAt((ac as AudioContext).currentTime)
+      ? '→ chimes'
+      : chimes?.state === 'pending-join'
+        ? 'chimes joining on 1…'
+        : chimes?.state === 'pending-leave'
+          ? 'chimes leaving on 1'
+          : chimes?.state === 'active'
+            ? 'chimes playing'
+            : '',
   });
   if (changed) renderer.updateHudTexture(hudTex, hud.canvas);
 }
@@ -218,6 +248,7 @@ function startDesktop(): void {
   // Whole page is the podium (same founder bug report as the probe: input
   // bound to one element reads as a dead page when the cursor is elsewhere).
   desktopPointerHandler = (e: PointerEvent) => {
+    cursorCss = { x: e.clientX, y: e.clientY };
     conductor?.feed({ t: (ac as AudioContext).currentTime, y: -e.clientY, x: e.clientX });
   };
   window.addEventListener('pointermove', desktopPointerHandler);
@@ -237,15 +268,21 @@ function startDesktop(): void {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clearColor(0.008, 0.008, 0.012, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    timpani?.update((ac as AudioContext).currentTime);
+    const nowA = (ac as AudioContext).currentTime;
+    timpani?.update(nowA);
+    chimes?.update(nowA);
+    // Frame both instruments regardless of pane aspect.
+    const eye: [number, number, number] = [0.55, 1.55, 1.55];
+    const proj = perspective(0.96, w / h, 0.05, 40);
+    const view = lookAt(eye, [0.55, 0.8, -1.5], [0, 1, 0]);
+    // Desktop cue: the cursor resting on the chimes IS pointing at them.
+    const scr = projectToScreen(proj, view, chimesCenter, canvasEl.clientWidth, canvasEl.clientHeight);
+    const pointing =
+      forcedPointing ||
+      (scr !== null && Math.hypot(cursorCss.x - scr[0], cursorCss.y - scr[1]) < 95);
+    cueTracker.update(pointing, nowA);
     pumpHud();
-    const eye: [number, number, number] = [0.05, 1.5, 0.95];
-    r.beginView(
-      { x: 0, y: 0, width: w, height: h },
-      perspective(0.96, w / h, 0.05, 40),
-      lookAt(eye, [0, 0.8, -1.35], [0, 1, 0]),
-      eye
-    );
+    r.beginView({ x: 0, y: 0, width: w, height: h }, proj, view, eye);
     drawScene();
   };
   loop();
@@ -276,7 +313,34 @@ async function startVR(): Promise<void> {
         gl.bindFramebuffer(gl.FRAMEBUFFER, data.framebuffer);
         gl.clearColor(0.008, 0.008, 0.012, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        timpani?.update((ac as AudioContext).currentTime);
+        const nowA = (ac as AudioContext).currentTime;
+        timpani?.update(nowA);
+        chimes?.update(nowA);
+        // VR cue: the NON-beat hand's index ray, or either controller's
+        // grip ray (the beat hand sweeps and must never cue by accident).
+        let pointing = forcedPointing;
+        if (!pointing) {
+          for (const side of ['left', 'right'] as const) {
+            const hf = data.hands[side];
+            if (hf && inputSource !== `hand-${side}`) {
+              const wx = hf.positions[0];
+              if (!Number.isNaN(wx)) {
+                const origin: Vec3 = [wx, hf.positions[1], hf.positions[2]];
+                const tip: Vec3 = [hf.positions[27], hf.positions[28], hf.positions[29]];
+                if (!Number.isNaN(tip[0])) {
+                  const dir: Vec3 = [tip[0] - origin[0], tip[1] - origin[1], tip[2] - origin[2]];
+                  if (rayPointsAt(origin, dir, chimesCenter, 0.35)) pointing = true;
+                }
+              }
+            }
+            const grip = data.controllers[side];
+            if (grip) {
+              const ray = gripRay(grip as Float32Array as Mat4);
+              if (rayPointsAt(ray.origin, ray.dir, chimesCenter, 0.3)) pointing = true;
+            }
+          }
+        }
+        cueTracker.update(pointing, nowA);
         pumpHud();
         for (const v of data.views) {
           r.beginView(v.viewport, v.proj as Mat4, v.view as Mat4, v.camPos);
@@ -351,6 +415,13 @@ function buildReceipt(): string {
         : null,
       summary: s ?? null,
       lessons: lessons.results,
+      chimes: chimes
+        ? {
+            state: chimes.state,
+            cues: chimes.cueLog.length,
+            transitions: chimes.transitionLog.slice(-6),
+          }
+        : null,
       verdict: s ? verdictFor(s.trials).text : null,
       bands: BANDS_NOTE,
     },
@@ -469,6 +540,33 @@ window.addEventListener('DOMContentLoaded', () => {
     timpaniStats,
     snapshotStats,
     lessons,
+    get chimes() {
+      return chimes;
+    },
+    cueTracker,
+    forcePointing: (v: boolean) => {
+      forcedPointing = v;
+    },
+    /** In-page unit checks for the pointing/projection math. */
+    cueingChecks: () => {
+      const straight = rayPointsAt([0, 0, 0], [1, 0, 0], [5, 0, 0], 0.35) === true;
+      const off40deg = rayPointsAt([0, 0, 0], [1, 0, 0], [5, 5 * Math.tan(0.7), 0], 0.35) === false;
+      const angle90 = Math.abs(rayAngleTo([0, 0, 0], [1, 0, 0], [0, 3, 0]) - Math.PI / 2) < 1e-6;
+      const grip = gripRay(
+        new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2, 3, 4, 1]) as unknown as Parameters<
+          typeof gripRay
+        >[0]
+      );
+      const gripOk =
+        Math.abs(grip.dir[2] + 1) < 1e-6 && grip.origin[0] === 2 && grip.origin[1] === 3;
+      const proj = perspective(0.96, 1.5, 0.05, 40);
+      const view = lookAt([0, 1.5, 0.95], [0, 0.8, -1.35], [0, 1, 0]);
+      const centerish = projectToScreen(proj, view, [0, 0.8, -1.35], 900, 600);
+      const projOk =
+        centerish !== null && Math.abs(centerish[0] - 450) < 2 && centerish[1] > 250 && centerish[1] < 350;
+      const behind = projectToScreen(proj, view, [0, 1.5, 10], 900, 600) === null;
+      return { straight, off40deg, angle90, gripOk, projOk, behind };
+    },
     startLessons: (ids) => {
       if (mode === 'idle') startDesktop();
       lessonsSummaryShown = false;

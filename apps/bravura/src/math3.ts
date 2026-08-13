@@ -57,6 +57,17 @@ export function rotationX(rad: number): Mat4 {
   return m;
 }
 
+export function rotationZ(rad: number): Mat4 {
+  const m = identity();
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  m[0] = c;
+  m[1] = s;
+  m[4] = -s;
+  m[5] = c;
+  return m;
+}
+
 export function scaling(x: number, y: number, z: number): Mat4 {
   const m = identity();
   m[0] = x;

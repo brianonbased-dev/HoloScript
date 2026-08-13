@@ -24,6 +24,8 @@ export interface HudState {
   lastTrial: { ms: number; beats: number; cls: 'good' | 'warn' | 'bad' } | null;
   offsetMs: number | null;
   lesson?: HudLesson | null;
+  /** Ensemble status line, e.g. "→ chimes" or "chimes joining on 1…". */
+  ensemble?: string;
 }
 
 export class Hud {
@@ -83,7 +85,7 @@ export class Hud {
 
     c.fillStyle = '#a8987d';
     c.font = '500 24px "Segoe UI", sans-serif';
-    c.fillText(`beats ${s.beats}   ·   ${s.source}`, 48, 208);
+    c.fillText(`beats ${s.beats}   ·   ${s.source}${s.ensemble ? '   ·   ' + s.ensemble : ''}`, 48, 208);
     if (s.offsetMs !== null) {
       c.fillText(`with your hand: ${Math.round(s.offsetMs)} ms`, 48, 244);
     }

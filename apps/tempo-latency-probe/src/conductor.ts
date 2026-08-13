@@ -51,7 +51,13 @@ function renderClick(ac: AudioContext, frequency: number, seconds = 0.09): Audio
 
 export interface ConductorEvents {
   onBeat?: (t: number, bpm: number | null, stroke?: number) => void;
-  onClick?: (t: number, isDownbeat: boolean, velocity?: number) => void;
+  onClick?: (
+    t: number,
+    isDownbeat: boolean,
+    velocity?: number,
+    beatInBar?: number,
+    scheduledAt?: number
+  ) => void;
   onStep?: () => void;
   onLock?: (latencyMs: number, latencyBeats: number) => void;
 }
@@ -99,6 +105,9 @@ export class Conductor {
   private armHesitations = 0;
   downbeatCount = 0;
   lastDownbeat: { at: number; bpm: number; casual: boolean; hesitations: number } | null = null;
+  /** Monotonic count of emitted clicks and the last click's bar position. */
+  clickCount = 0;
+  lastClick: { index: number; beatInBar: number; scheduledAt: number } | null = null;
   /** Flight recorder for the arming path (arm / prep / beat events), capped. */
   readonly armLog: string[] = [];
   private logArm(msg: string): void {
@@ -262,7 +271,9 @@ export class Conductor {
       src.start(at);
       const audibleAt = at + (this.ac.outputLatency || this.ac.baseLatency || 0);
       this.detector.addClick(audibleAt);
-      this.events.onClick?.(audibleAt, beatInBar === 0, velocity);
+      this.clickCount++;
+      this.lastClick = { index: this.clickCount, beatInBar, scheduledAt: at };
+      this.events.onClick?.(audibleAt, beatInBar === 0, velocity, beatInBar, at);
     });
   }
 

@@ -19,7 +19,7 @@ interface Part {
 
 const COPPER: Material = { color: [0.85, 0.5, 0.27], metal: 1, shiny: 90, emissive: 0.03 };
 const STEEL: Material = { color: [0.3, 0.3, 0.33], metal: 0.85, shiny: 96, emissive: 0 };
-const HEAD: Material = { color: [0.9, 0.87, 0.8], metal: 0.05, shiny: 24, emissive: 0.02 };
+const HEAD: Material = { color: [0.8, 0.76, 0.68], metal: 0.05, shiny: 24, emissive: 0.02 };
 const LEG: Material = { color: [0.16, 0.16, 0.18], metal: 0.7, shiny: 48, emissive: 0 };
 const FOOT: Material = { color: [0.05, 0.05, 0.05], metal: 0, shiny: 8, emissive: 0 };
 
