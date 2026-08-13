@@ -29,6 +29,16 @@ export function trialVerdict(tr: TrialLike): 'good' | 'warn' | 'bad' {
   return 'bad';
 }
 
+/**
+ * A trial beyond this many beats is not evidence about the ensemble — it is
+ * evidence the NEW tempo was never held (the wandering target produced the
+ * number, not the following). Genuine slow following lands 3–8; the
+ * certified system sits at 1.2–2.1; the first real-user receipt "measured"
+ * 45–306-beat trials from an unsettled hand and the old verdict blamed the
+ * engineering for them.
+ */
+export const SETTLED_MAX_BEATS = 8;
+
 export function verdictFor(trials: TrialLike[]): { text: string; cls: string } {
   const done = trials.filter((t) => t.latencyBeats !== null);
   if (done.length === 0)
@@ -36,19 +46,31 @@ export function verdictFor(trials: TrialLike[]): { text: string; cls: string } {
       text: 'No tempo-change trials were completed — wave steadily, then clearly change speed.',
       cls: 'unknown',
     };
-  const verdicts = done.map(trialVerdict);
+  const settled = done.filter((t) => (t.latencyBeats as number) <= SETTLED_MAX_BEATS);
+  if (settled.length === 0)
+    return {
+      text: 'The beat never settled — hold one speed, then clearly change and HOLD the new one. This run says nothing about how fast the ensemble follows.',
+      cls: 'unknown',
+    };
+  const wandered = done.length - settled.length;
+  const suffix = wandered
+    ? ` (${wandered} of ${done.length} changes never settled into a new speed and were not judged.)`
+    : '';
+  const verdicts = settled.map(trialVerdict);
   if (verdicts.every((v) => v === 'good'))
     return {
-      text: 'The ensemble follows you — within about a beat speeding up, and as fast as physics allows slowing down. This will feel like conducting.',
+      text:
+        'The ensemble follows you — within about a beat speeding up, and as fast as physics allows slowing down. This will feel like conducting.' +
+        suffix,
       cls: 'good',
     };
   if (verdicts.some((v) => v === 'bad'))
     return {
-      text: 'Too slow to feel like conducting. Engineering needed before the game is fun.',
+      text: 'Too slow to feel like conducting. Engineering needed before the game is fun.' + suffix,
       cls: 'bad',
     };
   return {
-    text: 'The ensemble is a couple of beats behind. Playable, needs tightening.',
+    text: 'The ensemble is a couple of beats behind. Playable, needs tightening.' + suffix,
     cls: 'warn',
   };
 }
