@@ -151,6 +151,23 @@ export class Lessons {
     return this.state === 'idle' && this.results.length > 0;
   }
 
+  /** True while a lesson (or its score card) is on. Hosts re-bind lessons to
+   *  the fresh conductor when the input mode changes — without this, a mode
+   *  switch left the engine watching a dead conductor and the beat counter
+   *  froze forever (the founder's first in-headset run). */
+  get running(): boolean {
+    return this.state !== 'idle';
+  }
+
+  /** While Lesson 1 waits for the student's first strokes, the room
+   *  demonstrates the motion with a ball bouncing on the drum. Gone once
+   *  the student is flowing. Returns the demo tempo, or null. */
+  guideBpm(): number | null {
+    if (this.state !== 'running' || this.current !== 'steady' || !this.conductor) return null;
+    const beats = this.conductor.detector.beatTimes.length - this.baseBeats;
+    return beats < 4 ? 90 : null;
+  }
+
   private next(now: number): void {
     const c = this.conductor;
     if (!c) return;
@@ -223,9 +240,16 @@ export class Lessons {
     if (id === 'steady') {
       const need = 18; // 2 settle + 16 scored
       if (beats >= need) return this.finish(this.scoreSteady(c), now);
+      // The room listens for ONE thing — a hand bouncing, beat at the
+      // bottom. Say so, show it (guide ball), and coach if nothing lands.
+      const stuck = beats < 6 && now - this.t0 > 25;
       return {
         prompt: 'Lesson 1 · Steady Hand',
-        sub: 'Wave an even beat — any speed you like.',
+        sub: stuck
+          ? 'The room watches ONE hand bounce. Bigger, calmer strokes — like bouncing a ball on the drum.'
+          : beats < 4
+            ? 'Bounce your hand like the glowing ball — the bottom of each bounce is a beat.'
+            : 'That’s it — keep the bounce even, any speed you like.',
         progress: `${Math.min(beats, need)} / ${need} beats`,
         card: null,
       };

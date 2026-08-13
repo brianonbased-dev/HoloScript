@@ -91,6 +91,15 @@ export async function startBravuraXR(
     right: { positions: new Float32Array(25 * 3), radii: new Float32Array(25), joints: 0 },
   };
 
+  // Which hand holds the podium. Sticky: the incumbent keeps it unless it
+  // goes still while the other hand clearly bounces (~1.5 s of motion), so
+  // left-handed conductors take over and a raised cue hand cannot steal the
+  // beat from a hand that is actively conducting.
+  let beatSide: 'left' | 'right' = 'right';
+  const act = { left: 0, right: 0 };
+  const lastY = { left: NaN, right: NaN };
+  const lastFreshT = { left: -1, right: -1 };
+
   const loop = (_t: number, frame: XRFrameLike) => {
     if (ended) return;
     session.requestAnimationFrame(loop);
@@ -103,7 +112,10 @@ export async function startBravuraXR(
     const hands: XRFrameData['hands'] = {};
     const controllers: XRFrameData['controllers'] = {};
 
-    let beatFed = false;
+    // Collect every tracked input first; the conductor is fed from exactly
+    // ONE source per frame afterwards. Feeding both hands (how every human
+    // naturally stands) interleaves two different heights into one signal
+    // and the detector reads garbage.
     for (const input of session.inputSources) {
       const side = input.handedness === 'left' ? 'left' : 'right';
       if (input.hand) {
@@ -122,23 +134,49 @@ export async function startBravuraXR(
             hf.positions[j * 3] = NaN;
           }
         }
-        if (hf.joints > 0) {
-          hands[side] = hf;
-          // Right hand leads; left conducts only if right is absent.
-          if (!beatFed && (side === 'right' || !hands.right)) {
-            feedBeat(tAudio, hf.positions[1], `hand-${side}`, hf.positions[0]);
-            beatFed = side === 'right';
-          }
-        }
+        if (hf.joints > 0) hands[side] = hf;
       } else if (input.gripSpace) {
         const gp = frame.getPose(input.gripSpace, refSpace);
-        if (gp) {
-          controllers[side] = gp.transform.matrix;
-          if (!beatFed && !hands.right && !hands.left) {
-            feedBeat(tAudio, gp.transform.position.y, `controller-${side}`, gp.transform.position.x);
-            beatFed = side === 'right';
-          }
+        if (gp) controllers[side] = gp.transform.matrix;
+      }
+    }
+
+    // A hand only counts when its WRIST has a fresh pose this frame — a
+    // lost wrist would otherwise feed a stale frozen height (the room hears
+    // stillness while the hand moves) and a NaN x poisons the lateral stats.
+    for (const side of ['left', 'right'] as const) {
+      const hf = hands[side];
+      const y = hf && !Number.isNaN(hf.positions[0]) ? hf.positions[1] : NaN;
+      if (!Number.isNaN(y)) {
+        if (!Number.isNaN(lastY[side])) {
+          act[side] = act[side] * 0.92 + Math.abs(y - lastY[side]) * 0.08;
         }
+        lastY[side] = y;
+        lastFreshT[side] = tAudio;
+      } else {
+        lastY[side] = NaN;
+      }
+    }
+    const fresh = (s: 'left' | 'right') => lastFreshT[s] === tAudio;
+    const other = beatSide === 'right' ? 'left' : 'right';
+    if (
+      fresh(other) &&
+      ((!fresh(beatSide) && tAudio - lastFreshT[beatSide] > 0.4) ||
+        (act[other] > 0.008 && act[beatSide] < 0.002))
+    ) {
+      beatSide = other;
+    }
+    if (fresh(beatSide)) {
+      const p = hands[beatSide]!.positions;
+      feedBeat(tAudio, p[1], `hand-${beatSide}`, p[0]);
+    } else if (!fresh(other)) {
+      // No hands at all — controllers carry the beat (right first). A hand
+      // lost for under 0.4 s feeds nothing: a short gap is honest, the idle
+      // hand's height spiking the signal is not.
+      const m = controllers.right ?? controllers.left;
+      if (m) {
+        const src = controllers.right ? 'controller-right' : 'controller-left';
+        feedBeat(tAudio, m[13], src, m[12]);
       }
     }
 

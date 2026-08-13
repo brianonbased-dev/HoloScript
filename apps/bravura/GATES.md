@@ -601,3 +601,83 @@ only where real strokes never live.
    was the classic unpreserved-drawing-buffer capture artifact, not a render
    bug), and waveform stats caught a real clip a listen-through might have
    missed.
+
+---
+
+## Field report — first in-headset run (2026-08-13, Quest 3, hand tracking)
+
+The standing in-headset item fired. Joseph's report, verbatim signal: "its very
+buggy its almost lagging or doesnt even seem to go off of my hand gestures …
+theres nothing saying this is how you should move your hands." He could not get
+past Lesson 1. Every word of that was a real defect. Four found, four fixed.
+
+### Defect 1 — both hands fed the detector at once (`xrSession.ts`)
+
+The input loop fed the conductor per-input-source: with both hands tracked and
+`inputSources` enumerating left first (Quest does), BOTH wrists fed every
+frame. Two different heights interleaved into one signal — the detector read
+garbage. Every human stands with both hands up; the desk drivers never did.
+Also: a wrist that lost tracking mid-stroke kept feeding its stale frozen
+height (fast motion is exactly when Quest drops joints), and its NaN x
+poisoned the lateral stats.
+
+**Fix**: collect all inputs first, then feed exactly ONE source per frame.
+The podium hand is sticky — the incumbent keeps it unless it goes still while
+the other hand clearly bounces (~1.5 s), so left-handed conductors take over
+naturally and a raised cue hand cannot steal the beat. A briefly-lost wrist
+feeds *nothing* (a gap is honest; a spike is not); controllers carry the beat
+only when no hand is tracked at all.
+
+### Defect 2 — "Teach me" + mode switch froze the counter at 0/18 (`main.ts`)
+
+Lessons bind to one conductor at `startAll`. Every mode switch builds a fresh
+conductor, so "Teach me" → "Enter the room" left the engine watching the DEAD
+desktop conductor: the beat counter could never move. This alone made Lesson 1
+unpassable in VR — the founder's exact experience.
+
+**Fix**: `rebindLessons()` in both mode starters — an active lesson run
+restarts on the fresh conductor in the new mode's units.
+**Receipt (browser pane, desktop path, final build)**: Lesson 1 passed 97/100
+via the house direct-feed driver; then mid-lesson mode switch → the NEW
+conductor accrued 24 beats and the lesson re-ran and re-scored (52/100 — the
+driver's phase chopped at the switch; the point is the counter MOVED). Before
+the fix this scenario froze at 0 forever.
+
+### Defect 3 — nothing taught the motion (lessons.ts, main.ts)
+
+The room listens for one thing — a hand bouncing, beat at the bottom — and
+never said or showed it. A non-conductor cannot know.
+
+**Fix**: three teachers. (1) A glowing guide ball bounces on the drum head
+during Lesson 1's opening, landing exactly on the drum's real clicks (what you
+see IS what you hear); it fades once the student flows (4 beats). (2) The
+wrist the room is listening to gets a warm glow — and the glow vanishing IS
+the tracking-lost signal, truth over mystery. (3) Plain words: "Bounce your
+hand like the glowing ball — the bottom of each bounce is a beat", plus a
+25-second stuck line ("The room watches ONE hand bounce. Bigger, calmer
+strokes — like bouncing a ball on the drum.").
+
+### Defect 4 — the status line swallowed button clicks (index.html)
+
+`#status` was pinned at a fixed offset that assumed a one-row toolbar; when
+the buttons wrapped, the text overlaid them and ate their clicks (found when
+MY pane clicks vanished — plausibly hit Joseph on the Quest browser too).
+Fixed: status flows below the buttons inside the toolbar, `pointer-events:
+none`.
+
+### Open
+
+- **In-headset re-run is the only receipt that counts for Defect 1** — the
+  desk cannot produce real Quest hand-tracking (dual hands, joint dropouts,
+  72/90 Hz cadence). Awaiting Joseph's second run.
+- "Almost lagging": working hypothesis is the dual-feed chaos made the audio
+  feel disconnected from the hand. If lag survives the re-run, profile
+  rendering next — 50 per-joint sphere draws × 2 eyes is the suspect.
+
+### Finding
+
+**A gate proven on the desk is not proven on the face.** Eight closed gates
+with receipts, and the first real user could not pass Lesson 1 — because the
+desk drivers feed one clean stream and a human stands there with two hands up.
+The input seam between the real device and the detector is its own surface and
+needs its own negative controls (dual-source, joint-dropout, handedness).

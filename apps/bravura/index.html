@@ -29,7 +29,9 @@
   button:hover:not(:disabled) { border-color: var(--brass); }
   button:disabled { opacity: .4; cursor: default; }
   button.primary { background: var(--brass); color: #16120c; font-weight: 600; }
-  #status { position: fixed; top: 3.6rem; left: 1rem; right: 1rem; color: var(--dim); font-size: .95rem; text-shadow: 0 1px 3px #000; }
+  /* In-flow below the buttons (a fixed offset overlapped them when the row
+     wrapped, and the text swallowed their clicks). Never intercepts input. */
+  #status { flex-basis: 100%; margin: .15rem 0 0; color: var(--dim); font-size: .95rem; text-shadow: 0 1px 3px #000; pointer-events: none; }
   .bottom {
     position: fixed; left: 0; right: 0; bottom: 0; padding: 1rem;
     background: linear-gradient(rgba(6,5,7,0), rgba(6,5,7,.92));
@@ -54,8 +56,8 @@
   <button id="btn-desktop">Desktop view</button>
   <button id="btn-teach">Teach me (9 lessons)</button>
   <button id="btn-stop">Stop &amp; show verdict</button>
+  <p id="status">The black room. One drum. It follows your hands.</p>
 </div>
-<p id="status">The black room. One drum. It follows your hands.</p>
 <div class="bottom">
   <div id="verdict" class="verdict"></div>
   <p id="final-numbers"></p>

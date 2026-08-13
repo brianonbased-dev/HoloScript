@@ -47,6 +47,8 @@ const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const FLOOR: Material = { color: [0.135, 0.128, 0.118], metal: 0.2, shiny: 60, emissive: 0 };
 const JOINT: Material = { color: [0.85, 0.8, 0.66], metal: 0, shiny: 30, emissive: 0.55 };
 const BATON: Material = { color: [0.93, 0.92, 0.88], metal: 0, shiny: 40, emissive: 0.25 };
+const GUIDE: Material = { color: [1.0, 0.84, 0.5], metal: 0, shiny: 20, emissive: 0.9 };
+const MARKER: Material = { color: [0.95, 0.78, 0.4], metal: 0, shiny: 20, emissive: 0.8 };
 
 let ac: AudioContext | null = null;
 let conductor: Conductor | null = null;
@@ -58,6 +60,7 @@ let meshes: {
   floor: ReturnType<Renderer['createMesh']>;
   joint: ReturnType<Renderer['createMesh']>;
   baton: ReturnType<Renderer['createMesh']>;
+  guide: ReturnType<Renderer['createMesh']>;
   hudQuad: ReturnType<Renderer['createMesh']>;
 } | null = null;
 let timpaniBuffers: { hi: AudioBuffer; lo: AudioBuffer } | null = null;
@@ -121,6 +124,7 @@ function ensureScene(): void {
     floor: renderer.createMesh(disc(6, 0, 5, 64)),
     joint: renderer.createMesh(sphere(1, 8, 12)),
     baton: renderer.createMesh(cylinder(0.007, 0.004, 0.36, 10)),
+    guide: renderer.createMesh(sphere(1, 10, 14)),
     hudQuad: renderer.createMesh(quad()),
   };
 }
@@ -198,6 +202,35 @@ function drawScene(data?: Pick<XRFrameData, 'hands' | 'controllers'>): void {
         r.draw(meshes.baton, model, BATON);
       }
     }
+
+    // The wrist the room is actually listening to gets a warm glow, so the
+    // student can SEE which hand holds the podium (and see it vanish the
+    // moment tracking loses that hand — truth over mystery).
+    const beatHand =
+      inputSource === 'hand-right' ? 'right' : inputSource === 'hand-left' ? 'left' : null;
+    const bh = beatHand ? data.hands[beatHand] : undefined;
+    if (bh && !Number.isNaN(bh.positions[0])) {
+      r.draw(
+        meshes.joint,
+        multiply(
+          translation(bh.positions[0], bh.positions[1], bh.positions[2]),
+          scaling(0.024, 0.024, 0.024)
+        ),
+        MARKER
+      );
+    }
+  }
+
+  // Lesson 1 demo: a ball bouncing on the drum head shows the stroke the
+  // room listens for. It lands exactly on the drum's real clicks, so what
+  // the student sees IS what they hear.
+  const gBpm = lessons.guideBpm();
+  if (gBpm && ac && conductor) {
+    const period = 60 / (conductor.ensembleBpm || gBpm);
+    const ref = conductor.lastClick ? conductor.lastClick.scheduledAt : 0;
+    const phase = ((((ac.currentTime - ref) / period) % 1) + 1) % 1;
+    const gy = 0.95 + 0.42 * Math.sin(Math.PI * phase);
+    r.draw(meshes.guide, multiply(translation(0, gy, -1.35), scaling(0.05, 0.05, 0.05)), GUIDE);
   }
 
   if (hudTex) r.drawHud(meshes.hudQuad, HUD_MODEL, hudTex);
@@ -271,6 +304,19 @@ function showLessonsSummary(results: LessonResult[]): void {
   $('receipt-row').style.display = 'block';
 }
 
+/**
+ * Lessons watch ONE conductor. Every mode switch builds a fresh conductor,
+ * so an active lesson run must be re-attached (it restarts from Lesson 1 in
+ * the new mode's units). Without this, "Teach me" then "Enter the room"
+ * left the counter frozen at 0/18 forever — the founder's first headset run.
+ */
+function rebindLessons(): void {
+  if (!lessons.running || !conductor) return;
+  lessonsSummaryShown = false;
+  lessons.spreadFloor = mode === 'vr' ? 0.05 : 50;
+  lessons.startAll(conductor, (ac as AudioContext).currentTime);
+}
+
 // ---------------------------------------------------------------------------
 // Desktop mode
 // ---------------------------------------------------------------------------
@@ -283,6 +329,7 @@ function startDesktop(): void {
   conductor.start(90);
   inputSource = 'mouse';
   $('status').textContent = 'Conducting with the mouse — wave up and down over the room.';
+  rebindLessons();
 
   // Whole page is the podium (same founder bug report as the probe: input
   // bound to one element reads as a dead page when the cursor is elsewhere).
@@ -337,7 +384,8 @@ async function startVR(): Promise<void> {
   mode = 'vr';
   conductor = newConductor('vr');
   conductor.start(90);
-  $('status').textContent = 'In the room. Wave a hand; change speed and hold it.';
+  $('status').textContent = 'In the room. Bounce one hand — the beat lands at the bottom of each bounce.';
+  rebindLessons();
   try {
     const r = renderer as Renderer;
     xrHandle = await startBravuraXR(
