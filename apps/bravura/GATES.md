@@ -494,6 +494,99 @@ only where real strokes never live.
    both (conduct AND cue). Spatial audio per instrument position is the
    named seed for when the engine's HRTF stack enters the room.
 
+## Gate 8 — The hold and the cutoff (opened 2026-08-13)
+
+### F.076 four-question gate
+
+1. **Falsifiable claim.** (a) HOLD: while conducting, raising the hand and
+   freezing it (stillness residency ≥0.45 s in the UPPER part of the
+   player's own recent stroke range, frac ≥0.6) pauses the transport ON its
+   position — beats stop, rings sustain (a true fermata; pause not stop, so
+   the bar resumes where it held). (b) CUTOFF: from the hold, one decisive
+   motion (either direction, same grace-window physics as the preparation)
+   stops the ensemble, ramps the ensemble bus silent in ~80 ms, and ARMS
+   the downbeat — the next entrance requires a real preparation (gate 6's
+   machinery closes the circle). The armed downbeat restores the bus.
+   (c) Lesson 9 "The Hold & the Cut", 3 trials of the full grammar:
+   conduct 6 beats → raise & freeze → hold ≥1.5 s → cut on prompt →
+   silence → give the downbeat to begin again. Graded: no hold = miss;
+   premature cut = "the hold broke early"; hold with no cut = "left them
+   hanging"; clean hold+cut high. (d) Probe unaffected: holds are gated
+   behind `holdsEnabled` (default false; Bravura enables).
+2. **Real seam.** Detector gains sustained-still reporting (with the
+   player-relative height fraction from a relaxing y-range tracker) and a
+   direction-agnostic decisive-move event built on the SAME grace-window
+   physics the preparation uses; conductor gains the hold state machine on
+   the same transport (pause/stop/arm). All instrument audio now routes
+   through one ensemble bus (additive `output` field, default
+   destination — probe path unchanged), which is what a cutoff silences.
+3. **Failing-if-broken evidence.** Free-play receipt: conduct → hold
+   (isHolding true, seq paused) → flick (armed, bus ≈0) → prep →
+   downbeat (bus ≈1, playing). Lesson receipts: clean ×3 high; never-hold
+   miss; premature-cut mid-band. Probe regression green. Bus gain values
+   read directly in the receipts.
+4. **Scope + blast.** `apps/bravura/**` + additive shared-module changes
+   (detector callbacks + range tracker; conductor hold machine + output
+   field + hold/cutoff counters). The one behavior change is
+   Bravura-only and flag-gated. Out of scope, named: release-into-continue
+   (resuming WITHOUT a cutoff — conservatory refinement, seeded),
+   hold-length musicality scoring, cutoff gesture-shape grading (loop vs
+   flick), per-instrument holds.
+
+### Premortem (inline)
+
+1. **Holds fire during normal conducting pauses** (thinking with the hand
+   up). Guard: 0.45 s residency + upper-range requirement + follow-mode
+   playing only; the low still hand keeps meaning "resting toward
+   auto-rest" (existing path, untouched).
+2. **The cutoff triggers on the resume wave instead of a flick.** Accepted
+   and NAMED: any decisive exit from a hold cuts — strict grammar this
+   gate; release-into-continue is the seeded refinement.
+3. **Bus silencing cuts the room's future too** (armed downbeat inaudible).
+   Guard: the armed-downbeat flow restores the bus before the first strike
+   sounds; receipt asserts gain ≈1 after restart.
+4. **Range tracker drifts during long holds** (hi relaxes toward the held
+   y, so frac decays). Hold ENTRY uses the pre-hold range; once holding,
+   exit is only via cutoff — entry threshold drift is irrelevant mid-hold.
+5. **Lesson deadlocks.** Per-phase timeouts (hold 8 s, cut 6 s, restart
+   10 s with programmatic recovery), every path scored, never stuck.
+
+### Gate 8 exit criteria — closed 2026-08-13
+
+- [x] Free-play full-grammar receipt, state-sampled at every stage:
+      hold-entered (holding, seq PAUSED, bus 1 — rings sustain) → held-2s
+      (stable) → after-cutoff (armed, stopped, bus ramping 0.38→0) →
+      after-downbeat (playing, **bus 1 restored**). The restore receipt
+      forced an architecture fix first — see findings.
+- [x] Lesson 9 receipts: clean ×3 → **95** ("held 2 s, clean cut" — total
+      command); impatient (cut at ~0.7 s) → **55** ("the hold broke
+      early"); never-freezes → **10** ("the hand never froze"). All paths
+      distinct, no deadlocks (timeouts recovered the transport).
+- [x] Probe regression green: 1.18 / 2.07 beats, offset 67 ms (the new
+      senses idle inertly on the certified path).
+- [x] Committed; ledger updated; in-headset run standing.
+
+### Gate 8 findings
+
+1. **Sound must never hang off a render frame.** The first bus-restore
+   lived in the HUD pump (rAF-driven); the browser pane stopped
+   compositing mid-battery and the room stayed permanently silent after a
+   cutoff — with zero errors. The trace (downbeat fired, transport playing,
+   gain frozen at 0, and finally rAF counted: 0 frames in 2.5 s) forced the
+   right architecture: audio-critical transitions ride the conductor's own
+   events (`onDownbeat`), and a 250 ms heartbeat keeps lessons/HUD state
+   advancing when frames stall. This is exactly the Quest headset-off case
+   — found on the desk before it could be found on a face.
+2. **The grammar is closed.** Conduct → raise-and-freeze (fermata: PAUSED,
+   so the bar resumes where it held; rings sustain through) → one decisive
+   flick (cutoff: silence + ARMED) → breath → downbeat (bus restored on
+   the event, at the prep's tempo). Gate 6's preparation machinery is the
+   cutoff's other half; Joseph's original "why do the beats continue?"
+   question is now answered end-to-end in gesture.
+3. The hold entry is player-relative (upper 40% of THEIR recent stroke
+   range), so small and large conductors freeze on equal terms. Seeded:
+   release-into-continue (resuming from a fermata without a cutoff).
+
 ### Gate 3 findings
 
 1. **The audio pipeline carried over untouched** — the timpani is literally

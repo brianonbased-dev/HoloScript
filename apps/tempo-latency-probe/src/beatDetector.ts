@@ -124,9 +124,23 @@ export class BeatDetector {
   onBeat: ((t: number, bpm: number | null, stroke: number) => void) | null = null;
   /** Fires when, after ≥0.35 s of stillness, a decisive upward motion begins. */
   onUpstrokeStart: ((t: number) => void) | null = null;
+  /**
+   * Fires ONCE when stillness has held ≥0.45 s, with the held height as a
+   * fraction of the player's own recent stroke range (0 = lowest, 1 =
+   * highest). A high sustained still is the fermata's raw material.
+   */
+  onSustainedStill: ((t: number, rangeFrac: number) => void) | null = null;
+  /** Fires when stillness breaks DECISIVELY in either direction (the cutoff's raw material). */
+  onDecisiveMove: ((t: number) => void) | null = null;
   private stillSince: number | null = null;
+  private stillReported = false;
   /** Set when stillness breaks upward; the rise has 120 ms to prove decisive. */
   private riseArmT: number | null = null;
+  /** Set when stillness breaks in any direction; same 120 ms decisiveness window. */
+  private moveArmT: number | null = null;
+  /** Relaxing bounds of recent vertical positions (the player's own range). */
+  private rangeLo = NaN;
+  private rangeHi = NaN;
   onStep: ((trial: StepTrial) => void) | null = null;
   onLock: ((trial: StepTrial) => void) | null = null;
 
@@ -159,6 +173,17 @@ export class BeatDetector {
     // instant-threshold version only caught knife-edge starts (found by
     // the gate-6 stutter control: a smooth human-like bump never fired).
     // The preparation is dated from the TRUE motion start (riseArmT).
+    // Player's own vertical range, relaxing over ~3 s — the reference for
+    // "held HIGH" (fermata) vs merely resting low.
+    if (Number.isNaN(this.rangeLo)) {
+      this.rangeLo = s.y;
+      this.rangeHi = s.y;
+    } else {
+      const k = Math.min(dt / 3, 1);
+      this.rangeHi = Math.max(s.y, this.rangeHi + (s.y - this.rangeHi) * k);
+      this.rangeLo = Math.min(s.y, this.rangeLo + (s.y - this.rangeLo) * k);
+    }
+
     if (Math.abs(this.velocity) < this.cfg.stillVelMax) {
       if (this.stillSince === null) this.stillSince = s.t;
       // Stillness ACTIONS require residency: the EMA glides through the
@@ -168,21 +193,38 @@ export class BeatDetector {
       // stillness holds; a glide doesn't.
       if (s.t - this.stillSince >= 0.1) {
         this.riseArmT = null;
+        this.moveArmT = null;
         // A still hand has no descent in progress — without this reset the
         // EMA's sign-preserving decay lets a stale descent peak authorize
         // a phantom strike at the next rise (round 3).
         this.descentPeakV = 0;
       }
+      if (!this.stillReported && s.t - this.stillSince >= 0.45) {
+        this.stillReported = true;
+        const span = this.rangeHi - this.rangeLo;
+        const frac = span > 1e-6 ? (s.y - this.rangeLo) / span : 0.5;
+        this.onSustainedStill?.(s.t, frac);
+      }
     } else {
       const wasStillLong = this.stillSince !== null && s.t - this.stillSince >= 0.35;
       if (wasStillLong && this.velocity > 0) this.riseArmT = s.t;
+      if (wasStillLong) this.moveArmT = s.t;
       this.stillSince = null;
+      this.stillReported = false;
       if (this.riseArmT !== null) {
         if (this.velocity >= this.cfg.riseVelMin) {
           this.onUpstrokeStart?.(this.riseArmT);
           this.riseArmT = null;
         } else if (this.velocity < 0 || s.t - this.riseArmT > 0.12) {
           this.riseArmT = null; // turned down or crept — not a preparation
+        }
+      }
+      if (this.moveArmT !== null) {
+        if (Math.abs(this.velocity) >= this.cfg.riseVelMin) {
+          this.onDecisiveMove?.(this.moveArmT);
+          this.moveArmT = null;
+        } else if (s.t - this.moveArmT > 0.12) {
+          this.moveArmT = null; // crept — not a cutoff
         }
       }
     }

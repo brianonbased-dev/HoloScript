@@ -42,9 +42,12 @@ export class Chimes {
   private glows: { tube: number; at: number; vel: number }[] = [];
   private nextTube = 0;
   private ac: AudioContext;
+  /** Where chime audio routes (the host points this at the ensemble bus). */
+  output: AudioNode;
 
   constructor(r: Renderer, ac: AudioContext, worldX: number, worldZ: number, yawRad: number) {
     this.ac = ac;
+    this.output = ac.destination;
     const place = (local: Mat4): Mat4 =>
       multiply(translation(worldX, 0, worldZ), multiply(rotationY(yawRad), local));
 
@@ -118,7 +121,7 @@ export class Chimes {
     const g = this.ac.createGain();
     g.gain.value = 0.75 * velocity;
     src.connect(g);
-    g.connect(this.ac.destination);
+    g.connect(this.output);
     src.start(Math.max(scheduledAt, this.ac.currentTime));
     const audibleAt =
       Math.max(scheduledAt, this.ac.currentTime) +

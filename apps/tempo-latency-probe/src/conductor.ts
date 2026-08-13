@@ -60,6 +60,17 @@ export interface ConductorEvents {
   ) => void;
   onStep?: () => void;
   onLock?: (latencyMs: number, latencyBeats: number) => void;
+  /** The ensemble froze on a raised, held hand (fermata). */
+  onHold?: (t: number) => void;
+  /** A decisive motion cut the held ensemble to silence (now armed). */
+  onCutoff?: (t: number) => void;
+  /**
+   * An armed downbeat landed (prepared or casual). Audio-critical
+   * consumers (e.g. un-muting the ensemble bus after a cutoff) MUST hang
+   * off this event, never off a render loop — frames stall whenever the
+   * page stops compositing (headset off, tab hidden), sound must not.
+   */
+  onDownbeat?: (at: number, bpm: number, casual: boolean) => void;
 }
 
 export class Conductor {
@@ -108,6 +119,19 @@ export class Conductor {
   /** Monotonic count of emitted clicks and the last click's bar position. */
   clickCount = 0;
   lastClick: { index: number; beatInBar: number; scheduledAt: number } | null = null;
+  /**
+   * Holds (fermata) and cutoffs. Disabled by default — the probe never
+   * holds; Bravura enables. A hold PAUSES the transport (the bar resumes
+   * where it froze — a true fermata); a cutoff stops it and arms the
+   * downbeat, closing the circle with the preparation machinery.
+   */
+  holdsEnabled = false;
+  private holding = false;
+  holdCount = 0;
+  cutoffCount = 0;
+  lastCutoffT: number | null = null;
+  /** Where all click audio routes (Bravura points this at the ensemble bus). */
+  output: AudioNode;
   /** Flight recorder for the arming path (arm / prep / beat events), capped. */
   readonly armLog: string[] = [];
   private logArm(msg: string): void {
@@ -132,6 +156,7 @@ export class Conductor {
   constructor(ac: AudioContext, cfg: DetectorConfig, events: ConductorEvents = {}) {
     this.ac = ac;
     this.events = events;
+    this.output = ac.destination;
     this.seq = new SequencerImpl(webAudioClock(ac));
     this.detector = new BeatDetector(cfg);
     this.clickHi = renderClick(ac, 1660);
@@ -142,6 +167,36 @@ export class Conductor {
         if (this.prepStartT !== null) this.armHesitations++;
         this.prepStartT = t;
         this.logArm(`prep@${t.toFixed(3)} hes=${this.armHesitations}`);
+      }
+    };
+
+    this.detector.onSustainedStill = (t, rangeFrac) => {
+      if (
+        this.holdsEnabled &&
+        this.running &&
+        !this.armed &&
+        !this.holding &&
+        this.followMode === 'follow' &&
+        this.seq.state === 'playing' &&
+        rangeFrac >= 0.6
+      ) {
+        this.holding = true;
+        this.holdCount++;
+        this.seq.pause();
+        this.logArm(`hold@${t.toFixed(3)} frac=${rangeFrac.toFixed(2)}`);
+        this.events.onHold?.(t);
+      }
+    };
+
+    this.detector.onDecisiveMove = (t) => {
+      if (this.holding) {
+        this.holding = false;
+        this.cutoffCount++;
+        this.lastCutoffT = t;
+        this.seq.stop();
+        this.armDownbeat();
+        this.logArm(`cutoff@${t.toFixed(3)}`);
+        this.events.onCutoff?.(t);
       }
     };
 
@@ -169,6 +224,7 @@ export class Conductor {
         this.seq.start();
         this.lastDownbeat = { at: t, bpm: startBpm, casual, hesitations: this.armHesitations };
         this.downbeatCount++;
+        this.events.onDownbeat?.(t, startBpm, casual);
       }
       // Scoring senses — always on, in both modes. tCal is the hand's TRUE
       // beat instant (detection lag subtracted).
@@ -267,7 +323,7 @@ export class Conductor {
       const gainNode = this.ac.createGain();
       gainNode.gain.value = velocity;
       src.connect(gainNode);
-      gainNode.connect(this.ac.destination);
+      gainNode.connect(this.output);
       src.start(at);
       const audibleAt = at + (this.ac.outputLatency || this.ac.baseLatency || 0);
       this.detector.addClick(audibleAt);
@@ -286,10 +342,16 @@ export class Conductor {
     this.clickLo = lo;
   }
 
+  /** True while the ensemble is frozen on a raised hand. */
+  get isHolding(): boolean {
+    return this.holding;
+  }
+
   start(initialBpm = 90): void {
     if (this.running) return;
     this.armed = false;
     this.prepStartT = null;
+    this.holding = false;
     this.seq.setBPM(initialBpm);
     this.seq.start();
     this.running = true;
@@ -297,6 +359,7 @@ export class Conductor {
 
   stop(): void {
     if (!this.running) return;
+    this.holding = false;
     this.seq.stop();
     this.running = false;
   }

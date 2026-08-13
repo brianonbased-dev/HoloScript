@@ -32,6 +32,8 @@ declare global {
       snapshotStats(): { size: [number, number]; nonBlack: number; maxLum: number };
       lessons: Lessons;
       chimes: Chimes | null;
+      ensembleBus: GainNode | null;
+      busDebug: { busMuted: boolean; mode: string };
       cueTracker: CueTracker;
       forcePointing(v: boolean): void;
       cueingChecks(): Record<string, boolean>;
@@ -74,6 +76,11 @@ const CHIMES_Z = -1.7;
 let chimesCenter: Vec3 = [CHIMES_X, 1.05, CHIMES_Z];
 let cursorCss = { x: -9999, y: -9999 };
 let forcedPointing = false;
+/** All instrument audio routes here; a cutoff silences it, the downbeat restores it. */
+let ensembleBus: GainNode | null = null;
+let busMuted = false;
+/** Audio-clock time of the most recent rendered frame (rAF liveness). */
+let lastFrameAt = 0;
 
 const HUD_MODEL = multiply(
   multiply(translation(0.78, 1.34, -1.42), rotationY(-0.35)),
@@ -83,6 +90,10 @@ const HUD_MODEL = multiply(
 function ensureAudio(): AudioContext {
   if (!ac) ac = new AudioContext({ latencyHint: 'interactive' });
   if (ac.state === 'suspended') void ac.resume();
+  if (!ensembleBus) {
+    ensembleBus = ac.createGain();
+    ensembleBus.connect(ac.destination);
+  }
   return ac;
 }
 
@@ -100,6 +111,7 @@ function ensureScene(): void {
   renderer = new Renderer(gl);
   timpani = new Timpani(renderer, 0, -1.35, 0);
   chimes = new Chimes(renderer, ensureAudio(), CHIMES_X, CHIMES_Z, -0.5);
+  if (ensembleBus) chimes.output = ensembleBus;
   chimesCenter = chimes.center(CHIMES_X, CHIMES_Z);
   lessons.chimes = chimes;
   cueTracker.onCue = (t) => chimes?.cue(t);
@@ -121,11 +133,33 @@ function newConductor(kind: 'desktop' | 'vr'): Conductor {
       timpani?.strike(t, isDownbeat, velocity ?? 1);
       chimes?.onBeat(scheduledAt ?? t, beatInBar ?? (isDownbeat ? 0 : 1), velocity ?? 1);
     },
+    onHold: () => {
+      $('status').textContent = 'HOLD — frozen. One decisive flick cuts them off.';
+    },
+    onCutoff: () => {
+      if (ensembleBus && ac) {
+        ensembleBus.gain.setTargetAtTime(0, ac.currentTime, 0.03);
+        busMuted = true;
+      }
+      $('status').textContent = 'Cut. Silence. Breathe — and give the next downbeat.';
+    },
+    // Audio-critical: the bus MUST come back on the downbeat itself, never
+    // on a render frame (frames stall when compositing pauses — found live:
+    // a dead rAF left the room permanently silent after a cutoff).
+    onDownbeat: () => {
+      if (busMuted && ensembleBus && ac) {
+        ensembleBus.gain.setTargetAtTime(1, ac.currentTime, 0.05);
+        busMuted = false;
+      }
+    },
   });
   c.setClickBuffers(timpaniBuffers.hi, timpaniBuffers.lo);
+  if (ensembleBus) c.output = ensembleBus;
   // An orchestra that loses its conductor falls quiet (founder question
   // 2026-08-13: "why do the beats continue with no cursor movement?").
   c.autoRestBeats = 8;
+  // The full grammar: raise-and-freeze holds them; a flick cuts them off.
+  c.holdsEnabled = true;
   return c;
 }
 
@@ -172,6 +206,7 @@ function drawScene(data?: Pick<XRFrameData, 'hands' | 'controllers'>): void {
 function pumpHud(): void {
   if (!hud || !conductor || !renderer || !hudTex) return;
   const now = (ac as AudioContext).currentTime;
+  lastFrameAt = now;
   const lessonUi = lessons.tick(now);
   if (lessons.finished && !lessonsSummaryShown) {
     lessonsSummaryShown = true;
@@ -205,15 +240,19 @@ function pumpHud(): void {
         : null,
     offsetMs: s.medianBeatOffsetMs,
     lesson: lessonUi,
-    ensemble: cueTracker.isPointingAt((ac as AudioContext).currentTime)
-      ? '→ chimes'
-      : chimes?.state === 'pending-join'
-        ? 'chimes joining on 1…'
-        : chimes?.state === 'pending-leave'
-          ? 'chimes leaving on 1'
-          : chimes?.state === 'active'
-            ? 'chimes playing'
-            : '',
+    ensemble: conductor.isHolding
+      ? 'HOLDING — flick to cut'
+      : busMuted
+        ? 'silence — give the downbeat'
+        : cueTracker.isPointingAt((ac as AudioContext).currentTime)
+          ? '→ chimes'
+          : chimes?.state === 'pending-join'
+            ? 'chimes joining on 1…'
+            : chimes?.state === 'pending-leave'
+              ? 'chimes leaving on 1'
+              : chimes?.state === 'active'
+                ? 'chimes playing'
+                : '',
   });
   if (changed) renderer.updateHudTexture(hudTex, hud.canvas);
 }
@@ -422,6 +461,13 @@ function buildReceipt(): string {
             transitions: chimes.transitionLog.slice(-6),
           }
         : null,
+      holds: conductor
+        ? {
+            holdCount: conductor.holdCount,
+            cutoffCount: conductor.cutoffCount,
+            busGain: ensembleBus ? Math.round(ensembleBus.gain.value * 100) / 100 : null,
+          }
+        : null,
       verdict: s ? verdictFor(s.trials).text : null,
       bands: BANDS_NOTE,
     },
@@ -511,6 +557,13 @@ function snapshotStats(): { size: [number, number]; nonBlack: number; maxLum: nu
 // ---------------------------------------------------------------------------
 
 window.addEventListener('DOMContentLoaded', () => {
+  // Heartbeat: lessons and the HUD state machine keep advancing even when
+  // the page stops compositing (headset off, hidden tab — rAF freezes but
+  // audio and teaching must not). Rendering itself can wait for frames.
+  setInterval(() => {
+    if (!ac || mode === 'idle') return;
+    if (ac.currentTime - lastFrameAt > 0.35) pumpHud();
+  }, 250);
   $('btn-vr').onclick = () => void startVR();
   $('btn-desktop').onclick = () => startDesktop();
   $('btn-teach').onclick = () => {
@@ -542,6 +595,12 @@ window.addEventListener('DOMContentLoaded', () => {
     lessons,
     get chimes() {
       return chimes;
+    },
+    get ensembleBus() {
+      return ensembleBus;
+    },
+    get busDebug() {
+      return { busMuted, mode };
     },
     cueTracker,
     forcePointing: (v: boolean) => {

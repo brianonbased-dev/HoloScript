@@ -26,7 +26,8 @@ export type LessonId =
   | 'pattern4'
   | 'pattern3'
   | 'downbeat'
-  | 'cue';
+  | 'cue'
+  | 'hold';
 
 export interface LessonResult {
   id: LessonId;
@@ -55,7 +56,10 @@ const TITLES: Record<LessonId, string> = {
   pattern3: 'The Three',
   downbeat: 'The Downbeat',
   cue: 'The Cue',
+  hold: 'The Hold & the Cut',
 };
+
+const HOLD_MIN_SEC = 1.5;
 
 const DOWNBEAT_TARGET_BPM = 90;
 const DOWNBEAT_TRIALS = 3;
@@ -114,6 +118,10 @@ export class Lessons {
   cueTargetTime = 0;
   private cueLogSnap = 0;
   private cueTrials: { deltaBeats: number | null; entered: boolean }[] = [];
+  private holdPhase: 'conduct' | 'raise' | 'holding' | 'restart' = 'conduct';
+  private holdEnteredT = 0;
+  private holdSnap = { holds: 0, cuts: 0, downbeats: 0 };
+  private holdTrials: { code: string; holdSec: number | null }[] = [];
 
   startAll(conductor: Conductor, now: number, ids?: LessonId[]): void {
     this.results.length = 0;
@@ -126,6 +134,7 @@ export class Lessons {
       'pattern3',
       'downbeat',
       'cue',
+      'hold',
     ];
     this.conductor = conductor;
     this.next(now);
@@ -171,6 +180,12 @@ export class Lessons {
       this.dbTrials = [];
       if (c.seq.state !== 'playing') c.seq.start();
       c.seq.setTempoAnchored(DOWNBEAT_TARGET_BPM);
+    } else if (id === 'hold') {
+      c.followMode = 'follow';
+      this.holdPhase = 'conduct';
+      this.holdTrials = [];
+      this.holdSnap = { holds: c.holdCount, cuts: c.cutoffCount, downbeats: c.downbeatCount };
+      if (c.seq.state !== 'playing') c.seq.start();
     } else if (id === 'cue') {
       c.followMode = 'lead';
       this.cueTrials = [];
@@ -242,6 +257,7 @@ export class Lessons {
     if (id === 'tempo') return this.tickTempo(c, now, beats);
     if (id === 'downbeat') return this.tickDownbeat(c, now);
     if (id === 'cue') return this.tickCue(c, now);
+    if (id === 'hold') return this.tickHold(c, now, beats);
 
     // pattern4 / pattern3
     const cfg = PATTERNS[id as 'pattern4' | 'pattern3'];
@@ -543,6 +559,125 @@ export class Lessons {
           : 'NOW — point at the chimes.',
       progress: `bar ${Math.min(bar, 4)} · beat ${beat}   (trial ${trialNo}/${CUE_TRIALS})`,
       card: null,
+    };
+  }
+
+  private tickHold(c: Conductor, now: number, beats: number): LessonUi {
+    const trialNo = this.holdTrials.length + 1;
+    const ui = (sub: string, progress = `trial ${trialNo} / 3`): LessonUi => ({
+      prompt: 'Lesson 9 · The Hold & the Cut',
+      sub,
+      progress,
+      card: null,
+    });
+
+    if (this.holdPhase === 'conduct') {
+      this.uiPhase = 'conduct';
+      if (beats >= 6 + this.holdTrials.length * 2) {
+        // rough per-trial floor; beats accumulate across the lesson
+        this.holdPhase = 'raise';
+        this.phaseT0 = now;
+        this.holdSnap.holds = c.holdCount;
+        this.holdSnap.cuts = c.cutoffCount;
+      }
+      return ui('Conduct steadily — a few beats.');
+    }
+
+    if (this.holdPhase === 'raise') {
+      this.uiPhase = 'raise';
+      if (c.holdCount > this.holdSnap.holds) {
+        this.holdPhase = 'holding';
+        this.holdEnteredT = now;
+        return this.tickHold(c, now, beats);
+      }
+      if (now - this.phaseT0 > 8) {
+        this.holdTrials.push({ code: 'no-hold', holdSec: null });
+        return this.nextHoldTrial(c, now, beats);
+      }
+      return ui('Now RAISE your hand… and FREEZE it. Hold them.');
+    }
+
+    if (this.holdPhase === 'holding') {
+      this.uiPhase = 'holding';
+      const held = now - this.holdEnteredT;
+      if (c.cutoffCount > this.holdSnap.cuts) {
+        this.holdTrials.push({
+          code: held >= HOLD_MIN_SEC ? 'clean' : 'early-cut',
+          holdSec: Math.round(held * 10) / 10,
+        });
+        this.holdPhase = 'restart';
+        this.phaseT0 = now;
+        this.holdSnap.downbeats = c.downbeatCount;
+        return this.tickHold(c, now, beats);
+      }
+      if (held > HOLD_MIN_SEC + 6) {
+        this.holdTrials.push({ code: 'left-hanging', holdSec: Math.round(held * 10) / 10 });
+        c.seq.start(); // recover the transport; no cutoff ever came
+        return this.nextHoldTrial(c, now, beats);
+      }
+      return held < HOLD_MIN_SEC
+        ? ui('Frozen… keep it there…', `${held.toFixed(1)} s`)
+        : ui('NOW — one decisive flick. CUT them off.', `${held.toFixed(1)} s`);
+    }
+
+    // restart — the silence must be broken by a real prepared downbeat
+    this.uiPhase = 'restart';
+    if (c.downbeatCount > this.holdSnap.downbeats) {
+      return this.nextHoldTrial(c, now, beats);
+    }
+    if (now - this.phaseT0 > 10) {
+      c.seq.start(); // recover; the trial keeps its grade, restart just failed
+      return this.nextHoldTrial(c, now, beats);
+    }
+    return ui('Silence. Breathe up — and give the downbeat to begin again.');
+  }
+
+  private nextHoldTrial(c: Conductor, now: number, beats: number): LessonUi {
+    if (this.holdTrials.length >= 3) return this.finish(this.scoreHold(), now);
+    this.holdPhase = 'conduct';
+    this.phaseT0 = now;
+    return this.tickHold(c, now, beats);
+  }
+
+  private scoreHold(): LessonResult {
+    const per = this.holdTrials.map((tr) => {
+      switch (tr.code) {
+        case 'clean':
+          return { pts: 95, line: `held ${tr.holdSec} s, clean cut` };
+        case 'early-cut':
+          return { pts: 55, line: `the hold broke early (${tr.holdSec} s)` };
+        case 'left-hanging':
+          return { pts: 35, line: 'held, but never cut — they were left hanging' };
+        default:
+          return { pts: 10, line: 'no hold — the hand never froze' };
+      }
+    });
+    const score = Math.round(per.reduce((s, p) => s + p.pts, 0) / Math.max(per.length, 1));
+    const cls: LessonResult['cls'] = score >= 80 ? 'good' : score >= 50 ? 'warn' : 'bad';
+    const verdict =
+      cls === 'good'
+        ? `Total command — you froze them and released them at will. (${per
+            .map((p) => p.line)
+            .join('; ')}.)`
+        : cls === 'warn'
+          ? `The power is there — hold until the moment is FULL, then cut once, decisively. (${per
+              .map((p) => p.line)
+              .join('; ')}.)`
+          : `The silence never obeyed — raise, FREEZE, then one sharp flick. (${per
+              .map((p) => p.line)
+              .join('; ')}.)`;
+    return {
+      id: 'hold',
+      title: TITLES.hold,
+      score,
+      verdict,
+      cls,
+      raw: {
+        t1: this.holdTrials[0]?.holdSec ?? null,
+        t2: this.holdTrials[1]?.holdSec ?? null,
+        t3: this.holdTrials[2]?.holdSec ?? null,
+        clean: this.holdTrials.filter((t) => t.code === 'clean').length,
+      },
     };
   }
 
