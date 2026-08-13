@@ -668,6 +668,17 @@ export interface ISequencer {
    * simulation runs). Optional: SequencerImpl provides it.
    */
   tick?(): void;
+  /**
+   * Slide the beat grid by a clamped amount without changing tempo (the
+   * phase half of live conducting; setTempoAnchored is the speed half).
+   * Optional: SequencerImpl provides it.
+   */
+  nudgePhase?(deltaSeconds: number, maxAbsSeconds?: number): void;
+  /**
+   * The transport's actual beat instants bracketing time t — the
+   * authoritative grid for phase work. Optional: SequencerImpl provides it.
+   */
+  gridAround?(t: number): { prevBeatT: number; nextBeatT: number };
 
   // Looping
   setLoop(enabled: boolean, startBeat?: number, endBeat?: number): void;

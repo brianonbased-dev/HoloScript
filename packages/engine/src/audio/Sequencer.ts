@@ -294,6 +294,54 @@ export class SequencerImpl implements ISequencer {
     this.schedulerTick();
   }
 
+  /**
+   * Slide the beat grid by a small amount without changing tempo — the phase
+   * half of live conducting. `setTempoAnchored` matches the conductor's SPEED
+   * but deliberately preserves beat position, so the grid can sit a constant
+   * fraction of a beat off the conductor's downbeat forever. Callers correct
+   * that by nudging the grid toward the performed beat a little at a time.
+   *
+   * Positive delta delays upcoming beats; negative advances them. The delta
+   * is clamped to `maxAbsSeconds` per call (default 80ms) so a nudge can
+   * never skip or burst beats — callers should also scale their clamp to a
+   * fraction of the current beat period. Not-yet-triggered scheduled notes
+   * are dropped for the look-ahead pass to re-time, same as setTempoAnchored.
+   * No-op unless playing.
+   */
+  /**
+   * The transport's actual beat instants bracketing time `t` (context
+   * seconds). This is the authoritative grid — after `setTempoAnchored` the
+   * next beat continues from the preserved fractional position, which is NOT
+   * `lastClick + period`; callers doing phase work (conducting, beat-accuracy
+   * scoring) must read the grid from here rather than reconstructing it.
+   */
+  public gridAround(t: number): { prevBeatT: number; nextBeatT: number } {
+    const elapsed = this.secondsToBeats(t - this.startTime);
+    const prev = Math.floor(elapsed);
+    return {
+      prevBeatT: this.startTime + this.beatsToSeconds(prev),
+      nextBeatT: this.startTime + this.beatsToSeconds(prev + 1),
+    };
+  }
+
+  public nudgePhase(deltaSeconds: number, maxAbsSeconds: number = 0.08): void {
+    if (this._state !== 'playing') return;
+    if (!Number.isFinite(deltaSeconds) || !Number.isFinite(maxAbsSeconds)) return;
+    const cap = Math.abs(maxAbsSeconds);
+    const clamped = Math.max(-cap, Math.min(cap, deltaSeconds));
+    if (clamped === 0) return;
+
+    this.startTime += clamped;
+
+    const now = this.context.currentTime;
+    for (let i = this.scheduledNotes.length - 1; i >= 0; i--) {
+      const sn = this.scheduledNotes[i];
+      if (!sn.triggered && sn.startTime > now) {
+        this.scheduledNotes.splice(i, 1);
+      }
+    }
+  }
+
   public getBPM(): number {
     return this.bpm;
   }
