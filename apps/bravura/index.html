@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bravura — The Black Room</title>
+<style>
+  :root {
+    --bg: #060507; --panel: #16120c; --ink: #f0e8d6; --dim: #a8987d;
+    --brass: #d2a94e; --good: #6fbf6a; --warn: #d2a94e; --bad: #d96b5c; --line: #33291c;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Segoe UI", system-ui, sans-serif; overflow: hidden;
+  }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .top {
+    position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center;
+    gap: .6rem; padding: .7rem 1rem; flex-wrap: wrap;
+    background: linear-gradient(rgba(6,5,7,.92), rgba(6,5,7,0));
+  }
+  h1 { font-size: 1.05rem; margin: 0 1rem 0 0; color: var(--brass); letter-spacing: .16em; font-weight: 600; }
+  button {
+    font-size: .98rem; padding: .6rem 1rem; border-radius: .45rem;
+    border: 1px solid var(--line); background: rgba(22,18,12,.9); color: var(--ink); cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--brass); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--brass); color: #16120c; font-weight: 600; }
+  #status { position: fixed; top: 3.6rem; left: 1rem; right: 1rem; color: var(--dim); font-size: .95rem; text-shadow: 0 1px 3px #000; }
+  .bottom {
+    position: fixed; left: 0; right: 0; bottom: 0; padding: 1rem;
+    background: linear-gradient(rgba(6,5,7,0), rgba(6,5,7,.92));
+  }
+  .verdict {
+    margin: 0 auto .6rem; max-width: 46rem; padding: .9rem 1.1rem; border-radius: .5rem;
+    font-size: 1.08rem; background: var(--panel); border: 1px solid var(--line); display: none;
+  }
+  .verdict.good { display: block; border-color: var(--good); color: var(--good); }
+  .verdict.warn { display: block; border-color: var(--warn); color: var(--warn); }
+  .verdict.bad { display: block; border-color: var(--bad); color: var(--bad); }
+  .verdict.unknown { display: block; color: var(--dim); }
+  #final-numbers { text-align: center; color: var(--dim); margin: 0 0 .5rem; }
+  #receipt-row { display: none; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="top">
+  <h1>BRAVURA</h1>
+  <button id="btn-vr" class="primary">Enter the room (Quest)</button>
+  <button id="btn-desktop">Desktop view</button>
+  <button id="btn-stop">Stop &amp; show verdict</button>
+</div>
+<p id="status">The black room. One drum. It follows your hands.</p>
+<div class="bottom">
+  <div id="verdict" class="verdict"></div>
+  <p id="final-numbers"></p>
+  <div id="receipt-row"><button id="btn-receipt">Download receipt (JSON)</button></div>
+</div>
+<script type="module" src="./dist/bravura.js"></script>
+</body>
+</html>

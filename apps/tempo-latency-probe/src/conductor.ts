@@ -132,6 +132,15 @@ export class Conductor {
     });
   }
 
+  /**
+   * Replace the beat sounds (e.g. the Bravura room swaps clicks for timpani
+   * strikes rendered through the same SynthEngine). hi = downbeat.
+   */
+  setClickBuffers(hi: AudioBuffer, lo: AudioBuffer): void {
+    this.clickHi = hi;
+    this.clickLo = lo;
+  }
+
   start(initialBpm = 90): void {
     if (this.running) return;
     this.seq.setBPM(initialBpm);

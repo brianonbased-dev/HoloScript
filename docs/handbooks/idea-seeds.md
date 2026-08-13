@@ -576,6 +576,32 @@ cue-learning models once per-player session data exists.
 
 ---
 
+## Bravura Room → Engine Native WebGPU XR Renderer (retire the app-local WebGL)
+
+> Recorded 2026-08-13 while opening Bravura gate 3 (`apps/bravura`). The room ships on a
+> purpose-built ~300-line app-local WebGL forward renderer because that was the only honest
+> headset path available (see below). The moment that constraint lifts, this seed is the port.
+
+**What might be valuable**: `packages/engine/src/character-render/character-render-xr.ts` already
+implements the native-WebGPU WebXR path (XRWebGPUBinding projection layers, per-eye composite,
+`detectSupport()` graceful fallback, headless-verified math) — but has no full-scene consumer.
+Bravura's black room (spotlit realistic instruments, hand constellations, world-space HUD) is the
+natural first one: porting it onto the engine renderer would (a) delete the app-local WebGL
+renderer (shrink toward the sovereign stack), (b) give the engine's XR-WebGPU path its first
+on-device receipt beyond a character demo, and (c) unlock the engine's real material/lighting
+systems (AdvancedPBR, VolumetricLight — the spotlight cone in a black room is literally the
+volumetric-light showcase) for the game's "realistic instruments, no cartoon" direction.
+
+**Why not now**: XRWebGPUBinding is absent/uneven on Quest browser today — the engine module's own
+header says WebGL fallback is the expected outcome until devices confirm the binding, and the
+engine's WebGL fallback is the legacy three.js studio surface being retired (not something to
+build a new game on). Bravura gate 3 therefore ships sovereign app-local WebGL. Trigger to reopen:
+Quest browser ships XRWebGPUBinding (watch item), or the engine grows a sovereign WebGL XR
+forward path of its own. When it fires, port the room scene-for-scene and delete
+`apps/bravura/src/renderer.ts`.
+
+---
+
 ## Epistemic "unknown role" state for motif (would make `resolveMotif` closeable)
 
 > Recorded 2026-07-12 (claude1, uAAL loop A4). Motif was FLAGGED not-cleanly-closeable for the
