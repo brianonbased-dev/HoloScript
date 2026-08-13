@@ -16,7 +16,14 @@ import { Conductor } from '../../tempo-latency-probe/src/conductor';
 import { median, StepTrial } from '../../tempo-latency-probe/src/beatDetector';
 import { trialVerdict } from '../../tempo-latency-probe/src/verdict';
 
-export type LessonId = 'steady' | 'onbeat' | 'dynamics' | 'tempo' | 'pattern4' | 'pattern3';
+export type LessonId =
+  | 'steady'
+  | 'onbeat'
+  | 'dynamics'
+  | 'tempo'
+  | 'pattern4'
+  | 'pattern3'
+  | 'downbeat';
 
 export interface LessonResult {
   id: LessonId;
@@ -43,7 +50,11 @@ const TITLES: Record<LessonId, string> = {
   tempo: 'Changing Tempo',
   pattern4: 'The Four',
   pattern3: 'The Three',
+  downbeat: 'The Downbeat',
 };
+
+const DOWNBEAT_TARGET_BPM = 90;
+const DOWNBEAT_TRIALS = 3;
 
 interface PatternCfg {
   bar: number;
@@ -83,10 +94,21 @@ export class Lessons {
   private trialsBase = 0;
   private upTrial: StepTrial | null = null;
   private downTrial: StepTrial | null = null;
+  private dbPhase: 'demo' | 'still' | 'go' = 'demo';
+  private dbCountSnap = 0;
+  private dbTrials: { bpm: number | null; casual: boolean; hesitations: number }[] = [];
 
   startAll(conductor: Conductor, now: number, ids?: LessonId[]): void {
     this.results.length = 0;
-    this.queue = ids ?? ['steady', 'onbeat', 'dynamics', 'tempo', 'pattern4', 'pattern3'];
+    this.queue = ids ?? [
+      'steady',
+      'onbeat',
+      'dynamics',
+      'tempo',
+      'pattern4',
+      'pattern3',
+      'downbeat',
+    ];
     this.conductor = conductor;
     this.next(now);
   }
@@ -125,6 +147,12 @@ export class Lessons {
     if (id === 'onbeat') {
       c.followMode = 'lead';
       c.seq.setTempoAnchored(ONBEAT_BPM);
+    } else if (id === 'downbeat') {
+      c.followMode = 'lead';
+      this.dbPhase = 'demo';
+      this.dbTrials = [];
+      if (c.seq.state !== 'playing') c.seq.start();
+      c.seq.setTempoAnchored(DOWNBEAT_TARGET_BPM);
     } else {
       c.followMode = 'follow';
     }
@@ -186,6 +214,7 @@ export class Lessons {
     }
 
     if (id === 'tempo') return this.tickTempo(c, now, beats);
+    if (id === 'downbeat') return this.tickDownbeat(c, now);
 
     // pattern4 / pattern3
     const cfg = PATTERNS[id as 'pattern4' | 'pattern3'];
@@ -371,6 +400,105 @@ export class Lessons {
         biasMs: Math.round(bias),
         misses,
         strokes: offs.length,
+      },
+    };
+  }
+
+  private tickDownbeat(c: Conductor, now: number): LessonUi {
+    const trialNo = this.dbTrials.length + 1;
+    if (this.dbPhase === 'demo') {
+      this.uiPhase = 'demo';
+      if (now - this.phaseT0 > 2.8) {
+        c.armDownbeat();
+        this.dbCountSnap = c.downbeatCount;
+        this.dbPhase = 'still';
+        this.phaseT0 = now;
+      }
+      return {
+        prompt: 'Lesson 7 · The Downbeat',
+        sub: 'LISTEN — this is the speed you will start them at.',
+        progress: `trial ${trialNo} / ${DOWNBEAT_TRIALS}`,
+        card: null,
+      };
+    }
+    if (this.dbPhase === 'still') {
+      this.uiPhase = 'still';
+      if (now - this.phaseT0 > 1.0) {
+        this.dbPhase = 'go';
+        this.phaseT0 = now;
+      }
+      return {
+        prompt: 'Lesson 7 · The Downbeat',
+        sub: 'Silence. Be perfectly still…',
+        progress: `trial ${trialNo} / ${DOWNBEAT_TRIALS}`,
+        card: null,
+      };
+    }
+    // go
+    this.uiPhase = 'go';
+    const struck = c.downbeatCount > this.dbCountSnap;
+    const timedOut = now - this.phaseT0 > 10;
+    if (struck || timedOut) {
+      if (struck && c.lastDownbeat) {
+        this.dbTrials.push({
+          bpm: c.lastDownbeat.casual ? null : c.lastDownbeat.bpm,
+          casual: c.lastDownbeat.casual,
+          hesitations: c.lastDownbeat.hesitations,
+        });
+      } else {
+        this.dbTrials.push({ bpm: null, casual: false, hesitations: 0 });
+      }
+      if (this.dbTrials.length >= DOWNBEAT_TRIALS) return this.finish(this.scoreDownbeat(), now);
+      this.dbPhase = 'demo';
+      this.phaseT0 = now;
+      c.followMode = 'lead';
+      if (c.seq.state !== 'playing') c.seq.start();
+      c.seq.setTempoAnchored(DOWNBEAT_TARGET_BPM);
+      return this.tickDownbeat(c, now);
+    }
+    return {
+      prompt: 'Lesson 7 · The Downbeat',
+      sub: 'Breathe UP — and strike the downbeat. Your breath sets the speed.',
+      progress: `${Math.ceil(10 - (now - this.phaseT0))} s`,
+      card: null,
+    };
+  }
+
+  private scoreDownbeat(): LessonResult {
+    const per = this.dbTrials.map((tr) => {
+      if (tr.bpm === null && !tr.casual) return { pts: 10, line: 'no downbeat' };
+      if (tr.casual) return { pts: 15, line: 'strike without a breath' };
+      const err = Math.abs((tr.bpm as number) - DOWNBEAT_TARGET_BPM) / DOWNBEAT_TARGET_BPM;
+      let pts = err <= 0.08 ? 95 : err <= 0.15 ? 75 : err <= 0.25 ? 50 : 25;
+      pts = Math.max(10, pts - 10 * tr.hesitations);
+      return { pts, line: `started at ${Math.round(tr.bpm as number)}` };
+    });
+    const score = Math.round(per.reduce((a, b) => a + b.pts, 0) / Math.max(per.length, 1));
+    const cls: LessonResult['cls'] = score >= 80 ? 'good' : score >= 50 ? 'warn' : 'bad';
+    const verdict =
+      cls === 'good'
+        ? `You start an orchestra like you mean it — on your beat, at your speed. (${per
+            .map((p) => p.line)
+            .join(', ')}; target ${DOWNBEAT_TARGET_BPM}.)`
+        : cls === 'warn'
+          ? `Clean enough starts — now make the breath PROMISE the speed. (${per
+              .map((p) => p.line)
+              .join(', ')}; target ${DOWNBEAT_TARGET_BPM}.)`
+          : `The downbeat needs authority — one calm breath up, one decisive strike. (${per
+              .map((p) => p.line)
+              .join(', ')}.)`;
+    return {
+      id: 'downbeat',
+      title: TITLES.downbeat,
+      score,
+      verdict,
+      cls,
+      raw: {
+        t1Bpm: this.dbTrials[0]?.bpm ?? null,
+        t2Bpm: this.dbTrials[1]?.bpm ?? null,
+        t3Bpm: this.dbTrials[2]?.bpm ?? null,
+        hesitations: this.dbTrials.reduce((a, b) => a + b.hesitations, 0),
+        casuals: this.dbTrials.filter((t) => t.casual).length,
       },
     };
   }

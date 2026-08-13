@@ -52,6 +52,10 @@ export interface DetectorConfig {
    * tempo break and trusted immediately (median smoothing resumes after).
    */
   jumpFraction: number;
+  /** Below this |velocity| the hand counts as still (units/s). */
+  stillVelMax: number;
+  /** From stillness, upward velocity above this marks a preparation's start. */
+  riseVelMin: number;
 }
 
 export const XR_CONFIG: DetectorConfig = {
@@ -63,11 +67,15 @@ export const XR_CONFIG: DetectorConfig = {
   lockFraction: 0.08,
   lockRunLength: 3,
   jumpFraction: 0.12,
+  stillVelMax: 0.05,
+  riseVelMin: 0.35,
 };
 
 export const DESKTOP_CONFIG: DetectorConfig = {
   ...XR_CONFIG,
   minStrokeAmplitude: 24, // px
+  stillVelMax: 40, // px/s
+  riseVelMin: 250,
 };
 
 /** Median of a non-empty array. */
@@ -82,6 +90,8 @@ export class BeatDetector {
 
   private lastSample: BeatSample | null = null;
   private velocity = 0; // EMA-smoothed
+  /** Most negative velocity since the last upturn — the descent's true speed. */
+  private descentPeakV = 0;
   private lastExtremeY: number | null = null; // top of the current stroke
   private lastBeatT = -Infinity;
 
@@ -112,6 +122,11 @@ export class BeatDetector {
 
   /** stroke = |peak−trough| of the detected downstroke (m in XR, px desktop). */
   onBeat: ((t: number, bpm: number | null, stroke: number) => void) | null = null;
+  /** Fires when, after ≥0.35 s of stillness, a decisive upward motion begins. */
+  onUpstrokeStart: ((t: number) => void) | null = null;
+  private stillSince: number | null = null;
+  /** Set when stillness breaks upward; the rise has 120 ms to prove decisive. */
+  private riseArmT: number | null = null;
   onStep: ((trial: StepTrial) => void) | null = null;
   onLock: ((trial: StepTrial) => void) | null = null;
 
@@ -138,6 +153,40 @@ export class BeatDetector {
     this.velocity = 0.55 * this.velocity + 0.45 * rawV;
     const prevV = this.velocity - 0.45 * rawV; // pre-update EMA, sign reference
 
+    // Stillness → decisive rise = a preparation's start (the breath).
+    // Real hands accelerate smoothly, so the rise gets a 120 ms grace
+    // window after stillness breaks upward to reach decisive speed — the
+    // instant-threshold version only caught knife-edge starts (found by
+    // the gate-6 stutter control: a smooth human-like bump never fired).
+    // The preparation is dated from the TRUE motion start (riseArmT).
+    if (Math.abs(this.velocity) < this.cfg.stillVelMax) {
+      if (this.stillSince === null) this.stillSince = s.t;
+      // Stillness ACTIONS require residency: the EMA glides through the
+      // band for a sample or two at every gentle turn, and acting on one
+      // in-band sample wiped the descent peak right before real strikes
+      // (gate-6 flight recorder, round 4 — zero beats all lesson). True
+      // stillness holds; a glide doesn't.
+      if (s.t - this.stillSince >= 0.1) {
+        this.riseArmT = null;
+        // A still hand has no descent in progress — without this reset the
+        // EMA's sign-preserving decay lets a stale descent peak authorize
+        // a phantom strike at the next rise (round 3).
+        this.descentPeakV = 0;
+      }
+    } else {
+      const wasStillLong = this.stillSince !== null && s.t - this.stillSince >= 0.35;
+      if (wasStillLong && this.velocity > 0) this.riseArmT = s.t;
+      this.stillSince = null;
+      if (this.riseArmT !== null) {
+        if (this.velocity >= this.cfg.riseVelMin) {
+          this.onUpstrokeStart?.(this.riseArmT);
+          this.riseArmT = null;
+        } else if (this.velocity < 0 || s.t - this.riseArmT > 0.12) {
+          this.riseArmT = null; // turned down or crept — not a preparation
+        }
+      }
+    }
+
     let beatT: number | null = null;
 
     // Track the top of the stroke while moving up.
@@ -145,8 +194,23 @@ export class BeatDetector {
       this.lastExtremeY = s.y;
     }
 
-    // Bottom of a downstroke: velocity turns from down to up.
-    const turnedUp = prevV < 0 && this.velocity >= 0;
+    // Bottom of a downstroke: velocity turns from down to up — and the
+    // hand must have genuinely DESCENDED into it. Stillness leaves a
+    // microscopic velocity residue whose sign is an accident of the last
+    // motion; without a descent requirement, a rise after a downward-ending
+    // hesitation reads as a strike at the rise's own start (found by the
+    // gate-6 flight recorder: prep and downbeat at the identical sample).
+    // The requirement tests the descent's PEAK speed, not the flip-sample
+    // velocity — EMA smoothing glides through zero, so the flip sample is
+    // always near-still even for a full-speed strike.
+    if (this.velocity < 0) {
+      this.descentPeakV = Math.min(this.descentPeakV, this.velocity);
+    }
+    const turnedUp =
+      prevV < 0 &&
+      this.velocity >= 0 &&
+      this.descentPeakV <= -3 * this.cfg.stillVelMax;
+    if (this.velocity >= 0 && prevV < 0) this.descentPeakV = 0;
     if (turnedUp) {
       const stroke = (this.lastExtremeY ?? s.y) - s.y;
       const sinceLast = s.t - this.lastBeatT;

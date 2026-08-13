@@ -299,6 +299,103 @@ honestly, never by feeling like homework.
    cueing. Left-handed mirrored patterns and downbeat-anchored bar
    alignment remain seeded.
 
+## Gate 6 — Preparation & downbeat (opened 2026-08-13)
+
+### F.076 four-question gate
+
+1. **Falsifiable claim.** (a) New conductor capability `armDownbeat()`: with
+   the ensemble silent, a sustained upstroke from stillness marks the
+   preparation start; the next detected beat is THE downbeat — the ensemble
+   starts sounding ON it, at the tempo implied by the preparation's
+   duration (prep ≈ one beat). (b) Auto-rest completes: a rested ensemble
+   no longer resumes on any twitch — it arms, and wakes only on a real
+   downbeat at the prep-implied tempo (the status line's "give a downbeat"
+   promise becomes literally true). (c) Lesson 7 "The Downbeat": three
+   trials of listen (drum demos 90) → silence → prepare → strike; graded on
+   started-tempo error vs the demonstrated 90 and on hesitations (re-preps
+   before the strike); a 90-prep synthetic scores high, a 140-prep scores
+   low on tempo, a stutter-prep loses hesitation points, and a no-strike
+   trial times out as a miss. (d) Probe self-test stays green (arming is
+   inert unless enabled: autoRestBeats stays null in the probe, armed
+   defaults false).
+2. **Real seam.** Detector gains stillness/upstroke sensing (per-config
+   velocity thresholds); conductor gains the arming state machine wired to
+   the same engine transport (`setBPM` + fresh `start()` = first beat fires
+   on the downbeat within one 25 ms tick). The lesson polls the same
+   conductor state the free-play wake uses — one mechanism, two consumers.
+3. **Failing-if-broken evidence.** Deterministic drivers: correct-tempo
+   prep, wrong-tempo prep, stutter prep, no-strike timeout; a free-play
+   rest→wake check asserting the restarted BPM ≈ the prep tempo; probe
+   regression. Receipts carry per-trial started-BPM and hesitations.
+4. **Scope + blast.** `apps/bravura/**` + additive detector/conductor
+   changes. The auto-rest wake path CHANGES (pause→resume becomes
+   stop→armed-downbeat) — this is the one deliberate behavior change,
+   named here; it only exists where autoRestBeats is set (Bravura), never
+   in the probe. Out of scope: choosing your own target tempo (lesson
+   prescribes 90 after demoing it), cutoff/release gestures (next), fermata.
+
+### Premortem (inline)
+
+1. **Upstroke sensing misfires on hand tremor** → false preps. Guard:
+   stillness must hold ≥0.35 s and the rise velocity threshold is high
+   (250 px/s desktop, 0.35 m/s XR); a false prep only re-arms — the
+   downbeat still lands on the next real bottom; hesitation count surfaces
+   it instead of hiding it.
+2. **Prep duration ≠ intended beat for real humans** (breath speed varies).
+   Guard: generous bands (±8% full marks, ±15% good) and the lesson demos
+   the target immediately before each trial.
+3. **Free-play wake feels broken if the first stroke after rest is casual**
+   (slow drag up → very slow started tempo). Guard: started BPM clamps to
+   40–220; a out-of-range prep restarts at the pre-rest tempo instead.
+4. **Trial deadlock.** 10 s no-strike timeout per trial, scored as a miss,
+   never stuck.
+
+### Gate 6 exit criteria — closed 2026-08-13 (all receipts on the final build)
+
+- [x] Downbeat mechanism: clean prep starts the ensemble ON the strike at
+      **85 vs target 90 (5.9%, inside ±8%)**, deterministic ×3; free-play
+      rest→wake produces a REAL prepared downbeat
+      (`lastDownbeat {bpm:111, casual:false}` from a 120-promise prep).
+- [x] Lesson paths, one receipt each: clean **95** ("started at 85" ×3,
+      0 hesitations); wrong-tempo **25** ("started at 127" ×3); stutter
+      **85** (= 95 − exactly one hesitation penalty per trial, flight-log
+      proven: `prep hes=0 → prep hes=1 → downbeat 0.709 s later`);
+      mixed run: timeout → "no downbeat", creep-then-strike →
+      "strike without a breath" (`prep=none casual=true` in the log),
+      clean → "started at 85". Score 40 bad, every path distinct.
+- [x] Probe self-test regression green on the final detector:
+      1.17 / 2.11 beats, offset 59 ms, all 32 wave beats detected.
+- [x] Committed; ledger updated; in-headset run standing.
+
+### Gate 6 findings — the sensor war, won by the flight recorder
+
+Detecting "a breath from stillness, then a strike" took three rounds of
+real bugs, each found by a control run + the arming flight log, each fixed
+at the root:
+
+1. **Instant rise threshold missed human starts.** Real hands accelerate
+   smoothly; the first out-of-still sample is never fast. Fix: stillness
+   breaking upward arms a 120 ms grace window to reach decisive speed, and
+   the preparation is dated from the TRUE motion start.
+2. **Stillness residue fabricated strikes.** The smoothed velocity keeps
+   the sign of the last motion at microscopic size, so a rise after a
+   downward-ending hesitation read as a strike at the rise's own start
+   (log: prep and downbeat at the identical sample). Fix: a bottom only
+   counts if the hand genuinely DESCENDED into it — tested against the
+   descent's PEAK speed, not the flip-sample velocity (the EMA glides
+   through zero even on a full-speed strike).
+3. **One in-band sample isn't stillness.** The glide through the still band
+   at every gentle turn wiped the descent peak right before real strikes
+   (a build where NO beat could fire — the probe would have caught it too).
+   Fix: stillness actions require 100 ms residency.
+
+Also learned: rising from stillness into a stroke IS a preparation whether
+the player intends it or not — so "casual" (unprepared) starts are only
+creeping or downward-first strikes, which is the musically truer mechanic
+than the spec's original wording. The certified probe path survived all
+three fixes unchanged (receipt above) — the beat definition got stricter
+only where real strokes never live.
+
 ### Gate 3 findings
 
 1. **The audio pipeline carried over untouched** — the timpani is literally

@@ -84,6 +84,27 @@ export class Conductor {
    */
   autoRestBeats: number | null = null;
   private lastHandBeatT: number | null = null;
+  /**
+   * Preparation & downbeat: while armed the ensemble is silent; a decisive
+   * upstroke from stillness marks the preparation, and the next detected
+   * beat is THE downbeat — the ensemble starts ON it at the tempo the
+   * preparation's duration implies (prep ≈ one beat). A beat without any
+   * registered preparation wakes the ensemble at its pre-rest tempo and is
+   * recorded as `casual` (free play stays forgiving; lessons grade it).
+   */
+  private armed = false;
+  private prepStartT: number | null = null;
+  private preRestBpm = 90;
+  /** Re-preparations before the strike, reset each arm; surfaced in lastDownbeat. */
+  private armHesitations = 0;
+  downbeatCount = 0;
+  lastDownbeat: { at: number; bpm: number; casual: boolean; hesitations: number } | null = null;
+  /** Flight recorder for the arming path (arm / prep / beat events), capped. */
+  readonly armLog: string[] = [];
+  private logArm(msg: string): void {
+    this.armLog.push(msg);
+    if (this.armLog.length > 60) this.armLog.shift();
+  }
   /** Signed hand-vs-grid offsets (ms; negative = hand early), newest last. */
   readonly signedOffsets: { t: number; ms: number }[] = [];
   /** Per-beat strike velocities (0.35–1.25; 1 = nominal), newest last. */
@@ -107,11 +128,38 @@ export class Conductor {
     this.clickHi = renderClick(ac, 1660);
     this.clickLo = renderClick(ac, 880);
 
+    this.detector.onUpstrokeStart = (t) => {
+      if (this.armed) {
+        if (this.prepStartT !== null) this.armHesitations++;
+        this.prepStartT = t;
+        this.logArm(`prep@${t.toFixed(3)} hes=${this.armHesitations}`);
+      }
+    };
+
     this.detector.onBeat = (t, bpm, stroke) => {
       this.lastHandBeatT = t;
-      // A resting ensemble wakes on the conductor's next beat.
-      if (this.running && this.seq.state === 'paused') {
+      // Armed ensemble: this beat is the downbeat — start ON it, at the
+      // tempo the preparation promised (or pre-rest tempo for a casual,
+      // unprepared strike).
+      if (this.running && this.armed) {
+        let startBpm = this.preRestBpm;
+        let casual = true;
+        if (this.prepStartT !== null) {
+          const implied = 60 / (t - this.prepStartT);
+          if (implied >= 40 && implied <= 220) {
+            startBpm = implied;
+            casual = false;
+          }
+        }
+        this.logArm(
+          `downbeat@${t.toFixed(3)} prep=${this.prepStartT?.toFixed(3) ?? 'none'} bpm=${startBpm.toFixed(1)} casual=${casual}`
+        );
+        this.armed = false;
+        this.prepStartT = null;
+        this.seq.setBPM(startBpm);
         this.seq.start();
+        this.lastDownbeat = { at: t, bpm: startBpm, casual, hesitations: this.armHesitations };
+        this.downbeatCount++;
       }
       // Scoring senses — always on, in both modes. tCal is the hand's TRUE
       // beat instant (detection lag subtracted).
@@ -194,10 +242,12 @@ export class Conductor {
       if (
         this.autoRestBeats !== null &&
         this.followMode === 'follow' &&
+        !this.armed &&
         this.lastHandBeatT !== null &&
         ev.timestamp - this.lastHandBeatT > (this.autoRestBeats * 60) / this.seq.getBPM()
       ) {
-        this.seq.pause();
+        // Rest AND arm: the ensemble wakes only on a real downbeat.
+        this.armDownbeat();
         return;
       }
       const beatInBar = (ev.data?.beat as number) ?? 0;
@@ -227,6 +277,8 @@ export class Conductor {
 
   start(initialBpm = 90): void {
     if (this.running) return;
+    this.armed = false;
+    this.prepStartT = null;
     this.seq.setBPM(initialBpm);
     this.seq.start();
     this.running = true;
@@ -251,9 +303,26 @@ export class Conductor {
     return this.seq.getBPM();
   }
 
-  /** True while the ensemble is resting, waiting for the conductor. */
+  /**
+   * Silence the ensemble and wait for a prepared downbeat. Used by the
+   * auto-rest path and by the Downbeat lesson.
+   */
+  armDownbeat(): void {
+    this.preRestBpm = this.seq.getBPM();
+    this.armed = true;
+    this.prepStartT = null;
+    this.armHesitations = 0;
+    this.logArm(`arm bpm=${this.preRestBpm.toFixed(1)}`);
+    if (this.seq.state !== 'stopped') this.seq.stop();
+  }
+
+  /** True while the ensemble is resting/armed, waiting for the conductor. */
   get isResting(): boolean {
-    return this.running && this.seq.state === 'paused';
+    return this.running && this.armed;
+  }
+
+  get isArmed(): boolean {
+    return this.armed;
   }
 
   /** Reset the scoring senses (called at each lesson boundary). */
