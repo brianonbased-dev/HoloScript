@@ -209,6 +209,96 @@ honestly, never by feeling like homework.
 4. **Whole page is the podium** (founder bug report): pointer conducting
    was bound to one element; input anywhere now conducts in both apps.
 
+## Gate 5 — Tempo changes + beat patterns (opened 2026-08-13)
+
+### F.076 four-question gate
+
+1. **Falsifiable claim.** (a) Detection-lag calibration: the ~34 ms
+   gesture-detection lag is subtracted at the source (conductor's signed
+   offset), so a grid-perfect synthetic conductor scores |bias| < 15 ms in
+   On the Beat, and the probe's steady-state offset drops ~30 ms with lock
+   latencies unchanged-or-better (regression must stay green, else revert).
+   (b) Lesson 4 "Changing Tempo": staged prompts (hold → speed UP → slow
+   DOWN) reuse the certified step-trial machinery; each direction graded by
+   its certified band; a prompt-ignoring run times out and scores low.
+   (c) Lessons 5–6 "The Four / The Three": the detector gains lateral (x)
+   tracking; each beat is classified left/center/right against the player's
+   own spread; bars are matched against the 4/4 [center,left,right,center]
+   and 3/4 [center,right,center] lateral templates; the HUD draws the
+   pattern diagram during the lesson. A template-following synthetic run
+   scores high; a vertical-only run scores low.
+2. **Real seam.** Same shared detector/conductor (x is an additive optional
+   field on BeatSample; XR feeds wrist x, desktop feeds clientX); the
+   certified trial machinery and verdict bands become the lesson's grader —
+   the measurement IS the teacher.
+3. **Failing-if-broken evidence.** Deterministic direct-feed drivers (house
+   pattern from gate 4), positive AND negative per lesson; probe self-test
+   regression; On-the-Beat bias re-check after calibration; receipts carry
+   per-lesson raw numbers (trial latencies, per-bar match sequences).
+4. **Scope + blast.** `apps/bravura/**` + additive shared-module edits
+   (BeatSample.x, beatXs, calibration constant). Out of scope, named:
+   3/4-vs-4/4 auto-detection, downbeat-anchored bar alignment grading
+   (groups count from lesson start; noted in the lesson sub-text), left-
+   handed mirrored patterns (seeded), preparation/downbeat lesson, cueing.
+   Regression risk: calibration shifts phase snap — guarded by the probe
+   regression gate with explicit revert criterion.
+
+### Premortem (inline)
+
+1. **Calibration overshoots on some input mode** (mouse vs hands differ).
+   Guard: single conservative constant (34 ms, measured on the desktop
+   path); per-mode calibration remains the follow-up; revert criterion
+   explicit.
+2. **Lateral classification thrashes on narrow conducting** (player barely
+   moves sideways → everything "center" → pattern lessons unpassable by
+   honest smallness). Guard: spread-relative thresholds with a minimum
+   absolute spread; if spread is too small the lesson says "make the shape
+   bigger" rather than scoring zero.
+3. **Tempo lesson deadlocks** (student never triggers a trial). Guard:
+   12 s per-direction timeout with a "no change heard" card, scored low but
+   never stuck.
+4. **Pattern templates fight handedness.** Right-handed templates this
+   gate; mirrored templates seeded, named in the lesson text.
+5. **Five lessons feel long.** Runtime ~3 minutes total; each lesson is
+   still individually short; free play remains the default room.
+
+### Gate 5 exit criteria — closed 2026-08-13 (one claim half-reverted, recorded)
+
+- [x] Calibration, with a correction the regression gate forced: applying
+      tCal to the PHASE SNAP broke the certified numbers (offset 59→405 ms,
+      up-lock 1.17→2.08 beats) because the lock-stamp floor and offset
+      metric are tuned to the detection frame — **reverted per the ledger's
+      own criterion**; the probe re-ran green (1.20/2.13, offset 69).
+      Calibration lives ONLY in the scoring offsets, where the grid-perfect
+      synthetic now reads **bias −6 ms, median 6 ms** (was +34) with no
+      false coaching line. Two frames, both documented in the conductor.
+- [x] L4 Changing Tempo: obedient driver **95** — "1.2 beats — crisp" both
+      directions, graded by the certified bands; prompt-ignoring driver
+      **10** — "no clear change heard" twice, clean 12 s timeouts, no
+      deadlock.
+- [x] L5 The Four: shape-following driver **100** (5/5 bars, spread 260);
+      vertical-only driver **15** with "Make the shape BIGGER" guidance.
+      L6 The Three: **100** (5/5 bars). HUD draws the numbered pattern
+      diagrams during both lessons.
+- [x] Committed; ledger updated; in-headset run standing.
+
+### Gate 5 findings
+
+1. **A calibration is not one number, it's one number per frame of
+   reference.** The same 34 ms constant that fixes coaching (hand-vs-grid
+   truth) breaks the follow-feel metrics (click-vs-detection consistency).
+   The regression gate caught it in one run; the revert criterion written
+   before the change made the decision automatic. This is why the criterion
+   gets written first.
+2. **The certified measurement became the teacher without modification** —
+   Lesson 4 grades with the same trial machinery and bands the probe
+   certifies, so the lesson can never drift from the measured truth.
+3. Six lessons now teach: steady hand, landing the beat, dynamics, tempo
+   changes, the 4-pattern, the 3-pattern. Next in the curriculum:
+   preparation & downbeat (starting from silence), then sections for
+   cueing. Left-handed mirrored patterns and downbeat-anchored bar
+   alignment remain seeded.
+
 ### Gate 3 findings
 
 1. **The audio pipeline carried over untouched** — the timpani is literally

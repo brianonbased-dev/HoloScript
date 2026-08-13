@@ -12,6 +12,8 @@
 export interface BeatSample {
   t: number; // seconds, audio clock
   y: number; // vertical position (m in XR, normalized px on desktop)
+  /** optional lateral position, same units as y — enables beat-pattern shapes */
+  x?: number;
 }
 
 export interface StepTrial {
@@ -85,8 +87,11 @@ export class BeatDetector {
 
   /** Hand-beat instants (audio-clock seconds). */
   readonly beatTimes: number[] = [];
+  /** Lateral position at each beat (NaN when the feed had no x), parallel to beatTimes. */
+  readonly beatXs: number[] = [];
   /** Inter-beat intervals (seconds), parallel to beatTimes[1..]. */
   readonly intervals: number[] = [];
+  private lastX = NaN;
 
   private _conductedBpm: number | null = null;
   private stableBpm: number | null = null;
@@ -120,6 +125,7 @@ export class BeatDetector {
 
   /** Feed one position sample. Returns a beat time if this sample closed a beat. */
   addSample(s: BeatSample): number | null {
+    if (s.x !== undefined) this.lastX = s.x;
     if (this.lastSample === null) {
       this.lastSample = s;
       this.lastExtremeY = s.y;
@@ -164,12 +170,14 @@ export class BeatDetector {
       } else {
         // Out-of-range: treat as a fresh start, keep the beat but no interval.
         this.beatTimes.push(t);
+        this.beatXs.push(this.lastX);
         this.lastBeatT = t;
         this.onBeat?.(t, this._conductedBpm, stroke);
         return;
       }
     }
     this.beatTimes.push(t);
+    this.beatXs.push(this.lastX);
     this.lastBeatT = t;
 
     const n = this.intervals.length;

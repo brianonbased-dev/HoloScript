@@ -61,7 +61,7 @@ export interface BravuraXRHandle {
 export async function startBravuraXR(
   gl: WebGLRenderingContext,
   audioNow: () => number,
-  feedBeat: (t: number, y: number, source: string) => void,
+  feedBeat: (t: number, y: number, source: string, x?: number) => void,
   onFrame: (data: XRFrameData) => void,
   onEnd: () => void
 ): Promise<BravuraXRHandle> {
@@ -126,7 +126,7 @@ export async function startBravuraXR(
           hands[side] = hf;
           // Right hand leads; left conducts only if right is absent.
           if (!beatFed && (side === 'right' || !hands.right)) {
-            feedBeat(tAudio, hf.positions[1], `hand-${side}`);
+            feedBeat(tAudio, hf.positions[1], `hand-${side}`, hf.positions[0]);
             beatFed = side === 'right';
           }
         }
@@ -135,7 +135,7 @@ export async function startBravuraXR(
         if (gp) {
           controllers[side] = gp.transform.matrix;
           if (!beatFed && !hands.right && !hands.left) {
-            feedBeat(tAudio, gp.transform.position.y, `controller-${side}`);
+            feedBeat(tAudio, gp.transform.position.y, `controller-${side}`, gp.transform.position.x);
             beatFed = side === 'right';
           }
         }

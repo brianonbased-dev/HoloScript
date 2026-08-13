@@ -13,6 +13,7 @@ export interface HudLesson {
     verdict: string;
     cls: 'good' | 'warn' | 'bad';
   } | null;
+  pattern?: '4' | '3';
 }
 
 export interface HudState {
@@ -65,6 +66,8 @@ export class Hud {
 
     if (s.lesson) {
       this.renderLesson(s.lesson);
+      // Restore fill after pattern badges may have changed it.
+      this.ctx.fillStyle = '#f0e8d6';
       return true;
     }
 
@@ -122,15 +125,70 @@ export class Hud {
       this.wrap(l.card.verdict, 48, 232, W - 96, 34);
       return;
     }
+    const textW = l.pattern ? 340 : W - 96;
     c.fillStyle = '#d2a94e';
     c.font = '700 40px "Segoe UI", sans-serif';
     c.fillText(l.prompt, 48, 84);
     c.fillStyle = '#f0e8d6';
     c.font = '500 30px "Segoe UI", sans-serif';
-    this.wrap(l.sub, 48, 148, W - 96, 40);
+    this.wrap(l.sub, 48, 148, textW, 40);
     c.fillStyle = '#a8987d';
     c.font = '600 46px "Segoe UI", sans-serif';
     c.fillText(l.progress, 48, 282);
+    if (l.pattern) this.drawPattern(l.pattern);
+  }
+
+  /** The conducting shape, numbered — right-handed, viewer's frame. */
+  private drawPattern(which: '4' | '3'): void {
+    const c = this.ctx;
+    const seg = (
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number
+    ): void => {
+      c.beginPath();
+      c.moveTo(x1, y1);
+      c.lineTo(x2, y2);
+      c.stroke();
+      // arrowhead
+      const a = Math.atan2(y2 - y1, x2 - x1);
+      c.beginPath();
+      c.moveTo(x2, y2);
+      c.lineTo(x2 - 14 * Math.cos(a - 0.4), y2 - 14 * Math.sin(a - 0.4));
+      c.moveTo(x2, y2);
+      c.lineTo(x2 - 14 * Math.cos(a + 0.4), y2 - 14 * Math.sin(a + 0.4));
+      c.stroke();
+    };
+    const badge = (x: number, y: number, n: number): void => {
+      c.beginPath();
+      c.arc(x, y, 17, 0, Math.PI * 2);
+      c.fillStyle = '#d2a94e';
+      c.fill();
+      c.fillStyle = '#16120c';
+      c.font = '700 22px "Segoe UI", sans-serif';
+      c.fillText(String(n), x - 6, y + 8);
+    };
+    c.strokeStyle = '#f0e8d6';
+    c.lineWidth = 4;
+    c.lineCap = 'round';
+    if (which === '4') {
+      seg(520, 72, 520, 250); // 1: down
+      seg(520, 250, 442, 200); // 2: in (left)
+      seg(442, 200, 600, 186); // 3: out (right)
+      seg(600, 186, 524, 76); // 4: up
+      badge(520, 262, 1);
+      badge(430, 188, 2);
+      badge(612, 174, 3);
+      badge(524, 62, 4);
+    } else {
+      seg(520, 72, 520, 250); // 1: down
+      seg(520, 250, 610, 190); // 2: out (right)
+      seg(610, 190, 524, 76); // 3: up
+      badge(520, 262, 1);
+      badge(622, 178, 2);
+      badge(524, 62, 3);
+    }
   }
 
   private wrap(text: string, x: number, y: number, maxW: number, lineH: number): void {

@@ -90,6 +90,14 @@ export class Conductor {
   readonly velocities: { t: number; v: number }[] = [];
   private strokeWindow: number[] = [];
   private pendingVelocity = 1;
+  /**
+   * Beat detection lands ~34 ms after the hand's true bottom (measured with
+   * a grid-aligned synthetic conductor, gate 4). All grid comparisons —
+   * scoring offsets AND phase snapping — use the calibrated instant, so
+   * clicks land on the player's true beat and coaching never blames the
+   * instrument's own lag. Intervals/tempo are unaffected (uniform shift).
+   */
+  static readonly DETECTION_LAG_S = 0.034;
 
   constructor(ac: AudioContext, cfg: DetectorConfig, events: ConductorEvents = {}) {
     this.ac = ac;
@@ -105,12 +113,16 @@ export class Conductor {
       if (this.running && this.seq.state === 'paused') {
         this.seq.start();
       }
-      // Scoring senses — always on, in both modes.
+      // Scoring senses — always on, in both modes. tCal is the hand's TRUE
+      // beat instant (detection lag subtracted).
+      const tCal = t - Conductor.DETECTION_LAG_S;
       if (this.running) {
         const period = 60 / this.seq.getBPM();
-        const { prevBeatT, nextBeatT } = this.seq.gridAround(t);
+        const { prevBeatT, nextBeatT } = this.seq.gridAround(tCal);
         const sErr =
-          Math.abs(t - prevBeatT) <= Math.abs(t - nextBeatT) ? t - prevBeatT : t - nextBeatT;
+          Math.abs(tCal - prevBeatT) <= Math.abs(tCal - nextBeatT)
+            ? tCal - prevBeatT
+            : tCal - nextBeatT;
         this.signedOffsets.push({ t, ms: sErr * 1000 });
         if (this.signedOffsets.length > 128) this.signedOffsets.shift();
 
@@ -147,6 +159,13 @@ export class Conductor {
           // retempo (fractional-beat continuation) and silently
           // under-corrects (measured: +6 ms "error" vs a true ~280 ms).
           {
+            // Phase snap stays in the DETECTION frame (raw t), deliberately.
+            // Snapping to the calibrated instant was tried (gate 5) and
+            // reverted by the probe regression gate: the lock-stamp floor
+            // and offset metric are tuned to this frame, and shifting the
+            // grid under them cost a full period (1.17→2.08 beats, offset
+            // 59→405 ms). Scoring offsets use the calibrated frame (tCal,
+            // above); the two frames are documented in GATES.md gate 5.
             const period = 60 / this.seq.getBPM();
             const { prevBeatT, nextBeatT } = this.seq.gridAround(t);
             const err =

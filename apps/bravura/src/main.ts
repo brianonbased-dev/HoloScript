@@ -29,7 +29,7 @@ declare global {
       timpaniStats(): { hi: number[]; lo: number[] } | null;
       snapshotStats(): { size: [number, number]; nonBlack: number; maxLum: number };
       lessons: Lessons;
-      startLessons(): void;
+      startLessons(ids?: Parameters<Lessons['startAll']>[2]): void;
     };
   }
 }
@@ -218,7 +218,7 @@ function startDesktop(): void {
   // Whole page is the podium (same founder bug report as the probe: input
   // bound to one element reads as a dead page when the cursor is elsewhere).
   desktopPointerHandler = (e: PointerEvent) => {
-    conductor?.feed({ t: (ac as AudioContext).currentTime, y: -e.clientY });
+    conductor?.feed({ t: (ac as AudioContext).currentTime, y: -e.clientY, x: e.clientX });
   };
   window.addEventListener('pointermove', desktopPointerHandler);
 
@@ -267,9 +267,9 @@ async function startVR(): Promise<void> {
     xrHandle = await startBravuraXR(
       r.gl,
       () => (ac as AudioContext).currentTime,
-      (t, y, source) => {
+      (t, y, source, x) => {
         inputSource = source;
-        conductor?.feed({ t, y });
+        conductor?.feed({ t, y, x });
       },
       (data) => {
         const gl = r.gl;
@@ -445,6 +445,7 @@ window.addEventListener('DOMContentLoaded', () => {
   $('btn-teach').onclick = () => {
     if (mode === 'idle') startDesktop();
     lessonsSummaryShown = false;
+    lessons.spreadFloor = mode === 'vr' ? 0.05 : 50;
     if (conductor) lessons.startAll(conductor, (ac as AudioContext).currentTime);
   };
   $('btn-stop').onclick = () => {
@@ -468,10 +469,11 @@ window.addEventListener('DOMContentLoaded', () => {
     timpaniStats,
     snapshotStats,
     lessons,
-    startLessons: () => {
+    startLessons: (ids) => {
       if (mode === 'idle') startDesktop();
       lessonsSummaryShown = false;
-      if (conductor) lessons.startAll(conductor, (ac as AudioContext).currentTime);
+      lessons.spreadFloor = mode === 'vr' ? 0.05 : 50;
+      if (conductor) lessons.startAll(conductor, (ac as AudioContext).currentTime, ids);
     },
   };
 });

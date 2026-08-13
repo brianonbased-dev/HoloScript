@@ -13,9 +13,10 @@
  */
 
 import { Conductor } from '../../tempo-latency-probe/src/conductor';
-import { median } from '../../tempo-latency-probe/src/beatDetector';
+import { median, StepTrial } from '../../tempo-latency-probe/src/beatDetector';
+import { trialVerdict } from '../../tempo-latency-probe/src/verdict';
 
-export type LessonId = 'steady' | 'onbeat' | 'dynamics';
+export type LessonId = 'steady' | 'onbeat' | 'dynamics' | 'tempo' | 'pattern4' | 'pattern3';
 
 export interface LessonResult {
   id: LessonId;
@@ -31,12 +32,32 @@ export interface LessonUi {
   sub: string;
   progress: string;
   card: LessonResult | null;
+  /** When set, the HUD draws the beat-pattern diagram beside the text. */
+  pattern?: '4' | '3';
 }
 
 const TITLES: Record<LessonId, string> = {
   steady: 'Steady Hand',
   onbeat: 'On the Beat',
   dynamics: 'Louder & Softer',
+  tempo: 'Changing Tempo',
+  pattern4: 'The Four',
+  pattern3: 'The Three',
+};
+
+interface PatternCfg {
+  bar: number;
+  template: ('C' | 'L' | 'R')[];
+  glyph: '4' | '3';
+  scoredBars: number;
+}
+
+const PATTERNS: Record<'pattern4' | 'pattern3', PatternCfg> = {
+  // Right-handed, viewer's frame: 4/4 = down(center), in(left), out(right),
+  // up(center). 3/4 = down(center), out(right), up(center). Mirrored
+  // left-handed templates are seeded, not built.
+  pattern4: { bar: 4, template: ['C', 'L', 'R', 'C'], glyph: '4', scoredBars: 5 },
+  pattern3: { bar: 3, template: ['C', 'R', 'C'], glyph: '3', scoredBars: 5 },
 };
 
 const CARD_SECONDS = 5;
@@ -47,16 +68,25 @@ export class Lessons {
   state: 'idle' | 'running' | 'card' = 'idle';
   current: LessonId | null = null;
   readonly results: LessonResult[] = [];
+  /** Current sub-phase, exposed for drivers and debugging ('', 'hold', 'up', 'mid', 'down'). */
+  uiPhase = '';
+  /** Minimum lateral spread for pattern grading (px on desktop, m in VR — set by the host). */
+  spreadFloor = 50;
   private queue: LessonId[] = [];
   private conductor: Conductor | null = null;
   private t0 = 0;
   private baseBeats = 0;
   private cardUntil = 0;
   private pendingCard: LessonResult | null = null;
+  private tempoPhase: 'hold' | 'up' | 'mid' | 'down' = 'hold';
+  private phaseT0 = 0;
+  private trialsBase = 0;
+  private upTrial: StepTrial | null = null;
+  private downTrial: StepTrial | null = null;
 
-  startAll(conductor: Conductor, now: number): void {
+  startAll(conductor: Conductor, now: number, ids?: LessonId[]): void {
     this.results.length = 0;
-    this.queue = ['steady', 'onbeat', 'dynamics'];
+    this.queue = ids ?? ['steady', 'onbeat', 'dynamics', 'tempo', 'pattern4', 'pattern3'];
     this.conductor = conductor;
     this.next(now);
   }
@@ -86,6 +116,11 @@ export class Lessons {
     this.state = 'running';
     this.t0 = now;
     this.baseBeats = c.detector.beatTimes.length;
+    this.tempoPhase = 'hold';
+    this.phaseT0 = now;
+    this.upTrial = null;
+    this.downTrial = null;
+    this.uiPhase = '';
     c.clearScoring();
     if (id === 'onbeat') {
       c.followMode = 'lead';
@@ -138,14 +173,97 @@ export class Lessons {
       };
     }
 
-    // dynamics
-    const need = 16;
-    if (beats >= need) return this.finish(this.scoreDynamics(c), now);
-    const block = Math.floor(Math.max(beats, 0) / 4) % 2;
+    if (id === 'dynamics') {
+      const need = 16;
+      if (beats >= need) return this.finish(this.scoreDynamics(c), now);
+      const block = Math.floor(Math.max(beats, 0) / 4) % 2;
+      return {
+        prompt: 'Lesson 3 · Louder & Softer',
+        sub: block === 0 ? 'BIG strokes — make it thunder.' : 'small strokes — barely a whisper.',
+        progress: `${Math.min(beats, need)} / ${need} beats`,
+        card: null,
+      };
+    }
+
+    if (id === 'tempo') return this.tickTempo(c, now, beats);
+
+    // pattern4 / pattern3
+    const cfg = PATTERNS[id as 'pattern4' | 'pattern3'];
+    const totalBeats = (1 + cfg.scoredBars) * cfg.bar; // 1 settle bar
+    if (beats >= totalBeats) return this.finish(this.scorePattern(c, cfg), now);
+    const beatInBar = (Math.max(beats, 0) % cfg.bar) + 1;
     return {
-      prompt: 'Lesson 3 · Louder & Softer',
-      sub: block === 0 ? 'BIG strokes — make it thunder.' : 'small strokes — barely a whisper.',
-      progress: `${Math.min(beats, need)} / ${need} beats`,
+      prompt: `Lesson · ${TITLES[id]}`,
+      sub:
+        beats < cfg.bar
+          ? `Follow the numbers on the panel — a bar of ${cfg.bar}. First bar is practice.`
+          : `Keep the shape going — you're on ${beatInBar}.`,
+      progress: `${Math.min(beats, totalBeats)} / ${totalBeats} beats`,
+      card: null,
+      pattern: cfg.glyph,
+    };
+  }
+
+  private tickTempo(c: Conductor, now: number, beats: number): LessonUi {
+    const trials = c.detector.trials;
+    if (this.tempoPhase === 'hold') {
+      this.uiPhase = 'hold';
+      if (beats >= 6) {
+        this.tempoPhase = 'up';
+        this.phaseT0 = now;
+        this.trialsBase = trials.length;
+      }
+      return {
+        prompt: 'Lesson 4 · Changing Tempo',
+        sub: 'Start a steady beat — any speed.',
+        progress: `${Math.min(beats, 6)} / 6 beats`,
+        card: null,
+      };
+    }
+    if (this.tempoPhase === 'up') {
+      this.uiPhase = 'up';
+      const fresh = trials.slice(this.trialsBase).find((tr) => tr.toBpm > tr.fromBpm);
+      if (fresh) {
+        this.upTrial = fresh;
+        this.tempoPhase = 'mid';
+        this.phaseT0 = now;
+      } else if (now - this.phaseT0 > 12) {
+        this.tempoPhase = 'mid';
+        this.phaseT0 = now;
+      }
+      return {
+        prompt: 'Lesson 4 · Changing Tempo',
+        sub: 'Now clearly SPEED UP — and hold the new speed.',
+        progress: `${Math.ceil(Math.max(0, 12 - (now - this.phaseT0)))} s`,
+        card: null,
+      };
+    }
+    if (this.tempoPhase === 'mid') {
+      this.uiPhase = 'mid';
+      if (now - this.phaseT0 > 2.5) {
+        this.tempoPhase = 'down';
+        this.phaseT0 = now;
+        this.trialsBase = trials.length;
+      }
+      return {
+        prompt: 'Lesson 4 · Changing Tempo',
+        sub: this.upTrial ? 'Good — hold this speed.' : 'Hold your speed a moment.',
+        progress: '',
+        card: null,
+      };
+    }
+    // down
+    this.uiPhase = 'down';
+    const fresh = trials.slice(this.trialsBase).find((tr) => tr.toBpm < tr.fromBpm);
+    if (fresh) {
+      this.downTrial = fresh;
+      return this.finish(this.scoreTempo(), now);
+    }
+    if (now - this.phaseT0 > 12) return this.finish(this.scoreTempo(), now);
+    return {
+      prompt: 'Lesson 4 · Changing Tempo',
+      sub: 'Now clearly SLOW DOWN — and hold it.',
+      progress: `${Math.ceil(Math.max(0, 12 - (now - this.phaseT0)))} s`,
       card: null,
     };
   }
@@ -254,6 +372,99 @@ export class Lessons {
         misses,
         strokes: offs.length,
       },
+    };
+  }
+
+  private scoreTempo(): LessonResult {
+    const sub = (tr: StepTrial | null): { pts: number; line: string } => {
+      if (!tr || tr.latencyBeats === null) return { pts: 10, line: 'no clear change heard' };
+      const v = trialVerdict(tr);
+      const b = (tr.latencyBeats as number).toFixed(1);
+      if (v === 'good') return { pts: 95, line: `${b} beats — crisp` };
+      if (v === 'warn') return { pts: 65, line: `${b} beats — a bit slow` };
+      return { pts: 30, line: `${b} beats — sluggish` };
+    };
+    const up = sub(this.upTrial);
+    const down = sub(this.downTrial);
+    const score = Math.round((up.pts + down.pts) / 2);
+    const cls: LessonResult['cls'] = score >= 75 ? 'good' : score >= 45 ? 'warn' : 'bad';
+    return {
+      id: 'tempo',
+      title: TITLES.tempo,
+      score,
+      verdict: `Speeding up: ${up.line}. Slowing down: ${down.line}.`,
+      cls,
+      raw: {
+        upBeats: this.upTrial?.latencyBeats ?? null,
+        upMs: this.upTrial?.latencyMs ?? null,
+        downBeats: this.downTrial?.latencyBeats ?? null,
+        downMs: this.downTrial?.latencyMs ?? null,
+      },
+    };
+  }
+
+  private scorePattern(c: Conductor, cfg: PatternCfg): LessonResult {
+    const start = this.baseBeats + cfg.bar; // skip the practice bar
+    const xs = c.detector.beatXs.slice(start, this.baseBeats + (1 + cfg.scoredBars) * cfg.bar);
+    const valid = xs.filter((x) => Number.isFinite(x));
+    const id = cfg.glyph === '4' ? 'pattern4' : ('pattern3' as LessonId);
+    if (valid.length < cfg.bar * 2) {
+      return {
+        id: id as 'pattern4' | 'pattern3',
+        title: TITLES[id],
+        score: 10,
+        verdict: 'No sideways movement seen — this shape needs left and right, not just up and down.',
+        cls: 'bad',
+        raw: { bars: 0, matched: 0, spread: null },
+      };
+    }
+    const sorted = [...valid].sort((a, b) => a - b);
+    const spread = sorted[Math.floor(sorted.length * 0.85)] - sorted[Math.floor(sorted.length * 0.15)];
+    if (spread < this.spreadFloor) {
+      return {
+        id: id as 'pattern4' | 'pattern3',
+        title: TITLES[id],
+        score: 15,
+        verdict: 'Make the shape BIGGER — sweep clearly to the left and right corners.',
+        cls: 'bad',
+        raw: { bars: 0, matched: 0, spread: Math.round(spread * 100) / 100 },
+      };
+    }
+    const mid = median(valid);
+    const classify = (x: number): 'C' | 'L' | 'R' =>
+      x < mid - 0.25 * spread ? 'L' : x > mid + 0.25 * spread ? 'R' : 'C';
+    let matched = 0;
+    let bars = 0;
+    for (let b = 0; b + cfg.bar <= xs.length; b += cfg.bar) {
+      bars++;
+      let hits = 0;
+      for (let i = 0; i < cfg.bar; i++) {
+        const x = xs[b + i];
+        if (Number.isFinite(x) && classify(x) === cfg.template[i]) hits++;
+      }
+      if (hits === cfg.bar) matched += 1;
+      else if (hits === cfg.bar - 1) matched += 0.5;
+    }
+    const score = bars ? Math.round((matched / bars) * 100) : 0;
+    let verdict: string;
+    let cls: LessonResult['cls'];
+    if (score >= 80) {
+      verdict = `You're drawing a real ${cfg.bar}-pattern — a conductor's hand.`;
+      cls = 'good';
+    } else if (score >= 55) {
+      verdict = 'The shape is emerging — hit the corners harder.';
+      cls = 'warn';
+    } else {
+      verdict = 'The shape isn’t there yet — follow the numbers, big and deliberate.';
+      cls = 'bad';
+    }
+    return {
+      id: id as 'pattern4' | 'pattern3',
+      title: TITLES[id],
+      score,
+      verdict,
+      cls,
+      raw: { bars, matched, spread: Math.round(spread * 100) / 100 },
     };
   }
 
