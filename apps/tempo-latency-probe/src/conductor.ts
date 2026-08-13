@@ -66,6 +66,10 @@ export class Conductor {
   private running = false;
   /** Set true to reproduce the naive-setter fault (self-test negative control). */
   useNaiveSetter = false;
+  /** Phase correction: fraction of the phase error corrected per hand beat. */
+  phaseGain = 0.5;
+  /** Phase correction clamp as a fraction of the current beat period. */
+  phaseClampFrac = 0.25;
 
   constructor(ac: AudioContext, cfg: DetectorConfig, events: ConductorEvents = {}) {
     this.ac = ac;
@@ -81,6 +85,30 @@ export class Conductor {
           this.seq.setBPM(bpm);
         } else {
           this.seq.setTempoAnchored(bpm);
+          // Phase follows speed. Steady conducting: slide the grid a little
+          // toward the hand's beat each stroke (gate-1 finding #2). A tempo
+          // BREAK is a musical restart: snap the grid decisively onto the
+          // conductor's beat, so the new tempo's clicks are clean at once —
+          // gentle nudges after a break would smear corrections across
+          // several intervals and delay the audible lock.
+          // Phase reference is the ENGINE's actual grid (gridAround) —
+          // reconstructing it as lastClick + period is wrong right after a
+          // retempo (fractional-beat continuation) and silently
+          // under-corrects (measured: +6 ms "error" vs a true ~280 ms).
+          {
+            const period = 60 / this.seq.getBPM();
+            const { prevBeatT, nextBeatT } = this.seq.gridAround(t);
+            const err =
+              Math.abs(t - prevBeatT) <= Math.abs(t - nextBeatT) ? t - prevBeatT : t - nextBeatT;
+            if (this.detector.lastBeatWasBreak) {
+              // Full snap: a break stroke restarts the grid on the
+              // conductor's beat; a truncated snap leaves a residue that
+              // delays every subsequent clean interval (measured 157 ms).
+              this.seq.nudgePhase(err, 0.95 * period);
+            } else {
+              this.seq.nudgePhase(this.phaseGain * err, this.phaseClampFrac * period);
+            }
+          }
         }
       }
       this.events.onBeat?.(t, bpm);

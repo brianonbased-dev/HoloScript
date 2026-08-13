@@ -28,6 +28,12 @@ export interface StepTrial {
   latencyBeats: number | null;
   /** Diagnostic: lockedAtT - stepAtT (excludes the detector's own convergence). */
   detectionLatencyMs: number | null;
+  /**
+   * Diagnostic: latency measured to the END of the confirming run — this is
+   * gate 1's original (over-strict) stamp, kept so gate-1 and gate-2 numbers
+   * stay directly comparable across the definition fix.
+   */
+  confirmedLatencyMs: number | null;
 }
 
 export interface DetectorConfig {
@@ -38,6 +44,12 @@ export interface DetectorConfig {
   stepFraction: number; // relative tempo change that opens a step trial
   lockFraction: number; // click interval within this fraction of target = locked
   lockRunLength: number; // consecutive locked clicks required
+  /**
+   * Gate 2 estimator: a single stroke whose implied tempo differs from the
+   * current estimate by at least this fraction is treated as a deliberate
+   * tempo break and trusted immediately (median smoothing resumes after).
+   */
+  jumpFraction: number;
 }
 
 export const XR_CONFIG: DetectorConfig = {
@@ -48,6 +60,7 @@ export const XR_CONFIG: DetectorConfig = {
   stepFraction: 0.15,
   lockFraction: 0.08,
   lockRunLength: 3,
+  jumpFraction: 0.12,
 };
 
 export const DESKTOP_CONFIG: DetectorConfig = {
@@ -77,10 +90,16 @@ export class BeatDetector {
 
   private _conductedBpm: number | null = null;
   private stableBpm: number | null = null;
+  /** Beats remaining in fast-trust mode after a detected tempo break. */
+  private attentive = 0;
+  /** True exactly when the most recent beat was a jump-commit (tempo break). */
+  lastBeatWasBreak = false;
 
   /** Open trial waiting for the ensemble to lock, if any. */
   private openTrial: StepTrial | null = null;
   readonly trials: StepTrial[] = [];
+  /** No new trial may open until this many intervals exist (post-lock quarantine). */
+  private quarantineUntilInterval = 0;
 
   /** Offsets between each hand beat and the nearest audible click (ms). */
   readonly beatToClickOffsetsMs: number[] = [];
@@ -109,8 +128,8 @@ export class BeatDetector {
     if (dt <= 0) return null;
 
     const rawV = (s.y - this.lastSample.y) / dt;
-    this.velocity = 0.7 * this.velocity + 0.3 * rawV;
-    const prevV = this.velocity - 0.3 * rawV; // pre-update EMA, sign reference
+    this.velocity = 0.55 * this.velocity + 0.45 * rawV;
+    const prevV = this.velocity - 0.45 * rawV; // pre-update EMA, sign reference
 
     let beatT: number | null = null;
 
@@ -152,11 +171,32 @@ export class BeatDetector {
     this.beatTimes.push(t);
     this.lastBeatT = t;
 
-    const recent = this.intervals.slice(-3);
-    if (recent.length >= 2) {
-      const newBpm = 60 / median(recent);
-      this.detectStep(newBpm, t);
-      this._conductedBpm = newBpm;
+    const n = this.intervals.length;
+    this.lastBeatWasBreak = false;
+    if (n >= 1) {
+      const instant = 60 / this.intervals[n - 1];
+      let est: number;
+      if (
+        this._conductedBpm !== null &&
+        Math.abs(instant - this._conductedBpm) / this._conductedBpm >= this.cfg.jumpFraction
+      ) {
+        // A single stroke this different is a deliberate tempo break —
+        // trust it now; the next beats refine with a short median.
+        est = instant;
+        this.attentive = 2;
+        this.lastBeatWasBreak = true;
+      } else if (this.attentive > 0 && n >= 2) {
+        est = 60 / median(this.intervals.slice(-2));
+        this.attentive--;
+      } else if (n >= 3) {
+        est = 60 / median(this.intervals.slice(-3));
+      } else if (n >= 2) {
+        est = 60 / median(this.intervals.slice(-2));
+      } else {
+        est = instant;
+      }
+      this.detectStep(est, t);
+      this._conductedBpm = est;
     }
     this.onBeat?.(t, this._conductedBpm);
   }
@@ -166,7 +206,15 @@ export class BeatDetector {
     if (prior.length >= 3) {
       const priorBpm = 60 / median(prior);
       const rel = Math.abs(newBpm - priorBpm) / priorBpm;
-      if (rel >= this.cfg.stepFraction && this.openTrial === null) {
+      if (
+        rel >= this.cfg.stepFraction &&
+        this.openTrial === null &&
+        // Post-lock quarantine: the prior-stable window must be entirely
+        // fresh intervals, or the just-finished step re-detects as a ghost
+        // second trial (seen live: fromBpm=111 ghost with negative
+        // detection latency).
+        this.intervals.length >= this.quarantineUntilInterval
+      ) {
         this.stableBpm = priorBpm;
         // Walk back to the first interval that already deviated from the old
         // tempo — its start is when the hand physically changed speed.
@@ -185,6 +233,7 @@ export class BeatDetector {
           latencyMs: null,
           latencyBeats: null,
           detectionLatencyMs: null,
+          confirmedLatencyMs: null,
         };
         this.onStep?.(this.openTrial);
       } else if (this.openTrial !== null) {
@@ -220,15 +269,31 @@ export class BeatDetector {
         }
       }
       if (locked && tail[0] >= trial.onsetT - targetInterval * 0.5) {
-        // The ensemble was at the new tempo from the FIRST click of the
-        // confirming run; the rest of the run is evidence, not latency.
-        const lockedAt = tail[1];
+        // The grid holds the new tempo from the run's BASE click — every
+        // confirming interval is measured from it. RUN.md's stated meaning
+        // ("the first click at your new speed") is tail[0]; gate 1's code
+        // stamped tail[1], silently costing one extra beat by definition.
+        // One honesty guard: when the OLD grid's phase happens to line up,
+        // tail[0] can precede any possible evidence of the new tempo (seen
+        // live: a 69 ms "lock" stamped before the first new-tempo stroke).
+        // The stamp is therefore the first run click that could only belong
+        // to the new tempo: >= onset + half a target interval.
+        const floor = trial.onsetT + targetInterval * 0.5;
+        let lockedAt = tail[0];
+        for (const c of tail) {
+          if (c >= floor) {
+            lockedAt = c;
+            break;
+          }
+        }
         trial.lockedAtT = lockedAt;
         trial.latencyMs = (lockedAt - trial.onsetT) * 1000;
         trial.latencyBeats = (lockedAt - trial.onsetT) / targetInterval;
         trial.detectionLatencyMs = (lockedAt - trial.stepAtT) * 1000;
+        trial.confirmedLatencyMs = (tail[tail.length - 1] - trial.onsetT) * 1000;
         this.trials.push(trial);
         this.openTrial = null;
+        this.quarantineUntilInterval = this.intervals.length + 5;
         this.onLock?.(trial);
       }
     }
@@ -237,6 +302,9 @@ export class BeatDetector {
   summary() {
     const done = this.trials.filter((tr) => tr.latencyMs !== null);
     return {
+      // Flight recorder: raw audible click times (tail) so any surprising
+      // trial can be read from the receipt instead of re-derived.
+      clickLog: this.clickTimes.slice(-48).map((c) => Math.round(c * 1000) / 1000),
       beats: this.beatTimes.length,
       conductedBpm: this._conductedBpm,
       trials: done,

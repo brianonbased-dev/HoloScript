@@ -56,8 +56,11 @@ the page but the VR button stays disabled — not a secure context.)
 - **Beat-to-click offset**: how far the nearest click lands from each of your
   hand-beats (median ms). Feel of "is it with me."
 - Audible click times include the browser's reported audio output latency.
-- Verdict bands (green ≤ 1.25 beats, amber ≤ 2.5, red above) are our design
-  targets — no industry standard exists; that's why this probe exists.
+- Verdict bands are per-direction design targets (no industry standard
+  exists): speeding up, green ≤ 1.25 beats; slowing down, green ≤ 2.2 —
+  because a slow-down has a physical floor of ~2 beats: the ensemble has
+  just played, and its next possible sound is one slow beat away. The
+  receipt's click log lets anyone verify this from the raw data.
 
 ## What this probe is made of
 

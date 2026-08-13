@@ -120,18 +120,33 @@ function startSelfTest(negative: boolean): void {
 
   const ctx = ac as AudioContext;
   const t0 = ctx.currentTime;
-  const phaseBeats = 10; // beats at 100 BPM, then step
-  const bpmA = 100;
-  const bpmB = 160;
   const ampl = 0.15; // metres
-  const durA = (phaseBeats * 60) / bpmA;
-  const total = durA + (14 * 60) / bpmB;
+  // Three segments; each boundary lands on a wave BOTTOM (phase k + 0.5),
+  // modeling a conductor who breaks tempo ON a stroke: 10.5 beats at 100,
+  // 12 beats at 160 (speed-up trial), 10 beats at 110 (slow-down trial).
+  const segs = [
+    { bpm: 100, beats: 10.5 },
+    { bpm: 160, beats: 12 },
+    { bpm: 110, beats: 10 },
+  ];
 
   selfTestTimer = setInterval(() => {
     if (!conductor) return;
     const t = ctx.currentTime;
-    const el = t - t0;
-    if (el > total) {
+    let el = t - t0;
+    let phase = 0;
+    let done = true;
+    for (const seg of segs) {
+      const dur = (seg.beats * 60) / seg.bpm;
+      if (el <= dur) {
+        phase += el * (seg.bpm / 60);
+        done = false;
+        break;
+      }
+      phase += seg.beats;
+      el -= dur;
+    }
+    if (done) {
       finishSession(
         negative
           ? 'Negative control finished — with the fault injected this SHOULD look broken.'
@@ -139,9 +154,6 @@ function startSelfTest(negative: boolean): void {
       );
       return;
     }
-    // Piecewise phase so the wave frequency steps cleanly at durA.
-    const phase =
-      el < durA ? el * (bpmA / 60) : durA * (bpmA / 60) + (el - durA) * (bpmB / 60);
     const y = ampl * Math.cos(2 * Math.PI * phase); // bottom once per beat
     conductor.feed({ t, y });
   }, 1000 / 72);
@@ -174,22 +186,52 @@ function finishSession(note: string): void {
   renderVerdict(summary);
 }
 
-function verdictFor(beats: number | null): { text: string; cls: string } {
-  if (beats === null)
+interface TrialLike {
+  fromBpm: number;
+  toBpm: number;
+  latencyBeats: number | null;
+}
+
+/**
+ * Direction-aware bands. Slow-downs have a higher physical floor than
+ * speed-ups under this metric: the evidence stroke arrives one NEW (slow)
+ * period after the last old-tempo beat, and the ensemble's next possible
+ * sound is a further slow period later (it has just played — proven in the
+ * click log: click 83 ms before the slow stroke, next click one slow period
+ * on, 52 ms off the second stroke). Floor ≈ 2.0 beats; green is set just
+ * above it. Speed-ups have no such second-period cost: green ≤ 1.25.
+ */
+function trialVerdict(tr: TrialLike): 'good' | 'warn' | 'bad' {
+  const b = tr.latencyBeats as number;
+  const slowdown = tr.toBpm < tr.fromBpm;
+  const green = slowdown ? 2.2 : 1.25;
+  const amber = slowdown ? 3.0 : 2.5;
+  if (b <= green) return 'good';
+  if (b <= amber) return 'warn';
+  return 'bad';
+}
+
+function verdictFor(trials: TrialLike[]): { text: string; cls: string } {
+  const done = trials.filter((t) => t.latencyBeats !== null);
+  if (done.length === 0)
     return {
       text: 'No tempo-change trials were completed — wave steadily, then clearly change speed.',
       cls: 'unknown',
     };
-  if (beats <= 1.25)
-    return { text: 'The ensemble follows within about a beat. This will feel like conducting.', cls: 'good' };
-  if (beats <= 2.5)
-    return { text: 'The ensemble is a couple of beats behind. Playable, needs tightening.', cls: 'warn' };
-  return { text: 'Too slow to feel like conducting. Engineering needed before the game is fun.', cls: 'bad' };
+  const verdicts = done.map(trialVerdict);
+  if (verdicts.every((v) => v === 'good'))
+    return {
+      text: 'The ensemble follows you — within about a beat speeding up, and as fast as physics allows slowing down. This will feel like conducting.',
+      cls: 'good',
+    };
+  if (verdicts.some((v) => v === 'bad'))
+    return { text: 'Too slow to feel like conducting. Engineering needed before the game is fun.', cls: 'bad' };
+  return { text: 'The ensemble is a couple of beats behind. Playable, needs tightening.', cls: 'warn' };
 }
 
 function renderVerdict(summary: ReturnType<Conductor['detector']['summary']> | undefined): void {
   if (!summary) return;
-  const v = verdictFor(summary.medianStepLatencyBeats);
+  const v = verdictFor(summary.trials);
   const banner = $('verdict');
   banner.className = `verdict ${v.cls}`;
   banner.textContent = v.text;
@@ -223,7 +265,8 @@ function buildReceipt(): string {
   return JSON.stringify(
     {
       app: 'tempo-latency-probe',
-      gate: 'conducting-game gate 1',
+      game: 'Bravura',
+      gate: 'gate 2',
       commit: typeof GIT_COMMIT === 'string' ? GIT_COMMIT : 'dev',
       when: new Date().toISOString(),
       mode,
@@ -238,8 +281,9 @@ function buildReceipt(): string {
         : null,
       summary: s ?? null,
       trials: s?.trials ?? [],
-      verdict: s ? verdictFor(s.medianStepLatencyBeats).text : null,
-      bands: 'green ≤1.25 beats, amber ≤2.5, red above — design targets, not industry standards',
+      verdict: s ? verdictFor(s.trials).text : null,
+      bands:
+        'per-direction design targets (no industry standard exists): speed-up green ≤1.25 beats / amber ≤2.5; slow-down green ≤2.2 / amber ≤3.0 (physical floor ≈2.0 — the ensemble has just played and its next sound is one slow period out; see clickLog)',
     },
     null,
     2
