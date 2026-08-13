@@ -105,7 +105,8 @@ export class BeatDetector {
   readonly beatToClickOffsetsMs: number[] = [];
   private clickTimes: number[] = [];
 
-  onBeat: ((t: number, bpm: number | null) => void) | null = null;
+  /** stroke = |peak−trough| of the detected downstroke (m in XR, px desktop). */
+  onBeat: ((t: number, bpm: number | null, stroke: number) => void) | null = null;
   onStep: ((trial: StepTrial) => void) | null = null;
   onLock: ((trial: StepTrial) => void) | null = null;
 
@@ -145,7 +146,7 @@ export class BeatDetector {
       const sinceLast = s.t - this.lastBeatT;
       if (stroke >= this.cfg.minStrokeAmplitude && sinceLast >= this.cfg.refractorySec) {
         beatT = s.t;
-        this.registerBeat(s.t);
+        this.registerBeat(s.t, stroke);
       }
       this.lastExtremeY = s.y; // reset stroke tracking from here
     }
@@ -154,7 +155,7 @@ export class BeatDetector {
     return beatT;
   }
 
-  private registerBeat(t: number): void {
+  private registerBeat(t: number, stroke = 0): void {
     if (this.beatTimes.length > 0) {
       const interval = t - this.beatTimes[this.beatTimes.length - 1];
       const bpm = 60 / interval;
@@ -164,7 +165,7 @@ export class BeatDetector {
         // Out-of-range: treat as a fresh start, keep the beat but no interval.
         this.beatTimes.push(t);
         this.lastBeatT = t;
-        this.onBeat?.(t, this._conductedBpm);
+        this.onBeat?.(t, this._conductedBpm, stroke);
         return;
       }
     }
@@ -198,7 +199,7 @@ export class BeatDetector {
       this.detectStep(est, t);
       this._conductedBpm = est;
     }
-    this.onBeat?.(t, this._conductedBpm);
+    this.onBeat?.(t, this._conductedBpm, stroke);
   }
 
   private detectStep(newBpm: number, t: number): void {
@@ -315,6 +316,16 @@ export class BeatDetector {
       medianBeatOffsetMs: this.beatToClickOffsetsMs.length
         ? median(this.beatToClickOffsetsMs)
         : null,
+      steadinessCV: this.steadinessCV(),
     };
+  }
+
+  /** Coefficient of variation of the last 8 intervals — the wobble measure. */
+  steadinessCV(window = 8): number | null {
+    const xs = this.intervals.slice(-window);
+    if (xs.length < 4) return null;
+    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - mean) * (b - mean), 0) / xs.length);
+    return mean > 0 ? sd / mean : null;
   }
 }

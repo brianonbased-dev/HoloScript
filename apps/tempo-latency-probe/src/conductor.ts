@@ -50,8 +50,8 @@ function renderClick(ac: AudioContext, frequency: number, seconds = 0.09): Audio
 }
 
 export interface ConductorEvents {
-  onBeat?: (t: number, bpm: number | null) => void;
-  onClick?: (t: number, isDownbeat: boolean) => void;
+  onBeat?: (t: number, bpm: number | null, stroke?: number) => void;
+  onClick?: (t: number, isDownbeat: boolean, velocity?: number) => void;
   onStep?: () => void;
   onLock?: (latencyMs: number, latencyBeats: number) => void;
 }
@@ -70,6 +70,26 @@ export class Conductor {
   phaseGain = 0.5;
   /** Phase correction clamp as a fraction of the current beat period. */
   phaseClampFrac = 0.25;
+  /**
+   * 'follow' (default): the ensemble follows the hand — gates 1–3 behavior.
+   * 'lead': the ensemble holds its own tempo (lessons where the drum leads);
+   * beats are still detected and scored, but never drive the transport.
+   */
+  followMode: 'follow' | 'lead' = 'follow';
+  /**
+   * In follow mode: after this many beats with no hand beat, the ensemble
+   * rests (pauses) and waits for the next detected beat to resume — an
+   * orchestra that has lost its conductor falls quiet. null = never rest
+   * (the probe's original behavior).
+   */
+  autoRestBeats: number | null = null;
+  private lastHandBeatT: number | null = null;
+  /** Signed hand-vs-grid offsets (ms; negative = hand early), newest last. */
+  readonly signedOffsets: { t: number; ms: number }[] = [];
+  /** Per-beat strike velocities (0.35–1.25; 1 = nominal), newest last. */
+  readonly velocities: { t: number; v: number }[] = [];
+  private strokeWindow: number[] = [];
+  private pendingVelocity = 1;
 
   constructor(ac: AudioContext, cfg: DetectorConfig, events: ConductorEvents = {}) {
     this.ac = ac;
@@ -79,8 +99,39 @@ export class Conductor {
     this.clickHi = renderClick(ac, 1660);
     this.clickLo = renderClick(ac, 880);
 
-    this.detector.onBeat = (t, bpm) => {
-      if (bpm !== null && this.running) {
+    this.detector.onBeat = (t, bpm, stroke) => {
+      this.lastHandBeatT = t;
+      // A resting ensemble wakes on the conductor's next beat.
+      if (this.running && this.seq.state === 'paused') {
+        this.seq.start();
+      }
+      // Scoring senses — always on, in both modes.
+      if (this.running) {
+        const period = 60 / this.seq.getBPM();
+        const { prevBeatT, nextBeatT } = this.seq.gridAround(t);
+        const sErr =
+          Math.abs(t - prevBeatT) <= Math.abs(t - nextBeatT) ? t - prevBeatT : t - nextBeatT;
+        this.signedOffsets.push({ t, ms: sErr * 1000 });
+        if (this.signedOffsets.length > 128) this.signedOffsets.shift();
+
+        // Stroke size → strike velocity, normalized against the hand's own
+        // recent median so "big" and "small" are relative to the player.
+        if (stroke && stroke > 0) {
+          this.strokeWindow.push(stroke);
+          if (this.strokeWindow.length > 12) this.strokeWindow.shift();
+          const med = [...this.strokeWindow].sort((a, b) => a - b)[
+            Math.floor(this.strokeWindow.length / 2)
+          ];
+          const ratio = med > 0 ? stroke / med : 1;
+          this.pendingVelocity =
+            this.followMode === 'lead' ? 1 : Math.max(0.35, Math.min(1.25, 0.25 + 0.75 * ratio));
+          this.velocities.push({ t, v: this.pendingVelocity });
+          if (this.velocities.length > 128) this.velocities.shift();
+        }
+        void period;
+      }
+
+      if (bpm !== null && this.running && this.followMode === 'follow') {
         if (this.useNaiveSetter) {
           this.seq.setBPM(bpm);
         } else {
@@ -111,7 +162,7 @@ export class Conductor {
           }
         }
       }
-      this.events.onBeat?.(t, bpm);
+      this.events.onBeat?.(t, bpm, stroke);
     };
     this.detector.onStep = () => this.events.onStep?.();
     this.detector.onLock = (trial) =>
@@ -120,15 +171,29 @@ export class Conductor {
     // Engine beat events carry exact musical timestamps — schedule the click
     // buffer at that time (or immediately if the 25ms tick already passed it).
     this.seq.on('beat', (ev: IAudioEvent) => {
+      // Conductor gone quiet? The ensemble rests until the next downbeat.
+      if (
+        this.autoRestBeats !== null &&
+        this.followMode === 'follow' &&
+        this.lastHandBeatT !== null &&
+        ev.timestamp - this.lastHandBeatT > (this.autoRestBeats * 60) / this.seq.getBPM()
+      ) {
+        this.seq.pause();
+        return;
+      }
       const beatInBar = (ev.data?.beat as number) ?? 0;
       const at = Math.max(ev.timestamp, this.ac.currentTime);
+      const velocity = this.pendingVelocity;
       const src = this.ac.createBufferSource();
       src.buffer = beatInBar === 0 ? this.clickHi : this.clickLo;
-      src.connect(this.ac.destination);
+      const gainNode = this.ac.createGain();
+      gainNode.gain.value = velocity;
+      src.connect(gainNode);
+      gainNode.connect(this.ac.destination);
       src.start(at);
       const audibleAt = at + (this.ac.outputLatency || this.ac.baseLatency || 0);
       this.detector.addClick(audibleAt);
-      this.events.onClick?.(audibleAt, beatInBar === 0);
+      this.events.onClick?.(audibleAt, beatInBar === 0, velocity);
     });
   }
 
@@ -165,5 +230,18 @@ export class Conductor {
   /** Current audible tempo (what the sequencer transport is set to). */
   get ensembleBpm(): number {
     return this.seq.getBPM();
+  }
+
+  /** True while the ensemble is resting, waiting for the conductor. */
+  get isResting(): boolean {
+    return this.running && this.seq.state === 'paused';
+  }
+
+  /** Reset the scoring senses (called at each lesson boundary). */
+  clearScoring(): void {
+    this.signedOffsets.length = 0;
+    this.velocities.length = 0;
+    this.strokeWindow.length = 0;
+    this.pendingVelocity = 1;
   }
 }

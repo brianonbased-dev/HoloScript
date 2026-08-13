@@ -15,6 +15,7 @@ import { multiply, translation, rotationY, rotationX, scaling, perspective, look
 import { Timpani, makeTimpaniBuffers } from './timpani';
 import { startBravuraXR, BravuraXRHandle, XRFrameData } from './xrSession';
 import { Hud } from './hud';
+import { Lessons, LessonResult } from './lessons';
 
 declare const GIT_COMMIT: string;
 
@@ -27,6 +28,8 @@ declare global {
       stop(): void;
       timpaniStats(): { hi: number[]; lo: number[] } | null;
       snapshotStats(): { size: [number, number]; nonBlack: number; maxLum: number };
+      lessons: Lessons;
+      startLessons(): void;
     };
   }
 }
@@ -54,6 +57,10 @@ let xrHandle: BravuraXRHandle | null = null;
 let mode: 'idle' | 'desktop' | 'vr' = 'idle';
 let desktopRAF = 0;
 let inputSource = '—';
+let desktopPointerHandler: ((e: PointerEvent) => void) | null = null;
+const lessons = new Lessons();
+let lessonsSummaryShown = false;
+let wasResting = false;
 
 const HUD_MODEL = multiply(
   multiply(translation(0.78, 1.34, -1.42), rotationY(-0.35)),
@@ -93,9 +100,12 @@ function newConductor(kind: 'desktop' | 'vr'): Conductor {
   const ctx = ensureAudio();
   if (!timpaniBuffers) timpaniBuffers = makeTimpaniBuffers(ctx);
   const c = new Conductor(ctx, kind === 'desktop' ? DESKTOP_CONFIG : XR_CONFIG, {
-    onClick: (t, isDownbeat) => timpani?.strike(t, isDownbeat),
+    onClick: (t, isDownbeat, velocity) => timpani?.strike(t, isDownbeat, velocity ?? 1),
   });
   c.setClickBuffers(timpaniBuffers.hi, timpaniBuffers.lo);
+  // An orchestra that loses its conductor falls quiet (founder question
+  // 2026-08-13: "why do the beats continue with no cursor movement?").
+  c.autoRestBeats = 8;
   return c;
 }
 
@@ -140,11 +150,28 @@ function drawScene(data?: Pick<XRFrameData, 'hands' | 'controllers'>): void {
 
 function pumpHud(): void {
   if (!hud || !conductor || !renderer || !hudTex) return;
+  const now = (ac as AudioContext).currentTime;
+  const lessonUi = lessons.tick(now);
+  if (lessons.finished && !lessonsSummaryShown) {
+    lessonsSummaryShown = true;
+    showLessonsSummary(lessons.results);
+  }
+  const resting = conductor.isResting;
+  if (resting !== wasResting) {
+    wasResting = resting;
+    if (mode !== 'idle') {
+      $('status').textContent = resting
+        ? 'The drum rests — give a downbeat to begin again.'
+        : mode === 'vr'
+          ? 'In the room. Wave a hand; change speed and hold it.'
+          : 'Conducting with the mouse — wave up and down anywhere.';
+    }
+  }
   const s = conductor.detector.summary();
   const last = s.trials.length ? s.trials[s.trials.length - 1] : null;
   const changed = hud.render({
     youBpm: s.conductedBpm,
-    ensembleBpm: conductor.isRunning ? conductor.ensembleBpm : null,
+    ensembleBpm: conductor.isRunning && !resting ? conductor.ensembleBpm : null,
     beats: s.beats,
     source: inputSource,
     lastTrial:
@@ -156,8 +183,23 @@ function pumpHud(): void {
           }
         : null,
     offsetMs: s.medianBeatOffsetMs,
+    lesson: lessonUi,
   });
   if (changed) renderer.updateHudTexture(hudTex, hud.canvas);
+}
+
+function showLessonsSummary(results: LessonResult[]): void {
+  const worst = results.some((r) => r.cls === 'bad')
+    ? 'bad'
+    : results.some((r) => r.cls === 'warn')
+      ? 'warn'
+      : 'good';
+  const banner = $('verdict');
+  banner.className = `verdict ${worst}`;
+  banner.textContent = results.map((r) => `${r.title}: ${r.score}/100`).join('  ·  ') +
+    ' — the room keeps playing; run the lessons again any time.';
+  $('final-numbers').textContent = results.map((r) => `${r.title}: ${r.verdict}`).join(' ');
+  $('receipt-row').style.display = 'block';
 }
 
 // ---------------------------------------------------------------------------
@@ -173,10 +215,12 @@ function startDesktop(): void {
   inputSource = 'mouse';
   $('status').textContent = 'Conducting with the mouse — wave up and down over the room.';
 
-  const canvas = $('gl') as HTMLCanvasElement;
-  canvas.onpointermove = (e: PointerEvent) => {
+  // Whole page is the podium (same founder bug report as the probe: input
+  // bound to one element reads as a dead page when the cursor is elsewhere).
+  desktopPointerHandler = (e: PointerEvent) => {
     conductor?.feed({ t: (ac as AudioContext).currentTime, y: -e.clientY });
   };
+  window.addEventListener('pointermove', desktopPointerHandler);
 
   const loop = () => {
     if (mode !== 'desktop') return;
@@ -258,7 +302,10 @@ function stopAll(showIdle = true): void {
     void xrHandle.end().catch(() => {});
     xrHandle = null;
   }
-  ($('gl') as HTMLCanvasElement).onpointermove = null;
+  if (desktopPointerHandler) {
+    window.removeEventListener('pointermove', desktopPointerHandler);
+    desktopPointerHandler = null;
+  }
   conductor?.stop();
   mode = 'idle';
   if (showIdle) $('status').textContent = 'Stopped.';
@@ -303,6 +350,7 @@ function buildReceipt(): string {
         ? { sampleRate: ac.sampleRate, baseLatency: ac.baseLatency ?? null, outputLatency: ac.outputLatency ?? null }
         : null,
       summary: s ?? null,
+      lessons: lessons.results,
       verdict: s ? verdictFor(s.trials).text : null,
       bands: BANDS_NOTE,
     },
@@ -394,7 +442,15 @@ function snapshotStats(): { size: [number, number]; nonBlack: number; maxLum: nu
 window.addEventListener('DOMContentLoaded', () => {
   $('btn-vr').onclick = () => void startVR();
   $('btn-desktop').onclick = () => startDesktop();
-  $('btn-stop').onclick = () => finishSession('Stopped — here is what was measured.');
+  $('btn-teach').onclick = () => {
+    if (mode === 'idle') startDesktop();
+    lessonsSummaryShown = false;
+    if (conductor) lessons.startAll(conductor, (ac as AudioContext).currentTime);
+  };
+  $('btn-stop').onclick = () => {
+    lessons.stop();
+    finishSession('Stopped — here is what was measured.');
+  };
   $('btn-receipt').onclick = () => downloadReceipt();
   if (!navigator.xr) {
     ($('btn-vr') as HTMLButtonElement).disabled = true;
@@ -411,5 +467,11 @@ window.addEventListener('DOMContentLoaded', () => {
     stop: () => finishSession('Stopped.'),
     timpaniStats,
     snapshotStats,
+    lessons,
+    startLessons: () => {
+      if (mode === 'idle') startDesktop();
+      lessonsSummaryShown = false;
+      if (conductor) lessons.startAll(conductor, (ac as AudioContext).currentTime);
+    },
   };
 });

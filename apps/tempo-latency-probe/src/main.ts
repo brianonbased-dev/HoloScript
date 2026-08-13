@@ -36,6 +36,7 @@ let xrHandle: XRHandle | null = null;
 let mode: 'idle' | 'desktop' | 'vr' | 'selftest' | 'selftest-negative' = 'idle';
 let selfTestTimer: ReturnType<typeof setInterval> | null = null;
 let inputSource = '—';
+let desktopPointerHandler: ((e: PointerEvent) => void) | null = null;
 
 function ensureAudio(): AudioContext {
   if (!ac) ac = new AudioContext({ latencyHint: 'interactive' });
@@ -73,10 +74,15 @@ function startDesktop(): void {
   inputSource = 'mouse';
   const area = $('area');
   area.classList.add('live');
-  area.onpointermove = (e: PointerEvent) => {
+  area.textContent =
+    'Desktop mode is LIVE — wave the mouse up and down ANYWHERE on this page, like a conductor. Then clearly speed up or slow down and hold it.';
+  // The whole page is the podium (a cursor that only works inside one box
+  // reads as a dead page — founder bug report 2026-08-13).
+  desktopPointerHandler = (e: PointerEvent) => {
     if (!conductor) return;
     conductor.feed({ t: (ac as AudioContext).currentTime, y: -e.clientY });
   };
+  window.addEventListener('pointermove', desktopPointerHandler);
   render();
 }
 
@@ -175,7 +181,10 @@ function stopAll(): void {
     xrHandle = null;
   }
   $('area').classList.remove('live');
-  ($('area') as HTMLElement).onpointermove = null;
+  if (desktopPointerHandler) {
+    window.removeEventListener('pointermove', desktopPointerHandler);
+    desktopPointerHandler = null;
+  }
   conductor?.stop();
   mode = 'idle';
 }

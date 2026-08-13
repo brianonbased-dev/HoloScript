@@ -25,7 +25,7 @@ const FOOT: Material = { color: [0.05, 0.05, 0.05], metal: 0, shiny: 8, emissive
 
 export class Timpani {
   private parts: Part[] = [];
-  private strikes: { at: number; down: boolean }[] = [];
+  private strikes: { at: number; down: boolean; vel: number }[] = [];
   private headMat: Material = { ...HEAD };
 
   constructor(r: Renderer, worldX: number, worldZ: number, yawRad = 0) {
@@ -113,8 +113,8 @@ export class Timpani {
   }
 
   /** Register an audible strike (audio-clock seconds, from the conductor's onClick). */
-  strike(atAudioTime: number, isDownbeat: boolean): void {
-    this.strikes.push({ at: atAudioTime, down: isDownbeat });
+  strike(atAudioTime: number, isDownbeat: boolean, velocity = 1): void {
+    this.strikes.push({ at: atAudioTime, down: isDownbeat, vel: velocity });
   }
 
   /** Advance glow animation; `nowAudio` on the same clock as strike(). */
@@ -127,9 +127,9 @@ export class Timpani {
         this.strikes.splice(i, 1);
         continue;
       }
-      if (dt >= 0) glow += (s.down ? 1 : 0.55) * Math.exp(-dt / 0.16);
+      if (dt >= 0) glow += (s.down ? 1 : 0.55) * s.vel * Math.exp(-dt / 0.16);
     }
-    this.headMat.emissive = 0.02 + 0.34 * Math.min(glow, 1);
+    this.headMat.emissive = 0.02 + 0.34 * Math.min(glow, 1.2);
   }
 
   draw(r: Renderer): void {

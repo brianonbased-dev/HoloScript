@@ -100,6 +100,115 @@ visible; it strikes on the engine's beats and follows your conducting.
       verification is Joseph's standing criterion (RUN.md; tripwire above).
 - [x] Committed with the ledger updated.
 
+## The curriculum — how Bravura teaches maestro (standing roadmap, founder ask 2026-08-13)
+
+"Add the scoring so it can teach me; we also need to teach other things on
+how to maestro." The skills a real conducting education covers, mapped to
+gates. Each lesson must pass the house rule: the room teaches by responding
+honestly, never by feeling like homework.
+
+| Skill | What the room measures | Gate |
+|---|---|---|
+| Steady hand | interval evenness (wobble) | **4 (this gate)** |
+| Landing the beat | signed hand-vs-grid offset (early/late) | **4 (this gate)** |
+| Louder & softer | stroke size → strike strength; contrast + control | **4 (this gate)** |
+| Clean tempo changes | the gate-2 step trials, reframed as a lesson | 5 |
+| Beat patterns (4/4, 3/4, 2/4 shapes) | stroke direction path vs pattern template | 5+ |
+| The preparation & downbeat (starting) | upbeat→downbeat gesture pair from silence | 5+ |
+| Cueing (bringing a section in) | point/look at a section on its entrance | needs sections (6+) |
+| Holds & releases (fermata) | sustain gesture, clean cutoff | 6+ |
+| Subdivision (slow music in 8) | double-time hand over half-time grid | later |
+| Expression → remix | the earned Maestro tier from the research report | later |
+
+## Gate 4 — Scoring: the room starts teaching (opened 2026-08-13)
+
+### F.076 four-question gate
+
+1. **Falsifiable claim.** (a) Dynamics: stroke size drives strike strength —
+   a small wave strikes soft, a big wave strikes hard (per-strike gain from
+   detector stroke amplitude; verified by receipt velocities from a
+   synthetic small-vs-big run). (b) Scoring: every hand beat gets a SIGNED
+   offset vs the engine grid (early/late, from `gridAround`) and a rolling
+   steadiness measure (interval variation). (c) Teaching loop v0: three
+   HUD-guided lessons — Steady Hand (free tempo, evenness), On the Beat
+   (the drum leads at fixed tempo, you land on it; follow-drive disabled in
+   lead mode), Louder & Softer (alternate big/small on prompt) — each ends
+   in a plain-words score card; results land in the receipt and bests in
+   localStorage. (d) The probe app's self-test stays green (conductor
+   changes are additive; follow mode remains default).
+2. **Real seam.** Same shared conductor/detector modules (probe) and engine
+   transport (`gridAround` becomes load-bearing for scoring — the exact use
+   case named when it landed). Lessons and scoring live in `apps/bravura`.
+3. **Failing-if-broken evidence.** Synthetic desktop runs per lesson with
+   known inputs and expected verdict classes: a steady wave must score
+   "steady," a deliberately wobbled wave must score worse (negative
+   control); an aligned-to-drum wave must beat a phase-shifted one; a
+   big/small alternating wave must show contrast a flat wave lacks. Probe
+   self-test regression. Receipts carry per-lesson raw numbers.
+4. **Scope + blast.** `apps/bravura/**` + additive-only edits to the shared
+   conductor/detector (new fields/callbacks, default behavior unchanged —
+   regression-guarded). Out of scope, named: beat-pattern shape recognition,
+   cueing/sections, fermata, voice prompts, cross-session progression
+   beyond localStorage bests, any server. Regression risk: conductor
+   velocity path altering probe loudness (default velocity 1.0 = old
+   behavior); lead mode leaking into follow mode (flag defaults 'follow').
+
+### Premortem (inline)
+
+1. **Teaching feels like homework** (the checklist's named wrongness mark).
+   Guard: lessons are ~30 seconds, prompts are one line, the score card
+   speaks plain words ("rock steady", "a touch early"), and free play stays
+   the default mode — lessons are a button, not a wall.
+2. **Signed offset lies near the half-beat boundary** (nearest-grid
+   ambiguity). Guard: offsets beyond ±40% of a period are scored "lost the
+   beat" rather than early/late — no pretending precision where the metric
+   folds.
+3. **Dynamics double-drives tempo** (big strokes also read as slower
+   strokes). Guard: velocity normalizes against a running stroke median;
+   detector timing path untouched by amplitude.
+4. **Lead mode fights gate-2 muscle memory** (drum stops following → feels
+   broken). Guard: lesson prompt says the drum leads before it starts; free
+   play restores following the moment the lesson ends.
+5. **Score inflation** (grading only completed strokes hides misses). Guard:
+   L2 counts drum beats without a matching hand beat as misses in the score.
+
+### Gate 4 exit criteria — closed 2026-08-13
+
+- [x] Dynamics verified: big/small blocks produce velocities 1.0 vs 0.44
+      (contrast 2.27); flat strokes produce contrast 1.00. Strike glow
+      scales with velocity (visual half of dynamics).
+- [x] L1/L2/L3 positive AND negative controls, deterministic driver
+      (direct conductor.feed with sample-exact timestamps — the first
+      pointer-event driver was itself the flaky thing and polluted all
+      three scores; its receipts are the record of why):
+      good student **95 / 95 / 92 (all green)** — CV 0.9%, 34 ms median
+      on-beat with 0 misses, contrast 2.27;
+      bad student **28 / 30 / 35 (warn/bad)** — CV 13%, 249 ms chasing,
+      contrast 1.00 — with the correct coaching line each time.
+- [x] Probe self-test regression green: 1.17 / 2.09 beats, offset 59 ms.
+- [x] Committed; ledger + curriculum updated; in-headset run standing.
+
+### Gate 4 findings
+
+1. **The instrument's own lag must be subtracted from coaching.** A
+   grid-perfect synthetic conductor still measures ~34 ms "late" (beat
+   detection latency), so the "you land late" hint threshold sits at 55 ms;
+   asymmetric with the early hint at −25 ms. Proper per-input-mode latency
+   calibration is the named gate-5 improvement.
+2. **The verifier can be the bug**: the first driver (dispatched pointer
+   events, wall-clock scheduled, blocks counted its own way) failed all
+   three lessons on a "good" performance — timer jitter, a half-period sign
+   error, and block misalignment, plus possible live-cursor interference.
+   Deterministic direct-feed drivers are now the house verification pattern
+   for input-driven features.
+3. **Auto-rest (founder question made feature)**: "why do the beats
+   continue with no cursor movement?" → in follow mode the ensemble now
+   rests after 8 silent beats (measured: rests at exactly 4.8 s at 100 BPM)
+   and wakes on the next stroke. The full musical answer — taught cutoff
+   gestures — is the curriculum's holds-and-releases lesson (gate 6+).
+4. **Whole page is the podium** (founder bug report): pointer conducting
+   was bound to one element; input anywhere now conducts in both apps.
+
 ### Gate 3 findings
 
 1. **The audio pipeline carried over untouched** — the timpani is literally
