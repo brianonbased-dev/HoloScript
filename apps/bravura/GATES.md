@@ -259,6 +259,12 @@ honestly, never by feeling like homework.
    never stuck.
 4. **Pattern templates fight handedness.** Right-handed templates this
    gate; mirrored templates seeded, named in the lesson text.
+   **CORRECTION 2026-08-14: this premortem answer was false.** No string in
+   `lessons.ts` mentions handedness — only a source comment does. A
+   left-handed conductor drawing a correct mirrored pattern scores near zero
+   and is told "the shape isn't there yet", with nothing telling them the
+   room only accepts one handedness. Caught by an independent audit, not by
+   the gate that wrote the claim. Open.
 5. **Five lessons feel long.** Runtime ~3 minutes total; each lesson is
    still individually short; free play remains the default room.
 
@@ -782,3 +788,48 @@ architecture, not a patch, and it must land with its own receipts.
 desk could reach. Only the live session showed that the room's whole explanation
 channel sat outside the field of view of the thing it explained. Instrument the
 real device before believing any claim about what a person experiences in it.
+
+---
+
+## Independent teaching audit (2026-08-14) — what the lessons assume
+
+Twelve agents audited all nine lessons against one question: could someone who
+has never conducted learn from this? Full spec in `TEACHING.md`. The audit found
+real defects, not just wording. Fixed now:
+
+1. **The guide ball was a MIRROR, not a model.** Its period came from
+   `conductor.ensembleBpm`, which in follow mode is following the student — so
+   a wobbling student watched a wobbling ball and was never corrected. The one
+   thing built to teach the motion taught nothing. **Fixed**: Lesson 1 opens
+   with the room LEADING at a fixed speed for 6 s, the ball landing on the
+   drum's own audible beats — a true model — and only then hands over. Receipt:
+   at t=0 followMode `lead`, ball 90, "Watch first"; by 6.1 s followMode
+   `follow`, "Now you. Bounce your hand the same way", 10 real clicks played
+   during the demonstration. A good student still passes: **95/100**.
+2. **Six lucky beats disabled coaching forever.** The stuck-line was gated on
+   `beats < 6 && now - t0 > 25` — a total, not recent progress, so a student
+   who scored six beats early then floundered got no help ever. **Fixed**:
+   gated on progress since the handover.
+3. **"Hold" meant opposite motions in two graded lessons** — Lesson 4's "hold
+   the new speed" (keep moving) versus Lesson 9's "The Hold" (stop moving
+   completely). **Fixed**: Lesson 4 now says "keep going at the new speed",
+   and its silent-failure line ("Hold your speed a moment", which differed from
+   success only by the word "Good") now says what is actually wrong: "Keep
+   bouncing — I have not heard a clear change yet."
+
+Named, not yet fixed (each needs its own receipt):
+
+- **Lesson 3's blocks are scored by index**, assuming the student switches
+  loud/soft exactly on the boundary; ordinary reaction lag smears loud strokes
+  into the soft bucket and collapses the measured contrast. Joseph's 35/100
+  may be an artifact of this rather than a flat performance.
+- **Lesson 2 charges ~4 points per second spent reading its own instruction**
+  (`misses` counts every elapsed beat without a stroke), so understanding the
+  sentence costs the score.
+- **"Hit the corners harder"** asks for force when the metric is lateral
+  distance — and Lesson 3 just taught that force means volume, so obeying the
+  advice makes the drum louder and the score unchanged.
+- **The pattern lessons never introduce a bar** — lessons 1-4 treat beats as an
+  undifferentiated stream, then lesson 5 says "a bar of 4" with no definition.
+- **HUD layout collision**: with the pattern diagram drawn, the sub text is
+  squeezed to ~340 px and long lines wrap into the progress line.

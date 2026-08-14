@@ -85,6 +85,10 @@ const PATTERNS: Record<'pattern4' | 'pattern3', PatternCfg> = {
 
 const CARD_SECONDS = 5;
 const ONBEAT_BPM = 90;
+/** Lesson 1 demonstrates before it asks: the room leads for this long so the
+ *  guide ball is a model to copy rather than a reflection of the student. */
+const STEADY_DEMO_SEC = 6;
+const STEADY_DEMO_BPM = 90;
 const ONBEAT_SECONDS = 12;
 
 export class Lessons {
@@ -122,6 +126,7 @@ export class Lessons {
   private holdEnteredT = 0;
   private holdSnap = { holds: 0, cuts: 0, downbeats: 0 };
   private holdTrials: { code: string; holdSec: number | null }[] = [];
+  private steadyPhase: 'demo' | 'try' = 'demo';
 
   startAll(conductor: Conductor, now: number, ids?: LessonId[]): void {
     this.results.length = 0;
@@ -164,8 +169,11 @@ export class Lessons {
    *  the student is flowing. Returns the demo tempo, or null. */
   guideBpm(): number | null {
     if (this.state !== 'running' || this.current !== 'steady' || !this.conductor) return null;
+    if (this.steadyPhase === 'demo') return STEADY_DEMO_BPM;
+    // Through the handover the ball keeps landing on the drum's real beats,
+    // so it stays honest: it shows what the room actually heard from you.
     const beats = this.conductor.detector.beatTimes.length - this.baseBeats;
-    return beats < 4 ? 90 : null;
+    return beats < 8 ? STEADY_DEMO_BPM : null;
   }
 
   private next(now: number): void {
@@ -203,6 +211,13 @@ export class Lessons {
       this.holdTrials = [];
       this.holdSnap = { holds: c.holdCount, cuts: c.cutoffCount, downbeats: c.downbeatCount };
       if (c.seq.state !== 'playing') c.seq.start();
+    } else if (id === 'steady') {
+      // The room demonstrates before it asks: lead at a fixed speed so the
+      // guide ball is a MODEL, not a mirror of the student.
+      c.followMode = 'lead';
+      this.steadyPhase = 'demo';
+      if (c.seq.state !== 'playing') c.seq.start();
+      c.seq.setTempoAnchored(STEADY_DEMO_BPM);
     } else if (id === 'cue') {
       c.followMode = 'lead';
       this.cueTrials = [];
@@ -239,16 +254,37 @@ export class Lessons {
 
     if (id === 'steady') {
       const need = 18; // 2 settle + 16 scored
+      // SHOW FIRST. The room leads at a fixed speed while the ball drops on
+      // its own audible beats — a model the student can copy. Only then does
+      // it hand over. (Without this the ball took its timing from the
+      // ensemble, which in follow mode is following the student: a wobbling
+      // student watched a wobbling ball and was never corrected.)
+      if (this.steadyPhase === 'demo') {
+        if (now - this.t0 >= STEADY_DEMO_SEC) {
+          this.steadyPhase = 'try';
+          c.followMode = 'follow';
+          this.baseBeats = c.detector.beatTimes.length;
+          this.phaseT0 = now;
+          c.clearScoring();
+        }
+        return {
+          prompt: 'Lesson 1 · Steady Hand',
+          sub: 'Watch first. The ball drops on the drum — every drop is a beat.',
+          progress: 'watching…',
+          card: null,
+        };
+      }
       if (beats >= need) return this.finish(this.scoreSteady(c), now);
-      // The room listens for ONE thing — a hand bouncing, beat at the
-      // bottom. Say so, show it (guide ball), and coach if nothing lands.
-      const stuck = beats < 6 && now - this.t0 > 25;
+      // Coaching is gated on RECENT progress, never on a total that a few
+      // lucky early beats can satisfy forever.
+      const trying = now - this.phaseT0;
+      const stuck = beats < 4 && trying > 18;
       return {
         prompt: 'Lesson 1 · Steady Hand',
         sub: stuck
           ? 'The room watches ONE hand bounce. Bigger, calmer strokes — like bouncing a ball on the drum.'
           : beats < 4
-            ? 'Bounce your hand like the glowing ball — the bottom of each bounce is a beat.'
+            ? 'Now you. Bounce your hand the same way — the bottom of each bounce is a beat.'
             : 'That’s it — keep the bounce even, any speed you like.',
         progress: `${Math.min(beats, need)} / ${need} beats`,
         card: null,
@@ -329,7 +365,7 @@ export class Lessons {
       }
       return {
         prompt: 'Lesson 4 · Changing Tempo',
-        sub: 'Now clearly SPEED UP — and hold the new speed.',
+        sub: 'Now clearly SPEED UP — then keep going at the new speed.',
         progress: `${Math.ceil(Math.max(0, 12 - (now - this.phaseT0)))} s`,
         card: null,
       };
@@ -343,7 +379,7 @@ export class Lessons {
       }
       return {
         prompt: 'Lesson 4 · Changing Tempo',
-        sub: this.upTrial ? 'Good — hold this speed.' : 'Hold your speed a moment.',
+        sub: this.upTrial ? 'Good — keep going at this speed.' : 'Keep bouncing — I have not heard a clear change yet.',
         progress: '',
         card: null,
       };
@@ -358,7 +394,7 @@ export class Lessons {
     if (now - this.phaseT0 > 12) return this.finish(this.scoreTempo(), now);
     return {
       prompt: 'Lesson 4 · Changing Tempo',
-      sub: 'Now clearly SLOW DOWN — and hold it.',
+      sub: 'Now clearly SLOW DOWN — then keep going at the slower speed.',
       progress: `${Math.ceil(Math.max(0, 12 - (now - this.phaseT0)))} s`,
       card: null,
     };
