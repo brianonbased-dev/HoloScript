@@ -303,19 +303,24 @@ export class Conductor {
     // Engine beat events carry exact musical timestamps — schedule the click
     // buffer at that time (or immediately if the 25ms tick already passed it).
     this.seq.on('beat', (ev: IAudioEvent) => {
-      // Conductor gone quiet? The ensemble rests until the next downbeat.
+      const beatInBar = (ev.data?.beat as number) ?? 0;
+      // Conductor gone quiet? The ensemble finishes the bar and rests — a
+      // real ensemble does not stop mid-bar without a cutoff. Founder,
+      // 2026-08-14: "when i stop they still play and eventually stopped but
+      // not seemingly natural." Stopping ON the bar line is both faster to
+      // respond and musically legible: they finish the phrase together.
       if (
         this.autoRestBeats !== null &&
         this.followMode === 'follow' &&
         !this.armed &&
         this.lastHandBeatT !== null &&
+        beatInBar === 0 &&
         ev.timestamp - this.lastHandBeatT > (this.autoRestBeats * 60) / this.seq.getBPM()
       ) {
         // Rest AND arm: the ensemble wakes only on a real downbeat.
         this.armDownbeat();
         return;
       }
-      const beatInBar = (ev.data?.beat as number) ?? 0;
       const at = Math.max(ev.timestamp, this.ac.currentTime);
       const velocity = this.pendingVelocity;
       const src = this.ac.createBufferSource();

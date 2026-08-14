@@ -7,11 +7,11 @@
  */
 
 import { Conductor } from '../../tempo-latency-probe/src/conductor';
-import { DESKTOP_CONFIG, XR_CONFIG } from '../../tempo-latency-probe/src/beatDetector';
+import { BeatDetector, DESKTOP_CONFIG, XR_CONFIG } from '../../tempo-latency-probe/src/beatDetector';
 import { verdictFor, trialVerdict, BANDS_NOTE } from '../../tempo-latency-probe/src/verdict';
 import { Renderer, Material } from './renderer';
 import { disc, sphere, cylinder, quad } from './meshes';
-import { multiply, translation, rotationY, rotationX, scaling, perspective, lookAt, Mat4 } from './math3';
+import { multiply, translation, rotationX, scaling, perspective, lookAt, Mat4 } from './math3';
 import { Timpani, makeTimpaniBuffers } from './timpani';
 import { startBravuraXR, BravuraXRHandle, XRFrameData } from './xrSession';
 import { Hud } from './hud';
@@ -65,13 +65,14 @@ let meshes: {
 } | null = null;
 let timpaniBuffers: { hi: AudioBuffer; lo: AudioBuffer } | null = null;
 let xrHandle: BravuraXRHandle | null = null;
+let freeHand: BeatDetector | null = null;
 let mode: 'idle' | 'desktop' | 'vr' = 'idle';
 let desktopRAF = 0;
 let inputSource = '—';
 let desktopPointerHandler: ((e: PointerEvent) => void) | null = null;
 const lessons = new Lessons();
 let lessonsSummaryShown = false;
-let wasResting = false;
+let lastStatus = '';
 let chimes: Chimes | null = null;
 const cueTracker = new CueTracker();
 const CHIMES_X = 1.35;
@@ -85,10 +86,41 @@ let busMuted = false;
 /** Audio-clock time of the most recent rendered frame (rAF liveness). */
 let lastFrameAt = 0;
 
-const HUD_MODEL = multiply(
-  multiply(translation(0.78, 1.34, -1.42), rotationY(-0.35)),
-  scaling(0.64, 0.32, 1)
+/**
+ * Where the words live. Measured on the founder's live headset session
+ * (2026-08-14): with the panel off to the RIGHT (yaw 28.8°), he spent 59% of
+ * his time looking AT THE WORDS and only 9% at the drum — he was reading, not
+ * conducting, and never saw the guide ball demonstrate the motion 22° away.
+ *
+ * The words now sit straight ahead above the drum (yaw 0) so the drum, the
+ * guide ball, his hands and the instruction are one glance apart — an eye
+ * movement, never a head turn away from the thing being taught.
+ *
+ * Height is player-relative: he stands 1.41 m at the eyes, not the 1.6 m the
+ * room assumed. A fixed panel height puts the words in the wrong place for
+ * every body that is not the author's.
+ */
+const HUD_Z = -1.45;
+const HUD_RISE = 0.18; // above eye height: clears the guide ball's apex (1.37)
+/** 0.80 x 0.40 m at 1.45 m ≈ 31° wide — the old 0.64 m panel rendered the
+ *  instruction line at roughly 16 device pixels tall on a Quest 3, which is
+ *  legible-but-effortful, and effortful reading is why the eyes never leave
+ *  it. Aspect matches the 640x320 canvas exactly so glyphs are not squashed. */
+const HUD_W = 0.8;
+const HUD_H = 0.4;
+let playerHeadY = 1.6;
+let hudModel: Mat4 = multiply(
+  translation(0, 1.6 + HUD_RISE, HUD_Z),
+  scaling(HUD_W, HUD_H, 1)
 );
+
+function placeHud(headY: number): void {
+  playerHeadY = playerHeadY * 0.9 + headY * 0.1;
+  hudModel = multiply(
+    translation(0, playerHeadY + HUD_RISE, HUD_Z),
+    scaling(HUD_W, HUD_H, 1)
+  );
+}
 
 function ensureAudio(): AudioContext {
   if (!ac) ac = new AudioContext({ latencyHint: 'interactive' });
@@ -129,6 +161,30 @@ function ensureScene(): void {
   };
 }
 
+/**
+ * The free hand's own instrument. A second, independent detector: whatever
+ * hand is not holding the podium plays the chimes directly, with its own
+ * beats and its own dynamics. Stroke size is normalised against THAT hand's
+ * recent median, so the two hands can be different sizes and both read true.
+ */
+function newFreeHand(kind: 'desktop' | 'vr'): BeatDetector {
+  const d = new BeatDetector(kind === 'desktop' ? DESKTOP_CONFIG : XR_CONFIG);
+  const window: number[] = [];
+  d.onBeat = (t, _bpm, stroke) => {
+    if (!chimes) return;
+    let vel = 1;
+    if (stroke && stroke > 0) {
+      window.push(stroke);
+      if (window.length > 12) window.shift();
+      const sorted = window.slice().sort((a, b) => a - b);
+      const med = sorted[Math.floor(sorted.length / 2)] || stroke;
+      vel = Math.max(0.25, Math.min(1.5, stroke / med));
+    }
+    chimes.play(t, vel);
+  };
+  return d;
+}
+
 function newConductor(kind: 'desktop' | 'vr'): Conductor {
   const ctx = ensureAudio();
   if (!timpaniBuffers) timpaniBuffers = makeTimpaniBuffers(ctx);
@@ -137,15 +193,16 @@ function newConductor(kind: 'desktop' | 'vr'): Conductor {
       timpani?.strike(t, isDownbeat, velocity ?? 1);
       chimes?.onBeat(scheduledAt ?? t, beatInBar ?? (isDownbeat ? 0 : 1), velocity ?? 1);
     },
-    onHold: () => {
-      $('status').textContent = 'HOLD — frozen. One decisive flick cuts them off.';
-    },
+    // No status text is written from events: an event fires once, and the
+    // line it wrote then outlives the state it described. Measured live on
+    // the headset — the panel read "HOLD — frozen" while the drum was
+    // playing and nothing was frozen. The line is DERIVED every pump instead
+    // (see liveStatus), so it can never disagree with the room.
     onCutoff: () => {
       if (ensembleBus && ac) {
         ensembleBus.gain.setTargetAtTime(0, ac.currentTime, 0.03);
         busMuted = true;
       }
-      $('status').textContent = 'Cut. Silence. Breathe — and give the next downbeat.';
     },
     // Audio-critical: the bus MUST come back on the downbeat itself, never
     // on a render frame (frames stall when compositing pauses — found live:
@@ -161,7 +218,9 @@ function newConductor(kind: 'desktop' | 'vr'): Conductor {
   if (ensembleBus) c.output = ensembleBus;
   // An orchestra that loses its conductor falls quiet (founder question
   // 2026-08-13: "why do the beats continue with no cursor movement?").
-  c.autoRestBeats = 8;
+  // Two beats of a still hand, then they finish the bar and wait. Eight was
+  // long enough that stopping felt like being ignored.
+  c.autoRestBeats = 2;
   // The full grammar: raise-and-freeze holds them; a flick cuts them off.
   c.holdsEnabled = true;
   return c;
@@ -233,7 +292,32 @@ function drawScene(data?: Pick<XRFrameData, 'hands' | 'controllers'>): void {
     r.draw(meshes.guide, multiply(translation(0, gy, -1.35), scaling(0.05, 0.05, 0.05)), GUIDE);
   }
 
-  if (hudTex) r.drawHud(meshes.hudQuad, HUD_MODEL, hudTex);
+  if (hudTex) r.drawHud(meshes.hudQuad, hudModel, hudTex);
+}
+
+/**
+ * The one true sentence about the room right now, in plain words. Derived
+ * from live state on every pump so it cannot go stale, and phrased as the
+ * NEXT MOTION rather than a state name — "frozen" tells a beginner nothing
+ * they can act on; "one sharp flick" does.
+ */
+function liveStatus(): string {
+  const c = conductor;
+  if (!c || mode === 'idle') return 'The black room. One drum. It follows your hands.';
+  if (c.isHolding) return 'Frozen — they are holding for you. One sharp flick cuts them off.';
+  if (busMuted) return 'Silence. Lift your hand, then drop it — that starts them again.';
+  if (c.isResting) return 'They stopped — lift your hand, then drop it to begin again.';
+  return mode === 'vr'
+    ? 'Bounce one hand. The bottom of each bounce is a beat.'
+    : 'Wave the mouse up and down anywhere. The bottom of each wave is a beat.';
+}
+
+function syncStatus(): void {
+  const s = liveStatus();
+  if (s !== lastStatus) {
+    lastStatus = s;
+    $('status').textContent = s;
+  }
 }
 
 function pumpHud(): void {
@@ -245,22 +329,12 @@ function pumpHud(): void {
     lessonsSummaryShown = true;
     showLessonsSummary(lessons.results);
   }
-  const resting = conductor.isResting;
-  if (resting !== wasResting) {
-    wasResting = resting;
-    if (mode !== 'idle') {
-      $('status').textContent = resting
-        ? 'The drum rests — give a downbeat to begin again.'
-        : mode === 'vr'
-          ? 'In the room. Wave a hand; change speed and hold it.'
-          : 'Conducting with the mouse — wave up and down anywhere.';
-    }
-  }
+  syncStatus();
   const s = conductor.detector.summary();
   const last = s.trials.length ? s.trials[s.trials.length - 1] : null;
   const changed = hud.render({
     youBpm: s.conductedBpm,
-    ensembleBpm: conductor.isRunning && !resting ? conductor.ensembleBpm : null,
+    ensembleBpm: conductor.isRunning && !conductor.isResting ? conductor.ensembleBpm : null,
     beats: s.beats,
     source: inputSource,
     lastTrial:
@@ -326,6 +400,7 @@ function startDesktop(): void {
   ensureScene();
   mode = 'desktop';
   conductor = newConductor('desktop');
+  freeHand = newFreeHand('desktop');
   conductor.start(90);
   inputSource = 'mouse';
   $('status').textContent = 'Conducting with the mouse — wave up and down over the room.';
@@ -383,6 +458,7 @@ async function startVR(): Promise<void> {
   ensureScene();
   mode = 'vr';
   conductor = newConductor('vr');
+  freeHand = newFreeHand('vr');
   conductor.start(90);
   $('status').textContent = 'In the room. Bounce one hand — the beat lands at the bottom of each bounce.';
   rebindLessons();
@@ -428,13 +504,15 @@ async function startVR(): Promise<void> {
           }
         }
         cueTracker.update(pointing, nowA);
+        if (data.views.length) placeHud(data.views[0].camPos[1]);
         pumpHud();
         for (const v of data.views) {
           r.beginView(v.viewport, v.proj as Mat4, v.view as Mat4, v.camPos);
           drawScene(data);
         }
       },
-      () => finishSession('Session ended — here is what was measured.')
+      () => finishSession('Session ended — here is what was measured.'),
+      (t, y, x) => freeHand?.addSample({ t, y, x })
     );
   } catch (err) {
     stopAll(false);
@@ -649,6 +727,9 @@ window.addEventListener('DOMContentLoaded', () => {
     },
     get busDebug() {
       return { busMuted, mode };
+    },
+    get freeHand() {
+      return freeHand;
     },
     cueTracker,
     forcePointing: (v: boolean) => {

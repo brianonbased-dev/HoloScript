@@ -63,7 +63,9 @@ export async function startBravuraXR(
   audioNow: () => number,
   feedBeat: (t: number, y: number, source: string, x?: number) => void,
   onFrame: (data: XRFrameData) => void,
-  onEnd: () => void
+  onEnd: () => void,
+  /** The non-podium hand's stream — its own instrument, its own detector. */
+  feedFree: (t: number, y: number, x?: number) => void = () => {}
 ): Promise<BravuraXRHandle> {
   if (!navigator.xr) throw new Error('WebXR not available in this browser');
   const session = await navigator.xr.requestSession('immersive-vr', {
@@ -169,6 +171,13 @@ export async function startBravuraXR(
     if (fresh(beatSide)) {
       const p = hands[beatSide]!.positions;
       feedBeat(tAudio, p[1], `hand-${beatSide}`, p[0]);
+      // The OTHER hand is its own instrument (chimes) — a separate stream to
+      // a separate detector. Two hands, two instruments; never two heights
+      // interleaved into one signal, which is what broke the first run.
+      if (fresh(other)) {
+        const q = hands[other]!.positions;
+        feedFree(tAudio, q[1], q[0]);
+      }
     } else if (!fresh(other)) {
       // No hands at all — controllers carry the beat (right first). A hand
       // lost for under 0.4 s feeds nothing: a short gap is honest, the idle

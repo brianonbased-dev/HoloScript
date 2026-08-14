@@ -113,21 +113,37 @@ export class Chimes {
     }
     if (this.state !== 'active') return;
     if (beatInBar !== 0 && beatInBar !== 2) return;
+    this.play(scheduledAt, velocity);
+  }
 
+  /**
+   * Strike one tube now, regardless of ensemble state. This is the free
+   * hand playing the chimes directly — the founder's ask, 2026-08-14: "i
+   * cant make the two instruments play separately with both hands". Pointing
+   * still INVITES the section to play along on the beat; bouncing the free
+   * hand PLAYS them yourself.
+   */
+  play(scheduledAt: number, velocity: number): void {
     const tube = this.nextTube % this.tubes.length;
     this.nextTube++;
+    const at = Math.max(scheduledAt, this.ac.currentTime);
     const src = this.ac.createBufferSource();
     src.buffer = this.buffers[tube];
     const g = this.ac.createGain();
     g.gain.value = 0.75 * velocity;
     src.connect(g);
     g.connect(this.output);
-    src.start(Math.max(scheduledAt, this.ac.currentTime));
-    const audibleAt =
-      Math.max(scheduledAt, this.ac.currentTime) +
-      (this.ac.outputLatency || this.ac.baseLatency || 0);
-    this.glows.push({ tube, at: audibleAt, vel: velocity });
+    src.start(at);
+    this.glows.push({
+      tube,
+      at: at + (this.ac.outputLatency || this.ac.baseLatency || 0),
+      vel: velocity,
+    });
+    this.playedByHand++;
   }
+
+  /** How many strikes came from the free hand rather than the ensemble. */
+  playedByHand = 0;
 
   update(nowAudio: number): void {
     const base =

@@ -681,3 +681,104 @@ with receipts, and the first real user could not pass Lesson 1 — because the
 desk drivers feed one clean stream and a human stands there with two hands up.
 The input seam between the real device and the detector is its own surface and
 needs its own negative controls (dual-source, joint-dropout, handedness).
+
+---
+
+## Field report 2 — instrumenting the founder's LIVE headset (2026-08-14)
+
+Joseph, mid-session, on the desktop testing that produced field report 1:
+"what your doing is a lot different than what i experience in VR on the headset."
+Correct, and the correction changed the method. A mouse on a flat screen is not
+the product: different units, one input stream instead of two hands, and a HUD
+that shares the same flat view instead of sitting somewhere in a room.
+
+### Method: read the real session, don't simulate it
+
+The Quest browser exposes `@chrome_devtools_remote`. Bridged with
+`adb forward tcp:9222 localabstract:chrome_devtools_remote`, the live page on
+his face is directly inspectable (`scratchpad/quest.mjs` evaluates JS in it).
+Everything below is measured from HIS session while he wore the headset, not
+from a driver. **This is now the house method for any headset claim.**
+
+Instruments installed live: a rolling hand-sample recorder wrapping
+`conductor.feed`, and a gaze recorder wrapping `XRFrame.prototype.getViewerPose`
+(head yaw/pitch/height per frame).
+
+### The finding: he was reading, not conducting
+
+4000 gaze frames, his real head at **1.41 m** (the room assumed ~1.6 m):
+
+| where he looked | share of frames |
+|---|---|
+| instruction panel (yaw 28.8° right) | **59.0%** |
+| chimes (yaw 38.5°) | 51.1% |
+| guide ball (yaw 0°) | 12.8% |
+| **the drum (yaw 0°)** | **8.7%** |
+
+The words were 29° off-axis from the teaching. To read them he had to turn away
+from the drum, his hands, and the guide ball demonstrating the motion — so he
+never watched the demonstration, and stopped conducting every time he read.
+"It's all built like an actual maestro is playing" is the symptom of a room
+whose only explanation channel is text placed where the teaching is not.
+
+His hands were never the problem: median stroke **0.163 m** against a 0.04 m
+threshold, 92 BPM, beat offset 44 ms. He conducts big and clear.
+
+### Fixes (all measured, all committed)
+
+1. **Words moved to where the teaching is** — panel at yaw 0 directly above
+   the drum, and **player-relative in height** (`placeHud` tracks the real head
+   Y from the XR pose; a fixed height is wrong for every body but the author's).
+   Panel enlarged 0.64→0.80 m wide with the aspect matched to the 640x320
+   canvas, because at 1.45 m the instruction line rendered ~16 device pixels
+   tall on Quest 3 — legible but effortful, and effortful reading is itself a
+   reason the eyes never leave.
+2. **The panel could lie.** Measured live: it read "HOLD — frozen" while the
+   drum was playing and nothing was frozen. Status was written by one-shot
+   EVENTS that outlive the state they described. It is now DERIVED every pump
+   (`liveStatus`) and phrased as the next MOTION, never a state name.
+3. **Two hands, two instruments** (his ask: "i cant make the two instruments
+   play separately with both hands"). The free hand now has its OWN detector
+   and plays the chimes directly, with its own beats and its own dynamics
+   normalised to that hand's median stroke. Pointing still INVITES the section
+   to play along on the beat; bouncing PLAYS them yourself. Field-report-1's
+   one-podium-hand rule is preserved exactly — the conductor still receives a
+   single stream; the second hand goes to a separate detector, never
+   interleaved.
+   **Receipt**: podium hand at 90 and free hand at 60 simultaneously →
+   12 podium beats / 13 drum clicks at a measured 90 BPM, 8 free-hand beats /
+   8 chime strikes. Neither dragged the other. **Control**: free hand held
+   still while the podium hand conducts → 11 drum clicks, **0** chime strikes.
+4. **Stopping is musical now** (his: "when i stop they still play and eventually
+   stopped but not seemingly natural"). Auto-rest was 8 silent beats and could
+   fire mid-bar. Now 2 silent beats AND only on a bar line: they finish the bar
+   and wait together, like an ensemble that lost its conductor.
+
+### The next gate, in the founder's words (2026-08-14)
+
+> "it should be each instrument is independent and the specific ways of moving
+> hands depends on solos and playing together. sometimes there are over 100
+> instruments."
+
+This is the product, and it is bigger than the two hardcoded instruments. The
+model it implies:
+
+- **Every section is an independent player** with its own state (silent,
+  following, soloing, held), not a fixed pair wired to a fixed pair of hands.
+- **Addressing must scale past the number of hands.** Two hands cannot select
+  among 100 sections; *attention* can. Gaze is the conductor's real selector —
+  you look at the section you are bringing in. The gaze plumbing proven above
+  is exactly the mechanism.
+- **The same gesture means different things depending on WHO is addressed** —
+  a lift to a soloist swells one line; the same lift to the whole ensemble
+  swells everything. Solo vs tutti is a property of the address, not the motion.
+
+Deferred deliberately rather than half-built: this is a section/addressing
+architecture, not a patch, and it must land with its own receipts.
+
+### Finding
+
+**Desk-proven, then face-proven, then LIVE-proven.** Field report 1 fixed what a
+desk could reach. Only the live session showed that the room's whole explanation
+channel sat outside the field of view of the thing it explained. Instrument the
+real device before believing any claim about what a person experiences in it.
