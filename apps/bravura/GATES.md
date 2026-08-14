@@ -833,3 +833,77 @@ Named, not yet fixed (each needs its own receipt):
   undifferentiated stream, then lesson 5 says "a bar of 4" with no definition.
 - **HUD layout collision**: with the pattern diagram drawn, the sub text is
   squeezed to ~340 px and long lines wrap into the progress line.
+
+---
+
+## Field report 3 — watching the founder play, live (2026-08-14)
+
+Instrumented his session while he wore the headset and conducted.
+
+### The HUD move is confirmed on his face
+
+Same measurement as field report 2, after the fix (4820 frames, he was standing
+this time — head at 1.70 m, and the panel followed him there):
+
+| gaze dwell (20° cone) | before | after |
+|---|---|---|
+| the words | 59.0% (yaw 28.8°) | **82.5% (yaw 0°)** |
+| the guide ball | 12.8% | **28.2%** |
+| the drum | 8.7% | **15.1%** |
+| median gaze yaw | 21.9° | **−2.4°** |
+
+He is looking straight ahead now, where the drum, the ball, his hands and the
+words all are. The head-turn away from the teaching is gone.
+
+**Two hands, two instruments works on real hands**: 118 podium beats and
+**126 chime strikes from his free hand**, unprompted.
+
+### The real reason it felt broken: accidental fermatas
+
+His `armLog`, verbatim:
+
+```
+downbeat@231.787 casual   → starts
+arm bpm=93.7              → rests (he stopped)
+downbeat@240.120 casual   → starts again
+hold@248.216 frac=0.92    → FROZE
+arm bpm=119.7
+cutoff@251.227
+downbeat@251.528 casual   → restarts 0.3 s later
+hold@254.272 frac=1.00    → FROZE again, 2.7 s later
+```
+
+He was not performing fermatas. **He was pausing** — to think, to look, to read
+— with his hand up, which is the most natural thing a beginner does, and the
+room froze the ensemble every time. Ten seconds of sampling caught the transport
+flipping paused/playing/paused with the panel reading "Frozen — they are holding
+for you." Everything after that felt like a machine ignoring him.
+
+The threshold was 0.45 s of stillness at ≥0.6 of his stroke range. That cannot
+distinguish "suspended, dramatically" from "waiting a moment."
+
+**Fix — a fermata must be INTENT, three conditions instead of one:**
+sustained stillness raised 0.45 → **1.0 s**; the hand must be at the **top** of
+its own recent range (0.6 → **0.82**); and **a bar of real conducting (4 beats)
+must precede it**, so a pause moments after a restart is a pause.
+
+**Receipts (final build):**
+- Casual mid-range pause after 9 beats → **0 holds**, ensemble rests normally
+  (finishes the bar and waits). Before this change the same shape froze it.
+- Deliberate fermata (hand at the top, held ~2 s) → hold fires, transport
+  `paused`, `isHolding` true. One decisive move → cutoff fires, transport
+  `stopped`. **Gate 8's grammar is intact.**
+- Probe self-test: **green**, certified verdict unchanged.
+- Probe negative control (fault injected): **red** — and now correctly reads
+  "Too slow to feel like conducting" rather than the old zero-trials "unknown",
+  because the settled/unsettled split gives it something real to judge.
+
+### On "when i move my hand faster it lags"
+
+Not the ensemble being late: his median beat offset measured **40 ms** — the
+drum lands with his hand. What the data shows instead is that his tempo never
+settles (steadiness CV 0.28, and every step trial 12–15 beats, i.e. beyond the
+8-beat settled ceiling). Between that and the accidental freezes, "lag" is the
+word for a room that kept stopping under him. Re-measure after this fix before
+touching the follower — changing the estimator is a change to a certified
+number and needs its own gate.

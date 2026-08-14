@@ -127,6 +127,13 @@ export class Conductor {
    */
   holdsEnabled = false;
   private holding = false;
+  /** Hand beats since the ensemble last started — a fermata needs a bar of
+   *  real conducting behind it, so a pause right after a restart is a pause. */
+  private beatsSinceStart = 0;
+  /** A fermata's hand is at the TOP of its own stroke range, not merely high. */
+  static readonly HOLD_MIN_RANGE_FRAC = 0.82;
+  /** ...and a bar of real conducting must precede it. */
+  static readonly HOLD_MIN_BEATS = 4;
   holdCount = 0;
   cutoffCount = 0;
   lastCutoffT: number | null = null;
@@ -178,7 +185,16 @@ export class Conductor {
         !this.holding &&
         this.followMode === 'follow' &&
         this.seq.state === 'playing' &&
-        rangeFrac >= 0.6
+        // A fermata must be INTENT, not a pause. Measured on the founder's
+        // live headset 2026-08-14: he fell into accidental holds at
+        // frac=0.92 and frac=1.00 within seconds of restarting, because
+        // pausing with your hand up — the most natural thing a beginner
+        // does while thinking or reading — was indistinguishable from a
+        // dramatic freeze. Now the hand must be clearly at the TOP of its
+        // own stroke, and the conductor must have actually been conducting
+        // (a bar's worth of beats) before the room will suspend anything.
+        rangeFrac >= Conductor.HOLD_MIN_RANGE_FRAC &&
+        this.beatsSinceStart >= Conductor.HOLD_MIN_BEATS
       ) {
         this.holding = true;
         this.holdCount++;
@@ -202,6 +218,7 @@ export class Conductor {
 
     this.detector.onBeat = (t, bpm, stroke) => {
       this.lastHandBeatT = t;
+      this.beatsSinceStart++;
       // Armed ensemble: this beat is the downbeat — start ON it, at the
       // tempo the preparation promised (or pre-rest tempo for a casual,
       // unprepared strike).
@@ -391,6 +408,7 @@ export class Conductor {
     this.armed = true;
     this.prepStartT = null;
     this.armHesitations = 0;
+    this.beatsSinceStart = 0;
     this.logArm(`arm bpm=${this.preRestBpm.toFixed(1)}`);
     if (this.seq.state !== 'stopped') this.seq.stop();
   }

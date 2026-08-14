@@ -78,6 +78,15 @@ export const DESKTOP_CONFIG: DetectorConfig = {
   riseVelMin: 250,
 };
 
+/**
+ * How long a hand must hold still before the room calls it a sustained
+ * stillness (the fermata's raw material). Raised 0.45 → 1.0 s after the
+ * founder's live headset run, where an ordinary pause-to-think froze the
+ * ensemble within a second: at 0.45 s the room could not tell "suspended,
+ * dramatically" from "waiting a moment".
+ */
+const SUSTAINED_STILL_SEC = 1.0;
+
 /** Median of a non-empty array. */
 export function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b);
@@ -199,7 +208,7 @@ export class BeatDetector {
         // a phantom strike at the next rise (round 3).
         this.descentPeakV = 0;
       }
-      if (!this.stillReported && s.t - this.stillSince >= 0.45) {
+      if (!this.stillReported && s.t - this.stillSince >= SUSTAINED_STILL_SEC) {
         this.stillReported = true;
         const span = this.rangeHi - this.rangeLo;
         const frac = span > 1e-6 ? (s.y - this.rangeLo) / span : 0.5;
