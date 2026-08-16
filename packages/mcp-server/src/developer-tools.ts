@@ -95,13 +95,21 @@ export const developerTools: Tool[] = [
   {
     name: 'get_workspace_info',
     description:
-      'Get workspace configuration, members, composition counts, and build order from holoscript.workspace.json.',
+      'Get workspace configuration, members, composition counts, and build order from ' +
+      'holoscript.workspace.json. Reads a filesystem, so it always reports WHOSE: every ' +
+      'response carries `describes` ("caller" or "nothing") and `canSeeYourFilesystem`. ' +
+      'Over a remote transport this server shares no filesystem with you and will say so ' +
+      'rather than describe its own machine — pass `root`, or run the server locally over ' +
+      'stdio, to get an answer about your files.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         root: {
           type: 'string',
-          description: 'Workspace root directory (defaults to working directory)',
+          description:
+            'Workspace root directory. Required to get a real answer from a remotely-hosted ' +
+            'server, which cannot see your filesystem. Defaults to the working directory only ' +
+            'when the server runs locally over stdio.',
         },
         includeBuildOrder: {
           type: 'boolean',
@@ -309,8 +317,71 @@ async function handleServePreview(args: Record<string, unknown>): Promise<unknow
   };
 }
 
+/**
+ * Whose filesystem is this tool about?
+ *
+ * On 2026-08-04 both production servers answered a customer's "what is in my
+ * workspace?" by describing THEIR OWN disk — the container answered '/app', the
+ * Jetson anchor answered '/mnt/nvme/holo/HoloScript/packages/mcp-server' — and both
+ * then advised `holoscript workspace init`, an action that would have created a
+ * workspace on the SERVER. The path was one the customer never mentioned and could
+ * not reach.
+ *
+ * The server may only present a path as the caller's under one of two conditions:
+ *  - the caller named it (`root` argument), so it is their question, or
+ *  - the transport is stdio, meaning the caller launched this process in their own
+ *    working directory and the two filesystems are the same one.
+ *
+ * Anything else and the honest answer is "I cannot see your files" — which is a
+ * real answer a customer can act on, unlike a confident report about a stranger's
+ * container. Note the default when the transport is unknown is blindness, not
+ * confidence: a wrong "I can't see" costs a follow-up argument, a wrong "here is
+ * your workspace" costs the customer their trust in every path this server prints.
+ */
+function workspaceVantage(args: Record<string, unknown>): {
+  describes: 'caller' | 'nothing';
+  root?: string;
+  because: string;
+} {
+  if (typeof args.root === 'string' && args.root.trim()) {
+    return { describes: 'caller', root: args.root, because: 'you named this path' };
+  }
+  if (process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio') {
+    return {
+      describes: 'caller',
+      root: process.cwd(),
+      because: 'this server was launched by you, in this directory',
+    };
+  }
+  return {
+    describes: 'nothing',
+    because:
+      process.env.HOLOSCRIPT_MCP_TRANSPORT === 'http'
+        ? 'this server runs remotely and shares no filesystem with you'
+        : 'this server cannot confirm it shares a filesystem with you',
+  };
+}
+
 async function handleGetWorkspaceInfo(args: Record<string, unknown>): Promise<unknown> {
-  const root = (args.root as string) || process.cwd();
+  const vantage = workspaceVantage(args);
+
+  if (vantage.describes === 'nothing') {
+    return {
+      found: false,
+      describes: 'nothing',
+      // Deliberately NO `root`. Printing this server's cwd here is the whole defect:
+      // a customer reads any path in this response as theirs.
+      canSeeYourFilesystem: false,
+      message: `I cannot read your workspace — ${vantage.because}. I have not looked at any of your files and the paths on this machine are not yours.`,
+      howToGetAnAnswer: [
+        'Pass `root` with a path this server can reach, if you are running it yourself.',
+        'Or run the HoloScript MCP server locally over stdio, where its working directory is yours.',
+        'Do not run `holoscript workspace init` expecting it to affect this server — it would create a workspace on the server, not on your machine.',
+      ],
+    };
+  }
+
+  const root = vantage.root as string;
   const includeBuildOrder = args.includeBuildOrder !== false;
 
   const { WorkspaceManager } = await import('./workspace-manager-bridge');
@@ -321,14 +392,20 @@ async function handleGetWorkspaceInfo(args: Record<string, unknown>): Promise<un
   if (!config) {
     return {
       found: false,
+      describes: 'caller',
+      canSeeYourFilesystem: true,
       root,
-      message: 'No holoscript.workspace.json found. Use `holoscript workspace init` to create one.',
+      because: vantage.because,
+      message: `No holoscript.workspace.json in ${root}. Use \`holoscript workspace init\` there to create one.`,
     };
   }
 
   const info = manager.getInfo();
   const result: Record<string, unknown> = {
     found: true,
+    describes: 'caller',
+    canSeeYourFilesystem: true,
+    because: vantage.because,
     ...info,
   };
 
