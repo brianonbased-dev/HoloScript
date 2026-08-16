@@ -310,7 +310,7 @@ Produces full world files with physics config, ground plane, lighting, sensors, 
 
 ## Non-Spatial Use Cases
 
-These examples demonstrate that HoloScript is a **backend scripting platform**, not just a VR previewer:
+These examples show HoloScript describing systems with no spatial surface at all. It is a **general-purpose semantic systems programming language** — not a VR previewer, and not a scripting layer bolted onto one:
 
 | Use Case                 | What It Does                                    | Key Traits                                  | Deploy To           |
 | ------------------------ | ----------------------------------------------- | ------------------------------------------- | ------------------- |
