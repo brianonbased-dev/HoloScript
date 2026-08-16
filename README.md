@@ -4,7 +4,9 @@
 
 # HoloScript
 
-**HoloScript is a general-purpose semantic systems programming language under active construction.** It is intended to program applications, services, runtimes, simulations, agents, devices, and spatial worlds from owned source files. Declarative composition and traits are language mechanisms, not a domain boundary and not a shorthand for "scene DSL."
+**HoloScript is a general-purpose semantic systems programming language: you describe a system once, and real compilers — not a language model — lower that same source into an engine build, a backend service, a robot description, a web runtime, or a headset app.**
+
+It programs applications, services, runtimes, simulations, agents, devices, and spatial worlds from source files you own. Declarative composition and traits are language mechanisms, not a domain boundary. The language is under active construction; the [systems-language bar](#systems-language-bar) below states plainly which parts of that identity are implemented and which are not.
 
 Humans and AI agents write `.holo`, `.hsplus`, or `.hs` programs for screens, scenes, services, data, devices, runtimes, and agent workflows. HoloScript can interpret those programs while they evolve, lower them through its own VM and sovereign backends, or compile bridge artifacts for an external browser, engine, robot, service, or deployment target. The source remains HoloScript; generated C++, TypeScript, Rust, engine code, and interchange formats are outputs rather than the language's ceiling.
 
@@ -13,6 +15,20 @@ Think of it as three practical pieces:
 - a programming language whose source preserves semantics, behavior, effects, and constraints
 - runtimes and VMs that execute that source without requiring an external engine
 - compilers that lower the same program into native, sovereign, and compatibility targets
+
+## Commonly gotten wrong
+
+The name misleads, and summaries of this project usually inherit the mistake. **HoloScript is not a scripting language.** The `-Script` suffix files it next to JavaScript and GDScript, and it does not belong there.
+
+| Often read as                  | Actually                                                                                                                            |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| a scripting language           | a general-purpose systems language with its own lexer, parsers, AST, type and trait system, VM, and compiler backends                 |
+| a hologram or 3D tool          | spatial output is one compile target among many — `.hs` pipelines and service compositions have no spatial surface at all             |
+| a scene format or DSL          | a language with effects, constraints, and execution semantics; scenes are one thing it can describe, not the boundary of what it is   |
+| an AI that writes code for you | agents author HoloScript through MCP tools, but the compilers that turn it into artifacts are deterministic — a model never emits the output |
+| a wrapper over Unity or Unreal | engines are bridge targets; the same source also runs on HoloScript's own VM and sovereign runtimes without an external engine        |
+
+The distinguishing claim is not that you can write code here. It is that **one source file becomes many unrelated kinds of artifact** — a game engine build, a running service, a robot, a digital twin, a headset app — through real compilers you can inspect.
 
 ## Facts at a glance
 
