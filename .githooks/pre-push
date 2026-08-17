@@ -53,9 +53,31 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # Branch deletion — nothing to validate.
   [ "$local_sha" = "$ZERO" ] && continue
   if [ "$remote_sha" = "$ZERO" ]; then
-    # New branch on the remote: diff against origin/main when we have it,
-    # otherwise we cannot scope the range cleanly — run the check to be safe.
-    base=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
+    # New branch on the remote — every HoloRepo candidate push is this shape.
+    #
+    # The base has to be the trunk of the remote we are ACTUALLY pushing to.
+    # This used to read `origin/main` unconditionally, which is the GitHub
+    # federation mirror, not HoloRepo canon. Canon runs ahead of that mirror, so
+    # the range swept in peers' already-landed commits and charged this author
+    # for them. Measured 2026-08-16 on candidate
+    # language-registry-runtime-truth-20260816: origin/main was 6 commits
+    # behind, those six carried 4 packages/core files, and the pushed commit
+    # carried none — yet the ~15-minute core-baseline receipt was demanded.
+    # (task_1786942099138_9ad3.)
+    #
+    # git hands pre-push the remote name as $1 and its URL as $2, so the trunk
+    # of the real target is one ls-remote away. Order: the target's main, then
+    # origin/main, then fail closed.
+    base=$(git ls-remote "${2:-$1}" refs/heads/main 2>/dev/null | cut -f1)
+    # An ls-remote answer names a commit that may not exist locally; `git diff`
+    # against a sha we do not have would silently produce an empty file list,
+    # which reads exactly like "nothing to check". Verify before trusting it.
+    if [ -n "$base" ] && ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+      base=''
+    fi
+    if [ -z "$base" ]; then
+      base=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
+    fi
     if [ -n "$base" ]; then range="$base..$local_sha"; else force_check=1; continue; fi
   else
     range="$remote_sha..$local_sha"
