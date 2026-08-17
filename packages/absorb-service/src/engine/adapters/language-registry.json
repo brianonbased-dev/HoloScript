@@ -10,8 +10,8 @@
   "statuses": {
     "implemented": "Has a registered adapter; tree-sitter grammars must be installed package deps.",
     "native": "Parsed by the HoloScript-native adapter rather than tree-sitter.",
-    "declared": "Present in SupportedLanguage but no adapter is registered yet.",
-    "fallback": "Plain text path for unrecognized extensions."
+    "declared": "REJECTED. An id with no registered adapter is a capability that does not exist; the runtime-truth check fails on it. Ship the adapter or drop the id.",
+    "fallback": "Plain text path for unrecognized extensions. Never has an adapter."
   },
   "languages": [
     {
@@ -32,21 +32,6 @@
       "declaration": "packages/absorb-service/language-adapters/typescript.holo",
       "extractorRules": 13,
       "notes": "Generated from @language_adapter .holo data."
-    },
-    {
-      "id": "javascript",
-      "status": "implemented",
-      "adapter": "TreeSitterTraitAdapter",
-      "grammarPackage": "tree-sitter-javascript",
-      "extensions": [
-        ".js",
-        ".jsx",
-        ".mjs",
-        ".cjs"
-      ],
-      "declaration": "packages/absorb-service/language-adapters/typescript.holo",
-      "extractorRules": 13,
-      "notes": "Generated from the typescript @language_adapter .holo (shared JavaScript support)."
     },
     {
       "id": "python",
@@ -84,71 +69,6 @@
       "declaration": "packages/absorb-service/language-adapters/go.holo",
       "extractorRules": 7,
       "notes": "Generated from @language_adapter .holo data."
-    },
-    {
-      "id": "java",
-      "status": "declared",
-      "adapter": null,
-      "grammarPackage": "tree-sitter-java",
-      "extensions": [
-        ".java"
-      ],
-      "notes": "Generated build target from SupportedLanguage."
-    },
-    {
-      "id": "cpp",
-      "status": "declared",
-      "adapter": null,
-      "grammarPackage": "tree-sitter-cpp",
-      "extensions": [
-        ".cpp",
-        ".cc",
-        ".cxx",
-        ".hpp",
-        ".h"
-      ],
-      "notes": "Generated build target from SupportedLanguage."
-    },
-    {
-      "id": "csharp",
-      "status": "declared",
-      "adapter": null,
-      "grammarPackage": "tree-sitter-c-sharp",
-      "extensions": [
-        ".cs"
-      ],
-      "notes": "Generated build target from SupportedLanguage."
-    },
-    {
-      "id": "php",
-      "status": "declared",
-      "adapter": null,
-      "grammarPackage": "tree-sitter-php",
-      "extensions": [
-        ".php"
-      ],
-      "notes": "Generated build target from SupportedLanguage."
-    },
-    {
-      "id": "swift",
-      "status": "declared",
-      "adapter": null,
-      "grammarPackage": "tree-sitter-swift",
-      "extensions": [
-        ".swift"
-      ],
-      "notes": "Generated build target from SupportedLanguage."
-    },
-    {
-      "id": "kotlin",
-      "status": "declared",
-      "adapter": null,
-      "grammarPackage": "tree-sitter-kotlin",
-      "extensions": [
-        ".kt",
-        ".kts"
-      ],
-      "notes": "Generated build target from SupportedLanguage."
     },
     {
       "id": "ruby",

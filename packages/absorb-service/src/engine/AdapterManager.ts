@@ -135,16 +135,12 @@ export class AdapterManager {
         const mod = pkg.default || pkg;
         return mod.typescript || mod;
       }
-      if (language === 'javascript') {
-        try {
-          const pkg = await import('tree-sitter-javascript');
-          return pkg.default || pkg;
-        } catch {
-          const pkg = await import(packageName);
-          const mod = pkg.default || pkg;
-          return mod.javascript || mod;
-        }
-      }
+      // There was a `language === 'javascript'` branch here that loaded
+      // tree-sitter-javascript. It was unreachable: loadNative() is only called
+      // for a language that has a REGISTERED adapter, and no adapter registers
+      // 'javascript' — the typescript adapter claims the .js extensions, so JS
+      // files arrive as 'typescript' and take the branch above. Narrowing
+      // SupportedLanguage to the runtime ids is what made the compiler say so.
       const pkg = await import(packageName);
       return pkg.default || pkg;
     } catch (err) {

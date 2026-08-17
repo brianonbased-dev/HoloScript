@@ -15,6 +15,12 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from '
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  FALLBACK_LANGUAGE,
+  findRegistryRuntimeDrift,
+  isAdapterBacked,
+} from '../src/engine/adapters/registry-truth.ts';
+
 const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(pkgRoot, '..', '..');
 const registryPath = resolve(pkgRoot, 'src', 'engine', 'adapters', 'language-registry.json');
@@ -30,29 +36,30 @@ const errors = [];
 const warnings = [];
 const parseHolo = await loadParseHolo();
 
+// This map used to carry java/cpp/csharp/php/swift/kotlin/javascript so the
+// generator could emit "declared" rows for languages nothing could parse. Those
+// rows were the defect: the registry advertised capabilities with no adapter
+// behind them. A future language earns an entry here when its
+// `@language_adapter` .holo ships, not before.
 const DEFAULTS = {
   typescript: {
     grammarPackage: 'tree-sitter-typescript',
     extensions: ['.ts', '.tsx', '.mts', '.cts'],
   },
-  javascript: {
-    grammarPackage: 'tree-sitter-javascript',
-    extensions: ['.js', '.jsx', '.mjs', '.cjs'],
-  },
-  java: { grammarPackage: 'tree-sitter-java', extensions: ['.java'] },
-  cpp: { grammarPackage: 'tree-sitter-cpp', extensions: ['.cpp', '.cc', '.cxx', '.hpp', '.h'] },
-  csharp: { grammarPackage: 'tree-sitter-c-sharp', extensions: ['.cs'] },
-  php: { grammarPackage: 'tree-sitter-php', extensions: ['.php'] },
-  swift: { grammarPackage: 'tree-sitter-swift', extensions: ['.swift'] },
-  kotlin: { grammarPackage: 'tree-sitter-kotlin', extensions: ['.kt', '.kts'] },
   plaintext: { grammarPackage: null, extensions: [] },
 };
+
+// `plaintext` is the ONLY id allowed to exist without a registered adapter.
+// FALLBACK_LANGUAGE is imported from registry-truth.ts so the generator, the
+// gate and the test cannot disagree about which exemption is legitimate.
 
 const STATUS_TEXT = {
   implemented: 'Has a registered adapter; tree-sitter grammars must be installed package deps.',
   native: 'Parsed by the HoloScript-native adapter rather than tree-sitter.',
-  declared: 'Present in SupportedLanguage but no adapter is registered yet.',
-  fallback: 'Plain text path for unrecognized extensions.',
+  declared:
+    'REJECTED. An id with no registered adapter is a capability that does not exist; '
+    + 'the runtime-truth check fails on it. Ship the adapter or drop the id.',
+  fallback: 'Plain text path for unrecognized extensions. Never has an adapter.',
 };
 
 async function loadParseHolo() {
@@ -259,11 +266,10 @@ function generateRegistry() {
         grammarPackage: 'tree-sitter-typescript',
         notes: 'Generated from TypeScriptAdapter.ts.',
       });
-      applyAdapter(entries, 'javascript', adapter, metadata, {
-        extensions: DEFAULTS.javascript.extensions,
-        grammarPackage: 'tree-sitter-javascript',
-        notes: 'Generated from TypeScriptAdapter.ts shared JavaScript support.',
-      });
+      // No javascript row is projected here any more. The typescript adapter
+      // claims the .js extensions, so JS files are ingested AS typescript;
+      // emitting a second 'javascript' row said a runtime id existed when
+      // detectLanguage() could never return one.
       continue;
     }
     applyAdapter(entries, metadata.language, adapter, metadata, {
@@ -280,21 +286,15 @@ function generateRegistry() {
       continue;
     }
     entries.set(declaration.id, declaration);
-    // The typescript @language_adapter also serves JavaScript (its extensions
-    // cover .js/.jsx/.mjs/.cjs), exactly as the deleted bespoke TypeScriptAdapter
-    // did — the extension map routes JS files to the typescript trait adapter.
-    // Project a javascript registry entry off the same declaration (with the
-    // JavaScript grammar + extensions) so the registry keeps reporting JS as
-    // implemented, matching the pre-migration shape.
-    if (declaration.id === 'typescript' && entries.has('javascript')) {
-      entries.set('javascript', {
-        ...declaration,
-        id: 'javascript',
-        grammarPackage: DEFAULTS.javascript.grammarPackage,
-        extensions: DEFAULTS.javascript.extensions,
-        notes: 'Generated from the typescript @language_adapter .holo (shared JavaScript support).',
-      });
-    }
+    // The typescript @language_adapter's extensions already cover
+    // .js/.jsx/.mjs/.cjs, so JavaScript files ARE ingested. What used to happen
+    // here was a second registry row projected under the id 'javascript' to
+    // "keep reporting JS as implemented" — and that row was the lie: the
+    // extension map points those files at the typescript adapter, so
+    // detectLanguage() returns 'typescript' and 'javascript' was a runtime id
+    // that did not exist. Callers who think in terms of JavaScript are served
+    // by LANGUAGE_ID_ALIASES at the request boundary, which is the right place
+    // for an alias; the registry now reports only ids the runtime can produce.
   }
 
   const languages = supportedLanguages.map((id) => entries.get(id));
@@ -366,6 +366,58 @@ function validateRegistry(registry) {
   return { langs, implemented, declared };
 }
 
+/**
+ * Load what the runtime ACTUALLY registers.
+ *
+ * Everything above this point reasons about source text — the SupportedLanguage
+ * union parsed out of types.ts, the `registerAdapter(new X(` calls parsed out of
+ * index.ts. That is a check of one file against another, and it is exactly what
+ * missed the defect this exists for: `javascript` was consistent everywhere in
+ * the sources and still could not be returned by `detectLanguage()`, because the
+ * typescript adapter had claimed its extensions. Only executing the registry
+ * tells you which ids exist.
+ */
+async function loadRuntimeLanguages() {
+  try {
+    const module = await import('../src/engine/adapters/index.ts');
+    const languages = module.getSupportedLanguages();
+    if (!Array.isArray(languages) || languages.length === 0) {
+      errors.push(
+        'getSupportedLanguages() returned nothing. Either the adapter registry failed to '
+          + 'populate or its shape changed; this check cannot be satisfied by an empty answer.'
+      );
+      return null;
+    }
+    return languages;
+  } catch (error) {
+    // Fail closed and loudly. A skipped check reads exactly like a passing one,
+    // and this is the only check here that consults the runtime at all.
+    errors.push(
+      'Could not import the runtime adapter registry to compare against '
+        + `getSupportedLanguages(): ${error?.message || error}`
+    );
+    return null;
+  }
+}
+
+/**
+ * Registry ids vs getSupportedLanguages() — the check task_1785432913972_o1nf
+ * asked for. The comparison itself lives in
+ * `src/engine/adapters/registry-truth.ts` so this gate and the vitest
+ * regression suite beside it share ONE implementation; a check whose semantics
+ * are re-typed into its own test proves only that the copy agrees with itself.
+ */
+function validateRuntimeTruth(langs, runtimeLanguages) {
+  if (!runtimeLanguages) return null;
+  for (const finding of findRegistryRuntimeDrift(langs, runtimeLanguages)) {
+    errors.push(finding);
+  }
+  return {
+    runtime: [...runtimeLanguages].sort(),
+    adapterBacked: langs.filter(isAdapterBacked).map((l) => l.id).sort(),
+  };
+}
+
 const registry = generateRegistry();
 const expected = `${JSON.stringify(registry, null, 2)}\n`;
 
@@ -383,12 +435,21 @@ if (!write) {
 }
 
 const { langs, implemented, declared } = validateRegistry(registry);
+const runtimeLanguages = await loadRuntimeLanguages();
+const runtimeTruth = validateRuntimeTruth(langs, runtimeLanguages);
 const traitBacked = langs.filter((l) => l.declaration);
 const other = langs.length - implemented.length - declared.length;
 
 console.log(
   `[language-registry] ${langs.length} languages: ${implemented.length} implemented/native, ${declared.length} declared, ${other} fallback/other.`
 );
+if (runtimeTruth) {
+  console.log(
+    `[language-registry] runtime truth: getSupportedLanguages() = `
+      + `${runtimeTruth.runtime.join(', ')} | registry adapter-backed = `
+      + `${runtimeTruth.adapterBacked.join(', ')} | fallback exemption = ${FALLBACK_LANGUAGE}.`
+  );
+}
 if (declared.length) {
   console.log(`[language-registry] build targets: ${declared.map((l) => l.id).join(', ')}`);
 }

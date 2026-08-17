@@ -257,7 +257,9 @@ export function extractVisibility(
 
   // Default: public for top-level, private for class members
   if (node.parent?.type?.includes('class') || node.parent?.type?.includes('impl')) {
-    return language === 'typescript' || language === 'javascript' ? 'public' : 'private';
+    // JavaScript files land here as 'typescript' — the typescript adapter claims
+    // .js/.jsx/.mjs/.cjs, so there is no separate 'javascript' runtime id to test.
+    return language === 'typescript' ? 'public' : 'private';
   }
   return 'public';
 }

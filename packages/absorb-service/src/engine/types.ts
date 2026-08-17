@@ -20,18 +20,40 @@ import type {
 // SUPPORTED LANGUAGES
 // =============================================================================
 
+/**
+ * Every id an adapter actually registers at runtime, plus the one fallback.
+ *
+ * THE RULE: a member of this union must be a value `detectLanguage()` can
+ * really return. It is not a roadmap and not an advertisement. It used to be
+ * both, and the cost was measurable — the union carried `java`, `cpp`,
+ * `csharp`, `php`, `swift`, `kotlin` and `javascript` with no adapter behind
+ * any of them, so `languages: ['java']` type-checked, selected zero files, and
+ * (because completeness was `graphFileCount >= expectedGraphFileCount`) came
+ * back complete at ratio 1: an empty graph published as authoritative.
+ *
+ * `javascript` was the subtlest of the seven, because JavaScript really is
+ * ingested — the typescript adapter claims `.js/.jsx/.mjs/.cjs`, so
+ * `detectLanguage('a.js')` returns `'typescript'` and never `'javascript'`.
+ * The FILES are covered; the ID is not a runtime id. Callers may still ask for
+ * `javascript`: `LANGUAGE_ID_ALIASES` in `mcp/codebase-tools.ts` canonicalizes
+ * it at the request boundary, which is where an alias belongs.
+ *
+ * `plaintext` is the single deliberate exception: it has no adapter by design
+ * and exists because `detectLanguage(...) || 'plaintext'` needs something to
+ * return for a file no adapter claims. `scripts/check-language-registry.mjs`
+ * pins exactly that — it is the only id allowed in the registry without a
+ * registered adapter, and it must not have one.
+ *
+ * Adding a language means shipping its `@language_adapter` .holo declaration
+ * (see `language-adapters/`) and then adding it here — in that order. The
+ * drift gate fails the build if this union and `getSupportedLanguages()` ever
+ * disagree again.
+ */
 export type SupportedLanguage =
   | 'typescript'
-  | 'javascript'
   | 'python'
   | 'rust'
   | 'go'
-  | 'java'
-  | 'cpp'
-  | 'csharp'
-  | 'php'
-  | 'swift'
-  | 'kotlin'
   | 'ruby'
   | 'holoscript'
   | 'plaintext';

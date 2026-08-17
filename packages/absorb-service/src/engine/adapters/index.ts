@@ -10,6 +10,15 @@
  * `scripts/check-language-registry.mjs` enforces the generated artifact: every
  * adapter registered below MUST appear there as implemented/native, and every
  * implemented grammar MUST be an installed dep.
+ *
+ * AND the registry may only name ids this file can actually produce. Every
+ * check above compares one source file to another, which is how the registry
+ * came to advertise seven ids — java, cpp, csharp, php, swift, kotlin and
+ * javascript — that `detectLanguage()` could never return. `registry-truth.ts`
+ * compares the registry against `getSupportedLanguages()` itself; the gate and
+ * `registry-truth.test.ts` both call it, so they cannot disagree. `plaintext`
+ * is the only id permitted without an adapter, because
+ * `detectLanguage(...) || 'plaintext'` needs a value for unclaimed files.
  */
 
 import type { LanguageAdapter, SupportedLanguage } from '../types';
