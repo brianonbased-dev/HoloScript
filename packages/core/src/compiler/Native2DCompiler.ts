@@ -1808,13 +1808,27 @@ export default ${safeName}Component;${contractExport}
    * injection-safe (same char-class as @computed; no backticks/semicolons).
    *
    * HONESTY LABEL (@verified_view v1 groundwork): the emitted `data-proof-state` re-runs the
-   * SAME `cond` the badge renders from, so today it proves DISPLAY-FAITHFULNESS (the badge
+   * SAME `cond` the badge renders from, so on its own it proves DISPLAY-FAITHFULNESS (the badge
    * matches its own formula), NOT independently-verified TRUTH of the claim. We refuse to let
    * that masquerade — `data-proof-independence="self-referential"` marks it so no consumer (or
    * the moat's own claims) mistakes it for a real proof. A v1 runtime verifier that re-derives
    * the claim's inputs through a path the render did not author (an external state store or a
-   * solver/StateAuthority oracle) flips this to `"verified"`. Until that oracle exists, honest
-   * labeling is the only non-theatre option (see research/2026-07-10_verified-view-v1-design.md).
+   * solver/StateAuthority oracle) flips this to `"verified"`
+   * (see research/2026-07-10_verified-view-v1-design.md).
+   *
+   * FAULT-TESTED (`falsifiedBy`, 2026-08-16): an independence oracle now exists for
+   * @verified_view — `reconstruction/SurfaceTwinReceipt.ts` compares DISPLAYED values against
+   * AUTHORITATIVE ones from the StateAuthority layer (two independent reads) — but it checks
+   * twin-faithfulness of entity-bound identity projections, and nothing wires it to a
+   * @live_proof CLAIM. So `self-referential` is still the honest label here. Fault injection
+   * earns a weaker guarantee that needs no oracle at all. A check nobody has ever seen fail is
+   * indistinguishable from a check that CANNOT fail, so `falsifiedBy` declares faults the claim
+   * must catch; the compiler applies each to the composition's own initial state and fails the
+   * build unless the claim goes false. That earns `data-proof-independence="fault-tested"` — a
+   * strictly stronger label than `self-referential` (this check demonstrably has teeth) and a
+   * strictly weaker one than `verified` (its teeth are still its own formula's). The faults are
+   * replayable in-band so a non-developer can WATCH the verdict flip rather than be asked to
+   * trust it. See `verifyLiveProofFaults` below.
    */
   private buildLiveProofElement(traits: Record<string, any>, keyProp: string): string {
     const lp = traits.live_proof;
@@ -1828,9 +1842,169 @@ export default ${safeName}Component;${contractExport}
     const label =
       lp.label != null ? this.assertSafeLiteral(String(lp.label), '@live_proof label') : 'Claim';
     const cond = `(${claim})`;
-    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="self-referential" data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
+
+    // No declared faults -> byte-identical to the pre-fault-injection emission.
+    const faults = this.verifyLiveProofFaults(claim, lp.falsifiedBy, label);
+    if (faults.length === 0) {
+      return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="self-referential" data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
       {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
     </div>`;
+    }
+
+    const setterFor = (key: string): string => `set${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+
+    // Every state field any fault disturbs, restored to the composition's own
+    // initial value — so "Put it back" is derived, never a hand-typed duplicate.
+    const touched = [...new Set(faults.flatMap((f) => Object.keys(f.overrides)))].sort();
+    const restoreCalls = touched
+      .map((k) => `${setterFor(k)}(${JSON.stringify(this._stateFields.get(k))})`)
+      .join('; ');
+
+    const faultButtons = faults
+      .map((f) => {
+        const applyCalls = Object.entries(f.overrides)
+          .map(([k, v]) => `${setterFor(k)}(${JSON.stringify(v)})`)
+          .join('; ');
+        // Button text goes through JSON.stringify into a JSX expression container,
+        // so ordinary prose (apostrophes included) is safe without narrowing what a
+        // human may write in `because` — this text IS the explanation a
+        // non-developer reads, so it must not be constrained to a code char-class.
+        return `<button type="button" onClick={() => { ${applyCalls}; }} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error">
+        {${JSON.stringify(`Break it: ${f.because}`)}}
+      </button>`;
+      })
+      .join('\n      ');
+
+    const receipt = faults.map((f) => ({ overrides: f.overrides, because: f.because }));
+    const caught = `Broken on purpose ${faults.length === 1 ? '1 way' : `${faults.length} ways`} when this was built — the check caught ${faults.length === 1 ? 'it' : 'all of them'}. Press one to watch it fail.`;
+
+    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="fault-tested" data-proof-faults={${JSON.stringify(JSON.stringify(receipt))}} className="flex flex-col gap-2">
+      <div data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
+        {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
+      </div>
+      <span className="text-[10px] text-studio-muted">{${JSON.stringify(caught)}}</span>
+      <div className="flex flex-wrap gap-1">
+        ${faultButtons}
+        <button type="button" onClick={() => { ${restoreCalls}; }} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent">
+        {"Put it back"}
+      </button>
+      </div>
+    </div>`;
+  }
+
+  /**
+   * Evaluate a @live_proof claim against a concrete state snapshot at COMPILE TIME.
+   *
+   * The claim has already passed the same char-class gate that guards the emitted
+   * code (no backticks, no semicolons), and the compiler ALREADY interpolates it
+   * verbatim as executable JS into the generated component. Running it here crosses
+   * no new trust boundary — it only moves evaluation earlier, so a check that cannot
+   * fail is caught at build time instead of shipping as decoration.
+   */
+  private evaluateLiveProofClaim(claim: string, snapshot: Map<string, unknown>): boolean {
+    const keys = [...snapshot.keys()];
+    let fn: (...args: unknown[]) => unknown;
+    try {
+      fn = new Function(...keys, `"use strict"; return (${claim});`) as (
+        ...args: unknown[]
+      ) => unknown;
+    } catch (error) {
+      throw new Error(
+        `Native2DCompiler @live_proof: claim ${JSON.stringify(claim)} is not a valid expression (${(error as Error).message})`
+      );
+    }
+    try {
+      return Boolean(fn(...keys.map((k) => snapshot.get(k))));
+    } catch (error) {
+      throw new Error(
+        `Native2DCompiler @live_proof: claim ${JSON.stringify(claim)} threw when evaluated (${(error as Error).message}). Every name in a claim must be a composition state field.`
+      );
+    }
+  }
+
+  /**
+   * `falsifiedBy`: the faults this claim MUST catch — checked at build time.
+   *
+   * W.767/W.769 left `@live_proof` honestly labelled `self-referential`: the badge
+   * re-runs its own formula, so it proves display-faithfulness, not truth. The
+   * documented fix was an external oracle that does not exist yet. Fault injection
+   * gets a real guarantee WITHOUT one: a check nobody has ever seen fail is
+   * indistinguishable from a check that cannot fail, so make it fail on purpose.
+   *
+   * Each entry is `{ <stateField>: <value>, ..., because: "<plain language>" }`.
+   * The compiler applies the override to the composition's own initial state and
+   * REQUIRES the claim to go false. If a declared fault does not falsify the claim,
+   * compilation FAILS — the check is decoration and shipping it would be theatre.
+   * Passing rows upgrade the emitted independence label to `fault-tested` and are
+   * replayable in-band, so a non-developer can watch the verdict flip to FALSIFIED
+   * rather than being asked to trust it.
+   */
+  private verifyLiveProofFaults(
+    claim: string,
+    raw: unknown,
+    label: string
+  ): Array<{ because: string; overrides: Record<string, unknown> }> {
+    if (raw === undefined || raw === null) return [];
+    if (!Array.isArray(raw)) {
+      throw new Error(
+        `Native2DCompiler @live_proof falsifiedBy: expected an array of faults, got ${JSON.stringify(raw)}`
+      );
+    }
+    if (raw.length === 0) return [];
+
+    const base = new Map(this._stateFields);
+
+    // A proof must start green, or there is nothing to watch break.
+    if (!this.evaluateLiveProofClaim(claim, base)) {
+      throw new Error(
+        `Native2DCompiler @live_proof: "${label}" is already FALSIFIED by the composition's own initial state, so no viewer could ever watch it break. Fix the claim or the initial state.`
+      );
+    }
+
+    const known = [...base.keys()];
+    return raw.map((entry, index) => {
+      const at = `@live_proof falsifiedBy[${index}]`;
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        throw new Error(`Native2DCompiler ${at}: expected an object, got ${JSON.stringify(entry)}`);
+      }
+      const fault = entry as Record<string, unknown>;
+      const because = fault.because;
+      if (typeof because !== 'string' || !because.trim()) {
+        throw new Error(
+          `Native2DCompiler ${at}: needs a plain-language "because" — it is the sentence a non-developer reads to understand what was broken.`
+        );
+      }
+
+      const overrides: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(fault)) {
+        if (key === 'because') continue;
+        if (!base.has(key)) {
+          throw new Error(
+            `Native2DCompiler ${at}: sets unknown state field "${key}". Known state fields: ${known.join(', ') || '(none)'}.`
+          );
+        }
+        if (value !== null && !['number', 'string', 'boolean'].includes(typeof value)) {
+          throw new Error(
+            `Native2DCompiler ${at}: field "${key}" must be a number, string, boolean or null, got ${JSON.stringify(value)}`
+          );
+        }
+        overrides[key] = value;
+      }
+      if (Object.keys(overrides).length === 0) {
+        throw new Error(
+          `Native2DCompiler ${at}: changes no state field, so it cannot falsify anything.`
+        );
+      }
+
+      const snapshot = new Map(base);
+      for (const [key, value] of Object.entries(overrides)) snapshot.set(key, value);
+      if (this.evaluateLiveProofClaim(claim, snapshot)) {
+        throw new Error(
+          `Native2DCompiler @live_proof: "${label}" DID NOT go red under declared fault ${index + 1} (${JSON.stringify(overrides)} — "${because}"). A check that cannot fail is decoration, not a proof. Either the claim is wrong, or this is not actually a fault.`
+        );
+      }
+      return { because: because.trim(), overrides };
+    });
   }
 
   private buildHTMLBindAttributes(traits: Record<string, any>, staticClassName: string): string {
