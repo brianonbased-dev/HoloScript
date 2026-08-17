@@ -224,9 +224,18 @@ fi
 # Opt-out: HOLOMESH_SKIP_UNTRACKED_SIBLING_CHECK=1 for rare emergency cases.
 echo "  ├─ Untracked-sibling import check..."
 if [ -f "scripts/check-untracked-sibling-imports.js" ]; then
-    UNTSIB_OUT=$(run_with_timeout 15 node scripts/check-untracked-sibling-imports.js 2>&1)
+    # 60s, not 15s: the check scans ~154k untracked paths on this repo and takes ~15-20s,
+    # so it was being SIGKILLed mid-run. `timeout` exits 124 on kill, and a 124 was
+    # reported below as "Staged file imports an untracked sibling" — a finding the check
+    # never made. A timeout still BLOCKS (an unfinished check is not a pass) but must say
+    # what actually happened.
+    UNTSIB_OUT=$(run_with_timeout 60 node scripts/check-untracked-sibling-imports.js 2>&1)
     UNTSIB_STATUS=$?
-    if [ "$UNTSIB_STATUS" -ne 0 ]; then
+    if [ "$UNTSIB_STATUS" -eq 124 ]; then
+        echo -e "  ${RED}❌ Untracked-sibling check DID NOT COMPLETE (timed out) — not a finding${NC}"
+        echo "$UNTSIB_OUT"
+        FAILED=1
+    elif [ "$UNTSIB_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Staged file imports an untracked sibling${NC}"
         echo "$UNTSIB_OUT"
         FAILED=1
@@ -533,6 +542,33 @@ if [ "$STRATA_STATUS" -ne 0 ]; then
     FAILED=1
 else
     echo -e "  ${GREEN}✓${NC} One meaning stratum, defined once"
+fi
+
+# Gate 5g7: Workspace build-graph gate (ARCHITECTURE.md dependency rules 1 and 7).
+# Rules 1 ("No cycles") and 7 ("core must never depend on engine") existed with NO enforcing
+# gate, which is how commit 7f2ba28b3 (2026-07-07) silently reverted b53e815f9. The cost,
+# measured 2026-08-05: the workspace could not be built from a clean checkout at all — an
+# 11-package SCC left pnpm unable to order framework before engine, and engine's
+# `tsc -p tsconfig.dts.json` died on 14 TS2307 reading a dist/ that could not exist yet.
+# Checks THREE defect classes, because acyclicity alone is not sufficient:
+#   1. cycles over workspace: edges (Tarjan, all four dependency fields — devDependencies
+#      participate in pnpm's ordering, and that is exactly how core closed this one);
+#   2. build-order inversions that are NOT cycles (a semver back-edge creates no pnpm edge,
+#      so core->plugin + plugin--semver-->core + a --dts build inverts the order silently);
+#   3. unordered build-time deps (a sibling needed for type emit but declared only by semver
+#      gives pnpm no ordering constraint — this is what deleting a cycle edge leaves behind).
+# Runs UNCONDITIONALLY: a static manifest walk over 144 packages, milliseconds. Staged-file
+# triggering would miss a rename, and a moved manifest is a way the invariant escapes.
+echo "  ├─ Workspace build-graph gate (no cycles, no inverted or unordered build deps)..."
+WSGRAPH_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-workspace-acyclic.mjs 2>&1)
+WSGRAPH_STATUS=$?
+if [ "$WSGRAPH_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ Workspace dependency graph cannot produce a correct build order${NC}"
+    echo "$WSGRAPH_OUT"
+    echo "     Fix the manifest edge, not the build order. See decisions/2026-08-05_workspace-build-cycle.md."
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Build graph orderable (0 cycles, 0 inversions, 0 unordered)"
 fi
 
 # Gate 5g6: Docker-drift gate (per-service Docker recipe vs import graph, W.787 class).
