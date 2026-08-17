@@ -180,10 +180,30 @@ function main(): void {
   writeFileSync(OUT, `${header}\n${body}`, 'utf8');
 
   // ── Slim editor artifact: only props that declare an affordance ──────────────
+  // A trait name in DERIVED_TRAIT_CONFLICTS is claimed by two or more genuinely different
+  // traits (e.g. `transform` = the spatial position/rotation/scale trait AND a data-transform
+  // pipeline). The registry keeps ONE variant, first-in-sorted-path — a tie-break, not a
+  // judgment. An editor looks affordances up BY NAME, so shipping them for an ambiguous name
+  // would silently paint one trait's labels and ranges onto a different trait. Refuse instead
+  // of guessing: the editor falls back to its own defaults, which is what it did before.
   const uiByTrait: Record<string, TraitSchema['properties']> = {};
+  const suppressedAmbiguous: string[] = [];
   for (const schema of schemas) {
     const annotated = schema.properties.filter(hasAffordance);
-    if (annotated.length > 0) uiByTrait[schema.name] = annotated;
+    if (annotated.length === 0) continue;
+    if (conflictNames.has(schema.name)) {
+      suppressedAmbiguous.push(schema.name);
+      continue;
+    }
+    uiByTrait[schema.name] = annotated;
+  }
+  // Never a silent cap: say what was dropped and why.
+  if (suppressedAmbiguous.length > 0) {
+    process.stderr.write(
+      `[gen-trait-schemas] ${suppressedAmbiguous.length} annotated trait(s) withheld from the ` +
+        `editor artifact — name claimed by more than one trait, so which one an author meant ` +
+        `is unknowable: ${suppressedAmbiguous.sort().join(', ')}\n`
+    );
   }
   const uiTraitCount = Object.keys(uiByTrait).length;
   const uiPropCount = Object.values(uiByTrait).reduce((n, ps) => n + ps.length, 0);
