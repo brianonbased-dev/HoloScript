@@ -1409,6 +1409,7 @@ export function buildCharacterHostFromComposition(
   let melanin: number | undefined;
   let melaninRedness: number | undefined;
   let hairTone: number | undefined;
+  let hairSourceColorWeight: number | undefined;
   let hairStyle: AgentAvatarHairStyle | undefined;
   let hairGroomProfile: AgentAvatarGroomProfile | undefined;
   let hairCardWidth: number | undefined;
@@ -1433,6 +1434,12 @@ export function buildCharacterHostFromComposition(
   const hair = traits.get('hair');
   if (hair) {
     const hairColor = asStr(cfgVal(hair, 'color', 'base_color'));
+    const authoredSourceColorWeight = asNum(
+      cfgVal(hair, 'source_color_weight', 'sourceColorWeight')
+    );
+    if (authoredSourceColorWeight !== undefined) {
+      hairSourceColorWeight = clamp(authoredSourceColorWeight, 0, 1);
+    }
     authoredHairStyle = asStr(cfgVal(hair, 'style'));
     authoredGroomProfile = asStr(cfgVal(hair, 'groom_profile', 'groomProfile'));
     authoredCoverageProfile = asStr(cfgVal(hair, 'coverage_profile', 'coverageProfile'));
@@ -1604,6 +1611,16 @@ export function buildCharacterHostFromComposition(
       }
     } else {
       if (hairColorMapped) report.mapped.push('@hair(color)');
+      if (hairSourceColorWeight !== undefined) {
+        if (hairColorMapped) {
+          report.mapped.push(`@hair(source_color_weight=${hairSourceColorWeight})`);
+        } else {
+          report.stubbed.push({
+            trait: '@hair(source_color_weight)',
+            reason: 'source chroma weight requires a mapped @hair(color)',
+          });
+        }
+      }
       if (hairStyle) report.mapped.push(`@hair(style=${hairStyle})`);
       if (hairGroomProfile) {
         report.mapped.push(
@@ -1776,6 +1793,7 @@ export function buildCharacterHostFromComposition(
     melanin,
     melaninRedness,
     hairTone,
+    hairSourceColorWeight: hairColorMapped ? hairSourceColorWeight : undefined,
     hairStyle,
     hairGuides: lod?.hairGuides,
     hairCardsPerGuide: lod?.hairCardsPerGuide,
