@@ -401,7 +401,20 @@ describe('Feature 5: LLM provider model constant arrays', () => {
   });
 
   it('GEMINI_MODELS keeps the legacy baseline and includes current Gemini 3 models', () => {
-    expect(GEMINI_MODELS.length).toBe(7);
+    // Asserts the two claims in this test's name rather than an exact count. The old
+    // `.length).toBe(7)` tested neither, and broke the moment the list legitimately grew
+    // to 9 — a model roster is supposed to change, so pinning its size guarantees a false
+    // failure on every routine update. Membership is what the sibling tests already check.
+    for (const legacy of ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.5-flash-8b']) {
+      expect(GEMINI_MODELS, `legacy baseline model ${legacy} was dropped`).toContain(legacy);
+    }
+    expect(
+      GEMINI_MODELS.some((m) => m.startsWith('gemini-3')),
+      'no current Gemini 3 model present'
+    ).toBe(true);
+    // A duplicate entry is a real defect a count would have caught by accident; check it
+    // on purpose instead.
+    expect(new Set(GEMINI_MODELS).size, 'duplicate model id').toBe(GEMINI_MODELS.length);
   });
 
   it('GEMINI_MODELS includes gemini-3.5-flash', () => {
