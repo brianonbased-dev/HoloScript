@@ -10,6 +10,13 @@
 import { createHash } from 'node:crypto';
 import { CompilerBase, type BaseCompilerOptions } from './CompilerBase';
 import { readJson } from '../errors/safeJsonParse';
+import {
+  anchorLiveProofClaim,
+  deriveLiveProofInputs,
+  gradeLiveProofIndependence,
+  type LiveProofBinding,
+} from '../reconstruction/LiveProofTwinCheck';
+import type { SurfaceTwinProjection } from '../reconstruction/SurfaceTwinReceipt';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -92,6 +99,19 @@ export class Native2DCompiler extends CompilerBase {
      *  abstaining. Absent for identity binds and for @chart/@sparkline/@each/@model. */
     transform?: { precision?: number; prefix?: string; suffix?: string };
   }> = [];
+  /**
+   * Entity-bound projections PRE-SCANNED before traversal, for exactly the reason
+   * `_projectionRoots` is: a @live_proof badge is built mid-traversal, so anchoring it against
+   * projections collected DURING that same traversal would make its independence label depend on
+   * whether the badge happens to sit above or below the elements that ground it. A label that
+   * moves when you reorder the file is not a proof of anything.
+   */
+  private _projectionsByNode = new Map<string, SurfaceTwinProjection>();
+  /**
+   * One independence receipt per @live_proof claim, co-emitted in the view contract so a consumer
+   * re-derives `verified` from the ARTIFACT instead of trusting the compiler that stamped it.
+   */
+  private _liveProofBindings: LiveProofBinding[] = [];
 
   /**
    * 2D data-value provenance vocabulary, ordered by TRUST (highest → lowest),
@@ -159,8 +179,21 @@ export class Native2DCompiler extends CompilerBase {
     // array proven at the @each element — subtree-precise scoping is a v1 refinement).
     this._projectionRoots = new Set(this._stateFields.keys());
     this._collectedProjections = [];
+    this._projectionsByNode = new Map();
+    this._liveProofBindings = [];
     const scanProjectionRoots = (objs: Array<Record<string, unknown>>): void => {
       for (const o of objs) {
+        // Index every entity-bound projection BEFORE traversal so a @live_proof badge anchors to
+        // the same set no matter where it sits in the tree (same rationale as the roots above).
+        // Validation still belongs to resolveProjection — this pass only reads.
+        const oTraits = this.extractTraits(o);
+        const pjNode = oTraits.projects?.node;
+        if (typeof pjNode === 'string' && pjNode) {
+          const described = this.describeProjection(oTraits, String(o.name ?? 'element'), pjNode);
+          if (described.entity && !this._projectionsByNode.has(pjNode)) {
+            this._projectionsByNode.set(pjNode, described);
+          }
+        }
         for (const t of (o.traits as
           | Array<{ name?: string; config?: Record<string, unknown> }>
           | undefined) ?? []) {
@@ -1670,6 +1703,30 @@ export default ${safeName}Component;${contractExport}
       );
     }
     // Record the verified projection for the co-emitted view contract (v1).
+    if (pj.entity !== undefined && !/^[A-Za-z0-9_.:-]+$/.test(String(pj.entity))) {
+      throw new Error(
+        `Native2DCompiler @projects: invalid entity id ${JSON.stringify(String(pj.entity))} on "${nm()}" (allowed: alphanumerics and . : _ -)`
+      );
+    }
+    this._collectedProjections.push(this.describeProjection(traits, nm(), node));
+    return ` data-holo-projects="${node}"`;
+  }
+
+  /**
+   * Derive a projection's contract record from its traits. Pure and non-throwing, because it has
+   * TWO callers with different jobs: `resolveProjection` (which validates first, then records) and
+   * the pre-traversal scan that indexes entity-bound projections for @live_proof anchoring.
+   *
+   * One derivation, deliberately. A second copy in the pre-scan would eventually disagree about
+   * what counts as an identity bind, and the way that failure surfaces is a claim awarded
+   * `verified` on the strength of a projection the twin checker abstains on — a false top label,
+   * which is the one outcome this whole ladder exists to prevent.
+   */
+  private describeProjection(
+    traits: Record<string, any>,
+    element: string,
+    node: string
+  ): SurfaceTwinProjection & { element: string } {
     // identity = a transform-free scalar @bind (raw displayed value == raw source).
     const b = traits.bind;
     const identity =
@@ -1704,24 +1761,16 @@ export default ${safeName}Component;${contractExport}
     // Optional twin entity binding (v1 Framing B): the StateAuthority entity this projection
     // mirrors. Recorded in the contract so an independent checker can compare the displayed
     // value against the authoritative twin value (fetch_authoritative_state).
-    let entity: string | undefined;
-    if (pj.entity !== undefined) {
-      const e = String(pj.entity);
-      if (!/^[A-Za-z0-9_.:-]+$/.test(e)) {
-        throw new Error(
-          `Native2DCompiler @projects: invalid entity id ${JSON.stringify(e)} on "${nm()}" (allowed: alphanumerics and . : _ -)`
-        );
-      }
-      entity = e;
-    }
-    this._collectedProjections.push({
-      element: nm(),
+    const pj = traits.projects;
+    const rawEntity = pj?.entity === undefined ? undefined : String(pj.entity);
+    const entity = rawEntity && /^[A-Za-z0-9_.:-]+$/.test(rawEntity) ? rawEntity : undefined;
+    return {
+      element,
       node,
       ...(entity ? { entity } : {}),
       identity,
       ...(transform ? { transform } : {}),
-    });
-    return ` data-holo-projects="${node}"`;
+    };
   }
 
   /**
@@ -1746,7 +1795,17 @@ export default ${safeName}Component;${contractExport}
       a.element === b.element ? a.node.localeCompare(b.node) : a.element.localeCompare(b.element)
     );
     const stateRoots = [...this._projectionRoots].sort();
-    const body = { version: Native2DCompiler.VIEW_CONTRACT_VERSION, projections, stateRoots };
+    // @live_proof independence receipts travel WITH the contract, so a consumer can re-derive
+    // `verified` from the artifact rather than believing the label the compiler stamped on the
+    // badge. Omitted entirely when there are none — a surface with no claims keeps the exact
+    // contract hash it had before this field existed.
+    const liveProofs = [...this._liveProofBindings].sort((a, b) => a.claim.localeCompare(b.claim));
+    const body = {
+      version: Native2DCompiler.VIEW_CONTRACT_VERSION,
+      projections,
+      stateRoots,
+      ...(liveProofs.length ? { liveProofs } : {}),
+    };
     const hash = createHash('sha256').update(JSON.stringify(body)).digest('hex');
     return { json: JSON.stringify({ ...body, contractHash: hash }), hash };
   }
@@ -1816,12 +1875,7 @@ export default ${safeName}Component;${contractExport}
    * solver/StateAuthority oracle) flips this to `"verified"`
    * (see research/2026-07-10_verified-view-v1-design.md).
    *
-   * FAULT-TESTED (`falsifiedBy`, 2026-08-16): an independence oracle now exists for
-   * @verified_view — `reconstruction/SurfaceTwinReceipt.ts` compares DISPLAYED values against
-   * AUTHORITATIVE ones from the StateAuthority layer (two independent reads) — but it checks
-   * twin-faithfulness of entity-bound identity projections, and nothing wires it to a
-   * @live_proof CLAIM. So `self-referential` is still the honest label here. Fault injection
-   * earns a weaker guarantee that needs no oracle at all. A check nobody has ever seen fail is
+   * FAULT-TESTED (`falsifiedBy`, 2026-08-16): a check nobody has ever seen fail is
    * indistinguishable from a check that CANNOT fail, so `falsifiedBy` declares faults the claim
    * must catch; the compiler applies each to the composition's own initial state and fails the
    * build unless the claim goes false. That earns `data-proof-independence="fault-tested"` — a
@@ -1829,6 +1883,18 @@ export default ${safeName}Component;${contractExport}
    * strictly weaker one than `verified` (its teeth are still its own formula's). The faults are
    * replayable in-band so a non-developer can WATCH the verdict flip rather than be asked to
    * trust it. See `verifyLiveProofFaults` below.
+   *
+   * VERIFIED (2026-08-17): the oracle is now wired. `reconstruction/SurfaceTwinReceipt.ts`
+   * compares DISPLAYED values against AUTHORITATIVE ones from the StateAuthority layer (two
+   * independent reads); what was missing was any connection from it to a CLAIM, since it checks
+   * projections. `bindLiveProofToTwin` is that connection, on the observation that a claim is
+   * only as independent as its inputs: when every state path the claim reads is also displayed
+   * by an entity-bound, twin-checkable projection, a fabricated input has nowhere to hide, and
+   * the badge becomes a statement about the twin rather than about its own arithmetic. Both
+   * halves are required — anchoring proves the inputs are real, fault injection proves the claim
+   * depends on them — so the ladder is monotone. Compile time can only prove the inputs are
+   * CHECKABLE; `data-proof-anchors` carries the entity map a runtime checker needs to close it
+   * (see `checkLiveProofTwinVerdict`, which FALSIFIES a green badge whose inputs diverge).
    */
   private buildLiveProofElement(traits: Record<string, any>, keyProp: string): string {
     const lp = traits.live_proof;
@@ -1843,8 +1909,13 @@ export default ${safeName}Component;${contractExport}
       lp.label != null ? this.assertSafeLiteral(String(lp.label), '@live_proof label') : 'Claim';
     const cond = `(${claim})`;
 
-    // No declared faults -> byte-identical to the pre-fault-injection emission.
     const faults = this.verifyLiveProofFaults(claim, lp.falsifiedBy, label);
+    const binding = this.bindLiveProofToTwin(claim, label, faults.length > 0);
+    this._liveProofBindings.push(binding);
+
+    // No declared faults -> byte-identical to the pre-fault-injection emission. A claim that never
+    // demonstrated teeth stays `self-referential` however well-anchored its inputs are, so there
+    // is nothing extra to advertise here (see gradeLiveProofIndependence).
     if (faults.length === 0) {
       return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="self-referential" data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
       {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
@@ -1878,11 +1949,27 @@ export default ${safeName}Component;${contractExport}
     const receipt = faults.map((f) => ({ overrides: f.overrides, because: f.because }));
     const caught = `Broken on purpose ${faults.length === 1 ? '1 way' : `${faults.length} ways`} when this was built — the check caught ${faults.length === 1 ? 'it' : 'all of them'}. Press one to watch it fail.`;
 
-    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="fault-tested" data-proof-faults={${JSON.stringify(JSON.stringify(receipt))}} className="flex flex-col gap-2">
+    // A `verified` claim carries the anchors a runtime checker needs to finish the job: which
+    // entity each input must be read from. Without them the label would be a compiler's assertion
+    // about itself — the exact circularity the rung is supposed to break.
+    const anchorAttr =
+      binding.independence === 'verified'
+        ? ` data-proof-anchors={${JSON.stringify(JSON.stringify(binding.anchors))}}`
+        : '';
+    const anchoredLine =
+      binding.independence === 'verified'
+        ? `\n      <span className="text-[10px] text-studio-muted">{${JSON.stringify(
+            `Every number behind this is also checked against the real thing (${binding.anchors
+              .map((a) => a.entity)
+              .join(', ')}), so this verdict is not just the screen agreeing with itself.`
+          )}}</span>`
+        : '';
+
+    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="${binding.independence}"${anchorAttr} data-proof-faults={${JSON.stringify(JSON.stringify(receipt))}} className="flex flex-col gap-2">
       <div data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
         {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
       </div>
-      <span className="text-[10px] text-studio-muted">{${JSON.stringify(caught)}}</span>
+      <span className="text-[10px] text-studio-muted">{${JSON.stringify(caught)}}</span>${anchoredLine}
       <div className="flex flex-wrap gap-1">
         ${faultButtons}
         <button type="button" onClick={() => { ${restoreCalls}; }} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent">
@@ -2005,6 +2092,41 @@ export default ${safeName}Component;${contractExport}
       }
       return { because: because.trim(), overrides };
     });
+  }
+
+  /**
+   * Grade a claim's independence against the twin oracle — the `verified` rung.
+   *
+   * Fault injection proves a claim RESPONDS to its inputs; it cannot say those inputs are real.
+   * A claim reading a number no one ever checks is a claim about the surface's own arithmetic,
+   * however energetically it goes red on demand. So: every state path the claim reads must also
+   * be DISPLAYED by an entity-bound projection the twin checker actually compares. Then a
+   * fabricated input has nowhere to hide — the same number is on screen being differenced against
+   * the authority — and the badge becomes a statement about the twin instead of about itself.
+   *
+   * The input universe is `_projectionRoots` (state keys PLUS @fetch / @computed / @each / @hook
+   * names), not state keys alone. Today that is belt-and-braces: reaching `verified` requires
+   * fault injection, and `evaluateLiveProofClaim` binds only state fields, so a claim naming a
+   * computed value is rejected outright before grading. But those names ARE in scope in the
+   * emitted JSX, so the day that evaluator widens, scoping this to state keys would silently start
+   * grading `temp < 100 && headroom > 0` on `temp` alone and calling it `verified` while
+   * `headroom` was anchored to nothing. Over-counting only ever costs a claim its top label;
+   * under-counting hands one out unearned, so the wider set is the one to be wrong with.
+   */
+  private bindLiveProofToTwin(claim: string, label: string, faultTested: boolean): LiveProofBinding {
+    const inputs = deriveLiveProofInputs(claim, this._projectionRoots);
+    const { anchors, unanchored } = anchorLiveProofClaim({
+      inputs,
+      projections: [...this._projectionsByNode.values()],
+    });
+    return {
+      claim,
+      label,
+      independence: gradeLiveProofIndependence({ faultTested, inputs, unanchored }),
+      inputs,
+      anchors,
+      unanchored,
+    };
   }
 
   private buildHTMLBindAttributes(traits: Record<string, any>, staticClassName: string): string {

@@ -8231,6 +8231,53 @@ export declare function verifySurfaceTwinLive(input: {
   fetchAuthoritativeState: AuthoritativeStateFetcher;
 }): Promise<SurfaceTwinReceipt>;
 export declare function extractDisplayedProjections(html: string): Record<string, string>;
+export declare function isTwinCheckable(projection: SurfaceTwinProjection): boolean;
+export declare const LIVE_PROOF_TWIN_VERSION: 'live-proof-twin-v1';
+export type LiveProofIndependence = 'self-referential' | 'fault-tested' | 'verified';
+export interface LiveProofAnchor {
+  input: string;
+  node: string;
+  entity: string;
+}
+export interface LiveProofBinding {
+  claim: string;
+  label: string;
+  independence: LiveProofIndependence;
+  inputs: string[];
+  anchors: LiveProofAnchor[];
+  unanchored: string[];
+}
+export type LiveProofTwinVerdict = 'VERIFIED' | 'FALSIFIED' | 'ABSTAIN';
+export type LiveProofAbstentionReason =
+  | 'independence-insufficient'
+  | 'authority-unreachable'
+  | 'receipt-mismatch';
+export interface LiveProofTwinReceipt {
+  version: typeof LIVE_PROOF_TWIN_VERSION;
+  verdict: LiveProofTwinVerdict;
+  claim: string;
+  displayedState: 'pass' | 'falsified';
+  confirmed: string[];
+  divergent: Array<{ input: string; entity: string; detail: string }>;
+  abstention?: { reason: LiveProofAbstentionReason; detail: string };
+  reason: string;
+  receiptHash: string;
+}
+export declare function deriveLiveProofInputs(claim: string, stateFields: Iterable<string>): string[];
+export declare function anchorLiveProofClaim(input: {
+  inputs: readonly string[];
+  projections: readonly SurfaceTwinProjection[];
+}): { anchors: LiveProofAnchor[]; unanchored: string[] };
+export declare function gradeLiveProofIndependence(input: {
+  faultTested: boolean;
+  inputs: readonly string[];
+  unanchored: readonly string[];
+}): LiveProofIndependence;
+export declare function checkLiveProofTwinVerdict(input: {
+  binding: LiveProofBinding;
+  displayedState: 'pass' | 'falsified';
+  twinReceipt: SurfaceTwinReceipt;
+}): LiveProofTwinReceipt;
 `;
 
 const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */
