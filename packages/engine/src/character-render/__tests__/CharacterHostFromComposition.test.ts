@@ -15,6 +15,7 @@ import {
   listSovereignMantleStyles,
 } from '../AgentAvatarMantleCatalog';
 import { BONE_ORDER } from '../AgentAvatarMesh';
+import { DEFAULT_HAIR_SOURCE_COLOR_WEIGHT } from '../CharacterHost';
 import { deriveCharacterMaterialPlateReceipt, packCharacterMaterial } from '../character-render';
 
 describe('buildCharacterHostFromComposition', () => {
@@ -2557,5 +2558,53 @@ describe('buildCharacterHostFromComposition', () => {
       trait: '@micro_motion',
       reason: "profile 'cinematic-ai-guess-v9' unsupported; no timing channels fabricated",
     });
+  });
+});
+
+describe('@hair(source_color_weight) — the authored chroma blend', () => {
+  // Before this trait existed, CharacterHost hardcoded `hairTone === undefined ? 0 : 0.55`:
+  // a composition chose the hair colour and the engine unilaterally chose how much of it
+  // survived the melanin response. The weight was expressible by the material type and NOT
+  // by the host options, so no author could reach it. These tests pin both halves of the
+  // fix: the new trait is honoured, and omitting it reproduces the historical blend exactly.
+  const build = (hair: Record<string, unknown>) =>
+    buildCharacterHostFromComposition({
+      objects: [{ name: 'A', traits: [{ name: 'body', config: {} }, { name: 'hair', config: hair }] }],
+    });
+
+  const hairMaterialOf = (r: ReturnType<typeof build>) => {
+    const g = r.host
+      ?.getDrawSpec()
+      .materialGroups?.find((x) => x.material.shadingModel === 'marschner-hair');
+    return g && g.material.shadingModel === 'marschner-hair' ? g.material : undefined;
+  };
+
+  it('omitting the weight reproduces the historical 0.55 blend', () => {
+    const m = hairMaterialOf(build({ style: 'short', color: '#563a30' }));
+    expect(m?.sourceColorWeight).toBe(DEFAULT_HAIR_SOURCE_COLOR_WEIGHT);
+    expect(DEFAULT_HAIR_SOURCE_COLOR_WEIGHT).toBe(0.55);
+  });
+
+  it('an authored weight is honoured end to end and reported as mapped', () => {
+    const r = build({ style: 'short', color: '#563a30', source_color_weight: 0.62 });
+    expect(hairMaterialOf(r)?.sourceColorWeight).toBe(0.62);
+    expect(r.report.mapped).toContain('@hair(source_color_weight=0.62)');
+  });
+
+  it('the weight is inert without an authored colour, and says so rather than pretending', () => {
+    // There is no source chroma to weight, so honouring it would be fabricating a blend.
+    const r = build({ style: 'short', source_color_weight: 0.62 });
+    expect(hairMaterialOf(r)?.sourceColorWeight ?? 0).toBe(0);
+    expect(r.report.mapped.some((e) => e.startsWith('@hair(source_color_weight'))).toBe(false);
+    expect(r.report.stubbed.some((s) => s.trait === '@hair(source_color_weight)')).toBe(true);
+  });
+
+  it('an out-of-range weight is clamped, never passed through', () => {
+    expect(hairMaterialOf(build({ style: 'short', color: '#563a30', source_color_weight: 4 }))?.sourceColorWeight).toBe(1);
+    expect(hairMaterialOf(build({ style: 'short', color: '#563a30', source_color_weight: -2 }))?.sourceColorWeight).toBe(0);
+  });
+
+  it('no authored colour at all still yields a zero blend, as it always did', () => {
+    expect(hairMaterialOf(build({ style: 'short' }))?.sourceColorWeight ?? 0).toBe(0);
   });
 });
