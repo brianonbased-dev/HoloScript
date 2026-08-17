@@ -93,3 +93,9 @@ export {
   DERIVED_TRAIT_SCHEMAS,
   DERIVED_TRAIT_CONFLICTS,
 } from './compiler/identity/derived-trait-schemas.generated';
+/**
+ * Per-trait authoring affordances (label / range / step / hidden) declared in `.holo`
+ * `ui:` blocks. Slim by design — editors import this rather than DERIVED_TRAIT_SCHEMAS,
+ * which is ~590 KB and would be dead weight in a client bundle.
+ */
+export { TRAIT_UI_AFFORDANCES } from './compiler/identity/derived-trait-ui.generated';

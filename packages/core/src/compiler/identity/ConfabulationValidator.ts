@@ -73,6 +73,19 @@ export interface TraitPropertySchema {
 
   /** Description for diagnostics */
   description?: string;
+
+  // ── Authoring affordances (derived from a trait's `ui:` block) ──────────────
+  // These carry no enforcement weight: they tell an editor how to PRESENT the
+  // property. A property that declares none of them still validates identically.
+
+  /** Human-readable field name for editors, e.g. "Walk Speed" for `walkSpd`. */
+  label?: string;
+
+  /** Increment an editor should step a numeric control by (slider/number input). */
+  step?: number;
+
+  /** True when a property is implementation detail and must not be offered for editing. */
+  hidden?: boolean;
 }
 
 /**

@@ -183,6 +183,35 @@ export function tokenizeHoloSource(source: string): HoloSourceToken[] {
 // PARSER
 // =============================================================================
 
+/**
+ * Non-enumerable key under which {@link HoloCompositionParser} stashes the `= default`
+ * values parsed from a type-spec object block (e.g. a `@trait` `props:` block).
+ *
+ * WHY NOT AN ORDINARY KEY: the object's own keys ARE the declared props, and consumers
+ * iterate them (`Object.entries(config.props)`). A visible key would read as a prop literally
+ * named `__holoPropDefaults`. Non-enumerable leaves `Object.entries`, `for…in`, spread and
+ * `JSON.stringify` seeing exactly what they saw before this existed — so capturing defaults
+ * cannot change the shape any existing consumer observes.
+ */
+const PROP_DEFAULTS_KEY = '__holoPropDefaults';
+
+/**
+ * Read the `= default` values captured alongside a parsed type-spec object block, or
+ * undefined when that block declared none.
+ *
+ * Defaults were previously parsed and discarded, so `width: number = 320` reached every
+ * consumer as a bare `"number"` and an editor had no initial value to offer.
+ *
+ * @see HoloCompositionParser.parseObjectValue
+ */
+export function getPropDefaults(parsedObject: unknown): Record<string, unknown> | undefined {
+  if (typeof parsedObject !== 'object' || parsedObject === null) return undefined;
+  const defaults = (parsedObject as Record<string, unknown>)[PROP_DEFAULTS_KEY];
+  return typeof defaults === 'object' && defaults !== null
+    ? (defaults as Record<string, unknown>)
+    : undefined;
+}
+
 export class HoloCompositionParser {
   private tokens: Token[] = [];
   private pos: number = 0;
@@ -3427,6 +3456,7 @@ export class HoloCompositionParser {
   private parseObjectValue(): Record<string, HoloValue> {
     this.skipNewlines();
     const obj: Record<string, HoloValue> = {};
+    let defaults: Record<string, HoloValue> | undefined;
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
@@ -3436,11 +3466,13 @@ export class HoloCompositionParser {
         const key = this.parsePropertyKey();
         this.expect('COLON');
         obj[key] = this.parseValue();
-        // Consume optional `= defaultValue` after type-spec annotations (e.g. in @trait props
+        // Capture the optional `= defaultValue` after type-spec annotations (e.g. in @trait props
         // blocks: `role: enum("a" | "b") = "a"` or `label: string = ""`). The EQUALS token
         // is not a block-member separator so it would confuse the loop if left unconsumed.
+        // Kept OFF the object's own keys (see PROP_DEFAULTS_KEY) so consumers that iterate
+        // props see precisely what they saw when this value was discarded instead.
         if (this.match('EQUALS')) {
-          this.parseValue(); // parse-and-discard the default value (not stored separately)
+          (defaults ??= {})[key] = this.parseValue();
         }
       } else if (this.check('RBRACE')) {
         break;
@@ -3461,6 +3493,14 @@ export class HoloCompositionParser {
     }
     this.skipNewlines();
     this.expect('RBRACE');
+    if (defaults) {
+      Object.defineProperty(obj, PROP_DEFAULTS_KEY, {
+        value: defaults,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      });
+    }
     return obj;
   }
 

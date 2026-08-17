@@ -7621,7 +7621,7 @@ const confabulationValidatorDTS = `
 // Confabulation risk layer — trait prop-schema validator (enum/type/range)
 // ============================================================================
 export type TraitPropertyType = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'color' | 'vector3' | 'enum' | 'any';
-export interface TraitPropertySchema { name: string; type: TraitPropertyType; required?: boolean; defaultValue?: unknown; min?: number; max?: number; enumValues?: string[]; description?: string; }
+export interface TraitPropertySchema { name: string; type: TraitPropertyType; required?: boolean; defaultValue?: unknown; min?: number; max?: number; enumValues?: string[]; description?: string; label?: string; step?: number; hidden?: boolean; }
 export interface TraitSchema { name: string; category: string; properties: TraitPropertySchema[]; conflictsWith?: string[]; requires?: string[]; }
 export interface ConfabulationValidatorConfig { riskThreshold?: number; unknownPropertySeverity?: 'error' | 'warning'; validatePrerequisites?: boolean; validateConflicts?: boolean; validateRanges?: boolean; customSchemas?: TraitSchema[]; strict?: boolean; includeDerivedSchemas?: boolean; }
 export interface ConfabulationError { code: string; message: string; traitName?: string; objectName?: string; suggestion?: string; [key: string]: any; }
@@ -7638,6 +7638,10 @@ export declare class ConfabulationValidator {
 export declare function getConfabulationValidator(config?: ConfabulationValidatorConfig): ConfabulationValidator;
 export declare const DERIVED_TRAIT_SCHEMAS: TraitSchema[];
 export declare const DERIVED_TRAIT_CONFLICTS: string[];
+/** Per-trait authoring affordances from \`.holo\` \`ui:\` blocks, keyed by trait name. Slim by
+ *  design: editors import this instead of DERIVED_TRAIT_SCHEMAS (~590 KB). A trait absent
+ *  here declares no affordances and the editor falls back to its own defaults. */
+export declare const TRAIT_UI_AFFORDANCES: Readonly<Record<string, readonly TraitPropertySchema[]>>;
 `;
 
 const finalMainDTS =
