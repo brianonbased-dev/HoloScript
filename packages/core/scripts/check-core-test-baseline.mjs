@@ -41,7 +41,7 @@
  * to have happened — this gate fails CLOSED rather than reporting a false green).
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -181,6 +181,39 @@ function coreTreeSha() {
 }
 const receiptPath = resolve(coreRoot, '.test-baseline-receipt.json');
 const dirty = startedDirty;
+
+/**
+ * True when this tree's dependencies are borrowed from a DIFFERENT checkout.
+ *
+ * A HoloRepo candidate worktree ships no `node_modules`, so the only way to run
+ * anything in one is to junction/symlink another checkout's. pnpm's workspace
+ * links inside those then resolve `@holoscript/core/*` back to the tree that
+ * OWNS them — so a test importing a module by package specifier and a test
+ * importing it by relative path get two different files, and any identity
+ * assertion between them fails on structurally identical objects.
+ *
+ * Measured 2026-08-16 (task_1786942099138_9ad3):
+ * `src/traits/__tests__/SharedTraitBarrelPopulation.test.ts` fails in a
+ * candidate worktree and passes in the owning checkout, with all 79 package
+ * `node_modules` junctioned — so it is not a coverage gap that more links fix.
+ * A run under those conditions did not test THIS tree, exactly as a dirty run
+ * did not test HEAD, so the receipt records it and the gate refuses it.
+ */
+function nodeModulesBorrowedFrom() {
+  try {
+    const link = resolve(coreRoot, 'node_modules');
+    const real = realpathSync.native(link);
+    const owner = realpathSync.native(coreRoot);
+    // Same tree: the realpath of core/node_modules sits under core itself.
+    if (real === resolve(owner, 'node_modules')) return null;
+    return real;
+  } catch {
+    // No node_modules at all, or an unreadable link. Either way we cannot show
+    // it was borrowed, and the suite could not have run without deps anyway.
+    return null;
+  }
+}
+const borrowedFrom = nodeModulesBorrowedFrom();
 try {
   writeFileSync(
     receiptPath,
@@ -193,6 +226,10 @@ try {
         // A run against a dirty tree did not test what HEAD contains, so the
         // receipt records that and the gate refuses to honour it.
         capturedFromDirtyWorkingTree: dirty,
+        // Null when this tree owns its dependencies. A path here names the
+        // checkout they were borrowed from, which means module identity in this
+        // run belonged to that checkout, not this one.
+        nodeModulesBorrowedFrom: borrowedFrom,
         totals: {
           failures: failures.size,
           knownStable: knownStable.length,
