@@ -9,7 +9,7 @@ export function LiveProofComponent() {
   return (
     <div
       className="holoscript-2d-root w-full h-full"
-      data-holo-view-contract="f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588"
+      data-holo-view-contract="ddb3dba65055193c077c0a92cf00603a9e8d0c1ee262e98d25619344502df18c"
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
@@ -42,6 +42,7 @@ export function LiveProofComponent() {
         </div>
         <div
           data-proof-claim={'capacity >= load * factor'}
+          data-proof-label="Structural margin"
           data-proof-independence="fault-tested"
           data-proof-faults={
             '[{"overrides":{"load":200},"because":"a beam loaded past what it can hold must never read as safe"},{"overrides":{"capacity":40},"because":"a beam far weaker than its load must never read as safe"},{"overrides":{"factor":4},"because":"demanding a bigger safety margin must be able to fail this beam"}]'
@@ -116,5 +117,15 @@ export const holoViewContract = {
     { element: 'LoadValue', node: 'load', identity: true },
   ],
   stateRoots: ['capacity', 'factor', 'load'],
-  contractHash: 'f47d23b757a1299199d4e36bd431a5f12913355d5a82f29f8fe750a897972588',
+  liveProofs: [
+    {
+      claim: 'capacity >= load * factor',
+      label: 'Structural margin',
+      independence: 'fault-tested',
+      inputs: ['capacity', 'factor', 'load'],
+      anchors: [],
+      unanchored: ['capacity', 'factor', 'load'],
+    },
+  ],
+  contractHash: 'ddb3dba65055193c077c0a92cf00603a9e8d0c1ee262e98d25619344502df18c',
 } as const;
