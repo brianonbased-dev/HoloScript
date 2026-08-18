@@ -68,6 +68,8 @@ export {
   anchorLiveProofClaim,
   gradeLiveProofIndependence,
   checkLiveProofTwinVerdict,
+  extractLiveProofBadges,
+  verifyLiveProofsLive,
   LIVE_PROOF_TWIN_VERSION,
 } from './LiveProofTwinCheck';
 export type {
@@ -77,6 +79,8 @@ export type {
   LiveProofTwinVerdict,
   LiveProofAbstentionReason,
   LiveProofTwinReceipt,
+  RenderedLiveProofBadge,
+  LiveProofLiveResult,
 } from './LiveProofTwinCheck';
 export type { AuthoritativeStateFetcher } from './SurfaceTwinReceipt';
 export { extractDisplayedProjections } from './extractDisplayedProjections';

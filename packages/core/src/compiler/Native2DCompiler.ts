@@ -1913,11 +1913,18 @@ export default ${safeName}Component;${contractExport}
     const binding = this.bindLiveProofToTwin(claim, label, faults.length > 0);
     this._liveProofBindings.push(binding);
 
-    // No declared faults -> byte-identical to the pre-fault-injection emission. A claim that never
-    // demonstrated teeth stays `self-referential` however well-anchored its inputs are, so there
-    // is nothing extra to advertise here (see gradeLiveProofIndependence).
+    // `data-proof-label` carries the human name of the claim. Without it the only copy of that
+    // name in the artifact is inside the badge's own prose ("✓ Within limits holds"), and a
+    // runtime verdict addressed to a non-developer would have to either scrape that sentence or
+    // fall back to naming the raw expression at them. Emitted on every rung so a reader of the
+    // DOM never has to ask which shape it is looking at.
+    const labelAttr = ` data-proof-label=${JSON.stringify(label)}`;
+
+    // No declared faults -> the pre-fault-injection emission (plus the label above). A claim that
+    // never demonstrated teeth stays `self-referential` however well-anchored its inputs are, so
+    // there is nothing further to advertise here (see gradeLiveProofIndependence).
     if (faults.length === 0) {
-      return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="self-referential" data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
+      return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}}${labelAttr} data-proof-independence="self-referential" data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
       {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
     </div>`;
     }
@@ -1965,7 +1972,7 @@ export default ${safeName}Component;${contractExport}
           )}}</span>`
         : '';
 
-    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}} data-proof-independence="${binding.independence}"${anchorAttr} data-proof-faults={${JSON.stringify(JSON.stringify(receipt))}} className="flex flex-col gap-2">
+    return `<div${keyProp} data-proof-claim={${JSON.stringify(claim)}}${labelAttr} data-proof-independence="${binding.independence}"${anchorAttr} data-proof-faults={${JSON.stringify(JSON.stringify(receipt))}} className="flex flex-col gap-2">
       <div data-proof-state={${cond} ? "pass" : "falsified"} className={\`rounded-md p-2 text-xs font-semibold \${${cond} ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}\`}>
         {${cond} ? "✓ ${label} holds" : "✗ ${label} FALSIFIED"}
       </div>

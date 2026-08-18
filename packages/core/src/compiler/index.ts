@@ -528,7 +528,15 @@ export type { QASMOutput, QuantumAtom } from './QuantumCircuitCompiler';
 
 // Compiler bridge
 export { CompilerBridge } from './CompilerBridge';
-// Native2DCompiler — retired (apex-poison, 2026-06-17)
+// Native2D — the sovereign HoloScript-native 2D/UI compiler. NOT apex-poison: what was retired on
+// 2026-06-17 was its dedicated public SUBPATH (`@holoscript/core/compiler/native-2d`) and tsup
+// bundle entry, not the compiler, which is the native path the third-party bridges were retired IN
+// FAVOUR OF — check-apex-poison-retired.mjs names it as the sanctioned replacement in its own
+// header, and still bans the subpath. It was left unexported and labelled "retired (apex-poison)"
+// by the sweep that removed the real bridges, which reads as "this compiler is dead" and is why
+// consumers went and re-derived its contract by hand instead of calling it.
+export { Native2DCompiler } from './Native2DCompiler';
+export type { Native2DCompilerOptions } from './Native2DCompiler';
 export { Vector2DCompiler } from './Vector2DCompiler';
 export type { Vector2DCompileOptions, Vector2DCompileResult } from './Vector2DCompiler';
 export { SCMCompiler } from './SCMCompiler';

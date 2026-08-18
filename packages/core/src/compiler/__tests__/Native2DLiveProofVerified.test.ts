@@ -96,6 +96,29 @@ describe('@live_proof verified — the claim is anchored to a twin', () => {
     expect(after).toContain('data-proof-independence="verified"');
   });
 
+  it('emits the exact attribute set the runtime verifier reads', () => {
+    // @holoscript/mcp-server's liveProofLiveAuthority.test.ts drives the live-authority check from
+    // a CAPTURED render of this emission, because mcp-server has no react-dom to render one itself.
+    // This is the other half of that arrangement: if the compiler renames or drops any of these,
+    // that fixture would quietly describe a surface the compiler no longer produces, and the live
+    // check would keep passing against a shape nothing emits. Change these and update that file.
+    const code = compile([readout(), verdict(proven)]);
+    for (const attr of [
+      'data-proof-claim=',
+      'data-proof-label=',
+      'data-proof-independence=',
+      'data-proof-anchors=',
+      'data-proof-state=',
+      'data-holo-projects=',
+    ]) {
+      expect(code, `${attr} is read by the runtime verifier`).toContain(attr);
+    }
+    // The anchor payload's field names are the verifier's contract, not an internal detail.
+    expect(code).toContain('\\"input\\":\\"temp\\"');
+    expect(code).toContain('\\"node\\":\\"temp\\"');
+    expect(code).toContain('\\"entity\\":\\"reactor-1\\"');
+  });
+
   it('publishes the binding in the view contract so a consumer re-derives it from the artifact', () => {
     const code = compile(
       [readout(), verdict(proven)],

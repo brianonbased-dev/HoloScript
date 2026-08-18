@@ -36,9 +36,12 @@
 import { createHash } from 'node:crypto';
 import {
   isTwinCheckable,
+  verifySurfaceTwinLive,
+  type AuthoritativeStateFetcher,
   type SurfaceTwinProjection,
   type SurfaceTwinReceipt,
 } from './SurfaceTwinReceipt';
+import { extractDisplayedProjections } from './extractDisplayedProjections';
 
 export const LIVE_PROOF_TWIN_VERSION = 'live-proof-twin-v1';
 
@@ -318,4 +321,138 @@ export function checkLiveProofTwinVerdict(input: {
     `"${binding.label}" ${verdictWord}, and every number behind it was checked against the real thing and matched (${confirmed.join(', ')}). This verdict does not depend on the surface's own arithmetic.`,
     { confirmed }
   );
+}
+
+// ─── Runtime: reading a rendered surface ──────────────────────────────────────
+
+const HTML_ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&#x27;': "'",
+};
+
+/** Decode the entities renderToStaticMarkup emits inside attribute values. */
+function decodeAttr(value: string): string {
+  return value.replace(/&(?:amp|lt|gt|quot|#39|#x27);/g, (m) => HTML_ENTITIES[m] ?? m);
+}
+
+/** A @live_proof badge as it actually RENDERED, read back from the surface's own markup. */
+export interface RenderedLiveProofBadge {
+  claim: string;
+  label: string;
+  independence: LiveProofIndependence;
+  /** The verdict the viewer saw. Runtime-evaluated, so it exists only after a render. */
+  displayedState: 'pass' | 'falsified';
+  /** Present when the badge rendered as `verified`; the entity map for the twin check. */
+  anchors: LiveProofAnchor[];
+}
+
+const CLAIM_ATTR_RE = /data-proof-claim="([^"]*)"/g;
+const attrIn = (chunk: string, name: string): string | undefined =>
+  new RegExp(`${name}="([^"]*)"`).exec(chunk)?.[1];
+
+/**
+ * Read every @live_proof badge back out of a RENDERED surface.
+ *
+ * The independence label, the claim and the anchors are compiler-emitted literals, but
+ * `data-proof-state` is a JSX expression — which of pass/falsified a viewer saw exists only after
+ * a render, and is precisely the fact a static reading of the artifact cannot supply. Hence
+ * parsing markup rather than the contract.
+ *
+ * `data-proof-state` sits on the badge's own element for a `self-referential` badge and on a CHILD
+ * element for the richer rungs, so each badge is scanned from its claim attribute up to the NEXT
+ * claim attribute. That window covers both shapes and cannot borrow a neighbouring badge's verdict.
+ */
+export function extractLiveProofBadges(html: string): RenderedLiveProofBadge[] {
+  const starts = [...html.matchAll(CLAIM_ATTR_RE)];
+  const out: RenderedLiveProofBadge[] = [];
+  for (let i = 0; i < starts.length; i++) {
+    const at = starts[i].index ?? 0;
+    const chunk = html.slice(at, starts[i + 1]?.index ?? html.length);
+    const state = attrIn(chunk, 'data-proof-state');
+    if (state !== 'pass' && state !== 'falsified') continue; // no rendered verdict — not a badge
+    const independence = attrIn(chunk, 'data-proof-independence');
+    if (
+      independence !== 'self-referential' &&
+      independence !== 'fault-tested' &&
+      independence !== 'verified'
+    ) {
+      continue;
+    }
+    const claim = decodeAttr(starts[i][1]);
+    let anchors: LiveProofAnchor[] = [];
+    const rawAnchors = attrIn(chunk, 'data-proof-anchors');
+    if (rawAnchors) {
+      try {
+        const parsed: unknown = JSON.parse(decodeAttr(rawAnchors));
+        if (Array.isArray(parsed)) anchors = parsed as LiveProofAnchor[];
+      } catch {
+        anchors = []; // unreadable anchors → treated as absent, so the claim cannot reach VERIFIED
+      }
+    }
+    out.push({
+      claim,
+      label: decodeAttr(attrIn(chunk, 'data-proof-label') ?? '') || claim,
+      independence,
+      displayedState: state,
+      anchors,
+    });
+  }
+  return out;
+}
+
+/** One rendered badge and the verdict the live authority returned for it. */
+export interface LiveProofLiveResult {
+  badge: RenderedLiveProofBadge;
+  receipt: LiveProofTwinReceipt;
+}
+
+/**
+ * The whole wire, end to end: a RENDERED surface plus a live authority, in and verdicts out.
+ *
+ * Three sources, deliberately independent of one another:
+ *   - what the viewer SAW — parsed from the rendered markup the surface authored;
+ *   - what the surface CLAIMS to project — the co-emitted `holoViewContract`;
+ *   - what is actually TRUE — the injected authority fetcher.
+ * Nothing here re-runs the claim. The badge already computed its own answer; this asks a
+ * different question, which is whether the numbers it used are the twin's.
+ *
+ * The fetcher is injected for the same reason `verifySurfaceTwinLive` injects one: the identical
+ * function runs in CI against a mock and in production against the real StateAuthority, so the
+ * thing that ships is the thing that was tested. A badge that never reached compile-time
+ * `verified` still gets a receipt — an ABSTAIN naming what was never anchored — because silence
+ * about a weak claim reads like approval.
+ */
+export async function verifyLiveProofsLive(input: {
+  html: string;
+  contract: { projections: SurfaceTwinProjection[] };
+  fetchAuthoritativeState: AuthoritativeStateFetcher;
+}): Promise<LiveProofLiveResult[]> {
+  const badges = extractLiveProofBadges(input.html);
+  if (badges.length === 0) return [];
+
+  const twinReceipt = await verifySurfaceTwinLive({
+    contract: input.contract,
+    displayedValues: extractDisplayedProjections(input.html),
+    fetchAuthoritativeState: input.fetchAuthoritativeState,
+  });
+
+  return badges.map((badge) => ({
+    badge,
+    receipt: checkLiveProofTwinVerdict({
+      binding: {
+        claim: badge.claim,
+        label: badge.label,
+        independence: badge.independence,
+        inputs: badge.anchors.map((a) => a.input),
+        anchors: badge.anchors,
+        unanchored: [],
+      },
+      displayedState: badge.displayedState,
+      twinReceipt,
+    }),
+  }));
 }

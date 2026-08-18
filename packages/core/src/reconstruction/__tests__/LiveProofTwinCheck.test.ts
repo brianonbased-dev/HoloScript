@@ -3,7 +3,9 @@ import {
   anchorLiveProofClaim,
   checkLiveProofTwinVerdict,
   deriveLiveProofInputs,
+  extractLiveProofBadges,
   gradeLiveProofIndependence,
+  verifyLiveProofsLive,
   LIVE_PROOF_TWIN_VERSION,
   type LiveProofBinding,
 } from '../LiveProofTwinCheck';
@@ -343,5 +345,142 @@ describe('checkLiveProofTwinVerdict — closing the claim against a live twin', 
     expect(agree.version).toBe(LIVE_PROOF_TWIN_VERSION);
     expect(agree.receiptHash).not.toBe(diverge.receiptHash);
     expect(agree.receiptHash).toHaveLength(64);
+  });
+});
+
+/**
+ * Markup below is the REAL shape renderToStaticMarkup produces for a compiled badge — attribute
+ * values HTML-escaped, `data-proof-state` on a CHILD element for the richer rungs and on the badge
+ * itself for `self-referential`. The end-to-end version (real compiler, real render, real
+ * StateAuthority) lives in @holoscript/mcp-server's liveProofLiveAuthority.test.ts; these pin the
+ * parsing edges that one surface cannot exercise.
+ */
+const VERIFIED_BADGE_HTML =
+  '<div data-proof-claim="temp &lt; 100" data-proof-label="Reactor within limits" ' +
+  'data-proof-independence="verified" ' +
+  'data-proof-anchors="[{&quot;input&quot;:&quot;temp&quot;,&quot;node&quot;:&quot;temp&quot;,&quot;entity&quot;:&quot;reactor-1&quot;}]" ' +
+  'class="flex flex-col gap-2">' +
+  '<div data-proof-state="pass" class="rounded-md">✓ Reactor within limits holds</div>' +
+  '</div>';
+
+describe('extractLiveProofBadges — reading a badge back out of what rendered', () => {
+  it('recovers claim, label, rung, rendered verdict and anchors', () => {
+    const [badge] = extractLiveProofBadges(VERIFIED_BADGE_HTML);
+    expect(badge.claim).toBe('temp < 100'); // entity-decoded
+    expect(badge.label).toBe('Reactor within limits');
+    expect(badge.independence).toBe('verified');
+    expect(badge.displayedState).toBe('pass');
+    expect(badge.anchors).toEqual([{ input: 'temp', node: 'temp', entity: 'reactor-1' }]);
+  });
+
+  it('reads the state off the badge itself when the rung puts it there', () => {
+    const selfRef =
+      '<div data-proof-claim="a &gt; 1" data-proof-label="Alpha" ' +
+      'data-proof-independence="self-referential" data-proof-state="falsified">✗ Alpha FALSIFIED</div>';
+    const [badge] = extractLiveProofBadges(selfRef);
+    expect(badge.independence).toBe('self-referential');
+    expect(badge.displayedState).toBe('falsified');
+    expect(badge.anchors).toEqual([]);
+  });
+
+  it('never lets one badge borrow the next badge’s verdict', () => {
+    // Two badges in sequence: the first is red, the second green. Scanning past the first badge's
+    // boundary would report the wrong verdict for it — and a wrong verdict that LOOKS like a real
+    // reading is worse than no reading, because nothing downstream can tell.
+    const first =
+      '<div data-proof-claim="a" data-proof-label="A" data-proof-independence="fault-tested">' +
+      '<div data-proof-state="falsified">x</div></div>';
+    const second =
+      '<div data-proof-claim="b" data-proof-label="B" data-proof-independence="fault-tested">' +
+      '<div data-proof-state="pass">y</div></div>';
+    const badges = extractLiveProofBadges(first + second);
+    expect(badges.map((b) => [b.claim, b.displayedState])).toEqual([
+      ['a', 'falsified'],
+      ['b', 'pass'],
+    ]);
+  });
+
+  it('skips a claim that never rendered a verdict', () => {
+    expect(
+      extractLiveProofBadges('<div data-proof-claim="a" data-proof-independence="verified"></div>')
+    ).toEqual([]);
+  });
+
+  it('does not hand a stateless badge the NEXT badge’s verdict', () => {
+    // The sharp edge of the window. A badge that rendered no verdict of its own sits immediately
+    // before one that did; an unbounded forward scan finds the neighbour's `pass` and reports the
+    // stateless claim as HOLDING. That invents a verdict for a claim nobody evaluated — the single
+    // worst thing this parser could do, since everything downstream treats it as a real reading.
+    const stateless = '<div data-proof-claim="a" data-proof-independence="verified"></div>';
+    const rendered =
+      '<div data-proof-claim="b" data-proof-label="B" data-proof-independence="fault-tested">' +
+      '<div data-proof-state="pass">y</div></div>';
+    const badges = extractLiveProofBadges(stateless + rendered);
+    expect(badges.map((b) => b.claim)).toEqual(['b']);
+  });
+
+  it('treats unreadable anchors as absent rather than guessing at them', () => {
+    const broken = VERIFIED_BADGE_HTML.replace(/data-proof-anchors="[^"]*"/, 'data-proof-anchors="{{"');
+    expect(extractLiveProofBadges(broken)[0].anchors).toEqual([]);
+  });
+});
+
+describe('verifyLiveProofsLive — rendered surface + live authority, end to end', () => {
+  const html =
+    '<div data-holo-projects="temp">20</div>' + VERIFIED_BADGE_HTML;
+  const contract = { projections: [IDENTITY_TEMP] };
+
+  it('VERIFIED when the authority holds what the surface displays', async () => {
+    const [r] = await verifyLiveProofsLive({
+      html,
+      contract,
+      fetchAuthoritativeState: async (e) => (e === 'reactor-1' ? { temp: 20 } : null),
+    });
+    expect(r.receipt.verdict).toBe('VERIFIED');
+  });
+
+  it('FALSIFIED for a green badge the authority contradicts', async () => {
+    const [r] = await verifyLiveProofsLive({
+      html,
+      contract,
+      fetchAuthoritativeState: async () => ({ temp: 900 }),
+    });
+    expect(r.badge.displayedState).toBe('pass');
+    expect(r.receipt.verdict).toBe('FALSIFIED');
+  });
+
+  it('ABSTAINS when the authority throws, never false-FALSIFIES', async () => {
+    const [r] = await verifyLiveProofsLive({
+      html,
+      contract,
+      fetchAuthoritativeState: async () => {
+        throw new Error('StateAuthority down');
+      },
+    });
+    expect(r.receipt.verdict).toBe('ABSTAIN');
+    expect(r.receipt.abstention?.reason).toBe('authority-unreachable');
+  });
+
+  it('still issues a receipt for a weak badge — silence would read as approval', async () => {
+    const weak =
+      '<div data-proof-claim="temp &lt; 100" data-proof-label="Reactor within limits" ' +
+      'data-proof-independence="fault-tested"><div data-proof-state="pass">ok</div></div>';
+    const [r] = await verifyLiveProofsLive({
+      html: weak,
+      contract,
+      fetchAuthoritativeState: async () => ({ temp: 20 }),
+    });
+    expect(r.receipt.verdict).toBe('ABSTAIN');
+    expect(r.receipt.abstention?.reason).toBe('independence-insufficient');
+  });
+
+  it('returns nothing for a surface that declares no claims', async () => {
+    expect(
+      await verifyLiveProofsLive({
+        html: '<div>no proofs here</div>',
+        contract,
+        fetchAuthoritativeState: async () => ({ temp: 20 }),
+      })
+    ).toEqual([]);
   });
 });

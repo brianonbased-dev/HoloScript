@@ -15,7 +15,9 @@
  */
 import {
   verifySurfaceTwinLive,
+  verifyLiveProofsLive,
   type AuthoritativeStateFetcher,
+  type LiveProofLiveResult,
   type SurfaceTwinProjection,
   type SurfaceTwinReceipt,
   type SurfaceTwinScalar,
@@ -55,6 +57,29 @@ export async function verifySurfaceAgainstLiveAuthority(input: {
   return verifySurfaceTwinLive({
     contract: input.contract,
     displayedValues: input.displayedValues,
+    fetchAuthoritativeState: createAuthoritativeStateFetcher(),
+  });
+}
+
+/**
+ * Check every `@live_proof` badge on a RENDERED surface against the LIVE StateAuthority.
+ *
+ * The compile-time rung can only establish that a claim's inputs are twin-CHECKABLE; whether the
+ * twin AGREES is a question only a running authority can answer, and this is where it gets asked.
+ * Same injected-fetcher seam as its sibling above, so the verifier that ships is the verifier CI
+ * exercised — the real adapter is the only difference.
+ *
+ * The verdict that matters is the uncomfortable one: a badge rendering GREEN whose inputs diverge
+ * from what a producer actually wrote comes back FALSIFIED. An authority that cannot be reached
+ * ABSTAINS instead — never reaching the twin is not the same as the surface lying about it.
+ */
+export async function verifyLiveProofsAgainstLiveAuthority(input: {
+  html: string;
+  contract: { projections: SurfaceTwinProjection[] };
+}): Promise<LiveProofLiveResult[]> {
+  return verifyLiveProofsLive({
+    html: input.html,
+    contract: input.contract,
     fetchAuthoritativeState: createAuthoritativeStateFetcher(),
   });
 }
