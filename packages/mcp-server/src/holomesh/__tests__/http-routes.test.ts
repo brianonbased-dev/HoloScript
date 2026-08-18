@@ -2078,6 +2078,162 @@ describe('HoloMesh HTTP Routes', () => {
       expect(memberRejoinRes._body.error).toBe('Already a member of this team');
     });
 
+    // ── Join Status (pre-membership eligibility check, no mutation) ──
+    // GET /team/:id 403s a non-member before it can say anything useful, so a
+    // blocked seat had no self-service way to learn whether the blocker was
+    // capacity, signer attestation, or nothing at all. These pin the gate
+    // order (attestation before capacity, matching /join) and the three
+    // reason codes a caller can actually see.
+
+    it('GET /api/holomesh/team/:id/join-status 404s for an unknown team', async () => {
+      const req = mockReq('GET', '/api/holomesh/team/team_does_not_exist/join-status', undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/team/team_does_not_exist/join-status');
+      expect(res._status).toBe(404);
+    });
+
+    it('GET /api/holomesh/team/:id/join-status requires auth', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `join-status-noauth-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/join-status`);
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/join-status`);
+      expect(res._status).toBe(401);
+    });
+
+    it('GET /api/holomesh/team/:id/join-status reports already-member for the owner', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `join-status-member-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/join-status`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/join-status`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.caller.isMember).toBe(true);
+      expect(res._body.eligibility).toMatchObject({ wouldSucceed: true, reason: 'already-member' });
+    });
+
+    it('GET /api/holomesh/team/:id/join-status reports signer-not-attested for an unattested non-member', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `join-status-unattested-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/join-status`, undefined, {
+        authorization: `Bearer ${memberApiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/join-status`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.caller.isMember).toBe(false);
+      expect(res._body.caller.attested).toBe(false);
+      expect(res._body.eligibility).toMatchObject({
+        wouldSucceed: false,
+        reason: 'signer-not-attested',
+      });
+    });
+
+    it('GET /api/holomesh/team/:id/join-status reports team-full via founder bypass, and attestation ahead of team-full for a non-member', async () => {
+      // Creation floors max_slots at 2 (below-2 values fall back to the
+      // default of 20 — see team-routes.ts ~line 829), so cap at the true
+      // minimum and fill the second slot with a real join, matching the
+      // established "at cap" pattern above.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `join-status-full-${Date.now()}`, max_slots: 2 },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      const memberJoinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const memberJoinRes = mockRes();
+      await handleHoloMeshRoute(memberJoinReq, memberJoinRes, `/api/holomesh/team/${tid}/join`);
+      expect(memberJoinRes._status).toBe(200);
+
+      // Founder bypasses the attestation gate (see /join) — isolates the
+      // capacity check on its own.
+      const founderReq = mockReq('GET', `/api/holomesh/team/${tid}/join-status`, undefined, {
+        authorization: 'Bearer test-api-key',
+      });
+      const founderRes = mockRes();
+      await handleHoloMeshRoute(founderReq, founderRes, `/api/holomesh/team/${tid}/join-status`);
+      expect(founderRes._status).toBe(200);
+      expect(founderRes._body.eligibility).toMatchObject({ wouldSucceed: false, reason: 'team-full' });
+      expect(founderRes._body.team).toMatchObject({ memberCount: 2, maxSlots: 2, openSlots: 0 });
+
+      // A fresh, unattested THIRD agent (owner and member are both real
+      // members now) against the SAME full team must still report the
+      // attestation reason, not team-full — attestation gates first,
+      // matching /join's own gate order (signing before capacity).
+      const outsider = await registerAgent('join-status-outsider');
+      const unattestedReq = mockReq('GET', `/api/holomesh/team/${tid}/join-status`, undefined, {
+        authorization: `Bearer ${outsider.apiKey}`,
+      });
+      const unattestedRes = mockRes();
+      await handleHoloMeshRoute(unattestedReq, unattestedRes, `/api/holomesh/team/${tid}/join-status`);
+      expect(unattestedRes._body.eligibility).toMatchObject({
+        wouldSucceed: false,
+        reason: 'signer-not-attested',
+      });
+    });
+
+    it('GET /api/holomesh/team/:id/join-status reports wouldSucceed for an open team via founder bypass', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `join-status-open-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/join-status`, undefined, {
+        authorization: 'Bearer test-api-key',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/join-status`);
+
+      expect(res._status).toBe(200);
+      expect(res._body.eligibility).toMatchObject({ wouldSucceed: true, reason: null });
+      expect(res._body.team.openSlots).toBeGreaterThan(0);
+    });
+
     // ── Team Dashboard ──
 
     it('GET /api/holomesh/team/:id returns team dashboard', async () => {
