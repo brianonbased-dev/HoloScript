@@ -32,7 +32,7 @@ import {
   resolveRequestingAgent,
 } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
-import { extractAndVerifySigning } from '../identity/signing-middleware';
+import { extractAndVerifySigning, getAttestationRegistry } from '../identity/signing-middleware';
 import {
   advanceNegotiation,
   createNegotiation,
@@ -916,6 +916,84 @@ export async function handleTeamRoutes(
         knowledge: `POST /api/holomesh/team/${teamId}/knowledge`,
         suggestions: `GET/POST /api/holomesh/team/${teamId}/suggestions`,
         suggest_vote: `POST /api/holomesh/team/${teamId}/suggestions/{id}/vote`,
+      },
+    });
+    return true;
+  }
+
+  // GET /api/holomesh/team/:id/join-status — can THIS caller join, and why/why
+  // not, without requiring membership. /team/:id 403s a non-member before it
+  // can say anything useful, so a blocked seat had no self-service way to
+  // learn whether the blocker was capacity, signer attestation, or nothing at
+  // all — only a founder-key roster read could tell. Mirrors /join's actual
+  // gate order (signing/attestation, then capacity) read-only: attestation is
+  // checked directly against the same registry /join's signing verification
+  // ultimately consults for x402 callers, so the two cannot drift apart.
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/join-status$/) && method === 'GET') {
+    const caller = requireAuth(req, res);
+    if (!caller) return true;
+
+    const teamId = extractParam(url, '/api/holomesh/team/').replace('/join-status', '');
+    const team = teamStore.get(teamId);
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+
+    const membership = getTeamMember(team, caller.id);
+    const memberCount = team.members.length;
+    const openSlots = Math.max(0, team.maxSlots - memberCount);
+
+    let wouldSucceed: boolean;
+    let reason: string | null;
+    let attested = true;
+    let retired = false;
+
+    if (membership) {
+      wouldSucceed = true;
+      reason = 'already-member';
+    } else if (caller.isFounder) {
+      // Founder bypasses signing (see /join) — only capacity can block.
+      wouldSucceed = memberCount < team.maxSlots;
+      reason = wouldSucceed ? null : 'team-full';
+    } else {
+      const check = caller.walletAddress
+        ? await getAttestationRegistry().toRegistryCheck()(caller.walletAddress)
+        : { attested: false, retired: false, reason: 'signer-not-attested' as const };
+      attested = check.attested;
+      retired = check.retired;
+      if (!check.attested) {
+        wouldSucceed = false;
+        reason = check.reason ?? 'signer-not-attested';
+      } else if (memberCount >= team.maxSlots) {
+        wouldSucceed = false;
+        reason = 'team-full';
+      } else {
+        wouldSucceed = true;
+        reason = null;
+      }
+    }
+
+    json(res, 200, {
+      success: true,
+      team: {
+        id: team.id,
+        name: team.name,
+        visibility: team.visibility,
+        memberCount,
+        maxSlots: team.maxSlots,
+        openSlots,
+      },
+      caller: {
+        agentId: caller.id,
+        isMember: Boolean(membership),
+        role: membership?.role ?? null,
+        attested,
+        retired,
+      },
+      eligibility: {
+        wouldSucceed,
+        reason,
       },
     });
     return true;
