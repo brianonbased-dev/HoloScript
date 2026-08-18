@@ -102,3 +102,29 @@ export function readEntity(entityId: string): Record<string, unknown> {
   }
   return Object.keys(fields).length > 0 ? fields : { _null: true };
 }
+
+/**
+ * Set arbitrary top-level twin fields on an entity (merging with what is already there).
+ *
+ * `applyMove` writes only `transform.position`, which is all the avatar loop needed. A twin a
+ * surface can be CHECKED against holds whatever the surface claims to mirror — an altitude, a
+ * temperature, a balance — so the authority has to be able to record those too. Same merge,
+ * commit and persist path as applyMove; only the shape is general.
+ *
+ * Values are stored JSON-encoded exactly as applyMove stores its transform, so `readEntity`
+ * decodes them without a special case.
+ */
+export function applyFields(entityId: string, fields: Record<string, unknown>): void {
+  const em = getEntitiesMap();
+  let entityMap = em.get(entityId) as LoroMap | undefined;
+  if (!entityMap) {
+    entityMap = em.setContainer(entityId, new LoroMap());
+  }
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === '_null') continue; // reserved: readEntity's "never written" sentinel
+    entityMap.set(key, JSON.stringify(value));
+  }
+  entityMap.set('updatedAt', JSON.stringify(Date.now()));
+  getDoc().commit();
+  persistToDisk();
+}

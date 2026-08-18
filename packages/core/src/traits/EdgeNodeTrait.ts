@@ -17,7 +17,11 @@ export interface EdgeNodeConfig {
   domain?: string;
   /** Capability tags for board task matching */
   capabilityTags?: string[];
-  /** HoloMesh board URL (defaults to prod orchestrator) */
+  /**
+   * HoloMesh board URL. Empty by default: the endpoint is resolved through the canonical
+   * orchestrator client (ResilientOrchestratorFetch / `@holoscript/config` ENDPOINTS) rather
+   * than baked in here, so a deployment change does not require editing a trait default.
+   */
   boardUrl?: string;
   /** Interval between board poll ticks in seconds (default: 10) */
   tickIntervalS?: number;
@@ -45,7 +49,7 @@ export const EDGE_NODE_DEFAULTS: Required<EdgeNodeConfig> = {
   handle: 'holoscript-edge-node',
   domain: 'edge',
   capabilityTags: ['edge-node', 'local-inference'],
-  boardUrl: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+  boardUrl: '',
   tickIntervalS: 10,
   maxConsecutiveFailures: 5,
   escalateOnFailure: true,

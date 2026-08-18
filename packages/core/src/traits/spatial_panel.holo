@@ -13,6 +13,17 @@
     follow_distance: number = 1.2,
     ambient: boolean = true
   },
+  ui: {
+    place_x: { label: "Position X (m)", range: [-10, 10], step: 0.01 },
+    place_y: { label: "Position Y (m)", range: [0, 3], step: 0.01 },
+    place_z: { label: "Distance Ahead (m)", range: [-10, 10], step: 0.01 },
+    width: { label: "Width (m)", range: [0.1, 5], step: 0.05 },
+    height: { label: "Height (m)", range: [0.1, 5], step: 0.05 },
+    title: { label: "Panel Title" },
+    follow_head: { label: "Follow Head" },
+    follow_distance: { label: "Follow Distance (m)", range: [0.3, 5], step: 0.05 },
+    ambient: { label: "Ambient Light" }
+  },
   events: {
     on_mount: "panel:mount",
     on_dismiss: "panel:dismiss",

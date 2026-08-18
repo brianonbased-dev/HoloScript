@@ -113,6 +113,7 @@ import {
   MULTI_TARGET_SOURCE,
   MultiTargetFanoutPanel,
 } from '@/components/create/MultiTargetFanoutPanel';
+import { dispatchCompileFanout } from '@/lib/studio/multi-target/dispatchFanout';
 import {
   PORTABILITY_SOURCE,
   PortabilityHeadToHeadPanel,
@@ -1375,11 +1376,19 @@ export default function CreatePage() {
     setShareOpen(true);
     setReplOpen(true);
     setRegistryOpen(true);
-    addToast(
-      'Multi-target fan-out dispatched: browser, Unity, robot/sim, XR, service, and asset receipts',
-      'success',
-      2600
-    );
+    addToast('Multi-target fan-out dispatched: compiling on real targets…', 'info', 2200);
+    // The real run: compile_fanout writes genuine per-target receipts into the
+    // compile-job-studio StateAuthority entity — the twin the compilerExport
+    // panel is checked against. The result toast reports what actually
+    // happened; no receipt language without receipts.
+    void dispatchCompileFanout({ code: MULTI_TARGET_SOURCE }).then((result) => {
+      setExecutionState('stopped');
+      addToast(
+        result.summary,
+        result.ok ? (result.status === 'complete' ? 'success' : 'warning') : 'error',
+        5200
+      );
+    });
   }, [
     addToast,
     clearLandingPrompt,

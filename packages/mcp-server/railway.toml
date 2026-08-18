@@ -12,7 +12,7 @@ dockerfilePath = "infrastructure/Dockerfile.mcp-server"
 # fabricated-evidence gate, claim cap) lives in packages/framework/src/board — a
 # framework-only board fix must redeploy the board server, or the gate silently drifts.
 # hololand-platform/** + runtime/** added: the holo_tunnel_create MCP tool dynamically
-# imports @holoscript/hololand-platform (which pulls @holoscript/runtime) at runtime —
+# imports @hololand/platform-services (which pulls @holoscript/runtime) at runtime —
 # a fix in either must redeploy, or the tunnel handler ships a stale/broken build.
 watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/compiler-wasm/**", "packages/meaning/**", "packages/uaal/**", "packages/hololand-platform/**", "packages/runtime/**", "packages/absorb-service/**", "packages/framework/**", "infrastructure/Dockerfile.mcp-server", "scripts/docker/**"]
 

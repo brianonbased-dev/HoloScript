@@ -206,13 +206,17 @@ fi
 
 # --- Gate 3.7: Untracked-sibling imports (root-cause fix for SEC-T-Zero) ---
 if [ -f "scripts/check-untracked-sibling-imports.js" ]; then
-    UNTSIB_OUT=$(run_with_timeout 15 node scripts/check-untracked-sibling-imports.js 2>&1)
+    # 60s, not 15s: the check legitimately takes ~19s on this repo, so it was being killed
+    # mid-run and its 124 exit reported as a violation it never found. A timeout still
+    # BLOCKS (an unfinished check is not a pass) but is now named as a timeout, not a finding.
+    UNTSIB_OUT=$(run_with_timeout 60 node scripts/check-untracked-sibling-imports.js 2>&1)
     UNTSIB_STATUS=$?
-    if [ "$UNTSIB_STATUS" -ne 0 ]; then
-        echo "$UNTSIB_OUT"
+    echo "$UNTSIB_OUT"
+    if [ "$UNTSIB_STATUS" -eq 124 ]; then
+        echo "UntrackedSiblings: check DID NOT COMPLETE (timed out) — not a finding"
         FAILED=1
-    else
-        echo "$UNTSIB_OUT"
+    elif [ "$UNTSIB_STATUS" -ne 0 ]; then
+        FAILED=1
     fi
 fi
 

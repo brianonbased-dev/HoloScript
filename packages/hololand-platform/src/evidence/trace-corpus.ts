@@ -9,7 +9,7 @@
 import { createHash } from 'node:crypto';
 
 export const HOLOLAND_TRACE_CORPUS_SCHEMA = 'hololand.cael-trace-corpus.v1' as const;
-export const HOLOLAND_TRACE_EXPORTER = '@holoscript/hololand-platform/evidence' as const;
+export const HOLOLAND_TRACE_EXPORTER = '@hololand/platform-services/evidence' as const;
 export const HOLOLAND_TRACE_GENESIS_HASH = 'sha256:genesis' as const;
 
 export type HololandTraceEventType =

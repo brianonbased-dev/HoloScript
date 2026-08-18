@@ -25,7 +25,7 @@ import {
   defaultAcceptedFormatsFor,
   type PortalEntrant,
   type PortalEntryReceipt,
-} from '@holoscript/hololand-platform';
+} from '@hololand/platform-services';
 
 import {
   handleNetworkingTool,

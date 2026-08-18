@@ -391,6 +391,21 @@ export async function handleCompileToTarget(
     );
   }
 
+  // r3f does not live in ExportManager's switch: R3FCompiler was retired
+  // 2026-06-17 (apex-poison) and the React Three Fiber path moved to
+  // SceneIRTsxEmitter, reachable only through compile_to_r3f. compile_holoscript
+  // kept advertising "r3f" in its own enum, so the obvious call —
+  // compile_holoscript(target: "r3f") — answered "Unknown export target: r3f"
+  // while the identical work succeeded under a different tool name. Measured
+  // 2026-08-16: 31 of the 32 advertised targets compiled, and the one that did not
+  // was the React target most web callers reach for first.
+  // (String comparison on purpose: `r3f` was dropped from the ExportTarget union
+  // when the compiler was retired, but never dropped from this tool's advertised
+  // enum — the type and the menu disagree, and the menu is what customers read.)
+  if (String(target) === 'r3f') {
+    return handleCompileToR3F({ code, options, jobId: providedJobId });
+  }
+
   const jobId = providedJobId || generateJobId();
   trackJob(jobId, 'in_progress', 10);
 

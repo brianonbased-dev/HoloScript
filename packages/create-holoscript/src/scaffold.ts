@@ -118,7 +118,11 @@ export function buildPackageJson(opts: PackageJsonOptions): Record<string, unkno
       three: '^0.170.0',
       // @holoscript/core is the authoritative .holo parser used by both the
       // dev-time Vite plugin and the `validate` script (F.014 — never regex).
-      '@holoscript/core': '^6.1.0',
+      // Must track the CURRENT published major. A stale pin here is not merely
+      // old: scaffolding v6 while the rest of the ecosystem ships v8 makes
+      // `npm install @holoscript/engine` resolve a second copy of core, and the
+      // install succeeds silently with two parsers and two trait registries.
+      '@holoscript/core': '^8.0.20',
     } as Record<string, string>,
     devDependencies: {
       vite: '^6.0.0',

@@ -224,9 +224,18 @@ fi
 # Opt-out: HOLOMESH_SKIP_UNTRACKED_SIBLING_CHECK=1 for rare emergency cases.
 echo "  ├─ Untracked-sibling import check..."
 if [ -f "scripts/check-untracked-sibling-imports.js" ]; then
-    UNTSIB_OUT=$(run_with_timeout 15 node scripts/check-untracked-sibling-imports.js 2>&1)
+    # 60s, not 15s: the check scans ~154k untracked paths on this repo and takes ~15-20s,
+    # so it was being SIGKILLed mid-run. `timeout` exits 124 on kill, and a 124 was
+    # reported below as "Staged file imports an untracked sibling" — a finding the check
+    # never made. A timeout still BLOCKS (an unfinished check is not a pass) but must say
+    # what actually happened.
+    UNTSIB_OUT=$(run_with_timeout 60 node scripts/check-untracked-sibling-imports.js 2>&1)
     UNTSIB_STATUS=$?
-    if [ "$UNTSIB_STATUS" -ne 0 ]; then
+    if [ "$UNTSIB_STATUS" -eq 124 ]; then
+        echo -e "  ${RED}❌ Untracked-sibling check DID NOT COMPLETE (timed out) — not a finding${NC}"
+        echo "$UNTSIB_OUT"
+        FAILED=1
+    elif [ "$UNTSIB_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Staged file imports an untracked sibling${NC}"
         echo "$UNTSIB_OUT"
         FAILED=1

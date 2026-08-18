@@ -163,6 +163,32 @@ export const coreTools: Tool[] = [
       required: ['code'],
     },
   },
+  {
+    name: 'compile_fanout',
+    description:
+      'Run ONE compile job across MANY real export targets in parallel and write per-target status, real artifact size, and the compile receipt hash into the compile-job-{jobId} StateAuthority entity — the render-independent twin @verified_view panels are checked against (CG-757). Results are genuine compiles, never estimates; degraded fallbacks are reported as degraded, not ok.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        jobId: {
+          type: 'string',
+          description:
+            'Job identifier; results land in the compile-job-{jobId} StateAuthority entity. Alphanumeric, dash, underscore.',
+        },
+        code: {
+          type: 'string',
+          description: 'The HoloScript source (.hs/.hsplus/.holo) to compile on every target',
+        },
+        targets: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Export target names to fan out across (see list_export_targets). Each compiles in parallel.',
+        },
+      },
+      required: ['jobId', 'code', 'targets'],
+    },
+  },
 
   // === VALIDATION ===
   {

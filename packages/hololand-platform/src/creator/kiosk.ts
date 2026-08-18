@@ -15,7 +15,7 @@
  *      land in the Studio package when a UI consumer needs them.
  *
  * @version 1.0.0
- * @module @holoscript/hololand-platform/creator/kiosk
+ * @module @hololand/platform-services/creator/kiosk
  */
 
 import type { PlayableChallenge, Shard } from '@holoscript/framework';

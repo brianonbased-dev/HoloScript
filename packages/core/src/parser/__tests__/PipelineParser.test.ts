@@ -392,6 +392,45 @@ describe('PipelineParser', () => {
       expect(result.success).toBe(false);
       expect(result.errors.some((e) => e.message.includes('no sinks'))).toBe(true);
     });
+
+    /**
+     * A stage written in an unrecognised form is a different problem from a stage
+     * that is absent, and only one of them the author can fix from the message.
+     * The call form below is what a customer actually sent on 2026-08-04; the
+     * answer was a bare "Pipeline has no sources", which reads as the parser
+     * having lost the source rather than as a correctable syntax error.
+     */
+    it('distinguishes a source written in an unrecognised form from an absent one', () => {
+      const result = parsePipeline(`
+        pipeline "CustomerJourney" {
+          source csv("in.csv")
+          sink json("out.json")
+        }
+      `);
+
+      expect(result.success).toBe(false);
+
+      const sourceErr = result.errors.find((e) => e.message.includes('no sources'))?.message ?? '';
+      expect(sourceErr).toContain('source csv("in.csv")'); // quotes back what they wrote
+      expect(sourceErr).toContain('NAMED BLOCK'); // names the shape rule
+      expect(sourceErr).toMatch(/source POS \{/); // shows a working example
+
+      const sinkErr = result.errors.find((e) => e.message.includes('no sinks'))?.message ?? '';
+      expect(sinkErr).toContain('sink json("out.json")');
+      expect(sinkErr).toMatch(/sink \w+ \{/);
+    });
+
+    it('keeps the plain message when the stage is genuinely absent', () => {
+      const result = parsePipeline(`
+        pipeline "Empty" {
+          schedule: "* * * * *"
+        }
+      `);
+
+      const sourceErr = result.errors.find((e) => e.message.includes('no sources'))?.message ?? '';
+      // Nothing to quote back, so no invented advice about a shape they never used.
+      expect(sourceErr).toBe('Pipeline has no sources');
+    });
   });
 
   describe('source types', () => {

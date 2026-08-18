@@ -41,8 +41,8 @@ describe('HoloScript evidence envelope', () => {
       sourceRevisions: [{ repo: 'HoloScript', commit: 'abc123', dirty: false }],
       setupCommand: 'pnpm install --frozen-lockfile',
       seed: 'paper-12-seed',
-      harnessCommand: 'pnpm --filter @holoscript/hololand-platform run device-lab',
-      rerunCommand: 'pnpm --filter @holoscript/hololand-platform run evidence-envelope',
+      harnessCommand: 'pnpm --filter @hololand/platform-services run device-lab',
+      rerunCommand: 'pnpm --filter @hololand/platform-services run evidence-envelope',
       artifacts: [
         {
           repo: 'HoloScript',
@@ -109,7 +109,7 @@ describe('HoloScript evidence envelope', () => {
       'trace-corpus',
     ]);
     expect(manifest.reproducibility.rerunCommand).toContain(
-      'pnpm --filter @holoscript/hololand-platform run evidence-envelope'
+      'pnpm --filter @hololand/platform-services run evidence-envelope'
     );
     expect(manifest.artifacts.map((artifact) => artifact.path)).toContain(
       'docs/public/evidence/evidence-envelope.schema.json'

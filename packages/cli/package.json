@@ -61,7 +61,7 @@
     "@holoscript/core-types": "workspace:^",
     "@holoscript/formatter": "workspace:^",
     "@holoscript/framework": "workspace:^",
-    "@holoscript/hololand-platform": "workspace:^",
+    "@hololand/platform-services": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
     "@holoscript/platform": "workspace:^",
     "@holoscript/sdk": "workspace:^",

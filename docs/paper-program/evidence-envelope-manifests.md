@@ -9,7 +9,7 @@ artifact paths, and one-command rerun into a single hashable JSON file.
 From the HoloScript repo root:
 
 ```bash
-pnpm --filter @holoscript/hololand-platform run evidence-envelope -- \
+pnpm --filter @hololand/platform-services run evidence-envelope -- \
   --preset paper-12-hololand \
   --out docs/public/evidence/paper-12-hololand-envelope.json
 ```
@@ -41,7 +41,7 @@ We publish a HoloScript evidence envelope at
 records the runtime environment hash, hardware tier, seed, harness command,
 artifact paths, and one-command rerun for the HoloLand evaluation. Reviewers
 can regenerate it from the repository root with
-\texttt{pnpm --filter @holoscript/hololand-platform run evidence-envelope -- --preset paper-12-hololand --out docs/public/evidence/paper-12-hololand-envelope.json}.
+\texttt{pnpm --filter @hololand/platform-services run evidence-envelope -- --preset paper-12-hololand --out docs/public/evidence/paper-12-hololand-envelope.json}.
 ```
 
 ## Minimum Fields

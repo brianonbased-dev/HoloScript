@@ -1849,6 +1849,72 @@ orb Avatar @networked() @owned() @hand_tracked() {
       },
     ],
   },
+
+  /**
+   * Added 2026-08-16. There was no pipeline topic here, which meant a customer
+   * could ask this server how to write a pipeline and be told "Unknown topic" —
+   * while parse_pipeline stood ready to reject whatever they guessed. Every stage
+   * is a NAMED BLOCK; the natural guess is a call, `source csv("in.csv")`, and it
+   * parses to nothing. Documenting the shape is the fix for the guess.
+   */
+  pipelines: {
+    topic: 'pipelines',
+    description:
+      'Declare a data pipeline: named source, transform, filter, validate, merge, branch and sink stages. ' +
+      'Every stage is a NAMED BLOCK — `source POS { ... }`, never a call like `source csv("in.csv")`.',
+    syntax: `pipeline "Name" {
+  schedule: "*/5 * * * *"        // optional cron
+  timeout: 30s                    // optional
+  retry: { max: 3, backoff: "exponential" }
+
+  // Each stage is: <keyword> <Name> { properties }
+  source POS {
+    type: "rest"                  // rest | stream | filesystem | database | mcp
+    endpoint: "\${env.POS_API_URL}/products"
+  }
+
+  transform MapFields {
+    sku -> productId
+    qty -> stock
+  }
+
+  sink Warehouse {
+    type: "filesystem"            // rest | webhook | mcp | filesystem | database | stdout | holo
+    path: "out.json"
+  }
+}`,
+    examples: [
+      {
+        description: 'Smallest pipeline that parses — one source, one sink',
+        code: `pipeline "CustomerJourney" {
+  source Ledger {
+    type: "filesystem"
+    path: "in.csv"
+  }
+
+  sink Report {
+    type: "filesystem"
+    path: "out.json"
+  }
+}`,
+      },
+      {
+        description: 'What does NOT work, and why',
+        code: `// WRONG — a stage is a block, not a call. This parses to a pipeline
+// with zero sources and zero sinks:
+pipeline "Broken" {
+  source csv("in.csv")
+  sink json("out.json")
+}
+
+// RIGHT — name the stage, then describe it:
+pipeline "Fixed" {
+  source Csv { type: "filesystem" path: "in.csv" }
+  sink Json { type: "filesystem" path: "out.json" }
+}`,
+      },
+    ],
+  },
 };
 
 interface SyntaxDoc {

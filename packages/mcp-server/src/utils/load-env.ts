@@ -26,6 +26,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { homedir } from 'os';
+import { hydrateFromHoloKeydSync } from '@holoscript/secrets-broker';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -190,7 +191,58 @@ export function loadMcpEnv(
   return { loadedFrom, injected, denied };
 }
 
+// ── HoloKey bridge ────────────────────────────────────────────────────────────
+/**
+ * Names filled from the TPM-bound `holokeyd` vault when `.env` no longer has them.
+ *
+ * These specific names need boot hydration rather than `resolveServiceSecret()`
+ * because their consumers cannot call an async resolver: `@holoscript/llm-provider`
+ * reads `process.env.OPENROUTER_API_KEY` directly (`createProviderManager`,
+ * `createOpenRouterProvider`) and is browser-safe, so it must never import
+ * child_process. Hydrating here — before the first `const X = process.env.X` runs —
+ * is what lets those keys leave plaintext without touching every call site.
+ *
+ * Extend with `HOLOKEYD_HYDRATE=A,B,C` rather than editing this list.
+ */
+const HOLOKEYD_HYDRATE_DEFAULT = [
+  'OPENROUTER_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY',
+  'XAI_API_KEY',
+  'GEMINI_API_KEY',
+];
+
+export function hydrateFromVault(): { hydrated: string[]; missing: string[] } {
+  // Deliberately NOT gated on IS_RAILWAY. The local `.env` defines RAILWAY_ENVIRONMENT
+  // and RAILWAY_PROJECT_ID, so any laptop shell that exports it makes every process
+  // believe it is deployed — and a Railway-gated bridge would then silently never run
+  // on the one machine that needs it. The real gate is HOLOKEYD_HOST, which a cloud
+  // deploy does not set, so this already costs nothing there. HOLOMESH_NO_DOTENV stays
+  // honored so tests never reach for the network.
+  if (process.env.HOLOMESH_NO_DOTENV === '1') return { hydrated: [], missing: [] };
+  const extra = (process.env.HOLOKEYD_HYDRATE ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const names = Array.from(new Set([...HOLOKEYD_HYDRATE_DEFAULT, ...extra]));
+  try {
+    const { enabled, hydrated, missing } = hydrateFromHoloKeydSync(names);
+    // Only speak when something actually came from the device — a silent no-op is
+    // the expected state while the plaintext is still present.
+    if (enabled && hydrated.length > 0) {
+      console.debug(`[load-env] holokeyd hydrated ${hydrated.length}: ${hydrated.join(', ')}`);
+    }
+    return { hydrated, missing };
+  } catch {
+    // Never break a boot over the bridge. Absent it, prior behavior is exact.
+    return { hydrated: [], missing: names };
+  }
+}
+
 // ── Side effect — call at import time ─────────────────────────────────────────
 // This ensures process.env is fully populated before any module-level
 // `const X = process.env.X || ''` constants are evaluated in the importing module.
 loadMcpEnv({ silent: true });
+// Then fill anything .env no longer carries from the vault. Costs zero SSH calls
+// while every name is still in .env, because present names are skipped outright.
+hydrateFromVault();

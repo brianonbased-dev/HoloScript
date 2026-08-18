@@ -1,7 +1,7 @@
 {
   "_comment": "CHOKEPOINT-CAPTURE baseline (dependency-sovereignty-ladder, 2026-07-16). Grandfathered files containing the raw 'mcp-orchestrator-production-45f9' orchestrator literal outside packages/connector-core and @holoscript/config. New raw-literal files are blocked (CHOKEPOINT-GREW); migrate call sites to ResilientOrchestratorFetch (packages/connector-core) or @holoscript/config ENDPOINTS, then shrink this list via --update. Regenerate with: node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --update",
   "literal": "mcp-orchestrator-production-45f9",
-  "count": 101,
+  "count": 99,
   "files": [
     ".antigravity/mcp.json",
     ".claude/skills/absorb/SKILL.md",
@@ -44,8 +44,6 @@
     "packages/core/src/cli/holoscript-runner.ts",
     "packages/core/src/compiler/EdgeCompiler.ts",
     "packages/core/src/mcp/registerWithOrchestrator.ts",
-    "packages/core/src/traits/EdgeNodeTrait.ts",
-    "packages/core/src/traits/edge_node.holo",
     "packages/core/src/traits/pillar/SliceEmitter.ts",
     "packages/core/src/traits/pillar/fleet/FleetCalibrationCollector.ts",
     "packages/core/src/traits/pillar/sim/Paper26SimRunner.ts",

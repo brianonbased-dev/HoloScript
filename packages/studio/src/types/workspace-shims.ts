@@ -34,6 +34,75 @@ declare module '@holoscript/core/parameter-envelope' {
 }
 
 declare module '@holoscript/core/reconstruction' {
+  // ── WHY THIS SHIM EXISTS, and why it is not the right answer ───────────────────
+  // @holoscript/core's published .d.ts is HAND-MAINTAINED in packages/core/scripts/
+  // generate-types.mjs rather than emitted from source, and it is incomplete: the whole
+  // mobileSensorBundle module (22 runtime exports) is absent from it. This ambient block was
+  // written to paper over that — but an ambient 'declare module' SHADOWS the real package
+  // types entirely, so anything the package genuinely exports becomes invisible here unless it
+  // is also copied in. That is how a correct import can fail to typecheck against a package
+  // that plainly exports it, and it is why the entries below had to be added by hand.
+  // The real fix is to stop hand-maintaining that .d.ts; until then this file must grow to
+  // match, and every entry here is a duplicate that can silently drift from the truth.
+
+  export interface SurfaceTwinProjection {
+    element: string;
+    node: string;
+    entity?: string;
+    identity: boolean;
+    transform?: { precision?: number; prefix?: string; suffix?: string };
+  }
+
+  // @live_proof -> twin oracle (LiveProofTwinCheck). Consumed by
+  // src/app/api/verified-view/live-proof/route.ts.
+  export type LiveProofIndependence = 'self-referential' | 'fault-tested' | 'verified';
+  export interface LiveProofAnchor {
+    input: string;
+    node: string;
+    entity: string;
+  }
+  export interface LiveProofBinding {
+    claim: string;
+    label: string;
+    independence: LiveProofIndependence;
+    inputs: string[];
+    anchors: LiveProofAnchor[];
+    unanchored: string[];
+  }
+  export interface LiveProofTwinReceipt {
+    version: 'live-proof-twin-v1';
+    verdict: 'VERIFIED' | 'FALSIFIED' | 'ABSTAIN';
+    claim: string;
+    displayedState: 'pass' | 'falsified';
+    confirmed: string[];
+    divergent: Array<{ input: string; entity: string; detail: string }>;
+    abstention?: {
+      reason: 'independence-insufficient' | 'authority-unreachable' | 'receipt-mismatch';
+      detail: string;
+    };
+    reason: string;
+    receiptHash: string;
+  }
+  export interface RenderedLiveProofBadge {
+    claim: string;
+    label: string;
+    independence: LiveProofIndependence;
+    displayedState: 'pass' | 'falsified';
+    anchors: LiveProofAnchor[];
+  }
+  export interface LiveProofLiveResult {
+    badge: RenderedLiveProofBadge;
+    receipt: LiveProofTwinReceipt;
+  }
+  export function extractLiveProofBadges(html: string): RenderedLiveProofBadge[];
+  export function verifyLiveProofsLive(input: {
+    html: string;
+    contract: { projections: SurfaceTwinProjection[] };
+    fetchAuthoritativeState: (
+      entity: string
+    ) => Promise<Record<string, unknown> | string | number | boolean | null | undefined>;
+  }): Promise<LiveProofLiveResult[]>;
+
   export const HOLOMAP_SIMULATION_CONTRACT_KIND: 'holomap.reconstruction.v1';
 
   export interface ReconstructionFrame {

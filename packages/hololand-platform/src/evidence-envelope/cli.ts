@@ -72,7 +72,7 @@ const manifest =
         harnessCommand: args.harnessCommand ?? 'pnpm test',
         rerunCommand:
           args.rerunCommand ??
-          `pnpm --filter @holoscript/hololand-platform run evidence-envelope -- --preset ${preset} --out ${relativeFromCwd(cwd, out)}`,
+          `pnpm --filter @hololand/platform-services run evidence-envelope -- --preset ${preset} --out ${relativeFromCwd(cwd, out)}`,
         artifacts: args.artifact.map(parseArtifact),
       });
 

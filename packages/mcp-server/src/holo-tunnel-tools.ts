@@ -57,18 +57,18 @@ const activeTunnels = new Map<
 
 // Lazy-import startHoloTunnel so the server doesn't fail if the dependency
 // is tree-shaken or the module is unavailable in the current build.
-let startHoloTunnelFn: typeof import('@holoscript/hololand-platform').startHoloTunnel | null = null;
+let startHoloTunnelFn: typeof import('@hololand/platform-services').startHoloTunnel | null = null;
 
 async function getStartHoloTunnel() {
   if (!startHoloTunnelFn) {
-    const mod = await import('@holoscript/hololand-platform');
+    const mod = await import('@hololand/platform-services');
     startHoloTunnelFn = mod.startHoloTunnel;
   }
   return startHoloTunnelFn!;
 }
 
 export function __setStartHoloTunnelForTests(
-  fn: typeof import('@holoscript/hololand-platform').startHoloTunnel | null
+  fn: typeof import('@hololand/platform-services').startHoloTunnel | null
 ): void {
   startHoloTunnelFn = fn;
 }

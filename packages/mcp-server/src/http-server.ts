@@ -4682,6 +4682,11 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.warn('[emergence] corpus hydration failed (continuing):', e);
   }
 
+  // Over HTTP the caller is on a different machine. This server's filesystem is NOT
+  // theirs, and any tool that reads a local path must say so rather than describe
+  // this container as if it were the customer's workspace.
+  process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+
   httpServer.listen(PORT, BIND_HOST, () => {
     const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
     ensureMcpOtelTracer();

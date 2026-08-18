@@ -97,7 +97,7 @@ RUN cd packages/absorb-service && pnpm exec tsup --no-dts
 RUN cd packages/holo-vm && pnpm exec tsup --no-dts
 RUN cd packages/security-sandbox && pnpm exec tsup --no-dts
 # hololand-platform + its runtime dep: the holo_tunnel_create MCP tool dynamically
-# imports @holoscript/hololand-platform at runtime (src/holo-tunnel-tools.ts), and that
+# imports @hololand/platform-services at runtime (src/holo-tunnel-tools.ts), and that
 # barrel externalizes @holoscript/runtime — so both dists must exist in the deployed
 # image (else "Cannot find module .../hololand-platform/dist/index.js"). Same
 # runtime-image-closure class as meaning/uaal (264c42076) and security-sandbox above.
@@ -183,7 +183,7 @@ COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/script
 
 # Force workspace symlinks for packages that core externalizes at runtime.
 # pnpm's virtual store may not create these in the paths CJS require() expects.
-RUN mkdir -p /app/node_modules/@holoscript && \
+RUN mkdir -p /app/node_modules/@holoscript /app/node_modules/@hololand && \
     ln -sfn /app/packages/core-types /app/node_modules/@holoscript/core-types && \
     ln -sfn /app/packages/framework /app/node_modules/@holoscript/framework && \
     ln -sfn /app/packages/engine /app/node_modules/@holoscript/engine && \
@@ -191,7 +191,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
     ln -sfn /app/packages/meaning /app/node_modules/@holoscript/meaning && \
     ln -sfn /app/packages/uaal /app/node_modules/@holoscript/uaal && \
     ln -sfn /app/packages/runtime /app/node_modules/@holoscript/runtime && \
-    ln -sfn /app/packages/hololand-platform /app/node_modules/@holoscript/hololand-platform && \
+    ln -sfn /app/packages/hololand-platform /app/node_modules/@hololand/platform-services && \
     ln -sfn /app/packages/crdt-spatial /app/node_modules/@holoscript/crdt-spatial && \
     ln -sfn /app/packages/snn-webgpu /app/node_modules/@holoscript/snn-webgpu && \
     ln -sfn /app/packages/platform /app/node_modules/@holoscript/platform && \

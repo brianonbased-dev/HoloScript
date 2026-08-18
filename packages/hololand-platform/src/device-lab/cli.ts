@@ -59,7 +59,7 @@ function printHelp(): void {
 
 Usage:
   hololand-device-lab [options]
-  pnpm --filter @holoscript/hololand-platform run device-lab -- [options]
+  pnpm --filter @hololand/platform-services run device-lab -- [options]
 
 Options:
   --out <path>              Receipt JSON path (default: .holoscript/device-lab/...)

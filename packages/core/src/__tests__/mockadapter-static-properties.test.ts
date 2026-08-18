@@ -401,17 +401,24 @@ describe('Feature 5: LLM provider model constant arrays', () => {
   });
 
   it('GEMINI_MODELS keeps the legacy baseline and includes current Gemini 3 models', () => {
-    // Asserted by membership, not by count. GEMINI_MODELS is owned by
-    // @holoscript/llm-provider and ratchets whenever a model ships or is retired
-    // (4 deliberate changes since 2026-05-31). A pinned length made this a
-    // tripwire for intentional roster updates while asserting nothing about
-    // correctness — it went green by coincidence on 2026-07-03 when an addition
-    // happened to restore the count to 7. Membership is what the title claims.
-    expect(GEMINI_MODELS.length).toBeGreaterThanOrEqual(7);
-    expect(GEMINI_MODELS).toContain('gemini-1.5-pro');
+    // Asserted by membership, not by count — both sides of the 2026-08 merge
+    // fixed the same pinned-length tripwire independently; this resolution
+    // keeps every distinct assertion from both. A roster is supposed to
+    // change: membership and retirement are what the title claims, size is not.
+    for (const legacy of ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.5-flash-8b']) {
+      expect(GEMINI_MODELS, `legacy baseline model ${legacy} was dropped`).toContain(legacy);
+    }
+    expect(
+      GEMINI_MODELS.some((m) => m.startsWith('gemini-3')),
+      'no current Gemini 3 model present'
+    ).toBe(true);
     expect(GEMINI_MODELS).toContain('gemini-3.6-flash');
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash-lite');
     expect(GEMINI_MODELS).not.toContain('gemini-2.0-flash');
+    expect(GEMINI_MODELS.length).toBeGreaterThanOrEqual(7);
+    // A duplicate entry is a real defect a count would have caught by accident;
+    // check it on purpose instead.
+    expect(new Set(GEMINI_MODELS).size, 'duplicate model id').toBe(GEMINI_MODELS.length);
   });
 
   it('GEMINI_MODELS includes gemini-3.5-flash', () => {

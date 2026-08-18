@@ -607,14 +607,14 @@ async function runWorldModelTrajectoryReplay(options: ReturnType<typeof parseArg
     process.exit(1);
   }
 
-  const { replayTrajectory } = await import('@holoscript/hololand-platform');
+  const { replayTrajectory } = await import('@hololand/platform-services');
   type AdversarialTrajectoryReport =
-    import('@holoscript/hololand-platform').HololandAdversarialTrajectoryReport;
+    import('@hololand/platform-services').HololandAdversarialTrajectoryReport;
 
   const reportJson = fs.readFileSync(resolvedPath, 'utf-8');
   const report = JSON.parse(reportJson) as AdversarialTrajectoryReport;
 
-  let result: import('@holoscript/hololand-platform').AdversarialTrajectoryReplayResult;
+  let result: import('@hololand/platform-services').AdversarialTrajectoryReplayResult;
   try {
     result = replayTrajectory(report, trajectoryId);
   } catch (error) {
@@ -665,7 +665,7 @@ async function runWorldModelTrajectoryReplay(options: ReturnType<typeof parseArg
 async function runWorldModelTrajectoryGenerate(
   options: ReturnType<typeof parseArgs>
 ): Promise<void> {
-  const { createAdversarialTrajectoryReport } = await import('@holoscript/hololand-platform');
+  const { createAdversarialTrajectoryReport } = await import('@hololand/platform-services');
 
   const count = options.trajectoryCount
     ? Math.max(20, Math.trunc(Number(options.trajectoryCount)))

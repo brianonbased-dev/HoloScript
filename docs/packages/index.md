@@ -61,7 +61,7 @@ For release admission, consumption receipts, stewardship status, and compiler-na
 | [**@holoscript/holollama**](./holollama.md)                 | Native llama.cpp serving utilities      |
 | [**@holoscript/r3f-renderer**](./r3f-renderer.md)           | React Three Fiber renderer helpers      |
 | [**@holoscript/xr-embodiment**](./xr-embodiment.md)         | WebXR locomotion and agent avatars      |
-| [**@holoscript/hololand-platform**](./hololand-platform.md) | HoloLand VR-world services              |
+| [**@hololand/platform-services**](./hololand-platform.md) | HoloLand VR-world services              |
 
 ## AI, Agents, and Virtual Machines
 

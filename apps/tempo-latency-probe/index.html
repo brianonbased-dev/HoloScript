@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bravura — Tempo Latency Probe</title>
+<style>
+  :root {
+    --bg: #14100a; --panel: #201a11; --ink: #f0e8d6; --dim: #a8987d;
+    --brass: #d2a94e; --good: #6fbf6a; --warn: #d2a94e; --bad: #d96b5c; --line: #3a3227;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.5;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  header { padding: 1rem 1.2rem .4rem; }
+  h1 { font-size: 1.15rem; margin: 0; color: var(--brass); }
+  p.sub { margin: .2rem 0 0; color: var(--dim); font-size: .9rem; }
+  .buttons { display: flex; flex-wrap: wrap; gap: .6rem; padding: .8rem 1.2rem; }
+  button {
+    font-size: 1.05rem; padding: .8rem 1.2rem; border-radius: .5rem;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--brass); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--brass); color: #201a11; font-weight: 600; }
+  #status { padding: 0 1.2rem; color: var(--dim); min-height: 1.4em; }
+  .numbers {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: .6rem; padding: .8rem 1.2rem;
+  }
+  .num { background: var(--panel); border: 1px solid var(--line); border-radius: .5rem; padding: .7rem .9rem; }
+  .num .label { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  .num .value { font-size: 2rem; font-variant-numeric: tabular-nums; }
+  .num .value.small { font-size: 1rem; padding-top: .5rem; }
+  #trial-note { padding: 0 1.2rem; color: var(--brass); min-height: 1.4em; }
+  #area {
+    flex: 1; margin: .8rem 1.2rem 1.2rem; border: 2px dashed var(--line); border-radius: .75rem;
+    display: flex; align-items: center; justify-content: center; color: var(--dim);
+    text-align: center; padding: 1rem; touch-action: none; min-height: 30vh;
+  }
+  #area.live { border-color: var(--brass); color: var(--ink); }
+  .verdict {
+    margin: 0 1.2rem; padding: 1rem 1.2rem; border-radius: .5rem; font-size: 1.15rem;
+    background: var(--panel); border: 1px solid var(--line); display: none;
+  }
+  .verdict.good { display: block; border-color: var(--good); color: var(--good); }
+  .verdict.warn { display: block; border-color: var(--warn); color: var(--warn); }
+  .verdict.bad { display: block; border-color: var(--bad); color: var(--bad); }
+  .verdict.unknown { display: block; color: var(--dim); }
+  #final-numbers { padding: .6rem 1.2rem; color: var(--dim); }
+  #receipt-row { display: none; padding: 0 1.2rem 1.2rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Bravura — Tempo Latency Probe</h1>
+  <p class="sub">Wave your hand up and down — the beat follows you. Change speed clearly and hold it; the probe times how fast the ensemble catches up.</p>
+</header>
+
+<div class="buttons">
+  <button id="btn-vr" class="primary">Enter VR (Quest)</button>
+  <button id="btn-desktop">Desktop mode (mouse)</button>
+  <button id="btn-selftest">Self-test (no hands)</button>
+  <button id="btn-negative" title="Deliberately runs a known engine fault — this SHOULD look broken">Self-test with fault (should fail)</button>
+  <button id="btn-stop">Stop &amp; show verdict</button>
+</div>
+
+<p id="status">Ready. Pick a mode.</p>
+
+<div class="numbers">
+  <div class="num"><div class="label">Your tempo</div><div class="value" id="you-bpm">—</div></div>
+  <div class="num"><div class="label">Ensemble tempo</div><div class="value" id="ens-bpm">—</div></div>
+  <div class="num"><div class="label">Beats conducted</div><div class="value" id="beats">0</div></div>
+  <div class="num"><div class="label">Tempo-change trials</div><div class="value" id="trials">0</div></div>
+  <div class="num"><div class="label">Beat source</div><div class="value small" id="source">—</div></div>
+</div>
+<p id="trial-note"></p>
+
+<div id="verdict" class="verdict"></div>
+<p id="final-numbers"></p>
+<div id="receipt-row"><button id="btn-receipt">Download receipt (JSON)</button></div>
+
+<div id="area">Desktop mode: wave the mouse up and down here, like a conductor.<br/>Bigger, steady strokes work best. Then clearly speed up or slow down and hold it.</div>
+
+<script type="module" src="./dist/probe.js"></script>
+</body>
+</html>

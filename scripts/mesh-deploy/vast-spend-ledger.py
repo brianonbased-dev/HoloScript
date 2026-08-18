@@ -81,6 +81,36 @@ SIGNED_RENTAL_HASH_FIELDS = {
 }
 SHA256_RECEIPT_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
+# One guard file can be written into the ledger under more than one spelling:
+# `C:\Users\josep\.ai-ecosystem\...` is an NTFS junction onto
+# `C:\holo-dev\ai-ecosystem\...`, and both spellings appear in live rows for
+# instance 44568605 (rented 2026-07-12 via the junction, closed 2026-08-13 via
+# the real path) carrying an IDENTICAL spend_authority_hash. Comparing the raw
+# strings read one authority as two and refused the whole ledger, which made the
+# accumulated day-total cap unenforceable rather than merely unenforced.
+#
+# Resolve before comparing. Two genuinely different guard files still differ.
+# The JavaScript reconciler carries the same normalisation
+# (scripts/reconcile-vast-ledger.mjs, normalizedGuardPath) and the two must
+# agree — they are one rule with two implementations.
+_GUARD_PATH_CACHE: dict[str, str] = {}
+
+
+def normalized_guard_path(value: object) -> str:
+    """Compare guard paths by identity on disk, not by how they were spelled."""
+    raw = value if isinstance(value, str) else ""
+    cached = _GUARD_PATH_CACHE.get(raw)
+    if cached is not None:
+        return cached
+    resolved = raw.replace("\\", "/").lower()
+    try:
+        if raw and os.path.exists(raw):
+            resolved = os.path.realpath(raw).replace("\\", "/").lower()
+    except OSError:
+        pass
+    _GUARD_PATH_CACHE[raw] = resolved
+    return resolved
+
 
 class LedgerIntegrityError(ValueError):
     """A paid-spend row cannot be safely admitted into cap accounting."""
@@ -108,7 +138,9 @@ def signed_rental_binding(record: dict, *, context: str) -> tuple[str, ...] | No
             raise LedgerIntegrityError(
                 f"{context} has an invalid signed rental binding hash: {field}"
             )
-        values.append(value)
+        values.append(
+            normalized_guard_path(value) if field == "contract_guard_path" else value
+        )
     return tuple(values)
 
 

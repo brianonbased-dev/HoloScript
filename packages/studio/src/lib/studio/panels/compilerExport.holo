@@ -4,75 +4,66 @@ composition "compilerExport" {
   @native_panel
 
   state {
-    nodes: 2500
+    status: "pending"
+    targetCount: 0
+    totalKb: 0
   }
 
   object "Root" {
     @layout { flex: "column", gap: "12px" }
     @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
-    @computed { name: "targets", expr: "compileAST(nodes)", from: "@/lib/v6PlatformServices", uses: ["compileAST"] }
 
     object "Title" {
       @text { variant: "h3", content: "Compiler Export" }
       @theme { className: "text-sm font-semibold text-studio-text" }
     }
+    object "Subtitle" {
+      @text { variant: "caption", content: "Last fan-out job — twin-checked against compile-job-studio" }
+      @theme { className: "text-[10px] text-studio-muted" }
+    }
 
-    object "SliderRow" {
-      @layout { flex: "row", gap: "8px", align: "center" }
+    object "StatusRow" {
+      @layout { flex: "row", justify: "space-between" }
 
-      object "SliderLabel" {
-        @text { variant: "caption", content: "AST Nodes" }
+      object "StatusLabel" {
+        @text { variant: "caption", content: "Job status" }
         @theme { className: "text-[10px] text-studio-muted" }
       }
-      object "SliderValue" {
+      object "StatusValue" {
         @text { variant: "caption" }
-        @bind { state: "nodes", fallback: "0" }
-        @theme { className: "text-[10px] font-semibold text-studio-text" }
-        @projects { node: "nodes" }
-      }
-      object "Slider" {
-        @input { type: "range", min: "100", max: "10000", step: "100" }
-        @model { state: "nodes" }
-        @theme { className: "flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" }
-        @projects { node: "nodes" }
+        @bind { state: "status", fallback: "pending" }
+        @theme { className: "font-semibold text-studio-text" }
+        @projects { node: "status", entity: "compile-job-studio" }
       }
     }
 
-    object "ChartRow" {
-      @layout { flex: "column", gap: "2px" }
+    object "TargetCountRow" {
+      @layout { flex: "row", justify: "space-between" }
 
-      object "ChartLabel" {
-        @text { variant: "caption", content: "Output size (KB by target)" }
+      object "TargetCountLabel" {
+        @text { variant: "caption", content: "Targets compiled" }
         @theme { className: "text-[10px] text-studio-muted" }
       }
-      object "SizeChart" {
-        @chart { kind: "bar", state: "targets", valueKey: "sizeKb", labelKey: "target", height: 96 }
-        @theme { className: "w-full" }
-        @projects { node: "targets" }
+      object "TargetCountValue" {
+        @text { variant: "caption" }
+        @bind { state: "targetCount", fallback: "0" }
+        @theme { className: "font-semibold text-studio-text" }
+        @projects { node: "targetCount", entity: "compile-job-studio" }
       }
     }
 
-    object "TargetList" {
-      @layout { flex: "column", gap: "6px" }
+    object "TotalSizeRow" {
+      @layout { flex: "row", justify: "space-between" }
 
-      object "TargetRow" {
-        @each { state: "targets", as: "t" }
-        @layout { flex: "row", justify: "space-between" }
-        @theme { className: "rounded-md p-2 bg-studio-panel/40" }
-
-        object "TargetName" {
-          @text { variant: "caption" }
-          @bind { state: "t", path: "target" }
-          @theme { className: "font-semibold text-studio-text" }
-          @projects { node: "t.target" }
-        }
-        object "TargetSize" {
-          @text { variant: "caption" }
-          @bind { state: "t", path: "sizeKb", precision: 2, suffix: " KB" }
-          @theme { className: "text-[10px] text-studio-muted" }
-          @projects { node: "t.sizeKb" }
-        }
-        @projects { node: "targets" }
+      object "TotalSizeLabel" {
+        @text { variant: "caption", content: "Total output" }
+        @theme { className: "text-[10px] text-studio-muted" }
+      }
+      object "TotalSizeValue" {
+        @text { variant: "caption" }
+        @bind { state: "totalKb", precision: 2, suffix: " KB" }
+        @theme { className: "text-[10px] text-studio-muted" }
+        @projects { node: "totalKb", entity: "compile-job-studio" }
       }
     }
   }

@@ -443,6 +443,11 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
       default: pick(m as AnyModule, 'FirstLaunchTutorial'),
     }))
   ),
+  twinProof: dynamic(() =>
+    import('@/components/panels/native/twinProof.native').then((m) => ({
+      default: pick(m as AnyModule, 'TwinProofComponent'),
+    }))
+  ),
   undoHistory: dynamic(() =>
     import('@/components/history/UndoHistorySidebar').then((m) => ({
       default: pick(m as AnyModule, 'UndoHistorySidebar'),

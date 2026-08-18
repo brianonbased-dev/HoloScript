@@ -62,7 +62,7 @@ Ownership is inferred from package domain and the team structure. Update this fi
 
 | Package                         | Description                    | Test Script                    | Coverage |
 | ------------------------------- | ------------------------------ | ------------------------------ | -------- |
-| `@holoscript/hololand-platform` | VR platform services           | `vitest run --passWithNoTests` | Yes      |
+| `@hololand/platform-services` | VR platform services           | `vitest run --passWithNoTests` | Yes      |
 | `@holoscript/crdt-spatial`      | Spatial CRDT sync              | `vitest run`                   | Yes      |
 | `@holoscript/spatial-index`     | R-Tree spatial index           | `vitest run`                   | Yes      |
 | `@holoscript/video-tutorials`   | Instructional video generation | `vitest run --passWithNoTests` | Yes      |

@@ -58,7 +58,7 @@ This matrix assigns a support level to each documented package so contributors c
 | `@holoscript/holoscript-agent`           | beta         | Agent Systems Team     |
 | `@holoscript/r3f-renderer`               | beta         | Studio Team            |
 | `@holoscript/xr-embodiment`              | beta         | HoloLand Team          |
-| `@holoscript/hololand-platform`          | beta         | HoloLand Team          |
+| `@hololand/platform-services`          | beta         | HoloLand Team          |
 | `@holoscript/llm-provider`               | stable       | Agent Systems Team     |
 | `@holoscript/ai-validator`               | stable       | Agent Systems Team     |
 | `@holoscript/agent-protocol`             | beta         | Agent Systems Team     |

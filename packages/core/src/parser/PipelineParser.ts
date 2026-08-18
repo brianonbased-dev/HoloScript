@@ -285,6 +285,34 @@ function extractBlock(
   return results;
 }
 
+/**
+ * Explain a missing pipeline stage in terms the author can act on.
+ *
+ * A stage is declared as a named block:  `source POS { type: "rest" }`.
+ * Authors reasonably reach for a call form instead — `source csv("in.csv")` —
+ * and used to get back only "Pipeline has no sources", which reads as a parser
+ * fault rather than a syntax correction. When the keyword IS present but no
+ * block was extracted, say so and show the shape that works.
+ */
+function unrecognisedStageMessage(content: string, keyword: 'source' | 'sink'): string {
+  const plural = `${keyword}s`;
+  // The keyword appears at the start of a statement but extractBlock found nothing,
+  // so whatever follows it is not `<Name> {`.
+  const nearMiss = new RegExp(`(?:^|\\n)\\s*${keyword}\\b(?!\\s+\\w+\\s*\\{)([^\\n]*)`).exec(content);
+  if (!nearMiss) {
+    return `Pipeline has no ${plural}`;
+  }
+  const written = `${keyword}${nearMiss[1] ?? ''}`.trim();
+  const example =
+    keyword === 'source'
+      ? 'source POS {\n    type: "rest"\n    endpoint: "https://example.com/items"\n  }'
+      : 'sink Warehouse {\n    type: "filesystem"\n    path: "out.json"\n  }';
+  return (
+    `Pipeline has no ${plural}. Found \`${written}\`, which is not a ${keyword} declaration — ` +
+    `a ${keyword} is a NAMED BLOCK, not a call. Write it as:\n  ${example}`
+  );
+}
+
 function parseInlineObjectLiteral(value: string): Record<string, unknown> | undefined {
   const trimmed = value.trim();
   if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return undefined;
@@ -908,11 +936,17 @@ function parsePipelineContent(
   ];
 
   // Validation
+  //
+  // "Pipeline has no sources" is true but useless when the author DID write a
+  // source and used a shape the parser does not accept — they read it as "the
+  // parser lost my source" and have nothing to correct. Distinguish the two:
+  // an absent stage and a stage written in an unrecognised form are different
+  // problems and only one of them is fixable from the message.
   if (sources.length === 0) {
-    errors.push({ message: 'Pipeline has no sources' });
+    errors.push({ message: unrecognisedStageMessage(content, 'source') });
   }
   if (sinks.length === 0) {
-    errors.push({ message: 'Pipeline has no sinks' });
+    errors.push({ message: unrecognisedStageMessage(content, 'sink') });
   }
 
   const pipeline: Pipeline = {

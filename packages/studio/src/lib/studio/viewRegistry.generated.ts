@@ -61,6 +61,7 @@ export const GENERATED_VIEW_IDS = [
   'liveProof',
   'agentEnsemble',
   'honestChart',
+  'twinProof',
   'eventMonitor',
   'verifiedView',
   'toolCallGraph',
@@ -821,6 +822,19 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     category: 'debug',
     defaultPlacement: 'right-rail',
     activationCommand: 'studio.view.honestChart.toggle',
+    workspaceScope: 'workspace',
+    availabilityGate: 'expert',
+    surfaceClass: 'lab',
+    defaultOpen: false,
+    exclusiveWith: [],
+  },
+  {
+    id: 'twinProof',
+    title: 'Twin Proof',
+    icon: 'ShieldCheck',
+    category: 'debug',
+    defaultPlacement: 'right-rail',
+    activationCommand: 'studio.view.twinProof.toggle',
     workspaceScope: 'workspace',
     availabilityGate: 'expert',
     surfaceClass: 'lab',
@@ -1620,6 +1634,10 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
   tutorial: {
     component: 'FirstLaunchTutorial',
     import: '@/components/wizard/FirstLaunchTutorial',
+  },
+  twinProof: {
+    component: 'TwinProofComponent',
+    import: '@/components/panels/native/twinProof.native',
   },
   undoHistory: {
     component: 'UndoHistorySidebar',

@@ -161,7 +161,7 @@ export default defineConfig({
       },
       {
         test: {
-          name: '@holoscript/hololand-platform',
+          name: '@hololand/platform-services',
           root: './packages/hololand-platform',
           include: ['src/**/*.test.ts'],
           exclude: ['**/dist/**', '**/node_modules/**'],

@@ -5,7 +5,39 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 // ---------------------------------------------------------------------------
 
 /** Wiring status for a single tool category returned by get_tool_health. */
-export type ToolWiringStatus = 'live' | 'scaffold' | 'stub';
+export type ToolWiringStatus = 'live' | 'scaffold' | 'stub' | 'unprobed';
+
+/**
+ * The dispatcher get_tool_health should ask.
+ *
+ * There are two in this server: the registry built in index.ts, which is what
+ * actually serves customers, and handlers.ts's own switch, which is narrower.
+ * The health probe was wired to the switch, so every tool registered through
+ * `registerCategory` — the entire compiler category among them — answered
+ * "Unknown tool" to the probe while working perfectly for customers. On
+ * 2026-08-16 that reported 61 of 65 compiler tools as absent; compile_to_r3f and
+ * compile_to_unity were both marked "not routed" and both worked when called.
+ *
+ * A tool whose job is telling customers what is real must read the same map the
+ * customers do. index.ts installs the registry-backed dispatcher here at startup;
+ * without it the probe falls back to whatever caller passes in.
+ */
+export type ToolDispatch = (name: string, args: Record<string, unknown>) => Promise<unknown>;
+
+let installedDispatch: ToolDispatch | null = null;
+
+/** Called once at startup by index.ts, where the customer-facing registry lives. */
+export function setToolHealthDispatcher(dispatch: ToolDispatch | null): void {
+  installedDispatch = dispatch;
+}
+
+export function getToolHealthDispatcher(): ToolDispatch | null {
+  return installedDispatch;
+}
+
+/** Tools per page when a caller scopes but does not set a limit. ~60 entries keeps
+ *  a response near 21 kB, comfortably inside the 60 kB a customer can consume. */
+const DEFAULT_MANIFEST_PAGE = 60;
 
 export interface ToolHealthEntry {
   /** Canonical tool name as registered in the MCP schema. */
@@ -35,6 +67,8 @@ export interface ToolHealthReport {
   live: number;
   scaffold: number;
   stub: number;
+  /** Reachable, but this probe had no arguments it could honestly supply. Not a defect claim. */
+  unprobed: number;
   tools: ToolHealthEntry[];
 }
 
@@ -42,10 +76,38 @@ export const toolingDiscoveryTools: Tool[] = [
   {
     name: 'get_tool_manifest',
     description:
-      'Return a machine-readable manifest of all available tools including categories, tags, input schemas, and output schemas.',
+      'Browse the tool surface. Called with no arguments it returns the CATEGORY INDEX ' +
+      '(counts per category, a few hundred bytes) rather than every tool — the full listing ' +
+      'is ~151 kB across 429 tools, more than most callers can hold. Scope it with `category` ' +
+      'or `pattern` to get tool entries, paged. Nothing is dropped silently: a truncated page ' +
+      'reports how many were withheld and the offset to continue from.',
     inputSchema: {
       type: 'object',
       properties: {
+        category: {
+          type: 'string',
+          description:
+            'Return tools in this category only (e.g. "compiler", "graph/codebase"). Call with no arguments first to see the available categories and their counts.',
+        },
+        pattern: {
+          type: 'string',
+          description:
+            'Return tools whose name, description or tags contain this text. Combines with `category`.',
+        },
+        limit: {
+          type: 'number',
+          description: `Maximum tool entries to return per page. Defaults to ${DEFAULT_MANIFEST_PAGE}, which keeps a response inside a typical context budget.`,
+        },
+        offset: {
+          type: 'number',
+          description:
+            'Skip this many matching tools before the page. Use the `nextOffset` value from a truncated response.',
+        },
+        all: {
+          type: 'boolean',
+          description:
+            'Return every matching tool with no paging. Use deliberately — unscoped this is ~151 kB.',
+        },
         includeInputSchema: {
           type: 'boolean',
           description: 'Include each tool input schema in the manifest response. Defaults to true.',
@@ -193,10 +255,49 @@ const HOLON_TOOL_PREFIXES: ReadonlyArray<{ prefix: string; holon: string; exact?
   { prefix: 'holo_graph_', holon: 'HoloGraph' },
   { prefix: 'holo_ci_dispatch', holon: 'HoloCI', exact: true },
   { prefix: 'compile_to_holob', holon: 'HoloVM', exact: true },
+  // HoloAbsorb ships most of its tools from @holoscript/absorb-service and is
+  // registered by provenance at startup (see registerHolonTools). These two prefixes
+  // are the stragglers that live in this package instead, so the brand holds even if
+  // the service is not loaded.
+  { prefix: 'absorb_', holon: 'HoloAbsorb' },
+  { prefix: 'holo_absorb_', holon: 'HoloAbsorb' },
+  { prefix: 'holo_cancel_absorb', holon: 'HoloAbsorb', exact: true },
+  { prefix: 'holo_get_absorb_status', holon: 'HoloAbsorb', exact: true },
 ];
 
 /** Look up a tool's holon by exact name or prefix match. Returns undefined when unknown. */
+/**
+ * Brand-by-provenance: which holon a tool belongs to because of the package it
+ * actually ships in, registered at startup by whoever imports that package.
+ *
+ * Stronger evidence than the prefix table below, which infers a brand from a name
+ * pattern. HoloAbsorb is the case that forced it: the registry lists it as an
+ * active holon whose `advertised_surfaces.mcp_tools` is true, its own entry says
+ * "legacy references to Absorb or Codebase Intelligence refer to this same
+ * product" — and no tool in the manifest carried the name. Its tools also do not
+ * share one prefix: `absorb_*`, `holo_absorb_*`, `holo_query_codebase`,
+ * `holo_semantic_search`, `holo_ask_codebase`, `holo_graph_status`. What they do
+ * share is that they all come out of @holoscript/absorb-service, so that is what
+ * gets asked.
+ */
+const EXPLICIT_HOLON_BY_TOOL = new Map<string, string>();
+
+/** Called at startup by the module that imports a holon's tool arrays. */
+export function registerHolonTools(holon: string, toolNames: readonly string[]): void {
+  for (const name of toolNames) {
+    if (name) EXPLICIT_HOLON_BY_TOOL.set(name, holon);
+  }
+}
+
+export function holonOf(name: string): string | undefined {
+  return inferHolon(name);
+}
+
 function inferHolon(name: string): string | undefined {
+  // Provenance wins over pattern.
+  const registered = EXPLICIT_HOLON_BY_TOOL.get(name);
+  if (registered) return registered;
+
   for (const { prefix, holon, exact } of HOLON_TOOL_PREFIXES) {
     if (exact ? name === prefix : name.startsWith(prefix)) return holon;
   }
@@ -647,10 +748,63 @@ const REPRESENTATIVE_TOOLS: Record<string, string[]> = {
  * Minimal "canary" argument sets for each tool: the smallest valid input that
  * should not touch external services or mutate state.
  */
+/**
+ * Tools that cannot be honestly probed, and why.
+ *
+ * Naming the reason is the point. `browser_screenshot: {}` used to sit in the
+ * canary table with the comment "will stub — no real browser in probe": the author
+ * knew it would fail and filed it anyway, so a known-unprobeable tool was counted
+ * as a defect on every run. A health report that includes failures its own author
+ * expected is teaching readers to discount it.
+ */
+const UNPROBEABLE: Record<string, string> = {
+  browser_screenshot:
+    'needs a live browser session id, which this probe cannot create — not a defect claim',
+  compile_to_rom_twin:
+    'needs a real model or a known modelId; nothing meaningful can be invented — not a defect claim',
+
+  // Need a prior job, session or download that only a real workflow produces. Asking
+  // them about an invented id gets a correct "not found", which is an answer about the
+  // id, not about the tool.
+  get_compilation_status: 'needs the id of a real compile job — an invented one correctly 404s',
+  sim_fleet_status: 'needs the id of a real simulation job — an invented one correctly 404s',
+  holo_reconstruct_step: 'needs a live reconstruction session and real frame data',
+  holo_reconstruct_anchor: 'needs a live reconstruction session',
+  holo_reconstruct_export: 'needs a live reconstruction session',
+  holoshell_download_recovery_forensic_export: 'needs a real interrupted download to report on',
+  holo_detect_changes: 'needs a previously captured graph to diff against',
+
+  // Need real media bytes. A made-up base64 payload tests the decoder, not the tool.
+  holo_hologram_from_media: 'needs real image or video bytes',
+  holo_hologram_compile_quilt: 'needs real image or video bytes',
+  holo_hologram_compile_mvhevc: 'needs real image or video bytes',
+  holo_hologram_render: 'needs real image or video bytes',
+  holo_hologram_get_asset: 'needs the hash of an asset that already exists',
+
+  // Need domain-shaped input this probe should not invent. Each states exactly what,
+  // taken from the tool's own refusal — a curated fixture from whoever owns the domain
+  // would make these probeable, and that is a better answer than a guessed one.
+  compile_to_sdk: 'needs HoloScript declaring at least one service endpoint block',
+  compile_to_nft_marketplace: 'needs HoloScript declaring marketplace contracts',
+  explain_fairness_receipt: 'needs a real FairnessReceipt, not an empty object',
+  fairness_sweep: 'needs a cohort of { group, label, score, features } rows and a real model',
+  solve_structural: 'needs a TET10 mesh — elements of exactly 10 node indices',
+};
+
 const CANARY_ARGS: Record<string, Record<string, unknown>> = {
   parse_hs: { code: 'object Cube { geometry: "cube" }' },
   parse_holo: { code: 'composition "S" { object "C" { geometry: "cube" } }' },
-  parse_pipeline: { source: 'step "a" { tool: "parse_hs" }' },
+  // Was `{ source: 'step "a" { ... }' }` — the wrong argument name AND the wrong
+  // shape, so parse_pipeline failed its own canary and was reported broken while
+  // working. A curated canary is the thing this probe convicts on; it has to be right.
+  parse_pipeline: {
+    code: [
+      'pipeline "Canary" {',
+      '  source A { type: "filesystem" path: "in.csv" }',
+      '  sink B { type: "filesystem" path: "out.json" }',
+      '}',
+    ].join('\n'),
+  },
   validate_holoscript: { code: 'composition "S" { object "C" { geometry: "cube" } }' },
   compile_holoscript: {
     code: 'composition "S" { object "C" { geometry: "cube" } }',
@@ -660,14 +814,40 @@ const CANARY_ARGS: Record<string, Record<string, unknown>> = {
   hs_ai_explain_error: { code: 'object Cube { geometry: "cube" }', errors: [] },
   hs_diagnostics: { code: 'object Cube { geometry: "cube" }' },
   holomesh_status: {},
-  browser_screenshot: {}, // will stub — no real browser in probe
   get_agent_health: {},
   holoscript_code_health: { code: 'object Cube { geometry: "cube" }' },
   list_plugins: {},
-  get_creator_earnings: {},
-  settle_creator_payout: {},
-  verify_cael_trace: { trace: [] },
+  // `verify_cael_trace: { trace: [] }` — wrong argument name. The tool takes
+  // `traceJSONL` or `traceId`; `trace` was ignored, so it refused for lack of input
+  // and the refusal was filed as a defect. Same class of error as parse_pipeline's
+  // canary passing `source` to a tool that wants `code`.
+  verify_cael_trace: { traceJSONL: '{"event":"start","span":"canary"}' },
   holotune_status: {},
+
+  // These five compile a domain block. `properties` is the direct path — verified
+  // 2026-08-16 against the live anchor, all five returned success with a compiled
+  // block. They were reported broken only because they were called with nothing,
+  // and their schemas declare `required: []` while actually needing code OR
+  // properties, so nothing could be derived either.
+  holoscript_compile_robotics: { properties: { name: 'Canary' } },
+  holoscript_compile_iot: { properties: { name: 'Canary' } },
+  holoscript_compile_music: { properties: { name: 'Canary' } },
+  holoscript_compile_education: { properties: { name: 'Canary' } },
+  holoscript_compile_healthcare: { properties: { name: 'Canary' } },
+  holoscript_map_schema: { name: 'Canary', fields: [{ name: 'id', type: 'string' }] },
+  holo_protocol_lookup: { contentHash: 'canary' },
+
+  // Verified against the live anchor 2026-08-16 before being written down. Each of
+  // these was previously refusing arguments the probe had invented; these are inputs
+  // the tool actually accepts, so the probe now exercises the real path.
+  //   solve_logic          → {success:true, result:3, verified:true} with a cael trace
+  //   solve_thermal        → a 3×3×3 temperature grid
+  //   conformance_check…   → {success:true, report:{…}}
+  //   holo_task_kolmogorov → {score:0, mdlBytes:35, baselineBytes:35, ratio:1}
+  solve_logic: { code: 'function add(a, b) { return a + b; }', functionName: 'add', args: [1, 2] },
+  solve_thermal: { config: {} },
+  conformance_check_artifact: { artifactKind: 'world', artifactId: 'canary', artifact: {} },
+  holo_task_kolmogorov_score: { taskDescription: 'add two numbers', agentContext: {} },
   holotune_curate: {
     identity: 'canary',
     traceRows: [{ user: 'say hello', target: '<tool_call>{"name":"noop"}</tool_call>' }],
@@ -712,13 +892,245 @@ const CANARY_ARGS: Record<string, Record<string, unknown>> = {
  *   - If result has `success: false` and an `error` field → scaffold
  *   - Otherwise → live
  */
+/**
+ * Invent a minimal, plausible argument set from a tool's own declared schema.
+ *
+ * Only 34 of 429 tools had curated canary arguments; the rest were probed with
+ * `{}`. A tool that correctly rejects a call with no arguments then threw
+ * "Missing required string argument: code" and was recorded as broken — so the
+ * probe was rewarding tools that skip input validation and punishing the ones
+ * that do it. parse_pipeline was marked "scaffold" on the same day it was
+ * verified working end to end.
+ *
+ * Returns null when the required arguments cannot be honestly guessed (an object
+ * or array the tool will interpret), so the caller can say "not probed" instead
+ * of inventing a failure. Blindness declared beats a confident wrong verdict.
+ */
+/**
+ * Would calling this tool with invented arguments change something?
+ *
+ * Deriving arguments from a schema made the probe able to actually EXECUTE tools
+ * it previously only failed to call — including `holo_write_file`, whose required
+ * fields are two plain strings the synthesizer fills in happily. Nothing was
+ * written when this was caught on 2026-08-16, but that was luck: a health check
+ * must not be able to write a file, delete a record, send a message or spend
+ * money. Diagnostics that mutate are worse than no diagnostics.
+ *
+ * Errs toward refusing: an unprobed tool costs a gap in a report, a wrongly
+ * probed one costs whatever it did. Curated canary arguments are exempt because a
+ * human chose them for a specific tool and vouched for the consequence.
+ */
+export function mayMutate(toolName: string, description?: string): boolean {
+  // Product prefixes are brand names, not operations. Strip them first, or the
+  // brand gets read as a verb: `absorb_query`, `absorb_diff` and
+  // `absorb_list_projects` are all READS, and all three were blocked because
+  // "absorb" appears in the mutating-verb list for `absorb_run_absorb`'s sake.
+  // Seventeen tools were locked out by a product name.
+  const PRODUCT_PREFIXES = [
+    'holoshell_download_recovery_', 'holoshell_', 'hololand_', 'holomesh_',
+    'holotune_', 'twin_earth_', 'holoscript_', 'absorb_', 'holo_', 'hs_', 'sim_',
+  ];
+  let name = toolName.toLowerCase();
+  for (const prefix of PRODUCT_PREFIXES) {
+    if (name.startsWith(prefix)) {
+      name = name.slice(prefix.length);
+      break;
+    }
+  }
+
+  const segments = new Set(name.split(/[^a-z]+/).filter(Boolean));
+
+  // Verbs that act on the world.
+  const MUTATING = [
+    'write', 'edit', 'create', 'update', 'delete', 'remove', 'revoke', 'grant',
+    'publish', 'send', 'post', 'commit', 'push', 'deploy', 'restart', 'launch',
+    'install', 'uninstall', 'set', 'assign', 'claim', 'complete', 'add',
+    'settle', 'payout', 'purchase', 'buy', 'mint', 'transfer', 'spend',
+    'provision', 'register', 'promote', 'graduate', 'train', 'absorb',
+    'run', 'execute', 'invoke', 'apply', 'store', 'save', 'upload',
+    'import', 'ingest', 'move', 'reset', 'clear', 'stop', 'cancel', 'kill',
+    'actuate', 'quarantine', 'tick', 'steward', 'scaffold', 'delegate',
+    // Found 2026-08-16 while auditing what was still unprobed: `holomesh_team_form`
+    // FORMS a team and `conformance_admit_artifact` ADMITS one. Both change state,
+    // neither verb was listed, and both were sitting in the probeable pile. Reviewing
+    // the leftovers found guard gaps, not just coverage gaps.
+    'form', 'admit', 'resume',
+  ];
+  if (MUTATING.some((verb) => segments.has(verb))) return true;
+
+  // Verbs that only ever look. When the operation is plainly a read, a description
+  // mentioning "creates" is describing what the tool REPORTS ON, not what it does —
+  // that is how `holo_get_node_connections`, which parses code and walks a graph,
+  // ended up classed as state-changing.
+  const READ_ONLY = [
+    'get', 'list', 'query', 'read', 'find', 'search', 'explain', 'describe',
+    'inspect', 'parse', 'validate', 'check', 'status', 'diff', 'suggest',
+    'verify', 'analyze', 'estimate', 'discover', 'recall', 'lookup', 'health',
+  ];
+  if (READ_ONLY.some((verb) => segments.has(verb))) return false;
+
+  const text = String(description ?? '').toLowerCase();
+  return /\b(writes?|creates?|deletes?|modifies|mutates?|persists?|sends?|charges?)\b/.test(text);
+}
+
+/**
+ * Does calling this tool cost real money?
+ *
+ * Distinct from mutation and worth its own answer. `generate_object` and its
+ * thirteen siblings change nothing — they compute and return — but they reach an
+ * inference provider, and a health check that sweeps 429 tools would bill for every
+ * one of them on every run. Blocked for a different reason, and the report says
+ * which, because "we don't probe this because it costs money" and "we don't probe
+ * this because it could delete something" are different facts about a tool.
+ */
+export function mayCost(toolName: string, description?: string): boolean {
+  const name = toolName.toLowerCase();
+  const segments = new Set(name.split(/[^a-z]+/).filter(Boolean));
+  // `holo_critic` returned {verdict:"NOT_READY","No LLM providers are configured"} on
+  // the anchor — it looks free only because this node has no provider wired. On a node
+  // that does, sweeping it bills. Judge by what the tool needs, not by what this
+  // particular machine happens to lack.
+  if (segments.has('paid') || segments.has('generate') || segments.has('critic')) return true;
+  if (name.includes('_ai_')) return true;
+  const text = String(description ?? '').toLowerCase();
+  return /\b(llm|inference|credits?|billed|costs? (real )?money|token budget)\b/.test(text);
+}
+
+/**
+ * Is this message a permission refusal rather than a fault?
+ *
+ * "ForkSandboxGate denied tool X: Capability missing" means the gate did its job on
+ * a caller without the capability. The tool is fine and probably works for someone
+ * who is allowed to run it — which is a different report from "this is broken", and
+ * the only one that is true.
+ */
+export function isDenial(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    /\bdenied\b/.test(m) ||
+    /\bcapability (missing|required|not)\b/.test(m) ||
+    /\b(unauthori[sz]ed|forbidden|not permitted|permission denied)\b/.test(m) ||
+    /\binsufficient (scope|permission|capability)\b/.test(m)
+  );
+}
+
+export function synthesizeCanaryArgs(schema: unknown): Record<string, unknown> | null {
+  const root = schema as { properties?: Record<string, unknown>; required?: unknown } | undefined;
+  const properties = root?.properties;
+  if (!properties || typeof properties !== 'object') return {};
+
+  const required = Array.isArray(root?.required) ? (root.required as string[]) : [];
+  if (required.length === 0) return {};
+
+  const args: Record<string, unknown> = {};
+  for (const key of required) {
+    const spec = properties[key] as
+      | { type?: string; enum?: unknown[]; items?: { type?: string } }
+      | undefined;
+    if (!spec) return null;
+
+    if (Array.isArray(spec.enum) && spec.enum.length > 0) {
+      args[key] = spec.enum[0];
+      continue;
+    }
+
+    switch (spec.type) {
+      case 'string':
+        args[key] = placeholderForStringArg(key);
+        break;
+      case 'number':
+      case 'integer':
+        args[key] = 1;
+        break;
+      case 'boolean':
+        args[key] = false;
+        break;
+      case 'array':
+        // An empty array is a legitimate, inert value for a required list.
+        args[key] = [];
+        break;
+      default:
+        // object / unknown: whatever we invent, the tool will try to interpret,
+        // and a wrong guess produces a fake failure. Refuse to guess.
+        return null;
+    }
+  }
+  return args;
+}
+
+/** Name-aware placeholders, so a required `code` gets source and a `path` gets a path. */
+function placeholderForStringArg(key: string): string {
+  const k = key.toLowerCase();
+  if (k === 'code' || k === 'source' || k === 'src') return 'orb Cube { geometry: "cube" }';
+  if (k.includes('path') || k.includes('file')) return 'example.holo';
+  if (k.includes('query') || k.includes('question')) return 'health canary';
+  if (k.includes('goal') || k.includes('prompt') || k.includes('description')) return 'a simple cube';
+  if (k.includes('url')) return 'https://example.com';
+  if (k.includes('id')) return 'canary';
+  return 'canary';
+}
+
 async function probeOneTool(
   toolName: string,
-  dispatch: (name: string, args: Record<string, unknown>) => Promise<unknown>
+  dispatch: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+  schema?: unknown,
+  describedAs?: string
 ): Promise<ToolHealthEntry> {
   const category = inferCategory(toolName);
   const now = new Date().toISOString();
-  const args = CANARY_ARGS[toolName] ?? {};
+
+  // The state-change guard is ABSOLUTE — a curated entry does not buy an exemption.
+  // `settle_creator_payout: {}` sat in the canary table for months, so every health
+  // check called a payout function and only a capability gate stood in the way.
+  // Nobody curates their way past that. holotune_launch and holotune_promote were
+  // in the same position; between them the cost of this rule is three tools of
+  // coverage, all three of which a diagnostic has no business calling.
+  if (mayMutate(toolName, describedAs)) {
+    return {
+      tool: toolName,
+      category,
+      status: 'unprobed',
+      last_checked: now,
+      reason:
+        'not probed: this tool can change state, and a health check must never do that. ' +
+        'Its health has to be established somewhere that can undo the consequence.',
+    };
+  }
+  if (mayCost(toolName, describedAs)) {
+    return {
+      tool: toolName,
+      category,
+      status: 'unprobed',
+      last_checked: now,
+      reason:
+        'not probed: reaching an inference provider costs money, and a sweep of the whole ' +
+        'surface would bill for it on every run. Changes nothing — just not free to ask.',
+    };
+  }
+
+  // Some tools cannot be probed without something the probe has no way to conjure —
+  // a live browser session, a trained model. Naming them is honest; calling them with
+  // invented arguments and recording the refusal as a defect is not.
+  const unprobeable = UNPROBEABLE[toolName];
+  if (unprobeable) {
+    return { tool: toolName, category, status: 'unprobed', last_checked: now, reason: unprobeable };
+  }
+
+  const curated = CANARY_ARGS[toolName];
+  const args = curated ?? synthesizeCanaryArgs(schema);
+
+  if (args === null) {
+    return {
+      tool: toolName,
+      category,
+      status: 'unprobed',
+      last_checked: now,
+      reason:
+        'requires an object or array argument this probe cannot honestly invent — ' +
+        'not probed, so no claim is made either way',
+    };
+  }
+  const argSource = curated ? 'curated' : Object.keys(args).length ? 'schema-derived' : 'no-args';
 
   let status: ToolWiringStatus;
   let reason: string;
@@ -731,29 +1143,65 @@ async function probeOneTool(
       reason = 'dispatch returned null — tool name not wired in handler switch';
     } else {
       const r = result as Record<string, unknown>;
-      if (r['success'] === false && typeof r['error'] === 'string') {
-        status = 'scaffold';
-        reason = `handler reachable but returned success:false — ${String(r['error']).slice(0, 120)}`;
+      if (r['success'] === false && typeof r['error'] === 'string' && isDenial(String(r['error']))) {
+        // A gate refusing an uncapable caller is the gate WORKING. Filing it as a
+        // broken tool both slanders the tool and buries the fact that four of the
+        // twelve "broken" tools on 2026-08-16 were simply not permitted to this probe.
+        status = 'unprobed';
+        reason = `reachable; this caller is not permitted to run it — ${String(r['error']).slice(0, 100)}`;
+      } else if (r['success'] === false && typeof r['error'] === 'string') {
+        // A rejection of OUR invented arguments is a fact about the arguments, not
+        // about the tool. A tool called correctly — curated canary, or one that
+        // needs no arguments — returning success:false is a real finding.
+        if (argSource === 'schema-derived') {
+          status = 'unprobed';
+          reason = `reachable; rejected this probe's invented arguments — ${String(r['error']).slice(0, 100)}`;
+        } else {
+          status = 'scaffold';
+          reason = `handler reachable but returned success:false — ${String(r['error']).slice(0, 120)}`;
+        }
       } else {
         status = 'live';
-        reason = 'canary probe returned non-null result with expected shape';
+        reason = `answered a ${argSource} probe with a usable result`;
       }
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     const lower = msg.toLowerCase();
-    if (
-      lower.includes('not implemented') ||
-      lower.includes('not wired') ||
-      lower.includes('unsupported tool') ||
-      lower.includes('unknown tool') ||
-      lower.includes('unrecognized')
-    ) {
+
+    // Match the SHAPE of an unroutable-tool error, not one exact phrasing.
+    // These were literal substrings, and the real message is "Unknown graph tool:
+    // holo_write_file" — the word "graph" sits between "unknown" and "tool", so
+    // `includes('unknown tool')` missed it and an absent tool was reported as
+    // "scaffold". By this file's own definitions that is the wrong verdict: stub is
+    // "handler not wired / unconditionally throws", scaffold is "returns a stub/
+    // empty payload". A customer reads scaffold as partially-built rather than
+    // absent — which is the fictional-route problem this tool exists to expose,
+    // mislabelled by the tool that found it.
+    const unroutable =
+      /\bunknown\b[\w\s-]*\btools?\b/.test(lower) ||
+      /\bunsupported\b[\w\s-]*\btools?\b/.test(lower) ||
+      /\bno such tool\b/.test(lower) ||
+      /\bnot (implemented|wired|registered|routed|recognized)\b/.test(lower) ||
+      lower.includes('unrecognized');
+
+    if (unroutable) {
       status = 'stub';
-      reason = `handler throws "not implemented" — ${msg.slice(0, 120)}`;
+      reason = `handler does not route this tool — ${msg.slice(0, 120)}`;
+    } else if (isDenial(msg)) {
+      // Same as the success:false branch: a gate refusing this caller is not a fault.
+      status = 'unprobed';
+      reason = `reachable; this caller is not permitted to run it — ${msg.slice(0, 100)}`;
+    } else if (argSource === 'schema-derived') {
+      // It threw on arguments this probe invented. That is not evidence the tool is
+      // broken — rejecting bad input is what a correct tool does. Say we do not know.
+      // NOTE this deliberately does NOT cover the no-args case: a tool that declares
+      // no required arguments WAS called correctly, so a throw there is a real finding.
+      status = 'unprobed';
+      reason = `reachable; threw on this probe's invented arguments — ${msg.slice(0, 100)}`;
     } else {
-      // Threw for another reason: missing required arg, parser error, etc.
-      // The handler IS reachable; the underlying path is incomplete.
+      // Called correctly — either a curated canary or a tool needing no arguments —
+      // and it still threw. The handler is reachable and the path behind it is broken.
       status = 'scaffold';
       reason = `handler reachable but threw: ${msg.slice(0, 120)}`;
     }
@@ -777,7 +1225,9 @@ export async function buildToolHealthReport(
   requestedTools: string[],
   allRegistered: string[],
   dispatch: (name: string, args: Record<string, unknown>) => Promise<unknown>,
-  includeStubs = true
+  includeStubs = true,
+  /** Full tool definitions, so each probe can derive arguments from the tool's own schema. */
+  schemas: ReadonlyArray<Pick<Tool, 'name' | 'inputSchema' | 'description'>> = []
 ): Promise<ToolHealthReport> {
   const checkedAt = new Date().toISOString();
 
@@ -800,6 +1250,10 @@ export async function buildToolHealthReport(
   }
 
   const registeredSet = new Set(allRegistered);
+  const schemaOf = new Map(schemas.map((t) => [t.name, t.inputSchema as unknown]));
+  const descriptionOf = new Map(
+    schemas.map((t) => [t.name, (t as { description?: string }).description])
+  );
 
   // Probe in parallel (bounded; representative set is ~20 tools max).
   const entries: ToolHealthEntry[] = await Promise.all(
@@ -814,7 +1268,7 @@ export async function buildToolHealthReport(
           reason: 'tool name not found in MCP tool registry',
         };
       }
-      return probeOneTool(toolName, dispatch);
+      return probeOneTool(toolName, dispatch, schemaOf.get(toolName), descriptionOf.get(toolName));
     })
   );
 
@@ -823,6 +1277,7 @@ export async function buildToolHealthReport(
   const live = visible.filter((e) => e.status === 'live').length;
   const scaffold = visible.filter((e) => e.status === 'scaffold').length;
   const stub = visible.filter((e) => e.status === 'stub').length;
+  const unprobed = visible.filter((e) => e.status === 'unprobed').length;
 
   return {
     checked_at: checkedAt,
@@ -830,6 +1285,7 @@ export async function buildToolHealthReport(
     live,
     scaffold,
     stub,
+    unprobed,
     tools: visible,
   };
 }
@@ -844,6 +1300,10 @@ export async function handleToolingDiscoveryTool(
       count: number;
       categories: Record<string, number>;
       tools: ToolManifestEntry[];
+      /** Present whenever entries were withheld — says what and how to get them. */
+      note?: string;
+      /** Offset to pass back for the next page; absent when nothing is left. */
+      nextOffset?: number;
     }
   | {
       goal: string;
@@ -878,10 +1338,79 @@ export async function handleToolingDiscoveryTool(
     const categories: Record<string, number> = {};
     for (const item of manifest) categories[item.category] = (categories[item.category] || 0) + 1;
 
+    // 429 tools is 151 kB even with every schema and example switched off — more
+    // than the LLM that is this tool's primary consumer can hold. Returning all of
+    // it was not "complete", it was unusable.
+    //
+    // So the default is now the CATEGORY INDEX (about 200 bytes): enough to navigate,
+    // small enough to read. Tool entries arrive when the caller scopes the request.
+    // Nothing is ever silently dropped — a truncated page says so and says how to
+    // get the rest, because silent truncation reads as "that is everything".
+    const category = typeof args.category === 'string' ? args.category.trim() : '';
+    const pattern = typeof args.pattern === 'string' ? args.pattern.trim().toLowerCase() : '';
+    const offset = typeof args.offset === 'number' && args.offset > 0 ? Math.floor(args.offset) : 0;
+    const limit =
+      typeof args.limit === 'number' && args.limit > 0 ? Math.floor(args.limit) : DEFAULT_MANIFEST_PAGE;
+
+    if (!category && !pattern && args.all !== true) {
+      return {
+        count: manifest.length,
+        categories,
+        tools: [],
+        note:
+          `${manifest.length} tools across ${Object.keys(categories).length} categories. The full listing is ~151 kB, ` +
+          `which is more than most callers can consume, so it is not returned by default. ` +
+          `Scope it: {"category":"compiler"} or {"pattern":"parse"}. Pass {"all":true} only if you genuinely want every entry.`,
+      };
+    }
+
+    let scoped = manifest;
+    if (category) scoped = scoped.filter((t) => t.category === category);
+    if (pattern) {
+      scoped = scoped.filter(
+        (t) =>
+          t.name.toLowerCase().includes(pattern) ||
+          String(t.description ?? '').toLowerCase().includes(pattern) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(pattern))
+      );
+    }
+
+    // A scope that matches nothing must say WHY, not just return an empty list. An
+    // empty array reads as "that category is empty" when the real answer is usually
+    // "that category does not exist" — and the category index is right there in the
+    // same response to correct it with.
+    if (scoped.length === 0) {
+      const knownCategory = !category || Object.prototype.hasOwnProperty.call(categories, category);
+      return {
+        count: 0,
+        categories,
+        tools: [],
+        note: knownCategory
+          ? `No tool matched${category ? ` category "${category}"` : ''}${pattern ? ` pattern "${pattern}"` : ''}. The categories that do have tools are listed above.`
+          : `There is no category "${category}". The available categories are listed above.`,
+      };
+    }
+
+    if (args.all === true) {
+      return { count: scoped.length, categories, tools: scoped };
+    }
+
+    const page = scoped.slice(offset, offset + limit);
+    const shown = offset + page.length;
+    const truncated = shown < scoped.length;
+
     return {
-      count: manifest.length,
+      count: scoped.length,
       categories,
-      tools: manifest,
+      tools: page,
+      ...(truncated
+        ? {
+            note:
+              `Showing ${offset + 1}-${shown} of ${scoped.length} matching tools. ` +
+              `${scoped.length - shown} not shown — request them with {"offset":${shown}}.`,
+            nextOffset: shown,
+          }
+        : {}),
     };
   }
 
@@ -913,7 +1442,7 @@ export async function handleToolingDiscoveryTool(
       : [];
     const includeStubs = args.includeStubs !== false;
     const allRegistered = allTools.map((t) => t.name);
-    return buildToolHealthReport(requestedTools, allRegistered, dispatch, includeStubs);
+    return buildToolHealthReport(requestedTools, allRegistered, dispatch, includeStubs, allTools);
   }
 
   return null;

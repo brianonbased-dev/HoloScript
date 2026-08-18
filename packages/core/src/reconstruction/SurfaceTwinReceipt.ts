@@ -168,6 +168,23 @@ export function applyProjectionTransform(
 }
 
 /**
+ * Can this projection be compared against a twin at all?
+ *
+ * True for a transform-free IDENTITY bind (raw compares directly) and for a FORMATTED bind whose
+ * declared transform can be re-applied to the authoritative value (Slice 3). False for
+ * @chart/@sparkline/@each/@model, which carry no scalar value transform — those abstain rather
+ * than guess. Says nothing about whether an `entity` is declared; that is a separate question.
+ *
+ * Exported because the checker is no longer the only consumer: LiveProofTwinCheck asks the same
+ * question when deciding whether a projection can ANCHOR a @live_proof claim's input. Two copies
+ * of this predicate would drift into a claim calling itself `verified` on the strength of a
+ * projection this checker actually abstains on — so there is one.
+ */
+export function isTwinCheckable(projection: SurfaceTwinProjection): boolean {
+  return projection.identity || projection.transform !== undefined;
+}
+
+/**
  * Check a surface's entity-bound projections against the authoritative twin state. FALSIFIED on
  * any divergence between a displayed value and its twin's truth; non-identity/entity-less/
  * missing cases abstain with a declared reason. sha256-bound.
@@ -188,7 +205,7 @@ export function checkSurfaceTwinCorrespondence(input: SurfaceTwinInput): Surface
     // can re-apply (Slice 3). @chart/@sparkline/@each/@model carry no scalar value transform → they
     // still abstain (refuse, don't guess).
     const transform = p.transform;
-    if (!p.identity && !transform) {
+    if (!isTwinCheckable(p)) {
       abstentions.push({ node: p.node, entity: p.entity, reason: 'non-identity-transform' });
       continue;
     }

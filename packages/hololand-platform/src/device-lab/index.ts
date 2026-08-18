@@ -68,7 +68,7 @@ export interface DeviceLabReceipt {
   receiptId: string;
   taskId?: string;
   createdAt: string;
-  generatedBy: '@holoscript/hololand-platform/device-lab';
+  generatedBy: '@hololand/platform-services/device-lab';
   command: string;
   host: RuntimeInventory;
   checks: ProbeCheck[];
@@ -206,7 +206,7 @@ export function runDeviceLabProbe(options: DeviceLabOptions = {}): DeviceLabRece
     schemaVersion: 'hololand-device-lab-receipt/v1',
     ...(options.taskId ? { taskId: options.taskId } : {}),
     createdAt: now,
-    generatedBy: '@holoscript/hololand-platform/device-lab',
+    generatedBy: '@hololand/platform-services/device-lab',
     command: options.command ?? 'hololand-device-lab',
     host: collectRuntimeInventory(options),
     checks,

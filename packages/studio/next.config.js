@@ -221,6 +221,15 @@ const nextConfig = {
     'onnxruntime-node',
     'webgpu',
     '@holoscript/snn-webgpu',
+    // Reads secrets from the OS keychain/filesystem — node:os, node:crypto,
+    // node:fs/promises, node:child_process. `@holoscript/config` lazily imports it
+    // (a dynamic import(), correctly preserved through its tsup emit), but webpack
+    // still resolves a dynamic import's target at build time, so the Node built-ins
+    // landed in a bundle that has none and every page 500'd with
+    // "Module not found: Can't resolve 'os'". Externalizing makes the node runtime
+    // require it instead of bundling it. See also src/instrumentation.ts, which must
+    // keep its `@holoscript/config` import dynamic and inside the nodejs guard.
+    '@holoscript/secrets-broker',
   ],
   transpilePackages: [
     '@holoscript/studio-plugin-sdk',

@@ -24,7 +24,7 @@
  * becoming a PlayableChallenge.
  *
  * @version 1.0.0
- * @module @holoscript/hololand-platform/creator
+ * @module @hololand/platform-services/creator
  */
 
 import {

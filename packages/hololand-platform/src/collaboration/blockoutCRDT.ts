@@ -5,7 +5,7 @@
  * (`blockout:<id>`) with position = center and scale = 2 × half-extents,
  * suitable for greybox / layout sync across HoloLand peers.
  *
- * @module @holoscript/hololand-platform/collaboration
+ * @module @hololand/platform-services/collaboration
  */
 
 import { SpatialCRDTBridge } from '@holoscript/crdt-spatial/bridge';
