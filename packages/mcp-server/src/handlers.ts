@@ -34,6 +34,7 @@ import {
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
+import { runCompileFanout } from './compileFanout.js';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
 import { EXAMPLE_CATALOG, EXAMPLE_INVENTORY, PUBLIC_LINK_POLICIES } from './examples-catalog';
 import { handleCodebaseTool, handleGraphRagTool } from '@holoscript/absorb-service/mcp';
@@ -396,6 +397,8 @@ export async function handleTool(
       return handleParsePipeline(args);
     case 'compile_pipeline':
       return handleCompilePipeline(args);
+    case 'compile_fanout':
+      return runCompileFanout(args as { jobId: string; code: string; targets: string[] });
     case 'validate_holoscript':
       return handleValidate(args);
     case 'list_traits':
