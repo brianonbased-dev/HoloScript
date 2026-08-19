@@ -96,4 +96,30 @@ describe('workspace-scoped codebase cache storage', () => {
     expect(paths.graphFile).toBe(path.join(cacheDir, 'graph-cache.json'));
     expect(paths.embeddingsFile).toBe(path.join(cacheDir, 'embeddings-cache.bin'));
   });
+it('gives one physical tree one identity, however it is spelled', (ctx) => {
+    // The exact fault this guards: C:\Users\josep\.ai-ecosystem is a symlink to
+    // C:\holo-dev\ai-ecosystem. Absorbing via one spelling wrote a graph that the
+    // query side -- resolving the other -- could not see, so absorb reported
+    // success and the query answered "no codebase graph loaded" or served a
+    // month-old cache. path.resolve does not follow links; realpath does.
+    const realRoot = path.join(cacheDir, 'real-tree');
+    fs.mkdirSync(realRoot, { recursive: true });
+    const linkRoot = path.join(cacheDir, 'linked-tree');
+    try {
+      // 'junction' needs no elevation on Windows; 'dir' elsewhere.
+      fs.symlinkSync(realRoot, linkRoot, process.platform === 'win32' ? 'junction' : 'dir');
+    } catch {
+      // Never pass vacuously: if this environment cannot make a link, the test
+      // must read as SKIPPED, not as green.
+      ctx.skip();
+      return;
+    }
+
+    const viaReal = resolveCodebaseCachePaths(realRoot);
+    const viaLink = resolveCodebaseCachePaths(linkRoot);
+
+    expect(viaLink.workspaceId).toBe(viaReal.workspaceId);
+    expect(viaLink.graphFile).toBe(viaReal.graphFile);
+    expect(viaLink.embeddingsFile).toBe(viaReal.embeddingsFile);
+  });
 });
