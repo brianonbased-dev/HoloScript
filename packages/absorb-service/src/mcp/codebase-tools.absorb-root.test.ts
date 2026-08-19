@@ -4313,6 +4313,86 @@ describe('holo_absorb_repo root validation', () => {
       toBeLessThanOrEqual(2);
   }, 30_000);
 
+  // The measured cause of the ai-ecosystem full-tree absorb never finishing.
+  //
+  // That tree is quiet -- zero scan candidates were touched in the hour before
+  // this was written. What kills the run is a single background heartbeat:
+  // receipts/holoclaw-sidecar.ndjson is appended on a 900-second timer (median
+  // gap 900.008s over 774 records since 2026-07-20), and it is untracked, which
+  // the coverage policy includes by default. An 11-minute absorb therefore has
+  // roughly a 73% chance of containing a tick, and the tick invalidates the pin.
+  //
+  // The gate is right to refuse -- something the graph describes did change.
+  // The mistake is that an operational log was ever a scan candidate. This
+  // proves the fix is configuration, available today, and needs no code change:
+  // name the log's directory in scanPolicy.exclude.
+  it('finishes when a heartbeat file in an excluded directory ticks mid-absorb', async () => {
+    const runWithHeartbeat = async (scanPolicy?: Record<string, unknown>) => {
+      resetCodebaseToolStateForTests();
+      const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-heartbeat-cache-'));
+      const repoDir = makeTinyGitRepo('holoscript-heartbeat-repo-');
+      // Untracked, exactly like the real one, and inside a directory that holds
+      // operational output rather than source.
+      fs.mkdirSync(path.join(repoDir, 'receipts'), { recursive: true });
+      fs.writeFileSync(
+        path.join(repoDir, 'receipts', 'sidecar.ndjson'),
+        '{"tick":0}\n',
+        'utf-8'
+      );
+
+      process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+      process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+      process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
+      writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, getHeadCommit(repoDir), 1);
+
+      const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+      vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return originalScanFiles.apply(this, args);
+      });
+
+      const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+        rootDir: repoDir,
+        outputFormat: 'stats',
+        scanBatchSize: 1,
+        maxFiles: 20_000,
+        // exclude/languages/includeUntracked are TOP-LEVEL tool arguments --
+        // buildScanPolicyFromArgs reads args.exclude directly. Nesting them under
+        // a scanPolicy object is silently ignored.
+        ...(scanPolicy ?? {}),
+      })) as { accepted?: boolean; jobId?: string };
+      expect(accepted).toMatchObject({ accepted: true });
+
+      for (let index = 0; index < 100; index++) {
+        const progress = (await handleCodebaseTool('holo_get_absorb_status', {
+          jobId: accepted.jobId,
+        })) as { refreshProgressReceipt?: { completedBatchCount?: number } };
+        if ((progress.refreshProgressReceipt?.completedBatchCount ?? 0) >= 1) break;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      // The heartbeat ticks, as it does every fifteen minutes regardless of us.
+      fs.appendFileSync(path.join(repoDir, 'receipts', 'sidecar.ndjson'), '{"tick":1}\n');
+
+      const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
+      vi.restoreAllMocks();
+      return status;
+    };
+
+    // Without the exclusion the tick destroys the run -- this is today's behaviour
+    // and the reason the test is not vacuous.
+    const unprotected = await runWithHeartbeat();
+    expect(String(unprotected.error ?? '')).toContain(
+      'Repository worktree changed during absorb refresh'
+    );
+
+    // Naming the directory is the whole fix.
+    const protectedRun = await runWithHeartbeat({ exclude: ['receipts'] });
+    expect(String(protectedRun.error ?? '')).not.toContain(
+      'Repository worktree changed during absorb refresh'
+    );
+    expect(protectedRun).toMatchObject({ status: 'complete' });
+  }, 60_000);
+
   it('automatically replans a forced refresh when HEAD advances between scan batches', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-head-retry-cache-'));
