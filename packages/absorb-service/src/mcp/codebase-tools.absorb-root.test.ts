@@ -6059,7 +6059,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       graphFileCount: 1,
       receipt: { schema: 'LocalCodebaseSnapshotReceipt.v1' },
     });
-  }, 15_000);
+  });
 
   it('rejects a local receipt when declared hash does not match replay content', async () => {
     resetCodebaseToolStateForTests();
@@ -6110,7 +6110,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     });
     expect(result.stats?.totalFiles).toBe(1);
     expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(1);
-  }, 15_000);
+  });
 
   it('preserves rootDir as graph provenance when sourceFiles are uploaded inline', async () => {
     resetCodebaseToolStateForTests();
@@ -6186,7 +6186,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(status.diskCache?.coverage?.graphFileCount).toBe(1);
     expect(status.localGraph?.rootDir).toBe(path.resolve(requestedRoot));
     expect(status.localGraph?.freshForCurrentRepo).toBe(false);
-  }, 15_000);
+  });
 
   it('clears stale GraphRAG state when graph output cannot build embeddings', async () => {
     resetCodebaseToolStateForTests();
@@ -6239,7 +6239,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       useCachedAbsorbIndex: true,
     })) as { error?: string };
     expect(semanticSearch.error).toContain('No embedding index');
-  }, 15_000);
+  });
 
   it('returns an extractive cited answer when holo_ask_codebase cannot reach an LLM', async () => {
     resetCodebaseToolStateForTests();
@@ -6279,7 +6279,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(answer.provenanceGuard?.passed).toBe(true);
     expect(answer.citations?.length).toBeGreaterThan(0);
     expect(answer.citations?.[0]?.file).toContain('InlineAskFixture.ts');
-  }, 15_000);
+  });
 
   it('rejects sourceFiles with path traversal', async () => {
     resetCodebaseToolStateForTests();
