@@ -6,8 +6,16 @@ composition "HoloBrowserSession" {
     @llm_agent {
       contract_kind: "sovereign_browser_session"
       schema: "holoscript.browser-session.v1"
-      operations: ["open", "navigate", "act", "screenshot", "takeover", "resume", "status", "close"]
+      operations: ["open", "navigate", "observe", "act", "screenshot", "takeover", "resume", "status", "close"]
       typed_actions: ["click", "fill", "press", "scroll", "wait"]
+      observation: {
+        transport: "cdp"
+        backing: "chromium_devtools_protocol"
+        domains: ["Network", "Runtime", "Log"]
+        reads: ["dom_title", "dom_url", "dom_body_text", "dom_element_count", "console_entries", "network_entries"]
+        mutates_page: false
+        permission_envelope: "read_only"
+      }
       control_modes: ["agent", "human", "closed"]
       lease: {
         bearer_storage: "sha256_only"

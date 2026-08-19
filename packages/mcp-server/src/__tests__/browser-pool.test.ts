@@ -247,6 +247,27 @@ describe('BrowserPool Chromium resolution', () => {
     });
     expect('image' in screenshot && screenshot.image).toMatch(/^data:image\/png;base64,/);
 
+    const observed = await browserSession({
+      operation: 'observe',
+      sessionId,
+      leaseToken,
+      includeDom: true,
+      includeConsole: true,
+      includeNetwork: true,
+      consoleLimit: 50,
+      networkLimit: 50,
+      domTextLimit: 4000,
+    });
+    expect(observed).toMatchObject({ success: true, operation: 'observe', permissionEnvelope: 'read_only' });
+    // This suite mocks `playwright` entirely (no page.context()), so CDP attachment fails
+    // closed by design: observation degrades to empty buffers instead of the session
+    // failing to open. Real CDP capture is proven in browser-observe.test.ts against a
+    // genuine, unmocked Chromium launch.
+    expect(observed.dom).toMatchObject({ elementCount: 0 });
+    expect(observed.console).toEqual([]);
+    expect(observed.network).toEqual([]);
+    expect(observed.receipt.details).toMatchObject({ cdpAttached: false, mutatesPage: false });
+
     const takeover = await browserSession({ operation: 'takeover', sessionId, leaseToken });
     expect(takeover.session.controlMode).toBe('human');
     const resumed = await browserSession({
@@ -303,6 +324,7 @@ describe('BrowserPool Chromium resolution', () => {
     for (const operation of [
       'open',
       'navigate',
+      'observe',
       'act',
       'screenshot',
       'takeover',
