@@ -177,6 +177,21 @@ export default defineConfig({
           environment: 'node',
         },
       },
+      // apps/* are NOT pnpm workspace packages (pnpm-workspace.yaml lists only
+      // packages/, services/, benchmarks/). Without an explicit project here, a
+      // test file under apps/ runs NOWHERE and reads as passing — the same trap
+      // that left 46 of 80 model-village proofs unexecuted. Bravura had zero
+      // tests the suite could see, which is why every one of its gates was
+      // verified by a person putting on a headset.
+      {
+        test: {
+          name: 'bravura',
+          root: './apps/bravura',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+          environment: 'node',
+        },
+      },
     ],
   },
 });

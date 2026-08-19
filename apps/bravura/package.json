@@ -1,0 +1,17 @@
+{
+  "name": "@holosystem/bravura",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bravura — teaching a person to conduct, in VR. Beat, phase, and the physics of a following ensemble.",
+  "type": "module",
+  "main": "serve.mjs",
+  "scripts": {
+    "start": "node serve.mjs",
+    "build": "node build.mjs",
+    "canary": "node build.mjs && node -e \"import('node:fs').then(fs=>{const f='dist/main.js';const s=fs.statSync(f);if(!s.size)throw new Error('build produced an empty bundle');console.log('canary ok:',f,s.size,'bytes')})\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "$note": "The canary checks the BUILD ARTIFACT exists and is non-empty, not that the build command exited 0. The standing failure in this ecosystem is a route that reports success and does nothing — 'exit 0' is not evidence, a file on disk is."
+}

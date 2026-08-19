@@ -907,3 +907,104 @@ settles (steadiness CV 0.28, and every step trial 12–15 beats, i.e. beyond the
 word for a room that kept stopping under him. Re-measure after this fix before
 touching the follower — changing the estimator is a change to a certified
 number and needs its own gate.
+
+---
+
+## Gate 9 — The machine wears the headset (opened 2026-08-18)
+
+Field report 1 ended with a finding and an unpaid bill:
+
+> "The input seam between the real device and the detector is its own surface
+> and needs its own negative controls (dual-source, joint-dropout, handedness)."
+
+Those negative controls did not exist, and could not — a mouse on a desk feeds
+one clean stream. Every one of gates 3–8 closed with "in-headset run standing",
+and the standing item was always a person. This gate pays that bill.
+
+### What landed
+
+`@holoscript/core` now ships `SyntheticHeadset`
+(`packages/core/src/xr/SyntheticHeadset.ts`) — a driveable device that presents
+at `navigator.xr`. Bravura's `startBravuraXR` runs against it **unmodified**:
+same session request, same `local-floor` fallback, same `getJointPose` loop,
+same `renderState.baseLayer` viewports.
+
+Built for this gate specifically, because Bravura's own field reports named them:
+- `loseTracking(hand, frames)` / `restoreTracking` — Quest drops joints exactly
+  during fast motion, which is when a conducting app is reading them.
+- `useHands()` / `useControllers()` — switchable mid-session, because apps
+  branch on `input.hand` being null.
+- `eyeHeight` + `setEyeHeight()` — field report 2 measured the founder at
+  1.41 m against a room built for ~1.6 m.
+- `conduct({ bpm, beats, amplitude })` — a hand that actually bounces, frame by
+  frame, beat at the bottom of the stroke. Without motion over time a beat
+  detector cannot be tested at all; this is the smallest primitive that makes
+  the app testable.
+- Full `XRRigidTransform.matrix` / `.inverse`, per-eye `projectionMatrix`, and
+  `updateRenderState`/viewports — the parts of WebXR a real app reads and a
+  hand-written mock never bothers with.
+
+### F.076 four-question gate
+
+1. **Falsifiable claim.** Bravura's real `xrSession.ts` enters a session on a
+   machine-worn Quest 3, receives 25 joints per hand, stereo views with finite
+   projection matrices and eyes 63 mm apart; a machine conducts and beats reach
+   the detector; and the three negative controls field report 1 asked for
+   (dual-source, joint-dropout, handedness) pass — and fail when the original
+   defects are put back.
+2. **Real seam.** `apps/bravura/src/xrSession.ts` unmodified — the production
+   input path, not a copy. The device is installed at `navigator.xr`, below
+   everything.
+3. **Failing-if-broken evidence.** `src/__tests__/machine-headset.test.ts`,
+   9 tests. **Verified by fault injection, both defects, separately:**
+   - Defect 1 re-injected (feed the conductor per input source): dual-source
+     control went red (`expected 2 to be 1` — two sides in one frame) and the
+     handedness control went red with it. Restored → green.
+   - Stale-frozen-height re-injected (count a hand with no joints, drop the NaN
+     freshness guard): both joint-dropout controls went red. Restored → green.
+4. **Scope + blast.** New `packages/core/src/xr/**`; one vitest project entry
+   for `apps/bravura`; `OpenXRHALTrait` pose/forward-vector repairs (separate
+   record). Bravura source itself: **unchanged**. Out of scope and named: the
+   section/addressing architecture (100 instruments, gaze as selector), the
+   three lessons defects named-not-fixed in the teaching audit, and the
+   Lesson 3 index-scoring artifact.
+
+### Receipts
+
+- `npx vitest run --project bravura` → **9 passed**.
+- `packages/core/src/traits` + `packages/core/src/xr` → **802 files,
+  17,010 passed** (no regression; was 16,989 before the device landed).
+- `tsc --noEmit` on `@holoscript/core` → clean.
+
+### The wiring defect this gate had to fix first
+
+`apps/*` is **not** in `pnpm-workspace.yaml` (only `packages/`, `services/`,
+`benchmarks/`) and had no vitest project. **Bravura had zero tests the suite
+could run** — its only check was the build canary. A test file placed here
+before this gate would have run nowhere and read as passing, the same trap that
+left 46 of 80 model-village proofs unexecuted. A `bravura` project is now
+declared in the root `vitest.config.ts`.
+
+That absence is the mechanical reason every gate was verified on a face: there
+was nowhere else for a proof to live.
+
+### What this does NOT change
+
+**The house method stands.** Field report 2's ruling — read the real session
+over adb, do not simulate it — remains the authority for discovering what a
+person experiences. A synthetic device cannot tell you the words are 29° off
+your line of sight, or that you were pausing rather than conducting. Those came
+from a live headset and could not have come from anywhere else.
+
+The split is: **live instrumentation discovers, the machine headset defends.**
+Every defect the founder's face finds becomes a test that runs without him. The
+in-headset re-run standing since field report 1 — defect 1's real-hardware
+receipt — is still standing and still his to give.
+
+### Finding
+
+**The bill for "proven on the desk is not proven on the face" was that there was
+no third place to stand.** Desk drivers were too clean and the headset needed a
+person. A device that reports what hardware reports — including its failures —
+is that third place: not a replacement for the face, but somewhere the face's
+findings can be written down so they never have to be found twice.

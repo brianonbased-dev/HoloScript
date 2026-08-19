@@ -99,3 +99,12 @@ export {
  * which is ~590 KB and would be dead weight in a client bundle.
  */
 export { TRAIT_UI_AFFORDANCES } from './compiler/identity/derived-trait-ui.generated';
+
+/**
+ * Machine-worn XR. `SyntheticHeadset` presents a driveable device at
+ * `navigator.xr` so an agent can prove an XR build end to end without anyone
+ * putting on hardware, and hands back a witness receipt written in plain
+ * language. It states its own limits: it proves input, poses and behaviour, not
+ * pixels, thermals or comfort.
+ */
+export * from './xr';
