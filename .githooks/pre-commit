@@ -26,7 +26,10 @@ SECRET_DIFF=$(git diff --cached -U0 2>/dev/null | grep '^+' | grep -v '^+++' || 
 if [ -n "$SECRET_DIFF" ]; then
     scan_secret() {
         local m
-        m=$(echo "$SECRET_DIFF" | grep -oE "$2" | head -1)
+        # "--" terminates option parsing: a pattern beginning with "-" (e.g. the
+        # PEM armor "-----BEGIN") is otherwise read by grep as flags, and the
+        # rule silently never fires.
+        m=$(echo "$SECRET_DIFF" | grep -oE -- "$2" | head -1)
         if [ -n "$m" ]; then
             echo -e "${RED}SECRET DETECTED: $1 (${m:0:18}...)${NC}"
             FAILED=1
@@ -40,7 +43,11 @@ if [ -n "$SECRET_DIFF" ]; then
     scan_secret "AWS access key"       'AKIA[0-9A-Z]{16}'
     scan_secret "NPM token"            'npm_[A-Za-z0-9]{20,}'
     scan_secret "Slack token"          'xox[bpas]-[A-Za-z0-9-]{10,}'
-    scan_secret "Private key block"    'BEGIN [A-Z ]*PRIVATE KEY'
+    # PEM armor required: every other rule here matches actual credential
+    # material, but this one matched a bare label — so it fired on security
+    # tests that name the thing they refuse to leak. A key without the
+    # five-dash armor is not a PEM block and is not parseable as a key.
+    scan_secret "Private key block"    '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     scan_secret "HoloScript bearer"    'hs_sk_[A-Za-z0-9]{20,}'
     if command -v gitleaks &> /dev/null; then
         gitleaks protect --staged --redact --no-banner --config .gitleaks.toml 2>/dev/null \
