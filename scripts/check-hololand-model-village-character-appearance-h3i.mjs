@@ -1,0 +1,2182 @@
+#!/usr/bin/env node
+/* global document, performance, process, requestAnimationFrame, window */
+
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { createServer } from 'node:http';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import {
+  compileH3BNativeBundles,
+  sha256,
+} from './check-hololand-model-village-character-appearance-h3b.mjs';
+
+import { validateUpstreamCommitPin } from './lib/model-village-upstream-commit-pin.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DEFAULT_HOLOSCRIPT_ROOT =
+  process.env.HOLOSCRIPT_ROOT || 'C:/Users/josep/Documents/GitHub/HoloScript';
+const SOURCE_REL =
+  'source/layers/vr/frontier/model-village/model-village-character-appearance-h3i-anatomy-surface.holo';
+const POLICY_REL =
+  'source/proofs/model-village-character-appearance-h3i-anatomy-surface-policy.hsplus';
+const SEED_REL = 'source/proofs/model-village-character-appearance-h3i-anatomy-surface-seed.hs';
+const MANIFEST_REL =
+  'source/layers/vr/frontier/model-village/model-village-character-appearance-h3i-anatomy-surface-manifest.holo';
+const REPORT_REL =
+  'docs/reports/model-village-character-appearance-h3i-anatomy-surface-2026-07-28.md';
+const HERO_REL =
+  'docs/assets/model-village/model-village-character-appearance-h3i-anatomy-surface-portraits-2026-07-28.png';
+const OUTPUT_REL = '.tmp/hololand/model-village/character-appearance-h3i';
+const EXPECTED_COMMIT = 'c273682f5a5140b0ff8cde5da89ca7bfb98c63b2';
+const EXPECTED_PERSONAS = ['hearth_keeper', 'path_tender', 'record_steward'];
+const EXPECTED_REGIONS = ['sclera', 'iris', 'pupil', 'cornea'];
+// H4J widened the skin receipt from v1 to v2. The v1 schema is unreachable: no upstream code path
+// emits it. The widening is admitted as a recorded editorial decision on the explicit condition
+// below, because every one of the eight added fields (calibrationProfile, color, scatterColor,
+// scatterRadii, specularF0, thickness, transmitStrength, ambient) reports a value the skin-sss
+// material group was ALREADY rendering at v1 - it is a disclosure widening, not an appearance
+// change. That is only true while the calibration stays legacy-v1: authoring fixed-light-human-v1
+// moves thickness 0.3->0.24, transmitStrength 0.4->0.32, ambient 0.12->0.09, roughness 0.45->0.5.
+// So calibrationProfile is pinned here and the eight fields are required to equal the rendering
+// material. If upstream changes the default calibration, this gate goes red.
+const EXPECTED_SKIN_RECEIPT_SCHEMA = 'holoscript.agent-avatar-skin-material.v2';
+const EXPECTED_SKIN_CALIBRATION_PROFILE = 'legacy-v1';
+// Fields v2 added that must mirror the skin-sss material group exactly (disclosure, not new state).
+const SKIN_DISCLOSURE_SCALAR_FIELDS = [
+  'color',
+  'specularF0',
+  'thickness',
+  'transmitStrength',
+  'ambient',
+  'roughness',
+];
+const SKIN_DISCLOSURE_VECTOR_FIELDS = ['scatterColor', 'scatterRadii'];
+const HASH_BINDINGS = [
+  ['inheritedH3HSource', 'inheritedH3HSourceSha256', 'hololand'],
+  ['inheritedH3GSource', 'inheritedH3GSourceSha256', 'hololand'],
+  ['upstreamGroomBuilderPath', 'upstreamGroomBuilderSha256', 'holoscript'],
+  ['upstreamAnatomyBuilderPath', 'upstreamAnatomyBuilderSha256', 'holoscript'],
+  ['upstreamCharacterHostPath', 'upstreamCharacterHostSha256', 'holoscript'],
+  ['upstreamCompositionBridgePath', 'upstreamCompositionBridgeSha256', 'holoscript'],
+  ['upstreamLodTransitionPath', 'upstreamLodTransitionSha256', 'holoscript'],
+  ['upstreamNativeRendererPath', 'upstreamNativeRendererSha256', 'holoscript'],
+  ['upstreamHairShaderPath', 'upstreamHairShaderSha256', 'holoscript'],
+  ['upstreamDrawSpecPath', 'upstreamDrawSpecSha256', 'holoscript'],
+  ['upstreamCompilerPath', 'upstreamCompilerSha256', 'holoscript'],
+];
+
+function sha256File(filePath) {
+  return createHash('sha256').update(readFileSync(filePath)).digest('hex');
+}
+
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonical(value[key])])
+    );
+  }
+  return value;
+}
+
+function properties(node) {
+  return Object.fromEntries(
+    (node?.properties || []).map((property) => [property.key, property.value])
+  );
+}
+
+// Delegates to the shared validator. The private gitHasCommit() this replaced asserted
+// "ancestor of HEAD", which accepted a commit that existed only on one laptop and
+// rejected a reproducible one whenever a peer left the shared checkout on a branch.
+function upstreamPinFailures(holoScriptRoot, metadata) {
+  return validateUpstreamCommitPin(
+    holoScriptRoot,
+    metadata.upstreamHoloScriptCommit,
+    HASH_BINDINGS
+      .filter(([, , owner]) => owner === 'holoscript')
+      .map(([pathKey, hashKey]) => ({
+        pathKey,
+        relative: metadata[pathKey],
+        sha256: metadata[hashKey],
+      })),
+  ).errors;
+}
+
+async function loadCore(holoScriptRoot) {
+  return import(pathToFileURL(path.join(holoScriptRoot, 'packages/core/dist/index.js')).href);
+}
+
+export async function parseH3IStack(root = ROOT, holoScriptRoot = DEFAULT_HOLOSCRIPT_ROOT) {
+  const core = await loadCore(holoScriptRoot);
+  const sourceText = readFileSync(path.join(root, SOURCE_REL), 'utf8');
+  const policyText = readFileSync(path.join(root, POLICY_REL), 'utf8');
+  const seedText = readFileSync(path.join(root, SEED_REL), 'utf8');
+  const source = new core.HoloCompositionParser().parse(sourceText);
+  const policy = new core.HoloScriptPlusParser().parse(policyText);
+  const seed = new core.HoloScriptCodeParser().parse(seedText);
+  for (const [label, parsed] of [
+    ['H3I .holo', source],
+    ['H3I .hsplus', policy],
+    ['H3I .hs', seed],
+  ]) {
+    if (!parsed.success || parsed.errors.length) {
+      throw new Error(`${label} parse failed: ${JSON.stringify(parsed.errors)}`);
+    }
+  }
+  return {
+    core,
+    source,
+    policy,
+    seed,
+    sourceText,
+    policyText,
+    seedText,
+    contract: {
+      metadata: source.ast.metadata,
+      state: properties(source.ast.state),
+      environment: properties(source.ast.environment),
+      objects: (source.ast.objects || []).map((object) => ({
+        objectId: object.name,
+        ...properties(object),
+      })),
+    },
+  };
+}
+
+export function buildH3IPlan(contract) {
+  return {
+    milestone: contract.metadata.milestone,
+    presentationProfile: contract.state.presentationProfile,
+    nativeAdmission: contract.state.nativeAdmission,
+    benchmark: contract.state.benchmark,
+    personas: contract.objects
+      .filter((object) => object.type === 'native_hair_response_civic_persona')
+      .map((persona) => ({
+        objectId: persona.objectId,
+        personaId: persona.personaId,
+        civicRole: persona.civicRole,
+        displayLabel: persona.displayLabel,
+        irisColor: persona.irisColor,
+        hairColor: persona.hairColor,
+        nativeHairStyleId: persona.nativeHairStyleId,
+        groomProfile: persona.groomProfile,
+        cardWidth: persona.cardWidth,
+        rootLift: persona.rootLift,
+        tipTaper: persona.tipTaper,
+        hairlineBias: persona.hairlineBias,
+        coverageProfile: persona.coverageProfile,
+        strandCoverage: persona.strandCoverage,
+        edgeSoftness: persona.edgeSoftness,
+        anisotropyStrength: persona.anisotropyStrength,
+        longitudinalShift: persona.longitudinalShift,
+        sourceColorWeight: persona.sourceColorWeight,
+        faceWidth: persona.faceWidth,
+        faceLength: persona.faceLength,
+        jawTaper: persona.jawTaper,
+        shoulderScale: persona.shoulderScale,
+        torsoScale: persona.torsoScale,
+        crownWhorl: persona.crownWhorl,
+        microdetailScale: persona.microdetailScale,
+        microdetailStrength: persona.microdetailStrength,
+        wardrobeColor: persona.wardrobeColor,
+      })),
+    expressions: [],
+  };
+}
+
+export function validateH3IContract(stack, root = ROOT, holoScriptRoot = DEFAULT_HOLOSCRIPT_ROOT) {
+  const errors = [];
+  const expect = (condition, message) => {
+    if (!condition) errors.push(message);
+  };
+  const { metadata, state } = stack.contract;
+  expect(metadata.milestone === 'MV_CHARACTER_APPEARANCE_H3I_ANATOMY_SURFACE', 'milestone drifted');
+  expect(metadata.artStyle === 'hearthlight_biorealism', 'art style drifted');
+  expect(metadata.upstreamHoloScriptCommit === EXPECTED_COMMIT, 'upstream commit pin drifted');
+  for (const [key, expected] of [
+    ['nativeCharacterCompilerClaimed', true],
+    ['nativeNeutralAnatomicalFaceClaimed', true],
+    ['nativeLayeredOcularProfileClaimed', true],
+    ['nativeOrbitalProfileClaimed', true],
+    ['nativeGroomProfileClaimed', true],
+    ['nativeScalpTangentClaimed', true],
+    ['nativeScalpAlignedCardsClaimed', true],
+    ['nativeNeutralScalpAlignmentClaimed', true],
+    ['nativeTipTaperClaimed', true],
+    ['nativeHairlineRetractionClaimed', true],
+    ['derivedGroomReceiptClaimed', true],
+    ['nativeCardWidthUvClaimed', true],
+    ['nativeHairCoverageProfileClaimed', true],
+    ['nativeAlphaToCoverageRequestedClaimed', true],
+    ['nativeTangentAnisotropyClaimed', true],
+    ['nativeLongitudinalShiftClaimed', true],
+    ['derivedHairMaterialReceiptClaimed', true],
+    ['nativeCrownWhorlClaimed', true],
+    ['nativeAnatomyReceiptClaimed', true],
+    ['nativeFaceProportionsClaimed', true],
+    ['nativeUpperBodyProportionsClaimed', true],
+    ['nativeSkinMicrodetailClaimed', true],
+    ['derivedSkinMaterialReceiptClaimed', true],
+    ['presentationShaderOverrideUsed', false],
+    ['presentationMaterialBridgeUsed', true],
+    ['presentationAlphaMapUsed', true],
+    ['presentationSkinMicrodetailBridgeUsed', true],
+    ['presentationWardrobeBridgeUsed', true],
+    ['presentationNativeTorsoClipUsed', true],
+    ['externalSkinTextureUsed', false],
+    ['externalHairTextureUsed', false],
+    ['hairCardAlphaCoverageClaimed', true],
+    ['strandAlphaCoverageClaimed', false],
+    ['strandHairClaimed', false],
+    ['scanDerivedGroomClaimed', false],
+    ['productionGroomClaimed', false],
+    ['anatomicalHairAccuracyClaimed', false],
+    ['photorealismClaimed', false],
+    ['biometricLikenessClaimed', false],
+    ['nativeLodTransitionReceiptClaimed', true],
+    ['sharedRendererClaimed', true],
+    ['presentationTaaBridgeUsed', true],
+    ['taaHistoryInvalidationClaimed', true],
+    ['motionReprojectionClaimed', false],
+    ['nativeWebgpuTaaClaimed', false],
+    ['vrPerformanceConvergenceClaimed', false],
+    ['familyIdentityVisible', false],
+    ['adapterFamilyBinding', 'absent'],
+    ['researchSeatBinding', 'absent'],
+    ['liveResearchJoinAllowed', false],
+    ['canonicalWritesAllowed', false],
+    ['residentObservationWritesAllowed', false],
+    ['modelCallsAllowed', false],
+    ['networkFetchesAllowed', false],
+    ['biometricPersistenceAllowed', false],
+  ]) {
+    expect(state[key] === expected, `${key} must equal ${expected}`);
+  }
+  expect(
+    state.hairResponseFoundation?.groomProfile === 'scalp-flow-v1' &&
+      state.hairResponseFoundation?.coverageProfile === 'alpha-to-coverage-v1' &&
+      state.hairResponseFoundation?.opaqueComparisonProfile === 'opaque-v1' &&
+      state.hairResponseFoundation?.cardWidthUvAttribute === 'card-width' &&
+      state.hairResponseFoundation?.tangentAttribute === 'strand-flow' &&
+      state.hairResponseFoundation?.multisampleCount === 4 &&
+      state.hairResponseFoundation?.alphaToCoverageRequested === true &&
+      state.hairResponseFoundation?.analyticNativeCoverage === true &&
+      state.hairResponseFoundation?.tangentAwareDualLobe === true &&
+      state.hairResponseFoundation?.longitudinalLobeShift === true &&
+      state.hairResponseFoundation?.derivedMaterialReceipt === true &&
+      state.hairResponseFoundation?.presentationShaderOverride === false &&
+      state.hairResponseFoundation?.presentationMaterialBridge === true &&
+      state.hairResponseFoundation?.presentationAlphaMap === true &&
+      state.hairResponseFoundation?.externalHairTexture === false &&
+      state.hairResponseFoundation?.strandHair === false,
+    'hair response foundation truth boundary drifted'
+  );
+  expect(
+    state.anatomySurfaceFoundation?.anatomyReceiptSchema === 'holoscript.agent-avatar-anatomy.v1' &&
+      state.anatomySurfaceFoundation?.skinReceiptSchema === EXPECTED_SKIN_RECEIPT_SCHEMA &&
+      state.anatomySurfaceFoundation?.skinCalibrationProfile ===
+        EXPECTED_SKIN_CALIBRATION_PROFILE &&
+      state.anatomySurfaceFoundation?.skinDisclosureOnlyWidening === true &&
+      state.anatomySurfaceFoundation?.skinMicrodetailProfile === 'analytic-pore-v1' &&
+      JSON.stringify(state.anatomySurfaceFoundation?.faceWidthRange) ===
+        JSON.stringify([0.93, 0.96]) &&
+      JSON.stringify(state.anatomySurfaceFoundation?.faceLengthRange) ===
+        JSON.stringify([1.05, 1.08]) &&
+      JSON.stringify(state.anatomySurfaceFoundation?.jawTaperRange) ===
+        JSON.stringify([0.28, 0.32]) &&
+      JSON.stringify(state.anatomySurfaceFoundation?.shoulderScaleRange) ===
+        JSON.stringify([1.08, 1.12]) &&
+      JSON.stringify(state.anatomySurfaceFoundation?.torsoScaleRange) ===
+        JSON.stringify([0.94, 0.97]) &&
+      JSON.stringify(state.anatomySurfaceFoundation?.crownWhorlRange) ===
+        JSON.stringify([-0.28, 0.42]) &&
+      JSON.stringify(state.anatomySurfaceFoundation?.microdetailScaleRange) ===
+        JSON.stringify([88, 102]) &&
+      JSON.stringify(state.anatomySurfaceFoundation?.microdetailStrengthRange) ===
+        JSON.stringify([0.065, 0.085]) &&
+      state.anatomySurfaceFoundation?.analyticTextureFreeNativeResponse === true &&
+      state.anatomySurfaceFoundation?.presentationProceduralNormalMap === true &&
+      state.anatomySurfaceFoundation?.presentationWardrobeBridge ===
+        'three-tapered-civic-tunic-v1' &&
+      state.anatomySurfaceFoundation?.presentationNativeTorsoClipPolicy ===
+        'eye-height-minus-0.16-v1' &&
+      state.anatomySurfaceFoundation?.externalSkinTexture === false &&
+      state.anatomySurfaceFoundation?.biometricLikeness === false,
+    'anatomy surface foundation truth boundary drifted'
+  );
+  expect(
+    state.temporalLodFoundation?.selectionMode === 'distance' &&
+      state.temporalLodFoundation?.transitionMode === 'dither' &&
+      state.temporalLodFoundation?.durationMilliseconds === 260 &&
+      state.temporalLodFoundation?.hysteresisBand === 0.65 &&
+      state.temporalLodFoundation?.sharedRendererCount === 1 &&
+      state.temporalLodFoundation?.sharedSceneCount === 1 &&
+      state.temporalLodFoundation?.temporalComposerCount === 1 &&
+      state.temporalLodFoundation?.temporalBridge === 'three-taarenderpass-v1' &&
+      state.temporalLodFoundation?.temporalSampleLevel === 0 &&
+      state.temporalLodFoundation?.accumulationFrames === 32 &&
+      state.temporalLodFoundation?.internalRenderWidth === 1360 &&
+      state.temporalLodFoundation?.internalRenderHeight === 448 &&
+      state.temporalLodFoundation?.presentationWidth === 1680 &&
+      state.temporalLodFoundation?.presentationHeight === 554 &&
+      state.temporalLodFoundation?.internalRenderScale === 0.81 &&
+      state.temporalLodFoundation?.historyPolicy === 'invalidate-on-motion-or-lod-change-v1' &&
+      state.temporalLodFoundation?.motionVectorsAvailable === false &&
+      state.temporalLodFoundation?.motionReprojection === false &&
+      state.temporalLodFoundation?.nativeWebgpuTaa === false &&
+      state.temporalLodFoundation?.sourceAuthoredTransitionReceiptRequired === true &&
+      state.temporalLodFoundation?.presentationBridge === true,
+    'temporal LOD foundation truth boundary drifted'
+  );
+  expect(
+    state.nativeAdmission?.compilerTarget === 'character-webgpu' &&
+      state.nativeAdmission?.fallbackAllowed === false &&
+      state.nativeAdmission?.exactNineNativeBundlesRequired === true &&
+      state.nativeAdmission?.exactEightOcularGroupsPerBundleRequired === true &&
+      state.nativeAdmission?.mappedHairMaterialReceiptRequired === true &&
+      state.nativeAdmission?.derivedHairMaterialReceiptRequired === true &&
+      state.nativeAdmission?.opaqueCoverageComparisonRequired === true &&
+      state.nativeAdmission?.cardWidthUvOperative === true &&
+      state.nativeAdmission?.authoredStrandCoverageOperative === true &&
+      state.nativeAdmission?.authoredEdgeSoftnessOperative === true &&
+      state.nativeAdmission?.authoredAnisotropyStrengthOperative === true &&
+      state.nativeAdmission?.authoredLongitudinalShiftOperative === true &&
+      state.nativeAdmission?.alphaToCoverageRequestedRequired === true &&
+      state.nativeAdmission?.multisampleCountRequired === 4 &&
+      state.nativeAdmission?.exactNineLodTransitionReceiptsRequired === true &&
+      state.nativeAdmission?.exactNineAnatomyReceiptsRequired === true &&
+      state.nativeAdmission?.exactNineSkinReceiptsRequired === true &&
+      state.nativeAdmission?.crownWhorlOperative === true &&
+      state.nativeAdmission?.faceProportionsOperative === true &&
+      state.nativeAdmission?.upperBodyProportionsOperative === true &&
+      state.nativeAdmission?.analyticSkinMicrodetailOperative === true &&
+      state.nativeAdmission?.transitionSelectionModeRequired === 'distance' &&
+      state.nativeAdmission?.transitionModeRequired === 'dither' &&
+      state.nativeAdmission?.transitionDurationMillisecondsRequired === 260 &&
+      state.nativeAdmission?.transitionHysteresisBandRequired === 0.65,
+    'temporal LOD admission drifted'
+  );
+  const plan = buildH3IPlan(stack.contract);
+  expect(
+    JSON.stringify(plan.personas.map((persona) => persona.personaId)) ===
+      JSON.stringify(EXPECTED_PERSONAS),
+    'persona order drifted'
+  );
+  expect(plan.personas.length === 3, 'persona count drifted');
+  for (const persona of plan.personas) {
+    const object = stack.source.ast.objects?.find(
+      (candidate) => candidate.name === persona.objectId
+    );
+    const body = object?.traits?.find((trait) => trait.name === 'body');
+    const face = object?.traits?.find((trait) => trait.name === 'face');
+    const hair = object?.traits?.find((trait) => trait.name === 'hair');
+    const skin = object?.traits?.find((trait) => trait.name === 'subsurface_scattering');
+    const lod = object?.traits?.find((trait) => trait.name === 'lod');
+    expect(
+      body?.config?.shoulder_scale === persona.shoulderScale &&
+        body?.config?.torso_scale === persona.torsoScale &&
+        face?.config?.face_width === persona.faceWidth &&
+        face?.config?.face_length === persona.faceLength &&
+        face?.config?.jaw_taper === persona.jawTaper,
+      `${persona.personaId} source-authored anatomy parameters drifted`
+    );
+    expect(
+      hair?.config?.groom_profile === 'scalp_flow_v1' &&
+        hair?.config?.color === persona.hairColor &&
+        hair?.config?.card_width === persona.cardWidth &&
+        hair?.config?.root_lift === persona.rootLift &&
+        hair?.config?.tip_taper === persona.tipTaper &&
+        hair?.config?.hairline_bias === persona.hairlineBias &&
+        hair?.config?.coverage_profile === 'alpha_to_coverage_v1' &&
+        hair?.config?.strand_coverage === persona.strandCoverage &&
+        hair?.config?.edge_softness === persona.edgeSoftness &&
+        hair?.config?.anisotropy_strength === persona.anisotropyStrength &&
+        hair?.config?.longitudinal_shift === persona.longitudinalShift &&
+        hair?.config?.source_color_weight === persona.sourceColorWeight &&
+        hair?.config?.crown_whorl === persona.crownWhorl,
+      `${persona.personaId} source-authored hair response parameters drifted`
+    );
+    expect(
+      skin?.config?.microdetail_profile === 'analytic_pore_v1' &&
+        skin?.config?.microdetail_scale === persona.microdetailScale &&
+        skin?.config?.microdetail_strength === persona.microdetailStrength,
+      `${persona.personaId} source-authored skin response parameters drifted`
+    );
+    expect(
+      typeof persona.wardrobeColor === 'string' && /^#[0-9a-f]{6}$/i.test(persona.wardrobeColor),
+      `${persona.personaId} presentation wardrobe color drifted`
+    );
+    expect(
+      lod?.config?.mode === 'distance' &&
+        lod?.config?.hysteresis === 0.65 &&
+        lod?.config?.fade_mode === 'dither' &&
+        lod?.config?.fade_duration_ms === 260,
+      `${persona.personaId} source-authored LOD transition parameters drifted`
+    );
+  }
+  for (const [pathKey, hashKey, owner] of HASH_BINDINGS) {
+    const base = owner === 'hololand' ? root : holoScriptRoot;
+    const relative = metadata[pathKey];
+    const expectedHash = metadata[hashKey];
+    const absolute = path.resolve(base, relative || '');
+    expect(Boolean(relative && expectedHash), `${pathKey} binding missing`);
+    expect(existsSync(absolute), `${pathKey} file missing`);
+    if (existsSync(absolute)) {
+      expect(sha256File(absolute) === expectedHash, `${pathKey} hash drifted`);
+    }
+  }
+  for (const failure of upstreamPinFailures(holoScriptRoot, metadata)) expect(false, failure);
+  return { status: errors.length ? 'fail' : 'pass', errors, plan };
+}
+
+async function exportBundle(core, ast, objectId, lodLevel) {
+  return new core.ExportManager({
+    useCircuitBreaker: false,
+    useFallback: false,
+    useMemoryMonitoring: false,
+  }).export('character-webgpu', ast, {
+    compilerOptions: {
+      objectId,
+      entityId: `model-village-h3i-${objectId.toLowerCase()}`,
+      lodLevel,
+    },
+  });
+}
+
+function withoutHairResponse(ast) {
+  const copy = structuredClone(ast);
+  for (const object of copy.objects || []) {
+    const hair = object.traits?.find((trait) => trait.name === 'hair');
+    if (!hair) continue;
+    for (const key of [
+      'coverage_profile',
+      'strand_coverage',
+      'edge_softness',
+      'anisotropy_strength',
+      'longitudinal_shift',
+    ]) {
+      delete hair.config[key];
+    }
+  }
+  return copy;
+}
+
+function withoutTraitControls(ast, traitName, keys) {
+  const copy = structuredClone(ast);
+  for (const object of copy.objects || []) {
+    const trait = object.traits?.find((candidate) => candidate.name === traitName);
+    if (!trait) continue;
+    for (const key of keys) delete trait.config[key];
+  }
+  return copy;
+}
+
+function withoutAnatomyControls(ast) {
+  return withoutTraitControls(
+    withoutTraitControls(ast, 'body', ['shoulder_scale', 'torso_scale']),
+    'face',
+    ['face_width', 'face_length', 'jaw_taper']
+  );
+}
+
+function withoutCrownWhorl(ast) {
+  return withoutTraitControls(ast, 'hair', ['crown_whorl']);
+}
+
+function withoutSkinMicrodetail(ast) {
+  return withoutTraitControls(ast, 'subsurface_scattering', [
+    'microdetail_profile',
+    'microdetail_scale',
+    'microdetail_strength',
+  ]);
+}
+
+function ocularGroups(bundle) {
+  return bundle.materialGroups.filter((group) => group.material.shadingModel === 'refractive-eye');
+}
+
+export async function compileH3ITemporalLodBundles(stack, plan) {
+  const native = await compileH3BNativeBundles(stack.core, stack.source.ast, plan);
+  const comparisons = [];
+  for (const record of native.records) {
+    for (const tier of record.tiers) {
+      const { bundle } = tier;
+      const material = bundle.groom?.material;
+      const anatomy = bundle.anatomy;
+      const skin = bundle.skin;
+      const lodTransition = bundle.lod?.transition;
+      const skinGroup = bundle.materialGroups.find(
+        (group) => group.material.shadingModel === 'skin-sss'
+      );
+      const hairGroup = bundle.materialGroups.find(
+        (group) => group.material.shadingModel === 'marschner-hair'
+      );
+      const hairUvs = bundle.mesh.uvs || [];
+      const cardUvVertices = [];
+      if (hairGroup) {
+        const cardVertexIndices = new Set();
+        for (
+          let index = hairGroup.indexStart;
+          index < hairGroup.indexStart + hairGroup.indexCount;
+          index += 1
+        ) {
+          const vertex = bundle.mesh.indices[index];
+          if (hairUvs[vertex * 2 + 1] >= 0) cardVertexIndices.add(vertex);
+        }
+        for (const vertex of cardVertexIndices) {
+          cardUvVertices.push([hairUvs[vertex * 2], hairUvs[vertex * 2 + 1]]);
+        }
+      }
+      const cardUvMin = Math.min(...cardUvVertices.map(([u]) => u));
+      const cardUvMax = Math.max(...cardUvVertices.map(([u]) => u));
+      const groups = ocularGroups(bundle);
+      const regionCounts = Object.fromEntries(
+        EXPECTED_REGIONS.map((region) => [
+          region,
+          groups.filter((group) => group.material.eyeRegion === region).length,
+        ])
+      );
+      if (
+        bundle.face?.topology !== 'neutral-anatomical-v2' ||
+        anatomy?.schemaVersion !== 'holoscript.agent-avatar-anatomy.v1' ||
+        anatomy?.faceWidth !== record.faceWidth ||
+        anatomy?.faceLength !== record.faceLength ||
+        anatomy?.jawTaper !== record.jawTaper ||
+        anatomy?.shoulderScale !== record.shoulderScale ||
+        anatomy?.torsoScale !== record.torsoScale ||
+        skin?.schemaVersion !== EXPECTED_SKIN_RECEIPT_SCHEMA ||
+        skin?.calibrationProfile !== EXPECTED_SKIN_CALIBRATION_PROFILE ||
+        SKIN_DISCLOSURE_SCALAR_FIELDS.some(
+          (field) => skin?.[field] !== skinGroup?.material[field]
+        ) ||
+        SKIN_DISCLOSURE_VECTOR_FIELDS.some(
+          (field) =>
+            JSON.stringify(skin?.[field]) !== JSON.stringify(skinGroup?.material[field])
+        ) ||
+        skin?.microdetailProfile !== 'analytic-pore-v1' ||
+        skin?.microdetailScale !== record.microdetailScale ||
+        skin?.microdetailStrength !== record.microdetailStrength ||
+        skinGroup?.material.microdetailProfile !== 'analytic-pore-v1' ||
+        skinGroup?.material.microdetailScale !== record.microdetailScale ||
+        skinGroup?.material.microdetailStrength !== record.microdetailStrength ||
+        bundle.face?.ocularProfile !== 'layered-ocular-v1' ||
+        bundle.face?.orbitalProfile !== 'recessed-lids-v1' ||
+        bundle.groom?.schemaVersion !== 'holoscript.agent-avatar-groom-geometry.v1' ||
+        bundle.groom?.profile !== 'scalp-flow-v1' ||
+        bundle.groom?.scalpSurface !== 'neutral-anatomical-ellipsoid' ||
+        bundle.groom?.rootLift !== record.rootLift ||
+        bundle.groom?.tipTaper !== record.tipTaper ||
+        bundle.groom?.hairlineBias !== record.hairlineBias ||
+        bundle.groom?.crownWhorl !== record.crownWhorl ||
+        material?.schemaVersion !== 'holoscript.agent-avatar-hair-material.v2' ||
+        material?.sourceColor !== Number.parseInt(record.hairColor.slice(1), 16) ||
+        material?.coverageProfile !== record.coverageProfile ||
+        material?.strandCoverage !== record.strandCoverage ||
+        material?.edgeSoftness !== record.edgeSoftness ||
+        material?.anisotropyStrength !== record.anisotropyStrength ||
+        material?.longitudinalShift !== record.longitudinalShift ||
+        material?.tangentAttribute !== 'strand-flow' ||
+        material?.cardUvAttribute !== 'card-width' ||
+        material?.alphaToCoverageRequested !== true ||
+        lodTransition?.schemaVersion !== 'holoscript.character-lod-transition.v1' ||
+        lodTransition?.selectionMode !== 'distance' ||
+        lodTransition?.mode !== 'dither' ||
+        lodTransition?.durationSeconds !== 0.26 ||
+        lodTransition?.hysteresisBand !== 0.65 ||
+        hairGroup?.material.coverageProfile !== record.coverageProfile ||
+        hairGroup?.material.strandCoverage !== record.strandCoverage ||
+        hairGroup?.material.edgeSoftness !== record.edgeSoftness ||
+        hairGroup?.material.anisotropyStrength !== record.anisotropyStrength ||
+        hairGroup?.material.longitudinalShift !== record.longitudinalShift ||
+        hairUvs.length !== bundle.vertexCount * 2 ||
+        cardUvVertices.length === 0 ||
+        cardUvMin !== 0 ||
+        cardUvMax !== 1 ||
+        bundle.groom?.rootTangentRadialDotP95 > 0.01 ||
+        groups.length !== 8 ||
+        !EXPECTED_REGIONS.every((region) => regionCounts[region] === 2) ||
+        !bundle.report?.mapped?.some((entry) =>
+          entry.startsWith('@hair(groom_profile=scalp-flow-v1')
+        ) ||
+        !bundle.report?.mapped?.some((entry) =>
+          entry.startsWith('@hair(coverage_profile=alpha-to-coverage-v1')
+        ) ||
+        !bundle.report?.mapped?.includes(
+          `@body(shoulder_scale=${record.shoulderScale},torso_scale=${record.torsoScale})`
+        ) ||
+        !bundle.report?.mapped?.includes(
+          `@face(face_width=${record.faceWidth},face_length=${record.faceLength},jaw_taper=${record.jawTaper})`
+        ) ||
+        !bundle.report?.mapped?.includes(`@hair(crown_whorl=${record.crownWhorl})`) ||
+        !bundle.report?.mapped?.includes(
+          `@subsurface_scattering(microdetail_profile=analytic-pore-v1,microdetail_scale=${record.microdetailScale},microdetail_strength=${record.microdetailStrength})`
+        ) ||
+        !bundle.report?.mapped?.includes(
+          '@lod(transition=dither,duration_s=0.26,hysteresis=0.65,selection=distance)'
+        ) ||
+        bundle.report?.stubbed?.length !== 0
+      ) {
+        throw new Error(`${record.personaId} LOD${tier.level} temporal LOD contract drifted`);
+      }
+      // H4J's hair receipt moved v1 -> v2 by adding sourceColor/sourceColorWeight. sourceColor is
+      // genuinely source-authored (@hair(color) is mapped), so it is asserted above. The WEIGHT is
+      // not: CharacterHost.ts sets `sourceColorWeight: opts.hairTone === undefined ? 0 : 0.55` and
+      // CharacterHostFromComposition.ts has no mapping for it, so an authored
+      // @hair(source_color_weight) is SILENTLY DISCARDED - not mapped, not stubbed. Asserting the
+      // bare 0.55 would hand-assert a value HoloLand never authored, so instead the gate requires
+      // upstream to honour and report the authored weight. This stays red until the upstream
+      // authoring patch lands (see H3G).
+      if (material?.sourceColorWeight !== record.sourceColorWeight) {
+        throw new Error(
+          `${record.personaId} LOD${tier.level} hair sourceColorWeight is upstream-defaulted, ` +
+            `not source-authored: authored=${record.sourceColorWeight} received=${material?.sourceColorWeight}. ` +
+            'HoloScript cannot express @hair(source_color_weight) - upstream authoring patch required.'
+        );
+      }
+      if (
+        !bundle.report?.mapped?.includes(
+          `@hair(source_color_weight=${record.sourceColorWeight})`
+        )
+      ) {
+        throw new Error(
+          `${record.personaId} LOD${tier.level} authored @hair(source_color_weight=` +
+            `${record.sourceColorWeight}) was accepted by the parser but never mapped by the ` +
+            'composition bridge - the value is silently discarded upstream.'
+        );
+      }
+      tier.ocularGroupCount = groups.length;
+      tier.ocularRegions = regionCounts;
+      tier.groom = bundle.groom;
+      tier.hairMaterial = material;
+      tier.anatomy = anatomy;
+      tier.skin = skin;
+      tier.lodTransition = lodTransition;
+      tier.cardUv = {
+        attribute: 'card-width',
+        vertexCount: cardUvVertices.length,
+        min: cardUvMin,
+        max: cardUvMax,
+      };
+
+      const opaque = await exportBundle(
+        stack.core,
+        withoutHairResponse(stack.source.ast),
+        record.objectId,
+        tier.level
+      );
+      if (!opaque.success || opaque.usedFallback) {
+        throw new Error(`${record.personaId} LOD${tier.level} opaque comparison compile failed`);
+      }
+      const opaqueBundle = JSON.parse(opaque.output);
+      if (
+        opaqueBundle.groom?.profile !== 'scalp-flow-v1' ||
+        opaqueBundle.groom?.material?.coverageProfile !== 'opaque-v1' ||
+        opaqueBundle.groom?.material?.alphaToCoverageRequested !== false ||
+        sha256(JSON.stringify(canonical(opaqueBundle.mesh))) !==
+          sha256(JSON.stringify(canonical(bundle.mesh)))
+      ) {
+        throw new Error(`${record.personaId} LOD${tier.level} opaque comparison failed`);
+      }
+
+      const anatomyBaseline = await exportBundle(
+        stack.core,
+        withoutAnatomyControls(stack.source.ast),
+        record.objectId,
+        tier.level
+      );
+      const crownBaseline = await exportBundle(
+        stack.core,
+        withoutCrownWhorl(stack.source.ast),
+        record.objectId,
+        tier.level
+      );
+      const skinBaseline = await exportBundle(
+        stack.core,
+        withoutSkinMicrodetail(stack.source.ast),
+        record.objectId,
+        tier.level
+      );
+      if (
+        !anatomyBaseline.success ||
+        anatomyBaseline.usedFallback ||
+        !crownBaseline.success ||
+        crownBaseline.usedFallback ||
+        !skinBaseline.success ||
+        skinBaseline.usedFallback
+      ) {
+        throw new Error(`${record.personaId} LOD${tier.level} causal comparison compile failed`);
+      }
+      const anatomyBaselineBundle = JSON.parse(anatomyBaseline.output);
+      const crownBaselineBundle = JSON.parse(crownBaseline.output);
+      const skinBaselineBundle = JSON.parse(skinBaseline.output);
+      const geometrySha256 = sha256(JSON.stringify(canonical(bundle.mesh)));
+      const anatomyBaselineGeometrySha256 = sha256(
+        JSON.stringify(canonical(anatomyBaselineBundle.mesh))
+      );
+      const crownBaselineGeometrySha256 = sha256(
+        JSON.stringify(canonical(crownBaselineBundle.mesh))
+      );
+      const skinBaselineGeometrySha256 = sha256(JSON.stringify(canonical(skinBaselineBundle.mesh)));
+      const skinBaselineGroup = skinBaselineBundle.materialGroups.find(
+        (group) => group.material.shadingModel === 'skin-sss'
+      );
+      if (
+        anatomyBaselineBundle.anatomy !== undefined ||
+        anatomyBaselineGeometrySha256 === geometrySha256 ||
+        crownBaselineBundle.groom?.crownWhorl !== 0 ||
+        crownBaselineGeometrySha256 === geometrySha256 ||
+        skinBaselineBundle.skin !== undefined ||
+        skinBaselineGroup?.material.microdetailProfile !== 'none' ||
+        skinBaselineGroup?.material.microdetailScale !== 0 ||
+        skinBaselineGroup?.material.microdetailStrength !== 0 ||
+        skinBaselineGeometrySha256 !== geometrySha256
+      ) {
+        throw new Error(`${record.personaId} LOD${tier.level} causal comparison failed`);
+      }
+      comparisons.push({
+        personaId: record.personaId,
+        level: tier.level,
+        sourceAuthored: material,
+        opaque: opaqueBundle.groom.material,
+        geometrySha256,
+        geometryByteIdentical: true,
+        anatomy: {
+          sourceAuthored: anatomy,
+          baselineReceiptAbsent: true,
+          geometryChanged: anatomyBaselineGeometrySha256 !== geometrySha256,
+          baselineGeometrySha256: anatomyBaselineGeometrySha256,
+        },
+        crown: {
+          sourceAuthored: bundle.groom.crownWhorl,
+          baseline: crownBaselineBundle.groom.crownWhorl,
+          geometryChanged: crownBaselineGeometrySha256 !== geometrySha256,
+          baselineGeometrySha256: crownBaselineGeometrySha256,
+        },
+        skin: {
+          sourceAuthored: skin,
+          baselineReceiptAbsent: true,
+          baselineMaterial: {
+            microdetailProfile: skinBaselineGroup.material.microdetailProfile,
+            microdetailScale: skinBaselineGroup.material.microdetailScale,
+            microdetailStrength: skinBaselineGroup.material.microdetailStrength,
+          },
+          geometryByteIdentical: skinBaselineGeometrySha256 === geometrySha256,
+        },
+        cardUv: tier.cardUv,
+      });
+    }
+  }
+  return {
+    native,
+    comparisons,
+  };
+}
+
+function browserBundle(bundle) {
+  return {
+    vertexCount: bundle.vertexCount,
+    mesh: bundle.mesh,
+    jointMatrices: bundle.jointMatrices,
+    materialGroups: bundle.materialGroups,
+    face: bundle.face,
+    anatomy: bundle.anatomy,
+    skin: bundle.skin,
+    groom: bundle.groom,
+    lod: bundle.lod,
+  };
+}
+
+function h3iBrowserApplication(
+  THREE,
+  RoomEnvironment,
+  EffectComposer,
+  TAARenderPass,
+  OutputPass,
+  LODTransition,
+  payload
+) {
+  const host = document.getElementById('portraits');
+  const portraits = [];
+  const hairBridges = [];
+  const capBridges = [];
+  const skinBridges = [];
+  const wardrobeBridges = [];
+  const hairTextureCache = new Map();
+  const skinTextureCache = new Map();
+  const wardrobeTextureCache = new Map();
+  const gpu = {};
+  const sharedCanvas = document.createElement('canvas');
+  sharedCanvas.className = 'shared-stage-canvas';
+  sharedCanvas.setAttribute('aria-label', 'Three resident temporal LOD stage');
+  host.append(sharedCanvas);
+  const renderer = new THREE.WebGLRenderer({
+    canvas: sharedCanvas,
+    antialias: true,
+    powerPreference: 'high-performance',
+    preserveDrawingBuffer: true,
+  });
+  renderer.setSize(1360, 448, false);
+  renderer.setPixelRatio(1);
+  renderer.localClippingEnabled = true;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.02;
+  renderer.shadowMap.enabled = true;
+  const gl = renderer.getContext();
+  const debug = gl.getExtension('WEBGL_debug_renderer_info');
+  const timerExtension = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+  gpu.renderer = debug
+    ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+    : gl.getParameter(gl.RENDERER);
+  gpu.vendor = debug ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+  gpu.version = gl.getParameter(gl.VERSION);
+  gpu.samples = gl.getParameter(gl.SAMPLES);
+  gpu.antialias = renderer.getContextAttributes()?.antialias === true;
+  gpu.timerQueryAvailable = Boolean(timerExtension);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environmentTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x030a13);
+  scene.fog = new THREE.FogExp2(0x030a13, 0.22);
+  scene.environment = environmentTexture;
+  scene.environmentIntensity = 1.08;
+  scene.add(new THREE.HemisphereLight(0x9bcbd8, 0x160b08, 0.92));
+  const key = new THREE.DirectionalLight(0xffd5bd, 2.65);
+  key.position.set(1.5, 2.4, 2.3);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0x4eb9d0, 1.15);
+  fill.position.set(-2.2, 1.7, 1.3);
+  scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xff8e58, 1.55);
+  rim.position.set(0.5, 2.1, -1.8);
+  scene.add(rim);
+  const hairKey = new THREE.DirectionalLight(0xffc0a1, 1.35);
+  hairKey.position.set(-0.35, 3.6, 1.1);
+  scene.add(hairKey);
+  const camera = new THREE.PerspectiveCamera(25, 1360 / 448, 0.05, 20);
+  const composer = new EffectComposer(renderer);
+  composer.setSize(1360, 448);
+  const taa = new TAARenderPass(scene, camera, 0x030a13, 1);
+  taa.sampleLevel = 0;
+  taa.accumulate = false;
+  composer.addPass(taa);
+  composer.addPass(new OutputPass());
+
+  function geometryFromBundle(bundle) {
+    const positions = new Float32Array(bundle.mesh.positions);
+    const normals = new Float32Array(bundle.mesh.normals);
+    const tangents = new Float32Array(bundle.mesh.tangents);
+    for (let vertex = 0; vertex < bundle.vertexCount; vertex += 1) {
+      const joint = bundle.mesh.jointIndices[vertex];
+      const weight = bundle.mesh.jointWeights[vertex];
+      const offset = joint * 16;
+      const position = vertex * 3;
+      const x = positions[position];
+      const y = positions[position + 1];
+      const z = positions[position + 2];
+      positions[position] =
+        (bundle.jointMatrices[offset] * x +
+          bundle.jointMatrices[offset + 4] * y +
+          bundle.jointMatrices[offset + 8] * z +
+          bundle.jointMatrices[offset + 12]) *
+        weight;
+      positions[position + 1] =
+        (bundle.jointMatrices[offset + 1] * x +
+          bundle.jointMatrices[offset + 5] * y +
+          bundle.jointMatrices[offset + 9] * z +
+          bundle.jointMatrices[offset + 13]) *
+        weight;
+      positions[position + 2] =
+        (bundle.jointMatrices[offset + 2] * x +
+          bundle.jointMatrices[offset + 6] * y +
+          bundle.jointMatrices[offset + 10] * z +
+          bundle.jointMatrices[offset + 14]) *
+        weight;
+      const nx = normals[position];
+      const ny = normals[position + 1];
+      const nz = normals[position + 2];
+      const tx =
+        bundle.jointMatrices[offset] * nx +
+        bundle.jointMatrices[offset + 4] * ny +
+        bundle.jointMatrices[offset + 8] * nz;
+      const ty =
+        bundle.jointMatrices[offset + 1] * nx +
+        bundle.jointMatrices[offset + 5] * ny +
+        bundle.jointMatrices[offset + 9] * nz;
+      const tz =
+        bundle.jointMatrices[offset + 2] * nx +
+        bundle.jointMatrices[offset + 6] * ny +
+        bundle.jointMatrices[offset + 10] * nz;
+      const length = Math.hypot(tx, ty, tz) || 1;
+      normals[position] = tx / length;
+      normals[position + 1] = ty / length;
+      normals[position + 2] = tz / length;
+      const tangentOffset = vertex * 4;
+      const tangentX = tangents[tangentOffset];
+      const tangentY = tangents[tangentOffset + 1];
+      const tangentZ = tangents[tangentOffset + 2];
+      const skinnedTangentX =
+        bundle.jointMatrices[offset] * tangentX +
+        bundle.jointMatrices[offset + 4] * tangentY +
+        bundle.jointMatrices[offset + 8] * tangentZ;
+      const skinnedTangentY =
+        bundle.jointMatrices[offset + 1] * tangentX +
+        bundle.jointMatrices[offset + 5] * tangentY +
+        bundle.jointMatrices[offset + 9] * tangentZ;
+      const skinnedTangentZ =
+        bundle.jointMatrices[offset + 2] * tangentX +
+        bundle.jointMatrices[offset + 6] * tangentY +
+        bundle.jointMatrices[offset + 10] * tangentZ;
+      const tangentLength = Math.hypot(skinnedTangentX, skinnedTangentY, skinnedTangentZ) || 1;
+      tangents[tangentOffset] = skinnedTangentX / tangentLength;
+      tangents[tangentOffset + 1] = skinnedTangentY / tangentLength;
+      tangents[tangentOffset + 2] = skinnedTangentZ / tangentLength;
+      tangents[tangentOffset + 3] = 1;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+    geometry.setAttribute('tangent', new THREE.BufferAttribute(tangents, 4));
+    const uvs = new Float32Array(bundle.mesh.uvs || bundle.vertexCount * 2);
+    const skinVertices = new Set();
+    for (const group of bundle.materialGroups) {
+      if (group.material.shadingModel !== 'skin-sss') continue;
+      for (
+        let offset = group.indexStart;
+        offset < group.indexStart + group.indexCount;
+        offset += 1
+      ) {
+        skinVertices.add(bundle.mesh.indices[offset]);
+      }
+    }
+    let skinMinY = Number.POSITIVE_INFINITY;
+    let skinMaxY = Number.NEGATIVE_INFINITY;
+    for (const vertex of skinVertices) {
+      const y = positions[vertex * 3 + 1];
+      skinMinY = Math.min(skinMinY, y);
+      skinMaxY = Math.max(skinMaxY, y);
+    }
+    for (const vertex of skinVertices) {
+      const position = vertex * 3;
+      const uv = vertex * 2;
+      uvs[uv] = 0.5 + Math.atan2(positions[position + 2], positions[position]) / (Math.PI * 2);
+      uvs[uv + 1] = (positions[position + 1] - skinMinY) / Math.max(1e-6, skinMaxY - skinMinY);
+    }
+    geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(bundle.mesh.indices), 1));
+    const presentationGroups = [];
+    for (const group of bundle.materialGroups) {
+      if (
+        group.material.shadingModel === 'marschner-hair' &&
+        bundle.groom.scalpCapTriangleCount > 0
+      ) {
+        const capIndexCount = bundle.groom.scalpCapTriangleCount * 3;
+        geometry.addGroup(group.indexStart, capIndexCount, presentationGroups.length);
+        presentationGroups.push({ group, hairRegion: 'cap' });
+        geometry.addGroup(
+          group.indexStart + capIndexCount,
+          group.indexCount - capIndexCount,
+          presentationGroups.length
+        );
+        presentationGroups.push({ group, hairRegion: 'cards' });
+      } else {
+        geometry.addGroup(group.indexStart, group.indexCount, presentationGroups.length);
+        presentationGroups.push({ group, hairRegion: null });
+      }
+    }
+    geometry.userData.presentationGroups = presentationGroups;
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+    return geometry;
+  }
+
+  function smoothstep(edge0, edge1, value) {
+    const t = Math.max(0, Math.min(1, (value - edge0) / Math.max(1e-6, edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  }
+
+  function hairTextures(record) {
+    if (hairTextureCache.has(record.personaId)) {
+      return hairTextureCache.get(record.personaId);
+    }
+    const width = 64;
+    const height = 128;
+    const color = new Uint8Array(width * height * 4);
+    const coverage = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y += 1) {
+      const v = y / (height - 1);
+      for (let x = 0; x < width; x += 1) {
+        const u = x / (width - 1);
+        const index = (y * width + x) * 4;
+        const edge = Math.abs(u * 2 - 1);
+        const halfWidth = Math.min(0.98, record.strandCoverage + (1 - v) * 0.08);
+        const analytic =
+          y === 0 ? 1 : 1 - smoothstep(halfWidth - record.edgeSoftness, halfWidth, edge);
+        const brokenEdge = Math.max(
+          0,
+          Math.min(1, analytic * (0.94 + 0.06 * Math.sin(x * 1.73 + y * 0.19)))
+        );
+        const fibre =
+          0.84 +
+          0.13 * Math.pow(0.5 + 0.5 * Math.sin(x * 1.31 + Math.sin(y * 0.07) * 2.4), 5) +
+          0.05 * Math.sin(y * 0.34 + x * 0.13);
+        const luminance = Math.round(Math.max(0.72, Math.min(1, fibre)) * 255);
+        const alpha = Math.round(brokenEdge * 255);
+        color[index] = luminance;
+        color[index + 1] = luminance;
+        color[index + 2] = luminance;
+        color[index + 3] = 255;
+        coverage[index] = alpha;
+        coverage[index + 1] = alpha;
+        coverage[index + 2] = alpha;
+        coverage[index + 3] = 255;
+      }
+    }
+    const map = new THREE.DataTexture(color, width, height, THREE.RGBAFormat);
+    map.flipY = false;
+    map.wrapS = THREE.ClampToEdgeWrapping;
+    map.wrapT = THREE.ClampToEdgeWrapping;
+    map.minFilter = THREE.LinearMipmapLinearFilter;
+    map.magFilter = THREE.LinearFilter;
+    map.generateMipmaps = true;
+    map.needsUpdate = true;
+    const alphaMap = new THREE.DataTexture(coverage, width, height, THREE.RGBAFormat);
+    alphaMap.flipY = false;
+    alphaMap.wrapS = THREE.ClampToEdgeWrapping;
+    alphaMap.wrapT = THREE.ClampToEdgeWrapping;
+    alphaMap.minFilter = THREE.LinearMipmapLinearFilter;
+    alphaMap.magFilter = THREE.LinearFilter;
+    alphaMap.generateMipmaps = true;
+    alphaMap.needsUpdate = true;
+    const textures = { map, alphaMap };
+    hairTextureCache.set(record.personaId, textures);
+    return textures;
+  }
+
+  function skinTextures(record) {
+    if (skinTextureCache.has(record.personaId)) {
+      return skinTextureCache.get(record.personaId);
+    }
+    const width = 128;
+    const height = 128;
+    const bump = new Uint8Array(width * height * 4);
+    const roughness = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4;
+        const waveA = Math.sin(x * 1.73 + y * 0.61);
+        const waveB = Math.sin(x * 0.43 - y * 1.37 + Math.sin(y * 0.17) * 2.1);
+        const cellular = Math.pow(Math.max(0, 0.5 + 0.5 * Math.sin(x * 2.19 + y * 2.83)), 9);
+        const pore = Math.max(-1, Math.min(1, waveA * 0.38 + waveB * 0.32 - cellular * 0.76));
+        const bumpValue = Math.round(128 + pore * 74);
+        const roughnessValue = Math.round(218 - pore * 25);
+        bump[index] = bumpValue;
+        bump[index + 1] = bumpValue;
+        bump[index + 2] = bumpValue;
+        bump[index + 3] = 255;
+        roughness[index] = roughnessValue;
+        roughness[index + 1] = roughnessValue;
+        roughness[index + 2] = roughnessValue;
+        roughness[index + 3] = 255;
+      }
+    }
+    const configure = (data) => {
+      const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+      texture.flipY = false;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(record.microdetailScale / 7.5, record.microdetailScale / 4.5);
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = true;
+      texture.needsUpdate = true;
+      return texture;
+    };
+    const textures = {
+      bumpMap: configure(bump),
+      roughnessMap: configure(roughness),
+    };
+    skinTextureCache.set(record.personaId, textures);
+    return textures;
+  }
+
+  function wardrobeTexture(record) {
+    if (wardrobeTextureCache.has(record.personaId)) {
+      return wardrobeTextureCache.get(record.personaId);
+    }
+    const width = 96;
+    const height = 96;
+    const data = new Uint8Array(width * height * 4);
+    const base = new THREE.Color(record.wardrobeColor);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4;
+        const warp = x % 6 === 0 ? 0.15 : x % 3 === 0 ? 0.07 : 0;
+        const weft = y % 6 === 0 ? 0.12 : y % 3 === 0 ? 0.05 : 0;
+        const grain = 0.96 + 0.035 * Math.sin(x * 1.7 + y * 0.47);
+        data[index] = Math.round(Math.min(1, base.r * grain + warp) * 255);
+        data[index + 1] = Math.round(Math.min(1, base.g * grain + weft) * 255);
+        data[index + 2] = Math.round(Math.min(1, base.b * grain + warp * 0.35) * 255);
+        data[index + 3] = 255;
+      }
+    }
+    const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 4);
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = true;
+    texture.needsUpdate = true;
+    wardrobeTextureCache.set(record.personaId, texture);
+    return texture;
+  }
+
+  function materialFor(group, record, hairRegion, recordBridge = true) {
+    const material = group.material;
+    if (material.shadingModel === 'marschner-hair') {
+      const textures = hairTextures(record);
+      if (hairRegion === 'cap') {
+        const cap = new THREE.MeshPhysicalMaterial({
+          color: record.hairColor,
+          roughness: 0.64,
+          metalness: 0,
+          map: textures.map,
+          side: THREE.DoubleSide,
+          anisotropy: 0,
+          clearcoat: 0,
+          clearcoatRoughness: 0.6,
+          sheen: 0.26,
+          sheenRoughness: 0.62,
+          sheenColor: new THREE.Color(record.hairColor).lerp(new THREE.Color(0xffb98f), 0.24),
+          emissive: record.hairColor,
+          emissiveIntensity: 0.05,
+          specularIntensity: 0.35,
+          envMapIntensity: 0.58,
+        });
+        if (recordBridge) {
+          capBridges.push({
+            personaId: record.personaId,
+            materialType: cap.type,
+            region: 'cap',
+            anisotropy: cap.anisotropy,
+            alphaToCoverage: cap.alphaToCoverage,
+            proceduralMap: true,
+            proceduralAlphaMap: false,
+            externalTexture: false,
+            customShader: false,
+          });
+        }
+        return cap;
+      }
+      const response = new THREE.MeshPhysicalMaterial({
+        color: record.hairColor,
+        roughness: 0.43,
+        metalness: 0,
+        map: textures.map,
+        alphaMap: textures.alphaMap,
+        alphaTest: 0.01,
+        alphaToCoverage: true,
+        side: THREE.DoubleSide,
+        anisotropy: record.anisotropyStrength,
+        anisotropyRotation: record.longitudinalShift * Math.PI,
+        clearcoat: 0.08,
+        clearcoatRoughness: 0.34,
+        sheen: 0.46,
+        sheenRoughness: 0.48,
+        sheenColor: new THREE.Color(record.hairColor).lerp(new THREE.Color(0xffb98f), 0.35),
+        emissive: record.hairColor,
+        emissiveIntensity: 0.035,
+        specularIntensity: 0.72,
+        envMapIntensity: 0.74,
+      });
+      if (recordBridge) {
+        hairBridges.push({
+          personaId: record.personaId,
+          materialType: response.type,
+          requestedHairColor: record.hairColor,
+          resolvedColor: `#${response.color.getHexString()}`,
+          resolvedEmissive: `#${response.emissive.getHexString()}`,
+          coverageProfile: material.coverageProfile,
+          strandCoverage: material.strandCoverage,
+          edgeSoftness: material.edgeSoftness,
+          anisotropyStrength: material.anisotropyStrength,
+          longitudinalShift: material.longitudinalShift,
+          alphaToCoverage: response.alphaToCoverage,
+          alphaTest: response.alphaTest,
+          anisotropy: response.anisotropy,
+          anisotropyRotation: response.anisotropyRotation,
+          proceduralMap: true,
+          proceduralAlphaMap: true,
+          externalTexture: false,
+          customShader: false,
+          nativeTangentAttribute:
+            record.tiers[1].bundle.mesh.tangents.length === record.tiers[1].bundle.vertexCount * 4,
+        });
+      }
+      return response;
+    }
+    if (material.shadingModel === 'refractive-eye') {
+      if (material.eyeRegion === 'cornea') {
+        return new THREE.MeshPhysicalMaterial({
+          color: material.color,
+          roughness: 0.06,
+          transparent: true,
+          opacity: 0.08,
+          ior: material.ior,
+          clearcoat: 0.9,
+          clearcoatRoughness: 0.04,
+          envMapIntensity: 0.78,
+          depthWrite: false,
+        });
+      }
+      const isIris = material.eyeRegion === 'iris';
+      const isPupil = material.eyeRegion === 'pupil';
+      return new THREE.MeshPhysicalMaterial({
+        color: material.color,
+        roughness: isPupil ? 0.17 : isIris ? 0.3 : 0.4,
+        metalness: 0,
+        clearcoat: isPupil ? 0.64 : isIris ? 0.3 : 0.12,
+        clearcoatRoughness: 0.14,
+        envMapIntensity: 0.72,
+      });
+    }
+    if (material.shadingModel === 'skin-sss') {
+      const textures = skinTextures(record);
+      const skin = new THREE.MeshPhysicalMaterial({
+        color: material.color,
+        roughness: 0.72,
+        roughnessMap: textures.roughnessMap,
+        metalness: 0,
+        bumpMap: textures.bumpMap,
+        bumpScale: record.microdetailStrength * 0.048,
+        clearcoat: 0.035,
+        clearcoatRoughness: 0.58,
+        sheen: 0.12,
+        sheenRoughness: 0.72,
+        sheenColor: new THREE.Color(material.color).lerp(new THREE.Color(0xffd6c5), 0.28),
+        specularIntensity: 0.44,
+        specularColor: 0xffe8df,
+        envMapIntensity: 0.48,
+        clippingPlanes: [
+          new THREE.Plane(new THREE.Vector3(0, 1, 0), -record.presentationTorsoClipY),
+        ],
+        clipShadows: true,
+      });
+      if (recordBridge) {
+        skinBridges.push({
+          personaId: record.personaId,
+          materialType: skin.type,
+          receiptSchema: record.tiers[1].bundle.skin.schemaVersion,
+          receiptCalibrationProfile: record.tiers[1].bundle.skin.calibrationProfile,
+          microdetailProfile: material.microdetailProfile,
+          microdetailScale: material.microdetailScale,
+          microdetailStrength: material.microdetailStrength,
+          bumpScale: skin.bumpScale,
+          proceduralBumpMap: true,
+          proceduralRoughnessMap: true,
+          generatedUvProjection: 'cylindrical-skin-v1',
+          nativeTorsoClipPolicy: 'eye-height-minus-0.16-v1',
+          nativeTorsoClipY: record.presentationTorsoClipY,
+          externalTexture: false,
+          customShader: false,
+        });
+      }
+      return skin;
+    }
+    return new THREE.MeshPhysicalMaterial({
+      color: material.color,
+      roughness: 0.6,
+      metalness: 0,
+      clearcoat: 0.04,
+      clearcoatRoughness: 0.44,
+      sheen: 0.08,
+      sheenColor: 0xffd4c2,
+      envMapIntensity: 0.6,
+    });
+  }
+
+  function eyeHeight(bundle, geometry) {
+    const positions = geometry.getAttribute('position');
+    const groups = bundle.materialGroups.filter(
+      (group) =>
+        group.material.shadingModel === 'refractive-eye' && group.material.eyeRegion === 'sclera'
+    );
+    let sum = 0;
+    let samples = 0;
+    for (const group of groups) {
+      for (
+        let offset = group.indexStart;
+        offset < group.indexStart + group.indexCount;
+        offset += 1
+      ) {
+        sum += positions.getY(bundle.mesh.indices[offset]);
+        samples += 1;
+      }
+    }
+    return samples ? sum / samples : geometry.boundingBox.max.y * 0.82;
+  }
+
+  function buildWardrobeBridge(record, eyeY, x) {
+    const group = new THREE.Group();
+    const cloth = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      map: wardrobeTexture(record),
+      roughness: 0.82,
+      metalness: 0,
+      sheen: 0.34,
+      sheenRoughness: 0.72,
+      sheenColor: new THREE.Color(record.wardrobeColor).lerp(new THREE.Color(0x9fc3c8), 0.28),
+      envMapIntensity: 0.42,
+    });
+    const trim = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(record.wardrobeColor).multiplyScalar(0.54),
+      roughness: 0.67,
+      metalness: 0.03,
+      clearcoat: 0.05,
+      envMapIntensity: 0.38,
+    });
+    const torso = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.14 * record.torsoScale,
+        0.25 * record.torsoScale,
+        0.58,
+        36,
+        1,
+        false
+      ),
+      cloth
+    );
+    torso.scale.set(record.shoulderScale * 1.15, 1, 0.75);
+    torso.position.y = eyeY - 0.45;
+    torso.castShadow = true;
+    torso.receiveShadow = true;
+    group.add(torso);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 10, 42), trim);
+    collar.scale.set(record.shoulderScale, 0.62, 0.76);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.set(0, eyeY - 0.16, 0.055);
+    group.add(collar);
+    group.position.x = x;
+    scene.add(group);
+    wardrobeBridges.push({
+      personaId: record.personaId,
+      bridge: 'three-tapered-civic-tunic-v1',
+      shoulderScale: record.shoulderScale,
+      torsoScale: record.torsoScale,
+      authoredColor: record.wardrobeColor,
+      proceduralWovenMap: true,
+      externalTexture: false,
+      customShader: false,
+    });
+    return group;
+  }
+
+  function buildPortrait(record) {
+    const portraitIndex = portraits.length;
+    const card = document.createElement('section');
+    card.className = 'portrait';
+    card.style.left = `${portraitIndex * 566}px`;
+    const label = document.createElement('div');
+    label.className = 'portrait-label';
+    label.innerHTML = `<div><strong>${record.displayLabel}</strong><span>${record.civicRole} &middot; ${record.nativeHairStyleId}</span></div><b>NATIVE ANATOMY &middot; PORE ${record.microdetailScale}</b>`;
+    card.append(label);
+    host.append(card);
+
+    const lodMeshes = [1, 2].map((level, levelIndex) => {
+      const tierBundle = record.tiers[level].bundle;
+      const geometry = geometryFromBundle(tierBundle);
+      record.presentationTorsoClipY = eyeHeight(tierBundle, geometry) - 0.16;
+      const mesh = new THREE.Mesh(
+        geometry,
+        geometry.userData.presentationGroups.map(({ group, hairRegion }) =>
+          materialFor(group, record, hairRegion, levelIndex === 0)
+        )
+      );
+      for (const material of mesh.material) {
+        material.userData.baseOpacity = material.opacity;
+        if (!material.transparent) material.alphaHash = true;
+      }
+      mesh.visible = levelIndex === 0;
+      mesh.position.x = (portraitIndex - 1) * 0.48;
+      scene.add(mesh);
+      return mesh;
+    });
+    const bundle = record.tiers[1].bundle;
+    const eyeY = eyeHeight(bundle, lodMeshes[0].geometry);
+    const wardrobe = buildWardrobeBridge(record, eyeY, (portraitIndex - 1) * 0.48);
+    const transitionReceipt = bundle.lod.transition;
+    const transition = new LODTransition({
+      mode: transitionReceipt.mode,
+      duration: transitionReceipt.durationSeconds,
+      hysteresisBand: transitionReceipt.hysteresisBand,
+    });
+    portraits.push({
+      record,
+      eyeY,
+      lodMeshes,
+      wardrobe,
+      transition,
+      entityId: `h3i-${record.personaId}`,
+      fromIndex: 0,
+      toIndex: 1,
+      activeIndex: 0,
+    });
+  }
+
+  function setMeshWeight(mesh, weight) {
+    const bounded = Math.max(0, Math.min(1, weight));
+    mesh.visible = bounded > 0.001;
+    for (const material of mesh.material) {
+      material.opacity = material.userData.baseOpacity * bounded;
+    }
+  }
+
+  function beginTransition(portrait, toIndex) {
+    portrait.fromIndex = portrait.activeIndex;
+    portrait.toIndex = toIndex;
+    portrait.transition.startTransition(
+      portrait.entityId,
+      portrait.fromIndex + 1,
+      portrait.toIndex + 1
+    );
+  }
+
+  function updateTransition(portrait, dt) {
+    portrait.transition.update(dt);
+    const state = portrait.transition.getTransitionState(portrait.entityId);
+    if (!state) return false;
+    const threshold = portrait.transition.getDitherThreshold(portrait.entityId);
+    setMeshWeight(portrait.lodMeshes[portrait.fromIndex], 1 - threshold);
+    setMeshWeight(portrait.lodMeshes[portrait.toIndex], threshold);
+    if (!state.active) {
+      portrait.activeIndex = portrait.toIndex;
+      setMeshWeight(portrait.lodMeshes[portrait.activeIndex], 1);
+      setMeshWeight(portrait.lodMeshes[1 - portrait.activeIndex], 0);
+    }
+    return state.active;
+  }
+
+  function sampledPixels() {
+    const sample = [];
+    const pixels = new Uint8Array(1360 * 448 * 4);
+    gl.readPixels(0, 0, 1360, 448, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    for (let index = 0; index < pixels.length; index += 64) {
+      sample.push(pixels[index], pixels[index + 1], pixels[index + 2]);
+    }
+    return sample;
+  }
+
+  function pixelDelta(before, after) {
+    let absolute = 0;
+    let changed = 0;
+    for (let index = 0; index < before.length; index += 1) {
+      const delta = Math.abs(before[index] - after[index]);
+      absolute += delta;
+      if (delta > 1) changed += 1;
+    }
+    return {
+      meanAbsoluteChannelDelta: absolute / Math.max(1, before.length),
+      changedChannelRatio: changed / Math.max(1, before.length),
+      sampledChannelCount: before.length,
+    };
+  }
+
+  async function run() {
+    payload.records.forEach(buildPortrait);
+    const meanEyeY = portraits.reduce((sum, portrait) => sum + portrait.eyeY, 0) / portraits.length;
+    camera.position.set(0, meanEyeY - 0.055, 1.22);
+    camera.lookAt(0, meanEyeY - 0.075, 0.012);
+    const frameTimes = [];
+    const submitTimes = [];
+    const stableSubmitTimes = [];
+    const invalidatedSubmitTimes = [];
+    const gpuSamples = [];
+    const pendingQueries = [];
+    const transitionSamples = [];
+    let historyInvalidationFrameCount = 0;
+    let stableSnapshotA = null;
+    let stableSnapshotB = null;
+    let last = performance.now();
+    const pollGpuQueries = () => {
+      if (!timerExtension) return;
+      const disjoint = gl.getParameter(timerExtension.GPU_DISJOINT_EXT);
+      for (let index = pendingQueries.length - 1; index >= 0; index -= 1) {
+        const pending = pendingQueries[index];
+        if (!gl.getQueryParameter(pending.query, gl.QUERY_RESULT_AVAILABLE)) continue;
+        const nanoseconds = gl.getQueryParameter(pending.query, gl.QUERY_RESULT);
+        gl.deleteQuery(pending.query);
+        pendingQueries.splice(index, 1);
+        if (!disjoint) {
+          gpuSamples.push({
+            phase: pending.phase,
+            milliseconds: nanoseconds / 1_000_000,
+          });
+        }
+      }
+    };
+    for (let frame = 0; frame < 150; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      pollGpuQueries();
+      if (frame === 42) portraits.forEach((portrait) => beginTransition(portrait, 1));
+      if (frame === 84) portraits.forEach((portrait) => beginTransition(portrait, 0));
+      let transitioning = false;
+      for (const portrait of portraits) {
+        transitioning = updateTransition(portrait, 1 / 60) || transitioning;
+      }
+      const moving = frame >= 24 && frame < 32;
+      for (const portrait of portraits) {
+        const yaw = moving ? Math.sin(((frame - 24) / 8) * Math.PI) * 0.035 : 0;
+        portrait.lodMeshes.forEach((mesh) => {
+          mesh.rotation.y = yaw;
+        });
+      }
+      const historyValid = !moving && !transitioning;
+      if (!historyValid) historyInvalidationFrameCount += 1;
+      taa.accumulate = historyValid;
+      let query = null;
+      if (timerExtension && frame >= 18 && pendingQueries.length < 8) {
+        query = gl.createQuery();
+        gl.beginQuery(timerExtension.TIME_ELAPSED_EXT, query);
+      }
+      const start = performance.now();
+      composer.render(1 / 60);
+      if (query) {
+        gl.endQuery(timerExtension.TIME_ELAPSED_EXT);
+        pendingQueries.push({
+          query,
+          phase: historyValid ? 'stable' : 'history-invalidated',
+        });
+      }
+      const now = performance.now();
+      if (frame >= 20) {
+        frameTimes.push(now - last);
+        submitTimes.push(now - start);
+        (historyValid ? stableSubmitTimes : invalidatedSubmitTimes).push(now - start);
+      }
+      if (transitioning && frame % 4 === 0) {
+        const first = portraits[0];
+        transitionSamples.push({
+          frame,
+          progress: first.transition.getDitherThreshold(first.entityId),
+          bayerThreshold: first.transition.getDitherPattern(frame & 7, (frame >> 3) & 7),
+        });
+      }
+      if (frame === 146) stableSnapshotA = sampledPixels();
+      if (frame === 147) stableSnapshotB = sampledPixels();
+      last = now;
+    }
+    gl.flush();
+    for (let attempt = 0; attempt < 30 && pendingQueries.length; attempt += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      pollGpuQueries();
+    }
+    for (const pending of pendingQueries) gl.deleteQuery(pending.query);
+    const stableGpu = gpuSamples
+      .filter((sample) => sample.phase === 'stable')
+      .map((sample) => sample.milliseconds);
+    const invalidatedGpu = gpuSamples
+      .filter((sample) => sample.phase === 'history-invalidated')
+      .map((sample) => sample.milliseconds);
+    const visualTier = payload.records[0].tiers[1].bundle;
+    const transitionReceipt = visualTier.lod.transition;
+    window.__H3I_RESULT__ = {
+      gpu,
+      frameP95Milliseconds: payload.percentile(frameTimes, 0.95),
+      renderSubmitP95Milliseconds: payload.percentile(submitTimes, 0.95),
+      stableSubmitP95Milliseconds: payload.percentile(stableSubmitTimes, 0.95),
+      invalidatedSubmitP95Milliseconds: payload.percentile(invalidatedSubmitTimes, 0.95),
+      stableGpuP95Milliseconds: payload.percentile(stableGpu, 0.95),
+      invalidatedGpuP95Milliseconds: payload.percentile(invalidatedGpu, 0.95),
+      gpuTimerSampleCount: gpuSamples.length,
+      rendererCount: 1,
+      sharedSceneCount: 1,
+      composerCount: 1,
+      internalRenderWidth: 1360,
+      internalRenderHeight: 448,
+      presentationWidth: 1680,
+      presentationHeight: 554,
+      internalRenderScale: 0.81,
+      transitionReceipt,
+      transitionClass: portraits[0].transition.constructor.name,
+      hysteresisProbe: {
+        outsideBand: portraits[0].transition.shouldTransition(8.7, 8, 1, 2),
+        insideBand: portraits[0].transition.shouldTransition(8.5, 8, 1, 2),
+      },
+      transitionSamples,
+      historyPolicy: 'invalidate-on-motion-or-lod-change-v1',
+      historyInvalidationFrameCount,
+      taaBridge: 'three-taarenderpass-v1',
+      taaSampleLevel: taa.sampleLevel,
+      taaAccumulationTargetFrames: 32,
+      finalTaaAccumulationIndices: [taa.accumulateIndex],
+      temporalPixelDelta: pixelDelta(stableSnapshotA, stableSnapshotB),
+      motionReprojection: false,
+      nativeWebgpuTaa: false,
+      orbitalProfile: visualTier.face.orbitalProfile,
+      groomProfile: visualTier.groom.profile,
+      scalpSurface: visualTier.groom.scalpSurface,
+      rootTangentRadialDotP95: visualTier.groom.rootTangentRadialDotP95,
+      frontalOcclusionVertexCount: visualTier.groom.frontalOcclusionVertexCount,
+      coverageProfile: visualTier.groom.material.coverageProfile,
+      alphaToCoverageRequested: visualTier.groom.material.alphaToCoverageRequested,
+      tangentAttribute: visualTier.groom.material.tangentAttribute,
+      cardUvAttribute: visualTier.groom.material.cardUvAttribute,
+      anatomy: visualTier.anatomy,
+      skin: visualTier.skin,
+      hairBridges,
+      capBridges,
+      skinBridges,
+      wardrobeBridges,
+      ocularMaterialGroupCount: visualTier.materialGroups.filter(
+        (group) => group.material.shadingModel === 'refractive-eye'
+      ).length,
+      presentationShaderOverrideUsed: false,
+      presentationMaterialBridgeUsed: true,
+      presentationAlphaMapUsed: true,
+      presentationSkinMicrodetailBridgeUsed: true,
+      presentationWardrobeBridgeUsed: true,
+      presentationNativeTorsoClipUsed: true,
+      presentationTaaBridgeUsed: true,
+      externalSkinTextureUsed: false,
+      externalHairTextureUsed: false,
+      visualHairLod: 1,
+      sourceCommit: payload.sourceCommit,
+    };
+    window.__H3I_READY__ = true;
+  }
+
+  run().catch((error) => {
+    window.__H3I_ERROR__ = error?.stack || error?.message || String(error);
+  });
+}
+
+async function loadWorkspaceModules(holoScriptRoot) {
+  const workspaceRequire = createRequire(path.join(holoScriptRoot, 'package.json'));
+  const importResolved = async (name) => import(pathToFileURL(workspaceRequire.resolve(name)).href);
+  const playwrightModule = await importResolved('playwright');
+  return {
+    esbuild: await importResolved('esbuild'),
+    chromium: (playwrightModule.default || playwrightModule).chromium,
+  };
+}
+
+async function buildBrowserSurface(compiled, options, modules) {
+  mkdirSync(options.outputDir, { recursive: true });
+  const bundlePath = path.join(options.outputDir, 'h3i-anatomy-surface.bundle.js');
+  const htmlPath = path.join(options.outputDir, 'h3i-anatomy-surface.html');
+  const payload = {
+    sourceCommit: compiled.stack.contract.metadata.upstreamHoloScriptCommit,
+    records: compiled.hairResponse.native.records.map((record) => ({
+      ...record,
+      tiers: record.tiers.map((tier) => ({
+        ...tier,
+        bundle: browserBundle(tier.bundle),
+      })),
+    })),
+  };
+  const appSource = [
+    "import * as THREE from 'three';",
+    "import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';",
+    "import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';",
+    "import { TAARenderPass } from 'three/addons/postprocessing/TAARenderPass.js';",
+    "import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';",
+    "import { LODTransition } from './packages/engine/src/lod/LODTransition.ts';",
+    `const PAYLOAD = ${JSON.stringify(payload)};`,
+    `PAYLOAD.percentile = (values, quantile) => {
+      const sorted = [...values].sort((a,b)=>a-b);
+      return sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * quantile) - 1))] : 0;
+    };`,
+    `(${h3iBrowserApplication.toString()})(THREE, RoomEnvironment, EffectComposer, TAARenderPass, OutputPass, LODTransition, PAYLOAD);`,
+  ].join('\n');
+  try {
+    await modules.esbuild.build({
+      stdin: {
+        contents: appSource,
+        resolveDir: options.holoScriptRoot,
+        sourcefile: 'h3i-anatomy-surface.entry.js',
+        loader: 'js',
+      },
+      outfile: bundlePath,
+      bundle: true,
+      format: 'iife',
+      platform: 'browser',
+      target: ['chrome120'],
+      minify: false,
+      sourcemap: false,
+      nodePaths: [path.join(options.holoScriptRoot, 'node_modules')],
+      logLevel: 'silent',
+    });
+  } finally {
+    modules.esbuild.stop?.();
+  }
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Stormglass Character Appearance H3I Anatomy and Surface</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 50% -12%,#163c4b 0,#06121c 43%,#02060b 100%);color:#eef8fa;font-family:Inter,Segoe UI,sans-serif}
+    header{height:108px;padding:21px 38px 12px;border-bottom:1px solid rgba(126,207,220,.2)}
+    .eyebrow{color:#75d1df;font:700 11px/1.2 ui-monospace,monospace;letter-spacing:.22em}
+    h1{margin:7px 0 0;font:500 34px/1 Georgia,serif}
+    .sub{position:absolute;right:40px;top:24px;color:#99b8c1;font:600 11px/1.65 ui-monospace,monospace;text-align:right}
+    #portraits{position:relative;width:1680px;height:566px;margin:16px auto 0}
+    .shared-stage-canvas{position:absolute;inset:0 auto auto 0;display:block;width:1680px;height:554px;border:1px solid rgba(118,205,220,.24);border-radius:20px;background:#030a13;box-shadow:0 28px 70px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.03)}
+    .portrait{position:absolute;top:0;width:548px;height:566px;overflow:hidden;border:1px solid rgba(118,205,220,.18);border-radius:20px;pointer-events:none}
+    .portrait-label{position:absolute;left:16px;right:16px;bottom:14px;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid rgba(125,205,219,.22);border-radius:12px;background:rgba(3,10,16,.86);backdrop-filter:blur(9px)}
+    .portrait-label strong{display:block;font:600 18px/1.15 Georgia,serif}
+    .portrait-label span{display:block;margin-top:4px;color:#8cb2be;font:700 9px/1.2 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
+    .portrait-label b{color:#77cfdd;font:700 9px/1 ui-monospace,monospace;letter-spacing:.09em}
+    footer{position:absolute;left:40px;right:40px;bottom:10px;display:flex;justify-content:space-between;color:#74929d;font:600 9px/1.4 ui-monospace,monospace;letter-spacing:.09em}
+    .truth{color:#e9aa72;text-align:right}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">STORMGLASS COMMONS // NATIVE CHARACTER H3I</div>
+    <h1>Anatomy &amp; Surface Convergence</h1>
+    <div class="sub">@face + @body + @hair(crown_whorl) + @subsurface_scattering<br>ONE WEBGL CONTEXT &middot; 32-FRAME STABLE ACCUMULATION</div>
+  </header>
+  <main id="portraits"></main>
+  <footer>
+    <div>HEARTHLIGHT BIOREALISM &middot; NATIVE ANATOMY RECEIPTS &middot; FINAL LOD1</div>
+    <div class="truth">PROCEDURAL SKIN BRIDGE &middot; NO EXTERNAL TEXTURES &middot; NOT BIOMETRIC LIKENESS</div>
+  </footer>
+  <script src="${path.basename(bundlePath)}"></script>
+</body>
+</html>`;
+  writeFileSync(htmlPath, html, 'utf8');
+  return {
+    bundlePath,
+    htmlPath,
+    bundleSha256: sha256File(bundlePath),
+    htmlSha256: sha256(html),
+  };
+}
+
+async function startServer(root) {
+  const server = createServer((request, response) => {
+    try {
+      const pathname = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
+      const absolute = path.resolve(root, pathname.replace(/^\/+/, ''));
+      if (!absolute.startsWith(path.resolve(root)) || !existsSync(absolute)) {
+        response.writeHead(404).end();
+        return;
+      }
+      const content = readFileSync(absolute);
+      response.writeHead(200, {
+        'Content-Type': absolute.endsWith('.html')
+          ? 'text/html; charset=utf-8'
+          : 'text/javascript; charset=utf-8',
+        'Content-Length': content.length,
+      });
+      response.end(content);
+    } catch (error) {
+      response.writeHead(500).end(String(error));
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  return { server, url: `http://127.0.0.1:${address.port}` };
+}
+
+async function captureBrowser(surface, options, modules) {
+  const { server, url } = await startServer(options.outputDir);
+  const externalRequests = [];
+  const pageErrors = [];
+  let browser;
+  try {
+    browser = await modules.chromium.launch({
+      executablePath: options.browser,
+      headless: true,
+      args: [
+        '--use-angle=d3d11',
+        '--ignore-gpu-blocklist',
+        '--enable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-renderer-backgrounding',
+        '--no-first-run',
+        '--no-default-browser-check',
+      ],
+    });
+    const page = await browser.newPage({
+      viewport: { width: 1800, height: 720 },
+      deviceScaleFactor: 1,
+    });
+    page.on('pageerror', (error) => pageErrors.push(String(error)));
+    page.on('request', (request) => {
+      const requestUrl = new URL(request.url());
+      if (requestUrl.hostname !== '127.0.0.1') externalRequests.push(request.url());
+    });
+    await page.goto(`${url}/${path.basename(surface.htmlPath)}`, {
+      waitUntil: 'load',
+      timeout: 60_000,
+    });
+    await page.waitForFunction(() => window.__H3I_READY__ || window.__H3I_ERROR__, null, {
+      timeout: 60_000,
+    });
+    const browserError = await page.evaluate(() => window.__H3I_ERROR__ || null);
+    if (browserError) throw new Error(browserError);
+    const result = await page.evaluate(() => window.__H3I_RESULT__);
+    if (!/NVIDIA/i.test(result.gpu.renderer) || !/(Direct3D11|D3D11)/i.test(result.gpu.renderer)) {
+      throw new Error(`hardware D3D11 renderer required, received ${result.gpu.renderer}`);
+    }
+    const validHairBridges =
+      result.hairBridges?.length === 3 &&
+      result.hairBridges.every(
+        (bridge) =>
+          bridge.materialType === 'MeshPhysicalMaterial' &&
+          bridge.coverageProfile === 'alpha-to-coverage-v1' &&
+          bridge.alphaToCoverage === true &&
+          bridge.alphaTest === 0.01 &&
+          bridge.anisotropy === bridge.anisotropyStrength &&
+          Math.abs(bridge.anisotropyRotation - bridge.longitudinalShift * Math.PI) < 1e-9 &&
+          bridge.proceduralMap === true &&
+          bridge.proceduralAlphaMap === true &&
+          bridge.externalTexture === false &&
+          bridge.customShader === false &&
+          bridge.nativeTangentAttribute === true
+      );
+    const validCapBridges =
+      result.capBridges?.length === 3 &&
+      result.capBridges.every(
+        (bridge) =>
+          bridge.materialType === 'MeshPhysicalMaterial' &&
+          bridge.region === 'cap' &&
+          bridge.anisotropy === 0 &&
+          bridge.alphaToCoverage === false &&
+          bridge.proceduralMap === true &&
+          bridge.proceduralAlphaMap === false &&
+          bridge.externalTexture === false &&
+          bridge.customShader === false
+      );
+    const validSkinBridges =
+      result.skinBridges?.length === 3 &&
+      result.skinBridges.every(
+        (bridge) =>
+          bridge.materialType === 'MeshPhysicalMaterial' &&
+          bridge.receiptSchema === 'holoscript.agent-avatar-skin-material.v2' &&
+          bridge.receiptCalibrationProfile === 'legacy-v1' &&
+          bridge.microdetailProfile === 'analytic-pore-v1' &&
+          bridge.microdetailScale >= 88 &&
+          bridge.microdetailScale <= 102 &&
+          bridge.microdetailStrength >= 0.065 &&
+          bridge.microdetailStrength <= 0.085 &&
+          bridge.bumpScale === bridge.microdetailStrength * 0.048 &&
+          bridge.proceduralBumpMap === true &&
+          bridge.proceduralRoughnessMap === true &&
+          bridge.generatedUvProjection === 'cylindrical-skin-v1' &&
+          bridge.nativeTorsoClipPolicy === 'eye-height-minus-0.16-v1' &&
+          bridge.nativeTorsoClipY >= 1.5 &&
+          bridge.nativeTorsoClipY <= 1.6 &&
+          bridge.externalTexture === false &&
+          bridge.customShader === false
+      );
+    const validWardrobeBridges =
+      result.wardrobeBridges?.length === 3 &&
+      result.wardrobeBridges.every(
+        (bridge) =>
+          bridge.bridge === 'three-tapered-civic-tunic-v1' &&
+          bridge.shoulderScale >= 1.08 &&
+          bridge.shoulderScale <= 1.12 &&
+          bridge.torsoScale >= 0.94 &&
+          bridge.torsoScale <= 0.97 &&
+          /^#[0-9a-f]{6}$/i.test(bridge.authoredColor) &&
+          bridge.proceduralWovenMap === true &&
+          bridge.externalTexture === false &&
+          bridge.customShader === false
+      );
+    const validAnatomyReceipt =
+      result.anatomy?.schemaVersion === 'holoscript.agent-avatar-anatomy.v1' &&
+      result.anatomy?.faceWidth === 0.94 &&
+      result.anatomy?.faceLength === 1.07 &&
+      result.anatomy?.jawTaper === 0.3 &&
+      result.anatomy?.shoulderScale === 1.12 &&
+      result.anatomy?.torsoScale === 0.96;
+    const validSkinReceipt =
+      result.skin?.schemaVersion === 'holoscript.agent-avatar-skin-material.v2' &&
+      result.skin?.calibrationProfile === 'legacy-v1' &&
+      result.skin?.microdetailProfile === 'analytic-pore-v1' &&
+      result.skin?.microdetailScale === 94 &&
+      result.skin?.microdetailStrength === 0.075;
+    const validTransitionReceipt =
+      result.transitionReceipt?.schemaVersion === 'holoscript.character-lod-transition.v1' &&
+      result.transitionReceipt?.selectionMode === 'distance' &&
+      result.transitionReceipt?.mode === 'dither' &&
+      result.transitionReceipt?.durationSeconds === 0.26 &&
+      result.transitionReceipt?.hysteresisBand === 0.65;
+    const validGpuTimer =
+      result.gpu.timerQueryAvailable !== true ||
+      (result.gpuTimerSampleCount >= 24 &&
+        result.stableGpuP95Milliseconds > 0 &&
+        result.invalidatedGpuP95Milliseconds > 0);
+    if (
+      result.gpu.antialias !== true ||
+      result.gpu.samples < 2 ||
+      !validGpuTimer ||
+      result.rendererCount !== 1 ||
+      result.sharedSceneCount !== 1 ||
+      result.composerCount !== 1 ||
+      result.internalRenderWidth !== 1360 ||
+      result.internalRenderHeight !== 448 ||
+      result.presentationWidth !== 1680 ||
+      result.presentationHeight !== 554 ||
+      result.internalRenderScale !== 0.81 ||
+      !validTransitionReceipt ||
+      result.transitionClass !== 'LODTransition' ||
+      result.hysteresisProbe?.outsideBand !== true ||
+      result.hysteresisProbe?.insideBand !== false ||
+      result.transitionSamples?.length < 6 ||
+      result.historyPolicy !== 'invalidate-on-motion-or-lod-change-v1' ||
+      result.historyInvalidationFrameCount < 20 ||
+      result.taaBridge !== 'three-taarenderpass-v1' ||
+      result.taaSampleLevel !== 0 ||
+      result.taaAccumulationTargetFrames !== 32 ||
+      !result.finalTaaAccumulationIndices?.every((index) => index === 32) ||
+      result.temporalPixelDelta?.meanAbsoluteChannelDelta > 0.1 ||
+      result.temporalPixelDelta?.changedChannelRatio > 0.001 ||
+      result.motionReprojection !== false ||
+      result.nativeWebgpuTaa !== false ||
+      result.orbitalProfile !== 'recessed-lids-v1' ||
+      result.groomProfile !== 'scalp-flow-v1' ||
+      result.scalpSurface !== 'neutral-anatomical-ellipsoid' ||
+      result.rootTangentRadialDotP95 > 0.01 ||
+      result.coverageProfile !== 'alpha-to-coverage-v1' ||
+      result.alphaToCoverageRequested !== true ||
+      result.tangentAttribute !== 'strand-flow' ||
+      result.cardUvAttribute !== 'card-width' ||
+      !validHairBridges ||
+      !validCapBridges ||
+      !validSkinBridges ||
+      !validWardrobeBridges ||
+      !validAnatomyReceipt ||
+      !validSkinReceipt ||
+      result.ocularMaterialGroupCount !== 8 ||
+      result.presentationShaderOverrideUsed !== false ||
+      result.presentationMaterialBridgeUsed !== true ||
+      result.presentationAlphaMapUsed !== true ||
+      result.presentationSkinMicrodetailBridgeUsed !== true ||
+      result.presentationWardrobeBridgeUsed !== true ||
+      result.presentationNativeTorsoClipUsed !== true ||
+      result.presentationTaaBridgeUsed !== true ||
+      result.externalSkinTextureUsed !== false ||
+      result.externalHairTextureUsed !== false
+    ) {
+      throw new Error('browser anatomy surface contract drifted');
+    }
+    if (externalRequests.length || pageErrors.length) {
+      throw new Error(
+        `browser purity failure: external=${externalRequests.length} pageErrors=${pageErrors.length}`
+      );
+    }
+    mkdirSync(path.dirname(options.heroOutput), { recursive: true });
+    await page.screenshot({
+      path: options.heroOutput,
+      type: 'png',
+      fullPage: false,
+    });
+    return {
+      ...result,
+      browserVersion: browser.version(),
+      externalRequests,
+      pageErrors,
+      screenshot: {
+        path: path.relative(options.root, options.heroOutput).replaceAll('\\', '/'),
+        sha256: sha256File(options.heroOutput),
+        bytes: statSync(options.heroOutput).size,
+        width: 1800,
+        height: 720,
+      },
+    };
+  } finally {
+    await browser?.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+function parseArgs(argv = process.argv.slice(2)) {
+  const options = {
+    root: ROOT,
+    holoScriptRoot: DEFAULT_HOLOSCRIPT_ROOT,
+    outputDir: path.join(ROOT, OUTPUT_REL),
+    heroOutput: path.join(ROOT, HERO_REL),
+    browser: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    compileOnly: false,
+    requireManifest: false,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--compile-only') options.compileOnly = true;
+    else if (arg === '--require-manifest') options.requireManifest = true;
+    else if (arg === '--browser') options.browser = argv[++index];
+    else if (arg === '--output-dir') options.outputDir = path.resolve(argv[++index]);
+    else if (arg === '--hero-output') options.heroOutput = path.resolve(argv[++index]);
+  }
+  return options;
+}
+
+function validateManifest(root) {
+  const manifestPath = path.join(root, MANIFEST_REL);
+  if (!existsSync(manifestPath)) return { status: 'missing', errors: ['manifest missing'] };
+  const text = readFileSync(manifestPath, 'utf8');
+  const bindings = [
+    [SOURCE_REL, /sourceSha256:\s*"([0-9a-f]{64})"/],
+    [POLICY_REL, /policySha256:\s*"([0-9a-f]{64})"/],
+    [SEED_REL, /seedSha256:\s*"([0-9a-f]{64})"/],
+    [
+      'scripts/check-hololand-model-village-character-appearance-h3i.mjs',
+      /checkerSha256:\s*"([0-9a-f]{64})"/,
+    ],
+    [
+      'scripts/__tests__/hololand-model-village-character-appearance-h3i.test.mjs',
+      /testSha256:\s*"([0-9a-f]{64})"/,
+    ],
+    [REPORT_REL, /reportSha256:\s*"([0-9a-f]{64})"/],
+    [HERO_REL, /heroSha256:\s*"([0-9a-f]{64})"/],
+  ];
+  const errors = [];
+  for (const [relative, pattern] of bindings) {
+    const match = text.match(pattern);
+    const absolute = path.join(root, relative);
+    if (!match || !existsSync(absolute) || match[1] !== sha256File(absolute)) {
+      errors.push(`${relative} manifest binding drifted`);
+    }
+  }
+  return { status: errors.length ? 'fail' : 'pass', errors };
+}
+
+export async function runCharacterAppearanceH3I(options = parseArgs([])) {
+  const stack = await parseH3IStack(options.root, options.holoScriptRoot);
+  const validation = validateH3IContract(stack, options.root, options.holoScriptRoot);
+  if (validation.status !== 'pass') throw new Error(validation.errors.join('\n'));
+  const hairResponse = await compileH3ITemporalLodBundles(stack, validation.plan);
+  let visual = null;
+  let surface = null;
+  if (!options.compileOnly) {
+    const modules = await loadWorkspaceModules(options.holoScriptRoot);
+    surface = await buildBrowserSurface({ stack, hairResponse }, options, modules);
+    visual = await captureBrowser(surface, options, modules);
+  }
+  const manifest = options.requireManifest
+    ? validateManifest(options.root)
+    : { status: 'not-required', errors: [] };
+  if (manifest.status === 'fail' || manifest.status === 'missing') {
+    throw new Error(manifest.errors.join('\n'));
+  }
+  const receipt = {
+    schema: 'hololand.model-village.character-appearance-h3i-witness.v1',
+    status: 'pass',
+    generatedAt: new Date().toISOString(),
+    source: {
+      path: SOURCE_REL,
+      sha256: sha256(stack.sourceText),
+      upstreamHoloScriptCommit: stack.contract.metadata.upstreamHoloScriptCommit,
+    },
+    policy: { path: POLICY_REL, sha256: sha256(stack.policyText) },
+    seed: { path: SEED_REL, sha256: sha256(stack.seedText) },
+    native: {
+      bundleCount: hairResponse.native.records.flatMap((record) => record.tiers).length,
+      topology: 'neutral-anatomical-v2',
+      anatomyReceiptSchema: 'holoscript.agent-avatar-anatomy.v1',
+      anatomyReceiptCount: 9,
+      skinReceiptSchema: EXPECTED_SKIN_RECEIPT_SCHEMA,
+      skinCalibrationProfile: EXPECTED_SKIN_CALIBRATION_PROFILE,
+      skinReceiptCount: 9,
+      skinMicrodetailProfile: 'analytic-pore-v1',
+      crownWhorlReceiptCount: 9,
+      ocularProfile: 'layered-ocular-v1',
+      orbitalProfile: 'recessed-lids-v1',
+      groomProfile: 'scalp-flow-v1',
+      scalpSurface: 'neutral-anatomical-ellipsoid',
+      coverageProfile: 'alpha-to-coverage-v1',
+      opaqueComparisonProfile: 'opaque-v1',
+      multisampleCount: 4,
+      alphaToCoverageRequested: true,
+      tangentAttribute: 'strand-flow',
+      cardUvAttribute: 'card-width',
+      ocularRegions: EXPECTED_REGIONS,
+      ocularGroupsPerBundle: 8,
+      visualHairLod: 1,
+      lodTransitionReceiptSchema: 'holoscript.character-lod-transition.v1',
+      lodTransitionReceiptCount: 9,
+      lodTransition: {
+        selectionMode: 'distance',
+        mode: 'dither',
+        durationSeconds: 0.26,
+        hysteresisBand: 0.65,
+      },
+      comparisons: hairResponse.comparisons,
+      bundles: hairResponse.native.records.map((record) => ({
+        personaId: record.personaId,
+        tiers: record.tiers.map(({ bundle, ...tier }) => tier),
+      })),
+    },
+    visual,
+    surface,
+    manifest,
+    boundaries: {
+      presentationShaderOverrideUsed: false,
+      presentationMaterialBridgeUsed: true,
+      presentationAlphaMapUsed: true,
+      presentationSkinMicrodetailBridgeUsed: true,
+      presentationWardrobeBridgeUsed: true,
+      presentationNativeTorsoClipUsed: true,
+      presentationTaaBridgeUsed: true,
+      nativeAnatomyReceiptClaimed: true,
+      nativeFaceProportionsClaimed: true,
+      nativeUpperBodyProportionsClaimed: true,
+      nativeCrownWhorlClaimed: true,
+      nativeSkinMicrodetailClaimed: true,
+      nativeLodTransitionReceiptClaimed: true,
+      sharedRendererClaimed: true,
+      taaHistoryInvalidationClaimed: true,
+      motionReprojectionClaimed: false,
+      nativeWebgpuTaaClaimed: false,
+      vrPerformanceConvergenceClaimed: false,
+      fullWorldConvergenceClaimed: false,
+      externalSkinTextureUsed: false,
+      externalHairTextureUsed: false,
+      hairCardAlphaCoverageClaimed: true,
+      strandAlphaCoverageClaimed: false,
+      strandHairClaimed: false,
+      productionGroomClaimed: false,
+      anatomicalHairAccuracyClaimed: false,
+      scanDerivedGroomClaimed: false,
+      photorealismClaimed: false,
+      biometricLikenessClaimed: false,
+      canonicalWrites: 0,
+      residentObservationWrites: 0,
+      modelCalls: 0,
+      externalNetworkRequests: visual?.externalRequests.length || 0,
+    },
+  };
+  receipt.receiptSha256 = sha256(JSON.stringify(canonical(receipt)));
+  mkdirSync(options.outputDir, { recursive: true });
+  const receiptPath = path.join(options.outputDir, 'character-appearance-h3i-witness.json');
+  writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+  return { receipt, receiptPath };
+}
+
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  runCharacterAppearanceH3I(parseArgs())
+    .then(({ receipt, receiptPath }) => {
+      console.error(`[H3I] PASS ${receipt.receiptSha256}`);
+      console.error(`[H3I] receipt ${receiptPath}`);
+    })
+    .catch((error) => {
+      console.error(`[H3I] FAIL ${error?.stack || error}`);
+      process.exitCode = 1;
+    });
+}

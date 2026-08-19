@@ -1,0 +1,37 @@
+# holoshell-surface.service — Jetson-hosted Brittney Studio surface.
+# The Jetson is the sovereign node; the laptop/Quest are screens onto it
+# (founder 2026-06-17). HoloLlama Brain + agents + this surface all run here, $0.
+#
+# INSTALL ONCE on the Jetson (sudo nopasswd):
+#   sudo cp scripts/holoshell-surface.service /etc/systemd/system/   # (or scp it over)
+#   sudo systemctl daemon-reload && sudo systemctl enable --now holoshell-surface
+#   sudo systemctl status holoshell-surface
+# Then redeploy code with: bash scripts/deploy-holoshell-to-jetson.sh --restart
+#
+# NOTES:
+# - ExecStart uses /usr/bin/node (Jetson `which node` = v20). The surface binds
+#   0.0.0.0 so http://holojetson.local:8747 is LAN-reachable to the laptop/Quest.
+# - HOLOSCRIPT_REPO points the Brittney turn handler at synced package dists,
+#   including @holoscript/holollama for Brain selection.
+# - No model endpoint is pinned here: the turn handler resolves the model node from
+#   the @model_fleet brain. Any Ollama-compatible endpoint is substrate fallback,
+#   not the product target.
+
+[Unit]
+Description=HoloShell Surface — Jetson-hosted Brittney Studio (laptop/Quest are screens)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=username
+WorkingDirectory=/mnt/nvme/holo/holoshell-surface
+Environment=HOLOSHELL_SERVE_HOST=0.0.0.0
+Environment=HOLOSCRIPT_REPO=/mnt/nvme/holo/holoscript-root
+Environment=HOLOSHELL_RECEIPTS_DIR=/mnt/nvme/holo/holoshell-surface/.tmp/receipts
+ExecStart=/usr/bin/node packages/holoshell/serve.mjs
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

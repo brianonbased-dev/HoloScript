@@ -1,0 +1,54 @@
+{
+  "value": [
+    {
+      "id": "od-public-link",
+      "name": "Playable Shard Bundle",
+      "folder": {},
+      "permissions": [
+        {
+          "id": "anonViewLink",
+          "roles": ["read"],
+          "link": {
+            "type": "view",
+            "scope": "anonymous"
+          }
+        }
+      ]
+    },
+    {
+      "id": "od-external-editor",
+      "name": "World Build Brief",
+      "file": {},
+      "permissions": [
+        {
+          "id": "externalWrite",
+          "roles": ["write"],
+          "grantedToV2": {
+            "user": {
+              "email": "designer@partner.example",
+              "displayName": "Partner Designer"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "od-org-link",
+      "name": "Team Reference Pack",
+      "folder": {},
+      "permissions": [
+        {
+          "id": "orgViewLink",
+          "roles": ["read"],
+          "link": {
+            "type": "view",
+            "scope": "organization"
+          },
+          "inheritedFrom": {
+            "id": "od-parent-folder"
+          }
+        }
+      ]
+    }
+  ]
+}

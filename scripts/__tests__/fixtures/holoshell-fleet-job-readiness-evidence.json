@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "holoshell.fleet-job-readiness-evidence.v1",
+  "id": "fleet-job-readiness-fixture",
+  "status": "blocked",
+  "generatedAt": "2026-05-26T23:59:00.000Z",
+  "createdBy": "codex-hardware",
+  "source": {
+    "queuePath": "scripts/gpu-jobs.example.json",
+    "selectedJobId": "example-snn-smoke",
+    "queueVersion": 1
+  },
+  "token": {
+    "schemaVersion": "holoshell.fleet-job-ready.v1",
+    "id": "fleet-job-ready-example-snn-smoke",
+    "status": "blocked",
+    "lane": {
+      "id": "",
+      "profile": "webgpu-smoke"
+    },
+    "job": {
+      "id": "example-snn-smoke",
+      "label": "PAPER-00 example - replace ids/commands with your experiment",
+      "commandHash": "sha256:fixture-command-hash",
+      "profile": "webgpu-smoke",
+      "paper": "00",
+      "timeBoxSec": 300
+    },
+    "budget": {},
+    "modelRoute": {
+      "status": "not_required"
+    },
+    "permissionEnvelope": "",
+    "gates": [
+      {
+        "gateId": "lane-identity",
+        "status": "blocked",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "blocker": "missing lane id"
+      },
+      {
+        "gateId": "lane-freshness",
+        "status": "blocked",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "blocker": "missing or stale lane heartbeat"
+      },
+      {
+        "gateId": "owner-custody",
+        "status": "blocked",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "blocker": "missing lane owner"
+      },
+      {
+        "gateId": "budget-envelope",
+        "status": "blocked",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "blocker": "missing visible daily/current/job budget fields"
+      },
+      {
+        "gateId": "model-route",
+        "status": "pass",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "reason": "not_required"
+      },
+      {
+        "gateId": "job-command",
+        "status": "pass",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "authorityProof": "sha256:fixture-command-hash"
+      },
+      {
+        "gateId": "permission-envelope",
+        "status": "blocked",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "blocker": "missing or unsupported permission envelope"
+      },
+      {
+        "gateId": "replay-rollback",
+        "status": "blocked",
+        "checkedAt": "2026-05-26T23:59:00.000Z",
+        "blocker": "missing rollback note for launched child process or remote job"
+      }
+    ],
+    "requiredGates": [
+      "lane-identity",
+      "lane-freshness",
+      "owner-custody",
+      "budget-envelope",
+      "model-route",
+      "job-command",
+      "permission-envelope",
+      "replay-rollback"
+    ],
+    "blockedReasons": [
+      "lane-identity: missing lane id",
+      "lane-freshness: missing or stale lane heartbeat",
+      "owner-custody: missing lane owner",
+      "budget-envelope: missing visible daily/current/job budget fields",
+      "permission-envelope: missing or unsupported permission envelope",
+      "replay-rollback: missing rollback note for launched child process or remote job"
+    ],
+    "actionReceipts": {
+      "launchReceiptRequired": true,
+      "stopReceiptRequired": true
+    },
+    "hash": "sha256:fixture-token-hash",
+    "verificationCommands": [
+      {
+        "label": "replay-fleet-job-readiness",
+        "command": "node scripts/holoshell-fleet-job-readiness-runner.mjs run --queue scripts/gpu-jobs.example.json --out .bench-logs/holoshell-human-os-frontier/2026-05-26/fleet-job-readiness-evidence.json",
+        "cwd": "C:/Users/josep/Documents/GitHub/HoloScript"
+      },
+      {
+        "label": "verify-fleet-job-readiness",
+        "command": "node scripts/holoshell-fleet-job-readiness-runner.mjs verify --input .bench-logs/holoshell-human-os-frontier/2026-05-26/fleet-job-readiness-evidence.json",
+        "cwd": "C:/Users/josep/Documents/GitHub/HoloScript"
+      }
+    ],
+    "provenance": {
+      "kind": "fleet-job-queue",
+      "ref": "scripts/gpu-jobs.example.json"
+    },
+    "createdAt": "2026-05-26T23:59:00.000Z",
+    "createdBy": "codex-hardware"
+  },
+  "verificationCommands": [
+    {
+      "label": "replay-fleet-job-readiness",
+      "command": "node scripts/holoshell-fleet-job-readiness-runner.mjs run --queue scripts/gpu-jobs.example.json --out .bench-logs/holoshell-human-os-frontier/2026-05-26/fleet-job-readiness-evidence.json",
+      "cwd": "C:/Users/josep/Documents/GitHub/HoloScript"
+    },
+    {
+      "label": "verify-fleet-job-readiness",
+      "command": "node scripts/holoshell-fleet-job-readiness-runner.mjs verify --input .bench-logs/holoshell-human-os-frontier/2026-05-26/fleet-job-readiness-evidence.json",
+      "cwd": "C:/Users/josep/Documents/GitHub/HoloScript"
+    }
+  ],
+  "hash": "sha256:fixture-evidence-hash"
+}

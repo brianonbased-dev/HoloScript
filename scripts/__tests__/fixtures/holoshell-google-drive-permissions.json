@@ -1,0 +1,49 @@
+{
+  "files": [
+    {
+      "id": "g-folder-public",
+      "name": "Launch World Folder",
+      "mimeType": "application/vnd.google-apps.folder",
+      "permissions": [
+        {
+          "id": "anyoneWithLink",
+          "type": "anyone",
+          "role": "reader",
+          "allowFileDiscovery": false
+        }
+      ]
+    },
+    {
+      "id": "g-file-external-editor",
+      "name": "Creator Source Notes",
+      "mimeType": "application/vnd.google-apps.document",
+      "permissions": [
+        {
+          "id": "externalEditor",
+          "type": "user",
+          "emailAddress": "editor@external.example",
+          "role": "writer"
+        }
+      ]
+    },
+    {
+      "id": "g-file-inherited",
+      "name": "Inherited Folder Policy",
+      "mimeType": "application/vnd.google-apps.spreadsheet",
+      "permissions": [
+        {
+          "id": "teamReader",
+          "type": "user",
+          "emailAddress": "teammate@example.com",
+          "role": "reader",
+          "permissionDetails": [
+            {
+              "inherited": true,
+              "inheritedFrom": "g-parent-folder"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
