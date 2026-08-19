@@ -319,7 +319,8 @@
     "check:trait-parity": "node scripts/holo-ci/check-trait-parity.mjs",
     "check:trait-parity:verbose": "node scripts/holo-ci/check-trait-parity.mjs --verbose",
     "scripts:find": "node C:/holo-dev/ai-ecosystem/scripts/holorepo-report-script-index.mjs --find",
-    "scripts:index": "node C:/holo-dev/ai-ecosystem/scripts/holorepo-report-script-index.mjs"
+    "scripts:index": "node C:/holo-dev/ai-ecosystem/scripts/holorepo-report-script-index.mjs",
+    "scripts:verb-check": "node C:/holo-dev/ai-ecosystem/scripts/holorepo-report-script-index.mjs --verb-check"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
