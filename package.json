@@ -317,7 +317,9 @@
     "check:export-targets-sync": "node scripts/holo-ci/check-export-targets-sync.mjs",
     "check:trait-test-tautologies": "node scripts/holo-ci/check-trait-test-tautologies.mjs",
     "check:trait-parity": "node scripts/holo-ci/check-trait-parity.mjs",
-    "check:trait-parity:verbose": "node scripts/holo-ci/check-trait-parity.mjs --verbose"
+    "check:trait-parity:verbose": "node scripts/holo-ci/check-trait-parity.mjs --verbose",
+    "scripts:find": "node C:/holo-dev/ai-ecosystem/scripts/holorepo-report-script-index.mjs --find",
+    "scripts:index": "node C:/holo-dev/ai-ecosystem/scripts/holorepo-report-script-index.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
