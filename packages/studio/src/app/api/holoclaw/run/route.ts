@@ -110,19 +110,29 @@ export async function POST(request: Request) {
     );
   }
 
-  // Find the skill file
-  const COMPOSITIONS_ROOT = path.resolve(REPO_ROOT, 'compositions');
-  const searchPaths = [
-    path.join(COMPOSITIONS_ROOT, 'skills', `${name}.hsplus`),
-    path.join(COMPOSITIONS_ROOT, `${name}.hsplus`),
-  ];
+  // Find the skill file. Marketplace skills live under compositions/skills/ —
+  // it's the only directory POST /api/holoclaw (install) ever writes to, and
+  // therefore the only directory this route may launch from. `compositions/`
+  // itself holds ~30 non-skill infrastructure compositions (brains, daemons,
+  // dashboards — e.g. holoclaw-brain.hsplus, holodaemon.hsplus, and
+  // holoclaw.hsplus, an experimental always-on MVP agent) that were never
+  // meant to be reachable through the marketplace `name` slug. This search
+  // previously also fell back to `compositions/<name>.hsplus`, so any ordinary
+  // caller who happened to pass a `name` matching one of those infrastructure
+  // files — including POST { name: "holoclaw" }, which resolved straight to
+  // compositions/holoclaw.hsplus — would spawn it as if it were a vetted
+  // skill. Removed 2026-08-19 (board task task_1787109203243_5k1m); see
+  // route.test.ts "does not fall back to a same-named composition outside
+  // compositions/skills/" for the regression coverage.
+  const SKILLS_ROOT = path.resolve(REPO_ROOT, 'compositions', 'skills');
+  const searchPaths = [path.join(SKILLS_ROOT, `${name}.hsplus`)];
 
   // SEC-T05: defense-in-depth containment check — even though SKILL_NAME_RE
-  // rejects `..` / `/`, we verify each candidate resolves inside the expected
+  // rejects `..` / `/`, we verify the candidate resolves inside the expected
   // root before touching the filesystem.
   const skillPath = searchPaths.find((p) => {
     const resolved = path.resolve(p);
-    if (!resolved.startsWith(COMPOSITIONS_ROOT + path.sep)) return false;
+    if (!resolved.startsWith(SKILLS_ROOT + path.sep)) return false;
     return fs.existsSync(resolved);
   });
   if (!skillPath) {
