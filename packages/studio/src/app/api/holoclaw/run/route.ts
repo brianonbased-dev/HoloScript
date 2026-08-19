@@ -146,12 +146,41 @@ export async function POST(request: Request) {
   }
 
   // Spawn daemon process
+  //
+  // DIAGNOSTIC-ONLY FIX (2026-08-19, research/2026-08-19_holoclaw-composition-design.md
+  // §2.2/§2.3 + follow-on empirical check): the subcommand below was 'holodaemon',
+  // which has never existed in packages/cli — every call this route ever made spawned
+  // a process that died immediately with "[E000] Unknown subcommand: holodaemon" while
+  // still returning 200 {started:true} to the caller (the child's exit races the
+  // response). Correcting the string to the real subcommand, 'daemon', does NOT
+  // restore the marketplace-run feature: every compositions/skills/*.hsplus file
+  // (confirmed: code-health.hsplus, test-runner.hsplus, and by pattern the rest of
+  // the ~13-file shelf) uses a typed-inline `state x: type = value` dialect that
+  // holoscript-runner.js's strict parser rejects with HSP101 — a real, still-open
+  // parser/AST-shape gap, not a one-line fix. This change turns a misleading
+  // "unknown subcommand" failure into the true "your skill file doesn't parse"
+  // failure, both surfaced identically late (in the activity outbox's :error
+  // channel, after a 200 response) — a strictly more honest error, not a working
+  // feature.
+  //
+  // Deliberately NOT rerouted to packages/holoscript-agent here even though that
+  // package's own brain-mounting code (loadBrain(), packages/holoscript-agent/src/brain.ts)
+  // sidesteps this exact parser and cleanly mounts compositions/holoclaw-brain.hsplus
+  // (verified empirically). That loader only understands agent-brain-shaped files
+  // (identity{}/on_task{} blocks); fed a composition{}/sequence{}/action{}-shaped
+  // marketplace skill it does not throw, but silently returns capabilityTags:[],
+  // onTaskActions:[] and dumps the raw file as inert prompt text — the skill's
+  // sequence/action/@test logic never runs, and packages/holoscript-agent/src/
+  // cognitive-verbs.ts's augmentWithOnTaskCognition() no-ops on an empty
+  // onTaskActions array. Rerouting this per-skill spawn there would trade a loud,
+  // correctly-diagnosing crash for a silent false-success — worse, not better.
+  // See the follow-on task filed against this finding for the real fix directions.
   const cycles = body.cycles || 5;
   const alwaysOn = body.alwaysOn || false;
   const args = [
     'tsx',
     'packages/cli/src/cli.ts',
-    'holodaemon',
+    'daemon',
     skillPath,
     '--cycles',
     String(cycles),

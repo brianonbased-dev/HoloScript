@@ -102,7 +102,18 @@ describe('GET /api/holoclaw/run — list running skills', () => {
 });
 
 describe('POST /api/holoclaw/run — start a skill daemon', () => {
-  it('finds the skill under compositions/skills/ and spawns holodaemon with the expected argv', async () => {
+  it('finds the skill under compositions/skills/ and spawns the real `daemon` subcommand with the expected argv', async () => {
+    // Regression coverage for research/2026-08-19_holoclaw-composition-design.md §2.2:
+    // this route previously spawned the literal string 'holodaemon', a subcommand
+    // that has never existed in packages/cli (confirmed by grep and by running it —
+    // "[E000] Unknown subcommand: holodaemon"). This test used to pin that broken
+    // string as the *expected* argv, which meant it passed against broken code —
+    // exactly the false-green shape the fix corrects. It now asserts the real
+    // subcommand, 'daemon' (packages/cli/src/cli.ts:4597, case 'daemon'). Note this
+    // only proves the route spawns the right subcommand; it does NOT prove the
+    // spawned skill runs successfully — every compositions/skills/*.hsplus file
+    // still fails to parse under holoscript-runner.js's strict parser (HSP101,
+    // typed-inline state dialect) — a separate, still-open gap tracked on the board.
     const res = await POST(jsonRequest('POST', { name: 'demo', cycles: 3 }));
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -116,7 +127,7 @@ describe('POST /api/holoclaw/run — start a skill daemon', () => {
     expect(args).toEqual([
       'tsx',
       'packages/cli/src/cli.ts',
-      'holodaemon',
+      'daemon',
       path.join(tempRoot, 'compositions', 'skills', 'demo.hsplus'),
       '--cycles',
       '3',
