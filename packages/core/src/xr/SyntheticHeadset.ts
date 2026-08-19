@@ -37,6 +37,8 @@
  * earlier one to show exactly what changed.
  */
 
+import { SYNTHETIC_ONLY, describeCapability, type HeadsetTier } from './capability';
+
 // =============================================================================
 // GEOMETRY
 // =============================================================================
@@ -506,6 +508,15 @@ export interface WitnessReceipt {
   readonly expectations: readonly WitnessExpectation[];
   readonly hapticsFelt: number;
   readonly verdict: 'pass' | 'fail' | 'inconclusive';
+  /**
+   * What stood behind this run. Always `synthetic` here, and not overridable —
+   * see the note on `witness()`. A receipt from real hardware carries a higher
+   * tier because a different driver produced it, never because this one was
+   * asked nicely.
+   */
+  readonly ranOn: HeadsetTier;
+  /** One plain sentence naming which kind of "proven" this is. */
+  readonly provenance: string;
   /**
    * The whole receipt in plain language, for someone who does not read code.
    * If this paragraph is not enough to tell whether the build worked, the
@@ -1280,6 +1291,12 @@ export class SyntheticHeadset {
   /**
    * Everything the machine saw while wearing the headset, ending in a verdict
    * and a paragraph a non-developer can act on.
+   *
+   * There is deliberately **no** parameter for raising the tier. This device is
+   * synthetic; that is a fact about the run, not a setting. Elevation comes from
+   * a driver that actually reached hardware, so a receipt claiming real silicon
+   * can never be produced by asking this one for it — which is the only
+   * guarantee that makes the elevated claims worth anything.
    */
   witness(): WitnessReceipt {
     const checked: WitnessExpectation[] = this.expectations.map((e) => {
@@ -1314,12 +1331,13 @@ export class SyntheticHeadset {
       expectations: Object.freeze(checked),
       hapticsFelt: haptics,
       verdict,
+      ranOn: SYNTHETIC_ONLY.tier,
+      provenance: describeCapability(SYNTHETIC_ONLY),
       plainLanguage: this.plainLanguage(verdict, checked, failed),
-      doesNotProve: Object.freeze([
-        'that anything was drawn correctly — there is no graphics card in this test',
-        'how fast or how hot it runs on a real headset',
-        'that it is comfortable to wear or use',
-      ]),
+      // Derived from the capability ladder, never written here. When a run
+      // reaches real hardware this list shrinks — because the hardware earned
+      // it, not because a caller shortened the sentence.
+      doesNotProve: SYNTHETIC_ONLY.doesNotProve,
     });
   }
 
