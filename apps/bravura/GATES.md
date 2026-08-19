@@ -1008,3 +1008,99 @@ no third place to stand.** Desk drivers were too clean and the headset needed a
 person. A device that reports what hardware reports — including its failures —
 is that third place: not a replacement for the face, but somewhere the face's
 findings can be written down so they never have to be found twice.
+
+---
+
+## Gate 10 — Sections, and attention as the selector (opened 2026-08-18)
+
+The founder's words from 2026-08-14, which closed field report 2:
+
+> "it should be each instrument is independent and the specific ways of moving
+> hands depends on solos and playing together. sometimes there are over 100
+> instruments."
+
+Three claims follow from that sentence. `src/sections.ts` is those three claims,
+and each has a test that fails if it stops being true.
+
+1. **Every section is an independent player** — own state (`silent`,
+   `following`, `soloing`, `held`) and own dynamic level. One changing must not
+   disturb another.
+2. **Addressing scales past the number of hands.** Two hands cannot select among
+   a hundred sections; attention can. Gaze is the selector, with a dwell so a
+   glance sweeping the orchestra addresses nobody in passing, and a release so a
+   conductor glancing at the score has not stopped addressing the section.
+3. **The same gesture means different things depending on who is addressed.**
+   There is no solo gesture and there must never be one. One lift aimed at one
+   section raises it and the rest yield under it — that *is* a solo. The
+   identical lift aimed at everyone swells everyone and nobody solos. Solo
+   versus tutti is a property of the ADDRESS.
+
+Deliberately pure: no renderer, no audio node, no WebXR. Geometry is three
+numbers per section, which is what makes the hundred-and-first section free and
+every rule above testable without a headset, a GPU, or a person.
+
+### F.076 four-question gate
+
+1. **Falsifiable claim.** With 100 sections seated on an arc, a machine wearing
+   a Quest 3 looks at one, and after the dwell that section — and only that one —
+   is addressed; a bring-in enters it alone; one swell aimed at it makes it the
+   soloist with the other 99 yielding; the identical swell aimed at everyone
+   swells all 100 and produces no soloist; and conducting a bar with the hands
+   does not change who is addressed.
+2. **Real seam.** The head pose comes out of Bravura's own `startBravuraXR`
+   frame data via `gazeFromView(view.view, view.camPos)` — the same view matrix
+   the app renders with. Nothing reads the headset object for the answer.
+3. **Failing-if-broken evidence.** `src/__tests__/sections.test.ts` (15) and
+   `src/__tests__/gaze-addressing.test.ts` (6). **Verified by fault injection,
+   twice, each restored to green:**
+   - `gazeFromView` made to read a view matrix at indices 8/9/10 as if it were a
+     model matrix: **6 tests red**, and — the point — it addressed a
+     *plausible-looking wrong section* (s37 for s62, s58 for s41). That is the
+     failure this test exists for; it would have silently addressed the wrong
+     desk forever.
+   - `swell` made to ignore the address: **4 tests red**, including the room
+     reporting "Everyone is playing together" where it should have said "The
+     oboe are out in front".
+4. **Scope + blast.** New `src/sections.ts` and two test files. `main.ts`,
+   `timpani.ts`, `chimes.ts`, `xrSession.ts`: **unchanged**. Out of scope and
+   named below: wiring the ensemble into the live room.
+
+### Receipts
+
+- `npx vitest run --project bravura` → **30 passed** (3 files).
+- `node build.mjs` → canary ok, 138,299 bytes.
+
+### NOT DONE — the module is not yet reachable from the running room
+
+**`sections.ts` is not imported by `main.ts`.** The app still creates one
+`Timpani` and one `Chimes` directly (`main.ts:147-150`) and esbuild tree-shakes
+the new module out of the bundle entirely. Right now this is architecture with
+receipts, and **nothing Joseph would experience in the headset has changed**.
+
+Stating that at the top of this section rather than at the bottom, because
+"built and inert" is a failure mode this ecosystem has been bitten by before and
+it is not visible from a passing test suite.
+
+Not wired this gate as a named decision: `main.ts` is 765 lines driving live
+rendering and audio, the wiring changes what the founder meets on his next run,
+and there is no way to see a VR room from here. Half-wiring the thing that
+decides what he experiences is precisely the risk the gate discipline exists to
+prevent. Gate 11 is that wiring, and it wants a run.
+
+### Gate 11 — what it is
+
+Replace the hardcoded pair with sections: register timpani and chimes as
+`Section`s, feed the head pose into `ensemble.look()` from the existing frame
+loop, route the beat to `following`/`soloing` sections and the HUD line to
+`ensemble.describe()` (which is derived every pump, so it cannot report a state
+it has left — field report 3's fix, preserved by construction). Then the third
+instrument, which under this architecture costs one `add()` call.
+
+### Finding
+
+**The addressing was never a gesture problem.** Two hands looked like the
+constraint, so the room had two instruments. The constraint was never the hands
+— it was that nothing carried *who you were talking to*. Once the address is a
+value, a hundred sections cost no more than two, and the gesture vocabulary gets
+smaller rather than larger: no solo gesture, no tutti gesture, one lift that
+means whichever the conductor was looking at.
