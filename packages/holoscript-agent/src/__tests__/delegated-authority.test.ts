@@ -313,6 +313,96 @@ describe('classifyAuthorityRoute', () => {
       'platform-control'
     );
   });
+
+  // --- False-positive regression: task_1785317871554_46k9 -----------------
+  // A passive "do not perform: force-push, hard-reset, ..." prohibition-list
+  // mention living in rawContent/payload (peer-agent DATA) must never steer
+  // the route — only the declared `action` may. Both directions are proven:
+  // a genuine attempt still blocks, and a passive mention no longer does.
+  describe('prohibited-operation classification uses the declared action only', () => {
+    const requestWith = (
+      action: string,
+      rawContent: string,
+      payload: Record<string, unknown> = {}
+    ): AuthorityRequest => ({
+      messageId: 'msg_policy',
+      fromAgentId: 'agent_a',
+      fromAgentName: 'claude1',
+      requestType: 'founder-gated',
+      action,
+      payload,
+      rawContent,
+    });
+
+    it('still blocks a genuine attempted hard-reset carried in the action', () => {
+      expect(
+        classifyAuthorityRoute(
+          requestWith('hard-reset the shared tree', 'hard-reset the shared tree')
+        )
+      ).toBe('prohibited-replan');
+    });
+
+    it('still blocks a genuine attempted force-push carried in the action', () => {
+      expect(
+        classifyAuthorityRoute(requestWith('force-push main', 'force-push main'))
+      ).toBe('prohibited-replan');
+    });
+
+    it('does not prohibit an unrelated action merely because rawContent also carries a passive do-not-do reminder', () => {
+      const rawContent =
+        '@brittney owner-op: set-team-mode {mode: "audit"}\n' +
+        'Reminder to the team: do not perform: force-push, hard-reset, or delete-branch on shared repos.';
+      expect(classifyAuthorityRoute(requestWith('set-team-mode', rawContent))).toBe('autonomous');
+    });
+
+    it('does not escalate to exact-four merely because a payload string field mentions a protected term', () => {
+      const rawContent = '@brittney owner-op: update-task {taskId: "t1"}';
+      const payload = {
+        taskId: 't1',
+        description: 'Update the doc that explains the treasury master wallet policy.',
+      };
+      expect(classifyAuthorityRoute(requestWith('update-task', rawContent, payload))).toBe(
+        'autonomous'
+      );
+    });
+  });
+});
+
+describe('DelegatedAuthorityHandler — prohibited-operation false positive (task_1785317871554_46k9)', () => {
+  it('executes an owner-op end-to-end even when the same message also carries a passive force-push/hard-reset reminder', async () => {
+    const { handler, mesh } = makeHandler();
+    const content =
+      JSON.stringify({
+        protocol: 'delegated-authority/v1',
+        requestType: 'owner-op',
+        action: 'set-team-mode',
+        payload: { mode: 'audit' },
+      }) + '\nReminder: do not perform: force-push, hard-reset, or delete-branch on shared repos.';
+    const msg = makeMessage({ content });
+
+    const req = handler.parseRequest(msg);
+    expect(req).toBeTruthy();
+    expect(req!.action).toBe('set-team-mode');
+
+    const receipt = await handler.handleRequest(req!);
+    expect(receipt.status).toBe('executed');
+    expect(receipt.authorityRoute).toBe('autonomous');
+    expect(mesh.setTeamMode).toHaveBeenCalledWith('audit', '');
+  });
+
+  it('still rejects a genuine end-to-end attempt to hard-reset shared state', async () => {
+    const { handler } = makeHandler();
+    const msg = makeMessage({
+      content: '@brittney founder-gated: hard-reset the shared board state',
+    });
+
+    const req = handler.parseRequest(msg);
+    expect(req).toBeTruthy();
+
+    const receipt = await handler.handleRequest(req!);
+    expect(receipt.status).toBe('rejected');
+    expect(receipt.authorityRoute).toBe('prohibited-replan');
+  });
 });
 
 describe('DelegatedAuthorityHandler.processMessages', () => {

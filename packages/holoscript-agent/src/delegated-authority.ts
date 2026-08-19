@@ -480,8 +480,26 @@ const JOSEPH_PUBLIC_RE =
 const GOVERNANCE_MUTATION_RE =
   /\b(change|mutate|modify|rewrite|alter|remove|weaken|expand)\b.{0,80}\b(founder authority|escalation criteria|governance[- ]tier|diamond|lotus|vault posture)\b/i;
 
+/**
+ * Classification text is the DECLARED action ONLY (`req.action`) — never
+ * `rawContent` or a stringified `payload`. Both are peer-agent DATA: a team
+ * message can legitimately quote or paraphrase a forbidden-operation
+ * reminder ("remember: never force-push, hard-reset, or delete-branch on a
+ * shared repo") without the message itself being an attempted force-push or
+ * hard-reset. Classifying that free text the same way as an attempted
+ * action let a passive, quoted, or listed mention anywhere in the message
+ * body block (or exact-four-escalate) a request that had nothing to do with
+ * the mentioned operation — e.g. a `set-team-mode` owner-op got rejected as
+ * "prohibited-replan" purely because the same message also carried an
+ * unrelated do-not-do reminder. Structured `payload` evidence flags below
+ * (`touchesTreasuryOrCustody`, etc.) are exempt from this: they are typed,
+ * named booleans a caller sets deliberately, not prose scanned for
+ * keywords. This mirrors the prompt-injection separation `tool-call-checks.ts`
+ * already applies to tool names vs. tool args — data must never steer
+ * authority routing. (false-positive fix: task_1785317871554_46k9)
+ */
 export function classifyAuthorityRoute(req: AuthorityRequest): AuthorityRoute {
-  const text = `${req.action}\n${req.rawContent}\n${JSON.stringify(req.payload)}`;
+  const text = req.action;
   if (PROHIBITED_OPERATION_RE.test(text)) return 'prohibited-replan';
 
   const projected = numberFromPayload(req.payload, 'projectedSpendUsd', 'projected_spend_usd');
