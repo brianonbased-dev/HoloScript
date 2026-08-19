@@ -73,6 +73,21 @@ export const BrowserSessionSchema = z.discriminatedUnion('operation', [
     action: BrowserTypedActionSchema,
   }),
   LeasedBrowserOperationSchema.extend({
+    // Read-only DOM/console/network instrumentation — never clicks, types, fills, scrolls,
+    // or navigates. CDP/BiDi-backed read-only observation adapter (HOLOCLAW_BROWSER_
+    // TERMINAL_GAP_MATRIX_2026-06-30.md P0 row 2): "Visible Chrome tabs, console, network,
+    // DOM, screenshots, downloads, and authenticated app context are exposed as source-owned
+    // read tools, then consent-gated action tools" — this is the read-tools half; 'act' above
+    // remains the sole consent-gated mutation path on the same leased session.
+    operation: z.literal('observe'),
+    includeDom: z.boolean().optional().default(true),
+    includeConsole: z.boolean().optional().default(true),
+    includeNetwork: z.boolean().optional().default(true),
+    consoleLimit: z.number().int().min(1).max(200).optional().default(50),
+    networkLimit: z.number().int().min(1).max(200).optional().default(50),
+    domTextLimit: z.number().int().min(0).max(20_000).optional().default(4000),
+  }),
+  LeasedBrowserOperationSchema.extend({
     operation: z.literal('screenshot'),
     type: z.enum(['png', 'jpeg']).optional().default('png'),
     quality: z.number().int().min(0).max(100).optional().default(90),
@@ -106,9 +121,44 @@ function assertBrowserSessionOrigin(url: string, allowedOrigins: string[]): void
   }
 }
 
+interface DomObservation {
+  url: string;
+  title: string;
+  bodyText: string;
+  elementCount: number;
+}
+
+/**
+ * Best-effort DOM read for the 'observe' operation. Defensive against a page object
+ * missing a method entirely (not just a rejecting promise) so a partial test double or a
+ * future Playwright API change degrades to empty fields instead of throwing the whole
+ * observe call — observation must never be able to break the session it's watching.
+ */
+async function buildDomObservation(
+  page: { url(): string; title?: () => Promise<string>; evaluate?: <T>(fn: () => T) => Promise<T> },
+  domTextLimit: number
+): Promise<DomObservation> {
+  const url = page.url();
+  const title = typeof page.title === 'function' ? await page.title().catch(() => '') : '';
+  const bodyText =
+    typeof page.evaluate === 'function'
+      ? await page
+          .evaluate(() => document.body?.innerText ?? '')
+          .then((text) => text.slice(0, domTextLimit))
+          .catch(() => '')
+      : '';
+  const elementCount =
+    typeof page.evaluate === 'function'
+      ? await page
+          .evaluate(() => document.querySelectorAll('*').length)
+          .catch(() => 0)
+      : 0;
+  return { url, title, bodyText, elementCount };
+}
+
 /**
  * Sovereign managed-browser session lifecycle. One narrow MCP surface owns the
- * full open -> navigate -> act -> screenshot -> takeover -> resume -> close
+ * full open -> navigate -> observe -> act -> screenshot -> takeover -> resume -> close
  * sequence while the existing preview tools remain backward compatible.
  */
 export async function browserSession(args: z.infer<typeof BrowserSessionSchema>) {
@@ -162,6 +212,35 @@ export async function browserSession(args: z.infer<typeof BrowserSessionSchema>)
       success: true,
       operation: args.operation,
       session: browserPool.snapshot(session),
+      receipt,
+    };
+  }
+
+  if (args.operation === 'observe') {
+    const dom = args.includeDom ? await buildDomObservation(session.page, args.domTextLimit) : undefined;
+    const consoleEntries = args.includeConsole
+      ? session.observation.console.slice(-args.consoleLimit)
+      : undefined;
+    const networkEntries = args.includeNetwork
+      ? session.observation.network.slice(-args.networkLimit)
+      : undefined;
+    const receipt = browserPool.recordOperation(session, 'observe', {
+      includeDom: args.includeDom,
+      includeConsole: args.includeConsole,
+      includeNetwork: args.includeNetwork,
+      consoleEntryCount: consoleEntries?.length ?? 0,
+      networkEntryCount: networkEntries?.length ?? 0,
+      cdpAttached: Boolean(session.cdpSession),
+      mutatesPage: false,
+    });
+    return {
+      success: true,
+      operation: args.operation,
+      permissionEnvelope: 'read_only',
+      session: browserPool.snapshot(session),
+      dom,
+      console: consoleEntries,
+      network: networkEntries,
       receipt,
     };
   }

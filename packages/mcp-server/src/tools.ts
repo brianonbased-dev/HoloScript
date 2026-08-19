@@ -643,14 +643,25 @@ export const browserControlTools: Tool[] = [
   {
     name: 'browser_session',
     description:
-      'Operate one leased sovereign browser session through open, navigate, typed actions, ' +
-      'screenshots, local human takeover, guarded resume, status, and residue-checked close.',
+      'Operate one leased sovereign browser session through open, navigate, read-only ' +
+      'observation (DOM/console/network), typed actions, screenshots, local human takeover, ' +
+      'guarded resume, status, and residue-checked close.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         operation: {
           type: 'string',
-          enum: ['open', 'navigate', 'act', 'screenshot', 'takeover', 'resume', 'status', 'close'],
+          enum: [
+            'open',
+            'navigate',
+            'observe',
+            'act',
+            'screenshot',
+            'takeover',
+            'resume',
+            'status',
+            'close',
+          ],
           description: 'Lifecycle operation to perform',
         },
         ownerId: { type: 'string', description: 'Lease owner identity; required for open' },
@@ -666,6 +677,30 @@ export const browserControlTools: Tool[] = [
         width: { type: 'number', description: 'Viewport width' },
         height: { type: 'number', description: 'Viewport height' },
         headless: { type: 'boolean', description: 'Disable a visible local window' },
+        includeDom: {
+          type: 'boolean',
+          description: 'observe: include page title/URL/body text/element count (default: true)',
+        },
+        includeConsole: {
+          type: 'boolean',
+          description: 'observe: include recent console/log entries (default: true)',
+        },
+        includeNetwork: {
+          type: 'boolean',
+          description: 'observe: include recent network requests (default: true)',
+        },
+        consoleLimit: {
+          type: 'number',
+          description: 'observe: max console entries to return, 1-200 (default: 50)',
+        },
+        networkLimit: {
+          type: 'number',
+          description: 'observe: max network entries to return, 1-200 (default: 50)',
+        },
+        domTextLimit: {
+          type: 'number',
+          description: 'observe: max body-text characters to return, 0-20000 (default: 4000)',
+        },
         action: {
           type: 'object',
           description: 'Typed click, fill, press, scroll, or wait action',

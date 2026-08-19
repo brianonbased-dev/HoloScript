@@ -4,8 +4,11 @@
  */
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { chromium, type Browser } from 'playwright';
+import { chromium, type Browser, type CDPSession, type Page } from 'playwright';
 import type {
+  BrowserConsoleEntry,
+  BrowserNetworkEntry,
+  BrowserObservationBuffers,
   BrowserOperationReceipt,
   BrowserPoolStats,
   BrowserSession,
@@ -49,6 +52,101 @@ function receiptDigest(receipt: Omit<BrowserOperationReceipt, 'digest'>): string
   return createHash('sha256').update(JSON.stringify(receipt), 'utf8').digest('hex');
 }
 
+/** Bound on each observation buffer so a long-lived session can't grow it without limit. */
+const OBSERVATION_BUFFER_LIMIT = 200;
+
+function pushBounded<T>(buffer: T[], entry: T): void {
+  buffer.push(entry);
+  if (buffer.length > OBSERVATION_BUFFER_LIMIT) buffer.shift();
+}
+
+/**
+ * Attach a raw CDP session to `page` and wire Network/Runtime/Log domain listeners into
+ * `observation`'s bounded buffers — the backing for the browser_session 'observe' operation
+ * (read-only DOM/console/network instrumentation, CDP/BiDi-backed per the P0 gap-matrix ask).
+ * Chromium-only (this pool only launches chromium), so CDP — not WebDriver BiDi — is the
+ * real transport here; BiDi would be the analogous path for a non-Chromium engine this pool
+ * does not use. Failure to attach is non-fatal: the session still opens, observation buffers
+ * just stay empty, so a CDP hiccup can never block the (already-working) launch/navigate/act
+ * path this shares a session with.
+ */
+async function attachObservation(
+  page: Page,
+  sessionId: string
+): Promise<{ cdpSession?: CDPSession; observation: BrowserObservationBuffers }> {
+  const observation: BrowserObservationBuffers = { console: [], network: [] };
+  try {
+    const cdpSession = await page.context().newCDPSession(page);
+    const pendingRequests = new Map<string, { url: string; method: string; timestamp: string }>();
+
+    await cdpSession.send('Network.enable');
+    await cdpSession.send('Runtime.enable');
+    await cdpSession.send('Log.enable');
+
+    cdpSession.on('Network.requestWillBeSent', (event) => {
+      pendingRequests.set(event.requestId, {
+        url: event.request.url,
+        method: event.request.method,
+        timestamp: new Date().toISOString(),
+      });
+    });
+    cdpSession.on('Network.responseReceived', (event) => {
+      const pending = pendingRequests.get(event.requestId);
+      const entry: BrowserNetworkEntry = {
+        requestId: event.requestId,
+        url: event.response.url,
+        method: pending?.method ?? '',
+        resourceType: event.type,
+        status: event.response.status,
+        statusText: event.response.statusText,
+        timestamp: pending?.timestamp ?? new Date().toISOString(),
+      };
+      pushBounded(observation.network, entry);
+      pendingRequests.delete(event.requestId);
+    });
+    cdpSession.on('Network.loadingFailed', (event) => {
+      const pending = pendingRequests.get(event.requestId);
+      const entry: BrowserNetworkEntry = {
+        requestId: event.requestId,
+        url: pending?.url ?? '',
+        method: pending?.method ?? '',
+        resourceType: event.type,
+        failed: true,
+        failureText: event.errorText,
+        timestamp: pending?.timestamp ?? new Date().toISOString(),
+      };
+      pushBounded(observation.network, entry);
+      pendingRequests.delete(event.requestId);
+    });
+    cdpSession.on('Runtime.consoleAPICalled', (event) => {
+      const text = (event.args ?? [])
+        .map((arg) => (arg.value !== undefined ? String(arg.value) : (arg.description ?? '')))
+        .join(' ');
+      const entry: BrowserConsoleEntry = {
+        type: event.type,
+        text,
+        timestamp: new Date().toISOString(),
+      };
+      pushBounded(observation.console, entry);
+    });
+    cdpSession.on('Log.entryAdded', (event) => {
+      const entry: BrowserConsoleEntry = {
+        type: event.entry.level,
+        text: event.entry.text,
+        url: event.entry.url,
+        lineNumber: event.entry.lineNumber,
+        timestamp: new Date(event.entry.timestamp).toISOString(),
+      };
+      pushBounded(observation.console, entry);
+    });
+
+    return { cdpSession, observation };
+  } catch (error) {
+    console.error(`[Browser Observation ${sessionId}]: CDP attach failed, observation buffers will stay empty:`, error);
+    return { observation };
+  }
+}
+
 /**
  * Manages a pool of browser sessions for HoloScript preview
  */
@@ -87,11 +185,52 @@ export class BrowserPool {
         '--allow-file-access-from-files', // Allow loading local files via XHR
         '--disable-gpu-sandbox',
         '--disable-setuid-sandbox',
-        ...(isServer ? ['--disable-dev-shm-usage', '--single-process'] : []),
+        ...(isServer
+          ? [
+              '--disable-dev-shm-usage',
+              // Containers (e.g. infrastructure/Dockerfile.mcp-server's Alpine `chromium`
+              // package) ship no Vulkan ICD and no dbus session bus, and `--single-process`
+              // (removed here) is independently fragile under software rendering. Without
+              // this fix ANGLE probes a Vulkan backend by default, finds no VK_KHR_surface
+              // extension, and the browser process crashes before Playwright gets a page
+              // handle ("Target page, context or browser has been closed") — reproduced
+              // live 2026-08-18 against the deployed mcp-server host, then reproduced AND
+              // fixed locally in a from-scratch Alpine+chromium container matching the
+              // production image (no dbus, no mesa-vulkan): unpatched args crash identically;
+              // dropping --single-process and forcing ANGLE's swiftshader-webgl backend
+              // (software rasterization, no external Vulkan ICD needed) launches cleanly and
+              // reaches a real page — verified with a live newPage()+setContent()+evaluate()
+              // round trip, not just a launch() that doesn't throw.
+              //
+              // Residual, separate gap (not required for DOM/console/network observation,
+              // only for WebGL/3D-canvas rendering): actual WebGL context creation still
+              // returns null in this same repro even with these flags AND with Alpine's
+              // mesa-dri-gallium/mesa-gl + LIBGL_ALWAYS_SOFTWARE=1 installed alongside —
+              // Alpine's `chromium` apk appears to ship without a working software WebGL
+              // backend at all. Needs its own follow-up (e.g. Playwright's own bundled
+              // Chromium instead of Alpine's system package, or a different software-GL
+              // path) if/when 3D preview verification inside this container is required.
+              '--disable-gpu',
+              '--disable-vulkan',
+              '--use-gl=angle',
+              '--use-angle=swiftshader-webgl',
+            ]
+          : []),
       ],
     };
     if (executableResolution.executablePath) {
       launchOptions.executablePath = executableResolution.executablePath;
+    }
+    if (isServer) {
+      // Defensive: Chromium logs repeated "Failed to connect to the bus" errors when no
+      // dbus session bus is present (also true of this container). --password-store=basic
+      // (Playwright's own default) already avoids needing the secret-service dbus API for
+      // credential storage, so this isn't what crashes the process — but pointing it at a
+      // no-op address keeps the noise out of stderr instead of leaving it to fail-and-retry.
+      launchOptions.env = { ...process.env, DBUS_SESSION_BUS_ADDRESS: 'disabled:' } as Record<
+        string,
+        string
+      >;
     }
 
     let browser: Browser;
@@ -125,10 +264,17 @@ export class BrowserPool {
       console.error(`[Browser Error ${sessionId}]:`, error.message);
     });
 
+    // Attach CDP-backed read-only observation BEFORE any navigation happens (the caller
+    // navigates right after createSession/createLeasedSession returns), so console/network
+    // activity from the very first page load is captured, not just activity after the fact.
+    const { cdpSession, observation } = await attachObservation(page, sessionId);
+
     const now = Date.now();
     const leaseToken = randomBytes(32).toString('base64url');
     const session: BrowserSession = {
       id: sessionId,
+      cdpSession,
+      observation,
       browser,
       context,
       page,
@@ -311,6 +457,11 @@ export class BrowserPool {
     }
 
     const errors: unknown[] = [];
+    if (session.cdpSession) {
+      // Best-effort: context.close() below tears this down regardless, but detaching first
+      // avoids noisy "session closed" errors from any in-flight CDP command.
+      await session.cdpSession.detach().catch(() => {});
+    }
     try {
       await session.context.close();
     } catch (error) {
