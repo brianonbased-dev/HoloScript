@@ -4236,6 +4236,83 @@ describe('holo_absorb_repo root validation', () => {
     ).toBeGreaterThanOrEqual(1);
   }, 15_000);
 
+  // Complement of the two tests above. They prove the publication gate still
+  // refuses when a file the graph DESCRIBES changes underneath it. This proves
+  // it no longer destroys the run over a file the graph never described.
+  //
+  // The divergence exercised here is the file cap. The worktree fingerprint has
+  // no cap, so on a repo with more candidates than `maxFiles` every capped-out
+  // file could veto a publication it has no stake in. Both directions are
+  // required: a gate that only ever refuses and a gate that only ever passes are
+  // equally useless.
+  it('publishes when a capped-out file the graph never described changes mid-absorb', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-churn-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-capped-churn-repo-');
+    const extraFiles: string[] = [];
+    for (let index = 0; index < 12; index++) {
+      const relative = `src/zz-${String(index).padStart(2, '0')}.ts`;
+      fs.writeFileSync(
+        path.join(repoDir, relative.replace('/', path.sep)),
+        `export const pad${index} = ${index};\n`,
+        'utf-8'
+      );
+      extraFiles.push(relative);
+    }
+    execFileSync('git', ['add', ...extraFiles], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'padding'], { cwd: repoDir, windowsHide: true });
+
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
+    const head = getHeadCommit(repoDir);
+    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 1);
+
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return originalScanFiles.apply(this, args);
+    });
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      scanBatchSize: 1,
+      maxFiles: 2,
+    })) as { accepted?: boolean; jobId?: string };
+    expect(accepted).toMatchObject({ accepted: true });
+
+    let refreshProgress: { completedBatchCount?: number } | undefined;
+    for (let index = 0; index < 100; index++) {
+      const progress = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as { refreshProgressReceipt?: { completedBatchCount?: number } };
+      refreshProgress = progress.refreshProgressReceipt;
+      if ((refreshProgress?.completedBatchCount ?? 0) >= 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(refreshProgress?.completedBatchCount).toBeGreaterThanOrEqual(1);
+    // Sorts last, so with a cap of 2 it is outside the graph. If that ever stops
+    // being true this test fails loudly rather than passing vacuously: the run
+    // would refuse and the assertions below would not hold.
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'zz-11.ts'),
+      '\nexport const churnedByAnotherAgent = true;\n'
+    );
+
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
+    expect(String(status.error ?? '')).not.toContain(
+      'Repository worktree changed during absorb refresh'
+    );
+    expect(status).toMatchObject({ status: 'complete' });
+
+    // The cap really applied, so zz-11.ts was genuinely outside the graph and
+    // this is not passing vacuously on a quiet tree. The verdict receipt itself
+    // rides on the full-scan and incremental result shapes, not this repair path.
+    expect(Number((status.result as { stats?: { totalFiles?: number } })?.stats?.totalFiles ?? 99)).
+      toBeLessThanOrEqual(2);
+  }, 30_000);
+
   it('automatically replans a forced refresh when HEAD advances between scan batches', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-head-retry-cache-'));
