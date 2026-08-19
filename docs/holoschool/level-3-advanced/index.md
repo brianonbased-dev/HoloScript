@@ -13,7 +13,7 @@ Expert topics: custom traits, procedural generation, and agent systems. For deve
 
 ## Prerequisites
 
-- Completed [Level 1](/academy/) and [Level 2](/academy/level-2-intermediate/)
+- Completed [Level 1](/holoschool/) and [Level 2](/holoschool/level-2-intermediate/)
 - Comfortable with TypeScript (for TraitHandler API)
 - Experience with multi-object scene composition
 
@@ -30,4 +30,4 @@ Expert topics: custom traits, procedural generation, and agent systems. For deve
 
 ---
 
-← [Level 2: Intermediate](/academy/level-2-intermediate/) | [Traits Reference](/traits/) →
+← [Level 2: Intermediate](/holoschool/level-2-intermediate/) | [Traits Reference](/traits/) →

@@ -119,7 +119,7 @@ In this lesson, you learned:
 
 ## 🎉 Congratulations!
 
-You have completed the entire **Intermediate Academy** track. You are now a certified **HoloScript Architect**, capable of building decentralized, interconnected spatial ecosystems.
+You have completed the entire **HoloSchool Intermediate** track. You are now a certified **HoloScript Architect**, capable of building decentralized, interconnected spatial ecosystems.
 
 Next, sharpen your skills in **Level 3: Protocol Evolution**, where we explore **ZK-Privacy** and **Custom Compiler Targets**.
 

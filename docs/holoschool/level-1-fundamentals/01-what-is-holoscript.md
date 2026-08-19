@@ -1,6 +1,6 @@
 # Lesson 1.1: What is HoloScript?
 
-Welcome to HoloScript Academy! In this first lesson, you'll learn why HoloScript is being built as a general-purpose semantic systems programming language. The worked example uses its spatial programming surface; VR/XR is a domain, not the language boundary.
+Welcome to HoloSchool! In this first lesson, you'll learn why HoloScript is being built as a general-purpose semantic systems programming language. The worked example uses its spatial programming surface; VR/XR is a domain, not the language boundary.
 
 ## Learning Objectives
 

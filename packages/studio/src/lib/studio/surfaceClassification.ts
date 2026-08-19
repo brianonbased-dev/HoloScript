@@ -269,7 +269,7 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
     'direct',
     'Redirects to /settings (Integrations tab) — A4 IA consolidation.'
   ),
-  route('/learn', 'archive', 'direct', 'Redirects to academy content.'),
+  route('/learn', 'archive', 'direct', 'Redirects to HoloSchool content.'),
   route(
     '/lotus-slice',
     'lab',

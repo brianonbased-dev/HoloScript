@@ -609,12 +609,12 @@ Keep conversation history reasonable:
 
 ### Multi-NPC Scenes
 
-- [Multi-Agent Coordination](/academy/level-3-advanced/05-agent-choreography) - Multiple AI agents working together
-- [Agent Communication](/academy/level-3-advanced/06-agent-communication) - Inter-NPC messaging
+- [Multi-Agent Coordination](/holoschool/level-3-advanced/05-agent-choreography) - Multiple AI agents working together
+- [Agent Communication](/holoschool/level-3-advanced/06-agent-communication) - Inter-NPC messaging
 
 ### Advanced AI Features
 
-- [Behavior Trees](/academy/level-2-intermediate/09-npc-and-behaviors) - Structured AI logic
+- [Behavior Trees](/holoschool/level-2-intermediate/09-npc-and-behaviors) - Structured AI logic
 - [Goal-Oriented AI](/guides/goap-ai) - GOAP planning systems
 - [Perception Systems](/guides/perception) - Vision, hearing, smell
 

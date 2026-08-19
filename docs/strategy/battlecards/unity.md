@@ -30,7 +30,7 @@
 
 1. **Editor maturity** — 20 years of accumulated UX. HoloScript Studio is beta; Unity Editor is the industry benchmark.
 2. **Asset Store network effect** — 70K assets means developers stay for content; content creators stay for buyers. Unmatchable without massive subsidy.
-3. **Learning ecosystem** — Unity Learn, YouTube tutorials, certifications, university courses. HoloScript Academy does not exist at scale.
+3. **Learning ecosystem** — Unity Learn, YouTube tutorials, certifications, university courses. HoloSchool does not exist at scale.
 4. **Profiler depth** — CPU, GPU, memory, audio, physics, network, UI profiling integrated. HoloScript has `benchmark` and comparative benchmarks but no real-time in-editor profiler.
 5. **Team collaboration** — Plastic SCM integration, Collaborate (deprecated but replaced), cloud project sharing. HoloScript has CRDT collab (`packages/crdt`) but no equivalent to Plastic/Git LFS large-asset workflows.
 6. **LiveOps stack** — Analytics, Remote Config, Cloud Build, Multiplay, User Reporting. Post-launch operations as SaaS. HoloScript has no comparable post-launch operations suite.

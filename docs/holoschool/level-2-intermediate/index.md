@@ -16,7 +16,7 @@ Advanced topics for experienced HoloScript developers. Complete Level 1 before s
 
 ## Prerequisites
 
-- Completed [Level 1: Fundamentals](/academy/)
+- Completed [Level 1: Fundamentals](/holoschool/)
 - Comfortable with `.hsplus` file format
 - Understand the trait system basics
 
@@ -36,4 +36,4 @@ Advanced topics for experienced HoloScript developers. Complete Level 1 before s
 
 ---
 
-← [Level 1: Fundamentals](/academy/) | [Level 3: Advanced](/academy/level-3-advanced/) →
+← [Level 1: Fundamentals](/holoschool/) | [Level 3: Advanced](/holoschool/level-3-advanced/) →

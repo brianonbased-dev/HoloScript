@@ -7,7 +7,7 @@ const ROOT = process.cwd();
 const filesToCheck = [
   'README.md',
   'CONTRIBUTING.md',
-  'docs/academy/index.md',
+  'docs/holoschool/index.md',
   'docs/compilers/index.md',
   'docs/getting-started/index.md',
   'docs/getting-started/quickstart.md',

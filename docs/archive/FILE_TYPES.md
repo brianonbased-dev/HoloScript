@@ -905,8 +905,8 @@ template "GuardAgent" {
 
 - **[Quickstart Guide](./getting-started/quickstart.md)** - Get started with `.holo` in 5 minutes
 - **[Examples Gallery](./EXAMPLES_GALLERY.md)** - Real-world examples across all formats
-- **[Template Guide](./academy/level-1-fundamentals/08-templates.md)** - Working with `.hs` templates
-- **[Project Structure](./academy/level-1-fundamentals/09-project-structure.md)** - Organizing large projects
+- **[Template Guide](./holoschool/level-1-fundamentals/08-templates.md)** - Working with `.hs` templates
+- **[Project Structure](./holoschool/level-1-fundamentals/09-project-structure.md)** - Organizing large projects
 - **[Robotics Guide](./guides/robotics.md)** - Using `.hsplus` for URDF/USD export
 - **[API Reference](./api/)** - Parser APIs for each file type
 

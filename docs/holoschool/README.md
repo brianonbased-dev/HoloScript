@@ -1,6 +1,6 @@
-# HoloScript Academy
+# HoloSchool
 
-Welcome to HoloScript Academy. Learn to create VR/XR experiences with HoloScript, from first scene to production deployment.
+Welcome to HoloSchool. Learn to create VR/XR experiences with HoloScript, from first scene to production deployment.
 
 ## Course Structure
 

@@ -140,7 +140,7 @@ By completing this project, you’ve mastered:
 
 ## 🎉 Congratulations!
 
-You have completed **Academy Level 2 (Intermediate)**.
+You have completed **HoloSchool Level 2 (Intermediate)**.
 
 ### What's Next?
 
