@@ -188,6 +188,7 @@ describe('board task environment profiles', () => {
     const { result, updatedBoard } = completeTask(board, 'task_environment', 'codex-hardware', {
       commit: 'abc1234',
       environmentReceipt: receipt,
+      verificationEvidence: 'pnpm vitest run board-environment-profiles 6/6 green at abc1234',
     });
 
     expect(result.success).toBe(true);

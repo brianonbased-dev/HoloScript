@@ -120,6 +120,7 @@ describe('board artifact receipts', () => {
     const { result, updatedBoard } = completeTask(board, 'task_artifacts', 'codex-hardware', {
       commit: 'abc1234',
       summary: 'Attached artifact receipts.',
+      verificationEvidence: 'pnpm vitest run board-artifact-receipts 4/4 green at abc1234',
     });
 
     expect(result.success).toBe(true);
