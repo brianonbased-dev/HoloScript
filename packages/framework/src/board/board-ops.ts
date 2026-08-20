@@ -60,6 +60,8 @@ export interface TaskActionResult {
   success: boolean;
   error?: string;
   code?: string;
+  /** Which fabricated-evidence pattern refused this close, when one did. */
+  matchedPattern?: string;
   task?: TeamTask;
   doneEntry?: DoneLogEntry;
 }
@@ -642,6 +644,50 @@ export function completeTask(
     };
   }
 
+  // CLOSEOUT-EVIDENCE POLICY LIVES HERE, AT THE CHOKEPOINT, NOT AT THE DOOR.
+  //
+  // Until 2026-08-19 it was enforced only inside the REST route handler
+  // (mcp-server board-routes.ts). But the MCP tool `holomesh_board_complete`
+  // calls this function directly, and checked nothing beyond "evidence is a
+  // non-empty string". So the fabricated-evidence gate above -- added after a
+  // trust audit found 67 completions closed with a canned template and zero
+  // commits, and whose own comment says it is enforced "server-side so no buggy
+  // client can reintroduce them" -- was bypassable by picking the other tool.
+  //
+  // Measured on the live board 2026-08-19: of 33 closes in the 26 hours after
+  // the watched-fail rule landed, 18 came through that tool. It was
+  // simultaneously the busiest closing route and the only unchecked one.
+  //
+  // A gate that one of two doors applies is not a server-side gate, it is a
+  // convention. Both doors already call this function, so the policy belongs
+  // here, where door number three cannot route around it either.
+  const evidence = String(opts.verificationEvidence ?? "").trim();
+  if (!evidence) {
+    return {
+      result: {
+        success: false,
+        error: 'verification_evidence is required before marking a task done',
+        code: 'verification_evidence_required',
+      },
+      updatedBoard: board,
+    };
+  }
+  const fabricationCheck = isFabricatedEvidence(evidence);
+  if (fabricationCheck.fabricated) {
+    return {
+      result: {
+        success: false,
+        error:
+          'verification_evidence matches a known fabricated/unverified closeout pattern. ' +
+          'Name the concrete test, build, audit, receipt, or peer-review proof ' +
+          '(commands run, commit hash, receipt path). A failed or unverified run must ' +
+          'stay claimed/blocked — never closed as done.',
+        code: 'verification_evidence_rejected',
+        matchedPattern: fabricationCheck.pattern,
+      },
+      updatedBoard: board,
+    };
+  }
   const completedIdentity = cloneIdentityEnvelope(opts.completedIdentity);
   const signedCompletedBy = completedIdentity?.signer?.agentName?.trim();
   const attributedCompletedBy = signedCompletedBy || completedBy;

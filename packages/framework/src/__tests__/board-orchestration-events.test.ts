@@ -216,6 +216,7 @@ describe('board orchestration events', () => {
     const { result } = completeTask(board, 'task_parent', 'codex-hardware', {
       commit: 'abc1234',
       summary: 'Persisted coordination timeline.',
+      verificationEvidence: 'pnpm vitest run board-orchestration-events 5/5 green at abc1234',
     });
 
     expect(result.success).toBe(true);

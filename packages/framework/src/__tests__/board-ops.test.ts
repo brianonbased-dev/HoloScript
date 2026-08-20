@@ -5,6 +5,7 @@ import {
   normalizeTaskDescription,
   claimTask,
   reopenTask,
+  completeTask,
   isFabricatedEvidence,
   countActiveClaims,
   releaseExpiredClaims,
@@ -383,5 +384,94 @@ describe('addTasksToBoard', () => {
     );
     expect(added).toHaveLength(1);
     expect(added[0].createdBy).toBe('agent_x');
+  });
+});
+
+// ── The gate that was only half applied (2026-08-19) ─────────────────────────
+//
+// The suite above proves `isFabricatedEvidence` can tell a fabricated closeout
+// from a real one. It never proved that anything CALLS it on the way to done.
+// It did not: the check lived in the REST route handler only, and the MCP tool
+// `holomesh_board_complete` calls completeTask directly, checking nothing but
+// "the evidence string is non-empty". On the live board that tool was the
+// busiest closing route -- 18 of the 33 closes in one measured 26-hour window.
+//
+// So a predicate with excellent tests guarded one of two doors. These tests are
+// about the door, not the predicate.
+describe('completeTask applies the evidence policy at the chokepoint', () => {
+  const REAL = 'pnpm vitest run packages/framework 187/187 green at commit abc1234';
+
+  it('refuses a close with no evidence at all, and leaves the board untouched', () => {
+    const board = [claimedTask({ id: 'task_empty' })];
+    const { result, updatedBoard } = completeTask(board, 'task_empty', 'agent_a', {
+      summary: 'done',
+    });
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('verification_evidence_required');
+    expect(updatedBoard[0].status).toBe('claimed');
+  });
+
+  it('refuses evidence that is only whitespace', () => {
+    const board = [claimedTask({ id: 'task_blank' })];
+    const { result } = completeTask(board, 'task_blank', 'agent_a', {
+      verificationEvidence: '   \n  ',
+    });
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('verification_evidence_required');
+  });
+
+  // One case per fabrication class the predicate knows. Each of these was
+  // accepted by the MCP door before this gate moved to the chokepoint, because
+  // every one of them is a non-empty string.
+  const FABRICATED: ReadonlyArray<readonly [string, string]> = [
+    ['the canned runner template', 'Task completed via tool calls. Artifact written (tool_iters:7).'],
+    ['the honest runner fallback', 'UNVERIFIED-ARTIFACT-ONLY: wrote the artifact'],
+    ['a raw tool-call dump', '[tool_use name=write_file]'],
+    ['a self-declared failure', 'task cannot be completed, access denied on the write root'],
+    ['evidence asserting evidence', 'Wrote verification evidence.'],
+    ['prompt placeholders as proof', 'receipt at <receipt> with hash <hash>'],
+    ['a placeholder sha', 'landed in a1b2c3d4e5f67890'],
+    ['a deferral dressed as a close', 'blocked implementation, awaiting founder approval'],
+  ];
+
+  for (const [label, evidence] of FABRICATED) {
+    it(`refuses ${label}, and leaves the board untouched`, () => {
+      const board = [claimedTask({ id: 'task_fab' })];
+      const { result, updatedBoard } = completeTask(board, 'task_fab', 'agent_a', {
+        verificationEvidence: evidence,
+      });
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('verification_evidence_rejected');
+      expect(result.matchedPattern).toBeTruthy();
+      // A refused close must not half-happen.
+      expect(updatedBoard[0].status).toBe('claimed');
+      expect(updatedBoard[0].completedAt).toBeUndefined();
+    });
+  }
+
+  it('still closes a task when the evidence is real', () => {
+    const board = [claimedTask({ id: 'task_real' })];
+    const { result, updatedBoard } = completeTask(board, 'task_real', 'agent_a', {
+      verificationEvidence: REAL,
+      commit: 'abc1234',
+      summary: 'did the thing',
+    });
+    expect(result.success).toBe(true);
+    expect(result.doneEntry?.verificationEvidence).toBe(REAL);
+    expect(updatedBoard).toHaveLength(0);
+  });
+
+  // The regression that matters. This is the exact shape of call the MCP tool
+  // makes -- no route handler in the path, evidence non-empty. If this ever
+  // passes again, the busiest closing route has stopped being checked.
+  it('refuses a fabricated close made the way the MCP tool makes it', () => {
+    const board = [claimedTask({ id: 'task_mcp' })];
+    const { result } = completeTask(board, `task_mcp`, `mcp-agent`, {
+      commit: 'abc1234',
+      summary: 'closed via holomesh_board_complete',
+      verificationEvidence: 'Task completed via tool calls. Artifact written (tool_iters:12).',
+    });
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('verification_evidence_rejected');
   });
 });
