@@ -79,7 +79,7 @@ export const boardTools: Tool[] = [
           type: 'string',
           enum: ['open', 'claimed', 'blocked'],
           description:
-            'Optional — scope the response to a single status bucket instead of all three. Other buckets are omitted from the response entirely (not just emptied).',
+            'Optional — scope the returned tasks to a single status bucket. The other buckets come back empty. board_totals is NOT scoped by this and keeps reporting the whole board, so a filtered call still tells you what else is out there.',
         },
         limit: {
           type: 'number',
@@ -605,6 +605,16 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
     };
     const statusFilter = typeof args.status === 'string' ? args.status : null;
     const wantsBucket = (s: 'open' | 'claimed' | 'blocked') => !statusFilter || statusFilter === s;
+    // board_totals is counted from the WHOLE board, never from the buckets
+    // below. Deriving it from the status-filtered buckets made
+    // `status:'claimed'` answer `open: 0` on a board with 526 open tasks, and a
+    // caller reading totals to decide "is there anything to pick up" was handed
+    // a filter artifact as board state (task_1786321816362_0zmd). `status`
+    // chooses a VIEW; it must not restate what exists. `tags` is different and
+    // DOES scope the count: tags decide which tasks the caller is asking about
+    // at all.
+    const countByStatus = (s: 'open' | 'claimed' | 'blocked') =>
+      board.filter((t: TeamTask) => t.status === s && tagMatch(t)).length;
     const openAll = wantsBucket('open')
       ? board.filter((t: TeamTask) => t.status === 'open' && tagMatch(t))
       : [];
@@ -634,9 +644,9 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
       success: true,
       board: { open: openPage.items, claimed: claimedPage.items, blocked: blockedPage.items },
       board_totals: {
-        open: openPage.total,
-        claimed: claimedPage.total,
-        blocked: blockedPage.total,
+        open: countByStatus('open'),
+        claimed: countByStatus('claimed'),
+        blocked: countByStatus('blocked'),
       },
       done_count: team.doneLog?.length || 0,
       mode: team.mode || 'general',

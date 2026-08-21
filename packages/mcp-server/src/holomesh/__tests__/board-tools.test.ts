@@ -422,6 +422,99 @@ describe('handleBoardTool with in-memory store', () => {
     expect(result.filtered_by_status).toBe('open');
   });
 
+  it('holomesh_board_list keeps board_totals board-wide under a status filter', async () => {
+    // task_1786321816362_0zmd: board_totals was derived from the already
+    // status-filtered buckets, so `status:'claimed'` answered `open: 0` on a
+    // board with open tasks on it. A caller reading totals to decide "is there
+    // anything to pick up" was handed a filter artifact as board state. Status
+    // picks a VIEW; it must not rewrite the count of what exists.
+    seedTeam('team-totals', {
+      taskBoard: [
+        ...Array.from({ length: 3 }, (_, i) => ({
+          id: `to-${i}`,
+          title: `Open ${i}`,
+          description: 'd',
+          status: 'open' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        })),
+        {
+          id: 'tc-1',
+          title: 'Claimed',
+          description: 'd',
+          status: 'claimed' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          claimedBy: 'a',
+          claimedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'tb-1',
+          title: 'Blocked',
+          description: 'd',
+          status: 'blocked' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+
+    const unfiltered = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-totals',
+    })) as Record<string, unknown>;
+    expect(unfiltered.board_totals).toEqual({ open: 3, claimed: 1, blocked: 1 });
+
+    for (const status of ['open', 'claimed', 'blocked'] as const) {
+      const filtered = (await handleBoardTool('holomesh_board_list', {
+        team_id: 'team-totals',
+        status,
+      })) as Record<string, unknown>;
+      // The requested bucket is the only one populated...
+      const board = filtered.board as Record<string, unknown[]>;
+      for (const bucket of ['open', 'claimed', 'blocked'] as const) {
+        expect(board[bucket]).toHaveLength(bucket === status ? { open: 3, claimed: 1, blocked: 1 }[bucket] : 0);
+      }
+      // ...but the totals still describe the whole board, identical to the
+      // unfiltered call. This is the assertion the defect fails.
+      expect(filtered.board_totals).toEqual({ open: 3, claimed: 1, blocked: 1 });
+    }
+  });
+
+  it('holomesh_board_list scopes board_totals by tags, because tags choose which tasks exist for the caller', async () => {
+    seedTeam('team-totals-tags', {
+      taskBoard: [
+        {
+          id: 'tt-1',
+          title: 'Edge work',
+          description: 'd',
+          status: 'open' as const,
+          tags: ['edge'],
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'tt-2',
+          title: 'Other work',
+          description: 'd',
+          status: 'open' as const,
+          tags: ['compiler'],
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+    const result = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-totals-tags',
+      tags: ['edge'],
+    })) as Record<string, unknown>;
+    expect(result.board_totals).toEqual({ open: 1, claimed: 0, blocked: 0 });
+  });
+
   it('holomesh_board_add adds tasks and persists', async () => {
     seedTeam('team-abc');
     const result = (await handleBoardTool('holomesh_board_add', {
