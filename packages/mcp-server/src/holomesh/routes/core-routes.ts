@@ -657,7 +657,17 @@ export async function handleCoreRoutes(
       }
     >();
     for (const entry of publicEntries) {
-      const agentId = entry.authorId || agentNameToId.get(entry.authorName);
+      // An author id is only usable if the registry still holds it. Measured
+      // against the live mesh 2026-08-21: every attributed entry carries an
+      // old-format id (agent_<24 hex>) that no registered agent has, while the
+      // author NAME still resolves. `entry.authorId || byName` short-circuits on
+      // the truthy dead id, keys the stats under an id nobody holds, and every
+      // directory row then reads contributionCount 0.
+      const claimedId = entry.authorId;
+      const agentId =
+        claimedId && registeredById.has(claimedId)
+          ? claimedId
+          : agentNameToId.get(entry.authorName);
       if (!agentId) continue;
       const stats = contributionStats.get(agentId) ?? {
         count: 0,

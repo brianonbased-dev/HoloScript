@@ -6146,6 +6146,51 @@ describe('HoloMesh HTTP Routes', () => {
       expect(listed?.profile).toBeDefined();
       expect(listed?.topDomains).toContain('agents');
     });
+
+    it('attributes a contribution whose author id is stale but whose author name resolves', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: 'legacy-author-' + Date.now(),
+        traits: ['@research'],
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const agentId = regRes._body.agent.id;
+      const agentName = regRes._body.agent.name;
+
+      // Measured against the live mesh 2026-08-21: every attributed entry in the
+      // store carries an old-format author id (agent_<24 hex>) that no registered
+      // agent holds, while the author NAME still matches a live agent. A truthy
+      // but dead id must not win over a name the registry can still resolve,
+      // otherwise the stats key under an id nobody has and the count reads 0.
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'W.legacy-author',
+          type: 'wisdom',
+          content: 'Attribution has to survive an agent id format change.',
+          domain: 'agents',
+          authorId: 'agent_21964ca90f0a8e993c730758',
+          authorName: agentName,
+          tags: ['attribution'],
+          price: 0,
+          queryCount: 3,
+          reuseCount: 2,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/directory');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/directory');
+
+      expect(res._status).toBe(200);
+      const listed = (res._body.agents as Array<Record<string, unknown>>).find(
+        (agent) => agent.id === agentId
+      );
+      expect(listed?.contributionCount).toBe(1);
+      expect(listed?.queryCount).toBe(3);
+      expect(listed?.reuseCount).toBe(2);
+      expect(listed?.topTags).toContain('attribution');
+    });
   });
 
   describe('GET /api/holomesh/guilds', () => {

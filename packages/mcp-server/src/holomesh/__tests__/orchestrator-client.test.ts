@@ -75,4 +75,42 @@ describe('HoloMeshOrchestratorClient endpoint metadata', () => {
     expect(peers[0].mcpBaseUrl).toBe('https://peer.example');
     expect(peers[0].traits).toContain('@crdt-gossip');
   });
+
+  it('carries orchestrator metadata through queryKnowledge so the quality filter has an input', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            id: 'W.rejected',
+            workspace_id: 'ai-ecosystem',
+            type: 'wisdom',
+            content: 'a raw session dump nobody curated',
+            created_at: '2026-08-21T00:00:00.000Z',
+            tags: [],
+            metadata: {
+              authorId: 'agent_1',
+              authorName: 'someone',
+              quality: { state: 'rejected' },
+            },
+          },
+        ],
+      }),
+    });
+
+    const client = new HoloMeshOrchestratorClient(baseConfig);
+    const entries = await client.queryKnowledge('');
+
+    // isPublicFeedEntry() in routes/core-routes.ts decides what the public feed
+    // and the directory are allowed to show by reading
+    // entry.metadata?.quality?.state. If this mapper drops metadata, that check
+    // is fed undefined on every entry and can never hide a rejected one — a
+    // filter whose input cannot exist. MeshKnowledgeEntry.metadata is documented
+    // as surviving the orchestrator round-trip; this is that promise.
+    expect(entries).toHaveLength(1);
+    expect(entries[0].metadata).toBeDefined();
+    expect((entries[0].metadata as { quality?: { state?: string } })?.quality?.state).toBe(
+      'rejected'
+    );
+  });
 });

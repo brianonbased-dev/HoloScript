@@ -299,6 +299,11 @@ export class HoloMeshOrchestratorClient {
         tags: r.tags || [],
         confidence: r.metadata?.confidence,
         createdAt: r.created_at || new Date().toISOString(),
+        // MeshKnowledgeEntry.metadata is documented as surviving the orchestrator
+        // round-trip, and isPublicFeedEntry() reads metadata.quality.state to hide
+        // rejected and raw-dump entries. Dropping it here fed that filter
+        // undefined on every entry, so it had never excluded anything.
+        metadata: isRecord(r.metadata) ? r.metadata : undefined,
       })
     );
   }
