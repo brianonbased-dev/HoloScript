@@ -51,6 +51,7 @@
     "@holoscript/core": ">=8.0.0"
   },
   "devDependencies": {
+    "@holoscript/core": "workspace:^",
     "typescript": "^5.0.0",
     "vitest": "^4.1.5"
   }

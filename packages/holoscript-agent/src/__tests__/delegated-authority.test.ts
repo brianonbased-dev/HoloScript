@@ -27,6 +27,8 @@ function makeHandler(
     permittedActions?: Set<string>;
     provider?: ILLMProvider;
     systemPrompt?: string;
+    processedMessageIds?: Set<string>;
+    maxProcessedIds?: number;
   } = {}
 ) {
   const mesh = {
@@ -48,6 +50,8 @@ function makeHandler(
     systemPrompt: opts.systemPrompt,
     allowList: opts.allowList,
     permittedActions: opts.permittedActions,
+    processedMessageIds: opts.processedMessageIds,
+    maxProcessedIds: opts.maxProcessedIds,
   });
 
   return { handler, mesh };
@@ -95,6 +99,60 @@ describe('DelegatedAuthorityHandler.parseRequest', () => {
     const { handler } = makeHandler();
     const msg = makeMessage({ content: 'hey brittney, lunch?' });
     expect(handler.parseRequest(msg)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// task_1787108819456_41on (review Q-02): msg.content is untrusted -- any team
+// member can send it -- and the structured-envelope regex in parseRequest()
+// runs against it with no length cap. Empirically, this regex shows clean
+// O(n^2) backtracking on adversarial input that never satisfies the trailing
+// "}" (e.g. all-"{" content): 8KB takes ~55ms, 200KB takes ~33s. A message a
+// little over 200KB would block the agent's async tick for tens of seconds.
+// The fix rejects anything over a fixed cap BEFORE any regex ever sees it.
+// ---------------------------------------------------------------------------
+describe('DelegatedAuthorityHandler.parseRequest — content length cap (task_1787108819456_41on, review Q-02)', () => {
+  it('rejects a structured envelope once msg.content exceeds the length cap, even though it would otherwise parse', () => {
+    const { handler } = makeHandler();
+    const oversizedEnvelope = {
+      protocol: 'delegated-authority/v1',
+      requestType: 'owner-op',
+      action: 'set-team-mode',
+      payload: { mode: 'audit', filler: 'x'.repeat(9000) },
+    };
+    const content = JSON.stringify(oversizedEnvelope);
+    expect(content.length).toBeGreaterThan(8 * 1024); // confirms the fixture actually exceeds the cap
+
+    const msg = makeMessage({ content });
+    expect(handler.parseRequest(msg)).toBeNull();
+  });
+
+  it('still parses a structured envelope comfortably under the cap', () => {
+    const { handler } = makeHandler();
+    const envelope = {
+      protocol: 'delegated-authority/v1',
+      requestType: 'owner-op',
+      action: 'set-team-mode',
+      payload: { mode: 'audit' },
+    };
+    const msg = makeMessage({ content: JSON.stringify(envelope) });
+    expect(handler.parseRequest(msg)).toBeTruthy();
+  });
+
+  it('returns quickly instead of hanging on a large adversarial payload that never closes', () => {
+    const { handler } = makeHandler();
+    // No "}" anywhere -- the shape that empirically drives the pre-fix regex
+    // into ~O(n^2) backtracking (measured: 50KB of this shape takes multiple
+    // seconds pre-fix; 8KB takes ~55ms). Comfortably over the 8KB cap.
+    const adversarial = '{'.repeat(50 * 1024);
+    const msg = makeMessage({ content: adversarial });
+
+    const start = Date.now();
+    const result = handler.parseRequest(msg);
+    const elapsedMs = Date.now() - start;
+
+    expect(result).toBeNull();
+    expect(elapsedMs).toBeLessThan(500);
   });
 });
 
@@ -442,5 +500,83 @@ describe('DelegatedAuthorityHandler.processMessages', () => {
     // Second tick with same message still in feed
     await handler.processMessages();
     expect(mesh.setTeamMode).toHaveBeenCalledTimes(1); // not called again
+  });
+});
+
+// ---------------------------------------------------------------------------
+// task_1787108819456_41on (review Q-02): the processed-id set has no
+// eviction policy and grows unboundedly across a long-running session. Ids
+// are only ever checked for membership, never "touched" again once seen, so
+// eviction by insertion order is equivalent to true LRU here.
+// ---------------------------------------------------------------------------
+describe('DelegatedAuthorityHandler — bounded processed-id eviction (task_1787108819456_41on, review Q-02)', () => {
+  function makeEnvelopeMsg(id: string): TeamMessage {
+    return makeMessage({
+      id,
+      content: JSON.stringify({
+        protocol: 'delegated-authority/v1',
+        requestType: 'owner-op',
+        action: 'set-team-mode',
+        payload: { mode: 'audit' },
+      }),
+    });
+  }
+
+  it('evicts the oldest processed ids once the bounded cap is exceeded, allowing them to be reprocessed', async () => {
+    const cap = 3;
+    const { handler, mesh } = makeHandler({ maxProcessedIds: cap });
+    const getMessages = vi.mocked(mesh.getTeamMessages);
+
+    for (const id of ['m1', 'm2', 'm3', 'm4']) {
+      getMessages.mockResolvedValueOnce([makeEnvelopeMsg(id)]);
+      await handler.processMessages();
+    }
+    expect(mesh.setTeamMode).toHaveBeenCalledTimes(4);
+
+    // m1 was the first-seen id. With a cap of 3, adding m4 must have evicted
+    // it, so it is treated as new again instead of silently skipped.
+    getMessages.mockResolvedValueOnce([makeEnvelopeMsg('m1')]);
+    await handler.processMessages();
+    expect(mesh.setTeamMode).toHaveBeenCalledTimes(5);
+
+    // m4 is within the most-recent 3 ids and must still be remembered.
+    getMessages.mockResolvedValueOnce([makeEnvelopeMsg('m4')]);
+    await handler.processMessages();
+    expect(mesh.setTeamMode).toHaveBeenCalledTimes(5); // not called again
+  });
+
+  it('does not evict anything while the set is under the cap', async () => {
+    const { handler, mesh } = makeHandler({ maxProcessedIds: 10_000 });
+    const getMessages = vi.mocked(mesh.getTeamMessages);
+
+    for (const id of ['a', 'b', 'c']) {
+      getMessages.mockResolvedValueOnce([makeEnvelopeMsg(id)]);
+      await handler.processMessages();
+    }
+    expect(mesh.setTeamMode).toHaveBeenCalledTimes(3);
+
+    getMessages.mockResolvedValueOnce([makeEnvelopeMsg('a')]);
+    await handler.processMessages();
+    expect(mesh.setTeamMode).toHaveBeenCalledTimes(3); // still remembered, not reprocessed
+  });
+
+  it('trims an oversized injected processedMessageIds set down to the cap at construction', async () => {
+    // A caller can persist processedMessageIds across ticks/sessions
+    // (DelegatedAuthorityOptions.processedMessageIds). If it is seeded above
+    // the cap, the bound must apply immediately rather than only once the
+    // set grows past it locally.
+    const seeded = new Set(['old1', 'old2', 'old3', 'old4', 'old5']);
+    const { handler, mesh } = makeHandler({ processedMessageIds: seeded, maxProcessedIds: 3 });
+    const getMessages = vi.mocked(mesh.getTeamMessages);
+
+    // Insertion order was old1..old5; a cap of 3 must keep only the last 3
+    // (old3, old4, old5) and evict old1/old2 immediately at construction.
+    getMessages.mockResolvedValueOnce([makeEnvelopeMsg('old1')]);
+    await handler.processMessages();
+    expect(mesh.setTeamMode).toHaveBeenCalledTimes(1); // old1 was evicted, so it's reprocessed
+
+    getMessages.mockResolvedValueOnce([makeEnvelopeMsg('old5')]);
+    await handler.processMessages();
+    expect(mesh.setTeamMode).toHaveBeenCalledTimes(1); // old5 survived the trim, still skipped
   });
 });

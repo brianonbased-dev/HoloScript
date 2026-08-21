@@ -782,7 +782,9 @@ export async function initStores(): Promise<void> {
   }
 
   // Load Teams
-  // Priority: PostgreSQL (multi-instance) → JSON file (single-instance / migration)
+  // DATABASE_URL selects durable PostgreSQL custody. JSON is only the
+  // single-instance/local path when DATABASE_URL is absent; silently swapping a
+  // production process to writable memory creates an empty split-brain board.
   let teamsLoaded = false;
   if (process.env.DATABASE_URL) {
     try {
@@ -815,9 +817,11 @@ export async function initStores(): Promise<void> {
         }
       }
     } catch (e) {
-      console.warn('[loadAllStores] PostgreSQL team load failed, falling back to file:', e);
-      (teamStore as TeamStore).fallbackToMemory();
-      console.warn('[loadAllStores] PostgreSQL team backend disabled for this process');
+      console.error(
+        '[loadAllStores] PostgreSQL team load failed after bounded retries; refusing in-memory fallback:',
+        e
+      );
+      throw e;
     }
   }
 

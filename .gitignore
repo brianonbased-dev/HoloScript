@@ -70,6 +70,9 @@ yarn-error.log*
 .local-worker-key
 .local-worker-key.legacy*.json
 .preflight-result.json
+# Local proof that the core baseline gate ran for a given packages/core tree.
+# Machine-local by design — a receipt from another machine proves nothing here.
+packages/core/.test-baseline-receipt.json
 # Claude local settings contain shell permission strings with env vars — never commit
 .claude/settings.local.json
 audit-results/

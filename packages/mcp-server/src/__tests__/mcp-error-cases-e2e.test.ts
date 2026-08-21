@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { handleTool } from '../handlers';
 import { coreTools } from '../tools';
+import { getCompilerWasmBuildIdentity } from '../parserBuildIdentity';
 
 vi.mock('@holoscript/llm-provider', () => ({
   LOCAL_DEFAULT_MODEL: 'test-local-model',
@@ -83,6 +84,29 @@ describe('MCP Tool Error Cases', () => {
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.validator).toBe('rust-wasm');
+  });
+
+  it('validate_holoscript ties validator=rust-wasm to a resolvable compiler-wasm build identity (task_1784330208777_288f)', async () => {
+    const result = (await handleTool('validate_holoscript', {
+      code: `function main(): i32 {
+        slot value: i32 = 2
+        store(value, 5)
+        return load(value)
+      }`,
+      format: 'hs',
+    })) as Record<string, unknown> & {
+      compilerWasm: { sourceCommit: string; wasmSha256: string } | null;
+    };
+
+    expect(result.validator).toBe('rust-wasm');
+    // Same identity the reader itself returns — not two independently
+    // hardcoded values that could silently drift apart.
+    const identity = getCompilerWasmBuildIdentity();
+    expect(result.compilerWasm).toEqual(identity);
+    if (identity) {
+      expect(result.compilerWasm?.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
+      expect(result.compilerWasm?.wasmSha256).toMatch(/^[0-9a-f]{64}$/);
+    }
   });
 
   it('validate_holoscript accepts the hs-machine-v7 fixed-array and slice contract', async () => {

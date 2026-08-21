@@ -18,6 +18,7 @@
     "@holoscript/core": ">=8.0.0"
   },
   "devDependencies": {
+    "@holoscript/core": "workspace:^",
     "@types/node": "^24.10.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.9.3",

@@ -200,7 +200,15 @@ describe('CharacterWebGPUCompiler', () => {
       profile: 'scalp-flow-v1',
       scalpSurface: 'legacy-sphere',
       material: {
-        schemaVersion: 'holoscript.agent-avatar-hair-material.v1',
+        // v2 since 712698cf4 "preserve authored hair chroma": the receipt is
+        // versioned by whether authored source-RGB is operative. This fixture
+        // authors a hair color, so sourceColorWeight is 0.55 and the receipt
+        // legitimately lands on the chroma-preserving branch. Asserting the
+        // version alone would leave that new path uncovered here, so the two
+        // fields the bump exists to name are asserted with it.
+        schemaVersion: 'holoscript.agent-avatar-hair-material.v2',
+        sourceColor: expect.anything(),
+        sourceColorWeight: 0.55,
         coverageProfile: 'alpha-to-coverage-v1',
         strandCoverage: 0.74,
         edgeSoftness: 0.16,

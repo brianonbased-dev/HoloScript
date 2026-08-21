@@ -35,10 +35,24 @@ npx holosystem catalog \
 ```
 
 `lineage` reads registry metadata and records canonical repository URLs and
-portable package directories. Unknown lineage remains a named gap; local source
+portable package directories. When an exact npm version has no repository field,
+the receipt may infer its repository from a revision cohort only when both the
+target and its direct-metadata anchors have successful registry responses,
+nonempty integrity values, the same full 40-hex `gitHead`, and exact matching
+versions. Every anchor must resolve to one normalized repository; conflicts fail
+closed. These entries use `lineageKind: "revision-cohort"`, keep
+`sourceDirectory` null, and carry the exact sorted anchors in `lineageEvidence`.
+They are evidence-backed inferences, not direct package metadata, and inferred
+entries never become anchors. Unknown lineage remains a named gap; local source
 paths are never emitted. `catalog` performs public GitHub, service, container,
 MCP-health, and public-skill discovery, then joins those results with the
 caller's package admission, lineage, proof-batch, and promotion receipts.
+
+`holoscript.holosystem.source-lineage.v1` is an additive receipt contract.
+Consumers must treat `lineageKind` as an open enum, preserve unfamiliar kinds
+and their evidence, and use `mapped` for the broad mapped/unmapped decision.
+New summary keys and new evidence-backed lineage kinds may be added within v1;
+removing a field or changing an existing kind's meaning requires a new schema.
 
 ```js
 import {
@@ -54,6 +68,49 @@ The bounded selector excludes artifacts already present in active proof batches,
 returns one highest-priority candidate, and carries authority, validation, lease,
 and spend stop conditions. It selects work; it does not claim a board task,
 publish a package, spend funds, or bypass caller authority.
+
+## Proposal-only farm
+
+`farm` turns an exact catalog, portfolio receipt, and lineage receipt into one
+deterministic `holosystem.self-improvement-farm.v2` proposal. It is deliberately
+proposal-only: it does not claim or execute a task, accept a proposal, apply a
+change, publish a package, spend funds, or mutate any external system.
+
+```bash
+npx holosystem farm \
+  --catalog consumption-catalog.json \
+  --portfolio portfolio-consumer.json \
+  --lineage source-lineage.json \
+  --output farm-proposal.json \
+  --json
+```
+
+The three files are required and schema-checked together. A detached catalog
+decision that is inconsistent with the portfolio and lineage is blocked rather
+than silently trusted. Existing output files require explicit `--force`.
+`action-ready` and `idle` proposals exit `0`. Unreadable or malformed JSON
+exits `1` because the command cannot conclude. Invalid arguments, schema or
+decision inconsistencies, unsafe output writes, and named blocked proposals
+exit `2`.
+
+Every receipt keeps `accepted: false`, `changesApplied: []`, and marks proposed
+work with `requiresAuthority: true`. Those fields are an authority boundary, not
+an approval mechanism. A caller must independently authorize, claim, execute,
+validate, and accept any downstream work. The proposal-only command cannot
+grant wallet, custody, publication, governance, or external-mutation authority.
+
+```js
+import {
+  HOLOSYSTEM_FARM_SCHEMA,
+  buildFarmProposalReceipt,
+} from '@holoscript/holosystem';
+```
+
+`buildFarmProposalReceipt` is pure and returns the same proposal content and
+receipt hash for the same semantic inputs; only the informational `generatedAt`
+may differ when callers do not provide `now`. It records the caller-supplied
+source receipt references and a self-validating receipt hash; it never reads
+files or performs side effects.
 
 ## HoloScript Source Canon
 
@@ -789,6 +846,9 @@ npx holosystem inspect holosystem.config.json
 # Machine-readable receipt. Exit code 2 means the config failed inspection.
 npx holosystem inspect holosystem.config.json --json
 
+# Produce a proposal-only next-work receipt. This does not execute or accept it.
+npx holosystem farm --catalog catalog.json --portfolio portfolio.json --lineage lineage.json --json
+
 # Pipeline input is supported.
 npx holosystem create --stdout | npx holosystem inspect - --json
 
@@ -799,7 +859,9 @@ npx holosystem source-canon --output source-canon.hsplus --json
 Creation never installs packages, connects to storage, acquires credentials, or
 mutates services. Those actions belong to the selected public packages and the
 operator's own adapters. The CLI only writes the requested configuration file;
-inspection is read-only.
+inspection is read-only. `farm` is also proposal-only: writing its optional
+receipt file is its sole mutation, and the proposal cannot claim, execute,
+accept, publish, spend, or confer authority.
 
 ## Consumption Contract
 
@@ -826,7 +888,9 @@ package check, an npm pack dry run, and the repository public-consumption gate.
 Release lane: `v0-preview`. Supported behavior is deterministic config creation
 and static, secret-safe portability inspection for the documented v1 schema.
 Known limitations: this package does not install package dependencies, test live
-credentials, bootstrap databases, claim team work, or authorize publishing.
+credentials, bootstrap databases, claim or execute team work, accept farm
+proposals, or authorize publishing. Farm output remains proposal-only and
+requires independent caller authority before downstream action.
 Public catalog and lineage discovery depend on caller network access and the
 availability of the queried registries and endpoints. Roll back by pinning the
 previous package version and retaining the consumer-owned config and receipts.

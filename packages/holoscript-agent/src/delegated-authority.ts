@@ -56,7 +56,40 @@ export interface DelegatedAuthorityOptions {
   permittedActions?: Set<string>;
   /** Message IDs already processed (persisted across ticks). */
   processedMessageIds?: Set<string>;
+  /**
+   * Bound on the processed-id set; the oldest ids are evicted first once it
+   * is exceeded (default 10,000). Applies immediately to an injected
+   * `processedMessageIds` set too, so a persisted set restored above the cap
+   * is trimmed at construction rather than only once it grows further.
+   */
+  maxProcessedIds?: number;
 }
+
+// =============================================================================
+// Bounded limits — untrusted input from team messages must never let this
+// handler's per-tick work or memory grow unboundedly (task_1787108819456_41on,
+// review Q-02).
+// =============================================================================
+
+/**
+ * parseRequest() runs regexes against msg.content, which is untrusted text
+ * any team member can send. Reject anything over this cap before a regex
+ * ever sees it: measured against the structured-envelope regex, adversarial
+ * content that never satisfies the trailing "}" shows ~O(n^2) backtracking
+ * (8KB ~55ms, 200KB ~33s) — a message a little over 200KB would block the
+ * agent's async tick for tens of seconds. At the cap itself even the
+ * worst-case shape stays comfortably fast.
+ */
+const MAX_PARSE_CONTENT_LENGTH = 8 * 1024; // 8KB
+
+/**
+ * Default bound for the processed-message-id set. Without an eviction
+ * policy this set grows for the life of a long-running session. Ids are
+ * only ever checked for membership, never "touched" again once seen, so
+ * eviction by insertion order (oldest-first) is equivalent to true LRU
+ * here — the oldest-seen id is always the least-recently-used one.
+ */
+const DEFAULT_MAX_PROCESSED_IDS = 10_000;
 
 // =============================================================================
 // Delegated Authority Handler
@@ -73,6 +106,7 @@ export class DelegatedAuthorityHandler {
   private readonly allowList?: Set<string>;
   private readonly permittedActions?: Set<string>;
   private readonly processed: Set<string>;
+  private readonly maxProcessedIds: number;
 
   constructor(opts: DelegatedAuthorityOptions) {
     this.mesh = opts.mesh;
@@ -80,7 +114,9 @@ export class DelegatedAuthorityHandler {
     this.systemPrompt = opts.systemPrompt;
     this.allowList = opts.allowList;
     this.permittedActions = opts.permittedActions;
+    this.maxProcessedIds = opts.maxProcessedIds ?? DEFAULT_MAX_PROCESSED_IDS;
     this.processed = opts.processedMessageIds ?? new Set<string>();
+    this.evictExcessProcessedIds();
   }
 
   // ---------------------------------------------------------------------------
@@ -92,7 +128,7 @@ export class DelegatedAuthorityHandler {
 
     for (const msg of messages) {
       if (this.processed.has(msg.id)) continue;
-      this.processed.add(msg.id);
+      this.markProcessed(msg.id);
 
       const request = this.parseRequest(msg);
       if (!request) continue;
@@ -108,6 +144,24 @@ export class DelegatedAuthorityHandler {
   }
 
   // ---------------------------------------------------------------------------
+  // Bounded-LRU eviction for the processed-id set (task_1787108819456_41on,
+  // review Q-02). See DEFAULT_MAX_PROCESSED_IDS above for why insertion-order
+  // eviction is equivalent to true LRU for this set.
+  // ---------------------------------------------------------------------------
+  private markProcessed(id: string): void {
+    this.processed.add(id);
+    this.evictExcessProcessedIds();
+  }
+
+  private evictExcessProcessedIds(): void {
+    while (this.processed.size > this.maxProcessedIds) {
+      const oldest = this.processed.values().next().value;
+      if (oldest === undefined) break;
+      this.processed.delete(oldest);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Parse a team message into an AuthorityRequest
   //
   // Supports two forms:
@@ -115,6 +169,11 @@ export class DelegatedAuthorityHandler {
   //   2. Plain-text shorthand: "@brittney <requestType>: <action> [payload]"
   // ---------------------------------------------------------------------------
   parseRequest(msg: TeamMessage): AuthorityRequest | null {
+    // msg.content is untrusted — any team member can send it. Reject
+    // anything over the cap before it ever reaches a regex (see
+    // MAX_PARSE_CONTENT_LENGTH above; task_1787108819456_41on, review Q-02).
+    if (msg.content.length > MAX_PARSE_CONTENT_LENGTH) return null;
+
     const trimmed = msg.content.trim();
 
     // --- Structured JSON envelope ------------------------------------------------

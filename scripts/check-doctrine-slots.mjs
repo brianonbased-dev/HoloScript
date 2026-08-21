@@ -4,13 +4,35 @@
  *
  * The HoloCI dispatch breadcrumb lives in the ai-ecosystem checkout. Local hooks
  * write proof slots there; this gate catches "registered but unfired" hooks.
+ *
+ * WHAT "REGISTERED" MEANS (corrected 2026-08-06). This gate previously required
+ * `localPreflight` unconditionally. Nothing ever populated it:
+ * `ai-ecosystem/scripts/holo-ci/run.mjs` fills that slot ONLY when dispatched with
+ * `--require-s23-receipt`, and the S23 hardware loop behind it was seeded and never
+ * built -- `idea-seeds/2026-06-13_sync-hardware-loop-local-gpu-validation.md` states
+ * plainly that "the schema slot already exists and is always null".
+ *
+ * So the gate was red whenever a breadcrumb existed at all, and green only while
+ * none did. It blocked every HoloRepo candidate submit in the repo rather than
+ * catching anything -- a check that cannot pass is not protecting anything, it is
+ * just a wall. That is the same failure class as a check that cannot fail.
+ *
+ * The invariant is now what the name always claimed: a slot the dispatch ACTUALLY
+ * registered must be non-null. `run.mjs` records `requiredSlots` alongside the slot
+ * values, so "registered" is a fact in the breadcrumb rather than an assumption
+ * here. A dispatch that requests the S23 receipt and then fails to produce it still
+ * fails this gate, which is the case the gate exists for.
+ *
+ * A breadcrumb with no `requiredSlots` key predates that contract. It registers
+ * nothing, so nothing is required -- reported explicitly, never silently.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const REQUIRED_SLOTS = ['localPreflight'];
+/** Slots this gate understands. A slot is only enforced if the workload registered it. */
+const KNOWN_SLOTS = ['localPreflight'];
 
 function argValue(name) {
   const index = process.argv.indexOf(name);
@@ -42,7 +64,7 @@ if (!existsSync(file)) {
     console.log(`[doctrine-slots] SKIP -- workload breadcrumb missing: ${file}`);
     process.exit(0);
   }
-  failSlot(REQUIRED_SLOTS[0], `workload breadcrumb missing: ${file}`);
+  failSlot(KNOWN_SLOTS[0], `workload breadcrumb missing: ${file}`);
 }
 
 let workload;
@@ -53,17 +75,45 @@ try {
   process.exit(2);
 }
 
-for (const slot of REQUIRED_SLOTS) {
+// Only slots the dispatch actually registered are enforced. See the header: an
+// unconditional requirement here was permanently unsatisfiable.
+const declared = Array.isArray(workload?.requiredSlots) ? workload.requiredSlots : null;
+
+if (declared === null) {
+  console.log(
+    `[doctrine-slots] OK -- breadcrumb ${file} declares no requiredSlots (pre-2026-08-06 contract); nothing registered, nothing to prove.`
+  );
+  process.exit(0);
+}
+
+const required = declared.filter((slot) => KNOWN_SLOTS.includes(slot));
+const unknown = declared.filter((slot) => !KNOWN_SLOTS.includes(slot));
+if (unknown.length) {
+  // Fail closed: a slot this gate cannot evaluate must not read as satisfied.
+  console.error(
+    `[doctrine-slots] workload registers slot(s) this gate does not know how to check: ${unknown.join(', ')}`
+  );
+  process.exit(1);
+}
+
+if (required.length === 0) {
+  console.log(`[doctrine-slots] OK -- workload ${file} registered no doctrine slots.`);
+  process.exit(0);
+}
+
+for (const slot of required) {
   if (workload?.[slot] == null) {
-    failSlot(slot, `workload ${file} has ${slot}=${workload?.[slot]}`);
+    failSlot(slot, `workload ${file} registered ${slot} but has ${slot}=${workload?.[slot]}`);
   }
 }
 
-const summaries = REQUIRED_SLOTS.map((slot) => {
+const summaries = required.map((slot) => {
   const value = workload[slot];
   const status =
     value && typeof value === 'object' && 'status' in value ? ` status=${value.status}` : '';
   return `${slot}${status}`;
 });
 
-console.log(`[doctrine-slots] OK -- required slot(s) non-null in ${file}: ${summaries.join(', ')}`);
+console.log(
+  `[doctrine-slots] OK -- every registered slot is non-null in ${file}: ${summaries.join(', ')}`
+);

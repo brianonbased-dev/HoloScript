@@ -401,19 +401,29 @@ describe('Feature 5: LLM provider model constant arrays', () => {
   });
 
   it('GEMINI_MODELS keeps the legacy baseline and includes current Gemini 3 models', () => {
-    // Asserts the two claims in this test's name rather than an exact count. The old
-    // `.length).toBe(7)` tested neither, and broke the moment the list legitimately grew
-    // to 9 — a model roster is supposed to change, so pinning its size guarantees a false
-    // failure on every routine update. Membership is what the sibling tests already check.
+    // Asserted by membership, never by count — reached independently on both sides of a
+    // 17-day fork, which is the strongest signal available that the old
+    // `.length).toBe(7)` was wrong. It asserted neither claim in this test's title, went
+    // green by coincidence on 2026-07-03 when an addition happened to restore the count
+    // to 7, and broke the moment the roster legitimately grew to 9. A model list is
+    // SUPPOSED to change; pinning its size guarantees a false failure on every routine
+    // update.
+    //
+    // This keeps both sides' checks because they cover different things and neither is
+    // redundant: a floor, the specific models each side named, the retired model that
+    // must stay gone, a version-agnostic "some Gemini 3 exists" that survives the next
+    // release, and a duplicate check a count would only ever have caught by accident.
+    expect(GEMINI_MODELS.length).toBeGreaterThanOrEqual(7);
     for (const legacy of ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.5-flash-8b']) {
       expect(GEMINI_MODELS, `legacy baseline model ${legacy} was dropped`).toContain(legacy);
     }
+    expect(GEMINI_MODELS).toContain('gemini-3.6-flash');
+    expect(GEMINI_MODELS).toContain('gemini-3.5-flash-lite');
+    expect(GEMINI_MODELS).not.toContain('gemini-2.0-flash');
     expect(
       GEMINI_MODELS.some((m) => m.startsWith('gemini-3')),
       'no current Gemini 3 model present'
     ).toBe(true);
-    // A duplicate entry is a real defect a count would have caught by accident; check it
-    // on purpose instead.
     expect(new Set(GEMINI_MODELS).size, 'duplicate model id').toBe(GEMINI_MODELS.length);
   });
 
