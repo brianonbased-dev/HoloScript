@@ -706,7 +706,16 @@ export function completeTask(
     };
   }
   const completedIdentity = cloneIdentityEnvelope(opts.completedIdentity);
-  const signedCompletedBy = completedIdentity?.signer?.agentName?.trim();
+  // Credit the identity a registry can answer for, in descending resolvability:
+  // agentId (the registry key), then handle (the registry NAME), and only then
+  // agentName — which on the claude-code surface is the literal string
+  // "claude-code", a SURFACE label no agent is registered under. Measured
+  // 2026-08-21: 113 of the 200 most recent done-log rows read "claude-code"
+  // while the very same envelope carried a resolvable agentId one field away.
+  // The label is not lost: completedIdentity is preserved on the entry below.
+  const signer = completedIdentity?.signer;
+  const signedCompletedBy =
+    signer?.agentId?.trim() || signer?.handle?.trim() || signer?.agentName?.trim();
   const attributedCompletedBy = signedCompletedBy || completedBy;
   task.status = 'done';
   task.completedBy = attributedCompletedBy;

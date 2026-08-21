@@ -6,6 +6,7 @@ import {
   maintainBoard,
   normalizeTaskPriority,
   sweepBlockedTaskLifecycle,
+  completeTask,
 } from '../board-ops';
 import type { TeamTask } from '../board-types';
 
@@ -206,5 +207,70 @@ describe('board operations phase-0 hygiene', () => {
       blockedReopenedAt: '2026-07-13T00:00:00.000Z',
       claimedBy: undefined,
     });
+  });
+});
+
+describe('done-log attribution binds to the signer the registry can resolve', () => {
+  // Measured on the live board 2026-08-21: 149 of the 200 most recent done-log
+  // rows name something the agent registry has never heard of. The largest
+  // bucket, 113 rows, reads `claude-code` — which is the SURFACE name carried
+  // in signer.agentName, sitting right beside a signer.agentId the registry
+  // resolves. The envelope had the answer; the writer stored the label.
+  const envelope = {
+    schema: 'holomesh.identity-envelope.v1',
+    signer: {
+      agentId: 'agent_1781748494481_x46j',
+      agentName: 'claude-code',
+      handle: 'claude1',
+      surface: 'claude-code',
+    },
+  } as TeamTask['completedIdentity'];
+
+  function claimedTask(): TeamTask {
+    return task({
+      id: 'task_attribution',
+      status: 'claimed',
+      claimedBy: 'agent_1781748494481_x46j',
+      description: 'Attribute finished work.\n\n## Done when:\n- completedBy resolves.',
+    });
+  }
+
+  it('credits the signer agent id, not the surface label beside it', () => {
+    const { result } = completeTask([claimedTask()], 'task_attribution', 'caller-supplied', {
+      commit: 'abc1234',
+      verificationEvidence:
+        'ran vitest packages/framework/src/board/__tests__/board-ops.test.ts, 8 passed',
+      completedIdentity: envelope,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.doneEntry?.completedBy).toBe('agent_1781748494481_x46j');
+    // the label is not lost — it stays reachable on the preserved envelope
+    expect(result.doneEntry?.completedIdentity?.signer?.agentName).toBe('claude-code');
+  });
+
+  it('falls back to the handle when the envelope carries no agent id', () => {
+    const noId = {
+      schema: 'holomesh.identity-envelope.v1',
+      signer: { agentId: null, agentName: 'claude-code', handle: 'claude1' },
+    } as TeamTask['completedIdentity'];
+
+    const { result } = completeTask([claimedTask()], 'task_attribution', 'caller-supplied', {
+      commit: 'abc1234',
+      verificationEvidence: 'ran the board-ops suite, 8 passed',
+      completedIdentity: noId,
+    });
+
+    // handle resolves against the registry's agent NAME; agentName does not
+    expect(result.doneEntry?.completedBy).toBe('claude1');
+  });
+
+  it('still honours the caller when no identity envelope is supplied at all', () => {
+    const { result } = completeTask([claimedTask()], 'task_attribution', 'jetson-orin-super', {
+      commit: 'abc1234',
+      verificationEvidence: 'ran the board-ops suite, 8 passed',
+    });
+
+    expect(result.doneEntry?.completedBy).toBe('jetson-orin-super');
   });
 });
