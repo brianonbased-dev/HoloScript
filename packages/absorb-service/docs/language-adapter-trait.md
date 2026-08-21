@@ -65,7 +65,30 @@ This is the `map_data` / `map_csv` universal-bridge pattern (data → `.holo` �
 | ✅ 2 | `TreeSitterTraitAdapter` + `RUBY_TRAIT` — **Ruby added as data, zero bespoke code**          | additive, shipped (`bd0f4f993`); 4/4 deterministic tests |
 | ✅ 3 | Generate `language-registry.json` from the trait set                                         | additive, guarded by the existing drift gate             |
 | 4    | Port one _existing_ language (Go is smallest) to a trait; keep the class until parity proven | reversible, parity-gated                                 |
-| 5    | Land the 6 stranded `declared` languages as traits, no core PR each                          | the payoff                                               |
+| 5    | Land Java, C++, C#, PHP, Swift and Kotlin as traits, no core PR each                          | the payoff                                               |
+
+**Step 5 is no longer "stranded `declared` languages" — that status is gone.** Those six ids,
+plus `javascript`, used to sit in `SupportedLanguage` and in the registry with no adapter behind
+them. That was not a roadmap in a harmless place: a scan requesting one selected zero files, and
+because completeness was `graphFileCount >= expectedGraphFileCount`, zero candidates satisfied it
+_vacuously_ at ratio 1 — an empty graph published as authoritative for an advertised language
+(`task_1785432913972_o1nf`). The registry now lists only ids `getSupportedLanguages()` can return,
+plus `plaintext`, which is the single deliberate exemption because
+`detectLanguage(...) || 'plaintext'` needs a value for files no adapter claims.
+
+`javascript` was the subtle one and is worth keeping straight: JavaScript files _are_ ingested —
+the typescript trait claims `.js/.jsx/.mjs/.cjs`, so `detectLanguage('a.js')` returns
+`'typescript'`. The files were covered; the **id** was not a runtime id. Callers who think in
+JavaScript are served by `LANGUAGE_ID_ALIASES` at the request boundary, which is where an alias
+belongs.
+
+Adding a language is therefore: ship its `@language_adapter` .holo, regenerate the registry, then
+add the id to `SupportedLanguage` — in that order. Doing it in the other order fails
+`src/engine/adapters/registry-truth.test.ts`, which compares the shipped registry against the live
+`getSupportedLanguages()` in the ordinary package suite. The `check:language-registry` script runs
+the same comparison (both import `registry-truth.ts`, so they cannot drift apart), but the test is
+what makes it unskippable — nothing in this repo's root scripts, CI or pre-commit invoked that
+script.
 
 The win landed at step 2 (`bd0f4f993`): Ruby is ingested via the `RUBY_TRAIT` config object +
 the generic `TreeSitterTraitAdapter` — **no `RubyAdapter` class exists**. Step 3 makes the

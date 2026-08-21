@@ -625,6 +625,30 @@ export function resolveUaalBehaviorOperand(
 // COMPOSITION TYPES (from .holo files)
 // ============================================================================
 
+export interface PlatformConstraint {
+  include: string[];
+  exclude: string[];
+}
+
+export type HoloValue =
+  | string
+  | number
+  | boolean
+  | null
+  | HoloValue[]
+  | HoloObject
+  | HoloBindValue;
+
+export interface HoloBindValue {
+  __bind: true;
+  source: string;
+  transform?: string;
+}
+
+export interface HoloObject {
+  [key: string]: HoloValue;
+}
+
 export interface HoloComposition extends ASTNode {
   type: 'Composition';
   name: string;
@@ -1325,12 +1349,6 @@ export class TraitCompositionCompiler {
 // RUNTIME & EXECUTION
 // ============================================================================
 
-export type HoloValue = any;
-export interface HoloTemplate {
-  type: string;
-  id: string;
-  [key: string]: any;
-}
 export interface HSPlusForDirective {
   type: 'for';
   variable: string;
@@ -1554,7 +1572,6 @@ export interface Breakpoint {
 
 export interface SafetyPassConfig { [key: string]: any; }
 export interface SafetyPassResult { [key: string]: any; }
-export interface EffectViolation { [key: string]: any; }
 export interface BudgetDiagnostic { [key: string]: any; }
 export interface CapabilityRequirement { [key: string]: any; }
 export interface LinearViolation { [key: string]: any; }
@@ -3745,7 +3762,6 @@ export class InventorySystem {
   constructor();
   [key: string]: any;
 }
-export interface InventoryItem { [key: string]: any; }
 
 export function createSubmission(data: any): any;
 export function verifySubmission(id: string): any;
@@ -3761,7 +3777,6 @@ export function hasCapability(platform: any, cap: any): any;
 export function resolvePlatforms(criteria: any): any;
 
 export interface HoloCamera { [key: string]: any; }
-export type HoloValue = any;
 
 export declare class ComplexityAnalyzer { [key: string]: any; }
 export declare function generateProvenance(code: string, ast: any, options: any): any;
@@ -4619,79 +4634,6 @@ export declare function buildHologramMcpResponse(input: {
 }): HologramMcpResponse;
 export declare function wrapHologramMcpEnvelope(response: HologramMcpResponse): HologramMcpEnvelope;
 
-// ============================================================================
-// ENGINE-PUBLIC TYPES (missing from generate-types.mjs — consumed by @holoscript/engine)
-// ============================================================================
-
-export declare class ThemeEngine {
-  registerTheme(theme: Theme): void;
-  setTheme(name: string): void;
-  getTheme(): Theme;
-  getTokens(): ThemeTokens;
-  setOverrides(overrides: Partial<ThemeTokens>): void;
-  resolve(path: string): unknown;
-  onThemeChange(callback: (theme: Theme) => void): void;
-  [key: string]: unknown;
-}
-
-export declare interface Theme {
-  name: string;
-  mode: 'light' | 'dark';
-  tokens: ThemeTokens;
-}
-
-export declare interface ThemeTokens {
-  colors: Record<string, string>;
-  spacing: Record<string, number>;
-  borderRadius: Record<string, number>;
-  fontSize: Record<string, number>;
-  opacity: Record<string, number>;
-  shadow: Record<string, string>;
-}
-
-export declare class StyleResolver {
-  static fromTokens(tokens: ThemeTokens): StyleResolver;
-  addRule(selector: string, properties: Record<string, any>): void;
-  addRules(rules: { selector: string; properties: Record<string, any> }[]): void;
-  resolve(type: string, classes?: string[], states?: string[], inline?: Record<string, any>): Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-export declare class ModuleResolver {
-  resolve(id: string): unknown;
-  [key: string]: unknown;
-}
-
-export declare class HotReloadWatcher {
-  watch(path: string): void;
-  [key: string]: unknown;
-}
-
-export declare type HotReloadConfig = unknown;
-
-export declare class ScriptTestRunner {
-  [key: string]: unknown;
-}
-
-export declare function hashBytes(input: Uint8Array | string, algo?: 'sha256' | 'fnv1a'): Promise<string>;
-
-export declare type HologramShape = 'orb' | 'cube' | 'cylinder' | 'pyramid' | 'sphere' | 'function' | 'gate' | 'stream' | 'server' | 'database' | 'fetch';
-
-export declare type ResourceCategory = 'particles' | 'physicsBodies' | 'audioSources' | 'meshInstances' | 'gaussians' | 'shaderPasses' | 'networkMsgs' | 'agentCount' | 'memoryMB' | 'gpuDrawCalls';
-
-export declare const PLATFORM_BUDGETS: Record<string, Partial<Record<ResourceCategory, number>>>;
-
-export declare type InstallManifest = unknown;
-
-export declare interface TraitInstanceDelegate {
-  onDetach?: (node: any, ctx: any) => void;
-  onEvent?: (event: any) => void;
-  onUpdate?: (node: any, ctx: any, dt: number) => void;
-  emit?: (event: any) => void;
-  dispose?: () => void;
-  cleanup?: () => void;
-  [key: string]: unknown;
-}
 `;
 
 const parserDTS = `import type {

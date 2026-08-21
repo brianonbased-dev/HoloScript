@@ -205,6 +205,43 @@ download_repo_archive_fallback() {
   return 1
 }
 
+select_source_checkout() {
+  local checkout_status='' checkout_status_rc=0 fallback_reason=''
+  if [ -d "$REPO_DIR/.git" ]; then
+    echo "$LOG repo exists at $REPO_DIR — pulling latest..."
+    if checkout_status=$(git -C "$REPO_DIR" status --porcelain 2>/dev/null); then
+      if [ -z "$checkout_status" ]; then
+        if fetch_and_checkout_ref "$FLEET_REPO_REF"; then
+          cd "$REPO_DIR" || return 2
+          return 0
+        fi
+        fallback_reason='could not switch refs'
+      else
+        fallback_reason='checkout is dirty'
+      fi
+    else
+      checkout_status_rc=$?
+      fallback_reason="git status failed (exit=$checkout_status_rc); checkout state is unknown"
+      echo "$LOG WARN: $fallback_reason; preserving $REPO_DIR"
+    fi
+
+    # Never rewrite or discard an existing checkout. A dirty, stale, or
+    # unknown repo gets a fresh run-scoped clone, preserving local state.
+    REPO_DIR="${REPO_DIR}.fleet-checkout-$$"
+    echo "$LOG $fallback_reason; cloning into $REPO_DIR"
+    clone_repo_with_retry \
+      || download_repo_archive_fallback \
+      || { echo "$LOG FATAL: fresh clone/archive fetch failed"; return 2; }
+    cd "$REPO_DIR" || return 2
+    return 0
+  fi
+
+  clone_repo_with_retry \
+    || download_repo_archive_fallback \
+    || { echo "$LOG FATAL: clone/archive fetch failed after retries"; return 2; }
+  cd "$REPO_DIR" || return 2
+}
+
 # --- 1. Ensure source-fetch tools are present ---
 if ! command -v git >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
   echo "$LOG installing source-fetch tools..."
@@ -218,26 +255,7 @@ fi
 # so every clone/fetch below authenticates without the token on argv or in .git/config.
 fsc_split_repo_url "$REPO_URL"
 fsc_export_git_auth
-if [ -d "$REPO_DIR/.git" ]; then
-  echo "$LOG repo exists at $REPO_DIR — pulling latest..."
-  if [ -z "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ] && fetch_and_checkout_ref "$FLEET_REPO_REF"; then
-    cd "$REPO_DIR" || exit 2
-  else
-    # Never rewrite or discard an existing checkout. A dirty or stale repo gets
-    # a fresh run-scoped clone, preserving local state and reproducibility.
-    REPO_DIR="${REPO_DIR}.fleet-checkout-$$"
-    echo "$LOG existing checkout was dirty or could not switch refs; cloning into $REPO_DIR"
-    clone_repo_with_retry \
-      || download_repo_archive_fallback \
-      || { echo "$LOG FATAL: fresh clone/archive fetch failed"; exit 2; }
-    cd "$REPO_DIR" || exit 2
-  fi
-else
-  clone_repo_with_retry \
-    || download_repo_archive_fallback \
-    || { echo "$LOG FATAL: clone/archive fetch failed after retries"; exit 2; }
-  cd "$REPO_DIR" || exit 2
-fi
+select_source_checkout || exit $?
 
 # --- 3. Locate and run the fleet onboarding script ---
 BOOTSTRAP="scripts/gpu-worker-bootstrap.sh"

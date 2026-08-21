@@ -3078,14 +3078,17 @@ function addCoverageNameOrPath(
  * Coverage policy language ids were compared straight against detectLanguage(),
  * but those are two DIFFERENT id spaces.
  *
- * language-registry.json advertises `javascript` as a supported language with
- * `.js/.jsx/.mjs/.cjs`. The runtime disagrees: LANGUAGE_TRAITS ships no
+ * language-registry.json USED TO advertise `javascript` as a supported language
+ * with `.js/.jsx/.mjs/.cjs`. The runtime disagreed: LANGUAGE_TRAITS ships no
  * javascript adapter, the typescript trait claims those extensions, and
  * getSupportedLanguages() returns go, python, ruby, rust, typescript,
  * holoscript. Verified live: detectLanguage() returns 'typescript' for every
- * one of .js/.jsx/.mjs/.cjs/.ts/.tsx.
+ * one of .js/.jsx/.mjs/.cjs/.ts/.tsx. (The registry no longer makes that claim
+ * — task_1785432913972_o1nf removed every id with no adapter behind it and
+ * added registry-truth.ts to keep them out. This aliasing layer stays: it is
+ * how a caller who thinks in JavaScript is still served.)
  *
- * So `languages: ['javascript']` — a value the registry says is valid —
+ * So `languages: ['javascript']` — a value the registry said was valid —
  * excluded EVERY file as languageFilter. Zero candidates then made
  * expectedGraphFileCount zero, and `complete = graphFileCount >= 0` is
  * vacuously true with ratio 1, so an EMPTY graph became authoritative for an

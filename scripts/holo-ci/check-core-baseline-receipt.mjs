@@ -62,6 +62,22 @@ export function evaluateReceipt(receipt, currentTreeSha) {
       ok: false,
       reason: 'receipt was captured against a dirty working tree — it did not test what HEAD contains',
     };
+  // Same failure in a different disguise: the tree was clean, but its
+  // dependencies belonged to another checkout. A HoloRepo candidate worktree
+  // has no node_modules of its own, so running the suite there means junctioning
+  // another checkout's — and pnpm's workspace links then resolve
+  // `@holoscript/core/*` back to THAT tree. Module identity in such a run is the
+  // other checkout's, so the receipt attests to code this HEAD does not contain.
+  // Produce it in the checkout that owns its node_modules instead.
+  if (receipt.nodeModulesBorrowedFrom)
+    return {
+      ok: false,
+      reason:
+        'receipt was captured with node_modules borrowed from '
+        + `${receipt.nodeModulesBorrowedFrom} — module identity in that run belonged to `
+        + 'that checkout, not this tree. Run the baseline in the checkout that owns its '
+        + 'dependencies.',
+    };
   if (receipt.result !== 'clean')
     return {
       ok: false,
@@ -86,12 +102,19 @@ if (process.argv.includes('--self-test')) {
     result: 'clean',
     coreTreeSha: SHA,
     capturedFromDirtyWorkingTree: false,
+    nodeModulesBorrowedFrom: null,
   };
   const cases = [
     ['accepts a clean receipt matching HEAD', good, SHA, true],
     ['rejects a missing receipt', null, SHA, false],
     ['rejects a receipt for a different core tree', good, 'b'.repeat(40), false],
     ['rejects a receipt from a dirty tree', { ...good, capturedFromDirtyWorkingTree: true }, SHA, false],
+    [
+      'rejects a receipt whose node_modules came from another checkout',
+      { ...good, nodeModulesBorrowedFrom: 'C:/holo-dev/HoloRepo/HoloScript/packages/core/node_modules' },
+      SHA,
+      false,
+    ],
     ['rejects a receipt recording new failures', { ...good, result: 'new-failures', totals: { new: 5 }, newFailures: ['x'] }, SHA, false],
     ['rejects an unknown schema', { ...good, schema: 'nope.v9' }, SHA, false],
   ];
@@ -104,7 +127,7 @@ if (process.argv.includes('--self-test')) {
   }
   console.log(
     failed === 0
-      ? '\n[core-baseline-receipt] self-test PASS — the gate accepts a valid proof and rejects all five invalid ones.'
+      ? `\n[core-baseline-receipt] self-test PASS — the gate accepts a valid proof and rejects all ${cases.length - 1} invalid ones.`
       : `\n[core-baseline-receipt] self-test FAIL — ${failed} case(s) wrong.`
   );
   process.exit(failed === 0 ? 0 : 1);
