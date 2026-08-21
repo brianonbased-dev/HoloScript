@@ -1,0 +1,72 @@
+// HoloShell native visual operating layer.
+//
+// Source-side contract for visual panels that are useful to Joseph and also
+// machine-readable for agents. The browser may prove the projection, but the
+// native HoloShell window consumes the same receipt-backed layer.
+
+composition "HoloShellNativeVisualOperatingLayer" {
+  state NativeVisualOperatingLayerState {
+    schemaVersion: "holoscript.holoshell.native-visual-operating-layer.v0.1.0"
+    surface: "native_holoshell_app_window"
+    upstreamCapabilityEnvelopeSource: "HoloScript:experiments/holoshell-human-os-frontier/native-holoshell-capability-envelope.hsplus"
+    upstreamTerminalEventStreamSource: "HoloScript:experiments/holoshell-human-os-frontier/native-terminal-event-stream.hsplus"
+    requiredPanels: ["service_dock", "terminal_run_timeline", "agent_utility_capsules", "hololand_node_city", "consent_command_palette"]
+    requiredAgentFields: ["api", "capabilityLane", "permissionEnvelope", "receipt", "nextSafeAction"]
+    browserMayProveProjection: true
+    browserMayOwnExecution: false
+    nativeWindowOwnsDailyOperation: true
+    receiptRequired: true
+  }
+
+  template "VisualOperatingLayerPanel" {
+    panelId: ""
+    label: ""
+    visualForm: "dense_operational_panel"
+    api: ""
+    sourceReceipt: ""
+    capabilityLane: "receipt_read"
+    permissionEnvelope: "read_only"
+    agentReadable: true
+    browserMayRender: true
+    browserMayOwnExecution: false
+    receiptRequired: true
+  }
+
+  template "AgentUtilityCapsule" {
+    capsuleId: ""
+    label: ""
+    status: "unknown"
+    api: ""
+    capabilityLane: ""
+    allowedActions: []
+    blockedActions: []
+    receipt: ""
+    nextSafeAction: ""
+    agentReadable: true
+    rawCommandLineIncluded: false
+    destructiveActionsTaken: false
+    desktopAutomationExecuted: false
+  }
+
+  policy "VisualPanelsAreReceiptedOperatingControls" {
+    appliesTo: ["native_window", "browser_bootstrap_projection", "agent_utility_capsules"]
+    panelsRequired: ["service_dock", "terminal_run_timeline", "agent_utility_capsules", "hololand_node_city", "consent_command_palette"]
+    sourceRequiredBeforeProjection: true
+    everyPanelMustCarryApiAndReceipt: true
+    everyActionMustCarryPermissionEnvelope: true
+    browserMayProveProjection: true
+    browserMayOwnExecution: false
+    nativeWindowOwnsDailyOperation: true
+    receiptRequired: true
+  }
+
+  policy "CommandPaletteUsesConsentBoundaries" {
+    appliesTo: ["consent_command_palette", "guarded_service_ensure", "read_only_adapter_execution", "open_url"]
+    readOnlyCommandsMayRunAfterExplicitClick: true
+    guardedCommandsRequireConfirmationReceipt: true
+    destructiveCommandsRequireBreakGlassLane: true
+    rawShellCommandVisibleByDefault: false
+    desktopAutomationExecutedByProjection: false
+    receiptRequired: true
+  }
+}
