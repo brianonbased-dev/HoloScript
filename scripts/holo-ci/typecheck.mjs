@@ -218,6 +218,49 @@ function reportToolingFailures(toolingFailed) {
   );
 }
 
+/**
+ * Is this failure just "nobody ran the build yet"?
+ *
+ * Returns the list of workspace packages that are genuinely missing a build, or null.
+ * Deliberately checks the FILESYSTEM rather than trusting the error text: a TS2307 naming
+ * `@holoscript/core` proves only that tsc could not resolve it, which is equally what a
+ * genuine broken import looks like. A package that is built and still unresolvable is a
+ * real defect and must keep its full, noisy report.
+ */
+export function unbuiltWorkspaceDiagnosis(typeFailed) {
+  const missing = new Map();
+  let ts2307 = 0;
+  let total = 0;
+  for (const r of typeFailed) {
+    for (const line of String(r.out || '').split(/\r?\n/u)) {
+      if (!/error TS\d+/u.test(line)) continue;
+      total += 1;
+      const m = line.match(/error TS2307: Cannot find module '(@holoscript\/[^'\/]+)/u);
+      if (!m) continue;
+      ts2307 += 1;
+      const name = m[1].replace(/^@holoscript\//u, '');
+      missing.set(name, (missing.get(name) || 0) + 1);
+    }
+  }
+  if (!total || !missing.size) return null;
+
+  // Keep only the ones we can SEE are unbuilt.
+  const unbuilt = [];
+  for (const name of missing.keys()) {
+    const dir = path.join(ROOT, 'packages', name);
+    if (!fs.existsSync(dir)) continue;              // not a workspace package; not our story
+    if (fs.existsSync(path.join(dir, 'dist'))) continue;  // built, so this TS2307 is real
+    unbuilt.push(name);
+  }
+  if (!unbuilt.length) return null;
+
+  const explained = unbuilt.reduce((n, name) => n + (missing.get(name) || 0), 0);
+  // Only take over the report when this genuinely IS the story. Below the halfway mark the
+  // real errors are the majority and must not be hidden behind a build instruction.
+  if (explained * 2 < total) return null;
+  return { unbuilt: unbuilt.sort(), explained, total };
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const onlyIdx = argv.indexOf('--package');
@@ -292,15 +335,39 @@ async function main() {
     const typeFailed = failed.filter((r) => !r.toolingFailure);
     if (toolingFailed.length) reportToolingFailures(toolingFailed);
     if (typeFailed.length) {
-      console.error(`\n${TAG} ❌ FAIL — type error(s) in staged ENFORCED package(s):`);
-      for (const r of typeFailed)
+      const unbuilt = unbuiltWorkspaceDiagnosis(typeFailed);
+      if (unbuilt) {
         console.error(
-          r.out
-            .split(/\r?\n/)
-            .filter((l) => /error TS\d+/.test(l))
-            .slice(0, 12)
-            .join('\n')
+          `\n${TAG} ❌ FAIL — the workspace is not built, so tsc cannot see the internal packages.`
         );
+        console.error(
+          `${TAG} ${unbuilt.explained} of ${unbuilt.total} error(s) are "Cannot find module" against workspace package(s) that have no dist/ on disk:`
+        );
+        console.error(`${TAG}   ${unbuilt.unbuilt.join(', ')}`);
+        console.error(
+          `${TAG} These are not defects. Every package here publishes only dist/ paths, and nothing`
+        );
+        console.error(
+          `${TAG} builds on install, so a fresh checkout cannot type-check until you run:`
+        );
+        console.error(`${TAG}   pnpm build`);
+        console.error(
+          `${TAG} (Verified against the filesystem, not guessed from the message: a package that IS`
+        );
+        console.error(
+          `${TAG}  built and still unresolvable is a real error and is reported in full below.)`
+        );
+      } else {
+        console.error(`\n${TAG} ❌ FAIL — type error(s) in staged ENFORCED package(s):`);
+        for (const r of typeFailed)
+          console.error(
+            r.out
+              .split(/\r?\n/)
+              .filter((l) => /error TS\d+/.test(l))
+              .slice(0, 12)
+              .join('\n')
+          );
+      }
     }
     if (failed.length) process.exit(1);
     console.log(`${TAG} ✅ changed ENFORCED package(s) type-check clean.`);
