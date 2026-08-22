@@ -181,21 +181,36 @@ describe('claim TTL + cap primitives (trust-audit 2026-07-13)', () => {
       claimLeaseId: 'lease',
       claimLeaseExpiresAt: 'x',
       claimSessionId: 's',
+      claimIdentity: { schema: 'holomesh.identity-envelope.v1', signer: { agentId: 'agent_a' } },
     });
     const r = reopenTask([t], 'r1');
     expect(r.success).toBe(true);
     expect(t.status).toBe('open');
+    // task_1785344671802_3fii: assigning undefined left the keys on the object
+    // (`'claimedBy' in task` stayed true). A durable GET that cloned via
+    // Object.keys, or a jsonb merge that treated present keys as live custody,
+    // then still showed the old claim after PATCH said status=open.
     for (const f of [
       'claimedBy',
       'claimedByName',
       'claimedByTag',
+      'claimIdentity',
       'claimLeaseId',
       'claimLeaseExpiresAt',
       'claimSessionId',
       'claimedAt',
     ] as const) {
       expect(t[f]).toBeUndefined();
+      expect(f in t).toBe(false);
     }
+  });
+
+  it('reopenTask is idempotent: a second reopen still succeeds with no custody keys', () => {
+    const t = claimedTask({ id: 'r2', claimSessionId: 's' });
+    expect(reopenTask([t], 'r2').success).toBe(true);
+    expect(reopenTask([t], 'r2').success).toBe(true);
+    expect(t.status).toBe('open');
+    expect('claimedBy' in t).toBe(false);
   });
 });
 
