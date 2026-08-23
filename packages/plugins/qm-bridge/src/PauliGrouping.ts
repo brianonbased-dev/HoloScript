@@ -7,11 +7,22 @@
  * measurement bases from O(n^4) terms to O(n^2) groups, making larger molecules
  * tractable on NISQ hardware.
  *
- * Algorithm: greedy graph coloring on the commutativity graph.
- * Two Pauli terms commute iff they share no qubit on which they differ (X vs Z).
- * Terms that commute can be measured in the same basis rotation.
+ * Algorithm: greedy graph coloring on the commutativity graph, under GENERAL
+ * (operator-level) commutativity: two Pauli terms commute iff they differ on an
+ * even number of qubits where both are non-identity.
  *
- * Paper 37 deliverable: N2 383-term Hamiltonian → ~50 commuting groups.
+ * MEASURED (2026-08-23, ai-ecosystem research/paper-37-quantum-receipts/
+ * n2_pauli_grouping_receipt.json): N2 383-term Hamiltonian → 22 groups
+ * (17.4× reduction), essentially matching IBM's own general-commuting count
+ * of 21. The docstring previously said "~50" — that was pessimistic.
+ *
+ * IMPORTANT measurement caveat: because grouping is by GENERAL commutativity,
+ * most groups are NOT qubit-wise commuting, and computeMeasurementBasis's
+ * single-qubit rotations cannot measure them (for N2: only 1 of the 22 groups
+ * is single-qubit measurable). Use CliffordDiagonalization.ts —
+ * diagonalizeCommutingGroup / measurementPlanForGroup — to build the entangled
+ * Clifford measurement circuit any general-commuting group requires.
+ *
  * Per F.072, cost estimate required before paid hardware submission (founder-gated).
  */
 
