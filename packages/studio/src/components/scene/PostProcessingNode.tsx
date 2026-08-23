@@ -1,6 +1,7 @@
 'use client';
 
 import type { R3FNode } from '@holoscript/core';
+import type { ComponentProps } from 'react';
 import {
   EffectComposer,
   Bloom,
@@ -52,14 +53,16 @@ function EffectNode({ node }: { node: R3FNode }) {
         />
       );
 
-    case 'ChromaticAberration':
-      return (
-        <ChromaticAberration
-          offset={p.offset ? [p.offset[0], p.offset[1]] : [0.002, 0.002]}
-          radialModulation={p.radialModulation ?? false}
-          modulationOffset={p.modulationOffset ?? 0.15}
-        />
-      );
+    case 'ChromaticAberration': {
+      // postprocessing's JSX type Omits constructor `offset` and re-adds Vector2,
+      // which also drops radialModulation/modulationOffset from the visible props.
+      const chromatic = {
+        offset: (p.offset ? [p.offset[0], p.offset[1]] : [0.002, 0.002]) as [number, number],
+        radialModulation: p.radialModulation ?? false,
+        modulationOffset: p.modulationOffset ?? 0.15,
+      };
+      return <ChromaticAberration {...(chromatic as ComponentProps<typeof ChromaticAberration>)} />;
+    }
 
     case 'Noise':
       return <Noise opacity={p.opacity ?? 0.02} />;

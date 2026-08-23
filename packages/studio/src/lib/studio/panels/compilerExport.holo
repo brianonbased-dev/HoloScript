@@ -7,6 +7,7 @@ composition "compilerExport" {
     status: "pending"
     targetCount: 0
     totalKb: 0
+    maxTargets: 64
   }
 
   object "Root" {
@@ -64,6 +65,16 @@ composition "compilerExport" {
         @bind { state: "totalKb", precision: 2, suffix: " KB" }
         @theme { className: "text-[10px] text-studio-muted" }
         @projects { node: "totalKb", entity: "compile-job-studio" }
+      }
+    }
+
+    object "FanOutBound" {
+      @live_proof {
+        claim: "targetCount <= maxTargets"
+        label: "Export fan-out bound"
+        falsifiedBy: [
+          { targetCount: 65, because: "a fan-out past the declared max must never read as in-bound" }
+        ]
       }
     }
   }
