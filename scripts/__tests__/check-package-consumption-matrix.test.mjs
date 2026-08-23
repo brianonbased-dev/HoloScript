@@ -236,8 +236,9 @@ console.log('check-package-consumption-matrix published bar');
     'check:registry-cold-start:cli is wired'
   );
   assert(
-    releasePublish.includes('--probe cli-bin-help'),
-    'release:publish post-publish lane includes cli-bin-help'
+    !releasePublish.includes('cli-bin-help') &&
+      !releasePublish.includes('@holoscript/cli@latest --probe'),
+    'release:publish stays on the previous core+mcp post-publish chain'
   );
 }
 
