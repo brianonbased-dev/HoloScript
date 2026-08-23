@@ -1,0 +1,50 @@
+// Compiler-visible sovereign browser-session contract. TypeScript is the
+// current bootstrap executor; tests bind its public operations to this source.
+
+composition "HoloBrowserSession" {
+  object "browser_session_contract" {
+    @llm_agent {
+      contract_kind: "sovereign_browser_session"
+      schema: "holoscript.browser-session.v1"
+      operations: ["open", "navigate", "observe", "act", "screenshot", "takeover", "resume", "status", "close"]
+      typed_actions: ["click", "fill", "press", "scroll", "wait"]
+      observation: {
+        transport: "cdp"
+        backing: "chromium_devtools_protocol"
+        domains: ["Network", "Runtime", "Log"]
+        reads: ["dom_title", "dom_url", "dom_body_text", "dom_element_count", "console_entries", "network_entries"]
+        mutates_page: false
+        permission_envelope: "read_only"
+      }
+      control_modes: ["agent", "human", "closed"]
+      lease: {
+        bearer_storage: "sha256_only"
+        minimum_ttl_ms: 10000
+        maximum_ttl_ms: 3600000
+      }
+      navigation: {
+        default_scope: "opening_origin_only"
+        resume_requires_leased_origin: true
+      }
+      handback: {
+        monotonic_control_epoch: true
+        stale_resume: "reject"
+        agent_actions_during_takeover: "reject"
+      }
+      receipts: {
+        schema: "holoscript.browser-operation.v1"
+        causal_previous_digest: true
+      }
+      teardown: {
+        require_closed: true
+        require_zero_pool_residue: true
+      }
+    }
+
+    state {
+      control_mode: "agent"
+      control_epoch: 0
+      receipt_head: ""
+    }
+  }
+}

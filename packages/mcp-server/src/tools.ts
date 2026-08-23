@@ -163,6 +163,32 @@ export const coreTools: Tool[] = [
       required: ['code'],
     },
   },
+  {
+    name: 'compile_fanout',
+    description:
+      'Run ONE compile job across MANY real export targets in parallel and write per-target status, real artifact size, and the compile receipt hash into the compile-job-{jobId} StateAuthority entity — the render-independent twin @verified_view panels are checked against (CG-757). Results are genuine compiles, never estimates; degraded fallbacks are reported as degraded, not ok.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        jobId: {
+          type: 'string',
+          description:
+            'Job identifier; results land in the compile-job-{jobId} StateAuthority entity. Alphanumeric, dash, underscore.',
+        },
+        code: {
+          type: 'string',
+          description: 'The HoloScript source (.hs/.hsplus/.holo) to compile on every target',
+        },
+        targets: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Export target names to fan out across (see list_export_targets). Each compiles in parallel.',
+        },
+      },
+      required: ['jobId', 'code', 'targets'],
+    },
+  },
 
   // === VALIDATION ===
   {
@@ -614,6 +640,82 @@ export const textTo3DTools: Tool[] = [
  * Browser control tools (AI-controlled browser preview)
  */
 export const browserControlTools: Tool[] = [
+  {
+    name: 'browser_session',
+    description:
+      'Operate one leased sovereign browser session through open, navigate, read-only ' +
+      'observation (DOM/console/network), typed actions, screenshots, local human takeover, ' +
+      'guarded resume, status, and residue-checked close.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        operation: {
+          type: 'string',
+          enum: [
+            'open',
+            'navigate',
+            'observe',
+            'act',
+            'screenshot',
+            'takeover',
+            'resume',
+            'status',
+            'close',
+          ],
+          description: 'Lifecycle operation to perform',
+        },
+        ownerId: { type: 'string', description: 'Lease owner identity; required for open' },
+        url: { type: 'string', description: 'URL for open or navigate' },
+        sessionId: { type: 'string', description: 'Session returned by open' },
+        leaseToken: { type: 'string', description: 'Bearer lease returned once by open' },
+        leaseTtlMs: { type: 'number', description: 'Lease lifetime, 10 seconds to 1 hour' },
+        allowedOrigins: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Origins leased to the agent; defaults to the opening URL origin only',
+        },
+        width: { type: 'number', description: 'Viewport width' },
+        height: { type: 'number', description: 'Viewport height' },
+        headless: { type: 'boolean', description: 'Disable a visible local window' },
+        includeDom: {
+          type: 'boolean',
+          description: 'observe: include page title/URL/body text/element count (default: true)',
+        },
+        includeConsole: {
+          type: 'boolean',
+          description: 'observe: include recent console/log entries (default: true)',
+        },
+        includeNetwork: {
+          type: 'boolean',
+          description: 'observe: include recent network requests (default: true)',
+        },
+        consoleLimit: {
+          type: 'number',
+          description: 'observe: max console entries to return, 1-200 (default: 50)',
+        },
+        networkLimit: {
+          type: 'number',
+          description: 'observe: max network entries to return, 1-200 (default: 50)',
+        },
+        domTextLimit: {
+          type: 'number',
+          description: 'observe: max body-text characters to return, 0-20000 (default: 4000)',
+        },
+        action: {
+          type: 'object',
+          description: 'Typed click, fill, press, scroll, or wait action',
+        },
+        type: { type: 'string', enum: ['png', 'jpeg'], description: 'Screenshot format' },
+        quality: { type: 'number', description: 'JPEG quality' },
+        fullPage: { type: 'boolean', description: 'Capture the full page' },
+        expectedControlEpoch: {
+          type: 'number',
+          description: 'Takeover epoch required for safe agent resume',
+        },
+      },
+      required: ['operation'],
+    },
+  },
   {
     name: 'browser_launch',
     description:
