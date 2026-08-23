@@ -166,9 +166,10 @@ const PROBES = new Set([
 ]);
 
 function inferProbe(packageSpec) {
-  return String(packageSpec).startsWith('@holoscript/mcp-server')
-    ? 'mcp-server-sizing'
-    : 'core-holo-webgpu';
+  const spec = String(packageSpec);
+  if (spec.startsWith('@holoscript/mcp-server')) return 'mcp-server-sizing';
+  if (spec.startsWith('@holoscript/cli')) return 'cli-bin-help';
+  return 'core-holo-webgpu';
 }
 
 const PROBE = probeIdx >= 0 ? args[probeIdx + 1] : inferProbe(PACKAGE_SPEC);

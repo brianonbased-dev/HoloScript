@@ -2,6 +2,13 @@
 /**
  * Verifies that laptop, Jetson, and Vast fleet lanes can consume the npm/PyPI
  * package artifacts they are expected to install.
+ *
+ * The consumption bar is fail-closed on a live published install. A raw
+ * `node scripts/holo-ci/check-package-consumption-matrix.mjs` invocation
+ * requires the v1 registry cold-start probes (core-holo-webgpu, cli-bin-help,
+ * mcp-server-sizing). Metadata-only and local pack/wheel checks are not a pass
+ * unless `--skip-registry-cold-start` is explicit. `--self-test` skips the
+ * live installs.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -20,6 +27,11 @@ const INSPECT_PYTHON_ARTIFACTS = args.includes('--inspect-python-artifacts');
 const RESOLVE_PYPI_EXTRAS = args.includes('--resolve-pypi-extras');
 const AUDIT_PYPI = args.includes('--audit-pypi') || RESOLVE_PYPI_EXTRAS;
 const SELF_TEST = args.includes('--self-test');
+const EXPLICIT_REQUIRE_REGISTRY_COLD_START = args.includes('--require-registry-cold-start');
+const EXPLICIT_SKIP_REGISTRY_COLD_START = args.includes('--skip-registry-cold-start');
+const REQUIRE_REGISTRY_COLD_START = SELF_TEST
+  ? false
+  : EXPLICIT_REQUIRE_REGISTRY_COLD_START || !EXPLICIT_SKIP_REGISTRY_COLD_START;
 const PYPI_LIFECYCLE_FLAGS = {
   'build-python': () => BUILD_PYTHON,
   'inspect-python-artifacts': () => INSPECT_PYTHON_ARTIFACTS,
@@ -31,6 +43,8 @@ const PYPI_LIFECYCLE_FLAGS = {
 const rootIdx = args.indexOf('--root');
 const manifestIdx = args.indexOf('--manifest');
 const outIdx = args.indexOf('--out-dir');
+const registryIdx = args.indexOf('--registry');
+const coldStartScriptIdx = args.indexOf('--registry-cold-start-script');
 const ROOT = rootIdx >= 0 ? resolve(args[rootIdx + 1]) : resolve(__dirname, '..', '..');
 const MANIFEST =
   manifestIdx >= 0
@@ -55,6 +69,21 @@ const PYTHON_SMOKE_CONSOLE_TIMEOUT_MS = envMs(
   120_000
 );
 const PYTHON_TWINE_TIMEOUT_MS = envMs('HOLOSCRIPT_PYTHON_TWINE_TIMEOUT_MS', 120_000);
+const REGISTRY_COLD_START_TIMEOUT_MS = envMs(
+  'HOLOSCRIPT_REGISTRY_COLD_START_TIMEOUT_MS',
+  300_000
+);
+const REGISTRY_URL = registryIdx >= 0 ? args[registryIdx + 1] : null;
+const DISABLE_PUBLIC_FALLBACK = args.includes('--disable-public-fallback');
+const REGISTRY_COLD_START_SCRIPT =
+  coldStartScriptIdx >= 0
+    ? resolve(args[coldStartScriptIdx + 1])
+    : join(__dirname, 'check-registry-cold-start.mjs');
+const V1_PUBLISHED_CONSUMPTION_PROBES = [
+  { packageSpec: '@holoscript/core@latest', probe: 'core-holo-webgpu' },
+  { packageSpec: '@holoscript/cli@latest', probe: 'cli-bin-help' },
+  { packageSpec: '@holoscript/mcp-server@latest', probe: 'mcp-server-sizing' },
+];
 
 function readJson(file) {
   return JSON.parse(readFileSync(file, 'utf8'));
@@ -986,6 +1015,93 @@ async function checkPyPackage(pkg, consumers, errors, warnings, rows) {
   row.durationMs = Date.now() - rowStartedAt;
 }
 
+function publishedConsumptionProbeKey(spec) {
+  return `${spec.packageSpec}::${spec.probe}`;
+}
+
+function assertRequiredRegistryColdStartProbes(rows, errors, required = REQUIRE_REGISTRY_COLD_START) {
+  if (!required) return;
+  const executed = new Set(
+    rows
+      .filter((row) => row.type === 'registry-cold-start')
+      .map((row) => publishedConsumptionProbeKey({ packageSpec: row.name, probe: row.probe }))
+  );
+  if (executed.size === 0) {
+    errors.push(
+      'registry cold-start probes were required but not executed; metadata-only is not a pass'
+    );
+    return;
+  }
+  for (const spec of V1_PUBLISHED_CONSUMPTION_PROBES) {
+    if (!executed.has(publishedConsumptionProbeKey(spec))) {
+      errors.push(
+        `required registry cold-start probe missing: ${spec.packageSpec} -> ${spec.probe}`
+      );
+    }
+  }
+}
+
+function runRegistryColdStartProbes(errors, rows) {
+  if (!existsSync(REGISTRY_COLD_START_SCRIPT)) {
+    errors.push(`registry cold-start script not found: ${REGISTRY_COLD_START_SCRIPT}`);
+    return;
+  }
+  for (const spec of V1_PUBLISHED_CONSUMPTION_PROBES) {
+    const row = {
+      type: 'registry-cold-start',
+      name: spec.packageSpec,
+      probe: spec.probe,
+      requiredBy: ['published-install'],
+      ok: false,
+      version: null,
+      finalDisposition: null,
+      durationMs: null,
+      steps: [],
+    };
+    rows.push(row);
+    const cmdArgs = [
+      REGISTRY_COLD_START_SCRIPT,
+      '--package',
+      spec.packageSpec,
+      '--probe',
+      spec.probe,
+      '--json',
+    ];
+    if (REGISTRY_URL) cmdArgs.push('--registry', REGISTRY_URL);
+    if (DISABLE_PUBLIC_FALLBACK) cmdArgs.push('--disable-public-fallback');
+    try {
+      const stdout = runStep(
+        row,
+        `registry-cold-start-${spec.probe}`,
+        process.execPath,
+        cmdArgs,
+        {
+          cwd: ROOT,
+          timeout: REGISTRY_COLD_START_TIMEOUT_MS,
+        }
+      );
+      const receipt = JSON.parse(stdout);
+      row.ok = receipt.ok === true;
+      row.version = receipt.package?.installed?.version || null;
+      row.finalDisposition = receipt.finalDisposition || null;
+      if (!row.ok) {
+        const reason = receipt.failure?.reason || 'probe-incomplete';
+        const detail = receipt.failure?.detail
+          ? `: ${truncateForError(receipt.failure.detail, 240)}`
+          : '';
+        errors.push(
+          `${spec.packageSpec}: registry cold-start probe ${spec.probe} failed (${reason})${detail}`
+        );
+      }
+    } catch (error) {
+      row.ok = false;
+      errors.push(
+        `${spec.packageSpec}: registry cold-start probe ${spec.probe} failed${stepFailureSuffix(error)}: ${formatRunError(error)}`
+      );
+    }
+  }
+}
+
 function runSelfTest() {
   const errors = [];
   if (!supportsNpmSelector(undefined, 'linux')) errors.push('empty selector should allow linux');
@@ -1109,6 +1225,69 @@ function runSelfTest() {
     const idx = errors.findIndex((error) => error.includes("unknown required flag 'missing-flag'"));
     errors.splice(idx, 1);
   }
+  if (V1_PUBLISHED_CONSUMPTION_PROBES.length !== 3) {
+    errors.push('published consumption bar must require exactly three registry cold-start probes');
+  }
+  if (
+    V1_PUBLISHED_CONSUMPTION_PROBES[0]?.packageSpec !== '@holoscript/core@latest' ||
+    V1_PUBLISHED_CONSUMPTION_PROBES[0]?.probe !== 'core-holo-webgpu'
+  ) {
+    errors.push('published consumption bar missing core-holo-webgpu');
+  }
+  if (
+    V1_PUBLISHED_CONSUMPTION_PROBES[1]?.packageSpec !== '@holoscript/cli@latest' ||
+    V1_PUBLISHED_CONSUMPTION_PROBES[1]?.probe !== 'cli-bin-help'
+  ) {
+    errors.push('published consumption bar missing cli-bin-help');
+  }
+  if (
+    V1_PUBLISHED_CONSUMPTION_PROBES[2]?.packageSpec !== '@holoscript/mcp-server@latest' ||
+    V1_PUBLISHED_CONSUMPTION_PROBES[2]?.probe !== 'mcp-server-sizing'
+  ) {
+    errors.push('published consumption bar missing mcp-server-sizing');
+  }
+  if (REQUIRE_REGISTRY_COLD_START) {
+    errors.push('self-test must not require live registry cold-start');
+  }
+  const missingAllErrors = [];
+  assertRequiredRegistryColdStartProbes([], missingAllErrors, true);
+  if (
+    !missingAllErrors.some((error) =>
+      error.includes('registry cold-start probes were required but not executed')
+    )
+  ) {
+    errors.push('metadata-only consumption bar should fail closed');
+  }
+  const missingCliErrors = [];
+  assertRequiredRegistryColdStartProbes(
+    V1_PUBLISHED_CONSUMPTION_PROBES.filter((spec) => spec.probe !== 'cli-bin-help').map((spec) => ({
+      type: 'registry-cold-start',
+      name: spec.packageSpec,
+      probe: spec.probe,
+    })),
+    missingCliErrors,
+    true
+  );
+  if (
+    !missingCliErrors.some((error) =>
+      error.includes('@holoscript/cli@latest -> cli-bin-help')
+    )
+  ) {
+    errors.push('consumption bar should fail when cli-bin-help is omitted');
+  }
+  const completeProbeErrors = [];
+  assertRequiredRegistryColdStartProbes(
+    V1_PUBLISHED_CONSUMPTION_PROBES.map((spec) => ({
+      type: 'registry-cold-start',
+      name: spec.packageSpec,
+      probe: spec.probe,
+    })),
+    completeProbeErrors,
+    true
+  );
+  if (completeProbeErrors.length) {
+    errors.push('complete registry cold-start set should satisfy the consumption bar');
+  }
   if (errors.length) {
     console.error(errors.join('\n'));
     process.exit(1);
@@ -1135,6 +1314,11 @@ async function main() {
     progress(`checking pypi ${pkg.name}${BUILD_PYTHON ? ' with fresh artifacts' : ''}`);
     await checkPyPackage(pkg, consumers, errors, warnings, rows);
   }
+  if (REQUIRE_REGISTRY_COLD_START) {
+    progress('checking published registry cold-start probes');
+    runRegistryColdStartProbes(errors, rows);
+  }
+  assertRequiredRegistryColdStartProbes(rows, errors);
 
   const output = {
     ok: errors.length === 0,
@@ -1145,6 +1329,13 @@ async function main() {
     smokePyPiInstall: SMOKE_PYPI_INSTALL,
     resolvePyPiExtras: RESOLVE_PYPI_EXTRAS,
     auditPyPi: AUDIT_PYPI,
+    requireRegistryColdStart: REQUIRE_REGISTRY_COLD_START,
+    registryColdStart: {
+      required: REQUIRE_REGISTRY_COLD_START,
+      skipped: !REQUIRE_REGISTRY_COLD_START,
+      script: REGISTRY_COLD_START_SCRIPT,
+      probes: V1_PUBLISHED_CONSUMPTION_PROBES,
+    },
     consumers: [...consumers.keys()],
     rows,
     warnings,
@@ -1155,7 +1346,11 @@ async function main() {
   } else {
     for (const row of rows) {
       const detail =
-        (row.type === 'npm' || row.type === 'npm-candidate') && row.packEntries !== null
+        row.type === 'registry-cold-start'
+          ? ` probe=${row.probe} ok=${row.ok === true}${
+              row.version ? ` version=${row.version}` : ''
+            }${row.durationMs !== null ? ` durationMs=${row.durationMs}` : ''}`
+          : (row.type === 'npm' || row.type === 'npm-candidate') && row.packEntries !== null
           ? ` packEntries=${row.packEntries}${row.durationMs !== null ? ` durationMs=${row.durationMs}` : ''}`
           : row.type === 'pypi'
             ? `${row.built.length ? ` built=${row.built.join(',')}` : ''}${
@@ -1181,7 +1376,11 @@ async function main() {
       console.error(`[package-consumption] FAIL: ${errors.length} issue(s)`);
       for (const error of errors) console.error(`  - ${error}`);
     } else {
-      console.log('[package-consumption] PASS: package consumption matrix is valid.');
+      console.log(
+        REQUIRE_REGISTRY_COLD_START
+          ? '[package-consumption] PASS: package consumption matrix is valid, including published registry cold-start.'
+          : '[package-consumption] PASS: package consumption matrix is valid.'
+      );
     }
   }
   process.exit(errors.length === 0 ? 0 : 1);
