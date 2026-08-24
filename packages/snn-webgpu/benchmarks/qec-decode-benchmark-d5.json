@@ -2,14 +2,14 @@
   "schema": "qec-gpu-decode-benchmark/v2",
   "source": "@holoscript/snn-webgpu QECDecoderD (distance-parameterized; generated WGSL)",
   "code": "[[25,1,5]] rotated surface, X-graph min-sum BP (pure, GPU) + host OSD-0 fallback",
-  "real_gpu": false,
-  "canonical": false,
-  "canonical_note": "NON-CANONICAL performance: software adapter. Correctness fields (validation) are real — the WGSL executed on Dawn — but timing reflects a software rasterizer, not GPU silicon. Re-run on the RTX 3060 seat for canonical numbers.",
+  "real_gpu": true,
+  "canonical": true,
+  "canonical_note": "real-GPU run",
   "adapter": {
-    "vendor": "mesa",
-    "architecture": "software",
-    "device": "llvmpipe-llvm-20-1-2-256-bits-",
-    "description": "llvmpipe: Mesa 25.2.8-0ubuntu0.24.04.2 (LLVM 20.1.2)"
+    "vendor": "nvidia",
+    "architecture": "ampere",
+    "device": "nvidia-geforce-rtx-3060-laptop-gpu",
+    "description": "D3D12 driver version 32.0.16.1088"
   },
   "code_gates": {
     "stabilizerCounts": {
@@ -39,37 +39,53 @@
     },
     "note": "Syndrome-validity is the hard gate (must be 4096/4096). ML-coset agreement is MEASURED: BP+OSD-0 is not exact at d5 — 4078/4096 (99.56%) matches the CPU-pinned reference exactly, so GPU and CPU disagree with exact-ML on the SAME 18 syndromes, i.e. the port is faithful."
   },
+  "device_conditions": {
+    "utilization_pct": 97,
+    "clock_sm_mhz": 1897,
+    "clock_sm_max_mhz": 2100,
+    "pstate": "P0",
+    "power_draw_w": 49.52,
+    "memory_used_mib": 1671
+  },
+  "device_conditions_note": "Sampled while the throughput passes were running. A vendor check alone cannot tell a quiet GPU from a contended, downclocked one — these fields are what makes canonical:true checkable.",
   "throughput": {
-    "batchSize": 16384,
-    "reps": 5,
-    "totalDecodes": 81920,
-    "wallSeconds": 5.719757187,
-    "decodesPerSecond": 14322.28630022787,
-    "nsPerDecodeAmortized": 69821.2547241211,
-    "gpuFastPathFraction": 0.2177734375
+    "batchSize": 262144,
+    "reps": 30,
+    "totalDecodes": 7864320,
+    "wallSeconds": 16.2574487,
+    "decodesPerSecond": 483736.41800265986,
+    "nsPerDecodeAmortized": 2067.241503397624,
+    "gpuFastPathFraction": 0.22051620483398438,
+    "passes": 3,
+    "decodes_per_second_all_passes": [
+      477109.1420104836,
+      492679.484215139,
+      483736.41800265986
+    ],
+    "note": "Headline is the MEDIAN of the passes; the full spread is listed so a downclock or contention artifact is visible rather than averaged away. Batch shape is 2^18 x 30, NOT the 2^20 x 30 of the d3 receipt: one 2^20 d5 dispatch runs past the Windows GPU watchdog (~2s) and hangs the device (DXGI_ERROR_DEVICE_HUNG) — measured on this seat, where 2^18 takes ~0.5s. Compare decodes/sec across distances, never batch size."
   },
   "latency": {
     "d5": {
       "reps": 200,
       "warmup": 20,
-      "p50Us": 1913,
-      "p95Us": 5788.264,
-      "meanUs": 2383.457895000001,
-      "minUs": 295.29,
-      "maxUs": 32759.688,
+      "p50Us": 16161.1,
+      "p95Us": 22044.7,
+      "meanUs": 17225.186999999998,
+      "minUs": 1642.8,
+      "maxUs": 127480.8,
       "note": "full submit→readback round trip per single decode, incl. buffer create/upload/map — the real-time-loop number, NOT amortized throughput"
     },
     "d3_same_class_same_run": {
       "reps": 200,
       "warmup": 20,
-      "p50Us": 220.652,
-      "p95Us": 294.86,
-      "meanUs": 230.8052399999999,
-      "minUs": 157.562,
-      "maxUs": 1230.793,
+      "p50Us": 656.6,
+      "p95Us": 1049.4,
+      "meanUs": 681.5804999999997,
+      "minUs": 389.9,
+      "maxUs": 2637.2,
       "note": "full submit→readback round trip per single decode, incl. buffer create/upload/map — the real-time-loop number, NOT amortized throughput"
     },
-    "note": "Single-shot latency is the real-time-loop number the d3 receipt lacked. It is dominated by submit/readback overhead (buffer create + upload + map), not BP arithmetic — which is the honest point: a per-round decode loop on this API shape cannot hit a sub-microsecond budget regardless of code distance; batching across rounds/patches is where the GPU substrate wins (see throughput)."
+    "note": "Single-shot latency is the real-time-loop number the d3 receipt lacked, and it is NOT a measurement of BP arithmetic: it is dominated by submit/readback overhead (buffer create + upload + map) and, on a display-attached GPU shared with other applications, by queue contention. Read the SPREAD, not the p50 — on this seat min and max differ by ~100x on the same run, which is the signature of scheduling, not of compute. The min is the closest thing to a floor for this API shape. The conclusion survives all of that and is the point: a per-round decode loop on this API shape cannot hit a sub-microsecond budget at ANY code distance; batching across rounds/patches is where the GPU substrate wins (see throughput). A dedicated, non-display GPU would tighten these numbers but not change that conclusion."
   },
-  "generatedAt": "2026-08-24T09:36:37.563Z"
+  "generatedAt": "2026-08-24T21:17:33.859Z"
 }

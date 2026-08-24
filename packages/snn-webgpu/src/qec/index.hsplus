@@ -6,6 +6,15 @@
 // reference decoder, and the min-sum BP + OSD-0 CPU decoder) and @qec_decoder (the same BP
 // compiled into a WebGPU compute shader for batched throughput on real hardware).
 //
+// Also re-exports the distance-PARAMETERIZED pair, which generalizes both without touching
+// them: @qec_codes_d (generate + gate the [[d^2,1,d]] rotated surface code for any odd d, with
+// a weight-ordered exact-ML reference that scales past 2^n) and @qec_decoder_d (the same BP
+// with the WGSL GENERATED from the code's Tanner edges, plus the single-shot latency
+// measurement the d3 receipt lacked).
+//
+// The d3 pair stays the graduated, hand-checked reference; the d-pair must reproduce it exactly
+// (generated d3 layout and generated d3 shader edges are both test-pinned against it).
+//
 // Graduated from research/qec-decoder-probe.
 
 @trait qec {
@@ -13,7 +22,8 @@
 
   @receipt qec_config {
     type: "QecModuleReceipt"
-    exports: ["qec_codes", "qec_decoder"]
+    exports: ["qec_codes", "qec_decoder", "qec_codes_d", "qec_decoder_d"]
+    max_distance_supported: 5
     timestamp: now()
   }
 }

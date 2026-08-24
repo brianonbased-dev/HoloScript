@@ -100,6 +100,9 @@ describe('d5 exact ML reference + CPU audit (pure)', () => {
     }
   });
 
+  // Two exhaustive 4096-syndrome weight-ordered ML sweeps (x- and z-errors); ~7-9s on the
+  // RTX 3060 seat, over vitest's 5s default. The budget is the only thing widened here --
+  // every pinned number below is unchanged.
   it('pins the measured d5 CPU audit: 100% valid, 904 BP-converged, 4078/4080 ML-coset', () => {
     const ax = auditSyndromeSpace(d5, 'x-errors');
     expect(ax).toEqual({
@@ -112,7 +115,7 @@ describe('d5 exact ML reference + CPU audit (pure)', () => {
     const az = auditSyndromeSpace(d5, 'z-errors');
     expect(az.syndromeValid).toBe(4096);
     expect(az.mlCosetAgreement).toBe(4080);
-  });
+  }, 60_000);
 
   it('d3 audit stays perfect (16/16 everything) — the old receipt story still holds', () => {
     const d3 = buildRotatedSurfaceCode(3);

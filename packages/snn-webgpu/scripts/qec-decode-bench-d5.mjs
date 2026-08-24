@@ -17,14 +17,50 @@
  * non-canonical.
  *
  *   node packages/snn-webgpu/scripts/qec-decode-bench-d5.mjs
+ *
+ * Batch shape: 2^18 x 30 by default, deliberately NOT the d3 receipt's 2^20 -- a single 2^20
+ * d5 dispatch exceeds the Windows GPU watchdog and hangs the device (see the comment at the
+ * throughput call). QEC_BENCH_BATCH / QEC_BENCH_REPS override it.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(HERE, '../dist/index.js');
 const OUT = path.resolve(HERE, '../benchmarks/qec-decode-benchmark-d5.json');
+
+/**
+ * Best-effort GPU conditions at measurement time. The real_gpu vendor check is necessary but
+ * NOT sufficient for a trustworthy performance number: a display-attached laptop GPU shared
+ * with a browser/editor can be downclocked or contended while still reporting vendor=nvidia.
+ * Recording utilization/clock/power makes "canonical" checkable instead of assumed. Returns
+ * null off NVIDIA/Windows — the receipt then simply states the conditions were not observable.
+ */
+function sampleGpuConditions() {
+  try {
+    const csv = execFileSync(
+      'nvidia-smi',
+      [
+        '--query-gpu=utilization.gpu,clocks.sm,clocks.max.sm,pstate,power.draw,memory.used',
+        '--format=csv,noheader,nounits',
+      ],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const [util, clock, clockMax, pstate, power, mem] = csv.trim().split(',').map((x) => x.trim());
+    return {
+      utilization_pct: Number(util),
+      clock_sm_mhz: Number(clock),
+      clock_sm_max_mhz: Number(clockMax),
+      pstate,
+      power_draw_w: Number(power),
+      memory_used_mib: Number(mem),
+    };
+  } catch {
+    return null;
+  }
+}
 
 async function main() {
   const { GPUContext, qec } = await import(pathToFileURL(DIST).href);
@@ -58,15 +94,37 @@ async function main() {
   const validation = await decoder.validateExhaustive();
   console.log(`[d5] ${JSON.stringify({ ...validation, cpuAudit: undefined })}`);
 
-  // Canonical defaults match the d3 receipt (2^20 × 30); a software-adapter
-  // functional run can shrink them via env — the receipt records what ran.
-  const batch = Number(process.env.QEC_BENCH_BATCH ?? 1 << 20);
+  // Batch default is 2^18, NOT the d3 receipt's 2^20. A d5 decode is ~4x the variables and
+  // far more Tanner edges than d3, so 2^20 decodes in ONE dispatch runs past the Windows TDR
+  // watchdog (~2s) and hangs the device: measured on the RTX 3060 seat, 2^18 = 527ms, so 2^20
+  // lands at ~2.1s -> DXGI_ERROR_DEVICE_HUNG mid-benchmark. Inheriting the d3 batch shape here
+  // was a real defect: the documented command killed the GPU it was meant to measure. The
+  // receipt records the batch/reps that actually ran, so cross-distance comparison stays honest
+  // (compare decodes/sec, not batch size). Override via env for other hardware.
+  const batch = Number(process.env.QEC_BENCH_BATCH ?? 1 << 18);
   const reps = Number(process.env.QEC_BENCH_REPS ?? 30);
-  console.log(`[d5] throughput (${batch} × ${reps}) …`);
-  const throughput = await decoder.benchmarkThroughput(batch, reps);
+  const passes = Number(process.env.QEC_BENCH_PASSES ?? 3);
+  console.log(`[d5] throughput (${batch} × ${reps}, ${passes} passes) …`);
+  // Pass 1 also serves as the clock-ramp warmup: a laptop GPU sits in a low power state until
+  // sustained work arrives, so a single-pass number can be a downclock artifact. Reporting the
+  // spread lets a reader see whether it was.
+  const passResults = [];
+  let conditions = null;
+  for (let i = 0; i < passes; i++) {
+    passResults.push(await decoder.benchmarkThroughput(batch, reps));
+    conditions = sampleGpuConditions() ?? conditions; // sampled while the GPU is under load
+  }
+  const rates = passResults.map((t) => t.decodesPerSecond).sort((a, b) => a - b);
+  const median = rates[rates.length >> 1];
+  const throughput = passResults.find((t) => t.decodesPerSecond === median) ?? passResults[0];
   console.log(
-    `[d5] ${Math.round(throughput.decodesPerSecond).toLocaleString()} decodes/s, ${throughput.nsPerDecodeAmortized.toFixed(1)} ns amortized, fast-path ${(throughput.gpuFastPathFraction * 100).toFixed(1)}%`
+    `[d5] ${Math.round(throughput.decodesPerSecond).toLocaleString()} decodes/s (median of ${passes}; spread ${Math.round(rates[0]).toLocaleString()}–${Math.round(rates[rates.length - 1]).toLocaleString()}), ${throughput.nsPerDecodeAmortized.toFixed(1)} ns amortized, fast-path ${(throughput.gpuFastPathFraction * 100).toFixed(1)}%`
   );
+  if (conditions) {
+    console.log(
+      `[d5] device under load: ${conditions.utilization_pct}% util, ${conditions.clock_sm_mhz}/${conditions.clock_sm_max_mhz} MHz, ${conditions.pstate}, ${conditions.power_draw_w} W`
+    );
+  }
 
   console.log('[d5] single-shot latency (200 reps) …');
   const latency = await decoder.benchmarkLatency(200, 20);
@@ -100,11 +158,34 @@ async function main() {
       cpu_reference_audit: validation.cpuAudit,
       note: 'Syndrome-validity is the hard gate (must be 4096/4096). ML-coset agreement is MEASURED: BP+OSD-0 is not exact at d5 — 4078/4096 (99.56%) matches the CPU-pinned reference exactly, so GPU and CPU disagree with exact-ML on the SAME 18 syndromes, i.e. the port is faithful.',
     },
-    throughput,
+    device_conditions: conditions,
+    device_conditions_note: conditions
+      ? 'Sampled while the throughput passes were running. A vendor check alone cannot tell a quiet GPU from a contended, downclocked one — these fields are what makes canonical:true checkable.'
+      : 'Not observable on this platform (nvidia-smi absent). Performance fields are a real-GPU measurement of UNSTATED device conditions; treat cross-machine comparison with care.',
+    throughput: {
+      ...throughput,
+      passes: passResults.length,
+      decodes_per_second_all_passes: passResults.map((t) => t.decodesPerSecond),
+      note:
+        'Headline is the MEDIAN of the passes; the full spread is listed so a downclock or ' +
+        'contention artifact is visible rather than averaged away. Batch shape is 2^18 x 30, NOT ' +
+        'the 2^20 x 30 of the d3 receipt: one 2^20 d5 dispatch runs past the Windows GPU watchdog ' +
+        '(~2s) and hangs the device (DXGI_ERROR_DEVICE_HUNG) — measured on this seat, where 2^18 ' +
+        'takes ~0.5s. Compare decodes/sec across distances, never batch size.',
+    },
     latency: {
       d5: latency,
       d3_same_class_same_run: latencyD3,
-      note: 'Single-shot latency is the real-time-loop number the d3 receipt lacked. It is dominated by submit/readback overhead (buffer create + upload + map), not BP arithmetic — which is the honest point: a per-round decode loop on this API shape cannot hit a sub-microsecond budget regardless of code distance; batching across rounds/patches is where the GPU substrate wins (see throughput).',
+      note:
+        'Single-shot latency is the real-time-loop number the d3 receipt lacked, and it is NOT a ' +
+        'measurement of BP arithmetic: it is dominated by submit/readback overhead (buffer create ' +
+        '+ upload + map) and, on a display-attached GPU shared with other applications, by queue ' +
+        'contention. Read the SPREAD, not the p50 — on this seat min and max differ by ~100x on the ' +
+        'same run, which is the signature of scheduling, not of compute. The min is the closest ' +
+        'thing to a floor for this API shape. The conclusion survives all of that and is the point: ' +
+        'a per-round decode loop on this API shape cannot hit a sub-microsecond budget at ANY code ' +
+        'distance; batching across rounds/patches is where the GPU substrate wins (see throughput). ' +
+        'A dedicated, non-display GPU would tighten these numbers but not change that conclusion.',
     },
     generatedAt: new Date().toISOString(),
   };

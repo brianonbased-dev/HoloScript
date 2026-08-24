@@ -1,0 +1,92 @@
+// @qec_decoder_d — the distance-parameterized surface-code BP decoder as a GPU compute class.
+//
+// Native .hsplus surface for snn-webgpu/qec/qec-decoder-d.ts.
+//
+// Generalizes @qec_decoder (the graduated d3 class, untouched) to any code from @qec_codes_d.
+// The decisive difference: the WGSL is GENERATED from the code's X-graph Tanner edges rather
+// than hand-written. The generator IS the drift guard — the d3 edges it generates equal the
+// hand-written shader arrays exactly (test-pinned), so a shader can never silently diverge from
+// the CPU-validated layout the way a transcribed array can.
+//
+// Pure BP on the GPU (fast path); the OSD-0 guard for non-converging syndromes stays on the
+// host — the same BP-on-accelerator / OSD-on-host split as d3, reusing @qec_codes.bpOsdDecode
+// so the full pipeline is syndrome-valid.
+//
+// Packing: one u32 per decode — correction bits 0..n-1, converged flag at bit 31. GUARDED to
+// n <= 30 (d <= 5 rotated surface codes). d7 needs a two-word format, and generateBpWgsl throws
+// rather than fake one.
+//
+// QECDecoderD(ctx: GPUContext, code: SurfaceCode)
+//   initialize() → void                        (generates the WGSL, builds the compute pipeline)
+//   pack_syndrome(s) → Int
+//   unpack_correction(word) → { correction, converged }
+//   decode_batch(packed_syndromes, p?) → Uint32Array    (raw GPU BP; bit i = qubit i, bit 31 = converged)
+//   decode_with_fallback(syndromes, p?) → QecDecodeResult[]   (GPU BP + host OSD-0)
+//   validate_exhaustive(p?) → QecDValidationReport      (whole X-syndrome space vs exact ML)
+//   benchmark_throughput(batch_size, reps, p?) → QecDThroughputReport
+//   benchmark_latency(reps?, warmup?) → QecDLatencyReport
+//
+// TWO measurements, because they answer different questions — and the d3 receipt reported only
+// the first, which was its known gap:
+//   throughput   batched decodes/sec — the honest GPU-win number
+//   latency      SINGLE-SHOT submit→readback wall time (p50/p95/mean) — the number a real-time
+//                decode loop actually lives under
+// On any discrete GPU the single-shot number is dominated by dispatch + readback overhead, not
+// by BP arithmetic. That is precisely why it must be published NEXT TO throughput rather than
+// left implied: a per-round decode loop on this API shape cannot reach a sub-microsecond budget
+// at ANY code distance. Batching across rounds/patches is where the GPU substrate wins.
+//
+// Anti-theatre (F.155): a benchmark receipt is CANONICAL only on a real GPU vendor. A software
+// adapter (mesa/llvmpipe) may run for functional validation — correctness fields are then real
+// because the WGSL genuinely executed, but the performance fields are marked non-canonical.
+
+@trait qec_decoder_d {
+  capability_tags: ["qec_decoder_d", "gpu_belief_propagation", "generated_wgsl", "surface_code_parameterized", "webgpu_compute", "snn_webgpu"]
+
+  workgroup_size: Int = 64
+  max_iter: Int = 30
+  converged_bit: Int = 31
+  max_data_qubits: Int = 30      // packed-u32 format limit; d <= 5
+  max_checks: Int = 31
+
+  @on_spawn(ctx, code) => {
+    decoder = init_qec_decoder_d(ctx, code)
+    emit("qec_decoder_d_ready", { d: code.d, n: code.n })
+  }
+
+  @on_initialize => {
+    assert_packing_fits(max_data_qubits, max_checks)   // refuse to fake a wider format
+    wgsl = generate_bp_wgsl(tanner_edges_of(code))     // generated, never transcribed
+    decoder.initialize()
+    emit("qec_decoder_d_initialized", { edges: count_edges(code) })
+  }
+
+  @on_decode_batch(packed_syndromes, prior) => {
+    corrections = decoder.decode_batch(packed_syndromes, prior)
+    return corrections
+  }
+
+  @on_validate => {
+    report = decoder.validate_exhaustive()
+    assert_full_pipeline_all_valid(report)   // hard gate: every syndrome solved
+    // ML-coset agreement is MEASURED — at d5 the GPU and the CPU reference disagree with
+    // exact-ML on the SAME syndromes, which is what makes the port faithful rather than lucky
+    emit("qec_decoder_d_validated", {
+      tested: report.syndromes_tested,
+      ml_coset: report.full_pipeline_ml_coset_agreement,
+      matches_cpu: report.converged_flag_matches_cpu,
+    })
+    return report
+  }
+
+  @receipt qec_decoder_d_config {
+    type: "QecDecoderDReceipt"
+    code_family: "[[d^2,1,d]] rotated surface, d <= 5 (packed-u32 format)"
+    kernel: "GENERATED WGSL normalized min-sum BP, one thread per decode"
+    fallback: "host OSD-0 for non-converging syndromes"
+    drift_guard: "generated d3 Tanner edges equal the hand-written d3 shader arrays"
+    measurements: ["throughput_batched", "latency_single_shot_p50_p95"]
+    canonical_requires_real_gpu: true
+    timestamp: now()
+  }
+}
