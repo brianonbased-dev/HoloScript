@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-06T04:27:28.131Z",
+  "generatedAt": "2026-08-24T11:49:16.159Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-inventory.test.ts",
-  "categoryFileCount": 121,
+  "categoryFileCount": 122,
   "categoryFiles": [
     "accessibility-extended.ts",
     "accessibility.ts",
@@ -18,6 +18,7 @@
     "character-materials.ts",
     "character-pipeline.ts",
     "communication.ts",
+    "companionship.ts",
     "compliance-governance.ts",
     "concurrency.ts",
     "connector-integration.ts",
@@ -125,15 +126,15 @@
     "workflow-bpm.ts",
     "xr-platform.ts"
   ],
-  "exportedTraitArraysCount": 170,
-  "totalTraitDefinitions": 6298,
-  "vrTraitsCount": 2780,
-  "uniqueVRTraitsCount": 2713,
+  "exportedTraitArraysCount": 171,
+  "totalTraitDefinitions": 6314,
+  "vrTraitsCount": 2788,
+  "uniqueVRTraitsCount": 2721,
   "duplicateCountInVRTraits": 67,
   "topExportsByCount": [
     {
       "exportName": "VR_TRAITS",
-      "count": 2780
+      "count": 2788
     },
     {
       "exportName": "ROBOTICS_INDUSTRIAL_TRAITS",
@@ -145,7 +146,7 @@
     },
     {
       "exportName": "SECURITY_CRYPTO_TRAITS",
-      "count": 78
+      "count": 79
     },
     {
       "exportName": "FACIAL_EXPRESSION_TRAITS",
@@ -279,6 +280,10 @@
     },
     {
       "exportName": "COMMUNICATION_TRAITS",
+      "count": 7
+    },
+    {
+      "exportName": "COMPANIONSHIP_TRAITS",
       "count": 7
     },
     {
@@ -711,7 +716,7 @@
     },
     {
       "exportName": "SECURITY_CRYPTO_TRAITS",
-      "count": 78
+      "count": 79
     },
     {
       "exportName": "SHAPE_FORM_TRAITS",
@@ -867,7 +872,7 @@
     },
     {
       "exportName": "VR_TRAITS",
-      "count": 2780
+      "count": 2788
     },
     {
       "exportName": "WATER_FLUID_TRAITS",

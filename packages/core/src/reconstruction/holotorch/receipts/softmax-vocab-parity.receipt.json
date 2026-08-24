@@ -5,7 +5,7 @@
     "vendor": "nvidia",
     "architecture": "ampere",
     "device": "nvidia-geforce-rtx-3060-laptop-gpu",
-    "description": "D3D12 driver version 32.0.16.1062"
+    "description": "D3D12 driver version 32.0.16.1088"
   },
   "dims": {
     "rows": 2,
