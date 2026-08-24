@@ -1,15 +1,25 @@
-# Lesson 1.3: Your First Scene
+﻿# Lesson 1.3: Your First Scene
 
-Now that you have HoloScript installed, let's create your first VR scene! By the end of this lesson, you'll have a working VR experience with interactive objects.
+Now that you have HoloScript installed, let's create your first scene. Every snippet in this lesson uses the authority form the live `compiler-wasm` parser accepts.
 
 ## Learning Objectives
 
 By the end of this lesson, you will:
 
-- Create a new HoloScript project
-- Build a simple scene with multiple objects
-- Add interactivity with traits and event handlers
-- Preview your scene in VR
+- Recognize the authority object form
+- Write a scene as one or more objects
+- Add the `@grabbable` trait and a `geometry` property
+- Check the snippet with `packages/compiler-wasm` `validate`
+
+## Authority form
+
+The live parser accepts this form and rejects quoted names, pre-brace traits, `composition`-as-object, `group`, and event-handler dialect from older handbook drafts:
+
+```hs
+object Cube { @grabbable geometry: "x" }
+```
+
+That is the whole object: an unquoted identifier, a brace, the `@grabbable` trait, then `geometry: "x"`.
 
 ## Creating a New Project
 
@@ -26,148 +36,47 @@ cd my-vr-room
 code .
 ```
 
-This creates the following structure:
-
-```
-my-vr-room/
-├── src/
-│   └── main.hsplus      # Your main scene file
-├── assets/              # 3D models, textures, audio
-├── holoscript.config.ts # Configuration
-└── package.json
-```
+This creates a project folder with a main scene file under `src/`, plus `assets/`, `holoscript.config.ts`, and `package.json`.
 
 ## Your First Scene
 
-Open `src/main.hsplus` and replace the contents with:
+Open the main scene file and replace the contents with one or more authority-form objects:
 
-```hsplus
-// My First VR Room
-// A simple scene with interactive objects
+```hs
+object Cube { @grabbable geometry: "x" }
+```
 
-composition "My VR Room" {
-  @manifest {
-    title: "My First VR Room"
-    version: "1.0.0"
-    author: "Your Name"
-  }
+A room with more than one object is still the same form, repeated:
 
-  // Environment settings
-  environment {
-    @skybox { preset: "sunset" }
-    @ambient_light { intensity: 0.5, color: "#FFE4B5" }
-  }
+```hs
+object Cube { @grabbable geometry: "x" }
 
-  // A floating welcome orb
-  composition welcomecomposition {
-    @grabbable
-    @glowing { color: "#4A90D9", intensity: 0.6 }
+object Welcome { @grabbable geometry: "x" }
 
-    position: [0, 1.5, -2]
-    scale: 0.15
-    color: "#4A90D9"
+object PhysicsCube { @grabbable geometry: "x" }
 
-    onGrab: {
-      this.scale = 0.2
-      console.log("Welcome to your VR room!")
-    }
+object Button { @grabbable geometry: "x" }
 
-    onRelease: {
-      this.scale = 0.15
-    }
-  }
-
-  // A physics-enabled cube
-  composition physicsCube {
-    @grabbable
-    @physics {
-      mass: 1.0
-      friction: 0.5
-    }
-    @collidable
-
-    position: [1, 1, -2]
-    scale: 0.2
-    color: "#E74C3C"
-    geometry: "cube"
-
-    onCollision: (other) => {
-      console.log("Collided with:", other.name)
-    }
-  }
-
-  // A clickable button
-  composition button {
-    @clickable
-    @hoverable
-
-    position: [-1, 1.2, -2]
-    scale: [0.3, 0.1, 0.1]
-    color: "#27AE60"
-    geometry: "cube"
-
-    onHoverEnter: {
-      this.color = "#2ECC71"
-    }
-
-    onHoverExit: {
-      this.color = "#27AE60"
-    }
-
-    onClick: {
-      // Change the welcome orb's color
-      welcomeOrb.color = randomColor()
-    }
-  }
-
-  // Floor
-  composition floor {
-    @collidable
-
-    position: [0, 0, 0]
-    scale: [10, 0.1, 10]
-    color: "#34495E"
-    geometry: "cube"
-  }
-}
-
-// Helper function
-function randomColor() {
-  const colors = ["#E74C3C", "#9B59B6", "#3498DB", "#1ABC9C", "#F39C12"]
-  return colors[Math.floor(Math.random() * colors.length)]
-}
+object Floor { @grabbable geometry: "x" }
 ```
 
 ## Understanding the Code
 
-### The Composition
+### The object
 
-```hsplus
-composition "My VR Room" {
-  // Everything inside is part of this scene
-}
+```hs
+object Cube { @grabbable geometry: "x" }
 ```
 
-The composition is your scene container. The name appears in VR headset menus.
+`object` introduces the scene node. The name must be an identifier (`Cube`), not a quoted string.
 
-### The Environment
+### The trait
 
-```hsplus
-environment {
-  @skybox { preset: "sunset" }
-  @ambient_light { intensity: 0.5 }
-}
-```
+`@grabbable` sits inside the braces. It is a trait, not a property.
 
-Environment settings affect the entire scene - lighting, skybox, fog, etc.
+### The geometry
 
-### Interactive Orbs
-
-Each composition has:
-
-- **Traits** (`@grabbable`, `@physics`) - behaviors
-- **Properties** (`position`, `scale`, `color`) - visual attributes
-- **Event handlers** (`onGrab`, `onClick`) - interactivity
+`geometry: "x"` is the property the authority parser accepts on this form. Keep it inside the same braces as the trait.
 
 ## Running Your Scene
 
@@ -177,10 +86,11 @@ Start the development server:
 holoscript dev
 ```
 
-This opens:
+This opens a browser preview. Confirm the snippet itself with the live authority parser before you chase preview issues:
 
-- **Browser preview** at `http://localhost:3000`
-- **VR mode** accessible via headset browser
+```bash
+node -e "const w=require('./packages/compiler-wasm/pkg-node/holoscript_wasm.js'); const s='object Cube { @grabbable geometry: \"x\" }'; console.log(w.validate(s), w.validate_detailed(s));"
+```
 
 ### Keyboard Controls (Desktop Preview)
 
@@ -193,111 +103,60 @@ This opens:
 
 ## Adding More Objects
 
-Let's add a table with objects on it:
+Add another authority-form object. Do not wrap it in `group` or `composition`:
 
-```hsplus
-// Add inside the composition, after the floor
+```hs
+object Table { @grabbable geometry: "x" }
 
-group table {
-  position: [0, 0, -3]
-
-  // Table top
-  composition top {
-    position: [0, 0.8, 0]
-    scale: [1.5, 0.05, 0.8]
-    color: "#8B4513"
-    geometry: "cube"
-  }
-
-  // Table leg 1
-  composition leg1 {
-    position: [-0.6, 0.4, 0.3]
-    scale: [0.1, 0.8, 0.1]
-    color: "#8B4513"
-    geometry: "cube"
-  }
-
-  // ... more legs
-
-  // Items on table
-  composition vase {
-    @grabbable
-    @physics { mass: 0.5 }
-
-    position: [0, 1.1, 0]
-    scale: [0.15, 0.3, 0.15]
-    color: "#3498DB"
-    geometry: "cylinder"
-  }
-}
+object Vase { @grabbable geometry: "x" }
 ```
 
 ## Exercise: Customize Your Room
 
-1. **Add a light switch** - Create an composition that toggles the ambient light on/off
-2. **Create a bouncy ball** - Use `@physics { restitution: 0.9 }` for bounciness
-3. **Add a teleport spot** - On click, move the player to a new position
+1. Add a third object next to `Cube` using the same form.
+2. Keep the name an identifier.
+3. Keep `@grabbable` and `geometry: "x"` inside the braces.
 
-### Solution: Light Switch
+### Solution: another object
 
-```hsplus
-composition lightSwitch {
-  @clickable
-
-  position: [-3, 1.2, 0]
-  scale: [0.1, 0.15, 0.05]
-  color: "#ECF0F1"
-  geometry: "cube"
-
-  state: {
-    lightsOn: true
-  }
-
-  onClick: {
-    this.state.lightsOn = !this.state.lightsOn
-    environment.ambient_light.intensity = this.state.lightsOn ? 0.5 : 0.1
-    this.color = this.state.lightsOn ? "#ECF0F1" : "#2C3E50"
-  }
-}
+```hs
+object LightSwitch { @grabbable geometry: "x" }
 ```
 
 ## Common Issues
 
-### Objects Fall Through Floor
+### Quoted names
 
-Make sure the floor has `@collidable`:
+`object "Cube"` is rejected (`Expected identifier`). Use `object Cube`.
 
-```hsplus
-composition floor {
-  @collidable  // Required for physics interactions
-  // ...
-}
+### Trait before the brace
+
+`object Cube @grabbable { }` is rejected (`Expected LBrace, got Trait`). Put `@grabbable` inside the braces.
+
+### Invented wrappers
+
+`composition`, `group`, `onGrab`, and `@clickable` are handbook dialect, not this authority form.
+
+### Objects not grabbable
+
+The object needs `@grabbable` inside the braces:
+
+```hs
+object Floor { @grabbable geometry: "x" }
 ```
-
-### Objects Not Grabbable
-
-Ensure you have:
-
-1. `@grabbable` trait on the object
-2. Correct collision bounds (scale matters!)
-
-### Performance Issues
-
-Keep the number of physics objects reasonable (~50 max for smooth VR).
 
 ## Summary
 
 In this lesson, you:
 
-- Created a new HoloScript project
-- Built a scene with multiple interactive objects
-- Used traits for physics, interaction, and visuals
-- Added event handlers for interactivity
-- Ran the development server
+- Wrote a scene as `object` nodes
+- Used the `@grabbable` trait
+- Set `geometry: "x"`
+- Stayed on the form `compiler-wasm` `validate` accepts
 
 ## Next Lesson
 
-In [Lesson 1.4: Understanding Compositions](./04-understanding-compositions.md), we'll take a deeper look at composition types, geometries, and properties.
+In [Lesson 1.4: Understanding Compositions](./04-understanding-compositions.md), we stay on the same authority form and look at how objects combine.
 
 ---
 

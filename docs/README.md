@@ -44,7 +44,7 @@ Use this index for current, canonical documentation entry points.
 
 1. **[HoloSchool](./holoschool/index.md)** - Structured learning path
 2. **[Examples](./examples/index.md)** - Practical copy-ready scenes
-3. **[Cookbook](./cookbook/index.md)** - Task-focused recipes
+3. Cookbook - Task-focused recipes — missing; no docs/cookbook/index.md
 
 ## Roadmaps and Status
 

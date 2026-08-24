@@ -10,6 +10,8 @@ Human-in-the-Loop traits connect autonomous agent workflows to real humans — c
 
 Marks an object or action as requiring human confirmation before proceeding. The agent pauses, presents a review request to a designated human reviewer, and resumes only after approval.
 
+> Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await hitl.requestApproval` is not live HoloScript.
+
 ```hsplus
 object "DeployGate" @hitl {
   geometry: "cube"

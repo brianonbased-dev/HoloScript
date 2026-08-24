@@ -266,6 +266,8 @@ pose = get_hand_pose("left")
 
 ### delay
 
+> Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await delay(1000)` is not live HoloScript.
+
 ```hs
 delay 1000 then {
   do_something()

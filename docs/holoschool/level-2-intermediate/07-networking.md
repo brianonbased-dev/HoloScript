@@ -197,6 +197,8 @@ composition playerList {
 
 ### Creating and Joining Rooms
 
+> Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await network.createRoom(...)` is not live HoloScript.
+
 ```hs
 // Create a room
 async function createRoom(): {

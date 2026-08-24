@@ -59,6 +59,8 @@ random.onSphere(radius)
 
 ### Perlin Noise
 
+> Historical / not accepted as a keyword. compiler-wasm treats `new` as an identifier; `validate=true` is a lie. `new PerlinNoise` is not live HoloScript.
+
 ```hs
 const noise = new PerlinNoise({ seed: 42 })
 
@@ -74,6 +76,8 @@ const value3d = noise.noise3D(x, y, z)
 
 ### Fractal Noise (FBM)
 
+> Historical / not accepted as a keyword. compiler-wasm treats `new` as an identifier; `validate=true` is a lie. `new FractalNoise` is not live HoloScript.
+
 ```hs
 const fbm = new FractalNoise({
   seed: 42,
@@ -88,6 +92,8 @@ const height = fbm.noise2D(x, z)
 ## Terrain Generation
 
 ### Height-based Terrain
+
+> Historical / not accepted as a keyword. compiler-wasm treats `new` as an identifier; `validate=true` is a lie. `new` in this fence is not live HoloScript.
 
 ```hs
 function generateTerrain(width, depth, resolution) {
@@ -151,6 +157,8 @@ function getBiome(height, moisture) {
 ## Dungeon Generation
 
 ### Room-Based Generation
+
+> Historical / not accepted as a keyword. compiler-wasm treats `new` as an identifier; `validate=true` is a lie. `new` in this fence is not live HoloScript.
 
 ```hs
 class DungeonGenerator {
@@ -235,6 +243,8 @@ dungeon.rooms.forEach((room, i) => {
 ## Wave Function Collapse
 
 Advanced procedural generation using constraints:
+
+> Historical / not accepted as a keyword. compiler-wasm treats `new` as an identifier; `validate=true` is a lie. `new` in this fence is not live HoloScript.
 
 ```hs
 class WFCGenerator {
@@ -349,6 +359,8 @@ scatterObjects(TreeTemplate, {
 
 More natural distribution than pure random:
 
+> Historical / not accepted as a keyword. compiler-wasm treats `new` as an identifier; `validate=true` is a lie. `new` in this fence is not live HoloScript.
+
 ```hs
 function poissonDiskSampling(width, height, minDistance, maxAttempts = 30) {
   const cellSize = minDistance / Math.sqrt(2)
@@ -425,6 +437,8 @@ onPlayerMove(newPosition => {
 ```
 
 ## Infinite World Chunks
+
+> Historical / not accepted as a keyword. compiler-wasm treats `new` as an identifier; `validate=true` is a lie. `new` in this fence is not live HoloScript.
 
 ```hs
 class ChunkManager {

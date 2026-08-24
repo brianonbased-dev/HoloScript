@@ -268,6 +268,8 @@ const path = spatial.findPath({
 
 ## Complete Example: Guard Patrol System
 
+> Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await scan(target)` is not live HoloScript.
+
 ```holoscript
 composition "SecuritySystem" {
   config {

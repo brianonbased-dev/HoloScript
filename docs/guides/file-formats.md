@@ -46,7 +46,10 @@ Start with the use case, then show the format. The syntax makes more sense after
 
 ## Format Boundaries (Enforced)
 
-Each format has strict boundaries. Using spatial keywords in a pipeline file produces a `SyntaxError`:
+`object` is not invalid in `.hs`. The old "object is invalid in .hs" rule is historical / pipeline-only.
+compiler-wasm accepts `object Cube { @grabbable geometry: "x" }` in `.hs`.
+
+Using spatial keywords such as `environment` in a pipeline file still produces a `SyntaxError`:
 
 ```yaml
 SyntaxError: 'environment' is not valid in a pipeline context.
@@ -61,7 +64,7 @@ Use .holo for spatial compositions or .hsplus for behaviors.
 | environment      | ❌  | ❌      | ✅          |
 | spatial_group    | ❌  | ❌      | ✅          |
 | template         | ❌  | ❌      | ✅          |
-| object           | ❌  | ✅      | ✅          |
+| object           | ✅  | ✅      | ✅          |
 | state machine    | ❌  | ✅      | ✅          |
 | networked_object | ❌  | ✅      | ❌          |
 
@@ -308,7 +311,7 @@ composition "Dispensary" {
 | ---------------- | -------------------- | -------------------------- | -------------------------- |
 | Mental model     | Logic and processes  | Typed behavior and effects | Whole-system composition   |
 | Root block       | `pipeline "Name" {}` | (none)                     | `composition "Name" {}`    |
-| Objects          | ❌                   | `composition name {}`      | `object "name" {}`         |
+| Objects          | `object Cube {}`      | `composition name {}`      | `object "name" {}`         |
 | Data source/sink | ✅                   | ❌                         | ✅ (inline pipeline)       |
 | VR Traits        | ❌                   | `@grabbable`               | `@grabbable`               |
 | Reactive State   | ❌                   | `@state {}`                | `state {}`                 |

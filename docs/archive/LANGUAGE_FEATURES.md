@@ -178,6 +178,8 @@ Call async operations inside trait handlers and scene logic.
 
 > **Status**: Parser handles the `async` keyword as a code block node. Full first-class support planned for v4.2.
 
+> Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await llm.complete` is not live HoloScript.
+
 ```holoscript
 object DataFetcher {
   @LocalLLM(model: "llama3.2")

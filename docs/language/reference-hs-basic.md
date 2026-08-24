@@ -15,11 +15,13 @@ The `.hs` format is designed for:
 
 The fundamental building block is the `object` keyword:
 
+Live compiler-wasm 3.0.0 form uses an identifier name and traits inside braces:
+
 ```holoscript
-object "SimpleBox" {
-  geometry: "box"
-}
+object Cube { @grabbable geometry: "x" }
 ```
+
+> Historical: snippets below that use `object "Name"` (quoted name) or a trait before `{` are rejected by compiler-wasm 3.0.0. Live form: `object Cube { @grabbable geometry: "x" }`.
 
 ### With Position
 
@@ -360,11 +362,11 @@ object "FullyConfiguredObject" {
 
 For AI agents generating `.hs` code:
 
-1. **Format**: Use `object "Name" { property: value }` syntax
+1. **Format**: Use `object Cube { @grabbable geometry: "x" }` syntax (identifier name, traits inside braces)
 2. **Properties**: camelCase property names
 3. **Transforms**: Use `{ x, y, z }` objects for position/rotation/scale
 4. **Colors**: Named colors or hex format `#RRGGBB`
-5. **Names**: Always quote object names
+5. **Names**: Use identifier names, not quoted names
 6. **Booleans**: Use `true`/`false` (lowercase)
 7. **Numbers**: Integers or floats (e.g., `1.0`, `10`)
 
@@ -382,7 +384,7 @@ For templates, trait decorators, brain declarations, module imports, and hot-rel
 ## Next Steps
 
 - [Templates & Decorators (`.hsplus`)](./reference-hsplus-templates)
-- [Process Language Reference (`.hs`)](./reference-hs-process)
+- Process Language Reference (`.hs`) — missing; no `reference-hs-process.md`
 - [Cross-Format Comparison](./comparison-simple-scene)
 - [Examples Gallery](/examples/)
 

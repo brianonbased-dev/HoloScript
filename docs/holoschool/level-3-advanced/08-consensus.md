@@ -75,6 +75,8 @@ composition "DistributedVoting" {
 
 Quick voting for non-critical decisions:
 
+> Historical / not accepted as keywords. compiler-wasm treats `await` and `new` as identifiers; `validate=true` is a lie. This fence is not live HoloScript.
+
 ```typescript
 import { ConsensusTrait, createConsensusTrait } from '@holoscript/core';
 
@@ -109,6 +111,8 @@ consensus.subscribe('player_score', (newValue) => {
 ```
 
 ## Raft Consensus
+
+> Historical / not accepted as keywords. compiler-wasm treats `await` and `new` as identifiers; `validate=true` is a lie. This fence is not live HoloScript.
 
 Stronger guarantees with leader election:
 
@@ -159,6 +163,8 @@ if (raft.isLeader()) {
 ```
 
 ## Proposal Results
+
+> Historical / not accepted as keywords. compiler-wasm treats `await` and `new` as identifiers; `validate=true` is a lie. This fence is not live HoloScript.
 
 Get detailed results from proposals:
 
@@ -244,6 +250,8 @@ consensus.on('partition:healed', () => {
 ```
 
 ## Complete Example: Distributed Game State
+
+> Historical / not accepted as keywords. compiler-wasm treats `await` and `new` as identifiers; `validate=true` is a lie. This fence is not live HoloScript.
 
 ```holoscript
 composition "MultiplayerGame" {
@@ -363,6 +371,8 @@ async function compareAndSwap(key: string, expected: any, newValue: any) {
 ```
 
 ### Distributed Lock
+
+> Historical / not accepted as keywords. compiler-wasm treats `await` and `new` as identifiers; `validate=true` is a lie. This fence is not live HoloScript.
 
 ```typescript
 async function acquireLock(resource: string, timeout: number) {

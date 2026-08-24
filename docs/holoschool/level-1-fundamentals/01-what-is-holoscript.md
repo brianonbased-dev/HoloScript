@@ -21,24 +21,10 @@ By the end of this lesson, you will:
 
 ## A Simple Example
 
-Here's what HoloScript looks like:
+Here's what HoloScript looks like. `composition "My First VR Room"` is historical / not the live example.
 
 ```hsplus
-composition "My First VR Room" {
-  // A glowing composition that users can grab
-  composition welcomecomposition {
-    @grabbable
-    @glowing { color: "#4A90D9", intensity: 0.8 }
-
-    position: [0, 1.5, -2]
-    scale: 0.15
-    color: "#4A90D9"
-
-    onGrab: {
-      console.log("You grabbed the orb!")
-    }
-  }
-}
+object Cube { @grabbable geometry: "x" }
 ```
 
 Compare this to creating the same scene in a traditional game engine - you'd need hundreds of lines of code dealing with input systems, rendering, physics setup, and more.

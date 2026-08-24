@@ -5,6 +5,11 @@
 > is now canonically defined as a general-purpose semantic systems programming language under
 > active construction. Current identity and acceptance gates:
 > [`../spec/language-identity.md`](../spec/language-identity.md).
+>
+> **Not accepted by compiler-wasm.** Every `spatial`, `zone`, and `layer` form taught below is
+> historical. [`../spec/holoscript-grammar-ssot.md`](../spec/holoscript-grammar-ssot.md) already
+> lists this file as a non-authoritative input: those forms are not accepted by the current
+> parser. Do not treat them as live syntax.
 
 **Knowledge Domain**: Spatial Computing Language  
 **Compression Date**: Feb 3, 2026  
@@ -33,9 +38,11 @@
 
 ### W.DSL.001 - Spatial-First Beats Component-First for 3D/VR
 
+> Historical / not accepted by compiler-wasm. The spatial/zone forms in this section are not live.
+
 **Compressed**: Declarative spatial primitives (`spatial`, `zone`, `layer`) enable intuitive 3D/VR interfaces better than imperative component composition (React/Vue). Spatial languages express positioning/depth natively without transform calculations.
 
-**Elaboration**: HoloScript syntax: `zone SafeArea(x: 0, y: 0, z: 5, width: 100)` declares 3D volume explicitly. Equivalent React: `<div style=&#123;&#123; transform: 'translate3d(0,0,5px)', width: '100px' &#125;&#125; />` requires manual transform math. HoloScript compiler validates spatial relationships (collision, boundaries, z-index) at compile-time. React validates at runtime (performance cost). Result: Spatial DSL reduces 3D UI bugs 60% vs component libraries.
+**Elaboration**: Historical HoloScript syntax (not accepted by compiler-wasm): `zone SafeArea(x: 0, y: 0, z: 5, width: 100)` declares 3D volume explicitly. Equivalent React: `<div style=&#123;&#123; transform: 'translate3d(0,0,5px)', width: '100px' &#125;&#125; />` requires manual transform math. HoloScript compiler validates spatial relationships (collision, boundaries, z-index) at compile-time. React validates at runtime (performance cost). Result: Spatial DSL reduces 3D UI bugs 60% vs component libraries.
 
 **Quantified**: 40% less code vs React 3D, compile-time spatial validation, 60% fewer runtime spatial bugs  
 **Confidence**: 97%
@@ -107,6 +114,8 @@ Output (JS/TS/CS/Swift)
 
 ### P.DSL.02 - Spatial Component Definition Template
 
+> Historical / not accepted by compiler-wasm. The spatial/zone forms in this section are not live.
+
 **Pattern Structure**:
 
 ```holoscript
@@ -167,6 +176,8 @@ animation transitionName {
 **Confidence**: 98%
 
 ### P.DSL.03 - Feature Flag Gating for Language Evolution
+
+> Historical / not accepted by compiler-wasm. The spatial/zone forms in this section are not live.
 
 **Pattern Structure**:
 
@@ -436,6 +447,8 @@ if (parseVersion(process.env.COMPILER_VERSION) < sourceFile.minCompilerVersion) 
 
 ### Example 1: Basic Spatial Component
 
+> Historical / not accepted by compiler-wasm. The spatial/zone forms in this section are not live.
+
 ```holoscript
 @namespace "app.ui"
 @version "2.0.0"
@@ -470,6 +483,8 @@ handler handleClick() {
 ```
 
 ### Example 2: Multi-Platform Animation
+
+> Historical / not accepted by compiler-wasm. The spatial/zone forms in this section are not live.
 
 ```holoscript
 animation fadeIn {
