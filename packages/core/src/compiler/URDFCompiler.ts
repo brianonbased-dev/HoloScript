@@ -353,6 +353,85 @@ export class URDFCompiler extends CompilerBase {
     return rest;
   }
 
+  /**
+   * Normalize a joint declaration from ANY supported authoring form into the
+   * canonical joint config that {@link processObject} consumes
+   * (`{ jointType, connectedBody, axis, limits:{min,max,effort,velocity}, damping, friction }`).
+   *
+   * Two authoring conventions exist in the wild and BOTH must map here:
+   *  1. Explicit `@joint` trait:  traits:[{name:'joint', config:{jointType,connectedBody,axis,limits}}]
+   *     (limits.min/max are DEGREES). This is what URDFCompiler.articulation.test.ts asserts.
+   *  2. Joint-type trait family:  traits:[{name:'joint_revolute'}] + object PROPERTIES
+   *     (joint_parent, joint_axis, joint_limits:[lo,hi] in RADIANS, joint_effort, max_velocity,
+   *     joint_friction). This is what the robotics-plugin examples author, and what silently
+   *     produced welded `fixed` joints before this normalizer existed (source→URDF was broken
+   *     end-to-end even after the getTraitConfig unwrap fix; there was no e2e test to catch it).
+   *
+   * `joint_limits` radians are normalized to the limits.min/max DEGREES contract so the single
+   * downstream limits path (deg→rad) stays the only place that converts.
+   */
+  private extractJointConfig(obj: HoloObjectDecl): Record<string, unknown> | undefined {
+    // Form 1: explicit `joint` trait config (already in canonical shape).
+    const jointTrait = this.getTraitConfig(obj, 'joint');
+    if (jointTrait && Object.keys(jointTrait).length > 0) {
+      return jointTrait;
+    }
+
+    // Form 2: joint-type trait family + joint_* properties.
+    const JOINT_TRAIT_TYPES: Record<string, string> = {
+      joint_revolute: 'revolute',
+      joint_continuous: 'continuous',
+      joint_prismatic: 'prismatic',
+      joint_fixed: 'fixed',
+      joint_floating: 'floating',
+      joint_planar: 'planar',
+      joint_spherical: 'floating',
+      joint_ball: 'floating',
+    };
+    const jointTraitName = obj.traits
+      ?.map((t) => this.getTraitName(t))
+      .find((n) => n in JOINT_TRAIT_TYPES);
+    if (!jointTraitName) {
+      return undefined;
+    }
+
+    const propValue = (key: string): unknown =>
+      obj.properties.find((p) => p.key === key)?.value;
+
+    const config: Record<string, unknown> = { jointType: JOINT_TRAIT_TYPES[jointTraitName] };
+
+    const parent = propValue('joint_parent');
+    if (typeof parent === 'string') config.connectedBody = parent;
+
+    const axis = propValue('joint_axis');
+    if (Array.isArray(axis)) config.axis = axis;
+
+    const limits = propValue('joint_limits');
+    if (Array.isArray(limits) && limits.length >= 2) {
+      const effort = propValue('joint_effort');
+      const velocity = propValue('max_velocity');
+      // Only ANGULAR (revolute) joint_limits are radians that the downstream
+      // limits path converts DEGREES→radians — so pre-normalize rad→deg for those
+      // only. Prismatic joint_limits are LINEAR (meters) and the downstream takes
+      // them raw; scaling them by 180/π would be category-wrong (a 0.04 m stroke
+      // would become 2.29). Gate the conversion on jointType.
+      const isAngular = config.jointType === 'revolute';
+      config.limits = {
+        min: isAngular ? (Number(limits[0]) * 180) / Math.PI : Number(limits[0]),
+        max: isAngular ? (Number(limits[1]) * 180) / Math.PI : Number(limits[1]),
+        ...(typeof effort === 'number' ? { effort } : {}),
+        ...(typeof velocity === 'number' ? { velocity } : {}),
+      };
+    }
+
+    const friction = propValue('joint_friction');
+    if (typeof friction === 'number') config.friction = friction;
+    const damping = propValue('joint_viscous_friction') ?? propValue('joint_damping');
+    if (typeof damping === 'number') config.damping = damping;
+
+    return config;
+  }
+
   /** Map HoloScript joint types to URDF joint types */
   private mapJointType(
     holoType: string
@@ -540,20 +619,32 @@ export class URDFCompiler extends CompilerBase {
     const geometryValue = this.getStringValue(geometryProp.value);
     const scale = this.extractScale(obj);
 
+    // Explicit primitive dimensions when authored (radius/length/height/width/depth);
+    // fall back to the uniform `scale` so existing scale-only compositions are unchanged.
+    const numProp = (key: string): number | undefined => {
+      const v = obj.properties.find((p) => p.key === key)?.value;
+      return typeof v === 'number' ? v : undefined;
+    };
+    const radius = numProp('radius');
+    const lengthOrHeight = numProp('length') ?? numProp('height');
+
     switch (geometryValue) {
       case 'cube':
       case 'box':
-        return { type: 'box', size: [scale, scale, scale] };
+        return {
+          type: 'box',
+          size: [numProp('width') ?? scale, numProp('height') ?? scale, numProp('depth') ?? scale],
+        };
       case 'sphere':
-        return { type: 'sphere', radius: scale / 2 };
+        return { type: 'sphere', radius: radius ?? scale / 2 };
       case 'cylinder':
-        return { type: 'cylinder', radius: scale / 2, length: scale };
+        return { type: 'cylinder', radius: radius ?? scale / 2, length: lengthOrHeight ?? scale };
       case 'cone':
         // URDF doesn't have cone, approximate as cylinder
-        return { type: 'cylinder', radius: scale / 2, length: scale };
+        return { type: 'cylinder', radius: radius ?? scale / 2, length: lengthOrHeight ?? scale };
       case 'capsule':
         // URDF doesn't have capsule, approximate as cylinder
-        return { type: 'cylinder', radius: scale / 3, length: scale };
+        return { type: 'cylinder', radius: radius ?? scale / 3, length: lengthOrHeight ?? scale };
       case 'plane':
         return { type: 'box', size: [scale, 0.01, scale] };
       default:
@@ -781,16 +872,24 @@ export class URDFCompiler extends CompilerBase {
       color: { r: 0.8, g: 0.8, b: 0.8, a: 1.0 },
     });
 
-    // Create base link
-    this.links.push({
-      name: 'base_link',
-      visual: undefined,
-      collision: undefined,
-      inertial: {
-        mass: 0.001,
-        inertia: { ixx: 0.001, ixy: 0, ixz: 0, iyy: 0.001, iyz: 0, izz: 0.001 },
-      },
-    });
+    // Create the synthetic base_link root ONLY when the source does not already
+    // declare an object named "base_link". Emitting it unconditionally produced a
+    // duplicate <link name="base_link"> (invalid URDF) whenever a robot rooted its
+    // own base_link object. Objects without a joint_parent still parent to this name.
+    const hasExplicitBaseLink = (composition.objects ?? []).some(
+      (o) => this.sanitizeName(o.name) === 'base_link'
+    );
+    if (!hasExplicitBaseLink) {
+      this.links.push({
+        name: 'base_link',
+        visual: undefined,
+        collision: undefined,
+        inertial: {
+          mass: 0.001,
+          inertia: { ixx: 0.001, ixy: 0, ixz: 0, iyy: 0.001, iyz: 0, izz: 0.001 },
+        },
+      });
+    }
 
     // Track actuated joints for ros2_control generation
     const actuatedJoints: Array<{
@@ -840,7 +939,7 @@ export class URDFCompiler extends CompilerBase {
     const linkName = this.sanitizeName(obj.name);
     const hasPhysics = this.hasTrait(obj, 'physics') || this.hasTrait(obj, 'rigid');
     const hasCollider = this.hasTrait(obj, 'collidable') || this.hasTrait(obj, 'trigger');
-    const jointConfig = this.getTraitConfig(obj, 'joint');
+    const jointConfig = this.extractJointConfig(obj);
     const sensorConfig = this.getTraitConfig(obj, 'sensor');
     const actuatorConfig = this.getTraitConfig(obj, 'actuator');
 
@@ -1008,7 +1107,12 @@ export class URDFCompiler extends CompilerBase {
       }
     }
 
-    this.joints.push(joint);
+    // Skip the degenerate self-joint for a root link (e.g. an object literally
+    // named "base_link" whose default parent is also "base_link"). A
+    // base_link→base_link fixed joint is invalid URDF — a link cannot parent itself.
+    if (joint.parent !== joint.child) {
+      this.joints.push(joint);
+    }
 
     // Process @sensor trait
     if (sensorConfig) {
