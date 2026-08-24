@@ -1,0 +1,58 @@
+// ============================================================================
+// Daimon Embodiment — the per-soul companion getting a body (D.053, slice 5)
+//
+// The brain lives in compositions/daimon-brain.hsplus (#mode companion, via
+// AgentRunner + holo_daemon_turn). This composition is the FACE: one owner-
+// bound presence, projected per device. One daimon, several bodies — the
+// @copresence continuity contract keys on ownerScopeKey, never on device.
+//
+// Runtime status (honest): companion_presence and affect_state have live
+// handlers (VRTraitSystem) and compiler recognition (SceneIRCompiler).
+// rapport, relational_memory, voice_loop, copresence, flourishing_guard are
+// REGISTERED but runtime-owed — RFC slices 6-8. Companion-mode directives
+// and @flourishing_guard wiring land with daimon-brain.hsplus (slice 8), so
+// this file carries no logic block yet.
+//
+// Contract sources:
+//   proposals/daimon-embodiment-trait-family.md          (trait family RFC)
+//   ai-ecosystem research/2026-08-24_companion-daimon-embodiment-fold.md
+//   packages/core/src/daemon/ConversationDaemon.ts       (appearance/voice/tone)
+// ============================================================================
+
+composition "Daimon Embodiment" {
+
+  template "DaimonFace" {
+    traits: [
+      "companion_presence",
+      "affect_state",
+      "rapport",
+      "relational_memory",
+      "voice_loop",
+      "copresence",
+      "flourishing_guard"
+    ]
+    state {
+      ownerScopeKey: null
+      appearance: null
+      voice: null
+      affect: { valence: 0.0, arousal: 0.0, expression: "neutral" }
+      deviceClass: "unset"
+    }
+  }
+
+  spatial_group "LaptopEmbodiment" {
+    object "CompanionLaptop" using "DaimonFace" {
+      state {
+        deviceClass: "desktop"
+      }
+    }
+  }
+
+  spatial_group "PhoneEmbodiment" {
+    object "CompanionPhone" using "DaimonFace" {
+      state {
+        deviceClass: "mobile"
+      }
+    }
+  }
+}

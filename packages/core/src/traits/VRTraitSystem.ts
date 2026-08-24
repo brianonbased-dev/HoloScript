@@ -398,6 +398,9 @@ import { deadlockFreeHandler } from './DeadlockFreeTrait';
 // ── Phase A: Previously unregistered handlers ──
 import { agentDiscoveryHandler } from './AgentDiscoveryTrait';
 import { agentMemoryHandler } from './AgentMemoryTrait';
+// Companionship — daimon embodiment (RFC: proposals/daimon-embodiment-trait-family.md)
+import { companionPresenceHandler } from './CompanionPresenceTrait';
+import { affectStateHandler } from './AffectStateTrait';
 import { agentPortalHandler } from './AgentPortalTrait';
 import { aiInpaintingHandler } from './AiInpaintingTrait';
 import { ainpcBrainHandler } from './AINPCBrainTrait';
@@ -2036,6 +2039,9 @@ export class VRTraitRegistry {
     // ── Phase A: Previously unregistered handlers ──
     this.register(agentDiscoveryHandler as TraitHandler);
     this.register(agentMemoryHandler as TraitHandler);
+    // Companionship — daimon embodiment (slice 5: presence + affect; slices 6-8 owed)
+    this.register(companionPresenceHandler as TraitHandler);
+    this.register(affectStateHandler as TraitHandler);
     this.register(agentPortalHandler as TraitHandler);
     this.register(aiInpaintingHandler as TraitHandler);
     this.register(ainpcBrainHandler as TraitHandler);

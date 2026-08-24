@@ -3715,6 +3715,16 @@ export class SceneIRCompiler {
             if (!props.collider) props.collider = { type: 'auto' };
           }
         }
+        // ── Companionship: daimon embodiment (slice 5) ──────────────
+        // Owner-bound presence + affect are runtime-handled; the compiler
+        // surfaces them as structured props so the renderer binds the
+        // presence/expression channels instead of flagging them unrecognized.
+        else if (name === 'companion_presence') {
+          props.companionPresence = trait.config || true;
+        } else if (name === 'affect_state') {
+          props.affectState = trait.config || true;
+          props.expressionChannel = true;
+        }
         // ── I.007 closure: compile the petal material from .holo data ──
         else if (name === 'botanical_lotus') {
           this.emitCompiledLotusMaterial(props, (trait.config as Record<string, unknown>) || {});
