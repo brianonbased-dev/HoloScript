@@ -1,0 +1,75 @@
+{
+  "schema": "qec-gpu-decode-benchmark/v2",
+  "source": "@holoscript/snn-webgpu QECDecoderD (distance-parameterized; generated WGSL)",
+  "code": "[[25,1,5]] rotated surface, X-graph min-sum BP (pure, GPU) + host OSD-0 fallback",
+  "real_gpu": false,
+  "canonical": false,
+  "canonical_note": "NON-CANONICAL performance: software adapter. Correctness fields (validation) are real — the WGSL executed on Dawn — but timing reflects a software rasterizer, not GPU silicon. Re-run on the RTX 3060 seat for canonical numbers.",
+  "adapter": {
+    "vendor": "mesa",
+    "architecture": "software",
+    "device": "llvmpipe-llvm-20-1-2-256-bits-",
+    "description": "llvmpipe: Mesa 25.2.8-0ubuntu0.24.04.2 (LLVM 20.1.2)"
+  },
+  "code_gates": {
+    "stabilizerCounts": {
+      "z": 12,
+      "x": 12,
+      "expected": 12
+    },
+    "allStabilizersCommute": true,
+    "logicalsCommuteWithStabilizers": true,
+    "logicalsAnticommute": true,
+    "logicalQubits": 1,
+    "distance": 5
+  },
+  "correctness": {
+    "syndromes_tested": 4096,
+    "gpu_bp_converged": 904,
+    "gpu_converged_all_valid": true,
+    "full_pipeline_all_valid": true,
+    "full_pipeline_ml_coset_agreement": 4078,
+    "converged_flag_matches_cpu": 4096,
+    "cpu_reference_audit": {
+      "syndromes": 4096,
+      "bpConverged": 904,
+      "syndromeValid": 4096,
+      "mlCosetAgreement": 4078,
+      "minWeightAgreement": 4064
+    },
+    "note": "Syndrome-validity is the hard gate (must be 4096/4096). ML-coset agreement is MEASURED: BP+OSD-0 is not exact at d5 — 4078/4096 (99.56%) matches the CPU-pinned reference exactly, so GPU and CPU disagree with exact-ML on the SAME 18 syndromes, i.e. the port is faithful."
+  },
+  "throughput": {
+    "batchSize": 16384,
+    "reps": 5,
+    "totalDecodes": 81920,
+    "wallSeconds": 5.719757187,
+    "decodesPerSecond": 14322.28630022787,
+    "nsPerDecodeAmortized": 69821.2547241211,
+    "gpuFastPathFraction": 0.2177734375
+  },
+  "latency": {
+    "d5": {
+      "reps": 200,
+      "warmup": 20,
+      "p50Us": 1913,
+      "p95Us": 5788.264,
+      "meanUs": 2383.457895000001,
+      "minUs": 295.29,
+      "maxUs": 32759.688,
+      "note": "full submit→readback round trip per single decode, incl. buffer create/upload/map — the real-time-loop number, NOT amortized throughput"
+    },
+    "d3_same_class_same_run": {
+      "reps": 200,
+      "warmup": 20,
+      "p50Us": 220.652,
+      "p95Us": 294.86,
+      "meanUs": 230.8052399999999,
+      "minUs": 157.562,
+      "maxUs": 1230.793,
+      "note": "full submit→readback round trip per single decode, incl. buffer create/upload/map — the real-time-loop number, NOT amortized throughput"
+    },
+    "note": "Single-shot latency is the real-time-loop number the d3 receipt lacked. It is dominated by submit/readback overhead (buffer create + upload + map), not BP arithmetic — which is the honest point: a per-round decode loop on this API shape cannot hit a sub-microsecond budget regardless of code distance; batching across rounds/patches is where the GPU substrate wins (see throughput)."
+  },
+  "generatedAt": "2026-08-24T09:36:37.563Z"
+}

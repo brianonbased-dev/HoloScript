@@ -11,3 +11,5 @@
 
 export * from './qec-codes.js';
 export * from './qec-decoder.js';
+export * from './qec-codes-d.js';
+export * from './qec-decoder-d.js';
