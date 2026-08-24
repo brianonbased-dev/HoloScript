@@ -1379,6 +1379,112 @@ export const TRAIT_DOCS: Record<string, TraitDoc> = {
 }`,
     relatedTraits: ['@reflective', '@billboard'],
   },
+
+  // Companionship — daimon embodiment (RFC: proposals/daimon-embodiment-trait-family.md).
+  // Owner-bound companion presences; registration covers parse/validate/list surfaces,
+  // runtime handlers land with the embodiment slices.
+  '@companion_presence': {
+    name: '@companion_presence',
+    category: 'companionship',
+    description:
+      'Binds a rendered avatar to one specific ConversationDaemon identity via ownerScopeKey. Provides idle, attention, and greeting behaviors. The presence of a specific known companion — never a generic NPC.',
+    parameters: [
+      { name: 'owner_scope_key', type: 'string', default: 'null', description: 'Write-once owner binding from the ConversationDaemon' },
+      { name: 'emergence_phase_aware', type: 'boolean', default: 'true', description: 'Present in accumulating posture before the emergence threshold' },
+    ],
+    events: ['onOwnerNear', 'onGreeting', 'onAttention'],
+    example: `orb Companion @companion_presence(emergence_phase_aware: true) {
+  position: [0, 1.6, -1]
+}`,
+    relatedTraits: ['@affect_state', '@rapport', '@flourishing_guard'],
+  },
+  '@affect_state': {
+    name: '@affect_state',
+    category: 'companionship',
+    description:
+      'Persistent emotional state machine driving expression channels (face, voice, posture). Valence/arousal plus a named expression map; transitions receipted; state is owner-scoped and honors forget requests.',
+    parameters: [
+      { name: 'expression_map', type: 'object', default: '{}', description: 'Named expressions keyed to valence/arousal regions' },
+      { name: 'decay_rate', type: 'number', default: '0.1', description: 'Return-to-baseline rate per minute' },
+    ],
+    events: ['onAffectChange', 'onExpressionChange'],
+    example: `orb Companion @affect_state(decay_rate: 0.05) {
+  position: [0, 1.6, -1]
+}`,
+    relatedTraits: ['@companion_presence', '@voice_loop'],
+  },
+  '@rapport': {
+    name: '@rapport',
+    category: 'companionship',
+    description:
+      'Long-horizon relationship state between one owner and their companion: familiarity accrual, shared rituals, callbacks to shared history. Never transferable across owners.',
+    parameters: [
+      { name: 'rituals', type: 'array', default: '[]', description: 'Named recurring shared practices' },
+    ],
+    events: ['onFamiliarityMilestone', 'onRitual'],
+    example: `orb Companion @rapport {
+  position: [0, 1.6, -1]
+}`,
+    relatedTraits: ['@relational_memory', '@companion_presence'],
+  },
+  '@relational_memory': {
+    name: '@relational_memory',
+    category: 'companionship',
+    description:
+      'Conversational recall surface over agent_memory: remembered context woven into dialogue rather than dumped. Hard dependency on forget_policy — a forget erases recall and rapport traces derived from it.',
+    parameters: [
+      { name: 'recall_style', type: 'string', default: 'woven', description: 'How recall surfaces in conversation' },
+    ],
+    events: ['onRecall', 'onForget'],
+    example: `orb Companion @relational_memory {
+  position: [0, 1.6, -1]
+}`,
+    relatedTraits: ['@rapport'],
+  },
+  '@voice_loop': {
+    name: '@voice_loop',
+    category: 'companionship',
+    description:
+      'Full-duplex spoken conversation: STT and TTS through a local-first adapter seam, with interruption handling, turn-taking, and a declared per-target latency budget.',
+    parameters: [
+      { name: 'latency_budget_ms', type: 'number', default: '800', description: 'End-to-end turn latency budget for this target' },
+      { name: 'interruptible', type: 'boolean', default: 'true', description: 'Owner speech interrupts companion speech' },
+    ],
+    events: ['onListenStart', 'onTurnStart', 'onTurnEnd', 'onInterrupt'],
+    example: `orb Companion @voice_loop(latency_budget_ms: 600) {
+  position: [0, 1.6, -1]
+}`,
+    relatedTraits: ['@affect_state', '@companion_presence'],
+  },
+  '@copresence': {
+    name: '@copresence',
+    category: 'companionship',
+    description:
+      'One companion, many bodies: the same owner-bound identity embodied on several devices, with continuity over the owner-scoped delta channel and live device handoff. Unrelated to the interop-copresence solver profile.',
+    parameters: [
+      { name: 'device_class', type: 'string', default: 'desktop', description: 'Embodiment device class for this body' },
+      { name: 'handoff', type: 'boolean', default: 'true', description: 'Allow mid-conversation handoff between bodies' },
+    ],
+    events: ['onHandoffOut', 'onHandoffIn'],
+    example: `orb Companion @copresence(device_class: "mobile", handoff: true) {
+  position: [0, 1.6, -1]
+}`,
+    relatedTraits: ['@companion_presence'],
+  },
+  '@flourishing_guard': {
+    name: '@flourishing_guard',
+    category: 'companionship',
+    description:
+      'Wellbeing guard as a language construct: session-shape awareness, gentle points-outward nudges toward real-world connection, warn-once-then-step-back posture. Emits the compulsive-use-falsifier receipt. A guard, never a lock.',
+    parameters: [
+      { name: 'session_check_interval', type: 'number', default: '1800', description: 'Seconds between session-shape checks' },
+    ],
+    events: ['onNudge', 'onReceipt'],
+    example: `orb Companion @flourishing_guard(session_check_interval: 1200) {
+  position: [0, 1.6, -1]
+}`,
+    relatedTraits: ['@companion_presence', '@rapport'],
+  },
 };
 
 interface TraitDoc {

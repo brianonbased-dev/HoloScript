@@ -195,6 +195,9 @@ import { CHARACTER_PIPELINE_TRAITS } from './character-pipeline';
 import { FACIAL_EXPRESSION_TRAITS } from './facial-expression';
 import { CHARACTER_MATERIAL_TRAITS } from './character-materials';
 
+// Companionship — daimon embodiment, owner-bound presences (RFC: proposals/daimon-embodiment-trait-family.md)
+import { COMPANIONSHIP_TRAITS } from './companionship';
+
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
  * Now includes 213 robotics & industrial traits (CYCLE B) + 22 scientific computing traits (Phase 1)
@@ -490,6 +493,9 @@ export const VR_TRAITS = [
 
   // Atmosphere, Sky & Environment Rendering (21 traits — including corona_simulation A-009)
   ...ATMOSPHERE_SKY_TRAITS,
+
+  // Companionship — daimon embodiment, owner-bound presences (7 traits)
+  ...COMPANIONSHIP_TRAITS,
 ] as const;
 
 /**
@@ -880,3 +886,6 @@ export {
 
 // Atmosphere, Sky & Environment Rendering (A-009 corona_simulation)
 export { ATMOSPHERE_SKY_TRAITS, type AtmosphereSkyTraitName } from './atmosphere-sky';
+
+// Companionship — daimon embodiment (RFC: proposals/daimon-embodiment-trait-family.md)
+export { COMPANIONSHIP_TRAITS } from './companionship';

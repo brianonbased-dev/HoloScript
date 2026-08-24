@@ -78,8 +78,25 @@ const TRAIT_KEYWORDS: Record<string, string[]> = {
   sound: ['@spatial_audio'],
   audio: ['@spatial_audio'],
   ambient: ['@ambient'],
-  voice: ['@voice_activated'],
-  speak: ['@voice_activated'],
+  voice: ['@voice_activated', '@voice_loop'],
+  speak: ['@voice_activated', '@voice_loop'],
+
+  // Companionship keywords — daimon embodiment (owner-bound presences)
+  companion: ['@companion_presence', '@rapport'],
+  daimon: ['@companion_presence', '@affect_state', '@rapport'],
+  affect: ['@affect_state'],
+  emotion: ['@affect_state'],
+  rapport: ['@rapport'],
+  familiarity: ['@rapport'],
+  'shared history': ['@rapport', '@relational_memory'],
+  recall: ['@relational_memory'],
+  remember: ['@relational_memory'],
+  conversation: ['@voice_loop'],
+  'turn-taking': ['@voice_loop'],
+  copresence: ['@copresence'],
+  handoff: ['@copresence'],
+  wellbeing: ['@flourishing_guard'],
+  flourishing: ['@flourishing_guard'],
 
   // State keywords
   state: ['@state', '@reactive'],
