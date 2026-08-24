@@ -92,6 +92,26 @@ export type {
   DiagonalizationCircuit,
 } from './CliffordDiagonalization';
 
+// ── Quantum provenance discriminator (cael-quantum-v1 receipt family) ─────────
+
+export {
+  QUANTUM_PROVENANCE_SPEC,
+  QUANTUM_PROVENANCE_CLASSES,
+  validateQuantumProvenance,
+  assertQuantumProvenance,
+} from './QuantumProvenance';
+
+export type {
+  QuantumProvenance,
+  QuantumProvenanceClass,
+  QpuMeasuredProvenance,
+  SimulatorProvenance,
+  QuantumInspiredClassicalProvenance,
+  AnalyticReferenceProvenance,
+  ErrorVsClassicalReference,
+  ProvenanceValidation,
+} from './QuantumProvenance';
+
 // ── CAEL mapping ──────────────────────────────────────────────────────────────
 
 export type { CaelQmSolverConfig, CaelQmResultSummary } from './cael-mapping';
