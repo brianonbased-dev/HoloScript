@@ -60,6 +60,11 @@ describe('LocalLLMAdapter — structure', () => {
     expect(adapter.defaultHoloScriptModel).toBe('llama-3.1-8b-instruct');
   });
 
+  it('honors defaultModel the same way other adapters do', () => {
+    const adapter = new LocalLLMAdapter({ defaultModel: 'qwen3:4b-instruct' });
+    expect(adapter.defaultHoloScriptModel).toBe('qwen3:4b-instruct');
+  });
+
   it('LOCAL_LLM_MODELS type guard works', () => {
     const m: LocalLLMModel = 'mistral-7b-instruct';
     expect(LOCAL_LLM_MODELS).toContain(m);
