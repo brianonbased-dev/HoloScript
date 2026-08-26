@@ -24,5 +24,8 @@
     "paper-12"
   ],
   "author": "brianonbased-dev",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
+  }
 }

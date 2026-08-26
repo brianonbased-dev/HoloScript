@@ -3,6 +3,7 @@
   "version": "2.0.2",
   "main": "src/index.ts",
   "dependencies": {
+    "@holoscript/core": "workspace:*",
     "@holoscript/engine": "workspace:*"
   },
   "peerDependencies": {

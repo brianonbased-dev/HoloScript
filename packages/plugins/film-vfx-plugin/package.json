@@ -61,6 +61,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@holoscript/core": "workspace:*",
     "loro-crdt": "^1.0.0"
   }
 }

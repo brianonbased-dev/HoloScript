@@ -35,6 +35,7 @@
     "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   },
   "dependencies": {
+    "@holoscript/core": "workspace:*",
     "@holoscript/crdt-spatial": "workspace:^"
   },
   "peerDependencies": {

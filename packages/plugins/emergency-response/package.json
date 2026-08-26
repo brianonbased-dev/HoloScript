@@ -49,5 +49,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
+  }
 }
