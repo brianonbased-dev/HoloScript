@@ -2915,11 +2915,7 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
-  packages/plugins/structural-biology-plugin:
-    devDependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
+  packages/plugins/structural-biology-plugin: {}
 
   packages/plugins/talkinghead-plugin: {}
 
