@@ -365,7 +365,10 @@ describe('@holoscript/holollama', () => {
   });
 
   it('doctors every fleet profile as a consumable serving plan', () => {
-    const report = doctorHoloLlamaProfiles({ generatedAt: '2026-07-05T00:00:00.000Z' });
+    const report = doctorHoloLlamaProfiles({
+      generatedAt: '2026-07-05T00:00:00.000Z',
+      exists: () => true,
+    });
 
     expect(report.schema).toBe('holollama.doctor.v1');
     expect(report.ok).toBe(true);
@@ -387,7 +390,7 @@ describe('@holoscript/holollama', () => {
   });
 
   it('doctors a single profile when scoped for a consumer lane', () => {
-    const report = doctorHoloLlamaProfiles({ profile: 'laptop-windows' });
+    const report = doctorHoloLlamaProfiles({ profile: 'laptop-windows', exists: () => true });
 
     expect(report.ok).toBe(true);
     expect(report.profiles).toHaveLength(1);
@@ -396,6 +399,18 @@ describe('@holoscript/holollama', () => {
       consumer: 'laptop',
       registryHandle: 'laptop-fara-7b-llama',
     });
+  });
+
+  it('fails doctor when the laptop profile GGUF is missing from disk', () => {
+    const report = doctorHoloLlamaProfiles({
+      profile: 'laptop-windows',
+      exists: (path) => !String(path).includes('fara-7b-q4-k-m.gguf'),
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.profiles[0].blockers.some((row) => row.includes('model-gguf: missing'))).toBe(
+      true
+    );
   });
 
   it('points owned fleet profiles at HOLO-patched llama.cpp build binaries', () => {

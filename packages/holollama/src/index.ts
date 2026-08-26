@@ -150,6 +150,7 @@ export interface HoloLlamaBundleSummary {
 export interface HoloLlamaDoctorOptions {
   profile?: HoloLlamaProfile;
   generatedAt?: string;
+  exists?: (path: string) => boolean;
 }
 
 export interface HoloLlamaProfileDoctorResult {
@@ -947,7 +948,8 @@ export function doctorHoloLlamaProfiles(
   const profileIds = options.profile
     ? [options.profile]
     : (Object.keys(HOLOLLAMA_PROFILE_DEFINITIONS) as HoloLlamaProfile[]);
-  const profiles = profileIds.map((profile) => doctorHoloLlamaProfile(profile));
+  const exists = options.exists ?? existsSync;
+  const profiles = profileIds.map((profile) => doctorHoloLlamaProfile(profile, exists));
   return {
     schema: HOLOLLAMA_DOCTOR_SCHEMA,
     generatedAt: options.generatedAt ?? new Date().toISOString(),
@@ -1731,7 +1733,11 @@ export function buildHoloLlamaFleetLifecycleReport(
     ? [options.profile]
     : (Object.keys(HOLOLLAMA_PROFILE_DEFINITIONS) as HoloLlamaProfile[]);
   const profiles = profileIds.map((profile) => {
-    const doctor = doctorHoloLlamaProfiles({ profile, generatedAt }).profiles[0];
+    const doctor = doctorHoloLlamaProfiles({
+      profile,
+      generatedAt,
+      exists: options.checkFilesystem ? (options.exists ?? existsSync) : () => true,
+    }).profiles[0];
     const serverContract = verifyHoloLlamaServerContract(profile, { generatedAt });
     const visionPreflight = preflightHoloLlamaVision(profile, {
       generatedAt,
@@ -1891,7 +1897,7 @@ export async function installHoloLlamaPublicHarness(
 
   let installedSafety = templateSafety;
   let writtenFiles: string[] = [];
-  let doctor = doctorHoloLlamaProfiles({ profile, generatedAt });
+  let doctor = doctorHoloLlamaProfiles({ profile, generatedAt, exists: () => true });
   let lifecycle = buildHoloLlamaFleetLifecycleReport({
     profile,
     teamId: options.teamId,
@@ -1968,7 +1974,10 @@ export async function writeHoloLlamaBundleFiles(
   return written;
 }
 
-function doctorHoloLlamaProfile(profile: HoloLlamaProfile): HoloLlamaProfileDoctorResult {
+function doctorHoloLlamaProfile(
+  profile: HoloLlamaProfile,
+  exists: (path: string) => boolean = existsSync
+): HoloLlamaProfileDoctorResult {
   const definition = HOLOLLAMA_PROFILE_DEFINITIONS[profile];
   const blockers: string[] = [];
   const warnings: string[] = [];
@@ -1988,6 +1997,12 @@ function doctorHoloLlamaProfile(profile: HoloLlamaProfile): HoloLlamaProfileDoct
         `bundle health ${summary.healthUrl} does not match registry health ${check.healthUrl}`
       );
     }
+    const filesystemChecks = buildVisionFilesystemChecks(definition.spec, exists);
+    blockers.push(
+      ...filesystemChecks
+        .filter((item) => item.required && !item.exists)
+        .map((item) => `${item.id}: missing ${item.path}`)
+    );
     if (summary.warnings.length) warnings.push(...summary.warnings);
     return {
       profile,

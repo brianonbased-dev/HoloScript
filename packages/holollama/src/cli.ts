@@ -439,6 +439,8 @@ function printHelp(): void {
 
 Usage:
   holollama doctor [--profile <id>] [--json]
+      Always checks that the profile's llama-server, GGUF, and mmproj paths exist.
+      Missing weights are FAIL, not PASS-plus-a-health-URL.
   holollama mesh [--profile <id>] [--team-id <team>] [--json]
   holollama preflight [--profile <id>] [--check-filesystem] [--json]
   holollama contract [--profile <id>] [--json]
