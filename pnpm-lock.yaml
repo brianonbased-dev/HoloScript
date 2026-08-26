@@ -2607,23 +2607,20 @@ importers:
   packages/plugins/assimp-plugin: {}
 
   packages/plugins/banking-finance-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/civil-engineering-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/culture-keyword-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/domain-plugin-template:
     dependencies:
       '@holoscript/core':
@@ -2631,23 +2628,20 @@ importers:
         version: link:../../core
 
   packages/plugins/economic-primitives-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
-
-  packages/plugins/education-lms-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
-
-  packages/plugins/emergency-response:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
+  packages/plugins/education-lms-plugin:
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
+  packages/plugins/emergency-response:
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2672,18 +2666,16 @@ importers:
 
   packages/plugins/fashion-plugin:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../../engine
 
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
   packages/plugins/film-vfx-plugin:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
       '@holoscript/crdt-spatial':
         specifier: workspace:*
         version: link:../../crdt-spatial
@@ -2691,6 +2683,9 @@ importers:
         specifier: ^1.0.0
         version: 1.13.2
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2706,13 +2701,13 @@ importers:
 
   packages/plugins/film3d-volumetrics-plugin:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
       '@holoscript/crdt-spatial':
         specifier: workspace:*
         version: link:../../crdt-spatial
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
       loro-crdt:
         specifier: ^1.0.0
         version: 1.13.2
@@ -2721,17 +2716,15 @@ importers:
         version: 5.9.3
 
   packages/plugins/fitness-wellness-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
-
-  packages/plugins/forensics-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
+  packages/plugins/forensics-plugin:
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2765,23 +2758,20 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/geolocation-gis-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
-
-  packages/plugins/government-civic-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
-
-  packages/plugins/hardware-invention-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
+  packages/plugins/government-civic-plugin:
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
+  packages/plugins/hardware-invention-plugin:
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2802,50 +2792,46 @@ importers:
         version: link:../../core
 
   packages/plugins/hr-workforce-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/insurance-plugin:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
       '@holoscript/engine':
         specifier: workspace:*
         version: link:../../engine
 
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
   packages/plugins/legal-document-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/manufacturing-qc-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/marble-genie3-plugin: {}
 
   packages/plugins/medical-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/mixamo-plugin: {}
 
   packages/plugins/msf-3d-plugin: {}
 
   packages/plugins/neuroscience-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/niantic-lgm-plugin: {}
 
   packages/plugins/nodetoy-plugin:
@@ -2891,23 +2877,20 @@ importers:
   packages/plugins/remotion-r3f-plugin: {}
 
   packages/plugins/restaurant-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/retail-ecommerce-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/robotics-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/scenethesis-plugin: {}
 
   packages/plugins/scientific-plugin:
@@ -2917,19 +2900,17 @@ importers:
         version: link:../../core
 
   packages/plugins/structural-biology-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/talkinghead-plugin: {}
 
   packages/plugins/therapy-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2944,11 +2925,10 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/threat-intelligence-plugin:
-    dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
     devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.2
@@ -2963,26 +2943,25 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@24.13.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
 
   packages/plugins/trait-audit-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/travel-hospitality-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/urban-planning-plugin:
     dependencies:
-      '@holoscript/core':
-        specifier: workspace:*
-        version: link:../../core
       '@holoscript/framework':
         specifier: workspace:*
         version: link:../../framework
 
+    devDependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../../core
   packages/plugins/urdf: {}
 
   packages/plugins/urdformer-plugin: {}
@@ -3029,17 +3008,15 @@ importers:
   packages/plugins/web-preview-plugin: {}
 
   packages/plugins/wine-food-beverage-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/plugins/wisdom-gotcha-plugin:
-    dependencies:
+    devDependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../core
-
   packages/preview-component:
     devDependencies:
       '@testing-library/react':

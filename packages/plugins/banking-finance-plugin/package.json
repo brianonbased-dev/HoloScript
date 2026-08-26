@@ -35,7 +35,7 @@
     "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/plugins/banking-finance-plugin"
   },
-  "dependencies": {
-    "@holoscript/core": "workspace:*"
+  "devDependencies": {
+    "@holoscript/core": "workspace:^"
   }
 }

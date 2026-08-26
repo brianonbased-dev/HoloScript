@@ -16,7 +16,7 @@
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
-  "dependencies": {
-    "@holoscript/core": "workspace:*"
+  "devDependencies": {
+    "@holoscript/core": "workspace:^"
   }
 }

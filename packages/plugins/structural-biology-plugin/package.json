@@ -25,7 +25,7 @@
   ],
   "author": "brianonbased-dev",
   "license": "MIT",
-  "dependencies": {
-    "@holoscript/core": "workspace:*"
+  "devDependencies": {
+    "@holoscript/core": "workspace:^"
   }
 }
