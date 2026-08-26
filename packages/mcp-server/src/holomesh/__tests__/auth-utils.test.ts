@@ -6,7 +6,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as crypto from 'crypto';
 import type http from 'http';
-import { resolveRequestingAgent } from '../auth-utils';
+import { hasBearerCapability, resolveRequestingAgent } from '../auth-utils';
+import type { RegisteredAgent } from '../types';
 
 // Mock process.env
 const originalEnv = { ...process.env };
@@ -71,6 +72,86 @@ describe('resolveRequestingAgent', () => {
     expect(caller.wallet).toBe('0xABCDef1234567890abcdef1234567890ABCDef12');
     expect(caller.isFounder).toBe(false);
     expect(caller.agent?.traits).toEqual(['render', 'spatial']);
+    expect(caller.agent?.authSource).toBe('signed-manifest');
+    expect(caller.agent?.capabilities).toEqual([]);
+    expect(hasBearerCapability(caller.agent!, 'read')).toBe(false);
+    expect(hasBearerCapability(caller.agent!, 'sign')).toBe(false);
+  });
+
+  it('copies signed-manifest bearer capabilities and fail-closes omitted grants', () => {
+    const readOnly = {
+      id: 'hololand-readonly',
+      name: 'Read Only',
+      walletAddress: '0xABCDef1234567890abcdef1234567890ABCDef12',
+      capabilities: ['read'],
+    };
+    const omitted = {
+      id: 'hololand-omitted',
+      name: 'Omitted Caps',
+      walletAddress: '0xABCDef1234567890abcdef1234567890ABCDef12',
+    };
+    const empty = {
+      id: 'hololand-empty',
+      name: 'Empty Caps',
+      walletAddress: '0xABCDef1234567890abcdef1234567890ABCDef12',
+      capabilities: [],
+    };
+
+    const readSigned = createSignedManifest(readOnly, keyPair);
+    const omittedSigned = createSignedManifest(omitted, keyPair);
+    const emptySigned = createSignedManifest(empty, keyPair);
+
+    const readOnlyCaller = resolveRequestingAgent(
+      mockReq({
+        'x-agent-manifest': readSigned.manifestB64,
+        'x-agent-manifest-sig': readSigned.signatureB64,
+      })
+    );
+    const omittedCaller = resolveRequestingAgent(
+      mockReq({
+        'x-agent-manifest': omittedSigned.manifestB64,
+        'x-agent-manifest-sig': omittedSigned.signatureB64,
+      })
+    );
+    const emptyCaller = resolveRequestingAgent(
+      mockReq({
+        'x-agent-manifest': emptySigned.manifestB64,
+        'x-agent-manifest-sig': emptySigned.signatureB64,
+      })
+    );
+
+    expect(readOnlyCaller.authenticated).toBe(true);
+    expect(readOnlyCaller.agent?.capabilities).toEqual(['read']);
+    expect(hasBearerCapability(readOnlyCaller.agent!, 'read')).toBe(true);
+    expect(hasBearerCapability(readOnlyCaller.agent!, 'sign')).toBe(false);
+    expect(hasBearerCapability(readOnlyCaller.agent!, 'claim')).toBe(false);
+    expect(hasBearerCapability(readOnlyCaller.agent!, 'message')).toBe(false);
+
+    expect(omittedCaller.authenticated).toBe(true);
+    expect(omittedCaller.agent?.capabilities).toEqual([]);
+    expect(hasBearerCapability(omittedCaller.agent!, 'read')).toBe(false);
+    expect(hasBearerCapability(omittedCaller.agent!, 'sign')).toBe(false);
+
+    expect(emptyCaller.authenticated).toBe(true);
+    expect(emptyCaller.agent?.capabilities).toEqual([]);
+    expect(hasBearerCapability(emptyCaller.agent!, 'sign')).toBe(false);
+  });
+
+  it('keeps legacy unrestricted behavior when capabilities are missing', () => {
+    const legacy: RegisteredAgent = {
+      id: 'legacy-agent',
+      apiKey: 'legacy-key',
+      name: 'Legacy',
+      traits: [],
+      reputation: 0,
+      createdAt: new Date().toISOString(),
+    };
+    expect(hasBearerCapability(legacy, 'sign')).toBe(true);
+    expect(hasBearerCapability(legacy, 'claim')).toBe(true);
+    expect(hasBearerCapability({ ...legacy, capabilities: [] }, 'sign')).toBe(true);
+    expect(
+      hasBearerCapability({ ...legacy, capabilities: ['read', 'message'] }, 'claim')
+    ).toBe(false);
   });
 
   it('rejects tampered manifest (signature mismatch)', () => {
