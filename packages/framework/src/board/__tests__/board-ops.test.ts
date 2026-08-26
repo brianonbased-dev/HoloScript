@@ -86,6 +86,49 @@ describe('board operations phase-0 hygiene', () => {
     ]);
   });
 
+  it('rejects an explicit null WorkUnit instead of treating it as omitted', () => {
+    const result = addTasksToBoard([], [], [{
+      title: 'null work unit',
+      description: 'Explicit null must not materialize.',
+      priority: 1,
+      workUnit: null as never,
+    }]);
+
+    expect(result.added).toEqual([]);
+    expect(result.skipped).toEqual([
+      { title: 'null work unit', reason: 'invalid_work_unit' },
+    ]);
+  });
+
+  it('rejects an explicit null work_unit alias instead of treating it as omitted', () => {
+    const result = addTasksToBoard([], [], [{
+      title: 'null work_unit alias',
+      description: 'Snake alias null must not materialize.',
+      priority: 1,
+      work_unit: null,
+    } as never]);
+
+    expect(result.added).toEqual([]);
+    expect(result.skipped).toEqual([
+      { title: 'null work_unit alias', reason: 'invalid_work_unit' },
+    ]);
+  });
+
+  it('rejects conflicting workUnit and work_unit aliases', () => {
+    const result = addTasksToBoard([], [], [{
+      title: 'conflicting work unit aliases',
+      description: 'Conflicting aliases must not materialize.',
+      priority: 1,
+      workUnit: { intent: 'camel' },
+      work_unit: { intent: 'snake' },
+    } as never]);
+
+    expect(result.added).toEqual([]);
+    expect(result.skipped).toEqual([
+      { title: 'conflicting work unit aliases', reason: 'invalid_work_unit' },
+    ]);
+  });
+
   it('uses one claim gate for heartbeat, cap, and required tag failures', () => {
     const board = [
       task({ id: 'candidate', required_tags: ['edge'] }),
