@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { handleBoardTool } from '../board-tools';
-import { teamStore } from '../state';
+import { teamStore, teamPresenceStore } from '../state';
 
 vi.mock('../state', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
@@ -48,12 +48,14 @@ const claimedBy = () =>
 describe('Slice A — principal binding wired into board mutation handlers', () => {
   beforeEach(() => {
     teamStore.clear();
+    teamPresenceStore.clear();
     delete process.env[FLAG];
     seedTeam();
   });
   afterEach(() => {
     delete process.env[FLAG];
     teamStore.clear();
+    teamPresenceStore.clear();
   });
 
   it('claim: flag ON + agent_id != principal -> rejected before the claim gate, task not claimed', async () => {
@@ -133,5 +135,23 @@ describe('Slice A — principal binding wired into board mutation handlers', () 
       agent_id: P,
     });
     expect(r.error).not.toBe(MISMATCH);
+  });
+
+  it('heartbeat: flag ON + agent_id != principal -> rejected, no presence row', async () => {
+    process.env[FLAG] = '1';
+    const r = await call('holomesh_heartbeat', {
+      __authAgentId: P,
+      agent_id: 'victim',
+    });
+    expect(r.error).toBe(MISMATCH);
+    expect(teamPresenceStore.get(TEAM)?.size ?? 0).toBe(0);
+  });
+
+  it('heartbeat: principal + omitted agent_id lands under the seat, never mcp-agent', async () => {
+    const r = await call('holomesh_heartbeat', { __authAgentId: P, ide_type: 'claude-code' });
+    expect(r.success).toBe(true);
+    expect((r.presence as { agentId: string }).agentId).toBe(P);
+    expect(teamPresenceStore.get(TEAM)?.has(P)).toBe(true);
+    expect(teamPresenceStore.get(TEAM)?.has('mcp-agent')).toBe(false);
   });
 });
