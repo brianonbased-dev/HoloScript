@@ -6052,6 +6052,48 @@ describe('HoloMesh HTTP Routes', () => {
       expect(listed?.profile).toBeDefined();
       expect(listed?.topDomains).toContain('agents');
     });
+
+    it('counts contributions when a stale authorId still has a resolvable authorName', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `directory-stale-${Date.now()}`,
+        traits: ['@research'],
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const agentId = regRes._body.agent.id;
+      const agentName = regRes._body.agent.name as string;
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'W.directory-stale',
+          type: 'wisdom',
+          content: 'Stale author ids must not hide resolvable public contributions.',
+          domain: 'agents',
+          authorId: 'legacy-unregistered-author-id',
+          authorName: agentName,
+          tags: ['directory'],
+          price: 0,
+          queryCount: 3,
+          reuseCount: 1,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/directory');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/directory');
+
+      expect(res._status).toBe(200);
+      const listed = (res._body.agents as Array<Record<string, unknown>>).find(
+        (agent) => agent.id === agentId
+      );
+      expect(listed).toEqual(
+        expect.objectContaining({
+          name: agentName,
+          contributionCount: 1,
+        })
+      );
+    });
   });
 
   describe('GET /api/holomesh/guilds', () => {
