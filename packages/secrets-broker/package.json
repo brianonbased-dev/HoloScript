@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/secrets-broker",
-  "version": "6.1.1",
+  "version": "6.1.2",
   "description": "HoloKey vault, service-secret resolver, KEK providers, leases, and capability-token broker for HoloScript AI surfaces.",
   "type": "module",
   "main": "./dist/index.cjs",

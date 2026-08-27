@@ -18,6 +18,30 @@ import { fileURLToPath } from 'node:url';
 import { types as utilTypes } from 'node:util';
 
 const CHECK_SCHEMA = 'holokey.repository-identity-native-publication-check.v1';
+/** npm 6.1.1 was published without ./repository-identity. Never reuse that version. */
+const TAINTED_NPM_IDENTITY_VERSION = '6.1.1';
+const PUBLICATION_IDENTITY_SCHEMA = 'holokey.secrets-broker-publication-identity.v1';
+
+function assertPublicationVersionIdentity(manifest) {
+  const version = String(manifest?.version || '');
+  const hasRepositoryIdentityExport = Boolean(manifest?.exports?.['./repository-identity']);
+  if (version === TAINTED_NPM_IDENTITY_VERSION) {
+    return {
+      ok: false,
+      code: 'HOLOKEY_TAINTED_PUBLISHED_IDENTITY',
+      message:
+        '@holoscript/secrets-broker@6.1.1 was published without ./repository-identity; source must not reuse that version.',
+    };
+  }
+  if (!hasRepositoryIdentityExport) {
+    return {
+      ok: false,
+      code: 'HOLOKEY_REPOSITORY_IDENTITY_EXPORT_MISSING',
+      message: 'package.json must export ./repository-identity before this version can be packed.',
+    };
+  }
+  return { ok: true, version, hasRepositoryIdentityExport };
+}
 const EXPECTED_TRANSITION_TABLE_BITMASK = 16_833;
 const EXPECTED_ROW_MASKS = [1, 14, 16];
 const EXPECTED_AUTHORITY_EXPORTS = Object.freeze([
@@ -2031,6 +2055,13 @@ const report = {
   schema: CHECK_SCHEMA,
   ok: false,
   publicationEligible: false,
+  publicationIdentity: {
+    schema: PUBLICATION_IDENTITY_SCHEMA,
+    version: null,
+    taintedNpmVersion: TAINTED_NPM_IDENTITY_VERSION,
+    repositoryIdentityExport: false,
+    passed: false,
+  },
   package: '@holoscript/secrets-broker',
   authorityContract: 'HoloKey',
   expectedTransitionTableBitmask: EXPECTED_TRANSITION_TABLE_BITMASK,
@@ -2213,6 +2244,51 @@ const report = {
 
 let scratchRoot = null;
 try {
+  if (!ownedRegularFile(manifestPath, packageRoot)) {
+    report.blockers.push({
+      code: 'HOLOKEY_PACKAGE_MANIFEST_MISSING_OR_UNOWNED',
+      message: 'packages/secrets-broker/package.json is missing or is not a regular package-owned file.',
+    });
+    throw new Error('package-manifest-unavailable');
+  }
+  const publicationManifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const publicationIdentity = assertPublicationVersionIdentity(publicationManifest);
+  report.publicationIdentity.version = publicationManifest.version || null;
+  report.publicationIdentity.repositoryIdentityExport = Boolean(
+    publicationManifest.exports?.['./repository-identity'],
+  );
+  report.publicationIdentity.passed = publicationIdentity.ok === true;
+  if (!publicationIdentity.ok) {
+    report.blockers.push({
+      code: publicationIdentity.code,
+      message: publicationIdentity.message,
+    });
+    throw new Error('publication-identity-collision');
+  }
+  const taintedProbe = assertPublicationVersionIdentity({
+    version: TAINTED_NPM_IDENTITY_VERSION,
+    exports: publicationManifest.exports,
+  });
+  if (taintedProbe.ok !== false || taintedProbe.code !== 'HOLOKEY_TAINTED_PUBLISHED_IDENTITY') {
+    report.blockers.push({
+      code: 'HOLOKEY_TAINTED_IDENTITY_PROBE_FAILED',
+      message: 'The publication-identity gate must refuse the already-published 6.1.1 identity.',
+    });
+    throw new Error('tainted-identity-probe-failed-to-refuse');
+  }
+  if (process.argv.includes('--publication-identity-only')) {
+    const identityReceipt = {
+      schema: PUBLICATION_IDENTITY_SCHEMA,
+      ok: true,
+      version: publicationManifest.version,
+      repositoryIdentityExport: true,
+      taintedNpmVersion: TAINTED_NPM_IDENTITY_VERSION,
+      taintedIdentityRefused: true,
+    };
+    process.stdout.write(`${JSON.stringify(identityReceipt, null, 2)}\n`);
+    process.exit(0);
+  }
+
   if (!ownedRegularFile(sourcePath, packageRoot)) {
     report.blockers.push({
       code: 'HOLOKEY_NATIVE_SOURCE_MISSING_OR_UNOWNED',
