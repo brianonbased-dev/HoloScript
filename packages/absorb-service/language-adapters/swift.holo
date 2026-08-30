@@ -1,0 +1,48 @@
+@language_adapter {
+  id: "swift"
+  language: "swift"
+  grammarPackage: "tree-sitter-swift"
+  extensions: [".swift"]
+  symbols: [
+    {
+      nodeType: "class_declaration",
+      kind: "class",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "class {name}"
+    },
+    {
+      nodeType: "protocol_declaration",
+      kind: "interface",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "protocol {name}"
+    },
+    {
+      nodeType: "function_declaration",
+      kind: "function",
+      nameField: "name",
+      nameChildType: "simple_identifier",
+      kindWhenOwned: "method",
+      signatureTemplate: "func {name}"
+    }
+  ]
+  moduleImports: [
+    {
+      declNodeType: "import_declaration",
+      moduleChildTypes: ["identifier"]
+    }
+  ]
+  calls: [
+    {
+      callNodeType: "call_expression",
+      functionField: "function",
+      selector: {
+        nodeType: "navigation_expression",
+        ownerField: "target",
+        nameField: "suffix",
+        bareType: "simple_identifier"
+      }
+    }
+  ]
+}

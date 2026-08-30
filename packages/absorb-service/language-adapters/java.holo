@@ -1,0 +1,53 @@
+@language_adapter {
+  id: "java"
+  language: "java"
+  grammarPackage: "tree-sitter-java"
+  extensions: [".java"]
+  symbols: [
+    {
+      nodeType: "class_declaration",
+      kind: "class",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "class {name}"
+    },
+    {
+      nodeType: "interface_declaration",
+      kind: "interface",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "interface {name}"
+    },
+    {
+      nodeType: "enum_declaration",
+      kind: "enum",
+      nameField: "name",
+      noSignature: true
+    },
+    {
+      nodeType: "method_declaration",
+      kind: "method",
+      nameField: "name",
+      signatureTemplate: "{name}({field:parameters})"
+    },
+    {
+      nodeType: "constructor_declaration",
+      kind: "method",
+      nameField: "name",
+      signatureTemplate: "{name}({field:parameters})"
+    }
+  ]
+  moduleImports: [
+    {
+      declNodeType: "import_declaration",
+      moduleChildTypes: ["scoped_identifier", "identifier"]
+    }
+  ]
+  calls: [
+    {
+      callNodeType: "method_invocation",
+      methodField: "name",
+      receiverField: "object"
+    }
+  ]
+}

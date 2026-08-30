@@ -1,0 +1,55 @@
+@language_adapter {
+  id: "php"
+  language: "php"
+  grammarPackage: "tree-sitter-php"
+  extensions: [".php"]
+  symbols: [
+    {
+      nodeType: "class_declaration",
+      kind: "class",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "class {name}"
+    },
+    {
+      nodeType: "interface_declaration",
+      kind: "interface",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "interface {name}"
+    },
+    {
+      nodeType: "function_definition",
+      kind: "function",
+      nameField: "name",
+      kindWhenOwned: "method",
+      signatureTemplate: "function {name}({field:parameters})",
+      signatureTemplateWhenOwned: "{owner}::{name}({field:parameters})"
+    },
+    {
+      nodeType: "method_declaration",
+      kind: "method",
+      nameField: "name",
+      signatureTemplate: "{name}({field:parameters})"
+    }
+  ]
+  moduleImports: [
+    {
+      declNodeType: "namespace_use_declaration",
+      moduleChildTypes: ["namespace_use_clause", "namespace_name"]
+    }
+  ]
+  calls: [
+    {
+      callNodeType: "function_call_expression",
+      functionField: "function",
+      selector: {
+        nodeType: "member_access_expression",
+        ownerField: "object",
+        nameField: "name",
+        bareType: "name",
+        bareTypes: ["name", "qualified_name"]
+      }
+    }
+  ]
+}

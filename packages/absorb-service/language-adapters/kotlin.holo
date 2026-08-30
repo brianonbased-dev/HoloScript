@@ -1,0 +1,47 @@
+@language_adapter {
+  id: "kotlin"
+  language: "kotlin"
+  grammarPackage: "tree-sitter-kotlin"
+  extensions: [".kt", ".kts"]
+  symbols: [
+    {
+      nodeType: "class_declaration",
+      kind: "class",
+      nameChildType: "type_identifier",
+      container: true,
+      signatureTemplate: "class {name}"
+    },
+    {
+      nodeType: "object_declaration",
+      kind: "class",
+      nameChildType: "type_identifier",
+      container: true,
+      signatureTemplate: "object {name}"
+    },
+    {
+      nodeType: "function_declaration",
+      kind: "function",
+      nameChildType: "simple_identifier",
+      kindWhenOwned: "method",
+      signatureTemplate: "fun {name}"
+    }
+  ]
+  moduleImports: [
+    {
+      declNodeType: "import_header",
+      moduleChildTypes: ["identifier"]
+    }
+  ]
+  calls: [
+    {
+      callNodeType: "call_expression",
+      functionField: "function",
+      selector: {
+        nodeType: "navigation_expression",
+        ownerField: "expression",
+        nameField: "suffix",
+        bareType: "simple_identifier"
+      }
+    }
+  ]
+}

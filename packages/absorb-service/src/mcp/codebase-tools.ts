@@ -3081,9 +3081,10 @@ function addCoverageNameOrPath(
  * language-registry.json advertises `javascript` as a supported language with
  * `.js/.jsx/.mjs/.cjs`. The runtime disagrees: LANGUAGE_TRAITS ships no
  * javascript adapter, the typescript trait claims those extensions, and
- * getSupportedLanguages() returns go, python, ruby, rust, typescript,
- * holoscript. Verified live: detectLanguage() returns 'typescript' for every
- * one of .js/.jsx/.mjs/.cjs/.ts/.tsx.
+ * getSupportedLanguages() returns the registered adapter ids (typescript plus
+ * the other LANGUAGE_TRAITS languages and holoscript). Verified live:
+ * detectLanguage() returns 'typescript' for every one of
+ * .js/.jsx/.mjs/.cjs/.ts/.tsx.
  *
  * So `languages: ['javascript']` — a value the registry says is valid —
  * excluded EVERY file as languageFilter. Zero candidates then made

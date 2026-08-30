@@ -65,7 +65,7 @@ This is the `map_data` / `map_csv` universal-bridge pattern (data → `.holo` �
 | ✅ 2 | `TreeSitterTraitAdapter` + `RUBY_TRAIT` — **Ruby added as data, zero bespoke code**          | additive, shipped (`bd0f4f993`); 4/4 deterministic tests |
 | ✅ 3 | Generate `language-registry.json` from the trait set                                         | additive, guarded by the existing drift gate             |
 | 4    | Port one _existing_ language (Go is smallest) to a trait; keep the class until parity proven | reversible, parity-gated                                 |
-| 5    | Land the 6 stranded `declared` languages as traits, no core PR each                          | the payoff                                               |
+| ✅ 5    | Land the 6 stranded `declared` languages as `@language_adapter` `.holo` traits               | same TreeSitterTraitAdapter path as python/go/rust       |
 
 The win landed at step 2 (`bd0f4f993`): Ruby is ingested via the `RUBY_TRAIT` config object +
 the generic `TreeSitterTraitAdapter` — **no `RubyAdapter` class exists**. Step 3 makes the

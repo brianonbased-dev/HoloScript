@@ -77,7 +77,8 @@ function getExtension(filePath: string): string {
 
 // ── Register built-in adapters ──────────────────────────────────────────────
 
-// TypeScript/JavaScript, Rust, Go, Python, and Ruby are ALL now AUTHORED as
+// TypeScript/JavaScript, Rust, Go, Python, Ruby, and the six formerly-declared
+// languages (Java, C++, C#, PHP, Swift, Kotlin) are ALL now AUTHORED as
 // `language-adapters/*.holo` (@language_adapter) — they register via the
 // LANGUAGE_TRAITS loop below through the generic TreeSitterTraitAdapter, at
 // parity with the deleted bespoke TypeScriptAdapter / RustAdapter / GoAdapter /

@@ -73,6 +73,12 @@ export interface SymbolRule {
   kind: ExtendedSymbolType;
   /** Field holding the identifier (childForFieldName). Default 'name'. */
   nameField?: string;
+  /**
+   * When the grammar does not expose a named `name` field (Kotlin class/function,
+   * some Swift functions), take the first named child of this type as the name.
+   * Checked only after `nameField` misses. Omit for field-based grammars.
+   */
+  nameChildType?: string;
   /** If true, this node's name becomes the `owner` of descendant symbols. */
   container?: boolean;
   /**

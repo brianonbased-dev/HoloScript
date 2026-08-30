@@ -145,6 +145,12 @@ export class AdapterManager {
           return mod.javascript || mod;
         }
       }
+      // tree-sitter-php 0.23+ exports { php, php_only } rather than a default language.
+      if (language === 'php') {
+        const pkg = await import(packageName);
+        const mod = pkg.default || pkg;
+        return mod.php || mod.php_only || mod;
+      }
       const pkg = await import(packageName);
       return pkg.default || pkg;
     } catch (err) {

@@ -1,0 +1,48 @@
+@language_adapter {
+  id: "cpp"
+  language: "cpp"
+  grammarPackage: "tree-sitter-cpp"
+  extensions: [".cpp", ".cc", ".cxx", ".hpp", ".h"]
+  symbols: [
+    {
+      nodeType: "class_specifier",
+      kind: "class",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "class {name}"
+    },
+    {
+      nodeType: "struct_specifier",
+      kind: "struct",
+      nameField: "name",
+      container: true,
+      signatureTemplate: "struct {name}"
+    },
+    {
+      nodeType: "function_declarator",
+      kind: "function",
+      nameField: "declarator",
+      kindWhenOwned: "method",
+      signatureTemplate: "{name}({field:parameters})",
+      signatureTemplateWhenOwned: "{owner}::{name}({field:parameters})"
+    }
+  ]
+  moduleImports: [
+    {
+      declNodeType: "preproc_include",
+      moduleField: "path"
+    }
+  ]
+  calls: [
+    {
+      callNodeType: "call_expression",
+      functionField: "function",
+      selector: {
+        nodeType: "field_expression",
+        ownerField: "argument",
+        nameField: "field",
+        bareType: "identifier"
+      }
+    }
+  ]
+}

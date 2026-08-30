@@ -87,18 +87,20 @@
     },
     {
       "id": "java",
-      "status": "declared",
-      "adapter": null,
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-java",
       "extensions": [
         ".java"
       ],
-      "notes": "Generated build target from SupportedLanguage."
+      "declaration": "packages/absorb-service/language-adapters/java.holo",
+      "extractorRules": 7,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "cpp",
-      "status": "declared",
-      "adapter": null,
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-cpp",
       "extensions": [
         ".cpp",
@@ -107,48 +109,58 @@
         ".hpp",
         ".h"
       ],
-      "notes": "Generated build target from SupportedLanguage."
+      "declaration": "packages/absorb-service/language-adapters/cpp.holo",
+      "extractorRules": 5,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "csharp",
-      "status": "declared",
-      "adapter": null,
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-c-sharp",
       "extensions": [
         ".cs"
       ],
-      "notes": "Generated build target from SupportedLanguage."
+      "declaration": "packages/absorb-service/language-adapters/csharp.holo",
+      "extractorRules": 8,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "php",
-      "status": "declared",
-      "adapter": null,
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-php",
       "extensions": [
         ".php"
       ],
-      "notes": "Generated build target from SupportedLanguage."
+      "declaration": "packages/absorb-service/language-adapters/php.holo",
+      "extractorRules": 6,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "swift",
-      "status": "declared",
-      "adapter": null,
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-swift",
       "extensions": [
         ".swift"
       ],
-      "notes": "Generated build target from SupportedLanguage."
+      "declaration": "packages/absorb-service/language-adapters/swift.holo",
+      "extractorRules": 5,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "kotlin",
-      "status": "declared",
-      "adapter": null,
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
       "grammarPackage": "tree-sitter-kotlin",
       "extensions": [
         ".kt",
         ".kts"
       ],
-      "notes": "Generated build target from SupportedLanguage."
+      "declaration": "packages/absorb-service/language-adapters/kotlin.holo",
+      "extractorRules": 5,
+      "notes": "Generated from @language_adapter .holo data."
     },
     {
       "id": "ruby",

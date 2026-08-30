@@ -93,7 +93,7 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     out: ExternalSymbolDefinition[],
     exportedNames: Set<string> | null = null
   ): void {
-    const name = getFieldText(node, rule.nameField ?? 'name');
+    const name = getFieldText(node, rule.nameField ?? 'name') ?? nameFromChildType(node, rule);
     if (!name) return;
 
     const owner = rule.ownerFromField
@@ -796,7 +796,10 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         // own `nameField` — Rust `impl_item` owns methods under its `type`
         // field while having no `name` field of its own.
         const r = this.symbolRulesByType.get(p.type);
-        return getFieldText(p, r?.ownerNameField ?? r?.nameField ?? 'name');
+        return (
+          getFieldText(p, r?.ownerNameField ?? r?.nameField ?? 'name') ??
+          (r ? nameFromChildType(p, r) : undefined)
+        );
       }
       p = p.parent;
     }
@@ -809,12 +812,20 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     while (p) {
       const rule = this.symbolRulesByType.get(p.type);
       if (rule && (rule.kind === 'method' || rule.kind === 'function')) {
-        return getFieldText(p, rule.nameField ?? 'name') ?? '<anonymous>';
+        return (
+          getFieldText(p, rule.nameField ?? 'name') ?? nameFromChildType(p, rule) ?? '<anonymous>'
+        );
       }
       p = p.parent;
     }
     return '<module>';
   }
+}
+
+function nameFromChildType(node: SyntaxNode, rule: SymbolRule): string | undefined {
+  if (!rule.nameChildType) return undefined;
+  const child = node.namedChildren.find((c) => c.type === rule.nameChildType);
+  return child?.text;
 }
 
 function stripQuotes(text: string): string {
