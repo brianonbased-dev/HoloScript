@@ -302,6 +302,12 @@ export interface CallRule {
   /** Field holding the receiver/object, e.g. 'receiver' (Ruby). Optional. */
   receiverField?: string;
   /**
+   * When the grammar has no function/method field (Swift/Kotlin
+   * `call_expression`), the first named child of this type is the bare callee
+   * (`helper()`). Omit for field-based call rules.
+   */
+  bareChildType?: string;
+  /**
    * Selector style (Go `call_expression`): the callee is nested under a
    * `functionField` whose child is either a `selector` node (operand=owner,
    * field=callee) or a bare identifier (callee only). Mutually exclusive with

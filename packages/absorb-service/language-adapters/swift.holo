@@ -36,13 +36,7 @@
   calls: [
     {
       callNodeType: "call_expression",
-      functionField: "function",
-      selector: {
-        nodeType: "navigation_expression",
-        ownerField: "target",
-        nameField: "suffix",
-        bareType: "simple_identifier"
-      }
+      bareChildType: "simple_identifier"
     }
   ]
 }

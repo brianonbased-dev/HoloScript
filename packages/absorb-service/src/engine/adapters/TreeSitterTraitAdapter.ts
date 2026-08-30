@@ -674,6 +674,9 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
           } else {
             continue;
           }
+        } else if (rule.bareChildType) {
+          const child = node.namedChildren.find((c) => c.type === rule.bareChildType);
+          calleeName = child?.text;
         } else {
           // Method-field style (Ruby): callee name is a field of the call node.
           calleeName = getFieldText(node, rule.methodField ?? 'method');
