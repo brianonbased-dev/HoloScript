@@ -35,7 +35,12 @@
   calls: [
     {
       callNodeType: "call_expression",
-      bareChildType: "simple_identifier"
+      bareChildType: "simple_identifier",
+      childSelector: {
+        nodeType: "navigation_expression",
+        nameChildType: "navigation_suffix",
+        nameLeafType: "simple_identifier"
+      }
     }
   ]
 }

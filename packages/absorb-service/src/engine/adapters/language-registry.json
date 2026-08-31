@@ -134,7 +134,7 @@
         ".php"
       ],
       "declaration": "packages/absorb-service/language-adapters/php.holo",
-      "extractorRules": 6,
+      "extractorRules": 8,
       "notes": "Generated from @language_adapter .holo data."
     },
     {

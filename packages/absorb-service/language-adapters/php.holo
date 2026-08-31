@@ -50,6 +50,16 @@
         bareType: "name",
         bareTypes: ["name", "qualified_name"]
       }
+    },
+    {
+      callNodeType: "member_call_expression",
+      methodField: "name",
+      receiverField: "object"
+    },
+    {
+      callNodeType: "scoped_call_expression",
+      methodField: "name",
+      receiverField: "scope"
     }
   ]
 }

@@ -22,6 +22,14 @@ interface Fixture {
   symbolNames: string[];
   importContains: string;
   calleeNames: string[];
+  /**
+   * Owner of each member call (`obj.method()` → 'obj'). Every fixture MUST
+   * contain a member call: it is the dominant call form in all six languages,
+   * and the first cut of these adapters extracted only bare calls for
+   * php/swift/kotlin while the fixtures asserted only bare calls — so the
+   * suite went green over three empty call graphs.
+   */
+  calleeOwners: string[];
 }
 
 const FIXTURES: Fixture[] = [
@@ -43,6 +51,7 @@ public class Widget {
     symbolNames: ['Widget', 'add'],
     importContains: 'java.util.List',
     calleeNames: ['helper', 'method'],
+    calleeOwners: ['obj'],
   },
   {
     language: 'cpp',
@@ -50,6 +59,7 @@ public class Widget {
     extensions: ['.cpp', '.cc', '.cxx', '.hpp', '.h'],
     file: 'widget.cpp',
     source: `#include "widget.h"
+#include <vector>
 
 class Widget {
 public:
@@ -67,6 +77,7 @@ int add(int a, int b) {
     symbolNames: ['Widget', 'refresh', 'add'],
     importContains: 'widget.h',
     calleeNames: ['helper', 'method'],
+    calleeOwners: ['obj'],
   },
   {
     language: 'csharp',
@@ -86,6 +97,7 @@ public class Widget {
     symbolNames: ['Widget', 'Add'],
     importContains: 'System',
     calleeNames: ['Helper', 'Method'],
+    calleeOwners: ['obj'],
   },
   {
     language: 'php',
@@ -98,7 +110,8 @@ use App\\Helpers\\Helper;
 class Widget {
     public function add($a, $b) {
         helper();
-        return $a + $b;
+        Registry::lookup();
+        return $this->compute($a, $b);
     }
 }
 
@@ -109,7 +122,11 @@ function module_fn($x) {
 `,
     symbolNames: ['Widget', 'add', 'module_fn'],
     importContains: 'Helper',
-    calleeNames: ['helper'],
+    // `$this->compute()` is member_call_expression and `Registry::lookup()` is
+    // scoped_call_expression — both distinct node types from the bare
+    // function_call_expression, so each needs its own rule.
+    calleeNames: ['helper', 'compute', 'lookup'],
+    calleeOwners: ['$this', 'Registry'],
   },
   {
     language: 'swift',
@@ -121,7 +138,7 @@ function module_fn($x) {
 class Widget {
     func add(a: Int, b: Int) -> Int {
         helper()
-        return a + b
+        return obj.method(a)
     }
 }
 
@@ -132,7 +149,8 @@ func moduleFn(x: Int) -> Int {
 `,
     symbolNames: ['Widget', 'add', 'moduleFn'],
     importContains: 'Foundation',
-    calleeNames: ['helper'],
+    calleeNames: ['helper', 'method'],
+    calleeOwners: ['obj'],
   },
   {
     language: 'kotlin',
@@ -144,7 +162,7 @@ func moduleFn(x: Int) -> Int {
 class Widget {
     fun add(a: Int, b: Int): Int {
         helper()
-        return a + b
+        return obj.method(a)
     }
 }
 
@@ -155,7 +173,8 @@ fun moduleFn(x: Int): Int {
 `,
     symbolNames: ['Widget', 'add', 'moduleFn'],
     importContains: 'kotlin',
-    calleeNames: ['helper'],
+    calleeNames: ['helper', 'method'],
+    calleeOwners: ['obj'],
   },
 ];
 
@@ -176,6 +195,23 @@ function unwrapGrammar(mod: unknown, language: SupportedLanguage): unknown {
 }
 
 const trees = new Map<SupportedLanguage, ParseTree | null>();
+
+/**
+ * Return the parsed fixture, or SKIP the test when the grammar could not load.
+ *
+ * The first cut of this suite returned early instead, so all 24 extraction
+ * assertions PASSED with zero grammars installed — the suite reported six
+ * languages green having parsed nothing. A skip is reported as a skip; only a
+ * pass may mean proof.
+ */
+function requireTree(fixture: Fixture, ctx: { skip: (note?: string) => void }): ParseTree | null {
+  const tree = trees.get(fixture.language);
+  if (!tree) {
+    ctx.skip(`${fixture.grammarPackage} did not load — nothing was parsed, nothing is proven`);
+    return null;
+  }
+  return tree;
+}
 
 beforeAll(async () => {
   for (const fixture of FIXTURES) {
@@ -242,8 +278,8 @@ for (const fixture of FIXTURES) {
       }
     });
 
-    it('extracts symbols from a small fixture', () => {
-      const tree = trees.get(fixture.language);
+    it('extracts symbols from a small fixture', (ctx) => {
+      const tree = requireTree(fixture, ctx);
       if (!tree) return;
       const symbols = new TreeSitterTraitAdapter(trait!).extractSymbols(tree, fixture.file);
       const names = symbols.map((s) => s.name);
@@ -252,8 +288,8 @@ for (const fixture of FIXTURES) {
       }
     });
 
-    it('extracts imports from a small fixture', () => {
-      const tree = trees.get(fixture.language);
+    it('extracts imports from a small fixture', (ctx) => {
+      const tree = requireTree(fixture, ctx);
       if (!tree) return;
       const imports = new TreeSitterTraitAdapter(trait!).extractImports(tree, fixture.file);
       expect(imports.length, `${fixture.language} extracted no imports`).toBeGreaterThan(0);
@@ -261,15 +297,38 @@ for (const fixture of FIXTURES) {
         imports.some((edge) => edge.toModule.includes(fixture.importContains)),
         `${fixture.language} imports were ${imports.map((e) => e.toModule).join(', ')}`
       ).toBe(true);
+      // A module id must be joinable with the paths it resolves to. C's
+      // `#include "widget.h"` / `<vector>` arrive with their delimiters
+      // attached, so the module field is normalized on the way out.
+      for (const edge of imports) {
+        expect(
+          edge.toModule,
+          `${fixture.language} kept import delimiters on ${JSON.stringify(edge.toModule)}`
+        ).toMatch(/^[^"'`<]/);
+      }
     });
 
-    it('extracts calls from a small fixture', () => {
-      const tree = trees.get(fixture.language);
+    it('extracts calls from a small fixture', (ctx) => {
+      const tree = requireTree(fixture, ctx);
       if (!tree) return;
       const calls = new TreeSitterTraitAdapter(trait!).extractCalls(tree, fixture.file);
       const callees = calls.map((c) => c.calleeName);
       for (const expected of fixture.calleeNames) {
         expect(callees, `${fixture.language} missing call ${expected}`).toContain(expected);
+      }
+    });
+
+    it('extracts the OWNER of a member call, not just bare calls', (ctx) => {
+      const tree = requireTree(fixture, ctx);
+      if (!tree) return;
+      const calls = new TreeSitterTraitAdapter(trait!).extractCalls(tree, fixture.file);
+      const owners = calls.map((c) => c.calleeOwner).filter(Boolean);
+      for (const expected of fixture.calleeOwners) {
+        expect(
+          owners,
+          `${fixture.language} dropped the receiver of a member call — extracted ` +
+            `${calls.map((c) => `${c.calleeOwner ?? '?'}.${c.calleeName}`).join(', ')}`
+        ).toContain(expected);
       }
     });
   });

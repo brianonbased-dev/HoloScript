@@ -439,7 +439,11 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
       const moduleStart = moduleNode.startIndex;
       const edge: ImportEdge = {
         fromFile: filePath,
-        toModule: moduleNode.text,
+        // Python's module field is a bare `dotted_name`, but C's is the literal
+        // include token — `"widget.h"` / `<vector>`. Leaving the delimiters in
+        // makes the module id unjoinable with the file paths it should resolve
+        // to, so normalize here (no-op for unquoted fields).
+        toModule: stripDelimiters(moduleNode.text),
         line,
         namedImports: [],
       };
@@ -674,9 +678,25 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
           } else {
             continue;
           }
-        } else if (rule.bareChildType) {
-          const child = node.namedChildren.find((c) => c.type === rule.bareChildType);
-          calleeName = child?.text;
+        } else if (rule.bareChildType || rule.childSelector) {
+          // Child-type style (Swift/Kotlin): the call node carries no fields, so
+          // the callee is located positionally. `bareChildType` covers
+          // `helper()`; `childSelector` covers `obj.method()`, whose navigation
+          // child holds the owner first and the dotted suffix second.
+          const sel = rule.childSelector;
+          const child = node.namedChildren.find(
+            (c) => c.type === rule.bareChildType || c.type === sel?.nodeType
+          );
+          if (!child) continue;
+          if (sel && child.type === sel.nodeType) {
+            const suffix = child.namedChildren.find((c) => c.type === sel.nameChildType);
+            // The suffix's own text keeps the leading dot ('.method'), so read
+            // the identifier leaf inside it.
+            calleeName = suffix?.namedChildren.find((c) => c.type === sel.nameLeafType)?.text;
+            calleeOwner = child.namedChildren.find((c) => c.type !== sel.nameChildType)?.text;
+          } else {
+            calleeName = child.text;
+          }
         } else {
           // Method-field style (Ruby): callee name is a field of the call node.
           calleeName = getFieldText(node, rule.methodField ?? 'method');
@@ -833,6 +853,17 @@ function nameFromChildType(node: SyntaxNode, rule: SymbolRule): string | undefin
 
 function stripQuotes(text: string): string {
   return text.replace(/^['"`]|['"`]$/g, '').trim();
+}
+
+/**
+ * Strip the delimiters a grammar keeps around a module token: quotes, and the
+ * angle brackets C-family `#include <vector>` carries. `stripQuotes` alone
+ * leaves `<vector>` intact, which is not a module id anything can resolve.
+ */
+function stripDelimiters(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('<') && trimmed.endsWith('>')) return trimmed.slice(1, -1).trim();
+  return stripQuotes(trimmed);
 }
 
 /**

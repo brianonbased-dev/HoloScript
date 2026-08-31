@@ -67,6 +67,27 @@ This is the `map_data` / `map_csv` universal-bridge pattern (data → `.holo` �
 | 4    | Port one _existing_ language (Go is smallest) to a trait; keep the class until parity proven | reversible, parity-gated                                 |
 | ✅ 5    | Land the 6 stranded `declared` languages as `@language_adapter` `.holo` traits               | same TreeSitterTraitAdapter path as python/go/rust       |
 
+### Adding a language: cover the member call, not just the bare call
+
+Every grammar spells `helper()` roughly the same way and `obj.method()` differently, so a
+trait that only handles the bare form looks finished and emits a call graph with almost no
+edges. The six languages above each needed a distinct shape:
+
+| Form                          | Grammars                | Trait key                            |
+| ----------------------------- | ----------------------- | ------------------------------------ |
+| callee under a field          | Go, Python, TS, C++, C# | `functionField` + `selector`          |
+| callee/receiver are fields    | Ruby, Java, PHP         | `methodField` + `receiverField`       |
+| no fields at all — positional | Swift, Kotlin           | `bareChildType` + `childSelector`     |
+
+PHP needs three rules, not one: `function_call_expression` (`helper()`),
+`member_call_expression` (`$this->x()`), and `scoped_call_expression` (`Klass::stat()`) are
+separate node types. Swift/Kotlin wrap the receiver in a `navigation_expression` whose suffix
+text keeps its leading dot, so the name is read from the identifier leaf inside it.
+
+**Fixture rule:** a new language's fixture must contain a member call and assert its
+`calleeOwner`. Asserting only bare calls is how the first cut of these six shipped three
+empty call graphs with a green suite.
+
 The win landed at step 2 (`bd0f4f993`): Ruby is ingested via the `RUBY_TRAIT` config object +
 the generic `TreeSitterTraitAdapter` — **no `RubyAdapter` class exists**. Step 3 makes the
 registry itself generated from `.holo` declarations, so registry drift is caught before a new

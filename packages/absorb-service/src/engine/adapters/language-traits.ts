@@ -308,6 +308,23 @@ export interface CallRule {
    */
   bareChildType?: string;
   /**
+   * Member-call companion to `bareChildType`, for grammars that expose NO
+   * fields on the call node. Swift/Kotlin wrap `obj.method()` in a
+   * `navigation_expression` child; Kotlin's carries no fields at all, so the
+   * owner and callee must be read positionally by child type. Without this,
+   * `bareChildType` matches nothing on a member call and the edge is dropped —
+   * which silently emptied the Swift/Kotlin/PHP call graphs. Omit for
+   * field-based call rules.
+   */
+  childSelector?: {
+    /** Child of the call node holding the whole navigation, e.g. 'navigation_expression'. */
+    nodeType: string;
+    /** Child of that node holding the trailing name, e.g. 'navigation_suffix'. */
+    nameChildType: string;
+    /** Leaf inside `nameChildType` carrying the bare identifier, e.g. 'simple_identifier'. */
+    nameLeafType: string;
+  };
+  /**
    * Selector style (Go `call_expression`): the callee is nested under a
    * `functionField` whose child is either a `selector` node (operand=owner,
    * field=callee) or a bare identifier (callee only). Mutually exclusive with
