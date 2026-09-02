@@ -1,0 +1,11 @@
+# Cursor reads AGENTS.md, CLAUDE.md and .cursor/rules out of EVERY subdirectory
+# and counts them as "Rules" in the context window.
+#
+# .holorepo/ holds HoloRepo candidate worktrees: full checkouts, each carrying
+# its own copy of those rule files. With 23 worktrees nested here, Cursor loaded
+# ~350K tokens of duplicated rules and overflowed the 256K window (2026-09-02).
+# The worktrees stay; Cursor just must not walk them from this workspace.
+.holorepo/
+.claude/worktrees/
+.scratch/
+**/.scratch/

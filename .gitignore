@@ -334,3 +334,6 @@ research/paper-18-motion-sesl/trace-*.jsonl
 
 # holo-pages/build is a route source dir (.holo redirect page), not build output
 !packages/studio/holo-pages/build/
+
+# HoloRepo candidate worktrees live inside the repo; they are separate checkouts, never content of this one
+.holorepo/
