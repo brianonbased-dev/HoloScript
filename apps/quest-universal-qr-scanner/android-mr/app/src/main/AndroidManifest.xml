@@ -4,8 +4,8 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:horizonos="http://schemas.horizonos/sdk"
   xmlns:tools="http://schemas.android.com/tools"
-  android:versionCode="3"
-  android:versionName="1.0.2"
+  android:versionCode="4"
+  android:versionName="1.0.3"
   android:installLocation="auto"
 >
 
@@ -70,6 +70,7 @@
       android:value="V2.0"
     />
     <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
+    <meta-data android:name="com.oculus.ossplash" android:value="true" />
     <uses-native-library
       android:name="libossdk.oculus.so"
       android:required="true"

@@ -67,6 +67,7 @@ class PassthroughCameraController(
     fun resumeScanning() { paused = false; lastDecodeAttemptMs = 0 }
 
     fun start() {
+        try {
         thread = HandlerThread("qr-camera").also { it.start() }
         handler = Handler(thread!!.looper)
         val cameraId = selectPassthroughCameraId()
@@ -77,6 +78,9 @@ class PassthroughCameraController(
         pickLargestYuvSize(cameraId)?.let { capW = it.width; capH = it.height }
         Log.i(TAG, "opening camera id=$cameraId capture=${capW}x$capH (max sensor res; read every ${DECODE_INTERVAL_MS}ms)")
         openCamera(cameraId)
+        } catch (e: Exception) {
+            onError("Camera failed to start: ${e.message}")
+        }
     }
 
     /** The sensor's largest YUV_420_888 output — more pixels per QR module = decodable. */

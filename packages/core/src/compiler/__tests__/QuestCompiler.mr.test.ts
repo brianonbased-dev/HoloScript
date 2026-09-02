@@ -341,6 +341,43 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(strings).toContain('<string name="app_name">HoloQR</string>');
   });
 
+  it('keeps a visible Scanning HUD so ambient scan does not look frozen', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const panel = out[Object.keys(out).find((k) => k.endsWith('ScannerPanel.kt'))!];
+    expect(panel).toContain('private fun ScanningHud()');
+    expect(panel).toContain('ScanningHud()');
+    expect(panel).not.toContain('while scanning, render NOTHING');
+  });
+
+  it('shows a VR splash and does not crash launch if SplatFeature fails', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const manifest = out[Object.keys(out).find((k) => k.endsWith('AndroidManifest.xml'))!];
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(manifest).toContain('android:name="com.oculus.ossplash"');
+    expect(activity).toContain('SplatFeature unavailable');
+    expect(activity).toContain('maybeStartScanner()');
+  });
+
+  it('privacy policy uses the store listing name HoloQR', () => {
+    const privacy = readFileSync(
+      join(__dirname, '..', '..', '..', '..', '..', 'apps', 'quest-universal-qr-scanner', 'PRIVACY.md'),
+      'utf8'
+    );
+    expect(privacy).toMatch(/^# Privacy Policy — HoloQR/m);
+    expect(privacy).toContain('HoloQR ("the app")');
+    expect(privacy).not.toMatch(/Universal QR Scanner/);
+  });
+
+  it('requests the headset camera from Start scanning, not VR launch', () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    const onCreate = activity.split('override fun onResume')[0];
+    expect(onCreate).not.toContain('requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)');
+    expect(activity).toContain('Waiting for camera permission');
+    expect(activity).toContain('requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)');
+    expect(activity).toContain('maybeStartScanner()');
+  });
+
   it('an empty composition still emits the 2D panel (golden-compat fallback)', () => {
     const out = new QuestCompiler().compile({ objects: [] } as never, '');
     const keys = Object.keys(out);

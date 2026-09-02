@@ -1,53 +1,59 @@
 {
-  "schemaVersion": "holoscript.holoqr-store-screenshot-receipt.v0.3.0",
+  "schemaVersion": "holoscript.holoqr-store-screenshot-receipt.v0.3.1",
   "kind": "HoloQrStoreScreenshotReceipt",
-  "createdAt": "2026-09-02T18:36:27.267Z",
+  "createdAt": "2026-09-02T18:53:05.122Z",
   "rule": "VRC.Quest.Asset.5 — unembellished in-experience frames, no extra logos/text/iconography",
   "size": {
     "width": 2560,
     "height": 1440
   },
   "overlays": [],
+  "note": "04-scanning.png composites the 1.0.3 ScanningHud onto a Quest compositor passthrough still; recapture on-headset when a Quest is connected.",
   "artifacts": [
     {
       "file": "01-welcome.png",
       "source": "meta-compositor-welcome.jpg",
+      "hud": false,
       "width": 2560,
       "height": 1440,
-      "bytes": 1017036,
-      "sha256": "b1ef4644c4228e5bbf6fc081b4d2c7434c82c3f66ff0f4ad766174c384a81d22"
+      "bytes": 1089625,
+      "sha256": "01a1885d3f026cf15a77c03291ba03d19ed9c668062f9a2ad88fd166668f6f0f"
     },
     {
       "file": "02-how-it-works.png",
       "source": "meta-compositor-tutorial.jpg",
+      "hud": false,
       "width": 2560,
       "height": 1440,
-      "bytes": 767577,
-      "sha256": "65983cdb82f0da350e4960719888a9f431b7dadaecda8ef8d889cbe45c972917"
+      "bytes": 871763,
+      "sha256": "34f2b887c01e657eeb5f67f4520042158de3949ef5f9c31a69e283082427fc8d"
     },
     {
       "file": "03-link-found.png",
       "source": "meta-compositor-link.jpg",
+      "hud": false,
       "width": 2560,
       "height": 1440,
-      "bytes": 699788,
-      "sha256": "abdbb39f4fcc75ea85996d6c4845c849c5d1fc56f7adc89b7afe6c2d1c4cc30d"
+      "bytes": 789638,
+      "sha256": "59e02254e539dc0b1e4a48b2c5b843d12842aab3dd9510e3b5fb8944a828f32e"
     },
     {
-      "file": "04-tutorial-scan.png",
-      "source": "agent-panel-tutorial-scanning-fast.png",
+      "file": "04-scanning.png",
+      "source": "meta-compositor-welcome.jpg",
+      "hud": "scanning",
       "width": 2560,
       "height": 1440,
-      "bytes": 425215,
-      "sha256": "bcdf02650df9c14cc284541154fc416a7c97cb4db4d6ccbac851fabd74e5988d"
+      "bytes": 205439,
+      "sha256": "a5f15c4cfd702a6a83a71fff8ad195cd6be6efd4f43d291e26c43bdc535eaf64"
     },
     {
       "file": "05-saved-links.png",
       "source": "meta-compositor-saved-links.jpg",
+      "hud": false,
       "width": 2560,
       "height": 1440,
-      "bytes": 586739,
-      "sha256": "090710434db343d936eb0e1ca28f289f8ee25adf5199ff3c7bf52071d175a49b"
+      "bytes": 669218,
+      "sha256": "022126aa7c6764374d6373d73525c3d1a62c46807d830521f29eb545d2a2250d"
     }
   ]
 }
