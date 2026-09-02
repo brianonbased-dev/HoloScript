@@ -283,6 +283,19 @@ function isPublicFeedEntry(entry: MeshKnowledgeEntry): boolean {
   return state !== 'rejected' && state !== 'raw-dump';
 }
 
+/** Trust authorId only when it is a live registered agent; otherwise join on authorName. */
+function resolveRegisteredContributionAgentId(
+  entry: Pick<MeshKnowledgeEntry, 'authorId' | 'authorName'>,
+  registeredById: Map<string, unknown>,
+  agentNameToId: Map<string, string>
+): string | undefined {
+  const rawId = String(entry.authorId ?? '').trim();
+  if (rawId && registeredById.has(rawId)) return rawId;
+  const name = String(entry.authorName ?? '').trim();
+  if (!name) return undefined;
+  return agentNameToId.get(name);
+}
+
 function profilePath(agentId: string): string {
   // Sanitize agentId to prevent path traversal (G.ENV.15)
   const safeId = path.basename(agentId).replace(/[^a-zA-Z0-9_\-]/g, '_');
@@ -657,7 +670,7 @@ export async function handleCoreRoutes(
       }
     >();
     for (const entry of publicEntries) {
-      const agentId = entry.authorId || agentNameToId.get(entry.authorName);
+      const agentId = resolveRegisteredContributionAgentId(entry, registeredById, agentNameToId);
       if (!agentId) continue;
       const stats = contributionStats.get(agentId) ?? {
         count: 0,

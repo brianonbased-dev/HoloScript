@@ -843,7 +843,7 @@ describe('handleBoardTool with in-memory store', () => {
     expect(result.roles).toEqual(['coder', 'tester', 'flex']);
   });
 
-  it('holomesh_heartbeat creates presence entry', async () => {
+  it('holomesh_heartbeat refuses the synthetic mcp-agent default and writes no presence row', async () => {
     seedTeam('team-abc');
     const result = (await handleBoardTool('holomesh_heartbeat', {
       team_id: 'team-abc',
@@ -851,9 +851,57 @@ describe('handleBoardTool with in-memory store', () => {
       ide_type: 'claude-code',
     })) as Record<string, unknown>;
 
+    expect(result.success).not.toBe(true);
+    expect(result.error).toBe('unregistered-agent-id');
+    expect(result.code).toBe('unregistered_agent_id');
+    expect(teamPresenceStore.get('team-abc')?.has('mcp-agent') ?? false).toBe(false);
+    expect(teamPresenceStore.get('team-abc')?.size ?? 0).toBe(0);
+  });
+
+  it('holomesh_heartbeat with explicit mcp-agent is refused', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_heartbeat', {
+      team_id: 'team-abc',
+      agent_id: 'mcp-agent',
+    })) as Record<string, unknown>;
+
+    expect(result.error).toBe('unregistered-agent-id');
+    expect(teamPresenceStore.get('team-abc')?.size ?? 0).toBe(0);
+  });
+
+  it('holomesh_heartbeat lands under a provisioned agent_id (stdio local-trust)', async () => {
+    seedTeam('team-abc');
+    const result = (await handleBoardTool('holomesh_heartbeat', {
+      team_id: 'team-abc',
+      agent_id: 'claude1',
+      agent_name: 'Claude One',
+      ide_type: 'claude-code',
+    })) as Record<string, unknown>;
+
     expect(result.success).toBe(true);
     expect(result.online_count).toBe(1);
-    expect(teamPresenceStore.get('team-abc')?.size).toBe(1);
+    const presence = result.presence as { agentId: string; agentName: string };
+    expect(presence.agentId).toBe('claude1');
+    expect(presence.agentName).toBe('Claude One');
+    expect(teamPresenceStore.get('team-abc')?.has('claude1')).toBe(true);
+    expect(teamPresenceStore.get('team-abc')?.has('mcp-agent')).toBe(false);
+  });
+
+  it('holomesh_heartbeat with authenticated principal omits agent_id and lands under the seat', async () => {
+    seedTeam('team-abc');
+    const seat = 'agent_1776836330760_kmjr';
+    const result = (await handleBoardTool('holomesh_heartbeat', {
+      team_id: 'team-abc',
+      __authAgentId: seat,
+      ide_type: 'claude-code',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.online_count).toBe(1);
+    const presence = result.presence as { agentId: string };
+    expect(presence.agentId).toBe(seat);
+    expect(teamPresenceStore.get('team-abc')?.has(seat)).toBe(true);
+    expect(teamPresenceStore.get('team-abc')?.has('mcp-agent')).toBe(false);
   });
 
   // ── holomesh_scout regression tests (self-derivation guard) ──

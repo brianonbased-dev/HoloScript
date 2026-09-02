@@ -76,3 +76,50 @@ describe('HoloMeshOrchestratorClient endpoint metadata', () => {
     expect(peers[0].traits).toContain('@crdt-gossip');
   });
 });
+
+describe('HoloMeshOrchestratorClient queryKnowledge metadata', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('copies orchestrator metadata so public-feed quality filters can run', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            id: 'W.quality',
+            type: 'wisdom',
+            content: 'Rejected dumps must keep their quality metadata.',
+            created_at: '2026-01-01T00:00:00.000Z',
+            tags: ['ok'],
+            metadata: {
+              authorId: 'agent-1',
+              authorName: 'Alice',
+              quality: { state: 'rejected' },
+            },
+          },
+        ],
+      }),
+    });
+
+    const client = new HoloMeshOrchestratorClient(baseConfig);
+    const entries = await client.queryKnowledge('rejected', { limit: 10 });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].authorId).toBe('agent-1');
+    expect(entries[0].authorName).toBe('Alice');
+    expect(entries[0].metadata).toEqual(
+      expect.objectContaining({
+        quality: { state: 'rejected' },
+      })
+    );
+  });
+});

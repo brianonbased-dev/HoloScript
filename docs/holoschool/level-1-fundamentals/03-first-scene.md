@@ -1,4 +1,4 @@
-﻿# Lesson 1.3: Your First Scene
+# Lesson 1.3: Your First Scene
 
 Now that you have HoloScript installed, let's create your first scene. Every snippet in this lesson uses the authority form the live `compiler-wasm` parser accepts.
 
@@ -156,7 +156,7 @@ In this lesson, you:
 
 ## Next Lesson
 
-In [Lesson 1.4: Understanding Compositions](./04-understanding-compositions.md), we stay on the same authority form and look at how objects combine.
+[Lesson 1.4: Understanding Compositions](./04-understanding-compositions.md) is the next page in this sequence. It still teaches the older `composition` handbook form, not this authority form. Read it as a separate dialect until that lesson is rewritten.
 
 ---
 

@@ -22,6 +22,7 @@ import { spawn } from 'child_process';
 import { createHash, randomUUID } from 'crypto';
 import type { ActionHandler } from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/AdvancedTypeSystem';
+import { resolveDaemonModel, shouldReclaimDaemonLock } from './daemon-model-and-lock';
 
 // The engine package re-exports its own copy of HSPlusAST/HeadlessRuntime via the
 // dist barrel. Structurally identical to the src types but TS treats them as
@@ -362,9 +363,12 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--wallet-key' && args[i + 1]) opts.walletKey = args[++i];
   }
 
-  if (!modelExplicit) {
-    opts.model = defaultModelForProvider(opts.provider);
-  }
+  opts.model = resolveDaemonModel({
+    modelExplicit,
+    cliModel: opts.model,
+    envModel: process.env.HOLODAEMON_MODEL,
+    providerDefault: defaultModelForProvider(opts.provider),
+  });
   if (!toolProfileExplicit) {
     opts.toolProfile = defaultToolProfileForProvider(opts.provider);
   }
@@ -510,19 +514,23 @@ async function createDaemonLLMProvider(
   }
   const adapter = new LocalLLMAdapter({
     baseURL: ollamaUrl,
+    model: opts.model,
     defaultModel: opts.model,
     timeoutMs: 120_000,
   });
   return {
     chat: async ({ system, prompt }) => {
-      const result = await adapter.complete({
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: prompt },
-        ],
-        maxTokens: 4096,
-        temperature: 0.2,
-      });
+      const result = await adapter.complete(
+        {
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: prompt },
+          ],
+          maxTokens: 4096,
+          temperature: 0.2,
+        },
+        opts.model
+      );
       return {
         text: result.content,
         inputTokens: result.usage?.promptTokens ?? 0,
@@ -2030,8 +2038,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   if (fs.existsSync(lockFile)) {
     try {
       const existing = readJson(fs.readFileSync(lockFile, 'utf-8')) as Record<string, unknown>;
-      const staleMs = 120_000;
-      if (Date.now() - (existing.heartbeat as number) < staleMs) {
+      if (!shouldReclaimDaemonLock(existing)) {
         console.error(
           `[daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`
         );

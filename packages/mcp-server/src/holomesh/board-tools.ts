@@ -478,7 +478,7 @@ export const boardTools: Tool[] = [
         agent_id: {
           type: 'string',
           description:
-            'Stable agent identifier for this presence slot. Use a provisioned agent ID (e.g. "claude1", "agent_XXXX_YYYY") so board mutations are attributed to a persistent identity rather than the ephemeral "mcp-agent" default.',
+            'Stable provisioned agent ID for this presence slot (e.g. "claude1", "agent_XXXX_YYYY"). When omitted, the authenticated MCP principal is used. The synthetic "mcp-agent" identity is refused — it is not in the registry and cannot own claims.',
         },
         agent_name: {
           type: 'string',
@@ -1126,16 +1126,26 @@ async function handleSuggestList(args: Record<string, unknown>): Promise<Record<
   }
 }
 
+const SYNTHETIC_MCP_AGENT_ID = 'mcp-agent';
+
 async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
 
-  const agentId =
-    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
-  const agentName =
-    typeof args.agent_name === 'string' && args.agent_name.trim()
-      ? args.agent_name.trim()
-      : agentId;
+  const bound = resolveMcpBoardAgent(args);
+  if (!bound.ok) return { error: bound.error };
+  // Presence writes used to default to a ghost "mcp-agent" that is not in the
+  // registry (task_1787337610285_u4qx). Directory silently drops it; /presence
+  // still shows it. Refuse that synthetic id. Authenticated callers land under
+  // the stamped principal, matching the signed REST heartbeat path.
+  if (bound.agentId === SYNTHETIC_MCP_AGENT_ID) {
+    return {
+      error: 'unregistered-agent-id',
+      code: 'unregistered_agent_id',
+    };
+  }
+  const agentId = bound.agentId;
+  const agentName = bound.agentName;
   const ideType = (args.ide_type as string) || 'mcp';
   const surface = normalizePresenceSurface(args.surface);
 

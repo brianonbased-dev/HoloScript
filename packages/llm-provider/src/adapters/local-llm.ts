@@ -146,7 +146,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     this.localBaseURL = (config.baseURL ?? 'http://localhost:8080')
       .replace(/\/$/, '')
       .replace(/\/v1$/, '');
-    this.defaultHoloScriptModel = config.model ?? 'mistral-7b-instruct';
+    this.defaultHoloScriptModel =
+      config.model ?? config.defaultModel ?? 'mistral-7b-instruct';
     // Auto-detect Ollama by default port (11434). Can be overridden explicitly.
     this.useNativeOllamaApi = config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
   }

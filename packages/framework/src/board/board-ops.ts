@@ -1099,6 +1099,37 @@ export function dedupKeyForTitle(title: string, mode: TaskDedupMode = 'normalize
   return normalizeTitle(String(title || ''));
 }
 
+function jsonEquivalentWorkUnit(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read a producer WorkUnit before alias fallback. Nullish coalescing treats
+ * explicit `workUnit: null` as omitted and would skip normalizeTaskWorkUnitContract.
+ */
+function readDeclaredTaskWorkUnit(task: object): {
+  present: boolean;
+  conflict: boolean;
+  value: unknown;
+} {
+  const hasCamel = Object.prototype.hasOwnProperty.call(task, 'workUnit');
+  const hasSnake = Object.prototype.hasOwnProperty.call(task, 'work_unit');
+  if (!hasCamel && !hasSnake) {
+    return { present: false, conflict: false, value: undefined };
+  }
+  const camel = hasCamel ? (task as { workUnit?: unknown }).workUnit : undefined;
+  const snake = hasSnake ? (task as { work_unit?: unknown }).work_unit : undefined;
+  if (hasCamel && hasSnake && !jsonEquivalentWorkUnit(camel, snake)) {
+    return { present: true, conflict: true, value: camel };
+  }
+  return { present: true, conflict: false, value: hasCamel ? camel : snake };
+}
+
 /**
  * Add tasks to a board with dedup against existing + done log.
  *
@@ -1139,13 +1170,14 @@ export function addTasksToBoard(
       continue;
     }
 
-    const inputWorkUnit = (t as unknown as {
-      workUnit?: unknown;
-      work_unit?: unknown;
-    }).workUnit ?? (t as unknown as { work_unit?: unknown }).work_unit;
+    const declaredWorkUnit = readDeclaredTaskWorkUnit(t);
     let normalizedWorkUnit: TaskWorkUnitContract | undefined;
-    if (inputWorkUnit !== undefined) {
-      const normalization = normalizeTaskWorkUnitContract(inputWorkUnit);
+    if (declaredWorkUnit.present) {
+      if (declaredWorkUnit.conflict) {
+        skipped.push({ title, reason: 'invalid_work_unit' });
+        continue;
+      }
+      const normalization = normalizeTaskWorkUnitContract(declaredWorkUnit.value);
       if (!normalization.ok) {
         skipped.push({ title, reason: 'invalid_work_unit' });
         continue;

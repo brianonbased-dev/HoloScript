@@ -235,10 +235,31 @@ const VAST_SPEND_ACCOUNTING_FIELDS = new Set([
   'no_paid_actions',
 ]);
 
+const TASK_TEXT_CAP = 2000;
+
 function normalizeVerificationEvidence(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
-  return trimmed ? trimmed.slice(0, 2000) : undefined;
+  return trimmed || undefined;
+}
+
+function overCapRefusal(
+  field: 'description' | 'verification_evidence',
+  originalLength: number,
+  keptLength = TASK_TEXT_CAP
+) {
+  const code =
+    field === 'description' ? 'description_truncated' : 'verification_evidence_truncated';
+  return {
+    error:
+      field === 'description'
+        ? 'Task update refuses bodies over 2000 chars instead of silently slicing. Shorten the description. Update replaces the whole record and does not append; an append/comment action is a follow-up, not this change.'
+        : 'verification_evidence exceeds 2000 chars; refusing to silently drop the tail of the proof.',
+    code,
+    originalLength,
+    keptLength,
+    maxLength: TASK_TEXT_CAP,
+  };
 }
 
 function getFreshPresence(teamId: string, agentId: string): TeamPresenceEntry | null {
@@ -2823,9 +2844,12 @@ export async function handleBoardRoutes(
         // Completion traffic also drives the same lazy maintenance as list
         // traffic, so stale claims cannot survive on a quiet board.
         await runBoardMaintenance(teamId, team.taskBoard);
-        const verificationEvidence = normalizeVerificationEvidence(
-          body.verification_evidence ?? body.verificationEvidence
-        );
+        const rawEvidence = body.verification_evidence ?? body.verificationEvidence;
+        if (typeof rawEvidence === 'string' && rawEvidence.trim().length > TASK_TEXT_CAP) {
+          json(res, 400, overCapRefusal('verification_evidence', rawEvidence.trim().length));
+          return true;
+        }
+        const verificationEvidence = normalizeVerificationEvidence(rawEvidence);
         if (!verificationEvidence) {
           json(res, 400, {
             error: 'verification_evidence is required before marking a task done',
@@ -3018,13 +3042,31 @@ export async function handleBoardRoutes(
           updates.title = body.title.slice(0, 500);
         }
         if (typeof body.description === 'string') {
+          // task_1786989762750_itz8: update used to assign normalizeTaskDescription(..., 2000)
+          // with success:true and no warnings[], so over-cap callers never learned text
+          // was dropped. addTasksToBoard already emits description_truncated; update
+          // OVERWRITES, so a silent slice is worse. Refuse. Decision: no append/comment
+          // action in this change — update stays a full replace; open tasks that need
+          // to accumulate progress should file a follow-up for an append surface.
+          const normalizedDescription = normalizeTaskDescription(body.description, TASK_TEXT_CAP);
+          if (
+            body.description.length > TASK_TEXT_CAP ||
+            body.description.length > normalizedDescription.length
+          ) {
+            json(
+              res,
+              400,
+              overCapRefusal('description', body.description.length, normalizedDescription.length)
+            );
+            return true;
+          }
           // Preserve previous description for audit before overwriting.
           if (task.description !== body.description) {
             updates._prevDescription =
               String(task.description ?? '').slice(0, 500) +
               (String(task.description ?? '').length > 500 ? '…' : '');
           }
-          updates.description = normalizeTaskDescription(body.description, 2000);
+          updates.description = normalizedDescription;
         }
         if (body.priority !== undefined) {
           Object.assign(updates, normalizeTaskPriority(body.priority, task.priority));

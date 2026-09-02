@@ -4604,6 +4604,124 @@ describe('HoloMesh HTTP Routes', () => {
       expect(updateRes._body.task.description).toContain('## Done when:');
     });
 
+    it('PATCH /board/:taskId update refuses an over-cap description instead of silently slicing', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `update-trunc-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        { tasks: [{ title: 'needs room to grow', description: 'Short opener.', priority: 1 }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+      const before = addRes._body.tasks[0].description;
+
+      const updateReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'update', description: `${'x'.repeat(2300)}\n\n## Done when:\n- still growing` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const updateRes = mockRes();
+      await handleHoloMeshRoute(updateReq, updateRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(updateRes._status).toBe(400);
+      expect(updateRes._body.code).toBe('description_truncated');
+      expect(updateRes._body.originalLength).toBeGreaterThan(2000);
+      expect(updateRes._body.maxLength).toBe(2000);
+
+      const getReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/board`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
+      const still = (getRes._body.tasks || getRes._body.board || []).find(
+        (row: { id: string }) => row.id === taskId
+      );
+      expect(still.description).toBe(before);
+    });
+
+    it('PATCH /board/:taskId done refuses over-cap verification_evidence instead of silently slicing', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `done-trunc-team-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [
+            {
+              title: 'closeout must keep its proof',
+              description: 'A bounded check.',
+              priority: 1,
+              role: 'flex',
+            },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      const taskId = addRes._body.tasks[0].id;
+
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
+        { ide_type: 'cursor', status: 'active' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const beatRes = mockRes();
+      await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
+      expect(beatRes._status).toBe(200);
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+
+      const doneReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        {
+          action: 'done',
+          summary: 'would have dropped the tail',
+          verification_evidence: `pnpm vitest run ${'x'.repeat(2100)}`,
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const doneRes = mockRes();
+      await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+
+      expect(doneRes._status).toBe(400);
+      expect(doneRes._body.code).toBe('verification_evidence_truncated');
+      expect(doneRes._body.originalLength).toBeGreaterThan(2000);
+    });
+
     it('PATCH /board/:taskId update allows member to update their own task (board:update-own)', async () => {
       const createReq = mockReq(
         'POST',
@@ -6213,6 +6331,48 @@ describe('HoloMesh HTTP Routes', () => {
       );
       expect(listed?.profile).toBeDefined();
       expect(listed?.topDomains).toContain('agents');
+    });
+
+    it('counts contributions when a stale authorId still has a resolvable authorName', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `directory-stale-${Date.now()}`,
+        traits: ['@research'],
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const agentId = regRes._body.agent.id;
+      const agentName = regRes._body.agent.name as string;
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'W.directory-stale',
+          type: 'wisdom',
+          content: 'Stale author ids must not hide resolvable public contributions.',
+          domain: 'agents',
+          authorId: 'legacy-unregistered-author-id',
+          authorName: agentName,
+          tags: ['directory'],
+          price: 0,
+          queryCount: 3,
+          reuseCount: 1,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/directory');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/directory');
+
+      expect(res._status).toBe(200);
+      const listed = (res._body.agents as Array<Record<string, unknown>>).find(
+        (agent) => agent.id === agentId
+      );
+      expect(listed).toEqual(
+        expect.objectContaining({
+          name: agentName,
+          contributionCount: 1,
+        })
+      );
     });
   });
 

@@ -62,8 +62,12 @@ export function hasBearerCapability(
   agent: RegisteredAgent,
   capability: HoloMeshBearerCapability
 ): boolean {
-  // Legacy keys predate bearer-scoped capabilities; preserve behavior until
-  // they are rotated into capability-bearing records.
+  // Signed-manifest identities are fail-closed: omitted or empty capabilities
+  // grant nothing. Missing/empty on registry and legacy keys remains unrestricted
+  // until those records are rotated into explicit grants.
+  if (agent.authSource === 'signed-manifest') {
+    return Array.isArray(agent.capabilities) && agent.capabilities.includes(capability);
+  }
   if (!Array.isArray(agent.capabilities) || agent.capabilities.length === 0) return true;
   return agent.capabilities.includes(capability);
 }
@@ -127,6 +131,8 @@ function resolveFromSignedManifest(req: http.IncomingMessage): ResolvedCaller | 
       apiKey: manifestHeader,
       walletAddress: manifest.walletAddress,
       traits: Array.isArray(manifest.capabilities) ? manifest.capabilities : [],
+      capabilities: normalizeBearerCapabilities(manifest.capabilities, []),
+      authSource: 'signed-manifest',
       reputation: 0,
       isFounder: false,
       createdAt: new Date().toISOString(),

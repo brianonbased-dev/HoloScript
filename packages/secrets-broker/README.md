@@ -123,21 +123,46 @@ The source-level transition table lives at the exported
 invokes the repository-owned `holoscriptc`, executes three independently
 compiled five-bit state-row programs, reconstructs the complete 15-bit
 state/action table, and requires both native source and bootstrap adapter to
-equal the reviewed bitmask `16833`:
+equal the reviewed bitmask `16833`. It then compiles the source-authored
+`repository_identity_sha256_byte` entrypoint through the same compiler and
+executes 32 independently compiled programs against the UTF-8 fixture
+`{"authority":"HoloKey","state":1}`. The fixture is 33 bytes, so it fits
+the bounded one-block contract (maximum 55 bytes); every native digest byte
+must equal the expected SHA-256 digest:
+
+`defc35bec5e0abb739f1f23da5d319956af5144ae854fd28dc8bd5c39b11f700`:
+
+The same gate also compiles the source-authored
+`repository_identity_canonical_sha256_byte` entrypoint and executes 32 fresh
+compiler-generated programs, one for each byte of that fixed canonical
+authority/state fixture. This is a source-authored canonical-fixture proof,
+not a claim that the language can traverse or canonicalize arbitrary objects.
+The second proof must produce the same 32-byte digest shown above.
+
+The source now also exposes a bounded schema canonicalizer,
+`repository_identity_canonical_authority_state_sha256_byte`. It accepts a
+borrowed portable-ASCII authority identifier up to 24 bytes and state `0`,
+`1`, or `2`, emits the canonical authority/state JSON form, and proves four
+fixtures (`HoloKey` at each state plus `Jetson-1` at state `2`) through 128
+fresh native executables. This is a bounded schema proof, not arbitrary JSON
+traversal or escaping support.
 
 ```bash
 pnpm --filter @holoscript/secrets-broker run check:repository-identity-native
 ```
 
-That compiler currently cannot materialize the full importable ESM/CJS package
-surface for bounded canonical JSON, SHA-256 binding, signature verification,
-atomic compare-and-commit, or authenticated durable HoloKey authority-root
-readback. The command therefore emits a machine-readable
+The bounded byte-binding, fixed-fixture, and authority/state schema proofs are
+not a general canonical-JSON implementation and do not themselves authenticate
+or persist an authority record. The compiler still cannot materialize the full importable
+ESM/CJS package surface for arbitrary bounded canonical JSON, detached
+signature verification, atomic compare-and-commit, or authenticated durable
+HoloKey authority-root readback.
+The command therefore emits a machine-readable
 `HOLOKEY_NATIVE_AUTHORITY_SURFACE_INCOMPLETE` and
 `HOLOREPO_IDENTITY_MUTATOR_MIGRATION_INCOMPLETE` blockers and exits nonzero even
-when the complete transition-table equivalence check passes. `prepack` runs
-this gate, so the repository-identity authority cannot be published until the
-language builds the entire implementation and HoloRepo becomes a verifier
+when the complete transition-table and bounded SHA-256 checks pass. `prepack`
+runs this gate, so the repository-identity authority cannot be published until
+the language builds the entire implementation and HoloRepo becomes a verifier
 facade. The TypeScript module is a bootstrap contract implementation, not an
 authority-root or graduation receipt.
 

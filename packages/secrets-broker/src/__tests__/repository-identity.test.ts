@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   HOLOKEY_REPOSITORY_APPROVAL_SCHEMA,
@@ -957,5 +958,24 @@ describe('HoloKey repository identity authority', () => {
 
   it('exposes the reviewed complete 15-bit transition-table mask', () => {
     expect(repositoryIdentityNativeTransitionTableMask()).toBe(16_833);
+  });
+
+  it('publishes the bounded native SHA-256 byte-binding entrypoint', () => {
+    const source = readFileSync(new URL('../repository_identity.hsplus', import.meta.url), 'utf8');
+    expect(source.match(/^export function /gmu)).toHaveLength(6);
+    expect(source).toContain('export function repository_identity_sha256_byte');
+  });
+
+  it('publishes a source-authored bounded canonical identity fixture entrypoint', () => {
+    const source = readFileSync(new URL('../repository_identity.hsplus', import.meta.url), 'utf8');
+    expect(source.match(/^export function /gmu)).toHaveLength(6);
+    expect(source).toContain('export function repository_identity_canonical_sha256_byte');
+  });
+
+  it('publishes a source-authored bounded authority-state canonicalizer', () => {
+    const source = readFileSync(new URL('../repository_identity.hsplus', import.meta.url), 'utf8');
+    expect(source.match(/^export function /gmu)).toHaveLength(6);
+    expect(source).toContain('export function repository_identity_canonical_authority_state_sha256_byte');
+    expect(source).toContain('authority: &[u8]');
   });
 });

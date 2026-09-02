@@ -77,6 +77,21 @@ export {
 
 export type { PauliTerm, PauliGroup, PauliGroupingResult } from './PauliGrouping';
 
+// ── Clifford Diagonalization (measurement circuits for general-commuting groups)
+
+export {
+  diagonalizeCommutingGroup,
+  measurementPlanForGroup,
+  expectationFromCounts,
+  measurementCircuitQasm3,
+} from './CliffordDiagonalization';
+
+export type {
+  CliffordGate,
+  DiagonalizedTerm,
+  DiagonalizationCircuit,
+} from './CliffordDiagonalization';
+
 // ── CAEL mapping ──────────────────────────────────────────────────────────────
 
 export type { CaelQmSolverConfig, CaelQmResultSummary } from './cael-mapping';

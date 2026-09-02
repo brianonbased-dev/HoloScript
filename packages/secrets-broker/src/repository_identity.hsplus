@@ -1,14 +1,357 @@
-// HoloKey repository identity authority -- native transition kernel.
+// HoloKey repository identity authority -- native transition and byte-binding kernel.
 //
 // State codes: 0 provisional, 1 active, 2 revoked.
 // Action codes: 0 promote, 1 rotate, 2 revoke, 3 migrate, 4 recover.
 //
-// This source is authoritative for the state/action transition table. The
-// package publication gate compiles three entry modules with the owned
-// holoscriptc, observes one five-bit mask per state, and reconstructs the exact
-// 15-bit table without relying on non-portable process exit codes above 255.
-// The gate remains fail-closed until the compiler can also materialize the
-// canonical JSON, SHA-256, signature capability, and atomic store semantics.
+// The transition table remains the source-level authority for state/action
+// admission. The byte-binding entrypoint is deliberately bounded: it accepts
+// a borrowed UTF-8 byte view of at most 55 bytes, hashes one SHA-256 block, and
+// returns one selected digest byte. Returning one byte keeps the native process
+// adapter within its portable exit-code range while the publication checker
+// executes all 32 byte positions. This is a compiler-native content-binding
+// proof, not a claim that this small kernel is the complete JSON canonicalizer,
+// detached-signature verifier, or durable HoloKey store.
+
+function repository_sha256_rotr(value: i32, amount: i32): i32 {
+  return (value >> amount) | (value << (32 - amount))
+}
+
+function repository_sha256_choose(left: i32, middle: i32, right: i32): i32 {
+  return (left & middle) ^ ((left ^ -1) & right)
+}
+
+function repository_sha256_majority(left: i32, middle: i32, right: i32): i32 {
+  return (left & middle) ^ (left & right) ^ (middle & right)
+}
+
+function repository_sha256_big_sigma_zero(value: i32): i32 {
+  return repository_sha256_rotr(value, 2)
+    ^ repository_sha256_rotr(value, 13)
+    ^ repository_sha256_rotr(value, 22)
+}
+
+function repository_sha256_big_sigma_one(value: i32): i32 {
+  return repository_sha256_rotr(value, 6)
+    ^ repository_sha256_rotr(value, 11)
+    ^ repository_sha256_rotr(value, 25)
+}
+
+function repository_sha256_small_sigma_zero(value: i32): i32 {
+  return repository_sha256_rotr(value, 7)
+    ^ repository_sha256_rotr(value, 18)
+    ^ (value >> 3)
+}
+
+function repository_sha256_small_sigma_one(value: i32): i32 {
+  return repository_sha256_rotr(value, 17)
+    ^ repository_sha256_rotr(value, 19)
+    ^ (value >> 10)
+}
+
+export function repository_identity_sha256_byte(bytes: &[u8], requested: i32): i32 {
+  let message_length: i32 = slice_length(bytes)
+  if (message_length > 55) { return 0 }
+  if (requested < 0) { return 0 }
+  if (requested > 31) { return 0 }
+
+  slot block: [i32; 16] = [
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0
+  ]
+  slot index: i32 = 0
+  while (load(index) < message_length) {
+    let byte: i32 = u8_to_i32(load(bytes[load(index)]))
+    let word_index: i32 = load(index) / 4
+    let byte_shift: i32 = (3 - (load(index) % 4)) * 8
+    store(block[word_index], load(block[word_index]) | (byte << byte_shift))
+    store(index, load(index) + 1)
+  }
+
+  let pad_word: i32 = message_length / 4
+  let pad_shift: i32 = (3 - (message_length % 4)) * 8
+  store(block[pad_word], load(block[pad_word]) | (128 << pad_shift))
+  store(block[15], message_length * 8)
+
+  slot schedule: [i32; 64] = [
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0
+  ]
+  slot schedule_index: i32 = 0
+  while (load(schedule_index) < 16) {
+    store(
+      schedule[load(schedule_index)],
+      load(block[load(schedule_index)])
+    )
+    store(schedule_index, load(schedule_index) + 1)
+  }
+
+  while (load(schedule_index) < 64) {
+    let prior_two: i32 = load(schedule[load(schedule_index) - 2])
+    let prior_seven: i32 = load(schedule[load(schedule_index) - 7])
+    let prior_fifteen: i32 = load(schedule[load(schedule_index) - 15])
+    let prior_sixteen: i32 = load(schedule[load(schedule_index) - 16])
+    let expanded: i32 = repository_sha256_small_sigma_one(prior_two)
+      + prior_seven
+      + repository_sha256_small_sigma_zero(prior_fifteen)
+      + prior_sixteen
+    store(schedule[load(schedule_index)], expanded)
+    store(schedule_index, load(schedule_index) + 1)
+  }
+
+  slot constants: [i32; 64] = [
+    1116352408, 1899447441, -1245643825, -373957723,
+    961987163, 1508970993, -1841331548, -1424204075,
+    -670586216, 310598401, 607225278, 1426881987,
+    1925078388, -2132889090, -1680079193, -1046744716,
+    -459576895, -272742522, 264347078, 604807628,
+    770255983, 1249150122, 1555081692, 1996064986,
+    -1740746414, -1473132947, -1341970488, -1084653625,
+    -958395405, -710438585, 113926993, 338241895,
+    666307205, 773529912, 1294757372, 1396182291,
+    1695183700, 1986661051, -2117940946, -1838011259,
+    -1564481375, -1474664885, -1035236496, -949202525,
+    -778901479, -694614492, -200395387, 275423344,
+    430227734, 506948616, 659060556, 883997877,
+    958139571, 1322822218, 1537002063, 1747873779,
+    1955562222, 2024104815, -2067236844, -1933114872,
+    -1866530822, -1538233109, -1090935817, -965641998
+  ]
+
+  slot first: i32 = 1779033703
+  slot second: i32 = -1150833019
+  slot third: i32 = 1013904242
+  slot fourth: i32 = -1521486534
+  slot fifth: i32 = 1359893119
+  slot sixth: i32 = -1694144372
+  slot seventh: i32 = 528734635
+  slot eighth: i32 = 1541459225
+  slot round: i32 = 0
+  while (load(round) < 64) {
+    let temp_one: i32 = load(eighth)
+      + repository_sha256_big_sigma_one(load(fifth))
+      + repository_sha256_choose(load(fifth), load(sixth), load(seventh))
+      + load(constants[load(round)])
+      + load(schedule[load(round)])
+    let temp_two: i32 = repository_sha256_big_sigma_zero(load(first))
+      + repository_sha256_majority(load(first), load(second), load(third))
+    store(eighth, load(seventh))
+    store(seventh, load(sixth))
+    store(sixth, load(fifth))
+    store(fifth, load(fourth) + temp_one)
+    store(fourth, load(third))
+    store(third, load(second))
+    store(second, load(first))
+    store(first, temp_one + temp_two)
+    store(round, load(round) + 1)
+  }
+
+  slot digest: [i32; 8] = [0, 0, 0, 0, 0, 0, 0, 0]
+  store(digest[0], load(first) + 1779033703)
+  store(digest[1], load(second) + -1150833019)
+  store(digest[2], load(third) + 1013904242)
+  store(digest[3], load(fourth) + -1521486534)
+  store(digest[4], load(fifth) + 1359893119)
+  store(digest[5], load(sixth) + -1694144372)
+  store(digest[6], load(seventh) + 528734635)
+  store(digest[7], load(eighth) + 1541459225)
+
+  let word_index: i32 = requested / 4
+  let byte_shift: i32 = (3 - (requested % 4)) * 8
+  return (load(digest[word_index]) >> byte_shift) & 255
+}
+
+// Source-authored bounded canonical fixture proof. This intentionally
+// materializes only the reviewed HoloKey authority/state record; it does not
+// claim arbitrary object traversal or general canonical-JSON support.
+export function repository_identity_canonical_sha256_byte(requested: i32): i32 {
+  if (requested < 0) { return 0 }
+  if (requested > 31) { return 0 }
+
+  slot canonical: [u8; 33] = [
+    123, 34, 97, 117, 116, 104, 111, 114,
+    105, 116, 121, 34, 58, 34, 72, 111,
+    108, 111, 75, 101, 121, 34, 44, 34,
+    115, 116, 97, 116, 101, 34, 58, 49,
+    125
+  ]
+  return repository_identity_sha256_byte(&canonical[0..33], requested)
+}
+
+// Source-authored bounded schema canonicalization proof. This accepts only a
+// portable ASCII authority identifier and the reviewed three-state domain;
+// arbitrary canonical JSON, escaping, and detached signatures remain outside
+// this deliberately small one-block contract.
+export function repository_identity_canonical_authority_state_sha256_byte(
+  authority: &[u8], state: i32, requested: i32
+): i32 {
+  let authority_length: i32 = slice_length(authority)
+  if (authority_length < 1) { return 0 }
+  if (authority_length > 24) { return 0 }
+  if (state < 0) { return 0 }
+  if (state > 2) { return 0 }
+  if (requested < 0) { return 0 }
+  if (requested > 31) { return 0 }
+
+  slot scan: i32 = 0
+  while (load(scan) < authority_length) {
+    let byte: i32 = u8_to_i32(load(authority[load(scan)]))
+    slot valid: i32 = 0
+    if (byte >= 48) {
+      if (byte <= 57) { store(valid, 1) }
+    }
+    if (byte >= 65) {
+      if (byte <= 90) { store(valid, 1) }
+    }
+    if (byte >= 97) {
+      if (byte <= 122) { store(valid, 1) }
+    }
+    if (byte == 45) { store(valid, 1) }
+    if (byte == 46) { store(valid, 1) }
+    if (byte == 95) { store(valid, 1) }
+    if (load(valid) == 0) { return 0 }
+    store(scan, load(scan) + 1)
+  }
+
+  slot canonical: [u8; 55] = [
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0
+  ]
+  store(canonical[0], i32_to_u8(123))
+  store(canonical[1], i32_to_u8(34))
+  store(canonical[2], i32_to_u8(97))
+  store(canonical[3], i32_to_u8(117))
+  store(canonical[4], i32_to_u8(116))
+  store(canonical[5], i32_to_u8(104))
+  store(canonical[6], i32_to_u8(111))
+  store(canonical[7], i32_to_u8(114))
+  store(canonical[8], i32_to_u8(105))
+  store(canonical[9], i32_to_u8(116))
+  store(canonical[10], i32_to_u8(121))
+  store(canonical[11], i32_to_u8(34))
+  store(canonical[12], i32_to_u8(58))
+  store(canonical[13], i32_to_u8(34))
+
+  slot cursor: i32 = 14
+  slot authority_index: i32 = 0
+  while (load(authority_index) < authority_length) {
+    store(
+      canonical[load(cursor)],
+      load(authority[load(authority_index)])
+    )
+    store(cursor, load(cursor) + 1)
+    store(authority_index, load(authority_index) + 1)
+  }
+
+  store(canonical[load(cursor)], i32_to_u8(34))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(44))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(34))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(115))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(116))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(97))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(116))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(101))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(34))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(58))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(48 + state))
+  store(cursor, load(cursor) + 1)
+  store(canonical[load(cursor)], i32_to_u8(125))
+  store(cursor, load(cursor) + 1)
+
+  if (authority_length == 1) {
+    return repository_identity_sha256_byte(&canonical[0..27], requested)
+  }
+  if (authority_length == 2) {
+    return repository_identity_sha256_byte(&canonical[0..28], requested)
+  }
+  if (authority_length == 3) {
+    return repository_identity_sha256_byte(&canonical[0..29], requested)
+  }
+  if (authority_length == 4) {
+    return repository_identity_sha256_byte(&canonical[0..30], requested)
+  }
+  if (authority_length == 5) {
+    return repository_identity_sha256_byte(&canonical[0..31], requested)
+  }
+  if (authority_length == 6) {
+    return repository_identity_sha256_byte(&canonical[0..32], requested)
+  }
+  if (authority_length == 7) {
+    return repository_identity_sha256_byte(&canonical[0..33], requested)
+  }
+  if (authority_length == 8) {
+    return repository_identity_sha256_byte(&canonical[0..34], requested)
+  }
+  if (authority_length == 9) {
+    return repository_identity_sha256_byte(&canonical[0..35], requested)
+  }
+  if (authority_length == 10) {
+    return repository_identity_sha256_byte(&canonical[0..36], requested)
+  }
+  if (authority_length == 11) {
+    return repository_identity_sha256_byte(&canonical[0..37], requested)
+  }
+  if (authority_length == 12) {
+    return repository_identity_sha256_byte(&canonical[0..38], requested)
+  }
+  if (authority_length == 13) {
+    return repository_identity_sha256_byte(&canonical[0..39], requested)
+  }
+  if (authority_length == 14) {
+    return repository_identity_sha256_byte(&canonical[0..40], requested)
+  }
+  if (authority_length == 15) {
+    return repository_identity_sha256_byte(&canonical[0..41], requested)
+  }
+  if (authority_length == 16) {
+    return repository_identity_sha256_byte(&canonical[0..42], requested)
+  }
+  if (authority_length == 17) {
+    return repository_identity_sha256_byte(&canonical[0..43], requested)
+  }
+  if (authority_length == 18) {
+    return repository_identity_sha256_byte(&canonical[0..44], requested)
+  }
+  if (authority_length == 19) {
+    return repository_identity_sha256_byte(&canonical[0..45], requested)
+  }
+  if (authority_length == 20) {
+    return repository_identity_sha256_byte(&canonical[0..46], requested)
+  }
+  if (authority_length == 21) {
+    return repository_identity_sha256_byte(&canonical[0..47], requested)
+  }
+  if (authority_length == 22) {
+    return repository_identity_sha256_byte(&canonical[0..48], requested)
+  }
+  if (authority_length == 23) {
+    return repository_identity_sha256_byte(&canonical[0..49], requested)
+  }
+  if (authority_length == 24) {
+    return repository_identity_sha256_byte(&canonical[0..50], requested)
+  }
+  return 0
+}
 
 export function repository_transition_allowed(state: i32, requested: i32): i32 {
   if (state == 0) {

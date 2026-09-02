@@ -1106,6 +1106,11 @@ export interface RegisteredAgent {
   surface?: HoloMeshBearerSurface;
   /** Bearer capability grants copied from the key record when available. */
   capabilities?: HoloMeshBearerCapability[];
+  /**
+   * How this identity was resolved. Signed-manifest callers fail closed on
+   * missing or empty capabilities; registry/legacy keys keep prior behavior.
+   */
+  authSource?: 'signed-manifest' | 'registry' | 'legacy';
   /** Raw scope grants copied from the key record when available. */
   scopes?: string[];
   /** IDE/surface type of the agent (e.g. 'hardware', 'cloud', 'mobile'). */

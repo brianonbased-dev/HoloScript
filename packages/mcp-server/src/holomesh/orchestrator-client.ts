@@ -283,8 +283,9 @@ export class HoloMeshOrchestratorClient {
     const data = await this.post('/knowledge/query', body);
     const results: any[] = data?.results || data?.entries || [];
 
-    return results.map(
-      (r: any): MeshKnowledgeEntry => ({
+    return results.map((r: any): MeshKnowledgeEntry => {
+      const metadata = isRecord(r.metadata) ? r.metadata : undefined;
+      return {
         id: r.id,
         workspaceId: r.workspace_id || '',
         type: r.type || 'wisdom',
@@ -299,8 +300,9 @@ export class HoloMeshOrchestratorClient {
         tags: r.tags || [],
         confidence: r.metadata?.confidence,
         createdAt: r.created_at || new Date().toISOString(),
-      })
-    );
+        metadata,
+      };
+    });
   }
 
   /** Get knowledge stats for reputation calculation. */
