@@ -110,19 +110,29 @@ export async function POST(request: Request) {
     );
   }
 
-  // Find the skill file
-  const COMPOSITIONS_ROOT = path.resolve(REPO_ROOT, 'compositions');
-  const searchPaths = [
-    path.join(COMPOSITIONS_ROOT, 'skills', `${name}.hsplus`),
-    path.join(COMPOSITIONS_ROOT, `${name}.hsplus`),
-  ];
+  // Find the skill file. Marketplace skills live under compositions/skills/ —
+  // it's the only directory POST /api/holoclaw (install) ever writes to, and
+  // therefore the only directory this route may launch from. `compositions/`
+  // itself holds ~30 non-skill infrastructure compositions (brains, daemons,
+  // dashboards — e.g. holoclaw-brain.hsplus, holodaemon.hsplus, and
+  // holoclaw.hsplus, an experimental always-on MVP agent) that were never
+  // meant to be reachable through the marketplace `name` slug. This search
+  // previously also fell back to `compositions/<name>.hsplus`, so any ordinary
+  // caller who happened to pass a `name` matching one of those infrastructure
+  // files — including POST { name: "holoclaw" }, which resolved straight to
+  // compositions/holoclaw.hsplus — would spawn it as if it were a vetted
+  // skill. Removed 2026-08-19 (board task task_1787109203243_5k1m); see
+  // route.test.ts "does not fall back to a same-named composition outside
+  // compositions/skills/" for the regression coverage.
+  const SKILLS_ROOT = path.resolve(REPO_ROOT, 'compositions', 'skills');
+  const searchPaths = [path.join(SKILLS_ROOT, `${name}.hsplus`)];
 
   // SEC-T05: defense-in-depth containment check — even though SKILL_NAME_RE
-  // rejects `..` / `/`, we verify each candidate resolves inside the expected
+  // rejects `..` / `/`, we verify the candidate resolves inside the expected
   // root before touching the filesystem.
   const skillPath = searchPaths.find((p) => {
     const resolved = path.resolve(p);
-    if (!resolved.startsWith(COMPOSITIONS_ROOT + path.sep)) return false;
+    if (!resolved.startsWith(SKILLS_ROOT + path.sep)) return false;
     return fs.existsSync(resolved);
   });
   if (!skillPath) {
@@ -136,12 +146,41 @@ export async function POST(request: Request) {
   }
 
   // Spawn daemon process
+  //
+  // DIAGNOSTIC-ONLY FIX (2026-08-19, research/2026-08-19_holoclaw-composition-design.md
+  // §2.2/§2.3 + follow-on empirical check): the subcommand below was 'holodaemon',
+  // which has never existed in packages/cli — every call this route ever made spawned
+  // a process that died immediately with "[E000] Unknown subcommand: holodaemon" while
+  // still returning 200 {started:true} to the caller (the child's exit races the
+  // response). Correcting the string to the real subcommand, 'daemon', does NOT
+  // restore the marketplace-run feature: every compositions/skills/*.hsplus file
+  // (confirmed: code-health.hsplus, test-runner.hsplus, and by pattern the rest of
+  // the ~13-file shelf) uses a typed-inline `state x: type = value` dialect that
+  // holoscript-runner.js's strict parser rejects with HSP101 — a real, still-open
+  // parser/AST-shape gap, not a one-line fix. This change turns a misleading
+  // "unknown subcommand" failure into the true "your skill file doesn't parse"
+  // failure, both surfaced identically late (in the activity outbox's :error
+  // channel, after a 200 response) — a strictly more honest error, not a working
+  // feature.
+  //
+  // Deliberately NOT rerouted to packages/holoscript-agent here even though that
+  // package's own brain-mounting code (loadBrain(), packages/holoscript-agent/src/brain.ts)
+  // sidesteps this exact parser and cleanly mounts compositions/holoclaw-brain.hsplus
+  // (verified empirically). That loader only understands agent-brain-shaped files
+  // (identity{}/on_task{} blocks); fed a composition{}/sequence{}/action{}-shaped
+  // marketplace skill it does not throw, but silently returns capabilityTags:[],
+  // onTaskActions:[] and dumps the raw file as inert prompt text — the skill's
+  // sequence/action/@test logic never runs, and packages/holoscript-agent/src/
+  // cognitive-verbs.ts's augmentWithOnTaskCognition() no-ops on an empty
+  // onTaskActions array. Rerouting this per-skill spawn there would trade a loud,
+  // correctly-diagnosing crash for a silent false-success — worse, not better.
+  // See the follow-on task filed against this finding for the real fix directions.
   const cycles = body.cycles || 5;
   const alwaysOn = body.alwaysOn || false;
   const args = [
     'tsx',
     'packages/cli/src/cli.ts',
-    'holodaemon',
+    'daemon',
     skillPath,
     '--cycles',
     String(cycles),

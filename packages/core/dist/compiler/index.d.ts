@@ -846,3 +846,30 @@ export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
 export function compilePipelineSourceToNode(source: string, options?: any): any;
+
+/**
+ * Native2D — the sovereign HoloScript-native 2D/UI compiler (.holo -> @generated .tsx). Its
+ * dedicated `compiler/native-2d` subpath and tsup entry were retired 2026-06-17 and stay banned
+ * by check-apex-poison-retired.mjs; the compiler itself is the native path the third-party bridges
+ * were retired in favour of, and is reachable here.
+ */
+export interface Native2DCompilerOptions {
+  format?: 'html' | 'react';
+  useUIComponents?: boolean;
+  slots?: Record<string, { component: string; importPath: string }>;
+  [key: string]: unknown;
+}
+export declare class Native2DCompiler {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string,
+    options?: Native2DCompilerOptions
+  ): string | any;
+  generateReactComponent(
+    name: string,
+    objects: Record<string, unknown>[],
+    composition?: HoloComposition,
+    options?: Native2DCompilerOptions
+  ): string;
+}

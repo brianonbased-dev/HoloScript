@@ -302,7 +302,7 @@ Want to use this scene in Unity, Unreal, or Godot?
 ### Learn More AI Features
 
 - [Building Your First AI NPC](/guides/first-ai-npc) - Deep dive into @llm_agent
-- [Multi-Agent Coordination](/academy/level-3-advanced/05-agent-choreography) - Multiple AI agents working together
+- [Multi-Agent Coordination](/holoschool/level-3-advanced/05-agent-choreography) - Multiple AI agents working together
 - [AI Traits Reference](/guides/ai-agents) - All 6 core AI traits
 
 ### Explore Other Studio Modes

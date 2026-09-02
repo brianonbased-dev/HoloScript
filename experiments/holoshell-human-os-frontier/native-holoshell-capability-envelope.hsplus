@@ -1,0 +1,240 @@
+// HoloShell native capability envelope.
+//
+// Source-side contract for stepping HoloShell outside a browser-only surface.
+// HoloScript owns the vocabulary and permission lanes; HoloLand consumes this
+// as the native app/window and service-supervisor proof surface.
+
+composition "HoloShellNativeCapabilityEnvelope" {
+  state NativeCapabilityEnvelopeState {
+    schemaVersion: "holoscript.holoshell.native-capability-envelope.v0.1.0"
+    surface: "native_holoshell_app_window"
+    browserRole: "bootstrap_self_test"
+    jetsonRole: "always_on_service_plane"
+    terminalRole: "pty_event_stream_and_receipts"
+    serviceRole: "registered_holo_services"
+    capabilityCount: 7
+    guardedCapabilityCount: 2
+    breakGlassCapabilityCount: 1
+    receiptRequired: true
+    sourceRequiredBeforeProjection: true
+  }
+
+  template "NativeCapabilityLane" {
+    laneId: "unknown"
+    permissionEnvelope: "read_only"
+    nativeHostRequired: true
+    browserMayValidate: true
+    browserMayOwn: false
+    receiptRequired: true
+    destructiveActionsAllowed: false
+    rawCommandLineIncluded: false
+  }
+
+  template "NativeReceiptContract" {
+    schemaVersion: "holoscript.holoshell.native-capability-receipt.v0.1.0"
+    sourceEnvelopeRequired: true
+    sourceHashRequired: true
+    laneIdRequired: true
+    permissionEnvelopeRequired: true
+    beforeAfterRequiredForMutation: true
+    replayable: true
+  }
+
+  capability "receipt_read" using "NativeCapabilityLane" {
+    laneId: "receipt_read"
+    permissionEnvelope: "read_only"
+    nativeHostRequired: false
+    appliesTo: [
+      "read_live_status",
+      "read_operator_terminal_session",
+      "read_service_supervisor_status",
+      "read_native_wrapper_receipt",
+      "read_operating_turn_bundle"
+    ]
+  }
+
+  capability "terminal_event_read" using "NativeCapabilityLane" {
+    laneId: "terminal_event_read"
+    permissionEnvelope: "read_only"
+    nativeHostRequired: true
+    appliesTo: [
+      "read_terminal_run_started",
+      "read_terminal_stdout_chunk",
+      "read_terminal_stderr_chunk",
+      "read_terminal_artifact_detected",
+      "read_terminal_run_exited",
+      "read_terminal_receipt_written"
+    ]
+  }
+
+  capability "jetson_appliance_observe" using "NativeCapabilityLane" {
+    laneId: "jetson_appliance_observe"
+    permissionEnvelope: "read_only"
+    nativeHostRequired: true
+    appliesTo: [
+      "probe_jetson_holoshell_surface",
+      "probe_holollama_endpoint",
+      "read_jetson_service_receipts",
+      "separate_laptop_and_jetson_evidence"
+    ]
+  }
+
+  capability "service_status" using "NativeCapabilityLane" {
+    laneId: "service_status"
+    permissionEnvelope: "read_only_service_supervisor"
+    nativeHostRequired: true
+    appliesTo: [
+      "read_registered_service_catalog",
+      "read_required_service_count",
+      "read_verified_pid_state",
+      "read_last_service_receipt_hash"
+    ]
+  }
+
+  capability "guarded_service_ensure" using "NativeCapabilityLane" {
+    laneId: "guarded_service_ensure"
+    permissionEnvelope: "guarded_execute"
+    nativeHostRequired: true
+    freshHumanGestureRequired: true
+    explicitConfirmationRequired: true
+    appliesTo: [
+      "ensure_registered_holo_service",
+      "restart_stale_verified_manager",
+      "write_service_ensure_receipt"
+    ]
+  }
+
+  capability "guarded_open_url" using "NativeCapabilityLane" {
+    laneId: "guarded_open_url"
+    permissionEnvelope: "guarded_execute"
+    nativeHostRequired: true
+    freshHumanGestureRequired: true
+    appliesTo: [
+      "open_url_in_native_shell",
+      "open_browser_self_test",
+      "write_open_url_receipt"
+    ]
+  }
+
+  capability "break_glass_os_mutation" using "NativeCapabilityLane" {
+    laneId: "break_glass_os_mutation"
+    permissionEnvelope: "break_glass"
+    nativeHostRequired: true
+    freshHumanGestureRequired: true
+    ownerAckRequired: true
+    destructiveActionsAllowed: false
+    appliesTo: [
+      "modify_startup_registration",
+      "replace_explorer_shell",
+      "delete_file",
+      "install_driver",
+      "enter_secret",
+      "pay_or_publish"
+    ]
+  }
+
+  policy "BrowserIsHarnessNativeIsCustody" {
+    browserMayValidateLayout: true
+    browserMayRunSelfTestReceipt: true
+    browserMayOwnServiceLifecycle: false
+    browserMayOwnTerminalExecution: false
+    browserMayOwnOsIntegration: false
+    nativeWindowOwnsDailyOperation: true
+    nativeHostMustEmitReceipt: true
+  }
+
+  policy "HoloGateNativeLaneGrant" {
+    appliesTo: [
+      "guarded_service_ensure",
+      "guarded_open_url",
+      "break_glass_os_mutation"
+    ]
+    identifyRequired: true
+    scopeRequired: true
+    logRequired: true
+    freshHumanGestureRequired: true
+    consentTokenRequiredForMutation: true
+    receiptRequired: true
+  }
+
+  policy "TerminalEventsBeforeTerminalUi" {
+    rawShellScrollbackIsEvidenceOnly: true
+    appendOnlyEventStreamRequired: true
+    eventKinds: [
+      "run.started",
+      "stdout.chunk",
+      "stderr.chunk",
+      "artifact.detected",
+      "approval.required",
+      "run.exited",
+      "receipt.written"
+    ]
+    humanSurfaceRendersRunCards: true
+  }
+
+  policy "JetsonIsApplianceNotWebPage" {
+    jetsonOwnsAlwaysOnSurface: true
+    laptopOwnsValidationAndDesktopBridge: true
+    endpointImpersonationForbidden: true
+    evidenceMustSeparateJetsonAndLaptop: true
+    receiptRequired: true
+  }
+
+  state_machine "NativeCapabilityWorkflow" {
+    initial: "source_declared"
+    states: [
+      "source_declared",
+      "native_host_bound",
+      "service_catalog_observed",
+      "terminal_events_observed",
+      "jetson_appliance_observed",
+      "guarded_action_staged",
+      "receipt_logged",
+      "blocked"
+    ]
+    transition "bind_native_host" { from: "source_declared", to: "native_host_bound" }
+    transition "observe_services" { from: "native_host_bound", to: "service_catalog_observed" }
+    transition "observe_terminal" { from: "service_catalog_observed", to: "terminal_events_observed" }
+    transition "observe_jetson" { from: "terminal_events_observed", to: "jetson_appliance_observed" }
+    transition "stage_guarded_action" { from: "jetson_appliance_observed", to: "guarded_action_staged" }
+    transition "log_receipt" { from: "guarded_action_staged", to: "receipt_logged" }
+    transition "block" { from: "*", to: "blocked" }
+  }
+
+  role "HoloScriptSubstrate" {
+    laneId: "holoscript-substrate"
+    owns: ["capability_vocabulary", "receipt_schema", "permission_envelope", "validation_gate"]
+  }
+
+  role "HoloLandHoloShell" {
+    laneId: "hololand-holoshell"
+    owns: ["native_window_runtime", "brittney_surface", "service_supervisor_bridge", "operator_terminal_projection"]
+  }
+
+  role "JetsonAppliance" {
+    laneId: "jetson-appliance"
+    owns: ["always_on_surface", "owned_inference", "edge_service_receipts", "lan_health"]
+  }
+
+  action classifyNativeCapability(operation) {
+    if (operation.kind in break_glass_os_mutation.appliesTo) {
+      return "break_glass_os_mutation"
+    }
+    if (operation.kind in guarded_service_ensure.appliesTo) {
+      return "guarded_service_ensure"
+    }
+    if (operation.kind in guarded_open_url.appliesTo) {
+      return "guarded_open_url"
+    }
+    if (operation.kind in terminal_event_read.appliesTo) {
+      return "terminal_event_read"
+    }
+    if (operation.kind in jetson_appliance_observe.appliesTo) {
+      return "jetson_appliance_observe"
+    }
+    if (operation.kind in service_status.appliesTo) {
+      return "service_status"
+    }
+    return "receipt_read"
+  }
+}

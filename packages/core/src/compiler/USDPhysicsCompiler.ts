@@ -297,6 +297,71 @@ export class USDPhysicsCompiler extends CompilerBase {
     return rest;
   }
 
+  /**
+   * Normalize a joint declaration from ANY supported authoring form into the
+   * shape {@link processObject} reads (`{ jointType, connectedBody, axis,
+   * lowerLimit, upperLimit }`). Mirrors URDFCompiler.extractJointConfig.
+   *
+   *  1. Explicit `@joint` trait config (`{jointType|type, connectedBody, axis,
+   *     lowerLimit/upperLimit}`) — passed through unchanged.
+   *  2. Joint-type trait family (`@joint_revolute` …) + `joint_*` properties
+   *     (`joint_parent`, `joint_axis`, `joint_limits:[lo,hi]` RADIANS). The
+   *     radian limits are normalized to the DEGREES contract lowerLimit/upperLimit
+   *     use, so the single downstream deg→rad conversion stays the only converter.
+   *
+   * Before this existed, real `.holo` robot source (which authors joints this
+   * second way) emitted no articulation at all — plain geometry prims, no
+   * PhysicsArticulationRootAPI, no RevoluteJoint.
+   */
+  private extractJointConfig(obj: HoloObjectDecl): Record<string, unknown> | undefined {
+    const jointTrait = this.getTraitConfig(obj, 'joint');
+    if (jointTrait && Object.keys(jointTrait).length > 0) {
+      return jointTrait;
+    }
+
+    // USD/PhysX has no distinct "continuous" joint class; a continuous joint IS a
+    // limitless revolute, so map it to revolute here (URDF keeps true continuous).
+    // planar/floating are intentionally omitted — USD has no clean primitive and
+    // welding them silently would over-advertise support.
+    const JOINT_TRAIT_TYPES: Record<string, string> = {
+      joint_revolute: 'revolute',
+      joint_continuous: 'revolute',
+      joint_prismatic: 'prismatic',
+      joint_fixed: 'fixed',
+      joint_spherical: 'spherical',
+      joint_ball: 'spherical',
+    };
+    const jointTraitName = obj.traits
+      ?.map((t) => this.getTraitName(t))
+      .find((n) => n in JOINT_TRAIT_TYPES);
+    if (!jointTraitName) {
+      return undefined;
+    }
+
+    const propValue = (key: string): unknown =>
+      obj.properties.find((p) => p.key === key)?.value;
+
+    const config: Record<string, unknown> = { jointType: JOINT_TRAIT_TYPES[jointTraitName] };
+
+    const parent = propValue('joint_parent');
+    if (typeof parent === 'string') config.connectedBody = parent;
+
+    const axis = propValue('joint_axis');
+    if (Array.isArray(axis)) config.axis = axis;
+
+    const limits = propValue('joint_limits');
+    if (Array.isArray(limits) && limits.length >= 2) {
+      // Only ANGULAR (revolute) limits are radians the downstream converts
+      // DEGREES→radians; prismatic limits are LINEAR (meters) taken raw. Gate the
+      // pre-scale on jointType so a meters stroke is not scaled by 180/π.
+      const isAngular = config.jointType === 'revolute';
+      config.lowerLimit = isAngular ? (Number(limits[0]) * 180) / Math.PI : Number(limits[0]);
+      config.upperLimit = isAngular ? (Number(limits[1]) * 180) / Math.PI : Number(limits[1]);
+    }
+
+    return config;
+  }
+
   /** Sanitize name for USD path */
   private sanitizeName(name: string): string {
     // USD prim names: alphanumeric + underscore, no leading digit
@@ -1053,7 +1118,7 @@ export class USDPhysicsCompiler extends CompilerBase {
 
     // Get trait configs
     const physicsConfig = this.getTraitConfig(obj, 'physics') || {};
-    const jointConfig = this.getTraitConfig(obj, 'joint');
+    const jointConfig = this.extractJointConfig(obj);
 
     // Get geometry
     const geometry = this.extractGeometry(obj);

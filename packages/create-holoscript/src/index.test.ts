@@ -1,9 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 
 vi.mock('node:fs');
 vi.mock('node:child_process');
+
+// The scaffolded @holoscript/core pin must track the CURRENT major, not a
+// hardcoded literal. A stale pin ships newcomers a core two majors behind the
+// one every other package resolves, and npm installs both copies without error.
+// node:module is deliberately used here because node:fs is mocked above.
+const WORKSPACE_CORE_MAJOR = createRequire(import.meta.url)(
+  '../../core/package.json'
+).version.split('.')[0] as string;
+
+function expectTracksCurrentCoreMajor(range: string | undefined): void {
+  expect(range).toMatch(/^\^\d+\./);
+  expect(range!.replace(/^\^/, '').split('.')[0]).toBe(WORKSPACE_CORE_MAJOR);
+}
 
 // Import the module under test after mocks are set up
 import {
@@ -284,7 +298,7 @@ describe('create-holoscript', () => {
       expect(deps['react-dom']).toBe('^18.2.0');
       expect(deps['@react-three/fiber']).toBe('^8.17.10');
       expect(deps['@react-three/drei']).toBe('^9.114.0');
-      expect(deps['@holoscript/core']).toBe('^6.1.0');
+      expectTracksCurrentCoreMajor(deps['@holoscript/core']);
       expect(devDeps['@vitejs/plugin-react']).toBe('^4.3.4');
     });
 
@@ -330,7 +344,7 @@ describe('create-holoscript', () => {
       ]) {
         const pkg = buildPackageJson({ projectName: 'x', templateName: name });
         const deps = pkg.dependencies as Record<string, string>;
-        expect(deps['@holoscript/core']).toBe('^6.1.0');
+        expectTracksCurrentCoreMajor(deps['@holoscript/core']);
       }
     });
 

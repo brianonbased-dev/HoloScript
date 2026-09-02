@@ -57,8 +57,31 @@ export {
   checkSurfaceTwinCorrespondence,
   verifySurfaceTwinLive,
   applyProjectionTransform,
+  isTwinCheckable,
   SURFACE_TWIN_VERSION,
 } from './SurfaceTwinReceipt';
+
+// @live_proof → the twin oracle: a claim reaches `verified` only when every input it reads is
+// displayed by an entity-bound projection the twin checker actually compares (LiveProofTwinCheck).
+export {
+  deriveLiveProofInputs,
+  anchorLiveProofClaim,
+  gradeLiveProofIndependence,
+  checkLiveProofTwinVerdict,
+  extractLiveProofBadges,
+  verifyLiveProofsLive,
+  LIVE_PROOF_TWIN_VERSION,
+} from './LiveProofTwinCheck';
+export type {
+  LiveProofIndependence,
+  LiveProofAnchor,
+  LiveProofBinding,
+  LiveProofTwinVerdict,
+  LiveProofAbstentionReason,
+  LiveProofTwinReceipt,
+  RenderedLiveProofBadge,
+  LiveProofLiveResult,
+} from './LiveProofTwinCheck';
 export type { AuthoritativeStateFetcher } from './SurfaceTwinReceipt';
 export { extractDisplayedProjections } from './extractDisplayedProjections';
 export type {

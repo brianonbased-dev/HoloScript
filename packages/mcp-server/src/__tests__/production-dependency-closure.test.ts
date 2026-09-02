@@ -48,7 +48,7 @@ describe('mcp-server production dependency closure', () => {
   });
 
   // ── HoloTunnel closure (mcp_tunnel_create outage) ──────────────────────────
-  // src/holo-tunnel-tools.ts does `await import('@holoscript/hololand-platform')`.
+  // src/holo-tunnel-tools.ts does `await import('@hololand/platform-services')`.
   // That package is a declared dependency, but was never built/copied into the
   // Railway runtime image, so the deployed tool 500'd with:
   //   "Cannot find module '/app/packages/mcp-server/node_modules/@holoscript/
@@ -85,7 +85,7 @@ describe('mcp-server production dependency closure', () => {
       'ln -sfn /app/packages/runtime /app/node_modules/@holoscript/runtime'
     );
     expect(dockerfile).toContain(
-      'ln -sfn /app/packages/hololand-platform /app/node_modules/@holoscript/hololand-platform'
+      'ln -sfn /app/packages/hololand-platform /app/node_modules/@hololand/platform-services'
     );
 
     // fail-fast if the dist that `await import()` loads is missing

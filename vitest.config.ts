@@ -161,7 +161,7 @@ export default defineConfig({
       },
       {
         test: {
-          name: '@holoscript/hololand-platform',
+          name: '@hololand/platform-services',
           root: './packages/hololand-platform',
           include: ['src/**/*.test.ts'],
           exclude: ['**/dist/**', '**/node_modules/**'],
@@ -174,6 +174,21 @@ export default defineConfig({
           root: resolve(__dirname),
           include: ['docs/ops/**/*.test.ts'],
           exclude: ['**/node_modules/**', '**/dist/**'],
+          environment: 'node',
+        },
+      },
+      // apps/* are NOT pnpm workspace packages (pnpm-workspace.yaml lists only
+      // packages/, services/, benchmarks/). Without an explicit project here, a
+      // test file under apps/ runs NOWHERE and reads as passing — the same trap
+      // that left 46 of 80 model-village proofs unexecuted. Bravura had zero
+      // tests the suite could see, which is why every one of its gates was
+      // verified by a person putting on a headset.
+      {
+        test: {
+          name: 'bravura',
+          root: './apps/bravura',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
           environment: 'node',
         },
       },

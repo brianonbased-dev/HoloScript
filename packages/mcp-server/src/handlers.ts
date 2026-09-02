@@ -35,6 +35,7 @@ import {
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
+import { runCompileFanout } from './compileFanout.js';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
 import { EXAMPLE_CATALOG, EXAMPLE_INVENTORY, PUBLIC_LINK_POLICIES } from './examples-catalog';
 import { handleCodebaseTool, handleGraphRagTool } from '@holoscript/absorb-service/mcp';
@@ -397,6 +398,8 @@ export async function handleTool(
       return handleParsePipeline(args);
     case 'compile_pipeline':
       return handleCompilePipeline(args);
+    case 'compile_fanout':
+      return runCompileFanout(args as { jobId: string; code: string; targets: string[] });
     case 'validate_holoscript':
       return handleValidate(args);
     case 'list_traits':
@@ -456,8 +459,17 @@ export async function handleTool(
     case 'batch_tool_call':
     case 'get_tool_health': {
       const { tools: allTools } = await import('./tools');
-      const result = await handleToolingDiscoveryTool(name, args, allTools, (toolName, toolArgs) =>
-        handleTool(toolName, toolArgs, signingCtx)
+      // Prefer the dispatcher index.ts installs — the registry that actually serves
+      // customers. This switch does not route the categories registered there
+      // (compilers among them), so probing through it reports working tools as
+      // absent. Falls back to this switch only when nothing has been installed.
+      const { getToolHealthDispatcher } = await import('./tooling-discovery-tools');
+      const installed = getToolHealthDispatcher();
+      const result = await handleToolingDiscoveryTool(
+        name,
+        args,
+        allTools,
+        installed ?? ((toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx))
       );
       if (result !== null) return result;
       break;

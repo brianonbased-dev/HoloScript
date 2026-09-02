@@ -47,7 +47,7 @@ consumption.
 
 This package is the HoloMap operator and evidence surface, not the core
 reconstruction runtime. Keep low-level reconstruction math in
-`@holoscript/core`, HoloLand services in `@holoscript/hololand-platform`, and
+`@holoscript/core`, HoloLand services in `@hololand/platform-services`, and
 browser preview components in renderer or Studio packages.
 
 Use `@holoscript/holomap` when a workflow needs reconstruction profile

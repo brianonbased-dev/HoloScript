@@ -124,6 +124,8 @@ composition "MyGame" {
 
 ## Dynamic Imports
 
+> Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await import(...)` is not live HoloScript.
+
 ```holoscript
 composition "LevelLoader" {
   actions {

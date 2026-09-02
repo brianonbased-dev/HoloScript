@@ -11,6 +11,7 @@
  *   pnpm preflight --fix      # auto-fix lockfile + prefixed imports
  *   pnpm preflight --json     # structured output for /scan skill
  *   pnpm preflight --check=lockfile,imports  # specific checks only
+ *   pnpm preflight --check=installed_packages # hollow/empty installed packages only
  *   pnpm preflight --check=dependency_audit  # bounded pnpm audit JSON/SKIP
  *   pnpm preflight --check=typescript,ts    # TypeScript only (changed packages, max 8)
  *   pnpm preflight --check=creds            # credential health only (creds-doctor)
@@ -19,7 +20,15 @@
  */
 
 import { execSync, spawnSync } from 'child_process';
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'fs';
+import {
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  existsSync,
+  statSync,
+  lstatSync,
+  realpathSync,
+} from 'fs';
 import { join, relative, resolve, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { homedir } from 'os';
@@ -152,6 +161,280 @@ function checkLockfile() {
       record('lockfile', 'fail', msg, details, duration);
     }
   }
+}
+
+// ── Check 1a: Installed Package Integrity (hollow packages) ────────────────
+
+/**
+ * A package folder can EXIST while being completely empty.
+ * `pnpm install --frozen-lockfile` exits 0 on that state because it checks that
+ * the path is THERE, not that it has contents — so checkLockfile() above passes
+ * green while every import of that package fails at runtime.
+ *
+ * Observed 2026-08-19 in this repo: node_modules/.pnpm/zod@4.4.3/node_modules/zod
+ * was an empty directory. It broke @holoscript/core and cascaded to 29 packages.
+ * No check went red. The repair was to delete the empty folders and reinstall.
+ *
+ * This check looks at contents, not at existence.
+ */
+function collectPackageDirs(nmDir, out, followLinks) {
+  let entries;
+  try {
+    entries = readdirSync(nmDir);
+  } catch {
+    return; // no node_modules at this level
+  }
+  for (const name of entries) {
+    // .bin holds shim scripts and .pnpm is the store root — neither is a package.
+    if (name.startsWith('.')) continue;
+    const full = join(nmDir, name);
+    if (name.startsWith('@')) {
+      let scoped;
+      try {
+        scoped = readdirSync(full);
+      } catch {
+        continue;
+      }
+      for (const inner of scoped) {
+        if (inner.startsWith('.')) continue;
+        addPackageDir(join(full, inner), out, followLinks);
+      }
+      continue;
+    }
+    addPackageDir(full, out, followLinks);
+  }
+}
+
+function addPackageDir(dir, out, followLinks) {
+  let isLink;
+  try {
+    isLink = lstatSync(dir).isSymbolicLink();
+  } catch {
+    return;
+  }
+  // Inside the virtual store a linked child is a DEPENDENCY pointer to another
+  // store entry, not the package itself. The real copy gets checked at its own
+  // store path, so following it here would only re-check the same folder.
+  if (isLink && !followLinks) return;
+  out.push(dir);
+}
+
+// A manifest that names an entry point the tarball never delivered is the
+// likeliest torn-install state: pnpm writes package.json as one file among
+// many, so a partial extraction leaves the manifest present and the code
+// missing. At import time that fails exactly like an empty folder, but the
+// emptiness rules above cannot see it -- the folder has files and a manifest.
+//
+// Only './'-prefixed targets are checked. A bare specifier is a re-export, not
+// a file this package promised to ship.
+function declaredEntryTargets(manifest) {
+  const targets = [];
+  if (typeof manifest.main === 'string') targets.push(manifest.main);
+  const fromExports = [];
+  const root =
+    manifest.exports && typeof manifest.exports === 'object'
+      ? manifest.exports['.']
+      : manifest.exports;
+  if (typeof root === 'string') fromExports.push(root);
+  else if (root && typeof root === 'object') {
+    for (const condition of ['import', 'require', 'node', 'default']) {
+      const value = root[condition];
+      if (typeof value === 'string') fromExports.push(value);
+      else if (value && typeof value === 'object' && typeof value.default === 'string') {
+        fromExports.push(value.default);
+      }
+    }
+  }
+  for (const value of fromExports) if (value.startsWith('./')) targets.push(value);
+  // `main` is always a path, and the common spelling omits the leading
+  // './' -- "main": "dist/index.js". Requiring the prefix here would skip
+  // the most likely torn-install shape entirely. Export values, by contrast,
+  // are required by the spec to start with './', so anything else there is a
+  // specifier rather than a file this package promised to ship.
+  return targets;
+}
+
+// Node does not require the extension, and packages rely on that: `ms`
+// declares main "./index" and ships index.js. Testing the literal string
+// reports both copies of `ms` in this tree as broken. Resolve the way the
+// runtime does instead.
+function entryResolves(dir, relativeTarget) {
+  for (const ext of ['', '.js', '.cjs', '.mjs', '.json', '.node']) {
+    if (existsSync(join(dir, relativeTarget + ext))) return true;
+  }
+  for (const ext of ['.js', '.cjs', '.mjs', '.json']) {
+    if (existsSync(join(dir, relativeTarget, 'index' + ext))) return true;
+  }
+  return false;
+}
+
+function missingDeclaredEntry(dir) {
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf-8'));
+  } catch {
+    // An unreadable or non-JSON manifest is a different fault and not this
+    // rule's business. Staying silent here keeps the rule about one thing.
+    return null;
+  }
+  for (const target of declaredEntryTargets(manifest)) {
+    const relativeTarget = target.replace(/^\.\//, '');
+    const holder = dirname(join(dir, relativeTarget));
+
+    // The subject is the containing directory, not the file, and that is
+    // deliberate. Checked against the file itself, a healthy tree produced 18
+    // findings and not one was a torn install: an extensionless `main`
+    // (@asamuzakjp/nwsapi -> ./src/nwsapi, a legal CJS spelling Node resolves
+    // by extension), and upstream packages whose root export was never shipped
+    // (@modelcontextprotocol/sdk promises ./dist/esm/index.js and ships no root
+    // index; its consumers import subpaths). Neither is a broken install, and a
+    // check that reds on a healthy tree gets muted -- worse than absent.
+    //
+    // A torn extraction removes whole trees. That is the signal.
+    if (holder !== dir && !existsSync(holder)) return { target, severity: 'fail' };
+
+    // Declared straight at the package root, where no directory is left to be
+    // missing, so the file is the only evidence there is. Safe at this depth:
+    // an extensionless spelling has nothing to resolve against here either.
+    if (holder === dir && !entryResolves(dir, relativeTarget)) return { target, severity: 'warn' };
+  }
+  return null;
+}
+
+// Scoped to the virtual store on purpose. The top-level scan also walks
+// workspace links, and a workspace package that has simply not been built yet
+// declares the same missing `main` without being broken.
+function isVirtualStoreCopy(dir) {
+  return dir.replace(/\\/g, '/').includes('/node_modules/.pnpm/');
+}
+
+function checkInstalledPackages() {
+  const start = Date.now();
+  const nm = join(ROOT, 'node_modules');
+
+  if (!existsSync(nm)) {
+    record('installed_packages', 'skip', 'Nothing installed yet (no node_modules)', [], 0);
+    return;
+  }
+
+  const dirs = [];
+
+  // 1. The virtual store — this is where the real package contents live.
+  const store = join(nm, '.pnpm');
+  if (existsSync(store)) {
+    let ids = [];
+    try {
+      ids = readdirSync(store);
+    } catch {
+      /* unreadable store — the emptiness scan below simply finds nothing */
+    }
+    for (const id of ids) {
+      if (id.startsWith('.') || id === 'node_modules') continue;
+      collectPackageDirs(join(store, id, 'node_modules'), dirs, false);
+    }
+  }
+
+  // 2. The top level — these are links, and a link is only as good as what it
+  //    points at, so follow them. A dangling or hollow target fails identically.
+  collectPackageDirs(nm, dirs, true);
+
+  // Two paths can resolve to one folder (root link -> store copy). Key the
+  // findings by the resolved folder so each real problem is reported once.
+  const hollow = new Map();
+  for (const dir of dirs) {
+    let key = dir;
+    let contents;
+    try {
+      key = realpathSync(dir);
+      contents = readdirSync(dir);
+    } catch {
+      hollow.set(key, {
+        file: relative(ROOT, dir).replace(/\\/g, '/'),
+        severity: 'fail',
+        reason: 'the folder it points at is missing',
+      });
+      continue;
+    }
+    if (contents.length === 0) {
+      hollow.set(key, {
+        file: relative(ROOT, dir).replace(/\\/g, '/'),
+        severity: 'fail',
+        reason: 'the folder is completely empty',
+      });
+      continue;
+    }
+    if (!existsSync(join(dir, 'package.json'))) {
+      hollow.set(key, {
+        file: relative(ROOT, dir).replace(/\\/g, '/'),
+        severity: 'fail',
+        reason: 'has files but no package.json, so nothing can load it',
+      });
+      continue;
+    }
+    if (isVirtualStoreCopy(dir)) {
+      const missing = missingDeclaredEntry(dir);
+      if (missing) {
+        hollow.set(key, {
+          file: relative(ROOT, dir).replace(/\\/g, '/'),
+          severity: missing.severity,
+          reason:
+            missing.severity === 'fail'
+              ? `its package.json points into ${missing.target}, and that whole folder is absent`
+              : `its package.json points at ${missing.target}, which it does not ship`,
+        });
+      }
+    }
+  }
+
+  const duration = Date.now() - start;
+  const found = [...hollow.values()];
+  // Two different findings live here and they are not equally strong.
+  //
+  // A missing folder, an empty folder, a dangling link or a missing manifest is
+  // a broken install: the tarball did not land. That fails.
+  //
+  // A package that ships everything except the root entry its own manifest
+  // names is usually upstream sloppiness, not a broken install -- glsl-noise
+  // declares main "index.js" and ships none, and is consumed only by subpath.
+  // Real (`require.resolve('glsl-noise')` does throw) but not this machine's
+  // fault and not fixable here, so it is named and not failed. A check that is
+  // permanently red gets muted, and then it catches nothing at all.
+  const failures = found.filter((entry) => entry.severity !== 'warn');
+  const warnings = found.filter((entry) => entry.severity === 'warn');
+
+  if (failures.length === 0 && warnings.length > 0) {
+    record(
+      'installed_packages',
+      'warn',
+      `${dirs.length} installed packages have real contents; ${warnings.length} declare an entry point they do not ship`,
+      warnings.map((entry) => `${entry.file}: ${entry.reason}`),
+      duration
+    );
+    return;
+  }
+
+  if (found.length === 0) {
+    record(
+      'installed_packages',
+      'pass',
+      `All ${dirs.length} installed packages have real contents`,
+      [],
+      duration
+    );
+    return;
+  }
+
+  record(
+    'installed_packages',
+    'fail',
+    `${failures.length} installed package${failures.length === 1 ? ' is an' : 's are'} empty shell${
+      failures.length === 1 ? '' : 's'
+    } — the folder is there but the code is not. Delete those folders and run pnpm install`,
+    // Warnings ride along so nothing is hidden, but they are not counted as
+    // failures above -- the number in the headline has to mean what it says.
+    [...failures, ...warnings],
+    duration
+  );
 }
 
 // ── Check 1b: Dependency Audit ─────────────────────────────────────────────
@@ -948,6 +1231,13 @@ function checkPackageSrcEmitAllowlist() {
 }
 
 if (shouldRun('lockfile')) checkLockfile();
+if (
+  shouldRun('installed_packages') ||
+  shouldRun('installed-packages') ||
+  shouldRun('hollow') ||
+  shouldRun('install')
+)
+  checkInstalledPackages();
 if (
   FLAGS.full ||
   (FLAGS.checks && FLAGS.checks.some((c) => ['dependency_audit', 'audit', 'deps'].includes(c)))

@@ -20,10 +20,11 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  deriveTraitSchemaFromHolo,
+  deriveTraitFromHolo,
   categorizeTraitConflict,
   isUnionSafeConflict,
   mergeTraitSchemas,
+  type TraitUiIssue,
 } from '../packages/core/src/compiler/identity/deriveTraitSchema';
 import type { TraitSchema } from '../packages/core/src/compiler/identity/ConfabulationValidator';
 
@@ -39,6 +40,32 @@ const OUT = path.join(
   'identity',
   'derived-trait-schemas.generated.ts'
 );
+/**
+ * Slim companion to OUT, carrying ONLY the props that declare a `ui:` affordance.
+ * Editors (Studio's inspector) import this instead of the ~590 KB full schema array:
+ * an authoring affordance is useless to a bundle that cannot afford to load it, and
+ * this file grows only as authors actually annotate traits.
+ */
+const OUT_UI = path.join(
+  ROOT,
+  'packages',
+  'core',
+  'src',
+  'compiler',
+  'identity',
+  'derived-trait-ui.generated.ts'
+);
+
+/** True when a property carries at least one authoring affordance. */
+function hasAffordance(p: TraitSchema['properties'][number]): boolean {
+  return (
+    p.label !== undefined ||
+    p.min !== undefined ||
+    p.max !== undefined ||
+    p.step !== undefined ||
+    p.hidden !== undefined
+  );
+}
 
 function holoFiles(dir: string): string[] {
   return readdirSync(dir, { recursive: true, encoding: 'utf8' })
@@ -50,25 +77,43 @@ function holoFiles(dir: string): string[] {
 function main(): void {
   const files = holoFiles(TRAITS_DIR); // pre-sorted, so variants[0] is first-in-sorted-path
   const variantsByName = new Map<string, Array<{ schema: TraitSchema; rel: string }>>();
+  const uiIssues: Array<{ issue: TraitUiIssue; rel: string }> = [];
   let derived = 0;
   let skipped = 0;
 
   for (const file of files) {
     const rel = path.relative(ROOT, file).replace(/\\/g, '/');
-    let schema: TraitSchema | null = null;
+    let result: ReturnType<typeof deriveTraitFromHolo> = null;
     try {
-      schema = deriveTraitSchemaFromHolo(readFileSync(file, 'utf8'));
+      result = deriveTraitFromHolo(readFileSync(file, 'utf8'));
     } catch {
-      schema = null;
+      result = null;
     }
-    if (!schema) {
+    if (!result) {
       skipped++;
       continue;
     }
     derived++;
-    const arr = variantsByName.get(schema.name) ?? [];
-    arr.push({ schema, rel });
-    variantsByName.set(schema.name, arr);
+    for (const issue of result.uiIssues) uiIssues.push({ issue, rel });
+    const arr = variantsByName.get(result.schema.name) ?? [];
+    arr.push({ schema: result.schema, rel });
+    variantsByName.set(result.schema.name, arr);
+  }
+
+  // A `ui:` block that does not cohere with its own props is a build failure, not a warning.
+  // Unlike a name conflict (two authors, one name — resolvable by policy) this is a single
+  // author contradicting themselves, and the affordance silently would not appear. Failing
+  // here is what makes the block trustworthy: an editor can render what it reads.
+  if (uiIssues.length > 0) {
+    process.stderr.write(
+      `[gen-trait-schemas] ${uiIssues.length} incoherent ui: entr(ies) — nothing written:\n` +
+        uiIssues
+          .map(({ issue, rel }) => `  ${rel} @${issue.trait}.${issue.prop}: ${issue.problem}`)
+          .join('\n') +
+        `\n`
+    );
+    process.exitCode = 1;
+    return;
   }
 
   // Resolve each name. UNION-SAFE conflicts (enum-divergent / prop-superset) are merged so the
@@ -134,10 +179,59 @@ function main(): void {
 
   writeFileSync(OUT, `${header}\n${body}`, 'utf8');
 
+  // ── Slim editor artifact: only props that declare an affordance ──────────────
+  // A trait name in DERIVED_TRAIT_CONFLICTS is claimed by two or more genuinely different
+  // traits (e.g. `transform` = the spatial position/rotation/scale trait AND a data-transform
+  // pipeline). The registry keeps ONE variant, first-in-sorted-path — a tie-break, not a
+  // judgment. An editor looks affordances up BY NAME, so shipping them for an ambiguous name
+  // would silently paint one trait's labels and ranges onto a different trait. Refuse instead
+  // of guessing: the editor falls back to its own defaults, which is what it did before.
+  const uiByTrait: Record<string, TraitSchema['properties']> = {};
+  const suppressedAmbiguous: string[] = [];
+  for (const schema of schemas) {
+    const annotated = schema.properties.filter(hasAffordance);
+    if (annotated.length === 0) continue;
+    if (conflictNames.has(schema.name)) {
+      suppressedAmbiguous.push(schema.name);
+      continue;
+    }
+    uiByTrait[schema.name] = annotated;
+  }
+  // Never a silent cap: say what was dropped and why.
+  if (suppressedAmbiguous.length > 0) {
+    process.stderr.write(
+      `[gen-trait-schemas] ${suppressedAmbiguous.length} annotated trait(s) withheld from the ` +
+        `editor artifact — name claimed by more than one trait, so which one an author meant ` +
+        `is unknowable: ${suppressedAmbiguous.sort().join(', ')}\n`
+    );
+  }
+  const uiTraitCount = Object.keys(uiByTrait).length;
+  const uiPropCount = Object.values(uiByTrait).reduce((n, ps) => n + ps.length, 0);
+
+  const uiBody =
+    `// @generated by scripts/gen-trait-schemas.ts — DO NOT EDIT.\n` +
+    `// Regenerate: pnpm gen:trait-schemas\n` +
+    `// Source of truth: the \`ui:\` blocks in packages/core/src/traits/**/*.holo\n` +
+    `//\n` +
+    `// Slim companion to derived-trait-schemas.generated.ts: ONLY the properties that declare\n` +
+    `// an authoring affordance (label / range / step / hidden), so an editor can import it\n` +
+    `// without pulling the full ~590 KB schema array into a client bundle.\n` +
+    `// ${uiTraitCount} trait(s), ${uiPropCount} annotated prop(s).\n\n` +
+    `import type { TraitPropertySchema } from './ConfabulationValidator';\n\n` +
+    `/**\n` +
+    ` * Per-trait authoring affordances, keyed by trait name (\`@\`-stripped).\n` +
+    ` * A trait absent here declares no affordances — editors fall back to their own defaults.\n` +
+    ` */\n` +
+    `export const TRAIT_UI_AFFORDANCES: Readonly<Record<string, readonly TraitPropertySchema[]>> = ${JSON.stringify(uiByTrait, null, 2)};\n`;
+
+  writeFileSync(OUT_UI, uiBody, 'utf8');
+
   process.stdout.write(
     `[gen-trait-schemas] ${schemas.length} unique schema(s) from ${derived} trait(s); ` +
       `${mergedCount} union-safe merged, ${conflicts.length} unresolved (suppressed), ${skipped} skipped -> ` +
-      `${path.relative(ROOT, OUT).replace(/\\/g, '/')}\n`
+      `${path.relative(ROOT, OUT).replace(/\\/g, '/')}\n` +
+      `[gen-trait-schemas] ${uiTraitCount} trait(s) / ${uiPropCount} prop(s) with ui affordances -> ` +
+      `${path.relative(ROOT, OUT_UI).replace(/\\/g, '/')}\n`
   );
   if (conflicts.length) {
     process.stderr.write(

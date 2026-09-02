@@ -1,27 +1,34 @@
 # Language Reference
 
+> **Live authority.** `.hs` that `packages/compiler-wasm` `validate` accepts is the live language.
+> Process-only, pipeline, typed-policy, and scene-only writeups that disagree are historical,
+> pipeline-only, or example-only.
+
 Comprehensive syntax references for all three HoloScript formats.
 
 ## Overview
 
 HoloScript provides three file formats, each occupying a distinct **role/layer** in the stack:
 
-- **`.hs`** - Process / sequential agent logic (coroutines, graph wiring, sequential procedures)
+- **`.hs`** - Historical / process-only / not the live `.hs` meaning: process / sequential agent logic (coroutines, graph wiring, sequential procedures). Live `.hs` is the banner above.
 - **`.hsplus`** - TypeScript-like semantic behavior and systems components
   (modules, templates, traits, reactive state, state machines, pipelines,
   interfaces, services/devices, and agent cognition)
 - **`.holo`** - Universal IR / scene composition (the compilation unit consumed by ALL platform compilers — 2D web, VR, AR, native, and beyond)
 
 These are not a complexity ladder. They are capability surfaces. A full
-HoloScript system may use all three: `.hs` for deterministic process/policy
-logic, `.hsplus` for reusable typed semantic components and behavior, and
-`.holo` for whole-system composition and target orchestration.
+HoloScript system may use all three. The `.hs` process/policy gloss is historical / process-only /
+not the live `.hs` meaning; see the live-authority banner. `.hsplus` is reusable
+typed semantic components and behavior, and `.holo` is whole-system composition and
+target orchestration.
 
 ## Quick Format Selection
 
 ### Use `.hs` when:
 
-- Writing sequential agent procedures (patrol loops, task pipelines, initialization sequences)
+> Historical / process-only / not the live `.hs` meaning. See the live-authority banner.
+
+- Historical / process-only / not the live `.hs` meaning: Writing sequential agent procedures (patrol loops, task pipelines, initialization sequences)
 - Wiring a process graph (`connect`, `yield`, `execute … repeat forever`)
 - Describing step-by-step logic that runs from top to bottom
 
@@ -46,8 +53,10 @@ logic, `.hsplus` for reusable typed semantic components and behavior, and
 
 ### Process Language (`.hs`)
 
+> Historical / process-only / not the live `.hs` meaning.
+
 - [Basic Objects Reference](./reference-hs-basic) - Complete syntax guide for `.hs` format
-- [Process Language](./reference-hs-process) - `execute`, `yield`, `connect`, agent primitives
+- Process Language (`execute`, `yield`, `connect`, agent primitives) — missing; no `reference-hs-process.md`
 
 ### Semantic Behavior & Systems Components (`.hsplus`)
 
@@ -84,7 +93,7 @@ See the same functionality implemented in all three formats:
 | State blocks                                       | ✓ (object-local) | ✓                       | ✓                  |
 | Actions/functions                                  | ✓                | ✓                       | ✓                  |
 | Event handlers                                     | ✓                | ✓                       | ✓                  |
-| Sequential process (`execute`, `yield`, `connect`) | ✓                | ✗                       | ✗                  |
+| Sequential process (`execute`, `yield`, `connect`; historical / process-only / not the live `.hs` meaning) | ✓                | ✗                       | ✗                  |
 | Brain declarations (`brain Name : @type`)          | ✗                | ✓                       | ✗                  |
 | Cognitive verbs (`llm_call`, `recall`, `plan`)     | ✗                | ✓ (in brains)           | ✗                  |
 | Pipeline DSL (`transform`/`filter`/`branch`)       | ✗                | ✓                       | ✗                  |
@@ -99,7 +108,7 @@ When generating HoloScript code:
 
 1. **Identify the layer** — determine which role the code needs to fill (process logic, brain/behavior, or scene composition), not just the file extension
 2. **Know the parser** — `.hs` and `.hsplus` are parsed by `HoloScriptPlusParser`; `.holo` is parsed by `HoloCompositionParser`. Mixing syntax across parsers will fail silently or produce wrong AST
-3. **Connect layers via imports** — `.holo` scenes can `import` `.hsplus` templates; `.hsplus` brains can reference `.hs` process graphs; keep the data flow explicit
+3. **Connect layers via imports** — `.holo` scenes can `import` `.hsplus` templates; historical / process-only / not the live `.hs` meaning: `.hsplus` brains can reference `.hs` process graphs; keep the data flow explicit
 4. **Reference examples** — use these format references as syntax templates
 5. **Validate** — generated code should be passed to `validate_holoscript` (MCP tool) before use; `parse_holo` returns success even on semantically invalid input — always add a content gate
 

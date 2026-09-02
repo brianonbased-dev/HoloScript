@@ -22,6 +22,7 @@
  */
 
 import { createHoloKeyVault, type HoloKeyVault } from './vault-bootstrap';
+import { createHoloKeydSource, type RemoteSecretSource } from './holokeyd-source';
 import type { SecretQueryRunner } from './postgres-secret-backend';
 import type { SecretResolveAudit } from './secret-resolver';
 import {
@@ -52,6 +53,15 @@ export interface ServiceSecretResolverOpts {
    * createHoloKeyVault; an explicit `HoloKeyVault | null` is used as-is (advanced wiring + tests).
    */
   vault?: HoloKeyVault | null;
+  /**
+   * Last-resort plaintext source consulted AFTER the vault and `process.env` — the bridge
+   * to the TPM-bound `holokeyd` vault, which cannot be a `SecretStoreBackend` because it
+   * hands back plaintext rather than ciphertext this KEK could open.
+   *
+   * `undefined` → built from env (`HOLOKEYD_HOST`), which means OFF unless configured.
+   * An explicit `RemoteSecretSource | null` is used as-is (tests, advanced wiring).
+   */
+  remoteSource?: RemoteSecretSource | null;
 }
 
 export interface ServiceSecretResolver {
@@ -104,6 +114,7 @@ export function createServiceSecretResolver(
   const log = opts.log ?? ((m: string) => console.log(m));
   let built = false;
   let vault: HoloKeyVault | null = null;
+  let remote: RemoteSecretSource | null = null;
 
   function ensureVault(): HoloKeyVault | null {
     if (built) return vault;
@@ -117,10 +128,20 @@ export function createServiceSecretResolver(
         vault = null; // never throw — fall back to env
       }
     }
+    if (opts.remoteSource !== undefined) {
+      remote = opts.remoteSource;
+    } else {
+      try {
+        remote = createHoloKeydSource({ env });
+      } catch {
+        remote = null; // never throw — the bridge is optional by construction
+      }
+    }
+    const tail = remote ? `, else ${remote.id}` : '';
     log(
       vault
-        ? `[holokey] vault ON (owner=${serviceIdentity.ownerId} source=${serviceIdentity.source} backend=${vault.backend} kek=${vault.kekGrade}) — service secrets resolve from the vault, else process.env`
-        : `[holokey] vault OFF (no KEK / not configured) — service secrets resolve from process.env`
+        ? `[holokey] vault ON (owner=${serviceIdentity.ownerId} source=${serviceIdentity.source} backend=${vault.backend} kek=${vault.kekGrade}) — service secrets resolve from the vault, else process.env${tail}`
+        : `[holokey] vault OFF (no KEK / not configured) — service secrets resolve from process.env${tail}`
     );
     return vault;
   }
@@ -140,12 +161,19 @@ export function createServiceSecretResolver(
       const fallback = env[normalized.envName];
       if (isOperationalSecretRef(fallback)) {
         const fallbackRef = tryNormalizeServiceSecretRef(fallback);
-        if (v && fallbackRef) {
-          return resolveVaultValue({ vault: v, serviceIdentity, normalized: fallbackRef });
+        if (!fallbackRef) return undefined;
+        if (v) {
+          const viaVault = await resolveVaultValue({ vault: v, serviceIdentity, normalized: fallbackRef });
+          if (viaVault !== undefined) return viaVault;
         }
-        return undefined;
+        // The ref pointed at the vault and the vault could not answer — the bridge is
+        // the whole point of that indirection, so try it before giving up.
+        return remote ? remote.resolve(fallbackRef.envName) : undefined;
       }
-      return fallback;
+      if (fallback) return fallback;
+      // Last resort: the TPM-bound holokeyd vault. Reaching here means neither the
+      // local vault nor plaintext env had it — i.e. exactly the post-migration state.
+      return remote ? remote.resolve(normalized.envName) : undefined;
     },
     vaultEnabled(): boolean {
       return ensureVault() !== null;

@@ -1,5 +1,22 @@
 # HoloScript Build Management Quick Reference
 
+> **RETIRED 2026-03-01, confirmed 2026-08-19.** The scripts this document
+> describes — `auto-build-manager.sh`, `archive-build-artifacts.sh`,
+> `restore-build-archive.sh`, `monitor-disk-usage.sh`, `prune-old-archives.sh` —
+> were deleted in commit 9c2d0bf8d and nothing replaced them. The matching
+> `pnpm build:*` commands survived pointing at the missing files for five
+> months, failing with a bash error rather than saying so; they were removed on
+> 2026-08-19. Nothing below runs today.
+>
+> What works now: `pnpm build` and `pnpm clean`. Type generation moved into the
+> packages that own it (`packages/core/scripts/generate-types.mjs`,
+> `packages/r3f-renderer/scripts/generate-types.mjs`).
+>
+> The design is kept here on purpose. Disk pressure from build artifacts is a
+> real problem and this was a considered answer to it; whoever picks it up
+> again should start from this rather than from scratch.
+
+
 ## 🚀 Quick Commands
 
 ### One-Command Workflows

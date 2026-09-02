@@ -728,6 +728,14 @@ export {
   type ServiceSecretResolverOpts,
 } from './service-secret-resolver';
 export {
+  createHoloKeydSource,
+  hydrateFromHoloKeyd,
+  hydrateFromHoloKeydSync,
+  HOLOKEYD_HOST_ENV,
+  type RemoteSecretSource,
+  type CreateHoloKeydSourceOpts,
+} from './holokeyd-source';
+export {
   resolveServiceIdentity,
   normalizeServiceSecretRef,
   infraSecretRef,

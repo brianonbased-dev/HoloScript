@@ -56,7 +56,7 @@ Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window pari
 
 **Needed Response:**
 
-1. Editor: Prioritize Studio polish — terrain editor, animation timeline, visual scripting graph. 2. Asset Store: Seed with 500 high-quality simulation assets for verticals Unity ignores. 3. Learning: Launch HoloScript Academy with certifications and university partnerships. 4. Profiler: Build real-time profiler into Studio. 5. Collaboration: Extend CRDT with branch/merge for scenes and Git LFS. 6. LiveOps: Document integration paths to PlayFab/GameAnalytics/AWS GameLift rather than building from scratch.
+1. Editor: Prioritize Studio polish — terrain editor, animation timeline, visual scripting graph. 2. Asset Store: Seed with 500 high-quality simulation assets for verticals Unity ignores. 3. Learning: Launch HoloSchool with certifications and university partnerships. 4. Profiler: Build real-time profiler into Studio. 5. Collaboration: Extend CRDT with branch/merge for scenes and Git LFS. 6. LiveOps: Document integration paths to PlayFab/GameAnalytics/AWS GameLift rather than building from scratch.
 
 **Evidence:**
 

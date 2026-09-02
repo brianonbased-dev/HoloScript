@@ -15,6 +15,13 @@ node scripts/examples-health-matrix.mjs --check
 - **Expected-fail** examples are known parser failures with reasons and should stay internal until promoted.
 - **Deprecated** examples are archive material, not current learning-path material.
 
+Matrix status for files that are **not** working HoloScript (do not present these as compile-to-target examples):
+
+- `novel-use-cases/05-robot-training-metaverse.holo` — aspirational grammar (parser fail)
+- `showcase/realistic-forest.holo` — expected-fail
+- `product-viewer.holo` — expected-fail
+- `site.holo` — deprecated
+
 ## 🌟 NEW: Advanced Runtime Integration Examples
 
 ### Advanced Earthquake Demo (FEATURED)
@@ -49,25 +56,28 @@ npm run dev
 
 ## 📁 Directory Structure
 
+The directory catalog below is **not** a working compile-to-target list. Only examples marked **supported** in `docs/examples-health/examples-health-matrix.md` may be presented as working HoloScript. Fail/aspirational/deprecated files stay labeled above.
+
+
 > **Note (2026-05-12):** The `browser-templates/` and `demos/` directories have been archived to `docs/archive/` because they reference deleted packages (`@holoscript/web-preview-plugin`, `@holoscript/studio-bridge`). See `research/2026-05-12_legacy-numbered-examples-triage.md` for the full audit.
 
 ### General Examples (`general/`)
 
 **Universal VR/AR examples showcasing HoloScript's broad applicability:**
 
-- **[vr-training-simulation/](general/vr-training-simulation/)** - Corporate training scenario
+- **[vr-training-simulation/](general/vr-training-simulation/)** - Corporate training scenario — not in supported gate
   - Compiles to: Unity, Unreal, WebXR
   - Use case: Employee onboarding, safety training
 
-- **[ar-furniture-preview/](general/ar-furniture-preview/)** - E-commerce AR preview
+- **[ar-furniture-preview/](general/ar-furniture-preview/)** - E-commerce AR preview — not in supported gate
   - Compiles to: WebXR AR, ARKit, ARCore
   - Use case: Retail, interior design
 
-- **[virtual-art-gallery/](general/virtual-art-gallery/)** - Cultural/museum VR experience
+- **[virtual-art-gallery/](general/virtual-art-gallery/)** - Cultural/museum VR experience — not in supported gate
   - Compiles to: Babylon.js, WebXR, Quest
   - Use case: Museums, galleries, education
 
-- **[vr-game-demo/](general/vr-game-demo/)** - Simple VR game
+- **[vr-game-demo/](general/vr-game-demo/)** - Simple VR game — not in supported gate
   - Compiles to: Unity, Godot, VRChat
   - Use case: Gaming, entertainment
 
@@ -85,23 +95,23 @@ npm run dev
 
 **Advanced examples for specific industries and platforms:**
 
-- **[robotics/](specialized/robotics/)** - Industrial robot simulation (UR5)
+- **[robotics/](specialized/robotics/)** - Industrial robot simulation (UR5) — not in supported gate
   - Compiles to: URDF, SDF, Gazebo, ROS2
   - Use case: Manufacturing, automation, research
 
-- **[iot/](specialized/iot/)** - Smart factory digital twin
+- **[iot/](specialized/iot/)** - Smart factory digital twin — not in supported gate
   - Compiles to: DTDL, Azure Digital Twins
   - Use case: Industrial IoT, predictive maintenance
 
-- **[multiplayer/](specialized/multiplayer/)** - Collaborative VR meeting space
+- **[multiplayer/](specialized/multiplayer/)** - Collaborative VR meeting space — not in supported gate
   - Compiles to: Unity (Photon/Mirror), Unreal, WebRTC
   - Use case: Remote collaboration, social VR
 
-- **[unity-quest/](specialized/unity-quest/)** - Platform-optimized obstacle course
+- **[unity-quest/](specialized/unity-quest/)** - Platform-optimized obstacle course — not in supported gate
   - Compiles to: Unity for Quest 2/3, PCVR
   - Use case: Mobile VR optimization, performance tuning
 
-- **[vrchat/](specialized/vrchat/)** - Social hub world
+- **[vrchat/](specialized/vrchat/)** - Social hub world — not in supported gate
   - Compiles to: Unity + VRChat SDK3 + Udon#
   - Use case: Social VR, user-generated content
 
@@ -187,11 +197,11 @@ Each example includes platform-specific instructions in its README.
 
 ### Film/Entertainment (Advanced Volumetric)
 
-- ✅ **[Gaussian Splat Photogrammetry](volumetric-advanced/)** - Complete capture-to-3DGS pipeline, 64-camera dome, SfM/MVS, 30K training iterations
-- ✅ **[Real-Time NeRF](volumetric-advanced/)** - Instant-NGP, multi-resolution hash encoding, 30 FPS interactive rendering
-- ✅ **[Volumetric Video Streaming](volumetric-advanced/)** - 4D-MoDe compression, ABR streaming, DASH-style chunks, 50-200× compression
-- ✅ **[LiDAR Point Cloud](volumetric-advanced/)** - 500M points, octree LOD, ASPRS classification, measurement tools
-- ✅ **[Photogrammetry Workflow](volumetric-advanced/)** - End-to-end 8-stage pipeline (capture → SfM → MVS → 3DGS → VR → export to USD/Alembic/FBX)
+- **[Gaussian Splat Photogrammetry](volumetric-advanced/)** - Complete capture-to-3DGS pipeline, 64-camera dome, SfM/MVS, 30K training iterations — not in supported gate
+- **[Real-Time NeRF](volumetric-advanced/)** - Instant-NGP, multi-resolution hash encoding, 30 FPS interactive rendering — not in supported gate
+- **[Volumetric Video Streaming](volumetric-advanced/)** - 4D-MoDe compression, ABR streaming, DASH-style chunks, 50-200× compression — not in supported gate
+- **[LiDAR Point Cloud](volumetric-advanced/)** - 500M points, octree LOD, ASPRS classification, measurement tools — not in supported gate
+- **[Photogrammetry Workflow](volumetric-advanced/)** - End-to-end 8-stage pipeline (capture → SfM → MVS → 3DGS → VR → export to USD/Alembic/FBX) — not in supported gate
 
 ### Platform-Specific
 
@@ -220,10 +230,10 @@ example-name/
 
 ## 📖 Documentation
 
-- **[Getting Started](../docs/GETTING_STARTED.md)** - HoloScript basics
-- **[Language Reference](../docs/LANGUAGE_REFERENCE.md)** - Complete syntax guide
+- Getting Started - HoloScript basics — missing; no docs/GETTING_STARTED.md
+- Language Reference - Complete syntax guide — missing; no docs/LANGUAGE_REFERENCE.md
 - **[Platform Guides](../docs/platforms/)** - Platform-specific integration
-- **[Best Practices](../docs/BEST_PRACTICES.md)** - Tips and patterns
+- Best Practices - Tips and patterns — missing; no docs/BEST_PRACTICES.md
 
 ## 🤝 Contributing Examples
 

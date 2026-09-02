@@ -87,5 +87,17 @@ composition "honestMetrics" {
         @projects { node: "aiEstimate" }
       }
     }
+
+    object "Coherence" {
+      @live_proof {
+        claim: "growth <= 0 || forecast > sessions"
+        label: "Forecast follows the measurement"
+        falsifiedBy: [
+          { forecast: 900, because: "a metric measured as growing must never forecast fewer sessions than it already has" },
+          { sessions: 2000, because: "if the measured count climbs past the forecast, the forecast is stale and must stop reading as sound" },
+          { forecast: 1240, because: "a forecast identical to today's measurement is not a forecast" }
+        ]
+      }
+    }
   }
 }

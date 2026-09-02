@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -26,9 +27,33 @@ export interface ResolveCodebaseCachePathsOptions {
   env?: NodeJS.ProcessEnv;
 }
 
+/**
+ * One physical tree must have exactly one workspace identity.
+ *
+ * `path.resolve` collapses `..` and relative segments but does NOT follow
+ * symlinks or Windows junctions, so the same directory reached by two spellings
+ * used to hash to two different workspace ids. That is not theoretical: on this
+ * machine `C:\Users\josep\.ai-ecosystem` is a symlink to `C:\holo-dev\ai-ecosystem`,
+ * and absorbing via one spelling wrote a graph the query side -- resolving the
+ * other -- could not see. The absorb reported success and the query answered
+ * "no codebase graph loaded" or served a month-old cache, which is the single
+ * reason HoloAbsorb reads as broken rather than merely stale.
+ *
+ * realpath is therefore load-bearing, not tidiness. It is best-effort: a path
+ * that does not exist yet (planned roots, fixtures, tests) keeps its lexical
+ * form so callers still get a stable, derivable id instead of a throw.
+ */
 function normalizeWorkspaceRoot(rootDir: string): string {
-  const normalized = path.normalize(path.resolve(rootDir)).replace(/[\\/]+$/, '');
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+  const resolved = path.normalize(path.resolve(rootDir)).replace(/[\\/]+$/, '');
+  let canonical = resolved;
+  try {
+    // realpathSync.native resolves junctions as well as symlinks on Windows.
+    canonical = path.normalize(fs.realpathSync.native(resolved)).replace(/[\\/]+$/, '');
+  } catch {
+    // Unreadable or not yet created: keep the lexical form rather than failing
+    // to produce an id at all.
+  }
+  return process.platform === 'win32' ? canonical.toLowerCase() : canonical;
 }
 
 function normalizeRootSet(rootDirs: string[]): string[] {

@@ -18,7 +18,7 @@ composition "liveProof" {
       @theme { className: "text-sm font-semibold text-studio-text" }
     }
     object "Subtitle" {
-      @text { variant: "caption", content: "Drag the load; the verdict re-derives from capacity/factor and flips FALSIFIED in-band" }
+      @text { variant: "caption", content: "Drag the load, or press a Break it button — the verdict re-derives and flips FALSIFIED in-band" }
       @theme { className: "text-[10px] text-studio-muted" }
     }
 
@@ -44,7 +44,15 @@ composition "liveProof" {
     }
 
     object "Verdict" {
-      @live_proof { claim: "capacity >= load * factor", label: "Structural margin" }
+      @live_proof {
+        claim: "capacity >= load * factor"
+        label: "Structural margin"
+        falsifiedBy: [
+          { load: 200, because: "a beam loaded past what it can hold must never read as safe" },
+          { capacity: 40, because: "a beam far weaker than its load must never read as safe" },
+          { factor: 4, because: "demanding a bigger safety margin must be able to fail this beam" }
+        ]
+      }
     }
   }
 }

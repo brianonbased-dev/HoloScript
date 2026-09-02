@@ -34,7 +34,11 @@
       "format": "date-time"
     },
     "generatedBy": {
-      "const": "@holoscript/hololand-platform/evidence-envelope"
+      "description": "Generator provenance. The package published as @holoscript/hololand-platform through 6.1.1 and was renamed to @hololand/platform-services; envelopes generated before the rename keep their original stamp, so both spellings are valid. Append-only: never remove an entry, each names a namespace under which real envelopes exist.",
+      "enum": [
+        "@hololand/platform-services/evidence-envelope",
+        "@holoscript/hololand-platform/evidence-envelope"
+      ]
     },
     "paper": {
       "type": "object",

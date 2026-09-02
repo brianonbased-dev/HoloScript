@@ -752,9 +752,9 @@ describe('Feature 4: HoloScript 3.0 release artifacts', () => {
     expect(existsSync(join(REGISTRY_ROOT, 'src', 'certification', 'Badge.ts'))).toBe(true);
   });
 
-  it('HoloScript Academy docs directory exists', () => {
-    const academyPath = join(PROJECT_ROOT, 'docs', 'academy');
-    expect(existsSync(academyPath)).toBe(true);
+  it('HoloSchool docs directory exists', () => {
+    const holoschoolPath = join(PROJECT_ROOT, 'docs', 'holoschool');
+    expect(existsSync(holoschoolPath)).toBe(true);
   });
 
   it('partner-sdk has branding module', () => {

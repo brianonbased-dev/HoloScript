@@ -63,7 +63,7 @@
     "@holoscript/core": "workspace:^",
     "@holoscript/engine": "workspace:^",
     "@holoscript/framework": "workspace:^",
-    "@holoscript/hololand-platform": "workspace:^",
+    "@hololand/platform-services": "workspace:^",
     "@holoscript/holomap": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
     "@holoscript/meaning": "workspace:^",

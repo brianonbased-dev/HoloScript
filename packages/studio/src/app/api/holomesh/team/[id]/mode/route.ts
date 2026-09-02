@@ -238,7 +238,7 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
     {
       title: 'Getting-started smoke read',
       description:
-        'Walk through docs/academy or quickstart; note broken links or version pins; file follow-up tasks.',
+        'Walk through docs/holoschool or quickstart; note broken links or version pins; file follow-up tasks.',
       role: 'reviewer',
       priority: 2,
       source: 'auto-derive',

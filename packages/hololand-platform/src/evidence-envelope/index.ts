@@ -15,7 +15,7 @@ import { spawnSync } from 'node:child_process';
 
 export const EVIDENCE_ENVELOPE_SCHEMA = 'holoscript.evidence-envelope.v1' as const;
 export const EVIDENCE_ENVELOPE_GENERATOR =
-  '@holoscript/hololand-platform/evidence-envelope' as const;
+  '@hololand/platform-services/evidence-envelope' as const;
 
 export type EvidenceArtifactRole =
   | 'source'
@@ -210,10 +210,10 @@ export function buildPaper12HololandEvidenceEnvelope(
     seed: options.seed ?? 'paper-12-hololand-evidence-envelope-v1',
     harnessCommand:
       options.harnessCommand ??
-      'pnpm --filter @holoscript/hololand-platform run device-lab -- --task task_1778722625102_us8y',
+      'pnpm --filter @hololand/platform-services run device-lab -- --task task_1778722625102_us8y',
     rerunCommand:
       options.rerunCommand ??
-      `pnpm --filter @holoscript/hololand-platform run evidence-envelope -- --preset paper-12-hololand --out ${outputPath}`,
+      `pnpm --filter @hololand/platform-services run evidence-envelope -- --preset paper-12-hololand --out ${outputPath}`,
     calibrationChecks: options.calibrationChecks ?? [
       {
         id: 'runtime-inventory',
@@ -226,7 +226,7 @@ export function buildPaper12HololandEvidenceEnvelope(
         label: 'HoloLand hardware probe captures WASM SIMD, WebGPU, headset, and replay evidence.',
         required: true,
         command:
-          'pnpm --filter @holoscript/hololand-platform run device-lab -- --task task_1778722625102_us8y',
+          'pnpm --filter @hololand/platform-services run device-lab -- --task task_1778722625102_us8y',
         artifactRole: 'harness',
       },
       {

@@ -1156,6 +1156,35 @@ function calculateGripStrength(joints: Map<HandJoint, JointPose>): number {
 }
 
 /**
+ * Read an XR position as the canonical numeric tuple (founder ruling 2026-04-28).
+ *
+ * The ruling says conversion happens at the boundary; this is that boundary.
+ * WebXR hands `XRRigidTransform.position` over as a `DOMPointReadOnly`, which is
+ * an object with `.x/.y/.z` and is NOT array-indexable — so `position[0]` on real
+ * hardware yields `undefined`, silently poisoning every downstream consumer.
+ * Hand-written test mocks have historically supplied a numeric array instead,
+ * which is why this never surfaced off-device. Accept both shapes; return null
+ * when neither is usable rather than emitting undefined coordinates.
+ */
+function toPositionTuple(position: unknown): [number, number, number] | null {
+  if (Array.isArray(position)) {
+    const [x, y, z] = position as unknown[];
+    return typeof x === 'number' && typeof y === 'number' && typeof z === 'number'
+      ? [x, y, z]
+      : null;
+  }
+
+  if (position && typeof position === 'object') {
+    const p = position as { x?: unknown; y?: unknown; z?: unknown };
+    if (typeof p.x === 'number' && typeof p.y === 'number' && typeof p.z === 'number') {
+      return [p.x, p.y, p.z];
+    }
+  }
+
+  return null;
+}
+
+/**
  * Poll hand tracking joints per frame (Phase 3)
  * Requires XRHand API support (Quest Pro, Vision Pro)
  */
@@ -1178,16 +1207,16 @@ function pollHandTracking(
       try {
         const jointPose = frame.getJointPose(xrJoint, referenceSpace);
         if (jointPose) {
-          const t = jointPose.transform.position;
-          const r = jointPose.transform.orientation;
-          // t is assumed to be an array from XRPoseResult, but if it was not we would wrap it
-          // WebXR's XRRigidTransform.orientation is DOMPointReadOnly (object
-          // form { x, y, z, w }); .position here is already a numeric tuple.
-          // Convert orientation at the boundary to the canonical tuple form
+          // WebXR gives both .position and .orientation as DOMPointReadOnly.
+          // Convert both at the boundary to the canonical tuple form
           // (founder ruling 2026-04-28).
-          position = [t[0], t[1], t[2]];
-          rotation = [r.x, r.y, r.z, r.w];
-          radius = jointPose.radius ?? 0.01;
+          const t = toPositionTuple(jointPose.transform.position);
+          const r = jointPose.transform.orientation;
+          if (t) {
+            position = t;
+            rotation = [r.x, r.y, r.z, r.w];
+            radius = jointPose.radius ?? 0.01;
+          }
         }
       } catch {
         // Joint pose unavailable for this joint
@@ -1210,7 +1239,15 @@ function pollHandTracking(
 /**
  * Calculate forward direction vector from quaternion (Phase 3)
  */
-function _calculateForwardVector(quaternion: {
+/**
+ * Forward direction of an orientation: the -Z axis rotated by the quaternion.
+ *
+ * -Z is forward in WebXR. The expression below is the negation of the rotated
+ * +Z axis; returning the un-negated form (as this did until the synthetic
+ * headset caught it) points the ray directly behind the wearer, which no
+ * off-device test could observe because none of them supplied a real rotation.
+ */
+function forwardVectorOf(quaternion: {
   x: number;
   y: number;
   z: number;
@@ -1218,8 +1255,7 @@ function _calculateForwardVector(quaternion: {
 }): [number, number, number] {
   const { x, y, z, w } = quaternion;
 
-  // Forward is -Z axis rotated by quaternion
-  return [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
+  return [-2 * (x * z + w * y), -2 * (y * z - w * x), 2 * (x * x + y * y) - 1];
 }
 
 /**
@@ -1243,14 +1279,11 @@ function pollEyeTracking(
   if (frame && state.referenceSpace && gazeSource.targetRaySpace) {
     try {
       const gazePose = frame.getPose(gazeSource.targetRaySpace, state.referenceSpace);
-      if (gazePose) {
-        const t = gazePose.transform.position;
-        const r = gazePose.transform.orientation;
-        // Compute forward from quaternion: rotate -Z by orientation
-        const { x, y, z, w } = r;
+      const t = gazePose ? toPositionTuple(gazePose.transform.position) : null;
+      if (gazePose && t) {
         return {
-          origin: [t[0], t[1], t[2]],
-          direction: [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)],
+          origin: t,
+          direction: forwardVectorOf(gazePose.transform.orientation),
         };
       }
     } catch {
@@ -1288,12 +1321,12 @@ function pollInputSources(state: OpenXRHALState, context: TraitContext, node: HS
     if (frame && state.referenceSpace && source.gripSpace) {
       try {
         const xrPose = frame.getPose(source.gripSpace, state.referenceSpace);
-        if (xrPose) {
-          const t = xrPose.transform.position;
+        const t = xrPose ? toPositionTuple(xrPose.transform.position) : null;
+        if (xrPose && t) {
           const r = xrPose.transform.orientation;
-          // WebXR DOMPointReadOnly orientation -> canonical tuple form.
+          // WebXR DOMPointReadOnly position/orientation -> canonical tuple form.
           pose = {
-            position: [t[0], t[1], t[2]],
+            position: t,
             rotation: [r.x, r.y, r.z, r.w],
           };
         }

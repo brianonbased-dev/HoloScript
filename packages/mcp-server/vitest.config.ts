@@ -41,7 +41,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../mesh/src/index.ts'),
       },
       {
-        find: '@holoscript/hololand-platform',
+        find: '@hololand/platform-services',
         replacement: path.resolve(__dirname, '../hololand-platform/src/index.ts'),
       },
       {

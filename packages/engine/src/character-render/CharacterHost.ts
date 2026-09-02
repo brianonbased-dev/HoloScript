@@ -223,6 +223,12 @@ export interface CharacterHostOptions {
   melaninRedness?: number;
   /** Exact source-authored @hair(color) value. Omission preserves melanin-only hair shading. */
   hairTone?: number;
+  /**
+   * Source-authored weight of the `hairTone` chroma over the melanin response (0..1).
+   * Omission preserves the default blend, and the weight is inert without `hairTone`
+   * because there is no source chroma to contribute.
+   */
+  hairSourceColorWeight?: number;
   /** Source-authored deterministic procedural hair geometry profile. */
   hairStyle?: AgentAvatarHairStyle;
   /** Source-authored scalp guide budget selected by @lod. */
@@ -437,6 +443,12 @@ const HAIR_BASE: Omit<MarschnerHairMaterialSpec, 'melanin' | 'melaninRedness'> =
   anisotropyStrength: 1,
   longitudinalShift: 0,
 };
+
+/**
+ * Chroma weight applied to an authored `hairTone` when the source does not author one.
+ * This is the historical unauthored blend; `@hair(source_color_weight)` overrides it.
+ */
+export const DEFAULT_HAIR_SOURCE_COLOR_WEIGHT = 0.55;
 
 /** Refractive eye preset; iris colour set per-host. */
 const EYE_BASE: Omit<RefractiveEyeMaterialSpec, 'color'> = {
@@ -680,7 +692,10 @@ export class CharacterHost {
       color: opts.hairTone ?? HAIR_BASE.color,
       melanin: opts.melanin ?? 0.7,
       melaninRedness: opts.melaninRedness ?? 0.2,
-      sourceColorWeight: opts.hairTone === undefined ? 0 : 0.55,
+      sourceColorWeight:
+        opts.hairTone === undefined
+          ? 0
+          : Math.max(0, Math.min(1, opts.hairSourceColorWeight ?? DEFAULT_HAIR_SOURCE_COLOR_WEIGHT)),
       coverageProfile: opts.hairCoverageProfile ?? HAIR_BASE.coverageProfile,
       strandCoverage: Math.max(
         0.2,

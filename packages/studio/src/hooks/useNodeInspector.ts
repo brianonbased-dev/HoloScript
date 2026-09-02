@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
+import { TRAIT_UI_AFFORDANCES } from '@holoscript/core';
 import { useSceneStore } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -36,6 +37,15 @@ export interface PropGroup {
   label: string;
   icon: string;
   props: SceneProp[];
+}
+
+/**
+ * A control before a value is bound to it. `declaredDefault` is what the trait says the
+ * property starts at — used when the scene does not set it, so a control opens showing the
+ * real starting value instead of a blanket zero.
+ */
+export interface ResolvedProp extends Omit<SceneProp, 'value'> {
+  declaredDefault?: SceneProp['value'];
 }
 
 export interface InspectorResult {
@@ -150,6 +160,141 @@ const TRAIT_SCHEMA: Record<
   },
 };
 
+// ─── Trait-declared affordances ───────────────────────────────────────────────
+// The table above is hand-maintained and covers 8 groups. A trait can instead declare
+// its own per-property affordances in its `.holo` `ui:` block, which reach here via
+// TRAIT_UI_AFFORDANCES. That is the direction of travel: the numbers describing a
+// property should live next to the property, not in a list inside the editor.
+
+/**
+ * Map a derived schema property type onto an inspector control type.
+ * `array` / `object` / `any` have no editable control and return null — those are
+ * skipped rather than rendered as a box that cannot work.
+ */
+export function controlTypeFor(schemaType: string): PropType | null {
+  switch (schemaType) {
+    case 'number':
+      return 'float';
+    case 'vector3':
+      return 'vec3';
+    case 'color':
+      return 'color';
+    case 'boolean':
+      return 'boolean';
+    case 'enum':
+      return 'enum';
+    case 'string':
+      return 'string';
+    default:
+      return null;
+  }
+}
+
+/**
+ * Coerce a trait's declared `= default` into a value the matching control can hold.
+ * Returns undefined when the declared shape does not fit the control (e.g. a string default
+ * on a vec3), so the caller falls back rather than binding a value the control cannot render.
+ */
+export function coerceDeclaredDefault(
+  raw: unknown,
+  type: PropType
+): SceneProp['value'] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  switch (type) {
+    case 'float':
+      return typeof raw === 'number' && Number.isFinite(raw) ? raw : undefined;
+    case 'boolean':
+      return typeof raw === 'boolean' ? raw : undefined;
+    case 'string':
+    case 'color':
+    case 'enum':
+      return typeof raw === 'string' ? raw : undefined;
+    case 'vec3':
+      return Array.isArray(raw) && raw.length === 3 && raw.every((n) => typeof n === 'number')
+        ? ([raw[0], raw[1], raw[2]] as [number, number, number])
+        : undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** The value a control shows when neither the scene nor the trait says anything. */
+function emptyValueFor(type: PropType): SceneProp['value'] {
+  if (type === 'float') return 0;
+  if (type === 'boolean') return false;
+  if (type === 'vec3') return [0, 0, 0] as [number, number, number];
+  return '';
+}
+
+/** `spatial_panel` → `Spatial Panel`, for traits the built-in table does not name. */
+export function humanizeTraitName(name: string): string {
+  return name
+    .split('_')
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Resolve the controls for one trait.
+ *
+ * The built-in table supplies group identity and control types; the trait's own `ui:`
+ * block overrides label / min / max / step and can hide a property outright. A trait
+ * ABSENT from the table still gets a group when it declares affordances — which is the
+ * point: annotating a trait makes it inspectable without anyone editing Studio.
+ *
+ * Returns null when neither source knows the trait, preserving today's behaviour of
+ * silently skipping unknown traits.
+ */
+export function resolveTraitControls(
+  trait: string
+): { label: string; icon: string; props: ResolvedProp[] } | null {
+  const builtin = TRAIT_SCHEMA[trait];
+  const declared = TRAIT_UI_AFFORDANCES[trait] ?? [];
+  const byName = new Map(declared.map((p) => [p.name, p]));
+
+  if (builtin) {
+    const props = builtin.props
+      .filter((p) => byName.get(p.key)?.hidden !== true)
+      .map((p): ResolvedProp => {
+        const declaredProp = byName.get(p.key);
+        if (!declaredProp) return p;
+        const resolved: ResolvedProp = {
+          ...p,
+          label: declaredProp.label ?? p.label,
+          min: declaredProp.min ?? p.min,
+          max: declaredProp.max ?? p.max,
+          step: declaredProp.step ?? p.step,
+        };
+        const declaredDefault = coerceDeclaredDefault(declaredProp.defaultValue, p.type);
+        if (declaredDefault !== undefined) resolved.declaredDefault = declaredDefault;
+        return resolved;
+      });
+    return { label: builtin.label, icon: builtin.icon, props };
+  }
+
+  const props: ResolvedProp[] = [];
+  for (const declaredProp of declared) {
+    if (declaredProp.hidden) continue;
+    const type = controlTypeFor(declaredProp.type);
+    if (!type) continue;
+    const prop: ResolvedProp = {
+      key: declaredProp.name,
+      type,
+      label: declaredProp.label ?? declaredProp.name,
+    };
+    if (declaredProp.min !== undefined) prop.min = declaredProp.min;
+    if (declaredProp.max !== undefined) prop.max = declaredProp.max;
+    if (declaredProp.step !== undefined) prop.step = declaredProp.step;
+    if (declaredProp.enumValues) prop.options = [...declaredProp.enumValues];
+    const declaredDefault = coerceDeclaredDefault(declaredProp.defaultValue, type);
+    if (declaredDefault !== undefined) prop.declaredDefault = declaredDefault;
+    props.push(prop);
+  }
+  if (props.length === 0) return null;
+  return { label: humanizeTraitName(trait), icon: '🧩', props };
+}
+
 // ─── Parser helpers ───────────────────────────────────────────────────────────
 
 function parseVec3(raw: string): [number, number, number] {
@@ -200,20 +345,18 @@ function extractGroups(lines: string[], start: number, end: number): PropGroup[]
   let propMap: Record<string, string> = {};
 
   const flush = () => {
-    if (!currentTrait || !(currentTrait in TRAIT_SCHEMA)) return;
-    const schema = TRAIT_SCHEMA[currentTrait];
-    const props: SceneProp[] = schema.props.map((p) => ({
+    if (!currentTrait) return;
+    const schema = resolveTraitControls(currentTrait);
+    if (!schema) return;
+    // Precedence: what the scene sets → what the trait declares it starts at → an empty
+    // value. The middle step is what the parser used to throw away, which is why an
+    // unset property always opened at zero regardless of the trait's actual default.
+    const props: SceneProp[] = schema.props.map(({ declaredDefault, ...p }) => ({
       ...p,
       value:
         propMap[p.key] != null
           ? parseValue(propMap[p.key], p.type)
-          : p.type === 'float'
-            ? 0
-            : p.type === 'boolean'
-              ? false
-              : p.type === 'vec3'
-                ? ([0, 0, 0] as [number, number, number])
-                : '',
+          : (declaredDefault ?? emptyValueFor(p.type)),
     }));
     groups.push({ trait: currentTrait, label: schema.label, icon: schema.icon, props });
   };

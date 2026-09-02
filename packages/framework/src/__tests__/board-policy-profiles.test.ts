@@ -181,6 +181,7 @@ describe('board task policy profiles', () => {
     const recorded = recordTaskPolicyEvent(board, 'task_policy', decision.event);
     const { result } = completeTask(board, 'task_policy', 'codex-hardware', {
       commit: 'abc1234',
+      verificationEvidence: 'pnpm vitest run board-policy-profiles 7/7 green at abc1234',
     });
 
     expect(recorded.success).toBe(true);

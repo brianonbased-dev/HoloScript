@@ -75,10 +75,32 @@ function gitLines(args) {
     // literal string fails downstream existence checks. All 4 git commands
     // used by callers in this script accept -z. Sibling to the same fix in
     // check-hardcoded-numbers.js (commit d55d81951).
-    const out = execSync(`git ${args} -z`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    // maxBuffer is MANDATORY here. Node defaults execSync to 1 MB. This repo carries
+    // ~154k untracked paths (the .holorepo/recovery/** trees alone), so
+    // `ls-files --others -z` far exceeds 1 MB, execSync threw ENOBUFS, this catch
+    // returned null, and the caller's `|| []` turned that into an EMPTY untracked set.
+    // An empty untracked set makes the violation branch unreachable — the gate reported
+    // "OK" on every commit, including a staged file importing an untracked sibling
+    // (verified by fault injection 2026-08-17). A silent buffer overflow read exactly
+    // like "nothing to report".
+    const out = execSync(`git ${args} -z`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 512 * 1024 * 1024,
+    });
     return out.split('\0').filter(Boolean);
   } catch (err) {
-    // If git fails (e.g. not a repo), be permissive — do not block.
+    // A buffer overflow is NOT "git is unavailable" — it means we DID have output and
+    // lost it. Never let that pass as an empty result; fail loudly so the gate cannot
+    // go quietly inert again.
+    if (err && (err.code === 'ENOBUFS' || /maxBuffer/i.test(String(err.message)))) {
+      console.error(
+        `${RED}UntrackedSiblings: git output exceeded maxBuffer for \`git ${args}\` — ` +
+          `refusing to report an empty result.${NC}`
+      );
+      process.exit(2);
+    }
+    // Genuine git-unavailable (e.g. not a repo): stay permissive — do not block.
     return null;
   }
 }

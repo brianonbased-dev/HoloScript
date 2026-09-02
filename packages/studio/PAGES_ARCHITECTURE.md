@@ -277,7 +277,7 @@ When users access the Studio from a high-performance desktop (e.g., equipped wit
 
 ### Critical Issues (Updated v6.0.2)
 
-1. ~~**Missing `/learn` page**~~: RESOLVED — `/learn` redirects to the public Academy at `https://holoscript.net/academy/`.
+1. ~~**Missing `/learn` page**~~: RESOLVED — `/learn` redirects to the public HoloSchool at `https://holoscript.net/holoschool/`.
 
 2. ~~**Missing workspace creation pages**~~: RESOLVED — workspace creation flows absorbed into the new `/teams` and `/agents` routes.
 
@@ -293,7 +293,7 @@ When users access the Studio from a high-performance desktop (e.g., equipped wit
 
 7. **Missing API route: `/api/skills/publish`**: The Skill Builder page (`/workspace/skills`) POSTs to `/api/skills/publish` but this route does not exist in the API routes list. Need to implement or redirect.
 
-8. **HoloClaw lifecycle ownership**: Studio is the operational control plane for HoloClaw via `/api/holoclaw` and `/api/holoclaw/run` (run/stop/status). Academy should remain read-only Lite.
+8. **HoloClaw lifecycle ownership**: Studio is the operational control plane for HoloClaw via `/api/holoclaw` and `/api/holoclaw/run` (run/stop/status). HoloSchool should remain read-only Lite.
 
 9. **`/shared/[id]` uses ISR but needs `NEXT_PUBLIC_APP_URL`**: The SSR scene page uses `process.env.NEXT_PUBLIC_APP_URL` to construct API URLs during SSR. This must be set in all deployment environments.
 

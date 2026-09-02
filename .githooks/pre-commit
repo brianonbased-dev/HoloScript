@@ -26,7 +26,10 @@ SECRET_DIFF=$(git diff --cached -U0 2>/dev/null | grep '^+' | grep -v '^+++' || 
 if [ -n "$SECRET_DIFF" ]; then
     scan_secret() {
         local m
-        m=$(echo "$SECRET_DIFF" | grep -oE "$2" | head -1)
+        # "--" terminates option parsing: a pattern beginning with "-" (e.g. the
+        # PEM armor "-----BEGIN") is otherwise read by grep as flags, and the
+        # rule silently never fires.
+        m=$(echo "$SECRET_DIFF" | grep -oE -- "$2" | head -1)
         if [ -n "$m" ]; then
             echo -e "${RED}SECRET DETECTED: $1 (${m:0:18}...)${NC}"
             FAILED=1
@@ -40,7 +43,11 @@ if [ -n "$SECRET_DIFF" ]; then
     scan_secret "AWS access key"       'AKIA[0-9A-Z]{16}'
     scan_secret "NPM token"            'npm_[A-Za-z0-9]{20,}'
     scan_secret "Slack token"          'xox[bpas]-[A-Za-z0-9-]{10,}'
-    scan_secret "Private key block"    'BEGIN [A-Z ]*PRIVATE KEY'
+    # PEM armor required: every other rule here matches actual credential
+    # material, but this one matched a bare label — so it fired on security
+    # tests that name the thing they refuse to leak. A key without the
+    # five-dash armor is not a PEM block and is not parseable as a key.
+    scan_secret "Private key block"    '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     scan_secret "HoloScript bearer"    'hs_sk_[A-Za-z0-9]{20,}'
     if command -v gitleaks &> /dev/null; then
         gitleaks protect --staged --redact --no-banner --config .gitleaks.toml 2>/dev/null \
@@ -224,9 +231,18 @@ fi
 # Opt-out: HOLOMESH_SKIP_UNTRACKED_SIBLING_CHECK=1 for rare emergency cases.
 echo "  ├─ Untracked-sibling import check..."
 if [ -f "scripts/check-untracked-sibling-imports.js" ]; then
-    UNTSIB_OUT=$(run_with_timeout 15 node scripts/check-untracked-sibling-imports.js 2>&1)
+    # 60s, not 15s: the check scans ~154k untracked paths on this repo and takes ~15-20s,
+    # so it was being SIGKILLed mid-run. `timeout` exits 124 on kill, and a 124 was
+    # reported below as "Staged file imports an untracked sibling" — a finding the check
+    # never made. A timeout still BLOCKS (an unfinished check is not a pass) but must say
+    # what actually happened.
+    UNTSIB_OUT=$(run_with_timeout 60 node scripts/check-untracked-sibling-imports.js 2>&1)
     UNTSIB_STATUS=$?
-    if [ "$UNTSIB_STATUS" -ne 0 ]; then
+    if [ "$UNTSIB_STATUS" -eq 124 ]; then
+        echo -e "  ${RED}❌ Untracked-sibling check DID NOT COMPLETE (timed out) — not a finding${NC}"
+        echo "$UNTSIB_OUT"
+        FAILED=1
+    elif [ "$UNTSIB_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Staged file imports an untracked sibling${NC}"
         echo "$UNTSIB_OUT"
         FAILED=1

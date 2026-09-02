@@ -6847,6 +6847,33 @@ export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
 export function compilePipelineSourceToNode(source: string, options?: any): any;
+
+/**
+ * Native2D — the sovereign HoloScript-native 2D/UI compiler (.holo -> @generated .tsx). Its
+ * dedicated \`compiler/native-2d\` subpath and tsup entry were retired 2026-06-17 and stay banned
+ * by check-apex-poison-retired.mjs; the compiler itself is the native path the third-party bridges
+ * were retired in favour of, and is reachable here.
+ */
+export interface Native2DCompilerOptions {
+  format?: 'html' | 'react';
+  useUIComponents?: boolean;
+  slots?: Record<string, { component: string; importPath: string }>;
+  [key: string]: unknown;
+}
+export declare class Native2DCompiler {
+  compile(
+    composition: HoloComposition,
+    agentToken: string,
+    outputPath?: string,
+    options?: Native2DCompilerOptions
+  ): string | any;
+  generateReactComponent(
+    name: string,
+    objects: Record<string, unknown>[],
+    composition?: HoloComposition,
+    options?: Native2DCompilerOptions
+  ): string;
+}
 `;
 
 const contextDTS = `export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';
@@ -7621,7 +7648,7 @@ const confabulationValidatorDTS = `
 // Confabulation risk layer — trait prop-schema validator (enum/type/range)
 // ============================================================================
 export type TraitPropertyType = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'color' | 'vector3' | 'enum' | 'any';
-export interface TraitPropertySchema { name: string; type: TraitPropertyType; required?: boolean; defaultValue?: unknown; min?: number; max?: number; enumValues?: string[]; description?: string; }
+export interface TraitPropertySchema { name: string; type: TraitPropertyType; required?: boolean; defaultValue?: unknown; min?: number; max?: number; enumValues?: string[]; description?: string; label?: string; step?: number; hidden?: boolean; }
 export interface TraitSchema { name: string; category: string; properties: TraitPropertySchema[]; conflictsWith?: string[]; requires?: string[]; }
 export interface ConfabulationValidatorConfig { riskThreshold?: number; unknownPropertySeverity?: 'error' | 'warning'; validatePrerequisites?: boolean; validateConflicts?: boolean; validateRanges?: boolean; customSchemas?: TraitSchema[]; strict?: boolean; includeDerivedSchemas?: boolean; }
 export interface ConfabulationError { code: string; message: string; traitName?: string; objectName?: string; suggestion?: string; [key: string]: any; }
@@ -7638,6 +7665,10 @@ export declare class ConfabulationValidator {
 export declare function getConfabulationValidator(config?: ConfabulationValidatorConfig): ConfabulationValidator;
 export declare const DERIVED_TRAIT_SCHEMAS: TraitSchema[];
 export declare const DERIVED_TRAIT_CONFLICTS: string[];
+/** Per-trait authoring affordances from \`.holo\` \`ui:\` blocks, keyed by trait name. Slim by
+ *  design: editors import this instead of DERIVED_TRAIT_SCHEMAS (~590 KB). A trait absent
+ *  here declares no affordances and the editor falls back to its own defaults. */
+export declare const TRAIT_UI_AFFORDANCES: Readonly<Record<string, readonly TraitPropertySchema[]>>;
 `;
 
 const finalMainDTS =
@@ -8227,6 +8258,70 @@ export declare function verifySurfaceTwinLive(input: {
   fetchAuthoritativeState: AuthoritativeStateFetcher;
 }): Promise<SurfaceTwinReceipt>;
 export declare function extractDisplayedProjections(html: string): Record<string, string>;
+export declare function isTwinCheckable(projection: SurfaceTwinProjection): boolean;
+export declare const LIVE_PROOF_TWIN_VERSION: 'live-proof-twin-v1';
+export type LiveProofIndependence = 'self-referential' | 'fault-tested' | 'verified';
+export interface LiveProofAnchor {
+  input: string;
+  node: string;
+  entity: string;
+}
+export interface LiveProofBinding {
+  claim: string;
+  label: string;
+  independence: LiveProofIndependence;
+  inputs: string[];
+  anchors: LiveProofAnchor[];
+  unanchored: string[];
+}
+export type LiveProofTwinVerdict = 'VERIFIED' | 'FALSIFIED' | 'ABSTAIN';
+export type LiveProofAbstentionReason =
+  | 'independence-insufficient'
+  | 'authority-unreachable'
+  | 'receipt-mismatch';
+export interface LiveProofTwinReceipt {
+  version: typeof LIVE_PROOF_TWIN_VERSION;
+  verdict: LiveProofTwinVerdict;
+  claim: string;
+  displayedState: 'pass' | 'falsified';
+  confirmed: string[];
+  divergent: Array<{ input: string; entity: string; detail: string }>;
+  abstention?: { reason: LiveProofAbstentionReason; detail: string };
+  reason: string;
+  receiptHash: string;
+}
+export declare function deriveLiveProofInputs(claim: string, stateFields: Iterable<string>): string[];
+export declare function anchorLiveProofClaim(input: {
+  inputs: readonly string[];
+  projections: readonly SurfaceTwinProjection[];
+}): { anchors: LiveProofAnchor[]; unanchored: string[] };
+export declare function gradeLiveProofIndependence(input: {
+  faultTested: boolean;
+  inputs: readonly string[];
+  unanchored: readonly string[];
+}): LiveProofIndependence;
+export declare function checkLiveProofTwinVerdict(input: {
+  binding: LiveProofBinding;
+  displayedState: 'pass' | 'falsified';
+  twinReceipt: SurfaceTwinReceipt;
+}): LiveProofTwinReceipt;
+export interface RenderedLiveProofBadge {
+  claim: string;
+  label: string;
+  independence: LiveProofIndependence;
+  displayedState: 'pass' | 'falsified';
+  anchors: LiveProofAnchor[];
+}
+export declare function extractLiveProofBadges(html: string): RenderedLiveProofBadge[];
+export interface LiveProofLiveResult {
+  badge: RenderedLiveProofBadge;
+  receipt: LiveProofTwinReceipt;
+}
+export declare function verifyLiveProofsLive(input: {
+  html: string;
+  contract: { projections: SurfaceTwinProjection[] };
+  fetchAuthoritativeState: AuthoritativeStateFetcher;
+}): Promise<LiveProofLiveResult[]>;
 `;
 
 const worldDTS = `/** @holoscript/core/world — Native world generation adapters/service */

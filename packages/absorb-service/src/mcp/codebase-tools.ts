@@ -3654,6 +3654,146 @@ async function assertGraphRootHeadPinsCurrent(pins: GraphRootSourcePin[]): Promi
   }
 }
 
+/**
+ * Publication-boundary source gate.
+ *
+ * `assertGraphRootSourcePinsCurrent` asks "did anything in this worktree
+ * change?". Before a scan starts that is the right question -- it establishes
+ * the baseline. At a publication boundary it is the wrong one: the graph makes
+ * claims about exactly the files the scan read and about nothing else, so an
+ * unrelated path going dirty is not a hazard, yet it discards the entire run.
+ * On a tree with hundreds of continuously churning paths a long absorb can
+ * therefore never publish at all -- measured as three consecutive total losses,
+ * the largest 11 minutes / 20,000 files / 215,223 symbols.
+ *
+ * So the window stays exactly as wide and only the subject narrows.
+ * `baselineEntries` is the dirty-path set captured at the SAME moment as the
+ * pin, before the scan began; diffing it against the set now yields every path
+ * that moved across the whole run. Publication is refused when any of those
+ * paths is a file this run actually read.
+ *
+ * Deliberately NOT narrowed to `graph.fileHashes`: those are computed after the
+ * scan finishes, so re-verifying them at publication compares post-mutation
+ * content against itself and can never see the mutation. An earlier version of
+ * this gate did exactly that; the mid-scan mutation test in
+ * codebase-tools.absorb-root.test.ts caught it and was right to.
+ *
+ * A file appearing mid-scan leaves the graph incomplete rather than wrong, and
+ * incompleteness is already reported through graph coverage (`coverage.ratio`,
+ * `missingGraphFiles`), not through this pin. A file edited and then reverted
+ * inside the window stays invisible here -- as it already was to the digest this
+ * replaces, so that is unchanged, not newly lost.
+ *
+ * Every fallback re-runs the original whole-worktree assertion rather than
+ * passing by default: no pin, no baseline, an unreadable worktree, an empty
+ * scanned set, a baseline that does not hash back to the pin it claims to belong
+ * to, or any root the scan did not enumerate per-file.
+ */
+interface AbsorbPublicationSourceVerdict {
+  verified: 'scanned-files' | 'whole-worktree';
+  reason: string;
+  scannedFileCount: number;
+  worktreePathsChanged: number;
+  scannedFilesChanged: number;
+  changedSample: string[];
+}
+
+function scannedFileKey(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/').replace(/^\.\//, '');
+  // Case-folded on Windows so a case-different spelling still MATCHES a scanned
+  // file and still refuses. The unsafe direction would be failing to match.
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function buildScannedFileKeySet(files: Iterable<string>): Set<string> {
+  const keys = new Set<string>();
+  for (const file of files) if (file) keys.add(scannedFileKey(file));
+  return keys;
+}
+
+function diffGitWorktreeEntries(
+  baseline: Map<string, string>,
+  current: Map<string, string>
+): string[] {
+  const changed = new Set<string>();
+  for (const [filePath, hash] of current) {
+    if (baseline.get(filePath) !== hash) changed.add(filePath);
+  }
+  for (const filePath of baseline.keys()) {
+    if (!current.has(filePath)) changed.add(filePath);
+  }
+  return Array.from(changed).sort();
+}
+
+async function assertScannedSourceFilesCurrent(
+  pins: GraphRootSourcePin[],
+  scanPolicy: GraphScanPolicy,
+  publication: {
+    rootDir: string;
+    baselineEntries?: Map<string, string> | null;
+    scannedFiles?: Iterable<string> | null;
+  }
+): Promise<AbsorbPublicationSourceVerdict> {
+  await assertGraphRootHeadPinsCurrent(pins);
+
+  const primaryKey = normalizeRootForComparison(publication.rootDir);
+  const primaryPin = pins.find((pin) => normalizeRootForComparison(pin.rootDir) === primaryKey);
+  const otherPins = pins.filter((pin) => normalizeRootForComparison(pin.rootDir) !== primaryKey);
+  // Secondary roots were never enumerated per-file here, so they keep the
+  // original whole-worktree pin unchanged.
+  if (otherPins.length > 0) await assertGraphRootSourcePinsCurrent(otherPins, scanPolicy);
+
+  const scanned = publication.scannedFiles
+    ? buildScannedFileKeySet(publication.scannedFiles)
+    : null;
+
+  const strict = async (reason: string): Promise<AbsorbPublicationSourceVerdict> => {
+    if (primaryPin) await assertGraphRootSourcePinsCurrent([primaryPin], scanPolicy);
+    return {
+      verified: 'whole-worktree',
+      reason,
+      scannedFileCount: scanned?.size ?? 0,
+      worktreePathsChanged: 0,
+      scannedFilesChanged: 0,
+      changedSample: [],
+    };
+  };
+
+  if (!primaryPin) return strict('no source pin for the primary root');
+  if (!scanned || scanned.size === 0) return strict('scan enumerated no files');
+  if (!publication.baselineEntries) return strict('no pre-scan baseline was captured');
+  if (digestGitWorktreeEntries(publication.baselineEntries) !== primaryPin.worktreeFingerprint) {
+    return strict('baseline does not hash back to the pin it claims to belong to');
+  }
+
+  const current = collectGitWorktreeEntries(publication.rootDir, scanPolicy);
+  if (!current) return strict('worktree state unreadable at publication');
+
+  const changedPaths = diffGitWorktreeEntries(publication.baselineEntries, current);
+  const scannedChanged = changedPaths.filter((filePath) => scanned.has(scannedFileKey(filePath)));
+  if (scannedChanged.length > 0) {
+    throw new AbsorbRefreshWorktreePinError(
+      `${scanned.size} scanned files unchanged`,
+      `${scannedChanged.length} of them changed during the absorb (${scannedChanged
+        .slice(0, 5)
+        .join(', ')})`,
+      publication.rootDir
+    );
+  }
+
+  return {
+    verified: 'scanned-files',
+    reason:
+      changedPaths.length === 0
+        ? 'worktree unchanged during absorb'
+        : 'worktree changed, but no file this run read was touched',
+    scannedFileCount: scanned.size,
+    worktreePathsChanged: changedPaths.length,
+    scannedFilesChanged: 0,
+    changedSample: changedPaths.slice(0, 5),
+  };
+}
+
 async function waitForAbortableDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
   if (delayMs <= 0) return;
   await new Promise<void>((resolve, reject) => {
@@ -3847,10 +3987,19 @@ function resolveReuseScanPolicy(
  * scanner policy are omitted so ignored binaries and build debris do not make a
  * source graph stale.
  */
-function buildGitWorktreeFingerprint(
+/**
+ * The dirty-path set behind the fingerprint, as path -> content hash.
+ *
+ * The digest alone can only answer "did anything change". A publication
+ * boundary needs to know *which* paths changed, so it can ask the narrower and
+ * correct question: did any file this scan actually read change underneath it.
+ * `buildGitWorktreeFingerprint` is derived from this, so the two can never
+ * disagree.
+ */
+function collectGitWorktreeEntries(
   rootDir: string | null | undefined,
   scanPolicy?: GraphScanPolicy | null
-): string | null {
+): Map<string, string> | null {
   if (!rootDir) return null;
   const policy = buildCoveragePolicy(scanPolicy);
   if (!policy.respectGitIgnore) return null;
@@ -3884,7 +4033,7 @@ function buildGitWorktreeFingerprint(
       }
     }
 
-    const entries: string[] = [];
+    const entries = new Map<string, string>();
     for (const filePath of Array.from(paths).sort()) {
       if (isCoverageExcludedPath(filePath, policy)) continue;
       const resolvedFile = resolveCachedGraphFilePath(rootDir, filePath);
@@ -3893,16 +4042,32 @@ function buildGitWorktreeFingerprint(
         const stat = fs.statSync(resolvedFile);
         if (!stat.isFile() || stat.size > policy.maxFileSize) continue;
         const hash = createHash('sha256').update(fs.readFileSync(resolvedFile)).digest('hex');
-        entries.push(`${filePath}\0${hash}`);
+        entries.set(filePath, hash);
       } catch {
-        entries.push(`${filePath}\0<deleted>`);
+        entries.set(filePath, '<deleted>');
       }
     }
 
-    return createHash('sha256').update(JSON.stringify(entries)).digest('hex');
+    return entries;
   } catch {
     return null;
   }
+}
+
+function buildGitWorktreeFingerprint(
+  rootDir: string | null | undefined,
+  scanPolicy?: GraphScanPolicy | null
+): string | null {
+  const entries = collectGitWorktreeEntries(rootDir, scanPolicy);
+  return entries ? digestGitWorktreeEntries(entries) : null;
+}
+
+/** Byte-identical to the digest this replaced: sorted `path\0hash`, JSON-stringified. */
+function digestGitWorktreeEntries(entries: Map<string, string>): string {
+  const serialized = Array.from(entries.keys())
+    .sort()
+    .map((filePath) => `${filePath}\0${entries.get(filePath)}`);
+  return createHash('sha256').update(JSON.stringify(serialized)).digest('hex');
 }
 
 function buildCoverageAuthorityCaveats(coverage: GraphCoverageStatus): string[] {
@@ -6861,10 +7026,17 @@ async function runFullScan(
   const effectiveTargetGitCommitHash = inlineSourceFiles
     ? null
     : (targetGitCommitHash ?? (await getCurrentGitCommit(primaryRootDir)));
+  // Pin and baseline come from ONE observation of the worktree, so the
+  // publication boundary can say WHICH paths moved rather than only that
+  // something did. When a fingerprint was supplied by a drift retry the baseline
+  // is used only if it still hashes back to it (checked at the boundary).
+  const baselineWorktreeEntries = inlineSourceFiles
+    ? null
+    : collectGitWorktreeEntries(primaryRootDir, effectiveScanPolicy);
   const effectiveTargetWorktreeFingerprint = inlineSourceFiles
     ? null
     : (targetWorktreeFingerprint ??
-      buildGitWorktreeFingerprint(primaryRootDir, effectiveScanPolicy));
+      (baselineWorktreeEntries ? digestGitWorktreeEntries(baselineWorktreeEntries) : null));
   const rootSourcePins = inlineSourceFiles
     ? []
     : await captureGraphRootSourcePins(
@@ -6931,9 +7103,27 @@ async function runFullScan(
     return result;
   }
 
+  // Assigned once file discovery has produced the set this run will read. The
+  // pre-scan call happens before that and stays whole-worktree, because
+  // establishing the baseline is exactly what it is for; the two publication
+  // boundaries downstream of the assignment narrow automatically.
+  let publicationScannedFiles: string[] | undefined;
+  let publicationSourceVerdict: AbsorbPublicationSourceVerdict | undefined;
   const enforceRefreshSourcePin = async (): Promise<void> => {
     try {
-      await assertGraphRootSourcePinsCurrent(rootSourcePins, effectiveScanPolicy);
+      if (publicationScannedFiles) {
+        publicationSourceVerdict = await assertScannedSourceFilesCurrent(
+          rootSourcePins,
+          effectiveScanPolicy,
+          {
+            rootDir: primaryRootDir,
+            baselineEntries: baselineWorktreeEntries,
+            scannedFiles: publicationScannedFiles,
+          }
+        );
+      } else {
+        await assertGraphRootSourcePinsCurrent(rootSourcePins, effectiveScanPolicy);
+      }
     } catch (error) {
       activeRefreshCheckpoint?.markInvalidated(error);
       setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
@@ -7198,6 +7388,15 @@ async function runFullScan(
 
   graph.gitCommitHash = gitCommitHash;
   graph.fileHashes = fileHashes;
+  // From here on every publication-boundary pin verifies these exact files
+  // instead of the whole worktree.
+  //
+  // The subject is the files the GRAPH describes, not every file discovery
+  // enumerated. Enumeration is much wider: a markdown or data file is walked and
+  // hashed but contributes no symbols, so the graph makes no claim about it and
+  // changing it cannot make the graph wrong. Falls back to the enumerated set
+  // when the graph cannot report its own files, which is the safe direction.
+  publicationScannedFiles = normalizedGraphFilePaths(primaryRootDir, graph) ?? scannedFilePaths;
   graph.rootSetId = buildRootSetId(rootDirs);
   graph.rootAuthorityPins = rootAuthorityPins;
   recordPhaseMetric('git-hash', {
@@ -7490,6 +7689,7 @@ async function runFullScan(
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
+      ...(publicationSourceVerdict && { publicationSourceVerdict }),
       rootSetId: buildRootSetId(rootDirs),
       rootAuthorityPins,
       diagnostics,
@@ -7535,6 +7735,7 @@ async function runFullScan(
       scanPlan: scanPlanReceipt,
       phaseMetrics,
       gitCommitHash,
+      ...(publicationSourceVerdict && { publicationSourceVerdict }),
       rootSetId: buildRootSetId(rootDirs),
       rootAuthorityPins,
       diagnostics,
@@ -7583,6 +7784,12 @@ async function runFullScan(
   }
   const committedJob = jobId ? absorbJobs.get(jobId) : undefined;
   if (committedJob) committedJob.cacheCommitted = true;
+  if (publicationSourceVerdict && typeof result === 'object' && result !== null) {
+    // Say what the gate checked, not just that it passed: which subject it
+    // verified, how many files that was, and how much unrelated churn it
+    // correctly ignored.
+    Object.assign(result as Record<string, unknown>, { publicationSourceVerdict });
+  }
   activeRefreshCheckpoint?.markComplete();
   setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
   if (activeRefreshCheckpoint && typeof result === 'object' && result !== null) {
@@ -7705,6 +7912,10 @@ async function runIncrementalPatch(
   const effectiveScanPolicy = normalizeScanPolicy(scanPolicy ?? envelope.scanPolicy);
   const activeSourcePins =
     sourcePins ?? (await captureGraphRootSourcePins([rootDir], effectiveScanPolicy));
+  // Same shape as the full scan. If `sourcePins` were supplied by the caller
+  // this observation is later than theirs, which is why the boundary only trusts
+  // it when it still hashes back to the pin.
+  const baselineWorktreeEntries = collectGitWorktreeEntries(rootDir, effectiveScanPolicy);
   const signal = getAbsorbJobSignal(jobId);
   enforceAbsorbJobControl(jobId, 'initializing incremental patch');
 
@@ -7859,6 +8070,11 @@ async function runIncrementalPatch(
     );
   }
   graph.fileHashes = Object.fromEntries(newHashes.map((h: any) => [h.filePath, h.hash]));
+  // Both publication boundaries below verify these exact patched files rather
+  // than the whole worktree. See assertScannedSourceFilesCurrent.
+  const publicationScannedFiles =
+    normalizedGraphFilePaths(rootDir, graph) ?? Object.keys(graph.fileHashes ?? {});
+  let publicationSourceVerdict: AbsorbPublicationSourceVerdict | undefined;
   graph.rootDirs = [rootDir];
   graph.rootSetId = buildRootSetId([rootDir]);
   const rootAuthorityPins = buildGraphRootAuthorityPins(
@@ -7875,7 +8091,11 @@ async function runIncrementalPatch(
       ? requireNativeGraphRAGProvider(embeddingProvider, 'embeddingProvider argument')
       : (envelope.embeddingProvider ?? (await detectBestEmbeddingProvider()));
 
-    await assertGraphRootSourcePinsCurrent(activeSourcePins, effectiveScanPolicy);
+    publicationSourceVerdict = await assertScannedSourceFilesCurrent(
+      activeSourcePins,
+      effectiveScanPolicy,
+      { rootDir, baselineEntries: baselineWorktreeEntries, scannedFiles: publicationScannedFiles }
+    );
     const publishedGeneration = publishCacheGeneration({
       graph,
       rootDir,
@@ -7922,6 +8142,7 @@ async function runIncrementalPatch(
       scanPolicy: effectiveScanPolicy,
       gitCommitHash: changes.headCommit,
       sourcePinValidated: true,
+      ...(publicationSourceVerdict && { publicationSourceVerdict }),
       sourceAuthorityPins: activeSourcePins,
       ...(incompleteCacheRepair && {
         repairedIncompleteCache: true,
@@ -8107,7 +8328,11 @@ async function runIncrementalPatch(
   }
 
   enforceAbsorbJobControl(jobId, 'cache-commit');
-  await assertGraphRootSourcePinsCurrent(activeSourcePins, effectiveScanPolicy);
+  publicationSourceVerdict = await assertScannedSourceFilesCurrent(
+    activeSourcePins,
+    effectiveScanPolicy,
+    { rootDir, baselineEntries: baselineWorktreeEntries, scannedFiles: publicationScannedFiles }
+  );
   cacheTimestamp = Date.now();
   const publishedGeneration = publishCacheGeneration({
     graph,
@@ -8175,6 +8400,7 @@ async function runIncrementalPatch(
     interactiveScene,
     gitCommitHash: changes.headCommit,
     sourcePinValidated: true,
+    ...(publicationSourceVerdict && { publicationSourceVerdict }),
     sourceAuthorityPins: activeSourcePins,
     ...(incompleteCacheRepair && {
       repairedIncompleteCache: true,

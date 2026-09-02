@@ -874,6 +874,30 @@ export async function handleTeamRoutes(
       return true;
     }
     const isOwnerOrAdmin = ['owner', 'admin'].includes(membership.role);
+
+    // Roster liveness (task_1777939860298_m9ep, layer b). A TeamMember record
+    // stores joinedAt and nothing else time-based, so this endpoint used to
+    // return `members: team.members` raw — a roster with no way to tell a seat
+    // that heartbeated seconds ago from one dormant since May. Callers read
+    // 20/20 members, saw no status field, and reasonably concluded liveness was
+    // not tracked at all; the "team is full" ceiling then looks like 20 working
+    // agents when it is 20 accumulated joins (measured 2026-08-06: 20 members,
+    // 4 online). Presence already knows — GET /api/holomesh/team/:id/members
+    // has joined it since layer a — but this is the endpoint quick_links
+    // advertises, so the two disagreed. Same prune + same agentId key as that
+    // route, kept to `online` + `lastHeartbeat`: enough to answer active vs
+    // inactive without leaking session internals into the roster shape.
+    pruneStalePresence(teamId);
+    const rosterPresence = teamPresenceStore.get(teamId);
+    const membersWithLiveness = team.members.map((m) => {
+      const presence = rosterPresence?.get(m.agentId);
+      return {
+        ...m,
+        online: Boolean(presence),
+        lastHeartbeat: presence?.lastHeartbeat ?? null,
+      };
+    });
+
     json(res, 200, {
       success: true,
       team: {
@@ -881,7 +905,8 @@ export async function handleTeamRoutes(
         name: team.name,
         description: team.description,
         your_role: membership.role,
-        members: team.members,
+        members: membersWithLiveness,
+        online_count: membersWithLiveness.filter((m) => m.online).length,
         ...(isOwnerOrAdmin ? { invite_code: team.inviteCode } : {}),
       },
       quick_links: {

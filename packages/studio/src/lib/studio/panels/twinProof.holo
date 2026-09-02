@@ -1,0 +1,48 @@
+@view({ id: "twinProof", title: "Twin Proof", icon: "ShieldCheck", category: "debug", placement: "right-rail", scope: "workspace", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 50 })
+composition "twinProof" {
+  @verified_view
+  @native_panel
+
+  state {
+    altitude: 20
+  }
+
+  object "Root" {
+    @layout { flex: "column", gap: "10px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs text-studio-text" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Twin proof — is this screen telling the truth?" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+    object "Subtitle" {
+      @text { variant: "caption", content: "This panel shows the altitude it was built with. The real craft is tracked elsewhere. Change the real altitude and the verdict below catches this screen showing a number the craft does not have." }
+      @theme { className: "text-[10px] text-studio-muted" }
+    }
+
+    object "AltitudeRow" {
+      @layout { flex: "row", gap: "8px", align: "center" }
+
+      object "AltitudeLabel" {
+        @text { variant: "caption", content: "Altitude on screen (m)" }
+        @theme { className: "text-[10px] text-studio-muted" }
+      }
+      object "AltitudeValue" {
+        @text { variant: "caption" }
+        @bind { state: "altitude", fallback: "0" }
+        @theme { className: "text-[10px] font-semibold text-studio-text" }
+        @projects { node: "altitude", entity: "craft-1" }
+      }
+    }
+
+    object "Verdict" {
+      @live_proof {
+        claim: "altitude < 100"
+        label: "Craft below ceiling"
+        falsifiedBy: [
+          { altitude: 900, because: "a craft far above its ceiling must never read as below it" }
+        ]
+      }
+    }
+  }
+}

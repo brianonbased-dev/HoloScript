@@ -862,7 +862,17 @@ async function handleBoardComplete(
       summary,
       verificationEvidence,
     });
-    if (!wrap.result.success) return { error: wrap.result.error || 'Complete failed' };
+    if (!wrap.result.success) {
+      // Pass the refusal code through. The closeout-evidence policy now lives in
+      // completeTask (the shared chokepoint) rather than only in the REST route,
+      // so this path can refuse for reasons this handler never checked itself --
+      // an agent that only sees a bare message cannot tell which rule it broke.
+      return {
+        error: wrap.result.error || 'Complete failed',
+        ...(wrap.result.code ? { code: wrap.result.code } : {}),
+        ...(wrap.result.matchedPattern ? { matched_pattern: wrap.result.matchedPattern } : {}),
+      };
+    }
     team.taskBoard = wrap.updatedBoard;
     if (wrap.result.doneEntry) {
       if (!team.doneLog) team.doneLog = [];

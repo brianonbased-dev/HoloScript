@@ -10,7 +10,7 @@ export function HonestMetricsComponent() {
   return (
     <div
       className="holoscript-2d-root w-full h-full"
-      data-holo-view-contract="9f2ec322d0eb31bca6e34a0a1d9477446ba72be68d4cdf30133bf685c9fa18e9"
+      data-holo-view-contract="23d1499d38c5f7e454a863ea370ed9b3de1ef26cebf2369a555a2fe71993ae81"
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
@@ -115,6 +115,72 @@ export function HonestMetricsComponent() {
             </sup>
           </h2>
         </div>
+        <div
+          data-proof-claim={'growth <= 0 || forecast > sessions'}
+          data-proof-label="Forecast follows the measurement"
+          data-proof-independence="fault-tested"
+          data-proof-faults={
+            '[{"overrides":{"forecast":900},"because":"a metric measured as growing must never forecast fewer sessions than it already has"},{"overrides":{"sessions":2000},"because":"if the measured count climbs past the forecast, the forecast is stale and must stop reading as sound"},{"overrides":{"forecast":1240},"because":"a forecast identical to today\'s measurement is not a forecast"}]'
+          }
+          className="flex flex-col gap-2"
+        >
+          <div
+            data-proof-state={growth <= 0 || forecast > sessions ? 'pass' : 'falsified'}
+            className={`rounded-md p-2 text-xs font-semibold ${growth <= 0 || forecast > sessions ? 'bg-studio-success/10 text-studio-success' : 'bg-studio-error/10 text-studio-error'}`}
+          >
+            {growth <= 0 || forecast > sessions
+              ? '✓ Forecast follows the measurement holds'
+              : '✗ Forecast follows the measurement FALSIFIED'}
+          </div>
+          <span className="text-[10px] text-studio-muted">
+            {
+              'Broken on purpose 3 ways when this was built — the check caught all of them. Press one to watch it fail.'
+            }
+          </span>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setForecast(900);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error"
+            >
+              {
+                'Break it: a metric measured as growing must never forecast fewer sessions than it already has'
+              }
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSessions(2000);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error"
+            >
+              {
+                'Break it: if the measured count climbs past the forecast, the forecast is stale and must stop reading as sound'
+              }
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setForecast(1240);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error"
+            >
+              {"Break it: a forecast identical to today's measurement is not a forecast"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setForecast(1580);
+                setSessions(1240);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent"
+            >
+              {'Put it back'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -131,5 +197,15 @@ export const holoViewContract = {
     { element: 'MeasuredValue', node: 'sessions', identity: true },
   ],
   stateRoots: ['aiEstimate', 'forecast', 'growth', 'sessions'],
-  contractHash: '9f2ec322d0eb31bca6e34a0a1d9477446ba72be68d4cdf30133bf685c9fa18e9',
+  liveProofs: [
+    {
+      claim: 'growth <= 0 || forecast > sessions',
+      label: 'Forecast follows the measurement',
+      independence: 'fault-tested',
+      inputs: ['forecast', 'growth', 'sessions'],
+      anchors: [],
+      unanchored: ['forecast', 'growth', 'sessions'],
+    },
+  ],
+  contractHash: '23d1499d38c5f7e454a863ea370ed9b3de1ef26cebf2369a555a2fe71993ae81',
 } as const;

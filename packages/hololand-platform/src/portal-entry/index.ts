@@ -15,11 +15,12 @@
  *
  * NMoS: build-internal (HoloTunnel is sovereign; no external dependency).
  *
- * @module @holoscript/hololand-platform/portal-entry
+ * @module @hololand/platform-services/portal-entry
  */
 
 import { createHash, randomUUID } from 'node:crypto';
 import type { HoloTunnelSharePacket } from '../holo-tunnel/index.js';
+import { isKnownReceiptSource, knownReceiptSources } from '../receipt-namespace.js';
 
 // ── Schema Version ──────────────────────────────────────────────────────────────
 
@@ -160,7 +161,7 @@ export interface PortalEntryReceipt {
   /** ISO 8601 timestamp of receipt creation. */
   readonly createdAt: string;
   /** Package that generated this receipt. */
-  readonly generatedBy: '@holoscript/hololand-platform/portal-entry';
+  readonly generatedBy: '@hololand/platform-services/portal-entry';
 
   // ── Base: share-packet.v1 (extended) ──
   /** The HoloTunnel share packet describing the tunnel used for entry. */
@@ -279,8 +280,10 @@ export function validatePortalEntryReceipt(receipt: unknown): PortalEntryReceipt
   requireText(receipt, 'receiptId', 'receipt', errors);
   requireText(receipt, 'createdAt', 'receipt', errors);
 
-  if (receipt.generatedBy !== '@holoscript/hololand-platform/portal-entry') {
-    errors.push('generatedBy must be @holoscript/hololand-platform/portal-entry');
+  // Accepts the pre-rename namespace too: receipts published as
+  // @holoscript/hololand-platform are real evidence and must keep verifying.
+  if (!isKnownReceiptSource(receipt.generatedBy, 'portal-entry')) {
+    errors.push(`generatedBy must be one of ${knownReceiptSources('portal-entry').join(', ')}`);
   }
 
   // sharePacket
@@ -442,7 +445,7 @@ export function buildPortalEntryReceipt(
   const receiptBase: Omit<PortalEntryReceipt, 'receiptId'> = {
     schemaVersion: PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION,
     createdAt: now,
-    generatedBy: '@holoscript/hololand-platform/portal-entry',
+    generatedBy: '@hololand/platform-services/portal-entry',
     sharePacket: options.sharePacket,
     entrant: options.entrant,
     representation: {

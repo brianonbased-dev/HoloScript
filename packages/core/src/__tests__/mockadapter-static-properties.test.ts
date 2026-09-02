@@ -412,6 +412,9 @@ describe('Feature 5: LLM provider model constant arrays', () => {
     expect(GEMINI_MODELS).toContain('gemini-3.6-flash');
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash-lite');
     expect(GEMINI_MODELS).not.toContain('gemini-2.0-flash');
+    // A duplicate entry is a real defect a count would have caught by accident; check it
+    // on purpose instead.
+    expect(new Set(GEMINI_MODELS).size, 'duplicate model id').toBe(GEMINI_MODELS.length);
   });
 
   it('GEMINI_MODELS includes gemini-3.5-flash', () => {

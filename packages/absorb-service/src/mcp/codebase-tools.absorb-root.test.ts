@@ -4236,6 +4236,163 @@ describe('holo_absorb_repo root validation', () => {
     ).toBeGreaterThanOrEqual(1);
   }, 15_000);
 
+  // Complement of the two tests above. They prove the publication gate still
+  // refuses when a file the graph DESCRIBES changes underneath it. This proves
+  // it no longer destroys the run over a file the graph never described.
+  //
+  // The divergence exercised here is the file cap. The worktree fingerprint has
+  // no cap, so on a repo with more candidates than `maxFiles` every capped-out
+  // file could veto a publication it has no stake in. Both directions are
+  // required: a gate that only ever refuses and a gate that only ever passes are
+  // equally useless.
+  it('publishes when a capped-out file the graph never described changes mid-absorb', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-churn-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-capped-churn-repo-');
+    const extraFiles: string[] = [];
+    for (let index = 0; index < 12; index++) {
+      const relative = `src/zz-${String(index).padStart(2, '0')}.ts`;
+      fs.writeFileSync(
+        path.join(repoDir, relative.replace('/', path.sep)),
+        `export const pad${index} = ${index};\n`,
+        'utf-8'
+      );
+      extraFiles.push(relative);
+    }
+    execFileSync('git', ['add', ...extraFiles], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'padding'], { cwd: repoDir, windowsHide: true });
+
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
+    const head = getHeadCommit(repoDir);
+    writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, head, 1);
+
+    const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+    vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return originalScanFiles.apply(this, args);
+    });
+
+    const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      scanBatchSize: 1,
+      maxFiles: 2,
+    })) as { accepted?: boolean; jobId?: string };
+    expect(accepted).toMatchObject({ accepted: true });
+
+    let refreshProgress: { completedBatchCount?: number } | undefined;
+    for (let index = 0; index < 100; index++) {
+      const progress = (await handleCodebaseTool('holo_get_absorb_status', {
+        jobId: accepted.jobId,
+      })) as { refreshProgressReceipt?: { completedBatchCount?: number } };
+      refreshProgress = progress.refreshProgressReceipt;
+      if ((refreshProgress?.completedBatchCount ?? 0) >= 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(refreshProgress?.completedBatchCount).toBeGreaterThanOrEqual(1);
+    // Sorts last, so with a cap of 2 it is outside the graph. If that ever stops
+    // being true this test fails loudly rather than passing vacuously: the run
+    // would refuse and the assertions below would not hold.
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'zz-11.ts'),
+      '\nexport const churnedByAnotherAgent = true;\n'
+    );
+
+    const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
+    expect(String(status.error ?? '')).not.toContain(
+      'Repository worktree changed during absorb refresh'
+    );
+    expect(status).toMatchObject({ status: 'complete' });
+
+    // The cap really applied, so zz-11.ts was genuinely outside the graph and
+    // this is not passing vacuously on a quiet tree. The verdict receipt itself
+    // rides on the full-scan and incremental result shapes, not this repair path.
+    expect(Number((status.result as { stats?: { totalFiles?: number } })?.stats?.totalFiles ?? 99)).
+      toBeLessThanOrEqual(2);
+  }, 30_000);
+
+  // The measured cause of the ai-ecosystem full-tree absorb never finishing.
+  //
+  // That tree is quiet -- zero scan candidates were touched in the hour before
+  // this was written. What kills the run is a single background heartbeat:
+  // receipts/holoclaw-sidecar.ndjson is appended on a 900-second timer (median
+  // gap 900.008s over 774 records since 2026-07-20), and it is untracked, which
+  // the coverage policy includes by default. An 11-minute absorb therefore has
+  // roughly a 73% chance of containing a tick, and the tick invalidates the pin.
+  //
+  // The gate is right to refuse -- something the graph describes did change.
+  // The mistake is that an operational log was ever a scan candidate. This
+  // proves the fix is configuration, available today, and needs no code change:
+  // name the log's directory in scanPolicy.exclude.
+  it('finishes when a heartbeat file in an excluded directory ticks mid-absorb', async () => {
+    const runWithHeartbeat = async (scanPolicy?: Record<string, unknown>) => {
+      resetCodebaseToolStateForTests();
+      const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-heartbeat-cache-'));
+      const repoDir = makeTinyGitRepo('holoscript-heartbeat-repo-');
+      // Untracked, exactly like the real one, and inside a directory that holds
+      // operational output rather than source.
+      fs.mkdirSync(path.join(repoDir, 'receipts'), { recursive: true });
+      fs.writeFileSync(
+        path.join(repoDir, 'receipts', 'sidecar.ndjson'),
+        '{"tick":0}\n',
+        'utf-8'
+      );
+
+      process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+      process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+      process.env.ABSORB_AUTO_BACKGROUND_SCAN_FILE_THRESHOLD = '2';
+      writeGraphCache(cacheDir, repoDir, Date.now() - 5 * 60 * 1000, getHeadCommit(repoDir), 1);
+
+      const originalScanFiles = CodebaseScanner.prototype.scanFiles;
+      vi.spyOn(CodebaseScanner.prototype, 'scanFiles').mockImplementation(async function (...args) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return originalScanFiles.apply(this, args);
+      });
+
+      const accepted = (await handleCodebaseTool('holo_absorb_repo', {
+        rootDir: repoDir,
+        outputFormat: 'stats',
+        scanBatchSize: 1,
+        maxFiles: 20_000,
+        // exclude/languages/includeUntracked are TOP-LEVEL tool arguments --
+        // buildScanPolicyFromArgs reads args.exclude directly. Nesting them under
+        // a scanPolicy object is silently ignored.
+        ...(scanPolicy ?? {}),
+      })) as { accepted?: boolean; jobId?: string };
+      expect(accepted).toMatchObject({ accepted: true });
+
+      for (let index = 0; index < 100; index++) {
+        const progress = (await handleCodebaseTool('holo_get_absorb_status', {
+          jobId: accepted.jobId,
+        })) as { refreshProgressReceipt?: { completedBatchCount?: number } };
+        if ((progress.refreshProgressReceipt?.completedBatchCount ?? 0) >= 1) break;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      // The heartbeat ticks, as it does every fifteen minutes regardless of us.
+      fs.appendFileSync(path.join(repoDir, 'receipts', 'sidecar.ndjson'), '{"tick":1}\n');
+
+      const status = await waitForAbsorbTerminalStatus(accepted.jobId!, true);
+      vi.restoreAllMocks();
+      return status;
+    };
+
+    // Without the exclusion the tick destroys the run -- this is today's behaviour
+    // and the reason the test is not vacuous.
+    const unprotected = await runWithHeartbeat();
+    expect(String(unprotected.error ?? '')).toContain(
+      'Repository worktree changed during absorb refresh'
+    );
+
+    // Naming the directory is the whole fix.
+    const protectedRun = await runWithHeartbeat({ exclude: ['receipts'] });
+    expect(String(protectedRun.error ?? '')).not.toContain(
+      'Repository worktree changed during absorb refresh'
+    );
+    expect(protectedRun).toMatchObject({ status: 'complete' });
+  }, 60_000);
+
   it('automatically replans a forced refresh when HEAD advances between scan batches', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-head-retry-cache-'));
@@ -5902,7 +6059,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       graphFileCount: 1,
       receipt: { schema: 'LocalCodebaseSnapshotReceipt.v1' },
     });
-  }, 15_000);
+  });
 
   it('rejects a local receipt when declared hash does not match replay content', async () => {
     resetCodebaseToolStateForTests();
@@ -5953,7 +6110,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     });
     expect(result.stats?.totalFiles).toBe(1);
     expect(result.stats?.totalSymbols).toBeGreaterThanOrEqual(1);
-  }, 15_000);
+  });
 
   it('preserves rootDir as graph provenance when sourceFiles are uploaded inline', async () => {
     resetCodebaseToolStateForTests();
@@ -6029,7 +6186,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(status.diskCache?.coverage?.graphFileCount).toBe(1);
     expect(status.localGraph?.rootDir).toBe(path.resolve(requestedRoot));
     expect(status.localGraph?.freshForCurrentRepo).toBe(false);
-  }, 15_000);
+  });
 
   it('clears stale GraphRAG state when graph output cannot build embeddings', async () => {
     resetCodebaseToolStateForTests();
@@ -6082,7 +6239,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
       useCachedAbsorbIndex: true,
     })) as { error?: string };
     expect(semanticSearch.error).toContain('No embedding index');
-  }, 15_000);
+  });
 
   it('returns an extractive cited answer when holo_ask_codebase cannot reach an LLM', async () => {
     resetCodebaseToolStateForTests();
@@ -6122,7 +6279,7 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(answer.provenanceGuard?.passed).toBe(true);
     expect(answer.citations?.length).toBeGreaterThan(0);
     expect(answer.citations?.[0]?.file).toContain('InlineAskFixture.ts');
-  }, 15_000);
+  });
 
   it('rejects sourceFiles with path traversal', async () => {
     resetCodebaseToolStateForTests();

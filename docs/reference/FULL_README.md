@@ -646,7 +646,7 @@ Write **one** HoloScript file. Compile to:
 
 - 📘 **[Traits Reference](./docs/traits/index.md)** - Trait handlers across the current inventory (verify via MCP: `list_traits`).
 - 🧩 **[RFC Proposals Index](./proposals/README.md)** - Track active proposals and draft new RFCs for language and platform evolution.
-- 📙 **[Academy](./docs/academy/index.md)** - Master HoloScript through interactive lessons.
+- 📙 **[HoloSchool](./docs/holoschool/index.md)** - Master HoloScript through interactive lessons.
 - 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for registered compile targets; verify the current count via `docs/NUMBERS.md`.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
 - 🔘 **[Architecture](./docs/architecture/README.md)** - Deep dive into the engine and compiler.

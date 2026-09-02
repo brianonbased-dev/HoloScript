@@ -1,0 +1,143 @@
+// HoloShell native terminal event stream.
+//
+// Source-side contract for representing native terminal and service execution
+// as append-only events before any browser or native window turns them into UI.
+
+composition "HoloShellNativeTerminalEventStream" {
+  state NativeTerminalEventStreamState {
+    schemaVersion: "holoscript.holoshell.native-terminal-event-stream.v0.1.0"
+    requiredCapabilityLane: "terminal_event_read"
+    surface: "native_holoshell_app_window"
+    streamKind: "append_only_terminal_event_ledger"
+    runnerKind: "spawn_backed_native_lifecycle_capture"
+    runnerAdapter: "Hololand:scripts/holoshell-terminal-runner.mjs"
+    allowlistedAdapterExecutionKind: "read_only_adapter_lifecycle"
+    eventKinds: [
+      "run.started",
+      "stdout.chunk",
+      "stderr.chunk",
+      "artifact.detected",
+      "approval.required",
+      "run.exited",
+      "receipt.written"
+    ]
+    receiptRequired: true
+    sourceRequiredBeforeProjection: true
+    browserMayConsumeEvents: true
+    browserMayOwnExecution: false
+    nativeHostMaySpawnReadOnlyAdapter: true
+    endpointExecutesRawCommand: false
+  }
+
+  template "NativeTerminalEvent" {
+    schemaVersion: "holoscript.holoshell.native-terminal-event.v0.1.0"
+    eventId: ""
+    runId: ""
+    readOnlyExecutionId: ""
+    sessionId: ""
+    kind: "artifact.detected"
+    sequence: 0
+    generatedAt: ""
+    sourceReceipt: ""
+    receiptHash: ""
+    summary: ""
+    redactedText: ""
+    artifact: {}
+    endpointExecutesCommand: false
+    endpointExecutesReadOnlyAdapter: false
+    endpointExecutesRawCommand: false
+    browserMayOwnExecution: false
+    adapterSpawnedByEndpoint: false
+    destructiveActionsTaken: false
+    rawCommandLineIncluded: false
+    receiptRequired: true
+  }
+
+  template "NativeTerminalRunCard" {
+    cardId: ""
+    runId: ""
+    label: ""
+    laneId: "terminal_event_read"
+    status: "unknown"
+    latestEventKind: ""
+    latestReceiptHash: ""
+    eventCount: 0
+    humanSummary: ""
+    browserMayRequestRefresh: true
+    browserMayExecuteCommand: false
+    nativeHostRequiredForExecution: true
+    receiptRequired: true
+  }
+
+  policy "EventLedgerBeforeTerminalUi" {
+    appliesTo: ["native_terminal", "operator_terminal", "service_supervisor", "browser_run_cards"]
+    appendOnlyLedgerRequired: true
+    eventKindsRequired: [
+      "run.started",
+      "stdout.chunk",
+      "stderr.chunk",
+      "artifact.detected",
+      "approval.required",
+      "run.exited",
+      "receipt.written"
+    ]
+    rawShellScrollbackIsEvidenceOnly: true
+    nonDeveloperSummaryRequired: true
+    browserRunCardsConsumeEvents: true
+    receiptRequired: true
+  }
+
+  policy "TerminalEventReadIsReadOnly" {
+    appliesTo: ["GET /api/operator-terminal/events", "terminal_event_read", "browser_projection"]
+    requiredCapabilityLane: "terminal_event_read"
+    endpointExecutesCommand: false
+    destructiveActionsTaken: false
+    desktopAutomationExecuted: false
+    browserMayOwnExecution: false
+    mutationRequiresSeparateGuardedLane: true
+    receiptRequired: true
+  }
+
+  policy "ReadOnlyAdapterLifecycleCapture" {
+    appliesTo: ["operator_terminal_readonly_adapter_execution", "server_allowlisted_read_only_adapter"]
+    runnerAdapter: "Hololand:scripts/holoshell-terminal-runner.mjs"
+    allowedEventOrder: ["run.started", "stdout.chunk", "stderr.chunk", "run.exited", "receipt.written"]
+    browserMayRequestRun: true
+    browserMayOwnExecution: false
+    endpointExecutesReadOnlyAdapter: true
+    endpointExecutesRawCommand: false
+    rawCommandLineIncluded: false
+    destructiveActionsTaken: false
+    desktopAutomationExecuted: false
+    receiptWrittenEventRequired: true
+  }
+
+  policy "ServiceRunsEmitTerminalEvents" {
+    appliesTo: ["service_status", "guarded_service_ensure", "registered_holo_services"]
+    statusLane: "service_status"
+    ensureLane: "guarded_service_ensure"
+    eventLane: "terminal_event_read"
+    serviceStatusMustEmitArtifactEvent: true
+    serviceEnsureMustEmitRunLifecycleEvents: true
+    receiptWrittenEventRequired: true
+  }
+
+  action classifyTerminalEvent(kind) {
+    if (kind == "stdout.chunk") {
+      return "output"
+    }
+    if (kind == "stderr.chunk") {
+      return "attention"
+    }
+    if (kind == "approval.required") {
+      return "guard"
+    }
+    if (kind == "run.exited") {
+      return "lifecycle"
+    }
+    if (kind == "receipt.written") {
+      return "receipt"
+    }
+    return "artifact"
+  }
+}

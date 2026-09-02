@@ -127,7 +127,7 @@ User asks to compile/export?
   → NO  ↓
 
 User is new to HoloScript?
-  → YES → direct to docs/academy/level-1-fundamentals/01-what-is-holoscript.md
+  → YES → direct to docs/holoschool/level-1-fundamentals/01-what-is-holoscript.md
   → NO  ↓
 
 User is modifying TypeScript (packages/*)?
@@ -292,7 +292,7 @@ advanced      @shader_custom @compute_shader @ray_traced @lod_managed
 ## ∞ DOCS STRUCTURE — Where Things Live
 
 ```text
-docs/academy/          25 lessons, 3 levels (newcomer entry point)
+docs/holoschool/       25 lessons, 3 levels (newcomer entry point)
 docs/compilers/        targets (count via `ls docs/compilers/`): unity/ unreal/ godot/ vrchat/ webgpu/ ios/ vision-os/
                        android/ android-xr/ openxr/ openxr-spatial/ robotics/urdf robotics/sdf
                        iot/dtdl iot/wot playcanvas/ wasm/ ar/ tsl/ neuromorphic/ a2a/ scm/
@@ -330,9 +330,9 @@ If any box is unchecked → complete that step before responding.
 ## ∞ NEWCOMER FAST PATH
 
 ```text
-1. docs/academy/level-1-fundamentals/01-what-is-holoscript.md  (What + Why)
-2. docs/academy/level-1-fundamentals/02-installation.md         (Setup)
-3. docs/academy/level-1-fundamentals/03-first-scene.md          (First .holo)
+1. docs/holoschool/level-1-fundamentals/01-what-is-holoscript.md  (What + Why)
+2. docs/holoschool/level-1-fundamentals/02-installation.md        (Setup)
+3. docs/holoschool/level-1-fundamentals/03-first-scene.md         (First .holo)
 4. docs/traits/index.md                                          (Superpower)
 5. docs/compilers/index.md                                       (Deploy)
 ```

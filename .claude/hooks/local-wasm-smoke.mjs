@@ -21,8 +21,42 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve, join } from 'node:path';
 
-const filePath = process.env.CLAUDE_TOOL_INPUT_FILE_PATH ||
-                 process.argv[2] ||
+// HOW THIS HOOK RECEIVES THE FILE IT IS MEANT TO CHECK.
+//
+// It used to read CLAUDE_TOOL_INPUT_FILE_PATH, then argv[2]. settings.json wires
+// it with no argument, and nothing anywhere sets that variable -- grep finds two
+// consumers of it and zero producers. So `filePath` was always empty, the path
+// gate below always matched nothing, and the hook exited 0 in silence. Measured
+// 2026-08-19, invoked exactly as wired: no output, exit 0. Its stated job is to
+// catch Rust/WASM breakage before a fleet job spends money; it had done that zero
+// times since it was written on 2026-06-13.
+//
+// Claude Code hands hooks their payload on stdin as JSON. Its sibling on this same
+// matcher, packages/snn-webgpu/scripts/probe-webgpu-headless.mjs, already read it
+// that way and works. This is that solution, forty lines away, applied here.
+function readHookPayloadFilePath() {
+  try {
+    const raw = readFileSync(0, 'utf8').trim();
+    if (!raw) return '';
+    const payload = JSON.parse(raw);
+    const toolInput =
+      payload && typeof payload.tool_input === 'object' && payload.tool_input !== null
+        ? payload.tool_input
+        : {};
+    return [toolInput.file_path, toolInput.path, payload.file_path, payload.path].find(
+      (value) => typeof value === 'string' && value.length > 0,
+    ) || '';
+  } catch {
+    return '';
+  }
+}
+
+// argv stays last, for running this by hand. An unexpanded shell placeholder is
+// not a path -- treating it as one is how the sibling gate hid its own failure.
+const argvPath = process.argv[2] && !process.argv[2].includes('$') ? process.argv[2] : '';
+const filePath = readHookPayloadFilePath() ||
+                 process.env.CLAUDE_TOOL_INPUT_FILE_PATH ||
+                 argvPath ||
                  '';
 
 // Path gate — only fire for compiler-wasm edits
@@ -62,6 +96,21 @@ const result = { status, duration_ms, ts: new Date().toISOString(), ...(error ? 
 // Emit one line to stdout for Claude's session log
 console.log(`[local-smoke] ${status} compiler-wasm ${duration_ms}ms`);
 
+// A failure has to reach somebody. Measured 2026-08-19: with the payload defect
+// above repaired and the wasm entry deliberately broken, this printed
+// `[local-smoke] FAIL compiler-wasm 180ms` and then exited 0 -- so the smoke test
+// found the breakage, said so into a log, and told no one. stdout on a passing
+// PostToolUse hook is not shown to the agent; stderr with exit 2 is. Keeping exit 0
+// here would have swapped one silent failure for another.
+//
+// PostToolUse runs AFTER the edit is applied, so this blocks nothing and undoes
+// nothing. It tells the agent that the thing it just changed no longer loads.
+if (status === 'FAIL') {
+  console.error(`[local-smoke] compiler-wasm no longer loads after this edit.`);
+  if (error) console.error(`  ${error}`);
+  console.error(`  The edit was applied. The WASM build needs rebuilding or fixing.`);
+}
+
 // Write into .holo-ci-last-workload.localPreflight (merge, don't clobber)
 try {
   let workload = {};
@@ -72,4 +121,4 @@ try {
   // Non-fatal — workload file may not exist or may be locked
 }
 
-process.exit(0);
+process.exit(status === 'FAIL' ? 2 : 0);

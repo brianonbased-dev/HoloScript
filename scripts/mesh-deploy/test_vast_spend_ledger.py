@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -396,6 +397,88 @@ class UnifiedPurchasedComputeLedgerTests(unittest.TestCase):
                             now=self.now,
                             window_hours=24,
                         )
+
+    def test_one_guard_file_spelled_two_ways_is_one_authority(self) -> None:
+        r"""Live case, instance 44568605.
+
+        `C:\Users\josep\.ai-ecosystem\...` is an NTFS junction onto
+        `C:\holo-dev\ai-ecosystem\...`. The rent was written through the
+        junction on 2026-07-12 and the close through the real path on
+        2026-08-13, with an identical spend_authority_hash. Comparing raw
+        strings read that as two authorities and refused the entire ledger,
+        which left the accumulated day-total cap unenforceable.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            real_dir = Path(tmp) / "real"
+            real_dir.mkdir()
+            guard = real_dir / "guard.json"
+            guard.write_text("{}", encoding="utf8")
+
+            link_dir = Path(tmp) / "link"
+            try:
+                os.symlink(real_dir, link_dir, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("this platform cannot create a directory link")
+
+            via_link = dict(self.signed_binding(), contract_guard_path=str(link_dir / "guard.json"))
+            via_real = dict(self.signed_binding(), contract_guard_path=str(guard))
+            self.assertNotEqual(via_link["contract_guard_path"], via_real["contract_guard_path"])
+
+            LEDGER._GUARD_PATH_CACHE.clear()
+            spent, _burn, _active = LEDGER.compute_day_spend(
+                [
+                    {
+                        "ts_iso": LEDGER._iso(self.now - timedelta(hours=3)),
+                        "event": "rented", "instance_id": 77, "dph": 1, **via_link,
+                    },
+                    {
+                        "ts_iso": LEDGER._iso(self.now - timedelta(hours=2)),
+                        "event": "closed", "instance_id": 77, **via_real,
+                    },
+                ],
+                now=self.now,
+                window_hours=24,
+            )
+            self.assertAlmostEqual(spent, 1.0, places=6)
+
+    def test_two_genuinely_different_guard_files_still_refuse(self) -> None:
+        """The normalisation must not become a way to swap the authority."""
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "a.json"
+            second = Path(tmp) / "b.json"
+            first.write_text("{}", encoding="utf8")
+            second.write_text("{}", encoding="utf8")
+
+            LEDGER._GUARD_PATH_CACHE.clear()
+            with self.assertRaises(LEDGER.LedgerIntegrityError):
+                LEDGER.compute_day_spend(
+                    [
+                        {
+                            "ts_iso": LEDGER._iso(self.now - timedelta(hours=3)),
+                            "event": "rented", "instance_id": 77, "dph": 1,
+                            **dict(self.signed_binding(), contract_guard_path=str(first)),
+                        },
+                        {
+                            "ts_iso": LEDGER._iso(self.now - timedelta(hours=2)),
+                            "event": "closed", "instance_id": 77,
+                            **dict(self.signed_binding(), contract_guard_path=str(second)),
+                        },
+                    ],
+                    now=self.now,
+                    window_hours=24,
+                )
+
+    def test_unresolvable_guard_paths_compare_by_spelling(self) -> None:
+        """A path that does not exist is still compared, just literally."""
+        LEDGER._GUARD_PATH_CACHE.clear()
+        self.assertEqual(
+            LEDGER.normalized_guard_path("C:" + chr(92) + "nope" + chr(92) + "Guard.json"),
+            LEDGER.normalized_guard_path("C:/nope/guard.json"),
+        )
+        self.assertNotEqual(
+            LEDGER.normalized_guard_path("C:/nope/a.json"),
+            LEDGER.normalized_guard_path("C:/nope/b.json"),
+        )
 
     def test_duplicate_close_cannot_change_binding_mode_or_proof(self) -> None:
         signed_rent = {

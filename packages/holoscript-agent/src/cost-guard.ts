@@ -102,14 +102,173 @@ function priceUsageWithCacheSplit(
   );
 }
 
-export function defaultAnthropicPricer(model: string, usage: TokenUsage): number {
-  const price = resolveAnthropicPricing(model);
-  if (!price) {
-    throw new Error(
-      `No pricing configured for model "${model}" — add to ANTHROPIC_PRICING_USD_PER_MTOK or pass a custom pricer`
-    );
+/**
+ * Model id whose rate seeds the conservative fallback. The actual ceiling is
+ * recomputed across the whole table (see `mostExpensivePricing`), so adding a
+ * pricier model raises it automatically instead of leaving this stale.
+ */
+export const FALLBACK_PRICING_MODEL_ID = 'claude-fable-5';
+
+/** Locally-hosted models bill no API cost. */
+export const LOCAL_MODEL_PRICE: { input: number; output: number } = { input: 0, output: 0 };
+
+/**
+ * How a model id was matched. Anything other than `exact` means the id was not
+ * a literal table key — `fallback` in particular means the cost is an UPPER
+ * BOUND, not an estimate.
+ */
+export type PricingResolutionSource = 'exact' | 'undecorated' | 'undated' | 'local' | 'fallback';
+
+export interface ResolvedModelPricing {
+  price: { input: number; output: number };
+  source: PricingResolutionSource;
+  /** The id actually used for the successful lookup. */
+  resolvedFrom: string;
+}
+
+/**
+ * A model id is local only if it is NOT a `claude-*` id and it either looks
+ * like an Ollama tag (`qwen2.5-coder:7b`) or is explicitly namespaced.
+ * Deliberately narrow: anything else unrecognized takes the conservative cloud
+ * fallback, so a genuinely unknown CLOUD model is never costed at zero.
+ */
+export function isLocalModelId(model: string): boolean {
+  if (model.startsWith('claude-')) return false;
+  return /:/.test(model) || /^(ollama|local|holoserve|bitnet)[-/]?/i.test(model);
+}
+
+/**
+ * The most expensive rate in a pricing table, at a point in time. Computed
+ * rather than pinned to a literal so a newly-added pricier model raises the
+ * ceiling on its own.
+ */
+export function mostExpensivePricing(
+  table: Record<string, { input: number; output: number }> = ANTHROPIC_PRICING_USD_PER_MTOK,
+  at?: Date | string
+): { input: number; output: number } {
+  let worst: { input: number; output: number } | undefined;
+  for (const id of Object.keys(table)) {
+    // Date-bounded schedules only exist for the Anthropic table; for every
+    // other table `resolveAnthropicPricing` misses and the raw row is used.
+    const candidate =
+      (table === ANTHROPIC_PRICING_USD_PER_MTOK ? resolveAnthropicPricing(id, at) : undefined) ??
+      table[id];
+    if (candidate && (!worst || candidate.input > worst.input)) worst = candidate;
   }
-  return priceUsageWithCacheSplit(usage, price);
+  return worst ?? { input: 10, output: 50 };
+}
+
+/**
+ * The absolute ceiling across every token-priced provider table. Used when a
+ * pricer fails outright and the accounting still has to charge something: the
+ * safe failure mode is to over-estimate and stop early, never to under-estimate
+ * and overspend.
+ */
+export function ceilingPricingAcrossProviders(at?: Date | string): {
+  input: number;
+  output: number;
+} {
+  const tables = [
+    ANTHROPIC_PRICING_USD_PER_MTOK,
+    XAI_PRICING_USD_PER_MTOK,
+    OPENAI_PRICING_USD_PER_MTOK,
+    OPENROUTER_PRICING_USD_PER_MTOK,
+  ];
+  let worst: { input: number; output: number } | undefined;
+  for (const table of tables) {
+    if (Object.keys(table).length === 0) continue;
+    const candidate = mostExpensivePricing(table, at);
+    if (!worst || candidate.input > worst.input) worst = candidate;
+  }
+  return worst ?? { input: 10, output: 50 };
+}
+
+/**
+ * Resolve pricing for a model id, ALWAYS returning a rate.
+ *
+ * Resolution order: exact key → id with a trailing bracketed annotation
+ * stripped (`claude-fable-5 [replay transcript]`) → id with a trailing dated
+ * snapshot suffix stripped (`claude-haiku-4-5-20251001`) → optionally a
+ * zero rate for locally-hosted ids → the most expensive known rate.
+ *
+ * This is the canonical resolver. It replaced a throw in
+ * `defaultAnthropicPricer` that was strictly worse than a ceiling estimate:
+ * because `CostGuard.recordUsage` prices BEFORE it accrues, the throw aborted
+ * the accrual after the provider call had already been paid for, so
+ * `spentUsd` stayed 0 and `isOverBudget()` never tripped. Charging an upper
+ * bound over-states spend; throwing under-stated it to zero and made the
+ * budget unenforceable.
+ *
+ * @param opts.localIdsFree Treat Ollama-style/namespaced ids as $0. Correct for
+ *   offline benchmark costing, WRONG for the live guard — there, locality is
+ *   decided by provider dispatch (`defaultPricerForProvider`), and id-sniffing
+ *   to zero would be a hole any unrecognized id could fall through.
+ */
+export function resolveModelPricingOrFallback(
+  model: string,
+  opts: { at?: Date | string; localIdsFree?: boolean } = {}
+): ResolvedModelPricing {
+  const { at, localIdsFree = false } = opts;
+
+  const exact = resolveAnthropicPricing(model, at);
+  if (exact) return { price: exact, source: 'exact', resolvedFrom: model };
+
+  // Some configs decorate the id for provenance — `fable5-ultracode` reports
+  // "claude-fable-5 [ultracode reference transcript replay]" — and that should
+  // price as the model it names, by intent rather than by fallback coincidence.
+  const undecorated = model.replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+  const byUndecorated = resolveAnthropicPricing(undecorated, at);
+  if (byUndecorated)
+    return { price: byUndecorated, source: 'undecorated', resolvedFrom: undecorated };
+
+  // Dated snapshots (`claude-haiku-4-5-20251001`) price as their alias.
+  const undated = undecorated.replace(/-\d{8}$/, '');
+  const byUndated = resolveAnthropicPricing(undated, at);
+  if (byUndated) return { price: byUndated, source: 'undated', resolvedFrom: undated };
+
+  if (localIdsFree && isLocalModelId(undecorated)) {
+    return { price: LOCAL_MODEL_PRICE, source: 'local', resolvedFrom: undecorated };
+  }
+
+  return {
+    price: mostExpensivePricing(ANTHROPIC_PRICING_USD_PER_MTOK, at),
+    source: 'fallback',
+    resolvedFrom: FALLBACK_PRICING_MODEL_ID,
+  };
+}
+
+const warnedUnpricedModels = new Set<string>();
+
+/** Test seam: clear the warn-once ledger so a spec can observe the warning. */
+export function resetUnpricedModelWarnings(): void {
+  warnedUnpricedModels.clear();
+}
+
+/** Warn at most once per model id, so a missing row is visible but not spammy. */
+function warnUnpricedOnce(model: string, tableName: string): void {
+  if (warnedUnpricedModels.has(model)) return;
+  warnedUnpricedModels.add(model);
+  console.warn(
+    `[cost-guard] No pricing entry for model "${model}"; billing it at the most ` +
+      `expensive known rate. Spend recorded for this model is an UPPER BOUND, not ` +
+      `an estimate — add it to ${tableName} to bill accurately.`
+  );
+}
+
+/**
+ * Anthropic pricer. Never throws on an unknown model: an unpriced model is
+ * charged at the most expensive known rate and warned about once.
+ *
+ * It used to throw. That looked like the cautious choice and was the opposite
+ * of one — see `resolveModelPricingOrFallback` for why (the throw landed after
+ * the paid call and before the accrual, leaving `spentUsd` at 0 forever).
+ */
+export function defaultAnthropicPricer(model: string, usage: TokenUsage): number {
+  const resolved = resolveModelPricingOrFallback(model);
+  if (resolved.source === 'fallback') {
+    warnUnpricedOnce(model, 'ANTHROPIC_PRICING_USD_PER_MTOK');
+  }
+  return priceUsageWithCacheSplit(usage, resolved.price);
 }
 
 /**
@@ -375,12 +534,47 @@ export class CostGuard {
     this.state = this.loadOrInit();
   }
 
+  /**
+   * Price `usage` without ever letting a pricing failure destroy the accrual.
+   *
+   * The call this is accounting for has ALREADY been paid to the provider. A
+   * pricer that throws (every non-Anthropic default pricer still does, by
+   * design, for an unknown model) or that returns a non-finite/negative number
+   * must not be allowed to skip `spentUsd += cost` — that is precisely how
+   * unbounded spend hides behind a total that reads zero. So: charge the
+   * cross-provider ceiling and keep going.
+   *
+   * Over-charging is a self-correcting failure (the agent stops early and a
+   * human notices a budget trip); under-charging is not (nothing stops).
+   */
+  private priceOrCeiling(model: string, usage: TokenUsage): number {
+    let costUsd: number;
+    try {
+      costUsd = this.pricer(model, usage);
+    } catch (err) {
+      warnUnpricedOnce(
+        model,
+        `the pricing table for this provider (pricer threw: ${
+          err instanceof Error ? err.message : String(err)
+        })`
+      );
+      return priceUsageWithCacheSplit(usage, ceilingPricingAcrossProviders());
+    }
+    if (!Number.isFinite(costUsd) || costUsd < 0) {
+      // A NaN cost is worse than a throw: it propagates into spentUsd, and
+      // `NaN >= budget` is false, so the guard silently never trips again.
+      warnUnpricedOnce(model, `the pricing table for this provider (pricer returned ${costUsd})`);
+      return priceUsageWithCacheSplit(usage, ceilingPricingAcrossProviders());
+    }
+    return costUsd;
+  }
+
   recordUsage(
     model: string,
     usage: TokenUsage
   ): { costUsd: number; spentUsd: number; remainingUsd: number } {
     this.rolloverIfNewDay();
-    const costUsd = this.pricer(model, usage);
+    const costUsd = this.priceOrCeiling(model, usage);
     this.state.spentUsd += costUsd;
     this.state.promptTokens += usage.promptTokens;
     this.state.completionTokens += usage.completionTokens;

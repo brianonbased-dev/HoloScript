@@ -82,7 +82,11 @@ import {
 } from './hologram-content-tools';
 import { negotiationToolDefinitions, handleNegotiationTool } from './negotiation-mcp-tools';
 import { memoryTools, handleMemoryTool } from './memory-tools';
-import { handleBatchToolCall } from './tooling-discovery-tools';
+import {
+  handleBatchToolCall,
+  setToolHealthDispatcher,
+  registerHolonTools,
+} from './tooling-discovery-tools';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
@@ -446,6 +450,17 @@ registerCategory(absorbServiceTools, (name, args, _signingCtx) =>
 );
 registerCategory(codebaseTools, (name, args, _signingCtx) => handleCodebaseTool(name, args));
 registerCategory(graphRagTools, (name, args, _signingCtx) => handleGraphRagTool(name, args));
+
+// Brand every tool that ships from absorb-service as HoloAbsorb. The holon registry
+// lists HoloAbsorb as the codebase-intelligence umbrella with mcp_tools: true, and
+// until now no tool in the manifest carried the name — an agent reading the manifest
+// had no way to learn that absorb_query, holo_ask_codebase and holo_graph_status are
+// one product. Registered from the actual tool arrays rather than a name pattern,
+// because these tools share a package, not a prefix.
+registerHolonTools(
+  'HoloAbsorb',
+  [...absorbServiceTools, ...codebaseTools, ...graphRagTools].map((t) => t.name)
+);
 registerCategory(selfImproveTools, (name, args, _signingCtx) => handleSelfImproveTool(name, args));
 registerCategory(grpoTools, (name, args, _signingCtx) => handleGrpoTool(name, args));
 registerCategory(gltfImportTools, (name, args, _signingCtx) => handleGltfTool(name, args));
@@ -490,6 +505,17 @@ for (const t of tools) {
     );
   }
 }
+
+// 3. Point get_tool_health at THIS registry — the map customers are served from.
+// It previously probed through handlers.ts's narrower switch, which does not route
+// the categories registered above, so it reported the entire compiler category as
+// "Unknown tool" while those tools worked. A health check reading a different map
+// than the traffic is worse than no health check: it is confidently wrong.
+setToolHealthDispatcher(async (name, args) => {
+  const handler = TOOL_DISPATCH_REGISTRY.get(name);
+  if (!handler) throw new Error(`Unknown tool: ${name}`);
+  return handler(name, args, undefined);
+});
 
 async function executeBatchInnerTool(
   toolName: string,
@@ -604,6 +630,11 @@ async function main() {
   loadNativeAgentCompositions();
 
   requireConfig(REQUIRED_VARS.MCP_SERVER as unknown as string[], 'mcp-server');
+  // Stdio means the caller launched this process, in their own working directory —
+  // the one context where this server's filesystem IS the caller's filesystem.
+  // Tools that read local paths check this before claiming an answer is about the
+  // caller rather than about the machine the server happens to run on.
+  process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('HoloScript MCP Server running on stdio');

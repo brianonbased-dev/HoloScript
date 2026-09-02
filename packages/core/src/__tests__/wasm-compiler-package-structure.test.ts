@@ -1,13 +1,13 @@
 ﻿/**
  * Sprint 8 Acceptance Tests
  *
- * v3.17.0 â€” WASM compiler, Team workspaces (RBAC + secrets + activity), HoloScript Academy
+ * v3.17.0 â€” WASM compiler, Team workspaces (RBAC + secrets + activity), HoloSchool
  *
  * Coverage:
  *   1. WASM compiler package structure  â€” 10 tests
  *   2. Workspace RBAC & permission utils â€” 16 tests
  *   3. WorkspaceService operations       â€” 15 tests
- *   4. HoloScript Academy content        â€” 16 tests
+ *   4. HoloSchool content                â€” 16 tests
  *                               Total:   57 tests
  */
 
@@ -37,7 +37,7 @@ import { WorkspaceRepository } from '../../../registry/src/workspace/WorkspaceRe
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const WASM_ROOT = join(__dirname, '../../../../packages/compiler-wasm');
-const ACADEMY_ROOT = join(__dirname, '../../../../docs/academy');
+const HOLOSCHOOL_ROOT = join(__dirname, '../../../../docs/holoschool');
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 1. WASM Compiler package structure
@@ -305,16 +305,16 @@ describe('WorkspaceService', () => {
 });
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 4. HoloScript Academy content
+// 4. HoloSchool content
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('HoloScript Academy', () => {
-  const L1 = (n: string) => join(ACADEMY_ROOT, 'level-1-fundamentals', n);
-  const L2 = (n: string) => join(ACADEMY_ROOT, 'level-2-intermediate', n);
-  const L3 = (n: string) => join(ACADEMY_ROOT, 'level-3-advanced', n);
+describe('HoloSchool', () => {
+  const L1 = (n: string) => join(HOLOSCHOOL_ROOT, 'level-1-fundamentals', n);
+  const L2 = (n: string) => join(HOLOSCHOOL_ROOT, 'level-2-intermediate', n);
+  const L3 = (n: string) => join(HOLOSCHOOL_ROOT, 'level-3-advanced', n);
 
-  it('academy index.md exists', () => {
-    expect(existsSync(join(ACADEMY_ROOT, 'index.md'))).toBe(true);
+  it('holoschool index.md exists', () => {
+    expect(existsSync(join(HOLOSCHOOL_ROOT, 'index.md'))).toBe(true);
   });
 
   // Level 1 â€“ all 10 lessons exist
@@ -404,7 +404,7 @@ describe('HoloScript Academy', () => {
     expect(content.toLowerCase()).toContain('trait');
   });
 
-  it('total Academy lesson files count is at least 28', () => {
+  it('total HoloSchool lesson files count is at least 28', () => {
     const allLessons = [
       ...Array.from({ length: 10 }, (_, i) => existsSync(L1(`${String(i + 1).padStart(2, '0')}-`))),
     ];
@@ -412,7 +412,7 @@ describe('HoloScript Academy', () => {
     const { readdirSync } = require('fs');
     let count = 0;
     for (const level of ['level-1-fundamentals', 'level-2-intermediate', 'level-3-advanced']) {
-      const dir = join(ACADEMY_ROOT, level);
+      const dir = join(HOLOSCHOOL_ROOT, level);
       if (existsSync(dir)) {
         count += readdirSync(dir).filter(
           (f: string) => f.endsWith('.md') && !f.startsWith('index')

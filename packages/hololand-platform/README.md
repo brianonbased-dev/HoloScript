@@ -1,4 +1,4 @@
-# @holoscript/hololand-platform
+# @hololand/platform-services
 
 HoloLand platform services that consume upstream HoloScript and framework
 primitives.
@@ -6,7 +6,7 @@ primitives.
 ## Install
 
 ```bash
-npm install @holoscript/hololand-platform
+npm install @hololand/platform-services
 ```
 
 ## Use
@@ -16,7 +16,7 @@ import {
   AffectiveMemory,
   buildHoloTunnelSharePacket,
   stewardTick,
-} from '@holoscript/hololand-platform';
+} from '@hololand/platform-services';
 ```
 
 ## Device Lab
@@ -24,7 +24,7 @@ import {
 Run the hardware-native readiness probe before claiming HoloLand device support:
 
 ```bash
-pnpm --filter @holoscript/hololand-platform run device-lab -- --task task_1778188462361_2597
+pnpm --filter @hololand/platform-services run device-lab -- --task task_1778188462361_2597
 ```
 
 The command writes a receipt under `.holoscript/device-lab/` and checks:
@@ -38,7 +38,7 @@ The command writes a receipt under `.holoscript/device-lab/` and checks:
 Attach headset and replay evidence when available:
 
 ```bash
-pnpm --filter @holoscript/hololand-platform run device-lab -- \
+pnpm --filter @hololand/platform-services run device-lab -- \
   --task task_1778188462361_2597 \
   --headset-report path/to/observations.md \
   --replay path/to/replay-or-validation-receipt.json
@@ -52,7 +52,7 @@ readiness is not proven on this device.
 Generate the Paper 12 HoloLand calibration/setup/reproducibility manifest:
 
 ```bash
-pnpm --filter @holoscript/hololand-platform run evidence-envelope -- \
+pnpm --filter @hololand/platform-services run evidence-envelope -- \
   --preset paper-12-hololand \
   --out docs/public/evidence/paper-12-hololand-envelope.json
 ```

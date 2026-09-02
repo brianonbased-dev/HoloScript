@@ -10,6 +10,8 @@ HoloScript provides cryptographic and privacy-first traits for building trustles
 
 Attaches a ZK circuit to an object that produces verifiable proofs without revealing private inputs. Supports Groth16 (snarkjs) and PLONK out of the box.
 
+> Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await zk.requestProof` is not live HoloScript.
+
 ```hsplus
 object "AgeGate" @zero_knowledge_proof {
   zk: {
