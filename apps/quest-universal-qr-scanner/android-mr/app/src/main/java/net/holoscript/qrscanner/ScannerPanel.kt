@@ -7,8 +7,8 @@
  *  - Panels scroll (never clip) and carry Back navigation.
  *  - TUTORIAL plays an animated demo: a scan line sweeps the on-device mock QR, then a success
  *    checkmark animates in with the decoded link.
- *  - SCANNING shows only a small "Scanning… / Menu" pill (the rest transparent) so the user keeps
- *    working; a real read pops a full RESULT card, then it returns to the pill.
+ *  - SCANNING shows a small "Scanning / Menu" pill (the rest transparent) so the app stays visibly
+ *    alive; a real read pops a full RESULT card, then it returns to the pill.
  */
 package net.holoscript.qrscanner
 
@@ -172,12 +172,14 @@ fun ScannerPanel() {
       Screen.TUTORIAL -> PanelSurface { TutorialScreen() }
       Screen.BOOKMARKS -> PanelSurface { BookmarksScreen() }
       Screen.SCANNING ->
-          // Ambient: while scanning, render NOTHING (clear passthrough). A read pops a card on the
-          // head-locked panel; dismissing it returns to the clear view. A world link → EnterWorldCard.
+          // Ambient room stays visible. A small Scanning pill proves the app is alive (Meta
+          // Functional.1); a read pops a result card, then it returns to the pill.
           if (ScannerState.pendingWorld != null) {
             PanelSurface { EnterWorldCard() }
           } else if (ScannerState.pendingUrl != null || ScannerState.lastResult != null) {
             PanelSurface { ResultCard() }
+          } else {
+            ScanningHud()
           }
       Screen.IN_WORLD ->
           // Immersed in a world. A real QR read pops the result card; otherwise a minimal HUD pill
@@ -444,6 +446,38 @@ private fun EnterWorldCard() {
         }
     ) {
       Text("Dismiss")
+    }
+  }
+}
+
+/** Head-locked pill while scanning in passthrough. An empty panel looks frozen to store review. */
+@Composable
+private fun ScanningHud() {
+  Column(
+      modifier = Modifier.fillMaxSize().padding(26.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.Top,
+  ) {
+    Row(
+        modifier =
+            Modifier.clip(RoundedCornerShape(30.dp))
+                .background(Color(0xCC0B1220))
+                .padding(horizontal = 22.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(text = "◉", fontSize = 22.sp, color = ScanAccent)
+      Spacer(Modifier.size(12.dp))
+      Column {
+        Text(
+            text = "Scanning",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+        )
+        Text(text = ScannerState.status, fontSize = 12.sp, color = Color(0xFF9CA3AF))
+      }
+      Spacer(Modifier.size(18.dp))
+      Button(onClick = { ScannerState.screen = Screen.WELCOME }) { Text("Menu") }
     }
   }
 }

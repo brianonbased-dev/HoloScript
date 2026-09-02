@@ -22,8 +22,8 @@ composition "UniversalQrScanner" {
       holo_color: "#7FD8FF"
     }
     version: {
-      code: 3
-      name: "1.0.2"
+      code: 4
+      name: "1.0.3"
     }
   }
 
@@ -96,7 +96,7 @@ composition "UniversalQrScanner" {
       follow_head: true                    // HUD follows the head (not world-fixed) — moves with your gaze
       follow_distance: 1.2                 // meters in front of the head
       title: "HoloQR"
-      ambient: true                        // nothing shown while scanning; a result card pops only on a hit
+      ambient: true                        // room stays visible while scanning; a small Scanning pill stays on-screen so the app never looks frozen
     }
   }
 

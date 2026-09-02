@@ -125,7 +125,7 @@ export interface QuestMrFeatures {
 function defaults(): QuestMrFeatures {
   return {
     packageName: 'net.holoscript.qrscanner',
-    appName: 'Universal QR Scanner',
+    appName: 'HoloQR',
     panelX: 0.0,
     panelY: 1.3,
     panelZ: 1.5,
@@ -155,7 +155,7 @@ function defaults(): QuestMrFeatures {
     scanReceiptIncludePayload: false,
     scanReceiptMaxEntries: 1000,
     feedbackSound: true,
-    title: 'Universal QR Scanner',
+    title: 'HoloQR',
     tagline: 'Read any QR code — right in mixed reality',
     howTo: [],
     aimTip: '',
@@ -985,6 +985,7 @@ export function emitAndroidManifestXml(f: QuestMrFeatures): string {
       android:value="V2.0"
     />
     <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
+    <meta-data android:name="com.oculus.ossplash" android:value="true" />
     <uses-native-library
       android:name="libossdk.oculus.so"
       android:required="true"

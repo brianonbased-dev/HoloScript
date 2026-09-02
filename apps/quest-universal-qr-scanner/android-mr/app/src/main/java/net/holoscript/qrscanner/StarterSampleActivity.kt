@@ -135,14 +135,18 @@ class StarterSampleActivity : AppSystemActivity() {
   private var playerYaw = 0f // degrees; the rig heading (right stick turns it)
   private var lastLocoNanos = 0L
 
-  // SplatFeature enables Meta's native Gaussian-splat rendering (com.meta.spatial.splat.Splat reads
-  // .spz/.ply, ≤150k splats on Quest 3) so compiled worlds can place splat clouds. It's an
-  // experimental API (@RequiresOptIn) and takes (SpatialContext, SystemManager). Registering it is
-  // inert for splat-free worlds — the marketing worlds emit no Splat entity, so it does nothing there.
+  // SplatFeature enables Meta's native Gaussian-splat rendering. It is experimental; a constructor
+  // failure must not crash the QR-scanner launch path that store review actually exercises.
   @OptIn(SpatialSDKExperimentalSplatAPI::class)
-  override fun registerFeatures(): List<SpatialFeature> =
-      mutableListOf<SpatialFeature>(
-          VRFeature(this), ComposeFeature(), SplatFeature(this.spatialContext, systemManager))
+  override fun registerFeatures(): List<SpatialFeature> {
+    val features = mutableListOf<SpatialFeature>(VRFeature(this), ComposeFeature())
+    try {
+      features.add(SplatFeature(this.spatialContext, systemManager))
+    } catch (e: Exception) {
+      Log.w(tag, "SplatFeature unavailable: ${e.message}")
+    }
+    return features
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -207,7 +211,11 @@ class StarterSampleActivity : AppSystemActivity() {
         ScannerState.status = "Leave blocked: lifecycle"
       }
     }
-    ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
+    try {
+      ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
+    } catch (e: Exception) {
+      Log.w(tag, "mock QR failed: ${e.message}")
+    }
 
     // In-app bookmarks: the @local_collection declaration controls whether this feature exists and
     // how app-private JSON storage is bounded, ordered, and deduplicated.
@@ -264,9 +272,9 @@ class StarterSampleActivity : AppSystemActivity() {
         lifecycle.fireActionComplete()
       }
     }
-    if (!hasCameraPermission()) {
-      requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
-    }
+    // Do not prompt for the headset camera during VR launch. A 2D permission dialog on a
+    // Spatial app looks frozen to store review (VRC.Quest.Functional.1). Request it when the
+    // user taps Start scanning.
   }
 
   // Returning from the Quest browser (or any background) releases the camera; re-arm scanning so the
@@ -281,6 +289,7 @@ class StarterSampleActivity : AppSystemActivity() {
 
   override fun onSceneReady() {
     super.onSceneReady()
+    try {
     scene.setReferenceSpace(ReferenceSpace.LOCAL_FLOOR)
 
     // Lighting for compiled worlds — a serene mountain-valley key/fill rig so PBR Materials shade
@@ -333,6 +342,9 @@ class StarterSampleActivity : AppSystemActivity() {
       )
     }
 
+    } catch (e: Exception) {
+      Log.e(tag, "scene ready failed: ${e.message}", e)
+    }
     sceneReady = true
 
     // MMO-style mobility invariant (F.118): a player is NEVER seated-locked in a world. If the scene
@@ -342,7 +354,9 @@ class StarterSampleActivity : AppSystemActivity() {
     if (ScannerState.screen == Screen.IN_WORLD) {
       startLocomotion()
     }
-    // Camera starts when the user taps "Start scanning" on the welcome screen (ScannerState.onStart).
+    // If the reviewer taps Start scanning before the Spatial scene finishes, retry here so the
+    // camera is not left permanently off (empty passthrough looks frozen to store review).
+    maybeStartScanner()
   }
 
   // Head-locked HUD: each frame, place the panel FOLLOW_DISTANCE m in front of the head, facing the
@@ -383,19 +397,31 @@ class StarterSampleActivity : AppSystemActivity() {
   }
 
   private fun maybeStartScanner() {
-    if (controller != null ||
-        !sceneReady ||
-        !hasCameraPermission() ||
-        ScannerState.screen != Screen.SCANNING)
-        return
+    if (controller != null) return
+    if (ScannerState.screen != Screen.SCANNING && ScannerState.screen != Screen.IN_WORLD) return
+    if (!sceneReady) {
+      ScannerState.status = "Starting…"
+      return
+    }
+    if (!hasCameraPermission()) {
+      ScannerState.status = "Waiting for camera permission…"
+      requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
+      return
+    }
     ScannerState.status = "Point at a QR code…"
-    controller =
-        PassthroughCameraController(
-                context = this,
-                onDecoded = { text -> runOnUiThread { onDecoded(text) } },
-                onError = { msg -> runOnUiThread { ScannerState.status = msg } },
-            )
-            .also { it.start() }
+    try {
+      controller =
+          PassthroughCameraController(
+                  context = this,
+                  onDecoded = { text -> runOnUiThread { onDecoded(text) } },
+                  onError = { msg -> runOnUiThread { ScannerState.status = msg } },
+              )
+              .also { it.start() }
+    } catch (e: Exception) {
+      Log.e(tag, "camera start failed: ${e.message}", e)
+      controller = null
+      ScannerState.status = "Camera failed to start. Tap Menu, then Start scanning."
+    }
   }
 
   private fun onDecoded(text: String) {
@@ -650,11 +676,19 @@ class StarterSampleActivity : AppSystemActivity() {
     val name = Worlds.displayName(worldId) ?: WorldPortal.worldName(admittedLink)
     ScannerState.enterWorld(name)
     if (sceneReady) {
-      worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
-      scene.enablePassthrough(false)
-      // You're now IN the world — start custom continuous MMO locomotion (left stick = move/strafe,
-      // right stick = turn), free continuous roam. Spawn at the world origin facing the scene.
-      startLocomotion()
+      try {
+        worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
+        scene.enablePassthrough(false)
+        startLocomotion()
+      } catch (e: Exception) {
+        Log.e(tag, "world enter failed: ${e.message}", e)
+        try { scene.enablePassthrough(true) } catch (_: Exception) {}
+        ScannerState.leaveWorld()
+        ScannerState.status = "World failed to load"
+        controller?.resumeScanning()
+        lifecycle.fireActionComplete()
+        return
+      }
     }
     lifecycle.fireActionComplete()
     controller?.resumeScanning() // keep scanning inside the world
