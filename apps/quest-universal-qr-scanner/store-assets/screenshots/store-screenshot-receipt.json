@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "holoscript.holoqr-store-screenshot-receipt.v0.3.0",
+  "kind": "HoloQrStoreScreenshotReceipt",
+  "createdAt": "2026-09-02T18:36:27.267Z",
+  "rule": "VRC.Quest.Asset.5 — unembellished in-experience frames, no extra logos/text/iconography",
+  "size": {
+    "width": 2560,
+    "height": 1440
+  },
+  "overlays": [],
+  "artifacts": [
+    {
+      "file": "01-welcome.png",
+      "source": "meta-compositor-welcome.jpg",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 1017036,
+      "sha256": "b1ef4644c4228e5bbf6fc081b4d2c7434c82c3f66ff0f4ad766174c384a81d22"
+    },
+    {
+      "file": "02-how-it-works.png",
+      "source": "meta-compositor-tutorial.jpg",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 767577,
+      "sha256": "65983cdb82f0da350e4960719888a9f431b7dadaecda8ef8d889cbe45c972917"
+    },
+    {
+      "file": "03-link-found.png",
+      "source": "meta-compositor-link.jpg",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 699788,
+      "sha256": "abdbb39f4fcc75ea85996d6c4845c849c5d1fc56f7adc89b7afe6c2d1c4cc30d"
+    },
+    {
+      "file": "04-tutorial-scan.png",
+      "source": "agent-panel-tutorial-scanning-fast.png",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 425215,
+      "sha256": "bcdf02650df9c14cc284541154fc416a7c97cb4db4d6ccbac851fabd74e5988d"
+    },
+    {
+      "file": "05-saved-links.png",
+      "source": "meta-compositor-saved-links.jpg",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 586739,
+      "sha256": "090710434db343d936eb0e1ca28f289f8ee25adf5199ff3c7bf52071d175a49b"
+    }
+  ]
+}

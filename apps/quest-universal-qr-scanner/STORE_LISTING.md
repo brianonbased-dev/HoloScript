@@ -98,13 +98,13 @@ Review flow:
 | Hero cover, 3000×900           | `store-assets/cover-hero-3000x900.png`        | Ready                    |
 | Icon, 512×512                  | `store-assets/icon-512.png`                   | Ready                    |
 | Spatial foreground, 180×180    | `store-assets/icon-spatialized-180.png`       | Optional; ready          |
-| Screenshots, five at 2560×1440 | On-headset capture from the release candidate | Submitted to Meta        |
+| Screenshots, five at 2560×1440 | `store-assets/screenshots/01-welcome.png`, `02-how-it-works.png`, `03-link-found.png`, `04-tutorial-scan.png`, `05-saved-links.png` | Overlay-free Quest captures (no marketing cards) |
 | Trailer                        | None                                          | Optional; omitted for v1 |
 
 ## Current review state
 
-- Metadata: `Submitted`
-- Native binary: HoloQR `1.0.2`, `Submitted`
-- Submission date: 2026-07-26
-- Review date: not assigned
-- Next dashboard action: after approval, choose immediate release or schedule the release
+- Metadata: **rejected** on 2026-09-02 (privacy name, screenshot overlays, Functional.1 freeze)
+- Native binary to resubmit: HoloQR `1.0.3` (`versionCode 4`)
+- Privacy policy must keep the exact store name **HoloQR**
+- Screenshots must be the overlay-free 2560×1440 plates in `store-assets/screenshots/`
+- Next dashboard action: replace privacy URL content (same GitHub raw URL), replace the five screenshots, upload `1.0.3`, resubmit

@@ -2,9 +2,13 @@
 
 ## Current store state
 
-- HoloQR `1.0.2` (`versionCode 3`) was submitted to Meta Horizon Store review on 2026-07-26.
-- Submission metadata and the native binary both report `Submitted`; no review date is assigned yet.
-- Meta submission: `1114952735042547`; submitted binary: `1168245949713225`.
+- HoloQR `1.0.2` (`versionCode 3`) was **rejected** by Meta Horizon Store review on 2026-09-02.
+- Failures: `VRC.Quest.Functional.1` (blank scan HUD looked frozen), `VRC.Quest.Privacy.1`
+  (privacy policy still said Universal QR Scanner), `VRC.Quest.Asset.5` (marketing overlays on
+  screenshots).
+- Resubmit candidate: HoloQR `1.0.3` (`versionCode 4`) with a visible Scanning pill, delayed camera
+  permission, HoloQR-named privacy policy, and overlay-free 2560×1440 screenshots.
+- Meta submission: `1114952735042547`; previously submitted binary: `1168245949713225`.
 - After approval, Meta requires a separate immediate-or-scheduled release choice.
 
 The custody and submission procedures below remain the runbook for future updates. Product sequencing
@@ -56,7 +60,7 @@ The current submission's Data Use Checkup, Content Guidelines, IARC age rating, 
 sharing choice, pricing, and reviewer contact are complete. For future candidates, use a
 **Release Channel (ALPHA/BETA)** to install the exact build on-headset before public submission.
 
-Current version: `versionCode 3` / `versionName "1.0.2"` (bump both in `scanner.holo`'s `version` block
+Current version: `versionCode 4` / `versionName "1.0.3"` (bump both in `scanner.holo`'s `version` block
 for each store re-upload — Horizon requires a strictly higher `versionCode` each time).
 
 ---

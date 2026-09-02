@@ -4,8 +4,9 @@
 >
 > **Refreshed:** 2026-07-26
 >
-> **Current release:** HoloQR `1.0.2` (`versionCode 3`) is submitted to Meta Horizon
-> Store review. The submitted binary is the output of the HoloScript release path.
+> **Current release:** HoloQR `1.0.2` was rejected in Meta Horizon Store review
+> on 2026-09-02. The resubmit candidate is `1.0.3`, authored from this HoloScript
+> source path.
 
 HoloQR is the first paid HoloScript-built product. The launch price is USD $3. Revenue matters,
 but it does not weaken the product invariant: a HoloQR version does not ship unless HoloScript
@@ -46,7 +47,7 @@ hidden hand-authored native behavior is a language/compiler gap and is not ready
 | Private state      | Saved links stay in device-private storage; diagnostic receipts omit raw payloads and form a bounded HMAC chain. | [`scanner.holo`](./scanner.holo), [`PRIVACY.md`](./PRIVACY.md)                                                                      |
 | World entry        | Bundled worlds are compiler-registered. Remote worlds require an Ed25519 signature and explicit consent.         | [`scanner.holo`](./scanner.holo), [`worlds/`](./worlds)                                                                             |
 | Release provenance | Generation and an independent byte-match check run before signing or Gradle packaging.                           | [`README.md`](./README.md), [`RELEASE.md`](./RELEASE.md)                                                                            |
-| Distribution       | Metadata and native binary `1.0.2` are submitted to Meta Horizon Store review.                                   | Meta submission `1114952735042547`, verified 2026-07-26                                                                             |
+| Distribution       | `1.0.2` was rejected; `1.0.3` is the review-repair candidate.                                                    | Meta submission `1114952735042547`; privacy/screenshots/crash repairs in this version                                               |
 
 ## Version sequence
 

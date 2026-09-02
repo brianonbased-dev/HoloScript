@@ -9,8 +9,8 @@ This is a HoloScript-authored app, not a native app with a HoloScript label. The
 [`worlds/`](./worlds). The immersive Quest project under [`android-mr/`](./android-mr) is compiler
 output and a bounded native bridge for platform APIs.
 
-Current store state: HoloQR `1.0.2` (`versionCode 3`) was submitted to Meta Horizon Store review on
-2026-07-26. See [`roadmap.md`](./roadmap.md) for the post-launch product sequence and the
+Current store state: HoloQR `1.0.2` was rejected on 2026-09-02. Resubmit with `1.0.3`
+(`versionCode 4`). See [`roadmap.md`](./roadmap.md) for the post-launch product sequence and the
 HoloScript-language gates that every future version must pass.
 
 ## Release invariant
