@@ -82,6 +82,50 @@ export function messageAddressedToAny(
   return recipients.some((recipient) => recipient && messageAddressedTo(message, recipient));
 }
 
+/** Newest-first cap used by mobile-brief and other inbox slices. */
+export const INBOX_BRIEF_CAP = 10;
+
+type InboxBriefRow = { id?: string };
+
+/**
+ * Directed mail first, then other inbox-visible posts, capped.
+ *
+ * The either/or (`directed.length > 0 ? directed : inboxType`) was the
+ * lreq brief bug: one DM hid every later handoff/review from the seat's
+ * 10-slot slice. Merge keeps the "DM is not buried" guarantee without
+ * blinding the rest of the room.
+ */
+export function mergeInboxBrief<T extends InboxBriefRow>(
+  directed: T[],
+  inboxType: T[],
+  cap = INBOX_BRIEF_CAP
+): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  const takeNewestFirst = (rows: T[]) => {
+    for (let i = rows.length - 1; i >= 0; i -= 1) {
+      if (out.length >= cap) return;
+      const row = rows[i];
+      if (!row) continue;
+      const key = row.id ? `id:${row.id}` : `anon:${i}:${out.length}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  };
+  takeNewestFirst(directed);
+  takeNewestFirst(inboxType);
+  return out;
+}
+
+/**
+ * The exclusive choose that blinds a seat after its first DM.
+ * Kept only so tests can watch the fault fail.
+ */
+export function chooseInboxBriefExclusive<T>(directed: T[], inboxType: T[]): T[] {
+  return directed.length > 0 ? directed : inboxType;
+}
+
 export function findTeamMember<T extends { agentId?: string; agentName?: string; name?: string }>(
   members: T[] | undefined,
   needle: string

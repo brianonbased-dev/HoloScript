@@ -14,6 +14,7 @@ import {
   INBOX_MESSAGE_TYPE_SET,
   findTeamMember,
   firstMention,
+  mergeInboxBrief,
   messageAddressedToAny,
 } from '../message-addressing';
 import { hydrateTeamMessageStore, persistTeamMessages } from '../team-message-merge';
@@ -1960,8 +1961,8 @@ export async function handleBoardRoutes(
     const directed = briefCaller
       ? inboxType.filter((m) => messageAddressedToAny(m, [briefCaller.id, briefCaller.name]))
       : [];
-    const inboxSource = directed.length > 0 ? directed : inboxType;
-    const inbox = inboxSource.slice(-10).reverse();
+    // Merge, do not choose: one DM must not hide later team handoffs (claude6 review of 83291d52b).
+    const inbox = mergeInboxBrief(directed, inboxType);
 
     // Knowledge — orchestrator + local mirror, newest first, quality-gated
     let knowledge: MeshKnowledgeEntry[] = [];
