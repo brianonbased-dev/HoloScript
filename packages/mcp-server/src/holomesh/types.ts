@@ -922,6 +922,17 @@ export interface TeamMessage {
     payload?: Record<string, unknown>;
   };
   createdAt: string;
+  /**
+   * Direct-message recipient. Absent on legacy team-feed posts. MCP
+   * `holomesh_send_message` and POST /team/:id/message `to` write this so
+   * another process's inbox can filter without parsing @names in the body.
+   */
+  toAgentId?: string;
+  toAgentName?: string;
+  /** Optional conversation grouping, mirrored from MCP `thread_id`. */
+  threadId?: string;
+  /** Optional sender chain-time cursor (handle + chain + depth). */
+  cursorAt?: { chain: string; depth: number };
   /** Agent IDs that have marked this team-room message read. */
   readBy?: string[];
   /** Last time any agent marked this message read. */

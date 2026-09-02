@@ -10,6 +10,13 @@ import {
   persistTeamDurable,
   reloadTeam,
 } from '../state';
+import {
+  INBOX_MESSAGE_TYPE_SET,
+  findTeamMember,
+  firstMention,
+  messageAddressedToAny,
+} from '../message-addressing';
+import { hydrateTeamMessageStore, persistTeamMessages } from '../team-message-merge';
 import { checkSignerIdentityBinding } from '../identity/board-signer-binding';
 import {
   json,
@@ -1918,6 +1925,7 @@ export async function handleBoardRoutes(
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/mobile-brief$/) && method === 'GET') {
     const capResult = resolveCapabilityFromHeader(req, 'mesh:read');
     let teamId: string;
+    let briefCaller: { id: string; name: string } | undefined;
     if (capResult.token) {
       teamId = extractParam(url, '/api/holomesh/team/');
       await reloadTeam(teamId);
@@ -1933,6 +1941,7 @@ export async function handleBoardRoutes(
       const access = await requireTeamAccessFresh(req, res, url);
       if (!access) return true;
       teamId = access.teamId;
+      briefCaller = { id: access.caller.id, name: access.caller.name };
     }
     const team = teamStore.get(teamId)!;
 
@@ -1944,12 +1953,15 @@ export async function handleBoardRoutes(
       .slice(0, 8);
     const claimed = flatTasks.filter((t) => t.status === 'claimed').slice(0, 5);
 
-    // Inbox (DMs, handoffs, reviews) — newest first
-    const messages = teamMessageStore.get(teamId) || [];
-    const inbox = messages
-      .filter((m) => ['dm', 'handoff', 'review-request'].includes(m.messageType))
-      .slice(-10)
-      .reverse();
+    // Inbox (DMs, handoffs, reviews) — newest first. Directed mail is
+    // selected first so later broadcasts cannot bury a DM (task_1785839509015_lreq).
+    const messages = hydrateTeamMessageStore(teamId);
+    const inboxType = messages.filter((m) => INBOX_MESSAGE_TYPE_SET.has(m.messageType));
+    const directed = briefCaller
+      ? inboxType.filter((m) => messageAddressedToAny(m, [briefCaller.id, briefCaller.name]))
+      : [];
+    const inboxSource = directed.length > 0 ? directed : inboxType;
+    const inbox = inboxSource.slice(-10).reverse();
 
     // Knowledge — orchestrator + local mirror, newest first, quality-gated
     let knowledge: MeshKnowledgeEntry[] = [];
@@ -3528,25 +3540,43 @@ export async function handleBoardRoutes(
       return true;
     }
 
+    const messageType = ((body.type as string) || 'text') as TeamMessage['messageType'];
+    const toRaw = String(body.to || body.toAgentId || body.toAgentName || '').trim();
+    const team = teamStore.get(teamId);
+    let toAgentId: string | undefined;
+    let toAgentName: string | undefined;
+    const toNeedle = toRaw || (INBOX_MESSAGE_TYPE_SET.has(messageType) ? firstMention(content) : '');
+    if (toNeedle) {
+      const member = findTeamMember(team?.members, toNeedle);
+      toAgentId = member?.agentId;
+      toAgentName = member?.agentName || toNeedle;
+    }
+
     const message: TeamMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       teamId,
       fromAgentId: caller.id,
       fromAgentName: caller.name,
       content,
-      messageType: (body.type as any) || 'text',
+      messageType,
       createdAt: new Date().toISOString(),
+      ...(toAgentId ? { toAgentId } : {}),
+      ...(toAgentName ? { toAgentName } : {}),
     };
 
-    const messages = teamMessageStore.get(teamId) || [];
+    const messages = hydrateTeamMessageStore(teamId);
     messages.push(message);
-    teamMessageStore.set(teamId, messages.slice(-500));
-    await persistTeamDurable(teamId);
+    await persistTeamMessages(teamId, messages);
 
     broadcastToTeam(teamId, {
       type: 'message:new',
       agent: caller.name,
-      data: { id: message.id, from: caller.name, content: content.slice(0, 200) },
+      data: {
+        id: message.id,
+        from: caller.name,
+        to: message.toAgentId || message.toAgentName,
+        content: content.slice(0, 200),
+      },
     });
 
     json(res, 201, { success: true, message });
@@ -3561,9 +3591,23 @@ export async function handleBoardRoutes(
     const access = await requireTeamAccessFresh(req, res, url, 'messages:read');
     if (!access) return true;
     const { teamId } = access;
-
-    const messages = teamMessageStore.get(teamId) || [];
-    json(res, 200, { success: true, messages });
+    const query = new URL(url, 'http://localhost').searchParams;
+    const forWhom = (query.get('for') || query.get('to') || '').trim();
+    const limitRaw = query.get('limit');
+    let messages = hydrateTeamMessageStore(teamId);
+    if (forWhom) {
+      messages = messages.filter((msg) => messageAddressedToAny(msg, [forWhom]));
+    }
+    if (limitRaw) {
+      const limit = Math.min(500, Math.max(1, Number.parseInt(limitRaw, 10) || 500));
+      messages = messages.slice(-limit);
+    }
+    json(res, 200, {
+      success: true,
+      messages,
+      count: messages.length,
+      ...(forWhom ? { for: forWhom } : {}),
+    });
     return true;
   }
 

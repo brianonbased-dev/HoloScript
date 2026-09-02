@@ -9,7 +9,7 @@
  * for malformed cursor payloads.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   sendMessage,
   validateCursor,
@@ -18,9 +18,54 @@ import {
   _resetMessageStore,
   type MessageCursor,
 } from '../messaging';
+import { teamStore, teamMessageStore } from '../state';
+
+vi.mock('../state', () => {
+  const teams = new Map();
+  const teamStore = {
+    get: (id: string) => teams.get(id),
+    set: (id: string, team: unknown) => {
+      teams.set(id, team);
+      return teamStore;
+    },
+    delete: (id: string) => teams.delete(id),
+    usesPostgres: false,
+  };
+  return {
+    teamStore,
+    teamMessageStore: new Map(),
+    walletToAgent: new Map(),
+    persistTeamDurable: vi.fn().mockResolvedValue(undefined),
+    reloadTeam: vi.fn().mockResolvedValue(undefined),
+  };
+});
+vi.mock('../team-room', () => ({
+  broadcastToTeam: vi.fn(),
+  broadcastToRoom: vi.fn(),
+}));
 
 const ALICE = { id: 'agent-alice', name: 'alice' };
 const BOB = { id: 'agent-bob', name: 'bob' };
+const TEAM = 'team-cursor-msg';
+
+function seedMessagingTeam() {
+  teamStore.set(TEAM, {
+    id: TEAM,
+    name: 'Cursor Msg Team',
+    description: '',
+    type: 'dev',
+    visibility: 'private',
+    ownerId: ALICE.id,
+    ownerName: ALICE.name,
+    members: [
+      { agentId: ALICE.id, agentName: ALICE.name, role: 'owner', joinedAt: new Date().toISOString() },
+      { agentId: BOB.id, agentName: BOB.name, role: 'member', joinedAt: new Date().toISOString() },
+    ],
+    maxSlots: 5,
+    waitlist: [],
+    createdAt: new Date().toISOString(),
+  } as never);
+}
 
 // Stub agent resolver that maps a fixed API key to ALICE.
 const resolver = (apiKey: string) => (apiKey === 'KEY-ALICE' ? ALICE : undefined);
@@ -28,6 +73,9 @@ const resolver = (apiKey: string) => (apiKey === 'KEY-ALICE' ? ALICE : undefined
 describe('messaging cursorAt extension (agent identity = handle + chain + depth)', () => {
   beforeEach(() => {
     _resetMessageStore();
+    teamMessageStore.delete(TEAM);
+    teamStore.delete(TEAM);
+    seedMessagingTeam();
   });
 
   // ── validateCursor ──
@@ -105,6 +153,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
       const result = (await handleMessagingTool('holomesh_send_message', {
         _agentId: ALICE.id,
         _agentName: ALICE.name,
+        team_id: TEAM,
         to: BOB.id,
         content: 'standup',
         cursor_at: { chain: 'team-feed', depth: 100 },
@@ -117,6 +166,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
       const result = (await handleMessagingTool('holomesh_send_message', {
         _agentId: ALICE.id,
         _agentName: ALICE.name,
+        team_id: TEAM,
         to: BOB.id,
         content: 'no-cursor',
       })) as { success: boolean; message: { cursorAt?: MessageCursor } };
@@ -128,6 +178,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
       const result = (await handleMessagingTool('holomesh_send_message', {
         _agentId: ALICE.id,
         _agentName: ALICE.name,
+        team_id: TEAM,
         to: BOB.id,
         content: 'bad cursor',
         cursor_at: { chain: 'room-7', depth: -3 },

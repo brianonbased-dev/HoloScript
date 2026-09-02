@@ -2,7 +2,10 @@
  * HoloMesh Agent-to-Agent Messaging System
  *
  * MCP-first messaging: every interaction is a tool call.
- * In-memory Map-based store with LRU eviction at 10,000 messages.
+ * MCP send/inbox/thread tools write the durable team message store
+ * (same store as POST /api/holomesh/team/:id/message). The leftover
+ * in-memory Map is only for the unwired `/api/holomesh/messages` HTTP
+ * helper and must not be the MCP success path.
  *
  * Exports:
  * - Core functions: sendMessage, getInbox, getThread, markRead, getUnreadCount
@@ -13,6 +16,19 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'crypto';
+import { authPrincipal } from './identity/mcp-board-agent-binding';
+import {
+  reloadTeam,
+  teamStore,
+  walletToAgent,
+} from './state';
+import {
+  findTeamMember,
+  messageAddressedToAny,
+} from './message-addressing';
+import { hydrateTeamMessageStore, persistTeamMessages } from './team-message-merge';
+import { broadcastToTeam } from './team-room';
+import type { Team, TeamMember, TeamMessage } from './types';
 
 // ── Types ──
 
@@ -250,13 +266,18 @@ export const messagingTools: Tool[] = [
   {
     name: 'holomesh_send_message',
     description:
-      "Send a direct message to another agent on HoloMesh by name. Optionally include a thread_id to continue a conversation, and a cursor_at object to surface the sender's chain-time position.",
+      "Send a direct message to another agent on this team's durable HoloMesh store (the same store GET /messages and other processes read). Requires an authenticated caller; do not pass a self-asserted agent id. Optionally include team_id, thread_id, and cursor_at.",
     inputSchema: {
       type: 'object',
       properties: {
         to: {
           type: 'string',
           description: 'Target agent name or ID to send the message to',
+        },
+        team_id: {
+          type: 'string',
+          description:
+            'Team whose durable message store to write. Defaults to HOLOMESH_TEAM_ID when omitted.',
         },
         content: {
           type: 'string',
@@ -289,13 +310,18 @@ export const messagingTools: Tool[] = [
   {
     name: 'holomesh_inbox',
     description:
-      'Check your HoloMesh inbox. Returns unread count and recent messages. Use unread_only to filter.',
+      'Check your HoloMesh inbox from the durable team message store. Returns unread count and recent messages addressed to the authenticated caller.',
     inputSchema: {
       type: 'object',
       properties: {
         unread_only: {
           type: 'boolean',
           description: 'Only return unread messages (default: false)',
+        },
+        team_id: {
+          type: 'string',
+          description:
+            'Team whose durable inbox to read. Defaults to HOLOMESH_TEAM_ID when omitted.',
         },
         limit: {
           type: 'number',
@@ -314,25 +340,96 @@ export const messagingTools: Tool[] = [
           type: 'string',
           description: 'The thread ID to read',
         },
+        team_id: {
+          type: 'string',
+          description:
+            'Team whose durable thread to read. Defaults to HOLOMESH_TEAM_ID when omitted.',
+        },
       },
       required: ['thread_id'],
     },
   },
 ];
 
-// ── MCP Tool Dispatcher ──
+// ── Durable team-store delivery (MCP success path) ──
+
+function strArg(value: unknown): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function memberLabel(member: TeamMember): string {
+  return strArg(member.agentName) || strArg((member as TeamMember & { name?: string }).name);
+}
+
+/**
+ * MCP identity: the HTTP/MCP layer stamps `__authAgentId` after auth.
+ * A caller-supplied `_agentId` is never authoritative when a principal is
+ * present (impersonation hole). Stdio/local tests may still pass `_agentId`.
+ */
+function resolveMessagingCaller(
+  args: Record<string, unknown>
+): { ok: true; agentId: string; agentName: string } | { ok: false; error: string } {
+  const principal = authPrincipal(args);
+  if (principal) {
+    const registered = walletToAgent.get(principal.toLowerCase());
+    return {
+      ok: true,
+      agentId: strArg(registered?.id) || principal,
+      agentName: strArg(registered?.name) || principal,
+    };
+  }
+  const agentId = strArg(args._agentId);
+  const agentName = strArg(args._agentName);
+  if (!agentId || !agentName) {
+    return {
+      ok: false,
+      error:
+        'Authentication required. Messaging identity is injected by the MCP server after auth; do not self-assert _agentId.',
+    };
+  }
+  return { ok: true, agentId, agentName };
+}
+
+function resolveTeamId(args: Record<string, unknown>): string {
+  return strArg(args.team_id) || strArg(process.env.HOLOMESH_TEAM_ID);
+}
+
+function canAccessTeamMessages(
+  team: Team,
+  agentId: string,
+  permission: 'messages:write' | 'messages:read'
+): boolean {
+  if (agentId === 'system') return true;
+  if (team.adminRoom === true) return true;
+  const member = findTeamMember(team.members, agentId);
+  if (!member) return false;
+  if (permission === 'messages:read') return true;
+  return member.role !== 'guest';
+}
+
+function inboxForAgent(
+  messages: TeamMessage[],
+  agentId: string,
+  agentName?: string
+): TeamMessage[] {
+  return messages.filter((msg) => messageAddressedToAny(msg, [agentId, agentName]));
+}
+
+function isUnreadForAgent(msg: TeamMessage, agentId: string): boolean {
+  return !(msg.readBy || []).includes(agentId);
+}
 
 /**
  * Handle MCP tool calls for messaging.
- * The caller must provide `args._agentId` and `args._agentName` for identity
- * (injected by the MCP server layer after auth).
+ * Identity comes from the MCP server stamp (`__authAgentId`) or, on the
+ * stdio/local-trust path only, `_agentId`/`_agentName`. Delivery writes the
+ * durable team message store — never the process-local Map.
  * Returns null if the tool name is not a messaging tool.
  */
 export async function handleMessagingTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
-  // Only handle our tools
   if (
     name !== 'holomesh_send_message' &&
     name !== 'holomesh_inbox' &&
@@ -341,20 +438,24 @@ export async function handleMessagingTool(
     return null;
   }
 
-  const agentId = args._agentId as string;
-  const agentName = args._agentName as string;
+  const caller = resolveMessagingCaller(args);
+  if (!caller.ok) {
+    return { error: caller.error };
+  }
 
-  if (!agentId || !agentName) {
+  const teamId = resolveTeamId(args);
+  if (!teamId) {
     return {
-      error: 'Authentication required. Provide _agentId and _agentName.',
+      error:
+        'team_id is required (or HOLOMESH_TEAM_ID). MCP messaging writes the durable team store, not a process-local Map.',
     };
   }
 
   switch (name) {
     case 'holomesh_send_message': {
-      const to = args.to as string;
-      const content = args.content as string;
-      const threadId = args.thread_id as string | undefined;
+      const to = strArg(args.to);
+      const content = strArg(args.content);
+      const threadId = strArg(args.thread_id) || undefined;
       const rawCursor = args.cursor_at;
 
       if (!to || !content) {
@@ -370,9 +471,43 @@ export async function handleMessagingTool(
         cursorAt = parsed;
       }
 
-      const msg = sendMessage(agentId, agentName, to, content, threadId, cursorAt);
+      await reloadTeam(teamId);
+      const team = teamStore.get(teamId);
+      if (!team) {
+        return {
+          error: `Team not found: ${teamId} — MCP messaging cannot succeed against a process-local Map.`,
+        };
+      }
+      if (!canAccessTeamMessages(team, caller.agentId, 'messages:write')) {
+        return { error: 'Not a member with messages:write on this team.' };
+      }
+
+      const recipient = findTeamMember(team.members, to);
+      const messages = hydrateTeamMessageStore(teamId);
+      const msg: TeamMessage = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        teamId,
+        fromAgentId: caller.agentId,
+        fromAgentName: caller.agentName,
+        content,
+        messageType: 'dm',
+        createdAt: new Date().toISOString(),
+        toAgentId: recipient?.agentId,
+        toAgentName: recipient ? memberLabel(recipient) || recipient.agentId : to,
+        ...(threadId ? { threadId } : {}),
+        ...(cursorAt !== undefined ? { cursorAt } : {}),
+      };
+      messages.push(msg);
+      await persistTeamMessages(teamId, messages);
+      broadcastToTeam(teamId, {
+        type: 'message:new',
+        agent: caller.agentName,
+        data: { id: msg.id, from: caller.agentName, to: msg.toAgentId, content: content.slice(0, 200) },
+      });
+
       return {
         success: true,
+        store: 'team-durable',
         message: msg,
         thread_id: msg.threadId || msg.id,
       };
@@ -381,26 +516,50 @@ export async function handleMessagingTool(
     case 'holomesh_inbox': {
       const unreadOnly = (args.unread_only as boolean) ?? false;
       const limit = (args.limit as number) || 20;
-      const messages = getInbox(agentId, unreadOnly, limit);
-      const unreadCount = getUnreadCount(agentId);
+      await reloadTeam(teamId);
+      const team = teamStore.get(teamId);
+      if (!team) {
+        return { error: `Team not found: ${teamId}` };
+      }
+      if (!canAccessTeamMessages(team, caller.agentId, 'messages:read')) {
+        return { error: 'Not a member with messages:read on this team.' };
+      }
+      const messages = inboxForAgent(
+        hydrateTeamMessageStore(teamId),
+        caller.agentId,
+        caller.agentName
+      );
+      const unread = messages.filter((msg) => isUnreadForAgent(msg, caller.agentId));
+      const selected = (unreadOnly ? unread : messages).slice(-limit);
 
       return {
         success: true,
-        unread_count: unreadCount,
-        messages,
-        total_returned: messages.length,
+        store: 'team-durable',
+        unread_count: unread.length,
+        messages: selected,
+        total_returned: selected.length,
       };
     }
 
     case 'holomesh_read_thread': {
-      const threadId = args.thread_id as string;
+      const threadId = strArg(args.thread_id);
       if (!threadId) {
         return { error: '"thread_id" is required.' };
       }
-
-      const messages = getThread(threadId);
+      await reloadTeam(teamId);
+      const team = teamStore.get(teamId);
+      if (!team) {
+        return { error: `Team not found: ${teamId}` };
+      }
+      if (!canAccessTeamMessages(team, caller.agentId, 'messages:read')) {
+        return { error: 'Not a member with messages:read on this team.' };
+      }
+      const messages = hydrateTeamMessageStore(teamId).filter(
+        (msg) => msg.threadId === threadId || msg.id === threadId
+      );
       return {
         success: true,
+        store: 'team-durable',
         thread_id: threadId,
         messages,
         count: messages.length,

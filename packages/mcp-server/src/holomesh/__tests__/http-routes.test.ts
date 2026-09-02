@@ -2748,6 +2748,74 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.messages.length).toBeGreaterThanOrEqual(1);
     });
 
+    it('GET /messages?for= still returns a directed DM after 15 later broadcasts', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `directed-msg-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const sendDm = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/message`,
+        { content: 'land this for the member', type: 'dm', to: memberAgentId },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const sendDmRes = mockRes();
+      await handleHoloMeshRoute(sendDm, sendDmRes, `/api/holomesh/team/${tid}/message`);
+      expect(sendDmRes._status).toBe(201);
+      expect(
+        sendDmRes._body.message.toAgentId === memberAgentId ||
+          sendDmRes._body.message.toAgentName === memberAgentId
+      ).toBe(true);
+      const dmId = sendDmRes._body.message.id;
+
+      for (let i = 0; i < 15; i += 1) {
+        const broadcast = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/message`,
+          { content: `broadcast ${i}`, type: 'text' },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
+        const broadcastRes = mockRes();
+        await handleHoloMeshRoute(broadcast, broadcastRes, `/api/holomesh/team/${tid}/message`);
+        expect(broadcastRes._status).toBe(201);
+      }
+
+      const buried = mockReq('GET', `/api/holomesh/team/${tid}/messages?limit=10`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const buriedRes = mockRes();
+      await handleHoloMeshRoute(
+        buried,
+        buriedRes,
+        `/api/holomesh/team/${tid}/messages?limit=10`
+      );
+      expect(buriedRes._status).toBe(200);
+      expect((buriedRes._body.messages || []).some((m: { id: string }) => m.id === dmId)).toBe(
+        false
+      );
+
+      const inbox = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/messages?for=${encodeURIComponent(memberAgentId)}&limit=10`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const inboxRes = mockRes();
+      await handleHoloMeshRoute(
+        inbox,
+        inboxRes,
+        `/api/holomesh/team/${tid}/messages?for=${encodeURIComponent(memberAgentId)}&limit=10`
+      );
+      expect(inboxRes._status).toBe(200);
+      expect((inboxRes._body.messages || []).map((m: { id: string }) => m.id)).toContain(dmId);
+    }, 30_000);
+
     it('GET/POST /api/holomesh/team/:id/suggestions — list, create, vote (task_1777268741562_1euh)', async () => {
       const createReq = mockReq(
         'POST',
