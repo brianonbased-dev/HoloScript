@@ -39,6 +39,7 @@ parse_hs
 parse_holo
 parse_pipeline
 compile_pipeline
+compile_fanout
 validate_holoscript
 list_traits
 explain_trait
@@ -89,6 +90,9 @@ browser_execute
 browser_screenshot
 generate_hololand_training
 holo_absorb_repo
+holo_absorb_manifest
+holo_cancel_absorb
+holo_visual_graph_context
 holo_query_codebase
 holo_impact_analysis
 holo_detect_changes

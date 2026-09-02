@@ -154,6 +154,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // === Compiler tools ===
   compile_holoscript: ['tools:write'],
   compile_pipeline: ['tools:write'],
+  compile_fanout: ['tools:write'],
   compile_to_unity: ['tools:write'],
   compile_to_unreal: ['tools:write'],
   compile_to_urdf: ['tools:write'],
@@ -637,6 +638,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   compile_pipeline: 'medium',
 
   // High risk: external side effects, file I/O, browser control
+  compile_fanout: 'high', // one job fanned across many targets; writes artifacts + receipts
   render_preview: 'high',
   create_share_link: 'high',
   edit_holo: 'high',
