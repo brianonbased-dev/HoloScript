@@ -79,7 +79,14 @@ async function resolveSharedPosture(
           `A seat must not boot without posture it declared. Cause: ${why}`
       );
     }
-    out.push(await resolveSharedPosture(text.trimEnd(), target, [...seen, target], depth + 1));
+    // Strip HTML comments before the text becomes prompt. A posture file's
+    // maintainer notes address whoever EDITS it, not the model, and shipping
+    // them verbatim was measured at 521 chars / ~132 tokens — 26% of the
+    // payload — including, absurdly, the note telling maintainers to keep such
+    // notes in a comment. The bench's drift check already normalizes this way;
+    // the loader has to agree or the two disagree about what the posture IS.
+    const body = text.replace(/<!--[\s\S]*?-->/g, '').trimEnd();
+    out.push(await resolveSharedPosture(body, target, [...seen, target], depth + 1));
   }
   return out.join('\n');
 }
