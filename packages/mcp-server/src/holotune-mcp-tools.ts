@@ -53,6 +53,17 @@ export const holotuneToolDefinitions: Tool[] = [
         },
         maxRows: { type: 'number', description: 'Maximum rows to include.' },
         includeJsonl: { type: 'boolean', description: 'Include JSONL in the response.' },
+        evalCallers: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Caller/agentId values whose rows are BENCHMARK traffic and are excluded by default. Defaults to the known eval harnesses.',
+        },
+        includeEvalTraffic: {
+          type: 'boolean',
+          description:
+            'Opt in to curating benchmark traffic anyway. Training on it means training on the test set; the count is always reported either way.',
+        },
       },
     },
   },
@@ -354,15 +365,58 @@ function status(args: JsonRecord): JsonRecord {
   };
 }
 
+/**
+ * Callers whose traffic is BENCHMARK traffic, not product traffic.
+ *
+ * The HoloLlama inference proxy captures every request as a (user, target) capsule, which is
+ * the right default — it is how the live-trace corpus builds itself. But eval harnesses hit
+ * the same endpoint, so their questions and the model's answers land in the same file. On
+ * 2026-09-03 that was 1,737 of 14,143 capsules, 1,688 of them from a single night of eval
+ * runs. Curating those into a training corpus means training on the test set, and the
+ * resulting score would read as learning rather than memorisation — the same defect as a
+ * leaked held-out split, one layer earlier.
+ *
+ * This is only possible to catch because the proxy records attribution: eval rows carry the
+ * harness's name in `caller`/`agentId`. Rows with no attribution cannot be classified at all,
+ * which is why `unattributedCount` is reported rather than assumed clean.
+ */
+const KNOWN_EVAL_CALLERS = ['brittney-eval-runner'];
+
+function isEvalRow(row: JsonRecord, evalCallers: string[]): boolean {
+  const caller = typeof row.caller === 'string' ? row.caller : undefined;
+  const agentId = typeof row.agentId === 'string' ? row.agentId : undefined;
+  return evalCallers.some((c) => c === caller || c === agentId);
+}
+
+function isUnattributed(row: JsonRecord): boolean {
+  const caller = typeof row.caller === 'string' ? row.caller : undefined;
+  const agentId = typeof row.agentId === 'string' ? row.agentId : undefined;
+  const known = (v: string | undefined) => v !== undefined && v !== '' && v !== 'unattributed';
+  return !known(caller) && !known(agentId);
+}
+
 function curate(args: JsonRecord): JsonRecord {
   const identity = stringArg(args, 'identity', 'all');
   const maxRows = Math.max(0, Math.floor(numberArg(args, 'maxRows', 10_000)));
   const rawRows = Array.isArray(args.traceRows) ? args.traceRows : [];
-  const rows = rawRows
+  const evalCallers = Array.isArray(args.evalCallers)
+    ? args.evalCallers.filter((c): c is string => typeof c === 'string')
+    : KNOWN_EVAL_CALLERS;
+  const includeEvalTraffic = args.includeEvalTraffic === true;
+
+  const wellFormed = rawRows
     .filter(
       (row): row is JsonRecord => row !== null && typeof row === 'object' && !Array.isArray(row)
     )
-    .filter((row) => typeof row.user === 'string' && typeof row.target === 'string')
+    .filter((row) => typeof row.user === 'string' && typeof row.target === 'string');
+
+  const evalRows = wellFormed.filter((row) => isEvalRow(row, evalCallers));
+  // Reported, never silently dropped: a row nobody attributed cannot be shown to be product
+  // traffic, so a caller deciding whether this corpus is clean needs the number.
+  const unattributedCount = wellFormed.filter(isUnattributed).length;
+
+  const rows = wellFormed
+    .filter((row) => includeEvalTraffic || !isEvalRow(row, evalCallers))
     .slice(0, maxRows)
     .map((row) => ({
       system: typeof row.system === 'string' ? row.system : '',
@@ -377,8 +431,20 @@ function curate(args: JsonRecord): JsonRecord {
     identity,
     curatedCount: rows.length,
     skippedCount: rawRows.length - rows.length,
+    // Broken out of skippedCount, which lumped malformed rows in with excluded ones and so
+    // could not answer "was benchmark traffic in this corpus?" — the question that decides
+    // whether a training score means anything.
+    evalRowsExcluded: includeEvalTraffic ? 0 : evalRows.length,
+    evalRowsIncluded: includeEvalTraffic ? evalRows.length : 0,
+    evalCallers,
+    unattributedCount,
     corpusHash: hashPayload(jsonl || `${identity}:empty-corpus`),
     jsonl: args.includeJsonl === true ? jsonl : undefined,
+    ...(includeEvalTraffic && evalRows.length > 0
+      ? {
+          warning: `${evalRows.length} benchmark row(s) were curated on request (includeEvalTraffic). Training on these means training on the test set.`,
+        }
+      : {}),
   };
 }
 

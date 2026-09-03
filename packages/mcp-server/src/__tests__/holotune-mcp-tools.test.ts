@@ -52,6 +52,80 @@ describe('holotune MCP tools', () => {
     expect(result.jsonl).toContain('"target":"t1"');
   });
 
+  // ── Benchmark traffic must not become training data ────────────────────────
+  //
+  // The inference proxy captures EVERY request as a (user, target) capsule, which is how the
+  // live-trace corpus builds itself — and eval harnesses hit the same endpoint. On 2026-09-03
+  // that was 1,737 of 14,143 captured capsules, 1,688 from one night of eval runs. Curating
+  // those means training on the test set, and the resulting score reads as learning rather
+  // than memorisation. Catchable only because the proxy records attribution.
+  it('excludes benchmark traffic from the curated corpus by default', async () => {
+    const rows = [
+      { user: 'real question', target: 'real answer', caller: 'brittney-app', agentId: 'brittney-app' },
+      { user: 'bench q1', target: 'bench a1', caller: 'brittney-eval-runner', agentId: 'brittney-eval-runner' },
+      // agentId alone must be enough — the proxy sets both, but a row carrying only one
+      // must not slip through on the strength of the other being absent.
+      { user: 'bench q2', target: 'bench a2', agentId: 'brittney-eval-runner' },
+    ];
+    const result = (await handleHoloTuneTool('holotune_curate', {
+      identity: 'agent-a',
+      includeJsonl: true,
+      traceRows: rows,
+    })) as Record<string, unknown>;
+    expect(result.curatedCount).toBe(1);
+    expect(result.evalRowsExcluded).toBe(2);
+    expect(result.jsonl).toContain('real answer');
+    expect(result.jsonl).not.toContain('bench a1');
+    expect(result.jsonl).not.toContain('bench a2');
+  });
+
+  it('reports how many rows nobody attributed, rather than assuming they are clean', async () => {
+    const result = (await handleHoloTuneTool('holotune_curate', {
+      identity: 'agent-a',
+      traceRows: [
+        { user: 'a', target: 'b', caller: 'unattributed', agentId: 'unattributed' },
+        { user: 'c', target: 'd' },
+        { user: 'e', target: 'f', caller: 'brittney-app', agentId: 'brittney-app' },
+      ],
+    })) as Record<string, unknown>;
+    // 12,400 of the 14,143 real capsules carry no attribution, so they cannot be shown to be
+    // product traffic. Silence is not a clean bill of health; the number has to be visible.
+    expect(result.unattributedCount).toBe(2);
+    expect(result.curatedCount).toBe(3);
+  });
+
+  it('curates benchmark traffic only on explicit opt-in, and says so', async () => {
+    const result = (await handleHoloTuneTool('holotune_curate', {
+      identity: 'agent-a',
+      includeEvalTraffic: true,
+      traceRows: [
+        { user: 'real', target: 'answer', caller: 'brittney-app' },
+        { user: 'bench', target: 'answer', caller: 'brittney-eval-runner' },
+      ],
+    })) as Record<string, unknown>;
+    expect(result.curatedCount).toBe(2);
+    expect(result.evalRowsExcluded).toBe(0);
+    expect(result.evalRowsIncluded).toBe(1);
+    expect(result.warning).toMatch(/training on the test set/);
+  });
+
+  it('accepts a caller-supplied eval-caller list for harnesses it does not know', async () => {
+    const result = (await handleHoloTuneTool('holotune_curate', {
+      identity: 'agent-a',
+      evalCallers: ['some-other-harness'],
+      traceRows: [
+        { user: 'a', target: 'b', caller: 'some-other-harness' },
+        // With a custom list supplied, the built-in default no longer applies — the caller
+        // owns the policy, and this asserts the override REPLACES rather than appends, so
+        // nobody is surprised about which rows survived.
+        { user: 'c', target: 'd', caller: 'brittney-eval-runner' },
+      ],
+    })) as Record<string, unknown>;
+    expect(result.evalRowsExcluded).toBe(1);
+    expect(result.curatedCount).toBe(1);
+    expect(result.evalCallers).toEqual(['some-other-harness']);
+  });
+
   it('keeps GPU launch dry-run by default and blocks non-dry launch without routine controls', async () => {
     const preview = (await handleHoloTuneTool('holotune_launch', {
       identity: 'agent-a',
