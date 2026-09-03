@@ -354,3 +354,83 @@ describe('loadBrain — reflect gate', () => {
     expect((await loadBrain(path)).reflect).toBeUndefined();
   });
 });
+
+// @posture — shared operating posture reaching the live system prompt.
+//
+// Doctrine reached the markdown agent families through one shared file plus a
+// pointer per family contract, and reached the sovereign fleet not at all: a
+// .hsplus brain was a single self-contained file with no way to reference one,
+// so 44 brains carried no shared posture. These tests pin the resolution and,
+// more importantly, pin that a declared-but-broken posture REFUSES to boot
+// rather than silently producing a seat with no posture.
+describe('loadBrain @posture', () => {
+  let pdir: string;
+  beforeAll(() => {
+    pdir = mkdtempSync(join(tmpdir(), 'brain-posture-'));
+  });
+  afterAll(() => {
+    rmSync(pdir, { recursive: true, force: true });
+  });
+
+  const brainWith = (body: string) =>
+    [body, '', '#version 6.0.0', 'identity { domain: "x" }', ''].join('\n');
+
+  it('substitutes the referenced posture in place, keeping surrounding lines', async () => {
+    writeFileSync(join(pdir, 'posture.md'), 'Open by finding what exists.\nClose by fixing what the session proved wrong.', 'utf8');
+    const path = join(pdir, 'a.hsplus');
+    writeFileSync(path, brainWith(['You are an edge seat.', '@posture "./posture.md"', 'Never skip the board.'].join('\n')), 'utf8');
+
+    const brain = await loadBrain(path);
+    expect(brain.systemPrompt).toBe(
+      [
+        'You are an edge seat.',
+        'Open by finding what exists.',
+        'Close by fixing what the session proved wrong.',
+        'Never skip the board.',
+      ].join('\n')
+    );
+  });
+
+  it('resolves posture that itself references more posture', async () => {
+    writeFileSync(join(pdir, 'inner.md'), 'INNER', 'utf8');
+    writeFileSync(join(pdir, 'outer.md'), ['OUTER', '@posture "./inner.md"'].join('\n'), 'utf8');
+    const path = join(pdir, 'nested.hsplus');
+    writeFileSync(path, brainWith('@posture "./outer.md"'), 'utf8');
+
+    expect((await loadBrain(path)).systemPrompt).toBe('OUTER\nINNER');
+  });
+
+  // The load-bearing case. A seat that boots without posture it declared is the
+  // silent-inert failure this whole feature exists to end.
+  it('REFUSES to load when a declared posture file is missing', async () => {
+    const path = join(pdir, 'missing.hsplus');
+    writeFileSync(path, brainWith('@posture "./not-here.md"'), 'utf8');
+
+    await expect(loadBrain(path)).rejects.toThrow(/does not resolve/);
+  });
+
+  it('REFUSES a posture cycle instead of recursing forever', async () => {
+    writeFileSync(join(pdir, 'ping.md'), '@posture "./pong.md"', 'utf8');
+    writeFileSync(join(pdir, 'pong.md'), '@posture "./ping.md"', 'utf8');
+    const path = join(pdir, 'cycle.hsplus');
+    writeFileSync(path, brainWith('@posture "./ping.md"'), 'utf8');
+
+    await expect(loadBrain(path)).rejects.toThrow(/cycle/);
+  });
+
+  it('REFUSES an absolute posture path (not portable across seats)', async () => {
+    const path = join(pdir, 'abs.hsplus');
+    // A leading slash is absolute on win32 as well as posix, so this asserts the
+    // same rejection on both without hand-mangling separators.
+    writeFileSync(path, brainWith('@posture "/shared/posture.md"'), 'utf8');
+
+    await expect(loadBrain(path)).rejects.toThrow(/must be a relative path/);
+  });
+
+  it('leaves a brain with no @posture directive byte-identical', async () => {
+    const path = join(pdir, 'plain.hsplus');
+    writeFileSync(path, brainWith(['You are an agent.', 'Do the work.'].join('\n')), 'utf8');
+
+    expect((await loadBrain(path)).systemPrompt).toBe('You are an agent.\nDo the work.');
+  });
+});
