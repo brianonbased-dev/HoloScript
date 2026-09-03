@@ -545,12 +545,21 @@ echo "  ├─ Language-strata gate (one meaning, defined once)..."
 # so the old 30s budget was clipping a passing check mid-flight and false-failing every commit that
 # touched this gate — confirmed by three direct `node ... --strict` runs, all exit 0 (no real
 # mirror), all landing in the 30.1s-32.1s band, both from a candidate worktree and the main checkout.
-STRATA_OUT=$(run_with_timeout 60 node scripts/holo-ci/check-language-strata.mjs --strict 2>&1)
+# Budget raised 60s -> 120s (2026-09-02): the walk now measures ~65s on this Windows laptop, so 60s
+# clipped a passing `--strict` run and printed the generic "Meaning-stratum mirror" banner with
+# empty output. Pass `--root` so the walk is bound to this worktree even if cwd drifts.
+STRATA_ROOT=$(git rev-parse --show-toplevel)
+STRATA_OUT=$(run_with_timeout 120 node scripts/holo-ci/check-language-strata.mjs --strict --root "$STRATA_ROOT" 2>&1)
 STRATA_STATUS=$?
 if [ "$STRATA_STATUS" -ne 0 ]; then
-    echo -e "  ${RED}❌ Meaning-stratum mirror (second definition outside @holoscript/meaning)${NC}"
     echo "$STRATA_OUT"
-    echo "     Fix: import the contract from @holoscript/meaning (docs/spec/language-architecture.md §6.2); never re-declare it."
+    if [ "$STRATA_STATUS" -eq 124 ]; then
+        echo -e "  ${RED}❌ Language-strata gate timed out (budget 120s; walk is ~65s on this laptop)${NC}"
+        echo "     Re-run: node scripts/holo-ci/check-language-strata.mjs --strict --root \"$STRATA_ROOT\""
+    else
+        echo -e "  ${RED}❌ Meaning-stratum mirror (second definition outside @holoscript/meaning)${NC}"
+        echo "     Fix: import the contract from @holoscript/meaning (docs/spec/language-architecture.md §6.2); never re-declare it."
+    fi
     FAILED=1
 else
     echo -e "  ${GREEN}✓${NC} One meaning stratum, defined once"

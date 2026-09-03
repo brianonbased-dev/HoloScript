@@ -42,6 +42,13 @@ export default defineConfig({
         find: '@holoscript/core/paper-0c-spike',
         replacement: resolve(__dirname, 'src/paper-0c-spike/index.ts'),
       },
+      // Exact match only — do not prefix-match @holoscript/core/traits/webcam-gaze.
+      // Sibling barrels import this subpath; without it they load dist while tests
+      // import src, so Object.is identity checks fail on identical-looking objects.
+      {
+        find: /^@holoscript\/core\/traits$/,
+        replacement: resolve(__dirname, 'src/traits/index.ts'),
+      },
       // Allow sibling packages that import @holoscript/core to resolve it locally
       // Use exact-match regex to prevent prefix-matching subpath imports (e.g. @holoscript/core/trait-docs)
       { find: /^@holoscript\/core$/, replacement: resolve(__dirname, 'src/index.ts') },
