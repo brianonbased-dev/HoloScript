@@ -30,12 +30,53 @@
  *
  * Exit codes: 0 = acyclic, 1 = at least one cycle, 2 = setup error.
  */
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
+
+/**
+ * Name the tree this verdict came from.
+ *
+ * A verdict printed without its branch reads as a property of the repository.
+ * On 2026-09-02 this gate reported 1 cycle, 13 inversions and 16 unordered build
+ * deps from a checkout sitting 33 commits behind main — and the cycle it named
+ * had been fixed on main a month earlier by b63c20ddd, which removed core's
+ * plugin optionalDependencies and added this gate in the same commit. An agent
+ * read that output, believed the workspace was broken, and planned an
+ * architectural refactor of the base package that had already happened. The
+ * branch is part of the tree, so it belongs next to the verdict.
+ *
+ * Reporting only: never changes the verdict, and stays silent if git is
+ * unavailable (a tarball checkout still gets its answer).
+ */
+function describeTree() {
+  const git = (args) => {
+    try {
+      return execFileSync('git', args, {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      return '';
+    }
+  };
+  const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+  const head = git(['rev-parse', '--short', 'HEAD']);
+  if (!branch || !head) return 'unknown tree (git not available here)';
+  if (branch === 'main') return `main @ ${head}`;
+  const counts = git(['rev-list', '--left-right', '--count', 'main...HEAD']);
+  const [behind, ahead] = counts.split(/\s+/);
+  if (!behind || !ahead) return `${branch} @ ${head}`;
+  return Number(behind) > 0
+    ? `${branch} @ ${head} — ${ahead} ahead of main, ${behind} BEHIND it. A branch behind main can report problems already fixed there; check main before refactoring.`
+    : `${branch} @ ${head} — ${ahead} ahead of main, 0 behind`;
+}
 
 const DEP_FIELDS = [
   'dependencies',
@@ -403,6 +444,7 @@ if (asJson) {
   console.log(
     `[workspace-acyclic] ${graph.nodes.length} workspace packages, ${graph.edges.length} workspace: edges`
   );
+  console.log(`[workspace-acyclic] read from: ${describeTree()}`);
   for (const members of cycles) {
     const intra = graph.edges.filter((e) => members.includes(e.from) && members.includes(e.to));
     console.error(`\n[workspace-acyclic] CYCLE (${members.length} packages, ${intra.length} edges):`);
