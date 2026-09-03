@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holoembed",
-  "version": "6.1.2",
+  "version": "6.1.3",
   "description": "HoloEmbed: 768-dim NL→code embeddings via structural features + char-trigram subwords. Optional SNN-WebGPU population coding for GPU-accelerated batch encoding.",
   "type": "module",
   "main": "./dist/index.js",
