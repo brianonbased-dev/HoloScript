@@ -1,6 +1,88 @@
 import { readFile } from 'node:fs/promises';
+import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
 import type { FrameDeclarationContract, FrameTier } from '@holoscript/agent-protocol';
 import type { OnTaskAction, RuntimeBrainConfig } from './types.js';
+
+/**
+ * `@posture "./relative/path"` — pull shared operating posture into a brain's
+ * system prompt.
+ *
+ * Why this exists: doctrine reached the markdown agent families through one
+ * shared file plus a pointer per family contract, and reached the sovereign
+ * fleet not at all — 44 `.hsplus` brains, none of them carrying shared posture,
+ * because a brain is a single self-contained file with no way to reference one.
+ * Copying posture into every brain is the alternative, and it is worse: N copies
+ * that drift apart and go stale together.
+ *
+ * Deliberately NOT `@import`. That directive already exists in the `.hsplus`
+ * grammar for TypeScript companion modules, is gated behind
+ * `enableTypeScriptImports`, and is never resolved on this runtime path. Reusing
+ * its spelling for a different meaning would make a brain that looks resolved
+ * but is not.
+ *
+ * The line must sit in the preamble — the free text before the first HoloScript
+ * block — because that is the part that becomes the system prompt. Each
+ * directive is replaced in place by the referenced file's text, so posture lands
+ * exactly where the brain author put it rather than always at the top.
+ */
+const POSTURE_DIRECTIVE = /^@posture\s+["']([^"']+)["']\s*$/;
+const MAX_POSTURE_DEPTH = 4;
+
+/**
+ * Resolve `@posture` directives inside an already-extracted preamble.
+ *
+ * Throws rather than degrading. A declared-but-unresolvable posture is an
+ * operator saying "this seat needs this posture" and the runtime silently
+ * booting without it — the exact silent-inert failure this feature exists to
+ * end. A brain with no directive is untouched and cannot fail here.
+ */
+async function resolveSharedPosture(
+  preamble: string,
+  sourcePath: string,
+  seen: readonly string[] = [],
+  depth = 0
+): Promise<string> {
+  if (!POSTURE_DIRECTIVE.test(preamble) && !preamble.includes('@posture')) return preamble;
+  if (depth > MAX_POSTURE_DEPTH) {
+    throw new Error(
+      `[brain] @posture nesting deeper than ${MAX_POSTURE_DEPTH} levels, starting at ${seen[0] ?? sourcePath}`
+    );
+  }
+
+  const lines = preamble.split('\n');
+  const out: string[] = [];
+  for (const line of lines) {
+    const match = POSTURE_DIRECTIVE.exec(line.trim());
+    if (!match) {
+      out.push(line);
+      continue;
+    }
+    const ref = match[1];
+    if (isAbsolute(ref)) {
+      throw new Error(
+        `[brain] @posture "${ref}" in ${sourcePath} must be a relative path — absolute paths are not portable across seats.`
+      );
+    }
+    const target = resolvePath(dirname(sourcePath), ref);
+    if (seen.includes(target)) {
+      throw new Error(
+        `[brain] @posture cycle: ${[...seen, target].join(' -> ')}`
+      );
+    }
+    let text: string;
+    try {
+      text = await readFile(target, 'utf8');
+    } catch (cause) {
+      const why = cause instanceof Error ? cause.message : String(cause);
+      throw new Error(
+        `[brain] @posture "${ref}" in ${sourcePath} does not resolve (looked at ${target}). ` +
+          `A seat must not boot without posture it declared. Cause: ${why}`
+      );
+    }
+    out.push(await resolveSharedPosture(text.trimEnd(), target, [...seen, target], depth + 1));
+  }
+  return out.join('\n');
+}
 
 export async function loadBrain(
   brainPath: string,
@@ -16,7 +98,9 @@ export async function loadBrain(
   // — causes the CRITICAL tool-calling rules to be truncated before the model
   // sees them, resulting in plain-text replies with no tool calls.
   // Extract only the preamble: everything before the first HoloScript directive.
-  const systemPrompt = extractSystemPromptPreamble(raw);
+  // Then resolve any `@posture` include so shared operating posture reaches the
+  // live system prompt instead of sitting in a file no seat ever loads.
+  const systemPrompt = await resolveSharedPosture(extractSystemPromptPreamble(raw), brainPath);
   return {
     brainPath,
     systemPrompt,
