@@ -68,10 +68,30 @@ function compareSemver(a, b) {
   return 0;
 }
 
+/**
+ * The HIGHEST published version, not the `latest` dist-tag and not the last
+ * element of the array.
+ *
+ * Both of those lie, in different ways. `npm view <pkg> version` returns
+ * whatever `latest` points at, and a tag can be moved backwards: on 2026-09-02
+ * @holoscript/engine had latest=6.1.7 while 8.0.0 was on the registry. And the
+ * `versions` array is PUBLISH ORDER, so `.at(-1)` is the most recently pushed,
+ * which is not the greatest once anything is backported.
+ *
+ * Either mistake makes this gate green-light a version that goes BACKWARDS —
+ * it would have approved engine at 6.2.0 while 8.0.0 was already published.
+ * Comparing against the max is the only reading that cannot regress a release.
+ */
 function versionFromNpmJson(parsed) {
   if (typeof parsed === 'string') return parsed;
-  if (Array.isArray(parsed) && typeof parsed.at(-1) === 'string') return parsed.at(-1);
-  return null;
+  if (!Array.isArray(parsed)) return null;
+  let max = null;
+  for (const candidate of parsed) {
+    if (typeof candidate !== 'string') continue;
+    if (!parseSemver(candidate)) continue; // ignore prereleases/garbage tags
+    if (max === null || compareSemver(candidate, max) === 1) max = candidate;
+  }
+  return max;
 }
 
 function discoverPackageJsons(dir, out = []) {
@@ -112,7 +132,9 @@ function npmViewVersion(name) {
   let lastError = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      const stdout = execFileSync(NPM_BIN, ['view', name, 'version', '--json'], {
+      // `versions` (plural), not `version`: the latter is the `latest` dist-tag,
+      // which can point below what is actually published. See versionFromNpmJson.
+      const stdout = execFileSync(NPM_BIN, ['view', name, 'versions', '--json'], {
         cwd: ROOT,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],

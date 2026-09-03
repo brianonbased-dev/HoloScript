@@ -131,6 +131,71 @@ console.log('check-npm-v1-release-readiness.test.mjs');
   }
 }
 
+
+// ---------------------------------------------------------------------------
+// Registry comparison must use the MAX published version, not npm's \`latest\`
+// dist-tag and not the last element of the versions array.
+//
+// Both lie. A dist-tag can be moved backwards (@holoscript/engine had
+// latest=6.1.7 on 2026-09-02 while 8.0.0 was on the registry), and the versions
+// array is PUBLISH ORDER, so the newest push is not the greatest once anything
+// is backported. Either mistake lets this gate green-light a version that goes
+// BACKWARDS over an existing release, which is the one thing it exists to stop.
+//
+// These run the real script against a fake npm on PATH, because the harness
+// above passes --skip-registry and therefore never reaches this code path.
+// ---------------------------------------------------------------------------
+function runWithFakeNpm(root, versions, extra = []) {
+  const binDir = mkdtempSync(join(tmpdir(), 'fake-npm-'));
+  const payload = join(binDir, 'versions.json');
+  writeFileSync(payload, JSON.stringify(versions));
+  // A tiny node shim: whatever npm is asked, answer with the versions array.
+  writeFileSync(
+    join(binDir, 'fake-npm.mjs'),
+    "import { readFileSync } from 'node:fs';\n" +
+      "import { dirname, join } from 'node:path';\n" +
+      "import { fileURLToPath } from 'node:url';\n" +
+      "process.stdout.write(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'versions.json'), 'utf8'));\n"
+  );
+  writeFileSync(join(binDir, 'npm.cmd'), '@echo off\r\nnode "%~dp0fake-npm.mjs" %*\r\n');
+  writeFileSync(join(binDir, 'npm'), '#!/bin/sh\nexec node "$(dirname "$0")/fake-npm.mjs" "$@"\n', { mode: 0o755 });
+  try {
+    const result = spawnSync(process.execPath, [SCRIPT, '--root', root, ...extra], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: binDir + (process.platform === 'win32' ? ';' : ':') + process.env.PATH },
+    });
+    return { code: result.status, out: (result.stdout || '') + (result.stderr || '') };
+  } finally {
+    rmSync(binDir, { recursive: true, force: true });
+  }
+}
+
+{
+  // Published out of order: the LAST entry (2.0.0) is not the greatest (3.0.0).
+  // Local 2.5.0 is above the last entry but BELOW the max, so it must fail.
+  // The pre-fix code compared against .at(-1) and passed this.
+  const root = buildFixture({ pkg: { ...validPackage, version: '2.5.0' } });
+  try {
+    const result = runWithFakeNpm(root, ['1.0.0', '3.0.0', '2.0.0']);
+    assertEq(result.code, 1, 'local below the MAX published fails even when above the last-published');
+    assertMatch(result.out, /older than npm 3\.0\.0/, 'the failure names the max (3.0.0), not the last entry (2.0.0)');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+{
+  // Above the max: allowed to publish.
+  const root = buildFixture({ pkg: { ...validPackage, version: '3.1.0' } });
+  try {
+    const result = runWithFakeNpm(root, ['1.0.0', '3.0.0', '2.0.0'], ['--require-built']);
+    assertEq(result.code, 0, 'local above the MAX published passes');
+    assertMatch(result.out, /publish-update/, 'a version above the max is a publish-update');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);
   process.exit(1);
