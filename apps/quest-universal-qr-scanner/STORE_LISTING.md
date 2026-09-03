@@ -105,6 +105,6 @@ Review flow:
 
 - Metadata: **rejected** on 2026-09-02 (privacy name, screenshot overlays, Functional.1 freeze)
 - Native binary to resubmit: HoloQR `1.0.3` (`versionCode 4`) — signed APK at `android-mr/app/build/outputs/apk/release/app-release.apk` (95.4 MB, v2-signed, label **HoloQR**)
-- Privacy policy must keep the exact store name **HoloQR**. GitHub still serves the old "Universal QR Scanner" title until this file is pushed to `brianonbased-dev/HoloScript` `main`
+- Privacy policy on GitHub now uses the exact store name **HoloQR** at the same URL
 - Screenshots must be the overlay-free 2560×1440 plates in `store-assets/screenshots/` (do not reuse the rejected `01-scan-links-in-mixed-reality` set)
-- Next dashboard action: after the GitHub privacy push, replace the five screenshots, upload `1.0.3`, Save Changes, resubmit
+- Next dashboard action: replace the five screenshots, upload `1.0.3`, Save Changes, resubmit
