@@ -171,26 +171,31 @@ function runWithFakeNpm(root, versions, extra = []) {
 }
 
 {
-  // Published out of order: the LAST entry (2.0.0) is not the greatest (3.0.0).
-  // Local 2.5.0 is above the last entry but BELOW the max, so it must fail.
-  // The pre-fix code compared against .at(-1) and passed this.
-  const root = buildFixture({ pkg: { ...validPackage, version: '2.5.0' } });
+  // Within a major, going backwards is always wrong. Published out of order so
+  // the LAST entry (2.1.0) is not the greatest on the line (2.5.0): local 2.2.0
+  // is above the last-published and below the line head, and must fail naming
+  // the head. This is what .at(-1) got wrong.
+  const root = buildFixture({ pkg: { ...validPackage, version: '2.2.0' } });
   try {
-    const result = runWithFakeNpm(root, ['1.0.0', '3.0.0', '2.0.0']);
-    assertEq(result.code, 1, 'local below the MAX published fails even when above the last-published');
-    assertMatch(result.out, /older than npm 3\.0\.0/, 'the failure names the max (3.0.0), not the last entry (2.0.0)');
+    const result = runWithFakeNpm(root, ['2.0.0', '2.5.0', '2.1.0']);
+    assertEq(result.code, 1, 'local below its own line head fails even when above the last-published');
+    assertMatch(result.out, /older than npm 2\.5\.0/, 'the failure names the line head (2.5.0), not the last entry (2.1.0)');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
 {
-  // Above the max: allowed to publish.
-  const root = buildFixture({ pkg: { ...validPackage, version: '3.1.0' } });
+  // A higher major can be ABANDONED. @holoscript/platform published 7.0.0 in
+  // May 2026 and then shipped 6.1.0-6.1.4 over the following three months. The
+  // next release on that package is 6.1.5, and demanding 7.x to satisfy this
+  // gate would force a jump onto a dead line. Report it, never fail on it.
+  const root = buildFixture({ pkg: { ...validPackage, version: '2.1.0' } });
   try {
-    const result = runWithFakeNpm(root, ['1.0.0', '3.0.0', '2.0.0'], ['--require-built']);
-    assertEq(result.code, 0, 'local above the MAX published passes');
-    assertMatch(result.out, /publish-update/, 'a version above the max is a publish-update');
+    const result = runWithFakeNpm(root, ['2.0.0', '3.0.0'], ['--require-built']);
+    assertEq(result.code, 0, 'a higher abandoned major does not block a release on the live line');
+    assertMatch(result.out, /publish-update/, 'continuing the live line is a publish-update');
+    assertMatch(result.out, /higher major 3\.0\.0/, 'the abandoned major is reported as a warning');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

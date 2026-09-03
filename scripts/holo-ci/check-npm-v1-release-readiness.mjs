@@ -143,7 +143,7 @@ function npmViewVersion(name) {
       const parsed = stdout ? JSON.parse(stdout) : null;
       const version = versionFromNpmJson(parsed);
       if (version) {
-        const result = { status: 'published', version };
+        const result = { status: 'published', version, versions: Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [version] };
         registryCache.set(name, result);
         return result;
       }
@@ -161,7 +161,7 @@ function npmViewVersion(name) {
           const parsed = JSON.parse(stdout);
           const version = versionFromNpmJson(parsed);
           if (version) {
-            const result = { status: 'published', version };
+            const result = { status: 'published', version, versions: Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [version] };
             registryCache.set(name, result);
             return result;
           }
@@ -255,15 +255,42 @@ function checkRegistry(candidate, record) {
   const registry = npmViewVersion(pkg.name);
   let publishState = 'registry-skipped';
   if (registry.status === 'published') {
-    const cmp = compareSemver(pkg.version, registry.version);
+    // Compare against the highest published version ON THIS PACKAGE'S OWN MAJOR
+    // LINE, not the highest overall.
+    //
+    // A higher major can be ABANDONED, and several here are: @holoscript/platform
+    // published 7.0.0 on 2026-05-03 and then shipped 6.1.0 through 6.1.4 over the
+    // next three months. @holoscript/engine's 8.0.0 predates its whole 6.1.x
+    // series, which ran to 6.1.7 on 2026-08-13. For those, the live line is 6.1.x
+    // and the next release is 6.1.x+1 — comparing against the overall max would
+    // demand a jump onto a dead major just to satisfy this gate.
+    //
+    // Within a major, though, going backwards is always wrong, and that is the
+    // regression this gate exists to stop.
+    const localMajor = parseSemver(pkg.version)?.[0];
+    const sameMajor = (registry.versions || [])
+      .filter((v) => parseSemver(v)?.[0] === localMajor)
+      .sort((a, b) => compareSemver(a, b) ?? 0);
+    const lineMax = sameMajor.length ? sameMajor[sameMajor.length - 1] : null;
+    const compareTo = lineMax || registry.version;
+    const cmp = compareSemver(pkg.version, compareTo);
     if (cmp === null) {
-      fail(`${pkg.name}: cannot compare local ${pkg.version} to registry ${registry.version}`);
+      fail(`${pkg.name}: cannot compare local ${pkg.version} to registry ${compareTo}`);
     } else if (cmp < 0) {
-      fail(`${pkg.name}: local ${pkg.version} is older than npm ${registry.version}`);
+      fail(`${pkg.name}: local ${pkg.version} is older than npm ${compareTo}`);
     } else if (cmp === 0) {
       publishState = 'already-published';
     } else {
       publishState = 'publish-update';
+    }
+    // A higher major above the line is reported, never fatal: it may be a real
+    // future line, or an abandoned publish the project moved past. The gate
+    // cannot tell which, so it says so instead of guessing.
+    if (lineMax && compareSemver(registry.version, lineMax) === 1) {
+      warn(
+        `${pkg.name}: a higher major ${registry.version} exists on npm but the live line is ${lineMax}; ` +
+          `releasing ${pkg.version} continues that line and leaves ${registry.version} where it is`
+      );
     }
   } else if (registry.status === 'missing') {
     if (!candidate.allowFirstPublish) {
