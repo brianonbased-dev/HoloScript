@@ -29,12 +29,21 @@ import { findPackedTargetFindings } from './package-pack-contract.mjs';
 loadDotenv();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..', '..');
 const args = process.argv.slice(2);
+const ROOT = resolve(valueAfter('--root') || resolve(__dirname, '..', '..'));
 const packageIdx = args.indexOf('--package');
 const PACKAGE_NAME = packageIdx >= 0 ? args[packageIdx + 1] : null;
 const PUBLISH = args.includes('--publish');
 const PROVENANCE_ONLY = args.includes('--provenance-only');
+// The canonical remote is `canon` (.holorepo/git/main.git) — the repo
+// `holorepo change land` writes to. NOT `origin`: in this ecosystem origin is
+// GitHub, which INTENT.md calls federation/export only, "a free distribution
+// surface, never a supplier". Overridable so the fault-injection tests can
+// point at a sandbox remote, and so a differently-wired checkout can say so.
+const PROVENANCE_REMOTE =
+  valueAfter('--provenance-remote') || process.env.HOLO_RELEASE_REMOTE || 'canon';
+const PROVENANCE_BRANCH =
+  valueAfter('--provenance-branch') || process.env.HOLO_RELEASE_BRANCH || 'main';
 const ACCESS = valueAfter('--access') || 'public';
 const TAG = valueAfter('--tag') || 'latest';
 const REGISTRY = valueAfter('--registry') || process.env.npm_config_registry || null;
@@ -91,12 +100,76 @@ function sha256File(file) {
   return createHash('sha256').update(readFileSync(file)).digest('hex');
 }
 
+/**
+ * Resolve the tip of the canonical remote's release branch, fetching it first.
+ *
+ * This replaces two defects, both found on 2026-09-03 after three packages
+ * shipped broken to npm:
+ *
+ * 1. It compared against `origin/main`. Here `origin` is GitHub, which is
+ *    federation/export only — never the supplier. The supplier is `canon`.
+ *    Proving a release against the mirror proved the wrong repository.
+ *
+ * 2. It never fetched. `rev-parse origin/main` reads the local
+ *    remote-tracking ref, which is exactly as old as the last fetch — while
+ *    the failure message said "fetched origin/main". A tracking ref left
+ *    equal to HEAD by an old fetch would have passed a release that is not on
+ *    the remote at all. The message asserted a property the code never
+ *    checked, which is the failure mode this whole gate exists to prevent.
+ *
+ * Scope, stated plainly so the next reader does not overclaim it: this proves
+ * the published tree IS the tip of canon's release branch, so anyone holding
+ * canon can fetch that sha and rebuild the tarball. It does not prove the land
+ * pipeline approved it — canon is a bare repo with no receive hooks, so a
+ * direct push would also satisfy this. Reproducibility, not authorization.
+ */
+function fetchCanonicalTip() {
+  const remotes = runGit(['remote'])
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!remotes.includes(PROVENANCE_REMOTE)) {
+    throw new Error(
+      `release provenance requires the canonical remote "${PROVENANCE_REMOTE}", ` +
+        `which this checkout does not have (remotes: ${remotes.join(', ') || 'none'}). ` +
+        `Add it, or name the right one with --provenance-remote.`
+    );
+  }
+  try {
+    runGit(['fetch', '--quiet', PROVENANCE_REMOTE, PROVENANCE_BRANCH], { timeout: 120_000 });
+  } catch (error) {
+    throw new Error(
+      `release provenance could not fetch ${PROVENANCE_REMOTE}/${PROVENANCE_BRANCH}: ` +
+        String(error.stderr || error.message || error)
+          .trim()
+          .slice(0, 400)
+    );
+  }
+  return runGit(['rev-parse', 'FETCH_HEAD']);
+}
+
 function assertReleaseProvenance(record) {
   const head = runGit(['rev-parse', 'HEAD']);
-  const originMain = runGit(['rev-parse', 'origin/main']);
-  if (head !== originMain) {
+  const canonicalRef = `${PROVENANCE_REMOTE}/${PROVENANCE_BRANCH}`;
+  const canonicalTip = fetchCanonicalTip();
+  if (head !== canonicalTip) {
+    let relation = '';
+    try {
+      const [behind, ahead] = runGit([
+        'rev-list',
+        '--left-right',
+        '--count',
+        `${canonicalTip}...${head}`,
+      ]).split(/\s+/);
+      relation = ` — HEAD is ${ahead} ahead and ${behind} behind`;
+    } catch {
+      // The ahead/behind read is a courtesy for the operator. If the two shas
+      // share no history it cannot be computed; never let that mask the
+      // mismatch itself.
+    }
     throw new Error(
-      `release provenance requires HEAD ${head} to equal fetched origin/main ${originMain}`
+      `release provenance requires HEAD ${head} to equal fetched ${canonicalRef} ` +
+        `${canonicalTip}${relation}. Land the work into ${PROVENANCE_REMOTE} before publishing.`
     );
   }
 
@@ -145,12 +218,14 @@ function assertReleaseProvenance(record) {
       }
     );
     console.log(
-      `[publish-npm-package] provenance PASS ${record.name} source=${sourceCommit.slice(0, 12)} head=${head.slice(0, 12)} wasm=${webSha256.slice(0, 12)}`
+      `[publish-npm-package] provenance PASS ${record.name} source=${sourceCommit.slice(0, 12)} head=${head.slice(0, 12)} ${canonicalRef} wasm=${webSha256.slice(0, 12)}`
     );
     return;
   }
 
-  console.log(`[publish-npm-package] provenance PASS ${record.name} head=${head.slice(0, 12)}`);
+  console.log(
+    `[publish-npm-package] provenance PASS ${record.name} head=${head.slice(0, 12)} ${canonicalRef}`
+  );
 }
 
 function discoverPackageJsons(dir, out = []) {
