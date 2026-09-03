@@ -197,8 +197,13 @@ interface JudgeScore {
 }
 
 interface JudgeResult {
-  verdict: 'PASS' | 'FAIL' | 'DEGRADED';
-  overall_score: number; // 0-10
+  // UNGRADED is not a bad score — it means NO JUDGEMENT WAS MADE. It exists because the two
+  // ways the judge can fail were both reported as FAIL, which asserts the opposite: that the
+  // work was examined and found wanting. A provider outage and an unparseable judge response
+  // are conditions of the INSTRUMENT, and attributing them to the subject is how an
+  // infrastructure incident becomes a quality verdict in someone's receipt.
+  verdict: 'PASS' | 'FAIL' | 'DEGRADED' | 'UNGRADED';
+  overall_score: number; // 0-10; meaningless when verdict is UNGRADED
   rubric: string;
   scores: JudgeScore[];
   summary: string;
@@ -207,8 +212,12 @@ interface JudgeResult {
 
 interface RegressionDiff {
   reference_trace_id?: string;
-  verdict: 'NO_REGRESSION' | 'REGRESSION' | 'IMPROVEMENT';
-  score_delta: number; // current - reference
+  // UNGRADED for the same reason, and this one mattered most: with no provider both sides
+  // scored 0, the delta was 0, and the verdict returned was NO_REGRESSION — a confident
+  // "your change broke nothing" produced without measuring anything. A false reassurance is
+  // worse than a false failure, because nobody goes looking for it.
+  verdict: 'NO_REGRESSION' | 'REGRESSION' | 'IMPROVEMENT' | 'UNGRADED';
+  score_delta: number; // current - reference; meaningless when verdict is UNGRADED
   summary: string;
 }
 
@@ -497,11 +506,22 @@ async function runExecuteHolotest(args: Record<string, unknown>): Promise<Holote
       : undefined;
 
     const passed = judgeResult.verdict === 'PASS';
-    const status: HolotestResult['status'] = judgeResult.verdict === 'FAIL' ? 'failed' : 'passed';
+    // UNGRADED must reach 'error', never 'passed'. The old expression tested only for FAIL and
+    // sent everything else to 'passed', so a judge that never ran would have been reported as
+    // a passing test — the same defect inverted, and the more dangerous direction.
+    const status: HolotestResult['status'] =
+      judgeResult.verdict === 'UNGRADED'
+        ? 'error'
+        : judgeResult.verdict === 'FAIL'
+          ? 'failed'
+          : 'passed';
     return {
       tool_name: 'execute_holotest',
       status,
-      summary: `LLM judge: ${judgeResult.verdict} (score ${judgeResult.overall_score.toFixed(1)}/10) — ${judgeResult.summary}`,
+      summary:
+        judgeResult.verdict === 'UNGRADED'
+          ? `LLM judge: UNGRADED (no score — the judge did not run) — ${judgeResult.summary}`
+          : `LLM judge: ${judgeResult.verdict} (score ${judgeResult.overall_score.toFixed(1)}/10) — ${judgeResult.summary}`,
       tests: [
         {
           name: '[llm_judge] rubric evaluation',
@@ -922,17 +942,19 @@ function parseJudgeOutput(raw: string, dimensions: string[], provider?: string):
       provider,
     };
   } catch {
-    // Fallback: judge response unparseable
+    // The judge malfunctioned; the subject did not. "Treated as FAIL" was the old summary and
+    // it named the mistake exactly — a judge that cannot express a verdict has not delivered
+    // one, and scoring the candidate for it makes the harness's own defect look like evidence.
     return {
-      verdict: 'FAIL',
+      verdict: 'UNGRADED',
       overall_score: 0,
       rubric: '',
       scores: dimensions.map((d) => ({
         dimension: d,
         score: 0,
-        rationale: 'Judge response unparseable.',
+        rationale: 'Not scored — the judge returned output that could not be parsed.',
       })),
-      summary: 'LLM judge returned non-JSON output — treated as FAIL.',
+      summary: 'UNGRADED: the LLM judge returned non-JSON output, so no verdict was produced. This is not a failing score.',
       provider,
     };
   }
@@ -971,17 +993,20 @@ async function runLLMJudge(output: string, config: LLMJudgeConfig): Promise<Judg
     // provider manager unavailable
   }
 
-  // All providers failed
+  // All providers failed. This is UNGRADED, not FAIL: nothing was judged, so there is no
+  // verdict to give. Returning FAIL here meant a provider outage arrived at the caller as
+  // "score 0 on every dimension" — indistinguishable from a genuinely terrible answer, and
+  // only separable by noticing that `provider` was undefined, which no caller checked.
   return {
-    verdict: 'FAIL',
+    verdict: 'UNGRADED',
     overall_score: 0,
     rubric: config.rubric,
     scores: dimensions.map((d) => ({
       dimension: d,
       score: 0,
-      rationale: 'No LLM provider available.',
+      rationale: 'Not scored — no LLM provider was available to run the judge.',
     })),
-    summary: 'No LLM provider available to run judge.',
+    summary: 'UNGRADED: no LLM provider available, so nothing was judged. This is not a failing score.',
     provider: undefined,
   };
 }
@@ -996,6 +1021,28 @@ async function runRegressionComparison(
     runLLMJudge(currentOutput, judgeConfig),
     runLLMJudge(regressionConfig.reference_output, judgeConfig),
   ]);
+
+  // A delta between two scores that were never produced is not zero — it is undefined. When
+  // no provider was reachable both sides came back 0, and this returned NO_REGRESSION: the
+  // most reassuring answer available, from the least evidence possible.
+  const ungraded = [currentResult, referenceResult].filter((r) => r.verdict === 'UNGRADED');
+  if (ungraded.length > 0) {
+    // The negation belongs inside each clause. Built as "<subject> could be judged" with a
+    // "neither/nor" subject, the single-sided case rendered "the current output could be
+    // judged" — stating the opposite of what happened, in the summary a human reads.
+    const which =
+      ungraded.length === 2
+        ? 'neither the current output nor the reference could be judged'
+        : currentResult.verdict === 'UNGRADED'
+          ? 'the current output could not be judged'
+          : 'the reference output could not be judged';
+    return {
+      reference_trace_id: regressionConfig.reference_trace_id,
+      verdict: 'UNGRADED',
+      score_delta: 0,
+      summary: `UNGRADED: ${which} (${ungraded[0].summary}). No regression comparison was made — this is not a clean result.`,
+    };
+  }
 
   const delta = currentResult.overall_score - referenceResult.overall_score;
   const verdict: RegressionDiff['verdict'] =
@@ -1032,10 +1079,17 @@ async function runExecuteEval(args: Record<string, unknown>): Promise<HolotestRe
       : undefined;
 
   const passed = judgeResult.verdict === 'PASS';
+  // 'error' rather than 'failed' when nothing was judged: a caller deciding whether to ship
+  // needs "the check did not run" to look different from "the check said no".
+  const ungraded = judgeResult.verdict === 'UNGRADED';
   return {
     tool_name: 'execute_eval',
-    status: passed ? 'passed' : 'failed',
-    summary: `execute_eval: ${judgeResult.verdict} (score ${judgeResult.overall_score.toFixed(1)}/10) — ${judgeResult.summary}`,
+    status: ungraded ? 'error' : passed ? 'passed' : 'failed',
+    // Never quote a score alongside UNGRADED. Printing "(score 0.0/10)" smuggles the false
+    // zero back in as prose, and prose is what a human actually reads.
+    summary: ungraded
+      ? `execute_eval: UNGRADED (no score — the judge did not run) — ${judgeResult.summary}`
+      : `execute_eval: ${judgeResult.verdict} (score ${judgeResult.overall_score.toFixed(1)}/10) — ${judgeResult.summary}`,
     tests: [
       {
         name: '[execute_eval] rubric evaluation',
