@@ -258,12 +258,20 @@ function checkRegistry(candidate, record) {
     // Compare against the highest published version ON THIS PACKAGE'S OWN MAJOR
     // LINE, not the highest overall.
     //
-    // A higher major can be ABANDONED, and several here are: @holoscript/platform
-    // published 7.0.0 on 2026-05-03 and then shipped 6.1.0 through 6.1.4 over the
-    // next three months. @holoscript/engine's 8.0.0 predates its whole 6.1.x
-    // series, which ran to 6.1.7 on 2026-08-13. For those, the live line is 6.1.x
-    // and the next release is 6.1.x+1 — comparing against the overall max would
-    // demand a jump onto a dead major just to satisfy this gate.
+    // A higher major can be ABANDONED, and every such case in this workspace
+    // traces to ONE DAY. On 2026-05-03 a 7.0.0 was published across at least six
+    // packages — core, cli, framework, engine, absorb-service, platform — and the
+    // project then walked away from that major. engine additionally took 8.0.0 on
+    // 2026-05-17. platform went on to ship 6.1.0 through 6.1.4 over the following
+    // three months; engine's 6.1.x series ran to 6.1.7 on 2026-08-13. For those,
+    // the live line is 6.1.x and the next release is 6.1.x+1.
+    //
+    // core and cli are the exception and must not be lumped in: they genuinely
+    // moved to major 8 from June onward (22 and 14 releases, newest 8.7.0 on
+    // 2026-08-13), so for them newest-by-date and highest-by-semver agree.
+    //
+    // The lesson the numbers alone cannot give you: read publish DATES, not
+    // version ordering. 8.0.0 looks newer than 6.1.7 and was three months older.
     //
     // Within a major, though, going backwards is always wrong, and that is the
     // regression this gate exists to stop.
