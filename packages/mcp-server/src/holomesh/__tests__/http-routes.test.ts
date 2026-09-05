@@ -3138,6 +3138,59 @@ describe('HoloMesh HTTP Routes', () => {
       expect(getRes._body.entries.map((e: { id: string }) => e.id).sort()).toEqual([...ids].sort());
     });
 
+    it('GET /api/holomesh/team/:id/knowledge with q does not return the same dump for a hit and a miss', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `q-filter-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/knowledge`,
+        {
+          entries: [
+            { type: 'gotcha', content: 'junction leak from a shared cwd pin', domain: 'identity' },
+            { type: 'gotcha', content: 'unrelated lease expiry noise', domain: 'ops' },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/knowledge`);
+      expect(postRes._status).toBe(201);
+      const junctionId = postRes._body.entries[0].id;
+
+      mockClient.queryKnowledge.mockResolvedValue([]);
+      const hitReq = mockReq('GET', `/api/holomesh/team/${tid}/knowledge?q=junction&type=gotcha&limit=25`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const hitRes = mockRes();
+      await handleHoloMeshRoute(hitReq, hitRes, `/api/holomesh/team/${tid}/knowledge`);
+
+      mockClient.queryKnowledge.mockResolvedValue([]);
+      const missReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/knowledge?q=zzzz-nonsense-query-nothing-matches&type=gotcha&limit=25`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const missRes = mockRes();
+      await handleHoloMeshRoute(missReq, missRes, `/api/holomesh/team/${tid}/knowledge`);
+
+      expect(hitRes._status).toBe(200);
+      expect(missRes._status).toBe(200);
+      const hitIds = hitRes._body.entries.map((e: { id: string }) => e.id);
+      const missIds = missRes._body.entries.map((e: { id: string }) => e.id);
+      expect(hitIds).toContain(junctionId);
+      expect(missIds).not.toEqual(hitIds);
+      expect(missIds).toEqual([]);
+    });
+
     it('GET /api/holomesh/entry/:id resolves team-mirrored entry when orchestrator has not indexed', async () => {
       const createReq = mockReq(
         'POST',

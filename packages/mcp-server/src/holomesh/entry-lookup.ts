@@ -12,6 +12,26 @@ export const TEAM_KNOWLEDGE_MIRROR_MAX = 500;
  * Merge orchestrator query results with the team JSON mirror: orchestrator order first,
  * then mirror-only rows. When both have the same id, the orchestrator copy wins.
  */
+/**
+ * Literal match for a team-knowledge `q` when embedding search is empty or
+ * returned an unranked dump. Semantic phrases (whitespace) may still fall
+ * through to orchestrator rank when nothing literal hits.
+ */
+export function knowledgeEntryMatchesQuery(entry: MeshKnowledgeEntry | undefined, q: string): boolean {
+  const needle = String(q || '').trim().toLowerCase();
+  if (!needle || !entry) return false;
+  const blob = [
+    entry.id,
+    entry.type,
+    entry.content,
+    entry.domain,
+    entry.authorName,
+    entry.authorId,
+    ...(Array.isArray(entry.tags) ? entry.tags : []),
+  ].join('\n').toLowerCase();
+  return blob.includes(needle);
+}
+
 export function mergeTeamKnowledgeWithOrchestrator(
   fromOrchestrator: MeshKnowledgeEntry[],
   fromMirror: MeshKnowledgeEntry[] | undefined

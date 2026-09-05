@@ -42,7 +42,11 @@ import {
   type NegotiationAction,
 } from '../agent-negotiation';
 import { getClient } from '../orchestrator-client';
-import { appendTeamKnowledgeMirror, mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
+import {
+  appendTeamKnowledgeMirror,
+  knowledgeEntryMatchesQuery,
+  mergeTeamKnowledgeWithOrchestrator,
+} from '../entry-lookup';
 import { checkRateLimit } from '../social';
 import type {
   Team,
@@ -1709,15 +1713,22 @@ export async function handleTeamRoutes(
     let entries = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
     if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
     if (q) {
-      // `q` present → a RELEVANCE query. mergeTeamKnowledgeWithOrchestrator leads
-      // with `fromOrch`, which the orchestrator already ranked by relevance
-      // (HoloEmbed embedding search — the canonical semantic surface). Previously
-      // this handler then (a) substring-filtered, dropping semantically-relevant
-      // entries that don't literally contain the query word, AND (b) re-sorted by
-      // createdAt, discarding the relevance ranking entirely — both defeat semantic
-      // recall. The edge cognitive verb `rag_query` hits this exact route, so the
-      // filter+recency-sort was turning embedding search into keyword-then-newest.
-      // Trust the orchestrator's ranked order; just cap to `limit`.
+      // Live 2026-09-05 (board m9oh): `q` reached queryKnowledge, but a failed
+      // or unranked orchestrator dump was merged with the on-disk mirror in
+      // append order and sliced. Two different queries returned the same 20
+      // oldest gotchas. Literal hits on the full merge make a nonsense query
+      // diverge; multi-word phrases with no literal hit still keep orch rank
+      // (rag_query / HoloEmbed). A token with neither literal nor orch hits
+      // returns empty instead of the browse dump.
+      const keywordHits = entries.filter((e) => knowledgeEntryMatchesQuery(e, q));
+      if (keywordHits.length > 0) {
+        entries = keywordHits;
+      } else if (fromOrch.length > 0 && /\s/u.test(q)) {
+        entries = fromOrch;
+        if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
+      } else {
+        entries = [];
+      }
       entries = entries.slice(0, limit);
     } else {
       // No query → browse. Newest-first is correct here (the GOLD graduation
