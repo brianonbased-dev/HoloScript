@@ -54,6 +54,11 @@ import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
 import { detectLanguage, getSupportedLanguages } from '../engine/adapters';
 import { auditHoloAbsorbManifest, buildHoloAbsorbManifest } from '../holoabsorb/index';
+import {
+  hasObservedPageExtractInput,
+  ingestObservedPage,
+} from '../ingest/ingestObservedPage';
+import { setKnowledgeExtractionGraph } from './knowledge-extraction-tools';
 
 // =============================================================================
 // DYNAMIC MODULE INTERFACE
@@ -6038,6 +6043,33 @@ export const codebaseTools: Tool[] = [
           description:
             'Inline source files to absorb when filesystem access is unavailable (e.g., remote MCP servers, containers). Provide EITHER rootDir OR sourceFiles — not both. Max 500 files, 5 MB total content. Path traversal attempts are rejected.',
         },
+        observe: {
+          type: 'object',
+          description:
+            'Live browser_session observe payload (dom.bodyText and/or markdown). Folds one page into the existing sourceFiles absorb path. Exclusive with rootDir/sourceFiles.',
+        },
+        pageExtract: {
+          type: 'object',
+          description:
+            'Normalized page extract: { url?, title?, bodyText?, markdown? }. Same store path as observe.',
+        },
+        markdown: {
+          type: 'string',
+          description: 'Observed page markdown from browser_session observe.',
+        },
+        bodyText: {
+          type: 'string',
+          description: 'Observed page bodyText from browser_session observe.',
+        },
+        url: {
+          type: 'string',
+          description:
+            'Single page URL to fetch as text and absorb. One URL only — not a crawl. Exclusive with rootDir/sourceFiles.',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional page title when the observe payload does not include one.',
+        },
         localCodebaseSnapshotReceipt: {
           type: 'object',
           description:
@@ -6946,7 +6978,7 @@ export async function handleCodebaseTool(
         ...(args.audit === false ? {} : { audit: auditHoloAbsorbManifest() }),
       };
     case 'holo_absorb_repo':
-      return handleAbsorb(args);
+      return handleAbsorbWithPageExtract(args);
     case 'holo_cancel_absorb':
       return handleCancelAbsorb(args);
     case 'holo_query_codebase':
@@ -8505,6 +8537,64 @@ function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
     'maxFiles',
     'maxFileSize',
   ].some((key) => args[key] !== undefined);
+}
+
+async function handleAbsorbWithPageExtract(args: Record<string, unknown>): Promise<unknown> {
+  const pageExtractInput = {
+    observe: args.observe,
+    pageExtract: args.pageExtract,
+    markdown: typeof args.markdown === 'string' ? args.markdown : undefined,
+    bodyText: typeof args.bodyText === 'string' ? args.bodyText : undefined,
+    url: typeof args.url === 'string' ? args.url : undefined,
+    title: typeof args.title === 'string' ? args.title : undefined,
+  };
+  if (!hasObservedPageExtractInput(pageExtractInput)) {
+    return handleAbsorb(args);
+  }
+
+  const hasRepoInput =
+    (typeof args.rootDir === 'string' && args.rootDir.trim().length > 0) ||
+    (Array.isArray(args.rootDirs) && args.rootDirs.length > 0) ||
+    (Array.isArray(args.sourceFiles) && args.sourceFiles.length > 0) ||
+    args.localCodebaseSnapshotReceipt != null ||
+    args.snapshotReceipt != null;
+  if (hasRepoInput) {
+    return {
+      error: 'page_extract_exclusive',
+      message:
+        'Page extract (observe/markdown/bodyText/url) is exclusive with rootDir, sourceFiles, and snapshot receipts. Absorb one observed page or one repo, not both.',
+    };
+  }
+
+  try {
+    const ingested = await ingestObservedPage(pageExtractInput);
+    setKnowledgeExtractionGraph(ingested.graph);
+    const result = await handleAbsorb({
+      ...args,
+      sourceFiles: ingested.sourceFiles,
+    });
+    if (!result || typeof result !== 'object') return result;
+    return {
+      ...(result as Record<string, unknown>),
+      pageExtract: {
+        kind: ingested.kind,
+        url: ingested.extract.url,
+        title: ingested.extract.title,
+        charCount: ingested.extract.charCount,
+        sha256: ingested.extract.sha256,
+        source: ingested.extract.source,
+        fetched: ingested.extract.fetched,
+        sourceFiles: ingested.sourceFiles.map((file) => file.path),
+        formatId: ingested.document.formatId,
+        holoPartial: ingested.holo.partial,
+      },
+    };
+  } catch (error) {
+    return {
+      error: 'page_extract_failed',
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {

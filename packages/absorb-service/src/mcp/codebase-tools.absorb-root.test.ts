@@ -6340,4 +6340,53 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(result.message).toContain('rootDir');
     expect(result.message).toContain('sourceFiles');
   });
+
+  it('absorbs a browser_session observe extract through the existing sourceFiles path', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-page-extract-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      observe: {
+        operation: 'observe',
+        session: { url: 'https://docs.holoscript.example/observe' },
+        markdown: '# Observe Fixture\n\nfixture body text for absorb fold\n\n# Heading One',
+        dom: {
+          url: 'https://docs.holoscript.example/observe',
+          title: 'Observe Fixture',
+          bodyText: 'fixture body text for absorb fold',
+          elementCount: 4,
+        },
+      },
+      outputFormat: 'stats',
+    })) as {
+      error?: string;
+      fromSourceFiles?: boolean;
+      stats?: { totalFiles?: number; totalSymbols?: number };
+      pageExtract?: {
+        kind?: string;
+        url?: string;
+        title?: string;
+        source?: string;
+        formatId?: string;
+        sourceFiles?: string[];
+        sha256?: string;
+      };
+      scanPlan?: { mode?: string; totalCandidateFiles?: number };
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.fromSourceFiles).toBe(true);
+    expect(result.stats?.totalFiles).toBeGreaterThanOrEqual(1);
+    expect(result.scanPlan?.mode).toBe('inline-source-files');
+    expect(result.pageExtract).toMatchObject({
+      kind: 'HoloAbsorbPageExtract',
+      url: 'https://docs.holoscript.example/observe',
+      title: 'Observe Fixture',
+      source: 'observe',
+      formatId: 'markdown',
+      sourceFiles: ['observed-page.holo', 'observed-page.md'],
+    });
+    expect(result.pageExtract?.sha256).toHaveLength(64);
+  }, 15_000);
 });
