@@ -25,6 +25,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadDotenv } from '../load-dotenv.mjs';
 import { findPackedTargetFindings } from './package-pack-contract.mjs';
+import { assertNoWorkspaceSpecs, rewriteWorkspaceRefs } from './rewrite-workspace-deps.mjs';
 
 loadDotenv();
 
@@ -49,7 +50,6 @@ const TAG = valueAfter('--tag') || 'latest';
 const REGISTRY = valueAfter('--registry') || process.env.npm_config_registry || null;
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-const DEP_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies'];
 const WORKSPACE_ROOTS = ['packages', 'services', 'benchmarks'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.next', 'coverage', '.turbo', '.git']);
 
@@ -274,36 +274,6 @@ function workspacePackages() {
   return byName;
 }
 
-function rewriteWorkspaceSpec(spec, depName, depVersion) {
-  const raw = String(spec || '');
-  if (!raw.startsWith('workspace:')) return raw;
-  const range = raw.slice('workspace:'.length);
-  if (range === '*' || range === '^' || range === '') return `^${depVersion}`;
-  if (range === '~') return `~${depVersion}`;
-  if (/^\d+\.\d+\.\d+/.test(range)) return range;
-  throw new Error(`Unsupported workspace spec for ${depName}: ${raw}`);
-}
-
-function rewriteWorkspaceRefs(pkg, versionMap) {
-  const rewrites = [];
-  for (const field of DEP_FIELDS) {
-    const deps = pkg[field] || {};
-    for (const [depName, spec] of Object.entries(deps)) {
-      if (!String(spec).startsWith('workspace:')) continue;
-      const depVersion = versionMap.get(depName);
-      if (!depVersion) {
-        throw new Error(
-          `${pkg.name}: ${field}.${depName} uses ${spec}, but no workspace version was found`
-        );
-      }
-      const rewritten = rewriteWorkspaceSpec(spec, depName, depVersion);
-      deps[depName] = rewritten;
-      rewrites.push({ field, depName, from: spec, to: rewritten });
-    }
-  }
-  return rewrites;
-}
-
 function npmViewVersion(name) {
   try {
     return runNpm(['view', name, 'version', '--json'], { timeout: 60_000 })
@@ -390,6 +360,15 @@ function packWithPnpm(packageDir) {
   return { dest, filename, files };
 }
 
+function readPackedPackageJson(tarball) {
+  return JSON.parse(
+    execFileSync('tar', ['-xOf', tarball, 'package/package.json'], {
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+  );
+}
+
 function assertPackedTargets(manifest, files) {
   const findings = findPackedTargetFindings(manifest, files);
   if (findings.length > 0) {
@@ -447,6 +426,12 @@ async function main() {
     }
     packed = packWithPnpm(record.dir);
     assertPackedTargets(manifest, packed.files);
+    assertNoWorkspaceSpecs(readPackedPackageJson(packed.filename), {
+      label: `${manifest.name}@${manifest.version} packed tarball`,
+    });
+    console.log(
+      `[publish-npm-package] packed-manifest PASS ${manifest.name}@${manifest.version} no workspace: specs`
+    );
     runNpm(['publish', packed.filename, ...modeArgs, '--access', ACCESS, '--tag', TAG, '--ignore-scripts'], {
       cwd: ROOT,
       stdio: 'inherit',
