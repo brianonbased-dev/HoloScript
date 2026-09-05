@@ -9,10 +9,6 @@ import { teamStore } from './state';
 export const TEAM_KNOWLEDGE_MIRROR_MAX = 500;
 
 /**
- * Merge orchestrator query results with the team JSON mirror: orchestrator order first,
- * then mirror-only rows. When both have the same id, the orchestrator copy wins.
- */
-/**
  * Literal match for a team-knowledge `q` when embedding search is empty or
  * returned an unranked dump. Semantic phrases (whitespace) may still fall
  * through to orchestrator rank when nothing literal hits.
@@ -32,6 +28,10 @@ export function knowledgeEntryMatchesQuery(entry: MeshKnowledgeEntry | undefined
   return blob.includes(needle);
 }
 
+/**
+ * Merge orchestrator query results with the team JSON mirror: orchestrator order first,
+ * then mirror-only rows. When both have the same id, the orchestrator copy wins.
+ */
 export function mergeTeamKnowledgeWithOrchestrator(
   fromOrchestrator: MeshKnowledgeEntry[],
   fromMirror: MeshKnowledgeEntry[] | undefined

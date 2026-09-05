@@ -22,23 +22,19 @@ function search(q) {
   return dump.filter((e) => knowledgeEntryMatchesQuery(e, q)).map((e) => e.id);
 }
 
+function dumpSearch(_q) {
+  return dump.map((e) => e.id);
+}
+
 const mode = process.argv[2] || 'green';
-const a = search('junction');
-const b = search('zzzz-nonsense-query-nothing-matches');
+const run = mode === 'red' ? dumpSearch : search;
+const a = run('junction');
+const b = run('zzzz-nonsense-query-nothing-matches');
 const identical = JSON.stringify(a) === JSON.stringify(b);
 
-if (mode === 'red') {
-  if (identical) {
-    console.log('RED expected: q still ignored');
-    process.exit(0);
-  }
-  console.error('watched-fail: expected identical dumps, got distinct', { a, b });
-  process.exit(1);
-}
-
 if (identical) {
-  console.error('green failed: hit and miss still identical', { a, b });
+  console.error('q ignored: hit and miss identical', { a, b });
   process.exit(1);
 }
-console.log('GREEN: junction and nonsense queries diverge', { a, b });
+console.log('q honored: queries diverge', { a, b });
 process.exit(0);
