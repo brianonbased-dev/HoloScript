@@ -199,6 +199,28 @@ interface AbsorbCancellationState {
   completedAt?: number;
 }
 
+const ABSORB_SPILL_RECEIPT_SCHEMA = 'holoscript.absorb-spill-receipt.v1' as const;
+const ABSORB_SPILL_SCAN_BATCH_SIZE = 100;
+
+interface AbsorbSpillReceipt {
+  schemaVersion: typeof ABSORB_SPILL_RECEIPT_SCHEMA;
+  kind: 'AbsorbSpillReceipt';
+  host: string;
+  clonePath: string;
+  planned: boolean;
+  resume: 'never-planned' | 'resume-token';
+  resumeToken: string | null;
+  nextTool: 'holo_absorb_repo';
+  nextArgs: {
+    rootDir: string;
+    async: true;
+    scanBatchSize: number;
+    resumeToken?: string;
+  };
+  serveHint: 'jetson-serves';
+  ingestHint: 'clone-host-or-spend-gated-fleet';
+}
+
 interface AbsorbPhaseMetric extends AbsorbMemorySnapshot {
   phase: string;
   durationMs: number;
@@ -805,6 +827,7 @@ interface AbsorbWriterReceiptRecord {
     requestedAt: string;
     completedAt?: string;
   };
+  spill?: AbsorbSpillReceipt;
   error?: string;
 }
 
@@ -866,6 +889,7 @@ function releaseAbsorbWriterLease(job: AbsorbJob): void {
           completedAt: new Date(job.cancellation.completedAt).toISOString(),
         }),
       },
+      spill: buildAbsorbSpillReceipt(job),
     }),
     ...(job.error && { error: job.error }),
   };
@@ -1681,6 +1705,34 @@ function settleCommittedAbsorbJobAfterCancellation(
   return receipt;
 }
 
+function buildAbsorbSpillReceipt(job: AbsorbJob): AbsorbSpillReceipt {
+  const clonePath = path.resolve(job.rootDir);
+  const resumeToken =
+    typeof job.refreshProgressReceipt?.resumeToken === 'string' &&
+    job.refreshProgressReceipt.resumeToken.trim().length > 0
+      ? job.refreshProgressReceipt.resumeToken
+      : null;
+  const planned = resumeToken !== null;
+  return {
+    schemaVersion: ABSORB_SPILL_RECEIPT_SCHEMA,
+    kind: 'AbsorbSpillReceipt',
+    host: os.hostname(),
+    clonePath,
+    planned,
+    resume: planned ? 'resume-token' : 'never-planned',
+    resumeToken,
+    nextTool: 'holo_absorb_repo',
+    nextArgs: {
+      rootDir: clonePath,
+      async: true,
+      scanBatchSize: ABSORB_SPILL_SCAN_BATCH_SIZE,
+      ...(resumeToken ? { resumeToken } : {}),
+    },
+    serveHint: 'jetson-serves',
+    ingestHint: 'clone-host-or-spend-gated-fleet',
+  };
+}
+
 function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, unknown> {
   const job = absorbJobs.get(jobId);
   if (!job) {
@@ -1723,6 +1775,7 @@ function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, 
       refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(job.refreshProgressReceipt),
       resumeToken: job.refreshProgressReceipt.resumeToken,
     }),
+    spill: buildAbsorbSpillReceipt(job),
     memoryBudget: { ...job.memoryBudget },
     sourceDriftRetry: { ...job.sourceDriftRetry },
   };

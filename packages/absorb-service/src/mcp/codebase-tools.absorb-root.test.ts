@@ -4618,9 +4618,27 @@ describe('holo_absorb_repo root validation', () => {
     })) as {
       error?: string;
       cancelled?: boolean;
+      jobId?: string;
       reason?: string;
       phaseAtRequest?: string;
       cachePreserved?: boolean;
+      spill?: {
+        kind?: string;
+        host?: string;
+        clonePath?: string;
+        planned?: boolean;
+        resume?: string;
+        resumeToken?: string | null;
+        nextTool?: string;
+        nextArgs?: {
+          rootDir?: string;
+          async?: boolean;
+          scanBatchSize?: number;
+          resumeToken?: string;
+        };
+        serveHint?: string;
+        ingestHint?: string;
+      };
       memoryBudget?: {
         minSystemFreeMb?: number;
         systemReserveExhausted?: boolean;
@@ -4639,6 +4657,33 @@ describe('holo_absorb_repo root validation', () => {
         systemReserveExhausted: true,
         systemReserveExhaustedAtPhase: 'preflight resource guard',
       },
+    });
+    expect(result.spill).toMatchObject({
+      kind: 'AbsorbSpillReceipt',
+      host: os.hostname(),
+      clonePath: path.resolve(repoDir),
+      planned: false,
+      resume: 'never-planned',
+      resumeToken: null,
+      nextTool: 'holo_absorb_repo',
+      nextArgs: {
+        rootDir: path.resolve(repoDir),
+        async: true,
+        scanBatchSize: 100,
+      },
+      serveHint: 'jetson-serves',
+      ingestHint: 'clone-host-or-spend-gated-fleet',
+    });
+    expect(result.spill?.nextArgs?.resumeToken).toBeUndefined();
+    const writerReceiptFile = path.join(
+      resolveCodebaseCachePaths(repoDir).writerReceiptsDirectory,
+      `${result.jobId}.json`
+    );
+    expect(fs.existsSync(writerReceiptFile)).toBe(true);
+    expect(JSON.parse(fs.readFileSync(writerReceiptFile, 'utf-8')).spill).toMatchObject({
+      kind: 'AbsorbSpillReceipt',
+      resume: 'never-planned',
+      clonePath: path.resolve(repoDir),
     });
     expect(scanSpy).not.toHaveBeenCalled();
   });
