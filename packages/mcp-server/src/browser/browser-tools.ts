@@ -56,6 +56,11 @@ const LeasedBrowserOperationSchema = z.object({
   leaseToken: z.string().min(32),
 });
 
+/** Previous observe bodyText default. Raised so one public page returns a usable extract. */
+export const OBSERVE_DOM_TEXT_DEFAULT = 80_000;
+/** Previous observe bodyText hard max was 20_000. */
+export const OBSERVE_DOM_TEXT_MAX = 200_000;
+
 export const BrowserSessionSchema = z.discriminatedUnion('operation', [
   z.object({
     operation: z.literal('open'),
@@ -85,7 +90,13 @@ export const BrowserSessionSchema = z.discriminatedUnion('operation', [
     includeNetwork: z.boolean().optional().default(true),
     consoleLimit: z.number().int().min(1).max(200).optional().default(50),
     networkLimit: z.number().int().min(1).max(200).optional().default(50),
-    domTextLimit: z.number().int().min(0).max(20_000).optional().default(4000),
+    domTextLimit: z
+      .number()
+      .int()
+      .min(0)
+      .max(OBSERVE_DOM_TEXT_MAX)
+      .optional()
+      .default(OBSERVE_DOM_TEXT_DEFAULT),
   }),
   LeasedBrowserOperationSchema.extend({
     operation: z.literal('screenshot'),
@@ -125,7 +136,115 @@ interface DomObservation {
   url: string;
   title: string;
   bodyText: string;
+  markdown: string;
   elementCount: number;
+}
+
+interface PageTextExtract {
+  bodyText: string;
+  markdown: string;
+  elementCount: number;
+}
+
+/**
+ * In-page read of visible text plus a light markdown view of headings, lists,
+ * links, and preformatted blocks. Runs entirely inside the leased page so observe
+ * stays a single evaluate — no second fetch engine and no new product surface.
+ */
+function extractPageTextInBrowser(limit: number): PageTextExtract {
+  const empty: PageTextExtract = { bodyText: '', markdown: '', elementCount: 0 };
+  if (typeof document === 'undefined') return empty;
+  const bodyText = (document.body?.innerText ?? '').slice(0, limit);
+  const elementCount = document.querySelectorAll('*').length;
+  const skip = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'CANVAS', 'TEMPLATE']);
+  const parts: string[] = [];
+  let used = 0;
+  const push = (chunk: string) => {
+    if (!chunk || used >= limit) return;
+    const next = chunk.slice(0, limit - used);
+    parts.push(next);
+    used += next.length;
+  };
+  const title = (document.title || '').trim();
+  if (title) push(`# ${title}\n\n`);
+  const serializeInline = (el: Element): string => {
+    const bits: string[] = [];
+    const visit = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        bits.push(node.textContent || '');
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const child = node as Element;
+      if (child.tagName === 'A') {
+        const text = (child.textContent || '').replace(/\s+/g, ' ').trim();
+        const href = child.getAttribute('href') || '';
+        if (text && href) bits.push(`[${text}](${href})`);
+        else if (text) bits.push(text);
+        return;
+      }
+      if (child.tagName === 'CODE') {
+        const text = (child.textContent || '').trim();
+        if (text) bits.push(`\`${text}\``);
+        return;
+      }
+      for (const nested of Array.from(child.childNodes)) visit(nested);
+    };
+    for (const nested of Array.from(el.childNodes)) visit(nested);
+    return bits.join('').replace(/\s+/g, ' ').trim();
+  };
+  const walk = (node: Node) => {
+    if (used >= limit) return;
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text) push(text);
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as Element;
+    const tag = el.tagName;
+    if (skip.has(tag)) return;
+    if (/^H[1-6]$/.test(tag)) {
+      const depth = Number(tag[1]);
+      const text = serializeInline(el);
+      if (text) push(`${'#'.repeat(depth)} ${text}\n\n`);
+      return;
+    }
+    if (tag === 'P') {
+      const text = serializeInline(el);
+      if (text) push(`${text}\n\n`);
+      return;
+    }
+    if (tag === 'LI') {
+      const text = serializeInline(el);
+      if (text) push(`- ${text}\n`);
+      return;
+    }
+    if (tag === 'PRE' || tag === 'CODE') {
+      const text = (el.textContent || '').replace(/\s+$/g, '');
+      if (text) push(tag === 'PRE' ? `\n\`\`\`\n${text}\n\`\`\`\n\n` : `\`${text}\``);
+      return;
+    }
+    if (tag === 'BLOCKQUOTE') {
+      const text = serializeInline(el);
+      if (text) push(`> ${text}\n\n`);
+      return;
+    }
+    if (tag === 'A') {
+      const text = serializeInline(el);
+      const href = el.getAttribute('href') || '';
+      if (text && href) push(`[${text}](${href})`);
+      else if (text) push(text);
+      return;
+    }
+    if (tag === 'BR') {
+      push('\n');
+      return;
+    }
+    for (const child of Array.from(el.childNodes)) walk(child);
+  };
+  if (document.body) walk(document.body);
+  return { bodyText, markdown: parts.join('').trim(), elementCount };
 }
 
 /**
@@ -135,25 +254,24 @@ interface DomObservation {
  * observe call — observation must never be able to break the session it's watching.
  */
 async function buildDomObservation(
-  page: { url(): string; title?: () => Promise<string>; evaluate?: <T>(fn: () => T) => Promise<T> },
+  page: {
+    url(): string;
+    title?: () => Promise<string>;
+    evaluate?: <T, A>(fn: (arg: A) => T, arg: A) => Promise<T>;
+  },
   domTextLimit: number
 ): Promise<DomObservation> {
   const url = page.url();
   const title = typeof page.title === 'function' ? await page.title().catch(() => '') : '';
-  const bodyText =
+  const extracted: PageTextExtract =
     typeof page.evaluate === 'function'
-      ? await page
-          .evaluate(() => document.body?.innerText ?? '')
-          .then((text) => text.slice(0, domTextLimit))
-          .catch(() => '')
-      : '';
-  const elementCount =
-    typeof page.evaluate === 'function'
-      ? await page
-          .evaluate(() => document.querySelectorAll('*').length)
-          .catch(() => 0)
-      : 0;
-  return { url, title, bodyText, elementCount };
+      ? await page.evaluate(extractPageTextInBrowser, domTextLimit).catch(() => ({
+          bodyText: '',
+          markdown: '',
+          elementCount: 0,
+        }))
+      : { bodyText: '', markdown: '', elementCount: 0 };
+  return { url, title, ...extracted };
 }
 
 /**
@@ -230,6 +348,8 @@ export async function browserSession(args: z.infer<typeof BrowserSessionSchema>)
       includeNetwork: args.includeNetwork,
       consoleEntryCount: consoleEntries?.length ?? 0,
       networkEntryCount: networkEntries?.length ?? 0,
+      bodyTextChars: dom?.bodyText.length ?? 0,
+      markdownChars: dom?.markdown.length ?? 0,
       cdpAttached: Boolean(session.cdpSession),
       mutatesPage: false,
     });

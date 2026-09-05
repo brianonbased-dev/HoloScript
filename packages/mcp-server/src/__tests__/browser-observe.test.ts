@@ -13,7 +13,12 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { browserPool } from '../browser/BrowserPool';
-import { browserSession } from '../browser/browser-tools';
+import {
+  BrowserSessionSchema,
+  OBSERVE_DOM_TEXT_DEFAULT,
+  OBSERVE_DOM_TEXT_MAX,
+  browserSession,
+} from '../browser/browser-tools';
 
 describe('browser_session observe (real CDP)', () => {
   let server: Server;
@@ -24,6 +29,18 @@ describe('browser_session observe (real CDP)', () => {
       if (req.url === '/ping') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ pong: true }));
+        return;
+      }
+      if (req.url === '/long') {
+        const longParagraph = 'usable page extract marker '.repeat(1200);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<!doctype html>
+<html><head><title>observe-long-fixture</title></head><body>
+  <h1>observe-long-heading</h1>
+  <p>${longParagraph}</p>
+  <ul><li>observe-long-list-item</li></ul>
+  <p>See <a href="https://example.com/observe-long">observe-long-link</a>.</p>
+</body></html>`);
         return;
       }
       res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -86,6 +103,7 @@ describe('browser_session observe (real CDP)', () => {
       // DOM: real page content, not a placeholder.
       expect(observed.dom?.title).toBe('');
       expect(observed.dom?.bodyText).toContain('fixture body text for dom observation');
+      expect(observed.dom?.markdown).toContain('# observe-fixture');
       expect(observed.dom?.elementCount).toBeGreaterThan(0);
 
       // Console: the real console.log call from the page's own script, captured via CDP's
@@ -104,6 +122,73 @@ describe('browser_session observe (real CDP)', () => {
 
       // Never mutates: no click/type/fill/navigate call exists on this code path at all.
       expect(observed.session.url).toBe(`${baseUrl}/`);
+    } finally {
+      await browserSession({ operation: 'close', sessionId, leaseToken });
+    }
+  }, 20_000);
+
+  it('accepts observe limits above the old 20000 bodyText cap', () => {
+    const parsed = BrowserSessionSchema.parse({
+      operation: 'observe',
+      sessionId: 'session-observe-cap',
+      leaseToken: 'a'.repeat(32),
+      domTextLimit: 20_001,
+    });
+    expect(parsed).toMatchObject({ operation: 'observe', domTextLimit: 20_001 });
+    expect(OBSERVE_DOM_TEXT_DEFAULT).toBeGreaterThan(4_000);
+    expect(OBSERVE_DOM_TEXT_MAX).toBeGreaterThan(20_000);
+  });
+
+  it('returns usable body text and markdown beyond the old 4000/20000 observe caps', async () => {
+    const opened = await browserSession({
+      operation: 'open',
+      ownerId: 'agent-observe-long-test',
+      url: `${baseUrl}/long`,
+      width: 800,
+      height: 600,
+      headless: true,
+      leaseTtlMs: 60_000,
+    });
+    expect(opened.success).toBe(true);
+    if (!('leaseToken' in opened)) throw new Error('open did not return a lease');
+    const { sessionId } = opened.session;
+    const { leaseToken } = opened;
+
+    try {
+      const observed = await browserSession({
+        operation: 'observe',
+        sessionId,
+        leaseToken,
+        includeDom: true,
+        includeConsole: false,
+        includeNetwork: false,
+      });
+
+      expect(observed).toMatchObject({ success: true, operation: 'observe', permissionEnvelope: 'read_only' });
+      expect(observed.dom?.title).toBe('observe-long-fixture');
+      expect(observed.dom?.bodyText.length ?? 0).toBeGreaterThan(20_000);
+      expect(observed.dom?.markdown).toContain('# observe-long-fixture');
+      expect(observed.dom?.markdown).toContain('# observe-long-heading');
+      expect(observed.dom?.markdown).toContain('- observe-long-list-item');
+      expect(observed.dom?.markdown).toContain('[observe-long-link](https://example.com/observe-long)');
+      expect(observed.dom?.markdown).toContain('usable page extract marker');
+      expect(observed.receipt.details).toMatchObject({
+        mutatesPage: false,
+        bodyTextChars: observed.dom?.bodyText.length,
+        markdownChars: observed.dom?.markdown.length,
+      });
+
+      const capped = await browserSession({
+        operation: 'observe',
+        sessionId,
+        leaseToken,
+        includeDom: true,
+        includeConsole: false,
+        includeNetwork: false,
+        domTextLimit: 4_000,
+      });
+      expect(capped.dom?.bodyText.length ?? 0).toBeLessThanOrEqual(4_000);
+      expect(capped.dom?.markdown.length ?? 0).toBeLessThanOrEqual(4_000);
     } finally {
       await browserSession({ operation: 'close', sessionId, leaseToken });
     }
