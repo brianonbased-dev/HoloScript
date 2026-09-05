@@ -6642,6 +6642,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
 }> {
   if (cachedGraph) {
     const memoryRootDir = cachedRootDir || resolveWorkspaceRoot();
+    const workspaceRoot = resolveWorkspaceRoot();
     const memoryGraph = cachedGraph as {
       gitCommitHash?: string;
       fileHashes?: Record<string, string>;
@@ -6653,6 +6654,28 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       rootAuthorityPins?: GraphRootAuthorityPin[];
       localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
     };
+    const declaredMemoryRoots =
+      Array.isArray(memoryGraph.rootDirs) && memoryGraph.rootDirs.length > 0
+        ? memoryGraph.rootDirs
+        : [memoryRootDir];
+    if (isNestedWorkspaceSlice(workspaceRoot, declaredMemoryRoots)) {
+      cachedGraph = null;
+      cachedRootDir = '';
+      cacheProvenance = null;
+      cacheTimestamp = 0;
+      resetGraphRAGState();
+      return {
+        loaded: false,
+        source: 'none',
+        rootDir: workspaceRoot,
+        stale: true,
+        graphUnavailableReceipt: buildGraphUnavailableReceipt({
+          reason: 'cache_root_mismatch',
+          requestedPath: workspaceRoot,
+          runtimePath: path.resolve(workspaceRoot),
+        }),
+      };
+    }
     const memoryFileHashes = memoryGraph.fileHashes;
     const memoryGitCommitHash = memoryGraph.gitCommitHash;
     const memoryScanPolicy = normalizeScanPolicy(memoryGraph.scanPolicy);
@@ -6796,6 +6819,23 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
   const currentCwd = resolveWorkspaceRoot();
   const envelope = loadGraphCache(currentCwd);
   if (envelope) {
+    const declaredDiskRoots =
+      Array.isArray(envelope.rootDirs) && envelope.rootDirs.length > 0
+        ? envelope.rootDirs
+        : [envelope.rootDir];
+    if (isNestedWorkspaceSlice(currentCwd, declaredDiskRoots)) {
+      resetGraphRAGState();
+      return {
+        loaded: false,
+        source: 'none',
+        rootDir: currentCwd,
+        graphUnavailableReceipt: buildGraphUnavailableReceipt({
+          reason: 'cache_root_mismatch',
+          requestedPath: currentCwd,
+          runtimePath: path.resolve(currentCwd),
+        }),
+      };
+    }
     try {
       const ageMs = Date.now() - envelope.timestamp;
       const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
@@ -6935,6 +6975,28 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     }
   }
   return { loaded: false, source: 'none' };
+}
+
+/**
+ * Semantic tools skip ensureCachedGraph when GraphRAG is already warm.
+ * Call this first so a nested package-slice index cannot answer as the
+ * workspace language graph.
+ */
+export async function refuseNestedWorkspaceSliceForSemanticTools(): Promise<{
+  error: string;
+  hint: string;
+  graphUnavailableReceipt: GraphUnavailableReceipt;
+} | null> {
+  const state = await ensureCachedGraph({ warmGraphRAG: false });
+  if (state.graphUnavailableReceipt?.reason !== 'cache_root_mismatch') {
+    return null;
+  }
+  resetGraphRAGState();
+  return {
+    error: ABSORB_CODEBASE_LOAD_ERROR,
+    hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+    graphUnavailableReceipt: state.graphUnavailableReceipt,
+  };
 }
 
 /**

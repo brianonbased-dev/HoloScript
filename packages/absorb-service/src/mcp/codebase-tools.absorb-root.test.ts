@@ -2009,12 +2009,13 @@ describe('holo_absorb_repo root validation', () => {
     process.env.ABSORB_MIN_SYSTEM_FREE_MB = '0';
     const sliceAbsorb = (await handleCodebaseTool('holo_absorb_repo', {
       rootDir: pkgA,
-      outputFormat: 'stats',
+      outputFormat: 'graph',
       force: true,
     })) as { error?: string; graphAuthoritative?: boolean; stats?: { totalFiles?: number } };
     expect(sliceAbsorb.error).toBeUndefined();
     expect(sliceAbsorb.graphAuthoritative).toBe(true);
     expect(sliceAbsorb.stats?.totalFiles).toBeGreaterThan(0);
+    expect(getGraphRAGStateStatus().ready).toBe(true);
 
     // Keep the in-memory pkgA cache (the live laptop failure: MCP holds a
     // package slice while HOLOSCRIPT_WORKSPACE_ROOT is the language tree).
@@ -2040,6 +2041,37 @@ describe('holo_absorb_repo root validation', () => {
     expect(sliceStatus.diskCache?.freshForCurrentRepo).toBe(false);
     expect(sliceStatus.workspaceSlice?.warning).toMatch(/not the workspace language graph/i);
     expect(sliceStatus.diskCache?.hint).toMatch(/not the workspace language graph/i);
+
+    // Ask first while GraphRAG is still warm. Query-first would drop the
+    // slice and hide the skip that lets holo_ask_codebase keep answering.
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('llm offline'));
+    const sliceAsk = (await handleGraphRagTool('holo_ask_codebase', {
+      question: 'Where is beta defined?',
+      topK: 3,
+    })) as {
+      error?: string;
+      answer?: string;
+      graphUnavailableReceipt?: { reason?: string };
+    };
+    expect(sliceAsk.error).toBeDefined();
+    expect(sliceAsk.graphUnavailableReceipt?.reason).toBe('cache_root_mismatch');
+    expect(sliceAsk.answer).toBeUndefined();
+    expect(getGraphRAGStateStatus().ready).toBe(false);
+
+    const sliceQuery = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'beta',
+      queryType: 'find',
+      symbolName: 'beta',
+    })) as {
+      error?: string;
+      results?: unknown[];
+      graphUnavailableReceipt?: { reason?: string };
+    };
+    expect(sliceQuery.error).toBeDefined();
+    expect(sliceQuery.results ?? []).toEqual([]);
+    // Ask already dropped the in-memory slice. A flat cache with a generation
+    // manifest for packages/alpha is not readable as the repo root, so query
+    // may miss disk entirely. Either way it must not answer from the slice.
 
     process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
     const mergedPaths = resolveCodebaseCachePathsForRoots([pkgA, pkgB]);
@@ -2077,7 +2109,7 @@ describe('holo_absorb_repo root validation', () => {
     });
     expect(mergedStatus.graphAuthoritative).toBe(false);
     expect(mergedStatus.cacheStorage?.generationManifestFile).toBe(mergedPaths.generationManifestFile);
-  }, 60_000);
+  }, 120_000);
 
   it('interrupts and resumes a forced refresh without replacing the prior authoritative graph', async () => {
     resetCodebaseToolStateForTests();

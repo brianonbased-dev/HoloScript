@@ -288,6 +288,12 @@ export async function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
+  const { refuseNestedWorkspaceSliceForSemanticTools } = await import('./codebase-tools');
+  const nestedSliceRefuse = await refuseNestedWorkspaceSliceForSemanticTools();
+  if (nestedSliceRefuse) {
+    return nestedSliceRefuse;
+  }
+
   if (name === 'holo_visual_graph_context' && !cachedVisualGraph) {
     await hydrateCachedVisualGraphStateFromCodebaseTools();
   } else if (

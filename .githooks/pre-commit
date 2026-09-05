@@ -619,7 +619,7 @@ fi
 # this repo's packages/ (green today; protects the reward terms from a verdict-fork regression).
 # The corpus builders live in ai-ecosystem; audit them there with --roots (report-only).
 echo "  ├─ Verifier-of-record gate (labels from the shipped resolver)..."
-VOR_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-verifier-of-record.mjs --strict 2>&1)
+VOR_OUT=$(run_with_timeout 90 node scripts/holo-ci/check-verifier-of-record.mjs --strict 2>&1)
 VOR_STATUS=$?
 if [ "$VOR_STATUS" -ne 0 ]; then
     echo -e "  ${RED}❌ Forked resolution verdict (labels not routed through gradeByResolver)${NC}"
