@@ -2987,6 +2987,31 @@ function rootMatchesCurrentRepo(
   return normalizeRootForComparison(rootDir) === normalizeRootForComparison(currentRepoRoot);
 }
 
+/**
+ * True when `childRoot` lives strictly inside `parentRoot` (a package folder
+ * of a monorepo), not when it is the parent or a sibling repo.
+ */
+function isDescendantRoot(childRoot: string, parentRoot: string): boolean {
+  const child = normalizeRootForComparison(childRoot);
+  const parent = normalizeRootForComparison(parentRoot);
+  if (child === parent) return false;
+  const relative = path.relative(parent, child);
+  return relative.length > 0 && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+/**
+ * A cache whose declared roots are all nested folders of the workspace is a
+ * package slice, not the workspace language graph. Sibling-repo caches (HoloScript
+ * vs ai-ecosystem) stay eligible for cross-root authority.
+ */
+function isNestedWorkspaceSlice(workspaceRoot: string, declaredRoots: string[]): boolean {
+  const roots = declaredRoots.filter((root) => typeof root === 'string' && root.trim().length > 0);
+  if (roots.length === 0) return false;
+  return roots.every(
+    (root) => !rootMatchesCurrentRepo(root, workspaceRoot) && isDescendantRoot(root, workspaceRoot)
+  );
+}
+
 function normalizeStringList(values: unknown): string[] | undefined {
   if (values === undefined) return undefined;
   if (!Array.isArray(values)) return undefined;
@@ -10803,6 +10828,34 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   // different directory (e.g. a temp absorb scratch dir) is NOT authoritative
   // for the workspace the agent is actually working in.
   const cacheRootDir = cachedRootDir || cache.rootDir || null;
+  const declaredAuthorityRoots =
+    cache.rootDirs && cache.rootDirs.length > 0
+      ? cache.rootDirs
+      : activeRootDirs.length > 0
+        ? activeRootDirs
+        : cacheRootDir
+          ? [cacheRootDir]
+          : [];
+  const nestedWorkspaceSlice = isNestedWorkspaceSlice(currentCwd, declaredAuthorityRoots);
+  const workspaceSlice = nestedWorkspaceSlice
+    ? {
+        kind: 'nested-package-slice' as const,
+        coversWorkspaceRoot: false,
+        cacheRootDir: cacheRootDir,
+        workspaceRoot: currentCwd,
+        declaredRoots: declaredAuthorityRoots,
+        warning:
+          'This cache is a nested package slice. It is not the workspace language graph.',
+      }
+    : {
+        kind: 'workspace-or-sibling' as const,
+        coversWorkspaceRoot: declaredAuthorityRoots.some((root) =>
+          rootMatchesCurrentRepo(root, currentCwd)
+        ),
+        cacheRootDir,
+        workspaceRoot: currentCwd,
+        declaredRoots: declaredAuthorityRoots,
+      };
   const cacheMatchesCwd = rootMatchesCurrentRepo(cacheRootDir, currentCwd);
   const diskCacheMatchesCwd = rootMatchesCurrentRepo(cache.rootDir, currentCwd);
   const workspaceGitCommitHash =
@@ -11033,32 +11086,36 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
         (activeGitMatchesHead || activeFileHashFreshForHeadMismatch))) &&
     localGraphCoverageComplete;
 
-  const graphAuthoritative = activeRootSetAuthority
-    ? (cachedGraph !== null || cache.exists) &&
-      activeFreshByAge &&
-      activeCoverageComplete &&
-      activeRootSetAuthority.authoritative
-    : (cacheMatchesCwd &&
-        (cachedGraph !== null || cache.exists) &&
+  const graphAuthoritative =
+    !nestedWorkspaceSlice &&
+    (activeRootSetAuthority
+      ? (cachedGraph !== null || cache.exists) &&
         activeFreshByAge &&
-        activeFileHashFreshness.fresh &&
-        (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
-        activeCoverageComplete) ||
-      activeCrossRootAuthority.ok ||
-      localGraphLive;
+        activeCoverageComplete &&
+        activeRootSetAuthority.authoritative
+      : (cacheMatchesCwd &&
+          (cachedGraph !== null || cache.exists) &&
+          activeFreshByAge &&
+          activeFileHashFreshness.fresh &&
+          (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
+          activeCoverageComplete) ||
+        activeCrossRootAuthority.ok ||
+        localGraphLive);
 
   const freshForCurrentRepo = graphAuthoritative;
-  const diskCacheFreshForCurrentRepo = activeRootSetAuthority
-    ? cache.exists &&
-      diskCacheFreshByAge &&
-      diskCoverageComplete &&
-      activeRootSetAuthority.authoritative
-    : (diskCacheMatchesCwd &&
+  const diskCacheFreshForCurrentRepo =
+    !nestedWorkspaceSlice &&
+    (activeRootSetAuthority
+      ? cache.exists &&
         diskCacheFreshByAge &&
-        diskFileHashFreshness.fresh &&
-        (diskCacheGitMatchesHead || diskFileHashFreshForHeadMismatch) &&
-        diskCoverageComplete) ||
-      diskCrossRootAuthority.ok;
+        diskCoverageComplete &&
+        activeRootSetAuthority.authoritative
+      : (diskCacheMatchesCwd &&
+          diskCacheFreshByAge &&
+          diskFileHashFreshness.fresh &&
+          (diskCacheGitMatchesHead || diskFileHashFreshForHeadMismatch) &&
+          diskCoverageComplete) ||
+        diskCrossRootAuthority.ok);
   const diskEmbeddingProviderMatchesPolicy =
     embeddingsCacheExists &&
     (embeddingsCacheModel === null || embeddingsCacheModel === embeddingPolicy.provider);
@@ -11251,6 +11308,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     },
     graphAuthoritative,
     freshForCurrentRepo,
+    workspaceSlice,
     authorityCaveats: activeAuthorityCaveats,
     fileHashFreshness: activeFileHashFreshness,
     fileHashFreshForHeadMismatch: activeFileHashFreshForHeadMismatch,
@@ -11297,7 +11355,9 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
           localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
           localCodebaseSnapshot: diskLocalCodebaseSnapshot,
           hint: !diskCacheMatchesCwd
-            ? diskCrossRootAuthority.ok
+            ? nestedWorkspaceSlice
+              ? `Cache is a nested package slice of ${currentCwd}; it covers ${declaredAuthorityRoots.join(', ')} and is not the workspace language graph. Queries answer only about that slice.`
+              : diskCrossRootAuthority.ok
               ? diskCrossRootAuthority.fileHashFreshForHeadMismatch
                 ? `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}); its HEAD changed, but cached file hashes still match that repo with complete coverage and remain authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
                 : `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}) but matches that repo's live HEAD with complete coverage and remains authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
