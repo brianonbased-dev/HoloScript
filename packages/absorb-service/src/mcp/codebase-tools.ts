@@ -54,11 +54,7 @@ import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
 import { detectLanguage, getSupportedLanguages } from '../engine/adapters';
 import { auditHoloAbsorbManifest, buildHoloAbsorbManifest } from '../holoabsorb/index';
-import {
-  hasObservedPageExtractInput,
-  ingestObservedPage,
-} from '../ingest/ingestObservedPage';
-import { setKnowledgeExtractionGraph } from './knowledge-extraction-tools';
+import { absorbArgsHavePageExtract, foldObservedPageIntoAbsorbArgs } from './absorb-page-extract';
 
 // =============================================================================
 // DYNAMIC MODULE INTERFACE
@@ -8540,61 +8536,19 @@ function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
 }
 
 async function handleAbsorbWithPageExtract(args: Record<string, unknown>): Promise<unknown> {
-  const pageExtractInput = {
-    observe: args.observe,
-    pageExtract: args.pageExtract,
-    markdown: typeof args.markdown === 'string' ? args.markdown : undefined,
-    bodyText: typeof args.bodyText === 'string' ? args.bodyText : undefined,
-    url: typeof args.url === 'string' ? args.url : undefined,
-    title: typeof args.title === 'string' ? args.title : undefined,
-  };
-  if (!hasObservedPageExtractInput(pageExtractInput)) {
+  if (!absorbArgsHavePageExtract(args)) {
     return handleAbsorb(args);
   }
-
-  const hasRepoInput =
-    (typeof args.rootDir === 'string' && args.rootDir.trim().length > 0) ||
-    (Array.isArray(args.rootDirs) && args.rootDirs.length > 0) ||
-    (Array.isArray(args.sourceFiles) && args.sourceFiles.length > 0) ||
-    args.localCodebaseSnapshotReceipt != null ||
-    args.snapshotReceipt != null;
-  if (hasRepoInput) {
-    return {
-      error: 'page_extract_exclusive',
-      message:
-        'Page extract (observe/markdown/bodyText/url) is exclusive with rootDir, sourceFiles, and snapshot receipts. Absorb one observed page or one repo, not both.',
-    };
+  const folded = await foldObservedPageIntoAbsorbArgs(args);
+  if (!folded.ok) {
+    return { error: folded.error, message: folded.message };
   }
-
-  try {
-    const ingested = await ingestObservedPage(pageExtractInput);
-    setKnowledgeExtractionGraph(ingested.graph);
-    const result = await handleAbsorb({
-      ...args,
-      sourceFiles: ingested.sourceFiles,
-    });
-    if (!result || typeof result !== 'object') return result;
-    return {
-      ...(result as Record<string, unknown>),
-      pageExtract: {
-        kind: ingested.kind,
-        url: ingested.extract.url,
-        title: ingested.extract.title,
-        charCount: ingested.extract.charCount,
-        sha256: ingested.extract.sha256,
-        source: ingested.extract.source,
-        fetched: ingested.extract.fetched,
-        sourceFiles: ingested.sourceFiles.map((file) => file.path),
-        formatId: ingested.document.formatId,
-        holoPartial: ingested.holo.partial,
-      },
-    };
-  } catch (error) {
-    return {
-      error: 'page_extract_failed',
-      message: error instanceof Error ? error.message : String(error),
-    };
-  }
+  const result = await handleAbsorb(folded.args);
+  if (!result || typeof result !== 'object' || !folded.pageExtract) return result;
+  return {
+    ...(result as Record<string, unknown>),
+    pageExtract: folded.pageExtract,
+  };
 }
 
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
