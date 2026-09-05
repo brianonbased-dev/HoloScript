@@ -151,12 +151,14 @@ function log(...m) {
 }
 
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 function run(cmd, cmdArgs, opts = {}) {
-  const isNpm = cmd === 'npm';
-  return execFileSync(isNpm ? NPM_BIN : cmd, cmdArgs, {
+  const bin = cmd === 'pnpm' ? PNPM_BIN : cmd === 'npm' ? NPM_BIN : cmd;
+  return execFileSync(bin, cmdArgs, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: isNpm && process.platform === 'win32',
+    shell: (cmd === 'npm' || cmd === 'pnpm') && process.platform === 'win32',
+    timeout: opts.timeout || 180_000,
     ...opts,
   });
 }
@@ -253,7 +255,7 @@ function makeTarball(pkgDir) {
     return { error: `no dist/ at ${pkgDir} — build first (this gate tests the BUILT artifact).` };
   }
   const out = mkdtempSync(join(tmpdir(), 'hs-pack-'));
-  run('npm', ['pack', '--pack-destination', out], { cwd: pkgDir });
+  run('pnpm', ['pack', '--pack-destination', out], { cwd: pkgDir, timeout: 180_000 });
   const tgz = readdirSync(out).find((f) => f.endsWith('.tgz'));
   if (!tgz) return { error: 'npm pack produced no tarball' };
   const tgzPath = join(out, tgz);

@@ -241,27 +241,32 @@ function hasHardcodedSecretLiteral(line) {
 }
 
 function run(cmd, args, cwd) {
-  const onWin = process.platform === 'win32' && cmd === 'npm';
+  const onWin = process.platform === 'win32' && (cmd === 'npm' || cmd === 'pnpm');
   const exe = onWin ? 'cmd.exe' : cmd;
-  const finalArgs = onWin ? ['/d', '/s', '/c', ['npm', ...args].join(' ')] : args;
+  const finalArgs = onWin ? ['/d', '/s', '/c', [cmd, ...args].join(' ')] : args;
   const r = childProcess.spawnSync(exe, finalArgs, {
     cwd,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,
+    timeout: 180_000,
   });
   if (r.status !== 0)
     throw new Error(
-      `${cmd} ${args.join(' ')} failed (${r.status}): ${(r.stderr || '').slice(0, 400)}`
+      `${cmd} ${args.join(' ')} failed (${r.status}): ${(r.stderr || r.error || '').toString().slice(0, 400)}`
     );
   return r.stdout || '';
 }
 
 function packedFiles(pkgDir) {
-  const out = run('npm', ['pack', '--dry-run', '--json'], pkgDir);
-  const parsed = JSON.parse(out.trim());
-  const entry = Array.isArray(parsed) ? parsed[0] : parsed;
-  return entry;
+  const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'holo-consume-pack-'));
+  try {
+    const out = run('pnpm', ['pack', '--json', '--pack-destination', dest], pkgDir);
+    const parsed = JSON.parse(out.trim());
+    return Array.isArray(parsed) ? parsed[0] : parsed;
+  } finally {
+    fs.rmSync(dest, { recursive: true, force: true });
+  }
 }
 
 function scanFileForLeaks(abs, relPath) {

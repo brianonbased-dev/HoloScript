@@ -48,6 +48,7 @@ const ACCESS = valueAfter('--access') || 'public';
 const TAG = valueAfter('--tag') || 'latest';
 const REGISTRY = valueAfter('--registry') || process.env.npm_config_registry || null;
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const DEP_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies'];
 const WORKSPACE_ROOTS = ['packages', 'services', 'benchmarks'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.next', 'coverage', '.turbo', '.git']);
@@ -83,6 +84,20 @@ function runNpm(cmdArgs, opts = {}) {
       ...opts.env,
     },
     ...opts,
+  });
+}
+
+function runPnpm(cmdArgs, opts = {}) {
+  return execFileSync(PNPM_BIN, cmdArgs, {
+    cwd: opts.cwd || ROOT,
+    encoding: 'utf8',
+    stdio: opts.stdio || ['ignore', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
+    timeout: opts.timeout || 180_000,
+    env: {
+      ...process.env,
+      ...opts.env,
+    },
   });
 }
 
@@ -312,14 +327,70 @@ function packageManagerWarning() {
   }
 }
 
-function assertPackedTargets(manifest, packageDir) {
-  const output = runNpm(['pack', '--dry-run', '--json', '--ignore-scripts'], {
+/**
+ * Prefer NODE_AUTH_TOKEN / NPM_TOKEN already in process.env (from loadDotenv).
+ * If those are empty, resolve the same names from HoloKey. Never print the value.
+ */
+async function resolveNpmAuthSource() {
+  if (process.env.NODE_AUTH_TOKEN || process.env.NPM_TOKEN) {
+    return 'env';
+  }
+  try {
+    const pkg = await import('@holoscript/secrets-broker');
+    if (!pkg?.createHoloKeyVault) return 'holokey-unbuilt';
+    const dbUrl = process.env.HOLOKEY_DATABASE_URL || process.env.DATABASE_URL;
+    let query;
+    let pool = null;
+    if (dbUrl) {
+      const pg = (await import('pg')).default;
+      pool = new pg.Pool({ connectionString: dbUrl });
+      query = (sql, params) => pool.query(sql, params);
+    }
+    try {
+      const vault = pkg.createHoloKeyVault({ env: process.env, query });
+      if (!vault) return 'holokey-off';
+      const owner = process.env.HOLOKEY_OWNER || 'infra';
+      for (const name of ['NPM_TOKEN', 'NODE_AUTH_TOKEN']) {
+        try {
+          const resolved = await vault.resolver.resolve({
+            authenticatedOwnerId: owner,
+            ref: `vault:${name}`,
+          });
+          if (resolved?.value) {
+            process.env.NODE_AUTH_TOKEN = resolved.value;
+            process.env.NPM_TOKEN = process.env.NPM_TOKEN || resolved.value;
+            return 'holokey';
+          }
+        } catch {
+          // try the next well-known name; absence is not a crash
+        }
+      }
+      return 'holokey-missing-npm-token';
+    } finally {
+      if (pool) await pool.end();
+    }
+  } catch {
+    return 'holokey-error';
+  }
+}
+
+function packWithPnpm(packageDir) {
+  const dest = mkdtempSync(join(tmpdir(), 'holo-npm-pack-'));
+  const output = runPnpm(['pack', '--json', '--pack-destination', dest], {
     cwd: packageDir,
-    timeout: 300_000,
+    timeout: 180_000,
   });
   const parsed = JSON.parse(output.trim());
   const pack = Array.isArray(parsed) ? parsed[0] : parsed;
   const files = (pack?.files || []).map((file) => file.path);
+  const filename = pack?.filename;
+  if (!filename || !existsSync(filename)) {
+    throw new Error(`pnpm pack did not write a tarball under ${dest}`);
+  }
+  return { dest, filename, files };
+}
+
+function assertPackedTargets(manifest, files) {
   const findings = findPackedTargetFindings(manifest, files);
   if (findings.length > 0) {
     throw new Error(
@@ -333,53 +404,65 @@ function assertPackedTargets(manifest, packageDir) {
   );
 }
 
-const packages = workspacePackages();
-const record = packages.get(PACKAGE_NAME);
-if (!record) {
-  console.error(`[publish-npm-package] package not found in workspace: ${PACKAGE_NAME}`);
-  process.exit(2);
-}
+async function main() {
+  const authSource = await resolveNpmAuthSource();
+  console.log(`[publish-npm-package] auth-source ${authSource}`);
 
-if (PUBLISH || PROVENANCE_ONLY) {
-  assertReleaseProvenance(record);
-}
-if (PROVENANCE_ONLY) {
-  process.exit(0);
-}
-
-const manifestBackupDir = mkdtempSync(join(tmpdir(), 'holo-npm-publish-'));
-const manifestBackup = join(manifestBackupDir, `${basename(record.dir)}-package.json`);
-copyFileSync(record.manifest, manifestBackup);
-
-const versionMap = new Map([...packages.values()].map((pkg) => [pkg.name, pkg.version]));
-const manifest = readJson(record.manifest);
-const publishedVersion = npmViewVersion(manifest.name);
-const authUser = packageManagerWarning();
-const rewrites = rewriteWorkspaceRefs(manifest, versionMap);
-const modeArgs = PUBLISH ? [] : ['--dry-run'];
-const publishArgs = ['publish', ...modeArgs, '--access', ACCESS, '--tag', TAG, '--ignore-scripts'];
-
-try {
-  writeJson(record.manifest, manifest);
-  console.log(
-    `[publish-npm-package] ${PUBLISH ? 'PUBLISH' : 'DRY'} ${manifest.name}@${manifest.version} ` +
-      `(npm latest: ${publishedVersion || 'missing'}, auth: ${authUser || 'not-checked'})`
-  );
-  for (const rewrite of rewrites) {
-    console.log(
-      `[publish-npm-package] rewrite ${rewrite.field}.${rewrite.depName}: ${rewrite.from} -> ${rewrite.to}`
-    );
+  const packages = workspacePackages();
+  const record = packages.get(PACKAGE_NAME);
+  if (!record) {
+    console.error(`[publish-npm-package] package not found in workspace: ${PACKAGE_NAME}`);
+    process.exit(2);
   }
-  assertPackedTargets(manifest, record.dir);
-  runNpm(publishArgs, {
-    cwd: record.dir,
-    stdio: 'inherit',
-    timeout: 300_000,
-  });
-  console.log(
-    `[publish-npm-package] ${PUBLISH ? 'PUBLISHED' : 'DRY-RUN-PASS'} ${manifest.name}@${manifest.version}`
-  );
-} finally {
-  copyFileSync(manifestBackup, record.manifest);
-  rmSync(manifestBackupDir, { recursive: true, force: true });
+
+  if (PUBLISH || PROVENANCE_ONLY) {
+    assertReleaseProvenance(record);
+  }
+  if (PROVENANCE_ONLY) {
+    process.exit(0);
+  }
+
+  const manifestBackupDir = mkdtempSync(join(tmpdir(), 'holo-npm-publish-'));
+  const manifestBackup = join(manifestBackupDir, `${basename(record.dir)}-package.json`);
+  copyFileSync(record.manifest, manifestBackup);
+
+  const versionMap = new Map([...packages.values()].map((pkg) => [pkg.name, pkg.version]));
+  const manifest = readJson(record.manifest);
+  const publishedVersion = npmViewVersion(manifest.name);
+  const authUser = packageManagerWarning();
+  const rewrites = rewriteWorkspaceRefs(manifest, versionMap);
+  const modeArgs = PUBLISH ? [] : ['--dry-run'];
+
+  let packed = null;
+  try {
+    writeJson(record.manifest, manifest);
+    console.log(
+      `[publish-npm-package] ${PUBLISH ? 'PUBLISH' : 'DRY'} ${manifest.name}@${manifest.version} ` +
+        `(npm latest: ${publishedVersion || 'missing'}, auth: ${authUser || 'not-checked'})`
+    );
+    for (const rewrite of rewrites) {
+      console.log(
+        `[publish-npm-package] rewrite ${rewrite.field}.${rewrite.depName}: ${rewrite.from} -> ${rewrite.to}`
+      );
+    }
+    packed = packWithPnpm(record.dir);
+    assertPackedTargets(manifest, packed.files);
+    runNpm(['publish', packed.filename, ...modeArgs, '--access', ACCESS, '--tag', TAG, '--ignore-scripts'], {
+      cwd: ROOT,
+      stdio: 'inherit',
+      timeout: 300_000,
+    });
+    console.log(
+      `[publish-npm-package] ${PUBLISH ? 'PUBLISHED' : 'DRY-RUN-PASS'} ${manifest.name}@${manifest.version}`
+    );
+  } finally {
+    copyFileSync(manifestBackup, record.manifest);
+    rmSync(manifestBackupDir, { recursive: true, force: true });
+    if (packed?.dest) rmSync(packed.dest, { recursive: true, force: true });
+  }
 }
+
+main().catch((error) => {
+  console.error(`[publish-npm-package] ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
+});
