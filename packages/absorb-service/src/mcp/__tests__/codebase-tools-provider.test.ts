@@ -63,12 +63,15 @@ describe('detectBestEmbeddingProvider', () => {
     await expect(detectBestEmbeddingProvider()).resolves.toBe('holoembed');
   });
 
-  it('still fails closed on an explicit non-native embeddingProvider argument', () => {
+  it('still fails closed on an explicit non-native embeddingProvider argument', async () => {
     // Coercion is for ambient env only; an agent naming an external provider
     // per-call is a real error and keeps the fail-closed contract.
-    expect(() => requireNativeGraphRAGProvider('openai', 'embeddingProvider argument')).toThrow(
-      /not valid shared GraphRAG embedding providers/
-    );
+    const { describeHoloEmbedLane } = await import('@holoscript/holoembed');
+    for (const provider of describeHoloEmbedLane().forbiddenDefaultProviders) {
+      expect(() => requireNativeGraphRAGProvider(provider, 'embeddingProvider argument')).toThrow(
+        /not valid shared GraphRAG embedding providers/
+      );
+    }
   });
 
   it('defaults to HoloEmbed even when external provider credentials exist', async () => {
@@ -100,6 +103,12 @@ describe('detectBestEmbeddingProvider', () => {
       acceptedAliases: ['structural'],
       externalProvidersAllowed: false,
       externalFallbacksAllowed: false,
+      encoderLane: {
+        algorithm: 'structural+char-trigram',
+        dim: 768,
+        neuralModel: false,
+        weights: 'none',
+      },
     });
   });
 

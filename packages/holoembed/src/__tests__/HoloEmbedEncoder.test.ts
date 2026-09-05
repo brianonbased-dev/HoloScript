@@ -336,3 +336,18 @@ describe('SnnAccelerator', () => {
     accel.dispose();
   });
 });
+
+describe('describeHoloEmbedLane', () => {
+  it('names hash/trigram vectors and forbids neural defaults', async () => {
+    const { describeHoloEmbedLane } = await import('../lane.js');
+    const { HOLOEMBED_DIM } = await import('../types.js');
+    const lane = describeHoloEmbedLane();
+    expect(lane.provider).toBe('holoembed');
+    expect(lane.algorithm).toBe('structural+char-trigram');
+    expect(lane.dim).toBe(HOLOEMBED_DIM);
+    expect(lane.neuralModel).toBe(false);
+    expect(lane.weights).toBe('none');
+    expect(lane.forbiddenDefaultProviders).toEqual(['xenova', 'ollama', 'openai']);
+    expect(lane.sentence).toMatch(/not a downloaded neural model/i);
+  });
+});

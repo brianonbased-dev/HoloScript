@@ -1,8 +1,10 @@
 # @holoscript/holoembed
 
-HoloEmbed: 768-dim NL→code embeddings via structural features + char-trigram
-subwords, with optional SNN-WebGPU population coding for GPU-accelerated batch
-encoding.
+HoloEmbed default vectors are **structural features plus hashed character
+trigrams** (768-dim). They are **not** a downloaded neural model (not MiniLM,
+not GGUF, not ONNX). Optional SNN-WebGPU population coding can reshape those
+same histograms; Xenova/Ollama/OpenAI encoders live in Absorb as explicit
+opt-in experiments, never as this package’s default.
 
 External and public consumers — operators and agent-framework integrators
 wiring semantic code search or symbol retrieval into their own tools — bring
@@ -49,6 +51,8 @@ back to a plain histogram whenever GPU/WebGPU is unavailable.
 
 ## API surface
 
+- `describeHoloEmbedLane()` — machine-readable lane receipt (`provider`,
+  `algorithm: structural+char-trigram`, `dim: 768`, `neuralModel: false`).
 - `HoloEmbedEncoder` — `initialize()`, `encode()`, `encodeText()`,
   `encodeTexts()` (batched), `snnActive`, `dispose()`.
 - `SnnAccelerator`, `encodeLifPopulationCpu` — the SNN population-coding path,

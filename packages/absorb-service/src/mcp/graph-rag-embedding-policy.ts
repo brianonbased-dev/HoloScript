@@ -1,3 +1,8 @@
+import {
+  describeHoloEmbedLane,
+  type HoloEmbedLaneReceipt,
+} from '@holoscript/holoembed';
+
 export const GRAPH_RAG_EMBEDDING_POLICY_VERSION =
   'holoscript.graphrag.embedding-policy.v1' as const;
 export const NATIVE_GRAPH_RAG_PROVIDER = 'holoembed' as const;
@@ -18,6 +23,10 @@ export interface GraphRAGEmbeddingPolicyReceipt {
   acceptedAliases: readonly string[];
   externalProvidersAllowed: false;
   externalFallbacksAllowed: false;
+  encoderLane: Pick<
+    HoloEmbedLaneReceipt,
+    'algorithm' | 'dim' | 'neuralModel' | 'weights' | 'sentence'
+  >;
   policy: string;
 }
 
@@ -72,6 +81,7 @@ export function coerceNativeGraphRAGProvider(
 }
 
 export function buildGraphRAGEmbeddingPolicyReceipt(): GraphRAGEmbeddingPolicyReceipt {
+  const lane = describeHoloEmbedLane();
   return {
     schemaVersion: GRAPH_RAG_EMBEDDING_POLICY_VERSION,
     kind: 'GraphRAGEmbeddingPolicy',
@@ -79,7 +89,14 @@ export function buildGraphRAGEmbeddingPolicyReceipt(): GraphRAGEmbeddingPolicyRe
     acceptedAliases: LEGACY_GRAPH_RAG_PROVIDER_ALIASES,
     externalProvidersAllowed: false,
     externalFallbacksAllowed: false,
+    encoderLane: {
+      algorithm: lane.algorithm,
+      dim: lane.dim,
+      neuralModel: lane.neuralModel,
+      weights: lane.weights,
+      sentence: lane.sentence,
+    },
     policy:
-      'HoloScript GraphRAG uses HoloGraph plus HoloEmbed for every shared project cache. structural is accepted only as a legacy alias and maps to holoembed. Ollama/HoloLlama may serve LLM synthesis, and low-level factory providers may support isolated experiments, but they are not valid shared GraphRAG embedding providers.',
+      'HoloScript GraphRAG uses HoloGraph plus HoloEmbed for every shared project cache. HoloEmbed default vectors are structural+char-trigram (no neural weights). structural is a legacy alias and maps to holoembed. Ollama/HoloLlama may serve LLM synthesis, and Xenova/OpenAI remain isolated experiments — they are not valid shared GraphRAG embedding providers.',
   };
 }

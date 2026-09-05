@@ -60,3 +60,10 @@ export type {
 } from './types.js';
 export type { LIFPopulationParams, LIFPopulationCpuOptions } from './SnnAccelerator.js';
 export { HOLOEMBED_DIM, STRUCTURAL_DIM, SUBWORD_BINS, SUBWORD_BLOCKS } from './types.js';
+export {
+  describeHoloEmbedLane,
+  HOLOEMBED_ALGORITHM_ID,
+  HOLOEMBED_FORBIDDEN_DEFAULT_PROVIDERS,
+  HOLOEMBED_LANE_SCHEMA,
+} from './lane.js';
+export type { HoloEmbedForbiddenDefaultProvider, HoloEmbedLaneReceipt } from './lane.js';
