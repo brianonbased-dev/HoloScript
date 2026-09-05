@@ -96,6 +96,22 @@ const PROBES = [
     skipCjs: true,
   },
   { name: '@holoscript/ui', dir: 'ui', barrelSym: null, runtime: false },
+  // 2026-09-05: absorb-service@6.1.3 (and the holoembed it pins via workspace:^)
+  // shipped with unresolved workspace ranges, is npm-deprecated, and cannot be
+  // installed into C:\holo. Keep both on this published-install fence so a
+  // corrected cut cannot go out the same hole.
+  {
+    name: '@holoscript/holoembed',
+    dir: 'holoembed',
+    barrelSym: 'HoloEmbedEncoder',
+    runtime: false,
+  },
+  {
+    name: '@holoscript/absorb-service',
+    dir: 'absorb-service',
+    barrelSym: 'CodebaseGraph',
+    runtime: false,
+  },
 ];
 
 /** Package name of a bare import specifier ('ws/lib/x' -> 'ws', '@s/p/sub' -> '@s/p'). */
