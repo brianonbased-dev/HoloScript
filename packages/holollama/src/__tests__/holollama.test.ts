@@ -1163,11 +1163,23 @@ composition "owned-edge" {
 
       expect(receipt.schema).toBe('holollama.public-harness-install.v1');
       expect(receipt.ok).toBe(true);
-      expect(receipt.files).toEqual(['.env.example', 'AGENTS.md', 'holollama.harness.json']);
+      expect(receipt.files).toEqual([
+        '.env.example',
+        'AGENTS.md',
+        'STOREFRONT.md',
+        'holollama.harness.json',
+      ]);
       expect(receipt.safety.ok).toBe(true);
       expect(receipt.doctor.schema).toBe('holollama.doctor.v1');
       expect(receipt.lifecycle.schema).toBe('holollama.fleet-lifecycle.v1');
       expect(existsSync(join(targetDir, 'AGENTS.md'))).toBe(true);
+      expect(existsSync(join(targetDir, 'STOREFRONT.md'))).toBe(true);
+      const storefront = readFileSync(join(targetDir, 'STOREFRONT.md'), 'utf8');
+      expect(storefront).toMatch(/Who is riding/i);
+      expect(storefront).toMatch(/Which door/i);
+      expect(storefront).toMatch(/trunk/i);
+      expect(storefront).not.toContain('C:\\holo-dev');
+      expect(storefront).not.toContain('D:/GOLD');
       expect(existsSync(join(targetDir, 'receipts', 'holollama', 'doctor.json'))).toBe(true);
       expect(existsSync(join(targetDir, 'receipts', 'holollama', 'lifecycle.json'))).toBe(true);
       const installReceipt = JSON.parse(
@@ -1224,6 +1236,7 @@ composition "owned-edge" {
           expect.objectContaining({ kind: 'private-anchor', id: 'founder-windows-user-path' }),
           expect.objectContaining({ kind: 'filled-secret', id: 'secret-looking-token' }),
           expect.objectContaining({ kind: 'filled-secret', id: 'filled-env-holoscript_api_key' }),
+          expect.objectContaining({ kind: 'missing-greeter', id: 'vehicle-greeter-missing' }),
         ])
       );
     } finally {

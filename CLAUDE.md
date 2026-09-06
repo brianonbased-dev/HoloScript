@@ -330,12 +330,18 @@ If any box is unchecked → complete that step before responding.
 ## ∞ NEWCOMER FAST PATH
 
 ```text
-1. docs/holoschool/level-1-fundamentals/01-what-is-holoscript.md  (What + Why)
+0. docs/storefront/index.md                                      (Language + admit + crew + pay windows)
+0b. C:/holo-dev/ai-ecosystem/docs/storefront/local.md             (Vehicle people ride)
+0c. C:/holo-dev/HoloRepo/Hololand/docs/storefront/local.md        (Worlds store)
+0d. C:/holo-dev/ai-ecosystem/docs/storefront/mind.md              (Mind store)
+1. docs/holoschool/level-1-fundamentals/01-what-is-holoscript.md  (What + Why — still VR-flavored until V1 gate)
 2. docs/holoschool/level-1-fundamentals/02-installation.md        (Setup)
 3. docs/holoschool/level-1-fundamentals/03-first-scene.md         (First .holo)
 4. docs/traits/index.md                                          (Superpower)
 5. docs/compilers/index.md                                       (Deploy)
 ```
+
+GitHub `README.md` is not the V1 storefront until `docs/storefront/github-v1-gate.md` is green.
 
 ---
 

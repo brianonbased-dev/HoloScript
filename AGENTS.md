@@ -35,6 +35,16 @@ HoloScript is a general-purpose semantic systems programming language under acti
 
 Do not introduce HoloScript as a DSL, scene language, spatial-only language, asset format, or description layer above the "real" implementation language. Declarative authoring is a compiler-visible systems-programming mechanism. When low-level ownership, ABI, concurrency, native-code, debugging, or self-hosting support is missing, name that implementation gap instead of shrinking the language identity. Canonical wording: [`docs/spec/language-identity.md`](docs/spec/language-identity.md).
 
+**Storefront (local first).** How we present this to people and to agents
+shopping for them lives in [`docs/storefront/local.md`](docs/storefront/local.md)
+(purpose before SKU). This repo is the **language store**. **ai-ecosystem is
+the breezeway and the user’s vehicle**
+(`C:/holo-dev/ai-ecosystem/docs/handbooks/holon-storefront.md`) — Joseph’s
+instance is private; users ride their own `.ai-ecosystem`. `README.md` is **not**
+the V1 public storefront until
+[`docs/storefront/github-v1-gate.md`](docs/storefront/github-v1-gate.md) is
+green. Do not rewrite GitHub copy as if the warehouse were already shoppable.
+
 MCP server at `mcp.holoscript.net` — discover tools via `POST /mcp` with `tools/list`.
 
 ## Native machine and public release versions
