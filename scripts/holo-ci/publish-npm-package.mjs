@@ -26,6 +26,15 @@ import { fileURLToPath } from 'node:url';
 import { loadDotenv } from '../load-dotenv.mjs';
 import { findPackedTargetFindings } from './package-pack-contract.mjs';
 import { assertNoWorkspaceSpecs, rewriteWorkspaceRefs } from './rewrite-workspace-deps.mjs';
+import {
+  assertAllowedTarballPackage,
+  assertFramework617Repair,
+  assertRequiredDeps,
+  assertSameFilesExcept,
+  assertSnn873Repair,
+  parseRequireDep,
+  pickPublishableVersion,
+} from './publish-tarball-contract.mjs';
 
 loadDotenv();
 
@@ -34,7 +43,11 @@ const args = process.argv.slice(2);
 const ROOT = resolve(valueAfter('--root') || resolve(__dirname, '..', '..'));
 const packageIdx = args.indexOf('--package');
 const PACKAGE_NAME = packageIdx >= 0 ? args[packageIdx + 1] : null;
+const TARBALL = valueAfter('--tarball');
+const SAME_FILES_AS = valueAfter('--same-files-as');
+const REQUIRE_DEPS = valuesAfterAll('--require-dep').map(parseRequireDep);
 const PUBLISH = args.includes('--publish');
+const INSPECT_ONLY = args.includes('--inspect-only');
 const PROVENANCE_ONLY = args.includes('--provenance-only');
 // The canonical remote is `canon` (.holorepo/git/main.git) — the repo
 // `holorepo change land` writes to. NOT `origin`: in this ecosystem origin is
@@ -63,6 +76,14 @@ function valueAfter(flag) {
   return idx >= 0 ? args[idx + 1] : null;
 }
 
+function valuesAfterAll(flag) {
+  const values = [];
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === flag && args[i + 1]) values.push(args[i + 1]);
+  }
+  return values;
+}
+
 function readJson(file) {
   return JSON.parse(readFileSync(file, 'utf8'));
 }
@@ -71,19 +92,38 @@ function writeJson(file, value) {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function withAuthNpmRc(callback) {
+  const token = process.env.NODE_AUTH_TOKEN || process.env.NPM_TOKEN;
+  if (!token) return callback([]);
+  const dir = mkdtempSync(join(tmpdir(), 'holo-npm-auth-'));
+  const npmrc = join(dir, '.npmrc');
+  writeFileSync(npmrc, `//registry.npmjs.org/:_authToken=${token}\n`);
+  try {
+    return callback(['--userconfig', npmrc]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 function runNpm(cmdArgs, opts = {}) {
-  const effectiveArgs = REGISTRY ? [...cmdArgs, '--registry', REGISTRY] : cmdArgs;
-  return execFileSync(NPM_BIN, effectiveArgs, {
-    cwd: ROOT,
-    encoding: 'utf8',
-    stdio: opts.stdio || ['ignore', 'pipe', 'pipe'],
-    shell: process.platform === 'win32',
-    env: {
-      ...process.env,
-      NODE_AUTH_TOKEN: process.env.NODE_AUTH_TOKEN || process.env.NPM_TOKEN || '',
-      ...opts.env,
-    },
-    ...opts,
+  return withAuthNpmRc((authArgs) => {
+    const effectiveArgs = [
+      ...cmdArgs,
+      ...authArgs,
+      ...(REGISTRY ? ['--registry', REGISTRY] : []),
+    ];
+    return execFileSync(NPM_BIN, effectiveArgs, {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: opts.stdio || ['ignore', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+      timeout: opts.timeout,
+      env: {
+        ...process.env,
+        NODE_AUTH_TOKEN: process.env.NODE_AUTH_TOKEN || process.env.NPM_TOKEN || '',
+        ...opts.env,
+      },
+    });
   });
 }
 
@@ -284,6 +324,50 @@ function npmViewVersion(name) {
   }
 }
 
+function npmViewExactVersion(name, version) {
+  if (!name || !version) return null;
+  try {
+    return runNpm(['view', `${name}@${version}`, 'version', '--json'], { timeout: 60_000 })
+      .trim()
+      .replace(/^"|"$/g, '');
+  } catch {
+    return null;
+  }
+}
+
+function npmViewVersions(name) {
+  try {
+    const parsed = JSON.parse(runNpm(['view', name, 'versions', '--json'], { timeout: 60_000 }).trim());
+    return Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Prefer the workspace version when it is already on the registry. If this
+ * checkout is ahead of npm (core 8.8.0 locally, 8.7.0 published), pin the
+ * highest published version in the same major. Do not use the latest dist-tag:
+ * that tag can sit below a later published line.
+ */
+function resolvePublishableVersion(depName, localVersion) {
+  const picked = pickPublishableVersion(localVersion, {
+    exactExists: Boolean(npmViewExactVersion(depName, localVersion)),
+    versions: npmViewVersions(depName),
+  });
+  if (!picked) {
+    throw new Error(
+      `cannot rewrite ${depName} to ^${localVersion}: ${depName} is not on the registry`
+    );
+  }
+  if (picked !== localVersion) {
+    console.log(
+      `[publish-npm-package] cap ${depName} local ${localVersion} (unpublished) -> published ${picked}`
+    );
+  }
+  return picked;
+}
+
 function packageManagerWarning() {
   try {
     return runNpm(['whoami'], { timeout: 60_000 }).trim();
@@ -297,13 +381,31 @@ function packageManagerWarning() {
   }
 }
 
+function npmWhoamiOk() {
+  try {
+    runNpm(['whoami'], { timeout: 60_000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearNpmAuthEnv() {
+  delete process.env.NPM_TOKEN;
+  delete process.env.NODE_AUTH_TOKEN;
+  delete process.env.npm_token;
+}
+
 /**
- * Prefer NODE_AUTH_TOKEN / NPM_TOKEN already in process.env (from loadDotenv).
- * If those are empty, resolve the same names from HoloKey. Never print the value.
+ * Prefer NODE_AUTH_TOKEN / NPM_TOKEN already in process.env (from loadDotenv)
+ * when `npm whoami` accepts them. A 401 env token must not shadow HoloKey.
+ * Never print the value.
  */
 async function resolveNpmAuthSource() {
   if (process.env.NODE_AUTH_TOKEN || process.env.NPM_TOKEN) {
-    return 'env';
+    if (npmWhoamiOk()) return 'env';
+    console.log('[publish-npm-package] env npm token rejected by whoami; trying HoloKey');
+    clearNpmAuthEnv();
   }
   try {
     const pkg = await import('@holoscript/secrets-broker');
@@ -383,7 +485,125 @@ function assertPackedTargets(manifest, files) {
   );
 }
 
+function inspectPackedTarball(tarball) {
+  if (!existsSync(tarball)) {
+    throw new Error(`tarball not found: ${tarball}`);
+  }
+  const packedManifest = readPackedPackageJson(tarball);
+  if (PACKAGE_NAME && packedManifest.name !== PACKAGE_NAME) {
+    throw new Error(
+      `tarball name ${packedManifest.name} does not match --package ${PACKAGE_NAME}`
+    );
+  }
+  assertAllowedTarballPackage(packedManifest.name);
+  assertNoWorkspaceSpecs(packedManifest, {
+    label: `${packedManifest.name}@${packedManifest.version} packed tarball`,
+  });
+  if (
+    packedManifest.name === '@holoscript/framework' &&
+    packedManifest.version === '6.1.7'
+  ) {
+    if (!SAME_FILES_AS) {
+      throw new Error(
+        '@holoscript/framework@6.1.7 requires --same-files-as the published 6.1.6 tarball'
+      );
+    }
+    const sourceTarball = resolve(SAME_FILES_AS);
+    const sourceManifest = readPackedPackageJson(sourceTarball);
+    assertFramework617Repair({
+      tarballPath: tarball,
+      sourceTarballPath: sourceTarball,
+      packedManifest,
+      sourceManifest,
+    });
+    assertSameFilesExcept(tarball, sourceTarball);
+    console.log(
+      `[publish-npm-package] framework-6.1.7-repair PASS vs ${sourceTarball}`
+    );
+  } else if (
+    packedManifest.name === '@holoscript/snn-webgpu' &&
+    packedManifest.version === '8.7.3'
+  ) {
+    if (!SAME_FILES_AS) {
+      throw new Error(
+        '@holoscript/snn-webgpu@8.7.3 requires --same-files-as the published 8.7.2 tarball'
+      );
+    }
+    const sourceTarball = resolve(SAME_FILES_AS);
+    const sourceManifest = readPackedPackageJson(sourceTarball);
+    assertSnn873Repair({
+      tarballPath: tarball,
+      sourceTarballPath: sourceTarball,
+      packedManifest,
+      sourceManifest,
+    });
+    assertSameFilesExcept(tarball, sourceTarball);
+    console.log(
+      `[publish-npm-package] snn-webgpu-8.7.3-repair PASS vs ${sourceTarball}`
+    );
+  } else {
+    if (REQUIRE_DEPS.length > 0) {
+      assertRequiredDeps(packedManifest, REQUIRE_DEPS);
+      console.log(
+        `[publish-npm-package] required-deps PASS ${packedManifest.name}@${packedManifest.version}`
+      );
+    }
+    if (SAME_FILES_AS) {
+      const sourceTarball = resolve(SAME_FILES_AS);
+      if (!existsSync(sourceTarball)) {
+        throw new Error(`--same-files-as tarball not found: ${sourceTarball}`);
+      }
+      assertSameFilesExcept(tarball, sourceTarball);
+      console.log(
+        `[publish-npm-package] same-files PASS ${packedManifest.name}@${packedManifest.version} vs ${sourceTarball}`
+      );
+    }
+  }
+  console.log(
+    `[publish-npm-package] packed-manifest PASS ${packedManifest.name}@${packedManifest.version} no workspace: specs`
+  );
+  return packedManifest;
+}
+
+function publishInspectedTarball(tarball, packedManifest, { access, tag, publish }) {
+  const modeArgs = publish ? [] : ['--dry-run'];
+  runNpm(['publish', tarball, ...modeArgs, '--access', access, '--tag', tag, '--ignore-scripts'], {
+    cwd: ROOT,
+    stdio: 'inherit',
+    timeout: 600_000,
+  });
+  console.log(
+    `[publish-npm-package] ${publish ? 'PUBLISHED' : 'DRY-RUN-PASS'} ${packedManifest.name}@${packedManifest.version} from tarball`
+  );
+  return packedManifest;
+}
+
 async function main() {
+  if (TARBALL) {
+    const packedTarball = resolve(TARBALL);
+    const packedManifest = inspectPackedTarball(packedTarball);
+    if (INSPECT_ONLY) {
+      console.log(
+        `[publish-npm-package] INSPECT-ONLY-PASS ${packedManifest.name}@${packedManifest.version}`
+      );
+      return;
+    }
+    if (PROVENANCE_ONLY) {
+      console.error('[publish-npm-package] --provenance-only is incompatible with --tarball');
+      process.exit(2);
+    }
+    const authSource = await resolveNpmAuthSource();
+    console.log(`[publish-npm-package] auth-source ${authSource}`);
+    const authUser = packageManagerWarning();
+    console.log(`[publish-npm-package] tarball-auth ${authUser || 'not-checked'}`);
+    publishInspectedTarball(packedTarball, packedManifest, {
+      access: ACCESS,
+      tag: TAG,
+      publish: PUBLISH,
+    });
+    return;
+  }
+
   const authSource = await resolveNpmAuthSource();
   console.log(`[publish-npm-package] auth-source ${authSource}`);
 
@@ -407,9 +627,19 @@ async function main() {
 
   const versionMap = new Map([...packages.values()].map((pkg) => [pkg.name, pkg.version]));
   const manifest = readJson(record.manifest);
+  if (
+    (manifest.name === '@holoscript/framework' && manifest.version === '6.1.7') ||
+    (manifest.name === '@holoscript/snn-webgpu' && manifest.version === '8.7.3')
+  ) {
+    throw new Error(
+      `${manifest.name}@${manifest.version} must be published via --tarball of the published prior repair`
+    );
+  }
   const publishedVersion = npmViewVersion(manifest.name);
   const authUser = packageManagerWarning();
-  const rewrites = rewriteWorkspaceRefs(manifest, versionMap);
+  const rewrites = rewriteWorkspaceRefs(manifest, versionMap, {
+    resolveVersion: resolvePublishableVersion,
+  });
   const modeArgs = PUBLISH ? [] : ['--dry-run'];
 
   let packed = null;

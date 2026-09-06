@@ -47,21 +47,38 @@ export function assertNoWorkspaceSpecs(pkg, options = {}) {
   );
 }
 
-export function rewriteWorkspaceRefs(pkg, versionMap) {
+export function rewriteWorkspaceRefs(pkg, versionMap, options = {}) {
+  const resolveVersion =
+    typeof options.resolveVersion === 'function'
+      ? options.resolveVersion
+      : (_name, localVersion) => localVersion;
   const rewrites = [];
   for (const field of WORKSPACE_DEP_FIELDS) {
     const deps = pkg[field] || {};
     for (const [depName, spec] of Object.entries(deps)) {
       if (!String(spec).startsWith('workspace:')) continue;
-      const depVersion = versionMap.get(depName);
-      if (!depVersion) {
+      const localVersion = versionMap.get(depName);
+      if (!localVersion) {
         throw new Error(
           `${pkg.name}: ${field}.${depName} uses ${spec}, but no workspace version was found`
         );
       }
+      const depVersion = resolveVersion(depName, localVersion);
+      if (!depVersion) {
+        throw new Error(
+          `${pkg.name}: ${field}.${depName} resolved to an empty registry version (local ${localVersion})`
+        );
+      }
       const rewritten = rewriteWorkspaceSpec(spec, depName, depVersion);
       deps[depName] = rewritten;
-      rewrites.push({ field, depName, from: spec, to: rewritten });
+      rewrites.push({
+        field,
+        depName,
+        from: spec,
+        to: rewritten,
+        localVersion,
+        publishVersion: String(depVersion),
+      });
     }
   }
   assertNoWorkspaceSpecs(pkg, { label: pkg?.name });
