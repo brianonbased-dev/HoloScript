@@ -22,8 +22,8 @@ composition "UniversalQrScanner" {
       holo_color: "#7FD8FF"
     }
     version: {
-      code: 4
-      name: "1.0.3"
+      code: 5
+      name: "1.0.4"
     }
   }
 
@@ -89,12 +89,15 @@ composition "UniversalQrScanner" {
   }
 
   // Spatial panel (Compose, placed in 3D) — trait: SpatialPanelTrait.
+  // Keep the original 1.2m card; only drop it below eye level so Quest 16:9 capture
+  // still sees the HoloQR title (headset FOV is taller than the screenshot camera).
   object "scanner_panel" {
     @spatial_panel {
       place: { x: 0.0, y: 1.3, z: 1.5 }   // initial placement; head-lock overrides it at runtime
       size: { width: 1.2, height: 1.2 }
       follow_head: true                    // HUD follows the head (not world-fixed) — moves with your gaze
       follow_distance: 1.2                 // meters in front of the head
+      follow_offset: { x: 0.0, y: -0.12, z: 0.0 }  // lower in the view — title stays in screenshots
       title: "HoloQR"
       ambient: true                        // room stays visible while scanning; a small Scanning pill stays on-screen so the app never looks frozen
     }

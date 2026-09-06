@@ -104,7 +104,7 @@ Review flow:
 ## Current review state
 
 - Metadata: **rejected** on 2026-09-02 (privacy name, screenshot overlays, Functional.1 freeze)
-- Native binary to resubmit: HoloQR `1.0.3` (`versionCode 4`) — signed APK at `android-mr/app/build/outputs/apk/release/app-release.apk` (95.4 MB, v2-signed, label **HoloQR**)
+- Native binary to resubmit: HoloQR `1.0.4` (`versionCode 5`) — signed APK at `android-mr/app/build/outputs/apk/release/app-release.apk` (label **HoloQR**). Independent review is still **changes-requested**; founder-terminal upload only after headset proof.
 - Privacy policy on GitHub now uses the exact store name **HoloQR** at the same URL
 - Screenshots must be the overlay-free 2560×1440 plates in `store-assets/screenshots/` (do not reuse the rejected `01-scan-links-in-mixed-reality` set)
-- Next dashboard action: replace the five screenshots, upload `1.0.3`, Save Changes, resubmit
+- Next dashboard action: replace the five screenshots, upload `1.0.4`, Save Changes, resubmit from a founder terminal after headset proof. Do not upload from chat.

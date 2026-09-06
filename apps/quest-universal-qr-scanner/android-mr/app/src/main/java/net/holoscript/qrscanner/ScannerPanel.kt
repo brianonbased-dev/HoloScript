@@ -116,6 +116,7 @@ object ScannerState {
   var bookmarks by mutableStateOf<List<String>>(emptyList()) // saved links (most-recent first)
   var onBookmark: ((String) -> Unit)? = null // persist + add a link
   var onDeleteBookmark: ((String) -> Unit)? = null // remove a link
+  var onAbandon: (() -> Unit)? = null // Menu / leave scanning: return the scan lifecycle to idle
 
   // Content comes from ScannerContent.kt — @generated from scanner.holo by the quest compiler.
   // Edit copy in scanner.holo (onboarding/tutorial/world_portal), recompile — never here.
@@ -362,9 +363,14 @@ private fun ResultCard() {
       if (BOOKMARKS_ENABLED) {
         Button(
             onClick = {
-              ScannerState.onBookmark?.invoke(url) // save the link, then dismiss back to scanning
-              ScannerState.reset()
-              ScannerState.onDismiss?.invoke()
+              val canonical = QrPayloadFacts.asWebUrl(url) ?: url
+              ScannerState.onBookmark?.invoke(url)
+              if (ScannerState.bookmarks.contains(canonical)) {
+                ScannerState.reset()
+                ScannerState.screen = Screen.BOOKMARKS
+                // Do not call onDismiss: that resumes the camera. A Facebook QR still in
+                // view would immediately pop the result card and look like Bookmark failed.
+              }
             }
         ) {
           Text("Bookmark")
@@ -477,7 +483,12 @@ private fun ScanningHud() {
         Text(text = ScannerState.status, fontSize = 12.sp, color = Color(0xFF9CA3AF))
       }
       Spacer(Modifier.size(18.dp))
-      Button(onClick = { ScannerState.screen = Screen.WELCOME }) { Text("Menu") }
+      Button(
+          onClick = {
+            ScannerState.onAbandon?.invoke()
+            ScannerState.screen = Screen.WELCOME
+          }
+      ) { Text("Menu") }
     }
   }
 }

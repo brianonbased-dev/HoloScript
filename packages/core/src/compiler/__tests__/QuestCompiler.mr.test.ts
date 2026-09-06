@@ -89,14 +89,11 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
       '-keepclasseswithmembers,includedescriptorclasses class com.meta.spatial.**'
     );
     expect(proguard).toContain('native <methods>;');
-    expect(proguard).toContain(
-      '-keepclassmembers,includedescriptorclasses class com.meta.spatial.**'
-    );
-    expect(proguard).toContain('*** native*(...);');
-    expect(proguard).toContain('-keep class com.meta.spatial.**.R { *; }');
-    expect(proguard).toContain('-keep class com.meta.spatial.**.R$* { *; }');
     expect(proguard).toContain('-keep class com.meta.spatial.toolkit.** { *; }');
     expect(proguard).toContain('-keep class com.meta.spatial.isdk.** { *; }');
+    expect(proguard).toContain('-keep class com.meta.spatial.core.** { *; }');
+    expect(proguard).toContain('-keep class com.meta.spatial.runtime.** { *; }');
+    expect(proguard).toContain('-keep class com.google.zxing.** { *; }');
   });
 
   it('PassthroughCameraController.kt is generated from the passthrough_camera trait config', () => {
@@ -119,6 +116,7 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(ctl).not.toContain('frame_latest_');
     expect(ctl).not.toContain('$decoded")');
     expect(ctl).toContain('Log.i(TAG, "QR read (attempt $attempts)")');
+    expect(ctl).toContain('fun hasLiveSession(): Boolean = device != null && session != null');
     // no leftover TS interpolation artifacts
     expect(ctl).not.toContain('[object Object]');
     expect(ctl).not.toContain('undefined');
@@ -164,7 +162,8 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
       'fun admissiblePayload(nonEmpty: Boolean, withinLimit: Boolean, controlsSafe: Boolean, syntaxSafe: Boolean): Boolean'
     );
     expect(activity).toContain('text.length <= MAX_PAYLOAD_CHARS');
-    expect(activity).toContain('URI(trimmed).parseServerAuthority()');
+    expect(activity).toContain('fun asWebUrl(text: String): String?');
+    expect(activity).toContain('URI(candidate).parseServerAuthority()');
     expect(activity).toContain('validStructuredEnvelope(trimmed, "BEGIN:VCARD", "END:VCARD")');
     expect(activity).toContain('QrPayloadFacts.controlsSafe(text)');
     expect(activity).toContain('QrPayloadFacts.syntaxSafe(text)');
@@ -244,6 +243,18 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(nonUrlPanel).toContain('private const val BOOKMARKS_ENABLED = false');
   });
 
+  it("Bookmark click stays on Saved links and does not call dismiss", () => {
+    const out = new QuestCompiler().compile(parsed.ast!, '');
+    const panel = out[Object.keys(out).find((k) => k.endsWith('ScannerPanel.kt'))!];
+    const start = panel.indexOf('val canonical = QrPayloadFacts.asWebUrl(url) ?: url');
+    const end = panel.indexOf('Text("Bookmark")', start);
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    const click = panel.slice(start, end);
+    expect(click).toContain('Screen.BOOKMARKS');
+    expect(click).not.toContain('onDismiss?.invoke()');
+  });
+
   it('emits private HMAC scan receipts that structurally omit raw payloads', () => {
     const out = new QuestCompiler().compile(parsed.ast!, '');
     const receipts = out[Object.keys(out).find((k) => k.endsWith('ScanReceiptStore.kt'))!];
@@ -297,6 +308,9 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(activity).toContain('lifecycle.fireClassificationReady()');
     expect(activity).toContain('lifecycle.fireActionReady()');
     expect(activity).toContain('lifecycle.fireUserActionRequested()');
+    expect(activity).toContain('recoverLifecycleToIdle()');
+    expect(activity).toContain('if (resultCardShowing()) return');
+    expect(activity).not.toContain('Scan ignored: lifecycle not ready');
     expect(activity.indexOf('if (!admitUserAction())')).toBeLessThan(
       activity.indexOf('openInQuestBrowser(url)')
     );
@@ -322,6 +336,10 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     // spatial_panel.place.z = 1.5 (the panel-placement fix, from the spec)
     expect(content).toContain('const val panelZ = 1.5f');
     expect(content).toContain('const val panelY = 1.3f');
+    const activity = out[Object.keys(out).find((k) => k.endsWith('StarterSampleActivity.kt'))!];
+    expect(activity).toContain('private const val FOLLOW_DISTANCE = 1.2f');
+    expect(activity).toContain('private const val FOLLOW_Y = -0.12f');
+    expect(activity).toContain('QuadShapeOptions(width = 1.2f, height = 1.2f)');
     // tutorial.mock_qr.demo_url
     expect(content).toContain('https://holoscript.studio');
     // onboarding.tagline + 4 how_to_use rows (array-of-objects parsed; the 4th, "Into a world",
@@ -347,6 +365,15 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(panel).toContain('private fun ScanningHud()');
     expect(panel).toContain('ScanningHud()');
     expect(panel).not.toContain('while scanning, render NOTHING');
+    expect(panel).toContain('ScannerState.screen = Screen.BOOKMARKS');
+    expect(panel).toContain('val canonical = QrPayloadFacts.asWebUrl(url) ?: url');
+    expect(panel).toContain('ScannerState.bookmarks.contains(canonical)');
+    const bookmarkClick = panel.slice(
+      panel.indexOf('val canonical = QrPayloadFacts.asWebUrl(url) ?: url'),
+      panel.indexOf('Text("Bookmark")')
+    );
+    expect(bookmarkClick).toContain('ScannerState.screen = Screen.BOOKMARKS');
+    expect(bookmarkClick).not.toContain('onDismiss?.invoke()');
   });
 
   it('shows a VR splash and does not crash launch if SplatFeature fails', () => {
@@ -356,6 +383,22 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(manifest).toContain('android:name="com.oculus.ossplash"');
     expect(activity).toContain('SplatFeature unavailable');
     expect(activity).toContain('maybeStartScanner()');
+    expect(activity).toContain('controller?.hasLiveSession() != true');
+    expect(activity).toContain('fun asWebUrl(text: String): String?');
+    expect(activity).toContain('val web = QrPayloadFacts.asWebUrl(text)');
+    expect(activity).toContain('ScannerState.pendingUrl = QrPayloadFacts.asWebUrl(text) ?: text');
+    expect(activity).toContain('Saved links: do not resume');
+    expect(activity).toContain(
+      'if (ScannerState.screen != Screen.SCANNING && ScannerState.screen != Screen.IN_WORLD) return'
+    );
+    const maybeStart = activity.slice(
+      activity.indexOf('private fun maybeStartScanner()'),
+      activity.indexOf('private fun onDecoded')
+    );
+    expect(maybeStart.indexOf('ScannerState.screen != Screen.SCANNING')).toBeLessThan(
+      maybeStart.indexOf('controller != null')
+    );
+    expect(activity).toContain('recoverLifecycleToIdle()');
   });
 
   it('privacy policy uses the store listing name HoloQR', () => {

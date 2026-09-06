@@ -6,8 +6,7 @@
 - Failures: `VRC.Quest.Functional.1` (blank scan HUD looked frozen), `VRC.Quest.Privacy.1`
   (privacy policy still said Universal QR Scanner), `VRC.Quest.Asset.5` (marketing overlays on
   screenshots).
-- Resubmit candidate: HoloQR `1.0.3` (`versionCode 4`) with a visible Scanning pill, delayed camera
-  permission, HoloQR-named privacy policy, and overlay-free 2560×1440 screenshots.
+- Resubmit candidate: HoloQR `1.0.4` (`versionCode 5`). Bookmark must keep the camera paused on Saved links. Independent review is still **changes-requested**. Do not upload from chat.
 - Meta submission: `1114952735042547`; previously submitted binary: `1168245949713225`.
 - After approval, Meta requires a separate immediate-or-scheduled release choice.
 
@@ -60,7 +59,7 @@ The current submission's Data Use Checkup, Content Guidelines, IARC age rating, 
 sharing choice, pricing, and reviewer contact are complete. For future candidates, use a
 **Release Channel (ALPHA/BETA)** to install the exact build on-headset before public submission.
 
-Current version: `versionCode 4` / `versionName "1.0.3"` (bump both in `scanner.holo`'s `version` block
+Current version: `versionCode 5` / `versionName "1.0.4"` (bump both in `scanner.holo`'s `version` block
 for each store re-upload — Horizon requires a strictly higher `versionCode` each time).
 
 ---
