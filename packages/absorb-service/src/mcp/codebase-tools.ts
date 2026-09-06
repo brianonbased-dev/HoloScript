@@ -5328,8 +5328,10 @@ function readGraphCache(
           envelope = { ...(metadata as GraphCacheEnvelope), graphJson: '' };
           try {
             writeGraphCacheMetaSidecar(cacheFile, metadata);
-          } catch {
-            // Sidecar is optional acceleration for the next status call.
+          } catch (error) {
+            console.warn(
+              `[CacheDebug][codebase] graph-cache sidecar write failed path=${cacheFile} error=${errorMessage(error)}`
+            );
           }
         }
       } else {

@@ -13,6 +13,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const GRAPH_JSON_KEY = 'graphJson';
+export const GRAPH_CACHE_METADATA_MAX_BYTES = 64 * 1024 * 1024;
+export const GRAPH_CACHE_SIDECAR_MAX_BYTES = 8 * 1024 * 1024;
 
 export interface GraphCacheEnvelopeSplit<TMetadata extends object = Record<string, unknown>> {
   metadata: TMetadata;
@@ -29,21 +31,42 @@ export function graphCacheMetaPath(graphFile: string): string {
   return `${graphFile}.meta.json`;
 }
 
+function replaceFileAtomically(finalPath: string, tempPath: string): void {
+  try {
+    fs.renameSync(tempPath, finalPath);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== 'EEXIST' && code !== 'EPERM') throw error;
+    fs.unlinkSync(finalPath);
+    fs.renameSync(tempPath, finalPath);
+  }
+}
+
 export function writeGraphCacheMetaSidecar(graphFile: string, metadata: object): void {
   const metaPath = graphCacheMetaPath(graphFile);
   const dir = path.dirname(metaPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const tempPath = `${metaPath}.tmp-${process.pid}-${Date.now()}`;
-  fs.writeFileSync(tempPath, `${JSON.stringify(metadata)}\n`, 'utf-8');
-  fs.renameSync(tempPath, metaPath);
+  try {
+    fs.writeFileSync(tempPath, `${JSON.stringify(metadata)}\n`, 'utf-8');
+    replaceFileAtomically(metaPath, tempPath);
+  } catch (error) {
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch {
+      // Preserve the original write failure.
+    }
+    throw error;
+  }
 }
 
 export function readGraphCacheMetaSidecar<TMetadata extends object = Record<string, unknown>>(
   graphFile: string
 ): TMetadata | null {
   const metaPath = graphCacheMetaPath(graphFile);
-  if (!fs.existsSync(metaPath)) return null;
   try {
+    const stat = fs.statSync(metaPath);
+    if (stat.size > GRAPH_CACHE_SIDECAR_MAX_BYTES) return null;
     const parsed = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as TMetadata;
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
     return parsed;
@@ -205,7 +228,7 @@ export function hashGraphCacheBuffer(buffer: Buffer): string {
   return createHash('sha256').update(buffer).digest('hex');
 }
 
-const MAX_METADATA_BYTES = 64 * 1024 * 1024;
+const MAX_METADATA_BYTES = GRAPH_CACHE_METADATA_MAX_BYTES;
 const STREAM_CHUNK_BYTES = 64 * 1024;
 const GRAPH_JSON_KEY_TOKEN = Buffer.from(`"${GRAPH_JSON_KEY}"`, 'ascii');
 const GRAPH_JSON_EMPTY_FIELD = Buffer.from(`"${GRAPH_JSON_KEY}":""`, 'ascii');
@@ -273,8 +296,8 @@ function replaceTopLevelGraphJsonWithEmpty(fd: number): Buffer | null {
   const scratch = Buffer.allocUnsafe(STREAM_CHUNK_BYTES);
   let window = Buffer.alloc(0);
   let eof = false;
-  const out: Buffer[] = [];
-  let outSize = 0;
+  const dest = Buffer.allocUnsafe(MAX_METADATA_BYTES);
+  let destUsed = 0;
 
   const refill = (): void => {
     if (eof) return;
@@ -293,10 +316,17 @@ function replaceTopLevelGraphJsonWithEmpty(fd: number): Buffer | null {
   };
 
   const emit = (buf: Buffer): boolean => {
-    if (outSize + buf.length > MAX_METADATA_BYTES) return false;
     if (buf.length === 0) return true;
-    out.push(buf);
-    outSize += buf.length;
+    if (destUsed + buf.length > MAX_METADATA_BYTES) return false;
+    buf.copy(dest, destUsed);
+    destUsed += buf.length;
+    return true;
+  };
+
+  const emitByte = (byte: number): boolean => {
+    if (destUsed + 1 > MAX_METADATA_BYTES) return false;
+    dest[destUsed] = byte;
+    destUsed += 1;
     return true;
   };
 
@@ -388,7 +418,7 @@ function replaceTopLevelGraphJsonWithEmpty(fd: number): Buffer | null {
       expectingKey = false;
       continue;
     }
-    if (!emit(window.subarray(0, 1))) return null;
+    if (!emitByte(byte)) return null;
     window = window.subarray(1);
 
     if (inString) {
@@ -428,6 +458,6 @@ function replaceTopLevelGraphJsonWithEmpty(fd: number): Buffer | null {
     }
   }
 
-  if (outSize === 0) return null;
-  return Buffer.concat(out);
+  if (destUsed === 0) return null;
+  return Buffer.from(dest.subarray(0, destUsed));
 }
