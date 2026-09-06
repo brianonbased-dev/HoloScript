@@ -16,16 +16,20 @@
 
 import {
   CharacterHost,
+  type AgentAvatarMaterialCalibrationProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
 } from './CharacterHost';
+import { HUMANOID_BONE_NAMES } from '../character/HumanoidSkeleton';
 import type { HairCoverageProfile } from '../native-render/draw-spec';
 import type {
   AgentAvatarAnatomyReceipt,
   AgentAvatarFacialDetailProfile,
   AgentAvatarFacialLandmarkReceipt,
   AgentAvatarFaceTopology,
+  AgentAvatarJointDeformationReceipt,
   AgentAvatarOrbitalProfile,
+  AgentAvatarUpperBodyProfile,
 } from './AgentAvatarMesh';
 import type { GaitMode } from './gait';
 import type { ClothSimulationConfig } from './AgentAvatarCloth';
@@ -39,6 +43,7 @@ import {
   type AgentAvatarOcularProfile,
 } from './AgentAvatarHair';
 import type { NativeMorphReceipt, NativeMorphWeights } from './AgentAvatarMorph';
+import type { Quat } from './skin-math';
 import {
   type AgentAvatarGarmentGeometryReceipt,
   type SovereignGarmentStyle,
@@ -90,6 +95,16 @@ export interface CharacterLODTransitionReceipt {
   mode: 'instant' | 'crossfade' | 'dither';
   durationSeconds: number;
   hysteresisBand: number;
+}
+
+export interface CharacterPoseReceipt {
+  schemaVersion: 'holoscript.character-source-pose.v1';
+  name: string;
+  space: 'local-bone';
+  quaternionOrder: 'xyzw';
+  boneCount: number;
+  boneNames: readonly string[];
+  normalizedQuaternionCount: number;
 }
 
 export interface CharacterHostFromCompositionResult {
@@ -150,6 +165,10 @@ export interface CharacterHostFromCompositionResult {
   groom?: AgentAvatarGroomGeometryReceipt;
   /** Native procedural-head deformation receipt, when supported @morph targets are authored. */
   morph?: NativeMorphReceipt;
+  /** Source-authored local-bone pose that was applied to the operative native host. */
+  pose?: CharacterPoseReceipt;
+  /** Operative dual-influence deformation emitted by the selected native body profile. */
+  jointDeformation?: AgentAvatarJointDeformationReceipt;
   /** Detachable public/story mantle and source refs resolved by the host platform. */
   mantle?: {
     style: SovereignMantleStyle;
@@ -180,6 +199,91 @@ const asVec3 = (v: unknown): [number, number, number] | undefined =>
   Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((x) => typeof x === 'number')
     ? [v[0] as number, v[1] as number, v[2] as number]
     : undefined;
+const HUMANOID_BONE_NAME_SET = new Set<string>(HUMANOID_BONE_NAMES);
+
+function asNormalizedQuat(v: unknown): { value: Quat; normalized: boolean } | undefined {
+  const record = asRecord(v);
+  const components = Array.isArray(v)
+    ? v.slice(0, 4)
+    : record
+      ? [record.x, record.y, record.z, record.w]
+      : [];
+  if (
+    components.length !== 4 ||
+    !components.every((component) => typeof component === 'number' && Number.isFinite(component))
+  ) {
+    return undefined;
+  }
+  const [x, y, z, w] = components as [number, number, number, number];
+  const magnitude = Math.hypot(x, y, z, w);
+  if (magnitude < 1e-8) return undefined;
+  return {
+    value: {
+      x: x / magnitude,
+      y: y / magnitude,
+      z: z / magnitude,
+      w: w / magnitude,
+    },
+    normalized: Math.abs(magnitude - 1) > 1e-6,
+  };
+}
+
+function authoredSourcePose(
+  trait: TraitRec,
+  report: CharacterHostFromCompositionResult['report']
+): { pose: Map<string, Quat>; receipt: CharacterPoseReceipt } | undefined {
+  const authoredBones = asRecord(cfgVal(trait, 'bones', 'rotations', 'joints'));
+  if (!authoredBones) {
+    report.stubbed.push({
+      trait: '@pose',
+      reason: 'pose requires a bones record of HUMANOID_65 local xyzw quaternions',
+    });
+    return undefined;
+  }
+
+  const pose = new Map<string, Quat>();
+  let normalizedQuaternionCount = 0;
+  for (const [boneName, authoredQuaternion] of Object.entries(authoredBones)) {
+    if (!HUMANOID_BONE_NAME_SET.has(boneName)) {
+      report.stubbed.push({
+        trait: `@pose(bone=${boneName})`,
+        reason: `bone is not part of the operative ${SUPPORTED_RIG} palette`,
+      });
+      continue;
+    }
+    const quaternion = asNormalizedQuat(authoredQuaternion);
+    if (!quaternion) {
+      report.stubbed.push({
+        trait: `@pose(bone=${boneName})`,
+        reason: 'rotation must be a finite non-zero local quaternion in xyzw order',
+      });
+      continue;
+    }
+    pose.set(boneName, quaternion.value);
+    if (quaternion.normalized) normalizedQuaternionCount++;
+  }
+  if (pose.size === 0) {
+    report.stubbed.push({
+      trait: '@pose',
+      reason: 'no supported, valid local-bone rotations were authored',
+    });
+    return undefined;
+  }
+
+  const name = asStr(cfgVal(trait, 'name', 'pose_name', 'poseName'))?.trim() || 'source-operative';
+  const boneNames = [...pose.keys()].sort();
+  const receipt: CharacterPoseReceipt = {
+    schemaVersion: 'holoscript.character-source-pose.v1',
+    name,
+    space: 'local-bone',
+    quaternionOrder: 'xyzw',
+    boneCount: boneNames.length,
+    boneNames,
+    normalizedQuaternionCount,
+  };
+  report.mapped.push(`@pose(name=${name},bones=${boneNames.join(',')})`);
+  return { pose, receipt };
+}
 
 function authoredLODTransition(
   trait: TraitRec,
@@ -314,7 +418,7 @@ function allObjects(comp: ParsedComposition): CompObject[] {
   return out;
 }
 
-const BODY_TRAITS = ['body', 'skeleton', 'poseable'];
+const BODY_TRAITS = ['body', 'skeleton', 'poseable', 'pose'];
 
 /**
  * Project a LocomotionConfig / VR-locomotion mode onto a skeletal gait. Movement modes →
@@ -449,6 +553,12 @@ export function buildCharacterHostFromComposition(
   let buildScale = 1;
   let shoulderScale = 1;
   let torsoScale = 1;
+  let upperBodyProfile: AgentAvatarUpperBodyProfile | undefined;
+  let upperBodyRadialSegments: number | undefined;
+  let nailTone: number | undefined;
+  let nailRoughness: number | undefined;
+  let nailBedTone: number | undefined;
+  let nailBedRoughness: number | undefined;
   let anatomyAuthored = false;
   const body = traits.get('body');
   if (body) {
@@ -467,6 +577,98 @@ export function buildCharacterHostFromComposition(
       torsoScale = clamp(authoredTorsoScale ?? 1, 0.85, 1.2);
       anatomyAuthored = true;
       report.mapped.push(`@body(shoulder_scale=${shoulderScale},torso_scale=${torsoScale})`);
+    }
+    const authoredUpperBodyProfile = asStr(
+      body.config.upper_body_profile ?? body.config.upperBodyProfile
+    )
+      ?.toLowerCase()
+      .replace(/_/g, '-');
+    const authoredUpperBodyRadialSegments = asNum(
+      body.config.upper_body_radial_segments ?? body.config.upperBodyRadialSegments
+    );
+    if (
+      authoredUpperBodyProfile === 'coherent-shoulder-neck-torso-v1' ||
+      authoredUpperBodyProfile === 'coherent-anatomical-limbs-v2' ||
+      authoredUpperBodyProfile === 'coherent-hand-landmarks-v3' ||
+      authoredUpperBodyProfile === 'coherent-deforming-hands-v4' ||
+      authoredUpperBodyProfile === 'legacy-segments-v1'
+    ) {
+      upperBodyProfile = authoredUpperBodyProfile;
+      anatomyAuthored = true;
+      if (upperBodyProfile !== 'legacy-segments-v1') {
+        upperBodyRadialSegments = Math.max(
+          12,
+          Math.min(32, Math.round(authoredUpperBodyRadialSegments ?? 24))
+        );
+        report.mapped.push(
+          `@body(upper_body_profile=${upperBodyProfile},` +
+            `upper_body_radial_segments=${upperBodyRadialSegments})`
+        );
+      } else {
+        report.mapped.push(`@body(upper_body_profile=${upperBodyProfile})`);
+        if (authoredUpperBodyRadialSegments !== undefined) {
+          report.stubbed.push({
+            trait: '@body(upper_body_topology_controls)',
+            reason: 'upper-body topology controls require the coherent upper_body_profile',
+          });
+        }
+      }
+      const authoredNailTone = packRgb(asRgb(body.config.nail_tone ?? body.config.nailTone));
+      const authoredNailRoughness = asNum(body.config.nail_roughness ?? body.config.nailRoughness);
+      const authoredNailBedTone = packRgb(
+        asRgb(body.config.nail_bed_tone ?? body.config.nailBedTone)
+      );
+      const authoredNailBedRoughness = asNum(
+        body.config.nail_bed_roughness ?? body.config.nailBedRoughness
+      );
+      if (
+        upperBodyProfile === 'coherent-hand-landmarks-v3' ||
+        upperBodyProfile === 'coherent-deforming-hands-v4'
+      ) {
+        nailTone = authoredNailTone;
+        nailRoughness =
+          authoredNailRoughness === undefined
+            ? undefined
+            : clamp(authoredNailRoughness, 0.08, 0.65);
+        nailBedTone = authoredNailBedTone;
+        nailBedRoughness =
+          authoredNailBedRoughness === undefined
+            ? undefined
+            : clamp(authoredNailBedRoughness, 0.12, 0.72);
+        if (authoredNailTone !== undefined || authoredNailRoughness !== undefined) {
+          report.mapped.push(
+            `@body(nail_tone=${authoredNailTone ?? 'profile-default'},` +
+              `nail_roughness=${nailRoughness ?? 'profile-default'})`
+          );
+        }
+      } else if (
+        authoredNailTone !== undefined ||
+        authoredNailRoughness !== undefined ||
+        authoredNailBedTone !== undefined ||
+        authoredNailBedRoughness !== undefined
+      ) {
+        report.stubbed.push({
+          trait: '@body(nail_material_controls)',
+          reason:
+            'nail material controls require coherent-hand-landmarks-v3 or coherent-deforming-hands-v4',
+        });
+      }
+    } else if (authoredUpperBodyProfile) {
+      report.stubbed.push({
+        trait: '@body(upper_body_profile)',
+        reason: `profile '${authoredUpperBodyProfile}' has no native upper-body geometry implementation`,
+      });
+      if (authoredUpperBodyRadialSegments !== undefined) {
+        report.stubbed.push({
+          trait: '@body(upper_body_topology_controls)',
+          reason: 'upper-body topology controls require a supported upper_body_profile',
+        });
+      }
+    } else if (authoredUpperBodyRadialSegments !== undefined) {
+      report.stubbed.push({
+        trait: '@body(upper_body_topology_controls)',
+        reason: 'upper-body topology controls require a supported upper_body_profile',
+      });
     }
   }
 
@@ -686,6 +888,30 @@ export function buildCharacterHostFromComposition(
   let skinMicrodetailProfile: AgentAvatarSkinMicrodetailProfile | undefined;
   let skinMicrodetailScale: number | undefined;
   let skinMicrodetailStrength: number | undefined;
+  let materialCalibrationProfile: AgentAvatarMaterialCalibrationProfile | undefined;
+  const authoredMaterialCalibrationProfile = asStr(
+    sss?.config.material_calibration_profile ??
+      sss?.config.materialCalibrationProfile ??
+      sss?.config.calibration_profile ??
+      sss?.config.calibrationProfile
+  )
+    ?.trim()
+    .toLowerCase()
+    .replace(/_/g, '-');
+  if (
+    authoredMaterialCalibrationProfile === 'fixed-light-human-v1' ||
+    authoredMaterialCalibrationProfile === 'legacy-v1'
+  ) {
+    materialCalibrationProfile = authoredMaterialCalibrationProfile;
+    report.mapped.push(
+      `@subsurface_scattering(material_calibration_profile=${materialCalibrationProfile})`
+    );
+  } else if (authoredMaterialCalibrationProfile) {
+    report.stubbed.push({
+      trait: '@subsurface_scattering(material_calibration_profile)',
+      reason: `profile '${authoredMaterialCalibrationProfile}' has no native material calibration`,
+    });
+  }
   const authoredSkinMicrodetailProfile = asStr(
     sss?.config.microdetail_profile ?? sss?.config.microdetailProfile
   )
@@ -721,6 +947,21 @@ export function buildCharacterHostFromComposition(
       trait: '@subsurface_scattering(microdetail_profile)',
       reason: `profile '${authoredSkinMicrodetailProfile}' has no native skin material channel`,
     });
+  }
+  if (nailBedTone !== undefined || nailBedRoughness !== undefined) {
+    if (materialCalibrationProfile === 'fixed-light-human-v1') {
+      report.mapped.push(
+        `@body(nail_bed_tone=${nailBedTone ?? 'profile-default'},` +
+          `nail_bed_roughness=${nailBedRoughness ?? 'profile-default'})`
+      );
+    } else {
+      report.stubbed.push({
+        trait: '@body(nail_bed_material_controls)',
+        reason: 'nail-bed controls require fixed-light-human-v1 material calibration',
+      });
+      nailBedTone = undefined;
+      nailBedRoughness = undefined;
+    }
   }
   if (
     !skinMicrodetailProfile &&
@@ -1008,6 +1249,13 @@ export function buildCharacterHostFromComposition(
     jawTaper,
     shoulderScale,
     torsoScale,
+    upperBodyProfile,
+    upperBodyRadialSegments,
+    nailTone,
+    nailRoughness,
+    nailBedTone,
+    nailBedRoughness,
+    materialCalibrationProfile,
     ocularProfile,
     irisScale,
     pupilScale,
@@ -1049,7 +1297,12 @@ export function buildCharacterHostFromComposition(
     includeEyes,
   });
 
-  // 11. @morph → bounded native procedural-head FACS/viseme vertex deformation.
+  // 11. @pose → validated source-authored local-bone quaternions on the operative host.
+  const poseTrait = traits.get('pose');
+  const poseMapping = poseTrait ? authoredSourcePose(poseTrait, report) : undefined;
+  if (poseMapping) host.setPose(poseMapping.pose);
+
+  // 12. @morph → bounded native procedural-head FACS/viseme vertex deformation.
   let morph: NativeMorphReceipt | undefined;
   const morphTrait = traits.get('morph');
   if (morphTrait) {
@@ -1123,6 +1376,7 @@ export function buildCharacterHostFromComposition(
   const groom =
     hair && includeHair !== false ? (host.getGroomGeometryReceipt() ?? undefined) : undefined;
   const anatomy = anatomyAuthored ? host.getAnatomyReceipt() : undefined;
+  const jointDeformation = host.getJointDeformationReceipt() ?? undefined;
   const skin = skinMicrodetailProfile ? host.getSkinMaterialReceipt() : undefined;
   const facialLandmarks = facialDetailProfile
     ? (host.getFacialLandmarkReceipt() ?? undefined)
@@ -1142,6 +1396,8 @@ export function buildCharacterHostFromComposition(
     garment,
     groom,
     morph,
+    pose: poseMapping?.receipt,
+    jointDeformation,
     mantle,
     report,
   };

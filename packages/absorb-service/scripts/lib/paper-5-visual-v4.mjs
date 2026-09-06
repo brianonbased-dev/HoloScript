@@ -4,6 +4,11 @@ import { deflateSync } from 'node:zlib';
 export const PAPER_5_VISUAL_V4_PROTOCOL_SCHEMA = 'holoscript.paper5.visual-agent-study-protocol.v4';
 export const PAPER_5_VISUAL_V4_DATASET_SCHEMA = 'holoscript.paper5.visual-agent-study-dataset.v4';
 export const PAPER_5_VISUAL_V4_PACKET_SCHEMA = 'holoscript.paper5.visual-agent-packets.v4';
+export const PAPER_5_VISUAL_V4_REQUEST_SCHEMA = 'holoscript.paper5.visual-agent-request.v4';
+export const PAPER_5_VISUAL_V4_REQUEST_MANIFEST_SCHEMA =
+  'holoscript.paper5.visual-agent-request-manifest.v4';
+export const PAPER_5_VISUAL_V4_RESPONSE_SCHEMA = 'holoscript.paper5.visual-agent-response.v4';
+export const PAPER_5_VISUAL_V4_RESULT_SCHEMA = 'holoscript.paper5.visual-agent-result.v4';
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -629,4 +634,957 @@ export function auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan }) {
     checks,
     errors: checks.filter((item) => !item.pass).map((item) => item.id),
   };
+}
+
+function packetCore(packetManifest) {
+  return {
+    schemaVersion: packetManifest?.schemaVersion,
+    protocolId: packetManifest?.protocolId,
+    protocolSha256: packetManifest?.protocolSha256,
+    datasetId: packetManifest?.datasetId,
+    datasetSha256: packetManifest?.datasetSha256,
+    split: packetManifest?.split,
+    cases: packetManifest?.cases,
+  };
+}
+
+function armIds(protocol) {
+  return (protocol?.design?.arms ?? []).map((arm) => String(arm?.id ?? '')).filter(Boolean);
+}
+
+function candidateAliases(studyCase, arm) {
+  return (studyCase?.arms?.[arm]?.candidates ?? []).map((candidate) =>
+    String(candidate?.alias ?? '')
+  );
+}
+
+export function auditPaper5VisualV4PacketManifest({
+  protocol,
+  protocolRaw,
+  packetManifest,
+}) {
+  const checks = [];
+  const cases = Array.isArray(packetManifest?.cases) ? packetManifest.cases : [];
+  const expectedArms = armIds(protocol);
+  const protocolSha256 = sha256(protocolRaw ?? JSON.stringify(protocol ?? {}));
+  const expectedPacketSha256 = sha256(JSON.stringify(packetCore(packetManifest)));
+  const repositoryIds = new Set(cases.map((item) => item?.repositoryId).filter(Boolean));
+  const minimumRepositories = Number(protocol?.dataset?.minimumExternalCodebases ?? 3);
+  const minimumQueries = Number(protocol?.dataset?.minimumQueries ?? 90);
+  const candidateCount = Number(protocol?.design?.candidateCount ?? 8);
+  const caseErrors = [];
+
+  check(
+    checks,
+    'packet-schema',
+    packetManifest?.schemaVersion === PAPER_5_VISUAL_V4_PACKET_SCHEMA,
+    packetManifest?.schemaVersion ?? null
+  );
+  check(
+    checks,
+    'protocol-binding',
+    packetManifest?.protocolId === protocol?.protocolId &&
+      packetManifest?.protocolSha256 === protocolSha256,
+    {
+      protocolId: packetManifest?.protocolId ?? null,
+      protocolSha256: packetManifest?.protocolSha256 ?? null,
+    }
+  );
+  check(
+    checks,
+    'packet-digest',
+    isSha256(packetManifest?.packetSha256) &&
+      packetManifest.packetSha256 === expectedPacketSha256,
+    {
+      observed: packetManifest?.packetSha256 ?? null,
+      expected: expectedPacketSha256,
+    }
+  );
+  check(
+    checks,
+    'query-count',
+    cases.length >= minimumQueries,
+    { observed: cases.length, minimum: minimumQueries }
+  );
+  check(
+    checks,
+    'repository-count',
+    repositoryIds.size >= minimumRepositories,
+    { observed: repositoryIds.size, minimum: minimumRepositories }
+  );
+  check(
+    checks,
+    'sealed-split',
+    packetManifest?.split?.sealed === true,
+    packetManifest?.split?.sealed ?? false
+  );
+  check(
+    checks,
+    'image-custody-summary',
+    packetManifest?.custody?.sameImageAcrossPixelArms === true &&
+      packetManifest?.custody?.actualImageBytesVerified === true &&
+      Number(packetManifest?.custody?.imageCount) === cases.length,
+    packetManifest?.custody ?? null
+  );
+
+  for (const studyCase of cases) {
+    const id = String(studyCase?.id ?? 'unknown');
+    const presentArms = Object.keys(studyCase?.arms ?? {});
+    if (JSON.stringify(presentArms) !== JSON.stringify(expectedArms)) {
+      caseErrors.push(`${id}:arm-order-or-membership-mismatch`);
+    }
+    const referenceAliases = [...candidateAliases(studyCase, expectedArms[0])].sort();
+    if (
+      referenceAliases.length !== candidateCount ||
+      new Set(referenceAliases).size !== referenceAliases.length
+    ) {
+      caseErrors.push(`${id}:candidate-count-or-uniqueness-mismatch`);
+    }
+    for (const arm of expectedArms.slice(1)) {
+      if (JSON.stringify([...candidateAliases(studyCase, arm)].sort()) !== JSON.stringify(referenceAliases)) {
+        caseErrors.push(`${id}:${arm}:candidate-set-mismatch`);
+      }
+    }
+    const gold = studyCase?.scoringKey?.goldCandidateAliases ?? [];
+    if (
+      !Array.isArray(gold) ||
+      gold.length < 2 ||
+      gold.some((alias) => !referenceAliases.includes(alias))
+    ) {
+      caseErrors.push(`${id}:invalid-scoring-key`);
+    }
+    for (const arm of expectedArms) {
+      if (/scoringKey|goldCandidate|relevantFiles|annotations/iu.test(JSON.stringify(studyCase.arms[arm]))) {
+        caseErrors.push(`${id}:${arm}:gold-label-leakage`);
+      }
+    }
+    const pixels = studyCase?.arms?.pixels?.literalImage;
+    const relationsPixels = studyCase?.arms?.['relations-pixels']?.literalImage;
+    if (
+      !pixels ||
+      !relationsPixels ||
+      pixels.actualImageContentPartRequired !== true ||
+      relationsPixels.actualImageContentPartRequired !== true ||
+      !isSha256(pixels.sha256) ||
+      pixels.sha256 !== relationsPixels.sha256 ||
+      pixels.path !== relationsPixels.path ||
+      studyCase?.imageReceipt?.sha256 !== pixels.sha256 ||
+      studyCase?.imageReceipt?.inputReceipt?.actualImageBytes !== true
+    ) {
+      caseErrors.push(`${id}:literal-image-custody-mismatch`);
+    }
+  }
+  check(checks, 'case-admission', caseErrors.length === 0, caseErrors);
+  const errors = checks.filter((item) => !item.pass).map((item) => item.id);
+  return {
+    schemaVersion: 'holoscript.paper5.visual-v4-packet-audit.v1',
+    status: errors.length === 0 ? 'pass' : 'blocked',
+    checks,
+    errors,
+    counts: {
+      repositories: repositoryIds.size,
+      queries: cases.length,
+      arms: expectedArms.length,
+    },
+  };
+}
+
+function responseJsonSchema(protocol) {
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: ['rankedCandidateIds', 'confidence'],
+    properties: {
+      rankedCandidateIds: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 5,
+        uniqueItems: true,
+        items: { type: 'string' },
+        description: protocol?.agentProtocol?.responseSchema?.rankedCandidateIds,
+      },
+      confidence: {
+        type: 'number',
+        minimum: 0,
+        maximum: 1,
+        description: protocol?.agentProtocol?.responseSchema?.confidence,
+      },
+    },
+  };
+}
+
+function requestText(studyCase, arm, protocol) {
+  const armPacket = studyCase.arms[arm];
+  const candidateLines = armPacket.candidates.map((candidate) => {
+    const symbols = (candidate.symbols ?? []).join(', ') || '(none)';
+    return `${candidate.alias} | ${candidate.file} | symbols: ${symbols}`;
+  });
+  const sections = [
+    'You are ranking candidate files for a codebase-intelligence question.',
+    'Return only a JSON object matching the supplied schema.',
+    `Question: ${studyCase.query}`,
+    `Category: ${studyCase.category}`,
+    'Candidate files:',
+    ...candidateLines,
+  ];
+  if (armPacket.relationalGraphObservation) {
+    sections.push(
+      'Label-blind structured relation observation:',
+      JSON.stringify(armPacket.relationalGraphObservation)
+    );
+  }
+  if (armPacket.literalImageRequired) {
+    sections.push(
+      String(
+        protocol?.design?.visualProjection?.accessibilityAltText ??
+          'A graph image containing candidate aliases is attached.'
+      )
+    );
+  }
+  sections.push(
+    'Rank one to five unique candidate aliases from most to least relevant. Do not emit paths.'
+  );
+  return sections.join('\n');
+}
+
+export function buildPaper5VisualV4RequestManifest({
+  protocol,
+  protocolRaw,
+  packetManifest,
+  executionPlan,
+}) {
+  const packetAudit = auditPaper5VisualV4PacketManifest({
+    protocol,
+    protocolRaw,
+    packetManifest,
+  });
+  const executionAudit = auditPaper5VisualV4ExecutionPlan({ protocol, executionPlan });
+  if (packetAudit.status !== 'pass' || executionAudit.status !== 'pass') {
+    const errors = [...packetAudit.errors, ...executionAudit.errors];
+    throw new Error(`v4 request admission blocked: ${errors.join(', ')}`);
+  }
+  const trialsPerArm = Number(executionPlan.trialsPerArm);
+  const arms = armIds(protocol);
+  const families = [...executionPlan.modelFamilies].sort((left, right) =>
+    String(left.family).localeCompare(String(right.family))
+  );
+  const cases = [...packetManifest.cases].sort((left, right) =>
+    String(left.id).localeCompare(String(right.id))
+  );
+  const requests = [];
+  for (const family of families) {
+    for (const studyCase of cases) {
+      for (const arm of arms) {
+        for (let trial = 1; trial <= trialsPerArm; trial += 1) {
+          const literalImage = studyCase.arms[arm].literalImage ?? null;
+          const requestIdentity = {
+            protocolId: protocol.protocolId,
+            packetSha256: packetManifest.packetSha256,
+            family: family.family,
+            modelVersion: family.modelVersion,
+            caseId: studyCase.id,
+            arm,
+            trial,
+          };
+          requests.push({
+            schemaVersion: PAPER_5_VISUAL_V4_REQUEST_SCHEMA,
+            requestId: sha256(JSON.stringify(requestIdentity)),
+            ...requestIdentity,
+            repositoryId: studyCase.repositoryId,
+            category: studyCase.category,
+            candidateAliases: candidateAliases(studyCase, arm),
+            input: {
+              text: requestText(studyCase, arm, protocol),
+              literalImage: literalImage
+                ? {
+                    path: literalImage.path,
+                    sha256: literalImage.sha256,
+                    mimeType: literalImage.mimeType,
+                    bytes: literalImage.bytes,
+                    actualImageContentPartRequired: true,
+                  }
+                : null,
+              responseJsonSchema: responseJsonSchema(protocol),
+            },
+          });
+        }
+      }
+    }
+  }
+  requests.sort((left, right) =>
+    sha256(`${protocol?.metrics?.bootstrapSeed ?? 0}\0${left.requestId}`).localeCompare(
+      sha256(`${protocol?.metrics?.bootstrapSeed ?? 0}\0${right.requestId}`)
+    )
+  );
+  const core = {
+    schemaVersion: PAPER_5_VISUAL_V4_REQUEST_MANIFEST_SCHEMA,
+    protocolId: protocol.protocolId,
+    protocolSha256: packetManifest.protocolSha256,
+    packetSha256: packetManifest.packetSha256,
+    datasetSha256: packetManifest.datasetSha256,
+    executionPlanSha256: sha256(JSON.stringify(executionPlan)),
+    requests,
+  };
+  return {
+    ...core,
+    requestManifestSha256: sha256(JSON.stringify(core)),
+    counts: {
+      requests: requests.length,
+      modelFamilies: families.length,
+      queries: cases.length,
+      arms: arms.length,
+      trialsPerArm,
+    },
+    responseSchema: PAPER_5_VISUAL_V4_RESPONSE_SCHEMA,
+    claimBoundary:
+      'The request manifest contains no model responses or scored outcomes. Pixel requests name receipted PNG bytes that an adapter must materialize as an actual image content part.',
+  };
+}
+
+export function materializePaper5VisualV4Request(request, png) {
+  const requiresImage = request?.input?.literalImage?.actualImageContentPartRequired === true;
+  let imageInput = null;
+  if (requiresImage) {
+    imageInput = buildVerifiedImageContentPart(png, request.input.literalImage.sha256);
+    if (Number(request.input.literalImage.bytes) !== imageInput.receipt.bytes) {
+      throw new Error(
+        `Image byte length mismatch: expected ${request.input.literalImage.bytes}, got ${imageInput.receipt.bytes}`
+      );
+    }
+  } else if (png !== undefined && png !== null) {
+    throw new Error('Text-only requests must not receive image bytes');
+  }
+  const content = [{ type: 'text', text: request.input.text }];
+  if (imageInput) content.push(imageInput.contentPart);
+  const payload = {
+    schemaVersion: 'holoscript.paper5.visual-agent-adapter-input.v4',
+    requestId: request.requestId,
+    modelFamily: request.family,
+    modelVersion: request.modelVersion,
+    temperature: 0,
+    maxTokens: 512,
+    messages: [{ role: 'user', content }],
+    responseJsonSchema: request.input.responseJsonSchema,
+  };
+  return {
+    payload,
+    receipt: {
+      requestPayloadSha256: sha256(JSON.stringify(payload)),
+      imageInputReceipt: imageInput?.receipt ?? null,
+    },
+  };
+}
+
+function parseAdapterOutput(adapterOutput) {
+  let value = adapterOutput?.output ?? adapterOutput?.response ?? adapterOutput;
+  if (typeof value === 'string') {
+    const text = value
+      .replace(/<think>[\s\S]*?<\/think>/giu, '')
+      .replace(/```(?:json)?/giu, '')
+      .replace(/```/gu, '')
+      .trim();
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start < 0 || end <= start) throw new Error('missing-json-object');
+    value = JSON.parse(text.slice(start, end + 1));
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('response-must-be-an-object');
+  }
+  return value;
+}
+
+export function capturePaper5VisualV4Response({
+  request,
+  adapterOutput,
+  materializationReceipt,
+  latencyMs,
+}) {
+  let parsed = null;
+  let error = null;
+  try {
+    parsed = parseAdapterOutput(adapterOutput);
+  } catch (caught) {
+    error = caught instanceof Error ? caught.message : String(caught);
+  }
+  const rankedCandidateIds = Array.isArray(parsed?.rankedCandidateIds)
+    ? parsed.rankedCandidateIds.map(String)
+    : [];
+  const uniqueRanked = new Set(rankedCandidateIds);
+  const unknownCandidateIds = rankedCandidateIds.filter(
+    (alias) => !request.candidateAliases.includes(alias)
+  );
+  const confidence = Number(parsed?.confidence);
+  if (!error && (rankedCandidateIds.length < 1 || rankedCandidateIds.length > 5)) {
+    error = 'ranked-candidate-count-out-of-range';
+  }
+  if (!error && uniqueRanked.size !== rankedCandidateIds.length) {
+    error = 'ranked-candidates-not-unique';
+  }
+  if (!error && unknownCandidateIds.length > 0) error = 'unknown-candidate-alias';
+  if (!error && (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)) {
+    error = 'confidence-out-of-range';
+  }
+  const requiresImage = request?.input?.literalImage?.actualImageContentPartRequired === true;
+  if (
+    !error &&
+    requiresImage &&
+    (materializationReceipt?.imageInputReceipt?.actualImageBytes !== true ||
+      materializationReceipt.imageInputReceipt.sha256 !== request.input.literalImage.sha256 ||
+      !isSha256(materializationReceipt.imageInputReceipt.contentPartSha256))
+  ) {
+    error = 'image-input-receipt-mismatch';
+  }
+  const responseCore = {
+    schemaVersion: PAPER_5_VISUAL_V4_RESPONSE_SCHEMA,
+    requestId: request.requestId,
+    protocolId: request.protocolId,
+    packetSha256: request.packetSha256,
+    family: request.family,
+    modelVersion: request.modelVersion,
+    caseId: request.caseId,
+    repositoryId: request.repositoryId,
+    category: request.category,
+    arm: request.arm,
+    trial: request.trial,
+    valid: error === null,
+    error,
+    rankedCandidateIds: error ? [] : rankedCandidateIds,
+    unknownCandidateIds,
+    confidence: error ? null : confidence,
+    latencyMs: Number.isFinite(Number(latencyMs)) ? Number(latencyMs) : null,
+    requestPayloadSha256: materializationReceipt?.requestPayloadSha256 ?? null,
+    imageInputReceipt: materializationReceipt?.imageInputReceipt ?? null,
+    providerResponseSha256: sha256(JSON.stringify(adapterOutput)),
+  };
+  return {
+    ...responseCore,
+    responseSha256: sha256(JSON.stringify(responseCore)),
+  };
+}
+
+function round(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 1_000_000) / 1_000_000;
+}
+
+function mean(values) {
+  return values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function meanRecords(records) {
+  if (records.length === 0) return null;
+  return {
+    precisionAt5: mean(records.map((item) => item.precisionAt5)),
+    reciprocalRank: mean(records.map((item) => item.reciprocalRank)),
+    invalid: mean(records.map((item) => (item.valid ? 0 : 1))),
+    unknownCandidateRate: mean(
+      records.map((item) => (item.unknownCandidateIds?.length ?? 0) / 5)
+    ),
+    confidence: mean(records.map((item) => item.confidence ?? 0)),
+    latencyMs: mean(records.map((item) => item.latencyMs ?? 0)),
+    imageReceipt: mean(records.map((item) => (item.imageReceiptValid ? 1 : 0))),
+  };
+}
+
+function summarizeRecords(records) {
+  return {
+    precisionAt5: round(mean(records.map((item) => item.precisionAt5))),
+    mrr: round(mean(records.map((item) => item.reciprocalRank))),
+    invalidResponseRate: round(mean(records.map((item) => item.invalid))),
+    unknownCandidateRate: round(mean(records.map((item) => item.unknownCandidateRate))),
+    meanConfidence: round(mean(records.map((item) => item.confidence))),
+    meanLatencyMs: round(mean(records.map((item) => item.latencyMs))),
+    imageInputReceiptRate: round(mean(records.map((item) => item.imageReceipt))),
+  };
+}
+
+function averageArmRecords(records) {
+  return {
+    precisionAt5: mean(records.map((item) => item.precisionAt5)),
+    reciprocalRank: mean(records.map((item) => item.reciprocalRank)),
+    invalid: mean(records.map((item) => item.invalid)),
+    unknownCandidateRate: mean(records.map((item) => item.unknownCandidateRate)),
+    confidence: mean(records.map((item) => item.confidence)),
+    latencyMs: mean(records.map((item) => item.latencyMs)),
+    imageReceipt: mean(records.map((item) => item.imageReceipt)),
+  };
+}
+
+function mulberry32(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function clusterBootstrap(rows, key, resamples, seed, confidenceLevel) {
+  if (rows.length === 0) {
+    return {
+      estimate: 0,
+      ci: [0, 0],
+      confidenceLevel,
+      resamples,
+      oneSidedPValue: 1,
+    };
+  }
+  const byRepository = new Map();
+  for (const row of rows) {
+    const list = byRepository.get(row.repositoryId) ?? [];
+    list.push(row);
+    byRepository.set(row.repositoryId, list);
+  }
+  const repositories = [...byRepository.keys()].sort();
+  const random = mulberry32(seed);
+  const samples = [];
+  for (let sample = 0; sample < resamples; sample += 1) {
+    const values = [];
+    for (let repositoryIndex = 0; repositoryIndex < repositories.length; repositoryIndex += 1) {
+      const repositoryId = repositories[Math.floor(random() * repositories.length)];
+      const repositoryRows = byRepository.get(repositoryId);
+      for (let queryIndex = 0; queryIndex < repositoryRows.length; queryIndex += 1) {
+        values.push(repositoryRows[Math.floor(random() * repositoryRows.length)][key]);
+      }
+    }
+    samples.push(mean(values));
+  }
+  samples.sort((left, right) => left - right);
+  const alpha = 1 - confidenceLevel;
+  const lower = samples[Math.floor(samples.length * (alpha / 2))];
+  const upper = samples[
+    Math.min(samples.length - 1, Math.floor(samples.length * (1 - alpha / 2)))
+  ];
+  const nonPositive = samples.filter((value) => value <= 0).length;
+  return {
+    estimate: round(mean(rows.map((row) => row[key]))),
+    ci: [round(lower), round(upper)],
+    confidenceLevel,
+    resamples,
+    oneSidedPValue: round((nonPositive + 1) / (samples.length + 1)),
+  };
+}
+
+function factorialRows(cases) {
+  return cases.map((item) => {
+    const text = item.arms.text;
+    const relations = item.arms.relations;
+    const pixels = item.arms.pixels;
+    const relationsPixels = item.arms['relations-pixels'];
+    return {
+      caseId: item.caseId,
+      repositoryId: item.repositoryId,
+      pixelPrecision:
+        (pixels.precisionAt5 + relationsPixels.precisionAt5 -
+          text.precisionAt5 -
+          relations.precisionAt5) /
+        2,
+      pixelMrr:
+        (pixels.reciprocalRank + relationsPixels.reciprocalRank -
+          text.reciprocalRank -
+          relations.reciprocalRank) /
+        2,
+      relationPrecision:
+        (relations.precisionAt5 + relationsPixels.precisionAt5 -
+          text.precisionAt5 -
+          pixels.precisionAt5) /
+        2,
+      relationMrr:
+        (relations.reciprocalRank + relationsPixels.reciprocalRank -
+          text.reciprocalRank -
+          pixels.reciprocalRank) /
+        2,
+      interactionPrecision:
+        relationsPixels.precisionAt5 -
+        relations.precisionAt5 -
+        pixels.precisionAt5 +
+        text.precisionAt5,
+      interactionMrr:
+        relationsPixels.reciprocalRank -
+        relations.reciprocalRank -
+        pixels.reciprocalRank +
+        text.reciprocalRank,
+      pixelInvalid:
+        (pixels.invalid + relationsPixels.invalid - text.invalid - relations.invalid) / 2,
+    };
+  });
+}
+
+function effectSummary(rows, protocol, seedOffset = 0) {
+  const resamples = Number(protocol?.metrics?.bootstrapResamples ?? 10_000);
+  const seed = Number(protocol?.metrics?.bootstrapSeed ?? 27_072_704) + seedOffset;
+  const confidenceLevel = Number(protocol?.metrics?.confidenceLevel ?? 0.95);
+  const metric = (key, offset) =>
+    clusterBootstrap(rows, key, resamples, seed + offset, confidenceLevel);
+  return {
+    literalPixels: {
+      precisionAt5: metric('pixelPrecision', 0),
+      mrr: metric('pixelMrr', 1),
+      invalidResponseRate: round(mean(rows.map((item) => item.pixelInvalid))),
+    },
+    structuredRelations: {
+      precisionAt5: metric('relationPrecision', 2),
+      mrr: metric('relationMrr', 3),
+    },
+    interaction: {
+      precisionAt5: metric('interactionPrecision', 4),
+      mrr: metric('interactionMrr', 5),
+    },
+  };
+}
+
+function holmBonferroni(primary) {
+  const entries = Object.entries(primary).sort(
+    (left, right) => left[1].oneSidedPValue - right[1].oneSidedPValue
+  );
+  let running = 0;
+  return Object.fromEntries(
+    entries.map(([id, value], index) => {
+      running = Math.max(running, Math.min(1, value.oneSidedPValue * (entries.length - index)));
+      return [id, { rawPValue: value.oneSidedPValue, adjustedPValue: round(running) }];
+    })
+  );
+}
+
+export function scorePaper5VisualV4Responses({
+  protocol,
+  packetManifest,
+  executionPlan,
+  requestManifest,
+  responses,
+}) {
+  const requests = Array.isArray(requestManifest?.requests) ? requestManifest.requests : [];
+  const responseList = Array.isArray(responses) ? responses : [];
+  const requestById = new Map(requests.map((request) => [request.requestId, request]));
+  const responseByRequest = new Map();
+  const blockers = [];
+  const admittedCaseIds = caseByIdSafe(packetManifest);
+  const requestCore = {
+    schemaVersion: requestManifest?.schemaVersion,
+    protocolId: requestManifest?.protocolId,
+    protocolSha256: requestManifest?.protocolSha256,
+    packetSha256: requestManifest?.packetSha256,
+    datasetSha256: requestManifest?.datasetSha256,
+    executionPlanSha256: requestManifest?.executionPlanSha256,
+    requests,
+  };
+  if (
+    requestManifest?.schemaVersion !== PAPER_5_VISUAL_V4_REQUEST_MANIFEST_SCHEMA ||
+    requestManifest?.protocolId !== protocol?.protocolId ||
+    requestManifest?.packetSha256 !== packetManifest?.packetSha256 ||
+    requestManifest?.datasetSha256 !== packetManifest?.datasetSha256 ||
+    requestManifest?.executionPlanSha256 !== sha256(JSON.stringify(executionPlan)) ||
+    requestManifest?.requestManifestSha256 !== sha256(JSON.stringify(requestCore))
+  ) {
+    blockers.push('request-manifest-binding');
+  }
+  const duplicateRequestIds = requests.length - requestById.size;
+  if (duplicateRequestIds > 0) blockers.push(`duplicate-request-ids:${duplicateRequestIds}`);
+  for (const request of requests) {
+    const planFamily = executionPlan.modelFamilies.find((item) => item.family === request.family);
+    if (
+      request?.schemaVersion !== PAPER_5_VISUAL_V4_REQUEST_SCHEMA ||
+      request.protocolId !== protocol?.protocolId ||
+      request.packetSha256 !== packetManifest?.packetSha256 ||
+      !planFamily ||
+      request.modelVersion !== planFamily.modelVersion ||
+      !admittedCaseIds.has(request.caseId) ||
+      !armIds(protocol).includes(request.arm) ||
+      !Number.isInteger(Number(request.trial)) ||
+      Number(request.trial) < 1 ||
+      Number(request.trial) > Number(executionPlan.trialsPerArm)
+    ) {
+      blockers.push(`request-binding:${request?.requestId ?? 'unknown'}`);
+    }
+  }
+  for (const response of responseList) {
+    if (response?.schemaVersion !== PAPER_5_VISUAL_V4_RESPONSE_SCHEMA) {
+      blockers.push(`response-schema:${response?.requestId ?? 'unknown'}`);
+      continue;
+    }
+    if (!requestById.has(response.requestId)) {
+      blockers.push(`unexpected-response:${response.requestId}`);
+      continue;
+    }
+    if (responseByRequest.has(response.requestId)) {
+      blockers.push(`duplicate-response:${response.requestId}`);
+      continue;
+    }
+    const request = requestById.get(response.requestId);
+    if (
+      response.family !== request.family ||
+      response.modelVersion !== request.modelVersion ||
+      response.caseId !== request.caseId ||
+      response.arm !== request.arm ||
+      Number(response.trial) !== Number(request.trial) ||
+      response.requestPayloadSha256 === null ||
+      !isSha256(response.requestPayloadSha256)
+    ) {
+      blockers.push(`response-binding:${response.requestId}`);
+      continue;
+    }
+    const ranked = Array.isArray(response.rankedCandidateIds)
+      ? response.rankedCandidateIds.map(String)
+      : [];
+    const responseCore = {
+      schemaVersion: response.schemaVersion,
+      requestId: response.requestId,
+      protocolId: response.protocolId,
+      packetSha256: response.packetSha256,
+      family: response.family,
+      modelVersion: response.modelVersion,
+      caseId: response.caseId,
+      repositoryId: response.repositoryId,
+      category: response.category,
+      arm: response.arm,
+      trial: response.trial,
+      valid: response.valid,
+      error: response.error,
+      rankedCandidateIds: response.rankedCandidateIds,
+      unknownCandidateIds: response.unknownCandidateIds,
+      confidence: response.confidence,
+      latencyMs: response.latencyMs,
+      requestPayloadSha256: response.requestPayloadSha256,
+      imageInputReceipt: response.imageInputReceipt,
+      providerResponseSha256: response.providerResponseSha256,
+    };
+    if (
+      !isSha256(response.providerResponseSha256) ||
+      !isSha256(response.responseSha256) ||
+      response.responseSha256 !== sha256(JSON.stringify(responseCore)) ||
+      (response.valid === true &&
+        (ranked.length < 1 ||
+          ranked.length > 5 ||
+          new Set(ranked).size !== ranked.length ||
+          ranked.some((alias) => !request.candidateAliases.includes(alias)) ||
+          !Number.isFinite(Number(response.confidence)) ||
+          Number(response.confidence) < 0 ||
+          Number(response.confidence) > 1)) ||
+      (response.valid !== true &&
+        (ranked.length !== 0 || response.confidence !== null || !String(response.error ?? '').trim()))
+    ) {
+      blockers.push(`response-content:${response.requestId}`);
+      continue;
+    }
+    const requiresImage = request?.input?.literalImage?.actualImageContentPartRequired === true;
+    if (
+      requiresImage &&
+      (response?.imageInputReceipt?.actualImageBytes !== true ||
+        response.imageInputReceipt.sha256 !== request.input.literalImage.sha256 ||
+        !isSha256(response.imageInputReceipt.contentPartSha256))
+    ) {
+      blockers.push(`image-input-binding:${response.requestId}`);
+      continue;
+    }
+    if (!requiresImage && response.imageInputReceipt !== null) {
+      blockers.push(`unexpected-image-receipt:${response.requestId}`);
+      continue;
+    }
+    responseByRequest.set(response.requestId, response);
+  }
+  for (const request of requests) {
+    if (!responseByRequest.has(request.requestId)) blockers.push(`missing-response:${request.requestId}`);
+  }
+
+  const caseById = new Map(packetManifest.cases.map((studyCase) => [studyCase.id, studyCase]));
+  const observations = [...responseByRequest.values()].map((response) => {
+    const request = requestById.get(response.requestId);
+    const studyCase = caseById.get(request.caseId);
+    const ranked = response.valid === true ? response.rankedCandidateIds : [];
+    const gold = new Set(studyCase.scoringKey.goldCandidateAliases);
+    const top = ranked.slice(0, Number(protocol?.metrics?.precisionAt ?? 5));
+    const hits = top.filter((alias) => gold.has(alias)).length;
+    const firstHit = ranked.findIndex((alias) => gold.has(alias));
+    return {
+      ...response,
+      precisionAt5: hits / Number(protocol?.metrics?.precisionAt ?? 5),
+      reciprocalRank: firstHit < 0 ? 0 : 1 / (firstHit + 1),
+      imageReceiptValid:
+        request.input.literalImage === null ||
+        (response?.imageInputReceipt?.actualImageBytes === true &&
+          response.imageInputReceipt.sha256 === request.input.literalImage.sha256),
+    };
+  });
+
+  const grouped = new Map();
+  for (const observation of observations) {
+    const key = `${observation.family}\0${observation.caseId}\0${observation.arm}`;
+    const list = grouped.get(key) ?? [];
+    list.push(observation);
+    grouped.set(key, list);
+  }
+  const families = executionPlan.modelFamilies.map((item) => item.family).sort();
+  const arms = armIds(protocol);
+  const perFamily = {};
+  for (const [familyIndex, family] of families.entries()) {
+    const cases = packetManifest.cases
+      .map((studyCase) => ({
+        caseId: studyCase.id,
+        repositoryId: studyCase.repositoryId,
+        category: studyCase.category,
+        arms: Object.fromEntries(
+          arms.map((arm) => [
+            arm,
+            meanRecords(grouped.get(`${family}\0${studyCase.id}\0${arm}`) ?? []),
+          ])
+        ),
+      }))
+      .filter((item) => arms.every((arm) => item.arms[arm] !== null));
+    const rows = factorialRows(cases);
+    perFamily[family] = {
+      modelVersion: executionPlan.modelFamilies.find((item) => item.family === family)?.modelVersion,
+      pairedQueries: cases.length,
+      arms: Object.fromEntries(
+        arms.map((arm) => [arm, summarizeRecords(cases.map((item) => item.arms[arm]))])
+      ),
+      effects: effectSummary(rows, protocol, 100 * (familyIndex + 1)),
+    };
+  }
+  const averagedCases = packetManifest.cases
+    .map((studyCase) => {
+      const familyCases = families.map((family) => ({
+        family,
+        arms: Object.fromEntries(
+          arms.map((arm) => [
+            arm,
+            meanRecords(grouped.get(`${family}\0${studyCase.id}\0${arm}`) ?? []),
+          ])
+        ),
+      }));
+      if (familyCases.some((item) => arms.some((arm) => item.arms[arm] === null))) return null;
+      return {
+        caseId: studyCase.id,
+        repositoryId: studyCase.repositoryId,
+        category: studyCase.category,
+        arms: Object.fromEntries(
+          arms.map((arm) => [
+            arm,
+            averageArmRecords(familyCases.map((item) => item.arms[arm])),
+          ])
+        ),
+      };
+    })
+    .filter(Boolean);
+  const overallRows = factorialRows(averagedCases);
+  const overallEffects = effectSummary(overallRows, protocol);
+  const primaryCorrection = holmBonferroni({
+    literal_pixels_main_effect_precision_at_5: overallEffects.literalPixels.precisionAt5,
+    literal_pixels_main_effect_mean_reciprocal_rank: overallEffects.literalPixels.mrr,
+  });
+  const pixelRequests = requests.filter((request) => request.input.literalImage !== null);
+  const receiptedPixelResponses = pixelRequests.filter((request) => {
+    const response = responseByRequest.get(request.requestId);
+    return (
+      response?.imageInputReceipt?.actualImageBytes === true &&
+      response.imageInputReceipt.sha256 === request.input.literalImage.sha256
+    );
+  });
+  const imageInputReceiptRate =
+    pixelRequests.length === 0 ? 0 : receiptedPixelResponses.length / pixelRequests.length;
+  const threshold = protocol?.confirmationGate ?? {};
+  const familyPasses = Object.entries(perFamily)
+    .filter(
+      ([, summary]) =>
+        summary.effects.literalPixels.precisionAt5.ci[0] >
+          Number(threshold.literalPixelsPrecisionAt5DeltaLower95CIGreaterThan ?? 0) &&
+        summary.effects.literalPixels.mrr.ci[0] >
+          Number(threshold.literalPixelsMrrDeltaLower95CIGreaterThan ?? 0)
+    )
+    .map(([family]) => family);
+  const confirmationChecks = [
+    {
+      id: 'complete-response-set',
+      pass: blockers.length === 0 && responseByRequest.size === requests.length,
+      detail: { expected: requests.length, observed: responseByRequest.size },
+    },
+    {
+      id: 'literal-pixels-precision-lower-ci',
+      pass:
+        overallEffects.literalPixels.precisionAt5.ci[0] >
+        Number(threshold.literalPixelsPrecisionAt5DeltaLower95CIGreaterThan ?? 0),
+      detail: overallEffects.literalPixels.precisionAt5,
+    },
+    {
+      id: 'literal-pixels-mrr-lower-ci',
+      pass:
+        overallEffects.literalPixels.mrr.ci[0] >
+        Number(threshold.literalPixelsMrrDeltaLower95CIGreaterThan ?? 0),
+      detail: overallEffects.literalPixels.mrr,
+    },
+    {
+      id: 'literal-pixels-invalid-rate',
+      pass:
+        overallEffects.literalPixels.invalidResponseRate <=
+        Number(threshold.literalPixelsInvalidResponseRateIncreaseAtMost ?? 0.02),
+      detail: overallEffects.literalPixels.invalidResponseRate,
+    },
+    {
+      id: 'family-replication',
+      pass:
+        familyPasses.length >= Number(threshold.minimumFamiliesPassingBothPrimaryMetrics ?? 2),
+      detail: {
+        passing: familyPasses,
+        minimum: Number(threshold.minimumFamiliesPassingBothPrimaryMetrics ?? 2),
+      },
+    },
+    {
+      id: 'image-input-receipts',
+      pass: imageInputReceiptRate === 1,
+      detail: { rate: round(imageInputReceiptRate), expected: 1 },
+    },
+    {
+      id: 'holm-bonferroni-primary-metrics',
+      pass: Object.values(primaryCorrection).every((item) => item.adjustedPValue < 0.05),
+      detail: primaryCorrection,
+    },
+  ];
+  const confirmationSupported =
+    blockers.length === 0 && confirmationChecks.every((item) => item.pass);
+  return {
+    schemaVersion: PAPER_5_VISUAL_V4_RESULT_SCHEMA,
+    status: blockers.length === 0 ? 'pass' : 'blocked',
+    blockers,
+    counts: {
+      expectedResponses: requests.length,
+      admittedResponses: responseByRequest.size,
+      modelFamilies: families.length,
+      pairedQueries: averagedCases.length,
+      pixelRequests: pixelRequests.length,
+      receiptedPixelResponses: receiptedPixelResponses.length,
+    },
+    arms: Object.fromEntries(
+      arms.map((arm) => [arm, summarizeRecords(averagedCases.map((item) => item.arms[arm]))])
+    ),
+    effects: overallEffects,
+    families: perFamily,
+    quality: {
+      imageInputReceiptRate: round(imageInputReceiptRate),
+      primaryCorrection,
+    },
+    confirmation: {
+      status: confirmationSupported ? 'supported' : 'not-supported',
+      checks: confirmationChecks,
+      familiesPassingBothPrimaryMetrics: familyPasses,
+    },
+    claimBoundary: {
+      publicationReady: confirmationSupported,
+      superiorityClaimEligible: confirmationSupported,
+      literalPixelVisionMeasured: blockers.length === 0 && pixelRequests.length > 0,
+      measuredSurface:
+        blockers.length === 0
+          ? 'Controlled-navigation four-arm factorial over admitted packet candidates.'
+          : 'No complete admitted v4 response set.',
+    },
+  };
+}
+
+function caseByIdSafe(packetManifest) {
+  return new Map(
+    (Array.isArray(packetManifest?.cases) ? packetManifest.cases : []).map((studyCase) => [
+      studyCase?.id,
+      studyCase,
+    ])
+  );
 }

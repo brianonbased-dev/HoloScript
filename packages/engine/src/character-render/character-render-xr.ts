@@ -195,6 +195,8 @@ export class XRCharacterRenderer {
     jw: GPUBuffer;
     tan: GPUBuffer;
     uv: GPUBuffer;
+    secondaryJi: GPUBuffer;
+    secondaryJw: GPUBuffer;
     idx: GPUBuffer;
   } | null = null;
   private jointBuf: GPUBuffer | null = null;
@@ -298,6 +300,8 @@ export class XRCharacterRenderer {
       pass.setVertexBuffer(3, this.geo!.jw);
       pass.setVertexBuffer(4, this.geo!.tan);
       pass.setVertexBuffer(5, this.geo!.uv);
+      pass.setVertexBuffer(6, this.geo!.secondaryJi);
+      pass.setVertexBuffer(7, this.geo!.secondaryJw);
       pass.setIndexBuffer(this.geo!.idx, 'uint32');
       pass.setBindGroup(0, er.frameBindGroup);
       groups.forEach((g, i) => {
@@ -358,6 +362,11 @@ export class XRCharacterRenderer {
       jw: mk(mesh.jointWeights, BUF_VERTEX),
       tan: mk(mesh.tangents, BUF_VERTEX),
       uv: mk(mesh.uvs ?? new Float32Array(mesh.vertexCount * 2), BUF_VERTEX),
+      secondaryJi: mk(mesh.secondaryJointIndices ?? mesh.jointIndices, BUF_VERTEX),
+      secondaryJw: mk(
+        mesh.secondaryJointWeights ?? new Float32Array(mesh.vertexCount),
+        BUF_VERTEX
+      ),
       idx: mk(mesh.indices, BUF_INDEX),
     };
     this.jointBuf = mk(spec.jointMatrices, BUF_STORAGE);
@@ -424,6 +433,8 @@ export class XRCharacterRenderer {
               arrayStride: 8,
               attributes: [{ shaderLocation: 5, offset: 0, format: 'float32x2' }],
             },
+            { arrayStride: 4, attributes: [{ shaderLocation: 6, offset: 0, format: 'uint32' }] },
+            { arrayStride: 4, attributes: [{ shaderLocation: 7, offset: 0, format: 'float32' }] },
           ],
         },
         fragment: {

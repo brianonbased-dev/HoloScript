@@ -126,9 +126,9 @@ export interface DrawSpec {
 }
 
 /**
- * Skinned mesh geometry as pure data (no GPU). One palette (bone) index + one weight per
- * vertex — rigid per-bone linear-blend skinning for the procedural body; a future glTF/VRM
- * importer can populate up to 4 influences by extending these to be stride-N.
+ * Skinned mesh geometry as pure data (no GPU). The primary palette index + weight preserve
+ * the original rigid and imported-mesh ABI. Procedural profiles may opt into a second scalar
+ * influence for normalized joint transitions without widening every legacy vertex.
  */
 export interface SkinnedMeshData {
   // Typed as <ArrayBuffer> (not ArrayBufferLike) so they satisfy GPUAllowSharedBufferSource
@@ -146,6 +146,8 @@ export interface SkinnedMeshData {
   indices: Uint32Array<ArrayBuffer>;
   jointIndices: Uint32Array<ArrayBuffer>;
   jointWeights: Float32Array<ArrayBuffer>;
+  secondaryJointIndices?: Uint32Array<ArrayBuffer>;
+  secondaryJointWeights?: Float32Array<ArrayBuffer>;
   vertexCount: number;
 }
 
@@ -287,6 +289,28 @@ export type CharacterMaterialSpec =
   | RefractiveEyeMaterialSpec
   | WovenClothMaterialSpec;
 
+/**
+ * Semantic role of one native character material group.
+ *
+ * The renderer does not branch on this value: it is source/proof metadata that
+ * lets receipts distinguish, for example, an SSS skin draw from an SSS-derived
+ * keratin nail draw without guessing from colour or roughness.
+ */
+export type CharacterMaterialRole =
+  | 'skin'
+  | 'keratin-nail'
+  | 'nail-bed'
+  | 'hair'
+  | 'eye'
+  | 'sclera'
+  | 'iris'
+  | 'pupil'
+  | 'cornea'
+  | 'garment'
+  | 'visor'
+  | 'mantle'
+  | 'fallback';
+
 /** A contiguous slice of `mesh.indices` drawn with one material. Offsets are INDEX ELEMENTS. */
 export interface MaterialGroup {
   /** First index (element offset into mesh.indices) — passed as drawIndexed firstIndex. */
@@ -294,6 +318,8 @@ export interface MaterialGroup {
   /** Number of indices in this group. */
   indexCount: number;
   material: CharacterMaterialSpec;
+  /** Source-authored semantic role, retained in native renderer receipts. */
+  materialRole?: CharacterMaterialRole;
   /** Draw after opaque groups with blend + depthWrite off (e.g. refractive eyes). */
   transparent?: boolean;
 }

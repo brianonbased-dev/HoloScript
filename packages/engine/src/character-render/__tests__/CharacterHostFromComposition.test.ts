@@ -14,7 +14,8 @@ import {
   getSovereignMantleCatalogEntry,
   listSovereignMantleStyles,
 } from '../AgentAvatarMantleCatalog';
-import { packCharacterMaterial } from '../character-render';
+import { BONE_ORDER } from '../AgentAvatarMesh';
+import { deriveCharacterMaterialPlateReceipt, packCharacterMaterial } from '../character-render';
 
 describe('buildCharacterHostFromComposition', () => {
   it('maps @body/@subsurface_scattering/@locomotion from a template-using object', () => {
@@ -305,8 +306,9 @@ describe('buildCharacterHostFromComposition', () => {
       shoulderScale: 1.12,
       torsoScale: 0.94,
     });
-    expect(result.skin).toEqual({
-      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+    expect(result.skin).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'legacy-v1',
       shadingModel: 'skin-sss',
       microdetailProfile: 'analytic-pore-v1',
       microdetailScale: 96,
@@ -364,6 +366,379 @@ describe('buildCharacterHostFromComposition', () => {
     });
     expect(result.anatomy).toBeUndefined();
     expect(result.skin).toBeUndefined();
+  });
+
+  it('maps the coherent upper-body profile into the emitted native topology receipt', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3KResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                shoulder_scale: 1.1,
+                torso_scale: 0.95,
+                upper_body_profile: 'coherent_shoulder_neck_torso_v1',
+                upper_body_radial_segments: 18,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-shoulder-neck-torso-v1,' + 'upper_body_radial_segments=18)'
+    );
+    expect(result.anatomy?.upperBody).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'coherent-shoulder-neck-torso-v1',
+      radialSegments: 18,
+      ringCount: 10,
+      shoulderHalfWidth: 0.264,
+      waistHalfWidth: 0.152,
+      neckRadius: 0.054,
+    });
+    expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
+  });
+
+  it('maps the anatomical limb profile into native deltoid and digit receipts', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3MResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                upper_body_profile: 'coherent_anatomical_limbs_v2',
+                upper_body_radial_segments: 24,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-anatomical-limbs-v2,' + 'upper_body_radial_segments=24)'
+    );
+    expect(result.anatomy?.upperBody).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-upper-body-geometry.v1',
+      profile: 'anatomical-shoulder-neck-torso-v2',
+      radialSegments: 24,
+      ringCount: 12,
+    });
+    expect(result.anatomy?.upperBody?.upperLimbs).toHaveLength(2);
+    for (const limb of result.anatomy?.upperBody?.upperLimbs ?? []) {
+      expect(limb).toMatchObject({
+        schemaVersion: 'holoscript.agent-avatar-upper-limb-geometry.v1',
+        profile: 'anatomical-deltoid-hand-v2',
+        radialSegments: 24,
+        ringCount: 9,
+        deltoidBlendRingCount: 3,
+        connectedSurfaceCount: 6,
+      });
+      expect(limb.digits?.map((digit) => digit.digit)).toEqual([
+        'thumb',
+        'index',
+        'middle',
+        'ring',
+        'pinky',
+      ]);
+    }
+    expect(
+      result.anatomy?.upperBody?.upperLimbs.reduce(
+        (count, limb) => count + (limb.digits?.length ?? 0),
+        0
+      )
+    ).toBe(10);
+    expect(result.host?.getAnatomyReceipt()).toEqual(result.anatomy);
+  });
+
+  it('maps v3 hand landmarks and isolates authored keratin nail material ranges', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3NResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                shoulder_scale: 1.1,
+                torso_scale: 0.96,
+                upper_body_profile: 'coherent_hand_landmarks_v3',
+                upper_body_radial_segments: 24,
+                nail_tone: '#F0CABC',
+                nail_roughness: 0.23,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@body(upper_body_profile=coherent-hand-landmarks-v3,' + 'upper_body_radial_segments=24)'
+    );
+    expect(result.report.mapped).toContain('@body(nail_tone=15780540,nail_roughness=0.23)');
+    expect(result.anatomy?.upperBody).toMatchObject({
+      profile: 'anatomical-hand-landmarks-v3',
+      radialSegments: 24,
+      ringCount: 12,
+    });
+    const landmarkRanges = (result.anatomy?.upperBody?.upperLimbs ?? []).flatMap((limb) => {
+      expect(limb.profile).toBe('anatomical-landmark-hand-v3');
+      expect(limb.connectedSurfaceCount).toBe(24);
+      expect(limb.handLandmarks).toHaveLength(18);
+      return (
+        limb.handLandmarks
+          ?.filter((landmark) => landmark.materialRole === 'keratin-nail')
+          .map((landmark) => landmark.indexRange) ?? []
+      );
+    });
+    expect(landmarkRanges).toHaveLength(10);
+
+    const groups = result.host?.getDrawSpec().materialGroups ?? [];
+    const nailGroups = groups.filter(
+      (group) =>
+        group.material.shadingModel === 'skin-sss' &&
+        group.material.color === 0xf0cabc &&
+        group.material.roughness === 0.23
+    );
+    expect(nailGroups.map(({ indexStart, indexCount }) => ({ indexStart, indexCount }))).toEqual(
+      landmarkRanges
+    );
+    const skinGroups = groups.filter(
+      (group) => group.material.shadingModel === 'skin-sss' && group.material.color === 0xb9826f
+    );
+    expect(skinGroups).toHaveLength(3);
+    for (const nail of nailGroups) {
+      for (const skin of skinGroups) {
+        expect(
+          nail.indexStart + nail.indexCount <= skin.indexStart ||
+            skin.indexStart + skin.indexCount <= nail.indexStart
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('maps fixed-light skin, keratin, and nail-bed calibration into the native draw schedule', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'H3QResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                skin_tone: '#B9826F',
+                upper_body_profile: 'coherent_deforming_hands_v4',
+                upper_body_radial_segments: 24,
+                nail_tone: '#E6BEB2',
+                nail_roughness: 0.24,
+                nail_bed_tone: '#C9827C',
+                nail_bed_roughness: 0.36,
+              },
+            },
+            {
+              name: 'subsurface_scattering',
+              config: {
+                color: '#B9826F',
+                scatter_color: '#A65D50',
+                material_calibration_profile: 'fixed_light_human_v1',
+                microdetail_profile: 'analytic_pore_v1',
+                microdetail_scale: 94,
+                microdetail_strength: 0.074,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.report.stubbed).toEqual([]);
+    expect(result.report.mapped).toContain(
+      '@subsurface_scattering(material_calibration_profile=fixed-light-human-v1)'
+    );
+    expect(result.report.mapped).toContain('@body(nail_bed_tone=13206140,nail_bed_roughness=0.36)');
+    expect(result.anatomy?.upperBody?.profile).toBe('anatomical-deforming-hands-v4');
+    expect(result.anatomy?.upperBody?.upperLimbs.map((limb) => limb.palmProfile)).toEqual([
+      'arched-thenar-palm-v1',
+      'arched-thenar-palm-v1',
+    ]);
+    expect(result.host?.getSkinMaterialReceipt()).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: 'fixed-light-human-v1',
+      color: 0xb9826f,
+      roughness: 0.5,
+      thickness: 0.24,
+      transmitStrength: 0.32,
+      microdetailProfile: 'analytic-pore-v1',
+      microdetailScale: 94,
+      microdetailStrength: 0.074,
+    });
+
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt).toMatchObject({
+      schemaVersion: 'holoscript.character-material-plate.v2',
+      roleCounts: {
+        'keratin-nail': 20,
+        'nail-bed': 10,
+      },
+      keratinIndexCount: 2160,
+      nailBedIndexCount: 720,
+      nailSurfaceIndexCount: 2880,
+      skinNailOverlapIndexCount: 0,
+      skinNailBedOverlapIndexCount: 0,
+      nailBedKeratinOverlapIndexCount: 0,
+      nailSeparatedFromSkin: true,
+      nailBedSeparatedFromKeratin: true,
+      calibratedNailSurface: true,
+    });
+  });
+
+  it('applies a validated source-authored operative pose and rejects unknown joint claims', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'OpenAIResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_deforming_hands_v4',
+                upper_body_radial_segments: 24,
+              },
+            },
+            {
+              name: 'pose',
+              config: {
+                name: 'attentive-open-palm',
+                bones: {
+                  left_shoulder: [0, 0, 1, 1],
+                  provider_magic_joint: [0, 0, 0, 1],
+                  left_index_proximal: [0, 0, 0, 0],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.pose).toEqual({
+      schemaVersion: 'holoscript.character-source-pose.v1',
+      name: 'attentive-open-palm',
+      space: 'local-bone',
+      quaternionOrder: 'xyzw',
+      boneCount: 1,
+      boneNames: ['left_shoulder'],
+      normalizedQuaternionCount: 1,
+    });
+    expect(result.jointDeformation).toEqual({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+      maxSecondaryWeight: 0.55,
+      maxWeightSumError: 0,
+      regionVertexCounts: {
+        shoulder: 96,
+        elbow: 96,
+        wrist: 96,
+        digitRoot: 240,
+        fingerJoint: 480,
+      },
+    });
+    expect(result.host!.getDrawSpec().mesh.secondaryJointIndices).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(result.host!.getDrawSpec().mesh.secondaryJointWeights).toHaveLength(
+      result.host!.getDrawSpec().mesh.vertexCount
+    );
+    expect(result.report.mapped).toContain('@pose(name=attentive-open-palm,bones=left_shoulder)');
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@pose(bone=provider_magic_joint)',
+      reason: 'bone is not part of the operative humanoid_65 palette',
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@pose(bone=left_index_proximal)',
+      reason: 'rotation must be a finite non-zero local quaternion in xyzw order',
+    });
+
+    const shoulderMatrixStart = BONE_ORDER.indexOf('left_shoulder') * 16;
+    const shoulderMatrix = Array.from(
+      result.host!.getDrawSpec().jointMatrices.slice(shoulderMatrixStart, shoulderMatrixStart + 16)
+    );
+    expect(shoulderMatrix).not.toEqual([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  });
+
+  it('does not silently enable nail-bed controls without the fixed-light calibration profile', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'LegacyResident',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'coherent_hand_landmarks_v3',
+                nail_bed_tone: '#C9827C',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(nail_bed_material_controls)',
+      reason: 'nail-bed controls require fixed-light-human-v1 material calibration',
+    });
+    const receipt = deriveCharacterMaterialPlateReceipt(result.host!.getDrawSpec());
+    expect(receipt.schemaVersion).toBe('holoscript.character-material-plate.v1');
+    expect(receipt.roleCounts['nail-bed']).toBeUndefined();
+    expect(receipt.calibratedNailSurface).toBe(false);
+  });
+
+  it('fails closed on unsupported upper-body profiles and orphan topology controls', () => {
+    const result = buildCharacterHostFromComposition({
+      objects: [
+        {
+          name: 'UnsupportedH3KBody',
+          traits: [
+            {
+              name: 'body',
+              config: {
+                upper_body_profile: 'provider_mesh_magic_v9',
+                upper_body_radial_segments: 20,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.report.mapped.some((entry) => entry.includes('upper_body_profile='))).toBe(false);
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(upper_body_profile)',
+      reason: "profile 'provider-mesh-magic-v9' has no native upper-body geometry implementation",
+    });
+    expect(result.report.stubbed).toContainEqual({
+      trait: '@body(upper_body_topology_controls)',
+      reason: 'upper-body topology controls require a supported upper_body_profile',
+    });
+    expect(result.anatomy).toBeUndefined();
   });
 
   it('@face selects the neutral anatomical topology and receipts it through morph output', () => {

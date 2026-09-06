@@ -39,7 +39,9 @@ import {
   type AgentAvatarFacialDetailProfile,
   type AgentAvatarFacialLandmarkReceipt,
   type AgentAvatarFaceTopology,
+  type AgentAvatarJointDeformationReceipt,
   type AgentAvatarOrbitalProfile,
+  type AgentAvatarUpperBodyProfile,
   type AvatarPose,
 } from './AgentAvatarMesh';
 import {
@@ -121,6 +123,20 @@ export interface CharacterHostOptions {
   shoulderScale?: number;
   /** Hips/spine thickness multiplier (0.85..1.2). */
   torsoScale?: number;
+  /** Source-authored native upper-body construction. */
+  upperBodyProfile?: AgentAvatarUpperBodyProfile;
+  /** Circumferential topology budget for the connected upper-body loft. */
+  upperBodyRadialSegments?: number;
+  /** Packed 0xRRGGBB keratin nail-plate colour for coherent-hand-landmarks-v3. */
+  nailTone?: number;
+  /** Keratin nail-plate microsurface roughness (0.08..0.65). */
+  nailRoughness?: number;
+  /** Explicit proximal nail-bed colour for fixed-light material calibration. */
+  nailBedTone?: number;
+  /** Proximal nail-bed microsurface roughness (0.12..0.72). */
+  nailBedRoughness?: number;
+  /** Opt-in analytic material calibration. Legacy characters retain their original draw schedule. */
+  materialCalibrationProfile?: AgentAvatarMaterialCalibrationProfile;
   /** Packed 0xRRGGBB accent/fallback colour; defaults to a deterministic colour from `entityId`. */
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
@@ -207,10 +223,19 @@ export interface CharacterHostOptions {
 }
 
 export type AgentAvatarSkinMicrodetailProfile = 'none' | 'analytic-pore-v1';
+export type AgentAvatarMaterialCalibrationProfile = 'legacy-v1' | 'fixed-light-human-v1';
 
 export interface AgentAvatarSkinMaterialReceipt {
-  schemaVersion: 'holoscript.agent-avatar-skin-material.v1';
+  schemaVersion: 'holoscript.agent-avatar-skin-material.v2';
+  calibrationProfile: AgentAvatarMaterialCalibrationProfile;
   shadingModel: 'skin-sss';
+  color: number;
+  scatterColor: [number, number, number];
+  scatterRadii: [number, number, number];
+  specularF0: number;
+  thickness: number;
+  transmitStrength: number;
+  ambient: number;
   microdetailProfile: AgentAvatarSkinMicrodetailProfile;
   microdetailScale: number;
   microdetailStrength: number;
@@ -234,6 +259,55 @@ const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
   microdetailScale: 0,
   microdetailStrength: 0,
 };
+
+/**
+ * Bounded analytic calibration for the fixed Stormglass look-development light.
+ *
+ * These values are renderer controls, not a claim that the shader is a measured
+ * tissue model. The profile lowers the broad ambient/transmission response that
+ * made the compatibility preset waxy while retaining the authored scatter colour.
+ */
+const FIXED_LIGHT_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
+  ...HUMAN_SKIN,
+  roughness: 0.5,
+  specularF0: 0.028,
+  thickness: 0.24,
+  transmitStrength: 0.32,
+  ambient: 0.09,
+};
+
+const FIXED_LIGHT_KERATIN: Omit<SkinSSSMaterialSpec, 'color'> = {
+  ...HUMAN_SKIN,
+  scatterColor: [0.6, 0.26, 0.22],
+  scatterRadii: [0.92, 0.38, 0.18],
+  specularF0: 0.045,
+  thickness: 0.36,
+  transmitStrength: 0.1,
+  ambient: 0.08,
+  microdetailProfile: 'none',
+  microdetailScale: 0,
+  microdetailStrength: 0,
+};
+
+const FIXED_LIGHT_NAIL_BED: Omit<SkinSSSMaterialSpec, 'color'> = {
+  ...HUMAN_SKIN,
+  scatterColor: [0.76, 0.22, 0.2],
+  scatterRadii: [1.9, 0.72, 0.34],
+  specularF0: 0.032,
+  thickness: 0.52,
+  transmitStrength: 0.24,
+  roughness: 0.36,
+  ambient: 0.09,
+  microdetailProfile: 'none',
+  microdetailScale: 0,
+  microdetailStrength: 0,
+};
+
+function mixPackedRgb(a: number, b: number, t: number): number {
+  const mix = (shift: number): number =>
+    Math.round(((a >> shift) & 0xff) * (1 - t) + ((b >> shift) & 0xff) * t);
+  return (mix(16) << 16) | (mix(8) << 8) | mix(0);
+}
 
 /** Kajiya-Kay hair preset; melanin/redness set per-host. */
 const HAIR_BASE: Omit<MarschnerHairMaterialSpec, 'melanin' | 'melaninRedness'> = {
@@ -278,7 +352,10 @@ export class CharacterHost {
   private readonly bindWorld: Map<string, Mat4>;
   private readonly inverseBind: Map<string, Mat4>;
   private readonly material: MaterialSpec;
+  private readonly materialCalibrationProfile: AgentAvatarMaterialCalibrationProfile;
   private readonly skinMaterial: SkinSSSMaterialSpec;
+  private readonly nailMaterial: SkinSSSMaterialSpec;
+  private readonly nailBedMaterial: SkinSSSMaterialSpec;
   private readonly hairMaterial: MarschnerHairMaterialSpec;
   private readonly eyeMaterial: RefractiveEyeMaterialSpec;
   private readonly scleraMaterial: RefractiveEyeMaterialSpec;
@@ -326,6 +403,8 @@ export class CharacterHost {
       jawTaper: opts.jawTaper,
       shoulderScale: opts.shoulderScale,
       torsoScale: opts.torsoScale,
+      upperBodyProfile: opts.upperBodyProfile,
+      upperBodyRadialSegments: opts.upperBodyRadialSegments,
       garmentStyle: opts.garmentStyle,
       garmentSegments: opts.garmentSegments,
       mantleStyle: opts.mantleStyle,
@@ -351,6 +430,9 @@ export class CharacterHost {
     this.bindWorld = computeBindWorld();
     this.inverseBind = computeInverseBind(this.bindWorld);
     const skinTone = opts.skinTone ?? 0xe8c4a0;
+    const nailTone = opts.nailTone ?? 0xf1d2c7;
+    this.materialCalibrationProfile = opts.materialCalibrationProfile ?? 'legacy-v1';
+    const fixedLight = this.materialCalibrationProfile === 'fixed-light-human-v1';
     // Lambert fallback colour (accent / used if a caller renders without material groups).
     this.material = {
       color: opts.color ?? colorForEntity(opts.entityId),
@@ -361,7 +443,7 @@ export class CharacterHost {
     };
     // Default SSS skin material — characters have skin (W.241: biggest realism jump).
     this.skinMaterial = {
-      ...HUMAN_SKIN,
+      ...(fixedLight ? FIXED_LIGHT_SKIN : HUMAN_SKIN),
       color: skinTone,
       ...(opts.skinScatterColor
         ? { scatterColor: [...opts.skinScatterColor] as [number, number, number] }
@@ -375,6 +457,31 @@ export class CharacterHost {
         opts.skinMicrodetailProfile === 'analytic-pore-v1'
           ? Math.max(0, Math.min(0.2, opts.skinMicrodetailStrength ?? 0.06))
           : 0,
+    };
+    this.nailMaterial = {
+      ...(fixedLight
+        ? FIXED_LIGHT_KERATIN
+        : {
+            ...HUMAN_SKIN,
+            scatterColor: [0.72, 0.34, 0.3] as [number, number, number],
+            scatterRadii: [1.4, 0.7, 0.38] as [number, number, number],
+            specularF0: 0.035,
+            thickness: 0.72,
+            transmitStrength: 0.14,
+          }),
+      color: nailTone,
+      roughness: Math.max(0.08, Math.min(0.65, opts.nailRoughness ?? 0.28)),
+      microdetailProfile: 'none',
+      microdetailScale: 0,
+      microdetailStrength: 0,
+    };
+    this.nailBedMaterial = {
+      ...FIXED_LIGHT_NAIL_BED,
+      color: opts.nailBedTone ?? mixPackedRgb(skinTone, nailTone, 0.28),
+      roughness: Math.max(
+        0.12,
+        Math.min(0.72, opts.nailBedRoughness ?? FIXED_LIGHT_NAIL_BED.roughness)
+      ),
     };
     this.hairMaterial = {
       ...HAIR_BASE,
@@ -533,7 +640,28 @@ export class CharacterHost {
 
   /** Exact clamped native face and upper-body proportions used by the emitted geometry. */
   getAnatomyReceipt(): AgentAvatarAnatomyReceipt {
-    return { ...this.built.anatomy };
+    return {
+      ...this.built.anatomy,
+      ...(this.built.anatomy.upperBody
+        ? {
+            upperBody: {
+              ...this.built.anatomy.upperBody,
+              vertexRange: { ...this.built.anatomy.upperBody.vertexRange },
+              indexRange: { ...this.built.anatomy.upperBody.indexRange },
+            },
+          }
+        : {}),
+    };
+  }
+
+  /** Exact operative dual-influence zones emitted by the selected procedural profile. */
+  getJointDeformationReceipt(): AgentAvatarJointDeformationReceipt | null {
+    return this.built.jointDeformation
+      ? {
+          ...this.built.jointDeformation,
+          regionVertexCounts: { ...this.built.jointDeformation.regionVertexCounts },
+        }
+      : null;
   }
 
   /** Exact native civic facial-landmark topology and authored controls, when selected. */
@@ -555,8 +683,16 @@ export class CharacterHost {
   /** Exact native skin-surface response derived from @subsurface_scattering. */
   getSkinMaterialReceipt(): AgentAvatarSkinMaterialReceipt {
     return {
-      schemaVersion: 'holoscript.agent-avatar-skin-material.v1',
+      schemaVersion: 'holoscript.agent-avatar-skin-material.v2',
+      calibrationProfile: this.materialCalibrationProfile,
       shadingModel: 'skin-sss',
+      color: this.skinMaterial.color,
+      scatterColor: [...this.skinMaterial.scatterColor],
+      scatterRadii: [...this.skinMaterial.scatterRadii],
+      specularF0: this.skinMaterial.specularF0,
+      thickness: this.skinMaterial.thickness,
+      transmitStrength: this.skinMaterial.transmitStrength,
+      ambient: this.skinMaterial.ambient,
       microdetailProfile: this.skinMaterial.microdetailProfile ?? 'none',
       microdetailScale: this.skinMaterial.microdetailScale ?? 0,
       microdetailStrength: this.skinMaterial.microdetailStrength ?? 0,
@@ -634,8 +770,9 @@ export class CharacterHost {
 
   /**
    * Emit the current frame's pure-data character draw spec for the native WebGPU renderer.
-   * The body renders as a single SSS-skin material group; `material` remains the lambert
-   * fallback for callers that render without material groups.
+   * The compatibility body renders as one SSS-skin material group. V3 keratin nail plates
+   * are excluded from those skin slices and receive their own SSS-derived material groups;
+   * `material` remains the lambert fallback for callers that render without groups.
    */
   getDrawSpec(): CharacterDrawSpec {
     const layeredEyes = this.built.ocularProfile === 'layered-ocular-v1';
@@ -644,31 +781,86 @@ export class CharacterHost {
           ...this.built.ocularRanges.sclera.map((range) => ({
             ...range,
             material: this.scleraMaterial,
+            materialRole: 'sclera' as const,
           })),
           ...this.built.ocularRanges.iris.map((range) => ({
             ...range,
             material: this.irisMaterial,
+            materialRole: 'iris' as const,
           })),
           ...this.built.ocularRanges.pupil.map((range) => ({
             ...range,
             material: this.pupilMaterial,
+            materialRole: 'pupil' as const,
           })),
         ]
-      : [{ ...this.built.eyeRange, material: this.eyeMaterial }];
+      : [{ ...this.built.eyeRange, material: this.eyeMaterial, materialRole: 'eye' as const }];
     const corneaGroups: MaterialGroup[] = layeredEyes
       ? this.built.ocularRanges.cornea.map((range) => ({
           ...range,
           material: this.corneaMaterial,
+          materialRole: 'cornea' as const,
           transparent: true,
         }))
       : [];
+    const nailGroups: MaterialGroup[] =
+      this.materialCalibrationProfile === 'fixed-light-human-v1'
+        ? this.built.nailRanges.flatMap((range) => {
+            if (range.indexCount !== 288) {
+              throw new RangeError(
+                `fixed-light nail partition requires 288 indices, received ${range.indexCount}`
+              );
+            }
+            return [
+              {
+                indexStart: range.indexStart,
+                indexCount: 96,
+                material: this.nailMaterial,
+                materialRole: 'keratin-nail' as const,
+              },
+              {
+                indexStart: range.indexStart + 96,
+                indexCount: 72,
+                material: this.nailBedMaterial,
+                materialRole: 'nail-bed' as const,
+              },
+              {
+                indexStart: range.indexStart + 168,
+                indexCount: 120,
+                material: this.nailMaterial,
+                materialRole: 'keratin-nail' as const,
+              },
+            ];
+          })
+        : this.built.nailRanges.map((range) => ({
+            ...range,
+            material: this.nailMaterial,
+            materialRole: 'keratin-nail' as const,
+          }));
     const groups: MaterialGroup[] = [
-      { ...this.built.bodyRange, material: this.skinMaterial },
-      { ...this.built.hairRange, material: this.hairMaterial },
+      ...this.built.bodySkinRanges.map((range) => ({
+        ...range,
+        material: this.skinMaterial,
+        materialRole: 'skin' as const,
+      })),
+      ...nailGroups,
+      { ...this.built.hairRange, material: this.hairMaterial, materialRole: 'hair' as const },
       ...opaqueEyeGroups,
-      { ...this.built.garmentRange, material: this.garmentMaterial },
-      { ...this.built.visorRange, material: this.visorMaterial },
-      { ...this.built.mantleRange, material: this.mantleMaterial },
+      {
+        ...this.built.garmentRange,
+        material: this.garmentMaterial,
+        materialRole: 'garment' as const,
+      },
+      {
+        ...this.built.visorRange,
+        material: this.visorMaterial,
+        materialRole: 'visor' as const,
+      },
+      {
+        ...this.built.mantleRange,
+        material: this.mantleMaterial,
+        materialRole: 'mantle' as const,
+      },
       ...corneaGroups,
     ].filter((group) => group.indexCount > 0);
     return {

@@ -97,6 +97,30 @@ describe('hair — procedural geometry (pure data)', () => {
     }
   });
 
+  it('preserves V4 dual influences through the combined character mesh', () => {
+    const c = buildCharacterMesh({
+      upperBodyProfile: 'coherent-deforming-hands-v4',
+      upperBodyRadialSegments: 24,
+    });
+    expect(c.jointDeformation).toMatchObject({
+      schemaVersion: 'holoscript.agent-avatar-joint-deformation.v1',
+      profile: 'dual-influence-upper-limb-v1',
+      influencedVertexCount: 1008,
+      jointPairCount: 38,
+    });
+    expect(c.mesh.secondaryJointIndices).toHaveLength(c.mesh.vertexCount);
+    expect(c.mesh.secondaryJointWeights).toHaveLength(c.mesh.vertexCount);
+    expect(
+      Array.from(c.mesh.secondaryJointWeights!).filter((weight) => weight > 0)
+    ).toHaveLength(1008);
+
+    const bodyEnd = c.bodyVertexRange.vertexStart + c.bodyVertexRange.vertexCount;
+    for (let vertex = bodyEnd; vertex < c.mesh.vertexCount; vertex++) {
+      expect(c.mesh.secondaryJointIndices![vertex]).toBe(c.mesh.jointIndices[vertex]);
+      expect(c.mesh.secondaryJointWeights![vertex]).toBe(0);
+    }
+  });
+
   it('neutral anatomical faces use a smaller embedded ocular surface', () => {
     const legacy = buildCharacterMesh({ includeHair: false });
     const anatomical = buildCharacterMesh({

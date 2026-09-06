@@ -21,9 +21,12 @@ export {
   JOINT_COUNT,
   AGENT_AVATAR_ORBITAL_PROFILES,
   AGENT_AVATAR_FACIAL_DETAIL_PROFILES,
+  AGENT_AVATAR_UPPER_BODY_PROFILES,
   type AgentAvatarMeshData,
   type AgentAvatarMeshOptions,
   type AgentAvatarAnatomyReceipt,
+  type AgentAvatarUpperBodyGeometryReceipt,
+  type AgentAvatarUpperBodyProfile,
   type AgentAvatarFacialDetailProfile,
   type AgentAvatarFacialLandmarkReceipt,
   type AgentAvatarFaceTopology,
@@ -101,6 +104,7 @@ export {
 
 export {
   CharacterHost,
+  type AgentAvatarMaterialCalibrationProfile,
   type AgentAvatarSkinMaterialReceipt,
   type AgentAvatarSkinMicrodetailProfile,
   type CharacterHostOptions,
@@ -117,8 +121,17 @@ export {
 export {
   renderCharacter,
   framingMatrix,
+  deriveCharacterDetailFrame,
+  deriveCharacterMaterialPlateReceipt,
+  deriveCharacterRenderPipelineReceipt,
   packCharacterMaterial,
+  type CharacterDetailFrameOptions,
+  type CharacterDetailFrameReceipt,
+  type CharacterMaterialGroupReceipt,
+  type CharacterMaterialPlateReceipt,
   type CharacterRenderOptions,
+  type CharacterRenderPipelineReceipt,
+  type CharacterVertexRange,
 } from './character-render';
 
 // Render "Part 2" — native WebGPU Gaussian-splat variant (photoreal mesh/skin upgrade route).
@@ -161,6 +174,7 @@ export {
   type CompTemplate,
   type CharacterHostFromCompositionOptions,
   type CharacterHostFromCompositionResult,
+  type CharacterPoseReceipt,
 } from './CharacterHostFromComposition';
 
 export * as SkinMath from './skin-math';
