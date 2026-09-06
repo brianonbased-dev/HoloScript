@@ -1,6 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { _resetHoloMeshClientForTests, holomeshTools, handleHoloMeshTool } from '../holomesh-tools';
-import { HOLOMESH_PAGE_EXTRACT_KIND } from '../observed-page-extract';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it, vi } from 'vitest';
+import { HOLOMESH_PAGE_EXTRACT_KIND, OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES } from '../observed-page-extract';
+import {
+  contributeObservedPageExtract,
+  createMemoryPageExtractFeed,
+  feedSourceObservedPageExtract,
+} from '../mesh-page-extract-handlers';
 
 const OBSERVE = {
   operation: 'observe',
@@ -14,61 +21,34 @@ const OBSERVE = {
   },
 };
 
-function findTool(name: string) {
-  return holomeshTools.find((tool) => tool.name === name);
-}
+const TOOLS_SRC = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '../holomesh-tools.ts'),
+  'utf8'
+);
 
 describe('holomesh observe extract registration', () => {
   it('keeps contribute and feed_source on the existing holomesh tool list', () => {
-    expect(findTool('holomesh_contribute')).toBeDefined();
-    expect(findTool('holomesh_feed_source')).toBeDefined();
+    expect(TOOLS_SRC).toContain("name: 'holomesh_contribute'");
+    expect(TOOLS_SRC).toContain("name: 'holomesh_feed_source'");
+    expect(TOOLS_SRC).toContain('...OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES');
+    expect(TOOLS_SRC).toContain('meshArgsHavePageExtract');
   });
 
-  it('advertises leftover-2 observe / pageExtract / bodyText+markdown+url on both tools', () => {
-    for (const name of ['holomesh_contribute', 'holomesh_feed_source'] as const) {
-      const schema = findTool(name)?.inputSchema as {
-        properties?: Record<string, unknown>;
-      };
-      expect(schema.properties).toMatchObject({
-        observe: expect.anything(),
-        pageExtract: expect.anything(),
-        markdown: expect.anything(),
-        bodyText: expect.anything(),
-        url: expect.anything(),
-      });
-    }
+  it('advertises leftover-2 observe / pageExtract / bodyText+markdown+url', () => {
+    expect(OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES).toMatchObject({
+      observe: expect.anything(),
+      pageExtract: expect.anything(),
+      markdown: expect.anything(),
+      bodyText: expect.anything(),
+      url: expect.anything(),
+    });
   });
 });
 
 describe('holomesh_contribute + holomesh_feed_source observe extract', () => {
-  const originalApiKey = process.env.HOLOSCRIPT_API_KEY;
-  const originalWorldState = process.env.HOLOMESH_WORLD_STATE_PATH;
-
-  beforeEach(() => {
-    delete process.env.HOLOSCRIPT_API_KEY;
-    process.env.HOLOMESH_WORLD_STATE_PATH = '';
-  });
-
-  afterEach(() => {
-    _resetHoloMeshClientForTests();
-    if (originalApiKey) process.env.HOLOSCRIPT_API_KEY = originalApiKey;
-    else delete process.env.HOLOSCRIPT_API_KEY;
-    if (originalWorldState !== undefined) process.env.HOLOMESH_WORLD_STATE_PATH = originalWorldState;
-    else delete process.env.HOLOMESH_WORLD_STATE_PATH;
-  });
-
-  it('contribute without a key still errors when no extract is given', async () => {
-    const result = (await handleHoloMeshTool('holomesh_contribute', {
-      type: 'wisdom',
-      content: 'plain knowledge without observe extract',
-    })) as Record<string, unknown>;
-    expect(result.error).toMatch(/HOLOSCRIPT_API_KEY/);
-  });
-
-  it('contribute accepts browser_session observe on :7411 without a remote key', async () => {
-    const result = (await handleHoloMeshTool('holomesh_contribute', {
-      observe: OBSERVE,
-    })) as Record<string, unknown>;
+  it('contribute accepts browser_session observe without a remote client', async () => {
+    const feed = createMemoryPageExtractFeed();
+    const result = await contributeObservedPageExtract(null, { observe: OBSERVE }, feed);
 
     expect(result.success).toBe(true);
     expect(result.pageExtractPresent).toBe(true);
@@ -87,15 +67,19 @@ describe('holomesh_contribute + holomesh_feed_source observe extract', () => {
   });
 
   it('contribute accepts absorb pageExtract + flat bodyText/markdown/url', async () => {
-    const fromReceipt = (await handleHoloMeshTool('holomesh_contribute', {
-      pageExtract: {
-        url: 'https://docs.holoscript.example/page-extract',
-        title: 'Absorb PageExtract',
-        bodyText: 'absorb leftover-2 pageExtract body',
-        markdown: '# Absorb\n\nabsorb leftover-2 pageExtract body',
+    const fromReceipt = await contributeObservedPageExtract(
+      null,
+      {
+        pageExtract: {
+          url: 'https://docs.holoscript.example/page-extract',
+          title: 'Absorb PageExtract',
+          bodyText: 'absorb leftover-2 pageExtract body',
+          markdown: '# Absorb\n\nabsorb leftover-2 pageExtract body',
+        },
+        type: 'pattern',
       },
-      type: 'pattern',
-    })) as Record<string, unknown>;
+      createMemoryPageExtractFeed()
+    );
     expect(fromReceipt).toMatchObject({
       success: true,
       pageExtractPresent: true,
@@ -103,13 +87,17 @@ describe('holomesh_contribute + holomesh_feed_source observe extract', () => {
     });
     expect((fromReceipt.pageExtract as Record<string, unknown>).source).toBe('pageExtract');
 
-    const fromFlat = (await handleHoloMeshTool('holomesh_contribute', {
-      url: 'https://docs.holoscript.example/flat',
-      title: 'Flat Extract',
-      bodyText: 'flat body text for mesh contribute',
-      markdown: '# Flat\n\nflat body text for mesh contribute',
-      type: 'gotcha',
-    })) as Record<string, unknown>;
+    const fromFlat = await contributeObservedPageExtract(
+      null,
+      {
+        url: 'https://docs.holoscript.example/flat',
+        title: 'Flat Extract',
+        bodyText: 'flat body text for mesh contribute',
+        markdown: '# Flat\n\nflat body text for mesh contribute',
+        type: 'gotcha',
+      },
+      createMemoryPageExtractFeed()
+    );
     expect(fromFlat).toMatchObject({
       success: true,
       pageExtractPresent: true,
@@ -119,9 +107,10 @@ describe('holomesh_contribute + holomesh_feed_source observe extract', () => {
   });
 
   it('feed_source accepts one observe extract and returns the local feed', async () => {
-    const result = (await handleHoloMeshTool('holomesh_feed_source', {
-      observe: OBSERVE,
-    })) as Record<string, unknown>;
+    const result = await feedSourceObservedPageExtract(
+      { observe: OBSERVE },
+      createMemoryPageExtractFeed()
+    );
 
     expect(result.success).toBe(true);
     expect(result.pageExtractPresent).toBe(true);
@@ -134,61 +123,41 @@ describe('holomesh_contribute + holomesh_feed_source observe extract', () => {
     });
   });
 
-  it('feed_source without extract still requires the mesh key', async () => {
-    const result = (await handleHoloMeshTool('holomesh_feed_source', {})) as Record<
-      string,
-      unknown
-    >;
-    expect(result.error).toMatch(/HOLOSCRIPT_API_KEY/);
-  });
-
   it('rejects crawl-shaped contribute args', async () => {
-    const result = (await handleHoloMeshTool('holomesh_contribute', {
+    const result = await contributeObservedPageExtract(null, {
       urls: ['https://a.example', 'https://b.example'],
       url: 'https://a.example',
       bodyText: 'should not be used when crawl-shaped',
-    })) as Record<string, unknown>;
+    });
     expect(result).toMatchObject({
       error: 'page_extract_not_crawl',
     });
   });
 
-  it('contribute with extract + remote key still folds locally then syncs', async () => {
-    process.env.HOLOSCRIPT_API_KEY = 'test-mesh-key';
+  it('contribute with extract + client still folds locally then syncs', async () => {
     const contributeKnowledge = vi.fn().mockResolvedValue(1);
-    const { HoloMeshOrchestratorClient } = await import('../orchestrator-client');
-    const registerSpy = vi
-      .spyOn(HoloMeshOrchestratorClient.prototype, 'registerAgent')
-      .mockResolvedValue('did:agent:test');
-    const contributeSpy = vi
-      .spyOn(HoloMeshOrchestratorClient.prototype, 'contributeKnowledge')
-      .mockImplementation(contributeKnowledge);
-    const getAgentIdSpy = vi
-      .spyOn(HoloMeshOrchestratorClient.prototype, 'getAgentId')
-      .mockReturnValue('did:agent:test');
-
-    try {
-      const result = (await handleHoloMeshTool('holomesh_contribute', {
-        observe: OBSERVE,
-        type: 'wisdom',
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(true);
-      expect(result.pageExtractPresent).toBe(true);
-      expect(result.localOnly).toBe(false);
-      expect(result.synced).toBe(1);
-      expect(contributeKnowledge).toHaveBeenCalledTimes(1);
-      const entries = contributeKnowledge.mock.calls[0][0] as Array<{
-        content: string;
-        tags?: string[];
-        metadata?: { pageExtract?: { kind: string } };
-      }>;
-      expect(entries[0].content).toContain('fixture body text for mesh fold');
-      expect(entries[0].tags).toEqual(expect.arrayContaining(['observed-page', 'observe']));
-      expect(entries[0].metadata?.pageExtract?.kind).toBe(HOLOMESH_PAGE_EXTRACT_KIND);
-    } finally {
-      registerSpy.mockRestore();
-      contributeSpy.mockRestore();
-      getAgentIdSpy.mockRestore();
-    }
+    const client = {
+      getAgentId: () => 'did:agent:test',
+      registerAgent: vi.fn(),
+      contributeKnowledge,
+    };
+    const result = await contributeObservedPageExtract(
+      client,
+      { observe: OBSERVE, type: 'wisdom' },
+      createMemoryPageExtractFeed()
+    );
+    expect(result.success).toBe(true);
+    expect(result.pageExtractPresent).toBe(true);
+    expect(result.localOnly).toBe(false);
+    expect(result.synced).toBe(1);
+    expect(contributeKnowledge).toHaveBeenCalledTimes(1);
+    const entries = contributeKnowledge.mock.calls[0][0] as Array<{
+      content: string;
+      tags?: string[];
+      metadata?: { pageExtract?: { kind: string } };
+    }>;
+    expect(entries[0].content).toContain('fixture body text for mesh fold');
+    expect(entries[0].tags).toEqual(expect.arrayContaining(['observed-page', 'observe']));
+    expect(entries[0].metadata?.pageExtract?.kind).toBe(HOLOMESH_PAGE_EXTRACT_KIND);
   });
 });

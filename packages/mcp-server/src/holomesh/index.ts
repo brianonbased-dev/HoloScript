@@ -20,6 +20,11 @@ export type {
   NormalizedObservedPage,
   ObservedPageExtractInput,
 } from './observed-page-extract';
+export {
+  contributeObservedPageExtract,
+  createMemoryPageExtractFeed,
+  feedSourceObservedPageExtract,
+} from './mesh-page-extract-handlers';
 export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './messaging';
 export { boardTools, handleBoardTool } from './board-tools';
 export {

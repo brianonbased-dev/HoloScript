@@ -58,11 +58,11 @@ import {
   OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES,
   hasCrawlShape,
   meshArgsHavePageExtract,
-  observedPageToFeedBlock,
-  observedPageToKnowledgeContent,
-  resolveMeshObservedPage,
-  type HoloMeshPageExtractReceipt,
 } from './observed-page-extract';
+import {
+  contributeObservedPageExtract,
+  feedSourceObservedPageExtract,
+} from './mesh-page-extract-handlers';
 
 /**
  * Phase 2 wrapper around `process.env.HOLOSCRIPT_API_KEY` for hot per-request
@@ -1184,52 +1184,31 @@ async function handleContribute(
   args: Record<string, unknown>
 ) {
   try {
-    let extractContent: string | undefined;
-    let extractTags: string[] = [];
-    let pageExtract: HoloMeshPageExtractReceipt | undefined;
-    let localFeedSource: string | undefined;
-
     if (meshArgsHavePageExtract(args) || hasCrawlShape(args)) {
-      const resolved = await resolveMeshObservedPage(args);
-      if (!resolved.ok) {
-        return { error: resolved.error, message: resolved.message };
-      }
-      pageExtract = resolved.receipt;
-      extractContent = observedPageToKnowledgeContent(resolved.extract);
-      extractTags = ['observed-page', resolved.extract.source];
       const feedAgentId =
         client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local';
-      const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || undefined;
       const worldState = new HoloMeshWorldState(feedAgentId, {
-        snapshotPath: worldStatePath,
+        snapshotPath: process.env.HOLOMESH_WORLD_STATE_PATH || undefined,
       });
-      worldState.appendToFeed(observedPageToFeedBlock(resolved.extract), feedAgentId);
-      localFeedSource = worldState.getFeedSource();
+      return contributeObservedPageExtract(client, args, worldState);
     }
 
-    const content =
-      typeof args.content === 'string' && args.content.trim().length > 0
-        ? args.content
-        : extractContent;
-    if (!content) {
+    if (!client) {
       return {
         error:
           'Contribute requires type+content or one observed page extract (observe / pageExtract / bodyText+markdown+url).',
       };
     }
 
-    if (client && !client.getAgentId()) {
+    if (!client.getAgentId()) {
       await client.registerAgent(['@knowledge-exchange']);
     }
 
+    const content = args.content as string;
     const entryType = (args.type as string) || 'wisdom';
     const entryId =
       (args.id as string) || `${entryType.charAt(0).toUpperCase()}.auto.${Date.now()}`;
     const provenanceHash = crypto.createHash('sha256').update(content).digest('hex');
-    const tags = [
-      ...(Array.isArray(args.tags) ? (args.tags as string[]) : []),
-      ...extractTags,
-    ];
 
     const entry: MeshKnowledgeEntry = {
       id: entryId,
@@ -1237,19 +1216,18 @@ async function handleContribute(
       type: entryType as MeshKnowledgeEntry['type'],
       content,
       provenanceHash,
-      authorId: client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local',
+      authorId: client.getAgentId()!,
       authorName: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
       price: (args.price as number) || 0,
       queryCount: 0,
       reuseCount: 0,
-      domain: (args.domain as string) || (pageExtract ? 'general' : undefined),
-      tags: tags.length > 0 ? tags : (args.tags as string[]),
+      domain: args.domain as string,
+      tags: args.tags as string[],
       confidence: (args.confidence as number) || 0.9,
       createdAt: new Date().toISOString(),
-      ...(pageExtract ? { metadata: { pageExtract } } : {}),
     };
 
-    const synced = client ? await client.contributeKnowledge([entry]) : 0;
+    const synced = await client.contributeKnowledge([entry]);
 
     return {
       success: true,
@@ -1257,15 +1235,6 @@ async function handleContribute(
       provenanceHash,
       synced,
       type: entryType,
-      ...(pageExtract
-        ? {
-            pageExtractPresent: true,
-            pageExtract,
-            localFeedAppended: true,
-            feedSource: localFeedSource,
-            localOnly: !client,
-          }
-        : {}),
     };
   } catch (err: unknown) {
     return { error: `Contribute failed: ${err instanceof Error ? err.message : String(err)}` };
@@ -1447,17 +1416,7 @@ async function handleFeedSource(
     const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
 
     if (hasExtract) {
-      const resolved = await resolveMeshObservedPage(args);
-      if (!resolved.ok) {
-        return { error: resolved.error, message: resolved.message };
-      }
-      worldState.appendToFeed(observedPageToFeedBlock(resolved.extract), agentId);
-      return {
-        success: true,
-        source: worldState.getFeedSource(),
-        pageExtractPresent: true,
-        pageExtract: resolved.receipt,
-      };
+      return feedSourceObservedPageExtract(args, worldState);
     }
 
     return {
