@@ -54,6 +54,15 @@ import {
   harvestMoltbookBroadcastContext,
 } from './moltbook-broadcast-context';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../moltbook/moltbook-post.js';
+import {
+  OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES,
+  hasCrawlShape,
+  meshArgsHavePageExtract,
+} from './observed-page-extract';
+import {
+  contributeObservedPageExtract,
+  feedSourceObservedPageExtract,
+} from './mesh-page-extract-handlers';
 
 /**
  * Phase 2 wrapper around `process.env.HOLOSCRIPT_API_KEY` for hot per-request
@@ -360,14 +369,14 @@ export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_contribute',
     description:
-      'Contribute a Wisdom, Pattern, or Gotcha (W/P/G) knowledge entry to the HoloMesh network. Entries get provenance hashes and are discoverable by all agents.',
+      'Contribute a Wisdom, Pattern, or Gotcha (W/P/G) knowledge entry to the HoloMesh network. Pass type+content, or one leftover-2 observed page extract (observe / pageExtract / bodyText+markdown+url). One page only — not a crawl. Registered on holoscript-local :7411.',
     inputSchema: {
       type: 'object',
       properties: {
         type: {
           type: 'string',
           enum: ['wisdom', 'pattern', 'gotcha'],
-          description: 'Knowledge entry type',
+          description: 'Knowledge entry type. Defaults to wisdom when contributing an observe extract.',
         },
         id: {
           type: 'string',
@@ -375,7 +384,8 @@ export const holomeshTools: Tool[] = [
         },
         content: {
           type: 'string',
-          description: 'The knowledge entry content',
+          description:
+            'The knowledge entry content. Optional when observe / pageExtract / bodyText+markdown is provided — the extract becomes the content.',
         },
         domain: {
           type: 'string',
@@ -394,8 +404,9 @@ export const holomeshTools: Tool[] = [
           type: 'number',
           description: 'Price in USD for premium entries (default: 0 = free)',
         },
+        ...OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES,
       },
-      required: ['type', 'content'],
+      required: [],
     },
   },
   {
@@ -532,10 +543,12 @@ export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_feed_source',
     description:
-      'Get the raw HoloScript (.hs) document representing the entire spatial feed. This is the raw CRDT text document.',
+      'Get the raw HoloScript (.hs) document representing the entire spatial feed. Optionally fold one leftover-2 observed page extract (observe / pageExtract / bodyText+markdown+url) into that existing feed. One page only — not a crawl. Registered on holoscript-local :7411.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        ...OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES,
+      },
     },
   },
   {
@@ -620,6 +633,10 @@ export function hasHoloMeshKey(): boolean {
   return !!process.env.HOLOSCRIPT_API_KEY;
 }
 
+export function _resetHoloMeshClientForTests(): void {
+  meshClient = null;
+}
+
 // â”€â”€ Handler â”€â”€
 
 export async function handleHoloMeshTool(
@@ -661,6 +678,20 @@ export async function handleHoloMeshTool(
   const twinEarthFedResult = await handleTwinEarthFederationTool(name, args);
   if (twinEarthFedResult !== null) return twinEarthFedResult;
 
+  if (name === 'holomesh_contribute' || name === 'holomesh_feed_source') {
+    if (hasCrawlShape(args)) {
+      return {
+        error: 'page_extract_not_crawl',
+        message: 'Page extract accepts one URL or one observed page only — not a crawl or SERP.',
+      };
+    }
+    if (meshArgsHavePageExtract(args)) {
+      const extractClient = hasHoloMeshKey() ? getOrCreateClient() : null;
+      if (name === 'holomesh_contribute') return handleContribute(extractClient, args);
+      return handleFeedSource(extractClient, args);
+    }
+  }
+
   if (!hasHoloMeshKey()) {
     if (name === 'holomesh_discover' && wantsToolDiscovery(args)) {
       return handleLocalToolDiscovery(args);
@@ -697,7 +728,7 @@ export async function handleHoloMeshTool(
     case 'holomesh_query_spatial':
       return handleQuerySpatial(client, args);
     case 'holomesh_feed_source':
-      return handleFeedSource(client);
+      return handleFeedSource(client, args);
     case 'holomesh_wallet_status':
       return handleWalletStatus();
     case 'holomesh_gossip_sync':
@@ -1148,8 +1179,27 @@ async function handleDiscover(client: HoloMeshOrchestratorClient, args: Record<s
   }
 }
 
-async function handleContribute(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
+async function handleContribute(
+  client: HoloMeshOrchestratorClient | null,
+  args: Record<string, unknown>
+) {
   try {
+    if (meshArgsHavePageExtract(args) || hasCrawlShape(args)) {
+      const feedAgentId =
+        client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local';
+      const worldState = new HoloMeshWorldState(feedAgentId, {
+        snapshotPath: process.env.HOLOMESH_WORLD_STATE_PATH || undefined,
+      });
+      return contributeObservedPageExtract(client, args, worldState);
+    }
+
+    if (!client) {
+      return {
+        error:
+          'Contribute requires type+content or one observed page extract (observe / pageExtract / bodyText+markdown+url).',
+      };
+    }
+
     if (!client.getAgentId()) {
       await client.registerAgent(['@knowledge-exchange']);
     }
@@ -1353,11 +1403,21 @@ async function handleQuerySpatial(
   }
 }
 
-async function handleFeedSource(client: HoloMeshOrchestratorClient) {
+async function handleFeedSource(
+  client: HoloMeshOrchestratorClient | null,
+  args: Record<string, unknown> = {}
+) {
   try {
-    const agentId = client.getAgentId() || 'did:agent:local';
-    const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+    const agentId = client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local';
+    const hasExtract = meshArgsHavePageExtract(args) || hasCrawlShape(args);
+    const worldStatePath = hasExtract
+      ? process.env.HOLOMESH_WORLD_STATE_PATH || undefined
+      : process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
     const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+
+    if (hasExtract) {
+      return feedSourceObservedPageExtract(args, worldState);
+    }
 
     return {
       success: true,

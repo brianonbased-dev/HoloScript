@@ -5,6 +5,26 @@ export {
   hasHoloMeshKey,
   handleInboundGossip,
 } from './holomesh-tools';
+export {
+  HOLOMESH_PAGE_EXTRACT_KIND,
+  OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES,
+  hasObservedPageExtractInput,
+  meshArgsHavePageExtract,
+  normalizeObservedPageExtractSync,
+  observedPageToFeedBlock,
+  observedPageToKnowledgeContent,
+  resolveMeshObservedPage,
+} from './observed-page-extract';
+export type {
+  HoloMeshPageExtractReceipt,
+  NormalizedObservedPage,
+  ObservedPageExtractInput,
+} from './observed-page-extract';
+export {
+  contributeObservedPageExtract,
+  createMemoryPageExtractFeed,
+  feedSourceObservedPageExtract,
+} from './mesh-page-extract-handlers';
 export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './messaging';
 export { boardTools, handleBoardTool } from './board-tools';
 export {
