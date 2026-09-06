@@ -1811,6 +1811,60 @@ export class URDFCompiler extends CompilerBase {
         `<!-- Sensors: ${this.sensors.map((s) => `${this.escapeStringValue(s.name as string, 'TypeScript')} (${s.type})`).join(', ')} -->`
       );
     }
+    // @grabbable → interaction hints (custom XML comments; URDF has no grab primitive)
+    const grabbableLinks = this.collectGrabbableLinkNames(composition);
+    if (grabbableLinks.length > 0) {
+      this.emit(
+        `<!-- Interaction hints: ${grabbableLinks
+          .map((name) => `${this.escapeStringValue(name, 'TypeScript')} (@grabbable)`)
+          .join(', ')} -->`
+      );
+    }
+  }
+
+  /** True when a trait name is @grabbable / grabbable (parser strips '@'; some fixtures keep it). */
+  private isGrabbableTraitName(name: string): boolean {
+    return name === 'grabbable' || name === '@grabbable';
+  }
+
+  /**
+   * Object carries @grabbable either on its own traits or via a `using` template
+   * that already declared the trait (see interaction-grabbable-clickable-hoverable.holo).
+   */
+  private objectCarriesGrabbable(obj: HoloObjectDecl, composition: HoloComposition): boolean {
+    if (obj.traits?.some((t) => this.isGrabbableTraitName(this.getTraitName(t)))) {
+      return true;
+    }
+    if (!obj.template || !composition.templates) {
+      return false;
+    }
+    const tmpl = composition.templates.find((t) => t.name === obj.template);
+    return tmpl?.traits?.some((t) => this.isGrabbableTraitName(this.getTraitName(t))) ?? false;
+  }
+
+  /** Walk the same object surfaces extractFromComposition does (top-level + spatial groups). */
+  private collectGrabbableLinkNames(composition: HoloComposition): string[] {
+    const names: string[] = [];
+    const consider = (obj: HoloObjectDecl): void => {
+      if (this.objectCarriesGrabbable(obj, composition)) {
+        names.push(this.sanitizeName(obj.name));
+      }
+    };
+    for (const obj of composition.objects ?? []) {
+      consider(obj);
+    }
+    const walkGroup = (group: HoloSpatialGroup): void => {
+      for (const obj of group.objects ?? []) {
+        consider(obj);
+      }
+      for (const sub of group.groups ?? []) {
+        walkGroup(sub);
+      }
+    };
+    for (const group of composition.spatialGroups ?? []) {
+      walkGroup(group);
+    }
+    return names;
   }
 
   /** Helper to get environment property from either array or object format */

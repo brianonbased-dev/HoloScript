@@ -5,9 +5,18 @@
  * Verifies correct XML generation for ROS 2 / Gazebo robotics integration.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { URDFCompiler, type URDFCompilerOptions } from './URDFCompiler';
+import { parseHoloStrict } from '../parser/HoloCompositionParser';
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
+
+/** Canonical @grabbable showcase — do not invent this into physics-contract.holo. */
+const INTERACTION_GRABBABLE_HOLO = join(
+  __dirname,
+  '../../../../examples/traits/interaction-grabbable-clickable-hoverable.holo'
+);
 
 describe('URDFCompiler', () => {
   let compiler: URDFCompiler;
@@ -632,10 +641,56 @@ describe('URDFCompiler', () => {
       const customCompiler = new URDFCompiler({ includeHoloExtensions: false });
       const composition = createComposition({
         environment: { skybox: 'sunset' },
+        objects: [createObject({ name: 'Gripper', traits: ['grabbable'] })],
       });
       const urdf = customCompiler.compile(composition);
 
       expect(urdf).not.toContain('<!-- HoloScript Extensions -->');
+      expect(urdf).not.toContain('<!-- Interaction hints:');
+      expect(urdf).not.toContain('(@grabbable)');
+    });
+
+    it('should emit @grabbable interaction-hint XML comments', () => {
+      const composition = createComposition({
+        objects: [
+          createObject({
+            name: 'Gripper',
+            traits: ['grabbable'],
+          }),
+        ],
+      });
+      const urdf = compiler.compile(composition);
+
+      expect(urdf).toContain('<!-- HoloScript Extensions -->');
+      expect(urdf).toContain('<!-- Interaction hints: gripper (@grabbable) -->');
+    });
+
+    it('should emit @grabbable hints for objects in spatial groups', () => {
+      const composition = createComposition({
+        spatialGroups: [
+          {
+            name: 'EndEffector',
+            objects: [createObject({ name: 'FingerPad', traits: ['@grabbable'] })],
+          },
+        ],
+      } as Partial<HoloComposition>);
+      const urdf = compiler.compile(composition);
+
+      expect(urdf).toContain('<!-- Interaction hints: fingerpad (@grabbable) -->');
+    });
+
+    it('emits @grabbable XML comments from interaction-grabbable-clickable-hoverable.holo', () => {
+      const source = readFileSync(INTERACTION_GRABBABLE_HOLO, 'utf8');
+      expect(source).toContain('@grabbable');
+      const composition = parseHoloStrict(source);
+      const urdf = compiler.compile(composition);
+
+      expect(urdf).toContain('<!-- HoloScript Extensions -->');
+      expect(urdf).toContain('<!-- Interaction hints:');
+      expect(urdf).toContain('product_a (@grabbable)');
+      expect(urdf).toContain('product_b (@grabbable)');
+      expect(urdf).toContain('product_c (@grabbable)');
+      expect(urdf).toContain('inspect_globe (@grabbable)');
     });
   });
 
@@ -772,6 +827,7 @@ describe('URDFCompiler', () => {
 
       // Verify extensions
       expect(urdf).toContain('<!-- Environment skybox: day -->');
+      expect(urdf).toContain('<!-- Interaction hints: gripper (@grabbable) -->');
     });
   });
 
