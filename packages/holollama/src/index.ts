@@ -540,7 +540,7 @@ export interface HoloLlamaFleetLifecycleReport {
 
 export interface HoloLlamaHarnessSafetyIssue {
   file: string;
-  kind: 'private-anchor' | 'filled-secret';
+  kind: 'private-anchor' | 'filled-secret' | 'missing-greeter';
   id: string;
   detail: string;
 }
@@ -1847,12 +1847,15 @@ export async function verifyHoloLlamaHarnessSafety(
   const filesScanned = await collectHoloLlamaHarnessFiles(root);
   const issues: HoloLlamaHarnessSafetyIssue[] = [];
 
+  const fileContents: Array<{ file: string; content: string }> = [];
   for (const file of filesScanned) {
     const absolute = join(root, file);
     const content = await readFile(absolute, 'utf8');
+    fileContents.push({ file, content });
     issues.push(...scanHoloLlamaHarnessPrivateAnchors(file, content));
     issues.push(...scanHoloLlamaHarnessSecrets(file, content));
   }
+  issues.push(...scanHoloLlamaHarnessGreeter(fileContents));
 
   return {
     schema: HOLOLLAMA_HARNESS_SAFETY_SCHEMA,
@@ -2693,6 +2696,26 @@ async function copyHoloLlamaHarnessTemplate(
 
 async function writeJsonReceipt(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function scanHoloLlamaHarnessGreeter(
+  files: Array<{ file: string; content: string }>
+): HoloLlamaHarnessSafetyIssue[] {
+  const storefront = files.find((entry) => /(^|\/)STOREFRONT\.md$/u.test(entry.file));
+  const corpus = storefront?.content ?? files.map((entry) => entry.content).join('\n');
+  const hasWho = /\bwho is riding\b/iu.test(corpus);
+  const hasDoor = /\bwhich door\b/iu.test(corpus);
+  const hasTrunk = /\b(?:trunk|cargo)\b/iu.test(corpus);
+  if (storefront && hasWho && hasDoor && hasTrunk) return [];
+  return [
+    {
+      file: storefront?.file ?? 'STOREFRONT.md',
+      kind: 'missing-greeter',
+      id: 'vehicle-greeter-missing',
+      detail:
+        'public harness must ask who is riding, which door, and what is in the trunk — see STOREFRONT.md',
+    },
+  ];
 }
 
 function scanHoloLlamaHarnessPrivateAnchors(

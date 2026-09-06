@@ -32,6 +32,10 @@ owns the underlying systems layer. Canonical wording and acceptance gates live i
 reality — the simulation's execution constitutes the proof of its own correctness — and that proof
 is universal and remixable because it is parametric and composes.**
 
+**Storefront:** this thesis is the window. Local merchandising (purpose index, greeter,
+proven vs not) is [`docs/storefront/local.md`](docs/storefront/local.md). GitHub `README.md`
+becomes the public V1 door only after [`docs/storefront/github-v1-gate.md`](docs/storefront/github-v1-gate.md).
+
 Not "here is a simulation, it kinda looks right." **The math is right, and the simulation _is_ that
 math, embodied.** (Proofs-as-programs, lifted into embodiment.)
 

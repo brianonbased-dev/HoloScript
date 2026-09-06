@@ -3,6 +3,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
   buildToolManifest,
   suggestToolsForGoal,
+  detectMealKit,
   handleBatchToolCall,
   buildToolHealthReport,
   handleToolingDiscoveryTool,
@@ -73,6 +74,7 @@ describe('tooling discovery and batch dispatch', () => {
 
     expect(result.suggestions.length).toBeGreaterThan(0);
     expect(result.suggestedBundles.some((b) => b.name === 'parse-validate-compile')).toBe(true);
+    expect(result.kit).toBeNull();
   });
 
   it('suggests control-plane and surface-audit tools for MCP/REST/CLI/canary goals', () => {
@@ -131,6 +133,98 @@ describe('tooling discovery and batch dispatch', () => {
 
     // No noToolExplanation when matches exist
     expect(result.noToolExplanation).toBeUndefined();
+  });
+
+  it('routes Quest QR to compile_to_quest, not repo scan', () => {
+    const manifest = buildToolManifest(
+      [
+        tool('hs_scan_project', 'Scan a HoloScript project for diagnostics'),
+        tool('holo_reconstruct_from_video', 'Reconstruct a scene from video'),
+        tool('compile_to_quest', 'Compile HoloScript to a Quest APK'),
+        tool('compile_to_webgpu', 'Compile HoloScript to WebGPU'),
+        tool('compile_to_sdk', 'Compile HoloScript to an SDK'),
+      ],
+      { includeInputSchema: false, includeOutputSchema: false }
+    );
+
+    expect(detectMealKit('scan QR on Quest for my human').kit).toBe('quest-admit');
+    const result = suggestToolsForGoal('scan QR on Quest for my human', manifest, 8);
+    const names = result.suggestions.map((s) => s.name);
+    expect(result.kit).toBe('quest-admit');
+    expect(names[0]).toBe('compile_to_quest');
+    expect(names).not.toContain('hs_scan_project');
+    expect(names).not.toContain('holo_reconstruct_from_video');
+    expect(result.suggestedBundles.some((b) => b.name === 'quest-admit')).toBe(true);
+  });
+
+  it('does not tie every compile_to_* when the shopper names one device', () => {
+    const manifest = buildToolManifest(
+      [
+        tool('compile_to_webgpu', 'Compile HoloScript to WebGPU'),
+        tool('compile_to_urdf', 'Compile HoloScript to URDF'),
+        tool('compile_to_sdk', 'Compile HoloScript to an SDK'),
+        tool('compile_to_mcp_config', 'Compile to MCP config'),
+        tool('compile_to_quest', 'Compile HoloScript to Quest'),
+        tool('compile_to_unity', 'Compile HoloScript to Unity'),
+        tool('parse_holo', 'Parse a .holo composition'),
+        tool('validate_holoscript', 'Validate HoloScript syntax'),
+      ],
+      { includeInputSchema: false, includeOutputSchema: false }
+    );
+
+    const result = suggestToolsForGoal('compile this scene to webgpu', manifest, 8);
+    expect(result.kit).toBe('compile-named');
+    const names = result.suggestions.map((s) => s.name);
+    expect(names).toContain('compile_to_webgpu');
+    expect(names).not.toContain('compile_to_sdk');
+    expect(names).not.toContain('compile_to_mcp_config');
+    expect(names).not.toContain('compile_to_quest');
+    expect(names).not.toContain('compile_to_unity');
+  });
+
+  it('sends stranger two-backend compile to the house special, not the SDK compiler', () => {
+    const manifest = buildToolManifest(
+      [
+        tool('get_examples', 'Return canonical HoloScript examples'),
+        tool('parse_holo', 'Parse a .holo composition'),
+        tool('validate_holoscript', 'Validate HoloScript syntax'),
+        tool('compile_to_webgpu', 'Compile HoloScript to WebGPU'),
+        tool('compile_to_urdf', 'Compile HoloScript to URDF'),
+        tool('compile_to_sdk', 'Compile HoloScript to an SDK'),
+        tool('generate_hololand_training', 'Generate Hololand training data'),
+      ],
+      { includeInputSchema: false, includeOutputSchema: false }
+    );
+
+    const result = suggestToolsForGoal(
+      'stranger compile one scene to two backends',
+      manifest,
+      8
+    );
+    expect(result.kit).toBe('house-special');
+    const names = result.suggestions.map((s) => s.name);
+    expect(names).toContain('compile_to_webgpu');
+    expect(names).toContain('compile_to_urdf');
+    expect(names).not.toContain('compile_to_sdk');
+    expect(names).not.toContain('generate_hololand_training');
+  });
+
+  it('sends a glowing cyan orb to the house special, not Hololand training', () => {
+    const manifest = buildToolManifest(
+      [
+        tool('get_examples', 'Return canonical HoloScript examples'),
+        tool('generate_hololand_training', 'Generate Hololand training data'),
+        tool('compile_to_webgpu', 'Compile HoloScript to WebGPU'),
+        tool('parse_holo', 'Parse a .holo composition'),
+      ],
+      { includeInputSchema: false, includeOutputSchema: false }
+    );
+
+    const result = suggestToolsForGoal('glowing cyan orb I can grab', manifest, 8);
+    expect(result.kit).toBe('house-special');
+    const names = result.suggestions.map((s) => s.name);
+    expect(names).toContain('get_examples');
+    expect(names).not.toContain('generate_hololand_training');
   });
 
   it('returns noToolExplanation when no tools match', () => {

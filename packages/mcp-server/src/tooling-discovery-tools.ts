@@ -126,7 +126,7 @@ export const toolingDiscoveryTools: Tool[] = [
   {
     name: 'suggest_tools_for_goal',
     description:
-      'Given a natural language goal, suggest an ordered tool plan with rationale and optional bundles (parse+validate+compile, etc.).',
+      'Given a natural language goal, suggest an ordered tool plan by store/purpose meal kit (house special, named compile, Quest admit, budget, mind) — not a 431-tool dump. Optional bundles (parse+validate+compile, etc.).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -369,6 +369,7 @@ const EXPLICIT_OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
     required: ['goal', 'suggestions'],
     properties: {
       goal: { type: 'string' },
+      kit: { type: ['string', 'null'] },
       suggestions: { type: 'array' },
       suggestedBundles: { type: 'array' },
       noToolExplanation: { type: 'string' },
@@ -538,18 +539,186 @@ function getWordTokens(s: string): string[] {
     .map((w) => w.toLowerCase());
 }
 
+/** Storefront meal kits — shopper + purpose, not token match across the mall. */
+export type MealKitId =
+  | 'house-special'
+  | 'compile-named'
+  | 'quest-admit'
+  | 'ask-files'
+  | 'budget'
+  | 'mind'
+  | 'crew';
+
+const NAMED_COMPILE_TARGETS: ReadonlyArray<{ token: string; tool: string }> = [
+  { token: 'webgpu', tool: 'compile_to_webgpu' },
+  { token: 'urdf', tool: 'compile_to_urdf' },
+  { token: 'quest', tool: 'compile_to_quest' },
+  { token: 'r3f', tool: 'compile_to_r3f' },
+  { token: 'unity', tool: 'compile_to_unity' },
+  { token: 'unreal', tool: 'compile_to_unreal' },
+  { token: 'godot', tool: 'compile_to_godot' },
+  { token: 'wasm', tool: 'compile_to_wasm' },
+  { token: 'ios', tool: 'compile_to_ios' },
+  { token: 'android', tool: 'compile_to_android' },
+];
+
+const HOUSE_SPECIAL_TOOLS = [
+  'get_examples',
+  'parse_holo',
+  'validate_holoscript',
+  'compile_to_webgpu',
+  'compile_to_urdf',
+] as const;
+
+export function detectMealKit(goal: string): {
+  kit: MealKitId | null;
+  namedCompile?: string;
+} {
+  const q = goal.toLowerCase();
+
+  if (
+    /\bqr\b/.test(q) ||
+    /\bholoqr\b/.test(q) ||
+    (/\bquest\b/.test(q) && (/\bscan\b/.test(q) || /\bheadset\b/.test(q) || /\bmark\b/.test(q)))
+  ) {
+    return { kit: 'quest-admit' };
+  }
+
+  if (/\bbudget\b/.test(q) || /\bearnings?\b/.test(q) || /\bcan i afford\b/.test(q)) {
+    return { kit: 'budget' };
+  }
+
+  if (
+    /\bllama\b/.test(q) ||
+    /\bholotune\b/.test(q) ||
+    /\blocal model\b/.test(q) ||
+    /\bserve a (?:local )?model\b/.test(q)
+  ) {
+    return { kit: 'mind' };
+  }
+
+  if (/\binbox\b/.test(q) || /\bholomesh\b/.test(q) || /\bcrew\b/.test(q) || /\bteam board\b/.test(q)) {
+    return { kit: 'crew' };
+  }
+
+  if (
+    /\bthis repo\b/.test(q) ||
+    /\bthis (?:codebase|tree|files)\b/.test(q) ||
+    /\babsorb\b/.test(q) ||
+    /\bask (?:the )?codebase\b/.test(q)
+  ) {
+    return { kit: 'ask-files' };
+  }
+
+  if (/\bcompile\b/.test(q)) {
+    const named = NAMED_COMPILE_TARGETS.find((t) => new RegExp(`\\b${t.token}\\b`).test(q));
+    if (named) {
+      return { kit: 'compile-named', namedCompile: named.tool };
+    }
+    if (/\bparse\b/.test(q) || /\bvalidate\b/.test(q)) {
+      return { kit: null };
+    }
+    return { kit: 'house-special' };
+  }
+
+  if (
+    /\borb\b/.test(q) ||
+    /\bcyan\b/.test(q) ||
+    /\bquickstart\b/.test(q) ||
+    /\bstranger\b/.test(q) ||
+    /\bglowing\b/.test(q)
+  ) {
+    return { kit: 'house-special' };
+  }
+
+  return { kit: null };
+}
+
+function kitBoosts(detected: { kit: MealKitId | null; namedCompile?: string }): {
+  boost: Set<string>;
+  exclude: Set<string>;
+} {
+  const boost = new Set<string>();
+  const exclude = new Set<string>([
+    'hs_scan_project',
+    'holo_reconstruct_from_video',
+    'generate_hololand_training',
+  ]);
+
+  switch (detected.kit) {
+    case 'house-special':
+      for (const name of HOUSE_SPECIAL_TOOLS) boost.add(name);
+      exclude.add('compile_to_sdk');
+      exclude.add('compile_to_mcp_config');
+      break;
+    case 'compile-named':
+      if (detected.namedCompile) boost.add(detected.namedCompile);
+      boost.add('parse_holo');
+      boost.add('validate_holoscript');
+      break;
+    case 'quest-admit':
+      boost.add('compile_to_quest');
+      break;
+    case 'ask-files':
+      boost.add('holo_graph_status');
+      boost.add('holo_absorb_repo');
+      boost.add('holo_ask_codebase');
+      exclude.delete('hs_scan_project');
+      break;
+    case 'budget':
+      boost.add('check_agent_budget');
+      boost.add('get_usage_summary');
+      boost.add('get_unified_budget_state');
+      break;
+    case 'mind':
+      boost.add('holotune_status');
+      boost.add('compile_to_llama_server');
+      boost.add('holotune_serve');
+      break;
+    case 'crew':
+      boost.add('holomesh_board_list');
+      boost.add('holomesh_inbox');
+      break;
+    default:
+      exclude.clear();
+      break;
+  }
+
+  return { boost, exclude };
+}
+
+function otherCompilersPenalty(
+  toolName: string,
+  detected: { kit: MealKitId | null; namedCompile?: string }
+): number {
+  if (!toolName.startsWith('compile_to_')) return 0;
+  if (detected.kit === 'house-special') {
+    return toolName === 'compile_to_webgpu' || toolName === 'compile_to_urdf' ? 0 : -50;
+  }
+  if (detected.kit === 'compile-named') {
+    return toolName === detected.namedCompile ? 0 : -50;
+  }
+  if (detected.kit === 'quest-admit') {
+    return toolName === 'compile_to_quest' ? 0 : -50;
+  }
+  return 0;
+}
+
 export function suggestToolsForGoal(
   goal: string,
   manifest: ToolManifestEntry[],
   maxSuggestions = 8
 ): {
   goal: string;
+  kit: MealKitId | null;
   suggestions: Array<{ name: string; score: number; reason: string }>;
   suggestedBundles: Array<{ name: string; tools: string[]; reason: string }>;
   noToolExplanation?: string;
 } {
   const q = goal.toLowerCase();
   const queryTokens = new Set(q.split(/[^a-z0-9_]+/).filter(Boolean));
+  const detected = detectMealKit(goal);
+  const { boost, exclude } = kitBoosts(detected);
 
   const scored = manifest
     .map((tool) => {
@@ -562,7 +731,8 @@ export function suggestToolsForGoal(
         if (haystackWords.some((w) => w === token || w.startsWith(token))) score += 2;
       }
 
-      if (q.includes('compile') && tool.name.startsWith('compile_')) score += 3;
+      if (q.includes('compile') && tool.name === 'compile_holoscript') score += 3;
+      if (detected.namedCompile && tool.name === detected.namedCompile) score += 8;
       if ((q.includes('validate') || q.includes('lint')) && tool.name.includes('validate'))
         score += 3;
       if ((q.includes('parse') || q.includes('ast')) && tool.name.startsWith('parse_')) score += 3;
@@ -641,10 +811,18 @@ export function suggestToolsForGoal(
       )
         score += 4;
 
+      if (boost.has(tool.name)) score += 20;
+      if (exclude.has(tool.name)) score -= 50;
+      score += otherCompilersPenalty(tool.name, detected);
+
+      const reason = boost.has(tool.name)
+        ? `Meal kit ${detected.kit}: ${tool.name}`
+        : `Matched by tokens/tags in: ${tool.name}`;
+
       return {
         name: tool.name,
         score,
-        reason: `Matched by tokens/tags in: ${tool.name}`,
+        reason,
       };
     })
     .filter((x) => x.score > 0)
@@ -653,7 +831,49 @@ export function suggestToolsForGoal(
 
   const suggestedBundles: Array<{ name: string; tools: string[]; reason: string }> = [];
 
-  if (q.includes('parse') || q.includes('validate') || q.includes('compile')) {
+  if (detected.kit === 'house-special') {
+    suggestedBundles.push({
+      name: 'house-special',
+      tools: [...HOUSE_SPECIAL_TOOLS],
+      reason: 'One public scene, two real backends. Not a 431-tool dump.',
+    });
+  } else if (detected.kit === 'compile-named' && detected.namedCompile) {
+    suggestedBundles.push({
+      name: 'compile-named',
+      tools: ['parse_holo', 'validate_holoscript', detected.namedCompile],
+      reason: `Compile the named device only (${detected.namedCompile}). Do not tie every compile_to_*.`,
+    });
+  } else if (detected.kit === 'quest-admit') {
+    suggestedBundles.push({
+      name: 'quest-admit',
+      tools: ['compile_to_quest'],
+      reason: 'Physical mark / HoloQR admission. Not hs_scan_project.',
+    });
+  } else if (detected.kit === 'ask-files') {
+    suggestedBundles.push({
+      name: 'ask-files',
+      tools: ['holo_graph_status', 'holo_absorb_repo', 'holo_ask_codebase'],
+      reason: 'Cited answer about this tree. Absorb first if cache is stale.',
+    });
+  } else if (detected.kit === 'budget') {
+    suggestedBundles.push({
+      name: 'budget',
+      tools: ['check_agent_budget', 'get_usage_summary', 'get_unified_budget_state'],
+      reason: 'See remaining before spending. Never paste a token.',
+    });
+  } else if (detected.kit === 'mind') {
+    suggestedBundles.push({
+      name: 'mind',
+      tools: ['holotune_status', 'compile_to_llama_server', 'holotune_serve'],
+      reason: 'Owned-metal train/serve. Do not claim AGI.',
+    });
+  } else if (detected.kit === 'crew') {
+    suggestedBundles.push({
+      name: 'crew',
+      tools: ['holomesh_board_list', 'holomesh_inbox'],
+      reason: 'Team board and inbox. Human is last resort.',
+    });
+  } else if (q.includes('parse') || q.includes('validate') || q.includes('compile')) {
     suggestedBundles.push({
       name: 'parse-validate-compile',
       tools: ['parse_hs', 'validate_holoscript', 'compile_holoscript'],
@@ -706,6 +926,7 @@ export function suggestToolsForGoal(
 
   return {
     goal,
+    kit: detected.kit,
     suggestions: scored,
     suggestedBundles,
     noToolExplanation,
@@ -1307,6 +1528,7 @@ export async function handleToolingDiscoveryTool(
     }
   | {
       goal: string;
+      kit: MealKitId | null;
       suggestions: Array<{ name: string; score: number; reason: string }>;
       suggestedBundles: Array<{ name: string; tools: string[]; reason: string }>;
       noToolExplanation?: string;
