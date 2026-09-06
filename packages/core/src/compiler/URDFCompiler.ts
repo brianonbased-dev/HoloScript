@@ -589,7 +589,15 @@ export class URDFCompiler extends CompilerBase {
   /** Extract color from object properties */
   private extractColor(obj: HoloObjectDecl): string | undefined {
     const colorProp = obj.properties.find((p) => p.key === 'color');
-    return colorProp ? this.getStringValue(colorProp.value) : undefined;
+    if (colorProp) return this.getStringValue(colorProp.value);
+    const materialProp = obj.properties.find((p) => p.key === 'material');
+    const material = materialProp?.value;
+    if (material && typeof material === 'object' && !Array.isArray(material)) {
+      const record = material as Record<string, unknown>;
+      const nested = record.baseColor ?? record.color;
+      if (typeof nested === 'string') return nested;
+    }
+    return undefined;
   }
 
   /** Extract mass from physics property or trait */

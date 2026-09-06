@@ -223,6 +223,7 @@
     "check:docker-drift": "node scripts/holo-ci/check-docker-drift.mjs",
     "check:docker-drift:update": "node scripts/holo-ci/check-docker-drift.mjs --update-baseline",
     "holo:translate-cloud": "node scripts/holo-ci/translate-cloud-sessions.mjs",
+    "stranger-demo": "pnpm --filter @holoscript/core exec vitest run src/compiler/__tests__/stranger-demo.test.ts",
     "check:native-coverage": "node scripts/holo-ci/check-native-coverage.mjs",
     "check:native-coverage:update": "node scripts/holo-ci/check-native-coverage.mjs --update",
     "check:native-coverage-test": "node scripts/__tests__/check-native-coverage.test.mjs",
