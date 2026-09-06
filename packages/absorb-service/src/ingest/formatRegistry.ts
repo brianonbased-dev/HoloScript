@@ -25,9 +25,9 @@ export const PROFESSIONAL_FORMAT_REGISTRY: ProfessionalFormatRegistryEntry[] = [
     ['.md', '.markdown'],
     ['text/markdown'],
     ['education', 'business', 'platform'],
-    'roadmap',
+    'adapter',
     'p0',
-    'Needed for lessons, reports, READMEs, and agent-authored notes.'
+    'One observed page or URL extract folds into holo_absorb_repo sourceFiles via ingestObservedPage (browser_session bodyText/markdown). Not a crawl.'
   ),
   entry(
     'json',

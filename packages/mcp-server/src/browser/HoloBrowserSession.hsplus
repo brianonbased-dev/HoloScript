@@ -12,7 +12,7 @@ composition "HoloBrowserSession" {
         transport: "cdp"
         backing: "chromium_devtools_protocol"
         domains: ["Network", "Runtime", "Log"]
-        reads: ["dom_title", "dom_url", "dom_body_text", "dom_element_count", "console_entries", "network_entries"]
+        reads: ["dom_title", "dom_url", "dom_body_text", "dom_markdown", "dom_element_count", "console_entries", "network_entries"]
         mutates_page: false
         permission_envelope: "read_only"
       }

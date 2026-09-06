@@ -644,7 +644,7 @@ export const browserControlTools: Tool[] = [
     name: 'browser_session',
     description:
       'Operate one leased sovereign browser session through open, navigate, read-only ' +
-      'observation (DOM/console/network), typed actions, screenshots, local human takeover, ' +
+      'observation (DOM text/markdown, console, network), typed actions, screenshots, local human takeover, ' +
       'guarded resume, status, and residue-checked close.',
     inputSchema: {
       type: 'object' as const,
@@ -679,7 +679,8 @@ export const browserControlTools: Tool[] = [
         headless: { type: 'boolean', description: 'Disable a visible local window' },
         includeDom: {
           type: 'boolean',
-          description: 'observe: include page title/URL/body text/element count (default: true)',
+          description:
+            'observe: include page title/URL/body text/markdown/element count (default: true)',
         },
         includeConsole: {
           type: 'boolean',
@@ -699,7 +700,8 @@ export const browserControlTools: Tool[] = [
         },
         domTextLimit: {
           type: 'number',
-          description: 'observe: max body-text characters to return, 0-20000 (default: 4000)',
+          description:
+            'observe: max body-text and markdown characters to return, 0-200000 (default: 80000)',
         },
         action: {
           type: 'object',

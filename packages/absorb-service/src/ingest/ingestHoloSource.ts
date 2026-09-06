@@ -22,7 +22,7 @@
  * @see memory/feedback_no-regex-hs-parsing.md
  */
 
-import { parseHolo } from '@holoscript/core';
+import { parseHolo } from '@holoscript/core/parser';
 import type { HoloComposition, HoloParseError } from '@holoscript/core';
 import { ReferenceGraph } from '../analysis/ReferenceGraph';
 

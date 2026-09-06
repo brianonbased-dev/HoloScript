@@ -17,6 +17,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../core/src/compiler/index.ts'),
       },
       { find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') },
+      {
+        find: /^@holoscript\/platform$/,
+        replacement: path.resolve(__dirname, 'src/ingest/__test_stubs__/holoscript-platform.ts'),
+      },
       // @holoscript/uaal has no built dist in this worktree (same situation as
       // @holoscript/core above) — alias straight to source so UAALResolutionRewards
       // tests can import gradeByResolver/UAAL_RESOLVED_FAMILIES without a build step.

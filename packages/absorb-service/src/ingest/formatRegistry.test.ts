@@ -65,6 +65,14 @@ describe('professional format registry', () => {
     expect(code?.notes).toContain('CodebaseScanner');
   });
 
+  it('folds observed page markdown onto the existing absorb ingest adapter', () => {
+    const markdown = PROFESSIONAL_FORMAT_REGISTRY.find((entry) => entry.id === 'markdown');
+
+    expect(markdown?.supportStatus).toBe('adapter');
+    expect(markdown?.notes).toContain('ingestObservedPage');
+    expect(detectProfessionalFormat({ fileName: 'observed-page.md' }).entry?.id).toBe('markdown');
+  });
+
   it('returns a null entry for unsupported files', () => {
     const result = detectProfessionalFormat({ fileName: 'archive.unknown-professional-format' });
 

@@ -206,6 +206,7 @@ exports[`Compiler golden-output regression > URDF: canonical scene → URDF XML 
 
   <!-- HoloScript Extensions -->
   <!-- Original composition: "GoldenScene" -->
+  <!-- Interaction hints: hero (@grabbable), collectible (@grabbable) -->
 </robot>"
 `;
 

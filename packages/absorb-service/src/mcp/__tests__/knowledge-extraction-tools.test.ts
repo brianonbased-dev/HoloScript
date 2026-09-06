@@ -134,6 +134,37 @@ describe('knowledge-extraction-tools', () => {
       expect(data.usage).toBeDefined();
     });
 
+    it('absorbs a browser_session observe extract without a prior graph', async () => {
+      const result = await handleKnowledgeExtractionTool('absorb_extract_knowledge', {
+        observe: {
+          operation: 'observe',
+          session: { url: 'https://docs.holoscript.example/observe' },
+          markdown: '# Observe Fixture\n\nfixture body text for absorb fold\n\n# Heading One',
+          dom: {
+            url: 'https://docs.holoscript.example/observe',
+            title: 'Observe Fixture',
+            bodyText: 'fixture body text for absorb fold',
+          },
+        },
+        workspaceId: 'observe-page',
+      });
+      const data = parseResponse(result);
+
+      expect(data.success).toBe(true);
+      expect(data.entries).toBeDefined();
+      expect(Array.isArray(data.entries)).toBe(true);
+      expect(data.pageExtract).toMatchObject({
+        kind: 'HoloAbsorbPageExtract',
+        url: 'https://docs.holoscript.example/observe',
+        title: 'Observe Fixture',
+        source: 'observe',
+        formatId: 'markdown',
+        sourceFiles: ['observed-page.holo', 'observed-page.md'],
+      });
+      expect(data.pageExtract.charCount).toBeGreaterThan(20);
+      expect(data.pageExtract.sha256).toHaveLength(64);
+    });
+
     it('passes options through to extractor', async () => {
       const graph = buildGraph([
         makeFile({ path: 'src/a.ts', loc: 100 }),

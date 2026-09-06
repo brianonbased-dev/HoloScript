@@ -114,6 +114,7 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
     ],
     evidencePaths: [
       'packages/absorb-service/src/ingest/index.ts',
+      'packages/absorb-service/src/ingest/ingestObservedPage.ts',
       'packages/absorb-service/src/engine/CodebaseScanner.ts',
       'packages/absorb-service/src/mcp/codebase-tools.ts',
     ],
