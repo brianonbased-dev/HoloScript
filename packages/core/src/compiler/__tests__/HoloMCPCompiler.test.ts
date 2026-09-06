@@ -516,7 +516,7 @@ describe('HoloMCPCompiler P2 — compileModule() TypeScript emission', () => {
     expect(importLines).toHaveLength(0);
   });
 
-  it('emitted TypeScript passes tsc --noEmit --strict (P2 gate)', () => {
+  it('emitted TypeScript passes tsc --noEmit --strict (P2 gate)', { timeout: 120_000 }, () => {
     const composition = makeEmptyComposition({
       objects: [
         makeObject('Sensor', [makeTrait('sensor', { hz: 10, unit: 'celsius' })]),

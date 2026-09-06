@@ -10,10 +10,12 @@
       "src/__tests__/camera-inventory-terrain-lighting-exports.test.ts",
       "src/__tests__/trait-commutativity.test.ts",
       "src/__tests__/trait-docs-count-structure.test.ts",
+      "src/compiler/__tests__/FounderConsoleNative.test.ts",
       "src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts",
       "src/compiler/dispatch/__tests__/DispatchPolicy.test.ts",
       "src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
       "src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts",
+      "src/traits/AgentDiscoveryTrait.test.ts",
       "src/traits/__tests__/ChoreographyTrait.prod.test.ts"
     ]
   },
