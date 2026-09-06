@@ -12,7 +12,10 @@ import { URDFCompiler, type URDFCompilerOptions } from './URDFCompiler';
 import { parseHoloStrict } from '../parser/HoloCompositionParser';
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
 
-/** Canonical @grabbable showcase — do not invent this into physics-contract.holo. */
+/**
+ * Language-lock proof source. The parser/examples/traits/ copy does not exist;
+ * use the repo examples/traits/ path. Do not invent into physics-contract.holo.
+ */
 const INTERACTION_GRABBABLE_HOLO = join(
   __dirname,
   '../../../../examples/traits/interaction-grabbable-clickable-hoverable.holo'
@@ -680,8 +683,13 @@ describe('URDFCompiler', () => {
     });
 
     it('emits @grabbable XML comments from interaction-grabbable-clickable-hoverable.holo', () => {
+      expect(INTERACTION_GRABBABLE_HOLO.replace(/\\/g, '/')).toMatch(
+        /examples\/traits\/interaction-grabbable-clickable-hoverable\.holo$/
+      );
       const source = readFileSync(INTERACTION_GRABBABLE_HOLO, 'utf8');
       expect(source).toContain('@grabbable');
+      expect(source).toContain('template "GrabbableProduct"');
+      expect(source).toContain('using "GrabbableProduct"');
       const composition = parseHoloStrict(source);
       const urdf = compiler.compile(composition);
 
