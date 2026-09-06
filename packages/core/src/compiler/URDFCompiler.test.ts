@@ -691,6 +691,16 @@ describe('URDFCompiler', () => {
       expect(source).toContain('template "GrabbableProduct"');
       expect(source).toContain('using "GrabbableProduct"');
       const composition = parseHoloStrict(source);
+      const grabbableProduct = composition.templates.find((t) => t.name === 'GrabbableProduct');
+      expect(grabbableProduct?.traits.some((t) => t.name === 'grabbable')).toBe(true);
+      const productA = composition.spatialGroups
+        .flatMap((g) => g.objects)
+        .find((o) => o.name === 'product_a');
+      expect(productA?.template).toBe('GrabbableProduct');
+      expect(productA?.traits.some((t) => t.name === 'grabbable' || t.name === '@grabbable')).toBe(
+        false
+      );
+
       const urdf = compiler.compile(composition);
 
       expect(urdf).toContain('<!-- HoloScript Extensions -->');
