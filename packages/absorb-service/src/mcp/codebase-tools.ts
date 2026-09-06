@@ -28,6 +28,14 @@ import {
   resetGraphRAGStateForTests,
   setGraphRAGState,
 } from './graph-rag-tools';
+import {
+  graphCacheSidecarTrustworthy,
+  hashGraphCacheBuffer,
+  parseGraphCacheEnvelopeBuffer,
+  readGraphCacheMetadataFromFile,
+  readGraphCacheMetaSidecar,
+  writeGraphCacheMetaSidecar,
+} from './graph-cache-envelope';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
@@ -3660,6 +3668,37 @@ function graphCoverageIsComplete(coverage: GraphCoverageStatus): boolean {
   );
 }
 
+/** Published capped scans may miss a few files inside the maxFiles window. */
+const CAPPED_SUBSET_MIN_FILL = 0.95;
+
+/**
+ * A finished maxFiles subset is queryable, not whole-repo authority.
+ *
+ * Clone-host proof: 19,947 of 20,000 at cap 20,000 / 20,472 eligible. Status
+ * already emits `graph_coverage_capped_at_*`; the load gate used to refuse
+ * those graphs with `cache_incomplete`.
+ */
+function graphCoverageIsQueryableSubset(coverage: GraphCoverageStatus): boolean {
+  if (!coverage.available || coverage.overInclusive === true || coverage.cappedByMaxFiles !== true) {
+    return false;
+  }
+  const expected = Number(coverage.expectedGraphFileCount ?? 0);
+  const count = Number(coverage.graphFileCount ?? 0);
+  if (!Number.isFinite(expected) || !Number.isFinite(count) || expected <= 0 || count <= 0) {
+    return false;
+  }
+  return count >= Math.ceil(expected * CAPPED_SUBSET_MIN_FILL);
+}
+
+function cacheGitHeadIsPinned(
+  cacheGitCommitHash: string | null | undefined,
+  currentGitCommitHash: string | null | undefined
+): boolean {
+  return Boolean(
+    cacheGitCommitHash && currentGitCommitHash && cacheGitCommitHash === currentGitCommitHash
+  );
+}
+
 interface GraphRootSourcePin {
   rootDir: string;
   gitCommitHash: string | null;
@@ -4747,6 +4786,12 @@ function atomicWriteGraphCacheEnvelopeSync(
     fileDescriptor = undefined;
     fs.renameSync(tempPath, targetPath);
     fsyncDirectoryBestEffort(dir);
+    try {
+      writeGraphCacheMetaSidecar(targetPath, metadata);
+    } catch {
+      // Metadata sidecar is a RAM optimization for status/age; the combined
+      // envelope remains the generation hash source of truth.
+    }
     return {
       sha256: identity.hash.digest('hex'),
       bytes: identity.bytes,
@@ -5207,8 +5252,13 @@ interface GraphCacheReadResult {
 
 function readGraphCache(
   rootDir?: string | null,
-  options: { allowExpiredV1?: boolean; rootDirs?: string[] | null } = {}
+  options: {
+    allowExpiredV1?: boolean;
+    rootDirs?: string[] | null;
+    includeGraphJson?: boolean;
+  } = {}
 ): GraphCacheReadResult | null {
+  const includeGraphJson = options.includeGraphJson !== false;
   const explicitRootDirs =
     options.rootDirs && options.rootDirs.length > 0 ? options.rootDirs : null;
   const exactRootSetRequested = explicitRootDirs !== null;
@@ -5253,18 +5303,52 @@ function readGraphCache(
     const { cacheFile, generationId, graphSha256, graphBytes, embeddingSha256 } = candidate;
     if (!fs.existsSync(cacheFile)) continue;
     try {
-      const raw = fs.readFileSync(cacheFile, 'utf-8');
-      if (
-        graphSha256 &&
-        (Buffer.byteLength(raw, 'utf-8') !== graphBytes ||
-          createHash('sha256').update(raw, 'utf-8').digest('hex') !== graphSha256)
-      ) {
-        console.warn(
-          `[CacheDebug][codebase] selected generation ${generationId} graph bytes do not match its manifest`
-        );
-        continue;
+      let envelope: GraphCacheEnvelope | null = null;
+      if (!includeGraphJson) {
+        if (graphSha256 && (graphBytes === undefined || fs.statSync(cacheFile).size !== graphBytes)) {
+          console.warn(
+            `[CacheDebug][codebase] selected generation ${generationId} graph bytes do not match its manifest`
+          );
+          continue;
+        }
+        const sidecar = readGraphCacheMetaSidecar<GraphCacheEnvelope>(cacheFile);
+        if (graphCacheSidecarTrustworthy(cacheFile, sidecar, { generationId, graphBytes })) {
+          const { graphJson: _ignored, ...metadata } = sidecar as GraphCacheEnvelope;
+          envelope = { ...(metadata as GraphCacheEnvelope), graphJson: '' };
+        } else {
+          const metadata = readGraphCacheMetadataFromFile<Omit<GraphCacheEnvelope, 'graphJson'>>(
+            cacheFile
+          );
+          if (!metadata) {
+            console.warn(
+              `[CacheDebug][codebase] load miss path=${cacheFile} reason=metadata-stream-error`
+            );
+            continue;
+          }
+          envelope = { ...(metadata as GraphCacheEnvelope), graphJson: '' };
+          try {
+            writeGraphCacheMetaSidecar(cacheFile, metadata);
+          } catch {
+            // Sidecar is optional acceleration for the next status call.
+          }
+        }
+      } else {
+        const raw = fs.readFileSync(cacheFile);
+        if (graphSha256 && (raw.length !== graphBytes || hashGraphCacheBuffer(raw) !== graphSha256)) {
+          console.warn(
+            `[CacheDebug][codebase] selected generation ${generationId} graph bytes do not match its manifest`
+          );
+          continue;
+        }
+        const split = parseGraphCacheEnvelopeBuffer<Omit<GraphCacheEnvelope, 'graphJson'>>(raw, {
+          includeGraphJson: true,
+        });
+        envelope = {
+          ...(split.metadata as GraphCacheEnvelope),
+          graphJson: split.graphJson ?? '',
+        };
       }
-      const envelope: GraphCacheEnvelope = JSON.parse(raw);
+      if (!envelope) continue;
       if (envelope.version !== 1 && envelope.version !== 2) continue;
       if (generationId && envelope.cacheGenerationId !== generationId) {
         console.warn(
@@ -5352,7 +5436,11 @@ function getCacheAge(
   rootAuthorityPins?: GraphRootAuthorityPin[];
 } {
   try {
-    const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true, rootDirs });
+    const cacheRead = readGraphCache(rootDir, {
+      allowExpiredV1: true,
+      rootDirs,
+      includeGraphJson: false,
+    });
     if (!cacheRead) return { exists: false };
     const envelope = cacheRead.envelope;
     return {
@@ -6784,9 +6872,19 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       }
     }
 
-    if (!authoritative) {
+    const queryableSubset =
+      !authoritative &&
+      freshByAge &&
+      coverage != null &&
+      graphCoverageIsQueryableSubset(coverage) &&
+      cacheGitHeadIsPinned(memoryGitCommitHash, currentGitCommitHash) &&
+      rootMatchesCurrentRepo(memoryRootDir, workspaceRoot);
+
+    if (!authoritative && !queryableSubset) {
       const reason: GraphUnavailableReason =
-        coverage && !graphCoverageIsComplete(coverage) ? 'cache_incomplete' : 'cache_stale';
+        coverage && !graphCoverageIsComplete(coverage) && !graphCoverageIsQueryableSubset(coverage)
+          ? 'cache_incomplete'
+          : 'cache_stale';
       cachedGraph = null;
       cachedRootDir = '';
       cacheProvenance = null;
@@ -6809,7 +6907,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     }
 
     let warmJobId: string | null = null;
-    if (options.warmGraphRAG === true && !isGraphRAGReady()) {
+    if (options.warmGraphRAG === true && !isGraphRAGReady() && authoritative) {
       try {
         const mod = await loadCodebaseModule();
         const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
@@ -6921,11 +7019,16 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
           (coverageComplete &&
             cwdFileHashFreshness.fresh &&
             (gitMatchesHead || cwdFileHashFreshForHeadMismatch)));
+      const cwdQueryableSubset =
+        cacheMatchesCwd &&
+        freshByAge &&
+        graphCoverageIsQueryableSubset(coverage) &&
+        cacheGitHeadIsPinned(envelope.gitCommitHash, currentGitCommitHash);
 
-      if (!cwdAuthoritative && !crossRootAuthority.ok) {
+      if (!cwdAuthoritative && !crossRootAuthority.ok && !cwdQueryableSubset) {
         const reason: GraphUnavailableReason = !cacheMatchesCwd
           ? 'cache_root_mismatch'
-          : !coverageComplete
+          : !coverageComplete && !graphCoverageIsQueryableSubset(coverage)
             ? 'cache_incomplete'
             : !cwdFileHashFreshness.fresh ||
                 (!gitMatchesHead && !cwdFileHashFreshForHeadMismatch) ||
@@ -6972,7 +7075,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       // Search remains correct after disposeEmbeddingIndex: dispose only ends the
       // worker pool; entries stay intact and query embedding falls back to the
       // provider directly (EmbeddingIndex.getEmbeddings).
-      if (options.warmGraphRAG === true) {
+      if (options.warmGraphRAG === true && (cwdAuthoritative || crossRootAuthority.ok)) {
         try {
           const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
             mod,
@@ -7236,7 +7339,8 @@ async function runFullScan(
   // same commit as the persisted embeddings, the disk `.bin` is still valid — we
   // can load it instead of re-embedding 343k symbols. Read here, at the top,
   // because the save at the end of the scan-persist step clobbers the file.
-  const priorEnvelopeForHydrate = loadGraphCache(primaryRootDir, rootDirs);
+  const priorEnvelopeForHydrate =
+    readGraphCache(primaryRootDir, { rootDirs, includeGraphJson: false })?.envelope ?? null;
   const priorGitCommitHash = priorEnvelopeForHydrate?.gitCommitHash;
 
   const rootDiagnostics = inlineSourceFiles
@@ -9528,7 +9632,10 @@ async function buildAutoBackgroundDecision(
     }
   }
 
-  const existingCache = loadGraphCache(plan.primaryRootDir, plan.effectiveRootDirs);
+  const existingCache = readGraphCache(plan.primaryRootDir, {
+    rootDirs: plan.effectiveRootDirs,
+    includeGraphJson: false,
+  })?.envelope ?? null;
   const existingCacheMatchesRoot =
     existingCache?.version === 2 &&
     rootMatchesCurrentRepo(existingCache.rootDir, plan.primaryRootDir) &&

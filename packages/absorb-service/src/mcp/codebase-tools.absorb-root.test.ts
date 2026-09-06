@@ -3120,6 +3120,120 @@ describe('holo_absorb_repo root validation', () => {
     );
   });
 
+  it('loads a finished capped disk cache for structural query without calling it authoritative', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-query-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-capped-query-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+      maxFiles: 1,
+    })) as {
+      error?: string;
+      stats?: { totalFiles?: number };
+      graphAuthoritative?: boolean;
+      graphCoverage?: { cappedByMaxFiles?: boolean; selectedCandidateCount?: number };
+    };
+    expect(absorbed.error).toBeUndefined();
+    expect(absorbed.stats?.totalFiles).toBe(1);
+    expect(absorbed.graphAuthoritative).toBe(false);
+    expect(absorbed.graphCoverage).toMatchObject({
+      cappedByMaxFiles: true,
+      selectedCandidateCount: 2,
+    });
+
+    resetCodebaseToolStateForTests();
+    const status = (await handleCodebaseTool('holo_graph_status', { forceRefresh: true })) as {
+      graphAuthoritative?: boolean;
+      inMemory?: boolean;
+      authorityCaveats?: string[];
+      coverage?: { cappedByMaxFiles?: boolean };
+    };
+    expect(status.graphAuthoritative).toBe(false);
+    expect(status.coverage?.cappedByMaxFiles).toBe(true);
+    expect(status.authorityCaveats?.some((entry) => entry.startsWith('graph_coverage_capped_at_'))).toBe(
+      true
+    );
+
+    const query = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      result?: { totalFiles?: number };
+    };
+    expect(query.error).toBeUndefined();
+    expect(query.result?.totalFiles).toBe(1);
+
+    const again = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'find alpha',
+      queryType: 'find',
+      symbolName: 'alpha',
+    })) as {
+      error?: string;
+    };
+    expect(again.error).toBeUndefined();
+
+    const statusAfter = (await handleCodebaseTool('holo_graph_status', { forceRefresh: true })) as {
+      graphAuthoritative?: boolean;
+      inMemory?: boolean;
+    };
+    expect(statusAfter.graphAuthoritative).toBe(false);
+    expect(statusAfter.inMemory).toBe(true);
+  }, 60_000);
+
+  it('still refuses a capped cache that did not fill its maxFiles window', async () => {
+    resetCodebaseToolStateForTests(false);
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-capped-shortfall-cache-'));
+    const repoDir = makeTinyGitRepo('holoscript-capped-shortfall-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    fs.writeFileSync(
+      path.join(repoDir, 'src', 'gamma.ts'),
+      'export function gamma(): string { return "gamma"; }\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/gamma.ts'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'third file'], { cwd: repoDir, windowsHide: true });
+    const head = getHeadCommit(repoDir);
+    writeGraphCacheWithFileHashes(
+      cacheDir,
+      repoDir,
+      Date.now() - 5 * 60 * 1000,
+      head,
+      hashRepoFiles(repoDir, ['src/alpha.ts']),
+      { maxFiles: 2 }
+    );
+
+    const result = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'stats',
+      queryType: 'stats',
+    })) as {
+      error?: string;
+      graphUnavailableReceipt?: { reason?: string };
+      coverage?: {
+        cappedByMaxFiles?: boolean;
+        graphFileCount?: number;
+        expectedGraphFileCount?: number;
+        selectedCandidateCount?: number;
+      };
+    };
+
+    expect(result.error).toContain('No codebase graph loaded');
+    expect(result.graphUnavailableReceipt?.reason).toBe('cache_incomplete');
+    expect(result.coverage).toMatchObject({
+      cappedByMaxFiles: true,
+      graphFileCount: 1,
+      expectedGraphFileCount: 2,
+      selectedCandidateCount: 3,
+    });
+  });
+
   it('treats scanner-size-skipped files as ineligible for coverage', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-size-skip-cache-'));
