@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   agentDiscoveryHandler,
   type AgentDiscoveryConfig,
@@ -24,10 +24,30 @@ const createMockEndpoint = (protocol = 'local'): AgentEndpoint => ({
   primary: true,
 });
 
+function attachConfig(overrides: Partial<AgentDiscoveryConfig> = {}): AgentDiscoveryConfig {
+  return {
+    ...agentDiscoveryHandler.defaultConfig,
+    heartbeat_interval: 0,
+    auto_discover: false,
+    auto_register: false,
+    ...overrides,
+  } as AgentDiscoveryConfig;
+}
+
 describe('AgentDiscoveryTrait', () => {
   beforeEach(() => {
     delete mockNode.__agentDiscoveryState;
     (mockContext.emit as any)?.mockClear();
+  });
+
+  afterEach(() => {
+    if (mockNode.__agentDiscoveryState) {
+      agentDiscoveryHandler.onDetach(
+        mockNode,
+        attachConfig(),
+        mockContext as TraitContext
+      );
+    }
   });
 
   describe('handler properties', () => {
@@ -72,7 +92,7 @@ describe('AgentDiscoveryTrait', () => {
 
   describe('lifecycle: onAttach', () => {
     it('should initialize discovery state', async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockNode.__agentDiscoveryState).toBeDefined();
@@ -81,15 +101,14 @@ describe('AgentDiscoveryTrait', () => {
     });
 
     it('should create agent manifest', async () => {
-      const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+      const config = attachConfig({
         agent_id: 'test_agent_1',
         agent_name: 'TestAgent',
         agent_version: '2.0.0',
         description: 'Test discovery agent',
         capabilities: [createMockCapability('search')],
         endpoints: [createMockEndpoint()],
-      };
+      });
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       const state = mockNode.__agentDiscoveryState;
@@ -99,7 +118,7 @@ describe('AgentDiscoveryTrait', () => {
     });
 
     it('should emit agent_discovery_initialized event', async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockContext.emit).toHaveBeenCalledWith(
@@ -109,41 +128,28 @@ describe('AgentDiscoveryTrait', () => {
     });
 
     it('should start heartbeat timer if interval > 0', async () => {
-      const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
-        heartbeat_interval: 5000,
-      };
+      const config = attachConfig({ heartbeat_interval: 5000 });
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockNode.__agentDiscoveryState.heartbeatTimer).toBeDefined();
     });
 
     it('should not start heartbeat if interval is 0', async () => {
-      const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
-        heartbeat_interval: 0,
-      };
+      const config = attachConfig({ heartbeat_interval: 0 });
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockNode.__agentDiscoveryState.heartbeatTimer).toBeNull();
     });
 
     it('should start discovery timer when auto_discover is true', async () => {
-      const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
-        auto_discover: true,
-        discovery_interval: 15000,
-      };
+      const config = attachConfig({ auto_discover: true, discovery_interval: 15000 });
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockNode.__agentDiscoveryState.discoveryTimer).toBeDefined();
     });
 
     it('should not start discovery timer when auto_discover is false', async () => {
-      const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
-        auto_discover: false,
-      };
+      const config = attachConfig({ auto_discover: false });
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockNode.__agentDiscoveryState.discoveryTimer).toBeNull();

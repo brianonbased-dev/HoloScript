@@ -45,7 +45,7 @@ const vitest = resolve(__dir, 'node_modules', 'vitest', 'vitest.mjs');
 // Any extra args forwarded by the caller (e.g. --coverage)
 const extraArgs = process.argv.slice(2).filter((arg) => arg !== '--');
 
-// The 10 files that flake under 4-way shard memory/timing pressure.
+// The files that flake under 4-way shard memory/timing pressure.
 // Must stay in sync with test-baseline.json flakyFiles.
 const FLAKY_FILES = [
   'src/__tests__/HotReloadIntegrated.test.ts',
@@ -54,6 +54,8 @@ const FLAKY_FILES = [
   'src/__tests__/camera-inventory-terrain-lighting-exports.test.ts',
   'src/__tests__/trait-commutativity.test.ts',
   'src/__tests__/trait-docs-count-structure.test.ts',
+  'src/cli/__tests__/holoscript-runner.run.test.ts',
+  'src/compiler/__tests__/CharacterWebGPUCompiler.test.ts',
   'src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts',
   'src/compiler/dispatch/__tests__/DispatchPolicy.test.ts',
   'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
@@ -101,7 +103,7 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
   overallExitCode = proc.status ?? 1;
 } else {
   // === Pass 1: sequential flaky-file pass ===
-  // Run the 10 timing/memory-sensitive files with maxWorkers=1 so they get
+  // Run timing/memory-sensitive files with maxWorkers=1 so they get
   // dedicated heap and no sibling-shard interference. Positional file args
   // restrict vitest to just those files; no exclusion env flag needed here.
   console.error(

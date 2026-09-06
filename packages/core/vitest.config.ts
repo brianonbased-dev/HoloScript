@@ -9,11 +9,9 @@ const IS_COVERAGE_RUN =
 // This closes the "quarantine" item while keeping CI stable.
 const IS_CI = process.env.CI === 'true';
 
-// When run-vitest.mjs runs the sharded pass it sets this flag so that the 10
-// flaky files are excluded — they are handled by a dedicated sequential pass
-// (maxWorkers=1) instead, preventing shard memory-pressure from causing
-// spurious failures. See test-baseline.json flakyFiles for the canonical list.
 const EXCLUDE_FLAKY_FILES = process.env.HOLOSCRIPT_EXCLUDE_FLAKY === '1';
+// Sequential pass in run-vitest.mjs owns these files; the sharded pass excludes them.
+// Must stay in sync with test-baseline.json flakyFiles.
 const FLAKY_FILES = [
   'src/__tests__/HotReloadIntegrated.test.ts',
   'src/__tests__/RuntimeOptimization.test.ts',
@@ -21,6 +19,8 @@ const FLAKY_FILES = [
   'src/__tests__/camera-inventory-terrain-lighting-exports.test.ts',
   'src/__tests__/trait-commutativity.test.ts',
   'src/__tests__/trait-docs-count-structure.test.ts',
+  'src/cli/__tests__/holoscript-runner.run.test.ts',
+  'src/compiler/__tests__/CharacterWebGPUCompiler.test.ts',
   'src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts',
   'src/compiler/dispatch/__tests__/DispatchPolicy.test.ts',
   'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
