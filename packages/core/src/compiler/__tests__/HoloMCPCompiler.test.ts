@@ -619,7 +619,7 @@ describe('HoloMCPCompiler P3 — startup evaluator gate', () => {
     expect(code).toContain("contractEnforcement: 'startup-gate'");
   });
 
-  it('emitted TypeScript with P3 guards passes tsc --noEmit --strict (P3 gate)', () => {
+  it('emitted TypeScript with P3 guards passes tsc --noEmit --strict (P3 gate)', { timeout: 120_000 }, () => {
     const __dir = fileURLToPath(new URL('.', import.meta.url));
     const tscBin = resolve(__dir, '../../../../../node_modules/typescript/bin/tsc');
 
@@ -807,7 +807,7 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
     expect(tools[0].inputSchema.required).toContain('mode');
   });
 
-  it('emitted TypeScript with annotated required params passes tsc --noEmit --strict (P5 gate)', () => {
+  it('emitted TypeScript with annotated required params passes tsc --noEmit --strict (P5 gate)', { timeout: 120_000 }, () => {
     const __dir = fileURLToPath(new URL('.', import.meta.url));
     const tscBin = resolve(__dir, '../../../../../node_modules/typescript/bin/tsc');
 

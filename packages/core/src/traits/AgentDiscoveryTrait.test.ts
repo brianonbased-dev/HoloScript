@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   agentDiscoveryHandler,
   type AgentDiscoveryConfig,
@@ -24,10 +24,26 @@ const createMockEndpoint = (protocol = 'local'): AgentEndpoint => ({
   primary: true,
 });
 
+function attachConfig(overrides: Partial<AgentDiscoveryConfig> = {}): AgentDiscoveryConfig {
+  return {
+    ...agentDiscoveryHandler.defaultConfig,
+    heartbeat_interval: 0,
+    auto_discover: false,
+    auto_register: false,
+    ...overrides,
+  } as AgentDiscoveryConfig;
+}
+
 describe('AgentDiscoveryTrait', () => {
   beforeEach(() => {
     delete mockNode.__agentDiscoveryState;
     (mockContext.emit as any)?.mockClear();
+  });
+
+  afterEach(() => {
+    if (mockNode.__agentDiscoveryState) {
+      agentDiscoveryHandler.onDetach(mockNode, attachConfig(), mockContext as TraitContext);
+    }
   });
 
   describe('handler properties', () => {
@@ -72,7 +88,7 @@ describe('AgentDiscoveryTrait', () => {
 
   describe('lifecycle: onAttach', () => {
     it('should initialize discovery state', async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockNode.__agentDiscoveryState).toBeDefined();
@@ -82,7 +98,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should create agent manifest', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         agent_id: 'test_agent_1',
         agent_name: 'TestAgent',
         agent_version: '2.0.0',
@@ -99,7 +115,7 @@ describe('AgentDiscoveryTrait', () => {
     });
 
     it('should emit agent_discovery_initialized event', async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockContext.emit).toHaveBeenCalledWith(
@@ -110,7 +126,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should start heartbeat timer if interval > 0', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         heartbeat_interval: 5000,
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -120,7 +136,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should not start heartbeat if interval is 0', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         heartbeat_interval: 0,
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -130,7 +146,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should start discovery timer when auto_discover is true', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         auto_discover: true,
         discovery_interval: 15000,
       };
@@ -141,7 +157,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should not start discovery timer when auto_discover is false', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         auto_discover: false,
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -151,7 +167,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should support auto-register enabled', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         auto_register: true,
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -165,7 +181,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should skip auto-register when disabled', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         auto_register: false,
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -179,7 +195,7 @@ describe('AgentDiscoveryTrait', () => {
       for (const mode of modes) {
         const node = { id: `node_${mode}` } as any;
         const config: AgentDiscoveryConfig = {
-          ...agentDiscoveryHandler.defaultConfig,
+          ...attachConfig(),
           discovery_mode: mode,
         };
         await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -193,7 +209,7 @@ describe('AgentDiscoveryTrait', () => {
       for (const level of trustLevels) {
         const node = { id: `node_${level}` } as any;
         const config: AgentDiscoveryConfig = {
-          ...agentDiscoveryHandler.defaultConfig,
+          ...attachConfig(),
           trust_level: level,
         };
         await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -203,7 +219,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should store provided tags', async () => {
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         tags: ['ai', 'search', 'llm'],
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -214,7 +230,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should support multiple capabilities', async () => {
       const capabilities = [createMockCapability('search'), createMockCapability('reasoning')];
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         capabilities,
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -228,7 +244,7 @@ describe('AgentDiscoveryTrait', () => {
         { protocol: 'grpc', address: '127.0.0.1:50051', primary: false },
       ];
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         endpoints,
       };
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -237,7 +253,7 @@ describe('AgentDiscoveryTrait', () => {
     });
 
     it('should have non-null registry after attach', async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       expect(mockNode.__agentDiscoveryState.registry).not.toBeNull();
@@ -246,7 +262,7 @@ describe('AgentDiscoveryTrait', () => {
 
   describe('lifecycle: onDetach', () => {
     beforeEach(async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
     });
 
@@ -285,7 +301,7 @@ describe('AgentDiscoveryTrait', () => {
 
   describe('lifecycle: onUpdate', () => {
     beforeEach(async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
     });
 
@@ -339,7 +355,7 @@ describe('AgentDiscoveryTrait', () => {
 
   describe('event handling', () => {
     beforeEach(async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
       (mockContext.emit as any)?.mockClear();
     });
@@ -474,7 +490,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should maintain independent registrations for each node', async () => {
       const node1 = { id: 'node_1' } as any;
       const node2 = { id: 'node_2' } as any;
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
 
       await agentDiscoveryHandler.onAttach(node1, config, mockContext as TraitContext);
       await agentDiscoveryHandler.onAttach(node2, config, mockContext as TraitContext);
@@ -485,7 +501,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should not share discovered agents between nodes', async () => {
       const node1 = { id: 'node_1' } as any;
       const node2 = { id: 'node_2' } as any;
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
 
       await agentDiscoveryHandler.onAttach(node1, config, mockContext as TraitContext);
       await agentDiscoveryHandler.onAttach(node2, config, mockContext as TraitContext);
@@ -498,7 +514,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should maintain separate event histories per node', async () => {
       const node1 = { id: 'node_1' } as any;
       const node2 = { id: 'node_2' } as any;
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
 
       await agentDiscoveryHandler.onAttach(node1, config, mockContext as TraitContext);
       await agentDiscoveryHandler.onAttach(node2, config, mockContext as TraitContext);
@@ -514,7 +530,7 @@ describe('AgentDiscoveryTrait', () => {
       for (const interval of [0, 5000, 10000, 30000]) {
         const node = { id: `node_${interval}` } as any;
         const config: AgentDiscoveryConfig = {
-          ...agentDiscoveryHandler.defaultConfig,
+          ...attachConfig(),
           heartbeat_interval: interval,
         };
         await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -531,7 +547,7 @@ describe('AgentDiscoveryTrait', () => {
       for (const interval of [0, 10000, 30000, 60000]) {
         const node = { id: `node_${interval}` } as any;
         const config: AgentDiscoveryConfig = {
-          ...agentDiscoveryHandler.defaultConfig,
+          ...attachConfig(),
           discovery_interval: interval,
           auto_discover: interval > 0,
         };
@@ -549,7 +565,7 @@ describe('AgentDiscoveryTrait', () => {
       for (const max of [10, 100, 1000]) {
         const node = { id: `node_${max}` } as any;
         const config: AgentDiscoveryConfig = {
-          ...agentDiscoveryHandler.defaultConfig,
+          ...attachConfig(),
           max_discovered_agents: max,
         };
         await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -561,7 +577,7 @@ describe('AgentDiscoveryTrait', () => {
       for (const limit of [100, 1000, 10000]) {
         const node = { id: `node_${limit}` } as any;
         const config: AgentDiscoveryConfig = {
-          ...agentDiscoveryHandler.defaultConfig,
+          ...attachConfig(),
           event_history_limit: limit,
         };
         await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -572,7 +588,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should support null spatial scope', async () => {
       const node = { id: 'test_null_scope' } as any;
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         spatial_scope: null,
       };
       await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -583,7 +599,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should support custom registry config', async () => {
       const node = { id: 'test_custom_registry' } as any;
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         registry_config: {
           name: 'custom-registry',
         },
@@ -596,14 +612,14 @@ describe('AgentDiscoveryTrait', () => {
 
   describe('edge cases', () => {
     beforeEach(async () => {
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
     });
 
     it('should handle very long agent description', async () => {
       const node = { id: 'test_long_desc' } as any;
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         description: 'x'.repeat(10000),
       };
 
@@ -615,7 +631,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle special characters in agent name', async () => {
       const node = { id: 'test_special' } as any;
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         agent_name: 'Agent-!@#$%^&*()',
       };
 
@@ -627,7 +643,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle empty capabilities array', async () => {
       const node = { id: 'test_empty_caps' } as any;
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         capabilities: [],
       };
       await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -638,7 +654,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle missing agent_id (auto-generated)', async () => {
       const node = { id: 'test_autoid' } as any;
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         agent_id: '',
       };
       await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -650,7 +666,7 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle empty tags array', async () => {
       const node = { id: 'test_empty_tags' } as any;
       const config: AgentDiscoveryConfig = {
-        ...agentDiscoveryHandler.defaultConfig,
+        ...attachConfig(),
         tags: [],
       };
       await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
@@ -660,7 +676,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should handle multiple attach-detach cycles', async () => {
       const node = { id: 'test_cycle' } as any;
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
 
       await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
       expect(node.__agentDiscoveryState).toBeDefined();
@@ -674,7 +690,7 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should handle workflow: attach -> register -> discover -> query -> detach', async () => {
       const node = { id: 'workflow_node' } as any;
-      const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
+      const config = attachConfig();
 
       await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
       expect(node.__agentDiscoveryState).toBeDefined();
@@ -701,7 +717,7 @@ describe('AgentDiscoveryTrait', () => {
         delete node.__agentDiscoveryState;
 
         const config: AgentDiscoveryConfig = {
-          ...agentDiscoveryHandler.defaultConfig,
+          ...attachConfig(),
           discovery_mode: mode,
         };
 
