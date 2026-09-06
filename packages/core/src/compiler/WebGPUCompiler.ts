@@ -2072,14 +2072,22 @@ export class WebGPUCompiler extends CompilerBase {
     return [1.0, 1.0, 1.0];
   }
 
+  private asMaterialRecord(material: HoloValue | undefined): Record<string, unknown> | undefined {
+    if (material && typeof material === 'object' && !Array.isArray(material)) {
+      return material as Record<string, unknown>;
+    }
+    return undefined;
+  }
+
   private extractMaterialColor(
     material: HoloValue | undefined,
     color: HoloValue | undefined
   ): [number, number, number] {
     if (color) return this.parseColor(color);
-    if (material && typeof material === 'object' && !Array.isArray(material)) {
-      const m = material as Record<string, any>;
-      if (m.color) return this.parseColor(m.color);
+    const m = this.asMaterialRecord(material);
+    if (m) {
+      if (m.color !== undefined) return this.parseColor(m.color);
+      if (m.baseColor !== undefined) return this.parseColor(m.baseColor);
     }
     return [0.8, 0.8, 0.8];
   }
@@ -2089,9 +2097,15 @@ export class WebGPUCompiler extends CompilerBase {
     key: string,
     fallback: number
   ): number {
-    if (material && typeof material === 'object' && !Array.isArray(material)) {
-      const m = material as Record<string, any>;
-      if (m[key] !== undefined) return m[key];
+    const m = this.asMaterialRecord(material);
+    if (!m) return fallback;
+    const aliases: Record<string, string[]> = {
+      metalness: ['metalness', 'metallic'],
+      emissive_intensity: ['emissive_intensity', 'emissiveIntensity'],
+    };
+    for (const candidate of aliases[key] ?? [key]) {
+      const value = m[candidate];
+      if (typeof value === 'number') return value;
     }
     return fallback;
   }
