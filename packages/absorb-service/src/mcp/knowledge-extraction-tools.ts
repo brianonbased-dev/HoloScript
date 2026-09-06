@@ -14,6 +14,10 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { KnowledgeExtractor } from '../engine/KnowledgeExtractor';
 import type { ExtractionOptions, ExtractionResult } from '../engine/KnowledgeExtractor';
 import type { CodebaseGraph } from '../engine/CodebaseGraph';
+import {
+  hasObservedPageExtractInput,
+  ingestObservedPage,
+} from '../ingest/ingestObservedPage';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -43,6 +47,33 @@ export const knowledgeExtractionTools: Tool[] = [
         workspaceId: {
           type: 'string',
           description: 'Workspace/project name for entry IDs (default: "auto").',
+        },
+        observe: {
+          type: 'object',
+          description:
+            'Live browser_session observe payload (dom.bodyText and/or markdown). Absorbs one page into the existing knowledge-extract path.',
+        },
+        pageExtract: {
+          type: 'object',
+          description:
+            'Normalized page extract: { url?, title?, bodyText?, markdown? }. Same shape as observe.dom plus top-level markdown.',
+        },
+        markdown: {
+          type: 'string',
+          description: 'Observed page markdown from browser_session observe.',
+        },
+        bodyText: {
+          type: 'string',
+          description: 'Observed page bodyText from browser_session observe.',
+        },
+        url: {
+          type: 'string',
+          description:
+            'Single page URL to fetch as text and extract. One URL only — not a crawl.',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional page title when the observe payload does not include one.',
         },
       },
       required: [],
@@ -87,10 +118,33 @@ export async function handleKnowledgeExtractionTool(
     return respond({ error: `Unknown tool: ${toolName}` });
   }
 
+  const pageExtractInput = {
+    observe: args.observe,
+    pageExtract: args.pageExtract,
+    markdown: typeof args.markdown === 'string' ? args.markdown : undefined,
+    bodyText: typeof args.bodyText === 'string' ? args.bodyText : undefined,
+    url: typeof args.url === 'string' ? args.url : undefined,
+    title: typeof args.title === 'string' ? args.title : undefined,
+  };
+  let pageExtract:
+    | Awaited<ReturnType<typeof ingestObservedPage>>
+    | undefined;
+  if (hasObservedPageExtractInput(pageExtractInput)) {
+    try {
+      pageExtract = await ingestObservedPage(pageExtractInput);
+      setKnowledgeExtractionGraph(pageExtract.graph);
+    } catch (error) {
+      return respond({
+        error: 'page_extract_failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   if (!activeGraph) {
     return respond({
       error: 'No codebase graph loaded. Run absorb_run_absorb first to build the graph.',
-      hint: 'The knowledge extraction pipeline requires an absorbed codebase graph. Call absorb_run_absorb with a repo path, then call this tool.',
+      hint: 'Pass a browser_session observe payload (markdown/bodyText) or one URL, or call absorb_run_absorb / holo_absorb_repo first.',
     });
   }
 
@@ -108,6 +162,19 @@ export async function handleKnowledgeExtractionTool(
   return respond({
     success: true,
     ...result,
+    ...(pageExtract && {
+      pageExtract: {
+        kind: pageExtract.kind,
+        url: pageExtract.extract.url,
+        title: pageExtract.extract.title,
+        charCount: pageExtract.extract.charCount,
+        sha256: pageExtract.extract.sha256,
+        source: pageExtract.extract.source,
+        sourceFiles: pageExtract.sourceFiles.map((file) => file.path),
+        formatId: pageExtract.document.formatId,
+        holoPartial: pageExtract.holo.partial,
+      },
+    }),
     usage: {
       hint: 'Pass these entries to knowledge_publish to add them to the marketplace.',
       example:

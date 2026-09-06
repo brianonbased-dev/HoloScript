@@ -54,6 +54,7 @@ import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
 import { detectLanguage, getSupportedLanguages } from '../engine/adapters';
 import { auditHoloAbsorbManifest, buildHoloAbsorbManifest } from '../holoabsorb/index';
+import { absorbArgsHavePageExtract, foldObservedPageIntoAbsorbArgs } from './absorb-page-extract';
 
 // =============================================================================
 // DYNAMIC MODULE INTERFACE
@@ -6038,6 +6039,33 @@ export const codebaseTools: Tool[] = [
           description:
             'Inline source files to absorb when filesystem access is unavailable (e.g., remote MCP servers, containers). Provide EITHER rootDir OR sourceFiles — not both. Max 500 files, 5 MB total content. Path traversal attempts are rejected.',
         },
+        observe: {
+          type: 'object',
+          description:
+            'Live browser_session observe payload (dom.bodyText and/or markdown). Folds one page into the existing sourceFiles absorb path. Exclusive with rootDir/sourceFiles.',
+        },
+        pageExtract: {
+          type: 'object',
+          description:
+            'Normalized page extract: { url?, title?, bodyText?, markdown? }. Same store path as observe.',
+        },
+        markdown: {
+          type: 'string',
+          description: 'Observed page markdown from browser_session observe.',
+        },
+        bodyText: {
+          type: 'string',
+          description: 'Observed page bodyText from browser_session observe.',
+        },
+        url: {
+          type: 'string',
+          description:
+            'Single page URL to fetch as text and absorb. One URL only — not a crawl. Exclusive with rootDir/sourceFiles.',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional page title when the observe payload does not include one.',
+        },
         localCodebaseSnapshotReceipt: {
           type: 'object',
           description:
@@ -6946,7 +6974,7 @@ export async function handleCodebaseTool(
         ...(args.audit === false ? {} : { audit: auditHoloAbsorbManifest() }),
       };
     case 'holo_absorb_repo':
-      return handleAbsorb(args);
+      return handleAbsorbWithPageExtract(args);
     case 'holo_cancel_absorb':
       return handleCancelAbsorb(args);
     case 'holo_query_codebase':
@@ -8505,6 +8533,22 @@ function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
     'maxFiles',
     'maxFileSize',
   ].some((key) => args[key] !== undefined);
+}
+
+async function handleAbsorbWithPageExtract(args: Record<string, unknown>): Promise<unknown> {
+  if (!absorbArgsHavePageExtract(args)) {
+    return handleAbsorb(args);
+  }
+  const folded = await foldObservedPageIntoAbsorbArgs(args);
+  if (!folded.ok) {
+    return { error: folded.error, message: folded.message };
+  }
+  const result = await handleAbsorb(folded.args);
+  if (!result || typeof result !== 'object' || !folded.pageExtract) return result;
+  return {
+    ...(result as Record<string, unknown>),
+    pageExtract: folded.pageExtract,
+  };
 }
 
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
