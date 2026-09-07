@@ -1,8 +1,10 @@
-# Privacy Policy — Universal QR Scanner
+# Privacy Policy — HoloQR
 
-_Last updated: 2026-07-25_
+_Last updated: 2026-09-02_
 
-Universal QR Scanner ("the app") is a utility for Meta Quest 3 / 3S that reads QR codes using
+This Privacy Policy applies to the Meta Quest application named **HoloQR**.
+
+HoloQR ("the app") is a utility for Meta Quest 3 / 3S that reads QR codes using
 the headset's passthrough cameras and opens decoded links in the Quest Browser.
 
 ## What the app accesses

@@ -54,6 +54,7 @@ export interface QuestMrFeatures {
   reticleFraction: number;
   viewfinderHeightDp: number;
   followDistance: number;
+  followY: number;
   permission: string;
   cameraSource: number;
   cameraPosition: number;
@@ -125,7 +126,7 @@ export interface QuestMrFeatures {
 function defaults(): QuestMrFeatures {
   return {
     packageName: 'net.holoscript.qrscanner',
-    appName: 'Universal QR Scanner',
+    appName: 'HoloQR',
     panelX: 0.0,
     panelY: 1.3,
     panelZ: 1.5,
@@ -134,6 +135,7 @@ function defaults(): QuestMrFeatures {
     reticleFraction: 0.62,
     viewfinderHeightDp: 360,
     followDistance: 1.2,
+    followY: -0.12,
     permission: 'horizonos.permission.HEADSET_CAMERA',
     cameraSource: 0,
     cameraPosition: 0,
@@ -155,7 +157,7 @@ function defaults(): QuestMrFeatures {
     scanReceiptIncludePayload: false,
     scanReceiptMaxEntries: 1000,
     feedbackSound: true,
-    title: 'Universal QR Scanner',
+    title: 'HoloQR',
     tagline: 'Read any QR code — right in mixed reality',
     howTo: [],
     aimTip: '',
@@ -316,6 +318,8 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.reticleFraction = vnum(c.reticle_fraction, f.reticleFraction);
           f.viewfinderHeightDp = vnum(vobj(c.viewfinder).height_dp, f.viewfinderHeightDp);
           f.followDistance = vnum(c.follow_distance, f.followDistance);
+          const followOffset = vobj(c.follow_offset);
+          f.followY = vnum(followOffset.y, f.followY);
           break;
         }
         case 'onboarding':
@@ -582,6 +586,7 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     PANEL_QUAD_W: f.panelQuadW,
     PANEL_QUAD_H: f.panelQuadH,
     FOLLOW_DISTANCE: f.followDistance,
+    FOLLOW_Y: f.followY,
     LINK_PATTERNS: 'listOf(' + f.worldLinkPatterns.map((p) => kstr(p)).join(', ') + ')',
     AUTO_IMMERSE: String(f.autoImmerse),
     WORLD_ENTRY_CONSENT_EXPLICIT: String(f.worldEntryConsentExplicit),
@@ -884,23 +889,24 @@ export function emitProguardRules(): string {
 -dontwarn vros.os.**
 
 # Meta's native libraries register JNI methods by their Java class and method names.
-# Preserve only that external ABI while allowing unrelated SDK code to be optimized away.
 -keepclasseswithmembers,includedescriptorclasses class com.meta.spatial.** {
     native <methods>;
 }
-
-# Meta native code also invokes Java callback methods whose names begin with native.
 -keepclassmembers,includedescriptorclasses class com.meta.spatial.** {
     *** native*(...);
 }
-
-# Meta ISDK locates Spatial SDK Android resource classes with reflection.
 -keep class com.meta.spatial.**.R { *; }
 -keep class com.meta.spatial.**.R$* { *; }
-
-# Meta ISDK also resolves Toolkit and ISDK component types by class name.
 -keep class com.meta.spatial.toolkit.** { *; }
 -keep class com.meta.spatial.isdk.** { *; }
+
+# Native Scene/ISDK constructs these types from JNI on every frame. R8 dropping the
+# constructors SIGABRTs onSceneTick and Quest dumps the user back to Home.
+-keep class com.meta.spatial.core.** { *; }
+-keep class com.meta.spatial.runtime.** { *; }
+
+# ZXing uses DecodeHintType as map keys. R8 renaming those enums makes every QR read return null.
+-keep class com.google.zxing.** { *; }
 `;
 }
 
@@ -985,6 +991,7 @@ export function emitAndroidManifestXml(f: QuestMrFeatures): string {
       android:value="V2.0"
     />
     <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
+    <meta-data android:name="com.oculus.ossplash" android:value="true" />
     <uses-native-library
       android:name="libossdk.oculus.so"
       android:required="true"

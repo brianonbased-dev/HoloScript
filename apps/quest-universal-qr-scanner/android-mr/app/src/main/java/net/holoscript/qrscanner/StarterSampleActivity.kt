@@ -85,6 +85,33 @@ internal object QrPayloadFacts {
     }
   }
 
+  /**
+   * Phone QR generators often encode `www.facebook.com` with no scheme. Without this, classifyContent
+   * treats it as plain text, the result card has Copy instead of Bookmark, and Saved links stays empty.
+   */
+  fun asWebUrl(text: String): String? {
+    val trimmed = text.trim()
+    if (trimmed.isEmpty() || trimmed.any { Character.isISOControl(it) && it != '\n' && it != '\r' && it != '\t' }) {
+      return null
+    }
+    val candidate =
+        if (trimmed.startsWith("http://", ignoreCase = true) ||
+            trimmed.startsWith("https://", ignoreCase = true)) {
+          trimmed
+        } else {
+          if (trimmed.contains("://") || trimmed.contains(' ') || trimmed.contains('@')) return null
+          val hostPart = trimmed.substringBefore('/').substringBefore('?')
+          if (!hostPart.contains('.')) return null
+          if (hostPart.startsWith(".") || hostPart.endsWith(".")) return null
+          "https://$trimmed"
+        }
+    val uri = try { URI(candidate).parseServerAuthority() } catch (_: Exception) { return null }
+    val validPort = uri.port == -1 || uri.port in 1..65535
+    val http = uri.scheme.equals("http", true) || uri.scheme.equals("https", true)
+    if (!http || uri.host.isNullOrBlank() || uri.userInfo != null || !validPort) return null
+    return candidate
+  }
+
   fun syntaxSafe(text: String): Boolean {
     val trimmed = text.trim()
     if (trimmed.startsWith("BEGIN:VCARD", ignoreCase = true)) {
@@ -93,16 +120,11 @@ internal object QrPayloadFacts {
     if (trimmed.startsWith("BEGIN:VEVENT", ignoreCase = true)) {
       return validStructuredEnvelope(trimmed, "BEGIN:VEVENT", "END:VEVENT")
     }
+    if (asWebUrl(trimmed) != null) return true
     val declaresWebScheme =
         trimmed.startsWith("http:", ignoreCase = true) ||
             trimmed.startsWith("https:", ignoreCase = true)
-    if (!declaresWebScheme) return true
-    val uri = try { URI(trimmed).parseServerAuthority() } catch (_: Exception) { return false }
-    val validPort = uri.port == -1 || uri.port in 1..65535
-    return (uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) &&
-        !uri.host.isNullOrBlank() &&
-        uri.userInfo == null &&
-        validPort
+    return !declaresWebScheme
   }
 }
 
@@ -135,14 +157,18 @@ class StarterSampleActivity : AppSystemActivity() {
   private var playerYaw = 0f // degrees; the rig heading (right stick turns it)
   private var lastLocoNanos = 0L
 
-  // SplatFeature enables Meta's native Gaussian-splat rendering (com.meta.spatial.splat.Splat reads
-  // .spz/.ply, ≤150k splats on Quest 3) so compiled worlds can place splat clouds. It's an
-  // experimental API (@RequiresOptIn) and takes (SpatialContext, SystemManager). Registering it is
-  // inert for splat-free worlds — the marketing worlds emit no Splat entity, so it does nothing there.
+  // SplatFeature enables Meta's native Gaussian-splat rendering. It is experimental; a constructor
+  // failure must not crash the QR-scanner launch path that store review actually exercises.
   @OptIn(SpatialSDKExperimentalSplatAPI::class)
-  override fun registerFeatures(): List<SpatialFeature> =
-      mutableListOf<SpatialFeature>(
-          VRFeature(this), ComposeFeature(), SplatFeature(this.spatialContext, systemManager))
+  override fun registerFeatures(): List<SpatialFeature> {
+    val features = mutableListOf<SpatialFeature>(VRFeature(this), ComposeFeature())
+    try {
+      features.add(SplatFeature(this.spatialContext, systemManager))
+    } catch (e: Exception) {
+      Log.w(tag, "SplatFeature unavailable: ${e.message}")
+    }
+    return features
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -164,7 +190,15 @@ class StarterSampleActivity : AppSystemActivity() {
         lifecycle.fireActionComplete()
       }
     }
-    ScannerState.onStart = { maybeStartScanner() }
+    ScannerState.onStart = {
+      recoverLifecycleToIdle()
+      if (!resultCardShowing()) ScannerState.status = "Point at a QR code…"
+      maybeStartScanner()
+    }
+    ScannerState.onAbandon = {
+      recoverLifecycleToIdle()
+      ScannerState.reset()
+    }
     ScannerState.onDismiss = {
       when (lifecycle.state) {
         ScannerLifecycleMachine.State.CONSENT -> {
@@ -173,7 +207,7 @@ class StarterSampleActivity : AppSystemActivity() {
           lifecycle.fireDismissed()
         }
         ScannerLifecycleMachine.State.ACTION -> lifecycle.fireActionComplete()
-        else -> null
+        else -> recoverLifecycleToIdle()
       }
       controller?.resumeScanning()
     }
@@ -207,7 +241,11 @@ class StarterSampleActivity : AppSystemActivity() {
         ScannerState.status = "Leave blocked: lifecycle"
       }
     }
-    ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
+    try {
+      ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
+    } catch (e: Exception) {
+      Log.w(tag, "mock QR failed: ${e.message}")
+    }
 
     // In-app bookmarks: the @local_collection declaration controls whether this feature exists and
     // how app-private JSON storage is bounded, ordered, and deduplicated.
@@ -227,16 +265,19 @@ class StarterSampleActivity : AppSystemActivity() {
         lifecycle.fireActionComplete()
         return@bookmarkAction
       }
+      val canonical = QrPayloadFacts.asWebUrl(url) ?: url
       try {
         val base =
-            if (BOOKMARK_DEDUPLICATE) ScannerState.bookmarks.filter { it != url }
+            if (BOOKMARK_DEDUPLICATE) ScannerState.bookmarks.filter { it != canonical }
             else ScannerState.bookmarks
-        val ordered = if (BOOKMARK_MOST_RECENT) listOf(url) + base else base + url
+        val ordered = if (BOOKMARK_MOST_RECENT) listOf(canonical) + base else base + canonical
         val next = ordered.take(MAX_BOOKMARKS)
         ScannerState.bookmarks = next
         saveBookmarks(next)
+        controller?.pauseScanning() // Saved links: do not resume; QR may still be in view
+        ScannerState.status = "Saved"
         scanReceipts.record(
-            url,
+            canonical,
             "url",
             "bookmark",
             "user-bookmark",
@@ -264,23 +305,34 @@ class StarterSampleActivity : AppSystemActivity() {
         lifecycle.fireActionComplete()
       }
     }
-    if (!hasCameraPermission()) {
-      requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
-    }
+    // Do not prompt for the headset camera during VR launch. A 2D permission dialog on a
+    // Spatial app looks frozen to store review (VRC.Quest.Functional.1). Request it when the
+    // user taps Start scanning.
   }
 
-  // Returning from the Quest browser (or any background) releases the camera; re-arm scanning so the
-  // loop never gets stuck after Open/Dismiss. If the controller survived but was paused, resume it.
+  // Returning from the Quest browser (or any background) releases the camera. Re-open the
+  // Camera2 session; resumeScanning() on a dead device looks like the scanner "just stopped."
   override fun onResume() {
     super.onResume()
     if ((ScannerState.screen == Screen.SCANNING || ScannerState.screen == Screen.IN_WORLD) &&
         hasCameraPermission()) {
-      if (controller == null) maybeStartScanner() else controller?.resumeScanning()
+      if (controller?.hasLiveSession() != true) {
+        recoverLifecycleToIdle()
+        if (!resultCardShowing()) ScannerState.status = "Point at a QR code…"
+        controller?.stop()
+        controller = null
+        maybeStartScanner()
+      } else if (!resultCardShowing()) {
+        recoverLifecycleToIdle()
+        ScannerState.status = "Point at a QR code…"
+        controller?.resumeScanning()
+      }
     }
   }
 
   override fun onSceneReady() {
     super.onSceneReady()
+    try {
     scene.setReferenceSpace(ReferenceSpace.LOCAL_FLOOR)
 
     // Lighting for compiled worlds — a serene mountain-valley key/fill rig so PBR Materials shade
@@ -333,6 +385,9 @@ class StarterSampleActivity : AppSystemActivity() {
       )
     }
 
+    } catch (e: Exception) {
+      Log.e(tag, "scene ready failed: ${e.message}", e)
+    }
     sceneReady = true
 
     // MMO-style mobility invariant (F.118): a player is NEVER seated-locked in a world. If the scene
@@ -342,7 +397,9 @@ class StarterSampleActivity : AppSystemActivity() {
     if (ScannerState.screen == Screen.IN_WORLD) {
       startLocomotion()
     }
-    // Camera starts when the user taps "Start scanning" on the welcome screen (ScannerState.onStart).
+    // If the reviewer taps Start scanning before the Spatial scene finishes, retry here so the
+    // camera is not left permanently off (empty passthrough looks frozen to store review).
+    maybeStartScanner()
   }
 
   // Head-locked HUD: each frame, place the panel FOLLOW_DISTANCE m in front of the head, facing the
@@ -360,7 +417,7 @@ class StarterSampleActivity : AppSystemActivity() {
     if (!hasWindowFocus()) return
     if (ScannerState.screen == Screen.IN_WORLD) updateLocomotion() // MMO free-roam while immersed
     val p = panelEntity ?: return
-    val target = scene.getViewerPose().times(Pose(Vector3(0f, 0f, FOLLOW_DISTANCE)))
+    val target = scene.getViewerPose().times(Pose(Vector3(0f, FOLLOW_Y, FOLLOW_DISTANCE)))
     val cur = smoothPose
     val next =
         if (cur == null) {
@@ -382,31 +439,79 @@ class StarterSampleActivity : AppSystemActivity() {
     worldRenderer.tick()
   }
 
-  private fun maybeStartScanner() {
-    if (controller != null ||
-        !sceneReady ||
-        !hasCameraPermission() ||
-        ScannerState.screen != Screen.SCANNING)
-        return
-    ScannerState.status = "Point at a QR code…"
-    controller =
-        PassthroughCameraController(
-                context = this,
-                onDecoded = { text -> runOnUiThread { onDecoded(text) } },
-                onError = { msg -> runOnUiThread { ScannerState.status = msg } },
-            )
-            .also { it.start() }
+  private fun resultCardShowing(): Boolean =
+      ScannerState.pendingUrl != null ||
+          ScannerState.lastResult != null ||
+          ScannerState.pendingWorld != null
+
+  /**
+   * A missed dismiss / a second camera frame can leave the HSI machine off idle. decode_ready is
+   * only legal from idle, so later scans print "lifecycle not ready" forever. Drive back to idle on
+   * the existing edges before accepting the next QR.
+   */
+  private fun recoverLifecycleToIdle() {
+    when (lifecycle.state) {
+      ScannerLifecycleMachine.State.IDLE -> return
+      ScannerLifecycleMachine.State.ACTION -> lifecycle.fireActionComplete()
+      ScannerLifecycleMachine.State.CONSENT -> lifecycle.fireDismissed()
+      ScannerLifecycleMachine.State.DECODED -> lifecycle.fireInvalidPayload()
+      ScannerLifecycleMachine.State.CLASSIFIED -> {
+        lifecycle.fireActionReady()
+        lifecycle.fireActionComplete()
+      }
+    }
   }
 
-  private fun onDecoded(text: String) {
-    Log.i(tag, "decoded QR payload")
-    controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
-    if (scanSound) playScanTone() // audible confirmation cue (config: @qr_decode.feedback.sound)
-    if (lifecycle.fireDecodeReady()?.to != ScannerLifecycleMachine.State.DECODED) {
-      ScannerState.status = "Scan ignored: lifecycle not ready"
-      controller?.resumeScanning()
+  private fun maybeStartScanner() {
+    // Saved links / welcome / tutorial: never resume here. Bookmark leaves the camera paused
+    // on purpose; a scene-ready retry must not turn it back on while a Facebook QR is in view.
+    if (ScannerState.screen != Screen.SCANNING && ScannerState.screen != Screen.IN_WORLD) return
+    if (controller != null) {
+      if (!resultCardShowing()) controller?.resumeScanning()
       return
     }
+    if (!sceneReady) {
+      ScannerState.status = "Starting…"
+      return
+    }
+    if (!hasCameraPermission()) {
+      ScannerState.status = "Waiting for camera permission…"
+      requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
+      return
+    }
+    ScannerState.status = "Point at a QR code…"
+    try {
+      controller =
+          PassthroughCameraController(
+                  context = this,
+                  onDecoded = { text -> runOnUiThread { onDecoded(text) } },
+                  onError = { msg -> runOnUiThread { ScannerState.status = msg } },
+              )
+              .also { it.start() }
+    } catch (e: Exception) {
+      Log.e(tag, "camera start failed: ${e.message}", e)
+      controller = null
+      ScannerState.status = "Camera failed to start. Tap Menu, then Start scanning."
+    }
+  }
+
+  private fun onDecoded(raw: String) {
+    val text = QrPayloadFacts.asWebUrl(raw) ?: raw
+    Log.i(tag, "decoded QR payload")
+    // Saved links / welcome / tutorial must not accept a decode. Bookmark leaves the camera
+    // paused; if a frame still arrives, ignore it so the result card cannot pop back.
+    if (ScannerState.screen != Screen.SCANNING && ScannerState.screen != Screen.IN_WORLD) return
+    // Extra frames while a card is up must not resume the camera or clobber the card.
+    if (resultCardShowing()) return
+    if (lifecycle.state != ScannerLifecycleMachine.State.IDLE) recoverLifecycleToIdle()
+    controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
+    if (lifecycle.fireDecodeReady()?.to != ScannerLifecycleMachine.State.DECODED) {
+      recoverLifecycleToIdle()
+      controller?.resumeScanning()
+      ScannerState.status = "Point at a QR code…"
+      return
+    }
+    if (scanSound) playScanTone() // audible confirmation cue (config: @qr_decode.feedback.sound)
     // FUNCTIONAL-CORE / IMPERATIVE-SHELL: the ROUTING DECISION (which of four outcomes a scan is) is
     // .hs-authored pure boolean logic (Routing.decideRoute, below). This shell computes the three
     // boolean inputs — a HoloScript world link takes precedence (its own @world_portal patterns);
@@ -450,7 +555,8 @@ class StarterSampleActivity : AppSystemActivity() {
       return
     }
     if (lifecycle.fireClassificationReady()?.to != ScannerLifecycleMachine.State.CLASSIFIED) {
-      ScannerState.status = "Scan blocked: classification lifecycle"
+      recoverLifecycleToIdle()
+      ScannerState.status = "Point at a QR code…"
       controller?.resumeScanning()
       return
     }
@@ -459,21 +565,24 @@ class StarterSampleActivity : AppSystemActivity() {
         if (lifecycle.fireActionReady()?.to == ScannerLifecycleMachine.State.ACTION) {
           enterWorld(text)
         } else {
-          ScannerState.status = "World blocked: lifecycle"
+          recoverLifecycleToIdle()
+          ScannerState.status = "Point at a QR code…"
           controller?.resumeScanning()
         }
       }
       Routing.Route.PendingWorld -> {
         if (WORLD_ENTRY_CONSENT_EXPLICIT) {
           if (lifecycle.fireConsentRequested()?.to != ScannerLifecycleMachine.State.CONSENT) {
-            ScannerState.status = "World blocked: consent lifecycle"
+            recoverLifecycleToIdle()
+            ScannerState.status = "Point at a QR code…"
             controller?.resumeScanning()
             return
           }
           worldConsentRequestedAt = System.currentTimeMillis()
           if (WORLD_CONSENT_AUDIT_LOG) Log.i(tag, "world consent requested")
         } else if (lifecycle.fireActionReady()?.to != ScannerLifecycleMachine.State.ACTION) {
-          ScannerState.status = "World blocked: action lifecycle"
+          recoverLifecycleToIdle()
+          ScannerState.status = "Point at a QR code…"
           controller?.resumeScanning()
           return
         }
@@ -487,19 +596,21 @@ class StarterSampleActivity : AppSystemActivity() {
       }
       Routing.Route.OpenUrl -> {
         if (lifecycle.fireActionReady()?.to != ScannerLifecycleMachine.State.ACTION) {
-          ScannerState.status = "Link blocked: lifecycle"
+          recoverLifecycleToIdle()
+          ScannerState.status = "Point at a QR code…"
           controller?.resumeScanning()
           return
         }
         ScannerState.resultKind = c!!.kind
         ScannerState.resultLabel = c.label
-        ScannerState.pendingUrl = text
+        ScannerState.pendingUrl = QrPayloadFacts.asWebUrl(text) ?: text
         ScannerState.lastResult = null
         ScannerState.status = c.label + " — open it?"
       }
       Routing.Route.ShowResult -> {
         if (lifecycle.fireActionReady()?.to != ScannerLifecycleMachine.State.ACTION) {
-          ScannerState.status = "Result blocked: lifecycle"
+          recoverLifecycleToIdle()
+          ScannerState.status = "Point at a QR code…"
           controller?.resumeScanning()
           return
         }
@@ -650,11 +761,19 @@ class StarterSampleActivity : AppSystemActivity() {
     val name = Worlds.displayName(worldId) ?: WorldPortal.worldName(admittedLink)
     ScannerState.enterWorld(name)
     if (sceneReady) {
-      worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
-      scene.enablePassthrough(false)
-      // You're now IN the world — start custom continuous MMO locomotion (left stick = move/strafe,
-      // right stick = turn), free continuous roam. Spawn at the world origin facing the scene.
-      startLocomotion()
+      try {
+        worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
+        scene.enablePassthrough(false)
+        startLocomotion()
+      } catch (e: Exception) {
+        Log.e(tag, "world enter failed: ${e.message}", e)
+        try { scene.enablePassthrough(true) } catch (_: Exception) {}
+        ScannerState.leaveWorld()
+        ScannerState.status = "World failed to load"
+        controller?.resumeScanning()
+        lifecycle.fireActionComplete()
+        return
+      }
     }
     lifecycle.fireActionComplete()
     controller?.resumeScanning() // keep scanning inside the world
@@ -805,7 +924,8 @@ class StarterSampleActivity : AppSystemActivity() {
   // (compiler token CONTENT_WHEN). Edit the rule table in scanner.holo and recompile — never here.
   // First match wins; `pre()` is a case-insensitive startsWith over the trimmed payload.
   private fun classifyContent(text: String): QrContent {
-    val t = text.trim()
+    val web = QrPayloadFacts.asWebUrl(text)
+    val t = web ?: text.trim()
     fun pre(vararg ps: String): Boolean = ps.any { t.startsWith(it, ignoreCase = true) }
     return when {
       pre("http://", "https://") -> QrContent("url", "Link", QrAction.OPEN)
@@ -851,7 +971,8 @@ class StarterSampleActivity : AppSystemActivity() {
 
   private fun isSafeBookmarkUrl(value: String): Boolean {
     if (value.isBlank() || value.any(Character::isISOControl)) return false
-    val uri = try { Uri.parse(value) } catch (_: Exception) { return false }
+    val canonical = QrPayloadFacts.asWebUrl(value) ?: return false
+    val uri = try { Uri.parse(canonical) } catch (_: Exception) { return false }
     return (uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) &&
         !uri.host.isNullOrBlank()
   }
@@ -930,6 +1051,7 @@ class StarterSampleActivity : AppSystemActivity() {
   companion object {
     private const val REQUEST_CAMERA = 101
     private const val FOLLOW_DISTANCE = 1.2f
+    private const val FOLLOW_Y = -0.12f
     private const val HEAD_LOCK_SMOOTHING = 0.2f // 0..1 per tick; lower = smoother trail
     private const val PREFS_NAME = "holoqr" // SharedPreferences store for in-app bookmarks
     private const val PREFS_BOOKMARKS = "bookmarks" // private JSON array of validated URLs

@@ -98,13 +98,13 @@ Review flow:
 | Hero cover, 3000×900           | `store-assets/cover-hero-3000x900.png`        | Ready                    |
 | Icon, 512×512                  | `store-assets/icon-512.png`                   | Ready                    |
 | Spatial foreground, 180×180    | `store-assets/icon-spatialized-180.png`       | Optional; ready          |
-| Screenshots, five at 2560×1440 | On-headset capture from the release candidate | Submitted to Meta        |
+| Screenshots, five at 2560×1440 | `store-assets/screenshots/01-welcome.png`, `02-how-it-works.png`, `03-link-found.png`, `04-scanning.png`, `05-saved-links.png` | Overlay-free Quest captures (no marketing cards). `04-scanning.png` is the 1.0.3 Scanning pill on passthrough until a headset recapture exists. |
 | Trailer                        | None                                          | Optional; omitted for v1 |
 
 ## Current review state
 
-- Metadata: `Submitted`
-- Native binary: HoloQR `1.0.2`, `Submitted`
-- Submission date: 2026-07-26
-- Review date: not assigned
-- Next dashboard action: after approval, choose immediate release or schedule the release
+- Metadata: **rejected** on 2026-09-02 (privacy name, screenshot overlays, Functional.1 freeze)
+- Native binary to resubmit: HoloQR `1.0.4` (`versionCode 5`) — signed APK at `android-mr/app/build/outputs/apk/release/app-release.apk` (label **HoloQR**). Independent review is still **changes-requested**; founder-terminal upload only after headset proof.
+- Privacy policy on GitHub now uses the exact store name **HoloQR** at the same URL
+- Screenshots must be the overlay-free 2560×1440 plates in `store-assets/screenshots/` (do not reuse the rejected `01-scan-links-in-mixed-reality` set)
+- Next dashboard action: replace the five screenshots, upload `1.0.4`, Save Changes, resubmit from a founder terminal after headset proof. Do not upload from chat.
