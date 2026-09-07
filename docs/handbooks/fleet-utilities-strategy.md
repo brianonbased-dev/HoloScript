@@ -14,7 +14,11 @@ guards.
   `node scripts/holo-ci/check-hardware-app-envelopes.mjs`.
 - Package architecture gate: `corepack pnpm check:package-architecture`.
 - Coherence gate: `corepack pnpm check:fleet-utilities`.
-- Package consumption gate: `corepack pnpm check:package-consumption:full`.
+- Published package consumption bar: `corepack pnpm check:package-consumption`
+  (live registry cold-start for `@holoscript/core`, `@holoscript/cli`, and
+  `@holoscript/mcp-server`). Local pack/wheel extras still run through
+  `corepack pnpm check:package-consumption:full`, which also requires that
+  published install.
 - HoloLlama consumption gate: `corepack pnpm check:holollama-consumption`.
 - PyPI consumption gate: `corepack pnpm check:pypi-consumption`.
 - v1 package lane: `scripts/holo-ci/npm-v1-release-manifest.json`.
