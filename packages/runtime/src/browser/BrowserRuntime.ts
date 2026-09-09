@@ -16,7 +16,7 @@ import {
   MATERIAL_PRESETS,
   type R3FMaterialProps,
 } from '@holoscript/core';
-import { emit, on } from '../events.js';
+import { bridgeCoreEventBus, emit, on } from '../events.js';
 import { isVRCapable } from '../device.js';
 import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { TraitSystem } from '../traits/TraitSystem';
@@ -961,6 +961,9 @@ class BrowserRuntime implements HoloScriptRuntime {
   // Live subscription for the loaded composition's declared hooks. Held so a reload can
   // detach the previous composition's handlers before attaching the new ones.
   private unsubscribeHandlers: (() => void) | null = null;
+  // Forwards core-bus traffic (where traits emit) onto this runtime's bus (where declared
+  // hooks listen). Held so dispose can detach it.
+  private unbridgeCoreBus: (() => void) | null = null;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
@@ -1233,6 +1236,11 @@ class BrowserRuntime implements HoloScriptRuntime {
         this.composition.logic.eventHandlers,
         (handler, args) => this.runAction(handler, args)
       );
+      // Wiring the hooks is only half of it: traits emit on core's shared bus, not this one,
+      // so without the bridge a declared hook still never hears a trait. Idempotent by
+      // detach-then-attach, and a no-op in an app that never runs core's runtime.
+      this.unbridgeCoreBus?.();
+      this.unbridgeCoreBus = bridgeCoreEventBus();
       // Load module imports
       if (this.composition.imports.length > 0) {
         const modules = await moduleLoader.loadImports(this.composition.imports);
@@ -1409,6 +1417,8 @@ class BrowserRuntime implements HoloScriptRuntime {
     // against a torn-down scene every time any trait emits.
     this.unsubscribeHandlers?.();
     this.unsubscribeHandlers = null;
+    this.unbridgeCoreBus?.();
+    this.unbridgeCoreBus = null;
 
     // Cleanup Three.js
     this.renderer.dispose();

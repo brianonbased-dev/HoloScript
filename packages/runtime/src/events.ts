@@ -5,8 +5,16 @@
  * Supports both internal events and window CustomEvents for cross-context messaging.
  */
 
+import { getSharedEventBus } from '@holoscript/core';
+
 export type EventCallback<T = unknown> = (data: T) => void;
 export type UnsubscribeFn = () => void;
+
+/** The shape this bridge needs from core's bus: a wildcard subscribe, and an id-based off. */
+export interface CoreBusLike {
+  on(event: string, callback: (data: unknown) => void, priority?: number): number;
+  off(listenerId: number): void;
+}
 
 /**
  * Event Bus class for pub/sub messaging
@@ -121,6 +129,48 @@ export const on = eventBus.on.bind(eventBus);
 export const once = eventBus.once.bind(eventBus);
 export const emit = eventBus.emit.bind(eventBus);
 export const off = eventBus.off.bind(eventBus);
+
+/**
+ * Forward every event emitted on core's shared bus onto this one.
+ *
+ * THE GAP THIS CLOSES. Traits emit through core's bus — HoloScriptRuntime.globalBusEmit
+ * calls getSharedEventBus().emit — while compositions and BrowserRuntime listen on the bus
+ * in this file. They are different classes with incompatible APIs (core's `on` returns a
+ * numeric listener id and `off` takes that id; this one returns an unsubscribe function), so
+ * they were never interchangeable, and `setSharedEventBus` is exported and called nowhere.
+ * A trait announcing `memory_recalled` and a composition declaring `on_memory_recalled` were
+ * on opposite sides of that wall, each working perfectly.
+ *
+ * DIRECTION IS ONE-WAY, core -> runtime. Nothing here emits back onto core, so the bridge
+ * cannot loop; a test pins that runtime traffic does not appear on the core bus, so whoever
+ * adds the second direction later finds out immediately rather than in a stack overflow.
+ *
+ * The guard is PER EVENT NAME, not a single flag. A global flag would suppress an unrelated
+ * event emitted while another was being forwarded — a legitimate cascade silently dropped.
+ * This only stops an event from re-forwarding *itself*.
+ *
+ * Lives in runtime because runtime depends on @holoscript/core and not the reverse; putting
+ * it in core would invert the package dependency.
+ */
+export function bridgeCoreEventBus(
+  coreBus: CoreBusLike = getSharedEventBus() as unknown as CoreBusLike,
+  target: EventBus = eventBus
+): UnsubscribeFn {
+  const inFlight = new Set<string>();
+  // Core supports a '*' wildcard listener that receives {event, data}, so one subscription
+  // covers every event name rather than one per name.
+  const listenerId = coreBus.on('*', (payload: unknown) => {
+    const { event, data } = (payload ?? {}) as { event?: string; data?: unknown };
+    if (typeof event !== 'string' || inFlight.has(event)) return;
+    inFlight.add(event);
+    try {
+      target.emit(event, data);
+    } finally {
+      inFlight.delete(event);
+    }
+  });
+  return () => coreBus.off(listenerId);
+}
 
 /**
  * Listen to window CustomEvents from HoloScript

@@ -26,7 +26,8 @@
  * accepted, and it silently never runs.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { eventBus } from '../events.js';
+import { eventBus, bridgeCoreEventBus } from '../events.js';
+import { getSharedEventBus } from '@holoscript/core';
 import {
   handlerEventAliases,
   subscribeCompositionHandlers,
@@ -128,5 +129,136 @@ describe('declared lifecycle hooks are dispatched', () => {
     // No prefix to strip: one alias, and no empty-string alias that would match nothing.
     expect(handlerEventAliases('custom_thing')).toEqual(['custom_thing']);
     expect(handlerEventAliases('on_')).toEqual(['on_']);
+  });
+});
+
+/**
+ * The two buses, bridged.
+ *
+ * THE GAP. Traits emit through core's shared bus (HoloScriptRuntime.globalBusEmit ->
+ * getSharedEventBus().emit). Compositions listen on the runtime bus
+ * (packages/runtime/src/events.ts). They are different classes with different APIs — core's
+ * on() returns a numeric listener id and off(id) takes it; runtime's on() returns an
+ * unsubscribe function — so they were never interchangeable, and nothing joined them.
+ * setSharedEventBus is exported and called nowhere in the repo.
+ *
+ * Consequence: a trait announcing `memory_recalled` and a composition declaring
+ * `on_memory_recalled { ... }` were on opposite sides of a wall, each working correctly.
+ *
+ * Direction is core -> runtime ONLY. runtime's emit never calls into core, so one-way
+ * forwarding cannot loop; the guard below exists so that a future second direction, or a
+ * handler that re-emits the event it is handling, cannot turn this into a stack overflow.
+ * The bridge lives in runtime because runtime depends on @holoscript/core and not the
+ * reverse — putting it in core would invert the package dependency.
+ */
+describe('bridging the core bus to the runtime bus', () => {
+  let stop: (() => void) | undefined;
+
+  beforeEach(() => {
+    eventBus.clear();
+    getSharedEventBus().clear();
+  });
+  afterEach(() => {
+    stop?.();
+    stop = undefined;
+    eventBus.clear();
+    getSharedEventBus().clear();
+  });
+
+  it('delivers a core-bus emit to a runtime-bus listener, name and payload intact', () => {
+    const seen: Array<{ name: string; data: unknown }> = [];
+    eventBus.on('memory_recalled', (data) => seen.push({ name: 'memory_recalled', data }));
+
+    stop = bridgeCoreEventBus();
+    getSharedEventBus().emit('memory_recalled', { query: 'q', total: 2 });
+
+    expect(seen).toHaveLength(1);
+    // The wildcard listener receives {event, data}; forwarding must unwrap it, or every
+    // listener gets the envelope instead of its payload.
+    expect(seen[0].data).toEqual({ query: 'q', total: 2 });
+  });
+
+  // THE WHOLE CHAIN. This is the property the two commits exist for: a trait announces the
+  // bare name on core's bus, and a composition's declared on_-prefixed hook runs.
+  it('runs a composition hook declared on_X when a trait emits X on the core bus', () => {
+    const ran: string[] = [];
+    const handlers = new Map([
+      ['on_memory_recalled', { name: 'on_memory_recalled', params: ['data'], body: [] }],
+    ]);
+    const unsubHandlers = subscribeCompositionHandlers(handlers, (def) => ran.push(def.name));
+    stop = () => {
+      unsubHandlers();
+      bridgeStop();
+    };
+    const bridgeStop = bridgeCoreEventBus();
+
+    // AgentMemoryTrait.ts:402 emits exactly this, on exactly this bus.
+    getSharedEventBus().emit('memory_recalled', { query: 'q' });
+
+    expect(ran).toEqual(['on_memory_recalled']);
+  });
+
+  it('delivers once per emit, not once per listener registration', () => {
+    let count = 0;
+    eventBus.on('twin_sync', () => { count += 1; });
+    stop = bridgeCoreEventBus();
+
+    getSharedEventBus().emit('twin_sync', {});
+    expect(count).toBe(1);
+  });
+
+  // TEETH: the bridge must be removable, or a disposed runtime keeps receiving forever.
+  it('stops forwarding once unbridged', () => {
+    let count = 0;
+    eventBus.on('plane_lost', () => { count += 1; });
+    const off = bridgeCoreEventBus();
+
+    getSharedEventBus().emit('plane_lost', {});
+    expect(count).toBe(1);
+
+    off();
+    getSharedEventBus().emit('plane_lost', {});
+    expect(count).toBe(1);
+  });
+
+  // TEETH: one-way. Runtime-bus traffic must NOT appear on the core bus, or the next person
+  // to bridge the other direction gets an infinite loop and this test is why they don't.
+  it('does not forward runtime-bus events back onto the core bus', () => {
+    const onCore: string[] = [];
+    getSharedEventBus().on('*', (p) => onCore.push((p as { event: string }).event));
+    stop = bridgeCoreEventBus();
+
+    eventBus.emit('runtime_only_event', {});
+    expect(onCore).toEqual([]);
+  });
+
+  // TEETH: the re-entrancy guard must be per EVENT, not a single flag. A global flag would
+  // silently swallow an unrelated event emitted while another was mid-forward — a real
+  // cascade dropped with no error, which is the failure shape this whole arc keeps finding.
+  it('still forwards a DIFFERENT event emitted while one is being forwarded', () => {
+    const seen: string[] = [];
+    eventBus.on('first', () => {
+      seen.push('first');
+      getSharedEventBus().emit('second', {});
+    });
+    eventBus.on('second', () => seen.push('second'));
+    stop = bridgeCoreEventBus();
+
+    getSharedEventBus().emit('first', {});
+    expect(seen).toEqual(['first', 'second']);
+  });
+
+  // TEETH: a handler that re-emits the event it is handling must not recurse forever.
+  it('survives a handler that re-emits the same event on the core bus', () => {
+    let count = 0;
+    eventBus.on('echo', () => {
+      count += 1;
+      if (count < 50) getSharedEventBus().emit('echo', {});
+    });
+    stop = bridgeCoreEventBus();
+
+    expect(() => getSharedEventBus().emit('echo', {})).not.toThrow();
+    // Re-entrant forwarding is suppressed, so the echo does not cascade.
+    expect(count).toBe(1);
   });
 });
