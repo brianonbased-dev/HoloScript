@@ -15,6 +15,7 @@
  * Usage: pnpm viewreg:build   |   pnpm viewreg:check  (--strict, CI gate)
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
+import { format, resolveConfig } from 'prettier';
 import { join, extname, basename } from 'path';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { Native2DCompiler } from '../../core/src/compiler/Native2DCompiler';
@@ -98,6 +99,29 @@ function hasNativeContent(ast: any): boolean {
 }
 
 /** Compile a native panel composition to a @generated React component. Returns the component name. */
+// Every generated file is written through here so it can be formatted once,
+// together, at the end. Without this the generator emits raw output while the
+// committed copies are prettier-formatted, so a build leaves ~11 files dirty
+// with a diff that is pure whitespace and quote style — and real drift hides
+// in that noise. Note prettier is applied via the API, which does not consult
+// .prettierignore; viewRegistry.generated.ts is ignored there but its
+// committed form IS formatted, so the API path is what reproduces it.
+const EMITTED: string[] = [];
+
+function emit(file: string, code: string): void {
+  writeFileSync(file, code, 'utf-8');
+  EMITTED.push(file);
+}
+
+async function formatEmitted(): Promise<void> {
+  for (const file of EMITTED) {
+    const config = await resolveConfig(file);
+    const source = readFileSync(file, 'utf-8');
+    const pretty = await format(source, { ...config, filepath: file });
+    if (pretty !== source) writeFileSync(file, pretty, 'utf-8');
+  }
+}
+
 function compileNativePanel(ast: any, id: string): string {
   const capitalized = id.charAt(0).toUpperCase() + id.slice(1);
   const compiler = new Native2DCompiler();
@@ -105,7 +129,7 @@ function compileNativePanel(ast: any, id: string): string {
     format: 'react',
   });
   mkdirSync(NATIVE_OUT_DIR, { recursive: true });
-  writeFileSync(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code, 'utf-8');
+  emit(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code);
   return `${capitalized}Component`;
 }
 
@@ -123,7 +147,7 @@ function compileNativeFragment(ast: any, id: string): string {
     format: 'react',
   });
   mkdirSync(NATIVE_OUT_DIR, { recursive: true });
-  writeFileSync(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code, 'utf-8');
+  emit(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code);
   return `${componentName}Component`;
 }
 
@@ -233,7 +257,7 @@ function build(): void {
       2
     )};\n`;
 
-  writeFileSync(OUT_PATH, out);
+  emit(OUT_PATH, out);
 
   // Companion: literal dynamic-import map for slotted views. Webpack cannot
   // import(variableString), so the literal paths must be emitted at build time.
@@ -260,7 +284,7 @@ function build(): void {
       )
       .join('\n') +
     '\n};\n';
-  writeFileSync(COMPONENTS_OUT_PATH, componentsOut);
+  emit(COMPONENTS_OUT_PATH, componentsOut);
 
   console.log(
     `\nWrote ${defs.length} view(s) → ${OUT_PATH}\n` +
@@ -276,4 +300,10 @@ function build(): void {
   }
 }
 
-build();
+(async () => {
+  build();
+  await formatEmitted();
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
