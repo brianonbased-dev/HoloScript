@@ -389,3 +389,83 @@ export const LIFECYCLE_HOOKS = [
 ] as const;
 
 export type LifecycleHookName = (typeof LIFECYCLE_HOOKS)[number];
+
+/**
+ * The prefix that marks a lifecycle HOOK DECLARATION, as opposed to the event it reacts to.
+ *
+ * You declare `on_memory_recalled` to react to the event `memory_recalled` — the same shape
+ * as declaring `onclick` for the `click` event. The bare name is the event; the prefixed
+ * name is how a composition asks to hear it.
+ *
+ * WHY THIS IS THE RULE, measured 2026-09-09 rather than chosen by taste:
+ *   - LIFECYCLE_HOOKS is 164 entries and 164 of them carry the prefix — the declaration
+ *     vocabulary is already completely uniform.
+ *   - Emitters are not: of 1,803 distinct emitted names across packages/core/src/traits,
+ *     1,592 are bare and 211 prefixed.
+ *   - That 211 is drift, not a second convention: 71 of the 77 files that emit a prefixed
+ *     name ALSO emit bare ones, so traits are inconsistent with themselves.
+ * The uniform side is therefore the intended one, and the bare name is the event.
+ *
+ * These helpers exist because FIVE places each re-derived this relationship differently and
+ * none of them shared — ColyseusCompiler tried three spellings and hoped, DTDLCompiler
+ * stripped a regex, LensStudioCompiler concatenated — while the runtime resolved it nowhere
+ * at all, which is why a declared hook could parse, validate, and never run.
+ */
+export const HOOK_PREFIX = 'on_';
+
+/**
+ * The event a declared hook reacts to. Idempotent: an already-bare name is returned as-is,
+ * and the prefix alone is left intact rather than stripped to '' — a hook mapped onto the
+ * empty string would subscribe to a name nothing can emit, which fails silently.
+ */
+export function eventNameForHook(hook: string): string {
+  if (!hook.startsWith(HOOK_PREFIX)) return hook;
+  const bare = hook.slice(HOOK_PREFIX.length);
+  return bare.length > 0 ? bare : hook;
+}
+
+/**
+ * The hook declaration that reacts to an event. Idempotent, so the drifted emitters that
+ * already send `on_x` do not produce `on_on_x`.
+ */
+export function hookNameForEvent(event: string): string {
+  return event.startsWith(HOOK_PREFIX) ? event : `${HOOK_PREFIX}${event}`;
+}
+
+/**
+ * Every name a declared hook must listen on: the declaration itself, plus the bare event.
+ *
+ * KNOWN DUPLICATE, recorded so it does not become drift: packages/runtime/src/browser/
+ * BrowserRuntime.ts carries handlerEventAliases, which implements this same rule. It cannot
+ * import this yet because @holoscript/core resolves to its BUILT DIST for that package and
+ * these helpers are newer than that build. Replace it with an import from here the next
+ * time core is rebuilt. Both sides assert the same cases in their tests, so a divergence
+ * fails a test rather than silently splitting the vocabulary again — which is the exact
+ * failure this whole helper exists to end.
+ *
+ * Both are needed because emitters use both spellings, and de-duplicated because a hook
+ * declared without the prefix would otherwise subscribe to the same name twice and run
+ * twice per emit.
+ */
+export function hookListenNames(hook: string): string[] {
+  const event = eventNameForHook(hook);
+  return event === hook ? [hook] : [hook, event];
+}
+
+/**
+ * Whether a name is written as a hook DECLARATION — i.e. carries the prefix.
+ *
+ * Distinct from isHookName, and the distinction is load-bearing: the catalog is not closed.
+ * HoloScriptPlusParser accepts hook blocks whose names are absent from LIFECYCLE_HOOKS
+ * ("They may not be in LIFECYCLE_HOOKS, but they still must consume the body"), so a guard
+ * that asks "is this in the catalog" silently drops every hook an author invented. Use this
+ * for "is this shaped like a hook"; use isHookName only to validate against the catalog.
+ */
+export function hasHookPrefix(name: string): boolean {
+  return name.startsWith(HOOK_PREFIX) && name.length > HOOK_PREFIX.length;
+}
+
+/** Whether a name is a known lifecycle hook declaration from the catalog above. */
+export function isHookName(name: string): boolean {
+  return (LIFECYCLE_HOOKS as readonly string[]).includes(name);
+}
