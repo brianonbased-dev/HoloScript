@@ -9,7 +9,7 @@
  *  - Zero-overhead for sync handlers (fast-path check).
  *  - Per-node concurrency cap (maxConcurrent, default 3).
  *  - FIFO queue for excess concurrent calls.
- *  - Emits: on_async_start, on_async_done, on_async_error.
+ *  - Emits: async_start, async_done, async_error.
  *
  * @module AsyncTraitExecutor
  * @version 1.0.0
@@ -106,7 +106,7 @@ export class AsyncTraitExecutor {
       // Sync throw — still track as error state
       const error = err instanceof Error ? err : new Error(String(err));
       this.setState(key, { status: 'error', error });
-      this.emit('on_async_error', { nodeId, handlerName, error: error.message });
+      this.emit('async_error', { nodeId, handlerName, error: error.message });
       return { status: 'error', error };
     }
 
@@ -130,7 +130,7 @@ export class AsyncTraitExecutor {
     // ----- Track loading -----
     this.inflightCounts.set(key, current + 1);
     this.setState(key, { status: 'loading', startedAt: Date.now() });
-    this.emit('on_async_start', { nodeId, handlerName });
+    this.emit('async_start', { nodeId, handlerName });
 
     try {
       const value = await (rawResult as Promise<unknown>);
@@ -140,12 +140,12 @@ export class AsyncTraitExecutor {
         startedAt: this.states.get(key)?.startedAt,
         finishedAt,
       });
-      this.emit('on_async_done', { nodeId, handlerName, value });
+      this.emit('async_done', { nodeId, handlerName, value });
       return { status: 'done', value };
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       this.setState(key, { status: 'error', error });
-      this.emit('on_async_error', { nodeId, handlerName, error: error.message });
+      this.emit('async_error', { nodeId, handlerName, error: error.message });
       return { status: 'error', error };
     } finally {
       // Decrement inflight and drain one queued call if available
