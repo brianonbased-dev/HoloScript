@@ -149,7 +149,7 @@ describe('ropeHandler.onUpdate', () => {
     ropeHandler.onUpdate!(node, config, ctx, 0.016);
     expect(node.__ropeState.isSnapped).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('rope_break', expect.anything());
-    expect(ctx.emit).toHaveBeenCalledWith('on_rope_snap', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('rope_snap', expect.anything());
   });
   it('breakable rope does NOT snap when tension equals break_force exactly', () => {
     const { node, config, ctx } = attach({ breakable: true, break_force: 500 });

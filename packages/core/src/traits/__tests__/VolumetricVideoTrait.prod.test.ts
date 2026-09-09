@@ -166,7 +166,7 @@ describe('VolumetricVideoTrait — onUpdate', () => {
     ctx.emit.mockClear();
     update(node, cfg, ctx, 16); // 16ms → 0.016s → frame += 0.016/1000 * 30 * 1 = 0.48
     expect(ctx.emit).toHaveBeenCalledWith('volumetric_render_frame', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_frame', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('volume_frame', expect.any(Object));
     expect(st(node).currentFrame).toBeGreaterThan(0);
   });
 
@@ -181,7 +181,7 @@ describe('VolumetricVideoTrait — onUpdate', () => {
     st(node).currentFrame = 30;
     ctx.emit.mockClear();
     update(node, cfg, ctx, 16);
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_loop', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('volume_loop', expect.any(Object));
     expect(st(node).playbackState).toBe('playing'); // still playing after loop
   });
 
@@ -195,7 +195,7 @@ describe('VolumetricVideoTrait — onUpdate', () => {
     st(node).currentFrame = 31;
     ctx.emit.mockClear();
     update(node, cfg, ctx, 16);
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_complete', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('volume_complete', expect.any(Object));
     expect(st(node).playbackState).toBe('stopped');
   });
 
@@ -222,7 +222,7 @@ describe('VolumetricVideoTrait — onEvent: volumetric_play', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'volumetric_play' });
     expect(st(node).playbackState).toBe('playing');
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_play', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('volume_play', expect.any(Object));
   });
 
   it('emits spatial audio sync when spatial_audio=true and audio_source set', () => {
@@ -260,7 +260,7 @@ describe('VolumetricVideoTrait — onEvent: volumetric_pause', () => {
     fire(node, cfg, ctx, { type: 'volumetric_pause' });
     expect(st(node).playbackState).toBe('paused');
     expect(ctx.emit).toHaveBeenCalledWith('volumetric_pause_audio', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_pause', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('volume_pause', expect.any(Object));
   });
 });
 
@@ -277,7 +277,7 @@ describe('VolumetricVideoTrait — onEvent: volumetric_stop', () => {
     expect(st(node).playbackState).toBe('stopped');
     expect(st(node).currentTime).toBeCloseTo(2.0);
     expect(st(node).currentFrame).toBeCloseTo(60); // 2.0 * 30
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_stop', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('volume_stop', expect.any(Object));
   });
 });
 
@@ -294,7 +294,7 @@ describe('VolumetricVideoTrait — onEvent: volumetric_seek', () => {
     expect(st(node).currentTime).toBeCloseTo(5.0);
     expect(st(node).currentFrame).toBeCloseTo(150); // 5 * 30
     expect(st(node).bufferedFrames).toBe(0);
-    expect(ctx.emit).toHaveBeenCalledWith('on_volume_seek', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('volume_seek', expect.any(Object));
   });
 
   it('clamps below start_time to start_time', () => {
@@ -322,7 +322,7 @@ describe('VolumetricVideoTrait — onEvent: volumetric_loaded', () => {
     expect(st(node).currentTime).toBeCloseTo(1.0); // start_time
     expect(st(node).currentFrame).toBeCloseTo(30); // 1.0 * 30
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_volume_loaded',
+      'volume_loaded',
       expect.objectContaining({ duration: 10, totalFrames: 300, fps: 30 })
     );
   });
@@ -372,7 +372,7 @@ describe('VolumetricVideoTrait — onEvent: volumetric_error', () => {
     fire(node, cfg, ctx, { type: 'volumetric_error', error: 'DECODE_FAIL' });
     expect(st(node).playbackState).toBe('error');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_volume_error',
+      'volume_error',
       expect.objectContaining({ error: 'DECODE_FAIL' })
     );
   });

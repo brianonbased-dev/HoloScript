@@ -105,10 +105,10 @@ export const biofeedbackHandler: TraitHandler<BiofeedbackConfig> = {
 
     if (event.type === 'biofeedback_device_connected') {
       state.isConnected = true;
-      context.emit?.('on_biofeedback_ready', { node, sources: config.sources });
+      context.emit?.('biofeedback_ready', { node, sources: config.sources });
     } else if (event.type === 'biofeedback_device_disconnected') {
       state.isConnected = false;
-      context.emit?.('on_biofeedback_lost', { node });
+      context.emit?.('biofeedback_lost', { node });
     } else if (event.type === 'biofeedback_sample') {
       const source = event.source as BiofeedbackSource;
       const rawValue = event.value as number;

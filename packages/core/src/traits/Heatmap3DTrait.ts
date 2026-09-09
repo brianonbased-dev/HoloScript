@@ -166,7 +166,7 @@ export const heatmap3dHandler: TraitHandler<Heatmap3DConfig> = {
         range: { min: state.minValue, max: state.maxValue },
       });
 
-      context.emit?.('on_heatmap_update', {
+      context.emit?.('heatmap_update', {
         node,
         pointCount: state.dataPoints.length,
         range: { min: state.minValue, max: state.maxValue },

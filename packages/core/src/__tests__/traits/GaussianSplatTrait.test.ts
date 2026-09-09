@@ -442,7 +442,7 @@ describe('GaussianSplatTrait — onEvent(splat_load_complete)', () => {
     expect(st.isLoaded).toBe(true);
     expect(st.splatCount).toBe(250000);
     expect(st.gaussianBudgetUsed).toBe(250000);
-    expect(ctx.emitted.some((e) => e.event === 'on_splat_loaded')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'splat_loaded')).toBe(true);
   });
 });
 
@@ -456,7 +456,7 @@ describe('GaussianSplatTrait — onEvent(splat_load_error)', () => {
       type: 'splat_load_error',
       error: 'Not found',
     });
-    expect(ctx.emitted.some((e) => e.event === 'on_splat_error')).toBe(true);
+    expect(ctx.emitted.some((e) => e.event === 'splat_error')).toBe(true);
     expect(getState(node).isLoading).toBe(false);
   });
 });
@@ -472,7 +472,7 @@ describe('GaussianSplatTrait — onEvent(splat_load_progress)', () => {
       progress: 0.45,
       loadedSplats: 112500,
     });
-    const prg = ctx.emitted.find((e) => e.event === 'on_splat_progress');
+    const prg = ctx.emitted.find((e) => e.event === 'splat_progress');
     expect(prg).toBeDefined();
     expect((prg!.data as any).progress).toBe(0.45);
   });

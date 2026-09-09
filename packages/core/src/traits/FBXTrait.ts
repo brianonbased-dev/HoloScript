@@ -547,7 +547,7 @@ async function loadFBXAsset(
     });
 
     // Emit standard asset loaded hook
-    context.emit('on_asset_loaded', {
+    context.emit('asset_loaded', {
       node,
       assetType: 'fbx',
       source: config.source,
@@ -562,7 +562,7 @@ async function loadFBXAsset(
       error: state.error,
     });
 
-    context.emit('on_asset_error', {
+    context.emit('asset_error', {
       node,
       assetType: 'fbx',
       source: config.source,

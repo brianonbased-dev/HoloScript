@@ -380,7 +380,7 @@ function applyHandMeshResult(
 
   meshState.is_generating = false;
 
-  context.emit?.('on_hand_mesh_updated', {
+  context.emit?.('hand_mesh_updated', {
     node,
     hand,
     mesh,

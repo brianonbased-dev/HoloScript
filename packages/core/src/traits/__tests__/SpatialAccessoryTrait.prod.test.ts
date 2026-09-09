@@ -197,7 +197,7 @@ describe('spatialAccessoryHandler.onEvent — accessory_connected', () => {
       type: 'accessory_connected',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_accessory_connected',
+      'accessory_connected',
       expect.objectContaining({ deviceType: 'haptic_gloves' })
     );
   });
@@ -214,7 +214,7 @@ describe('spatialAccessoryHandler.onEvent — accessory_disconnected', () => {
       type: 'accessory_disconnected',
     });
     expect((node as any).__spatialAccessoryState.isConnected).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_accessory_disconnected', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('accessory_disconnected', expect.any(Object));
   });
 });
 
@@ -266,7 +266,7 @@ describe('spatialAccessoryHandler.onEvent — accessory_input', () => {
       value: 1.0,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_accessory_input',
+      'accessory_input',
       expect.objectContaining({
         button: 'trigger',
         action: 'fire',
@@ -283,7 +283,7 @@ describe('spatialAccessoryHandler.onEvent — accessory_input', () => {
       button: 'grip',
       value: 0.5,
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_accessory_input', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('accessory_input', expect.anything());
   });
 
   it('emits on_pressure_change when pressure_sensitivity=true and 0 < value < 1', () => {
@@ -295,7 +295,7 @@ describe('spatialAccessoryHandler.onEvent — accessory_input', () => {
       value: 0.6,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_pressure_change',
+      'pressure_change',
       expect.objectContaining({ pressure: 0.6 })
     );
   });
@@ -308,7 +308,7 @@ describe('spatialAccessoryHandler.onEvent — accessory_input', () => {
       button: 'pen_tip',
       value: 0.6,
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_pressure_change', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('pressure_change', expect.anything());
   });
 });
 
@@ -378,7 +378,7 @@ describe('spatialAccessoryHandler.onEvent — calibration', () => {
       type: 'accessory_calibration_complete',
     });
     expect((node as any).__spatialAccessoryState.isCalibrated).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_accessory_calibrated', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('accessory_calibrated', expect.any(Object));
   });
 });
 
@@ -402,7 +402,7 @@ describe('spatialAccessoryHandler.onEvent — battery_update', () => {
       level: 0.1,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_accessory_low_battery',
+      'accessory_low_battery',
       expect.objectContaining({ level: 0.1 })
     );
   });
@@ -414,7 +414,7 @@ describe('spatialAccessoryHandler.onEvent — battery_update', () => {
       type: 'accessory_battery_update',
       level: 0.3,
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_accessory_low_battery', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('accessory_low_battery', expect.anything());
   });
 });
 

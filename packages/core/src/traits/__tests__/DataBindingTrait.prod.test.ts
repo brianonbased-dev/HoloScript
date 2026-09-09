@@ -115,7 +115,7 @@ describe('dataBindingHandler.onEvent — data_binding_connected', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     dataBindingHandler.onEvent!(node, config, ctx, { type: 'data_binding_connected', handle: 'h' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_data_connected', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('data_connected', expect.anything());
   });
 });
 
@@ -141,7 +141,7 @@ describe('dataBindingHandler.onEvent — data_binding_data', () => {
     ctx.emit.mockClear();
     dataBindingHandler.onEvent!(node, config, ctx, { type: 'data_binding_data', data: { v: 1 } });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_data_change',
+      'data_change',
       expect.objectContaining({ data: { v: 1 } })
     );
   });
@@ -273,7 +273,7 @@ describe('dataBindingHandler.onEvent — data_binding_error', () => {
       error: 'net fail',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_data_error',
+      'data_error',
       expect.objectContaining({ error: 'net fail', errorCount: 1 })
     );
   });

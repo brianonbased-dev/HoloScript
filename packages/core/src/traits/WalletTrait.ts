@@ -156,7 +156,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
       // Update display
       updateWalletDisplay(node, state, config, context);
 
-      context.emit?.('on_wallet_connected', {
+      context.emit?.('wallet_connected', {
         node,
         address,
         provider,
@@ -169,7 +169,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
       updateWalletDisplay(node, state, config, context);
 
       if (state.ensName) {
-        context.emit?.('on_ens_resolved', {
+        context.emit?.('ens_resolved', {
           node,
           ensName: state.ensName,
           ensAvatar: state.ensAvatar,
@@ -178,7 +178,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
     } else if (event.type === 'wallet_balance_updated') {
       state.balance = event.balance as string;
 
-      context.emit?.('on_balance_updated', {
+      context.emit?.('balance_updated', {
         node,
         balance: state.balance,
       });
@@ -196,7 +196,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
 
       context.emit?.('wallet_clear_connection', { node });
 
-      context.emit?.('on_wallet_disconnected', {
+      context.emit?.('wallet_disconnected', {
         node,
         previousAddress,
       });
@@ -212,7 +212,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
         });
       }
 
-      context.emit?.('on_chain_changed', {
+      context.emit?.('chain_changed', {
         node,
         chainId: newChainId,
       });
@@ -234,7 +234,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
 
       updateWalletDisplay(node, state, config, context);
 
-      context.emit?.('on_account_changed', {
+      context.emit?.('account_changed', {
         node,
         address: newAddress,
         previousAddress,
@@ -258,7 +258,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
     } else if (event.type === 'wallet_signature_result') {
       const signature = event.signature as string;
 
-      context.emit?.('on_message_signed', {
+      context.emit?.('message_signed', {
         node,
         signature,
         address: state.address,
@@ -266,7 +266,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
     } else if (event.type === 'wallet_error') {
       state.isConnecting = false;
 
-      context.emit?.('on_wallet_error', {
+      context.emit?.('wallet_error', {
         node,
         error: event.error,
       });

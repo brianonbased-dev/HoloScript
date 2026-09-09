@@ -252,7 +252,7 @@ describe('StableDiffusionTrait — onEvent: stable_diffusion_result', () => {
     expect(s.output_texture).toBe('blob:tex-data');
     expect(s.current_step).toBe(10); // = config.steps
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_texture_generated',
+      'texture_generated',
       expect.objectContaining({ texture: 'blob:tex-data', prompt: 'sun' })
     );
   });
@@ -297,7 +297,7 @@ describe('StableDiffusionTrait — onEvent: stable_diffusion_error', () => {
     fire(node, cfg, ctx, { type: 'stable_diffusion_error', error: 'VRAM exceeded' });
     expect(st(node).is_generating).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_generation_error',
+      'generation_error',
       expect.objectContaining({ error: 'VRAM exceeded' })
     );
   });

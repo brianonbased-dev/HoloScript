@@ -136,7 +136,7 @@ export const moderationHandler: TraitHandler<ModerationConfig> = {
           content: event.content,
         });
 
-        context.emit('on_moderation_violation', {
+        context.emit('moderation_violation', {
           userId,
           action,
           category: event.category,

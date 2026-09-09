@@ -51,7 +51,7 @@ describe('TerrainAnchorTrait', () => {
     const s = (node as any).__terrainAnchorState;
     expect(s.state).toBe('resolved');
     expect(s.terrainHeight).toBe(50);
-    expect(getEventCount(ctx, 'on_terrain_resolved')).toBe(1);
+    expect(getEventCount(ctx, 'terrain_resolved')).toBe(1);
   });
 
   it('pose update transitions to tracking', () => {
@@ -69,7 +69,7 @@ describe('TerrainAnchorTrait', () => {
       reason: 'no_terrain_data',
     });
     expect((node as any).__terrainAnchorState.state).toBe('unavailable');
-    expect(getEventCount(ctx, 'on_terrain_unavailable')).toBe(1);
+    expect(getEventCount(ctx, 'terrain_unavailable')).toBe(1);
   });
 
   it('manual resolve restarts resolution', () => {

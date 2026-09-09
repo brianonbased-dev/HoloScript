@@ -131,7 +131,7 @@ export const dataBindingHandler: TraitHandler<DataBindingConfig> = {
       state.connectionHandle = event.handle;
       state.errorCount = 0;
 
-      context.emit?.('on_data_connected', { node });
+      context.emit?.('data_connected', { node });
     } else if (event.type === 'data_binding_data') {
       const data = event.data as Record<string, unknown>;
       state.currentData = data;
@@ -149,14 +149,14 @@ export const dataBindingHandler: TraitHandler<DataBindingConfig> = {
         }
       }
 
-      context.emit?.('on_data_change', {
+      context.emit?.('data_change', {
         node,
         data: state.currentData,
       });
     } else if (event.type === 'data_binding_error') {
       state.errorCount++;
 
-      context.emit?.('on_data_error', {
+      context.emit?.('data_error', {
         node,
         error: event.error,
         errorCount: state.errorCount,

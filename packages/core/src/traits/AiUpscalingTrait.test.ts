@@ -410,7 +410,7 @@ describe('AiUpscalingTrait', () => {
       );
 
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_upscaling_complete',
+        'upscaling_complete',
         expect.objectContaining({
           node: mockNode,
           texture: 'result_texture',
@@ -552,7 +552,7 @@ describe('AiUpscalingTrait', () => {
       );
 
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_upscaling_error',
+        'upscaling_error',
         expect.objectContaining({
           node: mockNode,
           error: 'VRAM exceeded',
@@ -742,7 +742,7 @@ describe('AiUpscalingTrait', () => {
       expect(state.is_processing).toBe(false);
       expect(state.output_texture).toBe('upscaled_url');
       expect(state.processing_time).toBe(2000);
-      expect(mockContext.emit).toHaveBeenCalledWith('on_upscaling_complete', expect.any(Object));
+      expect(mockContext.emit).toHaveBeenCalledWith('upscaling_complete', expect.any(Object));
     });
 
     it('should handle multiple sequential upscaling requests', () => {
@@ -818,7 +818,7 @@ describe('AiUpscalingTrait', () => {
       );
 
       expect(state.is_processing).toBe(false);
-      expect(mockContext.emit).toHaveBeenCalledWith('on_upscaling_error', expect.any(Object));
+      expect(mockContext.emit).toHaveBeenCalledWith('upscaling_error', expect.any(Object));
 
       // Retry after error
       const retryEvent: TraitEvent = { type: 'ai_upscaling_request' };

@@ -235,7 +235,7 @@ describe('SharedWorldTrait — onEvent: shared_world_connected', () => {
     expect(st(node).isSynced).toBe(true);
     expect(st(node).isHost).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_world_connected',
+      'world_connected',
       expect.objectContaining({ isHost: true })
     );
   });
@@ -408,7 +408,7 @@ describe('SharedWorldTrait — onEvent: shared_world_peer_joined', () => {
     fire(node, cfg, ctx, { type: 'shared_world_peer_joined', peerId: 'p1' });
     expect(st(node).connectedPeers.size).toBe(1);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_peer_joined',
+      'peer_joined',
       expect.objectContaining({ peerId: 'p1', peerCount: 1 })
     );
   });
@@ -447,7 +447,7 @@ describe('SharedWorldTrait — onEvent: shared_world_peer_left', () => {
     fire(node, cfg, ctx, { type: 'shared_world_peer_left', peerId: 'p1' });
     expect(st(node).connectedPeers.size).toBe(0);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_peer_left',
+      'peer_left',
       expect.objectContaining({ peerId: 'p1', peerCount: 0 })
     );
     expect(st(node).syncedObjects.get('n1')!.ownerId).toBeNull();

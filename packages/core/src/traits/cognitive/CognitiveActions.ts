@@ -136,7 +136,7 @@ export const COGNITIVE_EVENT_MAP: Record<CognitiveVerb, CognitiveEventBinding> =
   // AgentMemoryTrait.onEvent consumes `memory_recall` (reads event.payload); emits `memory_recalled`.
   recall: { request: 'memory_recall', complete: 'memory_recalled', trait: 'agent_memory' },
   // RAGKnowledgeTrait.onEvent consumes `rag_query` (reads event.question); emits `on_knowledge_retrieved`.
-  rag_query: { request: 'rag_query', complete: 'on_knowledge_retrieved', trait: 'rag_knowledge' },
+  rag_query: { request: 'rag_query', complete: 'knowledge_retrieved', trait: 'rag_knowledge' },
   // GoalOrientedTrait.onEvent consumes `goap_set_state` (reads event.state → selectGoalAndPlan); emits `goap_plan_created`.
   plan: { request: 'goap_set_state', complete: 'goap_plan_created', trait: 'goal_oriented' },
   // reflect composes a self-evaluation LLM turn — dispatches to LLMAgentTrait; no separate trait.

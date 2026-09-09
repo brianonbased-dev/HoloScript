@@ -39,14 +39,14 @@ describe('SpectatorTrait', () => {
     sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_join', spectatorId: 's1' });
     expect((node as any).__spectatorState.spectatorCount).toBe(1);
     expect(getEventCount(ctx, 'spectator_setup')).toBe(1);
-    expect(getEventCount(ctx, 'on_spectator_join')).toBe(1);
+    expect(getEventCount(ctx, 'spectator_join')).toBe(1);
   });
 
   it('spectator leave removes spectator', () => {
     sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_join', spectatorId: 's1' });
     sendEvent(spectatorHandler, node, cfg, ctx, { type: 'spectator_leave', spectatorId: 's1' });
     expect((node as any).__spectatorState.spectatorCount).toBe(0);
-    expect(getEventCount(ctx, 'on_spectator_leave')).toBe(1);
+    expect(getEventCount(ctx, 'spectator_leave')).toBe(1);
   });
 
   it('rejects join at max capacity', () => {

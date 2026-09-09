@@ -134,7 +134,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
       state.state = 'shared';
       state.quality = (event.quality as number) || 1.0;
 
-      context.emit?.('on_anchor_shared', {
+      context.emit?.('anchor_shared', {
         node,
         cloudAnchorId: state.cloudAnchorId,
         quality: state.quality,
@@ -142,7 +142,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
     } else if (event.type === 'shared_anchor_upload_failed') {
       state.state = 'error';
 
-      context.emit?.('on_anchor_share_failed', {
+      context.emit?.('anchor_share_failed', {
         node,
         error: event.error,
       });
@@ -163,7 +163,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
       state.state = 'synchronized';
       state.localAnchorHandle = event.handle;
 
-      context.emit?.('on_anchor_resolved', {
+      context.emit?.('anchor_resolved', {
         node,
         cloudAnchorId: state.cloudAnchorId,
       });
@@ -177,7 +177,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
           isResolved: false,
         });
 
-        context.emit?.('on_user_joined', {
+        context.emit?.('user_joined', {
           node,
           userId,
           userCount: state.sharedUsers.length,
@@ -199,7 +199,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
       const userId = event.userId as string;
       state.sharedUsers = state.sharedUsers.filter((u) => u.userId !== userId);
 
-      context.emit?.('on_user_left', {
+      context.emit?.('user_left', {
         node,
         userId,
         userCount: state.sharedUsers.length,

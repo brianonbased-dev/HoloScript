@@ -230,7 +230,7 @@ describe('LightEstimationTrait — onEvent: light_estimation_update', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'light_estimation_update', intensity: 0.75 });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_light_estimated',
+      'light_estimated',
       expect.objectContaining({
         intensity: expect.any(Number),
         colorTemperature: expect.any(Number),

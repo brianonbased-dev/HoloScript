@@ -204,7 +204,7 @@ describe('screenReaderHandler.onEvent — screen_reader_focus', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     screenReaderHandler.onEvent!(node, cfg, ctx, { type: 'screen_reader_focus' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_screen_reader_focus', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('screen_reader_focus', expect.any(Object));
   });
 });
 

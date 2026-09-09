@@ -139,7 +139,7 @@ describe('spatialVoiceHandler — onEvent', () => {
       } as any
     );
     expect((node as any).__spatialVoiceState.isSpeaking).toBe(true);
-    const ev = ctx.emitted.find((e: any) => e.type === 'on_voice_activity');
+    const ev = ctx.emitted.find((e: any) => e.type === 'voice_activity');
     expect(ev?.payload.speaking).toBe(true);
     expect(ev?.payload.volume).toBe(0.8);
   });

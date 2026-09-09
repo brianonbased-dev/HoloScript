@@ -116,7 +116,7 @@ export const sensorHandler: TraitHandler<SensorConfig> = {
       state.isConnected = true;
       state.connectionHandle = event.handle;
 
-      context.emit?.('on_sensor_connected', { node });
+      context.emit?.('sensor_connected', { node });
     } else if (event.type === 'sensor_data') {
       let value = event.value;
 
@@ -158,24 +158,24 @@ export const sensorHandler: TraitHandler<SensorConfig> = {
           (config.alert_threshold.high !== undefined && value > config.alert_threshold.high);
 
         if (state.alertActive && !wasAlert) {
-          context.emit?.('on_sensor_alert', {
+          context.emit?.('sensor_alert', {
             node,
             value,
             threshold: config.alert_threshold,
           });
         } else if (!state.alertActive && wasAlert) {
-          context.emit?.('on_sensor_alert_cleared', { node });
+          context.emit?.('sensor_alert_cleared', { node });
         }
       }
 
-      context.emit?.('on_sensor_update', {
+      context.emit?.('sensor_update', {
         node,
         value: state.currentValue,
         previousValue: state.previousValue,
         unit: config.unit,
       });
     } else if (event.type === 'sensor_error') {
-      context.emit?.('on_sensor_error', {
+      context.emit?.('sensor_error', {
         node,
         error: event.error,
       });

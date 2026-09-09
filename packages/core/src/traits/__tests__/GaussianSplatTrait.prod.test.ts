@@ -392,7 +392,7 @@ describe('gaussianSplatHandler.onEvent — splat_load_complete', () => {
       renderHandle: 'h',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_splat_loaded',
+      'splat_loaded',
       expect.objectContaining({ splatCount: 100 })
     );
   });
@@ -410,7 +410,7 @@ describe('gaussianSplatHandler.onEvent — splat_load_error', () => {
     });
     expect(state.isLoading).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_splat_error',
+      'splat_error',
       expect.objectContaining({ error: 'network timeout' })
     );
   });
@@ -426,7 +426,7 @@ describe('gaussianSplatHandler.onEvent — splat_load_progress', () => {
       loadedSplats: 50000,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_splat_progress',
+      'splat_progress',
       expect.objectContaining({ progress: 0.5, loadedSplats: 50000 })
     );
   });

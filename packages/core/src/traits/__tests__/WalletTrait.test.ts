@@ -88,7 +88,7 @@ describe('WalletTrait', () => {
       expect(state.chainId).toBe(1);
       expect(state.provider).toBe('metamask');
 
-      expect(getEventCount(ctx, 'on_wallet_connected')).toBe(1);
+      expect(getEventCount(ctx, 'wallet_connected')).toBe(1);
     });
 
     it('should request ENS resolution on connect', () => {
@@ -126,7 +126,7 @@ describe('WalletTrait', () => {
       const state = (node as any).__walletState;
       expect(state.ensName).toBe('vitalik.eth');
       expect(state.ensAvatar).toBe('https://avatar.url/vitalik.png');
-      expect(getEventCount(ctx, 'on_ens_resolved')).toBe(1);
+      expect(getEventCount(ctx, 'ens_resolved')).toBe(1);
     });
   });
 
@@ -152,7 +152,7 @@ describe('WalletTrait', () => {
       expect(state.address).toBeNull();
       expect(state.ensName).toBeNull();
 
-      expect(getEventCount(ctx, 'on_wallet_disconnected')).toBe(1);
+      expect(getEventCount(ctx, 'wallet_disconnected')).toBe(1);
     });
   });
 
@@ -176,7 +176,7 @@ describe('WalletTrait', () => {
 
       const state = (node as any).__walletState;
       expect(state.chainId).toBe(137);
-      expect(getEventCount(ctx, 'on_chain_changed')).toBe(1);
+      expect(getEventCount(ctx, 'chain_changed')).toBe(1);
     });
 
     it('should request chain switch if required_chain is set', () => {

@@ -158,7 +158,7 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
       };
       state.accuracy = event.accuracy as number;
 
-      context.emit?.('on_geospatial_anchor_resolved', {
+      context.emit?.('geospatial_anchor_resolved', {
         node,
         latitude: event.latitude,
         longitude: event.longitude,
@@ -191,7 +191,7 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
           heading: config.heading,
         });
       } else {
-        context.emit?.('on_geospatial_anchor_lost', { node });
+        context.emit?.('geospatial_anchor_lost', { node });
       }
     } else if (event.type === 'geospatial_anchor_resolve') {
       state.state = 'resolving';

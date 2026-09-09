@@ -174,7 +174,7 @@ describe('windHandler.onUpdate — on_wind_change', () => {
     windHandler.onUpdate!(node, config, ctx, 0.016);
     // |10 - 5| = 5 > 0.5 → should emit on_wind_change
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_wind_change',
+      'wind_change',
       expect.objectContaining({ strength: 10 })
     );
   });
@@ -183,7 +183,7 @@ describe('windHandler.onUpdate — on_wind_change', () => {
     // no gust, no pulse → strength=5, delta=0 → no on_wind_change
     ctx.emit.mockClear();
     windHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_wind_change', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('wind_change', expect.any(Object));
   });
 });
 

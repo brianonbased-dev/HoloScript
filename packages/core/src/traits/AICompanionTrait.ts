@@ -128,7 +128,7 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
       case 'ai_companion_response': {
         state.lastResponseTime = Date.now();
         state.memoryCount = Math.min(state.memoryCount + 1, config.memory_capacity);
-        context.emit('on_ai_companion_speak', {
+        context.emit('ai_companion_speak', {
           text: event.text,
           emotion: { ...state.emotion },
         });

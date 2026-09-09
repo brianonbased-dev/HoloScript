@@ -164,7 +164,7 @@ export const accessibleHandler: TraitHandler<AccessibleConfig> = {
         context.accessibility.announce(announcement);
       }
 
-      context.emit?.('on_accessible_focus', { node });
+      context.emit?.('accessible_focus', { node });
     } else if (event.type === 'blur') {
       state.isFocused = false;
       context.emit?.('accessibility_focus_ring', { node, visible: false });

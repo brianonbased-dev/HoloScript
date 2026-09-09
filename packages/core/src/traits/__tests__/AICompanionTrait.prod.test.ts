@@ -122,7 +122,7 @@ describe('aiCompanionHandler — onEvent', () => {
       } as any
     );
     expect((node as any).__aiCompanionState.memoryCount).toBe(1);
-    const ev = ctx.emitted.find((e: any) => e.type === 'on_ai_companion_speak');
+    const ev = ctx.emitted.find((e: any) => e.type === 'ai_companion_speak');
     expect(ev?.payload.text).toBe('Hi there!');
   });
   it('ai_companion_response clamps memoryCount to capacity', () => {

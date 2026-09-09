@@ -175,7 +175,7 @@ describe('AICompanionTrait — onEvent', () => {
     );
     expect(state.memoryCount).toBe(1);
     expect(node.emit).toHaveBeenCalledWith(
-      'on_ai_companion_speak',
+      'ai_companion_speak',
       expect.objectContaining({
         text: 'Hi there!',
       })

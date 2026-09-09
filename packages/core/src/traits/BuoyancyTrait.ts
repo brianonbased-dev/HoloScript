@@ -169,21 +169,21 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
       // Entering water
       if (prevSubmersion === 0 && state.submersionRatio > 0) {
         const splashIntensity = Math.min(1, Math.abs(state.velocity[1]) / 5);
-        context.emit?.('on_splash', { node, intensity: splashIntensity, entering: true });
+        context.emit?.('splash', { node, intensity: splashIntensity, entering: true });
         state.splashCooldown = 0.5; // 500ms cooldown
       }
       // Exiting water
       else if (prevSubmersion > 0 && state.submersionRatio === 0) {
-        context.emit?.('on_splash', { node, intensity: 0.3, entering: false });
+        context.emit?.('splash', { node, intensity: 0.3, entering: false });
         state.splashCooldown = 0.5;
       }
     }
 
     // Submersion state change
     if (!wasSubmerged && state.isSubmerged) {
-      context.emit?.('on_submerge', { node, submersionRatio: state.submersionRatio });
+      context.emit?.('submerge', { node, submersionRatio: state.submersionRatio });
     } else if (wasSubmerged && !state.isSubmerged) {
-      context.emit?.('on_surface', { node });
+      context.emit?.('surface', { node });
     }
   },
 

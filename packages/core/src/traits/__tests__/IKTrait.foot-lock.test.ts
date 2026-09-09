@@ -37,7 +37,7 @@ describe('IKTrait — foot-lock seam (WIRE-1)', () => {
 
   it('on_foot_contact event with side=left, state=true locks left foot + emits i_k_foot_lock_changed', () => {
     iKHandler.onEvent(node as any, cfg as any, ctx as any, {
-      type: 'on_foot_contact',
+      type: 'foot_contact',
       side: 'left',
       state: true,
     });
@@ -52,12 +52,12 @@ describe('IKTrait — foot-lock seam (WIRE-1)', () => {
 
   it('on_foot_contact with side=right, state=false leaves left untouched', () => {
     iKHandler.onEvent(node as any, cfg as any, ctx as any, {
-      type: 'on_foot_contact',
+      type: 'foot_contact',
       side: 'left',
       state: true,
     });
     iKHandler.onEvent(node as any, cfg as any, ctx as any, {
-      type: 'on_foot_contact',
+      type: 'foot_contact',
       side: 'right',
       state: false,
     });
@@ -67,7 +67,7 @@ describe('IKTrait — foot-lock seam (WIRE-1)', () => {
 
   it('malformed on_foot_contact (missing side) is ignored — no state mutation, no emit', () => {
     iKHandler.onEvent(node as any, cfg as any, ctx as any, {
-      type: 'on_foot_contact',
+      type: 'foot_contact',
       state: true,
     });
     const instance = (node as any).__i_k_instance as IKTrait;
@@ -77,7 +77,7 @@ describe('IKTrait — foot-lock seam (WIRE-1)', () => {
 
   it('on_foot_contact with invalid side is ignored', () => {
     iKHandler.onEvent(node as any, cfg as any, ctx as any, {
-      type: 'on_foot_contact',
+      type: 'foot_contact',
       side: 'middle',
       state: true,
     });

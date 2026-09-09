@@ -103,7 +103,7 @@ describe('A-009 physics trait combo regression', () => {
     }).not.toThrow();
 
     expect((node as any).__clothState.isTorn).toBe(true);
-    expect(getEventCount(ctx, 'on_fluid_splash')).toBe(1);
+    expect(getEventCount(ctx, 'fluid_splash')).toBe(1);
     expect(getEventCount(ctx, 'soft_body_reset_shape')).toBe(1);
   });
 });

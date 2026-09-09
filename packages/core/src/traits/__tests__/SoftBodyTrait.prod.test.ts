@@ -202,7 +202,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
         positions: [[1, 0, 0]],
       } as any
     );
-    expect(ctx.emitted.find((e) => e.type === 'on_soft_body_deform')).toBeDefined();
+    expect(ctx.emitted.find((e) => e.type === 'soft_body_deform')).toBeDefined();
   });
   it('updates currentVolume from event', async () => {
     const { node, ctx } = await attach();

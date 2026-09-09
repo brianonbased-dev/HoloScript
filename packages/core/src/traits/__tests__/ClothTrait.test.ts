@@ -80,7 +80,7 @@ describe('ClothTrait', () => {
     const state = (node as any).__clothState;
     expect(state.constraints[0].broken).toBe(true);
     expect(state.isTorn).toBe(true);
-    expect(getEventCount(ctx, 'on_cloth_tear')).toBe(1);
+    expect(getEventCount(ctx, 'cloth_tear')).toBe(1);
   });
 
   it('reset reinitializes mesh', () => {

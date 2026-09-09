@@ -113,7 +113,7 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
           vel[2] = vz * scale;
         }
 
-        context.emit?.('on_motion_clamped', {
+        context.emit?.('motion_clamped', {
           node,
           originalSpeed: speed,
           clampedSpeed: config.max_velocity,
@@ -209,7 +209,7 @@ function applyMotionReduction(
     disableCameraShake: config.disable_camera_shake,
   });
 
-  context.emit?.('on_motion_reduce', {
+  context.emit?.('motion_reduce', {
     node,
     enabled: true,
   });
@@ -223,7 +223,7 @@ function restoreMotion(node: HSPlusNode, state: MotionReducedState, context: Tra
 
   state.originalAnimations.clear();
 
-  context.emit?.('on_motion_reduce', {
+  context.emit?.('motion_reduce', {
     node,
     enabled: false,
   });

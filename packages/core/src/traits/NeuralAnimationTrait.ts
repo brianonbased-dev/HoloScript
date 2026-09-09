@@ -205,7 +205,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
 
       // Foot-contact transition events — drive @ik bridge (WIRE-1)
       if (result.contactFeatures.leftFoot !== state.prev_left_contact) {
-        context.emit?.('on_foot_contact', {
+        context.emit?.('foot_contact', {
           node,
           side: 'left',
           state: result.contactFeatures.leftFoot,
@@ -213,7 +213,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
         state.prev_left_contact = result.contactFeatures.leftFoot;
       }
       if (result.contactFeatures.rightFoot !== state.prev_right_contact) {
-        context.emit?.('on_foot_contact', {
+        context.emit?.('foot_contact', {
           node,
           side: 'right',
           state: result.contactFeatures.rightFoot,
@@ -223,7 +223,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
 
       // Stumble detection — drives recovery hook (spec §5)
       if (result.stability < 0.3) {
-        context.emit?.('on_stumble_detected', { node, stability: result.stability });
+        context.emit?.('stumble_detected', { node, stability: result.stability });
       }
 
       context.emit?.('neural_animation_frame', { node, pose: state.current_pose });
@@ -265,7 +265,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
     // Motion-matching seam events
     if (event.type === 'neural_animation_set_engine') {
       state.engine = event.engine as MotionMatchingEngine;
-      context.emit?.('on_locomotion_initialized', {
+      context.emit?.('locomotion_initialized', {
         node,
         modelId: state.engine?.modelId,
       });
@@ -275,7 +275,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
       state.engine?.dispose();
       state.engine = null;
       state.locomotion = null;
-      context.emit?.('on_locomotion_fallback', {
+      context.emit?.('locomotion_fallback', {
         node,
         mode: config.locomotion?.fallback_mode ?? 'clip',
       });
@@ -306,7 +306,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
       state.blend_accumulator = 0;
       state.is_generating = true;
 
-      context.emit?.('on_animation_synthesis_start', {
+      context.emit?.('animation_synthesis_start', {
         node,
         targetPose,
       });
@@ -326,7 +326,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
       state.target_pose = retargetedPose;
       state.blend_accumulator = 0;
 
-      context.emit?.('on_retargeting_complete', {
+      context.emit?.('retargeting_complete', {
         node,
         pose: retargetedPose,
       });

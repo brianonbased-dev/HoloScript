@@ -155,7 +155,7 @@ describe('roleHandler.onUpdate — pending role change', () => {
     expect(node.__roleState.currentRole).toBe('admin');
     expect(node.__roleState.pendingRoleChange).toBeNull();
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_role_change',
+      'role_change',
       expect.objectContaining({
         previousRole: 'user',
         newRole: 'admin',
@@ -286,7 +286,7 @@ describe('roleHandler.onEvent — grant/revoke', () => {
     });
     expect(node.__roleState.effectivePermissions.has('transfer')).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_permission_granted',
+      'permission_granted',
       expect.objectContaining({ permission: 'transfer' })
     );
   });
@@ -303,7 +303,7 @@ describe('roleHandler.onEvent — grant/revoke', () => {
     });
     expect(node.__roleState.effectivePermissions.has('delete')).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_permission_revoked',
+      'permission_revoked',
       expect.objectContaining({ permission: 'delete' })
     );
   });

@@ -182,7 +182,7 @@ describe('walletHandler.onEvent — wallet_connected', () => {
     ctx.emit.mockClear();
     connected(node, ctx, config);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_wallet_connected',
+      'wallet_connected',
       expect.objectContaining({ address: '0xABC', provider: 'metamask' })
     );
   });
@@ -224,7 +224,7 @@ describe('walletHandler.onEvent — wallet_ens_resolved', () => {
       ensAvatar: null,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_ens_resolved',
+      'ens_resolved',
       expect.objectContaining({ ensName: 'alice.eth' })
     );
   });
@@ -236,7 +236,7 @@ describe('walletHandler.onEvent — wallet_ens_resolved', () => {
       ensName: null,
       ensAvatar: null,
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_ens_resolved', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('ens_resolved', expect.anything());
   });
 });
 
@@ -259,7 +259,7 @@ describe('walletHandler.onEvent — wallet_balance_updated', () => {
       balance: '0.5 ETH',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_balance_updated',
+      'balance_updated',
       expect.objectContaining({ balance: '0.5 ETH' })
     );
   });
@@ -289,7 +289,7 @@ describe('walletHandler.onEvent — wallet_disconnect', () => {
     ctx.emit.mockClear();
     walletHandler.onEvent!(node, config, ctx, { type: 'wallet_disconnect' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_wallet_disconnected',
+      'wallet_disconnected',
       expect.objectContaining({ previousAddress: '0xPREV' })
     );
   });
@@ -308,7 +308,7 @@ describe('walletHandler.onEvent — wallet_chain_changed', () => {
     ctx.emit.mockClear();
     walletHandler.onEvent!(node, config, ctx, { type: 'wallet_chain_changed', chainId: 10 });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_chain_changed',
+      'chain_changed',
       expect.objectContaining({ chainId: 10 })
     );
   });
@@ -359,7 +359,7 @@ describe('walletHandler.onEvent — wallet_account_changed', () => {
     ctx.emit.mockClear();
     walletHandler.onEvent!(node, config, ctx, { type: 'wallet_account_changed', address: '0xNEW' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_account_changed',
+      'account_changed',
       expect.objectContaining({ address: '0xNEW', previousAddress: '0xOLD' })
     );
   });
@@ -413,7 +413,7 @@ describe('walletHandler.onEvent — wallet_signature_result', () => {
       signature: '0xSIG',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_message_signed',
+      'message_signed',
       expect.objectContaining({ signature: '0xSIG', address: '0xABC' })
     );
   });
@@ -433,7 +433,7 @@ describe('walletHandler.onEvent — wallet_error', () => {
     ctx.emit.mockClear();
     walletHandler.onEvent!(node, config, ctx, { type: 'wallet_error', error: 'Rejected' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_wallet_error',
+      'wallet_error',
       expect.objectContaining({ error: 'Rejected' })
     );
   });

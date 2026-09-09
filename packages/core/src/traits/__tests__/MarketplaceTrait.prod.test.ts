@@ -163,7 +163,7 @@ describe('MarketplaceTrait — Production', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'marketplace_list', price: 1 });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_marketplace_error',
+      'marketplace_error',
       expect.objectContaining({
         error: expect.stringContaining('minimum'),
       })
@@ -187,7 +187,7 @@ describe('MarketplaceTrait — Production', () => {
     expect(st(node).listingId).toBe('L123');
     expect(st(node).isListed).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_listed',
+      'listed',
       expect.objectContaining({
         listingId: 'L123',
       })
@@ -252,7 +252,7 @@ describe('MarketplaceTrait — Production', () => {
     expect(st(node).status).toBe('sold');
     expect(st(node).ownerAddress).toBe('0xNEW');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_purchase_complete',
+      'purchase_complete',
       expect.objectContaining({
         buyer: '0xNEW',
       })
@@ -292,7 +292,7 @@ describe('MarketplaceTrait — Production', () => {
     expect(s.highestBid).toBe(2);
     expect(s.bidCount).toBe(1);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_bid_received',
+      'bid_received',
       expect.objectContaining({
         amount: 2,
         bidCount: 1,

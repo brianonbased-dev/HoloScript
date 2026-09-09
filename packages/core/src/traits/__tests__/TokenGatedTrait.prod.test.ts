@@ -184,7 +184,7 @@ describe('TokenGatedTrait — onEvent: token_gate_verify', () => {
     expect(st(node).hasAccess).toBe(false);
     expect(st(node).isVerified).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_token_denied',
+      'token_denied',
       expect.objectContaining({ reason: 'blocked' })
     );
     expect(ctx.emit).not.toHaveBeenCalledWith('token_gate_check_balance', expect.any(Object));
@@ -196,7 +196,7 @@ describe('TokenGatedTrait — onEvent: token_gate_verify', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'token_gate_verify', address: '0xgood' });
     expect(st(node).hasAccess).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_token_verified', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('token_verified', expect.any(Object));
     expect(ctx.emit).not.toHaveBeenCalledWith('token_gate_check_balance', expect.any(Object));
   });
 
@@ -243,7 +243,7 @@ describe('TokenGatedTrait — onEvent: token_gate_balance_result', () => {
     expect(st(node).tokenBalance).toBe(3);
     expect(ctx.emit).toHaveBeenCalledWith('token_gate_reveal', expect.any(Object));
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_token_verified',
+      'token_verified',
       expect.objectContaining({ balance: 3 })
     );
   });
@@ -255,7 +255,7 @@ describe('TokenGatedTrait — onEvent: token_gate_balance_result', () => {
     fire(node, cfg, ctx, { type: 'token_gate_balance_result', address: '0xpoor', balance: 2 });
     expect(st(node).hasAccess).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_token_denied',
+      'token_denied',
       expect.objectContaining({
         reason: 'insufficient_balance',
         balance: 2,
@@ -283,7 +283,7 @@ describe('TokenGatedTrait — onEvent: token_gate_disconnect', () => {
     expect(s.hasAccess).toBe(false);
     expect(s.verifiedAddress).toBeNull();
     expect(s.tokenBalance).toBe(0);
-    expect(ctx.emit).toHaveBeenCalledWith('on_token_access_revoked', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('token_access_revoked', expect.any(Object));
     expect(ctx.emit).toHaveBeenCalledWith('token_gate_hide', expect.any(Object));
   });
 });

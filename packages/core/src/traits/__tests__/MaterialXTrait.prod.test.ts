@@ -144,7 +144,7 @@ describe('MaterialXTrait — onEvent: materialx_loaded', () => {
       expect.objectContaining({ materialId: 'mat1' })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_format_converted',
+      'format_converted',
       expect.objectContaining({ materialId: 'mat1' })
     );
   });
@@ -161,7 +161,7 @@ describe('MaterialXTrait — onEvent: materialx_error', () => {
     fire(node, cfg, ctx, { type: 'materialx_error', error: 'PARSE_FAILED' });
     expect(st(node).isLoading).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_materialx_error',
+      'materialx_error',
       expect.objectContaining({ error: 'PARSE_FAILED' })
     );
   });

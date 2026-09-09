@@ -140,13 +140,13 @@ export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
         });
       }
 
-      context.emit?.('on_accessory_connected', {
+      context.emit?.('accessory_connected', {
         node,
         deviceType: config.device_type,
       });
     } else if (event.type === 'accessory_disconnected') {
       state.isConnected = false;
-      context.emit?.('on_accessory_disconnected', { node });
+      context.emit?.('accessory_disconnected', { node });
     } else if (event.type === 'accessory_pose_update') {
       const pose = event.pose as typeof state.lastPose;
       state.lastPose = pose;
@@ -166,7 +166,7 @@ export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
 
       const mappedAction = config.input_mapping[buttonName];
       if (mappedAction) {
-        context.emit?.('on_accessory_input', {
+        context.emit?.('accessory_input', {
           node,
           button: buttonName,
           action: mappedAction,
@@ -176,7 +176,7 @@ export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
 
       // Pressure sensitivity
       if (config.pressure_sensitivity && typeof value === 'number' && value > 0 && value < 1) {
-        context.emit?.('on_pressure_change', {
+        context.emit?.('pressure_change', {
           node,
           button: buttonName,
           pressure: value,
@@ -199,12 +199,12 @@ export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
       });
     } else if (event.type === 'accessory_calibration_complete') {
       state.isCalibrated = true;
-      context.emit?.('on_accessory_calibrated', { node });
+      context.emit?.('accessory_calibrated', { node });
     } else if (event.type === 'accessory_battery_update') {
       state.batteryLevel = event.level as number;
 
       if (state.batteryLevel < 0.2) {
-        context.emit?.('on_accessory_low_battery', {
+        context.emit?.('accessory_low_battery', {
           node,
           level: state.batteryLevel,
         });

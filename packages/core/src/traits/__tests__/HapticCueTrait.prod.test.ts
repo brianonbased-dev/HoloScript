@@ -184,7 +184,7 @@ describe('hapticCueHandler.onEvent — trigger', () => {
     const { node, ctx, config } = attach({ pattern: 'success' });
     ctx.emit.mockClear();
     hapticCueHandler.onEvent!(node as any, config, ctx as any, { type: 'interact' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_haptic_start', {
+    expect(ctx.emit).toHaveBeenCalledWith('haptic_start', {
       node: expect.anything(),
       pattern: 'success',
     });

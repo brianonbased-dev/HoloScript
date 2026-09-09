@@ -189,7 +189,7 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
     const state = (node as any).__buoyancyState;
     state.submersionRatio = 0;
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('on_splash', expect.objectContaining({ entering: true }));
+    expect(ctx.emit).toHaveBeenCalledWith('splash', expect.objectContaining({ entering: true }));
   });
   it('does NOT emit on_splash entering when splash_effect=false', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, splash_effect: false }, -5, 2);
@@ -197,7 +197,7 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
     (node as any).__buoyancyState.submersionRatio = 0;
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_splash', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('splash', expect.any(Object));
   });
   it('on_splash intensity clamped to 1 for high velocity', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, splash_effect: true }, -5, 2);
@@ -206,7 +206,7 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
     (node as any).__buoyancyState.lastPosition = [0, -5, 0];
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
-    const splashCall = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'on_splash');
+    const splashCall = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'splash');
     if (splashCall) {
       expect(splashCall[1].intensity).toBeLessThanOrEqual(1);
     }
@@ -217,7 +217,7 @@ describe('buoyancyHandler.onUpdate — splash & submerge events', () => {
     (node as any).__buoyancyState.isSubmerged = false;
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('on_submerge', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith('submerge', expect.objectContaining({ node }));
   });
   it('splashCooldown decrements by delta', () => {
     const { node, cfg, ctx } = attachNode({}, -5, 2);

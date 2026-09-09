@@ -67,7 +67,7 @@ describe('MotionReducedTrait', () => {
     const vel = (node as any).velocity;
     const speed = Math.sqrt(vel[0] ** 2 + vel[1] ** 2 + vel[2] ** 2);
     expect(speed).toBeCloseTo(2, 1);
-    expect(getEventCount(ctx, 'on_motion_clamped')).toBe(1);
+    expect(getEventCount(ctx, 'motion_clamped')).toBe(1);
   });
 
   it('intercepts animation_start when active', () => {

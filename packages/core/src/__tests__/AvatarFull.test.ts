@@ -152,7 +152,7 @@ describe('AvatarEmbodimentTrait', () => {
     avatarEmbodimentHandler.onEvent!(mockNode, {}, mockContext, { type: 'embody' });
     const state = mockNode.__avatarEmbodimentState as AvatarEmbodimentState;
     expect(state.isEmbodied).toBe(true);
-    expect(mockContext.emit).toHaveBeenCalledWith('on_avatar_embodied', { node: mockNode });
+    expect(mockContext.emit).toHaveBeenCalledWith('avatar_embodied', { node: mockNode });
   });
 
   it('handles disembody event', () => {
@@ -161,7 +161,7 @@ describe('AvatarEmbodimentTrait', () => {
     avatarEmbodimentHandler.onEvent!(mockNode, {}, mockContext, { type: 'disembody' });
     const state = mockNode.__avatarEmbodimentState as AvatarEmbodimentState;
     expect(state.isEmbodied).toBe(false);
-    expect(mockContext.emit).toHaveBeenCalledWith('on_avatar_disembodied', { node: mockNode });
+    expect(mockContext.emit).toHaveBeenCalledWith('avatar_disembodied', { node: mockNode });
   });
 
   it('handles calibrate event', () => {
@@ -169,7 +169,7 @@ describe('AvatarEmbodimentTrait', () => {
     avatarEmbodimentHandler.onEvent!(mockNode, {}, mockContext, { type: 'calibrate' });
     const state = mockNode.__avatarEmbodimentState as AvatarEmbodimentState;
     expect(state.calibrated).toBe(true);
-    expect(mockContext.emit).toHaveBeenCalledWith('on_avatar_calibrated', { node: mockNode });
+    expect(mockContext.emit).toHaveBeenCalledWith('avatar_calibrated', { node: mockNode });
   });
 
   it('cleans up state on detach', () => {

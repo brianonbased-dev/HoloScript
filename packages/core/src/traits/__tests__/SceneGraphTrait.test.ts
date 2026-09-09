@@ -45,7 +45,7 @@ describe('SceneGraphTrait', () => {
     const s = (node as any).__sceneGraphState;
     expect(s.nodes.has('child1')).toBe(true);
     expect(s.nodes.get('root').children).toContain('child1');
-    expect(getEventCount(ctx, 'on_node_added')).toBe(1);
+    expect(getEventCount(ctx, 'node_added')).toBe(1);
   });
 
   it('skip_existing prevents duplicate', () => {
@@ -60,7 +60,7 @@ describe('SceneGraphTrait', () => {
       childId: 'child1',
       parentId: 'root',
     });
-    expect(getEventCount(ctx, 'on_node_added')).toBe(1);
+    expect(getEventCount(ctx, 'node_added')).toBe(1);
   });
 
   it('remove node cleans up', () => {
@@ -140,7 +140,7 @@ describe('SceneGraphTrait', () => {
     ];
     sendEvent(sceneGraphHandler, node, cfg, ctx, { type: 'scene_graph_import', data });
     expect((node as any).__sceneGraphState.nodes.has('imp1')).toBe(true);
-    expect(getEventCount(ctx, 'on_scene_composed')).toBe(1);
+    expect(getEventCount(ctx, 'scene_composed')).toBe(1);
   });
 
   it('update recalculates depth', () => {

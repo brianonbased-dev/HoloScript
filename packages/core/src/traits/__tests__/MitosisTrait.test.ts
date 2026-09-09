@@ -41,7 +41,7 @@ describe('MitosisTrait', () => {
     const s = (node as any).__mitosisState;
     expect(s.active_children).toContain('child-1');
     expect(s.tasks_delegated).toBe(1);
-    expect(getEventCount(ctx, 'on_mitosis_spawned')).toBe(1);
+    expect(getEventCount(ctx, 'mitosis_spawned')).toBe(1);
   });
 
   it('ignores spawn for different parent', () => {
@@ -74,7 +74,7 @@ describe('MitosisTrait', () => {
       childId: 'child-1',
       error: 'timeout',
     });
-    expect(getEventCount(ctx, 'on_mitosis_error')).toBe(1);
+    expect(getEventCount(ctx, 'mitosis_error')).toBe(1);
   });
 
   it('detach with auto_cleanup despawns children', () => {

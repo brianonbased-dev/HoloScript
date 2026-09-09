@@ -72,7 +72,7 @@ describe('ChainTrait', () => {
     const s = (node as any).__chainState;
     expect(s.isBroken).toBe(true);
     expect(s.breakPoint).toBe(2);
-    expect(getEventCount(ctx, 'on_chain_break')).toBe(1);
+    expect(getEventCount(ctx, 'chain_break')).toBe(1);
   });
 
   it('repairs broken chain', () => {

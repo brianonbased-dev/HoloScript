@@ -246,7 +246,7 @@ describe('geospatialAnchorHandler.onEvent — geospatial_anchor_resolved', () =>
       accuracy: 2,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_geospatial_anchor_resolved',
+      'geospatial_anchor_resolved',
       expect.objectContaining({ accuracy: 2 })
     );
   });
@@ -318,7 +318,7 @@ describe('geospatialAnchorHandler.onEvent — geospatial_tracking_lost', () => {
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
       type: 'geospatial_tracking_lost',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_anchor_lost', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('geospatial_anchor_lost', expect.any(Object));
   });
 
   it('emits on_geospatial_anchor_lost immediately when retry_on_lost=false', () => {
@@ -327,7 +327,7 @@ describe('geospatialAnchorHandler.onEvent — geospatial_tracking_lost', () => {
     geospatialAnchorHandler.onEvent!(node as any, config, ctx as any, {
       type: 'geospatial_tracking_lost',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_geospatial_anchor_lost', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('geospatial_anchor_lost', expect.any(Object));
   });
 });
 

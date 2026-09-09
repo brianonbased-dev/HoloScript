@@ -594,12 +594,12 @@ orb character {
     methods: [],
     events: [
       {
-        name: 'on_motion_source_ready',
+        name: 'motion_source_ready',
         description: 'Emitted on attach once the catalog is registered.',
         payload: '{ node, kind, library, motions }',
       },
       {
-        name: 'on_motion_changed',
+        name: 'motion_changed',
         description: 'Emitted when the active motion changes.',
         payload: '{ node, motion, applied }',
       },

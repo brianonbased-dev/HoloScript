@@ -44,7 +44,7 @@ describe('DataBindingTrait', () => {
   it('connected event sets state', () => {
     sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_connected', handle: 'h1' });
     expect((node as any).__dataBindingState.isConnected).toBe(true);
-    expect(getEventCount(ctx, 'on_data_connected')).toBe(1);
+    expect(getEventCount(ctx, 'data_connected')).toBe(1);
   });
 
   it('data event applies non-numeric bindings immediately', () => {
@@ -54,7 +54,7 @@ describe('DataBindingTrait', () => {
       data: { temperature: 'hot', scale: 5 },
     });
     expect((node as any).temp).toBe('hot');
-    expect(getEventCount(ctx, 'on_data_change')).toBe(1);
+    expect(getEventCount(ctx, 'data_change')).toBe(1);
   });
 
   it('scale transform doubles value', () => {
@@ -81,7 +81,7 @@ describe('DataBindingTrait', () => {
   it('error increments count and emits', () => {
     sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_error', error: 'timeout' });
     expect((node as any).__dataBindingState.errorCount).toBe(1);
-    expect(getEventCount(ctx, 'on_data_error')).toBe(1);
+    expect(getEventCount(ctx, 'data_error')).toBe(1);
   });
 
   it('set_source reconnects', () => {

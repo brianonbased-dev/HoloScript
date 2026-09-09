@@ -152,7 +152,7 @@ describe('sensorHandler.onEvent — sensor_connected', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_connected', handle: 'h1' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_sensor_connected', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('sensor_connected', expect.anything());
   });
 });
 
@@ -176,7 +176,7 @@ describe('sensorHandler.onEvent — sensor_data', () => {
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 25 });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_sensor_update',
+      'sensor_update',
       expect.objectContaining({
         value: 25,
         unit: '°C',
@@ -245,27 +245,27 @@ describe('sensorHandler.onEvent — sensor_data', () => {
     const { node, config, ctx } = attach({ alert_threshold: { high: 50 } });
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 75 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_sensor_alert', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('sensor_alert', expect.anything());
     expect(node.__sensorState.alertActive).toBe(true);
   });
   it('alert fires when value below low threshold', () => {
     const { node, config, ctx } = attach({ alert_threshold: { low: 10 } });
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 5 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_sensor_alert', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('sensor_alert', expect.anything());
   });
   it('no alert when value within range', () => {
     const { node, config, ctx } = attach({ alert_threshold: { low: 0, high: 100 } });
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 50 });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_sensor_alert', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('sensor_alert', expect.anything());
   });
   it('alert_cleared fires when returning to safe range', () => {
     const { node, config, ctx } = attach({ alert_threshold: { high: 50 } });
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 75 });
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 30 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_sensor_alert_cleared', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('sensor_alert_cleared', expect.anything());
     expect(node.__sensorState.alertActive).toBe(false);
   });
   it('alert dedup: no double emit on sustained alert', () => {
@@ -273,13 +273,13 @@ describe('sensorHandler.onEvent — sensor_data', () => {
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 75 });
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 80 });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_sensor_alert', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('sensor_alert', expect.anything());
   });
   it('non-number value skips threshold check', () => {
     const { node, config, ctx } = attach({ alert_threshold: { high: 50 } });
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_data', value: 'hot' });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_sensor_alert', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('sensor_alert', expect.anything());
   });
 });
 
@@ -291,7 +291,7 @@ describe('sensorHandler.onEvent — sensor_error', () => {
     ctx.emit.mockClear();
     sensorHandler.onEvent!(node, config, ctx, { type: 'sensor_error', error: 'timeout' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_sensor_error',
+      'sensor_error',
       expect.objectContaining({ error: 'timeout' })
     );
   });

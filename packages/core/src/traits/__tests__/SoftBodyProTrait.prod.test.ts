@@ -99,7 +99,7 @@ describe('softBodyProHandler — onEvent', () => {
       } as any
     );
     expect((node as any).__softBodyProState.tornConstraints).toBe(5);
-    const ev = ctx.emitted.find((e: any) => e.type === 'on_soft_body_tear');
+    const ev = ctx.emitted.find((e: any) => e.type === 'soft_body_tear');
     expect(ev?.payload.tearRatio).toBeCloseTo(0.05);
   });
   it('soft_body_pro_apply_force emits impulse event', () => {

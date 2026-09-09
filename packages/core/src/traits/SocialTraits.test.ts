@@ -26,7 +26,7 @@ describe('SocialTraits', () => {
     it('should emit on_share event', () => {
       shareableHandler.onEvent!(mockNode, {}, mockContext, { type: 'share', platform: 'x' } as any);
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_share',
+        'share',
         expect.objectContaining({
           platform: 'x',
         })
@@ -53,7 +53,7 @@ describe('SocialTraits', () => {
         user: { id: 'u1' },
       } as any);
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_user_join',
+        'user_join',
         expect.objectContaining({
           user: { id: 'u1' },
         })
@@ -65,7 +65,7 @@ describe('SocialTraits', () => {
         user: { id: 'u1' },
       } as any);
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_user_leave',
+        'user_leave',
         expect.objectContaining({
           user: { id: 'u1' },
         })
@@ -76,7 +76,7 @@ describe('SocialTraits', () => {
   describe('TweetableHandler', () => {
     it('should emit tweet events', () => {
       tweetableHandler.onEvent!(mockNode, {}, mockContext, { type: 'tweet' } as any);
-      expect(mockContext.emit).toHaveBeenCalledWith('on_tweet', { node: mockNode });
+      expect(mockContext.emit).toHaveBeenCalledWith('tweet', { node: mockNode });
     });
   });
 

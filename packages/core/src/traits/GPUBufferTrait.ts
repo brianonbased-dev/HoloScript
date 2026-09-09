@@ -129,12 +129,12 @@ export const gpuBufferHandler: TraitHandler<GPUBufferConfig> = {
         });
       }
 
-      context.emit?.('on_buffer_ready', {
+      context.emit?.('buffer_ready', {
         node,
         size: state.size,
       });
     } else if (event.type === 'gpu_buffer_error') {
-      context.emit?.('on_gpu_error', {
+      context.emit?.('gpu_error', {
         node,
         error: event.error,
       });
@@ -165,7 +165,7 @@ export const gpuBufferHandler: TraitHandler<GPUBufferConfig> = {
         callbackId,
       });
     } else if (event.type === 'buffer_read_complete') {
-      context.emit?.('on_buffer_read', {
+      context.emit?.('buffer_read', {
         node,
         callbackId: event.callbackId,
         data: event.data,

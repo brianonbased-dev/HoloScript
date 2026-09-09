@@ -50,7 +50,7 @@ describe('PointCloudTrait', () => {
     expect(s.isLoaded).toBe(true);
     expect(s.isLoading).toBe(false);
     expect(s.pointCount).toBe(1000000);
-    expect(getEventCount(ctx, 'on_point_cloud_loaded')).toBe(1);
+    expect(getEventCount(ctx, 'point_cloud_loaded')).toBe(1);
   });
 
   it('load_progress emits progress event', () => {
@@ -60,7 +60,7 @@ describe('PointCloudTrait', () => {
       totalPoints: 1000,
       progress: 0.5,
     });
-    expect(getEventCount(ctx, 'on_point_cloud_progress')).toBe(1);
+    expect(getEventCount(ctx, 'point_cloud_progress')).toBe(1);
   });
 
   it('load_error clears loading flag', () => {
@@ -69,7 +69,7 @@ describe('PointCloudTrait', () => {
       error: 'File not found',
     });
     expect((node as any).__pointCloudState.isLoading).toBe(false);
-    expect(getEventCount(ctx, 'on_point_cloud_error')).toBe(1);
+    expect(getEventCount(ctx, 'point_cloud_error')).toBe(1);
   });
 
   it('visibility_update tracks visible points', () => {

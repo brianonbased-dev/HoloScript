@@ -57,7 +57,7 @@ export const telemetryHandler: TraitHandler<TelemetryConfig> = {
       state.buffer.length >= config.batch_size
     ) {
       if (state.buffer.length > 0) {
-        context.emit('on_telemetry_batch', {
+        context.emit('telemetry_batch', {
           node,
           channels: config.channels,
           payload: [...state.buffer],
@@ -82,7 +82,7 @@ export const telemetryHandler: TraitHandler<TelemetryConfig> = {
       });
     } else if (event.type === 'telemetry_flush') {
       if (state.buffer.length > 0) {
-        context.emit('on_telemetry_batch', {
+        context.emit('telemetry_batch', {
           node,
           channels: config.channels,
           payload: [...state.buffer],

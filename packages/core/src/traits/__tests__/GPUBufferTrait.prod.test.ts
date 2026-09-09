@@ -179,7 +179,7 @@ describe('gpuBufferHandler.onEvent — gpu_buffer_created', () => {
       size: 2048,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_buffer_ready',
+      'buffer_ready',
       expect.objectContaining({ size: 2048 })
     );
   });
@@ -221,7 +221,7 @@ describe('gpuBufferHandler.onEvent — gpu_buffer_error', () => {
       error: 'OOM',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_gpu_error',
+      'gpu_error',
       expect.objectContaining({ error: 'OOM' })
     );
   });

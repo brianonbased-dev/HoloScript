@@ -276,7 +276,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
         radius,
       });
 
-      context.emit?.('on_fluid_splash', {
+      context.emit?.('fluid_splash', {
         node,
         position,
         force,

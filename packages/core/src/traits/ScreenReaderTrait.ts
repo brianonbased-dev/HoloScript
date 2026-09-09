@@ -159,7 +159,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
         });
       }
 
-      context.emit?.('on_screen_reader_focus', { node });
+      context.emit?.('screen_reader_focus', { node });
     } else if (event.type === 'screen_reader_blur') {
       state.isFocused = false;
       state.navigationStack.pop();

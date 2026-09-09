@@ -206,7 +206,7 @@ describe('fluidHandler — onEvent: splash', () => {
       ctx as any,
       { type: 'fluid_splash', position: [1, 0, 1], force: 10 } as any
     );
-    expect(ctx.emitted.some((e: any) => e.type === 'on_fluid_splash')).toBe(true);
+    expect(ctx.emitted.some((e: any) => e.type === 'fluid_splash')).toBe(true);
   });
 });
 

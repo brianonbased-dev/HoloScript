@@ -56,7 +56,7 @@ describe('GeospatialAnchorTrait', () => {
     const s = (node as any).__geospatialAnchorState;
     expect(s.state).toBe('resolved');
     expect(s.accuracy).toBe(5);
-    expect(getEventCount(ctx, 'on_geospatial_anchor_resolved')).toBe(1);
+    expect(getEventCount(ctx, 'geospatial_anchor_resolved')).toBe(1);
   });
 
   it('pose update tracking vs limited based on accuracy', () => {
@@ -88,7 +88,7 @@ describe('GeospatialAnchorTrait', () => {
     for (let i = 0; i < 4; i++) {
       sendEvent(geospatialAnchorHandler, node, cfg, ctx, { type: 'geospatial_tracking_lost' });
     }
-    expect(getEventCount(ctx, 'on_geospatial_anchor_lost')).toBe(1);
+    expect(getEventCount(ctx, 'geospatial_anchor_lost')).toBe(1);
   });
 
   it('manual resolve resets retry count', () => {

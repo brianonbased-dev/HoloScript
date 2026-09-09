@@ -130,7 +130,7 @@ export const windHandler: TraitHandler<WindConfig> = {
       // Random gust
       state.gustTimer = 0.5 + Math.random() * 1.5; // 0.5-2 second gust
       gustMultiplier = config.gust_multiplier;
-      context.emit?.('on_gust_start', { node, duration: state.gustTimer });
+      context.emit?.('gust_start', { node, duration: state.gustTimer });
     }
 
     // Calculate current effective strength
@@ -153,7 +153,7 @@ export const windHandler: TraitHandler<WindConfig> = {
 
     // Emit wind change event when strength changes significantly
     if (Math.abs(state.currentStrength - config.strength * pulseMultiplier) > 0.5) {
-      context.emit?.('on_wind_change', {
+      context.emit?.('wind_change', {
         node,
         strength: state.currentStrength,
         direction: config.direction,

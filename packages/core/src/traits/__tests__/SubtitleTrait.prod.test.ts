@@ -144,7 +144,7 @@ describe('subtitleHandler.onEvent — subtitle_text', () => {
     ctx.emit.mockClear();
     subtitleHandler.onEvent!(node, cfg, ctx, { type: 'subtitle_text', text: 'T', speaker: 'D' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_subtitle_display',
+      'subtitle_display',
       expect.objectContaining({ text: 'T', speaker: 'D' })
     );
   });

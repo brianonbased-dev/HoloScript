@@ -149,7 +149,7 @@ export const holoTwinHandler: TraitHandler<HoloTwinConfig> = {
       connectToSensor(node, state, config, context);
     } else if (config.simulation_mode) {
       state.isSynced = true;
-      context.emit?.('on_holo_twin_connected', { node, mode: 'simulation' });
+      context.emit?.('holo_twin_connected', { node, mode: 'simulation' });
       // Start simulation loop
       startSimulation(node, state, config, context);
     }
@@ -200,7 +200,7 @@ export const holoTwinHandler: TraitHandler<HoloTwinConfig> = {
       state.isSynced = true;
       state.connectionHandle = event.handle;
       state.lastSyncTime = Date.now();
-      context.emit?.('on_holo_twin_connected', {
+      context.emit?.('holo_twin_connected', {
         node,
         physicalId: config.physical_id,
         device: config.display_device,
@@ -208,10 +208,10 @@ export const holoTwinHandler: TraitHandler<HoloTwinConfig> = {
     } else if (event.type === 'holo_twin_disconnected') {
       state.isSynced = false;
       state.connectionHandle = null;
-      context.emit?.('on_holo_twin_disconnected', { node });
+      context.emit?.('holo_twin_disconnected', { node });
     } else if (event.type === 'holo_twin_error') {
       state.error = event.error as string;
-      context.emit?.('on_holo_twin_error', {
+      context.emit?.('holo_twin_error', {
         node,
         error: state.error,
       });
@@ -220,7 +220,7 @@ export const holoTwinHandler: TraitHandler<HoloTwinConfig> = {
       state.quiltUrl = event.url as string;
       state.lastRecompileTime = Date.now();
       state.pendingRecompile = false;
-      context.emit?.('on_holo_twin_quilt_ready', {
+      context.emit?.('holo_twin_quilt_ready', {
         node,
         hash: state.quiltHash,
         url: state.quiltUrl,
@@ -258,7 +258,7 @@ function connectToSensor(
   if (!gateway && config.protocol === 'mqtt') {
     const msg = '[HoloTwinTrait] No IoT Gateway configured. Call setGateway() first.';
     console.warn(msg);
-    context.emit?.('on_holo_twin_error', { node, error: msg });
+    context.emit?.('holo_twin_error', { node, error: msg });
     return;
   }
 
@@ -366,7 +366,7 @@ function processSensorData(
     state.pendingRecompile = true;
   }
 
-  context.emit?.('on_holo_twin_sensor_update', {
+  context.emit?.('holo_twin_sensor_update', {
     node,
     sensorData: state.sensorData,
     appliedMappings: config.sensor_mappings.length,

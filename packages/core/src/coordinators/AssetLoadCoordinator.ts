@@ -99,9 +99,9 @@ const ASSET_LOAD_EVENTS = [
   'fbx:load_started',
   // Format-agnostic shared channel — all three traits ALSO emit these
   // for cross-format observers that don't care about the source format.
-  'on_asset_loaded',
+  'asset_loaded',
   'on_asset_progress',
-  'on_asset_error',
+  'asset_error',
 ] as const;
 
 export class AssetLoadCoordinator {
@@ -166,8 +166,8 @@ export class AssetLoadCoordinator {
   }
 
   private phaseFromEvent(event: string): 'started' | 'progress' | 'loaded' | 'error' | 'unknown' {
-    if (event.endsWith(':loaded') || event === 'on_asset_loaded') return 'loaded';
-    if (event.endsWith(':load_error') || event === 'on_asset_error') return 'error';
+    if (event.endsWith(':loaded') || event === 'asset_loaded') return 'loaded';
+    if (event.endsWith(':load_error') || event === 'asset_error') return 'error';
     if (event.endsWith(':loading_progress') || event === 'on_asset_progress') return 'progress';
     if (event.endsWith(':load_started')) return 'started';
     return 'unknown';

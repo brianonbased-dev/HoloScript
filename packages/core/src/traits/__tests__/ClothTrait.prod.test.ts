@@ -188,7 +188,7 @@ describe('clothHandler.onEvent', () => {
     expect(node.__clothState.constraints[0].broken).toBe(true);
     expect(node.__clothState.isTorn).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_cloth_tear',
+      'cloth_tear',
       expect.objectContaining({ constraintIndex: 0 })
     );
   });

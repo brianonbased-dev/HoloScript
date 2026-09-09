@@ -52,7 +52,7 @@ describe('StableDiffusionTrait', () => {
     expect(s.is_generating).toBe(false);
     expect(s.output_texture).toBe('tex_001');
     expect(s.texture_cache.size).toBe(1);
-    expect(getEventCount(ctx, 'on_texture_generated')).toBe(1);
+    expect(getEventCount(ctx, 'texture_generated')).toBe(1);
   });
 
   it('step event updates current_step', () => {
@@ -66,7 +66,7 @@ describe('StableDiffusionTrait', () => {
       error: 'OOM',
     });
     expect((node as any).__stableDiffusionState.is_generating).toBe(false);
-    expect(getEventCount(ctx, 'on_generation_error')).toBe(1);
+    expect(getEventCount(ctx, 'generation_error')).toBe(1);
   });
 
   it('realtime streaming emits progress on update', () => {

@@ -135,12 +135,12 @@ export const nerfHandler: TraitHandler<NerfConfig> = {
       state.isReady = true;
       state.modelHandle = event.handle;
 
-      context.emit?.('on_nerf_ready', {
+      context.emit?.('nerf_ready', {
         node,
       });
     } else if (event.type === 'nerf_load_error') {
       state.isLoading = false;
-      context.emit?.('on_nerf_error', {
+      context.emit?.('nerf_error', {
         node,
         error: event.error,
       });

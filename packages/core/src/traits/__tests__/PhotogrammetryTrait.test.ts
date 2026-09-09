@@ -65,7 +65,7 @@ describe('PhotogrammetryTrait', () => {
       progress: 50,
     });
     expect((node as any).__photogrammetryState.stage).toBe('meshing');
-    expect(getEventCount(ctx, 'on_photogrammetry_progress')).toBe(1);
+    expect(getEventCount(ctx, 'photogrammetry_progress')).toBe(1);
   });
 
   it('complete sets mesh handle', () => {
@@ -79,7 +79,7 @@ describe('PhotogrammetryTrait', () => {
     expect(s.isProcessing).toBe(false);
     expect(s.stage).toBe('complete');
     expect(s.meshHandle).toBeTruthy();
-    expect(getEventCount(ctx, 'on_capture_complete')).toBe(1);
+    expect(getEventCount(ctx, 'capture_complete')).toBe(1);
   });
 
   it('error stops processing', () => {
@@ -87,7 +87,7 @@ describe('PhotogrammetryTrait', () => {
       type: 'photogrammetry_error',
       error: 'fail',
     });
-    expect(getEventCount(ctx, 'on_photogrammetry_error')).toBe(1);
+    expect(getEventCount(ctx, 'photogrammetry_error')).toBe(1);
   });
 
   it('cancel resets state', () => {

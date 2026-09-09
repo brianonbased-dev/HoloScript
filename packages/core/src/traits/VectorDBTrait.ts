@@ -156,7 +156,7 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
       state.embeddings.push(entry);
       state.entry_count++;
 
-      context.emit?.('on_vector_inserted', {
+      context.emit?.('vector_inserted', {
         node,
         id: entry.id,
         entryCount: state.entry_count,
@@ -205,7 +205,7 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
       const searchTime = performance.now() - startTime;
       state.last_search_time = searchTime;
 
-      context.emit?.('on_vector_search_complete', {
+      context.emit?.('vector_search_complete', {
         node,
         results,
         k,
@@ -226,7 +226,7 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
           state.index.set(entry.id, i);
         });
 
-        context.emit?.('on_vector_deleted', {
+        context.emit?.('vector_deleted', {
           node,
           id,
           entryCount: state.entry_count,

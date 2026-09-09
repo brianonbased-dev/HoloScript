@@ -132,7 +132,7 @@ describe("onEvent 'pose_detected'", () => {
       confidence: 0.5,
     });
     expect(getState(node).detected_pose).toBeNull();
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_pose_updated', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('pose_updated', expect.anything());
   });
 
   it('accepts detection exactly at min_confidence', () => {
@@ -167,7 +167,7 @@ describe("onEvent 'pose_detected'", () => {
       confidence: 0.8,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_pose_updated',
+      'pose_updated',
       expect.objectContaining({
         confidence: 0.8,
         trackingId: expect.any(String),
@@ -286,7 +286,7 @@ describe("onEvent 'pose_lost'", () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     poseEstimationHandler.onEvent!(node as any, config, ctx as any, { type: 'pose_lost' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_pose_lost', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('pose_lost', expect.any(Object));
   });
 });
 
@@ -305,7 +305,7 @@ describe("onEvent 'get_keypoint'", () => {
       name: 'nose',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_keypoint_result',
+      'keypoint_result',
       expect.objectContaining({
         found: true,
         keypoint: expect.objectContaining({ name: 'nose' }),
@@ -326,7 +326,7 @@ describe("onEvent 'get_keypoint'", () => {
       name: 'right_wrist',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_keypoint_result',
+      'keypoint_result',
       expect.objectContaining({ found: false })
     );
   });
@@ -339,7 +339,7 @@ describe("onEvent 'get_keypoint'", () => {
       name: 'nose',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_keypoint_result',
+      'keypoint_result',
       expect.objectContaining({ found: false })
     );
   });

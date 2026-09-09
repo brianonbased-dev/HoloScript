@@ -47,7 +47,7 @@ describe('AlertTrait', () => {
     expect(getEventCount(ctx, 'alert_play_sound')).toBe(1);
     expect(getEventCount(ctx, 'alert_haptic')).toBe(1);
     expect(getEventCount(ctx, 'alert_notification')).toBe(1);
-    expect(getEventCount(ctx, 'on_alert_triggered')).toBe(1);
+    expect(getEventCount(ctx, 'alert_triggered')).toBe(1);
   });
 
   it('cooldown blocks duplicate triggers', () => {
@@ -71,7 +71,7 @@ describe('AlertTrait', () => {
     sendEvent(alertHandler, node, cfg, ctx, { type: 'alert_trigger', id: 'ack1' });
     sendEvent(alertHandler, node, cfg, ctx, { type: 'alert_acknowledge', alertId: 'ack1' });
     expect((node as any).__alertState.activeAlerts.get('ack1').acknowledged).toBe(true);
-    expect(getEventCount(ctx, 'on_alert_acknowledged')).toBe(1);
+    expect(getEventCount(ctx, 'alert_acknowledged')).toBe(1);
   });
 
   it('dismiss removes alert', () => {
@@ -79,7 +79,7 @@ describe('AlertTrait', () => {
     sendEvent(alertHandler, node, cfg, ctx, { type: 'alert_dismiss', alertId: 'd1' });
     expect((node as any).__alertState.activeAlerts.size).toBe(0);
     expect((node as any).__alertState.isTriggered).toBe(false);
-    expect(getEventCount(ctx, 'on_alert_cleared')).toBe(1);
+    expect(getEventCount(ctx, 'alert_cleared')).toBe(1);
   });
 
   it('dismiss_all clears everything', () => {
@@ -88,7 +88,7 @@ describe('AlertTrait', () => {
     sendEvent(alertHandler, node, cfg, ctx, { type: 'alert_trigger', id: 'x2' });
     sendEvent(alertHandler, node, cfg, ctx, { type: 'alert_dismiss_all' });
     expect((node as any).__alertState.activeAlerts.size).toBe(0);
-    expect(getEventCount(ctx, 'on_alerts_cleared')).toBe(1);
+    expect(getEventCount(ctx, 'alerts_cleared')).toBe(1);
   });
 
   it('query emits info', () => {

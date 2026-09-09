@@ -48,7 +48,7 @@ describe('LightEstimationTrait', () => {
     const s = (node as any).__lightEstimationState;
     // smoothed: 1.0 * 0.8 + 2.0 * 0.2 = 1.2
     expect(s.intensity).toBeCloseTo(1.2, 2);
-    expect(getEventCount(ctx, 'on_light_estimated')).toBe(1);
+    expect(getEventCount(ctx, 'light_estimated')).toBe(1);
   });
 
   it('color temperature updates correction', () => {

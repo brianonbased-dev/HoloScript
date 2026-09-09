@@ -130,7 +130,7 @@ export const photogrammetryHandler: TraitHandler<PhotogrammetryConfig> = {
       state.stage = event.stage as ProcessingStage;
       state.progress = event.progress as number;
 
-      context.emit?.('on_photogrammetry_progress', {
+      context.emit?.('photogrammetry_progress', {
         node,
         stage: state.stage,
         progress: state.progress,
@@ -148,14 +148,14 @@ export const photogrammetryHandler: TraitHandler<PhotogrammetryConfig> = {
         mesh: event.mesh,
       });
 
-      context.emit?.('on_capture_complete', {
+      context.emit?.('capture_complete', {
         node,
         vertexCount: event.vertexCount as number,
         textureResolution: state.textureResolution,
       });
     } else if (event.type === 'photogrammetry_error') {
       state.isProcessing = false;
-      context.emit?.('on_photogrammetry_error', {
+      context.emit?.('photogrammetry_error', {
         node,
         error: event.error,
         stage: state.stage,

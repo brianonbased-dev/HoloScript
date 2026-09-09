@@ -52,7 +52,7 @@ describe('RAGKnowledgeTrait', () => {
     expect(s.indexed_documents.size).toBe(1);
     expect(s.total_chunks).toBeGreaterThan(0);
     expect(getEventCount(ctx, 'rag_request_embeddings')).toBe(1);
-    expect(getEventCount(ctx, 'on_document_ingested')).toBe(1);
+    expect(getEventCount(ctx, 'document_ingested')).toBe(1);
   });
 
   it('embeddings ready marks document indexed', () => {
@@ -67,7 +67,7 @@ describe('RAGKnowledgeTrait', () => {
     });
     const doc = (node as any).__ragState.indexed_documents.get('doc1');
     expect(doc.indexed).toBe(true);
-    expect(getEventCount(ctx, 'on_document_indexed')).toBe(1);
+    expect(getEventCount(ctx, 'document_indexed')).toBe(1);
   });
 
   it('query emits retrieval request', () => {
@@ -90,7 +90,7 @@ describe('RAGKnowledgeTrait', () => {
         { id: 'doc1_chunk_1', similarity: 0.7, metadata: {} },
       ],
     });
-    expect(getEventCount(ctx, 'on_knowledge_retrieved')).toBe(1);
+    expect(getEventCount(ctx, 'knowledge_retrieved')).toBe(1);
     const s = (node as any).__ragState;
     expect(s.retrieved_chunks.length).toBe(2);
   });

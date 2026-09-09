@@ -161,7 +161,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
         }
       }
 
-      context.emit?.('on_terrain_resolved', {
+      context.emit?.('terrain_resolved', {
         node,
         terrainHeight: state.terrainHeight,
         confidence: state.confidence,
@@ -178,7 +178,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
     } else if (event.type === 'terrain_anchor_unavailable') {
       state.state = 'unavailable';
 
-      context.emit?.('on_terrain_unavailable', {
+      context.emit?.('terrain_unavailable', {
         node,
         reason: event.reason,
       });

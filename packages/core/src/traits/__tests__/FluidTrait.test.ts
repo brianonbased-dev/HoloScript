@@ -74,7 +74,7 @@ describe('FluidTrait', () => {
       radius: 1,
     });
     expect(getEventCount(ctx, 'fluid_apply_impulse')).toBe(1);
-    expect(getEventCount(ctx, 'on_fluid_splash')).toBe(1);
+    expect(getEventCount(ctx, 'fluid_splash')).toBe(1);
   });
 
   it('pause and resume control simulation', () => {

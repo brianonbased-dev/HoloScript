@@ -51,7 +51,7 @@ describe('AccessibleTrait', () => {
   it('focus sets focused and emits event', () => {
     sendEvent(accessibleHandler, node, cfg, ctx, { type: 'focus' });
     expect((node as any).__accessibleState.isFocused).toBe(true);
-    expect(getEventCount(ctx, 'on_accessible_focus')).toBe(1);
+    expect(getEventCount(ctx, 'accessible_focus')).toBe(1);
   });
 
   it('blur clears focus', () => {

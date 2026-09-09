@@ -172,7 +172,7 @@ export const subtitleHandler: TraitHandler<SubtitleConfig> = {
         }
       }
 
-      context.emit?.('on_subtitle_display', {
+      context.emit?.('subtitle_display', {
         node,
         text,
         speaker,

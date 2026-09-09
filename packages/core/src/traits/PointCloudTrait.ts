@@ -139,13 +139,13 @@ export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
       state.memoryUsage = event.memoryUsage as number;
       state.octreeHandle = event.octree;
 
-      context.emit?.('on_point_cloud_loaded', {
+      context.emit?.('point_cloud_loaded', {
         node,
         pointCount: state.pointCount,
         boundingBox: state.boundingBox,
       });
     } else if (event.type === 'point_cloud_load_progress') {
-      context.emit?.('on_point_cloud_progress', {
+      context.emit?.('point_cloud_progress', {
         node,
         loadedPoints: event.loadedPoints as number,
         totalPoints: event.totalPoints as number,
@@ -153,7 +153,7 @@ export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
       });
     } else if (event.type === 'point_cloud_load_error') {
       state.isLoading = false;
-      context.emit?.('on_point_cloud_error', {
+      context.emit?.('point_cloud_error', {
         node,
         error: event.error,
       });

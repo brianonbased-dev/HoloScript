@@ -137,7 +137,7 @@ export const poiHandler: TraitHandler<POIConfig> = {
           state.lastTriggerTime = now;
           state.isInRange = true;
 
-          context.emit?.('on_poi_proximity', {
+          context.emit?.('poi_proximity', {
             node,
             name: config.name,
             category: config.category,
@@ -148,7 +148,7 @@ export const poiHandler: TraitHandler<POIConfig> = {
       } else if (!state.userInTriggerZone && wasInTrigger) {
         state.isInRange = false;
 
-        context.emit?.('on_poi_exit', {
+        context.emit?.('poi_exit', {
           node,
           name: config.name,
         });

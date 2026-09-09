@@ -148,10 +148,10 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
       state.shaderModule = event.shaderModule;
       state.pipeline = event.pipeline;
 
-      context.emit?.('on_compute_ready', { node });
+      context.emit?.('compute_ready', { node });
     } else if (event.type === 'compute_dispatch') {
       if (!state.isReady) {
-        context.emit?.('on_compute_error', {
+        context.emit?.('compute_error', {
           node,
           error: 'Compute not initialized',
         });
@@ -181,7 +181,7 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
       const bufferHandle = state.buffers.get(bufferName);
 
       if (!bufferHandle) {
-        context.emit?.('on_compute_error', {
+        context.emit?.('compute_error', {
           node,
           error: `Buffer not found: ${bufferName}`,
         });
@@ -214,7 +214,7 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
         callbackId: event.callbackId,
       });
     } else if (event.type === 'compute_buffer_data') {
-      context.emit?.('on_compute_data', {
+      context.emit?.('compute_data', {
         node,
         bufferName: event.bufferName,
         data: event.data,
@@ -252,13 +252,13 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
     } else if (event.type === 'compute_complete') {
       state.executionCount++;
 
-      context.emit?.('on_compute_complete', {
+      context.emit?.('compute_complete', {
         node,
         executionTime: event.executionTime,
         executionCount: state.executionCount,
       });
     } else if (event.type === 'compute_error') {
-      context.emit?.('on_compute_error', {
+      context.emit?.('compute_error', {
         node,
         error: event.error,
       });

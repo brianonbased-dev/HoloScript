@@ -39,7 +39,7 @@ describe('VectorDBTrait', () => {
       metadata: { label: 'cat' },
     });
     expect((node as any).__vectorDBState.entry_count).toBe(1);
-    expect(getEventCount(ctx, 'on_vector_inserted')).toBe(1);
+    expect(getEventCount(ctx, 'vector_inserted')).toBe(1);
   });
 
   it('rejects wrong dimension', () => {
@@ -96,7 +96,7 @@ describe('VectorDBTrait', () => {
       embedding: [1, 0, 0],
       k: 2,
     });
-    const ev = getLastEvent(ctx, 'on_vector_search_complete') as any;
+    const ev = getLastEvent(ctx, 'vector_search_complete') as any;
     expect(ev.results.length).toBe(2);
     expect(ev.results[0].id).toBe('a'); // Exact match
   });
@@ -123,7 +123,7 @@ describe('VectorDBTrait', () => {
     });
     sendEvent(vectorDBHandler, node, cfg, ctx, { type: 'vector_db_delete', id: 'a' });
     expect((node as any).__vectorDBState.entry_count).toBe(1);
-    expect(getEventCount(ctx, 'on_vector_deleted')).toBe(1);
+    expect(getEventCount(ctx, 'vector_deleted')).toBe(1);
   });
 
   it('detach persists state', () => {

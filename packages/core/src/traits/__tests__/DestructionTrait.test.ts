@@ -53,7 +53,7 @@ describe('DestructionTrait', () => {
     sendEvent(destructionHandler, node, cfg, ctx, { type: 'damage', amount: 150 });
     const state = (node as any).__destructionState;
     expect(state.isDestroyed).toBe(true);
-    expect(getEventCount(ctx, 'on_destruction')).toBe(1);
+    expect(getEventCount(ctx, 'destruction')).toBe(1);
   });
 
   it('fragments are generated on destruction', () => {

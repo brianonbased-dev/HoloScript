@@ -254,7 +254,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       });
 
       if (state.isDeformed) {
-        context.emit?.('on_soft_body_deform', {
+        context.emit?.('soft_body_deform', {
           node,
           deformationAmount: state.deformationAmount,
         });

@@ -45,7 +45,7 @@ describe('MarketplaceTrait', () => {
 
   it('rejects price below minimum', () => {
     sendEvent(marketplaceHandler, node, cfg, ctx, { type: 'marketplace_list', price: 0.001 });
-    expect(getEventCount(ctx, 'on_marketplace_error')).toBe(1);
+    expect(getEventCount(ctx, 'marketplace_error')).toBe(1);
   });
 
   it('listing_created marks listed', () => {
@@ -55,7 +55,7 @@ describe('MarketplaceTrait', () => {
       listingId: 'L1',
     });
     expect((node as any).__marketplaceState.isListed).toBe(true);
-    expect(getEventCount(ctx, 'on_listed')).toBe(1);
+    expect(getEventCount(ctx, 'listed')).toBe(1);
   });
 
   it('unlist cancels listing', () => {
@@ -79,7 +79,7 @@ describe('MarketplaceTrait', () => {
       buyerAddress: '0xBuyer',
     });
     expect((node as any).__marketplaceState.status).toBe('sold');
-    expect(getEventCount(ctx, 'on_purchase_complete')).toBe(1);
+    expect(getEventCount(ctx, 'purchase_complete')).toBe(1);
   });
 
   it('auction starts and accepts bids', () => {
@@ -96,7 +96,7 @@ describe('MarketplaceTrait', () => {
     });
     expect((node as any).__marketplaceState.highestBid).toBe(2);
     expect((node as any).__marketplaceState.bidCount).toBe(1);
-    expect(getEventCount(ctx, 'on_bid_received')).toBe(1);
+    expect(getEventCount(ctx, 'bid_received')).toBe(1);
   });
 
   it('ignores lower bids', () => {

@@ -55,7 +55,7 @@ describe('HighContrastTrait', () => {
   it('enable event applies contrast', () => {
     sendEvent(highContrastHandler, node, cfg, ctx, { type: 'high_contrast_enable', mode: 'high' });
     expect((node as any).__highContrastState.isActive).toBe(true);
-    expect(getEventCount(ctx, 'on_contrast_change')).toBe(1);
+    expect(getEventCount(ctx, 'contrast_change')).toBe(1);
   });
 
   it('disable restores materials', () => {

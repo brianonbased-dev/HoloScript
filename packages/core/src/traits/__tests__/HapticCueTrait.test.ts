@@ -39,7 +39,7 @@ describe('HapticCueTrait', () => {
     sendEvent(hapticCueHandler, node, cfg, ctx, { type: 'interact' });
     expect((node as any).__hapticCueState.isPlaying).toBe(true);
     expect(getEventCount(ctx, 'haptic_play')).toBe(1);
-    expect(getEventCount(ctx, 'on_haptic_start')).toBe(1);
+    expect(getEventCount(ctx, 'haptic_start')).toBe(1);
   });
 
   it('haptic_trigger also triggers playback', () => {

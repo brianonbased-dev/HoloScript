@@ -58,7 +58,7 @@ describe('Heatmap3DTrait', () => {
     });
     updateTrait(heatmap3dHandler, node, cfg, ctx, 0.016);
     expect(getEventCount(ctx, 'heatmap_render')).toBe(1);
-    expect(getEventCount(ctx, 'on_heatmap_update')).toBe(1);
+    expect(getEventCount(ctx, 'heatmap_update')).toBe(1);
   });
 
   it('add point expands range', () => {

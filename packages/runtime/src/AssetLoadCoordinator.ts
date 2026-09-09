@@ -102,19 +102,19 @@ export class AssetLoadCoordinator {
     this._started = true;
 
     this.unsubscribers.push(
-      this.bus.on<AssetLoadedEvent>('on_asset_loaded', (evt) => this.handleLoaded(evt))
+      this.bus.on<AssetLoadedEvent>('asset_loaded', (evt) => this.handleLoaded(evt))
     );
     this.unsubscribers.push(
-      this.bus.on<AssetErrorEvent>('on_asset_error', (evt) => this.handleError(evt))
+      this.bus.on<AssetErrorEvent>('asset_error', (evt) => this.handleError(evt))
     );
     // Also listen to the portable-trait events which use slightly different names
     this.unsubscribers.push(
-      this.bus.on<AssetLoadedEvent & { format?: string }>('on_asset_ported', (evt) =>
+      this.bus.on<AssetLoadedEvent & { format?: string }>('asset_ported', (evt) =>
         this.handleLoaded({ ...evt, assetType: evt.format ?? 'portable' })
       )
     );
     this.unsubscribers.push(
-      this.bus.on<AssetLoadedEvent & { format?: string }>('on_asset_imported', (evt) =>
+      this.bus.on<AssetLoadedEvent & { format?: string }>('asset_imported', (evt) =>
         this.handleLoaded({ ...evt, assetType: evt.format ?? 'portable' })
       )
     );

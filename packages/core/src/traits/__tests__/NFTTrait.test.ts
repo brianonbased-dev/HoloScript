@@ -50,13 +50,13 @@ describe('NFTTrait', () => {
     const s = (node as any).__nftState;
     expect(s.isVerified).toBe(true);
     expect(s.ownerAddress).toBe('0xOwner');
-    expect(getEventCount(ctx, 'on_nft_verified')).toBe(1);
+    expect(getEventCount(ctx, 'nft_verified')).toBe(1);
   });
 
   it('verification failed clears state', () => {
     sendEvent(nftHandler, node, cfg, ctx, { type: 'nft_verification_failed', error: 'invalid' });
     expect((node as any).__nftState.isVerified).toBe(false);
-    expect(getEventCount(ctx, 'on_nft_error')).toBe(1);
+    expect(getEventCount(ctx, 'nft_error')).toBe(1);
   });
 
   it('metadata loaded stores metadata', () => {
@@ -65,7 +65,7 @@ describe('NFTTrait', () => {
       metadata: { name: 'Test NFT', description: 'A test', image: 'img.png', attributes: [] },
     });
     expect((node as any).__nftState.metadata.name).toBe('Test NFT');
-    expect(getEventCount(ctx, 'on_nft_metadata')).toBe(1);
+    expect(getEventCount(ctx, 'nft_metadata')).toBe(1);
   });
 
   it('transfer initiates when enabled', () => {
@@ -86,7 +86,7 @@ describe('NFTTrait', () => {
       type: 'nft_transfer',
       toAddress: '0xNew',
     });
-    expect(getEventCount(c, 'on_nft_error')).toBe(1);
+    expect(getEventCount(c, 'nft_error')).toBe(1);
     expect(getEventCount(c, 'nft_initiate_transfer')).toBe(0);
   });
 
@@ -102,7 +102,7 @@ describe('NFTTrait', () => {
       txHash: '0xTx',
     });
     expect((node as any).__nftState.ownerAddress).toBe('0xNewOwner');
-    expect(getEventCount(ctx, 'on_nft_transferred')).toBe(1);
+    expect(getEventCount(ctx, 'nft_transferred')).toBe(1);
   });
 
   it('check_owner verifies address', () => {

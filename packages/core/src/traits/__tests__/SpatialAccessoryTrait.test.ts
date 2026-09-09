@@ -45,7 +45,7 @@ describe('SpatialAccessoryTrait', () => {
     const s = (node as any).__spatialAccessoryState;
     expect(s.isConnected).toBe(true);
     expect(s.hapticMotors).toBe(2);
-    expect(getEventCount(ctx, 'on_accessory_connected')).toBe(1);
+    expect(getEventCount(ctx, 'accessory_connected')).toBe(1);
   });
 
   it('led enabled on connect when configured', () => {
@@ -84,8 +84,8 @@ describe('SpatialAccessoryTrait', () => {
       button: 'tip',
       value: 0.8,
     });
-    expect(getEventCount(ctx, 'on_accessory_input')).toBe(1);
-    const ev = getLastEvent(ctx, 'on_accessory_input') as any;
+    expect(getEventCount(ctx, 'accessory_input')).toBe(1);
+    const ev = getLastEvent(ctx, 'accessory_input') as any;
     expect(ev.action).toBe('draw');
   });
 
@@ -95,7 +95,7 @@ describe('SpatialAccessoryTrait', () => {
       button: 'tip',
       value: 0.5,
     });
-    expect(getEventCount(ctx, 'on_pressure_change')).toBe(1);
+    expect(getEventCount(ctx, 'pressure_change')).toBe(1);
   });
 
   it('haptic plays when feedback enabled and motors available', () => {
@@ -124,7 +124,7 @@ describe('SpatialAccessoryTrait', () => {
       type: 'accessory_battery_update',
       level: 0.1,
     });
-    expect(getEventCount(ctx, 'on_accessory_low_battery')).toBe(1);
+    expect(getEventCount(ctx, 'accessory_low_battery')).toBe(1);
   });
 
   it('query emits info', () => {

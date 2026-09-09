@@ -110,7 +110,7 @@ describe('AssetLoadCoordinator — Pattern E remediation for GLTF/USD/FBX', () =
 
   it('cross-format on_asset_loaded works with modelId payload key', () => {
     // Some traits use modelId instead of url as the canonical key
-    source.fire('on_asset_loaded', { modelId: 'pfnn_v1' });
+    source.fire('asset_loaded', { modelId: 'pfnn_v1' });
     expect(coord.getAssetState('pfnn_v1')?.status).toBe('loaded');
   });
 
@@ -181,7 +181,7 @@ describe('AssetLoadCoordinator — Pattern E remediation for GLTF/USD/FBX', () =
     expect(coord.getAssetState('a.glb')?.format).toBe('gltf');
     // The cross-format on_asset_loaded would set format='unknown' if it
     // overwrote, but we preserve the established format.
-    source.fire('on_asset_loaded', { url: 'a.glb' });
+    source.fire('asset_loaded', { url: 'a.glb' });
     expect(coord.getAssetState('a.glb')?.format).toBe('gltf');
   });
 

@@ -59,7 +59,7 @@ describe('GeospatialEnvTrait', () => {
       heading: 90,
     });
     expect((node as any).__geospatialEnvState.state).toBe('localized');
-    expect(getEventCount(ctx, 'on_geospatial_localized')).toBe(1);
+    expect(getEventCount(ctx, 'geospatial_localized')).toBe(1);
     // Update promotes to tracking since accuracy < threshold
     updateTrait(geospatialEnvHandler, node, cfg, ctx, 0.016);
     expect((node as any).__geospatialEnvState.state).toBe('tracking');

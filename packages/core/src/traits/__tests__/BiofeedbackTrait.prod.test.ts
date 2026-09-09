@@ -91,7 +91,7 @@ describe('BiofeedbackTrait — onEvent: device connect/disconnect', () => {
       type: 'biofeedback_device_connected',
     });
     expect((node as any).__biofeedbackState.isConnected).toBe(true);
-    expect(emit).toHaveBeenCalledWith('on_biofeedback_ready', expect.anything());
+    expect(emit).toHaveBeenCalledWith('biofeedback_ready', expect.anything());
   });
   it('biofeedback_device_disconnected → isConnected=false, emits on_biofeedback_lost', () => {
     const node = makeNode();
@@ -102,7 +102,7 @@ describe('BiofeedbackTrait — onEvent: device connect/disconnect', () => {
       type: 'biofeedback_device_disconnected',
     });
     expect((node as any).__biofeedbackState.isConnected).toBe(false);
-    expect(emit).toHaveBeenCalledWith('on_biofeedback_lost', expect.anything());
+    expect(emit).toHaveBeenCalledWith('biofeedback_lost', expect.anything());
   });
 });
 

@@ -136,7 +136,7 @@ describe('Web3 Journey — Capstone Integration', () => {
       expect(gs.hasAccess).toBe(true);
       expect(gs.tokenBalance).toBe(3);
       expect(ctx.emit).toHaveBeenCalledWith(
-        'on_token_verified',
+        'token_verified',
         expect.objectContaining({
           address: '0xAlice',
           balance: 3,
@@ -198,7 +198,7 @@ describe('Web3 Journey — Capstone Integration', () => {
 
       expect(node.__tokenGatedState.hasAccess).toBe(false);
       expect(ctx.emit).toHaveBeenCalledWith(
-        'on_token_denied',
+        'token_denied',
         expect.objectContaining({
           address: '0xPoor',
           reason: 'insufficient_balance',
@@ -250,7 +250,7 @@ describe('Web3 Journey — Capstone Integration', () => {
 
       expect(node.__tokenGatedState.hasAccess).toBe(false);
       expect(ctx.emit).toHaveBeenCalledWith(
-        'on_token_denied',
+        'token_denied',
         expect.objectContaining({
           reason: 'blocked',
         })
@@ -276,7 +276,7 @@ describe('Web3 Journey — Capstone Integration', () => {
 
       expect(node.__tokenGatedState.hasAccess).toBe(true);
       expect(ctx.emit).toHaveBeenCalledWith(
-        'on_token_verified',
+        'token_verified',
         expect.objectContaining({
           balance: 999,
         })

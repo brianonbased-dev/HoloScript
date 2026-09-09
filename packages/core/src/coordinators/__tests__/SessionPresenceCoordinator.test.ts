@@ -148,7 +148,7 @@ describe('SessionPresenceCoordinator — Pattern E remediation for presence clus
     it('on_voice_activity updates lastVoiceActivityAt', () => {
       source.fire('spatial_voice_create', { nodeId: 'n7' });
       const before = coord.getVoiceNode('n7')!.lastVoiceActivityAt;
-      source.fire('on_voice_activity', { speaking: true });
+      source.fire('voice_activity', { speaking: true });
       const after = coord.getVoiceNode('n7')!.lastVoiceActivityAt;
       expect(after).toBeGreaterThanOrEqual(before);
       expect(after).toBeGreaterThan(0);

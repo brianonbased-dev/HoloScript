@@ -126,7 +126,7 @@ describe('computeHandler.onEvent — compute_initialized', () => {
       shaderModule: {},
       pipeline: {},
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_compute_ready', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('compute_ready', expect.anything());
   });
 });
 
@@ -138,7 +138,7 @@ describe('computeHandler.onEvent — compute_dispatch', () => {
     ctx.emit.mockClear();
     computeHandler.onEvent!(node, config, ctx, { type: 'compute_dispatch' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_compute_error',
+      'compute_error',
       expect.objectContaining({ error: 'Compute not initialized' })
     );
   });
@@ -229,7 +229,7 @@ describe('computeHandler.onEvent — buffer events', () => {
       data: [],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_compute_error',
+      'compute_error',
       expect.objectContaining({ error: expect.stringContaining('missing') })
     );
   });
@@ -285,7 +285,7 @@ describe('computeHandler.onEvent — buffer events', () => {
       callbackId: 'cb',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_compute_data',
+      'compute_data',
       expect.objectContaining({ bufferName: 'positions' })
     );
   });
@@ -368,7 +368,7 @@ describe('computeHandler.onEvent — complete, error, query', () => {
     ctx.emit.mockClear();
     computeHandler.onEvent!(node, config, ctx, { type: 'compute_complete', executionTime: 3 });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_compute_complete',
+      'compute_complete',
       expect.objectContaining({ executionCount: 1, executionTime: 3 })
     );
   });
@@ -377,7 +377,7 @@ describe('computeHandler.onEvent — complete, error, query', () => {
     ctx.emit.mockClear();
     computeHandler.onEvent!(node, config, ctx, { type: 'compute_error', error: 'GPU OOM' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_compute_error',
+      'compute_error',
       expect.objectContaining({ error: 'GPU OOM' })
     );
   });

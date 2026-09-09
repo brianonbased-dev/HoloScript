@@ -211,7 +211,7 @@ describe("onEvent 'neural_animation_synthesize'", () => {
       target_pose: pose,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_animation_synthesis_start',
+      'animation_synthesis_start',
       expect.objectContaining({ targetPose: pose })
     );
   });
@@ -293,7 +293,7 @@ describe("onEvent 'neural_animation_retarget_result'", () => {
       pose,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_retargeting_complete',
+      'retargeting_complete',
       expect.objectContaining({ pose })
     );
   });

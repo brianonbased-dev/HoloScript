@@ -158,7 +158,7 @@ describe('magnifiableHandler.onEvent — magnify_start / pinch_start', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     magnifiableHandler.onEvent!(node, cfg, ctx, { type: 'magnify_start' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_magnify_start', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('magnify_start', expect.any(Object));
   });
   it('pinch_start is an alias and also sets isZooming=true', () => {
     const { node, cfg, ctx } = attachNode();
@@ -232,7 +232,7 @@ describe('magnifiableHandler.onEvent — magnify_end / pinch_end', () => {
     ctx.emit.mockClear();
     magnifiableHandler.onEvent!(node, cfg, ctx, { type: 'magnify_end' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_magnify_end',
+      'magnify_end',
       expect.objectContaining({ magnification: 2.5 })
     );
   });

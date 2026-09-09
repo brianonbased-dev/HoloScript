@@ -270,7 +270,7 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
       const bounds = state.roomBounds;
       const roomHeight = bounds ? bounds.max[1] - bounds.min[1] : 0;
 
-      context.emit?.('on_room_mapped', {
+      context.emit?.('room_mapped', {
         node,
         bounds: state.roomBounds,
         floorArea,
@@ -280,7 +280,7 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
       });
     } else if (event.type === 'room_mesh_complete') {
       state.isScanning = false;
-      context.emit?.('on_room_mesh_complete', {
+      context.emit?.('room_mesh_complete', {
         node,
         totalVertices: state.totalVertices,
         totalTriangles: state.totalTriangles,

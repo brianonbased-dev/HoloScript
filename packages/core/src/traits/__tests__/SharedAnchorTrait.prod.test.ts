@@ -179,7 +179,7 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_upload_complete', () => {
     expect(s.state).toBe('shared');
     expect(s.quality).toBeCloseTo(0.9);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_anchor_shared',
+      'anchor_shared',
       expect.objectContaining({ cloudAnchorId: 'cloud-abc', quality: 0.9 })
     );
   });
@@ -201,7 +201,7 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_upload_failed', () => {
     fire(node, cfg, ctx, { type: 'shared_anchor_upload_failed', error: 'network timeout' });
     expect(st(node).state).toBe('error');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_anchor_share_failed',
+      'anchor_share_failed',
       expect.objectContaining({ error: 'network timeout' })
     );
   });
@@ -244,7 +244,7 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_resolved', () => {
     expect(s.state).toBe('synchronized');
     expect(s.localAnchorHandle).toEqual({ h: 1 });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_anchor_resolved',
+      'anchor_resolved',
       expect.objectContaining({ cloudAnchorId: 'rid' })
     );
   });
@@ -261,7 +261,7 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_user_joined', () => {
     expect(st(node).sharedUsers[0].userId).toBe('u1');
     expect(st(node).sharedUsers[0].isResolved).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_user_joined',
+      'user_joined',
       expect.objectContaining({ userId: 'u1', userCount: 1 })
     );
   });
@@ -317,7 +317,7 @@ describe('SharedAnchorTrait — onEvent: shared_anchor_user_left', () => {
     expect(users).toHaveLength(1);
     expect(users[0].userId).toBe('u2');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_user_left',
+      'user_left',
       expect.objectContaining({ userId: 'u1', userCount: 1 })
     );
   });

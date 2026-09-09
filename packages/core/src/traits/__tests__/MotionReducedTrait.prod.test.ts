@@ -145,7 +145,7 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     const scale = 2 / speed;
     expect((node as any).velocity[0]).toBeCloseTo(2 * scale, 5);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_motion_clamped',
+      'motion_clamped',
       expect.objectContaining({ clampedSpeed: 2 })
     );
   });
@@ -157,7 +157,7 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     (node as any).velocity = [1, 1, 1]; // speed ≈ 1.73 < 5
     ctx.emit.mockClear();
     motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_motion_clamped', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('motion_clamped', expect.anything());
   });
 
   it('does NOT crash when no velocity on node', () => {
@@ -225,7 +225,7 @@ describe('motionReducedHandler.onEvent — enable/disable/toggle', () => {
     });
     expect((node as any).__motionReducedState.isActive).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('motion_reduced_apply', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', {
+    expect(ctx.emit).toHaveBeenCalledWith('motion_reduce', {
       node: expect.anything(),
       enabled: true,
     });
@@ -239,7 +239,7 @@ describe('motionReducedHandler.onEvent — enable/disable/toggle', () => {
       type: 'motion_reduced_disable',
     });
     expect((node as any).__motionReducedState.isActive).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', {
+    expect(ctx.emit).toHaveBeenCalledWith('motion_reduce', {
       node: expect.anything(),
       enabled: false,
     });
@@ -263,7 +263,7 @@ describe('motionReducedHandler.onEvent — enable/disable/toggle', () => {
       type: 'motion_reduced_toggle',
     });
     expect((node as any).__motionReducedState.isActive).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_motion_reduce', {
+    expect(ctx.emit).toHaveBeenCalledWith('motion_reduce', {
       node: expect.anything(),
       enabled: false,
     });

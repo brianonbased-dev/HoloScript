@@ -101,7 +101,7 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
           winningBid: state.highestBid,
         });
 
-        context.emit?.('on_auction_end', {
+        context.emit?.('auction_end', {
           node,
           winningBid: state.highestBid,
           bidCount: state.bidCount,
@@ -119,7 +119,7 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
 
       const price = event.price as number;
       if (price < config.min_price) {
-        context.emit?.('on_marketplace_error', {
+        context.emit?.('marketplace_error', {
           node,
           error: `Price below minimum: ${config.min_price}`,
         });
@@ -141,7 +141,7 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
       state.listingId = event.listingId as string;
       state.isListed = true;
 
-      context.emit?.('on_listed', {
+      context.emit?.('listed', {
         node,
         listingId: state.listingId,
         price: state.currentPrice,
@@ -175,7 +175,7 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
       state.isListed = false;
       state.ownerAddress = event.buyerAddress as string;
 
-      context.emit?.('on_purchase_complete', {
+      context.emit?.('purchase_complete', {
         node,
         price: state.currentPrice,
         buyer: state.ownerAddress,
@@ -215,7 +215,7 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
           bidder: bidderAddress,
         });
 
-        context.emit?.('on_bid_received', {
+        context.emit?.('bid_received', {
           node,
           amount: bidAmount,
           bidder: bidderAddress,

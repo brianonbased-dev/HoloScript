@@ -46,7 +46,7 @@ describe('RoleTrait', () => {
     const s = (node as any).__roleState;
     expect(s.currentRole).toBe('admin');
     expect(s.effectivePermissions.has('admin')).toBe(true);
-    expect(getEventCount(ctx, 'on_role_change')).toBe(1);
+    expect(getEventCount(ctx, 'role_change')).toBe(1);
   });
 
   it('check_permission returns granted for valid permission', () => {
@@ -72,7 +72,7 @@ describe('RoleTrait', () => {
   it('grant_permission adds permission', () => {
     sendEvent(roleHandler, node, cfg, ctx, { type: 'role_grant_permission', permission: 'edit' });
     expect((node as any).__roleState.effectivePermissions.has('edit')).toBe(true);
-    expect(getEventCount(ctx, 'on_permission_granted')).toBe(1);
+    expect(getEventCount(ctx, 'permission_granted')).toBe(1);
   });
 
   it('revoke_permission removes permission', () => {
@@ -81,7 +81,7 @@ describe('RoleTrait', () => {
       permission: 'interact',
     });
     expect((node as any).__roleState.effectivePermissions.has('interact')).toBe(false);
-    expect(getEventCount(ctx, 'on_permission_revoked')).toBe(1);
+    expect(getEventCount(ctx, 'permission_revoked')).toBe(1);
   });
 
   it('role_can_perform checks required permissions', () => {

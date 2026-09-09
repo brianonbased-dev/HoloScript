@@ -106,7 +106,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
     if (event.type === 'player_enter_dialogue_range') {
       // @ts-expect-error
       if (!npcState.in_dialogue) {
-        context.emit?.('on_player_nearby', {
+        context.emit?.('player_nearby', {
           node,
           playerId: event.playerId,
           distance: event.distance,
@@ -117,7 +117,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
       if (npcState.in_dialogue) {
         // @ts-expect-error
         npcState.in_dialogue = false;
-        context.emit?.('on_dialogue_end', { node });
+        context.emit?.('dialogue_end', { node });
       }
     } else if (event.type === 'player_interact') {
       // @ts-expect-error
@@ -127,7 +127,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
       // @ts-expect-error
       npcState.conversation_count++;
 
-      context.emit?.('on_dialogue_start', {
+      context.emit?.('dialogue_start', {
         node,
         playerId: event.playerId,
         // @ts-expect-error
@@ -139,7 +139,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
       // @ts-expect-error
       npcState.relationship_delta = delta;
 
-      context.emit?.('on_relationship_updated', {
+      context.emit?.('relationship_updated', {
         node,
         relationship: config.player_relationship,
         delta,

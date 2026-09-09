@@ -130,7 +130,7 @@ export const spatialVoiceHandler: TraitHandler<SpatialVoiceConfig> = {
         break;
       case 'voice_vad_event':
         state.isSpeaking = (event.speaking as boolean) ?? false;
-        context.emit('on_voice_activity', {
+        context.emit('voice_activity', {
           speaking: state.isSpeaking,
           volume: (event.volume as number) ?? 0,
         });

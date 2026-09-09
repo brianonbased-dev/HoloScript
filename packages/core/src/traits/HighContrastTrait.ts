@@ -173,7 +173,7 @@ function applyContrast(
   state.isActive = true;
   state.activeMode = mode;
 
-  context.emit?.('on_contrast_change', {
+  context.emit?.('contrast_change', {
     node,
     mode,
     isActive: true,
@@ -200,7 +200,7 @@ function restoreOriginalMaterials(
   state.isActive = false;
   state.activeMode = 'off';
 
-  context.emit?.('on_contrast_change', {
+  context.emit?.('contrast_change', {
     node,
     mode: 'off',
     isActive: false,

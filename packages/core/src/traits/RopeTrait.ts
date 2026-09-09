@@ -149,7 +149,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
         snapPoint: state.snapPoint,
       });
 
-      context.emit?.('on_rope_snap', {
+      context.emit?.('rope_snap', {
         node,
         tension: state.tension,
         snapPoint: state.snapPoint,

@@ -138,7 +138,7 @@ describe('AR Trait Combination: Plane Detection + Light Estimation', () => {
     expect((planeNode as any).__planeDetectionState.planes.size).toBe(1);
     expect((lightNode as any).__lightEstimationState.intensity).toBeGreaterThan(0);
     expect(getEventCount(planeCtx, 'plane_found')).toBe(1);
-    expect(getEventCount(lightCtx, 'on_light_estimated')).toBe(1);
+    expect(getEventCount(lightCtx, 'light_estimated')).toBe(1);
   });
 
   it('hit test against detected planes works independently of light state', () => {
@@ -799,7 +799,7 @@ describe('AR Trait Combination: Hybrid Geospatial + Plane Detection', () => {
 
     const geoState = (geoNode as any).__geospatialAnchorState;
     expect(geoState.state).toBe('lost');
-    expect(getEventCount(geoCtx, 'on_geospatial_anchor_lost')).toBe(1);
+    expect(getEventCount(geoCtx, 'geospatial_anchor_lost')).toBe(1);
   });
 });
 

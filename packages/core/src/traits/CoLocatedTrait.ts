@@ -159,7 +159,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
         context.emit?.('co_located_indicator_aligned', { node });
       }
 
-      context.emit?.('on_co_presence_aligned', {
+      context.emit?.('co_presence_aligned', {
         node,
         anchorId: state.sharedAnchorId,
         quality: state.alignmentQuality,
@@ -167,7 +167,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
     } else if (event.type === 'co_located_alignment_failed') {
       state.state = 'lost';
 
-      context.emit?.('on_co_located_failed', {
+      context.emit?.('co_located_failed', {
         node,
         reason: event.reason,
       });
@@ -183,7 +183,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
           position: [0, 0, 0],
         });
 
-        context.emit?.('on_co_presence_joined', {
+        context.emit?.('co_presence_joined', {
           node,
           userId,
           participantCount: state.participants.size,
@@ -198,7 +198,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
         participant.alignedAt = Date.now();
         participant.position = event.position as typeof participant.position;
 
-        context.emit?.('on_participant_aligned', {
+        context.emit?.('participant_aligned', {
           node,
           userId,
           position: participant.position,
@@ -208,7 +208,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
       const userId = event.userId as string;
       state.participants.delete(userId);
 
-      context.emit?.('on_co_presence_left', {
+      context.emit?.('co_presence_left', {
         node,
         userId,
         participantCount: state.participants.size,
@@ -226,7 +226,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
 
       if (state.alignmentQuality < 0.3 && state.state === 'aligned') {
         state.state = 'lost';
-        context.emit?.('on_co_located_lost', { node });
+        context.emit?.('co_located_lost', { node });
       }
     } else if (event.type === 'co_located_create_anchor') {
       // Create new shared anchor
@@ -239,7 +239,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
       state.isAligned = true;
       state.state = 'aligned';
 
-      context.emit?.('on_anchor_created', {
+      context.emit?.('anchor_created', {
         node,
         anchorId: state.sharedAnchorId,
       });

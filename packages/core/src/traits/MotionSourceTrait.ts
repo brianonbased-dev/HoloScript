@@ -234,7 +234,7 @@ function applyMotion(
   const emb = node.__avatarEmbodimentState as { currentAnimation?: string } | undefined;
   if (emb) emb.currentAnimation = intent;
 
-  context.emit('on_motion_changed', { node, motion: intent, applied });
+  context.emit('motion_changed', { node, motion: intent, applied });
 }
 
 /** Choose a gait intent from the current speed. */
@@ -282,7 +282,7 @@ export const motionSourceHandler: TraitHandler<MotionSourceConfig> = {
       applyMotion(node, config, context, state.currentMotion);
     }
 
-    context.emit('on_motion_source_ready', {
+    context.emit('motion_source_ready', {
       node,
       kind: state.kind,
       library: config.library,
@@ -351,7 +351,7 @@ export const motionSourceHandler: TraitHandler<MotionSourceConfig> = {
     } else if (type === 'motion_stop') {
       getDriver(node)?.stop?.();
       state.applied = false;
-      context.emit('on_motion_stopped', { node });
+      context.emit('motion_stopped', { node });
     }
   },
 };

@@ -54,7 +54,7 @@ describe('RooftopAnchorTrait', () => {
     expect(s.state).toBe('resolved');
     expect(s.buildingHeight).toBe(50);
     expect(s.estimatedFloors).toBe(15);
-    expect(getEventCount(ctx, 'on_rooftop_resolved')).toBe(1);
+    expect(getEventCount(ctx, 'rooftop_resolved')).toBe(1);
   });
 
   it('not found uses fallback height', () => {
@@ -62,7 +62,7 @@ describe('RooftopAnchorTrait', () => {
     const s = (node as any).__rooftopAnchorState;
     expect(s.buildingHeight).toBe(10);
     expect(s.confidence).toBe(0.5);
-    expect(getEventCount(ctx, 'on_rooftop_fallback')).toBe(1);
+    expect(getEventCount(ctx, 'rooftop_fallback')).toBe(1);
   });
 
   it('pose update sets tracking state', () => {
@@ -79,7 +79,7 @@ describe('RooftopAnchorTrait', () => {
       reason: 'no data',
     });
     expect((node as any).__rooftopAnchorState.state).toBe('unavailable');
-    expect(getEventCount(ctx, 'on_rooftop_unavailable')).toBe(1);
+    expect(getEventCount(ctx, 'rooftop_unavailable')).toBe(1);
   });
 
   it('update applies position when resolved', () => {

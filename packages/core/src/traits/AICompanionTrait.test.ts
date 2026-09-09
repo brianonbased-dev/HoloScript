@@ -343,7 +343,7 @@ describe('AICompanionTrait', () => {
       });
 
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_ai_companion_speak',
+        'ai_companion_speak',
         expect.objectContaining({
           text: 'Hello player!',
           emotion: expect.any(Object),

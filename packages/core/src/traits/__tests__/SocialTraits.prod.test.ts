@@ -85,7 +85,7 @@ describe('shareableHandler — Production', () => {
       platform: 'twitter',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_share',
+      'share',
       expect.objectContaining({ platform: 'twitter' })
     );
   });
@@ -95,7 +95,7 @@ describe('shareableHandler — Production', () => {
     const ctx = makeCtx();
     shareableHandler.onAttach!(node, shareableHandler.defaultConfig, ctx as any);
     shareableHandler.onEvent!(node, shareableHandler.defaultConfig, ctx as any, { type: 'share' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_share', expect.objectContaining({ platform: 'x' }));
+    expect(ctx.emit).toHaveBeenCalledWith('share', expect.objectContaining({ platform: 'x' }));
   });
 
   it('unknown event type does not throw', () => {
@@ -174,7 +174,7 @@ describe('collaborativeHandler — Production', () => {
       user: { id: 'u1', name: 'Alice' },
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_user_join',
+      'user_join',
       expect.objectContaining({
         user: { id: 'u1', name: 'Alice' },
       })
@@ -190,7 +190,7 @@ describe('collaborativeHandler — Production', () => {
       user: { id: 'u1' },
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_user_leave',
+      'user_leave',
       expect.objectContaining({ user: { id: 'u1' } })
     );
   });
@@ -204,7 +204,7 @@ describe('collaborativeHandler — Production', () => {
       edit: { property: 'position', value: [1, 2, 3] },
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_edit',
+      'edit',
       expect.objectContaining({
         edit: { property: 'position', value: [1, 2, 3] },
       })
@@ -221,7 +221,7 @@ describe('collaborativeHandler — Production', () => {
       stream: {},
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_voice_stream',
+      'voice_stream',
       expect.objectContaining({
         peerId: 'peer123',
       })
@@ -269,7 +269,7 @@ describe('tweetableHandler — Production', () => {
     const ctx = makeCtx();
     tweetableHandler.onAttach!(node, tweetableHandler.defaultConfig, ctx as any);
     tweetableHandler.onEvent!(node, tweetableHandler.defaultConfig, ctx as any, { type: 'tweet' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_tweet', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith('tweet', expect.objectContaining({ node }));
   });
 
   it('thread_created event emits on_thread_created', () => {
@@ -279,7 +279,7 @@ describe('tweetableHandler — Production', () => {
     tweetableHandler.onEvent!(node, tweetableHandler.defaultConfig, ctx as any, {
       type: 'thread_created',
     });
-    expect(ctx.emit).toHaveBeenCalledWith('on_thread_created', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith('thread_created', expect.objectContaining({ node }));
   });
 });
 

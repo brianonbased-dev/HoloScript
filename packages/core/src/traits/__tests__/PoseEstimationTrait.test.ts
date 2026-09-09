@@ -47,7 +47,7 @@ describe('PoseEstimationTrait', () => {
     const s = (node as any).__poseEstimationState;
     expect(s.detected_pose).not.toBeNull();
     expect(s.confidence).toBe(0.9);
-    expect(getEventCount(ctx, 'on_pose_updated')).toBe(1);
+    expect(getEventCount(ctx, 'pose_updated')).toBe(1);
   });
 
   it('low confidence ignored', () => {
@@ -57,7 +57,7 @@ describe('PoseEstimationTrait', () => {
       confidence: 0.3,
     });
     expect((node as any).__poseEstimationState.detected_pose).toBeNull();
-    expect(getEventCount(ctx, 'on_pose_updated')).toBe(0);
+    expect(getEventCount(ctx, 'pose_updated')).toBe(0);
   });
 
   it('tracking_enabled assigns tracking_id', () => {
@@ -97,7 +97,7 @@ describe('PoseEstimationTrait', () => {
     const s = (node as any).__poseEstimationState;
     expect(s.detected_pose).toBeNull();
     expect(s.tracking_id).toBeNull();
-    expect(getEventCount(ctx, 'on_pose_lost')).toBe(1);
+    expect(getEventCount(ctx, 'pose_lost')).toBe(1);
   });
 
   it('get_keypoint returns found keypoint', () => {
@@ -107,8 +107,8 @@ describe('PoseEstimationTrait', () => {
       confidence: 0.9,
     });
     sendEvent(poseEstimationHandler, node, cfg, ctx, { type: 'get_keypoint', name: 'nose' });
-    expect(getEventCount(ctx, 'on_keypoint_result')).toBe(1);
-    const ev = getLastEvent(ctx, 'on_keypoint_result') as any;
+    expect(getEventCount(ctx, 'keypoint_result')).toBe(1);
+    const ev = getLastEvent(ctx, 'keypoint_result') as any;
     expect(ev.found).toBe(true);
   });
 

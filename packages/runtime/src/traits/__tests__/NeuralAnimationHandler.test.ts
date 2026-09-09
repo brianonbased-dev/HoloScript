@@ -199,7 +199,7 @@ describe('NeuralAnimationHandler — runtime bridge (RULING 2 pilot)', () => {
     setNeuralAnimationTargetVelocity(ctx, { x: 1, y: 0, z: 0 });
 
     const events: Array<{ side: string; state: boolean }> = [];
-    subscribeNeuralAnimationEvent(ctx, 'on_foot_contact', (payload) => {
+    subscribeNeuralAnimationEvent(ctx, 'foot_contact', (payload) => {
       events.push(payload as { side: string; state: boolean });
     });
 
@@ -268,7 +268,7 @@ describe('NeuralAnimationHandler — runtime bridge (RULING 2 pilot)', () => {
     neuralAnimationHandler.onApply!(stumbleCtx);
 
     const stumbles: Array<{ stability: number }> = [];
-    subscribeNeuralAnimationEvent(stumbleCtx, 'on_stumble_detected', (payload) => {
+    subscribeNeuralAnimationEvent(stumbleCtx, 'stumble_detected', (payload) => {
       stumbles.push(payload as { stability: number });
     });
     neuralAnimationHandler.onUpdate!(stumbleCtx, 0.016);

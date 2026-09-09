@@ -244,19 +244,19 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
       state.needsSort = true;
       state.gaussianBudgetUsed = event.splatCount as number;
 
-      context.emit?.('on_splat_loaded', {
+      context.emit?.('splat_loaded', {
         node,
         splatCount: state.splatCount,
         memoryUsage: state.memoryUsage,
       });
     } else if (event.type === 'splat_load_error') {
       state.isLoading = false;
-      context.emit?.('on_splat_error', {
+      context.emit?.('splat_error', {
         node,
         error: event.error,
       });
     } else if (event.type === 'splat_load_progress') {
-      context.emit?.('on_splat_progress', {
+      context.emit?.('splat_progress', {
         node,
         progress: event.progress as number,
         loadedSplats: event.loadedSplats as number,

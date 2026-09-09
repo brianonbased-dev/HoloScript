@@ -135,7 +135,7 @@ describe('alertHandler.onEvent — alert_trigger', () => {
     ctx.emit.mockClear();
     trigger(node, ctx, config, { id: 'a1', message: 'Fire!', severity: 'critical' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_alert_triggered',
+      'alert_triggered',
       expect.objectContaining({ alertId: 'a1', severity: 'critical', message: 'Fire!' })
     );
   });
@@ -258,7 +258,7 @@ describe('alertHandler.onEvent — alert_acknowledge', () => {
     ctx.emit.mockClear();
     alertHandler.onEvent!(node, config, ctx, { type: 'alert_acknowledge', alertId: 'a1' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_alert_acknowledged',
+      'alert_acknowledged',
       expect.objectContaining({ alertId: 'a1' })
     );
   });
@@ -266,7 +266,7 @@ describe('alertHandler.onEvent — alert_acknowledge', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     alertHandler.onEvent!(node, config, ctx, { type: 'alert_acknowledge', alertId: 'nonexistent' });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_alert_acknowledged', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('alert_acknowledged', expect.anything());
   });
 });
 
@@ -295,7 +295,7 @@ describe('alertHandler.onEvent — alert_dismiss', () => {
       expect.objectContaining({ alertId: 'a1' })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_alert_cleared',
+      'alert_cleared',
       expect.objectContaining({ alertId: 'a1' })
     );
   });
@@ -331,7 +331,7 @@ describe('alertHandler.onEvent — alert_dismiss_all', () => {
     trigger(node, ctx, config, { id: 'a2' });
     ctx.emit.mockClear();
     alertHandler.onEvent!(node, config, ctx, { type: 'alert_dismiss_all' });
-    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'on_alerts_cleared')!;
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'alerts_cleared')!;
     expect(call[1].count).toBe(2);
   });
 });

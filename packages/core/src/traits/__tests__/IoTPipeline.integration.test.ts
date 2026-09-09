@@ -216,7 +216,7 @@ describe('IoT Pipeline — basic flow', () => {
   it('DataBinding emits on_data_change when data arrives', async () => {
     const p = await buildPipeline({ parseJson: false });
     await p.pushMessage(7);
-    expect(p.bindCtx.emit).toHaveBeenCalledWith('on_data_change', expect.any(Object));
+    expect(p.bindCtx.emit).toHaveBeenCalledWith('data_change', expect.any(Object));
   });
 
   it('Sink publish count increments each pipeline round-trip', async () => {
@@ -336,7 +336,7 @@ describe('IoT Pipeline — DataBinding error recovery', () => {
     });
     expect(p.bindState().errorCount).toBe(1);
     expect(p.bindCtx.emit).toHaveBeenCalledWith(
-      'on_data_error',
+      'data_error',
       expect.objectContaining({ errorCount: 1 })
     );
   });

@@ -60,13 +60,13 @@ describe('AvatarEmbodimentTrait', () => {
 
   it('embody event emits on_avatar_embodied', () => {
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'embody' });
-    expect(getEventCount(ctx, 'on_avatar_embodied')).toBe(1);
+    expect(getEventCount(ctx, 'avatar_embodied')).toBe(1);
   });
 
   it('double embody emits twice', () => {
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'embody' });
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'embody' });
-    expect(getEventCount(ctx, 'on_avatar_embodied')).toBe(2);
+    expect(getEventCount(ctx, 'avatar_embodied')).toBe(2);
   });
 
   // ── disembody ───────────────────────────────────────────────────────────────
@@ -80,12 +80,12 @@ describe('AvatarEmbodimentTrait', () => {
   it('disembody emits on_avatar_disembodied', () => {
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'embody' });
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'disembody' });
-    expect(getEventCount(ctx, 'on_avatar_disembodied')).toBe(1);
+    expect(getEventCount(ctx, 'avatar_disembodied')).toBe(1);
   });
 
   it('disembody without prior embody still emits the event', () => {
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'disembody' });
-    expect(getEventCount(ctx, 'on_avatar_disembodied')).toBe(1);
+    expect(getEventCount(ctx, 'avatar_disembodied')).toBe(1);
     expect(state().isEmbodied).toBe(false);
   });
 
@@ -98,13 +98,13 @@ describe('AvatarEmbodimentTrait', () => {
 
   it('calibrate emits on_avatar_calibrated', () => {
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'calibrate' });
-    expect(getEventCount(ctx, 'on_avatar_calibrated')).toBe(1);
+    expect(getEventCount(ctx, 'avatar_calibrated')).toBe(1);
   });
 
   it('calibrate is idempotent (second call still emits)', () => {
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'calibrate' });
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'calibrate' });
-    expect(getEventCount(ctx, 'on_avatar_calibrated')).toBe(2);
+    expect(getEventCount(ctx, 'avatar_calibrated')).toBe(2);
     expect(state().calibrated).toBe(true);
   });
 
@@ -118,9 +118,9 @@ describe('AvatarEmbodimentTrait', () => {
 
   it('unknown events emit nothing', () => {
     sendEvent(avatarEmbodimentHandler, node, cfg, ctx, { type: 'unknown_event' });
-    expect(getEventCount(ctx, 'on_avatar_embodied')).toBe(0);
-    expect(getEventCount(ctx, 'on_avatar_disembodied')).toBe(0);
-    expect(getEventCount(ctx, 'on_avatar_calibrated')).toBe(0);
+    expect(getEventCount(ctx, 'avatar_embodied')).toBe(0);
+    expect(getEventCount(ctx, 'avatar_disembodied')).toBe(0);
+    expect(getEventCount(ctx, 'avatar_calibrated')).toBe(0);
   });
 
   // ── detach ──────────────────────────────────────────────────────────────────

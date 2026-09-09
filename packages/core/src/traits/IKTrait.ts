@@ -628,7 +628,7 @@ export const iKHandler = {
     // When neural locomotion reports a foot contact transition, mirror it
     // into IKTrait's foot-lock state so the runtime solver can pin/release
     // the effector on the correct side.
-    if (event.type === 'on_foot_contact') {
+    if (event.type === 'foot_contact') {
       const ikInstance = instance as TraitInstanceDelegate & {
         setFootLock?: (side: 'left' | 'right', locked: boolean) => void;
       };

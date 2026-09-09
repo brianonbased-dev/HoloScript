@@ -126,7 +126,7 @@ describe('moderationHandler — onEvent: moderation_violation', () => {
     expect((node as any).__moderationState.totalBlocked).toBe(1);
     const actionEv = ctx.emitted.find((e: any) => e.type === 'moderation_action');
     expect(actionEv?.payload.action).toBe('warn');
-    expect(ctx.emitted.some((e: any) => e.type === 'on_moderation_violation')).toBe(true);
+    expect(ctx.emitted.some((e: any) => e.type === 'moderation_violation')).toBe(true);
   });
   it('escalates action after threshold violations', () => {
     const { node, ctx, cfg } = attach(mkCfg({ escalation_threshold: 2, action: 'warn' }));

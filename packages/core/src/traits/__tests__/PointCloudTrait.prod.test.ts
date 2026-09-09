@@ -231,7 +231,7 @@ describe('pointCloudHandler.onEvent — point_cloud_loaded', () => {
       octree: {},
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_point_cloud_loaded',
+      'point_cloud_loaded',
       expect.objectContaining({ pointCount: 100 })
     );
   });
@@ -250,7 +250,7 @@ describe('pointCloudHandler.onEvent — point_cloud_load_progress', () => {
       progress: 0.5,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_point_cloud_progress',
+      'point_cloud_progress',
       expect.objectContaining({ progress: 0.5 })
     );
   });
@@ -269,7 +269,7 @@ describe('pointCloudHandler.onEvent — point_cloud_load_error', () => {
     });
     expect((node as any).__pointCloudState.isLoading).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_point_cloud_error',
+      'point_cloud_error',
       expect.objectContaining({ error: 'File not found' })
     );
   });

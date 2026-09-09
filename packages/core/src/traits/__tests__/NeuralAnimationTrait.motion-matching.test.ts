@@ -60,8 +60,8 @@ describe('NeuralAnimationTrait — motion_matching seam', () => {
     });
     const s = (node as any).__neuralAnimationState;
     expect(s.engine).toBe(engine);
-    expect(getEventCount(ctx, 'on_locomotion_initialized')).toBe(1);
-    expect(getLastEvent(ctx, 'on_locomotion_initialized')).toMatchObject({
+    expect(getEventCount(ctx, 'locomotion_initialized')).toBe(1);
+    expect(getLastEvent(ctx, 'locomotion_initialized')).toMatchObject({
       modelId: 'biped_humanoid_v2',
     });
   });
@@ -104,8 +104,8 @@ describe('NeuralAnimationTrait — motion_matching seam', () => {
     });
     // First update: phase advances from 0 → small value (still <0.5) — leftFoot=true (transition from prev=false)
     updateTrait(neuralAnimationHandler, node, baseCfg, ctx, 0.016);
-    expect(getEventCount(ctx, 'on_foot_contact')).toBeGreaterThanOrEqual(1);
-    const lastContact = getLastEvent(ctx, 'on_foot_contact') as { side: string; state: boolean };
+    expect(getEventCount(ctx, 'foot_contact')).toBeGreaterThanOrEqual(1);
+    const lastContact = getLastEvent(ctx, 'foot_contact') as { side: string; state: boolean };
     expect(['left', 'right']).toContain(lastContact.side);
   });
 
@@ -129,7 +129,7 @@ describe('NeuralAnimationTrait — motion_matching seam', () => {
     const s = (node as any).__neuralAnimationState;
     expect(s.engine).toBeNull();
     expect(s.locomotion).toBeNull();
-    expect(getEventCount(ctx, 'on_locomotion_fallback')).toBe(1);
+    expect(getEventCount(ctx, 'locomotion_fallback')).toBe(1);
   });
 
   it('query_locomotion with no engine emits locomotion_features w/ null state', () => {
@@ -192,8 +192,8 @@ describe('NeuralAnimationTrait — motion_matching seam', () => {
       engine: stumblyEngine,
     });
     updateTrait(neuralAnimationHandler, node, baseCfg, ctx, 0.016);
-    expect(getEventCount(ctx, 'on_stumble_detected')).toBe(1);
-    expect(getLastEvent(ctx, 'on_stumble_detected')).toMatchObject({ stability: 0.1 });
+    expect(getEventCount(ctx, 'stumble_detected')).toBe(1);
+    expect(getLastEvent(ctx, 'stumble_detected')).toMatchObject({ stability: 0.1 });
   });
 });
 
@@ -352,7 +352,7 @@ describe('NeuralAnimationTrait — regression guard (anti-stub-shape fallback)',
     const state = (node as any).__neuralAnimationState;
     expect(state.engine).toBeNull();
     expect(state.locomotion).toBeNull();
-    expect(getEventCount(ctx, 'on_locomotion_fallback')).toBe(1);
+    expect(getEventCount(ctx, 'locomotion_fallback')).toBe(1);
     // Frame emits should be minimal (only the first one when engine was active)
     expect(getEventCount(ctx, 'neural_animation_frame')).toBe(1);
   });

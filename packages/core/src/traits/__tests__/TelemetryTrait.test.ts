@@ -65,7 +65,7 @@ describe('TelemetryTrait', () => {
     telemetryHandler.onUpdate?.(mockNode, config, mockContext, 16);
 
     expect(emittedEvents.length).toBe(1);
-    expect(emittedEvents[0].event).toBe('on_telemetry_batch');
+    expect(emittedEvents[0].event).toBe('telemetry_batch');
     const payload = emittedEvents[0].payload.payload;
     expect(payload.length).toBe(2);
     expect(payload[0].vital).toBe('HR');

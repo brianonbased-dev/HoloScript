@@ -256,7 +256,7 @@ describe('neuralLinkHandler.onEvent — neural_link_execute', () => {
       data: { prompt: 'What is 2+2?' },
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_neural_inference_start',
+      'neural_inference_start',
       expect.objectContaining({
         nodeId: 'nl_node',
         model: 'llama.gguf',
@@ -335,7 +335,7 @@ describe('neuralLinkHandler.onEvent — neural_link_response', () => {
       data: { text: 'Response!', generationTime: 50 },
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_neural_response',
+      'neural_response',
       expect.objectContaining({
         nodeId: 'nl_node',
         text: 'Response!',

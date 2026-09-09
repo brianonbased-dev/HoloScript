@@ -197,7 +197,7 @@ describe('accessibleHandler.onEvent — focus / blur', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     accessibleHandler.onEvent!(node, config, ctx, { type: 'focus' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_accessible_focus', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('accessible_focus', expect.anything());
   });
   it('blur clears isFocused', () => {
     const { node, ctx, config } = attach();

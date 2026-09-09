@@ -76,7 +76,7 @@ describe('shareableHandler', () => {
       attachTrait(shareableHandler, node, {}, ctx);
       sendEvent(shareableHandler, node, {}, ctx, { type: 'share' });
 
-      const event = getLastEvent(ctx, 'on_share');
+      const event = getLastEvent(ctx, 'share');
       expect(event).toBeDefined();
       expect((event as Record<string, unknown>).node).toBe(node);
       expect((event as Record<string, unknown>).platform).toBe('x');
@@ -89,7 +89,7 @@ describe('shareableHandler', () => {
       attachTrait(shareableHandler, node, {}, ctx);
       sendEvent(shareableHandler, node, {}, ctx, { type: 'share', platform: 'instagram' });
 
-      const event = getLastEvent(ctx, 'on_share');
+      const event = getLastEvent(ctx, 'share');
       expect((event as Record<string, unknown>).platform).toBe('instagram');
     });
   });
@@ -150,7 +150,7 @@ describe('collaborativeHandler', () => {
         user: { id: 'user-1', name: 'Alice' },
       });
 
-      const event = getLastEvent(ctx, 'on_user_join');
+      const event = getLastEvent(ctx, 'user_join');
       expect(event).toBeDefined();
       expect((event as Record<string, unknown>).node).toBe(node);
       expect((event as Record<string, unknown>).user).toEqual({ id: 'user-1', name: 'Alice' });
@@ -166,7 +166,7 @@ describe('collaborativeHandler', () => {
         user: { id: 'user-1' },
       });
 
-      const event = getLastEvent(ctx, 'on_user_leave');
+      const event = getLastEvent(ctx, 'user_leave');
       expect(event).toBeDefined();
       expect((event as Record<string, unknown>).user).toEqual({ id: 'user-1' });
     });
@@ -181,7 +181,7 @@ describe('collaborativeHandler', () => {
         edit: { type: 'move', position: [1, 2, 3] },
       });
 
-      const event = getLastEvent(ctx, 'on_edit');
+      const event = getLastEvent(ctx, 'edit');
       expect(event).toBeDefined();
       expect((event as Record<string, unknown>).edit).toEqual({
         type: 'move',
@@ -201,7 +201,7 @@ describe('collaborativeHandler', () => {
         stream: mockStream,
       });
 
-      const event = getLastEvent(ctx, 'on_voice_stream');
+      const event = getLastEvent(ctx, 'voice_stream');
       expect(event).toBeDefined();
       expect((event as Record<string, unknown>).peerId).toBe('peer-42');
       expect((event as Record<string, unknown>).stream).toBe(mockStream);
@@ -270,7 +270,7 @@ describe('tweetableHandler', () => {
       attachTrait(tweetableHandler, node, {}, ctx);
       sendEvent(tweetableHandler, node, {}, ctx, { type: 'tweet' });
 
-      const event = getLastEvent(ctx, 'on_tweet');
+      const event = getLastEvent(ctx, 'tweet');
       expect(event).toBeDefined();
       expect((event as Record<string, unknown>).node).toBe(node);
     });
@@ -282,7 +282,7 @@ describe('tweetableHandler', () => {
       attachTrait(tweetableHandler, node, {}, ctx);
       sendEvent(tweetableHandler, node, {}, ctx, { type: 'thread_created' });
 
-      const event = getLastEvent(ctx, 'on_thread_created');
+      const event = getLastEvent(ctx, 'thread_created');
       expect(event).toBeDefined();
       expect((event as Record<string, unknown>).node).toBe(node);
     });

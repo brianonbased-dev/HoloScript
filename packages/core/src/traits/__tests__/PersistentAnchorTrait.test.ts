@@ -46,7 +46,7 @@ describe('PersistentAnchorTrait', () => {
     const s = (node as any).__persistentAnchorState;
     expect(s.state).toBe('resolved');
     expect(s.isResolved).toBe(true);
-    expect(getEventCount(ctx, 'on_persistent_anchor_resolved')).toBe(1);
+    expect(getEventCount(ctx, 'persistent_anchor_resolved')).toBe(1);
   });
 
   it('not_found after max attempts uses fallback', () => {
@@ -56,7 +56,7 @@ describe('PersistentAnchorTrait', () => {
     const s = (node as any).__persistentAnchorState;
     expect(s.state).toBe('unresolved');
     expect(s.localPosition[0]).toBe(1);
-    expect(getEventCount(ctx, 'on_persistent_anchor_fallback')).toBe(1);
+    expect(getEventCount(ctx, 'persistent_anchor_fallback')).toBe(1);
   });
 
   it('pose_update sets tracking state', () => {
@@ -84,7 +84,7 @@ describe('PersistentAnchorTrait', () => {
     const s = (node as any).__persistentAnchorState;
     expect(s.persistedId).toBe('new1');
     expect(s.state).toBe('resolved');
-    expect(getEventCount(ctx, 'on_persistent_anchor_created')).toBe(1);
+    expect(getEventCount(ctx, 'persistent_anchor_created')).toBe(1);
   });
 
   it('delete clears state', () => {

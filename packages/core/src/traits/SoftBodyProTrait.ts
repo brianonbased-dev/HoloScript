@@ -94,7 +94,7 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
       case 'soft_body_pro_tear_report': {
         state.tornConstraints = (event.tornCount as number) ?? state.tornConstraints;
         state.totalConstraints = (event.totalCount as number) ?? state.totalConstraints;
-        context.emit('on_soft_body_tear', {
+        context.emit('soft_body_tear', {
           tornConstraints: state.tornConstraints,
           tearRatio:
             state.totalConstraints > 0 ? state.tornConstraints / state.totalConstraints : 0,

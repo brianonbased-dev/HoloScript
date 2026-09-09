@@ -96,7 +96,7 @@ describe('RoomMeshTrait', () => {
   it('room_mesh_complete stops scanning', () => {
     sendEvent(roomMeshHandler, node, cfg, ctx, { type: 'room_mesh_complete' });
     expect((node as any).__roomMeshState.isScanning).toBe(false);
-    expect(getEventCount(ctx, 'on_room_mesh_complete')).toBe(1);
+    expect(getEventCount(ctx, 'room_mesh_complete')).toBe(1);
   });
 
   it('room_mesh_pause and resume', () => {

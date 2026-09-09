@@ -228,7 +228,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
           state.constraints[constraintIdx].broken = true;
           state.isTorn = true;
 
-          context.emit?.('on_cloth_tear', {
+          context.emit?.('cloth_tear', {
             node,
             constraintIndex: constraintIdx,
           });

@@ -78,7 +78,7 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
       connectToPhysical(node, state, config, context);
     } else if (config.simulation_mode) {
       state.isSynced = true;
-      context.emit?.('on_twin_connected', { node, mode: 'simulation' });
+      context.emit?.('twin_connected', { node, mode: 'simulation' });
     }
 
     if (config.model_source) {
@@ -153,7 +153,7 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
       state.connectionHandle = event.handle;
       state.lastSyncTime = Date.now();
 
-      context.emit?.('on_twin_connected', {
+      context.emit?.('twin_connected', {
         node,
         physicalId: config.physical_id,
       });
@@ -182,7 +182,7 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
       // Calculate divergence
       state.divergence = calculateDivergence(node, state.physicalState, config.sync_properties);
 
-      context.emit?.('on_twin_sync', {
+      context.emit?.('twin_sync', {
         node,
         state: physicalData,
         divergence: state.divergence,
@@ -204,9 +204,9 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
       state.isSynced = false;
       state.connectionHandle = null;
 
-      context.emit?.('on_twin_disconnected', { node });
+      context.emit?.('twin_disconnected', { node });
     } else if (event.type === 'twin_connection_error') {
-      context.emit?.('on_twin_error', {
+      context.emit?.('twin_error', {
         node,
         error: event.error,
       });

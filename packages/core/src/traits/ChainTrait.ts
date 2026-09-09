@@ -210,7 +210,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
           linkIndex,
         });
 
-        context.emit?.('on_chain_break', {
+        context.emit?.('chain_break', {
           node,
           breakPoint: linkIndex,
         });

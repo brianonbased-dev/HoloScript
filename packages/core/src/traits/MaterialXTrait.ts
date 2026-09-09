@@ -96,13 +96,13 @@ export const materialXHandler: TraitHandler<MaterialXConfig> = {
         materialId: state.materialId,
       });
 
-      context.emit?.('on_format_converted', {
+      context.emit?.('format_converted', {
         node,
         materialId: state.materialId,
       });
     } else if (event.type === 'materialx_error') {
       state.isLoading = false;
-      context.emit?.('on_materialx_error', {
+      context.emit?.('materialx_error', {
         node,
         error: event.error,
       });

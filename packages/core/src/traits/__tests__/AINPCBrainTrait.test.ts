@@ -54,7 +54,7 @@ describe('AINPCBrainTrait', () => {
       playerId: 'p1',
       distance: 3.0,
     });
-    expect(getEventCount(ctx, 'on_player_nearby')).toBe(1);
+    expect(getEventCount(ctx, 'player_nearby')).toBe(1);
   });
 
   it('player_interact starts dialogue', () => {
@@ -64,7 +64,7 @@ describe('AINPCBrainTrait', () => {
     });
     expect((node as any).__npcState.in_dialogue).toBe(true);
     expect((node as any).__npcState.conversation_count).toBe(1);
-    expect(getEventCount(ctx, 'on_dialogue_start')).toBe(1);
+    expect(getEventCount(ctx, 'dialogue_start')).toBe(1);
   });
 
   it('player_exit_dialogue_range ends dialogue', () => {
@@ -76,7 +76,7 @@ describe('AINPCBrainTrait', () => {
       type: 'player_exit_dialogue_range',
     });
     expect((node as any).__npcState.in_dialogue).toBe(false);
-    expect(getEventCount(ctx, 'on_dialogue_end')).toBe(1);
+    expect(getEventCount(ctx, 'dialogue_end')).toBe(1);
   });
 
   it('relationship_change emits on_relationship_updated', () => {
@@ -85,8 +85,8 @@ describe('AINPCBrainTrait', () => {
       type: 'relationship_change',
       delta: 0.2,
     });
-    expect(getEventCount(ctx, 'on_relationship_updated')).toBe(1);
-    const ev = getLastEvent(ctx, 'on_relationship_updated') as any;
+    expect(getEventCount(ctx, 'relationship_updated')).toBe(1);
+    const ev = getLastEvent(ctx, 'relationship_updated') as any;
     expect(ev.delta).toBe(0.2);
     expect(ev.relationship).toBeCloseTo(0.7);
   });

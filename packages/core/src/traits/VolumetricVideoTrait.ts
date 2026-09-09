@@ -112,12 +112,12 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
       if (config.loop) {
         state.currentFrame = config.start_time * state.fps;
         state.currentTime = config.start_time;
-        context.emit?.('on_volume_loop', { node });
+        context.emit?.('volume_loop', { node });
       } else {
         state.playbackState = 'stopped';
         state.currentFrame = state.totalFrames - 1;
         state.currentTime = state.duration;
-        context.emit?.('on_volume_complete', { node });
+        context.emit?.('volume_complete', { node });
       }
     }
 
@@ -129,7 +129,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
       time: state.currentTime,
     });
 
-    context.emit?.('on_volume_frame', {
+    context.emit?.('volume_frame', {
       node,
       frame: frameIndex,
       time: state.currentTime,
@@ -169,7 +169,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
         });
       }
 
-      context.emit?.('on_volume_play', {
+      context.emit?.('volume_play', {
         node,
         time: state.currentTime,
       });
@@ -180,7 +180,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
         context.emit?.('volumetric_pause_audio', { node });
       }
 
-      context.emit?.('on_volume_pause', {
+      context.emit?.('volume_pause', {
         node,
         time: state.currentTime,
       });
@@ -193,7 +193,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
         context.emit?.('volumetric_stop_audio', { node });
       }
 
-      context.emit?.('on_volume_stop', { node });
+      context.emit?.('volume_stop', { node });
     } else if (event.type === 'volumetric_seek') {
       const time = event.time as number;
       state.currentTime = Math.max(config.start_time, Math.min(time, state.duration));
@@ -209,7 +209,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
         });
       }
 
-      context.emit?.('on_volume_seek', {
+      context.emit?.('volume_seek', {
         node,
         time: state.currentTime,
       });
@@ -230,7 +230,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
       state.currentFrame = config.start_time * state.fps;
       state.currentTime = config.start_time;
 
-      context.emit?.('on_volume_loaded', {
+      context.emit?.('volume_loaded', {
         node,
         duration: state.duration,
         totalFrames: state.totalFrames,
@@ -245,7 +245,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
     } else if (event.type === 'volumetric_error') {
       state.playbackState = 'error';
 
-      context.emit?.('on_volume_error', {
+      context.emit?.('volume_error', {
         node,
         error: event.error,
       });

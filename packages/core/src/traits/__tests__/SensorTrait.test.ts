@@ -45,7 +45,7 @@ describe('SensorTrait', () => {
   it('sensor_connected sets state', () => {
     sendEvent(sensorHandler, node, cfg, ctx, { type: 'sensor_connected', handle: 'h1' });
     expect((node as any).__sensorState.isConnected).toBe(true);
-    expect(getEventCount(ctx, 'on_sensor_connected')).toBe(1);
+    expect(getEventCount(ctx, 'sensor_connected')).toBe(1);
   });
 
   it('sensor_data updates value and history', () => {
@@ -53,19 +53,19 @@ describe('SensorTrait', () => {
     const s = (node as any).__sensorState;
     expect(s.currentValue).toBe(42);
     expect(s.history.length).toBe(1);
-    expect(getEventCount(ctx, 'on_sensor_update')).toBe(1);
+    expect(getEventCount(ctx, 'sensor_update')).toBe(1);
   });
 
   it('alert triggers on threshold breach', () => {
     sendEvent(sensorHandler, node, cfg, ctx, { type: 'sensor_data', value: 85 });
     expect((node as any).__sensorState.alertActive).toBe(true);
-    expect(getEventCount(ctx, 'on_sensor_alert')).toBe(1);
+    expect(getEventCount(ctx, 'sensor_alert')).toBe(1);
   });
 
   it('alert cleared when back in range', () => {
     sendEvent(sensorHandler, node, cfg, ctx, { type: 'sensor_data', value: 85 });
     sendEvent(sensorHandler, node, cfg, ctx, { type: 'sensor_data', value: 70 });
-    expect(getEventCount(ctx, 'on_sensor_alert_cleared')).toBe(1);
+    expect(getEventCount(ctx, 'sensor_alert_cleared')).toBe(1);
   });
 
   it('history capped at history_size', () => {
@@ -88,7 +88,7 @@ describe('SensorTrait', () => {
 
   it('sensor_error emits error', () => {
     sendEvent(sensorHandler, node, cfg, ctx, { type: 'sensor_error', error: 'timeout' });
-    expect(getEventCount(ctx, 'on_sensor_error')).toBe(1);
+    expect(getEventCount(ctx, 'sensor_error')).toBe(1);
   });
 
   it('sensor_set_endpoint reconnects', () => {

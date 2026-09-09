@@ -132,7 +132,7 @@ describe('GeospatialEnvTrait — onUpdate', () => {
     geospatialEnvHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(st(node).state).toBe('tracking');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_geospatial_tracking',
+      'geospatial_tracking',
       expect.objectContaining({ accuracy: 3 })
     );
   });
@@ -155,7 +155,7 @@ describe('GeospatialEnvTrait — onUpdate', () => {
     ctx.emit.mockClear();
     geospatialEnvHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(st(node).state).toBe('limited');
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_geospatial_tracking', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('geospatial_tracking', expect.any(Object));
   });
 
   it('no state change when accuracy is between threshold and threshold*3', () => {
@@ -176,7 +176,7 @@ describe('GeospatialEnvTrait — onUpdate', () => {
     ctx.emit.mockClear();
     geospatialEnvHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(st(node).state).toBe('tracking'); // stays tracking
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_geospatial_tracking', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('geospatial_tracking', expect.any(Object));
   });
 });
 
@@ -191,7 +191,7 @@ describe('GeospatialEnvTrait — onEvent: geospatial_initialized', () => {
     expect(st(node).state).toBe('localizing');
     expect(st(node).vpsAvailable).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_geospatial_initialized',
+      'geospatial_initialized',
       expect.objectContaining({ vpsAvailable: true })
     );
   });
@@ -267,7 +267,7 @@ describe('GeospatialEnvTrait — onEvent: geospatial_pose_update', () => {
     });
     expect(st(node).state).toBe('localized');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_geospatial_localized',
+      'geospatial_localized',
       expect.objectContaining({ accuracy: 4 })
     );
   });
@@ -284,7 +284,7 @@ describe('GeospatialEnvTrait — onEvent: geospatial_pose_update', () => {
       headingAccuracy: 1,
       heading: 0,
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_geospatial_localized', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('geospatial_localized', expect.any(Object));
   });
 });
 
@@ -380,7 +380,7 @@ describe('GeospatialEnvTrait — onEvent: geospatial_unavailable', () => {
     fire(node, cfg, ctx, { type: 'geospatial_unavailable', reason: 'gps_disabled' });
     expect(st(node).state).toBe('unavailable');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_geospatial_unavailable',
+      'geospatial_unavailable',
       expect.objectContaining({ reason: 'gps_disabled' })
     );
   });

@@ -74,7 +74,7 @@ describe('film3d NeRFTrait', () => {
 
     expect(adapter.loadModel).toHaveBeenCalledWith(expect.objectContaining(baseConfig), node);
     expect((node as any).__nerfState.isReady).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_nerf_ready', { node });
+    expect(ctx.emit).toHaveBeenCalledWith('nerf_ready', { node });
 
     handler.onEvent(node, baseConfig, ctx, { type: 'nerf:render' });
     await Promise.resolve();

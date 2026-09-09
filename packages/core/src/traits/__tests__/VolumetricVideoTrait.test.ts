@@ -91,7 +91,7 @@ describe('VolumetricVideoTrait', () => {
       expect(state.isLoaded).toBe(true);
       expect(state.totalFrames).toBe(900);
       expect(state.duration).toBe(30); // 900 frames / 30 fps
-      expect(getEventCount(ctx, 'on_volume_loaded')).toBe(1);
+      expect(getEventCount(ctx, 'volume_loaded')).toBe(1);
     });
 
     it('should handle volumetric_error event', () => {
@@ -102,7 +102,7 @@ describe('VolumetricVideoTrait', () => {
 
       const state = (node as any).__volumetricVideoState;
       expect(state.playbackState).toBe('error');
-      expect(getEventCount(ctx, 'on_volume_error')).toBe(1);
+      expect(getEventCount(ctx, 'volume_error')).toBe(1);
     });
   });
 
@@ -131,7 +131,7 @@ describe('VolumetricVideoTrait', () => {
 
       const state = (node as any).__volumetricVideoState;
       expect(state.playbackState).toBe('playing');
-      expect(getEventCount(ctx, 'on_volume_play')).toBe(1);
+      expect(getEventCount(ctx, 'volume_play')).toBe(1);
     });
 
     it('should pause playback on volumetric_pause', () => {
@@ -146,7 +146,7 @@ describe('VolumetricVideoTrait', () => {
 
       const state = (node as any).__volumetricVideoState;
       expect(state.playbackState).toBe('paused');
-      expect(getEventCount(ctx, 'on_volume_pause')).toBe(1);
+      expect(getEventCount(ctx, 'volume_pause')).toBe(1);
     });
 
     it('should stop and reset on volumetric_stop', () => {
@@ -166,7 +166,7 @@ describe('VolumetricVideoTrait', () => {
       expect(state.playbackState).toBe('stopped');
       expect(state.currentTime).toBe(0);
       expect(state.currentFrame).toBe(0);
-      expect(getEventCount(ctx, 'on_volume_stop')).toBe(1);
+      expect(getEventCount(ctx, 'volume_stop')).toBe(1);
     });
   });
 
@@ -197,7 +197,7 @@ describe('VolumetricVideoTrait', () => {
       const state = (node as any).__volumetricVideoState;
       expect(state.currentTime).toBe(15.0);
       expect(state.currentFrame).toBe(450); // 15 * 30 fps
-      expect(getEventCount(ctx, 'on_volume_seek')).toBe(1);
+      expect(getEventCount(ctx, 'volume_seek')).toBe(1);
     });
 
     it('should clamp seek to duration', () => {
@@ -275,7 +275,7 @@ describe('VolumetricVideoTrait', () => {
       );
 
       expect(state.currentTime).toBeLessThan(10);
-      expect(getEventCount(ctx, 'on_volume_loop')).toBe(1);
+      expect(getEventCount(ctx, 'volume_loop')).toBe(1);
     });
   });
 
@@ -331,7 +331,7 @@ describe('VolumetricVideoTrait', () => {
       );
 
       expect(state.playbackState).toBe('stopped');
-      expect(getEventCount(ctx, 'on_volume_complete')).toBe(1);
+      expect(getEventCount(ctx, 'volume_complete')).toBe(1);
     });
   });
 
@@ -393,8 +393,8 @@ describe('VolumetricVideoTrait', () => {
         33
       );
 
-      expect(getEventCount(ctx, 'on_volume_frame')).toBe(1);
-      const frameEvent = getLastEvent(ctx, 'on_volume_frame');
+      expect(getEventCount(ctx, 'volume_frame')).toBe(1);
+      const frameEvent = getLastEvent(ctx, 'volume_frame');
       expect(frameEvent.progress).toBeDefined();
     });
   });

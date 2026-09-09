@@ -154,7 +154,7 @@ describe('spectatorHandler.onEvent — spectator_join', () => {
       expect.objectContaining({ spectatorId: 'spec_a' })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_spectator_join',
+      'spectator_join',
       expect.objectContaining({ spectatorId: 'spec_a', spectatorCount: 1 })
     );
   });
@@ -187,7 +187,7 @@ describe('spectatorHandler.onEvent — spectator_leave', () => {
     ctx.emit.mockClear();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_leave', spectatorId: 'spec_Y' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_spectator_leave',
+      'spectator_leave',
       expect.objectContaining({ spectatorId: 'spec_Y' })
     );
   });
@@ -195,7 +195,7 @@ describe('spectatorHandler.onEvent — spectator_leave', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     spectatorHandler.onEvent!(node, cfg, ctx, { type: 'spectator_leave', spectatorId: 'ghost' });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_spectator_leave', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('spectator_leave', expect.any(Object));
   });
 });
 

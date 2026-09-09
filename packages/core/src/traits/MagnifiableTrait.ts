@@ -134,7 +134,7 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
         state.zoomCenter = event.center as typeof state.zoomCenter;
       }
 
-      context.emit?.('on_magnify_start', { node });
+      context.emit?.('magnify_start', { node });
     } else if (event.type === 'magnify_update' || event.type === 'pinch_update') {
       const scale = (event.scale as number) || 1;
       const newMag = Math.max(
@@ -156,7 +156,7 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
       }
     } else if (event.type === 'magnify_end' || event.type === 'pinch_end') {
       state.isZooming = false;
-      context.emit?.('on_magnify_end', {
+      context.emit?.('magnify_end', {
         node,
         magnification: state.currentMagnification,
       });

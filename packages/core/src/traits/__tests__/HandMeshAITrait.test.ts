@@ -111,7 +111,7 @@ describe('HandMeshAITrait', () => {
         indices: new Uint16Array(6),
       },
     });
-    const updateEvents = ctx.emittedEvents.filter((e) => e.event === 'on_hand_mesh_updated');
+    const updateEvents = ctx.emittedEvents.filter((e) => e.event === 'hand_mesh_updated');
     expect(updateEvents.length).toBe(1);
   });
 

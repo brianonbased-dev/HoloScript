@@ -115,7 +115,7 @@ export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
       if (state.accuracy <= config.accuracy_threshold) {
         // Transition to tracking state when accuracy is good
         state.state = 'tracking';
-        context.emit?.('on_geospatial_tracking', {
+        context.emit?.('geospatial_tracking', {
           node,
           accuracy: state.accuracy,
         });
@@ -133,7 +133,7 @@ export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
       state.state = 'localizing';
       state.vpsAvailable = event.vpsAvailable as boolean;
 
-      context.emit?.('on_geospatial_initialized', {
+      context.emit?.('geospatial_initialized', {
         node,
         vpsAvailable: state.vpsAvailable,
       });
@@ -151,7 +151,7 @@ export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
 
       if (state.state === 'localizing') {
         state.state = 'localized';
-        context.emit?.('on_geospatial_localized', {
+        context.emit?.('geospatial_localized', {
           node,
           accuracy: state.accuracy,
         });
@@ -186,7 +186,7 @@ export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
       });
     } else if (event.type === 'geospatial_unavailable') {
       state.state = 'unavailable';
-      context.emit?.('on_geospatial_unavailable', {
+      context.emit?.('geospatial_unavailable', {
         node,
         reason: event.reason,
       });

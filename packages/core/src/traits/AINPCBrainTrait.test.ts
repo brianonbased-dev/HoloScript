@@ -279,7 +279,7 @@ describe('AINPCBrainTrait', () => {
 
       ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_player_nearby', {
+      expect(mockContext.emit).toHaveBeenCalledWith('player_nearby', {
         node: mockNode,
         playerId: 'player_123',
         distance: 3.5,
@@ -300,7 +300,7 @@ describe('AINPCBrainTrait', () => {
 
       ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
-      expect(mockContext.emit).not.toHaveBeenCalledWith('on_player_nearby', expect.any(Object));
+      expect(mockContext.emit).not.toHaveBeenCalledWith('player_nearby', expect.any(Object));
     });
   });
 
@@ -321,7 +321,7 @@ describe('AINPCBrainTrait', () => {
 
       ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_dialogue_end', { node: mockNode });
+      expect(mockContext.emit).toHaveBeenCalledWith('dialogue_end', { node: mockNode });
     });
 
     it('should set in_dialogue to false on exit', () => {
@@ -349,7 +349,7 @@ describe('AINPCBrainTrait', () => {
 
       ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
-      expect(mockContext.emit).not.toHaveBeenCalledWith('on_dialogue_end', expect.any(Object));
+      expect(mockContext.emit).not.toHaveBeenCalledWith('dialogue_end', expect.any(Object));
     });
   });
 
@@ -413,7 +413,7 @@ describe('AINPCBrainTrait', () => {
 
       ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_dialogue_start', {
+      expect(mockContext.emit).toHaveBeenCalledWith('dialogue_start', {
         node: mockNode,
         playerId: 'player_789',
         conversationCount: 1,
@@ -432,7 +432,7 @@ describe('AINPCBrainTrait', () => {
         ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
         const callArgs = (mockContext.emit as any).mock.calls.find(
-          (c: any) => c[0] === 'on_dialogue_start'
+          (c: any) => c[0] === 'dialogue_start'
         );
         expect(callArgs[1].conversationCount).toBe(i);
       }
@@ -546,7 +546,7 @@ describe('AINPCBrainTrait', () => {
         event
       );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_relationship_updated', {
+      expect(mockContext.emit).toHaveBeenCalledWith('relationship_updated', {
         node: mockNode,
         relationship: 0.75,
         delta: 0.25,
@@ -573,7 +573,7 @@ describe('AINPCBrainTrait', () => {
 
       expect(config.player_relationship).toBeCloseTo(0.2, 5);
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_relationship_updated',
+        'relationship_updated',
         expect.objectContaining({ relationship: 0.2, delta: -0.3 })
       );
     });
@@ -719,7 +719,7 @@ describe('AINPCBrainTrait', () => {
         event
       );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_player_nearby', expect.any(Object));
+      expect(mockContext.emit).toHaveBeenCalledWith('player_nearby', expect.any(Object));
 
       mockContext.emit?.mockClear();
 
@@ -736,7 +736,7 @@ describe('AINPCBrainTrait', () => {
         event
       );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_dialogue_start', expect.any(Object));
+      expect(mockContext.emit).toHaveBeenCalledWith('dialogue_start', expect.any(Object));
 
       const npcState = mockNode.__npcState as any;
       expect(npcState.in_dialogue).toBe(true);
@@ -756,7 +756,7 @@ describe('AINPCBrainTrait', () => {
         event
       );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_relationship_updated', expect.any(Object));
+      expect(mockContext.emit).toHaveBeenCalledWith('relationship_updated', expect.any(Object));
 
       mockContext.emit?.mockClear();
 
@@ -772,7 +772,7 @@ describe('AINPCBrainTrait', () => {
         event
       );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('on_dialogue_end', expect.any(Object));
+      expect(mockContext.emit).toHaveBeenCalledWith('dialogue_end', expect.any(Object));
       expect(npcState.in_dialogue).toBe(false);
     });
 
@@ -869,7 +869,7 @@ describe('AINPCBrainTrait', () => {
       expect(config.player_relationship).toBeGreaterThanOrEqual(-1.0);
 
       expect(mockContext.emit).toHaveBeenCalledWith(
-        'on_relationship_updated',
+        'relationship_updated',
         expect.objectContaining({
           delta: -0.7,
         })

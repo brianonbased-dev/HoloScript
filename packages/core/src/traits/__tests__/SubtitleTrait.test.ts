@@ -47,7 +47,7 @@ describe('SubtitleTrait', () => {
     expect(s.isDisplaying).toBe(true);
     expect(s.lines.length).toBe(1);
     expect(s.currentSpeaker).toBe('Alice');
-    expect(getEventCount(ctx, 'on_subtitle_display')).toBe(1);
+    expect(getEventCount(ctx, 'subtitle_display')).toBe(1);
     expect(getEventCount(ctx, 'subtitle_render')).toBe(1);
   });
 

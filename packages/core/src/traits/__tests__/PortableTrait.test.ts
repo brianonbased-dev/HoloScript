@@ -60,7 +60,7 @@ describe('PortableTrait', () => {
 
   it('portable_export disallowed format emits error', () => {
     sendEvent(portableHandler, node, cfg, ctx, { type: 'portable_export', format: 'fbx' });
-    expect(getEventCount(ctx, 'on_portable_error')).toBe(1);
+    expect(getEventCount(ctx, 'portable_error')).toBe(1);
   });
 
   it('portable_export_complete marks format exported', () => {
@@ -73,7 +73,7 @@ describe('PortableTrait', () => {
     const s = (node as any).__portableState;
     expect(s.exportedFormats.has('gltf')).toBe(true);
     expect(s.isExportReady).toBe(true);
-    expect(getEventCount(ctx, 'on_asset_ported')).toBe(1);
+    expect(getEventCount(ctx, 'asset_ported')).toBe(1);
   });
 
   it('portable_import emits process', () => {

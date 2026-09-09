@@ -104,7 +104,7 @@ describe('NeuralLinkTrait', () => {
       type: 'neural_link_execute',
       data: { prompt: 'Hello' },
     });
-    expect(getEventCount(ctx, 'on_neural_inference_start')).toBe(1);
+    expect(getEventCount(ctx, 'neural_inference_start')).toBe(1);
   });
 
   it('execute event includes prompt in emitted event', () => {
@@ -112,7 +112,7 @@ describe('NeuralLinkTrait', () => {
       type: 'neural_link_execute',
       data: { prompt: 'Test prompt' },
     });
-    const ev = getLastEvent(ctx, 'on_neural_inference_start') as any;
+    const ev = getLastEvent(ctx, 'neural_inference_start') as any;
     expect(ev.prompt).toBe('Test prompt');
   });
 
@@ -125,7 +125,7 @@ describe('NeuralLinkTrait', () => {
       type: 'neural_link_execute',
       data: { prompt: 'P2' },
     });
-    expect(getEventCount(ctx, 'on_neural_inference_start')).toBe(2);
+    expect(getEventCount(ctx, 'neural_inference_start')).toBe(2);
   });
 
   // ── neural_link_response ─────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ describe('NeuralLinkTrait', () => {
       type: 'neural_link_response',
       data: { text: 'Y', generationTime: 10 },
     });
-    expect(getEventCount(ctx, 'on_neural_response')).toBe(1);
+    expect(getEventCount(ctx, 'neural_response')).toBe(1);
   });
 
   it('response with missing generationTime defaults to 0', () => {

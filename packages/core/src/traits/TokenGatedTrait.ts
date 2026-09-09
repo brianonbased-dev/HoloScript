@@ -110,7 +110,7 @@ export const tokenGatedHandler: TraitHandler<TokenGatedConfig> = {
         state.isVerified = true;
         state.verifiedAddress = address;
 
-        context.emit?.('on_token_denied', {
+        context.emit?.('token_denied', {
           node,
           address,
           reason: 'blocked',
@@ -148,7 +148,7 @@ export const tokenGatedHandler: TraitHandler<TokenGatedConfig> = {
         state.hasAccess = false;
         applyFallbackBehavior(node, config, context, false);
 
-        context.emit?.('on_token_denied', {
+        context.emit?.('token_denied', {
           node,
           address,
           reason: 'insufficient_balance',
@@ -164,7 +164,7 @@ export const tokenGatedHandler: TraitHandler<TokenGatedConfig> = {
 
       applyFallbackBehavior(node, config, context, false);
 
-      context.emit?.('on_token_access_revoked', { node });
+      context.emit?.('token_access_revoked', { node });
     } else if (event.type === 'token_gate_refresh') {
       if (state.verifiedAddress) {
         context.emit?.('token_gate_verify', {
@@ -204,7 +204,7 @@ function grantAccess(
   // Remove fallback behavior
   context.emit?.('token_gate_reveal', { node });
 
-  context.emit?.('on_token_verified', {
+  context.emit?.('token_verified', {
     node,
     address,
     balance,

@@ -60,7 +60,7 @@ describe('RemotePresenceTrait', () => {
     });
     expect((node as any).__remotePresenceState.peers.size).toBe(1);
     expect(getEventCount(ctx, 'remote_presence_spawn_avatar')).toBe(1);
-    expect(getEventCount(ctx, 'on_peer_joined')).toBe(1);
+    expect(getEventCount(ctx, 'peer_joined')).toBe(1);
   });
 
   it('peer_left removes peer', () => {
@@ -73,7 +73,7 @@ describe('RemotePresenceTrait', () => {
       peerId: 'p1',
     });
     expect((node as any).__remotePresenceState.peers.size).toBe(0);
-    expect(getEventCount(ctx, 'on_peer_left')).toBe(1);
+    expect(getEventCount(ctx, 'peer_left')).toBe(1);
   });
 
   it('enable/disable voice toggles state', () => {

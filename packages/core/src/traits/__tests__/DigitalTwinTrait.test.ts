@@ -38,7 +38,7 @@ describe('DigitalTwinTrait', () => {
     const s = (node as any).__digitalTwinState;
     expect(s).toBeDefined();
     expect(s.isSynced).toBe(true);
-    expect(getEventCount(ctx, 'on_twin_connected')).toBe(1);
+    expect(getEventCount(ctx, 'twin_connected')).toBe(1);
   });
 
   it('twin_connected event sets synced', () => {
@@ -56,7 +56,7 @@ describe('DigitalTwinTrait', () => {
     });
     expect((node as any).temp).toBe(42);
     expect((node as any).press).toBe(101);
-    expect(getEventCount(ctx, 'on_twin_sync')).toBe(1);
+    expect(getEventCount(ctx, 'twin_sync')).toBe(1);
   });
 
   it('does not apply outbound-only properties inbound', () => {
@@ -90,7 +90,7 @@ describe('DigitalTwinTrait', () => {
   it('twin_disconnect sets disconnected', () => {
     sendEvent(digitalTwinHandler, node, cfg, ctx, { type: 'twin_disconnect' });
     expect((node as any).__digitalTwinState.isSynced).toBe(false);
-    expect(getEventCount(ctx, 'on_twin_disconnected')).toBe(1);
+    expect(getEventCount(ctx, 'twin_disconnected')).toBe(1);
   });
 
   it('twin_simulate applies simulated changes', () => {

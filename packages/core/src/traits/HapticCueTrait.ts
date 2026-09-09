@@ -186,7 +186,7 @@ export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
         direction,
       });
 
-      context.emit?.('on_haptic_start', { node, pattern: config.pattern });
+      context.emit?.('haptic_start', { node, pattern: config.pattern });
     } else if (event.type === 'haptic_stop') {
       state.isPlaying = false;
       context.emit?.('haptic_cancel', { node });

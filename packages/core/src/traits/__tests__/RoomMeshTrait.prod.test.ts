@@ -423,7 +423,7 @@ describe('RoomMeshTrait — onEvent: room_boundary_detected', () => {
 
     expect(st(node).roomBounds).toStrictEqual(bounds);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_room_mapped',
+      'room_mapped',
       expect.objectContaining({
         bounds,
         roomHeight: 2.5, // max[1] - min[1]
@@ -432,7 +432,7 @@ describe('RoomMeshTrait — onEvent: room_boundary_detected', () => {
       })
     );
     // floorArea = dx*dz = 3*4 = 12
-    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'on_room_mapped')?.[1];
+    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'room_mapped')?.[1];
     expect(call.floorArea).toBeCloseTo(12, 1);
   });
 });
@@ -451,7 +451,7 @@ describe('RoomMeshTrait — onEvent: room_mesh_complete', () => {
     fire(node, cfg, ctx, { type: 'room_mesh_complete' });
     expect(st(node).isScanning).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_room_mesh_complete',
+      'room_mesh_complete',
       expect.objectContaining({
         totalVertices: 30,
         totalTriangles: 10,

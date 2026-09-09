@@ -167,7 +167,7 @@ describe('heatmap3dHandler.onUpdate — needsUpdate path', () => {
       expect.objectContaining({ data: state.dataPoints })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_heatmap_update',
+      'heatmap_update',
       expect.objectContaining({ pointCount: 1 })
     );
   });

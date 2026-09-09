@@ -92,7 +92,7 @@ export const roleHandler: TraitHandler<RoleConfig> = {
 
       calculateEffectivePermissions(state, config);
 
-      context.emit?.('on_role_change', {
+      context.emit?.('role_change', {
         node,
         previousRole,
         newRole,
@@ -130,7 +130,7 @@ export const roleHandler: TraitHandler<RoleConfig> = {
       const permission = event.permission as Permission;
       state.effectivePermissions.add(permission);
 
-      context.emit?.('on_permission_granted', {
+      context.emit?.('permission_granted', {
         node,
         permission,
       });
@@ -138,7 +138,7 @@ export const roleHandler: TraitHandler<RoleConfig> = {
       const permission = event.permission as Permission;
       state.effectivePermissions.delete(permission);
 
-      context.emit?.('on_permission_revoked', {
+      context.emit?.('permission_revoked', {
         node,
         permission,
       });

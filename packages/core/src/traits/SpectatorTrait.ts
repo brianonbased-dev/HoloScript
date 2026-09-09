@@ -124,7 +124,7 @@ export const spectatorHandler: TraitHandler<SpectatorConfig> = {
         delay: config.delay,
       });
 
-      context.emit?.('on_spectator_join', {
+      context.emit?.('spectator_join', {
         node,
         spectatorId,
         spectatorCount: state.spectatorCount,
@@ -136,7 +136,7 @@ export const spectatorHandler: TraitHandler<SpectatorConfig> = {
         state.spectators.delete(spectatorId);
         state.spectatorCount--;
 
-        context.emit?.('on_spectator_leave', {
+        context.emit?.('spectator_leave', {
           node,
           spectatorId,
           spectatorCount: state.spectatorCount,

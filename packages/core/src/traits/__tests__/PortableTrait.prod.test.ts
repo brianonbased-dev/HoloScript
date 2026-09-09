@@ -121,7 +121,7 @@ describe('portableHandler.onEvent — portable_export', () => {
     ctx.emit.mockClear();
     portableHandler.onEvent!(node, config, ctx, { type: 'portable_export', format: 'fbx' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_portable_error',
+      'portable_error',
       expect.objectContaining({ error: expect.stringContaining('fbx') })
     );
   });
@@ -183,7 +183,7 @@ describe('portableHandler.onEvent — portable_export_complete', () => {
       url: 'https://cdn/a.usdz',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_asset_ported',
+      'asset_ported',
       expect.objectContaining({ format: 'usdz', url: 'https://cdn/a.usdz' })
     );
   });
@@ -244,7 +244,7 @@ describe('portableHandler.onEvent — portable_import_complete', () => {
       format: 'gltf',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_asset_imported',
+      'asset_imported',
       expect.objectContaining({ format: 'gltf' })
     );
   });

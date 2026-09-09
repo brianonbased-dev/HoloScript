@@ -127,7 +127,7 @@ const PRESENCE_EVENTS = [
   'spatial_voice_peer_left',
   'spatial_voice_muted',
   'spatial_voice_unmuted',
-  'on_voice_activity',
+  'voice_activity',
   // --- Messaging ---
   'messaging_connected',
   'messaging_disconnected',
@@ -175,7 +175,7 @@ export class SessionPresenceCoordinator {
 
   private domainFromEvent(event: string): PresenceDomain {
     if (event.startsWith('shareplay:')) return 'shareplay';
-    if (event.startsWith('spatial_voice_') || event === 'on_voice_activity') return 'voice';
+    if (event.startsWith('spatial_voice_') || event === 'voice_activity') return 'voice';
     if (
       event.startsWith('messaging_') ||
       event === 'message_received' ||
@@ -282,7 +282,7 @@ export class SessionPresenceCoordinator {
         next = { ...existing, muted: true, updatedAt: observedAt };
       else if (event === 'spatial_voice_unmuted')
         next = { ...existing, muted: false, updatedAt: observedAt };
-      else if (event === 'on_voice_activity')
+      else if (event === 'voice_activity')
         next = { ...existing, lastVoiceActivityAt: observedAt, updatedAt: observedAt };
       else continue; // spatial_voice_position — observation only
       this.voice.set(existing.nodeId, next);

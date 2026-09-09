@@ -205,7 +205,7 @@ describe('sceneGraphHandler.onEvent — add_node', () => {
     ctx.emit.mockClear();
     addNode(node as any, ctx, config, 'child1', 'root_node');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_node_added',
+      'node_added',
       expect.objectContaining({ childId: 'child1', parentId: 'root_node' })
     );
   });
@@ -409,7 +409,7 @@ describe('sceneGraphHandler.onEvent — data events', () => {
     expect(state.nodes.has('n1')).toBe(true);
     expect(state.nodes.has('n2')).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_scene_composed',
+      'scene_composed',
       expect.objectContaining({ importedCount: 2 })
     );
   });

@@ -44,7 +44,7 @@ describe('POITrait', () => {
     (ctx as any).player = { position: [5, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
     expect((node as any).__poiState.distanceToUser).toBeCloseTo(5, 0);
-    expect(getEventCount(ctx, 'on_poi_proximity')).toBe(1);
+    expect(getEventCount(ctx, 'poi_proximity')).toBe(1);
   });
 
   it('emits exit event when leaving trigger radius', () => {
@@ -52,7 +52,7 @@ describe('POITrait', () => {
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
     (ctx as any).player = { position: [50, 0, 0] };
     updateTrait(poiHandler, node, cfg, ctx, 0.016);
-    expect(getEventCount(ctx, 'on_poi_exit')).toBe(1);
+    expect(getEventCount(ctx, 'poi_exit')).toBe(1);
   });
 
   it('visibility changes with distance', () => {

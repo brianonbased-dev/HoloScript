@@ -136,7 +136,7 @@ describe('avatarEmbodimentHandler.onEvent — embody', () => {
     const { node, cfg, ctx } = attachNode();
     ctx.emit.mockClear();
     avatarEmbodimentHandler.onEvent!(node, cfg, ctx, { type: 'embody' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_avatar_embodied', expect.objectContaining({ node }));
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_embodied', expect.objectContaining({ node }));
   });
 });
 
@@ -152,7 +152,7 @@ describe('avatarEmbodimentHandler.onEvent — disembody', () => {
     ctx.emit.mockClear();
     avatarEmbodimentHandler.onEvent!(node, cfg, ctx, { type: 'disembody' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_avatar_disembodied',
+      'avatar_disembodied',
       expect.objectContaining({ node })
     );
   });
@@ -169,7 +169,7 @@ describe('avatarEmbodimentHandler.onEvent — calibrate', () => {
     ctx.emit.mockClear();
     avatarEmbodimentHandler.onEvent!(node, cfg, ctx, { type: 'calibrate' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_avatar_calibrated',
+      'avatar_calibrated',
       expect.objectContaining({ node })
     );
   });

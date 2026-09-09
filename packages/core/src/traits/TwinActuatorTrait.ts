@@ -114,7 +114,7 @@ export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
         }
       }
 
-      context.emit('on_twin_actuate', {
+      context.emit('twin_actuate', {
         node,
         actuatorId: config.actuator_id,
         topic: config.command_topic,

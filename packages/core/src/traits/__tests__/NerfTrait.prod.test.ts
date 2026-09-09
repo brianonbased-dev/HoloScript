@@ -202,7 +202,7 @@ describe('NerfTrait — onEvent: nerf_model_loaded', () => {
     expect(st(node).isReady).toBe(true);
     expect(st(node).isLoading).toBe(false);
     expect(st(node).modelHandle).toEqual({ h: 42 });
-    expect(ctx.emit).toHaveBeenCalledWith('on_nerf_ready', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('nerf_ready', expect.any(Object));
   });
 });
 
@@ -217,7 +217,7 @@ describe('NerfTrait — onEvent: nerf_load_error', () => {
     fire(node, cfg, ctx, { type: 'nerf_load_error', error: 'ENOTFOUND' });
     expect(st(node).isLoading).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_nerf_error',
+      'nerf_error',
       expect.objectContaining({ error: 'ENOTFOUND' })
     );
   });

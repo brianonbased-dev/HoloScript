@@ -151,7 +151,7 @@ describe('RooftopAnchorTrait — Production', () => {
     expect(s.confidence).toBe(0.95);
     expect(s.anchorHandle).toBe('H2');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_rooftop_resolved',
+      'rooftop_resolved',
       expect.objectContaining({
         buildingHeight: 45,
         floors: 15,
@@ -195,7 +195,7 @@ describe('RooftopAnchorTrait — Production', () => {
     expect(s.isResolved).toBe(true);
     expect(s.confidence).toBe(0.5);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_rooftop_fallback',
+      'rooftop_fallback',
       expect.objectContaining({
         fallbackHeight: 15,
       })
@@ -231,7 +231,7 @@ describe('RooftopAnchorTrait — Production', () => {
     fire(node, cfg, ctx, { type: 'rooftop_anchor_unavailable', reason: 'GPS blocked' });
     expect(st(node).state).toBe('unavailable');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_rooftop_unavailable',
+      'rooftop_unavailable',
       expect.objectContaining({
         reason: 'GPS blocked',
       })

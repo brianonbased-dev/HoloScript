@@ -176,7 +176,7 @@ describe('ainpcBrainHandler.onEvent — player_enter_dialogue_range', () => {
       distance: 3.0,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_player_nearby',
+      'player_nearby',
       expect.objectContaining({ playerId: 'p1', distance: 3.0 })
     );
   });
@@ -190,7 +190,7 @@ describe('ainpcBrainHandler.onEvent — player_enter_dialogue_range', () => {
       playerId: 'p1',
       distance: 3.0,
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_player_nearby', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('player_nearby', expect.anything());
   });
 });
 
@@ -205,7 +205,7 @@ describe('ainpcBrainHandler.onEvent — player_exit_dialogue_range', () => {
       type: 'player_exit_dialogue_range',
     });
     expect((node as any).__npcState.in_dialogue).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('on_dialogue_end', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('dialogue_end', expect.any(Object));
   });
 
   it('does NOT emit on_dialogue_end when not in_dialogue', () => {
@@ -214,7 +214,7 @@ describe('ainpcBrainHandler.onEvent — player_exit_dialogue_range', () => {
     ainpcBrainHandler.onEvent!(node as any, config, ctx as any, {
       type: 'player_exit_dialogue_range',
     });
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_dialogue_end', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('dialogue_end', expect.anything());
   });
 });
 
@@ -247,7 +247,7 @@ describe('ainpcBrainHandler.onEvent — player_interact', () => {
       playerId: 'p2',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_dialogue_start',
+      'dialogue_start',
       expect.objectContaining({
         playerId: 'p2',
         conversationCount: 1,
@@ -308,7 +308,7 @@ describe('ainpcBrainHandler.onEvent — relationship_change', () => {
       delta: 0.3,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_relationship_updated',
+      'relationship_updated',
       expect.objectContaining({
         relationship: expect.closeTo(0.3, 5),
         delta: 0.3,

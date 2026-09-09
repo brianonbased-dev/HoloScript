@@ -156,7 +156,7 @@ function markLoaded(
     method: config.method,
     source: modelSource(config),
   });
-  ctx.emit?.('on_nerf_ready', { node });
+  ctx.emit?.('nerf_ready', { node });
   ctx.emit?.('nerf:loaded', { method: config.method, source: modelSource(config), ready: true });
 }
 
@@ -190,7 +190,7 @@ function loadModel(
       state.isLoading = false;
       const error = err instanceof Error ? err.message : String(err);
       ctx.emit?.('nerf_load_error', { node, error });
-      ctx.emit?.('on_nerf_error', { node, error });
+      ctx.emit?.('nerf_error', { node, error });
       ctx.emit?.('nerf:error', { node, error });
     });
 }

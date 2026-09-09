@@ -40,7 +40,7 @@ describe('GPUBufferTrait', () => {
       size: 1024,
     });
     expect((node as any).__gpuBufferState.isAllocated).toBe(true);
-    expect(getEventCount(ctx, 'on_buffer_ready')).toBe(1);
+    expect(getEventCount(ctx, 'buffer_ready')).toBe(1);
   });
 
   it('initial_data triggers write on creation', () => {

@@ -60,7 +60,7 @@ describe('BuoyancyTrait', () => {
     // Move below surface
     node.position = [0, 0.2, 0];
     updateTrait(buoyancyHandler, node, cfg, ctx, 0.016);
-    expect(getEventCount(ctx, 'on_splash')).toBe(1);
+    expect(getEventCount(ctx, 'splash')).toBe(1);
   });
 
   it('fully submerged emits on_submerge', () => {
@@ -68,7 +68,7 @@ describe('BuoyancyTrait', () => {
     (node as any).__buoyancyState.lastPosition = [0, -5, 0];
     updateTrait(buoyancyHandler, node, cfg, ctx, 0.016);
     expect((node as any).__buoyancyState.isSubmerged).toBe(true);
-    expect(getEventCount(ctx, 'on_submerge')).toBe(1);
+    expect(getEventCount(ctx, 'submerge')).toBe(1);
   });
 
   it('flow force applied when in water', () => {

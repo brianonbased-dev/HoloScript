@@ -109,14 +109,14 @@ describe('destructionHandler.onEvent — damage', () => {
     ctx.emit.mockClear();
     destructionHandler.onEvent!(node, config, ctx, { type: 'damage', amount: 100 });
     expect(node.__destructionState.isDestroyed).toBe(true);
-    expect(ctx.emit).toHaveBeenCalledWith('on_destruction', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('destruction', expect.anything());
   });
   it('no double-destruction if already destroyed', () => {
     const { node, ctx, config } = attach({ damage_threshold: 0 });
     destructionHandler.onEvent!(node, config, ctx, { type: 'damage', amount: 100 });
-    const callCount = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'on_destruction').length;
+    const callCount = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'destruction').length;
     destructionHandler.onEvent!(node, config, ctx, { type: 'damage', amount: 100 });
-    expect(ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'on_destruction').length).toBe(
+    expect(ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'destruction').length).toBe(
       callCount
     );
   });
@@ -150,7 +150,7 @@ describe('destructionHandler.onEvent — destroy', () => {
     ctx.emit.mockClear();
     destructionHandler.onEvent!(node, config, ctx, { type: 'destroy' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_destruction',
+      'destruction',
       expect.objectContaining({ fragments: 4 })
     );
   });
@@ -201,7 +201,7 @@ describe('destructionHandler.onEvent — repair', () => {
     destructionHandler.onEvent!(node, config, ctx, { type: 'destroy' });
     ctx.emit.mockClear();
     destructionHandler.onEvent!(node, config, ctx, { type: 'repair' });
-    expect(ctx.emit).toHaveBeenCalledWith('on_repaired', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('repaired', expect.anything());
   });
   it('emits set_visible(true) after destroy+repair', () => {
     const { node, ctx, config } = attach({ fragment_count: 2 });
@@ -229,7 +229,7 @@ describe('destructionHandler.onUpdate — fragment physics', () => {
     const { node, ctx, config } = attach();
     ctx.emit.mockClear();
     destructionHandler.onUpdate!(node, config, ctx, 0.1);
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_destruction_complete', expect.anything());
+    expect(ctx.emit).not.toHaveBeenCalledWith('destruction_complete', expect.anything());
   });
   it('decrements fragment lifetime by delta', () => {
     const { node, ctx, config } = attach({ fragment_count: 1, fragment_lifetime: 2 });
@@ -276,7 +276,7 @@ describe('destructionHandler.onUpdate — fragment physics', () => {
     ctx.emit.mockClear();
     // Advance past fragment lifetime
     destructionHandler.onUpdate!(node, config, ctx, 1.0);
-    expect(ctx.emit).toHaveBeenCalledWith('on_destruction_complete', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('destruction_complete', expect.anything());
   });
   it('bounces fragment on ground (y<0)', () => {
     const { node, ctx, config } = attach({ fragment_count: 1, fragment_lifetime: 100 });

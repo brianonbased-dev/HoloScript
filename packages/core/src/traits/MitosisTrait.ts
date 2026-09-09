@@ -76,7 +76,7 @@ export const mitosisHandler: TraitHandler<MitosisConfig> = {
       if (node.id === parentId) {
         state.active_children.push(childId);
         state.tasks_delegated++;
-        context.emit?.('on_mitosis_spawned', { childId, parentId: node.id });
+        context.emit?.('mitosis_spawned', { childId, parentId: node.id });
       }
     } else if (event.type === 'mitosis_child_complete') {
       const childId = 'childId' in event ? (event.childId as string) : '';
@@ -101,7 +101,7 @@ export const mitosisHandler: TraitHandler<MitosisConfig> = {
         }
       }
     } else if (event.type === 'mitosis_child_failed') {
-      context.emit?.('on_mitosis_error', {
+      context.emit?.('mitosis_error', {
         parentId: node.id,
         childId: event.childId,
         error: event.error,

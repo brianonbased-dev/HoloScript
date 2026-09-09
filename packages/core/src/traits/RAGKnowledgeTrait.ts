@@ -140,7 +140,7 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
         chunks: doc.chunks,
       });
 
-      context.emit?.('on_document_ingested', {
+      context.emit?.('document_ingested', {
         node,
         documentId: doc.id,
         chunkCount: doc.chunks.length,
@@ -154,7 +154,7 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
         state.is_indexing =
           state.is_indexing && Array.from(state.indexed_documents.values()).some((d) => !d.indexed);
 
-        context.emit?.('on_document_indexed', {
+        context.emit?.('document_indexed', {
           node,
           documentId,
         });
@@ -204,7 +204,7 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
           .sort((a, b) => b.score - a.score);
       }
 
-      context.emit?.('on_knowledge_retrieved', {
+      context.emit?.('knowledge_retrieved', {
         node,
         query: state.last_query,
         chunks: state.retrieved_chunks,

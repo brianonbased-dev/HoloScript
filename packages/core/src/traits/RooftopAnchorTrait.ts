@@ -115,7 +115,7 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
       state.confidence = (event.confidence as number) || 1.0;
       state.rooftopPosition = event.position as typeof state.rooftopPosition;
 
-      context.emit?.('on_rooftop_resolved', {
+      context.emit?.('rooftop_resolved', {
         node,
         buildingHeight: state.buildingHeight,
         floors: state.estimatedFloors,
@@ -136,7 +136,7 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
         height: config.fallback_height + config.elevation_offset,
       });
 
-      context.emit?.('on_rooftop_fallback', {
+      context.emit?.('rooftop_fallback', {
         node,
         fallbackHeight: config.fallback_height,
       });
@@ -146,7 +146,7 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
     } else if (event.type === 'rooftop_anchor_unavailable') {
       state.state = 'unavailable';
 
-      context.emit?.('on_rooftop_unavailable', {
+      context.emit?.('rooftop_unavailable', {
         node,
         reason: event.reason,
       });

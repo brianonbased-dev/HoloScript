@@ -160,7 +160,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
       state.isConnected = true;
       state.localPeerId = event.peerId as string;
 
-      context.emit?.('on_presence_connected', {
+      context.emit?.('presence_connected', {
         node,
         peerId: state.localPeerId,
       });
@@ -169,7 +169,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
       state.isConnected = false;
       state.peers.clear();
 
-      context.emit?.('on_presence_disconnected', {
+      context.emit?.('presence_disconnected', {
         node,
         reason: event.reason,
       });
@@ -197,7 +197,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
         avatarType: event.avatarType || 'head_hands',
       });
 
-      context.emit?.('on_peer_joined', {
+      context.emit?.('peer_joined', {
         node,
         peerId,
         peerCount: state.peers.size,
@@ -211,7 +211,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
         peerId,
       });
 
-      context.emit?.('on_peer_left', {
+      context.emit?.('peer_left', {
         node,
         peerId,
         peerCount: state.peers.size,

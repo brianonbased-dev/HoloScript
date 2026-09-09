@@ -27,7 +27,7 @@ describe('PerceptualColorTrait', () => {
     expect(state.revisions).toBe(1);
     expect(event.colorMap).toBe('viridis');
     expect((event.compilerColorPass as Record<string, unknown>).source).toBe('color_map');
-    expect(getEventCount(ctx, 'on_perceptual_color_change')).toBe(1);
+    expect(getEventCount(ctx, 'perceptual_color_change')).toBe(1);
   });
 
   it('recomputes from event overrides', () => {

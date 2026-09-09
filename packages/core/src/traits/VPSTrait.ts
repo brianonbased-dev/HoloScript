@@ -157,10 +157,10 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
           state.state = 'idle';
         }
 
-        context.emit?.('on_vps_coverage_available', { node });
+        context.emit?.('vps_coverage_available', { node });
       } else {
         state.state = 'unavailable';
-        context.emit?.('on_vps_unavailable', {
+        context.emit?.('vps_unavailable', {
           node,
           reason: 'no_coverage',
         });
@@ -183,7 +183,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
           context.emit?.('vps_start_tracking', { node });
         }
 
-        context.emit?.('on_vps_localized', {
+        context.emit?.('vps_localized', {
           node,
           confidence: state.confidence,
           accuracy: state.accuracy,
@@ -192,7 +192,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
       } else {
         state.state = 'limited';
 
-        context.emit?.('on_vps_limited', {
+        context.emit?.('vps_limited', {
           node,
           confidence: state.confidence,
           requiredConfidence: config.quality_threshold,
@@ -214,7 +214,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
       } else {
         state.state = 'unavailable';
 
-        context.emit?.('on_vps_failed', {
+        context.emit?.('vps_failed', {
           node,
           attempts: state.localizationAttempts,
           reason: event.reason,
@@ -227,13 +227,13 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
 
       if (state.confidence < config.quality_threshold && state.state === 'tracking') {
         state.state = 'limited';
-        context.emit?.('on_vps_tracking_degraded', {
+        context.emit?.('vps_tracking_degraded', {
           node,
           confidence: state.confidence,
         });
       } else if (state.confidence >= config.quality_threshold && state.state === 'limited') {
         state.state = 'tracking';
-        context.emit?.('on_vps_tracking_restored', {
+        context.emit?.('vps_tracking_restored', {
           node,
           confidence: state.confidence,
         });

@@ -158,7 +158,7 @@ describe('PersistentAnchorTrait — onUpdate', () => {
     expect(s.state).toBe('expired');
     expect(s.isResolved).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_persistent_anchor_expired',
+      'persistent_anchor_expired',
       expect.objectContaining({ name: 'a' })
     );
   });
@@ -172,7 +172,7 @@ describe('PersistentAnchorTrait — onUpdate', () => {
     ctx.emit.mockClear();
     persistentAnchorHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(s.state).toBe('stale');
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_persistent_anchor_expired', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('persistent_anchor_expired', expect.any(Object));
   });
 
   it('ttl=0 means no expiry even with old anchor', () => {
@@ -226,7 +226,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_loaded', () => {
     expect(s.isResolved).toBe(true);
     expect(s.state).toBe('resolved');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_persistent_anchor_resolved',
+      'persistent_anchor_resolved',
       expect.objectContaining({
         name: 'myAnchor',
         id: 'anchor-123',
@@ -256,7 +256,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_not_found', () =>
     const { cfg, ctx } = attach(node, { max_resolve_attempts: 3, auto_resolve: false });
     fire(node, cfg, ctx, { type: 'persistent_anchor_not_found' });
     expect(st(node).resolveAttempts).toBe(1);
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_persistent_anchor_fallback', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('persistent_anchor_fallback', expect.any(Object));
   });
 
   it('uses fallback position after max_resolve_attempts reached', () => {
@@ -272,7 +272,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_not_found', () =>
     expect(s.localPosition).toEqual([5, 0, 5]);
     expect(s.state).toBe('unresolved');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_persistent_anchor_fallback',
+      'persistent_anchor_fallback',
       expect.objectContaining({
         fallbackPosition: [5, 0, 5],
       })
@@ -351,7 +351,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_created', () => {
     expect(s.isResolved).toBe(true);
     expect(s.state).toBe('resolved');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_persistent_anchor_created',
+      'persistent_anchor_created',
       expect.objectContaining({
         name: 'newAnchor',
         id: 'anchor-new',

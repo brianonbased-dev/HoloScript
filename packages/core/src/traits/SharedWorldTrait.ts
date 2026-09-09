@@ -190,7 +190,7 @@ export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
       state.isSynced = true;
       state.isHost = event.isHost as boolean;
 
-      context.emit?.('on_world_connected', {
+      context.emit?.('world_connected', {
         node,
         isHost: state.isHost,
       });
@@ -292,7 +292,7 @@ export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
       const peerId = event.peerId as string;
       state.connectedPeers.add(peerId);
 
-      context.emit?.('on_peer_joined', {
+      context.emit?.('peer_joined', {
         node,
         peerId,
         peerCount: state.connectedPeers.size,
@@ -319,7 +319,7 @@ export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
         }
       }
 
-      context.emit?.('on_peer_left', {
+      context.emit?.('peer_left', {
         node,
         peerId,
         peerCount: state.connectedPeers.size,

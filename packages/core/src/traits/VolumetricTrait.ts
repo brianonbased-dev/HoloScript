@@ -112,7 +112,7 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
           // Initial sort from origin
           state.indices = state.service.sortSplat(data, [0, 0, 0]);
 
-          context.emit?.('on_volumetric_ready', {
+          context.emit?.('volumetric_ready', {
             node,
             pointCount: state.pointCount,
             dimensions: event.dimensions,

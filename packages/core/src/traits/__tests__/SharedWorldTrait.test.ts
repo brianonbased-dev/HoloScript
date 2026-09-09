@@ -65,7 +65,7 @@ describe('SharedWorldTrait', () => {
       peerId: 'peer1',
     });
     expect((node as any).__sharedWorldState.connectedPeers.has('peer1')).toBe(true);
-    expect(getEventCount(ctx, 'on_peer_joined')).toBe(1);
+    expect(getEventCount(ctx, 'peer_joined')).toBe(1);
   });
 
   it('shared_world_peer_left removes peer', () => {

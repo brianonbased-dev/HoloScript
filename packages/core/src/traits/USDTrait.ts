@@ -551,7 +551,7 @@ async function loadUSDAsset(
     });
 
     // Emit standard asset loaded hook
-    context.emit('on_asset_loaded', {
+    context.emit('asset_loaded', {
       node,
       assetType: state.isUSDZ ? 'usdz' : 'usd',
       source: config.source,
@@ -574,7 +574,7 @@ async function loadUSDAsset(
       error: state.error,
     });
 
-    context.emit('on_asset_error', {
+    context.emit('asset_error', {
       node,
       assetType: state.isUSDZ ? 'usdz' : 'usd',
       source: config.source,

@@ -259,7 +259,7 @@ describe('ComputeTrait', () => {
       pipeline: 'pl',
     });
     expect((node as any).__computeState.isReady).toBe(true);
-    expect(getEventCount(ctx, 'on_compute_ready')).toBe(1);
+    expect(getEventCount(ctx, 'compute_ready')).toBe(1);
   });
 
   it('compute_dispatch emits execute when ready', () => {
@@ -274,7 +274,7 @@ describe('ComputeTrait', () => {
 
   it('compute_dispatch errors when not ready', () => {
     sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_dispatch' });
-    expect(getEventCount(ctx, 'on_compute_error')).toBe(1);
+    expect(getEventCount(ctx, 'compute_error')).toBe(1);
   });
 
   it('dispatch_on_update triggers auto dispatch', () => {
@@ -320,13 +320,13 @@ describe('ComputeTrait', () => {
       buffer: 'nope',
       data: 'x',
     });
-    expect(getEventCount(ctx, 'on_compute_error')).toBe(1);
+    expect(getEventCount(ctx, 'compute_error')).toBe(1);
   });
 
   it('compute_complete increments execution count', () => {
     sendEvent(computeHandler, node, cfg, ctx, { type: 'compute_complete', executionTime: 1.5 });
     expect((node as any).__computeState.executionCount).toBe(1);
-    expect(getEventCount(ctx, 'on_compute_complete')).toBe(1);
+    expect(getEventCount(ctx, 'compute_complete')).toBe(1);
   });
 
   it('query returns state', () => {

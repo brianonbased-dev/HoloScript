@@ -45,13 +45,13 @@ describe('VPSTrait', () => {
   it('coverage available triggers localization', () => {
     sendEvent(vpsHandler, node, cfg, ctx, { type: 'vps_coverage_result', hasCoverage: true });
     expect((node as any).__vpsState.state).toBe('localizing');
-    expect(getEventCount(ctx, 'on_vps_coverage_available')).toBe(1);
+    expect(getEventCount(ctx, 'vps_coverage_available')).toBe(1);
   });
 
   it('no coverage sets unavailable', () => {
     sendEvent(vpsHandler, node, cfg, ctx, { type: 'vps_coverage_result', hasCoverage: false });
     expect((node as any).__vpsState.state).toBe('unavailable');
-    expect(getEventCount(ctx, 'on_vps_unavailable')).toBe(1);
+    expect(getEventCount(ctx, 'vps_unavailable')).toBe(1);
   });
 
   it('localized with sufficient confidence starts tracking', () => {
@@ -63,7 +63,7 @@ describe('VPSTrait', () => {
       pose: { position: [1, 2, 3], rotation: [0, 0, 0, 1] },
     });
     expect((node as any).__vpsState.state).toBe('tracking');
-    expect(getEventCount(ctx, 'on_vps_localized')).toBe(1);
+    expect(getEventCount(ctx, 'vps_localized')).toBe(1);
     expect(getEventCount(ctx, 'vps_start_tracking')).toBe(1);
   });
 
@@ -75,7 +75,7 @@ describe('VPSTrait', () => {
       pose: { position: [0, 0, 0], rotation: [0, 0, 0, 1] },
     });
     expect((node as any).__vpsState.state).toBe('limited');
-    expect(getEventCount(ctx, 'on_vps_limited')).toBe(1);
+    expect(getEventCount(ctx, 'vps_limited')).toBe(1);
   });
 
   it('localization failure exhausts max attempts', () => {
@@ -83,7 +83,7 @@ describe('VPSTrait', () => {
       sendEvent(vpsHandler, node, cfg, ctx, { type: 'vps_localization_failed', reason: 'timeout' });
     }
     expect((node as any).__vpsState.state).toBe('unavailable');
-    expect(getEventCount(ctx, 'on_vps_failed')).toBe(1);
+    expect(getEventCount(ctx, 'vps_failed')).toBe(1);
   });
 
   it('stop sets idle', () => {

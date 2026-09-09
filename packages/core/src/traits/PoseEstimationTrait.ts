@@ -183,7 +183,7 @@ export const poseEstimationHandler: TraitHandler<PoseEstimationConfig> = {
         state.tracking_id = `track_${Date.now()}`;
       }
 
-      context.emit?.('on_pose_updated', {
+      context.emit?.('pose_updated', {
         node,
         pose: state.detected_pose,
         confidence: state.confidence,
@@ -195,12 +195,12 @@ export const poseEstimationHandler: TraitHandler<PoseEstimationConfig> = {
       state.tracking_id = null;
       state.smoothing_buffer = [];
 
-      context.emit?.('on_pose_lost', { node });
+      context.emit?.('pose_lost', { node });
     } else if (event.type === 'get_keypoint') {
       const keypointName = event.name as string;
       const keypoint = state.detected_pose?.find((kp) => kp.name === keypointName);
 
-      context.emit?.('on_keypoint_result', {
+      context.emit?.('keypoint_result', {
         node,
         keypoint,
         found: !!keypoint,

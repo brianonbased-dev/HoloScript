@@ -51,14 +51,14 @@ describe('AiUpscalingTrait', () => {
     expect((node as any).__aiUpscalingState.output_texture).toBe('upscaled_tex');
     expect((node as any).__aiUpscalingState.is_processing).toBe(false);
     expect(getEventCount(ctx, 'material_set_texture')).toBe(1);
-    expect(getEventCount(ctx, 'on_upscaling_complete')).toBe(1);
+    expect(getEventCount(ctx, 'upscaling_complete')).toBe(1);
     expect((node as any).__aiUpscalingState.cache.size).toBe(1);
   });
 
   it('error clears processing flag', () => {
     sendEvent(aiUpscalingHandler, node, cfg, ctx, { type: 'ai_upscaling_error', error: 'OOM' });
     expect((node as any).__aiUpscalingState.is_processing).toBe(false);
-    expect(getEventCount(ctx, 'on_upscaling_error')).toBe(1);
+    expect(getEventCount(ctx, 'upscaling_error')).toBe(1);
   });
 
   it('live mode re-requests on update interval', () => {

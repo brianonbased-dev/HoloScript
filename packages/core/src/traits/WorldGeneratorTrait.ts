@@ -92,12 +92,12 @@ export const worldGeneratorHandler: TraitHandler<WorldGeneratorConfig> = {
         state.isGenerating = true;
         state.progress = 0;
         state.generationId = event.generationId as string;
-        context.emit('on_world_gen_started', { node, generationId: state.generationId });
+        context.emit('world_gen_started', { node, generationId: state.generationId });
         break;
 
       case 'world:generation_progress':
         state.progress = event.progress as number;
-        context.emit('on_world_gen_progress', { node, progress: state.progress });
+        context.emit('world_gen_progress', { node, progress: state.progress });
         break;
 
       case 'world:generation_complete':
@@ -105,7 +105,7 @@ export const worldGeneratorHandler: TraitHandler<WorldGeneratorConfig> = {
         state.progress = 1;
         state.assetUrl = event.assetUrl as string;
 
-        context.emit('on_world_gen_complete', {
+        context.emit('world_gen_complete', {
           node,
           assetUrl: state.assetUrl,
           format: config.format,
@@ -132,7 +132,7 @@ export const worldGeneratorHandler: TraitHandler<WorldGeneratorConfig> = {
       case 'world:generation_error':
         state.isGenerating = false;
         state.error = event.error as string;
-        context.emit('on_world_gen_error', { node, error: state.error });
+        context.emit('world_gen_error', { node, error: state.error });
         break;
 
       case 'world_gen_trigger':

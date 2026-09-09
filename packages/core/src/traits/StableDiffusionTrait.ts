@@ -155,7 +155,7 @@ export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
         timestamp: Date.now(),
       });
 
-      context.emit?.('on_texture_generated', {
+      context.emit?.('texture_generated', {
         node,
         texture: state.output_texture,
         prompt: config.prompt,
@@ -165,7 +165,7 @@ export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
       state.current_step = event.step as number;
     } else if (event.type === 'stable_diffusion_error') {
       state.is_generating = false;
-      context.emit?.('on_generation_error', {
+      context.emit?.('generation_error', {
         node,
         error: event.error,
       });

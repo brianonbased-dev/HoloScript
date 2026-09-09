@@ -88,7 +88,7 @@ describe('GaussianSplatTrait', () => {
     expect(state.isLoading).toBe(false);
     expect(state.splatCount).toBe(500000);
     expect(state.gaussianBudgetUsed).toBe(500000);
-    expect(getEventCount(ctx, 'on_splat_loaded')).toBe(1);
+    expect(getEventCount(ctx, 'splat_loaded')).toBe(1);
   });
 
   it('splat_load_error handles failure', () => {
@@ -97,7 +97,7 @@ describe('GaussianSplatTrait', () => {
       error: 'file not found',
     });
     expect((node as any).__gaussianSplatState.isLoading).toBe(false);
-    expect(getEventCount(ctx, 'on_splat_error')).toBe(1);
+    expect(getEventCount(ctx, 'splat_error')).toBe(1);
   });
 
   it('splat_query returns info including v4.1 fields', () => {

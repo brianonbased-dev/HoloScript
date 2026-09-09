@@ -51,7 +51,7 @@ describe('SharedAnchorTrait', () => {
     expect(s.isShared).toBe(true);
     expect(s.isCreator).toBe(true);
     expect(s.state).toBe('shared');
-    expect(getEventCount(ctx, 'on_anchor_shared')).toBe(1);
+    expect(getEventCount(ctx, 'anchor_shared')).toBe(1);
   });
 
   it('upload failed sets error state', () => {
@@ -92,7 +92,7 @@ describe('SharedAnchorTrait', () => {
       userId: 'u3',
     });
     expect((node as any).__sharedAnchorState.sharedUsers.length).toBe(3);
-    expect(getEventCount(ctx, 'on_user_joined')).toBe(3);
+    expect(getEventCount(ctx, 'user_joined')).toBe(3);
   });
 
   it('rejects user when max reached', () => {
@@ -120,7 +120,7 @@ describe('SharedAnchorTrait', () => {
       userId: 'u1',
     });
     expect((node as any).__sharedAnchorState.sharedUsers.length).toBe(0);
-    expect(getEventCount(ctx, 'on_user_left')).toBe(1);
+    expect(getEventCount(ctx, 'user_left')).toBe(1);
   });
 
   it('sync emits periodically when shared', () => {

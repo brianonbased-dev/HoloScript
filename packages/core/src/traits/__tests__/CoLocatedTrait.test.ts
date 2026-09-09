@@ -46,7 +46,7 @@ describe('CoLocatedTrait', () => {
     const s = (node as any).__coLocatedState;
     expect(s.state).toBe('aligned');
     expect(s.isAligned).toBe(true);
-    expect(getEventCount(ctx, 'on_co_presence_aligned')).toBe(1);
+    expect(getEventCount(ctx, 'co_presence_aligned')).toBe(1);
   });
 
   it('alignment_failed sets lost state', () => {
@@ -55,7 +55,7 @@ describe('CoLocatedTrait', () => {
       reason: 'timeout',
     });
     expect((node as any).__coLocatedState.state).toBe('lost');
-    expect(getEventCount(ctx, 'on_co_located_failed')).toBe(1);
+    expect(getEventCount(ctx, 'co_located_failed')).toBe(1);
   });
 
   it('participant_joined adds participant', () => {
@@ -64,7 +64,7 @@ describe('CoLocatedTrait', () => {
       userId: 'u1',
     });
     expect((node as any).__coLocatedState.participants.size).toBe(1);
-    expect(getEventCount(ctx, 'on_co_presence_joined')).toBe(1);
+    expect(getEventCount(ctx, 'co_presence_joined')).toBe(1);
   });
 
   it('participant_aligned marks participant aligned', () => {

@@ -57,7 +57,7 @@ describe('MaterialXTrait', () => {
   it('materialx_error stops loading', () => {
     sendEvent(materialXHandler, node, cfg, ctx, { type: 'materialx_error', error: 'not found' });
     expect((node as any).__materialXState.isLoading).toBe(false);
-    expect(getEventCount(ctx, 'on_materialx_error')).toBe(1);
+    expect(getEventCount(ctx, 'materialx_error')).toBe(1);
   });
 
   it('materialx_set_input stores input', () => {

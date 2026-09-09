@@ -207,7 +207,7 @@ export const neuralAnimationHandler: TraitHandler = {
     };
 
     if (result.contactFeatures.leftFoot !== data.prevLeftContact) {
-      emit(data, 'on_foot_contact', {
+      emit(data, 'foot_contact', {
         ...eventBase,
         side: 'left',
         state: result.contactFeatures.leftFoot,
@@ -215,7 +215,7 @@ export const neuralAnimationHandler: TraitHandler = {
       data.prevLeftContact = result.contactFeatures.leftFoot;
     }
     if (result.contactFeatures.rightFoot !== data.prevRightContact) {
-      emit(data, 'on_foot_contact', {
+      emit(data, 'foot_contact', {
         ...eventBase,
         side: 'right',
         state: result.contactFeatures.rightFoot,
@@ -224,7 +224,7 @@ export const neuralAnimationHandler: TraitHandler = {
     }
 
     if (result.stability < 0.3) {
-      emit(data, 'on_stumble_detected', { ...eventBase, stability: result.stability });
+      emit(data, 'stumble_detected', { ...eventBase, stability: result.stability });
     }
 
     emit(data, 'locomotion_features', {
@@ -258,7 +258,7 @@ export const neuralAnimationHandler: TraitHandler = {
  */
 export function subscribeNeuralAnimationEvent(
   context: TraitContext,
-  eventType: 'on_foot_contact' | 'on_stumble_detected' | 'locomotion_features',
+  eventType: 'foot_contact' | 'stumble_detected' | 'locomotion_features',
   listener: (payload: unknown) => void
 ): () => void {
   const data = context.data as unknown as HandlerData;

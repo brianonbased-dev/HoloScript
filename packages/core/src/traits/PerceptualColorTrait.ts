@@ -207,7 +207,7 @@ function applyPerceptualColor(
     ...output,
   });
 
-  context.emit?.('on_perceptual_color_change', {
+  context.emit?.('perceptual_color_change', {
     node,
     revision: state.revisions,
     source: compilerColorPass.source,

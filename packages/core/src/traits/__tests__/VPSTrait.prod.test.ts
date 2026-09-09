@@ -216,7 +216,7 @@ describe('VPSTrait — onEvent: vps_coverage_result', () => {
       'vps_localize',
       expect.objectContaining({ timeout: 20000 })
     );
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_coverage_available', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('vps_coverage_available', expect.any(Object));
   });
 
   it('hasCoverage=true + auto_localize=false: state=idle + emits on_vps_coverage_available', () => {
@@ -226,7 +226,7 @@ describe('VPSTrait — onEvent: vps_coverage_result', () => {
     fire(node, cfg, ctx, { type: 'vps_coverage_result', hasCoverage: true });
     expect(st(node).state).toBe('idle');
     expect(ctx.emit).not.toHaveBeenCalledWith('vps_localize', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_coverage_available', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('vps_coverage_available', expect.any(Object));
   });
 
   it('hasCoverage=false: state=unavailable + emits on_vps_unavailable', () => {
@@ -236,7 +236,7 @@ describe('VPSTrait — onEvent: vps_coverage_result', () => {
     fire(node, cfg, ctx, { type: 'vps_coverage_result', hasCoverage: false });
     expect(st(node).state).toBe('unavailable');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_vps_unavailable',
+      'vps_unavailable',
       expect.objectContaining({ reason: 'no_coverage' })
     );
   });
@@ -270,7 +270,7 @@ describe('VPSTrait — onEvent: vps_localized', () => {
     expect(s.continuousTrackingActive).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith('vps_start_tracking', expect.any(Object));
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_vps_localized',
+      'vps_localized',
       expect.objectContaining({ confidence: 0.85, locationId: 'loc1' })
     );
   });
@@ -293,7 +293,7 @@ describe('VPSTrait — onEvent: vps_localized', () => {
     });
     expect(st(node).state).toBe('localized');
     expect(ctx.emit).not.toHaveBeenCalledWith('vps_start_tracking', expect.any(Object));
-    expect(ctx.emit).toHaveBeenCalledWith('on_vps_localized', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('vps_localized', expect.any(Object));
   });
 
   it('confidence < threshold: state=limited + emits on_vps_limited', () => {
@@ -313,7 +313,7 @@ describe('VPSTrait — onEvent: vps_localized', () => {
     });
     expect(st(node).state).toBe('limited');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_vps_limited',
+      'vps_limited',
       expect.objectContaining({ requiredConfidence: 0.7 })
     );
   });
@@ -331,7 +331,7 @@ describe('VPSTrait — onEvent: vps_localization_failed', () => {
     });
     fire(node, cfg, ctx, { type: 'vps_localization_failed', reason: 'timeout' });
     expect(st(node).localizationAttempts).toBe(1);
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_vps_failed', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('vps_failed', expect.any(Object));
   });
 
   it('sets unavailable and emits on_vps_failed when max_attempts reached', () => {
@@ -346,7 +346,7 @@ describe('VPSTrait — onEvent: vps_localization_failed', () => {
     fire(node, cfg, ctx, { type: 'vps_localization_failed', reason: 'no_features' });
     expect(st(node).state).toBe('unavailable');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_vps_failed',
+      'vps_failed',
       expect.objectContaining({ attempts: 2, reason: 'no_features' })
     );
   });
@@ -377,7 +377,7 @@ describe('VPSTrait — onEvent: vps_pose_update', () => {
     fire(node, cfg, ctx, { type: 'vps_pose_update', pose: POSE, confidence: 0.5, accuracy: 3 });
     expect(st(node).state).toBe('limited');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_vps_tracking_degraded',
+      'vps_tracking_degraded',
       expect.objectContaining({ confidence: 0.5 })
     );
   });
@@ -395,7 +395,7 @@ describe('VPSTrait — onEvent: vps_pose_update', () => {
     fire(node, cfg, ctx, { type: 'vps_pose_update', pose: POSE, confidence: 0.85, accuracy: 0.5 });
     expect(st(node).state).toBe('tracking');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_vps_tracking_restored',
+      'vps_tracking_restored',
       expect.objectContaining({ confidence: 0.85 })
     );
   });

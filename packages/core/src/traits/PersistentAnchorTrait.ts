@@ -109,7 +109,7 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
         state.state = 'expired';
         state.isResolved = false;
 
-        context.emit?.('on_persistent_anchor_expired', { node, name: config.name });
+        context.emit?.('persistent_anchor_expired', { node, name: config.name });
       } else if (age > config.ttl * 0.9) {
         state.state = 'stale';
       }
@@ -145,7 +145,7 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
       state.lastResolvedAt = Date.now();
       state.createdAt = (event.createdAt as number) || Date.now();
 
-      context.emit?.('on_persistent_anchor_resolved', {
+      context.emit?.('persistent_anchor_resolved', {
         node,
         name: config.name,
         id: state.persistedId,
@@ -163,7 +163,7 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
         ];
         state.state = 'unresolved';
 
-        context.emit?.('on_persistent_anchor_fallback', {
+        context.emit?.('persistent_anchor_fallback', {
           node,
           fallbackPosition: config.fallback_position,
         });
@@ -193,7 +193,7 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
       state.createdAt = Date.now();
       state.lastResolvedAt = Date.now();
 
-      context.emit?.('on_persistent_anchor_created', {
+      context.emit?.('persistent_anchor_created', {
         node,
         name: config.name,
         id: state.persistedId,

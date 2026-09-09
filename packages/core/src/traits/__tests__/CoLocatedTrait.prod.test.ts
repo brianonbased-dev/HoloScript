@@ -153,7 +153,7 @@ describe('coLocatedHandler.onEvent — co_located_aligned', () => {
     ctx.emit.mockClear();
     align(node, ctx, config);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_co_presence_aligned',
+      'co_presence_aligned',
       expect.objectContaining({ anchorId: 'anc-1' })
     );
   });
@@ -184,7 +184,7 @@ describe('coLocatedHandler.onEvent — co_located_alignment_failed', () => {
       reason: 'no_marker',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_co_located_failed',
+      'co_located_failed',
       expect.objectContaining({ reason: 'no_marker' })
     );
   });
@@ -210,7 +210,7 @@ describe('coLocatedHandler.onEvent — participant events', () => {
       userId: 'u1',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_co_presence_joined',
+      'co_presence_joined',
       expect.objectContaining({ userId: 'u1', participantCount: 1 })
     );
   });
@@ -263,7 +263,7 @@ describe('coLocatedHandler.onEvent — participant events', () => {
       position: [0, 1, 0],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_participant_aligned',
+      'participant_aligned',
       expect.objectContaining({ userId: 'u2' })
     );
   });
@@ -291,7 +291,7 @@ describe('coLocatedHandler.onEvent — participant events', () => {
       userId: 'u1',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_co_presence_left',
+      'co_presence_left',
       expect.objectContaining({ userId: 'u1', participantCount: 0 })
     );
   });
@@ -330,7 +330,7 @@ describe('coLocatedHandler.onEvent — quality & anchor', () => {
       quality: 0.1,
     });
     expect(node.__coLocatedState.state).toBe('lost');
-    expect(ctx.emit).toHaveBeenCalledWith('on_co_located_lost', expect.anything());
+    expect(ctx.emit).toHaveBeenCalledWith('co_located_lost', expect.anything());
   });
   it('emits co_located_create_anchor_request on co_located_create_anchor', () => {
     const { node, ctx, config } = attach({ alignment_method: 'image_marker' });
@@ -359,7 +359,7 @@ describe('coLocatedHandler.onEvent — quality & anchor', () => {
       anchorId: 'a2',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_anchor_created',
+      'anchor_created',
       expect.objectContaining({ anchorId: 'a2' })
     );
   });

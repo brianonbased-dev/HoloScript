@@ -71,7 +71,7 @@ describe('DigitalTwinTrait — onAttach', () => {
     const { ctx } = attach(node, { simulation_mode: true });
     expect(st(node).isSynced).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_twin_connected',
+      'twin_connected',
       expect.objectContaining({ mode: 'simulation' })
     );
   });
@@ -245,7 +245,7 @@ describe('DigitalTwinTrait — onEvent: twin_connected', () => {
     expect(st(node).isSynced).toBe(true);
     expect(st(node).connectionHandle).toEqual({ socket: true });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_twin_connected',
+      'twin_connected',
       expect.objectContaining({ physicalId: 'dev1' })
     );
   });
@@ -271,7 +271,7 @@ describe('DigitalTwinTrait — onEvent: twin_state_update', () => {
     expect((node as any).command).toBeUndefined(); // direction=out, not applied
     expect(st(node).historyBuffer.length).toBe(1);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_twin_sync',
+      'twin_sync',
       expect.objectContaining({ divergence: expect.any(Number) })
     );
   });
@@ -322,7 +322,7 @@ describe('DigitalTwinTrait — onEvent: twin_disconnect', () => {
     fire(node, cfg, ctx, { type: 'twin_disconnect' });
     expect(st(node).isSynced).toBe(false);
     expect(st(node).connectionHandle).toBeNull();
-    expect(ctx.emit).toHaveBeenCalledWith('on_twin_disconnected', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('twin_disconnected', expect.any(Object));
   });
 });
 
@@ -335,7 +335,7 @@ describe('DigitalTwinTrait — onEvent: twin_connection_error', () => {
     ctx.emit.mockClear();
     fire(node, cfg, ctx, { type: 'twin_connection_error', error: 'TIMEOUT' });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_twin_error',
+      'twin_error',
       expect.objectContaining({ error: 'TIMEOUT' })
     );
   });

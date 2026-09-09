@@ -170,7 +170,7 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
         state.sphericalHarmonics = event.sphericalHarmonics as Float32Array;
       }
 
-      context.emit?.('on_light_estimated', {
+      context.emit?.('light_estimated', {
         node,
         intensity: state.intensity,
         colorTemperature: state.colorTemperature,

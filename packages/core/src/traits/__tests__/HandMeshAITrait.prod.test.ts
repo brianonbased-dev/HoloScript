@@ -357,7 +357,7 @@ describe('HandMeshAITrait — Production', () => {
       mesh,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_hand_mesh_updated',
+      'hand_mesh_updated',
       expect.objectContaining({
         hand: 'left',
         vertexCount: 3,

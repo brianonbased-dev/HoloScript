@@ -288,7 +288,7 @@ describe('chainHandler.onEvent — chain_break', () => {
       expect.objectContaining({ linkIndex: 2 })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_chain_break',
+      'chain_break',
       expect.objectContaining({ breakPoint: 2 })
     );
   });

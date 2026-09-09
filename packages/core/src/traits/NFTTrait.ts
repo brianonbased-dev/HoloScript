@@ -107,7 +107,7 @@ export const nftHandler: TraitHandler<NFTConfig> = {
       state.tokenStandard = event.standard as typeof state.tokenStandard;
       state.lastVerificationTime = Date.now();
 
-      context.emit?.('on_nft_verified', {
+      context.emit?.('nft_verified', {
         node,
         owner: state.ownerAddress,
         standard: state.tokenStandard,
@@ -123,20 +123,20 @@ export const nftHandler: TraitHandler<NFTConfig> = {
       state.isLoading = false;
       state.isVerified = false;
 
-      context.emit?.('on_nft_error', {
+      context.emit?.('nft_error', {
         node,
         error: event.error,
       });
     } else if (event.type === 'nft_metadata_loaded') {
       state.metadata = event.metadata as NFTMetadata;
 
-      context.emit?.('on_nft_metadata', {
+      context.emit?.('nft_metadata', {
         node,
         metadata: state.metadata,
       });
     } else if (event.type === 'nft_transfer') {
       if (!config.transfer_enabled) {
-        context.emit?.('on_nft_error', {
+        context.emit?.('nft_error', {
           node,
           error: 'Transfers not enabled',
         });
@@ -158,7 +158,7 @@ export const nftHandler: TraitHandler<NFTConfig> = {
       const previousOwner = state.ownerAddress;
       state.ownerAddress = event.newOwner as string;
 
-      context.emit?.('on_nft_transferred', {
+      context.emit?.('nft_transferred', {
         node,
         from: previousOwner,
         to: state.ownerAddress,

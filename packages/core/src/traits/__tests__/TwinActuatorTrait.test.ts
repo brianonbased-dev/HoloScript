@@ -96,7 +96,7 @@ describe('TwinActuatorTrait', () => {
       value: 90,
     });
 
-    expect(emittedEvents[1].event).toBe('on_twin_actuate');
+    expect(emittedEvents[1].event).toBe('twin_actuate');
     expect(emittedEvents[1].payload.value).toBe(90);
   });
 
@@ -118,7 +118,7 @@ describe('TwinActuatorTrait', () => {
       value: 1,
     });
 
-    expect(emittedEvents[0].event).toBe('on_twin_actuate');
+    expect(emittedEvents[0].event).toBe('twin_actuate');
     expect(physicsVelocityApplied).toStrictEqual(targetVelocity);
   });
 
@@ -140,7 +140,7 @@ describe('TwinActuatorTrait', () => {
     });
 
     expect(emittedEvents.length).toBe(1);
-    expect(emittedEvents[0].event).toBe('on_twin_actuate');
+    expect(emittedEvents[0].event).toBe('twin_actuate');
     expect(emittedEvents[0].payload.envelopeId).toBe('env-test-001');
   });
 

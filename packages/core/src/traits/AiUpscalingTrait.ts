@@ -143,7 +143,7 @@ export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
         context.emit?.('material_set_texture', { node, texture });
       }
 
-      context.emit?.('on_upscaling_complete', {
+      context.emit?.('upscaling_complete', {
         node,
         texture,
         model: config.upscale_model,
@@ -166,7 +166,7 @@ export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
       }
     } else if (event.type === 'ai_upscaling_error') {
       state.is_processing = false;
-      context.emit?.('on_upscaling_error', {
+      context.emit?.('upscaling_error', {
         node,
         error: event.error,
         model: config.upscale_model,

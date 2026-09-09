@@ -241,7 +241,7 @@ describe('aiUpscalingHandler.onEvent — ai_upscaling_result', () => {
       processingTime: 300,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_upscaling_complete',
+      'upscaling_complete',
       expect.objectContaining({
         texture: 'out',
         model: 'swinir',
@@ -287,7 +287,7 @@ describe('aiUpscalingHandler.onEvent — ai_upscaling_error', () => {
       error: 'VRAM_LIMIT',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_upscaling_error',
+      'upscaling_error',
       expect.objectContaining({ error: 'VRAM_LIMIT', model: 'ldm' })
     );
   });

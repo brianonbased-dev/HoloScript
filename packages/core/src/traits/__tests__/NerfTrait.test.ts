@@ -47,13 +47,13 @@ describe('NerfTrait', () => {
     const s = (node as any).__nerfState;
     expect(s.isReady).toBe(true);
     expect(s.isLoading).toBe(false);
-    expect(getEventCount(ctx, 'on_nerf_ready')).toBe(1);
+    expect(getEventCount(ctx, 'nerf_ready')).toBe(1);
   });
 
   it('load error clears loading', () => {
     sendEvent(nerfHandler, node, cfg, ctx, { type: 'nerf_load_error', error: 'bad file' });
     expect((node as any).__nerfState.isLoading).toBe(false);
-    expect(getEventCount(ctx, 'on_nerf_error')).toBe(1);
+    expect(getEventCount(ctx, 'nerf_error')).toBe(1);
   });
 
   it('frame rendered caches result', () => {

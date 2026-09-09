@@ -152,7 +152,7 @@ export const neuralLinkHandler: TraitHandler<NeuralLinkConfig> = {
     if (event.type === 'neural_link_execute') {
       state.neural_status = 'inferring';
       state.inference_start = Date.now();
-      context.emit('on_neural_inference_start', {
+      context.emit('neural_inference_start', {
         nodeId: node.id,
         model: config.model,
         prompt: data?.prompt,
@@ -164,7 +164,7 @@ export const neuralLinkHandler: TraitHandler<NeuralLinkConfig> = {
       state.last_response = (data?.text as string) ?? null;
       state.last_inference_time = (data?.generationTime as number) ?? 0;
       state.inference_start = null;
-      context.emit('on_neural_response', {
+      context.emit('neural_response', {
         nodeId: node.id,
         text: data?.text,
       });

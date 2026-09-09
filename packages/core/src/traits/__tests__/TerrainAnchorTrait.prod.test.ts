@@ -167,7 +167,7 @@ describe('TerrainAnchorTrait — Production', () => {
     expect(s.confidence).toBe(0.95);
     expect(s.anchorHandle).toBe('TH2');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_terrain_resolved',
+      'terrain_resolved',
       expect.objectContaining({
         terrainHeight: 250,
         confidence: 0.95,
@@ -251,7 +251,7 @@ describe('TerrainAnchorTrait — Production', () => {
     fire(node, cfg, ctx, { type: 'terrain_anchor_unavailable', reason: 'No elevation data' });
     expect(st(node).state).toBe('unavailable');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_terrain_unavailable',
+      'terrain_unavailable',
       expect.objectContaining({
         reason: 'No elevation data',
       })

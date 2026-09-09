@@ -224,7 +224,7 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
 
       // Emit completion when all fragments gone
       if (remainingFragments.length === 0) {
-        context.emit?.('on_destruction_complete', { node });
+        context.emit?.('destruction_complete', { node });
       }
     }
   },
@@ -277,7 +277,7 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
           context.emit?.('restore_mesh', { node, mesh: state.originalMesh });
         }
         context.emit?.('set_visible', { node, visible: true });
-        context.emit?.('on_repaired', { node });
+        context.emit?.('repaired', { node });
       }
     }
   },
@@ -302,7 +302,7 @@ function _handleImpact(
     state.accumulatedDamage += damage;
     state.lastImpactTime = Date.now();
 
-    context.emit?.('on_damage', {
+    context.emit?.('damage', {
       node,
       damage,
       health: state.currentHealth,
@@ -375,7 +375,7 @@ function triggerDestruction(
   }
 
   // Emit destruction event
-  context.emit?.('on_destruction', {
+  context.emit?.('destruction', {
     node,
     fragments: state.fragments.length,
     impactPoint,

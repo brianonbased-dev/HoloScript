@@ -190,7 +190,7 @@ export const alertHandler: TraitHandler<AlertConfig> = {
         });
       }
 
-      context.emit?.('on_alert_triggered', {
+      context.emit?.('alert_triggered', {
         node,
         alertId,
         severity,
@@ -203,7 +203,7 @@ export const alertHandler: TraitHandler<AlertConfig> = {
 
       if (alert) {
         alert.acknowledged = true;
-        context.emit?.('on_alert_acknowledged', { node, alertId });
+        context.emit?.('alert_acknowledged', { node, alertId });
       }
     } else if (event.type === 'alert_dismiss') {
       const alertId = event.alertId as string;
@@ -216,14 +216,14 @@ export const alertHandler: TraitHandler<AlertConfig> = {
         }
 
         context.emit?.('alert_dismissed', { node, alertId });
-        context.emit?.('on_alert_cleared', { node, alertId });
+        context.emit?.('alert_cleared', { node, alertId });
       }
     } else if (event.type === 'alert_dismiss_all') {
       const count = state.activeAlerts.size;
       state.activeAlerts.clear();
       state.isTriggered = false;
 
-      context.emit?.('on_alerts_cleared', { node, count });
+      context.emit?.('alerts_cleared', { node, count });
     } else if (event.type === 'alert_check_condition') {
       // External system checked condition and reports result
       const conditionMet = event.result as boolean;

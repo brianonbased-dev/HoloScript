@@ -220,13 +220,13 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
     // Handle pipeline events
     if (eventType === 'embody') {
       state.isEmbodied = true;
-      context.emit('on_avatar_embodied', { node });
+      context.emit('avatar_embodied', { node });
     } else if (eventType === 'disembody') {
       state.isEmbodied = false;
-      context.emit('on_avatar_disembodied', { node });
+      context.emit('avatar_disembodied', { node });
     } else if (eventType === 'calibrate') {
       state.calibrated = true;
-      context.emit('on_avatar_calibrated', { node });
+      context.emit('avatar_calibrated', { node });
     }
   },
 };

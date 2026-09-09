@@ -196,7 +196,7 @@ describe('PhotogrammetryTrait — onEvent: photogrammetry_progress', () => {
     expect(st(node).stage).toBe('aligning');
     expect(st(node).progress).toBe(35);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_photogrammetry_progress',
+      'photogrammetry_progress',
       expect.objectContaining({
         stage: 'aligning',
         progress: 35,
@@ -232,7 +232,7 @@ describe('PhotogrammetryTrait — onEvent: photogrammetry_complete', () => {
       expect.objectContaining({ mesh })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_capture_complete',
+      'capture_complete',
       expect.objectContaining({
         vertexCount: 50000,
         textureResolution: 2048,
@@ -253,7 +253,7 @@ describe('PhotogrammetryTrait — onEvent: photogrammetry_error', () => {
     fire(node, cfg, ctx, { type: 'photogrammetry_error', error: 'OOM' });
     expect(st(node).isProcessing).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_photogrammetry_error',
+      'photogrammetry_error',
       expect.objectContaining({
         error: 'OOM',
         stage: 'dense_cloud',

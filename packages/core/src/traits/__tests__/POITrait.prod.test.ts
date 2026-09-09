@@ -171,7 +171,7 @@ describe('poiHandler.onUpdate', () => {
     poiHandler.onAttach!(node, cfg, ctx);
     ctx.emit.mockClear();
     poiHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('on_poi_proximity', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('poi_proximity', expect.any(Object));
   });
   it('does NOT re-fire on_poi_proximity when trigger_once=true and already triggered', () => {
     const node = makeNode([0, 0, 0]);
@@ -188,7 +188,7 @@ describe('poiHandler.onUpdate', () => {
     (node as any).__poiState.lastTriggerTime = 0;
     ctx.emit.mockClear();
     poiHandler.onUpdate!(node, cfg, ctx, 0.016);
-    const calls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'on_poi_proximity');
+    const calls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'poi_proximity');
     expect(calls).toHaveLength(0);
   });
   it('emits on_poi_exit when leaving trigger zone', () => {
@@ -199,7 +199,7 @@ describe('poiHandler.onUpdate', () => {
     (node as any).__poiState.userInTriggerZone = true; // was in zone
     ctx.emit.mockClear();
     poiHandler.onUpdate!(node, cfg, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('on_poi_exit', expect.any(Object));
+    expect(ctx.emit).toHaveBeenCalledWith('poi_exit', expect.any(Object));
   });
   it('does nothing when no player position', () => {
     const { node, cfg } = attachNode();

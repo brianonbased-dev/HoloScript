@@ -153,7 +153,7 @@ export const sceneGraphHandler: TraitHandler<SceneGraphConfig> = {
 
       state.isDirty = true;
 
-      context.emit?.('on_node_added', {
+      context.emit?.('node_added', {
         node,
         childId,
         parentId,
@@ -226,7 +226,7 @@ export const sceneGraphHandler: TraitHandler<SceneGraphConfig> = {
 
       state.isDirty = true;
 
-      context.emit?.('on_scene_composed', {
+      context.emit?.('scene_composed', {
         node,
         importedCount: data.length,
       });

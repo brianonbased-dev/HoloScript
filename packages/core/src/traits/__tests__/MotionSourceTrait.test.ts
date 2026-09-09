@@ -157,13 +157,13 @@ describe('MotionSourceTrait', () => {
     });
 
     it('emits on_motion_source_ready with the catalog motions', () => {
-      expect(getEventCount(ctx, 'on_motion_source_ready')).toBe(1);
-      const data = getLastEvent(ctx, 'on_motion_source_ready') as { motions: string[] };
+      expect(getEventCount(ctx, 'motion_source_ready')).toBe(1);
+      const data = getLastEvent(ctx, 'motion_source_ready') as { motions: string[] };
       expect(data.motions).toEqual(['idle', 'wave', 'walk']);
     });
 
     it('emits on_motion_changed for the default motion', () => {
-      const data = getLastEvent(ctx, 'on_motion_changed') as { motion: string; applied: boolean };
+      const data = getLastEvent(ctx, 'motion_changed') as { motion: string; applied: boolean };
       expect(data.motion).toBe('idle');
       expect(data.applied).toBe(true);
     });
@@ -192,7 +192,7 @@ describe('MotionSourceTrait', () => {
       const cf = callsOf(driver, 'crossfade');
       expect(cf[cf.length - 1].args[0]).toBe('wave');
       expect((node.__motionSourceState as { currentMotion: string }).currentMotion).toBe('wave');
-      const data = getLastEvent(ctx, 'on_motion_changed') as { motion: string; applied: boolean };
+      const data = getLastEvent(ctx, 'motion_changed') as { motion: string; applied: boolean };
       expect(data.motion).toBe('wave');
       expect(data.applied).toBe(true);
     });
@@ -327,7 +327,7 @@ describe('MotionSourceTrait', () => {
     attachTrait(motionSourceHandler, node, libConfig, ctx);
     sendEvent(motionSourceHandler, node, libConfig, ctx, { type: 'motion_stop' });
     expect(callsOf(driver, 'stop')).toHaveLength(1);
-    expect(getEventCount(ctx, 'on_motion_stopped')).toBe(1);
+    expect(getEventCount(ctx, 'motion_stopped')).toBe(1);
   });
 
   // ── Graceful degradation (no AnimationTrait present) ─────────────────────────
@@ -337,7 +337,7 @@ describe('MotionSourceTrait', () => {
     const ctx = createMockContext();
     attachTrait(motionSourceHandler, node, libConfig, ctx);
     expect((node.__motionSourceState as { currentMotion: string }).currentMotion).toBe('idle');
-    const ready = getLastEvent(ctx, 'on_motion_changed') as { applied: boolean };
+    const ready = getLastEvent(ctx, 'motion_changed') as { applied: boolean };
     expect(ready.applied).toBe(false);
 
     sendEvent(motionSourceHandler, node, libConfig, ctx, {
@@ -345,7 +345,7 @@ describe('MotionSourceTrait', () => {
       intent: 'wave',
     });
     expect((node.__motionSourceState as { currentMotion: string }).currentMotion).toBe('wave');
-    const after = getLastEvent(ctx, 'on_motion_changed') as { motion: string; applied: boolean };
+    const after = getLastEvent(ctx, 'motion_changed') as { motion: string; applied: boolean };
     expect(after.motion).toBe('wave');
     expect(after.applied).toBe(false);
   });

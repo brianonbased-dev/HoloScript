@@ -242,7 +242,7 @@ describe('RemotePresenceTrait — onEvent: connection', () => {
     expect(s.isConnected).toBe(true);
     expect(s.localPeerId).toBe('local_p');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_presence_connected',
+      'presence_connected',
       expect.objectContaining({ peerId: 'local_p' })
     );
   });
@@ -258,7 +258,7 @@ describe('RemotePresenceTrait — onEvent: connection', () => {
     expect(s.isConnected).toBe(false);
     expect(s.peers.size).toBe(0);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_presence_disconnected',
+      'presence_disconnected',
       expect.objectContaining({ reason: 'timeout' })
     );
   });
@@ -298,7 +298,7 @@ describe('RemotePresenceTrait — onEvent: peer lifecycle', () => {
       expect.objectContaining({ peerId: 'p1' })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_peer_joined',
+      'peer_joined',
       expect.objectContaining({ peerId: 'p1', peerCount: 1 })
     );
   });
@@ -309,7 +309,7 @@ describe('RemotePresenceTrait — onEvent: peer lifecycle', () => {
     peerJoin(node, cfg, ctx, 'p1');
     peerJoin(node, cfg, ctx, 'p2');
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_peer_joined',
+      'peer_joined',
       expect.objectContaining({ peerCount: 2 })
     );
   });
@@ -328,7 +328,7 @@ describe('RemotePresenceTrait — onEvent: peer lifecycle', () => {
     fireEvent(node, cfg, ctx, { type: 'remote_presence_peer_left', peerId: 'p1' });
     expect(state(node).peers.size).toBe(0);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_peer_left',
+      'peer_left',
       expect.objectContaining({ peerId: 'p1', peerCount: 0 })
     );
     expect(ctx.emit).toHaveBeenCalledWith(

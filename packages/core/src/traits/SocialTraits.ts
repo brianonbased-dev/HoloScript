@@ -85,7 +85,7 @@ export const shareableHandler: TraitHandler<ShareableConfig> = {
 
   onEvent(node, config, context, event) {
     if (event.type === 'share') {
-      context.emit('on_share', {
+      context.emit('share', {
         node,
         platform: (event as Record<string, unknown>).platform || 'x',
       });
@@ -177,18 +177,18 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
 
     switch (event.type) {
       case 'user_join':
-        context.emit('on_user_join', { node, user: (event as Record<string, unknown>).user });
+        context.emit('user_join', { node, user: (event as Record<string, unknown>).user });
         break;
       case 'user_leave':
-        context.emit('on_user_leave', { node, user: (event as Record<string, unknown>).user });
+        context.emit('user_leave', { node, user: (event as Record<string, unknown>).user });
         break;
       case 'edit':
-        context.emit('on_edit', { node, edit: (event as Record<string, unknown>).edit });
+        context.emit('edit', { node, edit: (event as Record<string, unknown>).edit });
         break;
       case 'voice_stream_received':
         // Handle incoming voice stream from a peer
         // This event would be triggered by the runtime bridging WebRTCTransport events to traits
-        context.emit('on_voice_stream', {
+        context.emit('voice_stream', {
           node,
           peerId: (event as Record<string, unknown>).peerId,
           stream: (event as Record<string, unknown>).stream,
@@ -237,10 +237,10 @@ export const tweetableHandler: TraitHandler<TweetableConfig> = {
 
   onEvent(node, config, context, event) {
     if (event.type === 'tweet') {
-      context.emit('on_tweet', { node });
+      context.emit('tweet', { node });
     }
     if (event.type === 'thread_created') {
-      context.emit('on_thread_created', { node });
+      context.emit('thread_created', { node });
     }
   },
 };

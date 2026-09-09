@@ -83,7 +83,7 @@ export const portableHandler: TraitHandler<PortableConfig> = {
       const format = (event.format as ExportFormat) || config.export_formats[0];
 
       if (!config.export_formats.includes(format)) {
-        context.emit?.('on_portable_error', {
+        context.emit?.('portable_error', {
           node,
           error: `Format ${format} not in allowed formats`,
         });
@@ -105,7 +105,7 @@ export const portableHandler: TraitHandler<PortableConfig> = {
       state.lastExportTime = Date.now();
       state.isExportReady = true;
 
-      context.emit?.('on_asset_ported', {
+      context.emit?.('asset_ported', {
         node,
         format,
         size: event.size as number,
@@ -122,7 +122,7 @@ export const portableHandler: TraitHandler<PortableConfig> = {
         applyToNode: (event.applyToNode as boolean) ?? true,
       });
     } else if (event.type === 'portable_import_complete') {
-      context.emit?.('on_asset_imported', {
+      context.emit?.('asset_imported', {
         node,
         format: event.format,
       });

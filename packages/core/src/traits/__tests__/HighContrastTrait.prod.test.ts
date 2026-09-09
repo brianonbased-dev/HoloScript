@@ -105,7 +105,7 @@ describe('highContrastHandler.onDetach', () => {
     highContrastHandler.onDetach!(node, cfg, ctx);
     // Should attempt to restore (may emit on_contrast_change with isActive=false)
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_contrast_change',
+      'contrast_change',
       expect.objectContaining({ isActive: false })
     );
   });
@@ -179,7 +179,7 @@ describe('highContrastHandler.onEvent', () => {
     highContrastHandler.onEvent!(node, cfg, ctx, { type: 'high_contrast_disable' });
     expect((node as any).__highContrastState.isActive).toBe(false);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_contrast_change',
+      'contrast_change',
       expect.objectContaining({ isActive: false })
     );
   });

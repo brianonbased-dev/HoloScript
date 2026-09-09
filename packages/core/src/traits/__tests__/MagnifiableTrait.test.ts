@@ -41,7 +41,7 @@ describe('MagnifiableTrait', () => {
   it('magnify_start sets zooming', () => {
     sendEvent(magnifiableHandler, node, cfg, ctx, { type: 'magnify_start' });
     expect((node as any).__magnifiableState.isZooming).toBe(true);
-    expect(getEventCount(ctx, 'on_magnify_start')).toBe(1);
+    expect(getEventCount(ctx, 'magnify_start')).toBe(1);
   });
 
   it('magnify_update changes target (smooth zoom)', () => {
@@ -77,7 +77,7 @@ describe('MagnifiableTrait', () => {
 
   it('magnify_end emits event', () => {
     sendEvent(magnifiableHandler, node, cfg, ctx, { type: 'magnify_end' });
-    expect(getEventCount(ctx, 'on_magnify_end')).toBe(1);
+    expect(getEventCount(ctx, 'magnify_end')).toBe(1);
   });
 
   it('query returns info', () => {

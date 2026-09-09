@@ -98,7 +98,7 @@ describe('BiofeedbackTrait — onEvent', () => {
     );
     const state = node.__biofeedbackState as BiofeedbackState;
     expect(state.isConnected).toBe(true);
-    expect(node.emit).toHaveBeenCalledWith('on_biofeedback_ready', expect.anything());
+    expect(node.emit).toHaveBeenCalledWith('biofeedback_ready', expect.anything());
   });
 
   it('biofeedback_device_disconnected sets isConnected=false', () => {

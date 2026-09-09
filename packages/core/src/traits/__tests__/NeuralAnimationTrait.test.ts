@@ -51,7 +51,7 @@ describe('NeuralAnimationTrait', () => {
     const s = (node as any).__neuralAnimationState;
     expect(s.target_pose).toBe(pose);
     expect(s.is_generating).toBe(true);
-    expect(getEventCount(ctx, 'on_animation_synthesis_start')).toBe(1);
+    expect(getEventCount(ctx, 'animation_synthesis_start')).toBe(1);
   });
 
   it('update interpolates toward target when current_pose exists', () => {
@@ -92,7 +92,7 @@ describe('NeuralAnimationTrait', () => {
     });
     const s = (node as any).__neuralAnimationState;
     expect(s.target_pose).toBe(rPose);
-    expect(getEventCount(ctx, 'on_retargeting_complete')).toBe(1);
+    expect(getEventCount(ctx, 'retargeting_complete')).toBe(1);
   });
 
   it('detach cleans up', () => {

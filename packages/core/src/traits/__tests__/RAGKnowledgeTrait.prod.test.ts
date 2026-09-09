@@ -174,7 +174,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_ingest_document', () => {
       })
     );
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_document_ingested',
+      'document_ingested',
       expect.objectContaining({
         documentId: 'd1',
         chunkCount: 2,
@@ -233,7 +233,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_embeddings_ready', () => {
     fire(node, cfg, ctx, { type: 'rag_embeddings_ready', documentId: 'd1' });
     expect(st(node).indexed_documents.get('d1').indexed).toBe(true);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_document_indexed',
+      'document_indexed',
       expect.objectContaining({ documentId: 'd1' })
     );
   });
@@ -252,7 +252,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_embeddings_ready', () => {
     expect(() =>
       fire(node, cfg, ctx, { type: 'rag_embeddings_ready', documentId: 'ghost' })
     ).not.toThrow();
-    expect(ctx.emit).not.toHaveBeenCalledWith('on_document_indexed', expect.any(Object));
+    expect(ctx.emit).not.toHaveBeenCalledWith('document_indexed', expect.any(Object));
   });
 });
 
@@ -295,13 +295,13 @@ describe('RAGKnowledgeTrait — onEvent: rag_retrieval_results', () => {
     });
 
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_knowledge_retrieved',
+      'knowledge_retrieved',
       expect.objectContaining({
         query: '',
       })
     );
     const call = (ctx.emit as any).mock.calls.find(
-      (c: any[]) => c[0] === 'on_knowledge_retrieved'
+      (c: any[]) => c[0] === 'knowledge_retrieved'
     )?.[1];
     expect(call.chunks[0].score).toBeCloseTo(0.85);
     expect(call.chunks[0].source).toBe('doc1');
@@ -325,7 +325,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_retrieval_results', () => {
       results: [{ id: 'x_chunk_0', similarity: 0.7, metadata: {} }],
     });
     const call = (ctx.emit as any).mock.calls.find(
-      (c: any[]) => c[0] === 'on_knowledge_retrieved'
+      (c: any[]) => c[0] === 'knowledge_retrieved'
     )?.[1];
     // 'holoscript' matches 'HoloScript' (case insensitive) → +0.1
     expect(call.chunks[0].score).toBeCloseTo(0.8, 5);
@@ -348,7 +348,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_retrieval_results', () => {
       results: [{ id: 'y_chunk_0', similarity: 0.6, metadata: {} }],
     });
     const call = (ctx.emit as any).mock.calls.find(
-      (c: any[]) => c[0] === 'on_knowledge_retrieved'
+      (c: any[]) => c[0] === 'knowledge_retrieved'
     )?.[1];
     expect(call.chunks[0].score).toBeCloseTo(0.6, 5);
   });
@@ -373,7 +373,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_retrieval_results', () => {
       ],
     });
     const call = (ctx.emit as any).mock.calls.find(
-      (c: any[]) => c[0] === 'on_knowledge_retrieved'
+      (c: any[]) => c[0] === 'knowledge_retrieved'
     )?.[1];
     // Sorted descending
     expect(call.chunks[0].score).toBeGreaterThanOrEqual(call.chunks[1].score);
@@ -384,7 +384,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_retrieval_results', () => {
     const { cfg, ctx } = attach(node, { rerank: false, citation_mode: false });
     fire(node, cfg, ctx, { type: 'rag_retrieval_results', results: [] });
     const call = (ctx.emit as any).mock.calls.find(
-      (c: any[]) => c[0] === 'on_knowledge_retrieved'
+      (c: any[]) => c[0] === 'knowledge_retrieved'
     )?.[1];
     expect(call.citationMode).toBe(false);
   });
@@ -398,7 +398,7 @@ describe('RAGKnowledgeTrait — onEvent: rag_retrieval_results', () => {
       results: [{ id: 'missing_doc_chunk_99', similarity: 0.9, metadata: {} }],
     });
     const call = (ctx.emit as any).mock.calls.find(
-      (c: any[]) => c[0] === 'on_knowledge_retrieved'
+      (c: any[]) => c[0] === 'knowledge_retrieved'
     )?.[1];
     expect(call.chunks[0].chunk).toBe('');
   });

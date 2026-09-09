@@ -164,7 +164,7 @@ describe('NFTTrait — Production', () => {
         standard: 'ERC1155',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('on_nft_verified', {
+      expect(ctx.emit).toHaveBeenCalledWith('nft_verified', {
         node,
         owner: '0xOwner',
         standard: 'ERC1155',
@@ -214,7 +214,7 @@ describe('NFTTrait — Production', () => {
 
       expect(s.isLoading).toBe(false);
       expect(s.isVerified).toBe(false);
-      expect(ctx.emit).toHaveBeenCalledWith('on_nft_error', {
+      expect(ctx.emit).toHaveBeenCalledWith('nft_error', {
         node,
         error: 'Contract not found',
       });
@@ -263,7 +263,7 @@ describe('NFTTrait — Production', () => {
 
       const s = getState(node);
       expect(s.metadata).toEqual(metadata);
-      expect(ctx.emit).toHaveBeenCalledWith('on_nft_metadata', { node, metadata });
+      expect(ctx.emit).toHaveBeenCalledWith('nft_metadata', { node, metadata });
     });
 
     it('refreshes metadata on nft_refresh_metadata with URI', () => {
@@ -356,7 +356,7 @@ describe('NFTTrait — Production', () => {
         toAddress: '0xBuyer',
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith('on_nft_error', {
+      expect(ctx.emit).toHaveBeenCalledWith('nft_error', {
         node,
         error: 'Transfers not enabled',
       });
@@ -376,7 +376,7 @@ describe('NFTTrait — Production', () => {
       });
 
       expect(s.ownerAddress).toBe('0xNewOwner');
-      expect(ctx.emit).toHaveBeenCalledWith('on_nft_transferred', {
+      expect(ctx.emit).toHaveBeenCalledWith('nft_transferred', {
         node,
         from: '0xOldOwner',
         to: '0xNewOwner',

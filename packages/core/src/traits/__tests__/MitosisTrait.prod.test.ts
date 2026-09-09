@@ -137,7 +137,7 @@ describe("mitosisHandler.onEvent 'mitosis_spawned'", () => {
       parentId: node.id,
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_mitosis_spawned',
+      'mitosis_spawned',
       expect.objectContaining({ childId: 'child1', parentId: node.id })
     );
   });
@@ -246,7 +246,7 @@ describe("mitosisHandler.onEvent 'mitosis_child_failed'", () => {
       error: 'timeout',
     });
     expect(ctx.emit).toHaveBeenCalledWith(
-      'on_mitosis_error',
+      'mitosis_error',
       expect.objectContaining({
         parentId: node.id,
         childId: 'c1',
