@@ -170,7 +170,7 @@ import {
 // INLINED TYPES (from @hololand/world to avoid cross-repo dependency)
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface ActionDefinition {
+export interface ActionDefinition {
   name: string;
   params: string[];
   body: unknown;
@@ -541,6 +541,62 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
   };
 }
 
+/**
+ * Bus event names a declared lifecycle hook must listen on.
+ *
+ * The catalog names hooks with an `on_` prefix — `LIFECYCLE_HOOKS` in
+ * packages/core/src/constants.ts declares 'on_memory_recalled' — while traits emit the BARE
+ * event: AgentMemoryTrait emits 'memory_recalled', and the bare spelling appears zero times
+ * in that catalog. The bus dispatches by literal string, so one spelling alone always misses
+ * the other. Every compiler had been papering over this locally and differently
+ * (ColyseusCompiler tries three spellings; DTDLCompiler strips /^on_/); the runtime resolved
+ * it nowhere, which is why an accepted, documented hook could never run.
+ *
+ * Listening on both spellings — rather than rewriting either vocabulary — is the reversible
+ * repair: no emit site changes, no catalog entry changes, and a composition written against
+ * either convention works.
+ */
+export function handlerEventAliases(declaredName: string): string[] {
+  const aliases = [declaredName];
+  if (declaredName.startsWith('on_')) {
+    const bare = declaredName.slice(3);
+    // 'on_' alone would strip to '', which matches no event and would subscribe a handler
+    // to a name nothing can emit.
+    if (bare && bare !== declaredName) aliases.push(bare);
+  }
+  return aliases;
+}
+
+/**
+ * Subscribe a composition's declared event handlers to the bus. Returns an unsubscribe.
+ *
+ * CompositionLogic.eventHandlers was built by extractLogicFromAST and then read by nothing:
+ * of the four maps that builder returns, frameHandlers/keyboardHandlers/actions all had
+ * dispatch sites and this one had none, in either runtime. This is that missing dispatch.
+ *
+ * `subscribe` is injectable so the wiring can be tested without a WebGL context; it
+ * defaults to the global bus the traits actually emit into.
+ */
+export function subscribeCompositionHandlers(
+  handlers: Map<string, ActionDefinition>,
+  run: (handler: ActionDefinition, args: unknown[]) => void,
+  subscribe: (event: string, cb: (data: unknown) => void) => () => void = on
+): () => void {
+  const unsubscribes: Array<() => void> = [];
+  for (const [declaredName, handler] of handlers) {
+    // One emit carries one event name, so a handler subscribed under both aliases still
+    // runs once per emit rather than once per alias.
+    for (const alias of handlerEventAliases(declaredName)) {
+      unsubscribes.push(subscribe(alias, (data: unknown) => run(handler, [data])));
+    }
+  }
+  // Reloading a composition must not leave the previous one listening, or every hook
+  // double-fires after the first reload.
+  return () => {
+    for (const off of unsubscribes.splice(0)) off();
+  };
+}
+
 // Extract logic (actions and event handlers) from AST
 function extractLogicFromAST(ast: HoloComposition): CompositionLogic {
   const actions = new Map<string, ActionDefinition>();
@@ -902,6 +958,9 @@ export interface HoloScriptRuntime {
 class BrowserRuntime implements HoloScriptRuntime {
   private config: RuntimeConfig;
   private composition: LoadedComposition | null = null;
+  // Live subscription for the loaded composition's declared hooks. Held so a reload can
+  // detach the previous composition's handlers before attaching the new ones.
+  private unsubscribeHandlers: (() => void) | null = null;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
@@ -1165,6 +1224,15 @@ class BrowserRuntime implements HoloScriptRuntime {
 
       // Load the composition
       this.composition = loadComposition(source, fileType);
+      // Wire the declared lifecycle hooks to the bus. Without this, extractLogicFromAST
+      // collects them into logic.eventHandlers and nothing ever reads that map — an author's
+      // `on_memory_recalled { ... }` parses, validates against LIFECYCLE_HOOKS, and silently
+      // never runs. Detach first so a reload does not leave the old composition listening.
+      this.unsubscribeHandlers?.();
+      this.unsubscribeHandlers = subscribeCompositionHandlers(
+        this.composition.logic.eventHandlers,
+        (handler, args) => this.runAction(handler, args)
+      );
       // Load module imports
       if (this.composition.imports.length > 0) {
         const modules = await moduleLoader.loadImports(this.composition.imports);
@@ -1336,6 +1404,11 @@ class BrowserRuntime implements HoloScriptRuntime {
 
   dispose(): void {
     this.stop();
+
+    // Detach the composition's declared hooks, or a disposed runtime keeps running actions
+    // against a torn-down scene every time any trait emits.
+    this.unsubscribeHandlers?.();
+    this.unsubscribeHandlers = null;
 
     // Cleanup Three.js
     this.renderer.dispose();
