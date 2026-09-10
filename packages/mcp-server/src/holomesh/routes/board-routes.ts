@@ -1979,7 +1979,18 @@ export async function handleBoardRoutes(
 
     // Inbox (DMs, handoffs, reviews) — newest first. Directed mail is
     // selected first so later broadcasts cannot bury a DM (task_1785839509015_lreq).
-    const messages = hydrateTeamMessageStore(teamId);
+    // THE SECOND DOOR. Fixing GET /messages alone left this one open: `inboxType`
+    // was every dm/handoff/review in the team, unfiltered by recipient, and
+    // mergeInboxBrief folds it in beside the caller's own mail — so a session-start
+    // or phone brief handed over other agents' private notes even after the main
+    // read path refused them. Verified 2026-09-10 in a single run where the fixed
+    // door declined and this one served the same note.
+    //
+    // The capability-token branch above resolves no caller at all, so it must see
+    // room posts only: visibleTeamMessagesFor with an empty identity yields exactly
+    // that, which is why the filter is applied to the store rather than to the
+    // caller-specific slice.
+    const messages = visibleTeamMessagesFor(hydrateTeamMessageStore(teamId), briefCaller ?? {});
     const inboxType = messages.filter((m) => INBOX_MESSAGE_TYPE_SET.has(m.messageType));
     const directed = briefCaller
       ? inboxType.filter((m) => messageAddressedToAny(m, [briefCaller.id, briefCaller.name]))
