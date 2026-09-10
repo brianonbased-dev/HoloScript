@@ -323,7 +323,10 @@ describe('Routing .hs → Kotlin emission', () => {
   it('wires onDecoded() to compute the booleans and apply the .hs route in a `when`', () => {
     expect(kt).toContain('Routing.admissiblePayload(');
     expect(kt).toContain('text.length <= MAX_PAYLOAD_CHARS');
-    expect(kt).toContain('URI(trimmed).parseServerAuthority()');
+    // asWebUrl normalizes a scheme-less host ("www.facebook.com" -> "https://www.facebook.com")
+    // and validates the CANDIDATE it will actually return. Checking `trimmed` would validate a
+    // different string than the one stored and opened. Changed deliberately in d3b288953.
+    expect(kt).toContain('URI(candidate).parseServerAuthority()');
     expect(kt).toContain('validStructuredEnvelope(trimmed, "BEGIN:VEVENT", "END:VEVENT")');
     expect(kt).toContain('QrPayloadFacts.controlsSafe(text)');
     expect(kt).toContain('QrPayloadFacts.syntaxSafe(text)');
@@ -372,8 +375,13 @@ describe('Routing .hs → Kotlin emission', () => {
     // resultKind/resultLabel set in both content arms.
     expect(kt).toContain('ScannerState.resultKind = c!!.kind');
     expect(kt).toContain('ScannerState.resultLabel = c.label');
-    // pendingUrl handling per arm.
-    expect(kt).toContain('ScannerState.pendingUrl = text');
+    // pendingUrl handling per arm. The OpenUrl arm stores the NORMALIZED url so Open launches a
+    // resolvable link, falling back to the raw payload when normalization declines (d3b288953).
+    // The transliterations below still model `pendingUrl: text` and remain EXACT for this truth
+    // table: TEXT carries a non-http scheme, so asWebUrl hits its `contains("://") -> null` path
+    // and the ?: fallback yields the raw payload. Baseline left untouched on purpose — the
+    // normalization is a shell-side feature, not a change to the .hs routing decision.
+    expect(kt).toContain('ScannerState.pendingUrl = QrPayloadFacts.asWebUrl(text) ?: text');
     expect(kt).toContain('ScannerState.lastResult = text');
   });
 
