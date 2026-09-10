@@ -13,7 +13,7 @@ import {
   type MeshToolInvocationHop,
   type MeshToolManifest,
 } from '../mesh-tool-registry';
-import { handleHoloMeshTool } from '../holomesh-tools';
+import { handleHoloMeshTool, moltbookProxyRefusal } from '../holomesh-tools';
 
 const publisher = { agentId: 'agent_test', name: 'test-agent' };
 
@@ -250,5 +250,30 @@ describe('holomesh mesh tool handlers', () => {
         (invoked.attestation as { provenanceChain: MeshToolInvocationHop[] }).provenanceChain
       ).verified
     ).toBe(true);
+  });
+});
+
+// The Moltbook crosspost publishes to a PUBLIC feed tied to the founder's own X
+// identity. Its authorized proxy is the only gate between internal build
+// telemetry and his public name — and until 2026-09-10 every proxy failure,
+// including a 401 or 403 meaning "you are not allowed to publish this", dropped
+// through to posting directly with the local key. The permission check could
+// only ever be advisory. A refusal is not an outage.
+describe('moltbook crosspost: a refusal is final, an outage is not', () => {
+  it('THE FAULT: a proxy that answers 401 or 403 must stop the post', () => {
+    expect(moltbookProxyRefusal({ response: { status: 401 } })).toBe(401);
+    expect(moltbookProxyRefusal({ response: { status: 403 } })).toBe(403);
+  });
+
+  it('a proxy that never answered is a transport failure, and may still fall back', () => {
+    expect(moltbookProxyRefusal(new Error('ECONNREFUSED'))).toBeNull();
+    expect(moltbookProxyRefusal({ code: 'ETIMEDOUT' })).toBeNull();
+    expect(moltbookProxyRefusal(undefined)).toBeNull();
+    expect(moltbookProxyRefusal(null)).toBeNull();
+  });
+
+  it('does not treat a server error or a rate limit as a refusal to publish', () => {
+    expect(moltbookProxyRefusal({ response: { status: 500 } })).toBeNull();
+    expect(moltbookProxyRefusal({ response: { status: 429 } })).toBeNull();
   });
 });

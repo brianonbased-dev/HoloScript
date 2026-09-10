@@ -177,6 +177,28 @@ describe('who may read a team message', () => {
     expect(aliceAsksForBob).toEqual(['m2']);
   });
 
+
+  it('THE SECOND DOOR: a brief built from the store leaks nothing the read path refuses', () => {
+    // mergeInboxBrief folds the caller mail slice together with all inbox-type
+    // messages. If the store is not filtered first, that merge is the leak.
+    const inboxTypes = new Set(['dm', 'handoff', 'review-request']);
+    const briefStore = [
+      { id: 'b1', messageType: 'dm', fromAgentName: 'Alice', toAgentName: 'Bob', content: 'for bob' },
+      { id: 'b2', messageType: 'dm', fromAgentName: 'Alice', toAgentName: 'Carol', content: 'for carol' },
+      { id: 'b3', messageType: 'handoff', fromAgentName: 'Alice', content: 'team handoff' },
+    ];
+    const forCarol = visibleTeamMessagesFor(briefStore, carol).filter((m) =>
+      inboxTypes.has(m.messageType)
+    );
+    expect(forCarol.map((m) => m.id)).toEqual(['b2', 'b3']);
+    expect(forCarol.map((m) => m.id)).not.toContain('b1');
+  });
+
+  it('a caller with no identity at all sees room posts only, never mail', () => {
+    // The mobile-brief capability-token branch resolves no caller.
+    expect(visibleTeamMessagesFor(store, {}).map((m) => m.id)).toEqual(['m1']);
+  });
+
   it('treats the -x402 seat suffix as the same agent, so a real seat still reads its own mail', () => {
     const seat = { id: 'claudecode-claude-x402', name: 'claudecode-claude-x402' };
     const toSeat = [{ id: 'm5', fromAgentName: 'Alice', toAgentName: 'claudecode-claude', content: 'yours' }];

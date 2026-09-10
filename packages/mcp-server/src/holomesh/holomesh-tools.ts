@@ -963,6 +963,22 @@ async function handleInvokeTool(
   }
 }
 
+/**
+ * The status a Moltbook proxy failure refused with, or null if it never answered.
+ *
+ * Separated out and exported so the rule is testable without standing up the
+ * whole tool graph. `null` means the proxy did not reply at all — a transport
+ * failure, where falling back to a direct post is the legitimate behaviour. A
+ * number means it replied and said no, and no is final.
+ */
+export function moltbookProxyRefusal(error: unknown): number | null {
+  const status =
+    typeof error === 'object' && error !== null
+      ? (error as { response?: { status?: number } }).response?.status
+      : undefined;
+  return status === 401 || status === 403 ? status : null;
+}
+
 async function handleMoltbookCrosspost(args: Record<string, unknown>) {
   const parsed = moltbookCrosspostSchema.safeParse(args);
   if (!parsed.success) {
@@ -1015,6 +1031,29 @@ async function handleMoltbookCrosspost(args: Record<string, unknown>) {
       environmentContext,
     };
   } catch (proxyErr: unknown) {
+    // A REFUSAL IS NOT AN OUTAGE, and this fallback used to treat them alike.
+    //
+    // Every failure of the authorized proxy dropped through to posting DIRECTLY
+    // to Moltbook with the local key — so when the proxy answered 401 or 403,
+    // meaning "you are not allowed to publish this", the code went around it and
+    // published anyway. The permission check could only ever be advisory. That
+    // matters more than an ordinary bug because the destination is a PUBLIC feed
+    // tied to the founder's own X identity: the thing being routed around is the
+    // only gate between internal build telemetry and his public name.
+    //
+    // The transport fallback has a legitimate purpose — the orchestrator being
+    // unreachable should not lose a post — so it survives for network-level
+    // failures only. An answer from the proxy that says no is final.
+    const refusal = moltbookProxyRefusal(proxyErr);
+    if (refusal) {
+      return {
+        error: 'Moltbook crosspost refused by the orchestrator; not retried directly',
+        reason: `proxy answered ${refusal}`,
+        proxyUrl,
+        hint: 'Authorization was declined, not unavailable. Fix the credential or the permission rather than bypassing the proxy.',
+      };
+    }
+
     // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
     // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
     const moltbookApiKey = readMoltbookApiKey();
