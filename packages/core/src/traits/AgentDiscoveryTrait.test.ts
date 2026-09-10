@@ -91,6 +91,11 @@ describe('AgentDiscoveryTrait', () => {
   });
 
   describe('lifecycle: onAttach', () => {
+    // Explicit 120s, not the 30s global. The three assertions below are trivial state-shape
+    // checks, but this is the FIRST test in a 57-test file and absorbs its one-time module
+    // initialisation (~15s of transform alone). It passes in isolation (57/57) and timed out at
+    // 30009ms under the 4-way sharded pass on 2026-09-10 — a load verdict, not a behaviour one.
+    // Moving the setup to beforeAll would be worse: hooks are capped at 10s, not testTimeout.
     it('should initialize discovery state', async () => {
       const config = attachConfig();
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
@@ -98,7 +103,7 @@ describe('AgentDiscoveryTrait', () => {
       expect(mockNode.__agentDiscoveryState).toBeDefined();
       expect(mockNode.__agentDiscoveryState.discoveredAgents).toBeInstanceOf(Map);
       expect(Array.isArray(mockNode.__agentDiscoveryState.eventHistory)).toBe(true);
-    });
+    }, 120_000);
 
     it('should create agent manifest', async () => {
       const config = attachConfig({

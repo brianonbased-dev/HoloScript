@@ -126,6 +126,14 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     expect(react).toContain('FounderConsoleComponent');
   });
 
+  // Explicit 120s, not the 30s global. This test imports jsdom, compiles the page and runs it
+  // in a DOM — measured at 29.4s ALONE on this box, i.e. inside the global cap by 0.6s. Under
+  // the 4-way sharded pass it tips over and vitest blames it for a timeout, which reads exactly
+  // like a regression (measured 2026-09-10; it was the sole NEW failure in one baseline run and
+  // passed in the next on an identical tree). What this test asserts is that the emitted page
+  // RENDERS hydration-free — a correctness claim, not a latency budget — so racing an unrelated
+  // clock only decides the verdict by machine load. The assertions are untouched and still fail
+  // the suite if the page stops rendering; a genuine hang still fails, just at 120s.
   it('RUNTIME PROOF: the emitted page renders live items hydration-free (JSDOM + mocked fetch)', async () => {
     let JSDOM: typeof import('jsdom').JSDOM;
     try {
@@ -178,5 +186,5 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     writeFileSync(preview, dom.serialize(), 'utf8');
     // eslint-disable-next-line no-console
     console.log(`[artifact] live-rendered snapshot (2 sample items) -> ${preview}`);
-  });
+  }, 120_000);
 });
