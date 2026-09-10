@@ -14,8 +14,10 @@ import {
   INBOX_MESSAGE_TYPE_SET,
   findTeamMember,
   firstMention,
+  hasExplicitRecipient,
   mergeInboxBrief,
   messageAddressedToAny,
+  visibleTeamMessagesFor,
 } from '../message-addressing';
 import { hydrateTeamMessageStore, persistTeamMessages } from '../team-message-merge';
 import { checkSignerIdentityBinding } from '../identity/board-signer-binding';
@@ -3611,6 +3613,12 @@ export async function handleBoardRoutes(
     messages.push(message);
     await persistTeamMessages(teamId, messages);
 
+    // A directed message must not put its body on the room-wide stream. Fixing
+    // only the GET filter would have left this path handing the first 200
+    // characters of every DM to everyone connected — the read fix undone by the
+    // notification. Recipients still learn mail arrived; the body does not
+    // travel with the announcement, and is fetched over the authorized read.
+    const directed = hasExplicitRecipient(message);
     broadcastToTeam(teamId, {
       type: 'message:new',
       agent: caller.name,
@@ -3618,7 +3626,7 @@ export async function handleBoardRoutes(
         id: message.id,
         from: caller.name,
         to: message.toAgentId || message.toAgentName,
-        content: content.slice(0, 200),
+        ...(directed ? { directed: true } : { content: content.slice(0, 200) }),
       },
     });
 
@@ -3635,9 +3643,23 @@ export async function handleBoardRoutes(
     if (!access) return true;
     const { teamId } = access;
     const query = new URL(url, 'http://localhost').searchParams;
+    // `for` is the caller's own query parameter and was previously the ONLY
+    // filter on this path, so omitting it returned every DM between every other
+    // pair of agents to any member.
+    //
+    // The order below is the whole fix. Authorization runs FIRST and is not
+    // negotiable — the caller gets room posts plus their own mail, and nothing
+    // else exists as far as this request is concerned. `for` then narrows that
+    // already-safe set, so it stays useful for its real purpose (an inbox slice,
+    // including one an agent takes on behalf of a colleague for mail it can
+    // legitimately see, such as a DM it sent) while being unable to widen
+    // anything. Restricting `for` to the caller's own name instead looked
+    // tighter and was worse: it broke the session-start inbox read that
+    // http-routes.test.ts has covered since the lreq fix, without closing
+    // anything this ordering leaves open.
     const forWhom = (query.get('for') || query.get('to') || '').trim();
     const limitRaw = query.get('limit');
-    let messages = hydrateTeamMessageStore(teamId);
+    let messages = visibleTeamMessagesFor(hydrateTeamMessageStore(teamId), access.caller);
     if (forWhom) {
       messages = messages.filter((msg) => messageAddressedToAny(msg, [forWhom]));
     }

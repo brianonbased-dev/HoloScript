@@ -82,6 +82,59 @@ export function messageAddressedToAny(
   return recipients.some((recipient) => recipient && messageAddressedTo(message, recipient));
 }
 
+/**
+ * The messages one caller is allowed to read from a team's store.
+ *
+ * WHY THIS EXISTS. GET /api/holomesh/team/:id/messages authenticates the caller
+ * and checks team membership, and then filtered by `?for=` — a value the CALLER
+ * supplies. That is a client convenience, never a boundary: omit the parameter
+ * and the response was the entire store, including every direct message between
+ * every other pair of agents. Any member could read all of it, and so could any
+ * key ever minted for the team, including retired test agents. Reported and
+ * reproduced 2026-09-10.
+ *
+ * THE RULE, and it is deliberately narrow:
+ *   - A message with no explicit recipient is a room post. Every member reads it.
+ *   - A message with an explicit recipient is mail. Only its sender and its
+ *     addressee read it.
+ * A caller's own `?for=` may NARROW this set, never widen it — see
+ * requestedRecipientFor.
+ *
+ * Sender identity is matched on id and name because the store records both and
+ * older rows carry only one.
+ */
+export function visibleTeamMessagesFor<
+  T extends {
+    toAgentId?: string;
+    toAgentName?: string;
+    fromAgentId?: string;
+    fromAgentName?: string;
+    content?: string;
+  },
+>(messages: readonly T[], caller: { id?: string; name?: string }): T[] {
+  const refs = [caller?.id, caller?.name].filter(Boolean) as string[];
+  return messages.filter((message) => {
+    if (!hasExplicitRecipient(message)) return true;
+    if (messageAddressedToAny(message, refs)) return true;
+    return refs.some(
+      (ref) => refsMatch(message?.fromAgentId, normalizeAgentRef(ref)) ||
+        refsMatch(message?.fromAgentName, normalizeAgentRef(ref)),
+    );
+  });
+}
+
+// A NOTE ON `?for=`, because the obvious tightening is the wrong one.
+//
+// The first version of this fix also restricted the caller's `?for=` parameter
+// to the caller's own name, on the reasoning that asking for somebody else's
+// mailbox is the defect. It is not — asking is harmless once the set being
+// filtered is already authorized. That restriction broke a real behaviour the
+// suite has covered since the lreq fix: an agent reading an inbox slice on
+// behalf of a colleague, for a DM it had itself sent and may plainly see.
+//
+// So `for` stays a free-form narrowing filter, applied AFTER
+// visibleTeamMessagesFor. Order is the security property; the parameter is not.
+
 /** Newest-first cap used by mobile-brief and other inbox slices. */
 export const INBOX_BRIEF_CAP = 10;
 
