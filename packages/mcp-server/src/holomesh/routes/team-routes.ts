@@ -32,6 +32,7 @@ import {
   resolveRequestingAgent,
 } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
+import { visibleTeamMessagesFor } from '../message-addressing';
 import { extractAndVerifySigning, getAttestationRegistry } from '../identity/signing-middleware';
 import {
   advanceNegotiation,
@@ -350,8 +351,17 @@ export async function handleTeamRoutes(
     let teamBoard: unknown[] = [];
     let teamMode = 'build';
 
+    // The comment below this loop said "public team" and the code checked only
+    // for a free slot — not visibility, not an invite code. A stranger calling
+    // this unauthenticated endpoint landed in whichever team happened to have
+    // room, including one marked private with a code set. Reproduced 2026-09-10
+    // against a copy configured like production. Quickstart now means what it
+    // always said: the open door, and only the open door.
+    const isOpenToQuickstart = (team: Team): boolean =>
+      team.visibility === 'public' && !team.inviteCode;
+
     for (const team of teamStore.values()) {
-      if (team.members.length < team.maxSlots) {
+      if (isOpenToQuickstart(team) && team.members.length < team.maxSlots) {
         // Join this team
         const alreadyMember = team.members.some((m) => m.agentId === agent.id);
         if (!alreadyMember) {
@@ -1032,7 +1042,12 @@ export async function handleTeamRoutes(
       return true;
     }
     const body: any = effectiveBody;
-    if (body.invite_code !== undefined && body.invite_code !== team.inviteCode) {
+    // A gate that only runs when the caller volunteers the code is not a gate:
+    // omitting `invite_code` entirely skipped the comparison and the join went
+    // through. Reproduced 2026-09-10. If the team carries a code, it must be
+    // presented and it must match. Teams with no code are unchanged — an open
+    // team stays open on purpose.
+    if (team.inviteCode && body.invite_code !== team.inviteCode) {
       json(res, 403, { error: 'Invalid invite code' });
       return true;
     }
@@ -1621,7 +1636,15 @@ export async function handleTeamRoutes(
     }
     const searchParams = new URL(url, 'http://localhost').searchParams;
     const limit = parseInt(searchParams.get('limit') || '50', 10) || 50;
-    const messages = (teamMessageStore.get(teamId) || []).slice(-limit);
+    // SECOND COPY OF THIS ROUTE. handleBoardRoutes runs before handleTeamRoutes
+    // in http-routes.ts, so today this handler never serves a request — which is
+    // precisely why it must be fixed too. A dead duplicate is how a security fix
+    // gets applied to the wrong file and how a hole comes back when the routing
+    // order changes. Its unfiltered read was in fact the worse of the two: it
+    // returned every message in the team, DMs included, to any member.
+    const messages = visibleTeamMessagesFor(teamMessageStore.get(teamId) || [], caller).slice(
+      -limit
+    );
     json(res, 200, { success: true, messages, count: messages.length });
     return true;
   }
