@@ -17,8 +17,8 @@ const DEFAULT_MANIFEST = join(
   'systems-preview-release-manifest.json'
 );
 const USER_AGENT = 'HoloScript-systems-preview-public-canary/1';
-const DEFAULT_COLD_CONSUMER_TIMEOUT_MS = 900_000;
-const DEFAULT_COLD_INSTALL_TIMEOUT_MS = 600_000;
+const DEFAULT_COLD_CONSUMER_TIMEOUT_MS = 1_200_000;
+const DEFAULT_COLD_INSTALL_TIMEOUT_MS = 900_000;
 const DEFAULT_COLD_PROBE_TIMEOUT_MS = 540_000;
 
 function readJson(path) {

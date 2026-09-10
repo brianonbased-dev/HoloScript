@@ -55,5 +55,24 @@ check('rewrite refuses a workspace spec with no workspace version', () => {
   );
 });
 
+check('resolveVersion can cap an unpublished local tree to a registry version', () => {
+  const pkg = {
+    name: '@holoscript/absorb-service',
+    dependencies: { '@holoscript/core': 'workspace:^' },
+  };
+  const rewrites = rewriteWorkspaceRefs(pkg, new Map([['@holoscript/core', '8.8.0']]), {
+    resolveVersion: (name, local) => {
+      assert.equal(name, '@holoscript/core');
+      assert.equal(local, '8.8.0');
+      return '8.7.0';
+    },
+  });
+  assert.equal(rewrites.length, 1);
+  assert.equal(rewrites[0].to, '^8.7.0');
+  assert.equal(rewrites[0].localVersion, '8.8.0');
+  assert.equal(rewrites[0].publishVersion, '8.7.0');
+  assert.equal(pkg.dependencies['@holoscript/core'], '^8.7.0');
+});
+
 if (failures) process.exit(1);
 console.log('\nall rewrite-workspace-deps cases passed');
