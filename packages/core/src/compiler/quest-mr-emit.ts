@@ -54,6 +54,7 @@ export interface QuestMrFeatures {
   reticleFraction: number;
   viewfinderHeightDp: number;
   followDistance: number;
+  followOffsetY: number;
   permission: string;
   cameraSource: number;
   cameraPosition: number;
@@ -134,6 +135,7 @@ function defaults(): QuestMrFeatures {
     reticleFraction: 0.62,
     viewfinderHeightDp: 360,
     followDistance: 1.2,
+    followOffsetY: 0.0,
     permission: 'horizonos.permission.HEADSET_CAMERA',
     cameraSource: 0,
     cameraPosition: 0,
@@ -316,6 +318,11 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.reticleFraction = vnum(c.reticle_fraction, f.reticleFraction);
           f.viewfinderHeightDp = vnum(vobj(c.viewfinder).height_dp, f.viewfinderHeightDp);
           f.followDistance = vnum(c.follow_distance, f.followDistance);
+          // follow_offset nudges the head-locked panel in head-local space. Only the vertical
+          // component has a consumer: the template's follow pose is Vector3(0f, FOLLOW_Y,
+          // FOLLOW_DISTANCE), so x (lateral) and z (forward, already owned by follow_distance)
+          // are accepted by the spec and currently unused rather than silently applied.
+          f.followOffsetY = vnum(vobj(c.follow_offset).y, f.followOffsetY);
           break;
         }
         case 'onboarding':
@@ -582,6 +589,7 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     PANEL_QUAD_W: f.panelQuadW,
     PANEL_QUAD_H: f.panelQuadH,
     FOLLOW_DISTANCE: f.followDistance,
+    FOLLOW_Y: f.followOffsetY,
     LINK_PATTERNS: 'listOf(' + f.worldLinkPatterns.map((p) => kstr(p)).join(', ') + ')',
     AUTO_IMMERSE: String(f.autoImmerse),
     WORLD_ENTRY_CONSENT_EXPLICIT: String(f.worldEntryConsentExplicit),
@@ -901,6 +909,14 @@ export function emitProguardRules(): string {
 # Meta ISDK also resolves Toolkit and ISDK component types by class name.
 -keep class com.meta.spatial.toolkit.** { *; }
 -keep class com.meta.spatial.isdk.** { *; }
+
+# Native Scene/ISDK constructs these types from JNI on every frame. R8 dropping the
+# constructors SIGABRTs onSceneTick and Quest dumps the user back to Home.
+-keep class com.meta.spatial.core.** { *; }
+-keep class com.meta.spatial.runtime.** { *; }
+
+# ZXing uses DecodeHintType as map keys. R8 renaming those enums makes every QR read return null.
+-keep class com.google.zxing.** { *; }
 `;
 }
 
