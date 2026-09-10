@@ -29,6 +29,23 @@ import type {
 } from '../types';
 import { LLMProviderError, filterGenericTools, messageContentAsString } from '../types';
 
+/**
+ * Resolve who to attribute a request to, or undefined to send nothing.
+ *
+ * NEVER INVENTS A NAME. A placeholder like 'llm-provider' would read as real attribution
+ * while telling a curator nothing about which agent produced the row — strictly worse than
+ * an honest 'unattributed', because it looks answered. Blank and whitespace-only values are
+ * treated as absent for the same reason.
+ */
+function resolveCallerId(explicit?: string): string | undefined {
+  const candidates = [explicit, process.env.HOLO_INFERENCE_CALLER, process.env.HOLOMESH_HANDLE];
+  for (const c of candidates) {
+    const trimmed = typeof c === 'string' ? c.trim() : '';
+    if (trimmed) return trimmed;
+  }
+  return undefined;
+}
+
 type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
   apiKey?: string;
   model?: string;
@@ -41,6 +58,14 @@ type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
    * with tools; /api/chat returns tool_calls correctly.
    */
   nativeOllamaApi?: boolean;
+  /**
+   * Who is making this request. Sent as `X-Holo-Agent`, which the HoloLlama inference proxy
+   * records as the receipt's `caller`; absent it, the proxy writes 'unattributed'.
+   *
+   * Falls back to HOLO_INFERENCE_CALLER, then HOLOMESH_HANDLE. When none is set the header is
+   * OMITTED rather than filled with a placeholder — see resolveCallerId.
+   */
+  callerId?: string;
 };
 
 // =============================================================================
@@ -130,6 +155,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
   readonly capabilities: Capabilities = LOCAL_LLM_CAPABILITIES;
 
   private readonly localBaseURL: string;
+  /** Attribution sent on every request; undefined means "send no header". */
+  private readonly callerId: string | undefined;
   /** True → complete() uses /api/chat (native Ollama); false → /v1/chat/completions. */
   private readonly useNativeOllamaApi: boolean;
 
@@ -150,6 +177,23 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       config.model ?? config.defaultModel ?? 'mistral-7b-instruct';
     // Auto-detect Ollama by default port (11434). Can be overridden explicitly.
     this.useNativeOllamaApi = config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
+    this.callerId = resolveCallerId(config.callerId);
+  }
+
+  /**
+   * Headers for every request to the local server.
+   *
+   * The attribution header is what makes a captured inference row usable later: the proxy
+   * writes one (user, target) capsule per request into the live-trace corpus, and a row
+   * nobody attributed cannot be shown to be product traffic rather than a benchmark, so it
+   * cannot safely be curated into training data. Measured 2026-09-10: 2,180 of 3,056 receipts
+   * over five days were unattributed, and 2,172 of those came from the Jetson calling itself
+   * through this adapter.
+   */
+  private requestHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.callerId) headers['X-Holo-Agent'] = this.callerId;
+    return headers;
   }
 
   protected getDefaultModel(): string {
@@ -387,7 +431,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.requestHeaders(),
         body,
         signal: controller.signal,
       });
@@ -566,7 +610,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.requestHeaders(),
         body,
         signal: controller.signal,
       });

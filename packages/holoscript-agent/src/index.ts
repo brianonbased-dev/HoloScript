@@ -576,6 +576,12 @@ async function buildProvider(identity: AgentIdentity): Promise<ILLMProvider> {
       return createMockProvider();
     case 'local-llm':
       return createLocalLLMProvider({
+        // Attribution. Without it every inference this agent makes is recorded as
+        // 'unattributed', and the (user, target) capsule the proxy captures alongside it
+        // cannot later be shown to be product traffic rather than a benchmark — which is
+        // what makes the live-trace corpus unusable for training. Measured 2026-09-10:
+        // 2,172 of 2,180 unattributed requests over five days came from this agent.
+        callerId: identity.handle,
         baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
         model: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL ?? identity.llmModel,
         // Edge devices (Jetson ~15 tok/s) need more than the 120s default.
