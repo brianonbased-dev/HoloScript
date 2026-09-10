@@ -714,6 +714,62 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       const c = comp([obj('Bad', [trait('chart', { state: 's', fill: 'x" onload="y' })])]);
       expect(() => react(c)).toThrow(/@chart fill/);
     });
+
+    it('WORKS: yTicks draws a labelled y-axis and widens the left gutter for it', () => {
+      const c = comp([
+        obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', yTicks: 3 })]),
+      ]);
+      const r = react(c);
+      // Gridlines start at the widened gutter (26), not the bare 6px margin.
+      expect(r).toContain('x1={26}');
+      expect(r).toContain('stroke-studio-border');
+      // Tick labels are rendered text, right-aligned into the gutter.
+      expect(r).toContain('textAnchor="end"');
+      expect(r).toContain('Math.round(__t * 100) / 100');
+      // 3 ticks means 4 gridlines (0 included).
+      expect(r).toContain('length: 4');
+      // Bars must start after the gutter too, or they would overlap the labels.
+      expect(r).toContain('const __x = 26 +');
+    });
+
+    it('HONEST: the bars rescale to the tick max, so a label cannot lie', () => {
+      // If the bars kept scaling to the RAW max while the axis showed nice
+      // round numbers, the top gridline would not touch the tallest bar and
+      // every printed number would be wrong. The axis max is the scale.
+      const withTicks = react(comp([
+        obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', yTicks: 3 })]),
+      ]));
+      expect(withTicks).toContain('__f <= 2.5 ? 2.5');
+      expect(withTicks).not.toContain('const __max = Math.max(1, ...__v)');
+
+      // Without ticks nothing changes: same raw max, same 6px left edge.
+      const plain = react(comp([
+        obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })]),
+      ]));
+      expect(plain).toContain('const __max = Math.max(1, ...__v)');
+      expect(plain).toContain('const __x = 6 +');
+      expect(plain).not.toContain('textAnchor="end"');
+    });
+
+    it('REFUSES: yTicks on line/area, whose min-max framing has no honest zero', () => {
+      for (const kind of ['line', 'area']) {
+        const c = comp([
+          obj('Chart', [trait('chart', { kind, state: 'rows', valueKey: 'v', yTicks: 3 })]),
+        ]);
+        expect(() => react(c)).toThrow(/yTicks is bar-only/);
+      }
+    });
+
+    it('REFUSES: a yTicks value that cannot lay out a readable axis', () => {
+      const bad = (yTicks: unknown) =>
+        comp([obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', yTicks })])]);
+      expect(() => react(bad(1))).toThrow(/invalid yTicks/);
+      expect(() => react(bad(9))).toThrow(/invalid yTicks/);
+      expect(() => react(bad('3'))).toThrow(/invalid yTicks/);
+      // true is the documented shorthand for the default count.
+      expect(react(bad(true))).toContain('length: 4');
+    });
+
   });
 
   describe('7g. @honest / @provenance_bound — the Receipt-Bound Surface', () => {

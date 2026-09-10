@@ -1518,20 +1518,61 @@ export default ${safeName}Component;${contractExport}
         ? this.assertSafeLiteral(ch.fill, '@chart fill')
         : 'fill-studio-accent';
 
+    // Y-AXIS TICKS (opt-in). BAR ONLY on purpose: a bar chart is zero-anchored so a
+    // tick maps to a real magnitude, while line/area normalise min-max — labelling
+    // THAT axis would put numbers on the exaggerated framing honestChart's own
+    // caption warns about. Signed/other framings are a later design pass.
+    let yTicks = 0;
+    if (ch.yTicks !== undefined && ch.yTicks !== false) {
+      if (ch.yTicks === true) yTicks = 3;
+      else if (Number.isInteger(ch.yTicks) && ch.yTicks >= 2 && ch.yTicks <= 6) yTicks = ch.yTicks;
+      else throw new Error(`Native2DCompiler @chart: invalid yTicks ${JSON.stringify(ch.yTicks)}`);
+      if (kind !== 'bar') {
+        throw new Error('Native2DCompiler @chart: yTicks is bar-only (line/area use min-max framing)');
+      }
+    }
+
     // Fixed-aspect layout with margins: bottom band for labels keeps text crisp.
     const PX = 6;
+    // Left gutter only when ticks are drawn, so a chart without them keeps the
+    // exact geometry it shipped with.
+    const PL = yTicks ? 26 : PX;
     const PT = 8;
     const PB = labelKey && kind === 'bar' ? 16 : 6;
-    const plotW = W - 2 * PX;
+    const plotW = W - PL - PX;
     const plotH = H - PT - PB;
     const baselineY = H - PB;
 
-    const baseline = `<line x1="${PX}" y1="${baselineY}" x2="${W - PX}" y2="${baselineY}" className="stroke-studio-border" strokeWidth="0.5" />`;
+    const baseline = `<line x1="${PL}" y1="${baselineY}" x2="${W - PX}" y2="${baselineY}" className="stroke-studio-border" strokeWidth="0.5" />`;
 
     // Per-item provenance patterns (classKey): SVG defs referenced by non-measured bars
     // so an inferred bar is hatched and a generative bar is dotted — visible honesty.
     const provDefs = classKey
       ? `<defs><pattern id="holo-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" className="stroke-studio-accent" strokeWidth="1.2" /></pattern><pattern id="holo-dots" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.6" className="fill-studio-accent" /></pattern></defs>`
+      : '';
+
+    // Nice-number axis max: round the STEP to 1/2/5 x 10^k and take step * count,
+    // which is always >= the raw max, so every label is a round number and the top
+    // gridline is the axis ceiling. Computed at render time from the bound array.
+    const niceMaxExpr =
+      `((__vv, __n) => { const __rm = Math.max(1, ...__vv); const __raw = __rm / __n; ` +
+      `const __e = Math.pow(10, Math.floor(Math.log10(__raw))); const __f = __raw / __e; ` +
+      `return ((__f <= 1 ? 1 : __f <= 2 ? 2 : __f <= 2.5 ? 2.5 : __f <= 4 ? 4 : __f <= 5 ? 5 : 10) * __e) * __n; })(__v, ${yTicks || 1})`;
+
+    // The tick layer recomputes the same max from the same array rather than
+    // sharing a binding with the bars: the bar body is a self-contained IIFE, and
+    // duplicating a pure computation is cheaper than restructuring it.
+    const ticks = yTicks
+      ? `{((__a) => { const __d = (__a ?? []); ` +
+        `const __v = __d.map((d) => Math.max(0, Number(${valueExpr}) || 0)); ` +
+        `const __nm = ${niceMaxExpr}; ` +
+        `return Array.from({ length: ${yTicks + 1} }, (_, i) => { const __t = __nm * i / ${yTicks}; ` +
+        `const __y = ${baselineY} - (__t / __nm) * ${plotH}; ` +
+        `return (<g key={'yt' + i}>` +
+        `<line x1={${PL}} y1={__y} x2={${W - PX}} y2={__y} className="stroke-studio-border" strokeWidth="0.25" opacity="0.45" />` +
+        `<text x={${PL - 3}} y={__y + 2} textAnchor="end" className="fill-studio-muted" fontSize="6">` +
+        `{String(Math.round(__t * 100) / 100)}</text></g>); }); ` +
+        `})(${arrayRef})}`
       : '';
 
     let body: string;
@@ -1554,10 +1595,10 @@ export default ${safeName}Component;${contractExport}
       body =
         `{((__a) => { const __d = (__a ?? []); ` +
         `const __v = __d.map((d) => Number(${valueExpr}) || 0); ` +
-        `const __max = Math.max(1, ...__v); const __n = __d.length || 1; ` +
+        `const __max = ` + (yTicks ? niceMaxExpr : `Math.max(1, ...__v)`) + `; const __n = __d.length || 1; ` +
         `const __slot = ${plotW} / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); ` +
         `return __d.map((d, i) => { const __h = Math.max(0, Number(${valueExpr}) || 0) / __max * ${plotH}; ` +
-        `const __x = ${PX} + i * __slot + (__slot - __bw) / 2; const __y = ${baselineY} - __h; ` +
+        `const __x = ${PL} + i * __slot + (__slot - __bw) / 2; const __y = ${baselineY} - __h; ` +
         `return (<g key={i}><rect x={__x} y={__y} width={__bw} height={__h} className="${fill}"${provFill} rx="0.5" />${label}</g>); }); ` +
         `})(${arrayRef})}`;
     } else {
@@ -1582,10 +1623,10 @@ export default ${safeName}Component;${contractExport}
         `if (!__v.length) return ''; ` +
         norm +
         `__sx = __v.length > 1 ? ${plotW} / (__v.length - 1) : 0; ` +
-        `return __v.map((y, i) => (${PX} + i * __sx).toFixed(2) + ',' + (${baselineY} - ((${yExpr} - __mn) / __r) * ${plotH}).toFixed(2)).join(' '); })(${arrayRef})`;
+        `return __v.map((y, i) => (${PL} + i * __sx).toFixed(2) + ',' + (${baselineY} - ((${yExpr} - __mn) / __r) * ${plotH}).toFixed(2)).join(' '); })(${arrayRef})`;
       const line = `<polyline fill="none" className="${stroke}" strokeWidth="1.5" points={${pts}} />`;
       if (kind === 'area') {
-        const areaPts = `((__p) => __p ? __p + ' ' + ${W - PX} + ',' + ${baselineY} + ' ' + ${PX} + ',' + ${baselineY} : '')(${pts})`;
+        const areaPts = `((__p) => __p ? __p + ' ' + ${W - PX} + ',' + ${baselineY} + ' ' + ${PL} + ',' + ${baselineY} : '')(${pts})`;
         body = `<polygon className="${fill}" fillOpacity="0.25" points={${areaPts}} />
       ${line}`;
       } else {
@@ -1611,6 +1652,7 @@ export default ${safeName}Component;${contractExport}
         : '';
     return `<svg${props}${keyProp}${baselineAttr}${clampedAttr} viewBox="0 0 ${W} ${H}">
       ${provDefs}
+      ${ticks}
       ${baseline}
       ${body}
     </svg>`;
