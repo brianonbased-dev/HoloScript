@@ -38,7 +38,17 @@ import { LLMProviderError, filterGenericTools, messageContentAsString } from '..
  * treated as absent for the same reason.
  */
 function resolveCallerId(explicit?: string): string | undefined {
-  const candidates = [explicit, process.env.HOLO_INFERENCE_CALLER, process.env.HOLOMESH_HANDLE];
+  // HOLOSCRIPT_AGENT_HANDLE is last and matters most in practice: the Jetson edge agent
+  // already sets it (it is what identity.handle is built from), so adding it here means that
+  // node attributes itself by installing THIS package alone — no config edit, and no need to
+  // ship the agent package, which cannot be installed from a plain `npm pack` tarball because
+  // its workspace:^ specifiers are unresolvable outside the monorepo (EUNSUPPORTEDPROTOCOL).
+  const candidates = [
+    explicit,
+    process.env.HOLO_INFERENCE_CALLER,
+    process.env.HOLOMESH_HANDLE,
+    process.env.HOLOSCRIPT_AGENT_HANDLE,
+  ];
   for (const c of candidates) {
     const trimmed = typeof c === 'string' ? c.trim() : '';
     if (trimmed) return trimmed;

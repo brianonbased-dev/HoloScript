@@ -50,7 +50,7 @@ const ask = (adapter: LocalLLMAdapter) =>
 
 describe('local-llm adapter attribution', () => {
   const envBefore = { ...process.env };
-  beforeEach(() => { delete process.env.HOLO_INFERENCE_CALLER; delete process.env.HOLOMESH_HANDLE; });
+  beforeEach(() => { delete process.env.HOLO_INFERENCE_CALLER; delete process.env.HOLOMESH_HANDLE; delete process.env.HOLOSCRIPT_AGENT_HANDLE; });
   afterEach(() => { vi.unstubAllGlobals(); process.env = { ...envBefore }; });
 
   it('sends the configured caller on a completion', async () => {
@@ -72,6 +72,25 @@ describe('local-llm adapter attribution', () => {
     seen = captureHeaders();
     await ask(new LocalLLMAdapter({ baseURL: 'http://localhost:18080' }));
     expect(seen[0][HEADER]).toBe('from-handle');
+  });
+
+  // The Jetson edge agent sets HOLOSCRIPT_AGENT_HANDLE and nothing else, so this is the
+  // fallback that actually attributes production traffic. Installing llm-provider alone is
+  // then enough — which matters because the agent package cannot be installed from a plain
+  // npm pack tarball (workspace:^ deps, EUNSUPPORTEDPROTOCOL).
+  it('falls back to HOLOSCRIPT_AGENT_HANDLE, which the edge agent already sets', async () => {
+    process.env.HOLOSCRIPT_AGENT_HANDLE = 'jetson-orin-super';
+    const seen = captureHeaders();
+    await ask(new LocalLLMAdapter({ baseURL: 'http://localhost:18080' }));
+    expect(seen[0][HEADER]).toBe('jetson-orin-super');
+  });
+
+  it('prefers the more specific vars over HOLOSCRIPT_AGENT_HANDLE', async () => {
+    process.env.HOLOSCRIPT_AGENT_HANDLE = 'generic-handle';
+    process.env.HOLO_INFERENCE_CALLER = 'specific';
+    const seen = captureHeaders();
+    await ask(new LocalLLMAdapter({ baseURL: 'http://localhost:18080' }));
+    expect(seen[0][HEADER]).toBe('specific');
   });
 
   it('explicit config beats the environment', async () => {
