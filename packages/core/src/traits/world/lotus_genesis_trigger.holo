@@ -5,7 +5,14 @@
   props: {
     seed_source: string = "LOTUS_GENESIS_SEED",
     placeholder_seed: string = "0x0000DEAD",
-    required_anchor_path: string = "D:/GOLD/anchors/lotus-genesis.json",
+    // Relative on purpose. This default ships to every consumer, so an absolute
+    // "D:/GOLD/..." asserted a drive that exists on exactly one machine and is
+    // dead on Linux — which is what CI and Railway run. The value is declarative:
+    // it is reported in lotus_genesis_* events and never opened, so a relative
+    // default changes what is announced, not what is read. The founder's real
+    // vault path stays documented in .env.example, where a machine-specific path
+    // belongs. Override per deployment.
+    required_anchor_path: string = "anchors/lotus-genesis.json",
     required_wallet: string = "0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3",
     require_signed_anchor: boolean = true,
     all_petals_full_source: string = "lotus.api.all_petals_full",

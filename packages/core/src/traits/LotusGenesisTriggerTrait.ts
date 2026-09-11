@@ -186,7 +186,11 @@ export const lotusGenesisTriggerHandler: TraitHandler<LotusGenesisTriggerConfig>
   defaultConfig: {
     seed_source: 'LOTUS_GENESIS_SEED',
     placeholder_seed: '0x0000DEAD',
-    required_anchor_path: 'D:/GOLD/anchors/lotus-genesis.json',
+    // Kept in sync with world/lotus_genesis_trigger.holo — see the note there.
+    // Relative because this default ships: an absolute Windows drive path is dead
+    // on Linux, and this value is only ever reported in events (requiredAnchorPath
+    // below), never opened. The founder's real vault path lives in .env.example.
+    required_anchor_path: 'anchors/lotus-genesis.json',
     required_wallet: '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3',
     anchor: null,
     require_signed_anchor: true,
