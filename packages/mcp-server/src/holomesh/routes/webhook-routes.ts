@@ -26,12 +26,23 @@ import type { TeamMessage } from '../types';
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 const WEBHOOK_SECRET = process.env.RAILWAY_WEBHOOK_SECRET || '';
 
-function verifyRailwaySignature(body: string, signature: string | undefined): boolean {
+export function verifyRailwaySignature(body: string, signature: string | undefined): boolean {
   if (!WEBHOOK_SECRET) {
-    // In production an unconfigured secret is a misconfiguration — fail closed.
-    // In dev, Railway webhooks are typically not configured locally.
-    if (process.env.NODE_ENV === 'production') return false;
-    return true;
+    // NO SECRET MEANS NO, AND IT NO LONGER DEPENDS ON NODE_ENV.
+    //
+    // This used to accept ANY unsigned body when NODE_ENV !== 'production', for
+    // local-dev convenience. That was harmless only while the route was
+    // unreachable (see the routing fix in http-server.ts, 2026-09-11) — the
+    // moment it could be reached, it became an open endpoint that writes into a
+    // team room, gated by a variable nobody had verified was set on the deployed
+    // box. I could not confirm NODE_ENV there from a read-only session, and a
+    // security property that rests on an environment variable you cannot see is
+    // not a property at all.
+    //
+    // So: unconfigured secret → refuse, everywhere. Local testing sets
+    // RAILWAY_WEBHOOK_SECRET to any value and signs with it; that is a smaller
+    // cost than an unauthenticated writer.
+    return false;
   }
   if (!signature) return false;
   const expected = createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');

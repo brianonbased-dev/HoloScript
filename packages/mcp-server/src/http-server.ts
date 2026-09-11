@@ -3054,7 +3054,20 @@ const httpServer = http.createServer(async (req, res) => {
   // HOLOMESH API ROUTES (delegated to separate module)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  if (url?.startsWith('/api/holomesh/')) {
+  // `/webhook/` is here because the HoloMesh dispatcher owns the Railway webhook
+  // handler, and that handler matches the path `/webhook/railway` — which can
+  // never satisfy a `/api/holomesh/` prefix. So the route existed, was fully
+  // implemented for every Railway event type, was documented in
+  // webhook-routes.ts as the URL to paste into the Railway dashboard, and was
+  // unreachable: every crash, OOM and failed-deploy alert Railway sent us was
+  // answered by the 404 at the bottom of this function. Nobody noticed, because
+  // a dropped alert and a healthy deploy look identical from here.
+  //
+  // Found 2026-09-11 while hunting documentation gaps. Verified by reading the
+  // chain rather than inferring: webhook-routes.ts:160 matches
+  // `/webhook/railway`, it is only invoked from http-routes.ts:355, and that
+  // function was only ever entered from the condition below.
+  if (url?.startsWith('/api/holomesh/') || url?.startsWith('/webhook/')) {
     const { handleHoloMeshRoute } = await import('./holomesh/http-routes');
     const handled = await handleHoloMeshRoute(req, res, fullUrl);
     if (handled) return;
