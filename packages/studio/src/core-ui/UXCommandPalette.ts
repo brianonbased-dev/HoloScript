@@ -9,8 +9,7 @@ export interface CommandOption {
 }
 
 export type StudioPublishToolName =
-  | 'holomesh_moltbook_crosspost'
-  | 'holomesh_publish_agent_template';
+  'holomesh_moltbook_crosspost' | 'holomesh_publish_agent_template';
 
 export interface StudioPublishCommandContext {
   getCurrentEditorAst: () => unknown;

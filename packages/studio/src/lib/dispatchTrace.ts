@@ -8,10 +8,7 @@
  */
 
 export type StudioDispatchTier =
-  | 'tier-1-browser'
-  | 'tier-1-neuromorphic'
-  | 'tier-2-speculative'
-  | 'tier-3-cpu-direct';
+  'tier-1-browser' | 'tier-1-neuromorphic' | 'tier-2-speculative' | 'tier-3-cpu-direct';
 
 export interface StudioDispatchMetrics {
   tierAttempted: StudioDispatchTier;

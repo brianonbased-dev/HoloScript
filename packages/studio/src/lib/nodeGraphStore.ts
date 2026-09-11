@@ -62,12 +62,7 @@ export interface OutputNodeData {
 }
 
 export type GNodeData =
-  | ConstantNodeData
-  | MathNodeData
-  | TextureNodeData
-  | UVNodeData
-  | TimeNodeData
-  | OutputNodeData;
+  ConstantNodeData | MathNodeData | TextureNodeData | UVNodeData | TimeNodeData | OutputNodeData;
 
 export type GNode = Node<GNodeData>;
 export type GEdge = Edge;

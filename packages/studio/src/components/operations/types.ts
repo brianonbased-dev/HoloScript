@@ -3,13 +3,7 @@ export type BuildTarget = 'web' | 'ios' | 'android' | 'visionos' | 'quest' | 'de
 export type BuildStatus = 'idle' | 'queued' | 'building' | 'success' | 'failed' | 'cancelled';
 
 export type DeployStage =
-  | 'validate'
-  | 'bundle'
-  | 'optimize'
-  | 'upload'
-  | 'provision'
-  | 'health_check'
-  | 'live';
+  'validate' | 'bundle' | 'optimize' | 'upload' | 'provision' | 'health_check' | 'live';
 
 export type DeployStageStatus = 'pending' | 'running' | 'passed' | 'failed' | 'skipped';
 

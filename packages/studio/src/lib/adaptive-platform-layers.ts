@@ -2,16 +2,9 @@ import type { PlatformCapabilities } from './platform-detect';
 
 export type AdaptivePlatformTier = 'web' | 'desktop' | 'mobile' | 'worker' | 'server';
 export type AdaptivePlatformShell =
-  | 'web-studio'
-  | 'tauri-desktop'
-  | 'mobile-ar-companion'
-  | 'worker-runtime'
-  | 'server-runtime';
+  'web-studio' | 'tauri-desktop' | 'mobile-ar-companion' | 'worker-runtime' | 'server-runtime';
 export type AdaptiveEngineDelivery =
-  | 'native-rust-wit'
-  | 'wasm-component-wit'
-  | 'wasm-legacy'
-  | 'typescript-fallback';
+  'native-rust-wit' | 'wasm-component-wit' | 'wasm-legacy' | 'typescript-fallback';
 
 export interface AdaptivePlatformLayerReceipt {
   tier: AdaptivePlatformTier;

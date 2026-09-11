@@ -22,25 +22,11 @@ function toTuple(v: Vec3): [number, number, number] {
 }
 
 export type DisasterType =
-  | 'earthquake'
-  | 'flood'
-  | 'wildfire'
-  | 'tornado'
-  | 'tsunami'
-  | 'hurricane';
+  'earthquake' | 'flood' | 'wildfire' | 'tornado' | 'tsunami' | 'hurricane';
 export type BuildingCondition =
-  | 'intact'
-  | 'minor-damage'
-  | 'major-damage'
-  | 'collapsed'
-  | 'on-fire';
+  'intact' | 'minor-damage' | 'major-damage' | 'collapsed' | 'on-fire';
 export type ResourceType =
-  | 'ambulance'
-  | 'fire-truck'
-  | 'helicopter'
-  | 'search-team'
-  | 'supply-truck'
-  | 'generator';
+  'ambulance' | 'fire-truck' | 'helicopter' | 'search-team' | 'supply-truck' | 'generator';
 
 export interface Building {
   id: string;

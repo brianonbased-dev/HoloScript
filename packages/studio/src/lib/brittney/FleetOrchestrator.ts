@@ -35,15 +35,7 @@
 
 /** Board priority as seen across the stack: P-levels, words, or numeric. */
 export type RawPriority =
-  | 'P0'
-  | 'P1'
-  | 'P2'
-  | 'P3'
-  | 'high'
-  | 'medium'
-  | 'low'
-  | number
-  | undefined;
+  'P0' | 'P1' | 'P2' | 'P3' | 'high' | 'medium' | 'low' | number | undefined;
 
 export interface BoardTask {
   id: string;

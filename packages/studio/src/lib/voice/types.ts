@@ -6,13 +6,7 @@
  */
 
 export type VoiceState =
-  | 'idle'
-  | 'listening'
-  | 'transcribing'
-  | 'thinking'
-  | 'validating'
-  | 'ready'
-  | 'error';
+  'idle' | 'listening' | 'transcribing' | 'thinking' | 'validating' | 'ready' | 'error';
 
 export interface VoiceTurn {
   /** User's spoken utterance, as transcribed. */

@@ -38,12 +38,7 @@ test('discovers every package declared by nested workspace globs', (t) => {
   writePackage(root, 'benchmarks/load', { name: '@fixture/load' });
 
   const names = loadWorkspacePackages({ root }).map((pkg) => pkg.name);
-  assert.deepEqual(names, [
-    '@fixture/api',
-    '@fixture/core',
-    '@fixture/input',
-    '@fixture/load',
-  ]);
+  assert.deepEqual(names, ['@fixture/api', '@fixture/core', '@fixture/input', '@fixture/load']);
 });
 
 test('reports a runtime cycle that crosses plugin and service boundaries', (t) => {

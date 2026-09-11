@@ -16,15 +16,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 export type ShaderDataType =
-  | 'float'
-  | 'vec2'
-  | 'vec3'
-  | 'vec4'
-  | 'texture'
-  | 'sampler'
-  | 'bool'
-  | 'int'
-  | 'color';
+  'float' | 'vec2' | 'vec3' | 'vec4' | 'texture' | 'sampler' | 'bool' | 'int' | 'color';
 export type ShaderNodeCategory =
   | 'input'
   | 'output'

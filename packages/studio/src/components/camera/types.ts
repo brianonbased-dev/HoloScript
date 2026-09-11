@@ -33,12 +33,7 @@ export interface CameraKeyframe {
 }
 
 export type CinematicPreset =
-  | 'crane'
-  | 'steadicam'
-  | 'orbit'
-  | 'flythrough'
-  | 'dollyZoom'
-  | 'whipPan';
+  'crane' | 'steadicam' | 'orbit' | 'flythrough' | 'dollyZoom' | 'whipPan';
 
 export interface CameraPath {
   name: string;

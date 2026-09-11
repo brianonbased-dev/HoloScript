@@ -12,12 +12,7 @@
 // ── Intent types ────────────────────────────────────────────────────────────
 
 export type CharacterIntentType =
-  | 'set_morph'
-  | 'equip_item'
-  | 'unequip_item'
-  | 'set_skin_color'
-  | 'reset'
-  | 'unknown';
+  'set_morph' | 'equip_item' | 'unequip_item' | 'set_skin_color' | 'reset' | 'unknown';
 
 export interface MorphIntent {
   type: 'set_morph';
@@ -54,12 +49,7 @@ export interface UnknownIntent {
 }
 
 export type CharacterIntent =
-  | MorphIntent
-  | EquipIntent
-  | UnequipIntent
-  | SkinColorIntent
-  | ResetIntent
-  | UnknownIntent;
+  MorphIntent | EquipIntent | UnequipIntent | SkinColorIntent | ResetIntent | UnknownIntent;
 
 // ── Synonym maps ────────────────────────────────────────────────────────────
 

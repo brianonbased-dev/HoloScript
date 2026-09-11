@@ -178,12 +178,7 @@ export enum UAALOpCode {
 // =============================================================================
 
 export type UAALOperand =
-  | string
-  | number
-  | boolean
-  | Record<string, unknown>
-  | UAALOperand[]
-  | null;
+  string | number | boolean | Record<string, unknown> | UAALOperand[] | null;
 
 export interface UAALInstruction {
   opCode: UAALOpCode;

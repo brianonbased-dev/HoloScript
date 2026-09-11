@@ -770,7 +770,9 @@ function runSelfTest() {
         `  FAIL packed-target-complete: expected no findings, got ${JSON.stringify(completeTargets)}\n`
       );
     } else {
-      process.stdout.write('  ok   packed-target-complete: static and wildcard targets are closed\n');
+      process.stdout.write(
+        '  ok   packed-target-complete: static and wildcard targets are closed\n'
+      );
     }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

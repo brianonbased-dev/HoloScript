@@ -14,7 +14,10 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { extractDisplayedProjections, verifySurfaceTwinLive } from '@holoscript/core/reconstruction';
+import {
+  extractDisplayedProjections,
+  verifySurfaceTwinLive,
+} from '@holoscript/core/reconstruction';
 
 import CompilerExportComponent, { holoViewContract } from '../compilerExport.native';
 

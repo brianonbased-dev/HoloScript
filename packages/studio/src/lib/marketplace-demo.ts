@@ -24,15 +24,7 @@
 
 /** Categories of marketplace content */
 export type ContentCategory =
-  | 'world'
-  | 'object'
-  | 'agent'
-  | 'trait'
-  | 'shader'
-  | 'vfx'
-  | 'audio'
-  | 'template'
-  | 'plugin';
+  'world' | 'object' | 'agent' | 'trait' | 'shader' | 'vfx' | 'audio' | 'template' | 'plugin';
 
 /** Target platform identifier (kept permissive for demo seed data) */
 export type PlatformTarget = string;
@@ -105,12 +97,7 @@ export interface MarketplacePackage {
 
 /** Submission status */
 export type SubmissionStatus =
-  | 'draft'
-  | 'verifying'
-  | 'verified'
-  | 'rejected'
-  | 'published'
-  | 'delisted';
+  'draft' | 'verifying' | 'verified' | 'rejected' | 'published' | 'delisted';
 
 /** A marketplace submission */
 export interface MarketplaceSubmission {

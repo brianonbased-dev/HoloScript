@@ -60,10 +60,7 @@ export interface PlatformCapabilities {
 
   /** Recommended WASM world to load */
   recommendedWorld:
-    | 'holoscript-runtime'
-    | 'holoscript-parser'
-    | 'holoscript-compiler'
-    | 'holoscript-spatial';
+    'holoscript-runtime' | 'holoscript-parser' | 'holoscript-compiler' | 'holoscript-spatial';
 
   /** Recommended compiler backend */
   recommendedBackend: 'wasm-component' | 'wasm-legacy' | 'typescript-fallback';
@@ -166,8 +163,7 @@ function getTauriVersion(): string | undefined {
   try {
     // Tauri 2.0 exposes version via __TAURI_INTERNALS__
     const internals = (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as
-      | { metadata?: { tauriVersion?: string } }
-      | undefined;
+      { metadata?: { tauriVersion?: string } } | undefined;
     return internals?.metadata?.tauriVersion;
   } catch {
     return undefined;

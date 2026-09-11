@@ -58,8 +58,7 @@ const composition = {
 function valuesFor(next: typeof composition, seriesName: string): string | undefined {
   const series = next.objects.find((object) => object.name === seriesName);
   return series?.properties.find((property) => property.key === 'values')?.value as
-    | string
-    | undefined;
+    string | undefined;
 }
 
 describe('pillarDomainRadar', () => {

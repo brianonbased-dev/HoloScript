@@ -310,13 +310,7 @@ interface TabProps {
 }
 
 type FaceScanStatus =
-  | 'pending-phone'
-  | 'phone-connected'
-  | 'capturing'
-  | 'uploaded'
-  | 'processing'
-  | 'done'
-  | 'error';
+  'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
 
 interface FaceScanSessionResponse {
   token: string;

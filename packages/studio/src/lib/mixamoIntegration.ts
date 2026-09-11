@@ -16,16 +16,7 @@ export interface MixamoAnimation {
 }
 
 export type MixamoCategory =
-  | 'idle'
-  | 'walk'
-  | 'run'
-  | 'jump'
-  | 'dance'
-  | 'combat'
-  | 'emote'
-  | 'interact'
-  | 'sit'
-  | 'climb';
+  'idle' | 'walk' | 'run' | 'jump' | 'dance' | 'combat' | 'emote' | 'interact' | 'sit' | 'climb';
 
 export interface BoneMapping {
   source: string; // Mixamo bone name

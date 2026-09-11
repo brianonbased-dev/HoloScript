@@ -12,23 +12,10 @@ export interface Vec3 {
 }
 
 export type EmotionCategory =
-  | 'joy'
-  | 'fear'
-  | 'sadness'
-  | 'anger'
-  | 'surprise'
-  | 'peace'
-  | 'confusion'
-  | 'awe';
+  'joy' | 'fear' | 'sadness' | 'anger' | 'surprise' | 'peace' | 'confusion' | 'awe';
 export type DreamClarity = 'vivid' | 'normal' | 'foggy' | 'fragment';
 export type PhysicsMode =
-  | 'normal'
-  | 'low-gravity'
-  | 'zero-gravity'
-  | 'underwater'
-  | 'flight'
-  | 'time-loop'
-  | 'impossible';
+  'normal' | 'low-gravity' | 'zero-gravity' | 'underwater' | 'flight' | 'time-loop' | 'impossible';
 
 export interface DreamEntry {
   id: string;

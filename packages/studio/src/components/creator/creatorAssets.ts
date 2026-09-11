@@ -1,14 +1,5 @@
 export type CreatorAssetFormat =
-  | 'glb'
-  | 'gltf'
-  | 'fbx'
-  | 'mp4'
-  | 'png'
-  | 'jpg'
-  | 'jpeg'
-  | 'wav'
-  | 'usdz'
-  | 'unknown';
+  'glb' | 'gltf' | 'fbx' | 'mp4' | 'png' | 'jpg' | 'jpeg' | 'wav' | 'usdz' | 'unknown';
 
 export type CreatorAssetKind = 'model' | 'video' | 'image' | 'audio' | 'unsupported';
 

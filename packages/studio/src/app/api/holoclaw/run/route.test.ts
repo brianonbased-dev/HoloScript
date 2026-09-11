@@ -95,7 +95,10 @@ describe('GET /api/holoclaw/run — list running skills', () => {
     const res = await GET();
     const body = await res.json();
     expect(body.count).toBe(1);
-    expect(body.running[0]).toMatchObject({ name: 'demo', skillPath: path.join('compositions', 'skills', 'demo.hsplus') });
+    expect(body.running[0]).toMatchObject({
+      name: 'demo',
+      skillPath: path.join('compositions', 'skills', 'demo.hsplus'),
+    });
     expect(body.running[0].embodiment).toMatchObject({ skill: 'demo', status: 'running' });
     expect(typeof body.running[0].pid).toBe('number');
   });

@@ -35,22 +35,9 @@ function asVec3(x: number, y: number, z: number): Vec3 {
 }
 
 export type OrganSystem =
-  | 'cardiovascular'
-  | 'respiratory'
-  | 'digestive'
-  | 'nervous'
-  | 'skeletal'
-  | 'muscular'
-  | 'urinary';
+  'cardiovascular' | 'respiratory' | 'digestive' | 'nervous' | 'skeletal' | 'muscular' | 'urinary';
 export type InstrumentType =
-  | 'scalpel'
-  | 'forceps'
-  | 'retractor'
-  | 'suture'
-  | 'cautery'
-  | 'drill'
-  | 'endoscope'
-  | 'laser';
+  'scalpel' | 'forceps' | 'retractor' | 'suture' | 'cautery' | 'drill' | 'endoscope' | 'laser';
 export type TissueType = 'skin' | 'muscle' | 'bone' | 'nerve' | 'vessel' | 'organ' | 'connective';
 
 export interface AnatomicalLandmark {

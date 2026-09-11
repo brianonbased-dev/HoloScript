@@ -3,13 +3,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,38 +60,23 @@ const files = new Map([
     'std-lifecycle-effects.v0.json',
     'packages/std/conformance/generated/std-lifecycle-effects.v0.json',
   ],
-  [
-    'std-host-binding.mjs',
-    'packages/std/conformance/host-abi/std-host-binding.mjs',
-  ],
-  [
-    'pkg-node/holoscript_wasm.js',
-    'packages/compiler-wasm/pkg-node/holoscript_wasm.js',
-  ],
-  [
-    'pkg-node/holoscript_wasm_bg.wasm',
-    'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm',
-  ],
+  ['std-host-binding.mjs', 'packages/std/conformance/host-abi/std-host-binding.mjs'],
+  ['pkg-node/holoscript_wasm.js', 'packages/compiler-wasm/pkg-node/holoscript_wasm.js'],
+  ['pkg-node/holoscript_wasm_bg.wasm', 'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm'],
   ['pkg-node/package.json', 'packages/compiler-wasm/pkg-node/package.json'],
   ['packaged-math.hsplus', 'packages/std/src/math.hsplus'],
   ['packaged-collections.hsplus', 'packages/std/src/collections.hsplus'],
 ]);
 const pins = {};
 for (const [bundleName, repoRelative] of files) {
-  const worktreeBytes = readFileSync(
-    join(repoRoot, ...repoRelative.split('/'))
-  );
+  const worktreeBytes = readFileSync(join(repoRoot, ...repoRelative.split('/')));
   let commitBytes;
   try {
-    commitBytes = execFileSync(
-      'git',
-      ['show', `${sourceCommit}:${repoRelative}`],
-      {
-        cwd: repoRoot,
-        encoding: null,
-        maxBuffer: 16 * 1024 * 1024,
-      }
-    );
+    commitBytes = execFileSync('git', ['show', `${sourceCommit}:${repoRelative}`], {
+      cwd: repoRoot,
+      encoding: null,
+      maxBuffer: 16 * 1024 * 1024,
+    });
   } catch {
     fail(`${repoRelative} is absent from source commit ${sourceCommit}`);
   }
@@ -122,10 +101,7 @@ const manifest = {
   },
   files: pins,
 };
-writeFileSync(
-  join(outDir, 'bundle-manifest.json'),
-  `${JSON.stringify(manifest, null, 2)}\n`
-);
+writeFileSync(join(outDir, 'bundle-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(
   `[build-std-lifecycle-owned-metal] OK: ${Object.keys(pins).length} commit-bound files from ${sourceCommit}`
 );

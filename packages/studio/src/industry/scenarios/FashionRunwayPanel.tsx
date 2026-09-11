@@ -8,14 +8,7 @@ import { useState, useCallback } from 'react';
 import { Shirt, Palette, Clock, Plus, Trash2, Star, Eye, Sparkles } from 'lucide-react';
 
 export type FabricType =
-  | 'silk'
-  | 'cotton'
-  | 'leather'
-  | 'denim'
-  | 'wool'
-  | 'lace'
-  | 'satin'
-  | 'chiffon';
+  'silk' | 'cotton' | 'leather' | 'denim' | 'wool' | 'lace' | 'satin' | 'chiffon';
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
 export interface GarmentPiece {

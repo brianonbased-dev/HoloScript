@@ -143,7 +143,11 @@ function npmViewVersion(name) {
       const parsed = stdout ? JSON.parse(stdout) : null;
       const version = versionFromNpmJson(parsed);
       if (version) {
-        const result = { status: 'published', version, versions: Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [version] };
+        const result = {
+          status: 'published',
+          version,
+          versions: Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [version],
+        };
         registryCache.set(name, result);
         return result;
       }
@@ -161,7 +165,13 @@ function npmViewVersion(name) {
           const parsed = JSON.parse(stdout);
           const version = versionFromNpmJson(parsed);
           if (version) {
-            const result = { status: 'published', version, versions: Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [version] };
+            const result = {
+              status: 'published',
+              version,
+              versions: Array.isArray(parsed)
+                ? parsed.filter((v) => typeof v === 'string')
+                : [version],
+            };
             registryCache.set(name, result);
             return result;
           }

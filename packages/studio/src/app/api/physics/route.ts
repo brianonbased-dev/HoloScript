@@ -9,14 +9,7 @@ import { corsHeaders } from '../_lib/cors';
  */
 
 export type PhysicsBodyType =
-  | 'rigid'
-  | 'soft'
-  | 'kinematic'
-  | 'static'
-  | 'trigger'
-  | 'cloth'
-  | 'vehicle'
-  | 'character';
+  'rigid' | 'soft' | 'kinematic' | 'static' | 'trigger' | 'cloth' | 'vehicle' | 'character';
 
 export interface PhysicsPreset {
   id: string;

@@ -39,10 +39,7 @@ export interface FanoutDispatchResult {
 /** Targets proven to compile in-process by packages/mcp-server compileFanout tests. */
 export const FANOUT_TARGETS = ['webgpu', 'unity', 'svg', 'usd'];
 
-export type McpToolCaller = (
-  tool: string,
-  input: Record<string, unknown>
-) => Promise<unknown>;
+export type McpToolCaller = (tool: string, input: Record<string, unknown>) => Promise<unknown>;
 
 /** Default transport: the same /api/mcp/call gateway the palette commands use. */
 export const callMcpTool: McpToolCaller = async (tool, input) => {

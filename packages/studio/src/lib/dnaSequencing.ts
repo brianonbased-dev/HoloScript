@@ -30,12 +30,7 @@ export type AminoAcid =
   | 'Val'
   | 'STOP';
 export type MutationType =
-  | 'substitution'
-  | 'insertion'
-  | 'deletion'
-  | 'silent'
-  | 'missense'
-  | 'nonsense';
+  'substitution' | 'insertion' | 'deletion' | 'silent' | 'missense' | 'nonsense';
 
 export interface Gene {
   id: string;

@@ -14,17 +14,9 @@ function toTuple(v: Vec3): [number, number, number] {
 
 export type AnnotationType = 'label' | 'measurement' | 'highlight' | 'arrow' | 'circle' | 'callout';
 export type EvidenceClass =
-  | 'physical'
-  | 'digital'
-  | 'testimonial'
-  | 'demonstrative'
-  | 'documentary';
+  'physical' | 'digital' | 'testimonial' | 'demonstrative' | 'documentary';
 export type PresentationMode =
-  | 'overview'
-  | 'walkthrough'
-  | 'witness-pov'
-  | 'comparison'
-  | 'timeline';
+  'overview' | 'walkthrough' | 'witness-pov' | 'comparison' | 'timeline';
 
 export interface Annotation3D {
   id: string;

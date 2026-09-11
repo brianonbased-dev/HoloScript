@@ -134,8 +134,7 @@ function buildGltf(scene: HoloScene): GltfDocument {
       gltf.extensionsUsed = ['KHR_lights_punctual'];
       gltf.extensions = gltf.extensions ?? {};
       const lightsExt = (gltf.extensions['KHR_lights_punctual'] as
-        | { lights: unknown[] }
-        | undefined) ?? { lights: [] };
+        { lights: unknown[] } | undefined) ?? { lights: [] };
       const lightIndex = (lightsExt.lights as unknown[]).length;
       lights.push({ type: 'point', color: [1, 1, 1], intensity: 1 });
       (lightsExt.lights as unknown[]).push({ type: 'point', color: [1, 1, 1], intensity: 1 });

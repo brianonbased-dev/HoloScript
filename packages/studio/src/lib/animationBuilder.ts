@@ -30,12 +30,7 @@ export interface AnimationClip {
 }
 
 export type EasingFunction =
-  | 'linear'
-  | 'ease-in'
-  | 'ease-out'
-  | 'ease-in-out'
-  | 'bounce'
-  | 'elastic';
+  'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
 
 /**
  * Create an animation track from keyframes.

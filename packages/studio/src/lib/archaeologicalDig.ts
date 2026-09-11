@@ -18,23 +18,10 @@ function vz(v: Vec3): number {
 }
 
 export type ArtifactMaterial =
-  | 'ceramic'
-  | 'stone'
-  | 'metal'
-  | 'bone'
-  | 'wood'
-  | 'glass'
-  | 'textile'
-  | 'organic';
+  'ceramic' | 'stone' | 'metal' | 'bone' | 'wood' | 'glass' | 'textile' | 'organic';
 export type ConservationStatus = 'excellent' | 'good' | 'fair' | 'poor' | 'fragmentary';
 export type StratumPeriod =
-  | 'neolithic'
-  | 'bronze-age'
-  | 'iron-age'
-  | 'roman'
-  | 'medieval'
-  | 'post-medieval'
-  | 'modern';
+  'neolithic' | 'bronze-age' | 'iron-age' | 'roman' | 'medieval' | 'post-medieval' | 'modern';
 
 export interface Stratum {
   id: string;

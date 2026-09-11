@@ -54,13 +54,15 @@ function currentCoreTreeSha() {
  * synthetic receipts and prove this gate is capable of rejecting.
  */
 export function evaluateReceipt(receipt, currentTreeSha) {
-  if (!receipt) return { ok: false, reason: 'no receipt — the core baseline gate has never run here' };
+  if (!receipt)
+    return { ok: false, reason: 'no receipt — the core baseline gate has never run here' };
   if (receipt.schema !== 'holoscript.core-baseline-receipt.v1')
     return { ok: false, reason: `unrecognized receipt schema: ${receipt.schema}` };
   if (receipt.capturedFromDirtyWorkingTree)
     return {
       ok: false,
-      reason: 'receipt was captured against a dirty working tree — it did not test what HEAD contains',
+      reason:
+        'receipt was captured against a dirty working tree — it did not test what HEAD contains',
     };
   // Same failure in a different disguise: the tree was clean, but its
   // dependencies belonged to another checkout. A HoloRepo candidate worktree
@@ -73,10 +75,10 @@ export function evaluateReceipt(receipt, currentTreeSha) {
     return {
       ok: false,
       reason:
-        'receipt was captured with node_modules borrowed from '
-        + `${receipt.nodeModulesBorrowedFrom} — module identity in that run belonged to `
-        + 'that checkout, not this tree. Run the baseline in the checkout that owns its '
-        + 'dependencies.',
+        'receipt was captured with node_modules borrowed from ' +
+        `${receipt.nodeModulesBorrowedFrom} — module identity in that run belonged to ` +
+        'that checkout, not this tree. Run the baseline in the checkout that owns its ' +
+        'dependencies.',
     };
   if (receipt.result !== 'clean')
     return {
@@ -108,14 +110,27 @@ if (process.argv.includes('--self-test')) {
     ['accepts a clean receipt matching HEAD', good, SHA, true],
     ['rejects a missing receipt', null, SHA, false],
     ['rejects a receipt for a different core tree', good, 'b'.repeat(40), false],
-    ['rejects a receipt from a dirty tree', { ...good, capturedFromDirtyWorkingTree: true }, SHA, false],
     [
-      'rejects a receipt whose node_modules came from another checkout',
-      { ...good, nodeModulesBorrowedFrom: 'C:/holo-dev/HoloRepo/HoloScript/packages/core/node_modules' },
+      'rejects a receipt from a dirty tree',
+      { ...good, capturedFromDirtyWorkingTree: true },
       SHA,
       false,
     ],
-    ['rejects a receipt recording new failures', { ...good, result: 'new-failures', totals: { new: 5 }, newFailures: ['x'] }, SHA, false],
+    [
+      'rejects a receipt whose node_modules came from another checkout',
+      {
+        ...good,
+        nodeModulesBorrowedFrom: 'C:/holo-dev/HoloRepo/HoloScript/packages/core/node_modules',
+      },
+      SHA,
+      false,
+    ],
+    [
+      'rejects a receipt recording new failures',
+      { ...good, result: 'new-failures', totals: { new: 5 }, newFailures: ['x'] },
+      SHA,
+      false,
+    ],
     ['rejects an unknown schema', { ...good, schema: 'nope.v9' }, SHA, false],
   ];
   let failed = 0;

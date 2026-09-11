@@ -12,14 +12,7 @@ export interface Vec3 {
 }
 
 export type CelestialBody =
-  | 'earth'
-  | 'moon'
-  | 'mars'
-  | 'venus'
-  | 'jupiter'
-  | 'saturn'
-  | 'mercury'
-  | 'sun';
+  'earth' | 'moon' | 'mars' | 'venus' | 'jupiter' | 'saturn' | 'mercury' | 'sun';
 export type MissionPhase =
   | 'pre-launch'
   | 'launch'

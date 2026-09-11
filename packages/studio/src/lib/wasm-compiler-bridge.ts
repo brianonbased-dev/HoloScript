@@ -72,12 +72,7 @@ export interface ValidationResult {
 
 /** Engine-core compile targets (bundled in main WASM) */
 export type CompileTarget =
-  | 'threejs'
-  | 'babylonjs'
-  | 'aframe-html'
-  | 'gltf-json'
-  | 'glb-binary'
-  | 'json-ast';
+  'threejs' | 'babylonjs' | 'aframe-html' | 'gltf-json' | 'glb-binary' | 'json-ast';
 
 /** Platform plugin targets (lazy-loaded WASM components) */
 export type PlatformTarget =
@@ -502,8 +497,7 @@ export class CompilerBridge {
     try {
       const core = (await import('@holoscript/core')) as Record<string, unknown>;
       const ValidatorClass = core.HoloScriptValidator as
-        | (new () => { validate(code: string): { message: string }[] })
-        | undefined;
+        (new () => { validate(code: string): { message: string }[] }) | undefined;
       if (!ValidatorClass) {
         return {
           valid: false,

@@ -36,12 +36,7 @@ function vec3(x: number, y: number, z: number): Vector3 {
 }
 
 export type EvidenceType =
-  | 'physical'
-  | 'biological'
-  | 'digital'
-  | 'trace'
-  | 'documentary'
-  | 'testimonial';
+  'physical' | 'biological' | 'digital' | 'trace' | 'documentary' | 'testimonial';
 export type EvidenceSeverity = 'critical' | 'high' | 'medium' | 'low';
 
 export interface EvidenceMarker {

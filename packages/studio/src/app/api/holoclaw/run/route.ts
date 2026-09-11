@@ -177,14 +177,7 @@ export async function POST(request: Request) {
   // See the follow-on task filed against this finding for the real fix directions.
   const cycles = body.cycles || 5;
   const alwaysOn = body.alwaysOn || false;
-  const args = [
-    'tsx',
-    'packages/cli/src/cli.ts',
-    'daemon',
-    skillPath,
-    '--cycles',
-    String(cycles),
-  ];
+  const args = ['tsx', 'packages/cli/src/cli.ts', 'daemon', skillPath, '--cycles', String(cycles)];
   if (alwaysOn) args.push('--always-on');
 
   const child = spawn('npx', args, {

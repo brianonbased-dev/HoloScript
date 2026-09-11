@@ -44,10 +44,7 @@ function writeTarball(root, manifest, files = { 'index.js': 'export default 1\n'
 }
 
 check('systems tarball packages are refused', () => {
-  assert.throws(
-    () => assertAllowedTarballPackage('@holoscript/systems'),
-    /systems dist-tags stay/
-  );
+  assert.throws(() => assertAllowedTarballPackage('@holoscript/systems'), /systems dist-tags stay/);
 });
 
 check('framework 6.1.7 repair refuses a self-compared tarball', () => {
@@ -262,7 +259,10 @@ check('--inspect-only of a matching repaired tarball exits 0 without npm auth', 
       {
         name: '@holoscript/framework',
         version: '6.1.6',
-        dependencies: { '@holoscript/core': 'workspace:^', '@holoscript/llm-provider': 'workspace:^' },
+        dependencies: {
+          '@holoscript/core': 'workspace:^',
+          '@holoscript/llm-provider': 'workspace:^',
+        },
       },
       { 'index.js': 'export const n = 6\n' }
     );

@@ -93,9 +93,8 @@ export function resolveCompilerOptions(configPath, seen = new Set()) {
   seen.add(absolutePath);
   const config = readJsonConfig(absolutePath);
   const parentPath = resolveExtendsPath(absolutePath, config.extends);
-  const parent = parentPath && fs.existsSync(parentPath)
-    ? resolveCompilerOptions(parentPath, seen)
-    : {};
+  const parent =
+    parentPath && fs.existsSync(parentPath) ? resolveCompilerOptions(parentPath, seen) : {};
   return mergeCompilerOptions(parent, config.compilerOptions);
 }
 
@@ -116,12 +115,14 @@ function listTsconfigs(root) {
 
 export function validateCompilerOptions(configPath, compilerOptions) {
   const allowImportingTsExtensions = compilerOptions.allowImportingTsExtensions === true;
-  const emitsJavaScript = compilerOptions.noEmit !== true && compilerOptions.emitDeclarationOnly !== true;
+  const emitsJavaScript =
+    compilerOptions.noEmit !== true && compilerOptions.emitDeclarationOnly !== true;
   if (!allowImportingTsExtensions || !emitsJavaScript) return null;
   return {
     code: 'TS5096',
     config: path.relative(ROOT, configPath).replaceAll(path.sep, '/'),
-    message: "allowImportingTsExtensions requires noEmit or emitDeclarationOnly for an emitting project",
+    message:
+      'allowImportingTsExtensions requires noEmit or emitDeclarationOnly for an emitting project',
   };
 }
 
@@ -174,7 +175,9 @@ export function createReport({ root = ROOT, includeBuild = false } = {}) {
     configs,
     build: includeBuild ? runBuild(root) : { requested: false },
   };
-  report.ok = configs.violations.length === 0 && configs.unreadable.length === 0 &&
+  report.ok =
+    configs.violations.length === 0 &&
+    configs.unreadable.length === 0 &&
     (!includeBuild || report.build.ok);
   return report;
 }
@@ -192,7 +195,10 @@ export function main(argv = process.argv.slice(2)) {
     console.log(`  tsconfigs scanned: ${report.configs.scanned}`);
     console.log(`  TS5096 violations: ${report.configs.violations.length}`);
     for (const violation of report.configs.violations) console.log(`    - ${violation.config}`);
-    if (args.build) console.log(`  root build: ${report.build.ok ? 'PASS' : `FAIL (exit ${report.build.status ?? 'unknown'})`}`);
+    if (args.build)
+      console.log(
+        `  root build: ${report.build.ok ? 'PASS' : `FAIL (exit ${report.build.status ?? 'unknown'})`}`
+      );
   }
   return report.ok ? 0 : 1;
 }

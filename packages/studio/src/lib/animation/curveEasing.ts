@@ -10,13 +10,7 @@
 
 export type EasingFn = (t: number) => number;
 export type EasingName =
-  | 'linear'
-  | 'ease-in'
-  | 'ease-out'
-  | 'ease-in-out'
-  | 'bounce'
-  | 'elastic'
-  | 'back';
+  'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic' | 'back';
 
 // ── Basic ───────────────────────────────────────────────────────────────────
 

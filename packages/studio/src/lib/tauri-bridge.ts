@@ -280,10 +280,7 @@ export async function initBridgeForPlatform(
     init(
       wasmUrl: string,
       world:
-        | 'holoscript-runtime'
-        | 'holoscript-parser'
-        | 'holoscript-compiler'
-        | 'holoscript-spatial'
+        'holoscript-runtime' | 'holoscript-parser' | 'holoscript-compiler' | 'holoscript-spatial'
     ): Promise<unknown>;
   },
   caps: PlatformCapabilities

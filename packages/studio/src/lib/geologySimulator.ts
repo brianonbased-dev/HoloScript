@@ -7,13 +7,7 @@
 
 export type RockType = 'igneous' | 'sedimentary' | 'metamorphic';
 export type RockFormation =
-  | 'intrusive'
-  | 'extrusive'
-  | 'clastic'
-  | 'chemical'
-  | 'organic'
-  | 'foliated'
-  | 'non-foliated';
+  'intrusive' | 'extrusive' | 'clastic' | 'chemical' | 'organic' | 'foliated' | 'non-foliated';
 export type PlateMotion = 'convergent' | 'divergent' | 'transform';
 export type SeismicWave = 'P' | 'S' | 'Love' | 'Rayleigh';
 

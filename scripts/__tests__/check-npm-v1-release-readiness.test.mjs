@@ -131,7 +131,6 @@ console.log('check-npm-v1-release-readiness.test.mjs');
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // Registry comparison must use the MAX published version, not npm's \`latest\`
 // dist-tag and not the last element of the versions array.
@@ -158,11 +157,16 @@ function runWithFakeNpm(root, versions, extra = []) {
       "process.stdout.write(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'versions.json'), 'utf8'));\n"
   );
   writeFileSync(join(binDir, 'npm.cmd'), '@echo off\r\nnode "%~dp0fake-npm.mjs" %*\r\n');
-  writeFileSync(join(binDir, 'npm'), '#!/bin/sh\nexec node "$(dirname "$0")/fake-npm.mjs" "$@"\n', { mode: 0o755 });
+  writeFileSync(join(binDir, 'npm'), '#!/bin/sh\nexec node "$(dirname "$0")/fake-npm.mjs" "$@"\n', {
+    mode: 0o755,
+  });
   try {
     const result = spawnSync(process.execPath, [SCRIPT, '--root', root, ...extra], {
       encoding: 'utf8',
-      env: { ...process.env, PATH: binDir + (process.platform === 'win32' ? ';' : ':') + process.env.PATH },
+      env: {
+        ...process.env,
+        PATH: binDir + (process.platform === 'win32' ? ';' : ':') + process.env.PATH,
+      },
     });
     return { code: result.status, out: (result.stdout || '') + (result.stderr || '') };
   } finally {
@@ -178,8 +182,16 @@ function runWithFakeNpm(root, versions, extra = []) {
   const root = buildFixture({ pkg: { ...validPackage, version: '2.2.0' } });
   try {
     const result = runWithFakeNpm(root, ['2.0.0', '2.5.0', '2.1.0']);
-    assertEq(result.code, 1, 'local below its own line head fails even when above the last-published');
-    assertMatch(result.out, /older than npm 2\.5\.0/, 'the failure names the line head (2.5.0), not the last entry (2.1.0)');
+    assertEq(
+      result.code,
+      1,
+      'local below its own line head fails even when above the last-published'
+    );
+    assertMatch(
+      result.out,
+      /older than npm 2\.5\.0/,
+      'the failure names the line head (2.5.0), not the last entry (2.1.0)'
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

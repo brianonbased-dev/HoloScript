@@ -12,13 +12,7 @@ export interface Vec3 {
 }
 
 export type PuzzleType =
-  | 'lock'
-  | 'cipher'
-  | 'pattern'
-  | 'physical'
-  | 'logic'
-  | 'search'
-  | 'mechanical';
+  'lock' | 'cipher' | 'pattern' | 'physical' | 'logic' | 'search' | 'mechanical';
 export type PuzzleStatus = 'locked' | 'available' | 'in-progress' | 'solved' | 'skipped';
 export type HintLevel = 'nudge' | 'direction' | 'solution';
 

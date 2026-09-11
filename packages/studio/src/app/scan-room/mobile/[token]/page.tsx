@@ -21,13 +21,7 @@ interface MobileScanProps {
 }
 
 type ScanStatus =
-  | 'pending-phone'
-  | 'phone-connected'
-  | 'capturing'
-  | 'uploaded'
-  | 'processing'
-  | 'done'
-  | 'error';
+  'pending-phone' | 'phone-connected' | 'capturing' | 'uploaded' | 'processing' | 'done' | 'error';
 
 interface MobileScanFeedback {
   status?: ScanStatus;

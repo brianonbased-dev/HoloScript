@@ -1,8 +1,7 @@
 export type ConjectureGateState = 'survived' | 'falsified' | 'undecided';
 
 export type StudioConjectureRunnerSuite =
-  | 'proof-carrying-geometry-smoke'
-  | 'generated-geometry-family';
+  'proof-carrying-geometry-smoke' | 'generated-geometry-family';
 
 export interface StudioConjectureCandidateSummary {
   candidateId: string;

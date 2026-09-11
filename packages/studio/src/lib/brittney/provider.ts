@@ -162,11 +162,7 @@ function resolveCloud(baseURL: string | undefined): ResolvedBrittneyProvider {
   // lets the service's heuristic lane detection run (task-type modulation).
   const tier = process.env.BRITTNEY_TIER as 'standard' | 'pro' | undefined;
   const lane = process.env.BRITTNEY_LANE as
-    | 'operator'
-    | 'code'
-    | 'vision'
-    | 'reasoning'
-    | undefined;
+    'operator' | 'code' | 'vision' | 'reasoning' | undefined;
   const provider = new BrittneyCloudAdapter({
     baseURL,
     apiKey,

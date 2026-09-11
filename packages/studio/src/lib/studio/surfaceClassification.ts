@@ -1,10 +1,5 @@
 export type StudioSurfaceClass =
-  | 'core-workbench'
-  | 'account-workspace'
-  | 'holomesh-public'
-  | 'lab'
-  | 'archive'
-  | 'deprecated';
+  'core-workbench' | 'account-workspace' | 'holomesh-public' | 'lab' | 'archive' | 'deprecated';
 
 export type StudioNavigationLane = 'primary' | 'lab' | 'direct';
 

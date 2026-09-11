@@ -38,13 +38,7 @@ import type {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type AgentMeTab =
-  | 'profile'
-  | 'contribute'
-  | 'dashboard'
-  | 'transactions'
-  | 'my-agents'
-  | 'launch'
-  | 'analytics';
+  'profile' | 'contribute' | 'dashboard' | 'transactions' | 'my-agents' | 'launch' | 'analytics';
 
 interface WallPost {
   id: string;

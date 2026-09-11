@@ -27,15 +27,7 @@ import { VM } from '@holoscript/engine';
 // category union — the same values enumerated in CATEGORIES below — so declare it
 // locally instead of importing a non-existent symbol.
 type ContentCategory =
-  | 'world'
-  | 'object'
-  | 'agent'
-  | 'trait'
-  | 'shader'
-  | 'vfx'
-  | 'audio'
-  | 'template'
-  | 'plugin';
+  'world' | 'object' | 'agent' | 'trait' | 'shader' | 'vfx' | 'audio' | 'template' | 'plugin';
 
 // ═══════════════════════════════════════════════════════════════════
 

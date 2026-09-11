@@ -67,13 +67,7 @@ export interface AgentWorkflow {
 }
 
 export type WorkflowNodeType =
-  | 'agent'
-  | 'tool'
-  | 'decision'
-  | 'parallel'
-  | 'sequential'
-  | 'loop'
-  | 'merge';
+  'agent' | 'tool' | 'decision' | 'parallel' | 'sequential' | 'loop' | 'merge';
 
 export interface WorkflowNode {
   id: string;

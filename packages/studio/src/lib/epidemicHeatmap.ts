@@ -12,11 +12,7 @@ export interface GeoPoint {
 
 export type InfectionStatus = 'susceptible' | 'exposed' | 'infected' | 'recovered' | 'deceased';
 export type InterventionType =
-  | 'quarantine'
-  | 'vaccination'
-  | 'testing'
-  | 'contact-trace'
-  | 'lockdown';
+  'quarantine' | 'vaccination' | 'testing' | 'contact-trace' | 'lockdown';
 export type RiskLevel = 'low' | 'moderate' | 'high' | 'critical';
 
 export interface PopulationZone {

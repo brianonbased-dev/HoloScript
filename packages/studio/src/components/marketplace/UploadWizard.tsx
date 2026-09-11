@@ -35,14 +35,7 @@ interface UploadWizardProps {
 }
 
 type WizardStep =
-  | 'type'
-  | 'file'
-  | 'analysis'
-  | 'thumbnail'
-  | 'metadata'
-  | 'daemon'
-  | 'preview'
-  | 'submit';
+  'type' | 'file' | 'analysis' | 'thumbnail' | 'metadata' | 'daemon' | 'preview' | 'submit';
 
 export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProps) {
   const isRemix = !!remixFrom;

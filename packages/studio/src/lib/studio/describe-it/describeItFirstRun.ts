@@ -1,9 +1,5 @@
 export type DescribeItTarget =
-  | 'spatial-app'
-  | 'iot-device'
-  | 'digital-twin'
-  | 'agent-team'
-  | 'robotics-scene';
+  'spatial-app' | 'iot-device' | 'digital-twin' | 'agent-team' | 'robotics-scene';
 
 export interface DescribeItExamplePrompt {
   id: DescribeItTarget;

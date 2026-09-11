@@ -9,13 +9,7 @@ import { corsHeaders } from '../_lib/cors';
  */
 
 export type NodeCategory =
-  | 'input'
-  | 'transform'
-  | 'material'
-  | 'geometry'
-  | 'light'
-  | 'output'
-  | 'utility';
+  'input' | 'transform' | 'material' | 'geometry' | 'light' | 'output' | 'utility';
 
 export interface NodePort {
   id: string;

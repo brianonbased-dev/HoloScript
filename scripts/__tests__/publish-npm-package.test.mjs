@@ -181,7 +181,11 @@ check('a missing canonical remote fails loudly', () => {
   try {
     const result = runProvenance(sandbox.work, ['--provenance-remote', 'zzz-absent']);
     assert.equal(result.code, 1, `a missing remote must fail; got:\n${result.out}`);
-    assert.match(result.out, /requires the canonical remote "zzz-absent"/, 'it names what it wanted');
+    assert.match(
+      result.out,
+      /requires the canonical remote "zzz-absent"/,
+      'it names what it wanted'
+    );
     assert.match(result.out, /remotes: canon/, 'it lists what the checkout actually has');
   } finally {
     rmSync(sandbox.root, { recursive: true, force: true });

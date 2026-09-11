@@ -9,11 +9,7 @@ export type Vec3 = [number, number, number];
 
 export type Joint = 'hip' | 'knee' | 'ankle' | 'shoulder' | 'elbow' | 'wrist' | 'spine';
 export type MotionPhase =
-  | 'preparation'
-  | 'acceleration'
-  | 'execution'
-  | 'follow-through'
-  | 'recovery';
+  'preparation' | 'acceleration' | 'execution' | 'follow-through' | 'recovery';
 export type Sport =
   | 'running'
   | 'swimming'

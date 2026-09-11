@@ -894,8 +894,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     // an existing repo would overwrite user customizations.
     const shouldScaffold = input.approvedScaffold && isNew;
     let scaffold:
-      | Awaited<ReturnType<typeof import('./scaffolder').scaffoldProjectWorkspace>>
-      | undefined;
+      Awaited<ReturnType<typeof import('./scaffolder').scaffoldProjectWorkspace>> | undefined;
     if (shouldScaffold) {
       updateStep('scaffold', 'running');
       const { scaffoldProjectWorkspace } = await import('./scaffolder');

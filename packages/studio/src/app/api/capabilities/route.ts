@@ -45,11 +45,7 @@ const ORCH_KEY =
   '';
 
 export type CapabilitySurface =
-  | 'live'
-  | 'orphaned-cli'
-  | 'orphaned-tool'
-  | 'orphaned-route'
-  | 'admin-only';
+  'live' | 'orphaned-cli' | 'orphaned-tool' | 'orphaned-route' | 'admin-only';
 export type CapabilityGate = 'safe' | 'spend' | 'admin';
 
 export interface CapabilityEntry {

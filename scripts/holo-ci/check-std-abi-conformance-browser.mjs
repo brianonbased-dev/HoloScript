@@ -238,9 +238,7 @@ async function executeInChromium(runVectors, sources, projection) {
           throw new Error('web artifact does not export evaluate_trait_handler_v6');
         }
         const hostBindings = std.createStdHostBindings();
-        const projectionTrait = /@trait\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/.exec(
-          pageProjection
-        )?.[1];
+        const projectionTrait = /@trait\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/.exec(pageProjection)?.[1];
         if (!projectionTrait) throw new Error('projection trait name is absent');
         const results = pageVectors.map((vector) => {
           const source = vector.packaged ? pageSources[vector.trait] : pageProjection;

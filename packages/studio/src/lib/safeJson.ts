@@ -41,8 +41,7 @@ export function tryParseJson<T>(s: string | null | undefined, fallback: T): T {
  * where you want to surface a specific error message.
  */
 export type SafeJsonResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: 'empty' | 'parse'; message?: string };
+  { ok: true; value: T } | { ok: false; error: 'empty' | 'parse'; message?: string };
 
 export function safeParseJson<T = unknown>(s: string | null | undefined): SafeJsonResult<T> {
   if (s === null || s === undefined || s === '') {

@@ -8,13 +8,7 @@
 export type NoteValue = 'C' | 'C#' | 'D' | 'D#' | 'E' | 'F' | 'F#' | 'G' | 'G#' | 'A' | 'A#' | 'B';
 export type WaveShape = 'sine' | 'square' | 'sawtooth' | 'triangle' | 'noise';
 export type EffectType =
-  | 'eq'
-  | 'compressor'
-  | 'reverb'
-  | 'delay'
-  | 'chorus'
-  | 'distortion'
-  | 'limiter';
+  'eq' | 'compressor' | 'reverb' | 'delay' | 'chorus' | 'distortion' | 'limiter';
 
 export interface MidiNote {
   note: NoteValue;
