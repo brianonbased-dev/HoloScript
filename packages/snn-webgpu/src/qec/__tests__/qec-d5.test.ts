@@ -13,15 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { GPUContext } from '../../gpu-context.js';
-import {
-  ZSTAB,
-  XSTAB,
-  ZL,
-  XL,
-  bpOsdDecode,
-  stabsToMatrix,
-  overlapParity,
-} from '../qec-codes.js';
+import { ZSTAB, XSTAB, ZL, XL, bpOsdDecode, stabsToMatrix, overlapParity } from '../qec-codes.js';
 import {
   buildRotatedSurfaceCode,
   validateSurfaceCode,
@@ -32,11 +24,7 @@ import {
   xorSupportParity,
 } from '../qec-codes-d.js';
 import { E_CHECK, E_VAR } from '../qec-decoder.js';
-import {
-  tannerEdgesOf,
-  generateBpWgsl,
-  QECDecoderD,
-} from '../qec-decoder-d.js';
+import { tannerEdgesOf, generateBpWgsl, QECDecoderD } from '../qec-decoder-d.js';
 
 import { GPU_LIVE } from '../../__tests__/setup.js';
 
@@ -152,9 +140,9 @@ describe('WGSL generation (pure)', () => {
     expect(wgsl).toContain('const NVAR: u32 = 25u;');
     expect(wgsl).toContain('const NCHECK: u32 = 12u;');
     expect(wgsl).toContain('const NEDGE: u32 = 40u;');
-    expect(() =>
-      generateBpWgsl({ nVar: 31, nCheck: 4, eCheck: [0], eVar: [0] })
-    ).toThrow(/≤30 data qubits/);
+    expect(() => generateBpWgsl({ nVar: 31, nCheck: 4, eCheck: [0], eVar: [0] })).toThrow(
+      /≤30 data qubits/
+    );
   });
 
   it('xorSupportParity separates cosets', () => {
@@ -185,34 +173,42 @@ describe('QECDecoderD on real GPU', () => {
     ctx?.destroy();
   });
 
-  it('d5: full pipeline syndrome-valid on all 4096, flags match CPU, ML agreement = 4078', { timeout: 120_000 }, async () => {
-    if (!GPU_LIVE) {
-      console.log('[qec-d5] Skipping GPU exhaustive: no real device.');
-      return;
+  it(
+    'd5: full pipeline syndrome-valid on all 4096, flags match CPU, ML agreement = 4078',
+    { timeout: 120_000 },
+    async () => {
+      if (!GPU_LIVE) {
+        console.log('[qec-d5] Skipping GPU exhaustive: no real device.');
+        return;
+      }
+      const dec = new QECDecoderD(ctx!, buildRotatedSurfaceCode(5));
+      await dec.initialize();
+      const rep = await dec.validateExhaustive();
+      expect(rep.syndromesTested).toBe(4096);
+      expect(rep.gpuConvergedAllValid).toBe(true);
+      expect(rep.fullPipelineAllValid).toBe(true);
+      expect(rep.convergedFlagMatchesCpu).toBe(4096);
+      expect(rep.gpuBpConverged).toBe(rep.cpuAudit.bpConverged);
+      expect(rep.fullPipelineMlCosetAgreement).toBe(4078);
     }
-    const dec = new QECDecoderD(ctx!, buildRotatedSurfaceCode(5));
-    await dec.initialize();
-    const rep = await dec.validateExhaustive();
-    expect(rep.syndromesTested).toBe(4096);
-    expect(rep.gpuConvergedAllValid).toBe(true);
-    expect(rep.fullPipelineAllValid).toBe(true);
-    expect(rep.convergedFlagMatchesCpu).toBe(4096);
-    expect(rep.gpuBpConverged).toBe(rep.cpuAudit.bpConverged);
-    expect(rep.fullPipelineMlCosetAgreement).toBe(4078);
-  });
+  );
 
-  it('d3 through the parameterized class matches the graduated decoder story (16/16)', { timeout: 60_000 }, async () => {
-    if (!GPU_LIVE) {
-      console.log('[qec-d5] Skipping GPU d3 cross-check: no real device.');
-      return;
+  it(
+    'd3 through the parameterized class matches the graduated decoder story (16/16)',
+    { timeout: 60_000 },
+    async () => {
+      if (!GPU_LIVE) {
+        console.log('[qec-d5] Skipping GPU d3 cross-check: no real device.');
+        return;
+      }
+      const dec = new QECDecoderD(ctx!, buildRotatedSurfaceCode(3));
+      await dec.initialize();
+      const rep = await dec.validateExhaustive();
+      expect(rep.syndromesTested).toBe(16);
+      expect(rep.fullPipelineAllValid).toBe(true);
+      expect(rep.fullPipelineMlCosetAgreement).toBe(16);
     }
-    const dec = new QECDecoderD(ctx!, buildRotatedSurfaceCode(3));
-    await dec.initialize();
-    const rep = await dec.validateExhaustive();
-    expect(rep.syndromesTested).toBe(16);
-    expect(rep.fullPipelineAllValid).toBe(true);
-    expect(rep.fullPipelineMlCosetAgreement).toBe(16);
-  });
+  );
 
   it(
     'latency + throughput benchmarks run and return sane shapes',

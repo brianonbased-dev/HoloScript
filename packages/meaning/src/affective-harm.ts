@@ -55,9 +55,7 @@ export interface UAALAffectiveSceneIR extends UAALVibeIR {
 }
 
 export type UAALAffectiveHarmClass =
-  | 'sensory_overload'
-  | 'fear_targeting'
-  | 'calm_promise_violation';
+  'sensory_overload' | 'fear_targeting' | 'calm_promise_violation';
 
 export interface UAALAffectiveHarmFinding {
   harm: UAALAffectiveHarmClass;

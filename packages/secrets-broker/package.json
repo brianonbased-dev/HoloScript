@@ -82,7 +82,11 @@
       "nativeCanonicalAuthorityState": {
         "scope": "source-authored-bounded-ascii-authority-state-canonical-json",
         "authorityMaxBytes": 24,
-        "states": [0, 1, 2],
+        "states": [
+          0,
+          1,
+          2
+        ],
         "verifiedCases": 4,
         "verifiedExecutables": 128,
         "verifiedDigestBytes": 32

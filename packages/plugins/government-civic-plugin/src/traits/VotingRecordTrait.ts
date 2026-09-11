@@ -2,11 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type VoteType =
-  | 'council_vote'
-  | 'ballot_measure'
-  | 'election'
-  | 'referendum'
-  | 'committee_vote';
+  'council_vote' | 'ballot_measure' | 'election' | 'referendum' | 'committee_vote';
 export type VoteOutcome = 'passed' | 'failed' | 'tabled' | 'withdrawn' | 'tied' | 'pending';
 
 export interface VoteCast {

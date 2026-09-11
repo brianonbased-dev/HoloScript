@@ -117,8 +117,9 @@ export function visibleTeamMessagesFor<
     if (!hasExplicitRecipient(message)) return true;
     if (messageAddressedToAny(message, refs)) return true;
     return refs.some(
-      (ref) => refsMatch(message?.fromAgentId, normalizeAgentRef(ref)) ||
-        refsMatch(message?.fromAgentName, normalizeAgentRef(ref)),
+      (ref) =>
+        refsMatch(message?.fromAgentId, normalizeAgentRef(ref)) ||
+        refsMatch(message?.fromAgentName, normalizeAgentRef(ref))
     );
   });
 }

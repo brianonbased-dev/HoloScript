@@ -8,14 +8,7 @@ import type {
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type FabricType =
-  | 'woven'
-  | 'knit'
-  | 'denim'
-  | 'silk'
-  | 'leather'
-  | 'synthetic'
-  | 'lace'
-  | 'tulle';
+  'woven' | 'knit' | 'denim' | 'silk' | 'leather' | 'synthetic' | 'lace' | 'tulle';
 export interface FabricSimulationConfig {
   fabricType: FabricType;
   stiffness: number;

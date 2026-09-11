@@ -555,11 +555,7 @@ export interface UAALAccessBenchmarkResult {
 }
 
 export type UAALCompositionDimension =
-  | 'norm'
-  | 'counterparty'
-  | 'affordance'
-  | 'occlusion'
-  | 'deadline';
+  'norm' | 'counterparty' | 'affordance' | 'occlusion' | 'deadline';
 
 /**
  * A discharge-ordering edge: the obligation `after` may only be discharged once `before` has been. A set of

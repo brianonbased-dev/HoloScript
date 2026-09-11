@@ -121,10 +121,7 @@ export interface SandboxPolicy {
 // ── Sandbox Subject ──────────────────────────────────────────────────────────
 
 export type SandboxSubjectKind =
-  | 'holoscript_code'
-  | 'mcp_tool'
-  | 'runtime_adapter'
-  | 'generated_plugin';
+  'holoscript_code' | 'mcp_tool' | 'runtime_adapter' | 'generated_plugin';
 
 // 'consumer' is additive (WS-1, 2026-07-02): a genuinely anonymous, non-privileged
 // public session. Nothing produces this value today -- every existing

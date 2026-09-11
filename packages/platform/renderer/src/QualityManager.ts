@@ -17,12 +17,7 @@ export interface LODPolicy {
 }
 
 export type RenderFeature =
-  | 'shadows'
-  | 'reflections'
-  | 'particles'
-  | 'postProcessing'
-  | 'ambientOcclusion'
-  | 'antiAliasing';
+  'shadows' | 'reflections' | 'particles' | 'postProcessing' | 'ambientOcclusion' | 'antiAliasing';
 
 export interface GaussianBudget {
   /** Maximum number of 3D Gaussian splats. */

@@ -2078,8 +2078,7 @@ export async function handleKnowledgeRoutes(
 
     let graphReady = false;
     let handleGraphRagTool:
-      | ((name: string, args: Record<string, unknown>) => Promise<unknown>)
-      | undefined;
+      ((name: string, args: Record<string, unknown>) => Promise<unknown>) | undefined;
     try {
       const absorbMcp = await import('@holoscript/absorb-service/mcp');
       graphReady = absorbMcp.isGraphRAGReady();

@@ -14,16 +14,10 @@ export const HOLOSCRIPT_OWNED_BUFFER_ABI = 'hs.buffer.owned.v1' as const;
 export const HOLOSCRIPT_AGGREGATE_REFERENCE_ABI = 'hs.aggregate.ref.v1' as const;
 
 type HoloScriptAggregateValueAbi =
-  | typeof HOLOSCRIPT_AGGREGATE_VALUE_ABI
-  | typeof HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2;
+  typeof HOLOSCRIPT_AGGREGATE_VALUE_ABI | typeof HOLOSCRIPT_AGGREGATE_VALUE_ABI_V2;
 
 export type HoloScriptStdUaalOperand =
-  | string
-  | number
-  | boolean
-  | Record<string, unknown>
-  | HoloScriptStdUaalOperand[]
-  | null;
+  string | number | boolean | Record<string, unknown> | HoloScriptStdUaalOperand[] | null;
 
 export interface HoloScriptStdUaalVmProxy {
   push(value: HoloScriptStdUaalOperand): void;

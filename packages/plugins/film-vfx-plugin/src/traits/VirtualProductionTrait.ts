@@ -15,12 +15,7 @@
 export type SyncMode = 'genlock' | 'framelock' | 'freerun' | 'timecode' | 'ntp';
 
 export type LEDPanelLayout =
-  | 'flat_wall'
-  | 'curved_wall'
-  | 'three_wall'
-  | 'full_volume'
-  | 'ceiling_floor'
-  | 'custom';
+  'flat_wall' | 'curved_wall' | 'three_wall' | 'full_volume' | 'ceiling_floor' | 'custom';
 
 export interface FrustumConfig {
   /** Camera sensor width in mm */

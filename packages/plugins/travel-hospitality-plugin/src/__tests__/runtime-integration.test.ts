@@ -106,8 +106,7 @@ describe('travel-hospitality -> HoloScript runtime integration (revpar)', () => 
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['revpar:revpar-orb'] as
-      | { revpar?: number; occupancyRate?: number }
-      | undefined;
+      { revpar?: number; occupancyRate?: number } | undefined;
     expect(persisted).toBeDefined();
     // Same hand-derived RevPAR = 150.00.
     expect(persisted?.revpar).toBeCloseTo(EXPECTED_REVPAR, 6);

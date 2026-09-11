@@ -31,10 +31,7 @@ export type MeaningResolutionStatus = 'resolved' | 'unresolvable';
  * reasons, kept intact. Family-scoped detail rides in {@link MeaningEpistemicGap}.
  */
 export type MeaningEpistemicReason =
-  | 'underdetermined'
-  | 'unprioritized_conflict'
-  | 'cyclic_dependency'
-  | 'missing_precondition';
+  'underdetermined' | 'unprioritized_conflict' | 'cyclic_dependency' | 'missing_precondition';
 
 /**
  * The ALEATORIC (irreducible) abstention class. Unlike the four epistemic buckets it carries NO

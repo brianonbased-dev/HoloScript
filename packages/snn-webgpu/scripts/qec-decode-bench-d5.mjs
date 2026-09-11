@@ -48,7 +48,10 @@ function sampleGpuConditions() {
       ],
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
     );
-    const [util, clock, clockMax, pstate, power, mem] = csv.trim().split(',').map((x) => x.trim());
+    const [util, clock, clockMax, pstate, power, mem] = csv
+      .trim()
+      .split(',')
+      .map((x) => x.trim());
     return {
       utilization_pct: Number(util),
       clock_sm_mhz: Number(clock),

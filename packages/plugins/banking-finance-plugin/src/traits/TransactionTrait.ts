@@ -2,13 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type TransactionType =
-  | 'deposit'
-  | 'withdrawal'
-  | 'transfer'
-  | 'payment'
-  | 'fee'
-  | 'interest'
-  | 'refund';
+  'deposit' | 'withdrawal' | 'transfer' | 'payment' | 'fee' | 'interest' | 'refund';
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'reversed' | 'held';
 export interface TransactionConfig {
   type: TransactionType;

@@ -22,9 +22,5 @@ export interface TraitHandler<TConfig = unknown> {
 }
 
 export type EvidenceClassification =
-  | 'physical'
-  | 'digital'
-  | 'biological'
-  | 'trace'
-  | 'documentary';
+  'physical' | 'digital' | 'biological' | 'trace' | 'documentary';
 export type CustodyStatus = 'collected' | 'sealed' | 'in_transit' | 'in_storage' | 'released';

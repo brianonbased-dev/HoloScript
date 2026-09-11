@@ -2,13 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type OrderStatus =
-  | 'new'
-  | 'confirmed'
-  | 'preparing'
-  | 'ready'
-  | 'served'
-  | 'paid'
-  | 'cancelled';
+  'new' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'paid' | 'cancelled';
 export interface OrderItem {
   menuItemId: string;
   name: string;

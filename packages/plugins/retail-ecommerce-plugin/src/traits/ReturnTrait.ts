@@ -2,12 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type ReturnStatus =
-  | 'requested'
-  | 'approved'
-  | 'shipped'
-  | 'received'
-  | 'refunded'
-  | 'denied';
+  'requested' | 'approved' | 'shipped' | 'received' | 'refunded' | 'denied';
 export interface ReturnConfig {
   orderId: string;
   reason: string;

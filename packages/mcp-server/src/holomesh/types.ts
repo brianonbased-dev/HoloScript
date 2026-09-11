@@ -773,11 +773,7 @@ export interface TeamFleetSpendAccountingV1 {
   cap_applicable: boolean;
   cap_usd: number | null;
   observed_admission_verdict:
-    | 'under-cap'
-    | 'cap-exceeded'
-    | 'not-applicable'
-    | 'blocked-monetary-coverage-incomplete'
-    | null;
+    'under-cap' | 'cap-exceeded' | 'not-applicable' | 'blocked-monetary-coverage-incomplete' | null;
   trusted_admission_verdict: 'under-cap' | 'cap-exceeded' | null;
   /** Signed: a negative value is the measured amount over the daily cap. */
   trusted_headroom_usd: number | null;

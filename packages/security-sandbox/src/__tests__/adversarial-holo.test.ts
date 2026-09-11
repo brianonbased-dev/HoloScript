@@ -45,10 +45,7 @@ import type { SimSolver, FieldData } from '@holoscript/engine/simulation';
 // ─────────────────────────────────────────────────────────────────────────────
 
 type AttackCategory =
-  | 'Sandbox Escape'
-  | 'Incorrect Physics'
-  | 'Non-Determinism'
-  | 'Post-hoc Tampering';
+  'Sandbox Escape' | 'Incorrect Physics' | 'Non-Determinism' | 'Post-hoc Tampering';
 
 type DetectionGuarantee =
   | 'sandbox-validation'

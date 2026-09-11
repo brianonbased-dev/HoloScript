@@ -18,12 +18,7 @@ import type { SecretRef } from './types';
 type Env = Record<string, string | undefined>;
 
 export type ServiceIdentitySource =
-  | 'explicit'
-  | 'holomesh-agent'
-  | 'fleet-seat'
-  | 'railway-service'
-  | 'x402-bearer'
-  | 'fallback';
+  'explicit' | 'holomesh-agent' | 'fleet-seat' | 'railway-service' | 'x402-bearer' | 'fallback';
 
 export interface ServiceIdentity {
   /** Owner id used against SecretStore/SecretResolver. */

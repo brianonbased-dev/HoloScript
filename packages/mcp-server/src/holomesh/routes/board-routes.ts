@@ -3100,7 +3100,8 @@ export async function handleBoardRoutes(
         }
         if (Object.keys(updates).filter((k) => k !== '_prevDescription').length === 0) {
           json(res, 400, {
-            error: 'No updatable fields provided: supply title, description, priority, tags, and/or workUnit',
+            error:
+              'No updatable fields provided: supply title, description, priority, tags, and/or workUnit',
           });
           return true;
         }
@@ -3601,7 +3602,8 @@ export async function handleBoardRoutes(
     const team = teamStore.get(teamId);
     let toAgentId: string | undefined;
     let toAgentName: string | undefined;
-    const toNeedle = toRaw || (INBOX_MESSAGE_TYPE_SET.has(messageType) ? firstMention(content) : '');
+    const toNeedle =
+      toRaw || (INBOX_MESSAGE_TYPE_SET.has(messageType) ? firstMention(content) : '');
     if (toNeedle) {
       const member = findTeamMember(team?.members, toNeedle);
       toAgentId = member?.agentId;

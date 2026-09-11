@@ -184,20 +184,14 @@ it('should extract skeleton bones from uploaded character', () => {
 ❌ **Bad**: Generic IDs
 
 ```typescript
-TODO('001', {
-  /* ... */
-}); // What is 001?
+TODO('001', {/* ... */}); // What is 001?
 ```
 
 ✅ **Good**: Semantic IDs
 
 ```typescript
-TODO('MEME-003', {
-  /* ... */
-}); // Clearly meme character feature
-TODO('ANIM-042', {
-  /* ... */
-}); // Animation system feature
+TODO('MEME-003', {/* ... */}); // Clearly meme character feature
+TODO('ANIM-042', {/* ... */}); // Animation system feature
 ```
 
 ### 3. Realistic Estimates

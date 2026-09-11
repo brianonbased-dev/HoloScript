@@ -1074,8 +1074,7 @@ export const HapticTrait: TraitHandler = {
             if (gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
               // Standard Gamepad Haptic API
               const actuator = gamepad.hapticActuators[0] as unknown as
-                | HapticActuatorWithPulse
-                | undefined;
+                HapticActuatorWithPulse | undefined;
               if (actuator && typeof actuator.pulse === 'function') {
                 actuator.pulse(intensity, duration);
               }

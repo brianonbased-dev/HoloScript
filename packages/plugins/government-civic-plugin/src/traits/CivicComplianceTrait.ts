@@ -3,11 +3,7 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types
 
 export type ComplianceFramework = 'ADA' | 'FOIA' | 'WCAG' | 'OPRA' | 'GDPR' | 'CCPA' | 'section508';
 export type ComplianceStatus =
-  | 'compliant'
-  | 'non_compliant'
-  | 'pending_review'
-  | 'exempt'
-  | 'remediation_in_progress';
+  'compliant' | 'non_compliant' | 'pending_review' | 'exempt' | 'remediation_in_progress';
 
 export interface ComplianceCheck {
   id: string;

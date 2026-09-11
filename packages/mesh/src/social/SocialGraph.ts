@@ -20,11 +20,7 @@ export interface SocialUser {
 }
 
 export type RelationshipType =
-  | 'friend'
-  | 'pending_incoming'
-  | 'pending_outgoing'
-  | 'blocked'
-  | 'none';
+  'friend' | 'pending_incoming' | 'pending_outgoing' | 'blocked' | 'none';
 
 export interface SocialRelationship {
   userId: string;

@@ -28,14 +28,7 @@ export interface RuntimeConfig {
 }
 
 export type RuntimePermission =
-  | 'audio'
-  | 'physics'
-  | 'networking'
-  | 'filesystem'
-  | 'clipboard'
-  | 'fullscreen'
-  | 'vr'
-  | 'ar';
+  'audio' | 'physics' | 'networking' | 'filesystem' | 'clipboard' | 'fullscreen' | 'vr' | 'ar';
 
 export interface RendererAdapter {
   createScene(): unknown;

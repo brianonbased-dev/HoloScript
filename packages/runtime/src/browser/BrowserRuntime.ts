@@ -324,8 +324,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
     const geometry = template.properties?.find((p: { key: string }) => p.key === 'geometry')
       ?.value as string | undefined;
     const color = template.properties?.find((p: { key: string }) => p.key === 'color')?.value as
-      | string
-      | undefined;
+      string | undefined;
 
     // Extract traits with their configs (preserve @physics(mass: 2) style configs)
     const extractedTraits: ParsedTrait[] = (template.traits || []).map((t: unknown) => {

@@ -46,13 +46,7 @@ export type ShaderEntryPoint =
 
 /** Shader source category. */
 export type ShaderCategory =
-  | 'lif'
-  | 'synaptic'
-  | 'encode'
-  | 'decode'
-  | 'tropical'
-  | 'tropicalGraph'
-  | 'largescale';
+  'lif' | 'synaptic' | 'encode' | 'decode' | 'tropical' | 'tropicalGraph' | 'largescale';
 
 /** Mapping from category to WGSL source code. */
 const SHADER_SOURCES: Record<ShaderCategory, string> = {

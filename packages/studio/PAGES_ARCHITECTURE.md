@@ -50,28 +50,30 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 | `/shared/[id]`  | `shared/[id]/page.tsx`  | **Server (SSR/ISR)** | Community scene page. SEO-optimized `generateMetadata`. ISR (60s).                       | **Complete** |
 
 **Utility Pages:**
-| File | Purpose |
-|---|---|
-| `error.tsx` | Global error boundary with "Try Again" + "Back to Home" |
-| `create/error.tsx` | Scene editor error boundary (WebGL/shader-specific messages) |
-| `holomesh/error.tsx` | HoloMesh error boundary (network-specific messages) |
-| `absorb/error.tsx` | Absorb service error boundary |
-| `workspace/error.tsx` | Workspace error boundary |
-| `not-found.tsx` | 404 page |
-| `loading.tsx` | Global loading spinner |
-| `create/loading.tsx` | Scene editor loading (3D viewport init message) |
-| `holomesh/loading.tsx` | HoloMesh loading |
-| `absorb/loading.tsx` | Absorb loading |
-| `workspace/loading.tsx` | Workspace loading |
-| `projects/loading.tsx` | Projects loading |
-| `shared/[id]/not-found.tsx` | Scene-specific 404 |
+
+| File                        | Purpose                                                      |
+| --------------------------- | ------------------------------------------------------------ |
+| `error.tsx`                 | Global error boundary with "Try Again" + "Back to Home"      |
+| `create/error.tsx`          | Scene editor error boundary (WebGL/shader-specific messages) |
+| `holomesh/error.tsx`        | HoloMesh error boundary (network-specific messages)          |
+| `absorb/error.tsx`          | Absorb service error boundary                                |
+| `workspace/error.tsx`       | Workspace error boundary                                     |
+| `not-found.tsx`             | 404 page                                                     |
+| `loading.tsx`               | Global loading spinner                                       |
+| `create/loading.tsx`        | Scene editor loading (3D viewport init message)              |
+| `holomesh/loading.tsx`      | HoloMesh loading                                             |
+| `absorb/loading.tsx`        | Absorb loading                                               |
+| `workspace/loading.tsx`     | Workspace loading                                            |
+| `projects/loading.tsx`      | Projects loading                                             |
+| `shared/[id]/not-found.tsx` | Scene-specific 404                                           |
 
 **Layouts:**
-| File | Purpose |
-|---|---|
-| `layout.tsx` | Root layout. `<html lang="en" className="dark">`, imports `globals.css`, wraps in `<Providers>` |
-| `create/layout.tsx` | Flex column, full height, overflow hidden |
-| `workspace/layout.tsx` | Metadata only, passthrough `<>{children}</>` |
+
+| File                   | Purpose                                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `layout.tsx`           | Root layout. `<html lang="en" className="dark">`, imports `globals.css`, wraps in `<Providers>` |
+| `create/layout.tsx`    | Flex column, full height, overflow hidden                                                       |
+| `workspace/layout.tsx` | Metadata only, passthrough `<>{children}</>`                                                    |
 
 ### B. Marketplace Pages (`packages/marketplace-web/src/app/`)
 

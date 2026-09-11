@@ -2,13 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type ClaimStatus =
-  | 'filed'
-  | 'under_review'
-  | 'approved'
-  | 'denied'
-  | 'paid'
-  | 'appealed'
-  | 'closed';
+  'filed' | 'under_review' | 'approved' | 'denied' | 'paid' | 'appealed' | 'closed';
 export interface ClaimConfig {
   claimNumber: string;
   policyNumber: string;

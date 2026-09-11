@@ -13,10 +13,7 @@ export type X402SettlementResult =
   | {
       success: false;
       status:
-        | 'no_x402_facilitator'
-        | 'invalid_request'
-        | 'invalid_configuration'
-        | 'live_unavailable';
+        'no_x402_facilitator' | 'invalid_request' | 'invalid_configuration' | 'live_unavailable';
       amount: number | null;
       message: string;
     }

@@ -9,13 +9,7 @@ export type MeetingType =
   | 'budget_session'
   | 'town_hall';
 export type MeetingStatus =
-  | 'scheduled'
-  | 'in_session'
-  | 'recess'
-  | 'public_comment'
-  | 'voting'
-  | 'adjourned'
-  | 'cancelled';
+  'scheduled' | 'in_session' | 'recess' | 'public_comment' | 'voting' | 'adjourned' | 'cancelled';
 
 export interface AgendaItem {
   id: string;

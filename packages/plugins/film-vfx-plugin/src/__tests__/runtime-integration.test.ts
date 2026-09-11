@@ -126,8 +126,7 @@ describe('film-vfx -> HoloScript runtime integration (cinematography_exposure)',
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['cinematography_exposure:cinematography'] as
-      | { ev100?: number; exposureIndex?: number }
-      | undefined;
+      { ev100?: number; exposureIndex?: number } | undefined;
     expect(persisted).toBeDefined();
     // Same hand-derivation as the dispatch test: log2(16000) = 13.965784284662087.
     expect(persisted?.ev100).toBeCloseTo(13.965784284662087, 6);

@@ -92,8 +92,7 @@ describe('neuroscience -> HoloScript runtime integration (lif_neuron)', () => {
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['lif_neuron:neuron'] as
-      | { spikeCount?: number; finalVoltageMv?: number }
-      | undefined;
+      { spikeCount?: number; finalVoltageMv?: number } | undefined;
     expect(persisted).toBeDefined();
     // Same hand-derived steady state: -55 mV, zero spikes.
     expect(persisted?.spikeCount).toBe(0);

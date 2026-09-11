@@ -111,8 +111,7 @@ describe('banking-finance -> HoloScript runtime integration (fixed_income_solver
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['fixed_income_solver:bond'] as
-      | { price?: number; modifiedDuration?: number }
-      | undefined;
+      { price?: number; modifiedDuration?: number } | undefined;
     expect(persisted).toBeDefined();
     // Same hand-checked winner value, now read from durable state.
     expect(persisted?.price).toBeCloseTo(EXPECTED_PRICE, 4);

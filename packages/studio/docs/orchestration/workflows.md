@@ -629,15 +629,9 @@ Save common patterns as reusable templates:
 
 ```typescript
 const templates = {
-  'linear-pipeline': {
-    /* 3-step linear workflow */
-  },
-  'parallel-review': {
-    /* Multi-agent parallel review */
-  },
-  'iterative-refinement': {
-    /* Loop-based refinement */
-  },
+  'linear-pipeline': {/* 3-step linear workflow */},
+  'parallel-review': {/* Multi-agent parallel review */},
+  'iterative-refinement': {/* Loop-based refinement */},
 };
 ```
 

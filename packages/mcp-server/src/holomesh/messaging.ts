@@ -17,15 +17,8 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'crypto';
 import { authPrincipal } from './identity/mcp-board-agent-binding';
-import {
-  reloadTeam,
-  teamStore,
-  walletToAgent,
-} from './state';
-import {
-  findTeamMember,
-  messageAddressedToAny,
-} from './message-addressing';
+import { reloadTeam, teamStore, walletToAgent } from './state';
+import { findTeamMember, messageAddressedToAny } from './message-addressing';
 import { hydrateTeamMessageStore, persistTeamMessages } from './team-message-merge';
 import { broadcastToTeam } from './team-room';
 import type { Team, TeamMember, TeamMessage } from './types';
@@ -502,7 +495,12 @@ export async function handleMessagingTool(
       broadcastToTeam(teamId, {
         type: 'message:new',
         agent: caller.agentName,
-        data: { id: msg.id, from: caller.agentName, to: msg.toAgentId, content: content.slice(0, 200) },
+        data: {
+          id: msg.id,
+          from: caller.agentName,
+          to: msg.toAgentId,
+          content: content.slice(0, 200),
+        },
       });
 
       return {

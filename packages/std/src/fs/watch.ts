@@ -11,13 +11,7 @@ import { EventEmitter } from 'events';
  * Watch event types
  */
 export type WatchEventType =
-  | 'add'
-  | 'change'
-  | 'unlink'
-  | 'addDir'
-  | 'unlinkDir'
-  | 'error'
-  | 'ready';
+  'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir' | 'error' | 'ready';
 
 /**
  * Watch event

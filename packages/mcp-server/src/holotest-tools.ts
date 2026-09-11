@@ -954,7 +954,8 @@ function parseJudgeOutput(raw: string, dimensions: string[], provider?: string):
         score: 0,
         rationale: 'Not scored — the judge returned output that could not be parsed.',
       })),
-      summary: 'UNGRADED: the LLM judge returned non-JSON output, so no verdict was produced. This is not a failing score.',
+      summary:
+        'UNGRADED: the LLM judge returned non-JSON output, so no verdict was produced. This is not a failing score.',
       provider,
     };
   }
@@ -1006,7 +1007,8 @@ async function runLLMJudge(output: string, config: LLMJudgeConfig): Promise<Judg
       score: 0,
       rationale: 'Not scored — no LLM provider was available to run the judge.',
     })),
-    summary: 'UNGRADED: no LLM provider available, so nothing was judged. This is not a failing score.',
+    summary:
+      'UNGRADED: no LLM provider available, so nothing was judged. This is not a failing score.',
     provider: undefined,
   };
 }

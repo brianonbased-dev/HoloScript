@@ -47,12 +47,7 @@ const DEFAULT_SYNC_OPTIONS: SyncOptions = {
 // ============================================================================
 
 export type SyncEventType =
-  | 'sync-start'
-  | 'sync-complete'
-  | 'sync-error'
-  | 'change'
-  | 'mapping-updated'
-  | 'diagnostics';
+  'sync-start' | 'sync-complete' | 'sync-error' | 'change' | 'mapping-updated' | 'diagnostics';
 
 export type SyncEventListener = (event: SyncEvent) => void;
 

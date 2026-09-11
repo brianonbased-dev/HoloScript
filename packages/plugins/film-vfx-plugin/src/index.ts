@@ -131,8 +131,7 @@ export type FilmVFXFlatTraitName =
 export type FilmVFXNamespacedTraitName = `FilmVFXPlugin.${FilmVFXFlatTraitName}`;
 
 export type FilmVFXTraitToken<TFlat extends FilmVFXFlatTraitName = FilmVFXFlatTraitName> =
-  | TFlat
-  | `FilmVFXPlugin.${TFlat}`;
+  TFlat | `FilmVFXPlugin.${TFlat}`;
 
 /**
  * Mirrors absorb LegacyImporter routing so plugin-local compilation can accept

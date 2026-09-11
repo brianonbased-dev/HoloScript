@@ -90,8 +90,7 @@ describe('therapy -> HoloScript runtime integration (phq9_screen)', () => {
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['phq9_screen:screen'] as
-      | { totalScore?: number; severity?: string }
-      | undefined;
+      { totalScore?: number; severity?: string } | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.totalScore).toBe(EXPECTED_TOTAL);
     expect(persisted?.severity).toBe(EXPECTED_SEVERITY);

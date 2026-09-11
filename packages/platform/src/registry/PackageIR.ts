@@ -6,20 +6,10 @@ export const PACKAGE_LOCK_SCHEMA_VERSION = 'holoscript.package-lock-receipt.v0.1
 export type PackageKind = 'library' | 'application' | 'template' | 'trait-pack' | 'plugin';
 
 export type PackageSupportTier =
-  | 'supported'
-  | 'preview'
-  | 'experimental'
-  | 'internal'
-  | 'deprecated'
-  | 'archived';
+  'supported' | 'preview' | 'experimental' | 'internal' | 'deprecated' | 'archived';
 
 export type PackageTarget =
-  | 'node'
-  | 'browser-wasm'
-  | 'wasi-component'
-  | 'native-linux'
-  | 'native-windows'
-  | 'owned-metal';
+  'node' | 'browser-wasm' | 'wasi-component' | 'native-linux' | 'native-windows' | 'owned-metal';
 
 export type PackageSourceKind = 'registry' | 'path' | 'git' | 'content';
 

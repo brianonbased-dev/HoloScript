@@ -541,13 +541,7 @@ function getWordTokens(s: string): string[] {
 
 /** Storefront meal kits — shopper + purpose, not token match across the mall. */
 export type MealKitId =
-  | 'house-special'
-  | 'compile-named'
-  | 'quest-admit'
-  | 'ask-files'
-  | 'budget'
-  | 'mind'
-  | 'crew';
+  'house-special' | 'compile-named' | 'quest-admit' | 'ask-files' | 'budget' | 'mind' | 'crew';
 
 const NAMED_COMPILE_TARGETS: ReadonlyArray<{ token: string; tool: string }> = [
   { token: 'webgpu', tool: 'compile_to_webgpu' },
@@ -597,7 +591,12 @@ export function detectMealKit(goal: string): {
     return { kit: 'mind' };
   }
 
-  if (/\binbox\b/.test(q) || /\bholomesh\b/.test(q) || /\bcrew\b/.test(q) || /\bteam board\b/.test(q)) {
+  if (
+    /\binbox\b/.test(q) ||
+    /\bholomesh\b/.test(q) ||
+    /\bcrew\b/.test(q) ||
+    /\bteam board\b/.test(q)
+  ) {
     return { kit: 'crew' };
   }
 
@@ -1148,8 +1147,17 @@ export function mayMutate(toolName: string, description?: string): boolean {
   // "absorb" appears in the mutating-verb list for `absorb_run_absorb`'s sake.
   // Seventeen tools were locked out by a product name.
   const PRODUCT_PREFIXES = [
-    'holoshell_download_recovery_', 'holoshell_', 'hololand_', 'holomesh_',
-    'holotune_', 'twin_earth_', 'holoscript_', 'absorb_', 'holo_', 'hs_', 'sim_',
+    'holoshell_download_recovery_',
+    'holoshell_',
+    'hololand_',
+    'holomesh_',
+    'holotune_',
+    'twin_earth_',
+    'holoscript_',
+    'absorb_',
+    'holo_',
+    'hs_',
+    'sim_',
   ];
   let name = toolName.toLowerCase();
   for (const prefix of PRODUCT_PREFIXES) {
@@ -1163,19 +1171,70 @@ export function mayMutate(toolName: string, description?: string): boolean {
 
   // Verbs that act on the world.
   const MUTATING = [
-    'write', 'edit', 'create', 'update', 'delete', 'remove', 'revoke', 'grant',
-    'publish', 'send', 'post', 'commit', 'push', 'deploy', 'restart', 'launch',
-    'install', 'uninstall', 'set', 'assign', 'claim', 'complete', 'add',
-    'settle', 'payout', 'purchase', 'buy', 'mint', 'transfer', 'spend',
-    'provision', 'register', 'promote', 'graduate', 'train', 'absorb',
-    'run', 'execute', 'invoke', 'apply', 'store', 'save', 'upload',
-    'import', 'ingest', 'move', 'reset', 'clear', 'stop', 'cancel', 'kill',
-    'actuate', 'quarantine', 'tick', 'steward', 'scaffold', 'delegate',
+    'write',
+    'edit',
+    'create',
+    'update',
+    'delete',
+    'remove',
+    'revoke',
+    'grant',
+    'publish',
+    'send',
+    'post',
+    'commit',
+    'push',
+    'deploy',
+    'restart',
+    'launch',
+    'install',
+    'uninstall',
+    'set',
+    'assign',
+    'claim',
+    'complete',
+    'add',
+    'settle',
+    'payout',
+    'purchase',
+    'buy',
+    'mint',
+    'transfer',
+    'spend',
+    'provision',
+    'register',
+    'promote',
+    'graduate',
+    'train',
+    'absorb',
+    'run',
+    'execute',
+    'invoke',
+    'apply',
+    'store',
+    'save',
+    'upload',
+    'import',
+    'ingest',
+    'move',
+    'reset',
+    'clear',
+    'stop',
+    'cancel',
+    'kill',
+    'actuate',
+    'quarantine',
+    'tick',
+    'steward',
+    'scaffold',
+    'delegate',
     // Found 2026-08-16 while auditing what was still unprobed: `holomesh_team_form`
     // FORMS a team and `conformance_admit_artifact` ADMITS one. Both change state,
     // neither verb was listed, and both were sitting in the probeable pile. Reviewing
     // the leftovers found guard gaps, not just coverage gaps.
-    'form', 'admit', 'resume',
+    'form',
+    'admit',
+    'resume',
   ];
   if (MUTATING.some((verb) => segments.has(verb))) return true;
 
@@ -1184,9 +1243,28 @@ export function mayMutate(toolName: string, description?: string): boolean {
   // that is how `holo_get_node_connections`, which parses code and walks a graph,
   // ended up classed as state-changing.
   const READ_ONLY = [
-    'get', 'list', 'query', 'read', 'find', 'search', 'explain', 'describe',
-    'inspect', 'parse', 'validate', 'check', 'status', 'diff', 'suggest',
-    'verify', 'analyze', 'estimate', 'discover', 'recall', 'lookup', 'health',
+    'get',
+    'list',
+    'query',
+    'read',
+    'find',
+    'search',
+    'explain',
+    'describe',
+    'inspect',
+    'parse',
+    'validate',
+    'check',
+    'status',
+    'diff',
+    'suggest',
+    'verify',
+    'analyze',
+    'estimate',
+    'discover',
+    'recall',
+    'lookup',
+    'health',
   ];
   if (READ_ONLY.some((verb) => segments.has(verb))) return false;
 
@@ -1246,8 +1324,7 @@ export function synthesizeCanaryArgs(schema: unknown): Record<string, unknown> |
   const args: Record<string, unknown> = {};
   for (const key of required) {
     const spec = properties[key] as
-      | { type?: string; enum?: unknown[]; items?: { type?: string } }
-      | undefined;
+      { type?: string; enum?: unknown[]; items?: { type?: string } } | undefined;
     if (!spec) return null;
 
     if (Array.isArray(spec.enum) && spec.enum.length > 0) {
@@ -1285,7 +1362,8 @@ function placeholderForStringArg(key: string): string {
   if (k === 'code' || k === 'source' || k === 'src') return 'orb Cube { geometry: "cube" }';
   if (k.includes('path') || k.includes('file')) return 'example.holo';
   if (k.includes('query') || k.includes('question')) return 'health canary';
-  if (k.includes('goal') || k.includes('prompt') || k.includes('description')) return 'a simple cube';
+  if (k.includes('goal') || k.includes('prompt') || k.includes('description'))
+    return 'a simple cube';
   if (k.includes('url')) return 'https://example.com';
   if (k.includes('id')) return 'canary';
   return 'canary';
@@ -1364,7 +1442,11 @@ async function probeOneTool(
       reason = 'dispatch returned null — tool name not wired in handler switch';
     } else {
       const r = result as Record<string, unknown>;
-      if (r['success'] === false && typeof r['error'] === 'string' && isDenial(String(r['error']))) {
+      if (
+        r['success'] === false &&
+        typeof r['error'] === 'string' &&
+        isDenial(String(r['error']))
+      ) {
         // A gate refusing an uncapable caller is the gate WORKING. Filing it as a
         // broken tool both slanders the tool and buries the fact that four of the
         // twelve "broken" tools on 2026-08-16 were simply not permitted to this probe.
@@ -1572,7 +1654,9 @@ export async function handleToolingDiscoveryTool(
     const pattern = typeof args.pattern === 'string' ? args.pattern.trim().toLowerCase() : '';
     const offset = typeof args.offset === 'number' && args.offset > 0 ? Math.floor(args.offset) : 0;
     const limit =
-      typeof args.limit === 'number' && args.limit > 0 ? Math.floor(args.limit) : DEFAULT_MANIFEST_PAGE;
+      typeof args.limit === 'number' && args.limit > 0
+        ? Math.floor(args.limit)
+        : DEFAULT_MANIFEST_PAGE;
 
     if (!category && !pattern && args.all !== true) {
       return {
@@ -1592,7 +1676,9 @@ export async function handleToolingDiscoveryTool(
       scoped = scoped.filter(
         (t) =>
           t.name.toLowerCase().includes(pattern) ||
-          String(t.description ?? '').toLowerCase().includes(pattern) ||
+          String(t.description ?? '')
+            .toLowerCase()
+            .includes(pattern) ||
           t.tags.some((tag) => tag.toLowerCase().includes(pattern))
       );
     }

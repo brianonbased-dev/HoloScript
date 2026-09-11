@@ -57,8 +57,7 @@ function parseObjects(mutations: SceneMutation[]): ParsedObject[] {
           Array.isArray(input.rotation) &&
           (input.rotation.length === 3 || input.rotation.length === 4)
             ? (input.rotation.map((n: unknown) => Number(n ?? 0)) as
-                | [number, number, number]
-                | [number, number, number, number])
+                [number, number, number] | [number, number, number, number])
             : undefined,
         color: input.color ? String(input.color) : undefined,
         radius: typeof input.radius === 'number' ? input.radius : undefined,

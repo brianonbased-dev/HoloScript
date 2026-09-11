@@ -116,8 +116,7 @@ describe('energy-grid -> HoloScript runtime integration (task_1780878631657_j63f
     // solve happened — a receipt / SimulationContract integrity hole (D.057).
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['power_flow:grid'] as
-      | { converged?: boolean; slackBusId?: string }
-      | undefined;
+      { converged?: boolean; slackBusId?: string } | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.converged).toBe(true);
     expect(persisted?.slackBusId).toBe('slack');

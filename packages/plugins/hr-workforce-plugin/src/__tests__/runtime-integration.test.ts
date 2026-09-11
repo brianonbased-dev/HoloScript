@@ -132,8 +132,7 @@ describe('hr-workforce -> HoloScript runtime integration (pay_equity)', () => {
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['pay_equity:workforce'] as
-      | { groupA?: string; groupB?: string; rawGapPct?: number; employeeCount?: number }
-      | undefined;
+      { groupA?: string; groupB?: string; rawGapPct?: number; employeeCount?: number } | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.groupA).toBe('male');
     expect(persisted?.groupB).toBe('female');

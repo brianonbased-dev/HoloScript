@@ -1976,8 +1976,7 @@ const httpServer = http.createServer(async (req, res) => {
         throw new Error(`Unsupported token_endpoint_auth_method: ${tokenEndpointAuthMethod}`);
       }
       const clientType = (tokenEndpointAuthMethod === 'none' ? 'public' : 'confidential') as
-        | 'confidential'
-        | 'public';
+        'confidential' | 'public';
       const grantTypes = Array.isArray(body.grant_types)
         ? body.grant_types.filter((grantType): grantType is string => typeof grantType === 'string')
         : clientType === 'public'

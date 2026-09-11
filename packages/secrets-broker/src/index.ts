@@ -25,13 +25,7 @@ import { createHash, randomBytes } from 'node:crypto';
  * Mirrors the per-window handle revamp from `research/2026-04-27_identity-revamp-per-window.md`.
  */
 export type SurfaceKind =
-  | 'claude'
-  | 'cursor'
-  | 'copilot'
-  | 'gemini'
-  | 'codex'
-  | 'mobile'
-  | 'headless';
+  'claude' | 'cursor' | 'copilot' | 'gemini' | 'codex' | 'mobile' | 'headless';
 
 /**
  * Surface trust tier — gates which capabilities a surface can request.

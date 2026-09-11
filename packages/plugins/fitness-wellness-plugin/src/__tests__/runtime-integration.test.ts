@@ -92,8 +92,7 @@ describe('fitness-wellness -> HoloScript runtime integration (one_rep_max)', () 
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['one_rep_max:lifter'] as
-      | { epley?: number; average?: number; weightKg?: number }
-      | undefined;
+      { epley?: number; average?: number; weightKg?: number } | undefined;
     expect(persisted).toBeDefined();
     // Hand-checked: epley = 100*(1 + 10/30) = 133.33333…, average = 131.65739…
     expect(persisted?.weightKg).toBe(TEST_WEIGHT_KG);
