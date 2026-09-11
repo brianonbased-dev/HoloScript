@@ -485,8 +485,7 @@ function extractReceiptFeatures(
     /^sha256:[a-z0-9]{8,}$/i.test(receipt.ground_truth_hash);
   const deltaError = Number.parseFloat(String(receipt.delta_error ?? '0'));
   const confidence = receipt.confidence_bound as
-    | { lo?: number; hi?: number; coverage?: number }
-    | undefined;
+    { lo?: number; hi?: number; coverage?: number } | undefined;
   return {
     sourceSchema: hasWmrHash ? 'world_model_receipt' : 'paper26_minimal_receipt',
     hasWmrHash,

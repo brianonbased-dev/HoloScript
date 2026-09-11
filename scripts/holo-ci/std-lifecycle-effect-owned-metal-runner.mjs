@@ -27,9 +27,7 @@ function fail(message) {
   process.exit(1);
 }
 
-const manifest = JSON.parse(
-  readFileSync(join(bundleDir, 'bundle-manifest.json'), 'utf8')
-);
+const manifest = JSON.parse(readFileSync(join(bundleDir, 'bundle-manifest.json'), 'utf8'));
 if (
   manifest.schema !== 'holoscript.std-lifecycle-effect-owned-metal-bundle.v0' ||
   !/^[0-9a-f]{40}$/.test(manifest.sourceCommit ?? '')
@@ -42,9 +40,7 @@ for (const [name, pin] of Object.entries(manifest.files)) {
     fail(`${name}: expected ${pin.sha256}, got ${actual}`);
   }
 }
-const vectors = JSON.parse(
-  readFileSync(join(bundleDir, 'std-lifecycle-effects.v0.json'), 'utf8')
-);
+const vectors = JSON.parse(readFileSync(join(bundleDir, 'std-lifecycle-effects.v0.json'), 'utf8'));
 const wasm = require(join(bundleDir, 'pkg-node', 'holoscript_wasm.js'));
 if (typeof wasm.evaluate_trait_spawn_v1 !== 'function') {
   fail('bundle wasm does not export evaluate_trait_spawn_v1');
@@ -62,11 +58,7 @@ const sources = Object.fromEntries(
 const results = vectors.vectors.map((vector) => {
   try {
     const envelope = JSON.parse(
-      wasm.evaluate_trait_spawn_v1(
-        sources[vector.source],
-        vector.trait,
-        hostBindings
-      )
+      wasm.evaluate_trait_spawn_v1(sources[vector.source], vector.trait, hostBindings)
     );
     if (envelope.ok !== true) {
       return {
@@ -101,15 +93,13 @@ const receipt = {
   subsetId: vectors.vectors[0]?.expected?.subsetId,
   sources: {
     'packages/std/conformance/generated/std-lifecycle-effects.v0.json': {
-      sha256:
-        manifest.files['std-lifecycle-effects.v0.json'].sha256,
+      sha256: manifest.files['std-lifecycle-effects.v0.json'].sha256,
     },
   },
   executionRuntime: {
     engine: '@holoscript/wasm evaluate_trait_spawn_v1 in owned-metal Node WebAssembly',
     sourceCommit: manifest.sourceCommit,
-    wasmSha256:
-      manifest.files['pkg-node/holoscript_wasm_bg.wasm'].sha256,
+    wasmSha256: manifest.files['pkg-node/holoscript_wasm_bg.wasm'].sha256,
     node: process.version,
     platform: process.platform,
     arch: process.arch,
@@ -133,9 +123,7 @@ const receipt = {
       'No event was dispatched and no host function, timer, asynchronous work, I/O, retry, rollback, or runtime mutation was executed.',
   },
 };
-const outPath = resolve(
-  argValue('--out', join(bundleDir, 'owned-metal-receipt.json'))
-);
+const outPath = resolve(argValue('--out', join(bundleDir, 'owned-metal-receipt.json')));
 writeFileSync(outPath, `${JSON.stringify(receipt, null, 2)}\n`);
 if (failed.length) fail(`${failed.length} vector(s) failed; receipt at ${outPath}`);
 console.log(

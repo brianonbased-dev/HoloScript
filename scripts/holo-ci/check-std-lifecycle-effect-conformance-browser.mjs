@@ -28,24 +28,15 @@ function fail(message) {
   process.exit(1);
 }
 
-const vectorsRel =
-  'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
-const vectors = JSON.parse(
-  readFileSync(join(repoRoot, ...vectorsRel.split('/')), 'utf8')
-);
+const vectorsRel = 'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
+const vectors = JSON.parse(readFileSync(join(repoRoot, ...vectorsRel.split('/')), 'utf8'));
 const manifest = JSON.parse(
   readFileSync(
     join(repoRoot, 'packages', 'std', 'conformance', 'generated', 'manifest.json'),
     'utf8'
   )
 );
-const wasmJsPath = join(
-  repoRoot,
-  'packages',
-  'compiler-wasm',
-  'pkg',
-  'holoscript_wasm.js'
-);
+const wasmJsPath = join(repoRoot, 'packages', 'compiler-wasm', 'pkg', 'holoscript_wasm.js');
 const wasmBinaryPath = join(
   repoRoot,
   'packages',
@@ -134,11 +125,7 @@ try {
       return pageVectors.map((vector) => {
         try {
           const envelope = JSON.parse(
-            wasm.evaluate_trait_spawn_v1(
-              pageSources[vector.source],
-              vector.trait,
-              hostBindings
-            )
+            wasm.evaluate_trait_spawn_v1(pageSources[vector.source], vector.trait, hostBindings)
           );
           return envelope.ok
             ? { id: vector.id, trait: vector.trait, actual: envelope.value }
@@ -167,9 +154,7 @@ function compare(raw, vector, expected = vector.expected) {
   return {
     ...raw,
     pass: !raw.error && isDeepStrictEqual(raw.actual, expected),
-    ...(raw.actual
-      ? { actualSha256: sha256(Buffer.from(JSON.stringify(raw.actual))) }
-      : {}),
+    ...(raw.actual ? { actualSha256: sha256(Buffer.from(JSON.stringify(raw.actual))) } : {}),
   };
 }
 if (selfTest) {
@@ -184,9 +169,7 @@ if (selfTest) {
   console.log('[std-lifecycle-effect-browser] self-test OK');
   process.exit(0);
 }
-const results = rawResults.map((raw, index) =>
-  compare(raw, vectors.vectors[index])
-);
+const results = rawResults.map((raw, index) => compare(raw, vectors.vectors[index]));
 const failed = results.filter((result) => !result.pass);
 const outPath = argValue(
   '--out',

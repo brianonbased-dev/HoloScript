@@ -248,8 +248,8 @@ export function unbuiltWorkspaceDiagnosis(typeFailed) {
   const unbuilt = [];
   for (const name of missing.keys()) {
     const dir = path.join(ROOT, 'packages', name);
-    if (!fs.existsSync(dir)) continue;              // not a workspace package; not our story
-    if (fs.existsSync(path.join(dir, 'dist'))) continue;  // built, so this TS2307 is real
+    if (!fs.existsSync(dir)) continue; // not a workspace package; not our story
+    if (fs.existsSync(path.join(dir, 'dist'))) continue; // built, so this TS2307 is real
     unbuilt.push(name);
   }
   if (!unbuilt.length) return null;

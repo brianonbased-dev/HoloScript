@@ -92,9 +92,7 @@ const {
 if (typeof createDeterministicHsplusTraitRuntime !== 'function') {
   fail('engine dist does not export createDeterministicHsplusTraitRuntime');
 }
-if (
-  packagedExecution.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7
-) {
+if (packagedExecution.engineSubsetId !== ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7) {
   fail(
     `packaged engine subset mismatch: ops=${packagedExecution.engineSubsetId}, runtime=${ENGINE_HSPLUS_DETERMINISTIC_ACTION_SUBSET_V7}`
   );
@@ -168,16 +166,14 @@ const packagedReferenceByHandler = new Map(
 
 function createPackagedRuntimes() {
   return new Map(
-    Object.entries(packagedExecution.sources).map(
-      ([traitName, sourcePath]) => [
+    Object.entries(packagedExecution.sources).map(([traitName, sourcePath]) => [
+      traitName,
+      createDeterministicHsplusTraitRuntime(
+        readFileSync(join(repoRoot, ...sourcePath.split('/')), 'utf8'),
         traitName,
-        createDeterministicHsplusTraitRuntime(
-          readFileSync(join(repoRoot, ...sourcePath.split('/')), 'utf8'),
-          traitName,
-          { hostBindings }
-        ),
-      ]
-    )
+        { hostBindings }
+      ),
+    ])
   );
 }
 

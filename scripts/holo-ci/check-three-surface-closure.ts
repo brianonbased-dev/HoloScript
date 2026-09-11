@@ -390,8 +390,7 @@ function loadRustProgram(source: string): { program: RustProgram; compilerVersio
     `canonical WASM .hs semantic validation failed: ${JSON.stringify(validation.errors ?? [])}`
   );
   const parsed = JSON.parse(wasm.parse(source)) as
-    | RustProgram
-    | { error?: string; errors?: unknown[] };
+    RustProgram | { error?: string; errors?: unknown[] };
   if ('error' in parsed && parsed.error) {
     throw new Error(`canonical WASM .hs parser failed: ${parsed.error}`);
   }
@@ -927,29 +926,11 @@ async function evaluateProject(project: LoadedProject): Promise<ThreeSurfaceClos
       },
     },
     ...composition.imports.flatMap((entry) =>
-      entry.specifiers.map(
-        (specifier): SemanticClosureEntry => ({
-          constructId: `${project.manifest.entries.composition}#import:${specifier.imported}`,
-          surface: '.holo',
-          kind: 'cross-surface-import',
-          target: 'three-surface-runtime',
-          stages: {
-            parsed: PASSED,
-            typed: PASSED,
-            lowered: PASSED,
-            enforced: PASSED,
-            executed: PASSED,
-            target_preserved: PASSED,
-          },
-        })
-      )
-    ),
-    ...(composition.state?.properties ?? []).map(
-      (property): SemanticClosureEntry => ({
-        constructId: `${project.manifest.entries.composition}#state:${property.key}`,
+      entry.specifiers.map((specifier): SemanticClosureEntry => ({
+        constructId: `${project.manifest.entries.composition}#import:${specifier.imported}`,
         surface: '.holo',
-        kind: 'state-property',
-        target: 'cognitive-vm/uaal-bytecode',
+        kind: 'cross-surface-import',
+        target: 'three-surface-runtime',
         stages: {
           parsed: PASSED,
           typed: PASSED,
@@ -958,32 +939,42 @@ async function evaluateProject(project: LoadedProject): Promise<ThreeSurfaceClos
           executed: PASSED,
           target_preserved: PASSED,
         },
-      })
+      }))
     ),
-    ...composition.objects.map(
-      (object): SemanticClosureEntry => ({
-        constructId: `${project.manifest.entries.composition}#object:${object.name}`,
-        surface: '.holo',
-        kind: 'spatial-object',
-        target: 'cognitive-vm/uaal-bytecode',
-        stages: {
-          parsed: PASSED,
-          typed: notApplicable(
-            'spatial object properties are schema-parsed, not behavior-typed by this target'
-          ),
-          lowered: notApplicable(
-            'spatial objects target HoloVM, outside the cognitive UAAL target'
-          ),
-          enforced: notApplicable(
-            'the cognitive tracer does not cross a spatial-runtime policy boundary'
-          ),
-          executed: notApplicable('the cognitive tracer does not instantiate spatial objects'),
-          target_preserved: notApplicable(
-            'spatial target preservation requires a HoloVM/render receipt'
-          ),
-        },
-      })
-    ),
+    ...(composition.state?.properties ?? []).map((property): SemanticClosureEntry => ({
+      constructId: `${project.manifest.entries.composition}#state:${property.key}`,
+      surface: '.holo',
+      kind: 'state-property',
+      target: 'cognitive-vm/uaal-bytecode',
+      stages: {
+        parsed: PASSED,
+        typed: PASSED,
+        lowered: PASSED,
+        enforced: PASSED,
+        executed: PASSED,
+        target_preserved: PASSED,
+      },
+    })),
+    ...composition.objects.map((object): SemanticClosureEntry => ({
+      constructId: `${project.manifest.entries.composition}#object:${object.name}`,
+      surface: '.holo',
+      kind: 'spatial-object',
+      target: 'cognitive-vm/uaal-bytecode',
+      stages: {
+        parsed: PASSED,
+        typed: notApplicable(
+          'spatial object properties are schema-parsed, not behavior-typed by this target'
+        ),
+        lowered: notApplicable('spatial objects target HoloVM, outside the cognitive UAAL target'),
+        enforced: notApplicable(
+          'the cognitive tracer does not cross a spatial-runtime policy boundary'
+        ),
+        executed: notApplicable('the cognitive tracer does not instantiate spatial objects'),
+        target_preserved: notApplicable(
+          'spatial target preservation requires a HoloVM/render receipt'
+        ),
+      },
+    })),
     ...holoCompile.semanticClosure.entries.map((entry) => ({
       ...entry,
       constructId: `${project.manifest.entries.composition}#${entry.constructId}`,
@@ -1036,25 +1027,23 @@ async function evaluateProject(project: LoadedProject): Promise<ThreeSurfaceClos
         executed: PASSED,
       },
     },
-    ...cognitiveActions.map(
-      (action, index): SemanticClosureEntry => ({
-        constructId: `${project.manifest.entries.agent}#on_task/${index}:${action.verb}`,
-        surface: '.hsplus',
-        kind: `cognitive-action:${action.verb}`,
-        target: 'edge-agent-runtime',
-        stages: {
-          parsed: PASSED,
-          typed: PASSED,
-          lowered: PASSED,
-          enforced:
-            action.verb === 'reflect'
-              ? PASSED
-              : notApplicable('the deterministic tracer action does not cross a tool boundary'),
-          executed: PASSED,
-          target_preserved: PASSED,
-        },
-      })
-    )
+    ...cognitiveActions.map((action, index): SemanticClosureEntry => ({
+      constructId: `${project.manifest.entries.agent}#on_task/${index}:${action.verb}`,
+      surface: '.hsplus',
+      kind: `cognitive-action:${action.verb}`,
+      target: 'edge-agent-runtime',
+      stages: {
+        parsed: PASSED,
+        typed: PASSED,
+        lowered: PASSED,
+        enforced:
+          action.verb === 'reflect'
+            ? PASSED
+            : notApplicable('the deterministic tracer action does not cross a tool boundary'),
+        executed: PASSED,
+        target_preserved: PASSED,
+      },
+    }))
   );
 
   for (const fn of functions) {

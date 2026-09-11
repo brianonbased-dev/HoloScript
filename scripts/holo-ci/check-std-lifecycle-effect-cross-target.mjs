@@ -31,16 +31,13 @@ function fail(message) {
 
 function compare(receipts) {
   const problems = [];
-  const pinKey =
-    'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
+  const pinKey = 'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
   const pins = receipts.map((receipt) => receipt.sources?.[pinKey]?.sha256);
   if (pins.some((pin) => !pin) || new Set(pins).size !== 1) {
     problems.push(`vector corpus pins differ or are absent: ${pins.join(', ')}`);
   }
   const ids = new Set(
-    receipts.flatMap((receipt) =>
-      (receipt.results ?? []).map((result) => result.id)
-    )
+    receipts.flatMap((receipt) => (receipt.results ?? []).map((result) => result.id))
   );
   for (const receipt of receipts) {
     if (receipt.summary?.failed !== 0) {
@@ -93,15 +90,9 @@ const entries = receiptPaths.map((path) => ({
   path,
   raw: readFileSync(path),
 }));
-const receipts = entries.map((entry) =>
-  JSON.parse(entry.raw.toString('utf8'))
-);
+const receipts = entries.map((entry) => JSON.parse(entry.raw.toString('utf8')));
 for (const receipt of receipts) {
-  if (
-    !String(receipt.schema).startsWith(
-      'holoscript.std-lifecycle-effect-conformance.'
-    )
-  ) {
+  if (!String(receipt.schema).startsWith('holoscript.std-lifecycle-effect-conformance.')) {
     fail(`unexpected receipt schema ${receipt.schema}`);
   }
 }
@@ -130,8 +121,7 @@ const crossReceipt = {
   },
   verdict: comparison.problems.length ? 'DIVERGED' : 'EQUAL',
   claimBoundary: {
-    note:
-      'This receipt proves equality only for the pinned lifecycle corpus and target receipts named above; it does not claim real effect dispatch.',
+    note: 'This receipt proves equality only for the pinned lifecycle corpus and target receipts named above; it does not claim real effect dispatch.',
   },
 };
 mkdirSync(dirname(outPath), { recursive: true });

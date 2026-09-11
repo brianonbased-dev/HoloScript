@@ -420,8 +420,7 @@ const manifest = {
   schema: 'holoscript.std-abi-conformance-manifest.v0',
   stdPackageVersion: stdPackageJson.version,
   opsFile: 'packages/std/conformance/std-abi-ops.v0.json',
-  packagedExecutionFile:
-    'packages/std/conformance/generated/std-abi-packaged-execution.v0.json',
+  packagedExecutionFile: 'packages/std/conformance/generated/std-abi-packaged-execution.v0.json',
   files: {
     'packages/std/conformance/std-abi-ops.v0.json': {
       sha256: sha256(readFileSync(opsPath)),

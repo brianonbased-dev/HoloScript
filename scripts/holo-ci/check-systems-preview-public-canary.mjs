@@ -174,9 +174,10 @@ async function fetchResponse(fetchImpl, url, timeoutMs, accept) {
   if (!response.ok) {
     const remaining = response.headers?.get?.('x-ratelimit-remaining');
     const reset = response.headers?.get?.('x-ratelimit-reset');
-    const rateLimit = remaining !== null && remaining !== undefined
-      ? `; X-RateLimit-Remaining=${remaining}${reset ? `; X-RateLimit-Reset=${reset}` : ''}`
-      : '';
+    const rateLimit =
+      remaining !== null && remaining !== undefined
+        ? `; X-RateLimit-Remaining=${remaining}${reset ? `; X-RateLimit-Reset=${reset}` : ''}`
+        : '';
     throw new Error(`${url} returned HTTP ${response.status}${rateLimit}`);
   }
   return response;
@@ -228,7 +229,7 @@ export function runColdConsumer(
     installTimeoutMs = DEFAULT_COLD_INSTALL_TIMEOUT_MS,
     probeTimeoutMs = DEFAULT_COLD_PROBE_TIMEOUT_MS,
     preferOffline = true,
-  } = {},
+  } = {}
 ) {
   const packageIdentity = `${manifest.releaseIdentity.registryPackage.name}@${manifest.releaseIdentity.registryPackage.version}`;
   const coldTimeoutMs = Math.max(timeoutMs, DEFAULT_COLD_CONSUMER_TIMEOUT_MS);
@@ -250,19 +251,15 @@ export function runColdConsumer(
     '--install-timeout-ms',
     String(installTimeoutMs),
     '--probe-timeout-ms',
-    String(probeTimeoutMs),
+    String(probeTimeoutMs)
   );
-  const result = spawnSync(
-    process.execPath,
-    coldArgs,
-    {
-      cwd: rootDir,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: coldTimeoutMs,
-      windowsHide: true,
-    }
-  );
+  const result = spawnSync(process.execPath, coldArgs, {
+    cwd: rootDir,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: coldTimeoutMs,
+    windowsHide: true,
+  });
 
   let receipt = null;
   try {
@@ -287,7 +284,9 @@ export function runColdConsumer(
       installMs: installTimeoutMs,
       probeMs: probeTimeoutMs,
     },
-    npmCachePreference: receipt?.isolation?.npmCachePreference || (preferOffline ? '--prefer-offline' : '--prefer-online'),
+    npmCachePreference:
+      receipt?.isolation?.npmCachePreference ||
+      (preferOffline ? '--prefer-offline' : '--prefer-online'),
     cleanup: receipt?.isolation?.cleanup || null,
     failureReason: receipt?.failure?.reason || null,
     failureDetail: receipt?.failure?.detail || null,

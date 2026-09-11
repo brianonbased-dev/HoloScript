@@ -29,8 +29,7 @@ function fail(message) {
   process.exit(1);
 }
 
-const vectorsRel =
-  'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
+const vectorsRel = 'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
 const vectorsPath = join(repoRoot, ...vectorsRel.split('/'));
 const manifest = JSON.parse(
   readFileSync(
@@ -39,13 +38,7 @@ const manifest = JSON.parse(
   )
 );
 const vectors = JSON.parse(readFileSync(vectorsPath, 'utf8'));
-const wasmJsPath = join(
-  repoRoot,
-  'packages',
-  'compiler-wasm',
-  'pkg-node',
-  'holoscript_wasm.js'
-);
+const wasmJsPath = join(repoRoot, 'packages', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js');
 const wasmBinaryPath = join(
   repoRoot,
   'packages',
@@ -73,14 +66,7 @@ if (typeof wasm.evaluate_trait_spawn_v1 !== 'function') {
 }
 const { createStdHostBindings } = await import(
   pathToFileURL(
-    join(
-      repoRoot,
-      'packages',
-      'std',
-      'conformance',
-      'host-abi',
-      'std-host-binding.mjs'
-    )
+    join(repoRoot, 'packages', 'std', 'conformance', 'host-abi', 'std-host-binding.mjs')
   ).href
 );
 const hostBindings = createStdHostBindings();

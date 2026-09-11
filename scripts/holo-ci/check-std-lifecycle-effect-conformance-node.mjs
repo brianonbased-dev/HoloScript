@@ -29,16 +29,8 @@ function fail(message) {
   process.exit(1);
 }
 
-const vectorsRel =
-  'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
-const manifestPath = join(
-  repoRoot,
-  'packages',
-  'std',
-  'conformance',
-  'generated',
-  'manifest.json'
-);
+const vectorsRel = 'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
+const manifestPath = join(repoRoot, 'packages', 'std', 'conformance', 'generated', 'manifest.json');
 const outPath = argValue(
   '--out',
   join(
@@ -67,9 +59,7 @@ for (const relPath of [
   }
 }
 
-const engine = require(
-  join(repoRoot, 'packages', 'engine', 'dist', 'runtime', 'index.cjs')
-);
+const engine = require(join(repoRoot, 'packages', 'engine', 'dist', 'runtime', 'index.cjs'));
 if (typeof engine.createDeterministicHsplusTraitRuntime !== 'function') {
   fail('engine dist does not export createDeterministicHsplusTraitRuntime');
 }
