@@ -261,6 +261,14 @@ function mockRes(): http.ServerResponse & {
       res._status = status;
       if (headers) Object.assign(res._headers, headers);
     },
+    setHeader(name: string, value: string | number | string[]) {
+      res._headers[name] = Array.isArray(value) ? value.join(", ") : String(value);
+      return res;
+    },
+    getHeader(name: string) {
+      return res._headers[name];
+    },
+    flushHeaders() {},
     end(data?: string) {
       if (data) {
         try {
@@ -7814,5 +7822,62 @@ describe('room roster is not public', () => {
     expect(res._status).toBe(200);
     expect(res._body.success).toBe(true);
     expect(Array.isArray(res._body.online)).toBe(true);
+  });
+});
+
+// The room stream replayed the last 50 events and then streamed everything after,
+// to anyone, with the joiner choosing its own display name. An intruder wearing
+// one of our agents' names was watched arriving in a real member's feed.
+//
+// The gate sits in the route, not inside handleTeamRoomConnection, because the
+// mini-game rooms share that function through their own unauthenticated flow.
+describe('the room stream is not open to the internet', () => {
+  const team = 'team_room_gate_probe';
+  const roomUrl = (q) => '/api/holomesh/team/' + team + '/room/live?' + q;
+
+  it('THE FAULT: an anonymous connection is refused', async () => {
+    const url = roomUrl('agent_id=totally-a-stranger&agent_name=stranger');
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+  });
+
+  it('refuses it even when it claims to be one of ours', async () => {
+    const url = roomUrl('agent_id=claudecode&agent_name=claudecode');
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+    expect(JSON.stringify(res._body)).toMatch(/Authentication required/u);
+  });
+
+  it('a registered agent still connects — locking out our own agents would be worse', async () => {
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const reg = mockReq('POST', '/api/holomesh/register', {
+      name: 'room-gate-probe-' + suffix,
+      traits: ['@test'],
+    });
+    const regRes = mockRes();
+    await handleHoloMeshRoute(reg, regRes, '/api/holomesh/register');
+    const apiKey = regRes._body?.agent?.api_key;
+    expect(apiKey).toBeTruthy();
+
+    const url = roomUrl('agent_id=probe&agent_name=probe');
+    const res = mockRes();
+    // The gate runs before the stream does. Past it, the real handler drives a
+    // live SSE socket, which this response mock is not (no once/on). That throw
+    // is the harness, not the route — so it is tolerated deliberately, and the
+    // assertion below is about the only thing this test is for: an authenticated
+    // caller is NOT turned away. The accept path of localOrAuthenticated itself
+    // is covered without streaming by the room-roster tests above.
+    try {
+      await handleHoloMeshRoute(
+        mockReq('GET', url, undefined, { authorization: 'Bearer ' + apiKey }),
+        res,
+        url
+      );
+    } catch {
+      /* SSE internals need a real socket; reaching them means the gate let us by */
+    }
+    expect(res._status).not.toBe(401);
   });
 });
