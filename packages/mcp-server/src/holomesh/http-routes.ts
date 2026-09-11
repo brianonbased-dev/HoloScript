@@ -12,6 +12,8 @@ import type http from 'http';
 import { json, parseJsonBody, extractParam } from './utils';
 import { getClient } from './orchestrator-client';
 import { handleTeamRoomConnection, getRoomPresence, getRoomStats } from './team-room';
+import { resolveRequestingAgent } from './auth-utils';
+import { isTrustedLoopbackMcpPeer, resolveMcpBindHost } from '../http-bind-host';
 import {
   handleTtuLiveConnection,
   getTtuPresence,
@@ -44,6 +46,36 @@ import { handleComputeJobRoutes } from './routes/compute-job-routes';
 import { GossipProtocol, type GossipPacket } from '@holoscript/framework';
 
 const meshGossip = new GossipProtocol();
+
+/**
+ * Local stays open; the cloud gets a lock.
+ *
+ * FOUNDER RULING, 2026-09-10: *"we have been building for local and cloud with
+ * different use cases. local is more open because all the agents we have
+ * running."* So the fix for an over-open endpoint is NOT to demand credentials
+ * everywhere — that would put cloud ceremony on the local case, which is
+ * deliberately low-friction because the machine is full of our own agents. The
+ * lock belongs on the surface strangers can reach.
+ *
+ * `isTrustedLoopbackMcpPeer` is that line and it cannot be fooled from outside:
+ * it requires the operator to have opted in AND the listener to be bound to
+ * loopback AND the TCP peer to be loopback. A deployed box binds 0.0.0.0, so the
+ * local branch is unreachable there by construction. http-server.ts already uses
+ * the same primitive for its "explicit local-custody mode".
+ *
+ * Note for whoever wires this to more routes: MCP_TRUST_LOOPBACK is currently set
+ * nowhere in our configuration, so today the local branch never fires and this is
+ * in practice "authenticated only". That is safe, but it is not yet the founder's
+ * shape — standing up a real local server is the other half of that work.
+ */
+function localOrAuthenticated(req: http.IncomingMessage): boolean {
+  if (resolveRequestingAgent(req).authenticated) return true;
+  return isTrustedLoopbackMcpPeer({
+    enabled: process.env.MCP_TRUST_LOOPBACK === 'true',
+    bindHost: resolveMcpBindHost(),
+    remoteAddress: req.socket?.remoteAddress,
+  });
+}
 
 /**
  * Main entry point for HoloMesh HTTP routing.
@@ -100,6 +132,10 @@ export async function handleHoloMeshRoute(
   }
 
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/presence$/)) {
+    if (!localOrAuthenticated(req)) {
+      json(res, 401, { error: 'Authentication required to read room presence.' });
+      return true;
+    }
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/presence', '');
     const online = getRoomPresence(teamId);
     json(res, 200, { success: true, teamId, online });
@@ -107,6 +143,10 @@ export async function handleHoloMeshRoute(
   }
 
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/stats$/)) {
+    if (!localOrAuthenticated(req)) {
+      json(res, 401, { error: 'Authentication required to read room stats.' });
+      return true;
+    }
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/stats', '');
     const allStats = getRoomStats();
     const stats = { connected: allStats[teamId] || 0 };
