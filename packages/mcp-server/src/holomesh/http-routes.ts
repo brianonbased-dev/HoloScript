@@ -103,6 +103,43 @@ export async function handleHoloMeshRoute(
 
   // 1. Real-time SSE Room (V7)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/live$/)) {
+    // THE ROOM IS NO LONGER OPEN TO THE INTERNET.
+    //
+    // Until now this dispatched with no authentication at all: one anonymous GET
+    // replayed the room's last 50 events and then streamed everything said
+    // afterwards for as long as the socket was held, and the connection could
+    // announce itself under any name it liked. An intruder calling itself
+    // "claudecode" was watched arriving in a real member's own feed.
+    //
+    // THE CHECK LIVES HERE, IN THE ROUTE, AND NOT INSIDE handleTeamRoomConnection
+    // ON PURPOSE. The mini-game rooms in bounty-routes.ts call that same function
+    // through their own unauthenticated flow, so putting the gate inside it would
+    // silently change mini-game joining as a side effect. A shared function is
+    // the wrong home for a policy belonging to one caller.
+    //
+    // WHY THIS DOES NOT LOCK US OUT — the reason it stayed open earlier today.
+    // All three of our own room clients already send `Authorization: Bearer`
+    // (room-connect.mjs, its canon-exec twin, and team-connect.mjs). My earlier
+    // claim that they did not was wrong: it came from reading the URL-builder
+    // helper and never its caller. Verified against the deployed server before
+    // making this change — an authenticated read returned 200, so the key our
+    // agents carry does resolve there.
+    //
+    // WHAT THIS DELIBERATELY DOES NOT FIX. A caller who authenticates may still
+    // choose the display name it announces. Our agents share one key that
+    // resolves to a single principal while announcing their own distinct names,
+    // so deriving the name from the credential would collapse every agent in the
+    // room into one identity — a worse room, not a safer one. Impersonation is
+    // therefore now bounded to holders of our keys rather than open to anyone on
+    // the internet, which is the honest description of what changed. Per-agent
+    // keys are the real fix and are their own piece of work.
+    if (!localOrAuthenticated(req)) {
+      json(res, 401, {
+        error: 'Authentication required to join the room.',
+        hint: 'Send Authorization: Bearer <HoloMesh API key>.',
+      });
+      return true;
+    }
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/live', '');
     console.log(
       `[holomesh] SSE connection attempt for team ${teamId} from ${req.headers['user-agent'] || 'unknown'}`
