@@ -642,8 +642,7 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
 
   onEvent(node, _config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__botanicalLotusState as
-      | BotanicalLotusState
-      | undefined;
+      BotanicalLotusState | undefined;
     if (!state) return;
 
     if (event.type === 'botanical_lotus_query') {

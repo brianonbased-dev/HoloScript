@@ -42,11 +42,7 @@ describe('AgentDiscoveryTrait', () => {
 
   afterEach(() => {
     if (mockNode.__agentDiscoveryState) {
-      agentDiscoveryHandler.onDetach(
-        mockNode,
-        attachConfig(),
-        mockContext as TraitContext
-      );
+      agentDiscoveryHandler.onDetach(mockNode, attachConfig(), mockContext as TraitContext);
     }
   });
 

@@ -63,14 +63,7 @@ function withVectorAliases(v: [number, number, number]): Vector3 {
  * Movement mode
  */
 export type MovementMode =
-  | 'walking'
-  | 'running'
-  | 'sprinting'
-  | 'crouching'
-  | 'swimming'
-  | 'flying'
-  | 'climbing'
-  | 'custom';
+  'walking' | 'running' | 'sprinting' | 'crouching' | 'swimming' | 'flying' | 'climbing' | 'custom';
 
 /**
  * Ground state

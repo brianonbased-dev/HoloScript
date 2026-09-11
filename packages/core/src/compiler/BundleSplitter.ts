@@ -50,8 +50,7 @@ export class BundleSplitter {
       }
 
       const eventHandlers = body.eventHandlers as
-        | Array<{ event: string; body?: string }>
-        | undefined;
+        Array<{ event: string; body?: string }> | undefined;
       if (eventHandlers) {
         for (const handler of eventHandlers) {
           if (handler.body) this.scanStringForImports(handler.body, `event_${handler.event}`);
@@ -59,8 +58,7 @@ export class BundleSplitter {
       }
 
       const tickHandlers = body.tickHandlers as
-        | Array<{ interval: string; body?: string }>
-        | undefined;
+        Array<{ interval: string; body?: string }> | undefined;
       if (tickHandlers) {
         for (const handler of tickHandlers) {
           if (handler.body) this.scanStringForImports(handler.body, `tick_${handler.interval}`);

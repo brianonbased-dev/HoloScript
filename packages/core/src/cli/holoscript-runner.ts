@@ -2189,8 +2189,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     (getASTBlackboardValue(compositionAST, 'provider_rotation_enabled') as boolean | undefined) ??
     opts.providerRotation;
   const rotationProviders = (getASTBlackboardValue(compositionAST, 'provider_rotation') as
-    | string[]
-    | undefined) ?? ['anthropic', 'xai'];
+    string[] | undefined) ?? ['anthropic', 'xai'];
   const quarantineThreshold =
     (getASTBlackboardValue(compositionAST, 'quarantine_threshold') as number | undefined) ?? 3;
 
@@ -2443,8 +2442,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
             resolved = true;
             clearTimeout(timeout);
             const p = payload as
-              | { status?: string; blackboard?: Record<string, unknown> }
-              | undefined;
+              { status?: string; blackboard?: Record<string, unknown> } | undefined;
             resolve({
               status: p?.status || 'unknown',
               blackboard: p?.blackboard || {},

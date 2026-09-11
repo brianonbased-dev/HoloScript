@@ -12,14 +12,7 @@
 // =============================================================================
 
 export type DebugDrawType =
-  | 'line'
-  | 'sphere'
-  | 'box'
-  | 'ray'
-  | 'arrow'
-  | 'text'
-  | 'circle'
-  | 'grid';
+  'line' | 'sphere' | 'box' | 'ray' | 'arrow' | 'text' | 'circle' | 'grid';
 
 export interface DebugColor {
   r: number;

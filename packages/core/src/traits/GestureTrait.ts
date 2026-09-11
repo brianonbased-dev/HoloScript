@@ -2,12 +2,7 @@ import type { Vector3 } from '../types';
 import { TraitHandler, TraitContext, VRContext } from './TraitTypes';
 
 export type GestureType =
-  | 'swipe_left'
-  | 'swipe_right'
-  | 'swipe_up'
-  | 'swipe_down'
-  | 'pinch'
-  | 'palm_open';
+  'swipe_left' | 'swipe_right' | 'swipe_up' | 'swipe_down' | 'pinch' | 'palm_open';
 
 export interface GestureConfig {
   enabledGestures: GestureType[];

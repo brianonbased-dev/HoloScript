@@ -13,18 +13,10 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 export type HSMProvider =
-  | 'aws_cloudhsm'
-  | 'azure_keyvault'
-  | 'google_cloud_hsm'
-  | 'pkcs11'
-  | 'tpm'
-  | 'secure_enclave';
+  'aws_cloudhsm' | 'azure_keyvault' | 'google_cloud_hsm' | 'pkcs11' | 'tpm' | 'secure_enclave';
 export type KeyType = 'aes' | 'rsa' | 'ecdsa' | 'ed25519';
 export type ComplianceLevel =
-  | 'fips_140_2_level_2'
-  | 'fips_140_2_level_3'
-  | 'fips_140_3_level_4'
-  | 'common_criteria_eal4plus';
+  'fips_140_2_level_2' | 'fips_140_2_level_3' | 'fips_140_3_level_4' | 'common_criteria_eal4plus';
 
 export interface HSMIntegrationConfig {
   hsm_provider: HSMProvider;

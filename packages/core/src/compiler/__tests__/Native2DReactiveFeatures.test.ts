@@ -736,16 +736,18 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
       // If the bars kept scaling to the RAW max while the axis showed nice
       // round numbers, the top gridline would not touch the tallest bar and
       // every printed number would be wrong. The axis max is the scale.
-      const withTicks = react(comp([
-        obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', yTicks: 3 })]),
-      ]));
+      const withTicks = react(
+        comp([
+          obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', yTicks: 3 })]),
+        ])
+      );
       expect(withTicks).toContain('__f <= 2.5 ? 2.5');
       expect(withTicks).not.toContain('const __max = Math.max(1, ...__v)');
 
       // Without ticks nothing changes: same raw max, same 6px left edge.
-      const plain = react(comp([
-        obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })]),
-      ]));
+      const plain = react(
+        comp([obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v' })])])
+      );
       expect(plain).toContain('const __max = Math.max(1, ...__v)');
       expect(plain).toContain('const __x = 6 +');
       expect(plain).not.toContain('textAnchor="end"');
@@ -762,14 +764,15 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
     it('REFUSES: a yTicks value that cannot lay out a readable axis', () => {
       const bad = (yTicks: unknown) =>
-        comp([obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', yTicks })])]);
+        comp([
+          obj('Chart', [trait('chart', { kind: 'bar', state: 'rows', valueKey: 'v', yTicks })]),
+        ]);
       expect(() => react(bad(1))).toThrow(/invalid yTicks/);
       expect(() => react(bad(9))).toThrow(/invalid yTicks/);
       expect(() => react(bad('3'))).toThrow(/invalid yTicks/);
       // true is the documented shorthand for the default count.
       expect(react(bad(true))).toContain('length: 4');
     });
-
   });
 
   describe('7g. @honest / @provenance_bound — the Receipt-Bound Surface', () => {

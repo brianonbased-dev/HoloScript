@@ -24,11 +24,7 @@ import type {
 // =============================================================================
 
 export type FieldChangeKind =
-  | 'added'
-  | 'removed'
-  | 'type_changed'
-  | 'default_changed'
-  | 'reactive_changed';
+  'added' | 'removed' | 'type_changed' | 'default_changed' | 'reactive_changed';
 
 export interface FieldChange {
   kind: FieldChangeKind;

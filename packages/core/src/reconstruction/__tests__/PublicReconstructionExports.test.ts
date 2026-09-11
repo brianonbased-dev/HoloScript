@@ -30,8 +30,10 @@ describe('@holoscript/core/reconstruction public exports', () => {
       'utf8'
     );
     const start = source.indexOf('const reconstructionDTS = `');
-    expect(start, 'reconstructionDTS block not found — did the generator get restructured?').
-      toBeGreaterThan(-1);
+    expect(
+      start,
+      'reconstructionDTS block not found — did the generator get restructured?'
+    ).toBeGreaterThan(-1);
     const block = source.slice(start, source.indexOf('\n`;', start));
     const declared = [...block.matchAll(/export declare (?:function|const) (\w+)/g)].map(
       (m) => m[1]

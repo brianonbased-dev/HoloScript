@@ -57,13 +57,7 @@ import type { TraitHandler } from './TraitTypes';
  * Names match the free-text patterns used in vr-interactions.refreshed.hsplus.
  */
 export type GrabHapticPreset =
-  | 'soft_pulse'
-  | 'sharp_snap'
-  | 'click'
-  | 'rumble'
-  | 'double_click'
-  | 'buzz'
-  | 'none';
+  'soft_pulse' | 'sharp_snap' | 'click' | 'rumble' | 'double_click' | 'buzz' | 'none';
 
 export interface GrabFeedbackHapticConfig {
   /** Pattern fired on grab event. Default: 'soft_pulse'. */
@@ -209,8 +203,7 @@ export const grabFeedbackProfileHandler: TraitHandler<GrabFeedbackProfileConfig>
 
   onUpdate(node, config, context, delta) {
     const state = (node as unknown as Record<string, unknown>).__grabFeedbackProfileState as
-      | GrabFeedbackProfileState
-      | undefined;
+      GrabFeedbackProfileState | undefined;
     if (!state) return;
 
     const rampMs = config.bloom.ramp_ms;
@@ -235,8 +228,7 @@ export const grabFeedbackProfileHandler: TraitHandler<GrabFeedbackProfileConfig>
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__grabFeedbackProfileState as
-      | GrabFeedbackProfileState
-      | undefined;
+      GrabFeedbackProfileState | undefined;
     if (!state) return;
 
     const isGrab = event.type === 'grab' || event.type === 'grabbed';

@@ -280,10 +280,7 @@ export function deriveTraitSchemaFromHolo(source: string): TraitSchema | null {
  *   on one handler name; needs a rename, not a merge.
  */
 export type TraitConflictCategory =
-  | 'enum-divergent'
-  | 'prop-superset'
-  | 'type-conflict'
-  | 'disjoint';
+  'enum-divergent' | 'prop-superset' | 'type-conflict' | 'disjoint';
 
 function propByName(s: TraitSchema): Map<string, TraitPropertySchema> {
   return new Map(s.properties.map((p) => [p.name, p]));

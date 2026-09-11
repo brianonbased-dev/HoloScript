@@ -13,14 +13,7 @@
 // ============================================================================
 
 export type AgentPhase =
-  | 'intake'
-  | 'reflect'
-  | 'execute'
-  | 'compress'
-  | 'reintake'
-  | 'grow'
-  | 'evolve'
-  | 'autonomize';
+  'intake' | 'reflect' | 'execute' | 'compress' | 'reintake' | 'grow' | 'evolve' | 'autonomize';
 
 export const PHASE_ORDER: readonly AgentPhase[] = [
   'intake',
@@ -76,13 +69,7 @@ export interface CycleResult {
 // ============================================================================
 
 export type TaskStatus =
-  | 'idle'
-  | 'pending'
-  | 'running'
-  | 'success'
-  | 'error'
-  | 'cancelled'
-  | 'timeout';
+  'idle' | 'pending' | 'running' | 'success' | 'error' | 'cancelled' | 'timeout';
 
 export interface TaskParams {
   input?: Record<string, unknown>;

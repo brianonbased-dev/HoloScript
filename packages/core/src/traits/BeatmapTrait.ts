@@ -230,8 +230,7 @@ export const beatmapHandler: TraitHandler<BeatmapConfig> = {
 
   onUpdate(node, config, context, delta) {
     const state = (node as unknown as Record<string, unknown>).__beatmapState as
-      | BeatmapState
-      | undefined;
+      BeatmapState | undefined;
     if (!state) return;
 
     // External sync: do not advance the internal clock. The handler waits
@@ -246,8 +245,7 @@ export const beatmapHandler: TraitHandler<BeatmapConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__beatmapState as
-      | BeatmapState
-      | undefined;
+      BeatmapState | undefined;
     if (!state) return;
 
     if (event.type === 'beatmap_reset') {

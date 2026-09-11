@@ -1044,8 +1044,7 @@ export class USDZPipeline {
     lines.push(`${indent}{`);
 
     const position = group.properties.find((p) => p.key === 'position')?.value as
-      | number[]
-      | undefined;
+      number[] | undefined;
     if (position) {
       lines.push(
         `${indent}    double3 xformOp:translate = (${position[0]}, ${position[1]}, ${position[2]})`

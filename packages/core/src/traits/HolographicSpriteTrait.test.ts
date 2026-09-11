@@ -8,9 +8,7 @@ const createMockNode = (): HSPlusNode =>
     __typename: 'HSPlusNode',
     id: 'hologram-node',
     userData: {
-      imageSource: {
-        /* mock */
-      },
+      imageSource: {/* mock */},
     },
     emit: vi.fn(),
     on: vi.fn(),

@@ -379,12 +379,7 @@ export interface PlatformBlock<T = unknown> {
 
 /** Agent embodiment type per form factor */
 export type EmbodimentType =
-  | 'Avatar3D'
-  | 'SpatialPersona'
-  | 'VoiceHUD'
-  | 'UI2D'
-  | 'FullGUI'
-  | 'WebXR';
+  'Avatar3D' | 'SpatialPersona' | 'VoiceHUD' | 'UI2D' | 'FullGUI' | 'WebXR';
 
 /** Map platform categories to default embodiment */
 export const DEFAULT_EMBODIMENT: Record<PlatformCategory, EmbodimentType> = {

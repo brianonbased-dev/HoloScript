@@ -119,8 +119,7 @@ export const affinityHandler: TraitHandler<AffinityTraitConfig> = {
 
   onUpdate(node, _config, _context, delta) {
     const state = (node as unknown as Record<string, unknown>).__affinityState as
-      | AffinityNodeState
-      | undefined;
+      AffinityNodeState | undefined;
     if (!state?.isRunning || !state.solver?.step) return;
     // delta is in ms; solver expects seconds
     state.solver.step(delta / 1000);
@@ -128,8 +127,7 @@ export const affinityHandler: TraitHandler<AffinityTraitConfig> = {
 
   onDetach(node, _config, context) {
     const state = (node as unknown as Record<string, unknown>).__affinityState as
-      | AffinityNodeState
-      | undefined;
+      AffinityNodeState | undefined;
     if (state?.solver) {
       state.solver.dispose();
     }

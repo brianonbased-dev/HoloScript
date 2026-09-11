@@ -5,12 +5,7 @@ export type DomainSimulationReceiptSchema = typeof DOMAIN_SIMULATION_RECEIPT_SCH
 export type DomainSimulationReceiptHashAlgorithm = 'fnv1a32';
 
 export type DomainReceiptJson =
-  | string
-  | number
-  | boolean
-  | null
-  | DomainReceiptJson[]
-  | { [key: string]: DomainReceiptJson };
+  string | number | boolean | null | DomainReceiptJson[] | { [key: string]: DomainReceiptJson };
 
 export interface DomainSimulationReceiptAcceptance {
   accepted: boolean;

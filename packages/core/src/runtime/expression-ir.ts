@@ -46,21 +46,7 @@ export const ALLOWED_BUILTINS = [
 export type AllowedBuiltin = (typeof ALLOWED_BUILTINS)[number];
 
 export type BinaryOperator =
-  | '+'
-  | '-'
-  | '*'
-  | '/'
-  | '%'
-  | '==='
-  | '!=='
-  | '=='
-  | '!='
-  | '<'
-  | '>'
-  | '<='
-  | '>='
-  | '&&'
-  | '||';
+  '+' | '-' | '*' | '/' | '%' | '===' | '!==' | '==' | '!=' | '<' | '>' | '<=' | '>=' | '&&' | '||';
 
 export type UnaryOperator = '-' | '!';
 

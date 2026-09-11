@@ -360,9 +360,7 @@ async function shrinkDivergence<I, O, S>(
 }
 
 type RunOutcome<O> =
-  | { kind: 'value'; value: O }
-  | { kind: 'error'; error: string }
-  | { kind: 'timeout' };
+  { kind: 'value'; value: O } | { kind: 'error'; error: string } | { kind: 'timeout' };
 
 async function runWithTimeout<I, O>(
   fn: (input: I) => O | Promise<O>,

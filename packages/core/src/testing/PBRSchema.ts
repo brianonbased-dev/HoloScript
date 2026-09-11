@@ -63,13 +63,7 @@ export type CullMode = 'none' | 'front' | 'back';
  * High-level material classification for editor UI and rendering strategy.
  */
 export type MaterialType =
-  | 'standard'
-  | 'physical'
-  | 'basic'
-  | 'emissive'
-  | 'toon'
-  | 'glass'
-  | 'metal';
+  'standard' | 'physical' | 'basic' | 'emissive' | 'toon' | 'glass' | 'metal';
 
 // =============================================================================
 // TEXTURE SLOT

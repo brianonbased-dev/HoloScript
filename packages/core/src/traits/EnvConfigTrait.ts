@@ -36,8 +36,7 @@ export const envConfigHandler: TraitHandler<EnvConfigConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__envConfigState as
-      | { values: Map<string, { value: unknown; layer: string }> }
-      | undefined;
+      { values: Map<string, { value: unknown; layer: string }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 

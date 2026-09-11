@@ -127,9 +127,9 @@ describe('@live_proof falsifiedBy — a check must be shown to fail', () => {
   });
 
   it('requires a plain-language because for every fault', () => {
-    expect(() =>
-      compile({ claim: CLAIM, falsifiedBy: [{ load: 200 }] })
-    ).toThrow(/needs a plain-language "because"/);
+    expect(() => compile({ claim: CLAIM, falsifiedBy: [{ load: 200 }] })).toThrow(
+      /needs a plain-language "because"/
+    );
   });
 
   it('rejects a fault that changes nothing', () => {

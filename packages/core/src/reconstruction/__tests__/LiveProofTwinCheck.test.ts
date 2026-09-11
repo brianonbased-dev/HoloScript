@@ -61,9 +61,9 @@ const VERIFIED_BINDING: LiveProofBinding = {
 
 describe('deriveLiveProofInputs — what a claim actually reads', () => {
   it('finds every state field a claim reads', () => {
-    expect(deriveLiveProofInputs('capacity >= load * factor', ['capacity', 'load', 'factor'])).toEqual(
-      ['capacity', 'factor', 'load']
-    );
+    expect(
+      deriveLiveProofInputs('capacity >= load * factor', ['capacity', 'load', 'factor'])
+    ).toEqual(['capacity', 'factor', 'load']);
   });
 
   it('keeps the full dotted path, not just the root', () => {
@@ -137,9 +137,9 @@ describe('anchorLiveProofClaim — which inputs are twin-backed', () => {
       transform: { precision: 2, prefix: '$' },
     };
     expect(isTwinCheckable(formatted)).toBe(true);
-    expect(anchorLiveProofClaim({ inputs: ['balance'], projections: [formatted] }).anchors).toEqual([
-      { input: 'balance', node: 'balance', entity: 'acct-9' },
-    ]);
+    expect(anchorLiveProofClaim({ inputs: ['balance'], projections: [formatted] }).anchors).toEqual(
+      [{ input: 'balance', node: 'balance', entity: 'acct-9' }]
+    );
   });
 
   it('does not accept a sibling path as an anchor', () => {
@@ -301,10 +301,7 @@ describe('checkLiveProofTwinVerdict — closing the claim against a live twin', 
 
   it('lets one divergence outrank an unreachable sibling', () => {
     const receipt = twinReceipt({
-      projections: [
-        IDENTITY_TEMP,
-        { element: 'P', node: 'psi', entity: 'pump-2', identity: true },
-      ],
+      projections: [IDENTITY_TEMP, { element: 'P', node: 'psi', entity: 'pump-2', identity: true }],
       displayed: { temp: 20, psi: 5 },
       authoritative: { 'reactor-1': { temp: 900 } },
       unavailable: ['pump-2'],
@@ -420,14 +417,16 @@ describe('extractLiveProofBadges — reading a badge back out of what rendered',
   });
 
   it('treats unreadable anchors as absent rather than guessing at them', () => {
-    const broken = VERIFIED_BADGE_HTML.replace(/data-proof-anchors="[^"]*"/, 'data-proof-anchors="{{"');
+    const broken = VERIFIED_BADGE_HTML.replace(
+      /data-proof-anchors="[^"]*"/,
+      'data-proof-anchors="{{"'
+    );
     expect(extractLiveProofBadges(broken)[0].anchors).toEqual([]);
   });
 });
 
 describe('verifyLiveProofsLive — rendered surface + live authority, end to end', () => {
-  const html =
-    '<div data-holo-projects="temp">20</div>' + VERIFIED_BADGE_HTML;
+  const html = '<div data-holo-projects="temp">20</div>' + VERIFIED_BADGE_HTML;
   const contract = { projections: [IDENTITY_TEMP] };
 
   it('VERIFIED when the authority holds what the surface displays', async () => {

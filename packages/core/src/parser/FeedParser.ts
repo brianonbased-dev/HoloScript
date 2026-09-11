@@ -48,8 +48,7 @@ export class FeedParser {
         // Extract provenance from comments or traits if needed
         if (!node.provenance) {
           const authorTrait = node.traits?.get('author' as VRTraitName) as
-            | Record<string, unknown>
-            | undefined;
+            Record<string, unknown> | undefined;
           node.provenance = {
             author: String(authorTrait?.value || authorTrait?.[0] || 'anonymous'),
             timestamp: Date.now(),
@@ -70,14 +69,12 @@ export class FeedParser {
       .map((n) => {
         // Extract thought trait content
         const thoughtTrait = n.traits?.get('thought' as VRTraitName) as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const content = String(thoughtTrait?.value || thoughtTrait?.[0] || '');
 
         // Extract velocity if present
         const velocityTrait = n.traits?.get('velocity' as VRTraitName) as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         const vArgs = (velocityTrait?.args as number[]) || [0, 0, 0];
 
         return {

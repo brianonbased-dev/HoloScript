@@ -160,10 +160,7 @@ export interface LLMCapabilityMatrixAST {
 }
 
 export type LLMCapabilityEmitFormat =
-  | 'markdown_ssot'
-  | 'ts_adapter_capabilities'
-  | 'cost_guard_pricing'
-  | 'json_capability_matrix';
+  'markdown_ssot' | 'ts_adapter_capabilities' | 'cost_guard_pricing' | 'json_capability_matrix';
 
 export interface LLMCapabilityCompileResult {
   files: Record<string, string>;

@@ -19,10 +19,7 @@ import {
 export const HOLOMAP_MOBILE_SENSOR_BUNDLE_VERSION = 'holomap-mobile-sensor-bundle/v1';
 
 export type MobileSensorPlatform =
-  | 'ios-arkit-lidar'
-  | 'android-arcore-depth'
-  | 'holoshell-native'
-  | 'synthetic-replay';
+  'ios-arkit-lidar' | 'android-arcore-depth' | 'holoshell-native' | 'synthetic-replay';
 
 export interface MobileCameraIntrinsics {
   width: number;

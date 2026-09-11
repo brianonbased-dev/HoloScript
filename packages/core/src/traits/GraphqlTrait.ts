@@ -23,8 +23,7 @@ export const graphqlHandler: TraitHandler<GraphqlConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__gqlState as
-      | { resolvers: Map<string, string>; queries: number }
-      | undefined;
+      { resolvers: Map<string, string>; queries: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

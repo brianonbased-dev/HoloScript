@@ -65,14 +65,7 @@ export type TextureFormat =
   | 'BASIS';
 
 export type CompressionFormat =
-  | 'none'
-  | 'draco'
-  | 'meshopt'
-  | 'basis'
-  | 'astc'
-  | 'ktx2'
-  | 'gzip'
-  | 'brotli';
+  'none' | 'draco' | 'meshopt' | 'basis' | 'astc' | 'ktx2' | 'gzip' | 'brotli';
 
 export type TextureResolution = '256' | '512' | '1K' | '2K' | '4K' | '8K';
 

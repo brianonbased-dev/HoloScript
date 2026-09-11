@@ -42,13 +42,7 @@ export type PluginCapability =
   | 'clipboard:write';
 
 export type PluginLifecycleState =
-  | 'unloaded'
-  | 'loading'
-  | 'ready'
-  | 'running'
-  | 'paused'
-  | 'error'
-  | 'crashed';
+  'unloaded' | 'loading' | 'ready' | 'running' | 'paused' | 'error' | 'crashed';
 
 export type MessageType = 'request' | 'response' | 'event' | 'error' | 'heartbeat';
 

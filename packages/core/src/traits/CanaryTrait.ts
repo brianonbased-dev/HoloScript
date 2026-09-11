@@ -32,8 +32,7 @@ export const canaryHandler: TraitHandler<CanaryConfig> = {
 
   onEvent(node: HSPlusNode, config: CanaryConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__canaryState as
-      | { active: boolean; version: string; percentage: number; started: number }
-      | undefined;
+      { active: boolean; version: string; percentage: number; started: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 

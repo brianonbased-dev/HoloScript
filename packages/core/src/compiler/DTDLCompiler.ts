@@ -54,11 +54,7 @@ export interface DTDLInterface {
 }
 
 export type DTDLContent =
-  | DTDLProperty
-  | DTDLTelemetry
-  | DTDLCommand
-  | DTDLRelationship
-  | DTDLComponent;
+  DTDLProperty | DTDLTelemetry | DTDLCommand | DTDLRelationship | DTDLComponent;
 
 export interface DTDLProperty {
   '@type': 'Property' | ['Property', ...string[]];
@@ -114,11 +110,7 @@ export interface DTDLComponent {
 }
 
 export type DTDLSchema =
-  | string
-  | DTDLMapSchema
-  | DTDLArraySchema
-  | DTDLEnumSchema
-  | DTDLObjectSchema;
+  string | DTDLMapSchema | DTDLArraySchema | DTDLEnumSchema | DTDLObjectSchema;
 
 export interface DTDLMapSchema {
   '@type': 'Map';

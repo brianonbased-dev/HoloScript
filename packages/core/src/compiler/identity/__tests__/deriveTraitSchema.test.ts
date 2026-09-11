@@ -290,10 +290,7 @@ describe('deriveTraitSchema — trait props-schema derivation from .holo', () =>
     });
 
     it('leaves a property with no ui entry exactly as it was', () => {
-      const source = trait(
-        'a: number = 1, b: number = 2',
-        'a: { label: "A", range: [0, 10] }'
-      );
+      const source = trait('a: number = 1, b: number = 2', 'a: { label: "A", range: [0, 10] }');
       expect(propNamed(source, 'b')).toEqual({ name: 'b', type: 'number', defaultValue: 2 });
     });
 
@@ -303,9 +300,7 @@ describe('deriveTraitSchema — trait props-schema derivation from .holo', () =>
       `;
       const derived = deriveTraitFromHolo(withoutUi);
       expect(derived?.uiIssues).toEqual([]);
-      expect(derived?.schema.properties).toEqual([
-        { name: 'a', type: 'number', defaultValue: 1 },
-      ]);
+      expect(derived?.schema.properties).toEqual([{ name: 'a', type: 'number', defaultValue: 1 }]);
     });
 
     // ── Refusals. Each must be REPORTED and must NOT be applied: a faulty entry
@@ -414,7 +409,14 @@ describe('deriveTraitSchema — trait props-schema derivation from .holo', () =>
           category: 'c',
           properties: [{ name: 'a', type: 'number', label: 'A', min: 0, max: 10, step: 1 }],
         },
-        { name: 'x', category: 'c', properties: [{ name: 'a', type: 'number' }, { name: 'b', type: 'boolean' }] },
+        {
+          name: 'x',
+          category: 'c',
+          properties: [
+            { name: 'a', type: 'number' },
+            { name: 'b', type: 'boolean' },
+          ],
+        },
       ]);
       expect(merged.properties.find((p) => p.name === 'a')).toMatchObject({
         label: 'A',

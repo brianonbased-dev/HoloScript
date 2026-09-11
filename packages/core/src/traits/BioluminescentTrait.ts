@@ -463,8 +463,7 @@ export const bioluminescentHandler: TraitHandler<BioluminescentConfig> = {
 
   onUpdate(node, config, context, delta) {
     const state = (node as unknown as Record<string, unknown>).__bioluminescentState as
-      | BioluminescentState
-      | undefined;
+      BioluminescentState | undefined;
     if (!state) return;
 
     state.elapsedSeconds += delta;
@@ -481,8 +480,7 @@ export const bioluminescentHandler: TraitHandler<BioluminescentConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__bioluminescentState as
-      | BioluminescentState
-      | undefined;
+      BioluminescentState | undefined;
     if (!state) return;
 
     if (event.type === 'bioluminescent_observer') {

@@ -5,13 +5,7 @@ import { CompilerBase, createTestCompilerToken } from './CompilerBase';
 export const PCG_GRAPH_SCHEMA = 'holoscript-pcg-graph-v1' as const;
 
 export type PCGGraphNodeKind =
-  | 'surface'
-  | 'density_filter'
-  | 'slope_mask'
-  | 'scatter'
-  | 'snap_to_terrain'
-  | 'output'
-  | 'custom';
+  'surface' | 'density_filter' | 'slope_mask' | 'scatter' | 'snap_to_terrain' | 'output' | 'custom';
 
 export type PCGPortType = 'surface' | 'scalar-field' | 'point-set' | 'asset';
 

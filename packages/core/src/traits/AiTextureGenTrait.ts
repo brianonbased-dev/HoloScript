@@ -15,12 +15,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 export type TextureStyle =
-  | 'photorealistic'
-  | 'stylized'
-  | 'cartoon'
-  | 'sci-fi'
-  | 'fantasy'
-  | 'abstract';
+  'photorealistic' | 'stylized' | 'cartoon' | 'sci-fi' | 'fantasy' | 'abstract';
 export type TextureResolution = 256 | 512 | 1024 | 2048 | 4096;
 export type MaterialType = 'diffuse' | 'pbr' | 'emissive' | 'transparent';
 

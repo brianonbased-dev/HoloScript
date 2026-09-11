@@ -19,9 +19,7 @@ const FORMAT = '.hsplus' as const;
 const PARSER = 'HoloScriptPlusParser' as const;
 
 export type HSPlusStructMeaningLoweringErrorCode =
-  | 'invalid-source'
-  | 'invalid-struct'
-  | 'duplicate-struct';
+  'invalid-source' | 'invalid-struct' | 'duplicate-struct';
 
 export class HSPlusStructMeaningLoweringError extends Error {
   readonly code: HSPlusStructMeaningLoweringErrorCode;

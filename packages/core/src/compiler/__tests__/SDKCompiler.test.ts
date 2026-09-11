@@ -279,9 +279,7 @@ composition "PublicImageService" {
     expect(pythonFiles['pyproject.toml']).toContain(
       'Repository = "https://github.com/example/public-image-service"'
     );
-    expect(pythonFiles['pyproject.toml']).toContain(
-      'Homepage = "https://images.example.com/docs"'
-    );
+    expect(pythonFiles['pyproject.toml']).toContain('Homepage = "https://images.example.com/docs"');
   });
 
   it('registers the sdk dialect for native compiler discovery', () => {

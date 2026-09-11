@@ -15,13 +15,7 @@ import type { TraitHandler } from './TraitTypes';
 
 type AltitudeType = 'terrain' | 'wgs84' | 'egm96';
 type LocalizationState =
-  | 'idle'
-  | 'initializing'
-  | 'localizing'
-  | 'localized'
-  | 'tracking'
-  | 'limited'
-  | 'unavailable';
+  'idle' | 'initializing' | 'localizing' | 'localized' | 'tracking' | 'limited' | 'unavailable';
 
 interface GeospatialEnvState {
   state: LocalizationState;

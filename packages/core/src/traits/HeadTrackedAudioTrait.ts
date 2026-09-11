@@ -174,8 +174,7 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
 
     if (event.type === 'head_rotation_update') {
       const r = event.rotation as
-        | { x?: number; y?: number; z?: number; w?: number }
-        | [number, number, number, number];
+        { x?: number; y?: number; z?: number; w?: number } | [number, number, number, number];
       state.headRotation = Array.isArray(r)
         ? (r as [number, number, number, number])
         : [r.x ?? 0, r.y ?? 0, r.z ?? 0, r.w ?? 1];

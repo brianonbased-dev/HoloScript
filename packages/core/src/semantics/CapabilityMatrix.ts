@@ -26,14 +26,7 @@ export type PlatformType =
   | 'unreal';
 
 export type RenderingBackend =
-  | 'webgl'
-  | 'webgl2'
-  | 'webgpu'
-  | 'opengl'
-  | 'vulkan'
-  | 'metal'
-  | 'directx11'
-  | 'directx12';
+  'webgl' | 'webgl2' | 'webgpu' | 'opengl' | 'vulkan' | 'metal' | 'directx11' | 'directx12';
 
 export type XRMode = 'none' | 'vr' | 'ar' | 'mr' | 'passthrough';
 

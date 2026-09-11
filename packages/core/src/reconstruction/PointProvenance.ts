@@ -43,10 +43,7 @@
  *                           observed (ArtiFixer-style fill). The lowest-trust class.
  */
 export type PointProvenanceClass =
-  | 'observed'
-  | 'interpolated'
-  | 'nlos-inferred'
-  | 'generative-extended';
+  'observed' | 'interpolated' | 'nlos-inferred' | 'generative-extended';
 
 /** Compact uint8 codes for per-point encoding in buffers / glTF attributes. */
 export const POINT_PROVENANCE_CODE: Record<PointProvenanceClass, number> = {

@@ -28,8 +28,7 @@ export const cinematicSeqHandler: TraitHandler<CinematicSeqConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__cinState as
-      | { clips: unknown[]; currentFrame: number; playing: boolean }
-      | undefined;
+      { clips: unknown[]; currentFrame: number; playing: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

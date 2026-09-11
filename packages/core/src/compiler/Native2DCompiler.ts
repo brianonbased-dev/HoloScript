@@ -195,8 +195,7 @@ export class Native2DCompiler extends CompilerBase {
           }
         }
         for (const t of (o.traits as
-          | Array<{ name?: string; config?: Record<string, unknown> }>
-          | undefined) ?? []) {
+          Array<{ name?: string; config?: Record<string, unknown> }> | undefined) ?? []) {
           if (t?.name === 'fetch') {
             const into = (t.config as { into?: unknown } | undefined)?.into;
             this._projectionRoots.add(typeof into === 'string' && into ? into : 'data');
@@ -1528,7 +1527,9 @@ export default ${safeName}Component;${contractExport}
       else if (Number.isInteger(ch.yTicks) && ch.yTicks >= 2 && ch.yTicks <= 6) yTicks = ch.yTicks;
       else throw new Error(`Native2DCompiler @chart: invalid yTicks ${JSON.stringify(ch.yTicks)}`);
       if (kind !== 'bar') {
-        throw new Error('Native2DCompiler @chart: yTicks is bar-only (line/area use min-max framing)');
+        throw new Error(
+          'Native2DCompiler @chart: yTicks is bar-only (line/area use min-max framing)'
+        );
       }
     }
 
@@ -1595,7 +1596,9 @@ export default ${safeName}Component;${contractExport}
       body =
         `{((__a) => { const __d = (__a ?? []); ` +
         `const __v = __d.map((d) => Number(${valueExpr}) || 0); ` +
-        `const __max = ` + (yTicks ? niceMaxExpr : `Math.max(1, ...__v)`) + `; const __n = __d.length || 1; ` +
+        `const __max = ` +
+        (yTicks ? niceMaxExpr : `Math.max(1, ...__v)`) +
+        `; const __n = __d.length || 1; ` +
         `const __slot = ${plotW} / __n; const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1)); ` +
         `return __d.map((d, i) => { const __h = Math.max(0, Number(${valueExpr}) || 0) / __max * ${plotH}; ` +
         `const __x = ${PL} + i * __slot + (__slot - __bw) / 2; const __y = ${baselineY} - __h; ` +
@@ -2162,7 +2165,11 @@ export default ${safeName}Component;${contractExport}
    * `headroom` was anchored to nothing. Over-counting only ever costs a claim its top label;
    * under-counting hands one out unearned, so the wider set is the one to be wrong with.
    */
-  private bindLiveProofToTwin(claim: string, label: string, faultTested: boolean): LiveProofBinding {
+  private bindLiveProofToTwin(
+    claim: string,
+    label: string,
+    faultTested: boolean
+  ): LiveProofBinding {
     const inputs = deriveLiveProofInputs(claim, this._projectionRoots);
     const { anchors, unanchored } = anchorLiveProofClaim({
       inputs,

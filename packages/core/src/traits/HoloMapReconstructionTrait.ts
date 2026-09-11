@@ -106,8 +106,7 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__holomapState as
-      | HoloMapReconstructionState
-      | undefined;
+      HoloMapReconstructionState | undefined;
     if (!state) return;
 
     const rawRuntime = (node as unknown as Record<string, unknown>)
@@ -310,8 +309,7 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
 
   onDetach(node, _config, context) {
     const state = (node as unknown as Record<string, unknown>).__holomapState as
-      | HoloMapReconstructionState
-      | undefined;
+      HoloMapReconstructionState | undefined;
     if (state?.runtime) {
       void state.runtime.dispose().then(() => {
         state.runtime = null;

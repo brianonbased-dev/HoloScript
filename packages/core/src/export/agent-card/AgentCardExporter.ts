@@ -144,12 +144,7 @@ export interface JsonSchema {
  * Content mode (MIME type based)
  */
 export type ContentMode =
-  | 'text'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'application/json'
-  | 'application/holoscript';
+  'text' | 'image' | 'audio' | 'video' | 'application/json' | 'application/holoscript';
 
 /**
  * Agent capabilities

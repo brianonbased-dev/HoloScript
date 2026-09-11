@@ -7,11 +7,7 @@ export interface CareActor {
 }
 
 export type CarePrimitiveKind =
-  | 'care_field'
-  | 'repair_loop'
-  | 'autonomy_guard'
-  | 'gratitude_ledger'
-  | 'relational_memory';
+  'care_field' | 'repair_loop' | 'autonomy_guard' | 'gratitude_ledger' | 'relational_memory';
 
 export type CareConsentState = 'explicit' | 'delegated' | 'not_required' | 'unknown' | 'withdrawn';
 
@@ -31,10 +27,7 @@ export type CarePositiveOptimizationTarget =
   | 'reduced_burden';
 
 export type CareRefusedOptimizationTarget =
-  | 'attachment_score'
-  | 'session_frequency'
-  | 'daily_active_dependence'
-  | 'emotional_dependency';
+  'attachment_score' | 'session_frequency' | 'daily_active_dependence' | 'emotional_dependency';
 
 export type CareOptimizationTarget = CarePositiveOptimizationTarget | CareRefusedOptimizationTarget;
 

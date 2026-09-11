@@ -18,11 +18,7 @@
 // =============================================================================
 
 export type RenderStrategy =
-  | 'standard_mesh'
-  | 'batched_mesh'
-  | 'instanced'
-  | 'sdf_raymarch'
-  | 'compute_rasterize';
+  'standard_mesh' | 'batched_mesh' | 'instanced' | 'sdf_raymarch' | 'compute_rasterize';
 
 export type GPUTier = 'low' | 'medium' | 'high' | 'ultra';
 

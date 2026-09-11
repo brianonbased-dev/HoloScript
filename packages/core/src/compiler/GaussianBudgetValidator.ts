@@ -20,13 +20,7 @@
  * Target platform identifiers for Gaussian budget enforcement.
  */
 export type GaussianPlatform =
-  | 'quest3'
-  | 'desktop-vr'
-  | 'webgpu'
-  | 'mobile-ar'
-  | 'visionos'
-  | 'android-xr'
-  | 'pcvr';
+  'quest3' | 'desktop-vr' | 'webgpu' | 'mobile-ar' | 'visionos' | 'android-xr' | 'pcvr';
 
 /**
  * Gaussian budget limits per platform (number of Gaussian primitives).

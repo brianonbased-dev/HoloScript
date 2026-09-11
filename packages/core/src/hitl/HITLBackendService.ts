@@ -17,13 +17,7 @@ import { readJson } from '../errors/safeJsonParse';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'auto_approved';
 export type ActionCategory =
-  | 'read'
-  | 'write'
-  | 'execute'
-  | 'delete'
-  | 'transfer'
-  | 'financial'
-  | 'admin';
+  'read' | 'write' | 'execute' | 'delete' | 'transfer' | 'financial' | 'admin';
 export type NotificationChannel = 'email' | 'slack' | 'webhook' | 'sms' | 'push';
 
 export interface ApprovalRequest {

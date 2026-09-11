@@ -20,15 +20,7 @@
 // across core + runtime surfaces (the emit() call is the only usage).
 
 export type CavemanVerb =
-  | 'eat'
-  | 'drink'
-  | 'flee'
-  | 'inspect'
-  | 'rest'
-  | 'idle'
-  | 'grunt'
-  | 'gesture'
-  | 'attack';
+  'eat' | 'drink' | 'flee' | 'inspect' | 'rest' | 'idle' | 'grunt' | 'gesture' | 'attack';
 
 const VERB_TO_CLIP: Record<CavemanVerb, string> = {
   eat: 'Eating',

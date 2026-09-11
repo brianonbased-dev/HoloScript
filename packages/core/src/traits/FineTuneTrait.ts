@@ -36,8 +36,7 @@ export const fineTuneHandler: TraitHandler<FineTuneConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__fineTuneState as
-      | { jobs: Map<string, { modelId: string; status: string; progress: number }> }
-      | undefined;
+      { jobs: Map<string, { modelId: string; status: string; progress: number }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 

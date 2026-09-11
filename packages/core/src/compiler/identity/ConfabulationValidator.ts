@@ -36,15 +36,7 @@ import { DERIVED_TRAIT_SCHEMAS } from './derived-trait-schemas.generated';
  * Allowed types for trait property values.
  */
 export type TraitPropertyType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'array'
-  | 'object'
-  | 'color'
-  | 'vector3'
-  | 'enum'
-  | 'any';
+  'string' | 'number' | 'boolean' | 'array' | 'object' | 'color' | 'vector3' | 'enum' | 'any';
 
 /**
  * Schema definition for a single trait property.

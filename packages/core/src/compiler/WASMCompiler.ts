@@ -262,8 +262,7 @@ export class WASMCompiler extends CompilerBase {
       limitations: wasm ? [...WASM_BINARY_LIMITATIONS] : [...WASM_WAT_LIMITATIONS],
     };
     return this.withTripleOutputIfRequested(composition, result, this.docGenerationOptions) as
-      | WASMCompileResult
-      | CompilationResult;
+      WASMCompileResult | CompilationResult;
   }
 
   /**

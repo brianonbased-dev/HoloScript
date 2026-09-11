@@ -365,13 +365,7 @@ export type AttributeType =
  * Primitive topology
  */
 export type PrimitiveMode =
-  | 'points'
-  | 'lines'
-  | 'lineLoop'
-  | 'lineStrip'
-  | 'triangles'
-  | 'triangleStrip'
-  | 'triangleFan';
+  'points' | 'lines' | 'lineLoop' | 'lineStrip' | 'triangles' | 'triangleStrip' | 'triangleFan';
 
 /**
  * Mesh primitive (sub-mesh)

@@ -370,8 +370,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
           sessionId: (event as Record<string, unknown>).sessionId as string | undefined,
         },
         resource: (event as Record<string, unknown>).resource as
-          | { type: string; id: string; name?: string }
-          | undefined,
+          { type: string; id: string; name?: string } | undefined,
         tenantId,
       });
 

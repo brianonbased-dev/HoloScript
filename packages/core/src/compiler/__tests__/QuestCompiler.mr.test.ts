@@ -243,7 +243,7 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(nonUrlPanel).toContain('private const val BOOKMARKS_ENABLED = false');
   });
 
-  it("Bookmark click stays on Saved links and does not call dismiss", () => {
+  it('Bookmark click stays on Saved links and does not call dismiss', () => {
     const out = new QuestCompiler().compile(parsed.ast!, '');
     const panel = out[Object.keys(out).find((k) => k.endsWith('ScannerPanel.kt'))!];
     const start = panel.indexOf('val canonical = QrPayloadFacts.asWebUrl(url) ?: url');
@@ -403,7 +403,17 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
 
   it('privacy policy uses the store listing name HoloQR', () => {
     const privacy = readFileSync(
-      join(__dirname, '..', '..', '..', '..', '..', 'apps', 'quest-universal-qr-scanner', 'PRIVACY.md'),
+      join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        '..',
+        'apps',
+        'quest-universal-qr-scanner',
+        'PRIVACY.md'
+      ),
       'utf8'
     );
     expect(privacy).toMatch(/^# Privacy Policy — HoloQR/m);

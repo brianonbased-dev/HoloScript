@@ -45,10 +45,7 @@ export const SumProductSemiring: Semiring<number> = {
 };
 
 export type NumericStrategySemiringName =
-  | 'sum'
-  | 'multiply'
-  | 'tropical-min-plus'
-  | 'tropical-max-plus';
+  'sum' | 'multiply' | 'tropical-min-plus' | 'tropical-max-plus';
 
 /**
  * Adapter from existing string strategies to explicit semiring instances.
