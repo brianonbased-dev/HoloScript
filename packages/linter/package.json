@@ -2,7 +2,7 @@
   "name": "@holoscript/linter",
   "version": "6.1.1",
   "description": "Static analysis tool for HoloScript (.holo) and HoloScript+ (.hsplus) files",
-  "main": "dist/index.js",
+  "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "bin": {
     "holoscript-lint": "./bin/holoscript-lint.cjs"
