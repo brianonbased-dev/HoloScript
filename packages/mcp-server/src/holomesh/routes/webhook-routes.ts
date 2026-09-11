@@ -10,11 +10,19 @@
  *   VolumeAlert: Triggered, Resolved
  *   Monitor:     Triggered, Resolved, Deleted
  *
- * Railway signs the body with HMAC-SHA256; set RAILWAY_WEBHOOK_SECRET in
- * the mcp-server Railway env var and configure the webhook URL in the
- * Railway dashboard:  https://<mcp-domain>/webhook/railway
+ * HOW TO CONFIGURE IT, and note the ?token= — it is the whole authentication.
+ * Railway does NOT sign webhook payloads (docs.railway.com/observability/webhooks,
+ * read 2026-09-11); it recommends putting a secret in the URL instead. So set
+ * RAILWAY_WEBHOOK_SECRET in the mcp-server service variables, then in the Railway
+ * project's Settings -> Webhooks tab (PROJECT settings, not service) add:
  *
- * Also set HOLOMESH_TEAM_ID to your team ID so messages route correctly.
+ *   https://mcp.holoscript.net/webhook/railway?token=<RAILWAY_WEBHOOK_SECRET>
+ *
+ * Append &team=<id> to override HOLOMESH_TEAM_ID per webhook; otherwise set
+ * HOLOMESH_TEAM_ID so messages route to the right room.
+ *
+ * Do not expect an x-railway-signature header. One is accepted if present, but
+ * nothing Railway sends carries it.
  */
 import type http from 'http';
 import { createHmac } from 'node:crypto';
@@ -25,6 +33,60 @@ import type { TeamMessage } from '../types';
 
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 const WEBHOOK_SECRET = process.env.RAILWAY_WEBHOOK_SECRET || '';
+
+/** Constant-time string compare, so a shared secret cannot be guessed byte by byte. */
+function secretsMatch(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * Accept a Railway webhook, by the mechanism Railway ACTUALLY uses.
+ *
+ * RAILWAY DOES NOT SIGN WEBHOOK PAYLOADS. Their documentation
+ * (docs.railway.com/observability/webhooks, read 2026-09-11) says so outright —
+ * "Webhook payloads are not cryptographically signed" — and recommends instead
+ * that you "include a secret in the webhook URL you configure". There is no
+ * `x-railway-signature` header, and there never was.
+ *
+ * This file previously verified an HMAC-SHA256 of the body against that header,
+ * which no real Railway request carries. That was harmless only because the route
+ * was unreachable. When I made it reachable earlier today I kept the signature
+ * check, which would have turned "every alert 404s" into "every alert 401s" — the
+ * same silence, one status code further on, and I would have reported it fixed.
+ * The assumption that a webhook provider signs its payloads was never checked
+ * against Railway's own docs until after the fix was written.
+ *
+ * So the shared secret travels in the URL, as Railway intends: configure
+ *     https://mcp.holoscript.net/webhook/railway?token=<RAILWAY_WEBHOOK_SECRET>
+ * The HMAC path is kept because it costs nothing and a proxy in front of us may
+ * add a signature, but it is no longer the only way in.
+ *
+ * With no secret configured this refuses everything, regardless of NODE_ENV —
+ * see the note on that below.
+ */
+export function verifyRailwayRequest(
+  url: string,
+  body: string,
+  signature: string | undefined
+): boolean {
+  if (!WEBHOOK_SECRET) return false;
+
+  // 1. The documented mechanism: a secret in the URL.
+  let token = '';
+  try {
+    const params = new URL(url, 'https://mcp.invalid').searchParams;
+    token = params.get('token') || params.get('secret') || '';
+  } catch {
+    token = '';
+  }
+  if (token && secretsMatch(token, WEBHOOK_SECRET)) return true;
+
+  // 2. Optional belt-and-braces for anything that DOES sign.
+  return verifyRailwaySignature(body, signature);
+}
 
 export function verifyRailwaySignature(body: string, signature: string | undefined): boolean {
   if (!WEBHOOK_SECRET) {
@@ -192,7 +254,7 @@ export async function handleWebhookRoutes(
   }
 
   const sig = req.headers['x-railway-signature'] as string | undefined;
-  if (!verifyRailwaySignature(rawBody, sig)) {
+  if (!verifyRailwayRequest(url, rawBody, sig)) {
     json(res, 401, { error: 'invalid_signature' });
     return true;
   }
