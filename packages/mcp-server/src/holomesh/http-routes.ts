@@ -155,6 +155,26 @@ export async function handleHoloMeshRoute(
   }
 
   // 1b. Decentralized Gossip Protocol Sync
+  //
+  // ⚠ UNAUTHENTICATED, AND IT BOTH ACCEPTS AND RETURNS. An anonymous POST merges
+  // caller-supplied entries into our gossip pool via antiEntropySync and then
+  // returns the WHOLE host pool in the response — so one request is simultaneously
+  // a write into shared state and a read of which agents and teams this server has
+  // seen. It sits between the room route and the presence route, both of which
+  // were gated on 2026-09-10; this one was read past in that same edit.
+  //
+  // Note what the route just above feeds it: the room handler calls
+  // meshGossip.shareWisdom(agentId, ...) with the agent id taken from the query
+  // string. So a name chosen by a caller reaches the pool that this endpoint hands
+  // out. Gating the room did not close that, because this is a second door into
+  // the same room.
+  //
+  // Not gated here for the same reason as the TTU block below: it is a published
+  // protocol surface and turning it off is the founder's call. When made, the fix
+  // is localOrAuthenticated(req) at this route. If the answer is that gossip must
+  // stay open by design — which is a defensible thing for a gossip protocol — then
+  // say so HERE, because an endpoint that is deliberately public and silent about
+  // it is indistinguishable from one nobody checked.
   if (pathname === '/api/holomesh/gossip/sync' && method === 'POST') {
     try {
       const payload = _body ? JSON.parse(_body) : {};
@@ -191,6 +211,37 @@ export async function handleHoloMeshRoute(
     return true;
   }
 
+  // ⚠ UNAUTHENTICATED — READ AND WRITE. The six TTU routes below take no
+  // credential of any kind, and `/publish` and `/step` are writes. Anyone who can
+  // reach this server can open a session's stream, read its replay buffer, join
+  // its presence list under any name they choose, and publish frames into it.
+  //
+  // READ THIS BEFORE ASSUMING THE LOCK ABOVE COVERS THEM. It does not. The three
+  // `/room/*` routes ~60 lines up were gated on 2026-09-10 after an intruder was
+  // observed in a live room. These mirror that exact shape — live / presence /
+  // stats — and were left open in the same edit, by the same agent, because they
+  // were read past rather than considered. Proximity to a guard is not coverage.
+  //
+  // WHY THEY ARE NOT GATED YET, and it is a decision rather than an oversight
+  // now. The one real client, HoloMeshProphecyTransport in
+  // packages/snn-webgpu/src/prophetic-gi/transport-holomesh.ts:182-186, sends
+  // `Authorization: Bearer` only `if (this.options.apiKey)` — so auth is optional
+  // at the client. Nothing in this repo constructs it outside
+  // __tests__/prophetic-gi.test.ts (verified with `git grep`, which finds it where
+  // ripgrep times out), but it IS exported from that package's public index.ts, so
+  // gating changes a published contract for any outside consumer that omits the
+  // key. That is the founder's call, not an unattended one.
+  //
+  // WHEN IT IS MADE, the fix is `localOrAuthenticated(req)` — already defined in
+  // this file and used by the three room routes — applied at each route below,
+  // NOT inside handleTtuLiveConnection, for the same reason the room gate sits
+  // here: a shared handler is the wrong home for one caller's policy.
+  //
+  // SEPARATELY, and worse for a write path: ttu-feed.ts keeps session state in
+  // memory keyed by a caller-supplied sessionId. An unauthenticated writer can
+  // therefore create unbounded sessions. Treat that as the reason this is a
+  // priority rather than a tidy-up.
+  //
   // 1c. TTU multi-agent feed sessions (sibling task _0v98 — Phase 2 swarm builder).
   // Mirrors the team-room SSE/REST shape: many agents share one session,
   // any can publish frames, any can request the next frame via /step.
