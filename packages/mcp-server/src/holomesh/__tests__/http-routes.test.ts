@@ -7766,3 +7766,53 @@ describe('HoloMesh HTTP Routes', () => {
     });
   });
 });
+
+// The two roster endpoints handed the full live membership of any team to anyone
+// who asked — agent ids, display names, join times — with no credential at all.
+// An exhaustive sweep of both repos on 2026-09-10 found ZERO callers, so locking
+// them costs nothing we run.
+//
+// The shape is the founder's ruling, not a blanket lock: local stays open because
+// that machine is full of our own agents, and the lock goes on the surface
+// strangers reach. A mock request carries no socket and no credential, so it
+// stands in for exactly that stranger.
+describe('room roster is not public', () => {
+  const team = 'team_roster_probe';
+
+  it('THE FAULT: an anonymous caller cannot read who is in a room', async () => {
+    const url = `/api/holomesh/team/${team}/room/presence`;
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+    expect(JSON.stringify(res._body)).not.toContain('online');
+  });
+
+  it('an anonymous caller cannot read how many are connected either', async () => {
+    const url = `/api/holomesh/team/${team}/room/stats`;
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+  });
+
+  it('a registered agent still reads the roster — the lock must not blind members', async () => {
+    const reg = mockReq('POST', '/api/holomesh/register', {
+      name: `roster-probe-${Math.random().toString(36).slice(2, 8)}`,
+      traits: ['@test'],
+    });
+    const regRes = mockRes();
+    await handleHoloMeshRoute(reg, regRes, '/api/holomesh/register');
+    const apiKey = regRes._body?.agent?.api_key;
+    expect(apiKey).toBeTruthy();
+
+    const url = `/api/holomesh/team/${team}/room/presence`;
+    const res = mockRes();
+    await handleHoloMeshRoute(
+      mockReq('GET', url, undefined, { authorization: `Bearer ${apiKey}` }),
+      res,
+      url
+    );
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(Array.isArray(res._body.online)).toBe(true);
+  });
+});
