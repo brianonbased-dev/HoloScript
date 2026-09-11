@@ -113,14 +113,7 @@ export type TaskEnvironmentProfileKind = (typeof TASK_ENVIRONMENT_PROFILE_KINDS)
 export type TaskEnvironmentNetworkAccess = (typeof TASK_ENVIRONMENT_NETWORK_ACCESS)[number];
 export type TaskEnvironmentPackageManager = (typeof TASK_ENVIRONMENT_PACKAGE_MANAGERS)[number];
 export type TaskEnvironmentGpuBackend =
-  | 'webgpu'
-  | 'cuda'
-  | 'd3d12'
-  | 'vulkan'
-  | 'metal'
-  | 'opencl'
-  | 'none'
-  | 'custom';
+  'webgpu' | 'cuda' | 'd3d12' | 'vulkan' | 'metal' | 'opencl' | 'none' | 'custom';
 
 export interface TaskEnvironmentStep {
   id?: string;
@@ -342,12 +335,7 @@ export type TaskOrchestrationEventType = (typeof TASK_ORCHESTRATION_EVENT_TYPES)
 export type TaskOrchestrationAgentSurface = (typeof TASK_ORCHESTRATION_AGENT_SURFACES)[number];
 export type TaskDecompositionStrategy = 'manual' | 'llm' | 'rule' | 'hybrid' | 'external';
 export type TaskSubagentStatus =
-  | 'pending'
-  | 'in_progress'
-  | 'blocked'
-  | 'done'
-  | 'failed'
-  | 'verified';
+  'pending' | 'in_progress' | 'blocked' | 'done' | 'failed' | 'verified';
 
 export interface TaskOrchestrationAgentRef {
   surface: TaskOrchestrationAgentSurface;
@@ -517,9 +505,7 @@ export function normalizeTaskWorkUnitContract(value: unknown): TaskWorkUnitNorma
   if (serialized.length > TASK_WORK_UNIT_MAX_SERIALIZED_CHARS) {
     return {
       ok: false,
-      errors: [
-        `workUnit exceeds ${TASK_WORK_UNIT_MAX_SERIALIZED_CHARS} serialized characters`,
-      ],
+      errors: [`workUnit exceeds ${TASK_WORK_UNIT_MAX_SERIALIZED_CHARS} serialized characters`],
     };
   }
 
@@ -695,13 +681,7 @@ export interface DoneLogEntry {
 // ── Suggestions ──
 
 export type SuggestionCategory =
-  | 'process'
-  | 'tooling'
-  | 'architecture'
-  | 'testing'
-  | 'docs'
-  | 'performance'
-  | 'other';
+  'process' | 'tooling' | 'architecture' | 'testing' | 'docs' | 'performance' | 'other';
 
 export interface SuggestionVote {
   agentId: string;

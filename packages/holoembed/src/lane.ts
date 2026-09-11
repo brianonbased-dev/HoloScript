@@ -10,11 +10,7 @@ import { HOLOEMBED_DIM } from './types.js';
 
 export const HOLOEMBED_LANE_SCHEMA = 'holoscript.holoembed.lane.v1' as const;
 export const HOLOEMBED_ALGORITHM_ID = 'structural+char-trigram' as const;
-export const HOLOEMBED_FORBIDDEN_DEFAULT_PROVIDERS = [
-  'xenova',
-  'ollama',
-  'openai',
-] as const;
+export const HOLOEMBED_FORBIDDEN_DEFAULT_PROVIDERS = ['xenova', 'ollama', 'openai'] as const;
 
 export type HoloEmbedForbiddenDefaultProvider =
   (typeof HOLOEMBED_FORBIDDEN_DEFAULT_PROVIDERS)[number];

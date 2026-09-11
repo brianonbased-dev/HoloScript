@@ -3,14 +3,7 @@
  */
 
 export type HoloSceneTarget =
-  | 'webxr'
-  | 'threejs'
-  | 'babylon'
-  | 'unity'
-  | 'godot'
-  | 'visionos'
-  | 'android-xr'
-  | 'auto';
+  'webxr' | 'threejs' | 'babylon' | 'unity' | 'godot' | 'visionos' | 'android-xr' | 'auto';
 
 export type HoloSceneFallback = 'threejs' | 'canvas2d' | 'static-image' | 'none';
 

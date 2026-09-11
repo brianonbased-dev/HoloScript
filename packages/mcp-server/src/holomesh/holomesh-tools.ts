@@ -376,7 +376,8 @@ export const holomeshTools: Tool[] = [
         type: {
           type: 'string',
           enum: ['wisdom', 'pattern', 'gotcha'],
-          description: 'Knowledge entry type. Defaults to wisdom when contributing an observe extract.',
+          description:
+            'Knowledge entry type. Defaults to wisdom when contributing an observe extract.',
         },
         id: {
           type: 'string',

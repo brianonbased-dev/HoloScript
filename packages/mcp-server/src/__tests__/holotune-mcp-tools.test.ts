@@ -61,8 +61,18 @@ describe('holotune MCP tools', () => {
   // than memorisation. Catchable only because the proxy records attribution.
   it('excludes benchmark traffic from the curated corpus by default', async () => {
     const rows = [
-      { user: 'real question', target: 'real answer', caller: 'brittney-app', agentId: 'brittney-app' },
-      { user: 'bench q1', target: 'bench a1', caller: 'brittney-eval-runner', agentId: 'brittney-eval-runner' },
+      {
+        user: 'real question',
+        target: 'real answer',
+        caller: 'brittney-app',
+        agentId: 'brittney-app',
+      },
+      {
+        user: 'bench q1',
+        target: 'bench a1',
+        caller: 'brittney-eval-runner',
+        agentId: 'brittney-eval-runner',
+      },
       // agentId alone must be enough — the proxy sets both, but a row carrying only one
       // must not slip through on the strength of the other being absent.
       { user: 'bench q2', target: 'bench a2', agentId: 'brittney-eval-runner' },

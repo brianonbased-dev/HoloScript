@@ -39,10 +39,7 @@ export type PortalEntryReceiptSchemaVersion = typeof PORTAL_ENTRY_RECEIPT_SCHEMA
  * 'agent-pixel'     — agent receiving pixel stream (rare; usually degraded access)
  */
 export type PortalEntrantKind =
-  | 'human-headset'
-  | 'human-browser'
-  | 'agent-semantic'
-  | 'agent-pixel';
+  'human-headset' | 'human-browser' | 'agent-semantic' | 'agent-pixel';
 
 export interface PortalEntrant {
   /** Server-assigned agent ID (or stable human session ID). */

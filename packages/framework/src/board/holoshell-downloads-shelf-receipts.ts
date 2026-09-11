@@ -234,10 +234,7 @@ export interface ExecutableBlockReceipt {
   blockedAt: string;
   /** Reason the executable was blocked. */
   blockReason:
-    | 'executable_detected'
-    | 'archive_contains_executable'
-    | 'security_risk'
-    | 'not_scanned';
+    'executable_detected' | 'archive_contains_executable' | 'security_risk' | 'not_scanned';
   /** Whether execution was attempted (must be false). */
   executionAttempted: false;
   /** Whether the executable was launched (must be false). */

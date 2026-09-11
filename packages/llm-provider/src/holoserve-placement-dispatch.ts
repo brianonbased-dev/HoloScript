@@ -976,11 +976,7 @@ async function defaultCompletionExecutor(
     reportedModel,
     provider: 'local-llm',
     finishReason: (typeof choice.finish_reason === 'string' ? choice.finish_reason : 'stop') as
-      | 'stop'
-      | 'length'
-      | 'tool_use'
-      | 'content_filter'
-      | 'error',
+      'stop' | 'length' | 'tool_use' | 'content_filter' | 'error',
     usage: {
       promptTokens,
       completionTokens,

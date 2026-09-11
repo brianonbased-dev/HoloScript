@@ -403,11 +403,7 @@ function resolveCloud(
   }
   const tier = env('HOLO_LLM_TIER', 'BRITTNEY_TIER') as 'standard' | 'pro' | undefined;
   const lane = env('HOLO_LLM_LANE', 'BRITTNEY_LANE') as
-    | 'operator'
-    | 'code'
-    | 'vision'
-    | 'reasoning'
-    | undefined;
+    'operator' | 'code' | 'vision' | 'reasoning' | undefined;
   const provider = new BrittneyCloudAdapter({
     baseURL,
     apiKey: env('HOLO_LLM_SERVICE_KEY', 'BRITTNEY_API_KEY') ?? '',

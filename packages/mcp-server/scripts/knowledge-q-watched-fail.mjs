@@ -1,5 +1,7 @@
 function knowledgeEntryMatchesQuery(entry, q) {
-  const needle = String(q || '').trim().toLowerCase();
+  const needle = String(q || '')
+    .trim()
+    .toLowerCase();
   if (!needle || !entry) return false;
   const blob = [
     entry.id,
@@ -9,7 +11,9 @@ function knowledgeEntryMatchesQuery(entry, q) {
     entry.authorName,
     entry.authorId,
     ...(Array.isArray(entry.tags) ? entry.tags : []),
-  ].join('\n').toLowerCase();
+  ]
+    .join('\n')
+    .toLowerCase();
   return blob.includes(needle);
 }
 

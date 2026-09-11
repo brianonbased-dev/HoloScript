@@ -70,11 +70,7 @@
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type PersonalityArchetype =
-  | 'eager_beaver'
-  | 'cautious_lover'
-  | 'narcissistic'
-  | 'hermit'
-  | 'custom';
+  'eager_beaver' | 'cautious_lover' | 'narcissistic' | 'hermit' | 'custom';
 
 export interface AgentParams {
   /** Unique agent identifier */

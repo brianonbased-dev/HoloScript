@@ -57,7 +57,12 @@ function seedTeam() {
     ownerId: ALICE.id,
     ownerName: ALICE.name,
     members: [
-      { agentId: ALICE.id, agentName: ALICE.name, role: 'owner', joinedAt: new Date().toISOString() },
+      {
+        agentId: ALICE.id,
+        agentName: ALICE.name,
+        role: 'owner',
+        joinedAt: new Date().toISOString(),
+      },
       { agentId: BOB.id, agentName: BOB.name, role: 'member', joinedAt: new Date().toISOString() },
       {
         agentId: JETSON.id,
@@ -147,9 +152,9 @@ describe('MCP messaging durable team-store delivery', () => {
 
     expect(sent.success).toBe(true);
     expect(persistTeamDurable).toHaveBeenCalledWith(TEAM);
-    expect((teamMessageStore.get(TEAM) || []).some((msg) => msg.content === 'visible to jetson inbox')).toBe(
-      true
-    );
+    expect(
+      (teamMessageStore.get(TEAM) || []).some((msg) => msg.content === 'visible to jetson inbox')
+    ).toBe(true);
     expect(getInbox(JETSON.id)).toHaveLength(0);
 
     const attached = (teamStore.get(TEAM) as TeamWithMessages).messages || [];

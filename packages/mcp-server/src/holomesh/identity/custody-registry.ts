@@ -162,8 +162,7 @@ export function isCustodialRetired(userId: string): boolean {
  * structured logs).
  */
 export type RequireCustodialResult =
-  | { ok: true }
-  | { ok: false; code: 'user_migrated_to_self_custody'; message: string };
+  { ok: true } | { ok: false; code: 'user_migrated_to_self_custody'; message: string };
 
 export function requireCustodial(userId: string): RequireCustodialResult {
   if (isSelfCustodyActive(userId)) {

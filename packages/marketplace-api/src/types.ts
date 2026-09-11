@@ -474,11 +474,7 @@ export type AgentPricingModel = 'one_time' | 'subscription';
  * Base model used for fine-tuning
  */
 export type BaseAgentModel =
-  | 'brittney-qwen-v23'
-  | 'qwen2.5-7b'
-  | 'qwen2.5-3b'
-  | 'llama3.2-3b'
-  | string; // Allow future models
+  'brittney-qwen-v23' | 'qwen2.5-7b' | 'qwen2.5-3b' | 'llama3.2-3b' | string; // Allow future models
 
 /**
  * A trained AI agent package — extends marketplace listing with model artifacts.

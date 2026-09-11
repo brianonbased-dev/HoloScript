@@ -204,9 +204,7 @@ export function quantumForField(name: string): number {
 type SolverForDigest = {
   getField: SimSolver['getField'];
   fieldNames?:
-    | SimSolver['fieldNames']
-    | Iterable<string>
-    | { [Symbol.iterator]?: () => Iterator<string> };
+    SimSolver['fieldNames'] | Iterable<string> | { [Symbol.iterator]?: () => Iterator<string> };
 };
 
 /**

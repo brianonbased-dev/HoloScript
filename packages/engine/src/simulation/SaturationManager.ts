@@ -13,12 +13,7 @@ import { RegularGrid3D } from './RegularGrid3D';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type SaturationType =
-  | 'thermal'
-  | 'moisture'
-  | 'pressure'
-  | 'electrical'
-  | 'chemical'
-  | 'structural';
+  'thermal' | 'moisture' | 'pressure' | 'electrical' | 'chemical' | 'structural';
 
 export type CellState = 'normal' | 'warning' | 'critical';
 

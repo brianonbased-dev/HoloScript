@@ -38,9 +38,9 @@ describe('augmentWithOnTaskCognition', () => {
   // ── rag_query (grep stage 1 + Absorb GraphRAG stage 2, W.754) ──────────────
 
   it('rag_query injects grep results and records the grep source', async () => {
-    const queryGrep = vi.fn(
-      async (): Promise<KnowledgeEntry[]> => [{ id: 'k1', content: 'widgets need a frobnicator' }]
-    );
+    const queryGrep = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'k1', content: 'widgets need a frobnicator' },
+    ]);
     const d = deps({
       onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 3 } }],
       queryGrep,
@@ -55,12 +55,12 @@ describe('augmentWithOnTaskCognition', () => {
   });
 
   it('rag_query injects Absorb GraphRAG results alongside grep', async () => {
-    const queryGrep = vi.fn(
-      async (): Promise<KnowledgeEntry[]> => [{ id: 'g', content: 'grep hit' }]
-    );
-    const queryAbsorb = vi.fn(
-      async (): Promise<KnowledgeEntry[]> => [{ id: 'a', content: 'absorb semantic hit' }]
-    );
+    const queryGrep = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'g', content: 'grep hit' },
+    ]);
+    const queryAbsorb = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'a', content: 'absorb semantic hit' },
+    ]);
     const d = deps({
       onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 4 } }],
       queryGrep,
@@ -88,12 +88,10 @@ describe('augmentWithOnTaskCognition', () => {
   // ── recall (private workspace) ─────────────────────────────────────────────
 
   it('recall pulls private knowledge and filters by query client-side', async () => {
-    const queryPrivateKnowledge = vi.fn(
-      async (): Promise<KnowledgeEntry[]> => [
-        { id: 'p1', content: 'last time the widget broke on null input' },
-        { id: 'p2', content: 'unrelated note about coffee' },
-      ]
-    );
+    const queryPrivateKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'p1', content: 'last time the widget broke on null input' },
+      { id: 'p2', content: 'unrelated note about coffee' },
+    ]);
     const out = await augmentWithOnTaskCognition(
       deps({
         onTaskActions: [{ verb: 'recall', config: { query: 'widget' } }],
@@ -106,12 +104,10 @@ describe('augmentWithOnTaskCognition', () => {
   });
 
   it('recall ranks the private workspace SEMANTICALLY when an embed route resolves (W.753)', async () => {
-    const queryPrivateKnowledge = vi.fn(
-      async (): Promise<KnowledgeEntry[]> => [
-        { id: 'p1', content: 'last time the widget broke on null input' },
-        { id: 'p2', content: 'unrelated note about coffee' },
-      ]
-    );
+    const queryPrivateKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'p1', content: 'last time the widget broke on null input' },
+      { id: 'p2', content: 'unrelated note about coffee' },
+    ]);
     const embed = vi.fn(async (t: string) => [
       /widget|gadget/i.test(t) ? 1 : 0,
       /coffee/i.test(t) ? 1 : 0,
@@ -132,12 +128,10 @@ describe('augmentWithOnTaskCognition', () => {
   });
 
   it('recall falls back to the substring filter when the embed route is unavailable (returns null)', async () => {
-    const queryPrivateKnowledge = vi.fn(
-      async (): Promise<KnowledgeEntry[]> => [
-        { id: 'p1', content: 'the widget broke' },
-        { id: 'p2', content: 'coffee note' },
-      ]
-    );
+    const queryPrivateKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'p1', content: 'the widget broke' },
+      { id: 'p2', content: 'coffee note' },
+    ]);
     const embed = vi.fn(async () => null);
     const similarity = vi.fn(() => 0);
     const d = deps({
@@ -320,9 +314,9 @@ describe('augmentWithOnTaskCognition', () => {
           { verb: 'rag_query', config: { query: 'a' } },
           { verb: 'llm_call', config: { prompt: 'ZZZ' } },
         ],
-        queryGrep: vi.fn(
-          async (): Promise<KnowledgeEntry[]> => [{ id: 'k', content: 'AAA-knowledge' }]
-        ),
+        queryGrep: vi.fn(async (): Promise<KnowledgeEntry[]> => [
+          { id: 'k', content: 'AAA-knowledge' },
+        ]),
       })
     );
     expect(out.indexOf('AAA-knowledge')).toBeLessThan(out.indexOf('ZZZ'));

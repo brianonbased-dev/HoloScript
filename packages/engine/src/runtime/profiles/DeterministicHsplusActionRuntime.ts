@@ -1683,18 +1683,12 @@ export class DeterministicHsplusTraitRuntime {
     const spawn = this.trait.handlers.get('on_spawn');
     if (!spawn) fail(`@trait "${this.trait.name}" has no on_spawn handler`);
     if (action.body.length > MAX_LIFECYCLE_OPERATIONS) {
-      fail(
-        `@trait "${this.trait.name}" on_spawn exceeds ${MAX_LIFECYCLE_OPERATIONS} operations`
-      );
+      fail(`@trait "${this.trait.name}" on_spawn exceeds ${MAX_LIFECYCLE_OPERATIONS} operations`);
     }
 
     // Constructing the alias surface validates backing namespaces and union
     // collisions, but does not call any host function.
-    const boundHostBindings = bindPackagedFactoryAliases(
-      this.trait,
-      spawn,
-      this.hostBindings
-    );
+    const boundHostBindings = bindPackagedFactoryAliases(this.trait, spawn, this.hostBindings);
     const environment: EvaluationEnvironment = {
       state: {},
       args: {},
@@ -1717,9 +1711,7 @@ export class DeterministicHsplusTraitRuntime {
           statement.value.callee.type !== 'Identifier' ||
           statement.value.arguments.length !== 0
         ) {
-          fail(
-            `@trait "${this.trait.name}" on_spawn assignment is outside the lifecycle subset`
-          );
+          fail(`@trait "${this.trait.name}" on_spawn assignment is outside the lifecycle subset`);
         }
         const namespaces = PACKAGED_FACTORIES.get(statement.value.callee.name);
         if (!namespaces) {
@@ -1750,9 +1742,7 @@ export class DeterministicHsplusTraitRuntime {
         ) {
           fail(`@trait "${this.trait.name}" on_spawn event name is invalid`);
         }
-        const payload = statement.data
-          ? evaluateExpression(statement.data, environment)
-          : null;
+        const payload = statement.data ? evaluateExpression(statement.data, environment) : null;
         operations.push({
           kind: 'emit',
           event: statement.event,

@@ -45,9 +45,9 @@ describe('message addressing (task_1785839509015_lreq)', () => {
 
   it('uses @mentions only on legacy posts that have no to field', () => {
     expect(extractMentions('@claude6-x402 please land 2d8945e29')).toEqual(['claude6']);
-    expect(
-      messageAddressedTo({ content: '@claude6-x402 please land 2d8945e29' }, 'claude6')
-    ).toBe(true);
+    expect(messageAddressedTo({ content: '@claude6-x402 please land 2d8945e29' }, 'claude6')).toBe(
+      true
+    );
     expect(firstMention('@jetson and @claude6')).toBe('jetson');
   });
 
@@ -121,7 +121,12 @@ describe('who may read a team message', () => {
   const bob = { id: 'bob', name: 'Bob' };
   const carol = { id: 'carol', name: 'Carol' };
 
-  const roomPost = { id: 'm1', fromAgentId: 'alice', fromAgentName: 'Alice', content: 'standup in 5' };
+  const roomPost = {
+    id: 'm1',
+    fromAgentId: 'alice',
+    fromAgentName: 'Alice',
+    content: 'standup in 5',
+  };
   const aliceToBob = {
     id: 'm2',
     fromAgentId: 'alice',
@@ -177,14 +182,25 @@ describe('who may read a team message', () => {
     expect(aliceAsksForBob).toEqual(['m2']);
   });
 
-
   it('THE SECOND DOOR: a brief built from the store leaks nothing the read path refuses', () => {
     // mergeInboxBrief folds the caller mail slice together with all inbox-type
     // messages. If the store is not filtered first, that merge is the leak.
     const inboxTypes = new Set(['dm', 'handoff', 'review-request']);
     const briefStore = [
-      { id: 'b1', messageType: 'dm', fromAgentName: 'Alice', toAgentName: 'Bob', content: 'for bob' },
-      { id: 'b2', messageType: 'dm', fromAgentName: 'Alice', toAgentName: 'Carol', content: 'for carol' },
+      {
+        id: 'b1',
+        messageType: 'dm',
+        fromAgentName: 'Alice',
+        toAgentName: 'Bob',
+        content: 'for bob',
+      },
+      {
+        id: 'b2',
+        messageType: 'dm',
+        fromAgentName: 'Alice',
+        toAgentName: 'Carol',
+        content: 'for carol',
+      },
       { id: 'b3', messageType: 'handoff', fromAgentName: 'Alice', content: 'team handoff' },
     ];
     const forCarol = visibleTeamMessagesFor(briefStore, carol).filter((m) =>
@@ -201,7 +217,9 @@ describe('who may read a team message', () => {
 
   it('treats the -x402 seat suffix as the same agent, so a real seat still reads its own mail', () => {
     const seat = { id: 'claudecode-claude-x402', name: 'claudecode-claude-x402' };
-    const toSeat = [{ id: 'm5', fromAgentName: 'Alice', toAgentName: 'claudecode-claude', content: 'yours' }];
+    const toSeat = [
+      { id: 'm5', fromAgentName: 'Alice', toAgentName: 'claudecode-claude', content: 'yours' },
+    ];
     expect(visibleTeamMessagesFor(toSeat, seat).map((m) => m.id)).toEqual(['m5']);
   });
 });

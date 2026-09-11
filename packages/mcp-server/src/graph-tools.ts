@@ -22,14 +22,7 @@ export interface HoloNode {
   id: string;
   name: string;
   type:
-    | 'template'
-    | 'object'
-    | 'orb'
-    | 'building'
-    | 'npc'
-    | 'collectible'
-    | 'group'
-    | 'environment';
+    'template' | 'object' | 'orb' | 'building' | 'npc' | 'collectible' | 'group' | 'environment';
   position?: [number, number, number];
   properties: Record<string, unknown>;
   state?: Record<string, unknown>;

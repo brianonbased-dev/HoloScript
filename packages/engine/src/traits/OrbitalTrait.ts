@@ -64,8 +64,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
       // Try to get parent node by name or object reference
       let parentNode = (
         (context as unknown as Record<string, unknown>).getNode as
-          | ((name: string) => HSPlusNode | null)
-          | undefined
+          ((name: string) => HSPlusNode | null) | undefined
       )?.(mergedConfig.parent as string);
 
       // Fallback: If parent is already the object (evaluated string)

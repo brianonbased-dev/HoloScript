@@ -149,9 +149,9 @@ describe('resolveRequestingAgent', () => {
     expect(hasBearerCapability(legacy, 'sign')).toBe(true);
     expect(hasBearerCapability(legacy, 'claim')).toBe(true);
     expect(hasBearerCapability({ ...legacy, capabilities: [] }, 'sign')).toBe(true);
-    expect(
-      hasBearerCapability({ ...legacy, capabilities: ['read', 'message'] }, 'claim')
-    ).toBe(false);
+    expect(hasBearerCapability({ ...legacy, capabilities: ['read', 'message'] }, 'claim')).toBe(
+      false
+    );
   });
 
   it('rejects tampered manifest (signature mismatch)', () => {

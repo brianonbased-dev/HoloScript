@@ -17,8 +17,7 @@ import { compilerTools, handleCompilerTool } from '../compiler-tools';
  */
 describe('compile_holoscript routes every target it advertises', () => {
   const schema = compilerTools.find((t) => t.name === 'compile_holoscript')?.inputSchema as
-    | { properties?: { target?: { enum?: string[] } } }
-    | undefined;
+    { properties?: { target?: { enum?: string[] } } } | undefined;
   const advertised = schema?.properties?.target?.enum ?? [];
 
   const SOURCE = 'orb Crystal {\n  geometry: "sphere"\n  color: "#00ffff"\n}';

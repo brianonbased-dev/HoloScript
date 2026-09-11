@@ -106,12 +106,7 @@ export interface SpatialComposition {
  * P.PROCGEN.01: Expanded with zone-level relationship types.
  */
 export type SpatialRelationshipType =
-  | 'adjacent'
-  | 'contains'
-  | 'reachable'
-  | 'zone_adjacent'
-  | 'zone_contains'
-  | 'biome_transition';
+  'adjacent' | 'contains' | 'reachable' | 'zone_adjacent' | 'zone_contains' | 'biome_transition';
 
 /**
  * P.PROCGEN.01: Zone metadata for zone-level spatial relationships.

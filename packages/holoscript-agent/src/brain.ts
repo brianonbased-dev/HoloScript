@@ -65,9 +65,7 @@ async function resolveSharedPosture(
     }
     const target = resolvePath(dirname(sourcePath), ref);
     if (seen.includes(target)) {
-      throw new Error(
-        `[brain] @posture cycle: ${[...seen, target].join(' -> ')}`
-      );
+      throw new Error(`[brain] @posture cycle: ${[...seen, target].join(' -> ')}`);
     }
     let text: string;
     try {

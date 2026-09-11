@@ -194,8 +194,7 @@ export function createCachePlugin(
             response.body.kind = 'single';
             if (response.body.kind === 'single') {
               const cachedExtensions = cachedResult.extensions as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
               response.body.singleResult = {
                 ...cachedResult,
                 extensions: includeStatus

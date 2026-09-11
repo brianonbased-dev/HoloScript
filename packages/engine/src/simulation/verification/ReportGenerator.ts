@@ -12,13 +12,7 @@ import type { ConvergenceStudyResult } from './ConvergenceAnalysis';
 
 /** All solver types that can produce benchmark results */
 export type SolverType =
-  | 'thermal'
-  | 'structural'
-  | 'hydraulic'
-  | 'acoustic'
-  | 'fdtd'
-  | 'cfd'
-  | 'molecular-dynamics';
+  'thermal' | 'structural' | 'hydraulic' | 'acoustic' | 'fdtd' | 'cfd' | 'molecular-dynamics';
 
 /** A single data point in a convergence plot (log-log scale) */
 export interface ConvergencePlotPoint {

@@ -401,9 +401,9 @@ describe('classifyAuthorityRoute', () => {
     });
 
     it('still blocks a genuine attempted force-push carried in the action', () => {
-      expect(
-        classifyAuthorityRoute(requestWith('force-push main', 'force-push main'))
-      ).toBe('prohibited-replan');
+      expect(classifyAuthorityRoute(requestWith('force-push main', 'force-push main'))).toBe(
+        'prohibited-replan'
+      );
     });
 
     it('does not prohibit an unrelated action merely because rawContent also carries a passive do-not-do reminder', () => {

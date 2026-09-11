@@ -1151,33 +1151,27 @@ function executionSteps(
       architecture: graph.base.architecture,
       tokenizerDigest: graph.base.tokenizerDigest,
     },
-    ...graph.deltas.map(
-      (delta): WeightExecutionStep => ({
-        kind: 'apply-delta',
-        deltaId: delta.id,
-        artifact: { ...delta.artifact },
-        roleContract: normalizedRoleContract(delta),
-      })
-    ),
-    ...graph.compositions.map(
-      (composition): WeightExecutionStep => ({
-        kind: 'compose',
-        compositionId: composition.id,
-        inputs: [...composition.inputs],
-        method: composition.method,
-        ...(composition.parameters ? { parameters: { ...composition.parameters } } : {}),
-      })
-    ),
-    ...graph.requirements.map(
-      (requirement): WeightExecutionStep => ({
-        kind: 'evaluate',
-        requirementId: requirement.id,
-        candidateDigest: graph.candidateDigest,
-        suiteDigest: requirement.suiteDigest,
-        minSeeds: requirement.minSeeds,
-        evaluatorPolicy: requirement.evaluatorPolicy,
-      })
-    ),
+    ...graph.deltas.map((delta): WeightExecutionStep => ({
+      kind: 'apply-delta',
+      deltaId: delta.id,
+      artifact: { ...delta.artifact },
+      roleContract: normalizedRoleContract(delta),
+    })),
+    ...graph.compositions.map((composition): WeightExecutionStep => ({
+      kind: 'compose',
+      compositionId: composition.id,
+      inputs: [...composition.inputs],
+      method: composition.method,
+      ...(composition.parameters ? { parameters: { ...composition.parameters } } : {}),
+    })),
+    ...graph.requirements.map((requirement): WeightExecutionStep => ({
+      kind: 'evaluate',
+      requirementId: requirement.id,
+      candidateDigest: graph.candidateDigest,
+      suiteDigest: requirement.suiteDigest,
+      minSeeds: requirement.minSeeds,
+      evaluatorPolicy: requirement.evaluatorPolicy,
+    })),
     { kind: 'admit', candidateDigest: graph.candidateDigest, ready },
   ];
   if (rollbackHead) {

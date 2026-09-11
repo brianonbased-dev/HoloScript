@@ -13,8 +13,13 @@ export const TEAM_KNOWLEDGE_MIRROR_MAX = 500;
  * returned an unranked dump. Semantic phrases (whitespace) may still fall
  * through to orchestrator rank when nothing literal hits.
  */
-export function knowledgeEntryMatchesQuery(entry: MeshKnowledgeEntry | undefined, q: string): boolean {
-  const needle = String(q || '').trim().toLowerCase();
+export function knowledgeEntryMatchesQuery(
+  entry: MeshKnowledgeEntry | undefined,
+  q: string
+): boolean {
+  const needle = String(q || '')
+    .trim()
+    .toLowerCase();
   if (!needle || !entry) return false;
   const blob = [
     entry.id,
@@ -24,7 +29,9 @@ export function knowledgeEntryMatchesQuery(entry: MeshKnowledgeEntry | undefined
     entry.authorName,
     entry.authorId,
     ...(Array.isArray(entry.tags) ? entry.tags : []),
-  ].join('\n').toLowerCase();
+  ]
+    .join('\n')
+    .toLowerCase();
   return blob.includes(needle);
 }
 

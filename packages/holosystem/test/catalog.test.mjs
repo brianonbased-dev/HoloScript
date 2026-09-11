@@ -116,9 +116,10 @@ function rehashInsertionReceipt(receipt) {
 
 function registryEvidence(ecosystem, integrity, name, version) {
   const pythonFilename = `${name.replaceAll('-', '_')}-${version}-py3-none-any.whl`;
-  const tarball = ecosystem === 'npm'
-    ? `https://registry.npmjs.org/${name}/-/${name.split('/').at(-1)}-${version}.tgz`
-    : `https://files.pythonhosted.org/packages/fixture/${pythonFilename}`;
+  const tarball =
+    ecosystem === 'npm'
+      ? `https://registry.npmjs.org/${name}/-/${name.split('/').at(-1)}-${version}.tgz`
+      : `https://files.pythonhosted.org/packages/fixture/${pythonFilename}`;
   return {
     status: 200,
     integrity,
@@ -187,12 +188,7 @@ function reconciliationFixture() {
       name: '@example/migrated',
       version: '2.0.0',
       registry: {
-        ...registryEvidence(
-          'npm',
-          npmIntegrity(0x42),
-          '@example/migrated',
-          '2.0.0'
-        ),
+        ...registryEvidence('npm', npmIntegrity(0x42), '@example/migrated', '2.0.0'),
         deprecated: 'Deprecated: use @example/current.',
         successor: '@example/current',
       },
@@ -217,12 +213,7 @@ function reconciliationFixture() {
       ecosystem: 'npm',
       name: '@example/retired',
       version: '3.0.0',
-      registry: registryEvidence(
-        'npm',
-        npmIntegrity(0x43),
-        '@example/retired',
-        '3.0.0'
-      ),
+      registry: registryEvidence('npm', npmIntegrity(0x43), '@example/retired', '3.0.0'),
       source: {
         repository: null,
         directory: null,
@@ -247,12 +238,7 @@ function reconciliationFixture() {
       ecosystem: 'pypi',
       name: 'example-python',
       version: '3.0.0',
-      registry: registryEvidence(
-        'pypi',
-        `sha256:${'2'.repeat(64)}`,
-        'example-python',
-        '3.0.0'
-      ),
+      registry: registryEvidence('pypi', `sha256:${'2'.repeat(64)}`, 'example-python', '3.0.0'),
       source: {
         repository: null,
         directory: null,
@@ -297,12 +283,7 @@ function typedEvidenceReconciliationFixture() {
   const revision = 'c'.repeat(40);
   const sourceCommit = 'd'.repeat(40);
   const candidateCommit = 'e'.repeat(40);
-  const aliasRegistry = registryEvidence(
-    'npm',
-    npmIntegrity(0x44),
-    'create-example-app',
-    '1.5.0'
-  );
+  const aliasRegistry = registryEvidence('npm', npmIntegrity(0x44), 'create-example-app', '1.5.0');
   const releaseRegistry = registryEvidence(
     'npm',
     npmIntegrity(0x45),
@@ -367,8 +348,7 @@ function typedEvidenceReconciliationFixture() {
           manifestSha256: `sha256:${'5'.repeat(64)}`,
           publicReadbackReceiptPath: 'artifacts/public-readback.json',
           publicReadbackReceiptSha256: `sha256:${'6'.repeat(64)}`,
-          publicReadbackEvidenceUrl:
-            `${repository}/blob/${revision}/artifacts/public-readback.json`,
+          publicReadbackEvidenceUrl: `${repository}/blob/${revision}/artifacts/public-readback.json`,
           sourceCommit,
           candidateCommit,
           reason: 'Public release evidence binds this package without a source-manifest claim.',
@@ -602,11 +582,7 @@ test('farm canonical selection excludes running, claimed, and queued proof batch
 
   assert.equal(receipt.status, 'idle');
   assert.deepEqual(receipt.nextWork, []);
-  assert.deepEqual(receipt.decisionProof.activeStatusesExcluded, [
-    'running',
-    'claimed',
-    'queued',
-  ]);
+  assert.deepEqual(receipt.decisionProof.activeStatusesExcluded, ['running', 'claimed', 'queued']);
 });
 
 test('farm blocks a running 101-artifact batch instead of proposing its projected omission', () => {
@@ -821,9 +797,7 @@ test('farm next-work ids are collision-resistant, deterministic, readable, and b
   assert.notEqual(scoped.id, dashed.id);
   assert.equal(scoped.id, repeated.id);
   assert.match(scoped.id, /^consume-npm-a-b-[0-9a-f]{64}$/u);
-  assert.ok(
-    scoped.id.endsWith(createHash('sha256').update('npm\0@a/b', 'utf8').digest('hex'))
-  );
+  assert.ok(scoped.id.endsWith(createHash('sha256').update('npm\0@a/b', 'utf8').digest('hex')));
 
   const long = proposalFor(`@scope/${'a'.repeat(500)}`);
   for (const proposal of [scoped, dashed, long]) {
@@ -1089,10 +1063,7 @@ test('lineage receipt preserves typed alias and release-manifest evidence withou
   assert.equal(release.sourceRepository, null);
   assert.equal(release.sourceDirectory, null);
   assert.equal(release.lineageEvidence.disposition.package.name, release.name);
-  assert.equal(
-    release.lineageEvidence.disposition.package.integrity,
-    release.integrity
-  );
+  assert.equal(release.lineageEvidence.disposition.package.integrity, release.integrity);
   assert.equal(receipt.boundaries.typedAliasesDoNotProveParity, true);
   assert.equal(receipt.boundaries.releaseManifestBindingsAreNoncanonical, true);
   assert.doesNotMatch(JSON.stringify(receipt), /[A-Z]:\\/u);
@@ -1103,8 +1074,7 @@ test('lineage receipt treats an exact dot source directory as repository root', 
   const canonical = reconciliation.artifacts[0].source;
   canonical.directory = '.';
   canonical.manifestPath = 'package.json';
-  canonical.evidenceUrl =
-    `${canonical.repository}/blob/${canonical.revision}/${canonical.manifestPath}`;
+  canonical.evidenceUrl = `${canonical.repository}/blob/${canonical.revision}/${canonical.manifestPath}`;
   canonical.disposition.evidenceUrl = canonical.evidenceUrl;
   rehashReconciliationReceipt(reconciliation);
   const portfolio = {
@@ -1156,8 +1126,7 @@ test('lineage reconciliation fails closed on typed alias, release, and blob-evid
     const disposition = candidate.artifacts[4].source.disposition;
     disposition.evidencePath = disposition.implementationManifestPath;
     disposition.evidenceSha256 = disposition.implementationManifestSha256;
-    disposition.evidenceUrl =
-      `${disposition.repository}/blob/${disposition.revision}/${disposition.evidencePath}`;
+    disposition.evidenceUrl = `${disposition.repository}/blob/${disposition.revision}/${disposition.evidencePath}`;
   });
   assertDispositionInvalid((candidate) => {
     candidate.artifacts[5].source.disposition.package.integrity = npmIntegrity(0x46);
@@ -1290,8 +1259,7 @@ test('lineage reconciliation fails closed on typed alias, release, and blob-evid
   const retirement = historicalBlob.artifacts[2].source.disposition;
   retirement.evidencePath = 'docs/package-policy.md';
   retirement.evidenceSha256 = `sha256:${'8'.repeat(64)}`;
-  retirement.evidenceUrl =
-    `${retirement.repository}/blob/${retirement.revision}/${retirement.evidencePath}`;
+  retirement.evidenceUrl = `${retirement.repository}/blob/${retirement.revision}/${retirement.evidencePath}`;
   rehashReconciliationReceipt(historicalBlob);
   const projected = buildSourceLineageReceipt({
     portfolio: fullPortfolio,
@@ -1404,7 +1372,8 @@ test('lineage reconciliation fails closed on tamper, duplicate, forged source, a
     historicalSelfSuccessor.artifacts[2].name;
   rehashReconciliationReceipt(historicalSelfSuccessor);
   assert.throws(
-    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: historicalSelfSuccessor }),
+    () =>
+      buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: historicalSelfSuccessor }),
     (error) => error.code === 'lineage-reconciliation-successor-invalid'
   );
 
@@ -1444,7 +1413,8 @@ test('lineage reconciliation fails closed on tamper, duplicate, forged source, a
   equivalentPythonVersion.artifacts.push(duplicatePython);
   rehashReconciliationReceipt(equivalentPythonVersion);
   assert.throws(
-    () => buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: equivalentPythonVersion }),
+    () =>
+      buildSourceLineageReceipt({ portfolio: fullPortfolio, metadata: equivalentPythonVersion }),
     (error) => error.code === 'lineage-reconciliation-duplicate-artifact'
   );
 
@@ -1673,7 +1643,9 @@ test('lineage cohort rejects targets without exact registry revision evidence', 
   const receipt = buildSourceLineageReceipt({ portfolio: targetPortfolio, metadata });
 
   for (const name of names) {
-    const target = receipt.artifacts.find((artifact) => artifact.name === `@example/${name}-target`);
+    const target = receipt.artifacts.find(
+      (artifact) => artifact.name === `@example/${name}-target`
+    );
     assert.equal(target.lineageKind, 'unknown', name);
     assert.equal(target.mapped, false, name);
   }
@@ -1710,7 +1682,9 @@ test('lineage cohort rejects anchors without exact registry revision evidence', 
   const receipt = buildSourceLineageReceipt({ portfolio: { packages }, metadata });
 
   for (const name of cases) {
-    const target = receipt.artifacts.find((artifact) => artifact.name === `@example/${name}-target`);
+    const target = receipt.artifacts.find(
+      (artifact) => artifact.name === `@example/${name}-target`
+    );
     assert.equal(target.lineageKind, 'unknown', name);
     assert.equal(target.mapped, false, name);
   }

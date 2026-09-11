@@ -470,7 +470,10 @@ describe('completeTask applies the evidence policy at the chokepoint', () => {
   // accepted by the MCP door before this gate moved to the chokepoint, because
   // every one of them is a non-empty string.
   const FABRICATED: ReadonlyArray<readonly [string, string]> = [
-    ['the canned runner template', 'Task completed via tool calls. Artifact written (tool_iters:7).'],
+    [
+      'the canned runner template',
+      'Task completed via tool calls. Artifact written (tool_iters:7).',
+    ],
     ['the honest runner fallback', 'UNVERIFIED-ARTIFACT-ONLY: wrote the artifact'],
     ['a raw tool-call dump', '[tool_use name=write_file]'],
     ['a self-declared failure', 'task cannot be completed, access denied on the write root'],

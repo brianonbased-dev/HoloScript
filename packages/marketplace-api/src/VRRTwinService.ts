@@ -7,12 +7,7 @@ import { z } from 'zod';
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
 
 export type VrrProtocolLicense =
-  | 'free'
-  | 'cc_by'
-  | 'cc_by_sa'
-  | 'cc_by_nc'
-  | 'commercial'
-  | 'exclusive';
+  'free' | 'cc_by' | 'cc_by_sa' | 'cc_by_nc' | 'commercial' | 'exclusive';
 
 export interface VrrGeoLocation {
   lat: number;

@@ -100,10 +100,7 @@ validate, and accept any downstream work. The proposal-only command cannot
 grant wallet, custody, publication, governance, or external-mutation authority.
 
 ```js
-import {
-  HOLOSYSTEM_FARM_SCHEMA,
-  buildFarmProposalReceipt,
-} from '@holoscript/holosystem';
+import { HOLOSYSTEM_FARM_SCHEMA, buildFarmProposalReceipt } from '@holoscript/holosystem';
 ```
 
 `buildFarmProposalReceipt` is pure and returns the same proposal content and

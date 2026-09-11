@@ -17,11 +17,7 @@ export type ConjectureV1SolverType = typeof CONJECTURE_V1;
 export type ConjectureKind = 'geometry.invariant' | 'algebraic.trait' | 'impossibility.boundary';
 
 export type ConjectureStatus =
-  | 'out-of-scope'
-  | 'undecided'
-  | 'survived'
-  | 'falsified'
-  | 'rediscovered';
+  'out-of-scope' | 'undecided' | 'survived' | 'falsified' | 'rediscovered';
 
 export type ProbeStatus = 'pass' | 'fail' | 'inconclusive';
 
@@ -1249,14 +1245,12 @@ export function buildConjectureV1Receipt(input: {
 
   const counterexamples = evaluations
     .filter((evaluation) => evaluation.status === 'falsified')
-    .map(
-      (evaluation): ConjectureCounterexample => ({
-        candidateId: evaluation.candidateId,
-        family: evaluation.family,
-        failedProbes: evaluation.probeResults.filter((result) => result.status === 'fail'),
-        geometryHash: evaluation.facts.geometryHash,
-      })
-    );
+    .map((evaluation): ConjectureCounterexample => ({
+      candidateId: evaluation.candidateId,
+      family: evaluation.family,
+      failedProbes: evaluation.probeResults.filter((result) => result.status === 'fail'),
+      geometryHash: evaluation.facts.geometryHash,
+    }));
 
   const withoutKey: Omit<ConjectureReceipt, 'receiptKey'> = {
     solverType: CONJECTURE_V1,

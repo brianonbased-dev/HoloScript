@@ -678,7 +678,7 @@ export function completeTask(
   // A gate that one of two doors applies is not a server-side gate, it is a
   // convention. Both doors already call this function, so the policy belongs
   // here, where door number three cannot route around it either.
-  const evidence = String(opts.verificationEvidence ?? "").trim();
+  const evidence = String(opts.verificationEvidence ?? '').trim();
   if (!evidence) {
     return {
       result: {

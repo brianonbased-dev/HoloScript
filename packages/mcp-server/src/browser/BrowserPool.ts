@@ -142,7 +142,10 @@ async function attachObservation(
 
     return { cdpSession, observation };
   } catch (error) {
-    console.error(`[Browser Observation ${sessionId}]: CDP attach failed, observation buffers will stay empty:`, error);
+    console.error(
+      `[Browser Observation ${sessionId}]: CDP attach failed, observation buffers will stay empty:`,
+      error
+    );
     return { observation };
   }
 }

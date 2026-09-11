@@ -28,12 +28,7 @@ import { startHoloTunnel } from '../holo-tunnel/index.js';
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export type HeadsetTransportKind =
-  | 'hololand-share'
-  | 'holomesh-relay'
-  | 'lan-https'
-  | 'usb-adb'
-  | 'holo-tunnel'
-  | 'ngrok-https';
+  'hololand-share' | 'holomesh-relay' | 'lan-https' | 'usb-adb' | 'holo-tunnel' | 'ngrok-https';
 
 export interface HeadsetShareOptions {
   /** Scene code (HoloScript source) to serve to the headset. */

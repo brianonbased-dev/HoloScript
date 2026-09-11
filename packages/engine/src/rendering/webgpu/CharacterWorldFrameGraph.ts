@@ -140,8 +140,7 @@ export interface CharacterWorldFrameGraphReceipt {
   gpuTimestampMeasured: boolean;
   timingClassification: 'gpu-timestamp-query' | 'feature-not-enabled' | 'not-requested';
   timedScope:
-    | 'four-character-color-motion-depth-temporal-through-composite-gpu-scope'
-    | 'not-measured';
+    'four-character-color-motion-depth-temporal-through-composite-gpu-scope' | 'not-measured';
   cpuMotionDerivationExcludedFromTimedScope: true;
   cpuToGpuUploadsExcludedFromTimedScope: true;
   historyCopiesExcludedFromTimedScope: true;

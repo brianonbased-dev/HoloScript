@@ -84,12 +84,7 @@ function alignedBytesPerRow(width: number): number {
 }
 
 function assertDimensions(width: number, height: number): void {
-  if (
-    !Number.isInteger(width) ||
-    !Number.isInteger(height) ||
-    width <= 0 ||
-    height <= 0
-  ) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
     throw new RangeError('temporal frame graph dimensions must be positive integers');
   }
 }
@@ -127,8 +122,7 @@ export class TemporalFrameGraph {
     this.height = options.height;
     this.timestampQuerySupported = device.features.has('timestamp-query');
     this.timestampQueryRequested = options.enableGpuTimestamps ?? true;
-    this.timestampQueryEnabled =
-      this.timestampQueryRequested && this.timestampQuerySupported;
+    this.timestampQueryEnabled = this.timestampQueryRequested && this.timestampQuerySupported;
     const label = options.label ?? 'holoscript-temporal-frame-graph';
 
     this.outputColor = device.createTexture({
@@ -234,11 +228,10 @@ export class TemporalFrameGraph {
         }
       );
 
-      encoder.copyTextureToTexture(
-        { texture: this.outputColor },
-        { texture: this.historyColor },
-        [this.width, this.height]
-      );
+      encoder.copyTextureToTexture({ texture: this.outputColor }, { texture: this.historyColor }, [
+        this.width,
+        this.height,
+      ]);
       encoder.copyTextureToTexture(
         { texture: input.currentDepth },
         { texture: this.historyDepth },
@@ -264,11 +257,7 @@ export class TemporalFrameGraph {
           [this.width, this.height]
         );
       }
-      if (
-        this.timestampQuerySet &&
-        this.timestampResolveBuffer &&
-        this.timestampReadbackBuffer
-      ) {
+      if (this.timestampQuerySet && this.timestampResolveBuffer && this.timestampReadbackBuffer) {
         encoder.resolveQuerySet(this.timestampQuerySet, 0, 2, this.timestampResolveBuffer, 0);
         encoder.copyBufferToBuffer(
           this.timestampResolveBuffer,

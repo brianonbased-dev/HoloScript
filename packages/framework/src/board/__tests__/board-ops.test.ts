@@ -59,12 +59,18 @@ describe('board operations phase-0 hygiene', () => {
       verifier_command_or_receipt: 'pnpm run check:board',
       retry_policy: { maxAttempts: 2, onFailure: 'requeue' },
     };
-    const result = addTasksToBoard([], [], [{
-      title: 'typed work unit',
-      description: 'Preserve the producer contract.',
-      priority: 1,
-      workUnit,
-    }]);
+    const result = addTasksToBoard(
+      [],
+      [],
+      [
+        {
+          title: 'typed work unit',
+          description: 'Preserve the producer contract.',
+          priority: 1,
+          workUnit,
+        },
+      ]
+    );
 
     expect(result.skipped).toEqual([]);
     expect(result.added[0].workUnit).toEqual(workUnit);
@@ -73,40 +79,54 @@ describe('board operations phase-0 hygiene', () => {
   });
 
   it('rejects malformed WorkUnit envelopes instead of silently stripping them', () => {
-    const result = addTasksToBoard([], [], [{
-      title: 'malformed work unit',
-      description: 'This row must not materialize.',
-      priority: 1,
-      workUnit: [] as never,
-    }]);
+    const result = addTasksToBoard(
+      [],
+      [],
+      [
+        {
+          title: 'malformed work unit',
+          description: 'This row must not materialize.',
+          priority: 1,
+          workUnit: [] as never,
+        },
+      ]
+    );
 
     expect(result.added).toEqual([]);
-    expect(result.skipped).toEqual([
-      { title: 'malformed work unit', reason: 'invalid_work_unit' },
-    ]);
+    expect(result.skipped).toEqual([{ title: 'malformed work unit', reason: 'invalid_work_unit' }]);
   });
 
   it('rejects an explicit null WorkUnit instead of treating it as omitted', () => {
-    const result = addTasksToBoard([], [], [{
-      title: 'null work unit',
-      description: 'Explicit null must not materialize.',
-      priority: 1,
-      workUnit: null as never,
-    }]);
+    const result = addTasksToBoard(
+      [],
+      [],
+      [
+        {
+          title: 'null work unit',
+          description: 'Explicit null must not materialize.',
+          priority: 1,
+          workUnit: null as never,
+        },
+      ]
+    );
 
     expect(result.added).toEqual([]);
-    expect(result.skipped).toEqual([
-      { title: 'null work unit', reason: 'invalid_work_unit' },
-    ]);
+    expect(result.skipped).toEqual([{ title: 'null work unit', reason: 'invalid_work_unit' }]);
   });
 
   it('rejects an explicit null work_unit alias instead of treating it as omitted', () => {
-    const result = addTasksToBoard([], [], [{
-      title: 'null work_unit alias',
-      description: 'Snake alias null must not materialize.',
-      priority: 1,
-      work_unit: null,
-    } as never]);
+    const result = addTasksToBoard(
+      [],
+      [],
+      [
+        {
+          title: 'null work_unit alias',
+          description: 'Snake alias null must not materialize.',
+          priority: 1,
+          work_unit: null,
+        } as never,
+      ]
+    );
 
     expect(result.added).toEqual([]);
     expect(result.skipped).toEqual([
@@ -115,13 +135,19 @@ describe('board operations phase-0 hygiene', () => {
   });
 
   it('rejects conflicting workUnit and work_unit aliases', () => {
-    const result = addTasksToBoard([], [], [{
-      title: 'conflicting work unit aliases',
-      description: 'Conflicting aliases must not materialize.',
-      priority: 1,
-      workUnit: { intent: 'camel' },
-      work_unit: { intent: 'snake' },
-    } as never]);
+    const result = addTasksToBoard(
+      [],
+      [],
+      [
+        {
+          title: 'conflicting work unit aliases',
+          description: 'Conflicting aliases must not materialize.',
+          priority: 1,
+          workUnit: { intent: 'camel' },
+          work_unit: { intent: 'snake' },
+        } as never,
+      ]
+    );
 
     expect(result.added).toEqual([]);
     expect(result.skipped).toEqual([

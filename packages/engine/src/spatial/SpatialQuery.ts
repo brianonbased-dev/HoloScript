@@ -31,13 +31,7 @@ import {
  * Types of spatial queries
  */
 export type SpatialQueryType =
-  | 'nearest'
-  | 'within'
-  | 'visible'
-  | 'reachable'
-  | 'in_region'
-  | 'by_type'
-  | 'raycast';
+  'nearest' | 'within' | 'visible' | 'reachable' | 'in_region' | 'by_type' | 'raycast';
 
 /**
  * Base query interface

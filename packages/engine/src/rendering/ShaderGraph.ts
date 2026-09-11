@@ -13,14 +13,7 @@
 // =============================================================================
 
 export type ShaderDataType =
-  | 'float'
-  | 'vec2'
-  | 'vec3'
-  | 'vec4'
-  | 'mat4'
-  | 'sampler2D'
-  | 'bool'
-  | 'int';
+  'float' | 'vec2' | 'vec3' | 'vec4' | 'mat4' | 'sampler2D' | 'bool' | 'int';
 
 export interface ShaderPort {
   name: string;

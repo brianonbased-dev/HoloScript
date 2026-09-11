@@ -41,12 +41,7 @@ export interface DelegationEvent {
 }
 
 export type DelegationEventStatus =
-  | 'pending'
-  | 'in_progress'
-  | 'completed'
-  | 'failed'
-  | 'timeout'
-  | 'replaying';
+  'pending' | 'in_progress' | 'completed' | 'failed' | 'timeout' | 'replaying';
 
 /** A full delegation trace — a tree of DelegationEvents with a single root. */
 export interface DelegationTrace {

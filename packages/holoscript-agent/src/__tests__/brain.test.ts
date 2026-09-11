@@ -376,9 +376,19 @@ describe('loadBrain @posture', () => {
     [body, '', '#version 6.0.0', 'identity { domain: "x" }', ''].join('\n');
 
   it('substitutes the referenced posture in place, keeping surrounding lines', async () => {
-    writeFileSync(join(pdir, 'posture.md'), 'Open by finding what exists.\nClose by fixing what the session proved wrong.', 'utf8');
+    writeFileSync(
+      join(pdir, 'posture.md'),
+      'Open by finding what exists.\nClose by fixing what the session proved wrong.',
+      'utf8'
+    );
     const path = join(pdir, 'a.hsplus');
-    writeFileSync(path, brainWith(['You are an edge seat.', '@posture "./posture.md"', 'Never skip the board.'].join('\n')), 'utf8');
+    writeFileSync(
+      path,
+      brainWith(
+        ['You are an edge seat.', '@posture "./posture.md"', 'Never skip the board.'].join('\n')
+      ),
+      'utf8'
+    );
 
     const brain = await loadBrain(path);
     expect(brain.systemPrompt).toBe(
@@ -433,7 +443,9 @@ describe('loadBrain @posture', () => {
   it('strips HTML comments from included posture so they never reach the prompt', async () => {
     writeFileSync(
       join(pdir, 'commented.md'),
-      ['REAL POSTURE LINE', '', '<!-- Maintainers: this note must never reach the model. -->'].join('\n'),
+      ['REAL POSTURE LINE', '', '<!-- Maintainers: this note must never reach the model. -->'].join(
+        '\n'
+      ),
       'utf8'
     );
     const path = join(pdir, 'commented.hsplus');

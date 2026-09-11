@@ -98,11 +98,7 @@ export interface ParameterEnvelopeInheritanceResult {
  * Source: research/2026-04-28_qm-as-foundational-layer-EVOLVED.md §7.2
  */
 export type SimulationScale =
-  | 'quantum'
-  | 'atomistic'
-  | 'mesoscopic'
-  | 'continuum'
-  | 'empirical-surrogate';
+  'quantum' | 'atomistic' | 'mesoscopic' | 'continuum' | 'empirical-surrogate';
 
 /** Short-alias map for serialization / UI. Maps canonical name → short tag. */
 export const SCALE_ALIASES: Record<SimulationScale, string> = {

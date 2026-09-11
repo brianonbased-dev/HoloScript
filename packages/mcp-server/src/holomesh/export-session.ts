@@ -9,11 +9,7 @@ export interface ExportSessionConfig {
 }
 
 export type IdempotencyRegistrationResult =
-  | 'accepted'
-  | 'replay'
-  | 'expired'
-  | 'consumed'
-  | 'missing';
+  'accepted' | 'replay' | 'expired' | 'consumed' | 'missing';
 
 function normalizeTtlMs(ttlMs?: number): number {
   if (!Number.isFinite(ttlMs) || (ttlMs as number) <= 0) return DEFAULT_EXPORT_SESSION_TTL_MS;

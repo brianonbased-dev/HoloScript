@@ -13,12 +13,7 @@ import { sha256Bytes, type HashMode } from './sha256';
 export const SIMULATION_EVIDENCE_PACK_SCHEMA_VERSION = '0.1.0' as const;
 
 export type EvidenceJsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | EvidenceJsonValue[]
-  | { [key: string]: EvidenceJsonValue };
+  string | number | boolean | null | EvidenceJsonValue[] | { [key: string]: EvidenceJsonValue };
 
 export interface SimulationEvidenceRequirements {
   requirementId: string;
