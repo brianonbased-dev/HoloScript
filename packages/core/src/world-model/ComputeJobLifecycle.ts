@@ -52,13 +52,7 @@ export type ComputeJobState =
   | 'cancelled';
 export type ComputeJobTerminalState = 'succeeded' | 'failed' | 'cancelled';
 export type ComputeJobTransitionAction =
-  | 'queue'
-  | 'acquire_lease'
-  | 'start'
-  | 'mark_running'
-  | 'succeed'
-  | 'fail'
-  | 'cancel';
+  'queue' | 'acquire_lease' | 'start' | 'mark_running' | 'succeed' | 'fail' | 'cancel';
 export type ComputeJobFailureReason =
   | 'queue_rejected'
   | 'lease_unavailable'
@@ -70,17 +64,11 @@ export type ComputeJobFailureReason =
   | 'receipt_unavailable'
   | 'system_failed';
 export type ComputeJobCancellationReason =
-  | 'user_cancelled'
-  | 'policy_cancelled'
-  | 'system_cancelled';
+  'user_cancelled' | 'policy_cancelled' | 'system_cancelled';
 export type ComputeJobReasonCode =
-  | 'execution_succeeded'
-  | ComputeJobFailureReason
-  | ComputeJobCancellationReason;
+  'execution_succeeded' | ComputeJobFailureReason | ComputeJobCancellationReason;
 export type ComputeJobExecutionUnobservedReason =
-  | 'executor_lost'
-  | 'lease_expired'
-  | 'receipt_unavailable';
+  'executor_lost' | 'lease_expired' | 'receipt_unavailable';
 export type ComputeJobCompletionDisposition =
   | 'work_unit_succeeded'
   | 'terminal_execution_observed'
@@ -2009,8 +1997,7 @@ export function verifyComputeJobTransition(
           input.transition.action,
           input.expectedJob.state,
           input.nextJob.terminal.reasonCode as
-            | ComputeJobFailureReason
-            | ComputeJobCancellationReason,
+            ComputeJobFailureReason | ComputeJobCancellationReason,
           executionUnobservedReason,
           input.transition.transitionedAt,
           input.expectedJob.lease

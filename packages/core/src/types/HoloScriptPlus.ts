@@ -186,15 +186,7 @@ export interface StateDeclaration {
  * Used by the TypeInferencePass to annotate AST nodes.
  */
 export type HSPlusType =
-  | 'float'
-  | 'int'
-  | 'bool'
-  | 'string'
-  | 'vec2'
-  | 'vec3'
-  | 'vec4'
-  | 'color'
-  | 'unknown';
+  'float' | 'int' | 'bool' | 'string' | 'vec2' | 'vec3' | 'vec4' | 'color' | 'unknown';
 
 export interface ReactiveState<T = unknown> {
   get<K extends keyof T>(key: K): T[K];

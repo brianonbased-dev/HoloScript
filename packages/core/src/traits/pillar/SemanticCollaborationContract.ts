@@ -415,8 +415,7 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
 
     if (type === 'semcol:receive') {
       const msg = ((event as Record<string, unknown>).message ?? event.payload?.message) as
-        | SemanticCollaborationMessage
-        | undefined;
+        SemanticCollaborationMessage | undefined;
       if (!msg) return;
 
       const fail = validateMessage(msg, config, state);
@@ -434,8 +433,7 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
 
     if (type === 'semcol:send') {
       const msg = ((event as Record<string, unknown>).message ?? event.payload?.message) as
-        | SemanticCollaborationMessage
-        | undefined;
+        SemanticCollaborationMessage | undefined;
       const to = ((event as Record<string, unknown>).to ?? event.payload?.to) as string | undefined;
       if (!msg || !to) return;
 

@@ -34,8 +34,7 @@ export const rollbackHandler: TraitHandler<RollbackConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__rollbackState as
-      | { history: Array<{ version: string; timestamp: number }> }
-      | undefined;
+      { history: Array<{ version: string; timestamp: number }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 

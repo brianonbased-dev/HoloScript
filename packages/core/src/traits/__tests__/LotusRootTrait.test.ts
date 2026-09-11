@@ -125,8 +125,7 @@ describe('LotusRootTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'lotus_root_emissive_changed') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.bloomState).toBe('full');
     expect(evt?.pulseSpeed).toBe(0);

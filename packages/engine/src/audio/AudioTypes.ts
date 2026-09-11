@@ -174,14 +174,7 @@ export type EffectType =
  * Filter types for EQ and filter effects
  */
 export type FilterType =
-  | 'lowpass'
-  | 'highpass'
-  | 'bandpass'
-  | 'lowshelf'
-  | 'highshelf'
-  | 'peaking'
-  | 'notch'
-  | 'allpass';
+  'lowpass' | 'highpass' | 'bandpass' | 'lowshelf' | 'highshelf' | 'peaking' | 'notch' | 'allpass';
 
 /**
  * Base effect configuration

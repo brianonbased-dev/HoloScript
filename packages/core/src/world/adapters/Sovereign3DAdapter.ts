@@ -208,8 +208,7 @@ export class Sovereign3DAdapter implements WorldGeneratorAdapter {
 
     const rawMeta = job.metadata ?? {};
     const bounds = (rawMeta.bounds as
-      | [number, number, number, number, number, number]
-      | undefined) ?? [-10, 0, -10, 10, 5, 10];
+      [number, number, number, number, number, number] | undefined) ?? [-10, 0, -10, 10, 5, 10];
 
     const metadata: WorldMetadata = {
       format: job.asset_url.endsWith('.glb')

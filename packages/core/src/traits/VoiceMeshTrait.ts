@@ -124,8 +124,7 @@ async function startVoiceStream(node: HSPlusNode, config: VoiceMeshConfig, conte
     // Setup Analysis for VAD
     const _w = window as unknown as Record<string, unknown>;
     const AudioContextClass = (_w.AudioContext || _w.webkitAudioContext) as
-      | typeof AudioContext
-      | undefined;
+      typeof AudioContext | undefined;
     if (AudioContextClass) {
       state.audioContext = new AudioContextClass();
       const source = state.audioContext.createMediaStreamSource(stream);

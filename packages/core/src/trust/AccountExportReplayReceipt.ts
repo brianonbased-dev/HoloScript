@@ -33,11 +33,7 @@ export type ReplayOutcome =
   | 'replay_failed';
 
 export type ReplayTrigger =
-  | 'user_initiated'
-  | 'audit_scheduled'
-  | 'rollback'
-  | 'cross_surface_sync'
-  | 'integrity_check';
+  'user_initiated' | 'audit_scheduled' | 'rollback' | 'cross_surface_sync' | 'integrity_check';
 
 // ─── Replay Payload ───────────────────────────────────────────────────────────
 

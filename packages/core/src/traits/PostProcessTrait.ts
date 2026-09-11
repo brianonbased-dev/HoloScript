@@ -24,8 +24,7 @@ export const postProcessHandler: TraitHandler<PostProcessConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__ppState as
-      | { effects: Array<{ name: string; intensity: number }> }
-      | undefined;
+      { effects: Array<{ name: string; intensity: number }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

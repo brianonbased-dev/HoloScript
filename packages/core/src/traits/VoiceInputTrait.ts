@@ -117,8 +117,7 @@ export class VoiceInputTrait {
     const _g = globalThis as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web Speech API constructor not in all TS libs
     const SpeechRecognitionCtor = (_g.SpeechRecognition || _g.webkitSpeechRecognition) as
-      | (new () => any)
-      | undefined;
+      (new () => any) | undefined;
 
     if (!SpeechRecognitionCtor) {
       console.error('Web Speech API not supported');

@@ -225,8 +225,7 @@ export const lotusPetalHandler: TraitHandler<LotusPetalConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__lotusPetalState as
-      | LotusPetalState
-      | undefined;
+      LotusPetalState | undefined;
     if (!state) return;
 
     if (event.type === 'lotus_petal_state_changed' && event.paperId === config.paper_id) {

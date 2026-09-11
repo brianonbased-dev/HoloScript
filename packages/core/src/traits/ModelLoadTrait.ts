@@ -37,8 +37,7 @@ export const modelLoadHandler: TraitHandler<ModelLoadConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__modelLoadState as
-      | { loaded: Map<string, { provider: string; loadedAt: number }> }
-      | undefined;
+      { loaded: Map<string, { provider: string; loadedAt: number }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 

@@ -12,13 +12,7 @@
 // =============================================================================
 
 export type TimelineEventType =
-  | 'animation'
-  | 'camera'
-  | 'dialogue'
-  | 'audio'
-  | 'effect'
-  | 'wait'
-  | 'callback';
+  'animation' | 'camera' | 'dialogue' | 'audio' | 'effect' | 'wait' | 'callback';
 
 export interface TimelineEvent {
   id: string;

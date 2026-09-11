@@ -12,14 +12,7 @@
 // =============================================================================
 
 export type DamageType =
-  | 'physical'
-  | 'fire'
-  | 'ice'
-  | 'lightning'
-  | 'poison'
-  | 'holy'
-  | 'dark'
-  | 'true';
+  'physical' | 'fire' | 'ice' | 'lightning' | 'poison' | 'holy' | 'dark' | 'true';
 
 export interface DamageInstance {
   id: string;

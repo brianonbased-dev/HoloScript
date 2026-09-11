@@ -23,16 +23,7 @@
 
 /** The movement styles a `move` statement or `@locomotion` trait may select. */
 export type LocomotionMode =
-  | 'glide'
-  | 'walk'
-  | 'run'
-  | 'fly'
-  | 'swim'
-  | 'teleport'
-  | 'path'
-  | 'orbit'
-  | 'snap'
-  | 'follow';
+  'glide' | 'walk' | 'run' | 'fly' | 'swim' | 'teleport' | 'path' | 'orbit' | 'snap' | 'follow';
 
 /** Canonical ordered list of locomotion modes (SSOT for parser/linter/LSP/compiler). */
 export const LOCOMOTION_MODES: readonly LocomotionMode[] = [

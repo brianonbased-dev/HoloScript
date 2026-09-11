@@ -24,8 +24,7 @@ export const timeTravelDebugHandler: TraitHandler<TimeTravelDebugConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__ttdState as
-      | { snapshots: Array<{ frame: number; data: unknown }>; cursor: number }
-      | undefined;
+      { snapshots: Array<{ frame: number; data: unknown }>; cursor: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

@@ -199,13 +199,11 @@ describe('OnnxRuntimeTrait — InferenceAdapter wiring', () => {
   });
 
   it('onnx:run after onnx:load calls adapter.run and emits onnx:output with outputs', async () => {
-    const runSpy = vi.fn(
-      async (req: InferenceRequest): Promise<InferenceResponse> => ({
-        outputs: { result: tensor([42, 84], [2]) },
-        durationMs: 7,
-        providerUsed: 'webgpu',
-      })
-    );
+    const runSpy = vi.fn(async (req: InferenceRequest): Promise<InferenceResponse> => ({
+      outputs: { result: tensor([42, 84], [2]) },
+      durationMs: 7,
+      providerUsed: 'webgpu',
+    }));
     const cfg = {
       execution_provider: 'webgpu',
       adapterFactory: (): InferenceAdapter => {
@@ -242,13 +240,11 @@ describe('OnnxRuntimeTrait — InferenceAdapter wiring', () => {
   });
 
   it('onnx:run forwards requested output names to adapter', async () => {
-    const runSpy = vi.fn(
-      async (req: InferenceRequest): Promise<InferenceResponse> => ({
-        outputs: { pose: tensor([0], [1]), phase: tensor([0], [1]) },
-        durationMs: 0,
-        providerUsed: 'cpu',
-      })
-    );
+    const runSpy = vi.fn(async (req: InferenceRequest): Promise<InferenceResponse> => ({
+      outputs: { pose: tensor([0], [1]), phase: tensor([0], [1]) },
+      durationMs: 0,
+      providerUsed: 'cpu',
+    }));
     const cfg = {
       execution_provider: 'cpu',
       adapterFactory: (): InferenceAdapter => {

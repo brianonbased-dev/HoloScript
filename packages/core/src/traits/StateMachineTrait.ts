@@ -30,8 +30,7 @@ export const stateMachineHandler: TraitHandler<StateMachineConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__smState as
-      | { current: string; transitions: number; history: string[] }
-      | undefined;
+      { current: string; transitions: number; history: string[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

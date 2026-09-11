@@ -102,8 +102,7 @@ export const speechAwareEncounterHandler: TraitHandler<SpeechAwareEncounterConfi
       axis_vocabulary: ['speaker_confidence', 'reid_match'] as const,
       generate(ctx: PillarContext): PillarSlice {
         const state = (node as any).__speechAwareEncounterState as
-          | SpeechAwareEncounterState
-          | undefined;
+          SpeechAwareEncounterState | undefined;
         const avgConf = state?.turns?.length
           ? state.turns.reduce((s: number, t: any) => s + t.attribution.confidence, 0) /
             state.turns.length

@@ -16,13 +16,7 @@ import type { TraitHandler } from './TraitTypes';
 
 export type PlaneMode = 'horizontal' | 'vertical' | 'all';
 export type PlaneClassification =
-  | 'floor'
-  | 'wall'
-  | 'ceiling'
-  | 'table'
-  | 'door'
-  | 'window'
-  | 'unknown';
+  'floor' | 'wall' | 'ceiling' | 'table' | 'door' | 'window' | 'unknown';
 
 export interface DetectedPlane {
   id: string;

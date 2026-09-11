@@ -76,8 +76,7 @@ describe('LotusCenterTrait — handler lifecycle', () => {
     expect(getEventCount(ctx, 'lotus_center_phase_changed')).toBe(1);
     expect(getEventCount(ctx, 'center_ready_for_sdf_body')).toBe(0);
     const evt = getLastEvent(ctx, 'lotus_center_phase_changed') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt?.phase).toBe('genesis_fired_pending');
   });
 
@@ -136,8 +135,7 @@ describe('LotusCenterTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'center_ready_for_sdf_body') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt?.intensity).toBeCloseTo(1.5, 10);
   });
 

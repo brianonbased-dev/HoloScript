@@ -14,13 +14,7 @@ import type { ARSessionPose, HSPlusNode, TraitContext, TraitHandler, Vector3 } f
 // =============================================================================
 
 export type TrackingTarget =
-  | 'furniture'
-  | 'walls'
-  | 'floors'
-  | 'hands'
-  | 'objects'
-  | 'body'
-  | 'face';
+  'furniture' | 'walls' | 'floors' | 'hands' | 'objects' | 'body' | 'face';
 export type AnchorPersistence = 'session' | 'local' | 'cloud';
 export type TrackingQuality = 'low' | 'medium' | 'high';
 

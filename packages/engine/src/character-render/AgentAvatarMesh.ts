@@ -393,9 +393,7 @@ export interface AgentAvatarHandSurfaceReceipt {
   schemaVersion: 'holoscript.agent-avatar-hand-surface.v1';
   profile: 'tapered-digit-commissure-cuticle-wrist-v1';
   upperBodyProfile:
-    | 'coherent-hand-surface-v5'
-    | 'coherent-portrait-anatomy-v6'
-    | 'coherent-expressive-anatomy-v7';
+    'coherent-hand-surface-v5' | 'coherent-portrait-anatomy-v6' | 'coherent-expressive-anatomy-v7';
   limbs: [AgentAvatarHandSurfaceGeometryReceipt, AgentAvatarHandSurfaceGeometryReceipt];
   regionVertexCounts: AgentAvatarHandSurfaceGeometryReceipt['regionVertexCounts'];
   regionIndexCounts: AgentAvatarHandSurfaceGeometryReceipt['regionIndexCounts'];
@@ -436,10 +434,7 @@ export interface AgentAvatarDigitGeometryReceipt {
 }
 
 export type AgentAvatarHandLandmarkKind =
-  | 'interdigital-web'
-  | 'metacarpal-knuckle'
-  | 'dorsal-tendon-ridge'
-  | 'nail-plate';
+  'interdigital-web' | 'metacarpal-knuckle' | 'dorsal-tendon-ridge' | 'nail-plate';
 
 export interface AgentAvatarHandLandmarkGeometryReceipt {
   schemaVersion: 'holoscript.agent-avatar-hand-landmark-geometry.v1';
@@ -3601,8 +3596,7 @@ function pushNeutralAnatomicalHead(
       orbitalProfile === 'integrated-lid-rim-v4'
         ? { lidFoldProfile: 'upper-crease-continuity-v1' as const }
         : {}),
-      ...(orbitalProfile === 'anatomical-lid-blend-v3' ||
-      orbitalProfile === 'integrated-lid-rim-v4'
+      ...(orbitalProfile === 'anatomical-lid-blend-v3' || orbitalProfile === 'integrated-lid-rim-v4'
         ? {
             lidTransitionProfile: 'cubic-lid-blend-v1' as const,
             lidTransitionRows: orbitalProfile === 'integrated-lid-rim-v4' ? 5 : 4,

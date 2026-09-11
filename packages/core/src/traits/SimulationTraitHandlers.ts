@@ -53,15 +53,13 @@ export const thermalSimulationHandler: TraitHandler<ThermalSimConfig> = {
   },
   onUpdate(node, _config, _context, delta) {
     const state = (node as unknown as Record<string, unknown>).__thermalState as
-      | ThermalState
-      | undefined;
+      ThermalState | undefined;
     if (!state?.isSimulating || !state.solver?.step) return;
     state.solver.step(delta / 1000);
   },
   onDetach(node) {
     const state = (node as unknown as Record<string, unknown>).__thermalState as
-      | ThermalState
-      | undefined;
+      ThermalState | undefined;
     if (state?.solver) {
       state.solver.dispose();
     }
@@ -105,16 +103,14 @@ export const structuralFEMHandler: TraitHandler<StructuralFEMConfig> = {
   },
   onUpdate(node, _config, _context, _delta) {
     const state = (node as unknown as Record<string, unknown>).__structuralState as
-      | StructuralState
-      | undefined;
+      StructuralState | undefined;
     if (!state?.solver?.solve || state.isSolved) return;
     state.solver.solve();
     state.isSolved = true;
   },
   onDetach(node) {
     const state = (node as unknown as Record<string, unknown>).__structuralState as
-      | StructuralState
-      | undefined;
+      StructuralState | undefined;
     if (state?.solver) {
       state.solver.dispose();
     }
@@ -161,16 +157,14 @@ export const hydraulicPipeHandler: TraitHandler<HydraulicPipeConfig> = {
   },
   onUpdate(node, _config, _context, _delta) {
     const state = (node as unknown as Record<string, unknown>).__hydraulicState as
-      | HydraulicState
-      | undefined;
+      HydraulicState | undefined;
     if (!state?.solver?.solve || state.isSolved) return;
     state.solver.solve();
     state.isSolved = true;
   },
   onDetach(node) {
     const state = (node as unknown as Record<string, unknown>).__hydraulicState as
-      | HydraulicState
-      | undefined;
+      HydraulicState | undefined;
     if (state?.solver) {
       state.solver.dispose();
     }

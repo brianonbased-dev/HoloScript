@@ -218,11 +218,7 @@ export const scalingHandler: TraitHandler<ScalingConfig> = {
 // ── Secret Trait ──────────────────────────────────────────────────────────────
 
 export type SecretSource =
-  | 'env'
-  | 'vault'
-  | 'aws_secrets_manager'
-  | 'gcp_secret_manager'
-  | 'kubernetes';
+  'env' | 'vault' | 'aws_secrets_manager' | 'gcp_secret_manager' | 'kubernetes';
 
 export interface SecretConfig {
   /** Secret name */

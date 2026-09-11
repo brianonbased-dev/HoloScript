@@ -52,11 +52,7 @@ interface SharedWorldConfig {
   // V43 Tier 2: visionOS Spatial Persona & SharePlay
   persona_count?: number;
   persona_feature?:
-    | 'spatial_audio'
-    | 'eye_contact'
-    | 'hand_gestures'
-    | 'body_language'
-    | 'spatial_presence';
+    'spatial_audio' | 'eye_contact' | 'hand_gestures' | 'body_language' | 'spatial_presence';
   avatar_style?: 'realistic' | 'stylized' | 'minimal';
   spatial_audio_enabled?: boolean;
   activity_type?:

@@ -28,31 +28,14 @@ export const COMPUTE_UTILITY_AGGREGATE_SCHEMA_VERSION =
 export const COMPUTE_UTILITY_MINIMUM_AGGREGATE = 10 as const;
 
 export type ComputeUtilityNotMeasuredReason =
-  | 'analytics_unset'
-  | 'analytics_disabled'
-  | 'consent_unset'
-  | 'consent_denied';
+  'analytics_unset' | 'analytics_disabled' | 'consent_unset' | 'consent_denied';
 export type ComputeUtilityFallbackBucket =
-  | 'not_allowed'
-  | 'allowed_not_used'
-  | 'used_cpu'
-  | 'used_gpu'
-  | 'used_npu'
-  | 'used_other';
+  'not_allowed' | 'allowed_not_used' | 'used_cpu' | 'used_gpu' | 'used_npu' | 'used_other';
 export type ComputeUtilityQualityBucket = 'passed' | 'failed';
 export type ComputeUtilityLatencyBucket =
-  | 'lt_100ms'
-  | '100ms_to_lt_1s'
-  | '1s_to_lt_10s'
-  | '10s_to_lt_60s'
-  | '60s_plus';
+  'lt_100ms' | '100ms_to_lt_1s' | '1s_to_lt_10s' | '10s_to_lt_60s' | '60s_plus';
 export type ComputeUtilityCostBucket =
-  | 'not_measured'
-  | 'zero'
-  | 'minor_1_10'
-  | 'minor_11_100'
-  | 'minor_101_1000'
-  | 'minor_1001_plus';
+  'not_measured' | 'zero' | 'minor_1_10' | 'minor_11_100' | 'minor_101_1000' | 'minor_1001_plus';
 
 export interface ComputeUtilityBuckets {
   readonly requestedAccelerator: ComputeAccelerator;

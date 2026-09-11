@@ -132,11 +132,7 @@ export interface HostGpuComputeCapabilities {
 }
 
 export type HostDeviceProbeScope =
-  | 'inventory'
-  | 'presence'
-  | 'frame-capture'
-  | 'input'
-  | 'actuation';
+  'inventory' | 'presence' | 'frame-capture' | 'input' | 'actuation';
 
 export interface HostDeviceProbeRequest {
   scope: HostDeviceProbeScope;

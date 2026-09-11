@@ -547,8 +547,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
             }
           | undefined,
         samlData: (event as Record<string, unknown>).samlData as
-          | { nameId: string; sessionIndex: string }
-          | undefined,
+          { nameId: string; sessionIndex: string } | undefined,
         ipAddress: (event as Record<string, unknown>).ipAddress as string,
         userAgent: (event as Record<string, unknown>).userAgent as string,
       };

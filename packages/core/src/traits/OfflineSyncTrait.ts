@@ -29,8 +29,7 @@ export const offlineSyncHandler: TraitHandler<OfflineSyncConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__syncState as
-      | { pending: SyncItem[]; synced: number; online: boolean }
-      | undefined;
+      { pending: SyncItem[]; synced: number; online: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

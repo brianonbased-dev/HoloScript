@@ -36,12 +36,7 @@ export interface LotusGenesisAnchor {
 }
 
 export type LotusGenesisGatePhase =
-  | 'placeholder'
-  | 'anchor_missing'
-  | 'anchor_invalid'
-  | 'petals_pending'
-  | 'armed'
-  | 'fired';
+  'placeholder' | 'anchor_missing' | 'anchor_invalid' | 'petals_pending' | 'armed' | 'fired';
 
 export interface LotusGenesisTriggerConfig {
   /** State key for LOTUS_GENESIS_SEED. */
@@ -240,8 +235,7 @@ export const lotusGenesisTriggerHandler: TraitHandler<LotusGenesisTriggerConfig>
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__lotusGenesisTriggerState as
-      | LotusGenesisTriggerState
-      | undefined;
+      LotusGenesisTriggerState | undefined;
     if (!state) return;
 
     if (event.type === 'lotus_genesis_anchor_loaded') {

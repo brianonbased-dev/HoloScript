@@ -20,12 +20,7 @@ export type RenderEngine = 'octane' | 'redshift' | 'arnold' | 'blender_cycles' |
 export type OutputFormat = 'png' | 'exr' | 'jpg' | 'mp4' | 'webm' | 'glb';
 export type JobPriority = 'low' | 'normal' | 'high' | 'rush';
 export type JobStatus =
-  | 'queued'
-  | 'processing'
-  | 'rendering'
-  | 'compositing'
-  | 'complete'
-  | 'failed';
+  'queued' | 'processing' | 'rendering' | 'compositing' | 'complete' | 'failed';
 
 export interface RenderOutput {
   type: 'frame' | 'sequence' | 'video' | 'volumetric' | 'splat';

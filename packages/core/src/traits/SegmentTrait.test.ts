@@ -9,9 +9,7 @@ const createMockNode = (): HSPlusNode =>
     __typename: 'HSPlusNode',
     id: 'test-node',
     userData: {
-      imageSource: {
-        /* mock image source */
-      },
+      imageSource: {/* mock image source */},
     },
     emit: vi.fn(),
     on: vi.fn(),
@@ -93,9 +91,7 @@ describe('SegmentTrait', () => {
     beforeEach(() => {
       node = createMockNode();
       (node as any).__segmentState = {
-        pipeline: {
-          /* mock pipeline */
-        },
+        pipeline: {/* mock pipeline */},
         ready: true,
         loading: false,
         error: null,
@@ -133,9 +129,7 @@ describe('SegmentTrait', () => {
     beforeEach(() => {
       node = createMockNode();
       (node as any).__segmentState = {
-        pipeline: {
-          /* mock pipeline */
-        },
+        pipeline: {/* mock pipeline */},
         ready: true,
         loading: false,
         error: null,

@@ -36,8 +36,7 @@ import type { PrecipitationType } from '@holoscript/engine/environment/WeatherBl
 // Lazy-loaded optional peer modules (@holoscript/engine is an optional peer dep)
 let _weatherSystemMod: typeof import('@holoscript/engine/environment/WeatherSystem') | null = null;
 let _weatherBlackboardMod:
-  | typeof import('@holoscript/engine/environment/WeatherBlackboard')
-  | null = null;
+  typeof import('@holoscript/engine/environment/WeatherBlackboard') | null = null;
 
 // =============================================================================
 // Config

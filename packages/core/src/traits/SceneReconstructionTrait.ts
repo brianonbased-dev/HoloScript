@@ -15,21 +15,10 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 export type ReconstructionMode =
-  | 'realtime'
-  | 'high_fidelity'
-  | 'room_scan'
-  | 'object_scan'
-  | 'semantic_mesh';
+  'realtime' | 'high_fidelity' | 'room_scan' | 'object_scan' | 'semantic_mesh';
 export type MeshDetail = 'low' | 'medium' | 'high';
 export type SemanticLabel =
-  | 'floor'
-  | 'ceiling'
-  | 'wall'
-  | 'table'
-  | 'chair'
-  | 'window'
-  | 'door'
-  | 'unknown';
+  'floor' | 'ceiling' | 'wall' | 'table' | 'chair' | 'window' | 'door' | 'unknown';
 
 export interface SceneReconstructionConfig {
   reconstruction_mode: ReconstructionMode;
@@ -108,8 +97,7 @@ export const sceneReconstructionHandler: TraitHandler<SceneReconstructionConfig>
       state.scanProgress = 0;
     } else if (event.type === 'reconstruction:mesh_received') {
       const payload = event.payload as
-        | { faceCount?: number; labels?: Record<string, SemanticLabel> }
-        | undefined;
+        { faceCount?: number; labels?: Record<string, SemanticLabel> } | undefined;
       state.meshFaceCount = payload?.faceCount ?? state.meshFaceCount;
       state.scanProgress = Math.min(1, state.meshFaceCount / config.max_mesh_faces);
       if (config.semantic_labeling && payload?.labels) {

@@ -516,13 +516,11 @@ export class GltfGaussianSplatCodec extends AbstractGaussianCodec {
     for (const mesh of gltf.meshes) {
       for (const primitive of mesh.primitives) {
         const gsExt = primitive.extensions?.[EXT_GAUSSIAN_SPLATTING] as
-          | KhrGaussianSplattingPrimitive
-          | undefined;
+          KhrGaussianSplattingPrimitive | undefined;
 
         if (gsExt) {
           const spzExt = primitive.extensions?.[EXT_GAUSSIAN_SPLATTING_COMPRESSION_SPZ] as
-            | KhrGaussianSplattingCompressionSpz
-            | undefined;
+            KhrGaussianSplattingCompressionSpz | undefined;
 
           return { primitive, gaussianExt: gsExt, spzExt };
         }

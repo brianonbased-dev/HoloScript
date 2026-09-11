@@ -30,14 +30,7 @@ export type RBACRole = 'owner' | 'admin' | 'editor' | 'viewer' | 'spectator';
 
 /** Permission scope categories */
 export type PermissionCategory =
-  | 'trait'
-  | 'scene'
-  | 'tenant'
-  | 'export'
-  | 'asset'
-  | 'user'
-  | 'billing'
-  | 'audit';
+  'trait' | 'scene' | 'tenant' | 'export' | 'asset' | 'user' | 'billing' | 'audit';
 
 /** Permission action types */
 export type PermissionAction =
@@ -1077,8 +1070,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       const capabilityWith = (event as Record<string, unknown>).capabilityWith as string;
       const capabilityCan = (event as Record<string, unknown>).capabilityCan as string;
       const caveats = (event as Record<string, unknown>).caveats as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       const grantedBy = (event as Record<string, unknown>).grantedBy as string;
       const expiresAt = (event as Record<string, unknown>).expiresAt as string | undefined;
 
@@ -1224,8 +1216,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       const capabilityWith = (event as Record<string, unknown>).capabilityWith as string;
       const capabilityCan = (event as Record<string, unknown>).capabilityCan as string;
       const constraints = (event as Record<string, unknown>).constraints as
-        | DelegationConstraints
-        | undefined;
+        DelegationConstraints | undefined;
       const expiresAt = (event as Record<string, unknown>).expiresAt as string | undefined;
 
       if (!fromDID || !toDID || !capabilityCan) {

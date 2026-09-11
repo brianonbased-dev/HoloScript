@@ -12,14 +12,7 @@
 // =============================================================================
 
 export type AudioNodeType =
-  | 'source'
-  | 'gain'
-  | 'filter'
-  | 'delay'
-  | 'reverb'
-  | 'compressor'
-  | 'output'
-  | 'mixer';
+  'source' | 'gain' | 'filter' | 'delay' | 'reverb' | 'compressor' | 'output' | 'mixer';
 
 export interface AudioGraphNode {
   id: string;

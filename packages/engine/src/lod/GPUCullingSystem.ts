@@ -798,16 +798,14 @@ export function spatialAnchorsToObjectInstances(
   }>,
   defaultDistances: [number, number, number, number] = [50, 150, 400, 1200]
 ): ObjectInstance[] {
-  return anchors.map(
-    (anchor, index): ObjectInstance => ({
-      position: anchor.position,
-      // High-importance anchors get inflated radius so they survive frustum culling
-      radius: anchor.importance >= 0.8 ? 1e6 : anchor.scale,
-      lodLevel: anchor.lodLevel,
-      lodDistances: defaultDistances,
-      objectId: index,
-    })
-  );
+  return anchors.map((anchor, index): ObjectInstance => ({
+    position: anchor.position,
+    // High-importance anchors get inflated radius so they survive frustum culling
+    radius: anchor.importance >= 0.8 ? 1e6 : anchor.scale,
+    lodLevel: anchor.lodLevel,
+    lodDistances: defaultDistances,
+    objectId: index,
+  }));
 }
 
 /**

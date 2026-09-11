@@ -50,11 +50,7 @@ export type RenderEffect =
 
 /** Audio effects (VR-specific) */
 export type AudioEffect =
-  | 'audio:play'
-  | 'audio:stop'
-  | 'audio:spatial'
-  | 'audio:global'
-  | 'audio:reverb';
+  'audio:play' | 'audio:stop' | 'audio:spatial' | 'audio:global' | 'audio:reverb';
 
 /** Inventory/ownership effects (VR-specific) */
 export type InventoryEffect =
@@ -74,19 +70,11 @@ export type AuthorityEffect =
 
 /** Compute resource effects (VR-specific) */
 export type ResourceEffect =
-  | 'resource:cpu'
-  | 'resource:memory'
-  | 'resource:gpu'
-  | 'resource:bandwidth'
-  | 'resource:storage';
+  'resource:cpu' | 'resource:memory' | 'resource:gpu' | 'resource:bandwidth' | 'resource:storage';
 
 /** Agent lifecycle effects (VR-specific) */
 export type AgentEffect =
-  | 'agent:spawn'
-  | 'agent:kill'
-  | 'agent:communicate'
-  | 'agent:observe'
-  | 'agent:control';
+  'agent:spawn' | 'agent:kill' | 'agent:communicate' | 'agent:observe' | 'agent:control';
 
 /** Union of all possible effects */
 export type VREffect =

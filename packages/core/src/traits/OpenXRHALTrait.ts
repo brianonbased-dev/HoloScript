@@ -120,16 +120,7 @@ interface ControllerProfile {
 
 // Phase 2: Button types and gamepad state
 type ControllerButton =
-  | 'trigger'
-  | 'grip'
-  | 'thumbstick'
-  | 'a'
-  | 'b'
-  | 'x'
-  | 'y'
-  | 'menu'
-  | 'system'
-  | 'touchpad';
+  'trigger' | 'grip' | 'thumbstick' | 'a' | 'b' | 'x' | 'y' | 'menu' | 'system' | 'touchpad';
 
 interface ButtonState {
   pressed: boolean;

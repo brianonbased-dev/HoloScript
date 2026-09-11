@@ -26,8 +26,7 @@ export const loadTestHandler: TraitHandler<LoadTestConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__loadState as
-      | { running: boolean; vus: number; requests: number; errors: number }
-      | undefined;
+      { running: boolean; vus: number; requests: number; errors: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

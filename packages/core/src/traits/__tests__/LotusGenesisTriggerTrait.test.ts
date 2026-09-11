@@ -101,8 +101,7 @@ describe('LotusGenesisTriggerTrait - handler lifecycle', () => {
     attachTrait(lotusGenesisTriggerHandler, node, {}, ctx);
 
     const evt = getLastEvent(ctx, 'lotus_genesis_trigger_attached') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt?.phase).toBe('anchor_missing');
     expect(evt?.canFire).toBe(false);
   });

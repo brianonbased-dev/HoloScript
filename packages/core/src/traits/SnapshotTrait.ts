@@ -47,8 +47,7 @@ export const snapshotHandler: TraitHandler<SnapshotConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__snapshotState as
-      | { snapshots: Map<string, SnapshotEntry>; lastCapture: number }
-      | undefined;
+      { snapshots: Map<string, SnapshotEntry>; lastCapture: number } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 

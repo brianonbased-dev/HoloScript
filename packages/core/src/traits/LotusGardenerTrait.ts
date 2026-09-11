@@ -229,8 +229,7 @@ export const lotusGardenerHandler: TraitHandler<LotusGardenerConfig> = {
 
   onUpdate(node, config, context, delta) {
     const state = (node as unknown as Record<string, unknown>).__lotusGardenerState as
-      | LotusGardenerState
-      | undefined;
+      LotusGardenerState | undefined;
     if (!state) return;
     if (typeof delta !== 'number' || delta < 0) return; // defensive
 
@@ -274,8 +273,7 @@ export const lotusGardenerHandler: TraitHandler<LotusGardenerConfig> = {
 
   onEvent(node, _config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__lotusGardenerState as
-      | LotusGardenerState
-      | undefined;
+      LotusGardenerState | undefined;
     if (!state) return;
 
     if (event.type === 'lotus_bloom_state_changed') {

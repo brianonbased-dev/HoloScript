@@ -16,13 +16,7 @@ import type { TraitHandler } from './TraitTypes';
 type SourceType = 'images' | 'video' | 'depth_images' | 'lidar';
 type QualityLevel = 'preview' | 'low' | 'medium' | 'high' | 'ultra';
 type ProcessingStage =
-  | 'idle'
-  | 'uploading'
-  | 'aligning'
-  | 'dense_cloud'
-  | 'meshing'
-  | 'texturing'
-  | 'complete';
+  'idle' | 'uploading' | 'aligning' | 'dense_cloud' | 'meshing' | 'texturing' | 'complete';
 
 interface PhotogrammetryState {
   isProcessing: boolean;

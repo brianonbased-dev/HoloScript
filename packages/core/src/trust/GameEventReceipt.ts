@@ -27,13 +27,7 @@ export const MMO_EVENT_RECEIPT_SCHEMA = 'holoscript.mmo-event-receipt.v1';
 // ─── Game Event Kind ──────────────────────────────────────────────────────────
 
 export type GameEventKind =
-  | 'combat_hit'
-  | 'death'
-  | 'loot_roll'
-  | 'trade'
-  | 'movement_reject'
-  | 'ability_cast'
-  | 'spawn';
+  'combat_hit' | 'death' | 'loot_roll' | 'trade' | 'movement_reject' | 'ability_cast' | 'spawn';
 
 // ─── Input ───────────────────────────────────────────────────────────────────
 

@@ -16,12 +16,7 @@ export type SovereignMantleStyle =
   | 'sovereign_locality_mesh';
 
 export type SovereignMantleFamilyId =
-  | 'anthropic'
-  | 'openai'
-  | 'google'
-  | 'xai'
-  | 'ollama'
-  | 'sovereign';
+  'anthropic' | 'openai' | 'google' | 'xai' | 'ollama' | 'sovereign';
 
 /**
  * Procedural silhouette parameters. All profiles share one grid topology so family style

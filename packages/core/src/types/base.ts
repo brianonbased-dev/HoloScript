@@ -226,13 +226,7 @@ export interface GameAuthorityNode extends ASTNode {
  * - `custom`:      anything not in the known set
  */
 export type ReactionCategory =
-  | 'interaction'
-  | 'collision'
-  | 'lifecycle'
-  | 'movement'
-  | 'combat'
-  | 'signal'
-  | 'custom';
+  'interaction' | 'collision' | 'lifecycle' | 'movement' | 'combat' | 'signal' | 'custom';
 
 /**
  * Top-level reaction / event block: `on_combat`, `on_death`, `on_spawn`, `on_cast`,

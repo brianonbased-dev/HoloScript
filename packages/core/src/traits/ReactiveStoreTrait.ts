@@ -27,8 +27,7 @@ export const reactiveStoreHandler: TraitHandler<ReactiveStoreConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__storeState as
-      | { store: Map<string, unknown>; subscribers: Map<string, number> }
-      | undefined;
+      { store: Map<string, unknown>; subscribers: Map<string, number> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

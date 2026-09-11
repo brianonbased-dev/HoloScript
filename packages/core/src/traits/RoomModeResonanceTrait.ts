@@ -517,8 +517,7 @@ export const roomModeResonanceHandler: TraitHandler<RoomModeResonanceConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__roomModeResonanceState as
-      | RoomModeResonanceState
-      | undefined;
+      RoomModeResonanceState | undefined;
     if (!state) return;
 
     if (event.type === 'room_mode_query') {

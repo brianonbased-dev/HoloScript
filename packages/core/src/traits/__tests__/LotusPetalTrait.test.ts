@@ -151,8 +151,7 @@ describe('LotusPetalTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'lotus_petal_visual_changed') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.bloomState).toBe('full');
     const visual = evt?.visual as { opacity: number; glow_colour: string };
@@ -202,8 +201,7 @@ describe('LotusPetalTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'lotus_petal_visual_changed') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     const visual = evt?.visual as { opacity: number; glow_colour: string };
     // Reserved slot must stay sealed-dark even though state was 'full'

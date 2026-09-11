@@ -135,10 +135,7 @@ function transformJointPoint(
     throw new RangeError(`character motion joint ${jointIndex} exceeds the palette`);
   }
   return [
-    palette[offset] * x +
-      palette[offset + 4] * y +
-      palette[offset + 8] * z +
-      palette[offset + 12],
+    palette[offset] * x + palette[offset + 4] * y + palette[offset + 8] * z + palette[offset + 12],
     palette[offset + 1] * x +
       palette[offset + 5] * y +
       palette[offset + 9] * z +
@@ -158,19 +155,10 @@ function skinnedPoint(spec: CharacterDrawSpec, vertex: number): [number, number,
   const primaryWeight = Math.max(0, Math.min(1, spec.mesh.jointWeights[vertex] ?? 0));
   const secondaryWeight = Math.max(
     0,
-    Math.min(
-      1 - primaryWeight,
-      spec.mesh.secondaryJointWeights?.[vertex] ?? 0
-    )
+    Math.min(1 - primaryWeight, spec.mesh.secondaryJointWeights?.[vertex] ?? 0)
   );
   const residualWeight = 1 - primaryWeight - secondaryWeight;
-  const primary = transformJointPoint(
-    spec.jointMatrices,
-    spec.mesh.jointIndices[vertex],
-    x,
-    y,
-    z
-  );
+  const primary = transformJointPoint(spec.jointMatrices, spec.mesh.jointIndices[vertex], x, y, z);
   const secondary = transformJointPoint(
     spec.jointMatrices,
     spec.mesh.secondaryJointIndices?.[vertex] ?? spec.mesh.jointIndices[vertex],
@@ -216,12 +204,8 @@ export function deriveCharacterMotionVectorFrame(
     throw new RangeError('character motion viewport dimensions must be positive integers');
   }
 
-  const previousViewProjection =
-    options.previousViewProjection ?? options.currentViewProjection;
-  const currentMvp = multiply(
-    options.currentViewProjection,
-    current.modelMatrix as Mat4
-  );
+  const previousViewProjection = options.previousViewProjection ?? options.currentViewProjection;
+  const currentMvp = multiply(options.currentViewProjection, current.modelMatrix as Mat4);
   const previousMvp = multiply(previousViewProjection, previous.modelMatrix as Mat4);
   const vertexCount = current.mesh.vertexCount;
   const currentClipPositions = new Float32Array(vertexCount * 4);

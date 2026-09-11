@@ -57,12 +57,7 @@ import { extractPayload } from './TraitTypes';
 export type ZkBackend = 'barretenberg' | 'mock';
 
 export type ZkSpatialPredicate =
-  | 'proximity'
-  | 'in_region'
-  | 'has_attribute'
-  | 'is_inside_zone'
-  | 'owns_asset'
-  | 'has_permission';
+  'proximity' | 'in_region' | 'has_attribute' | 'is_inside_zone' | 'owns_asset' | 'has_permission';
 
 export type ZkFallbackBehavior = 'hidden' | 'transparent' | 'dummy_model';
 

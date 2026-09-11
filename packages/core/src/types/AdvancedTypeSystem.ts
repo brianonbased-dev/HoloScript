@@ -8,13 +8,7 @@ import type { Vector3 } from '../types';
 // Do NOT import it here — that would create a circular dependency.
 
 export type HoloScriptType =
-  | PrimitiveType
-  | ArrayType
-  | UnionType
-  | IntersectionType
-  | GenericType
-  | LiteralType
-  | CustomType;
+  PrimitiveType | ArrayType | UnionType | IntersectionType | GenericType | LiteralType | CustomType;
 
 /**
  * Primitive types

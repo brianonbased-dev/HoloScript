@@ -12,14 +12,7 @@
 // =============================================================================
 
 export type TimeOfDay =
-  | 'dawn'
-  | 'morning'
-  | 'noon'
-  | 'afternoon'
-  | 'dusk'
-  | 'evening'
-  | 'night'
-  | 'midnight';
+  'dawn' | 'morning' | 'noon' | 'afternoon' | 'dusk' | 'evening' | 'night' | 'midnight';
 
 export interface DayNightState {
   time: number; // 0-24 hours

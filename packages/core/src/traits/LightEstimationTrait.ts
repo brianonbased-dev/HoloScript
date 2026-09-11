@@ -15,10 +15,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type EstimationMode =
-  | 'ambient_intensity'
-  | 'ambient_spherical'
-  | 'directional'
-  | 'environmental_hdr';
+  'ambient_intensity' | 'ambient_spherical' | 'directional' | 'environmental_hdr';
 
 interface LightEstimationState {
   isActive: boolean;

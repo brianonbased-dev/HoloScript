@@ -444,8 +444,7 @@ export interface CharacterMaterialGroupReceipt {
 
 export interface CharacterMaterialPlateReceipt {
   schemaVersion:
-    | 'holoscript.character-material-plate.v1'
-    | 'holoscript.character-material-plate.v2';
+    'holoscript.character-material-plate.v1' | 'holoscript.character-material-plate.v2';
   rendererEntrypoint: 'renderCharacter';
   backend: 'webgpu';
   sourceMaterialGroups: boolean;

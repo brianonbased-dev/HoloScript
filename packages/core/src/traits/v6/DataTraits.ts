@@ -75,13 +75,7 @@ class CacheAdapter {
 // ── Database Trait ─────────────────────────────────────────────────────────────
 
 export type DatabaseEngine =
-  | 'postgres'
-  | 'mysql'
-  | 'sqlite'
-  | 'mongodb'
-  | 'redis'
-  | 'dynamodb'
-  | 'cockroachdb';
+  'postgres' | 'mysql' | 'sqlite' | 'mongodb' | 'redis' | 'dynamodb' | 'cockroachdb';
 
 export interface DatabaseConfig {
   /** Database engine */
