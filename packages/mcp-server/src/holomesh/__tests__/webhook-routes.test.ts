@@ -101,6 +101,54 @@ describe('the Railway webhook refuses what it cannot verify', () => {
     expect(verifyRailwaySignature(EVENT, undefined)).toBe(false);
   });
 
+  it('THE REAL MECHANISM: an unsigned Railway POST with the URL token is accepted', async () => {
+    // Railway does not sign webhook payloads at all. The previous fix verified an
+    // HMAC against x-railway-signature, a header Railway never sends — so it would
+    // have rejected 100% of genuine alerts while looking correct.
+    const handle = await loadHandler();
+    const res = mockRes();
+    const url = '/webhook/railway?token=' + SECRET;
+    const req = mockReq(EVENT);
+    req.url = url;
+    const handled = await handle(req, res, '/webhook/railway', 'POST', url);
+    expect(handled).toBe(true);
+    expect(res._status).toBeLessThan(400);
+  });
+
+  it('refuses a wrong URL token', async () => {
+    const handle = await loadHandler();
+    const res = mockRes();
+    const url = '/webhook/railway?token=not-the-secret';
+    const req = mockReq(EVENT);
+    req.url = url;
+    await handle(req, res, '/webhook/railway', 'POST', url);
+    expect(res._status).toBe(401);
+  });
+
+  it('refuses an unsigned POST carrying no token at all', async () => {
+    const handle = await loadHandler();
+    const res = mockRes();
+    await handle(mockReq(EVENT), res, '/webhook/railway', 'POST');
+    expect(res._status).toBe(401);
+  });
+
+  it('accepts ?secret= as well as ?token=', async () => {
+    const handle = await loadHandler();
+    const res = mockRes();
+    const url = '/webhook/railway?secret=' + SECRET;
+    const req = mockReq(EVENT);
+    req.url = url;
+    await handle(req, res, '/webhook/railway', 'POST', url);
+    expect(res._status).toBeLessThan(400);
+  });
+
+  it('still refuses a URL token when no secret is configured', async () => {
+    vi.stubEnv('RAILWAY_WEBHOOK_SECRET', '');
+    vi.stubEnv('NODE_ENV', '');
+    const { verifyRailwayRequest } = await import('../routes/webhook-routes');
+    expect(verifyRailwayRequest('/webhook/railway?token=anything', EVENT, undefined)).toBe(false);
+  });
+
   it('rejects a wrong signature with 401', async () => {
     const handle = await loadHandler();
     const res = mockRes();
