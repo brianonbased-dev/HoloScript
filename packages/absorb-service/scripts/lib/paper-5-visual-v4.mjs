@@ -658,11 +658,7 @@ function candidateAliases(studyCase, arm) {
   );
 }
 
-export function auditPaper5VisualV4PacketManifest({
-  protocol,
-  protocolRaw,
-  packetManifest,
-}) {
+export function auditPaper5VisualV4PacketManifest({ protocol, protocolRaw, packetManifest }) {
   const checks = [];
   const cases = Array.isArray(packetManifest?.cases) ? packetManifest.cases : [];
   const expectedArms = armIds(protocol);
@@ -693,25 +689,20 @@ export function auditPaper5VisualV4PacketManifest({
   check(
     checks,
     'packet-digest',
-    isSha256(packetManifest?.packetSha256) &&
-      packetManifest.packetSha256 === expectedPacketSha256,
+    isSha256(packetManifest?.packetSha256) && packetManifest.packetSha256 === expectedPacketSha256,
     {
       observed: packetManifest?.packetSha256 ?? null,
       expected: expectedPacketSha256,
     }
   );
-  check(
-    checks,
-    'query-count',
-    cases.length >= minimumQueries,
-    { observed: cases.length, minimum: minimumQueries }
-  );
-  check(
-    checks,
-    'repository-count',
-    repositoryIds.size >= minimumRepositories,
-    { observed: repositoryIds.size, minimum: minimumRepositories }
-  );
+  check(checks, 'query-count', cases.length >= minimumQueries, {
+    observed: cases.length,
+    minimum: minimumQueries,
+  });
+  check(checks, 'repository-count', repositoryIds.size >= minimumRepositories, {
+    observed: repositoryIds.size,
+    minimum: minimumRepositories,
+  });
   check(
     checks,
     'sealed-split',
@@ -741,7 +732,10 @@ export function auditPaper5VisualV4PacketManifest({
       caseErrors.push(`${id}:candidate-count-or-uniqueness-mismatch`);
     }
     for (const arm of expectedArms.slice(1)) {
-      if (JSON.stringify([...candidateAliases(studyCase, arm)].sort()) !== JSON.stringify(referenceAliases)) {
+      if (
+        JSON.stringify([...candidateAliases(studyCase, arm)].sort()) !==
+        JSON.stringify(referenceAliases)
+      ) {
         caseErrors.push(`${id}:${arm}:candidate-set-mismatch`);
       }
     }
@@ -754,7 +748,11 @@ export function auditPaper5VisualV4PacketManifest({
       caseErrors.push(`${id}:invalid-scoring-key`);
     }
     for (const arm of expectedArms) {
-      if (/scoringKey|goldCandidate|relevantFiles|annotations/iu.test(JSON.stringify(studyCase.arms[arm]))) {
+      if (
+        /scoringKey|goldCandidate|relevantFiles|annotations/iu.test(
+          JSON.stringify(studyCase.arms[arm])
+        )
+      ) {
         caseErrors.push(`${id}:${arm}:gold-label-leakage`);
       }
     }
@@ -1077,9 +1075,7 @@ function meanRecords(records) {
     precisionAt5: mean(records.map((item) => item.precisionAt5)),
     reciprocalRank: mean(records.map((item) => item.reciprocalRank)),
     invalid: mean(records.map((item) => (item.valid ? 0 : 1))),
-    unknownCandidateRate: mean(
-      records.map((item) => (item.unknownCandidateIds?.length ?? 0) / 5)
-    ),
+    unknownCandidateRate: mean(records.map((item) => (item.unknownCandidateIds?.length ?? 0) / 5)),
     confidence: mean(records.map((item) => item.confidence ?? 0)),
     latencyMs: mean(records.map((item) => item.latencyMs ?? 0)),
     imageReceipt: mean(records.map((item) => (item.imageReceiptValid ? 1 : 0))),
@@ -1154,9 +1150,7 @@ function clusterBootstrap(rows, key, resamples, seed, confidenceLevel) {
   samples.sort((left, right) => left - right);
   const alpha = 1 - confidenceLevel;
   const lower = samples[Math.floor(samples.length * (alpha / 2))];
-  const upper = samples[
-    Math.min(samples.length - 1, Math.floor(samples.length * (1 - alpha / 2)))
-  ];
+  const upper = samples[Math.min(samples.length - 1, Math.floor(samples.length * (1 - alpha / 2)))];
   const nonPositive = samples.filter((value) => value <= 0).length;
   return {
     estimate: round(mean(rows.map((row) => row[key]))),
@@ -1177,22 +1171,26 @@ function factorialRows(cases) {
       caseId: item.caseId,
       repositoryId: item.repositoryId,
       pixelPrecision:
-        (pixels.precisionAt5 + relationsPixels.precisionAt5 -
+        (pixels.precisionAt5 +
+          relationsPixels.precisionAt5 -
           text.precisionAt5 -
           relations.precisionAt5) /
         2,
       pixelMrr:
-        (pixels.reciprocalRank + relationsPixels.reciprocalRank -
+        (pixels.reciprocalRank +
+          relationsPixels.reciprocalRank -
           text.reciprocalRank -
           relations.reciprocalRank) /
         2,
       relationPrecision:
-        (relations.precisionAt5 + relationsPixels.precisionAt5 -
+        (relations.precisionAt5 +
+          relationsPixels.precisionAt5 -
           text.precisionAt5 -
           pixels.precisionAt5) /
         2,
       relationMrr:
-        (relations.reciprocalRank + relationsPixels.reciprocalRank -
+        (relations.reciprocalRank +
+          relationsPixels.reciprocalRank -
           text.reciprocalRank -
           pixels.reciprocalRank) /
         2,
@@ -1363,7 +1361,9 @@ export function scorePaper5VisualV4Responses({
           Number(response.confidence) < 0 ||
           Number(response.confidence) > 1)) ||
       (response.valid !== true &&
-        (ranked.length !== 0 || response.confidence !== null || !String(response.error ?? '').trim()))
+        (ranked.length !== 0 ||
+          response.confidence !== null ||
+          !String(response.error ?? '').trim()))
     ) {
       blockers.push(`response-content:${response.requestId}`);
       continue;
@@ -1385,7 +1385,8 @@ export function scorePaper5VisualV4Responses({
     responseByRequest.set(response.requestId, response);
   }
   for (const request of requests) {
-    if (!responseByRequest.has(request.requestId)) blockers.push(`missing-response:${request.requestId}`);
+    if (!responseByRequest.has(request.requestId))
+      blockers.push(`missing-response:${request.requestId}`);
   }
 
   const caseById = new Map(packetManifest.cases.map((studyCase) => [studyCase.id, studyCase]));
@@ -1434,7 +1435,8 @@ export function scorePaper5VisualV4Responses({
       .filter((item) => arms.every((arm) => item.arms[arm] !== null));
     const rows = factorialRows(cases);
     perFamily[family] = {
-      modelVersion: executionPlan.modelFamilies.find((item) => item.family === family)?.modelVersion,
+      modelVersion: executionPlan.modelFamilies.find((item) => item.family === family)
+        ?.modelVersion,
       pairedQueries: cases.length,
       arms: Object.fromEntries(
         arms.map((arm) => [arm, summarizeRecords(cases.map((item) => item.arms[arm]))])
@@ -1459,10 +1461,7 @@ export function scorePaper5VisualV4Responses({
         repositoryId: studyCase.repositoryId,
         category: studyCase.category,
         arms: Object.fromEntries(
-          arms.map((arm) => [
-            arm,
-            averageArmRecords(familyCases.map((item) => item.arms[arm])),
-          ])
+          arms.map((arm) => [arm, averageArmRecords(familyCases.map((item) => item.arms[arm]))])
         ),
       };
     })
@@ -1522,8 +1521,7 @@ export function scorePaper5VisualV4Responses({
     },
     {
       id: 'family-replication',
-      pass:
-        familyPasses.length >= Number(threshold.minimumFamiliesPassingBothPrimaryMetrics ?? 2),
+      pass: familyPasses.length >= Number(threshold.minimumFamiliesPassingBothPrimaryMetrics ?? 2),
       detail: {
         passing: familyPasses,
         minimum: Number(threshold.minimumFamiliesPassingBothPrimaryMetrics ?? 2),

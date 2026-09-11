@@ -1,7 +1,4 @@
-import {
-  describeHoloEmbedLane,
-  type HoloEmbedLaneReceipt,
-} from '@holoscript/holoembed';
+import { describeHoloEmbedLane, type HoloEmbedLaneReceipt } from '@holoscript/holoembed';
 
 export const GRAPH_RAG_EMBEDDING_POLICY_VERSION =
   'holoscript.graphrag.embedding-policy.v1' as const;

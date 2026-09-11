@@ -20,12 +20,7 @@ export const ABSORB_REFRESH_RETENTION_DEFAULTS = Object.freeze({
 });
 
 type AbsorbRefreshStatus =
-  | 'prepared'
-  | 'scanning'
-  | 'interrupted'
-  | 'invalidated'
-  | 'scanned'
-  | 'complete';
+  'prepared' | 'scanning' | 'interrupted' | 'invalidated' | 'scanned' | 'complete';
 
 export interface AbsorbRefreshCompletedBatch {
   index: number;

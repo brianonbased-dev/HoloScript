@@ -36,7 +36,10 @@ createServer(async (req, res) => {
   console.log(`  http://localhost:${port}  (this machine, and Quest via adb reverse)`);
   for (const addrs of Object.values(networkInterfaces())) {
     for (const a of addrs ?? []) {
-      if (a.family === 'IPv4' && !a.internal) console.log(`  http://${a.address}:${port}  (LAN — NOT a secure context; VR button will be disabled)`);
+      if (a.family === 'IPv4' && !a.internal)
+        console.log(
+          `  http://${a.address}:${port}  (LAN — NOT a secure context; VR button will be disabled)`
+        );
     }
   }
 });

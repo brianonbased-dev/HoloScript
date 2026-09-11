@@ -85,22 +85,22 @@ See the same functionality implemented in all three formats:
 
 ## Feature Matrix
 
-| Feature                                            | `.hs`            | `.hsplus`               | `.holo`            |
-| -------------------------------------------------- | ---------------- | ----------------------- | ------------------ |
-| Basic objects                                      | ✓                | ✓                       | ✓                  |
-| Templates                                          | ✗                | ✓                       | ✓ (object pattern) |
-| `@trait` decorators                                | ✗                | ✓                       | ✓ (entity pattern) |
-| State blocks                                       | ✓ (object-local) | ✓                       | ✓                  |
-| Actions/functions                                  | ✓                | ✓                       | ✓                  |
-| Event handlers                                     | ✓                | ✓                       | ✓                  |
+| Feature                                                                                                    | `.hs`            | `.hsplus`               | `.holo`            |
+| ---------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- | ------------------ |
+| Basic objects                                                                                              | ✓                | ✓                       | ✓                  |
+| Templates                                                                                                  | ✗                | ✓                       | ✓ (object pattern) |
+| `@trait` decorators                                                                                        | ✗                | ✓                       | ✓ (entity pattern) |
+| State blocks                                                                                               | ✓ (object-local) | ✓                       | ✓                  |
+| Actions/functions                                                                                          | ✓                | ✓                       | ✓                  |
+| Event handlers                                                                                             | ✓                | ✓                       | ✓                  |
 | Sequential process (`execute`, `yield`, `connect`; historical / process-only / not the live `.hs` meaning) | ✓                | ✗                       | ✗                  |
-| Brain declarations (`brain Name : @type`)          | ✗                | ✓                       | ✗                  |
-| Cognitive verbs (`llm_call`, `recall`, `plan`)     | ✗                | ✓ (in brains)           | ✗                  |
-| Pipeline DSL (`transform`/`filter`/`branch`)       | ✗                | ✓                       | ✗                  |
-| Platform compilation target                        | ✗                | ✗                       | ✓ (all platforms)  |
-| 2D web pages (`@page`, `@slot`, `@panel`)          | ✗                | ✗                       | ✓                  |
-| Modules                                            | ✗                | ✓ (`@import`/`@export`) | ✓ (`import`)       |
-| Hot-reload (`@version`/`@migrate`)                 | ✗                | ✓                       | ✗                  |
+| Brain declarations (`brain Name : @type`)                                                                  | ✗                | ✓                       | ✗                  |
+| Cognitive verbs (`llm_call`, `recall`, `plan`)                                                             | ✗                | ✓ (in brains)           | ✗                  |
+| Pipeline DSL (`transform`/`filter`/`branch`)                                                               | ✗                | ✓                       | ✗                  |
+| Platform compilation target                                                                                | ✗                | ✗                       | ✓ (all platforms)  |
+| 2D web pages (`@page`, `@slot`, `@panel`)                                                                  | ✗                | ✗                       | ✓                  |
+| Modules                                                                                                    | ✗                | ✓ (`@import`/`@export`) | ✓ (`import`)       |
+| Hot-reload (`@version`/`@migrate`)                                                                         | ✗                | ✓                       | ✗                  |
 
 ## For AI Agents
 

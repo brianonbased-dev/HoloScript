@@ -29,23 +29,24 @@ Full Model Context Protocol server for AI agent integration.
 - `tsconfig.json`, `tsup.config.ts` - Build configuration
 
 **Available Tools:**
-| Tool | Purpose |
-|------|---------|
-| `parse_hs` | Parse .hs/.hsplus code |
-| `parse_holo` | Parse .holo compositions |
-| `validate_holoscript` | Validate with AI-friendly errors |
-| `list_traits` | List 1,800+ VR traits |
-| `explain_trait` | Get trait documentation |
-| `suggest_traits` | Recommend traits for objects |
-| `generate_object` | Natural language → object |
-| `generate_scene` | Natural language → scene |
-| `get_syntax_reference` | Syntax documentation |
-| `get_examples` | Code examples |
-| `explain_code` | Code → plain English |
-| `analyze_code` | Complexity analysis |
-| `render_preview` | Generate preview images |
-| `create_share_link` | X-optimized share links |
-| `convert_format` | Convert between formats |
+
+| Tool                   | Purpose                          |
+| ---------------------- | -------------------------------- |
+| `parse_hs`             | Parse .hs/.hsplus code           |
+| `parse_holo`           | Parse .holo compositions         |
+| `validate_holoscript`  | Validate with AI-friendly errors |
+| `list_traits`          | List 1,800+ VR traits            |
+| `explain_trait`        | Get trait documentation          |
+| `suggest_traits`       | Recommend traits for objects     |
+| `generate_object`      | Natural language → object        |
+| `generate_scene`       | Natural language → scene         |
+| `get_syntax_reference` | Syntax documentation             |
+| `get_examples`         | Code examples                    |
+| `explain_code`         | Code → plain English             |
+| `analyze_code`         | Complexity analysis              |
+| `render_preview`       | Generate preview images          |
+| `create_share_link`    | X-optimized share links          |
+| `convert_format`       | Convert between formats          |
 
 ---
 
@@ -126,11 +127,12 @@ Templates and prompts for AI agents.
 New traits for social/X integration.
 
 **New Traits:**
-| Trait | Purpose |
-|-------|---------|
-| `@shareable` | Auto-generate X-optimized previews |
+
+| Trait            | Purpose                                 |
+| ---------------- | --------------------------------------- |
+| `@shareable`     | Auto-generate X-optimized previews      |
 | `@collaborative` | Real-time multi-user editing via WebRTC |
-| `@tweetable` | Generate tweet with preview when shared |
+| `@tweetable`     | Generate tweet with preview when shared |
 
 **Usage:**
 

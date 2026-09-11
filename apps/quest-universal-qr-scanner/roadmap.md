@@ -47,7 +47,7 @@ hidden hand-authored native behavior is a language/compiler gap and is not ready
 | Private state      | Saved links stay in device-private storage; diagnostic receipts omit raw payloads and form a bounded HMAC chain. | [`scanner.holo`](./scanner.holo), [`PRIVACY.md`](./PRIVACY.md)                                                                      |
 | World entry        | Bundled worlds are compiler-registered. Remote worlds require an Ed25519 signature and explicit consent.         | [`scanner.holo`](./scanner.holo), [`worlds/`](./worlds)                                                                             |
 | Release provenance | Generation and an independent byte-match check run before signing or Gradle packaging.                           | [`README.md`](./README.md), [`RELEASE.md`](./RELEASE.md)                                                                            |
-| Distribution       | `1.0.2` was rejected; `1.0.4` (`versionCode 5`) is the resubmit candidate.                                        | Meta submission `1114952735042547`; Bookmark must keep the camera paused on Saved links                                               |
+| Distribution       | `1.0.2` was rejected; `1.0.4` (`versionCode 5`) is the resubmit candidate.                                       | Meta submission `1114952735042547`; Bookmark must keep the camera paused on Saved links                                             |
 
 ## Version sequence
 

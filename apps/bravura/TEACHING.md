@@ -136,11 +136,11 @@ y(t) = 0.95 + A * sin(pi * p), where p is the position inside the current bounce
 Two arcs only. WIDE-SLOW: A = 0.42, top y = 1.37 — the identical arc Lesson 1 already showed, so the shape is already familiar. TIGHT-FAST: A = 0.30, top y = 1.25. Both arcs meet at y = 0.95, so switching between them at a landing produces no jump in position — only the rise afterward differs.
 
 Timing of one full demonstration, t measured from the first landing. Every landing IS one of the drum's own scheduled clicks: the ball's y-minimum must fall on that click's audibleAt sample, not on a render frame — phase it off conductor.lastClick.scheduledAt exactly as the Lesson 1 guide ball already does, so what he sees is what he hears.
-  t = 0.000, 0.789, 1.579, 2.368 — four WIDE-SLOW landings, gap 0.789 s (76 per minute), A = 0.42.
-  t = 3.158 — THE PIVOT. The ball falls into this landing at the slow rate and leaves it at the fast rate; A switches to 0.30 on the rise. The drum's period changes on this same click. The ball brightens about 1.6x for 120 ms on this landing only, to pull the eye to the moment.
-  t = 3.553, 3.947, 4.342, 4.737, 5.132, 5.526, 5.921 — TIGHT-FAST landings, gap 0.395 s (152 per minute, exactly double), A = 0.30.
-  t = 6.316 — SECOND PIVOT. Falls in fast, leaves slow; A back to 0.42; the drum's period doubles back on this click; same 120 ms brighten.
-  t = 7.105, 7.895, 8.684, 9.474 — WIDE-SLOW landings again, gap 0.789 s, A = 0.42. The demonstration ends on the landing at 9.474.
+t = 0.000, 0.789, 1.579, 2.368 — four WIDE-SLOW landings, gap 0.789 s (76 per minute), A = 0.42.
+t = 3.158 — THE PIVOT. The ball falls into this landing at the slow rate and leaves it at the fast rate; A switches to 0.30 on the rise. The drum's period changes on this same click. The ball brightens about 1.6x for 120 ms on this landing only, to pull the eye to the moment.
+t = 3.553, 3.947, 4.342, 4.737, 5.132, 5.526, 5.921 — TIGHT-FAST landings, gap 0.395 s (152 per minute, exactly double), A = 0.30.
+t = 6.316 — SECOND PIVOT. Falls in fast, leaves slow; A back to 0.42; the drum's period doubles back on this click; same 120 ms brighten.
+t = 7.105, 7.895, 8.684, 9.474 — WIDE-SLOW landings again, gap 0.789 s, A = 0.42. The demonstration ends on the landing at 9.474.
 
 The change always happens in the LIFT after a landing, never in the drop into one. That is the entire mechanism this lesson exists to show, and it is why both pivots are placed exactly on a landing.
 
@@ -178,19 +178,19 @@ Drive the ball from the lesson's own 90, NOT from conductor.ensembleBpm (main.ts
 
 TIMELINE, t in audio-clock seconds from the start of the demo:
 
-t 0.000 - 1.000  REST. Ball motionless at (0, 0.95, -1.35). The room is genuinely silent — sequencer stopped, no clicks. Glow steady at about 60%. Nothing else on screen moves; no clock, no counter, no score. This full second of stillness is load-bearing, not padding: the room will not register a lift at all unless the hand has been still for 0.35 s first, so the pause is being taught here without being named.
+t 0.000 - 1.000 REST. Ball motionless at (0, 0.95, -1.35). The room is genuinely silent — sequencer stopped, no clicks. Glow steady at about 60%. Nothing else on screen moves; no clock, no counter, no score. This full second of stillness is load-bearing, not padding: the room will not register a lift at all unless the hand has been still for 0.35 s first, so the pause is being taught here without being named.
 
-t 1.000 - 1.333  THE LIFT (0.333 s). y(u) = 0.95 + 0.42 * sin(pi/2 * u), where u = (t - 1.000) / 0.333. This is fast off the drum and eases to a stop at the top: about 1.98 m/s in the first frames, 0 m/s at the peak. Ramp only the first 60 ms (multiply the curve's velocity by min(1, (t - 1.000) / 0.06)) so it launches hard without an infinite-acceleration pop. The front-loaded speed is REQUIRED, not styling: the room only counts a lift if the hand reaches 0.35 m/s (VR) / 250 px/s (desktop) within 120 ms of leaving stillness. A ball that drifts gently upward would be teaching a motion the room cannot see — this is precisely the failure that produced 'strike without a breath' three times. The demo leaps with about 5.7x margin over the threshold.
+t 1.000 - 1.333 THE LIFT (0.333 s). y(u) = 0.95 + 0.42 * sin(pi/2 * u), where u = (t - 1.000) / 0.333. This is fast off the drum and eases to a stop at the top: about 1.98 m/s in the first frames, 0 m/s at the peak. Ramp only the first 60 ms (multiply the curve's velocity by min(1, (t - 1.000) / 0.06)) so it launches hard without an infinite-acceleration pop. The front-loaded speed is REQUIRED, not styling: the room only counts a lift if the hand reaches 0.35 m/s (VR) / 250 px/s (desktop) within 120 ms of leaving stillness. A ball that drifts gently upward would be teaching a motion the room cannot see — this is precisely the failure that produced 'strike without a breath' three times. The demo leaps with about 5.7x margin over the threshold.
 
-t 1.333 - 1.667  THE DROP (0.333 s). y(u) = 0.95 + 0.42 * cos(pi/2 * u), u = (t - 1.333) / 0.333. Mirror image: slow off the top, accelerating to about 1.98 m/s downward into the head. The acceleration into the landing is what makes the landing instant unmistakable.
+t 1.333 - 1.667 THE DROP (0.333 s). y(u) = 0.95 + 0.42 * cos(pi/2 * u), u = (t - 1.333) / 0.333. Mirror image: slow off the top, accelerating to about 1.98 m/s downward into the head. The acceleration into the landing is what makes the landing instant unmistakable.
 
 LATERAL, across the whole trip: x(tau) = 0.10 * sin(pi * tau) where tau = (t - 1.000) / 0.667. x leaves 0, bulges to +0.10 m at the top, and returns to exactly 0 at the landing. z stays -1.35 throughout. This turns the trip into a narrow visible loop instead of a line, so the lift and the drop read as two different halves rather than one blur. Mirror the bulge to whichever side the room's sticky podium hand is on (default +0.10, learner's right). x is NOT measured in this lesson — it is purely for legibility, and a left-handed learner mirroring it costs nothing.
 
-t = 1.667  THE LANDING. Exactly here, in one frame: the drum's first hit sounds (schedule the click's audibleAt at this instant, the same event that drives the head flash — gate 3's one-source rule), the head flashes, and the ball squashes to 80% height for 60 ms. This single frame is the entire lesson: the room was silent, the ball landed, the sound now exists.
+t = 1.667 THE LANDING. Exactly here, in one frame: the drum's first hit sounds (schedule the click's audibleAt at this instant, the same event that drives the head flash — gate 3's one-source rule), the head flashes, and the ball squashes to 80% height for 60 ms. This single frame is the entire lesson: the room was silent, the ball landed, the sound now exists.
 
-t 1.667 - 4.333  FOUR MORE BOUNCES at 90 (period 0.667 s). Same curves repeated, landing on the drum's hits at t = 2.333, 3.000, 3.667, 4.333, each landing sample-exact with an audible hit and a head flash. Same 0.10 lateral bulge each bounce. This is what teaches that the ONE trip set the speed of everything after it — the rule is shown by continuation instead of stated in a sentence.
+t 1.667 - 4.333 FOUR MORE BOUNCES at 90 (period 0.667 s). Same curves repeated, landing on the drum's hits at t = 2.333, 3.000, 3.667, 4.333, each landing sample-exact with an audible hit and a head flash. Same 0.10 lateral bulge each bounce. This is what teaches that the ONE trip set the speed of everything after it — the rule is shown by continuation instead of stated in a sentence.
 
-t 4.333 - 4.600  The drum stops. The ball settles back to rest at (0, 0.95, -1.35) and the room is silent again — returning to the exact picture the demo opened with, which is the picture the learner is now standing in.
+t 4.333 - 4.600 The drum stops. The ball settles back to rest at (0, 0.95, -1.35) and the room is silent again — returning to the exact picture the demo opened with, which is the picture the learner is now standing in.
 
 This REPLACES the current demo phase entirely (lessons.ts:476-489), which plays 2.8 s of drum labelled 'LISTEN — this is the speed you will start them at' and never shows the gesture at all — it demonstrates the speed while withholding the motion.
 
@@ -221,29 +221,29 @@ NAMED FALLBACK, if in-headset review shows copying a ball 1.35 m away is too far
 **Path (implementable).** FRAME AND UNITS. Room metres, +x to the learner's right, +y up, learner faces −z. Drum centre x=0, z=−1.35; domed head top y≈0.912, head radius 0.376. Guide ball is the existing `meshes.guide` sphere drawn as translation(x,y,z)·scaling(0.05,0.05,0.05) with material GUIDE — identical mesh, size and colour to Lesson 1, because it must read as the SAME ball he already met.
 
 THREE LANDING SPOTS (ball-centre positions, all on the head plane, all z=−1.35, all y=0.95 — the ball's underside then kisses the head at 0.912, exactly as in Lesson 1):
-  MIDDLE  x =  0.00
-  LEFT    x = −0.30
-  RIGHT   x = +0.30
+MIDDLE x = 0.00
+LEFT x = −0.30
+RIGHT x = +0.30
 x=±0.30 keeps the whole 0.05-radius ball over the 0.376 head, so it lands ON the drum at every spot — never off the edge.
 
 CLOCK. This lesson the drum LEADS at 66 BPM (conductor.followMode='lead', seq.setTempoAnchored(66)) for its whole length. Period P = 60/66 = 0.9091 s. Slow and external on purpose: the graded thing here is sideways placement, and keeping time is the separate skill he has not got yet — the drum keeps it for him. Do NOT derive the ball's period from conductor.ensembleBpm (today's Lesson 1 bug: in follow mode the ball follows the student, so a wobbling beginner watches a wobbling model). Drive it from the lesson's own 66.
 
 The ball is welded to the drum's own count, never to a free-running timer:
-  leg      = (clickIndex − anchorClickIndex) mod 4      // anchorClickIndex = the click of the first landing
-  u        = clamp((now − lastClick.scheduledAt) / P, 0, 1)   // u=0 is the landing that just happened, u=1 the next one
+leg = (clickIndex − anchorClickIndex) mod 4 // anchorClickIndex = the click of the first landing
+u = clamp((now − lastClick.scheduledAt) / P, 0, 1) // u=0 is the landing that just happened, u=1 the next one
 So every landing coincides with an audible drum hit to within one frame, in both desktop and VR, and the ball can never drift out of phase with the sound.
 
 LEG TABLE — leg n travels from the count that just landed to the count it is going to.
-  leg 0: MIDDLE (0.00) → LEFT  (−0.30),  apex height H = 0.25   (apex y 1.20)
-  leg 1: LEFT  (−0.30) → RIGHT (+0.30),  apex height H = 0.23   (apex y 1.18)
-  leg 2: RIGHT (+0.30) → MIDDLE (0.00),  apex height H = 0.42   (apex y 1.37)
-  leg 3: MIDDLE (0.00) → MIDDLE (0.00),  apex height H = 0.35   (apex y 1.30)
+leg 0: MIDDLE (0.00) → LEFT (−0.30), apex height H = 0.25 (apex y 1.20)
+leg 1: LEFT (−0.30) → RIGHT (+0.30), apex height H = 0.23 (apex y 1.18)
+leg 2: RIGHT (+0.30) → MIDDLE (0.00), apex height H = 0.42 (apex y 1.37)
+leg 3: MIDDLE (0.00) → MIDDLE (0.00), apex height H = 0.35 (apex y 1.30)
 
 MOTION WITHIN A LEG (x0,x1 from the table):
-  x(u) = x0 + (x1 − x0) · (0.5 − 0.5·cos(π·u))
-  y(u) = 0.95 + H · sin(π · u^0.85)      for legs 0, 1, 2
-  y(u) = 0.95 + H · sin(π · u)           for leg 3
-  z(u) = −1.35 constant
+x(u) = x0 + (x1 − x0) · (0.5 − 0.5·cos(π·u))
+y(u) = 0.95 + H · sin(π · u^0.85) for legs 0, 1, 2
+y(u) = 0.95 + H · sin(π · u) for leg 3
+z(u) = −1.35 constant
 The cosine ease on x makes the ball leave and arrive with zero sideways speed, so it visibly SETTLES into each spot instead of skidding past it. The u^0.85 on y puts the top of each arc at u≈0.44 — it snaps up off the landing, floats across, then drops into the next one, which is what a real hand does. Leg 2 is the tallest arc (1.37, the same height his Lesson 1 ball reached), so count 4 visibly floats up before coming home; leg 3 is a plain straight-up-straight-down bounce at centre — literally the Lesson 1 motion, which is how the group loops back to its start and links this lesson to the one thing he has already done.
 
 LEAD-IN. For one full beat before the first landing the ball hovers still at (0.00, 1.10, −1.35), then drops onto MIDDLE on the next click. The first thing he ever sees is a LANDING, not a ball already in flight.
@@ -255,10 +255,10 @@ THE THREE MARKS (this is what replaces the static numbered diagram). Three thin 
 HIS OWN MIRROR — the drum lights where HE landed. On each detected bounce, map his beat x onto the head using his own running spread: xHead = 0.30 · clamp((xBeat − mid) / (0.5 · spread), −1, +1). Light a 0.06-radius patch at (xHead, 0.918, −1.35) for 200 ms — warm white if it matched the currently-lit mark, dim grey if it did not. He can see, without reading anything, where the room thinks his hand went. When four in a row match, all three marks pulse together once and the chimes ring a single tone out of the dark.
 
 PHASES OF THE BALL.
-  WATCH   — ball full brightness (emissive 0.9), scale 0.05, his input ignored, no counter, no clock, no score. Two complete groups.
-  WITH ME — identical ball, unchanged; he joins in; still nothing counted, still no clock. No time limit; it ends when he lands 4 in a row on the lit marks.
-  YOURS   — same path, ball dimmed to emissive 0.25 and scale 0.035 (a ghost in the corner of his eye). Counting starts here, as not-yet / almost / got-it, never a number.
-  ALONE   — ball not drawn at all. THE THREE MARKS STAY LIT IN SEQUENCE — they are the count and the target; removing them would remove the referent the grading is measured against.
+WATCH — ball full brightness (emissive 0.9), scale 0.05, his input ignored, no counter, no clock, no score. Two complete groups.
+WITH ME — identical ball, unchanged; he joins in; still nothing counted, still no clock. No time limit; it ends when he lands 4 in a row on the lit marks.
+YOURS — same path, ball dimmed to emissive 0.25 and scale 0.035 (a ghost in the corner of his eye). Counting starts here, as not-yet / almost / got-it, never a number.
+ALONE — ball not drawn at all. THE THREE MARKS STAY LIT IN SEQUENCE — they are the count and the target; removing them would remove the referent the grading is measured against.
 
 STALL — help is never spent. If 6 s pass with no bounce at all, or a whole group ends with fewer than 2 of 4 matching, the ball comes back at full brightness and the room drops to the two-spot version: ball alternates LEFT ↔ RIGHT, one landing per click, H = 0.28, apex at u = 0.5, and only the two side marks light. Four correct alternations returns it to the four-spot version at WITH ME. This floor is always passable and it teaches exactly the missing thing — that the hand may travel sideways between bounces, which four lessons of pure up-and-down never mentioned.
 
@@ -291,15 +291,15 @@ TWO CODE NOTES so this needs no follow-up questions. (1) `guideBpm()` must becom
 POSITION. x = 0.00 and z = -1.35 for every frame of this lesson. There is deliberately NO lateral movement: height of travel is the one thing being taught and the one thing the room measures, so it must be the only thing that changes on screen. The ball's own diameter also never changes — scale stays 0.05 throughout (a bigger ball for a 'bigger' bounce would add a second variable the room does not sense).
 
 VERTICAL PATH. Phase is taken from the drum's own scheduled click, exactly as the existing code does it: phase = (((ac.currentTime - lastClick.scheduledAt) / P) mod 1 + 1) mod 1. Then y = 0.95 + A * sin(PI * phase). So the ball is TOUCHING the drum head (y = 0.95) at phase 0 — the instant the click is audible — and is at its top at phase 0.5, exactly halfway between two drum hits. It lands ON the beat, not after it. A is re-read only at phase 0, never mid-flight, so the ball never jumps or interpolates: the size change is instantaneous at the bottom and reads as a change rather than a fade.
-  A = 0.42 m on a LOUD beat (top y = 1.37).
-  A = 0.14 m on a QUIET beat (top y = 1.09).
+A = 0.42 m on a LOUD beat (top y = 1.37).
+A = 0.14 m on a QUIET beat (top y = 1.09).
 That 0.14 / 0.42 = one third is not decorative — it is the ratio the grader needs. It is also what the words must ask for.
 
 WATCH — 12 beats, 9.0 s, no clock on screen, no counter, no score, input ignored.
-  beats 1-3   A = 0.42, conductor.demoVelocity = 1.15 (loud)
-  beats 4-6   A = 0.14, demoVelocity = 0.40 (quiet)
-  beats 7-9   A = 0.42, demoVelocity = 1.15 — at phase 0.5 of beat 7, drop a dim ceiling mark: draw the same guide mesh at (0, 1.37, -1.35) at scale 0.03 with the existing MARKER material, and leave it there for the rest of the lesson
-  beats 10-12 A = 0.14, demoVelocity = 0.40 — the mark still hanging at 1.37, so the tiny hop is seen against the tall bounce's ceiling
+beats 1-3 A = 0.42, conductor.demoVelocity = 1.15 (loud)
+beats 4-6 A = 0.14, demoVelocity = 0.40 (quiet)
+beats 7-9 A = 0.42, demoVelocity = 1.15 — at phase 0.5 of beat 7, drop a dim ceiling mark: draw the same guide mesh at (0, 1.37, -1.35) at scale 0.03 with the existing MARKER material, and leave it there for the rest of the lesson
+beats 10-12 A = 0.14, demoVelocity = 0.40 — the mark still hanging at 1.37, so the tiny hop is seen against the tall bounce's ceiling
 
 COPY — the ball does not stop. The same 12-beat sequence loops, demoVelocity is set back to null, and velocityFromStroke goes true, so from this moment the drum's loudness comes from the learner's own hand while the ball keeps showing the target. Still no clock, still no score. Every bounce he lands makes the ball flash white for 80 ms on his beat and makes the drum's existing strike glow scale with the gain — he can answer 'did that count?' without reading anything. COPY ends when he has produced one bounce at or above 60% of his own biggest recent travel AND one at or below 45% of it — i.e. he has been visibly big once and visibly small once. It has no time limit.
 
@@ -402,16 +402,16 @@ TEMPO IS LESSON-OWNED. PATTERN3_BPM = 80, period P = 0.75 s. Set `followMode = '
 ANCHOR. `demoT0` = the `scheduledAt` of the first click after the demo begins. Before that instant the ball sits motionless in MIDDLE at (0, 0.95, -1.35), dim-pulsing scale 0.05 -> 0.056 -> 0.05 at 1 Hz for 1.0 s. This is the home position the nine lessons have never had.
 
 PER-FRAME PATH, with t = ac.currentTime - demoT0:
-  n  = floor(t / P)                 // which arc
-  ph = t / P - n                    // 0..1 inside the arc; ph = 0 IS the landing
-  k  = ((n % 3) + 3) % 3            // 0: MIDDLE->SIDE   1: SIDE->MIDDLE   2: MIDDLE->MIDDLE
-  A  = [0.20, 0.27, 0.42][k]        // arc height above the landing plane
-  x0 = [0.00, 0.30, 0.00][k]
-  x1 = [0.30, 0.00, 0.00][k]
-  s  = ph*ph*(3 - 2*ph)             // smoothstep: at rest at both ends
-  gx = x0 + (x1 - x0) * s
-  gy = 0.95 + A * Math.sin(Math.PI * ph)
-  draw(meshes.guide, multiply(translation(gx, gy, -1.35), scaling(0.05,0.05,0.05)), GUIDE)
+n = floor(t / P) // which arc
+ph = t / P - n // 0..1 inside the arc; ph = 0 IS the landing
+k = ((n % 3) + 3) % 3 // 0: MIDDLE->SIDE 1: SIDE->MIDDLE 2: MIDDLE->MIDDLE
+A = [0.20, 0.27, 0.42][k] // arc height above the landing plane
+x0 = [0.00, 0.30, 0.00][k]
+x1 = [0.30, 0.00, 0.00][k]
+s = ph*ph*(3 - 2*ph) // smoothstep: at rest at both ends
+gx = x0 + (x1 - x0) * s
+gy = 0.95 + A * Math.sin(Math.PI * ph)
+draw(meshes.guide, multiply(translation(gx, gy, -1.35), scaling(0.05,0.05,0.05)), GUIDE)
 The half-sine vertical is the exact easing Lesson 1 already uses. The smoothstep lateral matters: it puts the sideways travel in mid-air and brings x to rest before touchdown, so each landing is a clean spot rather than a smear.
 
 THE THREE ARC HEIGHTS ARE THE GRAMMAR, NOT DECORATION. The hop out to the side is the LOWEST (A 0.20, apex y 1.15). The trip back in is medium (A 0.27, apex 1.22). The arc from the third landing to the next first landing is the TALLEST (A 0.42, apex 1.37, x stays 0.00 — straight up and straight back down). That tall lift is the ONLY visible difference between the two consecutive middle landings that close one loop and open the next; without it a learner cannot see where the loop restarts and has to count, which is the thing this lesson exists to remove. 0.42 / apex 1.37 is deliberately the identical apex Lesson 1's ball used, so a learner who did Lesson 1 reads the big bounce as 'and again'.
@@ -445,4 +445,3 @@ DESKTOP: the ball is a world object so its screen path follows from the existing
 **It worked when.** The drum starts rolling under his hand instead of just answering it — and he catches himself already heading out to the side spot before he has thought about going there. He stops looking at the panel. He knows where he is in the loop from where his hand is, not from counting, and the tall lift arrives as a feeling of "and again" rather than as a number.
 
 ---
-

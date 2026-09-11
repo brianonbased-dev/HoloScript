@@ -438,9 +438,7 @@ describe('[Paper-12 §RemainingWork item 2] structural-biology HoloScript-vs-Ope
         index: i + 1,
         resname: ['MET', 'GLY', 'PRO', 'ALA'][i % 4],
         secondary: (i % 3 === 0 ? 'helix' : i % 3 === 1 ? 'sheet' : 'loop') as
-          | 'helix'
-          | 'sheet'
-          | 'loop',
+          'helix' | 'sheet' | 'loop',
       })),
       traits: ['foldable', 'helix', 'sheet', 'residue_anchor'],
     };

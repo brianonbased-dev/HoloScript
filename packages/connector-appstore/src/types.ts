@@ -141,11 +141,7 @@ export interface GooglePlayTrack {
 export interface WebhookNotification {
   /** Event type */
   event:
-    | 'build.processing'
-    | 'build.ready'
-    | 'build.invalid'
-    | 'review.approved'
-    | 'review.rejected';
+    'build.processing' | 'build.ready' | 'build.invalid' | 'review.approved' | 'review.rejected';
   /** Platform */
   platform: 'apple' | 'google';
   /** Timestamp */

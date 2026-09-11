@@ -23,9 +23,7 @@ class MyAgent extends BaseAgent {
     return {
       phase: ProtocolPhase.INTAKE,
       status: 'success',
-      data: {
-        /* collected context */
-      },
+      data: {/* collected context */},
       durationMs: 0,
       timestamp: Date.now(),
     };

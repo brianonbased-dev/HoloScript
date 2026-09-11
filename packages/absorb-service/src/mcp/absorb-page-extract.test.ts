@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  absorbArgsHavePageExtract,
-  foldObservedPageIntoAbsorbArgs,
-} from './absorb-page-extract';
+import { absorbArgsHavePageExtract, foldObservedPageIntoAbsorbArgs } from './absorb-page-extract';
 
 const OBSERVE = {
   operation: 'observe',

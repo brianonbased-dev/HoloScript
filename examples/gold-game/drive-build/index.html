@@ -13097,7 +13097,7 @@
                   let s;
                   t: {
                     n: if (!(e < a)) {
-                      for (let o = i + 2; ; ) {
+                      for (let o = i + 2; ;) {
                         if (a === void 0) {
                           if (e < r) break n;
                           return (
@@ -13115,7 +13115,7 @@
                     if (!(e >= r)) {
                       let o = t[1];
                       e < o && ((i = 2), (r = o));
-                      for (let l = i - 2; ; ) {
+                      for (let l = i - 2; ;) {
                         if (r === void 0)
                           return ((this._cachedIndex = 0), this.copySampleValue_(0));
                         if (i === l) break;
@@ -13126,7 +13126,7 @@
                     }
                     break i;
                   }
-                  for (; i < s; ) {
+                  for (; i < s;) {
                     let o = (i + s) >>> 1;
                     e < t[o] ? (s = o) : (i = o + 1);
                   }
@@ -13334,8 +13334,8 @@
                 a = i.length,
                 r = 0,
                 s = a - 1;
-              for (; r !== a && i[r] < e; ) ++r;
-              for (; s !== -1 && i[s] > t; ) --s;
+              for (; r !== a && i[r] < e;) ++r;
+              for (; s !== -1 && i[s] > t;) --s;
               if ((++s, r !== 0 || s !== a)) {
                 r >= s && ((s = Math.max(s, 1)), (r = s - 1));
                 let o = this.getValueSize();
@@ -21060,7 +21060,7 @@ void main() {
         function eg(n, e, t) {
           let i = n.name,
             a = i.length;
-          for (Xd.lastIndex = 0; ; ) {
+          for (Xd.lastIndex = 0; ;) {
             let r = Xd.exec(i),
               s = Xd.lastIndex,
               o = r[1],
@@ -47964,7 +47964,7 @@ Before adding features to a compiler, check: is it sovereign or bridge? If bridg
           let e = ba.intersectObjects(An, !0);
           if (!e.length) return;
           let t = e[0].object;
-          for (; t && !(t.userData && t.userData.kind === 'entry'); ) t = t.parent;
+          for (; t && !(t.userData && t.userData.kind === 'entry');) t = t.parent;
           if (!t || t.userData.graduated) return;
           let i = { kind: 'grab', entityId: 'curator-avatar', targetId: t.userData.name },
             a = nl(i, bu, sl);
@@ -48098,7 +48098,7 @@ Before adding features to a compiler, check: is it sovereign or bridge? If bridg
           let n = ba.intersectObjects(An, !0);
           if (!n.length) return null;
           let e = n[0].object;
-          for (; e && !(e.userData && e.userData.kind === 'entry'); ) e = e.parent;
+          for (; e && !(e.userData && e.userData.kind === 'entry');) e = e.parent;
           return e || null;
         }
         function En() {
@@ -49091,7 +49091,7 @@ three/build/three.module.js:
         }
         words[words.length] = (bitLen / mw) | 0;
         words[words.length] = bitLen;
-        for (j = 0; j < words.length; ) {
+        for (j = 0; j < words.length;) {
           var w = words.slice(j, (j += 16)),
             oh = h;
           h = h.slice(0, 8);

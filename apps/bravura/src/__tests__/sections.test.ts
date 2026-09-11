@@ -152,9 +152,12 @@ describe('addressing scales past the number of hands', () => {
     expect(brass.every((s) => s.family === 'brass')).toBe(true);
 
     e.gesture('cut-off', 100);
-    expect(e.all().filter((s) => s.family === 'brass').every((s) => s.state === 'silent')).toBe(
-      true
-    );
+    expect(
+      e
+        .all()
+        .filter((s) => s.family === 'brass')
+        .every((s) => s.state === 'silent')
+    ).toBe(true);
     expect(e.playing().every((s) => s.family !== 'brass')).toBe(true);
   });
 });
@@ -266,9 +269,9 @@ describe('the ensemble refuses nonsense', () => {
   it('will not admit the same section twice', () => {
     const e = new Ensemble();
     e.add({ id: 'timp', name: 'timpani', family: 'percussion', at: [0, 1, -4] });
-    expect(() => e.add({ id: 'timp', name: 'timpani', family: 'percussion', at: [0, 1, -4] })).toThrow(
-      /already in the ensemble/
-    );
+    expect(() =>
+      e.add({ id: 'timp', name: 'timpani', family: 'percussion', at: [0, 1, -4] })
+    ).toThrow(/already in the ensemble/);
   });
 
   it('bringing in an already-playing section changes nothing', () => {

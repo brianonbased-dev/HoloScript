@@ -85,7 +85,11 @@ export class Hud {
 
     c.fillStyle = '#a8987d';
     c.font = '500 24px "Segoe UI", sans-serif';
-    c.fillText(`beats ${s.beats}   ·   ${s.source}${s.ensemble ? '   ·   ' + s.ensemble : ''}`, 48, 208);
+    c.fillText(
+      `beats ${s.beats}   ·   ${s.source}${s.ensemble ? '   ·   ' + s.ensemble : ''}`,
+      48,
+      208
+    );
     if (s.offsetMs !== null) {
       c.fillText(`with your hand: ${Math.round(s.offsetMs)} ms`, 48, 244);
     }
@@ -112,8 +116,7 @@ export class Hud {
     const c = this.ctx;
     const W = this.canvas.width;
     if (l.card) {
-      const col =
-        l.card.cls === 'good' ? '#6fbf6a' : l.card.cls === 'warn' ? '#d2a94e' : '#d96b5c';
+      const col = l.card.cls === 'good' ? '#6fbf6a' : l.card.cls === 'warn' ? '#d2a94e' : '#d96b5c';
       c.fillStyle = '#a8987d';
       c.font = '600 28px "Segoe UI", sans-serif';
       c.fillText(l.card.title, 48, 62);
@@ -143,12 +146,7 @@ export class Hud {
   /** The conducting shape, numbered — right-handed, viewer's frame. */
   private drawPattern(which: '4' | '3'): void {
     const c = this.ctx;
-    const seg = (
-      x1: number,
-      y1: number,
-      x2: number,
-      y2: number
-    ): void => {
+    const seg = (x1: number, y1: number, x2: number, y2: number): void => {
       c.beginPath();
       c.moveTo(x1, y1);
       c.lineTo(x2, y2);

@@ -93,10 +93,7 @@ export class Timpani {
       const th = Math.PI / 4 + (k * Math.PI) / 2;
       const tilt = 2.55; // radians: +Y tips down-and-outward
       const model = place(
-        multiply(
-          rotationY(th),
-          multiply(translation(0, 0.5, 0), rotationX(tilt))
-        )
+        multiply(rotationY(th), multiply(translation(0, 0.5, 0), rotationX(tilt)))
       );
       this.parts.push({ mesh: leg, model, mat: LEG });
       const fx = Math.cos(th + Math.PI / 2) * 0; // legs splay along local +Z after rotY
@@ -104,9 +101,7 @@ export class Timpani {
       const endR = 0.347;
       this.parts.push({
         mesh: foot,
-        model: place(
-          translation(Math.sin(th) * endR, 0.024, Math.cos(th) * endR)
-        ),
+        model: place(translation(Math.sin(th) * endR, 0.024, Math.cos(th) * endR)),
         mat: FOOT,
       });
     }

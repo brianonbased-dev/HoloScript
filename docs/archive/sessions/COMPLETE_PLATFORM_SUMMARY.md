@@ -345,12 +345,13 @@ Runtime Systems:
   - Geometry: Every 5 seconds
 
 **Performance Table**:
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| FPS (1000 fragments) | 35 | 55 | +57% |
-| Memory Usage | 240 MB | 180 MB | -25% |
-| Draw Calls | 1000 | 600 | -40% |
-| Visible Objects | 1000 | 400 | -60% |
+
+| Metric               | Before | After  | Improvement |
+| -------------------- | ------ | ------ | ----------- |
+| FPS (1000 fragments) | 35     | 55     | +57%        |
+| Memory Usage         | 240 MB | 180 MB | -25%        |
+| Draw Calls           | 1000   | 600    | -40%        |
+| Visible Objects      | 1000   | 400    | -60%        |
 
 **Code**: 200 lines in `ThreeJSRenderer.ts`
 
@@ -638,11 +639,12 @@ executor.triggerAvalanche(50, 80, 50, 10); // x, y, z, radius
 | **Extreme** | 200     | 2000      | 50K       | 45  | 280 MB |
 
 **With Optimizations** ✨:
-| Scenario | FPS Before | FPS After | Improvement |
-|----------|------------|-----------|-------------|
-| **Medium** | 52 | 60 | +15% |
-| **Large** | 35 | 55 | +57% |
-| **Extreme** | 25 | 45 | +80% |
+
+| Scenario    | FPS Before | FPS After | Improvement |
+| ----------- | ---------- | --------- | ----------- |
+| **Medium**  | 52         | 60        | +15%        |
+| **Large**   | 35         | 55        | +57%        |
+| **Extreme** | 25         | 45        | +80%        |
 
 ### Avalanche Runtime
 

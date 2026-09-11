@@ -10,13 +10,7 @@
  */
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -98,11 +92,7 @@ function writeJson(path, value) {
 
 function writeJsonl(path, values) {
   const temporary = `${path}.tmp-${process.pid}`;
-  writeFileSync(
-    temporary,
-    `${values.map((value) => JSON.stringify(value)).join('\n')}\n`,
-    'utf8'
-  );
+  writeFileSync(temporary, `${values.map((value) => JSON.stringify(value)).join('\n')}\n`, 'utf8');
   renameSync(temporary, path);
 }
 
@@ -338,9 +328,7 @@ export async function main(argv = process.argv.slice(2)) {
   const responsePath = resolve(outDir, 'responses.jsonl');
   if (existsSync(requestManifestPath)) {
     const previousRequestManifest = JSON.parse(readFileSync(requestManifestPath, 'utf8'));
-    if (
-      previousRequestManifest?.requestManifestSha256 !== requestManifest.requestManifestSha256
-    ) {
+    if (previousRequestManifest?.requestManifestSha256 !== requestManifest.requestManifestSha256) {
       throw new Error(
         'Output directory contains a different request manifest; choose a new --out-dir'
       );

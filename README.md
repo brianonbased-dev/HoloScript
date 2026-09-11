@@ -20,13 +20,13 @@ Think of it as three practical pieces:
 
 The name misleads, and summaries of this project usually inherit the mistake. **HoloScript is not a scripting language.** The `-Script` suffix files it next to JavaScript and GDScript, and it does not belong there.
 
-| Often read as                  | Actually                                                                                                                            |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| a scripting language           | a general-purpose systems language with its own lexer, parsers, AST, type and trait system, VM, and compiler backends                 |
-| a hologram or 3D tool          | spatial output is one compile target among many — `.hs` pipelines and service compositions have no spatial surface at all             |
-| a scene format or DSL          | a language with effects, constraints, and execution semantics; scenes are one thing it can describe, not the boundary of what it is   |
+| Often read as                  | Actually                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| a scripting language           | a general-purpose systems language with its own lexer, parsers, AST, type and trait system, VM, and compiler backends                        |
+| a hologram or 3D tool          | spatial output is one compile target among many — `.hs` pipelines and service compositions have no spatial surface at all                    |
+| a scene format or DSL          | a language with effects, constraints, and execution semantics; scenes are one thing it can describe, not the boundary of what it is          |
 | an AI that writes code for you | agents author HoloScript through MCP tools, but the compilers that turn it into artifacts are deterministic — a model never emits the output |
-| a wrapper over Unity or Unreal | engines are bridge targets; the same source also runs on HoloScript's own VM and sovereign runtimes without an external engine        |
+| a wrapper over Unity or Unreal | engines are bridge targets; the same source also runs on HoloScript's own VM and sovereign runtimes without an external engine               |
 
 The distinguishing claim is not that you can write code here. It is that **one source file becomes many unrelated kinds of artifact** — a game engine build, a running service, a robot, a digital twin, a headset app — through real compilers you can inspect.
 
@@ -129,13 +129,13 @@ The identity is ahead of some implementation layers. HoloScript does not claim s
 
 The example files are part of the pitch. They show how the three HoloScript formats carry different kinds of intent:
 
-| Format    | Example                                                                                                                  | What it helps someone picture                                                          |
-| --------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `.hs`     | [`examples/pipelines/inventory-sync.hs`](examples/pipelines/inventory-sync.hs)                                           | A scheduled POS inventory sync: source, transform, validate, and sink.                 |
-| `.hsplus` | [`examples/three-format-showcase/smart-gallery.hsplus`](examples/three-format-showcase/smart-gallery.hsplus)             | A gallery that grows from objects into templates, state, interactions, and audio.      |
-| `.holo`   | [`examples/iot/holotwin-smart-farm.holo`](examples/iot/holotwin-smart-farm.holo)                                         | A smart farm dashboard where MQTT sensors drive a 3D digital twin.                     |
+| Format    | Example                                                                                                                  | What it helps someone picture                                                                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.hs`     | [`examples/pipelines/inventory-sync.hs`](examples/pipelines/inventory-sync.hs)                                           | A scheduled POS inventory sync: source, transform, validate, and sink.                                                                                                                           |
+| `.hsplus` | [`examples/three-format-showcase/smart-gallery.hsplus`](examples/three-format-showcase/smart-gallery.hsplus)             | A gallery that grows from objects into templates, state, interactions, and audio.                                                                                                                |
+| `.holo`   | [`examples/iot/holotwin-smart-farm.holo`](examples/iot/holotwin-smart-farm.holo)                                         | A smart farm dashboard where MQTT sensors drive a 3D digital twin.                                                                                                                               |
 | `.holo`   | [`examples/novel-use-cases/05-robot-training-metaverse.holo`](examples/novel-use-cases/05-robot-training-metaverse.holo) | Aspirational grammar (examples health matrix; parser fail). Not a working HoloScript example. Story only: a robot training arena that links simulation, agents, feedback, and ROS-style targets. |
-| All three | [`examples/three-surface-agent/`](examples/three-surface-agent/)                                                         | One agent whose composition, cognition, and typed policy execute under one receipt.    |
+| All three | [`examples/three-surface-agent/`](examples/three-surface-agent/)                                                         | One agent whose composition, cognition, and typed policy execute under one receipt.                                                                                                              |
 
 Use these when explaining HoloScript to a new person: start with the story, then show the format that carries it.
 

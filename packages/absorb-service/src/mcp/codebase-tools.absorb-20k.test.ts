@@ -174,8 +174,7 @@ describe('20k authoritative absorb refresh verifier', () => {
         accepted.jobId!,
         (status) => {
           const receipt = status.refreshProgressReceipt as
-            | { completedBatchCount?: number }
-            | undefined;
+            { completedBatchCount?: number } | undefined;
           return (receipt?.completedBatchCount ?? 0) >= 1;
         },
         120_000,

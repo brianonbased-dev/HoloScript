@@ -14,13 +14,7 @@ import type { DaemonPass, DaemonProfile, PatchProposal } from '../daemon/types';
 export type LayerId = 0 | 1 | 2;
 
 export type LayerStatus =
-  | 'idle'
-  | 'scheduled'
-  | 'running'
-  | 'awaiting_review'
-  | 'completed'
-  | 'failed'
-  | 'paused';
+  'idle' | 'scheduled' | 'running' | 'awaiting_review' | 'completed' | 'failed' | 'paused';
 
 export type PipelineMode =
   | 'single' // One complete L0→L1→L2 cycle

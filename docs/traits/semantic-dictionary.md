@@ -110,12 +110,8 @@ export const MySemanticTrait: TraitDefinition<MyTraitConfig, MyTraitState> = {
 
   // Optional: per-target overrides or extensions
   targetOverrides: {
-    webxr: {
-      /* lighter implementation */
-    },
-    unity: {
-      /* deeper native integration */
-    },
+    webxr: {/* lighter implementation */},
+    unity: {/* deeper native integration */},
   },
 };
 ```

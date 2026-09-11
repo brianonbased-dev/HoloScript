@@ -77,18 +77,18 @@ compiled to Quest — not a native app with a sticker.
 Hang every tool, holon, and example on one of these. MCP category names
 (`core`, `compiler`, …) are stockroom labels.
 
-| Purpose | People walk out with | Agents fetch | Honest status (2026-09-05) |
-| --- | --- | --- | --- |
-| Own what I make | Source plus something that runs without a vendor lock | Parse → validate → sovereign compile (WebGPU, HoloBytecode, WASM) | Source and compilers exist. Public README still sells a count, not this job. |
-| Idea to shipped | An idea alive and able to earn | Traits, generate, edit, preview, then compile and verify | Studio / generate tools exist. HoloSchool lesson 1 still teaches a VR room as the identity. |
-| Is-right | Heat, stress, or logic plus a replayable trace | `solve_thermal` / `solve_structural` / `solve_logic` + CAEL | Solver math exists. Not a scientist-facing product (no geometry UI). |
-| Real place | A walkable map from a filmed site | HoloMap reconstruct → export | Tools exist (`holo_reconstruct_*`). Not the stranger door. |
-| Admit (HoloQR) | Headset opens **this** world from a physical mark | `compile_to_quest` from `scanner.holo` | App is HoloScript-authored. Store candidate `1.0.4` still **changes-requested**. Paint desk kits are in MCP source; remote still token-matches until deploy. |
-| Agent sees my files | Cited answer about **this** tree | Absorb (fresh) → ask | Absorb is holon-tagged. Remote Absorb cannot see this laptop. |
-| Crew that does not wait | Work finishes without the human as switchboard | Mesh board, inbox, knowledge | Live for the team. Not the public doorway. |
-| Own mind | Intelligence on metal they own | HoloTune → llama.cpp serve | Loop exists. Do not claim “we trained AGI.” |
-| Own the toll | Stop renting CI / GPU seats / run-what-you-made | HoloCI, HoloKey, budgets | Local doctrine. GitHub Actions stays closed. |
-| Digital then physical | Twin first, then print / robot / climb | URDF, SDF, MuJoCo, ROS 2, STL | Compilers exist. NORTH_STAR: simulation first. |
+| Purpose                 | People walk out with                                  | Agents fetch                                                      | Honest status (2026-09-05)                                                                                                                                   |
+| ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Own what I make         | Source plus something that runs without a vendor lock | Parse → validate → sovereign compile (WebGPU, HoloBytecode, WASM) | Source and compilers exist. Public README still sells a count, not this job.                                                                                 |
+| Idea to shipped         | An idea alive and able to earn                        | Traits, generate, edit, preview, then compile and verify          | Studio / generate tools exist. HoloSchool lesson 1 still teaches a VR room as the identity.                                                                  |
+| Is-right                | Heat, stress, or logic plus a replayable trace        | `solve_thermal` / `solve_structural` / `solve_logic` + CAEL       | Solver math exists. Not a scientist-facing product (no geometry UI).                                                                                         |
+| Real place              | A walkable map from a filmed site                     | HoloMap reconstruct → export                                      | Tools exist (`holo_reconstruct_*`). Not the stranger door.                                                                                                   |
+| Admit (HoloQR)          | Headset opens **this** world from a physical mark     | `compile_to_quest` from `scanner.holo`                            | App is HoloScript-authored. Store candidate `1.0.4` still **changes-requested**. Paint desk kits are in MCP source; remote still token-matches until deploy. |
+| Agent sees my files     | Cited answer about **this** tree                      | Absorb (fresh) → ask                                              | Absorb is holon-tagged. Remote Absorb cannot see this laptop.                                                                                                |
+| Crew that does not wait | Work finishes without the human as switchboard        | Mesh board, inbox, knowledge                                      | Live for the team. Not the public doorway.                                                                                                                   |
+| Own mind                | Intelligence on metal they own                        | HoloTune → llama.cpp serve                                        | Loop exists. Do not claim “we trained AGI.”                                                                                                                  |
+| Own the toll            | Stop renting CI / GPU seats / run-what-you-made       | HoloCI, HoloKey, budgets                                          | Local doctrine. GitHub Actions stays closed.                                                                                                                 |
+| Digital then physical   | Twin first, then print / robot / climb                | URDF, SDF, MuJoCo, ROS 2, STL                                     | Compilers exist. NORTH_STAR: simulation first.                                                                                                               |
 
 Statuses expire. Re-check with
 [`docs/handbooks/done-claim-revalidation.md`](../handbooks/done-claim-revalidation.md)
@@ -98,14 +98,14 @@ before promoting any row to “proven for GitHub.”
 
 ## People and agents buy the same dinner
 
-| Job | Person consumes | Agent consumes for them |
-| --- | --- | --- |
-| Own it | Studio / playground / a running preview | Parse → validate → sovereign compile + receipt |
-| Trust it | A number they can check, not a trailer | Solver + CAEL replay. Skin never signs the proof. |
-| Enter it | Headset, Shell, a printed mark | HoloQR / Quest compile from `.holo`; Gate admits; Land hosts |
-| Ask it | Plain question about my files or my world | Absorb or Map first, then ask, with citations |
-| Keep a mind | A counterpart that remembers and can act | Tune on owned metal, serve llama.cpp, wallet + policy |
-| Not wait | Sleep; wake to done work | Mesh board and peers. Human is last resort. |
+| Job         | Person consumes                           | Agent consumes for them                                      |
+| ----------- | ----------------------------------------- | ------------------------------------------------------------ |
+| Own it      | Studio / playground / a running preview   | Parse → validate → sovereign compile + receipt               |
+| Trust it    | A number they can check, not a trailer    | Solver + CAEL replay. Skin never signs the proof.            |
+| Enter it    | Headset, Shell, a printed mark            | HoloQR / Quest compile from `.holo`; Gate admits; Land hosts |
+| Ask it      | Plain question about my files or my world | Absorb or Map first, then ask, with citations                |
+| Keep a mind | A counterpart that remembers and can act  | Tune on owned metal, serve llama.cpp, wallet + policy        |
+| Not wait    | Sleep; wake to done work                  | Mesh board and peers. Human is last resort.                  |
 
 ---
 
@@ -120,6 +120,6 @@ before promoting any row to “proven for GitHub.”
 
 Local agents can now lead with purpose. A stranger on GitHub still hits
 the old README (counts, four competing doors, VR-flavored HoloSchool).
-Paint-desk kits are in MCP *source*; remote MCP still token-matches until
+Paint-desk kits are in MCP _source_; remote MCP still token-matches until
 deploy. Who-for is an overlay, not a registry field. Those are GitHub V1
 gates, not this file.

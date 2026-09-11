@@ -576,9 +576,7 @@ export default {
         {
           name: 'physics_simulate',
           description: 'Run physics simulation on a scene',
-          inputSchema: {
-            /* JSON Schema */
-          },
+          inputSchema: {/* JSON Schema */},
           handler: async (input) => {
             return simulatePhysics(input);
           },

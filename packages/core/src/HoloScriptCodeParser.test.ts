@@ -888,8 +888,7 @@ composition "Hololand Central" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const node = result.ast.find((n) => n.type === 'game-loot-table') as
-        | GameLootTableNode
-        | undefined;
+        GameLootTableNode | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('RareDrops');
     });
@@ -917,8 +916,7 @@ composition "Hololand Central" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const node = result.ast.find((n) => n.type === 'game-authority') as
-        | GameAuthorityNode
-        | undefined;
+        GameAuthorityNode | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('combat_resolution');
     });
@@ -930,8 +928,7 @@ composition "Hololand Central" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const node = result.ast.find((n) => n.type === 'game-event-block') as
-        | GameEventBlockNode
-        | undefined;
+        GameEventBlockNode | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('on_death');
     });
@@ -948,8 +945,7 @@ composition "Hololand Central" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const node = result.ast.find((n) => n.type === 'game-event-block') as
-        | GameEventBlockNode
-        | undefined;
+        GameEventBlockNode | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('on_grab');
       expect(node!.params).toEqual(['hand']);
@@ -1023,8 +1019,7 @@ composition "Hololand Central" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const node = result.ast.find((n) => n.type === 'movement') as
-        | MovementStatementNode
-        | undefined;
+        MovementStatementNode | undefined;
       expect(node).toBeDefined();
       expect(node!.target).toBe('player');
       expect(node!.destination).toEqual([10, 0, 5]);
@@ -1038,8 +1033,7 @@ composition "Hololand Central" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const node = result.ast.find((n) => n.type === 'movement') as
-        | MovementStatementNode
-        | undefined;
+        MovementStatementNode | undefined;
       expect(node).toBeDefined();
       expect(node!.destination).toBe('merchant');
       expect(node!.mode).toBe('path');
@@ -1050,8 +1044,7 @@ composition "Hololand Central" {
       const result = parser.parse(code);
       expect(result.success).toBe(true);
       const node = result.ast.find((n) => n.type === 'movement') as
-        | MovementStatementNode
-        | undefined;
+        MovementStatementNode | undefined;
       expect(node).toBeDefined();
       expect(node!.target).toBe('self');
       expect(node!.destination).toEqual([0, 1, 0]);

@@ -35,11 +35,11 @@ language storefront. Send “scan my git tree” to Absorb, not here.
 
 ## Jobs
 
-| Purpose | People walk out with | Agents fetch | Honest status (2026-09-06) |
-| --- | --- | --- | --- |
-| Admit via printed mark | Headset opens **this** world or URL | `compile_to_quest`, `get_tool_manifest` pattern `qr` | App is HoloScript-authored. Store candidate `1.0.4` still **changes-requested**. Paint desk still maps “scan” to repo-scan. |
-| Compile the scanner from source | APK that traces to current `.holo` | Release invariant in the HoloQR README | Shipping path is gated. `gradlew` alone is not a ship. |
-| Keys / custody | A lease, not a pasted secret | HoloKey / secrets tools | Gate family. Not the stranger language door. |
+| Purpose                         | People walk out with                | Agents fetch                                         | Honest status (2026-09-06)                                                                                                  |
+| ------------------------------- | ----------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Admit via printed mark          | Headset opens **this** world or URL | `compile_to_quest`, `get_tool_manifest` pattern `qr` | App is HoloScript-authored. Store candidate `1.0.4` still **changes-requested**. Paint desk still maps “scan” to repo-scan. |
+| Compile the scanner from source | APK that traces to current `.holo`  | Release invariant in the HoloQR README               | Shipping path is gated. `gradlew` alone is not a ship.                                                                      |
+| Keys / custody                  | A lease, not a pasted secret        | HoloKey / secrets tools                              | Gate family. Not the stranger language door.                                                                                |
 
 Do not put this aisle on the HoloScript GitHub README until the language
 [`github-v1-gate.md`](./github-v1-gate.md) is green **and** this meal can

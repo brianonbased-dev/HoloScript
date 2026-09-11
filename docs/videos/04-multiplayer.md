@@ -40,12 +40,13 @@ orb "SharedBall" {
 > - Throttles updates to the rate you specify (20 updates/sec here)"
 
 Authority strategies:
-| Value | Behavior |
-|---|---|
-| `"last"` | Last writer wins (good for positioning) |
-| `"owner"` | Only the object's owner can update |
-| `"host"` | Only the session host can update |
-| `"vote"` | Majority vote required (experimental) |
+
+| Value     | Behavior                                |
+| --------- | --------------------------------------- |
+| `"last"`  | Last writer wins (good for positioning) |
+| `"owner"` | Only the object's owner can update      |
+| `"host"`  | Only the session host can update        |
+| `"vote"`  | Majority vote required (experimental)   |
 
 ---
 

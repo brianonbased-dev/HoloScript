@@ -335,8 +335,7 @@ const HOLO_AST_TYPES = new Set([
 // Traits in DERIVED_TRAIT_CONFLICTS are suppressed (their derived schema was resolved by a
 // .holo-vs-.holo coin flip and may carry the wrong enum set).
 type DpoConfabResolution =
-  | { validator: ConfabulationValidator; conflictedTraits: Set<string> }
-  | { unavailable: string };
+  { validator: ConfabulationValidator; conflictedTraits: Set<string> } | { unavailable: string };
 
 let dpoConfabResolution: DpoConfabResolution | undefined;
 

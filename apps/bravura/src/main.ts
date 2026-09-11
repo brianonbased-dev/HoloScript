@@ -7,7 +7,11 @@
  */
 
 import { Conductor } from '../../tempo-latency-probe/src/conductor';
-import { BeatDetector, DESKTOP_CONFIG, XR_CONFIG } from '../../tempo-latency-probe/src/beatDetector';
+import {
+  BeatDetector,
+  DESKTOP_CONFIG,
+  XR_CONFIG,
+} from '../../tempo-latency-probe/src/beatDetector';
 import { verdictFor, trialVerdict, BANDS_NOTE } from '../../tempo-latency-probe/src/verdict';
 import { Renderer, Material } from './renderer';
 import { disc, sphere, cylinder, quad } from './meshes';
@@ -109,17 +113,11 @@ const HUD_RISE = 0.18; // above eye height: clears the guide ball's apex (1.37)
 const HUD_W = 0.8;
 const HUD_H = 0.4;
 let playerHeadY = 1.6;
-let hudModel: Mat4 = multiply(
-  translation(0, 1.6 + HUD_RISE, HUD_Z),
-  scaling(HUD_W, HUD_H, 1)
-);
+let hudModel: Mat4 = multiply(translation(0, 1.6 + HUD_RISE, HUD_Z), scaling(HUD_W, HUD_H, 1));
 
 function placeHud(headY: number): void {
   playerHeadY = playerHeadY * 0.9 + headY * 0.1;
-  hudModel = multiply(
-    translation(0, playerHeadY + HUD_RISE, HUD_Z),
-    scaling(HUD_W, HUD_H, 1)
-  );
+  hudModel = multiply(translation(0, playerHeadY + HUD_RISE, HUD_Z), scaling(HUD_W, HUD_H, 1));
 }
 
 function ensureAudio(): AudioContext {
@@ -248,11 +246,7 @@ function drawScene(data?: Pick<XRFrameData, 'hands' | 'controllers'>): void {
           const y = hf.positions[j * 3 + 1];
           const z = hf.positions[j * 3 + 2];
           const rad = Math.max(hf.radii[j], 0.004);
-          r.draw(
-            meshes.joint,
-            multiply(translation(x, y, z), scaling(rad, rad, rad)),
-            JOINT
-          );
+          r.draw(meshes.joint, multiply(translation(x, y, z), scaling(rad, rad, rad)), JOINT);
         }
       } else if (data.controllers[side]) {
         // Baton along the grip's forward, tilted like a held stick.
@@ -372,7 +366,8 @@ function showLessonsSummary(results: LessonResult[]): void {
       : 'good';
   const banner = $('verdict');
   banner.className = `verdict ${worst}`;
-  banner.textContent = results.map((r) => `${r.title}: ${r.score}/100`).join('  ·  ') +
+  banner.textContent =
+    results.map((r) => `${r.title}: ${r.score}/100`).join('  ·  ') +
     ' — the room keeps playing; run the lessons again any time.';
   $('final-numbers').textContent = results.map((r) => `${r.title}: ${r.verdict}`).join(' ');
   $('receipt-row').style.display = 'block';
@@ -437,7 +432,13 @@ function startDesktop(): void {
     const proj = perspective(0.96, w / h, 0.05, 40);
     const view = lookAt(eye, [0.55, 0.8, -1.5], [0, 1, 0]);
     // Desktop cue: the cursor resting on the chimes IS pointing at them.
-    const scr = projectToScreen(proj, view, chimesCenter, canvasEl.clientWidth, canvasEl.clientHeight);
+    const scr = projectToScreen(
+      proj,
+      view,
+      chimesCenter,
+      canvasEl.clientWidth,
+      canvasEl.clientHeight
+    );
     const pointing =
       forcedPointing ||
       (scr !== null && Math.hypot(cursorCss.x - scr[0], cursorCss.y - scr[1]) < 95);
@@ -460,7 +461,8 @@ async function startVR(): Promise<void> {
   conductor = newConductor('vr');
   freeHand = newFreeHand('vr');
   conductor.start(90);
-  $('status').textContent = 'In the room. Bounce one hand — the beat lands at the bottom of each bounce.';
+  $('status').textContent =
+    'In the room. Bounce one hand — the beat lands at the bottom of each bounce.';
   rebindLessons();
   try {
     const r = renderer as Renderer;
@@ -576,7 +578,11 @@ function buildReceipt(): string {
       inputSource,
       userAgent: navigator.userAgent,
       audio: ac
-        ? { sampleRate: ac.sampleRate, baseLatency: ac.baseLatency ?? null, outputLatency: ac.outputLatency ?? null }
+        ? {
+            sampleRate: ac.sampleRate,
+            baseLatency: ac.baseLatency ?? null,
+            outputLatency: ac.outputLatency ?? null,
+          }
         : null,
       summary: s ?? null,
       lessons: lessons.results,
@@ -751,7 +757,10 @@ window.addEventListener('DOMContentLoaded', () => {
       const view = lookAt([0, 1.5, 0.95], [0, 0.8, -1.35], [0, 1, 0]);
       const centerish = projectToScreen(proj, view, [0, 0.8, -1.35], 900, 600);
       const projOk =
-        centerish !== null && Math.abs(centerish[0] - 450) < 2 && centerish[1] > 250 && centerish[1] < 350;
+        centerish !== null &&
+        Math.abs(centerish[0] - 450) < 2 &&
+        centerish[1] > 250 &&
+        centerish[1] < 350;
       const behind = projectToScreen(proj, view, [0, 1.5, 10], 900, 600) === null;
       return { straight, off40deg, angle90, gripOk, projOk, behind };
     },

@@ -311,7 +311,7 @@ composition "Dispensary" {
 | ---------------- | -------------------- | -------------------------- | -------------------------- |
 | Mental model     | Logic and processes  | Typed behavior and effects | Whole-system composition   |
 | Root block       | `pipeline "Name" {}` | (none)                     | `composition "Name" {}`    |
-| Objects          | `object Cube {}`      | `composition name {}`      | `object "name" {}`         |
+| Objects          | `object Cube {}`     | `composition name {}`      | `object "name" {}`         |
 | Data source/sink | ✅                   | ❌                         | ✅ (inline pipeline)       |
 | VR Traits        | ❌                   | `@grabbable`               | `@grabbable`               |
 | Reactive State   | ❌                   | `@state {}`                | `state {}`                 |

@@ -609,14 +609,7 @@ export interface TraitPackage {
 }
 
 export type TraitCategory =
-  | 'rendering'
-  | 'physics'
-  | 'networking'
-  | 'audio'
-  | 'ui'
-  | 'ai'
-  | 'blockchain'
-  | 'utility';
+  'rendering' | 'physics' | 'networking' | 'audio' | 'ui' | 'ai' | 'blockchain' | 'utility';
 
 // Semver resolution
 export class DependencyResolver {

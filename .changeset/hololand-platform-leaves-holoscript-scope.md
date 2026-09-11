@@ -37,6 +37,7 @@ packages into `node_modules`, and only `mkdir -p`'d the `@holoscript` scope
 directory. The renamed symlink target would have failed the build.
 
 Follow-ups, both deliberately out of scope here:
+
 - `@holoscript/hololand-platform@6.1.1` stays on npm and should be deprecated
   pointing at the new name.
 - Whether the HoloScript CLI should carry a HoloLand `trajectory-replay`

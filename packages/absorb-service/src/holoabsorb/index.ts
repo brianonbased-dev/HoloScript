@@ -35,10 +35,7 @@ export interface HoloAbsorbCapability {
 }
 
 export type HoloAbsorbAliasDisposition =
-  | 'compatibility-alias'
-  | 'legacy-alias'
-  | 'substrate-lane'
-  | 'deployment-slug';
+  'compatibility-alias' | 'legacy-alias' | 'substrate-lane' | 'deployment-slug';
 
 export interface HoloAbsorbAlias {
   kind: 'product' | 'package' | 'service' | 'spine' | 'subsystem' | 'tool' | 'provider' | 'cli';

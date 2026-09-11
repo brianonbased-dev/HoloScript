@@ -27,11 +27,7 @@
  * so consumers do not need a runtime enum import.
  */
 export type AgentRole =
-  | 'syntax_analyzer'
-  | 'ast_optimizer'
-  | 'code_generator'
-  | 'exporter'
-  | 'orchestrator';
+  'syntax_analyzer' | 'ast_optimizer' | 'code_generator' | 'exporter' | 'orchestrator';
 
 /**
  * Fine-grained permissions for compiler agent operations.
@@ -81,22 +77,13 @@ export type WorkflowStep =
  * Cultural family archetype for agent cooperation styles.
  */
 export type CulturalFamily =
-  | 'cooperative'
-  | 'competitive'
-  | 'hierarchical'
-  | 'egalitarian'
-  | 'isolationist';
+  'cooperative' | 'competitive' | 'hierarchical' | 'egalitarian' | 'isolationist';
 
 /**
  * Prompt / communication dialect for agent interactions.
  */
 export type PromptDialect =
-  | 'directive'
-  | 'socratic'
-  | 'narrative'
-  | 'structured'
-  | 'consensus'
-  | 'reactive';
+  'directive' | 'socratic' | 'narrative' | 'structured' | 'consensus' | 'reactive';
 
 /**
  * Cultural profile metadata embedded in agent JWT tokens.
@@ -556,15 +543,7 @@ export interface CapabilityAccessRequest extends ResourceAccessRequest {
  * Allowed types for trait property values.
  */
 export type TraitPropertyType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'array'
-  | 'object'
-  | 'color'
-  | 'vector3'
-  | 'enum'
-  | 'any';
+  'string' | 'number' | 'boolean' | 'array' | 'object' | 'color' | 'vector3' | 'enum' | 'any';
 
 /**
  * Schema definition for a single trait property.
@@ -718,13 +697,7 @@ export interface AccessDecisionWithConfabulation extends AccessDecision {
  * `AgentPermission`).
  */
 export type Permission =
-  | 'view'
-  | 'interact'
-  | 'edit'
-  | 'delete'
-  | 'admin'
-  | 'transfer'
-  | 'configure';
+  'view' | 'interact' | 'edit' | 'delete' | 'admin' | 'transfer' | 'configure';
 
 /**
  * Runtime state for the role trait.

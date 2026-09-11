@@ -17,11 +17,11 @@ to live until it has a curl command that succeeds against the production surface
 
 ## Ingestion
 
-| Surface                 | Status | Role                                                                                                    | Verification command                                                                                                                                                                     |
+| Surface | Status | Role | Verification command |
 | ----------------------- | ------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Absorb GraphRAG service | `live` | Codebase ingestion, graph memory, semantic search substrate.                                            | `curl -fsS https://absorb.holoscript.net/health`                                                                                                                                         |
-| Public MCP tool lane    | `live` | Anonymous parse, validate, explain, and list-entry requests.                                            | `curl -fsS https://mcp.holoscript.net/api/public/tool`                                                                                                                                   |
-| HoloMap reconstruction  | `live` | 3D reconstruction from video via MCP tools (`holo_reconstruct_from_video`, `step`, `anchor`, `export`). | `curl -fsS -X POST https://mcp.holoscript.net/mcp -H "Content-Type: application/json" -H "Authorization: Bearer $HOLOSCRIPT_API_KEY" -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' | grep -o 'holo*reconstruct*[^"]\*'` |
+| Absorb GraphRAG service | `live` | Codebase ingestion, graph memory, semantic search substrate. | `curl -fsS https://absorb.holoscript.net/health` |
+| Public MCP tool lane | `live` | Anonymous parse, validate, explain, and list-entry requests. | `curl -fsS https://mcp.holoscript.net/api/public/tool` |
+| HoloMap reconstruction | `live` | 3D reconstruction from video via MCP tools (`holo_reconstruct_from_video`, `step`, `anchor`, `export`). | `curl -fsS -X POST https://mcp.holoscript.net/mcp -H "Content-Type: application/json" -H "Authorization: Bearer $HOLOSCRIPT_API_KEY" -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' | grep -o 'holo*reconstruct*[^"]\*'` |
 
 ## Coordination
 

@@ -258,9 +258,7 @@ export class BeatDetector {
       this.descentPeakV = Math.min(this.descentPeakV, this.velocity);
     }
     const turnedUp =
-      prevV < 0 &&
-      this.velocity >= 0 &&
-      this.descentPeakV <= -3 * this.cfg.stillVelMax;
+      prevV < 0 && this.velocity >= 0 && this.descentPeakV <= -3 * this.cfg.stillVelMax;
     if (this.velocity >= 0 && prevV < 0) this.descentPeakV = 0;
     if (turnedUp) {
       const stroke = (this.lastExtremeY ?? s.y) - s.y;

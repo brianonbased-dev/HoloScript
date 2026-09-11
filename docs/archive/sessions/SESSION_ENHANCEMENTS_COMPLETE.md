@@ -126,11 +126,12 @@ private enabledEffects = new Set<string>();
 - ✅ User-controllable effect intensity
 
 **Before vs After**:
-| Without Post-FX | With Post-FX |
-|-----------------|--------------|
-| Flat explosions | Glowing shock waves ✨ |
+
+| Without Post-FX   | With Post-FX              |
+| ----------------- | ------------------------- |
+| Flat explosions   | Glowing shock waves ✨    |
 | All objects sharp | Focused depth of field ✨ |
-| Static debris | Motion-blurred trails ✨ |
+| Static debris     | Motion-blurred trails ✨  |
 
 ---
 

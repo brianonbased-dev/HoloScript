@@ -66,10 +66,7 @@ export interface CallChainOptions {
 }
 
 export type ImpactTruncationReason =
-  | 'max_affected_files'
-  | 'max_depth'
-  | 'deadline'
-  | 'changed_file_not_indexed';
+  'max_affected_files' | 'max_depth' | 'deadline' | 'changed_file_not_indexed';
 
 export interface ImpactTraversalOptions {
   /** Maximum number of changed/affected files retained in the result. */

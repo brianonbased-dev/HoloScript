@@ -134,7 +134,7 @@ diverge across packages; read each `package.json` before citing a version.
 > 3. **unordered build-time deps** — a sibling needed for type emit but declared
 >    only with a semver range gives pnpm no ordering constraint at all. This is
 >    what deleting a cycle edge leaves behind, so fixing rule 1 carelessly
->    *creates* this one.
+>    _creates_ this one.
 >
 > Note the interaction with rule 6: a build-time need on a sibling must be
 > declared `workspace:` (devDependencies is the honest field). A semver

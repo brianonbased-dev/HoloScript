@@ -438,9 +438,7 @@ test('builds portable multi-family requests and scores only receipt-bound image 
         request,
         adapterOutput: {
           rankedCandidateIds:
-            request.arm === 'pixels' || request.arm === 'relations-pixels'
-              ? [gold]
-              : [nonGold],
+            request.arm === 'pixels' || request.arm === 'relations-pixels' ? [gold] : [nonGold],
           confidence: 0.8,
         },
         materializationReceipt: materialized.receipt,

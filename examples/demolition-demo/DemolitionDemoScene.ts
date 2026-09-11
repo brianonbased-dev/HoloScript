@@ -17,11 +17,7 @@ import type { Vector3 } from './Fragment';
 import type { ExplosionConfig } from './ShockWaveSolver';
 
 export type DemoScenario =
-  | 'single_explosion'
-  | 'building_collapse'
-  | 'chain_reaction'
-  | 'demolition_sequence'
-  | 'sandbox';
+  'single_explosion' | 'building_collapse' | 'chain_reaction' | 'demolition_sequence' | 'sandbox';
 
 export interface CameraConfig {
   /** Camera position */

@@ -1,12 +1,7 @@
 import type { HSNAPCompileOptions } from './hsnap-bytecode';
 
 export type HSNAPLifecycleType =
-  | 'task.send'
-  | 'task.accept'
-  | 'task.progress'
-  | 'task.complete'
-  | 'task.fail'
-  | 'task.cancel';
+  'task.send' | 'task.accept' | 'task.progress' | 'task.complete' | 'task.fail' | 'task.cancel';
 
 export interface HSNAPTaskMetadata {
   id?: string;

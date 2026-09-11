@@ -37,7 +37,9 @@ createServer(async (req, res) => {
   for (const addrs of Object.values(networkInterfaces())) {
     for (const a of addrs ?? []) {
       if (a.family === 'IPv4' && !a.internal)
-        console.log(`  http://${a.address}:${port}  (LAN — page loads, VR needs the localhost path)`);
+        console.log(
+          `  http://${a.address}:${port}  (LAN — page loads, VR needs the localhost path)`
+        );
     }
   }
 });

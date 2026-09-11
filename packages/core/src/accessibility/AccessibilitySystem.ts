@@ -12,12 +12,7 @@
 // =============================================================================
 
 export type ContrastMode =
-  | 'normal'
-  | 'high'
-  | 'inverted'
-  | 'deuteranopia'
-  | 'protanopia'
-  | 'tritanopia';
+  'normal' | 'high' | 'inverted' | 'deuteranopia' | 'protanopia' | 'tritanopia';
 
 export interface AccessibilityConfig {
   fontScale: number; // 0.5 - 3.0

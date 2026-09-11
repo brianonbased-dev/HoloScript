@@ -91,13 +91,14 @@ Tool: `mcp__plugin_bio-research_chembl__get_bioactivity`
 Input: `target_chembl_id=CHEMBL203`, `activity_type=IC50`, `min_pchembl=8.5`, `unit=nM`
 
 Output (5 of 2,867 total):
-| Molecule | IC50 (nM) | pChEMBL | Assay |
-|---|---|---|---|
-| CHEMBL304271 | 0.45 | 9.35 | Bioorg Med Chem Lett 2002 |
-| CHEMBL264382 | 1.1 | 8.96 | CHEMBL674637 (EGFR-kinase tyrosine phosphorylation) |
-| CHEMBL69358 | 1.2 | 8.92 | CHEMBL674637 |
-| CHEMBL67003 | 1.8 | 8.74 | CHEMBL674637 |
-| CHEMBL305246 | 2.8 | 8.55 | CHEMBL674637 |
+
+| Molecule     | IC50 (nM) | pChEMBL | Assay                                               |
+| ------------ | --------- | ------- | --------------------------------------------------- |
+| CHEMBL304271 | 0.45      | 9.35    | Bioorg Med Chem Lett 2002                           |
+| CHEMBL264382 | 1.1       | 8.96    | CHEMBL674637 (EGFR-kinase tyrosine phosphorylation) |
+| CHEMBL69358  | 1.2       | 8.92    | CHEMBL674637                                        |
+| CHEMBL67003  | 1.8       | 8.74    | CHEMBL674637                                        |
+| CHEMBL305246 | 2.8       | 8.55    | CHEMBL674637                                        |
 
 ### Stage 4 — Approved drug lookup
 

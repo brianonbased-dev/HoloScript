@@ -292,14 +292,7 @@ export interface IRigidBodyState {
  * Constraint types
  */
 export type ConstraintType =
-  | 'fixed'
-  | 'hinge'
-  | 'slider'
-  | 'ball'
-  | 'cone'
-  | 'distance'
-  | 'spring'
-  | 'generic6dof';
+  'fixed' | 'hinge' | 'slider' | 'ball' | 'cone' | 'distance' | 'spring' | 'generic6dof';
 
 /**
  * Base constraint interface
@@ -758,12 +751,7 @@ export type SoftBodyPreset = 'rubber' | 'cloth' | 'jelly' | 'flesh' | 'paper';
  * PBD constraint types (extended with density for unified fluid coupling)
  */
 export type PBDConstraintType =
-  | 'distance'
-  | 'volume'
-  | 'collision'
-  | 'attachment'
-  | 'bending'
-  | 'density';
+  'distance' | 'volume' | 'collision' | 'attachment' | 'bending' | 'density';
 
 /**
  * PBD distance constraint — maintains rest length between two vertices

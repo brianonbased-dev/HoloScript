@@ -271,7 +271,10 @@ for (const fixture of FIXTURES) {
     const trait = LANGUAGE_TRAITS.find((t) => t.language === fixture.language);
 
     it('produced a LanguageTrait in LANGUAGE_TRAITS', () => {
-      expect(trait, `${fixture.language} trait must come from language-adapters/${fixture.language}.holo`).toBeDefined();
+      expect(
+        trait,
+        `${fixture.language} trait must come from language-adapters/${fixture.language}.holo`
+      ).toBeDefined();
       expect(trait!.grammarPackage).toBe(fixture.grammarPackage);
       for (const ext of fixture.extensions) {
         expect(trait!.extensions).toContain(ext);

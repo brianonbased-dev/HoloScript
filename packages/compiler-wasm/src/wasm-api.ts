@@ -296,12 +296,7 @@ export interface ValidationResult {
 }
 
 export type UAALWasmOperand =
-  | string
-  | number
-  | boolean
-  | Record<string, unknown>
-  | UAALWasmOperand[]
-  | null;
+  string | number | boolean | Record<string, unknown> | UAALWasmOperand[] | null;
 
 export interface UAALWasmInstruction {
   opCode: number;

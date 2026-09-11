@@ -206,7 +206,12 @@ describe('a machine conducts a 100-section orchestra by looking at it', () => {
         room.ensemble.gesture('bring-in', room.headset.nowMs());
       }
 
-      expect(room.ensemble.playing().map((s) => s.id).sort()).toEqual(['s30', 's5', 's55']);
+      expect(
+        room.ensemble
+          .playing()
+          .map((s) => s.id)
+          .sort()
+      ).toEqual(['s30', 's5', 's55']);
     } finally {
       await room.handle.end();
       room.uninstall();

@@ -14,10 +14,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { KnowledgeExtractor } from '../engine/KnowledgeExtractor';
 import type { ExtractionOptions, ExtractionResult } from '../engine/KnowledgeExtractor';
 import type { CodebaseGraph } from '../engine/CodebaseGraph';
-import {
-  hasObservedPageExtractInput,
-  ingestObservedPage,
-} from '../ingest/ingestObservedPage';
+import { hasObservedPageExtractInput, ingestObservedPage } from '../ingest/ingestObservedPage';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -68,8 +65,7 @@ export const knowledgeExtractionTools: Tool[] = [
         },
         url: {
           type: 'string',
-          description:
-            'Single page URL to fetch as text and extract. One URL only — not a crawl.',
+          description: 'Single page URL to fetch as text and extract. One URL only — not a crawl.',
         },
         title: {
           type: 'string',
@@ -126,9 +122,7 @@ export async function handleKnowledgeExtractionTool(
     url: typeof args.url === 'string' ? args.url : undefined,
     title: typeof args.title === 'string' ? args.title : undefined,
   };
-  let pageExtract:
-    | Awaited<ReturnType<typeof ingestObservedPage>>
-    | undefined;
+  let pageExtract: Awaited<ReturnType<typeof ingestObservedPage>> | undefined;
   if (hasObservedPageExtractInput(pageExtractInput)) {
     try {
       pageExtract = await ingestObservedPage(pageExtractInput);

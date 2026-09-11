@@ -2108,7 +2108,9 @@ describe('holo_absorb_repo root validation', () => {
       coversWorkspaceRoot: false,
     });
     expect(mergedStatus.graphAuthoritative).toBe(false);
-    expect(mergedStatus.cacheStorage?.generationManifestFile).toBe(mergedPaths.generationManifestFile);
+    expect(mergedStatus.cacheStorage?.generationManifestFile).toBe(
+      mergedPaths.generationManifestFile
+    );
   }, 120_000);
 
   it('interrupts and resumes a forced refresh without replacing the prior authoritative graph', async () => {
@@ -3792,11 +3794,7 @@ describe('holo_absorb_repo root validation', () => {
     })) as { stats?: { totalFiles?: number } };
     expect(initial.stats?.totalFiles).toBe(2);
 
-    fs.writeFileSync(
-      path.join(repoDir, 'src', 'alpha.ts'),
-      'export const alpha = 42;\n',
-      'utf-8'
-    );
+    fs.writeFileSync(path.join(repoDir, 'src', 'alpha.ts'), 'export const alpha = 42;\n', 'utf-8');
     fs.writeFileSync(path.join(repoDir, 'asset.bin'), Buffer.from([4, 5, 6, 7]));
     fs.writeFileSync(
       path.join(repoDir, 'src', 'peer-untracked.ts'),
@@ -4446,8 +4444,9 @@ describe('holo_absorb_repo root validation', () => {
     // The cap really applied, so zz-11.ts was genuinely outside the graph and
     // this is not passing vacuously on a quiet tree. The verdict receipt itself
     // rides on the full-scan and incremental result shapes, not this repair path.
-    expect(Number((status.result as { stats?: { totalFiles?: number } })?.stats?.totalFiles ?? 99)).
-      toBeLessThanOrEqual(2);
+    expect(
+      Number((status.result as { stats?: { totalFiles?: number } })?.stats?.totalFiles ?? 99)
+    ).toBeLessThanOrEqual(2);
   }, 30_000);
 
   // The measured cause of the ai-ecosystem full-tree absorb never finishing.
@@ -4471,11 +4470,7 @@ describe('holo_absorb_repo root validation', () => {
       // Untracked, exactly like the real one, and inside a directory that holds
       // operational output rather than source.
       fs.mkdirSync(path.join(repoDir, 'receipts'), { recursive: true });
-      fs.writeFileSync(
-        path.join(repoDir, 'receipts', 'sidecar.ndjson'),
-        '{"tick":0}\n',
-        'utf-8'
-      );
+      fs.writeFileSync(path.join(repoDir, 'receipts', 'sidecar.ndjson'), '{"tick":0}\n', 'utf-8');
 
       process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
       process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
