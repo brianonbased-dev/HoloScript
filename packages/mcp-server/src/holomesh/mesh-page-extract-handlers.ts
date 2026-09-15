@@ -13,11 +13,15 @@ import {
   resolveMeshObservedPage,
   type HoloMeshPageExtractReceipt,
 } from './observed-page-extract';
+// Type-only: erased at runtime, so this module still stays out of the full MCP graph.
+import type { MeshKnowledgeEntry } from './types';
 
 export interface MeshPageExtractClient {
   getAgentId(): string | null;
   registerAgent(traits: string[]): Promise<string | void>;
-  contributeKnowledge(entries: Array<Record<string, unknown>>): Promise<number>;
+  // Same entry shape HoloMeshOrchestratorClient.contributeKnowledge takes, so the
+  // real client satisfies this interface (it did not: TS2345 in holomesh-tools.ts).
+  contributeKnowledge(entries: MeshKnowledgeEntry[]): Promise<number>;
 }
 
 export interface MeshPageExtractFeed {
@@ -77,10 +81,11 @@ export async function contributeObservedPageExtract(
   const provenanceHash = createHash('sha256').update(content).digest('hex');
   const tags = [...(Array.isArray(args.tags) ? (args.tags as string[]) : []), ...extractTags];
 
-  const entry = {
+  const entry: MeshKnowledgeEntry = {
     id: entryId,
     workspaceId: process.env.HOLOMESH_WORKSPACE || 'default',
-    type: entryType,
+    // Same narrowing as the main handleContribute path in holomesh-tools.ts.
+    type: entryType as MeshKnowledgeEntry['type'],
     content,
     provenanceHash,
     authorId: client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local',
