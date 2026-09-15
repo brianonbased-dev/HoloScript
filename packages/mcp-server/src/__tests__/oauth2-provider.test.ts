@@ -549,15 +549,21 @@ describe('OAuth2Provider', () => {
       expect(authResult.body.state).toBe('random-state');
 
       // Step 2: POST /oauth/token (exchange code)
-      const tokenResult = await provider.handleToken({
-        grant_type: 'authorization_code',
-        code: authResult.body.code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: 'https://example.com/callback',
-        code_verifier: codeVerifier,
-        agent_id: 'my-test-agent',
-      });
+      // agent_id is only stamped when the request proves that agent's own key;
+      // the third argument carries the identity the transport resolved.
+      const tokenResult = await provider.handleToken(
+        {
+          grant_type: 'authorization_code',
+          code: authResult.body.code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: 'https://example.com/callback',
+          code_verifier: codeVerifier,
+          agent_id: 'my-test-agent',
+        },
+        undefined,
+        'my-test-agent'
+      );
 
       expect(tokenResult.status).toBe(200);
       expect(tokenResult.body.access_token).toBeTruthy();
@@ -864,12 +870,16 @@ describe('OAuth2Provider', () => {
         scopes: ['tools:read', 'tasks:read'],
       });
 
-      const tokens = await provider.handleToken({
-        grant_type: 'client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-        agent_id: 'agent-v1',
-      });
+      const tokens = await provider.handleToken(
+        {
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+          agent_id: 'agent-v1',
+        },
+        undefined,
+        'agent-v1'
+      );
 
       const result = await provider.handleIntrospect({
         token: tokens.body.access_token as string,

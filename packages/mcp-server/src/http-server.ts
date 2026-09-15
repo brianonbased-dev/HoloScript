@@ -318,6 +318,28 @@ oauth.setDurableIntrospector(async (token) => {
   };
 });
 
+/**
+ * Resolve the agent identity a request has PROVEN it owns.
+ *
+ * `POST /oauth/register` is open to anyone and `client_secret` proves only which
+ * client is calling, so neither can establish which AGENT the caller is. A key
+ * from the HoloMesh key registry can: keys are issued per agent and resolve to
+ * exactly one agentId. Returns undefined when no live agent key is presented,
+ * which makes every unproven `agent_id` request fail closed.
+ */
+function resolveProvenAgentId(req: http.IncomingMessage): string | undefined {
+  for (const headerName of ['x-agent-key', 'x-api-key', 'x-mcp-api-key']) {
+    const raw = req.headers[headerName];
+    const presented = typeof raw === 'string' ? raw.trim() : '';
+    if (!presented) continue;
+    const record = keyRegistry.get(presented);
+    if (!record) continue;
+    if (record.expiresAt && new Date(record.expiresAt) < new Date()) continue;
+    return record.agentId;
+  }
+  return undefined;
+}
+
 /** Rehydrate a client from the durable registry into the legacy in-memory one. */
 async function ensureClientHydrated(clientId: string | null | undefined): Promise<void> {
   if (!clientId || oauth.getClient(clientId)) return;
@@ -1996,6 +2018,18 @@ const httpServer = http.createServer(async (req, res) => {
       }
       const rateLimit = (body.rate_limit as number) || 60;
 
+      // Bind this client to an agent only when the registering request proves
+      // that agent's own key. Registration is open to anyone, so an unproven
+      // agent_id in the body must never become a durable identity binding.
+      const requestedAgentId = String(body.agent_id || '').trim();
+      const registrarAgentId = resolveProvenAgentId(req);
+      if (requestedAgentId && requestedAgentId !== registrarAgentId) {
+        throw new Error(
+          'agent_id can only be bound by a request that presents that agent-s own key.'
+        );
+      }
+      const boundAgentId = requestedAgentId ? registrarAgentId : undefined;
+
       // Register with legacy provider (backwards compat)
       const { clientId, clientSecret } = oauth.registerClient({
         clientName,
@@ -2003,6 +2037,7 @@ const httpServer = http.createServer(async (req, res) => {
         scopes,
         clientType,
         rateLimit,
+        ...(boundAgentId ? { agentId: boundAgentId } : {}),
       });
 
       // Also register with the new OAuth2Provider (token-store backed) using
@@ -2367,6 +2402,9 @@ const httpServer = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const grantType = body.grant_type as string;
       const dpopHeader = req.headers['dpop'] as string | undefined;
+      // Identity the caller proved on THIS request; the grant refuses any
+      // agent_id that is neither this nor the client's registered binding.
+      const provenAgentId = resolveProvenAgentId(req);
 
       // Rehydrate durable state before the sync grant handlers consult the
       // in-memory maps (wiped on every deploy).
@@ -2387,6 +2425,7 @@ const httpServer = http.createServer(async (req, res) => {
             codeVerifier: body.code_verifier as string,
             agentId: body.agent_id as string | undefined,
             dpopThumbprint: dpopHeader,
+            provenAgentId,
           });
           break;
 
@@ -2397,6 +2436,7 @@ const httpServer = http.createServer(async (req, res) => {
             scopes: ((body.scope as string) || '').split(' ').filter(Boolean),
             agentId: body.agent_id as string | undefined,
             dpopThumbprint: dpopHeader,
+            provenAgentId,
           });
           break;
 

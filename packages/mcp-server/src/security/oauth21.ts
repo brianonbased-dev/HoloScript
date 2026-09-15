@@ -17,6 +17,8 @@
 
 import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
 import {
+  agentIdBindingAllowed,
+  AGENT_ID_NOT_BOUND_ERROR,
   expandScopes,
   hasConfiguredLegacyKey,
   isProductionRuntime,
@@ -98,6 +100,12 @@ export interface RegisteredClient {
   clientType: 'confidential' | 'public';
   /** Rate limit: requests per minute */
   rateLimit: number;
+  /**
+   * Agent this client is bound to, recorded at registration and only when the
+   * registering request proved that agent's own key. A token request may stamp
+   * this agent_id without re-presenting the key; any other agent_id is refused.
+   */
+  agentId?: string;
 }
 
 export interface AuthorizationCode {
@@ -239,6 +247,8 @@ export class OAuth21Service {
     scopes: OAuthScope[];
     clientType?: 'confidential' | 'public';
     rateLimit?: number;
+    /** Only set by a caller that proved this agent's own key (see http-server). */
+    agentId?: string;
   }): { clientId: string; clientSecret: string } {
     if (clients.size >= this.config.maxClients) {
       throw new Error('Maximum client registration limit reached');
@@ -256,6 +266,7 @@ export class OAuth21Service {
       createdAt: Date.now(),
       clientType: params.clientType || 'confidential',
       rateLimit: params.rateLimit || 60,
+      ...(params.agentId ? { agentId: params.agentId } : {}),
     };
 
     clients.set(clientId, client);
@@ -368,6 +379,8 @@ export class OAuth21Service {
     codeVerifier: string;
     agentId?: string;
     dpopThumbprint?: string;
+    /** Agent identity proven by a key presented on this request, if any. */
+    provenAgentId?: string;
   }): TokenResponse {
     const authCode = authCodes.get(params.code);
     if (!authCode)
@@ -398,6 +411,18 @@ export class OAuth21Service {
       throw new Error('PKCE verification failed');
     }
 
+    // An agent identity must be bound or proven before it can be stamped on
+    // the token — the stamp becomes the trusted principal downstream.
+    if (
+      !agentIdBindingAllowed({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      })
+    ) {
+      throw new Error(AGENT_ID_NOT_BOUND_ERROR);
+    }
+
     // Mark code as used (one-time use)
     authCode.used = true;
 
@@ -415,6 +440,8 @@ export class OAuth21Service {
     scopes?: OAuthScope[];
     agentId?: string;
     dpopThumbprint?: string;
+    /** Agent identity proven by a key presented on this request, if any. */
+    provenAgentId?: string;
   }): TokenResponse {
     const client = clients.get(params.clientId);
     if (!client)
@@ -437,6 +464,18 @@ export class OAuth21Service {
     );
     if (invalidScopes.length > 0) {
       throw new Error(`Scopes not authorized: ${invalidScopes.join(', ')}`);
+    }
+
+    // An agent identity must be bound or proven before it can be stamped on
+    // the token — the stamp becomes the trusted principal downstream.
+    if (
+      !agentIdBindingAllowed({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      })
+    ) {
+      throw new Error(AGENT_ID_NOT_BOUND_ERROR);
     }
 
     return this.issueTokenPair(

@@ -191,6 +191,50 @@ export function expandScopes(scopes: string[]): string[] {
   return [...expanded];
 }
 
+// ── Agent identity binding ───────────────────────────────────────────────────
+
+/**
+ * Refusal message shared by both token services when a grant asks for an
+ * `agent_id` the caller has not proven it owns.
+ */
+export const AGENT_ID_NOT_BOUND_ERROR =
+  'agent_id is not bound to this client. Bind the agent at POST /oauth/register, ' +
+  'or present that agent-s own key on the token request.';
+
+function normalizeAgentIdentity(value: unknown): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Decide whether a token request may stamp `agent_id` onto the issued token.
+ *
+ * The stamped value becomes `auth.agentId`, which the MCP layer promotes to the
+ * authenticated principal (`__authAgentId`) that every premium gate and board
+ * binding trusts. A caller free to name an arbitrary agent here could therefore
+ * impersonate other agents, so the id must be one of:
+ *
+ *   - `clientAgentId` — recorded on the client when it registered, proving the
+ *     binding was established by someone holding that agent's key; or
+ *   - `provenAgentId` — resolved from an agent key presented on THIS request.
+ *
+ * Anything else is refused outright rather than quietly dropped: a caller that
+ * asked to be another agent must not receive a token that silently is not.
+ */
+export function agentIdBindingAllowed(params: {
+  requestedAgentId?: string;
+  clientAgentId?: string;
+  provenAgentId?: string;
+}): boolean {
+  const requested = normalizeAgentIdentity(params.requestedAgentId);
+  // No agent_id requested — nothing to authorize.
+  if (!requested) return true;
+  if (requested === normalizeAgentIdentity(params.clientAgentId)) return true;
+  if (requested === normalizeAgentIdentity(params.provenAgentId)) return true;
+  return false;
+}
+
 // ── Token Introspection Result ───────────────────────────────────────────────
 
 export interface TokenIntrospectionResult {
@@ -515,7 +559,8 @@ export class OAuth2Provider {
    */
   async handleToken(
     body: Record<string, unknown>,
-    dpopHeader?: string
+    dpopHeader?: string,
+    provenAgentId?: string
   ): Promise<{
     status: number;
     body: Record<string, unknown>;
@@ -525,9 +570,9 @@ export class OAuth2Provider {
 
     switch (grantType) {
       case 'authorization_code':
-        return this.handleAuthorizationCodeGrant(body, dpopHeader);
+        return this.handleAuthorizationCodeGrant(body, dpopHeader, provenAgentId);
       case 'client_credentials':
-        return this.handleClientCredentialsGrant(body, dpopHeader);
+        return this.handleClientCredentialsGrant(body, dpopHeader, provenAgentId);
       case 'refresh_token':
         return this.handleRefreshTokenGrant(body, dpopHeader);
       default:
@@ -543,7 +588,8 @@ export class OAuth2Provider {
 
   private async handleAuthorizationCodeGrant(
     body: Record<string, unknown>,
-    dpopHeader?: string
+    dpopHeader?: string,
+    provenAgentId?: string
   ): Promise<{ status: number; body: Record<string, unknown>; headers?: Record<string, string> }> {
     const code = body.code as string;
     const clientId = body.client_id as string;
@@ -623,6 +669,16 @@ export class OAuth2Provider {
       };
     }
 
+    // An agent identity must be proven before it can be stamped on the token.
+    // The durable client record carries no agent binding, so only a key
+    // presented on this request can authorize one here.
+    if (!agentIdBindingAllowed({ requestedAgentId: agentId, provenAgentId })) {
+      return {
+        status: 400,
+        body: { error: 'invalid_request', error_description: AGENT_ID_NOT_BOUND_ERROR },
+      };
+    }
+
     // Mark code as used
     await this.store.markAuthorizationCodeUsed(code);
 
@@ -644,7 +700,8 @@ export class OAuth2Provider {
 
   private async handleClientCredentialsGrant(
     body: Record<string, unknown>,
-    dpopHeader?: string
+    dpopHeader?: string,
+    provenAgentId?: string
   ): Promise<{ status: number; body: Record<string, unknown>; headers?: Record<string, string> }> {
     const clientId = body.client_id as string;
     const clientSecret = body.client_secret as string;
@@ -692,6 +749,14 @@ export class OAuth2Provider {
           error: 'invalid_scope',
           error_description: `Scopes not authorized: ${invalidScopes.join(', ')}`,
         },
+      };
+    }
+
+    // An agent identity must be proven before it can be stamped on the token.
+    if (!agentIdBindingAllowed({ requestedAgentId: agentId, provenAgentId })) {
+      return {
+        status: 400,
+        body: { error: 'invalid_request', error_description: AGENT_ID_NOT_BOUND_ERROR },
       };
     }
 
