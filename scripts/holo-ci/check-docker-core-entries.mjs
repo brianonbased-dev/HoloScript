@@ -36,6 +36,15 @@
  * time, not in prod). Test files (`__tests__/`, `*.test.*`, `*.spec.*`) are excluded — they
  * never ship in the runtime image, so a test-only core import is not a drift risk.
  *
+ * SOURCE DRIFT (HARDENED 2026-09-15): an entry can exist and still be wrong. The Docker
+ * config built `parser` from src/parser/HoloScriptPlusParser.ts while the standard build
+ * uses the src/parser/index.ts barrel, so the image's dist/parser.js lacked parseHolo.
+ * When absorb-service imported `parseHolo` from '@holoscript/core/parser' (54ed06a48),
+ * all five absorb-service deploys on 2026-09-06 died at the image's MCP import check, and
+ * this gate said COVERED throughout — it skipped flat exports (./dist/parser.js), skipped
+ * bare entry keys (`parser:`), scanned only the mcp-server image's workspaces, and never
+ * compared entry sources. It now does all four.
+ *
  * Usage:  node scripts/holo-ci/check-docker-core-entries.mjs [--root <dir>]
  * Exit 0 = every required subpath is covered. 1 = drift (missing entry). 2 = usage error.
  */
@@ -50,6 +59,7 @@ const ROOT = path.resolve(arg('--root', process.env.HOLO_ROOT || process.cwd()))
 
 const COREPKG = path.join(ROOT, 'packages/core/package.json');
 const DOCKERCFG = path.join(ROOT, 'scripts/docker/tsup.core.docker.cjs');
+const STANDARDCFG = path.join(ROOT, 'packages/core/tsup.config.ts');
 const RUNTIME_DOCKERFILE = path.join(ROOT, 'infrastructure/Dockerfile.mcp-server');
 
 for (const f of [COREPKG, DOCKERCFG]) {
@@ -97,24 +107,83 @@ function runtimeWorkspaceSrcDirs() {
     // fall through to fallback
   }
   if (!pkgs) pkgs = FALLBACK_RUNTIME_PKGS;
-  return pkgs.map((p) => `packages/${p}/src`).filter((rel) => fs.existsSync(path.join(ROOT, rel)));
+  return pkgs.map((p) => `packages/${p}/src`);
 }
-const WORKSPACE_SRC_DIRS = runtimeWorkspaceSrcDirs();
+// Every OTHER image that runs the Docker core build (build-core-stack-no-dts.sh /
+// tsup.core.docker.cjs) ships its own workspace set, COPY'd as source directories
+// (`COPY packages/holollama/ packages/holollama/`, `COPY services/absorb-service/ ...`).
+// Until 2026-09-15 only the mcp-server image was scanned — and the image that broke on
+// 2026-09-06 was absorb-service's.
+function coreBuildImageSrcDirs() {
+  let files;
+  try {
+    files = fs.readdirSync(path.join(ROOT, 'infrastructure')).filter((f) => /^Dockerfile\./.test(f));
+  } catch {
+    return [];
+  }
+  const dirs = new Set();
+  for (const f of files) {
+    const df = fs.readFileSync(path.join(ROOT, 'infrastructure', f), 'utf8');
+    if (!/build-core-stack-no-dts\.sh|tsup\.core\.docker\.cjs/.test(df)) continue;
+    // An image that ships SELECTED dists (`COPY --from=builder .../packages/<x>/dist`, as
+    // mcp-server does) ships exactly those — a workspace COPY'd only into its builder stage
+    // (mcp-server's cli) never runs there. An image that ships the whole built tree
+    // (`COPY --from=builder /app/packages packages`, as absorb-service does) ships every
+    // workspace it COPY'd in.
+    const shipped = [...df.matchAll(/((?:packages|services)\/[a-z0-9][a-z0-9-]*)\/dist\b/g)].map((m) => m[1]);
+    const copied = [
+      ...df.matchAll(/^\s*COPY\s+(?:--\S+\s+)*((?:packages|services)\/[a-z0-9][a-z0-9-]*)\//gm),
+    ].map((m) => m[1]);
+    for (const rel of shipped.length ? shipped : copied) {
+      const name = rel.split('/')[1];
+      if (name !== 'core' && name !== 'core-types') dirs.add(`${rel}/src`);
+    }
+  }
+  return [...dirs];
+}
 
-// 1. core exports → map dist dir -> declared subpath  (only ./dist/<dir>/index.{cjs,js})
+// Drop block comments and whole-line // comments that START a line before matching, so a
+// QUOTED specifier inside a JSDoc usage example (` *   import { X } from '@holoscript/core/testing';`)
+// is not read as an import. Anchoring at line start keeps a '/*' inside a string literal
+// (a glob such as 'src/**') from swallowing the code after it.
+function stripLineComments(src) {
+  return src.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, '').replace(/^[ \t]*\/\/.*$/gm, '');
+}
+const WORKSPACE_SRC_DIRS = [...new Set([...runtimeWorkspaceSrcDirs(), ...coreBuildImageSrcDirs()])].filter(
+  (rel) => fs.existsSync(path.join(ROOT, rel))
+);
+
+// 1. core exports → map dist path -> declared subpath. Both export shapes count:
+//      ./dist/<dir>/index.{cjs,js} -> '<dir>'   (policy, world, hololand, ...)
+//      ./dist/<name>.{cjs,js}      -> '<name>'  (parser, runtime, math/vec3, ...)
+//    The flat shape was skipped until 2026-09-15, which hid ./parser from this gate.
 const corePkg = JSON.parse(fs.readFileSync(COREPKG, 'utf8'));
 const exportDir = new Map(); // 'policy' -> '@holoscript/core/policy'
 for (const [sub, val] of Object.entries(corePkg.exports || {})) {
-  if (sub === '.' || !val || typeof val !== 'object') continue;
+  if (sub === '.' || sub.includes('*') || !val || typeof val !== 'object') continue;
   const target = String(val.require || val.import || '');
-  const m = target.match(/^\.\/dist\/(.+)\/index\.(?:cjs|js)$/);
+  const m = target.match(/^\.\/dist\/(.+?)(?:\/index)?\.(?:cjs|js)$/);
   if (m) exportDir.set(m[1], '@holoscript/core/' + sub.replace(/^\.\//, ''));
 }
 
-// 2. docker tsup entry keys
-const dockerSrc = fs.readFileSync(DOCKERCFG, 'utf8');
-const dockerEntries = new Set([...dockerSrc.matchAll(/'([^']+)':\s*'src\//g)].map((m) => m[1]));
-const hasEntry = (dir) => dockerEntries.has(dir + '/index') || dockerEntries.has(dir);
+// 2. tsup entry maps (key -> source file) for the Docker config AND the standard config.
+//    Keys may be quoted ('policy/index': ...) or bare (parser: ...). The old pattern saw
+//    only quoted keys, so every bare-key entry (index, parser, runtime, ...) was invisible.
+function parseEntries(src) {
+  const entries = new Map();
+  for (const m of src.matchAll(/(?:'([^']+)'|"([^"]+)"|\b([A-Za-z_$][\w$]*))\s*:\s*['"](src\/[^'"]+)['"]/g)) {
+    const key = m[1] ?? m[2] ?? m[3];
+    if (!entries.has(key)) entries.set(key, m[4]);
+  }
+  return entries;
+}
+const dockerEntries = parseEntries(fs.readFileSync(DOCKERCFG, 'utf8'));
+const standardEntries = fs.existsSync(STANDARDCFG)
+  ? parseEntries(fs.readFileSync(STANDARDCFG, 'utf8'))
+  : new Map();
+const entryKey = (entries, dir) =>
+  entries.has(dir + '/index') ? dir + '/index' : entries.has(dir) ? dir : null;
+const hasEntry = (dir) => entryKey(dockerEntries, dir) !== null;
 
 // 3. which export dirs does ANY runtime-image workspace import at runtime?
 function walk(dir, out) {
@@ -145,7 +214,8 @@ for (const sd of WORKSPACE_SRC_DIRS) {
   const files = [];
   walk(abs, files);
   for (const f of files) {
-    const text = fs.readFileSync(f, 'utf8');
+    const text = stripLineComments(fs.readFileSync(f, 'utf8'));
+    // (see below) each specifier maps to its LONGEST matching export only.
     // Match ONLY real module specifiers — `@holoscript/core/<subpath>` inside the quotes
     // of an import / export-from / require() / dynamic import(). Requiring the surrounding
     // quote is what eliminates the false positives that bare-text matching produced once
@@ -154,21 +224,42 @@ for (const sd of WORKSPACE_SRC_DIRS) {
     // counted — `import type { X } from '@holoscript/core/y'` is rare for these value
     // subpaths and counting it errs safe (demands an entry that does no harm if present).
     for (const m of text.matchAll(/['"]@holoscript\/core\/([a-zA-Z0-9][a-zA-Z0-9/_-]*)['"]/g)) {
-      // longest exportDir that is a prefix of the imported path (handles core/policy and core/x/sub)
+      // Longest export that is the imported path or a prefix of it, and ONLY that one:
+      // '@holoscript/core/parser/HoloCompositionTypes' is that export, not also the parser barrel.
       const imp = m[1].replace(/\/$/, '');
-      for (const dir of exportDir.keys()) {
-        if (imp === dir || imp.startsWith(dir + '/')) {
-          importedDirs.add(dir);
-          if (!importedByWorkspace.has(dir)) importedByWorkspace.set(dir, new Set());
-          importedByWorkspace.get(dir).add(wsName);
-        }
+      let dir = null;
+      for (const d of exportDir.keys()) {
+        if ((imp === d || imp.startsWith(d + '/')) && (!dir || d.length > dir.length)) dir = d;
+      }
+      if (dir) {
+        importedDirs.add(dir);
+        if (!importedByWorkspace.has(dir)) importedByWorkspace.set(dir, new Set());
+        importedByWorkspace.get(dir).add(wsName);
       }
     }
   }
 }
 
-// 4. every imported export-dir must have a Docker entry
+// 4. every imported export must have a Docker entry
 const missing = [...importedDirs].filter((dir) => !hasEntry(dir)).sort();
+
+// 5. ...built from the SAME source file as the standard build. An entry that exists but
+//    points elsewhere ships a dist file with different exports; a named ESM import of a
+//    missing name then dies at link time ("does not provide an export named 'parseHolo'"
+//    — the 2026-09-06 absorb-service outage: Docker built parser from
+//    HoloScriptPlusParser.ts while the standard build uses the parser/index.ts barrel).
+const sourceDrift = [...importedDirs]
+  .filter((dir) => hasEntry(dir))
+  .map((dir) => {
+    const std = entryKey(standardEntries, dir);
+    return {
+      dir,
+      docker: dockerEntries.get(entryKey(dockerEntries, dir)),
+      standard: std ? standardEntries.get(std) : null,
+    };
+  })
+  .filter((d) => d.standard && d.docker !== d.standard)
+  .sort((a, b) => a.dir.localeCompare(b.dir));
 
 const wsList = WORKSPACE_SRC_DIRS.map((s) =>
   s.replace(/^packages\//, '').replace(/\/src$/, '')
@@ -177,20 +268,26 @@ console.log(
   `\n[docker-core-entries] ${exportDir.size} core dist-subpath exports · ${dockerEntries.size} Docker entries · ${importedDirs.size} imported by runtime-image workspaces`
 );
 console.log(`  scanned workspaces (${WORKSPACE_SRC_DIRS.length}): ${wsList}`);
-if (missing.length === 0) {
+if (missing.length === 0 && sourceDrift.length === 0) {
   console.log(
-    '  [ok]   every core subpath a runtime-image workspace imports has a matching Docker tsup entry'
+    '  [ok]   every core subpath a runtime-image workspace imports has a Docker tsup entry built from the same source as the standard build'
   );
   console.log('\nRESULT: COVERED — no Docker-entry-drift.');
   process.exit(0);
 }
+const importers = (dir) => [...(importedByWorkspace.get(dir) || [])].sort().join(', ') || 'unknown';
 for (const dir of missing) {
-  const by = [...(importedByWorkspace.get(dir) || [])].sort().join(', ') || 'unknown';
   console.error(
-    `  [FAIL] ${exportDir.get(dir)} is imported by runtime-image workspace(s) [${by}] but '${dir}/index' is MISSING from scripts/docker/tsup.core.docker.cjs`
+    `  [FAIL] ${exportDir.get(dir)} is imported by runtime-image workspace(s) [${importers(dir)}] but '${dir}' is MISSING from scripts/docker/tsup.core.docker.cjs`
   );
 }
+for (const d of sourceDrift) {
+  console.error(
+    `  [FAIL] ${exportDir.get(d.dir)} is imported by runtime-image workspace(s) [${importers(d.dir)}] but scripts/docker/tsup.core.docker.cjs builds it from '${d.docker}' while packages/core/tsup.config.ts builds it from '${d.standard}' — the image's dist file will lack exports the standard build has`
+  );
+}
+const total = missing.length + sourceDrift.length;
 console.error(
-  `\nRESULT: ${missing.length} Docker-entry-drift(s). The Docker build will omit dist/<dir>/index.cjs and the service will CRASH-LOOP at boot (MODULE_NOT_FOUND). Add the entr${missing.length === 1 ? 'y' : 'ies'} to scripts/docker/tsup.core.docker.cjs: ${missing.map((d) => `'${d}/index': 'src/${d}/index.ts'`).join(', ')}`
+  `\nRESULT: ${total} Docker-entry-drift(s). The image will omit or mis-build these core subpaths and the service fails its build-time import check or CRASH-LOOPS at boot. Make each Docker entry match packages/core/tsup.config.ts${missing.length ? `; missing: ${missing.map((d) => `'${d}'`).join(', ')}` : ''}`
 );
 process.exit(1);
