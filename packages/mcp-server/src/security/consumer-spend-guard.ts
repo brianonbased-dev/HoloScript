@@ -208,3 +208,29 @@ export async function __resetConsumerSpendGuardForTests(): Promise<void> {
     console.warn('[consumer-spend-guard] test reset failed (non-fatal):', e);
   }
 }
+
+/**
+ * Answer for POST /api/credits/check (Studio creditGate) when no credit ledger
+ * (Postgres pool) exists.
+ *
+ * Local development degrades open, as before. In production a missing ledger
+ * is a misconfiguration and must REFUSE: answering "ok, balance Infinity" let
+ * every paid operation through unmetered whenever DATABASE_URL was missing.
+ */
+export function creditCheckWithoutLedger(
+  requiredCents: number,
+  env: NodeJS.ProcessEnv = process.env
+): { status: number; body: Record<string, unknown> } {
+  if (env.NODE_ENV === 'production') {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        error: 'Credit ledger unavailable',
+        required: requiredCents,
+        message: 'Credit checks are refused while the credit database is not configured.',
+      },
+    };
+  }
+  return { status: 200, body: { ok: true, balance: Infinity, required: requiredCents } };
+}

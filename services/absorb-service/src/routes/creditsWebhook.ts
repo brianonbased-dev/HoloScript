@@ -1,21 +1,24 @@
 import { Router, Request, Response } from 'express';
 import type Stripe from 'stripe';
+import { configuredStripeKey } from './credits.js';
 
 const router = Router();
 
 // Endpoint: POST /api/credits/webhook/stripe
 router.post('/stripe', async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim() ? process.env.STRIPE_WEBHOOK_SECRET : '';
+  // A blank value counts as missing (Railway can hold set-but-empty variables).
+  const stripeKey = configuredStripeKey();
 
-  if (!endpointSecret || !process.env.STRIPE_SECRET_KEY) {
+  if (!endpointSecret || !stripeKey) {
     console.error(`[credits/webhook] Webhook secret or Stripe key not configured`);
     res.status(400).send('Webhook environment missing');
     return;
   }
 
   const { default: Stripe } = await import('stripe');
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = new Stripe(stripeKey);
   let event: Stripe.Event;
 
   try {

@@ -339,6 +339,28 @@ describe('effectiveBody unwrap', () => {
   });
 });
 
+// ── HOLOMESH_REQUIRE_ATTESTED_SIGNERS — dual path fails closed on an empty registry ──
+
+describe('verifyDualEnvelopeRequest — HOLOMESH_REQUIRE_ATTESTED_SIGNERS=1', () => {
+  const body = { team: 'core', op: 'audit' };
+  const nonce = 'n-require';
+  const timestamp = '2026-05-12T00:00:00.000Z';
+  const PQC_KP = ml_dsa65.keygen(new Uint8Array(32).fill(0x42));
+
+  it('refuses a valid pqc_only envelope when the registry is empty', async () => {
+    const env = buildEnvelope({ mode: 'pqc_only', body, nonce, timestamp, pqcKeyPair: PQC_KP });
+    const req = envelopeToRequest(env, body, nonce, timestamp);
+    const result = await extractAndVerifySigning(req, {
+      registry: new AttestationRegistry(),
+      env: { HOLOMESH_REQUIRE_ATTESTED_SIGNERS: '1', NODE_ENV: 'production' },
+    });
+    expect(result.ctx.signingValid).toBe(false);
+    expect(result.ctx.signingReason).toBe('signer-registry-empty');
+    expect(result.ctx.signingProtocol).toBe('dual');
+    expect(result.ctx.dualMode).toBe('pqc_only');
+  });
+});
+
 // ── Registry-integration: empty-registry safe-default + populated registry ──
 
 describe('verifyDualEnvelopeRequest — registry integration', () => {
