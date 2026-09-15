@@ -124,6 +124,7 @@ import {
 import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
 import { founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
+import { creditCheckWithoutLedger } from './security/consumer-spend-guard';
 import {
   initStores,
   teamStore,
@@ -2844,9 +2845,10 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
       if (!pgPool) {
-        // No DB — allow all requests (graceful degradation)
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: true, balance: Infinity, required: opCost.baseCostCents }));
+        // No credit ledger: local dev degrades open, production refuses (fail closed).
+        const noLedger = creditCheckWithoutLedger(opCost.baseCostCents);
+        res.writeHead(noLedger.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(noLedger.body));
         return;
       }
       const result = await pgPool.query(

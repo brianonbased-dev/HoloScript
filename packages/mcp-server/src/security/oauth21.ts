@@ -16,7 +16,13 @@
  */
 
 import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
-import { expandScopes, OAUTH2_PUBLIC_SCOPE_NAMES } from '../auth/oauth2-provider';
+import {
+  expandScopes,
+  hasConfiguredLegacyKey,
+  isProductionRuntime,
+  openDevModeAllowed,
+  OAUTH2_PUBLIC_SCOPE_NAMES,
+} from '../auth/oauth2-provider';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -533,7 +539,10 @@ export class OAuth21Service {
       return { active: false };
     }
 
-    if (!this.config.legacyApiKey) {
+    if (!hasConfiguredLegacyKey(this.config.legacyApiKey)) {
+      // No key configured: local open dev mode only. In production, refuse —
+      // any key a caller sends must never become an admin:* identity.
+      if (isProductionRuntime()) return { active: false };
       return { active: true, scopes: ['admin:*'], agentId: 'legacy-open-dev' };
     }
 
@@ -603,13 +612,13 @@ export class OAuth21Service {
     }
 
     // Try legacy Bearer that's actually an API key
-    if (authHeader.startsWith('Bearer ') && this.config.legacyApiKey) {
+    if (authHeader.startsWith('Bearer ') && hasConfiguredLegacyKey(this.config.legacyApiKey)) {
       const key = authHeader.slice(7);
       return this.validateLegacyKey(key);
     }
 
-    // No auth provided -- check if open dev mode
-    if (!this.config.legacyApiKey && this.config.migrationMode === 'permissive') {
+    // No auth provided -- open dev mode only outside production (fails closed in prod)
+    if (openDevModeAllowed(this.config)) {
       return { active: true, scopes: ['admin:*'], agentId: 'open-dev-mode' };
     }
 

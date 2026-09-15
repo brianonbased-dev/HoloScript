@@ -64,6 +64,36 @@ export interface OAuth2ProviderConfig {
   requireDPoP: boolean;
 }
 
+/**
+ * True when the process runs as a production service. Production is where a
+ * missing setting must refuse rather than open (same rule as the Railway and
+ * absorb auth gates).
+ */
+export function isProductionRuntime(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NODE_ENV === 'production';
+}
+
+/** A legacy API key counts as configured only when it is non-blank. */
+export function hasConfiguredLegacyKey(key: string | undefined): key is string {
+  return typeof key === 'string' && key.trim().length > 0;
+}
+
+/**
+ * Open dev mode (no legacy key, permissive migration) grants `admin:*` to any
+ * caller. It exists for local development only: in production a missing or
+ * blank HOLOSCRIPT_API_KEY must fail closed, never mint an admin identity.
+ */
+export function openDevModeAllowed(
+  config: { legacyApiKey?: string; migrationMode: 'strict' | 'permissive' },
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  return (
+    !hasConfiguredLegacyKey(config.legacyApiKey) &&
+    config.migrationMode === 'permissive' &&
+    !isProductionRuntime(env)
+  );
+}
+
 export const DEFAULT_PROVIDER_CONFIG: OAuth2ProviderConfig = {
   issuer: process.env.OAUTH_ISSUER || 'https://mcp.holoscript.net',
   ttl: {
@@ -943,13 +973,13 @@ export class OAuth2Provider {
     }
 
     // Try legacy Bearer that's actually an API key
-    if (authHeader.startsWith('Bearer ') && this.config.legacyApiKey) {
+    if (authHeader.startsWith('Bearer ') && hasConfiguredLegacyKey(this.config.legacyApiKey)) {
       const key = authHeader.slice(7);
       return this.validateLegacyKey(key);
     }
 
-    // No auth provided - check if open dev mode
-    if (!this.config.legacyApiKey && this.config.migrationMode === 'permissive') {
+    // No auth provided - open dev mode only outside production (fails closed in prod)
+    if (openDevModeAllowed(this.config)) {
       return { active: true, scopes: ['admin:*'], agentId: 'open-dev-mode' };
     }
 
@@ -964,7 +994,10 @@ export class OAuth2Provider {
       return { active: false };
     }
 
-    if (!this.config.legacyApiKey) {
+    if (!hasConfiguredLegacyKey(this.config.legacyApiKey)) {
+      // No key configured: local open dev mode only. In production, refuse —
+      // any key a caller sends must never become an admin:* identity.
+      if (isProductionRuntime()) return { active: false };
       return { active: true, scopes: ['admin:*'], agentId: 'legacy-open-dev' };
     }
 

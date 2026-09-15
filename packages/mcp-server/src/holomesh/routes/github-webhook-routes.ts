@@ -40,7 +40,12 @@ function verifyGithubSignature(
   repoSecret?: string
 ): boolean {
   const secret = repoSecret || process.env.GITHUB_WEBHOOK_SECRET || '';
-  if (!secret) return true; // dev: skip verification when secret not configured
+  if (!secret.trim()) {
+    // Unconfigured (missing or blank) secret. In production that is a
+    // misconfiguration and must fail closed — otherwise anyone can POST a fake
+    // push and trigger CI dispatch. Local dev keeps the skip.
+    return process.env.NODE_ENV !== 'production';
+  }
   if (!signature) return false;
   const expected = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');
   if (expected.length !== signature.length) return false;
