@@ -96,6 +96,17 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'xr-spatial-tracking=*, camera=(), microphone=(), geolocation=()',
           },
+          // src/proxy.ts sets these on pages, but its matcher skips /api, so
+          // every API response went out without them (seen live 2026-09-15 on
+          // /api/health). Same values as proxy.ts; on pages the proxy's own
+          // values still apply.
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
         ],
       },
     ];

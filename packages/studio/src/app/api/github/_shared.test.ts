@@ -63,6 +63,31 @@ describe('getGitHubToken', () => {
     await expect(getGitHubToken(req)).resolves.toBe('ghp_server_token');
   });
 
+  it('userOnly never returns the server token, even where the fallback is allowed', async () => {
+    delete process.env.AUTH_SECRET;
+    delete process.env.NEXTAUTH_SECRET;
+    process.env.NODE_ENV = 'development';
+    process.env.GITHUB_TOKEN = 'ghp_server_token';
+
+    const req = new NextRequest('http://localhost/api/absorb/credits');
+
+    // Control: the same setup without userOnly does hand out the server token.
+    await expect(getGitHubToken(req)).resolves.toBe('ghp_server_token');
+    await expect(getGitHubToken(req, { userOnly: true })).resolves.toBeNull();
+  });
+
+  it('userOnly still returns the signed-in user token', async () => {
+    const rawToken = 'gho_device_cookie_user_only_1234567890';
+    const encryptedToken = await encryptGitHubDeviceToken(rawToken);
+    process.env.GITHUB_TOKEN = 'ghp_server_token';
+
+    const req = new NextRequest('http://localhost/api/absorb/credits', {
+      headers: { cookie: `${GITHUB_DEVICE_TOKEN_COOKIE}=${encryptedToken}` },
+    });
+
+    await expect(getGitHubToken(req, { userOnly: true })).resolves.toBe(rawToken);
+  });
+
   it('omits the server token hint from production auth errors by default', () => {
     process.env.NODE_ENV = 'production';
 

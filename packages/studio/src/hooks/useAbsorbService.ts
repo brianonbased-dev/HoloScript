@@ -216,8 +216,11 @@ export function useAbsorbService() {
       body: JSON.stringify({ packageId }),
     });
     const data = await res.json();
-    if (data.sessionUrl) {
-      window.location.href = data.sessionUrl;
+    // absorb-service answers with `checkoutUrl` (routes/credits.ts); `sessionUrl`
+    // never existed, so a successful purchase used to go nowhere.
+    const checkoutUrl = data.checkoutUrl ?? data.sessionUrl;
+    if (res.ok && typeof checkoutUrl === 'string') {
+      window.location.href = checkoutUrl;
     }
     return { success: res.ok, data };
   }, []);
