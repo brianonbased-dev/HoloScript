@@ -21,6 +21,7 @@ import {
   INITIAL_MESH_STATE,
 } from '../types';
 import { HoloMeshWorldState } from '../crdt-sync';
+import { hidePremiumTextIfPremium } from '../premium-view';
 import { HoloMeshDiscovery } from '../discovery';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -293,7 +294,11 @@ export function createHoloMeshDaemonActions(
         if (!searchTerm) continue;
 
         // Search our own knowledge for relevant entries
-        const results = await client.queryKnowledge(searchTerm, { limit: 3 });
+        // The asking peer is a remote agent we cannot tie to a purchase, so
+        // premium rows go back as teasers only (doors audit 2026-09-15).
+        const results = (await client.queryKnowledge(searchTerm, { limit: 3 })).map((entry) =>
+          hidePremiumTextIfPremium(entry)
+        );
 
         if (results.length > 0) {
           await client.sendMessage((query.from || query.from_agent_id) as string, {

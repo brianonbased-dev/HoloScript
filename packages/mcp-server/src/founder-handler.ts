@@ -18,6 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
+import { hidePremiumTextIfPremium } from './holomesh/premium-view';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -359,7 +360,10 @@ async function queryKnowledgeStore(
       results?: Array<{ id?: string; type?: string; content?: string }>;
       entries?: Array<{ id?: string; type?: string; content?: string }>;
     };
-    return data.results || data.entries || [];
+    // The caller of holo_founder is never known here, so premium entries
+    // (price in the raw row's metadata) are cut to their teaser before any
+    // of their text can reach a ruling (doors audit 2026-09-15).
+    return (data.results || data.entries || []).map((row) => hidePremiumTextIfPremium(row));
   } catch {
     return [];
   }

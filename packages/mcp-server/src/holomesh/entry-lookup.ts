@@ -3,7 +3,95 @@
  */
 import type { HoloMeshOrchestratorClient } from './orchestrator-client';
 import type { MeshKnowledgeEntry, Team } from './types';
-import { teamStore } from './state';
+import { paidAccessStore, teamStore } from './state';
+import { hidePremiumText, isPremiumEntry } from './premium-view';
+
+// ── Who may read a premium entry (doors audit 2026-09-15) ────────────────────
+//
+// A premium entry (price > 0) goes in full only to an ENTITLED reader: the
+// author, a founder key, or a caller with a recorded purchase. A purchase is
+// recorded only after a verified payment (see verifyPremiumPayment in
+// routes/knowledge-routes.ts). Every place a knowledge lookup result leaves the
+// server passes it through `entryForViewer` (or, where the reader can never be
+// known, `hidePremiumText` from premium-view.ts). A new exit that skips both is
+// a leak.
+
+export type PremiumAccess = 'author' | 'founder' | 'purchased';
+
+export interface PremiumViewer {
+  authenticated: boolean;
+  id: string;
+  isFounder?: boolean;
+}
+
+/** A reader with no identity: never entitled to premium text. */
+export const ANONYMOUS_VIEWER: PremiumViewer = Object.freeze({
+  authenticated: false,
+  id: 'anonymous',
+  isFounder: false,
+});
+
+export function premiumEntryAccess(
+  viewer: PremiumViewer,
+  entryId: string,
+  authorId: string | undefined
+): PremiumAccess | null {
+  if (!viewer.authenticated) return null;
+  if (authorId && viewer.id === authorId) return 'author';
+  if (viewer.isFounder) return 'founder';
+  if (paidAccessStore.has(`${viewer.id}:${entryId}`)) return 'purchased';
+  return null;
+}
+
+/**
+ * THE premium gate for lookup results: a free entry, or a premium entry this
+ * viewer is entitled to, passes through unchanged; any other premium entry
+ * leaves with only its teaser (premium-view.ts) and `locked: true`.
+ */
+export function entryForViewer<
+  T extends {
+    id: string;
+    authorId?: string;
+    price?: unknown;
+    content?: unknown;
+    metadata?: unknown;
+  },
+>(entry: T, viewer: PremiumViewer): T & { premium?: boolean; locked?: boolean } {
+  if (!isPremiumEntry(entry)) return entry;
+  if (premiumEntryAccess(viewer, entry.id, entry.authorId)) return entry;
+  return hidePremiumText(entry);
+}
+
+export function entriesForViewer<
+  T extends {
+    id: string;
+    authorId?: string;
+    price?: unknown;
+    content?: unknown;
+    metadata?: unknown;
+  },
+>(entries: T[], viewer: PremiumViewer): Array<T & { premium?: boolean; locked?: boolean }> {
+  return entries.map((entry) => entryForViewer(entry, viewer));
+}
+
+/** Public-feed quality filter: no raw dumps, logs, tombstones or rejected entries. */
+export function isPublicFeedEntry(entry: MeshKnowledgeEntry): boolean {
+  if (
+    entry.tags?.some((tag) => ['raw-dump', 'session-dump', 'system-log', 'tombstone'].includes(tag))
+  ) {
+    return false;
+  }
+  const metadata = entry.metadata;
+  const quality =
+    metadata &&
+    typeof metadata.quality === 'object' &&
+    metadata.quality !== null &&
+    !Array.isArray(metadata.quality)
+      ? (metadata.quality as Record<string, unknown>)
+      : null;
+  const state = typeof quality?.state === 'string' ? quality.state : '';
+  return state !== 'rejected' && state !== 'raw-dump';
+}
 
 /** Max entries kept per team in the on-disk mirror (ring on overflow). */
 export const TEAM_KNOWLEDGE_MIRROR_MAX = 500;

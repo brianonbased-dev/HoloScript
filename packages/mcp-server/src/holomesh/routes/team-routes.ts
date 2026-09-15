@@ -42,7 +42,13 @@ import {
   type NegotiationAction,
 } from '../agent-negotiation';
 import { getClient } from '../orchestrator-client';
-import { appendTeamKnowledgeMirror, mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
+import {
+  appendTeamKnowledgeMirror,
+  mergeTeamKnowledgeWithOrchestrator,
+  entriesForViewer,
+  isPublicFeedEntry,
+  ANONYMOUS_VIEWER,
+} from '../entry-lookup';
 import { checkRateLimit } from '../social';
 import type {
   Team,
@@ -260,7 +266,11 @@ export async function handleTeamRoutes(
 
     const preview = await fetchQuickstartPreview();
     const topDomains = rankTopDomains(preview);
-    const sampleEntries = preview.slice(0, 5).map(normalizeEntry);
+    // Anonymous onboarding read: premium rows keep only their teaser.
+    const sampleEntries = entriesForViewer(
+      preview.filter(isPublicFeedEntry).slice(0, 5),
+      resolveRequestingAgent(req)
+    ).map(normalizeEntry);
 
     json(res, 200, {
       success: true,
@@ -368,8 +378,9 @@ export async function handleTeamRoutes(
 
     // 2. Auto-join a team ONLY if one has opted in to quickstart newcomers
     //    (isQuickstartAutoJoinTeam). No opted-in team means no team: the
-    //    stranger gets an identity and the public feed, never an internal
-    //    room or its board.
+    //    stranger gets an identity and the public feed (filtered like
+    //    GET /feed, premium rows as teasers; see feed_preview below), never
+    //    an internal room or its board.
     let joinedTeam: Team | null = null;
     let teamBoard: unknown[] = [];
     let teamMode = 'build';
@@ -450,9 +461,16 @@ export async function handleTeamRoutes(
       // Onboarding succeeds even if orchestrator is temporarily unavailable
     }
 
+    // The public feed, exactly as GET /api/holomesh/feed filters it, with
+    // premium rows cut to their teaser (doors audit 2026-09-15, round 3:
+    // this used to return raw lookup rows, premium text included).
     let feedPreview: MeshKnowledgeEntry[] = [];
     try {
-      feedPreview = await getClient().queryKnowledge('', { limit: 10 });
+      const raw = await getClient().queryKnowledge('', { limit: 10 });
+      feedPreview = entriesForViewer(raw.filter(isPublicFeedEntry), {
+        authenticated: true,
+        id: agent.id,
+      });
     } catch {
       feedPreview = [];
     }
@@ -1731,7 +1749,11 @@ export async function handleTeamRoutes(
     } catch {
       fromOrch = [];
     }
-    let entries = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
+    // Team members are not entitled to each other's premium entries.
+    let entries = entriesForViewer(
+      mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge),
+      resolveRequestingAgent(req)
+    );
     if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
     if (q) {
       // `q` present → a RELEVANCE query. mergeTeamKnowledgeWithOrchestrator leads

@@ -91,7 +91,11 @@ import type {
   RetiredDoneLogReceipt,
 } from '../types';
 import { getClient } from '../orchestrator-client';
-import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
+import {
+  mergeTeamKnowledgeWithOrchestrator,
+  entriesForViewer,
+  ANONYMOUS_VIEWER,
+} from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
 import { deriveApprovalReversibility } from './founder-approval-policy';
 
@@ -1994,7 +1998,11 @@ export async function handleBoardRoutes(
     } catch {
       knowledge = team.knowledge || [];
     }
-    const recentKnowledge = knowledge
+    // Capability-token briefs have no identity; they get premium teasers only.
+    const briefViewer = briefCaller
+      ? { authenticated: true, id: briefCaller.id }
+      : ANONYMOUS_VIEWER;
+    const recentKnowledge = entriesForViewer(knowledge, briefViewer)
       .filter((e) => e.content !== '[deleted]' && !(e.tags || []).includes('tombstone'))
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
       .slice(0, 5);

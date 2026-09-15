@@ -42,6 +42,14 @@ import { resolveSecretWithLease, VaultLeaseError } from './identity/vault-lease-
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
+import {
+  entriesForViewer,
+  entryForViewer,
+  premiumEntryAccess,
+  ANONYMOUS_VIEWER,
+  type PremiumViewer,
+} from './entry-lookup';
+import { isPremiumEntry } from './premium-view';
 import { boardTools, handleBoardTool } from './board-tools';
 import { teamAgentTools, handleTeamAgentTool } from './team-agent-tools';
 import { teamFormationTools, handleTeamFormationTool } from './team-formation-tools';
@@ -1241,14 +1249,29 @@ async function handleContribute(
   }
 }
 
+/**
+ * The reader of an MCP tool call, for the premium gate. handlers.ts stamps
+ * `__authAgentId` from the verified signer and deletes any caller-supplied
+ * value; without it (stdio, anonymous HTTP) the reader is anonymous. Founder
+ * keys are not recognised on this path, so a founder reads premium entries
+ * through GET /api/holomesh/entry/:id instead.
+ */
+function toolViewer(args: Record<string, unknown>): PremiumViewer {
+  const id = args.__authAgentId;
+  return typeof id === 'string' && id ? { authenticated: true, id } : ANONYMOUS_VIEWER;
+}
+
 async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
   try {
     const search = args.search as string;
-    const results = await client.queryKnowledge(search, {
-      type: args.type as string,
-      limit: (args.limit as number) || 10,
-      workspaceId: args.workspace as string,
-    });
+    const results = entriesForViewer(
+      await client.queryKnowledge(search, {
+        type: args.type as string,
+        limit: (args.limit as number) || 10,
+        workspaceId: args.workspace as string,
+      }),
+      toolViewer(args)
+    );
 
     return {
       success: true,
@@ -1362,10 +1385,18 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
       };
     }
 
+    // Doors audit 2026-09-15 (round 3): this returned the full premium entry
+    // and said a payment was "queued" when nothing was charged or recorded.
+    const access = premiumEntryAccess(toolViewer(args), entry.id, entry.authorId);
+    if (access) {
+      return { success: true, message: 'You already have access to this entry.', entry, access };
+    }
     return {
-      success: true,
-      message: `Collection recorded. Payment of $${entry.price} queued for settlement via x402 Publishing Protocol.`,
-      entry,
+      success: false,
+      code: 'x402-payment-required',
+      message:
+        'This is premium content and needs a verified payment. This tool cannot take one, and nothing was charged or recorded.',
+      entry: entryForViewer(entry, toolViewer(args)),
       price: entry.price,
       referrer,
       walletRequired: true,
@@ -1590,18 +1621,33 @@ async function handleCrosspostMoltbook(
       return { error: 'Missing required field: entry_id' };
     }
 
-    // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
-    // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
-    const moltbookKey = readMoltbookApiKey();
-    if (!moltbookKey) {
-      return { error: 'MOLTBOOK_API_KEY not configured in environment' };
-    }
-
     // Look up the entry
     const results = await client.queryKnowledge(entryId, { limit: 50 });
     const entry = results.find((e: MeshKnowledgeEntry) => e.id === entryId);
     if (!entry) {
       return { error: `Entry not found: ${entryId}` };
+    }
+
+    // Doors audit 2026-09-15 (round 3): this tool posted the full text of ANY
+    // entry, premium included, to public Moltbook with no author check. Only
+    // the author may publish a premium entry's text elsewhere; a buyer may not.
+    // Checked before the Moltbook key is even read.
+    if (
+      isPremiumEntry(entry) &&
+      premiumEntryAccess(toolViewer(args), entry.id, entry.authorId) !== 'author'
+    ) {
+      return {
+        error: 'premium-entry-author-only',
+        message:
+          'This is a premium entry. Only its author can cross-post its text. Nothing was posted.',
+      };
+    }
+
+    // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
+    // HOLOMESH_VAULT_LEASE_ENFORCE is on; transparent passthrough otherwise.
+    const moltbookKey = readMoltbookApiKey();
+    if (!moltbookKey) {
+      return { error: 'MOLTBOOK_API_KEY not configured in environment' };
     }
 
     // Build Moltbook post
