@@ -5,13 +5,30 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { Request, Response } from 'express';
-import { randomUUID } from 'crypto';
-import { resolveGitHubToken } from './middleware/github-identity.js';
+import type { Express, Request, Response } from 'express';
+import { authMiddleware, type AuthenticatedRequest } from './middleware/auth.js';
 import { SERVICE_VERSION } from './version.js';
 
 const transports = new Map<string, SSEServerTransport>();
+/** Legacy SSE sessionId -> the verified caller who opened it (see sessionPrincipal). */
 const sessionUserMap = new Map<string, string>();
+
+/** Principal for a service-key request that forwards no end-user identity. */
+const SERVICE_PRINCIPAL = 'service:absorb-api-key';
+
+/**
+ * The verified caller a legacy SSE session belongs to, or null.
+ *
+ * authMiddleware sets `authenticated` only for the service key, a valid MCPMe
+ * orchestrator attestation, or a resolvable GitHub token. In local dev mode (no
+ * ABSORB_API_KEY, outside production) it lets requests through with
+ * `authenticated = false` — that is still nobody a session can be bound to.
+ */
+function sessionPrincipal(req: Request): string | null {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.authenticated) return null;
+  return authReq.userId ?? SERVICE_PRINCIPAL;
+}
 
 /**
  * Live tool count registered on the most recent createMcpServer() call.
@@ -144,23 +161,40 @@ export async function assertMcpToolInventoryReady(): Promise<number> {
 }
 
 export async function handleMcpSse(req: Request, res: Response): Promise<void> {
-  const sessionId = randomUUID();
-  
-  // Client should POST to /mcp/messages with sessionId in query
-  const host = req.headers.host || 'localhost:3005';
-  const protocol = req.headers['x-forwarded-proto'] || 'http';
-  const baseUrl = `${protocol}://${host}`;
-  const transport = new SSEServerTransport(`${baseUrl}/mcp/messages?sessionId=${sessionId}`, res);
-  transports.set(sessionId, transport);
+  // A session is bound to the caller who opens it; with no verified caller
+  // there is nothing to bind, so no session is issued.
+  const principal = sessionPrincipal(req);
+  if (!principal) {
+    res.status(401).json({
+      error: 'Authentication required',
+      message:
+        'Legacy SSE sessions belong to the caller who opens them. Provide Authorization: Bearer <API key or GitHub token>.',
+    });
+    return;
+  }
 
-  req.on('close', () => {
+  // The SDK transport owns the session id: it announces
+  // `/mcp/messages?sessionId=<transport.sessionId>` to the client, SETTING that
+  // query parameter (and emitting a relative path). The id this handler used to
+  // mint with randomUUID() and put in the URL was overwritten before any client
+  // saw it, so the maps were keyed by an id nobody held and every legacy message
+  // answered 404 "Session not found" (mcp-transport-auth.test.ts pins the owner's
+  // message at 202). Key both maps by the id the client is actually given.
+  const transport = new SSEServerTransport('/mcp/messages', res);
+  const sessionId = transport.sessionId;
+  transports.set(sessionId, transport);
+  sessionUserMap.set(sessionId, principal);
+
+  // Drop the session when the SSE stream closes (client disconnect).
+  res.on('close', () => {
     transports.delete(sessionId);
     sessionUserMap.delete(sessionId);
   });
 
   const server = await createMcpServer();
+  // connect() starts the transport (SSE headers + endpoint event). The extra
+  // transport.start() that followed threw "already started" on every session.
   await server.connect(transport);
-  await transport.start();
 }
 
 /**
@@ -225,20 +259,18 @@ export async function handleMcpMessages(req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Bind userId to session from Authorization header (best-effort)
-    if (!sessionUserMap.has(sessionId)) {
-      const authHeader = req.headers.authorization;
-      if (authHeader) {
-        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-        try {
-          const identity = await resolveGitHubToken(token);
-          if (identity) {
-            sessionUserMap.set(sessionId, identity.userId);
-          }
-        } catch {
-          // Token resolution failed — session remains anonymous
-        }
-      }
+    // A session takes messages only from the caller who opened it. authMiddleware
+    // has already refused anonymous requests; a session with no bound caller is
+    // refused outright (it used to bind "best-effort" and run anonymously), and a
+    // leaked or guessed sessionId is not a credential for anyone else.
+    const owner = sessionUserMap.get(sessionId);
+    if (!owner) {
+      res.status(403).json({ error: 'Session has no bound caller' });
+      return;
+    }
+    if (sessionPrincipal(req) !== owner) {
+      res.status(403).json({ error: 'Session belongs to a different caller' });
+      return;
     }
 
     // Pipe the request/response through the transport
@@ -259,9 +291,16 @@ export async function handleMcpDelete(req: Request, res: Response): Promise<void
     return;
   }
 
+  const owner = sessionUserMap.get(sessionId);
+  if (!owner || sessionPrincipal(req) !== owner) {
+    res.status(403).json({ error: 'Session belongs to a different caller' });
+    return;
+  }
+
   const transport = transports.get(sessionId)!;
   await transport.close();
   transports.delete(sessionId);
+  sessionUserMap.delete(sessionId);
   res.json({ closed: true });
 }
 
@@ -319,4 +358,20 @@ export function handleMcpDiscovery(req: Request, res: Response): void {
 
 export function getActiveSessionCount(): number {
   return transports.size;
+}
+
+/**
+ * Mount every MCP transport route behind the same authMiddleware as the REST API.
+ *
+ * Until 2026-09-15 only POST /mcp was guarded: GET /mcp issued an SSE session to
+ * any anonymous caller and POST /mcp/messages / DELETE /mcp took no credentials,
+ * so the legacy fallback was a side door around the authenticated front door.
+ * Every transport verb now authenticates, and the SSE handlers additionally tie
+ * each session to the caller who opened it.
+ */
+export function mountMcpTransports(app: Express): void {
+  app.post('/mcp', authMiddleware, handleMcpStreamableHttp);
+  app.get('/mcp', authMiddleware, handleMcpSse);
+  app.post('/mcp/messages', authMiddleware, handleMcpMessages);
+  app.delete('/mcp', authMiddleware, handleMcpDelete);
 }
