@@ -411,6 +411,44 @@ describe('extractAndVerifySigning — registry consulted when populated', () => 
   });
 });
 
+// ── HOLOMESH_REQUIRE_ATTESTED_SIGNERS — fail closed on an empty registry ──
+
+describe('extractAndVerifySigning — HOLOMESH_REQUIRE_ATTESTED_SIGNERS=1', () => {
+  const REQUIRE = { HOLOMESH_REQUIRE_ATTESTED_SIGNERS: '1', NODE_ENV: 'production' };
+
+  it('refuses a cryptographically valid signer when the registry is empty', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const r = await extractAndVerifySigning(buildEnvelope(), {
+      nowMs: FRESH_NOW,
+      registry: new AttestationRegistry(),
+      env: REQUIRE,
+    });
+    expect(r.ctx.signedRequest).toBe(true);
+    expect(r.ctx.signingValid).toBe(false);
+    expect(r.ctx.signer).toBeNull();
+    expect(r.ctx.signingReason).toBe('signer-registry-empty');
+  });
+
+  it('still accepts an attested signer once the registry is populated', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const registry = new AttestationRegistry();
+    attestKey(registry);
+    const r = await extractAndVerifySigning(buildEnvelope(), { nowMs: FRESH_NOW, registry, env: REQUIRE });
+    expect(r.ctx.signingValid).toBe(true);
+    expect(r.ctx.signer).toBe(VALID_ADDR);
+  });
+
+  it('keeps the empty-registry path unchanged when the switch is off (live default pending a decision)', async () => {
+    mockVerifyMessage.mockResolvedValue(true);
+    const r = await extractAndVerifySigning(buildEnvelope(), {
+      nowMs: FRESH_NOW,
+      registry: new AttestationRegistry(),
+      env: { NODE_ENV: 'production' },
+    });
+    expect(r.ctx.signingValid).toBe(true);
+  });
+});
+
 // ── extractAndVerifySigning — singleton integration ─────────────────
 
 describe('extractAndVerifySigning — singleton integration', () => {
