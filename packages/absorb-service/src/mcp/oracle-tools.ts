@@ -16,6 +16,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { mcpAuthHeadersAsync } from '@holoscript/config';
+import { hidePremiumRowsDeep } from './premium-view';
 
 // =============================================================================
 // DECISION TREES (inline for zero-latency responses)
@@ -213,7 +214,11 @@ export async function handleOracleTool(
 
   // 2. Query knowledge store for deeper context
   const searchTerms = question.length > 10 ? question : `${question} ${context}`;
-  const kEntries = await queryKnowledgeStore(searchTerms, 5);
+  // Doors audit 2026-09-15: the oracle never knows who its reader is, and a
+  // signed-in absorb caller is authenticated, not entitled. Premium rows are
+  // quoted from their teaser only (a short premium entry used to come out whole
+  // inside the 200-character quote).
+  const kEntries = hidePremiumRowsDeep(await queryKnowledgeStore(searchTerms, 5));
 
   if (kEntries.length > 0) {
     const formatted = (kEntries as Array<{ id?: string; type?: string; content?: string }>)

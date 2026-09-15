@@ -5,6 +5,7 @@ import { boardReadLimit } from '../../../../../../lib/rate-limiter';
 import { getDb } from '../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { hidePremiumRowsDeep } from '../../../../../../lib/premium-view';
 
 import { corsHeaders } from '../../../../_lib/cors';
 const HOLOMESH_API_URL =
@@ -31,9 +32,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const team =
     teamRes.status === 'fulfilled' && teamRes.value.ok ? await teamRes.value.json() : null;
+  // Doors audit 2026-09-15: fetched under Studio's server key and served to
+  // anyone who names the team, so premium entries leave as teasers only.
   const knowledge =
     knowledgeRes.status === 'fulfilled' && knowledgeRes.value.ok
-      ? await knowledgeRes.value.json()
+      ? hidePremiumRowsDeep(await knowledgeRes.value.json())
       : null;
 
   // Pull full board (all statuses) from DB where available
@@ -83,15 +86,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const blocked = (allTasks as Array<{ status: string }>).filter((t) => t.status === 'blocked');
   const done = (allTasks as Array<{ status: string }>).filter((t) => t.status === 'done');
 
-  return NextResponse.json({
-    exportedAt: new Date().toISOString(),
-    teamId: id,
-    source,
-    team: team ?? { id },
-    board: { open, claimed, blocked },
-    done,
-    knowledge: knowledge ?? [],
-  });
+  // The team payload came up under the server key too: the whole export is
+  // cut, not just the knowledge list.
+  return NextResponse.json(
+    hidePremiumRowsDeep({
+      exportedAt: new Date().toISOString(),
+      teamId: id,
+      source,
+      team: team ?? { id },
+      board: { open, claimed, blocked },
+      done,
+      knowledge: knowledge ?? [],
+    })
+  );
 }
 
 export function OPTIONS(request: Request) {

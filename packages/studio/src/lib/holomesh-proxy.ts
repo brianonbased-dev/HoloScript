@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { hidePremiumRowsDeep } from './premium-view';
 
 const BASE =
   process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
@@ -17,6 +18,19 @@ function holomeshHeaders(req?: Request): Record<string, string> {
   return headers;
 }
 
+/**
+ * Doors audit 2026-09-15. When the visitor sends no Authorization header of
+ * its own, the request goes upstream under Studio's server key, so HoloMesh
+ * answers with whatever THAT key may read: an author's own premium entries,
+ * or every premium entry if the key is a founder key. None of that belongs to
+ * the visitor. So whenever the server key stood in for the visitor, premium
+ * rows in the answer are cut to their teaser (premium-view.ts). A visitor who
+ * sends its own key is judged by HoloMesh's own premium gate instead.
+ */
+export function usesServerKeyFor(req?: Request): boolean {
+  return !req?.headers.get('authorization');
+}
+
 export async function fetchHoloMeshJson<T>(
   path: string,
   req?: Request
@@ -33,6 +47,7 @@ export async function fetchHoloMeshJson<T>(
   } catch {
     data = null;
   }
+  if (data !== null && usesServerKeyFor(req)) data = hidePremiumRowsDeep(data);
 
   return { ok: upstream.ok, status: upstream.status, data };
 }
@@ -51,8 +66,20 @@ export async function proxyHoloMesh(path: string, req: NextRequest): Promise<Res
     ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: await req.text() } : {}),
   });
 
+  const contentType = upstream.headers.get('Content-Type') || 'application/json';
+  if (usesServerKeyFor(req) && contentType.includes('json')) {
+    const text = await upstream.text();
+    let body = text;
+    try {
+      body = JSON.stringify(hidePremiumRowsDeep(JSON.parse(text)));
+    } catch {
+      // Not JSON after all: no knowledge rows to cut; pass it on as it came.
+    }
+    return new Response(body, { status: upstream.status, headers: { 'Content-Type': contentType } });
+  }
+
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: { 'Content-Type': upstream.headers.get('Content-Type') || 'application/json' },
+    headers: { 'Content-Type': contentType },
   });
 }

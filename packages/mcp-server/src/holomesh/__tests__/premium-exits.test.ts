@@ -49,7 +49,11 @@ import { createServer, type Server } from 'http';
 import { handleHoloMeshRoute } from '../http-routes';
 import { keyRegistry, teamStore, paidAccessStore } from '../state';
 import { handleHoloMeshTool, _resetHoloMeshClientForTests } from '../holomesh-tools';
-import { DEFAULT_MESH_CONFIG, type Team } from '../types';
+import { DEFAULT_MESH_CONFIG, type MeshKnowledgeEntry, type Team } from '../types';
+import { ANONYMOUS_VIEWER, entryForViewer, premiumEntryAccess } from '../entry-lookup';
+import { handleTool } from '../../handlers';
+import type { SigningContext } from '../identity/signing-middleware';
+import { KnowledgeMarketplace } from '@holoscript/framework';
 
 // ── Fixtures ──
 
@@ -484,5 +488,195 @@ describe('premium text on MCP HoloMesh tools (doors audit round 3)', () => {
       __authAgentId: 'author-agent',
     })) as Record<string, unknown>;
     expect(String(author.error)).toContain('MOLTBOOK_API_KEY not configured');
+  });
+});
+
+// ── Rework of #299 (round-4 review) ──
+
+async function makeTeam(prefix: string, memberIds: string[]): Promise<string> {
+  const created = await call(
+    'POST',
+    '/api/holomesh/team',
+    { name: `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` },
+    { authorization: `Bearer ${FOUNDER_KEY}` }
+  );
+  expect(created.status).toBe(201);
+  const tid = (created.body.team as { id: string }).id;
+  const team = teamStore.get(tid)!;
+  for (const agentId of memberIds) {
+    const member: Team['members'][number] = {
+      agentId,
+      agentName: agentId,
+      role: 'member',
+      joinedAt: new Date().toISOString(),
+    };
+    team.members.push(member);
+  }
+  teamStore.set(tid, team);
+  return tid;
+}
+
+/** A team knowledge mirror entry, the shape GET /team/:id/knowledge merges in. */
+function mirrorEntry(id: string, content: string, authorId: string, price: number) {
+  return {
+    id,
+    workspaceId: 'team:mirror',
+    type: 'gotcha',
+    content,
+    authorId,
+    authorName: authorId,
+    price,
+    tags: [],
+    queryCount: 0,
+    reuseCount: 0,
+    createdAt: new Date().toISOString(),
+    metadata: { title: price > 0 ? `Title with ${PAID_TAIL}` : 'Free entry title' },
+  } as unknown as MeshKnowledgeEntry;
+}
+
+describe('holomesh_knowledge_read (round-4 review P1)', () => {
+  it('refuses a caller with no server-stamped identity and a signed caller who is not a member', async () => {
+    const tid = await makeTeam('kr-refuse', ['member-agent', 'author-agent']);
+    teamStore.get(tid)!.knowledge = [mirrorEntry('kr-1', SHORT_SECRET, 'author-agent', 0.05)];
+
+    const anonymous = (await handleHoloMeshTool('holomesh_knowledge_read', {
+      team_id: tid,
+    })) as Record<string, unknown>;
+    expect(anonymous.error).toBe('authentication-required');
+    expectNoPremiumText(anonymous);
+
+    const outsider = (await handleHoloMeshTool('holomesh_knowledge_read', {
+      team_id: tid,
+      __authAgentId: 'outsider-agent',
+    })) as Record<string, unknown>;
+    expect(outsider.error).toBe('not-a-member');
+    expectNoPremiumText(outsider);
+  });
+
+  it("gives a member only the teaser of another author's premium entry, free entries whole, and the author their own text", async () => {
+    const tid = await makeTeam('kr-member', ['member-agent', 'author-agent']);
+    teamStore.get(tid)!.knowledge = [
+      mirrorEntry('kr-short', SHORT_SECRET, 'author-agent', 0.05),
+      mirrorEntry('kr-long', `${'Premium body text. '.repeat(12)}${PAID_TAIL}`, 'author-agent', 0.05),
+      mirrorEntry('kr-free', 'Free team wisdom stays whole', 'author-agent', 0),
+    ];
+
+    const member = (await handleHoloMeshTool('holomesh_knowledge_read', {
+      team_id: tid,
+      __authAgentId: 'member-agent',
+    })) as { entries: Array<{ id: string; content: string; locked?: boolean }> };
+    expect(member.entries.map((e) => e.id)).toEqual(['kr-short', 'kr-long', 'kr-free']);
+    expect(member.entries.find((e) => e.id === 'kr-free')?.content).toBe(
+      'Free team wisdom stays whole'
+    );
+    expect(member.entries.filter((e) => e.locked).map((e) => e.id)).toEqual([
+      'kr-short',
+      'kr-long',
+    ]);
+    expectNoPremiumText(member);
+
+    const author = await handleHoloMeshTool('holomesh_knowledge_read', {
+      team_id: tid,
+      __authAgentId: 'author-agent',
+    });
+    expect(JSON.stringify(author)).toContain(PAID_TAIL);
+    expect(JSON.stringify(author)).toContain(SHORT_SECRET);
+  });
+});
+
+describe('GET /marketplace/listings (round-4 review P2)', () => {
+  it('shows only a teaser of a listed premium entry, short entries included', async () => {
+    const author = await registerCaller('listing-author');
+    const tid = await makeTeam('listing-team', [author.id]);
+    standIn.rows = [shortPremium('premium-l1', { authorId: author.id })];
+
+    const listed = await call(
+      'POST',
+      '/api/holomesh/marketplace/list',
+      { teamId: tid, entryId: 'premium-l1', price: 0.05 },
+      { authorization: `Bearer ${author.apiKey}` }
+    );
+    expect(listed.status).toBe(201);
+
+    const reply = await call('GET', `/api/holomesh/marketplace/listings?teamId=${tid}`);
+    expect(reply.status).toBe(200);
+    expect(JSON.stringify(reply.body)).toContain('premium-l1');
+    expectNoPremiumText(reply.body);
+  });
+
+  it('cuts a listing snippet to the teaser even when the listing was written with the whole text', async () => {
+    const tid = await makeTeam('listing-raw', []);
+    const market = new KnowledgeMarketplace();
+    market.sellKnowledge(
+      {
+        id: 'premium-l2',
+        type: 'gotcha',
+        content: SHORT_SECRET,
+        confidence: 0.9,
+        domain: 'compilation',
+        tags: [],
+        queryCount: 0,
+        reuseCount: 0,
+        createdAt: new Date().toISOString(),
+        authorAgent: 'someone-else',
+      } as unknown as Parameters<KnowledgeMarketplace['sellKnowledge']>[0],
+      0.05,
+      'someone-else'
+    );
+    (teamStore.get(tid) as unknown as { knowledgeMarketplace: unknown }).knowledgeMarketplace =
+      market;
+
+    const reply = await call('GET', '/api/holomesh/marketplace/listings');
+    expect(JSON.stringify(reply.body)).toContain('premium-l2');
+    expectNoPremiumText(reply.body);
+  });
+});
+
+describe('the server strips a caller-supplied __authAgentId (handlers.ts, round-4 review)', () => {
+  const signedAs = (signer: string): SigningContext =>
+    ({ signedRequest: true, signingValid: true, signer, scopes: ['admin:*'] }) as SigningContext;
+
+  it("a forged __authAgentId naming the author does not open the author's text", async () => {
+    standIn.rows = [longPremium('premium-h1', { authorId: 'author-agent' })];
+
+    // No signing context: the local bridge (signer 'stdio-local') stamps nothing.
+    // Signed as someone else: the stamp is that signer, not the forged value.
+    for (const ctx of [undefined, signedAs('other-agent')]) {
+      const result = await handleTool(
+        'holomesh_query',
+        { search: 'paid', __authAgentId: 'author-agent' },
+        ctx
+      );
+      expect(JSON.stringify(result)).toContain('premium-h1');
+      expect(JSON.stringify(result)).not.toContain(PAID_TAIL);
+    }
+
+    // Positive control: the verified signer IS the author.
+    const own = await handleTool('holomesh_query', { search: 'paid' }, signedAs('author-agent'));
+    expect(JSON.stringify(own)).toContain(PAID_TAIL);
+  });
+});
+
+describe("premiumEntryAccess: the 'not authenticated' check is load-bearing (round-4 review)", () => {
+  it("an entry recorded as authored by 'anonymous' stays closed to callers with no key", async () => {
+    paidAccessStore.add('anonymous:premium-an1');
+    try {
+      expect(premiumEntryAccess(ANONYMOUS_VIEWER, 'premium-an1', 'anonymous')).toBeNull();
+      const seen = entryForViewer(
+        { id: 'premium-an1', authorId: 'anonymous', price: 0.05, content: SHORT_SECRET },
+        ANONYMOUS_VIEWER
+      );
+      expect(seen.locked).toBe(true);
+      expectNoPremiumText(seen);
+    } finally {
+      paidAccessStore.delete('anonymous:premium-an1');
+    }
+
+    // The same through a real route: a caller with no key resolves to 'anonymous'.
+    standIn.rows = [shortPremium('premium-an2', { authorId: 'anonymous' })];
+    const reply = await call('GET', '/api/holomesh/search?q=premium');
+    expect(reply.status).toBe(200);
+    expect(JSON.stringify(reply.body)).toContain('premium-an2');
+    expectNoPremiumText(reply.body);
   });
 });

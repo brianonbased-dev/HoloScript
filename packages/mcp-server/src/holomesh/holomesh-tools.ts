@@ -46,8 +46,7 @@ import {
   entriesForViewer,
   entryForViewer,
   premiumEntryAccess,
-  ANONYMOUS_VIEWER,
-  type PremiumViewer,
+  mcpToolViewer,
 } from './entry-lookup';
 import { isPremiumEntry } from './premium-view';
 import { boardTools, handleBoardTool } from './board-tools';
@@ -841,7 +840,10 @@ async function remoteToolManifests(
       limit: Math.max(limit, 10),
       type: 'pattern',
     });
+    // Doors audit 2026-09-15: a priced entry is not a free tool listing. Its
+    // text would come back whole inside the parsed manifest, so skip it.
     return entries
+      .filter((entry) => !isPremiumEntry(entry))
       .map((entry) => meshToolManifestFromKnowledgeContent(entry.content))
       .filter((manifest): manifest is MeshToolManifest => manifest !== null);
   } catch {
@@ -1249,17 +1251,6 @@ async function handleContribute(
   }
 }
 
-/**
- * The reader of an MCP tool call, for the premium gate. handlers.ts stamps
- * `__authAgentId` from the verified signer and deletes any caller-supplied
- * value; without it (stdio, anonymous HTTP) the reader is anonymous. Founder
- * keys are not recognised on this path, so a founder reads premium entries
- * through GET /api/holomesh/entry/:id instead.
- */
-function toolViewer(args: Record<string, unknown>): PremiumViewer {
-  const id = args.__authAgentId;
-  return typeof id === 'string' && id ? { authenticated: true, id } : ANONYMOUS_VIEWER;
-}
 
 async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
   try {
@@ -1270,7 +1261,7 @@ async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<stri
         limit: (args.limit as number) || 10,
         workspaceId: args.workspace as string,
       }),
-      toolViewer(args)
+      mcpToolViewer(args)
     );
 
     return {
@@ -1387,7 +1378,7 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
 
     // Doors audit 2026-09-15 (round 3): this returned the full premium entry
     // and said a payment was "queued" when nothing was charged or recorded.
-    const access = premiumEntryAccess(toolViewer(args), entry.id, entry.authorId);
+    const access = premiumEntryAccess(mcpToolViewer(args), entry.id, entry.authorId);
     if (access) {
       return { success: true, message: 'You already have access to this entry.', entry, access };
     }
@@ -1396,7 +1387,7 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
       code: 'x402-payment-required',
       message:
         'This is premium content and needs a verified payment. This tool cannot take one, and nothing was charged or recorded.',
-      entry: entryForViewer(entry, toolViewer(args)),
+      entry: entryForViewer(entry, mcpToolViewer(args)),
       price: entry.price,
       referrer,
       walletRequired: true,
@@ -1634,7 +1625,7 @@ async function handleCrosspostMoltbook(
     // Checked before the Moltbook key is even read.
     if (
       isPremiumEntry(entry) &&
-      premiumEntryAccess(toolViewer(args), entry.id, entry.authorId) !== 'author'
+      premiumEntryAccess(mcpToolViewer(args), entry.id, entry.authorId) !== 'author'
     ) {
       return {
         error: 'premium-entry-author-only',

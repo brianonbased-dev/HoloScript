@@ -10,6 +10,7 @@
  */
 
 import { MCP_TOOL_NAMES } from './MCPTools';
+import { hidePremiumRowsDeep } from '@/lib/premium-view';
 import {
   DEFAULT_STUDIO_WORKSPACE_ID,
   FOUNDER_WORKSPACE_ID,
@@ -415,6 +416,13 @@ async function executeOrchestratorTool(
         ? String((data as Record<string, unknown>)['error'])
         : `HTTP ${response.status}`;
     return { tool: name, success: false, data, error: errorMsg };
+  }
+
+  // Doors audit 2026-09-15: knowledge rows reach the public Studio session's
+  // model, which relays them to the user. Outside the founder session the
+  // reader is never known to have paid, so premium rows go out as teasers.
+  if (name === 'knowledge_query' && context.allowFounderWorkspace !== true) {
+    data = hidePremiumRowsDeep(data);
   }
 
   return { tool: name, success: true, data };

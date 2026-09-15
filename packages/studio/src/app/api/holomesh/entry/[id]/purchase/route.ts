@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../../../db/client';
 import { holomeshReferrals, holomeshTransactions } from '../../../../../../db/schema';
 import * as crypto from 'crypto';
+import { hidePremiumRowsDeep } from '../../../../../../lib/premium-view';
+import { usesServerKeyFor } from '../../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../../_lib/cors';
 const BASE =
@@ -62,9 +64,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
   );
 
+  // Doors audit 2026-09-15: without the visitor's own key the purchase went up
+  // under Studio's server key, so any entry text in the answer was released to
+  // THAT key, not to the visitor. Cut premium text to the teaser; a visitor
+  // buys under its own key to receive the text.
+  const serverKeyAnswer = usesServerKeyFor(req);
+  const readAnswer = async (): Promise<string> => {
+    const text = await upstream.text();
+    if (!serverKeyAnswer) return text;
+    try {
+      return JSON.stringify(hidePremiumRowsDeep(JSON.parse(text)));
+    } catch {
+      return text;
+    }
+  };
+
   // Only track referral on successful (2xx) response with a referrer provided
   if (upstream.ok && referrerAgentId) {
-    const respText = await upstream.text();
+    const respText = await readAnswer();
     let saleAmountCents = 0;
 
     try {
@@ -129,6 +146,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     return new Response(respText, {
+      status: upstream.status,
+      headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
+    });
+  }
+
+  if (serverKeyAnswer) {
+    return new Response(await readAnswer(), {
       status: upstream.status,
       headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
     });

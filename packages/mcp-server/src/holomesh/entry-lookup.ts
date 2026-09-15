@@ -31,11 +31,28 @@ export const ANONYMOUS_VIEWER: PremiumViewer = Object.freeze({
   isFounder: false,
 });
 
+/**
+ * The reader of an MCP tool call, for the premium gate. handlers.ts stamps
+ * `__authAgentId` from the verified signer and deletes any caller-supplied
+ * value first; without it (stdio, anonymous HTTP) the reader is anonymous.
+ * Founder keys are not recognised on this path, so a founder reads premium
+ * entries through GET /api/holomesh/entry/:id instead.
+ */
+export function mcpToolViewer(args: Record<string, unknown>): PremiumViewer {
+  const id = args.__authAgentId;
+  return typeof id === 'string' && id ? { authenticated: true, id } : ANONYMOUS_VIEWER;
+}
+
 export function premiumEntryAccess(
   viewer: PremiumViewer,
   entryId: string,
   authorId: string | undefined
 ): PremiumAccess | null {
+  // Not dead code: every unauthenticated caller carries the id 'anonymous'
+  // (ANONYMOUS_VIEWER, and resolveRequestingAgent for a missing or expired
+  // key). Without this line an entry whose recorded author is 'anonymous', or
+  // a purchase record keyed 'anonymous:<entry>', would open to every caller
+  // with no key. premium-exits.test.ts covers it.
   if (!viewer.authenticated) return null;
   if (authorId && viewer.id === authorId) return 'author';
   if (viewer.isFounder) return 'founder';

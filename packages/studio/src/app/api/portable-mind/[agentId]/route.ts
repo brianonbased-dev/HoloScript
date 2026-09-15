@@ -8,6 +8,7 @@ import type { buildPortableMind as buildPortableMindFn } from '@holoscript/holos
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { seatIdCandidatesForAgent } from './seatIds';
+import { isPremiumRow, premiumTeaser } from '@/lib/premium-view';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -253,7 +254,9 @@ function toPublicMemory(entry: unknown): MindMemory | null {
   if (typeof content !== 'string') return null;
   return {
     ...(typeof obj.id === 'string' ? { id: obj.id } : {}),
-    content,
+    // Doors audit 2026-09-15: the seat reads its team's knowledge with its own
+    // key (it is the author of some premium entries) and this page is public.
+    content: isPremiumRow(obj) ? premiumTeaser(content) : content,
     ...(typeof obj.score === 'number' && Number.isFinite(obj.score) ? { score: obj.score } : {}),
   };
 }

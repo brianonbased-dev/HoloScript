@@ -35,6 +35,7 @@ import {
   premiumEntryAccess,
   type PremiumAccess,
 } from '../entry-lookup';
+import { premiumTeaser, premiumTeaserText } from '../premium-view';
 import { getConsolidationBridge } from '../consolidation-bridge';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
 import { resolveSecretWithLease, VaultLeaseError } from '../identity/vault-lease-registry';
@@ -1477,14 +1478,42 @@ export async function handleKnowledgeRoutes(
   if (pathname === '/api/holomesh/marketplace/listings' && method === 'GET') {
     const q = parseQuery(url);
     const teamId = q.get('teamId') || undefined;
-    const listings = teamId
-      ? (() => {
-          const team = teamStore.get(teamId);
-          return (team as any)?.knowledgeMarketplace?.activeListings?.() || [];
-        })()
-      : [...teamStore.values()].flatMap(
-          (team) => (team as any).knowledgeMarketplace?.activeListings?.() || []
-        );
+    type ListingView = {
+      id?: unknown;
+      entryId?: unknown;
+      seller?: unknown;
+      price?: unknown;
+      currency?: unknown;
+      status?: unknown;
+      createdAt?: unknown;
+      preview?: { type?: unknown; domain?: unknown; snippet?: unknown };
+    };
+    const listingsOf = (team: unknown): ListingView[] =>
+      (
+        team as { knowledgeMarketplace?: { activeListings?: () => ListingView[] } } | undefined
+      )?.knowledgeMarketplace?.activeListings?.() ?? [];
+    const stored = teamId
+      ? listingsOf(teamStore.get(teamId))
+      : [...teamStore.values()].flatMap(listingsOf);
+    // Doors audit 2026-09-15: a listing is something for sale, so this public
+    // feed shows only the teaser of whatever snippet the listing holds (a third
+    // of it at most, whatever code wrote it), and only these named fields.
+    const listings = stored.map((l) => ({
+      id: l.id,
+      entryId: l.entryId,
+      seller: l.seller,
+      price: l.price,
+      currency: l.currency,
+      status: l.status,
+      createdAt: l.createdAt,
+      preview: {
+        type: l.preview?.type,
+        domain: l.preview?.domain,
+        snippet: premiumTeaser(l.preview?.snippet),
+      },
+      premium: true,
+      locked: true,
+    }));
 
     json(res, 200, { success: true, listings, count: listings.length, teamId });
     return true;
@@ -1544,7 +1573,9 @@ export async function handleKnowledgeRoutes(
       {
         id: entry.id,
         type: entry.type,
-        content: entry.content,
+        // The marketplace keeps this as the public preview. A listed entry is
+        // for sale, so it only ever gets the teaser part of the text.
+        content: premiumTeaserText(entry.content),
         confidence: entry.confidence || 0.9,
         domain: entry.domain || 'general',
         tags: entry.tags || [],

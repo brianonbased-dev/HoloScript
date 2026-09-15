@@ -5,6 +5,7 @@ import { getDb } from '../../../../../db/client';
 import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { rateLimit } from '../../../../../lib/rate-limiter';
 import { sql } from 'drizzle-orm';
+import { isPremiumRow, premiumTeaser } from '../../../../../lib/premium-view';
 
 import { corsHeaders } from '../../../_lib/cors';
 const BASE =
@@ -90,7 +91,9 @@ export async function POST(req: NextRequest) {
     id: e.id,
     workspaceId: e.workspaceId ?? null,
     type: e.type ?? null,
-    content: e.content ?? '',
+    // Doors audit 2026-09-15: the cache is served to anyone (catalog, entry
+    // fallback), so a premium entry is stored as its teaser, never whole.
+    content: isPremiumRow(e) ? premiumTeaser(e.content ?? '') : (e.content ?? ''),
     authorId: e.authorId ?? null,
     authorName: e.authorName ?? null,
     domain: e.domain ?? null,
