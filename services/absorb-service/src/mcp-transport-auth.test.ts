@@ -2,10 +2,13 @@
  * Every MCP transport route must refuse anonymous callers, and a legacy SSE
  * session must only accept messages from the caller who opened it.
  *
- * Found live on absorb.holoscript.net (v6.1.3, 2026-09-15): POST /mcp required a
- * key, but GET /mcp handed any stranger an SSE session id and POST /mcp/messages
- * accepted tool calls on it with no credentials at all — the side door around the
- * front door. These tests drive the real Express routes over HTTP with the real
+ * Seen live on absorb.holoscript.net (v6.1.3, 2026-09-15): POST /mcp required a
+ * key, but an anonymous GET /mcp returned 200 with an SSE session id. POST
+ * /mcp/messages had no auth either; it only failed because the old handler stored
+ * sessions under its own id instead of the SDK's, so every message got 404. Fixing
+ * that id bug without auth would have opened tool calls to anyone, so both land
+ * together. The live service was not probed beyond the GET. These tests drive the
+ * real Express routes over HTTP with the real
  * MCP SDK transports; only the tool inventory, GitHub identity lookup and credit
  * tier lookup are stubbed.
  */
