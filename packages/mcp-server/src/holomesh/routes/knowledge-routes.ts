@@ -3,7 +3,6 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CreatorRevenueAggregator } from '@holoscript/framework';
-import { PaymentGateway } from '@holoscript/core';
 import {
   LifePodSignatureVerificationError,
   createLifePodSnapshot,
@@ -372,6 +371,97 @@ function buildRevenueAggregator(): CreatorRevenueAggregator {
 /**
  * Handle all knowledge, search, and social routes for HoloMesh.
  */
+// ── Premium access (x402) ───────────────────────────────────────────────────
+//
+// Doors audit 2026-09-15. A premium body (a knowledge entry with price > 0, or
+// a StoryWeaver branch marked premium) goes only to an ENTITLED caller: the
+// author, a founder key, or a caller with a recorded purchase. Nothing a
+// caller merely asserts opens it: not an X-PAYMENT header, and not a body
+// flag such as `paid: true`.
+//
+// Why an X-PAYMENT header cannot open it today: the only verifier in reach,
+// PaymentGateway.verifyPayment (framework economy/x402-facilitator.ts),
+// checks the payload's shape, time window, amount and recipient, but NOT its
+// signature (any signature of 10 or more characters passes). Payments under
+// the micro threshold then "settle" into an in-memory ledger with no further
+// check, so a forged header would pass. No HoloMesh recipient wallet is
+// configured either, and x402-settlement-adapter.ts declares live settlement
+// unavailable. Until a verifier that checks the signature and settles is
+// wired in here, every payment claim is refused with a plain reason. This is
+// the one function to change when that verifier exists.
+
+type PremiumPaymentVerdict =
+  | { verified: true; payer: string }
+  | {
+      verified: false;
+      code: 'x402-payment-missing' | 'x402-verification-unavailable';
+      message: string;
+    };
+
+function verifyPremiumPayment(paymentClaim: unknown): PremiumPaymentVerdict {
+  const claimed =
+    typeof paymentClaim === 'string'
+      ? paymentClaim.trim().length > 0
+      : paymentClaim !== undefined && paymentClaim !== null && paymentClaim !== false;
+  if (!claimed) {
+    return {
+      verified: false,
+      code: 'x402-payment-missing',
+      message: 'This is premium content and needs a verified payment.',
+    };
+  }
+  return {
+    verified: false,
+    code: 'x402-verification-unavailable',
+    message:
+      'This server cannot verify x402 payments yet, so a payment header or payment flag does not open premium content. Nothing was charged.',
+  };
+}
+
+type PremiumAccess = 'author' | 'founder' | 'purchased';
+
+function premiumEntryAccess(
+  caller: { authenticated: boolean; id: string; isFounder?: boolean },
+  entryId: string,
+  authorId: string | undefined
+): PremiumAccess | null {
+  if (!caller.authenticated) return null;
+  if (authorId && caller.id === authorId) return 'author';
+  if (caller.isFounder) return 'founder';
+  if (paidAccessStore.has(`${caller.id}:${entryId}`)) return 'purchased';
+  return null;
+}
+
+function storyBranchAccess(
+  caller: { authenticated: boolean; id: string; isFounder?: boolean },
+  session: StoryWeaverSession,
+  branch: StoryWeaverBranch
+): PremiumAccess | null {
+  if (!caller.authenticated) return null;
+  if (caller.id === session.ownerId) return 'author';
+  if (caller.isFounder) return 'founder';
+  if (branch.unlockedBy?.includes(caller.id)) return 'purchased';
+  return null;
+}
+
+/** A session as this viewer may see it: premium branches they are not entitled to are locked. */
+function storySessionForViewer(
+  caller: { authenticated: boolean; id: string; isFounder?: boolean },
+  session: StoryWeaverSession
+): StoryWeaverSession & { branches: Array<StoryWeaverBranch & { locked?: boolean }> } {
+  return {
+    ...session,
+    branches: session.branches.map((branch) => {
+      if (!branch.premium || storyBranchAccess(caller, session, branch)) return branch;
+      const teaser =
+        branch.chapterText.length <= 120
+          ? ''
+          : `${branch.chapterText.slice(0, 120)}\n... [premium branch, locked]`;
+      return { ...branch, chapterText: teaser, beats: [], locked: true };
+    }),
+  };
+}
+
 export async function handleKnowledgeRoutes(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -1084,7 +1174,13 @@ export async function handleKnowledgeRoutes(
       json(res, 404, { error: 'Story session not found' });
       return true;
     }
-    json(res, 200, { success: true, session });
+    // Premium branch text goes only to the owner, a founder key, or a caller
+    // who unlocked it; everyone else sees it locked. Before 2026-09-15 this
+    // route returned every premium chapter to anyone, logged in or not.
+    json(res, 200, {
+      success: true,
+      session: storySessionForViewer(resolveRequestingAgent(req), session),
+    });
     return true;
   }
 
@@ -1178,6 +1274,21 @@ export async function handleKnowledgeRoutes(
       json(res, 200, { success: true, unlocked: true, branch });
       return true;
     }
+    const existingAccess = storyBranchAccess(
+      { authenticated: true, id: caller.id, isFounder: caller.isFounder },
+      session,
+      branch
+    );
+    if (existingAccess) {
+      json(res, 200, {
+        success: true,
+        unlocked: true,
+        access: existingAccess,
+        branchId: branch.id,
+        sessionId: session.id,
+      });
+      return true;
+    }
 
     const rawBody = await parseJsonBody(req);
     const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
@@ -1188,10 +1299,20 @@ export async function handleKnowledgeRoutes(
       return true;
     }
     const body: any = effectiveBody;
-    const paid = Boolean(body.paid === true || body.x402Proof || body.paymentReference);
-    if (!paid) {
+    // Doors audit 2026-09-15: `paid: true`, any x402Proof, or any
+    // paymentReference used to unlock the branch on the caller's word. They
+    // are now only payment CLAIMS, and a claim must be verified.
+    const verdict = verifyPremiumPayment(
+      req.headers['x-payment'] ??
+        body.x402Proof ??
+        body.paymentReference ??
+        (body.paid === true ? 'paid:true' : undefined)
+    );
+    if (!verdict.verified) {
       json(res, 402, {
         error: 'Payment required',
+        code: verdict.code,
+        message: verdict.message,
         x402: {
           requiredCents: branch.priceCents || 99,
           currency: 'USDC',
@@ -1498,28 +1619,37 @@ export async function handleKnowledgeRoutes(
 
     const comments = commentStore.get(entryId) || [];
     const isPremium = (entry.price || 0) > 0;
-    const paymentHeader = req.headers['x-payment'] as string | undefined;
-    const paid =
-      isPremium &&
-      caller.authenticated &&
-      (paidAccessStore.has(`${caller.id}:${entryId}`) || !!paymentHeader);
+    const access = isPremium ? premiumEntryAccess(caller, entryId, entry.authorId) : null;
 
-    if (isPremium && !paymentHeader && !paidAccessStore.has(`${caller.id}:${entryId}`)) {
-      const gateway = new (PaymentGateway as any)();
-      const resource = `https://mcp.holoscript.net/api/holomesh/entry/${entryId}`;
-      const paymentReq = gateway.createPaymentAuthorization(resource, entry.price || 0);
-      json(res, 402, {
-        ...paymentReq,
-        preview: { id: entryId, type: entry.type, domain: entry.domain, price: entry.price },
-        hint: 'Include X-PAYMENT header with a valid x402 payment payload to access this entry.',
-      });
-      return true;
+    if (isPremium && !access) {
+      // Doors audit 2026-09-15: this used to return the full entry to ANY
+      // caller who sent any X-PAYMENT value, logged in or not. The refusal
+      // also no longer builds a PaymentGateway with no config (its
+      // constructor reads config.recipientAddress and throws), and it
+      // advertises no pay-to address, because none is configured.
+      const verdict = verifyPremiumPayment(req.headers['x-payment']);
+      if (!verdict.verified) {
+        json(res, 402, {
+          error: 'Payment required',
+          code: verdict.code,
+          message: verdict.message,
+          preview: { id: entryId, type: entry.type, domain: entry.domain, price: entry.price },
+          payment: {
+            price_usdc: entry.price,
+            required_base_units: String(Math.round((entry.price || 0) * 1_000_000)),
+            x402_verification: 'unavailable',
+          },
+          hint: 'Premium entries open to their author, a founder key, or a caller with a recorded purchase. An X-PAYMENT header alone does not open them on this server.',
+        });
+        return true;
+      }
     }
 
     const visibleEntry = {
       ...entry,
       premium: isPremium,
-      paid,
+      paid: access === 'purchased',
+      access: isPremium ? (access ?? 'payment') : 'free',
     };
     json(res, 200, { success: true, entry: visibleEntry, comments, commentCount: comments.length });
     return true;
@@ -1583,6 +1713,25 @@ export async function handleKnowledgeRoutes(
     }
     if (entry.authorId === caller.id) {
       json(res, 400, { error: 'Cannot buy your own entry' });
+      return true;
+    }
+
+    // Doors audit 2026-09-15: this recorded a purchase, and so opened the
+    // premium body, with no payment at all. A purchase is recorded only
+    // after a verified payment.
+    const verdict = verifyPremiumPayment(req.headers['x-payment']);
+    if (!verdict.verified) {
+      json(res, 402, {
+        error: 'Payment required',
+        code: verdict.code,
+        message: verdict.message,
+        entryId,
+        payment: {
+          price_usdc: entry.price,
+          required_base_units: String(Math.round((entry.price || 0) * 1_000_000)),
+          x402_verification: 'unavailable',
+        },
+      });
       return true;
     }
 
