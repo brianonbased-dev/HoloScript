@@ -684,27 +684,47 @@ export function persistTokenLedger(): void {
 
 // ── Initialization ────────────────────────────────────────────────────────────
 
+/** Env vars whose value is accepted as an API key when the store is empty. */
+export const SEEDABLE_KEY_ENV_VARS = [
+  'HOLOSCRIPT_API_KEY',
+  'HOLOMESH_API_KEY',
+  'COPILOT_HOLOMESH_KEY',
+  'GEMINI_HOLOMESH_KEY',
+] as const;
+
 /**
  * Seed the key registry from env vars on first boot (no keys.json yet).
- * All env key names are treated as founder keys and mapped to a single
- * permanent founder wallet + agent ID. Persists immediately so keys.json
- * exists for subsequent restarts.
+ *
+ * Every seeded key is an ORDINARY key. Founder authority is granted only to the
+ * key value named by HOLOMESH_FOUNDER_KEY, because a founder bypasses both
+ * credit routes and every premium gate: an empty or unreadable store must never
+ * be able to mint founders silently, which is what treating each configured env
+ * key as a founder did. When keys.json already exists this runs at all, so
+ * founders already recorded in the store are untouched.
+ *
+ * Persists immediately so keys.json exists for subsequent restarts.
  */
-function _seedFounderKeysFromEnv(): void {
-  const candidates = [
-    process.env.HOLOSCRIPT_API_KEY,
-    process.env.HOLOSCRIPT_API_KEY,
-    process.env.HOLOMESH_API_KEY,
-    process.env.COPILOT_HOLOMESH_KEY,
-    process.env.GEMINI_HOLOMESH_KEY,
-  ].filter((k): k is string => Boolean(k && k.trim()));
+export function _seedFounderKeysFromEnv(): void {
+  const founderKey = (process.env.HOLOMESH_FOUNDER_KEY || '').trim();
+
+  const seenKeys = new Set<string>();
+  const candidates: Array<{ envVar: string; key: string }> = [];
+  for (const envVar of SEEDABLE_KEY_ENV_VARS) {
+    const key = (process.env[envVar] || '').trim();
+    if (!key || seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    candidates.push({ envVar, key });
+  }
 
   if (candidates.length === 0) return;
 
   const FOUNDER_WALLET =
     process.env.HOLOSCRIPT_FOUNDER_WALLET || '0x0000000000000000000000000000000000000001';
 
-  for (const key of candidates) {
+  let foundersGranted = 0;
+  for (const { key } of candidates) {
+    const isFounder = founderKey.length > 0 && key === founderKey;
+    if (isFounder) foundersGranted += 1;
     const record: KeyRecord = {
       key,
       walletAddress: FOUNDER_WALLET,
@@ -714,14 +734,27 @@ function _seedFounderKeysFromEnv(): void {
       createdAt: new Date().toISOString(),
       rotationCount: 0,
       lastRotatedAt: null,
-      isFounder: true,
+      isFounder,
     };
     keyRegistry.set(key, record);
   }
 
-  console.info(
-    `[KeyRegistry] First boot: seeded ${candidates.length} founder key(s) from env vars`
+  console.warn(
+    `[KeyRegistry] First boot with an empty store: seeded ${candidates.length} ordinary key(s) from ${candidates
+      .map((c) => c.envVar)
+      .join(', ')}.`
   );
+  if (foundersGranted > 0) {
+    console.warn(
+      `[KeyRegistry] HOLOMESH_FOUNDER_KEY matched a seeded key: granted founder authority to ${foundersGranted} key(s).`
+    );
+  } else {
+    console.warn(
+      `[KeyRegistry] No founder was granted (HOLOMESH_FOUNDER_KEY is ${
+        founderKey ? 'set but matched no seeded key' : 'not set'
+      }). Founder-only routes refuse until a founder key is recorded in the store.`
+    );
+  }
   persistKeyRegistry();
 }
 
