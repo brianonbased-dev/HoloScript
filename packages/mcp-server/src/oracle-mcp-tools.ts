@@ -19,6 +19,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { premiumTeaser, isPremiumEntry } from './holomesh/premium-view';
 
 // =============================================================================
 // CONFIG
@@ -180,10 +181,14 @@ async function queryKnowledgeStore(search: string, limit = 10): Promise<Knowledg
       entries?: Array<Partial<KnowledgeEntry>>;
     };
     const raw = data.results || data.entries || [];
+    // Oracle callers are never entitled readers: a premium row (price in its
+    // metadata) keeps only its teaser (doors audit 2026-09-15).
     return raw.map((r) => ({
       id: r.id || 'unknown',
       type: (r.type as KnowledgeEntry['type']) || 'wisdom',
-      content: r.content || '',
+      content: isPremiumEntry(r as { price?: unknown; metadata?: unknown })
+        ? premiumTeaser(r.content)
+        : r.content || '',
       domain: r.domain || 'general',
       createdAt: r.createdAt,
     }));
@@ -217,7 +222,9 @@ async function queryHoloMeshKnowledge(domain?: string, limit = 20): Promise<Know
     return raw.map((r) => ({
       id: r.id || 'unknown',
       type: (r.type as KnowledgeEntry['type']) || 'wisdom',
-      content: r.content || '',
+      content: isPremiumEntry(r as { price?: unknown; metadata?: unknown })
+        ? premiumTeaser(r.content)
+        : r.content || '',
       domain: r.domain || domain || 'general',
       createdAt: r.createdAt,
     }));

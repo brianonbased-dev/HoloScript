@@ -28,7 +28,14 @@ import { json, parseQuery, parseJsonBody, extractParam, getTeamMember } from '..
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
-import { findKnowledgeEntryById } from '../entry-lookup';
+import {
+  findKnowledgeEntryById,
+  entryForViewer,
+  entriesForViewer,
+  premiumEntryAccess,
+  type PremiumAccess,
+} from '../entry-lookup';
+import { premiumTeaser, premiumTeaserText } from '../premium-view';
 import { getConsolidationBridge } from '../consolidation-bridge';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
 import { resolveSecretWithLease, VaultLeaseError } from '../identity/vault-lease-registry';
@@ -418,19 +425,9 @@ function verifyPremiumPayment(paymentClaim: unknown): PremiumPaymentVerdict {
   };
 }
 
-type PremiumAccess = 'author' | 'founder' | 'purchased';
-
-function premiumEntryAccess(
-  caller: { authenticated: boolean; id: string; isFounder?: boolean },
-  entryId: string,
-  authorId: string | undefined
-): PremiumAccess | null {
-  if (!caller.authenticated) return null;
-  if (authorId && caller.id === authorId) return 'author';
-  if (caller.isFounder) return 'founder';
-  if (paidAccessStore.has(`${caller.id}:${entryId}`)) return 'purchased';
-  return null;
-}
+// Who may read a premium knowledge entry (premiumEntryAccess) and what
+// everyone else sees (entryForViewer) live in ../entry-lookup.ts, so every
+// exit that returns lookup results uses the same gate.
 
 function storyBranchAccess(
   caller: { authenticated: boolean; id: string; isFounder?: boolean },
@@ -551,7 +548,13 @@ export async function handleKnowledgeRoutes(
 
     const type = q.get('type') || undefined;
     const limit = parseInt(q.get('limit') || '10', 10);
-    const results = await c.queryKnowledge(search, { type, limit });
+    // Doors audit 2026-09-15 (round 3): this returned raw lookup rows, full
+    // premium text included, to anyone, so a stranger refused by
+    // GET /entry/:id could read the same entry here.
+    const results = entriesForViewer(
+      await c.queryKnowledge(search, { type, limit }),
+      resolveRequestingAgent(req)
+    );
     json(res, 200, { success: true, results, count: results.length, query: search });
     return true;
   }
@@ -578,7 +581,11 @@ export async function handleKnowledgeRoutes(
     }
 
     const query = `${target} ${source.slice(0, 500)}`;
-    const kb = await c.queryKnowledge(query, { limit: 30 });
+    // Tips quote up to 220 characters: premium rows are cut first.
+    const kb = entriesForViewer(
+      await c.queryKnowledge(query, { limit: 30 }),
+      resolveRequestingAgent(req)
+    );
 
     const wisdom = kb.filter((e) => e.type === 'wisdom').slice(0, 5);
     const gotchas = kb.filter((e) => e.type === 'gotcha').slice(0, 5);
@@ -666,7 +673,11 @@ export async function handleKnowledgeRoutes(
     }
 
     const query = `${target} ${source.slice(0, 500)}`;
-    const kb = await c.queryKnowledge(query, { limit: 40 });
+    // Rationale snippets quote up to 180 characters: premium rows are cut first.
+    const kb = entriesForViewer(
+      await c.queryKnowledge(query, { limit: 40 }),
+      resolveRequestingAgent(req)
+    );
     const gotchas = kb.filter((e) => e.type === 'gotcha');
     const gotchaSignals = [
       'error',
@@ -723,7 +734,12 @@ export async function handleKnowledgeRoutes(
     const target = (body.target as string | undefined)?.trim() || 'generic';
     const prompt = (body.prompt as string | undefined)?.trim() || `${target} ${domain}`;
 
-    const kb = await c.queryKnowledge(prompt, { limit: 60 });
+    // Themes are word counts over the text and guardrails quote it, so
+    // premium rows are cut to their teaser first.
+    const kb = entriesForViewer(
+      await c.queryKnowledge(prompt, { limit: 60 }),
+      resolveRequestingAgent(req)
+    );
     const wisdom = kb.filter((e) => e.type === 'wisdom').slice(0, 8);
     const gotchas = kb.filter((e) => e.type === 'gotcha').slice(0, 8);
     const patterns = kb.filter((e) => e.type === 'pattern').slice(0, 8);
@@ -1400,7 +1416,12 @@ export async function handleKnowledgeRoutes(
   if (pathname === '/api/holomesh/showcase/film3d' && method === 'GET') {
     const q = parseQuery(url);
     const limit = Math.max(1, Math.min(parseInt(q.get('limit') || '24', 10), 100));
-    const results = await c.queryKnowledge('*', { limit: 1000 });
+    // Anonymous gallery: title/preview quote up to 220 characters, so premium
+    // rows are cut to their teaser first.
+    const results = entriesForViewer(
+      await c.queryKnowledge('*', { limit: 1000 }),
+      resolveRequestingAgent(req)
+    );
 
     const isFilmEntry = (e: MeshKnowledgeEntry): boolean => {
       const tags = (e.tags || []).map((t) => t.toLowerCase());
@@ -1457,14 +1478,42 @@ export async function handleKnowledgeRoutes(
   if (pathname === '/api/holomesh/marketplace/listings' && method === 'GET') {
     const q = parseQuery(url);
     const teamId = q.get('teamId') || undefined;
-    const listings = teamId
-      ? (() => {
-          const team = teamStore.get(teamId);
-          return (team as any)?.knowledgeMarketplace?.activeListings?.() || [];
-        })()
-      : [...teamStore.values()].flatMap(
-          (team) => (team as any).knowledgeMarketplace?.activeListings?.() || []
-        );
+    type ListingView = {
+      id?: unknown;
+      entryId?: unknown;
+      seller?: unknown;
+      price?: unknown;
+      currency?: unknown;
+      status?: unknown;
+      createdAt?: unknown;
+      preview?: { type?: unknown; domain?: unknown; snippet?: unknown };
+    };
+    const listingsOf = (team: unknown): ListingView[] =>
+      (
+        team as { knowledgeMarketplace?: { activeListings?: () => ListingView[] } } | undefined
+      )?.knowledgeMarketplace?.activeListings?.() ?? [];
+    const stored = teamId
+      ? listingsOf(teamStore.get(teamId))
+      : [...teamStore.values()].flatMap(listingsOf);
+    // Doors audit 2026-09-15: a listing is something for sale, so this public
+    // feed shows only the teaser of whatever snippet the listing holds (a third
+    // of it at most, whatever code wrote it), and only these named fields.
+    const listings = stored.map((l) => ({
+      id: l.id,
+      entryId: l.entryId,
+      seller: l.seller,
+      price: l.price,
+      currency: l.currency,
+      status: l.status,
+      createdAt: l.createdAt,
+      preview: {
+        type: l.preview?.type,
+        domain: l.preview?.domain,
+        snippet: premiumTeaser(l.preview?.snippet),
+      },
+      premium: true,
+      locked: true,
+    }));
 
     json(res, 200, { success: true, listings, count: listings.length, teamId });
     return true;
@@ -1524,7 +1573,9 @@ export async function handleKnowledgeRoutes(
       {
         id: entry.id,
         type: entry.type,
-        content: entry.content,
+        // The marketplace keeps this as the public preview. A listed entry is
+        // for sale, so it only ever gets the teaser part of the text.
+        content: premiumTeaserText(entry.content),
         confidence: entry.confidence || 0.9,
         domain: entry.domain || 'general',
         tags: entry.tags || [],
@@ -1578,6 +1629,34 @@ export async function handleKnowledgeRoutes(
     const listing = (team as any).knowledgeMarketplace.getListing(listingId);
     if (!listing) {
       json(res, 404, { error: 'Listing not found' });
+      return true;
+    }
+
+    // Doors audit 2026-09-15 (round 3): this recorded a purchase, and so
+    // opened the premium body through GET /entry/:id, with no payment at all.
+    // Same refusal as POST /entry/:id/buy, checked BEFORE the listing is
+    // marked sold, so a refused buy changes nothing. Body flags are payment
+    // CLAIMS like the header, never proof.
+    const verdict = verifyPremiumPayment(
+      req.headers['x-payment'] ??
+        body.x402Proof ??
+        body.paymentReference ??
+        (body.paid === true ? 'paid:true' : undefined)
+    );
+    if (!verdict.verified) {
+      json(res, 402, {
+        error: 'Payment required',
+        code: verdict.code,
+        message: verdict.message,
+        listingId,
+        entryId: listing.entryId,
+        payment: {
+          price: listing.price,
+          currency: listing.currency,
+          required_base_units: String(Math.round((listing.price || 0) * 1_000_000)),
+          x402_verification: 'unavailable',
+        },
+      });
       return true;
     }
 

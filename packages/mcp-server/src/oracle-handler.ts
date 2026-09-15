@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
+import { hidePremiumTextIfPremium } from './holomesh/premium-view';
 
 /**
  * Phase 3 wrapper around the orchestrator-knowledge-fetch API key. This is
@@ -152,7 +153,11 @@ export async function handleOracleConsult(
           results?: KnowledgeEntry[];
           entries?: KnowledgeEntry[];
         };
-        const entries = data.results || data.entries || [];
+        // Oracle callers are never entitled readers: premium rows keep only
+        // their teaser (doors audit 2026-09-15).
+        const entries = (data.results || data.entries || []).map((row) =>
+          hidePremiumTextIfPremium(row)
+        );
         if (entries.length > 0) {
           results.push(
             '## Knowledge Store\n' +

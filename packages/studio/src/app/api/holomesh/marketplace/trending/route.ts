@@ -27,6 +27,7 @@ import { and, eq, gte, isNotNull, desc, sql } from 'drizzle-orm';
 import { getDb } from '../../../../../db/client';
 import { holomeshTransactions } from '../../../../../db/schema';
 import { rateLimit } from '../../../../../lib/rate-limiter';
+import { hidePremiumRowsDeep } from '../../../../../lib/premium-view';
 
 import { corsHeaders } from '../../../_lib/cors';
 const BASE =
@@ -97,7 +98,9 @@ async function fetchMcpCatalogue(domain?: string): Promise<MarketplaceEntry[]> {
   if (!res.ok) return [];
 
   const json = (await res.json()) as { entries?: MarketplaceEntry[] };
-  return Array.isArray(json.entries) ? json.entries : [];
+  // Doors audit 2026-09-15: fetched under Studio's server key, served to
+  // anyone, so premium entries leave as teasers only.
+  return Array.isArray(json.entries) ? hidePremiumRowsDeep(json.entries) : [];
 }
 
 // ---------------------------------------------------------------------------

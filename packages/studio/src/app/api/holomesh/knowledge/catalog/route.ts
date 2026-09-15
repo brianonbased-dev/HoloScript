@@ -5,6 +5,7 @@ import { getDb } from '../../../../../db/client';
 import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { rateLimit } from '../../../../../lib/rate-limiter';
+import { hidePremiumRowsDeep } from '../../../../../lib/premium-view';
 
 import { corsHeaders } from '../../../_lib/cors';
 const BASE =
@@ -75,9 +76,11 @@ export async function GET(req: NextRequest) {
       // If DB is empty (not yet synced), fall through to MCP
       if (entries.length > 0 || offset > 0) {
         const total = Number((countResult[0] as { count: number })?.count ?? 0);
+        // Doors audit 2026-09-15: this catalog is public and its cache knows
+        // nothing about purchases, so premium rows leave as teasers only.
         return NextResponse.json({
           success: true,
-          entries: entries.map((e) => ({
+          entries: hidePremiumRowsDeep(entries).map((e) => ({
             id: e.id,
             workspaceId: e.workspaceId,
             type: e.type,
@@ -130,7 +133,8 @@ export async function GET(req: NextRequest) {
   }
 
   const data = (await res.json()) as { entries?: unknown[]; success?: boolean };
-  const all = data.entries ?? [];
+  // Fetched under Studio's server key, served to anyone: teasers only.
+  const all = hidePremiumRowsDeep(data.entries ?? []);
 
   // Client-side domain filter (MCP doesn't support it server-side)
   const filtered = domain
