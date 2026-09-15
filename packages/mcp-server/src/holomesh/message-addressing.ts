@@ -82,6 +82,44 @@ export function messageAddressedToAny(
   return recipients.some((recipient) => recipient && messageAddressedTo(message, recipient));
 }
 
+export type TeamMemberLike = { agentId?: string; agentName?: string; name?: string };
+
+/**
+ * Decide who a team message is addressed to.
+ *
+ * An explicit recipient field is the sender's stated intent and passes through
+ * untouched. A bare `@word` in the body is much weaker evidence: npm scopes,
+ * product names and protocol names look exactly like handles, so a mention
+ * addresses the message only when it resolves to a real member of this team.
+ * An unresolvable mention addresses no one, which leaves the message on the
+ * open team feed rather than filing it to a seat that does not exist.
+ */
+export function resolveMessageRecipient<T extends TeamMemberLike>(params: {
+  members: T[] | undefined;
+  explicitTo?: string;
+  content?: string;
+  messageType?: string;
+}): { toAgentId?: string; toAgentName?: string } {
+  const explicitTo = String(params.explicitTo || '').trim();
+  const mention =
+    !explicitTo && INBOX_MESSAGE_TYPE_SET.has(String(params.messageType || ''))
+      ? firstMention(params.content)
+      : '';
+  const needle = explicitTo || mention;
+  if (!needle) return {};
+
+  const member = findTeamMember(params.members, needle);
+  if (member) {
+    return {
+      ...(member.agentId ? { toAgentId: member.agentId } : {}),
+      toAgentName: member.agentName || needle,
+    };
+  }
+
+  // No such member: keep an explicit field, drop an unmatched mention.
+  return explicitTo ? { toAgentName: explicitTo } : {};
+}
+
 /** Newest-first cap used by mobile-brief and other inbox slices. */
 export const INBOX_BRIEF_CAP = 10;
 
