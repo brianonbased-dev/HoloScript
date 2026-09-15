@@ -210,15 +210,19 @@ export async function __resetConsumerSpendGuardForTests(): Promise<void> {
 }
 
 /**
- * Answer for POST /api/credits/check (Studio creditGate) when no credit ledger
- * (Postgres pool) exists.
+ * Answer for the credit routes — POST /api/credits/check and
+ * POST /api/credits/deduct — when no credit ledger (Postgres pool) exists.
  *
  * Local development degrades open, as before. In production a missing ledger
- * is a misconfiguration and must REFUSE: answering "ok, balance Infinity" let
- * every paid operation through unmetered whenever DATABASE_URL was missing.
+ * is a misconfiguration and BOTH routes must REFUSE:
+ *  - check answering "ok, balance Infinity" let every paid operation through
+ *    unmetered whenever DATABASE_URL was missing;
+ *  - deduct answering "ok, cost N" told the caller a charge had been recorded
+ *    when nothing was written anywhere — a free operation reported as paid.
  */
-export function creditCheckWithoutLedger(
-  requiredCents: number,
+export function creditRouteWithoutLedger(
+  route: 'check' | 'deduct',
+  costCents: number,
   env: NodeJS.ProcessEnv = process.env
 ): { status: number; body: Record<string, unknown> } {
   if (env.NODE_ENV === 'production') {
@@ -227,10 +231,15 @@ export function creditCheckWithoutLedger(
       body: {
         ok: false,
         error: 'Credit ledger unavailable',
-        required: requiredCents,
-        message: 'Credit checks are refused while the credit database is not configured.',
+        required: costCents,
+        message:
+          route === 'check'
+            ? 'Credit checks are refused while the credit database is not configured.'
+            : 'Credit deductions are refused while the credit database is not configured. Nothing was recorded.',
       },
     };
   }
-  return { status: 200, body: { ok: true, balance: Infinity, required: requiredCents } };
+  return route === 'check'
+    ? { status: 200, body: { ok: true, balance: Infinity, required: costCents } }
+    : { status: 200, body: { ok: true, cost: costCents } };
 }

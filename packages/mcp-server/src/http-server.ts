@@ -124,7 +124,7 @@ import {
 import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
 import { founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
-import { creditCheckWithoutLedger } from './security/consumer-spend-guard';
+import { creditRouteWithoutLedger } from './security/consumer-spend-guard';
 import {
   initStores,
   teamStore,
@@ -2846,7 +2846,7 @@ const httpServer = http.createServer(async (req, res) => {
       }
       if (!pgPool) {
         // No credit ledger: local dev degrades open, production refuses (fail closed).
-        const noLedger = creditCheckWithoutLedger(opCost.baseCostCents);
+        const noLedger = creditRouteWithoutLedger('check', opCost.baseCostCents);
         res.writeHead(noLedger.status, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(noLedger.body));
         return;
@@ -2908,9 +2908,11 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
       if (!pgPool) {
-        // No DB — accept deduction silently (graceful degradation)
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: true, cost: opCost.baseCostCents }));
+        // No credit ledger: local dev degrades open, production refuses (fail closed).
+        // "ok, cost N" with nothing written anywhere reported a free operation as paid.
+        const noLedger = creditRouteWithoutLedger('deduct', opCost.baseCostCents);
+        res.writeHead(noLedger.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(noLedger.body));
         return;
       }
       // Atomic deduct: only succeeds if balance is sufficient

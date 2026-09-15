@@ -5,6 +5,8 @@ import { getDb } from '../../../../../../db/client';
 import { holomeshTransactions } from '../../../../../../db/schema';
 import { sql, and, eq, inArray } from 'drizzle-orm';
 import { rateLimit } from '../../../../../../lib/rate-limiter';
+import { resolveHoloMeshCaller } from '../../../../../../lib/holomesh-proxy';
+import { centsToUsdcAtomicUnits } from '../../../../_lib/usdc';
 
 import { corsHeaders } from '../../../../_lib/cors';
 // USDC contract addresses by network
@@ -18,17 +20,65 @@ interface BalanceRow extends Record<string, unknown> {
   withdrawals: unknown;
 }
 
+/** Earnings in, withdrawals out (failed withdrawals release their amount). */
+function balanceQuery(agentId: string) {
+  return sql`
+    SELECT
+      COALESCE(SUM(amount) FILTER (
+        WHERE to_agent_id = ${agentId}
+          AND type = ANY(ARRAY['purchase','reward'])
+      ), 0) AS earnings,
+      COALESCE(SUM(amount) FILTER (
+        WHERE from_agent_id = ${agentId}
+          AND type = 'withdrawal'
+          AND status != 'failed'
+      ), 0) AS withdrawals
+    FROM holomesh_transactions
+  `;
+}
+
+/**
+ * Only the agent itself may read or move its earnings.
+ *
+ * SECURITY: until 2026-09-15 this route had no auth at all (src/proxy.ts skips
+ * /api), so anyone could file a withdrawal of ANY agent's earnings to ANY
+ * address. The caller now proves who it is with its own HoloMesh API key,
+ * checked by mcp-server's GET /api/holomesh/me (the same introspection
+ * /api/holomesh/agent/self uses), and must BE the agent in the URL.
+ * mcp-server has no separate per-agent owner: the key holder is the owner.
+ */
+async function requireSameAgent(
+  req: NextRequest,
+  agentId: string
+): Promise<{ agentId: string; name: string } | NextResponse> {
+  const caller = await resolveHoloMeshCaller(req);
+  if (!caller.ok) {
+    return NextResponse.json({ success: false, error: caller.error }, { status: caller.status });
+  }
+  if (caller.agentId !== agentId) {
+    return NextResponse.json(
+      { success: false, error: "You can only see or withdraw your own agent's earnings." },
+      { status: 403 }
+    );
+  }
+  return { agentId: caller.agentId, name: caller.name };
+}
+
 /**
  * POST /api/holomesh/agent/[id]/withdraw
  *
  * Initiates a USDC withdrawal for an agent's earned revenue.
+ * Auth: `Authorization: Bearer <HoloMesh API key>` of the agent `[id]` itself.
  *
  * Body:
  *   agentId     string  — must match URL param
  *   amount      number  — withdrawal amount in cents (USD)
  *   toAddress   string  — destination Ethereum wallet address (0x...)
- *   agentName?  string  — display name for the transaction record
  *   network?    string  — "base" | "base-sepolia" (default: "base-sepolia")
+ *
+ * The balance check and the withdrawal row are one transaction under a
+ * per-agent advisory lock, so two requests cannot both spend the same balance.
+ * The row is written (reserving the amount) BEFORE any on-chain transfer.
  *
  * Response:
  *   { success, withdrawalId, agentId, amount, currency, network,
@@ -40,6 +90,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Rate limit: 5 withdrawals/min per agent
   const limited = rateLimit(req, { max: 5, label: 'agent-withdraw' }, `withdraw:${agentId}`);
   if (!limited.ok) return limited.response;
+
+  const caller = await requireSameAgent(req, agentId);
+  if (caller instanceof NextResponse) return caller;
 
   // ── Parse & validate body ────────────────────────────────────────────────
   let body: Record<string, unknown>;
@@ -53,13 +106,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     agentId: bodyAgentId,
     amount,
     toAddress,
-    agentName = '',
     network = 'base-sepolia',
   } = body as {
     agentId?: unknown;
     amount?: unknown;
     toAddress?: unknown;
-    agentName?: unknown;
     network?: unknown;
   };
 
@@ -71,7 +122,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const amountNum = typeof amount === 'number' ? amount : parseInt(String(amount ?? ''), 10);
-  if (!Number.isInteger(amountNum) || amountNum <= 0) {
+  if (!Number.isSafeInteger(amountNum) || amountNum <= 0) {
     return NextResponse.json(
       { success: false, error: 'amount must be a positive integer (cents)' },
       { status: 400 }
@@ -100,60 +151,80 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  // ── Compute available balance ────────────────────────────────────────────
   const db = getDb();
   if (!db) {
     return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
   }
 
-  let earnings = 0;
-  let withdrawals = 0;
+  const withdrawalId = `wtx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date();
+  const usdcAddress = USDC_ADDRESSES[networkStr];
+
+  // ── Check balance and reserve it, atomically ─────────────────────────────
+  // pg_advisory_xact_lock serialises every withdrawal for this agent until the
+  // transaction ends, so the balance read and the insert cannot interleave with
+  // another request's. (A row lock would not help: the balance is a SUM, and
+  // the competing request INSERTS a new row rather than updating one.)
+  let reservation: { reserved: true; available: number } | { reserved: false; available: number };
   try {
-    const balResult = await db.execute<BalanceRow>(sql`
-      SELECT
-        COALESCE(SUM(amount) FILTER (
-          WHERE to_agent_id = ${agentId}
-            AND type = ANY(ARRAY['purchase','reward'])
-        ), 0) AS earnings,
-        COALESCE(SUM(amount) FILTER (
-          WHERE from_agent_id = ${agentId}
-            AND type = 'withdrawal'
-            AND status != 'failed'
-        ), 0) AS withdrawals
-      FROM holomesh_transactions
-    `);
-    const row = balResult.rows[0];
-    earnings = Number(row?.earnings ?? 0);
-    withdrawals = Number(row?.withdrawals ?? 0);
+    reservation = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`holomesh-withdraw:${agentId}`}))`
+      );
+      const balResult = await tx.execute<BalanceRow>(balanceQuery(agentId));
+      const row = balResult.rows[0];
+      const available = Number(row?.earnings ?? 0) - Number(row?.withdrawals ?? 0);
+      if (amountNum > available) return { reserved: false as const, available };
+
+      await tx.insert(holomeshTransactions).values({
+        id: withdrawalId,
+        type: 'withdrawal',
+        fromAgentId: agentId,
+        fromAgentName: caller.name,
+        toAgentId: null,
+        toAgentName: null,
+        entryId: null,
+        amount: amountNum,
+        currency: 'USDC',
+        txHash: null,
+        status: 'pending',
+        teamId: null,
+        metadata: {
+          toAddress: addressStr,
+          network: networkStr,
+          usdcContractAddress: usdcAddress,
+        },
+        mcpCreatedAt: now,
+        syncedAt: now,
+      });
+      return { reserved: true as const, available };
+    });
   } catch (err) {
-    console.error('[withdraw] balance query failed:', err);
+    console.error('[withdraw] balance check / reservation failed:', err);
     return NextResponse.json(
-      { success: false, error: 'Failed to compute balance' },
+      { success: false, error: 'Failed to record withdrawal' },
       { status: 500 }
     );
   }
 
-  const availableBalance = earnings - withdrawals;
-  if (amountNum > availableBalance) {
+  if (!reservation.reserved) {
     return NextResponse.json(
       {
         success: false,
         error: 'Insufficient balance',
-        availableBalance,
+        availableBalance: reservation.available,
         requested: amountNum,
       },
       { status: 402 }
     );
   }
 
-  // ── Build withdrawal ID ──────────────────────────────────────────────────
-  const withdrawalId = `wtx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const now = new Date();
-
   // ── Attempt on-chain USDC transfer via AgentKit (optional) ───────────────
+  // The amount is already reserved by the pending row above. Without CDP
+  // credentials, or if the transfer fails, the row stays 'pending' for manual
+  // processing and keeps the amount reserved.
   let txHash: string | undefined;
-  let onChainStatus: 'confirmed' | 'pending' | 'failed' = 'pending';
-  const usdcAddress = USDC_ADDRESSES[networkStr];
+  let onChainStatus: 'confirmed' | 'pending' = 'pending';
 
   const cdpKeyId = process.env.COINBASE_API_KEY_NAME ?? process.env.CDP_API_KEY_ID;
   const cdpKeySecret = process.env.COINBASE_API_KEY_SECRET ?? process.env.CDP_API_KEY_SECRET;
@@ -164,9 +235,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // Lazy import to avoid breaking builds without AgentKit configured
       const { CdpEvmWalletProvider } = await import('@holoscript/marketplace-agentkit');
       const { erc20ActionProvider } = await import('@holoscript/marketplace-agentkit');
-
-      // Amount in USDC atomic units: 1 USDC = 1e6 units; amount is cents → divide by 100
-      const usdcAmount = String(Math.floor(amountNum / 100) * 1_000_000);
 
       const walletProvider = await CdpEvmWalletProvider.configureWithWallet({
         apiKeyId: cdpKeyId,
@@ -179,7 +247,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const result = await erc20.transfer(walletProvider, {
         tokenAddress: usdcAddress,
         destinationAddress: addressStr,
-        amount: usdcAmount,
+        amount: centsToUsdcAtomicUnits(amountNum),
       });
 
       // result is a string message from AgentKit; extract tx hash if present
@@ -190,44 +258,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       onChainStatus = 'confirmed';
     } catch (err) {
       console.error('[withdraw] AgentKit transfer failed:', err);
-      // Fall through — record as pending so ops can retry manually
       onChainStatus = 'pending';
     }
-  }
-  // If no CDP credentials, withdrawal is recorded as pending (manual processing)
 
-  // ── Record withdrawal in DB ──────────────────────────────────────────────
-  try {
-    await db.insert(holomeshTransactions).values({
-      id: withdrawalId,
-      type: 'withdrawal',
-      fromAgentId: agentId,
-      fromAgentName: String(agentName ?? ''),
-      toAgentId: null,
-      toAgentName: null,
-      entryId: null,
-      amount: amountNum,
-      currency: 'USDC',
-      txHash: txHash ?? null,
-      status: onChainStatus,
-      teamId: null,
-      metadata: {
-        toAddress: addressStr,
-        network: networkStr,
-        usdcContractAddress: usdcAddress,
-      },
-      mcpCreatedAt: now,
-      syncedAt: now,
-    });
-  } catch (err) {
-    console.error('[withdraw] DB insert failed:', err);
-    return NextResponse.json(
-      { success: false, error: 'Failed to record withdrawal' },
-      { status: 500 }
-    );
+    if (onChainStatus === 'confirmed') {
+      try {
+        await db
+          .update(holomeshTransactions)
+          .set({ status: 'confirmed', txHash: txHash ?? null, syncedAt: new Date() })
+          .where(eq(holomeshTransactions.id, withdrawalId));
+      } catch (err) {
+        // The money moved; the row still reserves the amount, so nothing can be
+        // paid twice. Ops must mark it confirmed by hand.
+        console.error(
+          `[withdraw] transfer confirmed but status update failed for ${withdrawalId}:`,
+          err
+        );
+      }
+    }
   }
-
-  const remainingBalance = availableBalance - amountNum;
 
   return NextResponse.json({
     success: true,
@@ -239,14 +288,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     toAddress: addressStr,
     status: onChainStatus,
     ...(txHash ? { txHash } : {}),
-    remainingBalance,
+    remainingBalance: reservation.available - amountNum,
   });
 }
 
 /**
  * GET /api/holomesh/agent/[id]/withdraw
  *
- * Returns withdrawal history and current balance for the agent.
+ * Returns withdrawal history (including destination addresses) and current
+ * balance. Auth: the agent's own HoloMesh API key, as for POST.
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = await params;
@@ -258,25 +308,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   );
   if (!limited.ok) return limited.response;
 
+  const caller = await requireSameAgent(req, agentId);
+  if (caller instanceof NextResponse) return caller;
+
   const db = getDb();
   if (!db) {
     return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
   }
 
   try {
-    const balResult2 = await db.execute<BalanceRow>(sql`
-      SELECT
-        COALESCE(SUM(amount) FILTER (
-          WHERE to_agent_id = ${agentId}
-            AND type = ANY(ARRAY['purchase','reward'])
-        ), 0) AS earnings,
-        COALESCE(SUM(amount) FILTER (
-          WHERE from_agent_id = ${agentId}
-            AND type = 'withdrawal'
-            AND status != 'failed'
-        ), 0) AS withdrawals
-      FROM holomesh_transactions
-    `);
+    const balResult2 = await db.execute<BalanceRow>(balanceQuery(agentId));
 
     const balanceRow = balResult2.rows[0];
     const earnings = Number(balanceRow?.earnings ?? 0);

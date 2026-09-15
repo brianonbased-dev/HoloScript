@@ -32,6 +32,7 @@ import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surfa
 import BrittneyAPIKeysPanel from './BrittneyAPIKeysPanel';
 import { IntegrationsView } from '@/components/integrations/IntegrationsView';
 import { CreditBalanceCard, PricingTab } from '@/app/absorb/components';
+import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
 
 // ── Types (kept host-side; not exposed to composition) ─────────────────────────
 
@@ -74,6 +75,7 @@ export function SettingsView() {
   const [creditBalance, setCreditBalance] = useState(0);
   const [creditTier, setCreditTier] = useState<string>('free');
   const [creditsLoading, setCreditsLoading] = useState(false);
+  const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
 
   // ── Profile form state (React-controlled; kept in host) ────────────────────
   const [displayName, setDisplayName] = useState('');
@@ -232,18 +234,27 @@ export function SettingsView() {
   }
 
   async function purchaseCredits(pkgId: string) {
+    setPurchaseMessage(null);
     try {
-      const res = await fetch('/api/absorb/credits', {
+      // absorbFetch sends the connected GitHub token when there is one; the
+      // route otherwise uses the signed-in session's GitHub token.
+      const res = await absorbFetch('/api/absorb/credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packageId: pkgId }),
       });
-      const data = await res.json();
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl as string;
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      if (res.ok && typeof data.checkoutUrl === 'string') {
+        window.location.href = data.checkoutUrl;
+        return;
       }
+      const reason =
+        (typeof data.message === 'string' && data.message) ||
+        (typeof data.error === 'string' && data.error) ||
+        'The purchase could not be started.';
+      setPurchaseMessage(`${reason} You were not charged.`);
     } catch {
-      // Silently fail
+      setPurchaseMessage('The purchase could not be started. You were not charged.');
     }
   }
 
@@ -459,6 +470,14 @@ export function SettingsView() {
           ) : (
             <div className="space-y-8">
               <CreditBalanceCard balance={creditBalance} tier={creditTier} />
+              {purchaseMessage && (
+                <div
+                  role="alert"
+                  style={{ padding: 12, color: '#f87171', fontFamily: 'system-ui', fontSize: 14 }}
+                >
+                  {purchaseMessage}
+                </div>
+              )}
               <PricingTab onPurchase={(pkgId) => void purchaseCredits(pkgId)} />
             </div>
           )}

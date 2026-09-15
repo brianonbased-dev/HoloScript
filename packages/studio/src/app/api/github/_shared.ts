@@ -64,7 +64,18 @@ async function sleep(ms: number): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-export async function getGitHubToken(req?: NextRequest): Promise<string | null> {
+/**
+ * The signed-in user's GitHub token: NextAuth JWT, then device session, then
+ * the server session. Outside production (or with
+ * STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK) it may fall back to a SERVER token
+ * (PERSONAL_ACCESS_TOKEN / PAT_TOKEN / GITHUB_TOKEN). Pass
+ * `{ userOnly: true }` wherever the token stands for WHO the user is (credits,
+ * billing): a server token there would act as someone else.
+ */
+export async function getGitHubToken(
+  req?: NextRequest,
+  options: { userOnly?: boolean } = {}
+): Promise<string | null> {
   const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
   if (req && secret) {
     const { getToken } = await import('next-auth/jwt');
@@ -85,6 +96,8 @@ export async function getGitHubToken(req?: NextRequest): Promise<string | null> 
   if (session?.accessToken) {
     return session.accessToken;
   }
+
+  if (options.userOnly) return null;
 
   // GITHUB_TOKEN is a known-invalid ambient token on this machine (F.109 / lib.mjs).
   // Prefer PERSONAL_ACCESS_TOKEN / PAT_TOKEN — the real credentials.
