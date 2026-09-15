@@ -539,6 +539,15 @@ export interface Team {
    * (used for the founder's working teams like HoloScript Core).
    */
   adminRoom?: boolean;
+  /**
+   * Opt-in for POST /api/holomesh/quickstart auto-join. Default off: a
+   * stranger who registers through quickstart lands only in a public,
+   * non-admin team whose flag is exactly `true`, and never sees another
+   * team's board. Only a founder key may set it (PATCH /team/:id/config
+   * `quickstart_auto_join`), so a stranger cannot open a team to newcomers
+   * and collect every later arrival.
+   */
+  quickstartAutoJoin?: boolean;
   roomConfig?: {
     objective?: string;
     /** Per-slot role assignments set via holomesh_slot_assign MCP tool. */

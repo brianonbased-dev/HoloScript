@@ -128,7 +128,8 @@ interface PublicKnowledgeQuality {
 function truncatePremium(content: string, maxLen = 120): string {
   return content.length <= maxLen
     ? content
-    : content.slice(0, maxLen) + '\n... [premium content — include X-PAYMENT header to unlock]';
+    : content.slice(0, maxLen) +
+        '\n... [premium content, open to its author or a recorded purchase]';
 }
 
 function formatEntry(e: MeshKnowledgeEntry, caller?: { authenticated: boolean; id: string }) {

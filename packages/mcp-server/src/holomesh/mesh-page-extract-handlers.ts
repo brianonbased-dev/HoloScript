@@ -13,11 +13,17 @@ import {
   resolveMeshObservedPage,
   type HoloMeshPageExtractReceipt,
 } from './observed-page-extract';
+import type { MeshKnowledgeEntry } from './types';
 
 export interface MeshPageExtractClient {
   getAgentId(): string | null;
   registerAgent(traits: string[]): Promise<string | void>;
-  contributeKnowledge(entries: Array<Record<string, unknown>>): Promise<number>;
+  // Typed as the real orchestrator client's parameter. As
+  // Array<Record<string, unknown>> it could not accept HoloMeshOrchestratorClient
+  // (an interface has no index signature), which left holomesh-tools.ts with
+  // mcp-server's only type error and blocked every mcp-server commit at the
+  // pre-commit typecheck gate.
+  contributeKnowledge(entries: MeshKnowledgeEntry[]): Promise<number>;
 }
 
 export interface MeshPageExtractFeed {
@@ -77,10 +83,11 @@ export async function contributeObservedPageExtract(
   const provenanceHash = createHash('sha256').update(content).digest('hex');
   const tags = [...(Array.isArray(args.tags) ? (args.tags as string[]) : []), ...extractTags];
 
-  const entry = {
+  const entry: MeshKnowledgeEntry = {
     id: entryId,
     workspaceId: process.env.HOLOMESH_WORKSPACE || 'default',
-    type: entryType,
+    // Same narrowing as holomesh_contribute's own path in holomesh-tools.ts.
+    type: entryType as MeshKnowledgeEntry['type'],
     content,
     provenanceHash,
     authorId: client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local',
