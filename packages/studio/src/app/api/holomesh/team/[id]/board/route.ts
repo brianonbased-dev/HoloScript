@@ -1,7 +1,13 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { proxyHoloMesh } from '../../../../../../lib/holomesh-proxy';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../../../../lib/auth';
+import {
+  callerIsTeamMember,
+  proxyHoloMesh,
+  resolveHoloMeshCaller,
+} from '../../../../../../lib/holomesh-proxy';
 import { boardReadLimit, boardWriteLimit } from '../../../../../../lib/rate-limiter';
 import { getDb } from '../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../db/schema';
@@ -32,8 +38,81 @@ async function fetchDoneCount(teamId: string): Promise<number | null> {
   }
 }
 
+/**
+ * Who may read or write a team's board.
+ *
+ * Doors audit 2026-09-16, second pass. The `/export` route beside this one was
+ * closed to non-members; closing one of two doors into the same rows is what
+ * made this one reachable-and-surprising. `/board` serves the SAME
+ * holomeshBoardTasks rows `/export` returns (:46-50), and fell through to
+ * proxyHoloMesh under our HOLOMESH_API_KEY (:107) for anyone who named a team
+ * id — a lower bar than the door next to it, which is the shape nobody expects.
+ *
+ * Its shape differs from `/export` in the one way that decides the fix.
+ * `/export` has no browser caller at all — it is an agent endpoint, so it can
+ * simply demand a HoloMesh key. `/board` is the Studio team UI's own read:
+ * app/teams/[id]/page.tsx:93 and :118, app/teams/[id]/board/page.tsx:90,
+ * components/teams/BoardTab.tsx:109, components/ai/BrittneyChatPanel.tsx:704,
+ * components/projects/ReposTab.tsx:729 and app/operations/page.tsx:576 all
+ * fetch it from the browser carrying nothing but a session cookie. Demanding a
+ * mesh key here would refuse every one of them — a legitimate caller silently
+ * refused, which counts equally with a door left open.
+ *
+ * So the rule is: identify whoever CAN be identified, and never spend our key
+ * for a caller we could not.
+ *  - A caller presenting their OWN mesh credential is resolved upstream and
+ *    must be a member of the team they named — the same two checks `/export`
+ *    makes, under the caller's own key, both before any read.
+ *  - A caller with no credential of their own must hold a Studio session.
+ *  - Anyone else is refused before the DB is read or our key is spent.
+ *
+ * Residue, named rather than hidden: a signed-in Studio user can still name
+ * another team's id. Studio accounts are not HoloMesh agents — no mapping from
+ * a session to an agentId exists in this schema, and the knowledge/query route
+ * says the same thing in its own header — so membership cannot be checked for a
+ * browser caller until one exists. That is strictly narrower than what this
+ * closes, and it is written down for the lead rather than left to be rediscovered.
+ */
+function hasOwnMeshCredential(req: NextRequest): boolean {
+  const authorization = req.headers.get('authorization')?.trim();
+  if (authorization && /^Bearer\s+\S+/i.test(authorization)) return true;
+  return Boolean(req.headers.get('x-mcp-api-key')?.trim());
+}
+
+async function boardCallerRefusal(
+  req: NextRequest,
+  teamId: string
+): Promise<NextResponse | null> {
+  if (hasOwnMeshCredential(req)) {
+    const caller = await resolveHoloMeshCaller(req);
+    if (!caller.ok) {
+      return NextResponse.json({ error: caller.error }, { status: caller.status });
+    }
+    const membership = await callerIsTeamMember(req, teamId, caller.agentId);
+    if (!membership.ok) {
+      return NextResponse.json({ error: membership.error }, { status: membership.status });
+    }
+    return null;
+  }
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      {
+        error:
+          'This board needs a caller. Sign in to HoloScript Studio, or send your own HoloMesh key as "x-mcp-api-key: <your key>".',
+      },
+      { status: 401 }
+    );
+  }
+  return null;
+}
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  const refusal = await boardCallerRefusal(req, id);
+  if (refusal) return refusal;
 
   // Rate-limit: 120 GETs per minute per IP+key
   const limit = boardReadLimit(req, id);
@@ -109,6 +188,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  // A write to someone else's board is worse than a read of it, so the same
+  // check runs first here. app/teams/[id]/page.tsx:118 posts a mode change from
+  // the browser with only a session cookie, which is why this is not
+  // mesh-key-only.
+  const refusal = await boardCallerRefusal(req, id);
+  if (refusal) return refusal;
+
   return proxyHoloMesh(`/api/holomesh/team/${id}/board`, req);
 }
 

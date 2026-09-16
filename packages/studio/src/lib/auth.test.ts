@@ -47,6 +47,12 @@ describe('auth configuration', () => {
     const options = buildAuthOptions();
 
     expect(options.session?.strategy).toBe('jwt');
+    // The adapter is lazy now (auth.ts:100): the Proxy constructs it on first
+    // property access, so read one before asserting it was wired. Without this
+    // read the assertion silently stops proving anything — it passed against the
+    // old eager call and failed against the lazy one, which is why this looked
+    // like a flake rather than the contract change it is.
+    void options.adapter?.createUser;
     expect(DrizzleAdapter).toHaveBeenCalled();
   });
 
