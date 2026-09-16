@@ -96,6 +96,9 @@ export function createStudioPublishingCommands(
   ];
 }
 
+/** How long a failed command's reason stays on screen before it hides itself. */
+const COMMAND_FAILURE_VISIBLE_MS = 8000;
+
 /**
  * Studio command palette (Ctrl+K / Cmd+K).
  * Renders a searchable overlay of registered commands with keyboard navigation.
@@ -107,6 +110,8 @@ export class UXCommandPalette {
   private selectedIndex: number = 0;
   private container: HTMLElement;
   private streamSubscription?: { unsubscribe: () => void };
+  private failureBanner?: HTMLElement;
+  private failureTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
     this.container = document.createElement('div');
@@ -185,6 +190,9 @@ export class UXCommandPalette {
 
   public destroy() {
     if (this.streamSubscription) this.streamSubscription.unsubscribe();
+    if (this.failureTimer) clearTimeout(this.failureTimer);
+    this.failureBanner?.remove();
+    this.failureBanner = undefined;
     this.container.remove();
   }
 
@@ -259,9 +267,59 @@ export class UXCommandPalette {
       // nothing. Commands that can explain themselves show their own message
       // before rethrowing; this makes sure the ones that cannot are still
       // visible to whoever is looking.
+      //
+      // Logging it was not enough, and that is the repair here. The palette
+      // closes itself BEFORE awaiting, so on the console-only version the user
+      // saw the overlay vanish and nothing else — identical, on screen, to the
+      // command having worked. Nobody outside a devtools panel can tell a
+      // refused publish from a successful one. The message now goes where the
+      // person who pressed the key is looking.
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[command-palette] "${option.label}" failed: ${message}`);
+      this.showCommandFailure(option.label, message);
     }
+  }
+
+  /**
+   * Put a failed command's reason on the screen.
+   *
+   * Appended to `document.body`, not to `this.container`: the palette has
+   * already been toggled closed by the time a command can fail, and its
+   * container carries `display: none`, so anything rendered inside it would be
+   * invisible — a backstop that looks present in the DOM and shows the user
+   * nothing.
+   */
+  private showCommandFailure(label: string, message: string) {
+    if (typeof document === 'undefined') return;
+
+    if (!this.failureBanner) {
+      this.failureBanner = document.createElement('div');
+      this.failureBanner.className = 'command-palette-error';
+      this.failureBanner.setAttribute('role', 'alert');
+      Object.assign(this.failureBanner.style, {
+        position: 'fixed',
+        left: '50%',
+        bottom: '24px',
+        transform: 'translateX(-50%)',
+        maxWidth: '520px',
+        padding: '10px 14px',
+        borderRadius: '8px',
+        border: '1px solid rgba(248,113,113,0.35)',
+        backgroundColor: 'rgba(69,10,10,0.96)',
+        color: '#fecaca',
+        font: '13px Inter, sans-serif',
+        zIndex: '10000',
+      });
+      document.body.appendChild(this.failureBanner);
+    }
+
+    this.failureBanner.textContent = `"${label}" failed: ${message}`;
+    this.failureBanner.style.display = 'block';
+
+    if (this.failureTimer) clearTimeout(this.failureTimer);
+    this.failureTimer = setTimeout(() => {
+      if (this.failureBanner) this.failureBanner.style.display = 'none';
+    }, COMMAND_FAILURE_VISIBLE_MS);
   }
 
   private render() {

@@ -259,6 +259,87 @@ describe('useSceneShare', () => {
     });
   });
 
+  /**
+   * The signed-out visitor on /create.
+   *
+   * SharePanel mounts this hook and it calls `GET /api/share` immediately. That
+   * bare GET lists the 50 most recent shares of EVERY user, so the edge gate
+   * closes it to anonymous callers and answers 401 — correctly. What was wrong
+   * was on this side: the 401 body parsed as JSON, `data.scenes` was undefined,
+   * and the gallery went silently empty, so the panel told the visitor "No
+   * scenes shared yet — be the first!" That is a false claim about the world
+   * rather than a fact about the visitor, and it is indistinguishable from a
+   * genuinely empty gallery.
+   */
+  describe('Signed out', () => {
+    it('treats the gallery 401 as "sign in", not as a failure', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          error: 'This endpoint needs a caller. Sign in to HoloScript Studio.',
+          signInRequired: true,
+        }),
+      });
+
+      const { result } = renderHook(() => useSceneShare());
+
+      await waitFor(() => {
+        expect(result.current.galleryRequiresSignIn).toBe(true);
+      });
+
+      expect(result.current.gallery).toEqual([]);
+      // A visitor who simply has no account has not hit a fault, and must not
+      // be shown one.
+      expect(result.current.error).toBeNull();
+    });
+
+    it('clears the sign-in state once the gallery answers', async () => {
+      const scenes = [
+        { id: '1', name: 'Scene 1', author: 'Alice', createdAt: '2024-01-01', views: 10 },
+      ];
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({ error: 'needs a caller', signInRequired: true }),
+        })
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ scenes }) });
+
+      const { result } = renderHook(() => useSceneShare());
+
+      await waitFor(() => {
+        expect(result.current.galleryRequiresSignIn).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.loadGallery();
+      });
+
+      expect(result.current.galleryRequiresSignIn).toBe(false);
+      expect(result.current.gallery).toEqual(scenes);
+    });
+
+    it('still surfaces a real server failure as an error', async () => {
+      // The repair must not turn every bad response into a polite shrug: only
+      // 401 means "sign in". A 500 is still something the user should see.
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Server error' }),
+      });
+
+      const { result } = renderHook(() => useSceneShare());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Server error');
+      });
+
+      expect(result.current.galleryRequiresSignIn).toBe(false);
+    });
+  });
+
   describe('Reset', () => {
     it('should clear shareUrl', async () => {
       mockFetch

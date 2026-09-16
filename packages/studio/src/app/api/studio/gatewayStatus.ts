@@ -26,3 +26,29 @@ export const GATEWAY_TOOL_CALL_STATUS = {
   tracking:
     'Correcting the forwarded path is held out of the security change that found it: it would turn a dead route into a live tool-execution route.',
 } as const;
+
+/** The one header the mesh services read a caller key from. */
+export const MESH_KEY_HEADER = 'x-mcp-api-key';
+
+/**
+ * What an outside agent must send, and in which header.
+ *
+ * Doors audit 2026-09-15: the agent-facing endpoints handed out the gateway URL
+ * with no credential guidance at all, so an agent that wired itself up exactly
+ * as told sent nothing and met a refusal it could not diagnose. The mesh
+ * services read the key from `x-mcp-api-key` only, so naming the wrong form
+ * would be worse than naming none.
+ *
+ * This lived as three byte-identical copies — in mcp-config, in quickstart, and
+ * about to become a third in capabilities. One copy, so the three endpoints
+ * cannot drift into telling an agent three different things.
+ */
+export const AGENT_AUTH = {
+  header: MESH_KEY_HEADER,
+  value: '<your HoloMesh API key>',
+  required: true,
+  how: `Send your own key on every request as "${MESH_KEY_HEADER}: <your key>". You then run as yourself, and Studio's own key is never spent on your behalf.`,
+  without_a_key:
+    "Without a key, only a signed-in Studio browser session can reach the small set of tools Studio's own UI uses. Every other call is refused.",
+  bearer: `The Studio gateway also accepts "Authorization: Bearer <key>" and forwards it as ${MESH_KEY_HEADER}; the mesh services themselves read only ${MESH_KEY_HEADER}.`,
+} as const;

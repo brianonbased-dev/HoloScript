@@ -12,28 +12,15 @@ import { ENDPOINTS } from '@holoscript/config/endpoints';
 
 import { corsHeaders } from '../../_lib/cors';
 import { FIRST_SCENE_PROOF } from './firstSceneProof';
-import { GATEWAY_TOOL_CALL_STATUS } from '../gatewayStatus';
+import { AGENT_AUTH, GATEWAY_TOOL_CALL_STATUS, MESH_KEY_HEADER } from '../gatewayStatus';
 const MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 
 const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
 
-const MESH_KEY_HEADER = 'x-mcp-api-key';
-
-/**
- * Onboarding that names the endpoints but not the credential sends an agent
- * straight into a refusal it cannot diagnose (doors audit 2026-09-15). The
- * mesh services read the key from `x-mcp-api-key` only.
- */
-const AGENT_AUTH = {
-  header: MESH_KEY_HEADER,
-  value: '<your HoloMesh API key>',
-  required: true,
-  how: `Send your own key on every request as "${MESH_KEY_HEADER}: <your key>". You then run as yourself, and Studio's own key is never spent on your behalf.`,
-  without_a_key:
-    "Without a key, only a signed-in Studio browser session can reach the small set of tools Studio's own UI uses. Every other call is refused.",
-  bearer: `The Studio gateway also accepts "Authorization: Bearer <key>" and forwards it as ${MESH_KEY_HEADER}; the mesh services themselves read only ${MESH_KEY_HEADER}.`,
-};
+// AGENT_AUTH and MESH_KEY_HEADER were declared here and byte-identically in
+// mcp-config. One copy now, beside GATEWAY_TOOL_CALL_STATUS, so the endpoints
+// that answer "what do I send?" cannot drift apart.
 
 const HELLO_WORLD_SCENE = `scene HelloWorld {
   object Cube {
