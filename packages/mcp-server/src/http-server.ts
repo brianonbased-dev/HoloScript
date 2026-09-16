@@ -97,6 +97,7 @@ import {
   OAUTH2_PUBLIC_SCOPES,
   OAUTH2_PUBLIC_SCOPE_NAMES,
   OAUTH2_SCOPES,
+  normalizeAgentIdentity,
 } from './auth/oauth2-provider';
 import {
   acceptsHtml,
@@ -137,6 +138,7 @@ import {
   teamPresenceStore,
   reloadTeam,
 } from './holomesh/state';
+import { resolveProvenAgentId } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
@@ -317,28 +319,6 @@ oauth.setDurableIntrospector(async (token) => {
     issuedAt: result.issuedAt,
   };
 });
-
-/**
- * Resolve the agent identity a request has PROVEN it owns.
- *
- * `POST /oauth/register` is open to anyone and `client_secret` proves only which
- * client is calling, so neither can establish which AGENT the caller is. A key
- * from the HoloMesh key registry can: keys are issued per agent and resolve to
- * exactly one agentId. Returns undefined when no live agent key is presented,
- * which makes every unproven `agent_id` request fail closed.
- */
-function resolveProvenAgentId(req: http.IncomingMessage): string | undefined {
-  for (const headerName of ['x-agent-key', 'x-api-key', 'x-mcp-api-key']) {
-    const raw = req.headers[headerName];
-    const presented = typeof raw === 'string' ? raw.trim() : '';
-    if (!presented) continue;
-    const record = keyRegistry.get(presented);
-    if (!record) continue;
-    if (record.expiresAt && new Date(record.expiresAt) < new Date()) continue;
-    return record.agentId;
-  }
-  return undefined;
-}
 
 /** Rehydrate a client from the durable registry into the legacy in-memory one. */
 async function ensureClientHydrated(clientId: string | null | undefined): Promise<void> {
@@ -2022,12 +2002,20 @@ const httpServer = http.createServer(async (req, res) => {
       // that agent's own key. Registration is open to anyone, so an unproven
       // agent_id in the body must never become a durable identity binding.
       const requestedAgentId = String(body.agent_id || '').trim();
-      const registrarAgentId = resolveProvenAgentId(req);
-      if (requestedAgentId && requestedAgentId !== registrarAgentId) {
+      const registrarAgentId = resolveProvenAgentId(req.headers);
+      // Compare the way the GRANT compares. The grant is case- and
+      // whitespace-insensitive, so a stricter test here would let a client
+      // register under a spelling its own token requests are then refused for —
+      // a legitimate caller locked out by nothing but capitalisation.
+      if (
+        requestedAgentId &&
+        normalizeAgentIdentity(requestedAgentId) !== normalizeAgentIdentity(registrarAgentId)
+      ) {
         throw new Error(
           'agent_id can only be bound by a request that presents that agent-s own key.'
         );
       }
+      // Record the registry's spelling, never the caller's.
       const boundAgentId = requestedAgentId ? registrarAgentId : undefined;
 
       // Register with legacy provider (backwards compat)
@@ -2404,7 +2392,7 @@ const httpServer = http.createServer(async (req, res) => {
       const dpopHeader = req.headers['dpop'] as string | undefined;
       // Identity the caller proved on THIS request; the grant refuses any
       // agent_id that is neither this nor the client's registered binding.
-      const provenAgentId = resolveProvenAgentId(req);
+      const provenAgentId = resolveProvenAgentId(req.headers);
 
       // Rehydrate durable state before the sync grant handlers consult the
       // in-memory maps (wiped on every deploy).

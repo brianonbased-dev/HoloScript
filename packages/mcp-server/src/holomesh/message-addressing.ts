@@ -116,8 +116,16 @@ export function resolveMessageRecipient<T extends TeamMemberLike>(params: {
     };
   }
 
-  // No such member: keep an explicit field, drop an unmatched mention.
-  return explicitTo ? { toAgentName: explicitTo } : {};
+  // No such member. Keep the needle as the recipient name so the message stays
+  // DIRECTED, and drop only the agentId attribution we could not establish.
+  //
+  // Returning {} here was a regression: a message with no recipient at all has
+  // no explicit recipient, and `messageAddressedTo` then falls through to the
+  // body-mention rule, which is the same rule every unaddressed legacy post
+  // gets. Anything that reads "undirected" as "open to the team" would widen
+  // the audience of a handoff whose addressee merely failed to resolve. The
+  // safe direction on a failed lookup is narrower, never wider.
+  return { toAgentName: needle };
 }
 
 /** Newest-first cap used by mobile-brief and other inbox slices. */

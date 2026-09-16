@@ -684,6 +684,43 @@ export function persistTokenLedger(): void {
 
 // ── Initialization ────────────────────────────────────────────────────────────
 
+/**
+ * The founder's agent identity. Reserved: it is only ever attached to the key
+ * value named by HOLOMESH_FOUNDER_KEY.
+ */
+export const FOUNDER_AGENT_ID = 'agent_founder';
+
+/**
+ * The agent identity a seeded env key stands for.
+ *
+ * Every seeded key used to carry `agent_founder`, so merely holding any
+ * configured key — COPILOT_HOLOMESH_KEY, GEMINI_HOLOMESH_KEY — resolved to the
+ * founder's agent. That is an identity, not just a permission: it is the
+ * principal stamped on tokens and compared by board bindings, so a sibling
+ * lane's key could speak AS the founder even after `isFounder` was fixed.
+ * Distinct per variable, and stable across boots so the identity persists.
+ */
+export function seededAgentIdFor(envVar: string): string {
+  return `agent_env_${envVar.toLowerCase()}`;
+}
+
+/**
+ * A distinct identity anchor per seeded key.
+ *
+ * Sharing FOUNDER_WALLET across every seeded key is the same collision one
+ * field over: `resolveRequestingAgent` looks a caller up by wallet, so a shared
+ * wallet hands a sibling lane's key the founder's agent record as its base.
+ * Derived from the variable name so it is deterministic across restarts.
+ */
+function seededWalletFor(envVar: string): string {
+  const digest = crypto
+    .createHash('sha256')
+    .update(`holomesh-seeded-key:${envVar}`)
+    .digest('hex')
+    .slice(0, 40);
+  return `0x${digest}`;
+}
+
 /** Env vars whose value is accepted as an API key when the store is empty. */
 export const SEEDABLE_KEY_ENV_VARS = [
   'HOLOSCRIPT_API_KEY',
@@ -722,14 +759,14 @@ export function _seedFounderKeysFromEnv(): void {
     process.env.HOLOSCRIPT_FOUNDER_WALLET || '0x0000000000000000000000000000000000000001';
 
   let foundersGranted = 0;
-  for (const { key } of candidates) {
+  for (const { envVar, key } of candidates) {
     const isFounder = founderKey.length > 0 && key === founderKey;
     if (isFounder) foundersGranted += 1;
     const record: KeyRecord = {
       key,
-      walletAddress: FOUNDER_WALLET,
-      agentId: 'agent_founder',
-      agentName: 'Founder',
+      walletAddress: isFounder ? FOUNDER_WALLET : seededWalletFor(envVar),
+      agentId: isFounder ? FOUNDER_AGENT_ID : seededAgentIdFor(envVar),
+      agentName: isFounder ? 'Founder' : `env:${envVar}`,
       scopes: ['*'],
       createdAt: new Date().toISOString(),
       rotationCount: 0,

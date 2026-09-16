@@ -3593,9 +3593,11 @@ export async function handleBoardRoutes(
     const messageType = ((body.type as string) || 'text') as TeamMessage['messageType'];
     const toRaw = String(body.to || body.toAgentId || body.toAgentName || '').trim();
     const team = teamStore.get(teamId);
-    // A body @mention only addresses the message when it names a real member of
-    // this team: npm scopes and product names look exactly like handles, and an
-    // unmatched one used to file the message to an agent nobody owns.
+    // A body @mention is only attributed to an agentId when it names a real
+    // member of this team: npm scopes and product names look exactly like
+    // handles, and an unmatched one used to claim an agent nobody owns. The
+    // name itself is kept, so a mention that resolves to nobody leaves the
+    // message directed at nobody rather than open to everybody.
     const { toAgentId, toAgentName } = resolveMessageRecipient({
       members: team?.members,
       explicitTo: toRaw,

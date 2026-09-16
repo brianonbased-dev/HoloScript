@@ -18,6 +18,7 @@
 import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
 import {
   agentIdBindingAllowed,
+  canonicalAgentIdFor,
   AGENT_ID_NOT_BOUND_ERROR,
   expandScopes,
   hasConfiguredLegacyKey,
@@ -426,10 +427,15 @@ export class OAuth21Service {
     // Mark code as used (one-time use)
     authCode.used = true;
 
+    // Stamp the canonical identity, never the caller's spelling of it.
     return this.issueTokenPair(
       params.clientId,
       authCode.scopes,
-      params.agentId,
+      canonicalAgentIdFor({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      }),
       params.dpopThumbprint
     );
   }
@@ -478,10 +484,15 @@ export class OAuth21Service {
       throw new Error(AGENT_ID_NOT_BOUND_ERROR);
     }
 
+    // Stamp the canonical identity, never the caller's spelling of it.
     return this.issueTokenPair(
       params.clientId,
       requestedScopes,
-      params.agentId,
+      canonicalAgentIdFor({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      }),
       params.dpopThumbprint
     );
   }

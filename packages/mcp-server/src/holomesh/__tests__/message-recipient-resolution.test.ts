@@ -17,6 +17,8 @@ import {
   INBOX_MESSAGE_TYPE_SET,
   findTeamMember,
   firstMention,
+  hasExplicitRecipient,
+  messageAddressedToAny,
   resolveMessageRecipient,
 } from '../message-addressing';
 
@@ -43,25 +45,29 @@ describe('watched fail: the mention-as-recipient rule that produced the bad hand
 });
 
 describe('resolveMessageRecipient', () => {
-  it('does not address a handoff to a mention that names no team member', () => {
+  it('attributes no agentId to a mention that names no team member', () => {
     const result = resolveMessageRecipient({
       members: MEMBERS,
       content: '@coinbase x402 middleware is wired, handing off',
       messageType: 'handoff',
     });
 
+    // No agent owns that name, so no id is attributed. The name is KEPT so the
+    // message stays directed: a lookup that failed must narrow the audience,
+    // never widen it.
     expect(result.toAgentId).toBeUndefined();
-    expect(result.toAgentName).toBeUndefined();
+    expect(result.toAgentName).toBe('coinbase');
   });
 
-  it('does not address a handoff to a protocol name that looks like a handle', () => {
+  it('attributes no agentId to a protocol name that looks like a handle', () => {
     const result = resolveMessageRecipient({
       members: MEMBERS,
-      content: '@holoscript absorb finished, see the receipt',
+      content: '@holoscript sync finished, see the receipt',
       messageType: 'handoff',
     });
 
-    expect(result.toAgentName).toBeUndefined();
+    expect(result.toAgentId).toBeUndefined();
+    expect(result.toAgentName).toBe('holoscript');
   });
 
   it('still addresses a mention that names a real member, suffix and case included', () => {
@@ -117,5 +123,46 @@ describe('resolveMessageRecipient', () => {
     });
 
     expect(result).toEqual({});
+  });
+});
+
+/**
+ * VISIBILITY, not the field.
+ *
+ * Asserting `toAgentName === undefined` would have passed while the message
+ * quietly became readable by the whole team, because who can READ a message is
+ * decided by `messageAddressedTo`, which falls back to the body-mention rule
+ * for any message carrying no recipient at all. So these assert the audience.
+ */
+describe('a handoff whose mention resolves to nobody', () => {
+  const content = '@coinbase x402 middleware is wired, handing off';
+  const message = {
+    ...resolveMessageRecipient({ members: MEMBERS, content, messageType: 'handoff' }),
+    content,
+  };
+
+  it('is not readable by any member of the team', () => {
+    for (const member of MEMBERS) {
+      expect(messageAddressedToAny(message, [member.agentId, member.agentName])).toBe(false);
+    }
+  });
+
+  it('stays a directed message, so nothing can read it as an open team post', () => {
+    expect(hasExplicitRecipient(message)).toBe(true);
+  });
+
+  it('is no more visible than the same handoff addressed to a real member', () => {
+    const toRealMember = {
+      ...resolveMessageRecipient({
+        members: MEMBERS,
+        content: '@claude4 please land this',
+        messageType: 'handoff',
+      }),
+      content: '@claude4 please land this',
+    };
+
+    const outsider = ['agent_jetson', 'jetson-orin-super'];
+    expect(messageAddressedToAny(toRealMember, outsider)).toBe(false);
+    expect(messageAddressedToAny(message, outsider)).toBe(false);
   });
 });

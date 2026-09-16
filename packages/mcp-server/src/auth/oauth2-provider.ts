@@ -201,7 +201,7 @@ export const AGENT_ID_NOT_BOUND_ERROR =
   'agent_id is not bound to this client. Bind the agent at POST /oauth/register, ' +
   'or present that agent-s own key on the token request.';
 
-function normalizeAgentIdentity(value: unknown): string {
+export function normalizeAgentIdentity(value: unknown): string {
   return String(value || '')
     .trim()
     .toLowerCase();
@@ -233,6 +233,30 @@ export function agentIdBindingAllowed(params: {
   if (requested === normalizeAgentIdentity(params.clientAgentId)) return true;
   if (requested === normalizeAgentIdentity(params.provenAgentId)) return true;
   return false;
+}
+
+/**
+ * The spelling to STAMP on the token once the binding is allowed.
+ *
+ * The comparison above is case- and whitespace-insensitive, so a caller may ask
+ * for `Agent_Founder ` and be allowed on the strength of `agent_founder`. What
+ * gets stamped must then be the identity the registry knows, not the caller's
+ * spelling — downstream principals are compared as raw strings, so letting the
+ * caller choose the spelling lets it choose which comparisons it matches.
+ *
+ * Returns undefined when nothing should be stamped: either no agent_id was
+ * requested, or it was refused (callers check `agentIdBindingAllowed` first).
+ */
+export function canonicalAgentIdFor(params: {
+  requestedAgentId?: string;
+  clientAgentId?: string;
+  provenAgentId?: string;
+}): string | undefined {
+  const requested = normalizeAgentIdentity(params.requestedAgentId);
+  if (!requested) return undefined;
+  if (requested === normalizeAgentIdentity(params.clientAgentId)) return params.clientAgentId;
+  if (requested === normalizeAgentIdentity(params.provenAgentId)) return params.provenAgentId;
+  return undefined;
 }
 
 // ── Token Introspection Result ───────────────────────────────────────────────
@@ -682,11 +706,12 @@ export class OAuth2Provider {
     // Mark code as used
     await this.store.markAuthorizationCodeUsed(code);
 
-    // Issue token pair
+    // Issue token pair. Stamp the canonical identity, never the caller's
+    // spelling of it.
     const { accessToken, refreshToken } = await this.store.issueTokenPair({
       clientId,
       scopes: authCode.scopes,
-      agentId,
+      agentId: canonicalAgentIdFor({ requestedAgentId: agentId, provenAgentId }),
       dpopThumbprint: dpopHeader,
     });
 
@@ -760,10 +785,11 @@ export class OAuth2Provider {
       };
     }
 
+    // Stamp the canonical identity, never the caller's spelling of it.
     const { accessToken, refreshToken } = await this.store.issueTokenPair({
       clientId,
       scopes,
-      agentId,
+      agentId: canonicalAgentIdFor({ requestedAgentId: agentId, provenAgentId }),
       dpopThumbprint: dpopHeader,
     });
 
