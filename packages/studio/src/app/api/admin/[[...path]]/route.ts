@@ -15,17 +15,31 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { forwardAuthHeaders } from '@/lib/api-auth';
+import { forwardAuthHeaders, requireFounder } from '@/lib/api-auth';
 import { getGitHubToken } from '../../github/_shared';
 
 import { ENDPOINTS } from '@holoscript/config';
 import { corsHeaders } from '../../_lib/cors';
 const ABSORB_SERVICE_URL = ENDPOINTS.ABSORB_SERVICE;
 
+/**
+ * Doors audit 2026-09-15. This route had no gate of any kind, and the token it
+ * attached fell back to a SERVER personal access token for a caller who sent
+ * none — so outside production (or with STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK
+ * set) an unauthenticated stranger reached the absorb admin API carrying our
+ * PAT as Bearer. absorb-service verifies admin status from the GitHub identity
+ * it is handed, so handing it OURS answered its question with the wrong
+ * person's name.
+ *
+ * Now: the founder gate runs first, and the fallback is `userOnly` — a caller
+ * who presented no credential gets none attached on their behalf.
+ */
 async function resolveAdminAuthHeaders(req: NextRequest): Promise<Record<string, string>> {
   const forwarded = forwardAuthHeaders(req);
   if (forwarded['Authorization']) return forwarded;
-  const sessionToken = await getGitHubToken(req);
+  // userOnly: this token stands for WHO is asking. A server token here would
+  // act as someone else — the founder, in effect — for whoever reached us.
+  const sessionToken = await getGitHubToken(req, { userOnly: true });
   return sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
 }
 
@@ -39,6 +53,9 @@ function buildUpstreamUrl(req: NextRequest): string {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const res = await fetch(buildUpstreamUrl(req), {
       method: 'GET',
@@ -64,6 +81,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const bodyText = await req.text();
 

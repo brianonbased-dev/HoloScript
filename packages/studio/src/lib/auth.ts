@@ -91,6 +91,47 @@ function buildProviders() {
   return providers;
 }
 
+type DrizzleDb = NonNullable<ReturnType<typeof getDb>>;
+
+/**
+ * A stand-in for the Drizzle adapter that builds the real one the first time a
+ * property is read. See the comment at the call site for why this is not eager.
+ */
+function createLazyDrizzleAdapter(db: DrizzleDb): NextAuthOptions['adapter'] {
+  let real: ReturnType<typeof DrizzleAdapter> | null = null;
+  const resolve = () => {
+    if (!real) {
+      real = DrizzleAdapter(db, {
+        usersTable,
+        accountsTable,
+        sessionsTable,
+        verificationTokensTable,
+      });
+    }
+    return real;
+  };
+
+  return new Proxy(
+    {},
+    {
+      get(_target, property, receiver) {
+        return Reflect.get(resolve() as object, property, receiver);
+      },
+      has(_target, property) {
+        return Reflect.has(resolve() as object, property);
+      },
+      ownKeys() {
+        return Reflect.ownKeys(resolve() as object);
+      },
+      getOwnPropertyDescriptor(_target, property) {
+        const descriptor = Reflect.getOwnPropertyDescriptor(resolve() as object, property);
+        if (descriptor) descriptor.configurable = true;
+        return descriptor;
+      },
+    }
+  ) as NextAuthOptions['adapter'];
+}
+
 export function buildAuthOptions(): NextAuthOptions {
   const db = getDb();
 
@@ -140,13 +181,20 @@ export function buildAuthOptions(): NextAuthOptions {
   // (`users`/`accounts`/`sessions`/`verification_tokens`). The mismatch made
   // every OAuth sign-in fail with `adapter_error_getUserByAccount` →
   // `OAUTH_CALLBACK_HANDLER_ERROR` (NextAuth `error=Callback`).
+  // Built on FIRST USE, not at import. `authOptions` is module-scope, so an
+  // eager DrizzleAdapter(db) ran the moment ANYTHING imported this file —
+  // including a route importing `requireAuth`, including a test that had
+  // substituted its own `getDb`. The adapter then threw while the module was
+  // still being evaluated, so the whole importing suite collected ZERO tests
+  // and reported as a file that simply had nothing in it. Measured 2026-09-15:
+  // src/lib/__tests__/premium-exits.test.ts is 9/9 on origin/main and collects
+  // 0 the moment a gated route enters its import graph.
+  //
+  // NextAuth only touches `adapter` when it actually serves a request, so
+  // deferring construction to first property access changes nothing at runtime
+  // and stops import-time explosions.
   if (db) {
-    options.adapter = DrizzleAdapter(db, {
-      usersTable,
-      accountsTable,
-      sessionsTable,
-      verificationTokensTable,
-    }) as NextAuthOptions['adapter'];
+    options.adapter = createLazyDrizzleAdapter(db);
   }
 
   return options;
