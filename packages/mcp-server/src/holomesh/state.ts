@@ -772,6 +772,10 @@ export function _seedFounderKeysFromEnv(): void {
       rotationCount: 0,
       lastRotatedAt: null,
       isFounder,
+      // Marked as seeded so the proven-identity lookup can refuse it. The value
+      // is a shared secret held in common by every caller configured with this
+      // variable, so it authenticates but names no single agent.
+      seededFromEnv: envVar,
     };
     keyRegistry.set(key, record);
   }

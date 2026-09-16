@@ -142,6 +142,16 @@ export interface RefreshToken {
   chainId: string;
   /** Whether this token has been used (for rotation) */
   used: boolean;
+  /**
+   * Agent identity this chain was issued to, carried forward across rotations.
+   *
+   * A refresh grant presents no agent_id and proves no key, so the chain's own
+   * record is the only trustworthy source for the identity of the token it
+   * replaces. Without it a rotation either loses the identity (an agent
+   * silently demoted to anonymous) or has to re-read it from the request,
+   * which is exactly the impersonation the binding refuses.
+   */
+  agentId?: string;
 }
 
 export interface TokenResponse {
@@ -534,11 +544,14 @@ export class OAuth21Service {
     // Mark old refresh token as used (rotation)
     stored.used = true;
 
-    // Issue new token pair with same chain
+    // Issue new token pair with the same chain, carrying the identity this
+    // chain already holds. A refresh names no agent_id and presents no key, so
+    // the stored record is the only source that is neither a loss of identity
+    // nor a caller-supplied claim.
     return this.issueTokenPair(
       params.clientId,
       stored.scopes,
-      undefined,
+      stored.agentId,
       params.dpopThumbprint,
       stored.chainId
     );
@@ -831,6 +844,9 @@ export class OAuth21Service {
       expiresAt: now + this.config.refreshTokenTTL * 1000,
       chainId: chain,
       used: false,
+      // The chain remembers who it was issued to, so a rotation neither loses
+      // the identity nor has to take the caller's word for it.
+      agentId,
     };
 
     accessTokens.set(accessTokenValue, access);

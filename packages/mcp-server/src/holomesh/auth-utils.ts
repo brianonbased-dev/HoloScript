@@ -84,7 +84,9 @@ export function hasBearerCapability(
  * (base64-encoded SPKI DER). HoloLand agents and external integrations authenticate
  * via platform-signed manifests without needing a registry entry.
  */
-function resolveFromSignedManifest(req: http.IncomingMessage): ResolvedCaller | null {
+export function resolveFromSignedManifest(req: {
+  headers: http.IncomingHttpHeaders;
+}): ResolvedCaller | null {
   const manifestHeader = req.headers['x-agent-manifest'];
   const signatureHeader = req.headers['x-agent-manifest-sig'];
   if (typeof manifestHeader !== 'string' || typeof signatureHeader !== 'string') {

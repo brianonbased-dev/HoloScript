@@ -884,12 +884,16 @@ export class OAuth2Provider {
     // Mark old refresh token as used (rotation)
     await this.store.markRefreshTokenUsed(refreshTokenValue);
 
-    // Issue new token pair with same chain
+    // Issue new token pair with the same chain, carrying the identity the
+    // chain already holds. A refresh presents no agent_id and proves no key,
+    // so this record is the only source that neither drops the identity nor
+    // trusts the caller for it.
     const { accessToken, refreshToken } = await this.store.issueTokenPair({
       clientId,
       scopes: storedRefresh.scopes,
       dpopThumbprint: dpopHeader,
       chainId: storedRefresh.chainId,
+      agentId: storedRefresh.agentId,
     });
 
     const response = this.formatTokenResponse(accessToken, refreshToken, dpopHeader);

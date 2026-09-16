@@ -54,6 +54,12 @@ export interface StoredRefreshToken {
   chainId: string;
   /** Whether this token has been consumed (rotation) */
   used: boolean;
+  /**
+   * Agent identity this chain was issued to. Durable parity with the in-memory
+   * registry: a deploy wipes the maps, so a rotation after one must be able to
+   * recover the identity from here instead of dropping it.
+   */
+  agentId?: string;
 }
 
 export interface StoredAuthorizationCode {
@@ -461,6 +467,7 @@ export class TokenStore {
     clientId: string;
     scopes: string[];
     chainId?: string;
+    agentId?: string;
   }): Promise<StoredRefreshToken> {
     const now = Date.now();
     const token: StoredRefreshToken = {
@@ -471,6 +478,7 @@ export class TokenStore {
       expiresAt: now + this.ttl.refreshTokenTTL * 1000,
       chainId: params.chainId || randomUUID(),
       used: false,
+      ...(params.agentId ? { agentId: params.agentId } : {}),
     };
     await this.backend.setRefreshToken(token);
     return token;
@@ -532,6 +540,7 @@ export class TokenStore {
       clientId: params.clientId,
       scopes: params.scopes,
       chainId,
+      agentId: params.agentId,
     });
 
     return { accessToken, refreshToken };

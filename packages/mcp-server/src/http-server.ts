@@ -97,7 +97,6 @@ import {
   OAUTH2_PUBLIC_SCOPES,
   OAUTH2_PUBLIC_SCOPE_NAMES,
   OAUTH2_SCOPES,
-  normalizeAgentIdentity,
 } from './auth/oauth2-provider';
 import {
   acceptsHtml,
@@ -138,7 +137,7 @@ import {
   teamPresenceStore,
   reloadTeam,
 } from './holomesh/state';
-import { resolveProvenAgentId } from './security/proven-agent-id';
+import { agentBindingForRegistration, resolveProvenAgentId } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
@@ -359,6 +358,10 @@ async function ensureRefreshTokenHydrated(refreshToken: string | undefined): Pro
         expiresAt: durable.expiresAt,
         chainId: durable.chainId,
         used: durable.used,
+        // Carry the identity across the deploy that wiped the in-memory map.
+        // Dropping it here would demote a legitimate agent to an anonymous
+        // token on its next rotation.
+        agentId: durable.agentId,
       });
     }
   } catch (err) {
@@ -369,7 +372,15 @@ async function ensureRefreshTokenHydrated(refreshToken: string | undefined): Pro
   }
 }
 
-/** Write tokens issued by the legacy service through to the durable registry. */
+/**
+ * Write tokens issued by the legacy service through to the durable registry.
+ *
+ * `agentId` MUST be the identity the grant actually stamped on the token, not
+ * the one the request asked for. The durable record outlives the in-memory
+ * maps, and `authenticateRequestAsync` reads it back as the principal after a
+ * deploy — so a caller-supplied id written here becomes a real identity later,
+ * long after the grant that refused it is out of memory.
+ */
 async function persistIssuedTokens(
   tokenResponse: {
     access_token?: string;
@@ -403,6 +414,9 @@ async function persistIssuedTokens(
         expiresAt: record?.expiresAt ?? now + 86_400_000,
         chainId: record?.chainId ?? tokenResponse.refresh_token,
         used: false,
+        // Same stamped identity as the access token, so a rotation after a
+        // deploy recovers it instead of dropping it.
+        agentId: record?.agentId ?? agentId,
       });
     }
   } catch (err) {
@@ -1998,25 +2012,19 @@ const httpServer = http.createServer(async (req, res) => {
       }
       const rateLimit = (body.rate_limit as number) || 60;
 
-      // Bind this client to an agent only when the registering request proves
-      // that agent's own key. Registration is open to anyone, so an unproven
+      // Bind this client to an agent only when the registering request PROVES
+      // that agent's identity — its own per-agent key, or a platform-signed
+      // manifest naming it. Registration is open to anyone, so an unproven
       // agent_id in the body must never become a durable identity binding.
-      const requestedAgentId = String(body.agent_id || '').trim();
-      const registrarAgentId = resolveProvenAgentId(req.headers);
-      // Compare the way the GRANT compares. The grant is case- and
-      // whitespace-insensitive, so a stricter test here would let a client
-      // register under a spelling its own token requests are then refused for —
-      // a legitimate caller locked out by nothing but capitalisation.
-      if (
-        requestedAgentId &&
-        normalizeAgentIdentity(requestedAgentId) !== normalizeAgentIdentity(registrarAgentId)
-      ) {
-        throw new Error(
-          'agent_id can only be bound by a request that presents that agent-s own key.'
-        );
-      }
-      // Record the registry's spelling, never the caller's.
-      const boundAgentId = requestedAgentId ? registrarAgentId : undefined;
+      // The decision lives in `agentBindingForRegistration` so it can be tested
+      // without booting this server: inline, it stayed green when deleted.
+      const agentBinding = agentBindingForRegistration({
+        requestedAgentId: body.agent_id,
+        registrarAgentId: resolveProvenAgentId(req.headers),
+      });
+      if (!agentBinding.ok) throw new Error(agentBinding.reason);
+      // Records the registry's spelling, never the caller's.
+      const boundAgentId = agentBinding.boundAgentId;
 
       // Register with legacy provider (backwards compat)
       const { clientId, clientSecret } = oauth.registerClient({
@@ -2454,6 +2462,19 @@ const httpServer = http.createServer(async (req, res) => {
         ip: clientIP,
       });
 
+      // The identity to persist is the one the grant actually STAMPED, read
+      // back from the token that was just issued — never `body.agent_id`,
+      // which is only what the caller ASKED for. The refresh grant never
+      // consults agent_id at all, so persisting the request's copy wrote an
+      // unchecked caller-supplied id straight into the durable record: the
+      // in-memory map hid it (introspection answered from memory, where it was
+      // absent) until the next deploy wiped that map, after which
+      // authenticateRequestAsync read the durable record and returned the
+      // caller's chosen id as the principal.
+      const stampedAgentId = tokenResponse.access_token
+        ? oauth.introspect(tokenResponse.access_token).agentId
+        : undefined;
+
       // Write the issued tokens through to the durable registry so they
       // survive redeploys of the in-memory maps. Fire-and-forget: durable
       // write failure must not fail the grant.
@@ -2465,7 +2486,7 @@ const httpServer = http.createServer(async (req, res) => {
           scope?: string;
         },
         body.client_id as string,
-        body.agent_id as string | undefined
+        stampedAgentId
       );
 
       res.writeHead(200, {

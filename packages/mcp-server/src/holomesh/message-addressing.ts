@@ -89,10 +89,16 @@ export type TeamMemberLike = { agentId?: string; agentName?: string; name?: stri
  *
  * An explicit recipient field is the sender's stated intent and passes through
  * untouched. A bare `@word` in the body is much weaker evidence: npm scopes,
- * product names and protocol names look exactly like handles, so a mention
- * addresses the message only when it resolves to a real member of this team.
- * An unresolvable mention addresses no one, which leaves the message on the
- * open team feed rather than filing it to a seat that does not exist.
+ * product names and protocol names look exactly like handles, so only a
+ * mention that resolves to a real member of this team earns an `agentId`.
+ *
+ * A mention that resolves to NOBODY keeps its name as the recipient and loses
+ * only the id. The message therefore stays directed — at a name no one owns,
+ * so no seat can read it. Clearing the name instead would leave the message
+ * with no recipient at all, and `messageAddressedTo` treats that as a legacy
+ * post and falls back to the body-mention rule, which would hand the whole
+ * team a handoff whose addressee merely failed to resolve. On a failed lookup
+ * the audience must narrow, never widen.
  */
 export function resolveMessageRecipient<T extends TeamMemberLike>(params: {
   members: T[] | undefined;

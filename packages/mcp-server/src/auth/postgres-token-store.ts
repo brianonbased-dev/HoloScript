@@ -49,10 +49,14 @@ CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
   issued_at   BIGINT NOT NULL,
   expires_at  BIGINT NOT NULL,
   chain_id    TEXT NOT NULL,
-  used        BOOLEAN NOT NULL DEFAULT FALSE
+  used        BOOLEAN NOT NULL DEFAULT FALSE,
+  agent_id    TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_rt_client ON oauth_refresh_tokens (client_id);
 CREATE INDEX IF NOT EXISTS idx_rt_expires ON oauth_refresh_tokens (expires_at);
+-- CREATE TABLE IF NOT EXISTS never alters a table that already exists, so an
+-- already-deployed database needs this to gain the column. Idempotent.
+ALTER TABLE oauth_refresh_tokens ADD COLUMN IF NOT EXISTS agent_id TEXT;
 
 CREATE TABLE IF NOT EXISTS oauth_auth_codes (
   code                  TEXT PRIMARY KEY,
@@ -166,7 +170,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getRefreshToken(token: string): Promise<StoredRefreshToken | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT token, client_id, scopes, issued_at, expires_at, chain_id, used
+      `SELECT token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id
        FROM oauth_refresh_tokens WHERE token = $1 AND expires_at > $2`,
       [token, Date.now()]
     );
@@ -180,18 +184,20 @@ export class PostgresTokenStore implements TokenStoreBackend {
       expiresAt: Number(r.expires_at),
       chainId: r.chain_id,
       used: r.used,
+      ...(r.agent_id ? { agentId: r.agent_id as string } : {}),
     };
   }
 
   async setRefreshToken(token: StoredRefreshToken): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_refresh_tokens (token, client_id, scopes, issued_at, expires_at, chain_id, used)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO oauth_refresh_tokens (token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (token) DO UPDATE SET
          client_id = EXCLUDED.client_id, scopes = EXCLUDED.scopes,
          issued_at = EXCLUDED.issued_at, expires_at = EXCLUDED.expires_at,
-         chain_id = EXCLUDED.chain_id, used = EXCLUDED.used`,
+         chain_id = EXCLUDED.chain_id, used = EXCLUDED.used,
+         agent_id = EXCLUDED.agent_id`,
       [
         token.token,
         token.clientId,
@@ -200,6 +206,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
         token.expiresAt,
         token.chainId,
         token.used,
+        token.agentId ?? null,
       ]
     );
   }
