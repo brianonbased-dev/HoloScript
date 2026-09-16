@@ -6,6 +6,17 @@ Last verified by Codex hardware on 2026-05-12. The verification command is the
 source of truth for every `live` row. Do not promote a designed or middleware row
 to live until it has a curl command that succeeds against the production surface.
 
+**A proof must be able to fail.** Five rows here used `curl -fsSL <url> -o /dev/null`,
+which asks only "did some HTTP response arrive". Until 2026-09-16 the Studio
+served HTTP 200 with ~54KB of an unrelated page for EVERY unmatched address — so
+the HoloGram row's `/gram` proof passed while that path had no page of its own at
+all (there is only `/gram/[hash]`), and it would have passed just as well for an
+address that never existed. Those
+rows were green by construction, not by evidence. The replacements below each
+assert something the surface must actually contain, and each was demonstrated
+red against a copy of the real response with that content removed, and green
+against the live surface, on 2026-09-16.
+
 ## Status Set
 
 | Status        | Meaning                                                                              |
@@ -35,7 +46,7 @@ to live until it has a curl command that succeeds against the production surface
 
 | Surface                          | Status | Role                                                 | Verification command                                                                    |
 | -------------------------------- | ------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| HoloScript Studio production app | `live` | Hosted visual authoring surface at canonical vanity. | `curl -fsSL https://holoscript.studio -o /dev/null` (CNAME → `eiusxhgm.up.railway.app`) |
+| HoloScript Studio production app | `live` | Hosted visual authoring surface at canonical vanity. | `curl -fsS https://holoscript.studio/ \| grep -q '<title>HoloScript Studio</title>'` (CNAME → `eiusxhgm.up.railway.app`) |
 
 ## Runtime
 
@@ -51,7 +62,7 @@ to live until it has a curl command that succeeds against the production surface
 | HoloScript MCP health endpoint     | `live` | Production MCP server health, version, and live tool count.                                                                                                                                      | `curl -fsS https://mcp.holoscript.net/health`                                                                                                                                                            |
 | HoloScript MCP API health endpoint | `live` | HTTP API capability probe for render, share, MCP, OAuth, and audit surfaces.                                                                                                                     | `curl -fsS https://mcp.holoscript.net/api/health`                                                                                                                                                        |
 | HoloScript MCP discovery document  | `live` | Well-known discovery document for MCP client configuration.                                                                                                                                      | `curl -fsS https://mcp.holoscript.net/.well-known/mcp`                                                                                                                                                   |
-| HoloGram substrate                 | `live` | Hologram compilation and sharing via MCP tools (`holo_hologram_from_media`, `compile_quilt`, `compile_mvhevc`, `render`, `publish_feed`, `send`, `upload_bundle`, `get_asset`) + Studio `/gram`. | `curl -fsSL https://holoscript.studio/gram -o /dev/null`                                                                                                                                                 |
+| HoloGram substrate                 | `live` | Hologram compilation and sharing via MCP tools (`holo_hologram_from_media`, `compile_quilt`, `compile_mvhevc`, `render`, `publish_feed`, `send`, `upload_bundle`, `get_asset`) + Studio `/gram`. | `curl -fsS https://mcp.holoscript.net/.well-known/mcp \| grep -q holo_hologram_render`                                                                                                                                                 |
 | Knowledge store                    | `live` | Cross-session knowledge query and sync substrate. `POST /knowledge/query` verified live.                                                                                                         | `curl -fsS -X POST https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/query -H "Content-Type: application/json" -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" -d '{"search":"test","limit":1}'` |
 
 ## Economic
@@ -66,9 +77,9 @@ to live until it has a curl command that succeeds against the production surface
 
 | Surface                      | Status        | Role                                            | Verification command                                                     |
 | ---------------------------- | ------------- | ----------------------------------------------- | ------------------------------------------------------------------------ |
-| HoloScript website           | `public-only` | Public project website.                         | `curl -fsSL https://holoscript.net -o /dev/null`                         |
-| HoloScript GitHub repository | `public-only` | Public source, issues, and repository metadata. | `curl -fsSL https://github.com/brianonbased-dev/HoloScript -o /dev/null` |
-| Moltbook                     | `public-only` | Public agent platform and community surface.    | `curl -fsSL https://moltbook.com -o /dev/null`                           |
+| HoloScript website           | `public-only` | Public project website.                         | `curl -fsS https://holoscript.net/ \| grep -q '<title>HoloScript'`                         |
+| HoloScript GitHub repository | `public-only` | Public source, issues, and repository metadata. | `curl -fsS https://github.com/brianonbased-dev/HoloScript \| grep -q brianonbased-dev/HoloScript` |
+| Moltbook                     | `public-only` | Public agent platform and community surface.    | `curl -fsSL https://moltbook.com -o /dev/null` — **still a hollow proof.** Not replaced on 2026-09-16 like the other four: a local agent hook denies any command that fetches this host, so no red/green pair could be demonstrated. Left visibly unfixed rather than swapped for an undemonstrated command.                           |
 
 ## Exclusions
 
