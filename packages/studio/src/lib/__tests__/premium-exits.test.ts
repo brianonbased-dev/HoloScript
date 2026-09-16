@@ -142,6 +142,12 @@ function reply(body: unknown, status = 200): Response {
 async function upstream(url: string, init?: RequestInit): Promise<Response> {
   const headers = (init?.headers ?? {}) as Record<string, string>;
   stand.state.calls.push({ url, auth: headers['Authorization'] ?? headers['x-mcp-api-key'] });
+  // Team export now identifies its caller and checks that caller's membership
+  // before it reads anything, so those two answers have to exist here.
+  if (url.includes('/api/holomesh/me')) {
+    return reply({ success: true, agentId: 'author-x', name: 'Author X' });
+  }
+  if (url.includes('/members')) return reply({ members: [{ agentId: 'author-x' }] });
   if (url.includes('/knowledge/query')) return reply({ results: upstreamRows() });
   if (url.includes('/api/holomesh/entry/')) {
     if (stand.state.entryMissing) return reply({ error: 'not found' }, 404);
@@ -252,12 +258,34 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
     expect(JSON.stringify(trendingBody)).toContain('sp-short');
     expectNoPaidText(trendingBody);
 
-    const exported = await exportGet(visitor('/api/holomesh/team/team-1/export'), {
-      params: Promise.resolve({ id: 'team-1' }),
-    });
+    // This assertion used to run ANONYMOUSLY and expect 200. That was the pin
+    // holding a live door open: the entry in api-public-paths.ts cited this
+    // suite as the reason team export was safe to leave public, while all this
+    // suite ever checked was that the KNOWLEDGE list came back as teasers. The
+    // board — team, open, claimed, blocked, done — is not premium-classified at
+    // all and left whole, under our own mesh key, to anyone who named a team.
+    // The door is now closed in the route (membership under the caller's own
+    // key), so the premium guarantee is exercised THROUGH it: a member calls.
+    const exported = await exportGet(
+      visitor('/api/holomesh/team/team-1/export', {
+        headers: { 'x-mcp-api-key': 'a-members-own-key' },
+      }),
+      { params: Promise.resolve({ id: 'team-1' }) }
+    );
+    expect(exported.status).toBe(200);
     const exportBody = await exported.json();
     expect(JSON.stringify(exportBody.knowledge)).toContain('sp-short');
     expectNoPaidText(exportBody);
+  });
+
+  it('GET /api/holomesh/team/:id/export refuses a caller with no identity at all', async () => {
+    const res = await exportGet(visitor('/api/holomesh/team/team-1/export'), {
+      params: Promise.resolve({ id: 'team-1' }),
+    });
+
+    expect(res.status).toBe(401);
+    // Nothing of ours went upstream on a stranger's behalf.
+    expect(stand.state.calls).toHaveLength(0);
   });
 
   it('POST /api/holomesh/entry/:id/purchase: an answer released to the server key reaches the visitor as a teaser', async () => {

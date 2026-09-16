@@ -20,7 +20,9 @@
  *                       nothing and this door is therefore the only one.
  *  - (default)          a verified Studio session.
  *
- * Patterns: `*` matches one path segment, `**` matches the rest. `methods`
+ * Patterns: `*` matches one path segment, `**` matches the rest AND the bare
+ * prefix it hangs off (`/api/brittney/**` covers `/api/brittney` itself — see
+ * patternToRegExp for why that is the only safe reading). `methods`
  * narrows an entry to those verbs; omitted means every verb. `except` carves
  * concrete paths back out of a wildcard, for when one segment value means
  * something categorically different from its siblings (`/api/holomesh/agent/self`
@@ -155,7 +157,7 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/preview',
     methods: ['GET', 'POST'],
-    why: 'Live preview compile for the signed-out editor. Keyless and persists nothing; its cost ceiling is its own concern, not a door.',
+    why: "Live preview for the signed-out editor (hooks/useLivePreview.ts:42 subscribes, :80 broadcasts). FOR THE LEAD, and stated precisely because the previous wording — 'persists nothing' — was true and still understated it. POST does not compile anything: it dispatches the posted code onto a process-global EventTarget (route.ts:19-20,34), and GET /api/preview?sceneId= streams that channel to every SSE subscriber of the same id. sceneId defaults to 'default' on BOTH sides (route.ts:30,47; useLivePreview.ts:22 sends the same default), so with no id at all a stranger's POST is delivered into the preview pane of every other visitor sitting on the default channel. Nothing is stored, so this is anonymous cross-visitor INJECTION, not a leak. Not scoped in this lane on purpose: the only real fix is an unguessable per-visitor channel id, since any scheme a stranger can guess is the same door with more steps, and changing the id contract without the editor client is the signed-out-editor lockout this lane exists to avoid.",
   },
 
   // ── HoloMesh read relays. These are pinned anonymous by an existing suite
@@ -186,7 +188,8 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/holomesh/agent/*/storefront',
     methods: ['GET'],
-    why: 'Public agent storefront page; teasers only for an anonymous caller (premium-exits suite).',
+    except: ['/api/holomesh/agent/self/storefront'],
+    why: "Public agent storefront page; teasers only for an anonymous caller (premium-exits suite). `self` is carved out for the same reason as /api/holomesh/agent/* above and it was missing here: this route hands the id straight to proxyHoloMesh, which attaches OUR HoloMesh key when the caller sent none, so /api/holomesh/agent/self/storefront asked upstream 'whose storefront is mine' while holding Studio's own service identity. That is the exact substitution the `self` carve-out exists to prevent. src/proxy.ts decodes the pathname before classifying, so `%73elf` cannot slip past this literal.",
   },
   {
     pattern: '/api/holomesh/entry/*',
@@ -198,11 +201,17 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
     methods: ['GET'],
     why: 'Public knowledge catalogue; teasers only for an anonymous caller (premium-exits suite).',
   },
-  {
-    pattern: '/api/holomesh/team/*/export',
-    methods: ['GET'],
-    why: 'Public team export; teasers only for an anonymous caller (premium-exits suite).',
-  },
+  // `/api/holomesh/team/*/export` USED to sit here, described as "public team
+  // export; teasers only for an anonymous caller (premium-exits suite)". Both
+  // halves were wrong, and the entry cited a suite as cover for a door that
+  // suite never checked. The premium cut (premium-view.ts) only rewrites rows
+  // that carry knowledge TEXT — content, snippet, text, body, excerpt — and a
+  // board task carries `title` and `description`, which it does not touch, on
+  // a row with no price and no premium flag, which it does not consider
+  // premium. So an anonymous GET returned any team's entire board — team,
+  // open, claimed, blocked and done — fetched under our HOLOMESH_API_KEY.
+  // Moved to the caller-credential tier below, where the route now requires
+  // the caller to be a member of the team they are naming.
   {
     pattern: '/api/holomesh/entry/*/purchase',
     methods: ['POST'],
@@ -295,6 +304,31 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
     methods: ['GET'],
     why: "Server-sent events consumed by app/spectator/training/page.tsx:79 through EventSource, which cannot attach headers — if this sat in the caller-credential tier no browser could ever reach it. Keyless, reads an in-process job history. GET only: POST on the same route broadcasts a packet to every connected viewer with no credential and stays closed.",
   },
+
+  // ── Token-authenticated phone surfaces. On these two the `?t=` token IS the
+  // credential: a phone that scanned a QR code has no Studio session and can
+  // never acquire one, so requiring a session refuses the only caller the
+  // surface was built for. The token is unguessable (24 and 12 random bytes),
+  // the route looks it up and answers 404 when it does not resolve, and
+  // src/proxy.ts:117 already treats /scan-room/mobile/ as a phone surface for
+  // permissions-policy. CREATE stays closed on both — POST mints a new token,
+  // which is a desktop action taken by someone who is signed in.
+  {
+    pattern: '/api/reconstruction/session',
+    methods: ['GET', 'PUT'],
+    why: "The phone half of a room or face scan: app/scan-room/mobile/[token]/page.tsx:233 (PUT phone-connected), :142 (PUT capture state) and :441 (GET feedback poll). The desktop opens the session and shows a QR; the phone that scans it holds only the token. POST is NOT here — creating a session already requires a signed-in caller in production (route.ts:51-56,133-137).",
+  },
+  {
+    pattern: '/api/remote',
+    methods: ['GET', 'PUT', 'DELETE'],
+    why: "The phone half of the viewport remote: app/remote/[token]/page.tsx:137 (GET, verifies the token and polls the command queue) and :29 (PUT, sends an orbit/zoom/pan command). DELETE ends the session from the same page. Commands live in an in-process Map keyed by the token and expire in 30 minutes. POST is NOT here — it mints a token.",
+  },
+
+  {
+    pattern: '/api/users/*',
+    methods: ['GET', 'HEAD'],
+    why: "The public profile. The route's own header calls it that (route.ts:14) and its GET reads no session at all — name, avatar, bio, public projects and published listings, each already filtered to its public form. app/u/[username]/page.tsx:49 is the page that renders it and shows an empty profile without it. GET and HEAD only: PUT on the same route updates a profile and checks both a session and that the caller IS that user (route.ts:111-119), so it stays closed here too.",
+  },
 ];
 
 /**
@@ -311,10 +345,10 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
  * An earlier version of this comment claimed "the authorization is the route's
  * own guard." That was false for most of the list. Audited 2026-09-16: of the
  * entries below, only /api/publish, /api/knowledge/sync, /api/knowledge/query,
- * /api/holomesh/marketplace/sync, /api/holomesh/agent/*\/withdraw and
- * /api/brittney/** actually authenticate the caller. For the rest, THIS DOOR IS
- * THE ONLY CHECK, and each such entry now says so in its own `why` instead of
- * inheriting a reassurance from up here.
+ * /api/holomesh/marketplace/sync, /api/holomesh/agent/*\/withdraw,
+ * /api/holomesh/team/*\/export and /api/brittney/** actually authenticate the
+ * caller. For the rest, THIS DOOR IS THE ONLY CHECK, and each such entry now
+ * says so in its own `why` instead of inheriting a reassurance from up here.
  *
  * The rule that follows from that: a route which ignores the caller's key and
  * spends one of OURS does not belong in this tier at any strength of comment,
@@ -342,11 +376,16 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   },
   {
     pattern: '/api/brittney/**',
-    why: "The keys Studio SELLS for exactly this. components/settings/BrittneyAPIKeysPanel.tsx:119-126 tells the customer 'no browser session required' and to send `Authorization: Bearer bk_…`, and the routes honour it: requireAuthOrApiKey (lib/api-auth.ts:138) validates the key against the database and builds a session from the owning user row. Without this entry the edge refused the key before the route that understands it ever ran, so the advertised contract answered 401 — the worst lockout in this file, because our customers are agents.",
+    why: "The keys Studio SELLS for exactly this. components/settings/BrittneyAPIKeysPanel.tsx:119-126 tells the customer 'no browser session required' and to send `Authorization: Bearer bk_…`, and the routes honour it: requireAuthOrApiKey (lib/api-auth.ts:138) validates the key against the database and builds a session from the owning user row. Without this entry the edge refused the key before the route that understands it ever ran, so the advertised contract answered 401 — the worst lockout in this file, because our customers are agents. The bare path matters as much as the sub-paths: `**` covers `/api/brittney` itself (patternToRegExp), which is the endpoint the product's own client calls.",
   },
   {
     pattern: '/api/holomesh/agent/*/withdraw',
     why: "One of the few entries where the route really does authenticate: resolveHoloMeshCaller (lib/holomesh-proxy.ts:79) introspects the caller's OWN mesh key against mcp-server /api/holomesh/me, NEVER falls back to our key, and then requires that the caller BE the agent named in the URL. Classifying it `session` refused a valid mesh key at the edge, which is the one credential this route is built to accept.",
+  },
+  {
+    pattern: '/api/holomesh/team/*/export',
+    methods: ['GET'],
+    why: "A team's whole board, so the route now proves the caller is ON that team: resolveHoloMeshCaller identifies them by their OWN mesh key (never ours), then callerIsTeamMember asks mcp-server for that team's member list UNDER THAT SAME KEY and requires the caller's agentId to be in it. Anonymous is 401, a stranger's valid key is 403, and a membership answer we cannot read is 502 rather than a pass. It was previously PUBLIC on the claim that the premium-exits suite covered it; that suite only ever asserted the knowledge rows came back as teasers, and task text is not premium-classified at all, so the board was never covered by anything.",
   },
 
   // ── Below here the route does NOT authenticate the caller. Each `why` says so
@@ -361,17 +400,23 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   },
   {
     pattern: '/api/orchestrator/**',
-    why: "NO GUARD, and it spends ours: the relay sends `x-mcp-api-key` built from MCP_ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY (route.ts:31,63) and its own header comment concedes browsers cannot hold that key — which is precisely why it substitutes ours. The caller's credential is never forwarded or checked. Same standing as /api/mcp/call and it deserves the same pin; flagged to the lead.",
+    methods: ['GET'],
+    why: "NO GUARD of its own, and it does spend ours: the relay sends `x-mcp-api-key` built from MCP_ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY (route.ts:30-34,63) because a browser cannot hold that key. Said plainly, since this entry previously asked for the same pin /api/export/v2 just received and the difference is the reason it does not get one: this relay is GET-only — GET and OPTIONS are the only handlers the file exports — and it answers 403 for every path outside an explicit two-entry allowlist of read-only telemetry, `gpu/lotus-status` and `serve/status` (route.ts:37-51). So the blast radius is those two read-only endpoints rather than the orchestrator, and it cannot be made to write. `methods` now pins GET here too, so a POST added to that file tomorrow inherits `session` instead of this entry.",
   },
   {
     pattern: '/api/capabilities',
     methods: ['GET'],
     why: "NO GUARD. Capability discovery, answered upstream under our MCP_ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY (route.ts:42-44). The caller's key is ignored. Low value to an attacker, but the door is still the only check.",
   },
-  {
-    pattern: '/api/export/v2',
-    why: "NO GUARD, and load-bearing: it attaches our EXPORT_API_KEY (route.ts:14-15) and ignores whatever the caller sent, so any non-empty header spends our export credential. This is the SAME defect as /api/export, which is now pinned to `session`. Left reachable only because the lead's hold enumerated /api/export alone; recommended for the identical pin and named in the PR notes.",
-  },
+  // `/api/export/v2` USED to sit here as "NO GUARD, and load-bearing … left
+  // reachable only because the lead's hold enumerated /api/export alone". It is
+  // now pinned to `session`, which is what the entry itself recommended. The
+  // route attaches our EXPORT_API_KEY (route.ts:14-15) and ignores whatever the
+  // caller sent, then posts the caller's source to the export service to be
+  // COMPILED — arbitrary code, upstream, on our credential. "The caller typed
+  // something into a header" cannot be the authorization for that. It is the
+  // identical defect to /api/export, which was already pinned, and two doors
+  // into the same service should not answer differently.
   {
     pattern: '/api/quest-proof/board',
     why: "NO GUARD of its own. Headset-proof sweep agents poll it on a schedule and refusing them stops the sweep silently, so it stays reachable — but the authorization is this door, not the route.",
@@ -401,16 +446,39 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   },
 ];
 
-/** Turn a pattern into a matcher. `*` = one segment, `**` = the rest. */
+/**
+ * Turn a pattern into a matcher. `*` = one segment, `**` = the rest of the path
+ * INCLUDING the bare prefix.
+ *
+ * That last part was a real 401. `**` used to compile to `/.*`, so
+ * `/api/brittney/**` became `^/api/brittney/.*\/?$` — which does not match
+ * `/api/brittney`. That is the product's own chat endpoint
+ * (app/api/brittney/route.ts), the one its client calls
+ * (lib/brittney/BrittneySession.ts:150) and the one Settings advertises to
+ * paying customers (components/settings/BrittneyAPIKeysPanel.tsx:119-126,
+ * "no browser session required"). Every legitimate `bk_` customer was refused
+ * at the edge before the route that understands their key ever ran.
+ *
+ * A rule written for `/api/brittney/**` is a statement about the brittney API,
+ * and `/api/brittney` is the first path in it. Anything else makes the author
+ * of a new entry responsible for remembering to write the bare path twice, and
+ * the failure when they forget is silent and total. Re-checked when this
+ * changed: `/api/auth/**` and `/api/orchestrator/**` now also cover their bare
+ * prefixes, and neither has a bare route file — `auth/[...nextauth]/route.ts`
+ * and `orchestrator/[...path]/route.ts` both require at least one further
+ * segment — so both bare paths 404 exactly as they did before.
+ */
 function patternToRegExp(pattern: string): RegExp {
-  const source = pattern
-    .split('/')
-    .map((segment) => {
-      if (segment === '**') return '.*';
-      if (segment === '*') return '[^/]+';
-      return segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    })
-    .join('/');
+  let source = '';
+  pattern.split('/').forEach((segment, index) => {
+    if (segment === '**') {
+      source += '(?:/.*)?';
+      return;
+    }
+    const literal =
+      segment === '*' ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    source += index === 0 ? literal : `/${literal}`;
+  });
   return new RegExp(`^${source}/?$`);
 }
 

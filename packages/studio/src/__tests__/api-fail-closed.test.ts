@@ -23,6 +23,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { encode } from 'next-auth/jwt';
 
 import { config, proxy } from '../proxy';
 import {
@@ -115,6 +116,54 @@ describe('the /api default is closed', () => {
       const response = await anonymous(path, method);
       expect.soft(response.status, `${method} ${path}`).toBe(401);
     }
+  });
+
+  it('refuses the doors the finish pass closed, even when a header is present', async () => {
+    // Each of these was reachable on "the caller typed something into a
+    // header". A credential this gate cannot check is not a reason to spend
+    // one of ours, so they are pinned to `session` and the header buys nothing.
+    const closed: Array<[string, string]> = [
+      // Attaches our EXPORT_API_KEY and has arbitrary source compiled upstream.
+      ['/api/export/v2', 'POST'],
+      // `self` asks "who am I" of whichever key is attached — ours, anonymously.
+      ['/api/holomesh/agent/self/storefront', 'GET'],
+      ['/api/holomesh/agent/self', 'GET'],
+    ];
+
+    for (const [path, method] of closed) {
+      const withHeader = await anonymous(path, method, { 'x-mcp-api-key': 'any-non-empty-string' });
+      expect.soft(withHeader.status, `${method} ${path}`).toBe(401);
+    }
+  });
+
+  it('refuses agent "self" however the caller spells it', async () => {
+    // Next resolves routes on the DECODED path, so %73elf reaches the same
+    // handler as self. A carve-out compared against the raw spelling would
+    // miss, and the wildcard above it would answer with our key attached.
+    for (const path of [
+      '/api/holomesh/agent/%73elf/storefront',
+      '/api/holomesh/agent/%73elf',
+      '/api/holomesh/agent/se%6Cf/storefront',
+    ]) {
+      expect.soft((await anonymous(path)).status, path).toBe(401);
+    }
+
+    // …while an ordinary agent id still answers, or the carve-out ate the rule.
+    for (const path of ['/api/holomesh/agent/agent-abc', '/api/holomesh/agent/agent-abc/storefront']) {
+      expect.soft((await anonymous(path)).status, path).not.toBe(401);
+    }
+  });
+
+  it('covers the bare path of a `**` rule, not only what is under it', async () => {
+    // `/api/brittney/**` used to compile to `^/api/brittney/.*$`, which does not
+    // match `/api/brittney` — the product's own chat endpoint. Every paying
+    // bk_ customer was refused at the edge.
+    const key = { authorization: 'Bearer bk_a_customers_own_key' };
+    expect((await anonymous('/api/brittney', 'POST', key)).status).not.toBe(401);
+    expect((await anonymous('/api/brittney/conversations', 'GET', key)).status).not.toBe(401);
+
+    // The bare path is still not open to a caller with nothing.
+    expect((await anonymous('/api/brittney', 'POST')).status).toBe(401);
   });
 
   it('still runs for /api at all — the gate is useless if the matcher skips it', () => {
@@ -283,6 +332,16 @@ const SIGNED_OUT_UI_DEPENDENCIES: ReadonlyArray<{
   // Remaining signed-out pages.
   { method: 'GET', path: '/api/conjecture/receipts', callSite: 'app/conjecture/receipts/page.tsx:52' },
   { method: 'GET', path: '/api/training/stream', callSite: 'app/spectator/training/page.tsx:79 (EventSource, cannot send headers)' },
+
+  // Token-authenticated phone surfaces. The `?t=` token IS the credential; a
+  // phone that scanned a QR code holds no session and can never get one.
+  { method: 'PUT', path: '/api/reconstruction/session', callSite: 'app/scan-room/mobile/[token]/page.tsx:233 phone-connected' },
+  { method: 'GET', path: '/api/reconstruction/session', callSite: 'app/scan-room/mobile/[token]/page.tsx:441 feedback poll' },
+  { method: 'PUT', path: '/api/remote', callSite: 'app/remote/[token]/page.tsx:29 viewport command' },
+  { method: 'GET', path: '/api/remote', callSite: 'app/remote/[token]/page.tsx:137 token check + command queue' },
+
+  // Public profile.
+  { method: 'GET', path: '/api/users/user-abc', callSite: 'app/u/[username]/page.tsx:49 renders empty without it' },
 ];
 
 describe('the signed-out site keeps working, checked against a hand-written list', () => {
@@ -317,5 +376,227 @@ describe('the signed-out site keeps working, checked against a hand-written list
     // Some rows match an allowlist pattern verbatim; many must not, or the list
     // is just the allowlist retyped and proves nothing new.
     expect(literalPaths.length).toBeLessThan(SIGNED_OUT_UI_DEPENDENCIES.length);
+  });
+});
+
+/**
+ * Which callers arrive with a credential of their OWN — written out by hand,
+ * for the same reason the list above is.
+ *
+ * The derived test earlier in this file maps over CALLER_CREDENTIAL_API_PATHS
+ * and substitutes `**` with `probe`, so it can only ever check that the tier
+ * agrees with itself. Measured 2026-09-16: deleting `/api/brittney/**`
+ * outright, or the withdraw entry, left that suite 14/14 green — because
+ * deleting an entry deletes its own test case with it. Our customers are
+ * agents; a lockout that no test notices is the failure this lane exists to
+ * beat.
+ *
+ * So each row below is a real caller, with the credential it actually presents
+ * and the call site that presents it. Deleting an allowlist entry now turns
+ * this file red and names who stopped being able to call.
+ */
+const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
+  method: string;
+  path: string;
+  credential: string;
+  header: Record<string, string>;
+  callSite: string;
+}> = [
+  {
+    method: 'POST',
+    path: '/api/brittney',
+    credential: "the customer's own Brittney key (bk_…), validated against the database by requireAuthOrApiKey (lib/api-auth.ts:138)",
+    header: { authorization: 'Bearer bk_a_customers_own_key' },
+    callSite: 'lib/brittney/BrittneySession.ts:150; sold and documented at components/settings/BrittneyAPIKeysPanel.tsx:119-126 as "no browser session required"',
+  },
+  {
+    method: 'GET',
+    path: '/api/brittney/conversations',
+    credential: 'the same bk_ key on a sub-path of the same product',
+    header: { authorization: 'Bearer bk_a_customers_own_key' },
+    callSite: 'lib/brittney/conversationsClient.ts:57',
+  },
+  {
+    method: 'POST',
+    path: '/api/holomesh/agent/agent-abc/withdraw',
+    credential: "the agent's own HoloMesh key, introspected upstream and required to BE that agent",
+    header: { 'x-mcp-api-key': 'an-agents-own-mesh-key' },
+    callSite: 'lib/holomesh-proxy.ts:79 resolveHoloMeshCaller — the one credential this route accepts',
+  },
+  {
+    method: 'GET',
+    path: '/api/holomesh/team/team-abc/export',
+    credential: "a team member's own HoloMesh key; the route checks membership under that same key",
+    header: { 'x-mcp-api-key': 'a-members-own-mesh-key' },
+    callSite: 'app/api/holomesh/team/[id]/export/route.ts',
+  },
+  {
+    method: 'POST',
+    path: '/api/publish',
+    credential: "the publisher's own mesh key, which the registry itself vouches for",
+    header: { 'x-mcp-api-key': 'a-publishers-own-mesh-key' },
+    callSite: 'app/api/publish/route.ts:49 callerMeshKey',
+  },
+  {
+    method: 'POST',
+    path: '/api/knowledge/sync',
+    credential: "the caller's own mesh key, forwarded upstream unchanged",
+    header: { 'x-mcp-api-key': 'a-callers-own-mesh-key' },
+    callSite: 'app/api/knowledge/sync/route.ts (#304)',
+  },
+  {
+    method: 'GET',
+    path: '/api/knowledge/query',
+    credential: "the caller's own mesh key",
+    header: { 'x-mcp-api-key': 'a-callers-own-mesh-key' },
+    callSite: 'app/api/knowledge/query/route.ts, guarded in 886264d9f',
+  },
+  {
+    method: 'POST',
+    path: '/api/holomesh/marketplace/sync',
+    credential: "an operator's own mesh key; without one the route demands a session",
+    header: { 'x-mcp-api-key': 'an-operators-own-mesh-key' },
+    callSite: 'app/api/holomesh/marketplace/sync/route.ts',
+  },
+  {
+    method: 'GET',
+    path: '/api/mcp/call',
+    credential: 'any caller credential — the route itself checks nothing, so THIS DOOR is the only check',
+    header: { 'x-mcp-api-key': 'an-agents-own-key' },
+    callSite: 'agents depend on it; #302/#305 are fixing the identity handling',
+  },
+  {
+    method: 'GET',
+    path: '/api/orchestrator/gpu/lotus-status',
+    credential: 'any caller credential; GET-only and allowlisted to two read-only telemetry paths',
+    header: { 'x-mcp-api-key': 'an-operators-own-key' },
+    callSite: 'Operations console telemetry, app/api/orchestrator/[...path]/route.ts:37-40',
+  },
+];
+
+describe('the callers who arrive with their own credential, checked against a hand-written list', () => {
+  it('lets every one of them through, and refuses the same call made bare', async () => {
+    const refused: string[] = [];
+    const openedWithoutCredential: string[] = [];
+
+    for (const dependency of CALLER_CREDENTIAL_DEPENDENCIES) {
+      const { method, path, header, credential, callSite } = dependency;
+
+      const presented = await anonymous(path, method, header);
+      if (presented.status === 401) {
+        refused.push(`${method} ${path} — presenting ${credential}; called by ${callSite}`);
+      }
+
+      // The tier is "a caller arrived", so the same call with nobody behind it
+      // must still be refused, or the entry is just a hole with a comment.
+      const bare = await anonymous(path, method);
+      if (bare.status !== 401) openedWithoutCredential.push(`${method} ${path}`);
+    }
+
+    expect(refused).toEqual([]);
+    expect(openedWithoutCredential).toEqual([]);
+  });
+
+  it('accepts either header spelling agents actually arrive with', async () => {
+    // mcp-server takes both, so a gate in front that takes only one is a
+    // lockout wearing the costume of a bad key.
+    for (const header of [
+      { authorization: 'Bearer an-agents-own-mesh-key' },
+      { 'x-mcp-api-key': 'an-agents-own-mesh-key' },
+    ]) {
+      const response = await anonymous('/api/knowledge/query', 'GET', header);
+      expect.soft(response.status, JSON.stringify(header)).not.toBe(401);
+    }
+  });
+
+  it('is written out literally, not derived from the tier it checks', () => {
+    expect(CALLER_CREDENTIAL_DEPENDENCIES.length).toBeGreaterThan(8);
+
+    for (const dependency of CALLER_CREDENTIAL_DEPENDENCIES) {
+      expect.soft(dependency.path, 'concrete path, no wildcard').not.toMatch(/[*[\]]/);
+      expect.soft(dependency.callSite.trim().length, dependency.path).toBeGreaterThan(10);
+      expect.soft(dependency.credential.trim().length, dependency.path).toBeGreaterThan(10);
+      expect.soft(Object.keys(dependency.header), dependency.path).toHaveLength(1);
+    }
+
+    const patterns = new Set(CALLER_CREDENTIAL_API_PATHS.map((rule) => rule.pattern));
+    const retyped = CALLER_CREDENTIAL_DEPENDENCIES.filter((d) => patterns.has(d.path));
+    // If every row matched a pattern verbatim this would be the tier retyped,
+    // and deleting an entry would once again delete its own test.
+    expect(retyped.length).toBeLessThan(CALLER_CREDENTIAL_DEPENDENCIES.length);
+  });
+});
+
+/**
+ * THE POSITIVE CONTROL.
+ *
+ * Every other test in both suites is credential-less: they all prove somebody
+ * is refused. Not one of them proves anybody is ADMITTED, so the entire gate
+ * rests on `getToken` behaving, and a gate that refuses everyone passes every
+ * one of them. Twice now this branch has been green while the site was dark;
+ * this is the assertion that would have noticed.
+ *
+ * It matters most for the cookie NAME. `getToken` picks one name from the
+ * environment — `__Secure-next-auth.session-token` when NEXTAUTH_URL starts
+ * with https, `next-auth.session-token` otherwise — and the browser's cookie
+ * was named by the same setting at sign-in. If those two ever disagree, every
+ * signed-in user is locked out of every session-tier path at once, and the 401
+ * looks exactly like a login bug. So a real, correctly-signed token is sent
+ * under BOTH names here.
+ */
+describe('a signed-in visitor is admitted — the check nothing else in this file makes', () => {
+  const SECRET = 'test-secret-for-gate-decisions';
+  const COOKIE_NAMES = ['__Secure-next-auth.session-token', 'next-auth.session-token'];
+
+  async function sessionCookie(secret: string): Promise<string> {
+    return encode({ token: { sub: 'user-1', name: 'Signed In' }, secret });
+  }
+
+  it('lets a real session through on a session-tier path, under either cookie name', async () => {
+    const token = await sessionCookie(SECRET);
+
+    for (const name of COOKIE_NAMES) {
+      const response = await anonymous('/api/projects', 'GET', { cookie: `${name}=${token}` });
+      expect.soft(response.status, `signed in via ${name}`).not.toBe(401);
+    }
+  });
+
+  it('admits that session on paths of every tier, not just one', async () => {
+    const token = await sessionCookie(SECRET);
+    const cookie = { cookie: `__Secure-next-auth.session-token=${token}` };
+
+    for (const path of ['/api/projects', '/api/export/v2', '/api/holomesh/agent/self']) {
+      expect.soft((await anonymous(path, 'GET', cookie)).status, path).not.toBe(401);
+    }
+  });
+
+  it('still refuses a token signed with somebody else’s secret', async () => {
+    // Without this the test above would pass just as well on a gate that waved
+    // every cookie through, and would be proving nothing at all.
+    const forged = await sessionCookie('not-the-studio-secret');
+
+    for (const name of COOKIE_NAMES) {
+      const response = await anonymous('/api/projects', 'GET', { cookie: `${name}=${forged}` });
+      expect.soft(response.status, `forged via ${name}`).toBe(401);
+    }
+  });
+
+  it('still refuses a cookie that is merely present', async () => {
+    for (const name of COOKIE_NAMES) {
+      const response = await anonymous('/api/projects', 'GET', { cookie: `${name}=not-a-jwt` });
+      expect.soft(response.status, name).toBe(401);
+    }
+  });
+
+  it('refuses everyone when no secret is configured, rather than trusting the cookie', async () => {
+    const token = await sessionCookie(SECRET);
+    vi.stubEnv('NEXTAUTH_SECRET', '');
+    vi.stubEnv('AUTH_SECRET', '');
+
+    const response = await anonymous('/api/projects', 'GET', {
+      cookie: `next-auth.session-token=${token}`,
+    });
+
+    expect(response.status).toBe(401);
   });
 });

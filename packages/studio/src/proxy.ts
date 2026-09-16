@@ -36,18 +36,50 @@ function isBenchmarkRunner(request: NextRequest): boolean {
   return request.headers.get('x-benchmark-key')?.trim() === configured;
 }
 
-/** A real, signature-verified Studio session — not merely a cookie that exists. */
+/**
+ * Both names NextAuth may have written the session cookie under.
+ *
+ * Which one it picks is decided by the ENVIRONMENT, not by the request, so the
+ * gate must not depend on that environment agreeing with the browser. See
+ * {@link hasStudioSession}.
+ */
+const SESSION_COOKIE_NAMES = [
+  '__Secure-next-auth.session-token',
+  'next-auth.session-token',
+] as const;
+
+/**
+ * A real, signature-verified Studio session — not merely a cookie that exists.
+ *
+ * BOTH cookie names are tried, and that is the point. `getToken` picks exactly
+ * ONE name from the environment: `__Secure-next-auth.session-token` when
+ * NEXTAUTH_URL starts with `https://`, and `next-auth.session-token` otherwise
+ * (next-auth 4.24.15, jwt/index.js:65-66). The browser's cookie name was chosen
+ * by the same setting at sign-in. So the moment NEXTAUTH_URL is absent, http,
+ * or simply different from the origin somebody actually signed in on, the two
+ * disagree — and then EVERY signed-in caller is refused here, with a 401 that
+ * reads like a broken login rather than like a gate. This lane's whole job is
+ * to avoid exactly that, so the env is taken out of the decision.
+ *
+ * Reading both names is not a weakening. The token still has to carry a valid
+ * signature under our own NEXTAUTH_SECRET, which is the entire check either
+ * way; only the name of the container changes. A cookie that fails to verify
+ * under one name must not stop the other name from being tried.
+ */
 async function hasStudioSession(request: NextRequest): Promise<boolean> {
   const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
   // With no secret no session can be verified, so none is trusted. That refuses
   // a misconfigured deploy rather than waving it through, and the refusal says
   // which variable is missing instead of looking like a login bug.
   if (!secret) return false;
-  try {
-    return (await getToken({ req: request, secret })) !== null;
-  } catch {
-    return false;
+  for (const cookieName of SESSION_COOKIE_NAMES) {
+    try {
+      if ((await getToken({ req: request, secret, cookieName })) !== null) return true;
+    } catch {
+      // Malformed under this name; the other name still gets its turn.
+    }
   }
+  return false;
 }
 
 /**
@@ -59,8 +91,30 @@ async function hasStudioSession(request: NextRequest): Promise<boolean> {
  * it is what a route gets when its author writes no guard at all, which was the
  * case for 164 of 236 route files when it was written.
  */
+/**
+ * The pathname as the ROUTE will see it, not as it was typed.
+ *
+ * Next resolves routes on the DECODED path, so `/api/holomesh/agent/%73elf`
+ * and `/api/holomesh/agent/self` reach the same handler. Classifying the raw
+ * spelling would let the encoded form walk straight past an `except` carve-out
+ * written as a literal: the carve-out would fail to match and the wildcard
+ * above it would answer instead — which is precisely the substitution the
+ * `self` carve-outs exist to prevent. Decoding first makes the gate read the
+ * same string the route reads.
+ *
+ * A malformed escape cannot be decoded; it is then classified exactly as it
+ * arrived rather than waved through.
+ */
+function decodedPathname(rawPathname: string): string {
+  try {
+    return decodeURIComponent(rawPathname);
+  } catch {
+    return rawPathname;
+  }
+}
+
 async function apiGate(request: NextRequest): Promise<NextResponse | null> {
-  const { pathname } = request.nextUrl;
+  const pathname = decodedPathname(request.nextUrl.pathname);
   const method = request.method.toUpperCase();
 
   // A CORS preflight carries no cookies and no credentials by design — that is
