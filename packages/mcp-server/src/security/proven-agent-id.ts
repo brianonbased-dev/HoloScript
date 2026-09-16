@@ -61,13 +61,19 @@
  *     registration or stamp one on a token. Re-sign the manifest with an
  *     `issuedAt` to restore that.
  *   - RESERVED IDS. `agent_founder` and the `agent_env_*` identities belong to
- *     key records the server seeds for itself. Nothing outside the key registry
- *     may claim one, or a signed manifest naming `agent_founder` would mint the
- *     founder's identity from a platform signature, and a legacy store record
- *     could carry a seeded id that the shared-key refusal exists to prevent.
- *     The registry path is exempt: there the RECORD is the authority, and a
- *     provisioned (non-seeded) founder key is the legitimate way to hold that
- *     identity.
+ *     key records the server seeds for itself, so NO proof may mint one — not a
+ *     signed manifest, not a legacy store record, and not a registry record
+ *     either. The registry path used to be exempt, on the reasoning that there
+ *     the RECORD is the authority and a provisioned founder key is legitimate.
+ *     It is not: `/admin/provision` generates `agent_<timestamp>_<rand>` even
+ *     when `is_founder` is set, so it cannot produce `agent_founder`, and the
+ *     exemption admitted no legitimate caller. What it did admit is the store
+ *     that was seeded BEFORE the provenance marker existed and has since been
+ *     rotated, or whose variable has changed: an unmarked `agent_founder` record
+ *     whose value equals no env var, which marker, value and prefix all miss.
+ *     Reserving the id closes that. `isFounder` — the field founder-only ROUTES
+ *     actually read — is untouched, so a founder key keeps every authority it
+ *     has; what it loses is the ability to mint a DURABLE founder identity.
  *
  * KNOWN AND NOT FIXED HERE: an identity, once carried, outlives the key that
  * proved it. A client bound at registration keeps stamping that agent_id after
@@ -143,16 +149,23 @@ function agentIdForKey(presented: string): string | undefined {
   const record = keyRegistry.get(presented);
   if (record) {
     if (record.expiresAt && new Date(record.expiresAt) < new Date()) return undefined;
-    // An `agent_env_*` identity is minted ONLY by first-boot seeding, so a
+    // A RESERVED identity is minted only by the server seeding itself, so a
     // record carrying one is a seeded record whatever its current value is.
-    // This is what still refuses a key that was rotated before the provenance
-    // marker existed: rotation kept the seeded identity but moved the value off
-    // every env var, so neither the marker nor the value test can see it.
-    // `agent_founder` is deliberately not refused here — a provisioned founder
-    // key is legitimate, and only the marker distinguishes it from a seeded one.
-    if (String(record.agentId || '').toLowerCase().startsWith(SEEDED_AGENT_ID_PREFIX)) {
-      return undefined;
-    }
+    // This is what still refuses a key rotated before the provenance marker
+    // existed: rotation kept the seeded identity but moved the value off every
+    // env var, so neither the marker nor the value test can see it.
+    //
+    // `agent_founder` is included here, where it used to be exempt. The
+    // exemption existed for "a provisioned founder key is legitimate" — but
+    // `/admin/provision` generates `agent_<timestamp>_<rand>` even when
+    // `is_founder` is set, so it cannot mint `agent_founder` and the exemption
+    // admitted nobody. What it did admit: the pre-marker seeded founder record
+    // that has since been rotated, or whose variable changed. Unmarked, value
+    // in no env var, id not prefixed — all three refusals missed it, and it
+    // could bind a client to the founder's identity permanently, no key ever
+    // re-presented. `isFounder` is untouched, so founder-only ROUTES are
+    // unaffected; only minting the durable founder IDENTITY is closed.
+    if (isReservedSeededAgentId(record.agentId)) return undefined;
     return record.agentId || undefined;
   }
 

@@ -139,6 +139,15 @@ presents the same string — so it authenticates but proves no individual agent.
 credential is one, and `POST /oauth/token` will not stamp one. Use a provisioned
 per-agent key, a platform-signed manifest, or a legacy per-agent key for that.
 
+`agent_founder` itself can be minted by no proof at all. It is written only by
+first-boot seeding, for the shared founder env key, and `/admin/provision`
+generates `agent_<timestamp>_<rand>` even when `is_founder: true` — so no
+provisioned caller ever holds it. A record carrying that id is therefore a seeded
+record whatever its value looks like today, including one rotated (or left behind
+by a changed variable) before the provenance marker existed, and it can neither
+bind nor stamp that identity. `isFounder` is a separate field and is untouched:
+founder-only routes read that, so a founder key keeps every authority it has.
+
 Two things a **running** server needs before this takes effect:
 
 1. Seeding only runs when `keys.json` has no keys. A store that has already

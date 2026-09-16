@@ -12,7 +12,7 @@
  * today stops authenticating — it simply stops being a founder.
  */
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -24,6 +24,7 @@ const state = await import('../state');
 const {
   _markSeededKeysFromEnv,
   _seedFounderKeysFromEnv,
+  initStores,
   keyRegistry,
   SEEDABLE_KEY_ENV_VARS,
   FOUNDER_AGENT_ID,
@@ -223,5 +224,86 @@ describe('marking stored keys with their provenance', () => {
 
     expect(_markSeededKeysFromEnv()).toBe(1);
     expect(keyRegistry.get(HM_KEY)?.seededFromEnv).toBe('HOLOMESH_API_KEY');
+  });
+});
+
+/**
+ * The backfill has to be WIRED, not merely callable.
+ *
+ * First boot writes the marker while seeding, so every store that already exists
+ * depends entirely on the backfill running at load — that is the whole point of
+ * it: "every server already running". The tests above call
+ * `_markSeededKeysFromEnv` directly, which is exactly what a DELETED call site
+ * would still pass. The property lives on one line inside `initStores`, and
+ * nothing was watching that line, so the function could stay green while no
+ * deployed store was ever marked and the rotation defence never engaged.
+ *
+ * These drive the real `initStores()` over a real keys.json instead.
+ */
+describe('the backfill runs when the server loads a store it already had', () => {
+  const previousDatabaseUrl = process.env.DATABASE_URL;
+
+  beforeEach(() => {
+    keyRegistry.clear();
+    clearSeedEnv();
+    // JSON path only. DATABASE_URL would send initStores at Postgres, which is
+    // neither what this is about nor reachable from a unit test.
+    delete process.env.DATABASE_URL;
+  });
+
+  afterAll(() => {
+    if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = previousDatabaseUrl;
+  });
+
+  /** Write keys.json in exactly the shape `persistKeyRegistry` writes. */
+  function writeStoredKeys(records: Record<string, unknown>[]): void {
+    // An earlier block's afterAll removes the temp dir; recreate it so this
+    // suite does not depend on file order.
+    mkdirSync(TEMP_DIR, { recursive: true });
+    writeFileSync(
+      join(TEMP_DIR, 'keys.json'),
+      JSON.stringify({ version: 1, keys: records, savedAt: new Date().toISOString() }),
+      'utf-8'
+    );
+  }
+
+  /** A stored record as it was written before `seededFromEnv` existed. */
+  function storedRecord(key: string, agentId: string): Record<string, unknown> {
+    return {
+      key,
+      walletAddress: `0x${'3'.repeat(40)}`,
+      agentId,
+      agentName: agentId,
+      scopes: ['*'],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: false,
+    };
+  }
+
+  it('stamps provenance at startup, not only when the function is called by hand', async () => {
+    writeStoredKeys([storedRecord(HS_KEY, seededAgentIdFor('HOLOSCRIPT_API_KEY'))]);
+    process.env.HOLOSCRIPT_API_KEY = HS_KEY;
+
+    await initStores();
+
+    // Loaded rather than re-seeded (seeding only runs on an empty store), and
+    // marked on the way in. Delete the call inside initStores and this fails.
+    expect(keyRegistry.get(HS_KEY)?.seededFromEnv).toBe('HOLOSCRIPT_API_KEY');
+  });
+
+  it('leaves a provisioned per-agent record in the loaded store unmarked', async () => {
+    // The refusal must not spread at startup either: marking this would lock a
+    // real agent out of its own identity the moment the server restarted.
+    const OWN_KEY = 'hs_sk_one_agents_own_key';
+    writeStoredKeys([storedRecord(OWN_KEY, 'agent_owner')]);
+    // Configured, but holding a different value than this record's.
+    process.env.HOLOSCRIPT_API_KEY = HS_KEY;
+
+    await initStores();
+
+    expect(keyRegistry.get(OWN_KEY)?.seededFromEnv).toBeUndefined();
   });
 });

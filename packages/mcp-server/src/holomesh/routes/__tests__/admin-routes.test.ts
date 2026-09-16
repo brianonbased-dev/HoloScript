@@ -19,6 +19,7 @@ import {
 } from '../../identity/vault-lease-registry';
 import { _resetAuditLogForTests } from '../../identity/audit-log';
 import { resetAdminOperationsAudit, queryAdminOperationsAudit } from '../../admin-operations-audit';
+import { resolveProvenAgentId } from '../../../security/proven-agent-id';
 
 const FOUNDER_KEY = 'founder-admin-key';
 const FOUNDER_ID = 'agent-founder';
@@ -808,5 +809,94 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
       NON_FOUNDER_KEY
     );
     expect(res._status).toBe(403);
+  });
+});
+
+/**
+ * Rotation is where key provenance is easiest to drop and hardest to notice.
+ *
+ * A shared env-seeded key is refused two ways: the `seededFromEnv` marker on the
+ * record, or its value still equalling a configured variable. Rotation issues a
+ * value no variable holds, so after one rotation the marker is the ONLY survivor
+ * — and it survives only because `rotate-key` copies it forward explicitly.
+ * Nothing asserted that: the resolver's own suite hand-builds records that
+ * already carry the marker, so it verifies the RESOLVER while the line that
+ * WRITES the marker across a rotation could be deleted with every suite green.
+ */
+describe('Admin Routes — rotation carries key provenance', () => {
+  // A per-agent key whose value an operator put into a seedable variable, making
+  // it a shared secret. Its identity is provisioning-shaped, so — unlike
+  // `agent_env_*` or `agent_founder` — nothing but the marker can refuse it.
+  const SHARED_KEY = 'value-the-holomesh-api-key-variable-hands-every-caller';
+  const SHARED_AGENT_ID = 'agent_1758000000000_ab12';
+
+  function seedSharedRecord(): void {
+    const record: KeyRecord = {
+      key: SHARED_KEY,
+      walletAddress: '0x00000000000000000000000000000000000000cd',
+      agentId: SHARED_AGENT_ID,
+      agentName: 'SharedValueAgent',
+      scopes: ['*'],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: false,
+      seededFromEnv: 'HOLOMESH_API_KEY',
+    };
+    keyRegistry.set(SHARED_KEY, record);
+  }
+
+  it('keeps a rotated shared key refused, because the marker moves with it', async () => {
+    seedSharedRecord();
+    expect(resolveProvenAgentId({ 'x-agent-key': SHARED_KEY })).toBeUndefined();
+
+    const res = await callAdmin('POST', '/api/holomesh/admin/rotate-key', {
+      agent_id: SHARED_AGENT_ID,
+    });
+    expect(res._status).toBe(200);
+    const newKey = res._body.new_key as string;
+    expect(newKey).not.toBe(SHARED_KEY);
+
+    // No env var holds the rotated value, so this marker is the whole defence.
+    expect(keyRegistry.get(newKey)?.seededFromEnv).toBe('HOLOMESH_API_KEY');
+    // And the property itself, not just its silhouette on the record: the new
+    // value must still prove no agent. Drop the carry-over and this line fails.
+    expect(resolveProvenAgentId({ 'x-agent-key': newKey })).toBeUndefined();
+    expect(resolveProvenAgentId({ authorization: `Bearer ${newKey}` })).toBeUndefined();
+  });
+
+  it('does not spread the refusal: a per-agent key still proves itself after rotation', async () => {
+    // The opposite failure, and it costs exactly as much: a legitimate agent
+    // must not be locked out of its own identity by a marker it never earned.
+    const provisioned = await callAdmin('POST', '/api/holomesh/admin/provision', {
+      name: 'RotateProvenanceBot',
+    });
+    const agentId = provisioned._body.agent_id as string;
+
+    const res = await callAdmin('POST', '/api/holomesh/admin/rotate-key', { agent_id: agentId });
+    expect(res._status).toBe(200);
+
+    const newKey = res._body.new_key as string;
+    expect(keyRegistry.get(newKey)?.seededFromEnv).toBeUndefined();
+    expect(resolveProvenAgentId({ 'x-agent-key': newKey })).toBe(agentId);
+  });
+
+  it('provision mints a per-agent identity, never the reserved founder id', async () => {
+    // The premise the founder reservation rests on. `agent_founder` is written
+    // only by first-boot seeding of a SHARED value, so refusing it in the
+    // registry path costs no legitimate caller. If provisioning ever starts
+    // assigning a caller-chosen id, this goes red and that reservation in
+    // `security/proven-agent-id` has to be revisited rather than discovered.
+    const res = await callAdmin('POST', '/api/holomesh/admin/provision', {
+      name: 'FounderFlaggedBot',
+      is_founder: true,
+    });
+
+    expect(res._status).toBe(201);
+    expect(res._body.is_founder).toBe(true);
+    expect(res._body.agent_id).not.toBe('agent_founder');
+    expect(res._body.agent_id).toMatch(/^agent_\d+_/);
+    // Founder-flagged and provisioned: it proves its OWN id, not the reserved one.
+    expect(resolveProvenAgentId({ 'x-agent-key': res._body.api_key })).toBe(res._body.agent_id);
   });
 });

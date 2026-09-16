@@ -463,6 +463,8 @@ describe('agentBindingForRegistration', () => {
  */
 describe('a shared key stays refused after rotation', () => {
   const ROTATED_KEY = 'hs_sk_rotated_value_no_env_var_holds';
+  /** What `/admin/provision` actually mints: a per-agent, non-reserved id. */
+  const PROVISIONED_SHAPE_ID = 'agent_1758000000000_ab12';
 
   /** A seeded FOUNDER record, as rotation would leave it: new value, same identity. */
   function seedFounderRecord(key: string, marked: boolean): void {
@@ -476,6 +478,27 @@ describe('a shared key stays refused after rotation', () => {
       rotationCount: 1,
       lastRotatedAt: new Date('2026-02-01T00:00:00.000Z').toISOString(),
       isFounder: true,
+      ...(marked ? { seededFromEnv: 'HOLOMESH_API_KEY' } : {}),
+    });
+  }
+
+  /**
+   * A PER-AGENT record whose value an operator later put into a seedable
+   * variable — so it became a shared secret — and which has since been rotated.
+   * Its identity is provisioning-shaped, so nothing about the id gives it away
+   * and the marker is genuinely the only thing that can refuse it.
+   */
+  function seedRotatedSharedRecord(key: string, marked: boolean): void {
+    keyRegistry.set(key, {
+      key,
+      walletAddress: `0x${'b'.repeat(40)}`,
+      agentId: PROVISIONED_SHAPE_ID,
+      agentName: 'SharedValueAgent',
+      scopes: ['*'],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+      rotationCount: 1,
+      lastRotatedAt: new Date('2026-02-01T00:00:00.000Z').toISOString(),
+      isFounder: false,
       ...(marked ? { seededFromEnv: 'HOLOMESH_API_KEY' } : {}),
     });
   }
@@ -503,14 +526,43 @@ describe('a shared key stays refused after rotation', () => {
   });
 
   it('shows the marker is load-bearing: flip it and the verdict flips', () => {
-    // `agent_founder` is deliberately NOT prefix-reserved, because a
-    // provisioned founder key is legitimate. So for this record the marker is
-    // the only thing that can refuse it — which makes it the honest control.
-    seedFounderRecord(ROTATED_KEY, false);
-    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBe(FOUNDER_AGENT_ID);
+    // The control has to run on a record whose IDENTITY gives nothing away.
+    // `agent_env_*` and `agent_founder` are both refused on the id alone, so on
+    // either of those the marker could be deleted and this control would not
+    // notice — it would be measuring the reserved-id check instead. A
+    // provisioned-shape id is the honest subject: here the marker is all there is.
+    seedRotatedSharedRecord(ROTATED_KEY, false);
+    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBe(PROVISIONED_SHAPE_ID);
 
     keyRegistry.clear();
+    seedRotatedSharedRecord(ROTATED_KEY, true);
+    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBeUndefined();
+  });
+
+  it('refuses a rotated FOUNDER record that lost its marker with the variable', () => {
+    // The shape a store seeded before the marker is in TODAY: seeding wrote
+    // `agent_founder` with no marker, then rotation — or a changed variable —
+    // moved the value off every env var. Marker misses it, value misses it.
+    // It used to resolve to the founder, so a holder of a superseded shared
+    // value could bind a client it controls to `agent_founder` and have every
+    // later token stamped founder, without re-presenting any key.
+    seedFounderRecord(ROTATED_KEY, false);
+
+    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBeUndefined();
+    expect(resolveProvenAgentId({ authorization: `Bearer ${ROTATED_KEY}` })).toBeUndefined();
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: FOUNDER_AGENT_ID,
+        registrarAgentId: resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY }),
+      }).ok
+    ).toBe(false);
+  });
+
+  it('refuses the same record when it DOES carry the marker', () => {
+    // Both halves refuse now, which is the point: the founder identity does not
+    // depend on a marker that a pre-marker store was never given.
     seedFounderRecord(ROTATED_KEY, true);
+
     expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBeUndefined();
   });
 });
@@ -571,12 +623,24 @@ describe('identities nothing outside the key registry may claim', () => {
     });
   });
 
-  it('still lets a PROVISIONED founder key prove the founder identity', () => {
-    // The refusal must not spread to the key that is genuinely per-agent.
-    seedKey('hs_sk_provisioned_founder_key', FOUNDER_AGENT_ID);
-
+  it('lets a provisioned founder key prove its OWN identity, never `agent_founder`', () => {
+    // The refusal must not spread to the key that is genuinely per-agent: a
+    // founder-flagged provisioned key still proves the agent it was issued to,
+    // and `isFounder` (what founder-only routes read) is untouched.
+    //
+    // What it cannot do is claim the reserved id — and it never needed to,
+    // because `/admin/provision` mints `agent_<timestamp>_<rand>` even with
+    // `is_founder: true`. That premise is pinned by a test in the admin-routes
+    // suite, so if provisioning ever mints `agent_founder` this stops being safe
+    // loudly rather than silently.
+    seedKey('hs_sk_provisioned_founder_key', 'agent_1758000000000_ab12');
     expect(resolveProvenAgentId({ 'x-agent-key': 'hs_sk_provisioned_founder_key' })).toBe(
-      FOUNDER_AGENT_ID
+      'agent_1758000000000_ab12'
     );
+
+    seedKey('hs_sk_record_claiming_the_reserved_id', FOUNDER_AGENT_ID);
+    expect(
+      resolveProvenAgentId({ 'x-agent-key': 'hs_sk_record_claiming_the_reserved_id' })
+    ).toBeUndefined();
   });
 });
