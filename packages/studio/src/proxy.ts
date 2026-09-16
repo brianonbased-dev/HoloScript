@@ -23,14 +23,32 @@ function hasCallerCredential(request: NextRequest): boolean {
 }
 
 /**
- * The same opt-in bypass `requireAuth` already honours (lib/api-auth.ts).
+ * The paths the benchmark bypass is FOR.
  *
- * A door in front of a door must not be STRICTER than the one behind it, or it
- * locks out a caller the route would have accepted and the failure looks like a
- * broken key rather than a new gate. `BRITTNEY_BENCHMARK_KEY` is unset by
- * default, so this is inert unless someone deliberately configured it.
+ * It mirrors the opt-in bypass `requireAuth` already honours (lib/api-auth.ts:77-90)
+ * so that a door in front of a door is never STRICTER than the one behind it —
+ * a gate that refuses a caller the route would have accepted is a silent
+ * lockout, and it presents as a broken key rather than as a new gate.
+ *
+ * But the route-level bypass only hands a synthetic user to routes that call
+ * `requireAuth`, whereas an unscoped check HERE is a master key for all 236
+ * routes, 164 of which have no guard of their own. Mirroring a door is not the
+ * same as opening every door beside it.
+ *
+ * Scoped to what the benchmark actually calls, measured rather than assumed:
+ * the only caller that ever sends `x-benchmark-key` is the harness runner at
+ * src/__benchmarks__/brittney-vs-baselines/configs/brittney-prod.ts:77, which
+ * POSTs to one endpoint — `/api/brittney` (harness.test.ts:467). Nothing else
+ * in the repository sends that header.
  */
-function isBenchmarkRunner(request: NextRequest): boolean {
+const BENCHMARK_BYPASS_PREFIX = '/api/brittney';
+
+function isBenchmarkRunner(request: NextRequest, pathname: string): boolean {
+  if (pathname !== BENCHMARK_BYPASS_PREFIX && !pathname.startsWith(`${BENCHMARK_BYPASS_PREFIX}/`)) {
+    return false;
+  }
+  // `BRITTNEY_BENCHMARK_KEY` is unset by default, so this is inert unless
+  // someone deliberately configured it.
   const configured = process.env.BRITTNEY_BENCHMARK_KEY?.trim();
   if (!configured) return false;
   return request.headers.get('x-benchmark-key')?.trim() === configured;
@@ -125,7 +143,7 @@ async function apiGate(request: NextRequest): Promise<NextResponse | null> {
   const access = classifyApiPath(pathname, method);
   if (access === 'public') return null;
   if (access === 'caller-credential' && hasCallerCredential(request)) return null;
-  if (isBenchmarkRunner(request)) return null;
+  if (isBenchmarkRunner(request, pathname)) return null;
   if (await hasStudioSession(request)) return null;
 
   return NextResponse.json(

@@ -128,6 +128,13 @@ describe('the /api default is closed', () => {
       // `self` asks "who am I" of whichever key is attached — ours, anonymously.
       ['/api/holomesh/agent/self/storefront', 'GET'],
       ['/api/holomesh/agent/self', 'GET'],
+      // The one public door that moved money. An anonymous POST attached our
+      // HOLOMESH_API_KEY and then wrote referral and ledger rows crediting an
+      // agent the caller named. It was kept public on a stated reason — that
+      // the premium-exits suite pinned anonymous reachability — which was not
+      // true: that suite calls the route's POST directly and never goes through
+      // this gate at all.
+      ['/api/holomesh/entry/entry-abc/purchase', 'POST'],
     ];
 
     for (const [path, method] of closed) {
@@ -219,39 +226,70 @@ describe('the allowlist keeps the signed-out site working', () => {
     }
   });
 
-  it('does not lock out the benchmark runner the routes already accept', async () => {
+  it('does not lock out the benchmark runner on the path it actually calls', async () => {
     // requireAuth has honoured an opt-in `x-benchmark-key` bypass since before
     // this gate existed. A gate in front that refuses what the route behind it
     // would have accepted is a silent lockout, and it presents as a broken key
-    // rather than as a new door.
+    // rather than as a new door. The runner posts to /api/brittney
+    // (src/__benchmarks__/brittney-vs-baselines/configs/brittney-prod.ts:77).
     vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'configured-benchmark-key');
 
-    const accepted = await anonymous('/api/projects', 'GET', {
+    const accepted = await anonymous('/api/brittney', 'POST', {
       'x-benchmark-key': 'configured-benchmark-key',
     });
     expect(accepted.status).not.toBe(401);
 
-    const wrongKey = await anonymous('/api/projects', 'GET', { 'x-benchmark-key': 'not-the-key' });
+    const wrongKey = await anonymous('/api/brittney', 'POST', { 'x-benchmark-key': 'not-the-key' });
     expect(wrongKey.status).toBe(401);
+  });
+
+  it('does NOT let a benchmark header open a path the benchmark never calls', async () => {
+    // The bypass was checked for every /api path, before the session test. The
+    // route-level bypass it mirrors only hands a synthetic user to routes that
+    // call requireAuth; at the edge, unscoped, it was a master key for all 236
+    // routes — including the 164 with no guard of their own. Mirroring one door
+    // is not the same as opening every door beside it.
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'configured-benchmark-key');
+
+    for (const [path, method] of [
+      ['/api/projects', 'GET'],
+      ['/api/export/v2', 'POST'],
+      ['/api/holomesh/team/team-abc/export', 'GET'],
+      ['/api/__a_route_nobody_has_written_yet__', 'POST'],
+    ] as Array<[string, string]>) {
+      const response = await anonymous(path, method, {
+        'x-benchmark-key': 'configured-benchmark-key',
+      });
+      expect.soft(response.status, `${method} ${path}`).toBe(401);
+    }
   });
 
   it('the benchmark header alone opens nothing when the key is not configured', async () => {
     vi.stubEnv('BRITTNEY_BENCHMARK_KEY', '');
 
-    const response = await anonymous('/api/projects', 'GET', {
+    const response = await anonymous('/api/brittney', 'POST', {
       'x-benchmark-key': 'anything-at-all',
     });
 
     expect(response.status).toBe(401);
   });
 
-  it('pins a verb on every public entry, so a new verb inherits nothing', () => {
+  it('pins a verb on every allowlisted entry, in BOTH tiers, so a new verb inherits nothing', () => {
     // An entry with no `methods` covers EVERY verb, including one added to the
-    // route tomorrow. A route that is public to read is not thereby public to
-    // write, and nobody revisits this file when they add a POST.
-    const openToAllVerbs = PUBLIC_API_PATHS.filter((rule) => !rule.methods?.length).map(
-      (rule) => rule.pattern
-    );
+    // route tomorrow. A route that is readable is not thereby writable, and
+    // nobody revisits this file when they add a POST.
+    //
+    // This ratchet used to filter PUBLIC_API_PATHS alone, and the tier it
+    // skipped is the one where the omission cost something. Seven
+    // caller-credential entries carried no `methods`, and the sharpest was
+    // /api/quest-proof/inbox: its route exports a POST with no session check
+    // that pushes an arbitrary link into the founder's inbox under our
+    // HOLOMESH_API_KEY. "The caller typed something into a header" was the only
+    // thing in front of it. Both tiers are checked now, so the next entry
+    // written without a verb fails here instead of in production.
+    const openToAllVerbs = [...PUBLIC_API_PATHS, ...CALLER_CREDENTIAL_API_PATHS]
+      .filter((rule) => !rule.methods?.length)
+      .map((rule) => rule.pattern);
 
     expect(openToAllVerbs).toEqual([]);
   });
@@ -445,11 +483,15 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
     callSite: 'app/api/knowledge/sync/route.ts (#304)',
   },
   {
-    method: 'GET',
+    method: 'POST',
     path: '/api/knowledge/query',
     credential: "the caller's own mesh key",
     header: { 'x-mcp-api-key': 'a-callers-own-mesh-key' },
-    callSite: 'app/api/knowledge/query/route.ts, guarded in 886264d9f',
+    // This row said GET until the 2026-09-16 verb audit. The route file exports
+    // POST and nothing else — the search goes in the body — so the row was
+    // claiming a caller that cannot exist. Fixed the row rather than widening
+    // the allowlist to match it, which is the rule this list is written under.
+    callSite: 'app/api/knowledge/query/route.ts:26 (POST is the only handler), guarded in 886264d9f',
   },
   {
     method: 'POST',
@@ -504,7 +546,7 @@ describe('the callers who arrive with their own credential, checked against a ha
       { authorization: 'Bearer an-agents-own-mesh-key' },
       { 'x-mcp-api-key': 'an-agents-own-mesh-key' },
     ]) {
-      const response = await anonymous('/api/knowledge/query', 'GET', header);
+      const response = await anonymous('/api/knowledge/query', 'POST', header);
       expect.soft(response.status, JSON.stringify(header)).not.toBe(401);
     }
   });

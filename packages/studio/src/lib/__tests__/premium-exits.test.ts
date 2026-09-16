@@ -289,6 +289,14 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
   });
 
   it('POST /api/holomesh/entry/:id/purchase: an answer released to the server key reaches the visitor as a teaser', async () => {
+    // Read this next to src/lib/api-public-paths.ts. This test calls the route's
+    // POST DIRECTLY — it imports neither src/proxy.ts nor the allowlist — so it
+    // never proved the door was open, and the allowlist entry that cited it as
+    // the reason an anonymous x402 purchase had to stay reachable was citing
+    // cover that does not exist. The edge now refuses an anonymous purchase; a
+    // buyer arrives with their own key. What this test still proves is
+    // unchanged and worth keeping: whatever came back because OUR key asked for
+    // it is cut to a teaser before it reaches the caller.
     const params = { params: Promise.resolve({ id: 'sp-long' }) };
     const anonymous = await purchasePost(
       visitor('/api/holomesh/entry/sp-long/purchase', { method: 'POST', body: '{}' }),

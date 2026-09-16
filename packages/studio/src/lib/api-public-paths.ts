@@ -212,11 +212,29 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   // open, claimed, blocked and done — fetched under our HOLOMESH_API_KEY.
   // Moved to the caller-credential tier below, where the route now requires
   // the caller to be a member of the team they are naming.
-  {
-    pattern: '/api/holomesh/entry/*/purchase',
-    methods: ['POST'],
-    why: "DEBT, NOT A DECISION: an x402 purchase reachable anonymously. The premium-exits suite pins anonymous reachability here, so gating it in this lane would break a guarantee its author owns. Left exactly as reachable as it is today and named in the PR as the next door — it writes referral and transaction rows for a caller nobody identified.",
-  },
+  // `/api/holomesh/entry/*/purchase` USED to sit here as "DEBT, NOT A DECISION:
+  // an x402 purchase reachable anonymously. The premium-exits suite pins
+  // anonymous reachability here, so gating it in this lane would break a
+  // guarantee its author owns."
+  //
+  // That blocker did not exist. The suite it named
+  // (src/lib/__tests__/premium-exits.test.ts:91) imports the route's POST and
+  // calls it DIRECTLY at :293-296; it never imports src/proxy.ts or this file,
+  // so no entry here could affect it in either direction. Measured 2026-09-16:
+  // with the entry deleted, both cited suites are green — 36/36 — and not one
+  // test needed editing. The reason was the only thing holding the door.
+  //
+  // What was behind it: an anonymous POST reaches
+  // app/api/holomesh/entry/[id]/purchase/route.ts:16-24, which attaches our
+  // HOLOMESH_API_KEY whenever the caller sends no authorization of their own,
+  // and then on a 2xx with a caller-supplied referrerAgentId inserts rows into
+  // holomeshReferrals and holomeshTransactions crediting an agent the stranger
+  // named (:107-136). That breaks BOTH clauses of this file's own bar at :51-54
+  // at once — it spends one of our credentials on a stranger's behalf, and it
+  // lets a stranger choose what we persist — and it is the only public door
+  // that moved money. It now falls to `session`, like everything nobody
+  // declared. A buyer with their own mesh key is unaffected: they arrive with a
+  // credential, which is what an x402 purchase was always supposed to carry.
 
   // ── Derived 2026-09-16, not inherited. Method: for every page or component a
   // signed-out visitor can actually open (no getServerSession, no redirect to
@@ -363,11 +381,13 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   },
   {
     pattern: '/api/knowledge/sync',
-    why: "Files knowledge upstream under the caller's own key; the route forwards exactly that key and scopes a session caller to their own workspace (#304).",
+    methods: ['POST'],
+    why: "Files knowledge upstream under the caller's own key; the route forwards exactly that key and scopes a session caller to their own workspace (#304). Verb audit 2026-09-16: the route file exports POST and nothing else, and POST is the verb this caller needs — the write is made under the caller's OWN key, as themselves, which is why a write verb is admissible here at all.",
   },
   {
     pattern: '/api/knowledge/query',
-    why: "Reads knowledge under the caller's own key; guarded in 886264d9f.",
+    methods: ['POST'],
+    why: "Reads knowledge under the caller's own key; guarded in 886264d9f. Verb audit 2026-09-16: the route file exports POST and nothing else — the search body is posted, so POST is a READ here despite the verb. There has never been a GET handler on this path, so nothing is lost by pinning it.",
   },
   {
     pattern: '/api/holomesh/marketplace/sync',
@@ -376,11 +396,13 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   },
   {
     pattern: '/api/brittney/**',
-    why: "The keys Studio SELLS for exactly this. components/settings/BrittneyAPIKeysPanel.tsx:119-126 tells the customer 'no browser session required' and to send `Authorization: Bearer bk_…`, and the routes honour it: requireAuthOrApiKey (lib/api-auth.ts:138) validates the key against the database and builds a session from the owning user row. Without this entry the edge refused the key before the route that understands it ever ran, so the advertised contract answered 401 — the worst lockout in this file, because our customers are agents. The bare path matters as much as the sub-paths: `**` covers `/api/brittney` itself (patternToRegExp), which is the endpoint the product's own client calls.",
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    why: "Verb audit 2026-09-16: these four are exactly what the tree exports — POST (route.ts), GET+POST (conversations), POST (conversations/[id]/messages), GET+PATCH+DELETE (conversations/[id]). The write verbs are admissible because the caller is REALLY authenticated here, not merely header-bearing: requireAuthOrApiKey validates the bk_ key against the database and builds the session from the owning user row, so a write lands as that customer. The keys Studio SELLS for exactly this. components/settings/BrittneyAPIKeysPanel.tsx:119-126 tells the customer 'no browser session required' and to send `Authorization: Bearer bk_…`, and the routes honour it: requireAuthOrApiKey (lib/api-auth.ts:138) validates the key against the database and builds a session from the owning user row. Without this entry the edge refused the key before the route that understands it ever ran, so the advertised contract answered 401 — the worst lockout in this file, because our customers are agents. The bare path matters as much as the sub-paths: `**` covers `/api/brittney` itself (patternToRegExp), which is the endpoint the product's own client calls.",
   },
   {
     pattern: '/api/holomesh/agent/*/withdraw',
-    why: "One of the few entries where the route really does authenticate: resolveHoloMeshCaller (lib/holomesh-proxy.ts:79) introspects the caller's OWN mesh key against mcp-server /api/holomesh/me, NEVER falls back to our key, and then requires that the caller BE the agent named in the URL. Classifying it `session` refused a valid mesh key at the edge, which is the one credential this route is built to accept.",
+    methods: ['GET', 'POST'],
+    why: "Verb audit 2026-09-16: the route exports GET and POST, and both are covered below. POST moves USDC, which is admissible ONLY because this route identifies its caller for real and requires them to BE the agent in the URL — a one-header caller who is not that agent withdraws nothing. One of the few entries where the route really does authenticate: resolveHoloMeshCaller (lib/holomesh-proxy.ts:79) introspects the caller's OWN mesh key against mcp-server /api/holomesh/me, NEVER falls back to our key, and then requires that the caller BE the agent named in the URL. Classifying it `session` refused a valid mesh key at the edge, which is the one credential this route is built to accept.",
   },
   {
     pattern: '/api/holomesh/team/*/export',
@@ -419,15 +441,18 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   // into the same service should not answer differently.
   {
     pattern: '/api/quest-proof/board',
-    why: "NO GUARD of its own. Headset-proof sweep agents poll it on a schedule and refusing them stops the sweep silently, so it stays reachable — but the authorization is this door, not the route.",
+    methods: ['GET'],
+    why: "Headset-proof sweep agents poll it on a schedule and refusing them stops the sweep silently, so it stays reachable. Verb audit 2026-09-16: the route file exports GET only, and GET is now pinned so a POST added to it tomorrow inherits `session` instead of this entry. Read the entry below on what this tier does and does not buy here.",
   },
   {
     pattern: '/api/quest-proof/decide',
-    why: "NO GUARD of its own. Same scheduled sweep caller as /api/quest-proof/board; same caveat, the door is the only check.",
+    methods: ['POST'],
+    why: "Same scheduled sweep caller as /api/quest-proof/board. Verb audit 2026-09-16: the route file exports POST only, and POST is the verb the sweep needs — it marks a task done. What a one-header caller can actually write through it: NOTHING. The route opens with its own getServerSession check (route.ts:16-19) and answers 401 to a caller who has only a header, so this entry admits them to a door the route then shuts. That mismatch — the entry buys nothing, or the sweep was already broken before this branch — is real and is flagged for the lead rather than guessed at here.",
   },
   {
     pattern: '/api/quest-proof/inbox',
-    why: "NO GUARD, and it spends ours: upstream calls carry HOLOMESH_API_KEY (route.ts:26) against a fixed HOLOMESH_TEAM_ID. The caller's key is never used. Kept reachable for the scheduled sweep only.",
+    methods: ['GET'],
+    why: "NO GUARD, and it spends ours: upstream calls carry HOLOMESH_API_KEY (route.ts:26) against a fixed HOLOMESH_TEAM_ID. The caller's key is never used. GET stays reachable for the scheduled sweep that reads the founder's inbox. POST is NOT in this tier and this is the entry's whole point: the route exports a POST (route.ts:70-117) with no session check of any kind, which pushes an arbitrary url and label into the founder's team feed UNDER OUR KEY, with no identity recorded. On 'any non-empty header' that is a stranger planting links in the founder's inbox while spending our credential — so it is pinned to `session` until the route authenticates its own caller, exactly as /api/quest-proof/next-actions already pins its POST for the same reason.",
   },
   {
     pattern: '/api/quest-proof/next-actions',
