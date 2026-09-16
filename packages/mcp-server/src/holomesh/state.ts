@@ -799,6 +799,40 @@ export function _seedFounderKeysFromEnv(): void {
   persistKeyRegistry();
 }
 
+/**
+ * Stamp `seededFromEnv` onto stored records whose value is still a shared env
+ * secret, so the provenance travels with the RECORD instead of being re-derived
+ * from the value on every lookup.
+ *
+ * Why this is the fix and not a tidy-up: "is this a shared key" was answered by
+ * comparing the presented value against the env vars. Rotation issues a brand
+ * new value, so after one rotation no env var equals it and the value test can
+ * never fire again — a shared secret quietly became a key that proves one
+ * agent's identity. The marker survives rotation (the rotated record is built
+ * from the existing one), so marking at load is what makes the property hold
+ * for the stores that predate the marker: every server already running.
+ *
+ * Runs on the LOADED path only. First boot writes the marker while seeding.
+ */
+export function _markSeededKeysFromEnv(): number {
+  let marked = 0;
+  for (const envVar of SEEDABLE_KEY_ENV_VARS) {
+    const key = (process.env[envVar] || '').trim();
+    if (!key) continue;
+    const record = keyRegistry.get(key);
+    if (!record || record.seededFromEnv) continue;
+    record.seededFromEnv = envVar;
+    marked += 1;
+  }
+  if (marked > 0) {
+    console.warn(
+      `[KeyRegistry] Marked ${marked} stored key(s) as env-seeded. A shared key proves no single agent, and the marker keeps that true across rotation.`
+    );
+    persistKeyRegistry();
+  }
+  return marked;
+}
+
 export async function initStores(): Promise<void> {
   // Load Key Registry (must come first — auth depends on it)
   const keyData = readJSON(KEY_REGISTRY_PATH);
@@ -807,6 +841,9 @@ export async function initStores(): Promise<void> {
       keyRegistry.set(r.key, r);
     }
     console.info(`[KeyRegistry] Loaded ${keyRegistry.size} key record(s)`);
+    // Records written before the marker existed carry no provenance. Stamp them
+    // now, while the env values are still the ones they were seeded from.
+    _markSeededKeysFromEnv();
   } else {
     // First boot: auto-seed from env vars so the server can start immediately
     _seedFounderKeysFromEnv();

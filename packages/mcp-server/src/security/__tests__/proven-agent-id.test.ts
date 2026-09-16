@@ -21,7 +21,9 @@ import { join } from 'node:path';
 // touch the real data directory.
 process.env.HOLOMESH_DATA_DIR = mkdtempSync(join(tmpdir(), 'proven-agent-id-'));
 
-const { agentKeyStore, keyRegistry, SEEDABLE_KEY_ENV_VARS } = await import('../../holomesh/state');
+const { agentKeyStore, FOUNDER_AGENT_ID, keyRegistry, SEEDABLE_KEY_ENV_VARS } = await import(
+  '../../holomesh/state'
+);
 const { agentBindingForRegistration, resolveProvenAgentId } = await import('../proven-agent-id');
 
 const LIVE_KEY = 'live-key-owned-by-one-agent';
@@ -215,61 +217,138 @@ describe('every proof the canonical resolver accepts', () => {
     agentKeyStore.clear();
   });
 
-  it('honours a platform-signed manifest', () => {
-    const { publicKey, privateKey } = generateKeyPairSync('ed25519');
-    const spki = publicKey.export({ format: 'der', type: 'spki' });
+  const PLATFORM = generateKeyPairSync('ed25519');
+  const PLATFORM_SPKI = Buffer.from(
+    PLATFORM.publicKey.export({ format: 'der', type: 'spki' })
+  ).toString('base64');
+
+  /**
+   * Build a signed manifest, optionally carrying the replay bound.
+   *
+   * The signed payload is the manifest's own fields in this order, so
+   * `issuedAt` sits INSIDE the signed bytes and cannot be edited or removed
+   * without breaking the signature.
+   */
+  function manifestHeaders(params: {
+    id: string;
+    issuedAt?: number;
+    signWith?: typeof PLATFORM.privateKey;
+  }): Record<string, string> {
     const manifest = {
-      id: 'agent_manifest_owner',
+      id: params.id,
       name: 'Manifest Owner',
       walletAddress: `0x${'a'.repeat(40)}`,
       capabilities: ['read'],
+      ...(params.issuedAt !== undefined ? { issuedAt: params.issuedAt } : {}),
     };
-    const payload = JSON.stringify({
-      id: manifest.id,
-      name: manifest.name,
-      walletAddress: manifest.walletAddress,
-      capabilities: manifest.capabilities,
-    });
-    const signature = signPayload(null, Buffer.from(payload), privateKey).toString('base64');
+    const signature = signPayload(
+      null,
+      Buffer.from(JSON.stringify(manifest)),
+      params.signWith ?? PLATFORM.privateKey
+    ).toString('base64');
+    return {
+      'x-agent-manifest': Buffer.from(JSON.stringify(manifest)).toString('base64'),
+      'x-agent-manifest-sig': signature,
+    };
+  }
 
-    withEnv('HOLOSCRIPT_PLATFORM_PUBLIC_KEY', Buffer.from(spki).toString('base64'), () => {
-      const proven = resolveProvenAgentId({
-        'x-agent-manifest': Buffer.from(JSON.stringify(manifest)).toString('base64'),
-        'x-agent-manifest-sig': signature,
-      });
+  function withPlatformKey(run: () => void): void {
+    withEnv('HOLOSCRIPT_PLATFORM_PUBLIC_KEY', PLATFORM_SPKI, run);
+  }
+
+  it('honours a platform-signed manifest that carries its replay bound', () => {
+    withPlatformKey(() => {
+      const proven = resolveProvenAgentId(
+        manifestHeaders({ id: 'agent_manifest_owner', issuedAt: Date.now() })
+      );
       expect(proven).toBe('agent_manifest_owner');
     });
   });
 
   it('refuses a manifest whose signature does not verify', () => {
-    const { publicKey } = generateKeyPairSync('ed25519');
     const other = generateKeyPairSync('ed25519');
-    const manifest = {
-      id: 'agent_manifest_forged',
-      name: 'Forged',
-      walletAddress: `0x${'b'.repeat(40)}`,
-      capabilities: ['read'],
-    };
-    const payload = JSON.stringify({
-      id: manifest.id,
-      name: manifest.name,
-      walletAddress: manifest.walletAddress,
-      capabilities: manifest.capabilities,
-    });
-    // Signed by a key that is NOT the configured platform key.
-    const signature = signPayload(null, Buffer.from(payload), other.privateKey).toString('base64');
 
-    withEnv(
-      'HOLOSCRIPT_PLATFORM_PUBLIC_KEY',
-      Buffer.from(publicKey.export({ format: 'der', type: 'spki' })).toString('base64'),
-      () => {
-        const proven = resolveProvenAgentId({
-          'x-agent-manifest': Buffer.from(JSON.stringify(manifest)).toString('base64'),
-          'x-agent-manifest-sig': signature,
-        });
-        expect(proven).toBeUndefined();
-      }
-    );
+    withPlatformKey(() => {
+      const proven = resolveProvenAgentId(
+        manifestHeaders({
+          id: 'agent_manifest_forged',
+          issuedAt: Date.now(),
+          signWith: other.privateKey,
+        })
+      );
+      expect(proven).toBeUndefined();
+    });
+  });
+
+  it('refuses a manifest with no replay bound, however valid its signature', () => {
+    // A signature never expires, so an unbounded manifest is replayable for as
+    // long as the platform key lives. It still authenticates ordinary requests
+    // through `resolveRequestingAgent`; what it may not do is MINT a durable
+    // identity that outlives the request.
+    withPlatformKey(() => {
+      expect(resolveProvenAgentId(manifestHeaders({ id: 'agent_manifest_owner' }))).toBeUndefined();
+    });
+  });
+
+  it('refuses a manifest whose bound has gone stale', () => {
+    withPlatformKey(() => {
+      const proven = resolveProvenAgentId(
+        manifestHeaders({ id: 'agent_manifest_owner', issuedAt: Date.now() - 6 * 60_000 })
+      );
+      expect(proven).toBeUndefined();
+    });
+  });
+
+  it('refuses a manifest dated into the future, which would buy an open window', () => {
+    withPlatformKey(() => {
+      const proven = resolveProvenAgentId(
+        manifestHeaders({ id: 'agent_manifest_owner', issuedAt: Date.now() + 10 * 60_000 })
+      );
+      expect(proven).toBeUndefined();
+    });
+  });
+
+  it('refuses a captured manifest whose bound was edited to look fresh', () => {
+    // The whole point of signing `issuedAt`: refreshing it by hand must break
+    // the signature, or the bound would be decoration.
+    const captured = manifestHeaders({
+      id: 'agent_manifest_owner',
+      issuedAt: Date.now() - 10 * 60_000,
+    });
+    const refreshed = {
+      id: 'agent_manifest_owner',
+      name: 'Manifest Owner',
+      walletAddress: `0x${'a'.repeat(40)}`,
+      capabilities: ['read'],
+      issuedAt: Date.now(),
+    };
+
+    withPlatformKey(() => {
+      const proven = resolveProvenAgentId({
+        'x-agent-manifest': Buffer.from(JSON.stringify(refreshed)).toString('base64'),
+        'x-agent-manifest-sig': captured['x-agent-manifest-sig'],
+      });
+      expect(proven).toBeUndefined();
+    });
+  });
+
+  it('refuses a perfectly valid manifest that names a reserved identity', () => {
+    // Otherwise a platform signature mints the founder — walking around the
+    // shared-key refusal by presenting a different KIND of proof.
+    withPlatformKey(() => {
+      expect(
+        resolveProvenAgentId(manifestHeaders({ id: FOUNDER_AGENT_ID, issuedAt: Date.now() }))
+      ).toBeUndefined();
+      expect(
+        resolveProvenAgentId(
+          manifestHeaders({ id: 'agent_env_holoscript_api_key', issuedAt: Date.now() })
+        )
+      ).toBeUndefined();
+      // Capitalisation is not a way around it.
+      expect(
+        resolveProvenAgentId(manifestHeaders({ id: 'Agent_Founder', issuedAt: Date.now() }))
+      ).toBeUndefined();
+    });
   });
 
   it('honours a legacy per-agent key from the agent key store', () => {
@@ -372,5 +451,132 @@ describe('agentBindingForRegistration', () => {
     });
 
     expect(binding).toEqual({ ok: true, boundAgentId: 'agent_owner' });
+  });
+});
+
+/**
+ * Rotation is the thing a value comparison cannot survive.
+ *
+ * Detecting a shared key by its VALUE works exactly until the key is rotated:
+ * rotation issues a brand new secret, so no env var equals it any more and the
+ * comparison can never fire again. The refusal has to ride on the RECORD.
+ */
+describe('a shared key stays refused after rotation', () => {
+  const ROTATED_KEY = 'hs_sk_rotated_value_no_env_var_holds';
+
+  /** A seeded FOUNDER record, as rotation would leave it: new value, same identity. */
+  function seedFounderRecord(key: string, marked: boolean): void {
+    keyRegistry.set(key, {
+      key,
+      walletAddress: `0x${'e'.repeat(40)}`,
+      agentId: FOUNDER_AGENT_ID,
+      agentName: 'Founder',
+      scopes: ['*'],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+      rotationCount: 1,
+      lastRotatedAt: new Date('2026-02-01T00:00:00.000Z').toISOString(),
+      isFounder: true,
+      ...(marked ? { seededFromEnv: 'HOLOMESH_API_KEY' } : {}),
+    });
+  }
+
+  beforeEach(() => {
+    keyRegistry.clear();
+    agentKeyStore.clear();
+  });
+
+  it('refuses a rotated seeded key by its provenance marker', () => {
+    // No env var holds this value: the marker is all that is left.
+    seedSharedEnvKey(ROTATED_KEY, 'HOLOMESH_API_KEY');
+
+    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBeUndefined();
+    expect(resolveProvenAgentId({ authorization: `Bearer ${ROTATED_KEY}` })).toBeUndefined();
+  });
+
+  it('refuses one rotated before the marker existed, by its reserved identity', () => {
+    // A store rotated on a server running the old code kept the seeded id and
+    // lost every other trace. `agent_env_*` is minted only by seeding, so the
+    // identity itself still gives the record away.
+    seedSharedEnvKey(ROTATED_KEY, 'HOLOMESH_API_KEY', false);
+
+    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBeUndefined();
+  });
+
+  it('shows the marker is load-bearing: flip it and the verdict flips', () => {
+    // `agent_founder` is deliberately NOT prefix-reserved, because a
+    // provisioned founder key is legitimate. So for this record the marker is
+    // the only thing that can refuse it — which makes it the honest control.
+    seedFounderRecord(ROTATED_KEY, false);
+    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBe(FOUNDER_AGENT_ID);
+
+    keyRegistry.clear();
+    seedFounderRecord(ROTATED_KEY, true);
+    expect(resolveProvenAgentId({ 'x-agent-key': ROTATED_KEY })).toBeUndefined();
+  });
+});
+
+/**
+ * Two refusals that are DELIBERATE, recorded so nobody reads them as bugs.
+ */
+describe('identities nothing outside the key registry may claim', () => {
+  beforeEach(() => {
+    keyRegistry.clear();
+    agentKeyStore.clear();
+  });
+
+  it('refuses a legacy store record that carries a seeded identity', () => {
+    const LEGACY = 'legacy-record-claiming-a-seeded-identity';
+    agentKeyStore.set(LEGACY, {
+      id: 'agent_env_holoscript_api_key',
+      apiKey: LEGACY,
+      walletAddress: `0x${'f'.repeat(40)}`,
+      name: 'legacy',
+      traits: [],
+      reputation: 0,
+      isFounder: false,
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+    });
+
+    expect(resolveProvenAgentId({ 'x-mcp-api-key': LEGACY })).toBeUndefined();
+  });
+
+  it('refuses the founder env key, which is a shared secret by construction', () => {
+    // HOLOMESH_FOUNDER_KEY can only name a value one of the seedable variables
+    // already holds, so every caller configured with that variable presents the
+    // same string. It authenticates and it is a founder — it simply cannot
+    // prove WHICH agent is calling, so it cannot stamp agent_founder on a
+    // token. A provisioned per-agent founder key is how that is restored.
+    const FOUNDER_ENV_KEY = 'founder-key-value-shared-with-holomesh-api-key';
+    keyRegistry.set(FOUNDER_ENV_KEY, {
+      key: FOUNDER_ENV_KEY,
+      walletAddress: `0x${'1'.repeat(40)}`,
+      agentId: FOUNDER_AGENT_ID,
+      agentName: 'Founder',
+      scopes: ['*'],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: true,
+      seededFromEnv: 'HOLOMESH_API_KEY',
+    });
+
+    withEnv('HOLOMESH_API_KEY', FOUNDER_ENV_KEY, () => {
+      expect(resolveProvenAgentId({ 'x-agent-key': FOUNDER_ENV_KEY })).toBeUndefined();
+      expect(
+        agentBindingForRegistration({
+          requestedAgentId: FOUNDER_AGENT_ID,
+          registrarAgentId: resolveProvenAgentId({ 'x-agent-key': FOUNDER_ENV_KEY }),
+        }).ok
+      ).toBe(false);
+    });
+  });
+
+  it('still lets a PROVISIONED founder key prove the founder identity', () => {
+    // The refusal must not spread to the key that is genuinely per-agent.
+    seedKey('hs_sk_provisioned_founder_key', FOUNDER_AGENT_ID);
+
+    expect(resolveProvenAgentId({ 'x-agent-key': 'hs_sk_provisioned_founder_key' })).toBe(
+      FOUNDER_AGENT_ID
+    );
   });
 });

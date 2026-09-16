@@ -83,6 +83,18 @@ export interface StoredClient {
   createdAt: number;
   clientType: 'confidential' | 'public';
   rateLimit: number;
+  /**
+   * Agent this client is bound to, recorded at registration and only when the
+   * registering request proved that agent's own key.
+   *
+   * This durable copy is the one that survives a deploy. Without it the binding
+   * lived only in the in-memory registry, which is wiped on every push: the
+   * client was rehydrated WITHOUT its agent, and the next token request — the
+   * same legitimate request that had already proved the agent once, at
+   * registration — was refused unless it re-presented the agent key. A binding
+   * that silently expires at deploy time is not a binding.
+   */
+  agentId?: string;
 }
 
 // ── Backend Interface ────────────────────────────────────────────────────────
@@ -595,6 +607,12 @@ export class TokenStore {
      */
     clientId?: string;
     clientSecret?: string;
+    /**
+     * Only set by a caller that proved this agent's own key at registration.
+     * Persisted so the binding outlives the deploy that wipes the in-memory
+     * registry.
+     */
+    agentId?: string;
   }): Promise<{ clientId: string; clientSecret: string }> {
     const maxClients = params.maxClients || 1000;
     const count = await this.backend.countClients();
@@ -614,6 +632,7 @@ export class TokenStore {
       createdAt: Date.now(),
       clientType: params.clientType || 'confidential',
       rateLimit: params.rateLimit || 60,
+      ...(params.agentId ? { agentId: params.agentId } : {}),
     });
 
     return { clientId, clientSecret };

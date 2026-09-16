@@ -22,6 +22,7 @@ process.env.HOLOMESH_DATA_DIR = TEMP_DIR;
 
 const state = await import('../state');
 const {
+  _markSeededKeysFromEnv,
   _seedFounderKeysFromEnv,
   keyRegistry,
   SEEDABLE_KEY_ENV_VARS,
@@ -142,5 +143,85 @@ describe('first-boot key seeding', () => {
   it('does nothing when no key env var is configured', () => {
     _seedFounderKeysFromEnv();
     expect(keyRegistry.size).toBe(0);
+  });
+});
+
+/**
+ * Provenance has to be stamped on the RECORD, because the value stops matching.
+ *
+ * "Is this a shared key" was answered by comparing the presented value against
+ * the env vars. Rotation issues a brand new value, so after one rotation no env
+ * var equals it and that comparison can never fire again — the shared secret
+ * quietly became a key that proves one agent's identity. Marking at load is
+ * what gives the stores that predate the marker — every server already running
+ * — a provenance that survives rotation.
+ */
+describe('marking stored keys with their provenance', () => {
+  beforeEach(() => {
+    keyRegistry.clear();
+    clearSeedEnv();
+  });
+
+  /** A record as it was written before `seededFromEnv` existed. */
+  function storeUnmarked(key: string, agentId: string): void {
+    keyRegistry.set(key, {
+      key,
+      walletAddress: `0x${'3'.repeat(40)}`,
+      agentId,
+      agentName: agentId,
+      scopes: ['*'],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: false,
+    });
+  }
+
+  it('marks a stored record whose value is still a configured env secret', () => {
+    storeUnmarked(HS_KEY, seededAgentIdFor('HOLOSCRIPT_API_KEY'));
+    process.env.HOLOSCRIPT_API_KEY = HS_KEY;
+    expect(keyRegistry.get(HS_KEY)?.seededFromEnv).toBeUndefined();
+
+    expect(_markSeededKeysFromEnv()).toBe(1);
+
+    expect(keyRegistry.get(HS_KEY)?.seededFromEnv).toBe('HOLOSCRIPT_API_KEY');
+  });
+
+  it('leaves a provisioned per-agent key unmarked', () => {
+    // The refusal must not spread: marking this would lock a real agent out of
+    // its own identity.
+    storeUnmarked('hs_sk_provisioned_for_one_agent', 'agent_owner');
+    process.env.HOLOSCRIPT_API_KEY = HS_KEY;
+
+    expect(_markSeededKeysFromEnv()).toBe(0);
+    expect(keyRegistry.get('hs_sk_provisioned_for_one_agent')?.seededFromEnv).toBeUndefined();
+  });
+
+  it('marks every configured variable, not just the first', () => {
+    storeUnmarked(HS_KEY, seededAgentIdFor('HOLOSCRIPT_API_KEY'));
+    storeUnmarked(GEMINI_KEY, seededAgentIdFor('GEMINI_HOLOMESH_KEY'));
+    process.env.HOLOSCRIPT_API_KEY = HS_KEY;
+    process.env.GEMINI_HOLOMESH_KEY = GEMINI_KEY;
+
+    expect(_markSeededKeysFromEnv()).toBe(2);
+    expect(keyRegistry.get(GEMINI_KEY)?.seededFromEnv).toBe('GEMINI_HOLOMESH_KEY');
+  });
+
+  it('is idempotent — a second pass marks nothing', () => {
+    storeUnmarked(HS_KEY, seededAgentIdFor('HOLOSCRIPT_API_KEY'));
+    process.env.HOLOSCRIPT_API_KEY = HS_KEY;
+
+    expect(_markSeededKeysFromEnv()).toBe(1);
+    expect(_markSeededKeysFromEnv()).toBe(0);
+  });
+
+  it('marks the founder record too, so founder authority is not an exemption', () => {
+    // HOLOMESH_FOUNDER_KEY can only name a value one of the seedable variables
+    // already holds, so the founder's env key IS a shared secret.
+    storeUnmarked(HM_KEY, FOUNDER_AGENT_ID);
+    process.env.HOLOMESH_API_KEY = HM_KEY;
+
+    expect(_markSeededKeysFromEnv()).toBe(1);
+    expect(keyRegistry.get(HM_KEY)?.seededFromEnv).toBe('HOLOMESH_API_KEY');
   });
 });

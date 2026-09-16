@@ -87,10 +87,15 @@ export type TeamMemberLike = { agentId?: string; agentName?: string; name?: stri
 /**
  * Decide who a team message is addressed to.
  *
- * An explicit recipient field is the sender's stated intent and passes through
- * untouched. A bare `@word` in the body is much weaker evidence: npm scopes,
- * product names and protocol names look exactly like handles, so only a
- * mention that resolves to a real member of this team earns an `agentId`.
+ * An explicit recipient and a body `@mention` are resolved the SAME way, through
+ * `findTeamMember`, and what gets recorded is the member's own spelling rather
+ * than the sender's: these fields are compared as raw strings downstream, so a
+ * message sent to `Claude4` has to be stored under the handle that seat reads.
+ * They differ only in when each is consulted — an explicit recipient always is,
+ * a bare `@word` only on inbox message types and only when no explicit
+ * recipient was given. A mention is much weaker evidence: npm scopes, product
+ * names and protocol names look exactly like handles, so it is never read as a
+ * recipient on a message that already names one.
  *
  * A mention that resolves to NOBODY keeps its name as the recipient and loses
  * only the id. The message therefore stays directed — at a name no one owns,

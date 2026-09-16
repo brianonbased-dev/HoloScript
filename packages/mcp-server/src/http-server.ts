@@ -334,6 +334,11 @@ async function ensureClientHydrated(clientId: string | null | undefined): Promis
         createdAt: durable.createdAt,
         clientType: durable.clientType,
         rateLimit: durable.rateLimit,
+        // Carry the agent binding across the deploy that wiped the in-memory
+        // map. Dropping it here refused the client's own agent_id on the very
+        // next token request, with nothing in the response saying the binding
+        // had been forgotten rather than never granted.
+        ...(durable.agentId ? { agentId: durable.agentId } : {}),
       });
     }
   } catch (err) {
@@ -2049,6 +2054,10 @@ const httpServer = http.createServer(async (req, res) => {
           rateLimit,
           clientId,
           clientSecret,
+          // The binding belongs in the durable copy too: the in-memory one is
+          // gone on the next deploy, and a binding that quietly stops existing
+          // refuses a caller that did everything right.
+          ...(boundAgentId ? { agentId: boundAgentId } : {}),
         });
       } catch (oauth2Err) {
         console.warn(

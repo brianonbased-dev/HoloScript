@@ -308,6 +308,8 @@ export class OAuth2Provider {
     /** Import mode: reuse a legacy-issued identity (see TokenStore.registerClient). */
     clientId?: string;
     clientSecret?: string;
+    /** Agent binding proved at registration; persisted so it survives a deploy. */
+    agentId?: string;
   }): Promise<{ clientId: string; clientSecret: string }> {
     return this.store.registerClient({
       ...params,
