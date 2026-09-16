@@ -13,7 +13,7 @@
  * stand-in object; nothing leaves this process.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const stand = vi.hoisted(() => {
   process.env.HOLOMESH_API_URL = 'https://mesh.test';
@@ -58,6 +58,24 @@ const stand = vi.hoisted(() => {
 });
 
 vi.mock('../../db/client', () => ({ getDb: () => stand.db }));
+
+/**
+ * Every caller in this file is a visitor with no session — that is the whole
+ * premise of the suite — so `requireAuth` answers the way it answers a signed-out
+ * request.
+ *
+ * It has to be substituted rather than left alone: the real one reaches
+ * `getServerSession`, which calls Next's `headers()`, which throws
+ * "`headers` was called outside a request scope" when a route handler is invoked
+ * directly instead of served. That throw is a property of calling handlers in a
+ * test, not of the door — the door itself is proven in
+ * `src/__tests__/api-fail-closed.test.ts`, which drives the real middleware.
+ */
+vi.mock('@/lib/api-auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api-auth')>()),
+  requireAuth: async () =>
+    NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
+}));
 
 import { fetchHoloMeshJson } from '../holomesh-proxy';
 import { executeMCPTool } from '../brittney/MCPToolExecutor';
@@ -124,6 +142,12 @@ function reply(body: unknown, status = 200): Response {
 async function upstream(url: string, init?: RequestInit): Promise<Response> {
   const headers = (init?.headers ?? {}) as Record<string, string>;
   stand.state.calls.push({ url, auth: headers['Authorization'] ?? headers['x-mcp-api-key'] });
+  // Team export now identifies its caller and checks that caller's membership
+  // before it reads anything, so those two answers have to exist here.
+  if (url.includes('/api/holomesh/me')) {
+    return reply({ success: true, agentId: 'author-x', name: 'Author X' });
+  }
+  if (url.includes('/members')) return reply({ members: [{ agentId: 'author-x' }] });
   if (url.includes('/knowledge/query')) return reply({ results: upstreamRows() });
   if (url.includes('/api/holomesh/entry/')) {
     if (stand.state.entryMissing) return reply({ error: 'not found' }, 404);
@@ -234,15 +258,45 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
     expect(JSON.stringify(trendingBody)).toContain('sp-short');
     expectNoPaidText(trendingBody);
 
-    const exported = await exportGet(visitor('/api/holomesh/team/team-1/export'), {
-      params: Promise.resolve({ id: 'team-1' }),
-    });
+    // This assertion used to run ANONYMOUSLY and expect 200. That was the pin
+    // holding a live door open: the entry in api-public-paths.ts cited this
+    // suite as the reason team export was safe to leave public, while all this
+    // suite ever checked was that the KNOWLEDGE list came back as teasers. The
+    // board — team, open, claimed, blocked, done — is not premium-classified at
+    // all and left whole, under our own mesh key, to anyone who named a team.
+    // The door is now closed in the route (membership under the caller's own
+    // key), so the premium guarantee is exercised THROUGH it: a member calls.
+    const exported = await exportGet(
+      visitor('/api/holomesh/team/team-1/export', {
+        headers: { 'x-mcp-api-key': 'a-members-own-key' },
+      }),
+      { params: Promise.resolve({ id: 'team-1' }) }
+    );
+    expect(exported.status).toBe(200);
     const exportBody = await exported.json();
     expect(JSON.stringify(exportBody.knowledge)).toContain('sp-short');
     expectNoPaidText(exportBody);
   });
 
+  it('GET /api/holomesh/team/:id/export refuses a caller with no identity at all', async () => {
+    const res = await exportGet(visitor('/api/holomesh/team/team-1/export'), {
+      params: Promise.resolve({ id: 'team-1' }),
+    });
+
+    expect(res.status).toBe(401);
+    // Nothing of ours went upstream on a stranger's behalf.
+    expect(stand.state.calls).toHaveLength(0);
+  });
+
   it('POST /api/holomesh/entry/:id/purchase: an answer released to the server key reaches the visitor as a teaser', async () => {
+    // Read this next to src/lib/api-public-paths.ts. This test calls the route's
+    // POST DIRECTLY — it imports neither src/proxy.ts nor the allowlist — so it
+    // never proved the door was open, and the allowlist entry that cited it as
+    // the reason an anonymous x402 purchase had to stay reachable was citing
+    // cover that does not exist. The edge now refuses an anonymous purchase; a
+    // buyer arrives with their own key. What this test still proves is
+    // unchanged and worth keeping: whatever came back because OUR key asked for
+    // it is cut to a teaser before it reaches the caller.
     const params = { params: Promise.resolve({ id: 'sp-long' }) };
     const anonymous = await purchasePost(
       visitor('/api/holomesh/entry/sp-long/purchase', { method: 'POST', body: '{}' }),
@@ -263,8 +317,33 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
     expect(JSON.stringify(await own.json())).toContain(PAID_TAIL);
   });
 
-  it('POST /api/holomesh/marketplace/sync stores premium entries as teasers only', async () => {
-    const res = await syncPost(visitor('/api/holomesh/marketplace/sync', { method: 'POST', body: '{}' }));
+  it('POST /api/holomesh/marketplace/sync refuses a caller with no identity at all', async () => {
+    // This assertion used to expect 200: an anonymous caller could spend our
+    // mesh key upstream AND choose what landed in the cache that the catalog
+    // and the entry GET fallback then serve to everyone else. A rate limit was
+    // the only thing in front of it, and a rate limit caps how FAST a stranger
+    // may do a thing, not whether they may.
+    const res = await syncPost(
+      visitor('/api/holomesh/marketplace/sync', { method: 'POST', body: '{}' })
+    );
+
+    expect(res.status).toBe(401);
+    expect(stand.state.inserted).toHaveLength(0);
+    // Nothing of ours went upstream on a stranger's behalf.
+    expect(stand.state.calls).toHaveLength(0);
+  });
+
+  it("POST /api/holomesh/marketplace/sync still stores premium entries as teasers for a caller who may call it", async () => {
+    // The premium guarantee this suite exists to prove, now exercised through
+    // the door rather than around it: the caller runs under their OWN key.
+    const res = await syncPost(
+      visitor('/api/holomesh/marketplace/sync', {
+        method: 'POST',
+        body: '{}',
+        headers: { 'x-mcp-api-key': 'visitor-own-key' },
+      })
+    );
+
     expect(res.status).toBe(200);
     expect(stand.state.inserted).toHaveLength(4);
     expect(JSON.stringify(stand.state.inserted)).toContain(FREE_TEXT);

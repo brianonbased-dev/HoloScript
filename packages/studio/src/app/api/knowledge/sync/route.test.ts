@@ -228,3 +228,111 @@ describe('POST /api/knowledge/sync — credential gate', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * The limits and the failure paths #304 shipped without cover.
+ *
+ * These four lock in behaviour that is ALREADY on main — they are regression
+ * cover, not a new fix, and they pass on main by design. Each one is a place
+ * where a later edit could quietly widen a limit or start echoing an upstream
+ * body back to a caller who has no right to it, with nothing to object.
+ */
+describe('POST /api/knowledge/sync — limits and upstream failures', () => {
+  beforeEach(() => {
+    calls = [];
+    vi.clearAllMocks();
+    vi.stubEnv('HOLOSCRIPT_API_KEY', SERVER_KEY);
+    signedIn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('refuses more than 50 entries in one call, and files none of them', async () => {
+    const fetchSpy = installOutboundRecorder();
+    const entries = Array.from({ length: 51 }, (_, i) => ({
+      type: 'gotcha',
+      domain: 'studio',
+      content: `Entry number ${i} with enough body to be real`,
+    }));
+
+    const response = await POST(post({ workspace_id: 'ws_studio-user', entries }));
+    const body = (await response.json()) as { error?: string };
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('50');
+    // All-or-nothing: a caller does not get the first 50 filed silently.
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('accepts exactly 50 entries — the cap is a limit, not an off-by-one wall', async () => {
+    installOutboundRecorder();
+    const entries = Array.from({ length: 50 }, (_, i) => ({
+      type: 'gotcha',
+      domain: 'studio',
+      content: `Entry number ${i} with enough body to be real`,
+    }));
+
+    const response = await POST(post({ workspace_id: 'ws_studio-user', entries }));
+
+    expect(response.status).toBe(200);
+    expect((calls[0].body.entries as unknown[]).length).toBe(50);
+  });
+
+  it('truncates a long entry to 20k characters rather than forwarding it whole', async () => {
+    installOutboundRecorder();
+    const oversized = 'x'.repeat(25_000);
+
+    await POST(
+      post({
+        workspace_id: 'ws_studio-user',
+        entries: [{ type: 'gotcha', domain: 'studio', content: oversized }],
+      })
+    );
+
+    const forwarded = calls[0].body.entries as Array<{ content: string }>;
+    expect(forwarded[0].content).toHaveLength(20_000);
+    expect(JSON.stringify(calls[0].body).length).toBeLessThan(oversized.length);
+  });
+
+  it('does not echo the upstream error body back to the caller', async () => {
+    // The upstream writes its refusal for the holder of the key, not for
+    // whoever managed to reach this route. Echoing it hands a caller details
+    // about an account that may not be theirs.
+    const upstreamDetail = 'UPSTREAM-INTERNAL-DETAIL-NOT-FOR-THE-CALLER';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: upstreamDetail, workspace: 'someone-else' }), {
+            status: 403,
+          })
+      )
+    );
+
+    const response = await POST(post(filingFormBody()));
+    const raw = JSON.stringify(await response.json());
+
+    expect(response.status).toBe(403);
+    expect(raw).not.toContain(upstreamDetail);
+    expect(raw).not.toContain('someone-else');
+    expect(raw).toContain('403');
+  });
+
+  it('answers 502 when the upstream cannot be reached at all', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('ECONNREFUSED');
+      })
+    );
+
+    const response = await POST(post(filingFormBody()));
+    const body = (await response.json()) as { error?: string; details?: string };
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe('Knowledge sync failed');
+  });
+});

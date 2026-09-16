@@ -218,7 +218,26 @@ export async function GET() {
         post: {
           tags: ['scenes'],
           summary: 'Publish scene to community',
-          responses: { '200': { description: 'Published scene' } },
+          description:
+            'Requires a caller identity (doors audit 2026-09-15). Send your own mesh API key as "x-mcp-api-key: <your key>" to publish as yourself, or call it from a signed-in Studio session. Studio never attaches its own key for a caller who sent none.',
+          responses: {
+            '200': { description: 'Published scene' },
+            '401': {
+              description:
+                'No caller identity — sign in to Studio, or send your own key as "x-mcp-api-key"',
+            },
+          },
+        },
+        get: {
+          tags: ['scenes'],
+          summary: 'Fetch a published scene by id',
+          description:
+            'Open on purpose: this is how the share viewer loads a published scene. No credential required.',
+          parameters: [{ name: 'id', in: 'query', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Published scene JSON' },
+            '404': { description: 'Scene not found' },
+          },
         },
       },
       '/api/share': {

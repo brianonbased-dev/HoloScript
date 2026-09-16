@@ -9,6 +9,7 @@ import { getDb } from '../../../db/client';
 import { sharedScenes } from '../../../db/schema';
 import { sql } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
+import { requireAuth } from '@/lib/api-auth';
 import {
   buildNoAppWebxrPublishReceipt,
   type ProtocolPublishResult,
@@ -27,6 +28,34 @@ import { corsHeaders } from '../_lib/cors';
  */
 
 const PUBLISH_DIR = path.join(process.cwd(), '.published');
+
+/** The one header the protocol registry reads a key from. */
+const MESH_KEY_HEADER = 'x-mcp-api-key';
+
+/** What a locked-out caller is told to do, in the form that actually works. */
+const OWN_KEY_HINT = `Send your own mesh API key as "${MESH_KEY_HEADER}: <your key>" to publish as yourself.`;
+
+/**
+ * The caller's OWN upstream credential, if they sent one.
+ *
+ * Both spellings are accepted FROM the caller — `x-mcp-api-key: <key>` and
+ * `Authorization: Bearer <key>` — because agents arrive with both habits. The
+ * key is then forwarded in the single form the registry reads.
+ *
+ * A `bk_` bearer is deliberately NOT treated as a mesh key: those are Studio's
+ * own API keys. Presenting one upstream would hand a Studio credential to a
+ * different service, which records the presented key when validation fails.
+ */
+function callerMeshKey(request: Request): string | null {
+  const meshKey = request.headers.get(MESH_KEY_HEADER)?.trim();
+  if (meshKey) return meshKey;
+
+  const authorization = request.headers.get('authorization')?.trim() ?? '';
+  const bearer = /^Bearer\s+(\S+)$/i.exec(authorization)?.[1];
+  if (bearer && !bearer.startsWith('bk_')) return bearer;
+
+  return null;
+}
 
 async function ensurePublishDir() {
   if (!existsSync(PUBLISH_DIR)) {
@@ -52,22 +81,22 @@ function requestBaseUrl(req: Request): string {
   return req.headers.get('origin') ?? new URL(req.url).origin;
 }
 
-function protocolHeaders(req: Request): Record<string, string> {
-  const headers: Record<string, string> = {
+/**
+ * Exactly one credential goes upstream, and it is the one the registry reads.
+ *
+ * The old version forwarded the caller's raw `Authorization` header AND
+ * attached our key beside it, which is two promises at once: the caller's
+ * header was never looked at, and ours was spent on their behalf.
+ */
+function protocolHeaders(meshKey: string): Record<string, string> {
+  return {
     'Content-Type': 'application/json; charset=utf-8',
+    [MESH_KEY_HEADER]: meshKey,
   };
-
-  const bearer = req.headers.get('authorization');
-  if (bearer) headers.authorization = bearer;
-
-  const apiKey = process.env.HOLOSCRIPT_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY;
-  if (apiKey) headers['x-mcp-api-key'] = apiKey;
-
-  return headers;
 }
 
 async function publishToProtocol(
-  req: Request,
+  meshKey: string | null,
   body: Record<string, unknown>
 ): Promise<ProtocolPublishResult | null> {
   if (typeof body.code !== 'string' || body.code.trim().length === 0) return null;
@@ -78,6 +107,21 @@ async function publishToProtocol(
     'https://mcp.holoscript.net'
   ).replace(/\/$/, '');
   const contentHash = createHash('sha256').update(body.code).digest('hex');
+
+  // A signed-in caller with no key of their own publishes under Studio's
+  // server key. When that key is absent the scene is still stored locally and
+  // the receipt says plainly that the registry leg did not happen, rather than
+  // failing the whole publish or silently pretending it succeeded.
+  if (!meshKey) {
+    return {
+      contentHash,
+      publish: null,
+      revenue: null,
+      error:
+        'Studio is not configured to publish to the protocol registry for a signed-in caller.',
+    };
+  }
+
   const author = typeof body.author === 'string' && body.author ? body.author : 'anonymous';
   const license = typeof body.license === 'string' && body.license ? body.license : 'free';
   const price = typeof body.price === 'string' && body.price ? body.price : '0';
@@ -85,7 +129,7 @@ async function publishToProtocol(
   try {
     const publishRes = await fetch(`${serverUrl}/api/protocol`, {
       method: 'POST',
-      headers: protocolHeaders(req),
+      headers: protocolHeaders(meshKey),
       body: JSON.stringify({
         contentHash,
         author,
@@ -116,7 +160,7 @@ async function publishToProtocol(
 
     const publish = (await publishRes.json()) as Record<string, unknown>;
     const revenueRes = await fetch(`${serverUrl}/api/protocol/revenue/${contentHash}`, {
-      headers: protocolHeaders(req),
+      headers: protocolHeaders(meshKey),
     });
     const revenue = revenueRes.ok ? ((await revenueRes.json()) as Record<string, unknown>) : null;
 
@@ -131,13 +175,79 @@ async function publishToProtocol(
   }
 }
 
+/**
+ * POST /api/publish — register a scene and, when it carries source, publish it
+ * to the protocol registry.
+ *
+ * Doors audit 2026-09-15. This route had no guard of any kind: it attached
+ * Studio's own server key to whatever body arrived and posted it to a real
+ * upstream registry, so anyone on the internet could publish as us — and fill
+ * our scene table while doing it. `src/proxy.ts` cannot help: its matcher
+ * skips `/api` entirely.
+ *
+ * Now:
+ *  - a caller who sends their own mesh key runs as themselves: exactly that
+ *    key is forwarded and nothing of ours is attached;
+ *  - a caller who sends no key must be signed in to Studio;
+ *  - the browser-visible NEXT_PUBLIC_* key is no longer a fallback.
+ *
+ * GET stays open on purpose: it serves published scenes to the share viewer
+ * and to `/api/share/[id]`, which is the whole point of publishing one.
+ */
 export async function POST(req: Request) {
+  const callerKey = callerMeshKey(req);
+  let upstreamKey: string | null = callerKey;
+  let signedIn = false;
+
+  if (!callerKey) {
+    const auth = await requireAuth(req);
+    if (auth instanceof NextResponse) {
+      return NextResponse.json(
+        {
+          error: `Sign in to HoloScript Studio to publish a scene. ${OWN_KEY_HINT}`,
+          signInRequired: true,
+        },
+        { status: 401 }
+      );
+    }
+    signedIn = true;
+    // Server-only key. NEXT_PUBLIC_* is deliberately not a fallback: Next
+    // inlines those into the browser bundle, so one would be readable by every
+    // visitor and could never be a server credential.
+    upstreamKey = process.env.HOLOSCRIPT_API_KEY ?? null;
+  }
+
   try {
     const body = await req.json();
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Invalid scene data' }, { status: 400 });
     }
-    const protocol = await publishToProtocol(req, body as Record<string, unknown>);
+    const protocol = await publishToProtocol(upstreamKey, body as Record<string, unknown>);
+
+    // An unvalidated caller key may authorize the UPSTREAM leg and nothing else.
+    //
+    // Nobody here checked that key: the registry does, by accepting or refusing
+    // the publish. So a caller who presented one has proved who they are only
+    // if that leg actually succeeded. Without it, the key is an arbitrary
+    // string — and the first version of this guard let such a string skip
+    // requireAuth entirely, after which a body carrying no `code` made
+    // publishToProtocol return null early while the insert below ran anyway:
+    // 200, a persisted scene id, and zero upstream calls. A door that writes to
+    // our table for anyone who types a header is the door it was closing.
+    //
+    // A signed-in caller is exempt: Studio itself vouched for them, which is
+    // why a session still publishes when the registry leg is skipped.
+    const upstreamAccepted = protocol !== null && protocol.publish !== null;
+    if (!signedIn && !upstreamAccepted) {
+      const reason =
+        protocol === null
+          ? 'A scene published with a key of your own must carry "code" — the registry is what vouches for that key.'
+          : 'The protocol registry did not accept that key, so nothing was stored.';
+      return NextResponse.json(
+        { error: `${reason} Sign in to HoloScript Studio to store a scene without one.`, signInRequired: true },
+        { status: 401 }
+      );
+    }
 
     const db = getDb();
     if (db) {

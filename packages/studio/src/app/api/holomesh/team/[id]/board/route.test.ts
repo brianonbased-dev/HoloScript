@@ -30,6 +30,17 @@ vi.mock('@/lib/rate-limiter', () => ({
   boardWriteLimit: boardWriteLimitMock,
 }));
 vi.mock('@/db/client', () => ({ getDb: getDbMock }));
+
+// The board now requires a caller before it reads anything: a Studio session,
+// or a caller's own mesh key whose owner is on the team. Every request in this
+// file arrives with no credential of its own, so each takes the session branch,
+// which these two doubles satisfy. The membership branch runs against the real
+// implementation in route.door.test.ts next door — where the refusals are the
+// point, rather than an obstacle to the behaviour under test here.
+vi.mock('next-auth', () => ({
+  getServerSession: vi.fn(async () => ({ user: { id: 'user-signed-in' } })),
+}));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 vi.mock('@/db/schema', () => ({ holomeshBoardTasks: {} }));
 
 // Drizzle-orm mock – just pass through the operator values
