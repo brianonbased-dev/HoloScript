@@ -49,10 +49,14 @@ CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
   issued_at   BIGINT NOT NULL,
   expires_at  BIGINT NOT NULL,
   chain_id    TEXT NOT NULL,
-  used        BOOLEAN NOT NULL DEFAULT FALSE
+  used        BOOLEAN NOT NULL DEFAULT FALSE,
+  agent_id    TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_rt_client ON oauth_refresh_tokens (client_id);
 CREATE INDEX IF NOT EXISTS idx_rt_expires ON oauth_refresh_tokens (expires_at);
+-- CREATE TABLE IF NOT EXISTS never alters a table that already exists, so an
+-- already-deployed database needs this to gain the column. Idempotent.
+ALTER TABLE oauth_refresh_tokens ADD COLUMN IF NOT EXISTS agent_id TEXT;
 
 CREATE TABLE IF NOT EXISTS oauth_auth_codes (
   code                  TEXT PRIMARY KEY,
@@ -73,8 +77,13 @@ CREATE TABLE IF NOT EXISTS oauth_clients (
   scopes             TEXT[] NOT NULL DEFAULT '{}',
   created_at         BIGINT NOT NULL,
   client_type        TEXT NOT NULL DEFAULT 'public',
-  rate_limit         INTEGER NOT NULL DEFAULT 100
+  rate_limit         INTEGER NOT NULL DEFAULT 100,
+  agent_id           TEXT
 );
+-- Same reason as the refresh-token column above: CREATE TABLE IF NOT EXISTS
+-- never alters a table that already exists, and every already-deployed
+-- database has this one. Idempotent.
+ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS agent_id TEXT;
 
 CREATE TABLE IF NOT EXISTS oauth_revoked_chains (
   chain_id   TEXT PRIMARY KEY,
@@ -166,7 +175,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getRefreshToken(token: string): Promise<StoredRefreshToken | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT token, client_id, scopes, issued_at, expires_at, chain_id, used
+      `SELECT token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id
        FROM oauth_refresh_tokens WHERE token = $1 AND expires_at > $2`,
       [token, Date.now()]
     );
@@ -180,18 +189,20 @@ export class PostgresTokenStore implements TokenStoreBackend {
       expiresAt: Number(r.expires_at),
       chainId: r.chain_id,
       used: r.used,
+      ...(r.agent_id ? { agentId: r.agent_id as string } : {}),
     };
   }
 
   async setRefreshToken(token: StoredRefreshToken): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_refresh_tokens (token, client_id, scopes, issued_at, expires_at, chain_id, used)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO oauth_refresh_tokens (token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (token) DO UPDATE SET
          client_id = EXCLUDED.client_id, scopes = EXCLUDED.scopes,
          issued_at = EXCLUDED.issued_at, expires_at = EXCLUDED.expires_at,
-         chain_id = EXCLUDED.chain_id, used = EXCLUDED.used`,
+         chain_id = EXCLUDED.chain_id, used = EXCLUDED.used,
+         agent_id = EXCLUDED.agent_id`,
       [
         token.token,
         token.clientId,
@@ -200,6 +211,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
         token.expiresAt,
         token.chainId,
         token.used,
+        token.agentId ?? null,
       ]
     );
   }
@@ -298,7 +310,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit
+      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id
        FROM oauth_clients WHERE client_id = $1`,
       [clientId]
     );
@@ -313,19 +325,20 @@ export class PostgresTokenStore implements TokenStoreBackend {
       createdAt: Number(r.created_at),
       clientType: r.client_type as 'confidential' | 'public',
       rateLimit: r.rate_limit,
+      ...(r.agent_id ? { agentId: r.agent_id as string } : {}),
     };
   }
 
   async setClient(client: StoredClient): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (client_id) DO UPDATE SET
          client_secret_hash = EXCLUDED.client_secret_hash, client_name = EXCLUDED.client_name,
          redirect_uris = EXCLUDED.redirect_uris, scopes = EXCLUDED.scopes,
          created_at = EXCLUDED.created_at, client_type = EXCLUDED.client_type,
-         rate_limit = EXCLUDED.rate_limit`,
+         rate_limit = EXCLUDED.rate_limit, agent_id = EXCLUDED.agent_id`,
       [
         client.clientId,
         client.clientSecretHash,
@@ -335,6 +348,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
         client.createdAt,
         client.clientType,
         client.rateLimit,
+        client.agentId ?? null,
       ]
     );
   }

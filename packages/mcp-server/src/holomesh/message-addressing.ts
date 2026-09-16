@@ -82,6 +82,63 @@ export function messageAddressedToAny(
   return recipients.some((recipient) => recipient && messageAddressedTo(message, recipient));
 }
 
+export type TeamMemberLike = { agentId?: string; agentName?: string; name?: string };
+
+/**
+ * Decide who a team message is addressed to.
+ *
+ * An explicit recipient and a body `@mention` are resolved the SAME way, through
+ * `findTeamMember`, and what gets recorded is the member's own spelling rather
+ * than the sender's: these fields are compared as raw strings downstream, so a
+ * message sent to `Claude4` has to be stored under the handle that seat reads.
+ * They differ only in when each is consulted — an explicit recipient always is,
+ * a bare `@word` only on inbox message types and only when no explicit
+ * recipient was given. A mention is much weaker evidence: npm scopes, product
+ * names and protocol names look exactly like handles, so it is never read as a
+ * recipient on a message that already names one.
+ *
+ * A mention that resolves to NOBODY keeps its name as the recipient and loses
+ * only the id. The message therefore stays directed — at a name no one owns,
+ * so no seat can read it. Clearing the name instead would leave the message
+ * with no recipient at all, and `messageAddressedTo` treats that as a legacy
+ * post and falls back to the body-mention rule, which would hand the whole
+ * team a handoff whose addressee merely failed to resolve. On a failed lookup
+ * the audience must narrow, never widen.
+ */
+export function resolveMessageRecipient<T extends TeamMemberLike>(params: {
+  members: T[] | undefined;
+  explicitTo?: string;
+  content?: string;
+  messageType?: string;
+}): { toAgentId?: string; toAgentName?: string } {
+  const explicitTo = String(params.explicitTo || '').trim();
+  const mention =
+    !explicitTo && INBOX_MESSAGE_TYPE_SET.has(String(params.messageType || ''))
+      ? firstMention(params.content)
+      : '';
+  const needle = explicitTo || mention;
+  if (!needle) return {};
+
+  const member = findTeamMember(params.members, needle);
+  if (member) {
+    return {
+      ...(member.agentId ? { toAgentId: member.agentId } : {}),
+      toAgentName: member.agentName || needle,
+    };
+  }
+
+  // No such member. Keep the needle as the recipient name so the message stays
+  // DIRECTED, and drop only the agentId attribution we could not establish.
+  //
+  // Returning {} here was a regression: a message with no recipient at all has
+  // no explicit recipient, and `messageAddressedTo` then falls through to the
+  // body-mention rule, which is the same rule every unaddressed legacy post
+  // gets. Anything that reads "undirected" as "open to the team" would widen
+  // the audience of a handoff whose addressee merely failed to resolve. The
+  // safe direction on a failed lookup is narrower, never wider.
+  return { toAgentName: needle };
+}
+
 /** Newest-first cap used by mobile-brief and other inbox slices. */
 export const INBOX_BRIEF_CAP = 10;
 

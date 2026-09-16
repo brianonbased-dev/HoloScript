@@ -1065,6 +1065,15 @@ export interface KeyRecord {
   /** Founder keys can provision agents, create teams, and access /admin routes */
   isFounder: boolean;
   /**
+   * Name of the env var this record was seeded from on first boot, when it was.
+   *
+   * A seeded key is a SHARED secret: every holder of that variable's value
+   * presents the same string. It authenticates, but it cannot prove WHICH agent
+   * is calling, so the proven-identity lookup refuses it. Absent on every key
+   * issued per agent, which is what provisioning produces.
+   */
+  seededFromEnv?: string;
+  /**
    * Surface tag snapshotted at provision time — e.g. "mobile", "claude-code".
    * Used for attribution and audit trails.
    */

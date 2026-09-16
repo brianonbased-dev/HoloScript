@@ -685,44 +685,152 @@ export function persistTokenLedger(): void {
 // ── Initialization ────────────────────────────────────────────────────────────
 
 /**
- * Seed the key registry from env vars on first boot (no keys.json yet).
- * All env key names are treated as founder keys and mapped to a single
- * permanent founder wallet + agent ID. Persists immediately so keys.json
- * exists for subsequent restarts.
+ * The founder's agent identity. Reserved: it is only ever attached to the key
+ * value named by HOLOMESH_FOUNDER_KEY.
  */
-function _seedFounderKeysFromEnv(): void {
-  const candidates = [
-    process.env.HOLOSCRIPT_API_KEY,
-    process.env.HOLOSCRIPT_API_KEY,
-    process.env.HOLOMESH_API_KEY,
-    process.env.COPILOT_HOLOMESH_KEY,
-    process.env.GEMINI_HOLOMESH_KEY,
-  ].filter((k): k is string => Boolean(k && k.trim()));
+export const FOUNDER_AGENT_ID = 'agent_founder';
+
+/**
+ * The agent identity a seeded env key stands for.
+ *
+ * Every seeded key used to carry `agent_founder`, so merely holding any
+ * configured key — COPILOT_HOLOMESH_KEY, GEMINI_HOLOMESH_KEY — resolved to the
+ * founder's agent. That is an identity, not just a permission: it is the
+ * principal stamped on tokens and compared by board bindings, so a sibling
+ * lane's key could speak AS the founder even after `isFounder` was fixed.
+ * Distinct per variable, and stable across boots so the identity persists.
+ */
+export function seededAgentIdFor(envVar: string): string {
+  return `agent_env_${envVar.toLowerCase()}`;
+}
+
+/**
+ * A distinct identity anchor per seeded key.
+ *
+ * Sharing FOUNDER_WALLET across every seeded key is the same collision one
+ * field over: `resolveRequestingAgent` looks a caller up by wallet, so a shared
+ * wallet hands a sibling lane's key the founder's agent record as its base.
+ * Derived from the variable name so it is deterministic across restarts.
+ */
+function seededWalletFor(envVar: string): string {
+  const digest = crypto
+    .createHash('sha256')
+    .update(`holomesh-seeded-key:${envVar}`)
+    .digest('hex')
+    .slice(0, 40);
+  return `0x${digest}`;
+}
+
+/** Env vars whose value is accepted as an API key when the store is empty. */
+export const SEEDABLE_KEY_ENV_VARS = [
+  'HOLOSCRIPT_API_KEY',
+  'HOLOMESH_API_KEY',
+  'COPILOT_HOLOMESH_KEY',
+  'GEMINI_HOLOMESH_KEY',
+] as const;
+
+/**
+ * Seed the key registry from env vars on first boot (no keys.json yet).
+ *
+ * Every seeded key is an ORDINARY key. Founder authority is granted only to the
+ * key value named by HOLOMESH_FOUNDER_KEY, because a founder bypasses both
+ * credit routes and every premium gate: an empty or unreadable store must never
+ * be able to mint founders silently, which is what treating each configured env
+ * key as a founder did. When keys.json already exists this runs at all, so
+ * founders already recorded in the store are untouched.
+ *
+ * Persists immediately so keys.json exists for subsequent restarts.
+ */
+export function _seedFounderKeysFromEnv(): void {
+  const founderKey = (process.env.HOLOMESH_FOUNDER_KEY || '').trim();
+
+  const seenKeys = new Set<string>();
+  const candidates: Array<{ envVar: string; key: string }> = [];
+  for (const envVar of SEEDABLE_KEY_ENV_VARS) {
+    const key = (process.env[envVar] || '').trim();
+    if (!key || seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    candidates.push({ envVar, key });
+  }
 
   if (candidates.length === 0) return;
 
   const FOUNDER_WALLET =
     process.env.HOLOSCRIPT_FOUNDER_WALLET || '0x0000000000000000000000000000000000000001';
 
-  for (const key of candidates) {
+  let foundersGranted = 0;
+  for (const { envVar, key } of candidates) {
+    const isFounder = founderKey.length > 0 && key === founderKey;
+    if (isFounder) foundersGranted += 1;
     const record: KeyRecord = {
       key,
-      walletAddress: FOUNDER_WALLET,
-      agentId: 'agent_founder',
-      agentName: 'Founder',
+      walletAddress: isFounder ? FOUNDER_WALLET : seededWalletFor(envVar),
+      agentId: isFounder ? FOUNDER_AGENT_ID : seededAgentIdFor(envVar),
+      agentName: isFounder ? 'Founder' : `env:${envVar}`,
       scopes: ['*'],
       createdAt: new Date().toISOString(),
       rotationCount: 0,
       lastRotatedAt: null,
-      isFounder: true,
+      isFounder,
+      // Marked as seeded so the proven-identity lookup can refuse it. The value
+      // is a shared secret held in common by every caller configured with this
+      // variable, so it authenticates but names no single agent.
+      seededFromEnv: envVar,
     };
     keyRegistry.set(key, record);
   }
 
-  console.info(
-    `[KeyRegistry] First boot: seeded ${candidates.length} founder key(s) from env vars`
+  console.warn(
+    `[KeyRegistry] First boot with an empty store: seeded ${candidates.length} ordinary key(s) from ${candidates
+      .map((c) => c.envVar)
+      .join(', ')}.`
   );
+  if (foundersGranted > 0) {
+    console.warn(
+      `[KeyRegistry] HOLOMESH_FOUNDER_KEY matched a seeded key: granted founder authority to ${foundersGranted} key(s).`
+    );
+  } else {
+    console.warn(
+      `[KeyRegistry] No founder was granted (HOLOMESH_FOUNDER_KEY is ${
+        founderKey ? 'set but matched no seeded key' : 'not set'
+      }). Founder-only routes refuse until a founder key is recorded in the store.`
+    );
+  }
   persistKeyRegistry();
+}
+
+/**
+ * Stamp `seededFromEnv` onto stored records whose value is still a shared env
+ * secret, so the provenance travels with the RECORD instead of being re-derived
+ * from the value on every lookup.
+ *
+ * Why this is the fix and not a tidy-up: "is this a shared key" was answered by
+ * comparing the presented value against the env vars. Rotation issues a brand
+ * new value, so after one rotation no env var equals it and the value test can
+ * never fire again — a shared secret quietly became a key that proves one
+ * agent's identity. The marker survives rotation (the rotated record is built
+ * from the existing one), so marking at load is what makes the property hold
+ * for the stores that predate the marker: every server already running.
+ *
+ * Runs on the LOADED path only. First boot writes the marker while seeding.
+ */
+export function _markSeededKeysFromEnv(): number {
+  let marked = 0;
+  for (const envVar of SEEDABLE_KEY_ENV_VARS) {
+    const key = (process.env[envVar] || '').trim();
+    if (!key) continue;
+    const record = keyRegistry.get(key);
+    if (!record || record.seededFromEnv) continue;
+    record.seededFromEnv = envVar;
+    marked += 1;
+  }
+  if (marked > 0) {
+    console.warn(
+      `[KeyRegistry] Marked ${marked} stored key(s) as env-seeded. A shared key proves no single agent, and the marker keeps that true across rotation.`
+    );
+    persistKeyRegistry();
+  }
+  return marked;
 }
 
 export async function initStores(): Promise<void> {
@@ -733,6 +841,9 @@ export async function initStores(): Promise<void> {
       keyRegistry.set(r.key, r);
     }
     console.info(`[KeyRegistry] Loaded ${keyRegistry.size} key record(s)`);
+    // Records written before the marker existed carry no provenance. Stamp them
+    // now, while the env values are still the ones they were seeded from.
+    _markSeededKeysFromEnv();
   } else {
     // First boot: auto-seed from env vars so the server can start immediately
     _seedFounderKeysFromEnv();

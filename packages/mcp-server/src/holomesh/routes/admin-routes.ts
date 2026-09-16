@@ -173,6 +173,12 @@ export async function handleAdminRoutes(
       createdAt: now,
       rotationCount: (existingRecord.rotationCount ?? 0) + 1,
       lastRotatedAt: now,
+      // Provenance survives rotation, stated explicitly rather than left to the
+      // spread above. A rotated key matches no env var any more, so this marker
+      // is the ONLY thing left that still says "shared secret": drop it and a
+      // key held in common by every caller configured with that variable
+      // silently becomes one that proves a single agent's identity.
+      ...(existingRecord.seededFromEnv ? { seededFromEnv: existingRecord.seededFromEnv } : {}),
     };
 
     // Invalidate old key in memory, insert new key
