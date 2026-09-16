@@ -34,6 +34,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import {
   createGitHubHeaders,
+  getStudioSessionUserId,
   GITHUB_API_BASE_URL,
   githubFetchWithRetry,
 } from '@/app/api/github/_shared';
@@ -75,6 +76,25 @@ export async function POST(req: NextRequest) {
           error: 'GitHub OAuth not configured',
         },
         { status: 500 }
+      );
+    }
+
+    // WHO is linking this credential. The edge gate in `src/proxy.ts` already
+    // requires a session to reach any undeclared /api path, so this is the
+    // second door rather than the first — but the gate only proves that SOMEONE
+    // is signed in, and this route has to know WHICH someone, because the
+    // credential it is about to store is bound to them. Asked before the device
+    // code is exchanged, so an anonymous poll cannot burn a live code either.
+    const sessionUserId = await getStudioSessionUserId(req);
+    if (!sessionUserId) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error:
+            'Sign in to HoloScript Studio first, then connect GitHub. The GitHub credential is stored against your account, so there has to be an account to store it against.',
+          signInRequired: true,
+        },
+        { status: 401 }
       );
     }
 
@@ -204,7 +224,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const cookieSet = await setGitHubDeviceTokenCookie(result, data.access_token);
+    const cookieSet = await setGitHubDeviceTokenCookie(result, data.access_token, sessionUserId);
     if (!cookieSet) {
       return NextResponse.json(
         {

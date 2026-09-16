@@ -38,7 +38,18 @@ export function UserMenu() {
           {session.user.email}
         </div>
         <button
-          onClick={() => signOut()}
+          onClick={async () => {
+            // Drop this browser's linked GitHub credential before the session
+            // ends. Best effort on purpose: the credential is bound to the
+            // session id as well, so a sign-out that never reaches the server
+            // still leaves nothing the next person here can use.
+            try {
+              await fetch('/api/connectors/github/forget', { method: 'POST' });
+            } catch {
+              // Signing out matters more than tidying up; do it anyway.
+            }
+            await signOut();
+          }}
           className="w-full px-3 py-2 text-left text-sm text-white/80 transition hover:bg-white/10"
         >
           Sign out

@@ -65,27 +65,109 @@ async function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Both names NextAuth may have written the session cookie under. Which one it
+ * picks is decided by the ENVIRONMENT (`NEXTAUTH_URL`'s scheme), not by the
+ * request, so reading only the env-derived name silently refuses every caller
+ * whose browser holds the other one — the same lockout `src/proxy.ts` documents
+ * at length. The signature check under our own secret is the whole test either
+ * way; only the container's name differs.
+ */
+const STUDIO_SESSION_COOKIE_NAMES = [
+  '__Secure-next-auth.session-token',
+  'next-auth.session-token',
+] as const;
+
+/**
+ * The verified Studio session behind this request, or null.
+ *
+ * Kept here rather than in `lib/api-auth.ts` on purpose: that module pulls in
+ * the database client and the NextAuth options, and this helper is on the path
+ * of every GitHub call.
+ */
+async function readStudioSessionToken(req?: NextRequest) {
+  const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
+  if (!req || !secret) return null;
+
+  const { getToken } = await import('next-auth/jwt');
+  for (const cookieName of STUDIO_SESSION_COOKIE_NAMES) {
+    try {
+      const token = await getToken({ req, secret, cookieName });
+      if (token) return token;
+    } catch {
+      // Malformed under this name; the other name still gets its turn.
+    }
+  }
+  return null;
+}
+
+/** The signed-in Studio user id behind this request, for binding checks. */
+export async function getStudioSessionUserId(req?: NextRequest): Promise<string | null> {
+  const token = await readStudioSessionToken(req);
+  const subject = typeof token?.sub === 'string' ? token.sub.trim() : '';
+  return subject.length > 0 ? subject : null;
+}
+
+/**
+ * Did this identity sign in through GitHub?
+ *
+ * `provider` is the answer whenever it is present. Only when it is ABSENT does
+ * the GitHub login stand in for it — a token minted before `provider` was
+ * recorded can still be placed, because `githubUsername` is written from the
+ * `login` field and no other provider's profile carries one. The order matters:
+ * a session that signed in with Google can hold a STALE `githubUsername` from
+ * an earlier GitHub sign-in on the same token, so a present `provider` must
+ * always win.
+ */
+function signedInWithGitHub(identity: {
+  provider?: unknown;
+  githubUsername?: unknown;
+}): boolean {
+  const provider = typeof identity.provider === 'string' ? identity.provider.trim().toLowerCase() : '';
+  if (provider) return provider === 'github';
+  const login = typeof identity.githubUsername === 'string' ? identity.githubUsername.trim() : '';
+  return login.length > 0;
+}
+
+/**
  * The signed-in user's GitHub token: NextAuth JWT, then device session, then
  * the server session. Outside production (or with
  * STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK) it may fall back to a SERVER token
  * (PERSONAL_ACCESS_TOKEN / PAT_TOKEN / GITHUB_TOKEN). Pass
  * `{ userOnly: true }` wherever the token stands for WHO the user is (credits,
  * billing): a server token there would act as someone else.
+ *
+ * EVERY branch that returns a session credential is checked against the
+ * provider first. `lib/auth.ts` sets `token.accessToken` from `account.access_token`
+ * for EVERY provider, so a Google sign-in stores a GOOGLE OAuth token in the
+ * same field a GitHub sign-in uses. Returning it here sent that credential to
+ * api.github.com as `Authorization: Bearer` — for the exact caller the Google
+ * rescue path was written for. GitHub rejected it, so the caller saw the same
+ * failure either way and nothing pointed at the cause; the cost was not the
+ * failed call, it was a credential leaving its audience on the way.
  */
 export async function getGitHubToken(
   req?: NextRequest,
   options: { userOnly?: boolean } = {}
 ): Promise<string | null> {
-  const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
-  if (req && secret) {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret });
-    if (typeof token?.accessToken === 'string' && token.accessToken.length > 0) {
-      return token.accessToken;
-    }
+  const token = await readStudioSessionToken(req);
+  if (
+    token &&
+    signedInWithGitHub(token) &&
+    typeof token.accessToken === 'string' &&
+    token.accessToken.length > 0
+  ) {
+    return token.accessToken;
   }
 
-  const deviceToken = await getGitHubDeviceToken(req);
+  // A Google session that linked GitHub through the device flow is the caller
+  // this path exists for, and its credential lives in the cookie, not the JWT.
+  const deviceToken = await getGitHubDeviceToken(req, {
+    userId: typeof token?.sub === 'string' ? token.sub : null,
+    // An unowned cookie is a capability, never an identity: it cannot say who
+    // linked it, and `userOnly` is precisely the flag for "this token has to
+    // answer who the caller is".
+    allowUnbound: options.userOnly !== true,
+  });
   if (deviceToken) {
     return deviceToken;
   }
@@ -93,7 +175,13 @@ export async function getGitHubToken(
   const { getServerSession } = await import('next-auth');
   const { authOptions } = await import('@/lib/auth');
   const session = await getServerSession(authOptions);
-  if (session?.accessToken) {
+  if (
+    session?.accessToken &&
+    signedInWithGitHub({
+      provider: session.user?.provider,
+      githubUsername: session.user?.githubUsername,
+    })
+  ) {
     return session.accessToken;
   }
 
