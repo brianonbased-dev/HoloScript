@@ -347,6 +347,33 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
     methods: ['GET', 'HEAD'],
     why: "The public profile. The route's own header calls it that (route.ts:14) and its GET reads no session at all — name, avatar, bio, public projects and published listings, each already filtered to its public form. app/u/[username]/page.tsx:49 is the page that renders it and shows an empty profile without it. GET and HEAD only: PUT on the same route updates a profile and checks both a session and that the caller IS that user (route.ts:111-119), so it stays closed here too.",
   },
+
+  // ── Agent discovery. Measured 2026-09-16, after the flip: `/api/docs` is
+  // PUBLIC, and its OpenAPI body advertises the two entries below at
+  // app/api/docs/route.ts:101 and :123 — while the gate classified both
+  // `session`. So the one document an agent is able to read told it to call
+  // endpoints that answer 401, and the refusal looks like a broken key. That is
+  // the silent-lockout half of this lane, and our customers are agents. It is
+  // also the exact reasoning `/api/docs` itself is public under: a description
+  // of how to authenticate cannot require authentication to read.
+  {
+    pattern: '/api/studio/capabilities',
+    methods: ['GET', 'HEAD'],
+    why: "Structured capability listing for agent discovery, advertised by the public /api/docs (route.ts:123) and called by lib/brittney/StudioAPIExecutor.ts:292. The handler is one static JSON literal: it reads no session, touches no database, spends no server key, and takes no input at all — so it clears both halves of this list's bar rather than being excused past them. GET and HEAD only; the file exports GET and OPTIONS and nothing else, so a verb added tomorrow inherits `session`.",
+  },
+  {
+    pattern: '/api/studio/mcp-config',
+    methods: ['GET', 'HEAD'],
+    why: "The endpoint that tells an outside agent how to wire itself to us, advertised by the public /api/docs (route.ts:101) and called by lib/brittney/StudioAPIExecutor.ts:296. It carries credential INSTRUCTIONS, never a credential: every key in every format is the literal placeholder '<your HoloMesh API key>'. Requiring an account in order to read how to authenticate is a closed loop that no agent can open. GET and HEAD only.",
+  },
+  // `/api/studio/quickstart` is the third endpoint /api/docs advertises
+  // (route.ts:115) and it deliberately does NOT join the two above. Its POST
+  // makes an outbound call to the mesh on every request, carrying no credential
+  // and doing no work on the caller's behalf first (route.ts:61-69), so opening
+  // it anonymously points an unauthenticated amplifier at our own upstream. The
+  // static half of what it returns is already readable through the two entries
+  // above, so an agent onboarding through them loses nothing but the hello-world
+  // compile. Named here, and reported, rather than quietly opened.
 ];
 
 /**
@@ -410,16 +437,20 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
     why: "A team's whole board, so the route now proves the caller is ON that team: resolveHoloMeshCaller identifies them by their OWN mesh key (never ours), then callerIsTeamMember asks mcp-server for that team's member list UNDER THAT SAME KEY and requires the caller's agentId to be in it. Anonymous is 401, a stranger's valid key is 403, and a membership answer we cannot read is 502 rather than a pass. It was previously PUBLIC on the claim that the premium-exits suite covered it; that suite only ever asserted the knowledge rows came back as teasers, and task text is not premium-classified at all, so the board was never covered by anything.",
   },
 
-  // ── Below here the route does NOT authenticate the caller. Each `why` says so
-  // itself rather than leaning on the tier. All nine were audited 2026-09-16:
-  // every one of them drops the caller's key and puts one of OURS on the
-  // upstream request, so "the caller sent a header" is the only thing standing
-  // between a stranger and our credential.
   {
     pattern: '/api/mcp/call',
     methods: ['GET', 'POST'],
-    why: 'NO GUARD. The route reads no caller identity at all and calls upstream with our HOLOSCRIPT_API_KEY (route.ts:38); the caller\'s key is discarded. This door — "some non-empty header arrived" — is the only check. Kept reachable because agents depend on it and #302/#305 are fixing the identity handling; it is NOT safe on the strength of this entry.',
+    why: "The caller's OWN mesh key runs the call, so this tier's rule holds here rather than being excused. callerMeshKey (app/api/mcp/call/route.ts) reads x-mcp-api-key, or Authorization: Bearer, and forwards exactly that in the single header the upstream reads; ours is never substituted for a caller who sent one. With no key at all the route requires a Studio session and then admits only the short list of tools Studio's own UI calls, under our key. A bk_ Studio key is refused in EITHER header rather than presented upstream, because that is a Studio credential and not a mesh one — one predicate covers both spellings, so the exclusion cannot guard the bearer habit while leaving open the header the refusal message itself names. This entry read 'NO GUARD … the caller's key is discarded' until #302 made that false, and the old wording recorded a real hole: the route built its headers from forwardAuthHeaders, which only ever sets Authorization, so the guard `!headers['x-mcp-api-key']` was ALWAYS true and HOLOSCRIPT_API_KEY was attached to every call — a one-header stranger could aim any tool name at the mesh under our identity. GET is here for the same reason and attaches our key to nothing.",
   },
+
+  // ── Below here the route does NOT authenticate the caller. Each `why` says so
+  // itself rather than leaning on the tier. All seven were audited 2026-09-16:
+  // every one of them drops the caller's key and puts one of OURS on the
+  // upstream request, so "the caller sent a header" is the only thing standing
+  // between a stranger and our credential. (/api/mcp/call was the eighth and has
+  // moved up into the group above, because #302 made it forward the caller's
+  // own key instead of ours — the one repair that moves an entry between these
+  // two halves.)
   {
     pattern: '/api/orchestrator/**',
     methods: ['GET'],

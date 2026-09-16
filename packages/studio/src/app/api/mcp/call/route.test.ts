@@ -77,10 +77,18 @@ describe('/api/mcp/call generated output gate', () => {
   });
 });
 
+/**
+ * These cases are about the generated-output gate, not about who may call.
+ * The caller presents its own mesh key so the request reaches the gate; the
+ * credential rules themselves are covered in route.security.test.ts.
+ */
 function makeRequest(tool: string): Request {
   return new Request('http://localhost/api/mcp/call', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer caller-own-key',
+    },
     body: JSON.stringify({ tool, input: {} }),
   });
 }

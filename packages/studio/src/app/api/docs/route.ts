@@ -131,12 +131,24 @@ export async function GET() {
       '/api/mcp/call': {
         get: {
           tags: ['mcp'],
-          summary: 'MCP orchestrator status',
-          responses: { '200': { description: 'Orchestrator status and servers' } },
+          summary: 'Mesh server inventory',
+          description:
+            'Requires a caller identity. Send your own mesh API key as "x-mcp-api-key: <your key>", or call it from a signed-in Studio session. The server key is never attached for you: a caller sees the inventory only under their own key.',
+          security: [{ meshApiKey: [] }, { studioSession: [] }],
+          responses: {
+            '200': { description: 'Mesh server inventory' },
+            '401': {
+              description:
+                'No caller identity — sign in to Studio, or send your own key as "x-mcp-api-key"',
+            },
+          },
         },
         post: {
           tags: ['mcp'],
           summary: 'Proxy MCP tool call',
+          description:
+            'NOT CURRENTLY ANSWERING (2026-09-15): authentication here is enforced and works, but the call is forwarded to an upstream path that is not registered, so tool calls sent here are not expected to execute — a correct key does not change that. Credential: send your own mesh API key as "x-mcp-api-key: <your key>". "Authorization: Bearer <key>" is also accepted and forwarded as x-mcp-api-key. Without a key, a signed-in Studio session reaches only the small allowlist Studio\'s own UI uses; every other tool is refused with 403 and needs your own key.',
+          security: [{ meshApiKey: [] }, { studioSession: [] }],
           requestBody: {
             content: {
               'application/json': {
@@ -150,7 +162,17 @@ export async function GET() {
           },
           responses: {
             '200': { description: 'Tool result' },
-            '503': { description: 'Orchestrator offline' },
+            '401': {
+              description:
+                'No caller identity — sign in to Studio, or send your own key as "x-mcp-api-key"',
+            },
+            '403': {
+              description:
+                'Signed in, but this tool is not on the Studio-session allowlist — send your own key to run it as yourself',
+            },
+            '422': { description: 'Generated output failed core validation' },
+            '502': { description: 'Upstream mesh error' },
+            '503': { description: 'Orchestrator offline, or Studio has no server key configured' },
           },
         },
       },
@@ -364,6 +386,24 @@ export async function GET() {
           tags: ['admin'],
           summary: 'This endpoint — OpenAPI specification',
           responses: { '200': { description: 'OpenAPI 3.1.0 spec' } },
+        },
+      },
+    },
+    components: {
+      securitySchemes: {
+        meshApiKey: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'x-mcp-api-key',
+          description:
+            'Your own HoloMesh API key. You then run as yourself, and Studio\'s own key is never spent on your behalf. "Authorization: Bearer <key>" is also accepted and forwarded as x-mcp-api-key.',
+        },
+        studioSession: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'next-auth.session-token',
+          description:
+            "A signed-in Studio browser session. Reaches only the small allowlist Studio's own UI uses; every other tool needs your own key.",
         },
       },
     },
