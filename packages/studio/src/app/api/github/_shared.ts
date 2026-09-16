@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { getGitHubDeviceToken } from '@/lib/github-device-session';
+import { SESSION_COOKIE_NAMES } from '@/lib/session-cookie-names';
 
 export const GITHUB_API_BASE_URL = (
   process.env.GITHUB_API_URL ||
@@ -65,27 +66,96 @@ async function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * The verified Studio session behind this request, or null.
+ *
+ * Kept here rather than in `lib/api-auth.ts` on purpose: that module pulls in
+ * the database client and the NextAuth options, and this helper is on the path
+ * of every GitHub call.
+ */
+async function readStudioSessionToken(req?: NextRequest) {
+  const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
+  if (!req || !secret) return null;
+
+  const { getToken } = await import('next-auth/jwt');
+  for (const cookieName of SESSION_COOKIE_NAMES) {
+    try {
+      const token = await getToken({ req, secret, cookieName });
+      if (token) return token;
+    } catch {
+      // Malformed under this name; the other name still gets its turn.
+    }
+  }
+  return null;
+}
+
+/** The signed-in Studio user id behind this request, for binding checks. */
+export async function getStudioSessionUserId(req?: NextRequest): Promise<string | null> {
+  const token = await readStudioSessionToken(req);
+  const subject = typeof token?.sub === 'string' ? token.sub.trim() : '';
+  return subject.length > 0 ? subject : null;
+}
+
+/**
+ * Did this identity sign in through GitHub?
+ *
+ * `provider` is the answer whenever it is present. Only when it is ABSENT does
+ * the GitHub login stand in for it — a token minted before `provider` was
+ * recorded can still be placed, because `githubUsername` is written from the
+ * `login` field and no other provider's profile carries one. The order matters:
+ * a session that signed in with Google can hold a STALE `githubUsername` from
+ * an earlier GitHub sign-in on the same token, so a present `provider` must
+ * always win.
+ */
+function signedInWithGitHub(identity: {
+  provider?: unknown;
+  githubUsername?: unknown;
+}): boolean {
+  const provider = typeof identity.provider === 'string' ? identity.provider.trim().toLowerCase() : '';
+  if (provider) return provider === 'github';
+  const login = typeof identity.githubUsername === 'string' ? identity.githubUsername.trim() : '';
+  return login.length > 0;
+}
+
+/**
  * The signed-in user's GitHub token: NextAuth JWT, then device session, then
  * the server session. Outside production (or with
  * STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK) it may fall back to a SERVER token
  * (PERSONAL_ACCESS_TOKEN / PAT_TOKEN / GITHUB_TOKEN). Pass
  * `{ userOnly: true }` wherever the token stands for WHO the user is (credits,
  * billing): a server token there would act as someone else.
+ *
+ * EVERY branch that returns a session credential is checked against the
+ * provider first. `lib/auth.ts` sets `token.accessToken` from `account.access_token`
+ * for EVERY provider, so a Google sign-in stores a GOOGLE OAuth token in the
+ * same field a GitHub sign-in uses. Returning it here sent that credential to
+ * api.github.com as `Authorization: Bearer` — for the exact caller the Google
+ * rescue path was written for. GitHub rejected it, so the caller saw the same
+ * failure either way and nothing pointed at the cause; the cost was not the
+ * failed call, it was a credential leaving its audience on the way.
  */
 export async function getGitHubToken(
   req?: NextRequest,
   options: { userOnly?: boolean } = {}
 ): Promise<string | null> {
-  const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
-  if (req && secret) {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret });
-    if (typeof token?.accessToken === 'string' && token.accessToken.length > 0) {
-      return token.accessToken;
-    }
+  const token = await readStudioSessionToken(req);
+  if (
+    token &&
+    signedInWithGitHub(token) &&
+    typeof token.accessToken === 'string' &&
+    token.accessToken.length > 0
+  ) {
+    return token.accessToken;
   }
 
-  const deviceToken = await getGitHubDeviceToken(req);
+  // A Google session that linked GitHub through the device flow is the caller
+  // this path exists for, and its credential lives in the cookie, not the JWT.
+  const deviceToken = await getGitHubDeviceToken(req, {
+    userId: typeof token?.sub === 'string' ? token.sub : null,
+    // An unowned cookie is a capability, never an identity: it cannot say who
+    // linked it, and `userOnly` is precisely the flag for "this token has to
+    // answer who the caller is".
+    allowUnbound: options.userOnly !== true,
+  });
   if (deviceToken) {
     return deviceToken;
   }
@@ -93,8 +163,27 @@ export async function getGitHubToken(
   const { getServerSession } = await import('next-auth');
   const { authOptions } = await import('@/lib/auth');
   const session = await getServerSession(authOptions);
-  if (session?.accessToken) {
-    return session.accessToken;
+  if (session) {
+    const isGitHubSession = signedInWithGitHub({
+      provider: session.user?.provider,
+      githubUsername: session.user?.githubUsername,
+    });
+
+    if (isGitHubSession && session.accessToken) {
+      return session.accessToken;
+    }
+
+    // A caller we just REFUSED must not then be served by OUR credential.
+    // Falling through from here reached the server token below, so one request
+    // got two new answers decided by an env var alone: a 401 in production, and
+    // our PAT acting for that caller outside it — on a repo path they supply.
+    //
+    // Signed OUT is a different case and still falls through: nobody was
+    // refused, and the server token is what local development and the CLI run
+    // on. A GitHub session merely missing a token of its own also still falls
+    // through — it is the right audience, just without a credential, and
+    // refusing it here would silently lock out a caller the fallback exists for.
+    if (!isGitHubSession) return null;
   }
 
   if (options.userOnly) return null;

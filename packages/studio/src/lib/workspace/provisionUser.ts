@@ -13,7 +13,7 @@ import {
   type FleetAutospawnResult,
 } from './autospawnFleet';
 import { RepoConsentError, requireApprovedGitHubRepo } from './repoConsent';
-import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
+import { isFounderWorkspaceIdentity, resolveWorkspaceIdForIdentity } from './workspaceIdentity';
 
 /**
  * User Provisioning Pipeline
@@ -64,6 +64,8 @@ export interface ProvisionedUser {
 export interface ProvisionInput {
   githubAccessToken: string;
   githubUsername: string;
+  /** GitHub's immutable numeric account id, when the caller has it. */
+  githubAccountId?: string;
   email: string;
   /** Existing repo URL, or null to create new */
   repoUrl?: string;
@@ -184,24 +186,28 @@ async function provisionApiKey(
   return { key: data.key, workspaceId };
 }
 
-function founderIdentityValues(): Set<string> {
-  const configured = (process.env.STUDIO_FOUNDER_GITHUB_USERS ?? '')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-  return new Set([
-    'brianonbased',
-    'brianonbased-dev',
-    'josep',
-    'brianonbased@gmail.com',
-    ...configured,
-  ]);
-}
-
+/**
+ * One rule for who the founder is, shared with the rest of Studio — this used
+ * to keep its own copy of the list, including the generic display-name value.
+ *
+ * Gated on the NUMERIC account id alone, which is stricter than the shared rule
+ * allows elsewhere, and deliberately so. This is the branch that mints a
+ * FOUNDER-TIER orchestrator key using the master key, so it is the most
+ * expensive thing a wrong answer here can buy. The login branch is a transition
+ * affordance for sessions already signed in; it has no business minting
+ * credentials, and a caller that cannot produce the id simply provisions as a
+ * normal user.
+ *
+ * An email is not offered here either: provisioning carries no verified-email
+ * assertion from the provider.
+ */
 function isFounderIdentity(input: ProvisionInput): boolean {
-  const candidates = [input.githubUsername, input.email].map((value) => value.toLowerCase());
-  const founderValues = founderIdentityValues();
-  return candidates.some((candidate) => founderValues.has(candidate));
+  const accountId = input.githubAccountId?.trim();
+  if (!accountId) return false;
+  return isFounderWorkspaceIdentity({
+    provider: 'github',
+    providerAccountId: accountId,
+  });
 }
 
 function defaultFounderRoot(): string {
@@ -684,17 +690,32 @@ interface HolomeshRegistration {
  * Register a new HoloMesh agent for the user.
  * Server generates the wallet — no x402 challenge needed for provisioned users.
  * The returned apiKey + walletAddress are write-once identity (GOLD G.016).
+ *
+ * SENDS NO CREDENTIAL, on purpose. Two different services are in play here and
+ * each has its own currency:
+ *   - mcp-orchestrator (`ORCHESTRATOR_URL`) authenticates with `x-mcp-api-key`
+ *     and is where `provisionApiKey` MINTS this user's key.
+ *   - mcp-server (`MCP_SERVER_URL`) authenticates with
+ *     `Authorization: Bearer <holomesh key>` — see `publishKnowledgeEntries`.
+ *
+ * This endpoint is the UNAUTHENTICATED bootstrap that mints the mcp-server
+ * credential in the first place: `packages/mcp-server/.../team-routes.ts:612`
+ * reaches no `requireAuth` (the first in that file is :823, past the end of the
+ * handler), and `http-routes.test.ts:313` registers with no credential at all
+ * and is answered 201.
+ *
+ * So the orchestrator-minted user key that used to travel here as
+ * `x-mcp-api-key` bought nothing — mcp-server never read it — while handing a
+ * live credential to a service it was not issued for. The cost of that mistake
+ * is not only the exposure: a 401 from the wrong service reads as "bad key" and
+ * invites rotating a key that was fine.
  */
-async function registerHolomeshAgent(
-  githubUsername: string,
-  mcpApiKey: string
-): Promise<HolomeshRegistration> {
+async function registerHolomeshAgent(githubUsername: string): Promise<HolomeshRegistration> {
   const mcpUrl = mcpServerUrl();
   const res = await fetch(`${mcpUrl}/api/holomesh/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-mcp-api-key': mcpApiKey,
     },
     body: JSON.stringify({ name: `studio-${githubUsername}` }),
   });
@@ -834,7 +855,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     updateStep('register-holomesh-agent', 'running');
     let holomeshRegistration: HolomeshRegistration | undefined;
     try {
-      holomeshRegistration = await registerHolomeshAgent(input.githubUsername, apiKey);
+      holomeshRegistration = await registerHolomeshAgent(input.githubUsername);
       updateStep(
         'register-holomesh-agent',
         'done',

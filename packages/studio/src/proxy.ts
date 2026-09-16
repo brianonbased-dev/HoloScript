@@ -4,6 +4,7 @@ import { getToken } from 'next-auth/jwt';
 
 import { questProofGuardReason } from './lib/questProofGuards';
 import { classifyApiPath } from './lib/api-public-paths';
+import { SESSION_COOKIE_NAMES } from './lib/session-cookie-names';
 
 /** The header the mesh reads a caller key from. */
 const MESH_KEY_HEADER = 'x-mcp-api-key';
@@ -53,18 +54,6 @@ function isBenchmarkRunner(request: NextRequest, pathname: string): boolean {
   if (!configured) return false;
   return request.headers.get('x-benchmark-key')?.trim() === configured;
 }
-
-/**
- * Both names NextAuth may have written the session cookie under.
- *
- * Which one it picks is decided by the ENVIRONMENT, not by the request, so the
- * gate must not depend on that environment agreeing with the browser. See
- * {@link hasStudioSession}.
- */
-const SESSION_COOKIE_NAMES = [
-  '__Secure-next-auth.session-token',
-  'next-auth.session-token',
-] as const;
 
 /**
  * A real, signature-verified Studio session — not merely a cookie that exists.

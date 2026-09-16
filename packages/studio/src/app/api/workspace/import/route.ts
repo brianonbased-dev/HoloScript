@@ -162,12 +162,23 @@ function approvedReposFromRequest(body: ImportRequest): string[] {
   return [];
 }
 
+/**
+ * The founder skips the per-repo consent list because his own repos are the
+ * ones Studio was built against.
+ *
+ * The identity handed to the shared rule must carry the PROVIDER fields, or the
+ * rule has nothing it is allowed to match on and the bypass is permanently
+ * dead. The display NAME is deliberately not passed: it is freely chosen, and
+ * treating it as an authority signal is the bug this whole round removed.
+ */
 function canBypassRepoConsent(session: Session | null): boolean {
   return isFounderWorkspaceIdentity({
     id: session?.user?.id,
-    name: session?.user?.name,
     email: session?.user?.email,
     githubUsername: session?.user?.githubUsername,
+    provider: session?.user?.provider,
+    providerAccountId: session?.user?.providerAccountId,
+    emailVerified: session?.user?.emailVerified,
   });
 }
 

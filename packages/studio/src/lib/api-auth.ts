@@ -11,6 +11,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { authOptions } from './auth';
+import { SESSION_COOKIE_NAMES } from './session-cookie-names';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 import { getDb } from '../db/client';
 import { users as usersTable } from '../db/schema';
@@ -32,21 +33,53 @@ export async function getSession() {
   if (!secret) return null;
   const cookieStore = await cookies();
   type GetTokenReq = Parameters<typeof getToken>[0]['req'];
-  const token = await getToken({
-    req: {
-      cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])),
-    } as GetTokenReq,
-    secret,
-  });
+  const req = {
+    cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])),
+  } as GetTokenReq;
+
+  // BOTH cookie names, the same list the edge gate and the GitHub credential
+  // path read (lib/session-cookie-names.ts). This call used to pass no
+  // `cookieName`, so it resolved the single ENV-derived name while the gate in
+  // front of it tried two. The asymmetry runs the wrong way: the gate admits the
+  // request and then THIS function refuses it with "Authentication required".
+  // Every founder surface — /api/admin, fleet dispatch, operate spend — is
+  // behind this one function, so the founder loses all of them at once, and it
+  // reads like a broken login rather than like a gate. The trigger is a
+  // NEXTAUTH_URL change between sign-in and request, which is exactly what the
+  // founder rollout requires.
+  let token: Awaited<ReturnType<typeof getToken>> = null;
+  for (const cookieName of SESSION_COOKIE_NAMES) {
+    try {
+      token = await getToken({ req, secret, cookieName });
+      if (token) break;
+    } catch {
+      // Malformed under this name; the other name still gets its turn.
+    }
+  }
   if (!token) return null;
+
+  // The identity fields founder recognition is allowed to read. The display
+  // NAME is deliberately absent: whoever signs in chooses it freely.
+  const identity = {
+    id: token.sub ?? '',
+    name: token.name ?? null,
+    email: token.email ?? null,
+    image: token.picture ?? null,
+    githubUsername: (token.githubUsername as string) ?? '',
+    provider: token.provider ?? '',
+    providerAccountId: token.providerAccountId ?? '',
+    // Tri-state on purpose. Collapsing an absent claim to `false` would turn
+    // "this token predates the field" into "the provider said no", which is
+    // what would sign the founder's existing Google session out at deploy.
+    emailVerified: typeof token.emailVerified === 'boolean' ? token.emailVerified : undefined,
+  };
 
   return {
     user: {
-      id: token.sub ?? '',
-      name: token.name ?? null,
-      email: token.email ?? null,
-      image: token.picture ?? null,
-      githubUsername: (token.githubUsername as string) ?? '',
+      ...identity,
+      // Same server-side answer the NextAuth session callback produces, so a
+      // route reached through this fallback path agrees with one that was not.
+      isFounder: isFounderWorkspaceIdentity(identity),
     },
     // Use actual JWT expiry (token.exp is Unix seconds); fall back to 30 days
     // only when the claim is absent so we don't extend a near-expiry token.
@@ -84,6 +117,12 @@ export async function requireAuth(request?: Request) {
           email: '',
           image: null,
           githubUsername: '',
+          // A benchmark header is not a sign-in. `false` here is an explicit
+          // refusal, not an unknown, so this caller can never be the founder.
+          provider: '',
+          providerAccountId: '',
+          emailVerified: false,
+          isFounder: false,
         },
       };
     }
@@ -170,6 +209,14 @@ export async function requireAuthOrApiKey(request: Request) {
         email: u.email ?? null,
         image: u.image ?? null,
         githubUsername: '',
+        // An API key is a bearer token, not a sign-in: it carries no provider
+        // account id and no verified-email assertion, so an API-key caller is
+        // never the founder. Founder-only surfaces need the founder's own
+        // OAuth session.
+        provider: '',
+        providerAccountId: '',
+        emailVerified: false,
+        isFounder: false,
       },
     };
   }

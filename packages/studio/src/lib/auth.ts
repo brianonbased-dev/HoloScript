@@ -18,6 +18,7 @@ import {
   verificationTokens as verificationTokensTable,
 } from '../db/schema';
 import { GITHUB_OAUTH_SCOPES, resolveGitHubOAuthConfig } from './github-oauth-config';
+import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 
 /* ------------------------------------------------------------------ */
 /* Type augmentations — extend NextAuth Session & JWT with our fields  */
@@ -32,6 +33,30 @@ declare module 'next-auth' {
       email?: string | null;
       image?: string | null;
       githubUsername?: string;
+      /** The OAuth provider this session signed in through. */
+      provider?: string;
+      /** The provider's own immutable account id: GitHub's numeric id, Google's `sub`. */
+      providerAccountId?: string;
+      /**
+       * What the provider said about this email address: true/false, or
+       * undefined when the token predates the field. Never collapsed to false,
+       * because "unknown" and "not verified" are different answers.
+       */
+      emailVerified?: boolean;
+      /**
+       * Whether this session is the founder, DECIDED ON THE SERVER.
+       *
+       * Founder recognition reads `STUDIO_FOUNDER_*` process env, which exists
+       * only on the server. A client component that calls the recognition
+       * function itself always reads an empty env and therefore always computes
+       * not-founder — which is how the founder's own nav and operate console
+       * went dark for him while the server-side gates still said yes. The
+       * question is answered once, here, and the browser reads this flag.
+       *
+       * It is a UI signal, not a gate: `requireFounder` re-derives the answer
+       * server-side on every privileged call and never trusts this field.
+       */
+      isFounder?: boolean;
     };
   }
 }
@@ -40,8 +65,22 @@ declare module 'next-auth/jwt' {
   interface JWT {
     accessToken?: string;
     provider?: string;
+    providerAccountId?: string;
+    emailVerified?: boolean;
     githubUsername?: string;
   }
+}
+
+/**
+ * True only when the provider itself said this email address is verified.
+ * Google sends the `email_verified` claim. GitHub sends no such claim — a
+ * GitHub profile email can be an unverified public address — so a GitHub
+ * session is recognised by its numeric account id instead.
+ */
+function providerAssertsVerifiedEmail(profile: unknown): boolean {
+  if (!profile || typeof profile !== 'object') return false;
+  const claim = (profile as Record<string, unknown>)['email_verified'];
+  return claim === true || claim === 'true';
 }
 
 function buildProviders() {
@@ -147,10 +186,17 @@ export function buildAuthOptions(): NextAuthOptions {
         if (account) {
           token.accessToken = account.access_token;
           token.provider = account.provider;
+          // The provider's own account id — GitHub's numeric id, Google's `sub`.
+          // Immutable and never reissued, so founder recognition can rely on it
+          // where a display name or an unverified email proves nothing.
+          token.providerAccountId = account.providerAccountId;
         }
         // Persist GitHub username in JWT for admin bypass
         if (profile && 'login' in profile) {
           token.githubUsername = (profile as { login: string }).login;
+        }
+        if (profile) {
+          token.emailVerified = providerAssertsVerifiedEmail(profile);
         }
         return token;
       },
@@ -163,6 +209,31 @@ export function buildAuthOptions(): NextAuthOptions {
             token?.githubUsername ??
             ((user as unknown as Record<string, unknown>)?.githubUsername as string | undefined) ??
             '';
+          // The identity fields founder recognition is allowed to read. The
+          // display NAME is deliberately not one of them: whoever signs in
+          // chooses it freely, so it is presentation, never authority.
+          session.user.provider = token?.provider ?? '';
+          session.user.providerAccountId = token?.providerAccountId ?? '';
+          // Carried as a TRI-STATE. Collapsing an absent claim to `false` would
+          // turn "this token predates the field" into "the provider said no",
+          // which is what would sign the founder's existing Google session out.
+          session.user.emailVerified =
+            typeof token?.emailVerified === 'boolean' ? token.emailVerified : undefined;
+          // Decide founder ONCE, here on the server, where STUDIO_FOUNDER_* is
+          // readable. Everything in the browser reads this flag instead of
+          // recomputing against an env it cannot see.
+          session.user.isFounder = isFounderWorkspaceIdentity({
+            id: session.user.id,
+            // The TOKEN is the signed authority for the address, and every
+            // other field here comes from it. Falling back to it means
+            // recognition does not depend on NextAuth having already copied
+            // the email onto the session object before this callback runs.
+            email: session.user.email ?? token?.email ?? null,
+            githubUsername: session.user.githubUsername,
+            provider: session.user.provider,
+            providerAccountId: session.user.providerAccountId,
+            emailVerified: session.user.emailVerified,
+          });
         }
         session.accessToken = token?.accessToken;
         session.githubConnected = token?.provider === 'github';

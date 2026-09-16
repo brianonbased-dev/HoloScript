@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 import { FleetPanel } from '@/components/panels/FleetPanel';
 import { PlatformAdminPanel } from '@/components/operations/PlatformAdminPanel';
 import { AbsorbAdminPanel } from '@/components/operations/AbsorbAdminPanel';
@@ -521,7 +520,10 @@ type OpsTab = 'infra' | 'capabilities' | 'fairness' | 'admin' | 'absorb' | 'flee
 
 export default function OperationsPage() {
   const { data: session, status } = useSession();
-  const isFounder = isFounderWorkspaceIdentity(session?.user);
+  // Server-decided flag: see the session callback in lib/auth.ts. Recomputing it
+  // in the browser read an empty env and locked the founder out of his own
+  // operate console. The action endpoints still enforce requireFounder.
+  const isFounder = session?.user?.isFounder === true;
   const [activeTab, setActiveTab] = useState<OpsTab>('infra');
   const [teamId, setTeamId] = useState<string>(DEFAULT_TEAM);
   const [lotus, setLotus] = useState<LotusStatus | null>(null);

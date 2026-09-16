@@ -2,8 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { encryptGitHubDeviceToken, GITHUB_DEVICE_TOKEN_COOKIE } from '@/lib/github-device-session';
 
+const mocks = vi.hoisted(() => ({
+  getToken: vi.fn(),
+  getServerSession: vi.fn(),
+}));
+
 vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(async () => null),
+  getServerSession: mocks.getServerSession,
+}));
+
+vi.mock('next-auth/jwt', () => ({
+  getToken: mocks.getToken,
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -11,6 +20,16 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 import { getGitHubAuthRequiredMessage, getGitHubToken } from './_shared';
+
+/** The Studio user id every case below is signed in as. */
+const SESSION_USER = 'user-session-1';
+
+function githubRequest(cookie?: string): NextRequest {
+  return new NextRequest(
+    'https://studio.test/api/github/repos',
+    cookie ? { headers: { cookie } } : undefined
+  );
+}
 
 describe('getGitHubToken', () => {
   const envSnapshot = { ...process.env };
@@ -24,6 +43,10 @@ describe('getGitHubToken', () => {
     delete process.env.PAT_TOKEN;
     delete process.env.STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
     delete process.env.ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
+    // Signed out unless a case says otherwise. `restoreMocks` clears the
+    // implementation between cases, so it is set here rather than at creation.
+    mocks.getToken.mockImplementation(async () => null);
+    mocks.getServerSession.mockImplementation(async () => null);
   });
 
   it('decrypts the device-flow cookie server-side', async () => {
@@ -78,10 +101,13 @@ describe('getGitHubToken', () => {
 
   it('userOnly still returns the signed-in user token', async () => {
     const rawToken = 'gho_device_cookie_user_only_1234567890';
-    const encryptedToken = await encryptGitHubDeviceToken(rawToken);
+    // Bound to the session reading it, which is what the linked-credential
+    // path now stores. The unbound form is covered on its own below.
+    const encryptedToken = await encryptGitHubDeviceToken(rawToken, SESSION_USER);
+    mocks.getToken.mockImplementation(async () => ({ sub: SESSION_USER }));
     process.env.GITHUB_TOKEN = 'ghp_server_token';
 
-    const req = new NextRequest('http://localhost/api/absorb/credits', {
+    const req = new NextRequest('https://studio.test/api/workspace/provision', {
       headers: { cookie: `${GITHUB_DEVICE_TOKEN_COOKIE}=${encryptedToken}` },
     });
 
@@ -92,5 +118,217 @@ describe('getGitHubToken', () => {
     process.env.NODE_ENV = 'production';
 
     expect(getGitHubAuthRequiredMessage()).toBe('Not authenticated. Sign in with GitHub.');
+  });
+});
+
+/**
+ * Whose credential goes to GitHub.
+ *
+ * `lib/auth.ts` writes `token.accessToken` from `account.access_token` for
+ * EVERY provider, so a Google sign-in leaves a GOOGLE OAuth token in the field
+ * a GitHub sign-in uses. This helper returned it, and its callers put it
+ * straight into `Authorization: Bearer` against api.github.com — for the very
+ * caller the linked-GitHub rescue path was written for. GitHub rejected it, so
+ * the failure looked identical either way and nothing pointed at the cause.
+ */
+describe('getGitHubToken provider scoping', () => {
+  const envSnapshot = { ...process.env };
+  const GOOGLE_TOKEN = 'ya29-google-access-token-not-for-github';
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env = { ...envSnapshot };
+    process.env.AUTH_SECRET = 'test-auth-secret-for-provider-scoping';
+    // Production, so a server-token fallback cannot stand in for a real answer
+    // and make a refusal look like a pass.
+    process.env.NODE_ENV = 'production';
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.PERSONAL_ACCESS_TOKEN;
+    delete process.env.PAT_TOKEN;
+    mocks.getToken.mockImplementation(async () => null);
+    mocks.getServerSession.mockImplementation(async () => null);
+  });
+
+  it('never hands a Google session token to a GitHub caller', async () => {
+    mocks.getToken.mockImplementation(async () => ({
+      sub: SESSION_USER,
+      provider: 'google',
+      accessToken: GOOGLE_TOKEN,
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBeNull();
+  });
+
+  it('positive control: the same shape signed in through GitHub is returned', async () => {
+    mocks.getToken.mockImplementation(async () => ({
+      sub: SESSION_USER,
+      provider: 'github',
+      accessToken: 'gho_github_session_token',
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBe('gho_github_session_token');
+  });
+
+  it('never leaks it through the server-session branch either', async () => {
+    mocks.getServerSession.mockImplementation(async () => ({
+      accessToken: GOOGLE_TOKEN,
+      user: { id: SESSION_USER, provider: 'google' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBeNull();
+
+    mocks.getServerSession.mockImplementation(async () => ({
+      accessToken: 'gho_github_server_session_token',
+      user: { id: SESSION_USER, provider: 'github' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBe(
+      'gho_github_server_session_token'
+    );
+  });
+
+  it('gives the Google caller the GitHub credential they actually linked', async () => {
+    const linkedToken = 'gho_linked_by_device_flow_1234567890';
+    const encryptedToken = await encryptGitHubDeviceToken(linkedToken, SESSION_USER);
+    mocks.getToken.mockImplementation(async () => ({
+      sub: SESSION_USER,
+      provider: 'google',
+      accessToken: GOOGLE_TOKEN,
+    }));
+
+    const req = githubRequest(`${GITHUB_DEVICE_TOKEN_COOKIE}=${encryptedToken}`);
+
+    // This is the whole point of the rescue path: the caller is served, and
+    // served the credential that belongs to the audience it is going to.
+    await expect(getGitHubToken(req, { userOnly: true })).resolves.toBe(linkedToken);
+  });
+
+  it('still serves a session minted before the provider was recorded', async () => {
+    // Nothing here may lock out a token already in someone's browser. A GitHub
+    // profile is the only one that carries `login`, so the login stands in for
+    // an absent provider.
+    mocks.getToken.mockImplementation(async () => ({
+      sub: SESSION_USER,
+      githubUsername: 'octocat',
+      accessToken: 'gho_token_from_before_provider_existed',
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBe(
+      'gho_token_from_before_provider_existed'
+    );
+  });
+
+  it('is not fooled by a stale GitHub login left on a Google sign-in', async () => {
+    // Signing in with Google reuses the existing token and does not clear
+    // `githubUsername`, so a present provider has to win over it.
+    mocks.getToken.mockImplementation(async () => ({
+      sub: SESSION_USER,
+      provider: 'google',
+      githubUsername: 'octocat',
+      accessToken: GOOGLE_TOKEN,
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBeNull();
+  });
+
+  it('refuses a linked credential to a different signed-in user', async () => {
+    const linkedToken = 'gho_linked_by_someone_else_1234567890';
+    const encryptedToken = await encryptGitHubDeviceToken(linkedToken, 'user-who-linked-it');
+    mocks.getToken.mockImplementation(async () => ({
+      sub: 'user-signed-in-on-the-same-browser',
+      provider: 'google',
+    }));
+
+    const req = githubRequest(`${GITHUB_DEVICE_TOKEN_COOKIE}=${encryptedToken}`);
+
+    await expect(getGitHubToken(req)).resolves.toBeNull();
+    await expect(getGitHubToken(req, { userOnly: true })).resolves.toBeNull();
+  });
+
+  it('keeps an unowned cookie as a capability, never as an identity', async () => {
+    const legacyToken = 'gho_linked_before_binding_existed_123';
+    const encryptedToken = await encryptGitHubDeviceToken(legacyToken);
+    mocks.getToken.mockImplementation(async () => ({ sub: SESSION_USER, provider: 'google' }));
+
+    const req = githubRequest(`${GITHUB_DEVICE_TOKEN_COOKIE}=${encryptedToken}`);
+
+    // Ordinary work keeps working for everyone who linked GitHub before this
+    // deploy...
+    await expect(getGitHubToken(req)).resolves.toBe(legacyToken);
+    // ...but it cannot answer "who is this caller", which is what provisioning
+    // asks before it mints a founder-tier key.
+    await expect(getGitHubToken(req, { userOnly: true })).resolves.toBeNull();
+  });
+});
+
+/**
+ * The refusal, proved with the server-token fall-through OPEN.
+ *
+ * The cases above run under `NODE_ENV=production` with every server-token name
+ * deleted, so the fall-through is already shut there and they would stay green
+ * even if the refusal returned nothing at all. Here the fallback is allowed AND
+ * a server credential is present, so anything that falls past the refusal comes
+ * back holding THAT token and the expectation goes red.
+ */
+describe('getGitHubToken refuses without lending out the server token', () => {
+  const envSnapshot = { ...process.env };
+  const SERVER_TOKEN = 'ghp_server_token_that_must_not_be_lent_out';
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env = { ...envSnapshot };
+    process.env.AUTH_SECRET = 'test-auth-secret-for-refusal-scoping';
+    // The fall-through is deliberately OPEN: not production, and a real server
+    // credential sitting in the name the helper prefers.
+    process.env.NODE_ENV = 'development';
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.PAT_TOKEN;
+    delete process.env.STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
+    delete process.env.ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
+    process.env.PERSONAL_ACCESS_TOKEN = SERVER_TOKEN;
+    mocks.getToken.mockImplementation(async () => null);
+    mocks.getServerSession.mockImplementation(async () => null);
+  });
+
+  it('control: the fall-through really is open here — signed out gets the server token', async () => {
+    // Without this, every refusal below could be an empty environment rather
+    // than a refusal, and all of them would pass while proving nothing.
+    await expect(getGitHubToken(githubRequest())).resolves.toBe(SERVER_TOKEN);
+  });
+
+  it('a session that is not GitHub gets null, never the server token', async () => {
+    mocks.getServerSession.mockImplementation(async () => ({
+      accessToken: 'ya29-google-access-token-not-for-github',
+      user: { id: SESSION_USER, provider: 'google' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBeNull();
+  });
+
+  it('a session carrying no identity at all gets null, never the server token', async () => {
+    // A credential with nothing saying whose it is cannot be placed as GitHub,
+    // so it is refused — and a refused caller does not get to borrow ours.
+    mocks.getServerSession.mockImplementation(async () => ({ accessToken: 'test-token' }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBeNull();
+  });
+
+  it('positive control: a real GitHub session still resolves to its own token', async () => {
+    mocks.getServerSession.mockImplementation(async () => ({
+      accessToken: 'gho_github_server_session_token',
+      user: { id: SESSION_USER, provider: 'github' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBe('gho_github_server_session_token');
+  });
+
+  it('a GitHub session with no token of its own still reaches the server token', async () => {
+    // Not a refusal: the right audience, simply without a credential. Closing
+    // this would silently refuse a caller the fallback exists to serve.
+    mocks.getServerSession.mockImplementation(async () => ({
+      user: { id: SESSION_USER, provider: 'github' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBe(SERVER_TOKEN);
   });
 });
