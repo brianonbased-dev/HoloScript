@@ -57,7 +57,8 @@
     "typecheck": "tsc --noEmit",
     "sync": "echo 'TODO: auto-sync from core/src/types/ — see src/index.ts for the sync protocol'",
     "test": "vitest run --config vitest.config.ts --passWithNoTests",
-    "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests"
+    "test:coverage": "vitest run --config vitest.config.ts --coverage --passWithNoTests",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

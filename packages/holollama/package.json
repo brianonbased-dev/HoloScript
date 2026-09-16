@@ -33,7 +33,8 @@
   "scripts": {
     "build": "tsup",
     "doctor": "node bin/holollama.cjs doctor",
-    "test": "vitest run src/__tests__/holollama.test.ts"
+    "test": "vitest run src/__tests__/holollama.test.ts",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "dependencies": {
     "@holoscript/core": "workspace:^"

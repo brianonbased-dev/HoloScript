@@ -25,7 +25,8 @@
     "build": "tsup && node scripts/generate-types.mjs",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",

@@ -75,7 +75,8 @@
     "parse": "tree-sitter parse",
     "highlight": "tree-sitter highlight",
     "prebuildify": "prebuildify --napi --strip",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "tree-sitter": [
     {

@@ -96,7 +96,8 @@
     "generate:language-traits": "tsx scripts/gen-language-traits.mjs",
     "check:language-traits": "tsx scripts/gen-language-traits.mjs --check",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --passWithNoTests --maxWorkers=4"
+    "test:coverage": "vitest run --coverage --passWithNoTests --maxWorkers=4",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

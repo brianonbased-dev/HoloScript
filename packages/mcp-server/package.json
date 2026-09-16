@@ -55,7 +55,7 @@
     "test:public-consumer": "node scripts/public-consumer-benchmark.mjs --pack-current --baseline benchmarks/public-consumer-baseline.json --receipt ../../.scratch/mcp-server-public-consumer-release.json",
     "test:coverage": "node -e \"require('fs').mkdirSync('coverage/.tmp',{recursive:true})\" && vitest run --coverage --passWithNoTests",
     "test:watch": "vitest",
-    "prepublishOnly": "pnpm run test:release && pnpm run build && pnpm run test:public-consumer"
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs && pnpm run test:release && pnpm run build && pnpm run test:public-consumer"
   },
   "dependencies": {
     "@holoscript/absorb-service": "workspace:^",

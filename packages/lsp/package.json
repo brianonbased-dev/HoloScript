@@ -12,7 +12,7 @@
     "watch": "tsc -w",
     "clean": "rm -rf dist",
     "test": "vitest run --passWithNoTests",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs && npm run build",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "keywords": [

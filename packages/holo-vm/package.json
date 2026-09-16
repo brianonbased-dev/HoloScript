@@ -40,7 +40,8 @@
     "test": "vitest run",
     "test:native-render-contract": "vitest run src/__tests__/native-render-contract.test.ts",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "dependencies": {
     "@holoscript/core": "workspace:^"

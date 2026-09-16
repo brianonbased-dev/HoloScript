@@ -33,7 +33,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check:repository-identity-native": "pnpm run build && node ./scripts/check-repository-identity-native.mjs",
-    "prepack": "pnpm run check:repository-identity-native"
+    "prepack": "pnpm run check:repository-identity-native",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

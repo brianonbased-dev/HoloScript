@@ -27,7 +27,8 @@
     "test:webgpu": "pnpm run build && vitest run --config vitest.config.ts src/__tests__/HoloEmbedEncoder.test.ts -t \"WebGPU path matches\"",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
-    "describe-lane": "node scripts/describe-holoembed-lane.mjs"
+    "describe-lane": "node scripts/describe-holoembed-lane.mjs",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "dependencies": {
     "@holoscript/config": "workspace:*",

@@ -809,7 +809,8 @@
     "build:n4-webgpu-parity": "node scripts/build-n4-webgpu-parity.mjs",
     "benchmark:n4:webgpu": "pnpm run build:n4-webgpu-parity && playwright test tests/n4-residual-webgpu-parity.spec.ts",
     "benchmark:p043:shared-sort": "node run-p043-shared-sort-capture.mjs",
-    "smoke:physics": "pnpm exec holoscript smoke ../../examples/physics --target threejs -o ../../.bench-logs/physics-smoke-receipt.json"
+    "smoke:physics": "pnpm exec holoscript smoke ../../examples/physics --target threejs -o ../../.bench-logs/physics-smoke-receipt.json",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

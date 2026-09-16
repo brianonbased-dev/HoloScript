@@ -30,7 +30,8 @@
     "benchmark:automate:local": "cross-env BENCH_HEADLESS=0 BENCH_REQUIRE_COMPLETED=0 node scripts/run-benchmark.mjs",
     "test:playwright": "playwright test",
     "test:playwright:ci": "cross-env BENCH_HEADLESS=1 BENCH_TIMEOUT_MS=120000 playwright test",
-    "test:playwright:local": "cross-env BENCH_HEADLESS=0 playwright test"
+    "test:playwright:local": "cross-env BENCH_HEADLESS=0 playwright test",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

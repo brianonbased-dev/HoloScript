@@ -15,7 +15,8 @@
     "test": "vitest run --passWithNoTests",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
-    "test:coverage": "vitest run --coverage --passWithNoTests"
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

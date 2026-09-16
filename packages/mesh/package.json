@@ -33,7 +33,8 @@
     "dev": "tsup --watch",
     "test": "node --max-old-space-size=16384 run-vitest.mjs",
     "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

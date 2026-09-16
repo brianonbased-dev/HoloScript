@@ -46,7 +46,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "size-check": "node scripts/check-size.mjs"
+    "size-check": "node scripts/check-size.mjs",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "mvc",

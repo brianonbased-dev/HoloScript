@@ -22,7 +22,8 @@
     "test": "vitest run --config vite.config.ts --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "test:coverage": "vitest run --coverage --config vite.config.ts --passWithNoTests"
+    "test:coverage": "vitest run --coverage --config vite.config.ts --passWithNoTests",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "dependencies": {
     "@holoscript/core": "workspace:^",
