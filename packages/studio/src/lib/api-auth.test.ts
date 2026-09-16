@@ -11,16 +11,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getServerSessionStub = vi.hoisted(() => vi.fn());
 const getTokenStub = vi.hoisted(() => vi.fn());
 const cookiesStub = vi.hoisted(() => vi.fn());
+const getDbStub = vi.hoisted(() => vi.fn(() => null as unknown));
+const validateApiKeyStub = vi.hoisted(() => vi.fn());
 
 vi.mock('next-auth', () => ({ getServerSession: getServerSessionStub }));
 vi.mock('next-auth/jwt', () => ({ getToken: getTokenStub }));
 vi.mock('next/headers', () => ({ cookies: cookiesStub }));
 vi.mock('./auth', () => ({ authOptions: {} }));
-vi.mock('../db/client', () => ({ getDb: vi.fn(() => null) }));
-vi.mock('../db/schema', () => ({ users: {} }));
+vi.mock('../db/client', () => ({ getDb: getDbStub }));
+vi.mock('../db/schema', () => ({ users: { id: 'users.id' } }));
+vi.mock('drizzle-orm', () => ({ eq: (column: unknown, value: unknown) => ({ column, value }) }));
+vi.mock('./brittney/userApiKeys', () => ({ validateApiKey: validateApiKeyStub }));
 
 import { NextResponse } from 'next/server';
-import { getSession, requireFounder } from './api-auth';
+import { getSession, requireAuthOrApiKey, requireFounder } from './api-auth';
+import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 
 const FOUNDER_GITHUB_ID = '225674784';
 const FOUNDER_EMAIL = 'founder@example.test';
@@ -130,5 +135,148 @@ describe('requireFounder', () => {
 
     expect(result).toBeInstanceOf(NextResponse);
     expect((result as NextResponse).status).toBe(403);
+  });
+});
+
+/**
+ * The API-key door into Brittney.
+ *
+ * `requireAuthOrApiKey` builds a SYNTHETIC session for a `bk_` bearer caller
+ * out of that key's database row. Four literals in it — an empty provider, an
+ * empty provider account id, `emailVerified: false` and `isFounder: false` —
+ * are the only thing between a key holder and founder authority, because
+ * `/api/brittney` feeds this very object to `isFounderWorkspaceIdentity` and
+ * turns the answer into `allowFounderWorkspace`: the GOLD founder key on
+ * knowledge reads, the founder-reserved tool gate, and whether premium rows are
+ * cut. Until now nothing exercised this function at all, so all four could be
+ * deleted and every suite stayed green.
+ */
+interface UserQuery {
+  select: () => UserQuery;
+  from: () => UserQuery;
+  where: () => UserQuery;
+  limit: () => Promise<Array<Record<string, unknown>>>;
+}
+
+/** A database whose user lookup answers with exactly these rows. */
+function databaseReturning(rows: Array<Record<string, unknown>>): UserQuery {
+  const query: UserQuery = {
+    select: () => query,
+    from: () => query,
+    where: () => query,
+    limit: async () => rows,
+  };
+  return query;
+}
+
+function keyRequest(): Request {
+  return new Request('https://studio.test/api/brittney', {
+    method: 'POST',
+    headers: { authorization: 'Bearer bk_not_a_real_key' },
+  });
+}
+
+describe('requireAuthOrApiKey', () => {
+  const FOUNDER_LOGIN = 'brianonbased-dev';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', '');
+    // Every identifier the founder rule is allowed to match on is configured,
+    // so a refusal here cannot be an accident of nothing being set.
+    vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', FOUNDER_GITHUB_ID);
+    vi.stubEnv('STUDIO_FOUNDER_EMAILS', FOUNDER_EMAIL);
+    vi.stubEnv('STUDIO_FOUNDER_GITHUB_USERS', FOUNDER_LOGIN);
+    getDbStub.mockReturnValue(null);
+    getServerSessionStub.mockResolvedValue(null);
+    getTokenStub.mockResolvedValue(null);
+    cookiesStub.mockResolvedValue({ getAll: () => [] });
+  });
+
+  it('never treats an API key as the founder, even on the founder email', async () => {
+    validateApiKeyStub.mockResolvedValue({ userId: 'user-9', keyId: 'key-9' });
+    getDbStub.mockReturnValue(
+      databaseReturning([
+        { id: 'user-9', name: FOUNDER_LOGIN, email: FOUNDER_EMAIL, image: null },
+      ])
+    );
+
+    const auth = await requireAuthOrApiKey(keyRequest());
+    if (auth instanceof NextResponse) throw new Error('expected an authenticated caller');
+    const { user } = auth;
+
+    expect(user.id).toBe('user-9');
+    expect(user.isFounder).toBe(false);
+    // The answer the live Brittney route actually asks for.
+    expect(isFounderWorkspaceIdentity(user)).toBe(false);
+  });
+
+  it('carries an identity that no founder branch can match', async () => {
+    validateApiKeyStub.mockResolvedValue({ userId: 'user-9', keyId: 'key-9' });
+    getDbStub.mockReturnValue(
+      databaseReturning([{ id: 'user-9', name: FOUNDER_LOGIN, email: FOUNDER_EMAIL, image: null }])
+    );
+
+    const auth = await requireAuthOrApiKey(keyRequest());
+    if (auth instanceof NextResponse) throw new Error('expected an authenticated caller');
+    const { user } = auth;
+
+    // A bearer token is not a sign-in. No provider, so neither the GitHub-login
+    // branch nor the Google-email branch can be reached; no provider account
+    // id, so the strongest branch has nothing to compare. `false` on the email
+    // claim is an explicit refusal — an ABSENT claim would be read as "unknown"
+    // and would satisfy the Google branch.
+    expect(user.provider).toBe('');
+    expect(user.providerAccountId).toBe('');
+    expect(user.emailVerified).toBe(false);
+    expect(user.githubUsername).toBe('');
+  });
+
+  it('refuses an invalid or revoked key', async () => {
+    validateApiKeyStub.mockResolvedValue(null);
+
+    const auth = await requireAuthOrApiKey(keyRequest());
+
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(401);
+  });
+
+  it('refuses a valid key when the user database is unavailable', async () => {
+    validateApiKeyStub.mockResolvedValue({ userId: 'user-9', keyId: 'key-9' });
+    getDbStub.mockReturnValue(null);
+
+    const auth = await requireAuthOrApiKey(keyRequest());
+
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(503);
+  });
+
+  it('refuses a key whose user row no longer exists', async () => {
+    validateApiKeyStub.mockResolvedValue({ userId: 'user-9', keyId: 'key-9' });
+    getDbStub.mockReturnValue(databaseReturning([]));
+
+    const auth = await requireAuthOrApiKey(keyRequest());
+
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(401);
+  });
+
+  it('still lets the founder through on his own session, with no key', async () => {
+    getTokenStub.mockResolvedValue({
+      sub: 'user-1',
+      provider: 'github',
+      providerAccountId: FOUNDER_GITHUB_ID,
+    });
+    cookiesStub.mockResolvedValue({
+      getAll: () => [{ name: 'next-auth.session-token', value: 'x' }],
+    });
+
+    const auth = await requireAuthOrApiKey(new Request('https://studio.test/api/brittney'));
+    if (auth instanceof NextResponse) throw new Error('expected an authenticated caller');
+
+    expect(auth.user.isFounder).toBe(true);
+    expect(validateApiKeyStub).not.toHaveBeenCalled();
   });
 });
