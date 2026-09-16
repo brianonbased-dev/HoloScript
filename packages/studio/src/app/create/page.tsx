@@ -101,7 +101,12 @@ import {
 import { NativePanelMount } from '@/components/panels/NativePanelMount';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
-import { UXCommandPalette, createStudioPublishingCommands } from '@/core-ui/UXCommandPalette';
+import {
+  UXCommandPalette,
+  createStudioPublishingCommands,
+  type StudioPublishToolName,
+} from '@/core-ui/UXCommandPalette';
+import { runPaletteMcpToolRequest } from './paletteMcpTool';
 import { runStudioCommand } from '@/lib/studio/commandRegistry';
 import {
   STUDIO_VIEW_IDS,
@@ -1483,34 +1488,15 @@ export default function CreatePage() {
     };
   }, []);
 
+  // Both ways this can fail used to reach the user as nothing at all: the
+  // palette awaits a command's action with no try/catch and the app registers
+  // no unhandledrejection handler. The runner raises the error toast itself
+  // before rethrowing — see paletteMcpTool.ts for why the 403 path matters as
+  // much as the signed-out one.
   const runPaletteMcpTool = useCallback(
-    async (
-      tool: 'holomesh_moltbook_crosspost' | 'holomesh_publish_agent_template',
-      input: Record<string, unknown>
-    ) => {
-      if (meshToolsLocked) {
-        throw new Error('Sign in to use this — publishing to the mesh needs an account.');
-      }
-
-      const response = await fetch('/api/mcp/call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tool, input }),
-      });
-
-      const payload = (await response.json()) as {
-        error?: string;
-        result?: unknown;
-        offline?: boolean;
-      };
-
-      if (!response.ok || payload.error) {
-        throw new Error(payload.error ?? `${tool} failed with status ${response.status}`);
-      }
-
-      return payload.result ?? payload;
-    },
-    [meshToolsLocked]
+    (tool: StudioPublishToolName, input: Record<string, unknown>) =>
+      runPaletteMcpToolRequest({ tool, input, meshToolsLocked, notify: addToast }),
+    [meshToolsLocked, addToast]
   );
 
   useEffect(() => {

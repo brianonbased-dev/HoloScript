@@ -12,6 +12,7 @@ import { ENDPOINTS } from '@holoscript/config/endpoints';
 
 import { corsHeaders } from '../../_lib/cors';
 import { FIRST_SCENE_PROOF } from './firstSceneProof';
+import { GATEWAY_TOOL_CALL_STATUS } from '../gatewayStatus';
 const MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 
 const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
@@ -132,8 +133,15 @@ export async function POST(_request: NextRequest) {
 
     authentication: AGENT_AUTH,
 
+    // Naming the credential is only half of "no legitimate caller is locked
+    // out silently". An agent that authenticates correctly still gets nothing
+    // back from the tool-call gateway today, so that is said beside the URL
+    // rather than left for the agent to discover.
+    known_issues: [GATEWAY_TOOL_CALL_STATUS],
+
     mcp_config: {
       studio: `${STUDIO_URL}/api/mcp/call`,
+      studio_status: GATEWAY_TOOL_CALL_STATUS,
       tools: `${MCP_URL}/mcp`,
       config_endpoint: `${STUDIO_URL}/api/studio/mcp-config?format=claude`,
       authentication: AGENT_AUTH,

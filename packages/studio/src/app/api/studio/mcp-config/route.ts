@@ -3,6 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 
 import { corsHeaders } from '../../_lib/cors';
+import { GATEWAY_TOOL_CALL_STATUS } from '../gatewayStatus';
 // ─── GET /api/studio/mcp-config ─────────────────────────────────────────────
 // Returns capability-based MCP configuration with branded aliases for
 // existing surfaces. New agent forms should consume `format=capabilities`
@@ -45,11 +46,15 @@ export async function GET(request: NextRequest) {
       args?: string[];
       env?: Record<string, string>;
       headers?: Record<string, string>;
+      note?: string;
     }
   > = {
     'holoscript-studio': {
       url: `${STUDIO_URL}/api/mcp/call`,
       headers: { [MESH_KEY_HEADER]: AGENT_AUTH.value },
+      // The block an agent is told to paste is the right place to say this
+      // entry is not answering yet — the agent reads it before it calls.
+      note: GATEWAY_TOOL_CALL_STATUS.what_happens,
     },
     'holoscript-tools': {
       url: `${MCP_URL}/mcp`,
@@ -88,6 +93,7 @@ export async function GET(request: NextRequest) {
     },
     documentation: `${STUDIO_URL}/docs/mcp`,
     authentication: AGENT_AUTH,
+    known_issues: [GATEWAY_TOOL_CALL_STATUS],
   };
 
   if (format === 'claude') {
@@ -106,7 +112,10 @@ export async function GET(request: NextRequest) {
       mcpServers: Object.fromEntries(
         Object.entries(mcpServers).map(([name, config]) => [
           name,
-          { url: config.url, transport: 'sse', headers: config.headers },
+          // `note` rides along: this preset rebuilds the entry by hand, so
+          // anything not named here is silently dropped from the block the
+          // agent pastes — which is exactly where the warning has to survive.
+          { url: config.url, transport: 'sse', headers: config.headers, note: config.note },
         ])
       ),
       authentication: AGENT_AUTH,

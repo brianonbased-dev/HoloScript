@@ -246,9 +246,21 @@ export class UXCommandPalette {
 
   private async executeSelected() {
     const filtered = this.getFilteredOptions();
-    if (filtered[this.selectedIndex]) {
-      this.toggle(); // Close palette
-      await filtered[this.selectedIndex].action();
+    const option = filtered[this.selectedIndex];
+    if (!option) return;
+
+    this.toggle(); // Close palette
+    try {
+      await option.action();
+    } catch (error) {
+      // Backstop. This await was unguarded and the app registers no
+      // `unhandledrejection` handler, so a command that threw reached neither
+      // the screen nor the console — the keypress simply appeared to do
+      // nothing. Commands that can explain themselves show their own message
+      // before rethrowing; this makes sure the ones that cannot are still
+      // visible to whoever is looking.
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[command-palette] "${option.label}" failed: ${message}`);
     }
   }
 

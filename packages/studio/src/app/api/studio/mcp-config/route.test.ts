@@ -73,4 +73,27 @@ describe('GET /api/studio/mcp-config — what an agent is told to send', () => {
       expect(body.instructions).toContain('your own key');
     }
   );
+
+  it('states that the Studio tool-call entry is not answering yet', async () => {
+    const body = (await (await get('capabilities')).json()) as {
+      known_issues?: Array<{ endpoint?: string; answering?: boolean }>;
+    };
+
+    const issue = body.known_issues?.find((entry) => entry.endpoint === 'POST /api/mcp/call');
+    expect(issue).toBeDefined();
+    expect(issue?.answering).toBe(false);
+  });
+
+  it.each(['claude', 'cursor'])(
+    'the %s preset carries that warning inside the block it tells you to paste',
+    async (format) => {
+      const body = (await (await get(format)).json()) as {
+        mcpServers?: Record<string, { note?: string }>;
+      };
+
+      // An agent reads the block it is about to paste; that is where a dead
+      // entry has to be named, not only in a list it may never scroll to.
+      expect(body.mcpServers?.['holoscript-studio']?.note).toBeTruthy();
+    }
+  );
 });

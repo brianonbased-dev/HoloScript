@@ -27,6 +27,43 @@ const DOMAIN_TEMPLATES = [
   { id: 'ai-ecosystem', label: 'HoloScript Core Ecosystem' },
 ];
 
+/**
+ * Turn a refused response body into a sentence a person can act on.
+ *
+ * The form used to rethrow `await res.text()` raw, so once /api/knowledge/sync
+ * and /api/knowledge/query started refusing signed-out callers, a visitor's
+ * toast read `Sync Failed: {"error":"Sign in to HoloScript Studio…","signInRequired":true}`
+ * — the answer was in there, wearing punctuation that hides it. The routes
+ * already write a plain sentence; this just unwraps it.
+ */
+export function knowledgeFailureMessage(rawBody: string, status: number): string {
+  const trimmed = rawBody.trim();
+
+  if (trimmed) {
+    try {
+      const parsed = JSON.parse(trimmed) as { error?: unknown; message?: unknown };
+      const sentence =
+        typeof parsed.error === 'string'
+          ? parsed.error
+          : typeof parsed.message === 'string'
+            ? parsed.message
+            : '';
+      if (sentence.trim()) return sentence.trim();
+    } catch {
+      // Not JSON. A short plain-text body is still readable; a long one (an
+      // HTML error page, say) is not, so it falls through to the sentence below.
+    }
+
+    const looksStructured = trimmed.startsWith('{') || trimmed.startsWith('[');
+    const looksLikeMarkup = trimmed.startsWith('<');
+    if (!looksStructured && !looksLikeMarkup && trimmed.length <= 200) return trimmed;
+  }
+
+  return status === 401
+    ? 'Sign in to file knowledge, or send your own mesh API key.'
+    : `The knowledge store refused this (${status}).`;
+}
+
 export function WPGEntryForm() {
   const { addToast } = useToast();
   const { data: session } = useSession();
@@ -90,13 +127,14 @@ export function WPGEntryForm() {
       });
 
       if (!res.ok) {
-        throw new Error(await res.text());
+        throw new Error(knowledgeFailureMessage(await res.text(), res.status));
       }
 
       addToast('W/P/G entry successfully filed to HoloMesh orchestrator.', 'success', 4000);
       reset({ ...data, workspace_id: workspaceId, content: '' }); // Clear content but keep domain/type config
-    } catch (err: any) {
-      addToast(`Sync Failed: ${err.message}`, 'error', 5000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      addToast(`Sync Failed: ${message}`, 'error', 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -117,11 +155,12 @@ export function WPGEntryForm() {
         }),
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(knowledgeFailureMessage(await res.text(), res.status));
       const data = await res.json();
       setQueryResults(data.entries || data.results || []);
-    } catch (err: any) {
-      addToast(`Query Failed: ${err.message}`, 'error');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      addToast(`Query Failed: ${message}`, 'error');
     }
   };
 
