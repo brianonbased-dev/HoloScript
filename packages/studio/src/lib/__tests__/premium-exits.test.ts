@@ -13,7 +13,7 @@
  * stand-in object; nothing leaves this process.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const stand = vi.hoisted(() => {
   process.env.HOLOMESH_API_URL = 'https://mesh.test';
@@ -58,6 +58,24 @@ const stand = vi.hoisted(() => {
 });
 
 vi.mock('../../db/client', () => ({ getDb: () => stand.db }));
+
+/**
+ * Every caller in this file is a visitor with no session — that is the whole
+ * premise of the suite — so `requireAuth` answers the way it answers a signed-out
+ * request.
+ *
+ * It has to be substituted rather than left alone: the real one reaches
+ * `getServerSession`, which calls Next's `headers()`, which throws
+ * "`headers` was called outside a request scope" when a route handler is invoked
+ * directly instead of served. That throw is a property of calling handlers in a
+ * test, not of the door — the door itself is proven in
+ * `src/__tests__/api-fail-closed.test.ts`, which drives the real middleware.
+ */
+vi.mock('@/lib/api-auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api-auth')>()),
+  requireAuth: async () =>
+    NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
+}));
 
 import { fetchHoloMeshJson } from '../holomesh-proxy';
 import { executeMCPTool } from '../brittney/MCPToolExecutor';
@@ -263,8 +281,33 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
     expect(JSON.stringify(await own.json())).toContain(PAID_TAIL);
   });
 
-  it('POST /api/holomesh/marketplace/sync stores premium entries as teasers only', async () => {
-    const res = await syncPost(visitor('/api/holomesh/marketplace/sync', { method: 'POST', body: '{}' }));
+  it('POST /api/holomesh/marketplace/sync refuses a caller with no identity at all', async () => {
+    // This assertion used to expect 200: an anonymous caller could spend our
+    // mesh key upstream AND choose what landed in the cache that the catalog
+    // and the entry GET fallback then serve to everyone else. A rate limit was
+    // the only thing in front of it, and a rate limit caps how FAST a stranger
+    // may do a thing, not whether they may.
+    const res = await syncPost(
+      visitor('/api/holomesh/marketplace/sync', { method: 'POST', body: '{}' })
+    );
+
+    expect(res.status).toBe(401);
+    expect(stand.state.inserted).toHaveLength(0);
+    // Nothing of ours went upstream on a stranger's behalf.
+    expect(stand.state.calls).toHaveLength(0);
+  });
+
+  it("POST /api/holomesh/marketplace/sync still stores premium entries as teasers for a caller who may call it", async () => {
+    // The premium guarantee this suite exists to prove, now exercised through
+    // the door rather than around it: the caller runs under their OWN key.
+    const res = await syncPost(
+      visitor('/api/holomesh/marketplace/sync', {
+        method: 'POST',
+        body: '{}',
+        headers: { 'x-mcp-api-key': 'visitor-own-key' },
+      })
+    );
+
     expect(res.status).toBe(200);
     expect(stand.state.inserted).toHaveLength(4);
     expect(JSON.stringify(stand.state.inserted)).toContain(FREE_TEXT);

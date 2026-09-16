@@ -264,6 +264,36 @@ describe('POST /api/publish — credential gate', () => {
     expect(outbound).not.toHaveBeenCalled();
   });
 
+  it('an unvalidated key does not buy local persistence when no upstream leg ran', async () => {
+    // The reviewer's measured P0. A signed-out caller sends any non-empty key
+    // and a body with no `code`: publishToProtocol returns null before it calls
+    // anything, so nothing upstream ever judged that key — yet the insert ran
+    // and answered 200 with a persisted scene id.
+    signedOut();
+    const { POST } = await import('./route');
+
+    const response = await POST(
+      publishRequest({ 'x-mcp-api-key': 'not-a-key-anyone-checked' }, { title: 'No source here' })
+    );
+
+    expect(response.status).toBe(401);
+    // Nothing was sent upstream, so nothing vouched for the caller...
+    expect(outbound).not.toHaveBeenCalled();
+    // ...and the answer carries no scene id, because nothing was stored.
+    expect(await response.text()).not.toMatch(/"id"\s*:/);
+  });
+
+  it('an unvalidated key does not buy local persistence when the registry refuses it', async () => {
+    signedOut();
+    outbound.mockImplementation(async () => new Response('nope', { status: 403 }));
+    const { POST } = await import('./route');
+
+    const response = await POST(publishRequest({ 'x-mcp-api-key': 'rejected-by-registry' }));
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).not.toMatch(/"id"\s*:/);
+  });
+
   it('publishes for a signed-in caller under the server key', async () => {
     const { POST } = await import('./route');
 

@@ -197,6 +197,7 @@ async function publishToProtocol(
 export async function POST(req: Request) {
   const callerKey = callerMeshKey(req);
   let upstreamKey: string | null = callerKey;
+  let signedIn = false;
 
   if (!callerKey) {
     const auth = await requireAuth(req);
@@ -209,6 +210,7 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
+    signedIn = true;
     // Server-only key. NEXT_PUBLIC_* is deliberately not a fallback: Next
     // inlines those into the browser bundle, so one would be readable by every
     // visitor and could never be a server credential.
@@ -221,6 +223,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid scene data' }, { status: 400 });
     }
     const protocol = await publishToProtocol(upstreamKey, body as Record<string, unknown>);
+
+    // An unvalidated caller key may authorize the UPSTREAM leg and nothing else.
+    //
+    // Nobody here checked that key: the registry does, by accepting or refusing
+    // the publish. So a caller who presented one has proved who they are only
+    // if that leg actually succeeded. Without it, the key is an arbitrary
+    // string — and the first version of this guard let such a string skip
+    // requireAuth entirely, after which a body carrying no `code` made
+    // publishToProtocol return null early while the insert below ran anyway:
+    // 200, a persisted scene id, and zero upstream calls. A door that writes to
+    // our table for anyone who types a header is the door it was closing.
+    //
+    // A signed-in caller is exempt: Studio itself vouched for them, which is
+    // why a session still publishes when the registry leg is skipped.
+    const upstreamAccepted = protocol !== null && protocol.publish !== null;
+    if (!signedIn && !upstreamAccepted) {
+      const reason =
+        protocol === null
+          ? 'A scene published with a key of your own must carry "code" — the registry is what vouches for that key.'
+          : 'The protocol registry did not accept that key, so nothing was stored.';
+      return NextResponse.json(
+        { error: `${reason} Sign in to HoloScript Studio to store a scene without one.`, signInRequired: true },
+        { status: 401 }
+      );
+    }
 
     const db = getDb();
     if (db) {
