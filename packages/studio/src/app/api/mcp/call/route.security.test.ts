@@ -227,6 +227,51 @@ describe('/api/mcp/call — credential gate', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  // The same key in the OTHER spelling — and this is the live path, not the
+  // theoretical one: the refusal above hands the caller `x-mcp-api-key`, and
+  // that is the header this route reads FIRST. A Studio customer who follows
+  // the instruction they were given must not thereby send their credential to
+  // a different service.
+  it('does not present a Studio API key upstream in the header the refusal names', async () => {
+    signedOut();
+    const fetchSpy = installOutboundRecorder();
+
+    const response = await POST(post('suggest_traits', { 'x-mcp-api-key': 'bk_studio_key' }));
+
+    expect(response.status).toBe(401);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('treats a Studio API key as no mesh key, so a signed-in caller falls through', async () => {
+    signedIn();
+    const fetchSpy = installOutboundRecorder();
+
+    const response = await POST(post('suggest_traits', { 'x-mcp-api-key': 'bk_studio_key' }));
+    const sent = headersOf(fetchSpy);
+
+    // Signed in, so the call runs — under OUR key, on the allowlist. The
+    // Studio key never travels as if it were the caller's mesh key.
+    expect(response.status).toBe(200);
+    expect(sent['x-mcp-api-key']).toBe(SERVER_KEY);
+    expect(JSON.stringify(sent)).not.toContain('bk_studio_key');
+  });
+
+  it('tells a Studio API-key holder that their key is not a mesh key', async () => {
+    signedOut();
+    installOutboundRecorder();
+
+    const response = await POST(post('suggest_traits', { 'x-mcp-api-key': 'bk_studio_key' }));
+    const body = (await response.json()) as { error?: string };
+
+    // Without this sentence the caller reads "send your own key as
+    // x-mcp-api-key", does exactly that with the only key they hold, and loops
+    // on a 401 that never explains itself.
+    expect(response.status).toBe(401);
+    expect(body.error).toContain('bk_');
+    expect(body.error).toContain('x-mcp-api-key');
+    expect(body.error).not.toContain('Authorization: Bearer');
+  });
+
   it.each(['holomesh_moltbook_crosspost', 'holomesh_publish_agent_template'])(
     'a signed-in stranger can no longer publish to the mesh as us (%s)',
     async (tool) => {

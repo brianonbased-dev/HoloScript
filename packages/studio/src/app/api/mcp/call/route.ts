@@ -28,8 +28,27 @@ if (MCP_EXTERNAL_URL && !MCP_EXTERNAL_URL.startsWith('http')) {
  */
 const MESH_KEY_HEADER = 'x-mcp-api-key';
 
-/** What a locked-out caller is told to do, in the form that actually works. */
-const OWN_KEY_HINT = `Send your own mesh API key as "${MESH_KEY_HEADER}: <your key>" to run it as yourself.`;
+/**
+ * Studio's own API keys. The settings panel sells these and tells customers to
+ * send them; they are not mesh keys in ANY spelling. Presenting one upstream
+ * would hand a Studio credential to a different service, which records the
+ * presented key when validation fails.
+ */
+const STUDIO_KEY_PREFIX = 'bk_';
+
+/**
+ * What a locked-out caller is told to do, in the form that actually works.
+ *
+ * The second sentence is load-bearing. Without it the message sent a Studio
+ * API-key customer into the hole: they hold a `bk_` key, are told to send
+ * "your own key" in this header, do exactly that — and either their credential
+ * travelled to another service, or (now) they loop on a 401 that never says
+ * why. A refusal that names a form the caller cannot satisfy is a silent
+ * refusal with extra words.
+ */
+const OWN_KEY_HINT =
+  `Send your own mesh API key as "${MESH_KEY_HEADER}: <your key>" to run it as yourself. ` +
+  `A Studio "${STUDIO_KEY_PREFIX}" API key is not a mesh key and is refused in either header.`;
 
 /**
  * The caller's OWN upstream key, if they sent one.
@@ -41,19 +60,25 @@ const OWN_KEY_HINT = `Send your own mesh API key as "${MESH_KEY_HEADER}: <your k
  * authentication that fails silently: upstream treats the caller as anonymous
  * and never says why.
  *
- * A `bk_` bearer is deliberately NOT treated as a mesh key: those are Studio's
- * own API keys. Presenting one upstream would hand a Studio credential to a
- * different service, which records the presented key when validation fails.
+ * The `bk_` exclusion runs through ONE predicate so it cannot cover one
+ * spelling and miss the other. It used to sit on the bearer branch alone,
+ * guarding the habit fewer callers have while the header this function reads
+ * FIRST went unchecked — and that unchecked header was the one the refusal
+ * message named. A `bk_` key in either place is treated as no mesh key at all,
+ * so the caller falls through to the other spelling and then to the session
+ * path, rather than having their Studio credential forwarded.
  */
+function meshKeyOrNull(candidate: string | null | undefined): string | null {
+  if (!candidate) return null;
+  return candidate.startsWith(STUDIO_KEY_PREFIX) ? null : candidate;
+}
+
 function callerMeshKey(request: Request): string | null {
-  const meshKey = request.headers.get(MESH_KEY_HEADER)?.trim();
+  const meshKey = meshKeyOrNull(request.headers.get(MESH_KEY_HEADER)?.trim());
   if (meshKey) return meshKey;
 
   const authorization = request.headers.get('authorization')?.trim() ?? '';
-  const bearer = /^Bearer\s+(\S+)$/i.exec(authorization)?.[1];
-  if (bearer && !bearer.startsWith('bk_')) return bearer;
-
-  return null;
+  return meshKeyOrNull(/^Bearer\s+(\S+)$/i.exec(authorization)?.[1]);
 }
 
 /**
