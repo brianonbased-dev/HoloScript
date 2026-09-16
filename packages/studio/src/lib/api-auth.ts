@@ -11,6 +11,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { authOptions } from './auth';
+import { SESSION_COOKIE_NAMES } from './session-cookie-names';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 import { getDb } from '../db/client';
 import { users as usersTable } from '../db/schema';
@@ -32,12 +33,29 @@ export async function getSession() {
   if (!secret) return null;
   const cookieStore = await cookies();
   type GetTokenReq = Parameters<typeof getToken>[0]['req'];
-  const token = await getToken({
-    req: {
-      cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])),
-    } as GetTokenReq,
-    secret,
-  });
+  const req = {
+    cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])),
+  } as GetTokenReq;
+
+  // BOTH cookie names, the same list the edge gate and the GitHub credential
+  // path read (lib/session-cookie-names.ts). This call used to pass no
+  // `cookieName`, so it resolved the single ENV-derived name while the gate in
+  // front of it tried two. The asymmetry runs the wrong way: the gate admits the
+  // request and then THIS function refuses it with "Authentication required".
+  // Every founder surface — /api/admin, fleet dispatch, operate spend — is
+  // behind this one function, so the founder loses all of them at once, and it
+  // reads like a broken login rather than like a gate. The trigger is a
+  // NEXTAUTH_URL change between sign-in and request, which is exactly what the
+  // founder rollout requires.
+  let token: Awaited<ReturnType<typeof getToken>> = null;
+  for (const cookieName of SESSION_COOKIE_NAMES) {
+    try {
+      token = await getToken({ req, secret, cookieName });
+      if (token) break;
+    } catch {
+      // Malformed under this name; the other name still gets its turn.
+    }
+  }
   if (!token) return null;
 
   // The identity fields founder recognition is allowed to read. The display

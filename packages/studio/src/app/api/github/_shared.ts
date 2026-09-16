@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { getGitHubDeviceToken } from '@/lib/github-device-session';
+import { SESSION_COOKIE_NAMES } from '@/lib/session-cookie-names';
 
 export const GITHUB_API_BASE_URL = (
   process.env.GITHUB_API_URL ||
@@ -65,19 +66,6 @@ async function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Both names NextAuth may have written the session cookie under. Which one it
- * picks is decided by the ENVIRONMENT (`NEXTAUTH_URL`'s scheme), not by the
- * request, so reading only the env-derived name silently refuses every caller
- * whose browser holds the other one — the same lockout `src/proxy.ts` documents
- * at length. The signature check under our own secret is the whole test either
- * way; only the container's name differs.
- */
-const STUDIO_SESSION_COOKIE_NAMES = [
-  '__Secure-next-auth.session-token',
-  'next-auth.session-token',
-] as const;
-
-/**
  * The verified Studio session behind this request, or null.
  *
  * Kept here rather than in `lib/api-auth.ts` on purpose: that module pulls in
@@ -89,7 +77,7 @@ async function readStudioSessionToken(req?: NextRequest) {
   if (!req || !secret) return null;
 
   const { getToken } = await import('next-auth/jwt');
-  for (const cookieName of STUDIO_SESSION_COOKIE_NAMES) {
+  for (const cookieName of SESSION_COOKIE_NAMES) {
     try {
       const token = await getToken({ req, secret, cookieName });
       if (token) return token;

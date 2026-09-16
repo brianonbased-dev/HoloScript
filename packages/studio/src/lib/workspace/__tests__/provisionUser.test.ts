@@ -864,9 +864,51 @@ describe('E2E smoke: provision → HoloMesh identity → display', () => {
     const registerPayload = JSON.parse(String(registerCall![1]?.body ?? '{}')) as { name: string };
     expect(registerPayload.name).toBe('studio-octocat');
 
-    // Verify the API key was passed as header
+    // The orchestrator's key must NOT ride along to mcp-server. Registration is
+    // the UNAUTHENTICATED bootstrap that mints the mcp-server credential, so
+    // there is nothing here for a credential to prove — and the key minted at
+    // /admin/keys is the orchestrator's currency, presented with `x-mcp-api-key`
+    // to the orchestrator alone. mcp-server's own scheme is `Authorization:
+    // Bearer <holomesh key>`, which is what the knowledge publish uses.
     const registerHeaders = registerCall![1]?.headers as Record<string, string>;
-    expect(registerHeaders['x-mcp-api-key']).toBe('mcp-provisioned-secret-key');
+    expect(registerHeaders['x-mcp-api-key']).toBeUndefined();
+
+    // Cross-service credential audit over EVERY call provisioning made, not
+    // just this one: a credential minted for one service may never appear in a
+    // request to the other. Asserting the whole pipeline is what stops the
+    // wrong pairing being reintroduced somewhere else in it.
+    const MCP_SERVER_BASE = 'https://mcp.test';
+    const ORCHESTRATOR_MINTED_KEY = 'mcp-provisioned-secret-key';
+    const MASTER_KEY = 'master-key';
+    const headerValuesOf = (init?: RequestInit): string[] =>
+      Object.values((init?.headers ?? {}) as Record<string, string>);
+
+    const callsToMcpServer = fetchMock.mock.calls.filter(([url]) =>
+      String(url).startsWith(MCP_SERVER_BASE)
+    );
+    expect(callsToMcpServer.length).toBeGreaterThan(0);
+    for (const [url, init] of callsToMcpServer) {
+      const values = headerValuesOf(init);
+      expect(values, `orchestrator key sent to mcp-server at ${String(url)}`).not.toContain(
+        ORCHESTRATOR_MINTED_KEY
+      );
+      expect(values, `master key sent to mcp-server at ${String(url)}`).not.toContain(MASTER_KEY);
+    }
+
+    // ...and the same rule in the other direction.
+    const callsToOrchestrator = fetchMock.mock.calls.filter(
+      ([url]) =>
+        !String(url).startsWith(MCP_SERVER_BASE) && !String(url).includes('api.github.com')
+    );
+    for (const [url, init] of callsToOrchestrator) {
+      const values = headerValuesOf(init);
+      expect(values, `holomesh key sent to the orchestrator at ${String(url)}`).not.toContain(
+        TEST_HOLOMESH_API_KEY
+      );
+      expect(values, `holomesh key sent to the orchestrator at ${String(url)}`).not.toContain(
+        'holomesh-publish-key'
+      );
+    }
   });
 
   it('seeds .env.example with HoloMesh identity fields when identity is registered', async () => {

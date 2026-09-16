@@ -690,17 +690,32 @@ interface HolomeshRegistration {
  * Register a new HoloMesh agent for the user.
  * Server generates the wallet — no x402 challenge needed for provisioned users.
  * The returned apiKey + walletAddress are write-once identity (GOLD G.016).
+ *
+ * SENDS NO CREDENTIAL, on purpose. Two different services are in play here and
+ * each has its own currency:
+ *   - mcp-orchestrator (`ORCHESTRATOR_URL`) authenticates with `x-mcp-api-key`
+ *     and is where `provisionApiKey` MINTS this user's key.
+ *   - mcp-server (`MCP_SERVER_URL`) authenticates with
+ *     `Authorization: Bearer <holomesh key>` — see `publishKnowledgeEntries`.
+ *
+ * This endpoint is the UNAUTHENTICATED bootstrap that mints the mcp-server
+ * credential in the first place: `packages/mcp-server/.../team-routes.ts:612`
+ * reaches no `requireAuth` (the first in that file is :823, past the end of the
+ * handler), and `http-routes.test.ts:313` registers with no credential at all
+ * and is answered 201.
+ *
+ * So the orchestrator-minted user key that used to travel here as
+ * `x-mcp-api-key` bought nothing — mcp-server never read it — while handing a
+ * live credential to a service it was not issued for. The cost of that mistake
+ * is not only the exposure: a 401 from the wrong service reads as "bad key" and
+ * invites rotating a key that was fine.
  */
-async function registerHolomeshAgent(
-  githubUsername: string,
-  mcpApiKey: string
-): Promise<HolomeshRegistration> {
+async function registerHolomeshAgent(githubUsername: string): Promise<HolomeshRegistration> {
   const mcpUrl = mcpServerUrl();
   const res = await fetch(`${mcpUrl}/api/holomesh/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-mcp-api-key': mcpApiKey,
     },
     body: JSON.stringify({ name: `studio-${githubUsername}` }),
   });
@@ -840,7 +855,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     updateStep('register-holomesh-agent', 'running');
     let holomeshRegistration: HolomeshRegistration | undefined;
     try {
-      holomeshRegistration = await registerHolomeshAgent(input.githubUsername, apiKey);
+      holomeshRegistration = await registerHolomeshAgent(input.githubUsername);
       updateStep(
         'register-holomesh-agent',
         'done',
