@@ -503,9 +503,9 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
   {
     method: 'GET',
     path: '/api/mcp/call',
-    credential: 'any caller credential — the route itself checks nothing, so THIS DOOR is the only check',
+    credential: "the agent's own mesh key, forwarded upstream unchanged; ours is never substituted for a caller who sent one",
     header: { 'x-mcp-api-key': 'an-agents-own-key' },
-    callSite: 'agents depend on it; #302/#305 are fixing the identity handling',
+    callSite: 'app/api/mcp/call/route.ts callerMeshKey — GET reads the mesh inventory under the caller own key (#302)',
   },
   {
     method: 'GET',

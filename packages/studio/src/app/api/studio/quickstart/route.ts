@@ -12,10 +12,15 @@ import { ENDPOINTS } from '@holoscript/config/endpoints';
 
 import { corsHeaders } from '../../_lib/cors';
 import { FIRST_SCENE_PROOF } from './firstSceneProof';
+import { AGENT_AUTH, GATEWAY_TOOL_CALL_STATUS, MESH_KEY_HEADER } from '../gatewayStatus';
 const MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 
 const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
+
+// AGENT_AUTH and MESH_KEY_HEADER were declared here and byte-identically in
+// mcp-config. One copy now, beside GATEWAY_TOOL_CALL_STATUS, so the endpoints
+// that answer "what do I send?" cannot drift apart.
 
 const HELLO_WORLD_SCENE = `scene HelloWorld {
   object Cube {
@@ -113,10 +118,20 @@ export async function POST(_request: NextRequest) {
 
     first_scene: FIRST_SCENE_PROOF,
 
+    authentication: AGENT_AUTH,
+
+    // Naming the credential is only half of "no legitimate caller is locked
+    // out silently". An agent that authenticates correctly still gets nothing
+    // back from the tool-call gateway today, so that is said beside the URL
+    // rather than left for the agent to discover.
+    known_issues: [GATEWAY_TOOL_CALL_STATUS],
+
     mcp_config: {
       studio: `${STUDIO_URL}/api/mcp/call`,
+      studio_status: GATEWAY_TOOL_CALL_STATUS,
       tools: `${MCP_URL}/mcp`,
       config_endpoint: `${STUDIO_URL}/api/studio/mcp-config?format=claude`,
+      authentication: AGENT_AUTH,
     },
 
     hello_world: {
@@ -128,7 +143,7 @@ export async function POST(_request: NextRequest) {
     },
 
     api_endpoints: {
-      compile: 'POST /api/mcp/call { tool: "compile_holoscript", args: { code, target } }',
+      compile: `POST /api/mcp/call { tool: "compile_holoscript", args: { code, target } } — send your own key as "${MESH_KEY_HEADER}: <your key>"`,
       generate: 'POST /api/generate { prompt, style? }',
       export: 'POST /api/export { sceneId, format }',
       asset_packs: 'GET /api/asset-packs',
@@ -146,6 +161,7 @@ export async function GET() {
     method: 'POST',
     description:
       'One-request agent onboarding. Returns capabilities, example workflows, MCP config, and hello world compilation.',
+    authentication: AGENT_AUTH,
   });
 }
 
