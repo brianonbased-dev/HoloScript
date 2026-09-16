@@ -1,6 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { getDb } from '../../../../../db/client';
 import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { rateLimit } from '../../../../../lib/rate-limiter';
@@ -10,7 +11,26 @@ import { isPremiumRow, premiumTeaser } from '../../../../../lib/premium-view';
 import { corsHeaders } from '../../../_lib/cors';
 const BASE =
   process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
+
+/**
+ * This upstream reads its credential from `Authorization: Bearer`, unlike the
+ * gateway routes that read `x-mcp-api-key`. Both spellings are accepted FROM
+ * the caller and forwarded in the one form THIS upstream actually reads —
+ * accepting a header and then sending it somewhere it is never looked at is a
+ * promise that fails silently.
+ */
+function callerUpstreamKey(request: Request): string | null {
+  const meshKey = request.headers.get('x-mcp-api-key')?.trim();
+  if (meshKey) return meshKey;
+
+  const authorization = request.headers.get('authorization')?.trim() ?? '';
+  const bearer = /^Bearer\s+(\S+)$/i.exec(authorization)?.[1];
+  // A `bk_` bearer is a Studio API key, not a mesh key: presenting one upstream
+  // would hand a Studio credential to a different service.
+  if (bearer && !bearer.startsWith('bk_')) return bearer;
+
+  return null;
+}
 
 interface McpEntry {
   id: string;
@@ -38,6 +58,18 @@ interface McpEntry {
  * Bulk-fetches marketplace entries from MCP and upserts them into the local
  * DB cache — used to pre-warm the DB so entry GET can fallback on cold start.
  *
+ * Doors audit 2026-09-15. A rate limit is not a door: it caps how fast a
+ * stranger may do a thing, not whether they may do it at all. This route spent
+ * Studio's own mesh key on an upstream read for anyone who asked, and wrote the
+ * result into the cache that `/api/holomesh/knowledge/catalog` and the entry
+ * GET fallback then serve — so an anonymous caller could both spend our
+ * identity and choose what lands in a cache other visitors read. No Studio UI
+ * calls it; it is an operator pre-warm.
+ *
+ * Now: a caller who sends their own key runs as themselves and nothing of ours
+ * is attached; a caller who sends none must be signed in to Studio. The rate
+ * limit stays, in front, so a flood is still cheap to refuse.
+ *
  * Params (body):
  *   limit?   number  — entries to fetch per page (default 200, max 500)
  *   domain?  string  — filter by domain
@@ -45,6 +77,37 @@ interface McpEntry {
 export async function POST(req: NextRequest) {
   const limited = rateLimit(req, { max: 10, label: 'marketplace-sync' }, 'marketplace-sync');
   if (!limited.ok) return limited.response;
+
+  const callerKey = callerUpstreamKey(req);
+  let upstreamKey: string | null = callerKey;
+
+  if (!callerKey) {
+    const auth = await requireAuth(req);
+    if (auth instanceof NextResponse) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Sign in to HoloScript Studio to refresh the marketplace cache, or send your own mesh API key as "x-mcp-api-key: <your key>" to refresh it as yourself.',
+          signInRequired: true,
+        },
+        { status: 401 }
+      );
+    }
+    // Server-only key. NEXT_PUBLIC_* is deliberately not a fallback: Next
+    // inlines those into the browser bundle, so one would be readable by every
+    // visitor and could never be a server credential.
+    upstreamKey = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? null;
+    if (!upstreamKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Studio is not configured to refresh the marketplace cache for a signed-in caller.',
+        },
+        { status: 503 }
+      );
+    }
+  }
 
   const db = getDb();
   if (!db) {
@@ -67,7 +130,7 @@ export async function POST(req: NextRequest) {
   const res = await fetch(`${BASE}/api/holomesh/marketplace?${params}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(KEY ? { Authorization: `Bearer ${KEY}` } : {}),
+      Authorization: `Bearer ${upstreamKey}`,
     },
     cache: 'no-store',
   });
