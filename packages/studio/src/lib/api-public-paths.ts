@@ -464,11 +464,14 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
     methods: ['GET'],
     why: "NO GUARD. Machines report in without a browser session, but the route identifies them by our HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY (route.ts:31) and a server-side seat id, not by the caller's key. The door is the only check.",
   },
-  {
-    pattern: '/api/studio/oracle-boost/status',
-    methods: ['GET'],
-    why: "NO GUARD. Status polling; the route sets `x-mcp-api-key` from our HOLOSCRIPT_API_KEY (route.ts:23,66) and ignores the caller's. GET only — POST on the same route is left to `session`.",
-  },
+  // /api/studio/oracle-boost/status was listed here pinned to GET, but the route
+  // exports only POST and OPTIONS (route.ts:90,163), so the entry admitted a verb
+  // that does not exist and bought nothing. Pinning POST instead would have been
+  // the wrong repair: that verb spends our HOLOSCRIPT_API_KEY and ignores the
+  // caller's key, so admitting it on "any non-empty header" is the exact shape
+  // this tier's own rule refuses. Removing the entry leaves POST on `session`,
+  // where it already fell, and its only caller is the signed-in settings page
+  // (components/settings/SettingsView.tsx:144,271).
 ];
 
 /**
