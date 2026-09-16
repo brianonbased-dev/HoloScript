@@ -13,7 +13,7 @@ import {
   type FleetAutospawnResult,
 } from './autospawnFleet';
 import { RepoConsentError, requireApprovedGitHubRepo } from './repoConsent';
-import { resolveWorkspaceIdForIdentity } from './workspaceIdentity';
+import { isFounderWorkspaceIdentity, resolveWorkspaceIdForIdentity } from './workspaceIdentity';
 
 /**
  * User Provisioning Pipeline
@@ -64,6 +64,8 @@ export interface ProvisionedUser {
 export interface ProvisionInput {
   githubAccessToken: string;
   githubUsername: string;
+  /** GitHub's immutable numeric account id, when the caller has it. */
+  githubAccountId?: string;
   email: string;
   /** Existing repo URL, or null to create new */
   repoUrl?: string;
@@ -184,24 +186,20 @@ async function provisionApiKey(
   return { key: data.key, workspaceId };
 }
 
-function founderIdentityValues(): Set<string> {
-  const configured = (process.env.STUDIO_FOUNDER_GITHUB_USERS ?? '')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-  return new Set([
-    'brianonbased',
-    'brianonbased-dev',
-    'josep',
-    'brianonbased@gmail.com',
-    ...configured,
-  ]);
-}
-
+/**
+ * One rule for who the founder is, shared with the rest of Studio — this used
+ * to keep its own copy of the list, including the generic display-name value.
+ * Provisioning runs immediately after a GitHub sign-in, so this is a GitHub
+ * session. The email is not offered here because provisioning carries no
+ * verified-email assertion from the provider, and an unverified address proves
+ * nothing.
+ */
 function isFounderIdentity(input: ProvisionInput): boolean {
-  const candidates = [input.githubUsername, input.email].map((value) => value.toLowerCase());
-  const founderValues = founderIdentityValues();
-  return candidates.some((candidate) => founderValues.has(candidate));
+  return isFounderWorkspaceIdentity({
+    provider: 'github',
+    providerAccountId: input.githubAccountId,
+    githubUsername: input.githubUsername,
+  });
 }
 
 function defaultFounderRoot(): string {

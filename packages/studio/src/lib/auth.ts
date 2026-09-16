@@ -32,6 +32,12 @@ declare module 'next-auth' {
       email?: string | null;
       image?: string | null;
       githubUsername?: string;
+      /** The OAuth provider this session signed in through. */
+      provider?: string;
+      /** The provider's own immutable account id: GitHub's numeric id, Google's `sub`. */
+      providerAccountId?: string;
+      /** True only when the provider asserted that this email address is verified. */
+      emailVerified?: boolean;
     };
   }
 }
@@ -40,8 +46,22 @@ declare module 'next-auth/jwt' {
   interface JWT {
     accessToken?: string;
     provider?: string;
+    providerAccountId?: string;
+    emailVerified?: boolean;
     githubUsername?: string;
   }
+}
+
+/**
+ * True only when the provider itself said this email address is verified.
+ * Google sends the `email_verified` claim. GitHub sends no such claim — a
+ * GitHub profile email can be an unverified public address — so a GitHub
+ * session is recognised by its numeric account id instead.
+ */
+function providerAssertsVerifiedEmail(profile: unknown): boolean {
+  if (!profile || typeof profile !== 'object') return false;
+  const claim = (profile as Record<string, unknown>)['email_verified'];
+  return claim === true || claim === 'true';
 }
 
 function buildProviders() {
@@ -106,10 +126,17 @@ export function buildAuthOptions(): NextAuthOptions {
         if (account) {
           token.accessToken = account.access_token;
           token.provider = account.provider;
+          // The provider's own account id — GitHub's numeric id, Google's `sub`.
+          // Immutable and never reissued, so founder recognition can rely on it
+          // where a display name or an unverified email proves nothing.
+          token.providerAccountId = account.providerAccountId;
         }
         // Persist GitHub username in JWT for admin bypass
         if (profile && 'login' in profile) {
           token.githubUsername = (profile as { login: string }).login;
+        }
+        if (profile) {
+          token.emailVerified = providerAssertsVerifiedEmail(profile);
         }
         return token;
       },
@@ -122,6 +149,12 @@ export function buildAuthOptions(): NextAuthOptions {
             token?.githubUsername ??
             ((user as unknown as Record<string, unknown>)?.githubUsername as string | undefined) ??
             '';
+          // The identity fields founder recognition is allowed to read. The
+          // display NAME is deliberately not one of them: whoever signs in
+          // chooses it freely, so it is presentation, never authority.
+          session.user.provider = token?.provider ?? '';
+          session.user.providerAccountId = token?.providerAccountId ?? '';
+          session.user.emailVerified = token?.emailVerified === true;
         }
         session.accessToken = token?.accessToken;
         session.githubConnected = token?.provider === 'github';

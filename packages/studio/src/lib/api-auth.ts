@@ -47,6 +47,9 @@ export async function getSession() {
       email: token.email ?? null,
       image: token.picture ?? null,
       githubUsername: (token.githubUsername as string) ?? '',
+      provider: token.provider ?? '',
+      providerAccountId: token.providerAccountId ?? '',
+      emailVerified: token.emailVerified === true,
     },
     // Use actual JWT expiry (token.exp is Unix seconds); fall back to 30 days
     // only when the claim is absent so we don't extend a near-expiry token.
@@ -84,6 +87,9 @@ export async function requireAuth(request?: Request) {
           email: '',
           image: null,
           githubUsername: '',
+          provider: '',
+          providerAccountId: '',
+          emailVerified: false,
         },
       };
     }
@@ -170,6 +176,13 @@ export async function requireAuthOrApiKey(request: Request) {
         email: u.email ?? null,
         image: u.image ?? null,
         githubUsername: '',
+        // An API key is a bearer token, not a sign-in: it carries no provider
+        // account id and no verified-email assertion, so an API-key caller is
+        // never the founder. Founder-only surfaces need the founder's own
+        // OAuth session.
+        provider: '',
+        providerAccountId: '',
+        emailVerified: false,
       },
     };
   }

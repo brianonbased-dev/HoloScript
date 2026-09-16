@@ -418,10 +418,13 @@ async function executeOrchestratorTool(
     return { tool: name, success: false, data, error: errorMsg };
   }
 
-  // Doors audit 2026-09-15: knowledge rows reach the public Studio session's
-  // model, which relays them to the user. Outside the founder session the
+  // Doors audit 2026-09-15, round 6: every answer from this service reaches the
+  // public Studio session's model, which relays it to the user. The cut cannot
+  // be scoped to knowledge_query — mcp_call_tool is a wildcard onto any
+  // non-reserved tool behind the same service, and its answer is judged by that
+  // service's own agent, not by ours. Outside a verified founder session the
   // reader is never known to have paid, so premium rows go out as teasers.
-  if (name === 'knowledge_query' && context.allowFounderWorkspace !== true) {
+  if (context.allowFounderWorkspace !== true) {
     data = hidePremiumRowsDeep(data);
   }
 
