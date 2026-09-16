@@ -124,6 +124,89 @@ export async function resolveHoloMeshCaller(req: Request): Promise<HoloMeshCalle
   };
 }
 
+export type TeamMembership =
+  | { ok: true }
+  | { ok: false; status: 403 | 502; error: string };
+
+/** One row of a team's member list, in either spelling mcp-server may use. */
+interface TeamMemberRow {
+  agentId?: unknown;
+  agent_id?: unknown;
+}
+
+function memberRowsFrom(payload: unknown): TeamMemberRow[] | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const body = payload as { members?: unknown; team?: { members?: unknown } };
+  const rows = Array.isArray(body.members)
+    ? body.members
+    : Array.isArray(body.team?.members)
+      ? body.team.members
+      : null;
+  return rows as TeamMemberRow[] | null;
+}
+
+/**
+ * Is this caller a member of this team, according to mcp-server?
+ *
+ * Asked UNDER THE CALLER'S OWN credential, never ours. That matters twice: the
+ * member list is itself a team-scoped read (`board:read`), so borrowing our key
+ * would both answer for a stranger and let our own service identity stand in
+ * for theirs — the same substitution `resolveHoloMeshCaller` refuses.
+ *
+ * Fails closed in every direction it cannot see. An upstream that refuses the
+ * caller's key is "not a member" (403); an upstream that errors, times out, or
+ * returns something with no member list in it is 502, NOT a pass. A membership
+ * check that answers "allow" when it could not reach the truth is not a check.
+ */
+export async function callerIsTeamMember(
+  req: Request,
+  teamId: string,
+  agentId: string
+): Promise<TeamMembership> {
+  const credential = callerCredentialHeaders(req);
+  if (!credential) return { ok: false, status: 403, error: 'You are not a member of this team.' };
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(
+      `${BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/members`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...credential },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
+      }
+    );
+  } catch {
+    return { ok: false, status: 502, error: 'Could not check your membership of this team.' };
+  }
+
+  if (upstream.status === 401 || upstream.status === 403 || upstream.status === 404) {
+    return { ok: false, status: 403, error: 'You are not a member of this team.' };
+  }
+  if (!upstream.ok) {
+    return { ok: false, status: 502, error: 'Could not check your membership of this team.' };
+  }
+
+  let payload: unknown;
+  try {
+    payload = await upstream.json();
+  } catch {
+    return { ok: false, status: 502, error: 'Could not check your membership of this team.' };
+  }
+
+  const rows = memberRowsFrom(payload);
+  if (!rows) {
+    return { ok: false, status: 502, error: 'Could not check your membership of this team.' };
+  }
+
+  const isMember = rows.some((row) => {
+    const id = typeof row?.agentId === 'string' ? row.agentId : row?.agent_id;
+    return typeof id === 'string' && id === agentId;
+  });
+  return isMember ? { ok: true } : { ok: false, status: 403, error: 'You are not a member of this team.' };
+}
+
 /**
  * Proxy a request to the HoloMesh API on the MCP server.
  * Forwards auth headers, x-payment headers, query params, and body.
