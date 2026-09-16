@@ -1,4 +1,12 @@
+// `/learn` redirected to `/examples`, which has no page of its own — only
+// `/examples/no-app-webxr`. That was invisible until 2026-09-16 because the
+// root catch-all answered `/examples` with HTTP 200 and ~54KB of the industry
+// portal, so the redirect appeared to work. With the catch-all gone, `/learn`
+// would have redirected into a 404.
+//
+// It now points at `/docs`, the page that says where each thing is. Regenerate:
+// pnpm --filter @holoscript/studio holo:build
 @page {
   route: "/learn"
-  redirect: "/examples"
+  redirect: "/docs"
 }

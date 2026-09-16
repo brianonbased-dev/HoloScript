@@ -1,15 +1,25 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState } from 'react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
 import { ExportPipelinePanel } from '@/components/export/ExportPipelinePanel';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
-import { Layers, Settings, Box, Activity, GripVertical } from 'lucide-react';
+import { Settings, Box, Activity, GripVertical } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
+import type { IndustryVertical } from '@/lib/industry-verticals';
+
+/**
+ * The industry portal body.
+ *
+ * Unchanged from `(industry)/[vertical]/page.tsx` apart from two things: the
+ * vertical arrives as a prop from the server component that validated it
+ * (instead of `useParams`, which could not refuse an unknown value), and the
+ * display copy comes from the declared list rather than a local map that only
+ * covered five of the eleven verticals the app can navigate to.
+ */
 function PanelSplitter({
   onDrag,
   orientation = 'vertical',
@@ -75,28 +85,11 @@ function ViewportSkeleton() {
   );
 }
 
-// Map defining specific industry templates/configurations
-const V_CONFIG: Record<string, { title: string; desc: string }> = {
-  healthcare: {
-    title: 'Medical Simulation',
-    desc: 'DICOM import, anatomical materials, compliance',
-  },
-  architecture: { title: 'Architectural Viz', desc: 'BIM import, lighting, measurement tools' },
-  gaming: { title: 'Game Development', desc: 'Level design, optimized export, navmesh' },
-  film: { title: 'Virtual Production', desc: 'Camera sequence, DMX, live data sync' },
-  manufacturing: { title: 'Digital Twin', desc: 'CAD import, physics simulation, SCADA sync' },
-};
-
-export default function IndustryPortalPage() {
-  const params = useParams();
-  const vertical = typeof params.vertical === 'string' ? params.vertical : 'industry';
-  const config = V_CONFIG[vertical] || {
-    title: 'Professional Environment',
-    desc: 'Tailored workflow tools',
-  };
+export function IndustryPortal({ vertical }: { vertical: IndustryVertical }) {
+  const { slug, title, description } = vertical;
 
   // Use a targeted composition if it exists, otherwise fallback to a generic industry header
-  const composition = useHoloComposition(`/api/surface/industry/${vertical}`);
+  const composition = useHoloComposition(`/api/surface/industry/${slug}`);
 
   const [leftPanelW, setLeftPanelW] = useState(300);
   const [rightPanelW, setRightPanelW] = useState(300);
@@ -108,8 +101,8 @@ export default function IndustryPortalPage() {
       {/* ── Industry Portal Native Header (HoloClaw Pattern) ── */}
       <div className="h-16 border-b border-studio-border bg-studio-panel/50 px-4 flex items-center justify-between">
         <div className="flex flex-col">
-          <h2 className="text-sm font-semibold text-studio-accent">{config.title}</h2>
-          <span className="text-xs text-studio-muted">{config.desc}</span>
+          <h2 className="text-sm font-semibold text-studio-accent">{title}</h2>
+          <span className="text-xs text-studio-muted">{description}</span>
         </div>
         {!composition.loading && !composition.error && (
           <div className="h-full w-64">
@@ -155,7 +148,7 @@ export default function IndustryPortalPage() {
 
           <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs text-studio-muted backdrop-blur">
             <Activity className="h-3.5 w-3.5 text-studio-accent" />
-            {config.title} Active Context
+            {title} Active Context
           </div>
         </div>
         <PanelSplitter
@@ -180,7 +173,7 @@ export default function IndustryPortalPage() {
                 <span className="text-studio-accent text-[10px]">Strict</span>
               </h3>
               <p className="text-[11px] text-studio-muted">
-                Domain rules for {vertical} are being actively enforced.
+                Domain rules for {slug} are being actively enforced.
               </p>
             </div>
 
