@@ -189,16 +189,24 @@ async function provisionApiKey(
 /**
  * One rule for who the founder is, shared with the rest of Studio — this used
  * to keep its own copy of the list, including the generic display-name value.
- * Provisioning runs immediately after a GitHub sign-in, so this is a GitHub
- * session. The email is not offered here because provisioning carries no
- * verified-email assertion from the provider, and an unverified address proves
- * nothing.
+ *
+ * Gated on the NUMERIC account id alone, which is stricter than the shared rule
+ * allows elsewhere, and deliberately so. This is the branch that mints a
+ * FOUNDER-TIER orchestrator key using the master key, so it is the most
+ * expensive thing a wrong answer here can buy. The login branch is a transition
+ * affordance for sessions already signed in; it has no business minting
+ * credentials, and a caller that cannot produce the id simply provisions as a
+ * normal user.
+ *
+ * An email is not offered here either: provisioning carries no verified-email
+ * assertion from the provider.
  */
 function isFounderIdentity(input: ProvisionInput): boolean {
+  const accountId = input.githubAccountId?.trim();
+  if (!accountId) return false;
   return isFounderWorkspaceIdentity({
     provider: 'github',
-    providerAccountId: input.githubAccountId,
-    githubUsername: input.githubUsername,
+    providerAccountId: accountId,
   });
 }
 

@@ -28,7 +28,6 @@ import {
   type StudioNavigationId,
   type StudioNavigationItemDefinition,
 } from '@/lib/studio/surfaceClassification';
-import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 
 const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
   // A4 primary nav (7 destinations)
@@ -102,7 +101,9 @@ function SectionDivider() {
 export function GlobalNavigation() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isFounder = isFounderWorkspaceIdentity(session?.user);
+  // Server-decided flag: see the session callback in lib/auth.ts. The browser
+  // cannot read STUDIO_FOUNDER_*, so it must not try to answer this itself.
+  const isFounder = session?.user?.isFounder === true;
   // Operations (/operations) is founder-gated; action endpoints enforce
   // requireFounder server-side — nav hides the item for non-founders.
   const primaryItems = isFounder

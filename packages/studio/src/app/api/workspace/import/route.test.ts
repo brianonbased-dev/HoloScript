@@ -34,6 +34,10 @@ let tempRoot: string;
 let savedWorkspaceRoot: string | undefined;
 let savedGitConfigCount: string | undefined;
 
+/** The founder's public GitHub numeric account id, as a deployment configures it. */
+const FOUNDER_GITHUB_ID = '225674784';
+const FOUNDER_LOGIN = 'brianonbased-dev';
+
 function importRequest(body: unknown): NextRequest {
   return new NextRequest('http://localhost/api/workspace/import', {
     method: 'POST',
@@ -81,6 +85,10 @@ describe('/api/workspace/import route', () => {
       user: { id: 'agent', email: 'agent@example.test', githubUsername: 'agent' },
       accessToken: 'gho_private_token',
     } as Session);
+    // Founder recognition is configuration-driven and recognises nobody by
+    // default, so the founder bypass below has to state its own configuration.
+    vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', FOUNDER_GITHUB_ID);
+    vi.stubEnv('STUDIO_FOUNDER_GITHUB_USERS', FOUNDER_LOGIN);
     savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
     savedGitConfigCount = process.env.GIT_CONFIG_COUNT;
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-import-test-'));
@@ -101,6 +109,7 @@ describe('/api/workspace/import route', () => {
       process.env.GIT_CONFIG_COUNT = savedGitConfigCount;
     }
     fs.rmSync(tempRoot, { recursive: true, force: true });
+    vi.unstubAllEnvs();
   });
 
   it('clones private GitHub repos with argv args and token-free command arguments', async () => {
@@ -262,7 +271,12 @@ describe('/api/workspace/import route', () => {
       user: {
         id: 'founder',
         email: 'brianonbased@gmail.com',
-        githubUsername: 'brianonbased-dev',
+        githubUsername: FOUNDER_LOGIN,
+        // The route must thread the PROVIDER fields through to the shared rule.
+        // Without them the rule has nothing it is allowed to match on and the
+        // bypass is permanently dead — the regression this guards.
+        provider: 'github',
+        providerAccountId: FOUNDER_GITHUB_ID,
       },
       accessToken: 'gho_private_token',
     } as Session);
@@ -278,6 +292,29 @@ describe('/api/workspace/import route', () => {
     expect(body.repoUrl).toBe('https://github.com/brianonbased-dev/ai-ecosystem.git');
     const cloneArgs = execFileMock.mock.calls[0]?.[1] as string[];
     expect(cloneArgs).toContain('https://github.com/brianonbased-dev/ai-ecosystem.git');
+  });
+
+  it('does not bypass consent for a look-alike session without the provider fields', async () => {
+    // Same login and email as the founder, but signed in through Google, so the
+    // GitHub login is unowned and the numeric id is absent. Whoever this is,
+    // they give explicit repo consent like everyone else.
+    vi.mocked(getServerSession).mockResolvedValueOnce({
+      user: {
+        id: 'not-the-founder',
+        name: FOUNDER_LOGIN,
+        email: 'brianonbased@gmail.com',
+        githubUsername: FOUNDER_LOGIN,
+        provider: 'google',
+      },
+      accessToken: 'gho_private_token',
+    } as Session);
+
+    const res = await POST(
+      importRequest({ repoUrl: 'https://github.com/brianonbased-dev/ai-ecosystem.git' })
+    );
+
+    expect(res.status).toBe(403);
+    expect(execFileMock).not.toHaveBeenCalled();
   });
 
   it('rejects non-GitHub and decorated repo URLs before invoking git', async () => {

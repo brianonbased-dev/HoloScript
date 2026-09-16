@@ -56,9 +56,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Provisioning creates or connects a GitHub repo and can mint a founder-tier
+  // orchestrator key, so the GitHub identity must come from the OAuth profile.
+  // This used to pass `session.user.name || session.user.id` into a field
+  // called `githubUsername` — a DISPLAY NAME, chosen freely by whoever signs
+  // in, standing in for a login. That is what let a typed name reach the
+  // founder branch. Nothing here falls back to the name.
+  const signedInWithGitHub = session.user.provider === 'github';
+  const githubLogin = signedInWithGitHub ? (session.user.githubUsername ?? '').trim() : '';
+  const githubAccountId = signedInWithGitHub ? (session.user.providerAccountId ?? '').trim() : '';
+
+  if (!githubLogin) {
+    return NextResponse.json(
+      {
+        error:
+          'Provisioning needs your GitHub login. Sign in with GitHub, then try again.',
+      },
+      { status: 400 }
+    );
+  }
+
   const result = await provisionUser({
     githubAccessToken: accessToken,
-    githubUsername: session.user.name || session.user.id,
+    githubUsername: githubLogin,
+    githubAccountId,
     email: session.user.email || '',
     repoUrl: body.repoUrl,
     projectName: body.projectName,

@@ -42,6 +42,7 @@ function mockFounderGit(): void {
 
 describe('provisionUser founder bootstrap', () => {
   const savedFounderUsers = process.env.STUDIO_FOUNDER_GITHUB_USERS;
+  const savedFounderIds = process.env.STUDIO_FOUNDER_GITHUB_IDS;
   const savedMasterKey = process.env.HOLOSCRIPT_API_KEY;
   const savedHoloMeshKey = process.env.HOLOMESH_API_KEY;
   const savedMcpServerUrl = process.env.MCP_SERVER_URL;
@@ -51,6 +52,9 @@ describe('provisionUser founder bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.STUDIO_FOUNDER_GITHUB_USERS = 'brianonbased-dev';
+    // The founder branch here mints a founder-tier key with the master key, so
+    // it is gated on the NUMERIC account id and the login alone will not do.
+    process.env.STUDIO_FOUNDER_GITHUB_IDS = '225674784';
     process.env.HOLOSCRIPT_API_KEY = 'master-key';
     process.env.HOLOMESH_API_KEY = 'holomesh-publish-key';
     process.env.MCP_SERVER_URL = 'https://mcp.test';
@@ -129,6 +133,11 @@ describe('provisionUser founder bootstrap', () => {
     } else {
       process.env.STUDIO_FOUNDER_GITHUB_USERS = savedFounderUsers;
     }
+    if (savedFounderIds === undefined) {
+      delete process.env.STUDIO_FOUNDER_GITHUB_IDS;
+    } else {
+      process.env.STUDIO_FOUNDER_GITHUB_IDS = savedFounderIds;
+    }
     if (savedMasterKey === undefined) {
       delete process.env.HOLOSCRIPT_API_KEY;
     } else {
@@ -147,10 +156,11 @@ describe('provisionUser founder bootstrap', () => {
     vi.unstubAllGlobals();
   });
 
-  it('maps the founder login to the existing ai-ecosystem workspace without scaffolding', async () => {
+  it('maps the founder account id to the existing ai-ecosystem workspace without scaffolding', async () => {
     const result = await provisionUser({
       githubAccessToken: 'gho_founder_secret_token',
       githubUsername: 'brianonbased-dev',
+      githubAccountId: '225674784',
       email: 'brianonbased@gmail.com',
       approvedRepos: [],
       approvedScaffold: true,
@@ -198,6 +208,50 @@ describe('provisionUser founder bootstrap', () => {
       currentCommit: 'abc123def4567890abc123def4567890abc123de',
     });
     expect(JSON.stringify(payload)).not.toContain('gho_founder_secret_token');
+  });
+
+  it('never mints a founder-tier key from a login alone, without the numeric id', async () => {
+    // This is the path that spends the master key. Before this round the caller
+    // fed `session.user.name` into the field called `githubUsername`, so a
+    // display name anyone could type reached this branch. The login is no
+    // longer enough on its own here: the numeric account id is required.
+    const result = await provisionUser({
+      githubAccessToken: 'gho_not_the_founder',
+      githubUsername: 'brianonbased-dev',
+      email: 'brianonbased@gmail.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.steps.map((step) => step.name)).not.toContain('link-founder-workspace');
+    expect(result.user?.tier).not.toBe('founder');
+
+    const fetchStub = vi.mocked(fetch);
+    const founderTierCalls = fetchStub.mock.calls.filter(([, init]) =>
+      String((init as RequestInit | undefined)?.body ?? '').includes('"tier":"founder"')
+    );
+    expect(founderTierCalls).toHaveLength(0);
+  });
+
+  it('still recognises nobody as founder when the numeric id is not configured', async () => {
+    delete process.env.STUDIO_FOUNDER_GITHUB_IDS;
+
+    const result = await provisionUser({
+      githubAccessToken: 'gho_not_the_founder',
+      githubUsername: 'brianonbased-dev',
+      githubAccountId: '225674784',
+      email: 'brianonbased@gmail.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.steps.map((step) => step.name)).not.toContain('link-founder-workspace');
   });
 
   it('seeds a template-shaped account workspace repo for a Studio user', async () => {

@@ -18,9 +18,13 @@ export const DEFAULT_STUDIO_WORKSPACE_ID = 'studio-workspace';
  *   STUDIO_FOUNDER_GITHUB_IDS    GitHub NUMERIC account ids. Immutable and
  *                                never reissued, so this is the strongest
  *                                signal and the one to prefer.
- *   STUDIO_FOUNDER_EMAILS        Email addresses, which count only when the
- *                                provider itself asserted the address is
- *                                verified (Google sends `email_verified`).
+ *   STUDIO_FOUNDER_GOOGLE_IDS    Google account ids — the `sub` claim, which is
+ *                                Google's own immutable per-account subject.
+ *                                Same strength as the GitHub numeric id, for
+ *                                the sign-in the founder actually uses on
+ *                                Google.
+ *   STUDIO_FOUNDER_EMAILS        Email addresses, matched only against a GOOGLE
+ *                                session (see the transition note below).
  *   STUDIO_FOUNDER_GITHUB_USERS  GitHub LOGINS, matched only against the login
  *                                of a session that actually signed in through
  *                                GitHub — holding the login means controlling
@@ -30,6 +34,26 @@ export const DEFAULT_STUDIO_WORKSPACE_ID = 'studio-workspace';
  *
  * Nothing is recognised by default. With none of these set, no session is the
  * founder and the first check says so in the log.
+ *
+ * THE ALREADY-ISSUED-TOKEN WINDOW. Sessions are JWTs with a 30-day life, and a
+ * token only gains a field when it is minted. `providerAccountId` and
+ * `emailVerified` are both new here, so NO token issued before this deploy
+ * carries either one. Old tokens do carry `provider`, `email` and the GitHub
+ * login. So recognition must not depend solely on the new fields or the founder
+ * is signed out of his own surfaces until his token expires:
+ *
+ *   - a GitHub session keeps working through STUDIO_FOUNDER_GITHUB_USERS;
+ *   - a GOOGLE session keeps working through STUDIO_FOUNDER_EMAILS, which is
+ *     why the email branch accepts `emailVerified` being ABSENT — absent means
+ *     "minted before the field existed", not "the provider said no". An
+ *     explicit `false` is still a refusal, so the API-key and benchmark paths
+ *     (which set it false on purpose) stay non-founder.
+ *
+ * The email branch is restricted to Google because Google asserts
+ * `email_verified` on its own accounts and does not let a holder set an
+ * arbitrary unverified address; GitHub sends no such claim and its profile
+ * email can be anything, which is why a GitHub session is never recognised by
+ * email at all.
  *
  * This tightens how founder authority is RECOGNISED. It does not change what
  * the founder is allowed to do.
@@ -45,7 +69,15 @@ export interface WorkspaceIdentityInput {
   provider?: string | null;
   /** The provider's own immutable account id: GitHub's numeric id, Google's `sub`. */
   providerAccountId?: string | null;
-  /** True only when the provider asserted that this email address is verified. */
+  /**
+   * What the provider said about this email address.
+   *   true      — the provider asserted it is verified.
+   *   false     — explicitly not verified, or a non-sign-in caller (API key,
+   *               benchmark header) that must never be the founder.
+   *   undefined — unknown, because the token was minted before this field
+   *               existed. Treated as "unknown", not as "no"; see the
+   *               already-issued-token window above.
+   */
   emailVerified?: boolean | null;
 }
 
@@ -59,8 +91,9 @@ export interface ResolveWorkspaceIdOptions {
 export const FOUNDER_RECOGNITION_UNCONFIGURED_MESSAGE =
   '[founder-identity] No founder is configured, so no sign-in will be treated as the founder ' +
   'and the founder-only surfaces stay closed. Set STUDIO_FOUNDER_GITHUB_IDS to the founder ' +
-  'GitHub numeric account id (preferred), and/or STUDIO_FOUNDER_EMAILS to a provider-verified ' +
-  'email address, and/or STUDIO_FOUNDER_GITHUB_USERS to the founder GitHub login.';
+  'GitHub numeric account id (preferred), and/or STUDIO_FOUNDER_GOOGLE_IDS to the founder ' +
+  'Google account id, and/or STUDIO_FOUNDER_EMAILS to the founder Google address, and/or ' +
+  'STUDIO_FOUNDER_GITHUB_USERS to the founder GitHub login.';
 
 function configuredValues(variableName: string): Set<string> {
   const raw = typeof process !== 'undefined' ? (process.env[variableName] ?? '') : '';
@@ -75,7 +108,9 @@ function configuredValues(variableName: string): Set<string> {
 export interface FounderRecognitionConfig {
   /** GitHub numeric account ids that are the founder. */
   githubIds: Set<string>;
-  /** Email addresses that are the founder, once the provider says they are verified. */
+  /** Google account ids (`sub`) that are the founder. */
+  googleIds: Set<string>;
+  /** Email addresses that are the founder, for a session signed in through Google. */
   emails: Set<string>;
   /** GitHub logins that are the founder, for a session signed in through GitHub. */
   githubLogins: Set<string>;
@@ -86,13 +121,16 @@ export interface FounderRecognitionConfig {
 /** The configured founder identifiers, read fresh so a deploy-time change takes effect. */
 export function founderRecognitionConfig(): FounderRecognitionConfig {
   const githubIds = configuredValues('STUDIO_FOUNDER_GITHUB_IDS');
+  const googleIds = configuredValues('STUDIO_FOUNDER_GOOGLE_IDS');
   const emails = configuredValues('STUDIO_FOUNDER_EMAILS');
   const githubLogins = configuredValues('STUDIO_FOUNDER_GITHUB_USERS');
   return {
     githubIds,
+    googleIds,
     emails,
     githubLogins,
-    configured: githubIds.size > 0 || emails.size > 0 || githubLogins.size > 0,
+    configured:
+      githubIds.size > 0 || googleIds.size > 0 || emails.size > 0 || githubLogins.size > 0,
   };
 }
 
@@ -117,17 +155,27 @@ export function isFounderWorkspaceIdentity(identity?: WorkspaceIdentityInput | n
     return false;
   }
 
-  const signedInWithGitHub = normalized(identity.provider) === 'github';
+  const provider = normalized(identity.provider);
+  const signedInWithGitHub = provider === 'github';
+  const signedInWithGoogle = provider === 'google';
 
-  // 1. The GitHub numeric account id. Immutable, never reissued.
+  // 1. The provider's OWN immutable account id — GitHub's numeric id, Google's
+  //    `sub`. Nobody can choose one for themselves and they are never reissued,
+  //    so this is the branch to configure and the only one worth keeping long
+  //    term. Each id is matched only against the provider it belongs to.
   const accountId = normalized(identity.providerAccountId);
-  if (signedInWithGitHub && accountId && config.githubIds.has(accountId)) {
-    return true;
+  if (accountId) {
+    if (signedInWithGitHub && config.githubIds.has(accountId)) return true;
+    if (signedInWithGoogle && config.googleIds.has(accountId)) return true;
   }
 
-  // 2. An email address the provider itself said is verified. An unverified
-  //    address proves nothing: a sign-up form accepts any string.
-  if (identity.emailVerified === true) {
+  // 2. A configured email, and only from a GOOGLE sign-in, where the address
+  //    comes out of Google's own ID token. An explicit `false` is a refusal —
+  //    the API-key and benchmark callers set it false precisely so they can
+  //    never be the founder. ABSENT is not a refusal: it means the token was
+  //    minted before this field existed, and dropping those would sign the
+  //    founder out of his own surfaces for the rest of the 30-day JWT window.
+  if (signedInWithGoogle && identity.emailVerified !== false) {
     const email = normalized(identity.email);
     if (email && config.emails.has(email)) {
       return true;
@@ -135,7 +183,8 @@ export function isFounderWorkspaceIdentity(identity?: WorkspaceIdentityInput | n
   }
 
   // 3. The GitHub login, and only from a session that signed in through GitHub,
-  //    so a Google sign-in cannot present someone else's login.
+  //    so a Google sign-in cannot present someone else's login. This is what
+  //    carries GitHub sessions minted before `providerAccountId` existed.
   const login = normalized(identity.githubUsername);
   if (signedInWithGitHub && login && config.githubLogins.has(login)) {
     return true;

@@ -40,16 +40,28 @@ export async function getSession() {
   });
   if (!token) return null;
 
+  // The identity fields founder recognition is allowed to read. The display
+  // NAME is deliberately absent: whoever signs in chooses it freely.
+  const identity = {
+    id: token.sub ?? '',
+    name: token.name ?? null,
+    email: token.email ?? null,
+    image: token.picture ?? null,
+    githubUsername: (token.githubUsername as string) ?? '',
+    provider: token.provider ?? '',
+    providerAccountId: token.providerAccountId ?? '',
+    // Tri-state on purpose. Collapsing an absent claim to `false` would turn
+    // "this token predates the field" into "the provider said no", which is
+    // what would sign the founder's existing Google session out at deploy.
+    emailVerified: typeof token.emailVerified === 'boolean' ? token.emailVerified : undefined,
+  };
+
   return {
     user: {
-      id: token.sub ?? '',
-      name: token.name ?? null,
-      email: token.email ?? null,
-      image: token.picture ?? null,
-      githubUsername: (token.githubUsername as string) ?? '',
-      provider: token.provider ?? '',
-      providerAccountId: token.providerAccountId ?? '',
-      emailVerified: token.emailVerified === true,
+      ...identity,
+      // Same server-side answer the NextAuth session callback produces, so a
+      // route reached through this fallback path agrees with one that was not.
+      isFounder: isFounderWorkspaceIdentity(identity),
     },
     // Use actual JWT expiry (token.exp is Unix seconds); fall back to 30 days
     // only when the claim is absent so we don't extend a near-expiry token.
@@ -87,9 +99,12 @@ export async function requireAuth(request?: Request) {
           email: '',
           image: null,
           githubUsername: '',
+          // A benchmark header is not a sign-in. `false` here is an explicit
+          // refusal, not an unknown, so this caller can never be the founder.
           provider: '',
           providerAccountId: '',
           emailVerified: false,
+          isFounder: false,
         },
       };
     }
@@ -183,6 +198,7 @@ export async function requireAuthOrApiKey(request: Request) {
         provider: '',
         providerAccountId: '',
         emailVerified: false,
+        isFounder: false,
       },
     };
   }
