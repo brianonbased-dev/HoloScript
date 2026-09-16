@@ -260,3 +260,75 @@ describe('getGitHubToken provider scoping', () => {
     await expect(getGitHubToken(req, { userOnly: true })).resolves.toBeNull();
   });
 });
+
+/**
+ * The refusal, proved with the server-token fall-through OPEN.
+ *
+ * The cases above run under `NODE_ENV=production` with every server-token name
+ * deleted, so the fall-through is already shut there and they would stay green
+ * even if the refusal returned nothing at all. Here the fallback is allowed AND
+ * a server credential is present, so anything that falls past the refusal comes
+ * back holding THAT token and the expectation goes red.
+ */
+describe('getGitHubToken refuses without lending out the server token', () => {
+  const envSnapshot = { ...process.env };
+  const SERVER_TOKEN = 'ghp_server_token_that_must_not_be_lent_out';
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env = { ...envSnapshot };
+    process.env.AUTH_SECRET = 'test-auth-secret-for-refusal-scoping';
+    // The fall-through is deliberately OPEN: not production, and a real server
+    // credential sitting in the name the helper prefers.
+    process.env.NODE_ENV = 'development';
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.PAT_TOKEN;
+    delete process.env.STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
+    delete process.env.ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
+    process.env.PERSONAL_ACCESS_TOKEN = SERVER_TOKEN;
+    mocks.getToken.mockImplementation(async () => null);
+    mocks.getServerSession.mockImplementation(async () => null);
+  });
+
+  it('control: the fall-through really is open here — signed out gets the server token', async () => {
+    // Without this, every refusal below could be an empty environment rather
+    // than a refusal, and all of them would pass while proving nothing.
+    await expect(getGitHubToken(githubRequest())).resolves.toBe(SERVER_TOKEN);
+  });
+
+  it('a session that is not GitHub gets null, never the server token', async () => {
+    mocks.getServerSession.mockImplementation(async () => ({
+      accessToken: 'ya29-google-access-token-not-for-github',
+      user: { id: SESSION_USER, provider: 'google' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBeNull();
+  });
+
+  it('a session carrying no identity at all gets null, never the server token', async () => {
+    // A credential with nothing saying whose it is cannot be placed as GitHub,
+    // so it is refused — and a refused caller does not get to borrow ours.
+    mocks.getServerSession.mockImplementation(async () => ({ accessToken: 'test-token' }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBeNull();
+  });
+
+  it('positive control: a real GitHub session still resolves to its own token', async () => {
+    mocks.getServerSession.mockImplementation(async () => ({
+      accessToken: 'gho_github_server_session_token',
+      user: { id: SESSION_USER, provider: 'github' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBe('gho_github_server_session_token');
+  });
+
+  it('a GitHub session with no token of its own still reaches the server token', async () => {
+    // Not a refusal: the right audience, simply without a credential. Closing
+    // this would silently refuse a caller the fallback exists to serve.
+    mocks.getServerSession.mockImplementation(async () => ({
+      user: { id: SESSION_USER, provider: 'github' },
+    }));
+
+    await expect(getGitHubToken(githubRequest())).resolves.toBe(SERVER_TOKEN);
+  });
+});

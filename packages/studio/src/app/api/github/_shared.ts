@@ -163,14 +163,27 @@ export async function getGitHubToken(
   const { getServerSession } = await import('next-auth');
   const { authOptions } = await import('@/lib/auth');
   const session = await getServerSession(authOptions);
-  if (
-    session?.accessToken &&
-    signedInWithGitHub({
+  if (session) {
+    const isGitHubSession = signedInWithGitHub({
       provider: session.user?.provider,
       githubUsername: session.user?.githubUsername,
-    })
-  ) {
-    return session.accessToken;
+    });
+
+    if (isGitHubSession && session.accessToken) {
+      return session.accessToken;
+    }
+
+    // A caller we just REFUSED must not then be served by OUR credential.
+    // Falling through from here reached the server token below, so one request
+    // got two new answers decided by an env var alone: a 401 in production, and
+    // our PAT acting for that caller outside it — on a repo path they supply.
+    //
+    // Signed OUT is a different case and still falls through: nobody was
+    // refused, and the server token is what local development and the CLI run
+    // on. A GitHub session merely missing a token of its own also still falls
+    // through — it is the right audience, just without a credential, and
+    // refusing it here would silently lock out a caller the fallback exists for.
+    if (!isGitHubSession) return null;
   }
 
   if (options.userOnly) return null;
