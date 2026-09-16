@@ -196,9 +196,126 @@ describe('the allowlist keeps the signed-out site working', () => {
     expect(response.status).toBe(401);
   });
 
+  it('pins a verb on every public entry, so a new verb inherits nothing', () => {
+    // An entry with no `methods` covers EVERY verb, including one added to the
+    // route tomorrow. A route that is public to read is not thereby public to
+    // write, and nobody revisits this file when they add a POST.
+    const openToAllVerbs = PUBLIC_API_PATHS.filter((rule) => !rule.methods?.length).map(
+      (rule) => rule.pattern
+    );
+
+    expect(openToAllVerbs).toEqual([]);
+  });
+
   it('documents why each allowlisted path is reachable', () => {
     for (const rule of [...PUBLIC_API_PATHS, ...CALLER_CREDENTIAL_API_PATHS]) {
       expect.soft(rule.why.trim().length, rule.pattern).toBeGreaterThan(30);
     }
+  });
+});
+
+/**
+ * What the signed-out site actually needs — written out by hand, on purpose.
+ *
+ * Everything above derives its cases FROM the allowlist, which means it can
+ * only ever check that the allowlist agrees with itself. Proven on 2026-09-16:
+ * a reviewer deleted the `/api/health` entry outright and the suite stayed
+ * 11/11 green, because deleting an entry also deletes the test for it. A
+ * regression test that vanishes along with the thing it guards is not a test.
+ *
+ * So this list is LITERAL and independent. Each row is a real call in a page or
+ * component a signed-out visitor can open, with the file and line beside it so
+ * the next reader can re-derive the claim instead of trusting it. Deleting an
+ * allowlist entry that the site depends on now turns this file red and names
+ * the call site that broke.
+ *
+ * Adding a row here is a claim that a signed-out visitor makes this call. If a
+ * row is wrong, fix the row — do not widen the allowlist to satisfy it.
+ */
+const SIGNED_OUT_UI_DEPENDENCIES: ReadonlyArray<{
+  method: string;
+  path: string;
+  callSite: string;
+}> = [
+  // Sign-in itself.
+  { method: 'GET', path: '/api/auth/session', callSite: 'NextAuth; every page via SessionProvider' },
+  { method: 'GET', path: '/api/auth/csrf', callSite: 'NextAuth sign-in form' },
+
+  // Liveness and discovery. `/api/health` is the entry the reviewer deleted.
+  { method: 'GET', path: '/api/health', callSite: 'next.config.js rewrite of /health; Railway + external monitors' },
+  { method: 'GET', path: '/api/docs', callSite: 'agents reading how to authenticate before they can' },
+
+  // Landing page, first paint, no session.
+  { method: 'POST', path: '/api/manufacturing/mesh', callSite: 'components/landing/ParametricPartDemo.tsx:121 via app/page.tsx:438' },
+  { method: 'POST', path: '/api/manufacturing/stl', callSite: 'components/landing/ParametricPartDemo.tsx:153' },
+  { method: 'GET', path: '/api/feed', callSite: 'signed-out activity feed' },
+  { method: 'GET', path: '/api/examples', callSite: 'landing + editor example library' },
+
+  // Public share viewer at /shared/[id].
+  { method: 'GET', path: '/api/share/abc12345', callSite: 'app/shared/[id]/page.tsx:19' },
+  { method: 'POST', path: '/api/share', callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:963' },
+  { method: 'GET', path: '/api/examples/hello-world', callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:642' },
+  { method: 'GET', path: '/api/portable-mind/agent-abc', callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:691' },
+
+  // Headset proof capture, from pages with no sign-in.
+  { method: 'POST', path: '/api/quest-proof', callSite: 'ImmersiveViewer.client.tsx:597; components/quest/QuestProbe.tsx:127' },
+  { method: 'GET', path: '/api/quest-proof', callSite: 'ImmersiveViewer.client.tsx:617; app/quest-probe/page.tsx:249 (?record=1 fallback)' },
+
+  // Signed-out editor at /create.
+  { method: 'POST', path: '/api/preview', callSite: 'app/create/page.tsx live preview compile' },
+  { method: 'GET', path: '/api/registry', callSite: 'components/registry/RegistryPanel.tsx:60 via app/create/page.tsx:276' },
+  { method: 'POST', path: '/api/registry/pack-abc', callSite: 'components/registry/RegistryPanel.tsx:87 download counter' },
+  { method: 'GET', path: '/api/asset-packs', callSite: 'editor asset-pack catalog' },
+  { method: 'GET', path: '/api/trait-registry', callSite: 'editor trait vocabulary' },
+  { method: 'GET', path: '/api/nodes', callSite: 'editor node-graph panel' },
+
+  // Public mesh catalogue pages.
+  { method: 'GET', path: '/api/holomesh/agents', callSite: 'app/agents/page.tsx:47; app/holomesh/page.tsx:68' },
+  { method: 'GET', path: '/api/holomesh/agent/agent-abc', callSite: 'app/agents/[id]/page.tsx:78' },
+  { method: 'GET', path: '/api/holomesh/agent/agent-abc/storefront', callSite: 'app/agents/[id]/storefront/page.tsx:51' },
+  { method: 'GET', path: '/api/holomesh/domains', callSite: 'app/holomesh/page.tsx:79' },
+  { method: 'GET', path: '/api/holomesh/team/discover', callSite: 'app/teams/page.tsx:88' },
+  { method: 'GET', path: '/api/holomesh/teams/leaderboard', callSite: 'app/holomesh/leaderboard/page.tsx:78' },
+  { method: 'GET', path: '/api/holomesh/feed', callSite: 'public mesh feed' },
+  { method: 'GET', path: '/api/holomesh/marketplace', callSite: 'public marketplace listing' },
+  { method: 'GET', path: '/api/holomesh/search', callSite: 'public mesh search' },
+
+  // Remaining signed-out pages.
+  { method: 'GET', path: '/api/conjecture/receipts', callSite: 'app/conjecture/receipts/page.tsx:52' },
+  { method: 'GET', path: '/api/training/stream', callSite: 'app/spectator/training/page.tsx:79 (EventSource, cannot send headers)' },
+];
+
+describe('the signed-out site keeps working, checked against a hand-written list', () => {
+  it('answers a visitor with no credential on every path the UI actually calls', async () => {
+    const refused: string[] = [];
+
+    for (const dependency of SIGNED_OUT_UI_DEPENDENCIES) {
+      const response = await anonymous(dependency.path, dependency.method);
+      if (response.status === 401) {
+        refused.push(`${dependency.method} ${dependency.path} — called by ${dependency.callSite}`);
+      }
+    }
+
+    // The failure message names the call site, so whoever broke it learns what
+    // went dark rather than just which string stopped matching.
+    expect(refused).toEqual([]);
+  });
+
+  it('is written out literally, not derived from the allowlist it checks', () => {
+    // If someone ever "simplifies" the list above into a map over
+    // PUBLIC_API_PATHS, this suite goes back to agreeing with itself and the
+    // deleted-entry hole reopens. These assertions make that refactor fail.
+    expect(SIGNED_OUT_UI_DEPENDENCIES.length).toBeGreaterThan(25);
+
+    for (const dependency of SIGNED_OUT_UI_DEPENDENCIES) {
+      expect.soft(dependency.path, 'concrete path, no wildcard').not.toMatch(/[*[\]]/);
+      expect.soft(dependency.callSite.trim().length, dependency.path).toBeGreaterThan(10);
+    }
+
+    const patterns = new Set(PUBLIC_API_PATHS.map((rule) => rule.pattern));
+    const literalPaths = SIGNED_OUT_UI_DEPENDENCIES.filter((d) => patterns.has(d.path));
+    // Some rows match an allowlist pattern verbatim; many must not, or the list
+    // is just the allowlist retyped and proves nothing new.
+    expect(literalPaths.length).toBeLessThan(SIGNED_OUT_UI_DEPENDENCIES.length);
   });
 });
