@@ -17,6 +17,23 @@ const MCP_EXTERNAL_URL = ENDPOINTS.MCP_ORCHESTRATOR;
 const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 const MCP_URL = process.env.MCP_HOLOSCRIPT_URL || 'https://mcp.holoscript.net';
 
+const MESH_KEY_HEADER = 'x-mcp-api-key';
+
+/**
+ * Onboarding that names the endpoints but not the credential sends an agent
+ * straight into a refusal it cannot diagnose (doors audit 2026-09-15). The
+ * mesh services read the key from `x-mcp-api-key` only.
+ */
+const AGENT_AUTH = {
+  header: MESH_KEY_HEADER,
+  value: '<your HoloMesh API key>',
+  required: true,
+  how: `Send your own key on every request as "${MESH_KEY_HEADER}: <your key>". You then run as yourself, and Studio's own key is never spent on your behalf.`,
+  without_a_key:
+    "Without a key, only a signed-in Studio browser session can reach the small set of tools Studio's own UI uses. Every other call is refused.",
+  bearer: `The Studio gateway also accepts "Authorization: Bearer <key>" and forwards it as ${MESH_KEY_HEADER}; the mesh services themselves read only ${MESH_KEY_HEADER}.`,
+};
+
 const HELLO_WORLD_SCENE = `scene HelloWorld {
   object Cube {
     position: [0, 1, 0]
@@ -113,10 +130,13 @@ export async function POST(_request: NextRequest) {
 
     first_scene: FIRST_SCENE_PROOF,
 
+    authentication: AGENT_AUTH,
+
     mcp_config: {
       studio: `${STUDIO_URL}/api/mcp/call`,
       tools: `${MCP_URL}/mcp`,
       config_endpoint: `${STUDIO_URL}/api/studio/mcp-config?format=claude`,
+      authentication: AGENT_AUTH,
     },
 
     hello_world: {
@@ -128,7 +148,7 @@ export async function POST(_request: NextRequest) {
     },
 
     api_endpoints: {
-      compile: 'POST /api/mcp/call { tool: "compile_holoscript", args: { code, target } }',
+      compile: `POST /api/mcp/call { tool: "compile_holoscript", args: { code, target } } — send your own key as "${MESH_KEY_HEADER}: <your key>"`,
       generate: 'POST /api/generate { prompt, style? }',
       export: 'POST /api/export { sceneId, format }',
       asset_packs: 'GET /api/asset-packs',
@@ -146,6 +166,7 @@ export async function GET() {
     method: 'POST',
     description:
       'One-request agent onboarding. Returns capabilities, example workflows, MCP config, and hello world compilation.',
+    authentication: AGENT_AUTH,
   });
 }
 

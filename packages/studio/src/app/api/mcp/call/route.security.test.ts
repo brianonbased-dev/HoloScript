@@ -7,9 +7,11 @@
  *
  * The rules under test:
  *   1. no credential at all            -> 401, and nothing leaves the process
- *   2. caller sent their own key       -> forward theirs, never attach ours
+ *   2. caller sent their own key       -> forward theirs, never attach ours,
+ *                                         in the header the upstream reads
  *   3. signed in, tool not allowlisted -> 403, and nothing leaves the process
  *   4. signed in, tool allowlisted     -> our key is attached, on purpose
+ *   5. a refusal names the header that works, never one that does not
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextResponse } from 'next/server';
@@ -84,7 +86,7 @@ describe('/api/mcp/call — credential gate', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("POST forwards the caller's own bearer key and attaches no key of ours", async () => {
+  it("POST sends the caller's bearer key in the header the upstream reads", async () => {
     signedOut();
     const fetchSpy = installOutboundRecorder();
 
@@ -92,8 +94,10 @@ describe('/api/mcp/call — credential gate', () => {
     const sent = headersOf(fetchSpy);
 
     expect(response.status).toBe(200);
-    expect(sent['Authorization']).toBe(`Bearer ${CALLER_KEY}`);
-    expect(sent['x-mcp-api-key']).toBeUndefined();
+    // Forwarding it as Authorization would authenticate nobody: the upstream
+    // reads only x-mcp-api-key, so the caller would be anonymous upstream and
+    // never told why.
+    expect(sent['x-mcp-api-key']).toBe(CALLER_KEY);
     expect(JSON.stringify(sent)).not.toContain(SERVER_KEY);
     // A caller with their own key is never asked to sign in.
     expect(requireAuthStub).not.toHaveBeenCalled();
@@ -120,6 +124,9 @@ describe('/api/mcp/call — credential gate', () => {
 
     expect(response.status).toBe(403);
     expect(body.error).toContain('exec_shell');
+    // Told the form that works, not one the upstream ignores.
+    expect(body.error).toContain('x-mcp-api-key');
+    expect(body.error).not.toContain('Authorization: Bearer');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -167,4 +174,71 @@ describe('/api/mcp/call — credential gate', () => {
     expect(fetchSpy).toHaveBeenCalled();
     expect(JSON.stringify(headersOf(fetchSpy))).not.toContain(SERVER_KEY);
   });
+
+  it('GET authenticates that same caller in the header the upstream reads', async () => {
+    signedOut();
+    const fetchSpy = installOutboundRecorder();
+
+    await GET(
+      new Request('http://localhost/api/mcp/call', {
+        headers: { Authorization: `Bearer ${CALLER_KEY}` },
+      })
+    );
+
+    expect(headersOf(fetchSpy)['x-mcp-api-key']).toBe(CALLER_KEY);
+  });
+
+  it('tells a locked-out caller the header that actually works', async () => {
+    signedOut();
+    installOutboundRecorder();
+
+    const response = await POST(post('suggest_traits'));
+    const body = (await response.json()) as { error?: string; signInRequired?: boolean };
+
+    expect(response.status).toBe(401);
+    expect(body.signInRequired).toBe(true);
+    expect(body.error).toContain('x-mcp-api-key');
+    expect(body.error).not.toContain('Authorization: Bearer');
+  });
+
+  it('refuses a signed-in caller when only the browser-visible key is configured', async () => {
+    signedIn();
+    // Re-adding `|| process.env.NEXT_PUBLIC_MCP_API_KEY` as a fallback must not
+    // leave this suite green: Next inlines NEXT_PUBLIC_* into the browser
+    // bundle, so it is readable by every visitor and can never be a server
+    // credential.
+    vi.stubEnv('HOLOSCRIPT_API_KEY', '');
+    vi.stubEnv('NEXT_PUBLIC_MCP_API_KEY', 'browser-bundle-key');
+    const fetchSpy = installOutboundRecorder();
+
+    const response = await POST(post('suggest_traits'));
+
+    expect(response.status).toBe(503);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not present a Studio API key upstream as if it were a mesh key', async () => {
+    signedOut();
+    const fetchSpy = installOutboundRecorder();
+
+    const response = await POST(post('suggest_traits', { Authorization: 'Bearer bk_studio_key' }));
+
+    expect(response.status).toBe(401);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it.each(['holomesh_moltbook_crosspost', 'holomesh_publish_agent_template'])(
+    'a signed-in stranger can no longer publish to the mesh as us (%s)',
+    async (tool) => {
+      signedIn();
+      const fetchSpy = installOutboundRecorder();
+
+      const response = await POST(post(tool));
+      const body = (await response.json()) as { error?: string };
+
+      expect(response.status).toBe(403);
+      expect(body.error).toContain('x-mcp-api-key');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    }
+  );
 });

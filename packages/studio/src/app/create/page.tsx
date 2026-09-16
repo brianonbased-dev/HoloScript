@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 // SplatCaptureWizard is a modal — lazy-loaded to reduce initial bundle
 import {
@@ -867,6 +868,13 @@ export default function CreatePage() {
   const artMode = useEditorStore((s) => s.artMode);
   const _studioMode = useEditorStore((s) => s.studioMode);
   const { addToast } = useToast();
+  // Several tools on this page run through /api/mcp/call, which now needs an
+  // identity (doors audit 2026-09-15). This page has no sign-in gate and should
+  // not get one — the editor, the viewport and the code drawer all work signed
+  // out — so the state is named once, up front, instead of letting each of
+  // those tools fail separately with a bare 401.
+  const { status: sessionStatus } = useSession();
+  const meshToolsLocked = sessionStatus === 'unauthenticated';
   const uxPaletteRef = useRef<UXCommandPalette | null>(null);
   const runViewCommand = useCallback((commandId: StudioViewCommandId) => {
     runStudioCommand(commandId);
@@ -1480,6 +1488,10 @@ export default function CreatePage() {
       tool: 'holomesh_moltbook_crosspost' | 'holomesh_publish_agent_template',
       input: Record<string, unknown>
     ) => {
+      if (meshToolsLocked) {
+        throw new Error('Sign in to use this — publishing to the mesh needs an account.');
+      }
+
       const response = await fetch('/api/mcp/call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1498,7 +1510,7 @@ export default function CreatePage() {
 
       return payload.result ?? payload;
     },
-    []
+    [meshToolsLocked]
   );
 
   useEffect(() => {
@@ -1749,6 +1761,31 @@ export default function CreatePage() {
         onPause={() => setExecutionState('paused')}
         onStop={() => setExecutionState('stopped')}
       />
+
+      {/*
+       * A signed-out visitor keeps the whole editor; only the tools that call
+       * the gateway need an account. Saying so once, plainly, is the difference
+       * between "this app is broken" and "I need to sign in".
+       */}
+      {meshToolsLocked && (
+        <div
+          role="status"
+          className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-studio-border bg-studio-panel/80 px-3 py-1.5 text-[11px] text-studio-muted"
+        >
+          <span className="font-medium text-studio-text">Sign in to use the AI tools.</span>
+          <span>
+            Scene generation, trait suggestions, validation, SDK export and multi-target compile run
+            on our servers and need an account. Everything else on this page works without one.
+          </span>
+          <button
+            type="button"
+            onClick={() => signIn()}
+            className="rounded bg-white/[0.06] px-2 py-0.5 text-studio-text transition hover:bg-white/[0.10]"
+          >
+            Sign in
+          </button>
+        </div>
+      )}
 
       {/*
        * ── VIEWER-FIRST CHASSIS ─────────────────────────────────────────────

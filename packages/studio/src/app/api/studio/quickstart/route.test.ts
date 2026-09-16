@@ -77,6 +77,23 @@ describe('/api/studio/quickstart first-scene proof', () => {
     ]);
   });
 
+  it('tells an onboarding agent which header carries its own key', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+    const response = await POST(makeRequest());
+    const body = (await response.json()) as QuickstartBody & {
+      authentication?: { header?: string; required?: boolean; how?: string };
+      mcp_config?: { authentication?: { header?: string } };
+    };
+
+    // Advertising the endpoint without the credential is the silent lock-out
+    // half of the doors audit: the agent is told where to knock, not how.
+    expect(body.authentication?.header).toBe('x-mcp-api-key');
+    expect(body.authentication?.required).toBe(true);
+    expect(body.mcp_config?.authentication?.header).toBe('x-mcp-api-key');
+    expect(body.api_endpoints.compile).toContain('x-mcp-api-key');
+  });
+
   it('keeps the starter proof as parseable native HoloScript source', () => {
     const source = readFileSync(STARTER_SCENE_PATH, 'utf-8');
     const parsed = parseHolo(source);

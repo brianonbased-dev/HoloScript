@@ -21,18 +21,38 @@ if (MCP_EXTERNAL_URL && !MCP_EXTERNAL_URL.startsWith('http')) {
 }
 
 /**
- * The caller's OWN upstream credential, if they sent one. `Authorization:
- * Bearer <key>` and `x-mcp-api-key: <key>` are the two forms the mesh
- * services accept.
- *
- * When the caller sends one, this gateway forwards exactly that and nothing
- * of ours, so whatever they may run, they run as themselves.
+ * The one header the upstream actually reads. It takes the key from
+ * `x-mcp-api-key` (or an `apiKey` query param) and never consults
+ * `Authorization` — both `/tools/call` and `/servers` sit behind that single
+ * lookup in the upstream's own auth middleware.
  */
-function callerCredential(request: Request): Record<string, string> | null {
-  const auth = request.headers.get('authorization')?.trim();
-  if (auth && /^Bearer\s+\S+/i.test(auth)) return { Authorization: auth };
-  const meshKey = request.headers.get('x-mcp-api-key')?.trim();
-  if (meshKey) return { 'x-mcp-api-key': meshKey };
+const MESH_KEY_HEADER = 'x-mcp-api-key';
+
+/** What a locked-out caller is told to do, in the form that actually works. */
+const OWN_KEY_HINT = `Send your own mesh API key as "${MESH_KEY_HEADER}: <your key>" to run it as yourself.`;
+
+/**
+ * The caller's OWN upstream key, if they sent one.
+ *
+ * Both spellings are accepted FROM the caller — `x-mcp-api-key: <key>` and
+ * `Authorization: Bearer <key>` — because agents arrive with both habits. The
+ * key is then forwarded in the single form the upstream reads. Until now this
+ * route passed a bearer key on as `Authorization`, which promised an
+ * authentication that fails silently: upstream treats the caller as anonymous
+ * and never says why.
+ *
+ * A `bk_` bearer is deliberately NOT treated as a mesh key: those are Studio's
+ * own API keys. Presenting one upstream would hand a Studio credential to a
+ * different service, which records the presented key when validation fails.
+ */
+function callerMeshKey(request: Request): string | null {
+  const meshKey = request.headers.get(MESH_KEY_HEADER)?.trim();
+  if (meshKey) return meshKey;
+
+  const authorization = request.headers.get('authorization')?.trim() ?? '';
+  const bearer = /^Bearer\s+(\S+)$/i.exec(authorization)?.[1];
+  if (bearer && !bearer.startsWith('bk_')) return bearer;
+
   return null;
 }
 
@@ -46,13 +66,21 @@ function callerCredential(request: Request): Record<string, string> | null {
  *   compile_to_sdk                                         useSceneExport
  *   compile_fanout                                         dispatchFanout
  *   explain_fairness_receipt                               FairnessPanel
- *   holomesh_moltbook_crosspost                            create page palette
- *   holomesh_publish_agent_template                        create page palette
  *   generate_world / holo_generate_scene / holo_generate_world
  *                                          this route's own generated-output gate
  *
  * Anything else needs the caller's own key. Keep this list short: each entry
  * is a tool a signed-in stranger may run as our server identity.
+ *
+ * DROPPED 2026-09-15 — the two create-page palette tools. Both PUBLISH to the
+ * mesh, and under the server key they publish as US: any signed-in stranger
+ * could post to the crosspost feed and the agent-template marketplace under
+ * our identity, with nothing tying the post back to them, because a Studio
+ * account is not a mesh agent id. Every surviving entry only compiles,
+ * validates, generates or explains — none of them writes anything the world
+ * can see. The two palette commands that called them (Ctrl+Shift+M and
+ * Ctrl+Shift+P on /create) now refuse for a session-only caller and name the
+ * header that works; they still run for a caller who brings their own key.
  */
 const STUDIO_SESSION_TOOLS = new Set<string>([
   'suggest_traits',
@@ -61,8 +89,6 @@ const STUDIO_SESSION_TOOLS = new Set<string>([
   'compile_to_sdk',
   'compile_fanout',
   'explain_fairness_receipt',
-  'holomesh_moltbook_crosspost',
-  'holomesh_publish_agent_template',
   'generate_world',
   'holo_generate_scene',
   'holo_generate_world',
@@ -82,18 +108,31 @@ export async function POST(request: Request) {
     // internet could spend our mesh identity. src/proxy.ts cannot help: its
     // matcher skips /api entirely.
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    const credential = callerCredential(request);
+    const meshKey = callerMeshKey(request);
 
-    if (credential) {
-      Object.assign(headers, credential);
+    if (meshKey) {
+      headers[MESH_KEY_HEADER] = meshKey;
     } else {
       const auth = await requireAuth(request);
-      if (auth instanceof NextResponse) return auth;
+      if (auth instanceof NextResponse) {
+        // Not the bare 401 the guard returns. Six tools on /create reach this
+        // route, and that page has no sign-in gate, so a signed-out visitor
+        // meets this message rather than a status code: it is the only place
+        // they are told what happened and what to do.
+        return NextResponse.json(
+          {
+            error: `Sign in to HoloScript Studio to use this tool. ${OWN_KEY_HINT}`,
+            signInRequired: true,
+          },
+          { status: 401 }
+        );
+      }
 
       if (!STUDIO_SESSION_TOOLS.has(tool)) {
         return NextResponse.json(
           {
-            error: `Tool "${tool}" is not available to a Studio session. Send your own mesh API key as "Authorization: Bearer <key>" to run it as yourself.`,
+            error: `Tool "${tool}" is not available to a Studio session. ${OWN_KEY_HINT}`,
+            ownKeyRequired: true,
           },
           { status: 403 }
         );
@@ -109,9 +148,15 @@ export async function POST(request: Request) {
           { status: 503 }
         );
       }
-      headers['x-mcp-api-key'] = serverKey;
+      headers[MESH_KEY_HEADER] = serverKey;
     }
 
+    // The path below is `/call`, and the upstream registers `/tools/call`, not
+    // `/call` — so the tool calls routed through this gateway are very likely
+    // already dead in production. That is left exactly as it is ON PURPOSE:
+    // correcting the path here would turn a dead route into a live
+    // tool-execution route inside a security fix. It needs its own change and
+    // its own decision.
     const res = await fetch(`${MCP_EXTERNAL_URL}/call`, {
       method: 'POST',
       headers,
@@ -211,21 +256,32 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 /**
  * GET — mesh server inventory.
  *
- * Gated like POST. It names the registered mesh services and their state,
- * nothing in Studio calls it, and `/api/health` is the public liveness probe,
- * so there is no reason for it to answer a stranger. It never attaches the
- * server key: a caller sees the inventory only with their own credential.
+ * Gated like POST, and it authenticates the SAME caller the POST refusal tells
+ * to come back with a key: whichever header they use, the key reaches
+ * `/servers` in the form that endpoint reads. It names the registered mesh
+ * services and their state, nothing in Studio calls it, and `/api/health` is
+ * the public liveness probe, so there is no reason for it to answer a
+ * stranger. It never attaches the server key: a caller sees the inventory only
+ * under their own key.
  */
 export async function GET(request: Request) {
-  const credential = callerCredential(request);
-  if (!credential) {
+  const meshKey = callerMeshKey(request);
+  if (!meshKey) {
     const auth = await requireAuth(request);
-    if (auth instanceof NextResponse) return auth;
+    if (auth instanceof NextResponse) {
+      return NextResponse.json(
+        {
+          error: `Sign in to HoloScript Studio to read the mesh inventory. ${OWN_KEY_HINT}`,
+          signInRequired: true,
+        },
+        { status: 401 }
+      );
+    }
   }
 
   try {
     const res = await fetch(`${MCP_EXTERNAL_URL}/servers`, {
-      headers: { ...(credential ?? {}) },
+      headers: meshKey ? { [MESH_KEY_HEADER]: meshKey } : {},
     });
     if (!res.ok) {
       return NextResponse.json(
