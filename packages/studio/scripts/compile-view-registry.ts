@@ -61,11 +61,15 @@ const STRICT = process.argv.includes('--strict') || process.env.HOLO_STRICT === 
  */
 const CHECK = process.argv.includes('--check');
 const drift: string[] = [];
+const orphans: string[] = [];
 
 const PENDING: Array<{ target: string; content: string }> = [];
+/** Every path this run emitted, kept after PENDING drains, so orphans can be found. */
+const EMITTED = new Set<string>();
 
 /** Buffer one generated artifact. finish() decides whether it is written or compared. */
 function emit(target: string, content: string): void {
+  EMITTED.add(target);
   PENDING.push({ target, content });
 }
 
@@ -344,6 +348,41 @@ async function build(): Promise<void> {
   await finish();
 
   if (CHECK) {
+    // ORPHANS: a committed artifact whose SOURCE is gone.
+    //
+    // Comparing emitted output against the tree can only see files the generator
+    // still produces. Delete a panel .holo and its .native.tsx keeps shipping:
+    // the generator never emits it, so nothing ever compares it, and the check
+    // reports OK. Probed 2026-09-21 by copying one .native.tsx under a new name
+    // -- exit 0, "committed output matches the generator". A check that cannot
+    // see a file it is supposed to own is the failure this whole PR is about,
+    // so it is fixed here rather than disclosed.
+    //
+    // Scoped to the generator's own output directory, where every *.native.tsx
+    // is its work (11 files and a __tests__ dir, verified). The registry and the
+    // component map are single fixed paths and cannot be orphaned this way.
+    try {
+      for (const name of readdirSync(NATIVE_OUT_DIR)) {
+        if (!name.endsWith('.native.tsx')) continue;
+        const full = join(NATIVE_OUT_DIR, name);
+        if (!EMITTED.has(full)) orphans.push(full);
+      }
+    } catch {
+      // No output directory yet: nothing generated, so nothing orphaned.
+    }
+
+    if (orphans.length > 0) {
+      console.error('');
+      console.error(
+        `viewreg:check FAILED -- ${orphans.length} generated file(s) this generator no longer emits:`
+      );
+      for (const f of orphans) console.error(`    ${f}`);
+      console.error('');
+      console.error('  Their panel .holo source is gone, so nothing regenerates them,');
+      console.error('  and nothing else compares them. Delete them, or restore the source.');
+      process.exitCode = 1;
+    }
+
     if (drift.length > 0) {
       console.error('');
       console.error(
@@ -355,10 +394,12 @@ async function build(): Promise<void> {
       console.error('  Fix: pnpm run viewreg:build, then commit the result.');
       console.error('  Never edit a @generated file directly -- change the panel .holo source.');
       process.exitCode = 1;
-    } else {
+    } else if (orphans.length === 0) {
       console.log('');
       console.log(
-        `viewreg:check OK -- ${defs.length} view(s), ${slotEntries.length} mount(s): committed output matches the generator.`
+        `viewreg:check OK -- ${defs.length} view(s), ${slotEntries.length} mount(s), ` +
+          `${EMITTED.size} emitted file(s): committed output matches the generator, ` +
+          `and nothing in the output directory is unaccounted for.`
       );
     }
     return;
