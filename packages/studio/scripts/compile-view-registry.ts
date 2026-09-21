@@ -15,7 +15,8 @@
  * Usage: pnpm viewreg:build   |   pnpm viewreg:check  (--strict, CI gate)
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
-import { join, extname, basename } from 'path';
+import { join, extname, basename, dirname } from 'path';
+import { format, resolveConfig } from 'prettier';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { Native2DCompiler } from '../../core/src/compiler/Native2DCompiler';
 
@@ -54,19 +55,54 @@ const STRICT = process.argv.includes('--strict') || process.env.HOLO_STRICT === 
 const CHECK = process.argv.includes('--check');
 const drift: string[] = [];
 
-/** Write, or under --check record a mismatch and leave the file alone. */
+const PENDING: Array<{ target: string; content: string }> = [];
+
+/** Buffer one generated artifact. finish() decides whether it is written or compared. */
 function emit(target: string, content: string): void {
-  if (CHECK) {
-    let current: string | null = null;
+  PENDING.push({ target, content });
+}
+
+/**
+ * Format every buffered artifact, then write it (build) or compare it against the
+ * committed copy (--check). Both modes consume the identical bytes, so the check
+ * cannot drift away from the build it guards.
+ *
+ * The generator formats its own output rather than leaving the committed copies in
+ * .prettierignore, because the sibling generators (compile-holo-pages,
+ * compile-vector-pages) settled the same question the same way on the same day, and
+ * a repo where some generated surfaces are formatted and others are exempt is a
+ * repo where nobody can tell which rule applies to the file in front of them.
+ *
+ * Prettier is applied through the API, not the CLI: .prettierignore carries
+ * `**\/*.generated.ts`, yet the committed viewRegistry.generated.ts IS formatted, so
+ * only the API path reproduces it.
+ */
+async function finish(): Promise<void> {
+  for (const { target, content } of PENDING.splice(0, PENDING.length)) {
+    const config = await resolveConfig(target);
+    let pretty = content;
     try {
-      current = readFileSync(target, 'utf-8');
+      pretty = await format(content, { ...config, filepath: target });
     } catch {
-      current = null;
+      // A generated file prettier cannot parse is a compiler bug, not a formatting
+      // one. Keep the raw bytes so the real error surfaces where it belongs.
+      pretty = content;
     }
-    if (current !== content) drift.push(target);
-    return;
+
+    if (CHECK) {
+      let current: string | null = null;
+      try {
+        current = readFileSync(target, 'utf-8');
+      } catch {
+        current = null;
+      }
+      if (current !== pretty) drift.push(target);
+      continue;
+    }
+
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, pretty, 'utf-8');
   }
-  writeFileSync(target, content, 'utf-8');
 }
 
 interface ViewMeta {
@@ -180,7 +216,7 @@ function toDefinition(v: ViewMeta) {
   };
 }
 
-function build(): void {
+async function build(): Promise<void> {
   if (!existsSync(PANELS_DIR)) {
     console.log(`No panels dir at ${PANELS_DIR}; nothing to compile.`);
     return;
@@ -298,6 +334,8 @@ function build(): void {
     '\n};\n';
   emit(COMPONENTS_OUT_PATH, componentsOut);
 
+  await finish();
+
   if (CHECK) {
     if (drift.length > 0) {
       console.error('');
@@ -333,4 +371,7 @@ function build(): void {
   }
 }
 
-build();
+build().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

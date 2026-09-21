@@ -6,57 +6,126 @@ export function LiveProofComponent() {
   const [capacity, setCapacity] = useState(200);
   const [factor, setFactor] = useState(1.5);
 
-
-
   return (
-    <div className="holoscript-2d-root w-full h-full" data-holo-view-contract="ddb3dba65055193c077c0a92cf00603a9e8d0c1ee262e98d25619344502df18c">
-      <div style={{"display":"flex","flexDirection":"column","gap":"10px"}} className="p-3 h-full overflow-y-auto text-xs text-studio-text">
-      
-      <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
-      {`Live proof — structural margin`}
-      
-    </h3>
-<span className="text-sm text-[10px] text-studio-muted">
-      {`Drag the load, or press a Break it button — the verdict re-derives and flips FALSIFIED in-band`}
-      
-    </span>
-<div style={{"display":"flex","flexDirection":"row","alignItems":"center","gap":"8px"}}>
-      
-      <span className="text-sm text-[10px] text-studio-muted">
-      {`Load (kN)`}
-      
-    </span>
-<span data-holo-projects="load" className="text-sm text-[10px] font-semibold text-studio-text">
-      {load ?? "0"}
-      
-    </span>
-<input data-holo-projects="load" className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent" value={load} onChange={(e) => setLoad(Number(e.target.value))} type="range" min="0" max="200" step="5" />
-    </div>
-<div data-proof-claim={"capacity >= load * factor"} data-proof-label="Structural margin" data-proof-independence="fault-tested" data-proof-faults={"[{\"overrides\":{\"load\":200},\"because\":\"a beam loaded past what it can hold must never read as safe\"},{\"overrides\":{\"capacity\":40},\"because\":\"a beam far weaker than its load must never read as safe\"},{\"overrides\":{\"factor\":4},\"because\":\"demanding a bigger safety margin must be able to fail this beam\"}]"} className="flex flex-col gap-2">
-      <div data-proof-state={(capacity >= load * factor) ? "pass" : "falsified"} className={`rounded-md p-2 text-xs font-semibold ${(capacity >= load * factor) ? "bg-studio-success/10 text-studio-success" : "bg-studio-error/10 text-studio-error"}`}>
-        {(capacity >= load * factor) ? "✓ Structural margin holds" : "✗ Structural margin FALSIFIED"}
+    <div
+      className="holoscript-2d-root w-full h-full"
+      data-holo-view-contract="ddb3dba65055193c077c0a92cf00603a9e8d0c1ee262e98d25619344502df18c"
+    >
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+        className="p-3 h-full overflow-y-auto text-xs text-studio-text"
+      >
+        <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
+          {`Live proof — structural margin`}
+        </h3>
+        <span className="text-sm text-[10px] text-studio-muted">
+          {`Drag the load, or press a Break it button — the verdict re-derives and flips FALSIFIED in-band`}
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+          <span className="text-sm text-[10px] text-studio-muted">{`Load (kN)`}</span>
+          <span
+            data-holo-projects="load"
+            className="text-sm text-[10px] font-semibold text-studio-text"
+          >
+            {load ?? '0'}
+          </span>
+          <input
+            data-holo-projects="load"
+            className="px-4 py-2 rounded-lg border focus:ring-2 outline-none flex-1 accent-studio-accent border-studio-border bg-studio-panel text-studio-text focus:ring-studio-accent"
+            value={load}
+            onChange={(e) => setLoad(Number(e.target.value))}
+            type="range"
+            min="0"
+            max="200"
+            step="5"
+          />
+        </div>
+        <div
+          data-proof-claim={'capacity >= load * factor'}
+          data-proof-label="Structural margin"
+          data-proof-independence="fault-tested"
+          data-proof-faults={
+            '[{"overrides":{"load":200},"because":"a beam loaded past what it can hold must never read as safe"},{"overrides":{"capacity":40},"because":"a beam far weaker than its load must never read as safe"},{"overrides":{"factor":4},"because":"demanding a bigger safety margin must be able to fail this beam"}]'
+          }
+          className="flex flex-col gap-2"
+        >
+          <div
+            data-proof-state={capacity >= load * factor ? 'pass' : 'falsified'}
+            className={`rounded-md p-2 text-xs font-semibold ${capacity >= load * factor ? 'bg-studio-success/10 text-studio-success' : 'bg-studio-error/10 text-studio-error'}`}
+          >
+            {capacity >= load * factor
+              ? '✓ Structural margin holds'
+              : '✗ Structural margin FALSIFIED'}
+          </div>
+          <span className="text-[10px] text-studio-muted">
+            {
+              'Broken on purpose 3 ways when this was built — the check caught all of them. Press one to watch it fail.'
+            }
+          </span>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setLoad(200);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error"
+            >
+              {'Break it: a beam loaded past what it can hold must never read as safe'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCapacity(40);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error"
+            >
+              {'Break it: a beam far weaker than its load must never read as safe'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFactor(4);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error"
+            >
+              {'Break it: demanding a bigger safety margin must be able to fail this beam'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCapacity(200);
+                setFactor(1.5);
+                setLoad(100);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent"
+            >
+              {'Put it back'}
+            </button>
+          </div>
+        </div>
       </div>
-      <span className="text-[10px] text-studio-muted">{"Broken on purpose 3 ways when this was built — the check caught all of them. Press one to watch it fail."}</span>
-      <div className="flex flex-wrap gap-1">
-        <button type="button" onClick={() => { setLoad(200); }} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error">
-        {"Break it: a beam loaded past what it can hold must never read as safe"}
-      </button>
-      <button type="button" onClick={() => { setCapacity(40); }} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error">
-        {"Break it: a beam far weaker than its load must never read as safe"}
-      </button>
-      <button type="button" onClick={() => { setFactor(4); }} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error">
-        {"Break it: demanding a bigger safety margin must be able to fail this beam"}
-      </button>
-        <button type="button" onClick={() => { setCapacity(200); setFactor(1.5); setLoad(100); }} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent">
-        {"Put it back"}
-      </button>
-      </div>
-    </div>
-    </div>
     </div>
   );
 }
 
 export default LiveProofComponent;
 
-export const holoViewContract = {"version":"holo-view-contract-v1","projections":[{"element":"LoadSlider","node":"load","identity":false},{"element":"LoadValue","node":"load","identity":true}],"stateRoots":["capacity","factor","load"],"liveProofs":[{"claim":"capacity >= load * factor","label":"Structural margin","independence":"fault-tested","inputs":["capacity","factor","load"],"anchors":[],"unanchored":["capacity","factor","load"]}],"contractHash":"ddb3dba65055193c077c0a92cf00603a9e8d0c1ee262e98d25619344502df18c"} as const;
+export const holoViewContract = {
+  version: 'holo-view-contract-v1',
+  projections: [
+    { element: 'LoadSlider', node: 'load', identity: false },
+    { element: 'LoadValue', node: 'load', identity: true },
+  ],
+  stateRoots: ['capacity', 'factor', 'load'],
+  liveProofs: [
+    {
+      claim: 'capacity >= load * factor',
+      label: 'Structural margin',
+      independence: 'fault-tested',
+      inputs: ['capacity', 'factor', 'load'],
+      anchors: [],
+      unanchored: ['capacity', 'factor', 'load'],
+    },
+  ],
+  contractHash: 'ddb3dba65055193c077c0a92cf00603a9e8d0c1ee262e98d25619344502df18c',
+} as const;

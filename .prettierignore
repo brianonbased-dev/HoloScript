@@ -59,10 +59,3 @@ packages/python-bindings/
 
 # Training data
 *.jsonl
-
-# Generated surfaces that are NOT named *.generated.ts, and so slipped through the
-# rule above. Commit 8b0f3a850 ("purely cosmetic prettier") reformatted files whose
-# first line reads "@generated ... DO NOT EDIT", which is how the committed view
-# registry drifted from its generator. Regenerate via `pnpm run viewreg:build`.
-packages/studio/src/lib/studio/viewRegistry.components.tsx
-packages/studio/src/components/panels/native/*.native.tsx
