@@ -10,18 +10,40 @@
  * - Configurable retention policies
  * - Query/filter capabilities for compliance reporting
  * - Export to external SIEM systems
- * NOT PROVIDED, despite the earlier wording here: there is no tamper detection.
- * AuditLogger has no hashing, chaining or signing (checked 2026-09-21: zero
- * occurrences of createHash, crypto or prevHash in AuditLogger.ts, 279 lines).
- * Records can be edited at rest without this code noticing, so do not offer this
- * trait as evidence for SOC 2, GDPR or HIPAA. It summarises events; it does not
- * attest to them.
+ * TAMPER EVIDENCE — what it now does, and exactly where it stops.
+ *
+ * With `enableHashChain`, each entry carries a SHA-256 over the WHOLE entry
+ * including its `previousHash`, and `audit_integrity_check` recomputes every
+ * entry and compares. Editing any field of any entry in place is detected and
+ * named (`entry_content_modified`), as is breaking a link
+ * (`previous_hash_mismatch`). Before 2026-09-21 neither was true: the digest
+ * was a 31-bit non-cryptographic hash over four fields, and verification never
+ * recomputed anything, so an entry rewritten to actor `mallory/root` and
+ * resource `DOMAIN-ADMIN` reported valid. That was reproduced against the
+ * published 8.7.0 package.
+ *
+ * WHAT IT STILL DOES NOT DO, and this is the line that matters:
+ * - It is NOT signed. Nothing binds the chain to an identity, so anyone who can
+ *   execute this code can rewrite an entry AND recompute every hash after it,
+ *   and the result verifies perfectly. This resists careless or after-the-fact
+ *   edits to stored records; it does not resist an attacker with code
+ *   execution. For that you need signatures with a trust anchor, as in
+ *   mcp-server/src/holomesh/compute-job-admission.ts.
+ * - It covers only the entries held in this trait's own state. Records written
+ *   onward to a database, a file or a SIEM are outside it entirely.
+ * - `AuditLogger` (src/audit/AuditLogger.ts) is a separate surface and has no
+ *   integrity of any kind.
+ *
+ * So: this trait is tamper-EVIDENT for in-memory entries, not tamper-PROOF, and
+ * it is not an attestation. It can be one input to a SOC 2, GDPR or HIPAA
+ * evidence package; it is not that package, and must not be offered as one.
  *
  * @version 1.0.0
  * @category enterprise
  */
 
 import type { TraitHandler } from './TraitTypes';
+import { stableTrustHash } from '../trust/TrustReceipt';
 
 // =============================================================================
 // TYPES
@@ -178,16 +200,22 @@ const SEVERITY_ORDER: Record<AuditSeverity, number> = {
 };
 
 /**
- * Simple hash function for audit chain integrity.
- * In production, this would use SHA-256 or similar.
+ * SHA-256 over the WHOLE entry, minus the hash field itself.
+ *
+ * Replaces `simpleHash`, a 31-bit non-cryptographic hash whose own comment said
+ * "In production, this would use SHA-256 or similar" — and which hashed only
+ * `entryId:timestamp:action:previousHash`. Everything a reader of an audit log
+ * actually cares about (actor, resource, result, severity, tenantId, details)
+ * sat outside the digest, so rewriting the actor to `mallory/root` and the
+ * resource to `DOMAIN-ADMIN` left the chain reporting valid. Reproduced against
+ * the published 8.7.0 package on 2026-09-21.
+ *
+ * `previousHash` is a field on the entry, so hashing the entry covers the link
+ * as well as the content.
  */
-function simpleHash(input: string): string {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    const char = input.charCodeAt(i);
-    hash = ((hash << 5) - hash + char) | 0;
-  }
-  return Math.abs(hash).toString(36).padStart(8, '0');
+function entryContentHash(entry: AuditLogEntry): string {
+  const { entryHash: _omitted, ...content } = entry;
+  return stableTrustHash(content);
 }
 
 function categorizeAction(action: string): AuditCategory {
@@ -458,9 +486,13 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
       });
     } else if (event.type === 'audit_integrity_check') {
       if (!config.enableHashChain) {
+        // Not verified is not the same as verified-good. This used to answer
+        // `valid: true` after checking nothing, which is the one answer an
+        // integrity check must never be able to give for free.
         context.emit('audit_integrity_result', {
           node,
-          valid: true,
+          valid: false,
+          unverified: true,
           reason: 'hash_chain_disabled',
           entriesChecked: 0,
         });
@@ -469,15 +501,31 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
 
       let valid = true;
       let brokenAt: number | undefined;
+      let brokenReason: string | undefined;
       let previousHash = '00000000';
 
       for (let i = 0; i < state.entries.length; i++) {
         const entry = state.entries[i];
+
+        // 1. The link: this entry must name the previous entry's hash.
         if (entry.previousHash !== previousHash) {
           valid = false;
           brokenAt = i;
+          brokenReason = 'previous_hash_mismatch';
           break;
         }
+
+        // 2. The content. Until 2026-09-21 the check stopped at the link above,
+        //    so an entry whose actor or resource had been rewritten still
+        //    passed as long as the chain pointers were left alone. Recompute.
+        const expected = entryContentHash(entry);
+        if (entry.entryHash !== expected) {
+          valid = false;
+          brokenAt = i;
+          brokenReason = 'entry_content_modified';
+          break;
+        }
+
         previousHash = entry.entryHash || '00000000';
       }
 
@@ -493,6 +541,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
         valid,
         entriesChecked: state.entries.length,
         brokenAt,
+        brokenReason,
         timestamp: state.lastIntegrityCheck.timestamp,
       });
 
@@ -591,10 +640,9 @@ function createAuditEntry(
       config.complianceFrameworks.length > 0 ? [...config.complianceFrameworks] : undefined,
   };
 
-  // Compute hash
+  // Compute hash over the whole entry, not a four-field summary of it.
   if (config.enableHashChain) {
-    const hashInput = `${entryId}:${entry.timestamp}:${entry.action}:${previousHash}`;
-    entry.entryHash = simpleHash(hashInput);
+    entry.entryHash = entryContentHash(entry);
     state.lastHash = entry.entryHash;
   }
 

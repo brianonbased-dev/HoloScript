@@ -3,15 +3,31 @@
  *
  * Provides audit event logging with query, export and retention management.
  *
- * INTEGRITY: none. "Append-only" describes this API, not a guarantee about the
- * stored records: no hash chain, no signature, no digest anywhere in this file.
- * Anything that must survive a hostile reader needs the signed receipt path.
- * Recorded here because the published package advertised tamper detection it
- * does not implement (corrected 2026-09-21).
+ * INTEGRITY: per-event digests, and nothing more than that. Each event carries a
+ * SHA-256 over its own content, set at log time, and `verifyIntegrity()`
+ * recomputes every retained event and names the ones that no longer match. That
+ * detects an event edited in place — including inside `metadata`, which
+ * `Object.freeze` does not protect because the freeze is shallow.
+ *
+ * Deliberately NOT a hash chain. `removeWhere` deletes events for retention, so
+ * a chain over this set would break during normal operation, and a check that
+ * goes red when nothing is wrong gets switched off. The cost of that choice is
+ * explicit: this CANNOT detect a deleted event or a reordered one.
+ *
+ * Also not signed. Anyone who can run this code can edit an event and recompute
+ * its digest. This is tamper-evidence against edits at rest, not proof against
+ * an attacker with code execution — for that, use the signed receipt path in
+ * mcp-server compute-job-admission.
+ *
+ * "Append-only" describes this API, not a guarantee about the storage behind it.
+ * Recorded here because the published package advertised tamper detection it did
+ * not implement (corrected 2026-09-21).
  *
  * @version 3.3.0
  * @Sprint Sprint 9: Audit Logging & Compliance
  */
+
+import { stableTrustHash } from '../trust/TrustReceipt';
 
 // =============================================================================
 // Types
@@ -33,6 +49,33 @@ export interface AuditEvent {
   metadata: Record<string, unknown>;
   clientIp?: string;
   userAgent?: string;
+  /**
+   * SHA-256 over every other field of this event, set by `log()`. Optional
+   * because events constructed by hand or restored from a store written before
+   * 2026-09-21 will not have one; `verifyIntegrity()` reports those as
+   * `unverified` rather than pretending they are intact.
+   */
+  contentDigest?: string;
+}
+
+/** One event that no longer matches the digest recorded with it. */
+export interface AuditIntegrityFinding {
+  id: string;
+  reason: 'content_modified' | 'digest_missing';
+}
+
+/** Result of `AuditLogger.verifyIntegrity()`. */
+export interface AuditIntegrityResult {
+  /** False if any retained event was modified. Never true on a vacuous check. */
+  valid: boolean;
+  eventsChecked: number;
+  findings: AuditIntegrityFinding[];
+  /**
+   * Always true. Deletion and reordering are out of scope by design — see the
+   * file header — so a `valid: true` here means "no retained event was edited",
+   * never "the log is complete".
+   */
+  completenessNotChecked: true;
 }
 
 /**
@@ -97,6 +140,23 @@ export class InMemoryAuditStorage implements AuditStorageBackend {
 }
 
 // =============================================================================
+// Event Integrity
+// =============================================================================
+
+/**
+ * SHA-256 over an event's content, excluding the digest field itself. The
+ * timestamp is normalised to an ISO string so a Date that has been serialised
+ * and revived digests the same as the original.
+ */
+export function auditEventDigest(event: AuditEvent): string {
+  const { contentDigest: _omitted, ...content } = event;
+  return stableTrustHash({
+    ...content,
+    timestamp: new Date(content.timestamp).toISOString(),
+  });
+}
+
+// =============================================================================
 // ID Generation
 // =============================================================================
 
@@ -135,9 +195,40 @@ export class AuditLogger {
       id: generateAuditId(),
       timestamp: new Date(),
     };
+    event.contentDigest = auditEventDigest(event);
 
     this.storage.append(event);
     return event;
+  }
+
+  /**
+   * Recompute every retained event's digest and report the ones that changed.
+   *
+   * Scope, stated so nobody reads more into a green result than it carries: this
+   * detects an event modified in place. It does not detect a deleted event, a
+   * reordered one, or a fabricated one added by someone who can also compute a
+   * digest. It is not a signature.
+   */
+  verifyIntegrity(): AuditIntegrityResult {
+    const events = this.storage.getAll();
+    const findings: AuditIntegrityFinding[] = [];
+
+    for (const event of events) {
+      if (!event.contentDigest) {
+        findings.push({ id: event.id, reason: 'digest_missing' });
+        continue;
+      }
+      if (auditEventDigest(event) !== event.contentDigest) {
+        findings.push({ id: event.id, reason: 'content_modified' });
+      }
+    }
+
+    return {
+      valid: findings.length === 0,
+      eventsChecked: events.length,
+      findings,
+      completenessNotChecked: true,
+    };
   }
 
   /**

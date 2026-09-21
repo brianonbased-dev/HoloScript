@@ -17,6 +17,7 @@ import { readJson } from '../../errors/safeJsonParse';
 import {
   AuditLogger,
   InMemoryAuditStorage,
+  type AuditEvent,
   type AuditEventInput,
   type AuditStorageBackend,
 } from '../AuditLogger';
@@ -720,5 +721,110 @@ describe('ComplianceReporter', () => {
       expect(report.summary.totalEvents).toBe(0);
       expect(report.sections.every((s) => s.count === 0)).toBe(true);
     });
+  });
+});
+
+// =============================================================================
+// AuditLogger — per-event integrity (added 2026-09-21)
+// =============================================================================
+
+/** A backend that does not freeze, standing in for any real persistent store. */
+class MutableAuditStorage implements AuditStorageBackend {
+  events: AuditEvent[] = [];
+  append(event: AuditEvent): void {
+    this.events.push({ ...event });
+  }
+  getAll(): AuditEvent[] {
+    return this.events;
+  }
+  getCount(): number {
+    return this.events.length;
+  }
+  removeWhere(predicate: (event: AuditEvent) => boolean): number {
+    const before = this.events.length;
+    this.events = this.events.filter((e) => !predicate(e));
+    return before - this.events.length;
+  }
+}
+
+describe('AuditLogger integrity', () => {
+  it('stamps every logged event with a SHA-256 digest', () => {
+    const logger = new AuditLogger();
+    const event = logger.log(createEvent());
+    expect(event.contentDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+
+  it('verifies an untouched log', () => {
+    const logger = new AuditLogger();
+    logger.log(createEvent());
+    logger.log(createEvent({ action: 'deploy' }));
+    const result = logger.verifyIntegrity();
+    expect(result.valid).toBe(true);
+    expect(result.eventsChecked).toBe(2);
+    expect(result.findings).toEqual([]);
+  });
+
+  it('detects metadata edited in place, which the shallow freeze does not prevent', () => {
+    const logger = new AuditLogger();
+    const logged = logger.log(createEvent({ metadata: { approvedBy: 'alice' } }));
+    // The stored object is frozen, but freeze is shallow: metadata is not.
+    const stored = logger.query({})[0];
+    (stored.metadata as Record<string, unknown>).approvedBy = 'mallory';
+
+    const result = logger.verifyIntegrity();
+    expect(result.valid).toBe(false);
+    expect(result.findings).toEqual([{ id: logged.id, reason: 'content_modified' }]);
+  });
+
+  it('detects a rewritten actor or outcome in a store that does not freeze', () => {
+    for (const mutate of [
+      (e: AuditEvent) => (e.actorId = 'mallory'),
+      (e: AuditEvent) => (e.outcome = 'success'),
+      (e: AuditEvent) => (e.resource = 'DOMAIN-ADMIN'),
+      (e: AuditEvent) => (e.timestamp = new Date('2020-01-01T00:00:00Z')),
+    ]) {
+      const storage = new MutableAuditStorage();
+      const logger = new AuditLogger(storage);
+      const logged = logger.log(createEvent({ outcome: 'denied' }));
+      mutate(storage.events[0]);
+      const result = logger.verifyIntegrity();
+      expect(result.valid).toBe(false);
+      expect(result.findings).toEqual([{ id: logged.id, reason: 'content_modified' }]);
+    }
+  });
+
+  it('reports a missing digest instead of passing it', () => {
+    const storage = new MutableAuditStorage();
+    const logger = new AuditLogger(storage);
+    const logged = logger.log(createEvent());
+    delete storage.events[0].contentDigest;
+    const result = logger.verifyIntegrity();
+    expect(result.valid).toBe(false);
+    expect(result.findings).toEqual([{ id: logged.id, reason: 'digest_missing' }]);
+  });
+
+  it('survives a retention purge, which is why this is not a hash chain', () => {
+    const storage = new MutableAuditStorage();
+    const logger = new AuditLogger(storage);
+    logger.log(createEvent({ tenantId: 'old' }));
+    logger.log(createEvent({ tenantId: 'keep' }));
+    storage.removeWhere((e) => e.tenantId === 'old');
+    const result = logger.verifyIntegrity();
+    expect(result.valid).toBe(true);
+    expect(result.eventsChecked).toBe(1);
+  });
+
+  it('does NOT claim completeness: a deleted event passes unnoticed', () => {
+    const storage = new MutableAuditStorage();
+    const logger = new AuditLogger(storage);
+    logger.log(createEvent({ action: 'privilege.escalate' }));
+    logger.log(createEvent({ action: 'compile' }));
+    storage.events.splice(0, 1); // an attacker removes the incriminating one
+
+    const result = logger.verifyIntegrity();
+    // This is the documented limit, asserted so nobody later reads a green
+    // verifyIntegrity() as proof the log is whole.
+    expect(result.valid).toBe(true);
+    expect(result.completenessNotChecked).toBe(true);
   });
 });

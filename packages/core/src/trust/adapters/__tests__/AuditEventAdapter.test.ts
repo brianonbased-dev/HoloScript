@@ -73,6 +73,38 @@ describe('AuditEventAdapter', () => {
     expect(input.evidence.hashes).toEqual([]);
   });
 
+  // Regression for the 2026-09-21 defect: evidence.hashes carried the canonical
+  // JSON of metadata in cleartext. Reproduced against the published 8.7.0 build.
+  // This asserts the leak itself, not just the shape, so it goes red if anyone
+  // puts a readable value back in the field.
+  it('digests metadata instead of storing it in cleartext', () => {
+    const secret = {
+      nationalId: '078-05-1120',
+      diagnosis: 'stage II adenocarcinoma',
+      note: 'patient declined treatment',
+    };
+    const input = auditEventToReceiptInput(makeEvent({ metadata: secret }));
+
+    expect(input.evidence.hashes).toHaveLength(1);
+    expect(input.evidence.hashes[0]).toMatch(/^sha256:[0-9a-f]{64}$/);
+
+    // Nothing recoverable anywhere in the receipt, not only in the hashes field.
+    const serialized = JSON.stringify(input);
+    for (const value of Object.values(secret)) {
+      expect(serialized).not.toContain(value);
+    }
+    expect(serialized).not.toContain('nationalId');
+    expect(serialized).not.toContain('diagnosis');
+  });
+
+  it('gives the same digest for the same metadata and a different one otherwise', () => {
+    const a = auditEventToReceiptInput(makeEvent({ metadata: { k: 'v' } }));
+    const b = auditEventToReceiptInput(makeEvent({ metadata: { k: 'v' } }));
+    const c = auditEventToReceiptInput(makeEvent({ metadata: { k: 'w' } }));
+    expect(a.evidence.hashes[0]).toBe(b.evidence.hashes[0]);
+    expect(a.evidence.hashes[0]).not.toBe(c.evidence.hashes[0]);
+  });
+
   it('falls back to synthetic DID when no actorId', () => {
     const input = auditEventToReceiptInput(makeEvent({ actorId: '' }));
     expect(input.actor.passportDid).toBe('did:holoscript:actor:');
