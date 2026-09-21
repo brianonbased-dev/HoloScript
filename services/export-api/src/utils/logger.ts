@@ -2,7 +2,10 @@
  * Structured Logger
  *
  * Uses pino for JSON-structured logging with request correlation.
- * SOC 2 CC7.2: Log security-relevant events with tamper-evident timestamps.
+ * Points at SOC 2 CC7.2 (log security-relevant events). NOT tamper-evident:
+ * checked 2026-09-21, this file has zero occurrences of createHash, crypto,
+ * sha256, sign or hmac across 60 lines. pino writes a timestamp; nothing binds
+ * it, so an edited log line is indistinguishable from an original one.
  */
 
 import pino from 'pino';

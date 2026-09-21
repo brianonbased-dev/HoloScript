@@ -3,7 +3,17 @@
  *
  * Clinical audio design: brainwave entrainment, binaural beats,
  * solfeggio frequencies, exposure therapy, volume safety,
- * session management, and HIPAA-compliant exports.
+ * session management, and redacted session exports.
+ *
+ * NOT HIPAA-COMPLIANT, despite the earlier wording here and the `HIPAA` in the
+ * symbol names. `exportSessionHIPAA` masks one field and still emits a full
+ * timestamp; Safe Harbor requires eighteen identifier classes removed, dates
+ * among them. Nothing here has been reviewed by anyone qualified to say a
+ * dataset is de-identified. The `HIPAAExport` / `exportSessionHIPAA` names are
+ * themselves the claim and should be renamed to `RedactedSessionExport` /
+ * `exportSessionRedacted`; left in place here only because renaming a public
+ * symbol is a separate, breaking change. Do not offer this to a covered entity
+ * as a compliance feature.
  *
  * Used by: TherapySessionPanel, psychotherapy-sound scenario
  */
@@ -241,8 +251,23 @@ export function getSessionDurationFormatted(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+/**
+ * Mask every identifying character of a patient identifier.
+ *
+ * This used to be `patientId.replace(/\d/g, 'X')` — digits only. Measured
+ * 2026-09-21: "MRN-00123" masked correctly, but "john.smith",
+ * "Smith, John A." and "alice@clinic.org" passed through COMPLETELY
+ * UNCHANGED, and the result is rendered straight into the session panel. A
+ * function named for redaction was printing patients' names on screen.
+ *
+ * WHAT THIS IS NOT: HIPAA de-identification. Safe Harbor requires removing
+ * eighteen classes of identifier, including dates more precise than a year,
+ * which the export beside this function still carries in full. This masks one
+ * field. Records stay distinguishable by `sessionId`, which is ours, not the
+ * patient's.
+ */
 export function redactPatientPII(patientId: string): string {
-  return patientId.replace(/\d/g, 'X');
+  return patientId.replace(/[\p{L}\p{N}]/gu, 'X');
 }
 
 export function exportSessionHIPAA(session: TherapySession): HIPAAExport {

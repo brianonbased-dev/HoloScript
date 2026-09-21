@@ -2,7 +2,9 @@
  * @holoscript/export-api - Entry Point
  *
  * REST API for HoloScript compilation and export.
- * Starts the Express server with SOC 2 compliance foundations.
+ * Starts the Express server. The middleware below is annotated with the SOC 2
+ * criteria it is INTENDED to serve; that is a design intent, not an assessment,
+ * and no auditor has looked at any of it. See the annotation note in app.ts.
  */
 
 import { createApp } from './app.js';

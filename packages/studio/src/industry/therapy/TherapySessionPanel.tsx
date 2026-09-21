@@ -454,7 +454,7 @@ export function TherapySessionPanel() {
                   border: '1px solid rgba(100, 200, 255, 0.2)',
                 }}
               >
-                📋 Export HIPAA Log
+                📋 Export Redacted Log
               </button>
             </div>
           </div>

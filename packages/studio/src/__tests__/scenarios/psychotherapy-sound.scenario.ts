@@ -374,7 +374,10 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
       notes: 'Patient gave informed consent.',
     };
     const exported = exportSessionHIPAA(session);
-    expect(exported.patientId).toBe('P-XXXXX');
+    // Letters as well as digits: a name-shaped id used to pass through untouched.
+    expect(exported.patientId).toBe('X-XXXXX');
+    expect(redactPatientPII('Smith, John A.')).toBe('XXXXX, XXXX X.');
+    expect(redactPatientPII('alice@clinic.org')).toBe('XXXXX@XXXXXX.XXX');
     expect(exported.type).toBe('binaural');
   });
 });
