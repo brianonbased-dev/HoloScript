@@ -348,6 +348,31 @@ async function build(): Promise<void> {
   await finish();
 
   if (CHECK) {
+    // --strict is not suspended by --check. viewreg:check passes BOTH, and this
+    // block used to return before reaching the strict throw below, so a panel
+    // .holo that could not compile printed its own error and the check then said
+    // OK and exited 0. Found in review at 504c9783f; reproduced with a new panel
+    // that has no @view decorator and no committed output, so neither the drift
+    // nor the orphan scan could mask it:
+    //
+    //   before:  ✗ zzBroken.holo: missing @view({...}) decorator
+    //            viewreg:check OK -- 91 view(s) ...                    exit 0
+    //   after:   viewreg:check FAILED -- 1 panel .holo file(s) did not compile
+    //                                                                  exit 1
+    //
+    // A gate that prints the fault and then reports success is worse than one
+    // that never looked, which is the whole subject of this change.
+    if (errorCount > 0) {
+      const msg = `${errorCount} panel .holo file(s) did not compile`;
+      if (STRICT) {
+        console.error('');
+        console.error(`viewreg:check FAILED -- ${msg} (see the errors above).`);
+        process.exitCode = 1;
+      } else {
+        console.warn(`\n⚠ viewreg:check: ${msg} — pass --strict to fail on this.`);
+      }
+    }
+
     // ORPHANS: a committed artifact whose SOURCE is gone.
     //
     // Comparing emitted output against the tree can only see files the generator
@@ -394,7 +419,7 @@ async function build(): Promise<void> {
       console.error('  Fix: pnpm run viewreg:build, then commit the result.');
       console.error('  Never edit a @generated file directly -- change the panel .holo source.');
       process.exitCode = 1;
-    } else if (orphans.length === 0) {
+    } else if (orphans.length === 0 && errorCount === 0) {
       console.log('');
       console.log(
         `viewreg:check OK -- ${defs.length} view(s), ${slotEntries.length} mount(s), ` +
