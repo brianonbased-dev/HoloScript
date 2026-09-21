@@ -34,7 +34,7 @@
     "test:coverage:ui": "vitest --coverage --ui",
     "holo:check": "tsx scripts/compile-holo-pages.ts --strict",
     "viewreg:build": "tsx scripts/compile-view-registry.ts",
-    "viewreg:check": "tsx scripts/compile-view-registry.ts --strict"
+    "viewreg:check": "tsx scripts/compile-view-registry.ts --strict --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.91.1",

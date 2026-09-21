@@ -32,6 +32,42 @@ const COMPONENTS_OUT_PATH = join(
   'viewRegistry.components.tsx'
 );
 const STRICT = process.argv.includes('--strict') || process.env.HOLO_STRICT === '1';
+/**
+ * --check: regenerate into memory and COMPARE, never write.
+ *
+ * Measured 2026-09-21 on a clean checkout of main: this generator, run with NO
+ * source change, rewrote 12 files (2,164 insertions, 3,092 deletions) and produced
+ * byte-identical output on three consecutive runs. So the generator is idempotent
+ * and the COMMITTED artifacts were the drift: stale against their own .holo sources
+ * for a month (registry regenerated 2026-08-17, panel sources changed 2026-08-20),
+ * and reformatted in place by 8b0f3a850, a 'purely cosmetic prettier' pass over
+ * files whose first line reads '@generated ... DO NOT EDIT'.
+ *
+ * While that is true, no change to a generated surface can be reviewed: every real
+ * diff drowns in thousands of lines of restoration.
+ *
+ * --strict is a DIFFERENT question, and viewreg:check now runs both. --strict fails
+ * when a .holo file will not compile. A tree can be perfectly compilable and still
+ * ship stale committed output -- which is exactly what happened: viewreg:check
+ * passed all month while the artifacts it guards drifted from their sources.
+ */
+const CHECK = process.argv.includes('--check');
+const drift: string[] = [];
+
+/** Write, or under --check record a mismatch and leave the file alone. */
+function emit(target: string, content: string): void {
+  if (CHECK) {
+    let current: string | null = null;
+    try {
+      current = readFileSync(target, 'utf-8');
+    } catch {
+      current = null;
+    }
+    if (current !== content) drift.push(target);
+    return;
+  }
+  writeFileSync(target, content, 'utf-8');
+}
 
 interface ViewMeta {
   id: string;
@@ -105,7 +141,7 @@ function compileNativePanel(ast: any, id: string): string {
     format: 'react',
   });
   mkdirSync(NATIVE_OUT_DIR, { recursive: true });
-  writeFileSync(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code, 'utf-8');
+  emit(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code);
   return `${capitalized}Component`;
 }
 
@@ -123,7 +159,7 @@ function compileNativeFragment(ast: any, id: string): string {
     format: 'react',
   });
   mkdirSync(NATIVE_OUT_DIR, { recursive: true });
-  writeFileSync(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code, 'utf-8');
+  emit(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code);
   return `${componentName}Component`;
 }
 
@@ -233,7 +269,7 @@ function build(): void {
       2
     )};\n`;
 
-  writeFileSync(OUT_PATH, out);
+  emit(OUT_PATH, out);
 
   // Companion: literal dynamic-import map for slotted views. Webpack cannot
   // import(variableString), so the literal paths must be emitted at build time.
@@ -260,7 +296,28 @@ function build(): void {
       )
       .join('\n') +
     '\n};\n';
-  writeFileSync(COMPONENTS_OUT_PATH, componentsOut);
+  emit(COMPONENTS_OUT_PATH, componentsOut);
+
+  if (CHECK) {
+    if (drift.length > 0) {
+      console.error('');
+      console.error(
+        `viewreg:check FAILED -- ${drift.length} generated file(s) differ from what this generator emits:`
+      );
+      for (const f of drift) console.error(`    ${f}`);
+      console.error('');
+      console.error('  The committed output is stale or was hand-edited.');
+      console.error('  Fix: pnpm run viewreg:build, then commit the result.');
+      console.error('  Never edit a @generated file directly -- change the panel .holo source.');
+      process.exitCode = 1;
+    } else {
+      console.log('');
+      console.log(
+        `viewreg:check OK -- ${defs.length} view(s), ${slotEntries.length} mount(s): committed output matches the generator.`
+      );
+    }
+    return;
+  }
 
   console.log(
     `\nWrote ${defs.length} view(s) → ${OUT_PATH}\n` +
