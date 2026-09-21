@@ -3348,6 +3348,59 @@ describe('HoloMesh HTTP Routes', () => {
       expect(missIds).toEqual([]);
     });
 
+    it('GET /api/holomesh/team/:id/knowledge?q= does not leak premium text on the orchestrator-rank fallback', async () => {
+      // The merge of the two HoloScript lanes (2026-09-21) put the `q` relevance
+      // block directly under the premium gate. The gate runs once, on `entries`;
+      // the fallback branch reassigns `entries = fromOrch`, the orchestrator's
+      // RAW rows. Git merged both sides without a conflict and the result was an
+      // exit that skips the gate — the case entry-lookup.ts calls "a new exit
+      // that skips both is a leak". Nothing in the suite could see it: the
+      // premium-exit guard counts reads per file and the existing `q` test stubs
+      // queryKnowledge to [], so the branch is never entered.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `premium-rank-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const SECRET = 'PAYWALLED-BODY-THAT-MUST-NOT-SHIP';
+      // Long enough that the 120-char / one-third teaser cannot reach the secret,
+      // which sits at the end.
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${SECRET}`;
+      mockClient.queryKnowledge.mockResolvedValue([
+        {
+          id: 'entry_premium_rank_leak',
+          type: 'wisdom',
+          content: premiumBody,
+          domain: 'general',
+          authorId: 'agent_somebody_else',
+          price: 25,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      // Two words, matching nothing in the redacted set, so keywordHits is empty
+      // and the orchestrator-rank fallback is the branch that answers.
+      const req = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/knowledge?q=zzzq%20nomatch&limit=25`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
+
+      expect(res._status).toBe(200);
+      // The branch must actually have been taken, or this test proves nothing.
+      expect(res._body.entries.length).toBe(1);
+      expect(JSON.stringify(res._body)).not.toContain(SECRET);
+      expect(res._body.entries[0].locked).toBe(true);
+    });
+
     it('GET /api/holomesh/entry/:id resolves team-mirrored entry when orchestrator has not indexed', async () => {
       const createReq = mockReq(
         'POST',

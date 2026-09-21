@@ -1791,7 +1791,18 @@ export async function handleTeamRoutes(
       if (keywordHits.length > 0) {
         entries = keywordHits;
       } else if (fromOrch.length > 0 && /\s/u.test(q)) {
-        entries = fromOrch;
+        // fromOrch is the orchestrator's RAW rows. The premium gate above was
+        // applied to `entries`, and this branch replaces `entries` wholesale, so
+        // the gate has to be re-applied here or it is simply skipped.
+        //
+        // Neither lane had this hole. One lane added the gate and had no such
+        // branch; the other added this branch and had no gate to skip. Git
+        // merged both without a conflict and the result leaked: any member of
+        // the team could ask for a two-word phrase that matches no visible text
+        // and receive the full body of every priced entry in the workspace,
+        // with no `locked` flag. Caught in review of the merge that made it,
+        // 2026-09-21, before it reached main.
+        entries = entriesForViewer(fromOrch, resolveRequestingAgent(req));
         if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
       } else {
         entries = [];

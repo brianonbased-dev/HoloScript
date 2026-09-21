@@ -67,8 +67,8 @@ before the public door exists:
 2. Rewrite only the three public files listed above. Explicit `git add`
    those paths. Never `git add -A`.
 3. Keep [`local.md`](./local.md) as the full aspiration + status table.
-4. Announce: GitHub is now the V1 **door**. The warehouse is still local.md
-   - holon registry + MCP manifest.
+4. Announce: GitHub is now the V1 **door**. The warehouse is still
+   local.md + holon registry + MCP manifest.
 5. Push to `origin/main` only when this gate is green **and** someone
    intends the public face to change (Railway deploys on push).
 
