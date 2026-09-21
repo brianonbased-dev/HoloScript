@@ -124,6 +124,7 @@ import {
 import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
 import { founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
+import { creditRouteWithoutLedger } from './security/consumer-spend-guard';
 import {
   initStores,
   teamStore,
@@ -136,6 +137,7 @@ import {
   teamPresenceStore,
   reloadTeam,
 } from './holomesh/state';
+import { agentBindingForRegistration, resolveProvenAgentId } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
@@ -332,6 +334,11 @@ async function ensureClientHydrated(clientId: string | null | undefined): Promis
         createdAt: durable.createdAt,
         clientType: durable.clientType,
         rateLimit: durable.rateLimit,
+        // Carry the agent binding across the deploy that wiped the in-memory
+        // map. Dropping it here refused the client's own agent_id on the very
+        // next token request, with nothing in the response saying the binding
+        // had been forgotten rather than never granted.
+        ...(durable.agentId ? { agentId: durable.agentId } : {}),
       });
     }
   } catch (err) {
@@ -356,6 +363,10 @@ async function ensureRefreshTokenHydrated(refreshToken: string | undefined): Pro
         expiresAt: durable.expiresAt,
         chainId: durable.chainId,
         used: durable.used,
+        // Carry the identity across the deploy that wiped the in-memory map.
+        // Dropping it here would demote a legitimate agent to an anonymous
+        // token on its next rotation.
+        agentId: durable.agentId,
       });
     }
   } catch (err) {
@@ -366,7 +377,15 @@ async function ensureRefreshTokenHydrated(refreshToken: string | undefined): Pro
   }
 }
 
-/** Write tokens issued by the legacy service through to the durable registry. */
+/**
+ * Write tokens issued by the legacy service through to the durable registry.
+ *
+ * `agentId` MUST be the identity the grant actually stamped on the token, not
+ * the one the request asked for. The durable record outlives the in-memory
+ * maps, and `authenticateRequestAsync` reads it back as the principal after a
+ * deploy — so a caller-supplied id written here becomes a real identity later,
+ * long after the grant that refused it is out of memory.
+ */
 async function persistIssuedTokens(
   tokenResponse: {
     access_token?: string;
@@ -400,6 +419,9 @@ async function persistIssuedTokens(
         expiresAt: record?.expiresAt ?? now + 86_400_000,
         chainId: record?.chainId ?? tokenResponse.refresh_token,
         used: false,
+        // Same stamped identity as the access token, so a rotation after a
+        // deploy recovers it instead of dropping it.
+        agentId: record?.agentId ?? agentId,
       });
     }
   } catch (err) {
@@ -1994,6 +2016,20 @@ const httpServer = http.createServer(async (req, res) => {
       }
       const rateLimit = (body.rate_limit as number) || 60;
 
+      // Bind this client to an agent only when the registering request PROVES
+      // that agent's identity — its own per-agent key, or a platform-signed
+      // manifest naming it. Registration is open to anyone, so an unproven
+      // agent_id in the body must never become a durable identity binding.
+      // The decision lives in `agentBindingForRegistration` so it can be tested
+      // without booting this server: inline, it stayed green when deleted.
+      const agentBinding = agentBindingForRegistration({
+        requestedAgentId: body.agent_id,
+        registrarAgentId: resolveProvenAgentId(req.headers),
+      });
+      if (!agentBinding.ok) throw new Error(agentBinding.reason);
+      // Records the registry's spelling, never the caller's.
+      const boundAgentId = agentBinding.boundAgentId;
+
       // Register with legacy provider (backwards compat)
       const { clientId, clientSecret } = oauth.registerClient({
         clientName,
@@ -2001,6 +2037,7 @@ const httpServer = http.createServer(async (req, res) => {
         scopes,
         clientType,
         rateLimit,
+        ...(boundAgentId ? { agentId: boundAgentId } : {}),
       });
 
       // Also register with the new OAuth2Provider (token-store backed) using
@@ -2016,6 +2053,10 @@ const httpServer = http.createServer(async (req, res) => {
           rateLimit,
           clientId,
           clientSecret,
+          // The binding belongs in the durable copy too: the in-memory one is
+          // gone on the next deploy, and a binding that quietly stops existing
+          // refuses a caller that did everything right.
+          ...(boundAgentId ? { agentId: boundAgentId } : {}),
         });
       } catch (oauth2Err) {
         console.warn(
@@ -2365,6 +2406,9 @@ const httpServer = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const grantType = body.grant_type as string;
       const dpopHeader = req.headers['dpop'] as string | undefined;
+      // Identity the caller proved on THIS request; the grant refuses any
+      // agent_id that is neither this nor the client's registered binding.
+      const provenAgentId = resolveProvenAgentId(req.headers);
 
       // Rehydrate durable state before the sync grant handlers consult the
       // in-memory maps (wiped on every deploy).
@@ -2385,6 +2429,7 @@ const httpServer = http.createServer(async (req, res) => {
             codeVerifier: body.code_verifier as string,
             agentId: body.agent_id as string | undefined,
             dpopThumbprint: dpopHeader,
+            provenAgentId,
           });
           break;
 
@@ -2395,6 +2440,7 @@ const httpServer = http.createServer(async (req, res) => {
             scopes: ((body.scope as string) || '').split(' ').filter(Boolean),
             agentId: body.agent_id as string | undefined,
             dpopThumbprint: dpopHeader,
+            provenAgentId,
           });
           break;
 
@@ -2424,6 +2470,19 @@ const httpServer = http.createServer(async (req, res) => {
         ip: clientIP,
       });
 
+      // The identity to persist is the one the grant actually STAMPED, read
+      // back from the token that was just issued — never `body.agent_id`,
+      // which is only what the caller ASKED for. The refresh grant never
+      // consults agent_id at all, so persisting the request's copy wrote an
+      // unchecked caller-supplied id straight into the durable record: the
+      // in-memory map hid it (introspection answered from memory, where it was
+      // absent) until the next deploy wiped that map, after which
+      // authenticateRequestAsync read the durable record and returned the
+      // caller's chosen id as the principal.
+      const stampedAgentId = tokenResponse.access_token
+        ? oauth.introspect(tokenResponse.access_token).agentId
+        : undefined;
+
       // Write the issued tokens through to the durable registry so they
       // survive redeploys of the in-memory maps. Fire-and-forget: durable
       // write failure must not fail the grant.
@@ -2435,7 +2494,7 @@ const httpServer = http.createServer(async (req, res) => {
           scope?: string;
         },
         body.client_id as string,
-        body.agent_id as string | undefined
+        stampedAgentId
       );
 
       res.writeHead(200, {
@@ -2843,9 +2902,10 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
       if (!pgPool) {
-        // No DB — allow all requests (graceful degradation)
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: true, balance: Infinity, required: opCost.baseCostCents }));
+        // No credit ledger: local dev degrades open, production refuses (fail closed).
+        const noLedger = creditRouteWithoutLedger('check', opCost.baseCostCents);
+        res.writeHead(noLedger.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(noLedger.body));
         return;
       }
       const result = await pgPool.query(
@@ -2905,9 +2965,11 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
       if (!pgPool) {
-        // No DB — accept deduction silently (graceful degradation)
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: true, cost: opCost.baseCostCents }));
+        // No credit ledger: local dev degrades open, production refuses (fail closed).
+        // "ok, cost N" with nothing written anywhere reported a free operation as paid.
+        const noLedger = creditRouteWithoutLedger('deduct', opCost.baseCostCents);
+        res.writeHead(noLedger.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(noLedger.body));
         return;
       }
       // Atomic deduct: only succeeds if balance is sufficient

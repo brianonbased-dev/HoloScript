@@ -55,6 +55,7 @@ import type { ScanResult } from '../engine/types';
 import { detectLanguage, getSupportedLanguages } from '../engine/adapters';
 import { auditHoloAbsorbManifest, buildHoloAbsorbManifest } from '../holoabsorb/index';
 import { absorbArgsHavePageExtract, foldObservedPageIntoAbsorbArgs } from './absorb-page-extract';
+import { isPremiumRow, premiumTeaser } from './premium-view';
 
 // =============================================================================
 // DYNAMIC MODULE INTERFACE
@@ -11848,7 +11849,9 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
         repo: r.workspace_id,
         filePath: r.metadata?.filePath,
         type: r.metadata?.symbolType,
-        content: r.content,
+        // Doors audit 2026-09-15: a federated row can be a priced knowledge
+        // entry. The caller is authenticated, not entitled: teaser only.
+        content: isPremiumRow(r) ? premiumTeaser(r.content) : r.content,
         relevance: r.relevance,
         source: 'federated',
       });

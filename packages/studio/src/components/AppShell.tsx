@@ -36,7 +36,6 @@ import {
   type StudioNavigationId,
   type StudioNavigationItemDefinition,
 } from '@/lib/studio/surfaceClassification';
-import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 
 // Nav ids visible only to the founder (operate surfaces). Cosmetic — the
 // underlying action endpoints enforce requireFounder server-side.
@@ -319,7 +318,10 @@ function TeamSelector({ collapsed }: { collapsed: boolean }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isFounder = isFounderWorkspaceIdentity(session?.user);
+  // Decided on the server in the NextAuth session callback. This component runs
+  // in the browser, where STUDIO_FOUNDER_* is not readable, so computing it here
+  // always answered "not the founder" and hid the founder's own nav from him.
+  const isFounder = session?.user?.isFounder === true;
   const coreItems = isFounder
     ? CORE_ITEMS
     : CORE_ITEMS.filter((i) => !FOUNDER_ONLY_NAV_HREFS.has(i.href));

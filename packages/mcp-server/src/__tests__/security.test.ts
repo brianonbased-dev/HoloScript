@@ -375,10 +375,13 @@ describe('OAuth21Service', () => {
         scopes: ['tools:read', 'tools:codebase'],
       });
 
+      // agent_id is only stamped when the caller proves that agent's own key;
+      // provenAgentId carries the identity the transport resolved.
       const response = oauth.exchangeClientCredentials({
         clientId,
         clientSecret,
         agentId: 'my-agent-v1',
+        provenAgentId: 'my-agent-v1',
       });
 
       const introspection = oauth.introspect(response.access_token);

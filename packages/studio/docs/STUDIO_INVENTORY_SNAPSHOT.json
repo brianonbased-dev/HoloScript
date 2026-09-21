@@ -1,13 +1,13 @@
 {
   "package": "@holoscript/studio",
   "counts": {
-    "appPages": 75,
-    "apiRoutes": 214,
-    "components": 479,
-    "hooks": 115,
-    "libModules": 407,
+    "appPages": 81,
+    "apiRoutes": 237,
+    "components": 492,
+    "hooks": 117,
+    "libModules": 431,
     "panelKeys": null,
-    "panelComponents": 60
+    "panelComponents": 71
   },
   "topRouteBuckets": [
     {
@@ -16,6 +16,10 @@
     },
     {
       "bucket": "agents",
+      "count": 4
+    },
+    {
+      "bucket": "playground",
       "count": 4
     },
     {
@@ -35,10 +39,6 @@
       "count": 2
     },
     {
-      "bucket": "playground",
-      "count": 2
-    },
-    {
       "bucket": "quest-proof",
       "count": 2
     }
@@ -49,7 +49,19 @@
       "count": 50
     },
     {
+      "bucket": "workspace",
+      "count": 10
+    },
+    {
       "bucket": "absorb",
+      "count": 8
+    },
+    {
+      "bucket": "agents",
+      "count": 8
+    },
+    {
+      "bucket": "connectors",
       "count": 8
     },
     {
@@ -57,24 +69,12 @@
       "count": 8
     },
     {
-      "bucket": "workspace",
-      "count": 8
-    },
-    {
-      "bucket": "connectors",
-      "count": 7
-    },
-    {
       "bucket": "quest-proof",
       "count": 7
     },
     {
-      "bucket": "github",
-      "count": 6
-    },
-    {
       "bucket": "studio",
-      "count": 6
+      "count": 7
     }
   ]
 }

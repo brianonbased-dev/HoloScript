@@ -410,6 +410,54 @@ export function isStrictMode(
 }
 
 /**
+ * True when an EMPTY attestation registry must refuse signed envelopes.
+ *
+ * Background: while the registry is empty, a signed envelope is checked only
+ * cryptographically, so ANY self-generated wallet passes as a "signed" caller.
+ * An empty registry in production also happens silently when the durable
+ * attestation store fails to load at boot ("continuing empty").
+ *
+ * This is an explicit switch, not a production default, because whether the
+ * live registry is populated could not be verified from read-only sources on
+ * 2026-09-15: flipping the default could reject every non-founder signed board
+ * write on the next deploy. Set HOLOMESH_REQUIRE_ATTESTED_SIGNERS=1 once the
+ * founder dashboard shows attested_count > 0 (GET /api/identity/attestation/pending).
+ */
+export function requiresAttestedSigners(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.HOLOMESH_REQUIRE_ATTESTED_SIGNERS === '1';
+}
+
+let _warnedEmptyRegistry = false;
+
+/** One loud line per process when production is running on the empty-registry open path. */
+function warnEmptyRegistryInProduction(env: NodeJS.ProcessEnv): void {
+  if (_warnedEmptyRegistry || env.NODE_ENV !== 'production') return;
+  _warnedEmptyRegistry = true;
+  console.warn(
+    '[signing] Attestation registry is EMPTY: signed requests are verified cryptographically ' +
+      'but any signer is accepted. Set HOLOMESH_REQUIRE_ATTESTED_SIGNERS=1 to refuse instead.'
+  );
+}
+
+function signerRegistryEmptyResult(
+  effectiveBody: unknown,
+  signingProtocol: 'classical' | 'dual',
+  dualMode?: SigningContext['dualMode']
+): ExtractAndVerifyResult {
+  return {
+    effectiveBody,
+    ctx: {
+      signedRequest: true,
+      signingValid: false,
+      signer: null,
+      signingReason: 'signer-registry-empty',
+      signingProtocol,
+      ...(dualMode ? { dualMode } : {}),
+    },
+  };
+}
+
+/**
  * Extract a signing envelope from a request body and verify it against the
  * attestation registry. Returns the effective body (unwrapped) plus a
  * SigningContext that route handlers attach to broadcasts / audit logs.
@@ -490,6 +538,13 @@ export async function extractAndVerifySigning(
   // This makes the substrate land safely before the founder dashboard
   // populates real attestations.
   const useRegistry = registry.size() > 0;
+  if (!useRegistry) {
+    const runtimeEnv = options.env ?? process.env;
+    if (requiresAttestedSigners(runtimeEnv)) {
+      return signerRegistryEmptyResult(env.body, 'classical');
+    }
+    warnEmptyRegistryInProduction(runtimeEnv);
+  }
   const verifyOptions = useRegistry
     ? { nowMs: options.nowMs, registryCheck: registry.toRegistryCheck(options.nowMs) }
     : { nowMs: options.nowMs };
@@ -589,6 +644,13 @@ export async function verifyDualEnvelopeRequest(
   // checks become enforcing for that signer's mode.
   const registry = options.registry ?? getAttestationRegistry();
   const useRegistry = registry.size() > 0;
+  if (!useRegistry) {
+    const runtimeEnv = options.env ?? process.env;
+    if (requiresAttestedSigners(runtimeEnv)) {
+      return signerRegistryEmptyResult(req.body, 'dual', parsed.envelope.mode);
+    }
+    warnEmptyRegistryInProduction(runtimeEnv);
+  }
   if (useRegistry) {
     const env = parsed.envelope;
     if (env.mode === 'classical_only') {

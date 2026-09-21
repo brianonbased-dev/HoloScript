@@ -16,7 +16,16 @@
  */
 
 import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
-import { expandScopes, OAUTH2_PUBLIC_SCOPE_NAMES } from '../auth/oauth2-provider';
+import {
+  agentIdBindingAllowed,
+  canonicalAgentIdFor,
+  AGENT_ID_NOT_BOUND_ERROR,
+  expandScopes,
+  hasConfiguredLegacyKey,
+  isProductionRuntime,
+  openDevModeAllowed,
+  OAUTH2_PUBLIC_SCOPE_NAMES,
+} from '../auth/oauth2-provider';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -92,6 +101,12 @@ export interface RegisteredClient {
   clientType: 'confidential' | 'public';
   /** Rate limit: requests per minute */
   rateLimit: number;
+  /**
+   * Agent this client is bound to, recorded at registration and only when the
+   * registering request proved that agent's own key. A token request may stamp
+   * this agent_id without re-presenting the key; any other agent_id is refused.
+   */
+  agentId?: string;
 }
 
 export interface AuthorizationCode {
@@ -127,6 +142,16 @@ export interface RefreshToken {
   chainId: string;
   /** Whether this token has been used (for rotation) */
   used: boolean;
+  /**
+   * Agent identity this chain was issued to, carried forward across rotations.
+   *
+   * A refresh grant presents no agent_id and proves no key, so the chain's own
+   * record is the only trustworthy source for the identity of the token it
+   * replaces. Without it a rotation either loses the identity (an agent
+   * silently demoted to anonymous) or has to re-read it from the request,
+   * which is exactly the impersonation the binding refuses.
+   */
+  agentId?: string;
 }
 
 export interface TokenResponse {
@@ -233,6 +258,8 @@ export class OAuth21Service {
     scopes: OAuthScope[];
     clientType?: 'confidential' | 'public';
     rateLimit?: number;
+    /** Only set by a caller that proved this agent's own key (see http-server). */
+    agentId?: string;
   }): { clientId: string; clientSecret: string } {
     if (clients.size >= this.config.maxClients) {
       throw new Error('Maximum client registration limit reached');
@@ -250,6 +277,7 @@ export class OAuth21Service {
       createdAt: Date.now(),
       clientType: params.clientType || 'confidential',
       rateLimit: params.rateLimit || 60,
+      ...(params.agentId ? { agentId: params.agentId } : {}),
     };
 
     clients.set(clientId, client);
@@ -362,6 +390,8 @@ export class OAuth21Service {
     codeVerifier: string;
     agentId?: string;
     dpopThumbprint?: string;
+    /** Agent identity proven by a key presented on this request, if any. */
+    provenAgentId?: string;
   }): TokenResponse {
     const authCode = authCodes.get(params.code);
     if (!authCode)
@@ -392,13 +422,30 @@ export class OAuth21Service {
       throw new Error('PKCE verification failed');
     }
 
+    // An agent identity must be bound or proven before it can be stamped on
+    // the token — the stamp becomes the trusted principal downstream.
+    if (
+      !agentIdBindingAllowed({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      })
+    ) {
+      throw new Error(AGENT_ID_NOT_BOUND_ERROR);
+    }
+
     // Mark code as used (one-time use)
     authCode.used = true;
 
+    // Stamp the canonical identity, never the caller's spelling of it.
     return this.issueTokenPair(
       params.clientId,
       authCode.scopes,
-      params.agentId,
+      canonicalAgentIdFor({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      }),
       params.dpopThumbprint
     );
   }
@@ -409,6 +456,8 @@ export class OAuth21Service {
     scopes?: OAuthScope[];
     agentId?: string;
     dpopThumbprint?: string;
+    /** Agent identity proven by a key presented on this request, if any. */
+    provenAgentId?: string;
   }): TokenResponse {
     const client = clients.get(params.clientId);
     if (!client)
@@ -433,10 +482,27 @@ export class OAuth21Service {
       throw new Error(`Scopes not authorized: ${invalidScopes.join(', ')}`);
     }
 
+    // An agent identity must be bound or proven before it can be stamped on
+    // the token — the stamp becomes the trusted principal downstream.
+    if (
+      !agentIdBindingAllowed({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      })
+    ) {
+      throw new Error(AGENT_ID_NOT_BOUND_ERROR);
+    }
+
+    // Stamp the canonical identity, never the caller's spelling of it.
     return this.issueTokenPair(
       params.clientId,
       requestedScopes,
-      params.agentId,
+      canonicalAgentIdFor({
+        requestedAgentId: params.agentId,
+        clientAgentId: client.agentId,
+        provenAgentId: params.provenAgentId,
+      }),
       params.dpopThumbprint
     );
   }
@@ -478,11 +544,14 @@ export class OAuth21Service {
     // Mark old refresh token as used (rotation)
     stored.used = true;
 
-    // Issue new token pair with same chain
+    // Issue new token pair with the same chain, carrying the identity this
+    // chain already holds. A refresh names no agent_id and presents no key, so
+    // the stored record is the only source that is neither a loss of identity
+    // nor a caller-supplied claim.
     return this.issueTokenPair(
       params.clientId,
       stored.scopes,
-      undefined,
+      stored.agentId,
       params.dpopThumbprint,
       stored.chainId
     );
@@ -533,7 +602,10 @@ export class OAuth21Service {
       return { active: false };
     }
 
-    if (!this.config.legacyApiKey) {
+    if (!hasConfiguredLegacyKey(this.config.legacyApiKey)) {
+      // No key configured: local open dev mode only. In production, refuse —
+      // any key a caller sends must never become an admin:* identity.
+      if (isProductionRuntime()) return { active: false };
       return { active: true, scopes: ['admin:*'], agentId: 'legacy-open-dev' };
     }
 
@@ -603,13 +675,13 @@ export class OAuth21Service {
     }
 
     // Try legacy Bearer that's actually an API key
-    if (authHeader.startsWith('Bearer ') && this.config.legacyApiKey) {
+    if (authHeader.startsWith('Bearer ') && hasConfiguredLegacyKey(this.config.legacyApiKey)) {
       const key = authHeader.slice(7);
       return this.validateLegacyKey(key);
     }
 
-    // No auth provided -- check if open dev mode
-    if (!this.config.legacyApiKey && this.config.migrationMode === 'permissive') {
+    // No auth provided -- open dev mode only outside production (fails closed in prod)
+    if (openDevModeAllowed(this.config)) {
       return { active: true, scopes: ['admin:*'], agentId: 'open-dev-mode' };
     }
 
@@ -772,6 +844,9 @@ export class OAuth21Service {
       expiresAt: now + this.config.refreshTokenTTL * 1000,
       chainId: chain,
       used: false,
+      // The chain remembers who it was issued to, so a rotation neither loses
+      // the identity nor has to take the caller's word for it.
+      agentId,
     };
 
     accessTokens.set(accessTokenValue, access);

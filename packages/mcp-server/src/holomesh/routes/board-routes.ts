@@ -12,11 +12,10 @@ import {
 } from '../state';
 import {
   INBOX_MESSAGE_TYPE_SET,
-  findTeamMember,
-  firstMention,
   hasExplicitRecipient,
   mergeInboxBrief,
   messageAddressedToAny,
+  resolveMessageRecipient,
   visibleTeamMessagesFor,
 } from '../message-addressing';
 import { hydrateTeamMessageStore, persistTeamMessages } from '../team-message-merge';
@@ -93,7 +92,11 @@ import type {
   RetiredDoneLogReceipt,
 } from '../types';
 import { getClient } from '../orchestrator-client';
-import { mergeTeamKnowledgeWithOrchestrator } from '../entry-lookup';
+import {
+  mergeTeamKnowledgeWithOrchestrator,
+  entriesForViewer,
+  ANONYMOUS_VIEWER,
+} from '../entry-lookup';
 import { getBoardModeFields } from '../mode-provenance';
 import { deriveApprovalReversibility } from './founder-approval-policy';
 
@@ -2007,7 +2010,11 @@ export async function handleBoardRoutes(
     } catch {
       knowledge = team.knowledge || [];
     }
-    const recentKnowledge = knowledge
+    // Capability-token briefs have no identity; they get premium teasers only.
+    const briefViewer = briefCaller
+      ? { authenticated: true, id: briefCaller.id }
+      : ANONYMOUS_VIEWER;
+    const recentKnowledge = entriesForViewer(knowledge, briefViewer)
       .filter((e) => e.content !== '[deleted]' && !(e.tags || []).includes('tombstone'))
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
       .slice(0, 5);
@@ -3600,15 +3607,17 @@ export async function handleBoardRoutes(
     const messageType = ((body.type as string) || 'text') as TeamMessage['messageType'];
     const toRaw = String(body.to || body.toAgentId || body.toAgentName || '').trim();
     const team = teamStore.get(teamId);
-    let toAgentId: string | undefined;
-    let toAgentName: string | undefined;
-    const toNeedle =
-      toRaw || (INBOX_MESSAGE_TYPE_SET.has(messageType) ? firstMention(content) : '');
-    if (toNeedle) {
-      const member = findTeamMember(team?.members, toNeedle);
-      toAgentId = member?.agentId;
-      toAgentName = member?.agentName || toNeedle;
-    }
+    // A body @mention is only attributed to an agentId when it names a real
+    // member of this team: npm scopes and product names look exactly like
+    // handles, and an unmatched one used to claim an agent nobody owns. The
+    // name itself is kept, so a mention that resolves to nobody leaves the
+    // message directed at nobody rather than open to everybody.
+    const { toAgentId, toAgentName } = resolveMessageRecipient({
+      members: team?.members,
+      explicitTo: toRaw,
+      content,
+      messageType,
+    });
 
     const message: TeamMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,

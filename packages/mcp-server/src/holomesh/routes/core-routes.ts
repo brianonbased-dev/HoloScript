@@ -19,7 +19,6 @@ import {
   challengeStore,
   voteStore,
   commentStore,
-  paidAccessStore,
   HOLOMESH_DATA_DIR,
   teamStore,
   teamPresenceStore,
@@ -49,7 +48,15 @@ import type {
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getAttestationRegistry } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
-import { findKnowledgeEntryById } from '../entry-lookup';
+import {
+  findKnowledgeEntryById,
+  entryForViewer,
+  entriesForViewer,
+  premiumEntryAccess,
+  isPublicFeedEntry,
+  ANONYMOUS_VIEWER,
+  type PremiumViewer,
+} from '../entry-lookup';
 import { json, parseJsonBody, pruneStalePresence, isPresenceStale } from '../utils';
 import { TEAM_ROLE_PERMISSIONS, REPUTATION_TIERS, resolveReputationTier } from '../types';
 
@@ -124,24 +131,19 @@ interface PublicKnowledgeQuality {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Short preview for feed/list views so unpaid premium rows never leak full text. */
-function truncatePremium(content: string, maxLen = 120): string {
-  return content.length <= maxLen
-    ? content
-    : content.slice(0, maxLen) + '\n... [premium content — include X-PAYMENT header to unlock]';
-}
-
-function formatEntry(e: MeshKnowledgeEntry, caller?: { authenticated: boolean; id: string }) {
+/**
+ * A feed/list row. Premium text goes through the one premium gate
+ * (entryForViewer), so an unentitled reader gets the teaser only.
+ */
+function formatEntry(e: MeshKnowledgeEntry, caller: PremiumViewer = ANONYMOUS_VIEWER) {
   const isPremium = (e.price ?? 0) > 0;
-  const isFree = !isPremium;
-  const paid = isPremium && caller?.authenticated && paidAccessStore.has(`${caller.id}:${e.id}`);
+  const access = isPremium ? premiumEntryAccess(caller, e.id, e.authorId) : null;
   const votes = voteStore.get(e.id) || [];
   const comments = commentStore.get(e.id) || [];
   return {
-    ...e,
+    ...entryForViewer(e, caller),
     premium: isPremium,
-    paid: paid || false,
-    content: isPremium && !paid ? truncatePremium(e.content) : e.content,
+    paid: access === 'purchased',
     voteCount: votes.length,
     commentCount: comments.length,
   };
@@ -270,17 +272,6 @@ function assessPublicKnowledgeEntry(
 
   const score = Math.max(0, 100 - reasons.length * 40 - warnings.length * 10);
   return { ok: reasons.length === 0, score, reasons, warnings };
-}
-
-function isPublicFeedEntry(entry: MeshKnowledgeEntry): boolean {
-  if (
-    entry.tags?.some((tag) => ['raw-dump', 'session-dump', 'system-log', 'tombstone'].includes(tag))
-  ) {
-    return false;
-  }
-  const quality = isRecord(entry.metadata?.quality) ? entry.metadata.quality : null;
-  const state = typeof quality?.state === 'string' ? quality.state : '';
-  return state !== 'rejected' && state !== 'raw-dump';
 }
 
 /** Trust authorId only when it is a live registered agent; otherwise join on authorName. */
@@ -2074,6 +2065,7 @@ export async function handleCoreRoutes(
         return bVotes - aVotes;
       })
       .slice(0, 5)
+      .map((e) => entryForViewer(e, resolveRequestingAgent(req)))
       .map((e) => ({ id: e.id, content: e.content?.slice(0, 100), domain: e.domain }));
 
     json(res, 200, {
@@ -2172,13 +2164,15 @@ export async function handleCoreRoutes(
                   : 'newly registered agent',
         })),
       top_domains,
-      sample_entries: entries.slice(0, 3).map((e) => ({
-        id: e.id,
-        type: e.type,
-        domain: e.domain,
-        content: e.content?.slice(0, 150),
-        authorName: e.authorName,
-      })),
+      sample_entries: entriesForViewer(entries.slice(0, 3), resolveRequestingAgent(req)).map(
+        (e) => ({
+          id: e.id,
+          type: e.type,
+          domain: e.domain,
+          content: e.content?.slice(0, 150),
+          authorName: e.authorName,
+        })
+      ),
       mcp_endpoint: {
         url: 'https://mcp.holoscript.net/mcp',
         tools: AVAILABLE_TOOLS.slice(0, 6),
@@ -2304,6 +2298,17 @@ export async function handleCoreRoutes(
     } catch {}
     if (!found) {
       json(res, 404, { error: `Entry ${entryId} not found` });
+      return true;
+    }
+    // Doors audit 2026-09-15 (round 3): promote copies an entry into a NEW
+    // public entry at a price the caller picks (0 by default), so anyone could
+    // re-publish someone else's premium entry for free. Only the author may
+    // promote a premium entry; a buyer may not.
+    if ((found.price ?? 0) > 0 && found.authorId !== caller.id) {
+      json(res, 403, {
+        error: 'premium-entry-author-only',
+        message: 'Only the author can promote a premium entry. Nothing was published.',
+      });
       return true;
     }
     const publicId = `pub.${entryId.replace(/^(W|P|G)\.priv\./, '$1.')}`;

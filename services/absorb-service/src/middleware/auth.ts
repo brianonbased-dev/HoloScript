@@ -4,7 +4,6 @@ import { resolveGitHubToken } from './github-identity.js';
 
 export interface AuthenticatedRequest extends Request {
   authenticated?: boolean;
-  freeTier?: boolean;
   userId?: string;
   isAdmin?: boolean;
   githubUsername?: string;
@@ -38,21 +37,18 @@ const PUBLIC_PATHS = ['/health', '/.well-known/mcp', '/.well-known/mcp.json'];
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────────
 
-const rateLimitMap = new Map<string, { count: number; windowStart: number }>();
+// There is deliberately NO anonymous tier. Until 2026-09-15 anonymous callers could
+// POST /api/absorb/scan (3/hr per IP, keyed on the client-supplied first
+// X-Forwarded-For entry, so trivially reset). That route scans `path` on the
+// SERVICE's own disk, so the tier let any stranger map the server's filesystem.
 const userRateLimitMap = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const ANON_SCAN_LIMIT = 3;
 const FREE_USER_SCAN_LIMIT = 10;
 const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
 // Periodically clean expired rate limit entries to prevent memory leak
 const cleanupTimer = setInterval(() => {
   const now = Date.now();
-  for (const [key, entry] of rateLimitMap) {
-    if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-      rateLimitMap.delete(key);
-    }
-  }
   for (const [key, entry] of userRateLimitMap) {
     if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
       userRateLimitMap.delete(key);
@@ -60,29 +56,6 @@ const cleanupTimer = setInterval(() => {
   }
 }, CLEANUP_INTERVAL_MS);
 cleanupTimer.unref(); // Don't block process exit
-
-function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
-  return req.socket.remoteAddress || 'unknown';
-}
-
-/**
- * POST /api/absorb/scan (anonymous rate-limited tier).
- * When `authMiddleware` is mounted with `app.use('/api', ...)`, Express may
- * set `req.path` to `/absorb/scan` (mount-relative) instead of `/api/absorb/scan`.
- * Without this, anonymous scans always fell through to 401 in production.
- */
-function isAnonymousAbsorbScanPost(req: Request): boolean {
-  if (req.method !== 'POST') return false;
-  const orig = req.originalUrl?.split('?')[0] || '';
-  if (orig === '/api/absorb/scan' || orig.endsWith('/api/absorb/scan')) return true;
-  const p = req.path || '';
-  if (p === '/api/absorb/scan' || p === '/scan' || p === '/absorb/scan') return true;
-  const base = (req as Request & { baseUrl?: string }).baseUrl;
-  if (base === '/api' && p === '/absorb/scan') return true;
-  return false;
-}
 
 function checkRateLimit(
   map: Map<string, { count: number; windowStart: number }>,
@@ -243,27 +216,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     return;
   }
 
-  // Anonymous: allow scan endpoint with IP-based rate limiting
-  if (isAnonymousAbsorbScanPost(req)) {
-    const ip = getClientIp(req);
-    const { limited, remaining } = checkRateLimit(rateLimitMap, ip, ANON_SCAN_LIMIT);
-    if (limited) {
-      res.status(429).json({
-        error: 'Rate limit exceeded',
-        message: `Anonymous tier limited to ${ANON_SCAN_LIMIT} scans per hour. Sign in with GitHub for ${FREE_USER_SCAN_LIMIT}/hr, or purchase credits for unlimited access.`,
-        retryAfterMs: RATE_LIMIT_WINDOW_MS,
-        remaining: 0,
-      });
-      return;
-    }
-    authReq.authenticated = false;
-    authReq.freeTier = true;
-    res.setHeader('X-RateLimit-Remaining', remaining);
-    return next();
-  }
-
-  // If no API key is configured, allow all requests (development mode)
-  if (!apiKey) {
+  // No API key configured: open only for local development. In production a
+  // missing ABSORB_API_KEY must fail closed, not silently open every route
+  // (requireConfig does not list ABSORB_API_KEY, so nothing else catches it).
+  if (!apiKey && process.env.NODE_ENV !== 'production') {
     authReq.authenticated = false;
     return next();
   }

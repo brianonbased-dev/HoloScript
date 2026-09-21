@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../../db/client';
 import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { eq } from 'drizzle-orm';
+import { hidePremiumRowsDeep } from '../../../../../lib/premium-view';
+import { usesServerKeyFor } from '../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../_lib/cors';
 const BASE =
@@ -34,7 +36,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     cache: 'no-store',
   });
 
-  // Happy path: MCP has the entry
+  // Happy path: MCP has the entry.
+  // Doors audit 2026-09-15: without the visitor's own key the request went up
+  // under Studio's server key, and HoloMesh answered for THAT key (the author,
+  // or a founder key). Cut premium text to the teaser before it reaches the
+  // visitor; a visitor with its own key was judged by HoloMesh itself.
+  if (upstream.ok && usesServerKeyFor(req)) {
+    const data = await upstream.json().catch(() => null);
+    return NextResponse.json(hidePremiumRowsDeep(data), { status: upstream.status });
+  }
   if (upstream.ok) {
     return new Response(upstream.body, {
       status: upstream.status,
@@ -54,7 +64,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           .limit(1);
 
         if (cached) {
-          return NextResponse.json({
+          // The cache knows nothing about who bought what: premium rows leave
+          // it as teasers only, for everyone.
+          return NextResponse.json(hidePremiumRowsDeep({
             success: true,
             entry: {
               id: cached.id,
@@ -75,7 +87,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               createdAt: cached.mcpCreatedAt ?? cached.syncedAt,
             },
             source: 'db-cache',
-          });
+          }));
         }
       } catch {
         // fall through to original 404

@@ -47,6 +47,9 @@ import {
   appendTeamKnowledgeMirror,
   knowledgeEntryMatchesQuery,
   mergeTeamKnowledgeWithOrchestrator,
+  entriesForViewer,
+  isPublicFeedEntry,
+  ANONYMOUS_VIEWER,
 } from '../entry-lookup';
 import { checkRateLimit } from '../social';
 import type {
@@ -171,6 +174,35 @@ function publicGuildSummary(team: Team): Record<string, unknown> {
   };
 }
 
+/**
+ * Can a quickstart stranger be auto-joined to this team?
+ *
+ * Doors audit 2026-09-15: quickstart used to join the FIRST team with a free
+ * seat, whatever it was. Live, that was the internal "HoloScript Core" room,
+ * so any caller with a name got a member seat there plus its open tasks. Our
+ * own seats never join through quickstart; they register with a wallet and
+ * POST /team/:id/join with their own bearer. So a team is eligible only
+ * when it has explicitly opted in, is public, is not an admin room, carries
+ * no invite code, and has a free seat.
+ *
+ * The invite-code condition comes from the other lane, which found this same
+ * hole independently and reproduced it 2026-09-10 against a copy configured
+ * like production: a stranger landed in whichever team had room, "including
+ * one marked private with a code set". Its fix checked public + no invite
+ * code; this one checked opt-in + public + not an admin room. Neither is a
+ * subset of the other, so the merge takes both — on a door, the narrower
+ * reading always wins.
+ */
+export function isQuickstartAutoJoinTeam(team: Team): boolean {
+  return (
+    team.quickstartAutoJoin === true &&
+    team.visibility === 'public' &&
+    team.adminRoom !== true &&
+    !team.inviteCode &&
+    team.members.length < team.maxSlots
+  );
+}
+
 function deriveTopThemes(exchanges: string[]): string[] {
   const stop = new Set([
     'the',
@@ -245,7 +277,11 @@ export async function handleTeamRoutes(
 
     const preview = await fetchQuickstartPreview();
     const topDomains = rankTopDomains(preview);
-    const sampleEntries = preview.slice(0, 5).map(normalizeEntry);
+    // Anonymous onboarding read: premium rows keep only their teaser.
+    const sampleEntries = entriesForViewer(
+      preview.filter(isPublicFeedEntry).slice(0, 5),
+      resolveRequestingAgent(req)
+    ).map(normalizeEntry);
 
     json(res, 200, {
       success: true,
@@ -266,7 +302,8 @@ export async function handleTeamRoutes(
     return true;
   }
 
-  // POST /api/holomesh/quickstart — One-call onboarding: register + auto-join team + return board
+  // POST /api/holomesh/quickstart — One-call onboarding: register, then auto-join a team
+  // only if one has opted in (isQuickstartAutoJoinTeam), and return that team's board.
   // This is the "Moltbook-easy" flow: one curl and you're contributing.
   if (pathname === '/api/holomesh/quickstart' && method === 'POST') {
     const ip = req.socket?.remoteAddress || 'unknown_ip';
@@ -350,22 +387,17 @@ export async function handleTeamRoutes(
     persistKeyRegistry();
     persistAgentStore();
 
-    // 2. Auto-join the first public team (or create a default one)
+    // 2. Auto-join a team ONLY if one has opted in to quickstart newcomers
+    //    (isQuickstartAutoJoinTeam). No opted-in team means no team: the
+    //    stranger gets an identity and the public feed (filtered like
+    //    GET /feed, premium rows as teasers; see feed_preview below), never
+    //    an internal room or its board.
     let joinedTeam: Team | null = null;
     let teamBoard: unknown[] = [];
     let teamMode = 'build';
 
-    // The comment below this loop said "public team" and the code checked only
-    // for a free slot — not visibility, not an invite code. A stranger calling
-    // this unauthenticated endpoint landed in whichever team happened to have
-    // room, including one marked private with a code set. Reproduced 2026-09-10
-    // against a copy configured like production. Quickstart now means what it
-    // always said: the open door, and only the open door.
-    const isOpenToQuickstart = (team: Team): boolean =>
-      team.visibility === 'public' && !team.inviteCode;
-
     for (const team of teamStore.values()) {
-      if (isOpenToQuickstart(team) && team.members.length < team.maxSlots) {
+      if (isQuickstartAutoJoinTeam(team)) {
         // Join this team
         const alreadyMember = team.members.some((m) => m.agentId === agent.id);
         if (!alreadyMember) {
@@ -440,9 +472,16 @@ export async function handleTeamRoutes(
       // Onboarding succeeds even if orchestrator is temporarily unavailable
     }
 
+    // The public feed, exactly as GET /api/holomesh/feed filters it, with
+    // premium rows cut to their teaser (doors audit 2026-09-15, round 3:
+    // this used to return raw lookup rows, premium text included).
     let feedPreview: MeshKnowledgeEntry[] = [];
     try {
-      feedPreview = await getClient().queryKnowledge('', { limit: 10 });
+      const raw = await getClient().queryKnowledge('', { limit: 10 });
+      feedPreview = entriesForViewer(raw.filter(isPublicFeedEntry), {
+        authenticated: true,
+        id: agent.id,
+      });
     } catch {
       feedPreview = [];
     }
@@ -527,8 +566,9 @@ export async function handleTeamRoutes(
             'Share what you learn: POST /api/holomesh/team/' + joinedTeam.id + '/knowledge',
           ]
         : [
-            'No teams available to auto-join. Create one: POST /api/holomesh/team',
-            'Or list teams: GET /api/holomesh/teams',
+            'No team is open to quickstart newcomers right now, so you were not added to one.',
+            'Browse public teams: GET /api/holomesh/guilds',
+            'Or create your own: POST /api/holomesh/team',
           ],
     });
     return true;
@@ -1733,7 +1773,11 @@ export async function handleTeamRoutes(
     } catch {
       fromOrch = [];
     }
-    let entries = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
+    // Team members are not entitled to each other's premium entries.
+    let entries = entriesForViewer(
+      mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge),
+      resolveRequestingAgent(req)
+    );
     if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
     if (q) {
       // Live 2026-09-05 (board m9oh): `q` reached queryKnowledge, but a failed
@@ -1839,12 +1883,33 @@ export async function handleTeamRoutes(
       });
       return true;
     }
-    const body = (await parseJsonBody(req)) as { max_slots?: unknown } | null;
+    const body = (await parseJsonBody(req)) as {
+      max_slots?: unknown;
+      quickstart_auto_join?: unknown;
+    } | null;
     if (!body) {
       json(res, 400, { error: 'JSON body required' });
       return true;
     }
     const changes: Record<string, unknown> = {};
+    // quickstart_auto_join opens a team to strangers from POST /quickstart.
+    // Founder-only, not owner: any agent can create a team, and an owner who
+    // could flip this would collect every later newcomer into their room.
+    if (body.quickstart_auto_join !== undefined) {
+      if (!caller.isFounder) {
+        json(res, 403, {
+          error: 'Forbidden: only a founder may open a team to quickstart newcomers.',
+        });
+        return true;
+      }
+      if (typeof body.quickstart_auto_join !== 'boolean') {
+        json(res, 400, { error: 'quickstart_auto_join must be true or false' });
+        return true;
+      }
+      const previous = team.quickstartAutoJoin === true;
+      team.quickstartAutoJoin = body.quickstart_auto_join;
+      changes.quickstart_auto_join = { from: previous, to: body.quickstart_auto_join };
+    }
     if (body.max_slots !== undefined) {
       const ms = body.max_slots;
       if (
@@ -1868,7 +1933,9 @@ export async function handleTeamRoutes(
       changes.max_slots = { from: previous, to: ms };
     }
     if (Object.keys(changes).length === 0) {
-      json(res, 400, { error: 'No mutable fields provided. Supported: max_slots' });
+      json(res, 400, {
+        error: 'No mutable fields provided. Supported: max_slots, quickstart_auto_join',
+      });
       return true;
     }
     await persistTeamDurable(teamId);
@@ -1879,6 +1946,7 @@ export async function handleTeamRoutes(
         name: team.name,
         maxSlots: team.maxSlots,
         memberCount: team.members.length,
+        quickstartAutoJoin: team.quickstartAutoJoin === true,
       },
       changes,
     });

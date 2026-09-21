@@ -97,64 +97,40 @@ describe('authMiddleware', () => {
     expect(res._json.error).toBe('Invalid API key or GitHub token');
   });
 
-  it('allows free tier scan with rate limiting', async () => {
+  // POST /api/absorb/scan reads `path` on the SERVER's disk. An anonymous tier
+  // (3/hr per IP, keyed on a client-supplied X-Forwarded-For) let any stranger
+  // map the service's own filesystem. Anonymous scans are refused outright.
+  it.each([
+    ['full path', { path: '/api/absorb/scan', originalUrl: '/api/absorb/scan' }],
+    ['router-relative path', { path: '/scan', originalUrl: '/api/absorb/scan' }],
+    ['mount-relative path under app.use("/api")', { path: '/absorb/scan', baseUrl: '/api', originalUrl: '/api/absorb/scan' }],
+  ])('refuses an anonymous POST /api/absorb/scan (%s)', async (_label, shape) => {
     process.env.ABSORB_API_KEY = 'test-key-123';
     const req = createMockReq({
-      path: '/scan',
+      ...shape,
       method: 'POST',
+      headers: { 'x-forwarded-for': '203.0.113.50' },
       socket: { remoteAddress: '192.168.1.100' },
     });
     const res = createMockRes();
     await authMiddleware(req, res, next);
-    expect(next).toHaveBeenCalled();
-    expect(req.authenticated).toBe(false);
-    expect(req.freeTier).toBe(true);
-  });
-
-  it('allows anonymous scan when path is /absorb/scan under app.use("/api", auth) (mount-relative)', async () => {
-    process.env.ABSORB_API_KEY = 'test-key-123';
-    const req = createMockReq({
-      path: '/absorb/scan',
-      method: 'POST',
-      baseUrl: '/api',
-      originalUrl: '/api/absorb/scan',
-      socket: { remoteAddress: '192.168.1.200' },
-    });
-    const res = createMockRes();
-    await authMiddleware(req, res, next);
-    expect(next).toHaveBeenCalled();
-    expect(req.authenticated).toBe(false);
-    expect(req.freeTier).toBe(true);
-  });
-
-  it('rate limits free tier after 3 scans', async () => {
-    process.env.ABSORB_API_KEY = 'test-key-123';
-    const ip = '10.0.0.42';
-
-    // First 3 should pass
-    for (let i = 0; i < 3; i++) {
-      const req = createMockReq({
-        path: '/scan',
-        method: 'POST',
-        socket: { remoteAddress: ip },
-      });
-      const res = createMockRes();
-      const n = vi.fn();
-      await authMiddleware(req, res, n);
-      expect(n).toHaveBeenCalled();
-    }
-
-    // 4th should be rate limited
-    const req = createMockReq({
-      path: '/scan',
-      method: 'POST',
-      socket: { remoteAddress: ip },
-    });
-    const res = createMockRes();
-    await authMiddleware(req, res, next);
     expect(next).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(429);
-    expect(res._json.error).toBe('Rate limit exceeded');
+    expect(res.statusCode).toBe(401);
+    expect(req.authenticated).toBeUndefined();
+  });
+
+  it('refuses anonymous requests in production even when no API key is configured', async () => {
+    const nodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const req = createMockReq({ path: '/api/absorb/scan', method: 'POST' });
+      const res = createMockRes();
+      await authMiddleware(req, res, next);
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(401);
+    } finally {
+      process.env.NODE_ENV = nodeEnv;
+    }
   });
 
   it('allows all requests in dev mode (no API key configured)', async () => {
@@ -177,20 +153,6 @@ describe('authMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(401);
     expect(res._json.error).toBe('Authentication required');
-  });
-
-  it('handles X-Forwarded-For header for IP detection', async () => {
-    process.env.ABSORB_API_KEY = 'test-key-123';
-    const req = createMockReq({
-      path: '/scan',
-      method: 'POST',
-      headers: { 'x-forwarded-for': '203.0.113.50, 70.41.3.18' },
-      socket: { remoteAddress: '10.0.0.1' },
-    });
-    const res = createMockRes();
-    await authMiddleware(req, res, next);
-    expect(next).toHaveBeenCalled();
-    expect(req.freeTier).toBe(true);
   });
 
   // ── New: GitHub token resolution tests ────────────────────────────────────

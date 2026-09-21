@@ -83,6 +83,12 @@ function buildFixture({ dockerHasEntry, importStyle }) {
       join(root, 'packages/engine/src/doc.ts'),
       `/**\n * @module @holoscript/core/policy\n * See @holoscript/core/policy for the policy contract.\n */\nexport const y = 1;\n`
     );
+  } else if (importStyle === 'jsdoc-quoted-example') {
+    // A QUOTED specifier inside a JSDoc usage example — still documentation, not an import.
+    writeFileSync(
+      join(root, 'packages/engine/src/doc-example.ts'),
+      `/**\n * Usage:\n *   import { p } from '@holoscript/core/policy';\n */\nexport const y = 1;\n`
+    );
   } else if (importStyle === 'test-file-import') {
     writeFileSync(
       join(root, 'packages/engine/src/use-policy.test.ts'),
@@ -152,6 +158,128 @@ function runGate(root) {
       0,
       'D: a core import in a *.test.ts file is excluded (never ships in the image)'
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+// ── H. a quoted specifier inside a JSDoc usage example -> exit 0 ──────────────
+{
+  const root = buildFixture({ dockerHasEntry: false, importStyle: 'jsdoc-quoted-example' });
+  try {
+    const r = runGate(root);
+    assertEq(r.code, 0, 'H: a quoted import inside a JSDoc example is documentation, not a drift');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+// ── I. builder-only workspace in a selective-ship image -> not scanned, exit 0 ──
+// mcp-server COPYs packages/cli into its builder stage but ships only selected dists, so a
+// core import that exists only in cli never runs in that image.
+{
+  const root = buildFixture({ dockerHasEntry: false, importStyle: 'none' });
+  try {
+    writeFileSync(
+      join(root, 'infrastructure/Dockerfile.mcp-server'),
+      'COPY packages/cli/ packages/cli/\nRUN ./scripts/docker/build-core-stack-no-dts.sh\n' +
+        'COPY --from=builder /app/packages/engine/dist /app/packages/engine/dist\n'
+    );
+    mkdirSync(join(root, 'packages/cli/src'), { recursive: true });
+    writeFileSync(
+      join(root, 'packages/cli/src/use-policy.ts'),
+      `import { p } from '@holoscript/core/policy';\nexport const y = p;\n`
+    );
+    const r = runGate(root);
+    assertEq(r.code, 0, 'I: a workspace built but not shipped by a selective-ship image is not scanned');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+// ── E/F/G. flat subpath + source-file drift (the 2026-09-06 absorb-service outage) ──
+// core exports ./parser -> ./dist/parser.js (a FLAT dist file, not <dir>/index). The
+// standard build makes it from the parser barrel; the Docker config built it from one
+// file inside that barrel, so dist/parser.js lacked parseHolo and the image's runtime
+// import check died with "does not provide an export named 'parseHolo'". The old gate
+// could not see it: it skipped flat exports, skipped unquoted entry keys, and never
+// compared which source file an entry is built from.
+function buildParserFixture({ dockerParser, standardParser }) {
+  const root = mkdtempSync(join(tmpdir(), 'docker-core-gate-parser-'));
+  mkdirSync(join(root, 'packages/core'), { recursive: true });
+  writeFileSync(
+    join(root, 'packages/core/package.json'),
+    JSON.stringify({
+      name: '@holoscript/core',
+      exports: { './parser': { import: './dist/parser.js', require: './dist/parser.cjs' } },
+    })
+  );
+  writeFileSync(
+    join(root, 'packages/core/tsup.config.ts'),
+    `export default { entry: { index: 'src/index.ts', parser: '${standardParser}' } };\n`
+  );
+  mkdirSync(join(root, 'scripts/docker'), { recursive: true });
+  const dockerEntry = dockerParser ? `, parser: '${dockerParser}'` : '';
+  writeFileSync(
+    join(root, 'scripts/docker/tsup.core.docker.cjs'),
+    `module.exports = { entry: { index: 'src/index.ts'${dockerEntry} } };\n`
+  );
+  mkdirSync(join(root, 'infrastructure'), { recursive: true });
+  writeFileSync(
+    join(root, 'infrastructure/Dockerfile.mcp-server'),
+    'COPY --from=builder /app/packages/engine/dist /app/packages/engine/dist\n'
+  );
+  // absorb-service ships through its own Dockerfile, which also runs the Docker core build.
+  writeFileSync(
+    join(root, 'infrastructure/Dockerfile.absorb-service'),
+    'COPY packages/absorb-service/ packages/absorb-service/\nRUN ./scripts/docker/build-core-stack-no-dts.sh\n'
+  );
+  mkdirSync(join(root, 'packages/engine/src'), { recursive: true });
+  writeFileSync(join(root, 'packages/engine/src/noop.ts'), `export const y = 1;\n`);
+  mkdirSync(join(root, 'packages/absorb-service/src/ingest'), { recursive: true });
+  writeFileSync(
+    join(root, 'packages/absorb-service/src/ingest/ingestHoloSource.ts'),
+    `import { parseHolo } from '@holoscript/core/parser';\nexport const p = parseHolo;\n`
+  );
+  return root;
+}
+
+{
+  const root = buildParserFixture({
+    dockerParser: 'src/parser/HoloScriptPlusParser.ts',
+    standardParser: 'src/parser/index.ts',
+  });
+  try {
+    const r = runGate(root);
+    assertEq(r.code, 1, 'E: Docker builds a subpath from a different source than the standard build -> exit 1');
+    assertEq(
+      /\[FAIL\]/.test(r.out) && /parser/.test(r.out) && /HoloScriptPlusParser\.ts/.test(r.out),
+      true,
+      'E: FAIL message names the subpath and both source files'
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+{
+  const root = buildParserFixture({ dockerParser: null, standardParser: 'src/parser/index.ts' });
+  try {
+    const r = runGate(root);
+    assertEq(r.code, 1, 'F: a flat dist subpath (./dist/parser.js) missing from Docker config -> exit 1');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+{
+  const root = buildParserFixture({
+    dockerParser: 'src/parser/index.ts',
+    standardParser: 'src/parser/index.ts',
+  });
+  try {
+    const r = runGate(root);
+    assertEq(r.code, 0, 'G: flat subpath built from the same source in both configs -> exit 0');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

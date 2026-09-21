@@ -72,19 +72,51 @@ export function hasBearerCapability(
   return agent.capabilities.includes(capability);
 }
 
+/** How long a bounded manifest stays valid after the `issuedAt` it carries. */
+export const DEFAULT_MANIFEST_MAX_AGE_MS = 5 * 60_000;
+
+/** Tolerance for a signer whose clock runs ahead of ours. */
+const MANIFEST_CLOCK_SKEW_MS = 60_000;
+
+export interface SignedManifestOptions {
+  /**
+   * Require the manifest to carry its own `issuedAt` and still be inside the
+   * freshness window. Used where the manifest does not merely authenticate a
+   * request but MINTS a durable identity — see `security/proven-agent-id`.
+   */
+  requireBound?: boolean;
+  /** Freshness window for a bounded manifest. Defaults to 5 minutes. */
+  maxAgeMs?: number;
+}
+
 /**
  * Resolve an agent from a signed manifest header.
  *
  * Replaces the deprecated raw env-key fallback with cryptographic proof.
  * The caller provides:
- *   - x-agent-manifest: base64-encoded JSON { id, name, walletAddress, capabilities? }
+ *   - x-agent-manifest: base64-encoded JSON { id, name, walletAddress, capabilities?, issuedAt? }
  *   - x-agent-manifest-sig: base64-encoded Ed25519 signature over the canonical manifest JSON
  *
  * Verification uses the platform public key from HOLOSCRIPT_PLATFORM_PUBLIC_KEY
  * (base64-encoded SPKI DER). HoloLand agents and external integrations authenticate
  * via platform-signed manifests without needing a registry entry.
+ *
+ * REPLAY: a manifest header pair is a bearer credential — anything that can see
+ * one can resend it. `issuedAt` (epoch ms) bounds that window, and it is INSIDE
+ * the signed payload, so it cannot be edited or stripped without breaking the
+ * signature. It is optional here on purpose: every manifest signed before this
+ * field existed omits it, and for those the payload is byte-identical to what
+ * it always was, so they keep verifying exactly as before. `requireBound`
+ * is what refuses the unbounded ones, and only the callers that mint a durable
+ * identity set it — authenticating a single request is not worth locking out
+ * every existing integration.
  */
-function resolveFromSignedManifest(req: http.IncomingMessage): ResolvedCaller | null {
+export function resolveFromSignedManifest(
+  req: {
+    headers: http.IncomingHttpHeaders;
+  },
+  options: SignedManifestOptions = {}
+): ResolvedCaller | null {
   const manifestHeader = req.headers['x-agent-manifest'];
   const signatureHeader = req.headers['x-agent-manifest-sig'];
   if (typeof manifestHeader !== 'string' || typeof signatureHeader !== 'string') {
@@ -110,11 +142,28 @@ function resolveFromSignedManifest(req: http.IncomingMessage): ResolvedCaller | 
       type: 'spki',
     });
 
+    // A present-but-malformed issuedAt is refused rather than ignored: ignoring
+    // it would drop the field from the payload and verify the LEGACY shape, so
+    // a captured bounded manifest could be replayed forever just by corrupting
+    // the timestamp.
+    const rawIssuedAt: unknown = manifest.issuedAt;
+    if (
+      rawIssuedAt !== undefined &&
+      (typeof rawIssuedAt !== 'number' || !Number.isFinite(rawIssuedAt))
+    ) {
+      return null;
+    }
+    const issuedAt: number | undefined =
+      typeof rawIssuedAt === 'number' ? rawIssuedAt : undefined;
+
     const payload = JSON.stringify({
       id: manifest.id,
       name: manifest.name,
       walletAddress: manifest.walletAddress,
       capabilities: manifest.capabilities,
+      // Omitted entirely when absent, so an unbounded manifest hashes to the
+      // exact bytes it did before this field existed.
+      ...(issuedAt !== undefined ? { issuedAt } : {}),
     });
 
     const valid = crypto.verify(
@@ -124,6 +173,16 @@ function resolveFromSignedManifest(req: http.IncomingMessage): ResolvedCaller | 
       Buffer.from(signatureHeader, 'base64')
     );
     if (!valid) return null;
+
+    // The signature proves the manifest; only `issuedAt` proves it is not a
+    // replay of one signed long ago.
+    if (options.requireBound) {
+      if (issuedAt === undefined) return null;
+      const age = Date.now() - issuedAt;
+      if (age > (options.maxAgeMs ?? DEFAULT_MANIFEST_MAX_AGE_MS)) return null;
+      // A timestamp far in the future would otherwise buy an unbounded window.
+      if (age < -MANIFEST_CLOCK_SKEW_MS) return null;
+    }
 
     const agent: RegisteredAgent = {
       id: manifest.id,

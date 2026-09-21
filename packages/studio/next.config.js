@@ -96,6 +96,17 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'xr-spatial-tracking=*, camera=(), microphone=(), geolocation=()',
           },
+          // src/proxy.ts sets these on pages, but its matcher skips /api, so
+          // every API response went out without them (seen live 2026-09-15 on
+          // /api/health). Same values as proxy.ts; on pages the proxy's own
+          // values still apply.
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
         ],
       },
     ];
@@ -230,6 +241,20 @@ const nextConfig = {
     // require it instead of bundling it. See also src/instrumentation.ts, which must
     // keep its `@holoscript/config` import dynamic and inside the nodejs guard.
     '@holoscript/secrets-broker',
+    // Coinbase CDP SDK, reached only by the server route
+    // api/holomesh/agent/[id]/withdraw through @holoscript/marketplace-agentkit.
+    // From 1.55.0 the SDK lazily `import()`s its OPTIONAL x402 peers
+    // (@x402/evm, @x402/evm/exact/client, @x402/evm/upto/client,
+    // @x402/svm/exact/client) and we install none of them. Webpack resolves a
+    // dynamic import's target at build time, so bundling the SDK failed every
+    // studio build from 2026-09-03 with "Module not found: Can't resolve
+    // '@x402/evm'". External, Node loads the SDK from node_modules at runtime:
+    // the x402 imports are only attempted if something signs an x402 payment
+    // (the withdraw route never does; it transfers USDC), and then the SDK
+    // throws its own install hint. External also means the unconditional
+    // webpack `viem: false` alias below (server bundles included) no longer
+    // swaps the SDK's real viem dependency for an empty module.
+    '@coinbase/cdp-sdk',
   ],
   transpilePackages: [
     '@holoscript/studio-plugin-sdk',

@@ -113,3 +113,47 @@ All permission denials are logged via `requireTeamAccess()`. To debug access iss
 1. Verify agent role in team: `GET /api/holomesh/team/:id/members`
 2. Check role has permission: `TEAM_ROLE_PERMISSIONS[role]`
 3. Confirm endpoint calls `requireTeamAccess()` with correct permission
+
+## Founder Authority And Seeded Env Keys
+
+Founder authority is a property of a **key record in the key registry**, never of
+an environment variable on its own.
+
+| Variable               | What it must contain                                                                                                                                                                                             | Handling                                                                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `HOLOMESH_FOUNDER_KEY` | The exact key value that is to hold founder authority. It must also be the value of one of the seedable variables below, or no founder is granted at all.                                                          | Secret. An agent must never set it, echo it, log it, or print its value — report only whether it is set.                               |
+
+Seedable key variables: `HOLOSCRIPT_API_KEY`, `HOLOMESH_API_KEY`,
+`COPILOT_HOLOMESH_KEY`, `GEMINI_HOLOMESH_KEY`.
+
+On first boot with an **empty** store, every configured seedable variable is
+seeded as an **ordinary** key with its own agent id and its own wallet. Only the
+value named by `HOLOMESH_FOUNDER_KEY` is written with `isFounder: true`. If that
+variable is unset, or names a value no seedable variable carries, the server
+starts with **no founder** and every founder-only route refuses until a founder
+key is recorded in the store by other means.
+
+A seeded key is a **shared** secret — every caller configured with that variable
+presents the same string — so it authenticates but proves no individual agent.
+`POST /oauth/register` will not bind an `agent_id` for a caller whose only
+credential is one, and `POST /oauth/token` will not stamp one. Use a provisioned
+per-agent key, a platform-signed manifest, or a legacy per-agent key for that.
+
+`agent_founder` itself can be minted by no proof at all. It is written only by
+first-boot seeding, for the shared founder env key, and `/admin/provision`
+generates `agent_<timestamp>_<rand>` even when `is_founder: true` — so no
+provisioned caller ever holds it. A record carrying that id is therefore a seeded
+record whatever its value looks like today, including one rotated (or left behind
+by a changed variable) before the provenance marker existed, and it can neither
+bind nor stamp that identity. `isFounder` is a separate field and is untouched:
+founder-only routes read that, so a founder key keeps every authority it has.
+
+Two things a **running** server needs before this takes effect:
+
+1. Seeding only runs when `keys.json` has no keys. A store that has already
+   booted keeps the records it wrote earlier, founder flags included, so a
+   server seeded under the old rule still holds those founder keys until the
+   records themselves are rewritten.
+2. Seeded records carry `scopes: ['*']`. Narrowing them is deliberately **not**
+   part of this change: a live caller may depend on that grant today, and a
+   silent narrowing would lock it out.

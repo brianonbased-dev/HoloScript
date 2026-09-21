@@ -13,8 +13,19 @@ module.exports = {
   entry: {
     index: 'src/index.ts',
     'math/vec3': 'src/math/vec3.ts',
-    parser: 'src/parser/HoloScriptPlusParser.ts',
-    runtime: 'src/HoloScriptRuntime.ts',
+    // MUST match packages/core/tsup.config.ts (the parser barrel). This pointed at
+    // HoloScriptPlusParser.ts alone, so the image's dist/parser.js lacked parseHolo /
+    // parseHoloStrict / HoloCompositionParser; once absorb-service imported
+    // `parseHolo` from '@holoscript/core/parser' (54ed06a48), every absorb-service
+    // image failed its MCP runtime-import check (5 failed deploys, 2026-09-06).
+    // check-docker-core-entries.mjs now compares entry SOURCES, not just keys.
+    parser: 'src/parser/index.ts',
+    // MUST match packages/core/tsup.config.ts. src/runtime.ts is the cold-safe runtime
+    // barrel: `export * from './HoloScriptRuntime'` plus the plugin-trait registrar,
+    // HoloScriptAgentRuntime, HoloScriptDebugger and lazy peer symbols. The single-file
+    // entry shipped a dist/runtime.js without those names (source drift, same class as
+    // parser above; flagged by check-docker-core-entries.mjs 2026-09-15).
+    runtime: 'src/runtime.ts',
     'type-checker': 'src/HoloScriptTypeChecker.ts',
     debugger: 'src/HoloScriptDebugger.ts',
     'storage/index': 'src/storage/index.ts',

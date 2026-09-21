@@ -21,6 +21,16 @@ export interface UseSceneShareReturn {
   shareUrl: string | null;
   publishing: boolean;
   loadingGallery: boolean;
+  /**
+   * The community gallery needs an account — this visitor is signed out.
+   *
+   * Deliberately NOT folded into `error`. A signed-out visitor has not hit a
+   * fault and must not be shown one; the panel reads this to say what is true
+   * instead of either lying ("no scenes shared yet") or alarming ("gallery load
+   * failed"). Publishing still works signed out, so this closes one tab of the
+   * panel, not the panel.
+   */
+  galleryRequiresSignIn: boolean;
   error: string | null;
   reset: () => void;
 }
@@ -30,6 +40,7 @@ export function useSceneShare(): UseSceneShareReturn {
   const [gallery, setGallery] = useState<SharedSceneEntry[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [loadingGallery, setLoadingGallery] = useState(false);
+  const [galleryRequiresSignIn, setGalleryRequiresSignIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const publish = useCallback(
@@ -74,7 +85,29 @@ export function useSceneShare(): UseSceneShareReturn {
     setError(null);
     try {
       const res = await fetch('/api/share');
-      const data = (await res.json()) as { scenes: SharedSceneEntry[] };
+
+      // Signed out is not a failure, and it is the normal case on /create.
+      //
+      // Bare `GET /api/share` lists the 50 most recent shares of EVERY user, so
+      // the edge gate closes it to anonymous callers on purpose and answers 401
+      // (lib/api-public-paths.ts pins the POST public and leaves this GET to a
+      // session). This hook called it unconditionally on mount from SharePanel.
+      //
+      // Before this branch the 401 body still parsed as JSON, `data.scenes` came
+      // back undefined and the gallery went silently empty — so the panel said
+      // "No scenes shared yet — be the first!", which is a false statement about
+      // the world rather than a report about the visitor. The panel now says
+      // what is actually true: this list needs an account.
+      if (res.status === 401) {
+        setGalleryRequiresSignIn(true);
+        setGallery([]);
+        return;
+      }
+
+      const data = (await res.json()) as { scenes?: SharedSceneEntry[]; error?: string };
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+
+      setGalleryRequiresSignIn(false);
       setGallery(data.scenes ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gallery load failed');
@@ -93,5 +126,15 @@ export function useSceneShare(): UseSceneShareReturn {
     setError(null);
   }, []);
 
-  return { publish, gallery, loadGallery, shareUrl, publishing, loadingGallery, error, reset };
+  return {
+    publish,
+    gallery,
+    loadGallery,
+    shareUrl,
+    publishing,
+    loadingGallery,
+    galleryRequiresSignIn,
+    error,
+    reset,
+  };
 }

@@ -32,8 +32,17 @@ export function SharePanel({ onClose }: SharePanelProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'publish' | 'gallery'>('publish');
 
-  const { publish, gallery, loadGallery, shareUrl, publishing, loadingGallery, error, reset } =
-    useSceneShare();
+  const {
+    publish,
+    gallery,
+    loadGallery,
+    shareUrl,
+    publishing,
+    loadingGallery,
+    galleryRequiresSignIn,
+    error,
+    reset,
+  } = useSceneShare();
 
   const handlePublish = useCallback(async () => {
     await publish({
@@ -166,15 +175,19 @@ export function SharePanel({ onClose }: SharePanelProps) {
         {activeTab === 'gallery' && (
           <>
             <div className="flex items-center justify-between">
-              <p className="text-[10px] text-studio-muted">{gallery.length} scenes shared</p>
-              <button
-                onClick={loadGallery}
-                disabled={loadingGallery}
-                className="flex items-center gap-1 text-[10px] text-studio-muted hover:text-studio-text"
-              >
-                <RefreshCw className={`h-3 w-3 ${loadingGallery ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
+              <p className="text-[10px] text-studio-muted">
+                {galleryRequiresSignIn ? 'Community gallery' : `${gallery.length} scenes shared`}
+              </p>
+              {!galleryRequiresSignIn && (
+                <button
+                  onClick={loadGallery}
+                  disabled={loadingGallery}
+                  className="flex items-center gap-1 text-[10px] text-studio-muted hover:text-studio-text"
+                >
+                  <RefreshCw className={`h-3 w-3 ${loadingGallery ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              )}
             </div>
 
             {loadingGallery && (
@@ -183,7 +196,28 @@ export function SharePanel({ onClose }: SharePanelProps) {
               </div>
             )}
 
-            {!loadingGallery && gallery.length === 0 && (
+            {/*
+             * Signed out is not an error and not an empty world.
+             *
+             * Browsing the gallery lists other people's shares, so it needs an
+             * account; publishing does not. Saying both in one sentence is the
+             * difference between a visitor who signs in and one who thinks the
+             * panel is broken. The old branch could only say "No scenes shared
+             * yet — be the first!", which was a false claim about the world.
+             */}
+            {!loadingGallery && galleryRequiresSignIn && (
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <Globe className="h-8 w-8 text-studio-muted/40" />
+                <p className="text-[11px] text-studio-muted">
+                  Sign in to browse scenes other people have shared.
+                </p>
+                <p className="text-[10px] text-studio-muted/70">
+                  Publishing your own scene works without an account — use the Publish tab.
+                </p>
+              </div>
+            )}
+
+            {!loadingGallery && !galleryRequiresSignIn && gallery.length === 0 && (
               <div className="flex flex-col items-center gap-2 py-8 text-center">
                 <Globe className="h-8 w-8 text-studio-muted/40" />
                 <p className="text-[11px] text-studio-muted">

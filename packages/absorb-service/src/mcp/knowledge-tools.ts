@@ -255,7 +255,23 @@ export async function handleKnowledgeToolCall(
               cost,
               `knowledge_query_premium:${row.id}`
             );
-            if (deducted && row.walletAddress) {
+            if (!deducted) {
+              // Doors audit 2026-09-15: a paid tier is not a payment. When the
+              // 5-cent charge did not go through, the caller gets what a free
+              // caller gets (before, the full text went out regardless).
+              gatedCount++;
+              results.push({
+                id: row.id,
+                type: row.type,
+                workspace_id: row.workspaceId,
+                wallet_address: row.walletAddress,
+                content: `[x402 premium — 5¢ per access, the charge did not go through. Author: ${row.walletAddress || 'anonymous'}]`,
+                is_premium: true,
+                x402_gated: true,
+              });
+              continue;
+            }
+            if (row.walletAddress) {
               // 80% to author, 20% platform
               const authorShare = Math.floor(cost * 0.8);
               await deps.addCredits(row.walletAddress, authorShare, `knowledge_revenue:${row.id}`);

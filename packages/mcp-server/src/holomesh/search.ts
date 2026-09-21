@@ -8,6 +8,7 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { getReplies, getReplyCount } from './threads';
+import { hidePremiumTextIfPremium } from './premium-view';
 
 // =============================================================================
 // Types
@@ -51,6 +52,8 @@ type EntryQueryProvider = (
     domain?: string;
     authorName?: string;
     queryCount?: number;
+    price?: number;
+    metadata?: unknown;
   }>
 >;
 
@@ -83,7 +86,12 @@ export async function search(options: SearchOptions): Promise<SearchResult[]> {
   // Search knowledge entries via orchestrator (vector/semantic)
   if (searchTypes.includes('entry') && entryProvider) {
     try {
-      const entries = await entryProvider(query, { limit: Math.min(limit, 50) });
+      // A search reader is never tied to a purchase here, and the snippet
+      // window follows the query anywhere in the text, so premium rows are cut
+      // to their teaser BEFORE the snippet is taken (doors audit 2026-09-15).
+      const entries = (await entryProvider(query, { limit: Math.min(limit, 50) })).map((entry) =>
+        hidePremiumTextIfPremium(entry)
+      );
       for (const entry of entries) {
         if (domain && entry.domain !== domain) continue;
         const content = entry.content || '';

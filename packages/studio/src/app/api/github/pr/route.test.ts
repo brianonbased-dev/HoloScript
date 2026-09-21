@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(async () => ({ accessToken: 'test-token' })),
+  getServerSession: vi.fn(async () => ({
+    accessToken: 'test-token',
+    user: { provider: 'github' },
+  })),
 }));
 
 vi.mock('@/lib/auth', () => ({

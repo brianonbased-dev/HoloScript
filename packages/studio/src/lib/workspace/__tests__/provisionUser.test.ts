@@ -42,6 +42,7 @@ function mockFounderGit(): void {
 
 describe('provisionUser founder bootstrap', () => {
   const savedFounderUsers = process.env.STUDIO_FOUNDER_GITHUB_USERS;
+  const savedFounderIds = process.env.STUDIO_FOUNDER_GITHUB_IDS;
   const savedMasterKey = process.env.HOLOSCRIPT_API_KEY;
   const savedHoloMeshKey = process.env.HOLOMESH_API_KEY;
   const savedMcpServerUrl = process.env.MCP_SERVER_URL;
@@ -51,6 +52,9 @@ describe('provisionUser founder bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.STUDIO_FOUNDER_GITHUB_USERS = 'brianonbased-dev';
+    // The founder branch here mints a founder-tier key with the master key, so
+    // it is gated on the NUMERIC account id and the login alone will not do.
+    process.env.STUDIO_FOUNDER_GITHUB_IDS = '225674784';
     process.env.HOLOSCRIPT_API_KEY = 'master-key';
     process.env.HOLOMESH_API_KEY = 'holomesh-publish-key';
     process.env.MCP_SERVER_URL = 'https://mcp.test';
@@ -129,6 +133,11 @@ describe('provisionUser founder bootstrap', () => {
     } else {
       process.env.STUDIO_FOUNDER_GITHUB_USERS = savedFounderUsers;
     }
+    if (savedFounderIds === undefined) {
+      delete process.env.STUDIO_FOUNDER_GITHUB_IDS;
+    } else {
+      process.env.STUDIO_FOUNDER_GITHUB_IDS = savedFounderIds;
+    }
     if (savedMasterKey === undefined) {
       delete process.env.HOLOSCRIPT_API_KEY;
     } else {
@@ -147,10 +156,11 @@ describe('provisionUser founder bootstrap', () => {
     vi.unstubAllGlobals();
   });
 
-  it('maps the founder login to the existing ai-ecosystem workspace without scaffolding', async () => {
+  it('maps the founder account id to the existing ai-ecosystem workspace without scaffolding', async () => {
     const result = await provisionUser({
       githubAccessToken: 'gho_founder_secret_token',
       githubUsername: 'brianonbased-dev',
+      githubAccountId: '225674784',
       email: 'brianonbased@gmail.com',
       approvedRepos: [],
       approvedScaffold: true,
@@ -198,6 +208,50 @@ describe('provisionUser founder bootstrap', () => {
       currentCommit: 'abc123def4567890abc123def4567890abc123de',
     });
     expect(JSON.stringify(payload)).not.toContain('gho_founder_secret_token');
+  });
+
+  it('never mints a founder-tier key from a login alone, without the numeric id', async () => {
+    // This is the path that spends the master key. Before this round the caller
+    // fed `session.user.name` into the field called `githubUsername`, so a
+    // display name anyone could type reached this branch. The login is no
+    // longer enough on its own here: the numeric account id is required.
+    const result = await provisionUser({
+      githubAccessToken: 'gho_not_the_founder',
+      githubUsername: 'brianonbased-dev',
+      email: 'brianonbased@gmail.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.steps.map((step) => step.name)).not.toContain('link-founder-workspace');
+    expect(result.user?.tier).not.toBe('founder');
+
+    const fetchStub = vi.mocked(fetch);
+    const founderTierCalls = fetchStub.mock.calls.filter(([, init]) =>
+      String((init as RequestInit | undefined)?.body ?? '').includes('"tier":"founder"')
+    );
+    expect(founderTierCalls).toHaveLength(0);
+  });
+
+  it('still recognises nobody as founder when the numeric id is not configured', async () => {
+    delete process.env.STUDIO_FOUNDER_GITHUB_IDS;
+
+    const result = await provisionUser({
+      githubAccessToken: 'gho_not_the_founder',
+      githubUsername: 'brianonbased-dev',
+      githubAccountId: '225674784',
+      email: 'brianonbased@gmail.com',
+      approvedRepos: [],
+      approvedScaffold: false,
+      approvedAbsorb: false,
+      approvedPublishKnowledge: false,
+      approvedDaemon: false,
+    });
+
+    expect(result.steps.map((step) => step.name)).not.toContain('link-founder-workspace');
   });
 
   it('seeds a template-shaped account workspace repo for a Studio user', async () => {
@@ -810,9 +864,51 @@ describe('E2E smoke: provision → HoloMesh identity → display', () => {
     const registerPayload = JSON.parse(String(registerCall![1]?.body ?? '{}')) as { name: string };
     expect(registerPayload.name).toBe('studio-octocat');
 
-    // Verify the API key was passed as header
+    // The orchestrator's key must NOT ride along to mcp-server. Registration is
+    // the UNAUTHENTICATED bootstrap that mints the mcp-server credential, so
+    // there is nothing here for a credential to prove — and the key minted at
+    // /admin/keys is the orchestrator's currency, presented with `x-mcp-api-key`
+    // to the orchestrator alone. mcp-server's own scheme is `Authorization:
+    // Bearer <holomesh key>`, which is what the knowledge publish uses.
     const registerHeaders = registerCall![1]?.headers as Record<string, string>;
-    expect(registerHeaders['x-mcp-api-key']).toBe('mcp-provisioned-secret-key');
+    expect(registerHeaders['x-mcp-api-key']).toBeUndefined();
+
+    // Cross-service credential audit over EVERY call provisioning made, not
+    // just this one: a credential minted for one service may never appear in a
+    // request to the other. Asserting the whole pipeline is what stops the
+    // wrong pairing being reintroduced somewhere else in it.
+    const MCP_SERVER_BASE = 'https://mcp.test';
+    const ORCHESTRATOR_MINTED_KEY = 'mcp-provisioned-secret-key';
+    const MASTER_KEY = 'master-key';
+    const headerValuesOf = (init?: RequestInit): string[] =>
+      Object.values((init?.headers ?? {}) as Record<string, string>);
+
+    const callsToMcpServer = fetchMock.mock.calls.filter(([url]) =>
+      String(url).startsWith(MCP_SERVER_BASE)
+    );
+    expect(callsToMcpServer.length).toBeGreaterThan(0);
+    for (const [url, init] of callsToMcpServer) {
+      const values = headerValuesOf(init);
+      expect(values, `orchestrator key sent to mcp-server at ${String(url)}`).not.toContain(
+        ORCHESTRATOR_MINTED_KEY
+      );
+      expect(values, `master key sent to mcp-server at ${String(url)}`).not.toContain(MASTER_KEY);
+    }
+
+    // ...and the same rule in the other direction.
+    const callsToOrchestrator = fetchMock.mock.calls.filter(
+      ([url]) =>
+        !String(url).startsWith(MCP_SERVER_BASE) && !String(url).includes('api.github.com')
+    );
+    for (const [url, init] of callsToOrchestrator) {
+      const values = headerValuesOf(init);
+      expect(values, `holomesh key sent to the orchestrator at ${String(url)}`).not.toContain(
+        TEST_HOLOMESH_API_KEY
+      );
+      expect(values, `holomesh key sent to the orchestrator at ${String(url)}`).not.toContain(
+        'holomesh-publish-key'
+      );
+    }
   });
 
   it('seeds .env.example with HoloMesh identity fields when identity is registered', async () => {

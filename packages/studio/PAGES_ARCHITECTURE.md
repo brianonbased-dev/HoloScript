@@ -1,6 +1,6 @@
 # HoloScript Studio — Pages Architecture & Production Plan
 
-> Current planning note (2026-05-10): this document is historical. Use [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) as the current source for Studio IDE cleanup, workbench architecture, UX reboot, and account-workspace alignment. Live route/API/component counts are guarded by [`docs/STUDIO_INVENTORY_SNAPSHOT.json`](docs/STUDIO_INVENTORY_SNAPSHOT.json); run `pnpm --filter @holoscript/studio inventory:check` before trusting inventory claims.
+> Current planning note (2026-05-10): this document is historical. Use [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) as the current source for Studio IDE cleanup, workbench architecture, UX reboot, and account-workspace alignment. Live route/API/component counts are guarded by [`docs/STUDIO_INVENTORY_SNAPSHOT.json`](docs/STUDIO_INVENTORY_SNAPSHOT.json); run `pnpm --filter @holoscript/studio inventory:check` before trusting inventory claims. The snapshot went stale for three months (75 pages / 214 API routes recorded against 80 / 237 actual) because that check was documented but never run; `src/app/__tests__/front-door.test.ts` now enforces it.
 
 ## Executive Summary
 
@@ -19,7 +19,7 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 ### A. Studio Pages (`packages/studio/src/app/`)
 
-**Historical v6.0.2 restructure**: Routes reorganized into a progressive disclosure funnel and 3 spaces. Current page/API totals live in `docs/STUDIO_INVENTORY_SNAPSHOT.json`.
+**Historical v6.0.2 restructure**: Routes reorganized into a progressive disclosure funnel and 3 spaces. Current page/API totals live in `docs/STUDIO_INVENTORY_SNAPSHOT.json`, which is asserted against the route tree by `src/app/__tests__/front-door.test.ts`.
 
 #### Primary Funnel (6 routes)
 
@@ -122,7 +122,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 
 ### C. API Routes
 
-Current API route totals live in `docs/STUDIO_INVENTORY_SNAPSHOT.json` and are checked by `pnpm --filter @holoscript/studio inventory:check`.
+Current API route totals live in `docs/STUDIO_INVENTORY_SNAPSHOT.json` and are checked by `pnpm --filter @holoscript/studio inventory:check` and by `src/app/__tests__/front-door.test.ts`.
 
 **Core Scene Operations:**
 

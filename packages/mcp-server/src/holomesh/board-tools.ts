@@ -28,8 +28,14 @@ import {
 import { teamStore, teamPresenceStore, persistTeamDurable, reloadTeam } from './state';
 import { broadcastToTeam } from './team-room';
 import { recordTeamModeChange } from './mode-provenance';
-import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from './utils';
+import {
+  normalizePresenceSurface,
+  getPresenceTtlMs,
+  pruneStalePresence,
+  getTeamMember,
+} from './utils';
 import { resolveMcpBoardAgent } from './identity/mcp-board-agent-binding';
+import { entriesForViewer, mcpToolViewer } from './entry-lookup';
 
 // ── Helper: get team from in-memory store ──
 
@@ -1203,11 +1209,26 @@ async function handleKnowledgeRead(
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
 
+  // Doors audit 2026-09-15: same rule as GET /api/holomesh/team/:id/knowledge.
+  // Only a member of the team may read its knowledge, identified by the
+  // server-stamped signer (`__authAgentId`, never a caller-supplied agent_id),
+  // and a member is not entitled to another author's premium text.
+  const viewer = mcpToolViewer(args);
+  if (!viewer.authenticated) {
+    return {
+      error: 'authentication-required',
+      message: 'Team knowledge is readable only by a signed-in member of the team.',
+    };
+  }
+
   try {
     const team = getTeam(teamId);
+    if (!getTeamMember(team, viewer.id)) {
+      return { error: 'not-a-member', message: 'Not a member of this team.' };
+    }
     const entries = team.knowledge ?? [];
     const limit = (args.limit as number) || 20;
-    return { entries: entries.slice(0, limit), total: entries.length };
+    return { entries: entriesForViewer(entries.slice(0, limit), viewer), total: entries.length };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }

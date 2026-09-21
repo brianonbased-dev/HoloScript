@@ -1,0 +1,155 @@
+// The documentation index — authored in HoloScript, compiled to an @generated
+// Next.js page by the NextJSCompiler. EDIT THIS, not src/app/docs/page.tsx.
+// Regenerate: pnpm --filter @holoscript/studio holo:build
+//
+// WHY THIS PAGE EXISTS. The front page footer links to /docs. Until 2026-09-16
+// that link landed on the root catch-all — `(industry)/[vertical]/page.tsx`
+// registered `/[vertical]` at the root and answered every unmatched address —
+// so our own documentation link rendered a 3D editor captioned "Professional
+// Environment", with HTTP 200 to say everything was fine.
+//
+// A redirect was the other option and was rejected: /api/docs is the OpenAPI
+// description (JSON, correct for an agent, useless for a person), and the
+// external guide path on the website returns 404, so there was nothing to
+// redirect a human to. This page says where things are instead, and links to
+// the OpenAPI description for the readers who do want JSON.
+composition "Docs" {
+  @page { route: "/docs" }
+  @metadata {
+    title: "Docs — HoloScript Studio"
+    description: "Where to find things in HoloScript Studio: how to start building, the machine-readable API description, and the source."
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "mx-auto w-full max-w-3xl px-6 py-16" }
+
+    object "Title" {
+      @text { content: "Docs", variant: "h1" }
+      @theme { className: "text-3xl font-bold text-studio-text" }
+    }
+
+    object "Intro" {
+      @text { content: "HoloScript Studio does not have a separate documentation site yet. Everything that explains it is inside the product, so this page says where each thing is." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "StartHeading" {
+      @text { content: "Start here", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "StartGrid" {
+      @theme { tag: "section", className: "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3" }
+
+      object "CardStart" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardStartTitle" {
+          @link { href: "/start", content: "Start here →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardStartDesc" {
+          @text { content: "The guided way in. Describe what you want to build and watch it appear." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardCreate" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardCreateTitle" {
+          @link { href: "/create", content: "The editor →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardCreateDesc" {
+          @text { content: "Build a scene directly. You do not need an account to open it." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardPlayground" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardPlaygroundTitle" {
+          @link { href: "/playground", content: "Playground →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardPlaygroundDesc" {
+          @text { content: "Write HoloScript and see it render, with nothing to install." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardHeadset" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardHeadsetTitle" {
+          @link { href: "/examples/no-app-webxr", content: "Headset example →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardHeadsetDesc" {
+          @text { content: "A scene you can open in a headset without installing an app." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+    }
+
+    object "ReferenceHeading" {
+      @text { content: "Reference", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "ReferenceGrid" {
+      @theme { tag: "section", className: "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3" }
+
+      object "CardApi" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardApiTitle" {
+          @link { href: "/api/docs", content: "API description (OpenAPI) →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardApiDesc" {
+          @text { content: "Every Studio endpoint and how to authenticate, in JSON. This is what an agent reads." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardRegistry" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardRegistryTitle" {
+          @link { href: "/registry", content: "Asset registry →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardRegistryDesc" {
+          @text { content: "The public asset packs you can search, filter and import." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardStore" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardStoreTitle" {
+          @link { href: "/store", content: "Store →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardStoreDesc" {
+          @text { content: "Published work from the community, open to anyone." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardSource" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardSourceTitle" {
+          @link { href: "https://github.com/brianonbased-dev/HoloScript", content: "Source on GitHub →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardSourceDesc" {
+          @text { content: "The repository, the issues, and every line that makes this run." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+    }
+
+    object "Footnote" {
+      @text { content: "Something here missing or wrong? Open an issue on GitHub." }
+      @theme { className: "mt-12 text-xs text-studio-muted" }
+    }
+  }
+}

@@ -65,3 +65,36 @@ describe('holomesh_search providers (registerSearchProviders wiring)', () => {
     expect(results).toEqual([]);
   });
 });
+
+/**
+ * Doors audit 2026-09-15, round 3. The entry snippet follows the query to
+ * wherever it matches in the text, so a caller could aim a query past any
+ * teaser and read a premium entry's paid part 120 characters at a time.
+ */
+describe('holomesh_search never snippets premium text', () => {
+  const PAID_TAIL = 'SEARCH-PAID-TAIL-NEVER-FREE';
+  const premiumEntry = {
+    id: 'entry_premium_search',
+    type: 'gotcha',
+    content: `${'Paid search body. '.repeat(12)}${PAID_TAIL} and more paid text after it.`,
+    domain: 'compilation',
+    authorName: 'author',
+    queryCount: 0,
+    price: 0.05,
+  };
+
+  beforeAll(() => {
+    registerSearchProviders(
+      () => [],
+      async (query: string) => (query.includes(PAID_TAIL) ? [premiumEntry] : [])
+    );
+  });
+
+  it('a query aimed past the teaser gets only the teaser back', async () => {
+    const results = await search({ query: PAID_TAIL, types: ['entry'] });
+
+    expect(results).toHaveLength(1);
+    expect(results[0].id).toBe(premiumEntry.id);
+    expect(JSON.stringify(results)).not.toContain(PAID_TAIL);
+  });
+});

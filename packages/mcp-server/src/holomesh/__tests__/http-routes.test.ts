@@ -122,7 +122,8 @@ import {
   keyRegistry,
   type CaelAuditRecord,
 } from '../state';
-import { MOBILE_PRESENCE_TTL_MS } from '../types';
+import { MOBILE_PRESENCE_TTL_MS, type Team } from '../types';
+import type { TeamTask } from '@holoscript/framework';
 import { getAttestationRegistry, resetAttestationRegistry } from '../identity/signing-middleware';
 
 // ── Test Helpers ──
@@ -1304,11 +1305,14 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, '/api/holomesh/entry/premium-2');
 
       expect(res._status).toBe(402);
-      expect(res._body.accepts).toBeInstanceOf(Array);
-      expect(res._body.accepts[0].maxAmountRequired).toBe('100000'); // 0.10 USDC = 100000 base units
+      expect(res._body.code).toBe('x402-payment-missing');
+      expect(res._body.payment.required_base_units).toBe('100000'); // 0.10 USDC = 100000 base units
       expect(res._body.preview).toBeDefined();
       expect(res._body.preview.price).toBe(0.1);
       expect(res._body.hint).toContain('X-PAYMENT');
+      // No pay-to address is advertised: none is configured for HoloMesh.
+      expect(res._body.accepts).toBeUndefined();
+      expect(JSON.stringify(res._body)).not.toContain('Secret pattern');
     });
 
     it('entry detail returns full content for free entry', async () => {
@@ -1334,26 +1338,36 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.entry.content).toBe(content);
     });
 
-    it('entry detail accepts X-PAYMENT header for premium entry (testnet fallback)', async () => {
-      // Register agent for auth
+    // Doors audit 2026-09-15. Until then ANY X-PAYMENT value returned the full
+    // premium entry; this test used to assert exactly that ("testnet
+    // fallback"). The header is now a claim that must be verified, and this
+    // server has no verifier that checks the signature.
+    async function registerPremiumCaller(prefix: string) {
       const regReq = mockReq('POST', '/api/holomesh/register', {
-        name: `pay-bot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        name: `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
-      const apiKey = regRes._body.agent.api_key;
+      return { apiKey: regRes._body.agent.api_key as string, id: regRes._body.agent.id as string };
+    }
 
+    function premiumEntry(id: string, content: string, authorId = 'other') {
+      return {
+        id,
+        type: 'gotcha',
+        content,
+        domain: 'compilation',
+        price: 0.05,
+        authorId,
+        authorName: 'author',
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    it('refuses an X-PAYMENT header it cannot verify, even from a logged-in caller', async () => {
+      const { apiKey } = await registerPremiumCaller('pay-bot');
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        {
-          id: 'premium-3',
-          type: 'gotcha',
-          content: 'Full premium secret gotcha',
-          domain: 'compilation',
-          price: 0.05,
-          authorId: 'other',
-          authorName: 'author',
-          createdAt: new Date().toISOString(),
-        },
+        premiumEntry('premium-3', 'Full premium secret gotcha'),
       ]);
 
       const req = mockReq('GET', '/api/holomesh/entry/premium-3', undefined, {
@@ -1363,10 +1377,139 @@ describe('HoloMesh HTTP Routes', () => {
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/entry/premium-3');
 
+      expect(res._status).toBe(402);
+      expect(res._body.code).toBe('x402-verification-unavailable');
+      expect(JSON.stringify(res._body)).not.toContain('Full premium secret gotcha');
+    });
+
+    it('refuses an X-PAYMENT header from an anonymous caller', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        premiumEntry('premium-4', 'Anonymous callers must never read this'),
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/entry/premium-4', undefined, {
+        'x-payment': 'any-string-at-all-that-is-long-enough',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/entry/premium-4');
+
+      expect(res._status).toBe(402);
+      expect(JSON.stringify(res._body)).not.toContain('Anonymous callers must never read this');
+    });
+
+    it('POST /entry/:id/buy records no purchase without a verified payment', async () => {
+      const { apiKey } = await registerPremiumCaller('buy-bot');
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        premiumEntry('premium-5', 'Bought for nothing before the fix'),
+      ]);
+      const buyReq = mockReq('POST', '/api/holomesh/entry/premium-5/buy', undefined, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const buyRes = mockRes();
+      await handleHoloMeshRoute(buyReq, buyRes, '/api/holomesh/entry/premium-5/buy');
+      expect(buyRes._status).toBe(402);
+      expect(buyRes._body.code).toBe('x402-payment-missing');
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        premiumEntry('premium-5', 'Bought for nothing before the fix'),
+      ]);
+      const getReq = mockReq('GET', '/api/holomesh/entry/premium-5', undefined, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, '/api/holomesh/entry/premium-5');
+      expect(getRes._status).toBe(402);
+      expect(JSON.stringify(getRes._body)).not.toContain('Bought for nothing before the fix');
+    });
+
+    it('the author reads their own premium entry in full', async () => {
+      const author = await registerPremiumCaller('author-bot');
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        premiumEntry('premium-6', 'The author wrote this', author.id),
+      ]);
+      const req = mockReq('GET', '/api/holomesh/entry/premium-6', undefined, {
+        authorization: `Bearer ${author.apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/entry/premium-6');
+
       expect(res._status).toBe(200);
-      expect(res._body.entry.content).toBe('Full premium secret gotcha');
+      expect(res._body.entry.content).toBe('The author wrote this');
       expect(res._body.entry.premium).toBe(true);
-      expect(res._body.entry.paid).toBe(true);
+      expect(res._body.entry.access).toBe('author');
+      expect(res._body.entry.paid).toBe(false);
+    });
+  });
+
+  // ── StoryWeaver premium branches (doors audit 2026-09-15) ──
+
+  describe('StoryWeaver premium branches', () => {
+    async function registerStoryAgent(prefix: string) {
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      return regRes._body.agent.api_key as string;
+    }
+
+    async function call(method: string, path: string, body?: Record<string, unknown>, apiKey?: string) {
+      const req = mockReq(method, path, body, apiKey ? { authorization: `Bearer ${apiKey}` } : {});
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, path);
+      return res;
+    }
+
+    it('a self-declared payment does not unlock a branch, and locked text is never served', async () => {
+      const ownerKey = await registerStoryAgent('sw-owner');
+      const readerKey = await registerStoryAgent('sw-reader');
+      const hiddenEnding = `${'x'.repeat(130)} THE-HIDDEN-ENDING`;
+
+      const created = await call(
+        'POST',
+        '/api/holomesh/storyweaver/session',
+        { title: 'Doors', opening: 'Once upon a time.' },
+        ownerKey
+      );
+      expect(created._status).toBe(201);
+      const sessionId = created._body.session.id as string;
+
+      const branched = await call(
+        'POST',
+        `/api/holomesh/storyweaver/session/${sessionId}/branch`,
+        { label: 'Secret ending', chapterText: hiddenEnding, premium: true, priceCents: 99 },
+        ownerKey
+      );
+      expect(branched._status).toBe(201);
+      const branchId = branched._body.branch.id as string;
+      const unlockPath = `/api/holomesh/storyweaver/session/${sessionId}/branch/${branchId}/unlock`;
+
+      for (const claim of [{ paid: true }, { paymentReference: 'ref-123' }, { x402Proof: 'proof' }]) {
+        const unlock = await call('POST', unlockPath, claim, readerKey);
+        expect(unlock._status).toBe(402);
+        expect(unlock._body.code).toBe('x402-verification-unavailable');
+      }
+
+      const sessionPath = `/api/holomesh/storyweaver/session/${sessionId}`;
+      for (const viewerKey of [undefined, readerKey]) {
+        const viewed = await call('GET', sessionPath, undefined, viewerKey);
+        expect(viewed._status).toBe(200);
+        const branch = viewed._body.session.branches.find((b: { id: string }) => b.id === branchId);
+        expect(branch.locked).toBe(true);
+        expect(branch.beats).toEqual([]);
+        expect(JSON.stringify(viewed._body)).not.toContain('THE-HIDDEN-ENDING');
+      }
+
+      const ownerView = await call('GET', sessionPath, undefined, ownerKey);
+      const ownerBranch = ownerView._body.session.branches.find(
+        (b: { id: string }) => b.id === branchId
+      );
+      expect(ownerBranch.chapterText).toBe(hiddenEnding);
+      expect(ownerBranch.locked).toBeUndefined();
+
+      const ownerUnlock = await call('POST', unlockPath, {}, ownerKey);
+      expect(ownerUnlock._status).toBe(200);
+      expect(ownerUnlock._body.access).toBe('author');
     });
   });
 
@@ -5966,6 +6109,48 @@ describe('HoloMesh HTTP Routes', () => {
         expect(res._body.changes.max_slots.to).toBe(80);
       });
 
+      it('only a founder can open a team to quickstart newcomers (doors audit 2026-09-15)', async () => {
+        const tid = await makeTeam();
+        const path = `/api/holomesh/team/${tid}/config`;
+        try {
+          const ownerReq = mockReq(
+            'PATCH',
+            path,
+            { quickstart_auto_join: true },
+            { authorization: `Bearer ${ownerApiKey}` }
+          );
+          const ownerRes = mockRes();
+          await handleHoloMeshRoute(ownerReq, ownerRes, path);
+          expect(ownerRes._status).toBe(403);
+          expect(teamStore.get(tid)!.quickstartAutoJoin).not.toBe(true);
+
+          const badReq = mockReq(
+            'PATCH',
+            path,
+            { quickstart_auto_join: 'yes' },
+            { authorization: 'Bearer test-api-key' }
+          );
+          const badRes = mockRes();
+          await handleHoloMeshRoute(badReq, badRes, path);
+          expect(badRes._status).toBe(400);
+
+          const founderReq = mockReq(
+            'PATCH',
+            path,
+            { quickstart_auto_join: true },
+            { authorization: 'Bearer test-api-key' }
+          );
+          const founderRes = mockRes();
+          await handleHoloMeshRoute(founderReq, founderRes, path);
+          expect(founderRes._status).toBe(200);
+          expect(founderRes._body.team.quickstartAutoJoin).toBe(true);
+          expect(founderRes._body.changes.quickstart_auto_join).toEqual({ from: false, to: true });
+        } finally {
+          // An opted-in team left behind would receive later quickstart tests' strangers.
+          teamStore.delete(tid);
+        }
+      });
+
       it('non-owner non-founder is 403', async () => {
         const tid = await makeTeam();
         const req = mockReq(
@@ -7041,6 +7226,112 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(meReq, meRes, '/api/holomesh/me');
 
       expect(meRes._status).toBe(401);
+    });
+
+    // Doors audit 2026-09-15: quickstart used to seat a stranger in the FIRST
+    // team with a free slot (live: the internal "HoloScript Core" room) and
+    // hand back its open tasks. Only a team that opted in may receive one.
+    describe('auto-join is opt-in', () => {
+      const seeded: string[] = [];
+      afterEach(() => {
+        for (const id of seeded.splice(0)) teamStore.delete(id);
+      });
+
+      function openTask(id: string, title: string): TeamTask {
+        return {
+          id,
+          title,
+          description: '',
+          status: 'open',
+          priority: 1,
+          createdAt: new Date().toISOString(),
+          surface_origin: 'http-routes-test',
+        };
+      }
+
+      function seedTeam(overrides: Partial<Team>): Team {
+        const id = `team_doors_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const now = new Date().toISOString();
+        const team: Team = {
+          id,
+          name: `doors-${id}`,
+          description: '',
+          type: 'dev',
+          visibility: 'public',
+          ownerId: 'agent_owner',
+          ownerName: 'owner',
+          members: [{ agentId: 'agent_owner', agentName: 'owner', role: 'owner', joinedAt: now }],
+          maxSlots: 100,
+          waitlist: [],
+          createdAt: now,
+          taskBoard: [openTask(`task_${id}`, 'INTERNAL: rotate the treasury key')],
+          doneLog: [],
+          ...overrides,
+        };
+        teamStore.set(id, team);
+        seeded.push(id);
+        return team;
+      }
+
+      async function quickstart() {
+        mockClient.queryKnowledge.mockResolvedValueOnce([]);
+        const name = `doors-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const req = mockReq('POST', '/api/holomesh/quickstart', { name });
+        Object.defineProperty(req, 'socket', { value: { remoteAddress: name } });
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
+        return res;
+      }
+
+      function memberIds(teamId: string): string[] {
+        return teamStore.get(teamId)!.members.map((m) => m.agentId);
+      }
+
+      it('never seats a stranger in a team that has not opted in, and shows no board', async () => {
+        const blocked = [
+          seedTeam({ name: 'HoloScript Core (test)' }),
+          seedTeam({ quickstartAutoJoin: true, visibility: 'private' }),
+          seedTeam({ quickstartAutoJoin: true, adminRoom: true }),
+          seedTeam({ quickstartAutoJoin: true, maxSlots: 1 }),
+          // A team that set an invite code has already said entry is by code.
+          // Opting into quickstart as well is a contradiction, and the door has
+          // to read it the narrow way. The other lane found this hole
+          // separately and reproduced it 2026-09-10 against a production-shaped
+          // copy; this is the condition its fix carried, kept through the merge.
+          seedTeam({ quickstartAutoJoin: true, inviteCode: 'let-me-in' }),
+        ];
+
+        const res = await quickstart();
+
+        expect(res._status).toBe(201);
+        expect(res._body.team).toBeNull();
+        expect(res._body.board.open_tasks).toBe(0);
+        expect(res._body.board.tasks).toEqual([]);
+        expect(res._body.env_config.HOLOMESH_TEAM_ID).toBe('');
+        expect(JSON.stringify(res._body)).not.toContain('INTERNAL: rotate the treasury key');
+        for (const team of blocked) {
+          expect(memberIds(team.id)).not.toContain(res._body.agent.id);
+        }
+      });
+
+      it('seats a stranger only in a public team that opted in, and shows only its board', async () => {
+        const internal = seedTeam({ name: 'internal-listed-first' });
+        const newcomers = seedTeam({
+          quickstartAutoJoin: true,
+          taskBoard: [openTask('task_newcomer_hello', 'Say hello in the newcomers room')],
+        });
+
+        const res = await quickstart();
+
+        expect(res._status).toBe(201);
+        expect(res._body.team.id).toBe(newcomers.id);
+        expect(res._body.board.tasks.map((t: { id: string }) => t.id)).toEqual([
+          'task_newcomer_hello',
+        ]);
+        expect(JSON.stringify(res._body)).not.toContain('INTERNAL: rotate the treasury key');
+        expect(memberIds(newcomers.id)).toContain(res._body.agent.id);
+        expect(memberIds(internal.id)).toEqual(['agent_owner']);
+      });
     });
   });
 

@@ -3,7 +3,7 @@
 > **One viewport into the semantic graph.** The 3D canvas is one way to view, edit, and interact with HoloScript entities. The same entities can be edited as text, queried via MCP, or compiled to any platform. [Read the V6 Vision →](../../VISION.md)
 
 > **Current IDE reboot audit (2026-05-10):** Studio has outgrown the architecture described below. Before adding routes, panels, or onboarding flows, read [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) for the current workbench, UX, typecheck, and account-workspace findings.
-> Live route/API/component counts are guarded by [`docs/STUDIO_INVENTORY_SNAPSHOT.json`](docs/STUDIO_INVENTORY_SNAPSHOT.json). Run `pnpm --filter @holoscript/studio inventory:check` before trusting or changing inventory claims.
+> Live route/API/component counts are guarded by [`docs/STUDIO_INVENTORY_SNAPSHOT.json`](docs/STUDIO_INVENTORY_SNAPSHOT.json). Run `pnpm --filter @holoscript/studio inventory:check` before trusting or changing inventory claims. The snapshot is also asserted against the real route tree by `src/app/__tests__/front-door.test.ts`, so it now fails the suite when it drifts instead of sitting stale — it claimed 75 pages / 214 API routes for three months while the app had 80 / 237, and three documents pointed here as the source of truth.
 
 Describe what you want. See it rendered. Deploy it anywhere — browser, headset, hologram. No installation required.
 
@@ -59,7 +59,9 @@ Studio has a generated route inventory guarded by `pnpm --filter @holoscript/stu
 
 ### Dynamic Routes (industry, pipeline, learn, integrations, remote)
 
-Additional pages generated from `.holo` source or dynamic segments: `/(industry)/[vertical]`, `/pipeline`, `/learn`, `/integrations`, `/remote/[token]`, `/auth/signin`.
+Additional pages generated from `.holo` source or dynamic segments: `/industry/[vertical]`, `/pipeline`, `/learn`, `/integrations`, `/remote/[token]`, `/auth/signin`.
+
+`/industry/[vertical]` was `(industry)/[vertical]` until 2026-09-16. A route group adds no URL segment, so that file served `/[vertical]` at the root and answered every unmatched address with HTTP 200. The verticals it serves are declared in `src/lib/industry-verticals.ts`; anything else is a 404.
 
 ### 3 Spaces
 

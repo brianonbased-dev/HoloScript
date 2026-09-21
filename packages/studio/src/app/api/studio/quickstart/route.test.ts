@@ -77,6 +77,23 @@ describe('/api/studio/quickstart first-scene proof', () => {
     ]);
   });
 
+  it('tells an onboarding agent which header carries its own key', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+    const response = await POST(makeRequest());
+    const body = (await response.json()) as QuickstartBody & {
+      authentication?: { header?: string; required?: boolean; how?: string };
+      mcp_config?: { authentication?: { header?: string } };
+    };
+
+    // Advertising the endpoint without the credential is the silent lock-out
+    // half of the doors audit: the agent is told where to knock, not how.
+    expect(body.authentication?.header).toBe('x-mcp-api-key');
+    expect(body.authentication?.required).toBe(true);
+    expect(body.mcp_config?.authentication?.header).toBe('x-mcp-api-key');
+    expect(body.api_endpoints.compile).toContain('x-mcp-api-key');
+  });
+
   it('keeps the starter proof as parseable native HoloScript source', () => {
     const source = readFileSync(STARTER_SCENE_PATH, 'utf-8');
     const parsed = parseHolo(source);
@@ -89,6 +106,28 @@ describe('/api/studio/quickstart first-scene proof', () => {
     expect(source).toContain('packages/studio/src/lib/studio/panels/profiler.holo');
     expect(source).toContain('packages/r3f-renderer/src/hooks/usePerformanceRegression.hsplus');
     expect(source).toContain('/api/asset-packs');
+  });
+
+  it('tells an onboarding agent the tool-call gateway is not answering yet', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+    const response = await POST(makeRequest());
+    const body = (await response.json()) as {
+      known_issues?: Array<{ endpoint?: string; answering?: boolean; do_instead?: string }>;
+      mcp_config?: { studio?: string; studio_status?: { answering?: boolean } };
+    };
+
+    // Handing an agent a credential and a URL for an endpoint that cannot
+    // answer is the same lock-out as naming no credential — it just takes the
+    // agent longer to find out.
+    const issue = body.known_issues?.find((entry) => entry.endpoint === 'POST /api/mcp/call');
+    expect(issue).toBeDefined();
+    expect(issue?.answering).toBe(false);
+    expect(issue?.do_instead).toBeTruthy();
+
+    // And it is said beside the URL itself, not only in a list further down.
+    expect(body.mcp_config?.studio).toContain('/api/mcp/call');
+    expect(body.mcp_config?.studio_status?.answering).toBe(false);
   });
 });
 

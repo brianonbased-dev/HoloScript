@@ -539,6 +539,15 @@ export interface Team {
    * (used for the founder's working teams like HoloScript Core).
    */
   adminRoom?: boolean;
+  /**
+   * Opt-in for POST /api/holomesh/quickstart auto-join. Default off: a
+   * stranger who registers through quickstart lands only in a public,
+   * non-admin team whose flag is exactly `true`, and never sees another
+   * team's board. Only a founder key may set it (PATCH /team/:id/config
+   * `quickstart_auto_join`), so a stranger cannot open a team to newcomers
+   * and collect every later arrival.
+   */
+  quickstartAutoJoin?: boolean;
   roomConfig?: {
     objective?: string;
     /** Per-slot role assignments set via holomesh_slot_assign MCP tool. */
@@ -1051,6 +1060,15 @@ export interface KeyRecord {
   lastRotatedAt: string | null;
   /** Founder keys can provision agents, create teams, and access /admin routes */
   isFounder: boolean;
+  /**
+   * Name of the env var this record was seeded from on first boot, when it was.
+   *
+   * A seeded key is a SHARED secret: every holder of that variable's value
+   * presents the same string. It authenticates, but it cannot prove WHICH agent
+   * is calling, so the proven-identity lookup refuses it. Absent on every key
+   * issued per agent, which is what provisioning produces.
+   */
+  seededFromEnv?: string;
   /**
    * Surface tag snapshotted at provision time — e.g. "mobile", "claude-code".
    * Used for attribution and audit trails.

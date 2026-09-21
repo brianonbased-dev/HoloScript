@@ -199,10 +199,10 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
     'primary',
     'Brittney full-screen home — primary nav destination (A4 IA consolidation).'
   ),
-  route('/[vertical]', 'archive', 'direct', 'Legacy industry landing route.'),
   route('/absorb', 'lab', 'lab', 'Codebase intelligence product lane outside primary IDE.'),
   route('/absorb/admin', 'lab', 'direct', 'Operational Absorb admin surface.'),
   route('/admin', 'lab', 'direct', 'Internal administrative surface.'),
+  route('/agent-ability', 'lab', 'direct', 'Agent ability surface outside the primary spine.'),
   route('/agents', 'holomesh-public', 'lab', 'Public agent network surface.'),
   route('/agents/[id]', 'holomesh-public', 'direct', 'Public agent profile.'),
   route('/agents/[id]/storefront', 'holomesh-public', 'direct', 'Public agent storefront.'),
@@ -218,12 +218,19 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/demo/emergent-spacetime', 'archive', 'direct', 'Demo route outside product spine.'),
   route('/dev/ui-graph', 'lab', 'direct', 'Developer-only UI graph route.'),
   route(
+    '/docs',
+    'archive',
+    'direct',
+    'Public documentation index. The front-page footer links here; before 2026-09-16 that link landed on the root catch-all.'
+  ),
+  route(
     '/earn',
     'account-workspace',
     'primary',
     'Creator economics: revenue, transactions, storefront management.'
   ),
   route('/examples/no-app-webxr', 'archive', 'direct', 'Legacy WebXR example.'),
+  route('/feed', 'holomesh-public', 'direct', 'Public activity feed shown to signed-out visitors.'),
   route('/g/[hash]', 'holomesh-public', 'direct', 'Public hologram share.'),
   route('/gram/[hash]', 'deprecated', 'direct', 'Redirecting legacy share alias.'),
   route('/holoclaw', 'deprecated', 'direct', 'Redirecting legacy team route.'),
@@ -264,6 +271,12 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
     'direct',
     'Redirects to /settings (Integrations tab) — A4 IA consolidation.'
   ),
+  route(
+    '/industry/[vertical]',
+    'lab',
+    'direct',
+    'Industry portal, reached from the setup wizard. Was `/[vertical]` at the root until 2026-09-16, where it answered every unmatched address; the verticals it serves are declared in lib/industry-verticals.ts.'
+  ),
   route('/learn', 'archive', 'direct', 'Redirects to HoloSchool content.'),
   route(
     '/lotus-slice',
@@ -286,7 +299,9 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
     'lab',
     'Testing surface — embodied Brittney tests builds from inside, drawing on her memory (past threads) + capability matrices.'
   ),
+  route('/playground/embodied', 'lab', 'direct', 'Embodied playground route.'),
   route('/playground/locomotion', 'lab', 'direct', 'Locomotion playground route.'),
+  route('/playground/pipeline', 'lab', 'direct', 'Pipeline playground route.'),
   route('/projects', 'account-workspace', 'primary', 'Saved project inventory.'),
   route('/quest-probe', 'archive', 'direct', 'Probe route from an experiment.'),
   route('/quest-proof', 'lab', 'direct', 'Quest headset proof / format-stress receipt dashboard.'),

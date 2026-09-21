@@ -14,6 +14,7 @@ import { getWizardTemplate } from '@/lib/presets/wizardTemplates';
 import type { ExperienceLevel, ProjectSpecifics } from '@/lib/presets/studioPresets';
 import type { SceneTemplate } from '@/lib/scene/sceneTemplates';
 import { StudioEvents } from '@/lib/analytics';
+import { INDUSTRY_VERTICAL_SLUGS } from '@/lib/industry-verticals';
 
 export function useStudioSetupWizard(onClose: () => void) {
   const router = useRouter();
@@ -248,18 +249,12 @@ export function useStudioSetupWizard(onClose: () => void) {
     });
     setTimeout(() => {
       onClose();
-      // Route users to their appropriate standalone workspace based on category
-      const industryCategories = [
-        'healthcare',
-        'architecture',
-        'agriculture',
-        'iot',
-        'robotics',
-        'science',
-        'creator',
-        'hologram',
-      ];
-      if (category && industryCategories.includes(category)) {
+      // Route users to their appropriate standalone workspace based on category.
+      // The verticals live in ONE place now (@/lib/industry-verticals). This
+      // used to be a second, private copy of that list, and it pushed to
+      // /industry/<category> while the portal was mounted at /<category> — so
+      // every wizard finish that picked a vertical landed on a 404.
+      if (category && INDUSTRY_VERTICAL_SLUGS.includes(category)) {
         router.push(`/industry/${category}`);
       } else {
         router.push('/create');

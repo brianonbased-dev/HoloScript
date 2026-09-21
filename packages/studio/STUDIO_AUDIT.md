@@ -1,6 +1,6 @@
 # HoloScript Studio — Full Audit (2026-04-09)
 
-> Superseded for current Studio IDE planning by [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) as of 2026-05-10. The status and scores below are historical and do not reflect the current route count, panel sprawl, local typecheck failure, or agent-workbench vision. Current inventory is guarded by [`docs/STUDIO_INVENTORY_SNAPSHOT.json`](docs/STUDIO_INVENTORY_SNAPSHOT.json) and `pnpm --filter @holoscript/studio inventory:check`.
+> Superseded for current Studio IDE planning by [`docs/STUDIO_IDE_REBOOT_AUDIT.md`](docs/STUDIO_IDE_REBOOT_AUDIT.md) as of 2026-05-10. The status and scores below are historical and do not reflect the current route count, panel sprawl, local typecheck failure, or agent-workbench vision. Current inventory is guarded by [`docs/STUDIO_INVENTORY_SNAPSHOT.json`](docs/STUDIO_INVENTORY_SNAPSHOT.json) and `pnpm --filter @holoscript/studio inventory:check`. That snapshot was itself stale from 2026-06-10 to 2026-09-16 (75 pages / 214 API routes recorded against 80 / 237 actual) because nothing ran the check; `src/app/__tests__/front-door.test.ts` now asserts it against the real route tree on every test run.
 
 Historical 2026-04-09 snapshot, not current inventory: 302 components, 203 lib files, 60 industry files, 74 API routes, 34 pages audited.
 
