@@ -162,3 +162,38 @@ describe('studio header — every button a user can reach has a name', () => {
     expect(accessibleName(banner) || banner.getAttribute('aria-label')).toBeTruthy();
   });
 });
+
+/**
+ * A ratchet on the weakest kind of accessible name.
+ *
+ * `title` counts toward a button's accessible name, so the test above passes an
+ * icon-only button that carries one. But a tooltip is a poor label: it is not
+ * announced consistently across screen readers and it does not exist at all for
+ * a touch user. An icon-only button whose ONLY name is a tooltip is a defect
+ * waiting to be reported, not a pass.
+ *
+ * Measured on the rendered header 2026-09-21: 25 buttons, 2 with aria-label,
+ * exactly 1 named by tooltip alone. This pins that list. Adding another
+ * icon-only button fails here — which is the point. Fixing this one also fails,
+ * and the fix is to delete it from the list, not to widen the rule.
+ */
+const TITLE_ONLY_NAMED_BUTTONS = ['Open Full Setup Wizard'];
+
+describe('studio header — the tooltip-only ratchet', () => {
+  it('no NEW button relies on a tooltip for its entire name', () => {
+    render(<NavBar />);
+    const titleOnly = screen
+      .getAllByRole('button')
+      .filter(
+        (b) => !b.getAttribute('aria-label') && !b.textContent?.trim() && b.getAttribute('title')
+      )
+      .map((b) => b.getAttribute('title') ?? '')
+      .sort();
+
+    expect(
+      titleOnly,
+      'A button is named only by its tooltip. Give it an aria-label, or add it here ' +
+        'with a reason. Do not loosen the filter.'
+    ).toEqual([...TITLE_ONLY_NAMED_BUTTONS].sort());
+  });
+});
