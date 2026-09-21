@@ -12,7 +12,14 @@
  * `order` in @view preserves the curated registry/command-palette order
  * (vs alphabetical), so the flip to generated-as-source changes no UI behavior.
  *
- * Usage: pnpm viewreg:build   |   pnpm viewreg:check  (--strict, CI gate)
+ * Usage: pnpm viewreg:build   |   pnpm viewreg:check  (--strict --check)
+ *
+ * NOT a CI gate, whatever this line used to say. Measured 2026-09-21: nothing in
+ * this repo runs viewreg:check, holo:check or vector:check. .github/workflows/
+ * holds only _archived/, and no local runner enumerates the check: scripts. Run
+ * `pnpm check:studio-generators` by hand -- it runs all three -- and run it
+ * BEFORE a build, not after: these compare the generator against the file on
+ * disk, which is the committed copy only while the tree is clean.
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
 import { join, extname, basename, dirname } from 'path';
@@ -366,7 +373,8 @@ async function build(): Promise<void> {
     const msg = `viewreg:build: ${errorCount} panel .holo file(s) did not compile`;
     if (STRICT) throw new Error(`${msg} (strict mode — failing the gate)`);
     console.warn(
-      `\n⚠ ${msg} — keeping last-good generated registry; deploy NOT blocked. Run --strict in CI.`
+      `\n⚠ ${msg} — keeping last-good generated registry; deploy NOT blocked.\n` +
+        `  Nothing runs this for you: pnpm check:studio-generators, by hand, before you push.`
     );
   }
 }

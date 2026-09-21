@@ -13,7 +13,10 @@ import { GENERATED_VIEW_IDS, GENERATED_VIEW_REGISTRY } from './viewRegistry.gene
  * to live here were deleted once viewRegistry.generated.test.ts proved the
  * generated output deep-equals (and preserves the curated order of) the old maps
  * across all 76 views. To add/change a view, edit its `.holo` and run
- * `pnpm viewreg:build` (CI gate: `pnpm viewreg:check`).
+ * `pnpm viewreg:build`, then `pnpm check:studio-generators` before you push.
+ * That second command is not a CI gate and nothing runs it for you — measured
+ * 2026-09-21: .github/workflows holds only _archived/, and no caller of
+ * viewreg:check exists outside package.json's own definition of it.
  */
 
 // ─── Type vocabulary (the allowed value sets) ────────────────────────────────

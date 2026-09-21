@@ -260,8 +260,10 @@ async function build(): Promise<void> {
     // `next dev` never ran it locally — a frontmatter typo on main would
     // otherwise take down ALL of Studio, not the one page (premortem 2026-05-31,
     // "most dangerous failure"). Last-good generated output is kept; the broken
-    // page just isn't regenerated. The HoloCI gate runs `--strict` (HOLO_STRICT=1)
-    // so the regression fails BEFORE main, never on the deploy build.
+    // page just isn't regenerated. `--strict` (HOLO_STRICT=1) is what makes the
+    // regression fail before main rather than on the deploy build -- but only if
+    // somebody runs it. Measured 2026-09-21: nothing does. There is no HoloCI gate
+    // wired to this, and .github/workflows/ holds only _archived/.
     const STRICT = process.argv.includes('--strict') || process.env.HOLO_STRICT === '1';
     const msg = `holo:build: ${errorCount} .holo page(s) did not compile`;
     if (STRICT) {
@@ -269,7 +271,7 @@ async function build(): Promise<void> {
     }
     console.warn(
       `\n⚠ ${msg} — keeping last-good generated output; deploy NOT blocked.\n` +
-        `  Run \`pnpm holo:check\` (--strict) in CI to fail on this before main.`
+        `  Nothing runs this for you: pnpm check:studio-generators, by hand, before you push.`
     );
   }
 
