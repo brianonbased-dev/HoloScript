@@ -5,15 +5,13 @@
  * solfeggio frequencies, exposure therapy, volume safety,
  * session management, and redacted session exports.
  *
- * NOT HIPAA-COMPLIANT, despite the earlier wording here and the `HIPAA` in the
- * symbol names. `exportSessionHIPAA` masks one field and still emits a full
+ * NOT HIPAA-COMPLIANT, and no longer named as though it were.
+ * `exportSessionRedacted` masks the patient identifier and still emits a full
  * timestamp; Safe Harbor requires eighteen identifier classes removed, dates
- * among them. Nothing here has been reviewed by anyone qualified to say a
- * dataset is de-identified. The `HIPAAExport` / `exportSessionHIPAA` names are
- * themselves the claim and should be renamed to `RedactedSessionExport` /
- * `exportSessionRedacted`; left in place here only because renaming a public
- * symbol is a separate, breaking change. Do not offer this to a covered entity
- * as a compliance feature.
+ * among them, and nobody qualified has reviewed this. It was called
+ * `exportSessionHIPAA` returning `HIPAAExport` until 2026-09-21 — the names
+ * were the claim, so they were the last thing to fix. Do not offer this to a
+ * covered entity as a compliance feature.
  *
  * Used by: TherapySessionPanel, psychotherapy-sound scenario
  */
@@ -103,7 +101,7 @@ export interface SpatialAudioSource {
   type: 'nature' | 'voice' | 'frequency' | 'noise';
 }
 
-export interface HIPAAExport {
+export interface RedactedSessionExport {
   sessionId: string;
   patientId: string; // redacted
   type: string;
@@ -270,7 +268,7 @@ export function redactPatientPII(patientId: string): string {
   return patientId.replace(/[\p{L}\p{N}]/gu, 'X');
 }
 
-export function exportSessionHIPAA(session: TherapySession): HIPAAExport {
+export function exportSessionRedacted(session: TherapySession): RedactedSessionExport {
   return {
     sessionId: session.id,
     patientId: redactPatientPII(session.patientId),

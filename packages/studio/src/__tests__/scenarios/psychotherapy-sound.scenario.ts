@@ -22,7 +22,7 @@ import {
   calculateExposureIntensity,
   getSessionDurationFormatted,
   redactPatientPII,
-  exportSessionHIPAA,
+  exportSessionRedacted,
   createEMDRPattern,
   emdrPanValues,
   hrvIntensityMultiplier,
@@ -373,7 +373,7 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
       ],
       notes: 'Patient gave informed consent.',
     };
-    const exported = exportSessionHIPAA(session);
+    const exported = exportSessionRedacted(session);
     // Letters as well as digits: a name-shaped id used to pass through untouched.
     expect(exported.patientId).toBe('X-XXXXX');
     expect(redactPatientPII('Smith, John A.')).toBe('XXXXX, XXXX X.');

@@ -6,7 +6,7 @@
  * exposure therapy controls, and session management.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   createBinauralBeat,
   getBrainwaveBand,
@@ -16,7 +16,7 @@ import {
   calculateExposureIntensity,
   getSessionDurationFormatted,
   redactPatientPII,
-  exportSessionHIPAA,
+  exportSessionRedacted,
   createEMDRPattern,
   emdrPanValues,
   hrvIntensityMultiplier,
@@ -259,6 +259,19 @@ export function TherapySessionPanel() {
   const sessionWarnings = useMemo(() => validateSessionSafety(session), [session]);
   const emdrPattern = useMemo(() => createEMDRPattern(8), []);
 
+  // The export button carried no onClick at all until 2026-09-21: it was
+  // labelled "Export HIPAA Log", imported the export function, and did nothing
+  // when pressed. A button that says it exports has to export.
+  const handleExportRedacted = useCallback(() => {
+    const payload = JSON.stringify(exportSessionRedacted(session), null, 2);
+    const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `session-${session.id}-redacted.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [session]);
+
   return (
     <div style={styles.panel}>
       {/* Header */}
@@ -447,6 +460,7 @@ export function TherapySessionPanel() {
                 ⏹ Stop
               </button>
               <button
+                onClick={handleExportRedacted}
                 style={{
                   ...styles.button,
                   background: 'rgba(255, 255, 255, 0.06)',
