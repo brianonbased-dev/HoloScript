@@ -99,11 +99,21 @@ router.post('/scan', async (req: Request, res: Response) => {
       .map((f: any) => f.path)
       .sort((a: string, b: string) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
 
-    // Deduct credits if authenticated
-    if ((req as AuthenticatedRequest).authenticated && body.projectId) {
+    // Deduct credits if authenticated.
+    //
+    // Two faults lived here until 2026-09-21. The userId fell back to the
+    // literal 'anonymous', which entry-lookup.ts defines as the id every
+    // UNAUTHENTICATED caller carries — so an authenticated caller with no id
+    // spent from, and was billed against, the bucket that belongs to nobody.
+    // And the charge is gated on body.projectId while the response below
+    // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
+    // projectId told the client it had been billed when nothing was taken.
+    let chargedCents = 0;
+    const scanUserId = (req as AuthenticatedRequest).userId;
+    if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
       const creditsModule = await import('@holoscript/absorb-service/credits');
       const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
-      const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+      const userId = scanUserId;
       const opType = body.shallow ? 'absorb_shallow' : 'absorb_deep';
       
       // @ts-ignore - Automatic remediation for TS18046
@@ -120,6 +130,7 @@ router.post('/scan', async (req: Request, res: Response) => {
         `Codebase scan: ${body.path}`,
         { graphId, shallow: body.shallow }
       );
+      chargedCents = creditCheck.costCents;
     }
 
     const topology = {
@@ -144,7 +155,7 @@ router.post('/scan', async (req: Request, res: Response) => {
       graphId,
       stats: scanResult.stats,
       fileCount: scanResult.files?.length ?? 0,
-      cost: body.shallow ? 10 : 50,
+      cost: chargedCents,
       cached: false,
       topology
     });
@@ -171,7 +182,11 @@ router.post('/query', async (req: Request, res: Response) => {
 
     const creditsModule = await import('@holoscript/absorb-service/credits');
     const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
     // @ts-ignore - Automatic remediation for TS18046
     const creditCheck = await requireCredits(userId, 'query_with_llm');
     
@@ -181,10 +196,22 @@ router.post('/query', async (req: Request, res: Response) => {
       return;
     }
 
+    // This endpoint could never have answered once. EmbeddingIndex has required
+    // an explicit provider since it gained one, and `new EmbeddingIndex()`
+    // throws "EmbeddingIndex requires an explicit provider" on every call — so
+    // /query has been returning 500 to everybody. requireCredits only CHECKS,
+    // and the throw landed before deductCredits, so nobody was charged for the
+    // failure; they simply never got an answer.
+    //
+    // The default provider is 'structural': zero-dependency, no API key, no
+    // model download, and F.106 forbids the factory from ever auto-selecting a
+    // paid one. That is why query_with_llm is now priced at 0 — there is no LLM
+    // on this path and never was, whatever the operation's name says.
     const engineModule = await import('@holoscript/absorb-service/engine');
-    const { EmbeddingIndex } = (engineModule as any).default || engineModule;
+    const { EmbeddingIndex, createEmbeddingProvider } =
+      (engineModule as any).default || engineModule;
     // @ts-ignore - Automatic remediation for TS18046
-    const index = new EmbeddingIndex();
+    const index = new EmbeddingIndex({ provider: await createEmbeddingProvider() });
 
     // Build index from graph symbols
     const symbols = entry.graph.getAllSymbols?.() ?? [];

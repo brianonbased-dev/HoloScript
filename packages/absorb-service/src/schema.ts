@@ -19,6 +19,7 @@ import {
   uuid,
   varchar,
   index,
+  uniqueIndex,
   boolean,
 } from 'drizzle-orm/pg-core';
 
@@ -54,6 +55,14 @@ export const creditTransactions = pgTable(
     index('idx_credit_tx_user').on(t.userId),
     index('idx_credit_tx_type').on(t.type),
     index('idx_credit_tx_time').on(t.createdAt),
+    // One Stripe checkout session may credit an account ONCE. Stripe re-sends a
+    // webhook whenever it is not certain we received it, and this handler
+    // returns 500 on any internal error, which asks for exactly that. Until
+    // 2026-09-21 nothing stopped the second delivery: addCredits recorded the
+    // session id but never checked it, and no constraint existed here either.
+    // Postgres permits many NULLs in a unique index, so transactions with no
+    // Stripe session (grants, refunds, spend) are unaffected.
+    uniqueIndex('idx_credit_tx_stripe_session').on(t.stripeSessionId),
   ]
 );
 

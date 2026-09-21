@@ -1,28 +1,92 @@
 /**
  * Absorb Service — Pricing configuration.
- * Local shadow copy for Studio to prevent cross-workspace Next.js bundling issues.
+ *
+ * SHADOW COPY. The original is packages/absorb-service/src/credits/pricing.ts;
+ * this duplicate exists only because Studio cannot import across the workspace
+ * without Next.js bundling problems. It is not a place to make decisions.
+ *
+ * The two drifted for months and nobody could see it: on 2026-09-21 eight of the
+ * fourteen shared operations disagreed, and in every case Studio SHOWED MORE
+ * than the server CHARGED — daemon_balanced quoted 250c against 100c taken,
+ * query_basic 5c against 2c. Customers were being quoted prices that were not
+ * real. pricing.test.ts now fails if the OPERATION_COSTS block here is not
+ * byte-identical to the original, so the copy can be wrong only deliberately.
+ *
+ * Edit the original, then paste its OPERATION_COSTS block here.
  */
 
-// ─── Operation Costs ─────────────────────────────────────────────────────────
+export type ExecutionTier = 'cloud' | 'local' | 'unbilled' | 'unverified';
 
 export const OPERATION_COSTS = {
-  absorb_shallow: { baseCostCents: 10, description: 'Shallow codebase scan' },
-  absorb_deep: { baseCostCents: 50, description: 'Deep codebase scan with full graph' },
-  daemon_quick: { baseCostCents: 100, description: 'Quick fix cycle (1 cycle)' },
-  daemon_balanced: { baseCostCents: 250, description: 'Balanced improvement (2 cycles)' },
-  daemon_deep: { baseCostCents: 500, description: 'Deep improvement (3 cycles)' },
-  pipeline_l0: { baseCostCents: 200, description: 'L0 Code Fixer pipeline' },
-  pipeline_l1: { baseCostCents: 100, description: 'L1 Strategy Optimizer' },
-  pipeline_l2: { baseCostCents: 150, description: 'L2 Meta-Strategist' },
-  skill_generate: { baseCostCents: 75, description: 'Generate HoloClaw skill' },
-  query_basic: { baseCostCents: 5, description: 'Semantic codebase search' },
+  // Local graph scan. No outbound call on this path; charged today at the site
+  // below. Left priced pending a founder call on whether our metal counts as
+  // cloud: services/absorb-service/src/routes/absorb.ts charges it.
+  absorb_shallow: { baseCostCents: 10, tier: 'unverified', description: 'Shallow codebase scan' },
+  absorb_deep: { baseCostCents: 50, tier: 'unverified', description: 'Deep codebase scan with full graph' },
+
+  daemon_quick: { baseCostCents: 50, tier: 'unverified', description: 'Quick fix cycle (1 cycle)' },
+  daemon_balanced: { baseCostCents: 100, tier: 'unverified', description: 'Balanced improvement (2 cycles)' },
+  daemon_deep: { baseCostCents: 250, tier: 'unverified', description: 'Deep improvement (3 cycles)' },
+
+  // UNBILLED: no charge site anywhere in the workspace. Studio displays these;
+  // nothing takes them. Kept at their historical numbers because each plausibly
+  // drives a paid model and deleting a product's price is a founder decision,
+  // not a cleanup — but the fiction is now labelled instead of silent.
+  pipeline_l0: { baseCostCents: 100, tier: 'unbilled', description: 'L0 Code Fixer pipeline' },
+  pipeline_l1: { baseCostCents: 75, tier: 'unbilled', description: 'L1 Strategy Optimizer' },
+  pipeline_l2: { baseCostCents: 150, tier: 'unbilled', description: 'L2 Meta-Strategist' },
+  skill_generate: { baseCostCents: 50, tier: 'unbilled', description: 'Generate HoloClaw skill' },
+
+  // LOCAL, and unbilled besides: rendering and diffing run on the machine that
+  // already has the scene. No charge site exists for any of the three, so the
+  // price was never taken — it was only ever shown. Showing a price we do not
+  // charge, for work that costs us nothing, is the rule broken twice over.
+  screenshot: { baseCostCents: 0, tier: 'local', description: 'Render scene to PNG/JPEG/WebP' },
+  pdf_export: { baseCostCents: 0, tier: 'local', description: 'Render scene to PDF' },
+  semantic_diff: { baseCostCents: 0, tier: 'local', description: 'Compare two project versions' },
+
+  // LOCAL. Both are embedding search over the absorbed graph. The query route
+  // builds an EmbeddingIndex and calls index.search(); there is no LLM call on
+  // the path at all, despite the name and the old description. The default
+  // provider is 'structural' — zero-dependency, no API key, no model download —
+  // and F.106 forbids the factory from ever auto-selecting a paid one. Nothing
+  // about this costs us money, so nothing about it may cost the customer.
+  query_basic: { baseCostCents: 0, tier: 'local', description: 'Semantic codebase search (local, keyless)' },
   query_with_llm: {
-    baseCostCents: 15,
-    description: 'AI-powered codebase query (+ metered LLM tokens)',
+    baseCostCents: 0,
+    tier: 'local',
+    description: 'Semantic codebase query over the absorbed graph (local embeddings, keyless)',
   },
-  screenshot: { baseCostCents: 3, description: 'Render scene to PNG/JPEG/WebP' },
-  pdf_export: { baseCostCents: 5, description: 'Render scene to PDF' },
-  semantic_diff: { baseCostCents: 2, description: 'Compare two project versions' },
+
+  semantic_dedup: { baseCostCents: 1, tier: 'unverified', description: 'Agent semantic deduplication evaluation' },
+  knowledge_query: { baseCostCents: 0, tier: 'local', description: 'Knowledge search (free entries)' },
+  knowledge_query_premium: {
+    baseCostCents: 5,
+    tier: 'unverified',
+    description: 'Premium knowledge access (provenance-signed)',
+  },
+  knowledge_publish: {
+    baseCostCents: 0,
+    tier: 'local',
+    description: 'Publish knowledge entry (free for authors)',
+  },
+
+  // CLOUD. Each of these resolves a real API key and calls a paid adapter
+  // (Anthropic / OpenAI / OpenRouter). Verified at the route, not assumed —
+  // packages/studio/src/app/api/autocomplete/route.ts:53-94 is the pattern.
+  studio_autocomplete: { baseCostCents: 1, tier: 'cloud', description: 'Code autocomplete (up to 256 tokens)' },
+  studio_generate: { baseCostCents: 5, tier: 'cloud', description: 'Code generation (up to 4096 tokens)' },
+  studio_chat: { baseCostCents: 3, tier: 'cloud', description: 'Brittney chat message (up to 2048 tokens)' },
+  studio_material: {
+    baseCostCents: 2,
+    tier: 'cloud',
+    description: 'Material/asset generation (up to 512 tokens)',
+  },
+  studio_voice_to_holo: {
+    baseCostCents: 4,
+    tier: 'cloud',
+    description: 'Voice utterance → HoloScript (Haiku, up to 2 turns)',
+  },
 } as const;
 
 export type OperationType = keyof typeof OPERATION_COSTS;
