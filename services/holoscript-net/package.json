@@ -26,7 +26,8 @@
     "build": "node build-client.mjs && tsup server.ts --format esm --clean --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core --external @modelcontextprotocol/sdk --external @modelcontextprotocol/sdk/server/index.js --external @modelcontextprotocol/sdk/server/sse.js --external @modelcontextprotocol/sdk/types.js",
     "start": "node dist/server/server.js",
     "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage --passWithNoTests"
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "license": "MIT",
   "repository": {
