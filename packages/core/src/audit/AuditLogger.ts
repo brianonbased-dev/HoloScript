@@ -1,8 +1,13 @@
 /**
  * Audit Logger — Core audit logging for HoloScript
  *
- * Provides append-only audit event logging with query, export,
- * and retention management capabilities.
+ * Provides audit event logging with query, export and retention management.
+ *
+ * INTEGRITY: none. "Append-only" describes this API, not a guarantee about the
+ * stored records: no hash chain, no signature, no digest anywhere in this file.
+ * Anything that must survive a hostile reader needs the signed receipt path.
+ * Recorded here because the published package advertised tamper detection it
+ * does not implement (corrected 2026-09-21).
  *
  * @version 3.3.0
  * @Sprint Sprint 9: Audit Logging & Compliance

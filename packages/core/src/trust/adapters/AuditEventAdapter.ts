@@ -44,6 +44,11 @@ export function auditEventToReceiptInput(
       outcome,
     },
     evidence: {
+      // DEFECT (found 2026-09-21, fix owed): this field is named `hashes` but
+      // carries the canonical JSON of event.metadata in CLEARTEXT, never a
+      // digest, so anything personal in metadata is stored verbatim in receipts.
+      // The fix is to store a SHA-256 of the canonical form, and it needs the
+      // suite green first because consumers may compare the stored value.
       hashes:
         event.metadata && Object.keys(event.metadata).length > 0
           ? [stableTrustStringify(event.metadata)]

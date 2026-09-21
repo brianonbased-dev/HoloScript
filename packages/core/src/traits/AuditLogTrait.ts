@@ -10,8 +10,12 @@
  * - Configurable retention policies
  * - Query/filter capabilities for compliance reporting
  * - Export to external SIEM systems
- * - Tamper detection via hash chains
- * - Compliance mode for SOC 2, GDPR, HIPAA
+ * NOT PROVIDED, despite the earlier wording here: there is no tamper detection.
+ * AuditLogger has no hashing, chaining or signing (checked 2026-09-21: zero
+ * occurrences of createHash, crypto or prevHash in AuditLogger.ts, 279 lines).
+ * Records can be edited at rest without this code noticing, so do not offer this
+ * trait as evidence for SOC 2, GDPR or HIPAA. It summarises events; it does not
+ * attest to them.
  *
  * @version 1.0.0
  * @category enterprise
