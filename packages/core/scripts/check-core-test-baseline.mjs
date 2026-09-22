@@ -68,11 +68,6 @@ if (fromLogIdx !== -1 && (!fromLog || fromLog.startsWith('--'))) {
   process.exit(2);
 }
 
-// A log with no recognizable vitest summary does not prove the suite ran, and a
-// run that never happened has zero FAIL lines — which would otherwise classify
-// as "no new failures" and exit 0. Fail CLOSED instead: an unverifiable run is a
-// setup error, never a pass.
-const SUITE_RAN = /^\s*Test Files\s+/m;
 
 // ===========================================================================
 // --self-test: prove THIS gate can still refuse.
@@ -531,19 +526,49 @@ let envelope = null;
 // The missing one is the crash. Vitest's legitimate shapes all balance:
 //   "Test Files  2 failed | 118 passed (120)"  -> 120 of 120
 //   "Test Files  1 skipped | 119 passed (120)" -> 120 of 120
-const summaries = [];
-for (const line of plain.split(/\r?\n/)) {
-  const m = line.match(/^\s*Test Files\s+(.+?)\s*\((\d+)\)\s*$/);
-  if (!m) continue;
-  const total = Number(m[2]);
-  let accounted = 0;
-  for (const part of m[1].split('|')) {
-    const g = part.trim().match(/^(\d+)\s+\w+/);
-    if (g) accounted += Number(g[1]);
+/**
+ * The ONE definition of "a vitest summary line", used by every rule that counts
+ * them.
+ *
+ * This logic existed twice, copy-pasted, with identical regexes -- the global
+ * balance check and the per-section count each had their own. Identical today,
+ * and that is the problem: the two rules are meant to be about the same lines,
+ * so any drift between the copies would not be a disagreement anyone would
+ * notice, it would be a gap between what one rule sees and what the other does.
+ * Review named the shape before it bit: the only way to isolate the
+ * zero-summary refusal would be a difference between the two parsers, and such
+ * a difference is a latent hole rather than a test fixture.
+ */
+function summariesIn(lines) {
+  const found = [];
+  for (const line of lines) {
+    const m = line.match(/^\s*Test Files\s+(.+?)\s*\((\d+)\)\s*$/);
+    if (!m) continue;
+    const total = Number(m[2]);
+    let accounted = 0;
+    for (const part of m[1].split('|')) {
+      const g = part.trim().match(/^(\d+)\s+\w+/);
+      if (g) accounted += Number(g[1]);
+    }
+    found.push({ line: line.trim(), accounted, total });
   }
-  summaries.push({ line: line.trim(), accounted, total });
+  return found;
 }
 
+const summaries = summariesIn(plain.split(/\r?\n/));
+
+// UNREACHABLE BY CONSTRUCTION, and kept only because saying so is cheaper than
+// arguing about it later. A log with zero summaries must either declare skipped
+// passes -- refused above, since only the sequential pass may be skipped and
+// only when serialPassFiles is empty -- or declare passes that ran, which the
+// per-section rule refuses because it demands exactly one summary per ran
+// section. Both rules now read the same matcher, so there is no third case
+// where one sees a summary and the other does not.
+//
+// That means this cannot be the sole reason for a refusal, and no fixture can
+// isolate it: review supplied one, the skipped restriction then refused it
+// first. A rule that cannot fire is not a backstop, it is a claim -- so this is
+// labelled as a claim rather than counted among the rules that defend anything.
 if (summaries.length === 0) {
   console.error(
     `[baseline-gate] no vitest summary found in ${source} -- cannot confirm the suite ran.`
@@ -606,22 +631,6 @@ function sectionsByPass(text, runId) {
 }
 
 /** The `Test Files ... (N)` summaries inside one section. */
-function summariesIn(lines) {
-  const found = [];
-  for (const line of lines) {
-    const m = line.match(/^\s*Test Files\s+(.+?)\s*\((\d+)\)\s*$/);
-    if (!m) continue;
-    const total = Number(m[2]);
-    let accounted = 0;
-    for (const part of m[1].split('|')) {
-      const g = part.trim().match(/^(\d+)\s+\w+/);
-      if (g) accounted += Number(g[1]);
-    }
-    found.push({ line: line.trim(), accounted, total });
-  }
-  return found;
-}
-
 const SECTIONS = sectionsByPass(plain, envelope?.runId);
 const isFailLine = (l) => /^\s*FAIL\s+(.*\S)\s*$/.test(l);
 const failuresInPass = (label) => (SECTIONS.get(label) ?? []).filter(isFailLine).length;
