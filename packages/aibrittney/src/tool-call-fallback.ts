@@ -44,9 +44,10 @@ export function extractTextToolCalls(content: string): ToolCall[] {
   }
 
   const calls: ToolCall[] = [];
+  const seen = new Set<string>();
   for (const candidate of candidates) {
     for (const obj of asArray(candidate)) {
-      const call = toToolCall(obj);
+      const call = toToolCall(obj, seen);
       if (call) calls.push(call);
     }
   }
@@ -72,9 +73,12 @@ function asArray(value: unknown): unknown[] {
  * models use: `{tool_call: {...}}`, `{function: {...}}`, or the call inline.
  * Returns null when the object isn't a recognizable tool call. A call without
  * an id gets a minted one — never a per-message position, which repeated every
- * turn and let a later tool result answer to an earlier call.
+ * turn and let a later tool result answer to an earlier call. A model-supplied
+ * id is kept once per message (`seen`): models do repeat "call_1", and two
+ * results answering to one id is the same wrong attribution, so the duplicate
+ * gets a minted id instead.
  */
-function toToolCall(value: unknown): ToolCall | null {
+function toToolCall(value: unknown, seen: Set<string>): ToolCall | null {
   if (typeof value !== 'object' || value === null) return null;
   const obj = value as Record<string, unknown>;
 
@@ -97,10 +101,10 @@ function toToolCall(value: unknown): ToolCall | null {
       ? (rawArgs as Record<string, unknown> | string)
       : {};
 
-  return {
-    id: typeof obj.id === 'string' && obj.id ? obj.id : mintToolCallId(),
-    function: { name, arguments: args },
-  };
+  const supplied = typeof obj.id === 'string' && obj.id && !seen.has(obj.id) ? obj.id : undefined;
+  const id = supplied ?? mintToolCallId();
+  seen.add(id);
+  return { id, function: { name, arguments: args } };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

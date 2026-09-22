@@ -65,9 +65,18 @@ describe('extractTextToolCalls', () => {
     // `fallback-0` collided across turns, so tool results answered to the wrong call.
     const first = extractTextToolCalls('{"name": "a", "arguments": {}}');
     const second = extractTextToolCalls('{"name": "a", "arguments": {}}');
-    expect(first[0].id).toMatch(/^call_[0-9a-f]{6}_\d+$/);
-    expect(second[0].id).toMatch(/^call_[0-9a-f]{6}_\d+$/);
+    expect(first[0].id).toMatch(/^[A-Za-z0-9]{9}$/);
+    expect(second[0].id).toMatch(/^[A-Za-z0-9]{9}$/);
     expect(first[0].id).not.toBe(second[0].id);
+  });
+
+  it('keeps a model-supplied id once per message and mints one for its duplicate', () => {
+    const calls = extractTextToolCalls(
+      '[{"id": "call_1", "name": "a", "arguments": {}}, {"id": "call_1", "name": "b", "arguments": {}}]'
+    );
+    expect(calls.map((c) => c.function.name)).toEqual(['a', 'b']);
+    expect(calls[0].id).toBe('call_1');
+    expect(calls[1].id).toMatch(/^[A-Za-z0-9]{9}$/);
   });
 
   it('keeps string-form arguments intact (normalizeArgs handles them downstream)', () => {

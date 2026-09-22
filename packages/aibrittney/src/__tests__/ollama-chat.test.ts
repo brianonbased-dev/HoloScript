@@ -376,7 +376,8 @@ describe('chatOnceFromOllama with the default auto style', () => {
   });
 });
 
-const TOOL_CALL_ID = /^call_[0-9a-f]{6}_\d+$/;
+// Exactly 9 alphanumerics: what the strictest chat templates (Mistral / Devstral / Nemo) accept.
+const TOOL_CALL_ID = /^[A-Za-z0-9]{9}$/;
 
 function toolCallIds(result: ChatResult): string[] {
   return result.ok ? (result.message.tool_calls ?? []).map((call) => call.id) : [];

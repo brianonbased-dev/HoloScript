@@ -48,6 +48,32 @@ export interface AgentRunResult {
 }
 
 const DEFAULT_MAX_ITERATIONS = 6;
+const DEFAULT_TOOL_RESULT_MAX_CHARS = 4000;
+
+/**
+ * Longest tool result (characters of its JSON) allowed into the history.
+ * Override with AIBRITTNEY_TOOL_RESULT_MAX_CHARS. The Jetson's llama-server
+ * runs n_ctx 4096 and the minimal first request is already ~1,544 tokens, so
+ * an uncapped result kills iteration 2 outright — an 18,184-token probe
+ * measured HTTP 400 exceed_context_size_error.
+ */
+export function resolveToolResultMaxChars(): number {
+  const n = Number(process.env.AIBRITTNEY_TOOL_RESULT_MAX_CHARS);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_TOOL_RESULT_MAX_CHARS;
+}
+
+/**
+ * Cut `content` to at most `maxChars`, ending in `[truncated N chars]` so the
+ * model (and anyone reading the history) sees exactly how much is missing.
+ */
+export function capToolResult(content: string, maxChars = resolveToolResultMaxChars()): string {
+  if (content.length <= maxChars) return content;
+  // Reserve room for the marker using the widest count it could carry.
+  const widest = `[truncated ${content.length} chars]`;
+  const keep = Math.max(0, maxChars - widest.length);
+  const dropped = content.length - keep;
+  return `${content.slice(0, keep)}[truncated ${dropped} chars]`;
+}
 
 export async function runAgentTurn(opts: RunAgentOptions): Promise<AgentRunResult> {
   const { session, mcp } = opts;
@@ -134,11 +160,15 @@ export async function runAgentTurn(opts: RunAgentOptions): Promise<AgentRunResul
         tool: def.route.tool,
         args,
       });
-      const content = JSON.stringify(
-        callRes.ok
-          ? callRes.data
-          : { error: callRes.error ?? `tool failed (HTTP ${callRes.status})` }
-      );
+      const raw =
+        JSON.stringify(
+          callRes.ok
+            ? callRes.data
+            : { error: callRes.error ?? `tool failed (HTTP ${callRes.status})` }
+        ) ?? 'null';
+      // Cap before it enters the history: every later iteration re-sends the
+      // whole history, and one oversized result overflows a small n_ctx.
+      const content = capToolResult(raw);
       session.pushRaw({
         role: 'tool',
         name: call.function.name,
@@ -148,7 +178,9 @@ export async function runAgentTurn(opts: RunAgentOptions): Promise<AgentRunResul
       opts.onEvent?.({
         kind: 'tool-result',
         message: callRes.ok
-          ? `${def.function.name} → ok (${content.length} bytes)`
+          ? `${def.function.name} → ok (${raw.length} bytes${
+              content.length < raw.length ? `, ${content.length} kept` : ''
+            })`
           : `${def.function.name} → error: ${callRes.error}`,
       });
     }
