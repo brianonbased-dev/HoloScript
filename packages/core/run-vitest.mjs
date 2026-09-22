@@ -109,9 +109,31 @@ let overallExitCode = 0;
 // kill-by-signal must stay distinguishable from an ordinary failing run.
 const passes = [];
 function runPass(label, args, extraEnv = {}) {
+  // A DELIMITER, so failures can be attributed to the pass that produced them.
+  // Without one, a reader of the combined log can only count FAIL lines across
+  // the WHOLE run, and "this pass exited non-zero but printed no failure" --
+  // the crash signature -- becomes unaskable: one forgiven failure anywhere
+  // answers for every pass everywhere.
+  console.error(`[run-vitest] pass-begin ${label}`);
   const proc = runVitest(args, extraEnv);
   passes.push({ label, status: proc.status ?? null, signal: proc.signal ?? null });
   return proc.status ?? 1;
+}
+
+/**
+ * The content of packages/core this run actually tested.
+ *
+ * It goes in the envelope so a captured log is BOUND to a tree. Without it,
+ * `--from-log` accepts any text file: a seven-line log hand-written once mints
+ * a clean receipt for any future tree in about a second, which is a quieter
+ * bypass than the `--no-verify` the gate documents.
+ */
+function coreTreeSha() {
+  const r = spawnSync('git', ['rev-parse', 'HEAD:packages/core'], {
+    cwd: __dir,
+    encoding: 'utf8',
+  });
+  return r.status === 0 ? r.stdout.trim() : null;
 }
 
 // If caller already set sharding, or passed explicit test file globs/paths,
@@ -162,7 +184,8 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
 // One machine-readable line, last. The gate parses this to learn each pass's real
 // exit status; without it, --from-log has no way to know a pass ever crashed.
 console.error(
-  '[run-vitest] run-envelope ' + JSON.stringify({ v: 1, passes, overall: overallExitCode })
+  '[run-vitest] run-envelope ' +
+    JSON.stringify({ v: 2, coreTreeSha: coreTreeSha(), passes, overall: overallExitCode })
 );
 
 process.exit(overallExitCode);

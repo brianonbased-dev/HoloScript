@@ -167,6 +167,49 @@ describe('trait composition is order-independent', () => {
     expect(disagreements).toEqual([]);
   });
 
+  test('the WHOLE result is one byte string, not just its config', async () => {
+    // config was not the only order-dependent part, and pinning it alone left
+    // the defect half-fixed. `conflicts` and `errors` accumulate in ENCOUNTER
+    // order -- arrival order, the exact thing this class exists not to depend
+    // on -- and the conflict SENTENCE named the traits in arrival order too, so
+    // the same resolved conflict read "@physics and @material" one way round
+    // and "@material and @physics" the other.
+    //
+    // Measured 2026-09-22 with config keys already sorted: six orderings of
+    // three traits still produced SIX distinct serialisations of the whole
+    // result object. Anything hashing the result rather than just `config`
+    // still disagreed. After sorting both arrays and canonicalising the
+    // sentence: one.
+    //
+    // This asserts the property the class actually claims, so that a future
+    // order-dependent field added to the result is caught here rather than by
+    // two agents disagreeing about a hash.
+    const semiring = new ProvenanceSemiring(rules);
+    const traits: TraitApplication[] = [
+      { name: 'physics', config: { mass: 3, friction: 0.4 }, context: { authorityLevel: 50, agentId: 'a' } },
+      { name: 'material', config: { mass: 5, restitution: 0.2 }, context: { authorityLevel: 60, agentId: 'b' } },
+      { name: 'glowing', config: { friction: 0.9, restitution: 0.7 }, context: { authorityLevel: 70, agentId: 'c' } },
+    ];
+
+    const whole = new Set(
+      permutations(traits).map((ordering) => {
+        const r = semiring.add(ordering);
+        return JSON.stringify({
+          config: r.config,
+          provenance: r.provenance,
+          conflicts: r.conflicts,
+          errors: r.errors,
+          deadElements: r.deadElements,
+        });
+      })
+    );
+
+    expect(
+      whole.size,
+      `one composition serialised ${whole.size} ways across ${permutations(traits).length} orderings`
+    ).toBe(1);
+  });
+
   test('the serialized bytes are identical too, not merely the values', async () => {
     // Key ORDER matters as well as key values: a receipt is hashed, so two
     // resolutions that differ only in serialization order would produce two
@@ -304,25 +347,49 @@ describe('trait composition is order-independent', () => {
     expect([...masses][0]).toBe(104);
   });
 
-  test('a TIE in authority still resolves the same way in every ordering', () => {
-    // The hard case, and the one order-dependence hides in: equal authority,
-    // different values. ProvenanceSemiring documents a deterministic winner for
-    // exactly this (CRDT-01). Without it the answer is whichever trait happened
-    // to arrive last, which is commutativity failing silently — every ordering
-    // returns a plausible number, just not the same one.
+  test('an EQUAL-VALUE tie keeps its attribution in every ordering', () => {
+    // THIS TEST USED TO NAME A TIE IT NEVER CREATED. It composed masses 11, 22,
+    // 33 and 44 at equal authority 42 and cited CRDT-01. Equal authority means
+    // one shared weight, so the scaled values were 12.43 / 24.86 / 37.29 /
+    // 49.72 -- all distinct, no tie, tieBreakProvenance never reached. It
+    // asserted "the largest mass wins", which the authority-weighted test above
+    // already covers, while its title promised the tie-break. Same defect as
+    // the one diagnosed sixty lines up, surviving in the test next door.
+    //
+    // The other route into tieBreakProvenance is an equal VALUE under max/min
+    // (ProvenanceSemiring: `if (valA === valB) return tieBreakProvenance(a, b)`),
+    // and that route had a real bug: max and min rebuilt their winner as
+    // `{ value, source }` and dropped `context`. tieBreakProvenance reads a
+    // missing context as agentId '', which sorts before every real agentId, so
+    // a value that had already been through max/min won every LATER tie by
+    // default -- and whether it had depends purely on arrival order. Measured
+    // 2026-09-22 with the default rules, this exact input produced TWO
+    // different provenance entries for `friction`, source "alpha" or source
+    // "bravo", each carrying no context at all.
+    //
+    // So this pins attribution, not the value: the value is 5 whoever wins.
     const semiring = new ProvenanceSemiring(rules);
     const traits: TraitApplication[] = [
-      { name: 'physics', config: { mass: 11 }, context: { authorityLevel: 42, agentId: 'a' } },
-      { name: 'material', config: { mass: 22 }, context: { authorityLevel: 42, agentId: 'b' } },
-      { name: 'kinematic', config: { mass: 33 }, context: { authorityLevel: 42, agentId: 'c' } },
-      { name: 'glowing', config: { mass: 44 }, context: { authorityLevel: 42, agentId: 'd' } },
+      { name: 'physics', config: { friction: 5 }, context: { authorityLevel: 50, agentId: 'alpha' } },
+      { name: 'material', config: { friction: 5 }, context: { authorityLevel: 50, agentId: 'bravo' } },
+      { name: 'glowing', config: { friction: 3 }, context: { authorityLevel: 50, agentId: 'charlie' } },
     ];
 
-    const masses = new Set(
-      permutations(traits).map((o) => (semiring.add(o).config as { mass: number }).mass)
+    const entries = new Set(
+      permutations(traits).map((o) =>
+        JSON.stringify((semiring.add(o).provenance as Record<string, unknown>).friction)
+      )
     );
 
-    expect([...masses].length, `tied authority produced ${[...masses]}`).toBe(1);
+    expect(
+      [...entries],
+      `one composition produced ${entries.size} different provenance entries for a tied value`
+    ).toHaveLength(1);
+
+    // And the context must survive the tie at all: an entry with no context is
+    // what made the tie-break arbitrary in the first place.
+    const only = JSON.parse([...entries][0]) as { context?: { agentId?: string } };
+    expect(only.context?.agentId).toBeDefined();
   });
 
   test('domain-override respects precedence regardless of arrival order', () => {

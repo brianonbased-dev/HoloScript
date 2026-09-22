@@ -37,12 +37,19 @@ const CONSUMERS = [
 ] as const;
 
 /**
- * A quoted concrete test path, e.g. 'src/__tests__/Foo.test.ts'. Globs such as
+ * A quoted concrete test path, e.g. 'src/__tests__/Foo.test.ts'.
+ *
+ * ALL THREE QUOTE STYLES. This was anchored on the ASCII apostrophe alone, which
+ * missed the most likely regression by far: the list a maintainer would paste
+ * from is test-baseline.json, where every entry is DOUBLE quoted. A re-pasted
+ * double-quoted array would have passed this test in silence.
+ *
+ * Globs such as
  * 'src/**\/*.test.ts' are excluded by forbidding '*' inside the match: a glob is
  * a rule, while a concrete path is a list entry, and only the second kind
  * duplicates the manifest.
  */
-const CONCRETE_TEST_PATH = /'src\/[^'*]+\.(?:test|spec)\.tsx?'/g;
+const CONCRETE_TEST_PATH = /['"`]src\/[^'"`*]+\.(?:test|spec)\.tsx?['"`]/g;
 
 describe('the serial-pass quarantine has exactly one source of truth', () => {
   it('test-baseline.json declares the scheduling lists', () => {
@@ -57,6 +64,14 @@ describe('the serial-pass quarantine has exactly one source of truth', () => {
       `${_name} names test files directly instead of reading test-baseline.json. ` +
         `That is how the three lists diverged. Found: ${found.join(', ')}`
     ).toEqual([]);
+  });
+
+  it.each(CONSUMERS)('%s still reads test-baseline.json at runtime', (_name, file) => {
+    // The complement of the check above: that one fails if a consumer names test
+    // paths, this one fails if a consumer stops reading the manifest. Passing
+    // both is what "one source of truth" means; deleting the read while adding
+    // no literals would otherwise look clean.
+    expect(readFileSync(file, 'utf-8')).toContain('test-baseline.json');
   });
 
   it('every file in the scheduling lists exists', () => {

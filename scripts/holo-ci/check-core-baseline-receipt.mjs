@@ -92,11 +92,47 @@ export function evaluateReceipt(receipt, currentTreeSha) {
       ok: false,
       reason: `receipt records ${run.filesCollected - run.filesReported} test file(s) collected but never reported -- that run crashed`,
     };
-  const badPass = (run.passes ?? []).find((x) => x.signal || x.status === null);
+  if (!Array.isArray(run.passes) || run.passes.length === 0)
+    return { ok: false, reason: 'receipt records no passes, so it describes no run' };
+
+  // THE SAME RULE THE GATE APPLIES, APPLIED AGAIN HERE.
+  // The first version of this check tested only `signal || status === null`. It
+  // had no arm for a pass that exited NON-ZERO, which is the one crash shape
+  // that actually reaches a written receipt: a crashed shard whose non-zero exit
+  // was excused, at the time, by a forgiven failure in a different pass. Review
+  // confirmed it accepted `passes: [{status: 1, signal: null}]` outright.
+  //
+  // Non-zero is legitimate only when that pass produced failures of its OWN --
+  // the baseline exists to forgive known failures, and vitest exits 1 for them.
+  // `failures` is per-pass for exactly this reason.
+  const badPass = run.passes.find(
+    (x) => x.signal || x.status === null || (x.status !== 0 && !(x.failures > 0))
+  );
   if (badPass)
     return {
       ok: false,
-      reason: `receipt records pass "${badPass.label}" ending with signal=${badPass.signal} status=${badPass.status}`,
+      reason:
+        `receipt records pass "${badPass.label}" ending status=${badPass.status} ` +
+        `signal=${badPass.signal} with ${badPass.failures ?? 0} failures of its own`,
+    };
+
+  // A LOG THAT WAS NOT ABOUT THIS TREE PROVES NOTHING ABOUT IT.
+  // --from-log takes any file. Before the runner stamped the tree it tested into
+  // its envelope, replaying yesterday's log minted a clean receipt for today's
+  // code in about a second -- a quieter bypass than the --no-verify this file
+  // documents. The gate refuses a mismatch; this refuses a receipt that records
+  // one, and a receipt that records no stamp at all.
+  if (!receipt.runCompleted.envelopeTreeSha)
+    return {
+      ok: false,
+      reason: 'receipt records no envelopeTreeSha, so its run was never tied to a tree',
+    };
+  if (receipt.runCompleted.envelopeTreeSha !== receipt.coreTreeSha)
+    return {
+      ok: false,
+      reason:
+        `the run tested packages/core ${String(receipt.runCompleted.envelopeTreeSha).slice(0, 12)} ` +
+        `but the receipt claims ${String(receipt.coreTreeSha).slice(0, 12)}`,
     };
   if (receipt.capturedFromDirtyWorkingTree)
     return {
@@ -149,7 +185,8 @@ if (process.argv.includes('--self-test')) {
       filesCollected: 120,
       filesReported: 120,
       exitStatusKnown: true,
-      passes: [{ label: 'sequential', status: 0, signal: null }],
+      passes: [{ label: 'sequential', status: 0, signal: null, failures: 0 }],
+      envelopeTreeSha: SHA,
     },
   };
   const cases = [
@@ -200,12 +237,79 @@ if (process.argv.includes('--self-test')) {
         ...good,
         runCompleted: {
           ...good.runCompleted,
-          passes: [{ label: 'shard-2/4', status: null, signal: 'SIGKILL' }],
+          passes: [{ label: 'shard-2/4', status: null, signal: 'SIGKILL', failures: 0 }],
         },
       },
       SHA,
       false,
     ],
+    // The signal case above SHORT-CIRCUITS the status===null arm, so that arm
+    // was unproven: review deleted it and the self-test still reported 13/13.
+    // spawnSync can return a null status with no signal, so it needs its own case.
+    [
+      'rejects a pass that ended with no exit status and no signal',
+      {
+        ...good,
+        runCompleted: {
+          ...good.runCompleted,
+          passes: [{ label: 'shard-2/4', status: null, signal: null, failures: 0 }],
+        },
+      },
+      SHA,
+      false,
+    ],
+    // THE CRASH SHAPE THAT ACTUALLY REACHED A WRITTEN RECEIPT. A shard exits
+    // non-zero having produced no failure of its own; before the per-pass fix a
+    // forgiven failure in another pass excused it, the gate said OK and wrote
+    // result 'clean', and this checker accepted it.
+    [
+      'rejects a pass that exited non-zero with no failures of its own',
+      {
+        ...good,
+        runCompleted: {
+          ...good.runCompleted,
+          passes: [{ label: 'shard-3/4', status: 1, signal: null, failures: 0 }],
+        },
+      },
+      SHA,
+      false,
+    ],
+    // And the legitimate counterpart, which must stay ACCEPTED: the baseline
+    // forgives known failures, so a pass with failures of its own exiting 1 is
+    // the normal state of a green baseline run.
+    [
+      'accepts a pass that exited non-zero with failures of its own',
+      {
+        ...good,
+        runCompleted: {
+          ...good.runCompleted,
+          passes: [{ label: 'shard-3/4', status: 1, signal: null, failures: 2 }],
+        },
+      },
+      SHA,
+      true,
+    ],
+    [
+      'rejects a receipt recording no passes at all',
+      { ...good, runCompleted: { ...good.runCompleted, passes: [] } },
+      SHA,
+      false,
+    ],
+    [
+      'rejects a run that was never tied to a tree',
+      { ...good, runCompleted: { ...good.runCompleted, envelopeTreeSha: null } },
+      SHA,
+      false,
+    ],
+    [
+      'rejects a log captured against a different core tree',
+      { ...good, runCompleted: { ...good.runCompleted, envelopeTreeSha: 'c'.repeat(40) } },
+      SHA,
+      false,
+    ],
+    // Neither of these two guards had a case; both are reachable.
+    ['rejects a receipt with no coreTreeSha', { ...good, coreTreeSha: null }, SHA, false],
+    ['rejects an unresolvable HEAD:packages/core', good, null, false],
   ];
   let failed = 0;
   for (const [name, receipt, sha, expectOk] of cases) {
