@@ -223,6 +223,16 @@ if (process.argv.includes('--self-test')) {
     ['REFUSES a log captured against a different core tree', [...fullBody(), env({ coreTreeSha: 'e'.repeat(40) })], 2],
     ['REFUSES an envelope that declares no passes', [...fullBody(), env({ passes: [] })], 2],
     ['REFUSES an envelope with no runId', [...fullBody(), env({ runId: undefined })], 2],
+    // ISOLATED, and it exists to keep a coupling from coming back. A runId IS
+    // present here, so the refusal above cannot be what catches it -- only the
+    // dirtiness check can. Without this case, the dirty handling could quietly
+    // revert to trusting an absent field and nothing would notice, because the
+    // runId refusal would go on catching every fixture that lacked both.
+    [
+      'REFUSES a v3 envelope that carries a runId but will not say whether the tree was dirty',
+      [...fullBody(), env({ dirtyAtStart: undefined })],
+      2,
+    ],
 
     // ── SCOPE: a partial run cannot certify the suite ────────────────────
     // A five-second one-file run used to mint a receipt the pre-push checker
@@ -613,7 +623,23 @@ if (envelope) {
   // DIRTINESS BELONGS TO THE CAPTURE, NOT THE CLASSIFICATION. `dirtyAtStart`
   // below is sampled when this script runs, which for --from-log can be days
   // after the suite. The runner now stamps its own answer; either one counts.
-  if (envelope.dirtyAtStart === true) capturedDirty = true;
+  // FAIL CLOSED: anything that is not an explicit `false` counts as dirty.
+  //
+  // This was `=== true`, so an envelope that simply did not say was silently
+  // treated as clean. That was safe only because the runId refusal above turns
+  // away every pre-v3 envelope before reaching this line -- a dependency this
+  // line did not advertise and which would have gone away the moment anyone
+  // relaxed that refusal. An unknown answer to "was the tree dirty" is not a
+  // no, and the current runner always writes the boolean, so refusing a v3
+  // envelope that omits it costs nothing on the live path.
+  if (typeof envelope.dirtyAtStart !== 'boolean') {
+    console.error(
+      '[baseline-gate] the run-envelope does not say whether the tree was dirty when the run started.'
+    );
+    console.error('[baseline-gate] re-capture with a current run-vitest.mjs.');
+    process.exit(2);
+  }
+  if (envelope.dirtyAtStart !== false) capturedDirty = true;
 
   const stamped = envelope.coreTreeSha ?? null;
   const actual = coreTreeSha();
