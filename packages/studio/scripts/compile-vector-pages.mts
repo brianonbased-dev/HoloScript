@@ -34,7 +34,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { format, resolveConfig } from 'prettier';
+import { formatGenerated } from './lib/format-generated';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { Vector2DCompiler } from '../../core/src/compiler/Vector2DCompiler';
 import type { HoloComposition } from '../../core/src/parser/HoloCompositionTypes';
@@ -62,8 +62,9 @@ function emit(file: string, code: string): void {
  */
 async function finish(): Promise<void> {
   for (const { file, code } of PENDING.splice(0, PENDING.length)) {
-    const config = await resolveConfig(file);
-    const pretty = await format(code, { ...config, filepath: file });
+    // Same rule as the other two generators: prettier failing on generated output
+    // names the file and stops the build or check (task_1790066851748_j9di).
+    const pretty = await formatGenerated(file, code);
 
     if (CHECK) {
       let current: string | null = null;

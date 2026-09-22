@@ -98,6 +98,7 @@
     "pg": "^8.13.1",
     "picomatch": ">=4.0.4",
     "posthog-js": "^1.363.1",
+    "prettier": "^3.8.1",
     "prismjs": "^1.29.0",
     "qrcode": "^1.5.3",
     "react": "^19.2.0",

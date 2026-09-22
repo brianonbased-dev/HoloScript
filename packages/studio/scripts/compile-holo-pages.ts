@@ -29,7 +29,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, relative, dirname, extname } from 'path';
-import { format, resolveConfig } from 'prettier';
+import { formatGenerated } from './lib/format-generated';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { NextJSCompiler } from '../../core/src/compiler/NextJSCompiler';
 
@@ -53,15 +53,10 @@ const drift: string[] = [];
  * excludes some generated paths whose committed form IS formatted.
  */
 async function emitFile(target: string, code: string): Promise<void> {
-  const config = await resolveConfig(target);
-  let pretty = code;
-  try {
-    pretty = await format(code, { ...config, filepath: target });
-  } catch {
-    // A page prettier cannot parse is a compiler bug, not a formatting one. Keep the
-    // raw bytes so the real error surfaces downstream rather than being masked here.
-    pretty = code;
-  }
+  // A page prettier cannot parse is a compiler bug: refuse loudly, in build and
+  // check alike, rather than keep raw bytes the check then reads as formatted
+  // (independent review of #309, task_1790066851748_j9di).
+  const pretty = await formatGenerated(target, code);
 
   if (CHECK) {
     let current: string | null = null;

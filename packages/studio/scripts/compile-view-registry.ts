@@ -23,7 +23,7 @@
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
 import { join, extname, basename, dirname } from 'path';
-import { format, resolveConfig } from 'prettier';
+import { formatGenerated } from './lib/format-generated';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { Native2DCompiler } from '../../core/src/compiler/Native2DCompiler';
 
@@ -90,15 +90,10 @@ function emit(target: string, content: string): void {
  */
 async function finish(): Promise<void> {
   for (const { target, content } of PENDING.splice(0, PENDING.length)) {
-    const config = await resolveConfig(target);
-    let pretty = content;
-    try {
-      pretty = await format(content, { ...config, filepath: target });
-    } catch {
-      // A generated file prettier cannot parse is a compiler bug, not a formatting
-      // one. Keep the raw bytes so the real error surfaces where it belongs.
-      pretty = content;
-    }
+    // A generated file prettier cannot parse is a compiler bug: refuse loudly, in
+    // build and check alike, rather than keep raw bytes the check then reads as
+    // formatted (independent review of #309, task_1790066851748_j9di).
+    const pretty = await formatGenerated(target, content);
 
     if (CHECK) {
       let current: string | null = null;
