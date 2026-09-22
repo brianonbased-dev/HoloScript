@@ -250,7 +250,15 @@ router.get('/history', async (req: Request, res: Response) => {
     }
 
     const { getUsageHistory } = await import('@holoscript/absorb-service/credits');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    // userUuid(), not truthiness, and not 'anonymous'. This column is a uuid,
+    // so the literal string crashes the query with "invalid input syntax for
+    // type uuid" -> 500. The same fault is named and fixed three other times in
+    // this change; it survived here, in the file that fixes it.
+    const userId = userUuid(req);
+    if (!userId) {
+      res.json({ transactions: [], total: 0 });
+      return;
+    }
     const limit = Math.min(Number(req.query.limit) || 50, 200);
 
     const history = await getUsageHistory(userId, limit);

@@ -181,8 +181,22 @@ export const LLM_COSTS_PER_MTOK: Record<string, { input: number; output: number 
   anthropic: { input: 3.0, output: 15.0 },
   xai: { input: 2.0, output: 10.0 },
   openai: { input: 2.5, output: 10.0 },
+  gemini: { input: 0.5, output: 1.5 },
   ollama: { input: 0, output: 0 },
+  // Our own hardware. Free by the same rule that makes local operations free:
+  // we are not billed for it, so neither is the customer.
+  cloud: { input: 0, output: 0 },
+  fleet: { input: 0, output: 0 },
 };
+
+// A PROVIDER MISSING FROM THIS TABLE IS METERED FREE, which is why the three
+// keys above are here. estimateLLMCostCents falls back to `ollama` — zero — for
+// any name it does not recognise, so an omission is not a gap in the price
+// list, it is a silent decision to charge nothing. Studio's copy carried
+// gemini, cloud and fleet while this one did not, so any request routed to
+// gemini metered at zero on the side that actually bills.
+//
+// Add the provider here BEFORE routing traffic to it.
 
 /**
  * Estimate LLM cost in cents for a given provider and token counts.

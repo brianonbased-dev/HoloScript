@@ -51,7 +51,15 @@ router.post('/stripe', async (req: Request, res: Response) => {
         if (!userId) {
           console.error(
             `[credits/webhook] REFUSED: paid session ${session.id} carries no metadata.userId. ` +
-              `${amountCents} cents were paid and NOT credited. Attribute it by hand.`
+              // The money and the credits are two different numbers now, and
+              // this line used to print the credits and call them cents. Since
+              // the purchase route redefined metadata.amountCents as the
+              // CREDITS to grant, a Builder refusal read "2500 cents were paid"
+              // when the customer paid 2000 — wrong by the bonus, in the
+              // direction that over-refunds, for every package but Starter.
+              // session.amount_total is what Stripe actually captured.
+              `${session.amount_total ?? 'unknown'} cents were paid (${amountCents} credits ` +
+                `were owed) and NOT credited. Attribute it by hand.`
           );
           res.json({ received: true, credited: false, reason: 'missing userId' });
           return;
@@ -60,11 +68,37 @@ router.post('/stripe', async (req: Request, res: Response) => {
         // addCredits is idempotent on stripeSessionId and runs in one
         // transaction; a redelivery of this event returns the existing balance
         // rather than adding again.
-        await addCredits(userId, amountCents, 'Stripe purchase', {
+        const granted = await addCredits(userId, amountCents, 'Stripe purchase', {
           stripeSessionId: session.id,
         });
 
-        console.log(`[credits/webhook] Successfully provisioned ${amountCents} cents in credits for user ${userId} via Session ${session.id}`);
+        // A NULL RETURN IS A FAILED GRANT, AND IT MUST NOT ANSWER 200.
+        //
+        // addCredits returns null WITHOUT throwing when the database is
+        // unavailable, when the account update matches no row, or when the
+        // client cannot give it a transaction. This handler is now the only
+        // path that credits a real purchase — /success deliberately no longer
+        // does — so swallowing that meant: money captured, zero credits, a log
+        // line claiming success, and a 200 telling Stripe the event is handled
+        // so it never retries. A transient database outage during a webhook
+        // burst silently ate paid purchases.
+        //
+        // This is the one failure where a redelivery WOULD fix things, and the
+        // handler was the thing preventing it. 500 asks for that redelivery,
+        // which the idempotence guard above now makes safe to accept.
+        if (!granted) {
+          console.error(
+            `[credits/webhook] GRANT FAILED for user ${userId}, session ${session.id}: ` +
+              `${amountCents} credits were NOT applied. Answering 500 so Stripe redelivers.`
+          );
+          res.status(500).json({ received: true, credited: false, reason: 'grant failed' });
+          return;
+        }
+
+        console.log(
+          `[credits/webhook] Provisioned ${amountCents} credits for user ${userId} ` +
+            `via Session ${session.id}; balance now ${granted.balanceCents}`
+        );
       } else {
          console.log(`[credits/webhook] Session ${session.id} completed but not paid, or missing metadata.`);
       }

@@ -109,7 +109,13 @@ router.post('/scan', async (req: Request, res: Response) => {
     // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
     // projectId told the client it had been billed when nothing was taken.
     let chargedCents = 0;
-    const scanUserId = (req as AuthenticatedRequest).userId;
+    // userUuid(), not a truthiness test. middleware/auth.ts sets
+    // userId = `orchestrator:${key}` for an orchestrator caller: authenticated,
+    // truthy, and not a uuid. It would flow into requireCredits -> checkBalance
+    // -> getOrCreateAccount, which queries a uuid column and throws, 500-ing an
+    // orchestrator scan. This guard is new in this change and chose the weaker
+    // predicate when the right one was already imported.
+    const scanUserId = userUuid(req);
     if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
       const creditsModule = await import('@holoscript/absorb-service/credits');
       const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
@@ -182,7 +188,7 @@ router.post('/query', async (req: Request, res: Response) => {
 
     const creditsModule = await import('@holoscript/absorb-service/credits');
     const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
-    const userId = (req as AuthenticatedRequest).userId;
+    const userId = userUuid(req);
     if (!userId) {
       res.status(401).json({ error: 'Authentication required' });
       return;
@@ -310,7 +316,14 @@ router.post('/projects', async (req: Request, res: Response) => {
     }
 
     const { absorbProjects } = await import('@holoscript/absorb-service/schema');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    // A fourth 'anonymous' fallback, on a uuid column, in a file this change
+    // already fixed twice. Found by reading for the pattern rather than for the
+    // sites the review happened to name.
+    const userId = userUuid(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
 
     const result = await db
       // @ts-ignore - Automatic remediation for TS2345

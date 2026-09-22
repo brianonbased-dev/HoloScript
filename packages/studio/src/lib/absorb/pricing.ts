@@ -134,30 +134,25 @@ export const TIER_LIMITS: Record<
     maxProjectsActive: number;
     maxAbsorbDepth: 'shallow' | 'deep';
     pipelineEnabled: boolean;
-    /** Monthly cap on free sovereign turns (chat/compile/scene). null = unlimited. */
-    maxMonthlyTurns: number | null;
   }
 > = {
   free: {
     freeCredits: 100,
-    maxProjectsActive: 3,
+    maxProjectsActive: 1,
     maxAbsorbDepth: 'shallow',
     pipelineEnabled: false,
-    maxMonthlyTurns: 200,
   },
   pro: {
-    freeCredits: 500,
+    freeCredits: 0,
+    maxProjectsActive: 10,
+    maxAbsorbDepth: 'deep',
+    pipelineEnabled: true,
+  },
+  enterprise: {
+    freeCredits: 0,
     maxProjectsActive: 100,
     maxAbsorbDepth: 'deep',
     pipelineEnabled: true,
-    maxMonthlyTurns: null,
-  },
-  enterprise: {
-    freeCredits: 2000,
-    maxProjectsActive: 1000,
-    maxAbsorbDepth: 'deep',
-    pipelineEnabled: true,
-    maxMonthlyTurns: null,
   },
 };
 
@@ -189,16 +184,14 @@ export const SUBSCRIPTION_PRICING = {
 export const LLM_MARKUP = 1.15;
 
 export const LLM_COSTS_PER_MTOK: Record<string, { input: number; output: number }> = {
-  // Frontier / BYOK providers — real marginal cost, metered with LLM_MARKUP.
+  openrouter: { input: 3.0, output: 15.0 }, // priced same as anthropic (typical routed model)
   anthropic: { input: 3.0, output: 15.0 },
   xai: { input: 2.0, output: 10.0 },
   openai: { input: 2.5, output: 10.0 },
   gemini: { input: 0.5, output: 1.5 },
-  openrouter: { input: 2.5, output: 10.0 },
-  // Sovereign serving — self-hosted on our own fleet (scale-to-zero). ~$0 marginal, so
-  // the cheap lane is free per the resource-shape pricing model (D.086). ollama = local
-  // serving; cloud/fleet = the Brittney sovereign serving endpoint (P.008).
   ollama: { input: 0, output: 0 },
+  // Our own hardware. Free by the same rule that makes local operations free:
+  // we are not billed for it, so neither is the customer.
   cloud: { input: 0, output: 0 },
   fleet: { input: 0, output: 0 },
 };
