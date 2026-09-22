@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { userUuid } from '../middleware/auth.js';
 
 // Note: These imports will need to be adjusted once the paths are finalized
 import {
@@ -128,16 +128,28 @@ holodaemonRouter.get('/', async (req: Request, res: Response) => {
 
 holodaemonRouter.post('/', async (req: Request, res: Response) => {
   const body = req.body;
-  const authReq = req as AuthenticatedRequest;
 
   if (body.action === 'start') {
     const profile = body.profile ?? 'balanced';
-    
+
+    // A daemon run is charged to a signed-in user (a uuid). creditAccounts.userId
+    // is a uuid column: the literal 'anonymous' this route used to charge threw
+    // "invalid input syntax for type uuid" and answered 500 to every caller whose
+    // token did not resolve to a user (a service key). Refuse before any credit
+    // call, the way credits.ts does (task_1790064120726_h0yq).
+    const userId = userUuid(req);
+    if (!userId) {
+      return res.status(403).json({
+        error: 'User identity required',
+        message: 'A daemon run is charged to a signed-in user. Sign in with GitHub first.',
+      });
+    }
+
     const { requireCredits, isCreditError, deductCredits } = await import('@holoscript/absorb-service/credits');
     const opType = profile === 'deep' ? 'daemon_deep' : profile === 'quick' ? 'daemon_quick' : 'daemon_balanced';
-    
+
     // @ts-ignore - Automatic remediation for TS18046
-    const creditCheck = await requireCredits(authReq.userId || 'anonymous', opType);
+    const creditCheck = await requireCredits(userId, opType);
     // @ts-ignore - Automatic remediation for TS18046
     if (isCreditError(creditCheck)) {
       return res.status(402).json(creditCheck);
@@ -161,11 +173,11 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
         notes: ['HoloDaemon MVP — self-improvement daemon run'],
       },
       projectPath: body.projectPath,
-      userId: authReq.userId,
+      userId,
     });
 
     await deductCredits(
-      authReq.userId || 'anonymous',
+      userId,
       creditCheck.costCents,
       `HoloDaemon cycle (${profile})`,
       // @ts-ignore - Automatic remediation for TS18046
