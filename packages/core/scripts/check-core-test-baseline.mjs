@@ -95,19 +95,44 @@ if (process.argv.includes('--self-test')) {
     spawnSync('git', ['rev-parse', 'HEAD:packages/core'], { cwd: coreRoot, encoding: 'utf8' })
       .stdout?.trim() || null;
 
-  const env = (passes, treeSha = sha) =>
+  const RID = 'selftest-0000-1111-2222';
+  const env = (over = {}) =>
     '[run-vitest] run-envelope ' +
-    JSON.stringify({ v: 2, coreTreeSha: treeSha, passes, overall: 0 });
+    JSON.stringify({
+      v: 3,
+      runId: RID,
+      mode: 'full',
+      targets: [],
+      coreTreeSha: sha,
+      dirtyAtStart: false,
+      passes: FULL_PASSES,
+      overall: 0,
+      ...over,
+    });
   const ok = (label) => ({ label, status: 0, signal: null });
-  const begin = (label) => `[run-vitest] pass-begin ${label}`;
+  const FULL_PASSES = [
+    ok('sequential'),
+    ok('shard-1/4'),
+    ok('shard-2/4'),
+    ok('shard-3/4'),
+    ok('shard-4/4'),
+  ];
+  const begin = (label, runId = RID) => `[run-vitest:${runId}] pass-begin ${label}`;
   const files = (n) => ` Test Files  ${n} passed (${n})`;
 
+  /** A complete, balanced, zero-exit run: five delimited sections, one summary each. */
+  const fullBody = () => {
+    const out = [];
+    for (const label of ['sequential', 'shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4']) {
+      out.push(begin(label), files(30));
+    }
+    return out;
+  };
+
   const CASES = [
-    [
-      'accepts a complete, balanced, zero-exit run',
-      [begin('sequential'), files(9), begin('shard-1/4'), files(30), env([ok('sequential'), ok('shard-1/4')])],
-      0,
-    ],
+    ['accepts a complete, balanced, zero-exit full run', [...fullBody(), env()], 0],
+
+    // ── what a crashed or incomplete run looks like ──────────────────────
     [
       'REFUSES a crashed worker (a pass reported fewer files than it collected)',
       [
@@ -115,13 +140,28 @@ if (process.argv.includes('--self-test')) {
         'Error: [vitest-pool]: Worker forks emitted error.',
         ' Caused by: Error: Worker exited unexpectedly',
         ' Test Files  10 passed (11)',
-        env([{ label: 'sequential', status: 1, signal: null }]),
+        ...['shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'].flatMap((l) => [begin(l), files(30)]),
+        env({ passes: [{ label: 'sequential', status: 1, signal: null }, ...FULL_PASSES.slice(1)] }),
+      ],
+      2,
+    ],
+    // ISOLATED: status 0, one summary in its own section, nothing else wrong, so
+    // only the signal arm can refuse it. With `status: null` as well, the
+    // no-exit-status arm also fired and the case proved the pair, not the arm.
+    [
+      'REFUSES a pass that reports a signal even with a zero status',
+      [
+        ...fullBody(),
+        env({ passes: [{ label: 'sequential', status: 0, signal: 'SIGKILL' }, ...FULL_PASSES.slice(1)] }),
       ],
       2,
     ],
     [
-      'REFUSES a pass killed by a signal',
-      [begin('sequential'), files(9), env([{ label: 'sequential', status: null, signal: 'SIGKILL' }])],
+      'REFUSES a pass that ended with no exit status at all',
+      [
+        ...fullBody(),
+        env({ passes: [{ label: 'sequential', status: null, signal: null }, ...FULL_PASSES.slice(1)] }),
+      ],
       2,
     ],
     [
@@ -129,56 +169,133 @@ if (process.argv.includes('--self-test')) {
       [
         begin('sequential'),
         ' FAIL  src/__tests__/Known.test.ts > known > pre-existing',
-        ' Test Files  1 failed | 8 passed (9)',
-        begin('shard-3/4'),
-        files(30),
-        env([
-          { label: 'sequential', status: 1, signal: null },
-          { label: 'shard-3/4', status: 1, signal: null },
-        ]),
+        ' Test Files  1 failed | 29 passed (30)',
+        ...['shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'].flatMap((l) => [begin(l), files(30)]),
+        env({
+          passes: [
+            { label: 'sequential', status: 1, signal: null },
+            { label: 'shard-1/4', status: 1, signal: null },
+            ...FULL_PASSES.slice(2),
+          ],
+        }),
       ],
       2,
     ],
-    ['REFUSES a log with no envelope at all', [begin('sequential'), files(9)], 2],
+    // ISOLATED FROM THE GLOBAL COUNT: five summaries for five passes, so the
+    // run-wide tally matches perfectly -- but one pass printed two and another
+    // printed none. Only the per-section rule can see this, which is the whole
+    // reason a global tally was not enough.
     [
-      'REFUSES a log carrying two runs',
+      'REFUSES a run where one pass printed two summaries and another printed none',
       [
         begin('sequential'),
-        files(9),
-        env([ok('sequential')]),
-        begin('sequential'),
-        files(9),
-        env([ok('sequential')]),
+        files(30),
+        files(30),
+        begin('shard-1/4'),
+        begin('shard-2/4'),
+        files(30),
+        begin('shard-3/4'),
+        files(30),
+        begin('shard-4/4'),
+        files(30),
+        env(),
+      ],
+      2,
+    ],
+
+    // ── what the log itself must prove ───────────────────────────────────
+    ['REFUSES a log with no envelope at all', fullBody(), 2],
+    ['REFUSES a log carrying two runs', [...fullBody(), env(), ...fullBody(), env()], 2],
+    ['REFUSES a log captured against a different core tree', [...fullBody(), env({ coreTreeSha: 'e'.repeat(40) })], 2],
+    ['REFUSES an envelope that declares no passes', [...fullBody(), env({ passes: [] })], 2],
+    ['REFUSES an envelope with no runId', [...fullBody(), env({ runId: undefined })], 2],
+
+    // ── SCOPE: a partial run cannot certify the suite ────────────────────
+    // A five-second one-file run used to mint a receipt the pre-push checker
+    // accepted for the whole package. This is that hole.
+    // ISOLATED: valid in every other respect -- five delimited sections, one
+    // summary each, all zero exits, matching tree -- so ONLY the mode check can
+    // refuse it. Deleting that check must make this case go green.
+    [
+      'REFUSES a run whose envelope says single, however full-shaped it looks',
+      [...fullBody(), env({ mode: 'single', targets: ['src/__tests__/One.test.ts'] })],
+      2,
+    ],
+    [
+      'REFUSES the real shape of a single-file run too',
+      [
+        begin('single'),
+        files(1),
+        env({ mode: 'single', targets: ['src/__tests__/One.test.ts'], passes: [ok('single')] }),
       ],
       2,
     ],
     [
-      'REFUSES a log captured against a different core tree',
-      [begin('sequential'), files(9), env([ok('sequential')], 'e'.repeat(40))],
+      'REFUSES a full-mode envelope that is missing a shard',
+      [
+        ...['sequential', 'shard-1/4', 'shard-2/4', 'shard-3/4'].flatMap((l) => [begin(l), files(30)]),
+        env({ passes: FULL_PASSES.slice(0, 4) }),
+      ],
       2,
     ],
+
+    // ── the forged delimiter ─────────────────────────────────────────────
+    // A shard whose OUTPUT contains a pass-begin line used to re-route its
+    // failures into another pass's section, turning a crashed-pass refusal
+    // green. The marker carries a per-run nonce now, so a forged line with any
+    // other id is just text and the crashed pass is still caught.
     [
-      'REFUSES an envelope that declares no passes',
-      [begin('sequential'), files(9), env([])],
+      'REFUSES a crashed pass even when the log carries a forged pass-begin line',
+      // Shaped exactly as review shaped it: the SEQUENTIAL pass exits non-zero
+      // with no failure of its own (the crash signature), and a LATER pass
+      // prints a forged marker followed by a failure, donating it backwards.
+      [
+        begin('sequential'),
+        files(30),
+        begin('shard-1/4'),
+        begin('sequential', 'forged-run-id'),
+        ' FAIL  src/__tests__/Known.test.ts > known > pre-existing',
+        ' Test Files  1 failed | 29 passed (30)',
+        ...['shard-2/4', 'shard-3/4', 'shard-4/4'].flatMap((l) => [begin(l), files(30)]),
+        env({
+          passes: [
+            { label: 'sequential', status: 1, signal: null },
+            ...FULL_PASSES.slice(1),
+          ],
+        }),
+      ],
       2,
     ],
-    [
-      'REFUSES an envelope whose pass count does not match the summaries',
-      [begin('sequential'), files(9), env([ok('sequential'), ok('shard-1/4')])],
-      2,
-    ],
+
+    // ── and the verdict that is NOT a refusal ────────────────────────────
     [
       'reports a REAL failure as a verdict (exit 1), not as a crash',
       [
         begin('sequential'),
         ' FAIL  src/__tests__/Something.test.ts > it works',
-        ' Test Files  1 failed | 8 passed (9)',
-        env([{ label: 'sequential', status: 1, signal: null }]),
+        ' Test Files  1 failed | 29 passed (30)',
+        ...['shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'].flatMap((l) => [begin(l), files(30)]),
+        env({ passes: [{ label: 'sequential', status: 1, signal: null }, ...FULL_PASSES.slice(1)] }),
       ],
       1,
     ],
   ];
 
+  // WHAT THIS SELF-TEST DOES NOT PROVE, stated because the alternative is a
+  // reader assuming it does. Measured 2026-09-22 by deleting each rule in turn
+  // and re-running: FOUR are isolated -- remove the scope refusal, the
+  // per-section summary count, the expected-pass-set check or the signal arm,
+  // and a named case below goes red. THREE are not, because another rule
+  // catches the same fixture first:
+  //
+  //   delimiter nonce      -> the per-section summary count catches the forgery
+  //                           (a forged marker steals the section its own pass
+  //                            needed for its summary)
+  //   crash-marker scan    -> the balance check catches the same logs
+  //   zero-summary refusal -> the per-section count catches the same logs
+  //
+  // Those three are redundant by design and stay for depth, but no case here
+  // proves any of them alone. Do not read N refusals as N independent rules.
   let failed = 0;
   for (const [name, lines, want] of CASES) {
     const log = resolve(dir, name.replace(/[^a-z0-9]+/gi, '-') + '.log');
@@ -194,7 +311,7 @@ if (process.argv.includes('--self-test')) {
   }
   console.log(
     failed === 0
-      ? `\n[baseline-gate] self-test PASS -- accepts a complete run, reports a real failure as a failure, and refuses all ${CASES.length - 2} unverifiable shapes.`
+      ? `\n[baseline-gate] self-test PASS -- accepts a complete run, reports a real failure as a failure, and refuses all ${CASES.filter(([, , want]) => want === 2).length} unverifiable shapes.`
       : `\n[baseline-gate] self-test FAIL -- ${failed} case(s) wrong.`
   );
   process.exit(failed === 0 ? 0 : 1);
@@ -296,6 +413,10 @@ function coreTreeSha() {
   return r.status === 0 ? r.stdout.trim() : null;
 }
 
+// Set when the RUNNER reports the tree was dirty when the suite began; ORed
+// with this script's own sample, which only speaks for classification time.
+let capturedDirty = false;
+
 // Strip ANSI before every parse. A live run comes through a pipe uncoloured, but
 // a --from-log capture taken from a terminal does not, and a coloured log would
 // silently match nothing at all -- the FAIL lines included.
@@ -384,11 +505,20 @@ const CRASH_MARKERS =
 //
 // run-vitest.mjs now prints `[run-vitest] pass-begin <label>` before each pass,
 // so the log can be cut into sections and each pass judged on its own output.
-function sectionsByPass(text) {
+function sectionsByPass(text, runId) {
+  // ONLY THIS RUN'S MARKERS. The delimiter used to be plain text, so a TEST
+  // whose output contained `[run-vitest] pass-begin sequential` re-routed its
+  // failures into another pass's section -- review turned a crashed-pass
+  // refusal green that way, with a forged line and one forgiven failure. The
+  // runner now emits `[run-vitest:<runId>] pass-begin`, the runId lives in the
+  // envelope, and it is never placed in the child environment, so the suite
+  // cannot read the value it would have to reproduce.
+  const escaped = String(runId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = new RegExp('^\\s*\\[run-vitest:' + escaped + '\\] pass-begin (.+?)\\s*$');
   const out = new Map();
   let current = null;
   for (const line of text.split(/\r?\n/)) {
-    const begin = line.match(/^\s*\[run-vitest\] pass-begin (.+?)\s*$/);
+    const begin = line.match(marker);
     if (begin) {
       current = begin[1];
       out.set(current, []);
@@ -399,7 +529,24 @@ function sectionsByPass(text) {
   return out;
 }
 
-const SECTIONS = sectionsByPass(plain);
+/** The `Test Files ... (N)` summaries inside one section. */
+function summariesIn(lines) {
+  const found = [];
+  for (const line of lines) {
+    const m = line.match(/^\s*Test Files\s+(.+?)\s*\((\d+)\)\s*$/);
+    if (!m) continue;
+    const total = Number(m[2]);
+    let accounted = 0;
+    for (const part of m[1].split('|')) {
+      const g = part.trim().match(/^(\d+)\s+\w+/);
+      if (g) accounted += Number(g[1]);
+    }
+    found.push({ line: line.trim(), accounted, total });
+  }
+  return found;
+}
+
+const SECTIONS = sectionsByPass(plain, envelope?.runId);
 const isFailLine = (l) => /^\s*FAIL\s+(.*\S)\s*$/.test(l);
 const failuresInPass = (label) => (SECTIONS.get(label) ?? []).filter(isFailLine).length;
 const failureLines = plain.split(/\r?\n/).filter(isFailLine);
@@ -410,6 +557,50 @@ if (envelope) {
   // being judged: coreTreeSha is read from the CURRENT tree, so replaying a log
   // captured before a change minted a clean receipt for the change. The runner
   // now stamps the tree it tested into the envelope, and a mismatch is refused.
+  // A LOG OF A ONE-FILE RUN CANNOT CERTIFY THE SUITE.
+  //
+  // v2 bound the log to a TREE, which stopped a stale log certifying new code.
+  // It did not stop a five-second `run-vitest.mjs <one test> > single.log` from
+  // being replayed through --from-log into a clean receipt that the pre-push
+  // checker accepted for the whole package -- reproduced in review, and the
+  // docblock above invites exactly that capture. The envelope now says what the
+  // run WAS, and only a complete one earns a verdict.
+  if (!envelope.runId) {
+    console.error(
+      '[baseline-gate] the run-envelope carries no runId, so its pass markers cannot be trusted.'
+    );
+    console.error('[baseline-gate] re-capture with a current run-vitest.mjs.');
+    process.exit(2);
+  }
+  const mode = envelope.mode ?? null;
+  if (mode !== 'full') {
+    console.error(
+      `[baseline-gate] this log is a "${mode ?? 'unknown'}" run` +
+        (envelope.targets?.length ? ` of ${envelope.targets.join(', ')}` : '') +
+        ' -- it says nothing about the rest of the suite.'
+    );
+    console.error('[baseline-gate] a verdict needs a full run: node run-vitest.mjs (no arguments).');
+    process.exit(2);
+  }
+  const EXPECTED_PASSES = ['sequential', 'shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'];
+  const declared = (envelope.passes ?? []).map((x) => x.label);
+  const missing = EXPECTED_PASSES.filter((l) => !declared.includes(l));
+  const extra = declared.filter((l) => !EXPECTED_PASSES.includes(l));
+  if (missing.length > 0 || extra.length > 0) {
+    console.error(
+      '[baseline-gate] a full run is the sequential pass plus four shards; this log declares ' +
+        `${declared.join(', ') || '(none)'}.`
+    );
+    if (missing.length) console.error(`[baseline-gate]   missing: ${missing.join(', ')}`);
+    if (extra.length) console.error(`[baseline-gate]   unexpected: ${extra.join(', ')}`);
+    process.exit(2);
+  }
+
+  // DIRTINESS BELONGS TO THE CAPTURE, NOT THE CLASSIFICATION. `dirtyAtStart`
+  // below is sampled when this script runs, which for --from-log can be days
+  // after the suite. The runner now stamps its own answer; either one counts.
+  if (envelope.dirtyAtStart === true) capturedDirty = true;
+
   const stamped = envelope.coreTreeSha ?? null;
   const actual = coreTreeSha();
   if (!stamped) {
@@ -433,6 +624,17 @@ if (envelope) {
     process.exit(2);
   }
   const ran = passes.filter((x) => !x.skipped);
+  // PER SECTION, not a global tally. A global count matching by coincidence let
+  // a pass that printed two summaries cover for a pass that printed none.
+  for (const pass of ran) {
+    const own = summariesIn(SECTIONS.get(pass.label) ?? []);
+    if (own.length !== 1) {
+      console.error(
+        `[baseline-gate] pass "${pass.label}" printed ${own.length} vitest summaries; exactly one is expected.`
+      );
+      process.exit(2);
+    }
+  }
   if (summaries.length !== ran.length) {
     console.error(
       `[baseline-gate] the runner reported ${ran.length} pass(es) that ran, but the log carries ` +
@@ -563,7 +765,7 @@ console.error(
 // ~15-minute suite gate a push in milliseconds: the cost is paid once, whenever
 // the developer chooses, and the receipt proves it was paid for THIS core tree.
 const receiptPath = resolve(coreRoot, '.test-baseline-receipt.json');
-const dirty = dirtyAtStart;
+const dirty = dirtyAtStart || capturedDirty;
 
 /**
  * True when this tree's dependencies are borrowed from a DIFFERENT checkout.
@@ -636,6 +838,12 @@ try {
               }))
             : [{ label: 'live', status: liveStatus, signal: liveSignal, failures: failureLines.length }],
           envelopeTreeSha: envelope ? (envelope.coreTreeSha ?? null) : null,
+          // WHAT THIS RECEIPT IS A RECEIPT FOR. Recorded so the pre-push half
+          // can refuse a token minted by a partial run rather than trusting
+          // that this script already did.
+          scope: envelope
+            ? { mode: envelope.mode ?? null, runId: envelope.runId ?? null, targets: envelope.targets ?? [] }
+            : null,
         },
         coreTreeSha: coreTreeSha(),
         // A run against a dirty tree did not test what HEAD contains, so the

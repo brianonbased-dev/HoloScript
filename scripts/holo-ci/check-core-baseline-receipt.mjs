@@ -122,6 +122,25 @@ export function evaluateReceipt(receipt, currentTreeSha) {
   // code in about a second -- a quieter bypass than the --no-verify this file
   // documents. The gate refuses a mismatch; this refuses a receipt that records
   // one, and a receipt that records no stamp at all.
+  // WHAT THE RECEIPT IS A RECEIPT FOR.
+  //
+  // Binding the run to a TREE is not binding it to a SUITE. A five-second
+  // `run-vitest.mjs <one test file> > single.log`, replayed through --from-log,
+  // used to mint a receipt this function accepted for the whole package --
+  // reproduced in independent review. The gate refuses a non-full run now; this
+  // refuses a receipt that records one, because a checker that delegates its
+  // whole judgement to the writer is the shape that let a crash through before.
+  const scope = receipt.runCompleted.scope;
+  if (!scope) return { ok: false, reason: 'receipt records no scope, so it cannot say what was run' };
+  if (scope.mode !== 'full')
+    return {
+      ok: false,
+      reason:
+        `receipt was minted from a "${scope.mode ?? 'unknown'}" run` +
+        (scope.targets?.length ? ` of ${scope.targets.join(', ')}` : '') +
+        ' -- only a full suite run can certify packages/core',
+    };
+
   if (!receipt.runCompleted.envelopeTreeSha)
     return {
       ok: false,
@@ -187,6 +206,7 @@ if (process.argv.includes('--self-test')) {
       exitStatusKnown: true,
       passes: [{ label: 'sequential', status: 0, signal: null, failures: 0 }],
       envelopeTreeSha: SHA,
+      scope: { mode: 'full', runId: 'selftest', targets: [] },
     },
   };
   const cases = [
@@ -308,6 +328,26 @@ if (process.argv.includes('--self-test')) {
       false,
     ],
     // Neither of these two guards had a case; both are reachable.
+    // THE FIVE-SECOND TOKEN. A one-file run is a legitimate thing to do and a
+    // useless thing to certify the package with.
+    [
+      'rejects a receipt minted from a single-file run',
+      {
+        ...good,
+        runCompleted: {
+          ...good.runCompleted,
+          scope: { mode: 'single', runId: 'x', targets: ['src/__tests__/One.test.ts'] },
+        },
+      },
+      SHA,
+      false,
+    ],
+    [
+      'rejects a receipt that records no scope at all',
+      { ...good, runCompleted: { ...good.runCompleted, scope: undefined } },
+      SHA,
+      false,
+    ],
     ['rejects a receipt with no coreTreeSha', { ...good, coreTreeSha: null }, SHA, false],
     ['rejects an unresolvable HEAD:packages/core', good, null, false],
   ];

@@ -36,6 +36,7 @@
  * See also: docs/strategy/ROADMAP.md §5 Promoted Seed Backlog (Core test memory closure)
  */
 import { spawnSync } from 'child_process';
+import { randomUUID } from 'crypto';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -107,6 +108,37 @@ let overallExitCode = 0;
 //
 // `proc.status ?? null` and `proc.signal` are recorded raw, NOT coerced to 1: a
 // kill-by-signal must stay distinguishable from an ordinary failing run.
+/**
+ * A NONCE THE DELIMITER CARRIES, so the gate cuts the log on OUR markers only.
+ *
+ * The gate splits the combined output into per-pass sections on a `pass-begin`
+ * line and judges each pass on the failures inside its own section. That line
+ * was plain, unauthenticated text, so a TEST whose output happened to contain it
+ * -- or was made to -- re-routed its failures into another pass's section.
+ * Review demonstrated it: a shard printing a forged `pass-begin sequential`
+ * followed by a forgiven FAIL turned a crashed-pass refusal into a green run.
+ *
+ * randomUUID per run, never placed in the child environment, so nothing the
+ * suite can read lets it reproduce the marker.
+ */
+const RUN_ID = randomUUID();
+
+/**
+ * WAS THE TREE DIRTY WHEN THE SUITE STARTED? Sampled HERE, not by the classifier.
+ *
+ * The gate samples `git status` when it CLASSIFIES, which for a live run is the
+ * same moment. For `--from-log` it is not: capture a log against a dirty tree,
+ * tidy up, replay it later and the run looked clean. The only process that can
+ * answer this honestly is the one that was there.
+ */
+const dirtyAtStart = (() => {
+  const r = spawnSync('git', ['status', '--porcelain', '--', '.'], {
+    cwd: __dir,
+    encoding: 'utf8',
+  });
+  return r.status === 0 ? r.stdout.trim().length > 0 : true;
+})();
+
 const passes = [];
 function runPass(label, args, extraEnv = {}) {
   // A DELIMITER, so failures can be attributed to the pass that produced them.
@@ -114,7 +146,7 @@ function runPass(label, args, extraEnv = {}) {
   // the WHOLE run, and "this pass exited non-zero but printed no failure" --
   // the crash signature -- becomes unaskable: one forgiven failure anywhere
   // answers for every pass everywhere.
-  console.error(`[run-vitest] pass-begin ${label}`);
+  console.error(`[run-vitest:${RUN_ID}] pass-begin ${label}`);
   const proc = runVitest(args, extraEnv);
   passes.push({ label, status: proc.status ?? null, signal: proc.signal ?? null });
   return proc.status ?? 1;
@@ -183,9 +215,37 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
 
 // One machine-readable line, last. The gate parses this to learn each pass's real
 // exit status; without it, --from-log has no way to know a pass ever crashed.
+// SCOPE, because binding the log to a TREE is not binding it to a SUITE.
+//
+// v2 stamped the core tree sha, which stopped a stale log certifying new code.
+// It did not stop a log of a ONE-FILE run certifying the whole suite: five
+// seconds of `run-vitest.mjs <one test> > single.log`, replayed through
+// --from-log, produced a clean receipt the pre-push checker accepted for the
+// entire package. The docblock's own "classify a run that ALREADY happened"
+// recipe invites exactly that capture.
+//
+// `mode` is what branch this process took and `targets` is what it was pointed
+// at, both decided here where they are known rather than guessed from output.
+const MODE = hasExplicitShard(extraArgs)
+  ? 'shard'
+  : isCoverage
+    ? 'coverage'
+    : hasPositionalTestTargets(extraArgs)
+      ? 'single'
+      : 'full';
+
 console.error(
   '[run-vitest] run-envelope ' +
-    JSON.stringify({ v: 2, coreTreeSha: coreTreeSha(), passes, overall: overallExitCode })
+    JSON.stringify({
+      v: 3,
+      runId: RUN_ID,
+      mode: MODE,
+      targets: extraArgs.filter((a) => !a.startsWith('-')),
+      coreTreeSha: coreTreeSha(),
+      dirtyAtStart,
+      passes,
+      overall: overallExitCode,
+    })
 );
 
 process.exit(overallExitCode);
