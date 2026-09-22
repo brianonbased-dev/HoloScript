@@ -146,7 +146,18 @@ function runPass(label, args, extraEnv = {}) {
   // the WHOLE run, and "this pass exited non-zero but printed no failure" --
   // the crash signature -- becomes unaskable: one forgiven failure anywhere
   // answers for every pass everywhere.
-  console.error(`[run-vitest:${RUN_ID}] pass-begin ${label}`);
+  // STDOUT, NOT STDERR, and this is load-bearing.
+  //
+  // The child runs with stdio:'inherit', so vitest's own output -- including the
+  // `Test Files` summaries -- lands on OUR stdout. The gate captures the two
+  // streams separately and concatenates stdout then stderr, so a marker written
+  // to stderr arrives AFTER every summary in the assembled log, every section
+  // comes out empty, and the gate refuses a perfectly good run. That is exactly
+  // what happened on the first full run after per-section attribution landed:
+  // `pass "sequential" printed 0 vitest summaries`.
+  //
+  // On the same stream, marker and summary keep their true order.
+  console.log(`[run-vitest:${RUN_ID}] pass-begin ${label}`);
   const proc = runVitest(args, extraEnv);
   passes.push({ label, status: proc.status ?? null, signal: proc.signal ?? null });
   return proc.status ?? 1;

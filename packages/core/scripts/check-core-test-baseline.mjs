@@ -205,6 +205,20 @@ if (process.argv.includes('--self-test')) {
 
     // ── what the log itself must prove ───────────────────────────────────
     ['REFUSES a log with no envelope at all', fullBody(), 2],
+    // THE SHAPE THAT BIT A REAL RUN. The gate captures the child's stdout and
+    // stderr separately and concatenates them, so a pass-begin marker written to
+    // stderr lands after EVERY summary and all five sections come out empty.
+    // The markers are on stdout for this reason; this case fails if they move
+    // back, instead of the failure surfacing fifteen minutes into a live run.
+    [
+      'REFUSES a log whose markers were captured on a different stream from its summaries',
+      [
+        ...['sequential', 'shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'].map(() => files(30)),
+        ...['sequential', 'shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'].map((l) => begin(l)),
+        env(),
+      ],
+      2,
+    ],
     ['REFUSES a log carrying two runs', [...fullBody(), env(), ...fullBody(), env()], 2],
     ['REFUSES a log captured against a different core tree', [...fullBody(), env({ coreTreeSha: 'e'.repeat(40) })], 2],
     ['REFUSES an envelope that declares no passes', [...fullBody(), env({ passes: [] })], 2],
