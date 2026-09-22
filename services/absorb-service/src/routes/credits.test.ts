@@ -34,12 +34,22 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../db/client.js', () => ({ getDb: vi.fn(() => null) }));
 
-vi.mock('@holoscript/absorb-service/credits', () => ({
-  addCredits: mocks.addCredits,
-  getOrCreateAccount: vi.fn(),
-  checkBalance: vi.fn(),
-  getUsageHistory: vi.fn(async () => []),
-}));
+// CREDIT_PACKAGES is the REAL table on purpose. The prices are the thing under
+// test: a mocked package list would let the contract test pass against numbers
+// no customer is ever shown, which is the same blindness these tests exist to
+// close.
+vi.mock('@holoscript/absorb-service/credits', async () => {
+  const actual = await vi.importActual<typeof import('@holoscript/absorb-service/credits')>(
+    '@holoscript/absorb-service/credits'
+  );
+  return {
+    CREDIT_PACKAGES: actual.CREDIT_PACKAGES,
+    addCredits: mocks.addCredits,
+    getOrCreateAccount: vi.fn(),
+    checkBalance: vi.fn(),
+    getUsageHistory: vi.fn(async () => []),
+  };
+});
 
 vi.mock('stripe', () => ({
   default: class FakeStripe {
@@ -192,5 +202,85 @@ describe('GET /api/credits/success — no payment provider', () => {
     const res = await call('get', '/success', mockReq({ query: { session_id: 'cs_x' } }));
     expect(res._status).toBe(503);
     expect(res._json?.status).toBeUndefined();
+  });
+});
+
+/**
+ * The body the UI actually sends, fed to the validator that actually runs.
+ *
+ * Both suites were blind to a live contract break for as long as it existed.
+ * SettingsView has always posted `{ packageId }`; the purchase schema accepted
+ * only `amountCents`; so every click of the four Buy Credits buttons parsed as
+ * a ZodError and answered 400. The studio-side test posts the real body but
+ * mocks absorb's reply, so it only ever checked the proxy plumbing. The tests
+ * here always posted `{ amountCents: 500 }` — a body the UI never sends. Two
+ * green suites, one dead button, and neither could see it.
+ *
+ * The rule these pin: a contract needs one test that puts the REAL caller's
+ * body through the REAL validator. Mocking either end hides exactly this.
+ */
+describe('POST /api/credits/purchase — the body the UI sends', () => {
+  it('accepts { packageId } — the four Buy Credits buttons reach checkout', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_configured');
+
+    const res = await purchase({ body: { packageId: 'starter' } });
+
+    expect(res._status).toBe(200);
+    expect(res._json?.error).toBeUndefined();
+    expect(mocks.sessionsCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("a package's BONUS credits survive checkout: Builder charges $20 and grants 2,500", async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_configured');
+
+    await purchase({ body: { packageId: 'builder' } });
+
+    const params = mocks.sessionsCreate.mock.calls[0][0] as unknown as {
+      line_items: Array<{ price_data: { unit_amount: number } }>;
+      metadata: Record<string, string>;
+    };
+    // Two numbers, and they must differ — that gap IS the advertised bonus, and
+    // it was unrepresentable while one field did both jobs.
+    expect(params.line_items[0].price_data.unit_amount).toBe(2000);
+    expect(params.metadata.amountCents).toBe('2500');
+    expect(params.metadata.pricePaidCents).toBe('2000');
+  });
+
+  it('an unknown package refuses rather than charging something else', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_configured');
+
+    const res = await purchase({ body: { packageId: 'not-a-package' } });
+
+    expect(res._status).toBe(400);
+    expect(mocks.sessionsCreate).not.toHaveBeenCalled();
+  });
+
+  it('a custom top-up still works, at one credit per cent', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_configured');
+
+    await purchase({ body: { amountCents: 500 } });
+
+    const params = mocks.sessionsCreate.mock.calls[0][0] as unknown as {
+      line_items: Array<{ price_data: { unit_amount: number } }>;
+      metadata: Record<string, string>;
+    };
+    expect(params.line_items[0].price_data.unit_amount).toBe(500);
+    expect(params.metadata.amountCents).toBe('500');
+  });
+
+  it('naming both, or neither, is refused — the price must come from one place', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_configured');
+
+    const both = await purchase({ body: { packageId: 'starter', amountCents: 500 } });
+    const neither = await purchase({ body: {} });
+
+    expect(both._status).toBe(400);
+    expect(neither._status).toBe(400);
+    expect(mocks.sessionsCreate).not.toHaveBeenCalled();
   });
 });

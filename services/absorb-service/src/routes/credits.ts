@@ -34,11 +34,65 @@ const PAYMENTS_NOT_CONFIGURED = {
     'Credit purchases are unavailable because the payment provider is not configured. No credits were granted.',
 };
 
-const PurchaseSchema = z.object({
-  amountCents: z.number().int().min(100).max(100000),
-  successUrl: z.string().url().optional(),
-  cancelUrl: z.string().url().optional(),
-});
+/**
+ * A purchase names EITHER an advertised package or a custom top-up.
+ *
+ * Until 2026-09-21 it accepted only `amountCents`, while the UI has always sent
+ * `{ packageId }` — so every click of the four Buy Credits buttons parsed as a
+ * ZodError and answered 400. Nothing anywhere mapped a package id to an amount,
+ * and it could not have: the four advertised packages give BONUS credits
+ * (Builder is 2,500 credits for $20), and a single number cannot be both what
+ * Stripe charges and what the webhook grants. That is the real defect — the
+ * payment path structurally could not express the prices on the page.
+ *
+ * So a package is resolved HERE, from the canonical table, never from the
+ * client: the client says which package, the server decides both numbers.
+ * `amountCents` stays for a custom top-up, where credits and cents are 1:1.
+ */
+const PurchaseSchema = z
+  .object({
+    packageId: z.string().min(1).optional(),
+    amountCents: z.number().int().min(100).max(100000).optional(),
+    successUrl: z.string().url().optional(),
+    cancelUrl: z.string().url().optional(),
+  })
+  .refine((b) => Boolean(b.packageId) !== (b.amountCents !== undefined), {
+    message: 'Name exactly one of packageId or amountCents',
+  });
+
+/** What Stripe charges, what we credit, and what the line item is called. */
+export interface ResolvedPurchase {
+  priceCents: number;
+  credits: number;
+  label: string;
+}
+
+/**
+ * Resolve a validated purchase body to the two numbers a checkout needs.
+ * Returns null for a package id that is not on the canonical list, so an
+ * unknown id refuses instead of silently charging something else.
+ */
+export function resolvePurchase(
+  body: { packageId?: string; amountCents?: number },
+  packages: ReadonlyArray<{ id: string; label: string; credits: number; priceCents: number }>
+): ResolvedPurchase | null {
+  if (body.packageId) {
+    const pkg = packages.find((p) => p.id === body.packageId);
+    if (!pkg) return null;
+    return {
+      priceCents: pkg.priceCents,
+      credits: pkg.credits,
+      label: `${pkg.label} — ${pkg.credits} credits`,
+    };
+  }
+  if (body.amountCents === undefined) return null;
+  // Custom top-up: 1 credit = 1 cent, which is the documented base rate.
+  return {
+    priceCents: body.amountCents,
+    credits: body.amountCents,
+    label: `${body.amountCents} credits for codebase intelligence`,
+  };
+}
 
 // GET /balance — Check credit balance
 router.get('/balance', async (req: Request, res: Response) => {
@@ -105,6 +159,16 @@ router.post('/purchase', async (req: Request, res: Response) => {
       return;
     }
 
+    const { CREDIT_PACKAGES } = await import('@holoscript/absorb-service/credits');
+    const purchase = resolvePurchase(body, CREDIT_PACKAGES);
+    if (!purchase) {
+      res.status(400).json({
+        error: 'Unknown package',
+        message: `No such credit package: ${body.packageId}`,
+      });
+      return;
+    }
+
     const stripeKey = configuredStripeKey();
     if (!stripeKey) {
       if (!devCreditGrantEnabled()) {
@@ -116,13 +180,13 @@ router.post('/purchase', async (req: Request, res: Response) => {
 
       // Explicit local-development grant (ABSORB_DEV_CREDIT_GRANT=1, never in production).
       const { addCredits } = await import('@holoscript/absorb-service/credits');
-      await addCredits(userId, body.amountCents, 'Direct purchase (dev mode)', {
-        metadata: { mode: 'development' },
+      await addCredits(userId, purchase.credits, 'Direct purchase (dev mode)', {
+        metadata: { mode: 'development', priceCents: purchase.priceCents },
       });
 
       res.json({
         mode: 'development',
-        credited: body.amountCents,
+        credited: purchase.credits,
         message: 'Credits added directly (ABSORB_DEV_CREDIT_GRANT=1, Stripe not configured)',
       });
       return;
@@ -140,9 +204,11 @@ router.post('/purchase', async (req: Request, res: Response) => {
             currency: 'usd',
             product_data: {
               name: 'HoloScript Absorb Credits',
-              description: `${body.amountCents} credits for codebase intelligence`,
+              description: purchase.label,
             },
-            unit_amount: body.amountCents,
+            // Stripe charges the PRICE; the webhook grants the CREDITS. Two
+            // numbers, because a package's bonus lives in the gap between them.
+            unit_amount: purchase.priceCents,
           },
           quantity: 1,
         },
@@ -151,7 +217,12 @@ router.post('/purchase', async (req: Request, res: Response) => {
       cancel_url: body.cancelUrl || `${process.env.PUBLIC_URL || 'http://localhost:3005'}/api/credits/cancel`,
       metadata: {
         userId,
-        amountCents: String(body.amountCents),
+        // creditsWebhook reads metadata.amountCents and passes it straight to
+        // addCredits, so this field is the CREDITS TO GRANT, not the money
+        // taken. Keeping the key means the webhook needs no change and a
+        // package's bonus arrives correctly.
+        amountCents: String(purchase.credits),
+        pricePaidCents: String(purchase.priceCents),
       },
     });
 

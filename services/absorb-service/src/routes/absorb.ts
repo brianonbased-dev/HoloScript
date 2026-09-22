@@ -207,17 +207,30 @@ router.post('/query', async (req: Request, res: Response) => {
     // model download, and F.106 forbids the factory from ever auto-selecting a
     // paid one. That is why query_with_llm is now priced at 0 — there is no LLM
     // on this path and never was, whatever the operation's name says.
-    const engineModule = await import('@holoscript/absorb-service/engine');
-    const { EmbeddingIndex, createEmbeddingProvider } =
-      (engineModule as any).default || engineModule;
-    // @ts-ignore - Automatic remediation for TS18046
+    // Imported without a cast and without a suppression, so the compiler checks
+    // these two calls. It could not before: the cast erased the module's types
+    // and the suppression hid what was left, which is how both of this
+    // handler's runtime throws passed a clean type check.
+    const { EmbeddingIndex, createEmbeddingProvider } = await import(
+      '@holoscript/absorb-service/engine'
+    );
     const index = new EmbeddingIndex({ provider: await createEmbeddingProvider() });
 
-    // Build index from graph symbols
+    // Build index from graph symbols.
+    //
+    // The previous loop called index.add(id, text, symbol) — a three-argument
+    // method this class has never had. So /query was dead at two separate
+    // points, not one, and fixing only the constructor left it dead. Probed
+    // directly rather than reasoned about: the old constructor call throws
+    // "requires an explicit provider", and with that fixed the next line throws
+    // "index.add is not a function".
+    //
+    // addSymbols is the real API, and it is the better one: it derives each
+    // symbol's text itself from the symbol plus graph context, which is what
+    // the graph-text-terms feature exists to do. Hand-concatenating name and
+    // documentation threw that away.
     const symbols = entry.graph.getAllSymbols?.() ?? [];
-    for (const sym of symbols) {
-      index.add(sym.id, sym.name + ' ' + (sym.documentation || ''), sym);
-    }
+    await index.addSymbols(symbols, entry.graph);
 
     const results = await index.search(body.query, body.maxResults);
 

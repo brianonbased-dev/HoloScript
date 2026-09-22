@@ -5,7 +5,29 @@ declare module '@holoscript/absorb-service/engine' {
   export const CodebaseScanner: unknown;
   export const CodebaseGraph: unknown;
   export const CommunityDetector: unknown;
-  export const EmbeddingIndex: unknown;
+  /**
+   * Typed, not `unknown`, because `unknown` is not a weak type — it is no type,
+   * and it made the compiler unable to contradict a wrong call. Measured
+   * 2026-09-21: routes/absorb.ts constructed this with no argument and then
+   * called a three-argument `add` that has never existed on the class, and tsc
+   * reported nothing on either line, so /query answered 500 to every caller for
+   * as long as it existed. Two runtime throws, zero compile errors.
+   *
+   * Only the members this service actually uses are declared. Adding a member
+   * here is cheap; leaving one `unknown` costs a check that cannot fail.
+   */
+  export class EmbeddingIndex {
+    constructor(options: { provider: unknown; batchSize?: number; useWorkers?: boolean });
+    addSymbols(symbols: unknown[], graph?: unknown): Promise<void>;
+    search(
+      query: string,
+      topK?: number
+    ): Promise<Array<{ symbol: unknown; score: number; file: string; type: string }>>;
+    dispose(): Promise<void>;
+  }
+  export const createEmbeddingProvider: (opts?: {
+    provider?: string;
+  }) => Promise<{ name: string }>;
   export const HoloEmitter: unknown;
   export const AdapterManager: unknown;
   export const WorkerPool: unknown;
@@ -133,6 +155,22 @@ declare module '@holoscript/absorb-service/mcp' {
 }
 
 declare module '@holoscript/absorb-service/credits' {
+  /**
+   * Typed properly, not as `unknown`, because the purchase route reads these
+   * numbers to decide what Stripe charges. Everything declared `unknown` in
+   * this file is invisible to tsc: that is how `new EmbeddingIndex()` in
+   * routes/absorb.ts type-checked for months while throwing "requires an
+   * explicit provider" on every single call. A shim that says `unknown` is not
+   * a weak type, it is no type — and it turns the compiler into one more check
+   * that cannot fail.
+   */
+  export const CREDIT_PACKAGES: ReadonlyArray<{
+    readonly id: string;
+    readonly label: string;
+    readonly credits: number;
+    readonly priceCents: number;
+    readonly popular: boolean;
+  }>;
   export const setDbProvider: (db: unknown) => void;
   export const getOrCreateAccount: (userId: string) => Promise<unknown>;
   export const checkBalance: (userId: string) => Promise<unknown>;
