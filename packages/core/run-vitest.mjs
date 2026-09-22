@@ -43,22 +43,26 @@ import fs from 'fs';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const vitest = resolve(__dir, 'node_modules', 'vitest', 'vitest.mjs');
 // Any extra args forwarded by the caller (e.g. --coverage)
-const extraArgs = process.argv.slice(2).filter((arg) => arg !== '--');
+const rawArgs = process.argv.slice(2).filter((arg) => arg !== '--');
+// --bench sets HOLO_BENCH=1 for the child. Four test sites read that variable and
+// NOTHING in the repository set it, so every assertion behind it was dead rather
+// than "kept behind a flag". This is the caller that makes the flag mean something;
+// `pnpm --filter @holoscript/core benchmark:heavy` is the entry point.
+const BENCH = rawArgs.includes('--bench');
+const extraArgs = rawArgs.filter((arg) => arg !== '--bench');
 
-// The 10 files that flake under 4-way shard memory/timing pressure.
-// Must stay in sync with test-baseline.json flakyFiles.
-const FLAKY_FILES = [
-  'src/__tests__/HotReloadIntegrated.test.ts',
-  'src/__tests__/RuntimeOptimization.test.ts',
-  'src/__tests__/aivalidator-instantiation.test.ts',
-  'src/__tests__/camera-inventory-terrain-lighting-exports.test.ts',
-  'src/__tests__/trait-commutativity.test.ts',
-  'src/__tests__/trait-docs-count-structure.test.ts',
-  'src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts',
-  'src/compiler/dispatch/__tests__/DispatchPolicy.test.ts',
-  'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
-  'src/traits/__tests__/ChoreographyTrait.prod.test.ts',
-];
+// SINGLE SOURCE OF TRUTH. These used to be a hardcoded array here AND a second
+// hardcoded array in vitest.config.ts, both headed "must stay in sync" with a
+// third list in test-baseline.json. All three had diverged: test-baseline.json's
+// flakyFiles was emptied on 2026-09-21 while both copies here kept their ten
+// entries, so files believed un-quarantined were still being routed down the
+// protected serial path. A comment cannot keep two arrays equal; reading one file
+// can. Divergence is now not expressible.
+//
+// Note these are SCHEDULING, not a verdict. A failure in one of these files is
+// still a failure -- the gate's ignore-list is flakyFiles, and it is empty.
+const baseline = JSON.parse(fs.readFileSync(resolve(__dir, 'test-baseline.json'), 'utf8'));
+export const SERIAL_FILES = baseline.serialPassFiles?.files ?? [];
 
 function ensureCoverageTmp() {
   if (!extraArgs.includes('--coverage')) return;
@@ -83,6 +87,7 @@ function hasPositionalTestTargets(args) {
 
 const sharedEnv = {
   ...process.env,
+  ...(BENCH ? { HOLO_BENCH: '1' } : {}),
   // Inherited by every child process spawned by vitest (forks, threads, etc.)
   NODE_OPTIONS: '--max-old-space-size=16384',
 };
@@ -91,37 +96,73 @@ const stabilityArgs = ['--maxWorkers=50%'];
 
 let overallExitCode = 0;
 
+// EVERY PASS'S REAL OUTCOME, carried across the process boundary.
+//
+// This runner always knew each pass's exit status; the gate that spawns it read
+// only `proc.error` (spawn failure) and never `proc.status`, so a pass that
+// CRASHED looked identical to a pass that passed. A crashed vitest worker prints
+// no FAIL line, so the gate's failure parser saw nothing and reported clean.
+// The envelope below is how the gate learns what actually happened, on the live
+// path and equally in a captured --from-log file.
+//
+// `proc.status ?? null` and `proc.signal` are recorded raw, NOT coerced to 1: a
+// kill-by-signal must stay distinguishable from an ordinary failing run.
+const passes = [];
+function runPass(label, args, extraEnv = {}) {
+  const proc = runVitest(args, extraEnv);
+  passes.push({ label, status: proc.status ?? null, signal: proc.signal ?? null });
+  return proc.status ?? 1;
+}
+
 // If caller already set sharding, or passed explicit test file globs/paths,
 // do a single run to avoid Vitest shard-count errors on small test sets.
 // W.150: Windows race in @vitest/coverage-v8@4.1.0 .tmp-* dirs - disable
 // sharding for coverage runs; pre-create .tmp so the v8 provider doesn't race.
 const isCoverage = extraArgs.includes('--coverage');
 if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCoverage) {
-  const proc = runVitest([...stabilityArgs, ...extraArgs]);
-  overallExitCode = proc.status ?? 1;
+  overallExitCode = runPass('single', [...stabilityArgs, ...extraArgs]);
 } else {
-  // === Pass 1: sequential flaky-file pass ===
-  // Run the 10 timing/memory-sensitive files with maxWorkers=1 so they get
+  // === Pass 1: sequential pass ===
+  // Run the memory/timing-sensitive files with maxWorkers=1 so they get
   // dedicated heap and no sibling-shard interference. Positional file args
   // restrict vitest to just those files; no exclusion env flag needed here.
-  console.error(
-    `[run-vitest] pass 1/2 — sequential flaky pass (${FLAKY_FILES.length} files, maxWorkers=1)`
-  );
-  const seqProc = runVitest(['--maxWorkers=1', ...FLAKY_FILES]);
-  const seqCode = seqProc.status ?? 1;
-  if (seqCode !== 0) overallExitCode = seqCode;
+  //
+  // THE EMPTY-LIST GUARD IS LOAD-BEARING. With no positional files, this
+  // invocation becomes an unfiltered `vitest run --maxWorkers=1` over the WHOLE
+  // suite -- a single-worker full run that would look like a hang, not an error.
+  // Emptying serialPassFiles is a reasonable thing for a future maintainer to do;
+  // it must mean "skip this pass", never "run everything serially".
+  if (SERIAL_FILES.length === 0) {
+    console.error(
+      `[run-vitest] pass 1/2 ${DASH} skipped: serialPassFiles is empty in test-baseline.json`
+    );
+    passes.push({ label: 'sequential', status: 0, signal: null, skipped: true });
+  } else {
+    console.error(
+      `[run-vitest] pass 1/2 ${DASH} sequential pass (${SERIAL_FILES.length} files, maxWorkers=1)`
+    );
+    const seqCode = runPass('sequential', ['--maxWorkers=1', ...SERIAL_FILES]);
+    if (seqCode !== 0) overallExitCode = seqCode;
+  }
 
-  // === Pass 2: 4-way sharded pass (flaky files excluded) ===
-  // HOLOSCRIPT_EXCLUDE_FLAKY=1 tells vitest.config.ts to add FLAKY_FILES to
-  // the exclude list so no shard accidentally picks them up again.
-  console.error('[run-vitest] pass 2/2 — sharded pass (4 shards, flaky files excluded)');
+  // === Pass 2: 4-way sharded pass (serial-pass files excluded) ===
+  // HOLOSCRIPT_EXCLUDE_FLAKY=1 tells vitest.config.ts to add the same
+  // serialPassFiles list to the exclude list, so no shard picks them up again.
+  // Both sides now read that list from test-baseline.json rather than keeping
+  // their own copy.
+  console.error(`[run-vitest] pass 2/2 ${DASH} sharded pass (4 shards, serial-pass files excluded)`);
   for (const shard of ['1/4', '2/4', '3/4', '4/4']) {
-    const proc = runVitest(['--shard', shard, ...stabilityArgs, ...extraArgs], {
+    const code = runPass(`shard-${shard}`, ['--shard', shard, ...stabilityArgs, ...extraArgs], {
       HOLOSCRIPT_EXCLUDE_FLAKY: '1',
     });
-    const code = proc.status ?? 1;
     if (code !== 0) overallExitCode = code;
   }
 }
+
+// One machine-readable line, last. The gate parses this to learn each pass's real
+// exit status; without it, --from-log has no way to know a pass ever crashed.
+console.error(
+  '[run-vitest] run-envelope ' + JSON.stringify({ v: 1, passes, overall: overallExitCode })
+);
 
 process.exit(overallExitCode);

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
+import { readFileSync } from 'fs';
 
 const IS_COVERAGE_RUN =
   process.argv.includes('--coverage') || process.env.HOLOSCRIPT_CORE_COVERAGE === '1';
@@ -9,23 +10,21 @@ const IS_COVERAGE_RUN =
 // This closes the "quarantine" item while keeping CI stable.
 const IS_CI = process.env.CI === 'true';
 
-// When run-vitest.mjs runs the sharded pass it sets this flag so that the 10
-// flaky files are excluded — they are handled by a dedicated sequential pass
-// (maxWorkers=1) instead, preventing shard memory-pressure from causing
-// spurious failures. See test-baseline.json flakyFiles for the canonical list.
-const EXCLUDE_FLAKY_FILES = process.env.HOLOSCRIPT_EXCLUDE_FLAKY === '1';
-const FLAKY_FILES = [
-  'src/__tests__/HotReloadIntegrated.test.ts',
-  'src/__tests__/RuntimeOptimization.test.ts',
-  'src/__tests__/aivalidator-instantiation.test.ts',
-  'src/__tests__/camera-inventory-terrain-lighting-exports.test.ts',
-  'src/__tests__/trait-commutativity.test.ts',
-  'src/__tests__/trait-docs-count-structure.test.ts',
-  'src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts',
-  'src/compiler/dispatch/__tests__/DispatchPolicy.test.ts',
-  'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
-  'src/traits/__tests__/ChoreographyTrait.prod.test.ts',
-];
+// THE SAME LIST run-vitest.mjs READS, from the same file, at runtime.
+//
+// This block used to be a second hardcoded copy of run-vitest.mjs's array, and a
+// comment asked the reader to keep them in sync with a third list in
+// test-baseline.json. They diverged: test-baseline.json emptied its list while
+// both copies kept ten entries. Two arrays cannot be kept equal by a comment.
+//
+// When run-vitest.mjs runs the sharded pass it sets HOLOSCRIPT_EXCLUDE_FLAKY so
+// these files are excluded here — they are handled by its dedicated
+// sequential pass (maxWorkers=1), which prevents shard memory pressure from
+// causing spurious failures.
+const BASELINE = JSON.parse(readFileSync(resolve(__dirname, 'test-baseline.json'), 'utf8'));
+const EXCLUDE_SERIAL_FILES = process.env.HOLOSCRIPT_EXCLUDE_FLAKY === '1';
+const SERIAL_FILES: string[] = BASELINE.serialPassFiles?.files ?? [];
+const CI_COVERAGE_EXCLUSIONS: string[] = BASELINE.ciCoverageExclusions?.files ?? [];
 
 export default defineConfig({
   resolve: {
@@ -129,19 +128,8 @@ export default defineConfig({
       // Flaky files are excluded from the sharded pass and run separately in a
       // dedicated sequential pass (maxWorkers=1) by run-vitest.mjs. This flag
       // is set by the sharded-pass invocation only.
-      ...(EXCLUDE_FLAKY_FILES ? FLAKY_FILES : []),
-      ...(IS_COVERAGE_RUN && IS_CI
-        ? [
-            'src/__tests__/StressTests.comprehensive.test.ts',
-            'src/__tests__/RuntimeOptimization.test.ts',
-            'src/__tests__/trait-commutativity.test.ts',
-            'src/__tests__/mockadapter-static-properties.test.ts',
-            'src/__tests__/SynthEngine.test.ts',
-            'src/traits/__tests__/EmbeddingTrait.test.ts',
-            'src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts',
-            'src/plugins/__tests__/paper-4-sandbox-bench.test.ts',
-          ]
-        : []),
+      ...(EXCLUDE_SERIAL_FILES ? SERIAL_FILES : []),
+      ...(IS_COVERAGE_RUN && IS_CI ? CI_COVERAGE_EXCLUSIONS : []),
     ],
     // Give fork processes enough memory for the large test suite (44K+ tests).
     // poolOptions was removed in Vitest 4; execArgv is now a top-level option.

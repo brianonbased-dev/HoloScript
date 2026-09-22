@@ -96,6 +96,8 @@ const startedDirty = (() => {
 // Obtain the run output: either read a completed run's log, or produce one.
 let out;
 let source;
+let liveStatus = null;
+let liveSignal = null;
 
 if (fromLog) {
   const logPath = resolve(fromLog);
@@ -121,23 +123,166 @@ if (fromLog) {
     console.error(`[baseline-gate] could not run the suite: ${proc.error.message}`);
     process.exit(2);
   }
+  // THE FIELD THIS GATE SPENT ITS LIFE NOT READING.
+  // spawnSync exposes `status` (null when the child was killed by a signal) and
+  // `signal`. There is no `exitCode`. Reading only `status` and treating null as
+  // success would reproduce the hole for signal kills, so both are carried.
+  liveStatus = proc.status ?? null;
+  liveSignal = proc.signal ?? null;
   out = `${proc.stdout ?? ''}\n${proc.stderr ?? ''}`;
 }
 
-// Fail closed on an unverifiable run — see SUITE_RAN above. Without this, an
-// empty/truncated log or a suite that crashed on startup exits 0 ("no new
-// failures") and reports green for a run that never produced a result.
-if (!SUITE_RAN.test(out)) {
+// ===========================================================================
+// DID THE RUN ACTUALLY HAPPEN, ALL OF IT?
+//
+// This gate used to answer that with one regex: does the string "Test Files"
+// appear anywhere in the output. That does not survive contact with a crash.
+// The real crash this suite produced (quoted in test-baseline.json) looks like:
+//
+//   Error: [vitest-pool]: Worker forks emitted error.
+//    Caused by: Error: Worker exited unexpectedly
+//    Test Files  10 passed (11)
+//
+// The dying pass prints its OWN summary, so the old check passed on the crash
+// output itself. A crashed worker emits no FAIL line for the tests it never ran,
+// so the failure parser saw nothing, and nothing classified as clean. Measured
+// 2026-09-22: fed that log, this gate printed "total failures=0 | NEW=0", "OK",
+// exit 0, and wrote a receipt saying result "clean" -- which the pre-push check
+// accepts, because `result` is the only thing it inspects.
+//
+// Three independent things now have to line up. Any one failing is a setup error
+// (exit 2), never a verdict, because an unverifiable run is not a pass.
+// ===========================================================================
+
+// Strip ANSI before every parse. A live run comes through a pipe uncoloured, but
+// a --from-log capture taken from a terminal does not, and a coloured log would
+// silently match nothing at all -- the FAIL lines included.
+const ANSI = new RegExp(String.fromCharCode(27) + '[[]' + '[0-9;]*m', 'g');
+const plain = out.replace(ANSI, '');
+
+// (1) THE RUNNER'S OWN REPORT OF EACH PASS.
+// run-vitest.mjs prints one machine-readable envelope naming every pass and its
+// real exit status. On the live path spawnSync's own view is held too.
+let envelope = null;
+{
+  const m = plain.match(/^\s*\[run-vitest\] run-envelope (.+)$/m);
+  if (m) {
+    try {
+      envelope = JSON.parse(m[1]);
+    } catch (e) {
+      console.error(`[baseline-gate] run-envelope present but unparseable: ${e.message}`);
+      process.exit(2);
+    }
+  }
+}
+
+// (2) EVERY SUMMARY LINE MUST BALANCE.
+// "Test Files  10 passed (11)" says eleven files were collected and ten reported.
+// The missing one is the crash. Vitest's legitimate shapes all balance:
+//   "Test Files  2 failed | 118 passed (120)"  -> 120 of 120
+//   "Test Files  1 skipped | 119 passed (120)" -> 120 of 120
+const summaries = [];
+for (const line of plain.split(/\r?\n/)) {
+  const m = line.match(/^\s*Test Files\s+(.+?)\s*\((\d+)\)\s*$/);
+  if (!m) continue;
+  const total = Number(m[2]);
+  let accounted = 0;
+  for (const part of m[1].split('|')) {
+    const g = part.trim().match(/^(\d+)\s+\w+/);
+    if (g) accounted += Number(g[1]);
+  }
+  summaries.push({ line: line.trim(), accounted, total });
+}
+
+if (summaries.length === 0) {
   console.error(
-    `[baseline-gate] no vitest summary found in ${source} — cannot confirm the suite ran.`
+    `[baseline-gate] no vitest summary found in ${source} -- cannot confirm the suite ran.`
   );
   console.error('[baseline-gate] refusing to report a verdict on an unverifiable run.');
   process.exit(2);
 }
 
+const unbalanced = summaries.filter((x) => x.accounted !== x.total);
+if (unbalanced.length > 0) {
+  console.error('[baseline-gate] a pass collected more test files than it reported:');
+  for (const x of unbalanced) {
+    console.error(`  ${x.line}   (${x.total - x.accounted} file(s) never reported)`);
+  }
+  console.error('[baseline-gate] files that never reported did not pass. Refusing a verdict.');
+  process.exit(2);
+}
+
+// (3) EXPLAIN EVERY NON-ZERO EXIT.
+// Non-zero is NORMAL here: the baseline deliberately tolerates known failures and
+// vitest exits 1 whenever any test fails. So the rule is not "non-zero is bad", it
+// is "non-zero must be ACCOUNTED FOR by failures we can see and classify". A pass
+// that exits non-zero while printing no FAIL line at all is the crash signature.
+const CRASH_MARKERS =
+  /Worker exited unexpectedly|\[vitest-pool\]|JavaScript heap out of memory|FATAL ERROR|Segmentation fault/;
+
+const failureLines = plain.split(/\r?\n/).filter((l) => /^\s*FAIL\s+(.*\S)\s*$/.test(l));
+
+if (envelope) {
+  const passes = Array.isArray(envelope.passes) ? envelope.passes : [];
+  const ran = passes.filter((x) => !x.skipped);
+  if (summaries.length !== ran.length) {
+    console.error(
+      `[baseline-gate] the runner reported ${ran.length} pass(es) that ran, but the log carries ` +
+        `${summaries.length} summary line(s) -- a pass produced no summary at all.`
+    );
+    process.exit(2);
+  }
+  for (const pass of passes) {
+    if (pass.signal) {
+      console.error(`[baseline-gate] pass "${pass.label}" was killed by signal ${pass.signal}.`);
+      process.exit(2);
+    }
+    if (pass.status === null) {
+      console.error(`[baseline-gate] pass "${pass.label}" reported no exit status.`);
+      process.exit(2);
+    }
+    if (pass.status !== 0 && failureLines.length === 0) {
+      console.error(
+        `[baseline-gate] pass "${pass.label}" exited ${pass.status} with no reported failures -- ` +
+          'the run crashed rather than failing. Refusing a verdict.'
+      );
+      process.exit(2);
+    }
+  }
+} else if (liveStatus !== null || liveSignal !== null) {
+  // A live run whose runner predates the envelope. spawnSync still told us.
+  if (liveSignal) {
+    console.error(`[baseline-gate] the suite was killed by signal ${liveSignal}.`);
+    process.exit(2);
+  }
+  if (liveStatus !== 0 && failureLines.length === 0) {
+    console.error(
+      `[baseline-gate] the suite exited ${liveStatus} with no reported failures -- ` +
+        'the run crashed rather than failing. Refusing a verdict.'
+    );
+    process.exit(2);
+  }
+} else {
+  // --from-log with no envelope: the exit status is simply not in the file, and a
+  // gate that cannot see it must say so rather than assume zero.
+  console.error(
+    `[baseline-gate] ${source} carries no run-envelope line, so the suite's exit status is unknown.`
+  );
+  console.error('[baseline-gate] re-capture the log with a current run-vitest.mjs.');
+  process.exit(2);
+}
+
+// The cheap backstop: crash text anywhere, even when every count balanced.
+if (CRASH_MARKERS.test(plain)) {
+  const hit = plain.split(/\r?\n/).find((l) => CRASH_MARKERS.test(l)) || '';
+  console.error(`[baseline-gate] the run output carries a crash signature: ${hit.trim()}`);
+  console.error('[baseline-gate] refusing a verdict on a run that crashed.');
+  process.exit(2);
+}
+
 // Parse vitest " FAIL  <id>" lines into normalized failure identifiers.
 const failures = new Set();
-for (const line of out.split(/\r?\n/)) {
+for (const line of plain.split(/\r?\n/)) {
   const m = line.match(/^\s*FAIL\s+(.*\S)\s*$/);
   if (m) failures.add(m[1].trim());
 }
@@ -220,8 +365,24 @@ try {
     JSON.stringify(
       {
         '//': 'Local proof that the core baseline gate ran for this packages/core tree. Not committed. Consumed by scripts/holo-ci/check-core-baseline-receipt.mjs on pre-push.',
-        schema: 'holoscript.core-baseline-receipt.v1',
+        // v2, and the bump is deliberate. Every v1 receipt was produced by a
+        // gate that could not tell a finished run from a crashed one, so no v1
+        // receipt is evidence of anything. The pre-push checker rejects an
+        // unrecognised schema, which retires them all rather than grandfathering
+        // proofs that were never sound.
+        schema: 'holoscript.core-baseline-receipt.v2',
         result: newFailures.length > 0 ? 'new-failures' : 'clean',
+        // What made the verdict trustworthy, recorded so the pre-push half can
+        // check it rather than taking `result` on faith.
+        runCompleted: {
+          summaries: summaries.length,
+          filesCollected: summaries.reduce((n, x) => n + x.total, 0),
+          filesReported: summaries.reduce((n, x) => n + x.accounted, 0),
+          exitStatusKnown: Boolean(envelope) || liveStatus !== null || liveSignal !== null,
+          passes: envelope
+            ? envelope.passes.map((x) => ({ label: x.label, status: x.status, signal: x.signal }))
+            : [{ label: 'live', status: liveStatus, signal: liveSignal }],
+        },
         coreTreeSha: coreTreeSha(),
         // A run against a dirty tree did not test what HEAD contains, so the
         // receipt records that and the gate refuses to honour it.

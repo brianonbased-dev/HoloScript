@@ -7,6 +7,33 @@
     "retiredOn": "2026-09-21",
     "retiredEvidence": "5 of 5 consecutive runs of all 11 existing files clean, 0 worker-crash lines, after gating the benchmarks; before gating, 1 of 3 runs crashed a worker."
   },
+  "serialPassFiles": {
+    "//": "SCHEDULING ONLY, NEVER A VERDICT. These files run in run-vitest.mjs pass 1 at --maxWorkers=1 and are excluded from the 4-way sharded pass 2, because they are memory- or timing-sensitive under shard pressure. A failure in one of them is still a failure: the ignore-list is flakyFiles.files above, and it is empty. These two jobs were conflated until 2026-09-22 -- the comment in run-vitest.mjs called flakyFiles 'the canonical list' while both consumers carried their own hardcoded copy, and all three had diverged. Read at runtime by run-vitest.mjs and vitest.config.ts; do not mirror it by hand. src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts was dropped here: it named a file that no longer exists.",
+    "files": [
+      "src/__tests__/HotReloadIntegrated.test.ts",
+      "src/__tests__/RuntimeOptimization.test.ts",
+      "src/__tests__/aivalidator-instantiation.test.ts",
+      "src/__tests__/camera-inventory-terrain-lighting-exports.test.ts",
+      "src/__tests__/trait-commutativity.test.ts",
+      "src/__tests__/trait-docs-count-structure.test.ts",
+      "src/compiler/dispatch/__tests__/DispatchPolicy.test.ts",
+      "src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts",
+      "src/traits/__tests__/ChoreographyTrait.prod.test.ts"
+    ]
+  },
+  "ciCoverageExclusions": {
+    "//": "SCHEDULING ONLY, CI COVERAGE RUNS. Excluded only when CI=true and --coverage, to keep 8GB runners alive. Separate from serialPassFiles: this list is about a coverage run's memory ceiling, not about shard flakiness. Read at runtime by vitest.config.ts.",
+    "files": [
+      "src/__tests__/StressTests.comprehensive.test.ts",
+      "src/__tests__/RuntimeOptimization.test.ts",
+      "src/__tests__/trait-commutativity.test.ts",
+      "src/__tests__/mockadapter-static-properties.test.ts",
+      "src/__tests__/SynthEngine.test.ts",
+      "src/traits/__tests__/EmbeddingTrait.test.ts",
+      "src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts",
+      "src/plugins/__tests__/paper-4-sandbox-bench.test.ts"
+    ]
+  },
   "stableFailures": {
     "//": "EMPTY, and that is the point. This list held 90 entries described as \"deterministic pre-existing failures\"; on 2026-09-21 a clean full run of the core suite reported \"total failures=0 | known-stable=0 | known-flaky=0 | NEW=0\" -- not one of the 90 failed. 17 of them could not have: 10 named src/compiler/__tests__/MatterpakCompiler.test.ts, a file that no longer exists, and 7 named test titles that no longer exist either. 19 more were in marketplace-runtime.test.ts, which fails only because @holoscript/auth is unbuilt -- built it, and its 130 tests pass. The list was a fossil of a broken build environment, not a record of defects, and while it stood the gate accepted 90 named failures in advance. A NEW failure is now any failure at all, outside a flaky file.",
     "count": 0,

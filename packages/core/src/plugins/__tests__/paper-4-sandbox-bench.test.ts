@@ -103,3 +103,43 @@ describe.skipIf(!process.env.HOLO_BENCH)('Paper 4 Benchmark: Sandbox Overhead', 
     expect(vmCreationMedian).toBeLessThan(10_000);
   }, 120_000);
 });
+
+/**
+ * THE COST-ACCOUNTING CORRECTNESS, OUT FROM UNDER THE BENCHMARK.
+ *
+ * The suite above asserts `cost.contextCreated` and `cost.scriptCompiled` three
+ * hundred times inside a timing loop, behind `describe.skipIf(!HOLO_BENCH)` --
+ * a flag nothing in the repository set until 2026-09-22. So a real property of
+ * the sandbox (that it reuses its context and caches compiled scripts) was
+ * checked either 900 times or zero times, depending on an environment variable
+ * that was never set. Zero it was.
+ *
+ * The property needs three executions, not nine hundred, and no clock at all.
+ */
+describe('Paper 4: sandbox cost accounting', () => {
+  it('reuses the context and caches compiled scripts', async () => {
+    const runner = new PluginSandboxRunner({
+      pluginId: 'cost-accounting',
+      permissions: new Set([]),
+      budget: DEFAULT_CAPABILITY_BUDGET,
+    });
+
+    // First execution pays for both: a fresh context and a fresh compile.
+    const first = await runner.execute('1 + 1');
+    expect(first.success).toBe(true);
+    expect(first.cost?.contextCreated).toBe(true);
+    expect(first.cost?.scriptCompiled).toBe(true);
+
+    // Same source again: neither cost is paid twice.
+    const second = await runner.execute('1 + 1');
+    expect(second.success).toBe(true);
+    expect(second.cost?.contextCreated).toBe(false);
+    expect(second.cost?.scriptCompiled).toBe(false);
+
+    // Different source: the context is still reused, the script is not.
+    const third = await runner.execute('1 + 2');
+    expect(third.success).toBe(true);
+    expect(third.cost?.contextCreated).toBe(false);
+    expect(third.cost?.scriptCompiled).toBe(true);
+  });
+});

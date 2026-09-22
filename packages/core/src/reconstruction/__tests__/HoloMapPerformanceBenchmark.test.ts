@@ -83,7 +83,6 @@ interface PerfDashboard {
   generatedAt: string;
   holoScriptBuild: string;
   benchmarks: BenchResult[];
-  determinism: DeterminismResult;
   ciGate: {
     passed: boolean;
     p50_2k_s: number;
@@ -402,15 +401,6 @@ describe.skipIf(!process.env.HOLO_BENCH)('HoloMap Sprint-3 — Performance Bench
     expect(result.rssDeltaMb).toBeLessThan(1024);
   }, 300_000);
 
-  it('determinism: 10x repeat of same 100-frame video+seed → identical manifests', async () => {
-    const frames = makeFrames(100);
-    const det = await runDeterminismVerification(frames, 10);
-    expect(det.identical).toBe(true);
-    expect(det.allReplayHashesMatch).toBe(true);
-    expect(det.allManifestsMatch).toBe(true);
-    expect(det.mismatchedAt).toBeUndefined();
-  }, 60_000);
-
   it('writes performance dashboard JSON report', () => {
     // Find the 2k result for the CI gate summary
     const result2k = benchResults.find((b) => b.frameCount === 2000);
@@ -433,12 +423,14 @@ describe.skipIf(!process.env.HOLO_BENCH)('HoloMap Sprint-3 — Performance Bench
         memoryAfter: undefined as unknown as NodeJS.MemoryUsage,
         latencies: b.latencies.slice(0, 100), // keep first 100 for size; full data in test output
       })),
-      determinism: {
-        runs: 10,
-        identical: true,
-        allReplayHashesMatch: true,
-        allManifestsMatch: true,
-      },
+      // NO determinism BLOCK. It used to be written here as four hardcoded
+      // literals -- runs: 10, identical: true, allReplayHashesMatch: true,
+      // allManifestsMatch: true -- with nothing reading the verification's
+      // actual result. The report asserted determinism had been checked whether
+      // or not it had, and said so in a committed JSON file. Now that the
+      // determinism test lives outside this gated block, this writer genuinely
+      // cannot observe it, so it says nothing instead of saying something
+      // unmeasured. A missing field is honest; a fabricated one is not.
       ciGate: {
         passed:
           p50_2k_s < CI_TARGET_P50_S &&
@@ -462,4 +454,33 @@ describe.skipIf(!process.env.HOLO_BENCH)('HoloMap Sprint-3 — Performance Bench
     writeFileSync(reportPath, JSON.stringify(dashboard, null, 2));
     console.log(`[perf] Dashboard written to ${reportPath} (${reportTarget.mode})`);
   });
+});
+
+/**
+ * DETERMINISM IS A CORRECTNESS PROPERTY, SO IT RUNS ALWAYS.
+ *
+ * This test used to live inside the `describe.skipIf(!process.env.HOLO_BENCH)`
+ * block above, among four latency benchmarks. HOLO_BENCH is now set by
+ * `run-vitest.mjs --bench`; before that it was set by nothing in the repository,
+ * so from the commit that introduced the gate this assertion did not execute at
+ * all. Before that commit it did execute, but the file sat in the baseline's
+ * flakyFiles, so its verdict was discarded instead. Ignored-failure became
+ * not-executed -- two different ways of not being checked.
+ *
+ * It does not belong with the benchmarks. It asserts that the same video and
+ * seed produce identical replay hashes and manifests, which is a property, not a
+ * timing number, and it is cheap: 10 repeats of 100 frames against the gated
+ * suite's 8,500, retaining about 1,600 points with a dispose between runs. It is
+ * not the heavy allocator whose worker crash caused the quarantine this PR
+ * removed, so running it always does not re-create that crash.
+ */
+describe('HoloMap Sprint-3 — determinism', () => {
+  it('10x repeat of same 100-frame video+seed → identical manifests', async () => {
+    const frames = makeFrames(100);
+    const det = await runDeterminismVerification(frames, 10);
+    expect(det.identical).toBe(true);
+    expect(det.allReplayHashesMatch).toBe(true);
+    expect(det.allManifestsMatch).toBe(true);
+    expect(det.mismatchedAt).toBeUndefined();
+  }, 60_000);
 });

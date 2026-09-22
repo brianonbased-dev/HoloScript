@@ -83,6 +83,37 @@ function makeTrait(rand: () => number, index: number): TraitApplication {
   };
 }
 
+/**
+ * A trait carrying only SOME of the properties, which is what real composition
+ * produces: one trait brings mass and friction, another friction and
+ * restitution.
+ *
+ * THIS IS THE DIFFERENCE BETWEEN A TEST THAT CAN FAIL AND ONE THAT CANNOT.
+ * makeTrait above gives every trait all five properties, so the composed object
+ * gains its keys in the same order in every permutation and the byte-identity
+ * assertion below held no matter what add() did. Measured 2026-09-22: with full
+ * key sets, removing the key sort from add() changes nothing at all; with
+ * partial sets, six orderings of three traits produced FIVE distinct
+ * serialisations of one logical composition. The generator was the reason a
+ * real hashing defect sat under a green test.
+ */
+const KEY_SUBSETS: string[][] = [
+  ['mass', 'friction'],
+  ['color', 'opacity'],
+  ['restitution', 'friction'],
+  ['opacity', 'mass'],
+  ['color', 'restitution'],
+  ['friction', 'opacity'],
+];
+
+function makePartialTrait(rand: () => number, index: number): TraitApplication {
+  const full = makeTrait(rand, index);
+  const keep = KEY_SUBSETS[index % KEY_SUBSETS.length];
+  const config: Record<string, unknown> = {};
+  for (const k of keep) config[k] = (full.config as Record<string, unknown>)[k];
+  return { ...full, config };
+}
+
 /** Every ordering of the input, not a sample of them. */
 function permutations<T>(items: T[]): T[][] {
   if (items.length <= 1) return [items];
@@ -113,11 +144,17 @@ describe('trait composition is order-independent', () => {
     const disagreements: string[] = [];
 
     for (let set = 0; set < 150; set++) {
-      const traitSet = [0, 1, 2, 3].map((i) => makeTrait(rand, set + i));
+      const traitSet = [0, 1, 2, 3].map((i) => makePartialTrait(rand, set + i));
       const orderings = permutations(traitSet);
 
+      // Canonicalised on purpose: this test is about the VALUES agreeing.
+      // Byte order is the next test's job, and conflating them would leave one
+      // of the two properties untested while both assertions looked busy.
       const serialized = new Set(
-        orderings.map((o) => JSON.stringify(semiring.add(o).config))
+        orderings.map((o) => {
+          const cfg = semiring.add(o).config as Record<string, unknown>;
+          return JSON.stringify(Object.keys(cfg).sort().map((k) => [k, cfg[k]]));
+        })
       );
 
       if (serialized.size !== 1) {
@@ -134,11 +171,18 @@ describe('trait composition is order-independent', () => {
     // Key ORDER matters as well as key values: a receipt is hashed, so two
     // resolutions that differ only in serialization order would produce two
     // hashes for one composition and break every proof built on them.
+    //
+    // PARTIAL key sets are mandatory here. This assertion existed before and
+    // could not fail, because its traits each carried all five properties and
+    // that pinned the emitted key order across every permutation. It passed
+    // against an add() that genuinely produced five different byte strings for
+    // one composition. Deleting the key sort from ProvenanceSemiring.add() must
+    // turn this red; if it does not, this test has stopped testing anything.
     const rand = seededRandom(0x5eed2);
     const semiring = new ProvenanceSemiring(rules);
 
     for (let set = 0; set < 25; set++) {
-      const traitSet = [0, 1, 2, 3, 4].map((i) => makeTrait(rand, set + i));
+      const traitSet = [0, 1, 2, 3, 4].map((i) => makePartialTrait(rand, set + i));
       const hashes = new Set<string>();
 
       for (let ord = 0; ord < 12; ord++) {
@@ -192,49 +236,72 @@ describe('trait composition is order-independent', () => {
   test('PROVENANCE is order-independent, not just the value', () => {
     // The assertion this file was missing, and the reason it could not fail.
     //
-    // For authority-weighted, the resolved VALUE is a multiplication, which is
-    // commutative whatever the tie-break does — so inspecting config.mass can
-    // never detect order dependence. What the tie-break actually selects is the
-    // CONTEXT: whose authority won. Attribution is what receipts are built on,
-    // so attribution is the property to pin.
+    // AUTHORITY-WEIGHTED IS A SELECTION, NOT A PRODUCT, and that is what makes
+    // this testable. ProvenanceSemiring scales each value by its authority
+    // weight, compares the scaled numbers, and then returns the WINNER'S
+    // ORIGINAL value -- not the product. So when two scaled values tie, which
+    // original value survives is decided by tieBreakProvenance, and config.mass
+    // moves if that decision is order-dependent.
     //
-    // HONEST STATUS: THIS ONE IS NOT PROVEN, and it is the only assertion here
-    // that is not. Twice I replaced the body of tieBreakProvenance with
-    // `return a` — whichever argument arrived first, i.e. deliberately
-    // order-dependent — and NOTHING in this file went red, this test included.
-    // Probing through the real entry point showed why: composing masses 2, 3
-    // and 5 with equal authority resolved to the same source in every ordering
-    // regardless. So either the tie-break is unreachable from add(), or
-    // something upstream settles the winner before weights are compared.
+    // This assertion previously shipped with a comment saying the opposite:
+    // that the resolved value "is a multiplication, which is commutative
+    // whatever the tie-break does -- so inspecting config.mass can never detect
+    // order dependence", and recording that replacing tieBreakProvenance with
+    // `return a` changed nothing. Both observations were real; the conclusion
+    // was wrong. The inputs were masses 2, 3, 5 and 7 at EQUAL authority 42, so
+    // the scaled values were 2w, 3w, 5w, 7w -- all different. Nothing tied, so
+    // nothing ever reached the tie-break. The test was not weak, it was aimed
+    // at the wrong inputs.
     //
-    // The assertion is kept because it is correct and cheap, and because it
-    // marks the question. It is NOT evidence that the tie-break works. Whoever
-    // picks this up: find an input that reaches tieBreakProvenance, or find out
-    // that nothing can, and then either prove this test or delete it. An
-    // assertion nobody can make fail is the thing this file was rewritten to
-    // stop pretending about.
+    // authorityWeight(level) = 0.5 + (level/100)*1.5, so level 0 -> 0.5,
+    // 50 -> 1.25, 75 -> 1.625, 100 -> 2.0. The four masses below are chosen so
+    // that every scaled value is exactly 130 in IEEE double -- a real four-way
+    // tie that needs no epsilon -- and all four reach tieBreakProvenance.
+    // Verified 2026-09-22 by replacing the tie-break body with `return a`:
+    // config.mass then took four different values across the 24 orderings, and
+    // this test went red. That is the proof the old comment asked its reader to
+    // go and find.
     const semiring = new ProvenanceSemiring(rules);
     const traits: TraitApplication[] = [
-      { name: 'physics', config: { mass: 2 }, context: { authorityLevel: 42, agentId: 'agent-a' } },
-      { name: 'material', config: { mass: 3 }, context: { authorityLevel: 42, agentId: 'agent-b' } },
-      { name: 'kinematic', config: { mass: 5 }, context: { authorityLevel: 42, agentId: 'agent-c' } },
-      { name: 'glowing', config: { mass: 7 }, context: { authorityLevel: 42, agentId: 'agent-d' } },
+      { name: 'physics', config: { mass: 260 }, context: { authorityLevel: 0, agentId: 'agent-c' } },
+      { name: 'material', config: { mass: 104 }, context: { authorityLevel: 50, agentId: 'agent-a' } },
+      { name: 'kinematic', config: { mass: 80 }, context: { authorityLevel: 75, agentId: 'agent-d' } },
+      { name: 'glowing', config: { mass: 65 }, context: { authorityLevel: 100, agentId: 'agent-b' } },
     ];
 
-    const winners = new Set(
-      permutations(traits).map((ordering) => {
-        const provenance = semiring.add(ordering).provenance as Record<
-          string,
-          { context?: { agentId?: string } }
-        >;
-        return provenance.mass?.context?.agentId ?? '(none)';
-      })
-    );
+    const masses = new Set<unknown>();
+    const winners = new Set<string>();
+    const sources = new Set<string>();
+    for (const ordering of permutations(traits)) {
+      const composed = semiring.add(ordering);
+      masses.add((composed.config as { mass: number }).mass);
+      const prov = composed.provenance as Record<
+        string,
+        { source?: string; context?: { agentId?: string } }
+      >;
+      winners.add(prov.mass?.context?.agentId ?? '(none)');
+      sources.add(prov.mass?.source ?? '(none)');
+    }
 
+    // The VALUE that survives, the AGENT credited, and the TRAIT credited must
+    // each be the same in all 24 orderings. Attribution is what receipts are
+    // built on, so a tie that resolved to a different owner depending on
+    // arrival order would be a silent provenance defect, not just a cosmetic one.
+    expect(
+      [...masses],
+      `a four-way authority tie resolved to ${[...masses].join(', ')} depending on ordering`
+    ).toHaveLength(1);
     expect(
       [...winners],
-      `authority tied four ways and attribution went to ${[...winners].join(', ')} depending on ordering`
+      `a four-way authority tie credited ${[...winners].join(', ')} depending on ordering`
     ).toHaveLength(1);
+    expect([...sources]).toHaveLength(1);
+
+    // And pin WHICH one, so a tie-break that is deterministic but wrong also
+    // fails. tieBreakProvenance documents a lexicographic order starting at
+    // agentId, and 'agent-a' is the smallest of the four.
+    expect([...winners][0]).toBe('agent-a');
+    expect([...masses][0]).toBe(104);
   });
 
   test('a TIE in authority still resolves the same way in every ordering', () => {

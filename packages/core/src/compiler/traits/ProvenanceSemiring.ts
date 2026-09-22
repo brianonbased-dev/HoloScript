@@ -414,15 +414,41 @@ export class ProvenanceSemiring {
       }
     }
 
-    // Strip provenance for final emission
+    // ONE COMPOSITION, ONE SERIALISATION.
+    //
+    // This used to emit keys in first-appearance order, which makes the BYTES
+    // depend on the order the traits arrived in even though the VALUES do not.
+    // With partial key sets -- which is what real composition produces, one
+    // trait carrying mass and friction, another friction and restitution --
+    // six orderings of three traits produced five different JSON strings for
+    // one logical composition (measured 2026-09-22). Sorting collapses them to
+    // one. With a FULL key set every trait pins the same key order in every
+    // permutation, which is exactly why the order-independence test could not
+    // see this: its generator gave every trait all five properties.
+    //
+    // This matters because the result is hashed. DistributedTransformGraph
+    // hashes `provenance` directly, and SceneIRCompiler spreads `config` into
+    // emitted scene IR, so two agents composing the same traits in a different
+    // order disagreed on the hash of something the value comparison called
+    // equal. A class whose own docblock says it enforces commutativity owes
+    // byte-level commutativity too, not just value-level.
+    //
+    // Key ORDER only. Values are carried by reference on purpose: a deep clone
+    // (sortKeysDeep, used elsewhere in this package) is lossy for the types
+    // this data can carry -- a Date serialises to {} -- and canonicalTieValue
+    // above shows Dates do reach here. Sorting the keys is the whole fix; it
+    // must not also rewrite the values.
+    const orderedKeys = Object.keys(acc).sort();
     const finalConfig: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(acc)) {
-      finalConfig[k] = v.value;
+    const orderedProvenance: typeof acc = {};
+    for (const k of orderedKeys) {
+      finalConfig[k] = acc[k].value;
+      orderedProvenance[k] = acc[k];
     }
 
     return {
       config: finalConfig,
-      provenance: acc,
+      provenance: orderedProvenance,
       conflicts,
       errors,
       deadElements,

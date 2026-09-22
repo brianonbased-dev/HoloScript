@@ -55,8 +55,49 @@ function currentCoreTreeSha() {
  */
 export function evaluateReceipt(receipt, currentTreeSha) {
   if (!receipt) return { ok: false, reason: 'no receipt — the core baseline gate has never run here' };
-  if (receipt.schema !== 'holoscript.core-baseline-receipt.v1')
-    return { ok: false, reason: `unrecognized receipt schema: ${receipt.schema}` };
+  // v2 ONLY, AND v1 IS NOT GRANDFATHERED.
+  //
+  // Every v1 receipt came from a gate that read the suite's FAIL lines and never
+  // its exit status, so it could not tell "all tests passed" from "a worker
+  // crashed and those tests never ran" -- a crashed run wrote result "clean" and
+  // this check waved it through, because `result` was the only field it read.
+  // Rejecting v1 retires every proof produced under that blindness instead of
+  // trusting proofs that were never sound. The cost is one forced re-run per
+  // checkout; the alternative is honouring evidence we know is unverified.
+  if (receipt.schema !== 'holoscript.core-baseline-receipt.v2')
+    return {
+      ok: false,
+      reason:
+        receipt.schema === 'holoscript.core-baseline-receipt.v1'
+          ? 'receipt is v1, produced by the gate that could not detect a crashed run. Re-run the baseline.'
+          : `unrecognized receipt schema: ${receipt.schema}`,
+    };
+
+  // THE RUN MUST HAVE FINISHED, AND THE RECEIPT MUST SAY SO.
+  // These mirror the gate's own refusals. Duplicated on purpose: this half is
+  // what pre-push actually consults, and a check that delegates its whole
+  // judgement to one boolean written by another process is the shape that let a
+  // crash through in the first place.
+  const run = receipt.runCompleted;
+  if (!run) return { ok: false, reason: 'receipt records no runCompleted block -- it cannot show the suite finished' };
+  if (!run.exitStatusKnown)
+    return {
+      ok: false,
+      reason: "receipt was captured from a log with no exit status, so the run's outcome is unknown",
+    };
+  if (!(run.summaries > 0))
+    return { ok: false, reason: 'receipt records no vitest summary lines -- the suite did not report' };
+  if (run.filesReported !== run.filesCollected)
+    return {
+      ok: false,
+      reason: `receipt records ${run.filesCollected - run.filesReported} test file(s) collected but never reported -- that run crashed`,
+    };
+  const badPass = (run.passes ?? []).find((x) => x.signal || x.status === null);
+  if (badPass)
+    return {
+      ok: false,
+      reason: `receipt records pass "${badPass.label}" ending with signal=${badPass.signal} status=${badPass.status}`,
+    };
   if (receipt.capturedFromDirtyWorkingTree)
     return {
       ok: false,
@@ -98,11 +139,18 @@ export function evaluateReceipt(receipt, currentTreeSha) {
 if (process.argv.includes('--self-test')) {
   const SHA = 'a'.repeat(40);
   const good = {
-    schema: 'holoscript.core-baseline-receipt.v1',
+    schema: 'holoscript.core-baseline-receipt.v2',
     result: 'clean',
     coreTreeSha: SHA,
     capturedFromDirtyWorkingTree: false,
     nodeModulesBorrowedFrom: null,
+    runCompleted: {
+      summaries: 5,
+      filesCollected: 120,
+      filesReported: 120,
+      exitStatusKnown: true,
+      passes: [{ label: 'sequential', status: 0, signal: null }],
+    },
   };
   const cases = [
     ['accepts a clean receipt matching HEAD', good, SHA, true],
@@ -117,6 +165,47 @@ if (process.argv.includes('--self-test')) {
     ],
     ['rejects a receipt recording new failures', { ...good, result: 'new-failures', totals: { new: 5 }, newFailures: ['x'] }, SHA, false],
     ['rejects an unknown schema', { ...good, schema: 'nope.v9' }, SHA, false],
+    // The crash cases. Each is a receipt that the OLD checker accepted, because
+    // each carries result:'clean' and a matching tree sha. They are the whole
+    // reason this file changed; a gate never observed rejecting them is
+    // indistinguishable from one that cannot.
+    [
+      'rejects a v1 receipt from the crash-blind gate',
+      { ...good, schema: 'holoscript.core-baseline-receipt.v1' },
+      SHA,
+      false,
+    ],
+    ['rejects a receipt with no runCompleted block', { ...good, runCompleted: undefined }, SHA, false],
+    [
+      'rejects a run whose exit status was never known',
+      { ...good, runCompleted: { ...good.runCompleted, exitStatusKnown: false } },
+      SHA,
+      false,
+    ],
+    [
+      'rejects a run where collected test files never reported (the worker crash)',
+      { ...good, runCompleted: { ...good.runCompleted, filesCollected: 11, filesReported: 10 } },
+      SHA,
+      false,
+    ],
+    [
+      'rejects a run with no vitest summary at all',
+      { ...good, runCompleted: { ...good.runCompleted, summaries: 0 } },
+      SHA,
+      false,
+    ],
+    [
+      'rejects a pass killed by a signal',
+      {
+        ...good,
+        runCompleted: {
+          ...good.runCompleted,
+          passes: [{ label: 'shard-2/4', status: null, signal: 'SIGKILL' }],
+        },
+      },
+      SHA,
+      false,
+    ],
   ];
   let failed = 0;
   for (const [name, receipt, sha, expectOk] of cases) {
