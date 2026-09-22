@@ -74,9 +74,57 @@ function walk(dir, onFile) {
  * demo scenes (many example `.holo` files are illustrative and some don't even
  * parse). Scoping to `packages/` keeps the number honest and meaningful.
  */
+/**
+ * Is this `.hsplus` file DESCRIBING hand-written TypeScript rather than being the
+ * source the TypeScript is generated from?
+ *
+ * Measured 2026-09-16: 2,249 of 2,474 tracked `.hsplus` carry a header of the form
+ * `Native .hsplus surface for <path>.ts`, and were added in six bulk commits MONTHS
+ * after the `.ts` they name. Nothing compiles them — there is no `.hsplus` loader or
+ * compiler in any repo. Canon's own source-of-truth test (docs/definitions/
+ * 04-architecture-concepts.md) is "could you regenerate the artifact byte-identically
+ * from a HoloScript source you own?", and a file written after, and about, its
+ * counterpart inverts that: the projection claiming to be the source.
+ *
+ * WHAT THIS CANNOT SEE, stated because a detector that hides its blind spot is the
+ * defect it exists to expose: `packages/std/src/math.hsplus` carries the SAME header
+ * and IS genuinely shipped in the npm package and executed by the Rust engine. The
+ * header alone proves nothing; a real verdict needs a consumer check this static
+ * script does not perform. So this number is REPORTED, never enforced, and it is a
+ * floor on the descriptor count rather than a precise one.
+ */
+function descriptorState(abs) {
+  let head;
+  try {
+    head = fs.readFileSync(abs, 'utf-8').slice(0, 400);
+  } catch {
+    return 'none';
+  }
+  const m = head.match(/Native \.hsplus surface for\s+([^\s,)]+)/);
+  if (!m) return 'none';
+  const named = m[1].replace(/[.,;]$/, '');
+  // Only count it when the TypeScript it names still exists: a descriptor of a
+  // deleted file is stale bookkeeping, not a shadow of living code.
+  const candidates = [
+    path.resolve(path.dirname(abs), named),
+    path.join(REPO_ROOT, named),
+    path.join(REPO_ROOT, 'packages', named),
+  ];
+  const resolved = candidates.some((c) => {
+    try {
+      return fs.statSync(c).isFile();
+    } catch {
+      return false;
+    }
+  });
+  return resolved ? 'resolved' : 'header-only';
+}
+
 export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
   let native = 0;
   let handTsTraits = 0;
+  let descriptors = 0;
+  let descriptorHeaders = 0;
   const byExt = { '.hsplus': 0, '.holo': 0, '.hs': 0 };
 
   walk(root, (abs) => {
@@ -85,6 +133,11 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
     if (NATIVE_EXT.has(ext)) {
       native++;
       byExt[ext]++;
+      if (ext === '.hsplus') {
+        const d = descriptorState(abs);
+        if (d !== 'none') descriptorHeaders++;
+        if (d === 'resolved') descriptors++;
+      }
       return;
     }
     // hand-authored TS trait surface: *Trait.ts under a package src, excluding tests
@@ -100,7 +153,21 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
 
   const denom = native + handTsTraits;
   const ratio = denom === 0 ? 0 : native / denom;
-  return { native, handTsTraits, byExt, ratio: Number(ratio.toFixed(6)) };
+  // The same ratio with descriptors removed from the numerator. Reported, never
+  // enforced: the gate's verdict stays on `ratio` so this disclosure cannot
+  // silently fail a build, and so nobody is tempted to reseed against it.
+  const denomSansDesc = native - descriptors + handTsTraits;
+  const ratioSansDescriptors =
+    denomSansDesc <= 0 ? 0 : (native - descriptors) / denomSansDesc;
+  return {
+    native,
+    handTsTraits,
+    descriptors,
+    descriptorHeaders,
+    byExt,
+    ratio: Number(ratio.toFixed(6)),
+    ratioSansDescriptors: Number(ratioSansDescriptors.toFixed(6)),
+  };
 }
 
 function readBaseline() {
@@ -137,6 +204,15 @@ function main() {
   console.log(
     `native-coverage: native=${metrics.native} (.hsplus ${metrics.byExt['.hsplus']} / .holo ${metrics.byExt['.holo']} / .hs ${metrics.byExt['.hs']}) · hand-TS traits=${metrics.handTsTraits} · ratio=${(metrics.ratio * 100).toFixed(2)}%`
   );
+  if (metrics.descriptors > 0) {
+    console.log(
+      `  ↳ ${metrics.descriptorHeaders} of the ${metrics.byExt['.hsplus']} .hsplus declare themselves a "Native .hsplus surface for" ` +
+        `existing TypeScript — i.e. they DESCRIBE code rather than generate it. Of those, ${metrics.descriptors} name a file ` +
+        `this script could resolve, so the true count sits between ${metrics.descriptors} and ${metrics.descriptorHeaders}. ` +
+        `Ratio excluding the resolved ones: ${(metrics.ratioSansDescriptors * 100).toFixed(2)}%. ` +
+        `The ENFORCED number above counts by file extension only and cannot tell a source from a description.`
+    );
+  }
   if (!baseline) {
     console.error('✗ no baseline found — run with --update to seed it.');
     process.exit(1);
