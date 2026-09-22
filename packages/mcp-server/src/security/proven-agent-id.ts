@@ -14,7 +14,11 @@
  * only the key registry meant an agent the rest of the server authenticates
  * normally — by manifest, or by a key predating the registry — got a hard
  * throw at registration on a field `main` simply ignored. Returns undefined
- * when nothing is proven, which makes every unproven `agent_id` fail closed.
+ * when nothing is proven, which makes every unproven `agent_id` fail closed —
+ * with ONE exception, decided on the TCP peer and never on a header: a loopback
+ * registrant on a server whose registration is loopback-only may bind a
+ * non-reserved `agent_id` unproven (`loopbackRegistrantMayBindUnproven`).
+ * Reserved ids stay refused everywhere.
  *
  * This lives in its own module on purpose. It is the verifier the whole
  * agent_id binding rests on, and `http-server.ts` builds an HTTP server and
@@ -99,6 +103,16 @@ export const AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR =
   'its per-agent key, or a platform-signed manifest naming it. A shared API key ' +
   'proves which key is held, not which agent is calling.';
 
+/**
+ * Refusal message for a registration that asks to bind one of the identities
+ * the server reserves for its own seeded key records. Fixed text that names the
+ * reservation rather than echoing the caller's string, so a refusal cannot be
+ * made to carry arbitrary input into the audit log.
+ */
+export const AGENT_ID_RESERVED_ERROR =
+  'agent_id names an identity the server reserves for its own seeded key records ' +
+  '(agent_founder, or any agent_env_* id); no registrant may bind it, proven or not.';
+
 function firstHeaderValue(value: string | string[] | undefined): string {
   if (typeof value === 'string') return value.trim();
   if (Array.isArray(value)) return (value[0] || '').trim();
@@ -139,6 +153,38 @@ export function isReservedSeededAgentId(candidate: string | undefined): boolean 
     .toLowerCase();
   if (!normalized) return false;
   return normalized === FOUNDER_AGENT_ID || normalized.startsWith(SEEDED_AGENT_ID_PREFIX);
+}
+
+/**
+ * May a registrant that proved NOTHING still bind a non-reserved agent_id?
+ *
+ * Exactly when the registrar is a loopback TCP peer AND the server takes
+ * registrations from loopback only (OAUTH_ALLOW_REMOTE_REGISTRATION off).
+ *
+ * With registration closed to the LAN, the only registrants are processes on
+ * the anchor's own host — and those already hold the anchor's disk: the
+ * HOLOMESH data dir, keys.json, the daimon emergence corpus. A self-declared
+ * identity adds no reach they lack, so demanding a per-agent key of them buys
+ * nothing and locks out the founder surface: HoloShell registers over
+ * 127.0.0.1 with no per-agent key and calls holo_daemon_turn as the daimon's
+ * owner, and the daimon tools now bind `callerId` to the token's principal.
+ *
+ * Proof stays required for every remote registrant, and for loopback
+ * registrants whenever the remote door is open: on a deployment that takes
+ * remote registrations, a reverse proxy inside the same container makes every
+ * remote peer look like loopback, so "loopback" stops meaning "on this host".
+ * The decision is on the TCP peer, never on a header — x-forwarded-for is
+ * caller-supplied.
+ *
+ * Reserved ids (`isReservedSeededAgentId`) are refused whatever this returns;
+ * that check lives in `agentBindingForRegistration`. Pure, so the truth table
+ * is testable without a socket.
+ */
+export function loopbackRegistrantMayBindUnproven(params: {
+  registrarIsLoopback: boolean;
+  remoteRegistrationAllowed: boolean;
+}): boolean {
+  return params.registrarIsLoopback && !params.remoteRegistrationAllowed;
 }
 
 /** The agent a live per-agent key belongs to, or undefined if it proves nothing. */
@@ -218,27 +264,53 @@ export type RegistrationAgentBinding =
  * `http-server.ts` it could not be tested without booting a server — and an
  * untested gate is one nobody notices deleting.
  *
- * The comparison is case- and whitespace-insensitive to match the GRANT's
- * comparison. A stricter test here would let a client register under a
- * spelling its own token requests are then refused for: a legitimate caller
- * locked out by nothing but capitalisation. What gets RECORDED is still the
- * registry's spelling, never the caller's, because downstream principals are
- * compared as raw strings.
+ * Order:
+ *   1. nothing requested — an ordinary client, bound to no agent;
+ *   2. the request matches the PROVEN registrar — bound, recording the
+ *      registry's spelling. The comparison is case- and whitespace-insensitive
+ *      to match the GRANT's comparison: a stricter test here would let a client
+ *      register under a spelling its own token requests are then refused for.
+ *      What gets RECORDED is the registry's spelling, never the caller's,
+ *      because downstream principals are compared as raw strings;
+ *   3. otherwise, if `unprovenBindingAllowed` (the route passes
+ *      `loopbackRegistrantMayBindUnproven`) — a reserved id is refused with a
+ *      message naming the reservation; any other id is bound AS REQUESTED,
+ *      trimmed, case kept. There is no registry record to take a spelling
+ *      from, and the daimon binder compares `callerId` to the token's agentId
+ *      verbatim, so recording anything else would refuse the very caller that
+ *      registered;
+ *   4. otherwise refused: the caller proved nothing, or proved a different
+ *      agent, and the door is not the loopback-only one.
+ *
+ * A proven registrar therefore keeps today's behaviour on the comparison path;
+ * the new input only decides what happens when that comparison fails.
  */
 export function agentBindingForRegistration(params: {
   requestedAgentId?: unknown;
   registrarAgentId?: string;
+  /**
+   * `loopbackRegistrantMayBindUnproven(...)` for this request. Default false,
+   * so a caller that omits it gets the proof-only rule.
+   */
+  unprovenBindingAllowed?: boolean;
 }): RegistrationAgentBinding {
   const requested = String(params.requestedAgentId ?? '').trim();
   // Nothing requested: an ordinary client registration, bound to no agent.
   if (!requested) return { ok: true };
 
   // An unproven registrar normalizes to the empty string, which can never
-  // equal a non-empty request — so this single comparison also refuses the
-  // caller that proved nothing at all.
-  if (normalizeAgentIdentity(requested) !== normalizeAgentIdentity(params.registrarAgentId)) {
-    return { ok: false, reason: AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR };
+  // equal a non-empty request — so this single comparison also routes the
+  // caller that proved nothing at all to the branches below.
+  if (normalizeAgentIdentity(requested) === normalizeAgentIdentity(params.registrarAgentId)) {
+    return { ok: true, boundAgentId: params.registrarAgentId };
   }
 
-  return { ok: true, boundAgentId: params.registrarAgentId };
+  if (params.unprovenBindingAllowed === true) {
+    if (isReservedSeededAgentId(requested)) {
+      return { ok: false, reason: AGENT_ID_RESERVED_ERROR };
+    }
+    return { ok: true, boundAgentId: requested };
+  }
+
+  return { ok: false, reason: AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR };
 }

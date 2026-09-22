@@ -137,7 +137,11 @@ import {
   teamPresenceStore,
   reloadTeam,
 } from './holomesh/state';
-import { agentBindingForRegistration, resolveProvenAgentId } from './security/proven-agent-id';
+import {
+  agentBindingForRegistration,
+  loopbackRegistrantMayBindUnproven,
+  resolveProvenAgentId,
+} from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
@@ -2062,18 +2066,30 @@ const httpServer = http.createServer(async (req, res) => {
       }
       const rateLimit = (body.rate_limit as number) || 60;
 
-      // Bind this client to an agent only when the registering request PROVES
-      // that agent's identity — its own per-agent key, or a platform-signed
-      // manifest naming it. Registration is open to anyone, so an unproven
-      // agent_id in the body must never become a durable identity binding.
+      // Bind this client to an agent when the registering request PROVES that
+      // agent's identity — its own per-agent key, or a platform-signed manifest
+      // naming it — or, the one exception, when the registrar is a loopback
+      // TCP peer and this server's registration is loopback-only: processes
+      // on this host already hold the anchor's disk, so a self-declared id
+      // adds no reach, and HoloShell registers exactly this way to speak to
+      // the daimon as its owner. The moment OAUTH_ALLOW_REMOTE_REGISTRATION
+      // opens the door, proof is required of loopback peers too — behind a
+      // reverse proxy in the same container every remote peer looks like
+      // loopback. Reserved ids are refused on every path. `registrar` is the
+      // same socket address the door above was decided on, never a header.
       // The decision lives in `agentBindingForRegistration` so it can be tested
       // without booting this server: inline, it stayed green when deleted.
       const agentBinding = agentBindingForRegistration({
         requestedAgentId: body.agent_id,
         registrarAgentId: resolveProvenAgentId(req.headers),
+        unprovenBindingAllowed: loopbackRegistrantMayBindUnproven({
+          registrarIsLoopback: isLoopbackAddress(registrar),
+          remoteRegistrationAllowed: isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION),
+        }),
       });
       if (!agentBinding.ok) throw new Error(agentBinding.reason);
-      // Records the registry's spelling, never the caller's.
+      // The registry's spelling for a proven binding; the request's, trimmed,
+      // for a loopback-unproven one.
       const boundAgentId = agentBinding.boundAgentId;
 
       // Register with legacy provider (backwards compat)

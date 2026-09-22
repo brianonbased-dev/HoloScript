@@ -357,3 +357,146 @@ describe('POST /oauth/register through the real http-server', () => {
     expect(offMachine).toEqual([]);
   });
 });
+
+/**
+ * The loopback exception, end to end through the real http-server: a loopback
+ * registrant on a closed server binds agent_id with no key, the grant stamps
+ * it on the token, and the daimon binder takes it as the principal. This is
+ * HoloShell's path on the Jetson anchor — once the daimon tools bound callerId
+ * to the token's principal, the proof-only rule refused the founder's own
+ * surface, which registers over 127.0.0.1 with no per-agent key.
+ */
+describe('agent_id binding for a loopback registrant through the real http-server', () => {
+  /** HoloShell's shape: confidential (client_credentials), no per-agent key. */
+  const HOLOSHELL_SHAPE = {
+    client_name: 'holoshell-probe',
+    redirect_uris: ['https://client.test/callback'],
+    scope: 'tools:read tools:execute',
+    token_endpoint_auth_method: 'client_secret_post',
+  };
+  /** The daimon's ownerId, which HoloShell sends as callerId. */
+  const OWNER = 'founder';
+
+  let AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR = '';
+  let AGENT_ID_RESERVED_ERROR = '';
+  let AGENT_ID_NOT_BOUND_ERROR = '';
+
+  beforeAll(async () => {
+    // Imported AFTER the server (the top-level beforeAll): both modules pull in
+    // holomesh/state, which resolves HOLOMESH_DATA_DIR once at load. A static
+    // import here would run before the env scrub and point the whole run at
+    // the real data dir.
+    ({ AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR, AGENT_ID_RESERVED_ERROR } = await import(
+      '../security/proven-agent-id'
+    ));
+    ({ AGENT_ID_NOT_BOUND_ERROR } = await import('../auth/oauth2-provider'));
+  });
+
+  function register(extra: Record<string, unknown> = {}, remote?: string): Promise<Reply> {
+    return request('POST', '/oauth/register', { body: { ...HOLOSHELL_SHAPE, ...extra }, remote });
+  }
+
+  function grant(client: Record<string, unknown>, agentId?: string): Promise<Reply> {
+    return request('POST', '/oauth/token', {
+      body: {
+        grant_type: 'client_credentials',
+        client_id: client.client_id,
+        client_secret: client.client_secret,
+        scope: HOLOSHELL_SHAPE.scope,
+        ...(agentId ? { agent_id: agentId } : {}),
+      },
+    });
+  }
+
+  /** A daimon turn on a daemon that does not exist: only the binder can refuse it first. */
+  function daemonTurn(accessToken: string, callerId: string): Promise<Reply> {
+    return request('POST', '/mcp', {
+      headers: { authorization: `Bearer ${accessToken}` },
+      body: {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: {
+          name: 'holo_daemon_turn',
+          arguments: { daemonId: 'daemon-that-does-not-exist', callerId },
+        },
+      },
+    });
+  }
+
+  it('door closed: a loopback registration binds agent_id "founder" with no key, and the grant stamps it', async () => {
+    expect(process.env[FLAG]).toBeUndefined();
+    const reg = await register({ agent_id: OWNER });
+    expect(reg.status, JSON.stringify(reg.body)).toBe(201);
+    expect(typeof reg.body.client_id).toBe('string');
+    expect(typeof reg.body.client_secret).toBe('string');
+
+    const token = await grant(reg.body, OWNER);
+    expect(token.status, JSON.stringify(token.body)).toBe(200);
+    const accessToken = token.body.access_token;
+    expect(typeof accessToken).toBe('string');
+
+    const intro = await request('POST', '/oauth/introspect', { body: { token: accessToken } });
+    expect(intro.status).toBe(200);
+    expect(intro.body.active).toBe(true);
+    expect(intro.body.agent_id).toBe(OWNER);
+  });
+
+  it('...and the daimon binder takes that token as founder: a foreign callerId is refused, founder passes', async () => {
+    const reg = await register({ agent_id: OWNER });
+    expect(reg.status).toBe(201);
+    const token = await grant(reg.body, OWNER);
+    expect(token.status).toBe(200);
+    const accessToken = token.body.access_token as string;
+
+    const stranger = await daemonTurn(accessToken, 'someone-else');
+    expect(stranger.status).toBe(200);
+    expect(JSON.stringify(stranger.body)).toMatch(/not bound to the authenticated principal/);
+
+    // The owner gets past the binder. The daemon does not exist, which is the
+    // NEXT check — so "not found" is the proof that the binder is what passed.
+    const owner = await daemonTurn(accessToken, OWNER);
+    expect(owner.status).toBe(200);
+    expect(JSON.stringify(owner.body)).not.toMatch(/not bound to the authenticated principal/);
+    expect(JSON.stringify(owner.body)).toMatch(/daemon-that-does-not-exist.*not found/);
+  });
+
+  it('door open (OAUTH_ALLOW_REMOTE_REGISTRATION=1): the same loopback registration with agent_id is refused', async () => {
+    process.env[FLAG] = '1';
+    const r = await register({ agent_id: OWNER });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('invalid_client_metadata');
+    expect(r.body.error_description).toBe(AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR);
+    expect(r.body.client_id).toBeUndefined();
+  });
+
+  it('door open: a LAN peer cannot bind an unproven agent_id either', async () => {
+    process.env[FLAG] = '1';
+    const r = await register({ agent_id: OWNER }, LAN_PEER);
+    expect(r.status).toBe(400);
+    expect(r.body.error_description).toBe(AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR);
+  });
+
+  it('door closed: a reserved agent_id is refused for a loopback registrant, naming the reservation', async () => {
+    const r = await register({ agent_id: 'agent_founder' });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('invalid_client_metadata');
+    expect(r.body.error_description).toBe(AGENT_ID_RESERVED_ERROR);
+    expect(r.body.client_id).toBeUndefined();
+  });
+
+  it('a grant asking for agent_id "founder" on a client registered WITHOUT agent_id is refused', async () => {
+    const reg = await register();
+    expect(reg.status).toBe(201);
+    const token = await grant(reg.body, OWNER);
+    expect(token.status).toBe(400);
+    expect(token.body.error).toBe('invalid_grant');
+    expect(token.body.error_description).toBe(AGENT_ID_NOT_BOUND_ERROR);
+  });
+});
+
+describe('after every suite above', () => {
+  it('the run still reached nothing off this machine', () => {
+    expect(offMachine).toEqual([]);
+  });
+});
