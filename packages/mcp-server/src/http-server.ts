@@ -151,7 +151,7 @@ import {
 } from './ops/railway-autoscale-loop.js';
 import { maybeStartPredictiveCloudflareLbLoop } from './ops/predictive-cloudflare-lb.js';
 import { maybeStartKeepAliveLoop, getKeepAliveStatus } from './ops/keep-alive.js';
-import { isTrustedLoopbackMcpPeer, resolveMcpBindHost } from './http-bind-host';
+import { isLoopbackAddress, isTrustedLoopbackMcpPeer, resolveMcpBindHost } from './http-bind-host';
 
 // Initialize native agent compositions
 loadNativeAgentCompositions();
@@ -652,6 +652,20 @@ function isFounderRequest(req: http.IncomingMessage): boolean {
   if (!token) return false;
   const record = keyRegistry.get(token);
   return record?.isFounder === true;
+}
+
+/**
+ * Read an on/off environment flag. `1`, `true`, `yes` and `on` (any case,
+ * surrounding whitespace ignored) are on; everything else — unset, empty, `0`,
+ * `false`, `no`, `off` — is off. OAUTH_ALLOW_REMOTE_REGISTRATION reads
+ * through this so an operator who writes `=0` to close a door does not open it.
+ */
+function isTruthyEnvFlag(value: string | undefined): boolean {
+  return ['1', 'true', 'yes', 'on'].includes(
+    String(value ?? '')
+      .trim()
+      .toLowerCase()
+  );
 }
 
 /**
@@ -1961,6 +1975,37 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /oauth/register — Dynamic client registration (dual-register to both providers)
   if (url === '/oauth/register' && req.method === 'POST') {
+    // Registration takes no credentials and mints a client that may hold any
+    // public scope, tools:execute included. On an anchor bound to 0.0.0.0 that
+    // let every device on the LAN register a client and call tools, founder
+    // daimon context included — demonstrated from another machine on
+    // 2026-09-22 (board task_1790062507560_px5q). Local callers (HoloShell, the
+    // desktop MCP config) register over 127.0.0.1 and are unaffected. The
+    // decision is on the TCP peer, never on a header: x-forwarded-for is
+    // caller-supplied, so getClientIP() above serves the audit log only. A
+    // deployment that must take remote registrations — the cloud anchor, whose
+    // callers are never loopback — says so with OAUTH_ALLOW_REMOTE_REGISTRATION=1,
+    // read per request so the door can be opened or closed without a restart.
+    const registrar = req.socket.remoteAddress;
+    if (
+      !isLoopbackAddress(registrar) &&
+      !isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION)
+    ) {
+      auditLog.logAuthEvent({
+        event: 'auth_failure',
+        ip: registrar,
+        reason: 'client registration refused: remote peer, OAUTH_ALLOW_REMOTE_REGISTRATION unset',
+      });
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'access_denied',
+          error_description:
+            'client registration is loopback-only on this server; set OAUTH_ALLOW_REMOTE_REGISTRATION=1 to allow remote registration',
+        })
+      );
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const clientName = String(body.client_name || 'unnamed-client')
@@ -4784,7 +4829,13 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(`     GET  /.well-known/mcp              - MCP discovery (public)`);
     console.info(`     GET  /.well-known/openid-configuration - OAuth 2.1 discovery (public)`);
     console.info(`     GET  /.well-known/agent-card.json  - A2A Agent Card (public)`);
-    console.info(`     POST /oauth/register               - Client registration`);
+    console.info(
+      `     POST /oauth/register               - Client registration (${
+        isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION)
+          ? 'remote allowed by OAUTH_ALLOW_REMOTE_REGISTRATION'
+          : 'loopback-only; OAUTH_ALLOW_REMOTE_REGISTRATION=1 allows remote'
+      })`
+    );
     console.info(`     GET  /oauth/authorize               - Authorization request (PKCE)`);
     console.info(`     POST /oauth/authorize              - Authorization code (PKCE)`);
     console.info(`     POST /oauth/token                  - Token exchange`);
