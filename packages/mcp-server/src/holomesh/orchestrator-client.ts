@@ -10,6 +10,18 @@
 
 import type { HoloMeshAgentCard, MeshConfig, MeshKnowledgeEntry, AgentReputation } from './types';
 import { computeReputation, resolveReputationTier, DEFAULT_MESH_CONFIG } from './types';
+
+/**
+ * What the orchestrator did with a knowledge write (task_1790081256205_w6ui).
+ * `synced` is the count it accepted, 0 on a refusal or when it could not be
+ * reached; `reason` names the refusal so a route can pass it on.
+ */
+export interface KnowledgeSyncOutcome {
+  synced: number;
+  accepted: boolean;
+  status: number | null;
+  reason: string | null;
+}
 import { normalizePeerEndpointUrl, resolvePeerEndpoint } from './discovery';
 import * as crypto from 'crypto';
 
@@ -231,7 +243,7 @@ export class HoloMeshOrchestratorClient {
   // ── Knowledge Exchange ──
 
   /** Contribute knowledge entries to the orchestrator store. */
-  async contributeKnowledge(entries: MeshKnowledgeEntry[]): Promise<number> {
+  async contributeKnowledgeDetailed(entries: MeshKnowledgeEntry[]): Promise<KnowledgeSyncOutcome> {
     const orchEntries = entries.map((e) => ({
       id: e.id,
       workspace_id: e.workspaceId,
@@ -255,12 +267,31 @@ export class HoloMeshOrchestratorClient {
     const allSameWs = entryWs && orchEntries.every((e) => e.workspace_id === entryWs);
     const syncWorkspace = allSameWs ? entryWs : this.config.workspace;
 
-    const res = await this.post('/knowledge/sync', {
+    const res = await this.postDetailed('/knowledge/sync', {
       workspace_id: syncWorkspace,
       entries: orchEntries,
     });
 
-    return res?.synced || res?.count || entries.length;
+    if (!res.ok) {
+      const body = isRecord(res.body) ? res.body : {};
+      const detail = typeof body.error === 'string' ? `: ${body.error.slice(0, 160)}` : '';
+      return { synced: 0, accepted: false, status: res.status, reason: `${res.error}${detail}` };
+    }
+    const body = isRecord(res.body) ? res.body : {};
+    const counted = Number(body.synced ?? body.count);
+    // A 2xx that names no count accepted the batch as sent.
+    const synced = Number.isFinite(counted) ? counted : entries.length;
+    return { synced, accepted: true, status: res.status, reason: null };
+  }
+
+  /**
+   * The orchestrator's accepted count: 0 when it refused or could not be
+   * reached, never the caller's own count. (task_1790081256205_w6ui: a refusal
+   * came back as null, the same shape as a network failure, and the old
+   * fallback to entries.length reported refused writes as synced.)
+   */
+  async contributeKnowledge(entries: MeshKnowledgeEntry[]): Promise<number> {
+    return (await this.contributeKnowledgeDetailed(entries)).synced;
   }
 
   /** Query knowledge across workspaces (cross-agent discovery). */
@@ -352,18 +383,54 @@ export class HoloMeshOrchestratorClient {
     }
   }
 
-  private async post(path: string, body: Record<string, unknown>): Promise<any> {
+  /**
+   * POST and keep the answer. A refusal (any non-2xx) used to come back as
+   * null, the same shape as a network failure, so a caller could not tell
+   * "refused" from "unreachable" from "accepted with no body". The status and
+   * the body are what a caller needs to say what happened.
+   */
+  private async postDetailed(
+    path: string,
+    body: Record<string, unknown>
+  ): Promise<{ ok: boolean; status: number | null; body: unknown; error: string | null }> {
     try {
       const res = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
       });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch {
-      return null;
+      let parsed: unknown = null;
+      try {
+        parsed = typeof res.json === 'function' ? await res.json() : null;
+      } catch {
+        parsed = null;
+      }
+      if (parsed === null && typeof res.text === 'function') {
+        try {
+          parsed = await res.text();
+        } catch {
+          parsed = null;
+        }
+      }
+      return {
+        ok: res.ok,
+        status: typeof res.status === 'number' ? res.status : null,
+        body: parsed,
+        error: res.ok ? null : `orchestrator refused ${path}: HTTP ${res.status}`,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        status: null,
+        body: null,
+        error: `orchestrator unreachable at ${path}: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
+  }
+
+  private async post(path: string, body: Record<string, unknown>): Promise<any> {
+    const res = await this.postDetailed(path, body);
+    return res.ok ? res.body : null;
   }
 
   private async postOk(path: string, body: Record<string, unknown>): Promise<boolean> {

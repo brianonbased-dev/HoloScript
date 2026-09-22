@@ -1708,10 +1708,18 @@ export async function handleTeamRoutes(
       reuseCount: e.reuseCount ?? 0,
       createdAt: e.createdAt || new Date().toISOString(),
     }));
-    const synced = await getClient().contributeKnowledge(prepared);
+    // w6ui: synced counts only what the orchestrator accepted; a refusal is named,
+    // and the team mirror still keeps the rows locally either way.
+    const outcome = await getClient().contributeKnowledgeDetailed(prepared);
     appendTeamKnowledgeMirror(team, prepared);
     await persistTeamDurable(teamId);
-    json(res, 201, { success: true, synced, entries: prepared, workspace_id: workspaceId });
+    json(res, 201, {
+      success: true,
+      synced: outcome.synced,
+      orchestrator: { accepted: outcome.accepted, status: outcome.status, reason: outcome.reason },
+      entries: prepared,
+      workspace_id: workspaceId,
+    });
     return true;
   }
 

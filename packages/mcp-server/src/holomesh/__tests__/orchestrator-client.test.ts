@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HoloMeshOrchestratorClient } from '../orchestrator-client';
-import type { MeshConfig } from '../types';
+import type { MeshConfig, MeshKnowledgeEntry } from '../types';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -121,5 +121,59 @@ describe('HoloMeshOrchestratorClient queryKnowledge metadata', () => {
         quality: { state: 'rejected' },
       })
     );
+  });
+});
+
+// task_1790081256205_w6ui: post() returned null on any non-2xx, the same shape as a network
+// failure, and contributeKnowledge then fell back to entries.length, so a refused write was
+// reported as synced. The client now reports what the orchestrator accepted and why not.
+describe('HoloMeshOrchestratorClient contributeKnowledge reports what the orchestrator accepted', () => {
+  const entry: MeshKnowledgeEntry = {
+    id: 'W.team.1',
+    workspaceId: 'team:t1',
+    type: 'wisdom',
+    content: 'a row',
+    provenanceHash: 'hash',
+    authorId: 'agent-a',
+    authorName: 'Agent A',
+    price: 0,
+    queryCount: 0,
+    reuseCount: 0,
+    createdAt: '2026-09-22T12:00:00.000Z',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("a refused write is synced: 0 with the status and the reason, never the caller's own count", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ error: 'forbidden' }) });
+    const client = new HoloMeshOrchestratorClient(baseConfig);
+    expect(await client.contributeKnowledge([entry])).toBe(0);
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'bad key' }) });
+    const outcome = await client.contributeKnowledgeDetailed([entry]);
+    expect(outcome).toMatchObject({ synced: 0, accepted: false, status: 401 });
+    expect(outcome.reason).toContain('HTTP 401');
+    expect(outcome.reason).toContain('bad key');
+  });
+
+  it('an unreachable orchestrator is synced: 0 with the error named', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    const client = new HoloMeshOrchestratorClient(baseConfig);
+    const outcome = await client.contributeKnowledgeDetailed([entry]);
+    expect(outcome).toMatchObject({ synced: 0, accepted: false, status: null });
+    expect(outcome.reason).toContain('unreachable');
+    expect(outcome.reason).toContain('ECONNREFUSED');
+  });
+
+  it("an accepted write reports the orchestrator's count, or the batch size when it names none", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: 2 }) });
+    const client = new HoloMeshOrchestratorClient(baseConfig);
+    expect(await client.contributeKnowledgeDetailed([entry, { ...entry, id: 'W.team.2' }])).toMatchObject({ synced: 2, accepted: true, status: 200, reason: null });
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
+    expect(await client.contributeKnowledge([entry])).toBe(1);
+    // A 2xx that says it accepted nothing is 0, not the batch size.
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: 0 }) });
+    expect(await client.contributeKnowledge([entry])).toBe(0);
   });
 });

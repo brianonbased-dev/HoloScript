@@ -523,7 +523,9 @@ export async function handleKnowledgeRoutes(
       },
     };
 
-    const synced = await c.contributeKnowledge([entry]);
+    // w6ui: synced counts only what the orchestrator accepted; a refusal is named.
+    const outcome = await c.contributeKnowledgeDetailed([entry]);
+    const synced = outcome.synced;
 
     // Bridge into ConsolidationEngine (explicit trigger path)
     try {
@@ -533,7 +535,13 @@ export async function handleKnowledgeRoutes(
       /* consolidation bridge is best-effort — never block the contribution */
     }
 
-    json(res, 201, { success: true, entryId, synced, audit: entry.metadata.audit });
+    json(res, 201, {
+      success: true,
+      entryId,
+      synced,
+      orchestrator: { accepted: outcome.accepted, status: outcome.status, reason: outcome.reason },
+      audit: entry.metadata.audit,
+    });
     return true;
   }
 
