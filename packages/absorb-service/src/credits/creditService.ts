@@ -277,7 +277,28 @@ export async function addCredits(
   // either writes. Under a transaction the loser's insert violates the index
   // and its whole transaction rolls back, balance included. Without one, the
   // read-then-write is advisory only — which is why the index went in with it.
-  return typeof db.transaction === 'function' ? await db.transaction(apply) : await apply(db);
+  // A TRANSACTION IS REQUIRED, and its absence refuses rather than degrades.
+  //
+  // Review of this change found the hazard in the fallback that used to be
+  // here. Outside a transaction the balance UPDATE commits, the ledger INSERT
+  // is then rejected by the unique index, and the account is left
+  // double-credited with a SINGLE ledger row — a ledger less honest than the
+  // duplicate rows this fix exists to prevent. No ordering of two statements
+  // avoids that without atomicity, so there is nothing to reorder.
+  //
+  // A client that cannot give us a transaction therefore does not get to move
+  // money. Failing closed costs a credit that a redelivery will deliver, now
+  // that redelivery is safe; failing open costs a balance nobody can explain.
+  if (typeof db.transaction !== 'function') {
+    console.error(
+      '[creditService] REFUSED: the database client exposes no transaction(). ' +
+        'addCredits will not apply a balance change it cannot make atomic. ' +
+        'No credits were granted.'
+    );
+    return null;
+  }
+
+  return await db.transaction(apply);
 }
 
 // ─── Usage History ───────────────────────────────────────────────────────────

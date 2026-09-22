@@ -175,15 +175,23 @@ describe('addCredits — one Stripe session credits once', () => {
     expect(db._state.transactionCalls).toBe(1);
   });
 
-  it('still works against a client with no transaction support, on the same code path', async () => {
+  it('a client with no transaction support is REFUSED, not served non-atomically', async () => {
+    // This test used to assert the opposite — that addCredits carried on
+    // without a transaction. Review found what that costs: the balance UPDATE
+    // commits, the ledger INSERT is rejected by the unique index, and the
+    // account ends double-credited with a SINGLE ledger row, which is a worse
+    // record than the duplicate rows this whole change exists to prevent.
+    //
+    // So the expectation is inverted on purpose. Nothing is written and nothing
+    // is returned. A redelivery will deliver the credit later, safely, which is
+    // precisely what the rest of this file establishes.
     const plain = makeFakeDb({ withTransaction: false });
     setDbProvider(() => plain);
 
-    const SESSION = 'cs_test_no_tx';
-    await creditOnce(plain, 500, SESSION);
-    const ledgerAfterFirst = plain._state.ledger.length;
-    await creditOnce(plain, 500, SESSION);
+    const result = await creditOnce(plain, 500, 'cs_test_no_tx');
 
-    expect(plain._state.ledger.length).toBe(ledgerAfterFirst);
+    expect(result).toBeNull();
+    expect(plain._state.ledger).toEqual([]);
+    expect(plain._state.balanceCents).toBe(0);
   });
 });
