@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { PluginSandboxRunner, DEFAULT_CAPABILITY_BUDGET } from '../PluginSandboxRunner';
 
-describe('Paper 4 Benchmark: Sandbox Overhead', () => {
+// BENCHMARK, not a gate test. Opt in with HOLO_BENCH=1.
+// Three wall-clock assertions and a 120,000-element allocation; it was one of
+// the 12 files whose failures the core gate ignored. See the note in
+// HoloMapPerformanceBenchmark.test.ts for the crash that quarantine was
+// actually tolerating.
+describe.skipIf(!process.env.HOLO_BENCH)('Paper 4 Benchmark: Sandbox Overhead', () => {
   it('measures median and p99 execution overhead per category', async () => {
     const N = Number(process.env.PAPER_BENCH_N ?? 300);
 

@@ -331,7 +331,24 @@ async function runDeterminismVerification(
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-describe('HoloMap Sprint-3 — Performance Benchmark Suite', () => {
+// BENCHMARK, not a gate test. Opt in with HOLO_BENCH=1.
+//
+// Measured 2026-09-21: this file was one of 12 listed in
+// packages/core/test-baseline.json flakyFiles, where "any failure within these
+// is IGNORED by the gate". Running the 12 together three times, one run died
+// with "[vitest-pool]: Worker forks emitted error / Worker exited
+// unexpectedly" -- 10 of 11 files reported and 3 tests never ran at all. The
+// flake was never a failing assertion; it was a worker crash.
+//
+// This file is the heaviest allocator among them (300,000 elements once,
+// 60,000 three times, 20,000 twice) and carries 13 wall-clock assertions. It
+// also writes a report file, which dirties the tree that the core baseline
+// receipt requires to be clean. None of that belongs in a correctness gate: a
+// timing assertion on a loaded shared runner measures the runner.
+//
+// Quarantining twelve files' CORRECTNESS to tolerate this file's CRASH was the
+// wrong trade. Taking the crash out of the gate is the right one.
+describe.skipIf(!process.env.HOLO_BENCH)('HoloMap Sprint-3 — Performance Benchmark Suite', () => {
   const benchResults: BenchResult[] = [];
 
   it('benchmark 500 frames: latency distribution + memory + GC pressure', async () => {

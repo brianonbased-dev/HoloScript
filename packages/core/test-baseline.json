@@ -2,21 +2,10 @@
   "//": "Baseline of KNOWN-NOT-PASSING core tests on a clean tree, captured to make \"no new test failures\" a trustworthy gate despite a non-deterministic (sharded, memory-pressured) suite.",
   "capturedFrom": "stableFailures retired 2026-09-21 after a clean full run showed all 90 passing; flakyFiles still carry the original 2-run intersection method, because one clean run is not evidence about flakiness under sharding.",
   "flakyFiles": {
-    "//": "Whole files that pass in isolation but flake under sharded memory/timing pressure \u2014 any failure within these is IGNORED by the gate.",
-    "files": [
-      "src/__tests__/HotReloadIntegrated.test.ts",
-      "src/__tests__/RuntimeOptimization.test.ts",
-      "src/__tests__/aivalidator-instantiation.test.ts",
-      "src/__tests__/camera-inventory-terrain-lighting-exports.test.ts",
-      "src/__tests__/trait-docs-count-structure.test.ts",
-      "src/compiler/__tests__/FounderConsoleNative.test.ts",
-      "src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts",
-      "src/compiler/dispatch/__tests__/DispatchPolicy.test.ts",
-      "src/plugins/__tests__/paper-4-sandbox-bench.test.ts",
-      "src/reconstruction/__tests__/HoloMapPerformanceBenchmark.test.ts",
-      "src/traits/AgentDiscoveryTrait.test.ts",
-      "src/traits/__tests__/ChoreographyTrait.prod.test.ts"
-    ]
+    "//": "EMPTY. This held 12 whole files whose failures the gate ignored outright, described as passing in isolation but flaking under sharded memory pressure. Measured 2026-09-21: running them together 3 times, one run died with \"[vitest-pool]: Worker forks emitted error / Worker exited unexpectedly\" -- 10 of 11 files reported and 3 tests never ran. The flake was never a failing assertion, it was a WORKER CRASH, and the heaviest allocator among them (300,000 elements, 13 wall-clock assertions, and it writes a report file) was the cause. Moving the two benchmark suites behind HOLO_BENCH=1 and the two wall-clock bounds in RuntimeOptimization behind the same flag made 5 consecutive runs clean with zero crash lines. One entry, VRRPerformanceBenchmark.spec.ts, named a file that no longer exists. Quarantining twelve files CORRECTNESS to tolerate two benchmarks CRASHING was the wrong trade.",
+    "files": [],
+    "retiredOn": "2026-09-21",
+    "retiredEvidence": "5 of 5 consecutive runs of all 11 existing files clean, 0 worker-crash lines, after gating the benchmarks; before gating, 1 of 3 runs crashed a worker."
   },
   "stableFailures": {
     "//": "EMPTY, and that is the point. This list held 90 entries described as \"deterministic pre-existing failures\"; on 2026-09-21 a clean full run of the core suite reported \"total failures=0 | known-stable=0 | known-flaky=0 | NEW=0\" -- not one of the 90 failed. 17 of them could not have: 10 named src/compiler/__tests__/MatterpakCompiler.test.ts, a file that no longer exists, and 7 named test titles that no longer exist either. 19 more were in marketplace-runtime.test.ts, which fails only because @holoscript/auth is unbuilt -- built it, and its 130 tests pass. The list was a fossil of a broken build environment, not a record of defects, and while it stood the gate accepted 90 named failures in advance. A NEW failure is now any failure at all, outside a flaky file.",
