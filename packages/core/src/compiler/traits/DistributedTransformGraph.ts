@@ -37,7 +37,7 @@
  * @version 1.0.0 (paper-8 prototype)
  */
 
-import { ProvenanceSemiring } from './ProvenanceSemiring';
+import { ProvenanceSemiring, canonicalProvenanceJson } from './ProvenanceSemiring';
 import type { TraitApplication, CompositionResult, ProvenanceConfig } from './ProvenanceSemiring';
 
 // =============================================================================
@@ -183,7 +183,9 @@ export class DistributedTransformGraph {
     const result = this.semiring.add(traits);
     this.logicalClock += 1;
 
-    const stateHash = fnv1a32(JSON.stringify(result.provenance) + ':' + this.logicalClock)
+    // 97yq: canonical bytes, so the same logical composition hashes one way whatever
+    // key order the caller's context and values arrived in.
+    const stateHash = fnv1a32(canonicalProvenanceJson(result.provenance) + ':' + this.logicalClock)
       .toString(16)
       .padStart(8, '0');
 

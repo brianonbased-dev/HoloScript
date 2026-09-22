@@ -187,6 +187,32 @@ function canonicalTieValue(value: unknown, seen = new WeakSet<object>()): string
 }
 
 /**
+ * Canonical JSON for hashing a provenance map (task_1790058854739_97yq).
+ *
+ * Each provenance entry carries the caller's `value` and `context` by
+ * reference with their own key order intact, so `JSON.stringify(provenance)`
+ * gave two agents that built the same logical context as {authorityLevel,
+ * agentId} and {agentId, authorityLevel} different bytes and a different
+ * stateHash. add() deliberately does not deep-sort (a deep clone is lossy for
+ * Dates, which do reach here); the hash site sorts instead. Keys are ordered
+ * at every depth, a Date becomes its ISO string (JSON's own toJSON, applied
+ * before the replacer sees it), arrays keep their order, and nothing is cloned
+ * except the sorted view handed to JSON.
+ */
+export function canonicalProvenanceJson(value: unknown): string {
+  return JSON.stringify(value, (_key, item) => {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const sorted: Record<string, unknown> = {};
+      for (const key of Object.keys(item as Record<string, unknown>).sort()) {
+        sorted[key] = (item as Record<string, unknown>)[key];
+      }
+      return sorted;
+    }
+    return item;
+  });
+}
+
+/**
  * The leaves behind a value: a merged value carries the contributions it was
  * built from; a plain value is its own single leaf.
  */
