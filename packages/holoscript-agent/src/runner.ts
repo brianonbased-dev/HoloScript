@@ -8,7 +8,7 @@ import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { freemem, tmpdir } from 'node:os';
 import { join as pathJoin } from 'node:path';
 import { resolvePeer, parsePeerRegistry, type PeerEntry } from './peer-registry.js';
-import type { CostGuard } from './cost-guard.js';
+import { addTokenUsage, type CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
@@ -630,11 +630,8 @@ export class AgentRunner {
         identity.llmModel
       );
       lastResponse = resp;
-      aggUsage = {
-        promptTokens: aggUsage.promptTokens + resp.usage.promptTokens,
-        completionTokens: aggUsage.completionTokens + resp.usage.completionTokens,
-        totalTokens: aggUsage.totalTokens + resp.usage.totalTokens,
-      };
+      // qf65: keep the cache fields; the pricer splits them out at recordUsage.
+      aggUsage = addTokenUsage(aggUsage, resp.usage);
       // If model called tools, execute them and feed results back.
       if (resp.finishReason === 'tool_use' && resp.toolUses && resp.toolUses.length > 0) {
         log({
@@ -722,11 +719,7 @@ export class AgentRunner {
         { messages, maxTokens: 8192, temperature: 0.0, tools: activeTools },
         identity.llmModel
       );
-      aggUsage = {
-        promptTokens: aggUsage.promptTokens + reResp.usage.promptTokens,
-        completionTokens: aggUsage.completionTokens + reResp.usage.completionTokens,
-        totalTokens: aggUsage.totalTokens + reResp.usage.totalTokens,
-      };
+      aggUsage = addTokenUsage(aggUsage, reResp.usage);
       if (reResp.finishReason === 'tool_use' && reResp.toolUses && reResp.toolUses.length > 0) {
         log({
           ev: 'reprompt-tool-call',
@@ -787,11 +780,7 @@ export class AgentRunner {
         { messages, maxTokens: 8192, temperature: 0.0, tools: activeTools },
         identity.llmModel
       );
-      aggUsage = {
-        promptTokens: aggUsage.promptTokens + vwResp.usage.promptTokens,
-        completionTokens: aggUsage.completionTokens + vwResp.usage.completionTokens,
-        totalTokens: aggUsage.totalTokens + vwResp.usage.totalTokens,
-      };
+      aggUsage = addTokenUsage(aggUsage, vwResp.usage);
       if (vwResp.finishReason === 'tool_use' && vwResp.toolUses && vwResp.toolUses.length > 0) {
         log({
           ev: 'vision-write-call',
@@ -1014,11 +1003,7 @@ export class AgentRunner {
           model: identity.llmModel,
           escalateOnFail: brain.reflect.escalateOnFail,
         });
-        aggUsage = {
-          promptTokens: aggUsage.promptTokens + reflectVerdict.usage.promptTokens,
-          completionTokens: aggUsage.completionTokens + reflectVerdict.usage.completionTokens,
-          totalTokens: aggUsage.totalTokens + reflectVerdict.usage.totalTokens,
-        };
+        aggUsage = addTokenUsage(aggUsage, reflectVerdict.usage);
         log({
           ev: 'reflect',
           taskId: target.id,

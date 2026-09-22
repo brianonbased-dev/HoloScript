@@ -530,3 +530,63 @@ describe('CostGuard', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+// task_1786310573633_qf65 + task_1786310573633_o3gp (A-010 review 2026-08-09). The runner
+// rebuilt its aggregate usage from three fields, dropping cacheReadTokens/cacheWriteTokens
+// before recordUsage (cached prefix billed at 1.0x, up to 10x over), and the cache-split
+// pricer applied Claude's 1.25 / 0.1 multipliers to every provider (OpenAI, xAI, Gemini,
+// OpenRouter under-counted, so the cap tripped late).
+describe('cache fields survive aggregation (qf65)', () => {
+  it('addTokenUsage sums the three counts and keeps a cache field when either side carries it', async () => {
+    const mod = await import('../cost-guard.js');
+    expect(typeof mod.addTokenUsage).toBe('function');
+    const sum = mod.addTokenUsage(
+      { promptTokens: 1000, completionTokens: 50, totalTokens: 1050, cacheReadTokens: 800 },
+      { promptTokens: 500, completionTokens: 25, totalTokens: 525, cacheReadTokens: 400, cacheWriteTokens: 100 }
+    );
+    expect(sum).toEqual({ promptTokens: 1500, completionTokens: 75, totalTokens: 1575, cacheReadTokens: 1200, cacheWriteTokens: 100 });
+    const plain = mod.addTokenUsage(
+      { promptTokens: 10, completionTokens: 1, totalTokens: 11 },
+      { promptTokens: 20, completionTokens: 2, totalTokens: 22 }
+    );
+    expect(plain).toEqual({ promptTokens: 30, completionTokens: 3, totalTokens: 33 });
+    expect('cacheReadTokens' in plain).toBe(false);
+  });
+
+  it('the runner folds every response through addTokenUsage and never rebuilds the total from three fields', () => {
+    const source = readFileSync(new URL('../../src/runner.ts', import.meta.url), 'utf8');
+    expect(source.includes('promptTokens: aggUsage.promptTokens +')).toBe(false);
+    expect((source.match(/addTokenUsage\(aggUsage, /g) ?? []).length).toBe(4);
+  });
+});
+
+describe('per-provider cache policies (o3gp)', () => {
+  const cachedPrompt = { promptTokens: 1000, completionTokens: 100, totalTokens: 1100, cacheReadTokens: 800 };
+
+  it('OpenAI bills a cached read at half the input rate, not at the Claude tenth', () => {
+    // gpt-5.6: $5 in / $30 out. 200 uncached + 800 cached at 0.5 + 100 out.
+    expect(defaultOpenAIPricer('gpt-5.6', cachedPrompt)).toBeCloseTo((200 * 5 + 800 * 5 * 0.5 + 100 * 30) / 1_000_000, 12);
+  });
+
+  it('xAI bills a cached read at a quarter of the input rate', () => {
+    // grok-4.3: $1.25 in / $2.50 out.
+    expect(defaultXAIPricer('grok-4.3', cachedPrompt)).toBeCloseTo((200 * 1.25 + 800 * 1.25 * 0.25 + 100 * 2.5) / 1_000_000, 12);
+  });
+
+  it('Anthropic keeps 1.25x writes and 0.1x reads', () => {
+    // claude-haiku-4-5: $1 in / $5 out. 100 uncached + 100 written + 800 read.
+    const usage = { promptTokens: 1000, completionTokens: 0, totalTokens: 1000, cacheReadTokens: 800, cacheWriteTokens: 100 };
+    expect(defaultAnthropicPricer('claude-haiku-4-5', usage)).toBeCloseTo((100 * 1 + 100 * 1 * 1.25 + 800 * 1 * 0.1) / 1_000_000, 12);
+  });
+
+  it('an unknown provider and OpenRouter bill the cache at full input (fail closed); Gemini at a quarter', async () => {
+    const mod = await import('../cost-guard.js');
+    expect(mod.cachePolicyFor('made-up')).toEqual({ write: 1, read: 1 });
+    expect(mod.cachePolicyFor(undefined)).toEqual({ write: 1, read: 1 });
+    expect(mod.cachePolicyFor('openrouter')).toEqual({ write: 1, read: 1 });
+    expect(mod.cachePolicyFor('Gemini')).toEqual({ write: 1, read: 0.25 });
+    expect(mod.cachePolicyFor('anthropic')).toEqual({ write: 1.25, read: 0.1 });
+    // The shared pricer honours the policy it is handed.
+    expect(mod.priceUsageWithCacheSplit(cachedPrompt, { input: 2, output: 4 }, mod.CACHE_POLICIES.gemini)).toBeCloseTo((200 * 2 + 800 * 2 * 0.25 + 100 * 4) / 1_000_000, 12);
+  });
+});
