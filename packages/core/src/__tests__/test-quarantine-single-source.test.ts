@@ -74,6 +74,17 @@ describe('the serial-pass quarantine has exactly one source of truth', () => {
     expect(readFileSync(file, 'utf-8')).toContain('test-baseline.json');
   });
 
+  // A maintainer trusting the runner's own docblock would edit the wrong JSON key
+  // and re-arm the divergence this file exists to prevent; the text is prose, so
+  // the assertions above cannot see it (task_1790064557253_lvnc).
+  it("run-vitest.mjs's own docblock names serialPassFiles as the schedule, not flakyFiles", () => {
+    const source = readFileSync(resolve(CORE_ROOT, 'run-vitest.mjs'), 'utf-8');
+    const header = source.slice(0, source.indexOf('export const SERIAL_FILES'));
+    expect(header).toMatch(/canonical scheduling list is test-baseline\.json serialPassFiles\.files/u);
+    expect(header).not.toMatch(/canonical list is in test-baseline\.json flakyFiles/u);
+    expect(header).toMatch(new RegExp(`${BASELINE.serialPassFiles.files.length} files pass in isolation`, 'u'));
+  });
+
   it('every file in the scheduling lists exists', () => {
     // src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts sat in both consumer
     // arrays after the file was deleted. Vitest silently matches nothing for a

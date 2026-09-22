@@ -11,12 +11,16 @@
  * CI-like (quarantine active):             CI=true pnpm --filter @holoscript/core test:coverage
  * Single heavy suite (for owners):         pnpm --filter @holoscript/core exec vitest run <file>
  *
- * === Flaky-file quarantine (determinism fix) ===
- * 10 files pass in isolation but flake under shard memory/timing pressure.
+ * === Serial-pass quarantine (determinism fix) ===
+ * 9 files pass in isolation but flake under shard memory/timing pressure.
  * These are run in a dedicated sequential pass (maxWorkers=1) BEFORE the
  * 4-way sharded pass, and excluded from the sharded pass via the
  * HOLOSCRIPT_EXCLUDE_FLAKY=1 env flag read by vitest.config.ts.
- * The canonical list is in test-baseline.json flakyFiles.
+ * The canonical scheduling list is test-baseline.json serialPassFiles.files
+ * (SERIAL_FILES below). flakyFiles is a different list, the gate's
+ * verdict-forgiveness list, and it was emptied on 2026-09-21; editing it does
+ * not change what runs serially. (Stale text here once pointed at flakyFiles,
+ * task_1790064557253_lvnc.)
  *
  * Known memory-heavy suites (the ones previously quarantined on coverage):
  *   - StressTests.comprehensive.test.ts          (owner: core/perf team)
