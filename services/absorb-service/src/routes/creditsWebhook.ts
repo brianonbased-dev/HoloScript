@@ -68,8 +68,25 @@ router.post('/stripe', async (req: Request, res: Response) => {
         // addCredits is idempotent on stripeSessionId and runs in one
         // transaction; a redelivery of this event returns the existing balance
         // rather than adding again.
+        // THE LEDGER HAS TO RECORD THE SALE, NOT ONLY THE GRANT.
+        //
+        // Since the purchase route redefined metadata.amountCents as the CREDITS
+        // to grant, the ledger row and lifetimePurchasedCents both carry the
+        // credit figure -- so a $20.00 Builder sale is recorded as 2500, the
+        // bonus included, and /balance reports lifetimePurchased 2500 for two
+        // thousand cents of revenue. Nothing in our own database could then
+        // reconcile a refund, because the money paid was never written down.
+        //
+        // amountCents stays the credits (that is what a balance is denominated
+        // in); what was actually charged, and what was sold, go alongside it.
+        const pricePaidCents = Number(session.metadata.pricePaidCents ?? session.amount_total ?? 0);
         const granted = await addCredits(userId, amountCents, 'Stripe purchase', {
           stripeSessionId: session.id,
+          metadata: {
+            pricePaidCents,
+            packageId: session.metadata.packageId ?? 'unknown',
+            creditsGranted: amountCents,
+          },
         });
 
         // A NULL RETURN IS A FAILED GRANT, AND IT MUST NOT ANSWER 200.

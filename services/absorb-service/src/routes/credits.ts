@@ -223,6 +223,10 @@ router.post('/purchase', async (req: Request, res: Response) => {
         // package's bonus arrives correctly.
         amountCents: String(purchase.credits),
         pricePaidCents: String(purchase.priceCents),
+        // Carried so the LEDGER can record what was sold, not just how many
+        // credits were granted. A custom-amount purchase has no package, hence
+        // the fallback rather than an omitted key.
+        packageId: body.packageId ?? 'custom',
       },
     });
 

@@ -138,19 +138,30 @@ export const TIER_LIMITS: Record<
 > = {
   free: {
     freeCredits: 100,
-    maxProjectsActive: 1,
+    // RESTORED to what the pricing page has always shown. This one field went
+    // the OTHER way from the price table, and the difference is the point:
+    // for prices the server WINS because the server is what charges, so a
+    // disagreement means customers were quoted something untrue. Nothing
+    // enforces maxProjectsActive anywhere -- its only consumer is the "Active
+    // projects" row of PricingSection -- so the displayed number IS the whole
+    // meaning of the field, and syncing it down to the server's inert copy cut
+    // a published figure (Pro 100 -> 10) with no mechanism behind either value
+    // and no decision recorded. Review caught it; the fix is to restore what
+    // was published, not to pick the smaller number because it happened to sit
+    // in the file that usually wins.
+    maxProjectsActive: 3,
     maxAbsorbDepth: 'shallow',
     pipelineEnabled: false,
   },
   pro: {
     freeCredits: 0,
-    maxProjectsActive: 10,
+    maxProjectsActive: 100,
     maxAbsorbDepth: 'deep',
     pipelineEnabled: true,
   },
   enterprise: {
     freeCredits: 0,
-    maxProjectsActive: 100,
+    maxProjectsActive: 1000,
     maxAbsorbDepth: 'deep',
     pipelineEnabled: true,
   },

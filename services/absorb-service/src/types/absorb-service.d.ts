@@ -172,10 +172,41 @@ declare module '@holoscript/absorb-service/credits' {
     readonly popular: boolean;
   }>;
   export const setDbProvider: (db: unknown) => void;
-  export const getOrCreateAccount: (userId: string) => Promise<unknown>;
-  export const checkBalance: (userId: string) => Promise<unknown>;
-  export const deductCredits: (userId: string, amountCents: number, description: string, metadata?: unknown) => Promise<unknown>;
-  export const addCredits: (userId: string, amountCents: number, description: string, metadata?: unknown) => Promise<unknown>;
+  // THESE RETURN TYPES ARE LOAD-BEARING, and `unknown` was not a safe default.
+  //
+  // TypeScript consults this declare-module block BEFORE the package's own
+  // types, so `Promise<unknown>` here overrode the real signatures and any
+  // caller reading a field off the result failed to compile. It did:
+  // creditsWebhook.ts reads `granted.balanceCents` to log the new balance, and
+  // `tsc -p services/absorb-service/tsconfig.json` reported
+  // "TS2339: Property 'balanceCents' does not exist on type '{}'".
+  // infrastructure/Dockerfile.absorb-service runs that same tsc, so the service
+  // did not build. Typechecking packages/absorb-service does not cover this --
+  // it is a different tsconfig and this file only shadows things here.
+  export const getOrCreateAccount: (userId: string) => Promise<{
+    userId: string;
+    balanceCents: number;
+    lifetimeSpentCents: number;
+    lifetimePurchasedCents: number;
+    tier: string;
+    freeCreditsUsedCents: number;
+  } | null>;
+  export const checkBalance: (
+    userId: string,
+    requiredCents: number
+  ) => Promise<{ sufficient: boolean; balanceCents: number; requiredCents: number }>;
+  export const deductCredits: (
+    userId: string,
+    amountCents: number,
+    description: string,
+    metadata?: Record<string, unknown>
+  ) => Promise<{ balanceCents: number } | null>;
+  export const addCredits: (
+    userId: string,
+    amountCents: number,
+    description: string,
+    opts?: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> }
+  ) => Promise<{ balanceCents: number } | null>;
   export const getUsageHistory: (userId: string, limit?: number) => Promise<unknown[]>;
   export const MeteredLLMProvider: unknown;
   export const requireCredits: unknown;
