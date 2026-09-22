@@ -8,7 +8,6 @@
       "src/__tests__/RuntimeOptimization.test.ts",
       "src/__tests__/aivalidator-instantiation.test.ts",
       "src/__tests__/camera-inventory-terrain-lighting-exports.test.ts",
-      "src/__tests__/trait-commutativity.test.ts",
       "src/__tests__/trait-docs-count-structure.test.ts",
       "src/compiler/__tests__/FounderConsoleNative.test.ts",
       "src/compiler/__tests__/VRRPerformanceBenchmark.spec.ts",
