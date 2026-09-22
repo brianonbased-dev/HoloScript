@@ -1,0 +1,169 @@
+// The install page — authored in HoloScript, compiled to an @generated Next.js
+// page by the NextJSCompiler. EDIT THIS, not src/app/install/page.tsx.
+// Regenerate: pnpm --filter @holoscript/studio holo:build
+//
+// WHY THIS PAGE EXISTS. /install returned 404 until 2026-09-21. So did
+// /pricing, /download and /signup. A person who wanted to use HoloScript had
+// nowhere to be sent, which is the plainest form of the problem this whole
+// surface has: the product was buildable and unreachable.
+//
+// EVERY COMMAND BELOW WAS RUN, IN THIS ORDER, FROM AN EMPTY DIRECTORY, AGAINST
+// THE PUBLISHED PACKAGE — not the local build, because the local build is not
+// what a stranger gets. Measured 2026-09-21: npm install @holoscript/cli took
+// about two minutes and 622 packages; `holoscript --help` reported v8.7.0;
+// `parse` answered "Validation successful"; `compile --target threejs`
+// emitted 1,672 characters of Three.js. The six-line composition below is the
+// exact file that was compiled.
+//
+// Do not add a step here that has not been run. A quickstart that does not work
+// is worse than no quickstart, because the reader concludes the fault is theirs.
+composition "Install" {
+  @page { route: "/install" }
+  @metadata {
+    title: "Install HoloScript"
+    description: "Install the HoloScript command-line tool and compile your first composition. Four steps, no account, MIT licensed."
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "mx-auto w-full max-w-3xl px-6 py-16" }
+
+    object "Title" {
+      @text { content: "Install HoloScript", variant: "h1" }
+      @theme { className: "text-3xl font-bold text-studio-text" }
+    }
+
+    object "Intro" {
+      @text { content: "Four steps from nothing to compiled output. No account, no key, no sign-up. Everything on this page runs on your own machine." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "Step1Heading" {
+      @text { content: "1. Install the command-line tool", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "Step1Cmd" {
+      @text { content: "npm install @holoscript/cli" }
+      @theme { className: "mt-2 rounded-lg border border-studio-border bg-studio-panel/60 p-4 font-mono text-sm text-studio-text" }
+    }
+
+    object "Step1Note" {
+      @text { content: "Takes a couple of minutes. It brings its own dependencies; you do not need anything else installed first." }
+      @theme { className: "mt-2 text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "Step2Heading" {
+      @text { content: "2. Check it is there", variant: "h2" }
+      @theme { className: "mt-8 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "Step2Cmd" {
+      @text { content: "npx holoscript --help" }
+      @theme { className: "mt-2 rounded-lg border border-studio-border bg-studio-panel/60 p-4 font-mono text-sm text-studio-text" }
+    }
+
+    object "Step2Note" {
+      @text { content: "It prints its version and its commands: parse, run, compile, fmt, build, repl, watch, traits, generate." }
+      @theme { className: "mt-2 text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "Step3Heading" {
+      @text { content: "3. Write six lines", variant: "h2" }
+      @theme { className: "mt-8 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "Step3Note" {
+      @text { content: "Save this as hello.holo. It describes one cyan sphere." }
+      @theme { className: "mt-2 text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "Step3Code" {
+      @theme { tag: "pre", className: "mt-2 overflow-x-auto rounded-lg border border-studio-border bg-studio-panel/60 p-4 font-mono text-sm leading-relaxed text-studio-text" }
+      object "Step3CodeText" {
+        @text { content: "composition \"Hello\" {\n  object \"orb\" {\n    @mesh { shape: \"sphere\", radius: 1 }\n    @material { baseColor: \"#00e5ff\" }\n  }\n}" }
+      }
+    }
+
+    object "Step4Heading" {
+      @text { content: "4. Check it, then compile it", variant: "h2" }
+      @theme { className: "mt-8 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "Step4Cmd" {
+      @text { content: "npx holoscript parse hello.holo" }
+      @theme { className: "mt-2 rounded-lg border border-studio-border bg-studio-panel/60 p-4 font-mono text-sm text-studio-text" }
+    }
+
+    object "Step4Note" {
+      @text { content: "It answers \"Validation successful\". That is the language reading your file and agreeing with it." }
+      @theme { className: "mt-2 text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "Step4Cmd2" {
+      @text { content: "npx holoscript compile hello.holo --target threejs" }
+      @theme { className: "mt-3 rounded-lg border border-studio-border bg-studio-panel/60 p-4 font-mono text-sm text-studio-text" }
+    }
+
+    object "Step4Note2" {
+      @text { content: "That prints Three.js source for your sphere. The same file compiles to other targets; run the help text to see which." }
+      @theme { className: "mt-2 text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "NextHeading" {
+      @text { content: "Then what", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "NextGrid" {
+      @theme { tag: "section", className: "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3" }
+
+      object "CardDownload" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardDownloadTitle" {
+          @link { href: "/download", content: "The other packages →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardDownloadDesc" {
+          @text { content: "The engine, the codebase-intelligence service, the mesh. All MIT." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardPricing" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardPricingTitle" {
+          @link { href: "/pricing", content: "What costs money →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardPricingDesc" {
+          @text { content: "Short answer: nothing you just did. The longer answer is on that page." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardPlayground" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardPlaygroundTitle" {
+          @link { href: "/playground", content: "Try it without installing →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardPlaygroundDesc" {
+          @text { content: "Write HoloScript in the browser and watch it render. Nothing to install." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardDocs" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardDocsTitle" {
+          @link { href: "/docs", content: "Where things are →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardDocsDesc" {
+          @text { content: "What explains what, and where each thing lives." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+    }
+  }
+}
