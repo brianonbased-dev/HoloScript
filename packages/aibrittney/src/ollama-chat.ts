@@ -282,7 +282,7 @@ export interface OpenAIChatMessage {
   role: ChatMessage['role'];
   content: string;
   tool_calls?: Array<{
-    id?: string;
+    id: string;
     type: 'function';
     function: { name: string; arguments: string };
   }>;
@@ -293,9 +293,11 @@ export interface OpenAIChatMessage {
  * Ollama accepts our `ChatMessage` history verbatim; OpenAI-compatible servers
  * want tool-call arguments as a JSON string and `type: 'function'` per call.
  * Ids pass through exactly as the loop minted them, so the `tool_call_id` a
- * tool result carries is the id its assistant message announced. A history
- * entry without an id is sent without one — never a position, never the tool
- * name. Everything else passes through as role + content.
+ * tool result carries is the id its assistant message announced; every
+ * assistant tool call has one by type. A tool result without `tool_call_id`
+ * goes out without one — a decision, not an oversight: making it required
+ * needs `role` to become a discriminated union, which is a follow-up.
+ * Everything else passes through as role + content.
  */
 export function toOpenAIMessages(messages: ChatMessage[]): OpenAIChatMessage[] {
   return messages.map((msg) => {
@@ -304,7 +306,7 @@ export function toOpenAIMessages(messages: ChatMessage[]): OpenAIChatMessage[] {
         role: msg.role,
         content: msg.content,
         tool_calls: msg.tool_calls.map((call) => ({
-          ...(call.id ? { id: call.id } : {}),
+          id: call.id,
           type: 'function' as const,
           function: {
             name: call.function.name,

@@ -224,17 +224,19 @@ describe('chatOnceFromOllama with AIBRITTNEY_API_STYLE=openai', () => {
     }
   });
 
-  it('sends a history entry without an id without one: never a position, never the tool name', () => {
+  it('sends a tool result without tool_call_id without one: never the tool name', () => {
+    // Assistant tool calls always carry their id (ChatMessage.tool_calls[].id is
+    // required). tool_call_id on a tool result stays optional until `role`
+    // becomes a discriminated union, so a missing one is omitted, never substituted.
     const wire = toOpenAIMessages([
       {
         role: 'assistant',
         content: '',
-        tool_calls: [{ function: { name: 'read_file', arguments: {} } }],
+        tool_calls: [{ id: 'call_ab12cd_8', function: { name: 'read_file', arguments: {} } }],
       },
       { role: 'tool', name: 'read_file', content: '{}' },
     ]);
-    expect(wire[0].tool_calls?.[0]).not.toHaveProperty('id');
-    expect(wire[0].tool_calls?.[0]).toMatchObject({ type: 'function' });
+    expect(wire[0].tool_calls?.[0]).toMatchObject({ id: 'call_ab12cd_8', type: 'function' });
     expect(wire[1]).not.toHaveProperty('tool_call_id');
     expect(wire[1]).toEqual({ role: 'tool', content: '{}' });
   });
