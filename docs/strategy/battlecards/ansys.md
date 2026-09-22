@@ -51,7 +51,7 @@
 
 | Differentiator                           | Why it matters                                              | Proof                                     |
 | ---------------------------------------- | ----------------------------------------------------------- | ----------------------------------------- |
-| **Browser-native WebGPU simulation**     | Zero install, anywhere, any device                          | TVCG paper benchmarks, NAFEMS LE1 at 1.5% |
+| **Browser-native WebGPU simulation**     | Zero install, anywhere, any device                          | NAFEMS LE1 at 1.5%, structural TET4       |
 | **Hash-verified deterministic replay**   | Court-admissible, FDA-auditable                             | SimulationContract 6 guarantees           |
 | **Solver + renderer share same object**  | Trust by Construction (Tier 3) vs ANSYS Tier 1 (discipline) | W.GOLD.013                                |
 | **Contract-verified AI** (not surrogate) | Correctness bounds enforced, not predicted                  | paper-benchmarks.test.ts, `<2%` overhead  |
@@ -79,7 +79,7 @@
 
 ## Landmines to Defuse
 
-- **"HoloScript doesn't have ANSYS's validation library"** → "We have the NAFEMS benchmarks all passing and a peer-reviewed paper (IEEE TVCG 2026). For your regulated workflows, ANSYS is fine — for your emerging ones, we offer a guarantee ANSYS can't."
+- **"HoloScript doesn't have ANSYS's validation library"** → "Correct, and it is not close. ANSYS has thousands of validated cases. We have NAFEMS LE1 at 1.5% on structural TET4, and our own risk register says credible V&V needs 50+ benchmarks per domain against the 3 we have. What we have that they do not is byte-identical deterministic replay: any result we produce can be reproduced exactly, hash for hash, by someone who does not have our software. For regulated workflows, use ANSYS. Where the argument is about reproducibility rather than breadth of validation, that is ours." **Do not claim peer review.** The IEEE TVCG submission was desk-rejected and the revision is not evidenced as resubmitted (`docs/public/papers-status.json`, row TVCG); `docs/paper-program-status.md` carries the standing instruction "do not anchor until revision locks". This line said "a peer-reviewed paper (IEEE TVCG 2026)" until 2026-09-21 — false twice over, since a desk rejection is a rejection *without* peer review, and it was the script someone reads aloud when a buyer challenges our validation. Saying the true version is also the stronger position, because a buyer can check it.
 - **"We need HPC scale"** → "We target browser + laptop + workstation first. If your workflow needs 10K cores, we partner; we don't replace."
 - **"Our engineers know ANSYS"** → "Keep them there. Use HoloScript for the workflows ANSYS doesn't serve: regulatory replay, cross-team sharing, agent integration, education."
 
