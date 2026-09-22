@@ -853,7 +853,13 @@ export async function handleTool(
     name === 'holo_update_daemon_ritual' ||
     name === 'holo_list_daemons'
   ) {
-    const result = await handleDaemonLifecycleTool(name, args);
+    // task_1790062507560_px5q: same principal binding as the index.ts registry
+    // (the live dispatch path); 'stdio-local' is a sentinel the binder ignores.
+    const { defaultSignerMapsToCaller } = await import('./holomesh/identity/board-signer-binding');
+    const result = await handleDaemonLifecycleTool(name, args, {
+      signer: effectiveSigningCtx?.signer,
+      signerMapsToCaller: defaultSignerMapsToCaller,
+    });
     if (result !== null) return result;
   }
 
