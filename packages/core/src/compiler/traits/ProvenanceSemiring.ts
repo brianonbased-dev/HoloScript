@@ -186,6 +186,56 @@ function canonicalTieValue(value: unknown, seen = new WeakSet<object>()): string
   return canonical;
 }
 
+/**
+ * The leaves behind a value: a merged value carries the contributions it was
+ * built from; a plain value is its own single leaf.
+ */
+function leavesOf(p: ProvenanceValue): ProvenanceLeaf[] {
+  return Array.isArray(p.contributions) && p.contributions.length > 0
+    ? p.contributions
+    : [{ source: String(p.source), value: p.value }];
+}
+
+/**
+ * Canonical n-ary merge (task_1790058854739_8jh1, adversarial review of #312).
+ *
+ * add() left-folds multiply() in trait arrival order, and every merging
+ * strategy used to build its result pairwise: source `srcA < srcB ? A+B : B+A`,
+ * value `a + b`. That is commutative for two operands and NOT associative for
+ * three: fold(A,B,C) wrote 'A+B+C' while fold(A,C,B) wrote 'A+C+B', and float
+ * addition moved the value with the order. vec-component-sum is a default rule
+ * (velocity, acceleration, angularVelocity) and DistributedTransformGraph
+ * hashes provenance, so two agents composing the same traits in a different
+ * order could disagree about a hash.
+ *
+ * Here a merge is rebuilt from the sorted set of LEAF contributions: the source
+ * is the sorted leaf names joined by the operator and the value is the
+ * reduction in that same order, so every arrival order yields one
+ * serialisation. Leaves sharing a name are ordered by their canonical value.
+ */
+function mergeCanonical(
+  a: ProvenanceValue,
+  b: ProvenanceValue,
+  operator: string,
+  reduce: (acc: unknown, next: unknown) => unknown,
+  extra: Partial<ProvenanceValue> = {}
+): ProvenanceValue {
+  const leaves = [...leavesOf(a), ...leavesOf(b)].sort((x, y) => {
+    if (x.source !== y.source) return x.source < y.source ? -1 : 1;
+    const vx = canonicalTieValue(x.value);
+    const vy = canonicalTieValue(y.value);
+    return vx < vy ? -1 : vx > vy ? 1 : 0;
+  });
+  let value = leaves[0].value;
+  for (let i = 1; i < leaves.length; i += 1) value = reduce(value, leaves[i].value);
+  return {
+    ...extra,
+    value,
+    source: leaves.map((leaf) => leaf.source).join(operator),
+    contributions: leaves,
+  };
+}
+
 export interface ProvenanceContext {
   /** Authority weight (e.g., Founder=100, Agent=50, Guest=0) */
   authorityLevel: number;
@@ -195,6 +245,12 @@ export interface ProvenanceContext {
   sourceType?: 'user' | 'agent' | 'system';
   /** Optional reputation score from HoloMesh (0-100) — threads reputation into algebra */
   reputationScore?: number;
+}
+
+/** One trait's own contribution to a merged value: the leaf a merging strategy folds over. */
+export interface ProvenanceLeaf {
+  source: string;
+  value: unknown;
 }
 
 export interface ProvenanceValue {
@@ -208,6 +264,13 @@ export interface ProvenanceValue {
   context?: ProvenanceContext;
   /** Dead element audit record (if this value was zeroed) */
   deadRecord?: DeadElement;
+  /**
+   * For a value built by a merging strategy (sum, multiply, tropical, the
+   * vector component strategies): the leaf contributions it was reduced from,
+   * sorted by source. Carried so a later merge can rebuild the result from
+   * every leaf instead of folding onto an intermediate (see mergeCanonical).
+   */
+  contributions?: ProvenanceLeaf[];
 }
 
 export type ProvenanceConfig = Record<string, ProvenanceValue>;
@@ -470,19 +533,15 @@ export class ProvenanceSemiring {
       if (!semiring) {
         throw new Error(`No semiring adapter available for strategy '${rule.strategy}'`);
       }
-      const srcA = String(a.source);
-      const srcB = String(b.source);
       const selectedContext =
         weightA > weightB
           ? a.context
           : weightA < weightB
             ? b.context
             : tieBreakProvenance(a, b).context;
-      return {
-        value: semiring.mul(a.value as number, b.value as number),
-        source: srcA < srcB ? `${srcA}⊗${srcB}` : `${srcB}⊗${srcA}`,
+      return mergeCanonical(a, b, '⊗', (x, y) => semiring.mul(x as number, y as number), {
         context: selectedContext,
-      };
+      });
     }
 
     switch (rule.strategy) {
@@ -504,22 +563,10 @@ export class ProvenanceSemiring {
           source: valA < valB ? a.source : b.source,
         };
       }
-      case 'sum': {
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: (a.value as number) + (b.value as number),
-          source: srcA < srcB ? `${srcA}+${srcB}` : `${srcB}+${srcA}`,
-        };
-      }
-      case 'multiply': {
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: (a.value as number) * (b.value as number),
-          source: srcA < srcB ? `${srcA}*${srcB}` : `${srcB}*${srcA}`,
-        };
-      }
+      case 'sum':
+        return mergeCanonical(a, b, '+', (x, y) => (x as number) + (y as number));
+      case 'multiply':
+        return mergeCanonical(a, b, '*', (x, y) => (x as number) * (y as number));
 
       case 'authority-weighted': {
         // C1: Authority MODULATES the numeric outcome instead of bypassing rules.
@@ -569,12 +616,7 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: vecComponentMax(a.value, b.value),
-          source: srcA < srcB ? `${srcA}⊕max${srcB}` : `${srcB}⊕max${srcA}`,
-        };
+        return mergeCanonical(a, b, '⊕max', (x, y) => vecComponentMax(x as VectorValue, y as VectorValue));
       }
 
       case 'vec-component-min': {
@@ -584,12 +626,7 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: vecComponentMin(a.value, b.value),
-          source: srcA < srcB ? `${srcA}⊕min${srcB}` : `${srcB}⊕min${srcA}`,
-        };
+        return mergeCanonical(a, b, '⊕min', (x, y) => vecComponentMin(x as VectorValue, y as VectorValue));
       }
 
       case 'vec-component-sum': {
@@ -599,12 +636,7 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: vecAdd(a.value, b.value),
-          source: srcA < srcB ? `${srcA}+${srcB}` : `${srcB}+${srcA}`,
-        };
+        return mergeCanonical(a, b, '+', (x, y) => vecAdd(x as VectorValue, y as VectorValue));
       }
 
       case 'vec-magnitude-max': {
