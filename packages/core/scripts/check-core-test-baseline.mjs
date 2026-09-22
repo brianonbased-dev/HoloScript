@@ -205,6 +205,43 @@ if (process.argv.includes('--self-test')) {
 
     // ── what the log itself must prove ───────────────────────────────────
     ['REFUSES a log with no envelope at all', fullBody(), 2],
+    // ISOLATED, from review: a complete, balanced, all-zero log whose ONLY
+    // defect is one crash line inside a section. Every other rule is satisfied,
+    // so deleting the crash-marker scan makes exactly this case go green. I had
+    // recorded this rule as impossible to isolate; it was not, and the fixture
+    // below is the reviewer's, not mine.
+    [
+      'REFUSES a complete log that carries a worker-crash line inside a section',
+      [
+        begin('sequential'),
+        files(30),
+        begin('shard-1/4'),
+        ' Caused by: Error: Worker exited unexpectedly',
+        files(30),
+        ...['shard-2/4', 'shard-3/4', 'shard-4/4'].flatMap((l) => [begin(l), files(30)]),
+        env(),
+      ],
+      2,
+    ],
+    // ISOLATED, also from review: a complete pass set where every pass claims
+    // skipped, so no summary is expected anywhere and the zero-summary refusal
+    // is the only rule that can fire. (The skipped-pass restriction added in
+    // this commit now also refuses it, which is defence in depth rather than a
+    // reason to drop the case.)
+    [
+      'REFUSES a run in which every pass claims to have been skipped',
+      [
+        env({
+          passes: ['sequential', 'shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'].map((label) => ({
+            label,
+            status: 0,
+            signal: null,
+            skipped: true,
+          })),
+        }),
+      ],
+      2,
+    ],
     // THE SHAPE THAT BIT A REAL RUN. The gate captures the child's stdout and
     // stderr separately and concatenates them, so a pass-begin marker written to
     // stderr lands after EVERY summary and all five sections come out empty.
@@ -312,14 +349,29 @@ if (process.argv.includes('--self-test')) {
   // and a named case below goes red. THREE are not, because another rule
   // catches the same fixture first:
   //
-  //   delimiter nonce      -> the per-section summary count catches the forgery
-  //                           (a forged marker steals the section its own pass
-  //                            needed for its summary)
-  //   crash-marker scan    -> the balance check catches the same logs
-  //   zero-summary refusal -> the per-section count catches the same logs
+  //   delimiter nonce -> the per-section summary count catches the forgery: an
+  //                      accepted forged marker resets the section, so the pass
+  //                      it targets loses the summary it had collected and the
+  //                      per-section rule refuses first. Confirmed by review.
   //
-  // Those three are redundant by design and stay for depth, but no case here
-  // proves any of them alone. Do not read N refusals as N independent rules.
+  //   zero-summary refusal -> also not isolable, but for a reason that MOVED.
+  //                      Review supplied an all-skipped fixture that isolated
+  //                      it, and the skipped-pass restriction added in the same
+  //                      commit now refuses that fixture FIRST. Measured after
+  //                      adding it: deleting the zero-summary refusal leaves
+  //                      this self-test green again. Fixing one hole closed the
+  //                      only door through which another could be observed.
+  //
+  // I had listed the crash-marker scan here too. That was wrong: review
+  // supplied a fixture that isolates it, and it is a case above -- a complete,
+  // balanced, all-zero log whose only defect is one crash line in a section.
+  //
+  // AND ONE THING NO FIXTURE HERE CAN PROVE. Whether the RUNNER sends its
+  // markers, summaries and FAIL lines down one ordered stream is invisible to
+  // every case in this file, because a fixture supplies an already-merged log.
+  // Moving them apart leaves this self-test green while breaking per-pass
+  // attribution on the live path -- measured, twice. That one is covered by a
+  // live run in the PR evidence, not here, and saying so is the point.
   let failed = 0;
   for (const [name, lines, want] of CASES) {
     const log = resolve(dir, name.replace(/[^a-z0-9]+/gi, '-') + '.log');
@@ -656,6 +708,33 @@ if (envelope) {
         `${actual.slice(0, 12)} -- it says nothing about the tree being judged.`
     );
     process.exit(2);
+  }
+
+  // `skipped` IS TRUSTED FROM THE ENVELOPE, SO BOUND WHAT IT CAN EXCUSE.
+  //
+  // The runner marks the sequential pass skipped when serialPassFiles is empty,
+  // and the gate then does not expect a summary for it. Review showed the
+  // obvious consequence: an envelope declaring the full pass set with all FOUR
+  // SHARDS skipped:true, and one real sequential summary, was accepted -- a
+  // full-suite token minted from one pass. Only the sequential pass has a
+  // legitimate reason to be skipped, and only when the list it would have run
+  // is actually empty.
+  const serialPassFiles = manifest.serialPassFiles?.files ?? [];
+  for (const pass of Array.isArray(envelope.passes) ? envelope.passes : []) {
+    if (!pass.skipped) continue;
+    if (pass.label !== 'sequential') {
+      console.error(
+        `[baseline-gate] pass "${pass.label}" is marked skipped; only the sequential pass may be.`
+      );
+      process.exit(2);
+    }
+    if (serialPassFiles.length > 0) {
+      console.error(
+        '[baseline-gate] the sequential pass is marked skipped, but test-baseline.json lists ' +
+          `${serialPassFiles.length} file(s) for it to run.`
+      );
+      process.exit(2);
+    }
   }
 
   const passes = Array.isArray(envelope.passes) ? envelope.passes : [];

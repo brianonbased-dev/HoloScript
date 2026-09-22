@@ -73,7 +73,25 @@ function ensureCoverageTmp() {
 function runVitest(args, extraEnv = {}) {
   ensureCoverageTmp();
   return spawnSync(process.execPath, ['--max-old-space-size=16384', vitest, 'run', ...args], {
-    stdio: 'inherit',
+    // ONE ORDERED STREAM for the child, because the gate reads order.
+    //
+    // 'inherit' kept the child's stdout and stderr separate, and vitest splits
+    // its own output across both: the `Test Files` summaries go to stdout while
+    // the FAIL lines go to STDERR. The gate assembles `stdout + stderr`, so with
+    // markers on stderr every section came out empty (the run that refused
+    // itself), and with markers moved to stdout every FAIL line landed after the
+    // LAST marker and was attributed to shard-4/4 — so a failure in the
+    // sequential pass read as "exited 1 with no failures of its own", i.e. a
+    // crash, and the developer never saw which test failed.
+    //
+    // Fixing where the markers go could not fix this, because the two halves of
+    // vitest's own output were still in different streams. [0, 1, 1] sends the
+    // child's stderr to the same fd as its stdout, so markers, summaries and
+    // FAIL lines share one ordered stream and per-pass attribution is real.
+    //
+    // A fixture cannot catch a regression here: the log a fixture supplies is
+    // already merged. Only a live run can, which is why one is in the evidence.
+    stdio: [0, 1, 1],
     env: { ...sharedEnv, ...extraEnv },
   });
 }

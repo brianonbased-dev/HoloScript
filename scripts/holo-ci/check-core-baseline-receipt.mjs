@@ -105,6 +105,18 @@ export function evaluateReceipt(receipt, currentTreeSha) {
   // Non-zero is legitimate only when that pass produced failures of its OWN --
   // the baseline exists to forgive known failures, and vitest exits 1 for them.
   // `failures` is per-pass for exactly this reason.
+  // A SKIPPED PASS RAN NOTHING, so bound what one is allowed to excuse.
+  // The gate refuses an envelope where a shard claims skipped; this refuses a
+  // receipt that records one, because a full-suite token minted from a single
+  // executed pass is the same defect whichever half fails to notice it. Only
+  // the sequential pass has a legitimate reason to be skipped.
+  const badSkip = run.passes.find((x) => x.skipped && x.label !== 'sequential');
+  if (badSkip)
+    return {
+      ok: false,
+      reason: `receipt records pass "${badSkip.label}" as skipped; only the sequential pass may be`,
+    };
+
   const badPass = run.passes.find(
     (x) => x.signal || x.status === null || (x.status !== 0 && !(x.failures > 0))
   );
@@ -130,6 +142,12 @@ export function evaluateReceipt(receipt, currentTreeSha) {
   // reproduced in independent review. The gate refuses a non-full run now; this
   // refuses a receipt that records one, because a checker that delegates its
   // whole judgement to the writer is the shape that let a crash through before.
+  // AND NO SCHEMA BUMP FOR THIS FIELD, deliberately. A receipt is a claim about
+  // a tree and this function is its only consumer, so an old receipt failing
+  // here with "records no scope" is both stricter and more legible than a
+  // version fence -- a bump would invite the argument that an old receipt was
+  // "valid under v2". The refusal IS the migration. (Settled with the reviewer,
+  // 2026-09-22; written down so it is not reopened.)
   const scope = receipt.runCompleted.scope;
   if (!scope) return { ok: false, reason: 'receipt records no scope, so it cannot say what was run' };
   if (scope.mode !== 'full')
@@ -304,6 +322,33 @@ if (process.argv.includes('--self-test')) {
         runCompleted: {
           ...good.runCompleted,
           passes: [{ label: 'shard-3/4', status: 1, signal: null, failures: 2 }],
+        },
+      },
+      SHA,
+      true,
+    ],
+    [
+      'rejects a receipt whose shards claim to have been skipped',
+      {
+        ...good,
+        runCompleted: {
+          ...good.runCompleted,
+          passes: [
+            { label: 'sequential', status: 0, signal: null, failures: 0 },
+            { label: 'shard-1/4', status: 0, signal: null, failures: 0, skipped: true },
+          ],
+        },
+      },
+      SHA,
+      false,
+    ],
+    [
+      'accepts a receipt where only the sequential pass was skipped',
+      {
+        ...good,
+        runCompleted: {
+          ...good.runCompleted,
+          passes: [{ label: 'sequential', status: 0, signal: null, failures: 0, skipped: true }],
         },
       },
       SHA,
