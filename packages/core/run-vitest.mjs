@@ -134,12 +134,12 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
   // it must mean "skip this pass", never "run everything serially".
   if (SERIAL_FILES.length === 0) {
     console.error(
-      `[run-vitest] pass 1/2 ${DASH} skipped: serialPassFiles is empty in test-baseline.json`
+      `[run-vitest] pass 1/2 — skipped: serialPassFiles is empty in test-baseline.json`
     );
     passes.push({ label: 'sequential', status: 0, signal: null, skipped: true });
   } else {
     console.error(
-      `[run-vitest] pass 1/2 ${DASH} sequential pass (${SERIAL_FILES.length} files, maxWorkers=1)`
+      `[run-vitest] pass 1/2 — sequential pass (${SERIAL_FILES.length} files, maxWorkers=1)`
     );
     const seqCode = runPass('sequential', ['--maxWorkers=1', ...SERIAL_FILES]);
     if (seqCode !== 0) overallExitCode = seqCode;
@@ -150,7 +150,7 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
   // serialPassFiles list to the exclude list, so no shard picks them up again.
   // Both sides now read that list from test-baseline.json rather than keeping
   // their own copy.
-  console.error(`[run-vitest] pass 2/2 ${DASH} sharded pass (4 shards, serial-pass files excluded)`);
+  console.error(`[run-vitest] pass 2/2 — sharded pass (4 shards, serial-pass files excluded)`);
   for (const shard of ['1/4', '2/4', '3/4', '4/4']) {
     const code = runPass(`shard-${shard}`, ['--shard', shard, ...stabilityArgs, ...extraArgs], {
       HOLOSCRIPT_EXCLUDE_FLAKY: '1',
