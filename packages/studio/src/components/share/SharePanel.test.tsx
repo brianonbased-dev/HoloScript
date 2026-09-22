@@ -7,7 +7,7 @@
  * surface a phone can reach produced a copyable link and no scannable code at
  * all. And every QR the studio DID emit encoded /w/<id>, which HoloQR
  * pattern-matches as a world-portal link (WorldPortal.kt:21) and refuses,
- * because its trusted-key list ships empty (WorldTrust.kt:29) -- the headset
+ * because its trusted-key list ships empty (WorldTrust.kt:31) -- the headset
  * shows "World blocked: signed-parameter-cardinality".
  *
  * These tests assert the PROPERTY, not its silhouette: not "does the file
