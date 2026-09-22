@@ -283,7 +283,19 @@ export type RegistrationAgentBinding =
  *      agent, and the door is not the loopback-only one.
  *
  * A proven registrar therefore keeps today's behaviour on the comparison path;
- * the new input only decides what happens when that comparison fails.
+ * the new input only decides what happens when that comparison fails — and a
+ * loopback registrant (door closed) that proves X but asks for a different
+ * non-reserved Y is given Y. Two reasons, and the second is the one that
+ * survives a change of premise. First, refusing would protect nothing: the
+ * route records only `agentId`, never whether the binding was proven, so the
+ * same process drops its key header and gets Y unproven, and the two stored
+ * client records come out identical (the real-server test pins that
+ * equivalence, so making proven-ness durable hands this decision back to
+ * whoever changes it). Second, the conservative rule would teach every
+ * integrator that the same caller, on the same socket, wanting the same id,
+ * succeeds by sending FEWER headers — strip your proof and you get further —
+ * which is wrong on any deployment, including one where the equivalence has
+ * been broken. (claude1's review of 893df81cc, 2026-09-22.)
  */
 export function agentBindingForRegistration(params: {
   requestedAgentId?: unknown;

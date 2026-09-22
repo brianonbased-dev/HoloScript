@@ -785,7 +785,7 @@ describe('agentBindingForRegistration for a registrant that proved nothing', () 
     ).toEqual({ ok: true, boundAgentId: 'agent_owner' });
   });
 
-  it('a proven registrar asking for a DIFFERENT non-reserved id on loopback, door closed, gets it', () => {
+  it('a proven registrar asking for a DIFFERENT non-reserved id on loopback, door closed, gets it (refusing would reward stripping the proof)', () => {
     // Refusing here would protect nothing: the same process can drop its key
     // header and register the id unproven. The key never narrows what a
     // loopback registrant may bind; it only fixes the spelling when it matches.

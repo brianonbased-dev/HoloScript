@@ -392,8 +392,16 @@ describe('agent_id binding for a loopback registrant through the real http-serve
     ({ AGENT_ID_NOT_BOUND_ERROR } = await import('../auth/oauth2-provider'));
   });
 
-  function register(extra: Record<string, unknown> = {}, remote?: string): Promise<Reply> {
-    return request('POST', '/oauth/register', { body: { ...HOLOSHELL_SHAPE, ...extra }, remote });
+  function register(
+    extra: Record<string, unknown> = {},
+    remote?: string,
+    headers?: Record<string, string>
+  ): Promise<Reply> {
+    return request('POST', '/oauth/register', {
+      body: { ...HOLOSHELL_SHAPE, ...extra },
+      remote,
+      headers,
+    });
   }
 
   function grant(client: Record<string, unknown>, agentId?: string): Promise<Reply> {
@@ -492,6 +500,67 @@ describe('agent_id binding for a loopback registrant through the real http-serve
     expect(token.status).toBe(400);
     expect(token.body.error).toBe('invalid_grant');
     expect(token.body.error_description).toBe(AGENT_ID_NOT_BOUND_ERROR);
+  });
+
+  // The permissive rule's first justification is an EQUIVALENCE: a loopback
+  // registrant (door closed) that proves X but asks for Y ends up with the same
+  // stored client record as one that proves nothing and asks for Y, because the
+  // route records only agentId, never whether the binding was proven. That is
+  // load-bearing and would silently stop being true the day someone records
+  // proven-ness on the client (say, for audit) — every other test would stay
+  // green. So it is pinned here: if this goes red, re-decide the rule; do not
+  // widen the strip list. (claude1's review of 893df81cc, 2026-09-22.)
+  it('door closed: proving X but asking for Y stores the SAME client record as asking for Y unproven', async () => {
+    expect(process.env[FLAG]).toBeUndefined();
+    // Both modules pull in holomesh/state: imported after the server, like the
+    // constants above, so the env scrub has already happened.
+    const { keyRegistry } = await import('../holomesh/state');
+    const { getOAuth21Service } = await import('../security/oauth21');
+    const PROVEN_X = 'agent_probe_x';
+    const KEY = 'live-key-owned-by-agent-probe-x';
+    keyRegistry.set(KEY, {
+      key: KEY,
+      walletAddress: `0x${'2'.repeat(40)}`,
+      agentId: PROVEN_X,
+      agentName: PROVEN_X,
+      scopes: ['*'],
+      createdAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+      rotationCount: 0,
+      lastRotatedAt: null,
+      isFounder: false,
+    });
+    try {
+      // Positive control: the key really proves X. Asking for X (in another
+      // spelling) records the registry's spelling, which is the proven path.
+      const provenSelf = await register({ agent_id: PROVEN_X.toUpperCase() }, undefined, {
+        'x-agent-key': KEY,
+      });
+      expect(provenSelf.status, JSON.stringify(provenSelf.body)).toBe(201);
+      expect(getOAuth21Service().getClient(provenSelf.body.client_id as string)?.agentId).toBe(
+        PROVEN_X
+      );
+
+      // The two paths under comparison.
+      const provenAskingY = await register({ agent_id: OWNER }, undefined, { 'x-agent-key': KEY });
+      const unprovenAskingY = await register({ agent_id: OWNER });
+      expect(provenAskingY.status, JSON.stringify(provenAskingY.body)).toBe(201);
+      expect(unprovenAskingY.status, JSON.stringify(unprovenAskingY.body)).toBe(201);
+
+      const stored = (id: string) => {
+        const record = getOAuth21Service().getClient(id);
+        expect(record, `client ${id} is stored`).toBeDefined();
+        // Only the per-client identifiers and the clock may differ.
+        const { clientId: _clientId, clientSecret: _clientSecret, createdAt: _createdAt, ...rest } =
+          record!;
+        return rest;
+      };
+      const proven = stored(provenAskingY.body.client_id as string);
+      const unproven = stored(unprovenAskingY.body.client_id as string);
+      expect(proven.agentId).toBe(OWNER);
+      expect(proven).toEqual(unproven);
+    } finally {
+      keyRegistry.delete(KEY);
+    }
   });
 });
 
