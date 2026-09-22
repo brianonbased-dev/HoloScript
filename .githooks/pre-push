@@ -124,15 +124,45 @@ fi
 # view id renamed in the generated output) it exits 1 and names the file.
 if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/studio/'; then
   echo -e "${YELLOW}[pre-push] studio change — checking generator drift (~6s)...${NC}"
-  if ! corepack pnpm --filter @holoscript/studio run generators:check >/dev/null 2>&1; then
+  # Output is SHOWN, not swallowed. Sending it to /dev/null threw away the only
+  # thing that tells the developer WHICH file drifted, leaving them to re-run the
+  # check by hand to learn what the hook already knew.
+  if ! corepack pnpm --filter @holoscript/studio run generators:check; then
     echo -e "${RED}[pre-push] BLOCKED: a committed generated file no longer matches its generator.${NC}"
-    echo -e "${YELLOW}  See which: pnpm check:studio-generators${NC}"
-    echo -e "${YELLOW}  Fix: pnpm --filter @holoscript/studio run holo:build vector:build viewreg:build, then commit.${NC}"
+    # Three SEPARATE commands. `pnpm run a b c` runs script `a` with "b" and "c"
+    # as argv -- it does not run three scripts. The one-line form printed here
+    # before ran holo:build only, so anyone blocked by vector or viewreg drift
+    # followed the instructions, saw exit 0, pushed, and was blocked again with
+    # the identical message.
+    echo -e "${YELLOW}  Fix: pnpm --filter @holoscript/studio run holo:build${NC}"
+    echo -e "${YELLOW}       pnpm --filter @holoscript/studio run vector:build${NC}"
+    echo -e "${YELLOW}       pnpm --filter @holoscript/studio run viewreg:build${NC}"
+    echo -e "${YELLOW}  then commit the regenerated files.${NC}"
     echo -e "${YELLOW}  Never edit a @generated file directly — change the .holo source.${NC}"
     echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
     exit 1
   fi
-  echo -e "${GREEN}[pre-push] studio generators match their sources.${NC}"
+
+  # THE CHECK READS THE WORKING TREE, AND THE PUSH SENDS THE COMMIT.
+  #
+  # Every --check mode compares the generator against the files ON DISK. But
+  # `prebuild` and `predev` regenerate the tree, so a developer who commits stale
+  # generated output and then runs `pnpm build` has a clean working tree and a
+  # stale commit -- and the check above passes by construction while the push
+  # carries the drift.
+  #
+  # The check just proved disk == generator output. So all that is left is
+  # disk == HEAD for the generated artifacts, which git can answer directly.
+  gen_paths="packages/studio/.holo-manifest.json packages/studio/src/lib/studio/viewRegistry.generated.ts packages/studio/src/lib/studio/viewRegistry.components.tsx packages/studio/src/components/panels/native"
+  if ! git diff --quiet HEAD -- $gen_paths 2>/dev/null; then
+    echo -e "${RED}[pre-push] BLOCKED: generated studio files differ between your commit and your working tree.${NC}"
+    echo -e "${YELLOW}  The generators agree with your FILES, but you have not committed them, so the${NC}"
+    echo -e "${YELLOW}  push would carry the older output. Commit the regenerated files:${NC}"
+    git diff --name-only HEAD -- $gen_paths 2>/dev/null | sed 's/^/    /'
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}[pre-push] studio generators match their sources, and the commit matches the tree.${NC}"
 fi
 
 # Gate only when a manifest or the lockfile is part of the push.

@@ -117,26 +117,50 @@ function loadManifest(): Manifest {
   return { generatedFiles: [], lastBuild: '' };
 }
 
-async function saveManifest(manifest: Manifest): Promise<void> {
+/** Exactly the bytes the build writes, with the wall-clock stamp neutralised. */
+function manifestBytes(m: Manifest, lastBuild: string): string {
+  return JSON.stringify({ ...m, lastBuild }, null, 2) + '\n';
+}
+
+async function saveManifest(manifest: Manifest, errorCount = 0): Promise<void> {
   if (CHECK) {
-    // The manifest carries a wall-clock lastBuild, so it can never be byte-stable
-    // across two runs. Compare the only thing the generator actually decides -- which
-    // files it generates -- and leave the stamp out of the verdict, rather than
-    // reporting a red that says nothing except that time passed.
-    let committed: Manifest | null = null;
+    // EVERYTHING EXCEPT THE STAMP, and the file's shape too.
+    //
+    // The stamp genuinely cannot be byte-stable -- it is wall-clock -- so it is
+    // neutralised rather than compared. But this used to compare ONLY
+    // `generatedFiles`, which left every other key, every value, and the file's
+    // whole serialisation unchecked: a junk key, a garbage lastBuild and the
+    // file rewritten as one line with no trailing newline all passed. Comparing
+    // the bytes the writer WOULD produce catches all of it and still ignores
+    // time passing.
+    let committedRaw: string | null = null;
     try {
-      committed = JSON.parse(readFileSync(MANIFEST_PATH, 'utf-8')) as Manifest;
+      committedRaw = readFileSync(MANIFEST_PATH, 'utf-8');
     } catch {
-      committed = null;
+      committedRaw = null;
     }
-    const same =
-      committed !== null &&
-      JSON.stringify(committed.generatedFiles) === JSON.stringify(manifest.generatedFiles);
-    if (!same) drift.push(`${relative(STUDIO_ROOT, MANIFEST_PATH)} (generated-file list)`);
+    if (committedRaw === null) {
+      drift.push(`${relative(STUDIO_ROOT, MANIFEST_PATH)} (missing)`);
+      return;
+    }
+    let committed: Manifest;
+    try {
+      committed = JSON.parse(committedRaw) as Manifest;
+    } catch {
+      drift.push(`${relative(STUDIO_ROOT, MANIFEST_PATH)} (not valid JSON)`);
+      return;
+    }
+    // A partial run cannot speak to the file list; say nothing rather than a red
+    // that only means "a page failed", which is already reported above.
+    if (errorCount > 0) return;
+    const stamp = typeof committed.lastBuild === 'string' ? committed.lastBuild : '';
+    if (manifestBytes(manifest, stamp) !== committedRaw) {
+      drift.push(`${relative(STUDIO_ROOT, MANIFEST_PATH)}`);
+    }
     return;
   }
 
-  writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(MANIFEST_PATH, manifestBytes(manifest, manifest.lastBuild));
 }
 
 // =============================================================================
@@ -230,7 +254,16 @@ async function build(): Promise<void> {
     }
 
     // Safety check: don't overwrite hand-written files
-    const relOutput = relative(STUDIO_ROOT, result.outputPath);
+    //
+    // NORMALISED, because this string is PERSISTED into .holo-manifest.json and
+    // then compared against a fresh run. `relative()` returns the platform
+    // separator, so a manifest written on Windows carries "src\\app\\x\\page.tsx"
+    // and the same 15 pages on Linux or macOS produce "src/app/x/page.tsx" --
+    // not one entry matches, the check reports drift on a byte-clean tree, and
+    // since pre-push began running this check that is a permanent block on every
+    // non-Windows seat. `relPath` two dozen lines up was already normalised for
+    // exactly this reason; this line was missed.
+    const relOutput = relative(STUDIO_ROOT, result.outputPath).replace(/\\/g, '/');
     if (existsSync(result.outputPath)) {
       const existing = readFileSync(result.outputPath, 'utf-8');
       if (!existing.startsWith('// @generated') && !manifest.generatedFiles.includes(relOutput)) {
@@ -247,10 +280,27 @@ async function build(): Promise<void> {
     console.log(`  ✓ ${relPath} → ${relOutput}`);
   }
 
-  // Update manifest
-  manifest.generatedFiles = [...new Set([...manifest.generatedFiles, ...newGeneratedFiles])];
+  // THE MANIFEST IS A PURE FUNCTION OF THE SOURCES, not an append-only log.
+  //
+  // This was `[...new Set([...manifest.generatedFiles, ...newGeneratedFiles])]`:
+  // it started from the COMMITTED list and only ever added. The --check
+  // comparison then held committed against committed-union-fresh, which differs
+  // only when something is ADDED -- so deleting a page .holo left its generated
+  // src/app/<route>/page.tsx shipping, kept the stale manifest entry, and the
+  // check said OK. A reorder was invisible for the same reason. Measured:
+  // deleting four page sources left the check green.
+  //
+  // Only when the run was COMPLETE, though. A failed page is absent from
+  // newGeneratedFiles, and pruning on a partial run would both lose the record
+  // and make an already-generated file look hand-written to the safety check
+  // above on the next run.
+  if (errorCount === 0) {
+    manifest.generatedFiles = [...new Set(newGeneratedFiles)].sort();
+  } else {
+    manifest.generatedFiles = [...new Set([...manifest.generatedFiles, ...newGeneratedFiles])];
+  }
   manifest.lastBuild = new Date().toISOString();
-  await saveManifest(manifest);
+  await saveManifest(manifest, errorCount);
 
   const elapsed = Date.now() - startTime;
   console.log(`\nDone: ${successCount} compiled, ${errorCount} errors (${elapsed}ms)`);

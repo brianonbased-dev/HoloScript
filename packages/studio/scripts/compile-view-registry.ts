@@ -345,7 +345,30 @@ async function build(): Promise<void> {
     '\n};\n';
   emit(COMPONENTS_OUT_PATH, componentsOut);
 
-  await finish();
+  // A FAILING PANEL MUST NOT SILENTLY LEAVE THE REGISTRY.
+  //
+  // finish() writes both artifacts, and it used to run unconditionally -- before
+  // the errorCount branch at the bottom that prints "keeping last-good generated
+  // registry; deploy NOT blocked". That sentence was false for this generator.
+  // The registry is a single AGGREGATE artifact: a panel that fails to compile
+  // is simply absent from `views`, so the reduced registry was written and the
+  // view disappeared. Measured: breaking one panel took the registry from 91
+  // views to 90, exit 0, no red anywhere -- and `prebuild` runs viewreg:build,
+  // so a one-character typo in a panel shipped a Studio with that panel missing.
+  //
+  // The borrowed rationale is sound for compile-holo-pages, where each page is
+  // its own file and a failing page's file is simply left untouched. Here,
+  // keeping the last-good registry means not writing at all.
+  if (errorCount > 0 && !CHECK) {
+    console.warn(
+      `\n⚠ viewreg:build: ${errorCount} panel .holo file(s) did not compile — ` +
+        `NOT writing the registry, so the last-good one on disk is kept.\n` +
+        `  Fix the panel(s) above and re-run; the registry is an aggregate, so a\n` +
+        `  partial write would silently drop the failing panel's view.`
+    );
+  } else {
+    await finish();
+  }
 
   if (CHECK) {
     // --strict is not suspended by --check. viewreg:check passes BOTH, and this
@@ -396,15 +419,31 @@ async function build(): Promise<void> {
       // No output directory yet: nothing generated, so nothing orphaned.
     }
 
-    if (orphans.length > 0) {
+    // AN INCOMPLETE EMITTED SET CANNOT DIAGNOSE AN ORPHAN.
+    //
+    // EMITTED is filled inside the per-panel try block, so a panel whose source
+    // merely FAILS TO PARSE never lands in it -- and its generated file then
+    // looks orphaned. The message went on to assert "their panel .holo source is
+    // gone" and to offer "delete them", which for a source typo means deleting a
+    // live, still-imported component while the source sits right there. The
+    // compile errors are already reported above; this scan has nothing to add
+    // until they are fixed.
+    if (errorCount > 0 && orphans.length > 0) {
+      console.error('');
+      console.error(
+        `  (orphan scan skipped: ${errorCount} panel(s) failed to compile, so the emitted set is`
+      );
+      console.error('   incomplete and cannot tell a real orphan from a panel that did not build.)');
+    } else if (orphans.length > 0) {
       console.error('');
       console.error(
         `viewreg:check FAILED -- ${orphans.length} generated file(s) this generator no longer emits:`
       );
       for (const f of orphans) console.error(`    ${f}`);
       console.error('');
-      console.error('  Their panel .holo source is gone, so nothing regenerates them,');
-      console.error('  and nothing else compares them. Delete them, or restore the source.');
+      console.error('  Every panel compiled, so nothing emits these: their .holo source is gone.');
+      console.error('  Restore the source if the view is wanted; delete the file if it is not.');
+      console.error('  Check what still imports it before deleting.');
       process.exitCode = 1;
     }
 
@@ -430,17 +469,31 @@ async function build(): Promise<void> {
     return;
   }
 
-  console.log(
-    `\nWrote ${defs.length} view(s) → ${OUT_PATH}\n` +
-      `Wrote ${slotEntries.length} component mount(s) → ${COMPONENTS_OUT_PATH} (${errorCount} error(s))`
-  );
+  // SAY WHAT HAPPENED. When a panel fails to compile the write is skipped above,
+  // and this line went on announcing "Wrote 90 view(s) → <path>" about a file it
+  // had not touched -- swapping one false message for another. The count is also
+  // the REDUCED one, so it silently reported the drop it was meant to prevent.
+  if (errorCount > 0) {
+    console.log(
+      `\nNOT written: ${defs.length} view(s) and ${slotEntries.length} mount(s) would have been ` +
+        `emitted, but ${errorCount} panel(s) failed to compile, so the files on disk are unchanged.`
+    );
+  } else {
+    console.log(
+      `\nWrote ${defs.length} view(s) → ${OUT_PATH}\n` +
+        `Wrote ${slotEntries.length} component mount(s) → ${COMPONENTS_OUT_PATH}`
+    );
+  }
 
   if (errorCount > 0) {
     const msg = `viewreg:build: ${errorCount} panel .holo file(s) did not compile`;
     if (STRICT) throw new Error(`${msg} (strict mode — failing the gate)`);
+    // The write was already skipped above, so "last-good is kept" is now a fact
+    // rather than a claim. And pre-push runs check:studio-generators on any push
+    // touching packages/studio, so the old "nothing runs this for you" is stale.
     console.warn(
-      `\n⚠ ${msg} — keeping last-good generated registry; deploy NOT blocked.\n` +
-        `  Nothing runs this for you: pnpm check:studio-generators, by hand, before you push.`
+      `\n⚠ ${msg} — the registry was not rewritten; deploy NOT blocked.\n` +
+        `  pre-push runs pnpm check:studio-generators for you, but fix the panel first.`
     );
   }
 }
