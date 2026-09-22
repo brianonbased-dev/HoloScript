@@ -223,6 +223,32 @@ if (process.argv.includes('--self-test')) {
     // is the only rule that can fire. (The skipped-pass restriction added in
     // this commit now also refuses it, which is defence in depth rather than a
     // reason to drop the case.)
+    // ISOLATED, from review: the sequential pass RAN and printed its summary,
+    // and only the four shards claim skipped. Every other rule is satisfied --
+    // complete pass set, zero exits, one summary for the one pass that ran --
+    // so the skipped restriction is the only thing that can refuse it. The
+    // all-skipped case below does NOT isolate that rule, because the
+    // zero-summary refusal reaches it first; without this fixture the rule
+    // could be deleted and the gate self-test would stay green.
+    [
+      'REFUSES a run where the shards claim skipped and only the sequential pass ran',
+      [
+        begin('sequential'),
+        files(30),
+        env({
+          passes: [
+            ok('sequential'),
+            ...['shard-1/4', 'shard-2/4', 'shard-3/4', 'shard-4/4'].map((label) => ({
+              label,
+              status: 0,
+              signal: null,
+              skipped: true,
+            })),
+          ],
+        }),
+      ],
+      2,
+    ],
     [
       'REFUSES a run in which every pass claims to have been skipped',
       [
