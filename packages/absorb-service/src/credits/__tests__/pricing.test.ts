@@ -60,6 +60,83 @@ describe('pricing — local work is free', () => {
   });
 });
 
+/**
+ * A `cloud` tier asserts the charge is COLLECTED. This checks that the route
+ * doing the collecting exists.
+ *
+ * Why it is here: on 2026-09-21 five rows were tiered `cloud` with the comment
+ * "verified at the route, not assumed", and nothing collected any of them.
+ * Studio's creditGate posts to /api/credits/check and /api/credits/deduct on
+ * the absorb host, whose credits router serves only /balance, /purchase,
+ * /history and /success. Both calls 404 and are swallowed. The tier was a claim
+ * about money changing hands, made without following the request to the server
+ * that answers it.
+ *
+ * The test is dormant while nothing is tiered `cloud` — which is the state a
+ * founder ruling of 2026-06-06 put Studio operations in, by making the
+ * orchestrator wallet the metered-credit authority. It arms the moment someone
+ * claims the tier again.
+ */
+describe('pricing — a cloud tier needs a route that collects', () => {
+  const CREDIT_GATE = join(REPO_ROOT, 'packages', 'studio', 'src', 'lib', 'creditGate.ts');
+  const ABSORB_ROUTER = join(
+    REPO_ROOT,
+    'services',
+    'absorb-service',
+    'src',
+    'routes',
+    'credits.ts'
+  );
+
+  /** Paths creditGate posts to on the absorb host, e.g. "/deduct". */
+  function pathsStudioPosts(): string[] {
+    const text = readFileSync(CREDIT_GATE, 'utf-8');
+    return [
+      ...new Set(
+        [...text.matchAll(/\$\{ABSORB_BASE\}\/api\/credits\/([a-z-]+)/g)].map((m) => `/${m[1]}`)
+      ),
+    ];
+  }
+
+  /** Paths the absorb credits router actually registers. */
+  function pathsAbsorbServes(): string[] {
+    const text = readFileSync(ABSORB_ROUTER, 'utf-8');
+    return [...text.matchAll(/router\.(?:get|post)\('([^']+)'/g)].map((m) => m[1]);
+  }
+
+  it('nothing claims cloud unless the deduction route it relies on is served', async () => {
+    const { OPERATION_COSTS } = await import('../pricing');
+    const cloud = Object.entries(OPERATION_COSTS)
+      .filter(([, v]) => (v as { tier: string }).tier === 'cloud')
+      .map(([k]) => k);
+
+    if (cloud.length === 0) return; // dormant, and correct: nothing claims it
+
+    const served = pathsAbsorbServes();
+    const missing = pathsStudioPosts().filter((p) => !served.includes(p));
+
+    expect(
+      missing,
+      `operations tiered cloud (${cloud.join(', ')}) rely on routes the absorb host does not serve: ${missing.join(', ')}`
+    ).toEqual([]);
+  });
+
+  it('records the routes that are posted to but not served, so the gap is visible', () => {
+    // Not an assertion about correctness — a printed inventory, so the next
+    // person reading this file does not have to rediscover it. Today both
+    // /check and /deduct are in this list.
+    const served = pathsAbsorbServes();
+    const unserved = pathsStudioPosts().filter((p) => !served.includes(p));
+    expect(Array.isArray(unserved)).toBe(true);
+    if (unserved.length > 0) {
+      console.log(
+        `[pricing] creditGate posts to ${unserved.join(', ')} on the absorb host, which serves ${served.join(', ')}. ` +
+          `Deliberate per the 2026-06-06 ruling: metered Studio work belongs on the orchestrator wallet.`
+      );
+    }
+  });
+});
+
 describe('pricing — the shadow copy Studio shows matches the one the server charges', () => {
   it('the OPERATION_COSTS blocks are byte-identical', () => {
     // Not a value-by-value comparison on purpose: the shown DESCRIPTION and the

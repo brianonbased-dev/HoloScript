@@ -430,6 +430,10 @@ describe('the pricing page agrees with the price table', () => {
     // before it shipped, which is the whole reason a prose page gets one.
     const page = pricingPage();
     expect(page).toContain(`${charged.length} operations carry a price`);
-    expect(page).toContain(`The other ${unjustified} we audited`);
+    // Every priced row is currently unjustified, so the page says "all N".
+    // If a row ever earns the cloud tier this number drops below charged.length
+    // and the sentence has to change with it — which is the point.
+    expect(unjustified).toBe(charged.length);
+    expect(page).toContain(`we audited all ${unjustified} on 2026-09-21`);
   });
 });

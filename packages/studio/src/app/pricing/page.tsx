@@ -30,7 +30,7 @@ function PricingComponent() {
 
     </p>
 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted">
-      {`Two of those were priced until 2026-09-21 and should not have been. They are zero now.`}
+      {`Five of those carried a price until 2026-09-21 and should not have. They are zero now.`}
 
     </p>
 <h2 className="text-3xl font-bold mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted">
@@ -38,19 +38,23 @@ function PricingComponent() {
 
     </h2>
 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted">
-      {`Five things call a paid model on someone else's hardware: code autocomplete, code generation, chat, material generation, and turning speech into HoloScript. Each one costs us money per request, so each one costs you credits. Those five we can account for line by line.`}
-
-    </p>
-<h2 className="text-3xl font-bold mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted">
-      {`Eleven prices we are not standing behind yet`}
-
-    </h2>
-<p className="mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted">
-      {`16 operations carry a price today. Five are the ones above. The other 11 we audited on 2026-09-21 and could not justify on the spot: four are listed but nothing actually collects them, and seven we have not yet traced to a cost we pay. Until each is traced, treat them as under review rather than as a quote — and if one of them turns out to run entirely on your own machine, it will go to zero, as two already did.`}
+      {`Five things call a paid model on someone else's hardware: code autocomplete, code generation, chat, material generation, and turning speech into HoloScript. Those cost us money on every request, and we charge you nothing for them. That is a decision, not an oversight, and it is the answer to what the free tier is: the parts where we pay a third party on your behalf.`}
 
     </p>
 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted">
-      {`We would rather publish that sentence than a price we cannot explain.`}
+      {`This page said the opposite until 2026-09-21. It listed those five as charged and said we could account for them line by line. Nothing collected them and nothing ever had.`}
+
+    </p>
+<h2 className="text-3xl font-bold mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted">
+      {`Every price still on this page is under review`}
+
+    </h2>
+<p className="mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted">
+      {`11 operations carry a price today, and we audited all 11 on 2026-09-21 without being able to justify a single one on the spot. 7 are genuinely collected but we have not traced them to a cost we actually pay. 4 are listed while nothing collects them at all. Treat both kinds as under review rather than as a quote: where the work turns out to run on your own hardware the price goes to zero, as five already did.`}
+
+    </p>
+<p className="mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted">
+      {`We would rather publish that sentence than a price we cannot explain. It is the second correction this page has carried in a day; the first one read better and was false.`}
 
     </p>
 <h2 className="text-3xl font-bold mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted">

@@ -71,21 +71,42 @@ export const OPERATION_COSTS = {
     description: 'Publish knowledge entry (free for authors)',
   },
 
-  // CLOUD. Each of these resolves a real API key and calls a paid adapter
-  // (Anthropic / OpenAI / OpenRouter). Verified at the route, not assumed —
-  // packages/studio/src/app/api/autocomplete/route.ts:53-94 is the pattern.
-  studio_autocomplete: { baseCostCents: 1, tier: 'cloud', description: 'Code autocomplete (up to 256 tokens)' },
-  studio_generate: { baseCostCents: 5, tier: 'cloud', description: 'Code generation (up to 4096 tokens)' },
-  studio_chat: { baseCostCents: 3, tier: 'cloud', description: 'Brittney chat message (up to 2048 tokens)' },
+  // FREE BY FOUNDER RULING, and they were tiered 'cloud' here until review
+  // caught it. These five DO call a paid adapter — Anthropic, OpenAI or
+  // OpenRouter, resolved from a real key — so they cost US money. They charge
+  // the customer nothing, and that is deliberate:
+  //
+  //   /founder ruling 2026-06-06, sug_1780713253111_g54z: the orchestrator PAYG
+  //   HoloCredit wallet is the metered-credit AUTHORITY, not a parallel
+  //   absorb-service credit system.
+  //
+  // creditGate.ts says so in a section header three lines above the code I read
+  // to "verify" the tier: "Metered lane (currently UNREACHED) — every
+  // StudioOperation above is in FREE_OPERATIONS, so this absorb-credits call is
+  // presently dead for all defined operations", and it posts to
+  // /api/credits/check and /api/credits/deduct, which exist only on mcp-server
+  // and not on the deployed absorb host. So nothing was ever collected.
+  //
+  // I priced them at 1-5c and wrote on the public pricing page that these five
+  // are the ones "we can account for line by line". They were the only rows on
+  // the table contradicting a founder decision, and I had marked them verified.
+  // Zero is what the customer actually pays; the price was the fiction.
+  //
+  // When metered Studio work is added it deducts against the orchestrator
+  // wallet — creditGate's comment says explicitly: do NOT extend the absorb
+  // credits path. Until then these stay here, free and labelled.
+  studio_autocomplete: { baseCostCents: 0, tier: 'unbilled', description: 'Code autocomplete (free; we pay the model)' },
+  studio_generate: { baseCostCents: 0, tier: 'unbilled', description: 'Code generation (free; we pay the model)' },
+  studio_chat: { baseCostCents: 0, tier: 'unbilled', description: 'Brittney chat message (free; we pay the model)' },
   studio_material: {
-    baseCostCents: 2,
-    tier: 'cloud',
-    description: 'Material/asset generation (up to 512 tokens)',
+    baseCostCents: 0,
+    tier: 'unbilled',
+    description: 'Material/asset generation (free; we pay the model)',
   },
   studio_voice_to_holo: {
-    baseCostCents: 4,
-    tier: 'cloud',
-    description: 'Voice utterance → HoloScript (Haiku, up to 2 turns)',
+    baseCostCents: 0,
+    tier: 'unbilled',
+    description: 'Voice utterance → HoloScript (free; we pay the model)',
   },
 } as const;
 
