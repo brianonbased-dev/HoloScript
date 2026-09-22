@@ -1,4 +1,5 @@
 import type { ToolCall } from './ollama-chat.js';
+import { mintToolCallId } from './tool-call-id.js';
 
 /**
  * Text-based tool-call fallback parser.
@@ -45,7 +46,7 @@ export function extractTextToolCalls(content: string): ToolCall[] {
   const calls: ToolCall[] = [];
   for (const candidate of candidates) {
     for (const obj of asArray(candidate)) {
-      const call = toToolCall(obj, calls.length);
+      const call = toToolCall(obj);
       if (call) calls.push(call);
     }
   }
@@ -69,9 +70,11 @@ function asArray(value: unknown): unknown[] {
 /**
  * Normalize one parsed object to a ToolCall, unwrapping the common envelopes
  * models use: `{tool_call: {...}}`, `{function: {...}}`, or the call inline.
- * Returns null when the object isn't a recognizable tool call.
+ * Returns null when the object isn't a recognizable tool call. A call without
+ * an id gets a minted one — never a per-message position, which repeated every
+ * turn and let a later tool result answer to an earlier call.
  */
-function toToolCall(value: unknown, index: number): ToolCall | null {
+function toToolCall(value: unknown): ToolCall | null {
   if (typeof value !== 'object' || value === null) return null;
   const obj = value as Record<string, unknown>;
 
@@ -95,7 +98,7 @@ function toToolCall(value: unknown, index: number): ToolCall | null {
       : {};
 
   return {
-    id: typeof obj.id === 'string' ? obj.id : `fallback-${index}`,
+    id: typeof obj.id === 'string' && obj.id ? obj.id : mintToolCallId(),
     function: { name, arguments: args },
   };
 }

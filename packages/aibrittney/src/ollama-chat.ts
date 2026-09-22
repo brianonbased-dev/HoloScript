@@ -1,5 +1,6 @@
 import type { ChatMessage } from './session.js';
 import { extractTextToolCalls } from './tool-call-fallback.js';
+import { mintToolCallId } from './tool-call-id.js';
 
 /**
  * Non-streaming chat turn — used by the tool loop, where we need the full
@@ -57,7 +58,12 @@ function normalizeHost(host: string): string {
 }
 
 export interface ToolCall {
-  id?: string;
+  /**
+   * Always present: the server's id when it sent one, otherwise minted where
+   * the call is created (see tool-call-id.ts). agent.ts answers with it as
+   * `tool_call_id`, and toOpenAIMessages sends both sides through verbatim.
+   */
+  id: string;
   function: { name: string; arguments: Record<string, unknown> | string };
 }
 
@@ -128,6 +134,16 @@ async function postJson(url: string, payload: unknown, opts: OllamaChatOptions):
   });
 }
 
+/** A tool call as Ollama's /api/chat returns it: `id` only on newer builds. */
+interface OllamaToolCallWire {
+  id?: string;
+  function: { name: string; arguments: Record<string, unknown> | string };
+}
+
+function fromOllamaToolCall(call: OllamaToolCallWire): ToolCall {
+  return { id: call.id || mintToolCallId(), function: call.function };
+}
+
 async function chatViaOllama(host: string, opts: OllamaChatOptions): Promise<RouteAttempt> {
   let res: Response;
   try {
@@ -162,7 +178,7 @@ async function chatViaOllama(host: string, opts: OllamaChatOptions): Promise<Rou
     };
   }
   let body: {
-    message?: { role?: string; content?: string; tool_calls?: ToolCall[] };
+    message?: { role?: string; content?: string; tool_calls?: OllamaToolCallWire[] };
     eval_count?: number;
     eval_duration?: number;
     error?: string;
@@ -183,7 +199,7 @@ async function chatViaOllama(host: string, opts: OllamaChatOptions): Promise<Rou
     status: res.status,
     result: finishTurn(
       msg.content ?? '',
-      msg.tool_calls,
+      msg.tool_calls?.map(fromOllamaToolCall),
       body.eval_count,
       body.eval_duration ? body.eval_duration / 1_000_000 : undefined
     ),
@@ -266,7 +282,7 @@ export interface OpenAIChatMessage {
   role: ChatMessage['role'];
   content: string;
   tool_calls?: Array<{
-    id: string;
+    id?: string;
     type: 'function';
     function: { name: string; arguments: string };
   }>;
@@ -275,8 +291,11 @@ export interface OpenAIChatMessage {
 
 /**
  * Ollama accepts our `ChatMessage` history verbatim; OpenAI-compatible servers
- * want tool-call arguments as a JSON string, an id per call, and `tool_call_id`
- * on the tool result. Everything else passes through as role + content.
+ * want tool-call arguments as a JSON string and `type: 'function'` per call.
+ * Ids pass through exactly as the loop minted them, so the `tool_call_id` a
+ * tool result carries is the id its assistant message announced. A history
+ * entry without an id is sent without one — never a position, never the tool
+ * name. Everything else passes through as role + content.
  */
 export function toOpenAIMessages(messages: ChatMessage[]): OpenAIChatMessage[] {
   return messages.map((msg) => {
@@ -284,8 +303,8 @@ export function toOpenAIMessages(messages: ChatMessage[]): OpenAIChatMessage[] {
       return {
         role: msg.role,
         content: msg.content,
-        tool_calls: msg.tool_calls.map((call, index) => ({
-          id: call.id ?? `call_${index}`,
+        tool_calls: msg.tool_calls.map((call) => ({
+          ...(call.id ? { id: call.id } : {}),
           type: 'function' as const,
           function: {
             name: call.function.name,
@@ -298,7 +317,11 @@ export function toOpenAIMessages(messages: ChatMessage[]): OpenAIChatMessage[] {
       };
     }
     if (msg.role === 'tool') {
-      return { role: msg.role, content: msg.content, tool_call_id: msg.tool_call_id ?? msg.name };
+      return {
+        role: msg.role,
+        content: msg.content,
+        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {}),
+      };
     }
     return { role: msg.role, content: msg.content };
   });
@@ -306,7 +329,7 @@ export function toOpenAIMessages(messages: ChatMessage[]): OpenAIChatMessage[] {
 
 function fromOpenAIToolCall(call: OpenAIToolCallWire): ToolCall {
   return {
-    id: typeof call.id === 'string' ? call.id : undefined,
+    id: typeof call.id === 'string' && call.id ? call.id : mintToolCallId(),
     function: {
       name: call.function?.name ?? '',
       arguments: parseToolArguments(call.function?.arguments),

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Session } from '../session.js';
 import { runAgentTurn, type AgentEvent } from '../agent.js';
 import { McpClient, type CallToolResult } from '../mcp-client.js';
@@ -278,5 +278,120 @@ describe('runAgentTurn', () => {
       ]),
     });
     expect(stub.calls[0].args).toEqual({ search: 'trait registry' });
+  });
+});
+
+/**
+ * Fake OpenAI-compatible server (llama-server / holo-inference-proxy): one
+ * scripted completion per request, records every request body, and — like
+ * llama-server builds that predate tool-call ids — omits `id` on tool_calls.
+ */
+function fakeOpenAIFetch(scripted: Array<Record<string, unknown>>) {
+  const requests: Array<{ url: string; body: Record<string, any> }> = [];
+  const impl = (async (url: string | URL, init?: RequestInit) => {
+    requests.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+    const message = scripted[requests.length - 1];
+    if (message === undefined) {
+      throw new Error(`fakeOpenAIFetch ran out of scripted responses (call ${requests.length})`);
+    }
+    return new Response(
+      JSON.stringify({
+        choices: [{ index: 0, message: { role: 'assistant', ...message }, finish_reason: 'stop' }],
+        usage: { completion_tokens: 1 },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  }) as unknown as typeof fetch;
+  return { impl, requests };
+}
+
+/** A tool call exactly as an id-less server emits it: no `id`, arguments as a JSON string. */
+function idlessCall(name: string, args: Record<string, unknown>) {
+  return { type: 'function', function: { name, arguments: JSON.stringify(args) } };
+}
+
+interface WireMessage {
+  role: string;
+  tool_calls?: Array<{ id?: string }>;
+  tool_call_id?: string;
+}
+
+describe('runAgentTurn against an OpenAI-compatible server that omits tool-call ids', () => {
+  const STYLE_KEY = 'AIBRITTNEY_API_STYLE';
+
+  beforeEach(() => {
+    process.env[STYLE_KEY] = 'openai';
+  });
+
+  afterEach(() => {
+    delete process.env[STYLE_KEY];
+  });
+
+  it('announces the ids the tool results answer to, unique across two tool-call iterations', async () => {
+    const session = new Session({ ollamaHost: 'http://127.0.0.1:18080', model: 'qwen3:4b' });
+    session.push('user', 'look two things up, then two more');
+    const stub = new StubMcpClient({ ok: true, status: 200, data: { hits: [] } });
+    const server = fakeOpenAIFetch([
+      // iteration 1: two calls to the same tool, no ids
+      {
+        content: null,
+        tool_calls: [
+          idlessCall('holo_query_codebase', { query: 'find', symbol: 'A' }),
+          idlessCall('holo_query_codebase', { query: 'find', symbol: 'B' }),
+        ],
+      },
+      // iteration 2: two more, still no ids
+      {
+        content: null,
+        tool_calls: [
+          idlessCall('holo_query_codebase', { query: 'find', symbol: 'C' }),
+          idlessCall('knowledge_query', { search: 'D' }),
+        ],
+      },
+      // iteration 3: the final answer
+      { content: 'done' },
+    ]);
+
+    const result = await runAgentTurn({
+      session,
+      mcp: stub,
+      maxIterations: 3,
+      fetchImpl: server.impl,
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      finalText: 'done',
+      toolCallsExecuted: 4,
+      iterations: 3,
+    });
+    expect(server.requests.map((r) => r.url)).toEqual(
+      Array(3).fill('http://127.0.0.1:18080/v1/chat/completions')
+    );
+
+    // The third request carries the whole conversation as the server saw it.
+    const wire = server.requests[2].body.messages as WireMessage[];
+    const announced: string[] = [];
+    const answered: string[] = [];
+    let current: string[] = [];
+    let matched = 0;
+    for (const m of wire) {
+      if (m.role === 'assistant' && m.tool_calls) {
+        current = m.tool_calls.map((c) => c.id ?? '<missing>');
+        announced.push(...current);
+      }
+      if (m.role === 'tool') {
+        answered.push(m.tool_call_id ?? '<missing>');
+        // The id must come from the assistant message immediately before this result.
+        if (m.tool_call_id !== undefined && current.includes(m.tool_call_id)) matched += 1;
+      }
+    }
+    expect(`${matched} of ${answered.length} matched`).toBe('4 of 4 matched');
+    expect(announced).toHaveLength(4);
+    expect(new Set(announced).size).toBe(4);
+    expect([...answered].sort()).toEqual([...announced].sort());
+    for (const id of announced) expect(id).toMatch(/^call_[0-9a-f]{6}_\d+$/);
+    // Never a tool name where an id belongs.
+    expect(answered).not.toContain('holo_query_codebase');
+    expect(answered).not.toContain('knowledge_query');
   });
 });

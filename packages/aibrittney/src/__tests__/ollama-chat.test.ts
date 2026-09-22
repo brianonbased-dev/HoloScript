@@ -4,6 +4,8 @@ import {
   resetApiStyleCache,
   resolveApiStyle,
   resolveNumCtx,
+  toOpenAIMessages,
+  type ChatResult,
 } from '../ollama-chat.js';
 import type { ChatMessage } from '../session.js';
 
@@ -131,9 +133,11 @@ describe('chatOnceFromOllama with AIBRITTNEY_API_STYLE=openai', () => {
     {
       role: 'assistant',
       content: '',
-      tool_calls: [{ function: { name: 'read_file', arguments: { path: 'a.holo' } } }],
+      tool_calls: [
+        { id: 'call_ab12cd_7', function: { name: 'read_file', arguments: { path: 'a.holo' } } },
+      ],
     },
-    { role: 'tool', name: 'read_file', content: '{"ok":true}' },
+    { role: 'tool', name: 'read_file', tool_call_id: 'call_ab12cd_7', content: '{"ok":true}' },
   ];
 
   it('posts to /v1/chat/completions with stringified tool-call arguments and maps the reply back', async () => {
@@ -173,7 +177,7 @@ describe('chatOnceFromOllama with AIBRITTNEY_API_STYLE=openai', () => {
       content: '',
       tool_calls: [
         {
-          id: 'call_0',
+          id: 'call_ab12cd_7',
           type: 'function',
           function: { name: 'read_file', arguments: '{"path":"a.holo"}' },
         },
@@ -182,7 +186,7 @@ describe('chatOnceFromOllama with AIBRITTNEY_API_STYLE=openai', () => {
     expect(calls[0].body.messages[3]).toEqual({
       role: 'tool',
       content: '{"ok":true}',
-      tool_call_id: 'read_file',
+      tool_call_id: 'call_ab12cd_7',
     });
 
     expect(result).toEqual({
@@ -218,6 +222,21 @@ describe('chatOnceFromOllama with AIBRITTNEY_API_STYLE=openai', () => {
     if (result.ok) {
       expect(result.message.tool_calls?.[0].function.arguments).toBe('not json');
     }
+  });
+
+  it('sends a history entry without an id without one: never a position, never the tool name', () => {
+    const wire = toOpenAIMessages([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [{ function: { name: 'read_file', arguments: {} } }],
+      },
+      { role: 'tool', name: 'read_file', content: '{}' },
+    ]);
+    expect(wire[0].tool_calls?.[0]).not.toHaveProperty('id');
+    expect(wire[0].tool_calls?.[0]).toMatchObject({ type: 'function' });
+    expect(wire[1]).not.toHaveProperty('tool_call_id');
+    expect(wire[1]).toEqual({ role: 'tool', content: '{}' });
   });
 
   it('reports a top-level error object and a non-OK status in plain words', async () => {
@@ -352,5 +371,112 @@ describe('chatOnceFromOllama with the default auto style', () => {
     const result = await chatOnceFromOllama({ host: HOST, model: 'm', messages, fetchImpl: impl });
     expect(result).toEqual({ ok: false, error: 'ollama returned HTTP 404 ' });
     expect(calls).toHaveLength(1);
+  });
+});
+
+const TOOL_CALL_ID = /^call_[0-9a-f]{6}_\d+$/;
+
+function toolCallIds(result: ChatResult): string[] {
+  return result.ok ? (result.message.tool_calls ?? []).map((call) => call.id) : [];
+}
+
+describe('tool-call ids', () => {
+  beforeEach(() => {
+    delete process.env[STYLE_KEY];
+    resetApiStyleCache();
+  });
+
+  afterEach(() => {
+    delete process.env[STYLE_KEY];
+    resetApiStyleCache();
+  });
+
+  const messages: ChatMessage[] = [{ role: 'user', content: 'go' }];
+  const turn = (fetchImpl: typeof fetch) =>
+    chatOnceFromOllama({ host: HOST, model: 'm', messages, fetchImpl });
+
+  it('mints distinct ids for two calls to the same tool in one turn, on both routes', async () => {
+    process.env[STYLE_KEY] = 'openai';
+    const openai = recordingFetch(() =>
+      completion({
+        content: null,
+        tool_calls: [
+          { type: 'function', function: { name: 'read_file', arguments: '{"path":"a"}' } },
+          { type: 'function', function: { name: 'read_file', arguments: '{"path":"b"}' } },
+        ],
+      })
+    );
+    const viaOpenAI = await turn(openai.impl);
+
+    process.env[STYLE_KEY] = 'ollama';
+    const ollama = recordingFetch(() =>
+      json(200, {
+        message: {
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            { function: { name: 'read_file', arguments: { path: 'a' } } },
+            { function: { name: 'read_file', arguments: { path: 'b' } } },
+          ],
+        },
+      })
+    );
+    const viaOllama = await turn(ollama.impl);
+
+    const ids = [...toolCallIds(viaOpenAI), ...toolCallIds(viaOllama)];
+    expect(ids).toHaveLength(4);
+    expect(new Set(ids).size).toBe(4);
+    for (const id of ids) expect(id).toMatch(TOOL_CALL_ID);
+  });
+
+  it('keeps an id the server sent, on both routes', async () => {
+    process.env[STYLE_KEY] = 'ollama';
+    const ollama = recordingFetch(() =>
+      json(200, {
+        message: {
+          role: 'assistant',
+          content: '',
+          tool_calls: [{ id: 'srv_9', function: { name: 'read_file', arguments: {} } }],
+        },
+      })
+    );
+    expect(toolCallIds(await turn(ollama.impl))).toEqual(['srv_9']);
+
+    process.env[STYLE_KEY] = 'openai';
+    const openai = recordingFetch(() =>
+      completion({
+        content: null,
+        tool_calls: [
+          { id: 'call_srv', type: 'function', function: { name: 'read_file', arguments: '{}' } },
+        ],
+      })
+    );
+    expect(toolCallIds(await turn(openai.impl))).toEqual(['call_srv']);
+  });
+
+  it('recovers text tool calls with ids that stay unique across iterations and routes', async () => {
+    const text = '<tool_call>{"name":"read_file","arguments":{"path":"a"}}</tool_call>';
+
+    process.env[STYLE_KEY] = 'ollama';
+    const ollama = recordingFetch(() =>
+      json(200, { message: { role: 'assistant', content: text } })
+    );
+    const turn1 = await turn(ollama.impl);
+    const turn2 = await turn(ollama.impl);
+
+    process.env[STYLE_KEY] = 'openai';
+    const openai = recordingFetch(() => completion({ content: text }));
+    const turn3 = await turn(openai.impl);
+
+    const turns = [turn1, turn2, turn3];
+    expect(turns.map((t) => t.ok && t.message.tool_calls?.[0]?.function.name)).toEqual([
+      'read_file',
+      'read_file',
+      'read_file',
+    ]);
+    const ids = turns.flatMap(toolCallIds);
+    expect(ids).toHaveLength(3);
+    expect(new Set(ids).size).toBe(3);
+    for (const id of ids) expect(id).toMatch(TOOL_CALL_ID);
   });
 });
