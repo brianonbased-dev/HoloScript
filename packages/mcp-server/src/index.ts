@@ -492,9 +492,17 @@ registerCategory(hologramContentToolDefinitions, (name, args, _signingCtx) =>
 registerCategory(negotiationToolDefinitions, (name, args, _signingCtx) =>
   handleNegotiationTool(name, args)
 );
-registerCategory(daemonLifecycleTools, (name, args, _signingCtx) =>
-  handleDaemonLifecycleTool(name, args)
-);
+// task_1790062507560_px5q: the daimōn tools bind the self-declared callerId to the
+// transport's verified principal (bearer agentId / clientId on HTTP, or an envelope
+// signer that walletToAgent maps to the caller). stdio passes no signingCtx ->
+// local trust, callerId stays self-declared.
+registerCategory(daemonLifecycleTools, async (name, args, signingCtx) => {
+  const { defaultSignerMapsToCaller } = await import('./holomesh/identity/board-signer-binding');
+  return handleDaemonLifecycleTool(name, args, {
+    signer: signingCtx?.signer,
+    signerMapsToCaller: defaultSignerMapsToCaller,
+  });
+});
 registerCategory(memoryTools, (name, args, _signingCtx) => handleMemoryTool(name, args));
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
