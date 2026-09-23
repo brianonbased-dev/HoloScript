@@ -33,7 +33,8 @@ export const ANTHROPIC_PRICING_USD_PER_MTOK: Record<string, { input: number; out
  * stay exported for callers that priced Claude with them; every other provider
  * has its own row in CACHE_POLICIES below.
  */
-export const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL (the agent never sets promptCacheTtl); the 1-hour TTL is 2x
+export const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL
+export const CACHE_WRITE_MULTIPLIER_1H = 2; // 1-hour TTL
 export const CACHE_READ_MULTIPLIER = 0.1;
 
 /** How a provider bills the cached and cache-writing parts of a prompt, relative to base input. */
@@ -52,12 +53,15 @@ export interface CachePolicy {
  * taken (the guard may over-count, never under-count), and a provider whose
  * cached rate is not known bills the cache at the full input rate.
  *
- * - anthropic: prompt caching writes at 1.25x, reads at 0.1x (5-minute TTL).
- * - openai: cached input is billed at 50% of input on the dearest published
- *   discount (some newer models discount further); writes at 1.25x, the
- *   GPT-5.6-line write charge as read from the official sheet by claude2's
- *   review (2026-09-23). The OpenAI adapter reports no write count today, so
- *   the write row takes effect only once it does.
+ * - anthropic: reads at 0.1x; writes at 2x, the 1-hour TTL's rate. The agent's
+ *   own requests use the 5-minute TTL (1.25x), but the guard cannot see which
+ *   TTL a caller configured, so written tokens may read up to 60% high.
+ * - openai: reads at FULL input: the published discount runs from 0.1x
+ *   (gpt-5*, gpt-6*) through 0.25x and 0.5x to none at all on Pro and legacy
+ *   models, and the guard does not read the model family; writes at 1.25x
+ *   (gpt-5.6+). Both as checked on the official sheet by claude2's and
+ *   claude3's reviews (2026-09-23). The OpenAI adapter reports no write count
+ *   today, so the write row takes effect only once it does.
  * - gemini: no write charge in the token price; cached reads at 25% of input.
  *   The per-hour cache STORAGE charge has no token term and is not modelled
  *   here: that residue is named in the task, not hidden in a multiplier.
@@ -68,8 +72,8 @@ export interface CachePolicy {
  *   provider publishes (Anthropic's 1-hour cache), so it never under-counts.
  */
 export const CACHE_POLICIES: Record<string, CachePolicy> = {
-  anthropic: { write: CACHE_WRITE_MULTIPLIER, read: CACHE_READ_MULTIPLIER },
-  openai: { write: 1.25, read: 0.5 },
+  anthropic: { write: CACHE_WRITE_MULTIPLIER_1H, read: CACHE_READ_MULTIPLIER },
+  openai: { write: 1.25, read: 1 },
   gemini: { write: 1, read: 0.25 },
   xai: { write: 1, read: 0.25 },
   openrouter: { write: 2, read: 1 },
@@ -160,25 +164,27 @@ export function resolveAnthropicPricing(
  * undefined there, `uncachedInput === promptTokens`, and the arithmetic
  * collapses to the plain input+output formula this replaced.
  *
- * With no policy the cache is billed fail-closed (`CACHE_POLICIES.unknown`).
- * It used to default to Claude's 0.1 read discount, which reached every
- * caller that named no policy: the ceiling fallbacks and every non-Claude
- * provider billed through the Anthropic table (claude2's review of #321,
- * 2026-09-23, measured a six-fold under-count on cached OpenAI traffic).
+ * The policy is required: it used to default to Claude's 0.1 read discount,
+ * which reached every caller that named none: the ceiling fallbacks and every
+ * non-Claude provider billed through the Anthropic table (claude2's review of
+ * #321, 2026-09-23, measured a six-fold under-count on cached OpenAI traffic).
+ * A caller that still passes nothing at runtime gets `CACHE_POLICIES.unknown`,
+ * the fail-closed row, never Claude's.
  */
 export function priceUsageWithCacheSplit(
   usage: TokenUsage,
   price: { input: number; output: number },
-  policy: CachePolicy = CACHE_POLICIES.unknown
+  policy: CachePolicy
 ): number {
+  const { write, read } = policy ?? CACHE_POLICIES.unknown;
   const cacheRead = usage.cacheReadTokens ?? 0;
   const cacheWrite = usage.cacheWriteTokens ?? 0;
   const uncachedInput = Math.max(0, usage.promptTokens - cacheRead - cacheWrite);
 
   return (
     (uncachedInput * price.input +
-      cacheWrite * price.input * policy.write +
-      cacheRead * price.input * policy.read +
+      cacheWrite * price.input * write +
+      cacheRead * price.input * read +
       usage.completionTokens * price.output) /
     1_000_000
   );
