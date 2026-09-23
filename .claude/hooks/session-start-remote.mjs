@@ -8,7 +8,8 @@
  * installed by hand.
  *
  * Remote-only: exits 0 immediately unless CLAUDE_CODE_REMOTE=true, so the
- * desktop surfaces are untouched.
+ * desktop surfaces are untouched. Also exits 0 for source "clear"/"compact",
+ * which fire inside a container this hook already prepared.
  *
  * Steps (idempotent; the container is snapshotted after the hook completes):
  *   1. `pnpm install --frozen-lockfile` — a session never rewrites the lockfile.
@@ -29,6 +30,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 if (process.env.CLAUDE_CODE_REMOTE !== 'true') process.exit(0);
+
+// SessionStart also fires on /clear and on compaction, inside a container this
+// hook already prepared. Only startup and resume can land in a fresh one.
+if (['clear', 'compact'].includes(readHookInput().source)) process.exit(0);
 
 const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const logPath = join(tmpdir(), 'holoscript-session-start.log');
@@ -55,6 +60,14 @@ if (existsSync(coreBuiltMarker)) {
 }
 
 console.log(`[session-start] ${summary.join('; ')}. Log: ${logPath}`);
+
+function readHookInput() {
+  try {
+    return JSON.parse(readFileSync(0, 'utf8') || '{}');
+  } catch {
+    return {};
+  }
+}
 
 function run(label, args) {
   const started = Date.now();
