@@ -16,7 +16,14 @@ import {
 import type { ILLMProvider, LLMProviderName } from '@holoscript/llm-provider';
 import { loadIdentity, identityForLog } from './identity.js';
 import { loadBrain } from './brain.js';
-import { CostGuard, cachePolicyFor, defaultPricerForProvider, priceUsageWithCacheSplit } from './cost-guard.js';
+import {
+  CostGuard,
+  cachePolicyFor,
+  checkConfiguredModelPricing,
+  defaultPricerForProvider,
+  priceUsageWithCacheSplit,
+  unpricedModelPolicy,
+} from './cost-guard.js';
 import { pickProvider, BUILT_IN_CANDIDATES } from './capability-router.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { resolveBearerViaBroker } from './bearer-broker.js';
@@ -107,6 +114,32 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
         excludedByAvoids: decision.excludedByAvoids,
       })
     );
+  }
+
+  // mt9u: say before the first paid call whether the configured model is
+  // priced. An unpriced model is billed at the ceiling (safe since wj1m, but
+  // the budget trips early); HOLOSCRIPT_AGENT_UNPRICED_MODEL=refuse stops
+  // here instead, before any provider client exists.
+  const pricingCheck = checkConfiguredModelPricing(
+    effectiveIdentity.llmProvider,
+    effectiveIdentity.llmModel,
+    unpricedModelPolicy(process.env)
+  );
+  if (pricingCheck.action === 'refuse') {
+    throw new Error(`[cost-guard] refusing to start: ${pricingCheck.message}`);
+  }
+  if (pricingCheck.action === 'warn') {
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        ev: 'unpriced-model',
+        provider: effectiveIdentity.llmProvider,
+        model: effectiveIdentity.llmModel,
+        table: pricingCheck.pricing.table,
+        message: pricingCheck.message,
+      })
+    );
+    console.warn(`[cost-guard] ${pricingCheck.message}`);
   }
 
   const provider = await buildProvider(effectiveIdentity);

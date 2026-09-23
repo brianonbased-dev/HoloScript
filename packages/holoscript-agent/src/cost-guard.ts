@@ -583,11 +583,122 @@ export type RealtimePricer =
 export function defaultPricerForProvider(
   provider: 'anthropic' | 'local-llm' | 'openai' | 'xai' | 'openrouter' | string
 ): ModelPricer {
-  if (provider === 'local-llm' || provider === 'mock') return defaultLocalLlmPricer;
+  if (LOCAL_PROVIDERS.has(provider)) return defaultLocalLlmPricer;
   if (provider === 'openai') return defaultOpenAIPricer;
   if (provider === 'xai') return defaultXAIPricer;
   if (provider === 'openrouter') return defaultOpenRouterPricer;
   return defaultAnthropicPricer;
+}
+
+/** Providers whose compute is already paid for (local GPU, mock): billed at $0. */
+const LOCAL_PROVIDERS: ReadonlySet<string> = new Set(['local-llm', 'mock', 'bitnet']);
+
+/** The flat per-provider tables, keyed the way `defaultPricerForProvider` dispatches. */
+const FLAT_PRICING_TABLES: Record<string, { name: string; table: Record<string, unknown> }> = {
+  openai: { name: 'OPENAI_PRICING_USD_PER_MTOK', table: OPENAI_PRICING_USD_PER_MTOK },
+  xai: { name: 'XAI_PRICING_USD_PER_MTOK', table: XAI_PRICING_USD_PER_MTOK },
+  openrouter: { name: 'OPENROUTER_PRICING_USD_PER_MTOK', table: OPENROUTER_PRICING_USD_PER_MTOK },
+};
+
+/**
+ * What the live pricer for `provider` will do with `model`, answered before
+ * any call is made (task_1786329027132_mt9u). Same dispatch as
+ * `defaultPricerForProvider`: `priced: false` means the cost guard will bill
+ * this model at the most expensive known rate, an upper bound, so the day's
+ * spend reads high and the budget trips early (safe, but wrong). `table`
+ * names where a row has to be added.
+ */
+export interface ModelPricingStatus {
+  priced: boolean;
+  source: PricingResolutionSource | 'unpriced';
+  table: string;
+}
+
+export function describeModelPricing(
+  provider: string,
+  model: string,
+  at?: Date | string
+): ModelPricingStatus {
+  if (LOCAL_PROVIDERS.has(provider)) {
+    return { priced: true, source: 'local', table: 'none (local compute, billed at $0)' };
+  }
+  const flat = Object.prototype.hasOwnProperty.call(FLAT_PRICING_TABLES, provider)
+    ? FLAT_PRICING_TABLES[provider]
+    : undefined;
+  if (flat) {
+    const priced = Object.prototype.hasOwnProperty.call(flat.table, model);
+    return { priced, source: priced ? 'exact' : 'unpriced', table: flat.name };
+  }
+  // Every other provider (anthropic, gemini, sovereign, ...) is billed through
+  // the Anthropic table, so that is the table that decides.
+  const resolved = resolveModelPricingOrFallback(model, { at });
+  const table =
+    provider === 'anthropic'
+      ? 'ANTHROPIC_PRICING_USD_PER_MTOK'
+      : `ANTHROPIC_PRICING_USD_PER_MTOK (provider ${provider} has no table of its own)`;
+  return { priced: resolved.source !== 'fallback', source: resolved.source, table };
+}
+
+/**
+ * What an unpriced configured model does at startup:
+ * HOLOSCRIPT_AGENT_UNPRICED_MODEL=warn|refuse.
+ *
+ * The default is `warn`, chosen on purpose rather than by omission: both
+ * `run` (the Jetson units, the mesh-deploy fleet boxes) and `supervise` (the
+ * Railway fleet) run unattended, and an unpriced model is already safe there
+ * (billed at the ceiling since wj1m). A refusal default would turn that safe
+ * over-bill into an agent that stops starting on its next restart, with no
+ * one at a terminal to read why. `refuse` is for a lane that would rather not
+ * start than over-bill.
+ */
+export type UnpricedModelPolicy = 'warn' | 'refuse';
+
+export function unpricedModelPolicy(env: NodeJS.ProcessEnv = process.env): UnpricedModelPolicy {
+  const raw = env.HOLOSCRIPT_AGENT_UNPRICED_MODEL;
+  const value = (raw ?? '').trim().toLowerCase();
+  if (value === '') return 'warn';
+  if (value === 'warn' || value === 'refuse') return value;
+  throw new Error(`HOLOSCRIPT_AGENT_UNPRICED_MODEL must be "warn" or "refuse", got "${raw}"`);
+}
+
+export interface ModelPricingCheck {
+  action: 'ok' | UnpricedModelPolicy;
+  pricing: ModelPricingStatus;
+  message: string;
+}
+
+/**
+ * The startup check: is the configured model priced, and if not, what does
+ * the policy say. Callers refuse before building a provider client, or log
+ * the message as a structured event and carry on at the ceiling.
+ */
+export function checkConfiguredModelPricing(
+  provider: string,
+  model: string,
+  policy: UnpricedModelPolicy,
+  at?: Date | string
+): ModelPricingCheck {
+  const pricing = describeModelPricing(provider, model, at);
+  if (pricing.priced) {
+    return {
+      action: 'ok',
+      pricing,
+      message: `model "${model}" (provider ${provider}) is priced (${pricing.source}, ${pricing.table})`,
+    };
+  }
+  const other =
+    policy === 'refuse'
+      ? 'set HOLOSCRIPT_AGENT_UNPRICED_MODEL=warn to run it anyway at the ceiling'
+      : 'set HOLOSCRIPT_AGENT_UNPRICED_MODEL=refuse to stop instead of over-billing';
+  return {
+    action: policy,
+    pricing,
+    message:
+      `model "${model}" (provider ${provider}) has no row in ${pricing.table}. The cost ` +
+      `guard will bill it at the most expensive known rate, an upper bound, so the day's ` +
+      `spend reads high and the budget trips early. Add the model to that table, correct ` +
+      `the model id, or ${other}.`,
+  };
 }
 
 export class CostGuard {

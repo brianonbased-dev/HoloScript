@@ -287,4 +287,69 @@ composition "LocalOnly" {
     const stopped = events.find((e) => e.ev === 'supervisor-stopped');
     expect(stopped?.count).toBe(1);
   });
+
+  // task_1786329027132_mt9u: the configured model is checked against the pricing tables when
+  // each agent boots, and each paid provider is billed from its own table.
+  it('names an agent whose model has no price when it boots (mt9u)', async () => {
+    const events: Array<Record<string, unknown>> = [];
+    const sup = new Supervisor({
+      config: { agents: [specForBrain(brainPath, { model: 'no-such-model-9' })] },
+      providerFactory: () => provider(),
+      teamId: 't',
+      stateDir: dir,
+      fetchImpl: buildFetch(),
+      logger: (e) => events.push(e),
+    });
+    await sup.start();
+    await sup.stop();
+    expect(events.find((e) => e.ev === 'unpriced-model')).toMatchObject({
+      agent: 'security-auditor',
+      provider: 'anthropic',
+      model: 'no-such-model-9',
+      table: 'ANTHROPIC_PRICING_USD_PER_MTOK',
+    });
+  });
+
+  it('with HOLOSCRIPT_AGENT_UNPRICED_MODEL=refuse, stops that agent before its provider is built (mt9u)', async () => {
+    vi.stubEnv('HOLOSCRIPT_AGENT_UNPRICED_MODEL', 'refuse');
+    try {
+      const factory = vi.fn(() => provider());
+      const sup = new Supervisor({
+        config: { agents: [specForBrain(brainPath, { model: 'no-such-model-9' })] },
+        providerFactory: factory,
+        teamId: 't',
+        stateDir: dir,
+        fetchImpl: buildFetch(),
+      });
+      await expect(sup.start()).rejects.toThrow(
+        /refusing to start agent "security-auditor".*ANTHROPIC_PRICING_USD_PER_MTOK/s
+      );
+      expect(factory).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('bills an OpenAI agent from the OpenAI table, not at the Claude ceiling (mt9u)', async () => {
+    const tasks = [{ id: 't-oa', title: 'security memo', tags: ['security'] }];
+    const sup = new Supervisor({
+      config: { agents: [specForBrain(brainPath, { provider: 'openai', model: 'gpt-5.6' })] },
+      providerFactory: () => provider(),
+      teamId: 't',
+      stateDir: dir,
+      fetchImpl: buildFetch(tasks),
+    });
+    await sup.start();
+    const status = await sup.tickOnce('security-auditor');
+    await sup.stop();
+    // Every stub call reports 100 prompt + 50 completion tokens. gpt-5.6 is $5 / $30 per MTok,
+    // so one call costs $0.002; billed through the Claude table it fell to the ceiling
+    // ($10 / $50), $0.0035 a call. One or two ticks of two calls run here, so the spend is
+    // 1 to 4 OpenAI calls, and no Claude-ceiling spend of 1 to 4 calls lands on that grid.
+    const perCall = (100 * 5 + 50 * 30) / 1_000_000;
+    const calls = status.spentUsd / perCall;
+    expect(Math.abs(calls - Math.round(calls))).toBeLessThan(1e-6);
+    expect(Math.round(calls)).toBeGreaterThanOrEqual(1);
+    expect(Math.round(calls)).toBeLessThanOrEqual(4);
+  });
 });
