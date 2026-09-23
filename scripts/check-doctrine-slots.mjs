@@ -27,7 +27,7 @@
  * nothing, so nothing is required -- reported explicitly, never silently.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -40,20 +40,40 @@ function argValue(name) {
 }
 
 /**
- * Where the dispatch breadcrumb should be. `defaultRoot` is set only when neither an
- * explicit workload nor a configured root chose the path, so the gate can tell "this
- * machine has no dispatch lane" apart from "a lane exists and its proof is missing".
+ * Where the dispatch breadcrumb should be, and what says a lane should have written
+ * it. `askedBy` names that input, so a failure can say what asked for the proof; it
+ * is null only when nothing on this machine marks a dispatch lane.
  */
 function workloadLocation() {
-  const explicit =
-    argValue('--workload') || process.env.HOLOCI_WORKLOAD_PATH || process.env.HOLO_CI_WORKLOAD_PATH;
-  if (explicit) return { file: resolve(explicit), defaultRoot: null };
-
-  const configured = process.env.AI_ECOSYSTEM_ROOT || process.env.HOLOMESH_ROOT;
-  if (configured) return { file: join(configured, '.holo-ci-last-workload'), defaultRoot: null };
+  const flag = argValue('--workload');
+  if (flag) return { file: resolve(flag), askedBy: `--workload ${flag}` };
+  for (const name of ['HOLOCI_WORKLOAD_PATH', 'HOLO_CI_WORKLOAD_PATH']) {
+    const value = process.env[name];
+    if (value) return { file: resolve(value), askedBy: `${name}=${value}` };
+  }
+  for (const name of ['AI_ECOSYSTEM_ROOT', 'HOLOMESH_ROOT']) {
+    const value = process.env[name];
+    if (value) return { file: join(value, '.holo-ci-last-workload'), askedBy: `${name}=${value}` };
+  }
 
   const root = join(homedir(), '.ai-ecosystem');
-  return { file: join(root, '.holo-ci-last-workload'), defaultRoot: root };
+  const file = join(root, '.holo-ci-last-workload');
+  // lstat, not exists: a junction or symlink whose target moved is still a lane. It
+  // is the laptop layout after the ai-ecosystem checkout moves, and it must not read
+  // as a clean machine.
+  if (lstatSync(root, { throwIfNoEntry: false })) {
+    return { file, askedBy: `the dispatch lane at ${root}` };
+  }
+  // ai-ecosystem's own root resolver (scripts/lib/ecosystem-root.mjs) reads this
+  // name first; the slot writers do not. Set, it marks a lane whose writers cannot
+  // reach this path -- an alarm worth keeping, not a clean machine.
+  if (process.env.AI_ECOSYSTEM_DIR) {
+    return {
+      file,
+      askedBy: `AI_ECOSYSTEM_DIR=${process.env.AI_ECOSYSTEM_DIR} (set AI_ECOSYSTEM_ROOT to it so the slot writers and this gate look in the same place)`,
+    };
+  }
+  return { file, askedBy: null, root };
 }
 
 function failSlot(slot, detail) {
@@ -71,12 +91,13 @@ function failSlot(slot, detail) {
 // breadcrumbs that register nothing. The first HoloScript cloud session hit it on its
 // first push.
 //
-// The line is drawn where a dispatch lane exists. With no explicit workload, no
-// configured root, and no default root on disk, the gate says so and passes. A
-// missing breadcrumb still fails wherever a root is configured or the default root
-// exists (the laptop layout), and a missing explicit --workload still fails: there
-// the absence hides proof that should exist.
-const { file, defaultRoot } = workloadLocation();
+// The line is drawn where a dispatch lane is marked. The gate passes, and says so,
+// only when nothing marks one: no --workload, no HOLOCI_WORKLOAD_PATH or
+// HOLO_CI_WORKLOAD_PATH, no AI_ECOSYSTEM_ROOT or HOLOMESH_ROOT, no AI_ECOSYSTEM_DIR,
+// and no entry at all at the default root (a dangling link counts as an entry).
+// Anywhere a lane is marked, a missing breadcrumb still fails, and the failure names
+// the input that asked for the proof.
+const { file, askedBy, root } = workloadLocation();
 if (!existsSync(file)) {
   if (
     process.env.HOLOCI_ALLOW_MISSING_WORKLOAD === '1' ||
@@ -85,15 +106,14 @@ if (!existsSync(file)) {
     console.log(`[doctrine-slots] SKIP -- workload breadcrumb missing: ${file}`);
     process.exit(0);
   }
-  if (defaultRoot && !existsSync(defaultRoot)) {
+  if (!askedBy) {
     console.log(
-      `[doctrine-slots] OK -- no HoloCI dispatch lane on this machine (${defaultRoot} does not exist); nothing registered, nothing to prove.`
+      `[doctrine-slots] OK -- no HoloCI dispatch lane on this machine (nothing at ${root}, and no workload or root variable set); nothing registered, nothing to prove.`
     );
     process.exit(0);
   }
-  console.error(
-    `DOCTRINE VIOLATION: workload breadcrumb missing: ${file} -- this machine has a HoloCI dispatch lane, so its proof should exist`
-  );
+  console.error(`DOCTRINE VIOLATION: workload breadcrumb missing: ${file}`);
+  console.error(`[doctrine-slots] ${askedBy} marks a dispatch lane, so its proof should exist here.`);
   process.exit(1);
 }
 

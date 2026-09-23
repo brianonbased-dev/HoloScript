@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,7 +40,9 @@ function runMissingAllowed() {
 // home (HOME on POSIX, USERPROFILE on Windows) and none of the variables that would
 // choose the path, so the answer depends only on what the fixture puts on disk.
 // `lane` creates <home>/.ai-ecosystem; `workload` also writes the breadcrumb inside it.
-function runFromHome({ lane = false, workload, env = {}, args = [] } = {}) {
+// `danglingLane` makes <home>/.ai-ecosystem a link whose target has been removed: the
+// laptop layout after the ai-ecosystem checkout moves.
+function runFromHome({ lane = false, danglingLane = false, workload, env = {}, args = [] } = {}) {
   const home = mkdtempSync(join(tmpdir(), 'doctrine-slots-home-'));
   if (lane || workload !== undefined) {
     const root = join(home, '.ai-ecosystem');
@@ -49,9 +51,16 @@ function runFromHome({ lane = false, workload, env = {}, args = [] } = {}) {
       writeFileSync(join(root, '.holo-ci-last-workload'), JSON.stringify(workload, null, 2), 'utf8');
     }
   }
+  if (danglingLane) {
+    const moved = join(home, 'moved-checkout');
+    mkdirSync(moved);
+    symlinkSync(moved, join(home, '.ai-ecosystem'), 'junction');
+    rmSync(moved, { recursive: true, force: true });
+  }
   const childEnv = { ...process.env, HOME: home, USERPROFILE: home, ...env };
   for (const name of [
     'AI_ECOSYSTEM_ROOT',
+    'AI_ECOSYSTEM_DIR',
     'HOLOMESH_ROOT',
     'HOLOCI_WORKLOAD_PATH',
     'HOLO_CI_WORKLOAD_PATH',
@@ -142,6 +151,15 @@ function runFromHome({ lane = false, workload, env = {}, args = [] } = {}) {
   const result = runFromHome({ lane: true });
   assert.equal(result.status, 1, result.stdout);
   assert.match(result.stderr, /workload breadcrumb missing/);
+  assert.match(result.stderr, /the dispatch lane at /);
+}
+
+// A default root that is a link to a moved checkout is still a lane, not a clean
+// machine. existsSync follows the link and would call it absent; the gate must not.
+{
+  const result = runFromHome({ danglingLane: true });
+  assert.equal(result.status, 1, result.stdout);
+  assert.match(result.stderr, /the dispatch lane at /);
 }
 
 // The default path still enforces registrations, not just the --workload path.
@@ -151,19 +169,22 @@ function runFromHome({ lane = false, workload, env = {}, args = [] } = {}) {
   assert.match(result.stderr, /DOCTRINE VIOLATION: localPreflight null/);
 }
 
-// A configured root names a lane even when nothing exists there yet: its missing
-// breadcrumb fails rather than reading as "no lane".
-{
-  const result = runFromHome({ env: { AI_ECOSYSTEM_ROOT: join(tmpdir(), 'doctrine-slots-no-such-root') } });
-  assert.equal(result.status, 1, result.stdout);
-  assert.match(result.stderr, /workload breadcrumb missing/);
-}
-
-// An explicit --workload that does not exist is a request for proof, not a clean machine.
-{
-  const result = runFromHome({ args: ['--workload', join(tmpdir(), 'doctrine-slots-missing.json')] });
-  assert.equal(result.status, 1, result.stdout);
-  assert.match(result.stderr, /workload breadcrumb missing/);
+// Every input that marks a lane keeps the missing breadcrumb a failure, and the
+// failure names that input instead of claiming a lane nobody checked for.
+const MISSING_ROOT = join(tmpdir(), 'doctrine-slots-no-such-root');
+const MISSING_FILE = join(tmpdir(), 'doctrine-slots-missing.json');
+for (const [label, options, named] of [
+  ['AI_ECOSYSTEM_ROOT', { env: { AI_ECOSYSTEM_ROOT: MISSING_ROOT } }, /AI_ECOSYSTEM_ROOT=/],
+  ['HOLOMESH_ROOT', { env: { HOLOMESH_ROOT: MISSING_ROOT } }, /HOLOMESH_ROOT=/],
+  ['--workload', { args: ['--workload', MISSING_FILE] }, /--workload /],
+  ['HOLOCI_WORKLOAD_PATH', { env: { HOLOCI_WORKLOAD_PATH: MISSING_FILE } }, /HOLOCI_WORKLOAD_PATH=/],
+  ['HOLO_CI_WORKLOAD_PATH', { env: { HOLO_CI_WORKLOAD_PATH: MISSING_FILE } }, /HOLO_CI_WORKLOAD_PATH=/],
+  ['AI_ECOSYSTEM_DIR', { env: { AI_ECOSYSTEM_DIR: MISSING_ROOT } }, /AI_ECOSYSTEM_DIR=/],
+]) {
+  const result = runFromHome(options);
+  assert.equal(result.status, 1, `${label}: ${result.stdout}`);
+  assert.match(result.stderr, /workload breadcrumb missing/, label);
+  assert.match(result.stderr, named, label);
 }
 
 console.log('PASS check-doctrine-slots');
