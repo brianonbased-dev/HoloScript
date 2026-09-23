@@ -4,6 +4,7 @@
   "files": [],
   "lines": [
     "core/src/traits/LotusGenesisTriggerTrait.ts::D:/GOLD/anchors",
+    "core/src/compiler/identity/derived-trait-schemas.generated.ts::D:/GOLD/anchors",
     "mcp-server/src/documentation.ts::D:/GOLD",
     "mcp-server/src/founder-handler.ts::D:/GOLD",
     "studio/src/app/gold-game/api/vault/route.ts::D:/GOLD",
