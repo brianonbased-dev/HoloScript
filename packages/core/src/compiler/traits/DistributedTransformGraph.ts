@@ -284,13 +284,22 @@ export class DistributedTransformGraph {
     for (const id of activeIds) {
       const state = this.nodeStates.get(id);
       if (!state) continue;
-      // Convert provenance config entries back to TraitApplication form
+      // Convert provenance config entries back to TraitApplication form. A merged value
+      // goes back as its leaf contributions, not its total: re-merging two partial sums
+      // that happen to be equal treated them as one fact, so leaves 0.1..0.4 split
+      // {a,d}/{b,c} across two nodes merged to 0.5, not 1 (claude3's review of #318).
+      // The same leaf seen by two nodes is one fact and collapses, as it should.
       for (const [key, pv] of Object.entries(state.provenanceConfig)) {
-        allTraits.push({
-          name: pv.source ?? id,
-          config: { [key]: pv.value },
-          context: pv.context,
-        });
+        const leaves = pv.contributions?.length
+          ? pv.contributions
+          : [{ source: pv.source ?? id, value: pv.value, context: pv.context }];
+        for (const leaf of leaves) {
+          allTraits.push({
+            name: leaf.source ?? id,
+            config: { [key]: leaf.value },
+            context: leaf.context,
+          });
+        }
       }
     }
 
