@@ -39,14 +39,21 @@ function argValue(name) {
   return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-function workloadPath() {
+/**
+ * Where the dispatch breadcrumb should be. `defaultRoot` is set only when neither an
+ * explicit workload nor a configured root chose the path, so the gate can tell "this
+ * machine has no dispatch lane" apart from "a lane exists and its proof is missing".
+ */
+function workloadLocation() {
   const explicit =
     argValue('--workload') || process.env.HOLOCI_WORKLOAD_PATH || process.env.HOLO_CI_WORKLOAD_PATH;
-  if (explicit) return resolve(explicit);
+  if (explicit) return { file: resolve(explicit), defaultRoot: null };
 
-  const root =
-    process.env.AI_ECOSYSTEM_ROOT || process.env.HOLOMESH_ROOT || join(homedir(), '.ai-ecosystem');
-  return join(root, '.holo-ci-last-workload');
+  const configured = process.env.AI_ECOSYSTEM_ROOT || process.env.HOLOMESH_ROOT;
+  if (configured) return { file: join(configured, '.holo-ci-last-workload'), defaultRoot: null };
+
+  const root = join(homedir(), '.ai-ecosystem');
+  return { file: join(root, '.holo-ci-last-workload'), defaultRoot: root };
 }
 
 function failSlot(slot, detail) {
@@ -55,7 +62,21 @@ function failSlot(slot, detail) {
   process.exit(1);
 }
 
-const file = workloadPath();
+// NO DISPATCH LANE, NOTHING REGISTERED (corrected 2026-09-23). A missing breadcrumb
+// used to fail as "localPreflight null -- hook registered but never fired" on every
+// machine. On a machine with no HoloCI dispatch lane at all -- a fresh clone, a
+// Claude Code cloud session, an outside contributor -- that sentence is false:
+// nothing there can have registered a slot. The gate blocked every push from such a
+// machine while proving nothing, the same wall the 2026-08-06 correction removed for
+// breadcrumbs that register nothing. The first HoloScript cloud session hit it on its
+// first push.
+//
+// The line is drawn where a dispatch lane exists. With no explicit workload, no
+// configured root, and no default root on disk, the gate says so and passes. A
+// missing breadcrumb still fails wherever a root is configured or the default root
+// exists (the laptop layout), and a missing explicit --workload still fails: there
+// the absence hides proof that should exist.
+const { file, defaultRoot } = workloadLocation();
 if (!existsSync(file)) {
   if (
     process.env.HOLOCI_ALLOW_MISSING_WORKLOAD === '1' ||
@@ -64,7 +85,16 @@ if (!existsSync(file)) {
     console.log(`[doctrine-slots] SKIP -- workload breadcrumb missing: ${file}`);
     process.exit(0);
   }
-  failSlot(KNOWN_SLOTS[0], `workload breadcrumb missing: ${file}`);
+  if (defaultRoot && !existsSync(defaultRoot)) {
+    console.log(
+      `[doctrine-slots] OK -- no HoloCI dispatch lane on this machine (${defaultRoot} does not exist); nothing registered, nothing to prove.`
+    );
+    process.exit(0);
+  }
+  console.error(
+    `DOCTRINE VIOLATION: workload breadcrumb missing: ${file} -- this machine has a HoloCI dispatch lane, so its proof should exist`
+  );
+  process.exit(1);
 }
 
 let workload;
