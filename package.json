@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "preinstall": "node scripts/check-pnpm-package-manager.mjs",
-    "build": "node scripts/check-pnpm-package-manager.mjs && node scripts/check-pnpm-install-needed.mjs && corepack pnpm --filter @holoscript/core run build && corepack pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
+    "build": "node scripts/check-pnpm-package-manager.mjs && node scripts/check-pnpm-install-needed.mjs && corepack pnpm -r --workspace-concurrency=1 --filter @holoscript/core... run --if-present build && corepack pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core... --filter=!@holoscript/tauri-app run --if-present build",
     "baseline:audit": "node scripts/holo-ci/baseline-audit.mjs",
     "baseline:audit:test": "node --test scripts/__tests__/baseline-audit.test.mjs",
     "build:parallel": "corepack pnpm -r build",
