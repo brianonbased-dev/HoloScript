@@ -651,3 +651,114 @@ describe('no path bills another provider at Claude\'s cache discount (claude2 re
     }
   });
 });
+
+// task_1786329027132_mt9u. HOLOSCRIPT_AGENT_MODEL was never checked against the pricing tables
+// at startup: an unpriced model (a typo, a newly adopted id) reached the runner, and the only
+// signal was one console.warn on the first priced call while the day billed at the ceiling.
+describe('the configured model is checked against the pricing tables at startup (mt9u)', () => {
+  const usage = { promptTokens: 100, completionTokens: 50, totalTokens: 150 };
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'cost-guard-mt9u-'));
+    resetUnpricedModelWarnings();
+  });
+
+  it('says a model is unpriced exactly when the live guard bills it at the ceiling, for every provider', async () => {
+    const mod = await import('../cost-guard.js');
+    expect(typeof mod.describeModelPricing).toBe('function');
+    const cases: Array<[string, string]> = [
+      ['anthropic', 'claude-haiku-4-5'],
+      ['anthropic', 'claude-opus-4-7-20260101'],
+      ['anthropic', 'claude-fable-5 [replay transcript]'],
+      ['anthropic', 'no-such-model-9'],
+      ['openai', 'gpt-5.6'],
+      ['openai', 'no-such-model-9'],
+      ['openai', 'claude-haiku-4-5'],
+      ['xai', 'grok-4.3'],
+      ['xai', 'no-such-model-9'],
+      ['openrouter', 'anthropic/claude-haiku-4-5'],
+      ['gemini', 'gemini-3-pro'],
+      ['sovereign', 'qwen2.5-coder:7b'],
+      ['local-llm', 'Qwen/Qwen2.5-0.5B-Instruct'],
+      ['mock', 'mock-1'],
+      ['bitnet', 'bitnet-b1.58-2B'],
+    ];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      for (const [provider, model] of cases) {
+        resetUnpricedModelWarnings();
+        warn.mockClear();
+        const guard = new CostGuard({
+          statePath: join(dir, `${provider}.json`),
+          dailyBudgetUsd: 1000,
+          pricer: mod.defaultPricerForProvider(provider),
+        });
+        guard.recordUsage(model, usage);
+        const billedAtCeiling = warn.mock.calls.some((c) => String(c[0]).startsWith('[cost-guard]'));
+        expect({ provider, model, priced: mod.describeModelPricing(provider, model).priced }).toEqual({
+          provider,
+          model,
+          priced: !billedAtCeiling,
+        });
+      }
+    } finally {
+      warn.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('the policy defaults to warn, reads warn or refuse in any case, and names a bad value', async () => {
+    const mod = await import('../cost-guard.js');
+    expect(typeof mod.unpricedModelPolicy).toBe('function');
+    expect(mod.unpricedModelPolicy({})).toBe('warn');
+    expect(mod.unpricedModelPolicy({ HOLOSCRIPT_AGENT_UNPRICED_MODEL: '  ' })).toBe('warn');
+    expect(mod.unpricedModelPolicy({ HOLOSCRIPT_AGENT_UNPRICED_MODEL: 'REFUSE' })).toBe('refuse');
+    expect(mod.unpricedModelPolicy({ HOLOSCRIPT_AGENT_UNPRICED_MODEL: ' warn ' })).toBe('warn');
+    expect(() => mod.unpricedModelPolicy({ HOLOSCRIPT_AGENT_UNPRICED_MODEL: 'stop' })).toThrow(
+      'HOLOSCRIPT_AGENT_UNPRICED_MODEL must be "warn" or "refuse", got "stop"'
+    );
+  });
+
+  it('passes a priced model, and names the table and the other setting for an unpriced one', async () => {
+    const mod = await import('../cost-guard.js');
+    expect(typeof mod.checkConfiguredModelPricing).toBe('function');
+    expect(mod.checkConfiguredModelPricing('anthropic', 'claude-opus-4-7', 'refuse').action).toBe('ok');
+    expect(mod.checkConfiguredModelPricing('local-llm', 'anything', 'refuse').action).toBe('ok');
+    const warned = mod.checkConfiguredModelPricing('openai', 'gpt-9-imaginary', 'warn');
+    expect(warned.action).toBe('warn');
+    expect(warned.pricing.table).toBe('OPENAI_PRICING_USD_PER_MTOK');
+    expect(warned.message).toContain('"gpt-9-imaginary"');
+    expect(warned.message).toContain('HOLOSCRIPT_AGENT_UNPRICED_MODEL=refuse');
+    const refused = mod.checkConfiguredModelPricing('gemini', 'gemini-3-pro', 'refuse');
+    expect(refused.action).toBe('refuse');
+    expect(refused.message).toContain('provider gemini has no table of its own');
+    expect(refused.message).toContain('HOLOSCRIPT_AGENT_UNPRICED_MODEL=warn');
+  });
+
+  it('an unpriced model still accrues at the ceiling (no regression of wj1m)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const guard = new CostGuard({ statePath: join(dir, 'wj1m.json'), dailyBudgetUsd: 1 });
+      const res = guard.recordUsage('no-such-model-9', usage);
+      const ceiling = resolveModelPricingOrFallback('no-such-model-9').price;
+      expect(res.costUsd).toBeGreaterThan(0);
+      expect(res.costUsd).toBeCloseTo((100 * ceiling.input + 50 * ceiling.output) / 1_000_000, 12);
+    } finally {
+      warn.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('the single-agent run checks the routed model before it builds a provider, and refuses when told to', () => {
+    const source = readFileSync(new URL('../../src/index.ts', import.meta.url), 'utf8');
+    const run = source.slice(
+      source.indexOf('async function cmdRun'),
+      source.indexOf('function supervisorProviderFactory')
+    );
+    const check = run.search(/checkConfiguredModelPricing\(\s*effectiveIdentity\.llmProvider,\s*effectiveIdentity\.llmModel/);
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(run.indexOf('buildProvider(effectiveIdentity)'));
+    expect(run).toMatch(/if \(pricingCheck\.action === 'refuse'\) \{\s*throw new Error/);
+  });
+});
