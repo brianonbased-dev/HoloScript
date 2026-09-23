@@ -48,6 +48,10 @@ function buildInventory() {
     } catch {
       return;
     }
+    // readdir order is the filesystem's, not ours: NTFS lists by name, ext4 by hash.
+    // Unsorted, a Linux build reordered the Windows-generated catalog and left the
+    // tracked file dirty. Code-unit order is the same on every platform and locale.
+    dirents.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     for (const d of dirents) {
       const full = resolve(dir, d.name);
       if (d.isDirectory()) {
