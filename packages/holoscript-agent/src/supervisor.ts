@@ -156,10 +156,11 @@ export class Supervisor {
 
     const provider = await this.opts.providerFactory(effectiveSpec, identity);
     const stateDir = this.opts.stateDir ?? join(homedir(), '.holoscript-agent', 'cost-state');
-    // Each provider is billed from its own table (OpenAI, xAI, OpenRouter; local
-    // and mock at $0); this used to leave the pricer unset, which billed every
-    // paid agent through the Anthropic table, so an OpenAI model fell to the
-    // Claude ceiling.
+    // Each provider is billed from its own table and its own cache policy
+    // (OpenAI, xAI, OpenRouter; local, mock and bitnet at $0). Leaving the pricer
+    // unset billed every paid agent through the Anthropic pricer, so an OpenAI
+    // model fell to the Claude ceiling and Claude's 0.1 cache-read discount
+    // reached OpenAI and xAI traffic.
     const costGuard = new CostGuard({
       statePath: join(stateDir, `${effectiveSpec.handle}.json`),
       dailyBudgetUsd: identity.budgetUsdPerDay,
