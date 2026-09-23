@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { ILLMProvider } from '@holoscript/llm-provider';
 import { AgentRunner } from './runner.js';
 import { makeIdleAccrual } from './idle-accrual.js';
-import { CostGuard } from './cost-guard.js';
+import { CostGuard, defaultPricerForProvider } from './cost-guard.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { loadBrain } from './brain.js';
 import { makeCommitHook } from './commit-hook.js';
@@ -134,7 +134,10 @@ export class Supervisor {
     const costGuard = new CostGuard({
       statePath: join(stateDir, `${effectiveSpec.handle}.json`),
       dailyBudgetUsd: identity.budgetUsdPerDay,
-      pricer: isFree ? () => 0 : undefined,
+      // Each paid provider is billed from its own table and its own cache policy.
+      // Leaving this unset billed every paid agent through the Anthropic pricer,
+      // so Claude's 0.1 cache-read discount reached OpenAI and xAI traffic.
+      pricer: isFree ? () => 0 : defaultPricerForProvider(effectiveSpec.provider),
     });
     const mesh = new HolomeshClient({
       apiBase: identity.meshApiBase,

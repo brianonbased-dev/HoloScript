@@ -287,4 +287,30 @@ composition "LocalOnly" {
     const stopped = events.find((e) => e.ev === 'supervisor-stopped');
     expect(stopped?.count).toBe(1);
   });
+
+  // claude2's review of #321 (2026-09-23): the supervisor left the pricer unset for every paid
+  // provider, so an OpenAI agent was billed through the Anthropic pricer (and, once cache fields
+  // arrive, at Claude's 0.1 cache-read discount).
+  it('bills an OpenAI agent from the OpenAI table, not through the Anthropic pricer', async () => {
+    const tasks = [{ id: 't-oa', title: 'security memo', tags: ['security'] }];
+    const sup = new Supervisor({
+      config: { agents: [specForBrain(brainPath, { provider: 'openai', model: 'gpt-5.6' })] },
+      providerFactory: () => provider(),
+      teamId: 't',
+      stateDir: dir,
+      fetchImpl: buildFetch(tasks),
+    });
+    await sup.start();
+    const status = await sup.tickOnce('security-auditor');
+    await sup.stop();
+    // Every stub call reports 100 prompt + 50 completion tokens. gpt-5.6 is $5 / $30 per MTok,
+    // so one call costs $0.002; through the Anthropic pricer the id is unpriced and falls to the
+    // ceiling ($10 / $50), $0.0035 a call. One or two ticks of two calls run here, so the spend
+    // is 1 to 4 OpenAI calls, and no ceiling spend of 1 to 4 calls lands on that grid.
+    const perCall = (100 * 5 + 50 * 30) / 1_000_000;
+    const calls = status.spentUsd / perCall;
+    expect(Math.abs(calls - Math.round(calls))).toBeLessThan(1e-6);
+    expect(Math.round(calls)).toBeGreaterThanOrEqual(1);
+    expect(Math.round(calls)).toBeLessThanOrEqual(4);
+  });
 });
