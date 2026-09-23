@@ -4,7 +4,7 @@
   "private": true,
   "description": "holoscript.net v2 — the front door authored in HoloScript (.holo) and compiled to Next.js",
   "scripts": {
-    "predev": "pnpm --filter @holoscript/core run build && pnpm run holo:build",
+    "predev": "pnpm --filter @holoscript/core... run build && pnpm run holo:build",
     "dev": "next dev --webpack --port 3300",
     "holo:build": "tsx scripts/compile-holo-pages.ts && tsx scripts/bake-lotus-scenes.ts",
     "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
