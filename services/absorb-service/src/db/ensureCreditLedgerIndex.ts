@@ -47,9 +47,31 @@ const TABLE_NAME = 'credit_transactions';
 
 /**
  * Move `stripe_session_id` off every duplicate but the earliest, preserving it
- * in `metadata`. Identical to migration 0001 so the two paths cannot drift.
+ * in `metadata`. The same statement as migration 0001, apart from the
+ * `supersededBy` label — and that is now CHECKED rather than claimed:
+ * `ensureCreditLedgerIndex.test.ts` compares the two and fails if they drift.
+ * This comment said "identical so the two paths cannot drift" for a day with
+ * nothing enforcing it.
+ *
+ * THE LAST LINE IS A RACE GUARD, and it is the only way this differs from what
+ * shipped first. Two boots can run this at once (the entrypoint and the server
+ * each call it, and back-to-back deploys overlap). Under Postgres's default
+ * READ COMMITTED isolation the second UPDATE waits on rows the first has
+ * locked, then RE-CHECKS its WHERE clause against the committed row — and
+ * without this guard the re-check still passes (`ct.id = r.id` and `r.rn` come
+ * from the CTE's snapshot), so it re-runs the SET on a row whose
+ * `stripe_session_id` is now NULL and overwrites `supersededStripeSessionId`
+ * with NULL. The duplicate stays marked, but its link to the payment it
+ * duplicated is gone — the one field anybody deciding a clawback needs.
+ *
+ * On a SINGLE run the guard changes nothing: the CTE already selects only rows
+ * whose `stripe_session_id` is not null, so every row it can reach passes it.
+ * It can only make a concurrent run do less. That equivalence is by reading;
+ * the concurrent behaviour is Postgres's documented re-check and was reasoned,
+ * not run — this repo has no real-Postgres test harness. Found by pre-mortem,
+ * 2026-09-23.
  */
-const DEDUPE_SQL = `
+export const DEDUPE_SQL = `
 WITH ranked AS (
   SELECT
     id,
@@ -70,7 +92,82 @@ SET
   )
 FROM ranked AS r
 WHERE ct.id = r.id
-  AND r.rn > 1`;
+  AND r.rn > 1
+  AND ct.stripe_session_id IS NOT NULL`;
+
+/**
+ * How much was credited twice and is still sitting on accounts. Read-only.
+ *
+ * This is the number the clawback decision needs, and until now no boot could
+ * produce it reliably: the dedupe above only prints when it marks rows on THIS
+ * boot, so on the migrate lane — where migration 0001 does the marking and the
+ * server then finds the index already PRESENT — the count never appeared in any
+ * log at all. A deployment with a thousand duplicates and one with none printed
+ * the same thing. Reporting from the marked rows themselves, every boot, makes
+ * the log answer the question whichever lane did the work.
+ */
+export const EXPOSURE_SQL = `
+SELECT count(*)::int AS grants,
+       count(DISTINCT user_id)::int AS accounts,
+       coalesce(sum(amount_cents), 0)::bigint AS credits
+FROM credit_transactions
+WHERE metadata ? 'supersededStripeSessionId'
+  AND amount_cents > 0`;
+
+export interface LedgerExposure {
+  grants: number;
+  accounts: number;
+  credits: number;
+}
+
+/**
+ * The boot line for the exposure. Pure, so the words people will act on are
+ * tested rather than assumed.
+ *
+ * Zero gets its OWN line on purpose. The failure this avoids has bitten this
+ * codebase repeatedly: a report that prints only when it has something to say
+ * makes "there was nothing" and "the report never ran" look identical. An
+ * explicit zero is a measurement; a missing line is not.
+ */
+export function describeLedgerExposure(e: LedgerExposure): string {
+  if (e.grants === 0) {
+    return (
+      '[absorb-service] credit ledger exposure: 0 duplicate grants — ' +
+      'no account holds credits that a redelivered payment granted twice.'
+    );
+  }
+  return (
+    `[absorb-service] credit ledger exposure: ${e.grants} duplicate grant(s) on ` +
+    `${e.accounts} account(s), ${e.credits} credits granted twice and NOT reclaimed. ` +
+    'The founder has decided to take these back (2026-09-23); nothing does so yet, ' +
+    'because a fair reclaim must not take credits a customer paid for again afterwards. ' +
+    'This line is the count that work starts from.'
+  );
+}
+
+async function reportExposure(client: Client): Promise<void> {
+  try {
+    const result = await client.query<{ grants: number; accounts: number; credits: string | number }>(
+      EXPOSURE_SQL
+    );
+    const row = result.rows[0];
+    console.log(
+      describeLedgerExposure({
+        grants: Number(row?.grants ?? 0),
+        accounts: Number(row?.accounts ?? 0),
+        credits: Number(row?.credits ?? 0),
+      })
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // UNKNOWN, not zero. The whole reason this report exists is that silence
+    // was being read as "nothing to reclaim".
+    console.warn(
+      `[absorb-service] credit ledger exposure: could not measure (${message}) — ` +
+        'the count is UNKNOWN on this boot, not zero.'
+    );
+  }
+}
 
 const CREATE_INDEX_SQL = `CREATE UNIQUE INDEX IF NOT EXISTS "${INDEX_NAME}" ON "${TABLE_NAME}" USING btree ("stripe_session_id")`;
 
@@ -119,6 +216,9 @@ export async function ensureCreditLedgerIndex(): Promise<void> {
         `[absorb-service] credit ledger: ${INDEX_NAME} PRESENT on ${TABLE_NAME} — ` +
           'one Stripe session can be credited at most once.'
       );
+      // Report here too. This is the path the migrate lane takes (0001 already
+      // did the marking), and it is exactly where the count used to vanish.
+      await reportExposure(client);
       return;
     }
 
@@ -146,6 +246,7 @@ export async function ensureCreditLedgerIndex(): Promise<void> {
         ? `[absorb-service] credit ledger: ${INDEX_NAME} CREATED on ${TABLE_NAME}.`
         : `[absorb-service] credit ledger: ${INDEX_NAME} still MISSING after CREATE — investigate.`
     );
+    await reportExposure(client);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     // Deliberately not fatal: refusing to boot would take down scan, query,

@@ -54,7 +54,11 @@ SET
   )
 FROM ranked AS r
 WHERE ct.id = r.id
-  AND r.rn > 1;
+  AND r.rn > 1
+  -- Race guard: a concurrent run re-checks this WHERE against the committed
+  -- row and, without this line, would overwrite supersededStripeSessionId with
+  -- NULL. A no-op on a single run. See ensureCreditLedgerIndex.ts DEDUPE_SQL.
+  AND ct.stripe_session_id IS NOT NULL;
 
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_credit_tx_stripe_session"
