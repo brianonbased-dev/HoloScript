@@ -17,6 +17,7 @@ import { useState, useCallback } from 'react';
 import { Globe, Copy, Check, Loader2, X, ExternalLink } from 'lucide-react';
 import { QRCodeImage } from '@/components/QRCodeImage';
 import { useSceneStore } from '@/lib/stores';
+import { worldQrUrl } from '@/lib/worldQrUrl';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 
 interface PublishModalProps {
@@ -174,9 +175,10 @@ export function PublishModal({ onClose }: PublishModalProps) {
                 </a>
               </div>
 
-              {/* QR Code */}
+              {/* QR Code: the headset refuses a /w/ short link and admits /shared/
+                  (see lib/worldQrUrl); the human-readable link above stays /w/. */}
               <QRCodeImage
-                url={publishedUrl}
+                url={worldQrUrl(publishedUrl)}
                 size={120}
                 className="rounded-lg border border-studio-border"
               />

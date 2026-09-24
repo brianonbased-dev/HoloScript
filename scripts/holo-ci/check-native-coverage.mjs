@@ -68,13 +68,6 @@ function walk(dir, onFile) {
 }
 
 /**
- * Compute the coverage metrics over the shipped capability surface (`packages/`).
- * Examples, docs, and research are EXCLUDED on purpose: D.104 is about the TS
- * implementation dissolving into native authoring *as capability*, not about
- * demo scenes (many example `.holo` files are illustrative and some don't even
- * parse). Scoping to `packages/` keeps the number honest and meaningful.
- */
-/**
  * Is this `.hsplus` file DESCRIBING hand-written TypeScript rather than being the
  * source the TypeScript is generated from?
  *
@@ -120,6 +113,13 @@ function descriptorState(abs) {
   return resolved ? 'resolved' : 'header-only';
 }
 
+/**
+ * Compute the coverage metrics over the shipped capability surface (`packages/`).
+ * Examples, docs, and research are EXCLUDED on purpose: D.104 is about the TS
+ * implementation dissolving into native authoring *as capability*, not about
+ * demo scenes (many example `.holo` files are illustrative and some don't even
+ * parse). Scoping to `packages/` keeps the number honest and meaningful.
+ */
 export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
   let native = 0;
   let handTsTraits = 0;

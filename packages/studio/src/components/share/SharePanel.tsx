@@ -7,6 +7,7 @@
 import { useState, useCallback } from 'react';
 import { Share2, Globe, Loader2, Copy, Check, RefreshCw, Clock, X } from 'lucide-react';
 import { QRCodeImage } from '@/components/QRCodeImage';
+import { worldQrUrl } from '@/lib/worldQrUrl';
 import { useSceneShare } from '@/hooks/useSceneShare';
 import { useSceneStore } from '@/lib/stores';
 import { COPY_FEEDBACK_DURATION } from '@/lib/ui-timings';
@@ -67,14 +68,15 @@ export function SharePanel({ onClose }: SharePanelProps) {
   // so it is correct for a human to copy. But HoloQR pattern-matches
   // "https://holoscript.studio/w/" as a WORLD PORTAL link (WorldPortal.kt:21),
   // then demands hs_manifest + hs_signature + hs_key_id and checks them against
-  // a trusted-key list that ships EMPTY (WorldTrust.kt:29). So every /w/ QR is
+  // a trusted-key list that ships EMPTY (WorldTrust.kt:31). So every /w/ QR is
   // refused on the headset with "World blocked: signed-parameter-cardinality".
   //
   // /shared/:id is in none of its link patterns, so it falls through to the
   // ordinary-URL path and "Open" launches the Quest Browser, where the WebXR
   // viewer at app/shared/[id] renders the scene. Same destination, and the one
-  // spelling the scanner will actually admit.
-  const qrUrl = shareUrl ? shareUrl.replace(/\/w\/([^/?#]+)/, '/shared/$1') : null;
+  // spelling the scanner will actually admit. The transform lives in one helper
+  // (lib/worldQrUrl) shared with PublishModal, anchored to the pathname.
+  const qrUrl = shareUrl ? worldQrUrl(shareUrl) : null;
 
 
   return (
