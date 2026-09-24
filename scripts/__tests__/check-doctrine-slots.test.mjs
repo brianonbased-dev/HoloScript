@@ -265,7 +265,13 @@ withBreadcrumb({ requiredSlots: ['localPreflight'], localPreflight: null }, (pat
   assert.equal(result.status, 1, result.stdout);
   assert.match(result.stderr, /DOCTRINE VIOLATION: localPreflight null/);
 });
-for (const args of [['--workload'], ['--workload', '--allow-missing-workload'], ['--workload=']]) {
+for (const args of [
+  ['--workload'],
+  ['--workload', '--allow-missing-workload'],
+  ['--workload='],
+  ['--workload=   '],
+  ['--workload', '   '],
+]) {
   const result = runFromHome({ args });
   assert.equal(result.status, 2, `${args.join(' ')}: ${result.stdout}`);
   assert.match(result.stderr, /--workload needs a path/);

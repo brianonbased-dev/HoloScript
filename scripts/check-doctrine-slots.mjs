@@ -42,10 +42,11 @@ const KNOWN_SLOTS = ['localPreflight'];
 function workloadFlag() {
   const at = process.argv.findIndex((arg) => arg === '--workload' || arg.startsWith('--workload='));
   if (at < 0) return undefined;
-  const value =
+  const value = (
     process.argv[at] === '--workload'
       ? process.argv[at + 1]
-      : process.argv[at].slice('--workload='.length);
+      : process.argv[at].slice('--workload='.length)
+  )?.trim();
   if (!value || value.startsWith('--')) {
     console.error('[doctrine-slots] --workload needs a path: --workload <file> or --workload=<file>.');
     process.exit(2);
