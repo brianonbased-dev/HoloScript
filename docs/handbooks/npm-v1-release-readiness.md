@@ -27,9 +27,17 @@ corepack pnpm build
 corepack pnpm run check:npm-v1-release:built
 corepack pnpm check:holollama-consumption
 corepack pnpm check:registry-cold-start
+corepack pnpm check:package-consumption
 corepack pnpm release:guard
 node scripts/audit-published-install-tree.mjs @holoscript/cli@latest
 ```
+
+`check:package-consumption` is the published consumption bar. A raw
+`node scripts/holo-ci/check-package-consumption-matrix.mjs` run requires the
+existing registry cold-start probes (`core-holo-webgpu`, `cli-bin-help`,
+`mcp-server-sizing`). Metadata-only no longer counts as a pass. Use
+`--skip-registry-cold-start` only for local PyPI/pack lanes that are not the
+consumption bar.
 
 `corepack pnpm` is intentional on local Codex seats because this repo pins
 `pnpm@9.15.9`; a newer global pnpm can try to rewrite or purge the install tree.
