@@ -6,8 +6,9 @@ import type {
   ILLMProvider,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  TokenUsage,
 } from '@holoscript/llm-provider';
-import { CostGuard } from '../cost-guard.js';
+import { CostGuard, defaultAnthropicPricer, defaultOpenAIPricer } from '../cost-guard.js';
 import { AgentRunner } from '../runner.js';
 import type { AgentIdentity, BoardTask, ExecutionResult, RuntimeBrainConfig } from '../types.js';
 
@@ -1380,5 +1381,196 @@ describe('AgentRunner.tick', () => {
       await expect(runner.tick()).rejects.toThrow(/500: internal error/);
       expect(mesh.claim).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+// claude3's review of PR #321 (2026-09-23): the qf65 cases rested on two source-text asserts, so a
+// hollow change (strip the cache fields, keep the addTokenUsage call) stayed green. These drive the
+// REAL runner through each of its four aggregation sites with a scripted model whose every call
+// reports its own usage, and read what reaches the cost guard. Adapted from claude3's drop-in.
+describe('cache fields survive each runner aggregation site (qf65, behavioural)', () => {
+  type Step = {
+    usage: TokenUsage;
+    toolUses?: Array<{ name: string; input: Record<string, unknown> }>;
+    content?: string;
+  };
+  const TASK: BoardTask = {
+    id: 't-qf65',
+    title: 'qf65 probe',
+    description: '',
+    priority: 'high',
+    tags: ['security', 'paper-21'],
+    status: 'open',
+  };
+  const plain = (p: number, c: number): TokenUsage => ({
+    promptTokens: p,
+    completionTokens: c,
+    totalTokens: p + c,
+  });
+  const BASH = { name: 'bash', input: { cmd: 'vitest run --no-coverage' } };
+
+  function scriptedModel(steps: Step[]): { provider: ILLMProvider; calls: () => number } {
+    let i = 0;
+    const provider = {
+      name: 'mock',
+      models: ['mock-1'],
+      defaultHoloScriptModel: 'mock-1',
+      async complete(_req: LLMCompletionRequest): Promise<LLMCompletionResponse> {
+        const step = steps[Math.min(i, steps.length - 1)];
+        i += 1;
+        const n = i;
+        if (step.toolUses && step.toolUses.length > 0) {
+          return {
+            content: '',
+            usage: step.usage,
+            model: 'mock-1',
+            provider: 'mock',
+            finishReason: 'tool_use',
+            toolUses: step.toolUses.map((t, k) => ({ id: `tu-${n}-${k}`, name: t.name, input: t.input })),
+            assistantBlocks: step.toolUses.map((t, k) => ({
+              type: 'tool_use' as const,
+              id: `tu-${n}-${k}`,
+              name: t.name,
+              input: t.input,
+            })),
+          } as unknown as LLMCompletionResponse;
+        }
+        return {
+          content: step.content ?? 'final answer',
+          usage: step.usage,
+          model: 'mock-1',
+          provider: 'mock',
+          finishReason: 'stop',
+        } as unknown as LLMCompletionResponse;
+      },
+      async generateHoloScript() {
+        throw new Error('unused');
+      },
+      async healthCheck() {
+        return { ok: true, latencyMs: 1 };
+      },
+    };
+    return { provider: provider as unknown as ILLMProvider, calls: () => i };
+  }
+
+  async function runTick(
+    steps: Step[],
+    opts: {
+      brain?: Partial<RuntimeBrainConfig>;
+      pricer?: (model: string, usage: TokenUsage) => number;
+      identity?: Partial<AgentIdentity>;
+    } = {}
+  ) {
+    const recorded: TokenUsage[] = [];
+    const dir = mkdtempSync(join(tmpdir(), 'qf65-run-'));
+    const guard = new CostGuard({
+      statePath: join(dir, 's.json'),
+      dailyBudgetUsd: 5,
+      pricer:
+        opts.pricer ??
+        ((_model: string, usage: TokenUsage) => {
+          recorded.push({ ...usage });
+          return 0.001;
+        }),
+    });
+    const { provider, calls } = scriptedModel(steps);
+    const runner = new AgentRunner({
+      identity: { ...IDENTITY, ...(opts.identity ?? {}) },
+      brain: { ...BRAIN, ...(opts.brain ?? {}) },
+      provider,
+      costGuard: guard,
+      mesh: mockMesh({ tasks: [TASK] }) as never,
+    });
+    const result = await runner.tick();
+    return { result, recorded, calls: calls(), guard };
+  }
+
+  it('site 1, the tool loop: both responses contribute their cache fields', async () => {
+    const { result, recorded, calls } = await runTick([
+      {
+        usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800, cacheWriteTokens: 100 },
+        toolUses: [BASH],
+      },
+      { usage: { promptTokens: 2000, completionTokens: 300, totalTokens: 2300, cacheReadTokens: 1500 } },
+    ]);
+    expect(result.action).toBe('executed');
+    expect(calls).toBe(2);
+    expect(recorded).toEqual([
+      { promptTokens: 3000, completionTokens: 500, totalTokens: 3500, cacheReadTokens: 2300, cacheWriteTokens: 100 },
+    ]);
+  });
+
+  it('site 2, the read-then-text re-prompt: the re-prompt call keeps its cache fields', async () => {
+    const { result, recorded, calls } = await runTick([
+      { usage: plain(10, 1), toolUses: [{ name: 'read_file', input: { path: '/tmp/qf65-x' } }] },
+      { usage: plain(20, 2), content: 'I read it.' },
+      {
+        usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 },
+        toolUses: [{ name: 'write_file', input: { path: '/tmp/qf65-out', content: 'artifact' } }],
+      },
+    ]);
+    expect(calls).toBe(3);
+    expect(result.action).toBe('executed');
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0].cacheReadTokens).toBe(800);
+    expect(recorded[0].promptTokens).toBe(1030);
+  });
+
+  it('site 3, the vision-write re-prompt: the vision-write call keeps its cache fields', async () => {
+    const { result, recorded, calls } = await runTick([
+      { usage: plain(10, 1), toolUses: [{ name: 'vision_analyze', input: { image_path: '' } }] },
+      { usage: plain(20, 2), content: 'seen' },
+      { usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 }, content: 'caption stored' },
+    ]);
+    expect(calls).toBe(3);
+    expect(result.action).toBe('executed');
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0].cacheReadTokens).toBe(800);
+    expect(recorded[0].promptTokens).toBe(1030);
+  });
+
+  it('site 4, reflect: the reflect call keeps its cache fields', async () => {
+    const NL = String.fromCharCode(10);
+    const { result, recorded, calls } = await runTick(
+      [
+        { usage: plain(10, 1), toolUses: [BASH] },
+        { usage: plain(20, 2), content: 'done' },
+        {
+          usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 },
+          content: 'fine' + NL + 'VERDICT: PASS',
+        },
+      ],
+      { brain: { reflect: { criteria: 'correctness', escalateOnFail: false } } }
+    );
+    expect(calls).toBe(3);
+    expect(result.action).toBe('executed');
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0].cacheReadTokens).toBe(800);
+    expect(recorded[0].promptTokens).toBe(1030);
+  });
+
+  it('a flow with no cache fields records exactly the three-field sum and no cache keys', async () => {
+    const { recorded } = await runTick([
+      { usage: plain(100, 10), toolUses: [BASH] },
+      { usage: plain(200, 20) },
+    ]);
+    expect(recorded).toEqual([{ promptTokens: 300, completionTokens: 30, totalTokens: 330 }]);
+    expect('cacheReadTokens' in recorded[0]).toBe(false);
+    expect('cacheWriteTokens' in recorded[0]).toBe(false);
+  });
+
+  it('the real pricers bill it through the runner: Claude reads at 0.1, OpenAI reads at full input', async () => {
+    const cached: TokenUsage = { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 };
+    // haiku-4-5, $1 / $5: 200 uncached + 800 read at 0.1 + 200 out = 1,280 micro-dollars a call.
+    const claude = await runTick([{ usage: cached, toolUses: [BASH] }, { usage: cached }], {
+      pricer: defaultAnthropicPricer,
+    });
+    expect(claude.guard.getState().spentUsd * 1e6).toBeCloseTo(2 * 1280, 6);
+    // gpt-5.6, $5 / $30: 200 uncached + 800 read at full input + 200 out = 11,000 a call.
+    const openai = await runTick([{ usage: cached, toolUses: [BASH] }, { usage: cached }], {
+      pricer: defaultOpenAIPricer,
+      identity: { llmProvider: 'openai', llmModel: 'gpt-5.6' },
+    });
+    expect(openai.guard.getState().spentUsd * 1e6).toBeCloseTo(2 * 11000, 6);
   });
 });
