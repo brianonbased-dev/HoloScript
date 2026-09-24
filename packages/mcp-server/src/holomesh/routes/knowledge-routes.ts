@@ -523,7 +523,23 @@ export async function handleKnowledgeRoutes(
       },
     };
 
-    const synced = await c.contributeKnowledge([entry]);
+    // w6ui: synced counts only what the orchestrator accepted; a refusal is named.
+    const outcome = await c.contributeKnowledgeDetailed([entry]);
+    if (!outcome.accepted) {
+      // This route keeps no copy of its own, so a write the orchestrator did not
+      // accept is stored nowhere readable (GET /entry/<id> answers 404). It must not
+      // answer 201 with an entryId and a signed audit for it (claude3's review of
+      // #319): 502 when the orchestrator answered and did not accept, 503 when it
+      // could not be reached.
+      const unreachable = outcome.status === null;
+      json(res, unreachable ? 503 : 502, {
+        success: false,
+        error: unreachable ? 'orchestrator_unreachable' : 'orchestrator_refused',
+        orchestrator: { accepted: false, status: outcome.status, reason: outcome.reason },
+      });
+      return true;
+    }
+    const synced = outcome.synced;
 
     // Bridge into ConsolidationEngine (explicit trigger path)
     try {
@@ -533,7 +549,13 @@ export async function handleKnowledgeRoutes(
       /* consolidation bridge is best-effort — never block the contribution */
     }
 
-    json(res, 201, { success: true, entryId, synced, audit: entry.metadata.audit });
+    json(res, 201, {
+      success: true,
+      entryId,
+      synced,
+      orchestrator: { accepted: outcome.accepted, status: outcome.status, reason: outcome.reason },
+      audit: entry.metadata.audit,
+    });
     return true;
   }
 
