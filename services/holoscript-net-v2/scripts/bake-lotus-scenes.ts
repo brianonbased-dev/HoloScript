@@ -31,6 +31,29 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+
+/**
+ * Keep a generated file byte-stable when nothing about it changed.
+ *
+ * These artifacts carry a `generatedAt` stamp, so writing a fresh Date on
+ * every bake rewrote all four scenes even when the compiled scene was
+ * identical — a guaranteed diff on every run, which buries real drift. Reuse
+ * the previous stamp when everything else matches, so the field means "when
+ * this content last changed" rather than "when the script last ran".
+ */
+function preserveTimestamp<T extends { generatedAt?: string }>(file: string, value: T): T {
+  if (!existsSync(file)) return value;
+  try {
+    const previous = JSON.parse(readFileSync(file, 'utf-8')) as T;
+    const withoutStamp = (o: T) => JSON.stringify({ ...o, generatedAt: '' });
+    if (typeof previous.generatedAt === 'string' && withoutStamp(previous) === withoutStamp(value)) {
+      return { ...value, generatedAt: previous.generatedAt };
+    }
+  } catch {
+    // Unreadable or malformed previous output: fall through and write fresh.
+  }
+  return value;
+}
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { parseHolo } from '../../../packages/core/src/parser/HoloCompositionParser';
@@ -599,7 +622,7 @@ function main(): void {
     const { ast } = compileScene('lotus-pond.holo');
     const scene = bakePond(ast, 'pond');
     const out = join(SCENES_DIR, 'lotus-pond.baked.json');
-    writeFileSync(out, JSON.stringify(scene));
+    writeFileSync(out, JSON.stringify(preserveTimestamp(out, scene)));
     console.log(`  ✓ pond → lotus-pond.baked.json (${scene.lotuses?.length ?? 0} lotuses, ${scene.scaffold?.length ?? 0} scaffold, geom ${(scene.petalGeometry?.positions.length ?? 0) / 3} verts)`);
     baked.push({ name: 'pond', file: 'lotus-pond.baked.json', kind: scene.kind });
   }
@@ -610,7 +633,7 @@ function main(): void {
     const scene = bakePaperFlower(objects, 'seedable', audit);
     const wilted = (scene.paperPetals ?? []).filter((pp) => pp.bloomHealth === 'wilted');
     const out = join(SCENES_DIR, 'garden.seedable.baked.json');
-    writeFileSync(out, JSON.stringify(scene));
+    writeFileSync(out, JSON.stringify(preserveTimestamp(out, scene)));
     console.log(`  ✓ seedable → garden.seedable.baked.json (${scene.paperPetals?.length ?? 0} petals, ${wilted.length} proxy-wilted: ${wilted.map((w) => `${w.rowId}:${w.title.replace(/^Petal\s+\S+\s*/, '').slice(0, 28)}`).join(' | ')})`);
     baked.push({ name: 'seedable', file: 'garden.seedable.baked.json', kind: scene.kind });
   }
@@ -620,14 +643,18 @@ function main(): void {
     const { ast, objects } = compileScene('garden.refreshed.holo');
     const scene = bakeSymbolic(ast, objects, 'refreshed');
     const out = join(SCENES_DIR, 'garden.refreshed.baked.json');
-    writeFileSync(out, JSON.stringify(scene));
+    writeFileSync(out, JSON.stringify(preserveTimestamp(out, scene)));
     console.log(`  ✓ refreshed → garden.refreshed.baked.json (${scene.nodes?.length ?? 0} nodes)`);
     baked.push({ name: 'refreshed', file: 'garden.refreshed.baked.json', kind: scene.kind });
   }
 
   writeFileSync(
     MANIFEST_PATH,
-    JSON.stringify({ generatedAt: new Date().toISOString(), scenes: baked }, null, 2) + '\n'
+    JSON.stringify(
+      preserveTimestamp(MANIFEST_PATH, { generatedAt: new Date().toISOString(), scenes: baked }),
+      null,
+      2
+    ) + '\n'
   );
   console.log(`\nBaked ${baked.length} lotus scenes → public/scenes/*.baked.json`);
 }

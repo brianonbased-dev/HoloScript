@@ -107,6 +107,64 @@ if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/co
   fi
 fi
 
+# ── Studio generators: the drift check, actually run ────────────────────────
+#
+# Four generators emit committed files. Until 2026-09-21 each emitted RAW output
+# while the repo-wide format pass rewrote the committed copies, so every run
+# produced a phantom diff -- and a check that is always red is a check nobody
+# reads, which is how real drift hid. They format their own output now and
+# `check:studio-generators` compares committed output against a fresh run.
+#
+# That check existed and NOTHING INVOKED IT. `.github/workflows` holds only
+# `_archived/`, and the only mention of viewreg:check outside its own definition
+# was the comment admitting no caller existed. An honest check nobody runs is
+# still a check that cannot fail; this is the caller.
+#
+# Measured 2026-09-22: 6 seconds on a clean tree, exit 0. Fed a real drift (one
+# view id renamed in the generated output) it exits 1 and names the file.
+if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/studio/'; then
+  echo -e "${YELLOW}[pre-push] studio change — checking generator drift (~6s)...${NC}"
+  # Output is SHOWN, not swallowed. Sending it to /dev/null threw away the only
+  # thing that tells the developer WHICH file drifted, leaving them to re-run the
+  # check by hand to learn what the hook already knew.
+  if ! corepack pnpm --filter @holoscript/studio run generators:check; then
+    echo -e "${RED}[pre-push] BLOCKED: a committed generated file no longer matches its generator.${NC}"
+    # Three SEPARATE commands. `pnpm run a b c` runs script `a` with "b" and "c"
+    # as argv -- it does not run three scripts. The one-line form printed here
+    # before ran holo:build only, so anyone blocked by vector or viewreg drift
+    # followed the instructions, saw exit 0, pushed, and was blocked again with
+    # the identical message.
+    echo -e "${YELLOW}  Fix: pnpm --filter @holoscript/studio run holo:build${NC}"
+    echo -e "${YELLOW}       pnpm --filter @holoscript/studio run vector:build${NC}"
+    echo -e "${YELLOW}       pnpm --filter @holoscript/studio run viewreg:build${NC}"
+    echo -e "${YELLOW}  then commit the regenerated files.${NC}"
+    echo -e "${YELLOW}  Never edit a @generated file directly — change the .holo source.${NC}"
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
+
+  # THE CHECK READS THE WORKING TREE, AND THE PUSH SENDS THE COMMIT.
+  #
+  # Every --check mode compares the generator against the files ON DISK. But
+  # `prebuild` and `predev` regenerate the tree, so a developer who commits stale
+  # generated output and then runs `pnpm build` has a clean working tree and a
+  # stale commit -- and the check above passes by construction while the push
+  # carries the drift.
+  #
+  # The check just proved disk == generator output. So all that is left is
+  # disk == HEAD for the generated artifacts, which git can answer directly.
+  gen_paths="packages/studio/.holo-manifest.json packages/studio/src/lib/studio/viewRegistry.generated.ts packages/studio/src/lib/studio/viewRegistry.components.tsx packages/studio/src/components/panels/native"
+  if ! git diff --quiet HEAD -- $gen_paths 2>/dev/null; then
+    echo -e "${RED}[pre-push] BLOCKED: generated studio files differ between your commit and your working tree.${NC}"
+    echo -e "${YELLOW}  The generators agree with your FILES, but you have not committed them, so the${NC}"
+    echo -e "${YELLOW}  push would carry the older output. Commit the regenerated files:${NC}"
+    git diff --name-only HEAD -- $gen_paths 2>/dev/null | sed 's/^/    /'
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}[pre-push] studio generators match their sources, and the commit matches the tree.${NC}"
+fi
+
 # Gate only when a manifest or the lockfile is part of the push.
 if [ "$force_check" = "0" ] && ! printf '%s\n' "$changed" | grep -qE '(^|/)package\.json$|(^|/)pnpm-lock\.yaml$'; then
   exit 0

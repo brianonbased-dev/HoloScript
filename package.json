@@ -125,6 +125,7 @@
     "check:boundary": "node scripts/boundary-ratchet.mjs",
     "check:boundary:update": "node scripts/boundary-ratchet.mjs --update",
     "check:studio-typecheck": "node scripts/holo-ci/studio-typecheck.mjs",
+    "check:studio-generators": "pnpm --filter @holoscript/studio run generators:check",
     "check:typecheck": "node scripts/holo-ci/typecheck.mjs",
     "check:typecheck:staged": "node scripts/holo-ci/typecheck.mjs --staged",
     "check:typecheck:test": "node scripts/__tests__/holo-ci-typecheck-classify.test.mjs",

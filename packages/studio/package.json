@@ -14,6 +14,7 @@
     "holo:build": "tsx scripts/compile-holo-pages.ts",
     "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
     "vector:build": "tsx scripts/compile-vector-pages.mts",
+    "vector:check": "tsx scripts/compile-vector-pages.mts --check",
     "prebuild": "pnpm run holo:build && pnpm run vector:build && pnpm run viewreg:build",
     "build": "next build --webpack",
     "start": "next start --port 3100",
@@ -32,9 +33,10 @@
     "test:coverage": "vitest run --coverage",
     "test:coverage:watch": "vitest --coverage",
     "test:coverage:ui": "vitest --coverage --ui",
-    "holo:check": "tsx scripts/compile-holo-pages.ts --strict",
+    "holo:check": "tsx scripts/compile-holo-pages.ts --strict --check",
     "viewreg:build": "tsx scripts/compile-view-registry.ts",
-    "viewreg:check": "tsx scripts/compile-view-registry.ts --strict"
+    "viewreg:check": "tsx scripts/compile-view-registry.ts --strict --check",
+    "generators:check": "pnpm run holo:check && pnpm run vector:check && pnpm run viewreg:check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.91.1",
