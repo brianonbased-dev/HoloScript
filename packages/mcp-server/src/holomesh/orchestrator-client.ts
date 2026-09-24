@@ -10,6 +10,98 @@
 
 import type { HoloMeshAgentCard, MeshConfig, MeshKnowledgeEntry, AgentReputation } from './types';
 import { computeReputation, resolveReputationTier, DEFAULT_MESH_CONFIG } from './types';
+
+/**
+ * What the orchestrator did with a knowledge write (task_1790081256205_w6ui).
+ * `synced` is the count it accepted (0 on a refusal or when it could not be
+ * reached, never more than was sent); `accepted` is true only when it accepted
+ * everything sent; `reason` says why not, in a fixed vocabulary that never
+ * carries the orchestrator's own text or a transport error's message (both can
+ * hold tokens, hosts, paths or credentials): 'refused (HTTP 403)',
+ * 'unreachable (ECONNREFUSED)', 'unreachable (TIMEOUT)', 'HTTP 200 without a
+ * JSON body', 'accepted 1 of 3'.
+ */
+export interface KnowledgeSyncOutcome {
+  synced: number;
+  accepted: boolean;
+  status: number | null;
+  reason: string | null;
+}
+
+/** A POST to the orchestrator that has not finished in this long counts as unreachable. */
+function orchestratorPostTimeoutMs(): number {
+  const configured = Number(process.env.HOLOMESH_ORCHESTRATOR_POST_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : 15_000;
+}
+
+/** The most of a knowledge-write answer that is read; the count is in the first bytes. */
+const DETAILED_ANSWER_CAP_BYTES = 64 * 1024;
+
+/**
+ * A transport failure, named by its code (ECONNREFUSED, ENOTFOUND, UND_ERR_SOCKET,
+ * ...) or TIMEOUT, never by its message: Node's fetch throws TypeError('fetch
+ * failed') with the code on `cause`, and a message can name the host, the path,
+ * or credentials written into MCP_ORCHESTRATOR_URL (claude3's review of #319).
+ */
+function transportFailure(error: unknown): string {
+  const e = error as { name?: unknown; code?: unknown; cause?: { code?: unknown; name?: unknown } } | null;
+  if (e?.name === 'TimeoutError' || e?.name === 'AbortError' || e?.cause?.name === 'TimeoutError') {
+    return 'unreachable (TIMEOUT)';
+  }
+  for (const code of [e?.cause?.code, e?.code]) {
+    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{2,32}$/.test(code)) return `unreachable (${code})`;
+  }
+  return 'unreachable';
+}
+
+/** Stop reading a body nobody will use (a refusal's text never leaves this server). */
+async function discardBody(res: Response): Promise<void> {
+  try {
+    await (res.body as { cancel?: () => Promise<void> } | null | undefined)?.cancel?.();
+  } catch {
+    /* already closed */
+  }
+}
+
+/**
+ * Read a successful answer as JSON, at most `cap` bytes of it. Returns
+ * undefined when it is not JSON (an HTML login page, an empty body, or an
+ * answer cut at the cap).
+ */
+async function readJsonAnswer(res: Response, cap: number): Promise<unknown> {
+  const stream = res.body as ReadableStream<Uint8Array> | null | undefined;
+  let text: string | undefined;
+  if (stream && typeof stream.getReader === 'function') {
+    const reader = stream.getReader();
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(Buffer.from(value));
+      size += value.byteLength;
+      if (size > cap) {
+        await reader.cancel().catch(() => undefined);
+        return undefined;
+      }
+    }
+    text = Buffer.concat(chunks).toString('utf8');
+  } else if (typeof res.text === 'function') {
+    text = (await res.text()).slice(0, cap);
+  } else if (typeof (res as { json?: unknown }).json === 'function') {
+    try {
+      return await (res as { json: () => Promise<unknown> }).json();
+    } catch {
+      return undefined;
+    }
+  }
+  if (text === undefined) return undefined;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
 import { normalizePeerEndpointUrl, resolvePeerEndpoint } from './discovery';
 import * as crypto from 'crypto';
 
@@ -231,7 +323,7 @@ export class HoloMeshOrchestratorClient {
   // ── Knowledge Exchange ──
 
   /** Contribute knowledge entries to the orchestrator store. */
-  async contributeKnowledge(entries: MeshKnowledgeEntry[]): Promise<number> {
+  async contributeKnowledgeDetailed(entries: MeshKnowledgeEntry[]): Promise<KnowledgeSyncOutcome> {
     const orchEntries = entries.map((e) => ({
       id: e.id,
       workspace_id: e.workspaceId,
@@ -255,12 +347,44 @@ export class HoloMeshOrchestratorClient {
     const allSameWs = entryWs && orchEntries.every((e) => e.workspace_id === entryWs);
     const syncWorkspace = allSameWs ? entryWs : this.config.workspace;
 
-    const res = await this.post('/knowledge/sync', {
+    const res = await this.postDetailed('/knowledge/sync', {
       workspace_id: syncWorkspace,
       entries: orchEntries,
     });
 
-    return res?.synced || res?.count || entries.length;
+    if (!res.ok) return { synced: 0, accepted: false, status: res.status, reason: res.failure };
+    // A 2xx is not acceptance by itself: an HTML login page, an empty body or a
+    // redirect to a login page all answer 200 (claude3's review of #319).
+    if (!isRecord(res.answer)) {
+      return {
+        synced: 0,
+        accepted: false,
+        status: res.status,
+        reason: `HTTP ${res.status ?? 'unknown'} without a JSON body`,
+      };
+    }
+    const sent = entries.length;
+    const counted = Number(res.answer.synced ?? res.answer.count);
+    // A JSON answer that names no count accepted the batch as sent; a count comes from
+    // another service, so it is clamped to what was sent.
+    const synced = Number.isFinite(counted) ? Math.min(sent, Math.max(0, Math.trunc(counted))) : sent;
+    const accepted = synced === sent;
+    return {
+      synced,
+      accepted,
+      status: res.status,
+      reason: accepted ? null : `accepted ${synced} of ${sent}`,
+    };
+  }
+
+  /**
+   * The orchestrator's accepted count: 0 when it refused or could not be
+   * reached, never the caller's own count. (task_1790081256205_w6ui: a refusal
+   * came back as null, the same shape as a network failure, and the old
+   * fallback to entries.length reported refused writes as synced.)
+   */
+  async contributeKnowledge(entries: MeshKnowledgeEntry[]): Promise<number> {
+    return (await this.contributeKnowledgeDetailed(entries)).synced;
   }
 
   /** Query knowledge across workspaces (cross-agent discovery). */
@@ -352,14 +476,56 @@ export class HoloMeshOrchestratorClient {
     }
   }
 
+  /**
+   * POST and say what happened. A refusal (any non-2xx) used to come back as
+   * null, the same shape as a network failure, so a caller could not tell
+   * "refused" from "unreachable". The status, the parsed answer of a 2xx, and a
+   * failure named in a fixed vocabulary are what a caller needs; a refusal's
+   * body is never read, so its text cannot travel on (claude3's review of #319).
+   * The whole exchange, body included, is bounded by a timeout.
+   */
+  private async postDetailed(
+    path: string,
+    body: Record<string, unknown>
+  ): Promise<{ ok: boolean; status: number | null; answer: unknown; failure: string | null }> {
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(orchestratorPostTimeoutMs()),
+      });
+    } catch (error) {
+      return { ok: false, status: null, answer: undefined, failure: transportFailure(error) };
+    }
+    const status = typeof res.status === 'number' ? res.status : null;
+    if (!res.ok) {
+      await discardBody(res);
+      return { ok: false, status, answer: undefined, failure: `refused (HTTP ${status ?? 'unknown'})` };
+    }
+    try {
+      return { ok: true, status, answer: await readJsonAnswer(res, DETAILED_ANSWER_CAP_BYTES), failure: null };
+    } catch (error) {
+      // The answer's body stalled or broke after the headers: no answer arrived, so
+      // this is unreachable, not a status the orchestrator chose (status null).
+      return { ok: false, status: null, answer: undefined, failure: transportFailure(error) };
+    }
+  }
+
+  /** POST for callers that only need the answer: null on any failure, as it always was. */
   private async post(path: string, body: Record<string, unknown>): Promise<any> {
     try {
       const res = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(orchestratorPostTimeoutMs()),
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        await discardBody(res);
+        return null;
+      }
       return await res.json();
     } catch {
       return null;

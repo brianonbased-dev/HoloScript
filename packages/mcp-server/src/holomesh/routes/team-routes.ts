@@ -1708,10 +1708,21 @@ export async function handleTeamRoutes(
       reuseCount: e.reuseCount ?? 0,
       createdAt: e.createdAt || new Date().toISOString(),
     }));
-    const synced = await getClient().contributeKnowledge(prepared);
+    // w6ui: synced counts only what the orchestrator accepted; a refusal is named.
+    // The team mirror keeps the rows locally whatever the orchestrator does, so it is
+    // written FIRST: awaiting the orchestrator first let a slow or stalled answer hold
+    // the local write hostage (claude3's review of #319). 201 stays right here because
+    // the mirror is readable (GET /team/:id/knowledge).
     appendTeamKnowledgeMirror(team, prepared);
     await persistTeamDurable(teamId);
-    json(res, 201, { success: true, synced, entries: prepared, workspace_id: workspaceId });
+    const outcome = await getClient().contributeKnowledgeDetailed(prepared);
+    json(res, 201, {
+      success: true,
+      synced: outcome.synced,
+      orchestrator: { accepted: outcome.accepted, status: outcome.status, reason: outcome.reason },
+      entries: prepared,
+      workspace_id: workspaceId,
+    });
     return true;
   }
 

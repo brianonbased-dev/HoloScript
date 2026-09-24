@@ -87,6 +87,7 @@ const mockClient = {
   discoverPeers: vi.fn().mockResolvedValue([]),
   queryKnowledge: vi.fn().mockResolvedValue([]),
   contributeKnowledge: vi.fn().mockResolvedValue(1),
+  contributeKnowledgeDetailed: vi.fn().mockResolvedValue({ synced: 1, accepted: true, status: 200, reason: null }),
   getAgentCard: vi.fn().mockResolvedValue(null),
   getAgentReputation: vi.fn().mockResolvedValue({
     score: 10,
@@ -3216,6 +3217,42 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.synced).toBe(1); // mockClient returns 1
       expect(res._body.entries.length).toBe(2);
       expect(res._body.workspace_id).toMatch(/^team:/);
+      expect(res._body.orchestrator).toMatchObject({ accepted: true, status: 200, reason: null });
+    });
+
+    // task_1790081256205_w6ui: the route reported synced: N for writes the orchestrator
+    // refused, because the client fell back to counting the caller's own entries.
+    it('POST /api/holomesh/team/:id/knowledge reports synced: 0 and names the refusal when the orchestrator refuses the write', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `refused-know-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      mockClient.contributeKnowledgeDetailed.mockResolvedValueOnce({
+        synced: 0,
+        accepted: false,
+        status: 403,
+        reason: 'refused (HTTP 403)',
+      });
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/knowledge`,
+        { entries: [{ type: 'wisdom', content: 'A row the orchestrator will refuse', domain: 'compilation' }] },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
+
+      expect(res._status).toBe(201); // the team mirror still keeps the row locally
+      expect(res._body.synced).toBe(0);
+      expect(res._body.orchestrator).toMatchObject({ accepted: false, status: 403 });
+      expect(res._body.orchestrator.reason).toContain('refused');
+      expect(res._body.entries.length).toBe(1);
     });
 
     it('GET /api/holomesh/team/:id/knowledge reads team knowledge', async () => {
