@@ -845,7 +845,7 @@
   },
   "peerDependencies": {
     "@holoscript/uaal": "workspace:^",
-    "puppeteer": "^23.0.0",
+    "puppeteer": "^25.12.0",
     "webgpu": "^0.3.8"
   },
   "peerDependenciesMeta": {
