@@ -32,9 +32,9 @@
  * The formatting half was recovered from the uncommitted WIP snapshot e99aac259 on
  * fix/framework-6.1.7-workspace-leak, where it had been written and left unlanded.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { format, resolveConfig } from 'prettier';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { emitGeneratedSet, type GeneratedFile } from './lib/format-generated';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { Vector2DCompiler } from '../../core/src/compiler/Vector2DCompiler';
 import type { HoloComposition } from '../../core/src/parser/HoloCompositionTypes';
@@ -48,37 +48,24 @@ const STUDIO_ROOT = join(import.meta.dirname || __dirname, '..');
 /** --check: regenerate into memory and COMPARE. Writes nothing. */
 const CHECK = process.argv.includes('--check');
 
-const PENDING: Array<{ file: string; code: string }> = [];
+const PENDING: GeneratedFile[] = [];
 const drift: string[] = [];
 
 /** Buffer one generated artifact. finish() decides whether it is written or compared. */
 function emit(file: string, code: string): void {
-  PENDING.push({ file, code });
+  PENDING.push({ target: file, code });
 }
 
 /**
- * Format every buffered artifact in memory, then write it (build) or compare it
- * against the committed copy (--check). Both modes consume the identical bytes.
+ * Format every buffered artifact in memory, then write them all (build) or compare
+ * them all against the committed copies (--check), through emitGeneratedSet. Both
+ * modes consume the identical bytes. Same rule as the other two generators: prettier
+ * failing on generated output names the file, stops the build or check, and leaves
+ * every file as it was (task_1790066851748_j9di; claude3-x402's review of #316).
  */
 async function finish(): Promise<void> {
-  for (const { file, code } of PENDING.splice(0, PENDING.length)) {
-    const config = await resolveConfig(file);
-    const pretty = await format(code, { ...config, filepath: file });
-
-    if (CHECK) {
-      let current: string | null = null;
-      try {
-        current = readFileSync(file, 'utf-8');
-      } catch {
-        current = null;
-      }
-      if (current !== pretty) drift.push(file);
-      continue;
-    }
-
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, pretty, 'utf-8');
-  }
+  const stale = await emitGeneratedSet(PENDING.splice(0, PENDING.length), { check: CHECK });
+  drift.push(...stale);
 }
 
 const PAGES: Array<{ src: string; out: string; component: string }> = [

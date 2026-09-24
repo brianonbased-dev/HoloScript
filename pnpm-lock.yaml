@@ -3385,6 +3385,9 @@ importers:
       posthog-js:
         specifier: ^1.363.1
         version: 1.425.1(@types/react@19.2.14)(preact-render-to-string@5.2.6)(react@19.2.8)
+      prettier:
+        specifier: ^3.8.1
+        version: 3.9.6
       prismjs:
         specifier: ^1.29.0
         version: 1.30.0
