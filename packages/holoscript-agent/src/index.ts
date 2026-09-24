@@ -16,7 +16,14 @@ import {
 import type { ILLMProvider, LLMProviderName } from '@holoscript/llm-provider';
 import { loadIdentity, identityForLog } from './identity.js';
 import { loadBrain } from './brain.js';
-import { CostGuard, defaultPricerForProvider } from './cost-guard.js';
+import {
+  CostGuard,
+  cachePolicyFor,
+  checkConfiguredModelPricing,
+  defaultPricerForProvider,
+  priceUsageWithCacheSplit,
+  unpricedModelPolicy,
+} from './cost-guard.js';
 import { pickProvider, BUILT_IN_CANDIDATES } from './capability-router.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { resolveBearerViaBroker } from './bearer-broker.js';
@@ -107,6 +114,32 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
         excludedByAvoids: decision.excludedByAvoids,
       })
     );
+  }
+
+  // mt9u: say before the first paid call whether the configured model is
+  // priced. An unpriced model is billed at the ceiling (safe since wj1m, but
+  // the budget trips early); HOLOSCRIPT_AGENT_UNPRICED_MODEL=refuse stops
+  // here instead, before any provider client exists.
+  const pricingCheck = checkConfiguredModelPricing(
+    effectiveIdentity.llmProvider,
+    effectiveIdentity.llmModel,
+    unpricedModelPolicy(process.env)
+  );
+  if (pricingCheck.action === 'refuse') {
+    throw new Error(`[cost-guard] refusing to start: ${pricingCheck.message}`);
+  }
+  if (pricingCheck.action === 'warn') {
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        ev: 'unpriced-model',
+        provider: effectiveIdentity.llmProvider,
+        model: effectiveIdentity.llmModel,
+        table: pricingCheck.pricing.table,
+        message: pricingCheck.message,
+      })
+    );
+    console.warn(`[cost-guard] ${pricingCheck.message}`);
   }
 
   const provider = await buildProvider(effectiveIdentity);
@@ -467,33 +500,15 @@ async function cmdAblate(rest: string[]): Promise<void> {
       p.pricePerCallUsd != null
         ? () => p.pricePerCallUsd!
         : p.pricePerMtokInput != null && p.pricePerMtokOutput != null
-          ? (u) => {
-              // `promptTokens` is the FULL prompt and INCLUDES any portion
-              // served from or written to the provider's prompt cache, so the
-              // cache components have to be split back out and priced at their
-              // own multipliers. Billing a cache read at the base input rate
-              // over-states it by 10x, and an agent on a stable system prefix
-              // reads from cache on nearly every tick — this is the dominant
-              // term, not a rounding error.
-              //
-              // No-op for adapters that don't report cache usage: both fields
-              // are undefined there, so uncachedInput === promptTokens and the
-              // arithmetic collapses to the previous formula.
-              const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL (1-hour is 2x)
-              const CACHE_READ_MULTIPLIER = 0.1;
-
-              const cacheRead = u.cacheReadTokens ?? 0;
-              const cacheWrite = u.cacheWriteTokens ?? 0;
-              const uncachedInput = Math.max(0, u.promptTokens - cacheRead - cacheWrite);
-
-              return (
-                (uncachedInput * p.pricePerMtokInput! +
-                  cacheWrite * p.pricePerMtokInput! * CACHE_WRITE_MULTIPLIER +
-                  cacheRead * p.pricePerMtokInput! * CACHE_READ_MULTIPLIER +
-                  u.completionTokens * p.pricePerMtokOutput!) /
-                1_000_000
-              );
-            }
+          ? (u) =>
+              // The cache components of `promptTokens` are split out and priced at
+              // THIS provider's multipliers (o3gp: Claude's 1.25 / 0.1 used to be
+              // hard-coded here for every provider; see CACHE_POLICIES).
+              priceUsageWithCacheSplit(
+                u,
+                { input: p.pricePerMtokInput!, output: p.pricePerMtokOutput! },
+                cachePolicyFor(p.provider)
+              )
           : undefined,
   }));
 

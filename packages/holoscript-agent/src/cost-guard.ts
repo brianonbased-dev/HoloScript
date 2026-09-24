@@ -29,10 +29,89 @@ export const ANTHROPIC_PRICING_USD_PER_MTOK: Record<string, { input: number; out
 
 /**
  * Prompt-cache price multipliers, relative to a model's base input rate.
- * Uniform across the Claude line.
+ * Uniform across the Claude line. These two names are Anthropic's numbers and
+ * stay exported for callers that priced Claude with them; every other provider
+ * has its own row in CACHE_POLICIES below.
  */
-export const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL; the 1-hour TTL is 2x
+export const CACHE_WRITE_MULTIPLIER = 1.25; // 5-minute TTL
+export const CACHE_WRITE_MULTIPLIER_1H = 2; // 1-hour TTL
 export const CACHE_READ_MULTIPLIER = 0.1;
+
+/** How a provider bills the cached and cache-writing parts of a prompt, relative to base input. */
+export interface CachePolicy {
+  /** Multiplier on base input for tokens written into the provider's prompt cache. */
+  write: number;
+  /** Multiplier on base input for tokens served from the provider's prompt cache. */
+  read: number;
+}
+
+/**
+ * Per-provider cache policies (task_1786310573633_o3gp, A-010 review 2026-08-09).
+ * Anthropic's 1.25 / 0.1 used to be applied to every provider, which under-counted
+ * the others and let the daily cap trip late. A guard exists to fail closed, so
+ * where a provider's discount varies by model the LARGEST published ratio is
+ * taken (the guard may over-count, never under-count), and a provider whose
+ * cached rate is not known bills the cache at the full input rate.
+ *
+ * - anthropic: reads at 0.1x; writes at 2x, the 1-hour TTL's rate. The agent's
+ *   own requests use the 5-minute TTL (1.25x), but the guard cannot see which
+ *   TTL a caller configured, so written tokens may read up to 60% high.
+ * - openai: reads at FULL input: the published discount runs from 0.1x
+ *   (gpt-5*, gpt-6*) through 0.25x and 0.5x to none at all on Pro and legacy
+ *   models, and the guard does not read the model family; writes at 1.25x
+ *   (gpt-5.6+). Both as checked on the official sheet by claude2's and
+ *   claude3's reviews (2026-09-23). The OpenAI adapter reports no write count
+ *   today, so the write row takes effect only once it does.
+ * - gemini: no write charge in the token price; cached reads at 25% of input.
+ *   The per-hour cache STORAGE charge has no token term and is not modelled
+ *   here: that residue is named in the task, not hidden in a multiplier.
+ * - xai: cached prompt tokens at 25% of input; no separate write charge.
+ * - openrouter: a passthrough whose rates depend on the routed model; it bills
+ *   like an unknown provider until they are in the table.
+ * - unknown: reads at full input and writes at 2x, the dearest write any
+ *   provider publishes (Anthropic's 1-hour cache), so it never under-counts.
+ */
+export const CACHE_POLICIES: Record<string, CachePolicy> = {
+  anthropic: { write: CACHE_WRITE_MULTIPLIER_1H, read: CACHE_READ_MULTIPLIER },
+  openai: { write: 1.25, read: 1 },
+  gemini: { write: 1, read: 0.25 },
+  xai: { write: 1, read: 0.25 },
+  openrouter: { write: 2, read: 1 },
+  unknown: { write: 2, read: 1 },
+};
+
+/** The cache policy for a provider id, fail-closed for an unknown one. */
+export function cachePolicyFor(provider: string | undefined): CachePolicy {
+  const key = String(provider ?? '').toLowerCase();
+  return Object.prototype.hasOwnProperty.call(CACHE_POLICIES, key)
+    ? CACHE_POLICIES[key]
+    : CACHE_POLICIES.unknown;
+}
+
+/**
+ * Sum two usages WITHOUT dropping the cache fields (task_1786310573633_qf65,
+ * A-010 review 2026-08-09). The runner's four aggregation sites rebuilt the
+ * total from the three plain fields, so by recordUsage the cached prefix had no
+ * cacheReadTokens and billed at 1.0x instead of 0.1x: up to 10x over-billing,
+ * and the cache-split pricer above never reached the path that spends. A
+ * cache field is present in the sum when either side carries it, and absent
+ * when neither does, so providers that never report cache usage still collapse
+ * to the plain formula.
+ */
+export function addTokenUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
+  const out: TokenUsage = {
+    promptTokens: (a.promptTokens ?? 0) + (b.promptTokens ?? 0),
+    completionTokens: (a.completionTokens ?? 0) + (b.completionTokens ?? 0),
+    totalTokens: (a.totalTokens ?? 0) + (b.totalTokens ?? 0),
+  };
+  if (a.cacheReadTokens != null || b.cacheReadTokens != null) {
+    out.cacheReadTokens = (a.cacheReadTokens ?? 0) + (b.cacheReadTokens ?? 0);
+  }
+  if (a.cacheWriteTokens != null || b.cacheWriteTokens != null) {
+    out.cacheWriteTokens = (a.cacheWriteTokens ?? 0) + (b.cacheWriteTokens ?? 0);
+  }
+  return out;
+}
 
 export const ANTHROPIC_PRICING_SCHEDULE_USD_PER_MTOK: Record<
   string,
@@ -84,19 +163,28 @@ export function resolveAnthropicPricing(
  * No-op for providers that do not report cache usage: both fields are
  * undefined there, `uncachedInput === promptTokens`, and the arithmetic
  * collapses to the plain input+output formula this replaced.
+ *
+ * The policy is required: it used to default to Claude's 0.1 read discount,
+ * which reached every caller that named none: the ceiling fallbacks and every
+ * non-Claude provider billed through the Anthropic table (claude2's review of
+ * #321, 2026-09-23, measured a six-fold under-count on cached OpenAI traffic).
+ * A caller that still passes nothing at runtime gets `CACHE_POLICIES.unknown`,
+ * the fail-closed row, never Claude's.
  */
-function priceUsageWithCacheSplit(
+export function priceUsageWithCacheSplit(
   usage: TokenUsage,
-  price: { input: number; output: number }
+  price: { input: number; output: number },
+  policy: CachePolicy
 ): number {
+  const { write, read } = policy ?? CACHE_POLICIES.unknown;
   const cacheRead = usage.cacheReadTokens ?? 0;
   const cacheWrite = usage.cacheWriteTokens ?? 0;
   const uncachedInput = Math.max(0, usage.promptTokens - cacheRead - cacheWrite);
 
   return (
     (uncachedInput * price.input +
-      cacheWrite * price.input * CACHE_WRITE_MULTIPLIER +
-      cacheRead * price.input * CACHE_READ_MULTIPLIER +
+      cacheWrite * price.input * write +
+      cacheRead * price.input * read +
       usage.completionTokens * price.output) /
     1_000_000
   );
@@ -264,11 +352,25 @@ function warnUnpricedOnce(model: string, tableName: string): void {
  * the paid call and before the accrual, leaving `spentUsd` at 0 forever).
  */
 export function defaultAnthropicPricer(model: string, usage: TokenUsage): number {
+  return priceThroughAnthropicTable(model, usage, CACHE_POLICIES.anthropic);
+}
+
+/**
+ * The Anthropic table is the only table for providers that have none of their
+ * own (gemini, sovereign routes, anything new), so they are billed through it,
+ * but their cache is priced at THEIR policy: Claude's 0.1 read discount must
+ * never reach another provider's traffic.
+ */
+function priceThroughAnthropicTable(
+  model: string,
+  usage: TokenUsage,
+  policy: CachePolicy
+): number {
   const resolved = resolveModelPricingOrFallback(model);
   if (resolved.source === 'fallback') {
     warnUnpricedOnce(model, 'ANTHROPIC_PRICING_USD_PER_MTOK');
   }
-  return priceUsageWithCacheSplit(usage, resolved.price);
+  return priceUsageWithCacheSplit(usage, resolved.price, policy);
 }
 
 /**
@@ -312,7 +414,7 @@ export function defaultXAIPricer(model: string, usage: TokenUsage): number {
         `or pass a custom pricer`
     );
   }
-  return priceUsageWithCacheSplit(usage, price);
+  return priceUsageWithCacheSplit(usage, price, CACHE_POLICIES.xai);
 }
 
 // OpenRouter pricing is per-model and varies by upstream — populated lazily.
@@ -337,7 +439,7 @@ export function defaultOpenAIPricer(model: string, usage: TokenUsage): number {
         `(verify via official OpenAI models/pricing docs) or pass a custom pricer`
     );
   }
-  return priceUsageWithCacheSplit(usage, price);
+  return priceUsageWithCacheSplit(usage, price, CACHE_POLICIES.openai);
 }
 
 export const OPENROUTER_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> =
@@ -351,7 +453,7 @@ export function defaultOpenRouterPricer(model: string, usage: TokenUsage): numbe
         `or pass a custom pricer`
     );
   }
-  return priceUsageWithCacheSplit(usage, price);
+  return priceUsageWithCacheSplit(usage, price, CACHE_POLICIES.openrouter);
 }
 
 // =============================================================================
@@ -505,8 +607,9 @@ export type RealtimePricer =
  * which LLM the agent uses.
  *
  * Known gap (separate task): non-Anthropic non-local providers other than
- * OpenAI/xAI/OpenRouter (for example gemini) still fall through to
- * defaultAnthropicPricer here. xai +
+ * OpenAI/xAI/OpenRouter (for example gemini) still read the Anthropic table's
+ * rates, but price their cache at their own policy (fail-closed when they
+ * have none). xai +
  * openrouter were added 2026-05-06 with explicit dispatch (Lane A — see
  * docs/LLM_CAPABILITIES.md); xAI pricing was credential-verified and
  * populated 2026-07-10, openrouter's dict remains empty until verified.
@@ -514,11 +617,124 @@ export type RealtimePricer =
 export function defaultPricerForProvider(
   provider: 'anthropic' | 'local-llm' | 'openai' | 'xai' | 'openrouter' | string
 ): ModelPricer {
-  if (provider === 'local-llm' || provider === 'mock') return defaultLocalLlmPricer;
+  if (LOCAL_PROVIDERS.has(provider)) return defaultLocalLlmPricer;
   if (provider === 'openai') return defaultOpenAIPricer;
   if (provider === 'xai') return defaultXAIPricer;
   if (provider === 'openrouter') return defaultOpenRouterPricer;
-  return defaultAnthropicPricer;
+  if (provider === 'anthropic') return defaultAnthropicPricer;
+  const policy = cachePolicyFor(provider);
+  return (model, usage) => priceThroughAnthropicTable(model, usage, policy);
+}
+
+/** Providers whose compute is already paid for (local GPU, mock): billed at $0. */
+const LOCAL_PROVIDERS: ReadonlySet<string> = new Set(['local-llm', 'mock', 'bitnet']);
+
+/** The flat per-provider tables, keyed the way `defaultPricerForProvider` dispatches. */
+const FLAT_PRICING_TABLES: Record<string, { name: string; table: Record<string, unknown> }> = {
+  openai: { name: 'OPENAI_PRICING_USD_PER_MTOK', table: OPENAI_PRICING_USD_PER_MTOK },
+  xai: { name: 'XAI_PRICING_USD_PER_MTOK', table: XAI_PRICING_USD_PER_MTOK },
+  openrouter: { name: 'OPENROUTER_PRICING_USD_PER_MTOK', table: OPENROUTER_PRICING_USD_PER_MTOK },
+};
+
+/**
+ * What the live pricer for `provider` will do with `model`, answered before
+ * any call is made (task_1786329027132_mt9u). Same dispatch as
+ * `defaultPricerForProvider`: `priced: false` means the cost guard will bill
+ * this model at the most expensive known rate, an upper bound, so the day's
+ * spend reads high and the budget trips early (safe, but wrong). `table`
+ * names where a row has to be added.
+ */
+export interface ModelPricingStatus {
+  priced: boolean;
+  source: PricingResolutionSource | 'unpriced';
+  table: string;
+}
+
+export function describeModelPricing(
+  provider: string,
+  model: string,
+  at?: Date | string
+): ModelPricingStatus {
+  if (LOCAL_PROVIDERS.has(provider)) {
+    return { priced: true, source: 'local', table: 'none (local compute, billed at $0)' };
+  }
+  const flat = Object.prototype.hasOwnProperty.call(FLAT_PRICING_TABLES, provider)
+    ? FLAT_PRICING_TABLES[provider]
+    : undefined;
+  if (flat) {
+    const priced = Object.prototype.hasOwnProperty.call(flat.table, model);
+    return { priced, source: priced ? 'exact' : 'unpriced', table: flat.name };
+  }
+  // Every other provider (anthropic, gemini, sovereign, ...) is billed through
+  // the Anthropic table, so that is the table that decides.
+  const resolved = resolveModelPricingOrFallback(model, { at });
+  const table =
+    provider === 'anthropic'
+      ? 'ANTHROPIC_PRICING_USD_PER_MTOK'
+      : `ANTHROPIC_PRICING_USD_PER_MTOK (provider ${provider} has no table of its own)`;
+  return { priced: resolved.source !== 'fallback', source: resolved.source, table };
+}
+
+/**
+ * What an unpriced configured model does at startup:
+ * HOLOSCRIPT_AGENT_UNPRICED_MODEL=warn|refuse.
+ *
+ * The default is `warn`, chosen on purpose rather than by omission: both
+ * `run` (the Jetson units, the mesh-deploy fleet boxes) and `supervise` (the
+ * Railway fleet) run unattended, and an unpriced model is already safe there
+ * (billed at the ceiling since wj1m). A refusal default would turn that safe
+ * over-bill into an agent that stops starting on its next restart, with no
+ * one at a terminal to read why. `refuse` is for a lane that would rather not
+ * start than over-bill.
+ */
+export type UnpricedModelPolicy = 'warn' | 'refuse';
+
+export function unpricedModelPolicy(env: NodeJS.ProcessEnv = process.env): UnpricedModelPolicy {
+  const raw = env.HOLOSCRIPT_AGENT_UNPRICED_MODEL;
+  const value = (raw ?? '').trim().toLowerCase();
+  if (value === '') return 'warn';
+  if (value === 'warn' || value === 'refuse') return value;
+  throw new Error(`HOLOSCRIPT_AGENT_UNPRICED_MODEL must be "warn" or "refuse", got "${raw}"`);
+}
+
+export interface ModelPricingCheck {
+  action: 'ok' | UnpricedModelPolicy;
+  pricing: ModelPricingStatus;
+  message: string;
+}
+
+/**
+ * The startup check: is the configured model priced, and if not, what does
+ * the policy say. Callers refuse before building a provider client, or log
+ * the message as a structured event and carry on at the ceiling.
+ */
+export function checkConfiguredModelPricing(
+  provider: string,
+  model: string,
+  policy: UnpricedModelPolicy,
+  at?: Date | string
+): ModelPricingCheck {
+  const pricing = describeModelPricing(provider, model, at);
+  if (pricing.priced) {
+    return {
+      action: 'ok',
+      pricing,
+      message: `model "${model}" (provider ${provider}) is priced (${pricing.source}, ${pricing.table})`,
+    };
+  }
+  const other =
+    policy === 'refuse'
+      ? 'set HOLOSCRIPT_AGENT_UNPRICED_MODEL=warn to run it anyway at the ceiling'
+      : 'set HOLOSCRIPT_AGENT_UNPRICED_MODEL=refuse to stop instead of over-billing';
+  return {
+    action: policy,
+    pricing,
+    message:
+      `model "${model}" (provider ${provider}) has no row in ${pricing.table}. The cost ` +
+      `guard will bill it at the most expensive known rate, an upper bound, so the day's ` +
+      `spend reads high and the budget trips early. Add the model to that table, correct ` +
+      `the model id, or ${other}.`,
+  };
 }
 
 export class CostGuard {
@@ -558,13 +774,22 @@ export class CostGuard {
           err instanceof Error ? err.message : String(err)
         })`
       );
-      return priceUsageWithCacheSplit(usage, ceilingPricingAcrossProviders());
+      // The ceiling is a bound, so its cache is billed fail-closed too.
+      return priceUsageWithCacheSplit(
+        usage,
+        ceilingPricingAcrossProviders(),
+        CACHE_POLICIES.unknown
+      );
     }
     if (!Number.isFinite(costUsd) || costUsd < 0) {
       // A NaN cost is worse than a throw: it propagates into spentUsd, and
       // `NaN >= budget` is false, so the guard silently never trips again.
       warnUnpricedOnce(model, `the pricing table for this provider (pricer returned ${costUsd})`);
-      return priceUsageWithCacheSplit(usage, ceilingPricingAcrossProviders());
+      return priceUsageWithCacheSplit(
+        usage,
+        ceilingPricingAcrossProviders(),
+        CACHE_POLICIES.unknown
+      );
     }
     return costUsd;
   }
