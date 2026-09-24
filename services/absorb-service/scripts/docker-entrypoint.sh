@@ -74,7 +74,31 @@ try {
 NODE
 }
 
+# The credit ledger's UNIQUE index cannot be built over the duplicate
+# stripe_session_id rows that the double-credit defect itself produced, so
+# `drizzle-kit push --force` fails on exactly the deployments that need the
+# index most. The `&&` below then short-circuits into handle_schema_failure,
+# and with ABSORB_REQUIRE_DB_SCHEMA=1 that EXITS before `exec node dist/server.js`
+# -- taking with it the boot-time ensure in dist/db/ensureCreditLedgerIndex.js,
+# which is the only thing that would have cleared those duplicates. A fix that
+# cannot run on the one deployment it exists for.
+#
+# So run it here, before push: it dedupes (moving stripe_session_id into
+# metadata, deleting nothing, moving no balances) and creates the index itself.
+# It is idempotent and a no-op when there is nothing to do, so this costs a
+# connection on every repair path and nothing else. Failure is non-fatal; push
+# then fails as it would have, and the error is already printed.
+ensure_credit_ledger_index() {
+  echo "[absorb-service] Ensuring the credit-ledger unique index before push..."
+  node --input-type=module -e "
+    import('/app/services/absorb-service/dist/db/ensureCreditLedgerIndex.js')
+      .then((m) => m.ensureCreditLedgerIndex())
+      .catch((e) => { console.warn('[absorb-service] pre-push ledger ensure failed:', e && e.message); });
+  " || echo "[absorb-service] WARN: pre-push ledger ensure could not run."
+}
+
 repair_schema_with_push() {
+  ensure_credit_ledger_index
   if npx --yes drizzle-kit push --force && verify_required_schema; then
     echo "[absorb-service] Schema push OK (fallback path)."
   else

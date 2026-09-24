@@ -1,0 +1,159 @@
+// The download page — authored in HoloScript, compiled to an @generated Next.js
+// page by the NextJSCompiler. EDIT THIS, not src/app/download/page.tsx.
+// Regenerate: pnpm --filter @holoscript/studio holo:build
+//
+// WHY THERE ARE NO VERSION NUMBERS ON THIS PAGE, DELIBERATELY. Checked against
+// the registry on 2026-09-21: every published version was AHEAD of this repo's
+// own package.json — core 8.7.0 published against 8.0.21 local, cli 8.7.0
+// against 8.0.18, absorb-service 6.1.5 against 6.1.2, engine 6.1.7 against
+// 6.1.6, holoembed 6.1.4 against 6.1.2. A number written here would have been
+// wrong the day it shipped and wrong differently every week after. `npm
+// install` takes the current one; the page names the packages and what each is
+// for, which does not rot.
+//
+// All six are MIT, verified from the registry rather than from the repo, and
+// none is marked private. That is the sovereignty claim in its plainest form:
+// the language, the engine and the codebase intelligence are yours to run.
+composition "Download" {
+  @page { route: "/download" }
+  @metadata {
+    title: "Download HoloScript"
+    description: "Six MIT-licensed packages: the language, the command-line tool, the engine, codebase intelligence, embeddings and the mesh."
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "mx-auto w-full max-w-3xl px-6 py-16" }
+
+    object "Title" {
+      @text { content: "Download", variant: "h1" }
+      @theme { className: "text-3xl font-bold text-studio-text" }
+    }
+
+    object "Intro" {
+      @text { content: "Six packages, all MIT licensed, all on the public registry. Nothing here asks for an account or a key, and nothing phones home. If you want the four-step version instead, start with the install page." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "InstallLink" {
+      @link { href: "/install", content: "Install in four steps →" }
+      @theme { className: "mt-3 inline-block text-sm font-semibold text-studio-text" }
+    }
+
+    object "StartHeading" {
+      @text { content: "Start with these", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "StartGrid" {
+      @theme { tag: "section", className: "mt-4 grid grid-cols-1 gap-3" }
+
+      object "CardCli" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardCliName" {
+          @text { content: "@holoscript/cli", variant: "h3" }
+          @theme { className: "font-mono text-sm font-semibold text-studio-text" }
+        }
+        object "CardCliDesc" {
+          @text { content: "The command-line tool. Parses, formats, runs and compiles HoloScript. This is the one to install first — it brings the language with it." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+        object "CardCliCmd" {
+          @text { content: "npm install @holoscript/cli" }
+          @theme { className: "mt-1 font-mono text-xs text-studio-muted" }
+        }
+      }
+
+      object "CardCore" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardCoreName" {
+          @text { content: "@holoscript/core", variant: "h3" }
+          @theme { className: "font-mono text-sm font-semibold text-studio-text" }
+        }
+        object "CardCoreDesc" {
+          @text { content: "The language itself: the parser, the type system, the traits and the compilers. Install this if you are building something that reads or emits HoloScript." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+        object "CardCoreCmd" {
+          @text { content: "npm install @holoscript/core" }
+          @theme { className: "mt-1 font-mono text-xs text-studio-muted" }
+        }
+      }
+
+      object "CardEngine" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardEngineName" {
+          @text { content: "@holoscript/engine", variant: "h3" }
+          @theme { className: "font-mono text-sm font-semibold text-studio-text" }
+        }
+        object "CardEngineDesc" {
+          @text { content: "The runtime that makes a composition move: scenes, physics, entity state. What you want if you are running a world rather than compiling one." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+        object "CardEngineCmd" {
+          @text { content: "npm install @holoscript/engine" }
+          @theme { className: "mt-1 font-mono text-xs text-studio-muted" }
+        }
+      }
+    }
+
+    object "MoreHeading" {
+      @text { content: "The rest", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "MoreGrid" {
+      @theme { tag: "section", className: "mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3" }
+
+      object "CardAbsorb" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardAbsorbName" {
+          @text { content: "@holoscript/absorb-service", variant: "h3" }
+          @theme { className: "font-mono text-xs font-semibold text-studio-text" }
+        }
+        object "CardAbsorbDesc" {
+          @text { content: "Codebase intelligence: reads a repository into a graph you can search by meaning. Its embeddings run locally with no key." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardHoloembed" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardHoloembedName" {
+          @text { content: "@holoscript/holoembed", variant: "h3" }
+          @theme { className: "font-mono text-xs font-semibold text-studio-text" }
+        }
+        object "CardHoloembedDesc" {
+          @text { content: "The embeddings on their own, for search that does not leave your machine." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardMesh" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardMeshName" {
+          @text { content: "@holoscript/mesh", variant: "h3" }
+          @theme { className: "font-mono text-xs font-semibold text-studio-text" }
+        }
+        object "CardMeshDesc" {
+          @text { content: "How agents and instances find each other and share state." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+    }
+
+    object "LicenceHeading" {
+      @text { content: "The licence, and what it means", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "LicenceBody" {
+      @text { content: "All six are MIT. You can read them, change them, run them on your own hardware, and build a business on them without asking us. That is deliberate: the language should outlive whoever is hosting it. What we sell is the work that costs us money to run for you — the pricing page says exactly which parts those are." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "PricingLink" {
+      @link { href: "/pricing", content: "What costs money →" }
+      @theme { className: "mt-3 inline-block text-sm font-semibold text-studio-text" }
+    }
+  }
+}

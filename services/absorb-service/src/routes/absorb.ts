@@ -99,11 +99,27 @@ router.post('/scan', async (req: Request, res: Response) => {
       .map((f: any) => f.path)
       .sort((a: string, b: string) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
 
-    // Deduct credits if authenticated
-    if ((req as AuthenticatedRequest).authenticated && body.projectId) {
+    // Deduct credits if authenticated.
+    //
+    // Two faults lived here until 2026-09-21. The userId fell back to the
+    // literal 'anonymous', which entry-lookup.ts defines as the id every
+    // UNAUTHENTICATED caller carries — so an authenticated caller with no id
+    // spent from, and was billed against, the bucket that belongs to nobody.
+    // And the charge is gated on body.projectId while the response below
+    // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
+    // projectId told the client it had been billed when nothing was taken.
+    let chargedCents = 0;
+    // userUuid(), not a truthiness test. middleware/auth.ts sets
+    // userId = `orchestrator:${key}` for an orchestrator caller: authenticated,
+    // truthy, and not a uuid. It would flow into requireCredits -> checkBalance
+    // -> getOrCreateAccount, which queries a uuid column and throws, 500-ing an
+    // orchestrator scan. This guard is new in this change and chose the weaker
+    // predicate when the right one was already imported.
+    const scanUserId = userUuid(req);
+    if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
       const creditsModule = await import('@holoscript/absorb-service/credits');
       const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
-      const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+      const userId = scanUserId;
       const opType = body.shallow ? 'absorb_shallow' : 'absorb_deep';
       
       // @ts-ignore - Automatic remediation for TS18046
@@ -120,6 +136,7 @@ router.post('/scan', async (req: Request, res: Response) => {
         `Codebase scan: ${body.path}`,
         { graphId, shallow: body.shallow }
       );
+      chargedCents = creditCheck.costCents;
     }
 
     const topology = {
@@ -144,7 +161,7 @@ router.post('/scan', async (req: Request, res: Response) => {
       graphId,
       stats: scanResult.stats,
       fileCount: scanResult.files?.length ?? 0,
-      cost: body.shallow ? 10 : 50,
+      cost: chargedCents,
       cached: false,
       topology
     });
@@ -171,7 +188,11 @@ router.post('/query', async (req: Request, res: Response) => {
 
     const creditsModule = await import('@holoscript/absorb-service/credits');
     const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
     // @ts-ignore - Automatic remediation for TS18046
     const creditCheck = await requireCredits(userId, 'query_with_llm');
     
@@ -181,16 +202,41 @@ router.post('/query', async (req: Request, res: Response) => {
       return;
     }
 
-    const engineModule = await import('@holoscript/absorb-service/engine');
-    const { EmbeddingIndex } = (engineModule as any).default || engineModule;
-    // @ts-ignore - Automatic remediation for TS18046
-    const index = new EmbeddingIndex();
+    // This endpoint could never have answered once. EmbeddingIndex has required
+    // an explicit provider since it gained one, and `new EmbeddingIndex()`
+    // throws "EmbeddingIndex requires an explicit provider" on every call — so
+    // /query has been returning 500 to everybody. requireCredits only CHECKS,
+    // and the throw landed before deductCredits, so nobody was charged for the
+    // failure; they simply never got an answer.
+    //
+    // The default provider is 'structural': zero-dependency, no API key, no
+    // model download, and F.106 forbids the factory from ever auto-selecting a
+    // paid one. That is why query_with_llm is now priced at 0 — there is no LLM
+    // on this path and never was, whatever the operation's name says.
+    // Imported without a cast and without a suppression, so the compiler checks
+    // these two calls. It could not before: the cast erased the module's types
+    // and the suppression hid what was left, which is how both of this
+    // handler's runtime throws passed a clean type check.
+    const { EmbeddingIndex, createEmbeddingProvider } = await import(
+      '@holoscript/absorb-service/engine'
+    );
+    const index = new EmbeddingIndex({ provider: await createEmbeddingProvider() });
 
-    // Build index from graph symbols
+    // Build index from graph symbols.
+    //
+    // The previous loop called index.add(id, text, symbol) — a three-argument
+    // method this class has never had. So /query was dead at two separate
+    // points, not one, and fixing only the constructor left it dead. Probed
+    // directly rather than reasoned about: the old constructor call throws
+    // "requires an explicit provider", and with that fixed the next line throws
+    // "index.add is not a function".
+    //
+    // addSymbols is the real API, and it is the better one: it derives each
+    // symbol's text itself from the symbol plus graph context, which is what
+    // the graph-text-terms feature exists to do. Hand-concatenating name and
+    // documentation threw that away.
     const symbols = entry.graph.getAllSymbols?.() ?? [];
-    for (const sym of symbols) {
-      index.add(sym.id, sym.name + ' ' + (sym.documentation || ''), sym);
-    }
+    await index.addSymbols(symbols, entry.graph);
 
     const results = await index.search(body.query, body.maxResults);
 
@@ -270,7 +316,14 @@ router.post('/projects', async (req: Request, res: Response) => {
     }
 
     const { absorbProjects } = await import('@holoscript/absorb-service/schema');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    // A fourth 'anonymous' fallback, on a uuid column, in a file this change
+    // already fixed twice. Found by reading for the pattern rather than for the
+    // sites the review happened to name.
+    const userId = userUuid(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
 
     const result = await db
       // @ts-ignore - Automatic remediation for TS2345
