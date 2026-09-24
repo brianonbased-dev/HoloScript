@@ -3,6 +3,7 @@ import cors from 'cors';
 import { SERVICE_VERSION } from './version.js';
 import { hydrateServiceSecrets } from './boot-secrets.js';
 import { ensureMoltbookSchema } from './db/ensureMoltbookSchema.js';
+import { ensureCreditLedgerIndex } from './db/ensureCreditLedgerIndex.js';
 import { getDb, closeDb } from './db/client.js';
 import { authMiddleware } from './middleware/auth.js';
 import { touchedByMiddleware } from './middleware/touched-by.js';
@@ -295,6 +296,11 @@ async function start(): Promise<void> {
   const mcpTools = await assertMcpToolInventoryReady();
   console.log(`[absorb-service] HoloAbsorb MCP inventory ready: ${mcpTools} tools`);
   await ensureMoltbookSchema();
+  // Lane-independent: the migration that ships this index is not guaranteed to
+  // run on every deployment (see the module docblock), and a missing index means
+  // a redelivered Stripe webhook can credit an account twice. Logs its presence
+  // either way, so the boot log answers whether the backstop is actually there.
+  await ensureCreditLedgerIndex();
   await backgroundHealthProbe();
   startBackgroundHealthProbes();
   await initializeCreditSystem();

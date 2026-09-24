@@ -392,6 +392,23 @@ function CompileTargetStrip() {
 function Footer() {
   return (
     <footer className="w-full max-w-4xl mx-auto flex flex-wrap justify-center gap-x-6 gap-y-2 text-white/20 text-xs pb-8">
+      {/*
+        Pricing, Download and Install are linked HERE and not only in the
+        navigation registry, because AppShell suppresses the sidebar for the
+        marketing prefixes — '/' among them — so a nav entry alone would leave
+        them invisible to exactly the visitor they are for. 40 of this app's 65
+        static routes are reachable by typing the address and no other way;
+        these three are not joining them.
+      */}
+      <Link href="/pricing" className="hover:text-white/40 transition-colors">
+        Pricing
+      </Link>
+      <Link href="/install" className="hover:text-white/40 transition-colors">
+        Install
+      </Link>
+      <Link href="/download" className="hover:text-white/40 transition-colors">
+        Download
+      </Link>
       <Link href="/docs" className="hover:text-white/40 transition-colors">
         Docs
       </Link>

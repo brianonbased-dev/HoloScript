@@ -1,7 +1,7 @@
 {
   "package": "@holoscript/studio",
   "counts": {
-    "appPages": 81,
+    "appPages": 84,
     "apiRoutes": 237,
     "components": 492,
     "hooks": 117,
