@@ -48,6 +48,10 @@ function buildInventory() {
     } catch {
       return;
     }
+    // readdir order is the filesystem's, not ours: NTFS lists by name, ext4 by hash.
+    // Unsorted, a Linux build reordered the Windows-generated catalog and left the
+    // tracked file dirty. Code-unit order is the same on every platform and locale.
+    dirents.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     for (const d of dirents) {
       const full = resolve(dir, d.name);
       if (d.isDirectory()) {
@@ -211,7 +215,23 @@ export const PUBLIC_LINK_POLICIES = new Set<string>([
 ]);
 `;
 
-  writeFileSync(outPath, header, 'utf8');
+  // The committed catalog is Prettier-formatted (bee0cf915 formatted it with the rest
+  // of the tree), and this script emitted raw JSON.stringify output, so every
+  // regeneration was a ~10,700-line diff against it. Format with the repo's own
+  // config. If Prettier cannot be loaded here, keep the committed file (fail-soft,
+  // F.110) rather than write output that disagrees with it.
+  let prettier;
+  try {
+    prettier = await import('prettier');
+  } catch {
+    console.warn(
+      '[sync-examples-catalog] prettier is not resolvable here; keeping committed catalog.'
+    );
+    process.exit(0);
+  }
+  const prettierConfig = (await prettier.resolveConfig(outPath)) ?? {};
+  const formatted = await prettier.format(header, { ...prettierConfig, filepath: outPath });
+  writeFileSync(outPath, formatted, 'utf8');
   console.log(
     `[sync-examples-catalog] wrote ${fullCatalog.length} catalog entries (${catalog.length} audited) -> src/examples-catalog.ts`
   );
