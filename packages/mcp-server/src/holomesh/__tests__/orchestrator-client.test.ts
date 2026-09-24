@@ -146,34 +146,56 @@ describe('HoloMeshOrchestratorClient contributeKnowledge reports what the orches
     vi.clearAllMocks();
   });
 
-  it("a refused write is synced: 0 with the status and the reason, never the caller's own count", async () => {
+  it("a refused write is synced: 0 with the status, never the caller's own count and never the orchestrator's text", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ error: 'forbidden' }) });
     const client = new HoloMeshOrchestratorClient(baseConfig);
     expect(await client.contributeKnowledge([entry])).toBe(0);
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'bad key' }) });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'bad key sk-live-123' }) });
     const outcome = await client.contributeKnowledgeDetailed([entry]);
-    expect(outcome).toMatchObject({ synced: 0, accepted: false, status: 401 });
-    expect(outcome.reason).toContain('HTTP 401');
-    expect(outcome.reason).toContain('bad key');
+    expect(outcome).toEqual({ synced: 0, accepted: false, status: 401, reason: 'refused (HTTP 401)' });
   });
 
-  it('an unreachable orchestrator is synced: 0 with the error named', async () => {
-    mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+  it('an unreachable orchestrator is named by its error code, never by its message', async () => {
+    // The shape Node's fetch really throws: TypeError('fetch failed') with the code on cause.
+    const refused = Object.assign(new TypeError('fetch failed'), {
+      cause: Object.assign(new Error('connect ECONNREFUSED 10.1.2.3:443'), { code: 'ECONNREFUSED' }),
+    });
+    mockFetch.mockRejectedValueOnce(refused);
     const client = new HoloMeshOrchestratorClient(baseConfig);
-    const outcome = await client.contributeKnowledgeDetailed([entry]);
-    expect(outcome).toMatchObject({ synced: 0, accepted: false, status: null });
-    expect(outcome.reason).toContain('unreachable');
-    expect(outcome.reason).toContain('ECONNREFUSED');
+    expect(await client.contributeKnowledgeDetailed([entry])).toEqual({
+      synced: 0,
+      accepted: false,
+      status: null,
+      reason: 'unreachable (ECONNREFUSED)',
+    });
+    mockFetch.mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND orch.internal.example'));
+    expect((await client.contributeKnowledgeDetailed([entry])).reason).toBe('unreachable');
   });
 
-  it("an accepted write reports the orchestrator's count, or the batch size when it names none", async () => {
+  it("an accepted write reports the orchestrator's count, clamped to what was sent", async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: 2 }) });
     const client = new HoloMeshOrchestratorClient(baseConfig);
-    expect(await client.contributeKnowledgeDetailed([entry, { ...entry, id: 'W.team.2' }])).toMatchObject({ synced: 2, accepted: true, status: 200, reason: null });
+    expect(await client.contributeKnowledgeDetailed([entry, { ...entry, id: 'W.team.2' }])).toEqual({
+      synced: 2,
+      accepted: true,
+      status: 200,
+      reason: null,
+    });
+    // A JSON answer that names no count accepted the batch as sent.
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
     expect(await client.contributeKnowledge([entry])).toBe(1);
-    // A 2xx that says it accepted nothing is 0, not the batch size.
+    // A 2xx that says it accepted nothing is 0, and is not acceptance.
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: 0 }) });
-    expect(await client.contributeKnowledge([entry])).toBe(0);
+    expect(await client.contributeKnowledgeDetailed([entry])).toEqual({
+      synced: 0,
+      accepted: false,
+      status: 200,
+      reason: 'accepted 0 of 1',
+    });
+    // A count beyond what was sent, or a fraction, is clamped.
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: 999999 }) });
+    expect((await client.contributeKnowledgeDetailed([entry])).synced).toBe(1);
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: -5 }) });
+    expect((await client.contributeKnowledgeDetailed([entry])).synced).toBe(0);
   });
 });

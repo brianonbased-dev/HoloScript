@@ -3237,7 +3237,7 @@ describe('HoloMesh HTTP Routes', () => {
         synced: 0,
         accepted: false,
         status: 403,
-        reason: 'orchestrator refused /knowledge/sync: HTTP 403: forbidden',
+        reason: 'refused (HTTP 403)',
       });
       const req = mockReq(
         'POST',
