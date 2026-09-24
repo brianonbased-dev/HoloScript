@@ -5,7 +5,7 @@
  * `authReq.userId || 'anonymous'`. creditAccounts.userId is a uuid column, so any
  * non-uuid identity threw "invalid input syntax for type uuid" and the route
  * answered 500 to every caller whose token did not resolve to a user. PR #311
- * fixes the same fault in credits.ts.
+ * fixes the same fault in absorb.ts, credits.ts and creditsWebhook.ts.
  *
  * Test shape, ruled under /founder (2026-09-22, re-ruled 2026-09-23 after
  * claude3's and claude2's reviews of #320): the ledger behind requireCredits
@@ -18,17 +18,20 @@
  * identities x 3 profiles write zero ledger rows; it needs a new dev
  * dependency that is not installed here, so it is not in this file.
  * Named limitation: this file proves the route's contract (every non-uuid
- * identity the service can produce is refused before any ledger call, and
- * every value that reaches a ledger seam is a uuid), not Postgres's uuid
- * cast; the live proof is the deployed route answering 403, not 500.
+ * identity is refused before any ledger call; a uuid is charged exactly its
+ * profile's price, once, for one job it owns), not Postgres's uuid cast; the
+ * live proof is the deployed route answering 403, not 500.
  */
 
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
+import type { CreditError } from '@holoscript/absorb-service/credits';
 
 const mocks = vi.hoisted(() => ({
   requireCredits: vi.fn(
-    async (_userId: string, _opType: string): Promise<Record<string, unknown>> => ({ costCents: 100 })
+    async (_userId: string, _opType: string): Promise<Record<string, unknown>> => ({
+      costCents: 100,
+    })
   ),
   deductCredits: vi.fn(async (_userId: string, _cents: number, _why: string, _meta?: unknown) => ({
     balanceCents: 900,
@@ -41,8 +44,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@holoscript/absorb-service/credits', () => ({
   requireCredits: mocks.requireCredits,
   deductCredits: mocks.deductCredits,
-  // The REAL predicate (packages/absorb-service/src/credits/requireCredits.ts:87-89),
-  // not a stand-in: a credit error is any result carrying both `error` and `status`.
+  // A copy of the predicate at packages/absorb-service/src/credits/requireCredits.ts:87-89
+  // (a credit error is any result carrying both `error` and `status`). The real module is
+  // not loaded: it needs a built package and a database. If the real predicate changes,
+  // this copy will not follow it.
   isCreditError: (result: Record<string, unknown>) => 'error' in result && 'status' in result,
 }));
 
@@ -54,8 +59,19 @@ vi.mock('../daemon/jobs/store.js', () => ({
 
 vi.mock('../db/client.js', () => ({ getDb: vi.fn(() => null) }));
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// A uuid of digits only, and one with hex LETTERS: a predicate that accepted only digits,
+// or only upper case, would still admit the first and refuse the second.
 const USER = '11111111-2222-4333-8444-555555555555';
+const LETTERED = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+// The real prices (packages/absorb-service/src/credits/pricing.ts:13-15), one per profile, so a
+// charge hard-coded to one profile's price, or to zero, fails for the other profiles.
+const COST: Record<string, number> = { quick: 50, balanced: 100, deep: 250 };
+const OP: Record<string, string> = {
+  quick: 'daemon_quick',
+  balanced: 'daemon_balanced',
+  deep: 'daemon_deep',
+};
 
 type Handler = (req: Request, res: Response) => Promise<unknown>;
 
@@ -108,46 +124,84 @@ function mockRes(): MockRes {
   return res;
 }
 
-// Every non-uuid identity the service can actually produce, and where it comes from.
-const NON_UUIDS: Array<[string, unknown]> = [
+// What can reach req.userId on this route: auth.ts assigns it in three places, a database
+// user's uuid (:145, :179) and `orchestrator:<key>` (:169), or leaves it unset.
+const PRODUCED: Array<[string, unknown]> = [
   ['unset (a service key whose token resolves to no user)', undefined],
-  ['empty string', ''],
+  ['the MCPMe orchestrator id (orchestrator:<key>, auth.ts:169)', 'orchestrator:key-1'],
+];
+// No producer is left for these on this route; they stay so a regression that brings one
+// back is refused too.
+const NO_PRODUCER: Array<[string, unknown]> = [
+  ['an empty string', ''],
   ['the legacy literal anonymous', 'anonymous'],
-  ['the MCPMe orchestrator id auth.ts sets (orchestrator:<key>)', 'orchestrator:key-1'],
-  ['the service principal mcp-handler.ts uses', 'service:absorb-api-key'],
+  ['a service principal string', 'service:absorb-api-key'],
+];
+// The edges of the uuid predicate (auth.ts:19, 31-34): each is refused, and each is what a
+// looser predicate would admit (no ^, trimming, a length test, [0-9a-z], a moved hyphen).
+const NEAR_UUIDS: Array<[string, unknown]> = [
   ['a uuid one character short', USER.slice(0, -1)],
   ['a uuid with trailing junk', `${USER}x`],
+  ['a uuid with leading junk', `x${LETTERED}`],
+  ['an orchestrator id that wraps a uuid', `orchestrator:${LETTERED}`],
+  ['a uuid with a leading space', ` ${LETTERED}`],
+  ['a uuid with a trailing space', `${LETTERED} `],
+  ['the uuid shape with a letter that is not hex', 'g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'],
+  ['36 characters with a hyphen moved', 'a0eebc999-c0b-4ef8-bb6d-6bb9bd380a11'],
 ];
-const OP: Record<string, string> = { quick: 'daemon_quick', balanced: 'daemon_balanced', deep: 'daemon_deep' };
+const REFUSED = [...PRODUCED, ...NO_PRODUCER, ...NEAR_UUIDS];
 
 describe.each(['quick', 'balanced', 'deep', undefined] as Array<string | undefined>)(
   'POST /api/holodaemon start, profile=%s',
   (profile) => {
+    const run = profile ?? 'balanced';
+
     beforeEach(() => {
       vi.clearAllMocks();
     });
 
-    it.each(NON_UUIDS)('refuses %s: 403, and no ledger seam or job is touched', async (_label, id) => {
-      const res = mockRes();
-      await handle(startReq(profile, id), res as unknown as Response);
-      expect(res._status).toBe(403);
-      expect(res._json).toMatchObject({ error: 'User identity required' });
-      expect(mocks.requireCredits).not.toHaveBeenCalled();
-      expect(mocks.deductCredits).not.toHaveBeenCalled();
-      expect(mocks.createDaemonJob).not.toHaveBeenCalled();
-    });
+    it.each(REFUSED)(
+      'refuses %s: 403, and no ledger seam or job is touched',
+      async (_label, id) => {
+        const res = mockRes();
+        await handle(startReq(profile, id), res as unknown as Response);
+        expect(res._status).toBe(403);
+        expect(res._json).toMatchObject({ error: 'User identity required' });
+        expect(mocks.requireCredits).not.toHaveBeenCalled();
+        expect(mocks.deductCredits).not.toHaveBeenCalled();
+        expect(mocks.createDaemonJob).not.toHaveBeenCalled();
+      }
+    );
 
-    it('charges a uuid: the operation follows the profile, and every value handed to a ledger seam is a uuid', async () => {
-      const res = mockRes();
-      await handle(startReq(profile, USER), res as unknown as Response);
-      expect(res._status).toBe(201);
-      expect(res._json).toMatchObject({ cost: 100 });
-      expect(mocks.requireCredits).toHaveBeenCalledWith(USER, OP[profile ?? 'balanced']);
-      expect(mocks.deductCredits).toHaveBeenCalledTimes(1);
-      for (const call of mocks.requireCredits.mock.calls) expect(call[0]).toMatch(UUID_RE);
-      for (const call of mocks.deductCredits.mock.calls) expect(call[0]).toMatch(UUID_RE);
-      for (const call of mocks.createDaemonJob.mock.calls) expect(String(call[0].userId)).toMatch(UUID_RE);
-    });
+    it.each([
+      ['a uuid of digits', USER],
+      ['a uuid with hex letters', LETTERED],
+    ])(
+      "charges %s: that user, the profile's price, once, for one job that user owns",
+      async (_label, user) => {
+        mocks.requireCredits.mockResolvedValueOnce({ costCents: COST[run] });
+        const res = mockRes();
+        await handle(startReq(profile, user), res as unknown as Response);
+        expect(res._status).toBe(201);
+        expect(res._json).toMatchObject({ job: { id: 'job-1' }, cost: COST[run] });
+        expect(mocks.requireCredits).toHaveBeenCalledTimes(1);
+        expect(mocks.requireCredits).toHaveBeenCalledWith(user, OP[run]);
+        expect(mocks.createDaemonJob).toHaveBeenCalledTimes(1);
+        expect(mocks.createDaemonJob).toHaveBeenCalledWith(
+          expect.objectContaining({ userId: user, profile: run })
+        );
+        expect(mocks.deductCredits).toHaveBeenCalledTimes(1);
+        expect(mocks.deductCredits).toHaveBeenCalledWith(
+          user,
+          COST[run],
+          `HoloDaemon cycle (${run})`,
+          {
+            jobId: 'job-1',
+            profile: run,
+          }
+        );
+      }
+    );
   }
 );
 
@@ -156,8 +210,16 @@ describe('POST /api/holodaemon start with too few credits', () => {
     vi.clearAllMocks();
   });
 
-  it('answers 402 with the credit error it was given, and starts and charges nothing', async () => {
-    const creditError = { error: 'Insufficient credits', status: 402, requiredCents: 100, balanceCents: 0 };
+  it('answers 402 with the credit error requireCredits returns, and starts and charges nothing', async () => {
+    // The refusal requireCredits builds for a deep run with an empty account (requireCredits.ts:66-75).
+    const creditError = {
+      error: 'Insufficient credits',
+      status: 402,
+      required: 250,
+      balance: 0,
+      description: 'Deep improvement (3 cycles)',
+      purchaseUrl: '/absorb?tab=credits',
+    } satisfies CreditError;
     mocks.requireCredits.mockResolvedValueOnce(creditError);
     const res = mockRes();
     await handle(startReq('deep', USER), res as unknown as Response);
