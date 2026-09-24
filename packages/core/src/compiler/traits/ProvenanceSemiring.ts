@@ -404,9 +404,15 @@ export class ProvenanceSemiring {
               { value, source: trait.name, context: trait.context },
               key
             );
-            conflicts.push(
-              `Resolved conflict on property '${key}' between @${existing.source} and @${trait.name}`
-            );
+            // NAMES IN CANONICAL ORDER, not arrival order. Written as
+            // "between @existing and @arriving" this sentence recorded WHICH
+            // TRAIT CAME FIRST, so composing the same two traits the other way
+            // round produced a different string -- "@physics and @material"
+            // versus "@material and @physics" -- for the same resolved
+            // conflict. multiply() already sorts the pair when it builds a
+            // combined source (`srcA < srcB ? ... : ...`); this does the same.
+            const [first, second] = [existing.source, trait.name].sort();
+            conflicts.push(`Resolved conflict on property '${key}' between @${first} and @${second}`);
           } catch (err: unknown) {
             errors.push(err instanceof Error ? err.message : String(err));
           }
@@ -414,17 +420,54 @@ export class ProvenanceSemiring {
       }
     }
 
-    // Strip provenance for final emission
+    // ONE COMPOSITION, ONE SERIALISATION.
+    //
+    // This used to emit keys in first-appearance order, which makes the BYTES
+    // depend on the order the traits arrived in even though the VALUES do not.
+    // With partial key sets -- which is what real composition produces, one
+    // trait carrying mass and friction, another friction and restitution --
+    // six orderings of three traits produced five different JSON strings for
+    // one logical composition (measured 2026-09-22). Sorting collapses them to
+    // one. With a FULL key set every trait pins the same key order in every
+    // permutation, which is exactly why the order-independence test could not
+    // see this: its generator gave every trait all five properties.
+    //
+    // This matters because the result is hashed. DistributedTransformGraph
+    // hashes `provenance` directly, and SceneIRCompiler spreads `config` into
+    // emitted scene IR, so two agents composing the same traits in a different
+    // order disagreed on the hash of something the value comparison called
+    // equal. A class whose own docblock says it enforces commutativity owes
+    // byte-level commutativity too, not just value-level.
+    //
+    // Key ORDER only. Values are carried by reference on purpose: a deep clone
+    // (sortKeysDeep, used elsewhere in this package) is lossy for the types
+    // this data can carry -- a Date serialises to {} -- and canonicalTieValue
+    // above shows Dates do reach here. Sorting the keys is the whole fix; it
+    // must not also rewrite the values.
+    const orderedKeys = Object.keys(acc).sort();
     const finalConfig: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(acc)) {
-      finalConfig[k] = v.value;
+    const orderedProvenance: typeof acc = {};
+    for (const k of orderedKeys) {
+      finalConfig[k] = acc[k].value;
+      orderedProvenance[k] = acc[k];
     }
 
+    // conflicts and errors are accumulated in ENCOUNTER order, which is arrival
+    // order, which is the thing this class exists not to depend on. Sorting the
+    // config keys alone was not enough: measured 2026-09-22, with the keys
+    // sorted, six orderings of three traits still produced SIX distinct
+    // serialisations of the whole result, because these two arrays reordered.
+    // Anything that hashes the result object rather than just `config` would
+    // still have disagreed.
+    //
+    // Sorting is safe here: no caller depends on the position of an entry. The
+    // consumers assert length, emptiness, or substring membership
+    // (ProvenanceSemiring.test.ts:102/284, TraitComposition.test.ts:153/179).
     return {
       config: finalConfig,
-      provenance: acc,
-      conflicts,
-      errors,
+      provenance: orderedProvenance,
+      conflicts: [...conflicts].sort(),
+      errors: [...errors].sort(),
       deadElements,
     };
   }
@@ -486,30 +529,44 @@ export class ProvenanceSemiring {
     }
 
     switch (rule.strategy) {
+      // RETURN THE WINNER, DO NOT REBUILD IT.
+      //
+      // These branches used to construct `{ value, source }` and drop `context`.
+      // That is not cosmetic: tieBreakProvenance reads a missing context as
+      // `agentId === ''`, which sorts before every real agentId, so an
+      // accumulator that had already been through max/min won every LATER tie by
+      // default -- and whether it had been through one depends entirely on
+      // arrival order. Measured 2026-09-22 with the DEFAULT rules, three traits
+      // A{friction:5}, B{friction:5}, C{friction:3}: six orderings produced TWO
+      // different provenance entries for `friction`, source "A" or source "B",
+      // each with no context at all. Sorting the config keys did not touch this;
+      // it is a second, independent way for one composition to serialise two
+      // ways, and DistributedTransformGraph hashes `provenance` directly.
+      //
+      // `a` and `b` ARE the winners, already carrying value, source and context.
       case 'max': {
         const valA = a.value as number;
         const valB = b.value as number;
         if (valA === valB) return tieBreakProvenance(a, b);
-        return {
-          value: Math.max(valA, valB),
-          source: valA > valB ? a.source : b.source,
-        };
+        return valA > valB ? a : b;
       }
       case 'min': {
         const valA = a.value as number;
         const valB = b.value as number;
         if (valA === valB) return tieBreakProvenance(a, b);
-        return {
-          value: Math.min(valA, valB),
-          source: valA < valB ? a.source : b.source,
-        };
+        return valA < valB ? a : b;
       }
+      // A merge has no single winner, so its context is chosen the same
+      // deterministic way the vector branch above already chooses one: by the
+      // tie-break, which is order-independent by construction. Leaving it absent
+      // would reintroduce the empty-agentId default described above.
       case 'sum': {
         const srcA = String(a.source);
         const srcB = String(b.source);
         return {
           value: (a.value as number) + (b.value as number),
           source: srcA < srcB ? `${srcA}+${srcB}` : `${srcB}+${srcA}`,
+          context: tieBreakProvenance(a, b).context,
         };
       }
       case 'multiply': {
@@ -518,6 +575,7 @@ export class ProvenanceSemiring {
         return {
           value: (a.value as number) * (b.value as number),
           source: srcA < srcB ? `${srcA}*${srcB}` : `${srcB}*${srcA}`,
+          context: tieBreakProvenance(a, b).context,
         };
       }
 

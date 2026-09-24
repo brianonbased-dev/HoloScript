@@ -100,7 +100,27 @@ done
 # See decisions/2026-08-05_holoscript-native-testing.md.
 # Emergency bypass (NOT for main): git push --no-verify
 if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/core/'; then
+  # BOTH HALVES PROVE THEY CAN STILL REFUSE, BEFORE EITHER IS BELIEVED.
+  #
+  # The verdict below is only worth the instruments that produce it, and those
+  # instruments have been wrong twice: the classifier sat registered nowhere for
+  # 66 days, and the gate spent its life unable to tell a finished run from a
+  # crashed one. Both now carry a --self-test driving fixture inputs through
+  # their real code; both run in milliseconds; neither was invoked by anything
+  # until this line. A self-test nothing executes is a check that cannot fail.
+  if [ -f packages/core/scripts/check-core-test-baseline.mjs ]; then
+    if ! node packages/core/scripts/check-core-test-baseline.mjs --self-test >/dev/null; then
+      echo "pre-push: the core baseline GATE failed its own self-test - its verdicts cannot be trusted." >&2
+      echo "          run: node packages/core/scripts/check-core-test-baseline.mjs --self-test" >&2
+      exit 1
+    fi
+  fi
   if [ -f scripts/holo-ci/check-core-baseline-receipt.mjs ]; then
+    if ! node scripts/holo-ci/check-core-baseline-receipt.mjs --self-test >/dev/null; then
+      echo "pre-push: the core baseline RECEIPT CHECKER failed its own self-test." >&2
+      echo "          run: node scripts/holo-ci/check-core-baseline-receipt.mjs --self-test" >&2
+      exit 1
+    fi
     if ! node scripts/holo-ci/check-core-baseline-receipt.mjs; then
       exit 1
     fi

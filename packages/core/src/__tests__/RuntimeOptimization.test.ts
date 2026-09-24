@@ -69,8 +69,28 @@ describe('Runtime Optimization', () => {
       `Steady State Update Time for 10k entities: median=${median.toFixed(3)}ms max=${max.toFixed(3)}ms`
     );
 
+    // THE CORRECTNESS CLAIM, always enforced: dirty-checking means a
+    // steady-state update writes nothing to the renderer. This is the property
+    // the test is named for, and it does not depend on how fast the machine is.
     expect(updateElementCalls).toBe(0);
-    expect(median).toBeLessThan(100);
-    expect(max).toBeLessThan(250);
+
+    // THE WALL-CLOCK CLAIM, opt-in with HOLO_BENCH=1 -- which, until 2026-09-22,
+    // NOTHING IN THE REPOSITORY SET. These two bounds were described as "kept
+    // behind a flag" while being, in fact, unreachable: the loop above ran and
+    // paid its cost on every run, and then these assertions were discarded.
+    // `run-vitest.mjs --bench` now sets the variable and
+    // `pnpm --filter @holoscript/core benchmark:heavy` runs this file with it,
+    // so the opt-in is a real one and these bounds can fail again.
+    //
+    // The reasoning for keeping them out of the gate still holds. The comment above
+    // concedes that "host scheduling makes a single wall-clock sample noisy" —
+    // and on 2026-09-21 this file was one of 12 whose failures the core gate
+    // ignored outright, so the correctness assertion above was being discarded
+    // to tolerate these two. A timing bound on a loaded shared runner measures
+    // the runner; keeping it here costs the assertion above its teeth.
+    if (process.env.HOLO_BENCH) {
+      expect(median).toBeLessThan(100);
+      expect(max).toBeLessThan(250);
+    }
   });
 });

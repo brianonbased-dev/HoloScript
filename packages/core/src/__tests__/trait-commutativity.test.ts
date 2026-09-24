@@ -1,14 +1,55 @@
+/**
+ * Trait composition is order-independent, and this test is allowed to say so.
+ *
+ * WHY IT WAS REWRITTEN. Until 2026-09-21 this file was listed in
+ * packages/core/test-baseline.json under flakyFiles, which means the core gate
+ * IGNORED any failure inside it. Order-independence is the property that makes
+ * traits a system rather than a pile of decorators — it is what lets a beginner
+ * ignore ordering and an expert compose without reading every other trait — so
+ * the one claim the trait system rests on was exempt from the gate.
+ *
+ * It was not exempt because composition was broken. Measured before changing
+ * anything: the old test passed in isolation, 12.75s of test time, 64s wall.
+ * The file was quarantined because of its WEIGHT, not its verdict. It ran
+ * 200,000 evaluations and 20,000 SHA-256 hashes under a sharded,
+ * memory-pressured runner, and it took the correctness assertion down with it.
+ *
+ * And the weight bought nothing. The overhead numbers it spent that time
+ * computing — semiring microseconds, SHA microseconds, percent versus
+ * imperative — were never asserted. They were printed. One console.log, no
+ * expect. So a benchmark that could not fail got a property that could fail
+ * excluded from the gate.
+ *
+ * WHAT CHANGED:
+ *   - The correctness half is deterministic and fast, and runs always. A seeded
+ *     generator replaces Math.random(), because a correctness failure on random
+ *     data cannot be reproduced, and an irreproducible failure is what gets a
+ *     file marked flaky in the first place.
+ *   - Per-strategy cases enumerate EVERY permutation rather than sampling
+ *     shuffles, so a failure names the strategy that broke instead of reporting
+ *     that some ordering somewhere disagreed.
+ *   - The benchmark is kept, behind HOLO_BENCH=1, where its weight is nobody's
+ *     problem. Its numbers already have a home in .bench-logs.
+ *   - The file comes OUT of flakyFiles, so the gate can fail on it.
+ */
 import { describe, test, expect } from 'vitest';
 import { ProvenanceSemiring, TraitApplication } from '../compiler/traits/ProvenanceSemiring';
 import { hashBytes } from '../testing/DeterminismHarness';
 
-function calcStats(samples: number[]) {
-  const sorted = [...samples].sort((a, b) => a - b);
-  const n = sorted.length;
-  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
-  const p99Index = Math.floor(n * 0.99);
-  const p99 = sorted[p99Index];
-  return { median, p99 };
+/**
+ * Deterministic PRNG (mulberry32). Same seed, same trait sets, every run and
+ * every machine — so a failure here is a bug someone can reproduce rather than
+ * a coin that landed badly.
+ */
+function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 const rules = [
@@ -23,130 +64,429 @@ const rules = [
   { property: 'opacity', strategy: 'min' as const },
 ];
 
-function shuffle<T>(array: T[]): T[] {
-  const newArr = [...array];
-  for (let i = newArr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-  }
-  return newArr;
-}
+const SOURCES = ['material', 'color', 'hoverable', 'glowing', 'physics', 'kinematic'];
 
-function generateTrait(index: number): TraitApplication {
-  const sources = ['material', 'color', 'hoverable', 'glowing', 'physics', 'kinematic'];
-  const name = sources[index % sources.length];
-
+function makeTrait(rand: () => number, index: number): TraitApplication {
   return {
-    name,
+    name: SOURCES[index % SOURCES.length],
     config: {
-      mass: Math.random() * 100,
-      friction: Math.random(),
-      restitution: Math.random(),
-      color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-      opacity: Math.random(),
+      mass: rand() * 100,
+      friction: rand(),
+      restitution: rand(),
+      color: '#' + Math.floor(rand() * 16777215).toString(16),
+      opacity: rand(),
     },
     context: {
-      authorityLevel: Math.floor(Math.random() * 100),
-      agentId: `agent-${Math.floor(Math.random() * 10)}`,
+      authorityLevel: Math.floor(rand() * 100),
+      agentId: `agent-${Math.floor(rand() * 10)}`,
     },
   };
 }
 
-describe('Trait Commutativity Evaluation (P3-S2)', () => {
-  test('200,000 order-independence evaluations + overhead profiling (Multi-Run)', async () => {
-    const objects = 100;
-    const traitSetsPerObject = 20;
-    // We scale down orderingsPerSet for multiple runs to avoid timing out,
-    // or run fewer overall. Let's do 10 runs of 20,000 evaluations = 200,000 total.
-    const orderingsPerSet = 10;
-    const runs = 10;
+/**
+ * A trait carrying only SOME of the properties, which is what real composition
+ * produces: one trait brings mass and friction, another friction and
+ * restitution.
+ *
+ * THIS IS THE DIFFERENCE BETWEEN A TEST THAT CAN FAIL AND ONE THAT CANNOT.
+ * makeTrait above gives every trait all five properties, so the composed object
+ * gains its keys in the same order in every permutation and the byte-identity
+ * assertion below held no matter what add() did. Measured 2026-09-22: with full
+ * key sets, removing the key sort from add() changes nothing at all; with
+ * partial sets, six orderings of three traits produced FIVE distinct
+ * serialisations of one logical composition. The generator was the reason a
+ * real hashing defect sat under a green test.
+ */
+const KEY_SUBSETS: string[][] = [
+  ['mass', 'friction'],
+  ['color', 'opacity'],
+  ['restitution', 'friction'],
+  ['opacity', 'mass'],
+  ['color', 'restitution'],
+  ['friction', 'opacity'],
+];
 
+function makePartialTrait(rand: () => number, index: number): TraitApplication {
+  const full = makeTrait(rand, index);
+  const keep = KEY_SUBSETS[index % KEY_SUBSETS.length];
+  const config: Record<string, unknown> = {};
+  for (const k of keep) config[k] = (full.config as Record<string, unknown>)[k];
+  return { ...full, config };
+}
+
+/** Every ordering of the input, not a sample of them. */
+function permutations<T>(items: T[]): T[][] {
+  if (items.length <= 1) return [items];
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i++) {
+    const rest = [...items.slice(0, i), ...items.slice(i + 1)];
+    for (const p of permutations(rest)) out.push([items[i], ...p]);
+  }
+  return out;
+}
+
+function shuffleWith<T>(rand: () => number, array: T[]): T[] {
+  const a = [...array];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+describe('trait composition is order-independent', () => {
+  test('every ordering of a trait set resolves to the same configuration', () => {
+    // Four traits: 24 orderings each, exhaustive. 150 sets = 3,600 resolutions,
+    // which is enough to exercise all five rules many times over and finishes
+    // in well under a second — the reason this one can live in the gate.
+    const rand = seededRandom(0x5eed1);
     const semiring = new ProvenanceSemiring(rules);
+    const disagreements: string[] = [];
 
-    const semiringOverheadSamples: number[] = [];
-    const shaOverheadSamples: number[] = [];
-    const relativeOverheadSamples: number[] = [];
+    for (let set = 0; set < 150; set++) {
+      const traitSet = [0, 1, 2, 3].map((i) => makePartialTrait(rand, set + i));
+      const orderings = permutations(traitSet);
 
-    for (let r = 0; r < runs; r++) {
-      let runSemiringTimeMs = 0;
-      let runShaTimeMs = 0;
-      let runApplications = 0;
-      let runBaselineTimeMs = 0;
-      const results = [];
+      // Canonicalised on purpose: this test is about the VALUES agreeing.
+      // Byte order is the next test's job, and conflating them would leave one
+      // of the two properties untested while both assertions looked busy.
+      const serialized = new Set(
+        orderings.map((o) => {
+          const cfg = semiring.add(o).config as Record<string, unknown>;
+          return JSON.stringify(Object.keys(cfg).sort().map((k) => [k, cfg[k]]));
+        })
+      );
 
-      for (let o = 0; o < objects; o++) {
-        for (let s = 0; s < traitSetsPerObject; s++) {
-          const traitCount = 5 + Math.floor(Math.random() * 5);
-          const traitSet: TraitApplication[] = [];
-          for (let i = 0; i < traitCount; i++) {
-            traitSet.push(generateTrait(i));
-          }
-
-          const t0Base = performance.now();
-          for (let ord = 0; ord < orderingsPerSet; ord++) {
-            const config: any = {};
-            for (const trait of traitSet) {
-              Object.assign(config, trait.config);
-            }
-          }
-          runBaselineTimeMs += performance.now() - t0Base;
-
-          for (let ord = 0; ord < orderingsPerSet; ord++) {
-            const ordering = shuffle(traitSet);
-
-            const t0Sem = performance.now();
-            const composition = semiring.add(ordering);
-            const t1Sem = performance.now();
-
-            const jsonString = JSON.stringify(composition.config);
-
-            const t0Hash = performance.now();
-            const outputHash = await hashBytes(jsonString, 'sha256');
-            const t1Hash = performance.now();
-
-            runSemiringTimeMs += t1Sem - t0Sem;
-            runShaTimeMs += t1Hash - t0Hash;
-            runApplications += traitCount;
-
-            results.push({ setId: `obj-${o}-set-${s}`, hash: outputHash });
-          }
-        }
+      if (serialized.size !== 1) {
+        disagreements.push(
+          `set ${set}: ${serialized.size} distinct results across ${orderings.length} orderings`
+        );
       }
-
-      const hashBySet = new Map<string, Set<string>>();
-      for (const res of results) {
-        if (!hashBySet.has(res.setId)) hashBySet.set(res.setId, new Set());
-        hashBySet.get(res.setId)!.add(res.hash);
-      }
-
-      for (const hashes of hashBySet.values()) {
-        expect(hashes.size).toBe(1); // Ensure 100% hash equality in every run
-      }
-
-      const avgSemiringUs = (runSemiringTimeMs * 1000) / runApplications;
-      const avgShaUs = (runShaTimeMs * 1000) / (objects * traitSetsPerObject * orderingsPerSet);
-      const totalContractedTime = runSemiringTimeMs + runShaTimeMs;
-      const overheadPercent = ((totalContractedTime - runBaselineTimeMs) / runBaselineTimeMs) * 100;
-
-      semiringOverheadSamples.push(avgSemiringUs);
-      shaOverheadSamples.push(avgShaUs);
-      relativeOverheadSamples.push(overheadPercent);
     }
 
-    const semiringStats = calcStats(semiringOverheadSamples);
-    const shaStats = calcStats(shaOverheadSamples);
-    const relStats = calcStats(relativeOverheadSamples);
+    expect(disagreements).toEqual([]);
+  });
 
-    console.log(`\nP3-S2 Evaluation Benchmark Complete (N=${runs} runs)`);
-    console.log(`Total evaluations: ${objects * traitSetsPerObject * orderingsPerSet * runs}`);
-    console.log(
-      `Semiring avg overhead per trait: ${semiringStats.median.toFixed(3)} µs median (p99: ${semiringStats.p99.toFixed(3)} µs)`
+  test('the WHOLE result is one byte string, not just its config', async () => {
+    // config was not the only order-dependent part, and pinning it alone left
+    // the defect half-fixed. `conflicts` and `errors` accumulate in ENCOUNTER
+    // order -- arrival order, the exact thing this class exists not to depend
+    // on -- and the conflict SENTENCE named the traits in arrival order too, so
+    // the same resolved conflict read "@physics and @material" one way round
+    // and "@material and @physics" the other.
+    //
+    // Measured 2026-09-22 with config keys already sorted: six orderings of
+    // three traits still produced SIX distinct serialisations of the whole
+    // result object. Anything hashing the result rather than just `config`
+    // still disagreed. After sorting both arrays and canonicalising the
+    // sentence: one.
+    //
+    // This asserts the property the class actually claims, so that a future
+    // order-dependent field added to the result is caught here rather than by
+    // two agents disagreeing about a hash.
+    const semiring = new ProvenanceSemiring(rules);
+    const traits: TraitApplication[] = [
+      { name: 'physics', config: { mass: 3, friction: 0.4 }, context: { authorityLevel: 50, agentId: 'a' } },
+      { name: 'material', config: { mass: 5, restitution: 0.2 }, context: { authorityLevel: 60, agentId: 'b' } },
+      { name: 'glowing', config: { friction: 0.9, restitution: 0.7 }, context: { authorityLevel: 70, agentId: 'c' } },
+    ];
+
+    const whole = new Set(
+      permutations(traits).map((ordering) => {
+        const r = semiring.add(ordering);
+        return JSON.stringify({
+          config: r.config,
+          provenance: r.provenance,
+          conflicts: r.conflicts,
+          errors: r.errors,
+          deadElements: r.deadElements,
+        });
+      })
     );
-    console.log(
-      `SHA-256 avg overhead per resolution: ${shaStats.median.toFixed(3)} µs median (p99: ${shaStats.p99.toFixed(3)} µs)`
+
+    expect(
+      whole.size,
+      `one composition serialised ${whole.size} ways across ${permutations(traits).length} orderings`
+    ).toBe(1);
+  });
+
+  test('the serialized bytes are identical too, not merely the values', async () => {
+    // Key ORDER matters as well as key values: a receipt is hashed, so two
+    // resolutions that differ only in serialization order would produce two
+    // hashes for one composition and break every proof built on them.
+    //
+    // PARTIAL key sets are mandatory here. This assertion existed before and
+    // could not fail, because its traits each carried all five properties and
+    // that pinned the emitted key order across every permutation. It passed
+    // against an add() that genuinely produced five different byte strings for
+    // one composition. Deleting the key sort from ProvenanceSemiring.add() must
+    // turn this red; if it does not, this test has stopped testing anything.
+    const rand = seededRandom(0x5eed2);
+    const semiring = new ProvenanceSemiring(rules);
+
+    for (let set = 0; set < 25; set++) {
+      const traitSet = [0, 1, 2, 3, 4].map((i) => makePartialTrait(rand, set + i));
+      const hashes = new Set<string>();
+
+      for (let ord = 0; ord < 12; ord++) {
+        const composed = semiring.add(shuffleWith(rand, traitSet));
+        hashes.add(await hashBytes(JSON.stringify(composed.config), 'sha256'));
+      }
+
+      expect(hashes.size, `set ${set} hashed to ${hashes.size} distinct values`).toBe(1);
+    }
+  });
+
+  /**
+   * One case per strategy, every permutation, so a failure names the culprit.
+   * The old test told you only that "some ordering disagreed" somewhere inside
+   * 200,000 evaluations.
+   */
+  test.each([
+    ['max', 'friction', [0.1, 0.9, 0.5, 0.3], 0.9],
+    ['min', 'restitution', [0.8, 0.2, 0.6, 0.4], 0.2],
+    ['min', 'opacity', [1, 0.25, 0.75, 0.5], 0.25],
+  ])('%s is commutative on %s, across all 24 orderings', (_strategy, property, values, want) => {
+    const semiring = new ProvenanceSemiring(rules);
+    const traits: TraitApplication[] = (values as number[]).map((v, i) => ({
+      name: SOURCES[i],
+      config: { [property as string]: v },
+      context: { authorityLevel: 50, agentId: `agent-${i}` },
+    }));
+
+    const results = new Set(
+      permutations(traits).map((o) => (semiring.add(o).config as Record<string, unknown>)[property as string])
     );
-    console.log(
-      `Relative overhead vs imperative: ${relStats.median.toFixed(2)}% median (p99: ${relStats.p99.toFixed(2)}%)\n`
+
+    expect([...results]).toEqual([want]);
+  });
+
+  test('authority-weighted picks the same winner in every ordering', () => {
+    const semiring = new ProvenanceSemiring(rules);
+    const traits: TraitApplication[] = [
+      { name: 'physics', config: { mass: 10 }, context: { authorityLevel: 90, agentId: 'a' } },
+      { name: 'material', config: { mass: 20 }, context: { authorityLevel: 10, agentId: 'b' } },
+      { name: 'kinematic', config: { mass: 30 }, context: { authorityLevel: 50, agentId: 'c' } },
+    ];
+
+    const masses = new Set(
+      permutations(traits).map((o) => (semiring.add(o).config as { mass: number }).mass)
     );
-  }, 120000); // Allow up to 120s
+
+    expect(masses.size, `authority-weighted produced ${masses.size} different masses`).toBe(1);
+  });
+
+  test('PROVENANCE is order-independent, not just the value', () => {
+    // The assertion this file was missing, and the reason it could not fail.
+    //
+    // AUTHORITY-WEIGHTED IS A SELECTION, NOT A PRODUCT, and that is what makes
+    // this testable. ProvenanceSemiring scales each value by its authority
+    // weight, compares the scaled numbers, and then returns the WINNER'S
+    // ORIGINAL value -- not the product. So when two scaled values tie, which
+    // original value survives is decided by tieBreakProvenance, and config.mass
+    // moves if that decision is order-dependent.
+    //
+    // This assertion previously shipped with a comment saying the opposite:
+    // that the resolved value "is a multiplication, which is commutative
+    // whatever the tie-break does -- so inspecting config.mass can never detect
+    // order dependence", and recording that replacing tieBreakProvenance with
+    // `return a` changed nothing. Both observations were real; the conclusion
+    // was wrong. The inputs were masses 2, 3, 5 and 7 at EQUAL authority 42, so
+    // the scaled values were 2w, 3w, 5w, 7w -- all different. Nothing tied, so
+    // nothing ever reached the tie-break. The test was not weak, it was aimed
+    // at the wrong inputs.
+    //
+    // authorityWeight(level) = 0.5 + (level/100)*1.5, so level 0 -> 0.5,
+    // 50 -> 1.25, 75 -> 1.625, 100 -> 2.0. The four masses below are chosen so
+    // that every scaled value is exactly 130 in IEEE double -- a real four-way
+    // tie that needs no epsilon -- and all four reach tieBreakProvenance.
+    // Verified 2026-09-22 by replacing the tie-break body with `return a`:
+    // config.mass then took four different values across the 24 orderings, and
+    // this test went red. That is the proof the old comment asked its reader to
+    // go and find.
+    const semiring = new ProvenanceSemiring(rules);
+    const traits: TraitApplication[] = [
+      { name: 'physics', config: { mass: 260 }, context: { authorityLevel: 0, agentId: 'agent-c' } },
+      { name: 'material', config: { mass: 104 }, context: { authorityLevel: 50, agentId: 'agent-a' } },
+      { name: 'kinematic', config: { mass: 80 }, context: { authorityLevel: 75, agentId: 'agent-d' } },
+      { name: 'glowing', config: { mass: 65 }, context: { authorityLevel: 100, agentId: 'agent-b' } },
+    ];
+
+    const masses = new Set<unknown>();
+    const winners = new Set<string>();
+    const sources = new Set<string>();
+    for (const ordering of permutations(traits)) {
+      const composed = semiring.add(ordering);
+      masses.add((composed.config as { mass: number }).mass);
+      const prov = composed.provenance as Record<
+        string,
+        { source?: string; context?: { agentId?: string } }
+      >;
+      winners.add(prov.mass?.context?.agentId ?? '(none)');
+      sources.add(prov.mass?.source ?? '(none)');
+    }
+
+    // The VALUE that survives, the AGENT credited, and the TRAIT credited must
+    // each be the same in all 24 orderings. Attribution is what receipts are
+    // built on, so a tie that resolved to a different owner depending on
+    // arrival order would be a silent provenance defect, not just a cosmetic one.
+    expect(
+      [...masses],
+      `a four-way authority tie resolved to ${[...masses].join(', ')} depending on ordering`
+    ).toHaveLength(1);
+    expect(
+      [...winners],
+      `a four-way authority tie credited ${[...winners].join(', ')} depending on ordering`
+    ).toHaveLength(1);
+    expect([...sources]).toHaveLength(1);
+
+    // And pin WHICH one, so a tie-break that is deterministic but wrong also
+    // fails. tieBreakProvenance documents a lexicographic order starting at
+    // agentId, and 'agent-a' is the smallest of the four.
+    expect([...winners][0]).toBe('agent-a');
+    expect([...masses][0]).toBe(104);
+  });
+
+  test('an EQUAL-VALUE tie keeps its attribution in every ordering', () => {
+    // THIS TEST USED TO NAME A TIE IT NEVER CREATED. It composed masses 11, 22,
+    // 33 and 44 at equal authority 42 and cited CRDT-01. Equal authority means
+    // one shared weight, so the scaled values were 12.43 / 24.86 / 37.29 /
+    // 49.72 -- all distinct, no tie, tieBreakProvenance never reached. It
+    // asserted "the largest mass wins", which the authority-weighted test above
+    // already covers, while its title promised the tie-break. Same defect as
+    // the one diagnosed sixty lines up, surviving in the test next door.
+    //
+    // The other route into tieBreakProvenance is an equal VALUE under max/min
+    // (ProvenanceSemiring: `if (valA === valB) return tieBreakProvenance(a, b)`),
+    // and that route had a real bug: max and min rebuilt their winner as
+    // `{ value, source }` and dropped `context`. tieBreakProvenance reads a
+    // missing context as agentId '', which sorts before every real agentId, so
+    // a value that had already been through max/min won every LATER tie by
+    // default -- and whether it had depends purely on arrival order. Measured
+    // 2026-09-22 with the default rules, this exact input produced TWO
+    // different provenance entries for `friction`, source "alpha" or source
+    // "bravo", each carrying no context at all.
+    //
+    // So this pins attribution, not the value: the value is 5 whoever wins.
+    const semiring = new ProvenanceSemiring(rules);
+    const traits: TraitApplication[] = [
+      { name: 'physics', config: { friction: 5 }, context: { authorityLevel: 50, agentId: 'alpha' } },
+      { name: 'material', config: { friction: 5 }, context: { authorityLevel: 50, agentId: 'bravo' } },
+      { name: 'glowing', config: { friction: 3 }, context: { authorityLevel: 50, agentId: 'charlie' } },
+    ];
+
+    const entries = new Set(
+      permutations(traits).map((o) =>
+        JSON.stringify((semiring.add(o).provenance as Record<string, unknown>).friction)
+      )
+    );
+
+    expect(
+      [...entries],
+      `one composition produced ${entries.size} different provenance entries for a tied value`
+    ).toHaveLength(1);
+
+    // And the context must survive the tie at all: an entry with no context is
+    // what made the tie-break arbitrary in the first place.
+    const only = JSON.parse([...entries][0]) as { context?: { agentId?: string } };
+    expect(only.context?.agentId).toBeDefined();
+  });
+
+  test('domain-override respects precedence regardless of arrival order', () => {
+    const semiring = new ProvenanceSemiring(rules);
+    // 'material' is first in the declared precedence, so its colour must win
+    // from any position in the input.
+    const traits: TraitApplication[] = [
+      { name: 'glowing', config: { color: '#111111' }, context: { authorityLevel: 99, agentId: 'a' } },
+      { name: 'hoverable', config: { color: '#222222' }, context: { authorityLevel: 99, agentId: 'b' } },
+      { name: 'material', config: { color: '#333333' }, context: { authorityLevel: 1, agentId: 'c' } },
+    ];
+
+    const colors = new Set(
+      permutations(traits).map((o) => (semiring.add(o).config as { color: string }).color)
+    );
+
+    expect([...colors]).toEqual(['#333333']);
+  });
+});
+
+/**
+ * The benchmark the old file was really made of. It asserts nothing and never
+ * did; it prints overhead figures. Kept because the numbers are cited, moved
+ * behind a flag because its weight is what got the property above quarantined.
+ *
+ *   HOLO_BENCH=1 npx vitest run src/__tests__/trait-commutativity.test.ts
+ */
+describe.skipIf(!process.env.HOLO_BENCH)('trait composition overhead (benchmark)', () => {
+  function calcStats(samples: number[]) {
+    const sorted = [...samples].sort((a, b) => a - b);
+    const n = sorted.length;
+    const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+    return { median, p99: sorted[Math.floor(n * 0.99)] };
+  }
+
+  test(
+    '200,000 resolutions, overhead profile',
+    async () => {
+      const objects = 100;
+      const traitSetsPerObject = 20;
+      const orderingsPerSet = 10;
+      const runs = 10;
+      const rand = seededRandom(0xbe11c4);
+      const semiring = new ProvenanceSemiring(rules);
+      const semiringSamples: number[] = [];
+      const relativeSamples: number[] = [];
+
+      for (let r = 0; r < runs; r++) {
+        let semiringMs = 0;
+        let baselineMs = 0;
+        let shaMs = 0;
+        let applications = 0;
+
+        for (let o = 0; o < objects; o++) {
+          for (let s = 0; s < traitSetsPerObject; s++) {
+            const traitCount = 5 + Math.floor(rand() * 5);
+            const traitSet = Array.from({ length: traitCount }, (_, i) => makeTrait(rand, i));
+
+            const t0Base = performance.now();
+            for (let ord = 0; ord < orderingsPerSet; ord++) {
+              const config: Record<string, unknown> = {};
+              for (const trait of traitSet) Object.assign(config, trait.config);
+            }
+            baselineMs += performance.now() - t0Base;
+
+            for (let ord = 0; ord < orderingsPerSet; ord++) {
+              const ordering = shuffleWith(rand, traitSet);
+              const t0 = performance.now();
+              const composed = semiring.add(ordering);
+              semiringMs += performance.now() - t0;
+
+              const json = JSON.stringify(composed.config);
+              const t0Hash = performance.now();
+              await hashBytes(json, 'sha256');
+              shaMs += performance.now() - t0Hash;
+              applications += traitCount;
+            }
+          }
+        }
+
+        semiringSamples.push((semiringMs * 1000) / applications);
+        relativeSamples.push(((semiringMs + shaMs - baselineMs) / baselineMs) * 100);
+      }
+
+      const sem = calcStats(semiringSamples);
+      const rel = calcStats(relativeSamples);
+      console.log(
+        `\nresolutions: ${objects * traitSetsPerObject * orderingsPerSet * runs}\n` +
+          `semiring per trait: ${sem.median.toFixed(3)} us median (p99 ${sem.p99.toFixed(3)})\n` +
+          `relative to imperative assign: ${rel.median.toFixed(2)}% median (p99 ${rel.p99.toFixed(2)}%)\n`
+      );
+
+      // Asserted so this is a test and not a print statement: the profile must
+      // have produced a finite number for every run.
+      expect(semiringSamples.every((n) => Number.isFinite(n))).toBe(true);
+      expect(semiringSamples).toHaveLength(runs);
+    },
+    120000
+  );
 });
