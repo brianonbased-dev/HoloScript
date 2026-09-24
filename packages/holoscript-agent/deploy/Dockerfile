@@ -10,6 +10,9 @@ WORKDIR /repo
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/holoscript-agent/package.json packages/holoscript-agent/
 COPY packages/llm-provider/package.json packages/llm-provider/
+# Root preinstall and postinstall invoke these. This stage copies only the
+# filtered manifests, so the scripts have to be in the image or pnpm install exits 1.
+COPY scripts/check-pnpm-package-manager.mjs scripts/check-pnpm-install-integrity.mjs scripts/
 RUN pnpm install --filter @holoscript/holoscript-agent --filter @holoscript/llm-provider --frozen-lockfile
 
 COPY packages/llm-provider packages/llm-provider
