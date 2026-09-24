@@ -940,6 +940,9 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.7
         version: 9.0.10
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.13.3
       '@types/pixelmatch':
         specifier: ^5.2.6
         version: 5.2.6
