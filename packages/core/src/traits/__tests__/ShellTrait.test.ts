@@ -393,9 +393,12 @@ describe('onEvent – shell:exec – spawn path', () => {
 
   it('emits shell:stderr when stderr data arrives', async () => {
     const { node, ctx, emitted } = attachedNode();
+    // shell:true joins the command and runs it with the platform shell.
+    // An unquoted node -e script contains "(", which dash (/bin/sh on Linux)
+    // rejects. echo's >&2 redirect is accepted by dash, bash, and cmd.exe.
     shellHandler.onEvent!(
       node,
-      { ...cfg, command: 'node', args: ['-e', "process.stderr.write('holoscript-err')"] },
+      { ...cfg, command: 'echo', args: ['holoscript-err', '>&2'] },
       ctx,
       { type: 'shell:exec', payload: {} }
     );
