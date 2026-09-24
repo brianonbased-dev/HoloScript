@@ -186,6 +186,193 @@ function canonicalTieValue(value: unknown, seen = new WeakSet<object>()): string
   return canonical;
 }
 
+/**
+ * Canonical JSON for hashing a provenance map (task_1790058854739_97yq).
+ *
+ * Each provenance entry carries the caller's `value` and `context` by
+ * reference with their own key order intact, so `JSON.stringify(provenance)`
+ * gave two agents that built the same logical context as {authorityLevel,
+ * agentId} and {agentId, authorityLevel} different bytes and a different
+ * stateHash. add() deliberately does not deep-sort (a deep clone is lossy for
+ * Dates, which do reach here); the hash site sorts instead.
+ *
+ * JSON applies its own semantics FIRST (toJSON, so a Date is its ISO string;
+ * boxed primitives unwrap; a cycle or a BigInt throws the TypeError JSON
+ * throws; an own "__proto__" key stays an own key), and only the keys of that
+ * plain result are then sorted at every depth. Sorting inside a replacer
+ * broke all four (claude3's review of #318): an own "__proto__" key vanished,
+ * boxed primitives became {}, and a cycle threw RangeError instead.
+ */
+export function canonicalProvenanceJson(value: unknown): string {
+  const text = JSON.stringify(value);
+  return text === undefined ? text : JSON.stringify(sortKeysDeep(JSON.parse(text)));
+}
+
+function sortKeysDeep(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortKeysDeep);
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(record)
+        .sort()
+        .map((key) => [key, sortKeysDeep(record[key])])
+    );
+  }
+  return value;
+}
+
+/**
+ * The leaves behind a value: a merged value carries the contributions it was
+ * built from; a plain value is its own single leaf, context included.
+ */
+function leavesOf(p: ProvenanceValue): ProvenanceLeaf[] {
+  if (Array.isArray(p.contributions) && p.contributions.length > 0) return p.contributions;
+  const leaf: ProvenanceLeaf = { source: String(p.source), value: p.value };
+  if (p.context !== undefined) leaf.context = p.context;
+  return [leaf];
+}
+
+/** A leaf's canonical value, computed once per leaf (sorting re-reads it). */
+const leafKeys = new WeakMap<ProvenanceLeaf, string>();
+function leafKey(leaf: ProvenanceLeaf): string {
+  let key = leafKeys.get(leaf);
+  if (key === undefined) {
+    key = canonicalTieValue(leaf.value);
+    leafKeys.set(leaf, key);
+  }
+  return key;
+}
+
+/** The order leaves are kept in and reduced in: source, then canonical value. */
+function leafOrder(x: ProvenanceLeaf, y: ProvenanceLeaf): number {
+  if (x.source !== y.source) return x.source < y.source ? -1 : 1;
+  const vx = leafKey(x);
+  const vy = leafKey(y);
+  return vx < vy ? -1 : vx > vy ? 1 : 0;
+}
+
+/** tieBreakProvenance's order, applied to two leaves: agentId, opId, source, canonical value. */
+function tieBreakLeaf(x: ProvenanceLeaf, y: ProvenanceLeaf): ProvenanceLeaf {
+  const agentX = String(x.context?.agentId ?? '');
+  const agentY = String(y.context?.agentId ?? '');
+  if (agentX !== agentY) return agentX < agentY ? x : y;
+  const opX = String(x.context?.opId ?? '');
+  const opY = String(y.context?.opId ?? '');
+  if (opX !== opY) return opX < opY ? x : y;
+  if (x.source !== y.source) return x.source < y.source ? x : y;
+  const vx = leafKey(x);
+  const vy = leafKey(y);
+  if (vx !== vy) return vx <= vy ? x : y;
+  return x;
+}
+
+/**
+ * The context a tropical merge carries, chosen over EVERY leaf: the highest
+ * authority weight, the leaf tie-break among equals. It used to be chosen
+ * pairwise against a running total whose joined source name sorts unlike its
+ * leaves ('a⊗b1' against 'a1': U+2297 sorts after '1'), so it forked on
+ * arrival order (claude3's review of #318). For two plain operands this is
+ * exactly the pairwise choice.
+ */
+function contextOverLeaves(leaves: ProvenanceLeaf[]): ProvenanceContext | undefined {
+  let best = leaves[0];
+  let bestWeight = authorityWeight(best.context?.authorityLevel ?? 0, best.context?.reputationScore);
+  for (let i = 1; i < leaves.length; i += 1) {
+    const leaf = leaves[i];
+    const weight = authorityWeight(leaf.context?.authorityLevel ?? 0, leaf.context?.reputationScore);
+    if (weight > bestWeight || (weight === bestWeight && tieBreakLeaf(best, leaf) === leaf)) {
+      best = leaf;
+      bestWeight = weight;
+    }
+  }
+  return best.context;
+}
+
+/**
+ * Canonical n-ary merge (task_1790058854739_8jh1, adversarial review of #312).
+ *
+ * add() left-folds multiply() in trait arrival order, and every merging
+ * strategy used to build its result pairwise: source `srcA < srcB ? A+B : B+A`,
+ * value `a + b`. That is commutative for two operands and NOT associative for
+ * three: fold(A,B,C) wrote 'A+B+C' while fold(A,C,B) wrote 'A+C+B', and float
+ * addition moved the value with the order. vec-component-sum is a default rule
+ * (velocity, acceleration, angularVelocity) and DistributedTransformGraph
+ * hashes provenance, so two agents composing the same traits in a different
+ * order could disagree about a hash.
+ *
+ * Here a merge is rebuilt from the sorted set of LEAF contributions: the source
+ * is the sorted leaf names joined by the operator and the value is the
+ * reduction in that same order, so every arrival order yields one
+ * serialisation. Leaves sharing a name are ordered by their canonical value.
+ *
+ * Equal values are one fact over the LEAF set: leaves whose values are equal
+ * (the `a.value === b.value` rule multiply() applies to two plain operands)
+ * collapse to their tie-break winner before the reduction. The pairwise rule
+ * used to run against the running total instead, so sum(A=2, B=3, C=5) dropped
+ * C in two arrival orders of six (5 === 5) and summed it in the other four,
+ * and the value and the hash forked (claude3's review of #318). Two plain
+ * operands give exactly what main gave: sum(2, 2) is still 2.
+ *
+ * A merged value's leaf list is kept sorted and free of equal values, so a
+ * step only places the new leaves into a copy of it (a scan for an equal
+ * value, a binary search, one splice) instead of rebuilding and re-sorting
+ * the whole set: add() of 1,000 contributions was 40-80x main's time.
+ */
+function mergeCanonical(
+  a: ProvenanceValue,
+  b: ProvenanceValue,
+  operator: string,
+  reduce: (acc: unknown, next: unknown) => unknown,
+  extra: (leaves: ProvenanceLeaf[]) => Partial<ProvenanceValue> = () => ({})
+): ProvenanceValue {
+  const aLeaves = leavesOf(a);
+  const bLeaves = leavesOf(b);
+  const aCanonical = canonicalLeafLists.has(aLeaves);
+  const base = aCanonical ? aLeaves : canonicalLeafLists.has(bLeaves) ? bLeaves : [];
+  const rest = aCanonical ? bLeaves : base === bLeaves ? aLeaves : [...aLeaves, ...bLeaves];
+  const leaves = base.slice();
+  for (const leaf of rest) insertLeaf(leaves, leaf);
+  canonicalLeafLists.add(leaves);
+  let value = leaves[0].value;
+  for (let i = 1; i < leaves.length; i += 1) value = reduce(value, leaves[i].value);
+  return {
+    ...extra(leaves),
+    value,
+    source: leaves.map((leaf) => leaf.source).join(operator),
+    contributions: leaves,
+  };
+}
+
+/** Leaf lists built by mergeCanonical: sorted by leafOrder, no two values equal. */
+const canonicalLeafLists = new WeakSet<ProvenanceLeaf[]>();
+
+/**
+ * Place one leaf into a canonical list. A leaf whose value equals one already
+ * there is the same fact: the tie-break winner of the two stays. `===` never
+ * matches NaN, so NaN never collapses.
+ */
+function insertLeaf(leaves: ProvenanceLeaf[], leaf: ProvenanceLeaf): void {
+  let placing = leaf;
+  const isNaNValue = typeof leaf.value === 'number' && Number.isNaN(leaf.value);
+  if (!isNaNValue) {
+    const twin = leaves.findIndex((existing) => existing.value === leaf.value);
+    if (twin !== -1) {
+      const winner = tieBreakLeaf(leaves[twin], leaf);
+      if (winner === leaves[twin]) return;
+      leaves.splice(twin, 1);
+      placing = winner;
+    }
+  }
+  let lo = 0;
+  let hi = leaves.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (leafOrder(leaves[mid], placing) <= 0) lo = mid + 1;
+    else hi = mid;
+  }
+  leaves.splice(lo, 0, placing);
+}
+
 export interface ProvenanceContext {
   /** Authority weight (e.g., Founder=100, Agent=50, Guest=0) */
   authorityLevel: number;
@@ -195,6 +382,14 @@ export interface ProvenanceContext {
   sourceType?: 'user' | 'agent' | 'system';
   /** Optional reputation score from HoloMesh (0-100) — threads reputation into algebra */
   reputationScore?: number;
+}
+
+/** One trait's own contribution to a merged value: the leaf a merging strategy folds over. */
+export interface ProvenanceLeaf {
+  source: string;
+  value: unknown;
+  /** The contributing trait's context, so tie-breaks and context choices see every leaf. */
+  context?: ProvenanceContext;
 }
 
 export interface ProvenanceValue {
@@ -208,6 +403,13 @@ export interface ProvenanceValue {
   context?: ProvenanceContext;
   /** Dead element audit record (if this value was zeroed) */
   deadRecord?: DeadElement;
+  /**
+   * For a value built by a merging strategy (sum, multiply, tropical, the
+   * vector component strategies): the leaf contributions it was reduced from,
+   * sorted by source. Carried so a later merge can rebuild the result from
+   * every leaf instead of folding onto an intermediate (see mergeCanonical).
+   */
+  contributions?: ProvenanceLeaf[];
 }
 
 export type ProvenanceConfig = Record<string, ProvenanceValue>;
@@ -442,7 +644,13 @@ export class ProvenanceSemiring {
   private multiply(a: ProvenanceValue, b: ProvenanceValue, property: string): ProvenanceValue {
     if (a.value === TRAIT_ZERO) return a; // A ⊗ 0 = 0 (Annihilator)
     if (b.value === TRAIT_ZERO) return b; // A ⊗ 0 = 0
-    if (a.value === b.value) return tieBreakProvenance(a, b); // Idempotent value, deterministic provenance
+    // Idempotent value, deterministic provenance, for two PLAIN operands. When either
+    // side is a merged value (it carries contributions) the merging strategy decides
+    // equality over its leaves (mergeCanonical): a running total that happens to equal
+    // the next value is not the same fact.
+    if (a.value === b.value && !a.contributions?.length && !b.contributions?.length) {
+      return tieBreakProvenance(a, b);
+    }
 
     const rule = this.rules.get(property);
 
@@ -470,19 +678,13 @@ export class ProvenanceSemiring {
       if (!semiring) {
         throw new Error(`No semiring adapter available for strategy '${rule.strategy}'`);
       }
-      const srcA = String(a.source);
-      const srcB = String(b.source);
-      const selectedContext =
-        weightA > weightB
-          ? a.context
-          : weightA < weightB
-            ? b.context
-            : tieBreakProvenance(a, b).context;
-      return {
-        value: semiring.mul(a.value as number, b.value as number),
-        source: srcA < srcB ? `${srcA}⊗${srcB}` : `${srcB}⊗${srcA}`,
-        context: selectedContext,
-      };
+      return mergeCanonical(
+        a,
+        b,
+        '⊗',
+        (x, y) => semiring.mul(x as number, y as number),
+        (leaves) => ({ context: contextOverLeaves(leaves) })
+      );
     }
 
     switch (rule.strategy) {
@@ -504,22 +706,10 @@ export class ProvenanceSemiring {
           source: valA < valB ? a.source : b.source,
         };
       }
-      case 'sum': {
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: (a.value as number) + (b.value as number),
-          source: srcA < srcB ? `${srcA}+${srcB}` : `${srcB}+${srcA}`,
-        };
-      }
-      case 'multiply': {
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: (a.value as number) * (b.value as number),
-          source: srcA < srcB ? `${srcA}*${srcB}` : `${srcB}*${srcA}`,
-        };
-      }
+      case 'sum':
+        return mergeCanonical(a, b, '+', (x, y) => (x as number) + (y as number));
+      case 'multiply':
+        return mergeCanonical(a, b, '*', (x, y) => (x as number) * (y as number));
 
       case 'authority-weighted': {
         // C1: Authority MODULATES the numeric outcome instead of bypassing rules.
@@ -569,12 +759,7 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: vecComponentMax(a.value, b.value),
-          source: srcA < srcB ? `${srcA}⊕max${srcB}` : `${srcB}⊕max${srcA}`,
-        };
+        return mergeCanonical(a, b, '⊕max', (x, y) => vecComponentMax(x as VectorValue, y as VectorValue));
       }
 
       case 'vec-component-min': {
@@ -584,12 +769,7 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: vecComponentMin(a.value, b.value),
-          source: srcA < srcB ? `${srcA}⊕min${srcB}` : `${srcB}⊕min${srcA}`,
-        };
+        return mergeCanonical(a, b, '⊕min', (x, y) => vecComponentMin(x as VectorValue, y as VectorValue));
       }
 
       case 'vec-component-sum': {
@@ -599,12 +779,7 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        const srcA = String(a.source);
-        const srcB = String(b.source);
-        return {
-          value: vecAdd(a.value, b.value),
-          source: srcA < srcB ? `${srcA}+${srcB}` : `${srcB}+${srcA}`,
-        };
+        return mergeCanonical(a, b, '+', (x, y) => vecAdd(x as VectorValue, y as VectorValue));
       }
 
       case 'vec-magnitude-max': {
