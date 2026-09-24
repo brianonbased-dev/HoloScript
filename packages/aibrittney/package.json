@@ -34,7 +34,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node ./scripts/build-provenance.mjs",
     "dev": "tsup --watch",
     "test": "vitest run --config vitest.config.ts --passWithNoTests",
     "start": "node ./dist/cli.js",

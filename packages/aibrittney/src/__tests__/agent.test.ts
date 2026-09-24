@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Session } from '../session.js';
-import { runAgentTurn, type AgentEvent } from '../agent.js';
+import { runAgentTurn, capToolResult, type AgentEvent } from '../agent.js';
 import { McpClient, type CallToolResult } from '../mcp-client.js';
 import {
   InMemoryHoloDocumentStore,
@@ -278,5 +278,201 @@ describe('runAgentTurn', () => {
       ]),
     });
     expect(stub.calls[0].args).toEqual({ search: 'trait registry' });
+  });
+});
+
+/**
+ * Fake OpenAI-compatible server (llama-server / holo-inference-proxy): one
+ * scripted completion per request, records every request body, and — like
+ * llama-server builds that predate tool-call ids — omits `id` on tool_calls.
+ */
+function fakeOpenAIFetch(scripted: Array<Record<string, unknown>>) {
+  const requests: Array<{ url: string; body: Record<string, any> }> = [];
+  const impl = (async (url: string | URL, init?: RequestInit) => {
+    requests.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+    const message = scripted[requests.length - 1];
+    if (message === undefined) {
+      throw new Error(`fakeOpenAIFetch ran out of scripted responses (call ${requests.length})`);
+    }
+    return new Response(
+      JSON.stringify({
+        choices: [{ index: 0, message: { role: 'assistant', ...message }, finish_reason: 'stop' }],
+        usage: { completion_tokens: 1 },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  }) as unknown as typeof fetch;
+  return { impl, requests };
+}
+
+/** A tool call exactly as an id-less server emits it: no `id`, arguments as a JSON string. */
+function idlessCall(name: string, args: Record<string, unknown>) {
+  return { type: 'function', function: { name, arguments: JSON.stringify(args) } };
+}
+
+interface WireMessage {
+  role: string;
+  tool_calls?: Array<{ id?: string }>;
+  tool_call_id?: string;
+}
+
+describe('runAgentTurn against an OpenAI-compatible server that omits tool-call ids', () => {
+  const STYLE_KEY = 'AIBRITTNEY_API_STYLE';
+
+  beforeEach(() => {
+    process.env[STYLE_KEY] = 'openai';
+  });
+
+  afterEach(() => {
+    delete process.env[STYLE_KEY];
+  });
+
+  it('announces the ids the tool results answer to, unique across two tool-call iterations', async () => {
+    const session = new Session({ ollamaHost: 'http://127.0.0.1:18080', model: 'qwen3:4b' });
+    session.push('user', 'look two things up, then two more');
+    const stub = new StubMcpClient({ ok: true, status: 200, data: { hits: [] } });
+    const server = fakeOpenAIFetch([
+      // iteration 1: two calls to the same tool, no ids
+      {
+        content: null,
+        tool_calls: [
+          idlessCall('holo_query_codebase', { query: 'find', symbol: 'A' }),
+          idlessCall('holo_query_codebase', { query: 'find', symbol: 'B' }),
+        ],
+      },
+      // iteration 2: two more, still no ids
+      {
+        content: null,
+        tool_calls: [
+          idlessCall('holo_query_codebase', { query: 'find', symbol: 'C' }),
+          idlessCall('knowledge_query', { search: 'D' }),
+        ],
+      },
+      // iteration 3: the final answer
+      { content: 'done' },
+    ]);
+
+    const result = await runAgentTurn({
+      session,
+      mcp: stub,
+      maxIterations: 3,
+      fetchImpl: server.impl,
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      finalText: 'done',
+      toolCallsExecuted: 4,
+      iterations: 3,
+    });
+    expect(server.requests.map((r) => r.url)).toEqual(
+      Array(3).fill('http://127.0.0.1:18080/v1/chat/completions')
+    );
+
+    // The third request carries the whole conversation as the server saw it.
+    const wire = server.requests[2].body.messages as WireMessage[];
+    const announced: string[] = [];
+    const answered: string[] = [];
+    let current: string[] = [];
+    let matched = 0;
+    for (const m of wire) {
+      if (m.role === 'assistant' && m.tool_calls) {
+        current = m.tool_calls.map((c) => c.id ?? '<missing>');
+        announced.push(...current);
+      }
+      if (m.role === 'tool') {
+        answered.push(m.tool_call_id ?? '<missing>');
+        // The id must come from the assistant message immediately before this result.
+        if (m.tool_call_id !== undefined && current.includes(m.tool_call_id)) matched += 1;
+      }
+    }
+    expect(`${matched} of ${answered.length} matched`).toBe('4 of 4 matched');
+    expect(announced).toHaveLength(4);
+    expect(new Set(announced).size).toBe(4);
+    expect([...answered].sort()).toEqual([...announced].sort());
+    // Exactly 9 alphanumerics: what the strictest chat templates (Mistral / Devstral / Nemo) accept.
+    for (const id of announced) expect(id).toMatch(/^[A-Za-z0-9]{9}$/);
+    // Never a tool name where an id belongs.
+    expect(answered).not.toContain('holo_query_codebase');
+    expect(answered).not.toContain('knowledge_query');
+  });
+});
+
+describe('tool-result cap', () => {
+  const CAP_KEY = 'AIBRITTNEY_TOOL_RESULT_MAX_CHARS';
+
+  afterEach(() => {
+    delete process.env[CAP_KEY];
+  });
+
+  it('cuts to at most maxChars and states exactly how much was dropped', () => {
+    const text = 'x'.repeat(50_000);
+    for (const cap of [4000, 100, 27]) {
+      const capped = capToolResult(text, cap);
+      expect(capped.length).toBeLessThanOrEqual(cap);
+      const marker = capped.match(/\[truncated (\d+) chars\]$/);
+      expect(marker).not.toBeNull();
+      const kept = capped.length - (marker as RegExpMatchArray)[0].length;
+      expect(kept + Number((marker as RegExpMatchArray)[1])).toBe(text.length);
+      expect(capped.startsWith('x'.repeat(kept))).toBe(true);
+    }
+    expect(capToolResult('short', 4000)).toBe('short');
+    expect(capToolResult('x'.repeat(4000), 4000)).toBe('x'.repeat(4000));
+  });
+
+  /** One iteration that pushes `blob` through a real (stubbed) tool call, then answers. */
+  async function dumpThroughTool(blob: string) {
+    const session = new Session({ ollamaHost: 'http://fake', model: 'fake-model' });
+    session.push('user', 'dump it');
+    const stub = new StubMcpClient({ ok: true, status: 200, data: { blob } });
+    const events: AgentEvent[] = [];
+    const result = await runAgentTurn({
+      session,
+      mcp: stub,
+      onEvent: (e) => events.push(e),
+      fetchImpl: fakeOllamaFetch([
+        {
+          message: {
+            role: 'assistant',
+            content: '',
+            tool_calls: [
+              {
+                id: 'big',
+                function: {
+                  name: 'holo_query_codebase',
+                  arguments: { query: 'find', symbol: 'X' },
+                },
+              },
+            ],
+          },
+        },
+        { message: { role: 'assistant', content: 'done' } },
+      ]),
+    });
+    expect(result.ok).toBe(true);
+    const toolMsg = session.messages().find((m) => m.role === 'tool');
+    if (!toolMsg) throw new Error('no tool message in history');
+    return { content: toolMsg.content, events, raw: JSON.stringify({ blob }) };
+  }
+
+  it('a 50 KB tool result enters the history under the default 4000-char cap, with the marker', async () => {
+    const { content, events, raw } = await dumpThroughTool('y'.repeat(50 * 1024));
+    expect(raw.length).toBeGreaterThan(50_000);
+    expect(content.length).toBeLessThanOrEqual(4000);
+    expect(content.startsWith('{"blob":"yyyy')).toBe(true);
+    expect(content).toMatch(/\[truncated \d+ chars\]$/);
+    expect(events.find((e) => e.kind === 'tool-result')?.message).toContain(
+      `${raw.length} bytes, ${content.length} kept`
+    );
+  });
+
+  it('honours AIBRITTNEY_TOOL_RESULT_MAX_CHARS and leaves a small result untouched', async () => {
+    process.env[CAP_KEY] = '200';
+    const big = await dumpThroughTool('z'.repeat(1000));
+    expect(big.content.length).toBeLessThanOrEqual(200);
+    expect(big.content).toMatch(/\[truncated \d+ chars\]$/);
+
+    const small = await dumpThroughTool('ok');
+    expect(small.content).toBe('{"blob":"ok"}');
+    expect(small.events.find((e) => e.kind === 'tool-result')?.message).toContain('13 bytes)');
   });
 });
