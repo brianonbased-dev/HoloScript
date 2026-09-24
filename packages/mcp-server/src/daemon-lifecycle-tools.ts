@@ -14,6 +14,14 @@
  *
  * Source: packages/core/src/daemon/ConversationDaemon.ts
  * Task: task_1779158611517_uw6j
+ *
+ * Owner boundary (task_1790062507560_px5q, custody review 2026-09-22): the daimōn
+ * is private (ownerPolicy 'private', memoryPolicy.ownerScoped always true).
+ * holo_get_daemon (rehydration context), holo_list_daemons (owner / activity /
+ * stats columns) and holo_daemon_emergence_check (rehydratedContext) hand memory
+ * ONLY to callerId === ownerId — the same assertCallerOwnsDaemon boundary that
+ * holo_daemon_turn enforces. The plain daemon record (config, no memory) stays
+ * readable for backward compatibility.
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -29,6 +37,7 @@ import {
   type DaemonCareProfile,
   assertDaemonFieldSeparation,
   assertCallerOwnsDaemon,
+  UnauthorizedDaemonAccessError,
   makeDefaultConversationDaemon,
   makeEmptyContextDelta,
   makeDefaultCustomizationProfile,
@@ -517,6 +526,8 @@ export const daemonLifecycleTools: Tool[] = [
       'Use a preset (companion, professional, creative, minimal, guardian) for quick setup, ' +
       'or provide custom style and permission overrides. ' +
       'The daemon is the user-facing companion — not Brittney, not the field. ' +
+      'Refuses an existing daemonId (daemons are never overwritten) and any "daemon-<soul>" id ' +
+      'unless ownerId is that soul (emergent ids are reserved). ' +
       'Returns: The created ConversationDaemon and its CustomizationProfile.',
     inputSchema: {
       type: 'object' as const,
@@ -556,8 +567,11 @@ export const daemonLifecycleTools: Tool[] = [
   {
     name: 'holo_get_daemon',
     description:
-      'Retrieve a ConversationDaemon by its ID. Returns the full daemon object ' +
+      'Retrieve a ConversationDaemon by its ID. Returns the daemon record (config, never memory) ' +
       'and the associated CustomizationProfile if available. ' +
+      "The Brittney rehydration context (the owner's remembered facts) is returned ONLY when " +
+      'includeRehydrationContext is true AND callerId equals the daemon ownerId ' +
+      '(assertCallerOwnsDaemon — the same boundary as holo_daemon_turn); any other caller is refused. ' +
       'Returns: The daemon and profile, or 404 if not found.',
     inputSchema: {
       type: 'object' as const,
@@ -566,10 +580,15 @@ export const daemonLifecycleTools: Tool[] = [
           type: 'string',
           description: 'The daemon ID to retrieve.',
         },
+        callerId: {
+          type: 'string',
+          description:
+            'Authenticated caller identity. Required when includeRehydrationContext is true; must equal the daemon ownerId or the call is refused (UnauthorizedDaemonAccessError). Not needed for the plain record.',
+        },
         includeRehydrationContext: {
           type: 'boolean',
           description:
-            'If true, include the Brittney rehydration context (aggregated preferences, receipt refs, care signals). Default: false.',
+            'If true, include the Brittney rehydration context (aggregated preferences, receipt refs, care signals). Owner only — requires callerId === ownerId. Default: false.',
         },
       },
       required: ['daemonId'],
@@ -699,8 +718,9 @@ export const daemonLifecycleTools: Tool[] = [
       'rehydration channel is pre-seeded with everything the field learned, so it appears ' +
       'already knowing the person (recognition, not onboarding). If a daimōn has already ' +
       'emerged for this soul, returns it. If the threshold is not yet met, returns progress ' +
-      'without manifesting. ' +
-      'Returns: { emerged, daemon?, rehydratedContext?, knowingScore, ... }.',
+      "without manifesting. The rehydratedContext (the soul's memory) is included ONLY when " +
+      'callerId equals ownerId; any other caller gets rehydratedContextWithheld: "caller_not_owner". ' +
+      'Returns: { emerged, daemon?, rehydratedContext?, rehydratedContextWithheld?, knowingScore, ... }.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -708,10 +728,15 @@ export const daemonLifecycleTools: Tool[] = [
           type: 'string',
           description: 'The soul to evaluate for emergence. Required.',
         },
+        callerId: {
+          type: 'string',
+          description:
+            'Authenticated caller identity. The rehydratedContext is returned only when this equals ownerId; the emergence check itself still runs without it.',
+        },
         displayName: {
           type: 'string',
           description:
-            'Name for the daimōn when it manifests. The person renames/shapes it after. Default: "Lumi".',
+            'Name for the daimōn when it manifests. Honoured only when callerId equals ownerId (the name persists); otherwise the default. The person renames/shapes it after. Default: "Lumi".',
         },
       },
       required: ['ownerId'],
@@ -720,8 +745,9 @@ export const daemonLifecycleTools: Tool[] = [
   {
     name: 'holo_list_daemons',
     description:
-      'List all ConversationDaemons for a given owner. Returns daemon summaries ' +
-      'with ID, name, owner policy, and last active timestamp. ' +
+      'List ConversationDaemons, optionally filtered by owner. A row carries ownerId, owner policy, ' +
+      'last active timestamp and (with includeStats) rehydration channel stats ONLY when callerId ' +
+      "equals that daemon's ownerId; every other caller sees daemonId and displayName only. " +
       'Returns: Array of daemon summaries.',
     inputSchema: {
       type: 'object' as const,
@@ -730,10 +756,15 @@ export const daemonLifecycleTools: Tool[] = [
           type: 'string',
           description: 'Owner ID to filter by. If omitted, lists all daemons.',
         },
+        callerId: {
+          type: 'string',
+          description:
+            'Authenticated caller identity. Rows are returned in full only for daemons whose ownerId equals this; otherwise as { daemonId, displayName }.',
+        },
         includeStats: {
           type: 'boolean',
           description:
-            'If true, include rehydration channel stats (buffer size, compression status). Default: false.',
+            'If true, include rehydration channel stats (buffer size, compression status) on rows the caller owns. Default: false.',
         },
       },
     },
@@ -764,10 +795,65 @@ export const daemonLifecycleTools: Tool[] = [
 
 // ─── HANDLERS ─────────────────────────────────────────────────────────────────
 
+/**
+ * The transport's verified principal, handed in by the dispatcher so the
+ * self-declared `callerId` can be bound to it (task_1790062507560_px5q, review
+ * finding #1: without this, a stranger who reads a daemon's ownerId from the
+ * plain record simply types it as callerId).
+ */
+export interface DaemonCallerBinding {
+  /**
+   * SigningContext.signer: a bearer token's agentId / clientId on HTTP, an
+   * envelope signer (wallet address, capability handle, pqc key), null for
+   * unsigned-grace / founder-bypass, undefined on stdio. The 'stdio-local'
+   * admin bridge is a sentinel, not a principal.
+   */
+  signer?: string | null;
+  /** signer -> callerId binding for non-handle signers (wallet -> agent id via walletToAgent). */
+  signerMapsToCaller?: (signer: string, callerId: string) => boolean;
+}
+
+/** Tools whose `callerId` gates memory or a write and therefore must be bound. */
+const CALLER_BOUND_TOOLS = new Set([
+  'holo_get_daemon',
+  'holo_list_daemons',
+  'holo_daemon_emergence_check',
+  'holo_daemon_turn',
+]);
+
+/**
+ * Bind `args.callerId` to the verified principal. With no principal (stdio,
+ * unsigned) the callerId stays self-declared — local trust, exactly how
+ * holo_daemon_turn has always treated it. With a principal: a missing callerId
+ * becomes the principal; a callerId equal to it, or mapped to it by
+ * `signerMapsToCaller`, passes; anything else is refused before dispatch.
+ */
+function bindCallerToSigner(
+  name: string,
+  args: Record<string, unknown>,
+  binding?: DaemonCallerBinding | null
+): void {
+  if (!CALLER_BOUND_TOOLS.has(name)) return;
+  const signer = binding?.signer;
+  if (typeof signer !== 'string' || signer === '' || signer === 'stdio-local') return;
+  const claimed = typeof args.callerId === 'string' ? args.callerId : '';
+  if (claimed === '') {
+    args.callerId = signer;
+    return;
+  }
+  if (claimed === signer) return;
+  if (binding?.signerMapsToCaller?.(signer, claimed)) return;
+  throw new UnauthorizedDaemonAccessError(
+    `callerId "${claimed}" is not bound to the authenticated principal for ${name}`
+  );
+}
+
 export async function handleDaemonLifecycleTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  binding?: DaemonCallerBinding | null
 ): Promise<unknown | null> {
+  bindCallerToSigner(name, args, binding);
   switch (name) {
     case 'holo_create_daemon':
       return handleCreateDaemon(args);
@@ -808,6 +894,22 @@ function handleCreateDaemon(args: Record<string, unknown>): {
   }
 
   const daemonId = (args.daemonId as string) || `daemon_${ownerId}_${Date.now()}`;
+  // task_1790062507560_px5q (review finding #2): a daemon is never overwritten —
+  // re-creating an existing id would replace its owner and memory channel — and
+  // the emergent id `daemon-<soul>` belongs to that soul alone, because every
+  // holo_observe_soul for the soul routes into whatever daemon sits at that id.
+  if (daemonStore.has(daemonId)) {
+    throw new Error(
+      `holo_create_daemon: daemon "${daemonId}" already exists — daemons are never overwritten`
+    );
+  }
+  if (daemonId.startsWith('daemon-') && daemonId !== emergentDaemonId(ownerId)) {
+    throw new Error(
+      `holo_create_daemon: "${daemonId}" is the emergent id reserved for soul "${daemonId.slice(
+        'daemon-'.length
+      )}" — ownerId must be that soul`
+    );
+  }
   const displayName = (args.displayName as string) || 'Lumi';
   const careProfile = (args.careProfile as string) || 'care-v1';
   const preset = args.preset as string | undefined;
@@ -893,6 +995,13 @@ function handleGetDaemon(args: Record<string, unknown>): {
   if (!daemonId) {
     throw new Error('holo_get_daemon: daemonId is required');
   }
+  const includeRehydration = (args.includeRehydrationContext as boolean) ?? false;
+  const callerId = typeof args.callerId === 'string' ? args.callerId : '';
+  if (includeRehydration && !callerId) {
+    throw new Error(
+      "holo_get_daemon: callerId is required when includeRehydrationContext is true (the rehydration context is the owner's memory)"
+    );
+  }
 
   const daemon = daemonStore.get(daemonId);
   const profile = profileStore.get(daemonId);
@@ -904,13 +1013,23 @@ function handleGetDaemon(args: Record<string, unknown>): {
     };
   }
 
-  const includeRehydration = (args.includeRehydrationContext as boolean) ?? false;
-  const channel = rehydrationChannels.get(daemonId);
+  // Plain record: identity, policies and channel wiring — no memory fields.
+  // Stays readable without a callerId for backward compatibility.
+  if (!includeRehydration) {
+    return { daemon, profile: profile ?? null };
+  }
 
+  // task_1790062507560_px5q (custody review 2026-09-22): the rehydration context
+  // is the owner's remembered facts and memoryPolicy.ownerScoped is always true,
+  // so only the owner may read it. Same boundary as holo_daemon_turn — throws
+  // UnauthorizedDaemonAccessError when callerId !== daemon.ownerId.
+  assertCallerOwnsDaemon(daemon, callerId);
+
+  const channel = rehydrationChannels.get(daemonId);
   return {
     daemon,
     profile: profile ?? null,
-    ...(includeRehydration && channel
+    ...(channel
       ? {
           rehydrationContext: channel.rehydrate(),
           rehydrationStats: channel.getStats(),
@@ -1117,7 +1236,15 @@ function handleObserveSoul(args: Record<string, unknown>): {
 
   // If the daimōn has already emerged, observations feed its channel (learning continues).
   const daemonId = emergentDaemonId(ownerId);
-  if (daemonStore.has(daemonId)) {
+  const emerged = daemonStore.get(daemonId);
+  if (emerged) {
+    // Belt for the holo_create_daemon guard: the daemon at a soul's emergent id
+    // must be that soul's, or its observations would feed someone else's memory.
+    if (emerged.ownerId !== ownerId) {
+      throw new Error(
+        `holo_observe_soul: daemon "${daemonId}" is not owned by soul "${ownerId}" — refusing to route its observations`
+      );
+    }
     receiveContextDelta(daemonId, delta);
     // Write-through (additive): post-emergence learning keeps accruing to the corpus.
     appendEmergenceRecord({
@@ -1158,6 +1285,8 @@ function handleEmergenceCheck(args: Record<string, unknown>): {
   alreadyEmerged?: boolean;
   daemon?: ConversationDaemon;
   rehydratedContext?: RehydratedContext | null;
+  /** Set instead of rehydratedContext when the caller is not the soul (ownerId). */
+  rehydratedContextWithheld?: 'caller_not_owner';
   knowingScore: number;
   significantTurns: number;
   modelRichness: number;
@@ -1167,17 +1296,30 @@ function handleEmergenceCheck(args: Record<string, unknown>): {
   if (!ownerId) {
     throw new Error('holo_daemon_emergence_check: ownerId is required');
   }
-  const displayName = (args.displayName as string) || 'Lumi';
   const daemonId = emergentDaemonId(ownerId);
   const r = evaluateEmergence(ownerId);
 
-  // Already emerged — return the existing daimōn + its accumulated knowing.
+  // task_1790062507560_px5q: the emergence check may run for any caller (the
+  // daimōn manifests from the field's knowing, not from who asked), but the
+  // rehydrated context is the soul's memory — handed ONLY to callerId === ownerId.
+  const callerId = typeof args.callerId === 'string' ? args.callerId : '';
+  const callerIsOwner = callerId !== '' && callerId === ownerId;
+  // The name is the soul's to choose (review finding #3): a caller-supplied
+  // displayName is honoured only for the owner — it persists to the corpus and
+  // replays on hydration. Anyone else manifests it under the default.
+  const displayName = callerIsOwner ? (args.displayName as string) || 'Lumi' : 'Lumi';
+  const contextForCaller = (id: string) =>
+    callerIsOwner
+      ? { rehydratedContext: rehydrateDaemon(id) }
+      : { rehydratedContextWithheld: 'caller_not_owner' as const };
+
+  // Already emerged — return the existing daimōn (+ its accumulated knowing to the owner).
   if (daemonStore.has(daemonId)) {
     return {
       emerged: true,
       alreadyEmerged: true,
       daemon: daemonStore.get(daemonId),
-      rehydratedContext: rehydrateDaemon(daemonId),
+      ...contextForCaller(daemonId),
       knowingScore: 1,
       significantTurns: r.significantTurns,
       modelRichness: r.modelRichness,
@@ -1201,7 +1343,7 @@ function handleEmergenceCheck(args: Record<string, unknown>): {
   return {
     emerged: true,
     daemon,
-    rehydratedContext: rehydrateDaemon(daemon.daemonId),
+    ...contextForCaller(daemon.daemonId),
     knowingScore: 1,
     significantTurns: r.significantTurns,
     modelRichness: r.modelRichness,
@@ -1211,19 +1353,29 @@ function handleEmergenceCheck(args: Record<string, unknown>): {
 
 // ─── LIST ─────────────────────────────────────────────────────────────────────
 
+/** Owner's view of a daemon row (callerId === ownerId). */
+interface DaemonOwnerSummary {
+  daemonId: string;
+  ownerId: string;
+  displayName: string;
+  ownerPolicy: string;
+  lastActiveAt?: string;
+  rehydrationStats?: ReturnType<BrittneyRehydrationChannelImpl['getStats']>;
+}
+
+/** What every other caller sees: identity only — no owner, no activity, no memory stats. */
+interface DaemonPublicSummary {
+  daemonId: string;
+  displayName: string;
+}
+
 function handleListDaemons(args: Record<string, unknown>): {
   total: number;
-  daemons: Array<{
-    daemonId: string;
-    ownerId: string;
-    displayName: string;
-    ownerPolicy: string;
-    lastActiveAt?: string;
-    rehydrationStats?: ReturnType<BrittneyRehydrationChannelImpl['getStats']>;
-  }>;
+  daemons: Array<DaemonOwnerSummary | DaemonPublicSummary>;
 } {
   const ownerId = args.ownerId as string | undefined;
   const includeStats = (args.includeStats as boolean) ?? false;
+  const callerId = typeof args.callerId === 'string' ? args.callerId : '';
 
   const daemons: ConversationDaemon[] = [];
   for (const daemon of daemonStore.values()) {
@@ -1234,7 +1386,14 @@ function handleListDaemons(args: Record<string, unknown>): {
 
   return {
     total: daemons.length,
-    daemons: daemons.map((d) => {
+    daemons: daemons.map((d): DaemonOwnerSummary | DaemonPublicSummary => {
+      // task_1790062507560_px5q: ownerId, lastActiveAt and the rehydration stats
+      // belong to the owner. Any other caller — including no callerId at all —
+      // gets the identity row only. With an ownerId filter this is exactly
+      // "full rows only when callerId === ownerId".
+      if (callerId === '' || callerId !== d.ownerId) {
+        return { daemonId: d.daemonId, displayName: d.displayName };
+      }
       const channel = rehydrationChannels.get(d.daemonId);
       return {
         daemonId: d.daemonId,
