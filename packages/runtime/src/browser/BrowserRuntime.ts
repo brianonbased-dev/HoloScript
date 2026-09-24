@@ -16,7 +16,7 @@ import {
   MATERIAL_PRESETS,
   type R3FMaterialProps,
 } from '@holoscript/core';
-import { emit, on } from '../events.js';
+import { bridgeCoreEventBus, emit, on } from '../events.js';
 import { isVRCapable } from '../device.js';
 import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { TraitSystem } from '../traits/TraitSystem';
@@ -170,7 +170,7 @@ import {
 // INLINED TYPES (from @hololand/world to avoid cross-repo dependency)
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface ActionDefinition {
+export interface ActionDefinition {
   name: string;
   params: string[];
   body: unknown;
@@ -581,6 +581,51 @@ function extractLogicFromAST(ast: HoloComposition): CompositionLogic {
   return { actions, eventHandlers, frameHandlers, keyboardHandlers };
 }
 
+/**
+ * Bus event names a declared lifecycle hook must listen on.
+ *
+ * The catalog names hooks with an `on_` prefix while traits emit the bare event. The bus
+ * dispatches by literal string, so one spelling alone always misses the other. Listening on
+ * both — rather than rewriting either vocabulary — keeps a composition written against either
+ * convention working. This duplicates hookListenNames in @holoscript/core constants: runtime
+ * typechecks core against its built dist, so it cannot import a helper newer than that build.
+ */
+export function handlerEventAliases(declaredName: string): string[] {
+  const aliases = [declaredName];
+  if (declaredName.startsWith('on_')) {
+    const bare = declaredName.slice(3);
+    // 'on_' alone would strip to '', which matches no event and would subscribe a handler
+    // to a name nothing can emit.
+    if (bare && bare !== declaredName) aliases.push(bare);
+  }
+  return aliases;
+}
+
+/**
+ * Subscribe a composition's declared event handlers to the bus. Returns an unsubscribe.
+ *
+ * `subscribe` is injectable so the wiring can be tested without a WebGL context; it
+ * defaults to the runtime bus composition hooks listen on.
+ */
+export function subscribeCompositionHandlers(
+  handlers: Map<string, ActionDefinition>,
+  run: (handler: ActionDefinition, args: unknown[]) => void,
+  subscribe: (event: string, cb: (data: unknown) => void) => () => void = on
+): () => void {
+  const unsubscribes: Array<() => void> = [];
+  for (const [declaredName, handler] of handlers) {
+    // One emit carries one event name, so a handler subscribed under both aliases still
+    // runs once per emit rather than once per alias.
+    for (const alias of handlerEventAliases(declaredName)) {
+      unsubscribes.push(subscribe(alias, (data: unknown) => run(handler, [data])));
+    }
+  }
+  // Reloading a composition must not leave the previous one listening.
+  return () => {
+    for (const off of unsubscribes.splice(0)) off();
+  };
+}
+
 function extractFromHsPlusAST(ast: unknown): LoadedComposition {
   const objects: ParsedObject[] = [];
   const astAny = ast as {
@@ -901,6 +946,12 @@ export interface HoloScriptRuntime {
 class BrowserRuntime implements HoloScriptRuntime {
   private config: RuntimeConfig;
   private composition: LoadedComposition | null = null;
+  // Live subscription for the loaded composition's declared hooks. Held so a reload can
+  // detach the previous composition's handlers before attaching the new ones.
+  private unsubscribeHandlers: (() => void) | null = null;
+  // Forwards core-bus traffic (where traits emit) onto this runtime's bus (where declared
+  // hooks listen). Held so dispose can detach it.
+  private unbridgeCoreBus: (() => void) | null = null;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
@@ -1164,6 +1215,17 @@ class BrowserRuntime implements HoloScriptRuntime {
 
       // Load the composition
       this.composition = loadComposition(source, fileType);
+      // Wire the declared lifecycle hooks to the bus. extractLogicFromAST collects them into
+      // logic.eventHandlers; without this subscription an author's `on_memory_recalled { ... }`
+      // parses and never runs. Detach first so a reload does not leave the old composition
+      // listening. Traits emit on core's shared bus, so the bridge is the other half.
+      this.unsubscribeHandlers?.();
+      this.unsubscribeHandlers = subscribeCompositionHandlers(
+        this.composition.logic.eventHandlers,
+        (handler, args) => this.runAction(handler, args)
+      );
+      this.unbridgeCoreBus?.();
+      this.unbridgeCoreBus = bridgeCoreEventBus();
       // Load module imports
       if (this.composition.imports.length > 0) {
         const modules = await moduleLoader.loadImports(this.composition.imports);
@@ -1335,6 +1397,13 @@ class BrowserRuntime implements HoloScriptRuntime {
 
   dispose(): void {
     this.stop();
+
+    // Detach the composition's declared hooks and the core-bus bridge, or a disposed runtime
+    // keeps running actions against a torn-down scene every time a trait emits.
+    this.unsubscribeHandlers?.();
+    this.unsubscribeHandlers = null;
+    this.unbridgeCoreBus?.();
+    this.unbridgeCoreBus = null;
 
     // Cleanup Three.js
     this.renderer.dispose();

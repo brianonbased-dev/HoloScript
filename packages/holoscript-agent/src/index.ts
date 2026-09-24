@@ -576,6 +576,10 @@ async function buildProvider(identity: AgentIdentity): Promise<ILLMProvider> {
       return createMockProvider();
     case 'local-llm':
       return createLocalLLMProvider({
+        // Attribution. Without it every inference this agent makes is recorded as
+        // 'unattributed', and a captured trace cannot later be shown to be this
+        // agent's traffic. The env fallbacks in the adapter cover the other call sites.
+        callerId: identity.handle,
         baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
         model: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL ?? identity.llmModel,
         // Edge devices (Jetson ~15 tok/s) need more than the 120s default.

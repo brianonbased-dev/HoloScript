@@ -462,9 +462,19 @@ function packWithPnpm(packageDir) {
   return { dest, filename, files };
 }
 
+/**
+ * Windows tar arguments.
+ *
+ * Git-Bash/MSYS tar reads a leading drive letter as an rsh-style remote host, so reading a
+ * tarball by absolute Windows path fails with "Cannot connect to C: resolve failed". A publish
+ * from a Windows checkout then dies after packing. --force-local tells tar the colon is part
+ * of the filename. win32 only: GNU tar elsewhere does not need it, and BSD tar does not accept it.
+ */
+const TAR_LOCAL = process.platform === 'win32' ? ['--force-local'] : [];
+
 function readPackedPackageJson(tarball) {
   return JSON.parse(
-    execFileSync('tar', ['-xOf', tarball, 'package/package.json'], {
+    execFileSync('tar', [...TAR_LOCAL, '-xOf', tarball, 'package/package.json'], {
       encoding: 'utf8',
       timeout: 30_000,
     })

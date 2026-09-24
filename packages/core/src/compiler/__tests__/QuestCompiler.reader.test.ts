@@ -68,6 +68,9 @@ describe('QuestCompiler HoloRead native trait dispatch', () => {
     expect(manifest).toContain('android:name="com.oculus.permission.HAND_TRACKING"');
     expect(manifest).toContain('android:name="com.oculus.handtracking.version"');
     expect(manifest).toContain('<uses-permission android:name="android.permission.INTERNET" />');
+    const proguard = valueEnding(out, 'proguard-rules.pro');
+    expect(proguard).toContain('-keep class com.meta.spatial.core.** { *; }');
+    expect(proguard).toContain('-keep class com.meta.spatial.runtime.** { *; }');
   });
 
   it('lowers one-shot OCR, magnification, speech, and privacy values from traits', () => {

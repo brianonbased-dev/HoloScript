@@ -458,7 +458,12 @@ export class AgentRunner {
       const key = `${baseUrl}|${model}`;
       let p = peerProviderCache.get(key);
       if (!p) {
-        p = createLocalLLMProvider({ baseURL: baseUrl, model, timeoutMs: peerTimeoutMs });
+        p = createLocalLLMProvider({
+          callerId: identity.handle,
+          baseURL: baseUrl,
+          model,
+          timeoutMs: peerTimeoutMs,
+        });
         peerProviderCache.set(key, p);
       }
       return p;
