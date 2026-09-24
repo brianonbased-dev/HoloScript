@@ -13,25 +13,44 @@
  * WebXR viewer at app/shared/[id]. Same destination, the one spelling the
  * scanner admits.
  *
- * One helper for every QR the studio draws for a world link (SharePanel,
- * PublishModal), so the fix cannot be present on one screen and absent on the
- * next, which is exactly how PR #308 shipped (independent review of 2026-09-21).
+ * One helper for every QR the studio draws for a world link a headset will scan
+ * (SharePanel, PublishModal, and the publish receipt's QR that PublishPanel
+ * shows), so the fix cannot be present on one screen and absent on the next,
+ * which is exactly how PR #308 shipped (independent review of 2026-09-21).
  *
- * Anchored to the PATHNAME: only a path whose first segment is `w` is rewritten.
- * `?next=/w/abc` and `/shared/w/abc` are left alone; an unparseable string is
- * returned as given.
+ * Scope: the studio's OWN world links. Any host's `/w/<id>` path is rewritten,
+ * because the studio runs on holoscript.studio, on preview hosts and on
+ * localhost and every caller builds the link from its own origin; do not hand
+ * it a third-party URL (a wiki's `/w/index.php` would be rewritten too).
+ * Deliberately not used by the in-VR viewer's QR (ImmersiveViewer.client.tsx):
+ * a phone camera scans that one, not HoloQR, and the /w/ short link is right
+ * there.
+ *
+ * Anchored to the PATHNAME: only a path whose first segment is `w` is rewritten;
+ * `?next=/w/abc` and `/shared/w/abc` are left alone. Case-insensitive, as
+ * HoloQR's own match is (WorldPortal.kt:64 ignoreCase), so `/W/abc` is rewritten
+ * too. Relative-ness is decided by the absence of a scheme, not by a leading
+ * slash: a protocol-relative `//host/w/id` keeps its host, and surrounding
+ * whitespace is trimmed. A string the URL parser rejects is returned as given
+ * (a render must not throw).
  */
 export function worldQrUrl(url: string): string {
   if (!url) return url;
+  const input = url.trim();
+  const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(input);
+  const protocolRelative = !hasScheme && input.startsWith('//');
   let parsed: URL;
   try {
-    parsed = new URL(url, 'https://holoscript.studio');
+    parsed = new URL(input, 'https://holoscript.studio');
   } catch {
     return url;
   }
-  const match = parsed.pathname.match(/^\/w\/([^/]+)\/?$/);
+  const match = parsed.pathname.match(/^\/w\/([^/]+)\/?$/i);
   if (!match) return url;
   parsed.pathname = `/shared/${match[1]}`;
+  if (hasScheme) return parsed.toString();
+  const rest = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  if (protocolRelative) return `//${parsed.host}${rest}`;
   // A relative input stays relative: the caller chose the origin, not us.
-  return url.startsWith('/') ? `${parsed.pathname}${parsed.search}${parsed.hash}` : parsed.toString();
+  return rest;
 }

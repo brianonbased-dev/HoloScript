@@ -33,10 +33,13 @@ describe('PublishModal QR (the phone -> headset handoff, publish screen)', () =>
   beforeEach(() => {
     toDataURL.mockReset();
     toDataURL.mockResolvedValue('data:image/png;base64,qr-code' as never);
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ id: 'abc123', url: 'https://holoscript.studio/shared/abc123' }),
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ id: 'abc123', url: 'https://holoscript.studio/shared/abc123' }),
+      }))
+    );
   });
 
   it('encodes /shared/ in the QR after a publish, and still shows the /w/ short link to copy', async () => {

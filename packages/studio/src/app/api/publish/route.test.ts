@@ -122,8 +122,9 @@ describe('POST /api/publish no-app WebXR receipt', () => {
     expect(body.url).toBe(`https://studio.test/w/${body.id}`);
     expect(body.webxrUrl).toBe(body.url);
     expect(body.viewUrl).toBe(`https://studio.test/view/${body.id}`);
+    // The QR encodes /shared/<id> (HoloQR refuses /w/); the human link above stays /w/.
     expect(body.qrCode).toMatchObject({
-      payload: body.url,
+      payload: `https://studio.test/shared/${body.id}`,
       dataUrl: 'data:image/png;base64,route-qr',
     });
     expect(body.share).toMatchObject({

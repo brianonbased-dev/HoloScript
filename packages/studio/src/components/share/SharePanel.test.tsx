@@ -40,7 +40,7 @@ vi.mock('@/hooks/useSceneShare', () => ({
   useSceneShare: () => shareState,
 }));
 
-// SharePanel selects two fields: s.code and s.metadata (SharePanel.tsx:29-30).
+// SharePanel selects two fields: s.code and s.metadata (SharePanel.tsx:30-31).
 // The first draft of this stub supplied only `code`, and all four cases failed on
 // `sceneMetadata.name` — a fixture fault, not a product fault. Noted because a
 // red test whose cause is the harness is the mirror image of a false zero.
