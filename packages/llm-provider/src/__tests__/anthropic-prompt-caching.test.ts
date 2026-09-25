@@ -62,7 +62,20 @@ vi.mock('@anthropic-ai/sdk', () => {
     const hasBreakpoint = JSON.stringify(args.system ?? null).includes('cache_control');
     if (!hasBreakpoint) return usage;
 
-    const prefixKey = JSON.stringify([args.tools ?? null, args.system ?? null]);
+    // Anthropic keys the prefix through the last cache_control breakpoint.
+    // Blocks after that breakpoint (the volatile suffix) are not part of the
+    // entry, so a scene change must not look like a different instruction set.
+    const system = args.system;
+    let cachedSystem: unknown = system;
+    if (Array.isArray(system)) {
+      let lastBreakpoint = -1;
+      for (let i = 0; i < system.length; i++) {
+        const block = system[i] as { cache_control?: unknown } | null;
+        if (block && typeof block === 'object' && block.cache_control) lastBreakpoint = i;
+      }
+      if (lastBreakpoint >= 0) cachedSystem = system.slice(0, lastBreakpoint + 1);
+    }
+    const prefixKey = JSON.stringify([args.tools ?? null, cachedSystem]);
     if (cacheSim.seen.has(prefixKey)) {
       return { ...usage, cache_read_input_tokens: 4000, cache_creation_input_tokens: 0 };
     }
@@ -83,6 +96,9 @@ vi.mock('@anthropic-ai/sdk', () => {
             stop_reason: 'end_turn',
             ...mockResponseExtras.current,
           }),
+          async *[Symbol.asyncIterator]() {
+            // streamCompletion drains the SDK stream before finalMessage().
+          },
           get request_id() {
             return 'req_caching_test';
           },
@@ -731,6 +747,133 @@ describe('AnthropicAdapter prompt caching', () => {
     const cached = cachedAssistantTexts(streamCalls[0]);
     expect(cached).toHaveLength(1);
     expect(cached[0]).toContain('TARGET');
+  });
+
+  /**
+   * Fixed-instruction cache split.
+   *
+   * Before: one `cache_control` on the whole system string, so scene / profile
+   * / GitHub / past-thread bytes were part of the instruction-set cache key.
+   * After: `systemCachePrefixChars` cuts that string. The breakpoint covers
+   * only the prefix. Identical prefixes hit; different prefixes do not share
+   * an entry.
+   */
+  const systemBlocks = (call: Record<string, unknown>) =>
+    call.system as Array<{ text: string; cache_control?: { type: string } }>;
+
+  it('splits cache_control onto the fixed-instruction prefix and leaves the suffix uncached', async () => {
+    const fixed = 'FIXED-INSTRUCTIONS-SET-A';
+    const suffix = '\n\n--- Current Scene ---\nscene-one';
+    await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [
+        { role: 'system', content: fixed + suffix },
+        { role: 'user', content: 'U' },
+      ],
+      provider: { anthropic: { systemCachePrefixChars: fixed.length } },
+    });
+
+    const system = systemBlocks(streamCalls[0]);
+    expect(system).toHaveLength(2);
+    expect(system[0].text).toBe(fixed);
+    expect(system[0].cache_control).toEqual({ type: 'ephemeral' });
+    expect(system[1].text).toBe(suffix);
+    expect(system[1].cache_control).toBeUndefined();
+  });
+
+  it('streamCompletion applies the same split the Studio route uses', async () => {
+    const fixed = 'FIXED-INSTRUCTIONS';
+    const suffix = '\n\nscene-two';
+    const iter = new AnthropicAdapter({ apiKey: 'test-key' }).streamCompletion({
+      messages: [
+        { role: 'system', content: fixed + suffix },
+        { role: 'user', content: 'U' },
+      ],
+      provider: { anthropic: { systemCachePrefixChars: fixed.length } },
+    });
+    const chunks = [];
+    for await (const chunk of iter) chunks.push(chunk);
+    expect(chunks[chunks.length - 1]?.type).toBe('message_stop');
+
+    const system = systemBlocks(streamCalls[0]);
+    expect(system[0].text).toBe(fixed);
+    expect(system[0].cache_control).toEqual({ type: 'ephemeral' });
+    expect(system[1].text).toBe(suffix);
+    expect(system[1].cache_control).toBeUndefined();
+  });
+
+  it('identical fixed instructions stay one cache entry when only the suffix changes', async () => {
+    cacheSim.enabled = true;
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const fixed = 'You are a HoloScript code generator. '.repeat(20);
+    const reads: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const suffix = `\n\n--- Current Scene ---\nscene-${i}`;
+      const res = await adapter.complete({
+        messages: [
+          { role: 'system', content: fixed + suffix },
+          { role: 'user', content: 'Same question.' },
+        ],
+        provider: { anthropic: { systemCachePrefixChars: fixed.length } },
+      });
+      reads.push(res.usage.cacheReadTokens ?? 0);
+      expect(systemBlocks(streamCalls[i])[0].text).toBe(fixed);
+    }
+    expect(reads[0]).toBe(0);
+    expect(reads[1]).toBeGreaterThan(0);
+    expect(reads[2]).toBeGreaterThan(0);
+  });
+
+  it('distinct fixed-instruction sets do not share a cache entry', async () => {
+    cacheSim.enabled = true;
+    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
+    const suffix = '\n\n--- Current Scene ---\nsame-scene';
+    const setA = 'Instructions set A. '.repeat(20);
+    const setB = 'Instructions set B. '.repeat(20);
+
+    const first = await adapter.complete({
+      messages: [
+        { role: 'system', content: setA + suffix },
+        { role: 'user', content: 'Q' },
+      ],
+      provider: { anthropic: { systemCachePrefixChars: setA.length } },
+    });
+    const second = await adapter.complete({
+      messages: [
+        { role: 'system', content: setB + suffix },
+        { role: 'user', content: 'Q' },
+      ],
+      provider: { anthropic: { systemCachePrefixChars: setB.length } },
+    });
+    const third = await adapter.complete({
+      messages: [
+        { role: 'system', content: setB + '\n\n--- Current Scene ---\nother-scene' },
+        { role: 'user', content: 'Q' },
+      ],
+      provider: { anthropic: { systemCachePrefixChars: setB.length } },
+    });
+
+    expect(systemBlocks(streamCalls[0])[0].text).toBe(setA);
+    expect(systemBlocks(streamCalls[1])[0].text).toBe(setB);
+    expect(systemBlocks(streamCalls[0])[0].text).not.toBe(systemBlocks(streamCalls[1])[0].text);
+    expect(first.usage.cacheReadTokens ?? 0).toBe(0);
+    expect(second.usage.cacheReadTokens ?? 0).toBe(0);
+    // Set B hits on the third call even though the scene suffix changed.
+    expect(third.usage.cacheReadTokens ?? 0).toBeGreaterThan(0);
+  });
+
+  it('a prefix length that does not leave a suffix keeps the single cached block', async () => {
+    const text = 'ONLY-FIXED';
+    await new AnthropicAdapter({ apiKey: 'test-key' }).complete({
+      messages: [
+        { role: 'system', content: text },
+        { role: 'user', content: 'U' },
+      ],
+      provider: { anthropic: { systemCachePrefixChars: text.length } },
+    });
+    const system = systemBlocks(streamCalls[0]);
+    expect(system).toHaveLength(1);
+    expect(system[0].text).toBe(text);
+    expect(system[0].cache_control).toEqual({ type: 'ephemeral' });
   });
 
   it('kvflow: a hint aimed at a system message is dropped, falling back to recency', async () => {
