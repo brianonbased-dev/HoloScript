@@ -269,11 +269,11 @@ function describeCaller(opts: SovereignResolveOptions): string {
   return process.argv[1] ? `script ${process.argv[1]}` : 'unknown caller';
 }
 
-export function gateFrontierFallback(
+export function gateFrontierFallback<T extends object>(
   name: FrontierProviderName,
   opts: SovereignResolveOptions,
-  resolve: () => ResolvedSovereignProvider
-): ResolvedSovereignProvider {
+  resolve: () => T
+): T & { frontierFallback: true; step: 'hosted-frontier' } {
   const caller = describeCaller(opts);
   if (!frontierFallbackAllowed()) {
     console.warn(
