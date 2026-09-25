@@ -1,7 +1,12 @@
 /**
  * github-webhook-routes.ts — inbound GitHub webhook handler.
  *
- * POST /webhook/github  — push events on main → quick-profile HoloCI dispatch
+ * POST /webhook/github  — quick-profile HoloCI dispatch for:
+ *   - push events on main/master and on cloud-agent branches (claude/*, codex/*)
+ *   - pull_request events (opened / reopened / synchronize / ready_for_review) whose
+ *     head branch lives in the same repository — every other agent lane (cursor/*,
+ *     claude1/*, hardware/*, …). Fork PRs are never dispatched: that would run
+ *     untrusted code on the fleet with fleet credentials.
  *
  * Required Railway env vars on mcp-server:
  *   GITHUB_WEBHOOK_SECRET  — matches the secret set in GitHub repo Settings → Webhooks
@@ -11,9 +16,11 @@
  *
  * Setup:
  *   https://github.com/brianonbased-dev/HoloScript/settings/hooks
- *   URL:           https://mcp-holoscript-production.up.railway.app/webhook/github
+ *   URL:           https://mcp.holoscript.net/webhook/github
+ *                  (the old mcp-holoscript-production.up.railway.app host answers
+ *                  "Application not found", so a hook still pointed there never arrives)
  *   Content-Type:  application/json
- *   Events:        Push events (just push — PRs trigger dispatch manually via holo_ci_dispatch)
+ *   Events:        Pushes AND Pull requests
  *   Secret:        value of GITHUB_WEBHOOK_SECRET
  *
  * For Hololand: add a second webhook pointing to the same URL — the repo slug in
@@ -84,6 +91,23 @@ function postToRoom(content: string): void {
   broadcastToRoom(TEAM_ID, { type: 'team:message', agent: 'GitHub', data: msg });
 }
 
+type PullRequestEvent = {
+  action?: string;
+  number?: number;
+  repository?: { full_name?: string };
+  sender?: { login?: string };
+  pull_request?: {
+    title?: string;
+    head?: { sha?: string; ref?: string; repo?: { full_name?: string } | null };
+  };
+};
+
+/** PR actions that put a new head commit in front of reviewers. */
+const PR_DISPATCH_ACTIONS = new Set(['opened', 'reopened', 'synchronize', 'ready_for_review']);
+
+/** Branches the push path already validates on every push (same sha, same gates). */
+const PUSH_VALIDATED_BRANCH = /^(claude|codex)\//;
+
 type PushEvent = {
   ref?: string;
   after?: string;
@@ -134,6 +158,39 @@ export async function handleGithubWebhookRoutes(
   }
 
   const event = req.headers['x-github-event'] as string | undefined;
+  if (event === 'pull_request') {
+    let pr: PullRequestEvent;
+    try {
+      pr = JSON.parse(rawBody) as PullRequestEvent;
+    } catch {
+      json(res, 400, { error: 'invalid_json' });
+      return true;
+    }
+    const action = String(pr.action || '');
+    const repoFull = String(pr.repository?.full_name || '');
+    const head = pr.pull_request?.head;
+    const headRepo = String(head?.repo?.full_name || '');
+    const headRef = String(head?.ref || '');
+    const sha = String(head?.sha || '');
+    let skip = '';
+    if (!PR_DISPATCH_ACTIONS.has(action)) skip = `pull_request action "${action}" not dispatched`;
+    else if (!headRepo || headRepo !== repoFull)
+      skip = `head is in "${headRepo || 'a deleted fork'}", not ${repoFull}; fork PRs are never run on the fleet`;
+    else if (PUSH_VALIDATED_BRANCH.test(headRef))
+      skip = `head branch "${headRef}" is already validated by its push event`;
+    else if (!sha || /^0+$/.test(sha)) skip = 'no head sha';
+    if (skip) {
+      json(res, 200, { ok: true, skipped: true, reason: skip });
+      return true;
+    }
+    const title = String(pr.pull_request?.title || '').slice(0, 72);
+    return dispatchQuickProfile(res, {
+      repoFull,
+      sha,
+      label: `PR #${pr.number ?? '?'} (${headRef}) by ${String(pr.sender?.login || 'unknown')}`,
+      detail: title,
+    });
+  }
   if (event !== 'push') {
     // ping, create, delete, etc. — ack but don't dispatch
     json(res, 200, { ok: true, skipped: true, reason: `event "${event}" not handled` });
@@ -176,7 +233,24 @@ export async function handleGithubWebhookRoutes(
     return true;
   }
 
-  // Build quick-profile workload — fast static gates on every push
+  return dispatchQuickProfile(res, {
+    repoFull,
+    sha,
+    label: pusher !== 'unknown' ? `pushed by ${pusher}` : '',
+    detail: commitMsg,
+  });
+}
+
+/**
+ * Queue the quick HoloCI profile for one commit, answer GitHub at once, then post
+ * pending → final commit statuses from the fleet result in the background.
+ */
+function dispatchQuickProfile(
+  res: http.ServerResponse,
+  opts: { repoFull: string; sha: string; label: string; detail: string }
+): boolean {
+  const { repoFull, sha, label, detail } = opts;
+  // Build quick-profile workload — fast static gates on every push or PR head
   let built: ReturnType<typeof buildWorkload>;
   try {
     built = buildWorkload({ repo: repoFull, sha, profile: 'quick' });
@@ -201,8 +275,8 @@ export async function handleGithubWebhookRoutes(
       const result = await submitWorkload(built.workload);
       if (result.ok) {
         const msgParts = [`⏳ HoloCI queued — ${repoFull}@${shortSha}`];
-        if (pusher !== 'unknown') msgParts.push(`pushed by ${pusher}`);
-        if (commitMsg) msgParts.push(`"${commitMsg}"`);
+        if (label) msgParts.push(label);
+        if (detail) msgParts.push(`"${detail}"`);
         msgParts.push(`(${built.contexts.length} gates · ${result.workloadId})`);
         postToRoom(msgParts.join(' '));
         // Background: poll until gates complete, then post final statuses.
