@@ -11,6 +11,8 @@ import { join } from 'node:path';
 import {
   FrontierFallbackRefusedError,
   HostedBridgeRefusedError,
+  BackupChainExhaustedError,
+  VAST_OSS_CODING_DEFAULT_URL,
   classifyServiceHost,
   redactServiceUrl,
   resolveSovereignProvider,
@@ -50,7 +52,7 @@ function testHoloServeHealth(model: string, checkpointDigit = '1'): Record<strin
   return {
     status: 'ok',
     backend: 'pytorch-holo',
-    sovereign: false,
+    sovereign: true,
     sovereignty: { weights: 'sovereign', runtime: 'foreign', fully_native: false },
     llama_cpp: false,
     gguf: false,
@@ -126,17 +128,48 @@ afterEach(() => {
 });
 
 describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
-  it('prefers the cloud endpoint over everything sync (only with HOLO_ALLOW_HOSTED_BRIDGE=1)', () => {
+  it('prefers native ollama over cloud even with HOLO_ALLOW_HOSTED_BRIDGE=1 (Joseph order)', () => {
     vi.stubEnv('HOLO_ALLOW_HOSTED_BRIDGE', '1');
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://serve.example.com');
     vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
     const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('ollama');
+    expect(r.step).toBe('native');
+    expect(r.hostedBridge).toBeFalsy();
+    vi.restoreAllMocks();
+  });
+
+  it('uses cloud only as last resort when no native/vast-coding URL (HOLO_ALLOW_HOSTED_BRIDGE=1)', () => {
+    vi.stubEnv('HOLO_ALLOW_HOSTED_BRIDGE', '1');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://serve.example.com');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    const r = resolveSovereignProvider();
     expect(r.providerName).toBe('cloud');
     expect(r.provider).toBeInstanceOf(BrittneyCloudAdapter);
     expect(r.model).toBe('brittney-standard');
     expect(r.hostedBridge).toBe(true);
+    expect(r.step).toBe('hosted-bridge');
+    vi.restoreAllMocks();
+  });
+
+  it('sync: explicit HOLO_VAST_CODING_URL beats cloud/frontier (FOREIGN step, never native)', () => {
+    vi.stubEnv('HOLO_ALLOW_HOSTED_BRIDGE', '1');
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('HOLO_VAST_CODING_URL', 'http://127.0.0.1:18780');
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://serve.example.com');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('vast-oss-coding');
+    expect(r.step).toBe('vast-oss-coding');
+    expect(r.model).toBe('Qwen3-Coder-30B-A3B-Instruct');
+    expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
+    // Honesty: foreign coding-backup is never labeled native/sovereign.
+    expect(r.providerName).not.toBe('holoserve');
+    expect(r.step).not.toBe('native');
     vi.restoreAllMocks();
   });
 
@@ -899,9 +932,18 @@ describe('hosted-bridge gate (2026-09-24 audit follow-up: brittney-standard)', (
     }
   );
 
-  it('does not fall through to a local endpoint when refusing (no silent re-route)', () => {
+  it('native local wins over ungated cloud (Joseph order; cloud refuse is last-resort)', () => {
     vi.stubEnv('HOLO_LLM_SERVICE_URL', 'http://localhost:8000');
     vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('ollama');
+    expect(r.step).toBe('native');
+    expect(r.hostedBridge).toBeFalsy();
+  });
+
+  it('refuses cloud when no native/vast-coding is configured (no silent hosted bridge)', () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'http://localhost:8000');
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(() => resolveSovereignProvider()).toThrow(HostedBridgeRefusedError);
   });
@@ -982,5 +1024,142 @@ describe('hosted-bridge gate (2026-09-24 audit follow-up: brittney-standard)', (
     expect(classifyServiceHost('http://holojetson')).toBe('lan');
     expect(classifyServiceHost('https://api.fireworks.ai')).toBe('public');
     expect(classifyServiceHost('not a url')).toBe('invalid');
+  });
+});
+
+describe('Joseph coding-backup chain (native → vast-oss-coding → gated hosted)', () => {
+  it('async: healthy Work proxy is step vast-oss-coding when native unset (FOREIGN, not native)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('HOLO_VAST_CODING_URL', 'http://127.0.0.1:18780');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+      const url = String(input);
+      if (url.includes('127.0.0.1:18780/health')) {
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      }
+      return new Response('no', { status: 500 });
+    });
+    const r = await resolveSovereignProviderAsync({ caller: 'backup-chain-test' });
+    expect(r.providerName).toBe('vast-oss-coding');
+    expect(r.step).toBe('vast-oss-coding');
+    expect(r.model).toBe('Qwen3-Coder-30B-A3B-Instruct');
+    expect(r.frontierFallback).toBeFalsy();
+    expect(r.hostedBridge).toBeFalsy();
+    expect(String(fetchMock.mock.calls.map((c) => String(c[0])).join(' '))).toMatch(/127\.0\.0\.1:18780\/health/);
+    vi.restoreAllMocks();
+  });
+
+  it('async: native holollama URL wins over live Work proxy (step=native, not foreign)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('HOLOLLAMA_URL', 'http://127.0.0.1:18080');
+    vi.stubEnv('HOLO_VAST_CODING_URL', 'http://127.0.0.1:18780');
+    // holollama finalize does not require /health sovereignty; no fetch needed for success path
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+      const url = String(input);
+      if (url.includes('18780/health')) {
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      }
+      return new Response('no', { status: 500 });
+    });
+    const r = await resolveSovereignProviderAsync({ caller: 'backup-chain-native' });
+    expect(r.providerName).toBe('holollama');
+    expect(r.step).toBe('native');
+    expect(r.providerName).not.toBe('vast-oss-coding');
+    // Proxy health must not have been required once native resolved.
+    const proxyCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes('18780'));
+    expect(proxyCalls.length).toBe(0);
+    vi.restoreAllMocks();
+  });
+
+  it('async: native down then healthy Work proxy → vast-oss-coding (FOREIGN label)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('HOLOSERVE_URL', 'http://127.0.0.1:18099');
+    vi.stubEnv('HOLOSERVE_MODEL', 'holorunner-s0');
+    vi.stubEnv('HOLO_VAST_CODING_URL', 'http://127.0.0.1:18780');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+      const url = String(input);
+      if (url.includes('18099')) throw new Error('native-down');
+      if (url.includes('18780/health')) {
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      }
+      return new Response('no', { status: 500 });
+    });
+    const r = await resolveSovereignProviderAsync({ caller: 'backup-native-down-proxy-up' });
+    expect(r.providerName).toBe('vast-oss-coding');
+    expect(r.step).toBe('vast-oss-coding');
+    expect(r.step).not.toBe('native');
+    vi.restoreAllMocks();
+  });
+
+  it('async: native down + proxy down + no flags → fail closed (BackupChainExhaustedError)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubEnv('HOLOSERVE_URL', 'http://127.0.0.1:18099');
+    vi.stubEnv('HOLOSERVE_MODEL', 'holorunner-s0');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      throw new Error('ECONNREFUSED');
+    });
+    await expect(resolveSovereignProviderAsync({ caller: 'backup-fail-closed' })).rejects.toBeInstanceOf(
+      BackupChainExhaustedError
+    );
+    try {
+      await resolveSovereignProviderAsync({ caller: 'backup-fail-closed' });
+    } catch (err) {
+      expect((err as BackupChainExhaustedError).code).toBe('HOLO_BACKUP_CHAIN_EXHAUSTED');
+      expect((err as Error).message).toMatch(/native:/);
+      expect((err as Error).message).toMatch(/vast-oss-coding:/);
+      expect((err as Error).message).toMatch(/Failing closed/);
+      expect((err as Error).message).toMatch(/will not silently call a frontier API/);
+    }
+    vi.restoreAllMocks();
+  });
+
+  it('async: native down + proxy down + frontier key without flag → FrontierFallbackRefused (not silent)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubEnv('HOLOSERVE_URL', 'http://127.0.0.1:18099');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      throw new Error('ECONNREFUSED');
+    });
+    await expect(resolveSovereignProviderAsync({ caller: 'backup-frontier-gate' })).rejects.toBeInstanceOf(
+      FrontierFallbackRefusedError
+    );
+    vi.restoreAllMocks();
+  });
+
+  it('async: native down + proxy down + HOLO_ALLOW_FRONTIER_FALLBACK=1 → step hosted-frontier', async () => {
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('HOLOSERVE_URL', 'http://127.0.0.1:18099');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      throw new Error('ECONNREFUSED');
+    });
+    const r = await resolveSovereignProviderAsync({ caller: 'backup-frontier-optin' });
+    expect(r.providerName).toBe('anthropic');
+    expect(r.step).toBe('hosted-frontier');
+    expect(r.frontierFallback).toBe(true);
+    expect(r.step).not.toBe('native');
+    vi.restoreAllMocks();
+  });
+
+  it('async: refuses non-loopback HOLO_VAST_CODING_URL (no cross-route)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubEnv('HOLOSERVE_URL', 'http://127.0.0.1:18099');
+    vi.stubEnv('HOLO_VAST_CODING_URL', 'http://192.168.0.50:18780');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+      const url = String(input);
+      if (url.includes('18099')) throw new Error('native-down');
+      return new Response('no', { status: 500 });
+    });
+    await expect(resolveSovereignProviderAsync({ caller: 'backup-non-loopback' })).rejects.toBeInstanceOf(
+      BackupChainExhaustedError
+    );
+    vi.restoreAllMocks();
+  });
+
+  it('default proxy URL constant is Work loopback :18780', () => {
+    expect(VAST_OSS_CODING_DEFAULT_URL).toBe('http://127.0.0.1:18780');
   });
 });
