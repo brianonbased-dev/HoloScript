@@ -1,5 +1,11 @@
 # @holoscript/llm-provider
 
+## 1.6.2
+
+### Patch Changes
+
+- Patch: gate silent frontier / hosted-bridge LLM fallbacks (#334) and ordered native → vast-oss-coding → gated hosted backup chain (#336).
+
 ## 1.6.0
 
 ### Minor Changes
