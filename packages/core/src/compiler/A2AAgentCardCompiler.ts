@@ -26,6 +26,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { eventNameForHook, hasHookPrefix } from '../constants';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
@@ -511,8 +512,8 @@ export class A2AAgentCardCompiler extends CompilerBase {
       const examples: string[] = [];
 
       for (const event of events) {
-        if (event.startsWith('on_')) {
-          const eventName = event.replace('on_', '');
+        if (hasHookPrefix(event)) {
+          const eventName = eventNameForHook(event);
           tags.push(eventName);
           examples.push(`Handle ${eventName} event`);
         }

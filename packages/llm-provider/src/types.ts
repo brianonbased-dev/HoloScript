@@ -875,6 +875,14 @@ export interface LocalLLMProviderConfig extends Omit<LLMProviderConfig, 'apiKey'
 
   /** Model name to send in requests. Default: 'mistral-7b-instruct' */
   model?: string;
+
+  /**
+   * Who is making the request. Sent as `X-Holo-Agent`; the HoloLlama inference proxy records
+   * it as the receipt's `caller` and writes 'unattributed' when it is missing. Falls back to
+   * HOLO_INFERENCE_CALLER, then HOLOMESH_HANDLE, then HOLOSCRIPT_AGENT_HANDLE. Omitted entirely
+   * when none is set, because a placeholder would look like attribution while identifying nobody.
+   */
+  callerId?: string;
 }
 
 /**

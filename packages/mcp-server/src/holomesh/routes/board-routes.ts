@@ -3134,6 +3134,23 @@ export async function handleBoardRoutes(
 
     await persistTeamDurable(teamId);
 
+    if (action === 'reopen') {
+      // PATCH used to answer status=open from the in-memory mutation while the next
+      // GET /board reloaded durable state and still showed the previous claim.
+      // Return the durable row, or 409 if persist did not stick.
+      await reloadTeam(teamId);
+      const durableTeam = teamStore.get(teamId);
+      const durableTask = (durableTeam?.taskBoard || []).find((t) => t.id === taskId);
+      if (!durableTask || durableTask.status !== 'open') {
+        json(res, 409, {
+          error: 'reopen did not persist; GET /board would still show the previous claim',
+          code: 'reopen_persist_mismatch',
+        });
+        return true;
+      }
+      result = { success: true, task: durableTask };
+    }
+
     // Real-time broadcast
     broadcastToTeam(teamId, {
       type: eventType as any,

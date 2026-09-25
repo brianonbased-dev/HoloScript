@@ -189,12 +189,14 @@ describe('claim TTL + cap primitives (trust-audit 2026-07-13)', () => {
       'claimedBy',
       'claimedByName',
       'claimedByTag',
+      'claimIdentity',
       'claimLeaseId',
       'claimLeaseExpiresAt',
       'claimSessionId',
       'claimedAt',
     ] as const) {
       expect(t[f]).toBeUndefined();
+      expect(f in t).toBe(false);
     }
   });
 });
@@ -497,6 +499,52 @@ describe('completeTask applies the evidence policy at the chokepoint', () => {
       expect(updatedBoard[0].completedAt).toBeUndefined();
     });
   }
+
+  it('credits the signer id a registry can answer for, not the surface label beside it', () => {
+    const board = [claimedTask({ id: 'task_signer' })];
+    const { result } = completeTask(board, 'task_signer', 'mcp-agent', {
+      verificationEvidence: REAL,
+      commit: 'abc1234',
+      completedIdentity: {
+        schema: 'holomesh.identity-envelope.v1',
+        signer: {
+          agentId: 'agent_claude1',
+          handle: 'claude1',
+          agentName: 'claude-code',
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+    expect(result.task?.completedBy).toBe('agent_claude1');
+    expect(result.doneEntry?.completedBy).toBe('agent_claude1');
+    expect(result.doneEntry?.completedIdentity?.signer?.agentName).toBe('claude-code');
+  });
+
+  it('falls back to signer handle, then agentName, then the caller', () => {
+    const byHandle = completeTask(
+      [claimedTask({ id: 'task_handle' })],
+      'task_handle',
+      'mcp-agent',
+      {
+        verificationEvidence: REAL,
+        completedIdentity: {
+          signer: { handle: 'claude1', agentName: 'claude-code' },
+        },
+      }
+    );
+    expect(byHandle.result.task?.completedBy).toBe('claude1');
+
+    const byName = completeTask([claimedTask({ id: 'task_name' })], 'task_name', 'mcp-agent', {
+      verificationEvidence: REAL,
+      completedIdentity: { signer: { agentName: 'claude1' } },
+    });
+    expect(byName.result.task?.completedBy).toBe('claude1');
+
+    const byCaller = completeTask([claimedTask({ id: 'task_caller' })], 'task_caller', 'agent_a', {
+      verificationEvidence: REAL,
+    });
+    expect(byCaller.result.task?.completedBy).toBe('agent_a');
+  });
 
   it('still closes a task when the evidence is real', () => {
     const board = [claimedTask({ id: 'task_real' })];

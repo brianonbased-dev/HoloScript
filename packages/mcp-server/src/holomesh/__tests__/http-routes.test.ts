@@ -3857,6 +3857,94 @@ describe('HoloMesh HTTP Routes', () => {
       expect(fetched?.workUnit).toEqual(updatedWorkUnit);
     });
 
+    it('PATCH reopen from claimed agrees with GET /board and deletes the claim envelope', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `reopen-custody-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [
+            {
+              title: 'reopen-custody',
+              description: 'claimed then reopened.\n\n## Done when:\n- GET agrees with PATCH.',
+              priority: 1,
+            },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      expect(addRes._status).toBe(201);
+      const taskId = addRes._body.tasks[0].id;
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+      expect(claimRes._body.task.status).toBe('claimed');
+      expect(claimRes._body.task.claimedBy).toBeTruthy();
+
+      const reopenReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'reopen' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const reopenRes = mockRes();
+      await handleHoloMeshRoute(reopenReq, reopenRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(reopenRes._status).toBe(200);
+      expect(reopenRes._body.task.status).toBe('open');
+      expect(reopenRes._body.task.claimedBy).toBeUndefined();
+      expect(reopenRes._body.task.claimIdentity).toBeUndefined();
+      expect(reopenRes._body.task.claimSessionId).toBeUndefined();
+      expect('claimedBy' in reopenRes._body.task).toBe(false);
+
+      const stored = teamStore.get(tid)!.taskBoard.find((t: { id: string }) => t.id === taskId)!;
+      expect(stored.status).toBe('open');
+      expect('claimedBy' in stored).toBe(false);
+      expect('claimIdentity' in stored).toBe(false);
+
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
+      expect(getRes._status).toBe(200);
+      const fromGet = getRes._body.tasks.find((t: { id: string }) => t.id === taskId);
+      expect(fromGet.status).toBe('open');
+      expect(fromGet.claimedBy).toBeUndefined();
+      expect(fromGet.claimIdentity).toBeUndefined();
+      expect(
+        getRes._body.tasks.filter((t: { status: string }) => t.status === 'claimed')
+      ).toHaveLength(0);
+
+      const againReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'reopen' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const againRes = mockRes();
+      await handleHoloMeshRoute(againReq, againRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(againRes._status).toBe(200);
+      expect(againRes._body.task.status).toBe('open');
+    });
+
     it('GET /api/holomesh/team/:id/board/:taskId returns a fresh active task by id', async () => {
       const createReq = mockReq(
         'POST',

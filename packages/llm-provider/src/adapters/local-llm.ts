@@ -29,6 +29,26 @@ import type {
 } from '../types';
 import { LLMProviderError, filterGenericTools, messageContentAsString } from '../types';
 
+/**
+ * Who to send as X-Holo-Agent. Blank and whitespace-only values are absent.
+ * Never invents a name: with no identity configured the header is omitted.
+ */
+function resolveCallerId(explicit?: string): string | undefined {
+  // HOLOSCRIPT_AGENT_HANDLE is last. The edge agent already sets it, so this package
+  // can attribute that node without a second package install.
+  const candidates = [
+    explicit,
+    process.env.HOLO_INFERENCE_CALLER,
+    process.env.HOLOMESH_HANDLE,
+    process.env.HOLOSCRIPT_AGENT_HANDLE,
+  ];
+  for (const c of candidates) {
+    const trimmed = typeof c === 'string' ? c.trim() : '';
+    if (trimmed) return trimmed;
+  }
+  return undefined;
+}
+
 type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
   apiKey?: string;
   model?: string;
@@ -41,6 +61,12 @@ type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
    * with tools; /api/chat returns tool_calls correctly.
    */
   nativeOllamaApi?: boolean;
+  /**
+   * Who is making this request. Sent as `X-Holo-Agent`. Falls back through
+   * HOLO_INFERENCE_CALLER, HOLOMESH_HANDLE, then HOLOSCRIPT_AGENT_HANDLE.
+   * When none is set the header is omitted — see resolveCallerId.
+   */
+  callerId?: string;
 };
 
 // =============================================================================
@@ -132,6 +158,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
   private readonly localBaseURL: string;
   /** True → complete() uses /api/chat (native Ollama); false → /v1/chat/completions. */
   private readonly useNativeOllamaApi: boolean;
+  /** Attribution sent on every request; undefined means "send no header". */
+  private readonly callerId: string | undefined;
 
   constructor(config: LocalLLMAdapterConfig = {}) {
     // BaseLLMAdapter requires apiKey — pass empty string for local servers
@@ -150,6 +178,17 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       config.model ?? config.defaultModel ?? 'mistral-7b-instruct';
     // Auto-detect Ollama by default port (11434). Can be overridden explicitly.
     this.useNativeOllamaApi = config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
+    this.callerId = resolveCallerId(config.callerId);
+  }
+
+  /**
+   * Headers for both the completion and streaming paths.
+   * The attribution header is what makes a captured inference row usable later.
+   */
+  private requestHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.callerId) headers['X-Holo-Agent'] = this.callerId;
+    return headers;
   }
 
   protected getDefaultModel(): string {
@@ -387,7 +426,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.requestHeaders(),
         body,
         signal: controller.signal,
       });
@@ -566,7 +605,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.requestHeaders(),
         body,
         signal: controller.signal,
       });

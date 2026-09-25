@@ -706,7 +706,14 @@ export function completeTask(
     };
   }
   const completedIdentity = cloneIdentityEnvelope(opts.completedIdentity);
-  const signedCompletedBy = completedIdentity?.signer?.agentName?.trim();
+  // Credit the identity a registry can answer for, in descending resolvability:
+  // agentId (the registry key), then handle (the registry name), and only then
+  // agentName — which on the claude-code surface is the literal string
+  // "claude-code", a surface label no agent is registered under. The label is
+  // not lost: completedIdentity is preserved on the entry below.
+  const signer = completedIdentity?.signer;
+  const signedCompletedBy =
+    signer?.agentId?.trim() || signer?.handle?.trim() || signer?.agentName?.trim();
   const attributedCompletedBy = signedCompletedBy || completedBy;
   task.status = 'done';
   task.completedBy = attributedCompletedBy;
@@ -936,24 +943,29 @@ export function blockTask(board: TeamTask[], taskId: string, reason?: string): T
   return { success: true, task };
 }
 
-/** Reopen a task (unclaim). Clears ALL claim-time fields so a stale identity/lease never shadows the next claim (trust-audit 2026-07-13). */
+/** Reopen a task (unclaim). Deletes ALL claim-time keys so a stale identity/lease
+ * never shadows the next claim (trust-audit 2026-07-13).
+ * Assigning `undefined` left the keys on the object; durable readback that clones
+ * via Object.keys or a jsonb merge then still showed the old claim after PATCH
+ * answered status=open. `delete` makes `'claimedBy' in task` false. Idempotent:
+ * a second reopen on an already-open task still succeeds and still strips custody. */
 export function reopenTask(board: TeamTask[], taskId: string): TaskActionResult {
   const task = board.find((t) => t.id === taskId);
   if (!task) return { success: false, error: 'Task not found' };
   task.status = 'open';
-  task.blockedReason = undefined;
-  task.blockedAt = undefined;
-  task.blockedEscalatedAt = undefined;
-  task.blockedReopenedAt = undefined;
-  task.blockedLifecycleReason = undefined;
-  task.claimedBy = undefined;
-  task.claimedByName = undefined;
-  task.claimedByTag = undefined;
-  task.claimIdentity = undefined;
-  task.claimLeaseId = undefined;
-  task.claimLeaseExpiresAt = undefined;
-  task.claimSessionId = undefined;
-  task.claimedAt = undefined;
+  delete task.blockedReason;
+  delete task.blockedAt;
+  delete task.blockedEscalatedAt;
+  delete task.blockedReopenedAt;
+  delete task.blockedLifecycleReason;
+  delete task.claimedBy;
+  delete task.claimedByName;
+  delete task.claimedByTag;
+  delete task.claimIdentity;
+  delete task.claimLeaseId;
+  delete task.claimLeaseExpiresAt;
+  delete task.claimSessionId;
+  delete task.claimedAt;
   return { success: true, task };
 }
 

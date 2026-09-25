@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "preinstall": "node scripts/check-pnpm-package-manager.mjs",
+    "postinstall": "node scripts/check-pnpm-install-integrity.mjs",
     "build": "node scripts/check-pnpm-package-manager.mjs && node scripts/check-pnpm-install-needed.mjs && corepack pnpm --workspace-concurrency=1 --filter \"@holoscript/core...\" run build && corepack pnpm -r --workspace-concurrency=1 --filter=!@holoscript/core --filter=!@holoscript/tauri-app run --if-present build",
     "baseline:audit": "node scripts/holo-ci/baseline-audit.mjs",
     "baseline:audit:test": "node --test scripts/__tests__/baseline-audit.test.mjs",
@@ -26,6 +27,8 @@
     "holoread:build-debug": "node apps/quest-real-world-reader/scripts/build-debug.mjs",
     "holoread:build-release": "node apps/quest-real-world-reader/scripts/build-release.mjs",
     "check:pnpm-package-manager": "node scripts/check-pnpm-package-manager.mjs",
+    "check:pnpm-install-integrity": "node scripts/check-pnpm-install-integrity.mjs",
+    "check:pnpm-install-integrity:test": "node --test scripts/__tests__/check-pnpm-install-integrity.test.mjs",
     "audit:package-deps": "node scripts/package-dependency-audit.mjs",
     "check:pnpm-package-manager:test": "node scripts/__tests__/check-pnpm-package-manager.test.mjs",
     "dev": "pnpm -r --parallel dev",

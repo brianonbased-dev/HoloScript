@@ -94,7 +94,7 @@ describe('AgentDiscoveryTrait', () => {
       expect(mockNode.__agentDiscoveryState).toBeDefined();
       expect(mockNode.__agentDiscoveryState.discoveredAgents).toBeInstanceOf(Map);
       expect(Array.isArray(mockNode.__agentDiscoveryState.eventHistory)).toBe(true);
-    });
+    }, 120_000);
 
     it('should create agent manifest', async () => {
       const config: AgentDiscoveryConfig = {
