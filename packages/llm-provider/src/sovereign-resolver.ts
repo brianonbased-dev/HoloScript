@@ -12,11 +12,19 @@
  *   1. local-fleet — owned laptop/Jetson model-fleet routes, discovered per request
  *   2. fleet       — Vast serverless sovereign serving fleet (P.008), route-probed
  *                    per request so cold pools can fall back while they wake
- *   3. cloud       — pinned sovereign serving endpoint (BrittneyCloudAdapter)
+ *   3. cloud       — HOLO_LLM_SERVICE_URL, the Brittney llm-service (BrittneyCloudAdapter,
+ *                  model "brittney-standard"). NOT sovereign: that service forwards
+ *                  standard/pro to hosted Fireworks (and Together as fallback) whenever it
+ *                  holds those keys. In auto mode this route is REFUSED unless
+ *                  HOLO_ALLOW_HOSTED_BRIDGE=1 (2026-09-24 audit follow-up); explicit
+ *                  provider=cloud still works.
  *   4. holollama   — sovereign local inference layer (llama.cpp llama-server, D.117),
  *                  when HOLOLLAMA_URL is set; preferred over legacy Ollama
  *   5. ollama      — legacy local model (OLLAMA_HOST), kept for back-compat
- *   6. anthropic / xai / openai — BYOK frontier fallback, in that order
+ *   6. anthropic / xai / openai — BYOK frontier fallback, in that order, ONLY when
+ *                  HOLO_ALLOW_FRONTIER_FALLBACK=1 (off by default). With the flag off the
+ *                  auto path REFUSES (throws FrontierFallbackRefusedError + loud warn line)
+ *                  instead of silently calling a frontier API (2026-09-24 audit, fix 7).
  *   7. holollama (default :18080) — TERMINAL sovereign default (D.117), instead of
  *                  a bare "nothing configured" throw
  *
@@ -30,7 +38,14 @@
  *   HOLO_LLM_FLEET_MODEL | BRITTNEY_FLEET_MODEL   fleet model
  *   HOLO_LLM_FLEET_BRAIN                            owned local @model_fleet source
  *   VAST_API_KEY                                  Vast route + worker bearer
- *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks
+ *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks (explicit provider, or
+ *                                                 auto only with HOLO_ALLOW_FRONTIER_FALLBACK=1)
+ *   HOLO_ALLOW_FRONTIER_FALLBACK                  '1' = let sovereign/auto fall back to a
+ *                                                 frontier API; anything else = refuse (default)
+ *   HOLO_ALLOW_HOSTED_BRIDGE                      '1' = let sovereign/auto take the cloud
+ *                                                 (brittney-standard) route; anything else =
+ *                                                 refuse (default). Applies to EVERY URL, loopback
+ *                                                 included — see gateHostedBridge().
  *   HOLOSERVE_PARITY_PINS                         model@binding-sha256 pins (comma-separated)
  *   HOLOSERVE_PARITY_REGISTRY                     path to the parity pin registry JSON
  *                                                 (maintained by ai-ecosystem
@@ -159,6 +174,17 @@ export interface ResolvedSovereignProvider {
   fleetBackend?: FleetBackend;
   /** Exact parity-tested HoloServe binding when a strangler pin selected this route. */
   artifactBindingSha256?: string;
+  /**
+   * True when the sovereign/auto path landed on a frontier API (anthropic/xai/openai)
+   * because HOLO_ALLOW_FRONTIER_FALLBACK=1 was set. Callers should record this in receipts.
+   */
+  frontierFallback?: boolean;
+  /**
+   * True when the sovereign/auto path took the cloud (brittney-standard) route because
+   * HOLO_ALLOW_HOSTED_BRIDGE=1 was set. That service may forward to hosted Fireworks /
+   * Together models; callers should record this in receipts.
+   */
+  hostedBridge?: boolean;
 }
 
 export interface SovereignResolveOptions {
@@ -170,6 +196,186 @@ export interface SovereignResolveOptions {
   model?: string;
   /** Max-token override — beats HOLO_LLM_MAX_TOKENS/BRITTNEY_MAX_TOKENS. */
   maxTokens?: number;
+  /**
+   * Optional caller label for the frontier-fallback warning/error. When absent the
+   * resolver derives one from the call stack (first frame outside this package).
+   */
+  caller?: string;
+}
+
+// ── frontier-fallback gate (2026-09-24 native-inference audit, fix 7) ───────
+/**
+ * The sovereign/auto path must never reach a frontier API (Anthropic, xAI, OpenAI)
+ * silently. Before this gate, a process with no local endpoint env but any of
+ * ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY set resolved "sovereign" to that
+ * frontier provider. Now it only does so with HOLO_ALLOW_FRONTIER_FALLBACK=1; otherwise
+ * it logs a loud warning naming the provider and caller, and throws.
+ * An EXPLICIT provider (opts.explicit / HOLO_LLM_PROVIDER = anthropic|xai|openai) is an
+ * opt-in by itself and is not affected.
+ */
+export const FRONTIER_FALLBACK_FLAG = 'HOLO_ALLOW_FRONTIER_FALLBACK';
+
+export type FrontierProviderName = 'anthropic' | 'xai' | 'openai';
+
+export class FrontierFallbackRefusedError extends Error {
+  readonly code = 'HOLO_FRONTIER_FALLBACK_REFUSED';
+  readonly wouldHaveUsed: FrontierProviderName;
+  readonly caller: string;
+  constructor(wouldHaveUsed: FrontierProviderName, caller: string) {
+    super(
+      `REFUSING frontier fallback: sovereign/auto LLM resolution would have used ` +
+        `"${wouldHaveUsed}" (a frontier API) for caller ${caller}, because no local or ` +
+        `sovereign endpoint is configured (HOLO_LLM_SERVICE_URL / HOLOSERVE_URL / ` +
+        `HOLOLLAMA_URL / OLLAMA_HOST) and a ${wouldHaveUsed} API key is present. ` +
+        `Configure a local endpoint, pass an explicit provider, or set ` +
+        `${FRONTIER_FALLBACK_FLAG}=1 to opt in to frontier fallback.`
+    );
+    this.name = 'FrontierFallbackRefusedError';
+    this.wouldHaveUsed = wouldHaveUsed;
+    this.caller = caller;
+  }
+}
+
+function frontierFallbackAllowed(): boolean {
+  return process.env[FRONTIER_FALLBACK_FLAG] === '1';
+}
+
+const OWN_FRAME_RE = /sovereign-resolver\.[cm]?[jt]s|llm-provider[\\/]dist[\\/]|node:internal/u;
+
+function describeCaller(opts: SovereignResolveOptions): string {
+  if (opts.caller) return opts.caller;
+  const frames = (new Error().stack ?? '').split('\n').slice(1);
+  for (const raw of frames) {
+    const frame = raw.trim();
+    if (frame && !OWN_FRAME_RE.test(frame)) return frame.replace(/^at\s+/u, '');
+  }
+  return process.argv[1] ? `script ${process.argv[1]}` : 'unknown caller';
+}
+
+export function gateFrontierFallback<T extends object>(
+  name: FrontierProviderName,
+  opts: SovereignResolveOptions,
+  resolve: () => T
+): T & { frontierFallback: true } {
+  const caller = describeCaller(opts);
+  if (!frontierFallbackAllowed()) {
+    console.warn(
+      `[llm-provider] !!! FRONTIER FALLBACK REFUSED !!! sovereign/auto resolution would have ` +
+        `used frontier provider "${name}" for caller ${caller}. Set ${FRONTIER_FALLBACK_FLAG}=1 ` +
+        `to allow it, or configure a local endpoint / explicit provider.`
+    );
+    throw new FrontierFallbackRefusedError(name, caller);
+  }
+  console.warn(
+    `[llm-provider] !!! FRONTIER FALLBACK ACTIVE !!! sovereign/auto resolution is using ` +
+      `frontier provider "${name}" for caller ${caller} because ${FRONTIER_FALLBACK_FLAG}=1.`
+  );
+  return { ...resolve(), frontierFallback: true };
+}
+
+// ── hosted-bridge gate (2026-09-24 native-inference audit, follow-up to fix 7) ──
+/**
+ * HOLO_LLM_SERVICE_URL points the "cloud" route at the Brittney llm-service
+ * (HoloScript/services/llm-service, POST /api/chat). Its InferenceRouter sends
+ * standard -> Fireworks (api.fireworks.ai, llama-v3p1-8b-instruct), pro -> Kimi K2.5 on
+ * Fireworks, with Together (api.together.xyz) and Vast/Ollama as fallbacks, choosing a
+ * provider by which API keys the SERVICE holds. The resolver cannot see those keys:
+ *   - the sync path makes no network calls, and the service's GET /api/providers is an
+ *     unauthenticated self-report, not an attestation;
+ *   - the URL's host says nothing about where inference runs: the adapter's own default
+ *     is http://localhost:8000, i.e. this same Fireworks-forwarding service run locally.
+ * So "forwards to hosted" is not detectable here and a loopback/LAN URL is NOT evidence of
+ * local inference. The rule this code can honestly enforce is: the auto path treats EVERY
+ * cloud route as a hosted bridge and refuses it unless HOLO_ALLOW_HOSTED_BRIDGE=1. The host
+ * class (loopback / lan / public) is reported in the log line for information only.
+ * An EXPLICIT provider (opts.explicit / HOLO_LLM_PROVIDER = cloud) is an opt-in by itself.
+ */
+export const HOSTED_BRIDGE_FLAG = 'HOLO_ALLOW_HOSTED_BRIDGE';
+
+export type ServiceHostClass = 'loopback' | 'lan' | 'public' | 'invalid';
+
+/** Informational only (see above): never used to allow the route. */
+export function classifyServiceHost(url: string): ServiceHostClass {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/gu, '');
+  } catch {
+    return 'invalid';
+  }
+  if (host === 'localhost' || host === '::1' || /^127\./u.test(host)) return 'loopback';
+  if (
+    /^10\./u.test(host) ||
+    /^192\.168\./u.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./u.test(host) ||
+    /^169\.254\./u.test(host) ||
+    /^f[cd][0-9a-f]{2}:/u.test(host) ||
+    /^fe80:/u.test(host) ||
+    host.endsWith('.local') ||
+    host.endsWith('.lan') ||
+    !host.includes('.')
+  )
+    return 'lan';
+  return 'public';
+}
+
+/** Log/error-safe URL: drops userinfo, query and fragment (they can carry tokens). */
+export function redactServiceUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}${u.pathname === '/' ? '' : u.pathname}`;
+  } catch {
+    return '<unparseable HOLO_LLM_SERVICE_URL>';
+  }
+}
+
+export class HostedBridgeRefusedError extends Error {
+  readonly code = 'HOLO_HOSTED_BRIDGE_REFUSED';
+  readonly url: string;
+  readonly hostClass: ServiceHostClass;
+  readonly caller: string;
+  constructor(url: string, hostClass: ServiceHostClass, caller: string) {
+    super(
+      `REFUSING hosted bridge: sovereign/auto LLM resolution would have used the cloud ` +
+        `(brittney-standard) route at ${url} (host class: ${hostClass}) for caller ${caller}. ` +
+        `That service forwards to hosted third-party models (Fireworks, Together) whenever it ` +
+        `holds their keys, and the resolver cannot verify it does not, so it is not ` +
+        `sovereign. Pass an explicit provider (provider=cloud), unset HOLO_LLM_SERVICE_URL, ` +
+        `or set ${HOSTED_BRIDGE_FLAG}=1 to opt in.`
+    );
+    this.name = 'HostedBridgeRefusedError';
+    this.url = url;
+    this.hostClass = hostClass;
+    this.caller = caller;
+  }
+}
+
+function hostedBridgeAllowed(): boolean {
+  return process.env[HOSTED_BRIDGE_FLAG] === '1';
+}
+
+function gateHostedBridge(
+  cloudUrl: string,
+  opts: SovereignResolveOptions,
+  resolve: () => ResolvedSovereignProvider
+): ResolvedSovereignProvider {
+  const caller = describeCaller(opts);
+  const url = redactServiceUrl(cloudUrl);
+  const hostClass = classifyServiceHost(cloudUrl);
+  if (!hostedBridgeAllowed()) {
+    console.warn(
+      `[llm-provider] !!! HOSTED BRIDGE REFUSED !!! sovereign/auto resolution would have used ` +
+        `the cloud (brittney-standard) route ${url} (host class: ${hostClass}; may forward to ` +
+        `Fireworks/Together) for caller ${caller}. Set ${HOSTED_BRIDGE_FLAG}=1 to allow it, or ` +
+        `pass an explicit provider.`
+    );
+    throw new HostedBridgeRefusedError(url, hostClass, caller);
+  }
+  console.warn(
+    `[llm-provider] !!! HOSTED BRIDGE ACTIVE !!! sovereign/auto resolution is using the cloud ` +
+      `(brittney-standard) route ${url} (host class: ${hostClass}) for caller ${caller} because ` +
+      `${HOSTED_BRIDGE_FLAG}=1. It may forward to hosted Fireworks/Together models.`
+  );
+  return { ...resolve(), hostedBridge: true };
 }
 
 // FLEET_DEFAULT_MODEL + the local default come from the model-policy SSOT.
@@ -198,8 +404,9 @@ function maxTokensOverride(opts: SovereignResolveOptions): number | undefined {
 }
 
 /**
- * Synchronous sovereign-first resolution: cloud → ollama → anthropic → xai →
- * openai. Fleet (dynamic-resolve) needs a network round-trip — use
+ * Synchronous sovereign-first resolution: cloud → holoserve → holollama → ollama →
+ * [anthropic → xai → openai ONLY with HOLO_ALLOW_FRONTIER_FALLBACK=1, else refuse] →
+ * holollama terminal default. Fleet (dynamic-resolve) needs a network round-trip — use
  * `resolveSovereignProviderAsync` to include it.
  */
 export function resolveSovereignProvider(
@@ -259,18 +466,23 @@ function resolveSovereignProviderInternal(
   // D.117: HoloLlama (llama.cpp llama-server) is the sovereign LOCAL layer — preferred
   // over legacy Ollama, and the TERMINAL sovereign default so a bare-config call lands
   // on HoloLlama at :18080 rather than throwing. Ollama stays reachable via OLLAMA_HOST
-  // (legacy) and BYOK keys still auto-fall (before the terminal default) so cloud-only
-  // deployments keep working.
-  if (cloudUrl) return resolveCloud(cloudUrl, opts);
+  // (legacy). Frontier keys do not auto-fall unless HOLO_ALLOW_FRONTIER_FALLBACK=1.
+  // Hosted-bridge gate (2026-09-24 audit follow-up): the cloud route is the Brittney
+  // llm-service, which forwards to hosted Fireworks/Together. Never taken silently.
+  if (cloudUrl) return gateHostedBridge(cloudUrl, opts, () => resolveCloud(cloudUrl, opts));
   // D.118: a configured HoloServe (fully sovereign HOLO runtime) beats HoloLlama (llama.cpp).
   const holoServeUrl = env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT');
   if (holoServeUrl) return resolveHoloServe(holoServeUrl, opts, allowParityHoloServe);
   const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
   if (holoLlamaUrl) return resolveHoloLlama(holoLlamaUrl, opts, allowParityHoloServe);
   if (ollamaHost) return resolveOllama(ollamaHost, opts);
-  if (anthropicKey) return resolveAnthropic(anthropicKey, opts);
-  if (env('XAI_API_KEY')) return resolveXai(opts);
-  if (env('OPENAI_API_KEY')) return resolveOpenai(opts);
+  // Frontier fallback is GATED (2026-09-24 audit, fix 7): never silent. With
+  // HOLO_ALLOW_FRONTIER_FALLBACK unset this throws FrontierFallbackRefusedError.
+  if (anthropicKey)
+    return gateFrontierFallback('anthropic', opts, () => resolveAnthropic(anthropicKey, opts));
+  if (env('XAI_API_KEY')) return gateFrontierFallback('xai', opts, () => resolveXai(opts));
+  if (env('OPENAI_API_KEY'))
+    return gateFrontierFallback('openai', opts, () => resolveOpenai(opts));
 
   // Sovereign default (D.117): HoloLlama at :18080. If the local server is down the
   // CALL fails with a llama-server start hint — never a silent cloud/Ollama fallback.
@@ -331,7 +543,14 @@ export async function resolveSovereignProviderAsync(
       let fallback: ResolvedSovereignProvider;
       try {
         fallback = resolveSovereignProviderInternal({ ...opts, explicit: undefined }, true);
-      } catch {
+      } catch (fallbackResolveErr) {
+        // A refused frontier fallback must surface as itself, not be masked by the
+        // cold-fleet error (2026-09-24 audit, fix 7).
+        if (
+          fallbackResolveErr instanceof FrontierFallbackRefusedError ||
+          fallbackResolveErr instanceof HostedBridgeRefusedError
+        )
+          throw fallbackResolveErr;
         throw fleetErr;
       }
       try {

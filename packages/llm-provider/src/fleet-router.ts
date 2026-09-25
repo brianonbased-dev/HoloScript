@@ -174,7 +174,7 @@ export function admitHoloServeHealth(
   if (
     health.status !== 'ok' ||
     health.backend !== 'pytorch-holo' ||
-    health.sovereign !== true ||
+    !isRecord(health.sovereignty) || health.sovereignty.weights !== 'sovereign' ||
     health.llama_cpp !== false ||
     health.gguf !== false
   )
@@ -735,7 +735,7 @@ export async function discoverLlamaCppNode(
  * scripts/holoserve.py in ai-ecosystem). Same `/health` + `/props` + `/slots`
  * surface while its exact health registry may advertise multiple resident models, so it
  * shares {@link discoverLlamaCppNode}'s discovery body — with one addition: the
- * `/health` body must MACHINE-CHECKABLY assert sovereignty (`sovereign: true` and
+ * `/health` body must MACHINE-CHECKABLY assert sovereignty (`sovereignty.weights === 'sovereign'` and
  * not `llama_cpp: true`). A node declared `backend: "pytorch-holo"` whose health
  * doesn't carry that claim (e.g. someone pointed the handle at a llama-server) is
  * dropped rather than routed as sovereign.

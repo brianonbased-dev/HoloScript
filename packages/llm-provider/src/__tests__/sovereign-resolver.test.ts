@@ -8,7 +8,14 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveSovereignProvider, resolveSovereignProviderAsync } from '../sovereign-resolver';
+import {
+  FrontierFallbackRefusedError,
+  HostedBridgeRefusedError,
+  classifyServiceHost,
+  redactServiceUrl,
+  resolveSovereignProvider,
+  resolveSovereignProviderAsync,
+} from '../sovereign-resolver';
 import { __clearLocalModelPickerCache } from '../local-model-picker';
 import { BrittneyCloudAdapter } from '../adapters/brittney-cloud';
 import { LocalLLMAdapter } from '../adapters/local-llm';
@@ -43,7 +50,8 @@ function testHoloServeHealth(model: string, checkpointDigit = '1'): Record<strin
   return {
     status: 'ok',
     backend: 'pytorch-holo',
-    sovereign: true,
+    sovereign: false,
+    sovereignty: { weights: 'sovereign', runtime: 'foreign', fully_native: false },
     llama_cpp: false,
     gguf: false,
     model: { name: model, params_millions: 85 },
@@ -102,6 +110,8 @@ const ENV_KEYS = [
   'OPENAI_API_KEY',
   'OPENAI_BASE_URL',
   'VAST_API_KEY',
+  'HOLO_ALLOW_FRONTIER_FALLBACK',
+  'HOLO_ALLOW_HOSTED_BRIDGE',
 ];
 
 beforeEach(() => {
@@ -116,7 +126,9 @@ afterEach(() => {
 });
 
 describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
-  it('prefers the sovereign cloud endpoint over everything sync', () => {
+  it('prefers the cloud endpoint over everything sync (only with HOLO_ALLOW_HOSTED_BRIDGE=1)', () => {
+    vi.stubEnv('HOLO_ALLOW_HOSTED_BRIDGE', '1');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://serve.example.com');
     vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
@@ -124,6 +136,8 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
     expect(r.providerName).toBe('cloud');
     expect(r.provider).toBeInstanceOf(BrittneyCloudAdapter);
     expect(r.model).toBe('brittney-standard');
+    expect(r.hostedBridge).toBe(true);
+    vi.restoreAllMocks();
   });
 
   it('falls to local ollama when no cloud endpoint is set', () => {
@@ -165,15 +179,18 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
     expect(r.provider).toBeInstanceOf(LocalLLMAdapter);
   });
 
-  it('falls to BYOK anthropic LAST among sync providers', () => {
+  it('falls to BYOK anthropic LAST among sync providers (only with HOLO_ALLOW_FRONTIER_FALLBACK=1)', () => {
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
     const r = resolveSovereignProvider();
+    expect(r.frontierFallback).toBe(true);
     expect(r.providerName).toBe('anthropic');
     expect(r.provider).toBeInstanceOf(AnthropicAdapter);
     expect(r.model).toBe('claude-sonnet-4-6');
   });
 
-  it('falls through anthropic -> xai -> openai by key presence', () => {
+  it('falls through anthropic -> xai -> openai by key presence (only with HOLO_ALLOW_FRONTIER_FALLBACK=1)', () => {
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
     vi.stubEnv('XAI_API_KEY', 'xk-test');
     const xai = resolveSovereignProvider();
     expect(xai.providerName).toBe('xai');
@@ -198,13 +215,18 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
     expect(resolveSovereignProvider({ explicit: 'auto' }).providerName).toBe('ollama');
   });
 
-  it('supports BRITTNEY_* env names as compat aliases', () => {
+  it('supports BRITTNEY_* env names as compat aliases (gate applies to them too)', () => {
     vi.stubEnv('BRITTNEY_SERVICE_URL', 'https://serve.example.com');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveSovereignProvider()).toThrow(HostedBridgeRefusedError);
+    vi.stubEnv('HOLO_ALLOW_HOSTED_BRIDGE', '1');
     const r = resolveSovereignProvider();
     expect(r.providerName).toBe('cloud');
+    warn.mockRestore();
   });
 
   it('applies model and maxTokens overrides', () => {
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
     vi.stubEnv('HOLO_LLM_MODEL', 'claude-opus-4-8');
     vi.stubEnv('HOLO_LLM_MAX_TOKENS', '2048');
@@ -215,7 +237,8 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
     expect(resolveSovereignProvider({ model: 'claude-fable-5' }).model).toBe('claude-fable-5');
   });
 
-  it('uses the BYOK anthropic key override when provided', () => {
+  it('uses the BYOK anthropic key override when provided (only with HOLO_ALLOW_FRONTIER_FALLBACK=1)', () => {
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
     const r = resolveSovereignProvider({ anthropicKey: 'sk-byok' });
     expect(r.providerName).toBe('anthropic');
   });
@@ -233,6 +256,121 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
 
   it('rejects unknown explicit providers', () => {
     expect(() => resolveSovereignProvider({ explicit: 'gpt5-turbo' })).toThrow(/Unknown/i);
+  });
+});
+
+describe('frontier-fallback gate (2026-09-24 audit, fix 7)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ['anthropic', 'ANTHROPIC_API_KEY'],
+    ['xai', 'XAI_API_KEY'],
+    ['openai', 'OPENAI_API_KEY'],
+  ] as const)(
+    'REFUSES %s from the auto path when the flag is unset, with a loud warning naming provider and caller',
+    (provider, keyName) => {
+      vi.stubEnv(keyName, 'k-test');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      let err: unknown;
+      try {
+        resolveSovereignProvider({ caller: 'unit-test-caller' });
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeInstanceOf(FrontierFallbackRefusedError);
+      expect((err as FrontierFallbackRefusedError).wouldHaveUsed).toBe(provider);
+      expect((err as FrontierFallbackRefusedError).caller).toBe('unit-test-caller');
+      expect((err as Error).message).toMatch(/HOLO_ALLOW_FRONTIER_FALLBACK=1/u);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const line = String(warn.mock.calls[0]?.[0]);
+      expect(line).toMatch(/FRONTIER FALLBACK REFUSED/u);
+      expect(line).toContain(`"${provider}"`);
+      expect(line).toContain('unit-test-caller');
+      warn.mockRestore();
+    }
+  );
+
+  it("treats explicit 'sovereign'/'auto' exactly like auto (refuses)", () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveSovereignProvider({ explicit: 'sovereign' })).toThrow(
+      FrontierFallbackRefusedError
+    );
+    expect(() => resolveSovereignProvider({ explicit: 'auto' })).toThrow(
+      FrontierFallbackRefusedError
+    );
+  });
+
+  it("any flag value other than '1' still refuses", () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', 'true');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveSovereignProvider()).toThrow(FrontierFallbackRefusedError);
+  });
+
+  it('derives a caller from the stack when none is passed', () => {
+    vi.stubEnv('XAI_API_KEY', 'xk-test');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      resolveSovereignProvider();
+      throw new Error('expected refusal');
+    } catch (e) {
+      expect(e).toBeInstanceOf(FrontierFallbackRefusedError);
+      expect((e as FrontierFallbackRefusedError).caller).not.toMatch(/sovereign-resolver\.ts/u);
+      expect((e as FrontierFallbackRefusedError).caller.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('a local endpoint still wins over frontier keys with no warning', () => {
+    vi.stubEnv('HOLOLLAMA_URL', 'http://box:18080');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(resolveSovereignProvider().providerName).toBe('holollama');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('explicit frontier providers are an opt-in and are not gated', () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    const r = resolveSovereignProvider({ explicit: 'anthropic' });
+    expect(r.providerName).toBe('anthropic');
+    expect(r.frontierFallback).toBeUndefined();
+  });
+
+  it('with the flag set, falls back but logs a loud ACTIVE warning and marks the result', () => {
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
+    vi.stubEnv('OPENAI_API_KEY', 'ok-test');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = resolveSovereignProvider({ caller: 'flagged-caller' });
+    expect(r.providerName).toBe('openai');
+    expect(r.frontierFallback).toBe(true);
+    expect(String(warn.mock.calls[0]?.[0])).toMatch(/FRONTIER FALLBACK ACTIVE.*"openai".*flagged-caller/u);
+  });
+
+  it('async: a cold Vast fleet no longer falls through to a frontier key without the flag', async () => {
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: { ready: 0, total: 1 } }),
+      }))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toBeInstanceOf(
+      FrontierFallbackRefusedError
+    );
+  });
+
+  it('async auto path without fleet also refuses', async () => {
+    vi.stubEnv('XAI_API_KEY', 'xk-test');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(resolveSovereignProviderAsync()).rejects.toBeInstanceOf(
+      FrontierFallbackRefusedError
+    );
   });
 });
 
@@ -320,7 +458,8 @@ describe('resolveSovereignProviderAsync (Vast serverless fleet)', () => {
     expect(r.model).toBe('qwen3-coder:30b');
   });
 
-  it('falls back to the sync chain when the fleet is cold', async () => {
+  it('falls back to the sync chain when the fleet is cold (frontier only with the opt-in flag)', async () => {
+    vi.stubEnv('HOLO_ALLOW_FRONTIER_FALLBACK', '1');
     vi.stubEnv('VAST_API_KEY', 'vast-key');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
     vi.stubGlobal(
@@ -495,7 +634,8 @@ describe('resolveSovereignProviderAsync — HoloServe sovereignty gate (D.118/W.
         healthResponse({
           status: 'ok',
           backend: 'pytorch-holo',
-          sovereign: true,
+          sovereign: false,
+          sovereignty: { weights: 'sovereign' },
           llama_cpp: false,
           gguf: false,
         })
@@ -720,5 +860,127 @@ describe('per-model HoloServe parity pin (dependency-sovereignty-ladder, 2026-07
       })
     );
     await expect(resolveSovereignProviderAsync()).rejects.toThrow(/parity-artifact drift/u);
+  });
+});
+
+describe('hosted-bridge gate (2026-09-24 audit follow-up: brittney-standard)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ['public', 'https://brittney.example.com'],
+    ['loopback', 'http://localhost:8000'],
+    ['loopback', 'http://127.0.0.1:8000'],
+    ['lan', 'http://192.168.0.23:8000'],
+    ['lan', 'http://holojetson.local:8000'],
+  ] as const)(
+    'REFUSES the auto cloud route for a %s URL (%s) without the flag, naming URL and caller',
+    (hostClass, url) => {
+      vi.stubEnv('HOLO_LLM_SERVICE_URL', url);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      let err: unknown;
+      try {
+        resolveSovereignProvider({ caller: 'unit-test-caller' });
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeInstanceOf(HostedBridgeRefusedError);
+      const refused = err as HostedBridgeRefusedError;
+      expect(refused.code).toBe('HOLO_HOSTED_BRIDGE_REFUSED');
+      expect(refused.hostClass).toBe(hostClass);
+      expect(refused.caller).toBe('unit-test-caller');
+      expect(refused.message).toMatch(/HOLO_ALLOW_HOSTED_BRIDGE=1/u);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const line = String(warn.mock.calls[0][0]);
+      expect(line).toMatch(/HOSTED BRIDGE REFUSED/u);
+      expect(line).toContain(new URL(url).host);
+      expect(line).toContain('unit-test-caller');
+    }
+  );
+
+  it('does not fall through to a local endpoint when refusing (no silent re-route)', () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'http://localhost:8000');
+    vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveSovereignProvider()).toThrow(HostedBridgeRefusedError);
+  });
+
+  it('derives the caller from the stack when none is passed', () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://brittney.example.com');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      resolveSovereignProvider();
+      throw new Error('expected refusal');
+    } catch (e) {
+      expect(e).toBeInstanceOf(HostedBridgeRefusedError);
+      expect((e as HostedBridgeRefusedError).caller).toMatch(/sovereign-resolver\.test\.ts/u);
+    }
+  });
+
+  it('never logs credentials, query or fragment from the URL', () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://user:s3cret@brittney.example.com/base?token=abc#frag');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveSovereignProvider()).toThrow(HostedBridgeRefusedError);
+    const line = String(warn.mock.calls[0][0]);
+    expect(line).toContain('https://brittney.example.com/base');
+    expect(line).not.toMatch(/s3cret|user:|token=abc|#frag/u);
+    expect(redactServiceUrl('https://u:p@h.example.com/?k=v')).toBe('https://h.example.com');
+  });
+
+  it("only the exact value '1' opens the gate", () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://brittney.example.com');
+    vi.stubEnv('HOLO_ALLOW_HOSTED_BRIDGE', 'true');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveSovereignProvider()).toThrow(HostedBridgeRefusedError);
+  });
+
+  it('with HOLO_ALLOW_HOSTED_BRIDGE=1 takes the route, marks hostedBridge and warns ACTIVE', () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://brittney.example.com');
+    vi.stubEnv('HOLO_ALLOW_HOSTED_BRIDGE', '1');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('cloud');
+    expect(r.provider).toBeInstanceOf(BrittneyCloudAdapter);
+    expect(r.hostedBridge).toBe(true);
+    expect(String(warn.mock.calls[0][0])).toMatch(/HOSTED BRIDGE ACTIVE/u);
+  });
+
+  it('explicit provider=cloud still works without the flag and without a warning', () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://brittney.example.com');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const viaOpt = resolveSovereignProvider({ explicit: 'cloud' });
+    expect(viaOpt.providerName).toBe('cloud');
+    expect(viaOpt.hostedBridge).toBeUndefined();
+    vi.stubEnv('HOLO_LLM_PROVIDER', 'cloud');
+    expect(resolveSovereignProvider().providerName).toBe('cloud');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('async auto path refuses too, and a cold Vast fleet does not fall through to it', async () => {
+    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://brittney.example.com');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(resolveSovereignProviderAsync()).rejects.toBeInstanceOf(HostedBridgeRefusedError);
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: { ready: 0, total: 1 } }),
+      }))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toBeInstanceOf(HostedBridgeRefusedError);
+  });
+
+  it('classifyServiceHost is informational: loopback / lan / public / invalid', () => {
+    expect(classifyServiceHost('http://localhost:8000')).toBe('loopback');
+    expect(classifyServiceHost('http://[::1]:8000')).toBe('loopback');
+    expect(classifyServiceHost('http://10.1.2.3')).toBe('lan');
+    expect(classifyServiceHost('http://172.20.0.5')).toBe('lan');
+    expect(classifyServiceHost('http://172.32.0.5')).toBe('public');
+    expect(classifyServiceHost('http://holojetson')).toBe('lan');
+    expect(classifyServiceHost('https://api.fireworks.ai')).toBe('public');
+    expect(classifyServiceHost('not a url')).toBe('invalid');
   });
 });
