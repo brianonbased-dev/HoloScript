@@ -364,8 +364,8 @@ Every number in this README points to a live source. If a number is hardcoded, i
 
 HoloScript release lanes are managed under `scripts/version-policy.json`, and npm publishing is guarded. Treat that file and each package manifest as the source of truth instead of copying a version into docs.
 
-- Use `pnpm release:publish` for production publish flows.
-- Raw `pnpm publish` at repo root is intentionally blocked.
+- Use `pnpm release:publish` for production publish flows. With no allowlist this publishes the full unpublished set. `RELEASE_PUBLISH_ALLOWLIST=@holoscript/llm-provider` (or `--packages=@holoscript/llm-provider`) publishes only those packages through the same gates. See [`docs/handbooks/npm-pypi-push-plan.md`](./docs/handbooks/npm-pypi-push-plan.md).
+- Raw `pnpm publish` and `pnpm changeset:publish` at repo root are intentionally blocked.
 - Guard checks run via `node scripts/release-guard.js` (git cleanliness, strict version policy, private package rules, semver validation, and tag awareness).
 - npm v1 publish readiness is explicit in [`docs/handbooks/npm-v1-release-readiness.md`](./docs/handbooks/npm-v1-release-readiness.md) and `scripts/holo-ci/npm-v1-release-manifest.json`; run `corepack pnpm run check:npm-v1-release` before publish.
 
