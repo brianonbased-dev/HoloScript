@@ -1309,6 +1309,23 @@ export interface AnthropicProviderExtensions {
    */
   cacheDiagnostics?: { previousMessageId: string | null };
   /**
+   * Split the system prompt into a cached fixed-instruction prefix and an
+   * uncached suffix.
+   *
+   * Anthropic's prompt cache keys the bytes up to each `cache_control`
+   * breakpoint. A single breakpoint on the whole system string makes every
+   * per-turn suffix (scene, profile, GitHub, past threads) a new cache entry,
+   * so the stable instructions are rewritten instead of read.
+   *
+   * When this is an integer strictly between 0 and the joined system length,
+   * the adapter emits two system text blocks: `system.slice(0, n)` with
+   * `cache_control`, and the remainder with none. The cache key is those
+   * prefix bytes. Identical instruction sets hit; a different prefix is a
+   * different entry. Values that do not cut a real suffix are ignored and
+   * the whole system stays one cached block.
+   */
+  systemCachePrefixChars?: number;
+  /**
    * KVFlow-derived hints for cache-breakpoint placement.
    *
    * Breakpoints are a scarce budget (4 per request, one spent on the
