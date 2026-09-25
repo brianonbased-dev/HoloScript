@@ -13,6 +13,28 @@
 
 ---
 
+## ∞ Cloud sessions (claude.ai/code)
+
+Applies only when `CLAUDE_CODE_REMOTE=true`: a fresh Ubuntu VM holding a clone of GitHub `main`, not the laptop. Work from the laptop that was never pushed is invisible here. Where this section conflicts with the rest of the file, this section wins in the cloud.
+
+- **Missing here:** the local MCP on 7411, the GOLD drive, `/room` and HoloMesh credentials, `~/.claude` (Joseph's personal rules), and `~/.ai-ecosystem`. The `C:/Users/Josep/...` hooks in `.claude/settings.json` fail harmlessly. Do not add wirings to "fix" them.
+- **Use instead:** for codebase questions, `npx tsx packages/cli/src/cli.ts query|absorb|parse`. The "MCP unavailable, ask the user to start it" steps do not apply here: take the CLI fallback and keep going. Anything meant for the board or the room goes in the PR body, and a local seat relays it.
+- **Setup each session:** run `corepack enable && corepack prepare pnpm@9.15.9 --activate`, then `pnpm install --frozen-lockfile`, then `git config core.hooksPath .githooks`. Before running core tests, build core together with its dependencies: `corepack pnpm --filter @holoscript/core... run build`. `.npmrc` asks for a 16 GB heap, which is the whole VM, so set `npm_config_node_options=--max-old-space-size=8192` and test one package at a time.
+- **Hold (2026-08-18):** add no new hook files, script files or hook wirings, and that includes `.claude/settings.json`. Editing or deleting existing ones is fine. Environment setup belongs in the environment's setup script on claude.ai, not in the repo.
+- **Gates:** when a pre-push gate refuses, read why and report it in the PR. Never use `--no-verify`, and never push by another route. Since PR #325, the doctrine-slot check (`scripts/check-doctrine-slots.mjs`) passes on a machine with no HoloCI dispatch lane, meaning no `~/.ai-ecosystem`. Never set `HOLOCI_ALLOW_MISSING_WORKLOAD`. The fleet's own HoloCI gate skips this check, so a refusal here is a finding for the fleet, not a reason to skip it too.
+  - Test runs can create `~/.ai-ecosystem` by accident: mcp-server's holoshell download tools make `~/.ai-ecosystem/holoshell/downloads` unless `HOLOSHELL_DOWNLOAD_SHELF` is set. Set it to a temp directory before running tests.
+  - If the check finds `~/.ai-ecosystem` on a cloud VM, find out what created it first. An empty tree of test litter can go with `rmdir`. Anything else, stop and report.
+- **Fleet probe:** this lane is the reference that HoloCI's Jetson and Vast machines must match. A wall that blocks you (a laptop-only file, a skip, a memory limit, a missing rule) probably blocks the fleet as well, so name it in the PR body. Every receipt states the exact SHA, the Node and pnpm versions, and the exact command sequence.
+- **Push often:** the VM is reclaimed after inactivity, and anything unpushed is lost.
+- **Output:** one draft PR per coherent change, from a fresh `claude/<topic>` branch, with a title starting `[provider-cloud]`. Never merge, and never push to `main` or to another agent's branch.
+  - Before any change: prove the problem exists on `origin/main`, search every branch for an existing fix (`git log --remotes --grep=<task id>`), and stay out of files an open integration PR changes.
+  - Evidence includes a red leg: revert the fix and watch the test fail.
+  - Write "canon not checked" in the PR. The laptop line has commits GitHub lacks.
+  - End the body with the `board_handoff` JSON that the laptop's provider-cloud local verifier reads.
+- **Talking to Joseph:** use short, plain sentences, with no code or paths. Make technical decisions yourself and say why. Only four kinds of decision go to him: spending and custody, the physical world, public statements in his name, and governance.
+
+---
+
 ## ∞ PHASE 0 — SESSION INITIALIZATION (MANDATORY)
 
 On every session start, execute this sequence IN ORDER:
