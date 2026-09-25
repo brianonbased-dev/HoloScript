@@ -2,9 +2,9 @@
  * github-webhook-routes.ts — inbound GitHub webhook handler.
  *
  * POST /webhook/github  — push on main/master, and push on same-repo agent
- * branches (claude*, codex*, cursor*), runs the quick-profile HoloCI dispatch.
- * Agent-branch dispatch requires repository.fork !== true. pull_request stays
- * unhandled, so a fork PR never enters this lane.
+ * branches (claude*, codex*, cursor*, hardware*), runs the quick-profile
+ * HoloCI dispatch. repository.fork skips the dispatch entirely. pull_request
+ * stays unhandled, so a fork PR never enters this lane.
  *
  * Required Railway env vars on mcp-server:
  *   GITHUB_WEBHOOK_SECRET  — matches the secret set in GitHub repo Settings → Webhooks
@@ -162,10 +162,10 @@ export async function handleGithubWebhookRoutes(
   const pusher = String(body.pusher?.name || 'unknown');
   const commitMsg = (body.head_commit?.message || '').split('\n')[0].slice(0, 72);
 
-  // Same-repo agent pushes (claude*, codex*, cursor*, including numbered
-  // sessions such as claude1/) get the same quick profile as main. Fork
-  // agent branches do not. pull_request is still ignored above, so a fork
-  // PR cannot enter this dispatch.
+  // Same-repo agent pushes (claude*, codex*, cursor*, hardware*, including
+  // numbered sessions such as claude1/) get the same quick profile as main.
+  // A fork repository is refused before that. pull_request is still ignored
+  // above, so a fork PR cannot enter this dispatch.
   const decision = decideGithubCiDispatch({
     event,
     ref,

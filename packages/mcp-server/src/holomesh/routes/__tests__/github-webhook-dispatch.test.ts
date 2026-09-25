@@ -28,6 +28,7 @@ describe('decideGithubCiDispatch', () => {
       'refs/heads/claude4/studio-server-key-doors',
       'refs/heads/codex/stale-presence-reopen',
       'refs/heads/cursor/restore-frontier-fallback-generic-4e0a',
+      'refs/heads/hardware/vast-coding-backup-chain-20260924',
     ]) {
       expect(decide(ref), ref).toEqual({ dispatch: true, reason: 'same-repo agent branch' });
     }
@@ -56,6 +57,7 @@ describe('decideGithubCiDispatch', () => {
       'refs/heads/claude/examples-catalog-order',
       'refs/heads/claude1/agent-model-pricing-startup',
       'refs/heads/cursor/restore-frontier-fallback-generic-4e0a',
+      'refs/heads/hardware/vast-coding-backup-chain-20260924',
     ]) {
       const decision = decide(ref, { repositoryFork: true });
       expect(decision.dispatch, ref).toBe(false);
@@ -63,8 +65,10 @@ describe('decideGithubCiDispatch', () => {
     }
   });
 
-  it('keeps default-branch pushes on a fork on the previous path', () => {
-    expect(decide('refs/heads/main', { repositoryFork: true }).dispatch).toBe(true);
+  it('does not run a fork default branch on our machines', () => {
+    const decision = decide('refs/heads/main', { repositoryFork: true });
+    expect(decision.dispatch).toBe(false);
+    expect(decision.reason).toContain('fork');
   });
 
   it('does not dispatch pull_request events', () => {
