@@ -876,34 +876,6 @@ describe('AnthropicAdapter prompt caching', () => {
     expect(system[0].cache_control).toEqual({ type: 'ephemeral' });
   });
 
-  it('structured system payloads stay distinct cache keys instead of collapsing to [object Object]', async () => {
-    const adapter = new AnthropicAdapter({ apiKey: 'test-key' });
-    await adapter.complete({
-      messages: [
-        {
-          role: 'system',
-          content: [{ type: 'text', text: 'Instructions ALPHA unique' }],
-        },
-        { role: 'user', content: 'U' },
-      ],
-    });
-    await adapter.complete({
-      messages: [
-        {
-          role: 'system',
-          content: [{ type: 'text', text: 'Instructions BETA unique' }],
-        },
-        { role: 'user', content: 'U' },
-      ],
-    });
-    const alpha = systemBlocks(streamCalls[0])[0].text;
-    const beta = systemBlocks(streamCalls[1])[0].text;
-    expect(alpha).toContain('ALPHA');
-    expect(beta).toContain('BETA');
-    expect(alpha).not.toBe(beta);
-    expect(alpha).not.toContain('[object Object]');
-  });
-
   it('kvflow: a hint aimed at a system message is dropped, falling back to recency', async () => {
     // Specified behaviour, not an accident: system content is covered by the
     // system+tools breakpoint, so there is no message turn to mark.

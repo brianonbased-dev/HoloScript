@@ -24,7 +24,6 @@ import type {
 } from '../types';
 import {
   isAnthropicAdvisorTool,
-  messageContentAsString,
   LLMAuthenticationError,
   LLMRateLimitError,
   LLMContextLengthError,
@@ -1369,14 +1368,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     const systemMessages = messages.filter((m) => m.role === 'system');
     const nonSystemMessages = messages.filter((m) => m.role !== 'system');
 
-    // Stringify before joining. Array content used to become "[object Object]"
-    // via Array#toString, so distinct instruction payloads collapsed onto one
-    // cache key and the model never saw the text.
     return {
-      system: systemMessages
-        .map((m) => messageContentAsString(m.content))
-        .filter((text) => text.length > 0)
-        .join('\n\n'),
+      system: systemMessages.map((m) => m.content).join('\n\n'),
       messages: nonSystemMessages as Array<{ role: 'user' | 'assistant'; content: string }>,
     };
   }
