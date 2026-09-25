@@ -262,6 +262,7 @@ export function BrittneyFullScreen() {
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sendInFlightRef = useRef(false);
 
   // Persistent history — unified across every Brittney surface (the thread
   // follows the user to /build, /vibe, /create), not a /start-only scope.
@@ -341,8 +342,11 @@ export function BrittneyFullScreen() {
 
   const runSend = useCallback(
     async (text: string) => {
-      if (!text || isThinking) return;
-
+      if (!text || isThinking || sendInFlightRef.current) return;
+      // Synchronous lock: isThinking updates on the next render, so a second
+      // Enter/click would otherwise append the newest user bubble twice.
+      sendInFlightRef.current = true;
+      try {
       setInput('');
       setShowCards(false);
 
@@ -354,13 +358,20 @@ export function BrittneyFullScreen() {
       const userTimestamp = Date.now();
 
       const userMsgId = userTimestamp.toString();
-      setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
+      setMessages((m) => {
+        const last = m[m.length - 1];
+        if (last?.role === 'user' && last.text === text) return m;
+        return [...m, { id: userMsgId, role: 'user', text }];
+      });
       persistMessage(
         { role: 'user', content: text, timestamp: userTimestamp },
         { localOnly: serverPersistIntent }
       );
 
-      const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
+      const updatedHistory: AssistantMessage[] = [
+        ...llmHistory,
+        { role: 'user', content: text, timestamp: userTimestamp },
+      ];
       setLlmHistory(updatedHistory);
       setIsThinking(true);
 
@@ -537,6 +548,9 @@ export function BrittneyFullScreen() {
       }
       setIsThinking(false);
       setProgressLabel(null);
+      } finally {
+        sendInFlightRef.current = false;
+      }
     },
     [
       isThinking,

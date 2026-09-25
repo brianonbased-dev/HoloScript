@@ -12,6 +12,13 @@ import type { SceneNode } from '@/lib/stores';
 export interface AssistantMessage {
   role: 'user' | 'assistant';
   content: string;
+  /**
+   * Client capture time (ms epoch) for the newest user turn. The chat route
+   * stores this on write-through so a later upload of the same turn matches
+   * the row already written. Older history entries omit it; the model only
+   * sees role and content.
+   */
+  timestamp?: number;
 }
 
 export interface AssistantStreamEvent {

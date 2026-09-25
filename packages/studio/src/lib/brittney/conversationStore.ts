@@ -15,6 +15,7 @@ import { randomUUID } from 'crypto';
 import { and, asc, desc, eq, gt, isNull } from 'drizzle-orm';
 import { getDb } from '../../db/client';
 import { brittneyConversations, brittneyMessages } from '../../db/schema';
+import { omitDuplicateTurns, type TurnIdentity } from './messageIdentity';
 
 export interface ConversationRecord {
   id: string;
@@ -48,6 +49,8 @@ export interface MessageInput {
 }
 
 const TITLE_MAX_CHARS = 80;
+/** How many recent rows participate in newest-turn idempotency. */
+const DEDUPE_LOOKBACK = 30;
 
 /** Derive a conversation title from its first user message. */
 export function deriveConversationTitle(content: string): string {
@@ -263,10 +266,23 @@ export async function deleteConversation(ownerId: string, id: string): Promise<b
   return true;
 }
 
+function recentTurnIdentities(rows: MessageRecord[]): TurnIdentity[] {
+  return rows.slice(-DEDUPE_LOOKBACK).map((row) => ({
+    role: row.role,
+    content: row.content,
+    toolCalls: row.toolCalls,
+    timestamp: row.timestamp,
+  }));
+}
+
 /**
  * Append messages to a conversation, assigning monotonic seq numbers and
  * updating the conversation's counters. Auto-titles the conversation from its
  * first user message when no title is set.
+ *
+ * Replays of the newest turn are omitted: a matching client timestamp, or a
+ * consecutive same-role same-content row, is not written again. An empty
+ * result leaves messageCount unchanged.
  *
  * Returns null when the conversation doesn't exist or isn't owned by the
  * caller (indistinguishable, so a non-owner can't probe).
@@ -299,19 +315,25 @@ export async function appendMessages(
       if (!found.length) return null;
       const convo = found[0];
 
-      const [latest] = await db
-        .select({ seq: brittneyMessages.seq })
+      const recentRows = await db
+        .select()
         .from(brittneyMessages)
         .where(eq(brittneyMessages.conversationId, conversationId))
         .orderBy(desc(brittneyMessages.seq))
-        .limit(1);
-      const baseSeq = latest?.seq ?? 0;
+        .limit(DEDUPE_LOOKBACK);
+      const recent = recentRows.reverse().map(messageRowToRecord);
+      const kept = omitDuplicateTurns(recentTurnIdentities(recent), inputs);
+      if (kept.length === 0) {
+        return { conversation: convoRowToRecord(convo), messages: [] };
+      }
+
+      const baseSeq = recent.length ? recent[recent.length - 1].seq : 0;
 
       try {
         const inserted = await db
           .insert(brittneyMessages)
           .values(
-            inputs.map((m, i) => ({
+            kept.map((m, i) => ({
               conversationId,
               seq: baseSeq + 1 + i,
               role: m.role,
@@ -322,12 +344,12 @@ export async function appendMessages(
           )
           .returning();
 
-        const firstUser = inputs.find((m) => m.role === 'user');
+        const firstUser = kept.find((m) => m.role === 'user');
         const now = new Date();
         const [updated] = await db
           .update(brittneyConversations)
           .set({
-            messageCount: convo.messageCount + inputs.length,
+            messageCount: convo.messageCount + kept.length,
             lastMessageAt: now,
             updatedAt: now,
             ...(convo.title === '' && firstUser
@@ -354,9 +376,14 @@ export async function appendMessages(
   if (!record || record.ownerId !== ownerId) return null;
 
   const list = memMsgs().get(conversationId) ?? [];
+  const kept = omitDuplicateTurns(recentTurnIdentities(list), inputs);
+  if (kept.length === 0) {
+    return { conversation: record, messages: [] };
+  }
+
   const baseSeq = list.length ? list[list.length - 1].seq : 0;
   const nowIso = new Date().toISOString();
-  const appended: MemMessage[] = inputs.map((m, i) => ({
+  const appended: MemMessage[] = kept.map((m, i) => ({
     id: randomUUID(),
     conversationId,
     seq: baseSeq + 1 + i,
@@ -368,10 +395,10 @@ export async function appendMessages(
   }));
   memMsgs().set(conversationId, [...list, ...appended]);
 
-  const firstUser = inputs.find((m) => m.role === 'user');
+  const firstUser = kept.find((m) => m.role === 'user');
   const updated: MemConversation = {
     ...record,
-    messageCount: record.messageCount + inputs.length,
+    messageCount: record.messageCount + kept.length,
     lastMessageAt: nowIso,
     updatedAt: nowIso,
     title:
