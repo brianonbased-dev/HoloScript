@@ -1,12 +1,9 @@
 /**
  * github-webhook-routes.ts — inbound GitHub webhook handler.
  *
- * POST /webhook/github  — quick-profile HoloCI dispatch for:
- *   - push events on main/master and on cloud-agent branches (claude/*, codex/*)
- *   - pull_request events (opened / reopened / synchronize / ready_for_review) whose
- *     head branch lives in the same repository — every other agent lane (cursor/*,
- *     claude1/*, hardware/*, …). Fork PRs are never dispatched: that would run
- *     untrusted code on the fleet with fleet credentials.
+ * POST /webhook/github  — push on main/master, and push on agent branches
+ * (claude*, codex*, cursor*, hardware*), runs the quick-profile HoloCI dispatch.
+ * Non-push events stay skipped, so a fork pull request never enters this lane.
  *
  * Required Railway env vars on mcp-server:
  *   GITHUB_WEBHOOK_SECRET  — matches the secret set in GitHub repo Settings → Webhooks
@@ -17,10 +14,11 @@
  * Setup:
  *   https://github.com/brianonbased-dev/HoloScript/settings/hooks
  *   URL:           https://mcp.holoscript.net/webhook/github
- *                  (the old mcp-holoscript-production.up.railway.app host answers
- *                  "Application not found", so a hook still pointed there never arrives)
+ *                  (not mcp-holoscript-production.up.railway.app: that host answers
+ *                  "Application not found", so a hook pointed there never arrives)
  *   Content-Type:  application/json
- *   Events:        Pushes AND Pull requests
+ *   Events:        Push events (just push — PRs from forks stay out because this
+ *                  receiver does not handle pull_request)
  *   Secret:        value of GITHUB_WEBHOOK_SECRET
  *
  * For Hololand: add a second webhook pointing to the same URL — the repo slug in
@@ -38,6 +36,7 @@ import {
 import { teamMessageStore } from '../state';
 import { broadcastToRoom } from '../team-room';
 import type { TeamMessage } from '../types';
+import { isGithubCiPushRef } from './github-webhook-dispatch';
 
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 
@@ -91,23 +90,6 @@ function postToRoom(content: string): void {
   broadcastToRoom(TEAM_ID, { type: 'team:message', agent: 'GitHub', data: msg });
 }
 
-type PullRequestEvent = {
-  action?: string;
-  number?: number;
-  repository?: { full_name?: string };
-  sender?: { login?: string };
-  pull_request?: {
-    title?: string;
-    head?: { sha?: string; ref?: string; repo?: { full_name?: string } | null };
-  };
-};
-
-/** PR actions that put a new head commit in front of reviewers. */
-const PR_DISPATCH_ACTIONS = new Set(['opened', 'reopened', 'synchronize', 'ready_for_review']);
-
-/** Branches the push path already validates on every push (same sha, same gates). */
-const PUSH_VALIDATED_BRANCH = /^(claude|codex)\//;
-
 type PushEvent = {
   ref?: string;
   after?: string;
@@ -158,39 +140,6 @@ export async function handleGithubWebhookRoutes(
   }
 
   const event = req.headers['x-github-event'] as string | undefined;
-  if (event === 'pull_request') {
-    let pr: PullRequestEvent;
-    try {
-      pr = JSON.parse(rawBody) as PullRequestEvent;
-    } catch {
-      json(res, 400, { error: 'invalid_json' });
-      return true;
-    }
-    const action = String(pr.action || '');
-    const repoFull = String(pr.repository?.full_name || '');
-    const head = pr.pull_request?.head;
-    const headRepo = String(head?.repo?.full_name || '');
-    const headRef = String(head?.ref || '');
-    const sha = String(head?.sha || '');
-    let skip = '';
-    if (!PR_DISPATCH_ACTIONS.has(action)) skip = `pull_request action "${action}" not dispatched`;
-    else if (!headRepo || headRepo !== repoFull)
-      skip = `head is in "${headRepo || 'a deleted fork'}", not ${repoFull}; fork PRs are never run on the fleet`;
-    else if (PUSH_VALIDATED_BRANCH.test(headRef))
-      skip = `head branch "${headRef}" is already validated by its push event`;
-    else if (!sha || /^0+$/.test(sha)) skip = 'no head sha';
-    if (skip) {
-      json(res, 200, { ok: true, skipped: true, reason: skip });
-      return true;
-    }
-    const title = String(pr.pull_request?.title || '').slice(0, 72);
-    return dispatchQuickProfile(res, {
-      repoFull,
-      sha,
-      label: `PR #${pr.number ?? '?'} (${headRef}) by ${String(pr.sender?.login || 'unknown')}`,
-      detail: title,
-    });
-  }
   if (event !== 'push') {
     // ping, create, delete, etc. — ack but don't dispatch
     json(res, 200, { ok: true, skipped: true, reason: `event "${event}" not handled` });
@@ -211,18 +160,14 @@ export async function handleGithubWebhookRoutes(
   const pusher = String(body.pusher?.name || 'unknown');
   const commitMsg = (body.head_commit?.message || '').split('\n')[0].slice(0, 72);
 
-  // Dispatch for pushes to the default branch AND to cloud-agent branches (claude/*, codex/*).
-  // Cloud sessions are push-gated off main (F.114), so their work lands on these branches and
-  // was previously NEVER validated (W.725) — the founder's Windows-only seat was the only thing
-  // that detected + cross-platform-validated them by hand. Validating on push closes that gap
-  // (the cross-platform-paths gate + type-check + lockfile catch the bugs that stranded them).
-  const isDefaultBranch = ref === 'refs/heads/main' || ref === 'refs/heads/master';
-  const isCloudBranch = /^refs\/heads\/(claude|codex)\//.test(ref);
-  if (!isDefaultBranch && !isCloudBranch) {
+  // main/master, plus same-repo agent prefixes. Fork pull requests never reach
+  // this branch: non-push events return above. Other repo slugs are refused
+  // later by the workload allowlist, so an outside copy is not checked out.
+  if (!isGithubCiPushRef(ref)) {
     json(res, 200, {
       ok: true,
       skipped: true,
-      reason: `ref "${ref}" is not main/master or a cloud-agent branch (claude/*, codex/*)`,
+      reason: `ref "${ref}" is not main/master or an agent branch (claude*/codex*/cursor*/hardware*)`,
     });
     return true;
   }
@@ -233,24 +178,7 @@ export async function handleGithubWebhookRoutes(
     return true;
   }
 
-  return dispatchQuickProfile(res, {
-    repoFull,
-    sha,
-    label: pusher !== 'unknown' ? `pushed by ${pusher}` : '',
-    detail: commitMsg,
-  });
-}
-
-/**
- * Queue the quick HoloCI profile for one commit, answer GitHub at once, then post
- * pending → final commit statuses from the fleet result in the background.
- */
-function dispatchQuickProfile(
-  res: http.ServerResponse,
-  opts: { repoFull: string; sha: string; label: string; detail: string }
-): boolean {
-  const { repoFull, sha, label, detail } = opts;
-  // Build quick-profile workload — fast static gates on every push or PR head
+  // Build quick-profile workload — fast static gates on every push
   let built: ReturnType<typeof buildWorkload>;
   try {
     built = buildWorkload({ repo: repoFull, sha, profile: 'quick' });
@@ -275,8 +203,8 @@ function dispatchQuickProfile(
       const result = await submitWorkload(built.workload);
       if (result.ok) {
         const msgParts = [`⏳ HoloCI queued — ${repoFull}@${shortSha}`];
-        if (label) msgParts.push(label);
-        if (detail) msgParts.push(`"${detail}"`);
+        if (pusher !== 'unknown') msgParts.push(`pushed by ${pusher}`);
+        if (commitMsg) msgParts.push(`"${commitMsg}"`);
         msgParts.push(`(${built.contexts.length} gates · ${result.workloadId})`);
         postToRoom(msgParts.join(' '));
         // Background: poll until gates complete, then post final statuses.
