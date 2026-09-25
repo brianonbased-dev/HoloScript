@@ -641,6 +641,64 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   }
 
   /**
+   * System field for Messages API.
+   *
+   * Caching off: plain string (opt-out).
+   * Caching on, no split: one text block, breakpoint on that block. This is
+   * the historical shape — the breakpoint caches tools and the whole system
+   * together.
+   * Caching on, `systemCachePrefixChars` cuts a real suffix: two blocks. The
+   * breakpoint is only on the fixed-instruction prefix. The suffix is sent
+   * but is not part of that cache entry, so a scene/profile change does not
+   * rewrite the instruction set, and a different instruction set cannot reuse
+   * this entry. Still one system breakpoint, so the message-turn budget is
+   * unchanged.
+   */
+  private buildSystemField(
+    system: string,
+    cachePrefixChars?: number
+  ):
+    | string
+    | Array<{
+        type: 'text';
+        text: string;
+        cache_control?: { type: 'ephemeral'; ttl?: '1h' };
+      }>
+    | undefined {
+    if (!system) return undefined;
+    if (!this.enablePromptCaching) return system;
+
+    const splitAt = cachePrefixChars;
+    const canSplit =
+      typeof splitAt === 'number' &&
+      Number.isInteger(splitAt) &&
+      splitAt > 0 &&
+      splitAt < system.length;
+
+    if (!canSplit) {
+      return [
+        {
+          type: 'text' as const,
+          text: system,
+          cache_control: this.cacheControl(),
+        },
+      ];
+    }
+
+    return [
+      {
+        type: 'text' as const,
+        text: system.slice(0, splitAt),
+        cache_control: this.cacheControl(),
+      },
+      {
+        type: 'text' as const,
+        text: system.slice(splitAt),
+      },
+    ];
+  }
+
+  /**
    * Map Anthropic's usage block onto the provider-neutral `TokenUsage` shape.
    *
    * The subtlety this exists for: Anthropic's `input_tokens` is ONLY the
@@ -797,10 +855,12 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         // returns from in 2.8s. SDK overload resolution / inferred shape
         // matters; keep the call literal. Tools added conditionally below.
         // Prompt caching opt-in: when enabled AND we have a system prompt,
-        // send `system` as an array with cache_control on the last (only)
-        // block. Render order is `tools → system → messages`, so this single
-        // breakpoint caches BOTH tools AND system together — the exact prefix
-        // an agent runner reuses across ticks. The first request pays ~1.25×
+        // send `system` as an array. With no split, cache_control is on that
+        // single block. With `systemCachePrefixChars`, cache_control is only
+        // on the fixed-instruction prefix; the volatile suffix is a second
+        // block with no breakpoint. Render order is `tools → system →
+        // messages`, so the breakpoint caches tools AND the instruction prefix
+        // together. The first request pays ~1.25×
         // input on the cached prefix; subsequent ticks within TTL pay ~0.1×.
         // Below the model's minimum cacheable prefix the request is processed
         // unchanged — no error, no benefit, `cache_creation_input_tokens: 0`.
@@ -813,16 +873,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         // A 3K-token prefix caches on Opus 5 and silently does not on Haiku
         // 4.5. Verify with `usage.cacheReadTokens` (see mapUsage) rather than
         // reasoning about the threshold.
-        const systemField =
-          this.enablePromptCaching && system
-            ? [
-                {
-                  type: 'text' as const,
-                  text: system,
-                  cache_control: this.cacheControl(),
-                },
-              ]
-            : system || undefined;
+        const systemField = this.buildSystemField(
+          system,
+          request.provider?.anthropic?.systemCachePrefixChars
+        );
 
         const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
 
@@ -1010,10 +1064,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       if (request.topP !== undefined) samplingParams.top_p = request.topP;
     }
 
-    const systemField =
-      this.enablePromptCaching && system
-        ? [{ type: 'text' as const, text: system, cache_control: this.cacheControl() }]
-        : system || undefined;
+    const systemField = this.buildSystemField(
+      system,
+      request.provider?.anthropic?.systemCachePrefixChars
+    );
 
     const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
 

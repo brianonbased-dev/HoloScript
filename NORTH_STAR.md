@@ -32,6 +32,18 @@ never "proven" or "better." Owning the code path and naming the gap is necessary
 Proof of better is a named capability nobody else has demonstrated, a real benchmark comparison that
 shows the edge, or both.
 
+**Name the rung.** "Native" and "sovereign" name which ownership rung is actually owned: code owned,
+kernels owned, weights owned, or hardware-level owned. Every such claim must name the rung. Cloud
+forwarding is a bridge.
+
+**Label the bridge.** When the sovereign path is not ready, shipping on an outside tool is allowed
+only as a labelled bridge, with a removal condition recorded the same day. No undisclosed cloud
+fallback under a "sovereign" label.
+
+**Ours, trained on a bridge.** From-scratch weights on our data are ours. Until HoloTorch can
+reproduce the training run, describe the model as "ours, trained on a bridge" (for example, trained
+and served on PyTorch), not as fully native.
+
 ## ∞ The Thesis (founder-ratified 2026-06-15) — read before any architectural call
 
 **HoloScript exists so anyone, using any AI, can produce a simulation that _is_ a theorem about
@@ -77,7 +89,7 @@ a question the substrate answers. Full doctrine + reasoning:
 3. **dist/index.d.ts is hand-crafted** via `generate-types.mjs` -- not tsc.
 4. **Never hardcode domain vocabulary into core.** Plugins are data, not code.
 5. **Simulation-first.** Digital twin before physical twin. Every feature.
-6. **Sovereign > bridge.** New capabilities go in sovereign compilers only.
+6. **Sovereign > bridge.** New capabilities go in sovereign compilers. When that path is not ready, an outside tool ships only as a labelled bridge (**Label the bridge** above).
 7. **Systems-language ratchet.** Never constrain the language to scenes, descriptions, or external-runtime wrappers; move semantics and execution into owned language/runtime layers.
 8. **Commit to main.** All agents, all changes. Pre-commit hook is the gate.
 9. **Stage explicitly.** `git add <file>`, never `git add -A` or `git add .`

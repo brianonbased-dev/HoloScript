@@ -56,7 +56,7 @@ import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { EMBODIED_TOOLS, EMBODIED_TOOL_NAMES } from '@/lib/brittney/EmbodiedTools';
 import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
-import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
+import { buildContextualPromptParts } from '@/lib/brittney/systemPrompt';
 import { parseTextToolCall } from '@/lib/brittney/textToolCallRescue';
 import {
   createOutputScreener,
@@ -416,9 +416,17 @@ export async function POST(request: NextRequest) {
         : [];
 
     __phase = 'system-prompt';
-    const systemPrompt =
-      bodySystemPrompt ??
-      buildContextualPrompt(
+    // Fixed instructions and the per-turn suffix are separate cache material.
+    // A client override replaces the whole assembly and is its own instruction
+    // set (no suffix to split off). Ollama and the hosted bridge still receive
+    // one concatenated system string; only Anthropic is told where the prefix ends.
+    let systemPrompt: string;
+    let fixedInstructionCacheChars: number | undefined;
+    if (typeof bodySystemPrompt === 'string') {
+      systemPrompt = bodySystemPrompt;
+      fixedInstructionCacheChars = undefined;
+    } else {
+      const promptParts = buildContextualPromptParts(
         sceneContext,
         null,
         true,
@@ -430,6 +438,12 @@ export async function POST(request: NextRequest) {
         allowFounderWorkspace,
         pastThreads
       );
+      systemPrompt = promptParts.fixedInstructions + promptParts.dynamicContext;
+      fixedInstructionCacheChars =
+        resolved?.providerName === 'anthropic' && promptParts.dynamicContext.length > 0
+          ? promptParts.fixedInstructions.length
+          : undefined;
+    }
     const baseUrl = getBaseUrl(request);
 
     __phase = 'holoshell-operator';
@@ -777,17 +791,22 @@ export async function POST(request: NextRequest) {
                   (t as { function: { name: string } }).function.name === 'apply_code')
             );
 
+            const anthropicRequest: NonNullable<
+              NonNullable<LLMCompletionRequest['provider']>['anthropic']
+            > = {};
+            if (typeof fixedInstructionCacheChars === 'number') {
+              anthropicRequest.systemCachePrefixChars = fixedInstructionCacheChars;
+            }
+            if (isSceneCreation && hasApplyCode) {
+              anthropicRequest.toolChoice = { type: 'tool' as const, name: 'apply_code' };
+            }
             const request: LLMCompletionRequest = {
               messages: roundMessages,
               maxTokens,
               tools: tools.length > 0 ? tools : undefined,
               stream: true,
-              ...(isSceneCreation && hasApplyCode
-                ? {
-                    provider: {
-                      anthropic: { toolChoice: { type: 'tool' as const, name: 'apply_code' } },
-                    },
-                  }
+              ...(Object.keys(anthropicRequest).length > 0
+                ? { provider: { anthropic: anthropicRequest } }
                 : {}),
             };
 
