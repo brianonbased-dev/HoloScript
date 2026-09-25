@@ -26,6 +26,12 @@ Rust, engine projects, or deployment manifests is bridge evidence, not proof tha
 owns the underlying systems layer. Canonical wording and acceptance gates live in
 [`docs/spec/language-identity.md`](docs/spec/language-identity.md).
 
+**Prove better.** The only way to prove better is having a capability no one else has come up with
+and/or benchmarking. Matching an outside tool is parity: label that receipt "matches the old tool,"
+never "proven" or "better." Owning the code path and naming the gap is necessary and not sufficient.
+Proof of better is a named capability nobody else has demonstrated, a real benchmark comparison that
+shows the edge, or both.
+
 ## ∞ The Thesis (founder-ratified 2026-06-15) — read before any architectural call
 
 **HoloScript exists so anyone, using any AI, can produce a simulation that _is_ a theorem about
