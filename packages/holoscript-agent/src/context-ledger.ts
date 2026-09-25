@@ -12,15 +12,34 @@
  * Append-only by design: earlier messages are never rewritten, so a provider's
  * prompt-cache prefix stays valid. Errors and short results always pass through.
  *
- * Correctness rests on the history not being trimmed within a task. Anything that
- * starts compacting or truncating history must reset this ledger (or stop using it),
- * or a pointer could name a copy that is no longer in context.
+ * Correctness rests on the first copy still being in the model's context. The runner
+ * never trims history within a task, but a local server (Ollama, llama.cpp) silently
+ * drops the oldest context past its num_ctx. So for local providers the ledger only
+ * points back within `windowChars` of the newest content; a repeat from further back is
+ * sent in full and becomes the new first copy. Anything that starts compacting history
+ * in the runner must reset this ledger too.
  */
 import { createHash } from 'node:crypto';
 import type { ToolResultBlock, ToolUseBlock } from '@holoscript/llm-provider';
 
 /** Results shorter than this are cheaper to resend than to explain. */
 export const MIN_ELIDE_CHARS = 512;
+
+/** Hosted APIs reject an oversized request instead of dropping its oldest context. */
+const HOSTED_PROVIDERS = new Set(['anthropic', 'openai', 'gemini', 'xai', 'openrouter']);
+
+/**
+ * How far back (in characters of tool output) a pointer may reach for this provider.
+ * Local models get num_ctx tokens × 2 chars, deliberately under the ~3-4 chars a token
+ * usually covers, because the system prompt and assistant turns share that window.
+ */
+export function contextWindowCharsFor(provider: string): number {
+  if (HOSTED_PROVIDERS.has(provider)) return Infinity;
+  const raw = process.env.HOLOSCRIPT_LLM_NUM_CTX ?? process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
+  const n = raw ? Number(raw) : NaN;
+  // 16384 is local-llm.ts's num_ctx default when neither variable is set.
+  return (Number.isFinite(n) && n > 0 ? n : 16384) * 2;
+}
 
 export interface ContextLedgerStats {
   /** Tool results replaced by a pointer to an earlier identical copy. */
@@ -33,13 +52,28 @@ interface FirstCopy {
   toolUseId: string;
   tool: string;
   call: string;
+  /** Characters admitted before this copy, i.e. where it starts in the ledger's stream. */
+  start: number;
+}
+
+export interface ContextLedgerOptions {
+  minChars?: number;
+  /** How far back a pointer may reach; see contextWindowCharsFor. Default: unbounded. */
+  windowChars?: number;
 }
 
 export class ContextLedger {
   private readonly firstCopy = new Map<string, FirstCopy>();
   readonly stats: ContextLedgerStats = { elided: 0, charsSaved: 0 };
+  private readonly minChars: number;
+  private readonly windowChars: number;
+  /** Total characters of tool output admitted so far (after elision). */
+  private position = 0;
 
-  constructor(private readonly minChars: number = MIN_ELIDE_CHARS) {}
+  constructor(opts: ContextLedgerOptions = {}) {
+    this.minChars = opts.minChars ?? MIN_ELIDE_CHARS;
+    this.windowChars = opts.windowChars ?? Infinity;
+  }
 
   /**
    * Returns the results to push into the history, in the same order. `uses[i]` must
@@ -48,25 +82,35 @@ export class ContextLedger {
    */
   admit(uses: readonly ToolUseBlock[], results: readonly ToolResultBlock[]): ToolResultBlock[] {
     return results.map((result, i) => {
-      if (result.is_error || typeof result.content !== 'string') return result;
-      if (result.content.length < this.minChars) return result;
-      const use = uses[i];
-      const tool = use?.name ?? 'tool';
-      const call = use ? `${use.name}:${stableStringify(use.input)}` : '';
-      const digest = createHash('sha256').update(result.content).digest('hex');
-      const first = this.firstCopy.get(digest);
-      if (!first) {
-        this.firstCopy.set(digest, { toolUseId: result.tool_use_id, tool, call });
-        return result;
-      }
-      const pointer =
-        first.call === call
-          ? `[unchanged: identical to the result of ${first.tool} ${first.toolUseId} earlier in this conversation (${result.content.length} chars); not repeated]`
-          : `[identical to the result of ${first.tool} ${first.toolUseId} earlier in this conversation (${result.content.length} chars); not repeated]`;
-      this.stats.elided++;
-      this.stats.charsSaved += result.content.length - pointer.length;
-      return { ...result, content: pointer };
+      const out = this.admitOne(uses[i], result);
+      this.position += typeof out.content === 'string' ? out.content.length : 0;
+      return out;
     });
+  }
+
+  private admitOne(use: ToolUseBlock | undefined, result: ToolResultBlock): ToolResultBlock {
+    if (result.is_error || typeof result.content !== 'string') return result;
+    if (result.content.length < this.minChars) return result;
+    const tool = use?.name ?? 'tool';
+    const call = use ? `${use.name}:${stableStringify(use.input)}` : '';
+    const digest = createHash('sha256').update(result.content).digest('hex');
+    const first = this.firstCopy.get(digest);
+    if (!first || this.position - first.start > this.windowChars) {
+      this.firstCopy.set(digest, {
+        toolUseId: result.tool_use_id,
+        tool,
+        call,
+        start: this.position,
+      });
+      return result;
+    }
+    const pointer =
+      first.call === call
+        ? `[unchanged: identical to the result of ${first.tool} ${first.toolUseId} earlier in this conversation (${result.content.length} chars); not repeated]`
+        : `[identical to the result of ${first.tool} ${first.toolUseId} earlier in this conversation (${result.content.length} chars); not repeated]`;
+    this.stats.elided++;
+    this.stats.charsSaved += result.content.length - pointer.length;
+    return { ...result, content: pointer };
   }
 }
 

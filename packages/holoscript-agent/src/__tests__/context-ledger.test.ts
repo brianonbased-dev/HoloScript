@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { ToolResultBlock, ToolUseBlock } from '@holoscript/llm-provider';
-import { ContextLedger, MIN_ELIDE_CHARS, stableStringify } from '../context-ledger.js';
+import {
+  ContextLedger,
+  MIN_ELIDE_CHARS,
+  contextWindowCharsFor,
+  stableStringify,
+} from '../context-ledger.js';
 
 const big = (seed: string) => seed.repeat(Math.ceil((MIN_ELIDE_CHARS * 2) / seed.length));
 const use = (id: string, name: string, input: Record<string, unknown>): ToolUseBlock => ({
@@ -77,5 +82,39 @@ describe('ContextLedger', () => {
     expect(stableStringify({ b: 1, a: { d: [2, { f: 1, e: 0 }], c: null } })).toBe(
       stableStringify({ a: { c: null, d: [2, { e: 0, f: 1 }] }, b: 1 })
     );
+  });
+
+  it('resends in full when the first copy may have fallen out of a small model window', () => {
+    // A local server (Ollama / llama.cpp) silently drops the oldest context past num_ctx,
+    // so a pointer to a copy that far back could name text the model no longer has.
+    const body = big('far ');
+    const ledger = new ContextLedger({ windowChars: body.length * 3 });
+    ledger.admit([use('a', 'read_file', { path: '/x' })], [ok('a', body)]);
+    ledger.admit([use('f', 'bash', {})], [ok('f', big('filler one '))]);
+    ledger.admit([use('g', 'bash', {})], [ok('g', big('filler two '))]);
+    ledger.admit([use('h', 'bash', {})], [ok('h', big('filler three '))]);
+    const [far] = ledger.admit([use('b', 'read_file', { path: '/x' })], [ok('b', body)]);
+    expect(far.content).toBe(body);
+    // That full copy is the new anchor, so the next repeat points at it.
+    const [near] = ledger.admit([use('c', 'read_file', { path: '/x' })], [ok('c', body)]);
+    expect(near.content).toMatch(/^\[unchanged: identical to the result of read_file b/);
+  });
+
+  it('bounds the window for local models by num_ctx and leaves hosted APIs unbounded', () => {
+    const prev = process.env.HOLOSCRIPT_LLM_NUM_CTX;
+    const prevAgent = process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
+    delete process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
+    try {
+      process.env.HOLOSCRIPT_LLM_NUM_CTX = '4096';
+      expect(contextWindowCharsFor('local-llm')).toBe(8192);
+      expect(contextWindowCharsFor('sovereign')).toBe(8192);
+      expect(contextWindowCharsFor('anthropic')).toBe(Infinity);
+      delete process.env.HOLOSCRIPT_LLM_NUM_CTX;
+      expect(contextWindowCharsFor('local-llm')).toBe(16384 * 2);
+    } finally {
+      if (prev === undefined) delete process.env.HOLOSCRIPT_LLM_NUM_CTX;
+      else process.env.HOLOSCRIPT_LLM_NUM_CTX = prev;
+      if (prevAgent !== undefined) process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX = prevAgent;
+    }
   });
 });

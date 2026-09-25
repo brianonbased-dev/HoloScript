@@ -21,7 +21,7 @@ import {
   isProductiveToolUse,
 } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
-import { ContextLedger } from './context-ledger.js';
+import { ContextLedger, contextWindowCharsFor } from './context-ledger.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import { evaluateReflectGate, type ReflectGateResult } from './reflect-evaluator.js';
 import {
@@ -544,7 +544,7 @@ export class AgentRunner {
     ];
     // Every call resends this whole history, so a repeated identical tool result is
     // sent once and later copies become a pointer to it (context-ledger.ts).
-    const ledger = new ContextLedger();
+    const ledger = new ContextLedger({ windowChars: contextWindowCharsFor(identity.llmProvider) });
     let aggUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     let finalText = '';
     let iters = 0;
@@ -1409,7 +1409,7 @@ export class AgentRunner {
           'compile_holoscript / validate_holoscript. Do NOT just describe — act. End with a one-line summary.',
       },
     ];
-    const ledger = new ContextLedger();
+    const ledger = new ContextLedger({ windowChars: contextWindowCharsFor(identity.llmProvider) });
     let finalText = '';
     let iters = 0;
     let productiveCallCount = 0;
