@@ -55,13 +55,71 @@ Publish npm packages through the existing release script:
 corepack pnpm release:publish
 ```
 
-That script owns npm auth checks, changeset status, release guards, and publish
-ordering. Do not replace it with ad hoc `npm publish` loops.
+That script is `node scripts/holo-ci/release-publish.mjs`. It runs package
+stewardship, the release-closure build, `check-npm-v1-release-readiness --require-built`,
+`release-guard`, local cold-repro, and the pre-publish install-tree audit, then
+`changeset publish`, then the registry cold-start and published-tree audits.
+Do not replace it with ad hoc `npm publish` loops. Root `pnpm publish` and
+`pnpm changeset:publish` exit 1.
 
-Publish only when `check:npm-v1-release` or the changeset release flow reports a
-package that needs a first publish or a newer registry version. If every npm
-candidate is already published at the local version, the correct action is a
-no-op.
+Changesets CLI 2.31.1 (locked in `pnpm-lock.yaml`) has no `--filter` and no
+package allowlist. `changeset publish` options are otp, tag, and gitTag. It
+publishes every non-private workspace package whose `package.json` version is
+missing from the npm version list. `.changeset/config.json` `ignore` is not
+consulted on that path, so adding a package to `ignore` does not hold it.
+
+## Single-package npm publish
+
+Unset, `release:publish` stays full-fleet. To publish only named packages,
+set the allowlist. The flag name is `RELEASE_PUBLISH_ALLOWLIST`. The argv form
+is `--packages`. They must name the same set when both are present. An empty
+value fails closed and does not mean "publish everything".
+
+```bash
+RELEASE_PUBLISH_ALLOWLIST=@holoscript/llm-provider corepack pnpm release:publish
+```
+
+```bash
+corepack pnpm release:publish --packages=@holoscript/llm-provider
+```
+
+Comma-separate names for more than one package. The allowlist gate
+(`scripts/holo-ci/release-publish-allowlist.mjs`) refuses when:
+
+- the allowlist is empty
+- a named package is not a public workspace package
+- a named package is not an unpublished tip (changeset would not ship it)
+- an allowlisted package shares a changeset `fixed` or `linked` group with a
+  different unpublished package
+- an allowlisted package depends on an unpublished package outside the allowlist
+- an outsider has never been published, so there is no registry version to hold
+
+When the only problem is other unpublished tips that already exist on npm, the
+command snapshots those `package.json` versions to the npm `latest` tag (or, if
+that tag is missing, the highest published semver), re-runs the gate, and
+continues only if the remaining publish set is exactly the allowlist. `changeset publish` then runs. The original tip versions
+are restored afterward, including when publish fails. A receipt is written
+under the OS temp dir for the duration of that window:
+`node scripts/holo-ci/release-publish-allowlist.mjs --restore-receipt <file>`.
+
+That hold is part of `release:publish`. It is not a second publish command.
+The gate itself still fails while a stray unpublished package is on the publish
+set; the snapshot exists so the re-check can pass without shipping the stray
+and without leaving the git tip versions changed.
+
+Publish only when a package needs a first publish or a newer registry version.
+If every npm candidate is already published at the local version, the correct
+action is a no-op.
+
+## What this does not do
+
+- It does not merge, tag, or run `release:publish` by itself.
+- It does not choose which unpublished tips get a Chief-of-Staff GO.
+- It does not bump, revert, or ignore those tips in git. The hold lasts for
+  one publish process and then puts the working-tree manifests back.
+- It does not make `scripts/holo-ci/publish-npm-package.mjs` a fleet ship path.
+  That helper remains a tarball/repair tool. Fleet npm ship stays
+  `release:publish`.
 
 ## PyPI Push
 
