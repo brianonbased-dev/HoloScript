@@ -2,10 +2,11 @@
  * Fixed-instruction cache split.
  *
  * The Anthropic breakpoint must cover only the stable instruction set.
- * Scene, profile, GitHub, past threads, and the per-turn caching declaration
- * stay in the suffix so they do not rewrite that cache entry. Founder mode
- * and the simulation guidance are part of the instruction set: they change
- * the prefix, so they get their own entry.
+ * The chat panel sends live workspace state and the scene as one string.
+ * That string, plus profile, GitHub, past threads, and the per-turn caching
+ * declaration, stays in the suffix so it does not rewrite the cache entry.
+ * Founder mode and the simulation guidance are part of the instruction set:
+ * they change the prefix, so they get their own entry.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -15,6 +16,7 @@ import {
   type BrittneySystemPromptParts,
 } from '../systemPrompt';
 import type { PastThreadSnippet } from '../pastThreads';
+import { buildWorkspaceAssistantContext } from '../workspaceContext';
 
 const THREAD: PastThreadSnippet = {
   id: 't1',
@@ -96,5 +98,49 @@ describe('Brittney fixed-instructions cache split', () => {
     expect(parts.dynamicContext).toContain('Earlier thread');
     expect(parts.dynamicContext).toContain('Brittney Brain Caching');
     expect(parts.dynamicContext).toContain('composition "Room" {}');
+  });
+
+  it('live workspace and scene details stay out of the fixed-instruction block', () => {
+    // Paying-customer path: BrittneyChatPanel builds one assistant context
+    // (workspace, git, board, scene) and the route appends that string to the
+    // system prompt. Two different live snapshots must share one fixed block.
+    const first = buildWorkspaceAssistantContext({
+      sceneContext: 'Currently selected object: "Cube"',
+      historyScope: 'workspace:ws_demo',
+      workspace: {
+        id: 'ws_demo',
+        name: 'demo-app',
+        repoUrl: 'https://github.com/octocat/demo-app.git',
+        branch: 'main',
+        status: 'ready',
+      },
+      git: { branch: 'main', clean: false, files: [{ path: 'src/app/page.tsx', status: 'M' }] },
+    });
+    const second = buildWorkspaceAssistantContext({
+      sceneContext: 'Currently selected object: "Sphere"',
+      historyScope: 'workspace:ws_demo',
+      workspace: {
+        id: 'ws_demo',
+        name: 'demo-app',
+        repoUrl: 'https://github.com/octocat/demo-app.git',
+        branch: 'feature',
+        status: 'ready',
+      },
+      git: { branch: 'feature', clean: true, files: [] },
+    });
+
+    const a = buildContextualPromptParts(first, null, true, { providerName: 'anthropic' });
+    const b = buildContextualPromptParts(second, null, true, { providerName: 'anthropic' });
+
+    expect(a.fixedInstructions).toBe(b.fixedInstructions);
+    expect(a.fixedInstructions).not.toContain('demo-app');
+    expect(a.fixedInstructions).not.toContain('page.tsx');
+    expect(a.fixedInstructions).not.toContain('Currently selected object');
+    expect(a.dynamicContext).toContain('demo-app');
+    expect(a.dynamicContext).toContain('page.tsx');
+    expect(a.dynamicContext).toContain('Cube');
+    expect(b.dynamicContext).toContain('Sphere');
+    expect(b.dynamicContext).toContain('feature');
+    expect(a.dynamicContext).not.toBe(b.dynamicContext);
   });
 });
