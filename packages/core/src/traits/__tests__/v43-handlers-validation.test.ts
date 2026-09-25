@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 // =============================================================================
@@ -53,9 +53,15 @@ function loadTraitHandler(traitName: string) {
       .split('_')
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join('') + 'Trait.ts';
-  const filePath = join(__dirname, '..', fileName);
-
-  expect(existsSync(filePath), `${fileName} should exist`).toBe(true);
+  const dir = join(__dirname, '..');
+  // Naive PascalCase and the real filename can differ only by letter case
+  // (LlmAgentTrait.ts vs LLMAgentTrait.ts). existsSync follows the host
+  // filesystem, so that check passes on Windows/macOS and fails on Linux.
+  // Match the directory entry case-insensitively, then read that exact path.
+  const match = readdirSync(dir).find((entry) => entry.toLowerCase() === fileName.toLowerCase());
+  expect(match, `${fileName} should exist`).toBeTruthy();
+  const resolvedName = match as string;
+  const filePath = join(dir, resolvedName);
 
   const content = readFileSync(filePath, 'utf-8');
   const hasHandler = content.includes('TraitHandler') || content.includes('export class');
@@ -64,7 +70,7 @@ function loadTraitHandler(traitName: string) {
   expect(hasHandler, `${fileName} should export a handler or class`).toBe(true);
   expect(hasOnAttach, `${fileName} should have onAttach or constructor`).toBe(true);
 
-  return { fileName, content };
+  return { fileName: resolvedName, content };
 }
 
 // =============================================================================
