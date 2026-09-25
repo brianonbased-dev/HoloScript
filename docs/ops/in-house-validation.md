@@ -9,13 +9,19 @@ provider receipts, and checked-in artifacts.
 Pick the narrowest command set that matches the touched surface. Common gates:
 
 ```bash
-pnpm --filter @holoscript/core run build
+pnpm --filter @holoscript/core... run build
 pnpm --filter @holoscript/cli run build
 pnpm --filter @holoscript/mcp-server run build
 pnpm --filter @holoscript/studio run build
 pnpm test
 pnpm lint
 ```
+
+The trailing `...` on the core filter builds core's workspace dependencies
+(`@holoscript/meaning`, `core-types`, `platform`, …) first. On a fresh clone
+their `dist/` folders do not exist yet, and a bare `--filter @holoscript/core`
+build fails in its public-types check. The same applies to any package whose
+workspace dependencies have never been built: add `...` to its filter.
 
 Run package-specific tests for focused changes, and include the exact command in
 the handoff or task completion note.
