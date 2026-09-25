@@ -175,4 +175,20 @@ describe('AICopilot', () => {
     const result = await copilot.chat('how do I add physics?');
     expect(result.text).toBe('Hello from AI');
   });
+
+  // Adapters take the new message as `message` and append it after `history`, so the
+  // history they receive must hold only earlier turns, or the message is sent twice.
+  it('chat passes only earlier turns as history, so the new message is sent once', async () => {
+    copilot.setAdapter(adapter);
+    await copilot.chat('first question');
+    await copilot.chat('second question');
+    const calls = (adapter.chat as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls[0][0]).toBe('first question');
+    expect(calls[0][2]).toEqual([]);
+    expect(calls[1][0]).toBe('second question');
+    expect(calls[1][2]).toEqual([
+      { role: 'user', content: 'first question' },
+      { role: 'assistant', content: 'Hello from AI' },
+    ]);
+  });
 });

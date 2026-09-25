@@ -288,14 +288,15 @@ export class AICopilot {
       return { text: 'Adapter does not support chat.', suggestions: [], error: 'UNSUPPORTED' };
     }
 
+    // Earlier turns only: every adapter appends `message` after `history` itself, so
+    // including it here sent the newest message to the model twice.
+    const chatHistory = this.history.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
     this.addMessage('user', message);
 
     try {
-      const chatHistory = this.history.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
       const response = await adapter.chat(message, undefined, chatHistory);
       this.addMessage('assistant', response);
 
