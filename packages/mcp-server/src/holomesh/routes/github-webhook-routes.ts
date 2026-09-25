@@ -1,10 +1,9 @@
 /**
  * github-webhook-routes.ts — inbound GitHub webhook handler.
  *
- * POST /webhook/github  — push on main/master, and push on same-repo agent
- * branches (claude*, codex*, cursor*, hardware*), runs the quick-profile
- * HoloCI dispatch. repository.fork skips the dispatch entirely. pull_request
- * stays unhandled, so a fork PR never enters this lane.
+ * POST /webhook/github  — push on main/master, and push on agent branches
+ * (claude*, codex*, cursor*, hardware*), runs the quick-profile HoloCI dispatch.
+ * Non-push events stay skipped, so a fork pull request never enters this lane.
  *
  * Required Railway env vars on mcp-server:
  *   GITHUB_WEBHOOK_SECRET  — matches the secret set in GitHub repo Settings → Webhooks
@@ -16,8 +15,8 @@
  *   https://github.com/brianonbased-dev/HoloScript/settings/hooks
  *   URL:           https://mcp-holoscript-production.up.railway.app/webhook/github
  *   Content-Type:  application/json
- *   Events:        Push events (just push — do not add pull_request here; fork PRs
- *                  must stay out of this privileged dispatch)
+ *   Events:        Push events (just push — PRs from forks stay out because this
+ *                  receiver does not handle pull_request)
  *   Secret:        value of GITHUB_WEBHOOK_SECRET
  *
  * For Hololand: add a second webhook pointing to the same URL — the repo slug in
@@ -35,7 +34,7 @@ import {
 import { teamMessageStore } from '../state';
 import { broadcastToRoom } from '../team-room';
 import type { TeamMessage } from '../types';
-import { decideGithubCiDispatch } from './github-webhook-dispatch';
+import { isGithubCiPushRef } from './github-webhook-dispatch';
 
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 
@@ -92,12 +91,10 @@ function postToRoom(content: string): void {
 type PushEvent = {
   ref?: string;
   after?: string;
-  repository?: { full_name?: string; fork?: boolean };
+  repository?: { full_name?: string };
   pusher?: { name?: string };
   head_commit?: { message?: string };
 };
-
-export { decideGithubCiDispatch } from './github-webhook-dispatch';
 
 export async function handleGithubWebhookRoutes(
   req: http.IncomingMessage,
@@ -158,22 +155,24 @@ export async function handleGithubWebhookRoutes(
   const ref = String(body.ref || '');
   const sha = String(body.after || '');
   const repoFull = String(body.repository?.full_name || '');
-  const repositoryFork = body.repository?.fork === true;
   const pusher = String(body.pusher?.name || 'unknown');
   const commitMsg = (body.head_commit?.message || '').split('\n')[0].slice(0, 72);
 
-  // Same-repo agent pushes (claude*, codex*, cursor*, hardware*, including
-  // numbered sessions such as claude1/) get the same quick profile as main.
-  // A fork repository is refused before that. pull_request is still ignored
-  // above, so a fork PR cannot enter this dispatch.
-  const decision = decideGithubCiDispatch({
-    event,
-    ref,
-    sha,
-    repositoryFork,
-  });
-  if (!decision.dispatch) {
-    json(res, 200, { ok: true, skipped: true, reason: decision.reason });
+  // main/master, plus same-repo agent prefixes. Fork pull requests never reach
+  // this branch: non-push events return above. Other repo slugs are refused
+  // later by the workload allowlist, so an outside copy is not checked out.
+  if (!isGithubCiPushRef(ref)) {
+    json(res, 200, {
+      ok: true,
+      skipped: true,
+      reason: `ref "${ref}" is not main/master or an agent branch (claude*/codex*/cursor*/hardware*)`,
+    });
+    return true;
+  }
+
+  // Deleted branch push — sha is all zeros
+  if (!sha || /^0+$/.test(sha)) {
+    json(res, 200, { ok: true, skipped: true, reason: 'branch deletion' });
     return true;
   }
 

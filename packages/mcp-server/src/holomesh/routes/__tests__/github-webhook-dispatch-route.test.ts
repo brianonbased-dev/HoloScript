@@ -1,6 +1,6 @@
 /**
- * The webhook route uses decideGithubCiDispatch. These cases check the HTTP
- * edge: same-repo agent pushes queue, fork agent pushes and pull_request do not.
+ * HTTP edge of the push receiver. Agent-branch pushes queue. pull_request
+ * stays skipped, which is what keeps a fork PR from running here.
  */
 import { createHmac } from 'node:crypto';
 import { PassThrough } from 'node:stream';
@@ -89,15 +89,22 @@ describe('POST /webhook/github agent-branch admission', () => {
     expect(parsed.skipped).toBeUndefined();
   });
 
-  it('skips a fork cursor branch push', async () => {
-    const res = await post(
-      'push',
-      pushBody('refs/heads/cursor/restore-frontier-fallback-generic-4e0a', true),
-      true
-    );
+  it('skips a pull_request from a fork head', async () => {
+    const body = JSON.stringify({
+      action: 'opened',
+      pull_request: {
+        head: {
+          ref: 'cursor/from-a-fork',
+          sha: SHA,
+          repo: { fork: true, full_name: 'someone/HoloScript' },
+        },
+      },
+      repository: { full_name: 'brianonbased-dev/HoloScript', fork: false },
+    });
+    const res = await post('pull_request', body, true);
     const parsed = JSON.parse(res.body) as { skipped?: boolean; reason?: string };
     expect(parsed.skipped).toBe(true);
-    expect(parsed.reason).toContain('fork');
+    expect(parsed.reason).toContain('pull_request');
   });
 
   it('skips pull_request even when the head is a same-repo agent branch', async () => {
