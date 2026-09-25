@@ -138,36 +138,6 @@ describe('useBrittneyHistory', () => {
       expect(result.current.history[0].timestamp).toBe(555);
     });
 
-    it('does not store a consecutive duplicate of the newest message with the same timestamp', () => {
-      const { result } = renderHook(() => useBrittneyHistory('test-project'));
-
-      act(() => {
-        result.current.addMessage({ role: 'user', content: 'Hello', timestamp: 555 });
-      });
-      act(() => {
-        result.current.addMessage({ role: 'user', content: 'Hello', timestamp: 555 });
-      });
-
-      expect(result.current.history).toHaveLength(1);
-    });
-
-    it('keeps an intentional repeat after a reply when the timestamp differs', () => {
-      const { result } = renderHook(() => useBrittneyHistory('test-project'));
-
-      act(() => {
-        result.current.addMessage({ role: 'user', content: 'Hello', timestamp: 1 });
-      });
-      act(() => {
-        result.current.addMessage({ role: 'assistant', content: 'Hi', timestamp: 2 });
-      });
-      act(() => {
-        result.current.addMessage({ role: 'user', content: 'Hello', timestamp: 3 });
-      });
-
-      expect(result.current.history).toHaveLength(3);
-      expect(result.current.history[2].content).toBe('Hello');
-    });
-
     it('should add multiple messages', () => {
       const { result } = renderHook(() => useBrittneyHistory('test-project'));
 

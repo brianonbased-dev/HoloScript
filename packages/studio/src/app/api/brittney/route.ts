@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
     // history + sceneContext without exposing the 300s maxDuration to abuse.
     __phase = 'parse';
     const parsed = await readJsonBody<{
-      messages?: Array<{ role: string; content: string; timestamp?: number }>;
+      messages?: Array<{ role: string; content: string }>;
       sceneContext?: string;
       sessionId?: string;
       closeSession?: boolean;
@@ -1341,7 +1341,7 @@ async function resolveWriteThrough(opts: {
   ownerId: string | undefined;
   conversationId: unknown;
   scope: unknown;
-  latestMsg: { role: string; content: string; timestamp?: number } | undefined;
+  latestMsg: { role: string; content: string } | undefined;
 }): Promise<WriteThroughState> {
   const ownerId = opts.ownerId ?? '';
   if (!ownerId || ownerId === 'benchmark') return WRITE_THROUGH_DISABLED;
@@ -1384,12 +1384,8 @@ async function resolveWriteThrough(opts: {
       typeof latestMsg.content === 'string' &&
       latestMsg.content.length > 0
     ) {
-      const clientTimestamp =
-        typeof latestMsg.timestamp === 'number' && Number.isFinite(latestMsg.timestamp)
-          ? latestMsg.timestamp
-          : Date.now();
       const appended = await appendMessages(ownerId, conversationId, [
-        { role: 'user', content: latestMsg.content, timestamp: clientTimestamp },
+        { role: 'user', content: latestMsg.content, timestamp: Date.now() },
       ]);
       userSeq = appended?.messages[0]?.seq ?? null;
     }

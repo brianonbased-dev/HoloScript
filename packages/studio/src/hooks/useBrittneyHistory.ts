@@ -82,22 +82,7 @@ export function useAssistantHistory(projectId: string) {
   const addMessage = useCallback(
     (msg: ChatMessage) => {
       setHistory((prev) => {
-        const stamped = { ...msg, timestamp: msg.timestamp ?? Date.now() };
-        const tail = prev[prev.length - 1];
-        // Same capture time (or a missing stamp) means this is the newest
-        // turn being written twice — local cache plus a replayed upload.
-        // A later intentional repeat carries a different timestamp.
-        if (
-          tail &&
-          tail.role === stamped.role &&
-          tail.content === stamped.content &&
-          (tail.timestamp === stamped.timestamp ||
-            tail.timestamp == null ||
-            stamped.timestamp == null)
-        ) {
-          return prev;
-        }
-        const next = [...prev, stamped];
+        const next = [...prev, { ...msg, timestamp: msg.timestamp ?? Date.now() }];
         writeToStorage(projectId, next);
         return next;
       });

@@ -499,7 +499,6 @@ export function BrittneyChatPanel() {
   );
 
   const executorRef = useRef<SimulationToolExecutor | null>(null);
-  const sendInFlightRef = useRef(false);
   if (!executorRef.current) {
     executorRef.current = new SimulationToolExecutor();
   }
@@ -747,11 +746,7 @@ export function BrittneyChatPanel() {
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isThinking || sendInFlightRef.current) return;
-    // Synchronous lock: isThinking is async setState, so a second click or
-    // Enter in the same turn would otherwise append the newest bubble twice.
-    sendInFlightRef.current = true;
-    try {
+    if (!text || isThinking) return;
     // SEC-T03: the assistant requires an authenticated session. Surface an
     // actionable sign-in prompt rather than firing a request that 401s.
     if (isUnauthenticated) {
@@ -780,21 +775,14 @@ export function BrittneyChatPanel() {
 
     // Add user message to chat
     const userMsgId = userTimestamp.toString();
-    setChatMessages((m) => {
-      const last = m[m.length - 1];
-      if (last?.role === 'user' && last.text === text) return m;
-      return [...m, { id: userMsgId, role: 'user', text }];
-    });
+    setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
     persistMessage(
       { role: 'user', content: text, timestamp: userTimestamp },
       { localOnly: serverPersistIntent }
     );
 
     // Build updated LLM history
-    const updatedHistory: AssistantMessage[] = [
-      ...llmHistory,
-      { role: 'user', content: text, timestamp: userTimestamp },
-    ];
+    const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
     setLlmHistory(updatedHistory);
     setIsThinking(true);
 
@@ -1034,9 +1022,6 @@ export function BrittneyChatPanel() {
       !accumulatedText.startsWith('Connection error')
     ) {
       speak(accumulatedText);
-    }
-    } finally {
-      sendInFlightRef.current = false;
     }
   }, [
     input,
