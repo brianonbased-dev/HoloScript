@@ -10,6 +10,7 @@
 import { BRITTNEY_IDENTITY_MARK } from './brand';
 import { buildBrainCachingPromptBlock, type BrainCachingContext } from './caching';
 import type { PastThreadSnippet } from './pastThreads';
+import type { LLMMessage } from '@holoscript/llm-provider';
 
 // D.053 relational memory budget: hard cap on the past-conversations block so
 // it stays safe on every provider lane (local Ollama's small num_ctx included).
@@ -105,27 +106,45 @@ Only if both checks return no relevant match may you proceed to a creation tool.
 - When asked about your own capabilities or future expansions, answer specifically in terms of HoloScript Studio: what new compilation targets, traits, or integrations would benefit users — never answer as a generic AI assistant.
 - When asked to write, create, or build a scene: call \`apply_code\` with complete, valid HoloScript source — do NOT output code blocks or JSON in the chat. HoloScript syntax is: \`composition "Name" { environment { skybox: "night" } object "Name" { geometry: "sphere" position: [0, 1, 0] @emissive { color: "#ffff00", intensity: 2.0 } } }\` — NOT a JSON schema. Traits use @traitName syntax. Properties are key: value pairs (no commas). Call apply_code even for a first draft.`;
 
+type GithubPromptContext = {
+  username: string;
+  repos?: Array<{
+    fullName: string;
+    description: string | null;
+    language: string | null;
+    isPrivate: boolean;
+  }>;
+} | null;
+
 /**
  * Build a contextual system prompt by appending optional scene state
  * and user profile information.
+ *
+ * Equal to `buildStableSystemPrompt() + buildTurnContext()`. The chat route sends
+ * the two parts separately (see brittneyProviderMessages) so the stable part caches.
  */
 export function buildContextualPrompt(
   sceneContext?: string | null,
   userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
   enableSimulation = true,
   cachingContext: BrainCachingContext = {},
-  githubContext?: {
-    username: string;
-    repos?: Array<{
-      fullName: string;
-      description: string | null;
-      language: string | null;
-      isPrivate: boolean;
-    }>;
-  } | null,
+  githubContext?: GithubPromptContext,
   isFounder = false,
   pastThreads?: PastThreadSnippet[] | null
 ): string {
+  return (
+    buildStableSystemPrompt(enableSimulation, isFounder) +
+    buildTurnContext(sceneContext, userProfile, cachingContext, githubContext, pastThreads)
+  );
+}
+
+/**
+ * Brittney's instructions that are identical on every turn for this kind of user
+ * (founder or not, simulation on or off). Anthropic caches the whole system block as
+ * one prefix, so a system prompt that also carries the live scene misses the cache on
+ * every turn; keeping this part alone lets every turn, and every user, reuse it.
+ */
+export function buildStableSystemPrompt(enableSimulation = true, isFounder = false): string {
   const parts: string[] = [SYSTEM_PROMPT, ECOSYSTEM_OPERATING_CONTEXT, HOLOSHELL_OPERATOR_CONTEXT];
 
   if (isFounder) {
@@ -141,6 +160,22 @@ export function buildContextualPrompt(
       /* SimulationTools not available */
     }
   }
+  return parts.join('');
+}
+
+/**
+ * Everything in Brittney's prompt that changes per user or per turn: profile, GitHub
+ * account, the live scene/workspace snapshot, relational memory, and the
+ * brain-caching recommendation.
+ */
+export function buildTurnContext(
+  sceneContext?: string | null,
+  userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
+  cachingContext: BrainCachingContext = {},
+  githubContext?: GithubPromptContext,
+  pastThreads?: PastThreadSnippet[] | null
+): string {
+  const parts: string[] = [];
 
   if (userProfile) {
     const profileLines: string[] = ['\n\n--- User Profile ---'];
@@ -192,9 +227,9 @@ export function buildContextualPrompt(
   }
 
   // D.053 relational memory: summaries of the user's OTHER threads in the same
-  // scope. Placed late (after the per-turn scene block) so the stable prompt
-  // prefix stays cacheable, and budget-capped so it is safe on every provider
-  // lane including small local models.
+  // scope. Per-turn like the scene, so it lives in the turn context, not the
+  // cached system prompt; budget-capped so it is safe on every provider lane
+  // including small local models.
   if (pastThreads && pastThreads.length > 0) {
     const mem: string[] = [
       '\n\n--- Past Conversations (relational memory) ---',
@@ -228,6 +263,48 @@ export function buildContextualPrompt(
   );
 
   return parts.join('');
+}
+
+const TURN_CONTEXT_OPEN =
+  '--- Studio context for this turn (supplied by Studio, not typed by the user) ---';
+const TURN_CONTEXT_CLOSE = '--- End of Studio context ---';
+
+/**
+ * The messages Brittney's provider receives: the stable system prompt first, then the
+ * conversation with this turn's context attached to the newest user message.
+ *
+ * The system block is then byte-identical from turn to turn (and across users of the
+ * same kind), so the provider's prompt cache covers it, and the scene, which carries
+ * user-authored content, no longer sits in the system prompt. Inputs are not mutated,
+ * so code that reads the user's own words from `messages` still sees what they typed.
+ * With no user message to attach to, the context goes back into the system prompt,
+ * as before.
+ */
+export function brittneyProviderMessages(
+  system: string,
+  turnContext: string,
+  messages: readonly LLMMessage[]
+): LLMMessage[] {
+  const context = turnContext.trim();
+  if (!context) return [{ role: 'system', content: system }, ...messages];
+  let last = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      last = i;
+      break;
+    }
+  }
+  if (last < 0) return [{ role: 'system', content: system + turnContext }, ...messages];
+  const preamble = `${TURN_CONTEXT_OPEN}\n${context}\n${TURN_CONTEXT_CLOSE}\n\n`;
+  const target = messages[last];
+  const content = (
+    typeof target.content === 'string'
+      ? preamble + target.content
+      : [{ type: 'text', text: preamble }, ...(target.content as unknown[])]
+  ) as LLMMessage['content'];
+  const out = [...messages];
+  out[last] = { ...target, content };
+  return [{ role: 'system', content: system }, ...out];
 }
 
 /**

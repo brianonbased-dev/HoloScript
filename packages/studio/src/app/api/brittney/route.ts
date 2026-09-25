@@ -56,7 +56,11 @@ import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { EMBODIED_TOOLS, EMBODIED_TOOL_NAMES } from '@/lib/brittney/EmbodiedTools';
 import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
-import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
+import {
+  brittneyProviderMessages,
+  buildStableSystemPrompt,
+  buildTurnContext,
+} from '@/lib/brittney/systemPrompt';
 import { parseTextToolCall } from '@/lib/brittney/textToolCallRescue';
 import {
   createOutputScreener,
@@ -416,20 +420,23 @@ export async function POST(request: NextRequest) {
         : [];
 
     __phase = 'system-prompt';
-    const systemPrompt =
-      bodySystemPrompt ??
-      buildContextualPrompt(
-        sceneContext,
-        null,
-        true,
-        {
-          providerName: resolved?.providerName,
-          model: resolved?.model,
-        },
-        githubContext,
-        allowFounderWorkspace,
-        pastThreads
-      );
+    // Two parts: the system prompt holds only what is the same on every turn, so the
+    // provider's prompt cache reuses it; the scene, workspace, GitHub account and past
+    // threads ride on the newest user message (brittneyProviderMessages). A client
+    // override replaces the whole assembly, as before.
+    const systemPrompt = bodySystemPrompt ?? buildStableSystemPrompt(true, allowFounderWorkspace);
+    const turnContext = bodySystemPrompt
+      ? ''
+      : buildTurnContext(
+          sceneContext,
+          null,
+          {
+            providerName: resolved?.providerName,
+            model: resolved?.model,
+          },
+          githubContext,
+          pastThreads
+        );
     const baseUrl = getBaseUrl(request);
 
     __phase = 'holoshell-operator';
@@ -683,13 +690,10 @@ export async function POST(request: NextRequest) {
 
         try {
           const MAX_TOOL_ROUNDS = 5;
-          let roundMessages = [
-            // Prepend system prompt as a system message for the provider.
-            // The Anthropic adapter handles this internally via
-            // separateSystemMessages(); Ollama and others include it inline.
-            { role: 'system' as const, content: systemPrompt },
-            ...llmMessages,
-          ];
+          // Prepend system prompt as a system message for the provider.
+          // The Anthropic adapter handles this internally via
+          // separateSystemMessages(); Ollama and others include it inline.
+          let roundMessages = brittneyProviderMessages(systemPrompt, turnContext, llmMessages);
           let debited = false;
           // Raw-JSON rescue is single-shot per request so a model that keeps
           // emitting JSON-as-text cannot ping-pong the loop to MAX_TOOL_ROUNDS.

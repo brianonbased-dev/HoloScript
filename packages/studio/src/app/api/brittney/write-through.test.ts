@@ -335,7 +335,7 @@ describe('POST /api/brittney write-through', () => {
     expect(call.inputClipped).toBe(true);
   });
 
-  it('feeds past threads from the same scope into the system prompt (D.053)', async () => {
+  it('feeds past threads from the same scope to the model, on the newest user turn (D.053)', async () => {
     mockSession('user-wt-7');
     const threadA = await createConversation('user-wt-7', 'workspace:wt7');
     await appendMessages('user-wt-7', threadA.id, [
@@ -357,13 +357,40 @@ describe('POST /api/brittney write-through', () => {
     await readEvents(res);
 
     expect(h.captured.length).toBeGreaterThan(0);
-    const systemMessage = h.captured[0].messages[0];
+    const sent = h.captured[0].messages;
+    const systemMessage = sent[0];
     expect(systemMessage.role).toBe('system');
-    const prompt = String(systemMessage.content);
+    // Past threads change per turn, so they stay out of the cached system block…
+    expect(String(systemMessage.content)).not.toContain('--- Past Conversations');
+    // …and reach the model on the newest user turn instead.
+    const newest = sent[sent.length - 1];
+    expect(newest.role).toBe('user');
+    const prompt = String(newest.content);
     expect(prompt).toContain('--- Past Conversations (relational memory) ---');
+    expect(prompt.endsWith('what did we plan earlier?')).toBe(true);
     // Thread A (the OTHER thread) is summarized…
     expect(prompt).toContain('Discussed the solar panel layout');
     // …but the ACTIVE thread is excluded from its own recall block.
     expect(prompt).not.toContain('Beta thread opening question xyz');
+  });
+
+  it('sends the same system block whatever the scene, so the provider cache reuses it', async () => {
+    mockSession('user-wt-8');
+    const scenes = [
+      'composition "zq-scene-one" { object "cube" { @grabbable } }',
+      'composition "zq-scene-two" { object "ball" { @physics } }',
+    ];
+    for (const sceneContext of scenes) {
+      h.chunks.push(...textChunks('ok'));
+      await readEvents(
+        await POST(chatReq({ messages: [{ role: 'user', content: 'hi' }], sceneContext }))
+      );
+    }
+    expect(h.captured.length).toBe(2);
+    const [first, second] = h.captured.map((c) => c.messages);
+    expect(second[0]).toEqual(first[0]);
+    expect(String(first[0].content)).not.toContain('zq-scene-one');
+    expect(String(first[first.length - 1].content)).toContain('composition "zq-scene-one"');
+    expect(String(second[second.length - 1].content)).toContain('composition "zq-scene-two"');
   });
 });
