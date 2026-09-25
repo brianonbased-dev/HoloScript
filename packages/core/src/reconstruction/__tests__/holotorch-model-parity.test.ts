@@ -74,12 +74,13 @@ function refModel(
   return logits;
 }
 
-describe('HoloTorch full-model assembly parity (WGSL vs f64 reference, real GPU)', () => {
-  it('full forward pass logits match f64 reference (nLayer=2, holo dims)', async () => {
+describe('HoloTorch full-model f64-reference parity (WGSL vs own f64 reference, NOT torch; real GPU)', () => {
+  it('f64-reference parity: full forward pass logits match f64 reference (nLayer=2, holo dims)', async (ctx) => {
     const device = await getWebGpuDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping model');
-      return;
+      // Reported as SKIPPED, never as a pass (2026-09-24 native-inference audit, fix 6).
+      return ctx.skip();
     }
     const model = createHoloTorchModel(device);
     const rand = rng(41);

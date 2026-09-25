@@ -1,5 +1,5 @@
 /**
- * Brittney Provider Resolution — native-default (sovereign serving), BYOK fallback.
+ * Brittney Provider Resolution — native-default (local sovereign), hosted bridge, gated BYOK.
  *
  * NOTE (2026-06-10): this policy is now CANONICAL in
  * @holoscript/llm-provider `resolveSovereignProviderAsync` (sovereign-resolver.ts),
@@ -8,16 +8,18 @@
  * converge it onto the shared resolver when touching this surface next.
  *
  * Founder directive (2026-06-05): Brittney's LLM deps are NATIVE by default. The
- * ecosystem's own AI runs on sovereign serving — Brittney Cloud (our vast Ollama/
- * PyWorker fleet, P.008) or a local Ollama — NOT a third-party frontier API. A
- * frontier API (Anthropic) is BYOK: explicit opt-in or last-resort fallback only.
- * Other agent families bring their own keys; Brittney itself defaults sovereign.
+ * ecosystem's own AI runs on sovereign local serving — a local Ollama or the owned
+ * fleet — NOT a third-party frontier API. BRITTNEY_SERVICE_URL (and the llm-provider
+ * alias HOLO_LLM_SERVICE_URL) is a hosted bridge: the Brittney llm-service forwards
+ * brittney-standard to Fireworks, with Together as fallback. It is not sovereign.
+ * A frontier API (Anthropic) is BYOK: explicit provider name, or the auto path only
+ * when HOLO_ALLOW_FRONTIER_FALLBACK=1. Other agent families bring their own keys.
  * Extends P.009 (sovereign embeddings) to the chat LLM.
  *
  * Auto-detect priority (no explicit BRITTNEY_PROVIDER):
- *   1. BRITTNEY_SERVICE_URL present → cloud   (sovereign serving — the native default)
+ *   1. BRITTNEY_SERVICE_URL present → cloud   (hosted bridge — Fireworks/Together, NOT sovereign)
  *   2. OLLAMA_HOST present          → ollama  (sovereign local — Quest 3 / downloaded apps)
- *   3. ANTHROPIC_API_KEY present    → anthropic (BYOK frontier fallback)
+ *   3. ANTHROPIC_API_KEY present    → anthropic only if HOLO_ALLOW_FRONTIER_FALLBACK=1, else refuse
  *   4. Error
  *
  * Explicit BRITTNEY_PROVIDER=anthropic|ollama|cloud always wins (BYOK / pinned override).
@@ -38,6 +40,7 @@ import {
   OLLAMA_DEFAULT_BASE_URL,
   FLEET_DEFAULT_MODEL,
   LOCAL_DEFAULT_MODEL,
+  gateFrontierFallback,
   type ILLMProvider,
 } from '@holoscript/llm-provider';
 
@@ -63,6 +66,11 @@ export interface ResolvedBrittneyProvider {
   maxTokens: number;
   /** Which provider was resolved (for logging/response headers). */
   providerName: BrittneyProviderName;
+  /**
+   * True when the auto path used Anthropic because HOLO_ALLOW_FRONTIER_FALLBACK=1.
+   * Explicit BRITTNEY_PROVIDER=anthropic does not set this.
+   */
+  frontierFallback?: boolean;
 }
 
 /**
@@ -79,9 +87,9 @@ const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || LOCAL_DEFAULT_MODEL;
  *
  * Priority (native-default — see file header for the founder directive):
  *   1. BRITTNEY_PROVIDER=anthropic|ollama|cloud (explicit override / BYOK)
- *   2. BRITTNEY_SERVICE_URL present → cloud   (sovereign serving — native default)
+ *   2. BRITTNEY_SERVICE_URL present → cloud   (hosted bridge — Fireworks/Together, not sovereign)
  *   3. OLLAMA_HOST present → ollama           (sovereign on-device)
- *   4. ANTHROPIC_API_KEY present → anthropic  (BYOK frontier fallback)
+ *   4. ANTHROPIC_API_KEY present → anthropic  (only with HOLO_ALLOW_FRONTIER_FALLBACK=1)
  *   5. Error — no provider configured
  *
  * Ollama host defaults:
@@ -108,9 +116,9 @@ export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittn
     return resolveCloud(cloudUrl);
   }
 
-  // Auto-detect: sovereign serving FIRST (cloud → ollama), BYOK frontier (anthropic) LAST.
-  // Brittney's own deps are native by default; Anthropic is only the fallback when no
-  // sovereign endpoint is configured.
+  // Auto-detect: hosted bridge (cloud) and sovereign local (ollama) before frontier.
+  // Anthropic on this path is refused unless HOLO_ALLOW_FRONTIER_FALLBACK=1.
+  // Explicit BRITTNEY_PROVIDER=anthropic above is the opt-in and is not gated.
   if (cloudUrl) {
     return resolveCloud(cloudUrl);
   }
@@ -118,14 +126,19 @@ export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittn
     return resolveOllama(ollamaHost);
   }
   if (anthropicKey) {
-    return resolveAnthropic(anthropicKey);
+    return gateFrontierFallback('anthropic', { caller: 'resolveBrittneyProvider' }, () =>
+      resolveAnthropic(anthropicKey)
+    );
   }
 
   throw new Error(
     'No Brittney provider configured. Brittney runs native by default — set ' +
-      'BRITTNEY_PROVIDER=cloud (with BRITTNEY_SERVICE_URL, the sovereign serving endpoint) ' +
-      'or BRITTNEY_PROVIDER=ollama (with OLLAMA_HOST). For a BYOK frontier fallback, set ' +
-      'BRITTNEY_PROVIDER=anthropic (with ANTHROPIC_API_KEY). Downloaded apps configure ' +
+      'BRITTNEY_PROVIDER=ollama (with OLLAMA_HOST) for sovereign local inference, or ' +
+      'BRITTNEY_PROVIDER=cloud (with BRITTNEY_SERVICE_URL). That URL is a hosted bridge: ' +
+      'it forwards to Fireworks/Together and is not sovereign (same family as ' +
+      'HOLO_LLM_SERVICE_URL). For a BYOK frontier provider, set ' +
+      'BRITTNEY_PROVIDER=anthropic (with ANTHROPIC_API_KEY). The auto path will not use ' +
+      'Anthropic unless HOLO_ALLOW_FRONTIER_FALLBACK=1. Downloaded apps configure ' +
       'OLLAMA_HOST to the on-device Brittney model.'
   );
 }
@@ -149,6 +162,12 @@ function resolveAnthropic(apiKey: string | undefined): ResolvedBrittneyProvider 
   };
 }
 
+/**
+ * Brittney cloud route. BRITTNEY_SERVICE_URL / HOLO_LLM_SERVICE_URL reach the
+ * llm-service, whose brittney-standard lane forwards to hosted Fireworks (Together
+ * fallback). This is a hosted bridge, not sovereign serving. Explicit
+ * BRITTNEY_PROVIDER=cloud is the opt-in for this route.
+ */
 function resolveCloud(baseURL: string | undefined): ResolvedBrittneyProvider {
   if (!baseURL) {
     throw new Error(
@@ -262,9 +281,11 @@ async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
 }
 
 /**
- * A SOVEREIGN-only fallback for a cold fleet: cloud serving (BRITTNEY_SERVICE_URL) or
- * local Ollama (OLLAMA_HOST), never a paid frontier API. Returns null when no sovereign
- * endpoint is configured. (Founder 2026-06-14: a cold sovereign lane ≠ an Anthropic bill.)
+ * Non-frontier fallback for a cold fleet: local Ollama (OLLAMA_HOST) is sovereign.
+ * BRITTNEY_SERVICE_URL is a hosted bridge (forwards to Fireworks/Together), not
+ * sovereign serving — it is still preferred here when set, as an already-configured
+ * endpoint, and it is never a silent Anthropic bill. Returns null when neither is
+ * configured. (Founder 2026-06-14: a cold lane ≠ an Anthropic bill.)
  */
 function resolveSovereignFallback(): ResolvedBrittneyProvider | null {
   const cloudUrl = process.env.BRITTNEY_SERVICE_URL;
@@ -300,11 +321,13 @@ function resolveServerless(): ResolvedBrittneyProvider | null {
 
 /**
  * Async provider resolution — prefers the sovereign serving fleet (dynamic-resolve).
- * When the fleet is cold/unreachable it falls back ONLY to a sovereign provider (cloud
- * serving / local Ollama); it does NOT silently use a paid frontier API (founder policy
- * 2026-06-14). With no sovereign fallback configured it throws SOVEREIGN_WARMING so the
- * caller surfaces an honest "warming, retry" instead of billing Anthropic. Set
- * BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 to restore the old BYOK-frontier cold fallback.
+ * When the fleet is cold/unreachable it falls back to local Ollama or, if set, the
+ * BRITTNEY_SERVICE_URL hosted bridge (Fireworks/Together — not sovereign). It does
+ * NOT silently use a paid frontier API (founder policy 2026-06-14). With neither
+ * configured it throws SOVEREIGN_WARMING so the caller surfaces an honest
+ * "warming, retry" instead of billing Anthropic. Set
+ * BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 to opt in to the BYOK-frontier cold fallback.
+ * The sync auto path (no fleet) uses HOLO_ALLOW_FRONTIER_FALLBACK=1 for the same rule.
  *
  * Fleet is used when BRITTNEY_PROVIDER=fleet, or auto-detected when fleet env
  * (BRITTNEY_FLEET_MODEL / FLEET_INFERENCE_KEY) is present and no explicit provider is set.
@@ -334,14 +357,26 @@ export async function resolveBrittneyProviderAsync(
     } catch {
       // Cold/unreachable fleet. The /serve/resolve call already bumped demand, so a
       // serving box is warming. Founder policy 2026-06-14 ("im not recharging
-      // anthropic ... use the fleet"): a cold SOVEREIGN lane must NEVER silently
-      // fall back to a paid frontier API. Only a sovereign fallback (cloud serving
-      // or local Ollama) is allowed; otherwise surface an honest "warming, retry"
+      // anthropic ... use the fleet"): a cold fleet lane must NEVER silently
+      // fall back to a paid frontier API. Local Ollama is the sovereign fallback;
+      // BRITTNEY_SERVICE_URL is a hosted bridge (not sovereign) and is used only
+      // when already configured. Otherwise surface an honest "warming, retry"
       // so a cold start is a brief wait — not an Anthropic bill. The escape hatch
-      // BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 restores the old BYOK-frontier behavior.
+      // BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 opts in to the BYOK-frontier behavior.
       const sovereign = resolveSovereignFallback();
       if (sovereign) return upgradeOllamaByDiscovery(sovereign);
       if (process.env.BRITTNEY_ALLOW_FRONTIER_FALLBACK === '1') {
+        // Explicit Studio opt-in (not the silent auto path). Call Anthropic directly
+        // so this does not depend on HOLO_ALLOW_FRONTIER_FALLBACK, and say so out loud.
+        const key = byok?.anthropicKey || process.env.ANTHROPIC_API_KEY;
+        if (key) {
+          console.warn(
+            '[brittney] !!! FRONTIER FALLBACK ACTIVE !!! cold-fleet resolution is using ' +
+              'frontier provider "anthropic" for caller resolveBrittneyProviderAsync because ' +
+              'BRITTNEY_ALLOW_FRONTIER_FALLBACK=1.'
+          );
+          return upgradeOllamaByDiscovery(resolveAnthropic(key));
+        }
         return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
       }
       throw new Error(

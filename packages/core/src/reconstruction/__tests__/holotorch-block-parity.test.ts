@@ -136,7 +136,7 @@ function randArray(rand: () => number, n: number, scale = 1): Float32Array {
   return a;
 }
 
-describe('HoloTorch decoder-block assembly parity (WGSL vs f64 reference, real GPU)', () => {
+describe('HoloTorch decoder-block f64-reference parity (WGSL vs own f64 reference, NOT torch; real GPU)', () => {
   it('reshape round-trip: fromHeads(toHeads(x)) === x', () => {
     const T = 5;
     const nHead = 3;
@@ -149,11 +149,12 @@ describe('HoloTorch decoder-block assembly parity (WGSL vs f64 reference, real G
     expect(maxErr).toBe(0);
   });
 
-  it('full block matches f64 reference (holo dims: nEmbd=384, nHead=6)', async () => {
+  it('f64-reference parity: full block matches f64 reference (holo dims: nEmbd=384, nHead=6)', async (ctx) => {
     const device = await getWebGpuDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping block');
-      return;
+      // Reported as SKIPPED, never as a pass (2026-09-24 native-inference audit, fix 6).
+      return ctx.skip();
     }
     const block = createHoloTorchBlock(device);
     const rand = rng(31);

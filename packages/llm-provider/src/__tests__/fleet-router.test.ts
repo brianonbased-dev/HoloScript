@@ -885,7 +885,8 @@ function testHoloServeHealth(model: string, checkpointDigit = '1'): Record<strin
   return {
     status: 'ok',
     backend: 'pytorch-holo',
-    sovereign: true,
+    sovereign: false,
+    sovereignty: { weights: 'sovereign', runtime: 'foreign', fully_native: false },
     llama_cpp: false,
     gguf: false,
     model: { name: model, params_millions: 85 },
@@ -957,9 +958,12 @@ function fakeFetchHolo(
         healthCalls.set(base, call + 1);
         const defaultHealth = {
           ...testHoloServeHealth(n.model),
-          sovereign: n.sovereign ?? true,
+          sovereign: false,
           llama_cpp: n.llamaCpp ?? false,
         };
+        if (n.sovereign === false) {
+          defaultHealth.sovereignty = { weights: 'missing' };
+        }
         const body =
           call > 0 ? (n.finalHealth ?? n.health ?? defaultHealth) : (n.health ?? defaultHealth);
         return {
@@ -980,7 +984,8 @@ function fakeFetchHolo(
             model_path: `.scratch/holorunner/s0/fleet-ckpt/ckpt.pt`,
             total_slots: n.propsTotalSlots ?? 1,
             backend: 'pytorch-holo',
-            sovereign: true,
+            sovereign: false,
+            sovereignty: { weights: 'sovereign' },
             models: n.propsModels ?? healthModels,
           }),
         };
@@ -1068,7 +1073,7 @@ describe('pytorch-holo backend node kind (HoloServe)', () => {
     expect(route!.backend).toBe('ollama');
   });
 
-  test('SOVEREIGNTY GATE: a reachable node whose /health does not assert sovereign:true is dropped', async () => {
+  test("SOVEREIGNTY GATE: a reachable node whose /health does not assert sovereignty.weights==='sovereign' is dropped", async () => {
     const fetchImpl = fakeFetchHolo(
       { 'http://192.168.0.23:8099': { model: 'holorunner-s0', sovereign: false } },
       { 'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] } }

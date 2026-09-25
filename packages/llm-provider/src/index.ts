@@ -217,13 +217,30 @@ export { LLMProviderManager } from './provider-manager';
 export type { ProviderManagerConfig } from './provider-manager';
 
 // Universal sovereign-first provider resolution (founder 2026-06-10):
-// one policy for HoloClaw, the fleet, and Brittney — sovereign serving
-// (fleet/cloud/ollama) by default, BYOK frontier keys as fallback (F.112).
-export { resolveSovereignProvider, resolveSovereignProviderAsync } from './sovereign-resolver';
+// one policy for HoloClaw, the fleet, and Brittney — local sovereign
+// (fleet/holollama/ollama) by default. The cloud URL is a hosted bridge
+// (Fireworks/Together), not sovereign. BYOK frontier keys are opt-in (F.112).
+// BYOK frontier fallback from the sovereign/auto path is GATED behind
+// HOLO_ALLOW_FRONTIER_FALLBACK=1 (2026-09-24 native-inference audit, fix 7).
+export {
+  resolveSovereignProvider,
+  resolveSovereignProviderAsync,
+  FrontierFallbackRefusedError,
+  FRONTIER_FALLBACK_FLAG,
+  gateFrontierFallback,
+  // Auto-mode cloud (brittney-standard -> hosted Fireworks/Together) route is GATED behind
+  // HOLO_ALLOW_HOSTED_BRIDGE=1 (2026-09-24 audit follow-up).
+  HostedBridgeRefusedError,
+  HOSTED_BRIDGE_FLAG,
+  classifyServiceHost,
+  redactServiceUrl,
+} from './sovereign-resolver';
 export type {
   ResolvedSovereignProvider,
   SovereignProviderName,
   SovereignResolveOptions,
+  FrontierProviderName,
+  ServiceHostClass,
 } from './sovereign-resolver';
 
 // Model policy — THE single source of truth for tier defaults + the blacklist

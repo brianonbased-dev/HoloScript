@@ -5,8 +5,14 @@
  * Extracted once a third consumer appeared (gemm, ops, block). The two earlier
  * parity tests still inline their bootstrap; folding them onto this harness is a
  * follow-up cleanup.
+ *
+ * Receipts (2026-09-24 audit follow-up): every run APPENDS. The tip file
+ * `<op>-parity.receipt.json` is still rewritten so existing readers keep working,
+ * but the same payload is also appended (a) as a timestamped sibling under
+ * `receipts/history/` and (b) as one NDJSON line in `receipts/parity-history.ndjson`.
+ * Prior tip contents are never deleted.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -106,12 +112,36 @@ export function rng(seed: number): () => number {
   };
 }
 
-export function writeParityReceipt(op: string, payload: Record<string, unknown>): void {
-  const here = dirname(fileURLToPath(import.meta.url)); // __tests__/
-  const outDir = join(here, '..', 'holotorch', 'receipts');
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(
-    join(outDir, `${op}-parity.receipt.json`),
-    `${JSON.stringify({ schema: 'holotorch-inference-parity.v0', op, adapter: capturedAdapterInfo, ...payload }, null, 2)}\n`
-  );
+export function receiptsDir(): string {
+  return join(dirname(fileURLToPath(import.meta.url)), '..', 'holotorch', 'receipts');
+}
+
+/**
+ * Append a parity receipt. Tip file is updated for existing readers; history is
+ * never overwritten. Stamp defaults to now (ISO, colon-safe for filenames).
+ */
+export function writeParityReceipt(
+  op: string,
+  payload: Record<string, unknown>,
+  { stamp = new Date().toISOString() }: { stamp?: string } = {}
+): { tipPath: string; historyPath: string; ndjsonPath: string } {
+  const outDir = receiptsDir();
+  const historyDir = join(outDir, 'history');
+  mkdirSync(historyDir, { recursive: true });
+  const record = {
+    schema: 'holotorch-inference-parity.v0',
+    op,
+    recordedAt: stamp,
+    adapter: capturedAdapterInfo,
+    ...payload,
+  };
+  const body = `${JSON.stringify(record, null, 2)}\n`;
+  const tipPath = join(outDir, `${op}-parity.receipt.json`);
+  const safeStamp = stamp.replace(/[:.]/g, '-');
+  const historyPath = join(historyDir, `${op}-parity.${safeStamp}.receipt.json`);
+  const ndjsonPath = join(outDir, 'parity-history.ndjson');
+  writeFileSync(historyPath, body);
+  appendFileSync(ndjsonPath, `${JSON.stringify(record)}\n`);
+  writeFileSync(tipPath, body);
+  return { tipPath, historyPath, ndjsonPath };
 }
