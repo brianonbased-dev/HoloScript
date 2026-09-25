@@ -103,29 +103,33 @@ describe('canary: benign fork samples pass the gate', () => {
     expectAllowed(result);
   });
 
-  it('CANARY-B003: benign HoloScript code through compile_pipeline with manifest', async () => {
-    // compile_pipeline IS a sensitive tool per SENSITIVE_TOOL_PATTERNS;
-    // benign code with a valid manifest should pass.
-    const manifest = {
-      protocol: 'holoscript.capability.v1' as const,
-      declaredCapabilities: ['compile:pipeline'],
-      attestation: {
-        manifestHash: 'abc',
-        signer: 'test',
-        trustTier: 'verified' as const,
-        attestedAt: new Date().toISOString(),
-      },
-    };
-    const result = await handleTool(
-      'compile_pipeline',
-      { code: BENIGN_HOLO, target: 'node' },
-      { ...mockSigningCtx, scopes: ['tools:write'] }
-    );
-    const r = result as Record<string, unknown>;
-    const gateBlocked = typeof r.error === 'string' && r.error.includes('ForkSandboxGate denied');
-    // Without passing manifest in the tool args, the gate sees no manifest
-    // and blocks. This documents the requirement: sensitive tools need manifest.
-    expect(gateBlocked).toBe(true);
+  // compile_pipeline IS a sensitive tool per SENSITIVE_TOOL_PATTERNS, so the gate
+  // requires a capability manifest with verified-tier attestation. B003 used to
+  // build this manifest, never pass it, and assert denial under a name that
+  // claimed the grant. The grant and the denial are now separate tests.
+  const COMPILE_PIPELINE_MANIFEST = {
+    protocol: 'holoscript.capability.v1' as const,
+    declaredCapabilities: ['compile:pipeline'],
+    attestation: {
+      manifestHash: 'abc',
+      signer: 'test',
+      trustTier: 'verified' as const,
+      attestedAt: new Date().toISOString(),
+    },
+  };
+
+  it('CANARY-B003: benign HoloScript code through compile_pipeline WITH a verified manifest is allowed', async () => {
+    const result = await callTool('compile_pipeline', {
+      code: BENIGN_HOLO,
+      target: 'node',
+      capabilityManifest: COMPILE_PIPELINE_MANIFEST,
+    });
+    expectAllowed(result);
+  });
+
+  it('CANARY-B003-NEG: the same call WITHOUT the manifest is denied at capability_manifest (negative)', async () => {
+    const result = await callTool('compile_pipeline', { code: BENIGN_HOLO, target: 'node' });
+    expectBlocked(result, 'capability_manifest');
   });
 
   it('CANARY-B004: benign code with canonical compiler version', async () => {
