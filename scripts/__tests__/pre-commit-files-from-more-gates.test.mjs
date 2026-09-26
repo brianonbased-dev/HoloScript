@@ -17,7 +17,7 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,6 +67,10 @@ function assertEq(actual, expected, name) {
       `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
     );
   }
+}
+
+function withSlashes(text) {
+  return String(text).replace(/\\/g, '/');
 }
 
 function assertTrue(cond, name, detail = '') {
@@ -373,7 +377,7 @@ for (const gate of legacyLens) {
     const spaced = runNode(RENDER, [...renderArgs, '--files-from', spacedList]);
     assertEq(spaced.code, 1, 'render --files-from detects a violation in a CRLF path that contains spaces');
     assertTrue(
-      spaced.out.includes('packages/r3f-renderer/src/my file.tsx'),
+      withSlashes(spaced.out).includes('packages/r3f-renderer/src/my file.tsx'),
       'render --files-from keeps the spaced path as one path',
       spaced.out
     );
@@ -388,7 +392,7 @@ for (const gate of legacyLens) {
     const longBad = runNode(RENDER, [...renderArgs, '--files-from', longList]);
     assertEq(longBad.code, 1, 'render --files-from still detects a violation inside a 1000-path list');
     assertTrue(
-      longBad.out.includes('packages/r3f-renderer/src/my file.tsx'),
+      withSlashes(longBad.out).includes('packages/r3f-renderer/src/my file.tsx'),
       'render buried violation is the spaced path',
       longBad.out
     );
@@ -434,7 +438,11 @@ for (const gate of legacyLens) {
     const spacedList = writeList(listDir, 'spaced.txt', ['docs/my notes.md'], { crlf: true });
     const spaced = runNode(STATS, ['--files-from', spacedList], root);
     assertEq(spaced.code, 1, 'stats --files-from detects a violation in a CRLF path that contains spaces');
-    assertTrue(spaced.out.includes('docs/my notes.md'), 'stats --files-from keeps the spaced path as one path', spaced.out);
+    assertTrue(
+      withSlashes(spaced.out).includes('docs/my notes.md'),
+      'stats --files-from keeps the spaced path as one path',
+      spaced.out
+    );
 
     const commaList = writeList(listDir, 'comma.txt', ['docs/a,b.md']);
     const comma = runNode(STATS, ['--files-from', commaList], root);
@@ -515,7 +523,7 @@ for (const gate of legacyLens) {
     const spaced = runNode(QR, ['--files-from', spacedList], root);
     assertEq(spaced.code, 1, 'qr --files-from detects a violation in a CRLF path that contains spaces');
     assertTrue(
-      spaced.out.includes('packages/widget/src/my file.ts'),
+      withSlashes(spaced.out).includes('packages/widget/src/my file.ts'),
       'qr --files-from keeps the spaced path as one path',
       spaced.out
     );
@@ -563,6 +571,67 @@ for (const gate of legacyLens) {
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(listDir, { recursive: true, force: true });
+  }
+}
+
+{
+  const hookSource = readFileSync(HOOK, 'utf8');
+  const start = hookSource.indexOf('run_with_timeout() {');
+  const end = hookSource.indexOf('\n# Large merges');
+  assertTrue(start >= 0 && end > start, 'pre-commit defines run_with_timeout before the files-from helper');
+  const fn = start >= 0 && end > start ? hookSource.slice(start, end) : '';
+  const stubDir = mkdtempSync(join(tmpdir(), 'timeout-stub-'));
+  try {
+    writeFileSync(
+      join(stubDir, 'timeout'),
+      '#!/bin/sh\nexit "${STUB_EXIT:-124}"\n'
+    );
+    chmodSync(join(stubDir, 'timeout'), 0o755);
+    const run = (stubExit) =>
+      spawnSync(
+        'bash',
+        [
+          '-c',
+          `${fn}
+run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from /tmp/list.txt
+`,
+        ],
+        {
+          cwd: REPO,
+          encoding: 'utf8',
+          env: { ...process.env, PATH: `${stubDir}:${process.env.PATH}`, STUB_EXIT: String(stubExit) },
+        }
+      );
+    const timedOut = run(124);
+    console.log('  info timeout message:');
+    for (const line of (timedOut.stdout || '').split('\n')) {
+      if (line.trim()) console.log(`  info   ${line}`);
+    }
+    assertEq(timedOut.status, 124, 'timeout wrapper returns 124 when the gate is killed');
+    assertTrue(
+      (timedOut.stdout || '').includes('TIMED OUT: check-hardcoded-stats timed out after 20s.'),
+      'timeout message names the gate and the limit',
+      timedOut.stdout
+    );
+    assertTrue(
+      (timedOut.stdout || '').includes('.githooks/pre-commit'),
+      'timeout message says where to raise the limit',
+      timedOut.stdout
+    );
+    assertTrue(
+      (timedOut.stdout || '').includes('git commit --no-verify'),
+      'timeout message says how to bypass once',
+      timedOut.stdout
+    );
+    const failed = run(1);
+    assertEq(failed.status, 1, 'a real gate failure is not reported as a timeout');
+    assertTrue(
+      !(failed.stdout || '').includes('TIMED OUT:'),
+      'exit 1 does not print the timeout message',
+      failed.stdout
+    );
+  } finally {
+    rmSync(stubDir, { recursive: true, force: true });
   }
 }
 
