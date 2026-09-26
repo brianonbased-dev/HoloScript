@@ -18,6 +18,7 @@
  *
  * Usage:
  *   node scripts/holo-ci/check-no-third-party-qr.mjs <file> [more files...]
+ *   node scripts/holo-ci/check-no-third-party-qr.mjs --files-from <list.txt>
  *   node scripts/holo-ci/check-no-third-party-qr.mjs --staged   scan git-staged files
  *   node scripts/holo-ci/check-no-third-party-qr.mjs --all      scan every src file
  *
@@ -28,6 +29,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { resolve, relative, join, sep } from 'node:path';
+import { readScopedFileList } from './read-scoped-files.mjs';
 
 const REPO = resolve(process.cwd());
 
@@ -108,6 +110,7 @@ function main() {
         '',
         'Usage:',
         '  node scripts/holo-ci/check-no-third-party-qr.mjs <file> [...]   scan specific files',
+        '  node scripts/holo-ci/check-no-third-party-qr.mjs --files-from <list.txt>',
         '  node scripts/holo-ci/check-no-third-party-qr.mjs --staged       scan git-staged files',
         '  node scripts/holo-ci/check-no-third-party-qr.mjs --all          scan every packages/*/src file',
         '',
@@ -117,10 +120,15 @@ function main() {
     return;
   }
 
+  // --all is full-tree. --staged asks git. --files-from is the pre-commit path
+  // (newline list, CRLF-tolerant, off the command line). Positional paths stay
+  // for existing callers. --all and --staged win if combined with --files-from.
   let files;
   if (args.includes('--all')) files = collectAllSrc();
   else if (args.includes('--staged')) files = stagedFiles();
-  else files = args.map((a) => resolve(REPO, a));
+  else if (args.includes('--files-from') || args.includes('--files')) {
+    files = readScopedFileList(args).map((a) => resolve(REPO, a));
+  } else files = args.map((a) => resolve(REPO, a));
 
   files = files.filter((f) => existsSync(f) && !isExcludedPath(f));
 
