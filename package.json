@@ -309,6 +309,7 @@
     "check:render-surface-native:test": "node scripts/__tests__/check-render-surface-native.test.mjs",
     "check:orchestrator-fetch-canonical": "node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs",
     "check:orchestrator-fetch-canonical:update": "node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --update",
+    "check:pre-commit-files-from:test": "node scripts/__tests__/pre-commit-files-from.test.mjs",
     "check:mcp-gate-coverage": "node scripts/holo-ci/check-mcp-gate-coverage.mjs",
     "check:verified-view": "node scripts/holo-ci/check-verified-view.mjs",
     "check:verified-view:update": "node scripts/holo-ci/check-verified-view.mjs --update-baseline",

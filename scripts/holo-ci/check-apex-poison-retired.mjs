@@ -15,18 +15,14 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, posix, resolve, relative, sep } from 'node:path';
+import { readScopedFileList } from './read-scoped-files.mjs';
 
 const args = process.argv.slice(2);
 const rootIdx = args.indexOf('--root');
 const root = resolve(rootIdx >= 0 ? args[rootIdx + 1] : process.cwd());
-const filesIdx = args.indexOf('--files');
-const EXPLICIT_FILES =
-  filesIdx >= 0
-    ? (args[filesIdx + 1] || '')
-        .split(/[,\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : null;
+// --files-from <newline list> is the pre-commit path (Windows command-line limit).
+// --files <comma|newline list> stays for existing callers and tests.
+const EXPLICIT_FILES = readScopedFileList(args);
 
 const SOURCE_ROOTS = ['packages', 'services', 'apps', 'scripts'];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']);
