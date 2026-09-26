@@ -21,7 +21,7 @@ import {
   INITIAL_MESH_STATE,
 } from '../types';
 import { HoloMeshWorldState } from '../crdt-sync';
-import { hidePremiumTextIfPremium } from '../premium-view';
+import { ANONYMOUS_VIEWER, entitledSearchRows, type PremiumViewer } from '../entry-lookup';
 import { HoloMeshDiscovery } from '../discovery';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -293,11 +293,19 @@ export function createHoloMeshDaemonActions(
 
         if (!searchTerm) continue;
 
-        // Search our own knowledge for relevant entries
-        // The asking peer is a remote agent we cannot tie to a purchase, so
-        // premium rows go back as teasers only (doors audit 2026-09-15).
-        const results = (await client.queryKnowledge(searchTerm, { limit: 3 })).map((entry) =>
-          hidePremiumTextIfPremium(entry)
+        // The inbox envelope `from` is the mesh sender id. It is not a
+        // founder key and this process does not re-check a signature here.
+        // Missing id → unentitled. Otherwise the same premiumEntryAccess
+        // rule: author or a recorded purchase, and the row is dropped when
+        // that is not true. A teaser would still confirm the hidden match.
+        const peerId = query.from ?? query.from_agent_id;
+        const viewer: PremiumViewer =
+          typeof peerId === 'string' && peerId.trim().length > 0
+            ? { authenticated: true, id: peerId.trim(), isFounder: false }
+            : ANONYMOUS_VIEWER;
+        const results = entitledSearchRows(
+          await client.queryKnowledge(searchTerm, { limit: 3 }),
+          viewer
         );
 
         if (results.length > 0) {
@@ -353,7 +361,13 @@ export function createHoloMeshDaemonActions(
     searchTopicIndex++;
 
     try {
-      const results = await client.queryKnowledge(topic, { limit: 5 });
+      // Blackboard readers are not a verifiable entitled identity. Premium
+      // rows must not land there as full text or as locked rows matched on
+      // hidden text.
+      const results = entitledSearchRows(
+        await client.queryKnowledge(topic, { limit: 5 }),
+        ANONYMOUS_VIEWER
+      );
       const newResults = results.filter((r) => !state.receivedIds.includes(r.id));
 
       state.receivedIds.push(...newResults.map((r) => r.id));
