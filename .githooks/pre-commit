@@ -80,6 +80,11 @@ run_with_timeout() {
     fi
 }
 
+# Large merges pass the staged path list through a temp file. One --files
+# argument exceeds Windows' 32767-character command-line limit (a 975-path
+# merge died with "Argument list too long").
+. scripts/holo-ci/with-files-from.sh
+
 # Skip all gates for explicitly automated workflows.
 # --no-verify bypasses hooks already, but these guards prevent accidental
 # bleed-through when daemon/IDE agents run git operations without that flag.
@@ -149,7 +154,7 @@ echo "  ├─ Legacy bridge compiler surface floor..."
 STAGED_COMPILER_SURFACE=$(git diff --cached --name-only --diff-filter=ACM -- \
     'packages/**' 'services/**' 'apps/**' 'scripts/**' 2>/dev/null || true)
 if [ -n "$STAGED_COMPILER_SURFACE" ]; then
-    LEGACY_BRIDGE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-apex-poison-retired.mjs --files "$STAGED_COMPILER_SURFACE" 2>&1)
+    LEGACY_BRIDGE_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-apex-poison-retired.mjs "$STAGED_COMPILER_SURFACE" 2>&1)
     LEGACY_BRIDGE_STATUS=$?
     if [ "$LEGACY_BRIDGE_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Legacy bridge compiler import/subpath reopened${NC}"
@@ -326,13 +331,13 @@ fi
 # 2026-07-16). New files hardcoding the raw Railway orchestrator URL literal (outside
 # packages/connector-core and @holoscript/config) are blocked (CHOKEPOINT-GREW); route through the
 # typed ResilientOrchestratorFetch client (Jetson-first cascade) instead. Grandfathered debt lives in
-# scripts/holo-ci/orchestrator-fetch-canonical-baseline.json. Scoped to STAGED files (--files) so a
+# scripts/holo-ci/orchestrator-fetch-canonical-baseline.json. Scoped to STAGED files (--files-from) so a
 # peer's unstaged WIP can't block your commit (multi-agent, D.077). HoloCI's orchestrator-fetch gate
 # is the authoritative full-tree layer; this is the dev floor.
 echo "  ├─ Orchestrator-fetch chokepoint ratchet..."
 STAGED_ALL=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)
 if [ -n "$STAGED_ALL" ]; then
-    CHOKE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --files "$STAGED_ALL" 2>&1)
+    CHOKE_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-orchestrator-fetch-canonical.mjs "$STAGED_ALL" 2>&1)
     CHOKE_STATUS=$?
     if [ "$CHOKE_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ New raw orchestrator-URL literal (CHOKEPOINT-GREW)${NC}"

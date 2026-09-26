@@ -27,14 +27,18 @@
  *   - check mode: exit 1 (CHOKEPOINT-GREW) if the file count grows past the baseline,
  *     naming the new files. Shrinkage is reported (CHOKEPOINT-SHRANK) with a hint to
  *     --update so the ratchet tightens.
- *   - --files <comma|newline list>: staged-scope mode for the pre-commit dev floor —
- *     evaluates ONLY the named repo-relative paths; a staged file containing the literal
- *     that is not in the baseline fails, so a peer's unstaged WIP can't block a commit.
+ *   - --files-from <path>: staged-scope mode for the pre-commit dev floor. The file is a
+ *     newline-separated list of repo-relative paths. Used so a large merge does not put
+ *     every path on the command line (Windows CreateProcess limit is 32,767 characters).
+ *   - --files <comma|newline list>: same staged-scope mode, legacy single-argument form.
+ *     A staged file containing the literal that is not in the baseline fails, so a peer's
+ *     unstaged WIP can't block a commit.
  *
  * Usage:
  *   node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs            # check, exit 1 on growth
  *   node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --update   # (re)seed baseline
  *   node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --files "a.ts,b.mjs"
+ *   node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --files-from staged.txt
  *   node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --root <dir>
  *
  * Exit 0 iff the raw-literal surface did not grow. Exit 1 on growth. Exit 2 on usage/env error.
@@ -43,6 +47,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { readScopedFileList } from './read-scoped-files.mjs';
 
 const RAW_LITERAL = 'mcp-orchestrator-production-45f9';
 const MIGRATION_HINT =
@@ -56,14 +61,7 @@ const UPDATE = args.includes('--update');
 const rootIdx = args.indexOf('--root');
 const ROOT = rootIdx >= 0 ? args[rootIdx + 1] : process.cwd();
 
-const filesIdx = args.indexOf('--files');
-const EXPLICIT_FILES =
-  filesIdx >= 0
-    ? (args[filesIdx + 1] || '')
-        .split(/[,\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : null;
+const EXPLICIT_FILES = readScopedFileList(args);
 
 const SELF = 'scripts/holo-ci/check-orchestrator-fetch-canonical.mjs';
 const BASELINE_REL = 'scripts/holo-ci/orchestrator-fetch-canonical-baseline.json';
@@ -154,7 +152,7 @@ function readBaseline() {
   }
 }
 
-// ── --files scope (staged-only, pre-commit dev floor) ────────────────────────
+// ── --files / --files-from scope (staged-only, pre-commit dev floor) ─────────
 if (EXPLICIT_FILES !== null && !UPDATE) {
   const baseline = readBaseline();
   const baselineSet = new Set(baseline.files || []);
