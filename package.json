@@ -407,6 +407,7 @@
       "isows>ws": "8.21.0",
       "undici": "8.9.0",
       "jsdom@28.1.0>undici": "7.29.0",
+      "node-gyp>undici": "6.28.1",
       "flatted": ">=3.4.2",
       "rollup": ">=4.59.0",
       "serialize-javascript": ">=7.0.3",
