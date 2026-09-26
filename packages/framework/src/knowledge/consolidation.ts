@@ -230,6 +230,8 @@ export class ConsolidationEngine {
       authorDid: string;
       tags: string[];
       memoryReceipt?: MemoryReceipt;
+      price?: number;
+      knowledgeEntryId?: string;
     },
     sourcePeerDid: string
   ): HotBufferEntry {
@@ -246,6 +248,8 @@ export class ConsolidationEngine {
       sourcePeerDid,
       retentionState: 'candidate',
       ...(entry.memoryReceipt ? { memoryReceipt: cloneMemoryReceipt(entry.memoryReceipt) } : {}),
+      ...(typeof entry.price === 'number' ? { price: entry.price } : {}),
+      ...(entry.knowledgeEntryId ? { knowledgeEntryId: entry.knowledgeEntryId } : {}),
     };
     buffer.push(hotEntry);
     this.hotBuffers.set(domain, buffer);

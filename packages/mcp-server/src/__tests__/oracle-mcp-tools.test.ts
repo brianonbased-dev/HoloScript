@@ -275,4 +275,46 @@ describe('oracle-mcp-tools', () => {
       expect(result).toBeNull();
     });
   });
+
+  it('paid probe: holo_oracle_discover drops a hidden-body premium row', async () => {
+    const premiumId = 'entry_oracle_store_paid_probe';
+    const token = 'xylophonequartz9f3a';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          results: [
+            {
+              id: premiumId,
+              type: 'wisdom',
+              content: `${token} paidprobe ${'lead in prose that is freely readable. '.repeat(12)}`,
+              domain: 'general',
+              metadata: { price: 25, authorId: 'author-not-caller' },
+            },
+            {
+              id: 'entry_oracle_store_free_keep',
+              type: 'wisdom',
+              content: 'ordinary free note with no overlap',
+              domain: 'general',
+              metadata: { price: 0, authorId: 'someone-else' },
+            },
+          ],
+        }),
+      })
+    );
+
+    const result = (await handleOracleMcpTool('holo_oracle_discover', {
+      topic: 'xyzabc123-nothing-here-987654',
+      depth: 'brief',
+      sources: 'internal',
+    })) as { report: string };
+    const text = JSON.stringify(result);
+    expect({
+      hasId: text.includes(premiumId),
+      hasToken: text.includes(token),
+      hasPaidProbe: text.includes('paidprobe'),
+    }).toEqual({ hasId: false, hasToken: false, hasPaidProbe: false });
+    expect(result.report).toContain('ordinary free note with no overlap');
+  });
 });
