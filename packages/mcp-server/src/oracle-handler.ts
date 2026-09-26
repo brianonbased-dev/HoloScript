@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
-import { hidePremiumTextIfPremium } from './holomesh/premium-view';
+import { entitledSearchRows, mcpToolViewer } from './holomesh/entry-lookup';
 
 /**
  * Phase 3 wrapper around the orchestrator-knowledge-fetch API key. This is
@@ -148,16 +148,20 @@ export async function handleOracleConsult(
           id?: string;
           type?: string;
           content?: string;
+          authorId?: string;
+          price?: unknown;
+          metadata?: unknown;
         }
         const data = (await res.json()) as {
           results?: KnowledgeEntry[];
           entries?: KnowledgeEntry[];
         };
-        // Oracle callers are never entitled readers: premium rows keep only
-        // their teaser (doors audit 2026-09-15).
-        const entries = (data.results || data.entries || []).map((row) =>
-          hidePremiumTextIfPremium(row)
-        );
+        // Drop premium rows this caller cannot open before any section is
+        // built. A locked row, or a Knowledge Store header that exists only
+        // because of one, still confirms the question hit hidden paid text.
+        // `__authAgentId` is the verified signer (handlers.ts). No stamp means
+        // unentitled.
+        const entries = entitledSearchRows(data.results || data.entries || [], mcpToolViewer(args));
         if (entries.length > 0) {
           results.push(
             '## Knowledge Store\n' +

@@ -54,6 +54,7 @@ import { ANONYMOUS_VIEWER, entryForViewer, premiumEntryAccess } from '../entry-l
 import { handleTool } from '../../handlers';
 import type { SigningContext } from '../identity/signing-middleware';
 import { KnowledgeMarketplace } from '@holoscript/framework';
+import { getConsolidationBridge, resetConsolidationBridge } from '../consolidation-bridge';
 
 // ── Fixtures ──
 
@@ -763,4 +764,177 @@ describe('paid-body search probes', () => {
     }
   });
 
+  it('paid probe: POST /brittney/review drops a hidden-body premium row', async () => {
+    const premiumId = 'entry_review_paid_probe';
+    const { apiKey } = await registerCaller('probe-review');
+    standIn.rows = [
+      probePremium(premiumId, 'author-not-caller', 'wisdom'),
+      probeFree('entry_review_free_keep'),
+    ];
+
+    const reply = await call(
+      'POST',
+      '/api/holomesh/brittney/review',
+      { source: 'object Foo { position: [0, 0, 0] }', target: 'r3f' },
+      { authorization: `Bearer ${apiKey}` }
+    );
+    expect(reply.status).toBe(200);
+    expect(probeLeak(reply.body, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
+    expect(JSON.stringify(reply.body)).toContain('ordinary free note with no overlap');
+  });
+
+  it('paid probe: POST /brittney/compile-gate drops a hidden-body premium row and its rationale', async () => {
+    const premiumId = 'entry_gate_paid_probe';
+    const { apiKey } = await registerCaller('probe-gate');
+    standIn.rows = [
+      probePremium(premiumId, 'author-not-caller', 'gotcha'),
+      probeFree('entry_gate_free_keep', 'gotcha'),
+    ];
+
+    const reply = await call(
+      'POST',
+      '/api/holomesh/brittney/compile-gate',
+      { source: 'object Foo { position: [0, 0, 0] }', target: 'r3f' },
+      { authorization: `Bearer ${apiKey}` }
+    );
+    expect(reply.status).toBe(200);
+    expect(probeLeak(reply.body.rationale ?? reply.body, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
+    expect(JSON.stringify(reply.body)).toContain('ordinary free note with no overlap');
+  });
+
+  it('paid probe: POST /brittney/cultural-context drops a hidden-body premium row', async () => {
+    const premiumId = 'entry_culture_paid_probe';
+    const { apiKey } = await registerCaller('probe-culture');
+    standIn.rows = [
+      probePremium(premiumId, 'author-not-caller', 'wisdom'),
+      probeFree('entry_culture_free_keep'),
+    ];
+
+    const reply = await call(
+      'POST',
+      '/api/holomesh/brittney/cultural-context',
+      { source: 'object Foo { position: [0, 0, 0] }', target: 'r3f', domain: 'general' },
+      { authorization: `Bearer ${apiKey}` }
+    );
+    expect(reply.status).toBe(200);
+    expect(probeLeak(reply.body, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
+    expect(JSON.stringify(reply.body)).toContain('ordinary');
+  });
+
+  it('paid probe: GET /knowledge/private drops a premium row the caller does not own', async () => {
+    const premiumId = 'entry_private_paid_probe';
+    const caller = await registerCaller('probe-private');
+    standIn.rows = [
+      probePremium(premiumId, 'author-not-caller', 'wisdom'),
+      probeFree('entry_private_free_keep'),
+    ];
+
+    const denied = await call('GET', '/api/holomesh/knowledge/private', undefined, {
+      authorization: `Bearer ${caller.apiKey}`,
+    });
+    expect(denied.status).toBe(200);
+    expect(probeLeak(denied.body.entries, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
+    expect(JSON.stringify(denied.body.entries)).toContain('entry_private_free_keep');
+
+    standIn.rows = [probePremium(premiumId, caller.id, 'wisdom')];
+    const own = await call('GET', '/api/holomesh/knowledge/private', undefined, {
+      authorization: `Bearer ${caller.apiKey}`,
+    });
+    expect(own.status).toBe(200);
+    expect(JSON.stringify(own.body.entries)).toContain(premiumId);
+    expect(JSON.stringify(own.body.entries)).toContain(PROBE_TOKEN);
+  });
+
+  it('paid probe: GET /consolidation/review does not preview paid body past the teaser', async () => {
+    const premiumId = 'entry_consol_paid_probe';
+    const caller = await registerCaller('probe-consol');
+    const premiumBody = `${'p'.repeat(130)}${PROBE_PHRASE} ${'paid tail. '.repeat(30)}`;
+    const freeBody = `${'f'.repeat(130)}freemarkerquartz ordinary free note`;
+    resetConsolidationBridge({ clearPersistence: true });
+    try {
+      const bridge = getConsolidationBridge();
+      const premium = {
+        id: premiumId,
+        workspaceId: 'ai-ecosystem',
+        type: 'gotcha',
+        content: premiumBody,
+        provenanceHash: '',
+        authorId: 'author-not-caller',
+        authorName: 'other',
+        price: 25,
+        queryCount: 0,
+        reuseCount: 0,
+        domain: 'agents',
+        tags: ['priced'],
+        confidence: 0.8,
+        createdAt: new Date().toISOString(),
+      } as MeshKnowledgeEntry;
+      const free = {
+        ...premium,
+        id: 'entry_consol_free_keep',
+        content: freeBody,
+        authorId: 'agent_somebody_else',
+        price: 0,
+        tags: ['free'],
+      } as MeshKnowledgeEntry;
+      bridge.ingestKnowledgeEntry(premium, 'peer-a');
+      bridge.ingestKnowledgeEntry(free, 'peer-a');
+      const engine = (
+        bridge as unknown as {
+          engine: { getHotBuffer: (d: string) => Array<{ ingestedAt: number }> };
+        }
+      ).engine;
+      for (const hot of engine.getHotBuffer('agents')) {
+        hot.ingestedAt = Date.now() - 13 * 60 * 60 * 1000;
+      }
+      bridge.triggerManual('probe');
+
+      const denied = await call('GET', '/api/holomesh/consolidation/review', undefined, {
+        authorization: `Bearer ${caller.apiKey}`,
+      });
+      expect(denied.status).toBe(200);
+      expect(probeLeak(denied.body, premiumId)).toEqual({
+        hasId: false,
+        hasToken: false,
+        hasPaidProbe: false,
+      });
+      expect(JSON.stringify(denied.body)).toContain('freemarkerquartz');
+
+      resetConsolidationBridge({ clearPersistence: true });
+      const ownBridge = getConsolidationBridge();
+      ownBridge.ingestKnowledgeEntry({ ...premium, authorId: caller.id }, 'peer-a');
+      const ownEngine = (
+        ownBridge as unknown as {
+          engine: { getHotBuffer: (d: string) => Array<{ ingestedAt: number }> };
+        }
+      ).engine;
+      for (const hot of ownEngine.getHotBuffer('agents')) {
+        hot.ingestedAt = Date.now() - 13 * 60 * 60 * 1000;
+      }
+      ownBridge.triggerManual('probe-author');
+      const own = await call('GET', '/api/holomesh/consolidation/review', undefined, {
+        authorization: `Bearer ${caller.apiKey}`,
+      });
+      expect(own.status).toBe(200);
+      expect(JSON.stringify(own.body)).toContain(PROBE_TOKEN);
+    } finally {
+      resetConsolidationBridge({ clearPersistence: true });
+    }
+  });
 });
