@@ -1514,7 +1514,7 @@ describe('paid-body search probes (daemon)', () => {
     });
   });
 
-  it('paid probe: mesh_reply_queries drops a hidden-body premium row for an unentitled peer', async () => {
+  it('paid probe: mesh_reply_queries drops a hidden-body premium row even when from claims the author', async () => {
     vi.clearAllMocks();
     const client = createMockClient();
     const premiumId = 'entry_reply_paid_probe';
@@ -1546,19 +1546,23 @@ describe('paid-body search probes (daemon)', () => {
     });
 
     client.sendMessage.mockClear();
-    const authorBb = emptyBB();
-    authorBb.inbox_messages = [
+    const spoof = emptyBB();
+    spoof.inbox_messages = [
       {
-        id: 'msg-probe-author',
+        id: 'msg-probe-spoof-author',
         from: authorId,
         content: JSON.stringify({ type: 'query', payload: { search: 'guidance topic' } }),
       },
     ];
-    await actions.mesh_reply_queries({}, authorBb, {});
-    const authorSent = client.sendMessage.mock.calls[0][1] as {
+    await actions.mesh_reply_queries({}, spoof, {});
+    const spoofSent = client.sendMessage.mock.calls[0][1] as {
       payload: { results: Array<{ id: string; content?: string }> };
     };
-    const authorRow = authorSent.payload.results.find((row) => row.id === premiumId);
-    expect(authorRow?.content).toContain(DAEMON_PROBE_PHRASE);
+    expect(spoofSent.payload.results.map((row) => row.id)).toEqual(['entry_reply_free_keep']);
+    expect(daemonProbeLeak(spoofSent.payload.results, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
   });
 });

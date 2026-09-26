@@ -21,7 +21,7 @@ import {
   INITIAL_MESH_STATE,
 } from '../types';
 import { HoloMeshWorldState } from '../crdt-sync';
-import { ANONYMOUS_VIEWER, entitledSearchRows, type PremiumViewer } from '../entry-lookup';
+import { ANONYMOUS_VIEWER, entitledSearchRows } from '../entry-lookup';
 import { HoloMeshDiscovery } from '../discovery';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -293,19 +293,15 @@ export function createHoloMeshDaemonActions(
 
         if (!searchTerm) continue;
 
-        // The inbox envelope `from` is the mesh sender id. It is not a
-        // founder key and this process does not re-check a signature here.
-        // Missing id → unentitled. Otherwise the same premiumEntryAccess
-        // rule: author or a recorded purchase, and the row is dropped when
-        // that is not true. A teaser would still confirm the hidden match.
-        const peerId = query.from ?? query.from_agent_id;
-        const viewer: PremiumViewer =
-          typeof peerId === 'string' && peerId.trim().length > 0
-            ? { authenticated: true, id: peerId.trim(), isFounder: false }
-            : ANONYMOUS_VIEWER;
+        // Inbox messages have no verified sender. mesh_check_inbox copies
+        // readInbox() onto the blackboard, and readInbox returns the
+        // orchestrator JSON unchanged. `from` / `from_agent_id` is a claim
+        // the sender can set. Treating it as the viewer let a peer name the
+        // author or a buyer and receive the paid body. Every peer is
+        // unentitled until a signature or server-stamped sender exists.
         const results = entitledSearchRows(
           await client.queryKnowledge(searchTerm, { limit: 3 }),
-          viewer
+          ANONYMOUS_VIEWER
         );
 
         if (results.length > 0) {
