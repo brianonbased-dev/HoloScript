@@ -62,8 +62,8 @@ export function premiumEntryAccess(
 
 /**
  * Author id as the orchestrator stores it. The HoloMesh client copies
- * `metadata.authorId` onto the row. Raw `/knowledge/query` fetches leave it
- * nested. Same person, same `premiumEntryAccess` check.
+ * `metadata.authorId` onto the row. A raw knowledge fetch leaves it nested.
+ * Same person, same `premiumEntryAccess` check.
  */
 function entryAuthorId(entry: { authorId?: string; metadata?: unknown }): string | undefined {
   if (typeof entry.authorId === 'string' && entry.authorId.length > 0) return entry.authorId;
