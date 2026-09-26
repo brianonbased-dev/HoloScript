@@ -49,8 +49,11 @@ import {
   mergeTeamKnowledgeWithOrchestrator,
   entriesForViewer,
   isPublicFeedEntry,
+  premiumEntryAccess,
   ANONYMOUS_VIEWER,
+  type PremiumViewer,
 } from '../entry-lookup';
+import { isPremiumEntry } from '../premium-view';
 import { checkRateLimit } from '../social';
 import type {
   Team,
@@ -101,6 +104,25 @@ function normalizeEntry(entry: MeshKnowledgeEntry): Record<string, unknown> {
     authorName: entry.authorName,
     createdAt: entry.createdAt,
   };
+}
+
+/**
+ * Premium rows a search caller may actually match.
+ *
+ * `entriesForViewer` / `premiumEntryAccess` already decide entitlement
+ * (author, founder key, or a recorded purchase in `paidAccessStore`).
+ * Redaction is not enough on the `q` path: the orchestrator searched the
+ * hidden body, and returning the locked row tells the caller the body
+ * matched. Drop those rows before keyword match and before the
+ * orchestrator-rank fallback. Browse (no `q`) still returns teasers.
+ */
+function visibleKnowledgeForSearch<
+  T extends { id: string; authorId?: string; price?: unknown; metadata?: unknown },
+>(rows: T[], viewer: PremiumViewer): T[] {
+  return rows.filter(
+    (entry) =>
+      !isPremiumEntry(entry) || premiumEntryAccess(viewer, entry.id, entry.authorId) !== null
+  );
 }
 
 async function fetchQuickstartPreview(): Promise<MeshKnowledgeEntry[]> {
@@ -1774,10 +1796,11 @@ export async function handleTeamRoutes(
       fromOrch = [];
     }
     // Team members are not entitled to each other's premium entries.
-    let entries = entriesForViewer(
-      mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge),
-      resolveRequestingAgent(req)
-    );
+    // On a search, drop those rows before matching. entriesForViewer only
+    // redacts them; the locked row itself is proof the hidden body matched.
+    const viewer = resolveRequestingAgent(req);
+    const merged = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
+    let entries = entriesForViewer(q ? visibleKnowledgeForSearch(merged, viewer) : merged, viewer);
     if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
     if (q) {
       // Live 2026-09-05 (board m9oh): `q` reached queryKnowledge, but a failed
@@ -1795,14 +1818,12 @@ export async function handleTeamRoutes(
         // applied to `entries`, and this branch replaces `entries` wholesale, so
         // the gate has to be re-applied here or it is simply skipped.
         //
-        // Neither lane had this hole. One lane added the gate and had no such
-        // branch; the other added this branch and had no gate to skip. Git
-        // merged both without a conflict and the result leaked: any member of
-        // the team could ask for a two-word phrase that matches no visible text
-        // and receive the full body of every priced entry in the workspace,
-        // with no `locked` flag. Caught in review of the merge that made it,
-        // 2026-09-21, before it reached main.
-        entries = entriesForViewer(fromOrch, resolveRequestingAgent(req));
+        // Re-applying entriesForViewer only hides the body. The orchestrator
+        // already matched `q` against that body, so a locked row in this
+        // branch tells a non-payer which words are in the paid text. Keep
+        // free rows and rows this viewer is entitled to (author, founder,
+        // recorded purchase); drop the rest.
+        entries = entriesForViewer(visibleKnowledgeForSearch(fromOrch, viewer), viewer);
         if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
       } else {
         entries = [];

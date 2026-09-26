@@ -120,6 +120,7 @@ import {
   agentAuditStore,
   appendCaelAuditRecord,
   keyRegistry,
+  paidAccessStore,
   type CaelAuditRecord,
 } from '../state';
 import { MOBILE_PRESENCE_TTL_MS, type Team } from '../types';
@@ -3381,9 +3382,18 @@ describe('HoloMesh HTTP Routes', () => {
           price: 25,
           createdAt: new Date().toISOString(),
         },
+        {
+          id: 'entry_free_rank_keep',
+          type: 'wisdom',
+          content: 'ordinary free note with no overlap',
+          domain: 'general',
+          authorId: 'agent_somebody_else',
+          price: 0,
+          createdAt: new Date().toISOString(),
+        },
       ]);
 
-      // Two words, matching nothing in the redacted set, so keywordHits is empty
+      // Two words, matching nothing in the visible set, so keywordHits is empty
       // and the orchestrator-rank fallback is the branch that answers.
       const req = mockReq(
         'GET',
@@ -3395,10 +3405,115 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
 
       expect(res._status).toBe(200);
-      // The branch must actually have been taken, or this test proves nothing.
-      expect(res._body.entries.length).toBe(1);
+      // The branch must actually have been taken, or this test proves nothing:
+      // the free row comes back, the priced row does not.
+      expect(res._body.entries.map((e: { id: string }) => e.id)).toEqual(['entry_free_rank_keep']);
       expect(JSON.stringify(res._body)).not.toContain(SECRET);
-      expect(res._body.entries[0].locked).toBe(true);
+      expect(JSON.stringify(res._body)).not.toContain('entry_premium_rank_leak');
+    });
+
+    it('GET /api/holomesh/team/:id/knowledge?q= does not reveal a locked entry from its hidden body', async () => {
+      // Review of the redaction-only fallback (2026-09-22): entriesForViewer
+      // sets locked:true and swaps in a teaser, then the orchestrator-rank
+      // branch still returns that row. A member who has not paid can probe
+      // two-word phrases. A hit means the hidden body contains them.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `hidden-body-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._status).toBe(200);
+
+      const hiddenToken = 'xylophonequartz9f3a';
+      const hiddenPhrase = `${hiddenToken} paidprobe`;
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${hiddenPhrase}`;
+      const entry = {
+        id: 'entry_locked_hidden_probe',
+        workspaceId: `team:${tid}`,
+        type: 'wisdom',
+        content: premiumBody,
+        provenanceHash: 'probe',
+        authorId: ownerAgentId,
+        authorName: 'team-owner',
+        price: 25,
+        queryCount: 0,
+        reuseCount: 0,
+        domain: 'general',
+        tags: ['priced'],
+        createdAt: new Date().toISOString(),
+      };
+      teamStore.get(tid)!.knowledge = [entry];
+      mockClient.queryKnowledge.mockResolvedValue([entry]);
+      const purchaseKey = `${memberAgentId}:entry_locked_hidden_probe`;
+
+      const search = async (apiKey: string, q: string) => {
+        const req = mockReq(
+          'GET',
+          `/api/holomesh/team/${tid}/knowledge?q=${encodeURIComponent(q)}&limit=25`,
+          undefined,
+          { authorization: `Bearer ${apiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
+        return res;
+      };
+
+      // One token stays on the keyword path (redacted text only). Two tokens
+      // with no visible hit take the orchestrator-rank fallback, which is the
+      // path that used to return the locked row.
+      try {
+        const memberTokenRes = await search(memberApiKey, hiddenToken);
+        expect(memberTokenRes._status).toBe(200);
+        expect(JSON.stringify(memberTokenRes._body)).not.toContain(hiddenToken);
+        expect(
+          memberTokenRes._body.entries.map((e: { id: string }) => e.id)
+        ).not.toContain('entry_locked_hidden_probe');
+
+        const memberRes = await search(memberApiKey, hiddenPhrase);
+        expect(memberRes._status).toBe(200);
+        expect(
+          memberRes._body.entries.map((e: { id: string }) => e.id)
+        ).not.toContain('entry_locked_hidden_probe');
+        expect(JSON.stringify(memberRes._body)).not.toContain(hiddenToken);
+        expect(JSON.stringify(memberRes._body)).not.toContain('paidprobe');
+
+        // The author is entitled (premiumEntryAccess → 'author') and still sees it.
+        const authorRes = await search(ownerApiKey, hiddenPhrase);
+        expect(authorRes._status).toBe(200);
+        expect(authorRes._body.entries.map((e: { id: string }) => e.id)).toContain(
+          'entry_locked_hidden_probe'
+        );
+        expect(JSON.stringify(authorRes._body)).toContain(hiddenToken);
+        expect(authorRes._body.entries[0].locked).not.toBe(true);
+
+        // A recorded purchase is the other entitlement this route already has.
+        paidAccessStore.add(purchaseKey);
+        const buyerRes = await search(memberApiKey, hiddenPhrase);
+        expect(buyerRes._status).toBe(200);
+        expect(buyerRes._body.entries.map((e: { id: string }) => e.id)).toContain(
+          'entry_locked_hidden_probe'
+        );
+        expect(JSON.stringify(buyerRes._body)).toContain(hiddenToken);
+        expect(buyerRes._body.entries[0].locked).not.toBe(true);
+      } finally {
+        paidAccessStore.delete(purchaseKey);
+        mockClient.queryKnowledge.mockReset();
+        mockClient.queryKnowledge.mockResolvedValue([]);
+      }
     });
 
     it('GET /api/holomesh/entry/:id resolves team-mirrored entry when orchestrator has not indexed', async () => {
