@@ -58,7 +58,7 @@ For release admission, consumption receipts, stewardship status, and compiler-na
 | [**@holoscript/platform**](./platform.md)                 | Enterprise security, identity, and Web3 |
 | [**@holoscript/mcp-server**](./mcp-server.md)             | MCP tools for AI agents and IDEs        |
 | [**@holoscript/memory**](./memory.md)                     | Sovereign agent-memory client           |
-| [**@holoscript/holollama**](./holollama.md)               | Native llama.cpp serving utilities      |
+| [**@holoscript/holollama**](./holollama.md)               | HoloScript-owned serving utilities (code rung) around the outside llama.cpp runtime, labelled as a bridge |
 | [**@holoscript/r3f-renderer**](./r3f-renderer.md)         | React Three Fiber renderer helpers      |
 | [**@holoscript/xr-embodiment**](./xr-embodiment.md)       | WebXR locomotion and agent avatars      |
 | [**@hololand/platform-services**](./hololand-platform.md) | HoloLand VR-world services              |
