@@ -21,6 +21,7 @@
  *
  * Usage:
  *   node scripts/holo-ci/check-hardcoded-stats.mjs <file.md> [more.md ...]
+ *   node scripts/holo-ci/check-hardcoded-stats.mjs --files-from <list.txt>
  *   node scripts/holo-ci/check-hardcoded-stats.mjs --staged
  *   node scripts/holo-ci/check-hardcoded-stats.mjs --all
  *   node scripts/holo-ci/check-hardcoded-stats.mjs --help
@@ -28,6 +29,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { resolve, join, relative, sep } from 'node:path';
+import { readScopedFileList } from './read-scoped-files.mjs';
 
 const REPO = resolve(process.cwd());
 
@@ -145,6 +147,7 @@ function main() {
         '',
         'Usage:',
         '  node scripts/holo-ci/check-hardcoded-stats.mjs <file.md> [...]   scan specific files',
+        '  node scripts/holo-ci/check-hardcoded-stats.mjs --files-from <list.txt>',
         '  node scripts/holo-ci/check-hardcoded-stats.mjs --staged          scan git-staged markdown',
         '  node scripts/holo-ci/check-hardcoded-stats.mjs --all             audit every doc',
         '',
@@ -155,10 +158,17 @@ function main() {
     return;
   }
 
+  // --all is full-tree. --staged asks git. --files-from is the pre-commit path
+  // (newline list, CRLF-tolerant, off the command line). Positional paths stay
+  // for existing callers. --all and --staged win if combined with --files-from.
   let files;
   if (args.includes('--all')) files = collectAllDocs();
   else if (args.includes('--staged')) files = stagedDocs();
-  else files = args.map((a) => resolve(REPO, a)).filter((f) => f.endsWith('.md'));
+  else if (args.includes('--files-from') || args.includes('--files')) {
+    files = readScopedFileList(args)
+      .map((a) => resolve(REPO, a))
+      .filter((f) => f.endsWith('.md'));
+  } else files = args.map((a) => resolve(REPO, a)).filter((f) => f.endsWith('.md'));
 
   files = files.filter((f) => existsSync(f) && !isExcludedPath(f));
   if (!files.length) {

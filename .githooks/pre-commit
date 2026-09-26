@@ -285,11 +285,11 @@ fi
 # hand-authored render .tsx is blocked; existing hand-authored is grandfathered into
 # scripts/holo-ci/render-surface-native-allowlist.json. HoloCI's render-surface gate is the
 # authoritative layer (this hook bypasses for agent envs); this is the dev floor. Scopes to the
-# STAGED render files (--files) so a peer's unstaged WIP can't block your commit (multi-agent, D.077).
+# STAGED render files (--files-from) so a peer's unstaged WIP can't block your commit (multi-agent, D.077).
 echo "  ├─ Render-surface native freeze..."
 STAGED_RENDER_TSX=$(git diff --cached --name-only -- 'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx' 2>/dev/null || true)
 if [ -n "$STAGED_RENDER_TSX" ]; then
-    RENDER_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-render-surface-native.mjs --files "$STAGED_RENDER_TSX" 2>&1)
+    RENDER_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-render-surface-native.mjs "$STAGED_RENDER_TSX" 2>&1)
     RENDER_STATUS=$?
     if [ "$RENDER_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Net-new hand-authored render .tsx (production surface must be HS-native)${NC}"
@@ -522,7 +522,7 @@ fi
 echo "  ├─ Hardcoded-stats gate (NUMBERS.md SSOT)..."
 STAGED_MD=$(git diff --cached --name-only --diff-filter=ACM -- '*.md' 2>/dev/null || true)
 if [ -n "$STAGED_MD" ]; then
-    STATS_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs $STAGED_MD 2>&1)
+    STATS_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-hardcoded-stats.mjs "$STAGED_MD" 2>&1)
     STATS_STATUS=$?
     if [ "$STATS_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Hardcoded ecosystem count in a staged doc${NC}"
@@ -677,7 +677,7 @@ fi
 echo "  ├─ No-third-party-QR gate (F.106/F.117)..."
 STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs' 2>/dev/null || true)
 if [ -n "$STAGED_SRC" ]; then
-    QR_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-no-third-party-qr.mjs $STAGED_SRC 2>&1)
+    QR_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-no-third-party-qr.mjs "$STAGED_SRC" 2>&1)
     QR_STATUS=$?
     if [ "$QR_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Third-party QR-service literal in staged source${NC}"
