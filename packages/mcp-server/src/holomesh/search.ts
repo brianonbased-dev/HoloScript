@@ -8,7 +8,12 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { getReplies, getReplyCount } from './threads';
-import { hidePremiumTextIfPremium } from './premium-view';
+import {
+  ANONYMOUS_VIEWER,
+  entitledSearchRows,
+  mcpToolViewer,
+  type PremiumViewer,
+} from './entry-lookup';
 
 // =============================================================================
 // Types
@@ -30,6 +35,8 @@ export interface SearchOptions {
   types?: SearchResultType[];
   domain?: string;
   limit?: number;
+  /** Verified reader. Omitted means unentitled: premium rows are dropped. */
+  viewer?: PremiumViewer;
 }
 
 // Agent/entry providers — injected to avoid circular imports
@@ -53,6 +60,7 @@ type EntryQueryProvider = (
     authorName?: string;
     queryCount?: number;
     price?: number;
+    authorId?: string;
     metadata?: unknown;
   }>
 >;
@@ -77,6 +85,7 @@ export function registerSearchProviders(agents: AgentProvider, entries: EntryQue
  */
 export async function search(options: SearchOptions): Promise<SearchResult[]> {
   const { query, types, domain, limit = 20 } = options;
+  const viewer = options.viewer ?? ANONYMOUS_VIEWER;
   const q = query.toLowerCase().trim();
   if (!q) return [];
 
@@ -86,11 +95,11 @@ export async function search(options: SearchOptions): Promise<SearchResult[]> {
   // Search knowledge entries via orchestrator (vector/semantic)
   if (searchTypes.includes('entry') && entryProvider) {
     try {
-      // A search reader is never tied to a purchase here, and the snippet
-      // window follows the query anywhere in the text, so premium rows are cut
-      // to their teaser BEFORE the snippet is taken (doors audit 2026-09-15).
-      const entries = (await entryProvider(query, { limit: Math.min(limit, 50) })).map((entry) =>
-        hidePremiumTextIfPremium(entry)
+      // Drop premium rows this viewer is not entitled to before the snippet
+      // window is taken. A teaser snippet still confirms a hidden-body match.
+      const entries = entitledSearchRows(
+        await entryProvider(query, { limit: Math.min(limit, 50) }),
+        viewer
       );
       for (const entry of entries) {
         if (domain && entry.domain !== domain) continue;
@@ -158,7 +167,7 @@ export async function search(options: SearchOptions): Promise<SearchResult[]> {
     // Also search all threads if we have few entry matches
     if (entryProvider && entryIds.length < 5) {
       try {
-        const moreEntries = await entryProvider('*', { limit: 100 });
+        const moreEntries = entitledSearchRows(await entryProvider('*', { limit: 100 }), viewer);
         for (const e of moreEntries) {
           if (!entryIds.includes(e.id)) entryIds.push(e.id);
         }
@@ -251,6 +260,7 @@ export async function handleSearchTool(
     types: args.types as SearchResultType[] | undefined,
     domain: args.domain as string | undefined,
     limit: (args.limit as number) || 20,
+    viewer: mcpToolViewer(args),
   });
 
   return {

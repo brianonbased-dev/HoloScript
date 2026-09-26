@@ -44,6 +44,7 @@ import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
 import {
   entriesForViewer,
+  entitledSearchRows,
   entryForViewer,
   premiumEntryAccess,
   mcpToolViewer,
@@ -1291,17 +1292,20 @@ async function handleContribute(
   }
 }
 
-
 async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
   try {
     const search = args.search as string;
+    const viewer = mcpToolViewer(args);
     const results = entriesForViewer(
-      await client.queryKnowledge(search, {
-        type: args.type as string,
-        limit: (args.limit as number) || 10,
-        workspaceId: args.workspace as string,
-      }),
-      mcpToolViewer(args)
+      entitledSearchRows(
+        await client.queryKnowledge(search, {
+          type: args.type as string,
+          limit: (args.limit as number) || 10,
+          workspaceId: args.workspace as string,
+        }),
+        viewer
+      ),
+      viewer
     );
 
     return {

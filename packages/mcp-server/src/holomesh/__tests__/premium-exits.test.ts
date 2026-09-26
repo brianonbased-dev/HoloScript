@@ -414,14 +414,14 @@ describe('premium text on HTTP exits (doors audit round 3)', () => {
 // deletes any caller-supplied value first); these tests pass it directly.
 
 describe('premium text on MCP HoloMesh tools (doors audit round 3)', () => {
-  it('holomesh_query gives an anonymous caller only the teaser, without metadata', async () => {
+  it('holomesh_query omits a premium row an anonymous caller is not entitled to', async () => {
     standIn.rows = [longPremium('premium-t1'), shortPremium('premium-t1b')];
     const result = (await handleHoloMeshTool('holomesh_query', { search: 'paid' })) as {
-      results: Array<{ locked?: boolean }>;
+      results: Array<{ id?: string }>;
     };
 
-    expect(result.results).toHaveLength(2);
-    expect(result.results.every((r) => r.locked === true)).toBe(true);
+    expect(result.results).toHaveLength(0);
+    expect(JSON.stringify(result)).not.toContain('premium-t1');
     expectNoPremiumText(result);
   });
 
@@ -557,7 +557,12 @@ describe('holomesh_knowledge_read (round-4 review P1)', () => {
     const tid = await makeTeam('kr-member', ['member-agent', 'author-agent']);
     teamStore.get(tid)!.knowledge = [
       mirrorEntry('kr-short', SHORT_SECRET, 'author-agent', 0.05),
-      mirrorEntry('kr-long', `${'Premium body text. '.repeat(12)}${PAID_TAIL}`, 'author-agent', 0.05),
+      mirrorEntry(
+        'kr-long',
+        `${'Premium body text. '.repeat(12)}${PAID_TAIL}`,
+        'author-agent',
+        0.05
+      ),
       mirrorEntry('kr-free', 'Free team wisdom stays whole', 'author-agent', 0),
     ];
 
@@ -647,7 +652,7 @@ describe('the server strips a caller-supplied __authAgentId (handlers.ts, round-
         { search: 'paid', __authAgentId: 'author-agent' },
         ctx
       );
-      expect(JSON.stringify(result)).toContain('premium-h1');
+      expect(JSON.stringify(result)).not.toContain('premium-h1');
       expect(JSON.stringify(result)).not.toContain(PAID_TAIL);
     }
 
@@ -679,4 +684,83 @@ describe("premiumEntryAccess: the 'not authenticated' check is load-bearing (rou
     expect(JSON.stringify(reply.body)).toContain('premium-an2');
     expectNoPremiumText(reply.body);
   });
+});
+
+// ── Hidden-body search probes ────────────────────────────────────────────────
+// A premium row whose paid body contains a phrase that is nowhere else. The
+// orchestrator stand-in returns that row as if the caller's query matched the
+// hidden text. An unentitled caller must not see the row, its id, or either
+// probe word. The request itself does not contain the phrase.
+
+const PROBE_TOKEN = 'xylophonequartz9f3a';
+const PROBE_PHRASE = `${PROBE_TOKEN} paidprobe`;
+
+function probePremium(id: string, authorId: string, type: string): Record<string, unknown> {
+  const content = `${PROBE_PHRASE} ${'lead in prose that is freely readable. '.repeat(12)}`;
+  return orchRow(id, content, { price: 25, authorId, type });
+}
+
+function probeFree(id: string, type = 'wisdom'): Record<string, unknown> {
+  return orchRow(id, 'ordinary free note with no overlap', {
+    price: 0,
+    authorId: 'agent_somebody_else',
+    type,
+  });
+}
+
+function probeLeak(
+  body: unknown,
+  premiumId: string
+): { hasId: boolean; hasToken: boolean; hasPaidProbe: boolean } {
+  const text = JSON.stringify(body);
+  return {
+    hasId: text.includes(premiumId),
+    hasToken: text.includes(PROBE_TOKEN),
+    hasPaidProbe: text.includes('paidprobe'),
+  };
+}
+
+describe('paid-body search probes', () => {
+  it('paid probe: holomesh_query drops a hidden-body premium row', async () => {
+    const premiumId = 'entry_query_paid_probe';
+    const authorId = 'probe-author-query';
+    const buyerId = 'probe-buyer-query';
+    standIn.rows = [
+      probePremium(premiumId, authorId, 'wisdom'),
+      probeFree('entry_query_free_keep'),
+    ];
+    const purchaseKey = `${buyerId}:${premiumId}`;
+
+    try {
+      const anon = (await handleHoloMeshTool('holomesh_query', { search: 'mesh guidance' })) as {
+        results: Array<{ id: string }>;
+      };
+      expect(anon.results.map((row) => row.id)).toEqual(['entry_query_free_keep']);
+      expect(probeLeak(anon.results, premiumId)).toEqual({
+        hasId: false,
+        hasToken: false,
+        hasPaidProbe: false,
+      });
+
+      const author = (await handleHoloMeshTool('holomesh_query', {
+        search: 'mesh guidance',
+        __authAgentId: authorId,
+      })) as { results: Array<{ id: string; content?: string; locked?: boolean }> };
+      expect(author.results.map((row) => row.id)).toContain(premiumId);
+      const authorRow = author.results.find((row) => row.id === premiumId);
+      expect(authorRow?.locked).not.toBe(true);
+      expect(authorRow?.content).toContain(PROBE_PHRASE);
+
+      paidAccessStore.add(purchaseKey);
+      const buyer = (await handleHoloMeshTool('holomesh_query', {
+        search: 'mesh guidance',
+        __authAgentId: buyerId,
+      })) as { results: Array<{ id: string; content?: string }> };
+      expect(buyer.results.map((row) => row.id)).toContain(premiumId);
+      expect(buyer.results.find((row) => row.id === premiumId)?.content).toContain(PROBE_PHRASE);
+    } finally {
+      paidAccessStore.delete(purchaseKey);
+    }
+  });
+
 });

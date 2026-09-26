@@ -1431,7 +1431,7 @@ describe('wiring: blackboard handoff', () => {
     expect(client.sendMessage).toHaveBeenCalled();
   });
 
-  it('mesh_query_network → mesh_collect_premium (query_results flows through)', async () => {
+  it('mesh_query_network does not hand an unentitled premium row to mesh_collect_premium', async () => {
     vi.clearAllMocks();
     const client = createMockClient();
     const premiumEntry = makeEntry('W.premium.001', 0.5);
@@ -1441,11 +1441,11 @@ describe('wiring: blackboard handoff', () => {
 
     const bb = emptyBB();
     await actions.mesh_query_network({}, bb, {});
-    expect(bb.query_results).toBeDefined();
-    expect(bb.query_results.length).toBe(1);
+    expect(bb.query_results).toEqual([]);
+    expect(JSON.stringify(bb.query_results)).not.toContain('W.premium.001');
 
     const collected = await actions.mesh_collect_premium({}, bb, {});
-    expect(collected).toBe(true);
+    expect(collected).toBe(false);
   });
 
   it('register must succeed before discover works', async () => {
@@ -1463,5 +1463,106 @@ describe('wiring: blackboard handoff', () => {
     // Now discover should work
     const discResult = await actions.mesh_discover_peers({}, emptyBB(), {});
     expect(discResult).toBe(true);
+  });
+});
+
+const DAEMON_PROBE_TOKEN = 'xylophonequartz9f3a';
+const DAEMON_PROBE_PHRASE = `${DAEMON_PROBE_TOKEN} paidprobe`;
+
+function daemonProbeEntry(id: string, authorId: string, price: number): MeshKnowledgeEntry {
+  return {
+    ...makeEntry(id, price),
+    authorId,
+    content:
+      price > 0
+        ? `${DAEMON_PROBE_PHRASE} ${'lead in prose that is freely readable. '.repeat(12)}`
+        : 'ordinary free note with no overlap',
+  };
+}
+
+function daemonProbeLeak(body: unknown, premiumId: string) {
+  const text = JSON.stringify(body);
+  return {
+    hasId: text.includes(premiumId),
+    hasToken: text.includes(DAEMON_PROBE_TOKEN),
+    hasPaidProbe: text.includes('paidprobe'),
+  };
+}
+
+describe('paid-body search probes (daemon)', () => {
+  it('paid probe: mesh_query_network does not put an unentitled premium row on the blackboard', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const premiumId = 'entry_network_paid_probe';
+    client.queryKnowledge.mockResolvedValue([
+      daemonProbeEntry(premiumId, 'author-not-blackboard', 25),
+      daemonProbeEntry('entry_network_free_keep', 'someone-else', 0),
+    ]);
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({ searchTopics: ['guidance topic'] })
+    );
+    const bb = emptyBB();
+    await actions.mesh_query_network({}, bb, {});
+    expect(bb.query_results.map((row: { id: string }) => row.id)).toEqual([
+      'entry_network_free_keep',
+    ]);
+    expect(daemonProbeLeak(bb.query_results, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
+  });
+
+  it('paid probe: mesh_reply_queries drops a hidden-body premium row even when from claims the author', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const premiumId = 'entry_reply_paid_probe';
+    const authorId = 'probe-reply-author';
+    client.queryKnowledge.mockResolvedValue([
+      daemonProbeEntry(premiumId, authorId, 25),
+      daemonProbeEntry('entry_reply_free_keep', 'someone-else', 0),
+    ]);
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    const stranger = emptyBB();
+    stranger.inbox_messages = [
+      {
+        id: 'msg-probe-stranger',
+        from: 'peer-stranger',
+        content: JSON.stringify({ type: 'query', payload: { search: 'guidance topic' } }),
+      },
+    ];
+    await actions.mesh_reply_queries({}, stranger, {});
+    expect(client.sendMessage).toHaveBeenCalled();
+    const sent = client.sendMessage.mock.calls[0][1] as {
+      payload: { results: Array<{ id: string; content?: string }> };
+    };
+    expect(sent.payload.results.map((row) => row.id)).toEqual(['entry_reply_free_keep']);
+    expect(daemonProbeLeak(sent.payload.results, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
+
+    client.sendMessage.mockClear();
+    const spoof = emptyBB();
+    spoof.inbox_messages = [
+      {
+        id: 'msg-probe-spoof-author',
+        from: authorId,
+        content: JSON.stringify({ type: 'query', payload: { search: 'guidance topic' } }),
+      },
+    ];
+    await actions.mesh_reply_queries({}, spoof, {});
+    const spoofSent = client.sendMessage.mock.calls[0][1] as {
+      payload: { results: Array<{ id: string; content?: string }> };
+    };
+    expect(spoofSent.payload.results.map((row) => row.id)).toEqual(['entry_reply_free_keep']);
+    expect(daemonProbeLeak(spoofSent.payload.results, premiumId)).toEqual({
+      hasId: false,
+      hasToken: false,
+      hasPaidProbe: false,
+    });
   });
 });

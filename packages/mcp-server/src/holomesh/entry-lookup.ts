@@ -61,6 +61,44 @@ export function premiumEntryAccess(
 }
 
 /**
+ * Author id as the orchestrator stores it. The HoloMesh client copies
+ * `metadata.authorId` onto the row. A raw knowledge fetch leaves it nested.
+ * Same person, same `premiumEntryAccess` check.
+ */
+function entryAuthorId(entry: { authorId?: string; metadata?: unknown }): string | undefined {
+  if (typeof entry.authorId === 'string' && entry.authorId.length > 0) return entry.authorId;
+  const meta = entry.metadata;
+  if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+    const nested = (meta as Record<string, unknown>).authorId;
+    if (typeof nested === 'string' && nested.length > 0) return nested;
+  }
+  return undefined;
+}
+
+/**
+ * Premium rows a search may match.
+ *
+ * Entitlement is `premiumEntryAccess`: the author, a founder key, or a
+ * recorded purchase in `paidAccessStore`. An unauthenticated viewer is never
+ * entitled. Drop the others before any id, snippet, rationale, or section is
+ * built. A locked teaser is not enough: returning the row tells the caller
+ * the query hit hidden paid text.
+ *
+ * Unmerged PRs #350 (`team-routes.ts`) and #352 (`knowledge-routes.ts` GET
+ * /search) each keep a local copy of this filter. After those land, both
+ * copies should call this export and the local helpers should go.
+ */
+export function entitledSearchRows<
+  T extends { id?: string; authorId?: string; price?: unknown; metadata?: unknown },
+>(rows: T[], viewer: PremiumViewer): T[] {
+  return rows.filter((entry) => {
+    if (!isPremiumEntry(entry)) return true;
+    const id = typeof entry.id === 'string' ? entry.id : '';
+    return premiumEntryAccess(viewer, id, entryAuthorId(entry)) !== null;
+  });
+}
+
+/**
  * THE premium gate for lookup results: a free entry, or a premium entry this
  * viewer is entitled to, passes through unchanged; any other premium entry
  * leaves with only its teaser (premium-view.ts) and `locked: true`.
