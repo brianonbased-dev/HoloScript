@@ -34,8 +34,9 @@ import {
   entriesForViewer,
   premiumEntryAccess,
   type PremiumAccess,
+  type PremiumViewer,
 } from '../entry-lookup';
-import { premiumTeaser, premiumTeaserText } from '../premium-view';
+import { isPremiumEntry, premiumTeaser, premiumTeaserText } from '../premium-view';
 import { getConsolidationBridge } from '../consolidation-bridge';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
 import { resolveSecretWithLease, VaultLeaseError } from '../identity/vault-lease-registry';
@@ -429,6 +430,30 @@ function verifyPremiumPayment(paymentClaim: unknown): PremiumPaymentVerdict {
 // everyone else sees (entryForViewer) live in ../entry-lookup.ts, so every
 // exit that returns lookup results uses the same gate.
 
+/**
+ * Premium rows a public-search caller may actually match.
+ *
+ * Entitlement is the existing `premiumEntryAccess` check: the author, a
+ * founder key, or a recorded purchase in `paidAccessStore`. Anonymous
+ * callers are never entitled. Redaction is not enough on `q`: the
+ * orchestrator already matched the hidden body, and returning the locked
+ * row tells the caller those words are in the paid text. Drop those rows
+ * before the response. Routes that browse with no caller query still
+ * return teasers.
+ *
+ * Team knowledge search has the same helper locally (`team-routes.ts` on
+ * the unmerged knowledge-search leak fix). After that lands, both copies
+ * should move next to `premiumEntryAccess` in `entry-lookup.ts`.
+ */
+function visibleKnowledgeForSearch<
+  T extends { id: string; authorId?: string; price?: unknown; metadata?: unknown },
+>(rows: T[], viewer: PremiumViewer): T[] {
+  return rows.filter(
+    (entry) =>
+      !isPremiumEntry(entry) || premiumEntryAccess(viewer, entry.id, entry.authorId) !== null
+  );
+}
+
 function storyBranchAccess(
   caller: { authenticated: boolean; id: string; isFounder?: boolean },
   session: StoryWeaverSession,
@@ -550,10 +575,12 @@ export async function handleKnowledgeRoutes(
     const limit = parseInt(q.get('limit') || '10', 10);
     // Doors audit 2026-09-15 (round 3): this returned raw lookup rows, full
     // premium text included, to anyone, so a stranger refused by
-    // GET /entry/:id could read the same entry here.
+    // GET /entry/:id could read the same entry here. Redaction still
+    // returned the locked row, which confirmed a match on hidden paid text.
+    const viewer = resolveRequestingAgent(req);
     const results = entriesForViewer(
-      await c.queryKnowledge(search, { type, limit }),
-      resolveRequestingAgent(req)
+      visibleKnowledgeForSearch(await c.queryKnowledge(search, { type, limit }), viewer),
+      viewer
     );
     json(res, 200, { success: true, results, count: results.length, query: search });
     return true;

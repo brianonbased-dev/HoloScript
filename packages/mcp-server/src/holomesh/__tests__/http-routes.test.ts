@@ -120,6 +120,7 @@ import {
   agentAuditStore,
   appendCaelAuditRecord,
   keyRegistry,
+  paidAccessStore,
   type CaelAuditRecord,
 } from '../state';
 import { MOBILE_PRESENCE_TTL_MS, type Team } from '../types';
@@ -6993,6 +6994,101 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, '/api/holomesh/search');
 
       expect(res._status).toBe(400);
+    });
+
+    it('GET /api/holomesh/search?q= does not return a locked row when the query matches hidden paid text', async () => {
+      // Public search used to redact a premium row (locked: true, teaser only)
+      // and still return it. The orchestrator had already matched `q` against
+      // the hidden body, so the locked row told an unpaid caller those words
+      // were in the paid text. Anonymous callers are never entitled.
+      const authorReg = mockReq('POST', '/api/holomesh/register', {
+        name: `search-author-${Date.now()}`,
+      });
+      const authorRes = mockRes();
+      await handleHoloMeshRoute(authorReg, authorRes, '/api/holomesh/register');
+      expect(authorRes._status).toBe(201);
+      const authorKey = authorRes._body.agent.api_key as string;
+      const authorId = authorRes._body.agent.id as string;
+
+      const buyerReg = mockReq('POST', '/api/holomesh/register', {
+        name: `search-buyer-${Date.now()}`,
+      });
+      const buyerRes = mockRes();
+      await handleHoloMeshRoute(buyerReg, buyerRes, '/api/holomesh/register');
+      expect(buyerRes._status).toBe(201);
+      const buyerKey = buyerRes._body.agent.api_key as string;
+      const buyerId = buyerRes._body.agent.id as string;
+
+      const hiddenToken = 'xylophonequartz9f3a';
+      const hiddenPhrase = `${hiddenToken} paidprobe`;
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${hiddenPhrase}`;
+      const entryId = 'entry_public_hidden_probe';
+      const premium = {
+        id: entryId,
+        type: 'wisdom',
+        content: premiumBody,
+        domain: 'general',
+        authorId,
+        authorName: 'search-author',
+        price: 25,
+        tags: ['priced'],
+        createdAt: new Date().toISOString(),
+      };
+      const free = {
+        id: 'entry_public_free_keep',
+        type: 'wisdom',
+        content: 'ordinary free note with no overlap',
+        domain: 'general',
+        authorId: 'agent_somebody_else',
+        price: 0,
+        createdAt: new Date().toISOString(),
+      };
+      mockClient.queryKnowledge.mockResolvedValue([premium, free]);
+      const purchaseKey = `${buyerId}:${entryId}`;
+
+      const search = async (apiKey?: string) => {
+        const path = `/api/holomesh/search?q=${encodeURIComponent(hiddenPhrase)}&limit=10`;
+        const req = mockReq('GET', path, undefined, apiKey ? { authorization: `Bearer ${apiKey}` } : undefined);
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, path);
+        return res;
+      };
+
+      try {
+        const anon = await search();
+        expect(anon._status).toBe(200);
+        expect(anon._body.results.map((e: { id: string }) => e.id)).toEqual(['entry_public_free_keep']);
+        expect(JSON.stringify(anon._body.results)).not.toContain(entryId);
+        expect(JSON.stringify(anon._body.results)).not.toContain(hiddenToken);
+        expect(JSON.stringify(anon._body.results)).not.toContain('paidprobe');
+
+        const unpaid = await search(buyerKey);
+        expect(unpaid._status).toBe(200);
+        expect(unpaid._body.results.map((e: { id: string }) => e.id)).not.toContain(entryId);
+        expect(JSON.stringify(unpaid._body.results)).not.toContain(hiddenToken);
+        expect(JSON.stringify(unpaid._body.results)).not.toContain('paidprobe');
+
+        const author = await search(authorKey);
+        expect(author._status).toBe(200);
+        expect(author._body.results.map((e: { id: string }) => e.id)).toContain(entryId);
+        expect(JSON.stringify(author._body)).toContain(hiddenToken);
+        const authorRow = author._body.results.find((e: { id: string }) => e.id === entryId);
+        expect(authorRow.locked).not.toBe(true);
+        expect(authorRow.content).toContain(hiddenPhrase);
+
+        paidAccessStore.add(purchaseKey);
+        const buyer = await search(buyerKey);
+        expect(buyer._status).toBe(200);
+        expect(buyer._body.results.map((e: { id: string }) => e.id)).toContain(entryId);
+        expect(JSON.stringify(buyer._body)).toContain(hiddenToken);
+        const buyerRow = buyer._body.results.find((e: { id: string }) => e.id === entryId);
+        expect(buyerRow.locked).not.toBe(true);
+        expect(buyerRow.content).toContain(hiddenPhrase);
+      } finally {
+        paidAccessStore.delete(purchaseKey);
+        mockClient.queryKnowledge.mockReset();
+        mockClient.queryKnowledge.mockResolvedValue([]);
+      }
     });
   });
 
