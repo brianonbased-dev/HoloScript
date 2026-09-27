@@ -722,6 +722,27 @@ A lone trait, with no object, is accepted as an empty fragment (no error):
 @grabbable
 ```
 
+A field inside a brace block may carry the same two marks the `.hs` reader stores on a property. `?` after the value marks that field optional. `= <expression>` after the value stores a default and leaves the value as the type or expression written before the `=`. A plain field such as `reading: Temperature` or `maxHP: 100` is unchanged. `a ?? b` stays null-coalescing. `?.` stays optional chaining. Both marks may sit on one field. These three blocks are accepted:
+
+```hsplus
+@trait Config {
+  provider: String?
+  required: String
+}
+```
+
+```hsplus
+@trait Config {
+  auto_register: Bool = true
+}
+```
+
+```hsplus
+@trait Config {
+  llm_provider_id: String? = null
+}
+```
+
 ### Forms it rejects
 
 A trait written as `@name { ... }` with no `()` swallows the following object body. Message: `HSP101: Trait @grabbable used a block that looks like an object body, but no object body follows. Use @grabbable(...) for trait config, or add a separate { ... } object body.`

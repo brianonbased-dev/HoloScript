@@ -104,12 +104,32 @@ export type HSPlusStructField =
       defaultSource?: never;
     };
 
+/**
+ * Marks on one field, copied from the `.hs` `PropertyNode`
+ * (`packages/compiler-wasm/src/ast.rs`): `optional` and `default_value`.
+ *
+ * `optional` is present only when the field was written `name: Type?`.
+ * `default_value` is present only when the field was written `name: Type = expr`,
+ * and it may be `null` when the expression is `null`.
+ * A field with neither mark has no entry.
+ */
+export interface HSPlusFieldMark {
+  optional?: true;
+  default_value?: unknown;
+}
+
 export interface HSPlusNode extends ASTNode {
   name?: string;
   /** Whether a declaration name was authored or supplied by parser fallback. */
   nameOrigin?: 'explicit' | 'synthetic';
   children?: HSPlusNode[];
   properties?: Record<string, unknown>;
+  /**
+   * Optional and default marks for fields stored in `properties`.
+   * Keys are property names. Omitted when no field carries `?` or `=`.
+   * Unmarked property values stay exactly the value the reader stored before.
+   */
+  fieldMarks?: Record<string, HSPlusFieldMark>;
   directives?: HSPlusDirective[];
   args?: unknown;
   body?: unknown;
