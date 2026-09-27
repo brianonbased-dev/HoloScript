@@ -60,24 +60,64 @@ if [ -n "$SECRET_DIFF" ]; then
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Timeout wrapper — kills long-running gates after N seconds
+# Timeout wrapper — kills long-running gates after N seconds.
+# GNU timeout exits 124. The Git Bash fallback (no `timeout` binary) maps its
+# own kill to 124 as well, so every gate shares one message instead of an
+# empty ❌. The message is part of the gate's captured output.
 run_with_timeout() {
     local timeout_secs=$1
     shift
+    local status=0
     if command -v timeout &> /dev/null; then
-        timeout "$timeout_secs" "$@" 2>&1
+        timeout "$timeout_secs" "$@" 2>&1 || status=$?
     else
-        # Windows/Git Bash fallback: run with background job + wait
-        "$@" 2>&1 &
+        # Windows/Git Bash fallback: run with background job + wait.
+        local out_file flag_file
+        out_file=$(mktemp 2>/dev/null) || out_file="${TMPDIR:-/tmp}/holo-gate-out-$$.txt"
+        flag_file="${out_file}.killed"
+        : > "$out_file"
+        "$@" >"$out_file" 2>&1 &
         local pid=$!
-        ( sleep "$timeout_secs" && kill -9 $pid 2>/dev/null ) &
+        (
+            sleep "$timeout_secs"
+            echo 1 > "$flag_file"
+            kill -9 $pid 2>/dev/null
+        ) &
         local killer=$!
         wait $pid 2>/dev/null
-        local exit_code=$?
-        kill $killer 2>/dev/null
-        wait $killer 2>/dev/null
-        return $exit_code
+        status=$?
+        if kill -0 $killer 2>/dev/null; then
+            kill $killer 2>/dev/null
+            wait $killer 2>/dev/null
+        else
+            wait $killer 2>/dev/null
+        fi
+        cat "$out_file"
+        # A normal exit can race the sleeper. Only a killed child (status >= 128)
+        # plus the flag is a timeout.
+        if [ "$status" -ge 128 ] && [ -f "$flag_file" ]; then
+            status=124
+        fi
+        rm -f "$out_file" "$flag_file"
     fi
+    if [ "$status" -eq 124 ]; then
+        local gate="$*"
+        local arg base
+        for arg in "$@"; do
+            case "$arg" in
+                *.mjs|*.js|*.mts|*.cjs|*.ts)
+                    base=${arg##*/}
+                    gate=${base%.*}
+                    break
+                    ;;
+            esac
+        done
+        echo "TIMED OUT: ${gate} timed out after ${timeout_secs}s."
+        echo "The gate was killed before it could print a result, so this commit is blocked."
+        echo "Raise the limit: edit this gate's timeout (seconds) in .githooks/pre-commit."
+        echo "Bypass once: git commit --no-verify"
+    fi
+    return "$status"
 }
 
 # Large merges pass the staged path list through a temp file. One --files
@@ -285,11 +325,11 @@ fi
 # hand-authored render .tsx is blocked; existing hand-authored is grandfathered into
 # scripts/holo-ci/render-surface-native-allowlist.json. HoloCI's render-surface gate is the
 # authoritative layer (this hook bypasses for agent envs); this is the dev floor. Scopes to the
-# STAGED render files (--files) so a peer's unstaged WIP can't block your commit (multi-agent, D.077).
+# STAGED render files (--files-from) so a peer's unstaged WIP can't block your commit (multi-agent, D.077).
 echo "  ├─ Render-surface native freeze..."
 STAGED_RENDER_TSX=$(git diff --cached --name-only -- 'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx' 2>/dev/null || true)
 if [ -n "$STAGED_RENDER_TSX" ]; then
-    RENDER_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-render-surface-native.mjs --files "$STAGED_RENDER_TSX" 2>&1)
+    RENDER_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-render-surface-native.mjs "$STAGED_RENDER_TSX" 2>&1)
     RENDER_STATUS=$?
     if [ "$RENDER_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Net-new hand-authored render .tsx (production surface must be HS-native)${NC}"
@@ -522,7 +562,7 @@ fi
 echo "  ├─ Hardcoded-stats gate (NUMBERS.md SSOT)..."
 STAGED_MD=$(git diff --cached --name-only --diff-filter=ACM -- '*.md' 2>/dev/null || true)
 if [ -n "$STAGED_MD" ]; then
-    STATS_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs $STAGED_MD 2>&1)
+    STATS_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-hardcoded-stats.mjs "$STAGED_MD" 2>&1)
     STATS_STATUS=$?
     if [ "$STATS_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Hardcoded ecosystem count in a staged doc${NC}"
@@ -677,7 +717,7 @@ fi
 echo "  ├─ No-third-party-QR gate (F.106/F.117)..."
 STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs' 2>/dev/null || true)
 if [ -n "$STAGED_SRC" ]; then
-    QR_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-no-third-party-qr.mjs $STAGED_SRC 2>&1)
+    QR_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-no-third-party-qr.mjs "$STAGED_SRC" 2>&1)
     QR_STATUS=$?
     if [ "$QR_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Third-party QR-service literal in staged source${NC}"
