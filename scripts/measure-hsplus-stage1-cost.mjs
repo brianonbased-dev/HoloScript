@@ -13,6 +13,11 @@
  *
  * The parent process starts one fresh process per workload. `--worker` is the
  * in-process pass and is not a separate user entry.
+ *
+ * Time and memory use Node APIs (`performance.now`, `process.memoryUsage`,
+ * `process.resourceUsage`). Node documents `resourceUsage().maxRSS` in
+ * kilobytes on every platform, including Windows. This script does not read
+ * `/proc` or call a shell.
  */
 import { spawn } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
@@ -44,34 +49,37 @@ const SKIP_DIRS = new Set([
   'pkg-node',
 ]);
 
-function readStatus() {
-  const status = readFileSync('/proc/self/status', 'utf8');
-  const kb = (name) => Number(new RegExp(`${name}:\\s+(\\d+)`).exec(status)?.[1] ?? 0);
-  return { rssKb: kb('VmRSS'), hwmKb: kb('VmHWM') };
+function readMemory() {
+  const usage = process.memoryUsage();
+  return {
+    rssKb: Math.round(usage.rss / 1024),
+    // Node's documented unit for maxRSS is kilobytes on Linux, macOS, and Windows.
+    hwmKb: process.resourceUsage().maxRSS,
+    heapUsed: usage.heapUsed,
+  };
 }
 
 function tracker() {
-  let heapPeak = process.memoryUsage().heapUsed;
-  let rssPeakKb = readStatus().rssKb;
+  const first = readMemory();
+  let heapPeak = first.heapUsed;
+  let rssPeakKb = first.rssKb;
   const timer = setInterval(() => {
-    const heap = process.memoryUsage().heapUsed;
-    if (heap > heapPeak) heapPeak = heap;
-    const rss = readStatus().rssKb;
-    if (rss > rssPeakKb) rssPeakKb = rss;
+    const sample = readMemory();
+    if (sample.heapUsed > heapPeak) heapPeak = sample.heapUsed;
+    if (sample.rssKb > rssPeakKb) rssPeakKb = sample.rssKb;
   }, 10);
   return {
     stop() {
       clearInterval(timer);
-      const heap = process.memoryUsage().heapUsed;
-      if (heap > heapPeak) heapPeak = heap;
-      const end = readStatus();
+      const end = readMemory();
+      if (end.heapUsed > heapPeak) heapPeak = end.heapUsed;
       if (end.rssKb > rssPeakKb) rssPeakKb = end.rssKb;
       return {
         rssPeakKb,
         rssEndKb: end.rssKb,
         hwmKb: end.hwmKb,
         heapPeak,
-        heapUsed: heap,
+        heapUsed: end.heapUsed,
       };
     },
   };

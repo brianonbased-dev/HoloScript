@@ -210,6 +210,9 @@ RUN mkdir -p /app/node_modules/@holoscript /app/node_modules/@hololand && \
 # Fail fast if critical build artifacts are missing
 RUN test -f /app/packages/core/dist/index.cjs && \
     test -f /app/packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm && \
+    test -f /app/packages/compiler-wasm/pkg-node/holoscript_wasm.js && \
+    test -f /app/packages/core/dist/parser.js && \
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/core/dist/parser.js'); const p=r.resolve(['@holoscript','wasm','node'].join('/')); if(!p.endsWith('holoscript_wasm.js')) { console.error(p); process.exit(1); }" && \
     test -f /app/packages/core/dist/reconstruction/index.js && \
     test -f /app/packages/core/dist/paper-0c-spike/index.js && \
     test -f /app/packages/core/dist/hololand/index.cjs && \
