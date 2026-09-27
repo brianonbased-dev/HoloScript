@@ -15,12 +15,7 @@ import { SpatialHashGrid, type EntityType } from './NetworkTypes';
 import type { NetworkTransport } from './NetworkTransport';
 
 export type MessageType =
-  | 'state_sync'
-  | 'event'
-  | 'rpc'
-  | 'handshake'
-  | 'heartbeat'
-  | 'agent_state';
+  'state_sync' | 'event' | 'rpc' | 'handshake' | 'heartbeat' | 'agent_state';
 
 export interface NetworkMessage {
   type: MessageType;

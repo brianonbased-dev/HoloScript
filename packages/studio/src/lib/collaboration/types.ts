@@ -110,11 +110,7 @@ export interface Conflict {
 // ── Connection Status ─────────────────────────────────────────────────────────
 
 export type ConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'failed';
+  'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
 
 export interface ConnectionState {
   status: ConnectionStatus;

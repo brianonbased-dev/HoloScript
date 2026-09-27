@@ -10,11 +10,7 @@
 import type { ASTMutation } from '../StudioBridge';
 
 export type LiveUpdateMessage =
-  | MutationBatchMessage
-  | FullSceneMessage
-  | PingMessage
-  | PongMessage
-  | ErrorMessage;
+  MutationBatchMessage | FullSceneMessage | PingMessage | PongMessage | ErrorMessage;
 
 export interface MutationBatchMessage {
   type: 'mutationBatch';

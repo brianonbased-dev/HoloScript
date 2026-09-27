@@ -8,13 +8,7 @@ import { useState } from 'react';
 import { Search, MapPin, Camera, FileText, AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 
 export type MarkerType =
-  | 'blood'
-  | 'fiber'
-  | 'fingerprint'
-  | 'weapon'
-  | 'footprint'
-  | 'dna'
-  | 'other';
+  'blood' | 'fiber' | 'fingerprint' | 'weapon' | 'footprint' | 'dna' | 'other';
 export type ChainStatus = 'collected' | 'in-transit' | 'lab' | 'analyzed' | 'court';
 
 export interface EvidenceMarker {

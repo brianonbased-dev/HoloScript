@@ -30,29 +30,13 @@ import {
 // ─── Archive Format Types ──────────────────────────────────────────────────
 
 export type ArchiveFormat =
-  | 'zip'
-  | 'tar_gz'
-  | 'tar_bz2'
-  | 'tar_xz'
-  | '7z'
-  | 'rar'
-  | 'json'
-  | 'mbox'
-  | 'unknown';
+  'zip' | 'tar_gz' | 'tar_bz2' | 'tar_xz' | '7z' | 'rar' | 'json' | 'mbox' | 'unknown';
 
 export type ArchivePartStatus =
-  | 'present_intact'
-  | 'present_corrupt'
-  | 'missing'
-  | 'present_size_mismatch';
+  'present_intact' | 'present_corrupt' | 'missing' | 'present_size_mismatch';
 
 export type SensitivityLevel =
-  | 'general'
-  | 'public'
-  | 'internal'
-  | 'personal'
-  | 'sensitive'
-  | 'restricted';
+  'general' | 'public' | 'internal' | 'personal' | 'sensitive' | 'restricted';
 
 export type SensitivityCategory =
   | 'financial'

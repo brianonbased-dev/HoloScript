@@ -149,17 +149,18 @@ const result = await sandbox.executeHoloScript(aiCode, {
 6. **Provider-Specific** - OpenAI, Anthropic, Gemini customizations
 
 **Hallucination Patterns Detected:**
-| Pattern | Score | Example |
-|---------|-------|---------|
-| AI-like traits | 30 | `@ai_powered`, `@smart_*` |
-| Triple braces | 50 | `{{{` or `}}}` |
-| OOP syntax | 40 | `class`, `extends` |
-| Placeholders | 60 | `[PLACEHOLDER]`, `[YOUR_VALUE]` |
-| Task-marker comments | 20 | `// [T]ODO: Fix this` |
-| HTML/XML | 35 | `<cube>...</cube>` |
-| JavaScript | 35 | `function createCube()` |
-| Template literals | 45 | `@color("${var}")` |
-| Excessive repetition | 25 | 5+ identical traits |
+
+| Pattern              | Score | Example                         |
+| -------------------- | ----- | ------------------------------- |
+| AI-like traits       | 30    | `@ai_powered`, `@smart_*`       |
+| Triple braces        | 50    | `{{{` or `}}}`                  |
+| OOP syntax           | 40    | `class`, `extends`              |
+| Placeholders         | 60    | `[PLACEHOLDER]`, `[YOUR_VALUE]` |
+| Task-marker comments | 20    | `// [T]ODO: Fix this`           |
+| HTML/XML             | 35    | `<cube>...</cube>`              |
+| JavaScript           | 35    | `function createCube()`         |
+| Template literals    | 45    | `@color("${var}")`              |
+| Excessive repetition | 25    | 5+ identical traits             |
 
 **Hallucination Scoring:**
 

@@ -6,12 +6,7 @@
 
 export type WidgetType = 'panel' | 'label' | 'button' | 'image' | 'input' | 'slider' | 'container';
 export type AnchorPreset =
-  | 'top-left'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-right'
-  | 'center'
-  | 'stretch';
+  'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'stretch';
 export type LayoutMode = 'absolute' | 'horizontal' | 'vertical' | 'grid';
 
 export interface WidgetStyle {

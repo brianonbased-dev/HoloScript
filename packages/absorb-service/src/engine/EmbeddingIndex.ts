@@ -901,9 +901,7 @@ export class EmbeddingIndex {
       allFloats = new Float32Array(buffer.buffer, payloadByteOffset, count * dimension);
     } else {
       const aligned = new ArrayBuffer(payloadBytes);
-      new Uint8Array(aligned).set(
-        new Uint8Array(buffer.buffer, payloadByteOffset, payloadBytes)
-      );
+      new Uint8Array(aligned).set(new Uint8Array(buffer.buffer, payloadByteOffset, payloadBytes));
       allFloats = new Float32Array(aligned);
     }
 

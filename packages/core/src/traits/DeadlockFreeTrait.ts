@@ -24,8 +24,7 @@ export const deadlockFreeHandler: TraitHandler<DeadlockFreeConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__dlState as
-      | { locks: Map<string, { owner: string; order: number }>; nextOrder: number }
-      | undefined;
+      { locks: Map<string, { owner: string; order: number }>; nextOrder: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

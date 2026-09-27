@@ -88,11 +88,7 @@ export interface MQTTPublishOptions {
 }
 
 export type MQTTClientState =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'closed';
+  'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'closed';
 
 export interface MQTTClientEvents {
   connect: () => void;

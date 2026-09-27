@@ -20,12 +20,7 @@ import type { TelemetryCollector } from './_core-stubs';
  * Subscription lifecycle state.
  */
 export type SubscriptionState =
-  | 'trial'
-  | 'active'
-  | 'past_due'
-  | 'suspended'
-  | 'cancelled'
-  | 'expired';
+  'trial' | 'active' | 'past_due' | 'suspended' | 'cancelled' | 'expired';
 
 /**
  * Billing interval.

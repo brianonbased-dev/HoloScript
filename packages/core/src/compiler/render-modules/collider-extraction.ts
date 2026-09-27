@@ -10,13 +10,7 @@
 import type { GeometryPrimitiveKind } from './geometry-registry';
 
 export type ColliderShapeKind =
-  | 'cuboid'
-  | 'ball'
-  | 'cylinder'
-  | 'cone'
-  | 'capsule'
-  | 'halfspace'
-  | 'hull';
+  'cuboid' | 'ball' | 'cylinder' | 'cone' | 'capsule' | 'halfspace' | 'hull';
 
 export interface ColliderTransform {
   /** World translation [x,y,z]. */

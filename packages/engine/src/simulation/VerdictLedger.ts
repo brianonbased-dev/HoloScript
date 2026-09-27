@@ -38,11 +38,7 @@ export type VerdictLedgerSolverType = typeof VERDICT_LEDGER_V1;
  * `falsified` requires an actual counterexample; consensus rejection is NEVER `falsified`.
  */
 export type VerdictStatus =
-  | 'out-of-scope'
-  | 'undecided'
-  | 'falsified'
-  | 'survived'
-  | 'rediscovered';
+  'out-of-scope' | 'undecided' | 'falsified' | 'survived' | 'rediscovered';
 
 export interface VerdictEntry {
   claimId: string;

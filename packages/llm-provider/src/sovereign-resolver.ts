@@ -9,16 +9,20 @@
  * the policy (studio's lib/brittney/provider.ts) should converge here.
  *
  * Auto-detect priority (no explicit provider):
- *   1. local-fleet — owned laptop/Jetson model-fleet routes, discovered per request
- *   2. fleet       — Vast serverless sovereign serving fleet (P.008), route-probed
- *                    per request so cold pools can fall back while they wake
- *   3. cloud       — pinned sovereign serving endpoint (BrittneyCloudAdapter)
- *   4. holollama   — sovereign local inference layer (llama.cpp llama-server, D.117),
- *                  when HOLOLLAMA_URL is set; preferred over legacy Ollama
- *   5. ollama      — legacy local model (OLLAMA_HOST), kept for back-compat
- *   6. anthropic / xai / openai — BYOK frontier fallback, in that order
- *   7. holollama (default :18080) — TERMINAL sovereign default (D.117), instead of
- *                  a bare "nothing configured" throw
+ *   Joseph/CoS coding-backup chain (2026-09-24; receipts record `step`):
+ *     1. native          — HOLOSERVE_URL / holoserve (local native). Never label step 2/3 native.
+ *     2. vast-oss-coding — Work house proxy (HOLO_VAST_CODING_URL or http://127.0.0.1:18780
+ *                        when healthy). FOREIGN open-weight coding-backup; NOT sovereign/native.
+ *                        Health-checked on loopback only; never silent frontier fall-through.
+ *     3. hosted-bridge / hosted-frontier — closed hosted ONLY with HOLO_ALLOW_HOSTED_BRIDGE=1
+ *                        or HOLO_ALLOW_FRONTIER_FALLBACK=1. Else fail closed (loud throw).
+ *   Still available around that chain:
+ *   - local-fleet — owned laptop/Jetson model-fleet routes, discovered per request (async)
+ *   - fleet       — Vast serverless sovereign serving fleet (P.008), route-probed (async);
+ *                   distinct from the Work :18780 OSS coding proxy above
+ *   - holollama / ollama — local layers when URLs set; D.117 terminal default only when the
+ *                   backup chain had nothing to try (empty config), not after a failed native/proxy
+ *   - cloud / anthropic / xai / openai — step 3 only, gated as above
  *
  * Env surface (universal names first, BRITTNEY_* kept as compat aliases):
  *   HOLO_LLM_PROVIDER | BRITTNEY_PROVIDER         explicit override
@@ -30,7 +34,19 @@
  *   HOLO_LLM_FLEET_MODEL | BRITTNEY_FLEET_MODEL   fleet model
  *   HOLO_LLM_FLEET_BRAIN                            owned local @model_fleet source
  *   VAST_API_KEY                                  Vast route + worker bearer
- *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks
+ *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks (explicit provider, or
+ *                                                 auto only with HOLO_ALLOW_FRONTIER_FALLBACK=1)
+ *   HOLO_ALLOW_FRONTIER_FALLBACK                  '1' = let sovereign/auto fall back to a
+ *                                                 frontier API; anything else = refuse (default)
+ *   HOLO_ALLOW_HOSTED_BRIDGE                      '1' = let sovereign/auto take the cloud
+ *                                                 (brittney-standard) route; anything else =
+ *                                                 refuse (default). Applies to EVERY URL, loopback
+ *                                                 included — see gateHostedBridge().
+ *   HOLO_VAST_CODING_URL                          Work OSS coding proxy (default
+ *                                                 http://127.0.0.1:18780). Loopback-only health
+ *                                                 check. FOREIGN coding-backup — never native.
+ *   HOLO_VAST_CODING_MODEL                        Served model name at that proxy (default
+ *                                                 Qwen3-Coder-30B-A3B-Instruct).
  *   HOLOSERVE_PARITY_PINS                         model@binding-sha256 pins (comma-separated)
  *   HOLOSERVE_PARITY_REGISTRY                     path to the parity pin registry JSON
  *                                                 (maintained by ai-ecosystem
@@ -57,9 +73,17 @@ export type SovereignProviderName =
   | 'holoserve'
   | 'holollama'
   | 'ollama'
+  | 'vast-oss-coding'
   | 'anthropic'
   | 'xai'
   | 'openai';
+
+/** Receipt / resolved-object step for the Joseph coding-backup chain. */
+export type SovereignResolveStep =
+  | 'native'
+  | 'vast-oss-coding'
+  | 'hosted-frontier'
+  | 'hosted-bridge';
 
 /**
  * HoloLlama — the sovereign LOCAL inference layer (D.117: retire Ollama; run
@@ -159,7 +183,26 @@ export interface ResolvedSovereignProvider {
   fleetBackend?: FleetBackend;
   /** Exact parity-tested HoloServe binding when a strangler pin selected this route. */
   artifactBindingSha256?: string;
+  /**
+   * True when the sovereign/auto path landed on a frontier API (anthropic/xai/openai)
+   * because HOLO_ALLOW_FRONTIER_FALLBACK=1 was set. Callers should record this in receipts.
+   * Implies step:'hosted-frontier'. Never label this sovereign/native.
+   */
+  frontierFallback?: boolean;
+  /**
+   * True when the sovereign/auto path landed on the Brittney cloud route because
+   * HOLO_ALLOW_HOSTED_BRIDGE=1 was set. That service may forward to hosted Fireworks /
+   * Together — never label this result sovereign/native. Implies step:'hosted-bridge'.
+   */
+  hostedBridge?: boolean;
+  /**
+   * Joseph coding-backup chain step that produced this resolution.
+   * native | vast-oss-coding | hosted-frontier | hosted-bridge.
+   * Steps 2 and 3 must NEVER be labeled sovereign/native by callers.
+   */
+  step?: SovereignResolveStep;
 }
+
 
 export interface SovereignResolveOptions {
   /** Explicit provider override (CLI flag etc.) — beats every env. */
@@ -170,7 +213,303 @@ export interface SovereignResolveOptions {
   model?: string;
   /** Max-token override — beats HOLO_LLM_MAX_TOKENS/BRITTNEY_MAX_TOKENS. */
   maxTokens?: number;
+  /**
+   * Optional caller label for the frontier-fallback warning/error. When absent the
+   * resolver derives one from the call stack (first frame outside this package).
+   */
+  caller?: string;
 }
+
+// ── frontier-fallback gate (2026-09-24 native-inference audit, fix 7) ───────
+/**
+ * The sovereign/auto path must never reach a frontier API (Anthropic, xAI, OpenAI)
+ * silently. Before this gate, a process with no local endpoint env but any of
+ * ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY set resolved "sovereign" to that
+ * frontier provider. Now it only does so with HOLO_ALLOW_FRONTIER_FALLBACK=1; otherwise
+ * it logs a loud warning naming the provider and caller, and throws.
+ * An EXPLICIT provider (opts.explicit / HOLO_LLM_PROVIDER = anthropic|xai|openai) is an
+ * opt-in by itself and is not affected.
+ */
+export const FRONTIER_FALLBACK_FLAG = 'HOLO_ALLOW_FRONTIER_FALLBACK';
+
+export type FrontierProviderName = 'anthropic' | 'xai' | 'openai';
+
+export class FrontierFallbackRefusedError extends Error {
+  readonly code = 'HOLO_FRONTIER_FALLBACK_REFUSED';
+  readonly wouldHaveUsed: FrontierProviderName;
+  readonly caller: string;
+  constructor(wouldHaveUsed: FrontierProviderName, caller: string) {
+    super(
+      `REFUSING frontier fallback: sovereign/auto LLM resolution would have used ` +
+        `"${wouldHaveUsed}" (a frontier API) for caller ${caller}, because no local or ` +
+        `sovereign endpoint is configured (HOLO_LLM_SERVICE_URL / HOLOSERVE_URL / ` +
+        `HOLOLLAMA_URL / OLLAMA_HOST) and a ${wouldHaveUsed} API key is present. ` +
+        `Configure a local endpoint, pass an explicit provider, or set ` +
+        `${FRONTIER_FALLBACK_FLAG}=1 to opt in to frontier fallback.`
+    );
+    this.name = 'FrontierFallbackRefusedError';
+    this.wouldHaveUsed = wouldHaveUsed;
+    this.caller = caller;
+  }
+}
+
+function frontierFallbackAllowed(): boolean {
+  return process.env[FRONTIER_FALLBACK_FLAG] === '1';
+}
+
+const OWN_FRAME_RE = /sovereign-resolver\.[cm]?[jt]s|llm-provider[\\/]dist[\\/]|node:internal/u;
+
+function describeCaller(opts: SovereignResolveOptions): string {
+  if (opts.caller) return opts.caller;
+  const frames = (new Error().stack ?? '').split('\n').slice(1);
+  for (const raw of frames) {
+    const frame = raw.trim();
+    if (frame && !OWN_FRAME_RE.test(frame)) return frame.replace(/^at\s+/u, '');
+  }
+  return process.argv[1] ? `script ${process.argv[1]}` : 'unknown caller';
+}
+
+export function gateFrontierFallback<T extends object>(
+  name: FrontierProviderName,
+  opts: SovereignResolveOptions,
+  resolve: () => T
+): T & { frontierFallback: true; step: 'hosted-frontier' } {
+  const caller = describeCaller(opts);
+  if (!frontierFallbackAllowed()) {
+    console.warn(
+      `[llm-provider] !!! FRONTIER FALLBACK REFUSED !!! sovereign/auto resolution would have ` +
+        `used frontier provider "${name}" for caller ${caller}. Set ${FRONTIER_FALLBACK_FLAG}=1 ` +
+        `to allow it, or configure a local endpoint / explicit provider.`
+    );
+    throw new FrontierFallbackRefusedError(name, caller);
+  }
+  console.warn(
+    `[llm-provider] !!! FRONTIER FALLBACK ACTIVE !!! sovereign/auto resolution is using ` +
+      `frontier provider "${name}" for caller ${caller} because ${FRONTIER_FALLBACK_FLAG}=1.`
+  );
+  return { ...resolve(), frontierFallback: true, step: 'hosted-frontier' };
+}
+
+// ── hosted-bridge gate (2026-09-24 native-inference audit, follow-up to fix 7) ──
+/**
+ * HOLO_LLM_SERVICE_URL points the "cloud" route at the Brittney llm-service
+ * (HoloScript/services/llm-service, POST /api/chat). Its InferenceRouter sends
+ * standard -> Fireworks (api.fireworks.ai, llama-v3p1-8b-instruct), pro -> Kimi K2.5 on
+ * Fireworks, with Together (api.together.xyz) and Vast/Ollama as fallbacks, choosing a
+ * provider by which API keys the SERVICE holds. The resolver cannot see those keys:
+ *   - the sync path makes no network calls, and the service's GET /api/providers is an
+ *     unauthenticated self-report, not an attestation;
+ *   - the URL's host says nothing about where inference runs: the adapter's own default
+ *     is http://localhost:8000, i.e. this same Fireworks-forwarding service run locally.
+ * So "forwards to hosted" is not detectable here and a loopback/LAN URL is NOT evidence of
+ * local inference. The rule this code can honestly enforce is: the auto path treats EVERY
+ * cloud route as a hosted bridge and refuses it unless HOLO_ALLOW_HOSTED_BRIDGE=1. The host
+ * class (loopback / lan / public) is reported in the log line for information only.
+ * An EXPLICIT provider (opts.explicit / HOLO_LLM_PROVIDER = cloud) is an opt-in by itself.
+ */
+export const HOSTED_BRIDGE_FLAG = 'HOLO_ALLOW_HOSTED_BRIDGE';
+
+export type ServiceHostClass = 'loopback' | 'lan' | 'public' | 'invalid';
+
+/** Informational only (see above): never used to allow the route. */
+export function classifyServiceHost(url: string): ServiceHostClass {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/gu, '');
+  } catch {
+    return 'invalid';
+  }
+  if (host === 'localhost' || host === '::1' || /^127\./u.test(host)) return 'loopback';
+  if (
+    /^10\./u.test(host) ||
+    /^192\.168\./u.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./u.test(host) ||
+    /^169\.254\./u.test(host) ||
+    /^f[cd][0-9a-f]{2}:/u.test(host) ||
+    /^fe80:/u.test(host) ||
+    host.endsWith('.local') ||
+    host.endsWith('.lan') ||
+    !host.includes('.')
+  )
+    return 'lan';
+  return 'public';
+}
+
+/** Log/error-safe URL: drops userinfo, query and fragment (they can carry tokens). */
+export function redactServiceUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}${u.pathname === '/' ? '' : u.pathname}`;
+  } catch {
+    return '<unparseable HOLO_LLM_SERVICE_URL>';
+  }
+}
+
+export class HostedBridgeRefusedError extends Error {
+  readonly code = 'HOLO_HOSTED_BRIDGE_REFUSED';
+  readonly url: string;
+  readonly hostClass: ServiceHostClass;
+  readonly caller: string;
+  constructor(url: string, hostClass: ServiceHostClass, caller: string) {
+    super(
+      `REFUSING hosted bridge: sovereign/auto LLM resolution would have used the cloud ` +
+        `(brittney-standard) route at ${url} (host class: ${hostClass}) for caller ${caller}. ` +
+        `That service forwards to hosted third-party models (Fireworks, Together) whenever it ` +
+        `holds their keys, and the resolver cannot verify it does not, so it is not ` +
+        `sovereign. Pass an explicit provider (provider=cloud), unset HOLO_LLM_SERVICE_URL, ` +
+        `or set ${HOSTED_BRIDGE_FLAG}=1 to opt in.`
+    );
+    this.name = 'HostedBridgeRefusedError';
+    this.url = url;
+    this.hostClass = hostClass;
+    this.caller = caller;
+  }
+}
+
+function hostedBridgeAllowed(): boolean {
+  return process.env[HOSTED_BRIDGE_FLAG] === '1';
+}
+
+function gateHostedBridge(
+  cloudUrl: string,
+  opts: SovereignResolveOptions,
+  resolve: () => ResolvedSovereignProvider
+): ResolvedSovereignProvider {
+  const caller = describeCaller(opts);
+  const url = redactServiceUrl(cloudUrl);
+  const hostClass = classifyServiceHost(cloudUrl);
+  if (!hostedBridgeAllowed()) {
+    console.warn(
+      `[llm-provider] !!! HOSTED BRIDGE REFUSED !!! sovereign/auto resolution would have used ` +
+        `the cloud (brittney-standard) route ${url} (host class: ${hostClass}; may forward to ` +
+        `Fireworks/Together) for caller ${caller}. Set ${HOSTED_BRIDGE_FLAG}=1 to allow it, or ` +
+        `pass an explicit provider.`
+    );
+    throw new HostedBridgeRefusedError(url, hostClass, caller);
+  }
+  console.warn(
+    `[llm-provider] !!! HOSTED BRIDGE ACTIVE !!! sovereign/auto resolution is using the cloud ` +
+      `(brittney-standard) route ${url} (host class: ${hostClass}) for caller ${caller} because ` +
+      `${HOSTED_BRIDGE_FLAG}=1. It may forward to hosted Fireworks/Together models.`
+  );
+  return { ...resolve(), hostedBridge: true, step: 'hosted-bridge' };
+}
+
+// ── Joseph coding-backup chain (2026-09-24): native → vast-oss-coding → gated hosted ──
+
+export const VAST_OSS_CODING_DEFAULT_URL = 'http://127.0.0.1:18780';
+export const VAST_OSS_CODING_DEFAULT_MODEL = 'Qwen3-Coder-30B-A3B-Instruct';
+export const VAST_CODING_URL_ENV = 'HOLO_VAST_CODING_URL';
+export const VAST_CODING_MODEL_ENV = 'HOLO_VAST_CODING_MODEL';
+
+/**
+ * Fail-closed when native is down/unhealthy, the Work OSS coding proxy is down,
+ * and no gated hosted/frontier opt-in is available. Loud log names every failed step.
+ */
+export class BackupChainExhaustedError extends Error {
+  readonly code = 'HOLO_BACKUP_CHAIN_EXHAUSTED';
+  readonly failures: string[];
+  constructor(failures: string[], caller: string) {
+    const named = failures.length ? failures.join(' | ') : 'no-steps-attempted';
+    super(
+      `BACKUP CHAIN EXHAUSTED for caller ${caller}: ${named}. ` +
+        `Order is native (HOLOSERVE) → vast-oss-coding (Work proxy :18780) → ` +
+        `hosted only with ${HOSTED_BRIDGE_FLAG}=1 / ${FRONTIER_FALLBACK_FLAG}=1. ` +
+        `Failing closed — will not silently call a frontier API or label a foreign route native.`
+    );
+    this.name = 'BackupChainExhaustedError';
+    this.failures = failures;
+  }
+}
+
+function isLoopbackUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.toLowerCase();
+    return host === '127.0.0.1' || host === 'localhost' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
+function vastCodingUrlFromEnv(): string | undefined {
+  return env(VAST_CODING_URL_ENV);
+}
+
+function vastCodingUrlForAsyncProbe(): string {
+  return (vastCodingUrlFromEnv() || VAST_OSS_CODING_DEFAULT_URL).replace(/\/+$/, '');
+}
+
+function resolveVastOssCoding(
+  baseUrlOverride: string | undefined,
+  opts: SovereignResolveOptions
+): ResolvedSovereignProvider {
+  const baseURL = (baseUrlOverride || vastCodingUrlFromEnv() || VAST_OSS_CODING_DEFAULT_URL).replace(
+    /\/+$/,
+    ''
+  );
+  if (!isLoopbackUrl(baseURL)) {
+    throw new Error(
+      `vast-oss-coding proxy URL must be loopback-only (got ${baseURL}). ` +
+        `Set ${VAST_CODING_URL_ENV} to http://127.0.0.1:18780 (Work house proxy). ` +
+        `Refusing non-loopback to avoid cross-route / accidental frontier egress.`
+    );
+  }
+  const model =
+    modelOverride(opts) || env(VAST_CODING_MODEL_ENV) || VAST_OSS_CODING_DEFAULT_MODEL;
+  const provider = new LocalLLMAdapter({
+    baseURL,
+    model,
+    nativeOllamaApi: false,
+    timeoutMs: 300_000,
+  });
+  return {
+    provider,
+    model,
+    maxTokens: maxTokensOverride(opts) || 8192,
+    providerName: 'vast-oss-coding',
+    step: 'vast-oss-coding',
+  };
+}
+
+/**
+ * Lightweight health probe for the Work holo-inference-proxy. Loopback only.
+ * Does NOT require HoloServe sovereignty invariants (this is a FOREIGN coding-backup).
+ */
+async function probeVastOssCodingProxy(baseURL: string): Promise<void> {
+  if (!isLoopbackUrl(baseURL)) {
+    throw new Error(`refusing non-loopback vast-oss-coding health probe: ${baseURL}`);
+  }
+  const response = await fetch(`${baseURL}/health`, { signal: AbortSignal.timeout(5_000) });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} from ${baseURL}/health`);
+  }
+}
+
+
+function isNativeUnreachableError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  // Network/down only — sovereignty impostor / artifact-binding refusals must NOT
+  // fall through to the foreign coding-backup (fail closed on honesty violations).
+  return /unreachable|ECONNREFUSED|ETIMEDOUT|AbortError|fetch failed|network|ENOTFOUND|EHOSTUNREACH/i.test(
+    msg
+  );
+}
+
+function withNativeStep(resolved: ResolvedSovereignProvider): ResolvedSovereignProvider {
+  // holoserve / holollama / ollama / local-fleet are native-side. Never apply to vast/frontier.
+  if (
+    resolved.providerName === 'holoserve' ||
+    resolved.providerName === 'holollama' ||
+    resolved.providerName === 'ollama' ||
+    resolved.providerName === 'local-fleet'
+  ) {
+    return { ...resolved, step: resolved.step ?? 'native' };
+  }
+  return resolved;
+}
+
+
 
 // FLEET_DEFAULT_MODEL + the local default come from the model-policy SSOT.
 // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool calls
@@ -198,8 +537,9 @@ function maxTokensOverride(opts: SovereignResolveOptions): number | undefined {
 }
 
 /**
- * Synchronous sovereign-first resolution: cloud → ollama → anthropic → xai →
- * openai. Fleet (dynamic-resolve) needs a network round-trip — use
+ * Synchronous sovereign-first resolution: cloud → holoserve → holollama → ollama →
+ * [anthropic → xai → openai ONLY with HOLO_ALLOW_FRONTIER_FALLBACK=1, else refuse] →
+ * holollama terminal default. Fleet (dynamic-resolve) needs a network round-trip — use
  * `resolveSovereignProviderAsync` to include it.
  */
 export function resolveSovereignProvider(
@@ -238,6 +578,9 @@ function resolveSovereignProviderInternal(
       return resolveXai(opts);
     case 'openai':
       return resolveOpenai(opts);
+    case 'vast-oss-coding':
+    case 'vast-coding':
+      return resolveVastOssCoding(undefined, opts);
     case 'fleet':
       throw new Error(
         'provider=fleet requires async resolution (Vast serverless route probe) — ' +
@@ -251,30 +594,34 @@ function resolveSovereignProviderInternal(
     default:
       throw new Error(
         `Unknown LLM provider "${explicit}". ` +
-          `Valid: local-fleet | fleet | cloud | holoserve | holollama | ollama | anthropic | xai | openai | sovereign/auto.`
+          `Valid: local-fleet | fleet | cloud | holoserve | holollama | ollama | vast-oss-coding | anthropic | xai | openai | sovereign/auto.`
       );
   }
 
-  // Auto-detect: sovereign first, BYOK frontier last (F.112 ecosystem-wide).
-  // D.117: HoloLlama (llama.cpp llama-server) is the sovereign LOCAL layer — preferred
-  // over legacy Ollama, and the TERMINAL sovereign default so a bare-config call lands
-  // on HoloLlama at :18080 rather than throwing. Ollama stays reachable via OLLAMA_HOST
-  // (legacy) and BYOK keys still auto-fall (before the terminal default) so cloud-only
-  // deployments keep working.
-  if (cloudUrl) return resolveCloud(cloudUrl, opts);
-  // D.118: a configured HoloServe (fully sovereign HOLO runtime) beats HoloLlama (llama.cpp).
+  // Auto-detect: Joseph coding-backup order (2026-09-24).
+  //   1. native (HOLOSERVE → holollama → ollama)
+  //   2. vast-oss-coding (explicit HOLO_VAST_CODING_URL only in sync — async probes default :18780)
+  //   3. hosted-bridge / hosted-frontier ONLY with opt-in flags
+  //   else D.117 holollama terminal default (empty config ergonomics)
+  // Sync cannot health-check; resolveSovereignProviderAsync enforces healthy failover.
   const holoServeUrl = env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT');
-  if (holoServeUrl) return resolveHoloServe(holoServeUrl, opts, allowParityHoloServe);
+  if (holoServeUrl) return withNativeStep(resolveHoloServe(holoServeUrl, opts, allowParityHoloServe));
+  const vastCodingUrl = vastCodingUrlFromEnv();
+  if (vastCodingUrl) return resolveVastOssCoding(vastCodingUrl, opts);
   const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
-  if (holoLlamaUrl) return resolveHoloLlama(holoLlamaUrl, opts, allowParityHoloServe);
-  if (ollamaHost) return resolveOllama(ollamaHost, opts);
-  if (anthropicKey) return resolveAnthropic(anthropicKey, opts);
-  if (env('XAI_API_KEY')) return resolveXai(opts);
-  if (env('OPENAI_API_KEY')) return resolveOpenai(opts);
+  if (holoLlamaUrl) return withNativeStep(resolveHoloLlama(holoLlamaUrl, opts, allowParityHoloServe));
+  if (ollamaHost) return withNativeStep(resolveOllama(ollamaHost, opts));
+  // Hosted-bridge gate: Brittney llm-service may forward to Fireworks/Together. Never silent.
+  if (cloudUrl) return gateHostedBridge(cloudUrl, opts, () => resolveCloud(cloudUrl, opts));
+  // Frontier fallback GATED (fix 7): never silent.
+  if (anthropicKey)
+    return gateFrontierFallback('anthropic', opts, () => resolveAnthropic(anthropicKey, opts));
+  if (env('XAI_API_KEY')) return gateFrontierFallback('xai', opts, () => resolveXai(opts));
+  if (env('OPENAI_API_KEY'))
+    return gateFrontierFallback('openai', opts, () => resolveOpenai(opts));
 
-  // Sovereign default (D.117): HoloLlama at :18080. If the local server is down the
-  // CALL fails with a llama-server start hint — never a silent cloud/Ollama fallback.
-  return resolveHoloLlama(undefined, opts, allowParityHoloServe);
+  // Sovereign default (D.117): HoloLlama at :18080 when the backup chain had nothing configured.
+  return withNativeStep(resolveHoloLlama(undefined, opts, allowParityHoloServe));
 }
 
 /**
@@ -310,6 +657,7 @@ export async function resolveSovereignProviderAsync(
         maxTokens: maxTokensOverride(opts) || 4096,
         providerName: 'local-fleet',
         fleetBackend: picked.backend,
+        step: 'native',
       };
     }
     if (explicit === 'local-fleet') {
@@ -331,7 +679,15 @@ export async function resolveSovereignProviderAsync(
       let fallback: ResolvedSovereignProvider;
       try {
         fallback = resolveSovereignProviderInternal({ ...opts, explicit: undefined }, true);
-      } catch {
+      } catch (fallbackResolveErr) {
+        // A refused frontier fallback must surface as itself, not be masked by the
+        // cold-fleet error (2026-09-24 audit, fix 7).
+        if (
+          fallbackResolveErr instanceof FrontierFallbackRefusedError ||
+          fallbackResolveErr instanceof HostedBridgeRefusedError ||
+          fallbackResolveErr instanceof BackupChainExhaustedError
+        )
+          throw fallbackResolveErr;
         throw fleetErr;
       }
       try {
@@ -342,8 +698,173 @@ export async function resolveSovereignProviderAsync(
       }
     }
   }
-  const resolved = resolveSovereignProviderInternal(opts, true);
-  return finalizeAsyncResolution(resolved, opts);
+  // Explicit providers: resolve + finalize (parity/sovereignty checks) as before.
+  if (!auto) {
+    const resolved = resolveSovereignProviderInternal(opts, true);
+    const finalized = await finalizeAsyncResolution(resolved, opts);
+    if (
+      finalized.providerName === 'holoserve' ||
+      finalized.providerName === 'holollama' ||
+      finalized.providerName === 'ollama'
+    ) {
+      return { ...finalized, step: finalized.step ?? 'native' };
+    }
+    if (finalized.providerName === 'vast-oss-coding') {
+      return { ...finalized, step: 'vast-oss-coding' };
+    }
+    return finalized;
+  }
+
+  // Joseph coding-backup chain (async, health-aware): native → vast-oss-coding → gated hosted.
+  // Does NOT silently fall into frontier via llm-provider; step 2 is the Work loopback proxy only.
+  return resolveOrderedBackupChainAsync(opts);
+}
+
+
+async function resolveOrderedBackupChainAsync(
+  opts: SovereignResolveOptions
+): Promise<ResolvedSovereignProvider> {
+  const caller = opts.caller || 'resolveSovereignProviderAsync';
+  const failures: string[] = [];
+  const cloudUrl = env('HOLO_LLM_SERVICE_URL', 'BRITTNEY_SERVICE_URL');
+  const anthropicKey = opts.anthropicKey || env('ANTHROPIC_API_KEY');
+  const holoServeUrl = env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT');
+  const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
+  const ollamaHost = env('OLLAMA_HOST', 'OLLAMA_BASE_URL', 'OLLAMA_URL');
+
+  // Step 1 — native (HoloServe when configured).
+  if (holoServeUrl) {
+    try {
+      const native = withNativeStep(resolveHoloServe(holoServeUrl, opts, true));
+      await finalizeAsyncResolution(native, opts);
+      console.warn(
+        `[sovereign-resolver] BACKUP CHAIN step=native caller=${caller} url=${holoServeUrl}`
+      );
+      return native;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!isNativeUnreachableError(err)) {
+        console.error(
+          `[sovereign-resolver] BACKUP CHAIN step=native REFUSED (not unreachable) caller=${caller}: ${msg}`
+        );
+        throw err;
+      }
+      failures.push(`native:${msg}`);
+      console.warn(
+        `[sovereign-resolver] BACKUP CHAIN step=native FAILED caller=${caller}: ${msg}`
+      );
+    }
+  } else {
+    failures.push('native:HOLOSERVE_URL unset');
+  }
+
+  // Local native peers (holollama/ollama) still count as step=native when URLs are set,
+  // before foreign coding-backup. Distinct from Vast Work proxy.
+  if (holoLlamaUrl) {
+    try {
+      const native = withNativeStep(
+        await finalizeAsyncResolution(resolveHoloLlama(holoLlamaUrl, opts, true), opts)
+      );
+      console.warn(
+        `[sovereign-resolver] BACKUP CHAIN step=native(holollama) caller=${caller} url=${holoLlamaUrl}`
+      );
+      return native;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      failures.push(`native-holollama:${msg}`);
+      console.warn(
+        `[sovereign-resolver] BACKUP CHAIN step=native(holollama) FAILED caller=${caller}: ${msg}`
+      );
+    }
+  }
+  if (ollamaHost) {
+    try {
+      const native = withNativeStep(
+        await finalizeAsyncResolution(resolveOllama(ollamaHost, opts), opts)
+      );
+      console.warn(
+        `[sovereign-resolver] BACKUP CHAIN step=native(ollama) caller=${caller} url=${ollamaHost}`
+      );
+      return native;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      failures.push(`native-ollama:${msg}`);
+      console.warn(
+        `[sovereign-resolver] BACKUP CHAIN step=native(ollama) FAILED caller=${caller}: ${msg}`
+      );
+    }
+  }
+
+  // Step 2 — Vast/Work OSS coding proxy (FOREIGN). Loopback health-check only.
+  // Probe default :18780 only when native was configured and failed, or when
+  // HOLO_VAST_CODING_URL is explicit. Never uses llm-provider frontier fallback;
+  // never labeled native/sovereign.
+  const codingUrlExplicit = vastCodingUrlFromEnv();
+  const nativeConfigured = Boolean(holoServeUrl || holoLlamaUrl || ollamaHost);
+  const nativeFailed = failures.some(
+    (f) =>
+      f.startsWith('native:') ||
+      f.startsWith('native-holollama:') ||
+      f.startsWith('native-ollama:')
+  );
+  const shouldProbeCoding =
+    Boolean(codingUrlExplicit) || (nativeConfigured && nativeFailed);
+  if (shouldProbeCoding) {
+    const codingUrl = (codingUrlExplicit || VAST_OSS_CODING_DEFAULT_URL).replace(/\/+$/, '');
+    if (isLoopbackUrl(codingUrl)) {
+      try {
+        await probeVastOssCodingProxy(codingUrl);
+        const foreign = resolveVastOssCoding(codingUrl, opts);
+        console.warn(
+          `[sovereign-resolver] BACKUP CHAIN step=vast-oss-coding caller=${caller} url=${codingUrl} ` +
+            `(FOREIGN open-weight coding-backup — NOT native/sovereign)`
+        );
+        return foreign;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        failures.push(`vast-oss-coding:${msg}`);
+        console.warn(
+          `[sovereign-resolver] BACKUP CHAIN step=vast-oss-coding FAILED caller=${caller}: ${msg}`
+        );
+      }
+    } else {
+      failures.push(`vast-oss-coding:non-loopback-refused:${codingUrl}`);
+    }
+  }
+
+  // Step 3 — closed hosted / frontier ONLY with matching opt-in flags.
+  if (cloudUrl) {
+    return gateHostedBridge(cloudUrl, opts, () => resolveCloud(cloudUrl, opts));
+  }
+  if (anthropicKey) {
+    return gateFrontierFallback('anthropic', opts, () => resolveAnthropic(anthropicKey, opts));
+  }
+  if (env('XAI_API_KEY')) {
+    return gateFrontierFallback('xai', opts, () => resolveXai(opts));
+  }
+  if (env('OPENAI_API_KEY')) {
+    return gateFrontierFallback('openai', opts, () => resolveOpenai(opts));
+  }
+
+  // Fail closed when native was configured (or local peers were) and everything failed,
+  // or when foreign proxy failed and frontier keys exist without flags (gates already threw).
+  const attemptedNative = Boolean(holoServeUrl || holoLlamaUrl || ollamaHost);
+  if (attemptedNative) {
+    console.error(
+      `[sovereign-resolver] BACKUP CHAIN EXHAUSTED caller=${caller} failures=${failures.join(' | ')}`
+    );
+    throw new BackupChainExhaustedError(failures, caller);
+  }
+
+  // Virgin empty config: keep D.117 holollama terminal default (no throw).
+  // Still finalize — a parity-pinned model may strangler-route to HoloServe and must verify.
+  console.warn(
+    `[sovereign-resolver] BACKUP CHAIN empty-config → D.117 holollama default caller=${caller} ` +
+      `failures=${failures.join(' | ')}`
+  );
+  return withNativeStep(
+    await finalizeAsyncResolution(resolveHoloLlama(undefined, opts, true), opts)
+  );
 }
 
 async function finalizeAsyncResolution(
@@ -403,11 +924,7 @@ function resolveCloud(
   }
   const tier = env('HOLO_LLM_TIER', 'BRITTNEY_TIER') as 'standard' | 'pro' | undefined;
   const lane = env('HOLO_LLM_LANE', 'BRITTNEY_LANE') as
-    | 'operator'
-    | 'code'
-    | 'vision'
-    | 'reasoning'
-    | undefined;
+    'operator' | 'code' | 'vision' | 'reasoning' | undefined;
   const provider = new BrittneyCloudAdapter({
     baseURL,
     apiKey: env('HOLO_LLM_SERVICE_KEY', 'BRITTNEY_API_KEY') ?? '',
@@ -573,6 +1090,7 @@ function resolveHoloLlama(
     model,
     nativeOllamaApi: false,
     timeoutMs: 300_000,
+    inferenceProxy: true,
   });
   return {
     provider,

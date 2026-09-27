@@ -129,12 +129,7 @@ export type SemanticTokenType =
   | 'decorator';
 
 export type SemanticTokenModifier =
-  | 'declaration'
-  | 'definition'
-  | 'readonly'
-  | 'static'
-  | 'deprecated'
-  | 'modification';
+  'declaration' | 'definition' | 'readonly' | 'static' | 'deprecated' | 'modification';
 
 // =============================================================================
 // KEYWORD & PRESET METADATA

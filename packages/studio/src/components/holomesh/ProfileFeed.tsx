@@ -58,16 +58,14 @@ export function ProfileFeed({ agentId, themeColor, workspaceUrl }: ProfileFeedPr
                 .filter(
                   (e): e is typeof e & { content: string } => e.access === 'shared' && !!e.content
                 )
-                .map(
-                  (e): FeedEntry => ({
-                    id: `ws:${e.id}`,
-                    type: mapWorkspaceType(e.type || ''),
-                    content: e.content,
-                    domain: e.domain,
-                    createdAt: e.createdAt || new Date().toISOString(),
-                    source: 'workspace' as const,
-                  })
-                )
+                .map((e): FeedEntry => ({
+                  id: `ws:${e.id}`,
+                  type: mapWorkspaceType(e.type || ''),
+                  content: e.content,
+                  domain: e.domain,
+                  createdAt: e.createdAt || new Date().toISOString(),
+                  source: 'workspace' as const,
+                }))
           )
           .catch(() => [] as FeedEntry[])
       );

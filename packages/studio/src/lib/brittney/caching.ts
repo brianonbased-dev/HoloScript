@@ -1,10 +1,7 @@
 export type BrainCachingScope = 'team-board' | 'agent-role' | 'scene-local';
 
 export type BrainCacheCapability =
-  | 'provider-prompt-cache'
-  | 'service-managed-cache'
-  | 'local-prefix-cache'
-  | 'none';
+  'provider-prompt-cache' | 'service-managed-cache' | 'local-prefix-cache' | 'none';
 
 export type BrainCacheUsage = 'shared-prefix' | 'role-overlay' | 'scene-turn';
 

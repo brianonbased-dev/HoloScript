@@ -98,8 +98,10 @@ function encodePauli(pauli: string): SymPauli {
   for (let i = 0; i < pauli.length; i++) {
     const c = pauli[i]!;
     if (c === 'X') x |= 1 << i;
-    else if (c === 'Y') { x |= 1 << i; z |= 1 << i; }
-    else if (c === 'Z') z |= 1 << i;
+    else if (c === 'Y') {
+      x |= 1 << i;
+      z |= 1 << i;
+    } else if (c === 'Z') z |= 1 << i;
     else if (c !== 'I') throw new Error(`Invalid Pauli character '${c}' in "${pauli}"`);
   }
   return { x, z, r: 0 };
@@ -122,7 +124,10 @@ function conjH(p: SymPauli, q: number): void {
   const zq = (p.z >> q) & 1;
   p.r ^= xq & zq;
   // swap x_q ↔ z_q
-  if (xq !== zq) { p.x ^= 1 << q; p.z ^= 1 << q; }
+  if (xq !== zq) {
+    p.x ^= 1 << q;
+    p.z ^= 1 << q;
+  }
 }
 
 function conjS(p: SymPauli, q: number): void {
@@ -145,13 +150,25 @@ function conjCX(p: SymPauli, c: number, t: number): void {
 /** Conjugate through one emitted gate. sdg = s·s·s; cz = h(t)·cx(c,t)·h(t). */
 function conjGate(p: SymPauli, g: CliffordGate): void {
   switch (g.gate) {
-    case 'h': conjH(p, g.qubits[0]!); break;
-    case 's': conjS(p, g.qubits[0]!); break;
-    case 'sdg': conjS(p, g.qubits[0]!); conjS(p, g.qubits[0]!); conjS(p, g.qubits[0]!); break;
-    case 'cx': conjCX(p, g.qubits[0]!, g.qubits[1]!); break;
+    case 'h':
+      conjH(p, g.qubits[0]!);
+      break;
+    case 's':
+      conjS(p, g.qubits[0]!);
+      break;
+    case 'sdg':
+      conjS(p, g.qubits[0]!);
+      conjS(p, g.qubits[0]!);
+      conjS(p, g.qubits[0]!);
+      break;
+    case 'cx':
+      conjCX(p, g.qubits[0]!, g.qubits[1]!);
+      break;
     case 'cz': {
       const [c, t] = [g.qubits[0]!, g.qubits[1]!];
-      conjH(p, t); conjCX(p, c, t); conjH(p, t);
+      conjH(p, t);
+      conjCX(p, c, t);
+      conjH(p, t);
       break;
     }
   }
@@ -185,8 +202,14 @@ function qwcBasisOrNull(paulis: string[], n: number): string | null {
 export function diagonalizeCommutingGroup(paulis: string[]): DiagonalizationCircuit {
   if (paulis.length === 0) {
     return {
-      nQubits: 0, gates: [], terms: [], generators: [], pivots: [],
-      isQwc: true, twoQubitGateCount: 0, singleQubitGateCount: 0,
+      nQubits: 0,
+      gates: [],
+      terms: [],
+      generators: [],
+      pivots: [],
+      isQwc: true,
+      twoQubitGateCount: 0,
+      singleQubitGateCount: 0,
     };
   }
   const n = paulis[0]!.length;
@@ -220,7 +243,10 @@ export function diagonalizeCommutingGroup(paulis: string[]): DiagonalizationCirc
     // Fast path: per-qubit rotations. X → h; Y → sdg then h (S† maps Y→X, H maps X→Z).
     for (let q = 0; q < n; q++) {
       if (qwcBasis[q] === 'X') emit('h', q);
-      else if (qwcBasis[q] === 'Y') { emit('sdg', q); emit('h', q); }
+      else if (qwcBasis[q] === 'Y') {
+        emit('sdg', q);
+        emit('h', q);
+      }
     }
   } else {
     // General path: symplectic elimination on an independent generator set.
@@ -235,7 +261,9 @@ export function diagonalizeCommutingGroup(paulis: string[]): DiagonalizationCirc
       let cur = { x: e.x, z: e.z };
       for (const r of rows) {
         const lead = leadBit(r);
-        if (getBit(cur, lead)) { cur = { x: cur.x ^ r.x, z: cur.z ^ r.z }; }
+        if (getBit(cur, lead)) {
+          cur = { x: cur.x ^ r.x, z: cur.z ^ r.z };
+        }
       }
       if (cur.x !== 0 || cur.z !== 0) {
         rows.push(cur);
@@ -253,7 +281,8 @@ export function diagonalizeCommutingGroup(paulis: string[]): DiagonalizationCirc
       for (const row of tab) {
         const sp: SymPauli = { x: row.x, z: row.z, r: 0 };
         conjGate(sp, g); // sign irrelevant for synthesis
-        row.x = sp.x; row.z = sp.z;
+        row.x = sp.x;
+        row.z = sp.z;
       }
     };
     const emitAndApply = (gate: CliffordGate['gate'], ...qubits: number[]) => {
@@ -267,13 +296,17 @@ export function diagonalizeCommutingGroup(paulis: string[]): DiagonalizationCirc
       const row = tab[i]!;
       // 2a. Row-XOR away X-components on already-used pivots (free group op).
       for (let j = 0; j < i; j++) {
-        if ((row.x >> pivots[j]!) & 1) { row.x ^= tab[j]!.x; row.z ^= tab[j]!.z; }
+        if ((row.x >> pivots[j]!) & 1) {
+          row.x ^= tab[j]!.x;
+          row.z ^= tab[j]!.z;
+        }
       }
       // 2b. Pure-Z row → lift into X with an H. Commutation with processed rows
       //     (each exactly X_pivot) forces z-support off the used pivots, so any
       //     Z-support qubit is fresh.
       if (row.x === 0) {
-        if (row.z === 0) throw new Error('Internal error: dependent generator survived row reduction');
+        if (row.z === 0)
+          throw new Error('Internal error: dependent generator survived row reduction');
         const q = lowestSetBit(row.z);
         emitAndApply('h', q);
       }
@@ -282,13 +315,13 @@ export function diagonalizeCommutingGroup(paulis: string[]): DiagonalizationCirc
       pivots.push(p);
       // 3. Clear the X-tail with CNOT(p → q).
       for (let q = 0; q < n; q++) {
-        if (q !== p && ((row.x >> q) & 1)) emitAndApply('cx', p, q);
+        if (q !== p && (row.x >> q) & 1) emitAndApply('cx', p, q);
       }
       // 4. Clear the Z-part: S on the pivot, CZ(p, q) elsewhere. Commutation
       //    keeps the Z-support off earlier pivots, so processed rows are safe.
       if ((row.z >> p) & 1) emitAndApply('s', p);
       for (let q = 0; q < n; q++) {
-        if (q !== p && ((row.z >> q) & 1)) emitAndApply('cz', p, q);
+        if (q !== p && (row.z >> q) & 1) emitAndApply('cz', p, q);
       }
       if (row.x !== 1 << p || row.z !== 0) {
         throw new Error(`Internal error: generator ${i} not reduced to X_${p}`);

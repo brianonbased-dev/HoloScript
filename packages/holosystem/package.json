@@ -47,7 +47,7 @@
     "test": "node --test test/*.test.mjs",
     "smoke": "node bin/holosystem.mjs --help",
     "check": "pnpm run build && pnpm run test && pnpm run smoke",
-    "prepublishOnly": "pnpm run check"
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs && pnpm run check"
   },
   "holorepo": {
     "releaseLane": "v0-preview",

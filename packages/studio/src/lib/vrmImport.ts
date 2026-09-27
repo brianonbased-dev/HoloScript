@@ -69,8 +69,7 @@ export function validateVRM(json: Record<string, unknown>): VRMValidation {
 
   // Check for humanoid bones
   const vrmExt = (extensions?.['VRM'] ?? extensions?.['VRMC_vrm']) as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (vrmExt && !vrmExt['humanoid']) {
     warnings.push('Missing humanoid bone mapping — avatar may not animate correctly');
   }

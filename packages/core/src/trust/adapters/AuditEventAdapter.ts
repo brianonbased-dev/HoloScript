@@ -6,7 +6,7 @@
  */
 
 import { AuditEvent } from '../../audit/AuditLogger';
-import { TrustReceiptInput, TrustPermissionEnvelope, stableTrustStringify } from '../TrustReceipt';
+import { TrustReceiptInput, TrustPermissionEnvelope, stableTrustHash } from '../TrustReceipt';
 
 export interface AuditEventAdapterOptions {
   /** Canonical Passport DID for the actor. Falls back to a synthetic DID. */
@@ -44,9 +44,19 @@ export function auditEventToReceiptInput(
       outcome,
     },
     evidence: {
+      // Digested, never verbatim. Until 2026-09-21 this stored
+      // stableTrustStringify(event.metadata) — the canonical JSON itself — in a
+      // field named `hashes`, so every consumer treating the array as opaque
+      // digests was handed the metadata in cleartext. Run against the published
+      // 8.7.0 build with medical metadata it returned a national ID number and a
+      // diagnosis in plain text.
+      //
+      // Note what this fix does NOT do: a digest of low-entropy personal data is
+      // guessable by enumeration, so this is pseudonymisation, not anonymisation.
+      // Do not read it as permission to put personal data in event.metadata.
       hashes:
         event.metadata && Object.keys(event.metadata).length > 0
-          ? [stableTrustStringify(event.metadata)]
+          ? [stableTrustHash(event.metadata)]
           : [],
       nonce: event.id,
     },

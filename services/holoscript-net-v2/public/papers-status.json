@@ -1,14 +1,14 @@
 {
   "schema": "paper-audit-matrix.v3",
-  "generatedAt": "2026-07-24T03:14:55.010Z",
+  "generatedAt": "2026-09-10T19:06:00.325Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
   "matrixSourcePath": "research/paper-audit-matrix/front-matrix-core-papers.md",
-  "scriptCommit": "f7aee11de8a0a78300fa2fa8df686fd2f3a91f29",
+  "scriptCommit": "ac70c747e8850b3ebde362941d95df3dd50119e3",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 119,
-      "⚠️": 104,
+      "✅": 136,
+      "⚠️": 87,
       "❌": 35,
       "➖": 14
     }
@@ -55,7 +55,7 @@
     {
       "rowId": "0c",
       "title": "CAEL",
-      "target": "~~AAMAS '26~~ → AAMAS '27 (NOT SUBMITTED)",
+      "target": "~~AAMAS '26~~ → AAMAS '27 cycle DEFERRED (NOT SUBMITTED; next live cycle AAMAS '28)",
       "basename": "paper-0c-cael-aamas.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-0c-cael-aamas.tex",
       "loc": 1251,
@@ -127,8 +127,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -167,11 +167,11 @@
     {
       "rowId": "1",
       "title": "MCP Trust",
-      "target": "USENIX Sec '26",
+      "target": "~~USENIX Sec '26~~ → USENIX Sec '27 Cycle 2 (NOT SUBMITTED)",
       "basename": "paper-1-mcp-trust-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-1-mcp-trust-usenix.tex",
-      "loc": 1750,
-      "sha256Prefix": "2ced0612",
+      "loc": 1754,
+      "sha256Prefix": "adaa20bc",
       "retired": false,
       "artifactRole": null,
       "claimRegisters": [],
@@ -239,8 +239,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 53d since last commit"
         }
       },
       "lastCommit": {
@@ -351,8 +351,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -463,8 +463,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -575,8 +575,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 53d since last commit"
         }
       },
       "lastCommit": {
@@ -618,8 +618,8 @@
       "target": "ICSE '27",
       "basename": "paper-5-graphrag-icse.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-5-graphrag-icse.tex",
-      "loc": 1957,
-      "sha256Prefix": "5b38bef0",
+      "loc": 2059,
+      "sha256Prefix": "5203de18",
       "retired": false,
       "artifactRole": null,
       "claimRegisters": [],
@@ -665,10 +665,10 @@
           "evidence": "34 distinct cite keys, \\bibliography{holoscript} present"
         },
         "evidencePair": {
-          "token": "⚠️",
+          "token": "✅",
           "scope": "paper-wide-path-presence",
           "claimSupport": "unverified",
-          "evidence": "partial paper-wide path pair or open measurement TODO; claim support remains unverified"
+          "evidence": "6 existing typed path(s) + 5 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -687,40 +687,40 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 45d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "173370a2446071ee55d178356ef5a22efa02247b",
-        "isoDate": "2026-07-18T02:38:18-07:00",
-        "subject": "fix(core): align paper claims with tracked evidence"
+        "hash": "36332a47c690712a0000ae065de6440e34ac088a",
+        "isoDate": "2026-07-27T00:32:45-07:00",
+        "subject": "docs(papers): record relational graph follow-up"
       },
       "recentCommits": [
+        {
+          "hash": "36332a47c690712a0000ae065de6440e34ac088a",
+          "isoDate": "2026-07-27T00:32:45-07:00",
+          "subject": "docs(papers): record relational graph follow-up"
+        },
+        {
+          "hash": "7154dca19c99458b715af975418709e64d0eefa9",
+          "isoDate": "2026-07-26T23:17:21-07:00",
+          "subject": "docs(papers): record Paper 5 visual agent pilot"
+        },
+        {
+          "hash": "3e35a731aa072aad6304015f115ad7af946e7cef",
+          "isoDate": "2026-07-26T20:41:14-07:00",
+          "subject": "docs(core): update Paper 5 source-audited evaluation"
+        },
+        {
+          "hash": "cf43bdae120bac2ef221e1f238bf7998b0347724",
+          "isoDate": "2026-07-26T14:28:02-07:00",
+          "subject": "research(absorb): reconcile paper 5 with tracked evidence"
+        },
         {
           "hash": "173370a2446071ee55d178356ef5a22efa02247b",
           "isoDate": "2026-07-18T02:38:18-07:00",
           "subject": "fix(core): align paper claims with tracked evidence"
-        },
-        {
-          "hash": "3a515536e25dc1bce010bc4616cf63d3d6035b82",
-          "isoDate": "2026-07-17T21:27:59-07:00",
-          "subject": "docs(core): remove unsupported paper metrics"
-        },
-        {
-          "hash": "ef367f56ec83e498eff0d1c2e3b43930e8ef8ade",
-          "isoDate": "2026-07-04T03:55:11-07:00",
-          "subject": "docs(papers): realign the 3 built-on-weak-canon papers to strong canon"
-        },
-        {
-          "hash": "92db7a3b8b4d54131108e24c6b5f9862cc8d508d",
-          "isoDate": "2026-07-04T03:44:49-07:00",
-          "subject": "docs(papers): canon realignment audit + re-ground the receipt SSOT macro"
-        },
-        {
-          "hash": "3d7226e9616ca58ce323e1d162ed0208a01e5f40",
-          "isoDate": "2026-06-05T13:47:11-07:00",
-          "subject": "docs(papers): P5 rescope (cite knowing, demote bare-binding claim, promote cascade-inheritance+degradation-envelope) + P3 cite park2019 contrast baseline — novelty-defensibility kill-risk resolutions"
         }
       ]
     },
@@ -799,8 +799,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -911,8 +911,8 @@
           "evidence": "no scaling discussion (W.316 risk)"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -1023,8 +1023,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -1136,7 +1136,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 7d since last commit"
+          "evidence": "0 open \\todo{}, 55d since last commit"
         }
       },
       "lastCommit": {
@@ -1178,8 +1178,8 @@
       "target": "PLDI '27 (Nov '26)",
       "basename": "paper-10-hs-core-pldi.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-10-hs-core-pldi.tex",
-      "loc": 1109,
-      "sha256Prefix": "d2d979de",
+      "loc": 1128,
+      "sha256Prefix": "dade31c9",
       "retired": false,
       "artifactRole": "vision-design",
       "claimRegisters": [
@@ -1230,10 +1230,10 @@
           "evidence": "18 distinct cite keys, \\bibliography{holoscript} present"
         },
         "evidencePair": {
-          "token": "⚠️",
+          "token": "✅",
           "scope": "paper-wide-path-presence",
           "claimSupport": "unverified",
-          "evidence": "partial paper-wide path pair or open measurement TODO; claim support remains unverified"
+          "evidence": "1 existing typed path(s) + 2 existing validator-shaped path(s); paths are not claim-bound or executed here"
         },
         "calStory": {
           "token": "✅",
@@ -1253,15 +1253,20 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "evidence": "0 open \\todo{}, 4d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "f7aee11de8a0a78300fa2fa8df686fd2f3a91f29",
-        "isoDate": "2026-07-23T20:14:05-07:00",
-        "subject": "docs(papers): make format papers vision-led"
+        "hash": "908384fa7814a955817fd321cf754042fa64349e",
+        "isoDate": "2026-09-05T14:05:03-07:00",
+        "subject": "docs(papers): consume HS Core live and cite N1 as a separate probe"
       },
       "recentCommits": [
+        {
+          "hash": "908384fa7814a955817fd321cf754042fa64349e",
+          "isoDate": "2026-09-05T14:05:03-07:00",
+          "subject": "docs(papers): consume HS Core live and cite N1 as a separate probe"
+        },
         {
           "hash": "f7aee11de8a0a78300fa2fa8df686fd2f3a91f29",
           "isoDate": "2026-07-23T20:14:05-07:00",
@@ -1281,11 +1286,6 @@
           "hash": "38e44533a0ad40afa8b0a80750657ab50d84d54d",
           "isoDate": "2026-06-22T21:21:46-07:00",
           "subject": "docs(paper-10): calibrate .hs->Kotlin maturity — declared-subset disclosure, scope conclusion to contracted lowering path, qualify uncited 'only runtime' superlative (D.103/D.105)"
-        },
-        {
-          "hash": "2774269058fa648cc28ddfa7b85ed99d893157a4",
-          "isoDate": "2026-06-22T01:44:17-07:00",
-          "subject": "docs(papers): ground P10/P11/P12 on the canonical uAAL/HOLO language spec"
         }
       ]
     },
@@ -1369,8 +1369,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 48d since last commit"
         }
       },
       "lastCommit": {
@@ -1486,8 +1486,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 0d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 48d since last commit"
         }
       },
       "lastCommit": {
@@ -1598,8 +1598,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -1710,8 +1710,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -1822,8 +1822,8 @@
           "evidence": "no scaling discussion (W.316 risk)"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {
@@ -1934,8 +1934,8 @@
           "evidence": "no scaling discussion (W.316 risk)"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 54d since last commit"
         }
       },
       "lastCommit": {

@@ -255,7 +255,9 @@ export async function resolveMeshObservedPage(
   }
 }
 
-export function meshPageExtractReceipt(extract: NormalizedObservedPage): HoloMeshPageExtractReceipt {
+export function meshPageExtractReceipt(
+  extract: NormalizedObservedPage
+): HoloMeshPageExtractReceipt {
   return {
     kind: HOLOMESH_PAGE_EXTRACT_KIND,
     pageExtractPresent: true,

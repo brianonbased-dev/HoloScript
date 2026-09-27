@@ -30,7 +30,6 @@
  *
  * Exit codes: 0 = acyclic, 1 = at least one cycle, 2 = setup error.
  */
-import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,52 +37,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
 
-/**
- * Name the tree this verdict came from.
- *
- * A verdict printed without its branch reads as a property of the repository.
- * On 2026-09-02 this gate reported 1 cycle, 13 inversions and 16 unordered build
- * deps from a checkout sitting 33 commits behind main — and the cycle it named
- * had been fixed on main a month earlier by b63c20ddd, which removed core's
- * plugin optionalDependencies and added this gate in the same commit. An agent
- * read that output, believed the workspace was broken, and planned an
- * architectural refactor of the base package that had already happened. The
- * branch is part of the tree, so it belongs next to the verdict.
- *
- * Reporting only: never changes the verdict, and stays silent if git is
- * unavailable (a tarball checkout still gets its answer).
- */
-function describeTree() {
-  const git = (args) => {
-    try {
-      return execFileSync('git', args, {
-        cwd: REPO_ROOT,
-        encoding: 'utf8',
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'ignore'],
-      }).trim();
-    } catch {
-      return '';
-    }
-  };
-  const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
-  const head = git(['rev-parse', '--short', 'HEAD']);
-  if (!branch || !head) return 'unknown tree (git not available here)';
-  if (branch === 'main') return `main @ ${head}`;
-  const counts = git(['rev-list', '--left-right', '--count', 'main...HEAD']);
-  const [behind, ahead] = counts.split(/\s+/);
-  if (!behind || !ahead) return `${branch} @ ${head}`;
-  return Number(behind) > 0
-    ? `${branch} @ ${head} — ${ahead} ahead of main, ${behind} BEHIND it. A branch behind main can report problems already fixed there; check main before refactoring.`
-    : `${branch} @ ${head} — ${ahead} ahead of main, 0 behind`;
-}
-
-const DEP_FIELDS = [
-  'dependencies',
-  'devDependencies',
-  'optionalDependencies',
-  'peerDependencies',
-];
+const DEP_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
 
 /** Minimal reader for the `packages:` block of pnpm-workspace.yaml. */
 function workspaceGlobs(root) {
@@ -338,23 +292,45 @@ if (process.argv.includes('--self-test')) {
       dir: 'host',
       pkg: { optionalDependencies: { plug: 'workspace:^' } },
     },
-    { name: 'plug', dir: 'plug', pkg: { peerDependencies: { host: backSpec }, scripts: { build } } },
+    {
+      name: 'plug',
+      dir: 'plug',
+      pkg: { peerDependencies: { host: backSpec }, scripts: { build } },
+    },
   ];
   const invCases = [
-    ['catches semver back-edge + --dts build (the medical-plugin shape)', inv('>=8.0.0', 'tsup --dts'), 1],
+    [
+      'catches semver back-edge + --dts build (the medical-plugin shape)',
+      inv('>=8.0.0', 'tsup --dts'),
+      1,
+    ],
     ['catches semver back-edge + tsc build', inv('^8.0.0', 'tsc'), 1],
-    ['ignores it when the back-edge is workspace: (a real cycle, caught above)', inv('workspace:^', 'tsup --dts'), 0],
-    ['ignores it when the dependent needs no types at build', inv('>=8.0.0', 'esbuild src/index.ts'), 0],
-    ['ignores it when there is no back-edge at all', [
-      { name: 'host', dir: 'host', pkg: { optionalDependencies: { plug: 'workspace:^' } } },
-      { name: 'plug', dir: 'plug', pkg: { scripts: { build: 'tsc' } } },
-    ], 0],
+    [
+      'ignores it when the back-edge is workspace: (a real cycle, caught above)',
+      inv('workspace:^', 'tsup --dts'),
+      0,
+    ],
+    [
+      'ignores it when the dependent needs no types at build',
+      inv('>=8.0.0', 'esbuild src/index.ts'),
+      0,
+    ],
+    [
+      'ignores it when there is no back-edge at all',
+      [
+        { name: 'host', dir: 'host', pkg: { optionalDependencies: { plug: 'workspace:^' } } },
+        { name: 'plug', dir: 'plug', pkg: { scripts: { build: 'tsc' } } },
+      ],
+      0,
+    ],
   ];
   for (const [name, manifests, expected] of invCases) {
     const got = findInversions(manifests).length;
     const ok = got === expected;
     if (!ok) failed++;
-    console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${name} (expected ${expected} inversion(s), got ${got})`);
+    console.log(
+      `  ${ok ? 'ok  ' : 'FAIL'}  ${name} (expected ${expected} inversion(s), got ${got})`
+    );
   }
 
   // The unordered-build-dep half — the 15-plugin shape.
@@ -380,10 +356,20 @@ if (process.argv.includes('--self-test')) {
       ),
       0,
     ],
-    ['ignores a package whose build emits no types', ubd({ peerDependencies: { core: '>=8.0.0' } }, 'esbuild src'), 0],
+    [
+      'ignores a package whose build emits no types',
+      ubd({ peerDependencies: { core: '>=8.0.0' } }, 'esbuild src'),
+      0,
+    ],
     [
       'ignores an external (non-workspace) dependency',
-      [{ name: 'plug', dir: 'plug', pkg: { peerDependencies: { react: '^19.0.0' }, scripts: { build: 'tsc' } } }],
+      [
+        {
+          name: 'plug',
+          dir: 'plug',
+          pkg: { peerDependencies: { react: '^19.0.0' }, scripts: { build: 'tsc' } },
+        },
+      ],
       0,
     ],
   ];
@@ -429,9 +415,7 @@ if (asJson) {
         workspaceEdges: graph.edges.length,
         cycles: cycles.map((members) => ({
           members,
-          edges: graph.edges.filter(
-            (e) => members.includes(e.from) && members.includes(e.to)
-          ),
+          edges: graph.edges.filter((e) => members.includes(e.from) && members.includes(e.to)),
         })),
         inversions,
         unorderedBuildDeps: unordered,
@@ -444,10 +428,11 @@ if (asJson) {
   console.log(
     `[workspace-acyclic] ${graph.nodes.length} workspace packages, ${graph.edges.length} workspace: edges`
   );
-  console.log(`[workspace-acyclic] read from: ${describeTree()}`);
   for (const members of cycles) {
     const intra = graph.edges.filter((e) => members.includes(e.from) && members.includes(e.to));
-    console.error(`\n[workspace-acyclic] CYCLE (${members.length} packages, ${intra.length} edges):`);
+    console.error(
+      `\n[workspace-acyclic] CYCLE (${members.length} packages, ${intra.length} edges):`
+    );
     for (const m of members) console.error(`    ${m}`);
     console.error('  edges:');
     for (const e of intra) console.error(`    ${e.from} --${e.field}--> ${e.to}  (${e.spec})`);
@@ -458,9 +443,13 @@ if (!asJson) {
   for (const i of inversions) {
     console.error(`\n[workspace-acyclic] BUILD-ORDER INVERSION (not a cycle):`);
     console.error(`    ${i.from} --${i.field} (${i.spec})--> ${i.to}`);
-    console.error(`    but ${i.to} declares ${i.from} back as "${i.backSpec}" (non-workspace, so pnpm does not order on it)`);
+    console.error(
+      `    but ${i.to} declares ${i.from} back as "${i.backSpec}" (non-workspace, so pnpm does not order on it)`
+    );
     console.error(`    and builds with: ${i.build}`);
-    console.error(`    => pnpm builds ${i.to} first, and its type emit needs ${i.from}'s dist, which does not exist yet.`);
+    console.error(
+      `    => pnpm builds ${i.to} first, and its type emit needs ${i.from}'s dist, which does not exist yet.`
+    );
   }
 }
 
@@ -469,9 +458,15 @@ if (!asJson) {
     console.error(`
 [workspace-acyclic] UNORDERED BUILD-TIME DEPENDENCY:`);
     console.error(`    ${u.pkg} builds with: ${u.build}`);
-    console.error(`    and needs workspace sibling ${u.dep}, declared only as ${u.declarations.map((d) => `${d.field}="${d.spec}"`).join(', ')}`);
-    console.error(`    A semver spec creates no pnpm ordering edge, so ${u.dep} may build after ${u.pkg}.`);
-    console.error(`    Fix: also declare "${u.dep}": "workspace:^" in devDependencies (a build-time need).`);
+    console.error(
+      `    and needs workspace sibling ${u.dep}, declared only as ${u.declarations.map((d) => `${d.field}="${d.spec}"`).join(', ')}`
+    );
+    console.error(
+      `    A semver spec creates no pnpm ordering edge, so ${u.dep} may build after ${u.pkg}.`
+    );
+    console.error(
+      `    Fix: also declare "${u.dep}": "workspace:^" in devDependencies (a build-time need).`
+    );
   }
 }
 
@@ -488,8 +483,14 @@ if (!asJson) {
   console.error(
     `\n[workspace-acyclic] FAIL — ${cycles.length} cycle(s), ${inversions.length} inversion(s), ${unordered.length} unordered build dep(s).`
   );
-  console.error('  Either shape makes the workspace unbuildable from a clean checkout: pnpm cannot');
-  console.error("  order a package before something that depends back on it, so a dts step reading a");
-  console.error("  sibling's dist/ finds nothing there. Fix the manifest edge, not the build order.");
+  console.error(
+    '  Either shape makes the workspace unbuildable from a clean checkout: pnpm cannot'
+  );
+  console.error(
+    '  order a package before something that depends back on it, so a dts step reading a'
+  );
+  console.error(
+    "  sibling's dist/ finds nothing there. Fix the manifest edge, not the build order."
+  );
 }
 process.exit(1);

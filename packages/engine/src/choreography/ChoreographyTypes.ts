@@ -29,13 +29,7 @@ export type StepStatus =
  * Status of a choreography plan
  */
 export type ChoreographyStatus =
-  | 'draft'
-  | 'ready'
-  | 'running'
-  | 'paused'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
+  'draft' | 'ready' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
 
 /**
  * Step retry strategy

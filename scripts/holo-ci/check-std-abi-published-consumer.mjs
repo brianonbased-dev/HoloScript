@@ -20,14 +20,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -169,12 +162,7 @@ try {
     verifiedFiles[packageRelativePath] = { sha256: actual };
   }
 
-  const bindingPath = join(
-    stdRoot,
-    'conformance',
-    'host-abi',
-    'std-host-binding.mjs'
-  );
+  const bindingPath = join(stdRoot, 'conformance', 'host-abi', 'std-host-binding.mjs');
   const { createStdHostBindings, STD_HOST_ABI_SCHEMA } = await import(
     pathToFileURL(bindingPath).href
   );
@@ -191,12 +179,7 @@ try {
     'generated',
     'std-abi-conformance.trait.hsplus'
   );
-  const vectorsPath = join(
-    stdRoot,
-    'conformance',
-    'generated',
-    'std-abi-vectors.v0.jsonl'
-  );
+  const vectorsPath = join(stdRoot, 'conformance', 'generated', 'std-abi-vectors.v0.jsonl');
   const packagedExecutionPath = join(
     stdRoot,
     'conformance',
@@ -259,12 +242,9 @@ try {
 
   const failed = results.filter((result) => !result.pass);
   verdict = failed.length === 0 ? 'OK' : 'FAILED';
-  const installedWasm = readFileSync(
-    join(wasmRoot, 'pkg-node', 'holoscript_wasm_bg.wasm')
-  );
+  const installedWasm = readFileSync(join(wasmRoot, 'pkg-node', 'holoscript_wasm_bg.wasm'));
   const registryInstalled =
-    stdSpec === `@holoscript/std@${stdVersion}` &&
-    wasmSpec === `@holoscript/wasm@${wasmVersion}`;
+    stdSpec === `@holoscript/std@${stdVersion}` && wasmSpec === `@holoscript/wasm@${wasmVersion}`;
   const receipt = {
     schema: 'holoscript.std-abi-published-consumer.v1',
     generatedAtISO: new Date().toISOString(),
@@ -307,8 +287,7 @@ try {
       provesCanonicalPublishedBinding: verdict === 'OK',
       provesBrowserExecution: false,
       provesOwnedMetalExecution: false,
-      note:
-        'Every executed source, vector, manifest, and host-binding byte came from packages installed into a fresh consumer with lifecycle scripts disabled. Registry publication is claimed only when requestedSpecs are exact registry versions.',
+      note: 'Every executed source, vector, manifest, and host-binding byte came from packages installed into a fresh consumer with lifecycle scripts disabled. Registry publication is claimed only when requestedSpecs are exact registry versions.',
     },
   };
   const receiptForHash = { ...receipt };
@@ -319,9 +298,7 @@ try {
   writeFileSync(outPath, `${JSON.stringify(receipt, null, 2)}\n`);
   if (failed.length > 0) {
     for (const result of failed.slice(0, 10)) {
-      console.error(
-        `  x ${result.id}: ${result.error ?? (result.mismatches ?? []).join('; ')}`
-      );
+      console.error(`  x ${result.id}: ${result.error ?? (result.mismatches ?? []).join('; ')}`);
     }
   }
 } finally {

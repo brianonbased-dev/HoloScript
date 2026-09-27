@@ -12,17 +12,18 @@ Together they capture the full spectrum from individual gesture to governed univ
 
 ### Three-Format Impossibility Map
 
-| Impossibility                       | `.hs`                                                           | `.hsplus`                                                                                                                          | `.holo`                            |
+| Impossibility | `.hs` | `.hsplus` | `.holo` |
 | :---------------------------------- | :-------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------- | ------------------- |
-| **Tacit Knowledge**                 | Procedural recipes                                              | Haptic + state feedback                                                                                                            | -                                  |
-| **Dance Notation**                  | Step sequences                                                  | Effort/flow as reactive state                                                                                                      | Full choreography compositions     |
-| **Behavioral Determinism**          | -                                                               | State machines = testable contracts                                                                                                | Scene-level conformance            |
-| **Therapeutic Safety**              | -                                                               | `@state` + event gates                                                                                                             | Governed Experience Documents      |
-| **Symbol Grounding**                | `execute` = causal                                              | Traits compile to physics                                                                                                          | Scene-level grounding              |
-| **Indigenous Knowledge**            | Procedural paths                                                | Protocol-gated access                                                                                                              | Songline compositions              |
-| **Forensic Evidence**               | -                                                               | State reconstruction                                                                                                               | Annotated scene + chain of custody | ## 3 GENUINE SOLVES |
+| **Tacit Knowledge** | Procedural recipes | Haptic + state feedback | - |
+| **Dance Notation** | Step sequences | Effort/flow as reactive state | Full choreography compositions |
+| **Behavioral Determinism** | - | State machines = testable contracts | Scene-level conformance |
+| **Therapeutic Safety** | - | `@state` + event gates | Governed Experience Documents |
+| **Symbol Grounding** | `execute` = causal | Traits compile to physics | Scene-level grounding |
+| **Indigenous Knowledge** | Procedural paths | Protocol-gated access | Songline compositions |
+| **Forensic Evidence** | - | State reconstruction | Annotated scene + chain of custody | ## 3 GENUINE SOLVES |
+
 | Problem                             | Why It's Impossible                                             | HoloScript's Kill Shot                                                                                                             |
-| :---                                | :---                                                            | :---                                                                                                                               |
+| :---------------------------------- | :-------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | **5. Symbol Grounding Problem**     | AI symbols lack physical meaning (Harnad 1990)                  | `@weight(5kg)` compiles to `Rigidbody.mass=5` — traits ARE causal physics. Bidirectional: symbols → physics AND physics → symbols. |
 | **8. Version Control for 3D**       | Git can't diff/merge/blame binary FBX/GLB                       | `.holo` is plain text. `git blame` tells you exactly who changed the wing membrane bulge from `0.18` to `0.25`.                    |
 | **10. Digital Preservation Crisis** | 87% of games already lost; engines die, content dies with them. | `.holo` is the LaTeX of spatial computing — human-readable, engine-independent text survives format extinction.                    |

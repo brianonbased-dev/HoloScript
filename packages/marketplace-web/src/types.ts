@@ -9,14 +9,7 @@
 //=============================================================================
 
 export type TraitCategory =
-  | 'rendering'
-  | 'physics'
-  | 'networking'
-  | 'audio'
-  | 'ui'
-  | 'ai'
-  | 'blockchain'
-  | 'utility';
+  'rendering' | 'physics' | 'networking' | 'audio' | 'ui' | 'ai' | 'blockchain' | 'utility';
 
 // Mirrors the marketplace-api Platform enum exactly. Previously listed
 // mobile/vr/ar (which the API never emits) and omitted nodejs/wasm/all (which it

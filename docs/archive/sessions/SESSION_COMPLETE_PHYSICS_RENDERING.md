@@ -191,9 +191,7 @@ HoloComposition
 
 ```typescript
 const executor = new DemolitionRuntimeExecutor({
-  renderer: new ThreeJSRenderer({
-    /* config */
-  }),
+  renderer: new ThreeJSRenderer({/* config */}),
   autoSyncRenderer: true, // Automatic sync each frame
 });
 

@@ -12,9 +12,11 @@ import {
 } from '../state';
 import {
   INBOX_MESSAGE_TYPE_SET,
+  hasExplicitRecipient,
   mergeInboxBrief,
   messageAddressedToAny,
   resolveMessageRecipient,
+  visibleTeamMessagesFor,
 } from '../message-addressing';
 import { hydrateTeamMessageStore, persistTeamMessages } from '../team-message-merge';
 import { checkSignerIdentityBinding } from '../identity/board-signer-binding';
@@ -1980,7 +1982,18 @@ export async function handleBoardRoutes(
 
     // Inbox (DMs, handoffs, reviews) — newest first. Directed mail is
     // selected first so later broadcasts cannot bury a DM (task_1785839509015_lreq).
-    const messages = hydrateTeamMessageStore(teamId);
+    // THE SECOND DOOR. Fixing GET /messages alone left this one open: `inboxType`
+    // was every dm/handoff/review in the team, unfiltered by recipient, and
+    // mergeInboxBrief folds it in beside the caller's own mail — so a session-start
+    // or phone brief handed over other agents' private notes even after the main
+    // read path refused them. Verified 2026-09-10 in a single run where the fixed
+    // door declined and this one served the same note.
+    //
+    // The capability-token branch above resolves no caller at all, so it must see
+    // room posts only: visibleTeamMessagesFor with an empty identity yields exactly
+    // that, which is why the filter is applied to the store rather than to the
+    // caller-specific slice.
+    const messages = visibleTeamMessagesFor(hydrateTeamMessageStore(teamId), briefCaller ?? {});
     const inboxType = messages.filter((m) => INBOX_MESSAGE_TYPE_SET.has(m.messageType));
     const directed = briefCaller
       ? inboxType.filter((m) => messageAddressedToAny(m, [briefCaller.id, briefCaller.name]))
@@ -3094,7 +3107,8 @@ export async function handleBoardRoutes(
         }
         if (Object.keys(updates).filter((k) => k !== '_prevDescription').length === 0) {
           json(res, 400, {
-            error: 'No updatable fields provided: supply title, description, priority, tags, and/or workUnit',
+            error:
+              'No updatable fields provided: supply title, description, priority, tags, and/or workUnit',
           });
           return true;
         }
@@ -3119,6 +3133,23 @@ export async function handleBoardRoutes(
     }
 
     await persistTeamDurable(teamId);
+
+    if (action === 'reopen') {
+      // PATCH used to answer status=open from the in-memory mutation while the next
+      // GET /board reloaded durable state and still showed the previous claim.
+      // Return the durable row, or 409 if persist did not stick.
+      await reloadTeam(teamId);
+      const durableTeam = teamStore.get(teamId);
+      const durableTask = (durableTeam?.taskBoard || []).find((t) => t.id === taskId);
+      if (!durableTask || durableTask.status !== 'open') {
+        json(res, 409, {
+          error: 'reopen did not persist; GET /board would still show the previous claim',
+          code: 'reopen_persist_mismatch',
+        });
+        return true;
+      }
+      result = { success: true, task: durableTask };
+    }
 
     // Real-time broadcast
     broadcastToTeam(teamId, {
@@ -3621,6 +3652,12 @@ export async function handleBoardRoutes(
     messages.push(message);
     await persistTeamMessages(teamId, messages);
 
+    // A directed message must not put its body on the room-wide stream. Fixing
+    // only the GET filter would have left this path handing the first 200
+    // characters of every DM to everyone connected — the read fix undone by the
+    // notification. Recipients still learn mail arrived; the body does not
+    // travel with the announcement, and is fetched over the authorized read.
+    const directed = hasExplicitRecipient(message);
     broadcastToTeam(teamId, {
       type: 'message:new',
       agent: caller.name,
@@ -3628,7 +3665,7 @@ export async function handleBoardRoutes(
         id: message.id,
         from: caller.name,
         to: message.toAgentId || message.toAgentName,
-        content: content.slice(0, 200),
+        ...(directed ? { directed: true } : { content: content.slice(0, 200) }),
       },
     });
 
@@ -3645,9 +3682,23 @@ export async function handleBoardRoutes(
     if (!access) return true;
     const { teamId } = access;
     const query = new URL(url, 'http://localhost').searchParams;
+    // `for` is the caller's own query parameter and was previously the ONLY
+    // filter on this path, so omitting it returned every DM between every other
+    // pair of agents to any member.
+    //
+    // The order below is the whole fix. Authorization runs FIRST and is not
+    // negotiable — the caller gets room posts plus their own mail, and nothing
+    // else exists as far as this request is concerned. `for` then narrows that
+    // already-safe set, so it stays useful for its real purpose (an inbox slice,
+    // including one an agent takes on behalf of a colleague for mail it can
+    // legitimately see, such as a DM it sent) while being unable to widen
+    // anything. Restricting `for` to the caller's own name instead looked
+    // tighter and was worse: it broke the session-start inbox read that
+    // http-routes.test.ts has covered since the lreq fix, without closing
+    // anything this ordering leaves open.
     const forWhom = (query.get('for') || query.get('to') || '').trim();
     const limitRaw = query.get('limit');
-    let messages = hydrateTeamMessageStore(teamId);
+    let messages = visibleTeamMessagesFor(hydrateTeamMessageStore(teamId), access.caller);
     if (forWhom) {
       messages = messages.filter((msg) => messageAddressedToAny(msg, [forWhom]));
     }

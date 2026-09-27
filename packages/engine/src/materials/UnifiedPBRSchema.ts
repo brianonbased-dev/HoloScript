@@ -1290,8 +1290,7 @@ export function fromMaterialDef(def: {
   base.doubleSided = def.doubleSided;
   base.shaderGraphId = def.shaderGraphId;
   base.customUniforms = def.customUniforms as
-    | Record<string, number | number[] | string>
-    | undefined;
+    Record<string, number | number[] | string> | undefined;
 
   // Extract advanced properties from extensions
   if (def.properties) {

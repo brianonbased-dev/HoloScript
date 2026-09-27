@@ -379,7 +379,9 @@ export class Lessons {
       }
       return {
         prompt: 'Lesson 4 · Changing Tempo',
-        sub: this.upTrial ? 'Good — keep going at this speed.' : 'Keep bouncing — I have not heard a clear change yet.',
+        sub: this.upTrial
+          ? 'Good — keep going at this speed.'
+          : 'Keep bouncing — I have not heard a clear change yet.',
         progress: '',
         card: null,
       };
@@ -855,13 +857,15 @@ export class Lessons {
         id: id as 'pattern4' | 'pattern3',
         title: TITLES[id],
         score: 10,
-        verdict: 'No sideways movement seen — this shape needs left and right, not just up and down.',
+        verdict:
+          'No sideways movement seen — this shape needs left and right, not just up and down.',
         cls: 'bad',
         raw: { bars: 0, matched: 0, spread: null },
       };
     }
     const sorted = [...valid].sort((a, b) => a - b);
-    const spread = sorted[Math.floor(sorted.length * 0.85)] - sorted[Math.floor(sorted.length * 0.15)];
+    const spread =
+      sorted[Math.floor(sorted.length * 0.85)] - sorted[Math.floor(sorted.length * 0.15)];
     if (spread < this.spreadFloor) {
       return {
         id: id as 'pattern4' | 'pattern3',

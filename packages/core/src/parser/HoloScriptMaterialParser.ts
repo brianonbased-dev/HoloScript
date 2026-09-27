@@ -478,8 +478,7 @@ export class HoloScriptMaterialParser {
       metallic: properties.metallic as number | undefined,
       emissive: properties.emissive as string | undefined,
       emissiveIntensity: (properties.emissiveIntensity ?? properties.emissive_intensity) as
-        | number
-        | undefined,
+        number | undefined,
       opacity: properties.opacity as number | undefined,
       IOR: (properties.IOR ?? properties.ior) as number | undefined,
       transmission: properties.transmission as number | undefined,
@@ -488,11 +487,9 @@ export class HoloScriptMaterialParser {
 
       // Subsurface
       subsurfaceColor: (properties.subsurface_color ?? properties.subsurfaceColor) as
-        | string
-        | undefined,
+        string | undefined,
       subsurfaceRadius: (properties.subsurface_radius ?? properties.subsurfaceRadius) as
-        | number[]
-        | undefined,
+        number[] | undefined,
 
       // Toon
       outlineWidth: (properties.outline_width ?? properties.outlineWidth) as number | undefined,
@@ -504,8 +501,7 @@ export class HoloScriptMaterialParser {
 
       // Glass
       attenuationColor: (properties.attenuation_color ?? properties.attenuationColor) as
-        | string
-        | undefined,
+        string | undefined,
 
       // Maps and passes
       textureMaps,

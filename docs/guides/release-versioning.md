@@ -34,6 +34,8 @@ If they diverge, the workflow fails with a clear error message.
 
 For the operational npm and PyPI preflight/publish checklist, use
 [`docs/handbooks/npm-pypi-push-plan.md`](../handbooks/npm-pypi-push-plan.md).
+The legal npm command is `corepack pnpm release:publish`. A single-package
+ship uses the same command with `RELEASE_PUBLISH_ALLOWLIST=@scope/name`.
 
 ## Current state
 

@@ -48,17 +48,18 @@ const FIXTURE_DIR = join(
 );
 
 describe('HoloTorch end-to-end logit parity (WGSL vs torch, real checkpoint)', () => {
-  it('WGSL forward pass matches torch logits and argmax on a real holo checkpoint', async () => {
+  it('WGSL forward pass matches torch logits and argmax on a real holo checkpoint', async (ctx) => {
     if (!existsSync(join(FIXTURE_DIR, 'fixture.json'))) {
       console.warn(
         `[holotorch-parity] fixture absent (${FIXTURE_DIR}) — skipping e2e (regen with holotorch-export-parity-fixture.py)`
       );
-      return;
+      // Reported as SKIPPED, never as a pass (2026-09-24 native-inference audit, fix 6).
+      return ctx.skip();
     }
     const device = await getWebGpuDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping e2e');
-      return;
+      return ctx.skip();
     }
 
     const manifest = JSON.parse(

@@ -86,11 +86,7 @@ export type FrameDeclarationConfig = Partial<FrameDeclaration>;
 
 /** Violation categories */
 export type FrameViolationType =
-  | 'tool_not_allowed'
-  | 'domain_denied'
-  | 'horizon_exceeded'
-  | 'tier_exceeded'
-  | 'undeclared_frame';
+  'tool_not_allowed' | 'domain_denied' | 'horizon_exceeded' | 'tier_exceeded' | 'undeclared_frame';
 
 /** Result of a boundary check */
 export interface FrameCheckResult {

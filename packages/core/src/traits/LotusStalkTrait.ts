@@ -196,8 +196,7 @@ export const lotusStalkHandler: TraitHandler<LotusStalkConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__lotusStalkState as
-      | LotusStalkState
-      | undefined;
+      LotusStalkState | undefined;
     if (!state) return;
 
     if (event.type === 'lotus_bloom_state_changed') {

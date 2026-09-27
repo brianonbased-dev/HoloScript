@@ -83,12 +83,25 @@ RUN cd packages/agent-protocol && pnpm exec tsup --no-dts && pnpm exec tsc --emi
 RUN cd packages/core-types && pnpm exec tsup
 RUN cd packages/core && pnpm exec tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
+# secrets-broker MUST build before config: 7aee35c20 wired config auth through
+# HoloKey (config/src/auth.ts dynamically imports '@holoscript/secrets-broker'),
+# so config's dts emit needs secrets-broker's declarations on disk or it fails
+# TS2307 — broke every studio deploy from 7aee35c20 until 2026-07-10. The
+# original secrets-broker step further down predates that import (it was placed
+# for studio's next build only); zero workspace deps, safe to build here.
+# config MUST build before llm-provider: llm-provider depends on
+# @holoscript/config. Its tsup dts emit fails TS2307 "Cannot find module
+# '@holoscript/config'" without config's dist/*.d.ts (Release, PR #370).
+# Source for both is already on disk via the wholesale `COPY packages/` above.
+RUN cd packages/secrets-broker && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/config && pnpm exec tsup
 # llm-provider MUST build before framework: framework/src/ai/adapters.ts and
 # framework/src/llm/llm-adapter.ts import '@holoscript/llm-provider' (workspace
 # dep), so framework's `tsc -p tsconfig.build.json` step below needs
 # llm-provider's dist/*.d.ts on disk or it fails with TS2307 "Cannot find module
 # '@holoscript/llm-provider'" (broke 3 consecutive Studio deploys 2026-05-26).
-# llm-provider has no workspace deps, so it can build right after engine.
+# llm-provider depends on @holoscript/config (built immediately above, after
+# secrets-broker).
 RUN cd packages/llm-provider && pnpm exec tsup
 # Framework needs BOTH the tsup JS build AND a tsc declaration emit because
 # tsup.config.ts has dts: false (subpath dts via tsup is unreliable for this
@@ -125,18 +138,10 @@ RUN cd packages/crdt-spatial && pnpm exec tsup --no-dts && pnpm exec tsc --emitD
 # non-zero). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/std && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly
-# secrets-broker MUST build before config: 7aee35c20 wired config auth through
-# HoloKey (config/src/auth.ts dynamically imports '@holoscript/secrets-broker'),
-# so config's dts emit needs secrets-broker's declarations on disk or it fails
-# TS2307 — broke every studio deploy from 7aee35c20 until 2026-07-10. The
-# original secrets-broker step further down predates that import (it was placed
-# for studio's next build only); zero workspace deps, safe to build here.
-RUN cd packages/secrets-broker && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
-RUN cd packages/config && pnpm exec tsup
 # holoembed MUST build before absorb-service: absorb's HoloEmbedProvider.ts +
 # graph-rag-tools.ts import '@holoscript/holoembed' (sovereign-default embeddings,
 # W.GOLD.005), so absorb's tsc declaration emit fails TS2307 without holoembed's
-# dist. Deps (config just above, snn-webgpu near the top) are already built.
+# dist. Deps (config, built before llm-provider; snn-webgpu near the top) are already built.
 # The identical step further down (holoembed+holo-vm comment block) predates this
 # import and stays for docker layer-cache continuity — it is idempotent.
 # holoembed dts: tsup's rollup-plugin-dts fails; use tsc directly (pattern B).

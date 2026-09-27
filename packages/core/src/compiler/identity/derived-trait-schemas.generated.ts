@@ -18097,7 +18097,7 @@ export const DERIVED_TRAIT_SCHEMAS: TraitSchema[] = [
       {
         "name": "required_anchor_path",
         "type": "string",
-        "defaultValue": "D:/GOLD/anchors/lotus-genesis.json"
+        "defaultValue": "anchors/lotus-genesis.json"
       },
       {
         "name": "required_wallet",

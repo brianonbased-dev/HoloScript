@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { SERVICE_VERSION } from './version.js';
+import { writeHealthResponse } from './health.js';
 import { hydrateServiceSecrets } from './boot-secrets.js';
 import { ensureMoltbookSchema } from './db/ensureMoltbookSchema.js';
 import { ensureCreditLedgerIndex } from './db/ensureCreditLedgerIndex.js';
@@ -190,39 +190,15 @@ function startBackgroundHealthProbes() {
 }
 
 // --- Public endpoints (no auth) ---
-app.get('/health', (_req, res) => {
-  const db = _cachedDatabaseStatus;
-  const diagnostics =
-    db === 'degraded'
-      ? {
-          likely502Cause:
-            'Edge proxy timeout or Postgres probe slow; check Railway logs and DATABASE_URL pool.',
-          dbLayer: 'Postgres SELECT 1 probe failed or exceeded HEALTH_DB_TIMEOUT_MS.',
-        }
-      : db === 'not configured'
-        ? {
-            likely502Cause: 'App up without DATABASE_URL; API routes that require DB may error.',
-            dbLayer: 'No database configured.',
-          }
-        : {
-            likely502Cause: 'If clients still see 502, fault is usually upstream proxy or app crash — compare with this JSON.',
-            dbLayer: 'Postgres probe succeeded recently.',
-          };
-
-  res.json({
-    status: 'ok',
-    service: 'absorb-service',
-    version: SERVICE_VERSION,
-    uptime: process.uptime(),
+app.get('/health', (req, res) => {
+  writeHealthResponse(req, res, {
     database: _cachedDatabaseStatus,
     // Secondary probe: COUNT on moltbook table (slow/missing table ≠ Postgres down).
     moltbookAgentCountProbe: _cachedMoltbookProbeStatus,
     mcpSessions: getActiveSessionCount(),
     mcpTools: getRegisteredToolCount(),
     moltbookActiveAgents: _cachedMoltbookAgentCount,
-    moltbookProbeLastError: _cachedMoltbookProbeStatus === 'error' ? _lastMoltbookProbeError : null,
-    diagnostics,
-    timestamp: new Date().toISOString(),
+    moltbookProbeLastError: _lastMoltbookProbeError,
   });
 });
 

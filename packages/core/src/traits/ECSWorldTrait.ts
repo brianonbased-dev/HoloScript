@@ -201,8 +201,7 @@ export class ECSWorld {
 
   getTransform(id: EntityId): TransformComponent | undefined {
     const t = this.transforms.get(id) as
-      | (TransformComponent & Record<string | number, unknown>)
-      | undefined;
+      (TransformComponent & Record<string | number, unknown>) | undefined;
     if (!t) return undefined;
     return this.normalizeTransform(t);
   }

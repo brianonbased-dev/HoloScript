@@ -6,7 +6,10 @@
  * Source: packages/core/src/daemon/ConversationDaemon.ts + idea-run-14 Pattern F + D.052 ruling
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   type ConversationDaemon,
   type DaemonCustomizationProfile,
@@ -23,15 +26,57 @@ import {
   validateCustomizationProfile,
   DaemonFieldSeparationError,
 } from '@holoscript/core';
-import {
+import type { RehydratedContext } from '../daemon-lifecycle-tools';
+
+// ─── Store isolation (task_1790054928541_kzbo part B) ─────────────────────────
+//
+// daemon-emergence-store resolves HOLOMESH_DATA_DIR ONCE, at module load, and
+// every holo_observe_soul / emergence below write-throughs to that store. Without
+// this pin the suite appended its fixtures to the REAL corpus at
+// ~/.holoscript/holomesh/emergence/soul-observations.jsonl (soul-emerge-* rows
+// were found there on 2026-09-22). The pin must precede the first import of the
+// lifecycle module — hence the dynamic imports below (mirrors
+// daemon-emergence-persistence.test.ts).
+
+const TEMP_DATA_DIR = mkdtempSync(join(tmpdir(), 'daemon-lifecycle-tools-'));
+const PREVIOUS_DATA_DIR = process.env.HOLOMESH_DATA_DIR;
+process.env.HOLOMESH_DATA_DIR = TEMP_DATA_DIR;
+
+const {
   daemonLifecycleTools,
   handleDaemonLifecycleTool,
   receiveContextDelta,
   rehydrateDaemon,
   clearDaemonRehydration,
   processDaemonTurn,
-  type RehydratedContext,
-} from '../daemon-lifecycle-tools';
+} = await import('../daemon-lifecycle-tools');
+const { _corpusPathForTest } = await import('../daemon-emergence-store');
+
+afterAll(() => {
+  if (PREVIOUS_DATA_DIR === undefined) delete process.env.HOLOMESH_DATA_DIR;
+  else process.env.HOLOMESH_DATA_DIR = PREVIOUS_DATA_DIR;
+  rmSync(TEMP_DATA_DIR, { recursive: true, force: true });
+});
+
+// Enough significant, model-rich observations to cross the emergence threshold
+// (MIN_SIGNIFICANT_TURNS=5 @ significance>=0.5, MIN_MODEL_RICHNESS=3).
+function knowingDeltas() {
+  return [
+    {
+      updatedPreferences: { theme: 'dark' },
+      careSignalHistory: ['focus'],
+      significanceScore: 0.8,
+    },
+    { updatedPreferences: { lang: 'ts' }, significanceScore: 0.7 },
+    {
+      updatedPreferences: { pace: 'fast' },
+      careSignalHistory: ['encourage'],
+      significanceScore: 0.9,
+    },
+    { newReceiptRefs: ['receipt:x'], significanceScore: 0.6 },
+    { updatedPreferences: { editor: 'vim' }, significanceScore: 0.75 },
+  ];
+}
 
 // ─── Tool Registration ─────────────────────────────────────────────────────────
 
@@ -55,6 +100,15 @@ describe('daemonLifecycleTools', () => {
       expect(tool.description).toBeTruthy();
       expect(tool.inputSchema).toBeDefined();
       expect(tool.inputSchema.type).toBe('object');
+    }
+  });
+
+  it('the three daimōn read tools declare callerId (task_1790062507560_px5q)', () => {
+    for (const name of ['holo_get_daemon', 'holo_list_daemons', 'holo_daemon_emergence_check']) {
+      const tool = daemonLifecycleTools.find((t) => t.name === name);
+      expect(tool, name).toBeDefined();
+      const props = tool!.inputSchema.properties as Record<string, { type?: string }>;
+      expect(props.callerId?.type, `${name}.callerId`).toBe('string');
     }
   });
 });
@@ -138,26 +192,6 @@ describe('holo_daemon_turn', () => {
 // ─── Emergence: the daimōn appears from being known (D.053) ───────────────────
 
 describe('holo_observe_soul + holo_daemon_emergence_check', () => {
-  // Enough significant, model-rich observations to cross the threshold
-  // (MIN_SIGNIFICANT_TURNS=5 @ significance>=0.5, MIN_MODEL_RICHNESS=3).
-  function knowingDeltas() {
-    return [
-      {
-        updatedPreferences: { theme: 'dark' },
-        careSignalHistory: ['focus'],
-        significanceScore: 0.8,
-      },
-      { updatedPreferences: { lang: 'ts' }, significanceScore: 0.7 },
-      {
-        updatedPreferences: { pace: 'fast' },
-        careSignalHistory: ['encourage'],
-        significanceScore: 0.9,
-      },
-      { newReceiptRefs: ['receipt:x'], significanceScore: 0.6 },
-      { updatedPreferences: { editor: 'vim' }, significanceScore: 0.75 },
-    ];
-  }
-
   it('does NOT manifest a daimōn before the knowing threshold is crossed', async () => {
     const ownerId = 'soul-latent-1';
     // Two weak observations — nowhere near the threshold.
@@ -206,6 +240,8 @@ describe('holo_observe_soul + holo_daemon_emergence_check', () => {
 
     const emerged = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
       ownerId,
+      // The soul asks for itself — the only caller the rehydrated context is handed to.
+      callerId: ownerId,
       displayName: 'Sage',
     })) as {
       emerged: boolean;
@@ -266,6 +302,7 @@ describe('holo_observe_soul + holo_daemon_emergence_check', () => {
     const got = (await handleDaemonLifecycleTool('holo_get_daemon', {
       daemonId: `daemon-${ownerId}`,
       includeRehydrationContext: true,
+      callerId: ownerId,
     })) as { rehydrationContext?: RehydratedContext };
     expect(got.rehydrationContext?.aggregatedPreferences).toMatchObject({ newPref: 'after' });
   });
@@ -394,6 +431,7 @@ describe('holo_get_daemon', () => {
     const getResult = await handleDaemonLifecycleTool('holo_get_daemon', {
       daemonId: 'rehy-test',
       includeRehydrationContext: true,
+      callerId: 'user-11',
     });
     const g = getResult as {
       daemon: ConversationDaemon;
@@ -577,8 +615,10 @@ describe('holo_list_daemons', () => {
       daemonId: 'filter-b',
     });
 
+    // The owner's view: only callerId === ownerId sees the ownerId column.
     const result = await handleDaemonLifecycleTool('holo_list_daemons', {
       ownerId: 'user-filter',
+      callerId: 'user-filter',
     });
     const r = result as {
       total: number;
@@ -599,6 +639,7 @@ describe('holo_list_daemons', () => {
     const result = await handleDaemonLifecycleTool('holo_list_daemons', {
       ownerId: 'user-stats',
       includeStats: true,
+      callerId: 'user-stats',
     });
     const r = result as {
       daemons: Array<{
@@ -805,6 +846,347 @@ describe('processDaemonTurn', () => {
     });
     const g = getResult as { daemon: ConversationDaemon };
     expect(g.daemon.lastActiveAt).toBe('2026-05-18T10:00:00.000Z');
+  });
+});
+
+// ─── Owner boundary: the daimōn is private (task_1790062507560_px5q) ──────────
+
+describe('daimōn read tools refuse a caller that is not the owner', () => {
+  const OWNER = 'owner-private-1';
+  const STRANGER = 'stranger-7';
+  const REMEMBERED = { secret: 'the owner takes tea at four' };
+
+  async function createDaemonWithMemory(daemonId: string): Promise<void> {
+    await handleDaemonLifecycleTool('holo_create_daemon', { ownerId: OWNER, daemonId });
+    expect(
+      receiveContextDelta(daemonId, {
+        ...makeEmptyContextDelta(),
+        significanceScore: 0.9,
+        updatedPreferences: { ...REMEMBERED },
+        newReceiptRefs: ['receipt:private'],
+      })
+    ).toBe(true);
+  }
+
+  it('holo_get_daemon with context: a stranger is refused, the owner succeeds', async () => {
+    await createDaemonWithMemory('private-get');
+
+    await expect(
+      handleDaemonLifecycleTool('holo_get_daemon', {
+        daemonId: 'private-get',
+        includeRehydrationContext: true,
+        callerId: STRANGER,
+      })
+    ).rejects.toThrow(/Unauthorized daemon access|does not match owner/i);
+
+    const asOwner = (await handleDaemonLifecycleTool('holo_get_daemon', {
+      daemonId: 'private-get',
+      includeRehydrationContext: true,
+      callerId: OWNER,
+    })) as { rehydrationContext?: RehydratedContext; rehydrationStats?: { bufferSize: number } };
+    expect(asOwner.rehydrationContext?.aggregatedPreferences).toMatchObject(REMEMBERED);
+    expect(asOwner.rehydrationContext?.receiptRefs).toContain('receipt:private');
+    expect(asOwner.rehydrationStats?.bufferSize).toBe(1);
+  });
+
+  it('holo_get_daemon with context and no callerId is refused (no anonymous memory reads)', async () => {
+    await createDaemonWithMemory('private-get-anon');
+    await expect(
+      handleDaemonLifecycleTool('holo_get_daemon', {
+        daemonId: 'private-get-anon',
+        includeRehydrationContext: true,
+      })
+    ).rejects.toThrow('callerId is required');
+  });
+
+  it('holo_get_daemon without context returns the record with no memory fields, for any caller', async () => {
+    await createDaemonWithMemory('private-get-plain');
+    const asStranger = (await handleDaemonLifecycleTool('holo_get_daemon', {
+      daemonId: 'private-get-plain',
+      callerId: STRANGER,
+    })) as Record<string, unknown> & { daemon: ConversationDaemon | null };
+    expect(asStranger.daemon?.daemonId).toBe('private-get-plain');
+    expect(asStranger).not.toHaveProperty('rehydrationContext');
+    expect(asStranger).not.toHaveProperty('rehydrationStats');
+    expect(JSON.stringify(asStranger)).not.toContain(REMEMBERED.secret);
+  });
+
+  it('holo_list_daemons hides ownerId and rehydrationStats from a stranger', async () => {
+    await createDaemonWithMemory('private-list');
+    type ListRow = Record<string, unknown> & { daemonId: string };
+    const rowFor = (result: unknown): ListRow | undefined =>
+      (result as { daemons: ListRow[] }).daemons.find((d) => d.daemonId === 'private-list');
+
+    // A stranger, unfiltered, asking for stats: identity only.
+    const asStranger = rowFor(
+      await handleDaemonLifecycleTool('holo_list_daemons', {
+        includeStats: true,
+        callerId: STRANGER,
+      })
+    );
+    expect(asStranger).toEqual({ daemonId: 'private-list', displayName: 'Lumi' });
+
+    // No callerId at all: identity only.
+    const anonymous = rowFor(
+      await handleDaemonLifecycleTool('holo_list_daemons', { includeStats: true })
+    );
+    expect(anonymous).toEqual({ daemonId: 'private-list', displayName: 'Lumi' });
+
+    // A stranger naming the owner as the filter still gets identity rows only.
+    const filteredByStranger = (await handleDaemonLifecycleTool('holo_list_daemons', {
+      ownerId: OWNER,
+      includeStats: true,
+      callerId: STRANGER,
+    })) as { daemons: ListRow[] };
+    expect(filteredByStranger.daemons.length).toBeGreaterThan(0);
+    for (const row of filteredByStranger.daemons) {
+      expect(Object.keys(row).sort()).toEqual(['daemonId', 'displayName']);
+    }
+
+    // The owner sees the full row, stats included.
+    const asOwner = rowFor(
+      await handleDaemonLifecycleTool('holo_list_daemons', {
+        ownerId: OWNER,
+        includeStats: true,
+        callerId: OWNER,
+      })
+    )!;
+    expect(asOwner.ownerId).toBe(OWNER);
+    expect(asOwner.ownerPolicy).toBe('private');
+    expect((asOwner.rehydrationStats as { bufferSize: number } | undefined)?.bufferSize).toBe(1);
+  });
+
+  it('holo_daemon_emergence_check hands the rehydrated context only to the owner', async () => {
+    const soul = 'soul-private-emerge';
+    for (const delta of knowingDeltas()) {
+      await handleDaemonLifecycleTool('holo_observe_soul', { ownerId: soul, contextDelta: delta });
+    }
+
+    // A stranger triggers the emergence: the daimōn manifests, its memory is withheld.
+    const asStranger = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId: soul,
+      callerId: STRANGER,
+    })) as {
+      emerged: boolean;
+      daemon?: ConversationDaemon;
+      rehydratedContextWithheld?: string;
+    };
+    expect(asStranger.emerged).toBe(true);
+    expect(asStranger.daemon?.daemonId).toBe(`daemon-${soul}`);
+    expect(asStranger).not.toHaveProperty('rehydratedContext');
+    expect(asStranger.rehydratedContextWithheld).toBe('caller_not_owner');
+
+    // Already emerged, no callerId: still withheld.
+    const anonymous = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId: soul,
+    })) as { alreadyEmerged?: boolean; rehydratedContextWithheld?: string };
+    expect(anonymous.alreadyEmerged).toBe(true);
+    expect(anonymous).not.toHaveProperty('rehydratedContext');
+    expect(anonymous.rehydratedContextWithheld).toBe('caller_not_owner');
+
+    // The soul itself receives what the field learned.
+    const asOwner = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId: soul,
+      callerId: soul,
+    })) as { alreadyEmerged?: boolean; rehydratedContext?: RehydratedContext | null };
+    expect(asOwner.alreadyEmerged).toBe(true);
+    expect(asOwner).not.toHaveProperty('rehydratedContextWithheld');
+    expect(asOwner.rehydratedContext?.aggregatedPreferences).toMatchObject({
+      theme: 'dark',
+      editor: 'vim',
+    });
+  });
+});
+
+// ─── Store isolation (task_1790054928541_kzbo part B) ─────────────────────────
+
+describe('emergence store isolation', () => {
+  it('writes soul observations to the pinned temp data dir, never the real store', async () => {
+    const corpus = _corpusPathForTest();
+    // Positive control: if the pin ever moves below the first import, this fails.
+    expect(corpus).toBe(join(TEMP_DATA_DIR, 'emergence', 'soul-observations.jsonl'));
+    await handleDaemonLifecycleTool('holo_observe_soul', {
+      ownerId: 'soul-isolation-1',
+      contextDelta: { updatedPreferences: { pinned: true }, significanceScore: 0.9 },
+    });
+    expect(existsSync(corpus)).toBe(true);
+    expect(statSync(corpus).size).toBeGreaterThan(0);
+  });
+});
+
+// ─── Identity cannot be squatted or forged (custody review follow-ups) ────────
+
+describe('daimōn identity cannot be squatted', () => {
+  const STRANGER = 'stranger-7';
+
+  it('holo_create_daemon refuses an existing daemonId (no overwrite of owner or memory)', async () => {
+    await handleDaemonLifecycleTool('holo_create_daemon', {
+      ownerId: 'squat-owner',
+      daemonId: 'squat-existing',
+    });
+    await expect(
+      handleDaemonLifecycleTool('holo_create_daemon', {
+        ownerId: STRANGER,
+        daemonId: 'squat-existing',
+      })
+    ).rejects.toThrow(/already exists/);
+    const plain = (await handleDaemonLifecycleTool('holo_get_daemon', {
+      daemonId: 'squat-existing',
+    })) as { daemon: ConversationDaemon };
+    expect(plain.daemon.ownerId).toBe('squat-owner');
+  });
+
+  it("holo_create_daemon refuses another soul's emergent id (pre-emergence squat)", async () => {
+    const soul = 'victim-a1';
+    await expect(
+      handleDaemonLifecycleTool('holo_create_daemon', {
+        ownerId: STRANGER,
+        daemonId: `daemon-${soul}`,
+      })
+    ).rejects.toThrow(/reserved for soul/);
+    // The soul's observations still accumulate for the soul, not for a squatter.
+    const obs = (await handleDaemonLifecycleTool('holo_observe_soul', {
+      ownerId: soul,
+      contextDelta: { updatedPreferences: { secret: 'mine' }, significanceScore: 0.9 },
+    })) as { routedTo: string };
+    expect(obs.routedTo).toBe('soul-accumulator');
+    // The soul itself may claim its own emergent id.
+    const own = (await handleDaemonLifecycleTool('holo_create_daemon', {
+      ownerId: soul,
+      daemonId: `daemon-${soul}`,
+    })) as { daemon: ConversationDaemon };
+    expect(own.daemon.ownerId).toBe(soul);
+  });
+
+  it('an emerged daimōn cannot be re-created by anyone (post-emergence hijack)', async () => {
+    const soul = 'victim-a2';
+    for (const delta of knowingDeltas()) {
+      await handleDaemonLifecycleTool('holo_observe_soul', { ownerId: soul, contextDelta: delta });
+    }
+    await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId: soul,
+      callerId: soul,
+    });
+    for (const ownerId of [STRANGER, soul]) {
+      await expect(
+        handleDaemonLifecycleTool('holo_create_daemon', { ownerId, daemonId: `daemon-${soul}` })
+      ).rejects.toThrow(/already exists/);
+    }
+    // The owner still reads their own memory afterwards.
+    const got = (await handleDaemonLifecycleTool('holo_get_daemon', {
+      daemonId: `daemon-${soul}`,
+      includeRehydrationContext: true,
+      callerId: soul,
+    })) as { daemon: ConversationDaemon; rehydrationContext?: RehydratedContext };
+    expect(got.daemon.ownerId).toBe(soul);
+    expect(got.rehydrationContext?.aggregatedPreferences).toMatchObject({ theme: 'dark' });
+  });
+
+  it('a stranger cannot name the daimōn at emergence (the name persists to the corpus)', async () => {
+    const soul = 'victim-c';
+    for (const delta of knowingDeltas()) {
+      await handleDaemonLifecycleTool('holo_observe_soul', { ownerId: soul, contextDelta: delta });
+    }
+    const r = (await handleDaemonLifecycleTool('holo_daemon_emergence_check', {
+      ownerId: soul,
+      callerId: STRANGER,
+      displayName: 'NamedByStranger',
+    })) as { emerged: boolean; daemon?: ConversationDaemon };
+    expect(r.emerged).toBe(true);
+    expect(r.daemon?.displayName).toBe('Lumi');
+    expect(readFileSync(_corpusPathForTest(), 'utf8')).not.toContain('NamedByStranger');
+  });
+});
+
+describe('callerId is bound to the transport principal when one is present', () => {
+  const OWNER = 'bound-owner';
+  const DAEMON = 'bound-daemon';
+  const REMEMBERED = { secret: 'bound memory' };
+
+  async function ensureDaemon(): Promise<void> {
+    const plain = (await handleDaemonLifecycleTool('holo_get_daemon', { daemonId: DAEMON })) as {
+      daemon: ConversationDaemon | null;
+    };
+    if (plain.daemon) return;
+    await handleDaemonLifecycleTool('holo_create_daemon', { ownerId: OWNER, daemonId: DAEMON });
+    receiveContextDelta(DAEMON, {
+      ...makeEmptyContextDelta(),
+      significanceScore: 0.9,
+      updatedPreferences: { ...REMEMBERED },
+    });
+  }
+  const readMemory = (args: Record<string, unknown>, binding?: unknown) =>
+    handleDaemonLifecycleTool(
+      'holo_get_daemon',
+      { daemonId: DAEMON, includeRehydrationContext: true, ...args },
+      binding as Parameters<typeof handleDaemonLifecycleTool>[2]
+    ) as Promise<{ rehydrationContext?: RehydratedContext }>;
+
+  it('an authenticated principal claiming another callerId is refused on every bound tool', async () => {
+    await ensureDaemon();
+    const asStranger = { signer: 'stranger-7' };
+    await expect(readMemory({ callerId: OWNER }, asStranger)).rejects.toThrow(
+      /not bound to the authenticated principal/
+    );
+    await expect(
+      handleDaemonLifecycleTool(
+        'holo_list_daemons',
+        { ownerId: OWNER, includeStats: true, callerId: OWNER },
+        asStranger
+      )
+    ).rejects.toThrow(/not bound to the authenticated principal/);
+    await expect(
+      handleDaemonLifecycleTool(
+        'holo_daemon_emergence_check',
+        { ownerId: OWNER, callerId: OWNER },
+        asStranger
+      )
+    ).rejects.toThrow(/not bound to the authenticated principal/);
+    await expect(
+      handleDaemonLifecycleTool(
+        'holo_daemon_turn',
+        { daemonId: DAEMON, callerId: OWNER, contextDelta: { significanceScore: 0.9 } },
+        asStranger
+      )
+    ).rejects.toThrow(/not bound to the authenticated principal/);
+  });
+
+  it('the principal itself passes, with or without typing callerId', async () => {
+    await ensureDaemon();
+    const typed = await readMemory({ callerId: OWNER }, { signer: OWNER });
+    expect(typed.rehydrationContext?.aggregatedPreferences).toMatchObject(REMEMBERED);
+    const implied = await readMemory({}, { signer: OWNER });
+    expect(implied.rehydrationContext?.aggregatedPreferences).toMatchObject(REMEMBERED);
+  });
+
+  it('a wallet signer passes only through the signer-to-caller mapping', async () => {
+    await ensureDaemon();
+    const wallet = '0x00000000000000000000000000000000000000ab';
+    const mapped = await readMemory(
+      { callerId: OWNER },
+      { signer: wallet, signerMapsToCaller: (s: string, c: string) => s === wallet && c === OWNER }
+    );
+    expect(mapped.rehydrationContext?.aggregatedPreferences).toMatchObject(REMEMBERED);
+    await expect(
+      readMemory({ callerId: OWNER }, { signer: wallet, signerMapsToCaller: () => false })
+    ).rejects.toThrow(/not bound to the authenticated principal/);
+    await expect(readMemory({ callerId: OWNER }, { signer: wallet })).rejects.toThrow(
+      /not bound to the authenticated principal/
+    );
+  });
+
+  it('without a verified principal (stdio, unsigned, stdio-local bridge) callerId stays self-declared', async () => {
+    await ensureDaemon();
+    for (const binding of [
+      undefined,
+      null,
+      { signer: null },
+      { signer: '' },
+      { signer: 'stdio-local' },
+    ]) {
+      const got = await readMemory({ callerId: OWNER }, binding);
+      expect(got.rehydrationContext?.aggregatedPreferences).toMatchObject(REMEMBERED);
+    }
   });
 });
 

@@ -25,13 +25,7 @@ import type { TraitHandler } from './TraitTypes';
 
 type PublishStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'unpublished';
 type TraitCategory =
-  | 'interaction'
-  | 'visual'
-  | 'audio'
-  | 'physics'
-  | 'ai'
-  | 'networking'
-  | 'utility';
+  'interaction' | 'visual' | 'audio' | 'physics' | 'ai' | 'networking' | 'utility';
 type PricingModel = 'free' | 'one_time' | 'subscription' | 'pay_what_you_want';
 
 interface TraitPackage {

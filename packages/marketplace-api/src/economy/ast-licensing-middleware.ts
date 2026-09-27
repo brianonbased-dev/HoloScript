@@ -58,8 +58,7 @@ type PathToRegexpFunction = (
 type PathToRegexpModule = {
   (...args: unknown[]): RegExp;
   default?:
-    | PathToRegexpFunction
-    | { match?: PathToRegexpMatch; pathToRegexp?: PathToRegexpFunction };
+    PathToRegexpFunction | { match?: PathToRegexpMatch; pathToRegexp?: PathToRegexpFunction };
   match?: PathToRegexpMatch;
   pathToRegexp?: PathToRegexpFunction;
 };

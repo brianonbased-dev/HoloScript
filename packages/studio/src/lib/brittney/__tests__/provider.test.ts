@@ -1,16 +1,17 @@
 /**
  * Brittney provider resolution tests — D.025 Phase 3
  *
- * Pins the BRITTNEY_PROVIDER env gate behavior (native-default, BYOK fallback —
- * founder directive 2026-06-05):
+ * Pins the BRITTNEY_PROVIDER env gate behavior (native-default, gated BYOK —
+ * founder directive 2026-06-05, native-inference audit 2026-09-24):
  *   - explicit anthropic → AnthropicAdapter with correct model/maxTokens
  *   - explicit ollama → LocalLLMAdapter with Ollama host
- *   - auto-detect order: cloud (sovereign) → ollama (sovereign) → anthropic (BYOK)
- *   - auto-detect: only ANTHROPIC_API_KEY present → anthropic (BYOK fallback)
+ *   - auto-detect order: cloud (hosted bridge) → ollama (sovereign local) → anthropic (gated)
+ *   - auto-detect: only ANTHROPIC_API_KEY present → refuse unless HOLO_ALLOW_FRONTIER_FALLBACK=1
  *   - neither configured → clear error
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { FrontierFallbackRefusedError } from '@holoscript/llm-provider';
 import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '../provider';
 
 describe('resolveBrittneyProvider', () => {
@@ -25,6 +26,7 @@ describe('resolveBrittneyProvider', () => {
     delete process.env.OLLAMA_HOST;
     delete process.env.OLLAMA_BASE_URL;
     delete process.env.BRITTNEY_SERVICE_URL;
+    delete process.env.HOLO_ALLOW_FRONTIER_FALLBACK;
   });
 
   afterEach(() => {
@@ -75,10 +77,32 @@ describe('resolveBrittneyProvider', () => {
     expect(result.providerName).toBe('ollama');
   });
 
-  it('auto-detects anthropic when ANTHROPIC_API_KEY present', () => {
+  it('refuses auto anthropic unless HOLO_ALLOW_FRONTIER_FALLBACK is exactly 1', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-auto-detect';
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveBrittneyProvider()).toThrow(FrontierFallbackRefusedError);
+    expect(() => resolveBrittneyProvider()).toThrow(/resolveBrittneyProvider/);
+    expect(() => resolveBrittneyProvider()).toThrow(/"anthropic"/);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('FRONTIER FALLBACK REFUSED'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('frontier provider "anthropic"'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('resolveBrittneyProvider'));
+
+    warn.mockClear();
+    process.env.HOLO_ALLOW_FRONTIER_FALLBACK = 'true';
+    expect(() => resolveBrittneyProvider()).toThrow(FrontierFallbackRefusedError);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('FRONTIER FALLBACK REFUSED'));
+  });
+
+  it('auto-detects anthropic only when HOLO_ALLOW_FRONTIER_FALLBACK=1', () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-auto-detect';
+    process.env.HOLO_ALLOW_FRONTIER_FALLBACK = '1';
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const result = resolveBrittneyProvider();
     expect(result.providerName).toBe('anthropic');
+    expect(result.frontierFallback).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('FRONTIER FALLBACK ACTIVE'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('frontier provider "anthropic"'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('resolveBrittneyProvider'));
   });
 
   it('auto-detects ollama when only OLLAMA_HOST present', () => {
@@ -104,14 +128,14 @@ describe('resolveBrittneyProvider', () => {
     expect(result.providerName).toBe('ollama');
   });
 
-  it('prefers cloud (sovereign serving) over anthropic (BYOK) when both configured (auto-detect)', () => {
+  it('prefers cloud (hosted bridge, not sovereign) over anthropic when both configured (auto-detect)', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test';
     process.env.BRITTNEY_SERVICE_URL = 'https://brittney.holoscript.net';
     const result = resolveBrittneyProvider();
     expect(result.providerName).toBe('cloud');
   });
 
-  it('prefers cloud over ollama when both sovereign backends configured (auto-detect)', () => {
+  it('prefers cloud (hosted bridge) over ollama (sovereign local) when both configured (auto-detect)', () => {
     process.env.BRITTNEY_SERVICE_URL = 'https://brittney.holoscript.net';
     process.env.OLLAMA_HOST = 'http://host.docker.internal:11434';
     const result = resolveBrittneyProvider();
@@ -146,6 +170,7 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
       'OLLAMA_HOST',
       'OLLAMA_BASE_URL',
       'BRITTNEY_SERVICE_URL',
+      'HOLO_ALLOW_FRONTIER_FALLBACK',
       'BRITTNEY_FLEET_MODEL',
       'FLEET_INFERENCE_KEY',
       'BRITTNEY_FLEET_ORCH_URL',
@@ -206,9 +231,20 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     expect(result.providerName).toBe('fleet');
   });
 
-  it('delegates to sync resolution when fleet not configured', async () => {
+  it('delegates to sync resolution and refuses a silent anthropic fallback', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test';
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(resolveBrittneyProviderAsync()).rejects.toBeInstanceOf(FrontierFallbackRefusedError);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('FRONTIER FALLBACK REFUSED'));
+  });
+
+  it('delegates to sync resolution and uses anthropic when HOLO_ALLOW_FRONTIER_FALLBACK=1', async () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-test';
+    process.env.HOLO_ALLOW_FRONTIER_FALLBACK = '1';
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const result = await resolveBrittneyProviderAsync();
     expect(result.providerName).toBe('anthropic');
+    expect(result.frontierFallback).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('FRONTIER FALLBACK ACTIVE'));
   });
 });

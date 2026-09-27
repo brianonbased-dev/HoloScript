@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveDaemonModel,
-  shouldReclaimDaemonLock,
-  isPidAlive,
-} from '../daemon-model-and-lock';
+import { resolveDaemonModel, shouldReclaimDaemonLock, isPidAlive } from '../daemon-model-and-lock';
 
 describe('resolveDaemonModel', () => {
   it('keeps an explicit --model and does not rewrite it to the provider default', () => {

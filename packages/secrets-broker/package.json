@@ -33,7 +33,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check:repository-identity-native": "pnpm run build && node ./scripts/check-repository-identity-native.mjs",
-    "prepack": "pnpm run check:repository-identity-native"
+    "prepack": "pnpm run check:repository-identity-native",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",
@@ -82,7 +83,11 @@
       "nativeCanonicalAuthorityState": {
         "scope": "source-authored-bounded-ascii-authority-state-canonical-json",
         "authorityMaxBytes": 24,
-        "states": [0, 1, 2],
+        "states": [
+          0,
+          1,
+          2
+        ],
         "verifiedCases": 4,
         "verifiedExecutables": 128,
         "verifiedDigestBytes": 32

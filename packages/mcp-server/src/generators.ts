@@ -887,13 +887,7 @@ export interface WorldAssetGraphEdge {
   from: string;
   to: string;
   relationship:
-    | 'supports'
-    | 'blocks'
-    | 'leads_to'
-    | 'occludes'
-    | 'completes'
-    | 'anchors'
-    | 'observes';
+    'supports' | 'blocks' | 'leads_to' | 'occludes' | 'completes' | 'anchors' | 'observes';
   confidence: number;
 }
 

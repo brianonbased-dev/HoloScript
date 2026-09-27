@@ -12,14 +12,7 @@
 // =============================================================================
 
 export type PropertyType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'color'
-  | 'vector3'
-  | 'enum'
-  | 'asset'
-  | 'object';
+  'string' | 'number' | 'boolean' | 'color' | 'vector3' | 'enum' | 'asset' | 'object';
 
 export interface PropertyDescriptor {
   key: string;

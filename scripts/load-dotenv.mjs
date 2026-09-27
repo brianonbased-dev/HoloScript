@@ -120,6 +120,11 @@ export function loadDotenv(options = {}) {
   // Closes the shadow for already-running daemon processes (W.088/W.094/W.129).
   const scrubbed = scrubShadowedEnv();
 
+  // Merge every listed file. First file still wins for ordinary keys
+  // (`if (!process.env[key])`); HOLOMESH_* refresh keys are overwritten
+  // from later files too. Returning after the first file left HoloKey
+  // off whenever HoloScript/.env existed without SECRETS_VAULT_KEK_*.
+  let loadedFrom = null;
   for (const envPath of [...new Set(paths)]) {
     try {
       if (!existsSync(envPath)) continue;
@@ -133,10 +138,10 @@ export function loadDotenv(options = {}) {
         // Force-refresh mesh runtime keys so stale daemon env never wins (W.129)
         if (!process.env[key] || MESH_RUNTIME_REFRESH_KEYS.has(key)) process.env[key] = value;
       }
-      return { loadedFrom: envPath, scrubbed, usingFallback: _usingFallback };
+      if (!loadedFrom) loadedFrom = envPath;
     } catch {
       /* try next path */
     }
   }
-  return { loadedFrom: null, scrubbed, usingFallback: _usingFallback };
+  return { loadedFrom, scrubbed, usingFallback: _usingFallback };
 }

@@ -1,15 +1,8 @@
 export type AtiAttackId =
-  | 'whitewasher'
-  | 'sybil'
-  | 'score-manipulator'
-  | 'slow-poisoner'
-  | 'eclipse';
+  'whitewasher' | 'sybil' | 'score-manipulator' | 'slow-poisoner' | 'eclipse';
 
 export type TrustDefenseId =
-  | 'exponential-decay'
-  | 'cross-mesh-anchoring'
-  | 'output-diversity'
-  | 'canary-probing';
+  'exponential-decay' | 'cross-mesh-anchoring' | 'output-diversity' | 'canary-probing';
 
 export interface TrustDefenseObservation {
   attack?: AtiAttackId;

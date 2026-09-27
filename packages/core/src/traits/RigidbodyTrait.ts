@@ -32,10 +32,7 @@ export type BodyType = 'dynamic' | 'kinematic' | 'static';
  * Collision detection mode
  */
 export type CollisionDetectionMode =
-  | 'discrete'
-  | 'continuous'
-  | 'continuous-dynamic'
-  | 'continuous-speculative';
+  'discrete' | 'continuous' | 'continuous-dynamic' | 'continuous-speculative';
 
 /**
  * Interpolation mode for smooth rendering

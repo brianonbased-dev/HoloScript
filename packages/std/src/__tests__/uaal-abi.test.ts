@@ -133,13 +133,7 @@ describe('HoloScript std UAAL EXEC ABI', () => {
       ['i32', 'i32', 'i32'],
     ]);
     proxy.push(2);
-    handler?.(proxy, [
-      HOLOSCRIPT_AGGREGATE_VALUE_ABI,
-      'project_index',
-      layout,
-      fields,
-      'i32',
-    ]);
+    handler?.(proxy, [HOLOSCRIPT_AGGREGATE_VALUE_ABI, 'project_index', layout, fields, 'i32']);
     expect(proxy.pop()).toBe(6);
   });
 
@@ -172,13 +166,7 @@ describe('HoloScript std UAAL EXEC ABI', () => {
     construct();
     proxy.push(3);
     expect(() =>
-      handler?.(proxy, [
-        HOLOSCRIPT_AGGREGATE_VALUE_ABI,
-        'project_index',
-        layout,
-        fields,
-        'i32',
-      ])
+      handler?.(proxy, [HOLOSCRIPT_AGGREGATE_VALUE_ABI, 'project_index', layout, fields, 'i32'])
     ).toThrow('index 3 is out of bounds');
 
     proxy.push(5);

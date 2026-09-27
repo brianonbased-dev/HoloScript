@@ -26,13 +26,7 @@ export interface GasOptimization {
   id: string;
   severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
   category:
-    | 'storage'
-    | 'arithmetic'
-    | 'loops'
-    | 'errors'
-    | 'memory'
-    | 'external-calls'
-    | 'visibility';
+    'storage' | 'arithmetic' | 'loops' | 'errors' | 'memory' | 'external-calls' | 'visibility';
   location: CodeLocation;
   issue: string;
   suggestion: string;

@@ -70,8 +70,7 @@ function markScenePostFX(
 
   const existing =
     (root.userData['holoPostFX'] as
-      | Array<{ effect: string; config: Record<string, unknown> }>
-      | undefined) ?? [];
+      Array<{ effect: string; config: Record<string, unknown> }> | undefined) ?? [];
   // Deduplicate: one entry per effect type
   const filtered = existing.filter((e) => e.effect !== effect);
   root.userData['holoPostFX'] = [...filtered, { effect, config }];

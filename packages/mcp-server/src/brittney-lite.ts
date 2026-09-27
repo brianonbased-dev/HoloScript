@@ -177,8 +177,7 @@ export async function handleBrittneyLiteTool(
 async function handleExplainError(args: Record<string, unknown>) {
   const code = args.code as string;
   const providedErrors = args.errors as
-    | Array<{ message: string; line?: number; column?: number }>
-    | undefined;
+    Array<{ message: string; line?: number; column?: number }> | undefined;
 
   // Parse to find errors if not provided
   let errors = providedErrors || [];

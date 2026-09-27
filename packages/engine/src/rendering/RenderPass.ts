@@ -12,12 +12,7 @@
 // =============================================================================
 
 export type AttachmentFormat =
-  | 'rgba8'
-  | 'rgba16f'
-  | 'rgba32f'
-  | 'depth24'
-  | 'depth32f'
-  | 'stencil8';
+  'rgba8' | 'rgba16f' | 'rgba32f' | 'depth24' | 'depth32f' | 'stencil8';
 export type ClearOp = 'clear' | 'load' | 'discard';
 
 export interface FramebufferAttachment {

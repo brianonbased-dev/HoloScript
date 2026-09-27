@@ -2,13 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type ContractType =
-  | 'nda'
-  | 'employment'
-  | 'service'
-  | 'license'
-  | 'lease'
-  | 'partnership'
-  | 'sale';
+  'nda' | 'employment' | 'service' | 'license' | 'lease' | 'partnership' | 'sale';
 export interface Clause {
   id: string;
   title: string;

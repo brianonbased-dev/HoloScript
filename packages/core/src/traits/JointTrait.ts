@@ -20,13 +20,7 @@ import type { Vector3 } from '../types';
  */
 
 export type JointType =
-  | 'fixed'
-  | 'hinge'
-  | 'ball'
-  | 'slider'
-  | 'spring'
-  | 'distance'
-  | 'configurable';
+  'fixed' | 'hinge' | 'ball' | 'slider' | 'spring' | 'distance' | 'configurable';
 
 /**
  * 3D Vector

@@ -27,12 +27,12 @@ unexplained residual.
 
 `energy-ledger.hs` returns:
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Invalid measurement boundary |
-| `1` | Output is accounted for within uncertainty |
-| `2` | Unexplained anomaly; improve the experiment and reproduce |
-| `3` | Replicated candidate ready for independent investigation |
+| Code | Meaning                                                   |
+| ---- | --------------------------------------------------------- |
+| `0`  | Invalid measurement boundary                              |
+| `1`  | Output is accounted for within uncertainty                |
+| `2`  | Unexplained anomaly; improve the experiment and reproduce |
+| `3`  | Replicated candidate ready for independent investigation  |
 
 Code `3` is deliberately not named “verified free energy.” The logic receipt
 proves that HoloScript reproduced the classification from the recorded inputs;

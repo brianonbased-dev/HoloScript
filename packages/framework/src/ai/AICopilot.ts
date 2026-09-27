@@ -291,7 +291,9 @@ export class AICopilot {
     this.addMessage('user', message);
 
     try {
-      const chatHistory = this.history.map((m) => ({
+      // adapter.chat appends `message` onto history. The newest user turn is
+      // already the tail of this.history, so send only the prior turns.
+      const chatHistory = this.history.slice(0, -1).map((m) => ({
         role: m.role,
         content: m.content,
       }));

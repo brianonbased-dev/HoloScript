@@ -2,22 +2,9 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type PermitType =
-  | 'building'
-  | 'business'
-  | 'event'
-  | 'demolition'
-  | 'electrical'
-  | 'plumbing'
-  | 'sign'
-  | 'zoning';
+  'building' | 'business' | 'event' | 'demolition' | 'electrical' | 'plumbing' | 'sign' | 'zoning';
 export type PermitStatus =
-  | 'submitted'
-  | 'under_review'
-  | 'approved'
-  | 'denied'
-  | 'expired'
-  | 'revoked'
-  | 'withdrawn';
+  'submitted' | 'under_review' | 'approved' | 'denied' | 'expired' | 'revoked' | 'withdrawn';
 
 export interface PermitConfig {
   permitType: PermitType;

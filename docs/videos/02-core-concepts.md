@@ -113,13 +113,14 @@ orb "Ball" {
 ```
 
 Trait categories:
-| Category | Examples |
-|---|---|
-| Physics | `@physics`, `@collidable`, `@static` |
-| Interaction | `@grabbable`, `@clickable`, `@hoverable` |
-| Multiplayer | `@synced`, `@networked`, `@replicated` |
-| Accessibility | `@accessible`, `@alt_text`, `@haptic` |
-| Visual | `@shadow`, `@highlight`, `@outline` |
+
+| Category      | Examples                                 |
+| ------------- | ---------------------------------------- |
+| Physics       | `@physics`, `@collidable`, `@static`     |
+| Interaction   | `@grabbable`, `@clickable`, `@hoverable` |
+| Multiplayer   | `@synced`, `@networked`, `@replicated`   |
+| Accessibility | `@accessible`, `@alt_text`, `@haptic`    |
+| Visual        | `@shadow`, `@highlight`, `@outline`      |
 
 > "Traits also enforce rules on each other. If you add @physics
 > without @collidable, the type checker tells you."

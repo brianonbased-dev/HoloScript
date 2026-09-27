@@ -39,12 +39,7 @@ export interface EmbeddingProvider {
 // =============================================================================
 
 export type EmbeddingProviderName =
-  | 'xenova'
-  | 'openai'
-  | 'ollama'
-  | 'structural'
-  | 'holoembed'
-  | 'holodistill-m1a-student';
+  'xenova' | 'openai' | 'ollama' | 'structural' | 'holoembed' | 'holodistill-m1a-student';
 
 export type HoloDistillEncoder = (payload: {
   studentPath: string;

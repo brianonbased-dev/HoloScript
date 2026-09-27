@@ -163,7 +163,11 @@ export function createServiceSecretResolver(
         const fallbackRef = tryNormalizeServiceSecretRef(fallback);
         if (!fallbackRef) return undefined;
         if (v) {
-          const viaVault = await resolveVaultValue({ vault: v, serviceIdentity, normalized: fallbackRef });
+          const viaVault = await resolveVaultValue({
+            vault: v,
+            serviceIdentity,
+            normalized: fallbackRef,
+          });
           if (viaVault !== undefined) return viaVault;
         }
         // The ref pointed at the vault and the vault could not answer — the bridge is

@@ -60,9 +60,36 @@ function dagger(a: Mat): Mat {
 }
 
 const s = Math.SQRT1_2;
-const H2: Mat = [[[s, 0], [s, 0]], [[s, 0], [-s, 0]]];
-const S2: Mat = [[[1, 0], [0, 0]], [[0, 0], [0, 1]]];
-const SDG2: Mat = [[[1, 0], [0, 0]], [[0, 0], [0, -1]]];
+const H2: Mat = [
+  [
+    [s, 0],
+    [s, 0],
+  ],
+  [
+    [s, 0],
+    [-s, 0],
+  ],
+];
+const S2: Mat = [
+  [
+    [1, 0],
+    [0, 0],
+  ],
+  [
+    [0, 0],
+    [0, 1],
+  ],
+];
+const SDG2: Mat = [
+  [
+    [1, 0],
+    [0, 0],
+  ],
+  [
+    [0, 0],
+    [0, -1],
+  ],
+];
 
 /**
  * Embed a gate into n-qubit space.
@@ -71,7 +98,9 @@ const SDG2: Mat = [[[1, 0], [0, 0]], [[0, 0], [0, -1]]];
  */
 function gateMatrix(g: CliffordGate, n: number): Mat {
   const dim = 1 << n;
-  const out: Mat = Array.from({ length: dim }, () => Array.from({ length: dim }, () => [0, 0] as C));
+  const out: Mat = Array.from({ length: dim }, () =>
+    Array.from({ length: dim }, () => [0, 0] as C)
+  );
   if (g.gate === 'cx' || g.gate === 'cz') {
     const [c, t] = [g.qubits[0]!, g.qubits[1]!];
     for (let b = 0; b < dim; b++) {
@@ -80,7 +109,7 @@ function gateMatrix(g: CliffordGate, n: number): Mat {
         const b2 = cbit ? b ^ (1 << t) : b;
         out[b2]![b] = [1, 0];
       } else {
-        const sign = cbit && ((b >> t) & 1) ? -1 : 1;
+        const sign = cbit && (b >> t) & 1 ? -1 : 1;
         out[b]![b] = [sign, 0];
       }
     }
@@ -104,19 +133,35 @@ function gateMatrix(g: CliffordGate, n: number): Mat {
 function pauliMatrix(pauli: string): Mat {
   const n = pauli.length;
   const dim = 1 << n;
-  let xMask = 0, zMask = 0, yCount = 0;
+  let xMask = 0,
+    zMask = 0,
+    yCount = 0;
   for (let q = 0; q < n; q++) {
     const ch = pauli[q]!;
     if (ch === 'X') xMask |= 1 << q;
-    else if (ch === 'Y') { xMask |= 1 << q; zMask |= 1 << q; yCount++; }
-    else if (ch === 'Z') zMask |= 1 << q;
+    else if (ch === 'Y') {
+      xMask |= 1 << q;
+      zMask |= 1 << q;
+      yCount++;
+    } else if (ch === 'Z') zMask |= 1 << q;
     else if (ch !== 'I') throw new Error(`bad pauli ${pauli}`);
   }
-  const phase: C = [[1, 0], [0, 1], [-1, 0], [0, -1]][yCount % 4]! as C;
-  const out: Mat = Array.from({ length: dim }, () => Array.from({ length: dim }, () => [0, 0] as C));
+  const phase: C = [
+    [1, 0],
+    [0, 1],
+    [-1, 0],
+    [0, -1],
+  ][yCount % 4]! as C;
+  const out: Mat = Array.from({ length: dim }, () =>
+    Array.from({ length: dim }, () => [0, 0] as C)
+  );
   for (let b = 0; b < dim; b++) {
     let par = b & zMask;
-    par ^= par >> 16; par ^= par >> 8; par ^= par >> 4; par ^= par >> 2; par ^= par >> 1;
+    par ^= par >> 16;
+    par ^= par >> 8;
+    par ^= par >> 4;
+    par ^= par >> 2;
+    par ^= par >> 1;
     const sgn = par & 1 ? -1 : 1;
     out[b ^ xMask]![b] = [phase[0] * sgn, phase[1] * sgn];
   }
@@ -134,10 +179,11 @@ function circuitMatrix(circ: DiagonalizationCircuit): Mat {
 }
 
 function matricesAgree(a: Mat, b: Mat, tol = 1e-10): boolean {
-  for (let i = 0; i < a.length; i++) for (let j = 0; j < a.length; j++) {
-    if (Math.abs(a[i]![j]![0] - b[i]![j]![0]) > tol) return false;
-    if (Math.abs(a[i]![j]![1] - b[i]![j]![1]) > tol) return false;
-  }
+  for (let i = 0; i < a.length; i++)
+    for (let j = 0; j < a.length; j++) {
+      if (Math.abs(a[i]![j]![0] - b[i]![j]![0]) > tol) return false;
+      if (Math.abs(a[i]![j]![1] - b[i]![j]![1]) > tol) return false;
+    }
   return true;
 }
 
@@ -174,23 +220,30 @@ class StateVector {
     let state = seed >>> 0;
     const rnd = () => {
       // xorshift32 — deterministic test states
-      state ^= state << 13; state >>>= 0;
+      state ^= state << 13;
+      state >>>= 0;
       state ^= state >> 17;
-      state ^= state << 5; state >>>= 0;
+      state ^= state << 5;
+      state >>>= 0;
       return state / 0xffffffff - 0.5;
     };
     let norm = 0;
     for (let i = 0; i < sv.re.length; i++) {
-      sv.re[i] = rnd(); sv.im[i] = rnd();
+      sv.re[i] = rnd();
+      sv.im[i] = rnd();
       norm += sv.re[i]! ** 2 + sv.im[i]! ** 2;
     }
     norm = Math.sqrt(norm);
-    for (let i = 0; i < sv.re.length; i++) { sv.re[i]! /= norm; sv.im[i]! /= norm; }
+    for (let i = 0; i < sv.re.length; i++) {
+      sv.re[i]! /= norm;
+      sv.im[i]! /= norm;
+    }
     return sv;
   }
   clone(): StateVector {
     const c = new StateVector(this.n);
-    c.re.set(this.re); c.im.set(this.im);
+    c.re.set(this.re);
+    c.im.set(this.im);
     return c;
   }
   applyGate(g: CliffordGate): void {
@@ -200,43 +253,64 @@ class StateVector {
       for (let b = 0; b < re.length; b++) {
         if (b & q) continue;
         const b1 = b | q;
-        const r0 = re[b]!, i0 = im[b]!, r1 = re[b1]!, i1 = im[b1]!;
-        re[b] = s * (r0 + r1); im[b] = s * (i0 + i1);
-        re[b1] = s * (r0 - r1); im[b1] = s * (i0 - i1);
+        const r0 = re[b]!,
+          i0 = im[b]!,
+          r1 = re[b1]!,
+          i1 = im[b1]!;
+        re[b] = s * (r0 + r1);
+        im[b] = s * (i0 + i1);
+        re[b1] = s * (r0 - r1);
+        im[b1] = s * (i0 - i1);
       }
     } else if (g.gate === 's' || g.gate === 'sdg') {
       const q = 1 << g.qubits[0]!;
       const sgn = g.gate === 's' ? 1 : -1; // |1⟩ → ±i|1⟩
       for (let b = 0; b < re.length; b++) {
         if (!(b & q)) continue;
-        const r = re[b]!, i = im[b]!;
-        re[b] = -sgn * i; im[b] = sgn * r;
+        const r = re[b]!,
+          i = im[b]!;
+        re[b] = -sgn * i;
+        im[b] = sgn * r;
       }
     } else if (g.gate === 'cx') {
-      const c = 1 << g.qubits[0]!, t = 1 << g.qubits[1]!;
+      const c = 1 << g.qubits[0]!,
+        t = 1 << g.qubits[1]!;
       for (let b = 0; b < re.length; b++) {
-        if ((b & c) && !(b & t)) {
+        if (b & c && !(b & t)) {
           const b1 = b | t;
-          const r = re[b]!, i = im[b]!;
-          re[b] = re[b1]!; im[b] = im[b1]!;
-          re[b1] = r; im[b1] = i;
+          const r = re[b]!,
+            i = im[b]!;
+          re[b] = re[b1]!;
+          im[b] = im[b1]!;
+          re[b1] = r;
+          im[b1] = i;
         }
       }
-    } else { // cz
-      const c = 1 << g.qubits[0]!, t = 1 << g.qubits[1]!;
+    } else {
+      // cz
+      const c = 1 << g.qubits[0]!,
+        t = 1 << g.qubits[1]!;
       for (let b = 0; b < re.length; b++) {
-        if ((b & c) && (b & t)) { re[b] = -re[b]!; im[b] = -im[b]!; }
+        if (b & c && b & t) {
+          re[b] = -re[b]!;
+          im[b] = -im[b]!;
+        }
       }
     }
   }
   /** ⟨this| P |this⟩ for a Pauli string (real for Hermitian P; return re). */
   pauliExpectation(pauli: string): number {
-    let xMask = 0, zMask = 0, yCount = 0;
+    let xMask = 0,
+      zMask = 0,
+      yCount = 0;
     for (let q = 0; q < pauli.length; q++) {
       const ch = pauli[q]!;
       if (ch === 'X') xMask |= 1 << q;
-      else if (ch === 'Y') { xMask |= 1 << q; zMask |= 1 << q; yCount++; }
-      else if (ch === 'Z') zMask |= 1 << q;
+      else if (ch === 'Y') {
+        xMask |= 1 << q;
+        zMask |= 1 << q;
+        yCount++;
+      } else if (ch === 'Z') zMask |= 1 << q;
     }
     // P|b⟩ = i^{yCount} · (−1)^{popcount(b & zMask)} · |b ⊕ xMask⟩
     const phaseRe = [1, 0, -1, 0][yCount % 4]!;
@@ -245,7 +319,11 @@ class StateVector {
     for (let b = 0; b < this.re.length; b++) {
       const b2 = b ^ xMask;
       let par = b & zMask;
-      par ^= par >> 16; par ^= par >> 8; par ^= par >> 4; par ^= par >> 2; par ^= par >> 1;
+      par ^= par >> 16;
+      par ^= par >> 8;
+      par ^= par >> 4;
+      par ^= par >> 2;
+      par ^= par >> 1;
       const sgn = par & 1 ? -1 : 1;
       // amp2 = phase · sgn · ψ[b]  lands on basis state b2 → ⟨ψ|P|ψ⟩ += conj(ψ[b2]) · amp2
       const aRe = sgn * (phaseRe * this.re[b]! - phaseIm * this.im[b]!);
@@ -274,9 +352,11 @@ function verifyByStatevector(circ: DiagonalizationCircuit, seeds: number[]): voi
 function randomCommutingSet(n: number, target: number, seedState: { s: number }): string[] {
   const letters = ['I', 'X', 'Y', 'Z'];
   const rnd = () => {
-    seedState.s ^= seedState.s << 13; seedState.s >>>= 0;
+    seedState.s ^= seedState.s << 13;
+    seedState.s >>>= 0;
     seedState.s ^= seedState.s >> 17;
-    seedState.s ^= seedState.s << 5; seedState.s >>>= 0;
+    seedState.s ^= seedState.s << 5;
+    seedState.s >>>= 0;
     return seedState.s;
   };
   const commutes = (a: string, b: string): boolean => {
@@ -333,7 +413,7 @@ describe('diagonalizeCommutingGroup — exact matrix ground truth', () => {
   });
 
   it('property: 30 random commuting sets on 3–4 qubits verify densely', () => {
-    const seed = { s: 0xC0FFEE };
+    const seed = { s: 0xc0ffee };
     for (let trial = 0; trial < 30; trial++) {
       const n = 3 + (trial % 2);
       const set = randomCommutingSet(n, 3 + (trial % 4), seed);
@@ -358,7 +438,11 @@ describe('N2 receipt groups — 12-qubit statevector ground truth', () => {
     readFileSync(join(__dirname, 'fixtures', 'n2-pauli-groups.json'), 'utf8')
   ) as {
     n_qubits: number;
-    groups: Array<{ group: number; qwc_valid: boolean; terms: Array<{ pauli: string; coefficient: number }> }>;
+    groups: Array<{
+      group: number;
+      qwc_valid: boolean;
+      terms: Array<{ pauli: string; coefficient: number }>;
+    }>;
   };
 
   for (const g of fixture.groups) {
@@ -417,7 +501,9 @@ describe('expectationFromCounts', () => {
     const coeffs = [0.5, -1.25, 2];
     const terms = circ.terms.map((t, i) => ({ ...t, coefficient: coeffs[i]! }));
     const direct = circ.terms.reduce(
-      (acc, t, i) => acc + coeffs[i]! * psi.pauliExpectation(t.pauli), 0);
+      (acc, t, i) => acc + coeffs[i]! * psi.pauliExpectation(t.pauli),
+      0
+    );
     expect(expectationFromCounts(terms, counts)).toBeCloseTo(direct, 9);
   });
 });

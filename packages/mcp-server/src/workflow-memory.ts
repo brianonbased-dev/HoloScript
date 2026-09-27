@@ -14,13 +14,7 @@ import * as path from 'node:path';
 import { LoroDoc } from 'loro-crdt';
 
 export type WorkflowMemoryValueType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'object'
-  | 'array'
-  | 'null'
-  | 'any';
+  'string' | 'number' | 'boolean' | 'object' | 'array' | 'null' | 'any';
 
 export interface WorkflowMemoryFieldSchema {
   type: WorkflowMemoryValueType;

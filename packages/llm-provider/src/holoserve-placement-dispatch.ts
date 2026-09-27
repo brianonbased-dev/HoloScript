@@ -794,7 +794,7 @@ function validateExecution(
   if (
     !isRecord(holo) ||
     holo.backend !== 'pytorch-holo' ||
-    holo.sovereign !== true ||
+    !isRecord(holo.sovereignty) || holo.sovereignty.weights !== 'sovereign' ||
     holo.llama_cpp !== false ||
     holo.process_instance_id !== expected.processInstanceId ||
     holo.model_artifact_binding_sha256 !== expected.admission.bindingSha256 ||
@@ -976,11 +976,7 @@ async function defaultCompletionExecutor(
     reportedModel,
     provider: 'local-llm',
     finishReason: (typeof choice.finish_reason === 'string' ? choice.finish_reason : 'stop') as
-      | 'stop'
-      | 'length'
-      | 'tool_use'
-      | 'content_filter'
-      | 'error',
+      'stop' | 'length' | 'tool_use' | 'content_filter' | 'error',
     usage: {
       promptTokens,
       completionTokens,

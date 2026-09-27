@@ -18,14 +18,14 @@ Do not dump the whole MCP catalog.
 
 ## Meal kits
 
-| Rider said | Do this | Do not do this |
-| --- | --- | --- |
-| See something real / cyan orb | House special: one scene, two backends (WebGPU + URDF) | A 400-tool dump |
-| Compile this scene to X | Parse, validate, the **named** compiler | Every `compile_to_*` as a tie |
-| Scan a QR on Quest / walk up to a mark | Quest / HoloQR compile | Repo scan, reconstruct-from-video |
-| Question about **this** repo | Absorb if stale, then ask with citations | Founder-path guesses |
-| Local model | `holollama doctor`, then a dry serve plan | Claim “we trained AGI” |
-| Can I afford this | Check budget first | Paste a token into a command |
+| Rider said                             | Do this                                                | Do not do this                    |
+| -------------------------------------- | ------------------------------------------------------ | --------------------------------- |
+| See something real / cyan orb          | House special: one scene, two backends (WebGPU + URDF) | A 400-tool dump                   |
+| Compile this scene to X                | Parse, validate, the **named** compiler                | Every `compile_to_*` as a tie     |
+| Scan a QR on Quest / walk up to a mark | Quest / HoloQR compile                                 | Repo scan, reconstruct-from-video |
+| Question about **this** repo           | Absorb if stale, then ask with citations               | Founder-path guesses              |
+| Local model                            | `holollama doctor`, then a dry serve plan              | Claim “we trained AGI”            |
+| Can I afford this                      | Check budget first                                     | Paste a token into a command      |
 
 House special source, when the language repo is in hand:
 `examples/quickstart/1-floating-cyan-orb.holo`.

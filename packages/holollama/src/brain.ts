@@ -11,9 +11,7 @@ export type HoloLlamaBrainId =
   | 'netcode'
   | 'quantum-lab';
 export type HoloLlamaBrainConsumerProfileId =
-  | 'jetson-edge'
-  | 'laptop-owned-metal'
-  | 'vast-sovereign-overflow';
+  'jetson-edge' | 'laptop-owned-metal' | 'vast-sovereign-overflow';
 
 export interface HoloLlamaBrainDefinition {
   id: HoloLlamaBrainId;

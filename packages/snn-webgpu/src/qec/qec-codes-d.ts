@@ -153,7 +153,9 @@ export function validateSurfaceCode(code: SurfaceCode): CodeGateReport {
       code.zStabs.every((z) => supportParity(code.xLogical, z) === 0),
     logicalsAnticommute: supportParity(code.zLogical, code.xLogical) === 1,
     logicalQubits:
-      code.n - gf2Rank(stabsToMatrix(code.zStabs, code.n)) - gf2Rank(stabsToMatrix(code.xStabs, code.n)),
+      code.n -
+      gf2Rank(stabsToMatrix(code.zStabs, code.n)) -
+      gf2Rank(stabsToMatrix(code.xStabs, code.n)),
     distance: codeDistanceBounded(code, code.d + 1),
   };
   const ok =
@@ -165,7 +167,9 @@ export function validateSurfaceCode(code: SurfaceCode): CodeGateReport {
     report.logicalQubits === 1 &&
     report.distance === code.d;
   if (!ok) {
-    throw new Error(`generated d=${code.d} layout failed validity gates: ${JSON.stringify(report)}`);
+    throw new Error(
+      `generated d=${code.d} layout failed validity gates: ${JSON.stringify(report)}`
+    );
   }
   return report;
 }
@@ -306,11 +310,7 @@ export function auditSyndromeSpace(
 }
 
 /** Parity of `support` overlap of a ⊕ b — 0 ⇔ a and b are in the same logical coset (given both valid). */
-export function xorSupportParity(
-  a: BitVector,
-  b: BitVector,
-  support: readonly number[]
-): number {
+export function xorSupportParity(a: BitVector, b: BitVector, support: readonly number[]): number {
   return overlapParity(xorVec(a, b), support);
 }
 

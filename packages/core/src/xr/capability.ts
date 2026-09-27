@@ -197,11 +197,7 @@ export const SYNTHETIC_ONLY: Capability = capabilityOf({ transport: 'none' });
  * something — not at the point the work starts. The failure that matters is a
  * claim made about hardware that was never there, and it is made at write time.
  */
-export function requireTier(
-  capability: Capability,
-  required: HeadsetTier,
-  claim: string
-): void {
+export function requireTier(capability: Capability, required: HeadsetTier, claim: string): void {
   if (atLeast(capability.tier, required)) return;
   throw new Error(
     `Cannot claim "${claim}": that needs a ${required} headset and this run was ` +

@@ -290,8 +290,7 @@ export function serializeDualSignatureEnvelope(env: DualSignatureEnvelope): Uint
 
 /** Parser result — discriminated union: either an envelope or a structured error. */
 export type ParseResult =
-  | { ok: true; envelope: DualSignatureEnvelope }
-  | { ok: false; reason: ParseError };
+  { ok: true; envelope: DualSignatureEnvelope } | { ok: false; reason: ParseError };
 
 export type ParseError =
   | 'truncated'

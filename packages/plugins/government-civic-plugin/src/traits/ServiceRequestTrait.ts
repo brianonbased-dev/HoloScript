@@ -13,13 +13,7 @@ export type ServiceCategory =
   | 'noise_complaint'
   | 'other';
 export type RequestStatus =
-  | 'submitted'
-  | 'acknowledged'
-  | 'assigned'
-  | 'in_progress'
-  | 'resolved'
-  | 'closed'
-  | 'duplicate';
+  'submitted' | 'acknowledged' | 'assigned' | 'in_progress' | 'resolved' | 'closed' | 'duplicate';
 export type PriorityLevel = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface ServiceRequestConfig {

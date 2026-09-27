@@ -4,14 +4,14 @@
   "private": true,
   "description": "PAPER 21 SANDBOX ONLY — Adversarial MCP server attack PoCs (Whitewasher, Sybil, Score Manipulator, Slow Poisoner, Eclipse). Refuses to load outside HOLOMESH_ADVERSARIAL_SANDBOX=1.",
   "license": "UNLICENSED",
+  "type": "module",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js"
     }
   },
   "files": [

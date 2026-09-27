@@ -7,11 +7,7 @@ import {
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type VolumetricFormat =
-  | 'point_cloud'
-  | 'voxel'
-  | 'mesh_sequence'
-  | 'depth_map'
-  | 'holographic';
+  'point_cloud' | 'voxel' | 'mesh_sequence' | 'depth_map' | 'holographic';
 export interface VolumetricConfig {
   format: VolumetricFormat;
   resolution: number;

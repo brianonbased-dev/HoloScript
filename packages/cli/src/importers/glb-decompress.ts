@@ -115,10 +115,7 @@ export async function importGltfAsync(inputPath: string): Promise<string> {
  * counterpart to {@link importGltfToFile}, for CLI/library callers that need a file on disk
  * rather than the `.holo` string.
  */
-export async function importGltfToFileAsync(
-  inputPath: string,
-  outputPath: string
-): Promise<void> {
+export async function importGltfToFileAsync(inputPath: string, outputPath: string): Promise<void> {
   const holoCode = await importGltfAsync(inputPath);
 
   const resolvedOutput = path.resolve(outputPath);

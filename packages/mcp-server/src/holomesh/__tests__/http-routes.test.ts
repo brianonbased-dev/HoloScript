@@ -120,6 +120,7 @@ import {
   agentAuditStore,
   appendCaelAuditRecord,
   keyRegistry,
+  paidAccessStore,
   type CaelAuditRecord,
 } from '../state';
 import { MOBILE_PRESENCE_TTL_MS, type Team } from '../types';
@@ -262,6 +263,14 @@ function mockRes(): http.ServerResponse & {
       res._status = status;
       if (headers) Object.assign(res._headers, headers);
     },
+    setHeader(name: string, value: string | number | string[]) {
+      res._headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
+      return res;
+    },
+    getHeader(name: string) {
+      return res._headers[name];
+    },
+    flushHeaders() {},
     end(data?: string) {
       if (data) {
         try {
@@ -2336,7 +2345,10 @@ describe('HoloMesh HTTP Routes', () => {
       const founderRes = mockRes();
       await handleHoloMeshRoute(founderReq, founderRes, `/api/holomesh/team/${tid}/join-status`);
       expect(founderRes._status).toBe(200);
-      expect(founderRes._body.eligibility).toMatchObject({ wouldSucceed: false, reason: 'team-full' });
+      expect(founderRes._body.eligibility).toMatchObject({
+        wouldSucceed: false,
+        reason: 'team-full',
+      });
       expect(founderRes._body.team).toMatchObject({ memberCount: 2, maxSlots: 2, openSlots: 0 });
 
       // A fresh, unattested THIRD agent (owner and member are both real
@@ -2348,7 +2360,11 @@ describe('HoloMesh HTTP Routes', () => {
         authorization: `Bearer ${outsider.apiKey}`,
       });
       const unattestedRes = mockRes();
-      await handleHoloMeshRoute(unattestedReq, unattestedRes, `/api/holomesh/team/${tid}/join-status`);
+      await handleHoloMeshRoute(
+        unattestedReq,
+        unattestedRes,
+        `/api/holomesh/team/${tid}/join-status`
+      );
       expect(unattestedRes._body.eligibility).toMatchObject({
         wouldSucceed: false,
         reason: 'signer-not-attested',
@@ -2535,9 +2551,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(afterRes._body.team.online_count).toBe(1);
 
       // Identity fields must survive the enrichment spread.
-      expect(afterRes._body.team.members[0].agentId).toBe(
-        beforeRes._body.team.members[0].agentId
-      );
+      expect(afterRes._body.team.members[0].agentId).toBe(beforeRes._body.team.members[0].agentId);
       expect(afterRes._body.team.members[0].role).toBe('owner');
     });
 
@@ -2989,11 +3003,7 @@ describe('HoloMesh HTTP Routes', () => {
         authorization: `Bearer ${ownerApiKey}`,
       });
       const buriedRes = mockRes();
-      await handleHoloMeshRoute(
-        buried,
-        buriedRes,
-        `/api/holomesh/team/${tid}/messages?limit=10`
-      );
+      await handleHoloMeshRoute(buried, buriedRes, `/api/holomesh/team/${tid}/messages?limit=10`);
       expect(buriedRes._status).toBe(200);
       expect((buriedRes._body.messages || []).some((m: { id: string }) => m.id === dmId)).toBe(
         false
@@ -3279,6 +3289,231 @@ describe('HoloMesh HTTP Routes', () => {
       expect(getRes._status).toBe(200);
       expect(getRes._body.count).toBe(2);
       expect(getRes._body.entries.map((e: { id: string }) => e.id).sort()).toEqual([...ids].sort());
+    });
+
+    it('GET /api/holomesh/team/:id/knowledge with q does not return the same dump for a hit and a miss', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `q-filter-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const postReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/knowledge`,
+        {
+          entries: [
+            { type: 'gotcha', content: 'junction leak from a shared cwd pin', domain: 'identity' },
+            { type: 'gotcha', content: 'unrelated lease expiry noise', domain: 'ops' },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const postRes = mockRes();
+      await handleHoloMeshRoute(postReq, postRes, `/api/holomesh/team/${tid}/knowledge`);
+      expect(postRes._status).toBe(201);
+      const junctionId = postRes._body.entries[0].id;
+
+      mockClient.queryKnowledge.mockResolvedValue([]);
+      const hitReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/knowledge?q=junction&type=gotcha&limit=25`,
+        undefined,
+        {
+          authorization: `Bearer ${ownerApiKey}`,
+        }
+      );
+      const hitRes = mockRes();
+      await handleHoloMeshRoute(hitReq, hitRes, `/api/holomesh/team/${tid}/knowledge`);
+
+      mockClient.queryKnowledge.mockResolvedValue([]);
+      const missReq = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/knowledge?q=zzzz-nonsense-query-nothing-matches&type=gotcha&limit=25`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const missRes = mockRes();
+      await handleHoloMeshRoute(missReq, missRes, `/api/holomesh/team/${tid}/knowledge`);
+
+      expect(hitRes._status).toBe(200);
+      expect(missRes._status).toBe(200);
+      const hitIds = hitRes._body.entries.map((e: { id: string }) => e.id);
+      const missIds = missRes._body.entries.map((e: { id: string }) => e.id);
+      expect(hitIds).toContain(junctionId);
+      expect(missIds).not.toEqual(hitIds);
+      expect(missIds).toEqual([]);
+    });
+
+    it('GET /api/holomesh/team/:id/knowledge?q= does not leak premium text on the orchestrator-rank fallback', async () => {
+      // The merge of the two HoloScript lanes (2026-09-21) put the `q` relevance
+      // block directly under the premium gate. The gate runs once, on `entries`;
+      // the fallback branch reassigns `entries = fromOrch`, the orchestrator's
+      // RAW rows. Git merged both sides without a conflict and the result was an
+      // exit that skips the gate — the case entry-lookup.ts calls "a new exit
+      // that skips both is a leak". Nothing in the suite could see it: the
+      // premium-exit guard counts reads per file and the existing `q` test stubs
+      // queryKnowledge to [], so the branch is never entered.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `premium-rank-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const SECRET = 'PAYWALLED-BODY-THAT-MUST-NOT-SHIP';
+      // Long enough that the 120-char / one-third teaser cannot reach the secret,
+      // which sits at the end.
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${SECRET}`;
+      mockClient.queryKnowledge.mockResolvedValue([
+        {
+          id: 'entry_premium_rank_leak',
+          type: 'wisdom',
+          content: premiumBody,
+          domain: 'general',
+          authorId: 'agent_somebody_else',
+          price: 25,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'entry_free_rank_keep',
+          type: 'wisdom',
+          content: 'ordinary free note with no overlap',
+          domain: 'general',
+          authorId: 'agent_somebody_else',
+          price: 0,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      // Two words, matching nothing in the visible set, so keywordHits is empty
+      // and the orchestrator-rank fallback is the branch that answers.
+      const req = mockReq(
+        'GET',
+        `/api/holomesh/team/${tid}/knowledge?q=zzzq%20nomatch&limit=25`,
+        undefined,
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
+
+      expect(res._status).toBe(200);
+      // The branch must actually have been taken, or this test proves nothing:
+      // the free row comes back, the priced row does not.
+      expect(res._body.entries.map((e: { id: string }) => e.id)).toEqual(['entry_free_rank_keep']);
+      expect(JSON.stringify(res._body)).not.toContain(SECRET);
+      expect(JSON.stringify(res._body)).not.toContain('entry_premium_rank_leak');
+    });
+
+    it('GET /api/holomesh/team/:id/knowledge?q= does not reveal a locked entry from its hidden body', async () => {
+      // Review of the redaction-only fallback (2026-09-22): entriesForViewer
+      // sets locked:true and swaps in a teaser, then the orchestrator-rank
+      // branch still returns that row. A member who has not paid can probe
+      // two-word phrases. A hit means the hidden body contains them.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `hidden-body-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._status).toBe(200);
+
+      const hiddenToken = 'xylophonequartz9f3a';
+      const hiddenPhrase = `${hiddenToken} paidprobe`;
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${hiddenPhrase}`;
+      const entry = {
+        id: 'entry_locked_hidden_probe',
+        workspaceId: `team:${tid}`,
+        type: 'wisdom',
+        content: premiumBody,
+        provenanceHash: 'probe',
+        authorId: ownerAgentId,
+        authorName: 'team-owner',
+        price: 25,
+        queryCount: 0,
+        reuseCount: 0,
+        domain: 'general',
+        tags: ['priced'],
+        createdAt: new Date().toISOString(),
+      };
+      teamStore.get(tid)!.knowledge = [entry];
+      mockClient.queryKnowledge.mockResolvedValue([entry]);
+      const purchaseKey = `${memberAgentId}:entry_locked_hidden_probe`;
+
+      const search = async (apiKey: string, q: string) => {
+        const req = mockReq(
+          'GET',
+          `/api/holomesh/team/${tid}/knowledge?q=${encodeURIComponent(q)}&limit=25`,
+          undefined,
+          { authorization: `Bearer ${apiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
+        return res;
+      };
+
+      // One token stays on the keyword path (redacted text only). Two tokens
+      // with no visible hit take the orchestrator-rank fallback, which is the
+      // path that used to return the locked row.
+      try {
+        const memberTokenRes = await search(memberApiKey, hiddenToken);
+        expect(memberTokenRes._status).toBe(200);
+        expect(JSON.stringify(memberTokenRes._body)).not.toContain(hiddenToken);
+        expect(
+          memberTokenRes._body.entries.map((e: { id: string }) => e.id)
+        ).not.toContain('entry_locked_hidden_probe');
+
+        const memberRes = await search(memberApiKey, hiddenPhrase);
+        expect(memberRes._status).toBe(200);
+        expect(
+          memberRes._body.entries.map((e: { id: string }) => e.id)
+        ).not.toContain('entry_locked_hidden_probe');
+        expect(JSON.stringify(memberRes._body)).not.toContain(hiddenToken);
+        expect(JSON.stringify(memberRes._body)).not.toContain('paidprobe');
+
+        // The author is entitled (premiumEntryAccess → 'author') and still sees it.
+        const authorRes = await search(ownerApiKey, hiddenPhrase);
+        expect(authorRes._status).toBe(200);
+        expect(authorRes._body.entries.map((e: { id: string }) => e.id)).toContain(
+          'entry_locked_hidden_probe'
+        );
+        expect(JSON.stringify(authorRes._body)).toContain(hiddenToken);
+        expect(authorRes._body.entries[0].locked).not.toBe(true);
+
+        // A recorded purchase is the other entitlement this route already has.
+        paidAccessStore.add(purchaseKey);
+        const buyerRes = await search(memberApiKey, hiddenPhrase);
+        expect(buyerRes._status).toBe(200);
+        expect(buyerRes._body.entries.map((e: { id: string }) => e.id)).toContain(
+          'entry_locked_hidden_probe'
+        );
+        expect(JSON.stringify(buyerRes._body)).toContain(hiddenToken);
+        expect(buyerRes._body.entries[0].locked).not.toBe(true);
+      } finally {
+        paidAccessStore.delete(purchaseKey);
+        mockClient.queryKnowledge.mockReset();
+        mockClient.queryKnowledge.mockResolvedValue([]);
+      }
     });
 
     it('GET /api/holomesh/entry/:id resolves team-mirrored entry when orchestrator has not indexed', async () => {
@@ -3695,12 +3930,14 @@ describe('HoloMesh HTTP Routes', () => {
         'POST',
         `/api/holomesh/team/${tid}/board`,
         {
-          tasks: [{
-            title: 'WorkUnit roundtrip task',
-            description: 'verifies the typed execution contract survives board persistence',
-            priority: 1,
-            workUnit,
-          }],
+          tasks: [
+            {
+              title: 'WorkUnit roundtrip task',
+              description: 'verifies the typed execution contract survives board persistence',
+              priority: 1,
+              workUnit,
+            },
+          ],
         },
         { authorization: `Bearer ${ownerApiKey}` }
       );
@@ -3722,11 +3959,7 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const patchRes = mockRes();
-      await handleHoloMeshRoute(
-        patchReq,
-        patchRes,
-        `/api/holomesh/team/${tid}/board/${taskId}`
-      );
+      await handleHoloMeshRoute(patchReq, patchRes, `/api/holomesh/team/${tid}/board/${taskId}`);
       expect(patchRes._status).toBe(200);
       expect(patchRes._body.task.workUnit).toEqual(updatedWorkUnit);
 
@@ -3737,6 +3970,94 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
       const fetched = (getRes._body.tasks || []).find((t: { id: string }) => t.id === taskId);
       expect(fetched?.workUnit).toEqual(updatedWorkUnit);
+    });
+
+    it('PATCH reopen from claimed agrees with GET /board and deletes the claim envelope', async () => {
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `reopen-custody-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+
+      const addReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/board`,
+        {
+          tasks: [
+            {
+              title: 'reopen-custody',
+              description: 'claimed then reopened.\n\n## Done when:\n- GET agrees with PATCH.',
+              priority: 1,
+            },
+          ],
+        },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const addRes = mockRes();
+      await handleHoloMeshRoute(addReq, addRes, `/api/holomesh/team/${tid}/board`);
+      expect(addRes._status).toBe(201);
+      const taskId = addRes._body.tasks[0].id;
+
+      const claimReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'claim' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const claimRes = mockRes();
+      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(claimRes._status).toBe(200);
+      expect(claimRes._body.task.status).toBe('claimed');
+      expect(claimRes._body.task.claimedBy).toBeTruthy();
+
+      const reopenReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'reopen' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const reopenRes = mockRes();
+      await handleHoloMeshRoute(reopenReq, reopenRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(reopenRes._status).toBe(200);
+      expect(reopenRes._body.task.status).toBe('open');
+      expect(reopenRes._body.task.claimedBy).toBeUndefined();
+      expect(reopenRes._body.task.claimIdentity).toBeUndefined();
+      expect(reopenRes._body.task.claimSessionId).toBeUndefined();
+      expect('claimedBy' in reopenRes._body.task).toBe(false);
+
+      const stored = teamStore.get(tid)!.taskBoard.find((t: { id: string }) => t.id === taskId)!;
+      expect(stored.status).toBe('open');
+      expect('claimedBy' in stored).toBe(false);
+      expect('claimIdentity' in stored).toBe(false);
+
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
+      const getRes = mockRes();
+      await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
+      expect(getRes._status).toBe(200);
+      const fromGet = getRes._body.tasks.find((t: { id: string }) => t.id === taskId);
+      expect(fromGet.status).toBe('open');
+      expect(fromGet.claimedBy).toBeUndefined();
+      expect(fromGet.claimIdentity).toBeUndefined();
+      expect(
+        getRes._body.tasks.filter((t: { status: string }) => t.status === 'claimed')
+      ).toHaveLength(0);
+
+      const againReq = mockReq(
+        'PATCH',
+        `/api/holomesh/team/${tid}/board/${taskId}`,
+        { action: 'reopen' },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const againRes = mockRes();
+      await handleHoloMeshRoute(againReq, againRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      expect(againRes._status).toBe(200);
+      expect(againRes._body.task.status).toBe('open');
     });
 
     it('GET /api/holomesh/team/:id/board/:taskId returns a fresh active task by id', async () => {
@@ -4783,12 +5104,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(updateRes._body.originalLength).toBeGreaterThan(2000);
       expect(updateRes._body.maxLength).toBe(2000);
 
-      const getReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const getRes = mockRes();
       await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
       const still = (getRes._body.tasks || getRes._body.board || []).find(
@@ -6791,6 +7109,101 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(res._status).toBe(400);
     });
+
+    it('GET /api/holomesh/search?q= does not return a locked row when the query matches hidden paid text', async () => {
+      // Public search used to redact a premium row (locked: true, teaser only)
+      // and still return it. The orchestrator had already matched `q` against
+      // the hidden body, so the locked row told an unpaid caller those words
+      // were in the paid text. Anonymous callers are never entitled.
+      const authorReg = mockReq('POST', '/api/holomesh/register', {
+        name: `search-author-${Date.now()}`,
+      });
+      const authorRes = mockRes();
+      await handleHoloMeshRoute(authorReg, authorRes, '/api/holomesh/register');
+      expect(authorRes._status).toBe(201);
+      const authorKey = authorRes._body.agent.api_key as string;
+      const authorId = authorRes._body.agent.id as string;
+
+      const buyerReg = mockReq('POST', '/api/holomesh/register', {
+        name: `search-buyer-${Date.now()}`,
+      });
+      const buyerRes = mockRes();
+      await handleHoloMeshRoute(buyerReg, buyerRes, '/api/holomesh/register');
+      expect(buyerRes._status).toBe(201);
+      const buyerKey = buyerRes._body.agent.api_key as string;
+      const buyerId = buyerRes._body.agent.id as string;
+
+      const hiddenToken = 'xylophonequartz9f3a';
+      const hiddenPhrase = `${hiddenToken} paidprobe`;
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${hiddenPhrase}`;
+      const entryId = 'entry_public_hidden_probe';
+      const premium = {
+        id: entryId,
+        type: 'wisdom',
+        content: premiumBody,
+        domain: 'general',
+        authorId,
+        authorName: 'search-author',
+        price: 25,
+        tags: ['priced'],
+        createdAt: new Date().toISOString(),
+      };
+      const free = {
+        id: 'entry_public_free_keep',
+        type: 'wisdom',
+        content: 'ordinary free note with no overlap',
+        domain: 'general',
+        authorId: 'agent_somebody_else',
+        price: 0,
+        createdAt: new Date().toISOString(),
+      };
+      mockClient.queryKnowledge.mockResolvedValue([premium, free]);
+      const purchaseKey = `${buyerId}:${entryId}`;
+
+      const search = async (apiKey?: string) => {
+        const path = `/api/holomesh/search?q=${encodeURIComponent(hiddenPhrase)}&limit=10`;
+        const req = mockReq('GET', path, undefined, apiKey ? { authorization: `Bearer ${apiKey}` } : undefined);
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, path);
+        return res;
+      };
+
+      try {
+        const anon = await search();
+        expect(anon._status).toBe(200);
+        expect(anon._body.results.map((e: { id: string }) => e.id)).toEqual(['entry_public_free_keep']);
+        expect(JSON.stringify(anon._body.results)).not.toContain(entryId);
+        expect(JSON.stringify(anon._body.results)).not.toContain(hiddenToken);
+        expect(JSON.stringify(anon._body.results)).not.toContain('paidprobe');
+
+        const unpaid = await search(buyerKey);
+        expect(unpaid._status).toBe(200);
+        expect(unpaid._body.results.map((e: { id: string }) => e.id)).not.toContain(entryId);
+        expect(JSON.stringify(unpaid._body.results)).not.toContain(hiddenToken);
+        expect(JSON.stringify(unpaid._body.results)).not.toContain('paidprobe');
+
+        const author = await search(authorKey);
+        expect(author._status).toBe(200);
+        expect(author._body.results.map((e: { id: string }) => e.id)).toContain(entryId);
+        expect(JSON.stringify(author._body)).toContain(hiddenToken);
+        const authorRow = author._body.results.find((e: { id: string }) => e.id === entryId);
+        expect(authorRow.locked).not.toBe(true);
+        expect(authorRow.content).toContain(hiddenPhrase);
+
+        paidAccessStore.add(purchaseKey);
+        const buyer = await search(buyerKey);
+        expect(buyer._status).toBe(200);
+        expect(buyer._body.results.map((e: { id: string }) => e.id)).toContain(entryId);
+        expect(JSON.stringify(buyer._body)).toContain(hiddenToken);
+        const buyerRow = buyer._body.results.find((e: { id: string }) => e.id === entryId);
+        expect(buyerRow.locked).not.toBe(true);
+        expect(buyerRow.content).toContain(hiddenPhrase);
+      } finally {
+        paidAccessStore.delete(purchaseKey);
+        mockClient.queryKnowledge.mockReset();
+        mockClient.queryKnowledge.mockResolvedValue([]);
+      }
+    });
   });
 
   // ── Dashboard ──
@@ -7231,6 +7644,12 @@ describe('HoloMesh HTTP Routes', () => {
           seedTeam({ quickstartAutoJoin: true, visibility: 'private' }),
           seedTeam({ quickstartAutoJoin: true, adminRoom: true }),
           seedTeam({ quickstartAutoJoin: true, maxSlots: 1 }),
+          // A team that set an invite code has already said entry is by code.
+          // Opting into quickstart as well is a contradiction, and the door has
+          // to read it the narrow way. The other lane found this hole
+          // separately and reproduced it 2026-09-10 against a production-shaped
+          // copy; this is the condition its fix carried, kept through the merge.
+          seedTeam({ quickstartAutoJoin: true, inviteCode: 'let-me-in' }),
         ];
 
         const res = await quickstart();
@@ -7996,5 +8415,112 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(handled).toBe(false);
     });
+  });
+});
+
+// The two roster endpoints handed the full live membership of any team to anyone
+// who asked — agent ids, display names, join times — with no credential at all.
+// An exhaustive sweep of both repos on 2026-09-10 found ZERO callers, so locking
+// them costs nothing we run.
+//
+// The shape is the founder's ruling, not a blanket lock: local stays open because
+// that machine is full of our own agents, and the lock goes on the surface
+// strangers reach. A mock request carries no socket and no credential, so it
+// stands in for exactly that stranger.
+describe('room roster is not public', () => {
+  const team = 'team_roster_probe';
+
+  it('THE FAULT: an anonymous caller cannot read who is in a room', async () => {
+    const url = `/api/holomesh/team/${team}/room/presence`;
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+    expect(JSON.stringify(res._body)).not.toContain('online');
+  });
+
+  it('an anonymous caller cannot read how many are connected either', async () => {
+    const url = `/api/holomesh/team/${team}/room/stats`;
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+  });
+
+  it('a registered agent still reads the roster — the lock must not blind members', async () => {
+    const reg = mockReq('POST', '/api/holomesh/register', {
+      name: `roster-probe-${Math.random().toString(36).slice(2, 8)}`,
+      traits: ['@test'],
+    });
+    const regRes = mockRes();
+    await handleHoloMeshRoute(reg, regRes, '/api/holomesh/register');
+    const apiKey = regRes._body?.agent?.api_key;
+    expect(apiKey).toBeTruthy();
+
+    const url = `/api/holomesh/team/${team}/room/presence`;
+    const res = mockRes();
+    await handleHoloMeshRoute(
+      mockReq('GET', url, undefined, { authorization: `Bearer ${apiKey}` }),
+      res,
+      url
+    );
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(Array.isArray(res._body.online)).toBe(true);
+  });
+});
+
+// The room stream replayed the last 50 events and then streamed everything after,
+// to anyone, with the joiner choosing its own display name. An intruder wearing
+// one of our agents' names was watched arriving in a real member's feed.
+//
+// The gate sits in the route, not inside handleTeamRoomConnection, because the
+// mini-game rooms share that function through their own unauthenticated flow.
+describe('the room stream is not open to the internet', () => {
+  const team = 'team_room_gate_probe';
+  const roomUrl = (q) => '/api/holomesh/team/' + team + '/room/live?' + q;
+
+  it('THE FAULT: an anonymous connection is refused', async () => {
+    const url = roomUrl('agent_id=totally-a-stranger&agent_name=stranger');
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+  });
+
+  it('refuses it even when it claims to be one of ours', async () => {
+    const url = roomUrl('agent_id=claudecode&agent_name=claudecode');
+    const res = mockRes();
+    await handleHoloMeshRoute(mockReq('GET', url), res, url);
+    expect(res._status).toBe(401);
+    expect(JSON.stringify(res._body)).toMatch(/Authentication required/u);
+  });
+
+  it('a registered agent still connects — locking out our own agents would be worse', async () => {
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const reg = mockReq('POST', '/api/holomesh/register', {
+      name: 'room-gate-probe-' + suffix,
+      traits: ['@test'],
+    });
+    const regRes = mockRes();
+    await handleHoloMeshRoute(reg, regRes, '/api/holomesh/register');
+    const apiKey = regRes._body?.agent?.api_key;
+    expect(apiKey).toBeTruthy();
+
+    const url = roomUrl('agent_id=probe&agent_name=probe');
+    const res = mockRes();
+    // The gate runs before the stream does. Past it, the real handler drives a
+    // live SSE socket, which this response mock is not (no once/on). That throw
+    // is the harness, not the route — so it is tolerated deliberately, and the
+    // assertion below is about the only thing this test is for: an authenticated
+    // caller is NOT turned away. The accept path of localOrAuthenticated itself
+    // is covered without streaming by the room-roster tests above.
+    try {
+      await handleHoloMeshRoute(
+        mockReq('GET', url, undefined, { authorization: 'Bearer ' + apiKey }),
+        res,
+        url
+      );
+    } catch {
+      /* SSE internals need a real socket; reaching them means the gate let us by */
+    }
+    expect(res._status).not.toBe(401);
   });
 });

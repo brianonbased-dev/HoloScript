@@ -98,8 +98,7 @@ describe('medical -> HoloScript runtime integration (parkland_resuscitation)', (
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['parkland_resuscitation:burn'] as
-      | { totalFluidMl?: number; first8hMl?: number; hourlyRateFirst8h?: number }
-      | undefined;
+      { totalFluidMl?: number; first8hMl?: number; hourlyRateFirst8h?: number } | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.totalFluidMl).toBeCloseTo(EXPECTED_TOTAL_ML, 6);
     expect(persisted?.first8hMl).toBeCloseTo(EXPECTED_FIRST_8H_ML, 6);

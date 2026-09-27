@@ -64,9 +64,7 @@ export type SimulationContractHashMode = 'fnv1a' | 'sha256';
  * state-digest equality; cross-adapter replays use W.GOLD.192 ε-tolerance.
  */
 export type ReplayDigestMode =
-  | 'strict-same-adapter'
-  | 'epsilon-cross-adapter'
-  | 'unsigned-observed';
+  'strict-same-adapter' | 'epsilon-cross-adapter' | 'unsigned-observed';
 
 /**
  * Per-field quantization exposed as part of the replay contract. Route 2b

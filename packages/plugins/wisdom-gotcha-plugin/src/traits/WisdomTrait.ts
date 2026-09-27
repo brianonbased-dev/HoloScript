@@ -9,12 +9,7 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types
 
 export type WisdomSeverity = 'info' | 'warning' | 'error' | 'suggestion';
 export type WisdomDomain =
-  | 'performance'
-  | 'security'
-  | 'correctness'
-  | 'style'
-  | 'compatibility'
-  | 'architecture';
+  'performance' | 'security' | 'correctness' | 'style' | 'compatibility' | 'architecture';
 
 export interface WisdomConfig {
   id: string;

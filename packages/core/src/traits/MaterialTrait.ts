@@ -9,13 +9,7 @@
  */
 
 export type MaterialType =
-  | 'pbr'
-  | 'standard'
-  | 'unlit'
-  | 'transparent'
-  | 'volumetric'
-  | 'custom'
-  | 'neural';
+  'pbr' | 'standard' | 'unlit' | 'transparent' | 'volumetric' | 'custom' | 'neural';
 export type TextureChannel =
   | 'baseColor'
   | 'normalMap'

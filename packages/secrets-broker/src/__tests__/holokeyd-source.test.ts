@@ -126,7 +126,12 @@ describe('createServiceSecretResolver — ordering is vault, then env, then holo
   });
 
   it('still returns undefined with the plaintext gone and the bridge OFF', async () => {
-    const r = createServiceSecretResolver({ env: {}, vault: null, remoteSource: null, log: silent });
+    const r = createServiceSecretResolver({
+      env: {},
+      vault: null,
+      remoteSource: null,
+      log: silent,
+    });
     // This is the exact failure the bridge exists to fix; it must still be reachable
     // when unconfigured, or the test above proves nothing.
     await expect(r.resolve('OPENROUTER_API_KEY')).resolves.toBeUndefined();
@@ -148,7 +153,11 @@ describe('hydrateFromHoloKeyd — for consumers that read process.env directly',
   it('fills only the names that are missing', async () => {
     const { run } = fakeRun({ MISSING_KEY: 'filled', PRESENT_KEY: 'device' });
     const target: Record<string, string | undefined> = { ...HOST, PRESENT_KEY: 'already-set' };
-    const out = await hydrateFromHoloKeyd(['MISSING_KEY', 'PRESENT_KEY'], { env: HOST, run, target });
+    const out = await hydrateFromHoloKeyd(['MISSING_KEY', 'PRESENT_KEY'], {
+      env: HOST,
+      run,
+      target,
+    });
     expect(out.enabled).toBe(true);
     expect(out.hydrated).toEqual(['MISSING_KEY']);
     expect(target.MISSING_KEY).toBe('filled');

@@ -7,8 +7,7 @@ export const HOLOSYSTEM_CONSUMER_INPUT_SCHEMA = 'holoscript.holosystem.consumer-
 export const HOLOSYSTEM_FARM_SCHEMA = 'holosystem.self-improvement-farm.v2';
 
 const HOLOSYSTEM_PORTFOLIO_SCHEMA = 'holosystem.portfolio-consumer-gate.v1';
-const PACKAGE_SOURCE_RECONCILIATION_SCHEMA =
-  'holosystem.package-source-lineage-reconciliation.v1';
+const PACKAGE_SOURCE_RECONCILIATION_SCHEMA = 'holosystem.package-source-lineage-reconciliation.v1';
 const RECONCILIATION_DISPOSITIONS = new Set([
   'canonical-public-source',
   'deprecated-registry-artifact',
@@ -148,9 +147,7 @@ function artifactKey(ecosystem, name) {
 
 function farmNextWorkId(ecosystem, name) {
   const prefix = 'consume-';
-  const suffix = createHash('sha256')
-    .update(`${ecosystem}\0${name}`, 'utf8')
-    .digest('hex');
+  const suffix = createHash('sha256').update(`${ecosystem}\0${name}`, 'utf8').digest('hex');
   const maxSlugLength = FARM_NEXT_WORK_ID_MAX_LENGTH - prefix.length - suffix.length - 1;
   const readable = `${ecosystem}-${name}`
     .toLowerCase()
@@ -181,15 +178,19 @@ function lineageInputError(code, message) {
 }
 
 function reconciliationArtifactKey(ecosystem, name, version) {
-  const normalizedEcosystem = String(ecosystem || '').trim().toLowerCase();
-  const rawName = String(name || '').trim().toLowerCase();
-  const normalizedName = normalizedEcosystem === 'pypi'
-    ? rawName.replace(/[._-]+/gu, '-')
-    : rawName;
+  const normalizedEcosystem = String(ecosystem || '')
+    .trim()
+    .toLowerCase();
+  const rawName = String(name || '')
+    .trim()
+    .toLowerCase();
+  const normalizedName =
+    normalizedEcosystem === 'pypi' ? rawName.replace(/[._-]+/gu, '-') : rawName;
   const rawVersion = String(version || '').trim();
-  const normalizedVersion = normalizedEcosystem === 'pypi'
-    ? canonicalPythonVersionKey(rawVersion) || rawVersion
-    : rawVersion;
+  const normalizedVersion =
+    normalizedEcosystem === 'pypi'
+      ? canonicalPythonVersionKey(rawVersion) || rawVersion
+      : rawVersion;
   return `${normalizedEcosystem}:${normalizedName}@${normalizedVersion}`;
 }
 
@@ -328,11 +329,13 @@ function exactRegistryBinding(ecosystem, name, version, registry) {
     if (typeof binding.filename !== 'string' || binding.filename !== filename) return false;
     const distribution = name.replaceAll('-', '_');
     if (binding.packageType === 'bdist_wheel') {
-      const wheel = filename.match(/^([A-Za-z0-9_.]+)-([A-Za-z0-9.!+]+)(?:-[A-Za-z0-9_.]+)?-[A-Za-z0-9_.]+-[A-Za-z0-9_.]+-[A-Za-z0-9_.]+\.whl$/u);
+      const wheel = filename.match(
+        /^([A-Za-z0-9_.]+)-([A-Za-z0-9.!+]+)(?:-[A-Za-z0-9_.]+)?-[A-Za-z0-9_.]+-[A-Za-z0-9_.]+-[A-Za-z0-9_.]+\.whl$/u
+      );
       return Boolean(
         wheel &&
-          wheel[1].toLowerCase().replace(/[._-]+/gu, '-') === name &&
-          wheel[2].toLowerCase().replaceAll('_', '.') === version.toLowerCase()
+        wheel[1].toLowerCase().replace(/[._-]+/gu, '-') === name &&
+        wheel[2].toLowerCase().replaceAll('_', '.') === version.toLowerCase()
       );
     }
     if (binding.packageType === 'sdist') {
@@ -366,9 +369,7 @@ function safeEvidenceText(value) {
 
 function namedPackageSuccessor(value) {
   if (typeof value !== 'string' || value !== value.trim()) return null;
-  return /^(?:@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)$/u.test(
-    value
-  )
+  return /^(?:@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)$/u.test(value)
     ? value
     : null;
 }
@@ -444,7 +445,11 @@ function normalizeReconciliationMetadata(receipt) {
     );
   }
   receipt = clone(receipt);
-  if (!receipt || typeof receipt !== 'object' || receipt.schema !== PACKAGE_SOURCE_RECONCILIATION_SCHEMA) {
+  if (
+    !receipt ||
+    typeof receipt !== 'object' ||
+    receipt.schema !== PACKAGE_SOURCE_RECONCILIATION_SCHEMA
+  ) {
     throw lineageInputError(
       'lineage-reconciliation-schema-invalid',
       `Lineage metadata must be an array or ${PACKAGE_SOURCE_RECONCILIATION_SCHEMA}.`
@@ -470,7 +475,11 @@ function normalizeReconciliationMetadata(receipt) {
       'Reconciliation receiptHash does not match the supplied bytes.'
     );
   }
-  if (!Array.isArray(receipt.artifacts) || !receipt.summary || typeof receipt.summary !== 'object') {
+  if (
+    !Array.isArray(receipt.artifacts) ||
+    !receipt.summary ||
+    typeof receipt.summary !== 'object'
+  ) {
     throw lineageInputError(
       'lineage-reconciliation-shape-invalid',
       'Reconciliation artifacts and summary are required.'
@@ -561,9 +570,10 @@ function normalizeReconciliationMetadata(receipt) {
     let mapped = false;
     let canonical = false;
     let successor = null;
-    const registrySuccessor = registry.successor === null || registry.successor === undefined
-      ? null
-      : namedPackageSuccessor(registry.successor);
+    const registrySuccessor =
+      registry.successor === null || registry.successor === undefined
+        ? null
+        : namedPackageSuccessor(registry.successor);
     if (registry.successor !== null && registry.successor !== undefined && !registrySuccessor) {
       throw lineageInputError(
         'lineage-reconciliation-successor-invalid',
@@ -645,12 +655,15 @@ function normalizeReconciliationMetadata(receipt) {
           `Noncanonical disposition ${status} for ${key} cannot claim canonical source.`
         );
       }
-      const dispositionSuccessor = disposition.successor === null || disposition.successor === undefined
-        ? null
-        : namedPackageSuccessor(disposition.successor);
+      const dispositionSuccessor =
+        disposition.successor === null || disposition.successor === undefined
+          ? null
+          : namedPackageSuccessor(disposition.successor);
       if (
         (registry.successor !== null && registry.successor !== undefined && !registrySuccessor) ||
-        (disposition.successor !== null && disposition.successor !== undefined && !dispositionSuccessor) ||
+        (disposition.successor !== null &&
+          disposition.successor !== undefined &&
+          !dispositionSuccessor) ||
         (registrySuccessor && dispositionSuccessor && registrySuccessor !== dispositionSuccessor)
       ) {
         throw lineageInputError(
@@ -680,22 +693,27 @@ function normalizeReconciliationMetadata(receipt) {
       } else if (status === 'public-historical-deprecation') {
         dispositionRepository = strictGitHubRepository(disposition.repository);
         dispositionRevision = fullGitRevision(disposition.revision);
-        const evidencePath = disposition.evidencePath === null || disposition.evidencePath === undefined
-          ? null
-          : exactPublicRepositoryPath(disposition.evidencePath);
-        const evidenceSha256 = disposition.evidenceSha256 === null || disposition.evidenceSha256 === undefined
-          ? null
-          : disposition.evidenceSha256;
-        const expectedEvidenceUrl = dispositionRepository && dispositionRevision
-          ? evidencePath
-            ? `${dispositionRepository}/blob/${dispositionRevision}/${evidencePath}`
-            : `${dispositionRepository}/commit/${dispositionRevision}`
-          : null;
+        const evidencePath =
+          disposition.evidencePath === null || disposition.evidencePath === undefined
+            ? null
+            : exactPublicRepositoryPath(disposition.evidencePath);
+        const evidenceSha256 =
+          disposition.evidenceSha256 === null || disposition.evidenceSha256 === undefined
+            ? null
+            : disposition.evidenceSha256;
+        const expectedEvidenceUrl =
+          dispositionRepository && dispositionRevision
+            ? evidencePath
+              ? `${dispositionRepository}/blob/${dispositionRevision}/${evidencePath}`
+              : `${dispositionRepository}/commit/${dispositionRevision}`
+            : null;
         if (
           !dispositionRepository ||
           !dispositionRevision ||
           evidencePath === undefined ||
-          (evidencePath ? !/^sha256:[0-9a-f]{64}$/u.test(evidenceSha256 || '') : evidenceSha256 !== null) ||
+          (evidencePath
+            ? !/^sha256:[0-9a-f]{64}$/u.test(evidenceSha256 || '')
+            : evidenceSha256 !== null) ||
           disposition.evidenceUrl !== expectedEvidenceUrl ||
           dispositionEvidenceUrl !== expectedEvidenceUrl ||
           !dispositionReason
@@ -717,12 +735,15 @@ function normalizeReconciliationMetadata(receipt) {
         dispositionRevision = fullGitRevision(disposition.revision);
         const evidencePath = exactPublicRepositoryPath(disposition.evidencePath);
         const sourceDirectory = exactPublicRepositoryPath(disposition.sourceDirectory);
-        const implementationManifestPath = exactPublicRepositoryPath(disposition.implementationManifestPath);
+        const implementationManifestPath = exactPublicRepositoryPath(
+          disposition.implementationManifestPath
+        );
         const aliasOf = namedPackageSuccessor(disposition.aliasOf);
         const implementationName = namedPackageSuccessor(disposition.implementationName);
-        const expectedEvidenceUrl = dispositionRepository && dispositionRevision && evidencePath
-          ? `${dispositionRepository}/blob/${dispositionRevision}/${evidencePath}`
-          : null;
+        const expectedEvidenceUrl =
+          dispositionRepository && dispositionRevision && evidencePath
+            ? `${dispositionRepository}/blob/${dispositionRevision}/${evidencePath}`
+            : null;
         if (
           ecosystem !== 'npm' ||
           !dispositionRepository ||
@@ -782,12 +803,14 @@ function normalizeReconciliationMetadata(receipt) {
         const readbackPath = exactPublicRepositoryPath(disposition.publicReadbackReceiptPath);
         const sourceCommit = fullGitRevision(disposition.sourceCommit);
         const candidateCommit = fullGitRevision(disposition.candidateCommit);
-        const expectedEvidenceUrl = dispositionRepository && dispositionRevision && manifestPath
-          ? `${dispositionRepository}/blob/${dispositionRevision}/${manifestPath}`
-          : null;
-        const expectedReadbackUrl = dispositionRepository && dispositionRevision && readbackPath
-          ? `${dispositionRepository}/blob/${dispositionRevision}/${readbackPath}`
-          : null;
+        const expectedEvidenceUrl =
+          dispositionRepository && dispositionRevision && manifestPath
+            ? `${dispositionRepository}/blob/${dispositionRevision}/${manifestPath}`
+            : null;
+        const expectedReadbackUrl =
+          dispositionRepository && dispositionRevision && readbackPath
+            ? `${dispositionRepository}/blob/${dispositionRevision}/${readbackPath}`
+            : null;
         const packageBinding = disposition.package;
         if (
           ecosystem !== 'npm' ||
@@ -843,11 +866,7 @@ function normalizeReconciliationMetadata(receipt) {
         releaseEvidenceGroups.set(expectedEvidenceUrl, releaseGroup);
         counts.releaseManifestBinding += 1;
         bindPublicEvidenceHash(expectedEvidenceUrl, disposition.manifestSha256, key);
-        bindPublicEvidenceHash(
-          expectedReadbackUrl,
-          disposition.publicReadbackReceiptSha256,
-          key
-        );
+        bindPublicEvidenceHash(expectedReadbackUrl, disposition.publicReadbackReceiptSha256, key);
         lineageKind = 'release-manifest';
         dispositionDetails = {
           manifestPath,
@@ -1046,9 +1065,10 @@ function projectProofBatches(value) {
       const declaredTotal = Number(
         batch?.summary?.total ?? batch?.packageCount ?? sourcePackages.length
       );
-      const total = Number.isInteger(declaredTotal) && declaredTotal >= 0
-        ? declaredTotal
-        : sourcePackages.length;
+      const total =
+        Number.isInteger(declaredTotal) && declaredTotal >= 0
+          ? declaredTotal
+          : sourcePackages.length;
       const declaredOmitted = Number(
         batch?.projection?.packagesOmitted ??
           batch?.bounds?.packagesOmitted ??
@@ -1149,11 +1169,12 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
   );
   const directArtifacts = list(portfolio?.packages).map((row) => {
     const requestedVersion = row.expectedVersion || row.observedVersion || null;
-    const source = metadataByArtifact.get(
-      reconciliation
-        ? reconciliationArtifactKey(row.ecosystem, row.name, requestedVersion)
-        : artifactKey(row.ecosystem, row.name)
-    ) || {};
+    const source =
+      metadataByArtifact.get(
+        reconciliation
+          ? reconciliationArtifactKey(row.ecosystem, row.name, requestedVersion)
+          : artifactKey(row.ecosystem, row.name)
+      ) || {};
     const version = requestedVersion || source.version || null;
     if (reconciliation && source.version !== version) {
       throw lineageInputError(
@@ -1190,7 +1211,9 @@ export function buildSourceLineageReceipt({ portfolio, metadata = [], now = new 
           : migrationMapped
             ? 'migration'
             : 'unknown',
-      mapped: reconciliation ? source.mapped === true : Boolean(sourceRepository) || migrationMapped,
+      mapped: reconciliation
+        ? source.mapped === true
+        : Boolean(sourceRepository) || migrationMapped,
       ...(reconciliation
         ? {
             canonical: source.canonical === true,
@@ -1426,7 +1449,10 @@ function validateFarmInputReceipt(id, receipt, expectedSchema) {
       `Farm ${id} receipt must use schema ${expectedSchema}.`
     );
   }
-  if (typeof receipt.generatedAt !== 'string' || !Number.isFinite(Date.parse(receipt.generatedAt))) {
+  if (
+    typeof receipt.generatedAt !== 'string' ||
+    !Number.isFinite(Date.parse(receipt.generatedAt))
+  ) {
     throw farmError('farm-input-invalid', `Farm ${id} receipt generatedAt must be an ISO date.`);
   }
   if (!/^sha256:[0-9a-f]{64}$/u.test(receipt.receiptHash || '')) {
@@ -1664,8 +1690,7 @@ export function buildFarmProposalReceipt({
 
   const decision = clone(catalogDecision || canonicalDecision);
   const portfolioEvidenceTruncated =
-    portfolio.bounds?.truncated === true ||
-    portfolio.bounds.packagesOmitted > 0;
+    portfolio.bounds?.truncated === true || portfolio.bounds.packagesOmitted > 0;
   const blockers = [
     ...(catalog.status === 'current' ? [] : ['catalog-not-current']),
     ...catalogInputReceiptBlockers(catalog, portfolio, lineage),
@@ -1704,9 +1729,7 @@ export function buildFarmProposalReceipt({
         },
       ]
     : [];
-  const stopConditions = Array.from(
-    new Set([...list(decision.stopConditions), ...blockers])
-  );
+  const stopConditions = Array.from(new Set([...list(decision.stopConditions), ...blockers]));
   const sourceReceiptBindings = {
     catalog: farmInputBinding(sources.catalog, catalog),
     portfolio: farmInputBinding(sources.portfolio, portfolio),
@@ -1939,13 +1962,9 @@ function pypiRepository(info) {
 
 function npmMigrationSuccessor(message) {
   if (typeof message !== 'string' || !message.trim()) return null;
-  const scoped = message.match(
-    /\buse\s+(@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*)\b/iu
-  )?.[1];
+  const scoped = message.match(/\buse\s+(@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*)\b/iu)?.[1];
   if (namedPackageSuccessor(scoped)) return scoped;
-  const quotedBare = message.match(
-    /\buse\s+[`'"]([a-z0-9][a-z0-9._-]*)[`'"]/iu
-  )?.[1];
+  const quotedBare = message.match(/\buse\s+[`'"]([a-z0-9][a-z0-9._-]*)[`'"]/iu)?.[1];
   return namedPackageSuccessor(quotedBare);
 }
 

@@ -106,8 +106,7 @@ export interface Tier1WasmEmulatorResult {
 }
 
 export type Tier1WasmRuntimeProbe = () =>
-  | Tier1WasmRuntimeProbeResult
-  | Promise<Tier1WasmRuntimeProbeResult>;
+  Tier1WasmRuntimeProbeResult | Promise<Tier1WasmRuntimeProbeResult>;
 
 export type Tier1WasmExecutor = (
   op: DispatchableOperation,

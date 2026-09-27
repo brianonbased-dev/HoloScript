@@ -46,19 +46,10 @@ export type ProviderExportPhase =
   | 'rollback';
 
 export type ProviderExportWaitState =
-  | 'not_requested'
-  | 'requested'
-  | 'provider_waiting'
-  | 'ready_to_download'
-  | 'expired'
-  | 'blocked';
+  'not_requested' | 'requested' | 'provider_waiting' | 'ready_to_download' | 'expired' | 'blocked';
 
 export type ProviderDeliveryMethod =
-  | 'email_link'
-  | 'cloud_drive'
-  | 'browser_download'
-  | 'push_to_service'
-  | 'unknown';
+  'email_link' | 'cloud_drive' | 'browser_download' | 'push_to_service' | 'unknown';
 
 export type ProviderArchiveFormat = 'zip' | 'tar_gz' | 'json' | 'mbox' | 'unknown';
 

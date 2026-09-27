@@ -1974,6 +1974,145 @@ describe('holo_absorb_repo root validation', () => {
     );
   }, 60_000);
 
+  it('does not report a nested package-slice cache as the workspace language graph', async () => {
+    resetCodebaseToolStateForTests();
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-nested-slice-cache-'));
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-nested-slice-repo-'));
+    execFileSync('git', ['init'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['config', 'user.email', 'codex@example.test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    execFileSync('git', ['config', 'user.name', 'Codex Test'], {
+      cwd: repoDir,
+      windowsHide: true,
+    });
+    const pkgA = path.join(repoDir, 'packages', 'alpha');
+    const pkgB = path.join(repoDir, 'packages', 'beta');
+    fs.mkdirSync(path.join(pkgA, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(pkgB, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(pkgA, 'src', 'alpha.ts'),
+      'export function alpha(): string { return "alpha"; }\n',
+      'utf-8'
+    );
+    fs.writeFileSync(
+      path.join(pkgB, 'src', 'beta.ts'),
+      'export function beta(): string { return "beta"; }\n',
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'packages'], { cwd: repoDir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'packages'], { cwd: repoDir, windowsHide: true });
+
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = pkgA;
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '0';
+    const sliceAbsorb = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: pkgA,
+      outputFormat: 'graph',
+      force: true,
+    })) as { error?: string; graphAuthoritative?: boolean; stats?: { totalFiles?: number } };
+    expect(sliceAbsorb.error).toBeUndefined();
+    expect(sliceAbsorb.graphAuthoritative).toBe(true);
+    expect(sliceAbsorb.stats?.totalFiles).toBeGreaterThan(0);
+    expect(getGraphRAGStateStatus().ready).toBe(true);
+
+    // Keep the in-memory pkgA cache (the live laptop failure: MCP holds a
+    // package slice while HOLOSCRIPT_WORKSPACE_ROOT is the language tree).
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    const sliceStatus = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      freshForCurrentRepo?: boolean;
+      workspaceSlice?: {
+        kind?: string;
+        coversWorkspaceRoot?: boolean;
+        warning?: string;
+      };
+      diskCache?: { hint?: string; freshForCurrentRepo?: boolean };
+    };
+    expect(sliceStatus.workspaceSlice).toMatchObject({
+      kind: 'nested-package-slice',
+      coversWorkspaceRoot: false,
+    });
+    expect(sliceStatus.graphAuthoritative).toBe(false);
+    expect(sliceStatus.freshForCurrentRepo).toBe(false);
+    expect(sliceStatus.diskCache?.freshForCurrentRepo).toBe(false);
+    expect(sliceStatus.workspaceSlice?.warning).toMatch(/not the workspace language graph/i);
+    expect(sliceStatus.diskCache?.hint).toMatch(/not the workspace language graph/i);
+
+    // Ask first while GraphRAG is still warm. Query-first would drop the
+    // slice and hide the skip that lets holo_ask_codebase keep answering.
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('llm offline'));
+    const sliceAsk = (await handleGraphRagTool('holo_ask_codebase', {
+      question: 'Where is beta defined?',
+      topK: 3,
+    })) as {
+      error?: string;
+      answer?: string;
+      graphUnavailableReceipt?: { reason?: string };
+    };
+    expect(sliceAsk.error).toBeDefined();
+    expect(sliceAsk.graphUnavailableReceipt?.reason).toBe('cache_root_mismatch');
+    expect(sliceAsk.answer).toBeUndefined();
+    expect(getGraphRAGStateStatus().ready).toBe(false);
+
+    const sliceQuery = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'beta',
+      queryType: 'find',
+      symbolName: 'beta',
+    })) as {
+      error?: string;
+      results?: unknown[];
+      graphUnavailableReceipt?: { reason?: string };
+    };
+    expect(sliceQuery.error).toBeDefined();
+    expect(sliceQuery.results ?? []).toEqual([]);
+    // Ask already dropped the in-memory slice. A flat cache with a generation
+    // manifest for packages/alpha is not readable as the repo root, so query
+    // may miss disk entirely. Either way it must not answer from the slice.
+
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    const mergedPaths = resolveCodebaseCachePathsForRoots([pkgA, pkgB]);
+    const merged = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDirs: [pkgA, pkgB],
+      outputFormat: 'stats',
+      force: true,
+    })) as {
+      error?: string;
+      rootSetId?: string;
+      stats?: { totalFiles?: number };
+    };
+    expect(merged.error).toBeUndefined();
+    expect(merged.rootSetId).toHaveLength(64);
+    expect(merged.stats?.totalFiles).toBeGreaterThanOrEqual(2);
+    expect(fs.existsSync(mergedPaths.generationManifestFile)).toBe(true);
+    const generation = JSON.parse(fs.readFileSync(mergedPaths.generationManifestFile, 'utf-8')) as {
+      schemaVersion?: string;
+      generationId?: string;
+    };
+    expect(generation.schemaVersion).toMatch(/holoscript\.absorb-cache-generation/);
+    expect(generation.generationId).toBeTruthy();
+
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    const mergedStatus = (await handleCodebaseTool('holo_graph_status', {
+      forceRefresh: true,
+    })) as {
+      graphAuthoritative?: boolean;
+      workspaceSlice?: { kind?: string; coversWorkspaceRoot?: boolean };
+      cacheStorage?: { generationManifestFile?: string };
+    };
+    expect(mergedStatus.workspaceSlice).toMatchObject({
+      kind: 'nested-package-slice',
+      coversWorkspaceRoot: false,
+    });
+    expect(mergedStatus.graphAuthoritative).toBe(false);
+    expect(mergedStatus.cacheStorage?.generationManifestFile).toBe(
+      mergedPaths.generationManifestFile
+    );
+  }, 120_000);
+
   it('interrupts and resumes a forced refresh without replacing the prior authoritative graph', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-resume-cache-'));
@@ -3655,11 +3794,7 @@ describe('holo_absorb_repo root validation', () => {
     })) as { stats?: { totalFiles?: number } };
     expect(initial.stats?.totalFiles).toBe(2);
 
-    fs.writeFileSync(
-      path.join(repoDir, 'src', 'alpha.ts'),
-      'export const alpha = 42;\n',
-      'utf-8'
-    );
+    fs.writeFileSync(path.join(repoDir, 'src', 'alpha.ts'), 'export const alpha = 42;\n', 'utf-8');
     fs.writeFileSync(path.join(repoDir, 'asset.bin'), Buffer.from([4, 5, 6, 7]));
     fs.writeFileSync(
       path.join(repoDir, 'src', 'peer-untracked.ts'),
@@ -4309,8 +4444,9 @@ describe('holo_absorb_repo root validation', () => {
     // The cap really applied, so zz-11.ts was genuinely outside the graph and
     // this is not passing vacuously on a quiet tree. The verdict receipt itself
     // rides on the full-scan and incremental result shapes, not this repair path.
-    expect(Number((status.result as { stats?: { totalFiles?: number } })?.stats?.totalFiles ?? 99)).
-      toBeLessThanOrEqual(2);
+    expect(
+      Number((status.result as { stats?: { totalFiles?: number } })?.stats?.totalFiles ?? 99)
+    ).toBeLessThanOrEqual(2);
   }, 30_000);
 
   // The measured cause of the ai-ecosystem full-tree absorb never finishing.
@@ -4334,11 +4470,7 @@ describe('holo_absorb_repo root validation', () => {
       // Untracked, exactly like the real one, and inside a directory that holds
       // operational output rather than source.
       fs.mkdirSync(path.join(repoDir, 'receipts'), { recursive: true });
-      fs.writeFileSync(
-        path.join(repoDir, 'receipts', 'sidecar.ndjson'),
-        '{"tick":0}\n',
-        'utf-8'
-      );
+      fs.writeFileSync(path.join(repoDir, 'receipts', 'sidecar.ndjson'), '{"tick":0}\n', 'utf-8');
 
       process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
       process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
@@ -4513,9 +4645,27 @@ describe('holo_absorb_repo root validation', () => {
     })) as {
       error?: string;
       cancelled?: boolean;
+      jobId?: string;
       reason?: string;
       phaseAtRequest?: string;
       cachePreserved?: boolean;
+      spill?: {
+        kind?: string;
+        host?: string;
+        clonePath?: string;
+        planned?: boolean;
+        resume?: string;
+        resumeToken?: string | null;
+        nextTool?: string;
+        nextArgs?: {
+          rootDir?: string;
+          async?: boolean;
+          scanBatchSize?: number;
+          resumeToken?: string;
+        };
+        serveHint?: string;
+        ingestHint?: string;
+      };
       memoryBudget?: {
         minSystemFreeMb?: number;
         systemReserveExhausted?: boolean;
@@ -4534,6 +4684,33 @@ describe('holo_absorb_repo root validation', () => {
         systemReserveExhausted: true,
         systemReserveExhaustedAtPhase: 'preflight resource guard',
       },
+    });
+    expect(result.spill).toMatchObject({
+      kind: 'AbsorbSpillReceipt',
+      host: os.hostname(),
+      clonePath: path.resolve(repoDir),
+      planned: false,
+      resume: 'never-planned',
+      resumeToken: null,
+      nextTool: 'holo_absorb_repo',
+      nextArgs: {
+        rootDir: path.resolve(repoDir),
+        async: true,
+        scanBatchSize: 100,
+      },
+      serveHint: 'jetson-serves',
+      ingestHint: 'clone-host-or-spend-gated-fleet',
+    });
+    expect(result.spill?.nextArgs?.resumeToken).toBeUndefined();
+    const writerReceiptFile = path.join(
+      resolveCodebaseCachePaths(repoDir).writerReceiptsDirectory,
+      `${result.jobId}.json`
+    );
+    expect(fs.existsSync(writerReceiptFile)).toBe(true);
+    expect(JSON.parse(fs.readFileSync(writerReceiptFile, 'utf-8')).spill).toMatchObject({
+      kind: 'AbsorbSpillReceipt',
+      resume: 'never-planned',
+      clonePath: path.resolve(repoDir),
     });
     expect(scanSpy).not.toHaveBeenCalled();
   });

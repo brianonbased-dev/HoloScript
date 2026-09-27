@@ -695,7 +695,10 @@ export class CharacterHost {
       sourceColorWeight:
         opts.hairTone === undefined
           ? 0
-          : Math.max(0, Math.min(1, opts.hairSourceColorWeight ?? DEFAULT_HAIR_SOURCE_COLOR_WEIGHT)),
+          : Math.max(
+              0,
+              Math.min(1, opts.hairSourceColorWeight ?? DEFAULT_HAIR_SOURCE_COLOR_WEIGHT)
+            ),
       coverageProfile: opts.hairCoverageProfile ?? HAIR_BASE.coverageProfile,
       strandCoverage: Math.max(
         0.2,

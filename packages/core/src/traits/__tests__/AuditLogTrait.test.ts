@@ -175,13 +175,14 @@ describe('AuditLogTrait', () => {
     expect(result.entriesChecked).toBe(3); // init + 2
   });
 
-  it('detects tampered hash chain', () => {
+  it('detects a broken chain link', () => {
     sendEvent(auditLogHandler, node, baseCfg, ctx, {
       type: 'audit_log',
       action: 'tenant.create',
       details: {},
     });
-    // Tamper with the hash
+    // Break the LINK. This is all the old test did, despite being named for
+    // tamper detection: it never modified any entry's content.
     const state = (node as any).__auditLogState;
     state.entries[1].previousHash = 'tampered';
     ctx.clearEvents();
@@ -191,6 +192,88 @@ describe('AuditLogTrait', () => {
     const result = getLastEvent(ctx, 'audit_integrity_result') as any;
     expect(result.valid).toBe(false);
     expect(result.brokenAt).toBe(1);
+    expect(result.brokenReason).toBe('previous_hash_mismatch');
+  });
+
+  // The forgery that passed on the published 8.7.0 package: rewrite who did it
+  // and what they did to, leave every chain pointer alone.
+  it('detects a rewritten actor and resource with the chain links left intact', () => {
+    sendEvent(auditLogHandler, node, baseCfg, ctx, {
+      type: 'audit_log',
+      action: 'tenant.create',
+      actor: { userId: 'alice', role: 'viewer' },
+      resource: 'tenant/acme',
+      details: {},
+    });
+    const state = (node as any).__auditLogState;
+    const target = state.entries[1];
+    const linksBefore = state.entries.map((e: any) => [e.previousHash, e.entryHash]);
+
+    target.actor.userId = 'mallory';
+    target.actor.role = 'root';
+    target.resource = 'DOMAIN-ADMIN';
+
+    // Nothing about the chain pointers changed — only the content did.
+    expect(state.entries.map((e: any) => [e.previousHash, e.entryHash])).toEqual(linksBefore);
+
+    ctx.clearEvents();
+    sendEvent(auditLogHandler, node, baseCfg, ctx, { type: 'audit_integrity_check' });
+    const result = getLastEvent(ctx, 'audit_integrity_result') as any;
+    expect(result.valid).toBe(false);
+    expect(result.brokenAt).toBe(1);
+    expect(result.brokenReason).toBe('entry_content_modified');
+  });
+
+  it('detects a changed severity, result or details', () => {
+    for (const mutate of [
+      (e: any) => (e.severity = 'info'),
+      (e: any) => (e.result = 'success'),
+      (e: any) => (e.details = { amount: 1_000_000 }),
+      (e: any) => (e.timestamp = '2020-01-01T00:00:00.000Z'),
+    ]) {
+      const local = createMockNode('audit-node-mutate');
+      attachTrait(auditLogHandler, local, baseCfg, ctx);
+      sendEvent(auditLogHandler, local, baseCfg, ctx, {
+        type: 'audit_log',
+        action: 'tenant.create',
+        severity: 'critical',
+        result: 'failure',
+        details: { amount: 1 },
+      });
+      mutate((local as any).__auditLogState.entries[1]);
+      ctx.clearEvents();
+      sendEvent(auditLogHandler, local, baseCfg, ctx, { type: 'audit_integrity_check' });
+      const result = getLastEvent(ctx, 'audit_integrity_result') as any;
+      expect(result.valid).toBe(false);
+      expect(result.brokenReason).toBe('entry_content_modified');
+    }
+  });
+
+  it('uses a real SHA-256 digest, not the old 31-bit hash', () => {
+    sendEvent(auditLogHandler, node, baseCfg, ctx, {
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
+    });
+    const state = (node as any).__auditLogState;
+    expect(state.entries[1].entryHash).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+
+  it('reports an unverified chain as not valid, never as valid', () => {
+    const offCfg = { ...baseCfg, enableHashChain: false };
+    const local = createMockNode('audit-node-chain-off');
+    attachTrait(auditLogHandler, local, offCfg, ctx);
+    sendEvent(auditLogHandler, local, offCfg, ctx, {
+      type: 'audit_log',
+      action: 'tenant.create',
+      details: {},
+    });
+    ctx.clearEvents();
+    sendEvent(auditLogHandler, local, offCfg, ctx, { type: 'audit_integrity_check' });
+    const result = getLastEvent(ctx, 'audit_integrity_result') as any;
+    expect(result.valid).toBe(false);
+    expect(result.unverified).toBe(true);
+    expect(result.reason).toBe('hash_chain_disabled');
   });
 
   // =========================================================================

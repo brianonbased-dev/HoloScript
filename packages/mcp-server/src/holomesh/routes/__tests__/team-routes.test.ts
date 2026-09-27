@@ -1319,6 +1319,20 @@ describe('Board Routes — Fleet Snapshot', () => {
     expect(res._body.snapshot.resource_flow.stored.volumes[0].storage_dph_usd).toBeNull();
   });
 
+  it('rejects a v2 flow whose spend max_age_ms is not the live 15-minute window', async () => {
+    const snapshot = validV2FleetSnapshot();
+    snapshot.resource_flow.spend_accounting.max_age_ms = 90 * 60 * 1000;
+    const res = await callBoard(
+      'POST',
+      '/api/holomesh/team/team_test_mobile/fleet',
+      { source: 'fleet-status-live.mjs', snapshot },
+      PARENT_KEY
+    );
+
+    expect(res._status).toBe(400);
+    expect(res._body.error).toBe('fleet snapshot object required (body or body.snapshot)');
+  });
+
   it('rejects a v2 flow that omits the canonical verified-receipt evidence fields', async () => {
     const snapshot = validV2FleetSnapshot();
     (

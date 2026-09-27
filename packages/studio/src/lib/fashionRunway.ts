@@ -12,13 +12,7 @@ export interface Vec2 {
 
 export type WalkStyle = 'standard' | 'editorial' | 'casual' | 'dramatic' | 'avant-garde';
 export type GarmentType =
-  | 'dress'
-  | 'suit'
-  | 'gown'
-  | 'streetwear'
-  | 'couture'
-  | 'swimwear'
-  | 'outerwear';
+  'dress' | 'suit' | 'gown' | 'streetwear' | 'couture' | 'swimwear' | 'outerwear';
 export type CameraAngle = 'front' | 'side' | 'overhead' | 'close-up' | 'detail' | 'audience';
 export type FabricPhysics = 'rigid' | 'flowing' | 'structured' | 'sheer' | 'heavy';
 

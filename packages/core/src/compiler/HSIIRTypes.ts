@@ -289,14 +289,7 @@ export interface HSITrace {
 // =============================================================================
 
 export type HSILearningNodeType =
-  | 'entity'
-  | 'state'
-  | 'event'
-  | 'observation'
-  | 'belief'
-  | 'objective'
-  | 'action'
-  | 'memory';
+  'entity' | 'state' | 'event' | 'observation' | 'belief' | 'objective' | 'action' | 'memory';
 
 export type HSILearningEdgeType =
   | 'contains'

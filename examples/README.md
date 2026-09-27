@@ -58,7 +58,6 @@ npm run dev
 
 The directory catalog below is **not** a working compile-to-target list. Only examples marked **supported** in `docs/examples-health/examples-health-matrix.md` may be presented as working HoloScript. Fail/aspirational/deprecated files stay labeled above.
 
-
 > **Note (2026-05-12):** The `browser-templates/` and `demos/` directories have been archived to `docs/archive/` because they reference deleted packages (`@holoscript/web-preview-plugin`, `@holoscript/studio-bridge`). See `research/2026-05-12_legacy-numbered-examples-triage.md` for the full audit.
 
 ### General Examples (`general/`)

@@ -60,8 +60,7 @@ function autoPopulateFromMesh(
   config: SoftBodyConfig
 ): { particles: Particle[]; constraints: DistanceConstraint[] } {
   const meshData = node.properties?.meshData as
-    | { positions: ArrayLike<number>; indices: ArrayLike<number> }
-    | undefined;
+    { positions: ArrayLike<number>; indices: ArrayLike<number> } | undefined;
 
   if (!meshData || !meshData.positions || !meshData.indices) {
     // Fallback to simple line segment for entities without mesh data

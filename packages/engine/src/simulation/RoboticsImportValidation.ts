@@ -7,12 +7,7 @@ import {
 import { sha256Bytes, type HashMode } from './sha256';
 
 export type RoboticsJsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | RoboticsJsonValue[]
-  | { [key: string]: RoboticsJsonValue };
+  string | number | boolean | null | RoboticsJsonValue[] | { [key: string]: RoboticsJsonValue };
 
 export type RoboticsArtifactFormat = 'urdf' | 'sdf' | 'usd-physics';
 export type RoboticsSimulatorTarget = 'isaac_sim' | 'gazebo' | 'ros2';

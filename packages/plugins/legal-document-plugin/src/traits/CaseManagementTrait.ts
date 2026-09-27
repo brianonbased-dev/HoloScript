@@ -2,13 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type CaseStatus =
-  | 'intake'
-  | 'discovery'
-  | 'pleading'
-  | 'trial'
-  | 'appeal'
-  | 'settled'
-  | 'closed';
+  'intake' | 'discovery' | 'pleading' | 'trial' | 'appeal' | 'settled' | 'closed';
 export interface CaseManagementConfig {
   caseNumber: string;
   title: string;

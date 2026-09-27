@@ -22,13 +22,7 @@ export interface CurveKeyframe {
 }
 
 export type CurvePreset =
-  | 'linear'
-  | 'ease-in'
-  | 'ease-out'
-  | 'ease-in-out'
-  | 'constant'
-  | 'bounce'
-  | 'spring';
+  'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'constant' | 'bounce' | 'spring';
 
 // =============================================================================
 // CURVE EDITOR

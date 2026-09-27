@@ -29,7 +29,8 @@
     "build:bundler": "wasm-pack build --target bundler --out-dir pkg-bundler",
     "test": "cargo test || echo 'cargo not installed, skipping WASM tests'",
     "clean": "rm -rf pkg pkg-node pkg-bundler target",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

@@ -147,15 +147,17 @@ export async function POST(req: NextRequest) {
         const { UpstashConnector } = await import(
           /* webpackIgnore: true */ '@holoscript/connector-upstash'
         );
-        const upstash = new (UpstashConnector as unknown as new (c?: {
-          redis?: { url?: string; token?: string };
-          vector?: { url?: string; token?: string };
-          qstash?: { token?: string };
-        }) => {
-          connect(): Promise<void>;
-          health(): Promise<boolean>;
-          getCapabilities(): unknown;
-        })(upstashCredentials);
+        const upstash = new (
+          UpstashConnector as unknown as new (c?: {
+            redis?: { url?: string; token?: string };
+            vector?: { url?: string; token?: string };
+            qstash?: { token?: string };
+          }) => {
+            connect(): Promise<void>;
+            health(): Promise<boolean>;
+            getCapabilities(): unknown;
+          }
+        )(upstashCredentials);
         await upstash.connect();
 
         const healthy = await upstash.health();
@@ -205,14 +207,16 @@ export async function POST(req: NextRequest) {
         const { AppStoreConnector } = await import(
           /* webpackIgnore: true */ '@holoscript/connector-appstore'
         );
-        const appstore = new (AppStoreConnector as unknown as new (c?: {
-          apple?: { keyId: string; issuerId: string; privateKey: string };
-          google?: { serviceAccount: string };
-        }) => {
-          connect(): Promise<void>;
-          health(): Promise<boolean>;
-          getCapabilities(): unknown;
-        })(appstoreCredentials);
+        const appstore = new (
+          AppStoreConnector as unknown as new (c?: {
+            apple?: { keyId: string; issuerId: string; privateKey: string };
+            google?: { serviceAccount: string };
+          }) => {
+            connect(): Promise<void>;
+            health(): Promise<boolean>;
+            getCapabilities(): unknown;
+          }
+        )(appstoreCredentials);
         await appstore.connect();
 
         const healthy = await appstore.health();

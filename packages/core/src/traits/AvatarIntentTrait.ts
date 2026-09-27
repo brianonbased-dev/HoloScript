@@ -35,16 +35,7 @@ export type InputDevice =
   | 'bci';
 
 export type AvatarIntentKind =
-  | 'idle'
-  | 'move'
-  | 'rotate'
-  | 'grab'
-  | 'release'
-  | 'point'
-  | 'select'
-  | 'emote'
-  | 'speak'
-  | 'rest';
+  'idle' | 'move' | 'rotate' | 'grab' | 'release' | 'point' | 'select' | 'emote' | 'speak' | 'rest';
 
 export interface RawInputSample {
   device: InputDevice;

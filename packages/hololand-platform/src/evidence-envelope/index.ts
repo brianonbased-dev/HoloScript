@@ -14,8 +14,7 @@ import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 export const EVIDENCE_ENVELOPE_SCHEMA = 'holoscript.evidence-envelope.v1' as const;
-export const EVIDENCE_ENVELOPE_GENERATOR =
-  '@hololand/platform-services/evidence-envelope' as const;
+export const EVIDENCE_ENVELOPE_GENERATOR = '@hololand/platform-services/evidence-envelope' as const;
 
 export type EvidenceArtifactRole =
   | 'source'

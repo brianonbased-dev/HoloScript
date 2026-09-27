@@ -9,12 +9,7 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types
 
 export type TextDirection = 'ltr' | 'rtl' | 'auto';
 export type CalendarSystem =
-  | 'gregorian'
-  | 'islamic'
-  | 'hebrew'
-  | 'chinese'
-  | 'japanese'
-  | 'thai_buddhist';
+  'gregorian' | 'islamic' | 'hebrew' | 'chinese' | 'japanese' | 'thai_buddhist';
 export type MeasurementSystem = 'metric' | 'imperial' | 'us_customary';
 
 export interface CultureConfig {

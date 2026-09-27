@@ -63,21 +63,13 @@ import type { EvidenceTrail, EvidenceTrailMetadata } from './EvidenceTrail';
  * Complete MVC object union type
  */
 export type MVCObject =
-  | DecisionHistory
-  | ActiveTaskState
-  | UserPreferences
-  | SpatialContextSummary
-  | EvidenceTrail;
+  DecisionHistory | ActiveTaskState | UserPreferences | SpatialContextSummary | EvidenceTrail;
 
 /**
  * MVC object type discriminator
  */
 export type MVCType =
-  | 'decision-history'
-  | 'task-state'
-  | 'preferences'
-  | 'spatial-context'
-  | 'evidence-trail';
+  'decision-history' | 'task-state' | 'preferences' | 'spatial-context' | 'evidence-trail';
 
 /**
  * MVC metadata union type

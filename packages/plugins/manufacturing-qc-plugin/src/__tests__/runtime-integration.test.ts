@@ -130,8 +130,7 @@ describe('manufacturing-qc -> HoloScript runtime integration (spc)', () => {
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['spc:spc'] as
-      | { Cp?: number; Cpk?: number; capable?: boolean }
-      | undefined;
+      { Cp?: number; Cpk?: number; capable?: boolean } | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.Cp).toBeCloseTo(EXPECTED_CP, 9);
     expect(persisted?.Cpk).toBeCloseTo(EXPECTED_CPK, 9);

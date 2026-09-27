@@ -58,9 +58,7 @@ export type RepositoryApprovalRole = 'bootstrap' | 'controller' | 'successor' | 
 
 type JsonPrimitive = null | boolean | number | string;
 export type CanonicalJsonValue =
-  | JsonPrimitive
-  | readonly CanonicalJsonValue[]
-  | { readonly [key: string]: CanonicalJsonValue };
+  JsonPrimitive | readonly CanonicalJsonValue[] | { readonly [key: string]: CanonicalJsonValue };
 
 export interface RepositoryIdentityCanonicalizationLimits {
   readonly maxDepth: number;
@@ -686,9 +684,7 @@ function repositoryBinding(value: unknown, label = 'repository'): RepositoryBind
   ) {
     fail('INVALID_INPUT', `${label}.source must be a credential-free http(s) URL`);
   }
-  const source = normalizedSource
-    .replace(/\.git\/?$/u, '')
-    .replace(/\/$/u, '');
+  const source = normalizedSource.replace(/\.git\/?$/u, '').replace(/\/$/u, '');
   return freezeDeep({ repoId, source, canonicalRef });
 }
 
@@ -1696,9 +1692,7 @@ export interface LegacyRepositoryIdentityProjection {
   readonly identityHash: string;
   readonly authorityBoundary: {
     readonly requiredDurableIdentityAuthority: 'HoloKey';
-    readonly evidence:
-      | 'local-bootstrap-contract-only'
-      | HoloKeyIdentityAuthorityEvidence;
+    readonly evidence: 'local-bootstrap-contract-only' | HoloKeyIdentityAuthorityEvidence;
     readonly authenticatedDurableReadback: false;
     readonly compatibilityOnly: true;
     readonly issuesIdentity: false;
@@ -1916,16 +1910,10 @@ function parseHoloKeyIdentityEvidence(value: unknown): HoloKeyIdentityEvidence {
     fail('INVALID_CAPABILITY', 'HoloKey identity evidence must name HoloKey as its authority');
   }
   if (root.authorityEvidence !== 'caller-injected-contract-capabilities') {
-    fail(
-      'INVALID_CAPABILITY',
-      'authenticated durable readback requires an HoloKey root receipt'
-    );
+    fail('INVALID_CAPABILITY', 'authenticated durable readback requires an HoloKey root receipt');
   }
   if (root.authenticatedDurableReadback !== false) {
-    fail(
-      'INVALID_CAPABILITY',
-      'authenticated durable readback requires an HoloKey root receipt'
-    );
+    fail('INVALID_CAPABILITY', 'authenticated durable readback requires an HoloKey root receipt');
   }
   return freezeDeep({
     schema: HOLOKEY_REPOSITORY_IDENTITY_EVIDENCE_SCHEMA,
@@ -1943,9 +1931,7 @@ function parseHoloKeyIdentityEvidence(value: unknown): HoloKeyIdentityEvidence {
  * contract evidence. It validates the HoloKey schema and content binding, but
  * it never claims authenticated durable-root issuance or performs a mutation.
  */
-export function verifyHoloKeyIdentityEvidence(
-  value: unknown
-): HoloKeyIdentityVerification {
+export function verifyHoloKeyIdentityEvidence(value: unknown): HoloKeyIdentityVerification {
   const evidence = parseHoloKeyIdentityEvidence(value);
   const material = {
     schema: HOLOKEY_REPOSITORY_IDENTITY_VERIFICATION_SCHEMA,
@@ -1970,9 +1956,7 @@ export function verifyHoloKeyIdentityEvidence(
  * The result is compatibility-only and has no identity origination or mutation
  * capability; authenticated durable readback remains explicitly false.
  */
-export function projectHoloKeyIdentityEvidence(
-  value: unknown
-): LegacyRepositoryIdentityProjection {
+export function projectHoloKeyIdentityEvidence(value: unknown): LegacyRepositoryIdentityProjection {
   const verification = verifyHoloKeyIdentityEvidence(value);
   const identity = verification.identity;
   const material = {

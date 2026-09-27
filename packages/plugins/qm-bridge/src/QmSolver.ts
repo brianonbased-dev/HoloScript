@@ -55,12 +55,7 @@ export type QmBasis =
 
 /** QM backend identifiers. */
 export type QmBackend =
-  | 'psi4'
-  | 'quantum-espresso'
-  | 'tblite'
-  | 'ibm-quantum'
-  | 'pyscf'
-  | 'quantinuum';
+  'psi4' | 'quantum-espresso' | 'tblite' | 'ibm-quantum' | 'pyscf' | 'quantinuum';
 
 /** Molecular system representation. */
 export interface MoleculeSpec {

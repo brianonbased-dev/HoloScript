@@ -187,10 +187,7 @@ export interface CloudPermissionCleanupVerificationReceipt {
   residualAccessCount: number;
   readyToClaimClean: boolean;
   verificationMethod:
-    | 'provider_settings'
-    | 'provider_activity_log'
-    | 'manual_redacted_witness'
-    | string;
+    'provider_settings' | 'provider_activity_log' | 'manual_redacted_witness' | string;
   verifiedAt: string;
   hash: string;
   hashAlgorithm: ArtifactHashAlgorithm;

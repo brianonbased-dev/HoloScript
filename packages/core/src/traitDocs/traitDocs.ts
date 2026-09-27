@@ -10,14 +10,7 @@ export interface TraitDoc {
   annotation: string;
   description: string;
   category:
-    | 'physics'
-    | 'animation'
-    | 'rendering'
-    | 'networking'
-    | 'input'
-    | 'ai'
-    | 'utility'
-    | 'hololand';
+    'physics' | 'animation' | 'rendering' | 'networking' | 'input' | 'ai' | 'utility' | 'hololand';
   properties: PropertyDoc[];
   methods: MethodDoc[];
   events: EventDoc[];

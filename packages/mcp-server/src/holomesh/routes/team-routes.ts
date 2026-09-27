@@ -32,6 +32,7 @@ import {
   resolveRequestingAgent,
 } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
+import { visibleTeamMessagesFor } from '../message-addressing';
 import { extractAndVerifySigning, getAttestationRegistry } from '../identity/signing-middleware';
 import {
   advanceNegotiation,
@@ -44,11 +45,15 @@ import {
 import { getClient } from '../orchestrator-client';
 import {
   appendTeamKnowledgeMirror,
+  knowledgeEntryMatchesQuery,
   mergeTeamKnowledgeWithOrchestrator,
   entriesForViewer,
   isPublicFeedEntry,
+  premiumEntryAccess,
   ANONYMOUS_VIEWER,
+  type PremiumViewer,
 } from '../entry-lookup';
+import { isPremiumEntry } from '../premium-view';
 import { checkRateLimit } from '../social';
 import type {
   Team,
@@ -99,6 +104,25 @@ function normalizeEntry(entry: MeshKnowledgeEntry): Record<string, unknown> {
     authorName: entry.authorName,
     createdAt: entry.createdAt,
   };
+}
+
+/**
+ * Premium rows a search caller may actually match.
+ *
+ * `entriesForViewer` / `premiumEntryAccess` already decide entitlement
+ * (author, founder key, or a recorded purchase in `paidAccessStore`).
+ * Redaction is not enough on the `q` path: the orchestrator searched the
+ * hidden body, and returning the locked row tells the caller the body
+ * matched. Drop those rows before keyword match and before the
+ * orchestrator-rank fallback. Browse (no `q`) still returns teasers.
+ */
+function visibleKnowledgeForSearch<
+  T extends { id: string; authorId?: string; price?: unknown; metadata?: unknown },
+>(rows: T[], viewer: PremiumViewer): T[] {
+  return rows.filter(
+    (entry) =>
+      !isPremiumEntry(entry) || premiumEntryAccess(viewer, entry.id, entry.authorId) !== null
+  );
 }
 
 async function fetchQuickstartPreview(): Promise<MeshKnowledgeEntry[]> {
@@ -180,14 +204,23 @@ function publicGuildSummary(team: Team): Record<string, unknown> {
  * so any caller with a name got a member seat there plus its open tasks. Our
  * own seats never join through quickstart; they register with a wallet and
  * POST /team/:id/join with their own bearer. So a team is eligible only
- * when it has explicitly opted in, is public, is not an admin room, and has
- * a free seat.
+ * when it has explicitly opted in, is public, is not an admin room, carries
+ * no invite code, and has a free seat.
+ *
+ * The invite-code condition comes from the other lane, which found this same
+ * hole independently and reproduced it 2026-09-10 against a copy configured
+ * like production: a stranger landed in whichever team had room, "including
+ * one marked private with a code set". Its fix checked public + no invite
+ * code; this one checked opt-in + public + not an admin room. Neither is a
+ * subset of the other, so the merge takes both — on a door, the narrower
+ * reading always wins.
  */
 export function isQuickstartAutoJoinTeam(team: Team): boolean {
   return (
     team.quickstartAutoJoin === true &&
     team.visibility === 'public' &&
     team.adminRoom !== true &&
+    !team.inviteCode &&
     team.members.length < team.maxSlots
   );
 }
@@ -1075,7 +1108,12 @@ export async function handleTeamRoutes(
       return true;
     }
     const body: any = effectiveBody;
-    if (body.invite_code !== undefined && body.invite_code !== team.inviteCode) {
+    // A gate that only runs when the caller volunteers the code is not a gate:
+    // omitting `invite_code` entirely skipped the comparison and the join went
+    // through. Reproduced 2026-09-10. If the team carries a code, it must be
+    // presented and it must match. Teams with no code are unchanged — an open
+    // team stays open on purpose.
+    if (team.inviteCode && body.invite_code !== team.inviteCode) {
       json(res, 403, { error: 'Invalid invite code' });
       return true;
     }
@@ -1664,7 +1702,15 @@ export async function handleTeamRoutes(
     }
     const searchParams = new URL(url, 'http://localhost').searchParams;
     const limit = parseInt(searchParams.get('limit') || '50', 10) || 50;
-    const messages = (teamMessageStore.get(teamId) || []).slice(-limit);
+    // SECOND COPY OF THIS ROUTE. handleBoardRoutes runs before handleTeamRoutes
+    // in http-routes.ts, so today this handler never serves a request — which is
+    // precisely why it must be fixed too. A dead duplicate is how a security fix
+    // gets applied to the wrong file and how a hole comes back when the routing
+    // order changes. Its unfiltered read was in fact the worse of the two: it
+    // returned every message in the team, DMs included, to any member.
+    const messages = visibleTeamMessagesFor(teamMessageStore.get(teamId) || [], caller).slice(
+      -limit
+    );
     json(res, 200, { success: true, messages, count: messages.length });
     return true;
   }
@@ -1750,21 +1796,38 @@ export async function handleTeamRoutes(
       fromOrch = [];
     }
     // Team members are not entitled to each other's premium entries.
-    let entries = entriesForViewer(
-      mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge),
-      resolveRequestingAgent(req)
-    );
+    // On a search, drop those rows before matching. entriesForViewer only
+    // redacts them; the locked row itself is proof the hidden body matched.
+    const viewer = resolveRequestingAgent(req);
+    const merged = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
+    let entries = entriesForViewer(q ? visibleKnowledgeForSearch(merged, viewer) : merged, viewer);
     if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
     if (q) {
-      // `q` present → a RELEVANCE query. mergeTeamKnowledgeWithOrchestrator leads
-      // with `fromOrch`, which the orchestrator already ranked by relevance
-      // (HoloEmbed embedding search — the canonical semantic surface). Previously
-      // this handler then (a) substring-filtered, dropping semantically-relevant
-      // entries that don't literally contain the query word, AND (b) re-sorted by
-      // createdAt, discarding the relevance ranking entirely — both defeat semantic
-      // recall. The edge cognitive verb `rag_query` hits this exact route, so the
-      // filter+recency-sort was turning embedding search into keyword-then-newest.
-      // Trust the orchestrator's ranked order; just cap to `limit`.
+      // Live 2026-09-05 (board m9oh): `q` reached queryKnowledge, but a failed
+      // or unranked orchestrator dump was merged with the on-disk mirror in
+      // append order and sliced. Two different queries returned the same 20
+      // oldest gotchas. Literal hits on the full merge make a nonsense query
+      // diverge; multi-word phrases with no literal hit still keep orch rank
+      // (rag_query / HoloEmbed). A token with neither literal nor orch hits
+      // returns empty instead of the browse dump.
+      const keywordHits = entries.filter((e) => knowledgeEntryMatchesQuery(e, q));
+      if (keywordHits.length > 0) {
+        entries = keywordHits;
+      } else if (fromOrch.length > 0 && /\s/u.test(q)) {
+        // fromOrch is the orchestrator's RAW rows. The premium gate above was
+        // applied to `entries`, and this branch replaces `entries` wholesale, so
+        // the gate has to be re-applied here or it is simply skipped.
+        //
+        // Re-applying entriesForViewer only hides the body. The orchestrator
+        // already matched `q` against that body, so a locked row in this
+        // branch tells a non-payer which words are in the paid text. Keep
+        // free rows and rows this viewer is entitled to (author, founder,
+        // recorded purchase); drop the rest.
+        entries = entriesForViewer(visibleKnowledgeForSearch(fromOrch, viewer), viewer);
+        if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
+      } else {
+        entries = [];
+      }
       entries = entries.slice(0, limit);
     } else {
       // No query → browse. Newest-first is correct here (the GOLD graduation

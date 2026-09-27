@@ -21,12 +21,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 export type AssetFormat = 'gltf' | 'glb' | 'obj' | 'fbx' | 'usd' | 'usdz' | 'unknown';
 
 export type ImportStatus =
-  | 'pending'
-  | 'validating'
-  | 'importing'
-  | 'processing'
-  | 'complete'
-  | 'error';
+  'pending' | 'validating' | 'importing' | 'processing' | 'complete' | 'error';
 
 export interface AssetImportEntry {
   id: string;

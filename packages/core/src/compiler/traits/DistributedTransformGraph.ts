@@ -37,7 +37,7 @@
  * @version 1.0.0 (paper-8 prototype)
  */
 
-import { ProvenanceSemiring } from './ProvenanceSemiring';
+import { ProvenanceSemiring, canonicalProvenanceJson } from './ProvenanceSemiring';
 import type { TraitApplication, CompositionResult, ProvenanceConfig } from './ProvenanceSemiring';
 
 // =============================================================================
@@ -183,7 +183,9 @@ export class DistributedTransformGraph {
     const result = this.semiring.add(traits);
     this.logicalClock += 1;
 
-    const stateHash = fnv1a32(JSON.stringify(result.provenance) + ':' + this.logicalClock)
+    // 97yq: canonical bytes, so the same logical composition hashes one way whatever
+    // key order the caller's context and values arrived in.
+    const stateHash = fnv1a32(canonicalProvenanceJson(result.provenance) + ':' + this.logicalClock)
       .toString(16)
       .padStart(8, '0');
 
@@ -282,13 +284,22 @@ export class DistributedTransformGraph {
     for (const id of activeIds) {
       const state = this.nodeStates.get(id);
       if (!state) continue;
-      // Convert provenance config entries back to TraitApplication form
+      // Convert provenance config entries back to TraitApplication form. A merged value
+      // goes back as its leaf contributions, not its total: re-merging two partial sums
+      // that happen to be equal treated them as one fact, so leaves 0.1..0.4 split
+      // {a,d}/{b,c} across two nodes merged to 0.5, not 1 (claude3's review of #318).
+      // The same leaf seen by two nodes is one fact and collapses, as it should.
       for (const [key, pv] of Object.entries(state.provenanceConfig)) {
-        allTraits.push({
-          name: pv.source ?? id,
-          config: { [key]: pv.value },
-          context: pv.context,
-        });
+        const leaves = pv.contributions?.length
+          ? pv.contributions
+          : [{ source: pv.source ?? id, value: pv.value, context: pv.context }];
+        for (const leaf of leaves) {
+          allTraits.push({
+            name: leaf.source ?? id,
+            config: { [key]: leaf.value },
+            context: leaf.context,
+          });
+        }
       }
     }
 

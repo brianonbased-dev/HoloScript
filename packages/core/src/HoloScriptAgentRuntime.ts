@@ -449,8 +449,7 @@ export class HoloScriptAgentRuntime {
       if (typeof val === 'string') sources.push(val);
     }
     const directives = this.agentNode.directives as unknown as
-      | Array<{ body?: unknown }>
-      | undefined;
+      Array<{ body?: unknown }> | undefined;
     if (directives) {
       for (const d of directives) {
         if (typeof d.body === 'string') sources.push(d.body);
@@ -526,8 +525,7 @@ export class HoloScriptAgentRuntime {
     // Search directives for method-type entries (runtime shape may differ from declared types)
     const directives = this.agentNode.directives as unknown as RuntimeDirective[] | undefined;
     const action = directives?.find((d) => d.type === 'method' && d.name === actionName) as
-      | (MethodNode & RuntimeDirective)
-      | undefined;
+      (MethodNode & RuntimeDirective) | undefined;
 
     if (!action) {
       // Fallback: check if it's a built-in or global function
@@ -547,8 +545,7 @@ export class HoloScriptAgentRuntime {
 
     // Bind 'this' and initial state
     const agentData = this.parentRuntime.getVariable(this.agentNode.name) as
-      | (Record<string, HoloScriptValue> & { state?: HoloScriptValue })
-      | undefined;
+      (Record<string, HoloScriptValue> & { state?: HoloScriptValue }) | undefined;
     if (agentData && !agentData.state) {
       agentData.state = this.localState.getProxy();
     }
@@ -726,8 +723,7 @@ export class HoloScriptAgentRuntime {
 
       // Bind 'this'
       const agentData = this.parentRuntime.getVariable(this.agentNode.name) as
-        | (Record<string, HoloScriptValue> & { state?: HoloScriptValue })
-        | undefined;
+        (Record<string, HoloScriptValue> & { state?: HoloScriptValue }) | undefined;
       if (agentData && !agentData.state) {
         agentData.state = this.localState.getProxy();
       }

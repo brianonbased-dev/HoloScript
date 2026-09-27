@@ -25,8 +25,7 @@ const tick = () => new Promise<void>((r) => setTimeout(r, 10));
 
 const waitForIdle = async (node: ReturnType<typeof makeNode>) => {
   const state = (node as unknown as Record<string, unknown>).__holomapState as
-    | { operationChain?: Promise<unknown> }
-    | undefined;
+    { operationChain?: Promise<unknown> } | undefined;
   await state?.operationChain;
 };
 

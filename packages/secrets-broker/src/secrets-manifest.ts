@@ -35,10 +35,7 @@ export interface SecretsManifest {
 
 /** Supported compile targets — mirrors `BrokerManifest.storage`. */
 export type SecretsCompileTarget =
-  | 'env-template'
-  | 'github-actions'
-  | 'holokey-vault'
-  | 'infra-namespace';
+  'env-template' | 'github-actions' | 'holokey-vault' | 'infra-namespace';
 
 /** Thrown when a manifest is malformed (e.g. a non-env-var-style name). */
 export class SecretsManifestError extends Error {

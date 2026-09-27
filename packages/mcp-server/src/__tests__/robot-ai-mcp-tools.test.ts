@@ -745,13 +745,11 @@ describe('robot-ai-mcp-tools', () => {
       it('emits NO receipt when the safety verdict denies, even with a willing backend', async () => {
         class WillingDispatcher implements RobotDispatcher {
           readonly backend = 'ros2' as const;
-          dispatch = vi.fn(
-            async (): Promise<DispatchResult> => ({
-              dispatched: true,
-              dispatchedTo: 'ros2',
-              simulated: false,
-            })
-          );
+          dispatch = vi.fn(async (): Promise<DispatchResult> => ({
+            dispatched: true,
+            dispatchedTo: 'ros2',
+            simulated: false,
+          }));
         }
         const willing = new WillingDispatcher();
         setRobotDispatcher(willing);

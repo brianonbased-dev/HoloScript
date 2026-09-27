@@ -342,8 +342,7 @@ export const timeOfDayHandler: TraitHandler<TimeOfDayConfig> = {
 
   onUpdate(node, config, context, delta) {
     const state = (node as unknown as Record<string, unknown>).__timeOfDayState as
-      | TimeOfDayState
-      | undefined;
+      TimeOfDayState | undefined;
     if (!state) return;
 
     state.elapsedSeconds += delta;
@@ -373,8 +372,7 @@ export const timeOfDayHandler: TraitHandler<TimeOfDayConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__timeOfDayState as
-      | TimeOfDayState
-      | undefined;
+      TimeOfDayState | undefined;
     if (!state) return;
 
     /**

@@ -24,12 +24,7 @@ function v3z(v: Vec3): number {
 export type ComplianceLevel = 'pass' | 'warning' | 'fail';
 export type WCAGLevel = 'A' | 'AA' | 'AAA';
 export type MobilityDevice =
-  | 'manual-wheelchair'
-  | 'power-wheelchair'
-  | 'scooter'
-  | 'walker'
-  | 'crutches'
-  | 'cane';
+  'manual-wheelchair' | 'power-wheelchair' | 'scooter' | 'walker' | 'crutches' | 'cane';
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);

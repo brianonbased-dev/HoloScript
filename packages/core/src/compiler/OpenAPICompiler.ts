@@ -131,14 +131,7 @@ export interface OpenAPICompilationResult {
 // ── Trait name constants ───────────────────────────────────────────────────
 
 type OpenAPITraitName =
-  | 'endpoint'
-  | 'param'
-  | 'returns'
-  | 'auth'
-  | 'description'
-  | 'service'
-  | 'http'
-  | 'route';
+  'endpoint' | 'param' | 'returns' | 'auth' | 'description' | 'service' | 'http' | 'route';
 
 const OPENAPI_TRAIT_NAMES: readonly OpenAPITraitName[] = [
   'endpoint',

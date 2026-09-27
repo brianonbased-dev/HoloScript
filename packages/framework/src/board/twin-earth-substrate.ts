@@ -19,13 +19,7 @@ export type ParticipationMode = 'local' | 'BYOK' | 'managed';
 
 /** Substrate role — determines action ceiling. */
 export type TwinEarthRole =
-  | 'founder'
-  | 'steward'
-  | 'operator'
-  | 'robot'
-  | 'ai'
-  | 'brittney'
-  | 'visitor';
+  'founder' | 'steward' | 'operator' | 'robot' | 'ai' | 'brittney' | 'visitor';
 
 /** Hardware-bound or software-bound participant kind. */
 export type TwinEarthKind = 'robot' | 'ai';
@@ -165,11 +159,7 @@ export interface SafetyEnvelope {
 
 /** Receipt kind emitted by the substrate. */
 export type TwinEarthReceiptKind =
-  | 'action'
-  | 'validation'
-  | 'encounter'
-  | 'steward_tick'
-  | 'contract_upgrade';
+  'action' | 'validation' | 'encounter' | 'steward_tick' | 'contract_upgrade';
 
 /** Execution status recorded in a receipt. */
 export type TwinEarthReceiptStatus = 'success' | 'failure' | 'timeout' | 'rejected_by_envelope';

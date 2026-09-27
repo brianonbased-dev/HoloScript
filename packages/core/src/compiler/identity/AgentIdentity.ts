@@ -25,8 +25,7 @@ import type { CulturalFamily, PromptDialect } from '../../traits/CultureTraits';
 // Guard with a runtime check so the module can be imported in browser context
 // (e.g. for WorkflowStep / AgentRole enums) without crashing at load time.
 const generateKeyPairAsync:
-  | ((type: string, options: object) => Promise<{ publicKey: string; privateKey: string }>)
-  | null =
+  ((type: string, options: object) => Promise<{ publicKey: string; privateKey: string }>) | null =
   typeof crypto.generateKeyPair === 'function'
     ? (promisify(crypto.generateKeyPair) as unknown as (
         type: string,

@@ -84,9 +84,7 @@ export type ModelWorkspaceEndpointEstimator =
   keyof typeof MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES;
 
 export type ModelWorkspaceEstimator =
-  | 'explicit_pair_average_v0'
-  | 'corpus_position_average_v1'
-  | ModelWorkspaceEndpointEstimator;
+  'explicit_pair_average_v0' | 'corpus_position_average_v1' | ModelWorkspaceEndpointEstimator;
 
 export type ModelWorkspaceTransportProfile =
   (typeof MODEL_WORKSPACE_ENDPOINT_TRANSPORT_PROFILES)[ModelWorkspaceEndpointEstimator];
@@ -143,8 +141,7 @@ export interface ModelWorkspaceS5TransportControlMetrics {
 }
 
 export type ModelWorkspaceTransportControlMetrics =
-  | ModelWorkspaceS4TransportControlMetrics
-  | ModelWorkspaceS5TransportControlMetrics;
+  ModelWorkspaceS4TransportControlMetrics | ModelWorkspaceS5TransportControlMetrics;
 
 export interface ModelWorkspaceLayerObservation {
   layer: number;

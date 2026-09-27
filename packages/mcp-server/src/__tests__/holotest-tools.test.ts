@@ -8,8 +8,28 @@
  * Uses the regex fallback parser by injecting object blocks directly in HoloScript format.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { handleHolotestTool, holotestTools } from '../holotest-tools';
+import * as llmProvider from '@holoscript/llm-provider';
+
+/**
+ * Run `fn` with the LLM provider registry emptied, so the judge genuinely cannot run.
+ *
+ * This forces the outage instead of waiting for one. The registry is restored afterwards
+ * even if the assertion throws, so the surrounding tests — which DO use a live provider —
+ * are unaffected by ordering.
+ */
+async function withNoProvider<T>(fn: () => Promise<T>): Promise<T> {
+  const spy = vi.spyOn(llmProvider, 'createProviderManager').mockReturnValue({
+    getRegisteredProviders: () => [],
+    getProvider: () => undefined,
+  } as unknown as ReturnType<typeof llmProvider.createProviderManager>);
+  try {
+    return await fn();
+  } finally {
+    spy.mockRestore();
+  }
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -324,5 +344,67 @@ describe('handleHolotestTool — execute_eval dispatch (CG-086)', () => {
     expect(dims).toContain('correctness');
     expect(dims).toContain('completeness');
     expect(dims).toContain('conciseness');
+  });
+});
+
+// ── A judge that did not run must not return a verdict ────────────────────────
+//
+// These tests run with no LLM provider configured, so they exercise the real outage path
+// rather than a mock of it. Before this battery, that path returned `verdict: 'FAIL',
+// overall_score: 0` with every dimension zeroed — which does not say "the judge was
+// unavailable", it says "this work was examined and scored zero". An infrastructure
+// condition arrived at the caller as a quality verdict, and the only way to tell the
+// difference was to notice that `provider` was undefined, which no caller did.
+//
+// The suite already called execute_eval twice without a provider and never noticed, because
+// both assertions only inspected the dimension NAMES. A wrong verdict sat under passing
+// tests. That is why these assert the verdict itself.
+// The outage is FORCED, not hoped for. The first version of this battery branched on
+// `judge.provider !== undefined` and returned early if a provider existed — and in this
+// environment one does, so both tests passed without executing a single assertion about
+// UNGRADED. Proven, not assumed: an assertion of `toBe('PROVE_THIS_ASSERTION_RUNS')` still
+// reported 27/27 green. A test that guards the very condition it exists to check will skip
+// exactly when it matters and report success for it.
+describe('execute_eval — the judge failing is not the subject failing', () => {
+  it('reports UNGRADED, not FAIL, when no provider can run the judge', async () => {
+    const result = await withNoProvider(() =>
+      handleHolotestTool('execute_eval', {
+        output: 'Any text at all.',
+        rubric: 'Be accurate.',
+      })
+    );
+    const judge = result!.judge_result!;
+    expect(judge.provider).toBeUndefined();
+    expect(judge.verdict).toBe('UNGRADED');
+    expect(judge.verdict).not.toBe('FAIL');
+    // 'error' distinguishes "the check did not run" from "the check said no". 'passed' would
+    // be worse still — an unjudged output reported as having passed.
+    expect(result!.status).toBe('error');
+    expect(result!.status).not.toBe('passed');
+    // The prose a human reads must not quote a score, or the false zero returns as text.
+    expect(result!.summary).toContain('UNGRADED');
+    expect(result!.summary).not.toMatch(/score 0\.0\/10/);
+  });
+
+  it('does not report NO_REGRESSION when neither side could be judged', async () => {
+    const result = await withNoProvider(() =>
+      handleHolotestTool('execute_eval', {
+        output: 'Current output.',
+        rubric: 'Be accurate.',
+        reference_output: 'Reference output.',
+        reference_trace_id: 'trace-1',
+      })
+    );
+    const diff = result!.regression_diff;
+    expect(diff).toBeDefined();
+    // This is the worst of the three: both sides scored 0, the delta was 0, and the old code
+    // returned NO_REGRESSION — the most reassuring answer available, from no evidence at all.
+    // A false reassurance is worse than a false failure because nobody goes looking for it.
+    expect(diff!.verdict).toBe('UNGRADED');
+    expect(diff!.verdict).not.toBe('NO_REGRESSION');
+    expect(diff!.summary).toMatch(/could not be judged|neither .* could be judged/);
+    // And the sentence must not state the opposite of what happened — an earlier draft of
+    // this repair rendered "the current output could be judged".
+    expect(diff!.summary).not.toMatch(/output could be judged/);
   });
 });

@@ -268,12 +268,10 @@ function solidColorTexture(
   });
   const data = new Uint8Array(size * size * 4);
   for (let pixel = 0; pixel < size * size; pixel += 1) data.set(color, pixel * 4);
-  device.queue.writeTexture(
-    { texture },
-    data,
-    { bytesPerRow: size * 4, rowsPerImage: size },
-    [size, size]
-  );
+  device.queue.writeTexture({ texture }, data, { bytesPerRow: size * 4, rowsPerImage: size }, [
+    size,
+    size,
+  ]);
   return texture;
 }
 
@@ -284,12 +282,10 @@ function solidDepthTexture(device: GPUDevice, size: number, depth: number): GPUT
     usage: 0x04 | 0x02 | 0x01,
   });
   const data = new Float32Array(size * size).fill(depth);
-  device.queue.writeTexture(
-    { texture },
-    data,
-    { bytesPerRow: size * 4, rowsPerImage: size },
-    [size, size]
-  );
+  device.queue.writeTexture({ texture }, data, { bytesPerRow: size * 4, rowsPerImage: size }, [
+    size,
+    size,
+  ]);
   return texture;
 }
 

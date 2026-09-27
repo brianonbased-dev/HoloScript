@@ -338,8 +338,7 @@ export class USDPhysicsCompiler extends CompilerBase {
       return undefined;
     }
 
-    const propValue = (key: string): unknown =>
-      obj.properties.find((p) => p.key === key)?.value;
+    const propValue = (key: string): unknown => obj.properties.find((p) => p.key === key)?.value;
 
     const config: Record<string, unknown> = { jointType: JOINT_TRAIT_TYPES[jointTraitName] };
 

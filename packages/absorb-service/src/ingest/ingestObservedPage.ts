@@ -391,7 +391,9 @@ function looksLikeHoloSource(text: string): boolean {
   return /^\s*(composition|object)\b/.test(text);
 }
 
-function extractMarkdownHeadings(text: string): Array<{ name: string; text: string; line: number }> {
+function extractMarkdownHeadings(
+  text: string
+): Array<{ name: string; text: string; line: number }> {
   const headings: Array<{ name: string; text: string; line: number }> = [];
   const lines = text.split(/\r?\n/);
   for (let index = 0; index < lines.length; index += 1) {
