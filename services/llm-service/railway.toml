@@ -3,11 +3,6 @@
 
 [build]
 builder = "NIXPACKS"
-# No buildCommand here, so Nixpacks runs package.json "build".
-# That script builds @holoscript/secrets-broker, then @holoscript/config,
-# then @holoscript/llm-provider, then tsc. llm-provider's declaration emit
-# imports @holoscript/config, and config's declaration emit imports
-# @holoscript/secrets-broker. Skipping either fails with TS2307.
 
 [deploy]
 healthcheckPath = "/api/health"
