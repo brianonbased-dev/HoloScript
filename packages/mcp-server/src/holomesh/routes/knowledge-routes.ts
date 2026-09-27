@@ -32,8 +32,10 @@ import {
   findKnowledgeEntryById,
   entryForViewer,
   entriesForViewer,
+  entitledSearchRows,
   premiumEntryAccess,
   type PremiumAccess,
+  type PremiumViewer,
 } from '../entry-lookup';
 import { premiumTeaser, premiumTeaserText } from '../premium-view';
 import { getConsolidationBridge } from '../consolidation-bridge';
@@ -71,6 +73,31 @@ import type {
 } from '../types';
 
 const CREATOR_ROYALTY_RATE = 0.85; // 85% to creator, 15% platform fee
+
+/**
+ * Review preview for one quarantined row.
+ *
+ * Free rows, and premium rows this caller may open, keep the 200-character
+ * slice. An unentitled premium row is cut to the teaser (at most 120
+ * characters and at most a third of the body). The slice is the paid body:
+ * ingest copies `entry.content`, and HotBufferEntry has no separate teaser.
+ * Rows snapshotted before `price` was stored have no price and stay at 200
+ * characters.
+ */
+function consolidationContentPreview(
+  entry: { content: string; authorDid: string; price?: number; knowledgeEntryId?: string },
+  viewer: PremiumViewer
+): string {
+  const price = entry.price;
+  const premium = typeof price === 'number' && Number.isFinite(price) && price > 0;
+  if (
+    premium &&
+    premiumEntryAccess(viewer, entry.knowledgeEntryId ?? '', entry.authorDid) === null
+  ) {
+    return premiumTeaser(entry.content);
+  }
+  return entry.content.slice(0, 200);
+}
 
 const AUDIT_KEY_ID = 'holomesh-ed25519-v1';
 let cachedAuditKeyPair: { privateKeyPem: string; publicKeyPem: string } | null = null;
@@ -581,10 +608,12 @@ export async function handleKnowledgeRoutes(
     }
 
     const query = `${target} ${source.slice(0, 500)}`;
-    // Tips quote up to 220 characters: premium rows are cut first.
+    // Drop premium rows this caller cannot open before tips are built.
+    // A locked row would still confirm the query hit hidden paid text.
+    const viewer = resolveRequestingAgent(req);
     const kb = entriesForViewer(
-      await c.queryKnowledge(query, { limit: 30 }),
-      resolveRequestingAgent(req)
+      entitledSearchRows(await c.queryKnowledge(query, { limit: 30 }), viewer),
+      viewer
     );
 
     const wisdom = kb.filter((e) => e.type === 'wisdom').slice(0, 5);
@@ -673,10 +702,12 @@ export async function handleKnowledgeRoutes(
     }
 
     const query = `${target} ${source.slice(0, 500)}`;
-    // Rationale snippets quote up to 180 characters: premium rows are cut first.
+    // Rationale snippets quote the row. Drop unentitled premium rows first
+    // so neither the id nor a hidden-body snippet can leave.
+    const viewer = resolveRequestingAgent(req);
     const kb = entriesForViewer(
-      await c.queryKnowledge(query, { limit: 40 }),
-      resolveRequestingAgent(req)
+      entitledSearchRows(await c.queryKnowledge(query, { limit: 40 }), viewer),
+      viewer
     );
     const gotchas = kb.filter((e) => e.type === 'gotcha');
     const gotchaSignals = [
@@ -734,11 +765,12 @@ export async function handleKnowledgeRoutes(
     const target = (body.target as string | undefined)?.trim() || 'generic';
     const prompt = (body.prompt as string | undefined)?.trim() || `${target} ${domain}`;
 
-    // Themes are word counts over the text and guardrails quote it, so
-    // premium rows are cut to their teaser first.
+    // Themes count words and guardrails quote the text. Drop unentitled
+    // premium rows before either is built, so a hidden-only hit adds no theme.
+    const viewer = resolveRequestingAgent(req);
     const kb = entriesForViewer(
-      await c.queryKnowledge(prompt, { limit: 60 }),
-      resolveRequestingAgent(req)
+      entitledSearchRows(await c.queryKnowledge(prompt, { limit: 60 }), viewer),
+      viewer
     );
     const wisdom = kb.filter((e) => e.type === 'wisdom').slice(0, 8);
     const gotchas = kb.filter((e) => e.type === 'gotcha').slice(0, 8);
@@ -2155,7 +2187,7 @@ export async function handleKnowledgeRoutes(
         state: q.state,
         reasons: q.reasons,
         quarantinedAt: q.quarantinedAt,
-        contentPreview: q.entry.content.slice(0, 200),
+        contentPreview: consolidationContentPreview(q.entry, caller),
         domain: q.entry.domain,
       })),
       rejected: review.rejected.map((q) => ({
@@ -2164,7 +2196,7 @@ export async function handleKnowledgeRoutes(
         reasons: q.reasons,
         quarantinedAt: q.quarantinedAt,
         rejectedAt: q.rejectedAt,
-        contentPreview: q.entry.content.slice(0, 200),
+        contentPreview: consolidationContentPreview(q.entry, caller),
         domain: q.entry.domain,
       })),
       stats: review.stats,

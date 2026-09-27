@@ -135,7 +135,8 @@ const SITES: Site[] = [
   { file: `${M}holomesh/routes/board-routes.ts`, read: 'entry-lookup', count: 1, gate: { symbol: 'entriesForViewer' } },
   // core-routes: /feed and agent profiles (formatEntry -> entryForViewer), /leaderboard,
   // /onboard, /entry/:id; /directory, /space, /domains count only; /knowledge/private
-  // returns the caller's own private workspace; /knowledge/promote is author-only.
+  // drops premium rows the caller is not entitled to (entitledSearchRows);
+  // /knowledge/promote is author-only.
   { file: `${M}holomesh/routes/core-routes.ts`, read: 'orchestrator-query', count: 9, gate: { symbol: 'entryForViewer' } },
   { file: `${M}holomesh/routes/core-routes.ts`, read: 'entry-lookup', count: 1, gate: { symbol: 'entryForViewer' } },
   { file: `${M}holomesh/routes/knowledge-routes.ts`, read: 'orchestrator-query', count: 7, gate: { symbol: 'entriesForViewer' } },
@@ -147,7 +148,7 @@ const SITES: Site[] = [
   { file: `${M}holomesh/search.ts`, read: 'entry-provider', count: 2, gate: { symbol: 'entitledSearchRows' } },
   { file: `${M}holomesh/team-agent-tools.ts`, read: 'knowledge-table', count: 4, gate: { noText: 'counts insights' } },
   { file: `${M}http-server.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'entitledSearchRows', via: `${M}holomesh/search.ts` } },
-  { file: `${M}oracle-handler.ts`, read: 'orchestrator-query', count: 2, gate: { symbol: 'hidePremiumTextIfPremium' } },
+  { file: `${M}oracle-handler.ts`, read: 'orchestrator-query', count: 2, gate: { symbol: 'entitledSearchRows' } },
   { file: `${M}oracle-mcp-tools.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'premiumTeaser' } },
   { file: `${M}oracle-mcp-tools.ts`, read: 'knowledge-mirror', count: 1, gate: { symbol: 'premiumTeaser' } },
   { file: `${M}oracle-mcp-tools.ts`, read: 'knowledge-table', count: 9, gate: { symbol: 'premiumTeaser' } },
