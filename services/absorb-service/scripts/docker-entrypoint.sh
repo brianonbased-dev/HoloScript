@@ -1,50 +1,57 @@
 #!/bin/sh
 set -e
 
-# NOTE (2026-06-04): absorb-service's Railway GitHub deploy trigger was missing
-# (repoTriggers: []), so pushes to main never auto-deployed and the service ran
-# 5 days stale. Trigger recreated via API (branch main). This change also serves
-# to fire the restored webhook and pull the true main HEAD.
+# Apply committed Drizzle migrations, then refuse to boot if they did not land.
+#
+# The only schema change this script performs is `drizzle-kit migrate`. There is
+# no push fallback. ABSORB_REQUIRE_DB_SCHEMA is not read here: a failed migrate
+# or a missing required table always exits non-zero. (That variable still gates
+# ensureMoltbookSchema() when the server is started directly, which is what the
+# Railway dashboard start command does. It cannot bypass this script.)
+#
+# drizzle-kit is started as `node <virtual-store>/drizzle-kit/bin.cjs`.
+# pnpm's .bin cmd-shim is not used. The shim stores a relative path written
+# from services/absorb-service/node_modules/.bin (four ".." segments, then
+# node_modules/.pnpm/.../bin.cjs). The same file is also reachable through the
+# workspace symlink node_modules/@holoscript/absorb-service-host, which is one
+# directory deeper because of the @holoscript scope folder. dirname("$0") does
+# not resolve symlinks, so those four ".." segments stop at /app/node_modules
+# and node is asked to load
+# /app/node_modules/node_modules/.pnpm/drizzle-kit@.../bin.cjs, which is not
+# a file. `npx --yes` is not used either: it executes that shim and can
+# download an unpinned drizzle-kit from the network at boot.
+#
+# ABSORB_APP_ROOT defaults to /app. It only relocates the image root (tests).
+# It does not skip migrate or schema verification.
 
-# Run schema migrations or push.
-#
-# Failure mode this guards against (task_1777950370973_u5h0, 2026-05-05):
-# the previous version swallowed `drizzle-kit push` failures with `|| {echo ...}`,
-# so the service started fine but `moltbook_agents` (and any other table the
-# schema added since the last successful push) silently never existed. The
-# /health probe surfaces this as "relation \"moltbook_agents\" does not exist"
-# and stays in that state forever because subsequent boots also swallow the
-# failure.
-#
-# Strategy:
-#   1. Try `drizzle-kit migrate` first (uses the committed drizzle/0000_*.sql,
-#      idempotent, won't drop columns the schema removed).
-#   2. Verify that the moltbook_agents table exists after migrate. If migration
-#      metadata is stale but the physical table is missing, fall back to push.
-#   3. Fall back to `drizzle-kit push --force` if migrate fails (covers the
-#      case where the deploy DB has schema drift not captured in migrations).
-#   4. If schema repair fails and ABSORB_REQUIRE_DB_SCHEMA=1, exit non-zero so Railway
-#      restarts and the failure is visible in deploy logs (not just buried in
-#      a runtime probe error). Default off so a transient pg outage doesn't
-#      brick the service.
+APP_ROOT="${ABSORB_APP_ROOT:-/app}"
+
 handle_schema_failure() {
-  echo "[absorb-service] ERROR: required database schema is still missing after migrate/push."
+  echo "[absorb-service] ERROR: $1"
   echo "[absorb-service] DATABASE_URL host: $(echo "$DATABASE_URL" | sed -E 's|.*@([^/]+)/.*|\1|')"
-  if [ "${ABSORB_REQUIRE_DB_SCHEMA:-0}" = "1" ]; then
-    echo "[absorb-service] ABSORB_REQUIRE_DB_SCHEMA=1 -> exiting so Railway can surface the failure."
-    exit 1
+  exit 1
+}
+
+resolve_drizzle_kit_bin() {
+  # The virtual-store file is the real entry. The hoisted name is only a
+  # fallback, and [ -f ] follows it, so a broken extra node_modules segment
+  # does not match.
+  for candidate in "$APP_ROOT"/node_modules/.pnpm/drizzle-kit@*/node_modules/drizzle-kit/bin.cjs; do
+    if [ -f "$candidate" ]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  hoisted="$APP_ROOT/node_modules/drizzle-kit/bin.cjs"
+  if [ -f "$hoisted" ]; then
+    echo "$hoisted"
+    return 0
   fi
-  echo "[absorb-service] ABSORB_REQUIRE_DB_SCHEMA not set -> continuing without schema. /health probes will report errors."
+  return 1
 }
 
 verify_required_schema() {
-  # Verify ALL core REST-API tables exist, not just moltbook_agents. The prior
-  # version checked only moltbook_agents — but `ensureMoltbookSchema()` (server
-  # boot) creates that table independently, so a missing `absorb_projects`
-  # (drizzle migrate rolled back / stale ledger / drift) went undetected and the
-  # `push --force` repair never fired. Result: GET /api/absorb/projects 500'd
-  # forever with `relation "absorb_projects" does not exist`. Any missing table
-  # here now triggers the push fallback.
+  # Read-only check. A missing table is a failed boot, not a signal to push.
   node --input-type=module <<'NODE'
 import pg from 'pg';
 
@@ -74,32 +81,24 @@ try {
 NODE
 }
 
-repair_schema_with_push() {
-  if npx --yes drizzle-kit push --force && verify_required_schema; then
-    echo "[absorb-service] Schema push OK (fallback path)."
-  else
-    handle_schema_failure
-  fi
-}
-
 if [ -n "$DATABASE_URL" ]; then
-  cd /app/services/absorb-service
+  cd "$APP_ROOT/services/absorb-service"
 
   echo "[absorb-service] Applying database migrations (drizzle-kit migrate)..."
-  if npx --yes drizzle-kit migrate; then
-    echo "[absorb-service] Migrations applied OK."
-    if ! verify_required_schema; then
-      echo "[absorb-service] WARN: required schema missing after migrate, trying push as fallback..."
-      repair_schema_with_push
-    fi
-  else
-    echo "[absorb-service] WARN: drizzle-kit migrate failed, trying push as fallback..."
-    repair_schema_with_push
+  if ! drizzle_kit_bin="$(resolve_drizzle_kit_bin)"; then
+    handle_schema_failure "drizzle-kit migrate failed (drizzle-kit/bin.cjs not found in the image)"
   fi
-  cd /app
+  if ! node "$drizzle_kit_bin" migrate; then
+    handle_schema_failure "drizzle-kit migrate failed"
+  fi
+  echo "[absorb-service] Migrations applied OK."
+  if ! verify_required_schema; then
+    handle_schema_failure "verify_required_schema failed (required tables missing after migrate)"
+  fi
+  cd "$APP_ROOT"
 else
   echo "[absorb-service] No DATABASE_URL found, skipping DB setup."
 fi
 
 echo "[absorb-service] Starting service..."
-exec node /app/services/absorb-service/dist/server.js
+exec node "$APP_ROOT/services/absorb-service/dist/server.js"

@@ -128,6 +128,32 @@ RUN chown nodejs:nodejs /app
 # Ensure entrypoint is executable
 RUN chmod +x /app/services/absorb-service/scripts/docker-entrypoint.sh
 
+# pnpm's drizzle-kit cmd-shim stores a relative path from
+# services/absorb-service/node_modules/.bin. That directory is also reached
+# through node_modules/@holoscript/absorb-service-host (one scope directory
+# deeper). dirname("$0") does not resolve the symlink, so node is launched on
+# /app/node_modules/node_modules/.pnpm/drizzle-kit@.../bin.cjs, which does not
+# exist. The builder COPY above replaces the service node_modules (and that
+# shim) after the production install. Point any remaining shim at the
+# virtual-store file. The entrypoint does not use the shim; it execs this
+# same bin.cjs via node so boot never calls npx.
+RUN set -eu; \
+    kit=""; \
+    for candidate in /app/node_modules/.pnpm/drizzle-kit@*/node_modules/drizzle-kit/bin.cjs; do \
+      if [ -f "$candidate" ]; then kit="$candidate"; break; fi; \
+    done; \
+    test -n "$kit"; \
+    test -f "$kit"; \
+    for shim in \
+      /app/node_modules/.bin/drizzle-kit \
+      /app/services/absorb-service/node_modules/.bin/drizzle-kit; \
+    do \
+      if [ -e "$shim" ] || [ -L "$shim" ]; then \
+        rm -f "$shim"; \
+        ln -s "$kit" "$shim"; \
+      fi; \
+    done
+
 USER nodejs
 
 # Environment

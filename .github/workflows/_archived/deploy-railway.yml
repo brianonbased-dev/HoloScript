@@ -452,6 +452,10 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
+          # ABSORB_REQUIRE_DB_SCHEMA is not read by scripts/docker-entrypoint.sh.
+          # That script always exits non-zero when drizzle-kit migrate fails or
+          # required tables are missing. The variable still applies only to
+          # ensureMoltbookSchema() when the process is started as node dist/server.js.
           railway variable set \
             --service absorb-service \
             --environment production \
