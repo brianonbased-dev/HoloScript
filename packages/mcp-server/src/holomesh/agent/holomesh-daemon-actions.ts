@@ -21,7 +21,7 @@ import {
   INITIAL_MESH_STATE,
 } from '../types';
 import { HoloMeshWorldState } from '../crdt-sync';
-import { hidePremiumTextIfPremium } from '../premium-view';
+import { ANONYMOUS_VIEWER, entitledSearchRows } from '../entry-lookup';
 import { HoloMeshDiscovery } from '../discovery';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -293,11 +293,15 @@ export function createHoloMeshDaemonActions(
 
         if (!searchTerm) continue;
 
-        // Search our own knowledge for relevant entries
-        // The asking peer is a remote agent we cannot tie to a purchase, so
-        // premium rows go back as teasers only (doors audit 2026-09-15).
-        const results = (await client.queryKnowledge(searchTerm, { limit: 3 })).map((entry) =>
-          hidePremiumTextIfPremium(entry)
+        // Inbox messages have no verified sender. mesh_check_inbox copies
+        // readInbox() onto the blackboard, and readInbox returns the
+        // orchestrator JSON unchanged. `from` / `from_agent_id` is a claim
+        // the sender can set. Treating it as the viewer let a peer name the
+        // author or a buyer and receive the paid body. Every peer is
+        // unentitled until a signature or server-stamped sender exists.
+        const results = entitledSearchRows(
+          await client.queryKnowledge(searchTerm, { limit: 3 }),
+          ANONYMOUS_VIEWER
         );
 
         if (results.length > 0) {
@@ -353,7 +357,13 @@ export function createHoloMeshDaemonActions(
     searchTopicIndex++;
 
     try {
-      const results = await client.queryKnowledge(topic, { limit: 5 });
+      // Blackboard readers are not a verifiable entitled identity. Premium
+      // rows must not land there as full text or as locked rows matched on
+      // hidden text.
+      const results = entitledSearchRows(
+        await client.queryKnowledge(topic, { limit: 5 }),
+        ANONYMOUS_VIEWER
+      );
       const newResults = results.filter((r) => !state.receivedIds.includes(r.id));
 
       state.receivedIds.push(...newResults.map((r) => r.id));
