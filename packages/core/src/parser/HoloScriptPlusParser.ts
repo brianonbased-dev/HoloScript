@@ -5846,13 +5846,18 @@ export class HoloScriptPlusParser {
       // A single `?` at the end of a field (`provider: String?`, or before
       // `= default`) is the optional mark the .hs reader stores. It is not a
       // ternary. `??` is a different token, and `?.` is optional chaining.
-      // A `?` followed by a real branch stays a ternary.
+      // A `?` followed by a real branch stays a ternary, including when the
+      // branch is wrapped onto the next line.
       if (stopBeforeFieldOptional && this.isFieldOptionalMark()) {
         return condition;
       }
+      const wrappedBranch = stopBeforeFieldOptional && this.nextLineContinuesTernary();
       this.advance(); // ?
+      if (wrappedBranch) this.skipNewlines();
       const trueValue = this.parseExpression(stopBeforeFieldOptional); // Right-associative recursion
+      if (wrappedBranch) this.skipNewlines();
       this.expect('COLON', 'Expected : in ternary operator');
+      if (wrappedBranch) this.skipNewlines();
       const falseValue = this.parseExpression(stopBeforeFieldOptional);
 
       return { type: 'ternary', condition, trueValue, falseValue };
@@ -5867,19 +5872,93 @@ export class HoloScriptPlusParser {
    * `?` after the field expression as `optional`. This reader already has
    * ternary, so the mark is only the `?` that sits on a field boundary:
    * end of line, `}`, `,`, `=`, or end of file.
+   * A newline is not that boundary when the next non-blank line is indented
+   * deeper and continues the expression (`cond ?` / `a : b`). A following
+   * field at the same indent (`String?` / `required: String`) stays optional.
    */
   private isFieldOptionalMark(): boolean {
     if (!this.check('QUESTION')) return false;
     const next = this.peek(1).type;
-    return (
+    const boundary =
       next === 'NEWLINE' ||
       next === 'RBRACE' ||
       next === 'COMMA' ||
       next === 'EQUALS' ||
       next === 'EOF' ||
       next === 'DEDENT' ||
-      next === 'INDENT'
+      next === 'INDENT';
+    if (!boundary) return false;
+    const lineBreak = next === 'NEWLINE' || next === 'INDENT' || next === 'DEDENT';
+    if (lineBreak && this.nextLineContinuesTernary()) return false;
+    return true;
+  }
+
+  /** Leading spaces, with a tab counted the same way the lexer counts one. */
+  private lineIndent(line: string): number {
+    let indent = 0;
+    for (const char of line) {
+      if (char === ' ') indent += 1;
+      else if (char === '\t') indent += 4;
+      else break;
+    }
+    return indent;
+  }
+
+  private lineStartsWithOperand(trimmed: string): boolean {
+    return /^(?:true\b|false\b|null\b|[A-Za-z_][A-Za-z0-9_]*|\d|"|'|`|\(|\[|\{|!|-|\+)/.test(
+      trimmed
     );
+  }
+
+  /** A `:` in code, not inside a string and not after `//`. */
+  private lineHasCodeColon(line: string): boolean {
+    let i = 0;
+    while (i < line.length) {
+      const char = line[i];
+      if (char === '/' && line[i + 1] === '/') return false;
+      if (char === '"' || char === "'" || char === '`') {
+        const quote = char;
+        i++;
+        while (i < line.length && line[i] !== quote) {
+          if (line[i] === '\\') i++;
+          i++;
+        }
+        i++;
+        continue;
+      }
+      if (char === ':') return true;
+      i++;
+    }
+    return false;
+  }
+
+  /**
+   * The next non-blank line continues a ternary when it is indented deeper
+   * than the `?` line, starts with an operand, and a `:` appears before the
+   * indent returns. `provider: String?` followed by `required: String` at the
+   * same indent does not.
+   */
+  private nextLineContinuesTernary(): boolean {
+    const lines = this.source.split(/\r?\n/);
+    const questionLine = lines[this.current().line - 1] ?? '';
+    const questionIndent = this.lineIndent(questionLine);
+    for (let i = this.current().line; i < lines.length; i++) {
+      const line = lines[i] ?? '';
+      const trimmed = line.trim();
+      if (trimmed === '' || trimmed.startsWith('//')) continue;
+      if (this.lineIndent(line) <= questionIndent) return false;
+      if (!this.lineStartsWithOperand(trimmed)) return false;
+      if (this.lineHasCodeColon(line)) return true;
+      for (let j = i + 1; j < lines.length; j++) {
+        const later = lines[j] ?? '';
+        const laterTrim = later.trim();
+        if (laterTrim === '' || laterTrim.startsWith('//')) continue;
+        if (this.lineIndent(later) <= questionIndent) return false;
+        if (this.lineHasCodeColon(later)) return true;
+      }
+      return false;
+    }
+    return false;
   }
 
   /**

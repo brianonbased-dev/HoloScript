@@ -221,4 +221,40 @@ describe('HoloScriptPlus field optional and default marks', () => {
     expect(object.properties?.val).toEqual({ __ref: 'user?.name' });
     expect(object.fieldMarks).toBeUndefined();
   });
+
+  it('multi-line ternary: value: cond ? newline a : b stays a ternary', () => {
+    const source = `object "Test" {
+  value: cond ?
+    a : b
+}`;
+    const { success, errors, node } = parseSource(source);
+    expect(success, errors.map((error) => error.message).join(' | ')).toBe(true);
+    const object = nodeWith(node, 'value');
+    expect(object.properties?.value).toEqual({
+      type: 'ternary',
+      condition: { __ref: 'cond' },
+      trueValue: { __ref: 'a' },
+      falseValue: { __ref: 'b' },
+    });
+    expect(object.fieldMarks).toBeUndefined();
+    expect(object.properties?.a).toBeUndefined();
+  });
+
+  it('multi-line ternary inside a raw module body stays source text', () => {
+    const source = `module RegenerativeHealth {
+  actions {
+    logCycle(a, b, c) {
+      const circularity = outputs_produced > 0 ?
+        knowledge_shared / outputs_produced : 0;
+    }
+  }
+}`;
+    const { success, node } = parseSource(source);
+    expect(success).toBe(true);
+    expect(node.type).toBe('module');
+    const body = String(node.body);
+    expect(body).toContain('outputs_produced > 0 ?');
+    expect(body).toContain('knowledge_shared / outputs_produced : 0');
+    expect(node.fieldMarks).toBeUndefined();
+  });
 });
