@@ -15,6 +15,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ENTRYPOINT = join(dirname(fileURLToPath(import.meta.url)), '..', 'docker-entrypoint.sh');
+const HOST_PACKAGE_JSON = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'package.json');
 const DATABASE_URL = 'postgres://absorb_user:super-secret@db.internal:5432/absorb';
 
 function nonCommentLines(source) {
@@ -39,6 +40,21 @@ test('docker-entrypoint.sh has no drizzle-kit push fallback outside comments', (
   assert.deepEqual(bypass, []);
   const fetchers = nonCommentLines(source).filter((line) => /\bnpx\b/.test(line));
   assert.deepEqual(fetchers, []);
+});
+
+test('absorb start script does not push schema or call npx', () => {
+  const pkg = JSON.parse(readFileSync(HOST_PACKAGE_JSON, 'utf8'));
+  const start = pkg.scripts?.start ?? '';
+  const pushHits = start.includes('drizzle-kit push') ? 1 : 0;
+  const npxHits = start.includes('npx') ? 1 : 0;
+  console.log(`absorb start drizzle-kit push hits: ${pushHits}`);
+  console.log(`absorb start npx hits: ${npxHits}`);
+  console.log(`absorb start script: ${start}`);
+  assert.equal(pkg.name, '@holoscript/absorb-service-host');
+  assert.equal(pushHits, 0);
+  assert.equal(npxHits, 0);
+  assert.equal(pkg.scripts['db:push'], 'drizzle-kit push');
+  assert.equal(pkg.scripts['db:migrate'], 'drizzle-kit migrate');
 });
 
 function writeExecutable(path, body) {
