@@ -211,14 +211,20 @@ beforeEach(() => {
 // ── HTTP exits ──
 
 describe('premium text on HTTP exits (doors audit round 3)', () => {
-  it('GET /search gives an anonymous caller only the teaser', async () => {
-    standIn.rows = [longPremium('premium-s1'), shortPremium('premium-s2')];
+  it('GET /search omits premium rows an anonymous caller is not entitled to', async () => {
+    standIn.rows = [
+      longPremium('premium-s1'),
+      shortPremium('premium-s2'),
+      orchRow('free-s3', 'Free public wisdom stays whole', { price: 0, type: 'wisdom' }),
+    ];
     const reply = await call('GET', '/api/holomesh/search?q=premium');
 
     expect(reply.status).toBe(200);
-    const results = reply.body.results as Array<{ locked?: boolean }>;
-    expect(results).toHaveLength(2);
-    expect(results.every((r) => r.locked === true)).toBe(true);
+    const results = reply.body.results as Array<{ id: string; content?: string }>;
+    expect(results.map((r) => r.id)).toEqual(['free-s3']);
+    expect(results[0]?.content).toBe('Free public wisdom stays whole');
+    expect(JSON.stringify(reply.body)).not.toContain('premium-s1');
+    expect(JSON.stringify(reply.body)).not.toContain('premium-s2');
     expectNoPremiumText(reply.body);
   });
 
@@ -672,11 +678,12 @@ describe("premiumEntryAccess: the 'not authenticated' check is load-bearing (rou
       paidAccessStore.delete('anonymous:premium-an1');
     }
 
-    // The same through a real route: a caller with no key resolves to 'anonymous'.
+    // The same through public search: a caller with no key is not entitled,
+    // so the locked row is not returned and cannot confirm a query match.
     standIn.rows = [shortPremium('premium-an2', { authorId: 'anonymous' })];
     const reply = await call('GET', '/api/holomesh/search?q=premium');
     expect(reply.status).toBe(200);
-    expect(JSON.stringify(reply.body)).toContain('premium-an2');
+    expect(JSON.stringify(reply.body)).not.toContain('premium-an2');
     expectNoPremiumText(reply.body);
   });
 });
