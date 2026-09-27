@@ -52,6 +52,7 @@ import {
   findKnowledgeEntryById,
   entryForViewer,
   entriesForViewer,
+  entitledSearchRows,
   premiumEntryAccess,
   isPublicFeedEntry,
   ANONYMOUS_VIEWER,
@@ -2227,8 +2228,20 @@ export async function handleCoreRoutes(
       entries = await client.queryKnowledge('', { workspaceId, limit: 200 });
     } catch {}
 
-    // Filter out init entries and apply domain filter
-    let filtered = entries.filter((e: MeshKnowledgeEntry) => !e.id.endsWith(':init'));
+    // The workspace id is `private:${caller.walletAddress}`, but the
+    // orchestrator query sends only that id plus the service key. A private
+    // workspace can hold a priced entry whose author is someone else
+    // (POST /knowledge/private copies authorId from the body). Drop those
+    // rows before the response is built. The owner of the row still sees it.
+    const viewer: PremiumViewer = {
+      authenticated: true,
+      id: caller.id,
+      isFounder: caller.isFounder === true,
+    };
+    let filtered = entitledSearchRows(
+      entries.filter((e: MeshKnowledgeEntry) => !e.id.endsWith(':init')),
+      viewer
+    );
     if (domainFilter) {
       filtered = filtered.filter((e: MeshKnowledgeEntry) => e.domain === domainFilter);
     }

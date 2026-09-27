@@ -50,18 +50,18 @@ For release admission, consumption receipts, stewardship status, and compiler-na
 
 ## Web, SDKs, and Platform Delivery
 
-| Package                                                   | Purpose                                 |
-| --------------------------------------------------------- | --------------------------------------- |
-| [**@holoscript/core**](./core.md)                         | Primary JavaScript and TypeScript SDK   |
-| [**@holoscript/sdk**](./sdk.md)                           | Compatibility shim for older consumers  |
-| [**@holoscript/cdn**](./holoscript-cdn.md)                | CDN-oriented browser embedding          |
-| [**@holoscript/platform**](./platform.md)                 | Enterprise security, identity, and Web3 |
-| [**@holoscript/mcp-server**](./mcp-server.md)             | MCP tools for AI agents and IDEs        |
-| [**@holoscript/memory**](./memory.md)                     | Sovereign agent-memory client           |
-| [**@holoscript/holollama**](./holollama.md)               | Native llama.cpp serving utilities      |
-| [**@holoscript/r3f-renderer**](./r3f-renderer.md)         | React Three Fiber renderer helpers      |
-| [**@holoscript/xr-embodiment**](./xr-embodiment.md)       | WebXR locomotion and agent avatars      |
-| [**@hololand/platform-services**](./hololand-platform.md) | HoloLand VR-world services              |
+| Package                                                   | Purpose                                                                                                   |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [**@holoscript/core**](./core.md)                         | Primary JavaScript and TypeScript SDK                                                                     |
+| [**@holoscript/sdk**](./sdk.md)                           | Compatibility shim for older consumers                                                                    |
+| [**@holoscript/cdn**](./holoscript-cdn.md)                | CDN-oriented browser embedding                                                                            |
+| [**@holoscript/platform**](./platform.md)                 | Enterprise security, identity, and Web3                                                                   |
+| [**@holoscript/mcp-server**](./mcp-server.md)             | MCP tools for AI agents and IDEs                                                                          |
+| [**@holoscript/memory**](./memory.md)                     | Sovereign agent-memory client                                                                             |
+| [**@holoscript/holollama**](./holollama.md)               | HoloScript-owned serving utilities (code rung) around the outside llama.cpp runtime, labelled as a bridge |
+| [**@holoscript/r3f-renderer**](./r3f-renderer.md)         | React Three Fiber renderer helpers                                                                        |
+| [**@holoscript/xr-embodiment**](./xr-embodiment.md)       | WebXR locomotion and agent avatars                                                                        |
+| [**@hololand/platform-services**](./hololand-platform.md) | HoloLand VR-world services                                                                                |
 
 ## AI, Agents, and Virtual Machines
 

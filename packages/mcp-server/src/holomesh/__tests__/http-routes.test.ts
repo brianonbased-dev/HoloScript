@@ -120,6 +120,7 @@ import {
   agentAuditStore,
   appendCaelAuditRecord,
   keyRegistry,
+  paidAccessStore,
   type CaelAuditRecord,
 } from '../state';
 import { MOBILE_PRESENCE_TTL_MS, type Team } from '../types';
@@ -3381,9 +3382,18 @@ describe('HoloMesh HTTP Routes', () => {
           price: 25,
           createdAt: new Date().toISOString(),
         },
+        {
+          id: 'entry_free_rank_keep',
+          type: 'wisdom',
+          content: 'ordinary free note with no overlap',
+          domain: 'general',
+          authorId: 'agent_somebody_else',
+          price: 0,
+          createdAt: new Date().toISOString(),
+        },
       ]);
 
-      // Two words, matching nothing in the redacted set, so keywordHits is empty
+      // Two words, matching nothing in the visible set, so keywordHits is empty
       // and the orchestrator-rank fallback is the branch that answers.
       const req = mockReq(
         'GET',
@@ -3395,10 +3405,115 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
 
       expect(res._status).toBe(200);
-      // The branch must actually have been taken, or this test proves nothing.
-      expect(res._body.entries.length).toBe(1);
+      // The branch must actually have been taken, or this test proves nothing:
+      // the free row comes back, the priced row does not.
+      expect(res._body.entries.map((e: { id: string }) => e.id)).toEqual(['entry_free_rank_keep']);
       expect(JSON.stringify(res._body)).not.toContain(SECRET);
-      expect(res._body.entries[0].locked).toBe(true);
+      expect(JSON.stringify(res._body)).not.toContain('entry_premium_rank_leak');
+    });
+
+    it('GET /api/holomesh/team/:id/knowledge?q= does not reveal a locked entry from its hidden body', async () => {
+      // Review of the redaction-only fallback (2026-09-22): entriesForViewer
+      // sets locked:true and swaps in a teaser, then the orchestrator-rank
+      // branch still returns that row. A member who has not paid can probe
+      // two-word phrases. A hit means the hidden body contains them.
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name: `hidden-body-${Date.now()}` },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
+      const createRes = mockRes();
+      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+      const tid = createRes._body.team.id;
+      const code = createRes._body.team.invite_code;
+
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
+        { invite_code: code },
+        { authorization: `Bearer ${memberApiKey}` }
+      );
+      const joinRes = mockRes();
+      await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
+      expect(joinRes._status).toBe(200);
+
+      const hiddenToken = 'xylophonequartz9f3a';
+      const hiddenPhrase = `${hiddenToken} paidprobe`;
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${hiddenPhrase}`;
+      const entry = {
+        id: 'entry_locked_hidden_probe',
+        workspaceId: `team:${tid}`,
+        type: 'wisdom',
+        content: premiumBody,
+        provenanceHash: 'probe',
+        authorId: ownerAgentId,
+        authorName: 'team-owner',
+        price: 25,
+        queryCount: 0,
+        reuseCount: 0,
+        domain: 'general',
+        tags: ['priced'],
+        createdAt: new Date().toISOString(),
+      };
+      teamStore.get(tid)!.knowledge = [entry];
+      mockClient.queryKnowledge.mockResolvedValue([entry]);
+      const purchaseKey = `${memberAgentId}:entry_locked_hidden_probe`;
+
+      const search = async (apiKey: string, q: string) => {
+        const req = mockReq(
+          'GET',
+          `/api/holomesh/team/${tid}/knowledge?q=${encodeURIComponent(q)}&limit=25`,
+          undefined,
+          { authorization: `Bearer ${apiKey}` }
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
+        return res;
+      };
+
+      // One token stays on the keyword path (redacted text only). Two tokens
+      // with no visible hit take the orchestrator-rank fallback, which is the
+      // path that used to return the locked row.
+      try {
+        const memberTokenRes = await search(memberApiKey, hiddenToken);
+        expect(memberTokenRes._status).toBe(200);
+        expect(JSON.stringify(memberTokenRes._body)).not.toContain(hiddenToken);
+        expect(
+          memberTokenRes._body.entries.map((e: { id: string }) => e.id)
+        ).not.toContain('entry_locked_hidden_probe');
+
+        const memberRes = await search(memberApiKey, hiddenPhrase);
+        expect(memberRes._status).toBe(200);
+        expect(
+          memberRes._body.entries.map((e: { id: string }) => e.id)
+        ).not.toContain('entry_locked_hidden_probe');
+        expect(JSON.stringify(memberRes._body)).not.toContain(hiddenToken);
+        expect(JSON.stringify(memberRes._body)).not.toContain('paidprobe');
+
+        // The author is entitled (premiumEntryAccess → 'author') and still sees it.
+        const authorRes = await search(ownerApiKey, hiddenPhrase);
+        expect(authorRes._status).toBe(200);
+        expect(authorRes._body.entries.map((e: { id: string }) => e.id)).toContain(
+          'entry_locked_hidden_probe'
+        );
+        expect(JSON.stringify(authorRes._body)).toContain(hiddenToken);
+        expect(authorRes._body.entries[0].locked).not.toBe(true);
+
+        // A recorded purchase is the other entitlement this route already has.
+        paidAccessStore.add(purchaseKey);
+        const buyerRes = await search(memberApiKey, hiddenPhrase);
+        expect(buyerRes._status).toBe(200);
+        expect(buyerRes._body.entries.map((e: { id: string }) => e.id)).toContain(
+          'entry_locked_hidden_probe'
+        );
+        expect(JSON.stringify(buyerRes._body)).toContain(hiddenToken);
+        expect(buyerRes._body.entries[0].locked).not.toBe(true);
+      } finally {
+        paidAccessStore.delete(purchaseKey);
+        mockClient.queryKnowledge.mockReset();
+        mockClient.queryKnowledge.mockResolvedValue([]);
+      }
     });
 
     it('GET /api/holomesh/entry/:id resolves team-mirrored entry when orchestrator has not indexed', async () => {
@@ -6993,6 +7108,101 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, '/api/holomesh/search');
 
       expect(res._status).toBe(400);
+    });
+
+    it('GET /api/holomesh/search?q= does not return a locked row when the query matches hidden paid text', async () => {
+      // Public search used to redact a premium row (locked: true, teaser only)
+      // and still return it. The orchestrator had already matched `q` against
+      // the hidden body, so the locked row told an unpaid caller those words
+      // were in the paid text. Anonymous callers are never entitled.
+      const authorReg = mockReq('POST', '/api/holomesh/register', {
+        name: `search-author-${Date.now()}`,
+      });
+      const authorRes = mockRes();
+      await handleHoloMeshRoute(authorReg, authorRes, '/api/holomesh/register');
+      expect(authorRes._status).toBe(201);
+      const authorKey = authorRes._body.agent.api_key as string;
+      const authorId = authorRes._body.agent.id as string;
+
+      const buyerReg = mockReq('POST', '/api/holomesh/register', {
+        name: `search-buyer-${Date.now()}`,
+      });
+      const buyerRes = mockRes();
+      await handleHoloMeshRoute(buyerReg, buyerRes, '/api/holomesh/register');
+      expect(buyerRes._status).toBe(201);
+      const buyerKey = buyerRes._body.agent.api_key as string;
+      const buyerId = buyerRes._body.agent.id as string;
+
+      const hiddenToken = 'xylophonequartz9f3a';
+      const hiddenPhrase = `${hiddenToken} paidprobe`;
+      const premiumBody = `${'lead in prose that is freely readable. '.repeat(12)}${hiddenPhrase}`;
+      const entryId = 'entry_public_hidden_probe';
+      const premium = {
+        id: entryId,
+        type: 'wisdom',
+        content: premiumBody,
+        domain: 'general',
+        authorId,
+        authorName: 'search-author',
+        price: 25,
+        tags: ['priced'],
+        createdAt: new Date().toISOString(),
+      };
+      const free = {
+        id: 'entry_public_free_keep',
+        type: 'wisdom',
+        content: 'ordinary free note with no overlap',
+        domain: 'general',
+        authorId: 'agent_somebody_else',
+        price: 0,
+        createdAt: new Date().toISOString(),
+      };
+      mockClient.queryKnowledge.mockResolvedValue([premium, free]);
+      const purchaseKey = `${buyerId}:${entryId}`;
+
+      const search = async (apiKey?: string) => {
+        const path = `/api/holomesh/search?q=${encodeURIComponent(hiddenPhrase)}&limit=10`;
+        const req = mockReq('GET', path, undefined, apiKey ? { authorization: `Bearer ${apiKey}` } : undefined);
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, path);
+        return res;
+      };
+
+      try {
+        const anon = await search();
+        expect(anon._status).toBe(200);
+        expect(anon._body.results.map((e: { id: string }) => e.id)).toEqual(['entry_public_free_keep']);
+        expect(JSON.stringify(anon._body.results)).not.toContain(entryId);
+        expect(JSON.stringify(anon._body.results)).not.toContain(hiddenToken);
+        expect(JSON.stringify(anon._body.results)).not.toContain('paidprobe');
+
+        const unpaid = await search(buyerKey);
+        expect(unpaid._status).toBe(200);
+        expect(unpaid._body.results.map((e: { id: string }) => e.id)).not.toContain(entryId);
+        expect(JSON.stringify(unpaid._body.results)).not.toContain(hiddenToken);
+        expect(JSON.stringify(unpaid._body.results)).not.toContain('paidprobe');
+
+        const author = await search(authorKey);
+        expect(author._status).toBe(200);
+        expect(author._body.results.map((e: { id: string }) => e.id)).toContain(entryId);
+        expect(JSON.stringify(author._body)).toContain(hiddenToken);
+        const authorRow = author._body.results.find((e: { id: string }) => e.id === entryId);
+        expect(authorRow.locked).not.toBe(true);
+        expect(authorRow.content).toContain(hiddenPhrase);
+
+        paidAccessStore.add(purchaseKey);
+        const buyer = await search(buyerKey);
+        expect(buyer._status).toBe(200);
+        expect(buyer._body.results.map((e: { id: string }) => e.id)).toContain(entryId);
+        expect(JSON.stringify(buyer._body)).toContain(hiddenToken);
+        const buyerRow = buyer._body.results.find((e: { id: string }) => e.id === entryId);
+        expect(buyerRow.locked).not.toBe(true);
+        expect(buyerRow.content).toContain(hiddenPhrase);
+      } finally {
+        paidAccessStore.delete(purchaseKey);
+        mockClient.queryKnowledge.mockReset();
+        mockClient.queryKnowledge.mockResolvedValue([]);
+      }
     });
   });
 

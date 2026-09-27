@@ -689,10 +689,44 @@ function checkSpendAuthz(
 
 // ─── Shared helpers (used by MCP tool handler + GitHub webhook handler) ──────
 
+/** Lookup order for the PAT that posts commit statuses (repo:status). */
+const GITHUB_STATUS_TOKEN_ENV_VARS = [
+  'PERSONAL_ACCESS_TOKEN',
+  'PAT_TOKEN',
+  'GITHUB_TOKEN',
+] as const;
+
+/** Keep a GitHub error body on one log line. */
+const GITHUB_STATUS_BODY_EXCERPT_LIMIT = 180;
+
+function readGithubStatusToken(): string {
+  for (const name of GITHUB_STATUS_TOKEN_ENV_VARS) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  return '';
+}
+
+/** Drop token values and Authorization headers before anything is logged. */
+function redactGithubStatusSecrets(text: string, token: string): string {
+  let out = text;
+  if (token) out = out.split(token).join('[redacted]');
+  out = out.replace(/authorization\s*[:=]\s*bearer\s+\S+/gi, '[redacted]');
+  return out;
+}
+
+function githubStatusExcerpt(text: string, token: string): string {
+  const collapsed = redactGithubStatusSecrets(text, token).replace(/\s+/g, ' ').trim();
+  if (!collapsed) return '(empty)';
+  if (collapsed.length <= GITHUB_STATUS_BODY_EXCERPT_LIMIT) return collapsed;
+  return `${collapsed.slice(0, GITHUB_STATUS_BODY_EXCERPT_LIMIT)}…`;
+}
+
 /**
  * Post GitHub commit statuses for every CI gate context.
- * Requires GITHUB_TOKEN env var with repo:status scope.
- * Non-fatal: silently skips when the token is absent (dev / misconfigured).
+ * Token lookup: PERSONAL_ACCESS_TOKEN, then PAT_TOKEN, then GITHUB_TOKEN.
+ * Non-fatal: a missing token, a non-2xx response, or a fetch error is logged
+ * and does not throw, so the webhook receiver stays unblocked.
  */
 export async function postGithubStatuses(
   repo: string,
@@ -702,27 +736,48 @@ export async function postGithubStatuses(
   description: string
 ): Promise<void> {
   // GITHUB_TOKEN is a known-invalid ambient token on this machine (lib.mjs note).
-  // Use PERSONAL_ACCESS_TOKEN or PAT_TOKEN — the real credentials in .env.
-  const token =
-    process.env.PERSONAL_ACCESS_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN || '';
-  if (!token) return;
+  // Prefer PERSONAL_ACCESS_TOKEN or PAT_TOKEN — the real credentials in .env.
+  const token = readGithubStatusToken();
+  if (!token) {
+    console.warn(
+      `[holo-ci] postGithubStatuses: no GitHub status token; checked ${GITHUB_STATUS_TOKEN_ENV_VARS.join(', ')}; skipped statuses for ${repo}@${sha}`
+    );
+    return;
+  }
   const targetUrl = `https://github.com/${repo}/commit/${sha}`;
   await Promise.allSettled(
-    contexts.map((context) =>
-      fetch(`https://api.github.com/repos/${repo}/statuses/${sha}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json',
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
-        body: JSON.stringify({ state, context, description, target_url: targetUrl }),
-        signal: AbortSignal.timeout(10_000),
-      }).catch(() => {
-        /* non-fatal */
-      })
-    )
+    contexts.map(async (context) => {
+      let res: Response;
+      try {
+        res = await fetch(`https://api.github.com/repos/${repo}/statuses/${sha}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+          body: JSON.stringify({ state, context, description, target_url: targetUrl }),
+          signal: AbortSignal.timeout(10_000),
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(
+          `[holo-ci] postGithubStatuses: fetch failed for ${repo}@${sha} context=${context}: ${githubStatusExcerpt(message, token)}`
+        );
+        return;
+      }
+      if (res.ok) return;
+      let raw = '(body unreadable)';
+      try {
+        raw = await res.text();
+      } catch {
+        raw = '(body unreadable)';
+      }
+      console.warn(
+        `[holo-ci] postGithubStatuses: GitHub HTTP ${res.status} for ${repo}@${sha} context=${context} body=${githubStatusExcerpt(raw, token)}`
+      );
+    })
   );
 }
 
