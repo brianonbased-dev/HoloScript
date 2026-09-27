@@ -1,5 +1,13 @@
 # @holoscript/absorb-service-host
 
+## 6.1.5
+
+### Fixed
+
+- Report the host package version (6.1.5) from `/health`, matching the
+  published engine line. Also report `engineVersion` from the
+  `@holoscript/absorb-service` package Node resolves at runtime.
+
 ## 6.1.3
 
 ### Fixed

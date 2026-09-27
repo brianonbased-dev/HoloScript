@@ -51,12 +51,15 @@
  *                                                                   # hand-authored surface (intentional)
  *   node scripts/holo-ci/check-render-surface-native.mjs --root <dir>
  *   node scripts/holo-ci/check-render-surface-native.mjs --roots packages/r3f-renderer/src,packages/studio/src
+ *   node scripts/holo-ci/check-render-surface-native.mjs --files-from <list.txt>
+ *   node scripts/holo-ci/check-render-surface-native.mjs --files <comma-or-newline list>
  *
  * Exit 0 iff every render .tsx is generated, an example, or allowlisted. Exit 1 on drift. Exit 2 on usage.
  */
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { dirname, join, relative, basename, sep } from 'node:path';
+import { readScopedFileList } from './read-scoped-files.mjs';
 
 const args = process.argv.slice(2);
 const UPDATE = args.includes('--update');
@@ -70,18 +73,12 @@ const RENDER_ROOTS = (
   .map((s) => s.trim())
   .filter(Boolean);
 
-// --files <comma|newline list>: evaluate ONLY these repo-relative paths instead of walking the
-// whole working tree. Used by the pre-commit dev floor to scope the freeze to STAGED render files,
-// so a peer's unstaged net-new render .tsx cannot block another agent's commit in the shared tree
-// (multi-agent fix, D.077). HoloCI's no-arg full-tree run stays the authoritative layer.
-const filesIdx = args.indexOf('--files');
-const EXPLICIT_FILES =
-  filesIdx >= 0
-    ? (args[filesIdx + 1] || '')
-        .split(/[,\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : null;
+// --files-from <newline list> is the pre-commit path (Windows command-line limit).
+// --files <comma|newline list> stays for existing callers and tests. Either flag
+// evaluates ONLY those repo-relative paths instead of walking the whole tree, so a
+// peer's unstaged net-new render .tsx cannot block another agent's commit (D.077).
+// Null (neither flag) is full-tree mode. HoloCI's no-arg full-tree run stays authoritative.
+const EXPLICIT_FILES = readScopedFileList(args);
 
 const ALLOWLIST = join(ROOT, 'scripts', 'holo-ci', 'render-surface-native-allowlist.json');
 
@@ -191,8 +188,8 @@ for (const rootAbs of presentRoots) {
   }
 }
 
-// --files scope (staged-only): replace the full-tree candidate set with just the named paths.
-// Skipped under --update (seeding must always reflect the full surface).
+// --files / --files-from scope (staged-only): replace the full-tree candidate set with
+// just the named paths. Skipped under --update (seeding must always reflect the full surface).
 const SCOPED = EXPLICIT_FILES !== null && !UPDATE;
 if (SCOPED) {
   const byRel = new Map(candidates.map((c) => [c.rel, c]));
@@ -298,8 +295,9 @@ for (const c of candidates) {
   }
 }
 
-// (2) allowlist hygiene: entries that moved/migrated. Full-tree only — a staged-scoped (--files)
-// run sees just the committed files, so it must NOT flag the rest of the allowlist as missing.
+// (2) allowlist hygiene: entries that moved/migrated. Full-tree only — a staged-scoped
+// (--files / --files-from) run sees just the named files, so it must NOT flag the rest
+// of the allowlist as missing.
 if (!SCOPED) {
   for (const rel of allow.allow || []) {
     if (!inRenderRoots(rel)) continue;
