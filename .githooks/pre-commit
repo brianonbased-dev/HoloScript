@@ -174,9 +174,11 @@ if [ "$SKIP_HOOKS" = "1" ] || [ "$HOLODAEMON_SKIP_HOOKS" = "1" ] || [ "$HOLODAEM
 fi
 
 # Multi-agent safety: warn when staged + unstaged changes coexist.
-# core.quotepath=off on every name-only list below. Git's default C-quotes a
-# non-ASCII path ("caf\303\251-....md"). A gate that filters on the literal
-# suffix then reports "no files" and the violation is committed.
+# core.quotepath=off on every path list in this hook: name-only diffs, the
+# tracked-shadow `git ls-files`, and the deletion `git diff --name-status`.
+# Git's default C-quotes a non-ASCII path ("caf\303\251-....md"). A gate that
+# filters on the literal suffix, or a ^packages/ grep, then reports "no files"
+# and the violation is committed.
 STAGED_COUNT=$(git -c core.quotepath=off diff --cached --name-only | wc -l)
 UNSTAGED_COUNT=$(git -c core.quotepath=off diff --name-only | wc -l)
 if [ "$STAGED_COUNT" -gt 0 ] && [ "$UNSTAGED_COUNT" -gt 0 ]; then
@@ -278,7 +280,7 @@ echo "  ├─ Stale build-artifact check..."
 # hand-crafted declarations that stay as-is).
 # Knowledge store: grad-stale-js-shadow-debugging (confidence 0.9).
 ALL_SHADOWS=$(find packages/*/src -type f \( -name '*.js' -o -name '*.js.map' -o -name '*.d.ts' \) 2>/dev/null | sort)
-TRACKED_SHADOWS=$(git ls-files 2>/dev/null | grep -E '^packages/[^/]+/src/.*\.(js|js\.map|d\.ts)$' | sort || true)
+TRACKED_SHADOWS=$(git -c core.quotepath=off ls-files 2>/dev/null | grep -E '^packages/[^/]+/src/.*\.(js|js\.map|d\.ts)$' | sort || true)
 if [ -z "$ALL_SHADOWS" ]; then
     UNTRACKED_SHADOWS=""
 else
@@ -345,7 +347,7 @@ fi
 # If any package directories are being deleted, verify they are mapped
 # in the capability registry or the cross-language deletion ledger.
 echo "  ├─ Capability registry check..."
-STAGED_DELETED=$(git diff --cached --name-status --diff-filter=D 2>/dev/null | grep '^D\s*packages/' || true)
+STAGED_DELETED=$(git -c core.quotepath=off diff --cached --name-status --diff-filter=D 2>/dev/null | grep '^D\s*packages/' || true)
 if [ -n "$STAGED_DELETED" ]; then
     REG_OUT=$(run_with_timeout 30 node scripts/check-capability-registry.mjs --staged 2>&1)
     REG_STATUS=$?
