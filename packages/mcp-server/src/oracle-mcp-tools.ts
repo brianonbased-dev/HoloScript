@@ -19,6 +19,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { entitledSearchRows, mcpToolViewer, type PremiumViewer } from './holomesh/entry-lookup';
 import { premiumTeaser, isPremiumEntry } from './holomesh/premium-view';
 
 // =============================================================================
@@ -154,7 +155,11 @@ function readResearchFile(fullPath: string, maxChars = 8000): string {
 // KNOWLEDGE STORE CLIENT
 // =============================================================================
 
-async function queryKnowledgeStore(search: string, limit = 10): Promise<KnowledgeEntry[]> {
+async function queryKnowledgeStore(
+  search: string,
+  limit = 10,
+  viewer: PremiumViewer
+): Promise<KnowledgeEntry[]> {
   const apiKey = getApiKey();
   if (!apiKey) return [];
 
@@ -177,18 +182,21 @@ async function queryKnowledgeStore(search: string, limit = 10): Promise<Knowledg
     clearTimeout(t);
     if (!res.ok) return [];
     const data = (await res.json()) as {
-      results?: Array<Partial<KnowledgeEntry>>;
-      entries?: Array<Partial<KnowledgeEntry>>;
+      results?: Array<
+        Partial<KnowledgeEntry> & { price?: unknown; metadata?: unknown; authorId?: string }
+      >;
+      entries?: Array<
+        Partial<KnowledgeEntry> & { price?: unknown; metadata?: unknown; authorId?: string }
+      >;
     };
     const raw = data.results || data.entries || [];
-    // Oracle callers are never entitled readers: a premium row (price in its
-    // metadata) keeps only its teaser (doors audit 2026-09-15).
-    return raw.map((r) => ({
+    // Drop premium rows this viewer cannot open before any report quotes
+    // them. A teaser that still contains the caller's search words confirms
+    // the hidden match. No stamp on the tool args means unentitled.
+    return entitledSearchRows(raw, viewer).map((r) => ({
       id: r.id || 'unknown',
       type: (r.type as KnowledgeEntry['type']) || 'wisdom',
-      content: isPremiumEntry(r as { price?: unknown; metadata?: unknown })
-        ? premiumTeaser(r.content)
-        : r.content || '',
+      content: r.content || '',
       domain: r.domain || 'general',
       createdAt: r.createdAt,
     }));
@@ -423,7 +431,7 @@ async function handleDiscover(args: Record<string, unknown>): Promise<unknown> {
 
   // 2. Query knowledge store
   const knowledgeLimit = depth === 'deep' ? 10 : 5;
-  const knowledgeEntries = await queryKnowledgeStore(topic, knowledgeLimit);
+  const knowledgeEntries = await queryKnowledgeStore(topic, knowledgeLimit, mcpToolViewer(args));
 
   // 3. Optional web search
   let webResults: Array<{ title: string; url: string; snippet: string }> = [];
@@ -639,11 +647,12 @@ async function handleGaps(args: Record<string, unknown>): Promise<unknown> {
   ];
 
   const gapReports: GapReport[] = [];
+  const viewer = mcpToolViewer(args);
 
   const domainsToAudit = domainFilter ? [domainFilter] : expectedDomains;
 
   for (const domain of domainsToAudit) {
-    const entries = await queryKnowledgeStore(domain, 20);
+    const entries = await queryKnowledgeStore(domain, 20, viewer);
     const meshEntries = await queryHoloMeshKnowledge(domain, 20);
     const all = [...entries, ...meshEntries];
     const deduped = all.filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i);
@@ -706,9 +715,10 @@ async function handleExplore(args: Record<string, unknown>): Promise<unknown> {
   const researchFiles = scanResearchArchive(combinedQuery, depth === 'implementation' ? 15 : 8);
 
   // 2. Query knowledge store for each domain separately
+  const viewer = mcpToolViewer(args);
   const [k1, k2] = await Promise.all([
-    queryKnowledgeStore(domain1, 5),
-    queryKnowledgeStore(domain2, 5),
+    queryKnowledgeStore(domain1, 5, viewer),
+    queryKnowledgeStore(domain2, 5, viewer),
   ]);
 
   // 3. Generate collision hypotheses
@@ -815,8 +825,9 @@ async function handleCurate(args: Record<string, unknown>): Promise<unknown> {
     recommendations: string[];
   }> = [];
 
+  const viewer = mcpToolViewer(args);
   for (const d of domainsToCheck) {
-    const entries = await queryKnowledgeStore(d, 50);
+    const entries = await queryKnowledgeStore(d, 50, viewer);
     const meshEntries = await queryHoloMeshKnowledge(d, 50);
     const all = [...entries, ...meshEntries];
     const deduped = all.filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i);
