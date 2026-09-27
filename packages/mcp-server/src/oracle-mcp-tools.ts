@@ -97,8 +97,18 @@ function scanResearchArchive(query: string, limit = 20): ResearchFile[] {
     }
     for (const entry of entries) {
       const full = path.join(dir, entry);
-      const stat = fs.statSync(full);
+      let stat: fs.Stats;
+      try {
+        stat = fs.statSync(full);
+      } catch {
+        // Broken symlink (ENOENT), permission (EACCES), or a symlink loop
+        // (ELOOP). One bad entry must not abort the archive walk.
+        continue;
+      }
       if (stat.isDirectory()) {
+        // Skip by basename at any depth (dependency and VCS trees).
+        const base = path.basename(entry);
+        if (base === 'node_modules' || base === '.git') continue;
         recurse(full);
         continue;
       }
