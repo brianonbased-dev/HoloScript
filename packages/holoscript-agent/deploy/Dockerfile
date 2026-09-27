@@ -7,6 +7,10 @@ RUN corepack enable
 
 FROM base AS build
 WORKDIR /repo
+# base sets NODE_ENV=production, and pnpm then omits devDependencies. tsup and
+# typescript are devDependencies of secrets-broker, config, and llm-provider, so
+# this stage installs them. The runtime stage starts FROM base and stays production.
+ENV NODE_ENV=development
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/holoscript-agent/package.json packages/holoscript-agent/
 # llm-provider depends on @holoscript/config, whose only workspace dependency
