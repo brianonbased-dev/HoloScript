@@ -25,6 +25,15 @@ export default defineConfig({
       // @holoscript/core above) — alias straight to source so UAALResolutionRewards
       // tests can import gradeByResolver/UAAL_RESOLVED_FAMILIES without a build step.
       { find: /^@holoscript\/uaal$/, replacement: path.resolve(__dirname, '../uaal/src/index.ts') },
+      // Source aliases so tests see the inference-proxy bearer changes without a dist build.
+      {
+        find: /^@holoscript\/config$/,
+        replacement: path.resolve(__dirname, '../config/src/index.ts'),
+      },
+      {
+        find: /^@holoscript\/llm-provider$/,
+        replacement: path.resolve(__dirname, '../llm-provider/src/index.ts'),
+      },
     ],
   },
   test: {

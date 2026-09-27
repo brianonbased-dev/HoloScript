@@ -52,6 +52,9 @@ function holoLlamaAdapter(): LocalLLMAdapter {
     model: holoLlamaModel(),
     nativeOllamaApi: false, // HoloLlama speaks OpenAI /v1/chat/completions, not Ollama /api/chat
     timeoutMs: 300_000,
+    // Optional bearer: LocalLLMAdapter reads HOLO_INFERENCE_PROXY_KEY_NAME
+    // through resolveConfigSecret. Unset → no Authorization header.
+    inferenceProxy: true,
   });
 }
 
@@ -130,12 +133,18 @@ async function resolveAnthropicByokKey(): Promise<string | null> {
  * a box without a local server still works. `HOLO_LLM_PROVIDER=holollama` forces
  * HoloLlama with no fallback. Also resolves the Anthropic BYOK key via HoloKey.
  */
+function throwIfProxyAuthRejected(error: string | undefined): void {
+  if (error?.includes('authentication was rejected')) throw new Error(error);
+}
+
 export async function createPipelineLLMProviderAsync(): Promise<LLMProvider> {
   const explicit = (process.env.HOLO_LLM_PROVIDER ?? process.env.BRITTNEY_PROVIDER)?.toLowerCase();
   if (wantsSovereignDefault()) {
     const adapter = holoLlamaAdapter();
     if (explicit === 'holollama') return adaptToChatProvider(adapter); // forced, no fallback
-    if ((await adapter.healthCheck()).ok) return adaptToChatProvider(adapter);
+    const health = await adapter.healthCheck();
+    if (health.ok) return adaptToChatProvider(adapter);
+    throwIfProxyAuthRejected(health.error);
     const anthropicKey = await resolveAnthropicByokKey();
     return adaptToChatProvider((await resolveSovereignProviderAsync({ anthropicKey })).provider);
   }
@@ -150,7 +159,9 @@ export async function detectLLMProviderNameAsync(): Promise<string> {
   const explicit = (process.env.HOLO_LLM_PROVIDER ?? process.env.BRITTNEY_PROVIDER)?.toLowerCase();
   if (wantsSovereignDefault()) {
     if (explicit === 'holollama') return 'holollama';
-    if ((await holoLlamaAdapter().healthCheck()).ok) return 'holollama';
+    const health = await holoLlamaAdapter().healthCheck();
+    if (health.ok) return 'holollama';
+    throwIfProxyAuthRejected(health.error);
     const anthropicKey = await resolveAnthropicByokKey();
     try {
       return (await resolveSovereignProviderAsync({ anthropicKey })).providerName;

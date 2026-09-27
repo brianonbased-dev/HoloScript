@@ -28,6 +28,11 @@ import type {
   AssistantContentBlock,
 } from '../types';
 import { LLMProviderError, filterGenericTools, messageContentAsString } from '../types';
+import {
+  INFERENCE_PROXY_AUTH_REJECTED_MESSAGE,
+  resolveInferenceProxyKey,
+  scrubSecretFromText,
+} from '@holoscript/config';
 
 /**
  * Who to send as X-Holo-Agent. Blank and whitespace-only values are absent.
@@ -67,6 +72,12 @@ type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
    * When none is set the header is omitted — see resolveCallerId.
    */
   callerId?: string;
+  /**
+   * This adapter is a client of the holo-inference-proxy. When omitted, port
+   * 18080 is treated as that proxy. Other local servers never receive the
+   * proxy bearer.
+   */
+  inferenceProxy?: boolean;
 };
 
 // =============================================================================
@@ -160,6 +171,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
   private readonly useNativeOllamaApi: boolean;
   /** Attribution sent on every request; undefined means "send no header". */
   private readonly callerId: string | undefined;
+  /** True/false forces proxy auth scope; undefined auto-detects port 18080. */
+  private readonly inferenceProxy: boolean | undefined;
 
   constructor(config: LocalLLMAdapterConfig = {}) {
     // BaseLLMAdapter requires apiKey — pass empty string for local servers
@@ -174,21 +187,64 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     this.localBaseURL = (config.baseURL ?? 'http://localhost:8080')
       .replace(/\/$/, '')
       .replace(/\/v1$/, '');
-    this.defaultHoloScriptModel =
-      config.model ?? config.defaultModel ?? 'mistral-7b-instruct';
+    this.defaultHoloScriptModel = config.model ?? config.defaultModel ?? 'mistral-7b-instruct';
     // Auto-detect Ollama by default port (11434). Can be overridden explicitly.
     this.useNativeOllamaApi = config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
     this.callerId = resolveCallerId(config.callerId);
+    this.inferenceProxy = config.inferenceProxy;
+  }
+
+  /** Port 18080, or an explicit `inferenceProxy` flag, is the holo-inference-proxy. */
+  private isInferenceProxyTarget(): boolean {
+    if (this.inferenceProxy === true) return true;
+    if (this.inferenceProxy === false) return false;
+    try {
+      return new URL(this.localBaseURL).port === '18080';
+    } catch {
+      return false;
+    }
   }
 
   /**
    * Headers for both the completion and streaming paths.
    * The attribution header is what makes a captured inference row usable later.
+   * The proxy bearer is added only by {@link headersForRequest} when a key
+   * name resolves; this object stays unchanged otherwise.
    */
   private requestHeaders(): Record<string, string> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (this.callerId) headers['X-Holo-Agent'] = this.callerId;
     return headers;
+  }
+
+  /**
+   * Same headers as {@link requestHeaders} unless this target is the inference
+   * proxy and `HOLO_INFERENCE_PROXY_KEY_NAME` resolves to a secret. The secret
+   * is not retained on the instance.
+   */
+  private async headersForRequest(): Promise<{ headers: Record<string, string>; secret: string }> {
+    const headers = this.requestHeaders();
+    if (!this.isInferenceProxyTarget()) return { headers, secret: '' };
+    const secret = await resolveInferenceProxyKey();
+    if (!secret) return { headers, secret: '' };
+    return {
+      headers: { ...headers, Authorization: `Bearer ${secret}` },
+      secret,
+    };
+  }
+
+  private httpFailure(status: number, body: string, secret: string): LLMProviderError {
+    if (status === 401 && this.isInferenceProxyTarget()) {
+      return new LLMProviderError(INFERENCE_PROXY_AUTH_REJECTED_MESSAGE, 'local-llm', 401, false);
+    }
+    const text = scrubSecretFromText(body, secret);
+    const isRetryable = status === 429 || (status >= 500 && status < 600);
+    return new LLMProviderError(
+      `Local LLM server returned ${status}: ${text}`,
+      'local-llm',
+      status,
+      isRetryable
+    );
   }
 
   protected getDefaultModel(): string {
@@ -420,13 +476,14 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
   /** Shared fetch+error handling for both complete() paths. */
   private async fetchJson(url: string, body: string): Promise<unknown> {
+    const { headers, secret } = await this.headersForRequest();
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: this.requestHeaders(),
+        headers,
         body,
         signal: controller.signal,
       });
@@ -434,26 +491,22 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        const isRetryable =
-          response.status === 429 || (response.status >= 500 && response.status < 600);
-        throw new LLMProviderError(
-          `Local LLM server returned ${response.status}: ${text}`,
-          'local-llm',
-          response.status,
-          isRetryable
-        );
+        const text =
+          response.status === 401 && this.isInferenceProxyTarget()
+            ? ''
+            : await response.text().catch(() => '');
+        throw this.httpFailure(response.status, text, secret);
       }
 
       return await response.json();
     } catch (err) {
       if (err instanceof LLMProviderError) throw err;
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = scrubSecretFromText(err instanceof Error ? err.message : String(err), secret);
       const isTimeout = msg.includes('aborted') || msg.includes('timeout');
       const hint = isTimeout
         ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
         : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
-      throw new LLMProviderError(hint, 'local-llm', undefined, false);
+      throw new LLMProviderError(scrubSecretFromText(hint, secret), 'local-llm', undefined, false);
     }
   }
 
@@ -599,13 +652,14 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
   /** Pre-flight for both streaming paths: POST, status-check, throw before the first chunk. */
   private async preflightStream(url: string, body: string): Promise<Response> {
+    const { headers, secret } = await this.headersForRequest();
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: this.requestHeaders(),
+        headers,
         body,
         signal: controller.signal,
       });
@@ -613,25 +667,21 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        const isRetryable =
-          response.status === 429 || (response.status >= 500 && response.status < 600);
-        throw new LLMProviderError(
-          `Local LLM server returned ${response.status}: ${text}`,
-          'local-llm',
-          response.status,
-          isRetryable
-        );
+        const text =
+          response.status === 401 && this.isInferenceProxyTarget()
+            ? ''
+            : await response.text().catch(() => '');
+        throw this.httpFailure(response.status, text, secret);
       }
       return response;
     } catch (err) {
       if (err instanceof LLMProviderError) throw err;
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = scrubSecretFromText(err instanceof Error ? err.message : String(err), secret);
       const isTimeout = msg.includes('aborted') || msg.includes('timeout');
       const hint = isTimeout
         ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
         : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
-      throw new LLMProviderError(hint, 'local-llm', undefined, false);
+      throw new LLMProviderError(scrubSecretFromText(hint, secret), 'local-llm', undefined, false);
     }
   }
 
@@ -990,9 +1040,20 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
    * /v1/models fallback, branded error message for this adapter.
    */
   async healthCheck(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
-    return this.healthCheckLocalServer(
+    const proxy = this.isInferenceProxyTarget();
+    const secret = proxy ? await resolveInferenceProxyKey() : '';
+    const result = await this.healthCheckLocalServer(
       this.localBaseURL,
-      (baseURL, message) => `Local LLM server unreachable at ${baseURL}: ${message}`
+      (baseURL, message) =>
+        `Local LLM server unreachable at ${baseURL}: ${scrubSecretFromText(message, secret)}`,
+      proxy
+        ? {
+            ...(secret ? { headers: { Authorization: `Bearer ${secret}` } } : {}),
+            authRejectedMessage: INFERENCE_PROXY_AUTH_REJECTED_MESSAGE,
+          }
+        : undefined
     );
+    if (result.error && secret) result.error = scrubSecretFromText(result.error, secret);
+    return result;
   }
 }

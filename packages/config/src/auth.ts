@@ -106,6 +106,56 @@ export async function resolveConfigSecret(nameOrRef: string): Promise<string> {
   return resolveFirstSecret([nameOrRef]);
 }
 
+/**
+ * Env var whose value is the secret NAME for the Jetson holo-inference-proxy
+ * bearer (the proxy itself loads that name from `HOLO_PROXY_AUTH_KEY_NAME`;
+ * the suggested name is `HOLO_INFERENCE_PROXY_KEY`). Unset or blank means
+ * clients send no Authorization header.
+ */
+export const HOLO_INFERENCE_PROXY_KEY_NAME_ENV = 'HOLO_INFERENCE_PROXY_KEY_NAME';
+
+/** Fixed 401 text. Never includes key material or header values. */
+export const INFERENCE_PROXY_AUTH_REJECTED_MESSAGE =
+  'Holo inference proxy authentication was rejected (401).';
+
+/** The configured secret name, or '' when clients must stay unauthenticated. */
+export function inferenceProxyKeyName(env: NodeJS.ProcessEnv = process.env): string {
+  return (env[HOLO_INFERENCE_PROXY_KEY_NAME_ENV] ?? '').trim();
+}
+
+/**
+ * Resolve the inference-proxy bearer by name through {@link resolveConfigSecret}
+ * (HoloKey vault, then process.env, then holokeyd). Returns '' when no name is
+ * configured or the name resolves empty. Does not call the resolver, log, or
+ * throw in those cases.
+ */
+export async function resolveInferenceProxyKey(
+  env: NodeJS.ProcessEnv = process.env
+): Promise<string> {
+  const name = inferenceProxyKeyName(env);
+  if (!name) return '';
+  try {
+    return (await resolveConfigSecret(name)).trim();
+  } catch {
+    return '';
+  }
+}
+
+/** `Authorization` header map. Empty when {@link resolveInferenceProxyKey} is empty. */
+export async function inferenceProxyAuthorizationHeader(
+  env: NodeJS.ProcessEnv = process.env
+): Promise<Record<string, string>> {
+  const key = await resolveInferenceProxyKey(env);
+  if (!key) return {};
+  return { Authorization: `Bearer ${key}` };
+}
+
+/** Remove a resolved secret from text that might be logged or thrown. */
+export function scrubSecretFromText(text: string, secret: string): string {
+  if (!secret || !text.includes(secret)) return text;
+  return text.split(secret).join('[redacted]');
+}
+
 /** HoloScript platform API key (used for orchestrator tool calls and knowledge sync) */
 export function getMcpApiKey(): string {
   assertServer('getMcpApiKey');
