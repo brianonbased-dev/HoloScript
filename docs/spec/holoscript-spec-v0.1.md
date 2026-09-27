@@ -732,7 +732,7 @@ orb Sword @grabbable {
 }
 ```
 
-A typed function. The colon is refused at the top level. A function node is still emitted, and success is false. Message: `HSP001: Unexpected token COLON ":" at top level. Expected: composition, object, world, template, logic, or @directive`.
+A typed function. The colon is refused at the top level. A function node is still emitted, and success is false. Message: `HSP001: A colon is not allowed at the top of the file. Start with a block such as object, composition, or function.`
 
 ```hsplus reject
 function add(left: i32, right: i64): i64 {
@@ -804,13 +804,15 @@ No error codes. `error()` (`HoloCompositionParser.ts` line 3978) stores a senten
 
 ### `.hsplus`
 
-Codes are defined in `packages/core/src/parser/RichErrors.ts` lines 42–92 (`HSP001` through `HSP010`, `HSP100` through `HSP109`, `HSP200` through `HSP205`, `HSP300` through `HSP305`, `HSP400` through `HSP402`, `HSP900` through `HSP902`). The message text is `HSP###: ` plus the sentence (`createRichError`, lines 291–293).
+Codes are defined in `packages/core/src/parser/RichErrors.ts` lines 42–63 (`HSP001` through `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, and `HSP300`). The message text is `HSP###: ` plus the sentence (`createRichError`, line 266).
 
-Codes this reader actually passes into `error()` or `detectCommonMistake` in `HoloScriptPlusParser.ts` today: `HSP001`, `HSP002`, `HSP003`, `HSP004`, `HSP005`, `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, `HSP300`. The other codes in the RichErrors table are defined there. This search did not find them being raised by `HoloScriptPlusParser.ts`.
+Codes this reader passes into `error()` or `detectCommonMistake` in `HoloScriptPlusParser.ts`: `HSP001`, `HSP002`, `HSP003`, `HSP004`, `HSP005`, `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, `HSP300`.
 
 Measured messages:
 
-- `HSP001: Unexpected token COLON ":" at top level. Expected: composition, object, world, template, logic, or @directive`
+- `HSP001: This spot needs a colon, as in name: value. A default written with = is only allowed on a field.`
+- `HSP001: A colon is not allowed at the top of the file. Start with a block such as object, composition, or function.`
+- `HSP300: A value was required here, and a "|" was found instead.`
 - `HSP101: Trait @grabbable used a block that looks like an object body, but no object body follows. Use @grabbable(...) for trait config, or add a separate { ... } object body.`
 - `HSP201: Expected directive name, got AT. Directives start with @ followed by name (e.g., @grabbable)`
 

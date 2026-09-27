@@ -1645,10 +1645,12 @@ export class HoloScriptPlusParser {
             }
           } else if (!this.check('EOF')) {
             // No directives, no node, but not EOF
-            this.error(
-              `Unexpected token ${this.current().type} "${this.current().value}" at top level. Expected: composition, object, world, template, logic, or @directive`,
-              'HSP001'
-            );
+            const token = this.current();
+            const message =
+              token.type === 'COLON'
+                ? 'A colon is not allowed at the top of the file. Start with a block such as object, composition, or function.'
+                : `Unexpected token ${token.type} "${token.value}" at top level. Expected: composition, object, world, template, logic, or @directive`;
+            this.error(message, 'HSP001');
             // error() pushes to array, but does NOT throw by default yet.
             // We need to throw to trigger recovery.
             throw new Error('ParseError');
@@ -2386,9 +2388,12 @@ export class HoloScriptPlusParser {
               // OPTIONAL COMMA SUPPORT
               this.advance();
             } else {
-              this.error(
-                `Unexpected token ${this.current().type} "${this.current().value}" in node body`
-              );
+              const token = this.current();
+              const message =
+                token.type === 'EQUALS'
+                  ? 'This spot needs a colon, as in name: value. A default written with = is only allowed on a field.'
+                  : `Unexpected token ${token.type} "${token.value}" in node body`;
+              this.error(message);
               this.synchronizeProperty();
             }
           }
@@ -6193,10 +6198,11 @@ export class HoloScriptPlusParser {
     }
 
     // CRITICAL: Advance to prevent infinite loop
-    this.error(
-      `Unexpected token in expression: ${token.type} "${token.value}". Expected value, identifier, or expression`,
-      'HSP300'
-    );
+    const message =
+      token.type === 'PIPE'
+        ? 'A value was required here, and a "|" was found instead.'
+        : `Unexpected token in expression: ${token.type} "${token.value}". Expected value, identifier, or expression`;
+    this.error(message, 'HSP300');
     const err = new Error('ParseError');
     err.message = 'ParseError';
     throw err;
