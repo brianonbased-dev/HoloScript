@@ -11,7 +11,7 @@ WORKDIR /repo
 # typescript are devDependencies of secrets-broker, config, and llm-provider, so
 # this stage installs them. The runtime stage starts FROM base and stays production.
 ENV NODE_ENV=development
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.json tsconfig.base.json ./
 COPY packages/holoscript-agent/package.json packages/holoscript-agent/
 # llm-provider depends on @holoscript/config, whose only workspace dependency
 # is @holoscript/secrets-broker. Both manifests have to be present for the
