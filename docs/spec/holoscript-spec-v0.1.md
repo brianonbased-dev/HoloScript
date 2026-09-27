@@ -613,9 +613,7 @@ template Button {
 
 ```hsplus
 logic {
-  function ping() {
-    return 1
-  }
+  return 1
 }
 ```
 

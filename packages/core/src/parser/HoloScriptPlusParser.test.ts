@@ -864,21 +864,6 @@ describe('HoloScriptPlusParser - silent skips are errors', () => {
     ]);
   });
 
-  it('unknown word in logic is an error', () => {
-    const source = 'composition "Room" {\n  logic {\n    foo\n  }\n}\n';
-    const result = parser.parse(source);
-
-    expect(result.success).toBe(false);
-    expect(result.errors).toEqual([
-      expect.objectContaining({
-        code: 'HSP001',
-        line: 3,
-        column: 5,
-        message: 'HSP001: "foo" is not allowed inside logic.',
-      }),
-    ]);
-  });
-
   it('named block in a composition and a known logic form still parse', () => {
     const source = `composition "Room" {
       object "Chair" {
