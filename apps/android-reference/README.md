@@ -42,8 +42,8 @@ drift-controlled.
 is `SCENEVIEW_NODE_COMPOSABLES` in `AndroidARGenerators.ts`). A byte-match only proves the emitter
 repeats itself; the gradle build is what proves the Kotlin is right, and it only compiles the kinds
 this scene uses. The cylinder was missing until 2026-09-27, so `CylinderNode(length = …)` — an
-argument SceneView does not have (it is `height`) — failed every real app with a round part while
-this reference stayed green. The golden test now fails if a kind is missing, and checks every
+argument SceneView does not have (it is `height`) — broke the build of every app with a cylinder
+while this reference stayed green. The golden test now fails if a kind is missing, and checks every
 emitted argument name against the pinned SceneView signature, in plain `pnpm test`.
 
 ## Build status — GREEN (golden-diff + real gradle build + on-device, 2026-06-21)
