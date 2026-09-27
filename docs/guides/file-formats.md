@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # File Formats
 
 HoloScript is one general-purpose semantic systems programming language with three source

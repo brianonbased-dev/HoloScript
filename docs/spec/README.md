@@ -1,6 +1,7 @@
 # HoloScript Language Specification
 
 > **Status (2026-07-23): stratum taxonomy ratified and three-surface closure gated.**
+> What the three readers accept today is [HoloScript Spec v0.1 (draft)](./holoscript-spec-v0.1.md).
 > This directory is the canonical home of
 > the HoloScript language specification, now topped by
 > [`language-architecture.md`](./language-architecture.md) — the ratified three-strata

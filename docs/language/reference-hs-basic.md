@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # Basic Syntax Reference (`.hs`)
 
 Complete reference for HoloScript's basic `.hs` format - the simplest way to create 3D scenes.
