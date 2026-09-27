@@ -237,6 +237,21 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
+  // The published native .hs programs are a conformance claim. validate_detailed
+  // (Rust checker) must accept every file under examples/native and
+  // distributions/systems/conformance. One @unknown file stays allow-listed
+  // until the fallback form is decided. Full profile: the step builds the
+  // checker from source, so a stale pkg-node artifact cannot hide a rejection.
+  'hs-conformance': {
+    description:
+      'Native .hs conformance: validate_detailed accepts every .hs file in examples/native and distributions/systems/conformance, except the allow-listed @unknown honesty-gate file',
+    step: [
+      'if ! command -v cargo >/dev/null 2>&1; then curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal; . "$HOME/.cargo/env"; fi',
+      'pnpm check:hs-conformance',
+    ].join('\n'),
+    profiles: ['full'],
+    resource_requirements: { max_dph: 0.4 },
+  },
   // Spec v0.1 only. A later step parses the rest of the docs. This gate checks the one draft.
   'spec-v0.1': {
     description:
