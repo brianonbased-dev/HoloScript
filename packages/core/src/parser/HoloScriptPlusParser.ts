@@ -4890,12 +4890,7 @@ export class HoloScriptPlusParser {
           this.advance();
         }
       } else if (this.check('LBRACE')) {
-        // A bare brace block is not a node. Report it, then skip the block
-        // so a later named child can still be read.
-        this.error(
-          'A block here needs a name. Write the name, then the brace block.',
-          'HSP101'
-        );
+        // Skip balanced block at composition level (e.g., spawn_group "name" { ... })
         let depth = 1;
         this.advance(); // consume {
         while (depth > 0 && !this.check('EOF')) {

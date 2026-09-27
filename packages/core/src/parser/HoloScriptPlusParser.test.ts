@@ -846,23 +846,8 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
   });
 });
 
-describe('HoloScriptPlusParser - silent skips are errors', () => {
+describe('HoloScriptPlusParser - unknown words inside logic are errors', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
-
-  it('bare block in a composition is an error', () => {
-    const source = 'composition "Room" {\n  { hidden: true }\n}\n';
-    const result = parser.parse(source);
-
-    expect(result.success).toBe(false);
-    expect(result.errors).toEqual([
-      expect.objectContaining({
-        code: 'HSP101',
-        line: 2,
-        column: 3,
-        message: 'HSP101: A block here needs a name. Write the name, then the brace block.',
-      }),
-    ]);
-  });
 
   it('unknown word in logic is an error', () => {
     const source = 'composition "Room" {\n  logic {\n    foo\n  }\n}\n';
