@@ -237,6 +237,14 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
+  // Spec v0.1 only. A later step parses the rest of the docs. This gate checks the one draft.
+  'spec-v0.1': {
+    description:
+      'HoloScript Spec v0.1: every fenced example in docs/spec/holoscript-spec-v0.1.md parses with the reader the grammar router names for that fence tag; fences marked reject must fail',
+    step: 'pnpm --filter @holoscript/core exec vitest run src/parser/__tests__/holoscript-spec-v0.1.test.ts',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
   // WRAP-WITH-RECEIPTS coverage ratchet (dependency-sovereignty-ladder, 2026-07-16).
   // Every setRequestHandler(CallToolRequestSchema) fold point under packages/mcp-server/src
   // must route through gateToolCall (tool-call-gate.ts) — the single typed gate that emits

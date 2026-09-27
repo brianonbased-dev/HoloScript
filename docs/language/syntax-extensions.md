@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # HoloScript Syntax Extensions (Parser v2.1)
 
 The HoloScript parser has been evolved to support "Wild HoloScript" patterns found in the ecosystem, bridging the gap between declarative HoloScript and imperative TypeScript.

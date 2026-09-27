@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # Language Reference
 
 > **Live authority.** `.hs` that `packages/compiler-wasm` `validate` accepts is the live language.

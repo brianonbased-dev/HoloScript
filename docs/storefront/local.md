@@ -112,7 +112,7 @@ before promoting any row to “proven for GitHub.”
 ## What this file is not
 
 - Not permission to rewrite `README.md` as V1.
-- Not permission to shrink the language to three backends or forty traits.
+- Not permission to delete backends. Three compile targets are the only ones promised for HoloScript Spec v0.1, confirmed 2026-09-27: webgpu (sovereign: our code generation, runs on the browser's WebGPU API; no test runs the generated output yet), and godot and urdf as labeled bridges. Every other export target stays in the code, unproven and not part of v0.1. Nothing is removed.
 - Not permission to delete tools. The warehouse stays. The door gets honest.
 - Not a claim that the ten jobs are all product-ready.
 

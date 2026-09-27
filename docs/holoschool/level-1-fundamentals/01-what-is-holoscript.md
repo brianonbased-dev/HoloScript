@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # Lesson 1.1: What is HoloScript?
 
 Welcome to HoloSchool! In this first lesson, you'll learn why HoloScript is being built as a general-purpose semantic systems programming language. The worked example uses its spatial programming surface; VR/XR is a domain, not the language boundary.
