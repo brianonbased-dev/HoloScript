@@ -635,6 +635,129 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
   }
 }
 
+// A file directly under packages/<x>/src/ must reach both gates. Git's default
+// `src/**` pathspec requires another slash, so `packages/studio/src/DirectPanel.tsx`
+// used to be staged and still skipped. The legacy `**` commands below are the
+// old hook; the live commands are read from .githooks/pre-commit.
+{
+  const hookSource = readFileSync(HOOK, 'utf8');
+  const directTsx = 'packages/studio/src/DirectPanel.tsx';
+  const nestedTsx = 'packages/studio/src/nested/NestedPanel.tsx';
+  const directNestedPkg = 'packages/plugins/widget/src/index.ts';
+  const qrHost = ['api.', 'qrserver.com'].join('');
+  const violation = `export const url = 'https://${qrHost}/v1/create-qr-code';\n`;
+
+  function assignmentCommand(varName) {
+    const line = hookSource.split('\n').find((entry) => entry.includes(`${varName}=$(`));
+    if (!line) throw new Error(`missing ${varName} assignment`);
+    const open = line.indexOf('$(');
+    const close = line.lastIndexOf(')');
+    if (open < 0 || close <= open) throw new Error(`bad ${varName} assignment`);
+    return line.slice(open + 2, close);
+  }
+
+  function nameList(command, cwd) {
+    const result = spawnSync('bash', ['-c', command], { cwd, encoding: 'utf8' });
+    return {
+      code: result.status,
+      names: `${result.stdout || ''}`
+        .split(/\r?\n/)
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+      err: result.stderr || '',
+    };
+  }
+
+  const legacySrc =
+    "git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- " +
+    "'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs'";
+  const legacyRender =
+    "git -c core.quotepath=off diff --cached --name-only -- " +
+    "'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx'";
+
+  const root = mkdtempSync(join(tmpdir(), 'src-direct-glob-'));
+  try {
+    git(root, ['init']);
+    writeTree(root, {
+      [directTsx]: `export const DirectPanel = () => null;\n${violation}`,
+      [nestedTsx]: 'export const NestedPanel = () => null;\n',
+      [directNestedPkg]: violation,
+      'scripts/holo-ci/render-surface-native-allowlist.json': `${JSON.stringify(
+        { allow: [nestedTsx] },
+        null,
+        2
+      )}\n`,
+    });
+    git(root, ['add', '--', directTsx, nestedTsx, directNestedPkg]);
+
+    const oldSrc = nameList(legacySrc, root);
+    const oldRender = nameList(legacyRender, root);
+    assertTrue(!oldSrc.names.includes(directTsx), 'legacy src/** pathspec skips a file directly under src/');
+    assertTrue(
+      !oldSrc.names.includes(directNestedPkg),
+      'legacy src/** pathspec skips packages/<a>/<b>/src/<file>'
+    );
+    assertTrue(oldSrc.names.includes(nestedTsx), 'legacy src/** pathspec still lists a nested file');
+    assertTrue(
+      !oldRender.names.includes(directTsx),
+      'legacy render src/** pathspec skips a file directly under src/'
+    );
+    assertTrue(oldRender.names.includes(nestedTsx), 'legacy render src/** pathspec still lists a nested file');
+
+    const srcCmd = assignmentCommand('STAGED_SRC');
+    const renderCmd = assignmentCommand('STAGED_RENDER_TSX');
+    const stagedSrc = nameList(srcCmd, root);
+    const stagedRender = nameList(renderCmd, root);
+    assertEq(stagedSrc.code, 0, 'hook STAGED_SRC command exits 0');
+    assertEq(stagedRender.code, 0, 'hook STAGED_RENDER_TSX command exits 0');
+    assertTrue(stagedSrc.names.includes(directTsx), 'hook feeds packages/<x>/src/<file>.tsx to the QR list', stagedSrc.names.join(','));
+    assertTrue(
+      stagedSrc.names.includes(directNestedPkg),
+      'hook feeds packages/<a>/<b>/src/<file> to the QR list',
+      stagedSrc.names.join(',')
+    );
+    assertTrue(stagedSrc.names.includes(nestedTsx), 'hook still feeds a nested src file to the QR list');
+    assertTrue(
+      stagedRender.names.includes(directTsx),
+      'hook feeds packages/<x>/src/<file>.tsx to the render-surface list',
+      stagedRender.names.join(',')
+    );
+    assertTrue(
+      stagedRender.names.includes(nestedTsx),
+      'hook still feeds a nested render file to the render-surface list'
+    );
+
+    const listDir = mkdtempSync(join(tmpdir(), 'src-direct-lists-'));
+    try {
+      const srcList = writeList(listDir, 'src.txt', stagedSrc.names);
+      const renderList = writeList(listDir, 'render.txt', stagedRender.names);
+      const qr = runNode(QR, ['--files-from', srcList], root);
+      assertEq(qr.code, 1, 'QR gate fails once the direct src file is on its list');
+      assertTrue(
+        withSlashes(qr.out).includes(directTsx),
+        'QR gate reports the file directly under packages/<x>/src/',
+        qr.out
+      );
+      assertTrue(
+        withSlashes(qr.out).includes(directNestedPkg),
+        'QR gate reports packages/<a>/<b>/src/<file>',
+        qr.out
+      );
+      const render = runNode(RENDER, ['--files-from', renderList], root);
+      assertEq(render.code, 1, 'render-surface gate fails once the direct src file is on its list');
+      assertTrue(
+        withSlashes(render.out).includes(`SURFACE-GREW  ${directTsx}`),
+        'render-surface gate reports the file directly under packages/<x>/src/',
+        render.out
+      );
+    } finally {
+      rmSync(listDir, { recursive: true, force: true });
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);
   process.exit(1);
