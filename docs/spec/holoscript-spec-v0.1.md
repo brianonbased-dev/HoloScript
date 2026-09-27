@@ -19,7 +19,7 @@ These other numbers are software versions. They are not the language version:
 | `@holoscript/core` package           | 8.8.0                    | `packages/core/package.json`                    |
 | Workspace package `holoscript`       | 6.1.3                    | root `package.json`                             |
 | Cargo workspace                      | 3.0.0                    | root `Cargo.toml` line 14                       |
-| Published `@holoscript/wasm` package | 6.1.16                   | `packages/compiler-wasm/package.json`           |
+| `@holoscript/wasm` local package.json version | 6.1.16 (unpublished; npm latest is 6.2.0, 7.0.0 also exists) | `packages/compiler-wasm/package.json` |
 | WASM build's own `version()` string  | 3.0.0                    | measured from `packages/compiler-wasm/pkg-node` |
 
 `hs-machine-vN` is an internal machine contract, not this language version. The ladder is `docs/spec/native-machine-release-ladder.md`. Machine files `docs/spec/native-machine-v0.md` through `docs/spec/native-machine-v34.md` are per-generation notes. A machine number does not bump this spec, and this spec does not bump a package.
@@ -46,7 +46,7 @@ The router is `docs/spec/holoscript-grammar-ssot.md` lines 13–15. One file end
 
 These three are not the authority:
 
-- **tree-sitter** (`packages/tree-sitter-holoscript`, package 2.1.0) is editor highlighting. Its README lines 6–7 say "Full HoloScript syntax support". The router does not list it. Highlighting can accept text the real reader rejects.
+- **tree-sitter** (`packages/tree-sitter-holoscript`, package 2.1.0) is editor highlighting. Its README line 9 says "Full HoloScript syntax support". The router does not list it. Highlighting can accept text the real reader rejects.
 - **PipelineParser** (`packages/core/src/parser/PipelineParser.ts`, `parsePipeline` at line 648) is a helper for pipeline blocks. It is not the reader for a `.hs` file. The composition reader calls it when it keeps a pipeline block (`HoloCompositionParser.ts` line 8439). The `.hsplus` reader has its own pipeline path (`HoloScriptPlusParser.ts` around line 1808).
 - **SYNTAX_DOCS** (`packages/mcp-server/src/documentation.ts` line 1396) is a help table for the syntax guide. It is not the reader. A conformance test checks those examples separately. This spec does not.
 
@@ -833,7 +833,7 @@ Measured messages:
 
 | Target   | Class                                      | Rung                                                                                                                                             | What the compiler does                                                                                                  |
 | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `webgpu` | Sovereign (`sovereign-targets.ts` line 31) | **Code owned.** The compiler writes shader text and runs it on HoloScript's own WebGPU path. This is not a claim that the GPU hardware is owned. | `WebGPUCompiler` emits WGSL for our own WebGPU device.                                                                  |
+| `webgpu` | Sovereign (`sovereign-targets.ts` line 31) | **Code owned.** Code generation is HoloScript-owned (`WebGPUCompiler` emits WGSL + host code). The GPU device is the browser's WebGPU API, not ours. | Gap: execution of the generated output is not yet proven by a test in this repo. |
 | `godot`  | Bridge (`sovereign-targets.ts` line 63)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                      | Emits a Godot project. Godot, a separate engine, is what runs it. That is bridge evidence under North Star lines 24–26. |
 | `urdf`   | Bridge (`sovereign-targets.ts` line 55)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                      | Emits URDF XML. ROS 2 / Gazebo, separate tools, are what consume it (`CircuitBreaker.ts` line 44).                      |
 

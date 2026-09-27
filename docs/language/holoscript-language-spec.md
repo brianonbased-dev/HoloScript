@@ -1,4 +1,4 @@
-> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+> Superseded by HoloScript Spec v0.1 (draft, pending freeze confirmation) (docs/spec/holoscript-spec-v0.1.md) where they disagree.
 
 # ∞.HOLOSCRIPT_LANGUAGE_2026_02_03.md
 
