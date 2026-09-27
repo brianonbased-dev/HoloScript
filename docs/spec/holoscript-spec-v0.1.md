@@ -2,7 +2,7 @@
 
 **HoloScript Language Spec 0.1.0 (draft).**
 
-This draft says what the three file readers accept on 2026-09-27. It does not add new syntax. It does not change any reader, compiler, or trait code. Where an older document disagrees with a reader, this draft wins for v0.1.
+Joseph confirmed the v0.1 target freeze and the `.hs` rule on 2026-09-27. This document stays titled draft until the pull request merges. It says what the three file readers accept on 2026-09-27. It does not add new syntax. It does not change any reader, compiler, or trait code. Where an older document disagrees with a reader, this draft wins for v0.1.
 
 Measured on `main` at `d22719c509d79c37e281f9c11216ce1e424e12df`. The 2026-09-26 measurement was `c9fa873c`. Between those two commits the only compiler edit was `packages/core/src/compiler/LlamaServerCompiler.ts`, which is not one of the three official v0.1 targets. The three readers did not change.
 
@@ -24,15 +24,13 @@ These other numbers are software versions. They are not the language version:
 
 `hs-machine-vN` is an internal machine contract, not this language version. The ladder is `docs/spec/native-machine-release-ladder.md`. Machine files `docs/spec/native-machine-v0.md` through `docs/spec/native-machine-v34.md` are per-generation notes. A machine number does not bump this spec, and this spec does not bump a package.
 
-## Defaults pending confirmation
+## Confirmed decisions
 
-**Default pending Joseph's confirmation, logged 2026-09-27.**
+**Confirmed by Joseph on 2026-09-27.**
 
-**(a)** A `.hs` file is exactly what the router's `.hs` reader accepts today: the Rust/WASM reader in `packages/compiler-wasm`, as named by `docs/spec/holoscript-grammar-ssot.md`. That was measured, not chosen. "Accepts" for `.hs` means `validate_detailed` returns `"valid": true`. That call parses the file and then checks types (`packages/compiler-wasm/src/lib.rs` lines 164–176).
+**(a)** A `.hs` file means whatever the Rust/WASM parser in `packages/compiler-wasm` accepts, as named by `docs/spec/holoscript-grammar-ssot.md`. "Accepts" for `.hs` means `validate_detailed` returns `"valid": true`. That call parses the file and then checks types (`packages/compiler-wasm/src/lib.rs` lines 164–176).
 
-**(b)** The 2026-09-05 freeze is recorded here: **webgpu**, **godot**, and **urdf** are the official v0.1 compile targets. godot and urdf are bridges. Every other `ExportTarget` member stays in the code and is listed below as unproven, not in v0.1. Nothing was deleted.
-
-Joseph has not answered yet. These two defaults stand until he confirms or replaces them. The confirmation date aimed at in the lock-in note is Monday 28 September 2026.
+**(b)** **webgpu**, **godot**, and **urdf** are the only promised v0.1 compile targets. **webgpu** is sovereign: our code generation, and it runs on the browser's WebGPU API. No test in this repo runs the generated output yet. **godot** and **urdf** are labeled bridges. Every other `ExportTarget` member stays in the code and is listed below as unproven, not in v0.1. Nothing was deleted.
 
 ## The three files and the one reader for each
 
@@ -763,7 +761,7 @@ These are bugs and disagreements measured on this checkout. This draft records t
 | `spatial ComponentName(width: number, height: number) { layer background { } }`                              | `Unexpected identifier: spatial`  | success, root type `spatial`    | success; `spatial` itself is not stored (see gap 1)                                             |
 | `pipeline "CustomerJourney" { source Ledger { kind: "table" } sink Report { kind: "log" } }`                 | `Unexpected identifier: pipeline` | success, root type `pipeline`   | success, kept as a pipeline domain block                                                        |
 
-3. **Four different trait counts**, all real, none of them a unique "how many traits exist" answer. Explained in the Traits section: 6300, 2714, 1033, and 302.
+3. **The trait count is being reconciled across sources.** The canonical name list is `VR_TRAITS` in `packages/core/src/traits/constants/index.ts`, named in the Traits section. This spec does not publish a number for how many traits exist.
 
 4. **A pipeline property can be kept under a different type name.** For `source Ledger { kind: "table" }`, the composition reader's pipeline result stored `kind: "table"` as a property and set the step type to `rest`. The file still parses. Callers that expect the type to be `table` will not see that.
 
@@ -777,14 +775,7 @@ The one name list this spec treats as canonical is **`VR_TRAITS`** in `packages/
 
 Why that file: the `.hsplus` reader asks this list when it decides an `@` word is a known trait (`HoloScriptPlusParser.ts` line 2670). The composition reader's suggestions fall back to the same list (`HoloCompositionParser.ts` lines 225–238, via `ErrorRecovery`). The compilers for webgpu, godot, and urdf do not reject an unknown trait name against a registry. They read the names the parser already stored and special-case a few (`grabbable`, `physics`, and GPU trait names in `WebGPUCompiler.ts`, `GodotCompiler.ts`, and `URDFCompiler.ts`). A separate checker, `traitExists` in `packages/core/src/compiler/TraitRegistryBridge.ts` (line 260), looks first at the runtime handler registry `vrTraitRegistry` in `packages/core/src/traits/VRTraitSystem.ts`. That checker is not what the three official compilers run. `listTraitsForTarget` for `webgpu` returns an empty list (`TraitRegistryBridge.ts` lines 249–250).
 
-The other counts, one line each, measured again on 2026-09-27:
-
-- **6300** is the sum of every exported `*_TRAITS` array (170 arrays). It counts definitions, including repeats. Source: `packages/core/src/traits/constants/__tests__/paper-trait-inventory.test.ts` lines 32–40, re-run by importing the same barrel.
-- **2714** is the number of unique strings in `VR_TRAITS`. The array length is 2781, so 67 names are repeated.
-- **1033** is the unique count printed in the header of `packages/core/src/compiler/identity/derived-trait-schemas.generated.ts` line 4 ("1038 trait(s) derived, 1033 unique"). That file is generated from `packages/core/src/traits/**/*.holo`. It is a schema list for the confabulation checker, not the name list the parser uses.
-- **302** is the number of keys in `packages/core/src/traits/trait-registry.json`. It is a smaller catalog. The parsers and the three official compilers do not use it as the accept/reject list.
-
-`VRTraitSystem.ts` also contains 406 `this.register(` calls. That is how many runtime handlers the file wires. It is not one of the four counts above.
+Other catalogs also name traits. The trait count is being reconciled across those sources. This spec does not publish a number.
 
 ## Error codes
 
@@ -825,17 +816,17 @@ Measured messages:
 
 ## Compile targets
 
-**Default pending Joseph's confirmation, logged 2026-09-27.** See defaults (b) above.
+**Confirmed by Joseph on 2026-09-27.** webgpu, godot, and urdf are the only promised v0.1 targets. See confirmed decision (b) above.
 
-`ExportTarget` is the list in `packages/core/src/compiler/CircuitBreaker.ts` lines 43–107. `packages/core/src/compiler/sovereign-targets.ts` sorts that list into sovereign, bridge, and mode. North Star wording (`NORTH_STAR.md` lines 24–26 and 35–41): generating an engine project or a deployment manifest is bridge evidence, not proof that HoloScript owns the underlying layer. "Name the rung" means say which ownership is real: code owned, kernels owned, weights owned, or hardware-level owned. A bridge must be labeled, and a removal condition belongs with that label. The removal condition for godot and urdf is not written yet. It waits on Joseph's confirmation of default (b).
+`ExportTarget` is the list in `packages/core/src/compiler/CircuitBreaker.ts` lines 43–107. `packages/core/src/compiler/sovereign-targets.ts` sorts that list into sovereign, bridge, and mode. North Star wording (`NORTH_STAR.md` lines 24–26 and 35–41): generating an engine project or a deployment manifest is bridge evidence, not proof that HoloScript owns the underlying layer. "Name the rung" means say which ownership is real: code owned, kernels owned, weights owned, or hardware-level owned. A bridge must be labeled. The removal condition for godot and urdf is not written in this spec.
 
 ### Official for v0.1
 
 | Target   | Class                                      | Rung                                                                                                                                                 | What the compiler does                                                                                                  |
 | -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `webgpu` | Sovereign (`sovereign-targets.ts` line 31) | **Code owned.** Code generation is HoloScript-owned (`WebGPUCompiler` emits WGSL + host code). The GPU device is the browser's WebGPU API, not ours. | Gap: execution of the generated output is not yet proven by a test in this repo.                                        |
-| `godot`  | Bridge (`sovereign-targets.ts` line 63)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                          | Emits a Godot project. Godot, a separate engine, is what runs it. That is bridge evidence under North Star lines 24–26. |
-| `urdf`   | Bridge (`sovereign-targets.ts` line 55)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                          | Emits URDF XML. ROS 2 / Gazebo, separate tools, are what consume it (`CircuitBreaker.ts` line 44).                      |
+| `godot`  | Bridge (`sovereign-targets.ts` line 63)    | Not owned. Labeled bridge.                                                                                                                           | Emits a Godot project. Godot, a separate engine, is what runs it. That is bridge evidence under North Star lines 24–26. |
+| `urdf`   | Bridge (`sovereign-targets.ts` line 55)    | Not owned. Labeled bridge.                                                                                                                           | Emits URDF XML. ROS 2 / Gazebo, separate tools, are what consume it (`CircuitBreaker.ts` line 44).                      |
 
 ### Unproven, not in v0.1
 
@@ -857,4 +848,4 @@ Deprecation is announced in the next draft of this spec, with the date, the old 
 
 ## What remains after this plan
 
-This draft describes today's readers. It does not make the three readers agree. It does not turn empty-success into a real error. It does not add a Godot golden file. It does not parse every code fence in `docs/language`, `docs/guides`, or HoloSchool. It does not publish a package or bump a version. Those wait on a later step, and on Joseph's confirmation of defaults (a) and (b).
+This draft describes today's readers. It does not make the three readers agree. It does not turn empty-success into a real error. It does not add a Godot golden file. It does not parse every code fence in `docs/language`, `docs/guides`, or HoloSchool. It does not publish a package or bump a version. The trait count is being reconciled across sources, and this spec does not publish a number. The removal condition for the godot and urdf bridges is not written yet. Execution of `WebGPUCompiler` output is still unproven by a test in this repo. Those wait on a later step.
