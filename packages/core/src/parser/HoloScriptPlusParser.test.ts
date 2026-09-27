@@ -914,3 +914,154 @@ describe('HoloScriptPlusParser - silent skips are errors', () => {
     ]);
   });
 });
+
+describe('HoloScriptPlusParser - using clause keeps the body', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('stores a template body the same way with or without using', () => {
+    const source = `composition "Templates" {
+      template "BaseInteractive" {
+        @grabbable
+        color: "white"
+      }
+      template "ColoredInteractive" using "BaseInteractive" {
+        @glowing
+        color: "cyan"
+      }
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    const base = result.ast.root.children?.find((child: any) => child.name === 'BaseInteractive');
+    const colored = result.ast.root.children?.find(
+      (child: any) => child.name === 'ColoredInteractive'
+    );
+
+    expect(base).toMatchObject({
+      type: 'template',
+      properties: { color: 'white' },
+    });
+    expect(base.directives).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'trait', name: 'grabbable' })])
+    );
+    expect(colored).toMatchObject({
+      type: 'template',
+      properties: { color: 'cyan', __templateRef: 'BaseInteractive' },
+    });
+    expect(colored.directives).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'trait', name: 'glowing' })])
+    );
+    expect(result.ast.root.properties).toEqual({});
+  });
+
+  it('stores policy and capability bodies on the named node', () => {
+    const source = `composition "Envelope" {
+      policy "SilentFolderRead" using "PermissionEnvelope" {
+        readOnly: true
+        appliesTo: ["list_folder", "hash_asset_file"]
+      }
+      capability "receipt_read" using "NativeCapabilityLane" {
+        laneId: "receipt_read"
+        nativeHostRequired: false
+      }
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.ast.root.properties).toEqual({});
+
+    const policy = result.ast.root.children?.find((child: any) => child.type === 'policy');
+    const capability = result.ast.root.children?.find((child: any) => child.type === 'capability');
+    expect(policy).toMatchObject({
+      name: 'SilentFolderRead',
+      properties: {
+        __templateRef: 'PermissionEnvelope',
+        readOnly: true,
+        appliesTo: ['list_folder', 'hash_asset_file'],
+      },
+    });
+    expect(capability).toMatchObject({
+      name: 'receipt_read',
+      properties: {
+        __templateRef: 'NativeCapabilityLane',
+        laneId: 'receipt_read',
+        nativeHostRequired: false,
+      },
+    });
+  });
+
+  it('keeps object using and a quoted property without a body', () => {
+    const source = `composition "Room" {
+      object "EnhancedObject" using "ColoredInteractive" {
+        position: { x: 0, y: 3, z: 0 }
+      }
+      title "Hello"
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    const object = result.ast.root.children?.find((child: any) => child.type === 'object');
+    expect(object).toMatchObject({
+      name: 'EnhancedObject',
+      properties: {
+        __templateRef: 'ColoredInteractive',
+        position: { x: 0, y: 3, z: 0 },
+      },
+    });
+    expect(result.ast.root.properties).toEqual({ title: 'Hello' });
+  });
+
+  it('does not treat a bare policy block as a new keyword', () => {
+    const source = 'composition "Room" {\n  policy "Bare" {\n    readOnly: true\n  }\n}\n';
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'HSP101',
+        line: 2,
+        column: 17,
+        message: 'HSP101: A block here needs a name. Write the name, then the brace block.',
+      }),
+    ]);
+    expect(result.ast.root.properties).toEqual({ policy: 'Bare' });
+  });
+
+  it('stores the ColoredInteractive body from the templates reference', () => {
+    const sourcePath = join(
+      __dirname,
+      '../../../../examples/language-reference/01-templates-decorators.hsplus'
+    );
+    const result = parser.parse(readFileSync(sourcePath, 'utf8'));
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    const colored = result.ast.root.children?.find(
+      (child: any) => child.name === 'ColoredInteractive'
+    );
+    const enhanced = result.ast.root.children?.find(
+      (child: any) => child.name === 'EnhancedObject'
+    );
+
+    expect(colored).toMatchObject({
+      type: 'template',
+      name: 'ColoredInteractive',
+      properties: { color: 'cyan', __templateRef: 'BaseInteractive' },
+    });
+    expect(colored.directives).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'trait', name: 'glowing' })])
+    );
+    expect(enhanced).toMatchObject({
+      type: 'object',
+      properties: {
+        __templateRef: 'ColoredInteractive',
+        position: { x: 0, y: 3, z: 0 },
+      },
+    });
+  });
+});
