@@ -246,7 +246,7 @@ the behavior already deployed.
 
 | Variable | Role |
 | --- | --- |
-| `HOLO_PROXY_AUTH_MODE` | `off`, `log-only`, or `enforce`. When unset: `log-only` if a key name is set, otherwise `off`. |
+| `HOLO_PROXY_AUTH_MODE` | Exactly `off`, `log-only`, or `enforce` after trim and lower-case. When unset: `log-only` if a key name is set, otherwise `off`. Any other value fails closed. |
 | `HOLO_PROXY_AUTH_KEY_NAME` | HoloKey secret name. Suggested value: `HOLO_INFERENCE_PROXY_KEY`. |
 | `HOLOKEY_SOCKET` | Optional holokeyd unix socket. Default: `/run/holokeyd/holokeyd.sock`. |
 | `HOLOKEYD_CLIENT` | Optional `holokeyctl` path. Default: `/usr/local/bin/holokeyctl`. |
@@ -254,26 +254,43 @@ the behavior already deployed.
 At startup the proxy runs `holokeyctl resolve-stdin` once (the same contract the
 secrets-broker uses) and caches the value in memory. It does not call holokeyd
 again per request. The proxy's service user must be in group `holokey-clients`
-so it can read the socket. If the key cannot be loaded, the process logs a
-warning, drops a requested `enforce` mode to `log-only`, and keeps serving.
+so it can read the socket. `off` and `log-only` are unchanged from the first
+bearer-auth cut: if `log-only` cannot load its key, the process logs a warning
+and keeps serving. `enforce` does not do that.
+
+Fail closed is a stay-up refusal, not a process exit and not a silent drop to
+`log-only`. The process keeps listening so `Restart=always` does not crash-loop.
+Every non-loopback request gets HTTP 503 `{ "error": "auth unavailable" }` and
+is not forwarded. Loopback stays exempt. This happens when:
+
+- `HOLO_PROXY_AUTH_MODE` is set to anything other than exactly `off`, `log-only`, or `enforce` (after trim and lower-case). An unrecognised value is not guessed.
+- `enforce` is requested and `HOLO_PROXY_AUTH_KEY_NAME` is unset, empty, or not a plain secret name.
+- `enforce` is requested and the one-shot key load fails.
 
 `127.0.0.1`, `::1`, and `::ffff:127.0.0.1` are always allowed. Every other
 caller is checked on every route, including `GET /v1/models`. The check is
 `Authorization: Bearer <key>`, compared with `crypto.timingSafeEqual` on
 equal-length buffers. `log-only` writes one line per non-loopback request with
 the caller IP, method, path, and result (`ok`, `missing`, or `bad`), then
-forwards. `enforce` answers `401` with a JSON error and does not forward when
-the bearer is missing or wrong. The `Authorization` header is removed before
-the upstream request. The key is never logged, echoed, or written into
-receipts. Receipt rows stay as they are, plus an optional `authResult` field
-when auth is on.
+forwards. `enforce` answers `401` with a JSON error and `WWW-Authenticate: Bearer`
+(realm `holo-inference-proxy`) and does not forward when the bearer is missing
+or wrong. Every 401 also appends one `inference-receipt/v0` row through the
+existing receipt writer. That row records caller IP (`remoteAddr`), method,
+path (`endpoint`, query string removed), result (`authResult` `missing` or
+`bad`), and timestamp (`ts`). It does not record the key, any prefix or hash of
+the key, or the `Authorization` header value. The `Authorization` header is
+removed before the upstream request. The key is never logged, echoed, or written
+into receipts. Other receipt rows stay as they are, plus an optional `authResult`
+field when auth is on.
 
-Roll out `log-only` first. Switch to `enforce` after callers send the bearer.
+Roll out `log-only` first. Nobody should turn on `enforce` as part of shipping
+this follow-up; Release gates that switch, after callers send the bearer.
 Deployment of the unit is a separate manual step from publishing this package.
 
 Example systemd drop-in. It orders the proxy after holokeyd and turns on
 log-only mode. It sets `After=holokeyd.service` and leaves out `Requires=` so
-a holokeyd outage cannot stop inference:
+a holokeyd outage cannot stop inference while the mode is `log-only`. It does
+not set `enforce`:
 
 ```ini
 # /etc/systemd/system/holo-inference-proxy-jetson-orin-llamacpp.service.d/auth.conf
