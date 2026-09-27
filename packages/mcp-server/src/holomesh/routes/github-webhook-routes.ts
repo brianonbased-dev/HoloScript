@@ -13,9 +13,11 @@
  *
  * Setup:
  *   https://github.com/brianonbased-dev/HoloScript/settings/hooks
- *   URL:           https://mcp.holoscript.net/webhook/github
+ *   URL:           https://mcp-server-production-7879.up.railway.app/webhook/github
  *                  (not mcp-holoscript-production.up.railway.app: that host answers
- *                  "Application not found", so a hook pointed there never arrives)
+ *                  "Application not found", so a hook pointed there never arrives.
+ *                  mcp.holoscript.net is a historical vanity host and is not the
+ *                  configured receiver)
  *   Content-Type:  application/json
  *   Events:        Push events (just push — PRs from forks stay out because this
  *                  receiver does not handle pull_request)
