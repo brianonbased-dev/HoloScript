@@ -849,6 +849,28 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
 describe('HoloScriptPlusParser - silent skips are errors', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
 
+  it('a bare ${ } value tells you to quote it', () => {
+    const bare = 'composition player {\n  health: ${state.health}\n}\n';
+    const bareResult = parser.parse(bare);
+
+    expect(bareResult.success).toBe(false);
+    expect(bareResult.errors).toEqual([
+      expect.objectContaining({
+        code: 'HSP101',
+        line: 2,
+        column: 12,
+        message:
+          'HSP101: "${ }" only works inside a quoted string here. Put the value in quotes.',
+      }),
+    ]);
+
+    const quoted = 'composition player {\n  health: "${state.health}"\n}\n';
+    const quotedResult = parser.parse(quoted);
+    expect(quotedResult.success).toBe(true);
+    expect(quotedResult.errors).toEqual([]);
+    expect(quotedResult.ast.root.properties).toEqual({ health: '${state.health}' });
+  });
+
   it('bare block in a composition is an error', () => {
     const source = 'composition "Room" {\n  { hidden: true }\n}\n';
     const result = parser.parse(source);

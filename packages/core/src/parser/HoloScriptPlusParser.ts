@@ -4906,8 +4906,19 @@ export class HoloScriptPlusParser {
       } else if (this.check('LBRACE')) {
         // A bare brace block is not a node. Report it, then skip the block
         // so a later named child can still be read.
+        // `health: ${state.health}` is not that case: `$` is an identifier and
+        // `{` is a separate brace. `${ }` is only kept inside a quoted string.
+        const brace = this.current();
+        const before = this.previous();
+        const bareDollarBrace =
+          before.type === 'IDENTIFIER' &&
+          before.value === '$' &&
+          before.line === brace.line &&
+          brace.column === before.column + before.value.length;
         this.error(
-          'A block here needs a name. Write the name, then the brace block.',
+          bareDollarBrace
+            ? '"${ }" only works inside a quoted string here. Put the value in quotes.'
+            : 'A block here needs a name. Write the name, then the brace block.',
           'HSP101'
         );
         let depth = 1;
