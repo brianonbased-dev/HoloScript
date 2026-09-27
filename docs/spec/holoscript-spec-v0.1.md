@@ -681,21 +681,6 @@ world Room {
 }
 ```
 
-This `zone` line is accepted here. The WASM reader rejects it. See Known gaps.
-
-```hsplus
-zone SafeArea(x: 0, y: 0, z: 5, width: 100)
-```
-
-This `spatial` block is accepted here. The root type measured was `spatial`, with a child `layer`. The WASM reader rejects it.
-
-```hsplus
-spatial ComponentName(width: number, height: number) {
-  layer background {
-  }
-}
-```
-
 ```hsplus
 connect inventory.sync -> report.write
 ```
@@ -723,6 +708,19 @@ A lone trait, with no object, is accepted as an empty fragment (no error):
 ```
 
 ### Forms it rejects
+
+`zone`, `spatial`, and `layer` are not part of a `.hsplus` file. The reader reports one error and stores no node. Message: `HSP001: zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.` The same zone, with a quoted name and a brace block, stays valid inside a `.holo` composition.
+
+```hsplus reject
+zone SafeArea(x: 0, y: 0, z: 5, width: 100)
+```
+
+```hsplus reject
+spatial ComponentName(width: number, height: number) {
+  layer background {
+  }
+}
+```
 
 A trait written as `@name { ... }` with no `()` swallows the following object body. Message: `HSP101: Trait @grabbable used a block that looks like an object body, but no object body follows. Use @grabbable(...) for trait config, or add a separate { ... } object body.`
 
@@ -757,8 +755,8 @@ These are bugs and disagreements measured on this checkout. This draft records t
 | Text                                                                                                         | WASM `.hs`                        | `.hsplus` reader                | Composition reader                                                                              |
 | ------------------------------------------------------------------------------------------------------------ | --------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Typed `function add(left: i32, right: i64): i64` with `return result` after `let result: i64 = left + right` | valid                             | rejected, `HSP001` on the colon | At the root: success and nothing stored. Inside a composition: error `Unexpected token: LBRACE` |
-| `zone SafeArea(x: 0, y: 0, z: 5, width: 100)`                                                                | `Unexpected identifier: zone`     | success, root type `zone`       | success, nothing stored                                                                         |
-| `spatial ComponentName(width: number, height: number) { layer background { } }`                              | `Unexpected identifier: spatial`  | success, root type `spatial`    | success; `spatial` itself is not stored (see gap 1)                                             |
+| `zone SafeArea(x: 0, y: 0, z: 5, width: 100)`                                                                | `Unexpected identifier: zone`     | rejected, `HSP001` (not part of this file) | success, nothing stored                                                                         |
+| `spatial ComponentName(width: number, height: number) { layer background { } }`                              | `Unexpected identifier: spatial`  | rejected, `HSP001` (not part of this file) | success; `spatial` itself is not stored (see gap 1)                                             |
 | `pipeline "CustomerJourney" { source Ledger { kind: "table" } sink Report { kind: "log" } }`                 | `Unexpected identifier: pipeline` | success, root type `pipeline`   | success, kept as a pipeline domain block                                                        |
 
 3. **The trait count is being reconciled across sources.** The canonical name list is `VR_TRAITS` in `packages/core/src/traits/constants/index.ts`, named in the Traits section. This spec does not publish a number for how many traits exist.
@@ -810,6 +808,7 @@ Codes this reader actually passes into `error()` or `detectCommonMistake` in `Ho
 
 Measured messages:
 
+- `HSP001: zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.`
 - `HSP001: Unexpected token COLON ":" at top level. Expected: composition, object, world, template, logic, or @directive`
 - `HSP101: Trait @grabbable used a block that looks like an object body, but no object body follows. Use @grabbable(...) for trait config, or add a separate { ... } object body.`
 - `HSP201: Expected directive name, got AT. Directives start with @ followed by name (e.g., @grabbable)`

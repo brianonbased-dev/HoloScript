@@ -1090,6 +1090,12 @@ class Lexer {
 // =============================================================================
 
 export class HoloScriptPlusParser {
+  /**
+   * Plain sentence for a zone, spatial, or layer block. Those words belong in
+   * a .holo composition. HSP001 is the existing unexpected-token code.
+   */
+  private static readonly ZONE_SPATIAL_LAYER_MESSAGE =
+    'zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.';
   private tokens: Token[] = [];
   private pos: number = 0;
   private options: HSPlusParserOptions;
@@ -1596,27 +1602,29 @@ export class HoloScriptPlusParser {
             topLevelNodes.push(brainNode as unknown as HSPlusNode);
           } else {
             const node = this.parseNode();
-            // Attach preceding directives to this node
-            const existingDirectives = node.directives || [];
-            node.directives = [...currentDirectives, ...existingDirectives];
+            if (node) {
+              // Attach preceding directives to this node
+              const existingDirectives = node.directives || [];
+              node.directives = [...currentDirectives, ...existingDirectives];
 
-            // Extract @version and @migrate directives into template properties
-            if (node.type === 'template') {
-              for (const d of currentDirectives) {
-                if (d.type === 'version') {
-                  node.version = d.version;
-                } else if (d.type === 'migrate') {
-                  if (!node.migrations) node.migrations = [];
-                  node.migrations.push({
-                    type: 'Migration',
-                    fromVersion: d.fromVersion,
-                    body: d.body,
-                  });
+              // Extract @version and @migrate directives into template properties
+              if (node.type === 'template') {
+                for (const d of currentDirectives) {
+                  if (d.type === 'version') {
+                    node.version = d.version;
+                  } else if (d.type === 'migrate') {
+                    if (!node.migrations) node.migrations = [];
+                    node.migrations.push({
+                      type: 'Migration',
+                      fromVersion: d.fromVersion,
+                      body: d.body,
+                    });
+                  }
                 }
               }
-            }
 
-            topLevelNodes.push(node);
+              topLevelNodes.push(node);
+            }
           }
         } else {
           // If directives with no node, handle as global or fragment
@@ -1684,7 +1692,7 @@ export class HoloScriptPlusParser {
     } as unknown as HSPlusNode;
   }
 
-  private parseNode(): HSPlusNode {
+  private parseNode(): HSPlusNode | null {
     const startToken = this.current();
 
     const typeToken =
@@ -1698,6 +1706,14 @@ export class HoloScriptPlusParser {
         'ON_EXIT',
       ]) || this.expect('IDENTIFIER', 'Expected element type');
     const type = typeToken.value;
+
+    // zone, spatial, and layer are composition words. The .hs reader already
+    // rejects them. Here they used to succeed and store a node with no meaning.
+    if (type === 'zone' || type === 'spatial' || type === 'layer') {
+      this.errorAt(startToken, HoloScriptPlusParser.ZONE_SPATIAL_LAYER_MESSAGE, 'HSP001');
+      this.skipZoneSpatialLayerTail();
+      return null;
+    }
 
     // =========================================================================
     // Special handling for logic blocks
@@ -2365,10 +2381,12 @@ export class HoloScriptPlusParser {
                 (this.check('LBRACE') || this.check('STRING'))
               ) {
                 this.pos = saved;
-                children.push(this.parseNode());
+                const childNode = this.parseNode();
+                if (childNode) children.push(childNode);
               } else if (this.current().type === 'IDENTIFIER') {
                 this.pos = saved;
-                children.push(this.parseNode());
+                const childNode = this.parseNode();
+                if (childNode) children.push(childNode);
               } else {
                 properties[name] = true;
                 // Skip function call, member access chain, or block body following the name:
@@ -4317,7 +4335,8 @@ export class HoloScriptPlusParser {
 
         // Anything else (nested node keyword, statement) → generic node parse.
         if (token.type === 'IDENTIFIER' || token.type === 'STRING') {
-          children.push(this.parseNode());
+          const childNode = this.parseNode();
+          if (childNode) children.push(childNode);
           if (this.check('COMMA')) this.advance();
           this.skipNewlines();
           continue;
@@ -4460,9 +4479,11 @@ export class HoloScriptPlusParser {
         } else if (next.type === 'STRING' || next.type === 'LBRACE' || next.type === 'IDENTIFIER') {
           // Nested node (e.g. object "Name" { ... }, or action name(params) { ... })
           const node = this.parseNode();
-          const type = node.type;
-          const name = node.name || `unnamed_${type}_${Object.keys(content).length}`;
-          content[name] = node;
+          if (node) {
+            const type = node.type;
+            const name = node.name || `unnamed_${type}_${Object.keys(content).length}`;
+            content[name] = node;
+          }
         } else {
           // Bare key
           const key = this.advance().value;
@@ -4783,14 +4804,16 @@ export class HoloScriptPlusParser {
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])];
+          if (node) {
+            node.directives = [...currentDirectives, ...(node.directives || [])];
 
-          if (keyword === 'system' || node.type === 'system') {
-            result.systems.push(node);
-          } else if (keyword === 'core_config' || node.type === 'core_config') {
-            result.configs.push(node);
-          } else {
-            result.children.push(node);
+            if (keyword === 'system' || node.type === 'system') {
+              result.systems.push(node);
+            } else if (keyword === 'core_config' || node.type === 'core_config') {
+              result.configs.push(node);
+            } else {
+              result.children.push(node);
+            }
           }
         }
         // Property with value but no colon (e.g. prop1 "value1")
@@ -4814,14 +4837,16 @@ export class HoloScriptPlusParser {
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])];
+          if (node) {
+            node.directives = [...currentDirectives, ...(node.directives || [])];
 
-          if (keyword === 'system' || node.type === 'system') {
-            result.systems.push(node);
-          } else if (keyword === 'core_config' || node.type === 'core_config') {
-            result.configs.push(node);
-          } else {
-            result.children.push(node);
+            if (keyword === 'system' || node.type === 'system') {
+              result.systems.push(node);
+            } else if (keyword === 'core_config' || node.type === 'core_config') {
+              result.configs.push(node);
+            } else {
+              result.children.push(node);
+            }
           }
         }
         // Inline method parsing
@@ -5753,7 +5778,8 @@ export class HoloScriptPlusParser {
             }
           }
         } else if (this.check('IDENTIFIER')) {
-          nodes.push(this.parseNode());
+          const childNode = this.parseNode();
+          if (childNode) nodes.push(childNode);
         } else {
           // Skip unexpected tokens to prevent infinite loops
           this.advance();
@@ -6674,6 +6700,66 @@ export class HoloScriptPlusParser {
     while (this.check('NEWLINE') || this.check('INDENT') || this.check('DEDENT')) {
       this.advance();
     }
+  }
+
+  /**
+   * Drop the tail of a rejected zone, spatial, or layer block: its name,
+   * parentheses, traits, and brace body. The next statement stays in place.
+   */
+  private skipZoneSpatialLayerTail(): void {
+    if (this.check('HASH')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+    }
+
+    if (this.isZoneSpatialLayerName()) {
+      this.advance();
+    }
+
+    if (this.check('LPAREN')) this.skipParens();
+
+    if (this.check('IDENTIFIER') && this.current().value === 'using') {
+      this.advance();
+      if (this.check('STRING')) this.advance();
+    }
+
+    if (this.check('COLON')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+      if (this.check('LBRACKET')) {
+        this.advance();
+        if (this.check('RBRACKET')) this.advance();
+      }
+    }
+
+    this.skipNewlines();
+    while (this.check('AT')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+      if (this.check('LPAREN')) this.skipParens();
+      this.skipNewlines();
+    }
+
+    if (this.check('LBRACE')) this.skipBraces();
+  }
+
+  private isZoneSpatialLayerName(): boolean {
+    if (this.check('STRING')) return true;
+    if (!this.check('IDENTIFIER') || this.current().value === 'using') return false;
+    if (this.current().line === this.previous().line) return true;
+
+    let offset = 1;
+    let next = this.peek(offset);
+    while (next.type === 'NEWLINE') {
+      offset += 1;
+      next = this.peek(offset);
+    }
+    return (
+      next.type === 'LPAREN' ||
+      next.type === 'LBRACE' ||
+      next.type === 'AT' ||
+      next.type === 'COLON'
+    );
   }
 
   /** Skip a balanced parenthesised list ( ... ) including nested parens */

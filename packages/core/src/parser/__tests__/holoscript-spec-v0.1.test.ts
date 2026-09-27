@@ -139,6 +139,38 @@ describe('HoloScript Spec v0.1 fenced examples', () => {
     expect(fences.length, 'the spec must contain fenced examples').toBeGreaterThan(0);
     expect(failures, failures.join('\n\n')).toEqual([]);
   });
+
+  it('rejects the zone and spatial .hsplus fences and keeps a zone inside a .holo composition', () => {
+    const zone = fences.find(
+      (fence) => fence.lang === 'hsplus' && fence.reject && fence.source.includes('zone SafeArea')
+    );
+    const spatial = fences.find(
+      (fence) =>
+        fence.lang === 'hsplus' && fence.reject && fence.source.includes('spatial ComponentName')
+    );
+    const compositionZone = fences.find(
+      (fence) => fence.lang === 'holo' && !fence.reject && fence.source.includes('zone "SafeArea"')
+    );
+    expect(zone).toBeDefined();
+    expect(spatial).toBeDefined();
+    expect(compositionZone).toBeDefined();
+
+    const plain =
+      'zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.';
+    for (const fence of [zone, spatial]) {
+      const result = parseHsplus(fence!.source);
+      expect(result.success).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]?.code).toBe('HSP001');
+      expect(result.errors[0]?.message).toContain(plain);
+      expect(result.errors[0]?.line).toBe(1);
+      expect(result.errors[0]?.column).toBe(1);
+    }
+
+    const kept = parseHolo(compositionZone!.source);
+    expect(kept.success).toBe(true);
+    expect(kept.ast?.zones[0]?.name).toBe('SafeArea');
+  });
 });
 
 describe('fence extractor rejects bad markdown', () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
 import type { HoloBrainDecl } from './HoloScriptPlusParser';
+import { parseHolo } from './HoloCompositionParser';
 
 describe('HoloScriptPlusParser - Extended Features', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
@@ -840,5 +841,81 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
     const tracks = tl.children.filter((c: any) => c.type === 'track');
     expect(tracks.map((t: any) => t.target)).toEqual(['opacity', 'scaleUniform']);
     expect(tracks[1].keyframes[1].easing).toBe('spring');
+  });
+});
+
+const ZONE_SPATIAL_LAYER_MESSAGE =
+  'HSP001: zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.';
+
+describe('zone, spatial, and layer are rejected in .hsplus', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  function typesIn(value: unknown, found: string[] = [], seen = new Set<unknown>()): string[] {
+    if (!value || typeof value !== 'object' || seen.has(value)) return found;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      for (const item of value) typesIn(item, found, seen);
+      return found;
+    }
+    const record = value as Record<string, unknown>;
+    if (typeof record.type === 'string') found.push(record.type);
+    for (const child of Object.values(record)) typesIn(child, found, seen);
+    return found;
+  }
+
+  it('rejects a top-level zone block with one plain error at the zone word', () => {
+    const result = parser.parse('zone SafeArea(x: 0, y: 0, z: 5, width: 100)');
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: ZONE_SPATIAL_LAYER_MESSAGE,
+      line: 1,
+      column: 1,
+    });
+    expect(typesIn(result.ast)).not.toContain('zone');
+  });
+
+  it('rejects a top-level spatial block with one plain error at the spatial word', () => {
+    const result = parser.parse(`spatial ComponentName(width: number, height: number) {
+  layer background {
+  }
+}`);
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: ZONE_SPATIAL_LAYER_MESSAGE,
+      line: 1,
+      column: 1,
+    });
+    const types = typesIn(result.ast);
+    expect(types).not.toContain('spatial');
+    expect(types).not.toContain('layer');
+  });
+
+  it('rejects a top-level layer block with one plain error at the layer word', () => {
+    const result = parser.parse('layer background {\n  color: "red"\n}');
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: ZONE_SPATIAL_LAYER_MESSAGE,
+      line: 1,
+      column: 1,
+    });
+    expect(typesIn(result.ast)).not.toContain('layer');
+  });
+
+  it('keeps a zone inside a .holo composition', () => {
+    const result = parseHolo(`composition "Scene" {
+  zone "SafeArea" {
+    width: 100
+  }
+}`);
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.ast?.zones).toHaveLength(1);
+    expect(result.ast?.zones[0]?.name).toBe('SafeArea');
   });
 });
