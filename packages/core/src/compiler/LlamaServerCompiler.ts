@@ -812,10 +812,16 @@ WantedBy=multi-user.target
    * Systemd unit for the attribution proxy. Ordered After the llama unit so the
    * upstream exists before the proxy binds the public port; Restart=always because
    * a dead proxy means a dead model endpoint for every caller.
+   *
+   * Bearer auth is not turned on here. Operators opt in with a drop-in that sets
+   * HOLO_PROXY_AUTH_MODE=log-only (roll out that way first) and
+   * After=holokeyd.service. The drop-in must not use Requires=holokeyd.service:
+   * the proxy loads its key once at startup and keeps serving if that load fails.
    */
   private genInferenceProxyUnit(cfg: ResolvedLlamaConfig): string {
     const serviceName = this.slug(cfg.registerAs);
     const workingDirectory = cfg.workingDirectory ?? '/opt/holoscript/llama-server';
+    const proxyUnit = `holo-inference-proxy-${serviceName}.service`;
     return `[Unit]
 Description=Holo inference attribution proxy - ${cfg.name}
 After=network-online.target ${serviceName}.service
@@ -833,6 +839,15 @@ Environment=HOLO_PROXY_RECEIPTS_DIR=${cfg.traceReceiptsDir}
 Environment=HOLO_PROXY_CAPSULES_DIR=${cfg.traceCapsulesDir}
 Environment=HOLO_PROXY_CAPSULE_DAILY_MB=${cfg.traceCapsuleDailyMb}
 Environment=HOLO_PROXY_MODEL=${cfg.model}
+# Bearer auth stays off until a drop-in sets it. Roll out log-only first.
+# The service user must be in group holokey-clients to read the holokeyd socket.
+# Example: /etc/systemd/system/${proxyUnit}.d/auth.conf
+#   [Unit]
+#   After=holokeyd.service
+#   [Service]
+#   Environment=HOLO_PROXY_AUTH_MODE=log-only
+#   Environment=HOLO_PROXY_AUTH_KEY_NAME=HOLO_INFERENCE_PROXY_KEY
+# Do not add Requires=holokeyd.service. A vault outage must not stop inference.
 ExecStart=/usr/bin/env node ${workingDirectory}/holo-inference-proxy.mjs
 Restart=always
 RestartSec=3
@@ -852,6 +867,11 @@ WantedBy=multi-user.target
    * accounting FAILS CLOSED (unknown token counts are null, never guessed — the
    * lenient-recogniser lesson). GET traffic (health/metrics scrapes) passes through
    * unrecorded; every POST gets exactly one inference-receipt/v0 NDJSON row.
+   *
+   * Optional bearer auth is read from the environment at process start. The key is
+   * loaded once from holokeyctl (the same resolve-stdin contract the secrets-broker
+   * uses) and cached in memory. Loopback callers stay exempt. Authorization is
+   * stripped before the upstream forward and is never written to logs or receipts.
    */
   private genInferenceProxyScript(cfg: ResolvedLlamaConfig): string {
     return `#!/usr/bin/env node
@@ -860,8 +880,21 @@ WantedBy=multi-user.target
 // loopback llama-server, and writes per-request receipts + REC-SHAPE trace capsules.
 // Receipts: inference-receipt/v0 NDJSON, one row per POST. Capsules: {system,user,target,...}
 // rows directly curate-able by holotune (non-empty user+target contract).
+//
+// Optional bearer auth (public model port). Unset mode is log-only when
+// HOLO_PROXY_AUTH_KEY_NAME is set, otherwise off — existing deployments stay open
+// until an operator configures them.
+//   HOLO_PROXY_AUTH_MODE      off | log-only | enforce
+//   HOLO_PROXY_AUTH_KEY_NAME  holokeyd secret name (suggested: HOLO_INFERENCE_PROXY_KEY)
+//   HOLOKEY_SOCKET            optional socket (default /run/holokeyd/holokeyd.sock)
+//   HOLOKEYD_CLIENT           optional holokeyctl path (default /usr/local/bin/holokeyctl)
+// Loopback (127.0.0.1, ::1, ::ffff:127.0.0.1) is always allowed.
+// The key is loaded once at startup and never re-fetched. A failed load downgrades
+// enforce to log-only and keeps serving. Authorization is stripped before upstream.
+// Key material is never logged, echoed, or forwarded.
 import http from 'node:http';
-import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { appendFileSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -874,6 +907,115 @@ const CAPSULES_DIR = process.env.HOLO_PROXY_CAPSULES_DIR || '${cfg.traceCapsules
 const CAPSULE_DAILY_MB = Number(process.env.HOLO_PROXY_CAPSULE_DAILY_MB || ${cfg.traceCapsuleDailyMb});
 const MODEL = process.env.HOLO_PROXY_MODEL || '${cfg.model}';
 const BODY_CAPTURE_LIMIT = 2 * 1024 * 1024; // 2MB per side; beyond it: serve fine, capsule skipped
+
+// Key name is a holokeyd secret NAME, never the secret itself. Same shape holokeyctl accepts.
+const AUTH_KEY_NAME = (process.env.HOLO_PROXY_AUTH_KEY_NAME || '').trim();
+const AUTH_KEY_NAME_OK = /^[A-Za-z][A-Za-z0-9_.-]{0,127}$/.test(AUTH_KEY_NAME);
+const HOLOKEY_SOCKET_PATH = (process.env.HOLOKEY_SOCKET || '/run/holokeyd/holokeyd.sock').trim();
+const HOLOKEY_CLIENT = (process.env.HOLOKEYD_CLIENT || '/usr/local/bin/holokeyctl').trim();
+
+function requestedAuthMode() {
+  const raw = (process.env.HOLO_PROXY_AUTH_MODE || '').trim().toLowerCase();
+  if (raw === 'off' || raw === 'log-only' || raw === 'enforce') return raw;
+  if (raw) {
+    console.error('[holo-inference-proxy] AUTH WARNING: unknown HOLO_PROXY_AUTH_MODE value; using the unset default.');
+  }
+  // Unset (or unknown): log-only only when a key name is configured, otherwise off.
+  return AUTH_KEY_NAME ? 'log-only' : 'off';
+}
+
+// ONE startup read. Never called from the request path, so a later holokeyd outage cannot stall inference.
+function loadKeyOnce() {
+  try {
+    const out = execFileSync(HOLOKEY_CLIENT, ['resolve-stdin'], {
+      input: AUTH_KEY_NAME + '\\n',
+      encoding: 'utf8',
+      timeout: 20000,
+      maxBuffer: 1024 * 1024,
+      windowsHide: true,
+      env: { ...process.env, HOLOKEY_SOCKET: HOLOKEY_SOCKET_PATH },
+      stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    const value = String(out || '').trim();
+    return value ? value : null;
+  } catch (e) {
+    let code = 'error';
+    if (e && typeof e === 'object') {
+      if ('code' in e && e.code) code = String(e.code);
+      else if ('status' in e && e.status) code = String(e.status);
+    }
+    console.error('[holo-inference-proxy] AUTH WARNING: key load failed at startup (name=' + AUTH_KEY_NAME + ' code=' + code + '). Key material is not logged. holokeyd will not be contacted again.');
+    return null;
+  }
+}
+
+let AUTH_MODE = requestedAuthMode();
+let CACHED_KEY = null;
+if (AUTH_MODE !== 'off') {
+  if (!AUTH_KEY_NAME || !AUTH_KEY_NAME_OK) {
+    console.error('[holo-inference-proxy] AUTH WARNING: ' + AUTH_MODE + ' requires HOLO_PROXY_AUTH_KEY_NAME to be a plain secret name. DOWNGRADED to log-only. Inference stays up.');
+    AUTH_MODE = 'log-only';
+  } else {
+    CACHED_KEY = loadKeyOnce();
+    if (!CACHED_KEY) {
+      const downgrade = AUTH_MODE === 'enforce'
+        ? ' requested enforce is DOWNGRADED to log-only.'
+        : ' staying in log-only.';
+      console.error('[holo-inference-proxy] AUTH WARNING: could not load key "' + AUTH_KEY_NAME + '" at startup.' + downgrade + ' Inference stays up. The key is not re-fetched per request.');
+      AUTH_MODE = 'log-only';
+    }
+  }
+}
+
+function isLoopback(addr) {
+  if (!addr) return false;
+  const a = String(addr).toLowerCase();
+  return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1';
+}
+
+function hasWhitespace(s) {
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c === 32 || c === 9 || c === 10 || c === 13) return true;
+  }
+  return false;
+}
+
+// ok | missing | bad. timingSafeEqual only sees equal-length buffers.
+function classifyAuth(header) {
+  const raw = Array.isArray(header) ? header[0] : header;
+  if (raw == null) return 'missing';
+  const text = String(raw).trim();
+  if (!text) return 'missing';
+  let split = -1;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if (c === 32 || c === 9) { split = i; break; }
+  }
+  if (split <= 0) return 'bad';
+  const scheme = text.slice(0, split);
+  const token = text.slice(split + 1).trim();
+  if (scheme.toLowerCase() !== 'bearer' || !token || hasWhitespace(token)) return 'bad';
+  if (!CACHED_KEY) return 'bad';
+  const presented = Buffer.from(token, 'utf8');
+  const expected = Buffer.from(CACHED_KEY, 'utf8');
+  if (presented.length !== expected.length) {
+    timingSafeEqual(expected, expected);
+    return 'bad';
+  }
+  return timingSafeEqual(presented, expected) ? 'ok' : 'bad';
+}
+
+function authLog(ip, method, path, result) {
+  // Caller IP, method, path, and ok|missing|bad only. Never the header or the key.
+  console.log('[holo-inference-proxy] auth result=' + result + ' ip=' + (ip || 'unknown') + ' method=' + method + ' path=' + path);
+}
+
+function requestPath(url) {
+  const raw = String(url || '/');
+  const q = raw.indexOf('?');
+  return q === -1 ? raw : raw.slice(0, q);
+}
 
 let seq = 0;
 const day = () => new Date().toISOString().slice(0, 10);
@@ -936,12 +1078,32 @@ const server = http.createServer((req, res) => {
   const startedAt = Date.now();
   const requestId = Date.now().toString(36) + '-' + (seq += 1);
   const isPost = req.method === 'POST';
+  const remoteAddr = req.socket.remoteAddress || null;
+  const loopback = isLoopback(remoteAddr);
+  const presentedAuth = AUTH_MODE === 'off' ? 'off' : classifyAuth(req.headers.authorization);
+  const authExtra = AUTH_MODE === 'off' ? {} : { authResult: loopback ? 'exempt' : presentedAuth };
+  if (!loopback && AUTH_MODE !== 'off') {
+    authLog(remoteAddr, req.method || 'GET', requestPath(req.url), presentedAuth);
+  }
+  if (!loopback && AUTH_MODE === 'enforce' && presentedAuth !== 'ok') {
+    res.writeHead(401, {
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'x-holo-proxy': 'holo-inference-proxy/v0',
+    });
+    res.end(JSON.stringify({ error: 'unauthorized' }));
+    req.resume();
+    return;
+  }
   const reqChunks = [];
   let reqLen = 0;
+  // Never forward the caller credential to llama-server.
+  const upstreamHeaders = { ...req.headers, host: UPSTREAM.host };
+  delete upstreamHeaders.authorization;
 
   const upstreamReq = http.request(
     { hostname: UPSTREAM.hostname, port: UPSTREAM.port, path: req.url, method: req.method,
-      headers: { ...req.headers, host: UPSTREAM.host } },
+      headers: upstreamHeaders },
     (upstreamRes) => {
       const resChunks = [];
       let resLen = 0;
@@ -977,7 +1139,8 @@ const server = http.createServer((req, res) => {
           tokensPerSec: ex.tokensPerSec, stopReason: ex.stopReason, truncated: ex.truncated,
           aborted: false, capsule: capsuleWritten,
           promptSha256: ex.user ? sha256(ex.user) : null,
-          completionSha256: ex.target ? sha256(ex.target) : null });
+          completionSha256: ex.target ? sha256(ex.target) : null,
+          ...authExtra });
       });
     }
   );
@@ -991,7 +1154,8 @@ const server = http.createServer((req, res) => {
       remoteAddr: req.socket.remoteAddress || null, method: req.method, endpoint: req.url,
       status: 502, model: MODEL, stream: false, totalMs: Date.now() - startedAt,
       promptTokens: null, completionTokens: null, tokensPerSec: null, stopReason: null,
-      truncated: null, aborted: true, capsule: false, promptSha256: null, completionSha256: null });
+      truncated: null, aborted: true, capsule: false, promptSha256: null, completionSha256: null,
+      ...authExtra });
   });
 
   req.on('data', (chunk) => {
@@ -1004,8 +1168,10 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(BIND_PORT, BIND_HOST, () => {
-  console.log('[holo-inference-proxy] listening on ' + BIND_HOST + ':' + BIND_PORT +
-    ' -> ' + UPSTREAM.href + ' (receipts: ' + RECEIPTS_DIR + ')');
+  const bound = server.address();
+  const boundPort = bound && typeof bound === 'object' ? bound.port : BIND_PORT;
+  console.log('[holo-inference-proxy] listening on ' + BIND_HOST + ' port=' + boundPort +
+    ' -> ' + UPSTREAM.href + ' (receipts: ' + RECEIPTS_DIR + ', auth: ' + AUTH_MODE + ')');
 });
 `;
   }

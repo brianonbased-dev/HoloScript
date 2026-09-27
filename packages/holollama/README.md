@@ -236,6 +236,56 @@ Standard llama.cpp/GGUF HoloLlama nodes fail closed because they do not expose
 differentiable hidden states. The client never synthesizes a latent readout from
 request/response traces and exposes no intervention method.
 
+## Inference proxy bearer auth
+
+`holollama plan` with trace capture emits `holo-inference-proxy.mjs`. That node
+proxy owns the public model port (the Jetson lane uses `:18080`) and forwards
+to loopback `llama-server`. Bearer auth on the proxy is optional and comes from
+the environment. With neither auth variable set, the proxy stays open, which is
+the behavior already deployed.
+
+| Variable | Role |
+| --- | --- |
+| `HOLO_PROXY_AUTH_MODE` | `off`, `log-only`, or `enforce`. When unset: `log-only` if a key name is set, otherwise `off`. |
+| `HOLO_PROXY_AUTH_KEY_NAME` | HoloKey secret name. Suggested value: `HOLO_INFERENCE_PROXY_KEY`. |
+| `HOLOKEY_SOCKET` | Optional holokeyd unix socket. Default: `/run/holokeyd/holokeyd.sock`. |
+| `HOLOKEYD_CLIENT` | Optional `holokeyctl` path. Default: `/usr/local/bin/holokeyctl`. |
+
+At startup the proxy runs `holokeyctl resolve-stdin` once (the same contract the
+secrets-broker uses) and caches the value in memory. It does not call holokeyd
+again per request. The proxy's service user must be in group `holokey-clients`
+so it can read the socket. If the key cannot be loaded, the process logs a
+warning, drops a requested `enforce` mode to `log-only`, and keeps serving.
+
+`127.0.0.1`, `::1`, and `::ffff:127.0.0.1` are always allowed. Every other
+caller is checked on every route, including `GET /v1/models`. The check is
+`Authorization: Bearer <key>`, compared with `crypto.timingSafeEqual` on
+equal-length buffers. `log-only` writes one line per non-loopback request with
+the caller IP, method, path, and result (`ok`, `missing`, or `bad`), then
+forwards. `enforce` answers `401` with a JSON error and does not forward when
+the bearer is missing or wrong. The `Authorization` header is removed before
+the upstream request. The key is never logged, echoed, or written into
+receipts. Receipt rows stay as they are, plus an optional `authResult` field
+when auth is on.
+
+Roll out `log-only` first. Switch to `enforce` after callers send the bearer.
+Deployment of the unit is a separate manual step from publishing this package.
+
+Example systemd drop-in. It orders the proxy after holokeyd and turns on
+log-only mode. It sets `After=holokeyd.service` and leaves out `Requires=` so
+a holokeyd outage cannot stop inference:
+
+```ini
+# /etc/systemd/system/holo-inference-proxy-jetson-orin-llamacpp.service.d/auth.conf
+[Unit]
+After=holokeyd.service
+
+[Service]
+Environment=HOLO_PROXY_AUTH_MODE=log-only
+Environment=HOLO_PROXY_AUTH_KEY_NAME=HOLO_INFERENCE_PROXY_KEY
+# Environment=HOLOKEY_SOCKET=/run/holokeyd/holokeyd.sock
+```
+
 ## Serving Strategy
 
 `@holoscript/core` owns parsing and compilation. `@holoscript/mcp-server` exposes
