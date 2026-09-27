@@ -4890,7 +4890,12 @@ export class HoloScriptPlusParser {
           this.advance();
         }
       } else if (this.check('LBRACE')) {
-        // Skip balanced block at composition level (e.g., spawn_group "name" { ... })
+        // A bare brace block is not a node. Report it, then skip the block
+        // so a later named child can still be read.
+        this.error(
+          'A block here needs a name. Write the name, then the brace block.',
+          'HSP101'
+        );
         let depth = 1;
         this.advance(); // consume {
         while (depth > 0 && !this.check('EOF')) {
@@ -5099,13 +5104,13 @@ export class HoloScriptPlusParser {
           const body = this.parseCodeBlock();
           result.eventHandlers.push({ event: eventName, params, body });
         }
-        // Skip other identifiers (might be comments or unknown constructs)
+        // Any other word is not a logic form. Report it, then skip the
+        // rest of the line so a later known form can still be read.
         else {
-          // Skip past parens and braces to handle unknown function-like constructs
+          this.error(`"${keyword}" is not allowed inside logic.`, 'HSP001');
           this.advance();
           if (this.check('LPAREN')) this.skipParens();
           if (this.check('LBRACE')) this.skipBraces();
-          // Also skip to next newline for safety
           while (!this.check('RBRACE') && !this.check('EOF') && !this.check('NEWLINE')) {
             this.advance();
           }

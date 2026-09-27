@@ -261,7 +261,7 @@ describe('HoloScriptPlusParser - Logic Block', () => {
   it('Parses logic block with HoloShell-style actions', () => {
     const source = `composition "HoloShell Shell World" {
       logic {
-        on_enter {
+        on_start() {
           emit "holoshell_world_loaded"
         }
 
@@ -288,6 +288,9 @@ describe('HoloScriptPlusParser - Logic Block', () => {
       'change_shell_skin',
     ]);
     expect(logicNode.body.actions[0].params).toEqual(['objectId']);
+    expect(logicNode.body.eventHandlers).toEqual(
+      expect.arrayContaining([expect.objectContaining({ event: 'start' })])
+    );
   });
 
   it('preserves raw action bodies instead of re-tokenizing compound operators', () => {
@@ -840,5 +843,89 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
     const tracks = tl.children.filter((c: any) => c.type === 'track');
     expect(tracks.map((t: any) => t.target)).toEqual(['opacity', 'scaleUniform']);
     expect(tracks[1].keyframes[1].easing).toBe('spring');
+  });
+});
+
+describe('HoloScriptPlusParser - silent skips are errors', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('bare block in a composition is an error', () => {
+    const source = 'composition "Room" {\n  { hidden: true }\n}\n';
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'HSP101',
+        line: 2,
+        column: 3,
+        message: 'HSP101: A block here needs a name. Write the name, then the brace block.',
+      }),
+    ]);
+  });
+
+  it('unknown word in logic is an error', () => {
+    const source = 'composition "Room" {\n  logic {\n    foo\n  }\n}\n';
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'HSP001',
+        line: 3,
+        column: 5,
+        message: 'HSP001: "foo" is not allowed inside logic.',
+      }),
+    ]);
+  });
+
+  it('named block in a composition and a known logic form still parse', () => {
+    const source = `composition "Room" {
+      object "Chair" {
+        position: [0, 1, 0]
+      }
+      logic {
+        function take_damage(amount) {
+          return amount
+        }
+        action focus(objectId) {
+          return objectId
+        }
+        on_tick(0.5) {
+          return 1
+        }
+        on_scene_load {
+          return 1
+        }
+        on player_enter(player) {
+          return player
+        }
+        on_start() {
+          return 1
+        }
+        on_event("hit", target) {
+          return target
+        }
+      }
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    const chair = result.ast.root.children?.find((child: any) => child.type === 'object');
+    expect(chair).toMatchObject({ name: 'Chair' });
+    expect(chair.properties.position).toEqual([0, 1, 0]);
+
+    const logicNode = result.ast.root.children?.find((child: any) => child.type === 'logic') as any;
+    expect(logicNode.body.functions.map((fn: any) => fn.name)).toEqual(['take_damage']);
+    expect(logicNode.body.actions.map((action: any) => action.name)).toEqual(['focus']);
+    expect(logicNode.body.tickHandlers.map((tick: any) => tick.interval)).toEqual([0.5]);
+    expect(logicNode.body.eventHandlers.map((handler: any) => handler.event)).toEqual([
+      'scene_load',
+      'player_enter',
+      'start',
+      'hit',
+    ]);
   });
 });
