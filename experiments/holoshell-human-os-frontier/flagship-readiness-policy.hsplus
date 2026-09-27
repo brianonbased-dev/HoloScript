@@ -62,22 +62,22 @@ composition "HoloShellFlagshipReadinessPolicy" {
     ]
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["hardware_audit", "pnpm_build", "device_lab_probe", "local_receipts"]
   }
 
-  role "ClaudeArchitect" {
+  template "ClaudeArchitect" {
     laneId: "claude-architecture"
     owns: ["cross_file_refactor", "source_contract_review", "long_context_design"]
   }
 
-  role "BrowserVisionAgent" {
+  template "BrowserVisionAgent" {
     laneId: "browser-vision"
     owns: ["holo_land_surface_render", "screenshot_witness", "web_session_boundary"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["room_embodiment", "brittney_operator_loop", "creator_surface"]
   }

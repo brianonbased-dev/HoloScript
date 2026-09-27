@@ -227,7 +227,7 @@ composition "NeurodiverseTherapy" {
   object "Companion_Sky" using "TherapyCompanion" { position: [-5, 1.5, 0]; geometry: "sphere"; color: "#aaccff"; state { companion_id: "sky_001" } }
   object "Companion_Sun" using "TherapyCompanion" { position: [5, 1.5, 0]; geometry: "sphere"; color: "#ffddaa"; state { companion_id: "sun_001" } }
 
-  panel "TherapyStatus" {
+  template "TherapyStatus" {
     position: "top-right"
     text "Sessions" { bind: "Sessions: " + SessionTracker.state.sessions.length; style: "info" }
     text "Adaptations" { bind: "Adaptations: " + SensoryProfileManager.state.adaptations_made; style: "info" }

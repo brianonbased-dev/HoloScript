@@ -93,7 +93,7 @@ composition "HoloShellInstallUpdateSafeWrapperPolicy" {
     ]
   }
 
-  state_machine "SafeInstallUpdateWorkflow" {
+  template "SafeInstallUpdateWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -120,22 +120,22 @@ composition "HoloShellInstallUpdateSafeWrapperPolicy" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["local_preflight", "package_manager_probe", "process_health_gate", "launch_verification"]
   }
 
-  role "HoloShellPolicyAgent" {
+  template "HoloShellPolicyAgent" {
     laneId: "holoshell-policy"
     owns: ["permission_classification", "approval_packet", "rollback_limit", "human_explanation"]
   }
 
-  role "HoloScriptSubstrateAgent" {
+  template "HoloScriptSubstrateAgent" {
     laneId: "holoscript-substrate"
     owns: ["receipt_schema", "receipt_validator", "receipt_capability_registry", "stdlib_policy_gap"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["install_room", "admin_boundary_gate", "tool_ready_token", "creator_world_readiness_loop"]
   }
