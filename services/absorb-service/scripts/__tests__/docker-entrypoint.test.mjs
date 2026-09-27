@@ -179,7 +179,7 @@ test('missing tables after a successful migrate exit non-zero and never invoke p
   }
 });
 
-test('pnpm cmd-shim relative path doubles node_modules through the workspace symlink', () => {
+test('pnpm cmd-shim relative path doubles node_modules through the workspace symlink', { skip: process.platform === 'win32' ? 'needs POSIX sh shebang; covered in the Linux image' : false }, () => {
   const root = mkdtempSync(join(tmpdir(), 'absorb-shim-'));
   try {
     const realBinDir = join(root, 'services', 'absorb-service', 'node_modules', '.bin');
