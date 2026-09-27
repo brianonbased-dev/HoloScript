@@ -13,25 +13,24 @@ import { Client } from 'pg';
  * balance included. The read-then-write and the index are one mechanism, and
  * `creditService.ts` says so where it refuses to run without a transaction.
  *
- * The index ships in `drizzle/0001_dedupe_stripe_sessions.sql`. Review of that
- * change traced the actual boot path — `scripts/docker-entrypoint.sh`, which
- * `railway.toml` names as the start command — and found the migration is not
- * guaranteed to run:
+ * The index ships in `drizzle/0001_dedupe_stripe_sessions.sql`, applied by
+ * `scripts/docker-entrypoint.sh` (the start command `railway.toml` names).
  *
- *   - the entrypoint tries `drizzle-kit migrate`, falls back to `push --force`,
- *     and on failure CONTINUES unless `ABSORB_REQUIRE_DB_SCHEMA=1`;
- *   - `drizzle/0000_fantastic_masque.sql` uses bare `CREATE TABLE`, so on a
- *     database that was first built by `push` (before the migrate lane existed)
- *     `migrate` fails at 0000 on every boot and never reaches 0001;
- *   - `push` then fails to create a UNIQUE index over the duplicate rows that
- *     the defect itself produced;
- *   - and `verify_required_schema` checks TABLES only, so the server starts,
- *     looks healthy, and has no backstop.
+ * WHY A BOOT CHECK AS WELL, NOW. This function was first written because the
+ * entrypoint of the time tried `drizzle-kit migrate`, fell back to `push
+ * --force`, and CONTINUED on failure — so a database first built by push could
+ * boot with no index at all. Main's fe276bdbe6 (2026-09-26) closed that at the
+ * source: the entrypoint now runs only `migrate` and exits non-zero if it fails
+ * or a required table is absent, so "boots without 0001" can no longer happen
+ * through the entrypoint. What this still does that the migration cannot:
  *
- * On that lane the double-credit fix is simply absent, in exactly the
- * deployment where double-crediting already happened. This function closes that
- * by doing the work at boot, in the server process, on whatever database it is
- * actually pointed at — no migration lane involved.
+ *   - it runs on whatever database the server is ACTUALLY pointed at, including
+ *     a server started directly rather than through the entrypoint;
+ *   - it detects an index that exists but is INVALID (a failed build), which
+ *     `migrate` would never revisit, and rebuilds it;
+ *   - and it states on every boot, in the log, whether double-credit protection
+ *     is present and how much was ever credited twice — a question nothing else
+ *     answers without opening the database.
  *
  * IT IS THE SAME SQL as the migration, deliberately: dedupe first, then the
  * index. Postgres cannot build a unique index over existing duplicates, so the
@@ -54,8 +53,12 @@ const TABLE_NAME = 'credit_transactions';
  * nothing enforcing it.
  *
  * THE LAST LINE IS A RACE GUARD, and it is the only way this differs from what
- * shipped first. Two boots can run this at once (the entrypoint and the server
- * each call it, and back-to-back deploys overlap). Under Postgres's default
+ * shipped first. Two runs can overlap: back-to-back deploys boot two containers
+ * at once, and either may run this while the other runs it or runs migration
+ * 0001. (Within ONE container they do not overlap: the entrypoint's migrate
+ * finishes before the server starts. An earlier version of this comment counted
+ * the entrypoint and the server as concurrent; they run one after the other.)
+ * Under Postgres's default
  * READ COMMITTED isolation the second UPDATE waits on rows the first has
  * locked, then RE-CHECKS its WHERE clause against the committed row — and
  * without this guard the re-check still passes (`ct.id = r.id` and `r.rn` come
@@ -66,10 +69,14 @@ const TABLE_NAME = 'credit_transactions';
  *
  * On a SINGLE run the guard changes nothing: the CTE already selects only rows
  * whose `stripe_session_id` is not null, so every row it can reach passes it.
- * It can only make a concurrent run do less. That equivalence is by reading;
- * the concurrent behaviour is Postgres's documented re-check and was reasoned,
- * not run — this repo has no real-Postgres test harness. Found by pre-mortem,
- * 2026-09-23.
+ * It can only make a concurrent run do less. Found by pre-mortem, 2026-09-23,
+ * and then RUN rather than reasoned: claude2's review of be0ede0ff drove both
+ * copies from two connections on real PostgreSQL 17.7 under READ COMMITTED.
+ * Without the guard every second run wiped all three payment links to JSON null;
+ * with it every run left them intact, across hash-join, nested-loop and
+ * materialized-CTE plans. (This comment first said no real-Postgres harness
+ * existed. One did — the local PostgreSQL 17 install, whose tools sit off PATH
+ * in Program Files — I had only looked on PATH.)
  */
 export const DEDUPE_SQL = `
 WITH ranked AS (
@@ -169,7 +176,40 @@ async function reportExposure(client: Client): Promise<void> {
   }
 }
 
-const CREATE_INDEX_SQL = `CREATE UNIQUE INDEX IF NOT EXISTS "${INDEX_NAME}" ON "${TABLE_NAME}" USING btree ("stripe_session_id")`;
+/** Say UNKNOWN when the exposure could not be measured at all, never nothing. */
+function reportExposureUnknown(reason: string): void {
+  console.warn(
+    `[absorb-service] credit ledger exposure: UNKNOWN on this boot (${reason}) — not zero.`
+  );
+}
+
+export const CREATE_INDEX_SQL = `CREATE UNIQUE INDEX IF NOT EXISTS "${INDEX_NAME}" ON "${TABLE_NAME}" USING btree ("stripe_session_id")`;
+
+const DROP_INDEX_SQL = `DROP INDEX IF EXISTS "${INDEX_NAME}"`;
+
+/**
+ * Is the unique index there AND usable? `pg_indexes` lists INVALID indexes too,
+ * so "present in pg_indexes" is not "protecting anything". A failed build (for
+ * example an interrupted `CREATE UNIQUE INDEX CONCURRENTLY`) leaves an index
+ * marked invalid; run on real PostgreSQL 17 by claude2's review of be0ede0ff, a
+ * redelivery then inserted with no error while this boot printed PRESENT and
+ * "0 duplicate grants" over rows it never marked. So validity is read from
+ * `pg_index.indisvalid`, and an invalid index is treated as missing.
+ */
+export const INDEX_STATE_SQL = `
+select i.indisvalid as valid
+from pg_index i
+join pg_class c on c.oid = i.indexrelid
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = $1 and c.relname = $2`;
+
+export type IndexState = 'valid' | 'invalid' | 'missing';
+
+/** Pure, so the one decision that matters here is tested rather than assumed. */
+export function classifyIndexState(rows: ReadonlyArray<{ valid: boolean | null }>): IndexState {
+  if (rows.length === 0) return 'missing';
+  return rows[0].valid === true ? 'valid' : 'invalid';
+}
 
 function createClient(databaseUrl: string): Client {
   const isPrivate = !databaseUrl.includes('.railway.app');
@@ -180,12 +220,12 @@ function createClient(databaseUrl: string): Client {
   });
 }
 
-async function indexExists(client: Client): Promise<boolean> {
-  const result = await client.query<{ indexname: string | null }>(
-    'select indexname from pg_indexes where schemaname = $1 and indexname = $2',
-    ['public', INDEX_NAME]
-  );
-  return Boolean(result.rows[0]?.indexname);
+async function indexState(client: Client): Promise<IndexState> {
+  const result = await client.query<{ valid: boolean | null }>(INDEX_STATE_SQL, [
+    'public',
+    INDEX_NAME,
+  ]);
+  return classifyIndexState(result.rows);
 }
 
 /**
@@ -204,6 +244,7 @@ export async function ensureCreditLedgerIndex(): Promise<void> {
       `[absorb-service] credit ledger: DATABASE_URL unset — cannot verify ${INDEX_NAME}. ` +
         'Double-credit protection is UNVERIFIED on this boot.'
     );
+    reportExposureUnknown('DATABASE_URL unset');
     return;
   }
 
@@ -211,9 +252,10 @@ export async function ensureCreditLedgerIndex(): Promise<void> {
   try {
     await client.connect();
 
-    if (await indexExists(client)) {
+    const state = await indexState(client);
+    if (state === 'valid') {
       console.log(
-        `[absorb-service] credit ledger: ${INDEX_NAME} PRESENT on ${TABLE_NAME} — ` +
+        `[absorb-service] credit ledger: ${INDEX_NAME} PRESENT and VALID on ${TABLE_NAME} — ` +
           'one Stripe session can be credited at most once.'
       );
       // Report here too. This is the path the migrate lane takes (0001 already
@@ -222,10 +264,20 @@ export async function ensureCreditLedgerIndex(): Promise<void> {
       return;
     }
 
-    console.warn(
-      `[absorb-service] credit ledger: ${INDEX_NAME} MISSING — building it now. ` +
-        'Until it exists, a redelivered webhook can credit an account twice.'
-    );
+    if (state === 'invalid') {
+      // IF NOT EXISTS would skip an invalid index and leave it in place, so it
+      // has to be dropped before the build below can replace it.
+      console.warn(
+        `[absorb-service] credit ledger: ${INDEX_NAME} INVALID — a failed build left it ` +
+          'unusable, so it enforces nothing. Dropping it and rebuilding.'
+      );
+      await client.query(DROP_INDEX_SQL);
+    } else {
+      console.warn(
+        `[absorb-service] credit ledger: ${INDEX_NAME} MISSING — building it now. ` +
+          'Until it exists, a redelivered webhook can credit an account twice.'
+      );
+    }
 
     const deduped = await client.query(DEDUPE_SQL);
     if (deduped.rowCount && deduped.rowCount > 0) {
@@ -240,11 +292,11 @@ export async function ensureCreditLedgerIndex(): Promise<void> {
 
     await client.query(CREATE_INDEX_SQL);
 
-    const present = await indexExists(client);
+    const after = await indexState(client);
     console.log(
-      present
-        ? `[absorb-service] credit ledger: ${INDEX_NAME} CREATED on ${TABLE_NAME}.`
-        : `[absorb-service] credit ledger: ${INDEX_NAME} still MISSING after CREATE — investigate.`
+      after === 'valid'
+        ? `[absorb-service] credit ledger: ${INDEX_NAME} CREATED and VALID on ${TABLE_NAME}.`
+        : `[absorb-service] credit ledger: ${INDEX_NAME} still ${after.toUpperCase()} after CREATE — investigate.`
     );
     await reportExposure(client);
   } catch (error) {
@@ -257,6 +309,10 @@ export async function ensureCreditLedgerIndex(): Promise<void> {
       `[absorb-service] credit ledger: could not ensure ${INDEX_NAME}: ${message}. ` +
         'Double-credit protection is NOT guaranteed on this boot.'
     );
+    // The exposure line promised UNKNOWN on failure; until claude2's review it
+    // said so only when the exposure query itself failed. A failure here, before
+    // that query ever ran, printed no exposure line at all.
+    reportExposureUnknown('the ledger check failed before it could measure');
   } finally {
     await client.end().catch(() => undefined);
   }
