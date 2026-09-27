@@ -69,9 +69,7 @@ function extractFences(markdown: string): ExtractedFences {
     const line = lineNumberAt(markdown, match.index ?? 0);
     const source = (match[2] ?? '').replace(/\n$/, '');
     if (!ALLOWED_FENCE_INFO.has(info)) {
-      errors.push(
-        `line ${line}: fence info string "${info || '(no tag)'}" is not allowed`
-      );
+      errors.push(`line ${line}: fence info string "${info || '(no tag)'}" is not allowed`);
     }
     if (source.trim() === '') {
       errors.push(`line ${line}: tagged block body is empty`);

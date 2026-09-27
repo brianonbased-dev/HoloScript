@@ -14,13 +14,13 @@ There is one language version in this document: **0.1.0 (draft)**.
 
 These other numbers are software versions. They are not the language version:
 
-| What                                 | Version on this checkout | Where                                           |
-| ------------------------------------ | ------------------------ | ----------------------------------------------- |
-| `@holoscript/core` package           | 8.8.0                    | `packages/core/package.json`                    |
-| Workspace package `holoscript`       | 6.1.3                    | root `package.json`                             |
-| Cargo workspace                      | 3.0.0                    | root `Cargo.toml` line 14                       |
-| `@holoscript/wasm` local package.json version | 6.1.16 (unpublished; npm latest is 6.2.0, 7.0.0 also exists) | `packages/compiler-wasm/package.json` |
-| WASM build's own `version()` string  | 3.0.0                    | measured from `packages/compiler-wasm/pkg-node` |
+| What                                          | Version on this checkout                                     | Where                                           |
+| --------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------- |
+| `@holoscript/core` package                    | 8.8.0                                                        | `packages/core/package.json`                    |
+| Workspace package `holoscript`                | 6.1.3                                                        | root `package.json`                             |
+| Cargo workspace                               | 3.0.0                                                        | root `Cargo.toml` line 14                       |
+| `@holoscript/wasm` local package.json version | 6.1.16 (unpublished; npm latest is 6.2.0, 7.0.0 also exists) | `packages/compiler-wasm/package.json`           |
+| WASM build's own `version()` string           | 3.0.0                                                        | measured from `packages/compiler-wasm/pkg-node` |
 
 `hs-machine-vN` is an internal machine contract, not this language version. The ladder is `docs/spec/native-machine-release-ladder.md`. Machine files `docs/spec/native-machine-v0.md` through `docs/spec/native-machine-v34.md` are per-generation notes. A machine number does not bump this spec, and this spec does not bump a package.
 
@@ -831,11 +831,11 @@ Measured messages:
 
 ### Official for v0.1
 
-| Target   | Class                                      | Rung                                                                                                                                             | What the compiler does                                                                                                  |
-| -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `webgpu` | Sovereign (`sovereign-targets.ts` line 31) | **Code owned.** Code generation is HoloScript-owned (`WebGPUCompiler` emits WGSL + host code). The GPU device is the browser's WebGPU API, not ours. | Gap: execution of the generated output is not yet proven by a test in this repo. |
-| `godot`  | Bridge (`sovereign-targets.ts` line 63)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                      | Emits a Godot project. Godot, a separate engine, is what runs it. That is bridge evidence under North Star lines 24–26. |
-| `urdf`   | Bridge (`sovereign-targets.ts` line 55)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                      | Emits URDF XML. ROS 2 / Gazebo, separate tools, are what consume it (`CircuitBreaker.ts` line 44).                      |
+| Target   | Class                                      | Rung                                                                                                                                                 | What the compiler does                                                                                                  |
+| -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `webgpu` | Sovereign (`sovereign-targets.ts` line 31) | **Code owned.** Code generation is HoloScript-owned (`WebGPUCompiler` emits WGSL + host code). The GPU device is the browser's WebGPU API, not ours. | Gap: execution of the generated output is not yet proven by a test in this repo.                                        |
+| `godot`  | Bridge (`sovereign-targets.ts` line 63)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                          | Emits a Godot project. Godot, a separate engine, is what runs it. That is bridge evidence under North Star lines 24–26. |
+| `urdf`   | Bridge (`sovereign-targets.ts` line 55)    | Not owned. Labeled bridge. Removal condition pending Joseph's confirmation.                                                                          | Emits URDF XML. ROS 2 / Gazebo, separate tools, are what consume it (`CircuitBreaker.ts` line 44).                      |
 
 ### Unproven, not in v0.1
 
