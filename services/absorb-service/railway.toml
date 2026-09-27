@@ -1,12 +1,59 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "infrastructure/Dockerfile.absorb-service"
-watchPatterns = ["services/absorb-service/**", "packages/core/**", "packages/absorb-service/**", "packages/secrets-broker/**"]
+# Includes are the builder COPY set in infrastructure/Dockerfile.absorb-service
+# plus root workspace manifests. core's @holoscript/assimp-plugin dep and mesh's
+# plugin deps are not COPY'd, so they are not watched.
+# Negations are gitignore-style and must follow an include rule
+# (https://docs.railway.com/builds/build-configuration#configure-watch-paths).
+watchPatterns = [
+  "services/absorb-service/**",
+  "packages/absorb-service/**",
+  "packages/core/**",
+  "packages/core-types/**",
+  "packages/crdt/**",
+  "packages/agent-protocol/**",
+  "packages/config/**",
+  "packages/engine/**",
+  "packages/framework/**",
+  "packages/llm-provider/**",
+  "packages/meaning/**",
+  "packages/uaal/**",
+  "packages/snn-webgpu/**",
+  "packages/holoembed/**",
+  "packages/holollama/**",
+  "packages/secrets-broker/**",
+  "packages/marketplace-api/**",
+  "packages/platform/**",
+  "packages/mesh/**",
+  "scripts/docker/**",
+  "infrastructure/Dockerfile.absorb-service",
+  "services/absorb-service/railway.toml",
+  "/package.json",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/.npmrc",
+  "/tsconfig.json",
+  "/tsconfig.base.json",
+  # Manifests stage copies every workspace package.json under packages/,
+  # services/, and benchmarks/ (not their source).
+  "packages/**/package.json",
+  "services/**/package.json",
+  "benchmarks/**/package.json",
+  "!**/*.md",
+  "!docs/**",
+  "!research/**",
+]
 
 [deploy]
 startCommand = "sh /app/services/absorb-service/scripts/docker-entrypoint.sh"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+# Was 30s. docker-entrypoint.sh runs `npx --yes drizzle-kit migrate` and schema
+# verification before node starts. server.ts then awaits vault hydration,
+# MCP tool inventory registration, ensureMoltbookSchema, and the first DB
+# health probe before app.listen. A cold npx plus that chain exceeds 30s.
+# 180s covers it and stays under Railway's 300s platform default.
+healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 

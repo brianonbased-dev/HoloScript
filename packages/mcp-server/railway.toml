@@ -6,19 +6,81 @@ dockerfilePath = "infrastructure/Dockerfile.mcp-server"
 # redeploys mcp.holoscript.net. absorb-service provides the holo_* codebase/graph tools.
 # HoloMeaning is uaal's runtime verifier dependency; both must trigger a rebuild
 # so the deployed grader cannot retain a stale resolution contract.
-# Broader set (engine/mesh/holomap/llm-provider/secrets-broker/config) is also
-# bundled — left unwatched for now to avoid rebuild storms; revisit as a deploy-cadence call.
-# framework/** added 2026-07-13 (trust-audit): board-task logic (claim TTL reaper,
-# fabricated-evidence gate, claim cap) lives in packages/framework/src/board — a
-# framework-only board fix must redeploy the board server, or the gate silently drifts.
-# hololand-platform/** + runtime/** added: the holo_tunnel_create MCP tool dynamically
+# framework/** : board-task logic (claim TTL reaper, fabricated-evidence gate,
+# claim cap) lives in packages/framework/src/board — a framework-only board fix
+# must redeploy the board server, or the gate silently drifts.
+# hololand-platform/** + runtime/** : the holo_tunnel_create MCP tool dynamically
 # imports @hololand/platform-services (which pulls @holoscript/runtime) at runtime —
 # a fix in either must redeploy, or the tunnel handler ships a stale/broken build.
-watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/compiler-wasm/**", "packages/meaning/**", "packages/uaal/**", "packages/hololand-platform/**", "packages/runtime/**", "packages/absorb-service/**", "packages/framework/**", "infrastructure/Dockerfile.mcp-server", "scripts/docker/**"]
+# Includes are the builder COPY set in infrastructure/Dockerfile.mcp-server plus
+# root workspace manifests (pnpm-lock.yaml, pnpm-workspace.yaml, package.json).
+# mesh declares many plugin workspace deps; only the three plugins this Dockerfile
+# COPY's are watched, because the others never enter the image.
+# Negations are gitignore-style and must follow an include rule
+# (https://docs.railway.com/builds/build-configuration#configure-watch-paths).
+watchPatterns = [
+  "packages/mcp-server/**",
+  "packages/core/**",
+  "packages/core-types/**",
+  "packages/crdt/**",
+  "packages/crdt-spatial/**",
+  "packages/agent-protocol/**",
+  "packages/compiler-wasm/**",
+  "packages/meaning/**",
+  "packages/uaal/**",
+  "packages/hololand-platform/**",
+  "packages/runtime/**",
+  "packages/holomap/**",
+  "packages/snn-webgpu/**",
+  "packages/engine/**",
+  "packages/framework/**",
+  "packages/cli/**",
+  "packages/llm-provider/**",
+  "packages/config/**",
+  "packages/holoembed/**",
+  "packages/secrets-broker/**",
+  "packages/memory/**",
+  "packages/absorb-service/**",
+  "packages/platform/**",
+  "packages/marketplace-api/**",
+  "packages/mesh/**",
+  "packages/holo-vm/**",
+  "packages/security-sandbox/**",
+  "packages/plugins/energy-grid-plugin/**",
+  "packages/plugins/fitness-wellness-plugin/**",
+  "packages/plugins/travel-hospitality-plugin/**",
+  "scripts/docker/**",
+  "infrastructure/Dockerfile.mcp-server",
+  "packages/mcp-server/railway.toml",
+  "/package.json",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/.npmrc",
+  "/tsconfig.json",
+  "/tsconfig.base.json",
+  # Manifests stage copies every workspace package.json and tsconfig*.json
+  # under packages/, services/, and benchmarks/ (not their source).
+  "packages/**/package.json",
+  "services/**/package.json",
+  "benchmarks/**/package.json",
+  "packages/**/tsconfig*.json",
+  "services/**/tsconfig*.json",
+  "benchmarks/**/tsconfig*.json",
+  "!**/*.md",
+  "!docs/**",
+  "!research/**",
+]
 
 [deploy]
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+# Was 30s. The process does not listen until the entrypoint finishes its SQL
+# migration and http-server.ts finishes vault hydration (load-env import),
+# tool-module import, initStores, mesh-registry restore, and attestation
+# hydration. The in-file keep-alive note cites ~14s once the process is up;
+# 30s does not cover a slow Postgres round-trip plus that import. 120s is
+# above the 100s already used by infrastructure/railway.mcp-server.toml and
+# still under Railway's 300s platform default.
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
