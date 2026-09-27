@@ -72,7 +72,8 @@
       "types": "./dist/bridge.d.ts",
       "import": "./dist/bridge.js",
       "require": "./dist/bridge.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "start": "node --max-old-space-size=8192 dist/index.js",
