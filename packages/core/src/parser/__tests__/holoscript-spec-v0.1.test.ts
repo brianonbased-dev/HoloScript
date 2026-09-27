@@ -155,17 +155,25 @@ describe('HoloScript Spec v0.1 fenced examples', () => {
     expect(spatial).toBeDefined();
     expect(compositionZone).toBeDefined();
 
-    const plain =
-      'zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.';
-    for (const fence of [zone, spatial]) {
-      const result = parseHsplus(fence!.source);
-      expect(result.success).toBe(false);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]?.code).toBe('HSP001');
-      expect(result.errors[0]?.message).toContain(plain);
-      expect(result.errors[0]?.line).toBe(1);
-      expect(result.errors[0]?.column).toBe(1);
-    }
+    const zoneResult = parseHsplus(zone!.source);
+    expect(zoneResult.success).toBe(false);
+    expect(zoneResult.errors).toHaveLength(1);
+    expect(zoneResult.errors[0]?.code).toBe('HSP001');
+    expect(zoneResult.errors[0]?.message).toBe(
+      'HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.'
+    );
+    expect(zoneResult.errors[0]?.line).toBe(1);
+    expect(zoneResult.errors[0]?.column).toBe(1);
+
+    const spatialResult = parseHsplus(spatial!.source);
+    expect(spatialResult.success).toBe(false);
+    expect(spatialResult.errors).toHaveLength(1);
+    expect(spatialResult.errors[0]?.code).toBe('HSP001');
+    expect(spatialResult.errors[0]?.message).toBe(
+      'HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.'
+    );
+    expect(spatialResult.errors[0]?.line).toBe(1);
+    expect(spatialResult.errors[0]?.column).toBe(1);
 
     const kept = parseHolo(compositionZone!.source);
     expect(kept.success).toBe(true);

@@ -1091,11 +1091,16 @@ class Lexer {
 
 export class HoloScriptPlusParser {
   /**
-   * Plain sentence for a zone, spatial, or layer block. Those words belong in
-   * a .holo composition. HSP001 is the existing unexpected-token code.
+   * Plain sentence for one rejected block word. HSP001 is the existing
+   * unexpected-token code. The check runs in parseNode, so it fires at any
+   * depth in a .hsplus file, not only at the top.
    */
-  private static readonly ZONE_SPATIAL_LAYER_MESSAGE =
-    'zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.';
+  private static rejectedBlockMessage(word: 'zone' | 'spatial' | 'layer'): string {
+    if (word === 'zone') {
+      return '"zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.';
+    }
+    return `"${word}" is not part of .hsplus. Use a composition in a .holo file instead.`;
+  }
   private tokens: Token[] = [];
   private pos: number = 0;
   private options: HSPlusParserOptions;
@@ -1707,10 +1712,12 @@ export class HoloScriptPlusParser {
       ]) || this.expect('IDENTIFIER', 'Expected element type');
     const type = typeToken.value;
 
-    // zone, spatial, and layer are composition words. The .hs reader already
-    // rejects them. Here they used to succeed and store a node with no meaning.
+    // zone, spatial, and layer are not part of .hsplus at any depth. parseNode
+    // is also how a nested block is read, so a zone inside an object, a
+    // template, or a .hsplus composition fails here too. A property named
+    // layer (layer: 2) never reaches this check.
     if (type === 'zone' || type === 'spatial' || type === 'layer') {
-      this.errorAt(startToken, HoloScriptPlusParser.ZONE_SPATIAL_LAYER_MESSAGE, 'HSP001');
+      this.errorAt(startToken, HoloScriptPlusParser.rejectedBlockMessage(type), 'HSP001');
       this.skipZoneSpatialLayerTail();
       return null;
     }

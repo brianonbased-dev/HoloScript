@@ -844,8 +844,12 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
   });
 });
 
-const ZONE_SPATIAL_LAYER_MESSAGE =
-  'HSP001: zone, spatial, and layer are not part of this file. A zone belongs inside a composition, with a quoted name and a brace block.';
+const ZONE_MESSAGE =
+  'HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.';
+const SPATIAL_MESSAGE =
+  'HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.';
+const LAYER_MESSAGE =
+  'HSP001: "layer" is not part of .hsplus. Use a composition in a .holo file instead.';
 
 describe('zone, spatial, and layer are rejected in .hsplus', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
@@ -869,7 +873,7 @@ describe('zone, spatial, and layer are rejected in .hsplus', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toMatchObject({
       code: 'HSP001',
-      message: ZONE_SPATIAL_LAYER_MESSAGE,
+      message: ZONE_MESSAGE,
       line: 1,
       column: 1,
     });
@@ -885,7 +889,7 @@ describe('zone, spatial, and layer are rejected in .hsplus', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toMatchObject({
       code: 'HSP001',
-      message: ZONE_SPATIAL_LAYER_MESSAGE,
+      message: SPATIAL_MESSAGE,
       line: 1,
       column: 1,
     });
@@ -900,11 +904,32 @@ describe('zone, spatial, and layer are rejected in .hsplus', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toMatchObject({
       code: 'HSP001',
-      message: ZONE_SPATIAL_LAYER_MESSAGE,
+      message: LAYER_MESSAGE,
       line: 1,
       column: 1,
     });
     expect(typesIn(result.ast)).not.toContain('layer');
+  });
+
+  it('rejects a zone nested inside a .hsplus composition with the same plain error', () => {
+    const result = parser.parse('composition "X" { zone "A" { } }');
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: ZONE_MESSAGE,
+      line: 1,
+      column: 19,
+    });
+    expect(typesIn(result.ast)).not.toContain('zone');
+  });
+
+  it('keeps a property named layer as an ordinary property', () => {
+    const result = parser.parse('object "A" { layer: 2 }');
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.ast.root.type).toBe('object');
+    expect(result.ast.root.properties.layer).toBe(2);
   });
 
   it('keeps a zone inside a .holo composition', () => {
