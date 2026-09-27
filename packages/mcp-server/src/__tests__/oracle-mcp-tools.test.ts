@@ -9,6 +9,9 @@
  * - holo_oracle_curate
  */
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { handleOracleMcpTool } from '../oracle-mcp-tools';
 
@@ -84,6 +87,116 @@ describe('oracle-mcp-tools', () => {
 
       expect(result.researchFilesFound).toBe(0);
       expect(result.report).toContain('No Findings');
+    });
+
+    it('skips a broken symlink and does not return files under node_modules or .git', async () => {
+      // RESEARCH_ROOT is read once at module load. Point ORACLE_RESEARCH_ROOT
+      // at a temp dir, then vi.resetModules() and dynamic-import so this case
+      // sees that root.
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'oracle-scan-'));
+      const previousRoot = process.env.ORACLE_RESEARCH_ROOT;
+      try {
+        const notes = path.join(tmp, 'notes');
+        fs.mkdirSync(notes, { recursive: true });
+
+        const visible = path.join(tmp, '2026-09-27_hardeningprobe-visible.md');
+        const visibleNested = path.join(notes, '2026-09-27_hardeningprobe-visible-nested.md');
+        fs.writeFileSync(visible, '# visible hardeningprobe\n');
+        fs.writeFileSync(visibleNested, '# nested visible hardeningprobe\n');
+
+        fs.mkdirSync(path.join(tmp, 'node_modules'), { recursive: true });
+        fs.writeFileSync(
+          path.join(tmp, 'node_modules', '2026-09-27_hardeningprobe-hidden-nm-top.md'),
+          '# hidden node_modules hardeningprobe\n'
+        );
+        fs.mkdirSync(path.join(notes, 'node_modules', 'pkg'), { recursive: true });
+        fs.writeFileSync(
+          path.join(notes, 'node_modules', 'pkg', '2026-09-27_hardeningprobe-hidden-nm.md'),
+          '# hidden nested node_modules hardeningprobe\n'
+        );
+        fs.mkdirSync(path.join(tmp, '.git'), { recursive: true });
+        fs.writeFileSync(
+          path.join(tmp, '.git', '2026-09-27_hardeningprobe-hidden-git-top.md'),
+          '# hidden git hardeningprobe\n'
+        );
+        fs.mkdirSync(path.join(notes, 'pkg', '.git'), { recursive: true });
+        fs.writeFileSync(
+          path.join(notes, 'pkg', '.git', '2026-09-27_hardeningprobe-hidden-git.md'),
+          '# hidden nested git hardeningprobe\n'
+        );
+
+        const hiddenNames = [
+          '2026-09-27_hardeningprobe-hidden-nm-top.md',
+          '2026-09-27_hardeningprobe-hidden-nm.md',
+          '2026-09-27_hardeningprobe-hidden-git-top.md',
+          '2026-09-27_hardeningprobe-hidden-git.md',
+        ];
+        const expectedNames = [
+          '2026-09-27_hardeningprobe-visible.md',
+          '2026-09-27_hardeningprobe-visible-nested.md',
+        ];
+
+        let symlinkSkipReason = '';
+        try {
+          fs.symlinkSync(
+            path.join(tmp, 'missing-target-for-broken-symlink'),
+            path.join(tmp, 'dangling-root')
+          );
+          fs.symlinkSync(path.join(tmp, 'missing-nested-target'), path.join(notes, 'dangling-nested'));
+          fs.symlinkSync(visible, path.join(tmp, '2026-09-27_hardeningprobe-linked.md'));
+        } catch (err) {
+          const code =
+            err && typeof err === 'object' && 'code' in err
+              ? String((err as { code?: unknown }).code)
+              : '';
+          if (code === 'EPERM' || code === 'EACCES' || code === 'ENOTSUP') {
+            symlinkSkipReason = `symlink creation is not permitted on this platform (${code}); skipping only the broken-symlink case`;
+          } else {
+            throw err;
+          }
+        }
+        if (!symlinkSkipReason) {
+          expect(() => fs.statSync(path.join(tmp, 'dangling-root'))).toThrow(/ENOENT/);
+          expectedNames.push('2026-09-27_hardeningprobe-linked.md');
+        }
+
+        delete process.env.HOLOSCRIPT_API_KEY;
+        delete process.env.HOLOMESH_API_KEY;
+        process.env.ORACLE_RESEARCH_ROOT = tmp;
+        vi.resetModules();
+
+        const { handleOracleMcpTool: discover } = await import('../oracle-mcp-tools');
+        const result = (await discover('holo_oracle_discover', {
+          topic: 'hardeningprobe',
+          depth: 'brief',
+          sources: 'internal',
+        })) as {
+          researchFilesFound: number;
+          report: string;
+          citations: Array<{ file: string; path: string }>;
+        };
+
+        if (symlinkSkipReason) {
+          expect(symlinkSkipReason).toContain('skipping only the broken-symlink case');
+        }
+
+        const files = result.citations.map((c) => c.file).sort();
+        expect(files).toEqual([...expectedNames].sort());
+        expect(result.researchFilesFound).toBe(expectedNames.length);
+        for (const hidden of hiddenNames) {
+          expect(files).not.toContain(hidden);
+          expect(result.report).not.toContain(hidden);
+        }
+        for (const citation of result.citations) {
+          expect(citation.path.split(path.sep)).not.toContain('node_modules');
+          expect(citation.path.split(path.sep)).not.toContain('.git');
+        }
+      } finally {
+        if (previousRoot === undefined) delete process.env.ORACLE_RESEARCH_ROOT;
+        else process.env.ORACLE_RESEARCH_ROOT = previousRoot;
+        vi.resetModules();
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
     });
   });
 
