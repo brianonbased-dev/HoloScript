@@ -38,6 +38,14 @@ Hand-editing a generated `.kt` (instead of `scene.holo`) makes the gate go red. 
 W.783 doctrine: **gate the emitter BEFORE fixing its output**, so codegen-correctness work is
 drift-controlled.
 
+**Keep one object of every node kind in `scene.holo`** (today: cube, sphere, cylinder — the list
+is `SCENEVIEW_NODE_COMPOSABLES` in `AndroidARGenerators.ts`). A byte-match only proves the emitter
+repeats itself; the gradle build is what proves the Kotlin is right, and it only compiles the kinds
+this scene uses. The cylinder was missing until 2026-09-27, so `CylinderNode(length = …)` — an
+argument SceneView does not have (it is `height`) — failed every real app with a round part while
+this reference stayed green. The golden test now fails if a kind is missing, and checks every
+emitted argument name against the pinned SceneView signature, in plain `pnpm test`.
+
 ## Build status — GREEN (golden-diff + real gradle build + on-device, 2026-06-21)
 
 `compile_to_android` was **retargeted off the EOL Sceneform fork onto SceneView 4.18.0** (Apache 2.0,
