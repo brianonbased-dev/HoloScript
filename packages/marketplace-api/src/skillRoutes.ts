@@ -7,12 +7,14 @@
  */
 
 import { Router, type Request, type Response } from 'express';
+import type { UserPayload } from '@holoscript/auth';
 import type {
   SkillSearchQuery,
   SkillPublishRequest,
   SkillCategory,
   SkillTargetPlatform,
   ApiResponse,
+  Author,
   SkillPackage,
   SkillSummary,
   SkillSearchResult,
@@ -21,10 +23,12 @@ import type {
   TraitRating,
 } from './types.js';
 import {
+  SkillAccessError,
   SkillMarketplacePaymentError,
   type SkillMarketplaceService,
 } from './SkillMarketplaceService.js';
 import type { x402PaymentService } from './x402PaymentService.js';
+import { sharedAuth } from './routes.js';
 
 function extractPaymentId(req: Request): string | undefined {
   const headerPaymentId = req.headers['x-payment-id'];
@@ -62,6 +66,72 @@ function skillPricingPayload(skill: SkillPackage) {
     price: skill.price,
     subscriptionPrice: skill.subscriptionPrice,
   };
+}
+
+class SkillRouteHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string
+  ) {
+    super(message);
+    this.name = 'SkillRouteHttpError';
+  }
+}
+
+/**
+ * Require a bearer token that passes AuthService.verifyToken (JWT_SECRET).
+ * Does not decode the payload on its own.
+ */
+function requireVerifiedUser(req: Request): UserPayload {
+  const header = req.headers.authorization;
+  const token = sharedAuth.extractToken(typeof header === 'string' ? header : undefined);
+  if (!token) {
+    throw new SkillRouteHttpError('Authentication required', 401, 'UNAUTHORIZED');
+  }
+
+  let user: UserPayload;
+  try {
+    user = sharedAuth.verifyToken(token);
+  } catch {
+    throw new SkillRouteHttpError('Invalid token', 401, 'UNAUTHORIZED');
+  }
+
+  if (typeof user.id !== 'string' || user.id.trim() === '') {
+    throw new SkillRouteHttpError('Invalid token', 401, 'UNAUTHORIZED');
+  }
+
+  return user;
+}
+
+/** Author identity is the verified user id, never a field from the request body. */
+function authorFromVerifiedUser(user: UserPayload): Author {
+  return {
+    name: user.id,
+    ...(typeof user.email === 'string' && user.email.length > 0 ? { email: user.email } : {}),
+    verified: false,
+  };
+}
+
+function skillPublishRequestFromBody(body: unknown): SkillPublishRequest {
+  if (!body || typeof body !== 'object') {
+    return body as SkillPublishRequest;
+  }
+  const { author: _clientAuthor, ...request } = body as SkillPublishRequest & {
+    author?: unknown;
+  };
+  return request;
+}
+
+function sendSkillRouteError(res: Response, error: unknown): boolean {
+  if (error instanceof SkillRouteHttpError || error instanceof SkillAccessError) {
+    res.status(error.status).json({
+      success: false,
+      error: { code: error.code, message: error.message },
+    });
+    return true;
+  }
+  return false;
 }
 
 function handleSkillPaymentError(res: Response, error: unknown, skill?: SkillPackage): boolean {
@@ -108,12 +178,13 @@ export function createSkillMarketplaceRoutes(
 
   router.post('/publish', async (req, res) => {
     try {
-      const token = req.headers.authorization?.replace('Bearer ', '') || '';
-      const request = req.body as SkillPublishRequest;
-      const result = await service.publishSkill(request, token);
+      const user = requireVerifiedUser(req);
+      const request = skillPublishRequestFromBody(req.body);
+      const result = await service.publishSkill(request, authorFromVerifiedUser(user));
       const response: ApiResponse<SkillPublishResult> = { success: true, data: result };
       res.status(201).json(response);
     } catch (error) {
+      if (sendSkillRouteError(res, error)) return;
       const message = error instanceof Error ? error.message : 'Publish failed';
       res.status(400).json({ success: false, error: { code: 'PUBLISH_FAILED', message } });
     }
@@ -121,10 +192,11 @@ export function createSkillMarketplaceRoutes(
 
   router.delete('/:id', async (req, res) => {
     try {
-      const token = req.headers.authorization?.replace('Bearer ', '') || '';
-      await service.unpublishSkill(req.params.id, token);
+      const user = requireVerifiedUser(req);
+      await service.unpublishSkill(req.params.id, user.id);
       res.status(204).send();
     } catch (error) {
+      if (sendSkillRouteError(res, error)) return;
       const message = error instanceof Error ? error.message : 'Unpublish failed';
       res.status(400).json({ success: false, error: { code: 'UNPUBLISH_FAILED', message } });
     }

@@ -88,7 +88,10 @@ describe('SkillMarketplace paid x402 flow', () => {
       new SkillRatingService(),
       paymentVerifier
     );
-    const published = await service.publishSkill(makePublishRequest(), 'creator-token');
+    const published = await service.publishSkill(makePublishRequest(), {
+      name: 'creator-token',
+      verified: false,
+    });
     const receipt = makeReceipt(published.skillId);
     vi.mocked(paymentVerifier.verifyPayment).mockResolvedValue(receipt);
 
@@ -166,7 +169,10 @@ describe('SkillMarketplace paid x402 flow', () => {
       new SkillRatingService(),
       paymentVerifier
     );
-    const published = await service.publishSkill(makePublishRequest(), 'creator-token');
+    const published = await service.publishSkill(makePublishRequest(), {
+      name: 'creator-token',
+      verified: false,
+    });
     vi.mocked(paymentVerifier.verifyPayment).mockResolvedValue(makeReceipt('skill-someone-else'));
 
     await expect(

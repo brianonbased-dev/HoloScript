@@ -1046,8 +1046,10 @@ export interface SkillDownloadUrlResult {
  */
 export interface ISkillMarketplaceAPI {
   // Publishing
-  publishSkill(request: SkillPublishRequest, token: string): Promise<SkillPublishResult>;
-  unpublishSkill(skillId: string, token: string): Promise<void>;
+  /** `author.name` is the verified user id. Do not pass an unverified bearer token. */
+  publishSkill(request: SkillPublishRequest, author: Author): Promise<SkillPublishResult>;
+  /** `ownerId` is the verified user id, compared to the skill's stored `author.name`. */
+  unpublishSkill(skillId: string, ownerId: string): Promise<void>;
   deprecateSkill(skillId: string, message: string, token: string): Promise<void>;
 
   // Discovery
