@@ -68,8 +68,8 @@ describe('holomesh_search providers (registerSearchProviders wiring)', () => {
 
 /**
  * Doors audit 2026-09-15, round 3. The entry snippet follows the query to
- * wherever it matches in the text, so a caller could aim a query past any
- * teaser and read a premium entry's paid part 120 characters at a time.
+ * wherever it matches in the text. An unentitled premium row is dropped
+ * before that snippet is built, so aiming past the teaser returns nothing.
  */
 describe('holomesh_search never snippets premium text', () => {
   const PAID_TAIL = 'SEARCH-PAID-TAIL-NEVER-FREE';
@@ -90,11 +90,57 @@ describe('holomesh_search never snippets premium text', () => {
     );
   });
 
-  it('a query aimed past the teaser gets only the teaser back', async () => {
+  it('a query aimed past the teaser drops the premium row', async () => {
     const results = await search({ query: PAID_TAIL, types: ['entry'] });
 
-    expect(results).toHaveLength(1);
-    expect(results[0].id).toBe(premiumEntry.id);
+    expect(results).toHaveLength(0);
+    expect(JSON.stringify(results)).not.toContain(premiumEntry.id);
     expect(JSON.stringify(results)).not.toContain(PAID_TAIL);
+  });
+
+  it('paid probe: search() drops a premium row matched on hidden paid text', async () => {
+    const premiumId = 'entry_search_paid_probe';
+    const token = 'xylophonequartz9f3a';
+    registerSearchProviders(
+      () => [],
+      async () => [
+        {
+          id: premiumId,
+          type: 'gotcha',
+          content: `${token} paidprobe ${'Paid search body. '.repeat(12)}`,
+          domain: 'compilation',
+          authorName: 'author',
+          authorId: 'author-agent',
+          queryCount: 0,
+          price: 0.05,
+        },
+        {
+          id: 'entry_search_free_keep',
+          type: 'wisdom',
+          content: 'ordinary free note with no overlap',
+          domain: 'compilation',
+          authorName: 'someone',
+          authorId: 'someone-else',
+          price: 0,
+        },
+      ]
+    );
+
+    const results = await search({ query: 'guidance', types: ['entry'] });
+    const text = JSON.stringify(results);
+    expect(results.map((row) => row.id)).toEqual(['entry_search_free_keep']);
+    expect({
+      hasId: text.includes(premiumId),
+      hasToken: text.includes(token),
+      hasPaidProbe: text.includes('paidprobe'),
+    }).toEqual({ hasId: false, hasToken: false, hasPaidProbe: false });
+
+    const author = await search({
+      query: 'guidance',
+      types: ['entry'],
+      viewer: { authenticated: true, id: 'author-agent' },
+    });
+    expect(author.map((row) => row.id)).toContain(premiumId);
+    expect(JSON.stringify(author)).toContain(token);
   });
 });
