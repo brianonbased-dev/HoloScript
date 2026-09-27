@@ -1,0 +1,197 @@
+// The pricing page — authored in HoloScript, compiled to an @generated Next.js
+// page by the NextJSCompiler. EDIT THIS, not src/app/pricing/page.tsx.
+// Regenerate: pnpm --filter @holoscript/studio holo:build
+//
+// WHY THIS PAGE EXISTS, AND WHY IT IS OUTSIDE THE SIGN-IN WALL. /pricing
+// returned 404 until 2026-09-21. The only place any price was shown was
+// /settings?tab=credits, which renders solely when a session has a user id — so
+// the price list was visible only to people who had already signed in, and
+// there was no sign-up. Nobody outside could find out what anything cost.
+//
+// THE NUMBERS HERE ARE PINNED BY A TEST. src/app/__tests__/front-door.test.ts
+// asserts that every figure below matches CREDIT_PACKAGES and LLM_MARKUP in the
+// canonical table, and that the operations named free are exactly the rows
+// tiered 'local'. That test exists because the shop window and the till already
+// disagreed once: measured 2026-09-21, eight of fourteen shared operations
+// differed between Studio's copy of the table and the server's, and in every
+// case Studio showed MORE than the server charged.
+//
+// ONE MARKUP NUMBER. The settings panel says "15%" in one paragraph and "30%"
+// in another; the constant is 1.15. This page states it once, and the test
+// reads the constant rather than trusting this prose.
+composition "Pricing" {
+  @page { route: "/pricing" }
+  @metadata {
+    title: "Pricing — HoloScript"
+    description: "Work that runs on your own machine is free. Work that runs on ours, and costs us money, is charged. Credits are one cent each."
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "mx-auto w-full max-w-3xl px-6 py-16" }
+
+    object "Title" {
+      @text { content: "Pricing", variant: "h1" }
+      @theme { className: "text-3xl font-bold text-studio-text" }
+    }
+
+    object "Rule" {
+      @text { content: "One rule decides every price here: if the work runs on your own machine, it is free, because it costs us nothing. If it runs on ours and we are billed for it, you are charged what it costs plus a stated margin. Which side a thing falls on is a property of the work itself, not a plan you are on." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "FreeHeading" {
+      @text { content: "Free, and not free-for-now", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "FreeBody" {
+      @text { content: "These run with no API key and no outbound call, so there is nothing for us to bill you for: searching your codebase, asking it a question in plain language, comparing two versions of a project, rendering a scene to an image or a PDF, and reading or publishing knowledge entries. The embeddings behind the search are local by design — the factory that chooses them is forbidden from silently picking a paid provider." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "FreeNote" {
+      @text { content: "Five of those carried a price until 2026-09-21 and should not have. They are zero now." }
+      @theme { className: "mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "PaidHeading" {
+      @text { content: "Charged, and why", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "PaidBody" {
+      @text { content: "Five things call a paid model on someone else's hardware: code autocomplete, code generation, chat, material generation, and turning speech into HoloScript. Those cost us money on every request, and we charge you nothing for them. That is a decision, not an oversight, and it is the answer to what the free tier is: the parts where we pay a third party on your behalf." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "PaidCorrection" {
+      @text { content: "This page said the opposite until 2026-09-21. It listed those five as charged and said we could account for them line by line. Nothing collected them and nothing ever had." }
+      @theme { className: "mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "HonestHeading" {
+      @text { content: "Every price still on this page is under review", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "HonestBody" {
+      @text { content: "11 operations carry a price today, and we audited all 11 on 2026-09-21 without being able to justify a single one on the spot. 7 are genuinely collected but we have not traced them to a cost we actually pay. 4 are listed while nothing collects them at all. Treat both kinds as under review rather than as a quote: where the work turns out to run on your own hardware the price goes to zero, as five already did." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "HonestNote" {
+      @text { content: "We would rather publish that sentence than a price we cannot explain. It is the second correction this page has carried in a day; the first one read better and was false." }
+      @theme { className: "mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "CreditsHeading" {
+      @text { content: "Credits", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "CreditsBody" {
+      @text { content: "One credit is one cent. Buying more at once costs less per credit; the larger packages include bonus credits, so what you pay and what you receive are two different numbers." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "PackageGrid" {
+      @theme { tag: "section", className: "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3" }
+
+      object "PkgStarter" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "PkgStarterName" {
+          @text { content: "Starter", variant: "h3" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "PkgStarterPrice" {
+          @text { content: "$5 for 500 credits" }
+          @theme { className: "text-xs text-studio-muted" }
+        }
+      }
+
+      object "PkgBuilder" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "PkgBuilderName" {
+          @text { content: "Builder", variant: "h3" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "PkgBuilderPrice" {
+          @text { content: "$20 for 2500 credits" }
+          @theme { className: "text-xs text-studio-muted" }
+        }
+      }
+
+      object "PkgPro" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "PkgProName" {
+          @text { content: "Pro", variant: "h3" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "PkgProPrice" {
+          @text { content: "$75 for 10000 credits" }
+          @theme { className: "text-xs text-studio-muted" }
+        }
+      }
+
+      object "PkgEnterprise" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "PkgEnterpriseName" {
+          @text { content: "Enterprise", variant: "h3" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "PkgEnterprisePrice" {
+          @text { content: "$350 for 50000 credits" }
+          @theme { className: "text-xs text-studio-muted" }
+        }
+      }
+    }
+
+    object "MarkupHeading" {
+      @text { content: "Model tokens", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "MarkupBody" {
+      @text { content: "When one of the five charged operations calls a paid model, the tokens are metered at what the provider charges us plus a 15% margin. Run a model on your own hardware or on your own fleet instead and the token cost is zero — that lane is free, and it is the one we would rather you used." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "SovHeading" {
+      @text { content: "Or pay nothing at all", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "SovBody" {
+      @text { content: "The language, the command-line tool, the engine, the codebase intelligence, the embeddings and the mesh are MIT licensed. You can run the whole thing on your own hardware and never pay us anything. We think that is the right arrangement: we should be paid for compute we buy on your behalf, not for access to a language." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "NextGrid" {
+      @theme { tag: "section", className: "mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3" }
+
+      object "CardInstall" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardInstallTitle" {
+          @link { href: "/install", content: "Install it →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardInstallDesc" {
+          @text { content: "Four steps, no account. Compile your first composition." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+
+      object "CardDownload" {
+        @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
+        object "CardDownloadTitle" {
+          @link { href: "/download", content: "The packages →" }
+          @theme { className: "text-sm font-semibold text-studio-text" }
+        }
+        object "CardDownloadDesc" {
+          @text { content: "All six, what each is for, and the licence." }
+          @theme { className: "text-xs leading-relaxed text-studio-muted" }
+        }
+      }
+    }
+  }
+}
