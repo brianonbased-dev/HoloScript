@@ -52,6 +52,7 @@ const ENV_KEYS = [
   'HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL',
   'HOLOSCRIPT_AGENT_EVOLVE_MODEL',
   'HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL',
+  'HOLO_ALLOW_HOSTED_OLLAMA',
 ];
 let saved: Record<string, string | undefined>;
 
@@ -89,6 +90,24 @@ describe('makeIdleAccrual — default-OFF gating', () => {
     const accrual = await makeIdleAccrual({ handle: 'a', _module: fakeModule([]), _fs: memFs() });
     expect(accrual).toBeUndefined();
   });
+
+  // The corpus labels its rows 'sovereign-local', so a hosted Ollama never feeds it, and the
+  // HOLO_ALLOW_HOSTED_OLLAMA opt-in does not change that.
+  it.each([
+    ['a hosted endpoint', 'https://ollama.com', undefined],
+    ['a cloud-tagged model on a local endpoint', 'http://127.0.0.1:11434', 'gpt-oss:120b-cloud'],
+  ])(
+    'returns undefined for %s, even with HOLO_ALLOW_HOSTED_OLLAMA=1',
+    async (_label, url, model) => {
+      process.env.HOLOSCRIPT_AGENT_EVOLVE_ACCRUAL = '1';
+      process.env.HOLOSCRIPT_AGENT_EVOLVE_CORPUS = CORPUS;
+      process.env.HOLOSCRIPT_AGENT_EVOLVE_OLLAMA_URL = url;
+      if (model) process.env.HOLOSCRIPT_AGENT_EVOLVE_MODEL = model;
+      process.env.HOLO_ALLOW_HOSTED_OLLAMA = '1';
+      const accrual = await makeIdleAccrual({ handle: 'a', _module: fakeModule([]), _fs: memFs() });
+      expect(accrual).toBeUndefined();
+    }
+  );
 });
 
 describe('makeIdleAccrual — enabled orchestration', () => {

@@ -4345,6 +4345,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@holoscript/llm-provider':
+        specifier: workspace:*
+        version: link:../../packages/llm-provider
       '@holoscript/mcp-server':
         specifier: workspace:*
         version: link:../../packages/mcp-server

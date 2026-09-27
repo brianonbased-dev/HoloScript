@@ -395,6 +395,7 @@ async function createDaemonLLMProvider(
     XAIAdapter,
     OpenAIAdapter,
     LocalLLMAdapter,
+    checkHostedOllama,
     resolveSovereignProviderAsync,
   } = await import('@holoscript/llm-provider');
 
@@ -512,6 +513,12 @@ async function createDaemonLLMProvider(
         'Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env'
     );
   }
+  // A public Ollama host (ollama.com) or a cloud-tagged model is not local inference.
+  const hostedOllama = checkHostedOllama(ollamaUrl, {
+    model: opts.model,
+    caller: 'holoscript daemon --provider ollama',
+  });
+  if (hostedOllama.refused) throw hostedOllama.refused;
   const adapter = new LocalLLMAdapter({
     baseURL: ollamaUrl,
     model: opts.model,

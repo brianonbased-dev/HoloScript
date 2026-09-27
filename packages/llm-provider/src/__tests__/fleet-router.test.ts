@@ -6,7 +6,7 @@
  * Network + registry are injected (fetchImpl / resolveEndpoint) so the suite is
  * hermetic — no real Ollama, no real files.
  */
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -446,6 +446,41 @@ describe('pickFleetModel routing', () => {
     expect(route).toBeNull();
     expect(resolutionAttempts).toBe(0);
   });
+
+  // Every owned-fleet route is labeled native, so HOLO_ALLOW_HOSTED_OLLAMA never opens it.
+  test.each(['', '1'])(
+    'a cloud-tagged Ollama model on an owned node is never a candidate nor routed to (flag %j)',
+    async (flag) => {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', flag);
+      const fetchImpl = fakeFetch({
+        // An owned Jetson whose Ollama has pulled a cloud model: it runs on ollama.com.
+        'http://holojetson.local:11434': { tags: ['gpt-oss:120b-cloud'], ps: [] },
+        'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] },
+      });
+      const route = await pickFleetModel(SPEC, { resolveEndpoint, fetchImpl });
+      expect(route!.handle).toBe('laptop-rtx3060');
+      expect(route!.model).toBe('qwen3:4b-instruct');
+      vi.unstubAllEnvs();
+    }
+  );
+
+  test.each(['', '1'])(
+    'an explicitly requested cloud model fails closed before endpoint discovery (flag %j)',
+    async (flag) => {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', flag);
+      let resolutionAttempts = 0;
+      const route = await pickFleetModel(SPEC, {
+        model: 'glm-4.6:cloud',
+        resolveEndpoint: async () => {
+          resolutionAttempts += 1;
+          return 'http://should-not-be-contacted.invalid:11434';
+        },
+      });
+      expect(route).toBeNull();
+      expect(resolutionAttempts).toBe(0);
+      vi.unstubAllEnvs();
+    }
+  );
 
   test('a node with no resolvable endpoint (not registered) is skipped', async () => {
     const onlyJetson = async (h: string): Promise<string | null> =>
