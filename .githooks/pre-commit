@@ -398,7 +398,9 @@ fi
 # source is staged so unrelated commits skip it. HoloCI's mcp-gate-coverage gate is the
 # authoritative layer; this is the dev floor.
 echo "  ├─ MCP gate coverage (gateToolCall)..."
-STAGED_MCP_SRC=$(git -c core.quotepath=off diff --cached --name-only -- 'packages/mcp-server/src/**/*.ts' 2>/dev/null || true)
+# `src/**` skips a file that sits directly in src/ (git requires another slash).
+# index.ts and http-server.ts live there; the `src/*` pathspec is what stages them.
+STAGED_MCP_SRC=$(git -c core.quotepath=off diff --cached --name-only -- 'packages/mcp-server/src/*.ts' 'packages/mcp-server/src/**/*.ts' 2>/dev/null || true)
 if [ -n "$STAGED_MCP_SRC" ]; then
     MCPGATE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-mcp-gate-coverage.mjs 2>&1)
     MCPGATE_STATUS=$?

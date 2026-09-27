@@ -766,6 +766,86 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
   }
 }
 
+// A file directly in packages/mcp-server/src/ must make STAGED_MCP_SRC non-empty,
+// which is the only input the hook gives check-mcp-gate-coverage. The gate then
+// walks that tree itself (no path list). `src/**` used to skip the direct file,
+// so staging only index.ts never ran the gate.
+{
+  const hookSource = readFileSync(HOOK, 'utf8');
+  const directTs = 'packages/mcp-server/src/Ungated.ts';
+  const nestedTs = 'packages/mcp-server/src/nested/Gated.ts';
+  const MCP_GATE = resolve(REPO, 'scripts/holo-ci/check-mcp-gate-coverage.mjs');
+
+  function assignmentCommand(varName) {
+    const line = hookSource.split('\n').find((entry) => entry.includes(`${varName}=$(`));
+    if (!line) throw new Error(`missing ${varName} assignment`);
+    const open = line.indexOf('$(');
+    const close = line.lastIndexOf(')');
+    if (open < 0 || close <= open) throw new Error(`bad ${varName} assignment`);
+    return line.slice(open + 2, close);
+  }
+
+  function nameList(command, cwd) {
+    const result = spawnSync('bash', ['-c', command], { cwd, encoding: 'utf8' });
+    return {
+      code: result.status,
+      names: `${result.stdout || ''}`
+        .split(/\r?\n/)
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    };
+  }
+
+  const legacyMcp =
+    "git -c core.quotepath=off diff --cached --name-only -- 'packages/mcp-server/src/**/*.ts'";
+  const invoke = hookSource
+    .split('\n')
+    .find((entry) => entry.includes('check-mcp-gate-coverage.mjs') && entry.includes('run_with_timeout'));
+  assertTrue(
+    Boolean(invoke) && !invoke.includes('$STAGED_MCP_SRC'),
+    'hook runs mcp-gate-coverage with no path list once STAGED_MCP_SRC is non-empty',
+    invoke || ''
+  );
+
+  const root = mkdtempSync(join(tmpdir(), 'mcp-src-direct-'));
+  try {
+    git(root, ['init']);
+    writeTree(root, {
+      [directTs]:
+        'setRequestHandler(CallToolRequestSchema, async () => {\n  return { ok: true };\n});\n',
+      [nestedTs]:
+        'setRequestHandler(CallToolRequestSchema, async () => {\n  return gateToolCall({ name: "x", args: {} }, { transport: "stdio", callerId: "t" }, () => ({}));\n});\n',
+    });
+    git(root, ['add', '--', directTs, nestedTs]);
+
+    const oldList = nameList(legacyMcp, root);
+    assertTrue(
+      !oldList.names.includes(directTs),
+      'legacy mcp src/** pathspec skips a file directly in packages/mcp-server/src/'
+    );
+    assertTrue(oldList.names.includes(nestedTs), 'legacy mcp src/** pathspec still lists a nested file');
+
+    const staged = nameList(assignmentCommand('STAGED_MCP_SRC'), root);
+    assertEq(staged.code, 0, 'hook STAGED_MCP_SRC command exits 0');
+    assertTrue(
+      staged.names.includes(directTs),
+      'hook feeds a file directly in packages/mcp-server/src/ to STAGED_MCP_SRC',
+      staged.names.join(',')
+    );
+    assertTrue(staged.names.includes(nestedTs), 'hook still feeds a nested mcp-server src file');
+
+    const gate = runNode(MCP_GATE, [], root);
+    assertEq(gate.code, 1, 'mcp-gate-coverage fails when the direct file has an ungated handler');
+    assertTrue(
+      withSlashes(gate.out).includes(`GATE-BYPASS  ${directTs}`),
+      'mcp-gate-coverage reports the file directly in packages/mcp-server/src/',
+      gate.out
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);
   process.exit(1);
