@@ -41,6 +41,9 @@ const createMoltbookIndexes = [
   'CREATE INDEX IF NOT EXISTS "idx_moltbook_agents_project" ON "moltbook_agents" USING btree ("project_id")',
 ];
 
+// Direct `node dist/server.js` boot only. The container entrypoint
+// (scripts/docker-entrypoint.sh) does not read ABSORB_REQUIRE_DB_SCHEMA and
+// does not continue when migrate or required tables fail.
 function shouldRequireSchema(): boolean {
   return process.env.ABSORB_REQUIRE_DB_SCHEMA === '1';
 }
