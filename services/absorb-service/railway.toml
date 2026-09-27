@@ -46,17 +46,9 @@ watchPatterns = [
 ]
 
 [deploy]
-startCommand = "sh /app/services/absorb-service/scripts/docker-entrypoint.sh"
-healthcheckPath = "/health"
-# Was 30s. docker-entrypoint.sh runs `npx --yes drizzle-kit migrate` and schema
-# verification before node starts. server.ts then awaits vault hydration,
-# MCP tool inventory registration, ensureMoltbookSchema, and the first DB
-# health probe before app.listen. A cold npx plus that chain exceeds 30s.
-# 180s covers it and stays under Railway's 300s platform default.
+# Live absorb has no healthcheckPath, so this timeout is inert until one is
+# set. Release approved keeping 180. Live start command stays on the dashboard
+# (`node services/absorb-service/dist/server.js`); this file does not set one.
 healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
-
-[env]
-NODE_ENV = "production"
-PORT = "3005"

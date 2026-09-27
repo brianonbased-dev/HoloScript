@@ -36,15 +36,8 @@ watchPatterns = [
 ]
 
 [deploy]
-healthcheckPath = "/api/health"
-# Was 30s. The image command is db-migrate.cjs (ledger migrate, then
-# statement-by-statement schema reconcile) and only then `node
-# packages/studio/server.js`. /api/health cannot answer until both finish.
-# 120s covers a drift reconcile plus Next standalone bind without using
-# Railway's 300s platform default.
+# Live studio has no healthcheckPath, so this timeout is inert until one is
+# set. Release approved keeping 120.
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
-
-[service]
-internalPort = 3000
+restartPolicyMaxRetries = 10
