@@ -582,9 +582,16 @@ for (const gate of legacyLens) {
   const fn = start >= 0 && end > start ? hookSource.slice(start, end) : '';
   const stubDir = mkdtempSync(join(tmpdir(), 'timeout-stub-'));
   try {
+    // Hostile PATH timeout, first on PATH. It exits 2, the way Git Bash's
+    // /usr/bin/timeout.exe does when it actually runs
+    // `node ... --files-from` against a missing list. Git Bash keeps /usr/bin
+    // ahead of a directory this test prepends, so a stub script never wins.
+    // A function in this same bash -c is resolved before any PATH entry.
+    // run_with_timeout is inlined below, not run as a child bash, so the
+    // function does not need export -f (a child would see this file instead).
     writeFileSync(
       join(stubDir, 'timeout'),
-      '#!/bin/sh\nexit "${STUB_EXIT:-124}"\n'
+      '#!/bin/sh\nexit 2\n'
     );
     chmodSync(join(stubDir, 'timeout'), 0o755);
     const run = (stubExit) =>
@@ -592,7 +599,8 @@ for (const gate of legacyLens) {
         'bash',
         [
           '-c',
-          `${fn}
+          `timeout() { return "\${STUB_EXIT:-124}"; }
+${fn}
 run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from /tmp/list.txt
 `,
         ],
