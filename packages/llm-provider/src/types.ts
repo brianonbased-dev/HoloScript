@@ -883,6 +883,13 @@ export interface LocalLLMProviderConfig extends Omit<LLMProviderConfig, 'apiKey'
    * when none is set, because a placeholder would look like attribution while identifying nobody.
    */
   callerId?: string;
+
+  /**
+   * Client of the holo-inference-proxy. `true` sends the optional bearer on
+   * every request when `HOLO_INFERENCE_PROXY_KEY_NAME` resolves. When omitted,
+   * port 18080 is treated as that proxy. `false` never sends the proxy bearer.
+   */
+  inferenceProxy?: boolean;
 }
 
 /**

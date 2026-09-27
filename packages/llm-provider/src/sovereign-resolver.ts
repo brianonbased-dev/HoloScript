@@ -1090,6 +1090,7 @@ function resolveHoloLlama(
     model,
     nativeOllamaApi: false,
     timeoutMs: 300_000,
+    inferenceProxy: true,
   });
   return {
     provider,

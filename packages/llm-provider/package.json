@@ -77,6 +77,9 @@
     "@anthropic-ai/sdk": "^0.91.1",
     "openai": "^6.32.0"
   },
+  "dependencies": {
+    "@holoscript/config": "workspace:^"
+  },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
       "optional": true

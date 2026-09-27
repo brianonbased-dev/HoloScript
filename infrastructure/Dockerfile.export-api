@@ -31,6 +31,11 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
+# config's only workspace dependency is @holoscript/secrets-broker
+# (config/src/auth.ts dynamically imports it). llm-provider depends on
+# @holoscript/config. Copy both before the builds that use them.
+COPY packages/secrets-broker/ packages/secrets-broker/
+COPY packages/config/ packages/config/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY services/export-api/ services/export-api/
 
@@ -38,6 +43,11 @@ COPY services/export-api/ services/export-api/
 RUN cd packages/crdt && pnpm exec tsup --no-dts
 RUN cd packages/agent-protocol && pnpm exec tsup --no-dts
 RUN cd packages/core && pnpm exec tsup --no-dts && node scripts/generate-types.mjs
+# secrets-broker, then config, then llm-provider. config's runtime JS keeps a
+# dynamic import of @holoscript/secrets-broker, and llm-provider imports
+# @holoscript/config — both dists have to exist before llm-provider is built.
+RUN cd packages/secrets-broker && pnpm exec tsup --no-dts
+RUN cd packages/config && pnpm exec tsup --no-dts
 RUN cd packages/llm-provider && pnpm exec tsup --no-dts
 RUN cd services/export-api && pnpm exec tsup
 
@@ -64,6 +74,8 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/secrets-broker/dist packages/secrets-broker/dist
+COPY --from=builder /app/packages/config/dist packages/config/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/services/export-api/dist services/export-api/dist
 

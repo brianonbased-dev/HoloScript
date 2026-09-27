@@ -17,5 +17,5 @@ export default defineConfig({
   clean: true,
   splitting: false,
   treeshake: true,
-  external: ['@holoscript/core', 'openai', '@anthropic-ai/sdk'],
+  external: ['@holoscript/core', '@holoscript/config', 'openai', '@anthropic-ai/sdk'],
 });
