@@ -372,7 +372,9 @@ fi
 # authoritative layer (this hook bypasses for agent envs); this is the dev floor. Scopes to the
 # STAGED render files (--files-from) so a peer's unstaged WIP can't block your commit (multi-agent, D.077).
 echo "  ├─ Render-surface native freeze..."
-STAGED_RENDER_TSX=$(git -c core.quotepath=off diff --cached --name-only -- 'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx' 2>/dev/null || true)
+# `src/**` skips a file that sits directly in src/ (git requires another slash).
+# The `src/*` pathspecs are what feed that file to this gate.
+STAGED_RENDER_TSX=$(git -c core.quotepath=off diff --cached --name-only -- 'packages/r3f-renderer/src/*.tsx' 'packages/studio/src/*.tsx' 'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx' 2>/dev/null || true)
 if [ -n "$STAGED_RENDER_TSX" ]; then
     RENDER_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-render-surface-native.mjs "$STAGED_RENDER_TSX" 2>&1)
     RENDER_STATUS=$?
@@ -763,7 +765,10 @@ fi
 # encodeURIComponent(sceneUrl) in SocialTraits.ts + renderer.ts (fixed 2026-07-01). This gate
 # prevents a third regression. Excludes docs/archive/ (dead reference HTML, not live code).
 echo "  ├─ No-third-party-QR gate (F.106/F.117)..."
-STAGED_SRC=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs' 2>/dev/null || true)
+# `src/**` skips a file that sits directly in src/ (git requires another slash).
+# Default pathspec `*` matches across `/`, so `packages/*/src/*` also covers
+# `packages/<a>/<b>/src/<file>` (a `:(glob)` rewrite would drop those).
+STAGED_SRC=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/*.ts' 'packages/*/src/*.tsx' 'packages/*/src/*.js' 'packages/*/src/*.mjs' 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs' 2>/dev/null || true)
 if [ -n "$STAGED_SRC" ]; then
     QR_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-no-third-party-qr.mjs "$STAGED_SRC" 2>&1)
     QR_STATUS=$?
