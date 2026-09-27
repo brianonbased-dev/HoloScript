@@ -8,6 +8,9 @@
 # Runtime dependency closure: marketplace-api -> core (barrel pulls the core
 # stack: core-types/crdt/agent-protocol/engine/framework/platform/mesh) + auth
 # + registry + marketplace-agentkit + framework.
+# core's barrel value-imports @holoscript/meaning and tsup leaves that import
+# external, so the image must also build meaning and ship packages/meaning/dist.
+# meaning itself has no workspace dependencies.
 
 ARG PNPM_VERSION=9.15.9
 
@@ -47,6 +50,12 @@ COPY packages/core/ packages/core/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
+# Zero-dependency workspace package. Core's public barrel value-imports it
+# (semantics lowering + UaalBehaviorCompiler) and the Docker tsup config
+# externalizes node_modules, so Node resolves @holoscript/meaning to
+# packages/meaning/dist/index.js at boot. Same closure as
+# Dockerfile.mcp-server and Dockerfile.absorb-service.
+COPY packages/meaning/ packages/meaning/
 COPY packages/platform/ packages/platform/
 COPY packages/mesh/ packages/mesh/
 COPY packages/auth/ packages/auth/
@@ -54,7 +63,10 @@ COPY packages/registry/ packages/registry/
 COPY packages/marketplace-agentkit/ packages/marketplace-agentkit/
 COPY packages/marketplace-api/ packages/marketplace-api/
 
-# Build in dependency order (skip DTS for runtime)
+# Build in dependency order (skip DTS for runtime).
+# meaning first: core externalizes it, and the marketplace boot path loads
+# core's barrel (via @holoscript/framework/economy) which imports it.
+RUN cd packages/meaning && pnpm exec tsup --no-dts
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
 RUN cd packages/config && pnpm exec tsup --no-dts
 RUN cd packages/llm-provider && pnpm exec tsup --no-dts
@@ -80,6 +92,10 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --prod=false --shamefully-ho
 
 COPY --from=builder --chown=nodejs:nodejs /app/packages packages
 COPY --chown=nodejs:nodejs tsconfig.json tsconfig.base.json ./
+
+# Fail the image if the meaning runtime artifact did not land. Without
+# packages/meaning/dist/index.js, boot dies with ERR_MODULE_NOT_FOUND.
+RUN test -f packages/meaning/package.json && test -f packages/meaning/dist/index.js
 
 RUN chown nodejs:nodejs /app
 USER nodejs
