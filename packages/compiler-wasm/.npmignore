@@ -1,7 +1,8 @@
-# Keep Rust build byproducts out of npm while allowing package.json "files" to
-# publish the generated browser WASM artifacts under pkg/.
+# Keep Rust build byproducts out of npm. package.json "files" publishes both
+# the browser artifacts (pkg/) and the node build (pkg-node/). The node build
+# is what @holoscript/core loads through the "./node" export when it checks
+# typed .hsplus functions. pkg-bundler stays out; nothing resolves it.
 target/
-pkg-node/
 pkg-bundler/
 
 .idea/

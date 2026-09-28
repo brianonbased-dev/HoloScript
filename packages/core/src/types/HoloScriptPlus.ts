@@ -138,6 +138,19 @@ export interface HSPlusNode extends ASTNode {
    * backward-compatible consumers.
    */
   fields?: HSPlusStructField[];
+  /**
+   * Parameter names of a `function` that has a type written on it.
+   * Untyped functions omit this and keep the raw-block shape.
+   */
+  params?: string[];
+  /**
+   * Parameter types aligned with `params`. Null is an untyped parameter
+   * next to a typed one. Omitted when no parameter carries a type.
+   * Spellings match the Rust `.hs` reader (`i32`, `[i32; 4]`, `&'a Packet`).
+   */
+  paramTypes?: Array<string | null>;
+  /** Return type, when the function declares one. */
+  returnType?: string;
   /** Scene-graph rotation set by spatial traits at runtime (euler or quaternion). */
   rotation?: Vector3 | Quaternion;
   /** Scene-graph scale set by spatial traits at runtime. */

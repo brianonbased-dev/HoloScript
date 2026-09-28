@@ -117,7 +117,6 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_suggest_connections: ['tools:read'],
 
   // === IDE tools (read-heavy, some write) ===
-  hs_scan_project: ['tools:read'],
   hs_diagnostics: ['tools:read'],
   hs_autocomplete: ['tools:read'],
   hs_refactor: ['tools:write'],
@@ -148,8 +147,49 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_visual_graph_context: ['tools:codebase'],
 
   // === Self-improve (admin) ===
+  // Every self-improve tool reads or writes the server's own disk, or starts a
+  // process there, at a path the caller names, so all of them are admin-only,
+  // as this file's header always said. They sat in tools:read and tools:write,
+  // so an OAuth "read-only" login could read server secrets (env files,
+  // /proc/self/environ) and any GitHub login, which carries tools:write
+  // (security/github-auth.ts), could write files and run the test runners.
+  // Gate 3 does not cover them: it passes any tool outside DOWNSTREAM_TOOLS
+  // without looking at its paths, so this map is the gate.
+  // __tests__/security.test.ts derives the check from selfImproveTools.
   holo_self_diagnose: ['tools:admin'],
   holo_validate_quality: ['tools:admin'],
+  holo_read_file: ['tools:admin'],
+  holo_write_file: ['tools:admin'],
+  holo_edit_file: ['tools:admin'],
+  holo_git_commit: ['tools:admin'],
+  holo_run_tests_targeted: ['tools:admin'],
+  holo_run_related_tests: ['tools:admin'],
+  holo_list_type_errors: ['tools:admin'],
+  holo_batch_type_fix: ['tools:admin'],
+  holo_verify_before_commit: ['tools:admin'],
+  holo_quality_trend: ['tools:admin'],
+
+  // === Other tools that read or walk a caller-named server path (admin) ===
+  // holo_critic and holo_premortem read any path the caller names and bill an
+  // LLM call to the server; holo_founder returns the founder's private
+  // doctrine files from the server's home directory; hs_scan_project,
+  // serve_preview and get_dev_dashboard_state walk a caller-named directory;
+  // holo_query_wisdom, holo_list_gotchas and holo_check_gotchas walk a
+  // caller-named rootDir and read a caller-named compositionFile, absolute
+  // paths included. No remote client in this repo calls them.
+  // Deliberately still tools:read: get_workspace_info (parses one fixed file
+  // name, holoscript.workspace.json), holo_from_scratch_status and sim_quote
+  // (run a fixed, server-resolved program with validated argv, no shell).
+  // None reads an arbitrary path or runs a caller-directed process.
+  holo_critic: ['tools:admin'],
+  holo_premortem: ['tools:admin'],
+  holo_founder: ['tools:admin'],
+  hs_scan_project: ['tools:admin'],
+  serve_preview: ['tools:admin'],
+  get_dev_dashboard_state: ['tools:admin'],
+  holo_query_wisdom: ['tools:admin'],
+  holo_list_gotchas: ['tools:admin'],
+  holo_check_gotchas: ['tools:admin'],
 
   // === Compiler tools ===
   compile_holoscript: ['tools:write'],
@@ -193,9 +233,6 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   execute_eval: ['tools:admin'],
 
   // === Wisdom/Gotcha ===
-  holo_query_wisdom: ['tools:read'],
-  holo_list_gotchas: ['tools:read'],
-  holo_check_gotchas: ['tools:read'],
   holo_add_wisdom: ['tools:admin'],
   holo_add_gotcha: ['tools:admin'],
 
@@ -391,24 +428,19 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   export_traces_otlp: ['tools:write'],
   fairness_sweep: ['tools:write'],
   generate_service_contract: ['tools:write'],
-  holo_edit_file: ['tools:write'],
   holo_generate_bindings: ['tools:write'],
   holo_generate_mesh: ['tools:write'],
   holo_generate_semantic_scene_graph: ['tools:write'],
-  holo_git_commit: ['tools:write'],
   holo_hologram_inject_world: ['tools:write'],
   holo_hologram_upload_bundle: ['tools:write'],
   holo_oracle_synthesize: ['tools:write'],
   holo_reconstruct_export: ['tools:write'],
   holo_reconstruct_from_video: ['tools:write'],
   holo_reconstruct_step: ['tools:write'],
-  holo_run_related_tests: ['tools:write'],
-  holo_run_tests_targeted: ['tools:write'],
   holo_scaffold_code: ['tools:write'],
   holo_service_scaffold: ['tools:write'],
   holo_tunnel_close: ['tools:write'],
   holo_tunnel_create: ['tools:write'],
-  holo_write_file: ['tools:write'],
   hololand_brittney_npc_mode: ['tools:write'],
   hololand_create_npc: ['tools:write'],
   hololand_create_player_invite: ['tools:write'],
@@ -471,7 +503,6 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   get_api_reference: ['tools:read'],
   get_circuit_breaker_status: ['tools:read'],
   get_delegation_chain: ['tools:read'],
-  get_dev_dashboard_state: ['tools:read'],
   get_metrics_prometheus: ['tools:read'],
   get_task_status: ['tools:read'],
   get_tool_health: ['tools:read'],
@@ -479,12 +510,8 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   get_unified_budget_state: ['tools:read'],
   get_usage_summary: ['tools:read'],
   get_workspace_info: ['tools:read'],
-  holo_batch_type_fix: ['tools:read'],
-  holo_critic: ['tools:read'],
   holo_estimate_task_duration: ['tools:read'],
-  holo_founder: ['tools:read'],
   holo_hologram_get_asset: ['tools:read'],
-  holo_list_type_errors: ['tools:read'],
   holo_map_paper_ingest_probe: ['tools:read'],
   holo_memory_farm: ['tools:read'],
   holo_memory_list: ['tools:read'],
@@ -495,16 +522,12 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_oracle_discover: ['tools:read'],
   holo_oracle_explore: ['tools:read'],
   holo_oracle_gaps: ['tools:read'],
-  holo_premortem: ['tools:read'],
   holo_protocol_lookup: ['tools:read'],
   holo_protocol_revenue: ['tools:read'],
-  holo_quality_trend: ['tools:read'],
-  holo_read_file: ['tools:read'],
   holo_reconstruct_anchor: ['tools:read'],
   holo_semantic_scene_graph: ['tools:read'],
   holo_task_kolmogorov_score: ['tools:read'],
   holo_tunnel_status: ['tools:read'],
-  holo_verify_before_commit: ['tools:read'],
   hololand_get_agent: ['tools:read'],
   hololand_get_creator: ['tools:read'],
   hololand_get_geo_anchor: ['tools:read'],
@@ -548,7 +571,6 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   optimize_scene_budget: ['tools:read'],
   query_traces: ['tools:read'],
   rig_match_skeleton: ['tools:read'],
-  serve_preview: ['tools:read'],
   sim_fleet_status: ['tools:read'],
   sim_quote: ['tools:read'],
   suggest_tools_for_goal: ['tools:read'],

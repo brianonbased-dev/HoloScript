@@ -761,6 +761,27 @@ else
     echo -e "  ${GREEN}✓${NC} Executable spec holds (every normative corpus verdict verified)"
 fi
 
+# Gate 5g6: Native .hs conformance. validate_detailed must accept every program the
+# repo publishes under examples/native and distributions/systems/conformance.
+# The only exception is the @unknown honesty-gate file, pending a language decision.
+echo "  ├─ .hs conformance (Rust validate_detailed)..."
+HS_CONF_OUT=$(run_with_timeout 300 node scripts/holo-ci/check-hs-conformance.mjs 2>&1)
+HS_CONF_STATUS=$?
+if [ "$HS_CONF_STATUS" -eq 2 ]; then
+    # Exit 2 means the checker never ran, so no file was judged.
+    echo -e "  ${RED}❌ The .hs conformance gate could not run the Rust checker${NC}"
+    echo "$HS_CONF_OUT"
+    echo "     Fix: install Rust with rustup (the gate also looks in ~/.cargo/bin), or set CARGO to the cargo binary."
+    FAILED=1
+elif [ "$HS_CONF_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ A published .hs conformance file was rejected by the Rust checker${NC}"
+    echo "$HS_CONF_OUT"
+    echo "     Fix: teach the checker the program's rule, or fix the .hs file. Do not widen the allow-list."
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Published .hs conformance files pass validate_detailed"
+fi
+
 # Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
 # Scans STAGED packages/*/src files for a hosted QR-service hostname (api.qrserver.com et al).
 # Regression history: api.qrserver.com leaked every published .holo share/scan URL via

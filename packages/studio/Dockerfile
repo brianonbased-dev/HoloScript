@@ -228,6 +228,21 @@ ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 # V8 cap. NODE_OPTIONS is inherited by next's build workers. (2026-06-07 studio fix.)
 RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache-v2,target=/app/packages/studio/.next/cache cd packages/studio && NODE_OPTIONS=--max-old-space-size=8192 pnpm run build
 
+# Standalone tracing copies compiler-wasm (see next.config.js
+# outputFileTracingIncludes). The parser resolves the package name
+# @holoscript/wasm, which the tracer does not always materialize because the
+# specifier is joined at runtime. Link that name inside the standalone tree
+# before the runner copies it, and fail the build if the checker cannot load.
+RUN set -eu; \
+    root=/app/packages/studio/.next/standalone; \
+    if [ ! -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js" ]; then \
+      mkdir -p "$root/node_modules/@holoscript"; \
+      ln -sfn ../../packages/compiler-wasm "$root/node_modules/@holoscript/wasm"; \
+    fi; \
+    test -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js"; \
+    test -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm_bg.wasm"; \
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/.next/standalone/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); }"
+
 # ─── Production runner ───────────────────────────────────────────────────────
 FROM base AS runner
 WORKDIR /app
@@ -279,6 +294,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/scripts/db-migrat
 RUN mkdir -p /tmp/rt && cd /tmp/rt && npm init -y >/dev/null 2>&1 && \
     npm install pg drizzle-orm --omit=dev --no-optional --no-audit --no-fund && \
     cp -R node_modules/. /app/node_modules/ && chown -R nextjs:nodejs /app/node_modules
+
+# The builder links @holoscript/wasm inside the standalone tree. Confirm the
+# runner image can load the checker (ill-typed function → HS-TYPE-RETURN-001).
+# A path-only resolve stays green when the wasm binary is missing.
+RUN test -f /app/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js && \
+    test -f /app/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm_bg.wasm && \
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); }"
 
 USER nextjs
 EXPOSE 3000

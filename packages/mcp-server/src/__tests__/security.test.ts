@@ -33,6 +33,9 @@ import {
   __resetKnownToolsForTest,
 } from '../security/tool-scopes';
 import { ALL_AVAILABLE_TOOLS } from '../index';
+import { expandScopes, OAUTH2_PUBLIC_SCOPE_NAMES } from '../auth/oauth2-provider';
+import { GITHUB_MEMBER_SCOPES } from '../security/github-auth';
+import { selfImproveTools } from '../self-improve-tools';
 import {
   gate1ValidateRequest,
   gate3EnforcePolicy,
@@ -779,6 +782,91 @@ describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
       expect(authorizeToolCall('parse_hs', ['tools:read']).authorized).toBe(true);
       expect(authorizeToolCall(' parse_hs ', ['admin:*']).authorized).toBe(false);
     });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3c. Gate 2: below admin, no caller-named server path and no server writes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('Gate 2: no login below admin reads a caller-named server path, writes the server disk, or runs a caller-directed process', () => {
+  // Every self-improve tool, taken from the registry export so a new one is
+  // covered the day it is added, plus the other tools found reading or
+  // walking a caller-named server path. A login that reaches one can read
+  // server secrets (env files, /proc/self/environ) or write the server's disk,
+  // so they are admin-only. Add to OTHER_HOST_REACH whenever another one is
+  // found; never remove an entry to get green. (tool-scopes.ts names the
+  // read tools that touch a fixed file or fixed program, and why they stay.)
+  const OTHER_HOST_REACH = [
+    'holo_critic',
+    'holo_premortem',
+    'holo_founder',
+    'hs_scan_project',
+    'serve_preview',
+    'get_dev_dashboard_state',
+    'holo_query_wisdom',
+    'holo_list_gotchas',
+    'holo_check_gotchas',
+  ];
+  const HOST_REACH_TOOLS = [...selfImproveTools.map((t) => t.name), ...OTHER_HOST_REACH];
+  const registryNames = [...new Set(ALL_AVAILABLE_TOOLS.map((t) => t.name))];
+
+  it('covers the whole self-improve group (the registry export is not empty)', () => {
+    expect(selfImproveTools.length).toBeGreaterThanOrEqual(12);
+    expect(HOST_REACH_TOOLS).toContain('holo_write_file');
+    expect(HOST_REACH_TOOLS).toContain('holo_run_related_tests');
+  });
+
+  // The live server knows its registry, so authorize against it the same way.
+  beforeEach(() => {
+    __resetKnownToolsForTest();
+    registerKnownTools(registryNames);
+  });
+  afterEach(() => {
+    __resetKnownToolsForTest();
+  });
+
+  it('every pinned tool is still registered (a rename cannot empty this check)', () => {
+    for (const t of HOST_REACH_TOOLS) {
+      expect(isRegisteredTool(t), `${t} must still be a registered tool`).toBe(true);
+    }
+  });
+
+  it('a login granted only tools:read is refused', () => {
+    const readLogin = expandScopes(['tools:read']);
+    for (const t of HOST_REACH_TOOLS) {
+      const result = authorizeToolCall(t, readLogin);
+      expect(result.authorized, `${t} must be refused for a read login`).toBe(false);
+      expect(result.reason).toContain('Insufficient scope');
+    }
+  });
+
+  it('the widest grant a self-registered client can hold is refused too', () => {
+    const widestPublicLogin = expandScopes([...OAUTH2_PUBLIC_SCOPE_NAMES]);
+    for (const t of HOST_REACH_TOOLS) {
+      expect(
+        authorizeToolCall(t, widestPublicLogin).authorized,
+        `${t} must be refused for [${widestPublicLogin.join(', ')}]`
+      ).toBe(false);
+    }
+  });
+
+  it('a GitHub login that is not an admin account is refused', () => {
+    const githubMember = [...GITHUB_MEMBER_SCOPES];
+    expect(githubMember).toContain('tools:write');
+    for (const t of HOST_REACH_TOOLS) {
+      expect(
+        authorizeToolCall(t, githubMember).authorized,
+        `${t} must be refused for a GitHub member login [${githubMember.join(', ')}]`
+      ).toBe(false);
+    }
+  });
+
+  it('an admin login still reaches them (the refusal is scope, not a missing tool)', () => {
+    const adminLogin = expandScopes(['admin']);
+    for (const t of HOST_REACH_TOOLS) {
+      expect(authorizeToolCall(t, adminLogin).authorized, `${t} via admin`).toBe(true);
+    }
   });
 });
 

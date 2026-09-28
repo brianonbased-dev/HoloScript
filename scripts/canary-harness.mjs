@@ -367,16 +367,20 @@ function buildLiveProbes() {
   // 10. A2A discovery
   probes.push(probe('a2a-discovery', nodeFetchGetProbe('/a2a')));
 
-  // 11. A2A JSON-RPC
+  // 11. A2A JSON-RPC (POST /a2a needs credentials, like /mcp)
   probes.push(
     probe(
       'a2a-jsonrpc',
-      nodeFetchPostProbe('/a2a', {
-        jsonrpc: '2.0',
-        id: 5,
-        method: 'a2a.getExtendedAgentCard',
-        params: {},
-      })
+      nodeFetchPostProbe(
+        '/a2a',
+        {
+          jsonrpc: '2.0',
+          id: 5,
+          method: 'a2a.getExtendedAgentCard',
+          params: {},
+        },
+        { 'x-mcp-api-key': API_KEY }
+      )
     )
   );
 
@@ -389,23 +393,27 @@ function buildLiveProbes() {
   // 14. REST metrics (Prometheus)
   probes.push(probe('rest-metrics', nodeFetchGetProbe('/metrics')));
 
-  // 15. A2A task lifecycle
+  // 15. A2A task lifecycle (POST /a2a needs credentials, like /mcp)
   probes.push(
     probe(
       'a2a-task-lifecycle',
-      nodeFetchPostProbe('/a2a', {
-        jsonrpc: '2.0',
-        id: 6,
-        method: 'a2a.sendTask',
-        params: {
-          task: {
-            id: 'canary-task-' + Date.now(),
-            sessionId: 'canary-session',
-            message: { role: 'user', parts: [{ text: 'canary ping' }] },
-            acceptedAgents: ['holoscript-canary'],
+      nodeFetchPostProbe(
+        '/a2a',
+        {
+          jsonrpc: '2.0',
+          id: 6,
+          method: 'a2a.sendTask',
+          params: {
+            task: {
+              id: 'canary-task-' + Date.now(),
+              sessionId: 'canary-session',
+              message: { role: 'user', parts: [{ text: 'canary ping' }] },
+              acceptedAgents: ['holoscript-canary'],
+            },
           },
         },
-      })
+        { 'x-mcp-api-key': API_KEY }
+      )
     )
   );
 

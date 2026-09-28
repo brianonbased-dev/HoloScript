@@ -362,20 +362,28 @@ curl -X POST "https://mcp.holoscript.net/oauth/revoke" \
 
 ## Agent-to-Agent protocol (A2A)
 
+The agent card is public. Every task route needs the same credentials as
+`/mcp` (an OAuth token or API key), and a task runs with that caller's own
+scopes. Listing tasks returns every caller's results, so it needs an admin
+credential; fetch your own task by its id instead.
+
 ```bash
-# Get agent capabilities
+# Get agent capabilities (public)
 curl "https://mcp.holoscript.net/a2a"
 
 # Send a task to the agent
 curl -X POST "https://mcp.holoscript.net/a2a/tasks" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"task":{"message":{"role":"user","parts":[{"text":"Compile this: object Cube {}"}]}}}'
 
-# List tasks
-curl "https://mcp.holoscript.net/a2a/tasks"
-
 # Get task by ID
-curl "https://mcp.holoscript.net/a2a/tasks/TASK_ID"
+curl "https://mcp.holoscript.net/a2a/tasks/TASK_ID" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# List tasks (admin credential only)
+curl "https://mcp.holoscript.net/a2a/tasks" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
 ```
 
 ---
