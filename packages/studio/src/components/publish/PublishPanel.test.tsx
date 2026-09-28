@@ -14,7 +14,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import * as qrcode from 'qrcode';
 
 vi.mock('qrcode', () => ({ toDataURL: vi.fn() }));
@@ -64,13 +64,38 @@ describe('PublishPanel (Toolbar Publish): the QR after a publish', () => {
     );
   });
 
-  it('encodes /shared/<id> and never /w/', async () => {
+  // The PNG the stand-in makes for the /shared/ payload. Comparing to it exactly (not
+  // "src contains the id") catches an img fed the payload TEXT instead of the PNG
+  // (claude3's re-read of #315, mutant M27).
+  const SHARED_PNG = 'data:image/png;base64,ENCODES[https://holoscript.studio/shared/abc12345]';
+  const encodedAnyShortLink = () =>
+    toDataURL.mock.calls.some(([text]) => String(text).includes('/w/'));
+
+  async function publish() {
     render(<PublishPanel onClose={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /preview & extract/i }));
     fireEvent.click(await screen.findByRole('button', { name: /^publish$/i }));
     const img = await screen.findByAltText('No-app WebXR QR code');
-    const src = img.getAttribute('src') ?? '';
-    expect(src).toContain('/shared/abc12345');
-    expect(src).not.toContain('/w/');
+    // Let every QR finish drawing (QRCodeImage encodes after an async import) before the
+    // encode calls are read.
+    await waitFor(() => expect(screen.queryAllByTestId('local-qr-code-loading')).toHaveLength(0));
+    return img;
+  }
+
+  it('encodes /shared/<id> and never /w/', async () => {
+    const img = await publish();
+    expect(img.getAttribute('src')).toBe(SHARED_PNG);
+    expect(encodedAnyShortLink()).toBe(false);
+  });
+
+  // When the receipt carries no PNG, the panel draws its own QR from the payload
+  // (PublishPanel.tsx, the QRCodeImage branch). That fallback must say /shared/ too
+  // (claude3's mutant M06: the fallback drawing the human /w/ link went unnoticed).
+  it('draws the /shared/ payload when the receipt carries no PNG', async () => {
+    toDataURL.mockResolvedValueOnce('' as never);
+    const img = await publish();
+    expect(img).toHaveAttribute('data-testid', 'local-qr-code');
+    await waitFor(() => expect(img.getAttribute('src')).toBe(SHARED_PNG));
+    expect(encodedAnyShortLink()).toBe(false);
   });
 });

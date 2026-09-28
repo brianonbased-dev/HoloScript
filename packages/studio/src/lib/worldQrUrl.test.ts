@@ -89,6 +89,32 @@ describe('worldQrUrl: the address a world QR must encode', () => {
   it('decides relative by the scheme: a protocol-relative link keeps its host, whitespace is trimmed', () => {
     expect(worldQrUrl('//holoscript.studio/w/abc123')).toBe('//holoscript.studio/shared/abc123');
     expect(worldQrUrl('  /w/abc123')).toBe('/shared/abc123');
+    // claude3's re-read of #315: the line above passes without any trim (the URL
+    // parser strips leading spaces itself). These two do not: untrimmed, the scheme
+    // test misses, and the origin or host is dropped.
+    expect(worldQrUrl('  https://holoscript.studio/w/abc123')).toBe(
+      'https://holoscript.studio/shared/abc123'
+    );
+    expect(worldQrUrl('  //holoscript.studio/w/abc123')).toBe('//holoscript.studio/shared/abc123');
+  });
+
+  it('cleans the string the way the URL parser does: C0 controls at the ends, tab or newline anywhere', () => {
+    const SOH = String.fromCharCode(1);
+    const TAB = String.fromCharCode(9);
+    expect(worldQrUrl(`${SOH}https://holoscript.studio/w/abc123`)).toBe(
+      'https://holoscript.studio/shared/abc123'
+    );
+    expect(worldQrUrl(`ht${TAB}tps://holoscript.studio/w/abc123`)).toBe(
+      'https://holoscript.studio/shared/abc123'
+    );
+  });
+
+  it('keeps the query and fragment on relative and protocol-relative links, and the id as written', () => {
+    expect(worldQrUrl('//holoscript.studio/w/abc123?v=2')).toBe(
+      '//holoscript.studio/shared/abc123?v=2'
+    );
+    expect(worldQrUrl('/w/abc123?v=2#top')).toBe('/shared/abc123?v=2#top');
+    expect(worldQrUrl('/w/AbC123')).toBe('/shared/AbC123');
   });
 
   it('returns a string the URL parser rejects as given rather than throwing in a render', () => {
