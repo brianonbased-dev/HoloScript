@@ -304,6 +304,21 @@ const ALL_TRAITS: readonly string[] = VR_TRAITS;
 /**
  * Main handler dispatcher for all tools
  */
+/**
+ * An operator (admin scope) or the local stdio process, which carries no signing context by the
+ * same design as the admin bridge in handleTool. Only a trusted caller may point a server-side
+ * fetch at a file: URL or at this host's own network (task_1790594666743_g1lo).
+ */
+function isTrustedCaller(
+  signingCtx: SigningContext | undefined,
+  subjectSourceOverride: unknown
+): boolean {
+  return (
+    (!signingCtx && !subjectSourceOverride) ||
+    (signingCtx?.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin')
+  );
+}
+
 export async function handleTool(
   name: string,
   args: Record<string, unknown>,
@@ -571,7 +586,9 @@ export async function handleTool(
   // All remaining holo_ tools go to the Graph tool handler
   // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts)
   if (name.startsWith('holo_')) {
-    return handleGraphTool(name, args);
+    return handleGraphTool(name, args, {
+      trustedCaller: isTrustedCaller(signingCtx, subjectSourceOverride),
+    });
   }
 
   // IDE tools (migrated from legacy HoloLand IDE tooling)
@@ -884,7 +901,9 @@ export async function handleTool(
 
   // HoloMap reconstruction tools
   if (isHoloMapToolName(name)) {
-    return handleHoloMapTool(name, args);
+    return handleHoloMapTool(name, args, {
+      trustedCaller: isTrustedCaller(signingCtx, subjectSourceOverride),
+    });
   }
 
   // Spatial MCP - compile_to_spatial (v0.1, research/2026-05-07_spatial-mcp-spec.md)
