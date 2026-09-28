@@ -794,7 +794,7 @@ function validateExecution(
   if (
     !isRecord(holo) ||
     holo.backend !== 'pytorch-holo' ||
-    holo.sovereign !== true ||
+    !isRecord(holo.sovereignty) || holo.sovereignty.weights !== 'sovereign' ||
     holo.llama_cpp !== false ||
     holo.process_instance_id !== expected.processInstanceId ||
     holo.model_artifact_binding_sha256 !== expected.admission.bindingSha256 ||
