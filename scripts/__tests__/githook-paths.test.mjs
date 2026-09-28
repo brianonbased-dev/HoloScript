@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 /**
- * Pre-commit staged-path passing must stay under Windows' 32,767-character
+ * Which paths the git hooks judge, and how they hand them to their gates.
+ * (Was pre-commit-files-from.test.mjs; renamed 2026-09-28 when the pre-push
+ * section at the end joined it, rather than adding a new test file.)
+ *
+ * PRE-COMMIT. Staged-path passing must stay under Windows' 32,767-character
  * CreateProcess limit.
  *
  * The old hook passed every staged path as one `--files` argument. A merge
@@ -272,7 +276,7 @@ function writeList(dir, name, paths) {
   return listPath;
 }
 
-console.log('pre-commit-files-from.test.mjs');
+console.log('githook-paths.test.mjs — pre-commit');
 
 const paths = syntheticStagedPaths(1000);
 const legacyLens = GATES.map((gate) => ({
@@ -504,6 +508,104 @@ echo "FAILED=$FAILED"
       );
       assertTrue(out.includes('FAILED=1'), `${v}: exit ${stubStatus} still fails the commit`, out);
     }
+  }
+}
+
+// ── PRE-PUSH: a push is judged by what its branch changes, not by main's news ──
+//
+// The pre-push gates (core baseline receipt, studio generator drift, lockfile
+// drift) run on the files the push changes. On 2026-09-28 a studio-only branch
+// was refused the ~15-minute core receipt because main had moved 17 commits
+// and `git diff main..branch` (a tree comparison) listed main's 5 core files.
+// These cases run the hook's OWN range block, the way git runs the hook: the
+// remote's name and URL as $1 and $2, the ref lines on stdin, in a scratch repo.
+console.log('githook-paths.test.mjs — pre-push');
+{
+  const ZERO = '0000000000000000000000000000000000000000';
+  const hookSource = readFileSync(resolve(REPO, '.githooks/pre-push'), 'utf8');
+  const start = hookSource.indexOf('trunk=$(git ls-remote');
+  const loop = hookSource.indexOf('while read -r local_ref local_sha remote_ref remote_sha; do', start);
+  const end = loop >= 0 ? hookSource.indexOf('\ndone\n', loop) : -1;
+  assertTrue(start >= 0 && loop > start && end > loop, 'pre-push: the range block is found in the hook');
+  const block = hookSource.slice(start, end + '\ndone\n'.length);
+
+  const git = (cwd, ...args) => {
+    // Fixture commits in a throwaway repo: no signing, a fixed identity.
+    const r = spawnSync(
+      'git',
+      ['-c', 'commit.gpgsign=false', '-c', 'user.name=hook-test', '-c', 'user.email=hook-test@example.invalid', ...args],
+      { cwd, encoding: 'utf8' }
+    );
+    if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  const commitFile = (cwd, path, text, msg) => {
+    mkdirSync(dirname(join(cwd, path)), { recursive: true });
+    writeFileSync(join(cwd, path), text);
+    git(cwd, 'add', path);
+    git(cwd, 'commit', '-q', '-m', msg);
+    return git(cwd, 'rev-parse', 'HEAD');
+  };
+  const judged = (cwd, remoteName, remoteUrl, lines) => {
+    const run = spawnSync(
+      'sh',
+      ['-c', `ZERO=${ZERO}\n${block}\nprintf 'force=%s\\n' "$force_check"\nprintf '%s\\n' "$changed"`, 'pre-push', remoteName, remoteUrl],
+      { cwd, input: `${lines.join('\n')}\n`, encoding: 'utf8' }
+    );
+    const out = run.stdout || '';
+    return {
+      force: /force=(\d)/.exec(out)?.[1],
+      files: out.split(/\r?\n/).filter((l) => l && !l.startsWith('force=')),
+    };
+  };
+
+  const root = mkdtempSync(join(tmpdir(), 'prepush-paths-'));
+  try {
+    const bare = join(root, 'remote.git');
+    const work = join(root, 'work');
+    git(root, 'init', '-q', '--bare', '-b', 'main', bare);
+    git(root, 'init', '-q', '-b', 'main', work);
+    git(work, 'remote', 'add', 'origin', bare);
+    commitFile(work, 'packages/core/a.ts', 'a0\n', 'm0');
+    commitFile(work, 'packages/studio/b.ts', 'b0\n', 'm0b');
+    git(work, 'push', '-q', 'origin', 'main');
+    // A branch that changes studio only...
+    git(work, 'checkout', '-q', '-b', 'feat');
+    const f1 = commitFile(work, 'packages/studio/b.ts', 'b1\n', 'f1');
+    // ...while a peer's core change lands on main.
+    git(work, 'checkout', '-q', 'main');
+    commitFile(work, 'packages/core/a.ts', 'a1\n', 'm1');
+    git(work, 'push', '-q', 'origin', 'main');
+    git(work, 'checkout', '-q', 'feat');
+
+    let r = judged(work, 'origin', bare, [`refs/heads/feat ${f1} refs/heads/feat ${ZERO}`]);
+    assertEq(r.force, '0', 'pre-push: a new branch behind main is not force-checked');
+    assertEq(r.files.join(','), 'packages/studio/b.ts', "pre-push: a new branch behind main is judged by its own files, not main's core change");
+
+    const f2 = commitFile(work, 'packages/core/c.ts', 'c\n', 'f2');
+    r = judged(work, 'origin', bare, [`refs/heads/feat ${f2} refs/heads/feat ${ZERO}`]);
+    assertTrue(r.files.includes('packages/core/c.ts'), 'pre-push: a branch that changes core is still judged for it', r.files.join(','));
+
+    git(work, 'push', '-q', 'origin', 'feat');
+    git(work, 'merge', '-q', '--no-ff', '-m', 'merge main', 'main');
+    const merged = git(work, 'rev-parse', 'HEAD');
+    r = judged(work, 'origin', bare, [`refs/heads/feat ${merged} refs/heads/feat ${f2}`]);
+    assertTrue(!r.files.includes('packages/core/a.ts'), "pre-push: merging main into an existing branch does not charge main's changes", r.files.join(','));
+    assertTrue(r.files.includes('packages/core/c.ts'), "pre-push: ...while the branch's own core change is still judged", r.files.join(','));
+
+    git(work, 'checkout', '-q', 'main');
+    const onMain = git(work, 'rev-parse', 'HEAD');
+    const m2 = commitFile(work, 'packages/core/d.ts', 'd\n', 'm2');
+    r = judged(work, 'origin', bare, [`refs/heads/main ${m2} refs/heads/main ${onMain}`]);
+    assertEq(r.files.join(','), 'packages/core/d.ts', 'pre-push: a push to main is judged by exactly what it adds');
+
+    const lone = join(root, 'lone');
+    git(root, 'init', '-q', '-b', 'main', lone);
+    const x = commitFile(lone, 'packages/core/x.ts', 'x\n', 'x');
+    r = judged(lone, 'nowhere', join(root, 'no-such-remote.git'), [`refs/heads/x ${x} refs/heads/x ${ZERO}`]);
+    assertEq(r.force, '1', 'pre-push: with no trunk to compare against, a new branch is judged in full');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 }
 
