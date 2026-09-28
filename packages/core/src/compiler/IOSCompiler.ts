@@ -164,7 +164,8 @@ export class IOSCompiler extends CompilerBase {
    * each kind keeps its default: 0.1 m across, a plane 0.2 m.
    */
   public getSceneKitGeometry(meshType: string, size?: [number, number, number]): string {
-    const fallback: [number, number, number] = meshType === 'plane' ? [0.2, 0.2, 0.2] : [0.1, 0.1, 0.1];
+    const fallback: [number, number, number] =
+      meshType === 'plane' ? [0.2, 0.2, 0.2] : [0.1, 0.1, 0.1];
     const [x, y, z] = size ?? fallback;
     // Round to the micrometer so 0.1 / 5 prints 0.02, not 0.020000000000000004.
     const m = (n: number): string => String(Math.round(n * 1e6) / 1e6);

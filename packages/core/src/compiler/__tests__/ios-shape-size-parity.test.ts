@@ -86,19 +86,27 @@ describe('iOS shapes: the geometry key, and sizes that match Quest', () => {
   it('a sphere has the same radius as on Quest', () => {
     const questRadius = Number(/Sphere\((-?[\d.]+)f\)/.exec(quest)?.[1]);
     expect(questRadius).toBeCloseTo(0.15, 6);
-    const iosRadius = Number(/SCNSphere\(radius: (-?[\d.]+)\)/.exec(iosFactory(swift, 'Ball'))?.[1]);
+    const iosRadius = Number(
+      /SCNSphere\(radius: (-?[\d.]+)\)/.exec(iosFactory(swift, 'Ball'))?.[1]
+    );
     expect(iosRadius).toBeCloseTo(questRadius, 6);
   });
 
   it('a box has the same width, height and depth as on Quest', () => {
-    const m = /SCNBox\(width: ([\d.]+), height: ([\d.]+), length: ([\d.]+)/.exec(iosFactory(swift, 'Crate'));
+    const m = /SCNBox\(width: ([\d.]+), height: ([\d.]+), length: ([\d.]+)/.exec(
+      iosFactory(swift, 'Crate')
+    );
     expect(m, 'Crate is an SCNBox').not.toBeNull();
     const ios = [1, 2, 3].map((i) => Number(m![i]));
     expect(ios).toEqual([0.2, 0.4, 0.6]);
     const match = questBoxes(quest).find(
-      (b) => Math.abs(b[0] - 0.2) < 1e-6 && Math.abs(b[1] - 0.4) < 1e-6 && Math.abs(b[2] - 0.6) < 1e-6
+      (b) =>
+        Math.abs(b[0] - 0.2) < 1e-6 && Math.abs(b[1] - 0.4) < 1e-6 && Math.abs(b[2] - 0.6) < 1e-6
     );
-    expect(match, `Quest drew the crate 0.2 x 0.4 x 0.6: ${JSON.stringify(questBoxes(quest))}`).toBeDefined();
+    expect(
+      match,
+      `Quest drew the crate 0.2 x 0.4 x 0.6: ${JSON.stringify(questBoxes(quest))}`
+    ).toBeDefined();
   });
 
   it('a cylinder is as wide and as tall as Quest draws it', () => {
