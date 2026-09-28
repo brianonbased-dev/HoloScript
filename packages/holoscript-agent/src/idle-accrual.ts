@@ -22,6 +22,7 @@
  */
 import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { checkHostedOllama } from '@holoscript/llm-provider';
 
 /** A verifier-labeled REC-SHAPE row, keyed for dedup on `target` (the proposed program). */
 interface GradedRow {
@@ -153,6 +154,18 @@ export async function makeIdleAccrual(opts: {
     process.env.HOLOSCRIPT_AGENT_EVOLVE_MODEL ??
     process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL ??
     'qwen3:4b';
+  // "Real sovereign metal or not at all": a hosted endpoint (ollama.com) or a cloud-tagged
+  // model would put ollama.com's output in the corpus labeled 'sovereign-local', so it
+  // disables accrual. HOLO_ALLOW_HOSTED_OLLAMA does not apply here.
+  const hosted = checkHostedOllama(endpoint, {
+    model,
+    caller: 'holoscript-agent idle-accrual',
+    allowOptIn: false,
+  });
+  if (hosted.refused) {
+    log({ ev: 'idle-accrual-disabled', reason: hosted.refused.message });
+    return undefined;
+  }
   const protocol = endpointProtocol(endpoint);
   if (protocol === 'openai-compatible' && !mod.makeOpenAICompatibleProposer) {
     log({

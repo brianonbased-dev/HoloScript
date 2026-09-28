@@ -11,9 +11,14 @@ import { join } from 'node:path';
 import {
   FrontierFallbackRefusedError,
   HostedBridgeRefusedError,
+  HostedOllamaRefusedError,
   BackupChainExhaustedError,
   VAST_OSS_CODING_DEFAULT_URL,
+  __resetHostedOllamaWarnings,
+  checkHostedOllama,
+  classifyOllamaHost,
   classifyServiceHost,
+  isOllamaCloudModel,
   redactServiceUrl,
   resolveSovereignProvider,
   resolveSovereignProviderAsync,
@@ -26,10 +31,26 @@ import { VastServerlessAdapter } from '../adapters/vast-serverless';
 import { admitHoloServeHealth } from '../fleet-router';
 
 const resolveLocalFleetMock = vi.hoisted(() => vi.fn());
+// When set, stands in for pickLocalModel (the real picker never returns a cloud model, so
+// only this can exercise the resolver's own post-discovery check).
+const pickLocalModelOverride = vi.hoisted(() => ({
+  fn: null as null | ((baseURL: string) => Promise<unknown>),
+}));
 
 vi.mock('../fleet-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../fleet-router')>();
   return { ...actual, resolveLocalFleet: resolveLocalFleetMock };
+});
+
+vi.mock('../local-model-picker', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../local-model-picker')>();
+  return {
+    ...actual,
+    pickLocalModel: (...args: Parameters<typeof actual.pickLocalModel>) =>
+      pickLocalModelOverride.fn
+        ? pickLocalModelOverride.fn(args[0])
+        : actual.pickLocalModel(...args),
+  };
 });
 
 const HOLOSERVE_REGISTRY_SCHEMA = 'holoscript.holoserve-model-artifact-registry.v0.1.0';
@@ -114,12 +135,15 @@ const ENV_KEYS = [
   'VAST_API_KEY',
   'HOLO_ALLOW_FRONTIER_FALLBACK',
   'HOLO_ALLOW_HOSTED_BRIDGE',
+  'HOLO_ALLOW_HOSTED_OLLAMA',
 ];
 
 beforeEach(() => {
   for (const k of ENV_KEYS) vi.stubEnv(k, '');
   resolveLocalFleetMock.mockReset().mockResolvedValue(null);
+  pickLocalModelOverride.fn = null;
   __clearLocalModelPickerCache();
+  __resetHostedOllamaWarnings();
 });
 
 afterEach(() => {
@@ -1024,6 +1048,377 @@ describe('hosted-bridge gate (2026-09-24 audit follow-up: brittney-standard)', (
     expect(classifyServiceHost('http://holojetson')).toBe('lan');
     expect(classifyServiceHost('https://api.fireworks.ai')).toBe('public');
     expect(classifyServiceHost('not a url')).toBe('invalid');
+  });
+});
+
+describe('hosted-Ollama gate (2026-09-24 audit follow-up: ollama.com is not native)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ['loopback', 'http://127.0.0.1:11434'],
+    ['loopback', 'http://localhost:11434'],
+    ['loopback', '127.0.0.1:11434'],
+    ['loopback', 'localhost:11434'],
+    ['loopback', '0.0.0.0:11434'],
+    ['loopback', 'http://[::]:11434'],
+    ['loopback', 'http://[::1]:11434'],
+    ['lan', 'http://192.168.0.119:11434'],
+    ['lan', 'http://box:11434'],
+    ['lan', 'holojetson.local:11434'],
+    ['lan', 'http://host.docker.internal:11434'],
+    ['lan', 'http://100.101.102.103:11434'],
+    ['public', 'http://100.128.0.1:11434'],
+    // A *.ts.net name can be someone else's Funnel, so it proves nothing about ownership.
+    ['public', 'https://someone-else.tail9999.ts.net'],
+    // IPv6 literals have no dots; they must not fall into the bare-name LAN rule.
+    ['public', 'http://[2606:4700:4700::1111]:11434'],
+    ['public', 'http://[2001:4860:4860::8888]'],
+    ['public', 'http://[::ffff:8.8.8.8]:11434'],
+    ['public', 'http://[fc::1]:11434'],
+    ['lan', 'http://[fd12:3456::1]:11434'],
+    ['lan', 'http://[fe80::1]:11434'],
+    ['lan', 'http://[::ffff:192.168.0.5]:11434'],
+    ['loopback', 'http://[::ffff:127.0.0.1]:11434'],
+    // A NAME that merely starts like a private address is a public domain (review P1).
+    ['public', 'http://127.0.0.1.evil.com:11434'],
+    ['public', 'http://10.example.com'],
+    ['public', 'http://192.168.1.1.attacker.net'],
+    ['public', 'http://100.64.0.1.evil.com'],
+    ['public', 'http://localhost.evil.com'],
+    ['public', 'http://172.15.0.1'],
+    ['lan', 'http://172.31.255.1'],
+    // Other IPv4 spellings are normalized to the dotted quad by the URL parser first.
+    ['loopback', 'http://0x7f.1:11434'],
+    ['loopback', 'http://2130706433:11434'],
+    ['public', 'https://ollama.com'],
+    ['public', 'https://ollama.com/v1'],
+    ['public', 'api.ollama.com:443'],
+    ['invalid', 'http://'],
+  ] as const)('classifies %s for %s (bare host:port and 0.0.0.0 included)', (hostClass, url) => {
+    expect(classifyOllamaHost(url)).toBe(hostClass);
+  });
+
+  it.each([
+    ['gpt-oss:120b-cloud', true],
+    ['glm-4.6:cloud', true],
+    ['Qwen3-Coder:480B-Cloud', true],
+    ['library/deepseek-v3.1:671b-cloud', true],
+    ['qwen3:4b-instruct-2507', false],
+    ['cloud', false],
+    ['mycloud:latest', false],
+    ['', false],
+  ] as const)('isOllamaCloudModel(%j) is %s', (model, expected) => {
+    expect(isOllamaCloudModel(model)).toBe(expected);
+  });
+
+  it.each(['OLLAMA_HOST', 'OLLAMA_BASE_URL', 'OLLAMA_URL'])(
+    'REFUSES %s=https://ollama.com in auto mode (it used to resolve as step native)',
+    (envName) => {
+      vi.stubEnv(envName, 'https://ollama.com');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      let err: unknown;
+      try {
+        resolveSovereignProvider({ caller: 'unit-test-caller' });
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeInstanceOf(HostedOllamaRefusedError);
+      const refused = err as HostedOllamaRefusedError;
+      expect(refused.code).toBe('HOLO_HOSTED_OLLAMA_REFUSED');
+      expect(refused.reason).toBe('public-host');
+      expect(refused.hostClass).toBe('public');
+      expect(refused.caller).toBe('unit-test-caller');
+      expect(refused.message).toMatch(/HOLO_ALLOW_HOSTED_OLLAMA=1/u);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const line = String(warn.mock.calls[0][0]);
+      expect(line).toMatch(/HOSTED OLLAMA REFUSED/u);
+      expect(line).toContain('https://ollama.com');
+      expect(line).toContain('unit-test-caller');
+    }
+  );
+
+  it("REFUSES an explicit provider 'ollama' too: naming Ollama is not choosing a hosted one", () => {
+    vi.stubEnv('HOLO_LLM_PROVIDER', 'ollama');
+    vi.stubEnv('OLLAMA_HOST', 'https://ollama.com');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => resolveSovereignProvider()).toThrow(HostedOllamaRefusedError);
+  });
+
+  it('REFUSES a cloud-tagged model even on a loopback Ollama (it runs on ollama.com)', () => {
+    vi.stubEnv('OLLAMA_HOST', 'http://127.0.0.1:11434');
+    vi.stubEnv('HOLO_LLM_MODEL', 'gpt-oss:120b-cloud');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let err: unknown;
+    try {
+      resolveSovereignProvider();
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(HostedOllamaRefusedError);
+    expect((err as HostedOllamaRefusedError).reason).toBe('cloud-model');
+    expect((err as HostedOllamaRefusedError).model).toBe('gpt-oss:120b-cloud');
+    expect((err as HostedOllamaRefusedError).hostClass).toBe('loopback');
+  });
+
+  it.each([
+    'http://192.168.0.119:11434',
+    'http://box:11434',
+    'http://127.0.0.1:11434',
+    '0.0.0.0:11434',
+  ])('lets an owned Ollama (%s) resolve as native, with no warning', (url) => {
+    vi.stubEnv('OLLAMA_HOST', url);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('ollama');
+    expect(r.step).toBe('native');
+    expect(r.hostedOllama).toBeFalsy();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("with HOLO_ALLOW_HOSTED_OLLAMA=1 it resolves, labeled step 'hosted-ollama', never native", () => {
+    vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '1');
+    vi.stubEnv('OLLAMA_HOST', 'https://ollama.com');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = resolveSovereignProvider();
+    expect(r.providerName).toBe('ollama');
+    expect(r.hostedOllama).toBe(true);
+    expect(r.step).toBe('hosted-ollama');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toMatch(/HOSTED OLLAMA ACTIVE/u);
+  });
+
+  it("only the exact value '1' opens the gate", () => {
+    vi.stubEnv('OLLAMA_HOST', 'https://ollama.com');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (const value of ['true', 'yes', 'TRUE', '1 ']) {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', value);
+      expect(() => resolveSovereignProvider()).toThrow(HostedOllamaRefusedError);
+    }
+  });
+
+  it('never logs or carries credentials, query or fragment from the Ollama URL', () => {
+    vi.stubEnv('OLLAMA_HOST', 'https://user:s3cret@ollama.com/api?key=abc#frag');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let err: HostedOllamaRefusedError | undefined;
+    try {
+      resolveSovereignProvider();
+    } catch (e) {
+      err = e as HostedOllamaRefusedError;
+    }
+    expect(err).toBeInstanceOf(HostedOllamaRefusedError);
+    for (const text of [String(warn.mock.calls[0][0]), err!.message, err!.url]) {
+      expect(text).toContain('https://ollama.com/api');
+      expect(text).not.toMatch(/s3cret|user:|key=abc|#frag/u);
+    }
+  });
+
+  it('checkHostedOllama passes an owned endpoint silently and names the reason otherwise', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(checkHostedOllama('http://box:11434', { model: 'qwen3:8b', caller: 'c' })).toEqual({
+      refused: null,
+      hosted: false,
+    });
+    expect(warn).not.toHaveBeenCalled();
+    const bad = checkHostedOllama('not a url at all', { caller: 'c' });
+    expect(bad.refused?.reason).toBe('invalid-url');
+    expect(bad.hosted).toBe(false);
+  });
+
+  it.each([
+    ['down', false],
+    ['healthy', true],
+  ])(
+    'async auto chain fails closed on a refused hosted Ollama (Work proxy %s), and nothing reaches ollama.com',
+    async (_label, proxyHealthy) => {
+      vi.stubEnv('OLLAMA_HOST', 'https://ollama.com');
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+        if (proxyHealthy && String(input).includes('18780/health')) {
+          return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        }
+        throw new Error('ECONNREFUSED');
+      });
+      await expect(
+        resolveSovereignProviderAsync({ caller: 'async-hosted-ollama' })
+      ).rejects.toBeInstanceOf(HostedOllamaRefusedError);
+      expect(fetchMock.mock.calls.map((c) => String(c[0])).join(' ')).not.toContain('ollama.com');
+    }
+  );
+
+  it('async auto chain does not carry a refused cloud model on to the Work proxy', async () => {
+    vi.stubEnv('OLLAMA_HOST', 'http://127.0.0.1:11434');
+    vi.stubEnv('HOLO_LLM_MODEL', 'glm-4.6:cloud');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) =>
+      String(input).includes('18780/health')
+        ? new Response(JSON.stringify({ ok: true }), { status: 200 })
+        : new Response('no', { status: 500 })
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toMatchObject({
+      code: 'HOLO_HOSTED_OLLAMA_REFUSED',
+      reason: 'cloud-model',
+    });
+  });
+
+  it('async cold fleet surfaces a hosted-Ollama refusal itself, not the fleet error', async () => {
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
+    vi.stubEnv('OLLAMA_HOST', 'https://ollama.com');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: { ready: 0, total: 1 } }),
+      }))
+    );
+    await expect(resolveSovereignProviderAsync()).rejects.toBeInstanceOf(HostedOllamaRefusedError);
+  });
+
+  it("the chain's log line says hosted-ollama for an opted-in hosted URL, and never prints credentials", async () => {
+    vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '1');
+    vi.stubEnv('OLLAMA_HOST', 'https://user:s3cret@ollama.com/?token=abc');
+    vi.stubEnv('HOLO_LLM_MODEL', 'qwen3:8b');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = await resolveSovereignProviderAsync({ caller: 'chain-log' });
+    expect(r.step).toBe('hosted-ollama');
+    const lines = warn.mock.calls.map((c) => String(c[0]));
+    expect(lines.some((l) => /BACKUP CHAIN step=hosted-ollama\(ollama\)/u.test(l))).toBe(true);
+    expect(lines.some((l) => /step=native\(ollama\)/u.test(l))).toBe(false);
+    expect(lines.join('\n')).not.toMatch(/s3cret|user:|token=abc/u);
+
+    warn.mockClear();
+    vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '');
+    vi.stubEnv('OLLAMA_HOST', 'http://user:s3cret@192.168.0.5:11434/?token=abc');
+    await resolveSovereignProviderAsync({ caller: 'chain-log-lan' });
+    expect(warn.mock.calls.map((c) => String(c[0])).join('\n')).not.toMatch(
+      /s3cret|user:|token=abc/u
+    );
+  });
+
+  it("the resolver re-checks what discovery picked (backstop behind the picker's own filter)", async () => {
+    vi.stubEnv('OLLAMA_HOST', 'http://127.0.0.1:11434');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    pickLocalModelOverride.fn = async () => ({
+      model: 'gpt-oss:120b-cloud',
+      source: 'discovery',
+      toolCallVerified: true,
+      candidates: ['gpt-oss:120b-cloud'],
+    });
+    await expect(resolveSovereignProviderAsync()).rejects.toMatchObject({ reason: 'cloud-model' });
+
+    vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '1');
+    const r = await resolveSovereignProviderAsync();
+    expect(r.model).toBe('gpt-oss:120b-cloud');
+    expect(r.step).toBe('hosted-ollama');
+    expect(r.hostedOllama).toBe(true);
+  });
+
+  it('a stream of invented cloud model names logs once and grows nothing (review P2)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (let i = 0; i < 100; i++) {
+      const verdict = checkHostedOllama('http://127.0.0.1:11434', {
+        model: `invented-${i}:cloud`,
+        caller: 'material route',
+      });
+      expect(verdict.refused?.reason).toBe('cloud-model');
+    }
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs each distinct verdict once per process, but refuses every time', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const first = checkHostedOllama('https://ollama.com', { caller: 'per-keystroke' });
+    const second = checkHostedOllama('https://ollama.com', { caller: 'per-keystroke' });
+    expect(first.refused).toBeInstanceOf(HostedOllamaRefusedError);
+    expect(second.refused).toBeInstanceOf(HostedOllamaRefusedError);
+    expect(warn).toHaveBeenCalledTimes(1);
+    checkHostedOllama('https://ollama.com', { caller: 'another-caller' });
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  it('allowOptIn:false ignores the flag for callers whose contract is owned hardware only', () => {
+    vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '1');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const verdict = checkHostedOllama('https://ollama.com', {
+      caller: 'sovereign-only',
+      allowOptIn: false,
+    });
+    expect(verdict.hosted).toBe(false);
+    expect(verdict.refused?.message).toMatch(/does not apply/u);
+  });
+
+  it('a model name from a request body cannot crash the check or forge a log line', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (const model of [5, {}, ['x:cloud'], null]) {
+      expect(() =>
+        checkHostedOllama('http://127.0.0.1:11434', { model, caller: 'c' })
+      ).not.toThrow();
+      expect(isOllamaCloudModel(model)).toBe(false);
+    }
+    // Still a cloud model (its tag is `cloud`), so it is refused and logged — on ONE line.
+    const forged = 'evil\n[llm-provider] !!! HOSTED OLLAMA ACTIVE !!! forged:cloud';
+    const verdict = checkHostedOllama('http://127.0.0.1:11434', { model: forged, caller: 'c' });
+    expect(verdict.refused?.reason).toBe('cloud-model');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).not.toContain('\n');
+    expect(verdict.refused?.message).not.toContain('\n');
+  });
+
+  it("async explicit provider 'ollama' surfaces the refusal itself", async () => {
+    vi.stubEnv('HOLO_LLM_PROVIDER', 'ollama');
+    vi.stubEnv('OLLAMA_HOST', 'https://ollama.com');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(resolveSovereignProviderAsync()).rejects.toBeInstanceOf(HostedOllamaRefusedError);
+  });
+
+  it('async discovery never picks, or even probes, a cloud model the local Ollama has pulled', async () => {
+    vi.stubEnv('OLLAMA_HOST', 'http://127.0.0.1:11434');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const requests: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any, init?: any) => {
+      const url = String(input);
+      requests.push(`${url} ${String(init?.body ?? '')}`);
+      if (url.endsWith('/api/tags')) {
+        return new Response(
+          JSON.stringify({
+            models: [
+              { name: 'gpt-oss:120b-cloud', details: { parameter_size: '' } },
+              { name: 'qwen3:8b', details: { parameter_size: '8.2B' } },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+      if (url.endsWith('/api/show')) {
+        return new Response(JSON.stringify({ capabilities: ['tools', 'thinking'] }), {
+          status: 200,
+        });
+      }
+      if (url.endsWith('/v1/chat/completions')) {
+        const args = JSON.stringify({ name: 'orb-probe', radius: 2, position: [1, 2, 3] });
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: { tool_calls: [{ function: { name: 'create_object', arguments: args } }] },
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response('no', { status: 404 });
+    });
+    const r = await resolveSovereignProviderAsync({ caller: 'discovery-cloud-model' });
+    expect(r.providerName).toBe('ollama');
+    expect(r.model).toBe('qwen3:8b');
+    expect(r.step).toBe('native');
+    expect(requests.some((line) => line.includes('api/show'))).toBe(true);
+    expect(requests.filter((line) => line.includes('gpt-oss:120b-cloud'))).toEqual([]);
   });
 });
 

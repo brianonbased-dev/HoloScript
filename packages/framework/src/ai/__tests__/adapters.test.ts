@@ -9,7 +9,10 @@ import {
   TogetherAdapter,
 } from '../adapters';
 
-vi.mock('@holoscript/llm-provider', () => {
+vi.mock('@holoscript/llm-provider', async (importOriginal) => {
+  // The hosted-Ollama gate is policy, not transport: keep the real one under the fakes.
+  const { checkHostedOllama, HostedOllamaRefusedError } =
+    await importOriginal<typeof import('@holoscript/llm-provider')>();
   type MockConfig = { apiKey?: string; baseURL?: string; defaultModel?: string; model?: string };
   type MockRequest = {
     messages?: Array<{ role: string; content: string }>;
@@ -135,6 +138,8 @@ vi.mock('@holoscript/llm-provider', () => {
     LocalLLMAdapter: MockLocalLLMAdapter,
     // Constants consumed by OllamaAdapter and LMStudioAdapter constructors.
     LOCAL_DEFAULT_MODEL: 'qwen3:4b-instruct-2507',
+    checkHostedOllama,
+    HostedOllamaRefusedError,
   };
 });
 
@@ -301,6 +306,24 @@ describe('AI Adapters', () => {
       const result = await adapter.generateHoloScript('a cube');
       expect(result.holoScript).toBe('composition cube { geometry: "cube" }');
       expect(result.confidence).toBe(0.75);
+    });
+
+    it('refuses a hosted Ollama: not ready, and no call leaves the machine', async () => {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      for (const config of [
+        { baseUrl: 'https://ollama.com' },
+        { baseUrl: 'http://localhost:11434', model: 'gpt-oss:120b-cloud' },
+      ]) {
+        const hosted = new OllamaAdapter(config);
+        expect(await hosted.isReady()).toBe(false);
+        await expect(hosted.generateHoloScript('a cube')).rejects.toThrow(/REFUSING hosted Ollama/);
+        await expect(hosted.getEmbeddings('a cube')).rejects.toThrow(/REFUSING hosted Ollama/);
+      }
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('framework OllamaAdapter'));
+      warn.mockRestore();
+      vi.unstubAllEnvs();
     });
   });
 

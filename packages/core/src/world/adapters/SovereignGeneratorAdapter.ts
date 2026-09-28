@@ -20,14 +20,18 @@
  * @see     research/2026-05-21_apl_wit_trait-evaluation_gap_report.md Gap #4
  */
 
-import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
+import { LOCAL_DEFAULT_MODEL, checkHostedOllama } from '@holoscript/llm-provider';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-/** Source of the generation result */
-export type GeneratorSource = 'sovereign-local' | 'sovereign-cloud' | 'keyword-fallback' | 'mock';
+/**
+ * Source of the generation result. 'hosted-ollama' is the local step pointed at a hosted
+ * Ollama (e.g. ollama.com) with HOLO_ALLOW_HOSTED_OLLAMA=1: it is never 'sovereign-local'.
+ */
+export type GeneratorSource =
+  'sovereign-local' | 'hosted-ollama' | 'sovereign-cloud' | 'keyword-fallback' | 'mock';
 
 /** Result from suggestTraits — mirrors generators.ts TraitSuggestionResult */
 export interface TraitSuggestionResult {
@@ -283,13 +287,16 @@ export class SovereignGeneratorAdapter {
     }
 
     // Try local Brittney first (sovereign, offline-capable)
-    try {
-      const localResult = await this.localSuggestTraits(description, context);
-      if (localResult) {
-        return { ...localResult, metadata: { source: 'sovereign-local' as const } };
+    const localSource = this.localStepSource();
+    if (localSource) {
+      try {
+        const localResult = await this.localSuggestTraits(description, context);
+        if (localResult) {
+          return { ...localResult, metadata: { source: localSource } };
+        }
+      } catch {
+        // Local unavailable — fall through to cloud or keyword
       }
-    } catch {
-      // Local unavailable — fall through to cloud or keyword
     }
 
     // Try cloud Brittney if not offline-only
@@ -327,21 +334,24 @@ export class SovereignGeneratorAdapter {
     }
 
     // Try local Brittney first
-    try {
-      const localResult = await this.localGenerate(description, 'object');
-      if (localResult) {
-        return {
-          code: localResult,
-          metadata: {
-            description,
-            traits: this.extractTraitsFromCode(localResult),
-            geometry: this.extractGeometryFromCode(localResult),
-            source: 'sovereign-local',
-          },
-        };
+    const localSource = this.localStepSource();
+    if (localSource) {
+      try {
+        const localResult = await this.localGenerate(description, 'object');
+        if (localResult) {
+          return {
+            code: localResult,
+            metadata: {
+              description,
+              traits: this.extractTraitsFromCode(localResult),
+              geometry: this.extractGeometryFromCode(localResult),
+              source: localSource,
+            },
+          };
+        }
+      } catch {
+        // fall through
       }
-    } catch {
-      // fall through
     }
 
     // Try cloud Brittney
@@ -382,21 +392,24 @@ export class SovereignGeneratorAdapter {
     }
 
     // Try local Brittney first
-    try {
-      const localResult = await this.localGenerate(description, 'scene');
-      if (localResult) {
-        return {
-          code: localResult,
-          metadata: {
-            description,
-            objectCount: this.countObjects(localResult),
-            traits: this.extractTraitsFromCode(localResult),
-            source: 'sovereign-local',
-          },
-        };
+    const localSource = this.localStepSource();
+    if (localSource) {
+      try {
+        const localResult = await this.localGenerate(description, 'scene');
+        if (localResult) {
+          return {
+            code: localResult,
+            metadata: {
+              description,
+              objectCount: this.countObjects(localResult),
+              traits: this.extractTraitsFromCode(localResult),
+              source: localSource,
+            },
+          };
+        }
+      } catch {
+        // fall through
       }
-    } catch {
-      // fall through
     }
 
     // Try cloud Brittney
@@ -426,6 +439,21 @@ export class SovereignGeneratorAdapter {
   // ---------------------------------------------------------------------------
   // LOCAL BRITTNEY (Ollama / WebLLM)
   // ---------------------------------------------------------------------------
+
+  /**
+   * Whether the local step may run, and how its result is labeled. The endpoint comes from
+   * BRITTNEY_LOCAL_ENDPOINT / OLLAMA_HOST, which can name a hosted Ollama. A public host or a
+   * cloud-tagged model is skipped (the call falls to cloud Brittney or the keyword
+   * fallback); with HOLO_ALLOW_HOSTED_OLLAMA=1 it runs, labeled 'hosted-ollama'.
+   */
+  private localStepSource(): 'sovereign-local' | 'hosted-ollama' | null {
+    const verdict = checkHostedOllama(this.localEndpoint, {
+      model: this.localModel,
+      caller: 'SovereignGeneratorAdapter local step',
+    });
+    if (verdict.refused) return null;
+    return verdict.hosted ? 'hosted-ollama' : 'sovereign-local';
+  }
 
   private async localSuggestTraits(
     description: string,

@@ -11,6 +11,7 @@ import {
   OpenAIAdapter,
   OpenRouterAdapter,
   LocalLLMAdapter,
+  checkHostedOllama,
 } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 30;
@@ -103,13 +104,18 @@ async function getProviders(): Promise<Provider[]> {
     });
   }
 
-  // Ollama as optional local fallback — now via @holoscript/llm-provider LocalLLMAdapter
-  if (process.env.OLLAMA_URL) {
-    const ollamaBase = process.env.OLLAMA_URL;
-    const model = process.env.OLLAMA_AUTOCOMPLETE_MODEL ?? 'codellama:7b-code';
+  // Ollama as optional local fallback — now via @holoscript/llm-provider LocalLLMAdapter.
+  // A hosted Ollama (public host or cloud-tagged model) is not local; it is left out.
+  const ollamaBase = process.env.OLLAMA_URL;
+  const ollamaModel = process.env.OLLAMA_AUTOCOMPLETE_MODEL ?? 'codellama:7b-code';
+  if (
+    ollamaBase &&
+    !checkHostedOllama(ollamaBase, { model: ollamaModel, caller: 'studio /api/autocomplete' })
+      .refused
+  ) {
     const adapter = new LocalLLMAdapter({
       baseURL: ollamaBase,
-      defaultModel: model,
+      defaultModel: ollamaModel,
       timeoutMs: 4000,
     });
     providers.push({

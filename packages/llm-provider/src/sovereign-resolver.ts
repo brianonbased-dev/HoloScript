@@ -42,6 +42,11 @@
  *                                                 (brittney-standard) route; anything else =
  *                                                 refuse (default). Applies to EVERY URL, loopback
  *                                                 included — see gateHostedBridge().
+ *   HOLO_ALLOW_HOSTED_OLLAMA                      '1' = allow an Ollama URL on a public host
+ *                                                 (ollama.com) or a named cloud-tagged model,
+ *                                                 labeled step 'hosted-ollama'; anything else =
+ *                                                 refuse (default). Loopback/LAN Ollama is
+ *                                                 unaffected — see checkHostedOllama().
  *   HOLO_VAST_CODING_URL                          Work OSS coding proxy (default
  *                                                 http://127.0.0.1:18780). Loopback-only health
  *                                                 check. FOREIGN coding-backup — never native.
@@ -56,7 +61,13 @@
 import { readFileSync } from 'node:fs';
 import type { ILLMProvider } from './types';
 import { OLLAMA_DEFAULT_BASE_URL, pickLocalModel } from './local-model-picker';
-import { FLEET_DEFAULT_MODEL, LOCAL_DEFAULT_MODEL } from './model-policy';
+import {
+  FLEET_DEFAULT_MODEL,
+  HOSTED_OLLAMA_FLAG,
+  LOCAL_DEFAULT_MODEL,
+  hostedOllamaAllowed,
+  isOllamaCloudModel,
+} from './model-policy';
 import { AnthropicAdapter } from './adapters/anthropic';
 import { OpenAIAdapter } from './adapters/openai';
 import { XAIAdapter } from './adapters/xai';
@@ -80,10 +91,7 @@ export type SovereignProviderName =
 
 /** Receipt / resolved-object step for the Joseph coding-backup chain. */
 export type SovereignResolveStep =
-  | 'native'
-  | 'vast-oss-coding'
-  | 'hosted-frontier'
-  | 'hosted-bridge';
+  'native' | 'vast-oss-coding' | 'hosted-frontier' | 'hosted-bridge' | 'hosted-ollama';
 
 /**
  * HoloLlama — the sovereign LOCAL inference layer (D.117: retire Ollama; run
@@ -196,9 +204,15 @@ export interface ResolvedSovereignProvider {
    */
   hostedBridge?: boolean;
   /**
+   * True when an Ollama endpoint that is not the owner's own (public host, or a cloud-tagged
+   * model) resolved because HOLO_ALLOW_HOSTED_OLLAMA=1 was set. The model runs on someone
+   * else's hardware — never label this result sovereign/native. Implies step:'hosted-ollama'.
+   */
+  hostedOllama?: boolean;
+  /**
    * Joseph coding-backup chain step that produced this resolution.
-   * native | vast-oss-coding | hosted-frontier | hosted-bridge.
-   * Steps 2 and 3 must NEVER be labeled sovereign/native by callers.
+   * native | vast-oss-coding | hosted-frontier | hosted-bridge | hosted-ollama.
+   * Only 'native' may be labeled sovereign/native by callers.
    */
   step?: SovereignResolveStep;
 }
@@ -311,7 +325,10 @@ export const HOSTED_BRIDGE_FLAG = 'HOLO_ALLOW_HOSTED_BRIDGE';
 
 export type ServiceHostClass = 'loopback' | 'lan' | 'public' | 'invalid';
 
-/** Informational only (see above): never used to allow the route. */
+/**
+ * For the hosted bridge this is informational only (see above): never used to allow that
+ * route. The hosted-Ollama gate below does decide on it, because Ollama runs the model itself.
+ */
 export function classifyServiceHost(url: string): ServiceHostClass {
   let host: string;
   try {
@@ -319,19 +336,60 @@ export function classifyServiceHost(url: string): ServiceHostClass {
   } catch {
     return 'invalid';
   }
-  if (host === 'localhost' || host === '::1' || /^127\./u.test(host)) return 'loopback';
+  // IPv6 literals first: they contain no dots, so the bare-name rule below would call every
+  // one of them LAN, public addresses included.
+  if (host.includes(':')) return classifyIpv6Host(host);
+  return classifyIpv4OrNameHost(host);
+}
+
+function classifyIpv4OrNameHost(host: string): ServiceHostClass {
+  // Address ranges apply only to an IPv4 LITERAL. The WHATWG URL parser rewrites every IPv4
+  // spelling (0x7f.1, 2130706433, 10.1) to a dotted quad, so anything else is a NAME: a
+  // public domain like `127.0.0.1.evil.com` or `10.example.com` must not pass as local.
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/u.test(host)) return classifyIpv4Literal(host);
+  if (host === 'localhost') return 'loopback';
   if (
-    /^10\./u.test(host) ||
-    /^192\.168\./u.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./u.test(host) ||
-    /^169\.254\./u.test(host) ||
-    /^f[cd][0-9a-f]{2}:/u.test(host) ||
-    /^fe80:/u.test(host) ||
     host.endsWith('.local') ||
     host.endsWith('.lan') ||
+    // `.internal` is reserved for private networks (host.docker.internal, *.railway.internal).
+    host.endsWith('.internal') ||
+    // A bare single-label name (`box`, `holojetson`) only resolves on a local network.
     !host.includes('.')
   )
     return 'lan';
+  return 'public';
+}
+
+function classifyIpv4Literal(ip: string): ServiceHostClass {
+  const [a, b] = ip.split('.').map(Number);
+  if (a === 127) return 'loopback';
+  if (
+    a === 10 ||
+    (a === 192 && b === 168) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 169 && b === 254) ||
+    // RFC 6598 shared space (Tailscale addresses its tailnet here): not publicly routable.
+    (a === 100 && b >= 64 && b <= 127)
+  )
+    return 'lan';
+  return 'public';
+}
+
+function classifyIpv6Host(host: string): ServiceHostClass {
+  if (host === '::1') return 'loopback';
+  // IPv4-mapped (::ffff:a.b.c.d; WHATWG URL rewrites it as ::ffff:hhhh:hhhh): judge the IPv4.
+  const dotted = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/u.exec(host);
+  if (dotted) return classifyIpv4OrNameHost(dotted[1]);
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/u.exec(host);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return classifyIpv4OrNameHost(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
+  // fc00::/7 unique-local and fe80::/10 link-local are private; everything else is public.
+  // Their first group always has four digits (the top byte is fc/fd/fe), so the shorter
+  // `fc::` or `fe8::` (groups 00fc, 0fe8) do not match.
+  if (/^f[cd][0-9a-f]{2}:/u.test(host) || /^fe[89ab][0-9a-f]:/u.test(host)) return 'lan';
   return 'public';
 }
 
@@ -393,6 +451,208 @@ function gateHostedBridge(
       `${HOSTED_BRIDGE_FLAG}=1. It may forward to hosted Fireworks/Together models.`
   );
   return { ...resolve(), hostedBridge: true, step: 'hosted-bridge' };
+}
+
+// ── hosted-Ollama gate (2026-09-24 native-inference audit, follow-up) ────────
+/**
+ * An Ollama URL is the one "local" setting that can point straight at a hosted provider:
+ * OLLAMA_HOST / OLLAMA_BASE_URL / OLLAMA_URL = https://ollama.com is Ollama's own cloud,
+ * which runs the model on their hardware. Before this gate every Ollama URL resolved as
+ * step 'native'. A local Ollama can also forward to that cloud: a model tagged `cloud`
+ * (`glm-4.6:cloud`, `gpt-oss:120b-cloud`) runs on ollama.com even through 127.0.0.1.
+ *
+ * Unlike the hosted bridge, Ollama runs the model itself, so the host is evidence here.
+ * The rule this code can enforce: loopback and LAN hosts (the owner's own machines) pass;
+ * a public or unparseable host, or a cloud-tagged model, is refused unless
+ * HOLO_ALLOW_HOSTED_OLLAMA=1 (exact string '1' only). With the flag it resolves, but is
+ * labeled step 'hosted-ollama', never 'native'. A refusal fails closed on every path,
+ * including the async backup chain. Model discovery never picks a cloud model at all (see
+ * isOllamaCloudModel): the flag lets a caller that names one use it, it does not make
+ * discovery prefer one.
+ *
+ * Adopts the hardware lane's 2026-09-24 guardrail, left uncommitted in the main HoloScript
+ * checkout. That copy refused every non-loopback host, which also refused the owner's LAN
+ * boxes (and this suite's own `http://box:11434`).
+ */
+export { HOSTED_OLLAMA_FLAG, isOllamaCloudModel };
+
+export type HostedOllamaReason = 'public-host' | 'invalid-url' | 'cloud-model';
+
+/**
+ * Host class of an Ollama endpoint. Ollama clients accept a bare `host:port` (no scheme),
+ * and `0.0.0.0` / `::` — the usual server bind address, often left in OLLAMA_HOST — reach
+ * this machine, so both count as loopback here.
+ */
+export function classifyOllamaHost(url: string): ServiceHostClass {
+  const trimmed = url.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//iu.test(trimmed) ? trimmed : `http://${trimmed}`;
+  let host: string;
+  try {
+    host = new URL(withScheme).hostname.toLowerCase().replace(/^\[|\]$/gu, '');
+  } catch {
+    return 'invalid';
+  }
+  if (host === '0.0.0.0' || host === '::') return 'loopback';
+  return classifyServiceHost(withScheme);
+}
+
+export class HostedOllamaRefusedError extends Error {
+  readonly code = 'HOLO_HOSTED_OLLAMA_REFUSED';
+  /** Redacted: no userinfo, query or fragment. */
+  readonly url: string;
+  readonly hostClass: ServiceHostClass;
+  readonly model: string | undefined;
+  readonly reason: HostedOllamaReason;
+  readonly caller: string;
+  constructor(
+    url: string,
+    hostClass: ServiceHostClass,
+    model: string | undefined,
+    reason: HostedOllamaReason,
+    caller: string,
+    optInApplies = true
+  ) {
+    const why =
+      reason === 'cloud-model'
+        ? `model ${quoteForLog(model)} is an Ollama cloud model, which runs on ollama.com even ` +
+          `through a local server`
+        : reason === 'invalid-url'
+          ? `the Ollama URL ${url} cannot be parsed, so it cannot be shown to be local`
+          : `the Ollama URL ${url} is a public host (host class: ${hostClass}), so the model ` +
+            `runs on someone else's hardware (e.g. ollama.com)`;
+    super(
+      `REFUSING hosted Ollama for caller ${caller}: ${why}. Point OLLAMA_HOST / ` +
+        `OLLAMA_BASE_URL / OLLAMA_URL at a loopback or LAN Ollama and use a local model` +
+        (optInApplies
+          ? `, or set ${HOSTED_OLLAMA_FLAG}=1 to opt in.`
+          : `. This caller runs only on the owner's hardware; ${HOSTED_OLLAMA_FLAG} does not ` +
+            `apply to it.`)
+    );
+    this.name = 'HostedOllamaRefusedError';
+    this.url = url;
+    this.hostClass = hostClass;
+    this.model = model;
+    this.reason = reason;
+    this.caller = caller;
+  }
+}
+
+function hostedOllamaReason(
+  hostClass: ServiceHostClass,
+  model: string | undefined
+): HostedOllamaReason | null {
+  if (hostClass === 'invalid') return 'invalid-url';
+  if (hostClass === 'public') return 'public-host';
+  return isOllamaCloudModel(model) ? 'cloud-model' : null;
+}
+
+/**
+ * Log/error-safe endpoint URL. Accepts a bare `host:port` as Ollama clients do; drops
+ * userinfo, query and fragment (they can carry tokens).
+ */
+function redactEndpointUrl(url: string): string {
+  const trimmed = url.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//iu.test(trimmed) ? trimmed : `http://${trimmed}`;
+  try {
+    const u = new URL(withScheme);
+    return `${u.protocol}//${u.host}${u.pathname === '/' ? '' : u.pathname}`;
+  } catch {
+    return '<unparseable URL>';
+  }
+}
+
+/** A model name can come from a request body: quote it, so a newline cannot forge a log line. */
+function quoteForLog(model: string | undefined): string {
+  return JSON.stringify((model ?? '').slice(0, 120));
+}
+
+/** What checkHostedOllama decided: `hosted` is true only when the opt-in let a hosted endpoint through. */
+export interface HostedOllamaVerdict {
+  refused: HostedOllamaRefusedError | null;
+  hosted: boolean;
+}
+
+// Per-request callers (autocomplete runs per keystroke) would repeat the same line on every
+// call, drowning it. The verdict is still returned every time; only its log line is deduped.
+// The key leaves the model out, because a model name can come from a request body: a stream
+// of invented `x:cloud` names must not grow this set or the log. The cap is a backstop.
+const hostedOllamaLogged = new Set<string>();
+const HOSTED_OLLAMA_LOG_KEYS_MAX = 256;
+
+/** Test hook: forget which hosted-Ollama lines were already logged in this process. */
+export function __resetHostedOllamaWarnings(): void {
+  hostedOllamaLogged.clear();
+}
+
+/**
+ * The one hosted-Ollama check for every surface that reads an Ollama URL (this resolver,
+ * model discovery, Studio, studio-api, the CLI daemon, core's world adapter, the MCP
+ * server, the framework adapter, holoscript-agent). An owned endpoint (loopback/LAN host,
+ * non-cloud model) passes silently. Anything else is refused, unless
+ * HOLO_ALLOW_HOSTED_OLLAMA=1 lets it through as `hosted: true`. Pass `allowOptIn: false`
+ * where the caller's contract is owned hardware only and it has no honest label for hosted
+ * inference: the flag is then ignored. Each distinct verdict logs one loud line per
+ * process. The caller decides whether to throw the refusal or skip its Ollama step. Only a
+ * redacted URL is logged or carried on the error.
+ */
+export function checkHostedOllama(
+  url: string,
+  opts: { model?: unknown; caller: string; allowOptIn?: boolean }
+): HostedOllamaVerdict {
+  const model = typeof opts.model === 'string' && opts.model ? opts.model : undefined;
+  const hostClass = classifyOllamaHost(url);
+  const reason = hostedOllamaReason(hostClass, model);
+  if (!reason) return { refused: null, hosted: false };
+  const shown = redactEndpointUrl(url);
+  const optInApplies = opts.allowOptIn !== false;
+  const allowed = optInApplies && hostedOllamaAllowed();
+  const detail =
+    `${shown} (host class: ${hostClass}${model ? `, model ${quoteForLog(model)}` : ''}; ` +
+    `reason: ${reason})`;
+  // No model in the key (it can be request-supplied); caller, URL and reason are code/env.
+  const logKey = `${allowed ? 'active' : 'refused'}|${opts.caller}|${shown}|${reason}`;
+  const firstTime =
+    !hostedOllamaLogged.has(logKey) && hostedOllamaLogged.size < HOSTED_OLLAMA_LOG_KEYS_MAX;
+  if (firstTime) hostedOllamaLogged.add(logKey);
+  if (allowed) {
+    if (firstTime)
+      console.warn(
+        `[llm-provider] !!! HOSTED OLLAMA ACTIVE !!! ${detail} for caller ${opts.caller} ` +
+          `because ${HOSTED_OLLAMA_FLAG}=1. The model does not run on the owner's hardware.`
+      );
+    return { refused: null, hosted: true };
+  }
+  if (firstTime)
+    console.warn(
+      `[llm-provider] !!! HOSTED OLLAMA REFUSED !!! ${detail} for caller ${opts.caller}. ` +
+        (optInApplies
+          ? `Set ${HOSTED_OLLAMA_FLAG}=1 to allow it.`
+          : `This caller runs only on the owner's hardware; ${HOSTED_OLLAMA_FLAG} does not apply.`)
+    );
+  return {
+    refused: new HostedOllamaRefusedError(
+      shown,
+      hostClass,
+      model,
+      reason,
+      opts.caller,
+      optInApplies
+    ),
+    hosted: false,
+  };
+}
+
+function gateHostedOllama(
+  resolved: ResolvedSovereignProvider,
+  baseURL: string,
+  opts: SovereignResolveOptions
+): ResolvedSovereignProvider {
+  const verdict = checkHostedOllama(baseURL, {
+    model: resolved.model,
+    caller: describeCaller(opts),
+  });
+  if (verdict.refused) throw verdict.refused;
+  return verdict.hosted ? { ...resolved, hostedOllama: true, step: 'hosted-ollama' } : resolved;
 }
 
 // ── Joseph coding-backup chain (2026-09-24): native → vast-oss-coding → gated hosted ──
@@ -685,6 +945,7 @@ export async function resolveSovereignProviderAsync(
         if (
           fallbackResolveErr instanceof FrontierFallbackRefusedError ||
           fallbackResolveErr instanceof HostedBridgeRefusedError ||
+          fallbackResolveErr instanceof HostedOllamaRefusedError ||
           fallbackResolveErr instanceof BackupChainExhaustedError
         )
           throw fallbackResolveErr;
@@ -738,7 +999,8 @@ async function resolveOrderedBackupChainAsync(
       const native = withNativeStep(resolveHoloServe(holoServeUrl, opts, true));
       await finalizeAsyncResolution(native, opts);
       console.warn(
-        `[sovereign-resolver] BACKUP CHAIN step=native caller=${caller} url=${holoServeUrl}`
+        `[sovereign-resolver] BACKUP CHAIN step=native caller=${caller} ` +
+          `url=${redactEndpointUrl(holoServeUrl)}`
       );
       return native;
     } catch (err) {
@@ -766,7 +1028,8 @@ async function resolveOrderedBackupChainAsync(
         await finalizeAsyncResolution(resolveHoloLlama(holoLlamaUrl, opts, true), opts)
       );
       console.warn(
-        `[sovereign-resolver] BACKUP CHAIN step=native(holollama) caller=${caller} url=${holoLlamaUrl}`
+        `[sovereign-resolver] BACKUP CHAIN step=native(holollama) caller=${caller} ` +
+          `url=${redactEndpointUrl(holoLlamaUrl)}`
       );
       return native;
     } catch (err) {
@@ -779,14 +1042,20 @@ async function resolveOrderedBackupChainAsync(
   }
   if (ollamaHost) {
     try {
-      const native = withNativeStep(
+      const local = withNativeStep(
         await finalizeAsyncResolution(resolveOllama(ollamaHost, opts), opts)
       );
+      // With HOLO_ALLOW_HOSTED_OLLAMA=1 this is step 'hosted-ollama', not native: say which.
       console.warn(
-        `[sovereign-resolver] BACKUP CHAIN step=native(ollama) caller=${caller} url=${ollamaHost}`
+        `[sovereign-resolver] BACKUP CHAIN step=${local.step}(ollama) caller=${caller} ` +
+          `url=${redactEndpointUrl(ollamaHost)}`
       );
-      return native;
+      return local;
     } catch (err) {
+      // A hosted-Ollama refusal is a policy decision about THIS configuration, like the
+      // HoloServe impostor refusal above: fail closed rather than quietly trying the next
+      // step (which would also carry a refused cloud model name forward).
+      if (err instanceof HostedOllamaRefusedError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       failures.push(`native-ollama:${msg}`);
       console.warn(
@@ -907,7 +1176,8 @@ async function upgradeOllamaByDiscovery(
     nativeOllamaApi: true,
     timeoutMs: 300_000,
   });
-  return { ...resolved, provider, model: picked.model };
+  // Discovery can pick a cloud-tagged model the local server has pulled; re-check it.
+  return gateHostedOllama({ ...resolved, provider, model: picked.model }, baseURL, opts);
 }
 
 // ── backends ─────────────────────────────────────────────────────────────────
@@ -952,13 +1222,17 @@ function resolveOllama(
     nativeOllamaApi: true,
     timeoutMs: 300_000,
   });
-  return {
-    provider,
-    model,
-    // Local models have smaller context windows; 4K is safe for 7B-class.
-    maxTokens: maxTokensOverride(opts) || 4096,
-    providerName: 'ollama',
-  };
+  return gateHostedOllama(
+    {
+      provider,
+      model,
+      // Local models have smaller context windows; 4K is safe for 7B-class.
+      maxTokens: maxTokensOverride(opts) || 4096,
+      providerName: 'ollama',
+    },
+    baseURL,
+    opts
+  );
 }
 
 /**
