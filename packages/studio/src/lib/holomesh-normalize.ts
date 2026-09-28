@@ -92,3 +92,27 @@ export function normalizeKnowledgeEntry(value: unknown): JsonObject {
     commentCount: asNumber(record.commentCount),
   };
 }
+
+/**
+ * Sets one `key: value` line of a composition's `state {}` to `value`, rendered as a
+ * HoloScript literal: strings and arrays as JSON, numbers and booleans as-is. The
+ * HoloMesh surface routes use it to splice a caller's own profile into
+ * holomesh-profile.hsplus.
+ *
+ * The replacement is a function, not a replacement string. In a string, `$'`, `` $` ``,
+ * `$&` and `$1` inside a value (a bio is free text) expand into other parts of the
+ * source (task_1790602604837_whpw, item 1). A function's return value is inserted as-is.
+ */
+export function spliceCompositionState(
+  code: string,
+  key: string,
+  value: string | number | boolean | string[]
+): string {
+  const rendered =
+    Array.isArray(value) || typeof value === 'string' ? JSON.stringify(value) : String(value);
+  const pattern = new RegExp(
+    `(^\\s*${key}:\\s*)(?:"[^"]*"|\\[[^\\]]*\\]|true|false|-?\\d+(?:\\.\\d+)?)`,
+    'm'
+  );
+  return code.replace(pattern, (_match, prefix: string) => `${prefix}${rendered}`);
+}
