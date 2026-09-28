@@ -206,7 +206,7 @@ declare module '@holoscript/absorb-service/credits' {
     amountCents: number,
     description: string,
     opts?: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> }
-  ) => Promise<{ balanceCents: number } | null>;
+  ) => Promise<{ balanceCents: number; applied: boolean } | null>;
   export const getUsageHistory: (userId: string, limit?: number) => Promise<unknown[]>;
   // Studio Pro. Typed for the same reason as the functions above: the subscribe
   // route charges priceCentsMonthly and the webhook grants includedCredits.
@@ -221,14 +221,32 @@ declare module '@holoscript/absorb-service/credits' {
     userId: string;
     plan: string;
     stripeCustomerId: string;
-    stripeSubscriptionId: string;
+    stripeSubscriptionId: string | null;
     status: string;
+    livemode: boolean | null;
     currentPeriodEnd: Date | null;
     cancelAtPeriodEnd: boolean;
+  }
+  export interface SubscriptionRecordResult {
+    tier: string;
+    recorded: boolean;
+    reason?: string;
+    duplicate?: boolean;
   }
   export const tierForSubscriptionStatus: (
     status: string | null | undefined
   ) => 'free' | 'pro' | 'enterprise';
+  export const isEndedSubscriptionStatus: (status: string | null | undefined) => boolean;
+  export const stripeKeyLivemode: (key: string | null | undefined) => boolean | null;
+  export const subscriptionInMode: (
+    sub: CreditSubscription | null,
+    livemode: boolean | null
+  ) => CreditSubscription | null;
+  export const tierInMode: (
+    accountTier: string,
+    sub: CreditSubscription | null,
+    livemode: boolean | null
+  ) => string;
   export const getSubscription: (userId: string) => Promise<CreditSubscription | null>;
   export const findSubscriptionUser: (ref: {
     stripeSubscriptionId?: string | null;
@@ -237,13 +255,18 @@ declare module '@holoscript/absorb-service/credits' {
   export const recordSubscription: (
     userId: string,
     sub: Omit<CreditSubscription, 'userId'>
-  ) => Promise<{ tier: 'free' | 'pro' | 'enterprise' } | null>;
+  ) => Promise<SubscriptionRecordResult | null>;
+  export const ensureSubscriptionCustomer: (
+    userId: string,
+    opts: { plan: string; livemode: boolean | null },
+    createCustomer: () => Promise<string>
+  ) => Promise<string | null>;
   export const grantSubscriptionCredits: (
     userId: string,
     invoiceId: string,
     credits: number,
     metadata?: Record<string, unknown>
-  ) => Promise<{ balanceCents: number } | null>;
+  ) => Promise<{ balanceCents: number; applied: boolean } | null>;
   export const MeteredLLMProvider: unknown;
   export const requireCredits: unknown;
   export const isCreditError: unknown;

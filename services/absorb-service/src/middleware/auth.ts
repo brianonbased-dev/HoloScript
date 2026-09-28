@@ -106,14 +106,23 @@ function verifyOrchestratorSig(apiKeyId: string, tier: string, sig: string): boo
  */
 async function resolveUserTier(userId: string): Promise<string> {
   try {
-    const { getOrCreateAccount } = await import('@holoscript/absorb-service/credits');
+    const { getOrCreateAccount, getSubscription, stripeKeyLivemode, tierInMode } = await import(
+      '@holoscript/absorb-service/credits'
+    );
     const account = await getOrCreateAccount(userId);
-    // @ts-ignore - Automatic remediation for TS2339
-    return account?.tier ?? 'free';
+    const tier = account?.tier ?? 'free';
+    if (tier !== 'pro') return tier;
+    // Pro that only a practice (test-mode) subscription earned is not Pro once
+    // the service runs on a live key. One more read, for Pro accounts only.
+    const sub = await getSubscription(userId).catch(() => null);
+    return tierInMode(tier, sub, stripeKeyLivemode(process.env.STRIPE_SECRET_KEY));
   } catch {
     return 'free';
   }
 }
+
+/** Where a free account goes to buy credits or Studio Pro: the Studio, not this service. */
+const STUDIO_CREDITS_URL = 'https://holoscript.studio/settings?tab=credits';
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authReq = req as AuthenticatedRequest;
@@ -203,8 +212,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
               message: `Free accounts can make ${FREE_USER_SCAN_LIMIT} requests an hour. Studio Pro removes this limit.`,
               retryAfterMs: RATE_LIMIT_WINDOW_MS,
               remaining: 0,
-              upgradeUrl: '/settings?tab=credits',
-              purchaseUrl: '/absorb?tab=credits',
+              // Absolute: the caller of this reply knows only this service's host,
+              // which has no /settings page, so a relative path led nowhere.
+              upgradeUrl: STUDIO_CREDITS_URL,
+              purchaseUrl: STUDIO_CREDITS_URL,
             });
             return;
           }

@@ -11,9 +11,16 @@ export {
   addCredits,
   getUsageHistory,
   tierForSubscriptionStatus,
+  isEndedSubscriptionStatus,
+  stripeKeyLivemode,
+  subscriptionInMode,
+  tierInMode,
+  nextTier,
+  decideSubscriptionWrite,
   getSubscription,
   findSubscriptionUser,
   recordSubscription,
+  ensureSubscriptionCustomer,
   grantSubscriptionCredits,
 } from './creditService.js';
 export type {
@@ -21,6 +28,8 @@ export type {
   CreditTransaction,
   BalanceCheck,
   CreditSubscription,
+  SubscriptionWrite,
+  SubscriptionRecordResult,
 } from './creditService.js';
 export { MeteredLLMProvider } from './meteredLLMProvider.js';
 export { requireCredits, isCreditError } from './requireCredits.js';

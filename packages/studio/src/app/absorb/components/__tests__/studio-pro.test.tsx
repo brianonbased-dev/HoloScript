@@ -43,7 +43,9 @@ describe('the Studio Pro card', () => {
     expect(onSubscribe).toHaveBeenCalledOnce();
     expect(screen.getAllByRole('button')).toHaveLength(1);
     expect(
-      screen.getByText(new RegExp(`^${PRO.includedCredits.toLocaleString()} credits every paid month`))
+      screen.getByText(
+        new RegExp(`^${PRO.includedCredits.toLocaleString()} credits every paid month`)
+      )
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -86,6 +88,36 @@ describe('the Studio Pro card', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
+  it('just after a Studio Pro checkout, says it is confirming and offers no second Subscribe', () => {
+    // Review: with a slow webhook the card still offered Subscribe, inviting a
+    // second checkout and a second charge.
+    render(
+      <StudioProCard
+        state={{ isPro: false, periodEnd: null, ending: false, canManage: false }}
+        busy={false}
+        confirming
+        onSubscribe={noop}
+        onManage={noop}
+      />
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(/Confirming your Studio Pro/);
+    expect(screen.queryByRole('button', { name: SUBSCRIBE })).toBeNull();
+  });
+
+  it('once Pro is confirmed, the confirming note gives way to the subscription', () => {
+    const periodEnd = new Date('2026-10-28T12:00:00Z');
+    render(
+      <StudioProCard
+        state={{ isPro: true, periodEnd, ending: false, canManage: true }}
+        busy={false}
+        confirming
+        onSubscribe={noop}
+        onManage={noop}
+      />
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(`It renews on ${longDate(periodEnd)}.`);
+  });
+
   it('cannot be pressed twice while a Stripe page is opening', () => {
     card({ isPro: false, periodEnd: null, ending: false, canManage: true }, {}, true);
     expect(screen.getByRole('button', { name: 'Opening Stripe…' })).toBeDisabled();
@@ -112,7 +144,9 @@ describe('the tier comparison', () => {
     expect(row('Credits included')).toHaveTextContent(
       `${TIER_LIMITS.free.freeCredits} once, when you sign up`
     );
-    expect(row('Credits included')).toHaveTextContent(`${PRO.includedCredits.toLocaleString()} every paid month`);
+    expect(row('Credits included')).toHaveTextContent(
+      `${PRO.includedCredits.toLocaleString()} every paid month`
+    );
     expect(row('Requests from your own tools (MCP, scripts)')).toHaveTextContent(
       `${TIER_LIMITS.free.hourlyRequestLimit} an hourNo limit`
     );

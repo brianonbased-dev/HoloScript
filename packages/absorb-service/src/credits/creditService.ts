@@ -206,7 +206,7 @@ export async function addCredits(
   amountCents: number,
   description: string,
   opts: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> } = {}
-): Promise<{ balanceCents: number } | null> {
+): Promise<{ balanceCents: number; applied: boolean } | null> {
   const db = getDb();
   if (!db) {
     console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
@@ -224,7 +224,11 @@ export async function addCredits(
    * failure between the two statements left credits granted with no record of
    * why.
    */
-  const apply = async (tx: DbClient): Promise<{ balanceCents: number } | null> => {
+  // `applied` is false when this grant had already been made. Callers reporting
+  // to logs or to Stripe must say so, or a redelivery reads as a second grant.
+  const apply = async (
+    tx: DbClient
+  ): Promise<{ balanceCents: number; applied: boolean } | null> => {
     // IDEMPOTENCE. A Stripe checkout session may credit an account once.
     // Stripe re-sends a webhook whenever it is not certain we received it, and
     // the handler returns 500 on any internal error, which asks for exactly
@@ -243,7 +247,7 @@ export async function addCredits(
         console.log(
           `[creditService] Session ${opts.stripeSessionId} was already applied; not crediting again.`
         );
-        return { balanceCents: prior[0].balanceAfterCents };
+        return { balanceCents: prior[0].balanceAfterCents, applied: false };
       }
     }
 
@@ -269,7 +273,7 @@ export async function addCredits(
       metadata: opts.metadata ?? {},
     });
 
-    return { balanceCents: updated.balanceCents };
+    return { balanceCents: updated.balanceCents, applied: true };
   };
 
   // The unique index on stripe_session_id is the backstop the check above
@@ -307,8 +311,11 @@ export interface CreditSubscription {
   userId: string;
   plan: string;
   stripeCustomerId: string;
-  stripeSubscriptionId: string;
+  /** Null while the row holds only the customer, before the first checkout completes. */
+  stripeSubscriptionId: string | null;
   status: string;
+  /** The Stripe mode that wrote the row: true live, false test; null when not known. */
+  livemode: boolean | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
 }
@@ -325,13 +332,132 @@ export function tierForSubscriptionStatus(status: string | null | undefined): Ti
   return status === 'active' || status === 'trialing' || status === 'past_due' ? 'pro' : 'free';
 }
 
+/** Statuses Stripe never moves a subscription out of. */
+export function isEndedSubscriptionStatus(status: string | null | undefined): boolean {
+  return status === 'canceled' || status === 'incomplete_expired';
+}
+
+/**
+ * The Stripe mode a secret key runs in: true for a live key, false for a test
+ * (practice) key, null for no key or one this cannot read.
+ */
+export function stripeKeyLivemode(key: string | null | undefined): boolean | null {
+  const k = key?.trim();
+  if (!k) return null;
+  if (/^(sk|rk)_live_/u.test(k)) return true;
+  if (/^(sk|rk)_test_/u.test(k)) return false;
+  return null;
+}
+
+/**
+ * The row as a service running in `livemode` must see it. The "Turn on payments"
+ * icon lets Joseph practise with a test key against production before switching
+ * to the live key, and nothing marked which mode a row came from: a practice
+ * subscription then read as real Pro forever (test events stop arriving once the
+ * key is live), answered "you already have Studio Pro" to the real checkout, and
+ * handed a test customer to the live portal. A row from the other mode does not
+ * exist for this one. A null on either side means not known, and matches.
+ */
+export function subscriptionInMode(
+  sub: CreditSubscription | null,
+  livemode: boolean | null
+): CreditSubscription | null {
+  if (!sub) return null;
+  if (livemode === null || sub.livemode === null) return sub;
+  return sub.livemode === livemode ? sub : null;
+}
+
+/**
+ * An account's tier as a service in `livemode` must treat it: Pro that only a
+ * subscription from the other Stripe mode earned is not Pro here. Pro with no
+ * subscription row at all (set by hand) stays Pro.
+ */
+export function tierInMode(
+  accountTier: string,
+  sub: CreditSubscription | null,
+  livemode: boolean | null
+): string {
+  if (accountTier !== 'pro' || !sub) return accountTier;
+  return subscriptionInMode(sub, livemode) ? accountTier : 'free';
+}
+
+/**
+ * The tier to store after a Studio Pro change. Studio Pro moves an account
+ * between free and pro only; any other tier (enterprise, set by hand) is not
+ * Studio Pro's to change.
+ */
+export function nextTier(current: string, fromSubscription: Tier): string {
+  return current === 'free' || current === 'pro' ? fromSubscription : current;
+}
+
+export type SubscriptionWrite =
+  { write: true } | { write: false; reason: string; duplicate?: boolean };
+
+/**
+ * Whether a fresh read of one subscription may replace the user's stored row.
+ *
+ * The row used to take whatever arrived last. Stripe does not promise delivery
+ * order, two deliveries can be handled at once, and a user can hold more than
+ * one subscription (an abandoned first attempt, a second checkout), so "last"
+ * was often "older". Measured by review on real PostgreSQL, 2026-09-28: a late
+ * delivery about an ended subscription turned a paying user free, and an older
+ * "active" read written after the "canceled" one gave Pro back after
+ * cancellation. So the row only moves forward:
+ *
+ * - no row, a customer-only row, or a row from the other Stripe mode: write;
+ * - the same subscription: never from ended back to live, because Stripe never
+ *   revives an ended subscription, so a live read of one is an older read;
+ * - a different subscription: an unpaid or ended one never replaces a live one,
+ *   and a SECOND live one is kept out and reported, because the user is being
+ *   charged twice and a person has to cancel one and refund it.
+ */
+export function decideSubscriptionWrite(
+  stored: CreditSubscription | null,
+  incoming: Omit<CreditSubscription, 'userId'>
+): SubscriptionWrite {
+  if (!stored || !stored.stripeSubscriptionId) return { write: true };
+  if (
+    stored.livemode !== null &&
+    incoming.livemode !== null &&
+    stored.livemode !== incoming.livemode
+  ) {
+    return { write: true };
+  }
+  if (stored.stripeSubscriptionId === incoming.stripeSubscriptionId) {
+    if (isEndedSubscriptionStatus(stored.status) && !isEndedSubscriptionStatus(incoming.status)) {
+      return {
+        write: false,
+        reason: `subscription ${stored.stripeSubscriptionId} already ended (${stored.status}); a ${incoming.status} read of it is older`,
+      };
+    }
+    return { write: true };
+  }
+  const storedLive = tierForSubscriptionStatus(stored.status) === 'pro';
+  const incomingLive = tierForSubscriptionStatus(incoming.status) === 'pro';
+  if (storedLive && incomingLive) {
+    return {
+      write: false,
+      duplicate: true,
+      reason: `user already has live subscription ${stored.stripeSubscriptionId}; ${incoming.stripeSubscriptionId} is a second one`,
+    };
+  }
+  if (storedLive) {
+    return {
+      write: false,
+      reason: `live subscription ${stored.stripeSubscriptionId} is not replaced by ${incoming.stripeSubscriptionId} (${incoming.status})`,
+    };
+  }
+  return { write: true };
+}
+
 function toSubscription(row: Record<string, unknown>): CreditSubscription {
   return {
     userId: row.userId as string,
     plan: row.plan as string,
     stripeCustomerId: row.stripeCustomerId as string,
-    stripeSubscriptionId: row.stripeSubscriptionId as string,
+    stripeSubscriptionId: (row.stripeSubscriptionId as string | null) ?? null,
     status: row.status as string,
+    livemode: typeof row.livemode === 'boolean' ? row.livemode : null,
     currentPeriodEnd: (row.currentPeriodEnd as Date | null) ?? null,
     cancelAtPeriodEnd: Boolean(row.cancelAtPeriodEnd),
   };
@@ -373,57 +499,171 @@ export async function findSubscriptionUser(ref: {
   return null;
 }
 
+/** What recordSubscription did. `recorded: false` is a decision, not a failure. */
+export interface SubscriptionRecordResult {
+  tier: string;
+  recorded: boolean;
+  reason?: string;
+  duplicate?: boolean;
+}
+
+const NO_TRANSACTION =
+  '[creditService] REFUSED: the database client exposes no transaction(). ' +
+  'Studio Pro will not write a subscription and a tier separately.';
+
 /**
  * Record what Stripe says about a user's subscription and set their tier from it,
- * in one transaction, so the row and the tier can never disagree. Upsert by user:
- * subscribing again after cancelling replaces the old subscription on the same row.
+ * in one transaction, so the row and the tier can never disagree.
+ *
+ * The user's account row is locked first (SELECT ... FOR UPDATE), so two
+ * deliveries for one user are applied one after the other and each decides
+ * against what the other wrote. decideSubscriptionWrite then says whether this
+ * read may replace the stored row at all.
  */
 export async function recordSubscription(
   userId: string,
   sub: Omit<CreditSubscription, 'userId'>
-): Promise<{ tier: Tier } | null> {
+): Promise<SubscriptionRecordResult | null> {
   const db = getDb();
   if (!db) {
     console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
     return null;
   }
   await getOrCreateAccount(userId);
-  const tier = tierForSubscriptionStatus(sub.status);
+  // Same rule as addCredits: without a transaction the row and the tier could
+  // land apart, so refuse rather than write half.
+  if (typeof db.transaction !== 'function') {
+    console.error(NO_TRANSACTION);
+    return null;
+  }
   const now = new Date();
-  const apply = async (tx: DbClient): Promise<{ tier: Tier }> => {
+  return await db.transaction(async (tx: DbClient): Promise<SubscriptionRecordResult> => {
+    const [account] = await tx
+      .select({ tier: creditAccounts.tier })
+      .from(creditAccounts)
+      .where(eq(creditAccounts.userId, userId))
+      .for('update');
+    const current = (account?.tier as string | undefined) ?? 'free';
+    const [row] = await tx
+      .select()
+      .from(creditSubscriptions)
+      .where(eq(creditSubscriptions.userId, userId))
+      .limit(1);
+    const decision = decideSubscriptionWrite(row ? toSubscription(row) : null, sub);
+    if (!decision.write) {
+      return {
+        tier: current,
+        recorded: false,
+        reason: decision.reason,
+        duplicate: decision.duplicate,
+      };
+    }
     await tx
       .insert(creditSubscriptions)
       .values({ userId, ...sub, updatedAt: now })
       .onConflictDoUpdate({ target: creditSubscriptions.userId, set: { ...sub, updatedAt: now } });
-    await tx
-      .update(creditAccounts)
-      .set({ tier, updatedAt: now })
-      .where(eq(creditAccounts.userId, userId));
-    return { tier };
-  };
-  // Same rule as addCredits: without a transaction the row and the tier could
-  // land apart, so refuse rather than write half.
-  if (typeof db.transaction !== 'function') {
-    console.error(
-      '[creditService] REFUSED: the database client exposes no transaction(). ' +
-        'recordSubscription will not write a subscription and a tier separately.'
-    );
+    const tier = nextTier(current, tierForSubscriptionStatus(sub.status));
+    if (tier !== current) {
+      await tx
+        .update(creditAccounts)
+        .set({ tier, updatedAt: now })
+        .where(eq(creditAccounts.userId, userId));
+    }
+    return { tier, recorded: true };
+  });
+}
+
+/**
+ * The Stripe customer this user's Studio Pro checkouts use, created once and
+ * saved BEFORE the first checkout.
+ *
+ * Every first-time checkout used to make its own customer, and the "already
+ * subscribed" check read only this row, which exists only once the webhook has
+ * run. A second click before the first webhook arrived (a slow webhook, or one
+ * failing on a database blip) opened a second subscription on a second customer:
+ * charged twice, with the Manage button reaching only one of them. Serialised on
+ * the account row, so two clicks at once still make one customer.
+ *
+ * `createCustomer` runs inside the transaction, holding that one row lock for
+ * the length of one Stripe call; this path is one click per user.
+ */
+export async function ensureSubscriptionCustomer(
+  userId: string,
+  opts: { plan: string; livemode: boolean | null },
+  createCustomer: () => Promise<string>
+): Promise<string | null> {
+  const db = getDb();
+  if (!db) {
+    console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
     return null;
   }
-  return await db.transaction(apply);
+  await getOrCreateAccount(userId);
+  if (typeof db.transaction !== 'function') {
+    console.error(NO_TRANSACTION);
+    return null;
+  }
+  return await db.transaction(async (tx: DbClient): Promise<string> => {
+    const [account] = await tx
+      .select({ tier: creditAccounts.tier })
+      .from(creditAccounts)
+      .where(eq(creditAccounts.userId, userId))
+      .for('update');
+    const [row] = await tx
+      .select()
+      .from(creditSubscriptions)
+      .where(eq(creditSubscriptions.userId, userId))
+      .limit(1);
+    const stored = row ? toSubscription(row) : null;
+    const usable = subscriptionInMode(stored, opts.livemode);
+    if (usable) return usable.stripeCustomerId;
+    const customerId = await createCustomer();
+    const now = new Date();
+    const fresh = {
+      plan: opts.plan,
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: null,
+      status: 'none',
+      livemode: opts.livemode,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+    };
+    await tx
+      .insert(creditSubscriptions)
+      .values({ userId, ...fresh, updatedAt: now })
+      .onConflictDoUpdate({
+        target: creditSubscriptions.userId,
+        set: { ...fresh, updatedAt: now },
+      });
+    // A row from the other Stripe mode just gave way. Pro that practice earned
+    // ends with it: otherwise the stored tier (still pro) and this same-mode,
+    // customer-only row would read as Pro to a live service that was never paid.
+    // Measured on real PostgreSQL 2026-09-28 before this line existed.
+    if (stored) {
+      const current = (account?.tier as string | undefined) ?? 'free';
+      const tier = nextTier(current, 'free');
+      if (tier !== current) {
+        await tx
+          .update(creditAccounts)
+          .set({ tier, updatedAt: now })
+          .where(eq(creditAccounts.userId, userId));
+      }
+    }
+    return customerId;
+  });
 }
 
 /**
  * Grant one paid invoice's Studio Pro credits, once. The invoice id goes in the
  * ledger's stripe_session_id, so the unique index that stops a redelivered
  * checkout crediting twice does the same for a redelivered invoice.paid.
+ * `applied` is false when this invoice had already been credited.
  */
 export async function grantSubscriptionCredits(
   userId: string,
   invoiceId: string,
   credits: number,
   metadata: Record<string, unknown> = {}
-): Promise<{ balanceCents: number } | null> {
+): Promise<{ balanceCents: number; applied: boolean } | null> {
   return addCredits(userId, credits, 'Studio Pro monthly credits', {
     type: 'subscription',
     stripeSessionId: invoiceId,

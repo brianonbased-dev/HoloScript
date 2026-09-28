@@ -164,6 +164,11 @@ export interface StudioProControls {
   busy: boolean;
   onSubscribe: () => void;
   onManage: () => void;
+  /**
+   * True just after a Studio Pro checkout, until the webhook's Pro shows up:
+   * Subscribe is hidden, so a slow webhook cannot invite a second checkout.
+   */
+  confirming?: boolean;
 }
 
 function longDate(date: Date): string {
@@ -171,14 +176,23 @@ function longDate(date: Date): string {
 }
 
 /** Subscribe to Studio Pro, or see and manage the subscription you have. */
-export function StudioProCard({ state, busy, onSubscribe, onManage }: StudioProControls) {
+export function StudioProCard({
+  state,
+  busy,
+  onSubscribe,
+  onManage,
+  confirming = false,
+}: StudioProControls) {
   const isPro = state?.isPro === true;
+  const waiting = confirming && !isPro;
   const end = state?.periodEnd ? longDate(state.periodEnd) : null;
   let status: string | null = null;
   if (isPro && state?.ending) {
     status = `Your Studio Pro ends ${end ? `on ${end}` : 'when this paid month ends'}. Your credits stay.`;
   } else if (isPro) {
     status = end ? `You're on Studio Pro. It renews on ${end}.` : "You're on Studio Pro.";
+  } else if (waiting) {
+    status = 'Payment received. Confirming your Studio Pro with Stripe; this takes up to a minute.';
   }
   const manageLabel = !isPro
     ? 'Past invoices'
@@ -216,7 +230,7 @@ export function StudioProCard({ state, busy, onSubscribe, onManage }: StudioProC
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-3">
-        {!isPro && (
+        {!isPro && !waiting && (
           <button
             type="button"
             onClick={onSubscribe}

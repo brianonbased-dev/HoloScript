@@ -9,7 +9,9 @@ import type Stripe from 'stripe';
 import {
   CREDITED_BILLING_REASONS,
   handleSubscriptionEvent,
+  isStudioProPrice,
   periodEndOf,
+  subscriptionRecordFrom,
   type SubscriptionCredits,
   type SubscriptionStripe,
 } from './subscriptionWebhook.js';
@@ -17,15 +19,27 @@ import {
 const USER = '11111111-2222-4333-8444-555555555555';
 const PERIOD_END = 1_793_000_000; // seconds
 
+/** The one item /subscribe creates: $15.00 a month, quantity one. */
+function studioProItem(price: Record<string, unknown> = {}, over: Record<string, unknown> = {}) {
+  return {
+    current_period_end: PERIOD_END,
+    quantity: 1,
+    price: { unit_amount: 1500, currency: 'usd', recurring: { interval: 'month', interval_count: 1 }, ...price },
+    ...over,
+  };
+}
+
 function subscription(overrides: Record<string, unknown> = {}): Stripe.Subscription {
   return {
     id: 'sub_1',
     object: 'subscription',
     customer: 'cus_1',
     status: 'active',
+    livemode: true,
     cancel_at_period_end: false,
+    cancel_at: null,
     metadata: { userId: USER, plan: 'studio_pro' },
-    items: { object: 'list', data: [{ current_period_end: PERIOD_END }] },
+    items: { object: 'list', data: [studioProItem()] },
     ...overrides,
   } as unknown as Stripe.Subscription;
 }
@@ -33,12 +47,20 @@ function subscription(overrides: Record<string, unknown> = {}): Stripe.Subscript
 function setup(sub: Stripe.Subscription = subscription()) {
   const stripe: SubscriptionStripe = { subscriptions: { retrieve: vi.fn(async () => sub) } };
   const credits = {
-    SUBSCRIPTION_PRICING: { studioPro: { includedCredits: 500 } },
+    SUBSCRIPTION_PRICING: { studioPro: { includedCredits: 2000, priceCentsMonthly: 1500 } },
     findSubscriptionUser: vi.fn(async () => null as string | null),
-    recordSubscription: vi.fn(async (_u: string, s: { status: string }) => ({
-      tier: ['active', 'trialing', 'past_due'].includes(s.status) ? 'pro' : 'free',
-    })),
-    grantSubscriptionCredits: vi.fn(async () => ({ balanceCents: 600 })),
+    recordSubscription: vi.fn(
+      async (
+        _u: string,
+        s: { status: string }
+      ): Promise<{ tier: string; recorded: boolean; reason?: string; duplicate?: boolean } | null> => ({
+        tier: ['active', 'trialing', 'past_due'].includes(s.status) ? 'pro' : 'free',
+        recorded: true,
+      })
+    ),
+    grantSubscriptionCredits: vi.fn(
+      async (): Promise<{ balanceCents: number; applied: boolean } | null> => ({ balanceCents: 2100, applied: true })
+    ),
   } satisfies SubscriptionCredits;
   return { stripe, credits };
 }
@@ -51,6 +73,7 @@ const paidInvoice = (billing_reason: string, id = 'in_1') =>
     id,
     billing_reason,
     amount_paid: 1500,
+    total: 1500,
     customer: 'cus_1',
     parent: { subscription_details: { subscription: 'sub_1', metadata: { userId: USER, plan: 'studio_pro' } } },
   });
@@ -87,6 +110,7 @@ describe('Studio Pro webhook', () => {
       stripeCustomerId: 'cus_1',
       stripeSubscriptionId: 'sub_1',
       status: 'active',
+      livemode: true,
       currentPeriodEnd: new Date(PERIOD_END * 1000),
       cancelAtPeriodEnd: false,
     });
@@ -94,13 +118,13 @@ describe('Studio Pro webhook', () => {
     expect(credits.grantSubscriptionCredits).not.toHaveBeenCalled();
   });
 
-  it('the first invoice and each renewal grant 500 credits, keyed by the invoice id', async () => {
+  it('the first invoice and each renewal grant the monthly credits, keyed by the invoice id', async () => {
     for (const reason of ['subscription_create', 'subscription_cycle']) {
       const { stripe, credits } = setup();
       const reply = await handleSubscriptionEvent(paidInvoice(reason, `in_${reason}`), stripe, credits);
       expect(reply?.status).toBe(200);
       expect(reply?.body.credited).toBe(true);
-      expect(credits.grantSubscriptionCredits).toHaveBeenCalledWith(USER, `in_${reason}`, 500, {
+      expect(credits.grantSubscriptionCredits).toHaveBeenCalledWith(USER, `in_${reason}`, 2000, {
         subscriptionId: 'sub_1',
         billingReason: reason,
         amountPaidCents: 1500,
@@ -204,5 +228,87 @@ describe('Studio Pro webhook', () => {
   it('reads the paid period end from the first item, where the 2026-02-25.clover API keeps it', () => {
     expect(periodEndOf(subscription())).toEqual(new Date(PERIOD_END * 1000));
     expect(periodEndOf(subscription({ items: { object: 'list', data: [] } }))).toBeNull();
+  });
+
+  it('credits only a subscription at exactly the Studio Pro price', async () => {
+    // Review: a subscription switched to another price, or billed for more than
+    // one seat, kept earning the full monthly credits.
+    const off = [
+      studioProItem({ unit_amount: 500 }),
+      studioProItem({ currency: 'eur' }),
+      studioProItem({ recurring: { interval: 'year', interval_count: 1 } }),
+      studioProItem({ recurring: { interval: 'month', interval_count: 3 } }),
+      studioProItem({}, { quantity: 2 }),
+    ];
+    for (const item of off) {
+      const { stripe, credits } = setup(subscription({ items: { object: 'list', data: [item] } }));
+      const reply = await handleSubscriptionEvent(paidInvoice('subscription_cycle'), stripe, credits);
+      expect(reply?.status).toBe(200);
+      expect(reply?.body).toMatchObject({ credited: false, reason: 'not the Studio Pro price' });
+      expect(credits.grantSubscriptionCredits).not.toHaveBeenCalled();
+      // The subscription itself is still recorded: only the credits are held.
+      expect(credits.recordSubscription).toHaveBeenCalledTimes(1);
+    }
+    const twoItems = subscription({ items: { object: 'list', data: [studioProItem(), studioProItem()] } });
+    expect(isStudioProPrice(twoItems, 1500)).toBe(false);
+    expect(isStudioProPrice(subscription(), 1500)).toBe(true);
+  });
+
+  it('an invoice discounted below the Studio Pro price earns no credits by itself', async () => {
+    const { stripe, credits } = setup();
+    const discounted = event('invoice.paid', {
+      id: 'in_zero',
+      billing_reason: 'subscription_cycle',
+      amount_paid: 0,
+      total: 0,
+      parent: { subscription_details: { subscription: 'sub_1', metadata: { userId: USER, plan: 'studio_pro' } } },
+    });
+    const reply = await handleSubscriptionEvent(discounted, stripe, credits);
+    expect(reply?.body).toMatchObject({ credited: false, reason: 'not the Studio Pro price' });
+    expect(credits.grantSubscriptionCredits).not.toHaveBeenCalled();
+  });
+
+  it('a redelivered invoice that was already credited says so instead of claiming a second grant', async () => {
+    const { stripe, credits } = setup();
+    credits.grantSubscriptionCredits.mockResolvedValueOnce({ balanceCents: 2100, applied: false });
+    const reply = await handleSubscriptionEvent(paidInvoice('subscription_cycle'), stripe, credits);
+    expect(reply?.status).toBe(200);
+    expect(reply?.body).toMatchObject({ credited: false, reason: 'already credited' });
+  });
+
+  it('a read the credit service refuses as older is answered 200, and changes nothing', async () => {
+    const { stripe, credits } = setup(subscription({ status: 'canceled' }));
+    credits.recordSubscription.mockResolvedValueOnce({
+      tier: 'pro',
+      recorded: false,
+      reason: 'live subscription sub_new is not replaced by sub_1 (canceled)',
+    });
+    const reply = await handleSubscriptionEvent(event('customer.subscription.deleted', { id: 'sub_1' }), stripe, credits);
+    expect(reply).toEqual({
+      status: 200,
+      body: { received: true, recorded: false, tier: 'pro', reason: 'older than the stored record' },
+    });
+  });
+
+  it('a second live subscription is reported as a duplicate, and its paid invoice is still credited', async () => {
+    const { stripe, credits } = setup(subscription({ id: 'sub_2' }));
+    credits.recordSubscription.mockResolvedValueOnce({
+      tier: 'pro',
+      recorded: false,
+      duplicate: true,
+      reason: 'user already has live subscription sub_1; sub_2 is a second one',
+    });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const reply = await handleSubscriptionEvent(paidInvoice('subscription_create', 'in_dup'), stripe, credits);
+    expect(reply?.body).toMatchObject({ recorded: false, reason: 'duplicate subscription', credited: true });
+    expect(errors.mock.calls.flat().join(' ')).toMatch(/DUPLICATE .*charged twice/);
+    errors.mockRestore();
+  });
+
+  it('records which Stripe mode the subscription lives in, and an ending set by date', () => {
+    const record = subscriptionRecordFrom(subscription({ livemode: false, cancel_at: PERIOD_END }), 'cus_1');
+    expect(record.livemode).toBe(false);
+    expect(record.cancelAtPeriodEnd).toBe(true);
+    expect(subscriptionRecordFrom(subscription(), 'cus_1')).toMatchObject({ livemode: true, cancelAtPeriodEnd: false });
   });
 });

@@ -7,11 +7,21 @@ vi.mock('./github-identity.js', () => ({
   resolveGitHubToken: (...args: any[]) => mockResolveGitHubToken(...args),
 }));
 
-// Mock credit service for tier resolution
+// Mock credit service for tier resolution. The Stripe-mode rules are the real
+// ones: they decide whether a Pro account is exempt from the hourly limit.
 const mockGetOrCreateAccount = vi.fn();
-vi.mock('@holoscript/absorb-service/credits', () => ({
-  getOrCreateAccount: (...args: any[]) => mockGetOrCreateAccount(...args),
-}));
+const mockGetSubscription = vi.fn();
+vi.mock('@holoscript/absorb-service/credits', async () => {
+  const actual = await vi.importActual<typeof import('@holoscript/absorb-service/credits')>(
+    '@holoscript/absorb-service/credits'
+  );
+  return {
+    getOrCreateAccount: (...args: any[]) => mockGetOrCreateAccount(...args),
+    getSubscription: (...args: any[]) => mockGetSubscription(...args),
+    stripeKeyLivemode: actual.stripeKeyLivemode,
+    tierInMode: actual.tierInMode,
+  };
+});
 
 import { authMiddleware, type AuthenticatedRequest } from './auth.js';
 
@@ -54,6 +64,8 @@ describe('authMiddleware', () => {
     next = vi.fn();
     mockResolveGitHubToken.mockReset();
     mockGetOrCreateAccount.mockReset();
+    mockGetSubscription.mockReset();
+    mockGetSubscription.mockResolvedValue(null);
     // Default: free tier
     mockGetOrCreateAccount.mockResolvedValue({ tier: 'free' });
     // Reset env
@@ -387,7 +399,31 @@ describe('authMiddleware', () => {
     await authMiddleware(req, res, next);
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(429);
-    expect(res._json.purchaseUrl).toBe('/absorb?tab=credits');
+    // Absolute: an MCP or script caller knows only absorb's host, which has no
+    // Settings page, so a relative path led nowhere.
+    expect(res._json.upgradeUrl).toBe('https://holoscript.studio/settings?tab=credits');
+    expect(res._json.purchaseUrl).toBe('https://holoscript.studio/settings?tab=credits');
+  });
+
+  it('Pro that only a practice subscription earned is limited like free once the service is live', async () => {
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    const prevKey = process.env.STRIPE_SECRET_KEY;
+    process.env.STRIPE_SECRET_KEY = 'sk_live_configured';
+    mockResolveGitHubToken.mockResolvedValue({
+      userId: 'uuid-practice-user',
+      githubUsername: 'practice',
+      githubId: '444',
+      isAdmin: false,
+    });
+    mockGetOrCreateAccount.mockResolvedValue({ tier: 'pro' });
+    mockGetSubscription.mockResolvedValue({ status: 'active', livemode: false, stripeSubscriptionId: 'sub_test' });
+
+    const req = createMockReq({ path: '/projects', headers: { authorization: 'Bearer ghp_practice_token' } });
+    await authMiddleware(req, createMockRes(), vi.fn());
+    expect(req.tier).toBe('free');
+
+    if (prevKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = prevKey;
   });
 
   it('admin users bypass rate limits entirely', async () => {

@@ -84,8 +84,14 @@ export const creditSubscriptions = pgTable(
     userId: uuid('user_id').primaryKey(),
     plan: varchar('plan', { length: 32 }).notNull(),
     stripeCustomerId: text('stripe_customer_id').notNull(),
-    stripeSubscriptionId: text('stripe_subscription_id').notNull(),
+    // Null while the row holds only the customer: /subscribe creates the Stripe
+    // customer and saves it here BEFORE the first checkout, so a second click
+    // cannot open a second subscription on a second customer.
+    stripeSubscriptionId: text('stripe_subscription_id'),
     status: varchar('status', { length: 32 }).notNull(),
+    // The Stripe mode that wrote the row. Practice rows (a test key) must not
+    // count as Pro, or block a real subscription, once the service runs live.
+    livemode: boolean('livemode'),
     currentPeriodEnd: timestamp('current_period_end', { mode: 'date' }),
     cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false).notNull(),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),

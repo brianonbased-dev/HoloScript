@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { userUuid } from '../middleware/auth.js';
+import { STUDIO_PRO_PLAN, subscriptionRecordFrom } from './subscriptionWebhook.js';
 
 const router = Router();
 
@@ -34,27 +35,69 @@ const PAYMENTS_NOT_CONFIGURED = {
     'Credit purchases are unavailable because the payment provider is not configured. No credits were granted.',
 };
 
-const RETURN_URL_REQUIRED = {
-  error: 'Return URL required',
-  message:
-    'Say where Stripe should send the browser back (the Studio does), or set PUBLIC_URL on absorb-service. Nothing was charged.',
+const RETURN_URL_NOT_ALLOWED = {
+  error: 'Return URL not allowed',
+  message: 'Stripe can only send the browser back to HoloScript Studio. Nothing was charged.',
 };
 
+/** The Studio, the one site Stripe may send a buyer back to. */
+export const DEFAULT_RETURN_ORIGINS: readonly string[] = ['https://holoscript.studio'];
+
 /**
- * Where Stripe sends a browser back: the caller's own URL when it passed one (the
- * Studio always does), else this service's PUBLIC_URL plus `path`, else null.
- * Until 2026-09-28 the last resort was a loopback address, and PUBLIC_URL is unset
- * in production, so a buyer who had just paid was sent to their own computer.
- * Refusing before checkout beats a dead page after payment.
+ * The origins a return URL may point at: ABSORB_RETURN_ORIGINS (comma-separated,
+ * for staging and local development) when set, else the Studio.
+ */
+export function allowedReturnOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
+  const raw = env.ABSORB_RETURN_ORIGINS?.trim();
+  const listed = raw ? raw.split(',') : [...DEFAULT_RETURN_ORIGINS];
+  const origins: string[] = [];
+  for (const entry of listed) {
+    try {
+      origins.push(new URL(entry.trim()).origin);
+    } catch {
+      // An entry that is not a URL allows nothing.
+    }
+  }
+  return origins;
+}
+
+/**
+ * The caller's return URL when it points at an allowed origin, else null, which
+ * refuses the request before anything is charged.
+ *
+ * Until 2026-09-28 any caller's URL passed unchanged. Anyone with a GitHub
+ * account can call this service directly, so anyone could mint a genuine
+ * HoloScript checkout that returned the payer to a page of their choosing:
+ * whoever paid funded the link-maker's account and then landed on the
+ * link-maker's site. The PUBLIC_URL fallback that sat here led to
+ * /api/credits/success, behind auth, which is a dead page for a browser. So the
+ * Studio's own URL is the only way back.
  */
 export function returnUrl(
   fromCaller: string | undefined,
-  path: string,
   env: NodeJS.ProcessEnv = process.env
 ): string | null {
-  if (fromCaller) return fromCaller;
-  const base = env.PUBLIC_URL?.trim().replace(/\/+$/u, '');
-  return base ? `${base}${path}` : null;
+  if (!fromCaller) return null;
+  let url: URL;
+  try {
+    url = new URL(fromCaller);
+  } catch {
+    return null;
+  }
+  return allowedReturnOrigins(env).includes(url.origin) ? fromCaller : null;
+}
+
+/**
+ * Log what went wrong for us, and tell the caller only that it did. Stripe's
+ * error text can name the key's mode and last four characters, the account id,
+ * or a missing permission, and it used to be handed straight to the browser.
+ */
+function logFailure(where: string, error: unknown): void {
+  const e = (error ?? {}) as { type?: string; code?: string; requestId?: string; message?: string };
+  console.error(
+    `[credits/${where}] Error: type=${e.type ?? 'n/a'} code=${e.code ?? 'n/a'} ` +
+      `request=${e.requestId ?? 'n/a'}: ${e.message ?? String(error)}`
+  );
 }
 
 /**
@@ -147,11 +190,17 @@ router.get('/balance', async (req: Request, res: Response) => {
     const balance = await (checkBalance as Function)(userId, 0) as any;
     // Studio Pro state, for Settings to show "renews on" or a manage button. A
     // missing subscription table (boot step failed) must not break the balance.
-    const { getSubscription } = await import('@holoscript/absorb-service/credits');
-    const sub = await getSubscription(userId).catch(() => null);
+    // A row from the other Stripe mode (a practice subscription) or one holding
+    // only the customer is not a subscription to show.
+    const { getSubscription, stripeKeyLivemode, subscriptionInMode, tierInMode } = await import(
+      '@holoscript/absorb-service/credits'
+    );
+    const livemode = stripeKeyLivemode(configuredStripeKey());
+    const stored = await getSubscription(userId).catch(() => null);
+    const sub = subscriptionInMode(stored, livemode);
 
     res.json({
-      subscription: sub
+      subscription: sub?.stripeSubscriptionId
         ? {
             plan: sub.plan,
             status: sub.status,
@@ -160,14 +209,10 @@ router.get('/balance', async (req: Request, res: Response) => {
           }
         : null,
       userId,
-      // @ts-ignore - Automatic remediation for TS2339
       balanceCents: account?.balanceCents ?? 0,
-      // @ts-ignore - Automatic remediation for TS2339
-      tier: account?.tier ?? 'free',
+      tier: tierInMode(account?.tier ?? 'free', stored, livemode),
       canAfford: balance.sufficient,
-      // @ts-ignore - Automatic remediation for TS2339
       lifetimeSpent: account?.lifetimeSpentCents ?? 0,
-      // @ts-ignore - Automatic remediation for TS2339
       lifetimePurchased: account?.lifetimePurchasedCents ?? 0,
     });
   } catch (error: any) {
@@ -227,10 +272,10 @@ router.post('/purchase', async (req: Request, res: Response) => {
       return;
     }
 
-    const successUrl = returnUrl(body.successUrl, '/api/credits/success?session_id={CHECKOUT_SESSION_ID}');
-    const cancelUrl = returnUrl(body.cancelUrl, '/api/credits/cancel');
+    const successUrl = returnUrl(body.successUrl);
+    const cancelUrl = returnUrl(body.cancelUrl);
     if (!successUrl || !cancelUrl) {
-      res.status(400).json(RETURN_URL_REQUIRED);
+      res.status(400).json(RETURN_URL_NOT_ALLOWED);
       return;
     }
 
@@ -281,15 +326,17 @@ router.post('/purchase', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
-    console.error('[credits/purchase] Error:', error.message);
-    res.status(500).json({ error: 'Failed to create purchase', message: error.message });
+    logFailure('purchase', error);
+    res.status(500).json({
+      error: 'Failed to create purchase',
+      message: 'The purchase could not be started. Nothing was charged.',
+    });
   }
 });
 
 // ─── Studio Pro ──────────────────────────────────────────────────────────────
 
-/** The one plan /subscribe sells. The webhook recognises its objects by this metadata. */
-export const STUDIO_PRO_PLAN = 'studio_pro';
+export { STUDIO_PRO_PLAN };
 
 const SubscribeSchema = z.object({
   successUrl: z.string().url().optional(),
@@ -300,15 +347,16 @@ const PortalSchema = z.object({
   returnUrl: z.string().url().optional(),
 });
 
-/** The subset of the Stripe client createPortalSession uses. */
+const ALREADY_SUBSCRIBED = {
+  error: 'Already subscribed',
+  message: 'You already have Studio Pro. You can manage or cancel it from Settings.',
+};
+
+/** The subset of the Stripe client the billing-portal code uses. */
 export interface PortalStripeClient {
   billingPortal: {
     sessions: {
-      create(params: {
-        customer: string;
-        return_url: string;
-        configuration?: string;
-      }): Promise<{ url: string }>;
+      create(params: { customer: string; return_url: string; configuration: string }): Promise<{ url: string }>;
     };
     configurations: {
       list(params: { active: boolean; limit: number }): Promise<{
@@ -319,41 +367,77 @@ export interface PortalStripeClient {
   };
 }
 
+/** How our portal configuration is told apart from the account's others. */
+export const PORTAL_CONFIGURATION_TAG = { createdBy: 'absorb-service', plan: STUDIO_PRO_PLAN } as const;
+
+const portalConfigurationIds = new Map<string, string>();
+
+/** For tests: forget the configuration ids learned so far. */
+export function resetPortalConfigurationCache(): void {
+  portalConfigurationIds.clear();
+}
+
 /**
- * A Stripe billing-portal session: the page where a subscriber changes card,
- * sees invoices, or cancels. Stripe refuses a session until the account has a
- * portal configuration, so the first time there is none this makes one that
- * allows exactly what Settings promises (cancel at the end of the paid month,
- * card changes, invoice history) and reuses it after that.
+ * The billing-portal configuration every Studio Pro portal session names: ours,
+ * found by its metadata or created once, and never the account's default.
+ *
+ * Sessions used to open with no configuration, which hands them to the
+ * account's DEFAULT, and a fallback took the first active configuration listed.
+ * Either can allow what Settings does not promise: switching to another price,
+ * promotion codes, cancelling at once with a proration credit. Settings promises
+ * exactly three things (cancel at the end of the paid month, change the card,
+ * see invoices), so only a configuration that does exactly those is used. Kept
+ * per Stripe mode, because test and live configurations are separate objects.
  */
-export async function createPortalSession(
+export async function studioProPortalConfiguration(
   stripe: PortalStripeClient,
-  customer: string,
-  returnUrl: string
-): Promise<{ url: string }> {
-  try {
-    return await stripe.billingPortal.sessions.create({ customer, return_url: returnUrl });
-  } catch (error: unknown) {
-    if (!/configuration/i.test(error instanceof Error ? error.message : String(error))) throw error;
-    const listed = await stripe.billingPortal.configurations.list({ active: true, limit: 10 });
-    const reuse =
-      listed.data.find((c) => c.metadata?.createdBy === 'absorb-service') ?? listed.data[0];
-    const configuration =
-      reuse ??
-      (await stripe.billingPortal.configurations.create({
+  mode: string
+): Promise<string> {
+  const known = portalConfigurationIds.get(mode);
+  if (known) return known;
+  const listed = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
+  const ours = listed.data.find(
+    (c) =>
+      c.metadata?.createdBy === PORTAL_CONFIGURATION_TAG.createdBy &&
+      c.metadata?.plan === PORTAL_CONFIGURATION_TAG.plan
+  );
+  const id =
+    ours?.id ??
+    (
+      await stripe.billingPortal.configurations.create({
         features: {
           subscription_cancel: { enabled: true, mode: 'at_period_end' },
           payment_method_update: { enabled: true },
           invoice_history: { enabled: true },
         },
         business_profile: { headline: 'HoloScript Studio Pro' },
-        metadata: { createdBy: 'absorb-service' },
-      }));
-    return await stripe.billingPortal.sessions.create({
-      customer,
-      return_url: returnUrl,
-      configuration: configuration.id,
-    });
+        metadata: { ...PORTAL_CONFIGURATION_TAG },
+      })
+    ).id;
+  portalConfigurationIds.set(mode, id);
+  return id;
+}
+
+/**
+ * A Stripe billing-portal session on our configuration: the page where a
+ * subscriber changes card, sees invoices, or cancels. A remembered configuration
+ * that Stripe refuses (deactivated in the dashboard) is looked up again once.
+ */
+export async function createPortalSession(
+  stripe: PortalStripeClient,
+  customer: string,
+  returnUrl: string,
+  mode: string
+): Promise<{ url: string }> {
+  const remembered = portalConfigurationIds.has(mode);
+  const configuration = await studioProPortalConfiguration(stripe, mode);
+  try {
+    return await stripe.billingPortal.sessions.create({ customer, return_url: returnUrl, configuration });
+  } catch (error: unknown) {
+    if (!remembered) throw error;
+    portalConfigurationIds.delete(mode);
+    const fresh = await studioProPortalConfiguration(stripe, mode);
+    return await stripe.billingPortal.sessions.create({ customer, return_url: returnUrl, configuration: fresh });
   }
 }
 
@@ -371,10 +455,10 @@ router.post('/subscribe', async (req: Request, res: Response) => {
       return;
     }
 
-    const successUrl = returnUrl(body.successUrl, '/api/credits/success?session_id={CHECKOUT_SESSION_ID}');
-    const cancelUrl = returnUrl(body.cancelUrl, '/api/credits/cancel');
+    const successUrl = returnUrl(body.successUrl);
+    const cancelUrl = returnUrl(body.cancelUrl);
     if (!successUrl || !cancelUrl) {
-      res.status(400).json(RETURN_URL_REQUIRED);
+      res.status(400).json(RETURN_URL_NOT_ALLOWED);
       return;
     }
 
@@ -387,21 +471,53 @@ router.post('/subscribe', async (req: Request, res: Response) => {
       return;
     }
 
-    const { SUBSCRIPTION_PRICING, getSubscription, tierForSubscriptionStatus } = await import(
-      '@holoscript/absorb-service/credits'
+    const {
+      SUBSCRIPTION_PRICING,
+      getSubscription,
+      subscriptionInMode,
+      stripeKeyLivemode,
+      tierForSubscriptionStatus,
+      ensureSubscriptionCustomer,
+      recordSubscription,
+    } = await import('@holoscript/absorb-service/credits');
+    const livemode = stripeKeyLivemode(stripeKey);
+    const existing = subscriptionInMode(await getSubscription(userId), livemode);
+    if (existing?.stripeSubscriptionId && tierForSubscriptionStatus(existing.status) === 'pro') {
+      res.status(409).json(ALREADY_SUBSCRIBED);
+      return;
+    }
+
+    const { default: Stripe } = await import('stripe');
+    const stripe = new Stripe(stripeKey);
+
+    // One Stripe customer per user, saved before the first checkout, so a second
+    // click cannot open a second subscription on a second customer.
+    const customer = await ensureSubscriptionCustomer(
+      userId,
+      { plan: STUDIO_PRO_PLAN, livemode },
+      async () => (await stripe.customers.create({ metadata: { userId } })).id
     );
-    const existing = await getSubscription(userId);
-    if (existing && tierForSubscriptionStatus(existing.status) === 'pro') {
-      res.status(409).json({
-        error: 'Already subscribed',
-        message: 'You already have Studio Pro. You can manage or cancel it from Settings.',
+    if (!customer) {
+      res.status(503).json({
+        error: 'Subscriptions unavailable',
+        message: 'Studio Pro cannot be started right now. Nothing was charged.',
       });
       return;
     }
 
+    // Our row lags the webhook, so ask Stripe itself whether this customer
+    // already has a live Studio Pro subscription, and catch the row up if so.
+    const current = await stripe.subscriptions.list({ customer, status: 'all', limit: 20 });
+    const live = current.data.find(
+      (s) => s.metadata?.plan === STUDIO_PRO_PLAN && tierForSubscriptionStatus(s.status) === 'pro'
+    );
+    if (live) {
+      await recordSubscription(userId, subscriptionRecordFrom(live, customer)).catch(() => null);
+      res.status(409).json(ALREADY_SUBSCRIBED);
+      return;
+    }
+
     const pro = SUBSCRIPTION_PRICING.studioPro;
-    const { default: Stripe } = await import('stripe');
-    const stripe = new Stripe(stripeKey);
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [
@@ -418,9 +534,7 @@ router.post('/subscribe', async (req: Request, res: Response) => {
           quantity: 1,
         },
       ],
-      // A returning subscriber keeps one Stripe customer, so their invoices and
-      // cards stay in one place and the webhook can find them by customer id.
-      ...(existing?.stripeCustomerId ? { customer: existing.stripeCustomerId } : {}),
+      customer,
       client_reference_id: userId,
       metadata: { userId, plan: STUDIO_PRO_PLAN },
       // Copied onto the subscription, so its invoices and later events say whose
@@ -436,9 +550,11 @@ router.post('/subscribe', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('[credits/subscribe] Error:', message);
-    res.status(500).json({ error: 'Failed to start the subscription', message });
+    logFailure('subscribe', error);
+    res.status(500).json({
+      error: 'Failed to start the subscription',
+      message: 'Studio Pro checkout could not be started. Nothing was charged.',
+    });
   }
 });
 
@@ -456,9 +572,9 @@ router.post('/portal', async (req: Request, res: Response) => {
       return;
     }
 
-    const back = returnUrl(body.returnUrl, '/api/credits/balance');
+    const back = returnUrl(body.returnUrl);
     if (!back) {
-      res.status(400).json(RETURN_URL_REQUIRED);
+      res.status(400).json(RETURN_URL_NOT_ALLOWED);
       return;
     }
 
@@ -468,9 +584,12 @@ router.post('/portal', async (req: Request, res: Response) => {
       return;
     }
 
-    const { getSubscription } = await import('@holoscript/absorb-service/credits');
-    const sub = await getSubscription(userId);
-    if (!sub) {
+    const { getSubscription, subscriptionInMode, stripeKeyLivemode } = await import(
+      '@holoscript/absorb-service/credits'
+    );
+    const livemode = stripeKeyLivemode(stripeKey);
+    const sub = subscriptionInMode(await getSubscription(userId), livemode);
+    if (!sub?.stripeSubscriptionId) {
       res.status(404).json({
         error: 'No subscription',
         message: 'This account has no Studio Pro subscription to manage.',
@@ -480,16 +599,18 @@ router.post('/portal', async (req: Request, res: Response) => {
 
     const { default: Stripe } = await import('stripe');
     const stripe = new Stripe(stripeKey) as unknown as PortalStripeClient;
-    const portal = await createPortalSession(stripe, sub.stripeCustomerId, back);
+    const portal = await createPortalSession(stripe, sub.stripeCustomerId, back, String(livemode));
     res.json({ url: portal.url });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('[credits/portal] Error:', message);
-    res.status(500).json({ error: 'Failed to open subscription management', message });
+    logFailure('portal', error);
+    res.status(500).json({
+      error: 'Failed to open subscription management',
+      message: 'The billing page could not be opened.',
+    });
   }
 });
 
@@ -560,9 +681,12 @@ router.get('/success', async (req: Request, res: Response) => {
     } else {
       res.status(400).json({ error: 'Payment not completed' });
     }
-  } catch (error: any) {
-    console.error('[credits/success] Error:', error.message);
-    res.status(500).json({ error: 'Failed to process payment', message: error.message });
+  } catch (error: unknown) {
+    logFailure('success', error);
+    res.status(500).json({
+      error: 'Failed to process payment',
+      message: 'The payment could not be checked right now. If you paid, your credits still arrive on their own.',
+    });
   }
 });
 

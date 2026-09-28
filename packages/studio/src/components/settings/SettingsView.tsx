@@ -30,6 +30,7 @@ import {
   PURCHASE_RETURN_PARAM,
   creditBalanceFrom,
   purchaseReturnNotice,
+  stripeRedirect,
   studioProFailure,
   studioProRedirect,
   studioProStateFrom,
@@ -89,6 +90,10 @@ export function SettingsView() {
   const [purchaseTone, setPurchaseTone] = useState<'error' | 'ok' | 'info'>('error');
   const [studioPro, setStudioPro] = useState<StudioProState | null>(null);
   const [studioProBusy, setStudioProBusy] = useState(false);
+  // True from a Studio Pro checkout return until the webhook's Pro shows up (or a
+  // minute passes): Subscribe stays hidden, so a slow webhook cannot invite a
+  // second checkout.
+  const [studioProConfirming, setStudioProConfirming] = useState(false);
 
   // ── Profile form state (React-controlled; kept in host) ────────────────────
   const [displayName, setDisplayName] = useState('');
@@ -178,6 +183,7 @@ export function SettingsView() {
   // the parameters so a reload does not repeat the message. Read once, at the
   // first render.
   const purchaseReturn = useRef(purchaseReturnNotice(searchParams.get(PURCHASE_RETURN_PARAM)));
+  const returnedFromSubscribing = useRef(searchParams.get(PURCHASE_RETURN_PARAM) === 'subscribed');
   useEffect(() => {
     const notice = purchaseReturn.current;
     if (!notice) return;
@@ -185,6 +191,7 @@ export function SettingsView() {
     setPurchaseMessage(notice.text);
     window.history.replaceState(null, '', '/settings?tab=credits');
     if (!notice.refreshBalance) return;
+    if (returnedFromSubscribing.current) setStudioProConfirming(true);
     let reads = 0;
     const timer = window.setInterval(() => {
       reads += 1;
@@ -193,10 +200,15 @@ export function SettingsView() {
         .then((data) => {
           setCreditBalance(creditBalanceFrom(data));
           setCreditTier((data.tier as string) ?? 'free');
-          setStudioPro(studioProStateFrom(data));
+          const pro = studioProStateFrom(data);
+          setStudioPro(pro);
+          if (pro.isPro) setStudioProConfirming(false);
         })
         .catch(() => {});
-      if (reads >= 12) window.clearInterval(timer);
+      if (reads >= 12) {
+        window.clearInterval(timer);
+        setStudioProConfirming(false);
+      }
     }, 5000);
     return () => window.clearInterval(timer);
   }, []);
@@ -264,8 +276,9 @@ export function SettingsView() {
     try {
       const res = await fetch('/api/stripe/connect', { method: 'POST' });
       const data = await res.json();
-      if (data.onboardingUrl) {
-        window.location.href = data.onboardingUrl;
+      const onboarding = stripeRedirect(res.ok, data.onboardingUrl);
+      if (onboarding) {
+        window.location.href = onboarding;
       } else if (data.status === 'complete') {
         setStripeStatus('complete');
       }
@@ -288,8 +301,9 @@ export function SettingsView() {
         body: JSON.stringify({ packageId: pkgId }),
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-      if (res.ok && typeof data.checkoutUrl === 'string') {
-        window.location.href = data.checkoutUrl;
+      const checkout = stripeRedirect(res.ok, data.checkoutUrl);
+      if (checkout) {
+        window.location.href = checkout;
         return;
       }
       const reason =
@@ -564,6 +578,7 @@ export function SettingsView() {
               <StudioProCard
                 state={studioPro}
                 busy={studioProBusy}
+                confirming={studioProConfirming}
                 onSubscribe={() => void studioProAction('subscribe')}
                 onManage={() => void studioProAction('portal')}
               />

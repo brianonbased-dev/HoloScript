@@ -6,10 +6,18 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  decideSubscriptionWrite,
+  ensureSubscriptionCustomer,
   grantSubscriptionCredits,
+  isEndedSubscriptionStatus,
+  nextTier,
   recordSubscription,
   setDbProvider,
+  stripeKeyLivemode,
+  subscriptionInMode,
   tierForSubscriptionStatus,
+  tierInMode,
+  type CreditSubscription,
 } from '../creditService';
 import { creditAccounts, creditSubscriptions, creditTransactions } from '../../schema';
 
@@ -26,7 +34,8 @@ function collectStrings(node: unknown, out: string[] = [], depth = 0): string[] 
     return out;
   }
   if (typeof node === 'object') {
-    for (const v of Object.values(node as Record<string, unknown>)) collectStrings(v, out, depth + 1);
+    for (const v of Object.values(node as Record<string, unknown>))
+      collectStrings(v, out, depth + 1);
   }
   return out;
 }
@@ -38,14 +47,31 @@ interface Write {
   conflictTarget?: unknown;
 }
 
-function makeDb(opts: { withTransaction: boolean }) {
+function makeDb(opts: {
+  withTransaction: boolean;
+  tier?: string;
+  stored?: Record<string, unknown> | null;
+}) {
   const state = {
     writes: [] as Write[],
-    ledger: [] as Array<{ stripeSessionId: string | null; amountCents: number; type: string; balanceAfterCents: number }>,
+    ledger: [] as Array<{
+      stripeSessionId: string | null;
+      amountCents: number;
+      type: string;
+      balanceAfterCents: number;
+    }>,
     balance: 100,
     transactions: 0,
+    locks: 0,
   };
-  const account = { userId: USER, balanceCents: 100, lifetimeSpentCents: 0, lifetimePurchasedCents: 0, tier: 'free', freeCreditsUsedCents: 0 };
+  const account = {
+    userId: USER,
+    balanceCents: 100,
+    lifetimeSpentCents: 0,
+    lifetimePurchasedCents: 0,
+    tier: opts.tier ?? 'free',
+    freeCreditsUsedCents: 0,
+  };
   const db: Record<string, unknown> = {
     select(_cols?: unknown) {
       let table: unknown = null;
@@ -61,10 +87,17 @@ function makeDb(opts: { withTransaction: boolean }) {
         },
         limit(_n: number) {
           if (table === creditTransactions) {
-            return Promise.resolve(state.ledger.filter((r) => r.stripeSessionId && strings.includes(r.stripeSessionId)));
+            return Promise.resolve(
+              state.ledger.filter((r) => r.stripeSessionId && strings.includes(r.stripeSessionId))
+            );
           }
           if (table === creditAccounts) return Promise.resolve([account]);
+          if (table === creditSubscriptions && opts.stored) return Promise.resolve([opts.stored]);
           return Promise.resolve([]);
+        },
+        for(strength: string) {
+          if (strength === 'update') state.locks += 1;
+          return chain.limit(1);
         },
       };
       return chain;
@@ -125,22 +158,48 @@ const SUB = {
   stripeCustomerId: 'cus_1',
   stripeSubscriptionId: 'sub_1',
   status: 'active',
+  livemode: true,
   currentPeriodEnd: new Date('2026-10-28T00:00:00Z'),
   cancelAtPeriodEnd: false,
 };
 
+/** A stored row as the table holds it (camelCase, as drizzle returns it). */
+function storedRow(over: Partial<CreditSubscription> = {}): Record<string, unknown> {
+  return { userId: USER, ...SUB, ...over };
+}
+
+function stored(over: Partial<CreditSubscription> = {}): CreditSubscription {
+  return { userId: USER, ...SUB, ...over };
+}
+
 describe('Studio Pro in the credit service', () => {
   it('Pro while Stripe treats the subscription as live, free for everything else', () => {
-    for (const s of ['active', 'trialing', 'past_due']) expect(tierForSubscriptionStatus(s)).toBe('pro');
-    for (const s of ['canceled', 'unpaid', 'incomplete', 'incomplete_expired', 'paused', '', 'weird', null, undefined]) {
+    for (const s of ['active', 'trialing', 'past_due'])
+      expect(tierForSubscriptionStatus(s)).toBe('pro');
+    for (const s of [
+      'canceled',
+      'unpaid',
+      'incomplete',
+      'incomplete_expired',
+      'paused',
+      'none',
+      '',
+      'weird',
+      null,
+      undefined,
+    ]) {
       expect(tierForSubscriptionStatus(s)).toBe('free');
     }
+    expect(['canceled', 'incomplete_expired'].every(isEndedSubscriptionStatus)).toBe(true);
+    expect(
+      ['active', 'past_due', 'unpaid', 'incomplete', 'paused'].some(isEndedSubscriptionStatus)
+    ).toBe(false);
   });
 
-  it('records the subscription (upsert by user) and the tier in one transaction', async () => {
+  it('records the subscription (upsert by user) and the tier in one transaction, under a row lock', async () => {
     const db = makeDb({ withTransaction: true });
     setDbProvider(() => db);
-    expect(await recordSubscription(USER, SUB)).toEqual({ tier: 'pro' });
+    expect(await recordSubscription(USER, SUB)).toEqual({ tier: 'pro', recorded: true });
     const [row, tier] = db._state.writes;
     expect(row.table).toBe(creditSubscriptions);
     expect(row.values).toMatchObject({ userId: USER, ...SUB });
@@ -148,12 +207,16 @@ describe('Studio Pro in the credit service', () => {
     expect(tier.table).toBe(creditAccounts);
     expect(tier.values.tier).toBe('pro');
     expect(db._state.transactions).toBe(1);
+    expect(db._state.locks).toBe(1);
   });
 
-  it('a canceled subscription writes the free tier', async () => {
-    const db = makeDb({ withTransaction: true });
+  it('a canceled subscription moves a Pro account back to free', async () => {
+    const db = makeDb({ withTransaction: true, tier: 'pro', stored: storedRow() });
     setDbProvider(() => db);
-    expect(await recordSubscription(USER, { ...SUB, status: 'canceled' })).toEqual({ tier: 'free' });
+    expect(await recordSubscription(USER, { ...SUB, status: 'canceled' })).toEqual({
+      tier: 'free',
+      recorded: true,
+    });
     expect(db._state.writes[1].values.tier).toBe('free');
   });
 
@@ -164,14 +227,237 @@ describe('Studio Pro in the credit service', () => {
     expect(db._state.writes).toHaveLength(0);
   });
 
-  it('one paid invoice grants its credits once, keyed by the invoice id', async () => {
+  it('a read that would move the row backwards writes nothing, and says why', async () => {
+    // D1, found on real PostgreSQL by review: a late delivery about the user's
+    // older, ended subscription replaced the live one and turned them free.
+    const db = makeDb({
+      withTransaction: true,
+      tier: 'pro',
+      stored: storedRow({ stripeSubscriptionId: 'sub_new' }),
+    });
+    setDbProvider(() => db);
+    const result = await recordSubscription(USER, {
+      ...SUB,
+      stripeSubscriptionId: 'sub_old',
+      status: 'canceled',
+    });
+    expect(result).toMatchObject({ tier: 'pro', recorded: false });
+    expect(result?.reason).toMatch(/sub_new is not replaced by sub_old/);
+    expect(db._state.writes).toHaveLength(0);
+  });
+
+  it('never changes a tier Studio Pro does not own', async () => {
+    const db = makeDb({ withTransaction: true, tier: 'enterprise' });
+    setDbProvider(() => db);
+    expect(await recordSubscription(USER, { ...SUB, status: 'canceled' })).toEqual({
+      tier: 'enterprise',
+      recorded: true,
+    });
+    expect(db._state.writes.filter((w) => w.table === creditAccounts)).toHaveLength(0);
+    expect(nextTier('enterprise', 'pro')).toBe('enterprise');
+    expect(nextTier('free', 'pro')).toBe('pro');
+    expect(nextTier('pro', 'free')).toBe('free');
+  });
+
+  it('one paid invoice grants its credits once, keyed by the invoice id, and says which call applied it', async () => {
     const db = makeDb({ withTransaction: true });
     setDbProvider(() => db);
-    await grantSubscriptionCredits(USER, 'in_1', 500, { subscriptionId: 'sub_1' });
-    await grantSubscriptionCredits(USER, 'in_1', 500, { subscriptionId: 'sub_1' });
+    expect(
+      (await grantSubscriptionCredits(USER, 'in_1', 2000, { subscriptionId: 'sub_1' }))?.applied
+    ).toBe(true);
+    expect(
+      (await grantSubscriptionCredits(USER, 'in_1', 2000, { subscriptionId: 'sub_1' }))?.applied
+    ).toBe(false);
     expect(db._state.ledger).toHaveLength(1);
-    expect(db._state.ledger[0]).toMatchObject({ stripeSessionId: 'in_1', amountCents: 500, type: 'subscription' });
-    await grantSubscriptionCredits(USER, 'in_2', 500);
+    expect(db._state.ledger[0]).toMatchObject({
+      stripeSessionId: 'in_1',
+      amountCents: 2000,
+      type: 'subscription',
+    });
+    await grantSubscriptionCredits(USER, 'in_2', 2000);
     expect(db._state.ledger.map((r) => r.stripeSessionId)).toEqual(['in_1', 'in_2']);
+  });
+});
+
+describe('the row only moves forward (decideSubscriptionWrite)', () => {
+  const incoming = (over: Partial<CreditSubscription> = {}) => ({ ...SUB, ...over });
+
+  it('writes when there is nothing to protect', () => {
+    expect(decideSubscriptionWrite(null, incoming())).toEqual({ write: true });
+    // A row holding only the customer, from before the first checkout.
+    expect(
+      decideSubscriptionWrite(stored({ stripeSubscriptionId: null, status: 'none' }), incoming())
+    ).toEqual({ write: true });
+    // A practice row, once the service is live.
+    expect(
+      decideSubscriptionWrite(
+        stored({ livemode: false }),
+        incoming({ stripeSubscriptionId: 'sub_live', status: 'canceled' })
+      )
+    ).toEqual({ write: true });
+  });
+
+  it('the same subscription never comes back to life (D3: an older read written last)', () => {
+    const ended = stored({ status: 'canceled' });
+    const decision = decideSubscriptionWrite(ended, incoming({ status: 'active' }));
+    expect(decision.write).toBe(false);
+    expect(
+      decideSubscriptionWrite(
+        stored({ status: 'incomplete_expired' }),
+        incoming({ status: 'active' })
+      ).write
+    ).toBe(false);
+    // Forward moves and same-state refreshes are written.
+    expect(decideSubscriptionWrite(stored(), incoming({ status: 'canceled' }))).toEqual({
+      write: true,
+    });
+    expect(decideSubscriptionWrite(stored(), incoming({ cancelAtPeriodEnd: true }))).toEqual({
+      write: true,
+    });
+    expect(
+      decideSubscriptionWrite(stored({ status: 'incomplete' }), incoming({ status: 'active' }))
+    ).toEqual({ write: true });
+    expect(decideSubscriptionWrite(ended, incoming({ status: 'canceled' }))).toEqual({
+      write: true,
+    });
+  });
+
+  it('a live subscription is never replaced by another that is ended or unpaid (D1)', () => {
+    for (const status of ['canceled', 'incomplete_expired', 'unpaid', 'incomplete', 'paused']) {
+      const decision = decideSubscriptionWrite(
+        stored(),
+        incoming({ stripeSubscriptionId: 'sub_other', status })
+      );
+      expect(decision.write, status).toBe(false);
+    }
+  });
+
+  it('a second live subscription is kept out of the row and reported as a duplicate', () => {
+    const decision = decideSubscriptionWrite(
+      stored(),
+      incoming({ stripeSubscriptionId: 'sub_second' })
+    );
+    expect(decision).toMatchObject({ write: false, duplicate: true });
+  });
+
+  it('an ended subscription is replaced by a new one, live or not', () => {
+    const ended = stored({ status: 'canceled' });
+    expect(decideSubscriptionWrite(ended, incoming({ stripeSubscriptionId: 'sub_2' }))).toEqual({
+      write: true,
+    });
+    expect(
+      decideSubscriptionWrite(
+        ended,
+        incoming({ stripeSubscriptionId: 'sub_2', status: 'incomplete' })
+      )
+    ).toEqual({ write: true });
+  });
+});
+
+describe('practice and real payments stay apart (Stripe mode)', () => {
+  it('reads the mode from the key', () => {
+    expect(stripeKeyLivemode('sk_live_abc')).toBe(true);
+    expect(stripeKeyLivemode('rk_live_abc')).toBe(true);
+    expect(stripeKeyLivemode(' sk_test_abc ')).toBe(false);
+    expect(stripeKeyLivemode('rk_test_abc')).toBe(false);
+    for (const k of [null, undefined, '', '   ', 'pk_live_abc', 'whsec_abc'])
+      expect(stripeKeyLivemode(k)).toBeNull();
+  });
+
+  it('a practice row does not exist for a live service, and a live row does for a live service', () => {
+    const practice = stored({ livemode: false });
+    expect(subscriptionInMode(practice, true)).toBeNull();
+    expect(subscriptionInMode(practice, false)).toBe(practice);
+    expect(subscriptionInMode(stored(), true)?.stripeSubscriptionId).toBe('sub_1');
+    // Unknown on either side matches: no key configured, or an old row.
+    expect(subscriptionInMode(practice, null)).toBe(practice);
+    expect(subscriptionInMode(stored({ livemode: null }), true)).not.toBeNull();
+    expect(subscriptionInMode(null, true)).toBeNull();
+  });
+
+  it('Pro that only a practice subscription earned is free for a live service', () => {
+    expect(tierInMode('pro', stored({ livemode: false }), true)).toBe('free');
+    expect(tierInMode('pro', stored({ livemode: true }), true)).toBe('pro');
+    expect(tierInMode('pro', null, true)).toBe('pro');
+    expect(tierInMode('free', stored({ livemode: false }), true)).toBe('free');
+    expect(tierInMode('enterprise', stored({ livemode: false }), true)).toBe('enterprise');
+  });
+});
+
+describe('one Stripe customer per user, saved before the first checkout', () => {
+  it('creates the customer once, saves it with no subscription yet, under a row lock', async () => {
+    const db = makeDb({ withTransaction: true });
+    setDbProvider(() => db);
+    let created = 0;
+    const id = await ensureSubscriptionCustomer(
+      USER,
+      { plan: 'studio_pro', livemode: true },
+      async () => {
+        created += 1;
+        return 'cus_new';
+      }
+    );
+    expect(id).toBe('cus_new');
+    expect(created).toBe(1);
+    expect(db._state.locks).toBe(1);
+    const [row] = db._state.writes;
+    expect(row.table).toBe(creditSubscriptions);
+    expect(row.values).toMatchObject({
+      userId: USER,
+      stripeCustomerId: 'cus_new',
+      stripeSubscriptionId: null,
+      status: 'none',
+      livemode: true,
+    });
+  });
+
+  it('reuses the customer already saved in this mode, and creates nothing', async () => {
+    const db = makeDb({ withTransaction: true, stored: storedRow({ status: 'canceled' }) });
+    setDbProvider(() => db);
+    const id = await ensureSubscriptionCustomer(
+      USER,
+      { plan: 'studio_pro', livemode: true },
+      async () => {
+        throw new Error('must not create');
+      }
+    );
+    expect(id).toBe('cus_1');
+    expect(db._state.writes).toHaveLength(0);
+  });
+
+  it('replaces a practice customer when the service is live, and ends the Pro that practice earned', async () => {
+    const db = makeDb({
+      withTransaction: true,
+      tier: 'pro',
+      stored: storedRow({ livemode: false, stripeCustomerId: 'cus_test' }),
+    });
+    setDbProvider(() => db);
+    const id = await ensureSubscriptionCustomer(
+      USER,
+      { plan: 'studio_pro', livemode: true },
+      async () => 'cus_live'
+    );
+    expect(id).toBe('cus_live');
+    expect(db._state.writes[0].values).toMatchObject({
+      stripeCustomerId: 'cus_live',
+      stripeSubscriptionId: null,
+      livemode: true,
+    });
+    // Found on real PostgreSQL: without this, the stored pro tier and the new
+    // same-mode row read as Pro to a live service that was never paid.
+    const tierWrites = db._state.writes.filter((w) => w.table === creditAccounts);
+    expect(tierWrites.map((w) => w.values.tier)).toEqual(['free']);
+  });
+
+  it('refuses without a transaction', async () => {
+    const db = makeDb({ withTransaction: false });
+    setDbProvider(() => db);
+    expect(
+      await ensureSubscriptionCustomer(
+        USER,
+        { plan: 'studio_pro', livemode: true },
+        async () => 'cus_x'
+      )
+    ).toBeNull();
   });
 });

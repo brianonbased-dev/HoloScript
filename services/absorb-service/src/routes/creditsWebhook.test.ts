@@ -102,7 +102,12 @@ const subMocks = vi.hoisted(() => ({
       : null
   ),
 }));
-vi.mock('./subscriptionWebhook.js', () => ({ handleSubscriptionEvent: subMocks.handle }));
+// Only the handler is a seam. The module's constants and row mapping are real,
+// because credits.ts imports them (STUDIO_PRO_PLAN, subscriptionRecordFrom).
+vi.mock('./subscriptionWebhook.js', async () => {
+  const actual = await vi.importActual<typeof import('./subscriptionWebhook.js')>('./subscriptionWebhook.js');
+  return { ...actual, handleSubscriptionEvent: subMocks.handle };
+});
 
 vi.mock('./credits.js', async () => {
   const actual = await vi.importActual<typeof import('./credits.js')>('./credits.js');
@@ -361,5 +366,22 @@ describe('Stripe webhook — Studio Pro events go to their own handler', () => {
 
     expect(subMocks.handle).toHaveBeenCalledTimes(1);
     expect(db.__ledger.at(-1)?.stripeSessionId).toBe('cs_test_A');
+  });
+
+  it('an event whose signature does not verify never reaches the subscription handler', async () => {
+    // Every other test here stubs constructEvent to succeed; this is the one
+    // that proves a forged event is stopped before anything acts on it.
+    stripeMocks.constructEvent.mockImplementationOnce(() => {
+      throw new Error('No signatures found matching the expected signature for payload');
+    });
+    const db = makeDb();
+    await useDb(db);
+
+    const r = res();
+    await (await handler())(req(), r as unknown as Response);
+
+    expect(r._status).toBe(400);
+    expect(subMocks.handle).not.toHaveBeenCalled();
+    expect(db.__ledger).toHaveLength(0);
   });
 });

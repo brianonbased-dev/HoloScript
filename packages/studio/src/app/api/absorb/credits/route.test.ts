@@ -90,6 +90,9 @@ describe('/api/absorb/credits route', () => {
     const sent = sentHeaders(fetchSpy);
     expect(sent['Authorization']).toBe('Bearer absorb-key-test');
     expect(sent['X-User-Authorization']).toBe('Bearer ghp_user_token');
+    // A redirect would carry X-User-Authorization (the user's GitHub token) to
+    // wherever it pointed, so absorb's answer is taken as it is or not at all.
+    expect((fetchSpy.mock.calls[0][1] as RequestInit).redirect).toBe('error');
   });
 
   describe('where Stripe sends the buyer afterwards', () => {

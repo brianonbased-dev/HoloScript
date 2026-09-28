@@ -52,6 +52,10 @@ async function proxyToAbsorb(
       headers,
       body: body || undefined,
       signal: AbortSignal.timeout(10000),
+      // absorb answers directly; it never redirects. A redirect would carry the
+      // user's GitHub token (X-User-Authorization) to wherever it pointed, since
+      // fetch drops only Authorization on a cross-origin hop, so it is an error.
+      redirect: 'error',
     });
     const data = await res.json().catch(() => ({ error: 'Invalid response' }));
     return { ok: res.ok, status: res.status, data };

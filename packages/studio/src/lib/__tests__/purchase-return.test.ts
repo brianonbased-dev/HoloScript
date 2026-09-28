@@ -7,6 +7,8 @@ import {
   creditsSettingsUrl,
   purchaseReturnNotice,
   purchaseReturnUrls,
+  isStripeHostedUrl,
+  stripeRedirect,
   studioProFailure,
   studioProRedirect,
   studioProStateFrom,
@@ -153,6 +155,38 @@ describe('purchase return', () => {
     expect(studioProRedirect('subscribe', true, { checkoutUrl: 'javascript:alert(1)' })).toBeNull();
     expect(studioProRedirect('portal', true, { url: 'http://billing.stripe.com/p' })).toBeNull();
     expect(studioProRedirect('portal', true, null)).toBeNull();
+  });
+
+  it('follows Stripe itself and nothing else, whatever the server answered', () => {
+    // Review: Studio Pro accepted any https host, and the one-time purchase and
+    // Stripe Connect paths followed any string at all, javascript: included.
+    for (const url of [
+      'https://checkout.stripe.com/c/pay/cs_live_1',
+      'https://billing.stripe.com/p/session/live_1',
+      'https://connect.stripe.com/setup/e/acct_1',
+    ]) {
+      expect(isStripeHostedUrl(url), url).toBe(true);
+      expect(stripeRedirect(true, url)).toBe(url);
+    }
+    for (const url of [
+      'https://evil.example/pay',
+      'https://stripe.com.evil.example/pay',
+      'https://evilstripe.com/pay',
+      'https://checkout.stripe.com@evil.example/pay',
+      'http://checkout.stripe.com/c/pay/cs_1',
+      'javascript:alert(1)',
+      '/relative/path',
+      '',
+      42,
+      null,
+    ]) {
+      expect(isStripeHostedUrl(url), String(url)).toBe(false);
+      expect(stripeRedirect(true, url)).toBeNull();
+    }
+    expect(stripeRedirect(false, 'https://checkout.stripe.com/c/pay/cs_1')).toBeNull();
+    expect(
+      studioProRedirect('subscribe', true, { checkoutUrl: 'https://evil.example/pay' })
+    ).toBeNull();
   });
 
   it("says absorb's own reason, and that a failed subscribe charged nothing", () => {

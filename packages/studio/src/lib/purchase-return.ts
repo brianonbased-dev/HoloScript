@@ -113,8 +113,7 @@ export type StudioProAction = 'subscribe' | 'portal';
 /**
  * Where to send the user after a Studio Pro action, or null when the answer
  * gives nowhere to go. `subscribe` answers with Stripe's `checkoutUrl`, `portal`
- * with the billing page's `url`; both are Stripe pages, so anything that is not
- * https is not followed.
+ * with the billing page's `url`; only a Stripe page is followed.
  */
 export function studioProRedirect(
   action: StudioProAction,
@@ -122,8 +121,35 @@ export function studioProRedirect(
   data: unknown
 ): string | null {
   const d = (data ?? {}) as { checkoutUrl?: unknown; url?: unknown };
-  const next = action === 'subscribe' ? d.checkoutUrl : d.url;
-  return ok && typeof next === 'string' && /^https:\/\//u.test(next) ? next : null;
+  return stripeRedirect(ok, action === 'subscribe' ? d.checkoutUrl : d.url);
+}
+
+/**
+ * True for a page Stripe itself serves over https: checkout.stripe.com,
+ * billing.stripe.com, connect.stripe.com. Every redirect the Credits tab makes
+ * after asking the server goes to one of these, so nothing else is followed:
+ * not another https site, and never a `javascript:` URL, which would run inside
+ * the Studio.
+ */
+export function isStripeHostedUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === 'https:' &&
+    !url.username &&
+    !url.password &&
+    (url.hostname === 'stripe.com' || url.hostname.endsWith('.stripe.com'))
+  );
+}
+
+/** The Stripe page a successful answer points at, or null. */
+export function stripeRedirect(ok: boolean, value: unknown): string | null {
+  return ok && isStripeHostedUrl(value) ? value : null;
 }
 
 /** What to tell the user when a Studio Pro action did not open a Stripe page. */

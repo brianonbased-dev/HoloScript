@@ -10,6 +10,7 @@ import { useCallback, useEffect } from 'react';
 import { useAbsorbServiceStore } from '@/lib/stores/absorbServiceStore';
 import { OPERATION_COSTS, type OperationType } from '@/lib/absorb/pricing';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
+import { stripeRedirect } from '@/lib/purchase-return';
 
 export function useAbsorbService() {
   const store = useAbsorbServiceStore();
@@ -218,8 +219,9 @@ export function useAbsorbService() {
     const data = await res.json();
     // absorb-service answers with `checkoutUrl` (routes/credits.ts); `sessionUrl`
     // never existed, so a successful purchase used to go nowhere.
-    const checkoutUrl = data.checkoutUrl ?? data.sessionUrl;
-    if (res.ok && typeof checkoutUrl === 'string') {
+    // Only a Stripe page is followed (see isStripeHostedUrl).
+    const checkoutUrl = stripeRedirect(res.ok, data.checkoutUrl ?? data.sessionUrl);
+    if (checkoutUrl) {
       window.location.href = checkoutUrl;
     }
     return { success: res.ok, data };
