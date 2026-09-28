@@ -517,7 +517,7 @@ composition controller {
     lights.forEach(light => light.enabled = state)
   }
 
-  function play_sound(name: string, volume: number = 1.0) {
+  function play_sound(name: string, volume: number) {
     audio.play(name, { volume: volume })
   }
 }
