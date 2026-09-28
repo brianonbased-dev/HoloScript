@@ -114,11 +114,14 @@ function toPosition(value: HoloValue | undefined): string {
   )}, z = ${toKotlinFloatLiteral(c[2], 0)})`;
 }
 
-/** First scalar component of a scale prop (number or vector). */
-function scaleScalar(value: HoloValue | undefined, fallback: number): number {
+/** Size in meters of a shape with no scale prop: every kind is this wide. */
+const DEFAULT_SIZE = 0.1;
+
+/** One axis of a scale prop: the number itself, or that component of an [x,y,z] vector. */
+function scaleAxis(value: HoloValue | undefined, axis: 0 | 1 | 2, fallback: number): number {
   if (typeof value === 'number') return value;
-  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'number') {
-    return value[0] as number;
+  if (Array.isArray(value) && typeof value[axis] === 'number') {
+    return value[axis] as number;
   }
   return fallback;
 }
@@ -132,7 +135,7 @@ function toCubeSize(value: HoloValue | undefined): string {
       0.1
     )}, ${toKotlinFloatLiteral(n[2], 0.1)})`;
   }
-  return `Size(${toKotlinFloatLiteral(scaleScalar(value, 0.1), 0.1)})`;
+  return `Size(${toKotlinFloatLiteral(scaleAxis(value, 0, DEFAULT_SIZE), DEFAULT_SIZE)})`;
 }
 
 /** Emit one SceneView node composable for a HoloScript object inside ARScene { }. */
@@ -147,13 +150,20 @@ function emitObjectNode(compiler: AndroidCompiler, obj: HoloObjectDecl): void {
 
   // Shape arguments per kind. Every name must be a real parameter of the SceneView composable
   // (the golden test checks them against the pinned signature): a cylinder is radius + height.
+  // Scale is the shape's size, the rule Quest (quest-world-emit.ts: Sphere(0.5 * sx), boxes
+  // sx wide) and the web (SphereGeometry(0.5) / CylinderGeometry(0.5, 0.5, 1) scaled) follow.
+  // A sphere of scale s is s across, a cylinder s across and s tall (y of an [x,y,z] scale),
+  // a cube s on each side. SceneView takes radii, so round shapes get half the size; passing
+  // the size itself drew them twice as wide as every other target.
   const shapeArgs: Record<Geometry, string[]> = {
     cube: [`size = ${toCubeSize(scale)}`],
     cylinder: [
-      `radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)}`,
-      `height = ${toKotlinFloatLiteral(scaleScalar(scale, 0.1) * 2, 0.2)}`,
+      `radius = ${toKotlinFloatLiteral(scaleAxis(scale, 0, DEFAULT_SIZE) / 2, DEFAULT_SIZE / 2)}`,
+      `height = ${toKotlinFloatLiteral(scaleAxis(scale, 1, DEFAULT_SIZE), DEFAULT_SIZE)}`,
     ],
-    sphere: [`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)}`],
+    sphere: [
+      `radius = ${toKotlinFloatLiteral(scaleAxis(scale, 0, DEFAULT_SIZE) / 2, DEFAULT_SIZE / 2)}`,
+    ],
   };
 
   compiler.emit(`// ${safeName} — geometry: ${geom}`);
