@@ -110,7 +110,8 @@ export interface DaemonHost {
   exec(
     command: string,
     args?: string[],
-    opts?: { cwd?: string; timeoutMs?: number }
+    /** `env` entries are added to the host's own environment for this one command. */
+    opts?: { cwd?: string; timeoutMs?: number; env?: Record<string, string> }
   ): Promise<DaemonExecResult>;
 }
 
@@ -2934,8 +2935,12 @@ export function createDaemonActions(
       const baseName = file.split(/[/\\]/).pop() || file;
       const commitType = focus === 'coverage' ? 'test' : focus === 'docs' ? 'docs' : 'fix';
       const msg = `${commitType}(${focus}): auto-fix ${baseName} [daemon]`;
-      const result = await host.exec('git', ['commit', '--no-verify', '-m', `"${msg}"`], {
+      // No --no-verify: it skipped every hook, the secret scan included. HOLODAEMON_ACTIVE=1
+      // is the repo pre-commit's own marker for automated commits; it skips the slow gates
+      // only after the secret scan has run (task_1790208375334_2rkg).
+      const result = await host.exec('git', ['commit', '-m', `"${msg}"`], {
         cwd: config.repoRoot,
+        env: { HOLODAEMON_ACTIVE: '1' },
       });
       bb.committed = result.code === 0;
 

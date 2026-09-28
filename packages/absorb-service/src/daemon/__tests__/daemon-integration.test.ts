@@ -22,7 +22,7 @@ class MockHost {
       (
         command: string,
         args?: string[],
-        opts?: { cwd?: string; timeoutMs?: number }
+        opts?: { cwd?: string; timeoutMs?: number; env?: Record<string, string> }
       ) => Promise<DaemonExecResult>
     >();
 
@@ -49,9 +49,14 @@ class MockHost {
   exec(
     command: string,
     args?: string[],
-    opts?: { cwd?: string; timeoutMs?: number }
+    opts?: { cwd?: string; timeoutMs?: number; env?: Record<string, string> }
   ): Promise<DaemonExecResult> {
     return this.execImpl(command, args, opts);
+  }
+
+  /** Every exec call so far, as [command, args, opts]. */
+  calls() {
+    return this.execImpl.mock.calls;
   }
 
   setExecResponses(
@@ -441,5 +446,33 @@ describe('holoscript daemon integration', () => {
     const unlimited = await unlimitedActions.generate_fix({}, blackboard, context);
     expect(typeof unlimited).toBe('boolean');
     expect(blackboard.budget_exhausted).toBeUndefined();
+  });
+
+  // task_1790208375334_2rkg: the daemon committed with --no-verify, which skipped every hook,
+  // the secret scan included. It now commits through the repo pre-commit in its automated
+  // mode (HOLODAEMON_ACTIVE=1), which still runs the secret scan.
+  it('commits through the repo pre-commit in daemon mode, not with --no-verify', async () => {
+    host.setExecResponses((command, args) =>
+      command === 'git' && args?.[0] === 'rev-parse'
+        ? { code: 0, stdout: 'abc1234\n', stderr: '' }
+        : { code: 0, stdout: '', stderr: '' }
+    );
+    const { actions } = createDaemonActions(host as unknown as DaemonHost, llm, {
+      ...createConfig(),
+      commit: true,
+    });
+    blackboard.fileEdited = true;
+    blackboard.currentCandidate = 'src/fix-me.ts';
+
+    await actions.commit_changes({}, blackboard, context);
+
+    const commit = host
+      .calls()
+      .find(([command, args]) => command === 'git' && args?.[0] === 'commit');
+    expect(commit).toBeDefined();
+    const [, args, opts] = commit!;
+    expect(args).not.toContain('--no-verify');
+    expect(opts?.env?.HOLODAEMON_ACTIVE).toBe('1');
+    expect(blackboard.committed).toBe(true);
   });
 });
