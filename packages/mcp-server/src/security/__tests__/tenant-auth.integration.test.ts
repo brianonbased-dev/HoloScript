@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { validateTenantKey } from '../tenant-auth.js';
+import { authorizeToolCall } from '../tool-scopes.js';
 
 describe('tenant-auth validateTenantKey', () => {
   const originalEnv = { ...process.env };
@@ -51,10 +52,36 @@ describe('tenant-auth validateTenantKey', () => {
     const result = await validateTenantKey('local-only-key');
     expect(result).not.toBeNull();
     expect(result?.active).toBe(true);
-    expect(result?.scopes).toContain('admin:*');
     expect(result?.tenantContext?.tenantId).toBe('tenant_dev_mock');
+    expect(result?.tenantContext?.subscriptionTier).toBe('enterprise');
     expect(warn).toHaveBeenCalled();
 
     warn.mockRestore();
+  });
+
+  // task jch1: an enterprise key used to carry admin:* and tools:admin, which reach the host's
+  // files, git, secrets and install_plugin's in-process code on the server every tenant shares.
+  it('an enterprise key carries no operator scope and cannot reach an operator tool', async () => {
+    delete process.env.DATABASE_URL;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    process.env.NODE_ENV = 'development';
+    process.env.TENANT_AUTH_DEV_MOCK_KEY = 'local-only-key';
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const scopes = (await validateTenantKey('local-only-key'))?.scopes ?? [];
+    expect(scopes).not.toContain('admin:*');
+    expect(scopes).not.toContain('tools:admin');
+    for (const operatorTool of [
+      'install_plugin',
+      'holo_secrets_resolve',
+      'holo_write_file',
+      'holo_git_commit',
+    ]) {
+      expect(authorizeToolCall(operatorTool, scopes).authorized).toBe(false);
+    }
+    // Control: the key still reaches the ordinary tools it is sold for.
+    expect(authorizeToolCall('execute_workflow', scopes).authorized).toBe(true);
+    expect(authorizeToolCall('batch_tool_call', scopes).authorized).toBe(true);
   });
 });
