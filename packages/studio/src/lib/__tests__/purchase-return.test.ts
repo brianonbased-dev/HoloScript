@@ -82,7 +82,7 @@ describe('purchase return', () => {
     expect(back?.refreshBalance).toBe(true);
     // The monthly credits come from the table the webhook grants from.
     expect(back?.text).toContain(
-      `${SUBSCRIPTION_PRICING.studioPro.includedCredits} monthly credits`
+      `${SUBSCRIPTION_PRICING.studioPro.includedCredits.toLocaleString()} monthly credits`
     );
   });
 

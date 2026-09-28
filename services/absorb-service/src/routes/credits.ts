@@ -410,7 +410,7 @@ router.post('/subscribe', async (req: Request, res: Response) => {
             currency: 'usd',
             product_data: {
               name: `HoloScript ${pro.label}`,
-              description: `${pro.includedCredits} credits every month`,
+              description: `${pro.includedCredits.toLocaleString('en-US')} credits every month`,
             },
             unit_amount: pro.priceCentsMonthly,
             recurring: { interval: 'month' },

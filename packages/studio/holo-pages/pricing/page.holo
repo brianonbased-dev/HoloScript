@@ -157,7 +157,7 @@ composition "Pricing" {
     }
 
     object "ProBody" {
-      @text { content: "$15 a month for 500 credits every paid month. Unused credits carry over, and the credit packs above stay on sale to subscribers." }
+      @text { content: "$15 a month for 2000 credits every paid month, the same rate per credit as the Scale pack. Unused credits carry over, and the credit packs above stay on sale to subscribers." }
       @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
     }
 

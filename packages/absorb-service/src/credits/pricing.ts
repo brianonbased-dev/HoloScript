@@ -198,8 +198,15 @@ export const TIER_LIMITS: Record<
 // a monthly Stripe subscription whose paid invoices each grant includedCredits.
 // The fleet-seat, vault and per-receipt billing are not wired yet; these are the
 // ratified figures they will charge.
+// Studio Pro grants 2000 credits a month, not the 500 of the 2026-06-06 figures
+// (changed 2026-09-28). The hourly limit Pro lifts binds only callers using their
+// own GitHub token (MCP, scripts); the Studio website is never rate-limited. So for
+// a website user, 500 credits at $15 was three times what the Starter pack charges
+// for the same 500 credits, against the founder rule of 2026-09-16: "for pricing i
+// dont want to rob people". At 2000, a subscriber pays the Scale pack's rate
+// ($0.0075 a credit) without buying $75 at once.
 export const SUBSCRIPTION_PRICING = {
-  studioPro: { priceCentsMonthly: 1500, includedCredits: 500, label: 'Studio Pro' },
+  studioPro: { priceCentsMonthly: 1500, includedCredits: 2000, label: 'Studio Pro' },
   fleetSeat: {
     priceCentsMonthly: 2500,
     volumePriceCents5Plus: 2000,

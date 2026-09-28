@@ -184,8 +184,15 @@ export const TIER_LIMITS: Record<
 // ratified figures they will charge. Flagged numbers need cold validation: fleet seat
 // assumes a warm-hour budget then credit draw (never unlimited-warm top-card at $25);
 // Diamond launches invite-only; per-receipt needs a design-partner.
+// Studio Pro grants 2000 credits a month, not the 500 of the 2026-06-06 figures
+// (changed 2026-09-28). The hourly limit Pro lifts binds only callers using their
+// own GitHub token (MCP, scripts); the Studio website is never rate-limited. So for
+// a website user, 500 credits at $15 was three times what the Starter pack charges
+// for the same 500 credits, against the founder rule of 2026-09-16: "for pricing i
+// dont want to rob people". At 2000, a subscriber pays the Scale pack's rate
+// ($0.0075 a credit) without buying $75 at once.
 export const SUBSCRIPTION_PRICING = {
-  studioPro: { priceCentsMonthly: 1500, includedCredits: 500, label: 'Studio Pro' },
+  studioPro: { priceCentsMonthly: 1500, includedCredits: 2000, label: 'Studio Pro' },
   fleetSeat: {
     priceCentsMonthly: 2500,
     volumePriceCents5Plus: 2000,

@@ -43,7 +43,7 @@ describe('the Studio Pro card', () => {
     expect(onSubscribe).toHaveBeenCalledOnce();
     expect(screen.getAllByRole('button')).toHaveLength(1);
     expect(
-      screen.getByText(new RegExp(`^${PRO.includedCredits} credits every paid month`))
+      screen.getByText(new RegExp(`^${PRO.includedCredits.toLocaleString()} credits every paid month`))
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -112,7 +112,7 @@ describe('the tier comparison', () => {
     expect(row('Credits included')).toHaveTextContent(
       `${TIER_LIMITS.free.freeCredits} once, when you sign up`
     );
-    expect(row('Credits included')).toHaveTextContent(`${PRO.includedCredits} every paid month`);
+    expect(row('Credits included')).toHaveTextContent(`${PRO.includedCredits.toLocaleString()} every paid month`);
     expect(row('Requests from your own tools (MCP, scripts)')).toHaveTextContent(
       `${TIER_LIMITS.free.hourlyRequestLimit} an hourNo limit`
     );

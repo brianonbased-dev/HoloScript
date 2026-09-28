@@ -117,7 +117,7 @@ function PricingComponent() {
 
     </h2>
 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted">
-      {`\$15 a month for 500 credits every paid month. Unused credits carry over, and the credit packs above stay on sale to subscribers.`}
+      {`\$15 a month for 2000 credits every paid month, the same rate per credit as the Scale pack. Unused credits carry over, and the credit packs above stay on sale to subscribers.`}
 
     </p>
 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-studio-muted">
