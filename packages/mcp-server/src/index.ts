@@ -91,6 +91,7 @@ import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { authorizeToolCall, registerKnownTools } from './security/tool-scopes';
+import { assertNoHostPathArgs } from './security/host-path-args';
 import {
   gateToolCall,
   classifyMcpEnvelopeResult,
@@ -279,7 +280,7 @@ export async function executeSingleTool(
       }>;
       const results: unknown[] = [];
       for (const req of requests) {
-        assertBatchInnerToolAuthorized(String(req.name || ''), signingCtx);
+        assertBatchInnerToolAuthorized(String(req.name || ''), signingCtx, req.arguments || {});
         const res = await executeSingleTool(
           String(req.name || ''),
           req.arguments || {},
@@ -298,7 +299,7 @@ export async function executeSingleTool(
 
     if (name === 'batch_tool_call') {
       const batchResult = await handleBatchToolCall(args || {}, async (toolName, toolArgs) => {
-        assertBatchInnerToolAuthorized(toolName, signingCtx);
+        assertBatchInnerToolAuthorized(toolName, signingCtx, toolArgs || {});
         const res = await executeSingleTool(toolName, toolArgs || {}, signingCtx);
 
         if ((res as { isError?: boolean }).isError) {
@@ -337,7 +338,11 @@ export async function executeSingleTool(
  * Re-check every child against the original request scopes before dispatch.
  * An absent context is the trusted local stdio path, which has no OAuth token.
  */
-function assertBatchInnerToolAuthorized(toolName: string, signingCtx?: SigningContext): void {
+function assertBatchInnerToolAuthorized(
+  toolName: string,
+  signingCtx?: SigningContext,
+  args?: Record<string, unknown>
+): void {
   if (!signingCtx) return;
 
   const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
@@ -346,6 +351,10 @@ function assertBatchInnerToolAuthorized(toolName: string, signingCtx?: SigningCo
       `Batch inner tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
     );
   }
+
+  // Gate 3's host-path rule is not re-run for children, so the batch would be a way round it:
+  // apply the same check to the child's own arguments (task_1790214096204_56rj).
+  assertNoHostPathArgs(toolName, args, signingCtx.scopes ?? []);
 }
 
 // Handle tool calls.
@@ -530,7 +539,7 @@ async function executeBatchInnerTool(
   toolArgs: Record<string, unknown>,
   signingCtx?: SigningContext
 ): Promise<unknown> {
-  assertBatchInnerToolAuthorized(toolName, signingCtx);
+  assertBatchInnerToolAuthorized(toolName, signingCtx, toolArgs || {});
   const res = await _handleSingleToolLogic(toolName, toolArgs || {}, signingCtx);
 
   if ((res as { isError?: boolean }).isError) {
