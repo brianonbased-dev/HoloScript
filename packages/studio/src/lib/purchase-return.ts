@@ -45,6 +45,19 @@ export interface PurchaseReturnNotice {
   refreshBalance: boolean;
 }
 
+/**
+ * The balance, in credits, from a `/api/absorb/credits` answer. absorb-service
+ * answers `balanceCents`; only the Studio proxy's own offline default says
+ * `balance`. Settings read `balance` alone, so whenever absorb answered, the card
+ * showed 0 (found 2026-09-28), and a buyer told "your credits will show above"
+ * would have watched them not appear.
+ */
+export function creditBalanceFrom(data: unknown): number {
+  const d = (data ?? {}) as { balanceCents?: unknown; balance?: unknown };
+  const value = typeof d.balanceCents === 'number' ? d.balanceCents : d.balance;
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
 /** What to tell a buyer arriving with `?purchase=<value>`, or null when they are not returning from checkout. */
 export function purchaseReturnNotice(value: string | null | undefined): PurchaseReturnNotice | null {
   if (value === 'success') {

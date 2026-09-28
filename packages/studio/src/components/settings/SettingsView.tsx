@@ -26,7 +26,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PURCHASE_RETURN_PARAM, purchaseReturnNotice } from '@/lib/purchase-return';
+import { PURCHASE_RETURN_PARAM, creditBalanceFrom, purchaseReturnNotice } from '@/lib/purchase-return';
 import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -133,7 +133,7 @@ export function SettingsView() {
     fetch('/api/absorb/credits')
       .then((r) => r.json())
       .then((data) => {
-        setCreditBalance((data.balance as number) ?? 0);
+        setCreditBalance(creditBalanceFrom(data));
         setCreditTier((data.tier as string) ?? 'free');
       })
       .catch(() => {})
@@ -177,7 +177,7 @@ export function SettingsView() {
       reads += 1;
       fetch('/api/absorb/credits')
         .then((r) => r.json())
-        .then((data) => setCreditBalance((data.balance as number) ?? 0))
+        .then((data) => setCreditBalance(creditBalanceFrom(data)))
         .catch(() => {});
       if (reads >= 12) window.clearInterval(timer);
     }, 5000);
