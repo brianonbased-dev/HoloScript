@@ -1156,24 +1156,28 @@ export default function CreatePage() {
       setSplatWizardOpen(true);
     }
 
-    // ── Arrival panels — viewer-first (Brittney's dock closed), then the one
-    //    view a link names with ?view=<id>. "Chat with Brittney" on the home
-    //    page is ?view=chat, so it lands with her open.
-    openArrivalView(searchParams.get('view'));
-
-    // ── 3. sessionStorage landing prompt ──────────────────────────────────
-    // Written by the home page / onboarding flow before redirecting to /create.
-    // Cleared immediately so it doesn't re-seed on the next mount.
-    // Phase-2: wire landingPrompt from useCreateModeStore() into BrittneyChatPanel.
+    // ── 3. The idea from the home page's box ──────────────────────────────
+    // Written to sessionStorage by the home page before it comes here, and
+    // cleared at once so it does not re-seed on the next mount. It goes
+    // straight to Brittney: BrittneyChatPanel takes it from createModeStore and
+    // sends it as the person's message, so the describe-it panel (a fixed
+    // template, whatever the idea) is not offered for it.
+    let idea = '';
     try {
-      const stored = sessionStorage.getItem('studio.landing.prompt');
-      if (stored) {
-        setLandingPrompt(stored);
-        sessionStorage.removeItem('studio.landing.prompt');
-      }
+      idea = sessionStorage.getItem('studio.landing.prompt')?.trim() ?? '';
+      if (idea) sessionStorage.removeItem('studio.landing.prompt');
     } catch {
       // sessionStorage may be unavailable (SSR, private browsing limits) — silent
     }
+    if (idea) {
+      setLandingPrompt(idea);
+      setDescribeItDismissed(true);
+    }
+
+    // ── Arrival panels — viewer-first (Brittney's dock closed), then the one
+    //    view a link names with ?view=<id>. "Chat with Brittney" on the home
+    //    page is ?view=chat, and an idea from the home page's box opens her too.
+    openArrivalView(idea ? 'chat' : searchParams.get('view'));
 
     // ── 4. Brittney's dock was already set by openArrivalView above: closing
     //       it again here is what used to undo ?view=chat. ─────────────────

@@ -47,6 +47,7 @@ import { StudioEvents } from '@/lib/analytics';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
+import { useCreateModeStore } from '@/components/create/createModeStore';
 import { useAgentStore } from '@/lib/stores/agentStore';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import {
@@ -744,155 +745,189 @@ export function BrittneyChatPanel() {
     };
   }, []);
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isThinking) return;
-    // SEC-T03: the assistant requires an authenticated session. Surface an
-    // actionable sign-in prompt rather than firing a request that 401s.
-    if (isUnauthenticated) {
+  // One send path for everything the person says: what they type here, and the
+  // idea they typed into the home page's box (see the landing-prompt effect).
+  const sendText = useCallback(
+    async (raw: string) => {
+      const text = raw.trim();
+      if (!text || isThinking) return;
+      // SEC-T03: the assistant requires an authenticated session. Surface an
+      // actionable sign-in prompt rather than firing a request that 401s.
+      if (isUnauthenticated) {
+        setInput('');
+        setChatMessages((m) => [
+          ...m,
+          { id: Date.now().toString(), role: 'user', text },
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            text: 'Sign in to use the assistant — AI generation is tied to your account so usage stays scoped to your workspace.',
+          },
+        ]);
+        return;
+      }
       setInput('');
+
+      StudioEvents.brittneyPromptSent(text.length);
+
+      // Write-through qq65: when authenticated, the Brittney route persists
+      // both turns server-side. The local cache is still written immediately
+      // (localOnly) — only the client upload is suppressed. Signed-out flow is
+      // untouched: no conversation identity is sent and uploads behave as today.
+      const serverPersistIntent = sessionStatus === 'authenticated';
+      const userTimestamp = Date.now();
+
+      // Add user message to chat
+      const userMsgId = userTimestamp.toString();
+      setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
+      persistMessage(
+        { role: 'user', content: text, timestamp: userTimestamp },
+        { localOnly: serverPersistIntent }
+      );
+
+      // Build updated LLM history
+      const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
+      setLlmHistory(updatedHistory);
+      setIsThinking(true);
+
+      // Build rich assistant context: workspace/repo state first, scene source second.
+      const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
+      const assistantContext = buildWorkspaceAssistantContext({
+        sceneContext,
+        historyScope: assistantHistoryScope,
+        routeScope: pathname,
+        workspace: activeWorkspace,
+        git: workspaceGitStatus,
+        board: teamBoard,
+        teamId: assistantTeamId,
+        daemonJobs: workspaceJobs,
+        agentRuntime: {
+          isRunning: isAgentRunning,
+          currentPhase: agentPhase,
+          currentAction: agentAction,
+          cycleCount: agentCycleCount,
+          lastError: agentLastError,
+        },
+        toolCalls: toolCallHistory.slice(-8),
+        absorbStatus: vibeAbsorbStatus,
+      });
+
+      // Create streaming assistant message placeholder
+      const assistantMsgId = (Date.now() + 1).toString();
       setChatMessages((m) => [
         ...m,
-        { id: Date.now().toString(), role: 'user', text },
         {
-          id: (Date.now() + 1).toString(),
+          id: assistantMsgId,
           role: 'assistant',
-          text: 'Sign in to use the assistant — AI generation is tied to your account so usage stays scoped to your workspace.',
+          text: '',
+          segments: [],
+          isStreaming: true,
+          toolResults: [],
         },
       ]);
-      return;
-    }
-    setInput('');
 
-    StudioEvents.brittneyPromptSent(text.length);
+      let accumulatedText = '';
+      const toolResults: ToolResult[] = [];
+      // Set by the server's early `conversation` event — the write-through qq65
+      // confirmation that this turn is persisted server-side. Stays false on
+      // crash/old-server so the legacy client upload path takes over.
+      let conversationConfirmed = false;
 
-    // Write-through qq65: when authenticated, the Brittney route persists
-    // both turns server-side. The local cache is still written immediately
-    // (localOnly) — only the client upload is suppressed. Signed-out flow is
-    // untouched: no conversation identity is sent and uploads behave as today.
-    const serverPersistIntent = sessionStatus === 'authenticated';
-    const userTimestamp = Date.now();
+      try {
+        const storeActions = getStoreActions();
 
-    // Add user message to chat
-    const userMsgId = userTimestamp.toString();
-    setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
-    persistMessage(
-      { role: 'user', content: text, timestamp: userTimestamp },
-      { localOnly: serverPersistIntent }
-    );
-
-    // Build updated LLM history
-    const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
-    setLlmHistory(updatedHistory);
-    setIsThinking(true);
-
-    // Build rich assistant context: workspace/repo state first, scene source second.
-    const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
-    const assistantContext = buildWorkspaceAssistantContext({
-      sceneContext,
-      historyScope: assistantHistoryScope,
-      routeScope: pathname,
-      workspace: activeWorkspace,
-      git: workspaceGitStatus,
-      board: teamBoard,
-      teamId: assistantTeamId,
-      daemonJobs: workspaceJobs,
-      agentRuntime: {
-        isRunning: isAgentRunning,
-        currentPhase: agentPhase,
-        currentAction: agentAction,
-        cycleCount: agentCycleCount,
-        lastError: agentLastError,
-      },
-      toolCalls: toolCallHistory.slice(-8),
-      absorbStatus: vibeAbsorbStatus,
-    });
-
-    // Create streaming assistant message placeholder
-    const assistantMsgId = (Date.now() + 1).toString();
-    setChatMessages((m) => [
-      ...m,
-      {
-        id: assistantMsgId,
-        role: 'assistant',
-        text: '',
-        segments: [],
-        isStreaming: true,
-        toolResults: [],
-      },
-    ]);
-
-    let accumulatedText = '';
-    const toolResults: ToolResult[] = [];
-    // Set by the server's early `conversation` event — the write-through qq65
-    // confirmation that this turn is persisted server-side. Stays false on
-    // crash/old-server so the legacy client upload path takes over.
-    let conversationConfirmed = false;
-
-    try {
-      const storeActions = getStoreActions();
-
-      for await (const event of streamAssistant(
-        updatedHistory,
-        assistantContext,
-        undefined,
-        serverPersistIntent
-          ? { conversationId: activeConversationId, scope: assistantHistoryScope }
-          : undefined,
-        // Workspace agency: hands the server the active clone so Brittney's
-        // workspace_* file/build tools operate on the real project.
-        activeWorkspace?.localPath ?? undefined
-      )) {
-        if (event.type === 'conversation') {
-          // Defensive narrow (write-through qq65): only a string id counts as
-          // confirmation — without one we cannot adopt the thread, so fall
-          // back to the legacy upload instead of trusting a malformed event.
-          const convoId = (event.payload as { conversationId?: unknown } | null)?.conversationId;
-          if (typeof convoId === 'string' && convoId.length > 0) {
-            conversationConfirmed = true;
-            adoptConversation(convoId);
-          }
-        } else if (event.type === 'persisted') {
-          // Informational per-row ack — nothing to do client-side.
-        } else if (event.type === 'text') {
-          const textDelta = event.payload as string;
-          accumulatedText += textDelta;
-          setChatMessages((m) =>
-            m.map((msg) =>
-              msg.id === assistantMsgId
-                ? {
-                    ...msg,
-                    text: accumulatedText,
-                    segments: appendTextSegment(msg.segments, textDelta),
-                  }
-                : msg
-            )
-          );
-        } else if (event.type === 'tool_call') {
-          const tc = event.payload as ToolCallPayload;
-          // Server-executed tools (MCP / Studio API / Lotus / embodied) resolve
-          // on the server, which streams a tool_result with the real outcome.
-          // Running them through the client executor too only manufactured
-          // "Unknown tool" err badges next to the real result (founder repro
-          // 2026-06-10: 16/26 and 24/36 "err" on turns that mostly succeeded).
-          if (!tc.serverExecuted) {
-            let result: ToolResult;
-
-            if (executorRef.current?.isSimulationTool(tc.name)) {
-              const simRes = await executorRef.current.execute(
-                tc.name,
-                tc.arguments as Record<string, unknown>
-              );
-              result = {
-                tool: tc.name,
-                success: simRes.success,
-                message: simRes.message,
-              };
-            } else {
-              result = executeTool(tc.name, tc.arguments, storeActions);
+        for await (const event of streamAssistant(
+          updatedHistory,
+          assistantContext,
+          undefined,
+          serverPersistIntent
+            ? { conversationId: activeConversationId, scope: assistantHistoryScope }
+            : undefined,
+          // Workspace agency: hands the server the active clone so Brittney's
+          // workspace_* file/build tools operate on the real project.
+          activeWorkspace?.localPath ?? undefined
+        )) {
+          if (event.type === 'conversation') {
+            // Defensive narrow (write-through qq65): only a string id counts as
+            // confirmation — without one we cannot adopt the thread, so fall
+            // back to the legacy upload instead of trusting a malformed event.
+            const convoId = (event.payload as { conversationId?: unknown } | null)?.conversationId;
+            if (typeof convoId === 'string' && convoId.length > 0) {
+              conversationConfirmed = true;
+              adoptConversation(convoId);
             }
+          } else if (event.type === 'persisted') {
+            // Informational per-row ack — nothing to do client-side.
+          } else if (event.type === 'text') {
+            const textDelta = event.payload as string;
+            accumulatedText += textDelta;
+            setChatMessages((m) =>
+              m.map((msg) =>
+                msg.id === assistantMsgId
+                  ? {
+                      ...msg,
+                      text: accumulatedText,
+                      segments: appendTextSegment(msg.segments, textDelta),
+                    }
+                  : msg
+              )
+            );
+          } else if (event.type === 'tool_call') {
+            const tc = event.payload as ToolCallPayload;
+            // Server-executed tools (MCP / Studio API / Lotus / embodied) resolve
+            // on the server, which streams a tool_result with the real outcome.
+            // Running them through the client executor too only manufactured
+            // "Unknown tool" err badges next to the real result (founder repro
+            // 2026-06-10: 16/26 and 24/36 "err" on turns that mostly succeeded).
+            if (!tc.serverExecuted) {
+              let result: ToolResult;
 
-            StudioEvents.brittneyToolCalled(tc.name, result.success);
+              if (executorRef.current?.isSimulationTool(tc.name)) {
+                const simRes = await executorRef.current.execute(
+                  tc.name,
+                  tc.arguments as Record<string, unknown>
+                );
+                result = {
+                  tool: tc.name,
+                  success: simRes.success,
+                  message: simRes.message,
+                };
+              } else {
+                result = executeTool(tc.name, tc.arguments, storeActions);
+              }
+
+              StudioEvents.brittneyToolCalled(tc.name, result.success);
+              toolResults.push(result);
+              setChatMessages((m) =>
+                m.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? {
+                        ...msg,
+                        toolResults: [...toolResults],
+                        segments: appendToolResultSegment(msg.segments, result),
+                      }
+                    : msg
+                )
+              );
+            }
+          } else if (event.type === 'tool_result') {
+            // Server-side MCP/embodied/studio tool resolved. The `data` field
+            // carries the raw MCP envelope so hologram-typed responses
+            // (task_1778114362909_zp7u) can be detected at this surface and
+            // rendered via /hologram instead of as text.
+            const trp = event.payload as ToolResultPayload;
+            const isHologram = detectHologramContent(trp.data) !== null;
+            const result: ToolResult = {
+              tool: trp.name,
+              success: trp.success,
+              message: trp.error
+                ? trp.error
+                : isHologram
+                  ? `Hologram returned by ${trp.name}`
+                  : `${trp.name} ok`,
+              envelope: trp.data,
+            };
+            StudioEvents.brittneyToolCalled(trp.name, trp.success);
             toolResults.push(result);
             setChatMessages((m) =>
               m.map((msg) =>
@@ -905,160 +940,161 @@ export function BrittneyChatPanel() {
                   : msg
               )
             );
+          } else if (event.type === 'error') {
+            accumulatedText = `Sorry, I hit an error: ${event.payload}`;
+            const segments = buildChatSegments(accumulatedText, toolResults);
+            setChatMessages((m) =>
+              m.map((msg) =>
+                msg.id === assistantMsgId
+                  ? { ...msg, text: accumulatedText, segments, isStreaming: false }
+                  : msg
+              )
+            );
+          } else if (event.type === 'done') {
+            break;
           }
-        } else if (event.type === 'tool_result') {
-          // Server-side MCP/embodied/studio tool resolved. The `data` field
-          // carries the raw MCP envelope so hologram-typed responses
-          // (task_1778114362909_zp7u) can be detected at this surface and
-          // rendered via /hologram instead of as text.
-          const trp = event.payload as ToolResultPayload;
-          const isHologram = detectHologramContent(trp.data) !== null;
-          const result: ToolResult = {
-            tool: trp.name,
-            success: trp.success,
-            message: trp.error
-              ? trp.error
-              : isHologram
-                ? `Hologram returned by ${trp.name}`
-                : `${trp.name} ok`,
-            envelope: trp.data,
-          };
-          StudioEvents.brittneyToolCalled(trp.name, trp.success);
-          toolResults.push(result);
-          setChatMessages((m) =>
-            m.map((msg) =>
-              msg.id === assistantMsgId
-                ? {
-                    ...msg,
-                    toolResults: [...toolResults],
-                    segments: appendToolResultSegment(msg.segments, result),
-                  }
-                : msg
-            )
-          );
-        } else if (event.type === 'error') {
-          accumulatedText = `Sorry, I hit an error: ${event.payload}`;
-          const segments = buildChatSegments(accumulatedText, toolResults);
-          setChatMessages((m) =>
-            m.map((msg) =>
-              msg.id === assistantMsgId
-                ? { ...msg, text: accumulatedText, segments, isStreaming: false }
-                : msg
-            )
-          );
-        } else if (event.type === 'done') {
-          break;
         }
+
+        // ─── Semantic Undo Commit ────────────────────────────────────────────────
+        if (toolResults.some((r) => r.success && !r.requiresConfirmation)) {
+          setNextHistoryLabel(
+            `AI Action: ${text.length > 25 ? text.substring(0, 25) + '…' : text}`
+          );
+          useHistoryStore
+            .getState()
+            .syncState(useSceneGraphStore.getState().nodes, useSceneStore.getState().code ?? '');
+        }
+      } catch (err) {
+        accumulatedText = `Connection error — Brittney's model server did not answer. (${String(err)})`;
+        const segments = buildChatSegments(accumulatedText, toolResults);
+        setChatMessages((m) =>
+          m.map((msg) =>
+            msg.id === assistantMsgId ? { ...msg, text: accumulatedText, segments } : msg
+          )
+        );
       }
 
-      // ─── Semantic Undo Commit ────────────────────────────────────────────────
-      if (toolResults.some((r) => r.success && !r.requiresConfirmation)) {
-        setNextHistoryLabel(`AI Action: ${text.length > 25 ? text.substring(0, 25) + '…' : text}`);
-        useHistoryStore
-          .getState()
-          .syncState(useSceneGraphStore.getState().nodes, useSceneStore.getState().code ?? '');
-      }
-    } catch (err) {
-      accumulatedText = `Connection error — Brittney's model server did not answer. (${String(err)})`;
-      const segments = buildChatSegments(accumulatedText, toolResults);
+      // Finalize message
       setChatMessages((m) =>
         m.map((msg) =>
-          msg.id === assistantMsgId ? { ...msg, text: accumulatedText, segments } : msg
+          msg.id === assistantMsgId
+            ? {
+                ...msg,
+                text: accumulatedText,
+                segments:
+                  msg.segments && msg.segments.length > 0
+                    ? msg.segments
+                    : buildChatSegments(accumulatedText, toolResults),
+                isStreaming: false,
+                toolResults,
+              }
+            : msg
         )
       );
-    }
 
-    // Finalize message
-    setChatMessages((m) =>
-      m.map((msg) =>
-        msg.id === assistantMsgId
-          ? {
-              ...msg,
-              text: accumulatedText,
-              segments:
-                msg.segments && msg.segments.length > 0
-                  ? msg.segments
-                  : buildChatSegments(accumulatedText, toolResults),
-              isStreaming: false,
-              toolResults,
-            }
-          : msg
-      )
-    );
+      // Update LLM history with the assistant response
+      setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
+      // Serializable projection of the turn's tool calls (write-through qq65) —
+      // whitelist {tool,success,message}; envelope/pendingAction/diff are
+      // dropped (non-serializable or too large for a persisted row).
+      const persistedToolCalls = toolResults.map((r) => ({
+        tool: r.tool,
+        success: r.success,
+        message: r.message,
+      }));
+      const assistantHistoryMsg = {
+        role: 'assistant' as const,
+        content: accumulatedText,
+        ...(persistedToolCalls.length > 0 ? { toolCalls: persistedToolCalls } : {}),
+      };
+      if (serverPersistIntent && conversationConfirmed) {
+        // Server persisted both turns — local cache only.
+        persistMessage(assistantHistoryMsg, { localOnly: true });
+      } else if (serverPersistIntent) {
+        // Server never confirmed write-through (crash / pre-qq65 deploy) —
+        // re-enqueue the suppressed user turn and upload normally.
+        enqueueUpload([{ role: 'user', content: text, timestamp: userTimestamp }]);
+        persistMessage(assistantHistoryMsg);
+      } else {
+        persistMessage(assistantHistoryMsg);
+      }
 
-    // Update LLM history with the assistant response
-    setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
-    // Serializable projection of the turn's tool calls (write-through qq65) —
-    // whitelist {tool,success,message}; envelope/pendingAction/diff are
-    // dropped (non-serializable or too large for a persisted row).
-    const persistedToolCalls = toolResults.map((r) => ({
-      tool: r.tool,
-      success: r.success,
-      message: r.message,
-    }));
-    const assistantHistoryMsg = {
-      role: 'assistant' as const,
-      content: accumulatedText,
-      ...(persistedToolCalls.length > 0 ? { toolCalls: persistedToolCalls } : {}),
-    };
-    if (serverPersistIntent && conversationConfirmed) {
-      // Server persisted both turns — local cache only.
-      persistMessage(assistantHistoryMsg, { localOnly: true });
-    } else if (serverPersistIntent) {
-      // Server never confirmed write-through (crash / pre-qq65 deploy) —
-      // re-enqueue the suppressed user turn and upload normally.
-      enqueueUpload([{ role: 'user', content: text, timestamp: userTimestamp }]);
-      persistMessage(assistantHistoryMsg);
-    } else {
-      persistMessage(assistantHistoryMsg);
-    }
+      setIsThinking(false);
 
-    setIsThinking(false);
+      // TTS: speak the response
+      if (
+        accumulatedText &&
+        !accumulatedText.startsWith('Sorry') &&
+        !accumulatedText.startsWith('Connection error')
+      ) {
+        speak(accumulatedText);
+      }
+    },
+    [
+      isThinking,
+      isUnauthenticated,
+      sessionStatus,
+      activeConversationId,
+      adoptConversation,
+      enqueueUpload,
+      llmHistory,
+      nodes,
+      selectedId,
+      selectedName,
+      code,
+      assistantHistoryScope,
+      pathname,
+      activeWorkspace,
+      workspaceGitStatus,
+      teamBoard,
+      assistantTeamId,
+      workspaceJobs,
+      isAgentRunning,
+      agentPhase,
+      agentAction,
+      agentCycleCount,
+      agentLastError,
+      toolCallHistory,
+      vibeAbsorbStatus,
+      addTrait,
+      removeTrait,
+      setTraitProperty,
+      addNode,
+      removeNode,
+      updateNode,
+      getStoreActions,
+      persistMessage,
+      speak,
+    ]
+  );
 
-    // TTS: speak the response
-    if (
-      accumulatedText &&
-      !accumulatedText.startsWith('Sorry') &&
-      !accumulatedText.startsWith('Connection error')
-    ) {
-      speak(accumulatedText);
-    }
+  const handleSend = useCallback(() => sendText(input), [sendText, input]);
+
+  // The home page's idea box goes straight to Brittney: /create stores the idea
+  // in createModeStore and opens this panel, and here it is sent into the
+  // active conversation, once, as if the person had typed it. It waits until
+  // that conversation's saved history is the one on screen: sent earlier, the
+  // request would carry no history, and the load landing afterwards would
+  // replace the conversation it had just started. Until 2026-09-28 the idea
+  // went to the describe-it panel, which draws the same template for any idea.
+  const landingPrompt = useCreateModeStore((s) => s.landingPrompt);
+  const landingSentRef = useRef(false);
+  useEffect(() => {
+    if (landingSentRef.current || !landingPrompt.trim()) return;
+    if (!assistantHistoryLoaded || loadedThreadKey !== assistantThreadKey) return;
+    if (sessionStatus === 'loading' || isThinking) return;
+    const idea = useCreateModeStore.getState().takeLandingPrompt();
+    if (!idea.trim()) return;
+    landingSentRef.current = true;
+    void sendText(idea);
   }, [
-    input,
-    isThinking,
-    isUnauthenticated,
+    landingPrompt,
+    assistantHistoryLoaded,
+    loadedThreadKey,
+    assistantThreadKey,
     sessionStatus,
-    activeConversationId,
-    adoptConversation,
-    enqueueUpload,
-    llmHistory,
-    nodes,
-    selectedId,
-    selectedName,
-    code,
-    assistantHistoryScope,
-    pathname,
-    activeWorkspace,
-    workspaceGitStatus,
-    teamBoard,
-    assistantTeamId,
-    workspaceJobs,
-    isAgentRunning,
-    agentPhase,
-    agentAction,
-    agentCycleCount,
-    agentLastError,
-    toolCallHistory,
-    vibeAbsorbStatus,
-    addTrait,
-    removeTrait,
-    setTraitProperty,
-    addNode,
-    removeNode,
-    updateNode,
-    getStoreActions,
-    persistMessage,
-    speak,
+    isThinking,
+    sendText,
   ]);
 
   const handleConfirmToolResult = useCallback(

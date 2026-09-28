@@ -170,16 +170,17 @@ function PromptHero() {
     const text = prompt.trim();
     if (!text) return;
 
-    // Store prompt for the target page to pick up
+    // The idea travels in sessionStorage, which survives the sign-in round trip
+    // in this tab; /create hands it to Brittney. It is kept out of the URL: the
+    // `&prompt=` that used to ride on the sign-in callback was never read, and
+    // only copied the person's words into every redirect and server log.
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('studio.landing.prompt', text);
     }
 
     if (status !== 'authenticated') {
       // Auth-gate on first send: sign in, then redirect to create
-      void signIn('github', {
-        callbackUrl: `/create?mode=${mode}&prompt=${encodeURIComponent(text)}`,
-      });
+      void signIn('github', { callbackUrl: `/create?mode=${mode}` });
       return;
     }
 
