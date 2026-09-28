@@ -21,6 +21,28 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+/**
+ * The Absorb handlers judge a graph against the workspace root, which is
+ * process.cwd() unless HOLOSCRIPT_WORKSPACE_ROOT pins it. A --dir below the cwd
+ * would be absorbed and then refused by the semantic tools as a nested slice of the
+ * cwd (cache_root_mismatch), so a query with --dir pins the root to it while the
+ * handlers run, and restores the previous value afterwards.
+ */
+async function withWorkspaceRoot<T>(
+  rootDir: string | undefined,
+  run: () => Promise<T>
+): Promise<T> {
+  if (!rootDir) return run();
+  const previous = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+  process.env.HOLOSCRIPT_WORKSPACE_ROOT = rootDir;
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) delete process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+    else process.env.HOLOSCRIPT_WORKSPACE_ROOT = previous;
+  }
+}
+
 async function defaultHandlers(): Promise<CodebaseQueryHandlers> {
   const mcp = await import('@holoscript/absorb-service/mcp');
   return {
@@ -53,15 +75,18 @@ export async function executeCanonicalCodebaseQuery(
   }
 
   const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
+  const pinnedRoot = options.queryDir ? rootDir : undefined;
   const handlers = injectedHandlers ?? (await defaultHandlers());
   const absorb = asRecord(
-    await handlers.handleCodebaseTool('holo_absorb_repo', {
-      rootDir,
-      force: options.force === true,
-      outputFormat: 'graph',
-      includeBuildArtifacts: false,
-      interactive: false,
-    })
+    await withWorkspaceRoot(pinnedRoot, () =>
+      handlers.handleCodebaseTool('holo_absorb_repo', {
+        rootDir,
+        force: options.force === true,
+        outputFormat: 'graph',
+        includeBuildArtifacts: false,
+        interactive: false,
+      })
+    )
   );
   if (absorb.error) {
     return {
@@ -90,7 +115,9 @@ export async function executeCanonicalCodebaseQuery(
         topK,
         useCachedAbsorbIndex: true,
       };
-  const result = asRecord(await handlers.handleGraphRagTool(toolName, toolArgs));
+  const result = asRecord(
+    await withWorkspaceRoot(pinnedRoot, () => handlers.handleGraphRagTool(toolName, toolArgs))
+  );
 
   return {
     ...result,
