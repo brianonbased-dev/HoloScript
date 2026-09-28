@@ -1,8 +1,12 @@
 import { expect, test, vi } from 'vitest';
 import { handleTool } from '../handlers';
 
-vi.mock('@holoscript/llm-provider', () => {
+// Mock the LLM provider factory only; keep the module's other exports real.
+// ollama-client (loaded through handlers) reads LOCAL_DEFAULT_MODEL at import
+// time since 8e43e5d4e4, so a factory-only mock stopped this file from loading.
+vi.mock('@holoscript/llm-provider', async (importOriginal) => {
   return {
+    ...(await importOriginal<typeof import('@holoscript/llm-provider')>()),
     createProviderManager: vi.fn(() => ({
       getRegisteredProviders: () => ['mock'],
       getProvider: () => ({
@@ -35,17 +39,22 @@ vi.mock('@holoscript/llm-provider', () => {
   };
 });
 
+// This began as a debug harness that printed both results for a person to read.
+// What that person was checking is now asserted: the scene generate_scene hands
+// back is one validate_holoscript accepts.
 test('debug generate_scene and validate', async () => {
   const scene = (await handleTool('generate_scene', {
     description: 'a game arena with physics and multiplayer',
     targetFormat: 'holo',
   })) as Record<string, unknown>;
 
-  console.log('GENERATED SCENE:', JSON.stringify(scene.code));
+  expect(typeof scene.code).toBe('string');
+  expect(scene.code as string).toMatch(/^composition\s+"/);
 
-  const validation = await handleTool('validate_holoscript', {
+  const validation = (await handleTool('validate_holoscript', {
     code: scene.code as string,
-  });
+  })) as { valid?: boolean; errors?: unknown[] };
 
-  console.log('VALIDATION RESULT:', JSON.stringify(validation, null, 2));
+  expect(validation.errors).toEqual([]);
+  expect(validation.valid).toBe(true);
 });
