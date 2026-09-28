@@ -4,13 +4,40 @@
 
 [build]
 dockerfilePath = "packages/studio/Dockerfile"
-watchPatterns = ["packages/studio/**", "packages/core/**"]
+# packages/** matches the Dockerfile's `COPY packages/ packages/` (the whole
+# workspace tree, not a curated subset). examples/** is copied into the runner
+# for loadHoloExample. Root manifests feed `pnpm install --frozen-lockfile`.
+# Patterns are gitignore-style
+# (https://docs.railway.com/builds/build-configuration#configure-watch-paths).
+# `packages/**` excludes the directory, so a later `!**/*.md` cannot see files
+# inside it unless the directories are un-ignored first (`!packages/**/`).
+# Same for examples/. Negations must follow an include. A markdown-only,
+# docs/**, or research/** change does not match.
+watchPatterns = [
+  "packages/**",
+  "examples/**",
+  "scripts/docker/build-engine-no-dts.sh",
+  "packages/studio/Dockerfile",
+  "packages/studio/railway.toml",
+  "/package.json",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/.npmrc",
+  "/tsconfig.json",
+  "/tsconfig.base.json",
+  # Manifests stage also copies services/ and benchmarks/ package.json files.
+  "services/**/package.json",
+  "benchmarks/**/package.json",
+  "!packages/**/",
+  "!examples/**/",
+  "!**/*.md",
+  "!docs/**",
+  "!research/**",
+]
 
 [deploy]
-healthcheckPath = "/api/health"
-healthcheckTimeout = 30
+# Live studio has no healthcheckPath, so this timeout is inert until one is
+# set. Release approved keeping 120.
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
-
-[service]
-internalPort = 3000
+restartPolicyMaxRetries = 10
