@@ -1666,11 +1666,19 @@ composition "Scene" {
   logic: {
     topic: 'logic',
     description: 'Define scene-level logic and event handlers.',
+    // The logic reader stores `on_start()`, `on <event>(params)`, on_tick,
+    // on_scene_load, on_event, action and function. Any other word — the old
+    // `on_scene_start` / `on_player_collect` shown here — was silently dropped,
+    // and since #380 (ff041244c) it is parse error HSP001, so it is not taught.
     syntax: `logic {
-  on_<event>([params]) {
+  on_start() {
+    // runs once when the scene starts
+  }
+
+  on <event>([params]) {
     // handler code
   }
-  
+
   function <name>(<params>) {
     // function body
   }
@@ -1679,16 +1687,16 @@ composition "Scene" {
       {
         description: 'Game logic',
         code: `logic {
-  on_scene_start() {
+  on_start() {
     score = 0
     timer.start(60)
   }
-  
-  on_player_collect(item) {
+
+  on player_collect(item) {
     score += item.value
     audio.play("collect.mp3")
   }
-  
+
   function checkWin() {
     if (score >= 100) scene.load("victory")
   }
