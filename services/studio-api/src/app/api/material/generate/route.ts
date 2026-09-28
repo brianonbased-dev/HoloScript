@@ -47,6 +47,9 @@ void main() {
 @material emissive:"#ff6600" emissiveIntensity:0.8 metalness:0.0 roughness:0.5`;
 
   try {
+    if (hostedOllamaBlocked(OLLAMA_BASE, 'studio-api /api/material/generate')) {
+      return NextResponse.json({ error: 'hosted Ollama blocked (set HOLO_ALLOW_HOSTED_OLLAMA=1 to opt in)' }, { status: 503 });
+    }
     const ollamaRes = await fetch(`${OLLAMA_BASE}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -80,4 +83,20 @@ void main() {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+// hardware guardrail 2026-09-24 (CoS): hosted Ollama (e.g. OLLAMA_BASE_URL=https://ollama.com/v1) is an
+// EXTERNAL hosted provider, not local inference. A non-loopback Ollama URL is refused unless
+// HOLO_ALLOW_HOSTED_OLLAMA=1 is set; each blocked attempt logs one loud line.
+function hostedOllamaBlocked(url: string, where: string): boolean {
+  let host = '';
+  try {
+    host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `http://${url}`).hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    host = '(unparseable)';
+  }
+  const loopback = host === 'localhost' || host === '::1' || /^127\./.test(host);
+  if (loopback || process.env.HOLO_ALLOW_HOSTED_OLLAMA === '1') return false;
+  console.warn(`[HOSTED-OLLAMA BLOCKED] ${where}: refusing non-loopback Ollama host "${host}" (set HOLO_ALLOW_HOSTED_OLLAMA=1 to opt in)`);
+  return true;
 }

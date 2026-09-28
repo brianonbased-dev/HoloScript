@@ -309,6 +309,7 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
 async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
   const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
   if (!ollamaUrl) return null;
+  if (hostedOllamaBlocked(ollamaUrl, 'studio /api/generate')) return null;
 
   try {
     const adapter = new LocalLLMAdapter({
@@ -334,4 +335,20 @@ export function OPTIONS(request: Request) {
       methods: 'GET, POST, OPTIONS',
     }),
   });
+}
+
+// hardware guardrail 2026-09-24 (CoS): hosted Ollama (e.g. OLLAMA_BASE_URL=https://ollama.com/v1) is an
+// EXTERNAL hosted provider, not local inference. A non-loopback Ollama URL is refused unless
+// HOLO_ALLOW_HOSTED_OLLAMA=1 is set; each blocked attempt logs one loud line.
+function hostedOllamaBlocked(url: string, where: string): boolean {
+  let host = '';
+  try {
+    host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `http://${url}`).hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    host = '(unparseable)';
+  }
+  const loopback = host === 'localhost' || host === '::1' || /^127\./.test(host);
+  if (loopback || process.env.HOLO_ALLOW_HOSTED_OLLAMA === '1') return false;
+  console.warn(`[HOSTED-OLLAMA BLOCKED] ${where}: refusing non-loopback Ollama host "${host}" (set HOLO_ALLOW_HOSTED_OLLAMA=1 to opt in)`);
+  return true;
 }
