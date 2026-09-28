@@ -26,7 +26,7 @@
 | G7  | native-authoring coverage is tracked + rising               | **shipped**: `check:native-coverage` ratchet gate; live baseline is computed by the checker, must rise/hold, and replaces the unverified paper figure. **2026-09-28:** 2,232 facade twins are counted; 71.84% without them | ⚠️ **counts facades**      |
 | G8  | the spec is the language's source of truth                  | spec lived only in the Gemini knowledge silo until 2026-06-22                                                                                                                                                              | ✅ (reclaimed by this dir) |
 | G9  | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending                                                    | ✅⚠️ **partial**           |
-| G10 | `.hs` runs the same on native and UAAL                      | UAAL keeps one slot per function, so recursion returns wrong values with `HALTED`: `fib(10)` = -80 (native 55)                                                                                                             | ❌                         |
+| G10 | `.hs` runs the same on native and UAAL                      | UAAL keeps one slot per function, so recursion returns wrong values with `HALTED`: `fib(10)` = -80 (native 55). Fix in review: PR #428                                                                                     | ❌ → fix in review         |
 | G11 | "valid `.hs`" is the definition of meaning (Spec v0.1 (a))  | the checker passes unknown names, unknown functions, wrong arity and missing returns; each backend refuses them its own way                                                                                                | ❌                         |
 | G12 | general-purpose names                                       | `action`, `object`, `move`, `quest`, `dialogue`, `ability` are reserved and cannot be identifiers                                                                                                                          | ❌                         |
 | G13 | `.holo` keeps what it accepts                               | `on_click` bodies, misspelled keywords, garbage functions and `world` names are dropped with `valid: true` and no warning                                                                                                  | ❌                         |
@@ -320,16 +320,23 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
   `fib(3)`: `STORE __hs::fib::n`, `CALL`, then `LOAD __hs::fib::n` after the call returns.
   Block shadowing (`let x: i32 = 1`, then `let x: i32 = 2` inside `if (true)`, return `x`):
   UAAL **2**, native refuses (`hs-machine-v5 … redeclares binding`), checker valid. A typed
-  `f(): i32` with no `return`: UAAL returns **`null`**, native refuses. The existing test
-  `lowers_recursive_parameterized_if_to_jumps_and_calls` (`uaal_emit.rs:3006`) asserts bytecode
-  shape only, pins the shared slot name as expected output, and never executes; its example
-  never reads the parameter after the recursive call, so it could not see this.
+  `f(): i32` with no `return`: UAAL returns **`null`**, native refuses. The two recursion tests
+  could not see this: `lowers_recursive_parameterized_if_to_jumps_and_calls`
+  (`uaal_emit.rs:3006`) asserts bytecode shape only and pins the shared slot name, and the
+  `countdown` e2e test in `packages/compiler-wasm/src/__tests__/wasm-api.test.ts` runs on the VM,
+  but its program never reads the parameter after the recursive call.
 - **Scope/blast:** `uaal_emit.rs` plus a differential test that executes on the real VM with the
   std EXEC handler (the pattern in `packages/std/scripts/abi-conformance.mjs`). Honest interim:
   refuse call-graph cycles with an `HS-UAAL-CAP` code until frames exist. Rebuilding
   `pkg-node` changes the pinned WASM digest (re-pin as in #386).
-- **STATUS — OPEN.** `three-surface-semantic-closure.md` said UAAL lowering refuses what it cannot
-  preserve; for recursion it did not. That sentence is corrected in the same change as this entry.
+- **STATUS — FIX IN REVIEW (PR #428, 2026-09-28).** Re-entrant call sites save and restore the
+  caller's slots (no VM change); block scope and every-path returns follow the native rules;
+  recursion without a value or with buffer/borrow/aggregate state fails closed with
+  `HS-UAAL-CAP-007`. A new e2e test runs fib, call-first `sum_to`, a local read after the call and
+  mutual recursion on UAAL and natively; fed the old emitter it fails with "expected -80 to be
+  55". All 137 tracked `.hs` files compile to identical bytecode or are refused as before.
+  `three-surface-semantic-closure.md` said UAAL lowering refuses what it cannot preserve; for
+  recursion it did not. That sentence is corrected in the same change as this entry.
 
 ## G11 — "Valid `.hs`" does not mean "runs": meaning is judged in three places
 

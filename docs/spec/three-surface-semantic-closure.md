@@ -125,7 +125,8 @@ recursive call sees the callee's value, and the run still reports `HALTED`:
 block overwrites the outer binding of the same name, and a typed function with
 no `return` yields `null`. These programs are outside the demonstrated subset
 until [G10](./spec-vs-reality-gap.md#g10--hs-on-uaal-has-no-per-call-frames-recursion-returns-wrong-values)
-closes.
+closes (fix in review: PR #428 saves the caller's slots around re-entrant calls and
+refuses the block and return cases the native backend refuses).
 
 ### Typed lazy logic
 
