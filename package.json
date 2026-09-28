@@ -227,6 +227,7 @@
     "check:cross-platform-paths": "node scripts/holo-ci/check-cross-platform-paths.mjs",
     "check:docker-core-entries": "node scripts/holo-ci/check-docker-core-entries.mjs",
     "check:docker-drift": "node scripts/holo-ci/check-docker-drift.mjs",
+    "check:docker-wasm-ship:test": "node --test scripts/__tests__/docker-wasm-ship.test.mjs",
     "check:docker-drift:update": "node scripts/holo-ci/check-docker-drift.mjs --update-baseline",
     "holo:translate-cloud": "node scripts/holo-ci/translate-cloud-sessions.mjs",
     "stranger-demo": "pnpm --filter @holoscript/core exec vitest run src/compiler/__tests__/stranger-demo.test.ts",
