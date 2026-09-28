@@ -65,6 +65,7 @@ import {
   taskToResponse,
   handleJsonRpcRequest,
   parseJsonRpcRequest,
+  A2A_LIST_REQUIRES_ADMIN,
   type SendTaskRequest,
   type TaskMessage,
   type TaskState,
@@ -1098,8 +1099,6 @@ function a2aToolHandlerFor(auth: TokenIntrospection) {
   };
 }
 
-/** JSON-RPC error for a2a.listTasks without admin (A2A application range -32000..-32099). */
-const A2A_LIST_NEEDS_ADMIN = -32003;
 const A2A_LIST_NEEDS_ADMIN_MESSAGE =
   'Listing A2A tasks returns every caller\'s results, so it needs admin. Fetch your own task by its id.';
 
@@ -1642,7 +1641,9 @@ const httpServer = http.createServer(async (req, res) => {
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
       : `http://localhost:${PORT}`;
 
-    const card = buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
+    // Every /a2a task route requires credentials (requireA2ACaller), with or
+    // without a legacy key configured, so the card always says how to present them.
+    const card = buildAgentCard(allTools, baseUrl, true);
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
@@ -1806,7 +1807,7 @@ const httpServer = http.createServer(async (req, res) => {
           JSON.stringify({
             jsonrpc: '2.0',
             id: parsed.request.id ?? null,
-            error: { code: A2A_LIST_NEEDS_ADMIN, message: A2A_LIST_NEEDS_ADMIN_MESSAGE },
+            error: { code: A2A_LIST_REQUIRES_ADMIN, message: A2A_LIST_NEEDS_ADMIN_MESSAGE },
           })
         );
         return;
@@ -1818,7 +1819,7 @@ const httpServer = http.createServer(async (req, res) => {
         const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
           ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
           : `http://localhost:${PORT}`;
-        return buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
+        return buildAgentCard(allTools, baseUrl, true);
       };
 
       // Handle the JSON-RPC request with the caller's own scopes

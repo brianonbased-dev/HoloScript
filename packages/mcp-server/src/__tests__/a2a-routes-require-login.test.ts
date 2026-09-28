@@ -21,6 +21,7 @@ import { createServer, type AddressInfo } from 'net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { A2A_LIST_REQUIRES_ADMIN } from '../a2a';
 
 // Accepted by the legacy-key path (admin); not in the key registry, so not a founder.
 const TEST_KEY = 'a2a-login-test-key-not-a-founder';
@@ -264,6 +265,26 @@ describe('/a2a routes through the real http-server', () => {
     expect(JSON.stringify(reply.body.status)).toContain('Insufficient scope');
   });
 
+  it('over JSON-RPC too: a2a.sendMessage runs with the read login\'s scopes, not admin', async () => {
+    const rpc = await request('POST', '/a2a', {
+      token: readToken,
+      body: {
+        jsonrpc: '2.0',
+        id: 8,
+        method: 'a2a.sendMessage',
+        params: {
+          message: { role: 'user', parts: [{ type: 'text', text: 'share' }] },
+          skillId: 'create_share_link',
+          arguments: {},
+        },
+      },
+    });
+    expect(rpc.status, JSON.stringify(rpc.body)).toBe(200);
+    // Only the reason tells scope refusal apart from an admin run that failed
+    // for another reason, so assert the reason, not just the state.
+    expect(JSON.stringify(rpc.body), JSON.stringify(rpc.body)).toContain('Insufficient scope');
+  });
+
   it('a read login cannot list every caller\'s tasks, over REST or JSON-RPC', async () => {
     const rest = await request('GET', '/a2a/tasks', { token: readToken });
     expect(rest.status, JSON.stringify(rest.body)).toBe(403);
@@ -274,7 +295,7 @@ describe('/a2a routes through the real http-server', () => {
     });
     expect(rpc.status).toBe(200);
     expect((rpc.body.error as { code?: number } | undefined)?.code, JSON.stringify(rpc.body)).toBe(
-      -32003
+      A2A_LIST_REQUIRES_ADMIN
     );
   });
 });
