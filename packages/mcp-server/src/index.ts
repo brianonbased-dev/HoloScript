@@ -90,7 +90,7 @@ import {
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
-import { authorizeToolCall, registerKnownTools } from './security/tool-scopes';
+import { assertReentrantToolAuthorized, registerKnownTools } from './security/tool-scopes';
 import {
   gateToolCall,
   classifyMcpEnvelopeResult,
@@ -338,14 +338,7 @@ export async function executeSingleTool(
  * An absent context is the trusted local stdio path, which has no OAuth token.
  */
 function assertBatchInnerToolAuthorized(toolName: string, signingCtx?: SigningContext): void {
-  if (!signingCtx) return;
-
-  const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
-  if (!authorization.authorized) {
-    throw new Error(
-      `Batch inner tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
-    );
-  }
+  assertReentrantToolAuthorized(toolName, signingCtx, 'Batch inner tool');
 }
 
 // Handle tool calls.
@@ -531,6 +524,21 @@ async function executeBatchInnerTool(
   signingCtx?: SigningContext
 ): Promise<unknown> {
   assertBatchInnerToolAuthorized(toolName, signingCtx);
+  return executeReentrantTool(toolName, toolArgs, signingCtx);
+}
+
+/**
+ * Run a tool on behalf of another tool through the canonical dispatcher, with the caller's own
+ * context, and hand back the tool's result the way a direct call returns it: a failure throws, a
+ * JSON payload comes back parsed. handlers.ts sends execute_workflow's steps and its own
+ * batch_tool_call children here, so they reach every registered tool, not only handleTool's switch,
+ * and _handleSingleToolLogic re-checks the caller's scopes for each one.
+ */
+export async function executeReentrantTool(
+  toolName: string,
+  toolArgs: Record<string, unknown>,
+  signingCtx?: SigningContext
+): Promise<unknown> {
   const res = await _handleSingleToolLogic(toolName, toolArgs || {}, signingCtx);
 
   if ((res as { isError?: boolean }).isError) {
@@ -555,6 +563,12 @@ export async function _handleSingleToolLogic(
   signingCtx?: SigningContext
 ) {
   try {
+    // 0. The caller's scopes cover THIS tool. At the HTTP entry this repeats Gate 2 on the same
+    // scopes. Its purpose is every other way in: a batch child, a workflow step, a mesh-invoked
+    // tool, and whatever re-enters next. Each of those once reached a tool Gate 2 never saw,
+    // because Gate 2 checks only the outer name. No context is the trusted stdio path.
+    assertReentrantToolAuthorized(name, signingCtx, 'Tool');
+
     // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
     if (name.startsWith('uaa2_') || name.startsWith('hs_plugin_')) {
       const pluginResult = await PluginManager.handleTool(name, args || {});

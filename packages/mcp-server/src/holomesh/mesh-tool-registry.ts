@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as crypto from 'crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
-  authorizeToolCall,
+  assertReentrantToolAuthorized,
   getToolRiskLevel,
   getToolScopes,
   type ToolRiskLevel,
@@ -553,14 +553,7 @@ async function defaultLocalInvoker(
   if (toolName === 'holomesh_invoke_tool') {
     throw new Error('holomesh_invoke_tool cannot recursively invoke itself');
   }
-  if (signingCtx) {
-    const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
-    if (!authorization.authorized) {
-      throw new Error(
-        `Mesh-invoked tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
-      );
-    }
-  }
+  assertReentrantToolAuthorized(toolName, signingCtx, 'Mesh-invoked tool');
   // index.ts's own dispatch registry (categories like selfImproveTools) sits in front of
   // handlers.ts's handleTool and covers tools handleTool alone does not recognize;
   // _handleSingleToolLogic falls back to handleTool itself for everything else, so this
