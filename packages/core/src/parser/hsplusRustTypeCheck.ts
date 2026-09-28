@@ -40,91 +40,184 @@ export interface HsContextToken {
   value: string;
 }
 
-const OPENERS = new Set(['LPAREN', 'LBRACKET', 'LBRACE', 'LESS_THAN']);
-const CLOSERS = new Set(['RPAREN', 'RBRACKET', 'RBRACE', 'GREATER_THAN']);
-const SKIPPED = new Set(['NEWLINE', 'COMMENT', 'INDENT', 'DEDENT']);
+/** The closer each opener waits for. `<` counts only while its `>` comes before the next closer. */
+const CLOSER_OF: Record<string, string> = {
+  LPAREN: 'RPAREN',
+  LBRACKET: 'RBRACKET',
+  LBRACE: 'RBRACE',
+  LESS_THAN: 'GREATER_THAN',
+};
+const SKIPPED = new Set(['COMMENT', 'INDENT', 'DEDENT']);
+const WORD = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const NOT_NAME_TYPES = new Set(['STRING', 'NUMBER', 'TEMPLATE_STRING']);
+/** Literal words to both readers. `none` is not one: the Rust reader takes it as a name. */
+const LITERAL_WORDS = new Set(['true', 'false', 'null']);
+
+/**
+ * A word the Rust reader takes as a name. The `.hsplus` lexer gives some words their own token
+ * type (`state`, `transition`, `match`, `assert`, `none`, ...); they are still names to the
+ * checker.
+ */
+function isName(token: HsContextToken | undefined): token is HsContextToken {
+  return (
+    !!token &&
+    !NOT_NAME_TYPES.has(token.type) &&
+    !LITERAL_WORDS.has(token.value) &&
+    WORD.test(token.value)
+  );
+}
+
+/**
+ * Parameter count of the list that opens at `list[open]` (an `LPAREN`), or `undefined` when it is
+ * not a plain count: a parameter has a default, an optional mark or a spread, or the list does
+ * not close cleanly. Counts top-level commas, so a parameter the lexer reads oddly (a keyword
+ * name, a dropped `&`) still counts once.
+ */
+function parameterCount(list: ReadonlyArray<HsContextToken>, open: number): number | undefined {
+  const waiting: string[] = [];
+  let commas = 0;
+  let sawParameter = false;
+  let endsWithComma = false;
+  let exact = true;
+  for (let j = open + 1; j < list.length; j++) {
+    const part = list[j];
+    if (part.type === 'NEWLINE') continue;
+    const closer = CLOSER_OF[part.type];
+    if (closer) {
+      waiting.push(closer);
+      sawParameter = true;
+      endsWithComma = false;
+      continue;
+    }
+    if (part.type === 'GREATER_THAN') {
+      // Closes a generic `<`; with no `<` waiting it is a comparison.
+      if (waiting[waiting.length - 1] === 'GREATER_THAN') waiting.pop();
+      continue;
+    }
+    if (part.type === 'RPAREN' || part.type === 'RBRACKET' || part.type === 'RBRACE') {
+      // A `<` still waiting at a closer was a comparison, not a generic.
+      while (waiting[waiting.length - 1] === 'GREATER_THAN') waiting.pop();
+      if (waiting.length === 0) {
+        if (part.type !== 'RPAREN') return undefined;
+        if (!exact) return undefined;
+        return sawParameter ? commas + (endsWithComma ? 0 : 1) : 0;
+      }
+      if (waiting[waiting.length - 1] !== part.type) return undefined;
+      waiting.pop();
+      continue;
+    }
+    if (waiting.length === 0 && part.type === 'COMMA') {
+      commas++;
+      endsWithComma = true;
+      continue;
+    }
+    sawParameter = true;
+    endsWithComma = false;
+    if (
+      waiting.length === 0 &&
+      (part.type === 'EQUALS' || part.type === 'QUESTION' || part.type === 'SPREAD')
+    ) {
+      exact = false;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Names an import binds, in the forms the `.hsplus` reader accepts after `@import` or `import`:
+ * `{ A, B as C } from "p"` binds `A` and `C`; `* as NS from "p"` binds `NS`; `"p" as X` binds
+ * `X`; `"p"` alone binds the file's name without its extension; `X from "p"` binds `X`.
+ * `@import(...)` is a directive with parameters and binds nothing.
+ */
+function importedNames(list: ReadonlyArray<HsContextToken>, at: number, names: Set<string>): void {
+  let j = at + 1;
+  const first = list[j];
+  if (!first || first.type === 'LPAREN' || first.type === 'NEWLINE') return;
+  if (first.type === 'LBRACE') {
+    for (j += 1; j < list.length && list[j].type !== 'RBRACE'; j++) {
+      const part = list[j];
+      if (!isName(part) || part.value === 'as' || part.value === 'type') continue;
+      if (list[j + 1]?.value === 'as') continue; // `a as b` binds `b`
+      names.add(part.value);
+    }
+    return;
+  }
+  let alias: string | undefined;
+  let leading: string | undefined;
+  let path: string | undefined;
+  for (; j < list.length && list[j].type !== 'NEWLINE'; j++) {
+    const part = list[j];
+    if (part.type === 'STRING') {
+      path = part.value;
+      continue;
+    }
+    if (!isName(part)) continue;
+    if (part.value === 'as') {
+      if (isName(list[j + 1])) alias = list[++j].value;
+      continue;
+    }
+    if (part.value !== 'from' && leading === undefined && path === undefined) leading = part.value;
+  }
+  const fromPath = path
+    ?.split('/')
+    .pop()
+    ?.replace(/\.[^.]+$/, '');
+  const bound = alias ?? leading ?? fromPath;
+  if (bound) names.add(bound);
+}
 
 /**
  * Collect the document's functions (with their parameter counts), structs, enums and imported
- * names from its tokens. Declarations anywhere in the document count, nested ones included.
- * A function whose parameters have a default, an optional mark or a spread, or whose name is
- * declared twice with different counts, is listed without an arity.
+ * names from its tokens. Declarations anywhere in the document count, nested ones included. A
+ * function is listed without an arity when its count is not plain (see `parameterCount`) or it
+ * is declared twice with different counts.
  */
 export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>): HsDocumentContext {
   const list = tokens.filter((token) => !SKIPPED.has(token.type));
   const arities = new Map<string, number | undefined>();
   const names = new Set<string>();
+  const nextIndex = (index: number): number => {
+    let j = index + 1;
+    while (list[j]?.type === 'NEWLINE') j++;
+    return j;
+  };
 
   for (let i = 0; i < list.length; i++) {
     const token = list[i];
-    if (token.type !== 'IDENTIFIER') continue;
+    if (!isName(token)) continue;
+    let before = i - 1;
+    while (before >= 0 && list[before].type === 'NEWLINE') before--;
+    const previous = list[before];
+    // `x.function` is a member, not a declaration; after `@` only `@import` declares.
+    if (previous && (previous.type === 'DOT' || previous.type === 'OPTIONAL_DOT')) continue;
+    if (previous?.type === 'AT' && token.value !== 'import') continue;
 
-    if (
-      (token.value === 'struct' || token.value === 'enum') &&
-      list[i + 1]?.type === 'IDENTIFIER'
-    ) {
-      names.add(list[i + 1].value);
+    if (token.value === 'struct' || token.value === 'enum') {
+      const nameToken = list[nextIndex(i)];
+      if (isName(nameToken)) names.add(nameToken.value);
       continue;
     }
-
     if (token.value === 'import') {
-      for (let j = i + 1; j < list.length && j < i + 256; j++) {
-        const part = list[j];
-        if (part.type === 'STRING' || (part.type === 'IDENTIFIER' && part.value === 'from')) break;
-        if (part.type !== 'IDENTIFIER' || part.value === 'as' || part.value === 'type') continue;
-        // `a as b` binds `b`.
-        if (list[j + 1]?.type === 'IDENTIFIER' && list[j + 1].value === 'as') continue;
-        names.add(part.value);
-      }
+      importedNames(list, i, names);
       continue;
     }
-
     if (token.value !== 'function') continue;
-    const nameToken = list[i + 1];
-    if (!nameToken || (nameToken.type !== 'IDENTIFIER' && nameToken.type !== 'STRING')) continue;
-    let j = i + 2;
+
+    let j = nextIndex(i);
+    const nameToken = list[j];
+    if (!nameToken || !(nameToken.type === 'STRING' || isName(nameToken))) continue;
+    j = nextIndex(j);
     if (
       list[j]?.type === 'LESS_THAN' &&
-      list[j + 1]?.type === 'LIFETIME' &&
-      list[j + 2]?.type === 'GREATER_THAN'
+      list[nextIndex(j)]?.type === 'LIFETIME' &&
+      list[nextIndex(nextIndex(j))]?.type === 'GREATER_THAN'
     ) {
-      j += 3;
+      j = nextIndex(nextIndex(nextIndex(j)));
     }
     if (list[j]?.type !== 'LPAREN') continue;
 
-    let depth = 0;
-    let count = 0;
-    let expectParameter = true;
-    let exact = true;
-    let closed = false;
-    for (j += 1; j < list.length; j++) {
-      const part = list[j];
-      if (OPENERS.has(part.type)) {
-        depth++;
-      } else if (CLOSERS.has(part.type)) {
-        if (depth === 0) {
-          closed = part.type === 'RPAREN';
-          break;
-        }
-        depth--;
-      } else if (depth === 0) {
-        if (part.type === 'COMMA') {
-          expectParameter = true;
-        } else {
-          if (part.type === 'EQUALS' || part.type === 'QUESTION' || part.type === 'SPREAD') {
-            exact = false;
-          }
-          if (expectParameter && part.type === 'IDENTIFIER') {
-            count++;
-            expectParameter = false;
-          }
-        }
-      }
-    }
-    if (!closed) continue;
-
     const name = nameToken.value;
-    const arity = exact ? count : undefined;
+    const arity = parameterCount(list, j);
     arities.set(name, arities.has(name) && arities.get(name) !== arity ? undefined : arity);
   }
 

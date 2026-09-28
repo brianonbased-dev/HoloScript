@@ -1165,7 +1165,7 @@ export class HoloScriptPlusParser {
   private source: string = '';
   /** The whole document when `source` is one piece of it (incremental parsing). */
   private documentSource: string | null = null;
-  /** What the document declares, collected at the first typed function of a parse. */
+  /** What the document declares: given by the caller, or collected at the first typed function. */
   private documentContext: HsDocumentContext | null = null;
   private errors: RichParseError[] = [];
   private warnings: RichParseError[] = [];
@@ -1249,13 +1249,17 @@ export class HoloScriptPlusParser {
 
   /**
    * Parse `source`. When `source` is one piece of a larger document, pass the whole document as
-   * `options.documentSource`, so a typed function may call a function declared in another piece.
+   * `options.documentSource`, or what it declares as `options.documentContext` (see
+   * `collectDocumentContext`), so a typed function may call a function declared in another piece.
    */
-  parse(source: string, options: { documentSource?: string } = {}): HSPlusParseResult {
+  parse(
+    source: string,
+    options: { documentSource?: string; documentContext?: HsDocumentContext } = {}
+  ): HSPlusParseResult {
     // Reset state
     this.source = source;
     this.documentSource = options.documentSource ?? null;
-    this.documentContext = null;
+    this.documentContext = options.documentContext ?? null;
     this.errors = [];
     this.warnings = [];
     this.blockConfigDirectives = new WeakSet();
@@ -8226,6 +8230,11 @@ export class HoloScriptPlusParser {
     if (anyParamType) node.paramTypes = paramTypes;
     if (returnType !== undefined) node.returnType = returnType;
     return node;
+  }
+
+  /** What `source` declares, for `parse(piece, { documentContext })`. */
+  collectDocumentContext(source: string): HsDocumentContext {
+    return collectHsDocumentContext(new Lexer(source).tokenize());
   }
 
   /**

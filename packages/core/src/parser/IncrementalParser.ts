@@ -12,6 +12,7 @@
 import { ChunkDetector, SourceChunk } from './ChunkDetector';
 import { ParseCache, globalParseCache } from './ParseCache';
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
+import type { HsDocumentContext } from './hsplusRustTypeCheck';
 import type { HSPlusNode } from './ParseCache';
 
 export interface IncrementalParseResult {
@@ -61,12 +62,24 @@ export class ChunkBasedIncrementalParser {
     // Step 4: Parse changed chunks + dependents, use cache for others
     const chunkNodes: Map<string, HSPlusNode> = new Map();
 
+    // A typed function is checked against what the whole document declares, so a chunk that
+    // holds a function is parsed, and cached, under those declarations as well as its own text.
+    // Collected once per pass, not once per chunk.
+    const documentContext = /\bfunction\b/.test(source)
+      ? this.parser.collectDocumentContext(source)
+      : undefined;
+    const contextKey = documentContext ? JSON.stringify(documentContext) : '';
+
     for (const chunk of currentChunks) {
-      const hash = ParseCache.hash(chunk.content);
+      const hash = ParseCache.hash(
+        contextKey && /\bfunction\b/.test(chunk.content)
+          ? `${chunk.content}\u0000${contextKey}`
+          : chunk.content
+      );
 
       if (toParseIds.has(chunk.id)) {
         // Re-parse this chunk
-        const chunkNode = this.parseChunk(chunk, source);
+        const chunkNode = this.parseChunk(chunk, documentContext);
         if (chunkNode) {
           chunkNodes.set(chunk.id, chunkNode);
           this.cache.set(chunk.id, hash, chunkNode);
@@ -80,7 +93,7 @@ export class ChunkBasedIncrementalParser {
           cached++;
         } else {
           // Cache miss - re-parse anyway
-          const chunkNode = this.parseChunk(chunk, source);
+          const chunkNode = this.parseChunk(chunk, documentContext);
           if (chunkNode) {
             chunkNodes.set(chunk.id, chunkNode);
             this.cache.set(chunk.id, hash, chunkNode);
@@ -218,16 +231,16 @@ export class ChunkBasedIncrementalParser {
   }
 
   /**
-   * Parses a single chunk. `documentSource` is the whole document, so a typed function in this
-   * chunk may call a function another chunk declares.
+   * Parses a single chunk. `documentContext` is what the whole document declares, so a typed
+   * function in this chunk may call a function another chunk declares.
    */
-  private parseChunk(chunk: SourceChunk, documentSource: string): HSPlusNode | null {
+  private parseChunk(chunk: SourceChunk, documentContext?: HsDocumentContext): HSPlusNode | null {
     try {
       // Wrap chunk content in a valid document if needed
       const content = this.wrapChunkForParsing(chunk);
 
       // Use the full parser on the chunk
-      const result = this.parser.parse(content, { documentSource });
+      const result = this.parser.parse(content, { documentContext });
 
       if (result.success && result.ast) {
         return result.ast as HSPlusNode;

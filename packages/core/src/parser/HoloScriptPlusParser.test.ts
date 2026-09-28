@@ -1617,6 +1617,148 @@ logic {
     ]);
     expect(context.names.sort()).toEqual(['Packet', 'Route', 'a', 'c']);
   });
+  it('resolves names the .hsplus lexer gives their own token type (review finding)', () => {
+    // `transition`, `assert`, `match`, `state`, `initial`, `on_error` and `none` are keywords to
+    // the .hsplus lexer and plain names to the Rust reader.
+    for (const name of ['transition', 'assert', 'match', 'state', 'initial', 'on_error', 'none']) {
+      const result = parse(
+        `function ${name}(x: i32): i32 {\n  return x\n}\n\nfunction main(): i32 {\n  return ${name}(7)\n}`
+      );
+      expect(
+        result.errors.filter((error) => String(error.code).startsWith('HS-')),
+        name
+      ).toEqual([]);
+    }
+
+    // A parameter named `state` with a reference type still counts once.
+    const counted = parse(`function total(state: &[i32], seed: i32): i32 {
+  let size: i32 = slice_length(state)
+  return seed + size
+}
+
+function main(): i32 {
+  slot values: [i32; 3] = [1, 2, 3]
+  return total(&values[0..3], 4)
+}`);
+    expect(counted.errors.filter((error) => String(error.code).startsWith('HS-'))).toEqual([]);
+  });
+
+  it('binds the names each .hsplus import form binds, and no others (review finding)', () => {
+    const hsCodes = (source: string) =>
+      parse(source)
+        .errors.map((error) => String(error.code))
+        .filter((code) => code.startsWith('HS-'));
+    const typed = (body: string) => `\n\nfunction f(): i32 {\n  return ${body}\n}`;
+
+    expect(hsCodes('@import { helper } from "./lib.hsplus"' + typed('helper(1)'))).toEqual([]);
+    expect(hsCodes('@import * as UiKit from "./ui.hsplus"' + typed('UiKit.size()'))).toEqual([]);
+    expect(
+      hsCodes('@import "./utils/game.hsplus" as GameUtils' + typed('GameUtils.score()'))
+    ).toEqual([]);
+    // A path alone binds the file's name.
+    expect(hsCodes('@import "./utils/game.hsplus"' + typed('game.score()'))).toEqual([]);
+    // Nothing else becomes a name.
+    expect(hsCodes('@import { helper } from "./lib.hsplus"' + typed('other.score()'))).toEqual([
+      'HS-NAME-001',
+    ]);
+  });
+
+  it('re-checks a cached block when a function it calls changes elsewhere (review finding)', () => {
+    const version = (params: string) => `logic {
+  function outer(a: i32): i32 {
+    return inner(a, 2)
+  }
+}
+
+logic {
+  function inner(${params}): i32 {
+    return a
+  }
+}`;
+    const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+    const cache = new ParseCache();
+    expect(
+      logicFunctionNames(parser.parseIncremental(version('a: i32, b: i32'), cache).ast).sort()
+    ).toEqual(['inner', 'outer']);
+
+    // `inner` now takes three values: a full parse refuses `outer`, and so must the cached pass.
+    const edited = version('a: i32, b: i32, c: i32');
+    expect(parse(edited).errors.map((error) => error.code)).toContain('HS-ARITY-001');
+    const warm = logicFunctionNames(parser.parseIncremental(edited, cache).ast).sort();
+    const cold = logicFunctionNames(
+      new HoloScriptPlusParser({ enableVRTraits: true }).parseIncremental(edited, new ParseCache())
+        .ast
+    ).sort();
+    expect(warm).toEqual(cold);
+    expect(warm).not.toContain('outer');
+  });
+
+  it('counts parameters by commas and keeps a name whose list it cannot count (review finding)', () => {
+    const t = (type: string, value = '') => ({ type, value });
+    const id = (value: string) => t('IDENTIFIER', value);
+    const context = collectHsDocumentContext([
+      // function transition(state: [i32], seed: i32)   -- keyword-typed name and parameter
+      id('function'),
+      t('TRANSITION', 'transition'),
+      t('LPAREN'),
+      t('STATE', 'state'),
+      t('COLON'),
+      t('LBRACKET'),
+      id('i32'),
+      t('RBRACKET'),
+      t('COMMA'),
+      id('seed'),
+      t('COLON'),
+      id('i32'),
+      t('RPAREN'),
+      // function trailing(a, b,)
+      id('function'),
+      id('trailing'),
+      t('LPAREN'),
+      id('a'),
+      t('COMMA'),
+      id('b'),
+      t('COMMA'),
+      t('RPAREN'),
+      // function compare(a = b < c)   -- default value: no plain count, name kept
+      id('function'),
+      id('compare'),
+      t('LPAREN'),
+      id('a'),
+      t('EQUALS'),
+      id('b'),
+      t('LESS_THAN'),
+      id('c'),
+      t('RPAREN'),
+      // @import(path: "x")  and  x.function(y)  are not declarations
+      t('AT'),
+      id('import'),
+      t('LPAREN'),
+      id('path'),
+      t('COLON'),
+      t('STRING', 'x'),
+      t('RPAREN'),
+      id('x'),
+      t('DOT'),
+      id('function'),
+      id('y'),
+      t('LPAREN'),
+      t('RPAREN'),
+      // import { state } from "./machine.hsplus"
+      id('import'),
+      t('LBRACE'),
+      t('STATE', 'state'),
+      t('RBRACE'),
+      id('from'),
+      t('STRING', './machine.hsplus'),
+    ]);
+    expect(context.functions).toEqual([
+      { name: 'transition', arity: 2 },
+      { name: 'trailing', arity: 2 },
+      { name: 'compare' },
+    ]);
+    expect(context.names).toEqual(['state']);
+  });
 });
 
 const ZONE_MESSAGE =
