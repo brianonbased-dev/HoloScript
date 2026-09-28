@@ -28,7 +28,14 @@ vi.mock('../tools.js', async (importOriginal) => {
   };
 });
 
+// Wrap the window calculation so a test can check what the runner sizes it with.
+vi.mock('../context-ledger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../context-ledger.js')>();
+  return { ...actual, contextWindowCharsFor: vi.fn(actual.contextWindowCharsFor) };
+});
+
 const { AgentRunner } = await import('../runner.js');
+const { contextWindowCharsFor } = await import('../context-ledger.js');
 const { CostGuard } = await import('../cost-guard.js');
 
 type Step = { id: string; name: string; input: Record<string, unknown> } | 'text';
@@ -40,6 +47,7 @@ type Step = { id: string; name: string; input: Record<string, unknown> } | 'text
  */
 function scriptedProvider(script: Step[]) {
   const sent: string[] = [];
+  const requests: LLMCompletionRequest[] = [];
   const live: { messages: unknown[] } = { messages: [] };
   let call = 0;
   const usage = { promptTokens: 10, completionTokens: 5, totalTokens: 15 };
@@ -49,6 +57,7 @@ function scriptedProvider(script: Step[]) {
     defaultHoloScriptModel: 'mock-1',
     async complete(req: LLMCompletionRequest): Promise<LLMCompletionResponse> {
       sent.push(JSON.stringify(req.messages));
+      requests.push(req);
       live.messages = req.messages;
       const step = script[Math.min(call++, script.length - 1)];
       if (step === 'text') {
@@ -72,10 +81,10 @@ function scriptedProvider(script: Step[]) {
       return { ok: true, latencyMs: 1 };
     },
   };
-  return { provider, sent, live };
+  return { provider, sent, requests, live };
 }
 
-function mesh() {
+function mesh(openTasks = true) {
   const task = {
     id: 't-ledger',
     title: 'security memo',
@@ -87,7 +96,7 @@ function mesh() {
   return {
     heartbeat: vi.fn(async () => undefined),
     joinTeam: vi.fn(async () => ({ success: true, role: 'member', members: 1 })),
-    getOpenTasks: vi.fn(async () => [task]),
+    getOpenTasks: vi.fn(async () => (openTasks ? [task] : [])),
     claim: vi.fn(async () => task),
     sendMessageOnTask: vi.fn(async () => undefined),
     markDone: vi.fn(async () => undefined),
@@ -101,7 +110,8 @@ function mesh() {
   };
 }
 
-function runner(provider: ILLMProvider, llmProvider = 'anthropic') {
+/** `idle`: no open task, and a brain with an idle block, so tick() runs the idle loop. */
+function runner(provider: ILLMProvider, llmProvider = 'anthropic', opts: { idle?: boolean } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'ledger-runner-'));
   return new AgentRunner({
     identity: {
@@ -125,6 +135,9 @@ function runner(provider: ILLMProvider, llmProvider = 'anthropic') {
       requires: [],
       prefers: [],
       avoids: [],
+      ...(opts.idle
+        ? { idle: { directive: 'Improve one small thing.', fileBoard: false, maxTools: 8 } }
+        : {}),
     },
     provider,
     costGuard: new CostGuard({
@@ -132,7 +145,7 @@ function runner(provider: ILLMProvider, llmProvider = 'anthropic') {
       dailyBudgetUsd: 5,
       pricer: () => 0.001,
     }),
-    mesh: mesh() as never,
+    mesh: mesh(!opts.idle) as never,
   });
 }
 
@@ -169,7 +182,7 @@ describe('AgentRunner does not resend a tool result the model has already seen',
     const second = resultsIn(JSON.parse(third)).find((r) => r.tool_use_id === 'r2');
     expect(second).toBeDefined();
     expect(second!.content).toMatch(
-      /^\[unchanged: identical to what the 1st read_file call with these same arguments returned \(tool_use_id r1;/
+      /^\[unchanged: identical to the result of this same read_file call 1 tool call back \(tool_use_id r1;/
     );
     expect(second!.content.length).toBeLessThan(300);
   });
@@ -191,6 +204,47 @@ describe('AgentRunner does not resend a tool result the model has already seen',
     );
   });
 
+  it('elides a repeat that arrives through the vision-write gate', async () => {
+    // vision_analyze with no write afterwards: the runner asks once more for a write, and
+    // the model reads the same file again. That result goes through the vision-write site.
+    const { provider, live } = scriptedProvider([
+      { id: 'r1', ...READ },
+      { id: 'v1', name: 'vision_analyze', input: { image_path: '/tmp/x.png' } },
+      'text',
+      { id: 'r2', ...READ },
+      'text',
+    ]);
+    await runner(provider).tick();
+    const results = resultsIn(live.messages);
+    expect(results.find((r) => r.tool_use_id === 'r1')?.content).toBe(FILE_BODY);
+    expect(results.find((r) => r.tool_use_id === 'r2')?.content).toMatch(
+      /^\[unchanged: .*tool_use_id r1;/
+    );
+  });
+
+  it('elides a repeat in the idle loop and in its re-prompt', async () => {
+    // No open task and a brain with an idle block: the runner plans one self-task, then
+    // runs the same tool loop. Read twice there, then text without writing, which fires
+    // the idle re-prompt, and read a third time.
+    const { provider, live } = scriptedProvider([
+      'text', // idle plan
+      { id: 'r1', ...READ },
+      { id: 'r2', ...READ },
+      'text',
+      { id: 'r3', ...READ },
+      'text',
+    ]);
+    await runner(provider, 'anthropic', { idle: true }).tick();
+    const results = resultsIn(live.messages);
+    expect(results.find((r) => r.tool_use_id === 'r1')?.content).toBe(FILE_BODY);
+    expect(results.find((r) => r.tool_use_id === 'r2')?.content).toMatch(
+      /^\[unchanged: .*tool_use_id r1;/
+    );
+    expect(results.find((r) => r.tool_use_id === 'r3')?.content).toMatch(
+      /^\[unchanged: .*tool_use_id r1;/
+    );
+  });
+
   it('still sends a result in full when its content differs from every earlier one', async () => {
     const { provider, sent } = scriptedProvider([
       { id: 'r1', ...READ },
@@ -203,7 +257,7 @@ describe('AgentRunner does not resend a tool result the model has already seen',
   });
 });
 
-describe('AgentRunner on a local model never points at a copy the window has dropped', () => {
+describe('AgentRunner on a local model resends a repeat once its first copy may be outside the window', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.unstubAllEnvs());
 
@@ -237,5 +291,20 @@ describe('AgentRunner on a local model never points at a copy the window has dro
     ]);
     await runner(provider, 'local-llm').tick();
     expect(count(sent[2], 'export const x = 1;')).toBe(400);
+  });
+
+  it("sizes the window with the request's maxTokens and its system prompt and tool schemas", async () => {
+    vi.stubEnv('HOLOSCRIPT_LLM_NUM_CTX', '32768');
+    const spy = vi.mocked(contextWindowCharsFor);
+    spy.mockClear();
+    const { provider, requests } = scriptedProvider([{ id: 'r1', ...READ }, 'text']);
+    await runner(provider, 'local-llm').tick();
+    const req = requests[0];
+    const system = req.messages[0].content as string;
+    expect(spy).toHaveBeenCalledWith('local-llm', {
+      maxTokens: req.maxTokens,
+      fixedChars: system.length + JSON.stringify(req.tools).length,
+    });
+    expect(req.maxTokens).toBeGreaterThan(0);
   });
 });

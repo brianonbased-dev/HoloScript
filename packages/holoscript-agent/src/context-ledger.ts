@@ -13,12 +13,17 @@
  * prompt-cache prefix stays valid. Errors and short results always pass through.
  *
  * Correctness rests on the first copy still being in the model's context. The runner
- * never trims history within a task, but a local server (Ollama, llama.cpp) silently
- * drops the oldest messages past its num_ctx. So for local providers a pointer may only
- * reach back `windowChars`, measured over the whole history (assistant turns, nudges and
- * tool results alike); a repeat from further back is sent in full and becomes the new
- * first copy. Anything that starts compacting history in the runner must reset this
- * ledger too.
+ * never trims history within a task, but a local server may drop the oldest messages
+ * once a prompt passes its context size (some servers reject the request instead, and
+ * then this is only conservative). So for local providers a pointer may only reach back
+ * `windowChars`, measured over the whole history (assistant turns, nudges and tool
+ * results alike, whole messages at a time); a repeat from further back is sent in full
+ * and becomes the new first copy. A pointer names the earlier result by how many tool
+ * calls back it is, which stays true when the oldest messages are dropped, and on local
+ * providers tells the model to call the tool again if it can no longer see that result:
+ * the history keeps growing after the pointer is written, so the first copy can still
+ * leave the window before the pointer does. Anything that starts compacting history in
+ * the runner must reset this ledger too.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -54,6 +59,10 @@ export interface ContextWindowRequest {
  * How far back (in characters of history) a pointer may reach for this provider.
  * Unbounded for hosted APIs. For local ones: num_ctx minus the output reserve, in
  * characters, minus what every request carries anyway. 0 means never elide.
+ *
+ * resolveLocalNumCtx is the num_ctx the local adapter sends on its native Ollama path.
+ * Its OpenAI-compatible path (HoloServe, HoloLlama, llama-server) sends none, so there
+ * the same value is an assumed window, not one the server was told.
  */
 export function contextWindowCharsFor(provider: string, request: ContextWindowRequest): number {
   if (HOSTED_PROVIDERS.has(provider)) return Infinity;
@@ -80,9 +89,9 @@ interface FirstCopy {
   tool: string;
   call: string;
   args: string;
-  /** Which call with these same arguments produced it (1 = the first). */
-  nth: number;
-  /** Characters of history before this copy, i.e. where it starts. */
+  /** Position of this result among all tool results admitted in the task (1-based). */
+  index: number;
+  /** Characters of history before the message that carries this copy. */
   start: number;
 }
 
@@ -94,8 +103,8 @@ export interface ContextLedgerOptions {
 
 export class ContextLedger {
   private readonly firstCopy = new Map<string, FirstCopy>();
-  /** How many times each exact call (tool + arguments) has been admitted. */
-  private readonly callCount = new Map<string, number>();
+  /** Tool results admitted so far in this task. */
+  private admitted = 0;
   readonly stats: ContextLedgerStats = { elided: 0, charsSaved: 0 };
   private readonly minChars: number;
   private readonly windowChars: number;
@@ -117,61 +126,50 @@ export class ContextLedger {
     uses: readonly ToolUseBlock[],
     results: readonly ToolResultBlock[]
   ): ToolResultBlock[] {
-    let position = history.reduce((sum, m) => sum + messageChars(m), 0);
-    return results.map((result, i) => {
-      const out = this.admitOne(uses[i], result, position);
-      position += JSON.stringify(out).length;
-      return out;
-    });
+    // A server that drops context drops whole messages, so the batch is one unit: its
+    // copies start where its message starts, and a pointer in it must reach back from
+    // the end of the whole batch, counted at full size (an overestimate, so it errs
+    // toward resending).
+    const start = history.reduce((sum, m) => sum + messageChars(m), 0);
+    const end = results.reduce((sum, r) => sum + JSON.stringify(r).length, start);
+    return results.map((result, i) => this.admitOne(uses[i], result, start, end));
   }
 
   private admitOne(
     use: ToolUseBlock | undefined,
     result: ToolResultBlock,
-    position: number
+    start: number,
+    end: number
   ): ToolResultBlock {
-    const args = use ? stableStringify(use.input) : '';
-    const call = use ? `${use.name}:${args}` : '';
-    const nth = use ? (this.callCount.get(call) ?? 0) + 1 : 0;
-    if (use) this.callCount.set(call, nth);
-
+    const index = ++this.admitted;
     if (result.is_error || typeof result.content !== 'string') return result;
     if (result.content.length < this.minChars) return result;
     const tool = use?.name ?? 'tool';
+    const args = use ? stableStringify(use.input) : '';
+    const call = use ? `${use.name}:${args}` : '';
     const digest = createHash('sha256').update(result.content).digest('hex');
     const first = this.firstCopy.get(digest);
-    if (!first || position - first.start > this.windowChars) {
-      this.firstCopy.set(digest, {
-        toolUseId: result.tool_use_id,
-        tool,
-        call,
-        args,
-        nth,
-        start: position,
-      });
+    if (!first || end - first.start > this.windowChars) {
+      this.firstCopy.set(digest, { toolUseId: result.tool_use_id, tool, call, args, index, start });
       return result;
     }
-    // Ids alone are ambiguous: some adapters number calls per turn (call_0, call_0, …),
-    // so the pointer names the earlier call by its tool, arguments and ordinal as well.
-    const which = `${ordinal(first.nth)} ${first.tool} call`;
-    const pointer =
+    // Named by distance, not by id or by count from the start of the task: some adapters
+    // number calls per turn (call_0, call_0, …), and a local server may have dropped the
+    // oldest messages, but every result after the first copy is still there to count.
+    const back = index - first.index;
+    const where = `${back} tool ${back === 1 ? 'call' : 'calls'} back`;
+    const what =
       first.call === call
-        ? `[unchanged: identical to what the ${which} with these same arguments returned (tool_use_id ${first.toolUseId}; ${result.content.length} chars); not repeated]`
-        : `[identical to what the ${which} with arguments ${shorten(first.args)} returned (tool_use_id ${first.toolUseId}; ${result.content.length} chars); not repeated]`;
+        ? `[unchanged: identical to the result of this same ${first.tool} call ${where}`
+        : `[identical to the result of the ${first.tool} call with arguments ${shorten(first.args)}, ${where}`;
+    const recall = Number.isFinite(this.windowChars)
+      ? `; if you can no longer see that result, call ${tool} again`
+      : '';
+    const pointer = `${what} (tool_use_id ${first.toolUseId}; ${result.content.length} chars); not repeated${recall}]`;
     this.stats.elided++;
     this.stats.charsSaved += result.content.length - pointer.length;
     return { ...result, content: pointer };
   }
-}
-
-function ordinal(n: number): string {
-  if (n <= 0) return 'earlier';
-  const tens = n % 100;
-  const suffix =
-    tens >= 11 && tens <= 13
-      ? 'th'
-      : (({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th');
-  return `${n}${suffix}`;
 }
 
 function shorten(text: string): string {

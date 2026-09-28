@@ -53,7 +53,7 @@ describe('ContextLedger', () => {
     expect(first.content).toBe(body);
     expect(second.tool_use_id).toBe('b');
     expect(second.content).toBe(
-      `[unchanged: identical to what the 1st read_file call with these same arguments returned (tool_use_id a; ${body.length} chars); not repeated]`
+      `[unchanged: identical to the result of this same read_file call 1 tool call back (tool_use_id a; ${body.length} chars); not repeated]`
     );
     expect(ledger.stats.elided).toBe(1);
     expect(ledger.stats.charsSaved).toBe(body.length - second.content.length);
@@ -65,36 +65,34 @@ describe('ContextLedger', () => {
     c.call([use('a', 'bash', { cmd: 'git status' })], [ok('a', body)]);
     const [r] = c.call([use('b', 'bash', { cmd: 'git status --short' })], [ok('b', body)]);
     expect(r.content).toMatch(
-      /^\[identical to what the 1st bash call with arguments \{"cmd":"git status"\} returned \(tool_use_id a;/
+      /^\[identical to the result of the bash call with arguments \{"cmd":"git status"\}, 1 tool call back \(tool_use_id a;/
     );
   });
 
-  it('names the earlier call unambiguously when an adapter reuses ids such as call_0', () => {
-    // local-llm (Ollama returns no id), brittney-cloud and gemini number calls per turn,
-    // so single-call turns all produce call_0.
+  it('counts back from the current call, so the pointer holds when ids repeat and the oldest messages are gone', () => {
+    // The review's case: local-llm (Ollama returns no id), brittney-cloud and gemini number
+    // calls per turn, so every id is call_0; and a local server may have dropped the v1
+    // read. Counting from the start of the task ("the 2nd read") would then name the wrong
+    // call. Every result after the first copy is still there, so "N calls back" does not.
     const c = conversation(new ContextLedger());
-    const a = big('file a ');
-    c.call([use('call_0', 'read_file', { path: 'a.json' })], [ok('call_0', a)]);
-    c.call([use('call_0', 'read_file', { path: 'b.json' })], [ok('call_0', big('file b '))]);
-    const [again] = c.call([use('call_0', 'read_file', { path: 'a.json' })], [ok('call_0', a)]);
+    const read = () => use('call_0', 'read_file', { path: 'a.ts' });
+    c.call([read()], [ok('call_0', big('v1 '))]);
+    c.call([use('call_0', 'write_file', { path: 'a.ts' })], [ok('call_0', 'ok')]);
+    c.call([read()], [ok('call_0', big('v2 '))]);
+    const [again] = c.call([read()], [ok('call_0', big('v2 '))]);
     expect(again.content).toMatch(
-      /^\[unchanged: identical to what the 1st read_file call with these same arguments returned/
+      /^\[unchanged: identical to the result of this same read_file call 1 tool call back/
     );
-    // A later copy of the same content still names the call that produced the first one.
-    c.call([use('call_0', 'read_file', { path: 'a.json' })], [ok('call_0', big('edited a '))]);
-    const [other] = c.call([use('call_0', 'bash', { cmd: 'cat a.json' })], [ok('call_0', a)]);
-    expect(other.content).toMatch(
-      /^\[identical to what the 1st read_file call with arguments \{"path":"a.json"\} returned/
-    );
-  });
 
-  it('counts calls with the same arguments, so a pointer can name the 2nd of them', () => {
-    const c = conversation(new ContextLedger());
-    c.call([use('a', 'read_file', { path: '/x' })], [ok('a', big('v1 '))]);
-    c.call([use('b', 'read_file', { path: '/x' })], [ok('b', big('v2 '))]);
-    const [r] = c.call([use('c', 'read_file', { path: '/x' })], [ok('c', big('v2 '))]);
-    expect(r.content).toMatch(/^\[unchanged: identical to what the 2nd read_file call with these/);
-    expect(r.content).toContain('tool_use_id b;');
+    // Further back, and through a different call with the same content.
+    c.call([use('call_0', 'bash', { cmd: 'ls' })], [ok('call_0', 'a.ts')]);
+    const [other] = c.call(
+      [use('call_0', 'bash', { cmd: 'cat a.ts' })],
+      [ok('call_0', big('v2 '))]
+    );
+    expect(other.content).toMatch(
+      /^\[identical to the result of the read_file call with arguments \{"path":"a.ts"\}, 3 tool calls back/
+    );
   });
 
   it('shortens long arguments in a pointer', () => {
@@ -104,6 +102,23 @@ describe('ContextLedger', () => {
     const [r] = c.call([use('b', 'bash', { cmd: 'y' })], [ok('b', body)]);
     expect(r.content.length).toBeLessThan(300);
     expect(r.content).toContain('…');
+  });
+
+  it('tells a local model to call the tool again if it can no longer see the earlier result', () => {
+    // The first copy can still leave a local window after the pointer is written, because
+    // the history keeps growing. Hosted providers keep the whole history, so no hint there.
+    const body = big('seen ');
+    const local = conversation(new ContextLedger({ windowChars: 100_000 }));
+    local.call([use('a', 'read_file', { path: '/x' })], [ok('a', body)]);
+    const [l] = local.call([use('b', 'read_file', { path: '/x' })], [ok('b', body)]);
+    expect(l.content).toMatch(
+      /not repeated; if you can no longer see that result, call read_file again\]$/
+    );
+
+    const hosted = conversation(new ContextLedger());
+    hosted.call([use('a', 'read_file', { path: '/x' })], [ok('a', body)]);
+    const [h] = hosted.call([use('b', 'read_file', { path: '/x' })], [ok('b', body)]);
+    expect(h.content).toMatch(/not repeated\]$/);
   });
 
   it('sends a changed result for the same call in full', () => {
@@ -139,7 +154,9 @@ describe('ContextLedger', () => {
       results
     );
     expect(out[0].content).toBe(body);
-    expect(out[1].content).toMatch(/^\[unchanged: identical to what the 1st read_file call/);
+    expect(out[1].content).toMatch(
+      /^\[unchanged: identical to the result of this same read_file call 1 tool call back/
+    );
     expect(results[1].content).toBe(body);
   });
 
@@ -161,6 +178,21 @@ describe('ContextLedger', () => {
     // That full copy is the new anchor, so the next repeat points at it.
     const [near] = c.call([use('c', 'read_file', { path: '/x' })], [ok('c', body)]);
     expect(near.content).toMatch(/^\[unchanged: .*tool_use_id b;/);
+  });
+
+  it('checks the window against the whole batch, since a server drops whole messages', () => {
+    // A repeat and a large sibling come back in one message. Counting only up to the
+    // repeat would miss the sibling that follows it in the same message.
+    const body = big('anchor ');
+    const window = body.length * 3;
+    const c = conversation(new ContextLedger({ windowChars: window }));
+    c.call([use('a', 'read_file', { path: '/x' })], [ok('a', body)]);
+    const [repeat, sibling] = c.call(
+      [use('b', 'read_file', { path: '/x' }), use('s', 'bash', { cmd: 'dump' })],
+      [ok('b', body), ok('s', 'z'.repeat(window))]
+    );
+    expect(repeat.content).toBe(body);
+    expect(sibling.content).toBe('z'.repeat(window));
   });
 
   it("counts the assistant's own turns toward the window, not only tool output", () => {
