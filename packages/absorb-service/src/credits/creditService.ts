@@ -1,8 +1,12 @@
 /**
  * Credit Service — Atomic credit operations for the Absorb Service.
  *
- * All balance-modifying operations use database transactions to prevent
- * race conditions. Falls back gracefully when DB is not configured.
+ * addCredits runs its balance update and ledger row in one transaction, and is
+ * idempotent on stripeSessionId. deductCredits relies on a single conditional
+ * SQL update instead, which is atomic for the balance but writes its ledger row
+ * separately — say that rather than claim a blanket guarantee, because this
+ * header claimed one until 2026-09-21 while addCredits used no transaction at
+ * all. Falls back gracefully when DB is not configured.
  */
 
 import { eq, desc, sql } from 'drizzle-orm';
@@ -212,29 +216,89 @@ export async function addCredits(
   // Ensure account exists
   await getOrCreateAccount(userId);
 
-  const [updated] = await db
-    .update(creditAccounts)
-    .set({
-      balanceCents: sql`${creditAccounts.balanceCents} + ${amountCents}`,
-      lifetimePurchasedCents: sql`${creditAccounts.lifetimePurchasedCents} + ${amountCents}`,
-      updatedAt: new Date(),
-    })
-    .where(eq(creditAccounts.userId, userId))
-    .returning({ balanceCents: creditAccounts.balanceCents });
+  /**
+   * One body, run either inside a transaction or directly, so the two cannot
+   * drift apart. The balance update and the ledger row belong together: this
+   * file's own header has always promised "all balance-modifying operations use
+   * database transactions", and until 2026-09-21 this function used none, so a
+   * failure between the two statements left credits granted with no record of
+   * why.
+   */
+  const apply = async (tx: DbClient): Promise<{ balanceCents: number } | null> => {
+    // IDEMPOTENCE. A Stripe checkout session may credit an account once.
+    // Stripe re-sends a webhook whenever it is not certain we received it, and
+    // the handler returns 500 on any internal error, which asks for exactly
+    // that. The comment at the call site claimed "idempotent allocation inside
+    // the database transaction logic"; no such check existed, and the ledger
+    // recorded the session id without ever reading it back. A retry therefore
+    // added the credits again, every time. Measured from the source 2026-09-21.
+    if (opts.stripeSessionId) {
+      const prior = await tx
+        .select({ balanceAfterCents: creditTransactions.balanceAfterCents })
+        .from(creditTransactions)
+        .where(eq(creditTransactions.stripeSessionId, opts.stripeSessionId))
+        .limit(1);
 
-  if (!updated) return null;
+      if (prior?.[0]) {
+        console.log(
+          `[creditService] Session ${opts.stripeSessionId} was already applied; not crediting again.`
+        );
+        return { balanceCents: prior[0].balanceAfterCents };
+      }
+    }
 
-  await db.insert(creditTransactions).values({
-    userId,
-    type: opts.type ?? 'purchase',
-    amountCents,
-    balanceAfterCents: updated.balanceCents,
-    description,
-    stripeSessionId: opts.stripeSessionId ?? null,
-    metadata: opts.metadata ?? {},
-  });
+    const [updated] = await tx
+      .update(creditAccounts)
+      .set({
+        balanceCents: sql`${creditAccounts.balanceCents} + ${amountCents}`,
+        lifetimePurchasedCents: sql`${creditAccounts.lifetimePurchasedCents} + ${amountCents}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(creditAccounts.userId, userId))
+      .returning({ balanceCents: creditAccounts.balanceCents });
 
-  return { balanceCents: updated.balanceCents };
+    if (!updated) return null;
+
+    await tx.insert(creditTransactions).values({
+      userId,
+      type: opts.type ?? 'purchase',
+      amountCents,
+      balanceAfterCents: updated.balanceCents,
+      description,
+      stripeSessionId: opts.stripeSessionId ?? null,
+      metadata: opts.metadata ?? {},
+    });
+
+    return { balanceCents: updated.balanceCents };
+  };
+
+  // The unique index on stripe_session_id is the backstop the check above
+  // cannot be: two deliveries racing each other both read "no prior row" before
+  // either writes. Under a transaction the loser's insert violates the index
+  // and its whole transaction rolls back, balance included. Without one, the
+  // read-then-write is advisory only — which is why the index went in with it.
+  // A TRANSACTION IS REQUIRED, and its absence refuses rather than degrades.
+  //
+  // Review of this change found the hazard in the fallback that used to be
+  // here. Outside a transaction the balance UPDATE commits, the ledger INSERT
+  // is then rejected by the unique index, and the account is left
+  // double-credited with a SINGLE ledger row — a ledger less honest than the
+  // duplicate rows this fix exists to prevent. No ordering of two statements
+  // avoids that without atomicity, so there is nothing to reorder.
+  //
+  // A client that cannot give us a transaction therefore does not get to move
+  // money. Failing closed costs a credit that a redelivery will deliver, now
+  // that redelivery is safe; failing open costs a balance nobody can explain.
+  if (typeof db.transaction !== 'function') {
+    console.error(
+      '[creditService] REFUSED: the database client exposes no transaction(). ' +
+        'addCredits will not apply a balance change it cannot make atomic. ' +
+        'No credits were granted.'
+    );
+    return null;
+  }
+
+  return await db.transaction(apply);
 }
 
 // ─── Usage History ───────────────────────────────────────────────────────────
