@@ -24,8 +24,9 @@
  */
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { PURCHASE_RETURN_PARAM, purchaseReturnNotice } from '@/lib/purchase-return';
 import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -76,6 +77,7 @@ export function SettingsView() {
   const [creditTier, setCreditTier] = useState<string>('free');
   const [creditsLoading, setCreditsLoading] = useState(false);
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
+  const [purchaseTone, setPurchaseTone] = useState<'error' | 'ok' | 'info'>('error');
 
   // ── Profile form state (React-controlled; kept in host) ────────────────────
   const [displayName, setDisplayName] = useState('');
@@ -158,6 +160,30 @@ export function SettingsView() {
       .finally(() => setOracleLoading(false));
   }, [session?.user?.id]);
 
+  // ── Back from Stripe checkout (?purchase=success|cancelled, written by the
+  // purchase route): say what happened, re-read the balance for a minute while
+  // the webhook adds the credits, and drop the parameters so a reload does not
+  // repeat the message. Read once, at the first render.
+  const purchaseReturn = useRef(purchaseReturnNotice(searchParams.get(PURCHASE_RETURN_PARAM)));
+  useEffect(() => {
+    const notice = purchaseReturn.current;
+    if (!notice) return;
+    setPurchaseTone(notice.tone);
+    setPurchaseMessage(notice.text);
+    window.history.replaceState(null, '', '/settings?tab=credits');
+    if (!notice.refreshBalance) return;
+    let reads = 0;
+    const timer = window.setInterval(() => {
+      reads += 1;
+      fetch('/api/absorb/credits')
+        .then((r) => r.json())
+        .then((data) => setCreditBalance((data.balance as number) ?? 0))
+        .catch(() => {});
+      if (reads >= 12) window.clearInterval(timer);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   // ── Bridge data into composition state ────────────────────────────────────
   useEffect(() => {
     if (!composition.loading) {
@@ -235,6 +261,7 @@ export function SettingsView() {
 
   async function purchaseCredits(pkgId: string) {
     setPurchaseMessage(null);
+    setPurchaseTone('error');
     try {
       // absorbFetch sends the connected GitHub token when there is one; the
       // route otherwise uses the signed-in session's GitHub token.
@@ -472,8 +499,14 @@ export function SettingsView() {
               <CreditBalanceCard balance={creditBalance} tier={creditTier} />
               {purchaseMessage && (
                 <div
-                  role="alert"
-                  style={{ padding: 12, color: '#f87171', fontFamily: 'system-ui', fontSize: 14 }}
+                  role={purchaseTone === 'error' ? 'alert' : 'status'}
+                  style={{
+                    padding: 12,
+                    color:
+                      purchaseTone === 'error' ? '#f87171' : purchaseTone === 'ok' ? '#4ade80' : '#a1a1aa',
+                    fontFamily: 'system-ui',
+                    fontSize: 14,
+                  }}
                 >
                   {purchaseMessage}
                 </div>
