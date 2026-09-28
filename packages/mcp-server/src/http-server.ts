@@ -1074,29 +1074,66 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
 }
 
 /**
- * Unified tool handler for A2A task execution.
- * Routes through triple-gate security, plugins, then the main handler pipeline.
+ * Tool handler for one A2A request, bound to the caller's own credentials.
+ * Routes through triple-gate security, plugins, then the main handler
+ * pipeline with the caller's scopes and never more. It used to hard-code
+ * admin:* on the belief that the HTTP layer had already authenticated the
+ * caller, but the /a2a routes never did, so a caller with no credentials
+ * ran any registered tool as admin.
  */
-async function handleToolForA2A(name: string, args: Record<string, unknown>): Promise<unknown> {
-  // A2A tasks get admin scope (they're already authenticated at the HTTP layer)
-  const auth: TokenIntrospection = {
-    active: true,
-    scopes: ['admin:*'],
-    agentId: 'a2a-task-executor',
+function a2aToolHandlerFor(auth: TokenIntrospection) {
+  return async (name: string, args: Record<string, unknown>): Promise<unknown> => {
+    const { result, isError } = await securedToolExecution(name, args, auth, {
+      requestPath: '/a2a/tasks',
+      requestMethod: 'POST',
+    });
+
+    if (isError) {
+      const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
+      throw new Error(
+        `[A2A task dispatch] Tool execution failed: ${detail}. Check the tool handler and input parameters.`
+      );
+    }
+    return result;
   };
+}
 
-  const { result, isError } = await securedToolExecution(name, args, auth, {
-    requestPath: '/a2a/tasks',
-    requestMethod: 'POST',
+/** JSON-RPC error for a2a.listTasks without admin (A2A application range -32000..-32099). */
+const A2A_LIST_NEEDS_ADMIN = -32003;
+const A2A_LIST_NEEDS_ADMIN_MESSAGE =
+  'Listing A2A tasks returns every caller\'s results, so it needs admin. Fetch your own task by its id.';
+
+/**
+ * The /a2a task routes run tools and hand back their results, so they need
+ * the same credentials as /mcp. Returns the caller, or answers 401 and
+ * returns null. The agent card (GET /a2a) stays public.
+ */
+async function requireA2ACaller(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  clientIP: string
+): Promise<TokenIntrospection | null> {
+  const auth = await authenticateRequest(req);
+  if (auth.active) return auth;
+
+  auditLog.logAuthEvent({
+    event: 'auth_failure',
+    ip: clientIP,
+    reason: 'A2A endpoint - invalid credentials',
   });
-
-  if (isError) {
-    const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
-    throw new Error(
-      `[A2A task dispatch] Tool execution failed: ${detail}. Check the tool handler and input parameters.`
-    );
-  }
-  return result;
+  res.writeHead(401, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
+  });
+  res.end(
+    JSON.stringify({
+      error: 'Unauthorized',
+      message: 'Valid OAuth 2.1 token or API key required',
+      token_endpoint: '/oauth/token',
+      registration_endpoint: '/oauth/register',
+    })
+  );
+  return null;
 }
 
 // ── HTTP Server ──────────────────────────────────────────────────────────────
@@ -1747,8 +1784,11 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /a2a — A2A JSON-RPC 2.0 transport (per A2A specification)
+  // POST /a2a — A2A JSON-RPC 2.0 transport (per A2A specification).
+  // Sending a message runs a tool, so this needs credentials like /mcp.
   if (url === '/a2a' && req.method === 'POST') {
+    const a2aCaller = await requireA2ACaller(req, res, clientIP);
+    if (!a2aCaller) return;
     try {
       const body = await parseJsonBody(req);
 
@@ -1757,6 +1797,18 @@ const httpServer = http.createServer(async (req, res) => {
       if ('error' in parsed) {
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(parsed.error));
+        return;
+      }
+
+      if (parsed.request.method === 'a2a.listTasks' && !a2aCaller.scopes?.includes('admin:*')) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: parsed.request.id ?? null,
+            error: { code: A2A_LIST_NEEDS_ADMIN, message: A2A_LIST_NEEDS_ADMIN_MESSAGE },
+          })
+        );
         return;
       }
 
@@ -1769,10 +1821,10 @@ const httpServer = http.createServer(async (req, res) => {
         return buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
       };
 
-      // Handle the JSON-RPC request
+      // Handle the JSON-RPC request with the caller's own scopes
       const response = await handleJsonRpcRequest(
         parsed.request,
-        handleToolForA2A,
+        a2aToolHandlerFor(a2aCaller),
         agentCardBuilder
       );
 
@@ -2832,6 +2884,8 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /a2a/tasks — Send/create a task (A2A tasks/send)
   if (url === '/a2a/tasks' && req.method === 'POST') {
+    const a2aCaller = await requireA2ACaller(req, res, clientIP);
+    if (!a2aCaller) return;
     try {
       const body = await parseJsonBody(req);
 
@@ -2856,7 +2910,7 @@ const httpServer = http.createServer(async (req, res) => {
       };
 
       const task = createTask(request);
-      const executed = await executeTask(task, handleToolForA2A);
+      const executed = await executeTask(task, a2aToolHandlerFor(a2aCaller));
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(taskToResponse(executed), null, 2));
@@ -2868,8 +2922,16 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /a2a/tasks — List tasks
+  // GET /a2a/tasks — List tasks. This returns every caller's results, so it
+  // needs admin until tasks record who created them.
   if (url === '/a2a/tasks' && req.method === 'GET') {
+    const a2aCaller = await requireA2ACaller(req, res, clientIP);
+    if (!a2aCaller) return;
+    if (!a2aCaller.scopes?.includes('admin:*')) {
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'Forbidden', message: A2A_LIST_NEEDS_ADMIN_MESSAGE }));
+      return;
+    }
     const queryString = req.url?.split('?')[1] || '';
     const params = new URLSearchParams(queryString);
     const filters: {
@@ -2904,6 +2966,7 @@ const httpServer = http.createServer(async (req, res) => {
   // GET /a2a/tasks/:id — Get a specific task
   const taskGetMatch = url?.match(/^\/a2a\/tasks\/([a-f0-9-]+)$/);
   if (taskGetMatch && req.method === 'GET') {
+    if (!(await requireA2ACaller(req, res, clientIP))) return;
     const task = getTask(taskGetMatch[1]);
     if (!task) {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -2918,6 +2981,7 @@ const httpServer = http.createServer(async (req, res) => {
   // DELETE /a2a/tasks/:id — Cancel a task
   const taskDeleteMatch = url?.match(/^\/a2a\/tasks\/([a-f0-9-]+)$/);
   if (taskDeleteMatch && req.method === 'DELETE') {
+    if (!(await requireA2ACaller(req, res, clientIP))) return;
     const task = cancelTask(taskDeleteMatch[1]);
     if (!task) {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
