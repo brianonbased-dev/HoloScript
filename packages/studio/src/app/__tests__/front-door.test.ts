@@ -250,7 +250,7 @@ describe('our own links go somewhere', () => {
     const createPage = readFileSync(join(appDir, 'create', 'page.tsx'), 'utf8');
 
     // What a link opens is decided in one place...
-    expect(createPage).toContain("openArrivalView(searchParams.get('view'))");
+    expect(createPage).toContain("openArrivalView(idea ? 'chat' : searchParams.get('view'))");
     // ...and the only other way the page closes her dock is the person's own
     // click on "Collapse Brittney". A mount-time setChatOpen(false) after the
     // arrival is exactly what used to undo ?view=chat.
@@ -258,6 +258,31 @@ describe('our own links go somewhere', () => {
     const clicks = createPage.match(/onClick=\{\(\) => setChatOpen\(false\)\}/g) ?? [];
     expect(clicks.length).toBeGreaterThan(0);
     expect(closes.length).toBe(clicks.length);
+  });
+
+  // The home page's idea box goes straight to Brittney (the panel's side is
+  // BrittneyChatPanel.landingPrompt.test.tsx). Until 2026-09-28 the idea was
+  // handed to the describe-it panel, which draws one template for any idea.
+  it('hands an idea from the home page to Brittney, not to the describe-it template', () => {
+    const createPage = readFileSync(join(appDir, 'create', 'page.tsx'), 'utf8');
+    const start = createPage.indexOf("sessionStorage.getItem('studio.landing.prompt')");
+    const arrival = createPage.indexOf('openArrivalView(', start);
+    expect(start).toBeGreaterThan(-1);
+    expect(arrival).toBeGreaterThan(start);
+    // Read before the arrival, so the arrival can open her for it...
+    const handoff = createPage.slice(start, arrival);
+    // ...stored where her panel takes it, with the template panel set aside.
+    expect(handoff).toMatch(
+      /if \(idea\) \{\s*setLandingPrompt\(idea\);\s*setDescribeItDismissed\(true\);/
+    );
+  });
+
+  it('keeps the idea out of the sign-in URL', () => {
+    const frontPage = readFileSync(join(appDir, 'page.tsx'), 'utf8');
+    // One line; the callback is a template string, so its own ${…} has braces.
+    const signInCall = /signIn\('github', \{(.*)\}\);/.exec(frontPage)?.[1] ?? '';
+    expect(signInCall).toContain('callbackUrl');
+    expect(signInCall).not.toMatch(/prompt|encodeURIComponent|text/);
   });
 });
 
