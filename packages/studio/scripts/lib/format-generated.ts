@@ -53,7 +53,10 @@ export class GeneratedOutputUnformattableError extends Error {
 }
 
 async function formatOne(target: string, code: string, setSize?: number): Promise<string> {
-  const config = await resolveConfig(target);
+  // useCache: false because `holo:build --watch` formats in one long process, and
+  // prettier caches resolved config per process: a .prettierrc edited mid-session
+  // was otherwise ignored until restart (claude3-x402's review of #316).
+  const config = await resolveConfig(target, { useCache: false });
   try {
     return await format(code, { ...config, filepath: target });
   } catch (error) {

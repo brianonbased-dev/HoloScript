@@ -84,6 +84,18 @@ describe('formatGenerated: real prettier, the repo config, the right parser', ()
       expect(refusal.message).toContain(reason);
     }
   );
+
+  it('reads the prettier config again on every call, as a long watch session needs', async () => {
+    // `holo:build --watch` formats in one long process. Prettier caches resolved
+    // config per process, so a .prettierrc edited mid-session was silently ignored
+    // for the rest of it (claude3-x402's review of #316).
+    const dir = tempDir();
+    const target = join(dir, 'page.ts');
+    writeFileSync(join(dir, '.prettierrc'), JSON.stringify({ semi: true }));
+    expect(await formatGenerated(target, 'const a = 1')).toBe('const a = 1;\n');
+    writeFileSync(join(dir, '.prettierrc'), JSON.stringify({ semi: false }));
+    expect(await formatGenerated(target, 'const a = 1')).toBe('const a = 1\n');
+  });
 });
 
 describe('emitGeneratedSet: every member formatted before any file is written', () => {

@@ -1,0 +1,18 @@
+{
+  // The page and view generators and their shared helper live under scripts/, which
+  // the app's tsconfig does not cover: `tsc -p packages/studio` never type-checks
+  // them, so a type error here passed every gate (claude3-x402's review of #316).
+  // `generators:check` runs this project first, and the pre-push hook runs
+  // generators:check whenever the studio changes. (Named tsconfig.generators.json,
+  // not tsconfig.json, so tsx keeps resolving the scripts through the studio config.)
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "noEmit": true, "incremental": false },
+  "include": [],
+  "files": [
+    "lib/format-generated.ts",
+    "compile-view-registry.ts",
+    "compile-vector-pages.mts",
+    "compile-holo-pages.ts",
+    "../src/lib/__tests__/format-generated.test.ts"
+  ]
+}
