@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -33,9 +33,14 @@ const { CostGuard } = await import('../cost-guard.js');
 
 type Step = { id: string; name: string; input: Record<string, unknown> } | 'text';
 
-/** Provider that plays a fixed script and snapshots the messages it was sent. */
+/**
+ * Provider that plays a fixed script and snapshots the messages it was sent. `live`
+ * keeps the runner's own history array, so a test can also see what the runner
+ * appended after its last call.
+ */
 function scriptedProvider(script: Step[]) {
   const sent: string[] = [];
+  const live: { messages: unknown[] } = { messages: [] };
   let call = 0;
   const usage = { promptTokens: 10, completionTokens: 5, totalTokens: 15 };
   const provider: ILLMProvider = {
@@ -44,6 +49,7 @@ function scriptedProvider(script: Step[]) {
     defaultHoloScriptModel: 'mock-1',
     async complete(req: LLMCompletionRequest): Promise<LLMCompletionResponse> {
       sent.push(JSON.stringify(req.messages));
+      live.messages = req.messages;
       const step = script[Math.min(call++, script.length - 1)];
       if (step === 'text') {
         return { content: 'done', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
@@ -66,7 +72,7 @@ function scriptedProvider(script: Step[]) {
       return { ok: true, latencyMs: 1 };
     },
   };
-  return { provider, sent };
+  return { provider, sent, live };
 }
 
 function mesh() {
@@ -95,7 +101,7 @@ function mesh() {
   };
 }
 
-function runner(provider: ILLMProvider) {
+function runner(provider: ILLMProvider, llmProvider = 'anthropic') {
   const dir = mkdtempSync(join(tmpdir(), 'ledger-runner-'));
   return new AgentRunner({
     identity: {
@@ -103,7 +109,7 @@ function runner(provider: ILLMProvider) {
       surface: 'security-auditor',
       wallet: '0x346126AbCdEf0123456789abcdef0123456789AB',
       x402Bearer: 'fake-bearer',
-      llmProvider: 'anthropic',
+      llmProvider: llmProvider as never,
       llmModel: 'claude-haiku-4-5',
       brainPath: '/tmp/brain.hsplus',
       budgetUsdPerDay: 5,
@@ -133,6 +139,17 @@ function runner(provider: ILLMProvider) {
 const count = (haystack: string, needle: string) => haystack.split(needle).length - 1;
 const READ = { name: 'read_file', input: { path: '/root/holoscript-mesh/src/x.ts' } };
 const BUILD = { name: 'bash', input: { cmd: 'pnpm vitest run' } };
+const WRITE = (n: number) => ({
+  name: 'write_file',
+  input: { path: `/root/holoscript-mesh/src/out${n}.ts`, content: `// ${n}\n`.padEnd(24_000, 'w') },
+});
+
+type ResultBlock = { tool_use_id: string; content: string };
+function resultsIn(messages: unknown): ResultBlock[] {
+  return (messages as Array<{ role: string; content: unknown }>)
+    .filter((m) => m.role === 'user' && Array.isArray(m.content))
+    .flatMap((m) => m.content as ResultBlock[]);
+}
 
 describe('AgentRunner does not resend a tool result the model has already seen', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -149,14 +166,29 @@ describe('AgentRunner does not resend a tool result the model has already seen',
     // Call 3 carries both reads in its history; the file body must appear once.
     const third = sent[2];
     expect(count(third, 'export const x = 1;')).toBe(400);
-    const msgs = JSON.parse(third) as Array<{ role: string; content: unknown }>;
-    const results = msgs
-      .filter((m) => m.role === 'user' && Array.isArray(m.content))
-      .flatMap((m) => m.content as Array<{ tool_use_id: string; content: string }>);
-    const second = results.find((r) => r.tool_use_id === 'r2');
+    const second = resultsIn(JSON.parse(third)).find((r) => r.tool_use_id === 'r2');
     expect(second).toBeDefined();
-    expect(second!.content).toMatch(/^\[unchanged: identical to the result of read_file r1/);
+    expect(second!.content).toMatch(
+      /^\[unchanged: identical to what the 1st read_file call with these same arguments returned \(tool_use_id r1;/
+    );
     expect(second!.content.length).toBeLessThan(300);
+  });
+
+  it('elides a repeat that arrives through the re-prompt gate as well', async () => {
+    // Read, then text without writing: the runner re-prompts once, and the model
+    // reads the same file again. That result goes through a second admit site.
+    const { provider, live } = scriptedProvider([
+      { id: 'r1', ...READ },
+      'text',
+      { id: 'r2', ...READ },
+      'text',
+    ]);
+    await runner(provider).tick();
+    const results = resultsIn(live.messages);
+    expect(results.find((r) => r.tool_use_id === 'r1')?.content).toBe(FILE_BODY);
+    expect(results.find((r) => r.tool_use_id === 'r2')?.content).toMatch(
+      /^\[unchanged: .*tool_use_id r1;/
+    );
   });
 
   it('still sends a result in full when its content differs from every earlier one', async () => {
@@ -168,5 +200,42 @@ describe('AgentRunner does not resend a tool result the model has already seen',
     await runner(provider).tick();
     expect(count(sent[1], 'export const x = 1;')).toBe(400);
     expect(sent[1]).not.toContain('[unchanged');
+  });
+});
+
+describe('AgentRunner on a local model never points at a copy the window has dropped', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('resends a repeated read in full when large writes sit between the two reads', async () => {
+    // num_ctx 32768: (32768 - 8192 reserve) x 2 chars, minus the system prompt and
+    // tool schemas. Three 24,000-char write_file turns put the first read far outside.
+    vi.stubEnv('HOLOSCRIPT_LLM_NUM_CTX', '32768');
+    const { provider, sent } = scriptedProvider([
+      { id: 'r1', ...READ },
+      { id: 'w1', ...WRITE(1) },
+      { id: 'w2', ...WRITE(2) },
+      { id: 'w3', ...WRITE(3) },
+      { id: 'r2', ...READ },
+      'text',
+    ]);
+    await runner(provider, 'local-llm').tick();
+    const last = sent[5];
+    expect(count(last, 'export const x = 1;')).toBe(800);
+    expect(resultsIn(JSON.parse(last)).find((r) => r.tool_use_id === 'r2')?.content).toBe(
+      FILE_BODY
+    );
+  });
+
+  it('still elides a repeat that is close enough to be inside the window', async () => {
+    vi.stubEnv('HOLOSCRIPT_LLM_NUM_CTX', '32768');
+    const { provider, sent } = scriptedProvider([
+      { id: 'r1', ...READ },
+      { id: 'r2', ...READ },
+      { id: 'b1', ...BUILD },
+      'text',
+    ]);
+    await runner(provider, 'local-llm').tick();
+    expect(count(sent[2], 'export const x = 1;')).toBe(400);
   });
 });

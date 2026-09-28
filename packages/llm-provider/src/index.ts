@@ -179,7 +179,12 @@ export {
 } from './adapters/bitnet';
 export type { BitNetModel } from './adapters/bitnet';
 
-export { LocalLLMAdapter, LOCAL_LLM_MODELS, LOCAL_LLM_CAPABILITIES } from './adapters/local-llm';
+export {
+  LocalLLMAdapter,
+  LOCAL_LLM_MODELS,
+  LOCAL_LLM_CAPABILITIES,
+  resolveLocalNumCtx,
+} from './adapters/local-llm';
 export type { LocalLLMModel } from './adapters/local-llm';
 
 export {
