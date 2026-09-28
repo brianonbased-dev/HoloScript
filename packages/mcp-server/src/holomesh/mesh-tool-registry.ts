@@ -558,8 +558,13 @@ async function defaultLocalInvoker(
   // handlers.ts's handleTool and covers tools handleTool alone does not recognize;
   // _handleSingleToolLogic falls back to handleTool itself for everything else, so this
   // reaches the same tools handleTool did plus the ones only index.ts's registry knows.
-  const { _handleSingleToolLogic } = await import('../index');
-  return _handleSingleToolLogic(toolName, args, signingCtx);
+  // executeReentrantTool, not _handleSingleToolLogic directly: the dispatcher answers in
+  // MCP envelopes, and a mesh caller reads the tool's own result, as it did from handleTool.
+  // Handing it the envelope made every result look foreign (twin-earth-federation's canary
+  // read result.success as undefined) and let a failed tool report success: true
+  // (task_1790624609802_798r). A failure now throws, as a direct call's does.
+  const { executeReentrantTool } = await import('../index');
+  return executeReentrantTool(toolName, args, signingCtx);
 }
 
 export async function invokePublishedMeshTool(
