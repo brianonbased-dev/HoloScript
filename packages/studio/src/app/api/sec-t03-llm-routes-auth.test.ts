@@ -5,12 +5,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 
-const { requireAuthMock } = vi.hoisted(() => ({
+const { requireAuthMock, requireAuthOrApiKeyMock } = vi.hoisted(() => ({
   requireAuthMock: vi.fn(),
+  requireAuthOrApiKeyMock: vi.fn(),
 }));
 
+// /api/brittney also takes a Brittney API key, so it calls requireAuthOrApiKey. Mocking only
+// requireAuth left that undefined: the route threw, and its catch-all answered 503, not 401.
 vi.mock('@/lib/api-auth', () => ({
   requireAuth: requireAuthMock,
+  requireAuthOrApiKey: requireAuthOrApiKeyMock,
 }));
 
 import { POST as postGenerate } from './generate/route';
@@ -23,6 +27,9 @@ describe('SEC-T03 LLM routes — unauthenticated POST', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requireAuthMock.mockResolvedValue(
+      NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    );
+    requireAuthOrApiKeyMock.mockResolvedValue(
       NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     );
   });
@@ -70,5 +77,6 @@ describe('SEC-T03 LLM routes — unauthenticated POST', () => {
     });
     const res = await postBrittney(req);
     expect(res.status).toBe(401);
+    expect(requireAuthOrApiKeyMock).toHaveBeenCalledTimes(1);
   });
 });

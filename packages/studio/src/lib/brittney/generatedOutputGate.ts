@@ -53,6 +53,9 @@ export function validateGeneratedHoloOutput(code: string): GeneratedOutputValida
   }
 
   const parsedCorePrimitives = summarizeCorePrimitives(parsed.ast);
+  for (const keyword of customBlockKeywords(parsed.ast)) {
+    warnings.push(`"${keyword}" parsed as a 'custom' block, which does not count as scene content`);
+  }
   if (parsedCorePrimitives.total === 0) {
     return {
       valid: false,
@@ -89,13 +92,29 @@ export function summarizeCorePrimitives(ast: HoloComposition): CorePrimitiveSumm
     spatialGroups: ast.spatialGroups?.length ?? 0,
     templates: ast.templates?.length ?? 0,
     terrainBlocks: ast.terrains?.length ?? 0,
-    domainBlocks: ast.domainBlocks?.length ?? 0,
+    domainBlocks: (ast.domainBlocks ?? []).filter(isCoreDomainBlock).length,
   };
 
   return {
     ...summary,
     total: Object.values(summary).reduce((sum, count) => sum + count, 0),
   };
+}
+
+// The parser keeps any `word "Name" { ... }` block as domain 'custom' ("any user-defined
+// block keyword") so drifted files still parse. A web page's `hero "Landing" { ... }` is one.
+// It is not core scene content; counting it let surface-only output through this gate.
+// real_estate also parses as 'custom', and nothing downstream gives it any other meaning.
+function isCoreDomainBlock(block: { domain: string }): boolean {
+  return block.domain !== 'custom';
+}
+
+function customBlockKeywords(ast: HoloComposition): string[] {
+  const blocks = (ast.domainBlocks ?? []) as Array<{ domain: string; keyword: string }>;
+  const keywords = blocks
+    .filter((block) => !isCoreDomainBlock(block))
+    .map((block) => block.keyword);
+  return [...new Set(keywords)];
 }
 
 function emptyPrimitiveSummary(): CorePrimitiveSummary {
