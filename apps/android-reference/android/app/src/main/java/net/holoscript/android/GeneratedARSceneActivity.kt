@@ -18,6 +18,7 @@ import io.github.sceneview.ar.rememberARCameraNode
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Size
 import io.github.sceneview.node.CubeNode
+import io.github.sceneview.node.CylinderNode
 import io.github.sceneview.node.SphereNode
 import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberMaterialLoader
@@ -49,6 +50,14 @@ class GeneratedARSceneActivity : ComponentActivity() {
                     radius = 0.1f,
                     materialInstance = materialLoader.createColorInstance(Color(0xFFFF8844)),
                     position = Position(x = 0.3f, y = 0f, z = -1f),
+                )
+                
+                // post_cylinder — geometry: cylinder
+                CylinderNode(
+                    radius = 0.05f,
+                    height = 0.1f,
+                    materialInstance = materialLoader.createColorInstance(Color(0xFF44CC88)),
+                    position = Position(x = -0.3f, y = 0f, z = -1f),
                 )
             }
         }

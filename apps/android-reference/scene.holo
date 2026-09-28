@@ -36,4 +36,14 @@ composition "AndroidReference" {
     scale: 0.1
     color: "#FF8844"
   }
+
+  // A cylinder offset to the left. This scene keeps one object of every node kind the emitter
+  // can produce (the golden test enforces it), so the real gradle build compiles every branch —
+  // the cylinder branch shipped a `length` argument SceneView does not have until one was added.
+  object "post_cylinder" {
+    geometry: "cylinder"
+    position: [-0.3, 0.0, -1.0]
+    scale: 0.05
+    color: "#44CC88"
+  }
 }

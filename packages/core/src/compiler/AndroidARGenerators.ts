@@ -30,7 +30,21 @@ import {
 // declarative and the trait managers remain independently gated.
 // =============================================================================
 
-type Geometry = 'cube' | 'sphere' | 'cylinder';
+/**
+ * The SceneView node composable emitted for each geometry kind — the emitter's whole repertoire
+ * (listed in import order). The node call and its import are both read from here, and the golden
+ * test (__tests__/AndroidCompiler.golden.test.ts) requires apps/android-reference/scene.holo to
+ * exercise every entry and checks each named argument against the pinned SceneView signature.
+ * A kind the reference never compiles is a kind the real gradle build never checks: that is how
+ * CylinderNode shipped a `length` argument SceneView does not have (its parameter is `height`).
+ */
+export const SCENEVIEW_NODE_COMPOSABLES = {
+  cube: 'CubeNode',
+  cylinder: 'CylinderNode',
+  sphere: 'SphereNode',
+} as const;
+
+type Geometry = keyof typeof SCENEVIEW_NODE_COMPOSABLES;
 
 /** Render a number as a Kotlin Float literal (e.g. 0.2 → "0.2f", -1 → "-1f"). */
 function toKotlinFloatLiteral(value: unknown, fallback: number): string {
@@ -47,10 +61,11 @@ function geometryOf(compiler: AndroidCompiler, obj: HoloObjectDecl): Geometry {
     compiler.findObjProp(obj, 'type') ??
     'cube';
   const g = String(raw).toLowerCase();
-  if (g === 'sphere') return 'sphere';
-  if (g === 'cylinder') return 'cylinder';
-  // box / cube / anything unrecognised → cube (the safe renderable default).
-  return 'cube';
+  // box / cube / anything unrecognised → cube (the safe renderable default). Own keys only, so
+  // an inherited name like "constructor" can never pass as a node kind.
+  return Object.prototype.hasOwnProperty.call(SCENEVIEW_NODE_COMPOSABLES, g)
+    ? (g as Geometry)
+    : 'cube';
 }
 
 const NAMED_COMPOSE_COLORS: Record<string, string> = {
@@ -130,33 +145,29 @@ function emitObjectNode(compiler: AndroidCompiler, obj: HoloObjectDecl): void {
   // hostile object name would otherwise break out of the comment (CWE-94, FlowLevel hardening).
   const safeName = compiler.escapeStringValue(obj.name as string, 'Kotlin');
 
+  // Shape arguments per kind. Every name must be a real parameter of the SceneView composable
+  // (the golden test checks them against the pinned signature): a cylinder is radius + height.
+  const shapeArgs: Record<Geometry, string[]> = {
+    cube: [`size = ${toCubeSize(scale)}`],
+    cylinder: [
+      `radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)}`,
+      `height = ${toKotlinFloatLiteral(scaleScalar(scale, 0.1) * 2, 0.2)}`,
+    ],
+    sphere: [`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)}`],
+  };
+
   compiler.emit(`// ${safeName} — geometry: ${geom}`);
-  if (geom === 'sphere') {
-    compiler.emit('SphereNode(');
-    compiler.indentLevel++;
-    compiler.emit(`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)},`);
-    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
-    compiler.emit(`position = ${position},`);
-    compiler.indentLevel--;
-    compiler.emit(')');
-  } else if (geom === 'cylinder') {
-    compiler.emit('CylinderNode(');
-    compiler.indentLevel++;
-    compiler.emit(`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)},`);
-    compiler.emit(`length = ${toKotlinFloatLiteral(scaleScalar(scale, 0.1) * 2, 0.2)},`);
-    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
-    compiler.emit(`position = ${position},`);
-    compiler.indentLevel--;
-    compiler.emit(')');
-  } else {
-    compiler.emit('CubeNode(');
-    compiler.indentLevel++;
-    compiler.emit(`size = ${toCubeSize(scale)},`);
-    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
-    compiler.emit(`position = ${position},`);
-    compiler.indentLevel--;
-    compiler.emit(')');
+  compiler.emit(`${SCENEVIEW_NODE_COMPOSABLES[geom]}(`);
+  compiler.indentLevel++;
+  for (const arg of [
+    ...shapeArgs[geom],
+    `materialInstance = materialLoader.createColorInstance(${colorExpr})`,
+    `position = ${position}`,
+  ]) {
+    compiler.emit(`${arg},`);
   }
+  compiler.indentLevel--;
+  compiler.emit(')');
 }
 
 export function generateActivityFile(
@@ -199,9 +210,9 @@ export function generateActivityFile(
   compiler.emit('import io.github.sceneview.ar.rememberARCameraNode');
   compiler.emit('import io.github.sceneview.math.Position');
   if (geoms.has('cube')) compiler.emit('import io.github.sceneview.math.Size');
-  if (geoms.has('cube')) compiler.emit('import io.github.sceneview.node.CubeNode');
-  if (geoms.has('cylinder')) compiler.emit('import io.github.sceneview.node.CylinderNode');
-  if (geoms.has('sphere')) compiler.emit('import io.github.sceneview.node.SphereNode');
+  for (const [geom, node] of Object.entries(SCENEVIEW_NODE_COMPOSABLES)) {
+    if (geoms.has(geom as Geometry)) compiler.emit(`import io.github.sceneview.node.${node}`);
+  }
   compiler.emit('import io.github.sceneview.rememberEngine');
   compiler.emit('import io.github.sceneview.rememberMaterialLoader');
   compiler.emit('');

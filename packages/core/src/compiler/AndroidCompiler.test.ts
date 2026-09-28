@@ -182,6 +182,38 @@ describe('AndroidCompiler', () => {
       expect(result.activityFile).toContain('Color(0xFF00FF00)');
     });
 
+    it('should compile cylinders with SceneView radius + height (never length)', () => {
+      const composition = createComposition({
+        objects: [
+          createObject('Post', {
+            properties: [
+              { key: 'geometry', value: 'cylinder' },
+              { key: 'scale', value: 0.05 },
+            ],
+          }),
+        ],
+      });
+      const result = compiler.compile(composition);
+
+      // SceneView 4.18.0's CylinderNode composable is (radius, height, …): a `length` argument
+      // fails compileDebugKotlin with "No parameter with name 'length' found".
+      expect(result.activityFile).toContain('import io.github.sceneview.node.CylinderNode');
+      expect(result.activityFile).toContain('CylinderNode(');
+      expect(result.activityFile).toContain('radius = 0.05f,');
+      expect(result.activityFile).toContain('height = 0.1f,');
+      expect(result.activityFile).not.toMatch(/^\s*length\s*=/m);
+    });
+
+    it('should fall back to a cube for unknown geometry, even an inherited name', () => {
+      const composition = createComposition({
+        objects: [createObject('Odd', { properties: [{ key: 'geometry', value: 'constructor' }] })],
+      });
+      const result = compiler.compile(composition);
+
+      expect(result.activityFile).toContain('CubeNode(');
+      expect(result.activityFile).not.toContain('function Object');
+    });
+
     it('should compile interactive objects', () => {
       const composition = createComposition({
         objects: [
