@@ -483,7 +483,7 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/quest-proof/inbox',
     methods: ['GET'],
-    why: "NO GUARD, and it spends ours: upstream calls carry HOLOMESH_API_KEY (route.ts:26) against a fixed HOLOMESH_TEAM_ID. The caller's key is never used. GET stays reachable for the scheduled sweep that reads the founder's inbox. POST is NOT in this tier and this is the entry's whole point: the route exports a POST (route.ts:70-117) with no session check of any kind, which pushes an arbitrary url and label into the founder's team feed UNDER OUR KEY, with no identity recorded. On 'any non-empty header' that is a stranger planting links in the founder's inbox while spending our credential — so it is pinned to `session` until the route authenticates its own caller, exactly as /api/quest-proof/next-actions already pins its POST for the same reason.",
+    why: "NO GUARD, and it spends ours: upstream calls carry HOLOMESH_API_KEY (route.ts:26) against a fixed HOLOMESH_TEAM_ID. The caller's key is never used. GET stays reachable for the scheduled sweep that reads the founder's inbox. The route exports no POST since 2026-09-28 (task whpw): the old one pushed any caller's url and label into the founder's team feed UNDER OUR KEY with no identity recorded, and nothing called it, because agents push to the feed directly, signed with their own seat key. Keep this entry pinned to GET so a POST added back later is not reachable on 'any non-empty header'.",
   },
   {
     pattern: '/api/quest-proof/next-actions',
