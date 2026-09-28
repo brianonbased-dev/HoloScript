@@ -90,9 +90,6 @@ fn every_return_has_value(body: &[AstNode]) -> bool {
                     .is_none_or(every_return_has_value)
         }
         AstNode::While(while_node) => every_return_has_value(&while_node.body),
-        AstNode::For(for_node) => every_return_has_value(&for_node.body),
-        AstNode::ForOf(for_node) => every_return_has_value(&for_node.body),
-        AstNode::LexicalScope(scope) => every_return_has_value(&scope.body),
         _ => true,
     })
 }
@@ -129,6 +126,9 @@ struct BindingEvidence {
     declared_type: Option<String>,
     observed_type: TypeEvidence,
     mutable: bool,
+    /// The binding holds a lambda, so it may be called. Parameters and other locals may not:
+    /// the backends resolve a called name to a function, never to a value.
+    callable: bool,
 }
 
 struct TypeChecker {
@@ -138,6 +138,8 @@ struct TypeChecker {
     values: HashSet<String>,
     /// Parameter counts of functions declared in this program or its surrounding document.
     arities: HashMap<String, usize>,
+    /// Field counts of structs declared in this program: a constructor takes one value per field.
+    struct_fields: HashMap<String, usize>,
     /// Set while checking a function that declares a parameter or return type.
     strict: Cell<bool>,
     /// The function being checked, for messages.
@@ -154,6 +156,7 @@ pub(crate) fn check_explicit_type_contracts_with(
         .chain(external.names.iter())
         .cloned()
         .collect::<HashSet<_>>();
+    let mut struct_fields = HashMap::new();
     let mut arities = external
         .functions
         .iter()
@@ -171,6 +174,7 @@ pub(crate) fn check_explicit_type_contracts_with(
             }
             AstNode::StructDeclaration(structure) => {
                 values.insert(structure.name.clone());
+                struct_fields.insert(structure.name.clone(), structure.fields.len());
             }
             AstNode::EnumDeclaration(enumeration) => {
                 values.insert(enumeration.name.clone());
@@ -178,7 +182,6 @@ pub(crate) fn check_explicit_type_contracts_with(
             AstNode::Import(import) => {
                 for specifier in &import.specifiers {
                     values.insert(specifier.local.clone());
-                    values.insert(specifier.imported.clone());
                 }
             }
             _ => {}
@@ -220,6 +223,7 @@ pub(crate) fn check_explicit_type_contracts_with(
         functions,
         values,
         arities,
+        struct_fields,
         strict: Cell::new(false),
         function_name: RefCell::new(String::new()),
     };
@@ -245,6 +249,20 @@ impl TypeChecker {
             || function.param_types.iter().any(|annotation| annotation.is_some());
         self.strict.set(strict);
         *self.function_name.borrow_mut() = function.name.clone();
+        if strict {
+            let mut seen = HashSet::new();
+            for parameter in &function.params {
+                if !seen.insert(parameter.as_str()) {
+                    return Err(diagnostic(
+                        format!(
+                            "[{HIDDEN_NAME}] function `{}` names parameter `{parameter}` twice; each parameter needs its own name",
+                            function.name
+                        ),
+                        &function.loc,
+                    ));
+                }
+            }
+        }
         let mut function_scope = HashMap::new();
         for (index, parameter) in function.params.iter().enumerate() {
             let declared_type = function
@@ -262,6 +280,7 @@ impl TypeChecker {
                     declared_type,
                     observed_type,
                     mutable: false,
+                    callable: false,
                 },
             );
         }
@@ -353,6 +372,10 @@ impl TypeChecker {
                             declared_type,
                             observed_type,
                             mutable: variable.mutable,
+                            callable: matches!(
+                                variable.value.as_ref(),
+                                AstNode::LambdaExpression(_)
+                            ),
                         },
                     );
                 }
@@ -375,6 +398,7 @@ impl TypeChecker {
                             observed_type: TypeEvidence::Known(declared_type.clone()),
                             declared_type: Some(declared_type),
                             mutable: true,
+                            callable: false,
                         },
                     );
                 }
@@ -430,6 +454,7 @@ impl TypeChecker {
                         declared_type: None,
                         observed_type: TypeEvidence::Unknown,
                         mutable: false,
+                        callable: false,
                     },
                 )]));
                 self.check_body(&for_node.body, function_name, expected_return, scopes)?;
@@ -464,7 +489,15 @@ impl TypeChecker {
                         | AstNode::UnaryExpression(_)
                         | AstNode::MemberExpression(_)
                         | AstNode::Identifier(_)
-                ) {
+                ) || (self.strict.get()
+                    && matches!(
+                        other,
+                        AstNode::Array(_)
+                            | AstNode::ObjectLiteral(_)
+                            | AstNode::LambdaExpression(_)
+                            | AstNode::SpreadElement(_)
+                    ))
+                {
                     self.infer_expression(other, scopes)?;
                 }
             }
@@ -511,26 +544,49 @@ impl TypeChecker {
                     }
                     return Ok(TypeEvidence::Unknown);
                 };
-                let local = lookup_binding(scopes, &callee.name).is_some();
-                if self.strict.get() && !local {
+                let binding = lookup_binding(scopes, &callee.name);
+                let callable_local = binding.is_some_and(|binding| binding.callable);
+                if self.strict.get() && !callable_local {
                     if !self.is_program_name(&callee.name) {
-                        return Err(diagnostic(
+                        let what = if binding.is_some() {
                             format!(
-                                "[{UNKNOWN_FUNCTION}] unknown function `{}` called in function `{}`; a called name must be a function or struct of this program, an import, or a built-in",
+                                "`{}` is a value, not a function, in function `{}`",
                                 callee.name,
                                 self.function_name.borrow()
+                            )
+                        } else {
+                            format!(
+                                "unknown function `{}` called in function `{}`",
+                                callee.name,
+                                self.function_name.borrow()
+                            )
+                        };
+                        return Err(diagnostic(
+                            format!(
+                                "[{UNKNOWN_FUNCTION}] {what}; a called name must be a function or struct of this program, an import, a built-in, or a local holding a lambda"
                             ),
                             &call.loc,
                         ));
                     }
+                    let got = call.arguments.len();
                     if let Some(&expected) = self.arities.get(&callee.name) {
-                        if expected != call.arguments.len() {
+                        if expected != got {
                             return Err(diagnostic(
                                 format!(
-                                    "[{ARITY_MISMATCH}] `{}` expects {expected} argument{}, got {} (in function `{}`); HoloScript parameters have no defaults",
+                                    "[{ARITY_MISMATCH}] `{}` expects {expected} argument{}, got {got} (in function `{}`); HoloScript parameters have no defaults",
                                     callee.name,
                                     if expected == 1 { "" } else { "s" },
-                                    call.arguments.len(),
+                                    self.function_name.borrow()
+                                ),
+                                &call.loc,
+                            ));
+                        }
+                    } else if let Some(&fields) = self.struct_fields.get(&callee.name) {
+                        if fields != got {
+                            return Err(diagnostic(
+                                format!(
+                                    "[{ARITY_MISMATCH}] constructor `{}` takes one value per field ({fields}), got {got} (in function `{}`)",
+                                    callee.name,
                                     self.function_name.borrow()
                                 ),
                                 &call.loc,
@@ -623,6 +679,32 @@ impl TypeChecker {
                 for property in &object.properties {
                     self.infer_expression(&property.value, scopes)?;
                 }
+                Ok(TypeEvidence::Unknown)
+            }
+            AstNode::LambdaExpression(lambda) if self.strict.get() => {
+                let mut inner = scopes.to_vec();
+                inner.push(
+                    lambda
+                        .params
+                        .iter()
+                        .map(|parameter| {
+                            (
+                                parameter.clone(),
+                                BindingEvidence {
+                                    declared_type: None,
+                                    observed_type: TypeEvidence::Unknown,
+                                    mutable: false,
+                                    callable: false,
+                                },
+                            )
+                        })
+                        .collect(),
+                );
+                self.infer_expression(&lambda.body, &inner)?;
+                Ok(TypeEvidence::Unknown)
+            }
+            AstNode::SpreadElement(spread) if self.strict.get() => {
+                self.infer_expression(&spread.argument, scopes)?;
                 Ok(TypeEvidence::Unknown)
             }
             _ => Ok(TypeEvidence::Unknown),
@@ -1331,5 +1413,117 @@ function main(): i32 {
         external.functions.insert("sibling".to_string(), Some(3));
         let arity = check_semantics_with(&ast, &external).expect_err("sibling takes 3");
         assert!(arity.message.contains(ARITY_MISMATCH), "{}", arity.message);
+    }
+
+    /// Findings of the first independent review, one program each.
+    #[test]
+    fn calls_resolve_to_functions_structs_imports_builtins_or_lambda_locals() {
+        // A parameter is a value; the backends never call a value.
+        let (message, _, _) = reject_at("function apply(f: i32): i32 {\n  return f(3)\n}");
+        assert!(message.contains(UNKNOWN_FUNCTION), "{message}");
+        assert!(message.contains("`f` is a value, not a function"), "{message}");
+
+        // A local that shares a function's name does not hide the function from a call.
+        let (message, line, _) = reject_at(
+            "function helper(x: i32): i32 {\n  return x\n}\n\nfunction main(): i32 {\n  let helper: i32 = 5\n  return helper(1, 2)\n}",
+        );
+        assert!(message.contains(ARITY_MISMATCH), "{message}");
+        assert_eq!(line, 7, "{message}");
+
+        // A local holding a lambda may be called.
+        admit("function main(): i32 {\n  let inc = (x) => x + 1\n  return inc(1)\n}");
+
+        // `import { helper as h }` binds `h`, not `helper`.
+        let (message, _, _) = reject_at(
+            "import { helper as h } from \"./lib.hs\"\n\nfunction main(): i32 {\n  return helper(1)\n}",
+        );
+        assert!(message.contains("unknown function `helper`"), "{message}");
+        admit("import { helper as h } from \"./lib.hs\"\n\nfunction main(): i32 {\n  return h(1)\n}");
+    }
+
+    #[test]
+    fn struct_constructors_take_one_value_per_field() {
+        let (message, line, column) = reject_at(
+            "struct Packet { code: i32 }\n\nfunction main(): i32 {\n  slot packet: Packet = Packet(1, 2, 3)\n  return 1\n}",
+        );
+        assert!(message.contains(ARITY_MISMATCH), "{message}");
+        assert!(message.contains("constructor `Packet` takes one value per field (1), got 3"), "{message}");
+        assert_eq!((line, column), (4, 25), "{message}");
+    }
+
+    #[test]
+    fn a_parameter_name_may_not_repeat() {
+        let (message, _, _) = reject_at("function f(a: i32, a: i32): i32 {\n  return a\n}");
+        assert!(message.contains(HIDDEN_NAME), "{message}");
+        assert!(message.contains("names parameter `a` twice"), "{message}");
+        // Untyped legacy functions keep their earlier reading.
+        admit("function f(a, a) {\n  return a\n}");
+    }
+
+    #[test]
+    fn slots_assignment_targets_receivers_and_lambda_bodies_resolve_their_names() {
+        let (message, _, _) = reject_at("function main(): i32 {\n  let x: i32 = 1\n  slot x: i32 = 2\n  return x\n}");
+        assert!(message.contains(HIDDEN_NAME), "{message}");
+
+        let (message, _, _) = reject_at("function main(): i32 {\n  *nowhere = 2\n  return 1\n}");
+        assert!(message.contains(UNKNOWN_NAME), "{message}");
+        assert!(message.contains("unknown name `nowhere`"), "{message}");
+
+        let (message, line, column) = reject_at("function main(): i32 {\n  return nowhere.method()\n}");
+        assert!(message.contains("unknown name `nowhere`"), "{message}");
+        assert_eq!((line, column), (2, 10), "{message}");
+
+        let (message, _, _) = reject_at("function main(): i32 {\n  let g = (x) => x + zzz\n  return 1\n}");
+        assert!(message.contains("unknown name `zzz`"), "{message}");
+        admit("function main(): i32 {\n  let g = (x) => x + 1\n  return 1\n}");
+
+        let (message, _, _) = reject_at("function main(): i32 {\n  [zzz]\n  return 1\n}");
+        assert!(message.contains("unknown name `zzz`"), "{message}");
+        let (message, _, _) =
+            reject_at("function main(): i32 {\n  let xs = [...zzz]\n  return 1\n}");
+        assert!(message.contains("unknown name `zzz`"), "{message}");
+    }
+
+    #[test]
+    fn every_built_in_name_resolves_in_a_typed_function() {
+        // Stated here, not read from `BUILTINS`, so dropping a name from the list fails this test.
+        // The native backend lowers the first twelve; the Kotlin backend the last six.
+        let names = [
+            "load",
+            "store",
+            "move",
+            "drop",
+            "buffer",
+            "known",
+            "unknown",
+            "isKnown",
+            "unknownReason",
+            "slice_length",
+            "u8_to_i32",
+            "i32_to_u8",
+            "abs",
+            "floor",
+            "max",
+            "min",
+            "pow",
+            "sqrt",
+        ];
+        for name in names {
+            let source = format!("function f(a: i32): i32 {{\n  let r = {name}(a)\n  return 1\n}}");
+            let ast = parse_ast(&source).expect("fixture should parse");
+            if let Err(error) = check_semantics(&ast) {
+                assert!(
+                    !error.message.contains(UNKNOWN_FUNCTION),
+                    "built-in `{name}` did not resolve: {}",
+                    error.message
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn unit_return_types_need_no_value() {
+        admit("function f(x: i32): unit {\n  let y: i32 = x\n}");
+        admit("function f(x: i32): void {\n  let y: i32 = x\n}");
     }
 }

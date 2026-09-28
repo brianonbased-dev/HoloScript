@@ -747,18 +747,8 @@ impl<'a> UaalEmitter<'a> {
             self.current_borrowed_aggregates.clear();
             self.current_control_flow_depth = 0;
             self.current_scopes = vec![Vec::new()];
-            if let Some(return_type) = function
-                .return_type
-                .as_deref()
-                .filter(|annotation| !annotation.is_empty() && *annotation != "void")
-            {
-                if !definitely_returns_value(&function.body) {
-                    return Err(UaalEmitError::new(format!(
-                        "function `{}` declares `{return_type}` but can finish without returning a value in compile_to_uaal; every path must end in `return`",
-                        function.name
-                    )));
-                }
-            }
+            // The every-path return rule for typed functions is the checker's (HS-RETURN-002),
+            // which `check_semantics` above has already applied.
             if function
                 .return_type
                 .as_deref()
@@ -4189,13 +4179,7 @@ function main(): i32 {
 }"#,
         )
         .expect_err("a typed function that can fall off its end must not yield null");
-        assert!(
-            error
-                .message
-                .contains("can finish without returning a value"),
-            "{}",
-            error.message
-        );
+        assert!(error.message.contains("HS-RETURN-002"), "{}", error.message);
 
         compile(
             r#"function f(x: i32): i32 {
