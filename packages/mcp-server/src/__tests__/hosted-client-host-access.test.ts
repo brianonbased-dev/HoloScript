@@ -29,9 +29,8 @@ const { runTripleGate } = await import('../security/gates');
 const { authorizeToolCall } = await import('../security/tool-scopes');
 const { expandScopes } = await import('../auth/oauth2-provider');
 const { _handleSingleToolLogic } = await import('../index');
-const { buildMeshToolManifest, clearMeshToolRegistry, publishMeshToolManifest } = await import(
-  '../holomesh/mesh-tool-registry'
-);
+const { buildMeshToolManifest, clearMeshToolRegistry, publishMeshToolManifest } =
+  await import('../holomesh/mesh-tool-registry');
 
 const WORK = mkdtempSync(join(tmpdir(), 'hosted-client-work-'));
 afterAll(() => {
@@ -80,7 +79,9 @@ const HOST_CONTROL_TOOLS = [
 
 describe('a self-registered client cannot use the host-control tools', () => {
   it('the scope it asks for is the one that used to reach them', () => {
-    expect(AS_EXECUTE).toEqual(expect.arrayContaining(['tools:read', 'tools:write', 'tools:codebase']));
+    expect(AS_EXECUTE).toEqual(
+      expect.arrayContaining(['tools:read', 'tools:write', 'tools:codebase'])
+    );
     expect(AS_DEFAULT).toEqual(['tools:read']);
   });
 
@@ -152,24 +153,27 @@ describe('a caller without admin scope cannot name a host path to ANY tool', () 
     ['holo_scaffold_code', 'targetDir'],
     ['holo_generate_bindings', 'modulePath'],
     ['compile_to_sdk', 'outputDir'],
-  ])('%s refuses an absolute %s and a traversal, accepts a plain relative one', async (tool, key) => {
-    const abs = join(WORK, 'x');
-    const absolute = await callLikeTheServer(AS_EXECUTE, tool, { [key]: abs });
-    expect(absolute.passed).toBe(false);
-    expect(absolute.gate).toBe(3);
-    const traversal = await callLikeTheServer(AS_EXECUTE, tool, { [key]: 'a/../b' });
-    expect(traversal.passed).toBe(false);
-    expect(traversal.gate).toBe(3);
-    // The gate lets a plain relative name through (whatever the handler then does with it).
-    const relative = runTripleGate(tool, { [key]: 'compositions/x' }, {
-      active: true,
-      clientId: 'dyn-client',
-      scopes: AS_EXECUTE,
-    } as never);
-    expect(relative.gate).toBe(3);
-    expect(relative.passed).toBe(true);
-    expect(existsSync(abs)).toBe(false);
-  });
+  ])(
+    '%s refuses an absolute %s and a traversal, accepts a plain relative one',
+    async (tool, key) => {
+      const abs = join(WORK, 'x');
+      const absolute = await callLikeTheServer(AS_EXECUTE, tool, { [key]: abs });
+      expect(absolute.passed).toBe(false);
+      expect(absolute.gate).toBe(3);
+      const traversal = await callLikeTheServer(AS_EXECUTE, tool, { [key]: 'a/../b' });
+      expect(traversal.passed).toBe(false);
+      expect(traversal.gate).toBe(3);
+      // The gate lets a plain relative name through (whatever the handler then does with it).
+      const relative = runTripleGate(tool, { [key]: 'compositions/x' }, {
+        active: true,
+        clientId: 'dyn-client',
+        scopes: AS_EXECUTE,
+      } as never);
+      expect(relative.gate).toBe(3);
+      expect(relative.passed).toBe(true);
+      expect(existsSync(abs)).toBe(false);
+    }
+  );
 
   it('an administrator may still name an absolute path (the owner agents rely on it)', () => {
     const abs = runTripleGate('holo_scaffold_code', { targetDir: join(WORK, 'x') }, {
@@ -186,11 +190,19 @@ describe('a caller without admin scope cannot name a host path to ANY tool', () 
       'batch_tool_call',
       {
         calls: [
-          { name: 'holo_export_emergence_corpus', args: { outPath: join(WORK, 'batch-corpus.jsonl') } },
+          {
+            name: 'holo_export_emergence_corpus',
+            args: { outPath: join(WORK, 'batch-corpus.jsonl') },
+          },
           { name: 'holo_scaffold_code', args: { targetDir: target } },
         ],
       },
-      { signedRequest: false, signingValid: true, signer: 'dyn-client', scopes: AS_EXECUTE } as never
+      {
+        signedRequest: false,
+        signingValid: true,
+        signer: 'dyn-client',
+        scopes: AS_EXECUTE,
+      } as never
     )) as { content?: Array<{ text?: string }> };
     const summary = JSON.parse(res.content?.[0]?.text ?? '{}') as {
       results: Array<{ name: string; ok: boolean; error?: string }>;
@@ -207,7 +219,12 @@ describe('a caller without admin scope cannot name a host path to ANY tool', () 
     const res = (await _handleSingleToolLogic(
       'batch_tool_call',
       { calls: [{ name: 'holo_write_file', args: { filePath: target, content: 'x' } }] },
-      { signedRequest: false, signingValid: true, signer: 'dyn-client', scopes: AS_EXECUTE } as never
+      {
+        signedRequest: false,
+        signingValid: true,
+        signer: 'dyn-client',
+        scopes: AS_EXECUTE,
+      } as never
     )) as { content?: Array<{ text?: string }> };
     const summary = JSON.parse(res.content?.[0]?.text ?? '{}') as {
       results: Array<{ ok: boolean; error?: string }>;
@@ -227,17 +244,28 @@ describe('a file: URL cannot reach the server disk, under any argument name or b
   const secret = join(WORK, 'pretend-secret.bin');
   writeFileSync(secret, 'PRETEND-SECRET-BYTES');
   const secretUrl = pathToFileURL(secret).href;
-  const asCaller = { signedRequest: false, signingValid: true, signer: 'dyn-client', scopes: AS_EXECUTE };
+  const asCaller = {
+    signedRequest: false,
+    signingValid: true,
+    signer: 'dyn-client',
+    scopes: AS_EXECUTE,
+  };
 
   it('holo_reconstruct_from_video: a file: videoUrl is refused at Gate 3', async () => {
-    const got = await callLikeTheServer(AS_EXECUTE, 'holo_reconstruct_from_video', { videoUrl: secretUrl });
+    const got = await callLikeTheServer(AS_EXECUTE, 'holo_reconstruct_from_video', {
+      videoUrl: secretUrl,
+    });
     expect(got.passed).toBe(false);
     expect(got.gate).toBe(3);
     expect(got.reason).toMatch(/Host path argument refused/);
   });
 
   it('the same call made from inside the server, past Gate 3, is refused by the dispatcher itself', async () => {
-    const res = (await _handleSingleToolLogic('holo_reconstruct_from_video', { videoUrl: secretUrl }, asCaller as never)) as {
+    const res = (await _handleSingleToolLogic(
+      'holo_reconstruct_from_video',
+      { videoUrl: secretUrl },
+      asCaller as never
+    )) as {
       content?: Array<{ text?: string }>;
     };
     const text = res.content?.[0]?.text ?? '';
@@ -269,11 +297,15 @@ describe('a file: URL cannot reach the server disk, under any argument name or b
   });
 
   it('an https videoUrl still passes the gate', () => {
-    const g = runTripleGate('holo_reconstruct_from_video', { videoUrl: 'https://cdn.example.com/walkthrough.mp4' }, {
-      active: true,
-      clientId: 'dyn-client',
-      scopes: AS_EXECUTE,
-    } as never);
+    const g = runTripleGate(
+      'holo_reconstruct_from_video',
+      { videoUrl: 'https://cdn.example.com/walkthrough.mp4' },
+      {
+        active: true,
+        clientId: 'dyn-client',
+        scopes: AS_EXECUTE,
+      } as never
+    );
     expect(g.passed).toBe(true);
   });
 

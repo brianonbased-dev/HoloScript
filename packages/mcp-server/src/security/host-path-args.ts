@@ -84,7 +84,8 @@ function stringsIn(value: unknown): string[] {
   while (pending.length > 0) {
     const next = pending.pop();
     if (typeof next === 'string') found.push(next);
-    else if (Array.isArray(next)) for (let i = next.length - 1; i >= 0; i -= 1) pending.push(next[i]);
+    else if (Array.isArray(next))
+      for (let i = next.length - 1; i >= 0; i -= 1) pending.push(next[i]);
   }
   return found;
 }
@@ -122,7 +123,9 @@ export interface HostPathViolation {
  * not a file. A tool that runs other tools dispatches them as separate calls, and the dispatcher checks
  * each one with its own top-level arguments.
  */
-export function findHostPathViolation(args: Record<string, unknown> | undefined): HostPathViolation | null {
+export function findHostPathViolation(
+  args: Record<string, unknown> | undefined
+): HostPathViolation | null {
   if (!args || typeof args !== 'object') return null;
   for (const [key, value] of Object.entries(args)) {
     const normalized = normalizeKey(key);

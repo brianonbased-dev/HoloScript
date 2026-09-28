@@ -54,7 +54,16 @@ describe('hostPathViolation: what is not a plain relative path', () => {
 
 describe('findHostPathViolation: which arguments are looked at', () => {
   it('finds a path-typed key whatever its spelling', () => {
-    for (const key of ['filePath', 'FilePath', 'file_path', 'file-path', 'outpath', 'OUT_PATH', 'rootDir', 'root_dir']) {
+    for (const key of [
+      'filePath',
+      'FilePath',
+      'file_path',
+      'file-path',
+      'outpath',
+      'OUT_PATH',
+      'rootDir',
+      'root_dir',
+    ]) {
       expect(findHostPathViolation({ [key]: '/etc/passwd' })?.key).toBe(key);
     }
   });
@@ -65,7 +74,9 @@ describe('findHostPathViolation: which arguments are looked at', () => {
       key: 'files',
       reason: expect.stringMatching(/absolute/),
     });
-    expect(findHostPathViolation({ research_files: ['ok.md', '../secret'] })?.key).toBe('research_files');
+    expect(findHostPathViolation({ research_files: ['ok.md', '../secret'] })?.key).toBe(
+      'research_files'
+    );
   });
 
   it('ignores keys that are not locations, even when the value looks like one', () => {
@@ -92,11 +103,15 @@ describe('findHostPathViolation: which arguments are looked at', () => {
   });
 
   it('lets free text begin with file: (it is prose for the tool, not a location it opens)', () => {
-    expect(findHostPathViolation({ content: 'file: notes.md', code: 'file:///x', prompt: 'file: a' })).toBeNull();
+    expect(
+      findHostPathViolation({ content: 'file: notes.md', code: 'file:///x', prompt: 'file: a' })
+    ).toBeNull();
   });
 
   it('videoUrl is a location: https passes, an absolute path does not', () => {
-    expect(findHostPathViolation({ videoUrl: 'https://cdn.example.com/walkthrough.mp4' })).toBeNull();
+    expect(
+      findHostPathViolation({ videoUrl: 'https://cdn.example.com/walkthrough.mp4' })
+    ).toBeNull();
     expect(findHostPathViolation({ videoUrl: '/etc/passwd' })?.reason).toMatch(/absolute/);
   });
 
@@ -107,7 +122,9 @@ describe('findHostPathViolation: which arguments are looked at', () => {
   });
 
   it('is not recursive into objects: a nested field called path is a route, not a file', () => {
-    expect(findHostPathViolation({ routes: [{ path: '/api/users' }], scene: { path: '/x' } })).toBeNull();
+    expect(
+      findHostPathViolation({ routes: [{ path: '/api/users' }], scene: { path: '/x' } })
+    ).toBeNull();
   });
 
   it('ignores non-string values and empty input', () => {
@@ -125,21 +142,25 @@ describe('who may name a host path', () => {
   it('only admin:* or tools:admin', () => {
     expect(callerMayNameHostPaths(['admin:*'])).toBe(true);
     expect(callerMayNameHostPaths(['tools:admin'])).toBe(true);
-    expect(callerMayNameHostPaths(['tools:read', 'tools:write', 'tools:codebase', 'tools:browser'])).toBe(false);
+    expect(
+      callerMayNameHostPaths(['tools:read', 'tools:write', 'tools:codebase', 'tools:browser'])
+    ).toBe(false);
     expect(callerMayNameHostPaths([])).toBe(false);
     expect(callerMayNameHostPaths(undefined)).toBe(false);
   });
 
   it('assertNoHostPathArgs throws for a non-admin and names the tool and the key', () => {
-    expect(() => assertNoHostPathArgs('holo_scaffold_code', { targetDir: '/x' }, ['tools:write'])).toThrow(
-      /Host path argument refused for "holo_scaffold_code": "targetDir"/
-    );
+    expect(() =>
+      assertNoHostPathArgs('holo_scaffold_code', { targetDir: '/x' }, ['tools:write'])
+    ).toThrow(/Host path argument refused for "holo_scaffold_code": "targetDir"/);
     expect(() => assertNoHostPathArgs('t', { path: 'a/b' }, ['tools:write'])).not.toThrow();
     expect(() => assertNoHostPathArgs('t', { path: '/x' }, ['admin:*'])).not.toThrow();
     expect(() => assertNoHostPathArgs('t', { path: '/x' }, ['tools:admin'])).not.toThrow();
   });
 
   it('an absent scope list is treated as non-admin, not trusted', () => {
-    expect(() => assertNoHostPathArgs('t', { path: '/x' }, undefined)).toThrow(/Host path argument refused/);
+    expect(() => assertNoHostPathArgs('t', { path: '/x' }, undefined)).toThrow(
+      /Host path argument refused/
+    );
   });
 });
