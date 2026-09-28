@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { HoloScriptPlusParser, parse } from './HoloScriptPlusParser';
 import type { HoloBrainDecl } from './HoloScriptPlusParser';
+import { parseHolo } from './HoloCompositionParser';
 import {
   hsplusRustCheckerLoaded,
   resetHsplusRustCheckerForTests,
@@ -1033,5 +1034,106 @@ describe('typed functions checked by the Rust checker', () => {
 }`);
     expect(wrong.success).toBe(false);
     expect(wrong.errors.map((error) => error.message).join('\n')).toContain('HS-TYPE-RETURN-001');
+  });
+});
+
+const ZONE_MESSAGE =
+  'HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.';
+const SPATIAL_MESSAGE =
+  'HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.';
+const LAYER_MESSAGE =
+  'HSP001: "layer" is not part of .hsplus. Use a composition in a .holo file instead.';
+
+describe('zone, spatial, and layer are rejected in .hsplus', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  function typesIn(value: unknown, found: string[] = [], seen = new Set<unknown>()): string[] {
+    if (!value || typeof value !== 'object' || seen.has(value)) return found;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      for (const item of value) typesIn(item, found, seen);
+      return found;
+    }
+    const record = value as Record<string, unknown>;
+    if (typeof record.type === 'string') found.push(record.type);
+    for (const child of Object.values(record)) typesIn(child, found, seen);
+    return found;
+  }
+
+  it('rejects a top-level zone block with one plain error at the zone word', () => {
+    const result = parser.parse('zone SafeArea(x: 0, y: 0, z: 5, width: 100)');
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: ZONE_MESSAGE,
+      line: 1,
+      column: 1,
+    });
+    expect(typesIn(result.ast)).not.toContain('zone');
+  });
+
+  it('rejects a top-level spatial block with one plain error at the spatial word', () => {
+    const result = parser.parse(`spatial ComponentName(width: number, height: number) {
+  layer background {
+  }
+}`);
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: SPATIAL_MESSAGE,
+      line: 1,
+      column: 1,
+    });
+    const types = typesIn(result.ast);
+    expect(types).not.toContain('spatial');
+    expect(types).not.toContain('layer');
+  });
+
+  it('rejects a top-level layer block with one plain error at the layer word', () => {
+    const result = parser.parse('layer background {\n  color: "red"\n}');
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: LAYER_MESSAGE,
+      line: 1,
+      column: 1,
+    });
+    expect(typesIn(result.ast)).not.toContain('layer');
+  });
+
+  it('rejects a zone nested inside a .hsplus composition with the same plain error', () => {
+    const result = parser.parse('composition "X" { zone "A" { } }');
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HSP001',
+      message: ZONE_MESSAGE,
+      line: 1,
+      column: 19,
+    });
+    expect(typesIn(result.ast)).not.toContain('zone');
+  });
+
+  it('keeps a property named layer as an ordinary property', () => {
+    const result = parser.parse('object "A" { layer: 2 }');
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.ast.root.type).toBe('object');
+    expect(result.ast.root.properties.layer).toBe(2);
+  });
+
+  it('keeps a zone inside a .holo composition', () => {
+    const result = parseHolo(`composition "Scene" {
+  zone "SafeArea" {
+    width: 100
+  }
+}`);
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.ast?.zones).toHaveLength(1);
+    expect(result.ast?.zones[0]?.name).toBe('SafeArea');
   });
 });

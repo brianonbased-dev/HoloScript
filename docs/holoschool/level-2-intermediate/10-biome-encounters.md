@@ -14,9 +14,9 @@ Build an environment with two biomes: a **Lush Forest** and a **Dead Desert**.
 
 ## Step 1: Define the Biome Zones
 
-We use the `zone` block to define physical areas and the `state` block to track the current active biome.
+We use the `zone` block to define physical areas and the `state` block to track the current active biome. A zone belongs inside a composition.
 
-```hsplus
+```holo
 composition "Biome Demo" {
     state {
         currentBiome: "none"
