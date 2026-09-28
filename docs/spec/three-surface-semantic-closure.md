@@ -42,6 +42,20 @@ effect executes. Mutation tests prove that changing the plan signal, policy
 result, binding target, admitted inventory, or expected world state makes the
 gate fail.
 
+**Measured 2026-09-28: the gate script makes these links, not the language.**
+The signal is the constant in the brain's `plan` block (the recall and plan
+steps it runs are stubs). The gate writes it into the `.hs` source by rewriting
+the integer in `return decide(N)` and recompiling, and it skips the `.holo`
+effect with its own TypeScript `if` when the decision is not positive. The
+project bindings are compared with three fixed triples, not interpreted.
+`main.holo` has no conditional, `UaalBehaviorCompiler` does not read its
+imports, and its bytecode is byte-identical with or without them: compiled on
+its own, the composition always applies the decision. Of the 135 passed stage
+marks, 117 are constants in the gate source; an added import from a file that
+does not exist passes as lowered, executed and preserved. A correct "deny"
+outcome cannot pass, because the gate requires the effect to run. This is
+[G20](./spec-vs-reality-gap.md#g20--the-three-surface-closure-is-made-by-the-gate-not-the-language).
+
 Run the strict gate from the repository root:
 
 ```bash
@@ -99,8 +113,19 @@ authoritative for its extension.
 
 The `.hs` path uses stable type diagnostics for return, assignment, call
 argument, and known non-boolean logical-operand mismatches. UAAL lowering
-rejects operations whose semantics are not preserved by the current VM ABI
-instead of silently widening, eagerly evaluating, or erasing them.
+rejects many operations whose semantics are not preserved by the current VM ABI
+(integer `/` and `%`, unary `-` and `!`, unproven truthiness) instead of
+silently widening or eagerly evaluating them.
+
+**Measured exception, 2026-09-28: recursion and block scope.** `compile_to_uaal`
+accepts recursive `.hs` functions, but it keeps one slot per function parameter
+or local (`__hs::<function>::<name>`), not one per call. A read after a
+recursive call sees the callee's value, and the run still reports `HALTED`:
+`fib(10)` returns `-80` on UAAL and `55` natively. An inner `let` in an `if`
+block overwrites the outer binding of the same name, and a typed function with
+no `return` yields `null`. These programs are outside the demonstrated subset
+until [G10](./spec-vs-reality-gap.md#g10--hs-on-uaal-has-no-per-call-frames-recursion-returns-wrong-values)
+closes.
 
 ### Typed lazy logic
 
@@ -137,6 +162,14 @@ semantic preservation.
 - `.hs` dual execution covers a conservative typed subset. Boolean inference
   beyond the explicit UAAL proof floor, unary `!`, unsupported widths,
   ownership, and broader ABI semantics still fail closed.
+- `.hs` functions on UAAL have no per-call frames. Recursion and same-name
+  block bindings do not fail closed: they compile and return wrong values
+  (G10 in `spec-vs-reality-gap.md`). The native backend returns the right
+  values for recursion and refuses the block redeclaration.
+- The cross-surface links (event, decision, effect) are performed by
+  `scripts/holo-ci/check-three-surface-closure.ts`, not by `.holo` imports or
+  any language construct, and most stage marks are asserted by that script
+  rather than observed from a compiler (G20).
 - General cross-target equivalence still requires broader differential tests
   and, for proof-level claims, formal semantics and machine-checked
   preservation.
