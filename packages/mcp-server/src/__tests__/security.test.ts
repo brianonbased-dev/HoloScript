@@ -786,16 +786,17 @@ describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 3c. Gate 2: no login below admin reaches the server's own disk or processes
+// 3c. Gate 2: below admin, no caller-named server path and no server writes
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('Gate 2: no login below admin reaches the server host', () => {
+describe('Gate 2: no login below admin reads a caller-named server path, writes the server disk, or runs a caller-directed process', () => {
   // Every self-improve tool, taken from the registry export so a new one is
-  // covered the day it is added, plus the other tools found reading the
-  // server's files at a caller-named path. A login that reaches one can read
+  // covered the day it is added, plus the other tools found reading or
+  // walking a caller-named server path. A login that reaches one can read
   // server secrets (env files, /proc/self/environ) or write the server's disk,
   // so they are admin-only. Add to OTHER_HOST_REACH whenever another one is
-  // found; never remove an entry to get green.
+  // found; never remove an entry to get green. (tool-scopes.ts names the
+  // read tools that touch a fixed file or fixed program, and why they stay.)
   const OTHER_HOST_REACH = [
     'holo_critic',
     'holo_premortem',
@@ -803,6 +804,9 @@ describe('Gate 2: no login below admin reaches the server host', () => {
     'hs_scan_project',
     'serve_preview',
     'get_dev_dashboard_state',
+    'holo_query_wisdom',
+    'holo_list_gotchas',
+    'holo_check_gotchas',
   ];
   const HOST_REACH_TOOLS = [...selfImproveTools.map((t) => t.name), ...OTHER_HOST_REACH];
   const registryNames = [...new Set(ALL_AVAILABLE_TOOLS.map((t) => t.name))];

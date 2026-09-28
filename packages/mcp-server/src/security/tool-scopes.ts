@@ -169,18 +169,27 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_verify_before_commit: ['tools:admin'],
   holo_quality_trend: ['tools:admin'],
 
-  // === Other tools that reach the server's own files (admin) ===
+  // === Other tools that read or walk a caller-named server path (admin) ===
   // holo_critic and holo_premortem read any path the caller names and bill an
   // LLM call to the server; holo_founder returns the founder's private
   // doctrine files from the server's home directory; hs_scan_project,
-  // serve_preview and get_dev_dashboard_state walk a caller-named directory
-  // on the server. No remote client in this repo calls them.
+  // serve_preview and get_dev_dashboard_state walk a caller-named directory;
+  // holo_query_wisdom, holo_list_gotchas and holo_check_gotchas walk a
+  // caller-named rootDir and read a caller-named compositionFile, absolute
+  // paths included. No remote client in this repo calls them.
+  // Deliberately still tools:read: get_workspace_info (parses one fixed file
+  // name, holoscript.workspace.json), holo_from_scratch_status and sim_quote
+  // (run a fixed, server-resolved program with validated argv, no shell).
+  // None reads an arbitrary path or runs a caller-directed process.
   holo_critic: ['tools:admin'],
   holo_premortem: ['tools:admin'],
   holo_founder: ['tools:admin'],
   hs_scan_project: ['tools:admin'],
   serve_preview: ['tools:admin'],
   get_dev_dashboard_state: ['tools:admin'],
+  holo_query_wisdom: ['tools:admin'],
+  holo_list_gotchas: ['tools:admin'],
+  holo_check_gotchas: ['tools:admin'],
 
   // === Compiler tools ===
   compile_holoscript: ['tools:write'],
@@ -224,9 +233,6 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   execute_eval: ['tools:admin'],
 
   // === Wisdom/Gotcha ===
-  holo_query_wisdom: ['tools:read'],
-  holo_list_gotchas: ['tools:read'],
-  holo_check_gotchas: ['tools:read'],
   holo_add_wisdom: ['tools:admin'],
   holo_add_gotcha: ['tools:admin'],
 
