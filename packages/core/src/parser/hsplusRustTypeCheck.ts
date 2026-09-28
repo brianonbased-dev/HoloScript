@@ -7,8 +7,6 @@
  */
 
 import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 export interface RustFunctionDiagnostic {
   /** `HS-TYPE-*` when the Rust checker emitted one; otherwise the Rust sentence. */
@@ -43,35 +41,34 @@ export function resetHsplusRustCheckerForTests(): void {
   loadError = null;
 }
 
-function wasmCandidates(here: string): string[] {
-  const segments = ['compiler-wasm', 'pkg-node', 'holoscript_wasm.js'];
-  return [
-    resolve(here, '..', '..', '..', '..', ...segments),
-    resolve(here, '..', '..', '..', ...segments),
-  ];
-}
+/**
+ * Package export for the node build of `@holoscript/wasm` (`pkg-node`).
+ * Joined at runtime so a bundler does not try to resolve the glue while
+ * compiling a consumer that has not installed the package yet.
+ */
+const WASM_NODE_SPECIFIER = ['@holoscript', 'wasm', 'node'].join('/');
 
 function loadChecker(): WasmValidate | null {
   if (attempted) return checker;
   attempted = true;
   try {
+    // Resolution starts at this module. From source that is
+    // packages/core/src/parser. From the tsup bundle it is packages/core/dist.
+    // From an installed package it is node_modules/@holoscript/core/dist.
+    // Walking relative to the file only reaches compiler-wasm inside the
+    // monorepo source tree. require.resolve of the package export works in
+    // all three places, because @holoscript/core depends on @holoscript/wasm
+    // and that package publishes pkg-node behind the "./node" export.
     const require = createRequire(import.meta.url);
-    const here = dirname(fileURLToPath(import.meta.url));
-    let lastError: unknown = null;
-    for (const candidate of wasmCandidates(here)) {
-      try {
-        const loaded = require(candidate) as { validate_detailed?: unknown };
-        if (typeof loaded.validate_detailed === 'function') {
-          checker = {
-            validate_detailed: loaded.validate_detailed.bind(loaded) as WasmValidate['validate_detailed'],
-          };
-          return checker;
-        }
-      } catch (error) {
-        lastError = error;
-      }
+    const resolved = require.resolve(WASM_NODE_SPECIFIER);
+    const loaded = require(resolved) as { validate_detailed?: unknown };
+    if (typeof loaded.validate_detailed === 'function') {
+      checker = {
+        validate_detailed: loaded.validate_detailed.bind(loaded) as WasmValidate['validate_detailed'],
+      };
+      return checker;
     }
-    loadError = lastError instanceof Error ? lastError.message : 'validate_detailed is not exported';
+    loadError = 'validate_detailed is not exported';
   } catch (error) {
     loadError = error instanceof Error ? error.message : String(error);
   }

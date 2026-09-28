@@ -139,6 +139,11 @@ module.exports = {
     /^@holoscript\/qm-bridge\//,
     '@holoscript/snn-webgpu',
     /^@holoscript\/snn-webgpu\//,
+    // Declared dependency of core. The node glue loads its .wasm by a path
+    // next to holoscript_wasm.js, so the Docker bundle must leave the
+    // package external and the image must ship pkg-node (see Dockerfile).
+    '@holoscript/wasm',
+    /^@holoscript\/wasm\//,
     'webgpu',
     // ONNX runtimes — native bindings (onnxruntime-node) + WebGPU platform
     // packages; dynamically imported and optional. Must mirror

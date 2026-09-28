@@ -45,6 +45,12 @@ COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/config/ packages/config/
 COPY packages/core/ packages/core/
+# Typed .hsplus functions resolve @holoscript/wasm/node at runtime. The
+# package lives in packages/compiler-wasm (pkg-node glue + wasm). The runtime
+# stage copies /app/packages from this builder, so omitting this COPY ships
+# an image whose build is green and whose typed functions fail closed.
+# Same COPY as infrastructure/Dockerfile.mcp-server.
+COPY packages/compiler-wasm/ packages/compiler-wasm/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
@@ -118,6 +124,18 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY --from=builder --chown=nodejs:nodejs /app/packages packages
 COPY --from=builder --chown=nodejs:nodejs /app/services services
 COPY --chown=nodejs:nodejs tsconfig.json tsconfig.base.json ./
+
+# pkg-node is already inside the wholesale packages copy above. Repeat the
+# mcp-server runtime copy so a missing checker fails this layer, then link
+# the package name Node resolves from packages/core/dist/parser.js.
+# pnpm's virtual store does not put @holoscript/wasm on that walk.
+COPY --from=builder --chown=nodejs:nodejs /app/packages/compiler-wasm/pkg-node packages/compiler-wasm/pkg-node
+RUN mkdir -p /app/node_modules/@holoscript && \
+    ln -sfn /app/packages/compiler-wasm /app/node_modules/@holoscript/wasm && \
+    test -f /app/packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm && \
+    test -f /app/packages/compiler-wasm/pkg-node/holoscript_wasm.js && \
+    test -f /app/packages/core/dist/parser.js && \
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/core/dist/parser.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); }"
 
 # Copy entrypoint
 COPY --chown=nodejs:nodejs services/absorb-service/scripts/docker-entrypoint.sh /app/services/absorb-service/scripts/docker-entrypoint.sh

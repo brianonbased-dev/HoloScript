@@ -732,7 +732,7 @@ orb Sword @grabbable {
 }
 ```
 
-A typed function that returns an `i32` where `i64` was declared. The Rust checker refuses it before success. A function node is still emitted, and success is false. Message: `[HS-TYPE-RETURN-001] return type mismatch in function `add`: expected `i64`, found `i32``.
+A typed function that returns an `i32` where `i64` was declared. The Rust checker refuses it before success. A function node is still emitted, and success is false. Message: `` `[HS-TYPE-RETURN-001] return type mismatch in function `add`: expected `i64`, found `i32` ``.
 
 ```hsplus reject
 function add(left: i32, right: i64): i64 {
