@@ -723,6 +723,67 @@ function main(): i32 {
   return is_even(10)
 }`,
       },
+      {
+        name: 'three-way mutual recursion reading n after each call',
+        expected: 51,
+        source: `function a(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return b(n - 1) + n
+}
+
+function b(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return c(n - 1) + n * 2
+}
+
+function c(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return a(n - 1) + n * 3
+}
+
+function main(): i32 {
+  return a(7)
+}`,
+      },
+      {
+        name: 'a recursive call nested in the arguments of a returned one',
+        expected: 9,
+        source: `function ack(m: i32, n: i32): i32 {
+  if (m == 0) {
+    return n + 1
+  }
+  if (n == 0) {
+    return ack(m - 1, 1)
+  }
+  return ack(m - 1, ack(m, n - 1))
+}
+
+function main(): i32 {
+  return ack(2, 3)
+}`,
+      },
+      {
+        name: 'a 900-deep returned call keeps a flat operand stack',
+        expected: 242595150,
+        source: `function walk(i: i32, n: i32, acc: i32): i32 {
+  if (i >= n) {
+    return acc
+  }
+  let sq: i32 = i * i
+  let next: i32 = acc + sq
+  return walk(i + 1, n, next)
+}
+
+function main(): i32 {
+  return walk(0, 900, 0)
+}`,
+      },
     ];
 
     for (const testCase of cases) {
@@ -737,7 +798,79 @@ function main(): i32 {
     }
   }, 240000);
 
+  // Native refuses statement calls (hs-machine-v5), so these values are computed by hand.
+  it('discards the value of a statement call so recursive frames stay balanced', async () => {
+    const cases: Array<{ name: string; expected: number; source: string }> = [
+      {
+        name: 'a helper called as a statement before the recursive call',
+        expected: 6,
+        source: `function note(x: i32): i32 {
+  return x
+}
+
+function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  note(n)
+  return f(n - 1) + n
+}
+
+function main(): i32 {
+  return f(3)
+}`,
+      },
+      {
+        name: 'the recursive call itself used as a statement',
+        expected: 3,
+        source: `function f(n: i32): i32 {
+  if (n > 0) {
+    f(n - 1)
+  }
+  return n
+}
+
+function main(): i32 {
+  return f(3)
+}`,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const vm = new UAALVirtualMachine();
+      registerHsI32BinaryHandler(vm);
+      const result = await vm.execute(compileHsToUaalViaRust(testCase.source));
+
+      expect(result.taskStatus, testCase.name).toBe('HALTED');
+      expect(result.stackTop, testCase.name).toBe(testCase.expected);
+      expect(result.state.callStack, testCase.name).toEqual([]);
+    }
+  }, 120000);
+
   it('refuses what native refuses instead of returning a different value', () => {
+    expect(() =>
+      compileHsToUaalViaRust(`function f(n: i32) {
+  if (n == 0) {
+    return
+  }
+  return f(n - 1)
+}
+
+function main() {
+  return f(3)
+}`)
+    ).toThrow('HS-UAAL-CAP-007');
+
+    expect(() =>
+      compileHsToUaalViaRust(`function g(n: i32) {
+  let x: i32 = n
+}
+
+function main(): i32 {
+  return g(1)
+}`)
+    ).toThrow('never returns a value');
+
     expect(() =>
       compileHsToUaalViaRust(`function main(): i32 {
   let x: i32 = 1

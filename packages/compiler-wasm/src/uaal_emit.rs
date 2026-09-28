@@ -17,6 +17,7 @@ use crate::ast::{
 use crate::kotlin_emit::{check_semantics, SemanticDiagnostic};
 
 const OP_PUSH: u16 = 0x01;
+const OP_POP: u16 = 0x02;
 const OP_EXEC: u16 = 0x20;
 const OP_JUMP: u16 = 0x30;
 const OP_JUMP_IF: u16 = 0x31;
@@ -195,8 +196,14 @@ struct UaalEmitter<'a> {
     reentrant_callees: HashMap<String, HashSet<String>>,
     /// Functions whose every path ends in `return <value>`.
     value_returning_functions: HashSet<String>,
+    /// Functions with no `return <value>` anywhere.
+    no_value_functions: HashSet<String>,
     /// Names declared in each open block of the current function, innermost last.
     current_scopes: Vec<Vec<String>>,
+    /// Address of the call node whose value the current `return` hands back directly.
+    tail_call: Option<usize>,
+    /// Address of the call node the current statement discards.
+    statement_call: Option<usize>,
 }
 
 pub fn compile_source_to_uaal(source: &str) -> Result<UaalBytecode, UaalEmitError> {
@@ -253,10 +260,11 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         .map(|function| (function.name.clone(), function.return_type.clone()))
         .collect::<HashMap<_, _>>();
     let aggregate_layouts = collect_aggregate_layouts(ast)?;
-    let reentrant_callees = reentrant_callees(&functions, &function_names)?;
-    let value_returning_functions = functions
+    let reentrant_callees = reentrant_callees(&functions, &function_names);
+    let value_returning_functions = value_returning_functions(&functions, &function_names);
+    let no_value_functions = functions
         .iter()
-        .filter(|function| definitely_returns_value(&function.body))
+        .filter(|function| !has_value_return(&function.body))
         .map(|function| function.name.clone())
         .collect::<HashSet<_>>();
 
@@ -284,7 +292,10 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         current_control_flow_depth: 0,
         reentrant_callees,
         value_returning_functions,
+        no_value_functions,
         current_scopes: Vec::new(),
+        tail_call: None,
+        statement_call: None,
     };
 
     emitter.emit_bootstrap()?;
@@ -535,51 +546,61 @@ fn validate_imports_resolved(
     Ok(())
 }
 
-/// Direct user-function callees of `function`. The body is walked in its serialized form so a call
-/// in any expression position the parser can produce is found.
-fn direct_user_callees(
-    function: &FunctionNode,
-    function_names: &HashSet<String>,
-) -> Result<HashSet<String>, UaalEmitError> {
-    fn visit(value: &Value, function_names: &HashSet<String>, found: &mut HashSet<String>) {
-        match value {
-            Value::Object(map) => {
-                if map.get("type").and_then(Value::as_str) == Some("CallExpression") {
-                    let callee = map
-                        .get("callee")
-                        .filter(|callee| callee.get("type").and_then(Value::as_str) == Some("Identifier"))
-                        .and_then(|callee| callee.get("name"))
-                        .and_then(Value::as_str);
-                    if let Some(name) = callee.filter(|name| function_names.contains(*name)) {
-                        found.insert(name.to_string());
+/// Calls to user functions anywhere in `node`. Covers every statement and expression form
+/// `compile_to_uaal` lowers; any other form fails lowering on its own, so a call inside it never
+/// reaches the VM.
+fn collect_user_calls(node: &AstNode, names: &HashSet<String>, found: &mut HashSet<String>) {
+    match node {
+        AstNode::CallExpression(call) => {
+            match call.callee.as_ref() {
+                AstNode::Identifier(callee) => {
+                    if names.contains(&callee.name) {
+                        found.insert(callee.name.clone());
                     }
                 }
-                for child in map.values() {
-                    visit(child, function_names, found);
-                }
+                other => collect_user_calls(other, names, found),
             }
-            Value::Array(items) => {
-                for item in items {
-                    visit(item, function_names, found);
-                }
-            }
-            _ => {}
+            collect_user_calls_in(&call.arguments, names, found);
         }
+        AstNode::BinaryExpression(binary) => {
+            collect_user_calls(&binary.left, names, found);
+            collect_user_calls(&binary.right, names, found);
+        }
+        AstNode::UnaryExpression(unary) => collect_user_calls(&unary.argument, names, found),
+        AstNode::MemberExpression(member) => {
+            collect_user_calls(&member.object, names, found);
+            collect_user_calls(&member.property, names, found);
+        }
+        AstNode::Return(ret) => {
+            if let Some(argument) = &ret.argument {
+                collect_user_calls(argument, names, found);
+            }
+        }
+        AstNode::If(if_node) => {
+            collect_user_calls(&if_node.test, names, found);
+            collect_user_calls_in(&if_node.consequent, names, found);
+            if let Some(alternate) = &if_node.alternate {
+                collect_user_calls_in(alternate, names, found);
+            }
+        }
+        AstNode::While(while_node) => {
+            collect_user_calls(&while_node.test, names, found);
+            collect_user_calls_in(&while_node.body, names, found);
+        }
+        AstNode::VariableDeclaration(var) => collect_user_calls(&var.value, names, found),
+        AstNode::StackSlotDeclaration(slot) => collect_user_calls(&slot.value, names, found),
+        AstNode::Assignment(assignment) => {
+            collect_user_calls(&assignment.target, names, found);
+            collect_user_calls(&assignment.value, names, found);
+        }
+        _ => {}
     }
+}
 
-    // Through text rather than `to_value`: the string serializer for the AST is already in the
-    // WASM binary (it backs `parse`), while a `Value` serializer would add a second copy of it.
-    let body = serde_json::to_string(&function.body)
-        .and_then(|text| serde_json::from_str::<Value>(&text))
-        .map_err(|e| {
-            UaalEmitError::new(format!(
-                "could not inspect the calls in function `{}`: {}",
-                function.name, e
-            ))
-        })?;
-    let mut found = HashSet::new();
-    visit(&body, function_names, &mut found);
-    Ok(found)
+fn collect_user_calls_in(nodes: &[AstNode], names: &HashSet<String>, found: &mut HashSet<String>) {
+    for node in nodes {
+        collect_user_calls(node, names, found);
+    }
 }
 
 /// For each function F, the callees G such that a call F -> G can re-enter F: G is F itself, or F is
@@ -587,13 +608,12 @@ fn direct_user_callees(
 fn reentrant_callees(
     functions: &[&FunctionNode],
     function_names: &HashSet<String>,
-) -> Result<HashMap<String, HashSet<String>>, UaalEmitError> {
+) -> HashMap<String, HashSet<String>> {
     let mut direct = HashMap::new();
     for function in functions {
-        direct.insert(
-            function.name.clone(),
-            direct_user_callees(function, function_names)?,
-        );
+        let mut callees = HashSet::new();
+        collect_user_calls_in(&function.body, function_names, &mut callees);
+        direct.insert(function.name.clone(), callees);
     }
 
     let reachable_from = |start: &String| {
@@ -621,11 +641,16 @@ fn reentrant_callees(
             .collect::<HashSet<_>>();
         result.insert(caller.clone(), reentrant);
     }
-    Ok(result)
+    result
 }
 
-/// True when every path through `body` ends in `return <value>`. Trailing comments are ignored.
+/// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
 fn definitely_returns_value(body: &[AstNode]) -> bool {
+    ends_in_value_return(body) && every_return_has_value(body)
+}
+
+/// The end of `body` is unreachable except through `return <value>`. Trailing comments are ignored.
+fn ends_in_value_return(body: &[AstNode]) -> bool {
     match body
         .iter()
         .rev()
@@ -633,13 +658,94 @@ fn definitely_returns_value(body: &[AstNode]) -> bool {
     {
         Some(AstNode::Return(ret)) => ret.argument.is_some(),
         Some(AstNode::If(if_node)) => {
-            definitely_returns_value(&if_node.consequent)
+            ends_in_value_return(&if_node.consequent)
                 && if_node
                     .alternate
                     .as_deref()
-                    .is_some_and(definitely_returns_value)
+                    .is_some_and(ends_in_value_return)
         }
         _ => false,
+    }
+}
+
+fn every_return_has_value(body: &[AstNode]) -> bool {
+    body.iter().all(|node| match node {
+        AstNode::Return(ret) => ret.argument.is_some(),
+        AstNode::If(if_node) => {
+            every_return_has_value(&if_node.consequent)
+                && if_node
+                    .alternate
+                    .as_deref()
+                    .map_or(true, every_return_has_value)
+        }
+        AstNode::While(while_node) => every_return_has_value(&while_node.body),
+        _ => true,
+    })
+}
+
+fn has_value_return(body: &[AstNode]) -> bool {
+    body.iter().any(|node| match node {
+        AstNode::Return(ret) => ret.argument.is_some(),
+        AstNode::If(if_node) => {
+            has_value_return(&if_node.consequent)
+                || if_node.alternate.as_deref().is_some_and(has_value_return)
+        }
+        AstNode::While(while_node) => has_value_return(&while_node.body),
+        _ => false,
+    })
+}
+
+/// User functions whose value `body` returns directly, as in `return g(...)`.
+fn directly_returned_calls(body: &[AstNode], names: &HashSet<String>, found: &mut Vec<String>) {
+    for node in body {
+        match node {
+            AstNode::Return(ret) => {
+                if let Some(AstNode::CallExpression(call)) = ret.argument.as_deref() {
+                    if let AstNode::Identifier(callee) = call.callee.as_ref() {
+                        if names.contains(&callee.name) {
+                            found.push(callee.name.clone());
+                        }
+                    }
+                }
+            }
+            AstNode::If(if_node) => {
+                directly_returned_calls(&if_node.consequent, names, found);
+                if let Some(alternate) = &if_node.alternate {
+                    directly_returned_calls(alternate, names, found);
+                }
+            }
+            AstNode::While(while_node) => directly_returned_calls(&while_node.body, names, found),
+            _ => {}
+        }
+    }
+}
+
+/// Functions that return a value on every path. `return g(...)` counts only when `g` does too,
+/// so the set is narrowed until it stops changing.
+fn value_returning_functions(
+    functions: &[&FunctionNode],
+    names: &HashSet<String>,
+) -> HashSet<String> {
+    let mut set = functions
+        .iter()
+        .filter(|function| definitely_returns_value(&function.body))
+        .map(|function| function.name.clone())
+        .collect::<HashSet<_>>();
+    loop {
+        let before = set.clone();
+        set.retain(|name| {
+            functions
+                .iter()
+                .find(|function| &function.name == name)
+                .is_some_and(|function| {
+                    let mut returned = Vec::new();
+                    directly_returned_calls(&function.body, names, &mut returned);
+                    returned.iter().all(|callee| before.contains(callee))
+                })
+        });
+        if set.len() == before.len() {
+            return set;
+        }
     }
 }
 
@@ -812,13 +918,27 @@ impl<'a> UaalEmitter<'a> {
             AstNode::Return(ret) => {
                 if let Some(argument) = &ret.argument {
                     let expected = self.current_function_return_type()?.cloned();
-                    self.emit_expression_with_expected(argument, expected.as_deref())?;
+                    // The value of `return f(...)` is handed straight back, so a re-entrant call
+                    // there reads no caller slot afterwards and needs no save.
+                    self.tail_call = match argument.as_ref() {
+                        AstNode::CallExpression(call) => Some(call as *const CallExpression as usize),
+                        _ => None,
+                    };
+                    let emitted = self.emit_expression_with_expected(argument, expected.as_deref());
+                    self.tail_call = None;
+                    emitted?;
                 }
                 self.emit_owned_buffer_cleanup()?;
                 self.emit_op(OP_RET, Vec::new());
                 Ok(())
             }
-            AstNode::CallExpression(call) => self.emit_call_expression(call),
+            AstNode::CallExpression(call) => {
+                self.statement_call = Some(call as *const CallExpression as usize);
+                let emitted = self.emit_call_expression(call);
+                self.statement_call = None;
+                emitted?;
+                self.discard_statement_call_value(call)
+            }
             AstNode::If(if_node) => self.emit_if(if_node),
             AstNode::While(while_node) => self.emit_while(while_node),
             AstNode::VariableDeclaration(var) => {
@@ -1292,8 +1412,15 @@ impl<'a> UaalEmitter<'a> {
                 ));
             }
         }
+        let call_address = call as *const CallExpression as usize;
+        if self.statement_call != Some(call_address) && self.no_value_functions.contains(callee) {
+            return Err(UaalEmitError::new(format!(
+                "function `{callee}` never returns a value, so a call to it cannot be used as one in compile_to_uaal"
+            )));
+        }
         let saved_slots = if self.is_reentrant_call(callee) {
-            self.begin_reentrant_call(callee, &param_types)?
+            let tail = self.tail_call == Some(call_address);
+            self.begin_reentrant_call(callee, &param_types, tail)?
         } else {
             Vec::new()
         };
@@ -2982,6 +3109,7 @@ impl<'a> UaalEmitter<'a> {
         &mut self,
         callee: &str,
         callee_param_types: &[Option<String>],
+        tail: bool,
     ) -> Result<Vec<String>, UaalEmitError> {
         let caller = self.current_function_name()?.to_string();
         if !self.value_returning_functions.contains(callee) {
@@ -3015,6 +3143,11 @@ impl<'a> UaalEmitter<'a> {
                 ),
             ));
         }
+        if tail {
+            // `return f(...)`: nothing of the caller is read after the call, so there is nothing
+            // to save, and deep tail recursion keeps a flat operand stack.
+            return Ok(Vec::new());
+        }
 
         let mut names = self.current_bindings.iter().cloned().collect::<Vec<_>>();
         names.sort();
@@ -3040,14 +3173,52 @@ impl<'a> UaalEmitter<'a> {
         Ok(())
     }
 
-    /// Record a new local in the innermost open block. A name that is already visible — a
-    /// parameter or a binding of an enclosing block — is refused, as the native backend refuses it,
-    /// because both names would share one slot. Re-initializing an owner that was already moved or
-    /// dropped keeps its existing meaning.
+    /// A statement call leaves its callee's value on the operand stack, and inside a recursive
+    /// function a stray value would shift every saved slot restored after it. Discard the value of
+    /// a callee that always returns one; a callee that returns one on some paths only is refused
+    /// inside a recursive function, where the stack must balance exactly.
+    fn discard_statement_call_value(&mut self, call: &CallExpression) -> Result<(), UaalEmitError> {
+        let AstNode::Identifier(callee) = call.callee.as_ref() else {
+            return Ok(());
+        };
+        if !self.function_names.contains(&callee.name) {
+            return Ok(());
+        }
+        if self.value_returning_functions.contains(&callee.name) {
+            self.emit_op(OP_POP, Vec::new());
+            return Ok(());
+        }
+        if self.no_value_functions.contains(&callee.name) {
+            return Ok(());
+        }
+        let caller = self.current_function_name()?.to_string();
+        if self
+            .reentrant_callees
+            .get(&caller)
+            .is_some_and(|callees| !callees.is_empty())
+        {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-007",
+                "uaal.call.frames.v1",
+                format!(
+                    "`{}` returns a value on some paths only, so calling it as a statement inside the recursive function `{caller}` would unbalance its saved frame",
+                    callee.name
+                ),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Record a new local in the innermost open block. A plain local whose name is already visible —
+    /// a parameter or a local of an enclosing block — is refused, as the native backend refuses it,
+    /// because both would share one slot. Owned buffers, borrows and aggregate slots keep their
+    /// function-wide rules, so the same owner name in sibling branches stays admitted.
     fn declare_binding(&mut self, name: &str) -> Result<(), UaalEmitError> {
-        let consumed = self.current_moved_aggregates.contains(name)
-            || self.current_unavailable_owned_buffers.contains(name);
-        if self.current_bindings.contains(name) && !consumed {
+        let affine = self.current_owned_buffers.contains_key(name)
+            || self.current_borrowed_buffers.contains_key(name)
+            || self.current_borrowed_aggregates.contains_key(name)
+            || self.binding_aggregate_layout(name).is_some();
+        if self.current_bindings.contains(name) && !affine {
             return Err(UaalEmitError::new(format!(
                 "function `{}` redeclares binding `{name}` in compile_to_uaal; a name visible from an enclosing block cannot be declared again",
                 self.current_function_name()?
@@ -3783,6 +3954,174 @@ function main(): i32 {
             assert_eq!(restore[2].op_code, OP_STATE_GET);
             assert_eq!(restore[2].operands, vec![result_slot.clone()]);
         }
+    }
+
+    #[test]
+    fn a_returned_recursive_call_saves_nothing() {
+        let bytecode = compile(
+            r#"function walk(i: i32, n: i32, acc: i32): i32 {
+  if (i >= n) {
+    return acc
+  }
+  let next: i32 = acc + i
+  return walk(i + 1, n, next)
+}
+
+function main(): i32 {
+  return walk(0, 900, 0)
+}"#,
+        );
+        let result_slot = Value::from("__hs::walk::#call-result");
+        assert!(
+            !bytecode
+                .instructions
+                .iter()
+                .any(|instruction| instruction.operands == vec![result_slot.clone()]),
+            "a tail call must not save and restore the caller's slots: {:?}",
+            bytecode.instructions
+        );
+    }
+
+    #[test]
+    fn a_statement_call_discards_the_value_it_leaves() {
+        let bytecode = compile(
+            r#"function note(x: i32): i32 {
+  return x
+}
+
+function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  note(n)
+  return f(n - 1) + n
+}
+
+function main(): i32 {
+  return f(3)
+}"#,
+        );
+        let pops_after_calls = bytecode
+            .instructions
+            .windows(2)
+            .filter(|pair| pair[0].op_code == OP_CALL && pair[1].op_code == OP_POP)
+            .count();
+        assert_eq!(pops_after_calls, 1, "{:?}", bytecode.instructions);
+    }
+
+    #[test]
+    fn recursion_through_a_bare_return_or_a_valueless_callee_fails_closed() {
+        let bare = compile_source_to_uaal(
+            r#"function f(n: i32) {
+  if (n == 0) {
+    return
+  }
+  return f(n - 1)
+}
+
+function main() {
+  return f(3)
+}"#,
+        )
+        .expect_err("a bare return path means the callee may leave no value to restore around");
+        assert!(bare.message.contains("HS-UAAL-CAP-007"), "{}", bare.message);
+
+        let valueless = compile_source_to_uaal(
+            r#"function g(n: i32) {
+  let x: i32 = n
+}
+
+function main(): i32 {
+  return g(1)
+}"#,
+        )
+        .expect_err("a function that never returns a value cannot be used as one");
+        assert!(
+            valueless.message.contains("never returns a value"),
+            "{}",
+            valueless.message
+        );
+    }
+
+    #[test]
+    fn three_way_mutual_recursion_saves_around_every_cycle_call() {
+        let bytecode = compile(
+            r#"function a(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return b(n - 1) + n
+}
+
+function b(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return c(n - 1) + n * 2
+}
+
+function c(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return a(n - 1) + n * 3
+}
+
+function main(): i32 {
+  return a(7)
+}"#,
+        );
+        for function in ["a", "b", "c"] {
+            let result_slot = Value::from(format!("__hs::{function}::#call-result"));
+            assert!(
+                bytecode
+                    .instructions
+                    .iter()
+                    .any(|instruction| instruction.operands == vec![result_slot.clone()]),
+                "`{function}` reads `n` after a call that can re-enter it: {:?}",
+                bytecode.instructions
+            );
+        }
+    }
+
+    #[test]
+    fn recursion_carrying_an_owned_buffer_fails_closed() {
+        let error = compile_source_to_uaal(
+            r#"function f(n: i32): i32 {
+  let scratch: [i32] = buffer(2, 0)
+  if (n < 1) {
+    return 0
+  }
+  return f(n - 1) + n
+}
+
+function main(): i32 {
+  return f(3)
+}"#,
+        )
+        .expect_err("uaal.call.frames.v1 saves scalar slots only");
+        assert!(error.message.contains("HS-UAAL-CAP-007"), "{}", error.message);
+    }
+
+    #[test]
+    fn long_expressions_and_sibling_owner_names_still_compile() {
+        let terms = vec!["x"; 300].join(" + ");
+        compile(&format!(
+            "function main(): i32 {{\n  let x: i32 = 1\n  return {terms}\n}}"
+        ));
+
+        compile(
+            r#"function main(): i32 {
+  if (true) {
+    let b: [i32] = buffer(2, 5)
+    drop(b)
+  } else {
+    let b: [i32] = buffer(3, 5)
+    drop(b)
+  }
+  return 5
+}"#,
+        );
     }
 
     #[test]
