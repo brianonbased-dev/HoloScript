@@ -7,6 +7,19 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// Hermetic: no test here may reach a real model. createProviderManager registers providers
+// from the shell env (XAI_API_KEY, HOLOSCRIPT_LOCAL_LLM_URL, OPENAI_API_KEY, ...). With any of
+// them set, generate_world's PATH 2 (tryGenerateWithAI) waited on a live model until the 60 s
+// test timeout, and could spend money. Throwing is exactly what the real factory does when no
+// provider is configured, so generateWorldNative always takes its PATH 3 deterministic
+// heuristic, whatever the shell exports.
+vi.mock('@holoscript/llm-provider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@holoscript/llm-provider')>()),
+  createProviderManager: vi.fn(() => {
+    throw new Error('No LLM providers available (hermetic test: provider registration disabled)');
+  }),
+}));
+
 vi.mock('../holo-reconstruct-sessions', () => ({
   mcpStartReconstructFromVideo: vi.fn(async (videoUrl: string) => ({
     sessionId: 'sess-world-video',
@@ -25,6 +38,7 @@ import {
   handleHololandMcpTool,
   clearHololandRegistries,
   getHololandAdmissionAuditEvents,
+  hololandMcpTools,
 } from '../hololand-mcp-tools';
 import { emergentDaemonId } from '../daemon-lifecycle-tools';
 import { type Shard, type Zone, validateShard, validateZone } from '@holoscript/framework';
@@ -35,6 +49,19 @@ describe('hololand-mcp-tools', () => {
   beforeEach(() => {
     clearHololandRegistries();
     vi.clearAllMocks();
+  });
+
+  // ---------------------------------------------------------------------------
+  // tool definitions
+  // ---------------------------------------------------------------------------
+
+  it('no HoloLand tool definition carries mojibake in caller-visible text', () => {
+    // tools/list hands these descriptions to every MCP client. Each em dash in them had
+    // grown into ~400 characters of layered cp1252/UTF-8 mojibake ('ÃƒÆ’...').
+    expect(hololandMcpTools.length).toBeGreaterThan(0);
+    for (const tool of hololandMcpTools) {
+      expect(JSON.stringify(tool), tool.name).not.toContain('Ã');
+    }
   });
 
   // ---------------------------------------------------------------------------
@@ -60,6 +87,8 @@ describe('hololand-mcp-tools', () => {
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
+    // Deterministic path: no model was consulted (see the hermetic llm-provider mock above).
+    expect(result.source).toBe('heuristic');
     expect(result.inputModalities).toEqual(['text', 'image', 'video']);
     expect(result.provenance).toMatchObject({
       schema: 'cael.world_foundation_model.v1',
@@ -90,6 +119,7 @@ describe('hololand-mcp-tools', () => {
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
+    expect(result.source).toBe('heuristic');
     expect(result.inputModalities).toEqual(['text', 'image']);
     expect(result.structuredAssetGraph).toMatchObject({
       schema: 'holoscript.structured_asset_graph.v1',

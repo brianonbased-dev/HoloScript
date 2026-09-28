@@ -8,10 +8,21 @@
  * G.GOLD.013: every happy path is paired with at least one false-case test.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { handleTool } from '../handlers';
 import { clearHololandRegistries } from '../hololand-mcp-tools';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
+
+/** This package's own version: what substrate status must report, wherever it runs from. */
+const MCP_SERVER_PACKAGE_VERSION = (
+  JSON.parse(readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')) as {
+    version: string;
+  }
+).version;
+/** A directory whose package.json is NOT this package's (the monorepo root). */
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
 
 const mockSigningCtx: SigningContext = {
   signedRequest: false,
@@ -90,7 +101,10 @@ describe('HoloLand agent canary', () => {
       scenarioId: 'canary-scenario',
     });
     expect(receipt.success).toBe(true);
-    expect(receipt.status).toBe('passed');
+    // RATCHET (1d1f1cd5eb): the tool runs no validation of its own, so a receipt captured
+    // without an explicit `outcome` is honestly 'unverified', never 'passed'. The unit
+    // suite was aligned in c0d16a2a8c; this canary still pinned the old 'passed'.
+    expect(receipt.status).toBe('unverified');
     expect(typeof receipt.hash).toBe('string');
     expect(receipt.hash).toHaveLength(64);
 
@@ -103,6 +117,8 @@ describe('HoloLand agent canary', () => {
     expect(status.health).toBe('healthy');
     expect(Array.isArray(status.receipts)).toBe(true);
     expect((status.receipts as unknown[]).length).toBeGreaterThanOrEqual(1);
+    // The stored receipt carries the same honest status the capture call returned.
+    expect((status.receipts as Array<{ status: string }>)[0].status).toBe('unverified');
 
     // Step 7 — Publish zone
     const published = await tool('hololand_publish_zone', {
@@ -221,16 +237,35 @@ describe('HoloLand agent canary', () => {
 
   // ── Workflow 3: Twin Earth Substrate Contract (task_1778618552503_3zqx) ──
 
-  it('canary: agent retrieves Twin Earth substrate contract', async () => {
+  it('canary: agent retrieves Twin Earth substrate contract (honest spec-only stub)', async () => {
     const contract = await tool('hololand_twin_earth_contract', {
       version: '1.0.0',
     });
-    expect(contract.success).toBe(true);
+    // RATCHET (b193558965): the contract document does not ship with this server, so the
+    // tool is an honest stub. It must not claim success, a content hash, or verified layers.
+    expect(contract.success).toBe(false);
+    expect(contract.contractFoundOnDisk).toBe(false);
     expect(contract.version).toBe('1.0.0');
-    expect(typeof contract.hash).toBe('string');
-    expect(contract.layers).toBeDefined();
-    expect(contract.layers.identity).toContain('Wallet-based');
-    expect(contract.layers.safetyEnvelope).toContain('Substrate-enforced');
+    expect(contract.hashSource).toBe('none');
+    expect(contract.hash).toBeUndefined();
+    const layers = contract.layers as Record<string, string>;
+    expect(Object.keys(layers).sort()).toEqual([
+      'identity',
+      'participationModes',
+      'permissions',
+      'receipts',
+      'safetyEnvelope',
+    ]);
+    for (const text of Object.values(layers)) {
+      expect(text).toMatch(/^SPEC-ONLY: /);
+    }
+    expect(layers.identity).toContain('Wallet-based');
+    expect(layers.safetyEnvelope).toContain('Substrate-enforced');
+    // Caller-visible text carries real characters, not layered cp1252/UTF-8 mojibake
+    // (each em dash had grown into ~400 characters of 'ÃƒÆ’...').
+    expect(contract.description).not.toContain('Ã');
+    expect(contract.description).toContain('Twin Earth substrate contract — SPECIFICATION-ONLY.');
+    expect(JSON.stringify(contract)).not.toContain('Ã');
   });
 
   it('canary: agent checks Twin Earth substrate status', async () => {
@@ -248,10 +283,42 @@ describe('HoloLand agent canary', () => {
       role: 'guide',
     });
 
-    const status = await tool('hololand_twin_earth_substrate_status', {});
+    // Read status as a server started from the repo root would: the version must still be
+    // this package's own, not whatever package.json sits in the working directory.
+    async function statusStartedFromRepoRoot(): Promise<Record<string, unknown>> {
+      const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(REPO_ROOT);
+      try {
+        return await tool('hololand_twin_earth_substrate_status', {});
+      } finally {
+        cwdSpy.mockRestore();
+      }
+    }
+
+    // RATCHET (1d1f1cd5eb): substrateEnforced is a real registry check. NPC records alone
+    // do not put anyone on the substrate, so it stays false until an identity registers.
+    const npcsOnly = await statusStartedFromRepoRoot();
+    expect(npcsOnly.identities).toBe(0);
+    expect(npcsOnly.substrateEnforced).toBe(false);
+
+    await tool('twin_earth_register_identity', {
+      agentId: 'canary-status-ai',
+      walletAddress: '0xStatusAi',
+      handle: 'Status AI',
+      attestation: '0xAttestStatusAi',
+      kind: 'ai',
+      role: 'guide',
+      mode: 'local',
+    });
+
+    const status = await statusStartedFromRepoRoot();
     expect(status.success).toBe(true);
+    expect(status.identities).toBe(1);
+    expect(status.ais).toBe(1);
+    expect(status.localCount).toBe(1);
     expect(status.contractVersion).toBe('1.0.0');
-    expect(status.substrateVersion).toBe('7.0.0');
+    // The contract is the honest spec-only stub above, and status reports it as such.
+    expect(status.contractStatus).toBe('spec-only');
+    expect(status.substrateVersion).toBe(MCP_SERVER_PACKAGE_VERSION);
     expect(typeof status.identities).toBe('number');
     expect(typeof status.ais).toBe('number');
     expect(typeof status.byokCount).toBe('number');
@@ -267,7 +334,9 @@ describe('HoloLand agent canary', () => {
 
   it('canary: Twin Earth contract tool returns shape even without version', async () => {
     const contract = await tool('hololand_twin_earth_contract', {});
-    expect(contract.success).toBe(true);
+    // Same honest stub shape, with the default version filled in.
+    expect(contract.success).toBe(false);
+    expect(contract.contractFoundOnDisk).toBe(false);
     expect(contract.version).toBe('1.0.0');
   });
 

@@ -1,7 +1,19 @@
 import { defineConfig } from 'vitest/config';
+import { readFileSync } from 'fs';
 import path from 'path';
 
+// Resolved from this file, not the working directory: the root vitest config runs this
+// project from the repo root, where './package.json' is the monorepo's, not this package's.
+const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')) as {
+  version: string;
+};
+
 export default defineConfig({
+  // Mirror tsup.config.ts so tests see the same build-time constant production does
+  // (/health, MCP server info, hololand_twin_earth_substrate_status.substrateVersion).
+  define: {
+    __SERVICE_VERSION__: JSON.stringify(pkg.version),
+  },
   resolve: {
     alias: [
       {
