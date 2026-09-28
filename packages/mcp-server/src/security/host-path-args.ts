@@ -9,9 +9,10 @@
  * recorded "restricted by policy") and only refused a double `../`, so an absolute path passed every gate.
  *
  * The rule: a caller that does not hold admin scope has no business naming a location on the server's own
- * disk. Any argument under a path-typed key must be a plain RELATIVE path with no traversal. The check lives
- * here, in one function, so the HTTP gate AND the batch meta-tools (which re-check children only at Gate 2)
- * call the same code and a batch cannot smuggle a path past it.
+ * disk. Any argument under a path-typed key must be a plain RELATIVE path with no traversal, and no argument
+ * may carry a file: URL. The check lives here, in one function, so the HTTP gate AND the dispatcher that
+ * every tool call passes through (a batch child, a mesh-invoked tool, a workflow step) call the same code,
+ * and nothing re-entered from inside the server can smuggle a path past it.
  *
  * Stdio and other no-context callers are local trust and never reach this (they carry no token).
  */
@@ -50,11 +51,42 @@ const HOST_PATH_ARG_KEYS: ReadonlySet<string> = new Set(
     'compositionFile',
     'brain_path',
     'research_files',
+    'videoUrl',
   ].map(normalizeKey)
+);
+
+/**
+ * Keys whose values are free text for a tool to read, never a location it opens: a `file:` at the start of
+ * one is prose. Under every other key a file: URL names the server's own disk, whatever the key is called.
+ * holo_reconstruct_from_video's videoUrl read any file: URL a caller sent (claude3-x402's review of #396),
+ * and it was not a path-typed key because nobody had thought of a video link as a path.
+ */
+const FREE_TEXT_ARG_KEYS: ReadonlySet<string> = new Set(
+  ['content', 'code', 'text', 'prompt', 'message', 'query', 'description'].map(normalizeKey)
 );
 
 function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[_-]/g, '');
+}
+
+/**
+ * True when `value` is a file: URL as a URL parser reads it. The parser skips leading spaces and control
+ * characters and drops tab and newline anywhere, so "  file:///x" and "fi<TAB>le:///x" both open /x.
+ */
+function isFileUrl(value: string): boolean {
+  return /^file:/i.test(value.replace(/[\t\n\r]/g, '').replace(/^[\x00-\x20]+/, ''));
+}
+
+/** Every string in `value`, looking through nested arrays but never into objects (a nested `path` is a route). */
+function stringsIn(value: unknown): string[] {
+  const found: string[] = [];
+  const pending: unknown[] = [value];
+  while (pending.length > 0) {
+    const next = pending.pop();
+    if (typeof next === 'string') found.push(next);
+    else if (Array.isArray(next)) for (let i = next.length - 1; i >= 0; i -= 1) pending.push(next[i]);
+  }
+  return found;
 }
 
 /** True when the token carries an administrator scope (the only callers allowed to name host paths). */
@@ -68,7 +100,7 @@ export function callerMayNameHostPaths(scopes: readonly string[] | undefined): b
  */
 export function hostPathViolation(value: string): string | null {
   if (value.includes('\0')) return 'contains a NUL byte';
-  if (/^file:/i.test(value)) return 'is a file: URL';
+  if (isFileUrl(value)) return 'is a file: URL';
   if (/^[a-zA-Z]:/.test(value)) return 'names a drive';
   if (value.startsWith('\\') || value.startsWith('/')) return 'is an absolute or UNC path';
   if (value.startsWith('~')) return 'uses ~ expansion';
@@ -83,20 +115,24 @@ export interface HostPathViolation {
 }
 
 /**
- * The first TOP-LEVEL path-typed argument of the tool being invoked that is not a plain relative path.
- * Deliberately not recursive: a structured argument (an OpenAPI route list, a scene) may carry a field
- * called `path` that is a URL path, not a file. The batch meta-tools dispatch their children as separate
- * tool calls, and each child is checked with its own top-level arguments.
+ * The first TOP-LEVEL argument of the tool being invoked that names a location on the server's disk: a
+ * path-typed key holding anything but a plain relative path (arrays of any depth are looked through), or
+ * any other key, free text aside, holding a file: URL. Deliberately not recursive into objects: a
+ * structured argument (an OpenAPI route list, a scene) may carry a field called `path` that is a URL path,
+ * not a file. A tool that runs other tools dispatches them as separate calls, and the dispatcher checks
+ * each one with its own top-level arguments.
  */
 export function findHostPathViolation(args: Record<string, unknown> | undefined): HostPathViolation | null {
   if (!args || typeof args !== 'object') return null;
   for (const [key, value] of Object.entries(args)) {
-    if (!HOST_PATH_ARG_KEYS.has(normalizeKey(key))) continue;
-    const candidates = Array.isArray(value) ? value : [value];
-    for (const candidate of candidates) {
-      if (typeof candidate !== 'string') continue;
-      const reason = hostPathViolation(candidate);
-      if (reason) return { key, reason };
+    const normalized = normalizeKey(key);
+    if (HOST_PATH_ARG_KEYS.has(normalized)) {
+      for (const candidate of stringsIn(value)) {
+        const reason = hostPathViolation(candidate);
+        if (reason) return { key, reason };
+      }
+    } else if (!FREE_TEXT_ARG_KEYS.has(normalized) && stringsIn(value).some(isFileUrl)) {
+      return { key, reason: 'is a file: URL' };
     }
   }
   return null;

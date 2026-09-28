@@ -564,6 +564,12 @@ export async function _handleSingleToolLogic(
   signingCtx?: SigningContext
 ) {
   try {
+    // 0. A caller without admin scope names no location on the server's disk. Gate 3 checks this at the
+    // HTTP entry, but only for the outer call. A tool re-entered from inside the server (a batch child, a
+    // mesh-invoked tool, a workflow step) arrives here with the caller's context, and before this line the
+    // only other check was the batch one (claude3-x402's review of #398). No context is the stdio path.
+    if (signingCtx) assertNoHostPathArgs(name, args, signingCtx.scopes);
+
     // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
     if (name.startsWith('uaa2_') || name.startsWith('hs_plugin_')) {
       const pluginResult = await PluginManager.handleTool(name, args || {});

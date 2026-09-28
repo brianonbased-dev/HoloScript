@@ -18,6 +18,7 @@ import { describe, it, expect, afterAll } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 // The daimōn store resolves its data dir once, at module load: pin it before the first import of index.
 const DATA_DIR = mkdtempSync(join(tmpdir(), 'hosted-client-data-'));
@@ -28,6 +29,9 @@ const { runTripleGate } = await import('../security/gates');
 const { authorizeToolCall } = await import('../security/tool-scopes');
 const { expandScopes } = await import('../auth/oauth2-provider');
 const { _handleSingleToolLogic } = await import('../index');
+const { buildMeshToolManifest, clearMeshToolRegistry, publishMeshToolManifest } = await import(
+  '../holomesh/mesh-tool-registry'
+);
 
 const WORK = mkdtempSync(join(tmpdir(), 'hosted-client-work-'));
 afterAll(() => {
@@ -211,5 +215,74 @@ describe('a caller without admin scope cannot name a host path to ANY tool', () 
     expect(summary.results[0].ok).toBe(false);
     expect(summary.results[0].error).toMatch(/authorization denied/);
     expect(existsSync(target)).toBe(false);
+  });
+});
+
+// claude3-x402's review of #396 (P1): holo_reconstruct_from_video (tools:write) read any file: URL named in
+// videoUrl, and its reply carried the file's byte count, or the error saying it does not exist. videoUrl was not a
+// path-typed key, so no gate looked at it. Its review of #398 added the second half: the host-path rule ran only
+// at Gate 3 and for batch children, so the same call made from inside the server (a mesh-invoked tool, a
+// workflow step) skipped it altogether.
+describe('a file: URL cannot reach the server disk, under any argument name or by any way in', () => {
+  const secret = join(WORK, 'pretend-secret.bin');
+  writeFileSync(secret, 'PRETEND-SECRET-BYTES');
+  const secretUrl = pathToFileURL(secret).href;
+  const asCaller = { signedRequest: false, signingValid: true, signer: 'dyn-client', scopes: AS_EXECUTE };
+
+  it('holo_reconstruct_from_video: a file: videoUrl is refused at Gate 3', async () => {
+    const got = await callLikeTheServer(AS_EXECUTE, 'holo_reconstruct_from_video', { videoUrl: secretUrl });
+    expect(got.passed).toBe(false);
+    expect(got.gate).toBe(3);
+    expect(got.reason).toMatch(/Host path argument refused/);
+  });
+
+  it('the same call made from inside the server, past Gate 3, is refused by the dispatcher itself', async () => {
+    const res = (await _handleSingleToolLogic('holo_reconstruct_from_video', { videoUrl: secretUrl }, asCaller as never)) as {
+      content?: Array<{ text?: string }>;
+    };
+    const text = res.content?.[0]?.text ?? '';
+    expect(text).toMatch(/Host path argument refused/);
+    expect(text).not.toMatch(/videoBytes|ENOENT/);
+  });
+
+  it('holomesh_invoke_tool cannot carry it in either', async () => {
+    clearMeshToolRegistry();
+    const manifest = publishMeshToolManifest(
+      buildMeshToolManifest(
+        {
+          tool_name: 'holo_reconstruct_from_video',
+          description: 'test manifest for holo_reconstruct_from_video',
+          capability_tags: ['video'],
+          allow_transitive_invocation: true,
+        },
+        { agentId: 'agent_test_publisher', name: 'test-publisher' }
+      )
+    );
+    const got = await callLikeTheServer(AS_EXECUTE, 'holomesh_invoke_tool', {
+      mesh_tool_id: manifest.id,
+      args: { videoUrl: secretUrl },
+      allow_high_risk: true,
+    });
+    expect(got.text ?? got.reason ?? '').toMatch(/Host path argument refused/);
+    expect(got.text ?? '').not.toMatch(/videoBytes|ENOENT/);
+    clearMeshToolRegistry();
+  });
+
+  it('an https videoUrl still passes the gate', () => {
+    const g = runTripleGate('holo_reconstruct_from_video', { videoUrl: 'https://cdn.example.com/walkthrough.mp4' }, {
+      active: true,
+      clientId: 'dyn-client',
+      scopes: AS_EXECUTE,
+    } as never);
+    expect(g.passed).toBe(true);
+  });
+
+  it('an administrator may still name a file: videoUrl (the owner agents use local videos)', () => {
+    const g = runTripleGate('holo_reconstruct_from_video', { videoUrl: secretUrl }, {
+      active: true,
+      clientId: 'owner',
+      scopes: AS_ADMIN,
+    } as never);
+    expect(g.passed).toBe(true);
   });
 });

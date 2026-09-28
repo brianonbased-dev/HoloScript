@@ -69,10 +69,44 @@ describe('findHostPathViolation: which arguments are looked at', () => {
   });
 
   it('ignores keys that are not locations, even when the value looks like one', () => {
-    expect(findHostPathViolation({ code: '/etc/passwd', target: 'C:\\x', url: 'file:///x', name: '/x' })).toBeNull();
+    expect(findHostPathViolation({ code: '/etc/passwd', target: 'C:\\x', name: '/x' })).toBeNull();
   });
 
-  it('is not recursive: a nested field called path is a route, not a file', () => {
+  // claude3-x402's review of #396: videoUrl read any file: URL, and it was not on the path-key list because
+  // nobody had thought of it as a path. A file: URL names the server's own disk whatever the key is called.
+  it('refuses a file: URL under ANY key, the way a URL parser would read it', () => {
+    for (const args of [
+      { url: 'file:///x' },
+      { videoUrl: 'file:///etc/passwd' },
+      { source: 'FILE:///C:/x' },
+      { src: '  file:///etc/passwd' },
+      { src: '\u0001file:///etc/passwd' },
+      { src: 'fi\tle:///etc/passwd' },
+      { assets: ['https://cdn.example.com/a.glb', ['file:///etc/passwd']] },
+    ]) {
+      expect(findHostPathViolation(args)).toEqual({
+        key: Object.keys(args)[0],
+        reason: expect.stringMatching(/file: URL/),
+      });
+    }
+  });
+
+  it('lets free text begin with file: (it is prose for the tool, not a location it opens)', () => {
+    expect(findHostPathViolation({ content: 'file: notes.md', code: 'file:///x', prompt: 'file: a' })).toBeNull();
+  });
+
+  it('videoUrl is a location: https passes, an absolute path does not', () => {
+    expect(findHostPathViolation({ videoUrl: 'https://cdn.example.com/walkthrough.mp4' })).toBeNull();
+    expect(findHostPathViolation({ videoUrl: '/etc/passwd' })?.reason).toMatch(/absolute/);
+  });
+
+  it('looks inside nested arrays under a path-typed key', () => {
+    expect(findHostPathViolation({ paths: [['..']] })?.reason).toMatch(/"\.\." segment/);
+    expect(findHostPathViolation({ files: [['a.ts'], ['/etc/x']] })?.reason).toMatch(/absolute/);
+    expect(findHostPathViolation({ files: [['a.ts'], ['b/c.ts']] })).toBeNull();
+  });
+
+  it('is not recursive into objects: a nested field called path is a route, not a file', () => {
     expect(findHostPathViolation({ routes: [{ path: '/api/users' }], scene: { path: '/x' } })).toBeNull();
   });
 
