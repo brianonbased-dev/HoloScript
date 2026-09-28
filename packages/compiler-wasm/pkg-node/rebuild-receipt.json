@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-28T21:28:35Z",
+  "generatedAt": "2026-09-28T23:27:00Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "36bd409ca4f05bb5e37d90570934af1ed49e5216",
+  "sourceCommit": "2de39fd25512d14b4f8391a1ff2e86731ffce483",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 555148,
-    "wasmSha256": "b23ffa3a29cf6c81eec9a4327745e4b0767cbba9e2217166146d266970bb5d27",
-    "previousWasmSha256": "7d1fabe57227c336a525f3888463bacd6a820783b12fb3b3f611fd2f82a2fe04",
+    "wasmBytes": 557733,
+    "wasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
+    "previousWasmSha256": "b23ffa3a29cf6c81eec9a4327745e4b0767cbba9e2217166146d266970bb5d27",
     "repeatBuildSha256Matched": true,
-    "note": "Rebuilt pkg-node from the G11 checker after its first independent review: calls resolve to functions, structs, imports, built-ins or lambda locals; struct constructors take one value per field; a parameter name may not repeat; `import { a as b }` binds only `b`; lambda bodies, spreads and statement-position arrays are walked; `unit`/`()` returns are void to both the checker and compile_to_uaal. Two independent release builds produced the same digest. Only holoscript_wasm_bg.wasm changed; the generated .js and .d.ts are byte-identical to the previous artifact and pkg-node/package.json was kept. rustc 1.91.0. +2,418 bytes over the previous G11 build (552,730). The browser build in pkg/ was not rebuilt (last rebuilt 2026-08-04). No version bump."
+    "note": "Rebuilt pkg-node for the @unknown reads (proposals/Unknown_Field_Reads_v1.md): tag reads accepted, load(record.field) ?? fallback the one written form, HS-UNKNOWN-001/002, the Kotlin bridge lowering, and HS-UAAL-CAP-008 on UAAL. Two independent release builds produced the same digest. Only holoscript_wasm_bg.wasm changed; the generated .js and .d.ts are byte-identical and pkg-node/package.json was kept. rustc 1.91.0. +2,585 bytes over the G11 build (555,148). The browser build in pkg/ was not rebuilt. No version bump."
   }
 }
