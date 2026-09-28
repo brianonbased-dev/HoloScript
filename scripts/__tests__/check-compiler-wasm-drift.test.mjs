@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -148,6 +149,60 @@ test('compiler-wasm drift gate admits a staged artifact refresh during pre-commi
     assert.equal(pending.status, 0, `${pending.stdout}\n${pending.stderr}`);
     assert.match(pending.stdout, /staged-refresh/);
     assert.match(pending.stdout, /2 function exports checked/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function commitArtifactWithReceipt(root, receiptResult) {
+  write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\n');
+  write(join(root, 'pkg-node/artifact.cjs'), 'exports.parse = function parse() {};\n');
+  writeFileSync(join(root, 'pkg-node/holoscript_wasm_bg.wasm'), Buffer.from([0, 97, 115, 109, 1]));
+  write(
+    join(root, 'pkg-node/rebuild-receipt.json'),
+    `${JSON.stringify({ result: receiptResult }, null, 2)}\n`
+  );
+  git(root, ['add', 'src/lib.rs', 'pkg-node', 'package.json']);
+  git(root, ['commit', '-m', 'source, artifact and receipt']);
+}
+
+const WASM_SHA = createHash('sha256')
+  .update(Buffer.from([0, 97, 115, 109, 1]))
+  .digest('hex');
+
+test('compiler-wasm drift gate fails when the rebuild receipt names a different digest', () => {
+  const root = createFixtureRepo();
+  try {
+    // One character short, as the 2026-09-28 pkg-node receipt was.
+    commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA.slice(0, 63), wasmBytes: 5 });
+    const wrong = runGate(root);
+    assert.equal(wrong.status, 1, `${wrong.stdout}\n${wrong.stderr}`);
+    assert.match(wrong.stderr, /rebuild-receipt\.json records wasmSha256/);
+    assert.match(wrong.stderr, new RegExp(`hashes to ${WASM_SHA}`));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate fails when the rebuild receipt names a different size', () => {
+  const root = createFixtureRepo();
+  try {
+    commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 6 });
+    const wrong = runGate(root);
+    assert.equal(wrong.status, 1, `${wrong.stdout}\n${wrong.stderr}`);
+    assert.match(wrong.stderr, /records wasmBytes 6, but .* is 5 bytes/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate passes and says so when the receipt matches the wasm', () => {
+  const root = createFixtureRepo();
+  try {
+    commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 });
+    const ok = runGate(root);
+    assert.equal(ok.status, 0, `${ok.stdout}\n${ok.stderr}`);
+    assert.match(ok.stdout, new RegExp(`receipt matches wasm sha256 ${WASM_SHA.slice(0, 12)}`));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
