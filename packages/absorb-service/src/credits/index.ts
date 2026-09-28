@@ -29,6 +29,7 @@ export type {
   BalanceCheck,
   CreditSubscription,
   SubscriptionWrite,
+  SubscriptionRead,
   SubscriptionRecordResult,
 } from './creditService.js';
 export { MeteredLLMProvider } from './meteredLLMProvider.js';

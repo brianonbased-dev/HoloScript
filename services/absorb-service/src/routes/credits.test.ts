@@ -38,7 +38,14 @@ const mocks = vi.hoisted(() => ({
   subscriptionsList: vi.fn(async (_p: Record<string, unknown>) => ({
     data: [] as Array<Record<string, unknown>>,
   })),
-  recordSubscription: vi.fn(async (_u: string, _s: Record<string, unknown>) => ({ tier: 'pro', recorded: true })),
+  subscriptionsRetrieve: vi.fn(async (_id: string) => ({}) as Record<string, unknown>),
+  // What each recordSubscription call wrote: the fake runs the read it is
+  // handed, as the real one does once it holds the user's row lock.
+  recorded: [] as Array<Record<string, unknown>>,
+  recordSubscription: vi.fn(async (_u: string, read: () => Promise<Record<string, unknown>>) => {
+    mocks.recorded.push(await read());
+    return { tier: 'pro', recorded: true };
+  }),
   ensureCustomer: vi.fn(),
 }));
 
@@ -84,7 +91,7 @@ vi.mock('stripe', () => ({
   default: class FakeStripe {
     checkout = { sessions: { create: mocks.sessionsCreate, retrieve: mocks.sessionsRetrieve } };
     customers = { create: mocks.customersCreate };
-    subscriptions = { list: mocks.subscriptionsList };
+    subscriptions = { list: mocks.subscriptionsList, retrieve: mocks.subscriptionsRetrieve };
     billingPortal = {
       sessions: { create: mocks.portalCreate },
       configurations: { list: mocks.configList, create: mocks.configCreate },
@@ -172,6 +179,8 @@ beforeEach(() => {
   mocks.customersCreate.mockClear();
   mocks.subscriptionsList.mockClear();
   mocks.recordSubscription.mockClear();
+  mocks.subscriptionsRetrieve.mockClear();
+  mocks.recorded.length = 0;
   mocks.ensureCustomer.mockClear();
   return import('./credits.js').then((m) => m.resetPortalConfigurationCache());
 });
@@ -490,26 +499,25 @@ describe('POST /api/credits/subscribe — Studio Pro', () => {
       stripeSubscriptionId: null,
       livemode: false,
     });
-    mocks.subscriptionsList.mockResolvedValueOnce({
-      data: [
-        {
-          id: 'sub_1',
-          customer: 'cus_1',
-          status: 'active',
-          livemode: false,
-          cancel_at_period_end: false,
-          cancel_at: null,
-          metadata: { userId: USER, plan: 'studio_pro' },
-          items: { data: [{ current_period_end: 1_793_000_000 }] },
-        },
-      ],
-    });
+    const live = {
+      id: 'sub_1',
+      customer: 'cus_1',
+      status: 'active',
+      livemode: false,
+      cancel_at_period_end: false,
+      cancel_at: null,
+      metadata: { userId: USER, plan: 'studio_pro' },
+      items: { data: [{ current_period_end: 1_793_000_000 }] },
+    };
+    mocks.subscriptionsList.mockResolvedValueOnce({ data: [live] });
+    mocks.subscriptionsRetrieve.mockResolvedValueOnce(live);
     const res = await subscribe();
     expect(res._status).toBe(409);
     expect(mocks.subscriptionsList).toHaveBeenCalledWith({ customer: 'cus_1', status: 'all', limit: 20 });
     expect(mocks.sessionsCreate).not.toHaveBeenCalled();
-    // The row catches up with what Stripe said.
-    expect(mocks.recordSubscription.mock.calls[0][1]).toMatchObject({ stripeSubscriptionId: 'sub_1', status: 'active' });
+    // The row catches up with what Stripe said, read again under the row lock.
+    expect(mocks.subscriptionsRetrieve).toHaveBeenCalledWith('sub_1');
+    expect(mocks.recorded[0]).toMatchObject({ stripeSubscriptionId: 'sub_1', status: 'active' });
   });
 
   it('a returning subscriber keeps their Stripe customer', async () => {

@@ -12,13 +12,16 @@
  *    delivery order, so every event that touches a subscription re-reads it
  *    (`subscriptions.retrieve`) and records what Stripe says now.
  *
- * 2. THE ROW ONLY MOVES FORWARD. Re-reading is not enough on its own: two
- *    deliveries can be handled at once (an older "active" read written after
- *    the "canceled" one), and a user can hold more than one subscription (a
- *    late event about an ended one used to replace the live one). The credit
- *    service locks the user's row and decideSubscriptionWrite refuses any read
- *    that would move it backwards. A refusal is answered 200: redelivering the
- *    same stale read cannot make it newer.
+ * 2. STRIPE IS READ UNDER THE LOCK. Re-reading is not enough on its own: two
+ *    deliveries handled at once could read in one order and write in the
+ *    other, so an older "unpaid" or "active" read landed last. The read that
+ *    is recorded is therefore handed to the credit service as a function, and
+ *    it runs only after the user's row is locked: whichever delivery writes
+ *    last read last. decideSubscriptionWrite still refuses what a fresh read
+ *    cannot fix. It refuses an ended subscription coming back to life, and a
+ *    user's other subscription replacing the live one (a late event about an
+ *    abandoned first attempt). A refusal is answered 200: redelivering it
+ *    cannot change the answer.
  *
  * 3. CREDITS COME FROM PAID STUDIO PRO INVOICES ONLY, ONCE EACH. `invoice.paid`
  *    with billing_reason subscription_create (the first month) or
@@ -58,9 +61,10 @@ export interface SubscriptionCredits {
     stripeSubscriptionId?: string | null;
     stripeCustomerId?: string | null;
   }): Promise<string | null>;
+  /** `read` runs after the user's row is locked; see rule 2 above. */
   recordSubscription(
     userId: string,
-    sub: SubscriptionRecord
+    read: () => Promise<SubscriptionRecord>
   ): Promise<{ tier: string; recorded: boolean; reason?: string; duplicate?: boolean } | null>;
   grantSubscriptionCredits(
     userId: string,
@@ -158,7 +162,13 @@ export async function syncSubscription(
     );
     return { status: 200, body: { received: true, recorded: false, reason: 'unknown user' } };
   }
-  const recorded = await credits.recordSubscription(userId, subscriptionRecordFrom(sub, customerId));
+  // The read above found the owner. The read that is recorded happens again,
+  // inside recordSubscription, once the owner's row is locked (rule 2).
+  let latest = sub;
+  const recorded = await credits.recordSubscription(userId, async () => {
+    latest = await stripe.subscriptions.retrieve(subscriptionId);
+    return subscriptionRecordFrom(latest, customerId);
+  });
   if (!recorded) {
     // The one failure a redelivery can fix, so ask for it.
     console.error(
@@ -174,7 +184,7 @@ export async function syncSubscription(
           'They are being charged twice. Cancel the second one in Stripe and refund it by hand.'
       );
     } else {
-      console.warn(`[credits/webhook] Studio Pro ${sub.id} for user ${userId} kept as it was: ${recorded.reason}`);
+      console.warn(`[credits/webhook] Studio Pro ${latest.id} for user ${userId} kept as it was: ${recorded.reason}`);
     }
     return {
       status: 200,
@@ -185,13 +195,13 @@ export async function syncSubscription(
         reason: recorded.duplicate ? 'duplicate subscription' : 'older than the stored record',
       },
       userId,
-      sub,
+      sub: latest,
     };
   }
   console.log(
-    `[credits/webhook] Studio Pro ${sub.id} for user ${userId}: ${sub.status}, tier now ${recorded.tier}`
+    `[credits/webhook] Studio Pro ${latest.id} for user ${userId}: ${latest.status}, tier now ${recorded.tier}`
   );
-  return { status: 200, body: { received: true, recorded: true, tier: recorded.tier }, userId, sub };
+  return { status: 200, body: { received: true, recorded: true, tier: recorded.tier }, userId, sub: latest };
 }
 
 /**

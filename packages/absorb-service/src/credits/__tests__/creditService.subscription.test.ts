@@ -51,6 +51,14 @@ function makeDb(opts: {
   withTransaction: boolean;
   tier?: string;
   stored?: Record<string, unknown> | null;
+  /** Make the ledger insert fail this way, after a concurrent winner's row lands. */
+  ledgerInsertError?: unknown;
+  winnerRow?: {
+    stripeSessionId: string;
+    amountCents: number;
+    type: string;
+    balanceAfterCents: number;
+  };
 }) {
   const state = {
     writes: [] as Write[],
@@ -63,6 +71,8 @@ function makeDb(opts: {
     balance: 100,
     transactions: 0,
     locks: 0,
+    /** lock, read and write, in the order they happened. */
+    order: [] as string[],
   };
   const account = {
     userId: USER,
@@ -96,7 +106,10 @@ function makeDb(opts: {
           return Promise.resolve([]);
         },
         for(strength: string) {
-          if (strength === 'update') state.locks += 1;
+          if (strength === 'update') {
+            state.locks += 1;
+            state.order.push('lock');
+          }
           return chain.limit(1);
         },
       };
@@ -106,11 +119,16 @@ function makeDb(opts: {
       return {
         values(values: Record<string, unknown>) {
           if (table === creditTransactions) {
+            if (opts.ledgerInsertError) {
+              if (opts.winnerRow) state.ledger.push(opts.winnerRow);
+              return Promise.reject(opts.ledgerInsertError);
+            }
             state.ledger.push(values as (typeof state.ledger)[number]);
             return Promise.resolve();
           }
           return {
             onConflictDoUpdate(cfg: { target: unknown }) {
+              state.order.push('write');
               state.writes.push({ op: 'insert', table, values, conflictTarget: cfg.target });
               return Promise.resolve();
             },
@@ -163,6 +181,9 @@ const SUB = {
   cancelAtPeriodEnd: false,
 };
 
+/** A Stripe read that returns this record, as the webhook's re-read would. */
+const read = (sub: Omit<CreditSubscription, 'userId'>) => async () => sub;
+
 /** A stored row as the table holds it (camelCase, as drizzle returns it). */
 function storedRow(over: Partial<CreditSubscription> = {}): Record<string, unknown> {
   return { userId: USER, ...SUB, ...over };
@@ -199,7 +220,7 @@ describe('Studio Pro in the credit service', () => {
   it('records the subscription (upsert by user) and the tier in one transaction, under a row lock', async () => {
     const db = makeDb({ withTransaction: true });
     setDbProvider(() => db);
-    expect(await recordSubscription(USER, SUB)).toEqual({ tier: 'pro', recorded: true });
+    expect(await recordSubscription(USER, read(SUB))).toEqual({ tier: 'pro', recorded: true });
     const [row, tier] = db._state.writes;
     expect(row.table).toBe(creditSubscriptions);
     expect(row.values).toMatchObject({ userId: USER, ...SUB });
@@ -210,10 +231,37 @@ describe('Studio Pro in the credit service', () => {
     expect(db._state.locks).toBe(1);
   });
 
+  it('reads Stripe only after the row is locked, so the delivery that writes last read last', async () => {
+    // P1 from review on real PostgreSQL, 2026-09-28: the read happened before
+    // the lock, so two deliveries could read in one order and write in the
+    // other, and an older "unpaid" read written last turned a paying member free.
+    const db = makeDb({ withTransaction: true, tier: 'pro', stored: storedRow() });
+    setDbProvider(() => db);
+    const result = await recordSubscription(USER, async () => {
+      db._state.order.push('read');
+      return { ...SUB, status: 'unpaid' };
+    });
+    expect(db._state.order).toEqual(['lock', 'read', 'write']);
+    // A read taken under the lock is written whichever way it moves: active to
+    // unpaid is what a renewal whose retries all failed really does.
+    expect(result).toEqual({ tier: 'free', recorded: true });
+  });
+
+  it('a Stripe read that fails writes nothing, so the delivery fails and is sent again', async () => {
+    const db = makeDb({ withTransaction: true, tier: 'pro', stored: storedRow() });
+    setDbProvider(() => db);
+    await expect(
+      recordSubscription(USER, async () => {
+        throw new Error('Stripe unreachable');
+      })
+    ).rejects.toThrow('Stripe unreachable');
+    expect(db._state.writes).toHaveLength(0);
+  });
+
   it('a canceled subscription moves a Pro account back to free', async () => {
     const db = makeDb({ withTransaction: true, tier: 'pro', stored: storedRow() });
     setDbProvider(() => db);
-    expect(await recordSubscription(USER, { ...SUB, status: 'canceled' })).toEqual({
+    expect(await recordSubscription(USER, read({ ...SUB, status: 'canceled' }))).toEqual({
       tier: 'free',
       recorded: true,
     });
@@ -223,7 +271,7 @@ describe('Studio Pro in the credit service', () => {
   it('refuses without a transaction rather than writing the row and the tier apart', async () => {
     const db = makeDb({ withTransaction: false });
     setDbProvider(() => db);
-    expect(await recordSubscription(USER, SUB)).toBeNull();
+    expect(await recordSubscription(USER, read(SUB))).toBeNull();
     expect(db._state.writes).toHaveLength(0);
   });
 
@@ -236,11 +284,10 @@ describe('Studio Pro in the credit service', () => {
       stored: storedRow({ stripeSubscriptionId: 'sub_new' }),
     });
     setDbProvider(() => db);
-    const result = await recordSubscription(USER, {
-      ...SUB,
-      stripeSubscriptionId: 'sub_old',
-      status: 'canceled',
-    });
+    const result = await recordSubscription(
+      USER,
+      read({ ...SUB, stripeSubscriptionId: 'sub_old', status: 'canceled' })
+    );
     expect(result).toMatchObject({ tier: 'pro', recorded: false });
     expect(result?.reason).toMatch(/sub_new is not replaced by sub_old/);
     expect(db._state.writes).toHaveLength(0);
@@ -249,7 +296,7 @@ describe('Studio Pro in the credit service', () => {
   it('never changes a tier Studio Pro does not own', async () => {
     const db = makeDb({ withTransaction: true, tier: 'enterprise' });
     setDbProvider(() => db);
-    expect(await recordSubscription(USER, { ...SUB, status: 'canceled' })).toEqual({
+    expect(await recordSubscription(USER, read({ ...SUB, status: 'canceled' }))).toEqual({
       tier: 'enterprise',
       recorded: true,
     });
@@ -277,10 +324,72 @@ describe('Studio Pro in the credit service', () => {
     await grantSubscriptionCredits(USER, 'in_2', 2000);
     expect(db._state.ledger.map((r) => r.stripeSessionId)).toEqual(['in_1', 'in_2']);
   });
+
+  // P2 from review on real PostgreSQL, 2026-09-28: 10 concurrent grants of one
+  // invoice left 9 settled and 1 thrown by the unique index. Both deliveries
+  // read "no prior row"; the loser's insert then violates the index.
+  const SESSION_CONFLICT = { code: '23505', constraint: 'idx_credit_tx_stripe_session' };
+  it.each([
+    ['as drizzle wraps it', Object.assign(new Error('Failed query'), { cause: SESSION_CONFLICT })],
+    ['as the driver raises it', Object.assign(new Error('duplicate key value'), SESSION_CONFLICT)],
+  ])(
+    'a grant that loses a race to a concurrent delivery of the same invoice says applied:false (%s)',
+    async (_shape, conflict) => {
+      const db = makeDb({
+        withTransaction: true,
+        ledgerInsertError: conflict,
+        winnerRow: {
+          stripeSessionId: 'in_race',
+          amountCents: 2000,
+          type: 'subscription',
+          balanceAfterCents: 2100,
+        },
+      });
+      setDbProvider(() => db);
+      expect(await grantSubscriptionCredits(USER, 'in_race', 2000)).toEqual({
+        balanceCents: 2100,
+        applied: false,
+      });
+      expect(db._state.ledger).toHaveLength(1);
+    }
+  );
+
+  // Only that one race is answered "already applied". The invoice's row exists
+  // in both cases below, so a catch that answered every error the same way
+  // would report a grant that never happened as done.
+  it.each([
+    [
+      'a different kind of error',
+      { code: '23503', constraint: 'credit_transactions_user_id_fkey' },
+    ],
+    ['a unique violation on another index', { code: '23505', constraint: 'credit_accounts_pkey' }],
+  ])('%s from a grant still throws', async (_kind, cause) => {
+    const db = makeDb({
+      withTransaction: true,
+      ledgerInsertError: Object.assign(new Error('Failed query'), { cause }),
+      winnerRow: {
+        stripeSessionId: 'in_other',
+        amountCents: 2000,
+        type: 'subscription',
+        balanceAfterCents: 2100,
+      },
+    });
+    setDbProvider(() => db);
+    await expect(grantSubscriptionCredits(USER, 'in_other', 2000)).rejects.toThrow('Failed query');
+  });
 });
 
-describe('the row only moves forward (decideSubscriptionWrite)', () => {
+describe('which read may replace the row (decideSubscriptionWrite)', () => {
   const incoming = (over: Partial<CreditSubscription> = {}) => ({ ...SUB, ...over });
+
+  it('the same subscription moves both ways between live and unpaid, because its read was taken under the lock', () => {
+    expect(decideSubscriptionWrite(stored(), incoming({ status: 'unpaid' }))).toEqual({
+      write: true,
+    });
+    expect(decideSubscriptionWrite(stored({ status: 'unpaid' }), incoming())).toEqual({
+      write: true,
+    });
+  });
 
   it('writes when there is nothing to protect', () => {
     expect(decideSubscriptionWrite(null, incoming())).toEqual({ write: true });

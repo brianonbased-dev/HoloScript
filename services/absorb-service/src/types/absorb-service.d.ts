@@ -252,9 +252,10 @@ declare module '@holoscript/absorb-service/credits' {
     stripeSubscriptionId?: string | null;
     stripeCustomerId?: string | null;
   }) => Promise<string | null>;
+  /** `read` runs after the user's row is locked (creditService.recordSubscription). */
   export const recordSubscription: (
     userId: string,
-    sub: Omit<CreditSubscription, 'userId'>
+    read: () => Promise<Omit<CreditSubscription, 'userId'>>
   ) => Promise<SubscriptionRecordResult | null>;
   export const ensureSubscriptionCustomer: (
     userId: string,

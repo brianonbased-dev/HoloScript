@@ -302,7 +302,49 @@ export async function addCredits(
     return null;
   }
 
-  return await db.transaction(apply);
+  try {
+    return await db.transaction(apply);
+  } catch (error) {
+    // The race the index exists for, answered the way the check above answers a
+    // redelivery: two deliveries of one session or invoice both read "no prior
+    // row", the loser's ledger insert violates the index, and its transaction
+    // rolls back, balance included. Until 2026-09-28 that loser threw instead
+    // (review, real PostgreSQL: 10 concurrent grants of one invoice, 9 settled
+    // and 1 threw), so "a redelivery is a no-op" held only where a caller
+    // happened to catch it.
+    if (opts.stripeSessionId && isStripeSessionConflict(error)) {
+      const [prior] = await db
+        .select({ balanceAfterCents: creditTransactions.balanceAfterCents })
+        .from(creditTransactions)
+        .where(eq(creditTransactions.stripeSessionId, opts.stripeSessionId))
+        .limit(1);
+      if (prior) {
+        console.log(
+          `[creditService] Session ${opts.stripeSessionId} was applied by a concurrent delivery; not crediting again.`
+        );
+        return { balanceCents: prior.balanceAfterCents, applied: false };
+      }
+    }
+    throw error;
+  }
+}
+
+/** The ledger's unique index on stripe_session_id (schema.ts, migration 0001). */
+const STRIPE_SESSION_INDEX = 'idx_credit_tx_stripe_session';
+
+/**
+ * Is this the unique-index violation a concurrent grant of the same session
+ * raises? PostgreSQL reports code 23505 with the constraint's name; drizzle
+ * wraps the driver's error, so the cause chain is searched too.
+ */
+function isStripeSessionConflict(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current && typeof current === 'object'; depth += 1) {
+    const e = current as { code?: unknown; constraint?: unknown; cause?: unknown };
+    if (e.code === '23505' && e.constraint === STRIPE_SESSION_INDEX) return true;
+    current = e.cause;
+  }
+  return false;
 }
 
 // ─── Studio Pro Subscription ─────────────────────────────────────────────────
@@ -402,11 +444,14 @@ export type SubscriptionWrite =
  * was often "older". Measured by review on real PostgreSQL, 2026-09-28: a late
  * delivery about an ended subscription turned a paying user free, and an older
  * "active" read written after the "canceled" one gave Pro back after
- * cancellation. So the row only moves forward:
+ * cancellation. So a read replaces the row only when it cannot be the older one:
  *
  * - no row, a customer-only row, or a row from the other Stripe mode: write;
- * - the same subscription: never from ended back to live, because Stripe never
- *   revives an ended subscription, so a live read of one is an older read;
+ * - the same subscription: write, because recordSubscription reads Stripe only
+ *   after locking the row, so this read is at least as new as the one stored;
+ *   active to unpaid and back are both real. The one exception is a guard:
+ *   never from ended back to live, because Stripe never revives an ended
+ *   subscription, so a live read of one can only be an older read;
  * - a different subscription: an unpaid or ended one never replaces a live one,
  *   and a SECOND live one is kept out and reported, because the user is being
  *   charged twice and a person has to cancel one and refund it.
@@ -512,17 +557,27 @@ const NO_TRANSACTION =
   'Studio Pro will not write a subscription and a tier separately.';
 
 /**
+ * A read of one subscription from Stripe, as the row would hold it. It is a
+ * function because recordSubscription decides WHEN it runs: after the lock.
+ */
+export type SubscriptionRead = () => Promise<Omit<CreditSubscription, 'userId'>>;
+
+/**
  * Record what Stripe says about a user's subscription and set their tier from it,
  * in one transaction, so the row and the tier can never disagree.
  *
- * The user's account row is locked first (SELECT ... FOR UPDATE), so two
- * deliveries for one user are applied one after the other and each decides
- * against what the other wrote. decideSubscriptionWrite then says whether this
+ * The user's account row is locked first (SELECT ... FOR UPDATE), and only then
+ * is Stripe read. Two deliveries for one user therefore run one after the other,
+ * and the one that writes last also read last, so the row ends at what Stripe
+ * says now, whatever order the deliveries came in. Until 2026-09-28 the caller
+ * read Stripe before the lock: two deliveries could read in one order and write
+ * in the other, and an older "unpaid" read written last turned a paying member
+ * free (review, real PostgreSQL). decideSubscriptionWrite then says whether this
  * read may replace the stored row at all.
  */
 export async function recordSubscription(
   userId: string,
-  sub: Omit<CreditSubscription, 'userId'>
+  read: SubscriptionRead
 ): Promise<SubscriptionRecordResult | null> {
   const db = getDb();
   if (!db) {
@@ -543,6 +598,9 @@ export async function recordSubscription(
       .from(creditAccounts)
       .where(eq(creditAccounts.userId, userId))
       .for('update');
+    // Stripe is read here, holding the lock, never before it (see above). The
+    // lock is held for the length of one Stripe call; this is one user's row.
+    const sub = await read();
     const current = (account?.tier as string | undefined) ?? 'free';
     const [row] = await tx
       .select()

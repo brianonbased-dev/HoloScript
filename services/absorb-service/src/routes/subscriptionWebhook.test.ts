@@ -44,25 +44,31 @@ function subscription(overrides: Record<string, unknown> = {}): Stripe.Subscript
   } as unknown as Stripe.Subscription;
 }
 
+type RecordedSubscription = Awaited<ReturnType<Parameters<SubscriptionCredits['recordSubscription']>[1]>>;
+
 function setup(sub: Stripe.Subscription = subscription()) {
   const stripe: SubscriptionStripe = { subscriptions: { retrieve: vi.fn(async () => sub) } };
+  // What each recordSubscription call wrote: the fake runs the read it is
+  // handed, as the real one does once it holds the user's row lock.
+  const records: RecordedSubscription[] = [];
   const credits = {
     SUBSCRIPTION_PRICING: { studioPro: { includedCredits: 2000, priceCentsMonthly: 1500 } },
     findSubscriptionUser: vi.fn(async () => null as string | null),
     recordSubscription: vi.fn(
       async (
         _u: string,
-        s: { status: string }
-      ): Promise<{ tier: string; recorded: boolean; reason?: string; duplicate?: boolean } | null> => ({
-        tier: ['active', 'trialing', 'past_due'].includes(s.status) ? 'pro' : 'free',
-        recorded: true,
-      })
+        read: () => Promise<RecordedSubscription>
+      ): Promise<{ tier: string; recorded: boolean; reason?: string; duplicate?: boolean } | null> => {
+        const s = await read();
+        records.push(s);
+        return { tier: ['active', 'trialing', 'past_due'].includes(s.status) ? 'pro' : 'free', recorded: true };
+      }
     ),
     grantSubscriptionCredits: vi.fn(
       async (): Promise<{ balanceCents: number; applied: boolean } | null> => ({ balanceCents: 2100, applied: true })
     ),
   } satisfies SubscriptionCredits;
-  return { stripe, credits };
+  return { stripe, credits, records };
 }
 
 const event = (type: string, object: Record<string, unknown>) =>
@@ -91,7 +97,7 @@ describe('Studio Pro webhook', () => {
   });
 
   it('a subscription checkout records the subscription and makes the user Pro, granting nothing yet', async () => {
-    const { stripe, credits } = setup();
+    const { stripe, credits, records } = setup();
     const reply = await handleSubscriptionEvent(
       event('checkout.session.completed', {
         id: 'cs_sub',
@@ -105,7 +111,8 @@ describe('Studio Pro webhook', () => {
     );
     expect(reply?.status).toBe(200);
     expect(reply?.body.tier).toBe('pro');
-    expect(credits.recordSubscription).toHaveBeenCalledWith(USER, {
+    expect(credits.recordSubscription).toHaveBeenCalledWith(USER, expect.any(Function));
+    expect(records).toEqual([{
       plan: 'studio_pro',
       stripeCustomerId: 'cus_1',
       stripeSubscriptionId: 'sub_1',
@@ -113,7 +120,7 @@ describe('Studio Pro webhook', () => {
       livemode: true,
       currentPeriodEnd: new Date(PERIOD_END * 1000),
       cancelAtPeriodEnd: false,
-    });
+    }]);
     // The first invoice.paid grants the first month; the checkout must not also.
     expect(credits.grantSubscriptionCredits).not.toHaveBeenCalled();
   });
@@ -143,15 +150,33 @@ describe('Studio Pro webhook', () => {
 
   it('state comes from Stripe, not the event: a late "active" after cancellation does not restore Pro', async () => {
     // The event payload says active; Stripe, asked now, says canceled.
-    const { stripe, credits } = setup(subscription({ status: 'canceled' }));
+    const { stripe, credits, records } = setup(subscription({ status: 'canceled' }));
     const reply = await handleSubscriptionEvent(
       event('customer.subscription.updated', { id: 'sub_1', status: 'active' }),
       stripe,
       credits
     );
     expect(stripe.subscriptions.retrieve).toHaveBeenCalledWith('sub_1');
-    expect(credits.recordSubscription.mock.calls[0][1].status).toBe('canceled');
+    expect(records[0].status).toBe('canceled');
     expect(reply?.body.tier).toBe('free');
+  });
+
+  it('the read that is recorded is taken under the lock: Stripe moving between the two reads records the later state', async () => {
+    // P1 from review on real PostgreSQL, 2026-09-28: the only read happened
+    // before the lock, so a delivery could write a state Stripe had moved past.
+    const { credits, records } = setup();
+    const retrieve = vi
+      .fn()
+      .mockResolvedValueOnce(subscription({ status: 'unpaid' }))
+      .mockResolvedValueOnce(subscription({ status: 'active' }));
+    const reply = await handleSubscriptionEvent(
+      event('customer.subscription.updated', { id: 'sub_1' }),
+      { subscriptions: { retrieve } },
+      credits
+    );
+    expect(retrieve).toHaveBeenCalledTimes(2);
+    expect(records.map((r) => r.status)).toEqual(['active']);
+    expect(reply?.body.tier).toBe('pro');
   });
 
   it('cancellation at the end of the paid month keeps Pro until then, and deletion ends it', async () => {
@@ -161,7 +186,7 @@ describe('Studio Pro webhook', () => {
       pending.stripe,
       pending.credits
     );
-    expect(pending.credits.recordSubscription.mock.calls[0][1].cancelAtPeriodEnd).toBe(true);
+    expect(pending.records[0].cancelAtPeriodEnd).toBe(true);
     expect(r1?.body.tier).toBe('pro');
 
     const ended = setup(subscription({ status: 'canceled' }));

@@ -512,7 +512,11 @@ router.post('/subscribe', async (req: Request, res: Response) => {
       (s) => s.metadata?.plan === STUDIO_PRO_PLAN && tierForSubscriptionStatus(s.status) === 'pro'
     );
     if (live) {
-      await recordSubscription(userId, subscriptionRecordFrom(live, customer)).catch(() => null);
+      // Re-read under the account lock, like the webhook, so this catch-up can
+      // never land after a newer delivery and put an older state back.
+      await recordSubscription(userId, async () =>
+        subscriptionRecordFrom(await stripe.subscriptions.retrieve(live.id), customer)
+      ).catch(() => null);
       res.status(409).json(ALREADY_SUBSCRIBED);
       return;
     }
