@@ -241,7 +241,7 @@ RUN set -eu; \
     fi; \
     test -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js"; \
     test -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm_bg.wasm"; \
-    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/.next/standalone/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); }"
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/.next/standalone/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); } const g11=JSON.parse(wasm.validate_detailed('function f(): i32 { return y }')); const g11msg=(g11.errors&&g11.errors[0]&&g11.errors[0].message)||''; if(g11.valid!==false||!g11msg.includes('HS-NAME-001')) { console.error('checker predates G11 (return y must be HS-NAME-001): '+g11msg); process.exit(1); }"
 
 # ─── Production runner ───────────────────────────────────────────────────────
 FROM base AS runner
@@ -300,7 +300,7 @@ RUN mkdir -p /tmp/rt && cd /tmp/rt && npm init -y >/dev/null 2>&1 && \
 # A path-only resolve stays green when the wasm binary is missing.
 RUN test -f /app/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js && \
     test -f /app/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm_bg.wasm && \
-    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); }"
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); } const g11=JSON.parse(wasm.validate_detailed('function f(): i32 { return y }')); const g11msg=(g11.errors&&g11.errors[0]&&g11.errors[0].message)||''; if(g11.valid!==false||!g11msg.includes('HS-NAME-001')) { console.error('checker predates G11 (return y must be HS-NAME-001): '+g11msg); process.exit(1); }"
 
 USER nextjs
 EXPOSE 3000
