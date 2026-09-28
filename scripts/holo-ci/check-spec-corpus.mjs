@@ -165,6 +165,14 @@ for (const testCase of cases) {
 console.log(
   `[spec-corpus] ${cases.length - drifts.length}/${cases.length} normative cases hold against authority wasm ${artifactSha.slice(0, 12)}…`
 );
+// An honest-gap case records today's verdict for a program the language should judge differently,
+// so the fix that closes it has to flip the case on purpose instead of passing unnoticed.
+const honestGaps = cases.filter((testCase) => (testCase.tags ?? []).includes('honest-gap')).length;
+if (honestGaps > 0) {
+  console.log(
+    `[spec-corpus] ${honestGaps} of them are honest gaps on record (tag honest-gap): verdicts the checker gives today that the language should not keep`
+  );
+}
 
 if (drifts.length > 0) {
   console.error(
