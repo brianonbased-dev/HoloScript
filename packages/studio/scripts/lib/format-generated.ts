@@ -24,7 +24,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { format, resolveConfig } from 'prettier';
+import { clearConfigCache, format, resolveConfig } from 'prettier';
 
 /** One file a generator emits: where it goes, and the unformatted code. */
 export interface GeneratedFile {
@@ -52,11 +52,20 @@ export class GeneratedOutputUnformattableError extends Error {
   }
 }
 
+/**
+ * Forget the prettier config cached in this process. A one-shot build or check
+ * resolves config per file and exits, so it keeps prettier's cache: a cold resolve
+ * measured ~11 ms against ~0.03 ms cached (claude3-x402's review of #432). A watch
+ * session lives for hours, so `holo:build --watch` calls this before each rebuild,
+ * and a .prettierrc edited mid-session applies to the next page instead of being
+ * ignored until restart (claude3-x402's review of #316).
+ */
+export async function refreshFormatterConfig(): Promise<void> {
+  await clearConfigCache();
+}
+
 async function formatOne(target: string, code: string, setSize?: number): Promise<string> {
-  // useCache: false because `holo:build --watch` formats in one long process, and
-  // prettier caches resolved config per process: a .prettierrc edited mid-session
-  // was otherwise ignored until restart (claude3-x402's review of #316).
-  const config = await resolveConfig(target, { useCache: false });
+  const config = await resolveConfig(target);
   try {
     return await format(code, { ...config, filepath: target });
   } catch (error) {

@@ -29,7 +29,11 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, relative, dirname, extname } from 'path';
-import { emitGeneratedSet, type GeneratedFile } from './lib/format-generated';
+import {
+  emitGeneratedSet,
+  refreshFormatterConfig,
+  type GeneratedFile,
+} from './lib/format-generated';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { NextJSCompiler } from '../../core/src/compiler/NextJSCompiler';
 
@@ -359,6 +363,8 @@ async function watch(): Promise<void> {
 
   watcher.on('change', async (path) => {
     console.log(`\n[holo:watch] ${relative(STUDIO_ROOT, path)} changed`);
+    // This process outlives a .prettierrc edit; read the config fresh for this rebuild.
+    await refreshFormatterConfig();
     const result = await compileFile(path);
     if (result) {
       // The same formatted bytes the build writes. This handler used to write the
@@ -375,8 +381,9 @@ async function watch(): Promise<void> {
     }
   });
 
-  watcher.on('add', (path) => {
+  watcher.on('add', async (path) => {
     console.log(`\n[holo:watch] New file: ${relative(STUDIO_ROOT, path)}`);
+    await refreshFormatterConfig();
     void build(); // Rebuild all to update manifest
   });
 }

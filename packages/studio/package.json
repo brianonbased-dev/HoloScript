@@ -36,7 +36,9 @@
     "holo:check": "tsx scripts/compile-holo-pages.ts --strict --check",
     "viewreg:build": "tsx scripts/compile-view-registry.ts",
     "viewreg:check": "tsx scripts/compile-view-registry.ts --strict --check",
-    "generators:check": "tsc -p scripts/tsconfig.generators.json && pnpm run holo:check && pnpm run vector:check && pnpm run viewreg:check"
+    "generators:typecheck": "tsc -p scripts/tsconfig.generators.json",
+    "generators:drift": "pnpm run holo:check && pnpm run vector:check && pnpm run viewreg:check",
+    "generators:check": "pnpm run generators:typecheck && pnpm run generators:drift"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.91.1",
