@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Fallback to HTTP API
   let httpError: unknown = null;
   try {
-    const res = await fetch(`${ABSORB_BASE}/api/projects/${projectId}/absorb`, {
+    const res = await fetch(`${ABSORB_BASE}/api/absorb/projects/${projectId}/absorb`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
