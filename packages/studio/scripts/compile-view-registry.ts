@@ -21,9 +21,9 @@
  * BEFORE a build, not after: these compare the generator against the file on
  * disk, which is the committed copy only while the tree is clean.
  */
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
-import { join, extname, basename, dirname } from 'path';
-import { format, resolveConfig } from 'prettier';
+import { readFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
+import { join, extname, basename } from 'path';
+import { emitGeneratedSet, type GeneratedFile } from './lib/format-generated';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { Native2DCompiler } from '../../core/src/compiler/Native2DCompiler';
 
@@ -63,20 +63,24 @@ const CHECK = process.argv.includes('--check');
 const drift: string[] = [];
 const orphans: string[] = [];
 
-const PENDING: Array<{ target: string; content: string }> = [];
+const PENDING: GeneratedFile[] = [];
 /** Every path this run emitted, kept after PENDING drains, so orphans can be found. */
 const EMITTED = new Set<string>();
 
 /** Buffer one generated artifact. finish() decides whether it is written or compared. */
 function emit(target: string, content: string): void {
   EMITTED.add(target);
-  PENDING.push({ target, content });
+  PENDING.push({ target, code: content });
 }
 
 /**
- * Format every buffered artifact, then write it (build) or compare it against the
- * committed copy (--check). Both modes consume the identical bytes, so the check
- * cannot drift away from the build it guards.
+ * Format every buffered artifact, then write them all (build) or compare them all
+ * against the committed copies (--check), through emitGeneratedSet. Both modes
+ * consume the identical bytes, so the check cannot drift away from the build it
+ * guards. An artifact prettier cannot parse is a compiler bug: the run refuses
+ * loudly, in build and check alike, naming the file, and writes nothing
+ * (independent review of #309, task_1790066851748_j9di; claude3-x402's review of
+ * #316 for the nothing).
  *
  * The generator formats its own output rather than leaving the committed copies in
  * .prettierignore, because the sibling generators (compile-holo-pages,
@@ -89,31 +93,8 @@ function emit(target: string, content: string): void {
  * only the API path reproduces it.
  */
 async function finish(): Promise<void> {
-  for (const { target, content } of PENDING.splice(0, PENDING.length)) {
-    const config = await resolveConfig(target);
-    let pretty = content;
-    try {
-      pretty = await format(content, { ...config, filepath: target });
-    } catch {
-      // A generated file prettier cannot parse is a compiler bug, not a formatting
-      // one. Keep the raw bytes so the real error surfaces where it belongs.
-      pretty = content;
-    }
-
-    if (CHECK) {
-      let current: string | null = null;
-      try {
-        current = readFileSync(target, 'utf-8');
-      } catch {
-        current = null;
-      }
-      if (current !== pretty) drift.push(target);
-      continue;
-    }
-
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, pretty, 'utf-8');
-  }
+  const stale = await emitGeneratedSet(PENDING.splice(0, PENDING.length), { check: CHECK });
+  drift.push(...stale);
 }
 
 interface ViewMeta {
@@ -433,7 +414,9 @@ async function build(): Promise<void> {
       console.error(
         `  (orphan scan skipped: ${errorCount} panel(s) failed to compile, so the emitted set is`
       );
-      console.error('   incomplete and cannot tell a real orphan from a panel that did not build.)');
+      console.error(
+        '   incomplete and cannot tell a real orphan from a panel that did not build.)'
+      );
     } else if (orphans.length > 0) {
       console.error('');
       console.error(

@@ -30,7 +30,21 @@ import {
 // declarative and the trait managers remain independently gated.
 // =============================================================================
 
-type Geometry = 'cube' | 'sphere' | 'cylinder';
+/**
+ * The SceneView node composable emitted for each geometry kind — the emitter's whole repertoire
+ * (listed in import order). The node call and its import are both read from here, and the golden
+ * test (__tests__/AndroidCompiler.golden.test.ts) requires apps/android-reference/scene.holo to
+ * exercise every entry and checks each named argument against the pinned SceneView signature.
+ * A kind the reference never compiles is a kind the real gradle build never checks: that is how
+ * CylinderNode shipped a `length` argument SceneView does not have (its parameter is `height`).
+ */
+export const SCENEVIEW_NODE_COMPOSABLES = {
+  cube: 'CubeNode',
+  cylinder: 'CylinderNode',
+  sphere: 'SphereNode',
+} as const;
+
+type Geometry = keyof typeof SCENEVIEW_NODE_COMPOSABLES;
 
 /** Render a number as a Kotlin Float literal (e.g. 0.2 → "0.2f", -1 → "-1f"). */
 function toKotlinFloatLiteral(value: unknown, fallback: number): string {
@@ -47,10 +61,11 @@ function geometryOf(compiler: AndroidCompiler, obj: HoloObjectDecl): Geometry {
     compiler.findObjProp(obj, 'type') ??
     'cube';
   const g = String(raw).toLowerCase();
-  if (g === 'sphere') return 'sphere';
-  if (g === 'cylinder') return 'cylinder';
-  // box / cube / anything unrecognised → cube (the safe renderable default).
-  return 'cube';
+  // box / cube / anything unrecognised → cube (the safe renderable default). Own keys only, so
+  // an inherited name like "constructor" can never pass as a node kind.
+  return Object.prototype.hasOwnProperty.call(SCENEVIEW_NODE_COMPOSABLES, g)
+    ? (g as Geometry)
+    : 'cube';
 }
 
 const NAMED_COMPOSE_COLORS: Record<string, string> = {
@@ -99,11 +114,14 @@ function toPosition(value: HoloValue | undefined): string {
   )}, z = ${toKotlinFloatLiteral(c[2], 0)})`;
 }
 
-/** First scalar component of a scale prop (number or vector). */
-function scaleScalar(value: HoloValue | undefined, fallback: number): number {
+/** Size in meters of a shape with no scale prop: every kind is this wide. */
+const DEFAULT_SIZE = 0.1;
+
+/** One axis of a scale prop: the number itself, or that component of an [x,y,z] vector. */
+function scaleAxis(value: HoloValue | undefined, axis: 0 | 1 | 2, fallback: number): number {
   if (typeof value === 'number') return value;
-  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'number') {
-    return value[0] as number;
+  if (Array.isArray(value) && typeof value[axis] === 'number') {
+    return value[axis] as number;
   }
   return fallback;
 }
@@ -117,7 +135,7 @@ function toCubeSize(value: HoloValue | undefined): string {
       0.1
     )}, ${toKotlinFloatLiteral(n[2], 0.1)})`;
   }
-  return `Size(${toKotlinFloatLiteral(scaleScalar(value, 0.1), 0.1)})`;
+  return `Size(${toKotlinFloatLiteral(scaleAxis(value, 0, DEFAULT_SIZE), DEFAULT_SIZE)})`;
 }
 
 /** Emit one SceneView node composable for a HoloScript object inside ARScene { }. */
@@ -130,33 +148,36 @@ function emitObjectNode(compiler: AndroidCompiler, obj: HoloObjectDecl): void {
   // hostile object name would otherwise break out of the comment (CWE-94, FlowLevel hardening).
   const safeName = compiler.escapeStringValue(obj.name as string, 'Kotlin');
 
+  // Shape arguments per kind. Every name must be a real parameter of the SceneView composable
+  // (the golden test checks them against the pinned signature): a cylinder is radius + height.
+  // Scale is the shape's size, the rule Quest (quest-world-emit.ts: Sphere(0.5 * sx), boxes
+  // sx wide) and the web (SphereGeometry(0.5) / CylinderGeometry(0.5, 0.5, 1) scaled) follow.
+  // A sphere of scale s is s across, a cylinder s across and s tall (y of an [x,y,z] scale),
+  // a cube s on each side. SceneView takes radii, so round shapes get half the size; passing
+  // the size itself drew them twice as wide as every other target.
+  const shapeArgs: Record<Geometry, string[]> = {
+    cube: [`size = ${toCubeSize(scale)}`],
+    cylinder: [
+      `radius = ${toKotlinFloatLiteral(scaleAxis(scale, 0, DEFAULT_SIZE) / 2, DEFAULT_SIZE / 2)}`,
+      `height = ${toKotlinFloatLiteral(scaleAxis(scale, 1, DEFAULT_SIZE), DEFAULT_SIZE)}`,
+    ],
+    sphere: [
+      `radius = ${toKotlinFloatLiteral(scaleAxis(scale, 0, DEFAULT_SIZE) / 2, DEFAULT_SIZE / 2)}`,
+    ],
+  };
+
   compiler.emit(`// ${safeName} — geometry: ${geom}`);
-  if (geom === 'sphere') {
-    compiler.emit('SphereNode(');
-    compiler.indentLevel++;
-    compiler.emit(`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)},`);
-    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
-    compiler.emit(`position = ${position},`);
-    compiler.indentLevel--;
-    compiler.emit(')');
-  } else if (geom === 'cylinder') {
-    compiler.emit('CylinderNode(');
-    compiler.indentLevel++;
-    compiler.emit(`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)},`);
-    compiler.emit(`length = ${toKotlinFloatLiteral(scaleScalar(scale, 0.1) * 2, 0.2)},`);
-    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
-    compiler.emit(`position = ${position},`);
-    compiler.indentLevel--;
-    compiler.emit(')');
-  } else {
-    compiler.emit('CubeNode(');
-    compiler.indentLevel++;
-    compiler.emit(`size = ${toCubeSize(scale)},`);
-    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
-    compiler.emit(`position = ${position},`);
-    compiler.indentLevel--;
-    compiler.emit(')');
+  compiler.emit(`${SCENEVIEW_NODE_COMPOSABLES[geom]}(`);
+  compiler.indentLevel++;
+  for (const arg of [
+    ...shapeArgs[geom],
+    `materialInstance = materialLoader.createColorInstance(${colorExpr})`,
+    `position = ${position}`,
+  ]) {
+    compiler.emit(`${arg},`);
   }
+  compiler.indentLevel--;
+  compiler.emit(')');
 }
 
 export function generateActivityFile(
@@ -199,9 +220,9 @@ export function generateActivityFile(
   compiler.emit('import io.github.sceneview.ar.rememberARCameraNode');
   compiler.emit('import io.github.sceneview.math.Position');
   if (geoms.has('cube')) compiler.emit('import io.github.sceneview.math.Size');
-  if (geoms.has('cube')) compiler.emit('import io.github.sceneview.node.CubeNode');
-  if (geoms.has('cylinder')) compiler.emit('import io.github.sceneview.node.CylinderNode');
-  if (geoms.has('sphere')) compiler.emit('import io.github.sceneview.node.SphereNode');
+  for (const [geom, node] of Object.entries(SCENEVIEW_NODE_COMPOSABLES)) {
+    if (geoms.has(geom as Geometry)) compiler.emit(`import io.github.sceneview.node.${node}`);
+  }
   compiler.emit('import io.github.sceneview.rememberEngine');
   compiler.emit('import io.github.sceneview.rememberMaterialLoader');
   compiler.emit('');

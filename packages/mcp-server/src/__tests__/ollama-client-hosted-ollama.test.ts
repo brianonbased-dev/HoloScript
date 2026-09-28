@@ -39,6 +39,9 @@ const ENV_NAMES = [
   'BRITTNEY_MAX_TOKENS',
   'HOLO_INFERENCE_PROXY_KEY_NAME',
   'GEMMA_EDGE_MODEL',
+  'GEMMA_CLOUD_MODEL',
+  // Set, it turns on the HoloKey vault lookup behind resolveServiceSecret: keep it off.
+  'DATABASE_URL',
 ];
 
 const HOLOLLAMA = 'http://holollama.lan:18080';
@@ -224,8 +227,42 @@ describe('mcp-server ollama-client: hybrid-gemma stays Ollama-edge by definition
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('HOSTED OLLAMA REFUSED'));
   });
 
-  it('refuses a cloud-tagged OLLAMA_MODEL too: that is the name the edge half really sends', async () => {
+  it('refuses a cloud-tagged GEMMA_EDGE_MODEL: that is the name the edge half sends', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({
+      LLM_PROVIDER: 'hybrid-gemma',
+      OLLAMA_URL: OWNED_OLLAMA,
+      GEMMA_EDGE_MODEL: 'gpt-oss:120b-cloud',
+    });
+
+    expect(await client.queryOllama('hello')).toBeNull();
+    expect(await client.isOllamaAvailable()).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('mcp-server ollama-client: hybrid-gemma sends the Gemma model each half names', () => {
+  // task_1790566904265_avh4: both halves put the model inside the request object, where no
+  // adapter reads it, so each adapter's own default model answered instead.
+  it('the edge half sends GEMMA_EDGE_MODEL to Ollama, not OLLAMA_MODEL', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({
+      LLM_PROVIDER: 'hybrid-gemma',
+      OLLAMA_URL: OWNED_OLLAMA,
+      OLLAMA_MODEL: 'qwen3.5:4b',
+      GEMMA_EDGE_MODEL: 'gemma4:e4b-edge',
+    });
+
+    expect(await client.queryOllama('hello')).toBe('object "Edge" {}');
+    expect(String(fetchMock.mock.calls[0][0])).toBe(`${OWNED_OLLAMA}/api/chat`);
+    expect(requestBody(fetchMock).model).toBe('gemma4:e4b-edge');
+    expect(client.describeLocalModel()).toEqual({ source: 'ollama', model: 'gemma4:e4b-edge' });
+  });
+
+  it('a cloud-tagged OLLAMA_MODEL does not stop the edge half, because it is never sent', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {});
     const fetchMock = mockFetch();
     const client = await loadClient({
@@ -234,9 +271,38 @@ describe('mcp-server ollama-client: hybrid-gemma stays Ollama-edge by definition
       OLLAMA_MODEL: 'gpt-oss:120b-cloud',
     });
 
-    expect(await client.queryOllama('hello')).toBeNull();
-    expect(await client.isOllamaAvailable()).toBe(false);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await client.queryOllama('hello')).toBe('object "Edge" {}');
+    expect(requestBody(fetchMock).model).toBe('gemma4:e4b');
+  });
+
+  it('the cloud half sends GEMMA_CLOUD_MODEL to OpenRouter, not the adapter default', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({
+      LLM_PROVIDER: 'hybrid-gemma',
+      OPENROUTER_API_KEY: 'sk-or-test-not-a-key',
+      GEMMA_CLOUD_MODEL: 'google/gemma-cloud-test',
+    });
+
+    expect(await client.queryOllama('why', undefined, { requiresDeepReasoning: true })).toBe(
+      'object "Cube" {}'
+    );
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(
+      /openrouter\.ai\/api\/v1\/chat\/completions$/
+    );
+    expect(requestBody(fetchMock).model).toBe('google/gemma-cloud-test');
+  });
+
+  it("the cloud half's default is an id OpenRouter lists: google/gemma-4-31b-it", async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({
+      LLM_PROVIDER: 'hybrid-gemma',
+      OPENROUTER_API_KEY: 'sk-or-test-not-a-key',
+    });
+
+    await client.queryOllama('why', undefined, { requiresDeepReasoning: true });
+    expect(requestBody(fetchMock).model).toBe('google/gemma-4-31b-it');
   });
 });
 
