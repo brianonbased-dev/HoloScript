@@ -418,6 +418,23 @@ describe('tool-result cap', () => {
     expect(capToolResult('short', 4000)).toBe('short');
     expect(capToolResult('x'.repeat(4000), 4000)).toBe('x'.repeat(4000));
   });
+  it('never splits a surrogate pair at the cut boundary (leaves no lone surrogate)', () => {
+    const content = '\u{1F600}'.repeat(300); // 300 astral code points = 600 UTF-16 units
+    for (let cap = 30; cap <= 80; cap += 1) {
+      const capped = capToolResult(content, cap);
+      const marker = capped.match(/\[truncated (\d+) chars\]$/);
+      expect(marker).not.toBeNull();
+      const m = marker as RegExpMatchArray;
+      const keptPrefix = capped.slice(0, capped.length - m[0].length);
+      // A well-formed kept prefix never ends on an unpaired high surrogate.
+      const lastUnit = keptPrefix.length > 0 ? keptPrefix.charCodeAt(keptPrefix.length - 1) : 0;
+      expect(lastUnit >= 0xd800 && lastUnit <= 0xdbff).toBe(false);
+      // Accounting invariant survives the backoff: kept + dropped === original.
+      expect(keptPrefix.length + Number(m[1])).toBe(content.length);
+      expect(capped.length).toBeLessThanOrEqual(cap);
+    }
+  });
+
 
   /** One iteration that pushes `blob` through a real (stubbed) tool call, then answers. */
   async function dumpThroughTool(blob: string) {

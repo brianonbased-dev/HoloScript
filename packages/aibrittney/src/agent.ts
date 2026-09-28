@@ -70,7 +70,14 @@ export function capToolResult(content: string, maxChars = resolveToolResultMaxCh
   if (content.length <= maxChars) return content;
   // Reserve room for the marker using the widest count it could carry.
   const widest = `[truncated ${content.length} chars]`;
-  const keep = Math.max(0, maxChars - widest.length);
+  let keep = Math.max(0, maxChars - widest.length);
+  // Never split a UTF-16 surrogate pair: if the last kept unit is a high surrogate,
+  // drop it so the boundary falls between whole code points and the history never
+  // carries a lone surrogate (which renders as U+FFFD).
+  if (keep > 0 && keep < content.length) {
+    const lastUnit = content.charCodeAt(keep - 1);
+    if (lastUnit >= 0xd800 && lastUnit <= 0xdbff) keep -= 1;
+  }
   const dropped = content.length - keep;
   return `${content.slice(0, keep)}[truncated ${dropped} chars]`;
 }
