@@ -20,7 +20,7 @@ import type {
   HSPlusTraitDirective,
   HSPlusTraitSumDirective,
 } from '../types/AdvancedTypeSystem';
-import type { HSPlusNode, HSPlusStructField } from '../types/HoloScriptPlus';
+import type { HSPlusFieldMark, HSPlusNode, HSPlusStructField } from '../types/HoloScriptPlus';
 import type { VRTraitName } from '../types';
 import {
   isCognitiveVerb,
@@ -38,6 +38,7 @@ import type { ReactionCategory } from '../types/base';
 
 export type {
   ASTProgram,
+  HSPlusFieldMark,
   HSPlusNode,
   HSPlusStructField,
   HSPlusDirective,
@@ -2150,6 +2151,7 @@ export class HoloScriptPlusParser {
     }
 
     const properties: Record<string, unknown> = {};
+    const fieldMarks: Record<string, HSPlusFieldMark> = {};
     const children: HSPlusNode[] = [];
     const directives: HSPlusDirective[] = [];
     const traits = new Map<VRTraitName, unknown>();
@@ -2220,7 +2222,9 @@ export class HoloScriptPlusParser {
 
           if (this.check('COLON')) {
             this.advance();
-            value = this.parseValue();
+            const field = this.parseFieldValue();
+            value = field.value;
+            if (field.mark) fieldMarks[key] = field.mark;
           }
 
           properties[key] = value;
@@ -2447,7 +2451,9 @@ export class HoloScriptPlusParser {
                   // YAML-style block scalar: template: | ... (indented lines)
                   properties[name] = this.parseBlockScalar(this.tokens[saved]);
                 } else {
-                  properties[name] = this.parseValue();
+                  const field = this.parseFieldValue();
+                  properties[name] = field.value;
+                  if (field.mark) fieldMarks[name] = field.mark;
                 }
               } else if (
                 childNodeKeywords.includes(name) &&
@@ -2499,6 +2505,7 @@ export class HoloScriptPlusParser {
       name: id, // Mapping id to name for runtime compatibility
       id,
       properties,
+      ...(Object.keys(fieldMarks).length > 0 ? { fieldMarks } : {}),
       directives,
       children,
       traits,
@@ -5917,8 +5924,8 @@ export class HoloScriptPlusParser {
    * Much lower precedence than ternary/null-coalesce
    * Example: x ??= value  →  x = x ?? value
    */
-  private parseAssignment(): unknown {
-    const expr = this.parseExpression();
+  private parseAssignment(stopBeforeFieldOptional = false): unknown {
+    const expr = this.parseExpression(stopBeforeFieldOptional);
 
     // Check for null coalescing assignment
     if (this.check('NULL_COALESCE_ASSIGN')) {
@@ -5951,19 +5958,148 @@ export class HoloScriptPlusParser {
    * Parse expression (Entry Point for operators)
    * Handles Ternary Operators: cond ? true : false
    */
-  private parseExpression(): unknown {
+  private parseExpression(stopBeforeFieldOptional = false): unknown {
     const condition = this.parseNullCoalesce();
 
     if (this.check('QUESTION')) {
+      // A single `?` at the end of a field (`provider: String?`, or before
+      // `= default`) is the optional mark the .hs reader stores. It is not a
+      // ternary. `??` is a different token, and `?.` is optional chaining.
+      // A `?` followed by a real branch stays a ternary, including when the
+      // branch is wrapped onto the next line.
+      if (stopBeforeFieldOptional && this.isFieldOptionalMark()) {
+        return condition;
+      }
+      const wrappedBranch = stopBeforeFieldOptional && this.nextLineContinuesTernary();
       this.advance(); // ?
-      const trueValue = this.parseExpression(); // Right-associative recursion
+      if (wrappedBranch) this.skipNewlines();
+      const trueValue = this.parseExpression(stopBeforeFieldOptional); // Right-associative recursion
+      if (wrappedBranch) this.skipNewlines();
       this.expect('COLON', 'Expected : in ternary operator');
-      const falseValue = this.parseExpression();
+      if (wrappedBranch) this.skipNewlines();
+      const falseValue = this.parseExpression(stopBeforeFieldOptional);
 
       return { type: 'ternary', condition, trueValue, falseValue };
     }
 
     return condition;
+  }
+
+  /**
+   * True when the current `?` closes a field instead of opening a ternary.
+   * The .hs reader (`parser.rs` parse_trait_property) always takes a single
+   * `?` after the field expression as `optional`. This reader already has
+   * ternary, so the mark is only the `?` that sits on a field boundary:
+   * end of line, `}`, `,`, `=`, or end of file.
+   * A newline is not that boundary when the next non-blank line is indented
+   * deeper and continues the expression (`cond ?` / `a : b`). A following
+   * field at the same indent (`String?` / `required: String`) stays optional.
+   */
+  private isFieldOptionalMark(): boolean {
+    if (!this.check('QUESTION')) return false;
+    const next = this.peek(1).type;
+    const boundary =
+      next === 'NEWLINE' ||
+      next === 'RBRACE' ||
+      next === 'COMMA' ||
+      next === 'EQUALS' ||
+      next === 'EOF' ||
+      next === 'DEDENT' ||
+      next === 'INDENT';
+    if (!boundary) return false;
+    const lineBreak = next === 'NEWLINE' || next === 'INDENT' || next === 'DEDENT';
+    if (lineBreak && this.nextLineContinuesTernary()) return false;
+    return true;
+  }
+
+  /** Leading spaces, with a tab counted the same way the lexer counts one. */
+  private lineIndent(line: string): number {
+    let indent = 0;
+    for (const char of line) {
+      if (char === ' ') indent += 1;
+      else if (char === '\t') indent += 4;
+      else break;
+    }
+    return indent;
+  }
+
+  private lineStartsWithOperand(trimmed: string): boolean {
+    return /^(?:true\b|false\b|null\b|[A-Za-z_][A-Za-z0-9_]*|\d|"|'|`|\(|\[|\{|!|-|\+)/.test(
+      trimmed
+    );
+  }
+
+  /** A `:` in code, not inside a string and not after `//`. */
+  private lineHasCodeColon(line: string): boolean {
+    let i = 0;
+    while (i < line.length) {
+      const char = line[i];
+      if (char === '/' && line[i + 1] === '/') return false;
+      if (char === '"' || char === "'" || char === '`') {
+        const quote = char;
+        i++;
+        while (i < line.length && line[i] !== quote) {
+          if (line[i] === '\\') i++;
+          i++;
+        }
+        i++;
+        continue;
+      }
+      if (char === ':') return true;
+      i++;
+    }
+    return false;
+  }
+
+  /**
+   * The next non-blank line continues a ternary when it is indented deeper
+   * than the `?` line, starts with an operand, and a `:` appears before the
+   * indent returns. `provider: String?` followed by `required: String` at the
+   * same indent does not.
+   */
+  private nextLineContinuesTernary(): boolean {
+    const lines = this.source.split(/\r?\n/);
+    const questionLine = lines[this.current().line - 1] ?? '';
+    const questionIndent = this.lineIndent(questionLine);
+    for (let i = this.current().line; i < lines.length; i++) {
+      const line = lines[i] ?? '';
+      const trimmed = line.trim();
+      if (trimmed === '' || trimmed.startsWith('//')) continue;
+      if (this.lineIndent(line) <= questionIndent) return false;
+      if (!this.lineStartsWithOperand(trimmed)) return false;
+      if (this.lineHasCodeColon(line)) return true;
+      for (let j = i + 1; j < lines.length; j++) {
+        const later = lines[j] ?? '';
+        const laterTrim = later.trim();
+        if (laterTrim === '' || laterTrim.startsWith('//')) continue;
+        if (this.lineIndent(later) <= questionIndent) return false;
+        if (this.lineHasCodeColon(later)) return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Field value plus the two marks `.hs` stores on `PropertyNode`:
+   * `optional` from `Type?`, and `default_value` from `Type = expr`.
+   * Both may appear (`Type? = expr`). The value itself is unchanged.
+   */
+  private parseFieldValue(): { value: unknown; mark?: HSPlusFieldMark } {
+    const value = this.parseAssignment(true);
+    const mark: HSPlusFieldMark = {};
+    let marked = false;
+    if (this.isFieldOptionalMark()) {
+      this.advance();
+      mark.optional = true;
+      marked = true;
+    }
+    if (this.check('EQUALS')) {
+      this.advance();
+      mark.default_value = this.parseValue();
+      marked = true;
+    }
+    return marked ? { value, mark } : { value };
   }
 
   /**

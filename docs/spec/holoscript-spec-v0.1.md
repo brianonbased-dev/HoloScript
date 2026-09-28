@@ -707,6 +707,27 @@ A lone trait, with no object, is accepted as an empty fragment (no error):
 @grabbable
 ```
 
+A field inside a brace block may carry the same two marks the `.hs` reader stores on a property. `?` after the value marks that field optional. `= <expression>` after the value stores a default and leaves the value as the type or expression written before the `=`. A plain field such as `reading: Temperature` or `maxHP: 100` is unchanged. `a ?? b` stays null-coalescing. `?.` stays optional chaining. Both marks may sit on one field. These three blocks are accepted:
+
+```hsplus
+@trait Config {
+  provider: String?
+  required: String
+}
+```
+
+```hsplus
+@trait Config {
+  auto_register: Bool = true
+}
+```
+
+```hsplus
+@trait Config {
+  llm_provider_id: String? = null
+}
+```
+
 ### Forms it rejects
 
 `zone`, `spatial`, and `layer` are rejected at any depth in a `.hsplus` file, not only at the top. The reader names the word that was written, reports one error, and stores no node. A `zone` block says `HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.` A `spatial` or `layer` block says `HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.` (the same sentence, with `"layer"` in place of `"spatial"`). The same zone, with a quoted name and a brace block, stays valid inside a `.holo` composition. A property named `layer`, as in `layer: 2`, is an ordinary property.
