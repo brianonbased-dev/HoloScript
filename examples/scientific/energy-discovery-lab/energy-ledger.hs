@@ -35,7 +35,7 @@ function classify_energy_claim(
     return 0
   }
 
-  let storage_draw = 0
+  var storage_draw = 0
   if (storage_energy_before > storage_energy_after) {
     storage_draw = storage_energy_before - storage_energy_after
   }
