@@ -207,6 +207,24 @@ describe('fence extractor rejects bad markdown', () => {
     ).toBe(true);
   });
 
+  it('names the Rust return-type error for the typed hsplus reject fence', () => {
+    const markdown = readFileSync(specPath, 'utf8');
+    const fence = extractFences(markdown).fences.find(
+      (candidate) =>
+        candidate.lang === 'hsplus' &&
+        candidate.reject &&
+        candidate.source.includes('function add(left: i32, right: i64): i64') &&
+        candidate.source.includes('return left')
+    );
+    expect(fence).toBeDefined();
+    const result = parseHsplus(fence?.source ?? '');
+    expect(result.success).toBe(false);
+    const message = result.errors.map((error) => error.message).join('\n');
+    expect(message).toContain('HS-TYPE-RETURN-001');
+    expect(message).toContain('expected `i64`, found `i32`');
+    expect(message).not.toContain('Unexpected token COLON');
+  });
+
   it('accepts a well-formed fence', () => {
     const markdown = 'intro\n```hs\nobject Cube {\n  geometry: "cube"\n}\n```\n';
     const { fences, errors } = extractFences(markdown);

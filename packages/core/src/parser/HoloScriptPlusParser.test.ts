@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { HoloScriptPlusParser } from './HoloScriptPlusParser';
+import { HoloScriptPlusParser, parse } from './HoloScriptPlusParser';
 import type { HoloBrainDecl } from './HoloScriptPlusParser';
 import { parseHolo } from './HoloCompositionParser';
+import {
+  hsplusRustCheckerLoaded,
+  resetHsplusRustCheckerForTests,
+} from './hsplusRustTypeCheck';
 
 describe('HoloScriptPlusParser - Extended Features', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
@@ -841,6 +845,195 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
     const tracks = tl.children.filter((c: any) => c.type === 'track');
     expect(tracks.map((t: any) => t.target)).toEqual(['opacity', 'scaleUniform']);
     expect(tracks[1].keyframes[1].easing).toBe('spring');
+  });
+});
+
+describe('typed functions checked by the Rust checker', () => {
+  function rootOf(source: string) {
+    return parse(source);
+  }
+
+  function messages(source: string): string {
+    return rootOf(source).errors.map((error) => error.message).join('\n');
+  }
+
+  it('leaves an untyped function unchanged and does not load the Rust checker', () => {
+    resetHsplusRustCheckerForTests();
+    const source = 'function add(left, right) { return left + right }';
+    const result = rootOf(source);
+    expect(hsplusRustCheckerLoaded()).toBe(false);
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.compiledExpressions.size).toBe(0);
+    const fn = result.ast.root;
+    expect(fn.type).toBe('function');
+    expect(fn.name).toBe('add');
+    expect(fn.body).toBe('return left + right');
+    expect(fn.params).toBeUndefined();
+    expect(fn.paramTypes).toBeUndefined();
+    expect(fn.returnType).toBeUndefined();
+  });
+
+  it('parses a typed function, stores the .hs types, and the Rust checker is quiet', () => {
+    const source = 'function add(left: i32, right: i64): i64 { return left + right }';
+    const result = rootOf(source);
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.compiledExpressions.size).toBe(0);
+    expect(hsplusRustCheckerLoaded()).toBe(true);
+    expect(result.ast.root).toMatchObject({
+      type: 'function',
+      name: 'add',
+      params: ['left', 'right'],
+      paramTypes: ['i32', 'i64'],
+      returnType: 'i64',
+      body: 'return left + right',
+    });
+  });
+
+  it('accepts the known-gap form that binds the sum before returning it', () => {
+    const source = `function add(left: i32, right: i64): i64 {
+  let result: i64 = left + right
+  return result
+}`;
+    const result = rootOf(source);
+    expect(result.success).toBe(true);
+    expect(result.ast.root.paramTypes).toEqual(['i32', 'i64']);
+    expect(result.ast.root.returnType).toBe('i64');
+    expect(result.ast.root.body).toContain('let result: i64 = left + right');
+  });
+
+  it('stores parameter types when only the parameters are annotated', () => {
+    const result = rootOf('function add(left: i32, right: i64) { return left + right }');
+    expect(result.success).toBe(true);
+    expect(result.ast.root.params).toEqual(['left', 'right']);
+    expect(result.ast.root.paramTypes).toEqual(['i32', 'i64']);
+    expect(result.ast.root.returnType).toBeUndefined();
+    expect(result.ast.root.body).toBe('return left + right');
+  });
+
+  it('stores the return type when only the return is annotated', () => {
+    const result = rootOf('function add(left, right): i64 { return left + right }');
+    expect(result.success).toBe(true);
+    expect(result.ast.root.params).toEqual(['left', 'right']);
+    expect(result.ast.root.paramTypes).toBeUndefined();
+    expect(result.ast.root.returnType).toBe('i64');
+  });
+
+  it('reports HS-TYPE-RETURN-001 when the returned value has the wrong type', () => {
+    const result = rootOf('function id(value: i32): bool { return value }');
+    expect(result.success).toBe(false);
+    expect(result.ast.root.paramTypes).toEqual(['i32']);
+    expect(result.ast.root.returnType).toBe('bool');
+    const message = result.errors.map((error) => error.message).join('\n');
+    expect(message).toContain('HS-TYPE-RETURN-001');
+    expect(message).toContain('expected `bool`, found `i32`');
+    expect(message).not.toContain('Unexpected token COLON');
+  });
+
+  it('reports HS-TYPE-ASSIGN-001 when a let binding has the wrong type', () => {
+    const message = messages('function f(a: i32): i32 {\n  let x: i32 = true\n  return x\n}');
+    expect(message).toContain('HS-TYPE-ASSIGN-001');
+    expect(message).toContain('expected `i32`, found `bool`');
+    expect(message).not.toContain('Unexpected token COLON');
+  });
+
+  it('reports HS-TYPE-ARG-001 when a call argument has the wrong type', () => {
+    const message = messages('function add(a: i32, b: i32): i32 { return add(true, 1) }');
+    expect(message).toContain('HS-TYPE-ARG-001');
+    expect(message).toContain('expected `i32`, found `bool`');
+    expect(message).not.toContain('Unexpected token COLON');
+  });
+
+  it('reports HS-TYPE-LOGICAL-001 when && or || sees a non-bool', () => {
+    const message = messages('function f(): bool { return 1 && true }');
+    expect(message).toContain('HS-TYPE-LOGICAL-001');
+    expect(message).toContain('must be `bool`, found `integer literal`');
+    expect(message).not.toContain('Unexpected token COLON');
+  });
+
+  it('stores reference, array, and lifetime types the Rust reader accepts', () => {
+    const cases: Array<{ source: string; paramTypes: string[]; returnType: string }> = [
+      {
+        source: "function view<'a>(packet: &'a Packet): &'a Packet { return packet }",
+        paramTypes: ["&'a Packet"],
+        returnType: "&'a Packet",
+      },
+      {
+        source: 'function write(packet: &mut Packet): &mut Packet { return packet }',
+        paramTypes: ['&mut Packet'],
+        returnType: '&mut Packet',
+      },
+      {
+        source: 'function id(value: [i32]): [i32] { return value }',
+        paramTypes: ['[i32]'],
+        returnType: '[i32]',
+      },
+      {
+        source: 'function first(values: [i32; 4]): i32 { return 1 }',
+        paramTypes: ['[i32; 4]'],
+        returnType: 'i32',
+      },
+      {
+        source: 'function borrow(value: &Packet): &Packet { return value }',
+        paramTypes: ['&Packet'],
+        returnType: '&Packet',
+      },
+    ];
+    for (const sample of cases) {
+      const result = rootOf(sample.source);
+      expect(result.success, result.errors.map((error) => error.message).join('\n')).toBe(true);
+      expect(result.ast.root.paramTypes).toEqual(sample.paramTypes);
+      expect(result.ast.root.returnType).toBe(sample.returnType);
+    }
+  });
+
+  it('rejects Vec, T?, and dotted types with the Rust reader, not an unexpected colon', () => {
+    for (const source of [
+      'function id(value: Vec<i32>): i32 { return value }',
+      'function id(value: i32?): i32 { return value }',
+      'function id(value: std.i32): i32 { return value }',
+    ]) {
+      const result = rootOf(source);
+      expect(result.success).toBe(false);
+      const message = result.errors.map((error) => error.message).join('\n');
+      expect(message).not.toContain('Unexpected token COLON');
+      expect(message.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('checks a typed function inside logic and leaves an untyped logic function unchanged', () => {
+    const typed = rootOf(`logic {
+  function add(left: i32, right: i64): i64 {
+    return left + right
+  }
+}`);
+    expect(typed.success).toBe(true);
+    expect(typed.ast.root.body.functions[0]).toMatchObject({
+      name: 'add',
+      params: ['left', 'right'],
+      paramTypes: ['i32', 'i64'],
+      returnType: 'i64',
+    });
+
+    const untyped = rootOf(`logic {
+  function add(left, right) {
+    return left
+  }
+}`);
+    expect(untyped.success).toBe(true);
+    const fn = untyped.ast.root.body.functions[0];
+    expect(fn).toEqual({ name: 'add', params: ['left', 'right'], body: 'return left' });
+    expect(fn.paramTypes).toBeUndefined();
+    expect(fn.returnType).toBeUndefined();
+
+    const wrong = rootOf(`logic {
+  function id(value: i32): bool {
+    return value
+  }
+}`);
+    expect(wrong.success).toBe(false);
+    expect(wrong.errors.map((error) => error.message).join('\n')).toContain('HS-TYPE-RETURN-001');
   });
 });
 

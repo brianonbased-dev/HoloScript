@@ -15,7 +15,10 @@
     "src\\app\\agent-ability\\page.tsx",
     "src\\app\\playground\\pipeline\\page.tsx",
     "src\\app\\playground\\embodied\\page.tsx",
-    "src\\app\\docs\\page.tsx"
+    "src\\app\\docs\\page.tsx",
+    "src\\app\\download\\page.tsx",
+    "src\\app\\install\\page.tsx",
+    "src\\app\\pricing\\page.tsx"
   ],
-  "lastBuild": "2026-09-16T11:49:42.187Z"
+  "lastBuild": "2026-09-22T03:07:00.871Z"
 }
