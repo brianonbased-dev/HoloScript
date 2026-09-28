@@ -73,7 +73,7 @@ object "RenderCam" @render_network(
 
 ```hsplus
 logic {
-  on_ready() {
+  on_start() {
     emit "render_submit" {
       scene: "MainScene",
       quality: "production",

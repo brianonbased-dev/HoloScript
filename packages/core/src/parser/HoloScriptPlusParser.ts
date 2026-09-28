@@ -5224,13 +5224,13 @@ export class HoloScriptPlusParser {
           const body = this.parseCodeBlock();
           result.eventHandlers.push({ event: eventName, params, body });
         }
-        // Skip other identifiers (might be comments or unknown constructs)
+        // Any other word is not a logic form. Report it, then skip the
+        // rest of the line so a later known form can still be read.
         else {
-          // Skip past parens and braces to handle unknown function-like constructs
+          this.error(`"${keyword}" is not allowed inside logic.`, 'HSP001');
           this.advance();
           if (this.check('LPAREN')) this.skipParens();
           if (this.check('LBRACE')) this.skipBraces();
-          // Also skip to next newline for safety
           while (!this.check('RBRACE') && !this.check('EOF') && !this.check('NEWLINE')) {
             this.advance();
           }
