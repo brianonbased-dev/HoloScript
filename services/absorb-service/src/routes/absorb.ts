@@ -130,12 +130,27 @@ router.post('/scan', async (req: Request, res: Response) => {
         return;
       }
       
-      await deductCredits(
+      // requireCredits only looks. Two scans can both be told the balance
+      // covers them before either charge lands. deductCredits is the charge:
+      // it returns empty when the balance is no longer enough, and it does
+      // not take the money in that case. Handing over the scan anyway, and
+      // reporting cost, would bill the customer for a charge that never
+      // happened.
+      //
+      // The charge stays after the scan. The ledger can add credits back
+      // only by recording a purchase, which would say the customer bought
+      // money they did not buy. A scan that fails therefore costs nothing,
+      // and a charge that comes back empty is not delivered.
+      const debit = await deductCredits(
         userId,
         creditCheck.costCents,
         `Codebase scan: ${body.path}`,
         { graphId, shallow: body.shallow }
       );
+      if (!debit) {
+        res.status(402).json({ error: 'Not enough credits for this scan.' });
+        return;
+      }
       chargedCents = creditCheck.costCents;
     }
 
@@ -240,12 +255,19 @@ router.post('/query', async (req: Request, res: Response) => {
 
     const results = await index.search(body.query, body.maxResults);
 
-    await deductCredits(
+    // Same rule as /scan, including while this query is priced at 0.
+    // A charge that comes back empty did not happen, so the answer is
+    // not delivered and no cost is reported.
+    const debit = await deductCredits(
       userId,
       creditCheck.costCents,
       `Semantic codebase query: ${body.query.substring(0, 32)}...`,
       { graphId: body.graphId }
     );
+    if (!debit) {
+      res.status(402).json({ error: 'Not enough credits for this query.' });
+      return;
+    }
 
     res.json({
       query: body.query,
