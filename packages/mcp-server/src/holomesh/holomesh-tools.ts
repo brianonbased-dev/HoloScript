@@ -48,6 +48,7 @@ import {
   entryForViewer,
   premiumEntryAccess,
   mcpToolViewer,
+  viewerMayQueryTeamWorkspace,
 } from './entry-lookup';
 import { isPremiumEntry } from './premium-view';
 import { boardTools, handleBoardTool } from './board-tools';
@@ -1296,12 +1297,19 @@ async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<stri
   try {
     const search = args.search as string;
     const viewer = mcpToolViewer(args);
+    const workspaceId = args.workspace as string | undefined;
+    // The premium gate below decides whether a PAID row's content may be read; it says
+    // nothing about whether this caller may search this WORKSPACE at all, and the
+    // orchestrator cannot check that either (task_1790079366686_qvr6 -- see entry-lookup.ts).
+    if (workspaceId && !viewerMayQueryTeamWorkspace(viewer, workspaceId)) {
+      return { error: `Not authorized to query workspace "${workspaceId}"` };
+    }
     const results = entriesForViewer(
       entitledSearchRows(
         await client.queryKnowledge(search, {
           type: args.type as string,
           limit: (args.limit as number) || 10,
-          workspaceId: args.workspace as string,
+          workspaceId,
         }),
         viewer
       ),
