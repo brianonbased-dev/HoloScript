@@ -1,6 +1,6 @@
 # Agent frames: a way to say "no tools" (G15) — v1
 
-**Status:** Proposed 2026-09-28, awaiting founder approval under the Spec v0.1 no-break policy.
+**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28).
 **Gap:** G15 in [`docs/spec/spec-vs-reality-gap.md`](../docs/spec/spec-vs-reality-gap.md).
 **Board:** task_1790587169083_1y5v.
 
@@ -16,7 +16,7 @@ empty list means no tools, and leaving the list out keeps today's meaning.
 What breaks: one example file, which uses an empty list on purpose to mean "every tool"; it changes
 to `["*"]` in the same change.
 
-**The one question:** Should an empty tool list mean "no tools", with `["*"]` for "every tool" —
+**Decided 2026-09-28 (yes), as an agent decision under the gate rule.** The question as first posed: Should an empty tool list mean "no tools", with `["*"]` for "every tool" —
 yes or no?
 
 ## What the change is

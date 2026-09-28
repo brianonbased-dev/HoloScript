@@ -775,12 +775,12 @@ These are bugs and disagreements measured on this checkout. This spec records th
 
 2. **The three readers disagree on the same text.**
 
-| Text                                                                                                         | WASM `.hs`                        | `.hsplus` reader                | Composition reader                                                                              |
-| ------------------------------------------------------------------------------------------------------------ | --------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Typed `function add(left: i32, right: i64): i64` with `return result` after `let result: i64 = left + right` | valid                             | success; parameter and return types stored | At the root: success and nothing stored. Inside a composition: error `Unexpected token: LBRACE` |
-| `zone SafeArea(x: 0, y: 0, z: 5, width: 100)`                                                                | `Unexpected identifier: zone`     | rejected, `HSP001` (`"zone"` is not part of .hsplus) | success, nothing stored                                                                         |
+| Text                                                                                                         | WASM `.hs`                        | `.hsplus` reader                                        | Composition reader                                                                              |
+| ------------------------------------------------------------------------------------------------------------ | --------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Typed `function add(left: i32, right: i64): i64` with `return result` after `let result: i64 = left + right` | valid                             | success; parameter and return types stored              | At the root: success and nothing stored. Inside a composition: error `Unexpected token: LBRACE` |
+| `zone SafeArea(x: 0, y: 0, z: 5, width: 100)`                                                                | `Unexpected identifier: zone`     | rejected, `HSP001` (`"zone"` is not part of .hsplus)    | success, nothing stored                                                                         |
 | `spatial ComponentName(width: number, height: number) { layer background { } }`                              | `Unexpected identifier: spatial`  | rejected, `HSP001` (`"spatial"` is not part of .hsplus) | success; `spatial` itself is not stored (see gap 1)                                             |
-| `pipeline "CustomerJourney" { source Ledger { kind: "table" } sink Report { kind: "log" } }`                 | `Unexpected identifier: pipeline` | success, root type `pipeline`   | success, kept as a pipeline domain block                                                        |
+| `pipeline "CustomerJourney" { source Ledger { kind: "table" } sink Report { kind: "log" } }`                 | `Unexpected identifier: pipeline` | success, root type `pipeline`                           | success, kept as a pipeline domain block                                                        |
 
 3. **The trait count is being reconciled across sources.** The canonical name list is `VR_TRAITS` in `packages/core/src/traits/constants/index.ts`, named in the Traits section. This spec does not publish a number for how many traits exist.
 
@@ -864,11 +864,20 @@ Modes: `llama-server`, `state`, `trait-composition`, `incremental`, `multi-layer
 
 ## No-break policy
 
-A `.holo`, `.hs`, or `.hsplus` file that parses under 0.1.0 must keep parsing in every 0.x patch. A patch may add a reader fix that rejects a case this spec lists under Known gaps only after the proposal below is approved, because those cases parse as success today even when the result is empty.
+A `.holo`, `.hs`, or `.hsplus` file that parses under 0.1.0 must keep parsing in every 0.x patch. A patch may add a reader fix that rejects a case this spec lists under Known gaps only after the proposal below passes its gates, because those cases parse as success today even when the result is empty.
 
-Any new syntax, or any change to syntax the readers accept today, needs a written proposal before it is built. The proposal says what the change is, why, examples of the new form, what existing files would break, and the test that proves the claim. Joseph approves that proposal before the code is written.
+Any new syntax, or any change to what the readers accept today, needs a written proposal before it is built. The proposal says what the change is, why, examples of the new form, what existing files would break (measured, not estimated), and the test that proves the claim. Proposals live in `proposals/`.
 
-Deprecation is announced in a later revision of this spec, with the date, the old form, the replacement, and the version in which the old form will stop parsing. The old form keeps parsing for at least one 0.x patch after that announcement. Removing it still needs Joseph's approval. A banner on an older document is a pointer. It is not, by itself, a removal.
+**Approval is by gates, not by a person.** On 2026-09-28 Joseph said: "as long as we have our gates, rules, and tools helping agents make the right decisions and go in the right directions my approvals are a bottleneck." This replaces the 2026-09-27 rule that he approves each proposal. A proposal is approved when all four hold:
+
+1. It is written, with the measured list of files it breaks.
+2. The executable spec corpus passes (`node scripts/holo-ci/check-spec-corpus.mjs --strict`), and every honest-gap case the change closes is flipped on purpose.
+3. The proving test fails when the change is removed, and the pull request records that mutation or fault-injection run.
+4. A reviewer from a different seat and a different family than the author approves the pull request.
+
+Joseph's review stays reserved for the four protected classes: spend and custody, physical-world commitments, public commitments under his name, and governance.
+
+Deprecation is announced in a later revision of this spec, with the date, the old form, the replacement, and the version in which the old form will stop parsing. The old form keeps parsing for at least one 0.x patch after that announcement. Removing it passes the same four gates. A banner on an older document is a pointer. It is not, by itself, a removal.
 
 ## What remains after this plan
 

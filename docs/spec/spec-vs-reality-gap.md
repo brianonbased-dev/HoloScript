@@ -365,7 +365,7 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
 - **Scope/blast:** move name, arity, return-path and scope checks into the shared checker; the
   backends keep only capability refusals. Route C in the 2026-09-27 route study would make this
   checker "the only judge of meaning", so this is the first step of that route, not a side task.
-- **STATUS — OPEN; proposal written, awaiting founder approval (2026-09-28):**
+- **STATUS — OPEN; proposal accepted under the Spec v0.1 gate rule (2026-09-28), implementation in progress:**
   [`proposals/HS_Checker_Names_Calls_Returns_v1.md`](../../proposals/HS_Checker_Names_Calls_Returns_v1.md).
   Measured impact: 0 of 68 valid `.hs` files (256 typed functions) and 0 of 13 typed `.hsplus`
   functions would break, given the proposed fragment mode for the `.hsplus` bridge. The cases are
@@ -432,7 +432,7 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   puts it in the backlog.
 - **Scope/blast:** distinguish an omitted field from an explicit empty list; warn first. Existing
   brains may rely on today's meaning, so it needs a written proposal.
-- **STATUS — OPEN; proposal written, awaiting founder approval (2026-09-28):**
+- **STATUS — OPEN; proposal accepted under the Spec v0.1 gate rule (2026-09-28):**
   [`proposals/Agent_Frame_Tool_Allowlist_v1.md`](../../proposals/Agent_Frame_Tool_Allowlist_v1.md)
   — `["*"]` for every tool, `[]` for none, omitted unchanged. Measured: one file writes `[]`
   (`compositions/frame-declaration-example.hsplus`, deliberately meaning "every tool"; it migrates

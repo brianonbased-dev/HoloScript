@@ -1,6 +1,6 @@
 # `.hs` checker: names, calls and returns (G11) — v1
 
-**Status:** Proposed 2026-09-28, awaiting founder approval under the Spec v0.1 no-break policy
+**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28). Implementation in progress. Originally proposed under the Spec v0.1 no-break policy
 (`docs/spec/holoscript-spec-v0.1.md`, "Any new syntax, or any change to syntax the readers accept
 today, needs a written proposal before it is built").
 **Gap:** G11 in [`docs/spec/spec-vs-reality-gap.md`](../docs/spec/spec-vs-reality-gap.md).
@@ -19,7 +19,7 @@ with one clear reason and the line where it happened. Old untyped script functio
 What breaks: nothing we have. Checked on every `.hs` file that is valid today (68 files, 256 typed
 functions) and on every typed function in hand-written `.hsplus` files (13).
 
-**The one question:** Should the `.hs` checker refuse, inside typed functions, names and functions
+**Decided 2026-09-28 (yes), as an agent decision under the gate rule.** The question as first posed: Should the `.hs` checker refuse, inside typed functions, names and functions
 that do not exist, calls with the wrong number of inputs, and functions that can end without an
 answer — yes or no?
 
