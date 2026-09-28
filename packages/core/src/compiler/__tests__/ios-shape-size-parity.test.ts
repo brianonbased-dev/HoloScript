@@ -50,6 +50,11 @@ const SCENE = `composition "IosSizeParity" {
     geometry: "sphere"
     position: [3, 1, -1]
   }
+  object "Pill" {
+    geometry: "capsule"
+    scale: [0.3, 1.2, 0.3]
+    position: [4, 1, -1]
+  }
 }`;
 
 /** The body of `static func make<name>()` in iOS's scene file. */
@@ -109,8 +114,22 @@ describe('iOS shapes: the geometry key, and sizes that match Quest', () => {
     expect(height).toBeCloseTo(0.5, 6);
   });
 
+  it('a capsule is as wide as its scale, like every round shape, and as tall', () => {
+    const m = /SCNCapsule\(capRadius: ([\d.]+), height: ([\d.]+)\)/.exec(iosFactory(swift, 'Pill'));
+    expect(m, 'Pill is an SCNCapsule').not.toBeNull();
+    const [width, height] = [Number(m![1]) * 2, Number(m![2])];
+    // Same rule as the sphere and the cylinder: radius is half the width.
+    expect(width).toBeCloseTo(0.3, 6);
+    expect(height).toBeCloseTo(1.2, 6);
+    // Quest has no capsule primitive and draws a box of the same footprint and height.
+    const match = questBoxes(quest).find(
+      (b) => Math.abs(b[0] - width) < 1e-6 && Math.abs(b[1] - height) < 1e-6
+    );
+    expect(match, `Quest drew a ${width} x ${height} box for the pill`).toBeDefined();
+  });
+
   it('the size lives in the geometry: no node.scale, and no scale keeps the 0.1 m default', () => {
-    for (const name of ['Ball', 'Crate', 'Post', 'Pebble']) {
+    for (const name of ['Ball', 'Crate', 'Post', 'Pebble', 'Pill']) {
       expect(iosFactory(swift, name), `make${name}`).not.toContain('node.scale');
     }
     expect(iosFactory(swift, 'Pebble')).toContain('SCNSphere(radius: 0.05)');

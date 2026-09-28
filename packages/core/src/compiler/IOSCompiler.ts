@@ -175,7 +175,9 @@ export class IOSCompiler extends CompilerBase {
       sphere: `SCNSphere(radius: ${m(x / 2)})`,
       cylinder: `SCNCylinder(radius: ${m(x / 2)}, height: ${m(y)})`,
       cone: `SCNCone(topRadius: 0, bottomRadius: ${m(x / 2)}, height: ${m(y)})`,
-      capsule: `SCNCapsule(capRadius: ${m(x / 4)}, height: ${m(y)})`,
+      // Half the width, like every round shape here. It was x / 4, which kept the old table's
+      // 0.025 default and drew a capsule half as wide as a sphere of the same size.
+      capsule: `SCNCapsule(capRadius: ${m(x / 2)}, height: ${m(y)})`,
       plane: `SCNPlane(width: ${m(x)}, height: ${m(y)})`,
       torus: `SCNTorus(ringRadius: ${m(x / 2)}, pipeRadius: ${m(x / 5)})`,
     };
