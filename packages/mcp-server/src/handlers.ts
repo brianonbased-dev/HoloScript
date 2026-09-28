@@ -843,7 +843,7 @@ export async function handleTool(
       (args as Record<string, unknown>).__authAgentId = authPrincipal;
     }
     const { handleHoloMeshTool } = await import('./holomesh/index');
-    return handleHoloMeshTool(name, args);
+    return handleHoloMeshTool(name, args, effectiveSigningCtx);
   }
 
   // ConversationDaemon lifecycle tools (D.052 Brittney field / user daemon model)
