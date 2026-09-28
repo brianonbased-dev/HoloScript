@@ -762,3 +762,28 @@ describe('the configured model is checked against the pricing tables at startup 
     expect(run).toMatch(/if \(pricingCheck\.action === 'refuse'\) \{\s*throw new Error/);
   });
 });
+
+// claude2's review of #321 (P2-2): a CostGuard built without a pricer defaulted to
+// the Anthropic pricer, so a future caller for any other provider would bill its
+// cache reads at Claude's 0.1 discount. With no provider named, reads bill at full
+// input (CACHE_POLICIES.unknown), an upper bound that can only trip the budget early.
+describe('CostGuard with no pricer bills cache reads fail-closed', () => {
+  it("does not give an unnamed provider Claude's 0.1 cache-read discount", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cost-guard-default-pricer-'));
+    try {
+      const guard = new CostGuard({ statePath: join(dir, 'cost.json'), dailyBudgetUsd: 1000 });
+      const usage = {
+        promptTokens: 1_000_000,
+        completionTokens: 0,
+        totalTokens: 1_000_000,
+        cacheReadTokens: 1_000_000,
+      };
+      const failClosed = defaultPricerForProvider('unknown')('claude-opus-5', usage);
+      const claudeDiscount = defaultAnthropicPricer('claude-opus-5', usage);
+      expect(claudeDiscount).toBeLessThan(failClosed);
+      expect(guard.recordUsage('claude-opus-5', usage).costUsd).toBeCloseTo(failClosed, 10);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

@@ -746,7 +746,11 @@ export class CostGuard {
   constructor(opts: { statePath: string; dailyBudgetUsd: number; pricer?: ModelPricer }) {
     this.statePath = opts.statePath;
     this.dailyBudgetUsd = opts.dailyBudgetUsd;
-    this.pricer = opts.pricer ?? defaultAnthropicPricer;
+    // No pricer named means no provider known, so cache reads bill fail-closed
+    // (CACHE_POLICIES.unknown: reads at full input), never at Claude's 0.1 read
+    // discount. Both callers pass a provider pricer today; this default is for the
+    // next one that does not (claude2's review of #321, P2-2).
+    this.pricer = opts.pricer ?? defaultPricerForProvider('unknown');
     this.state = this.loadOrInit();
   }
 
