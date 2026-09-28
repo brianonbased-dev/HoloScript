@@ -123,43 +123,97 @@ prototype of these rules (scratch, not product code), cross-checked against both
 
 ## As built (2026-09-28)
 
-Where the build differs from the text above, the build is right and this section says why.
+Where the build differs from the text above, the build is right and this section says why. It
+went through one independent review and one premortem (both from the author's own seat and model
+family, so neither is gate 4).
 
-- **The built-in list was incomplete.** Rule 1 now also accepts `unknownReason` (the native
-  backend lowers it by name next to `isKnown`) and the Kotlin backend's math built-ins `abs`,
-  `floor`, `max`, `min`, `pow` and `sqrt`, read from that backend's own table
-  (`kotlin_emit::is_kotlin_builtin`), so the two lists cannot drift. Without them the checker
-  would refuse typed functions a backend runs. The switch-off run found the gap: making every
-  function strict broke the Kotlin `sqrt` tests.
-- **Fragment mode carries more than functions.** The context is
-  `{"functions":[{"name","arity"}],"names":[...]}` through a new export,
-  `validate_detailed_in_context`. `names` are the document's structs, enums and imports. A
-  function whose parameters have a default, an optional mark or a spread, or that is declared twice
-  with different counts, is sent without an arity. Both `.hsplus` paths use it: `parse`, and
-  `parseIncremental`, which checks each `logic`/`orb`/`template` block alone and now passes the
-  whole document; without that a typed function calling a function in another block would be
-  refused and its block dropped.
-- **Positions.** Names, calls, `let`/`var`/`const`, `slot`, `return`, assignments and `for` loops
-  now carry their line and column in the AST, so the older `HS-TYPE-*` errors on those nodes gained
-  positions too. A `for (v in …)` loop variable counts as a declaration for rule 5.
-- **One return rule.** Rule 4 and `compile_to_uaal` share `definitely_returns_value`
-  (`semantic_types.rs`), which also counts a trailing `scope { … return … }` block, as native does.
-  A bare `return` in a typed function keeps its `HS-TYPE-RETURN-001` message.
-- **`compile_to_uaal` runs the checker first**, so for typed functions these programs are now
-  refused with the checker's codes; its own guards still cover untyped functions.
-- **Size.** The Node WASM grew from 541,496 to 552,730 bytes. A first draft read the context with
-  a derived deserializer and cost 42 KB; the build reads it through `serde_json::Value`, which the
-  crate already ships.
+**Rules, as enforced**
 
-**Gate evidence.** (1) Measured breakage, re-run on the build: 68 of 68 valid `.hs` files stay
-valid and 69 refused files keep the same first message; 25 of 25 conformance programs valid; all
-2,474 tracked `.hsplus` files give the same error list as before; `compile_to_uaal` gives the same
-bytecode for all 15 files it compiles and the same refusal for the other 122. (2)
-`check-spec-corpus.mjs --strict`: 53/53, with exactly the eight named cases flipped on purpose.
-(3) Switch-off run: each of the 15 checker switches and 5 `.hsplus` bridge switches fails a test.
+- **Built-ins.** The native backend's twelve (`load`, `store`, `move`, `drop`, `buffer`, `known`,
+  `unknown`, `isKnown`, `unknownReason`, `slice_length`, `u8_to_i32`, `i32_to_u8`) and the Kotlin
+  backend's math built-ins (`abs`, `floor`, `max`, `min`, `pow`, `sqrt`), read from that
+  backend's own table so the two cannot drift. The accepted text listed eleven and missed both
+  `unknownReason` and the Kotlin set; without them the checker refused programs a backend runs.
+- **Calls** resolve to a function, struct, import or built-in, or to a local that holds a
+  lambda. Calling a parameter or other value is `HS-NAME-002` ("is a value, not a function"):
+  the backends never call a value. A local that shares a function's name does not hide the
+  function from a call, as in native.
+- **Arity** covers struct constructors too (one value per field); both backends refuse the
+  wrong count.
+- **Imports.** `import { a as b }` binds `b` only.
+- **Hiding.** Rule 5 covers `let`/`var`/`const`, `slot`, a `for (v in ...)` variable, and a
+  repeated parameter name (native refused `f(a, a)`; UAAL ran it and returned 1).
+- **Names are resolved wherever a typed function uses them:** expressions, call receivers,
+  pointer-write targets, lambda bodies, spreads, statement-position arrays and object literals.
+- **Returns.** Rule 4 and `compile_to_uaal` share `definitely_returns_value`, which counts a
+  trailing `scope { ... return ... }` block as native does; `unit` and `()` return nothing for
+  both. A bare `return` in a typed function keeps its `HS-TYPE-RETURN-001` message.
+- **Positions** on names, calls, declarations, returns, assignments and `for` loops, so older
+  `HS-TYPE-*` errors on those nodes gained positions too. `parse` output therefore carries new
+  `loc` fields (69 of 137 tracked `.hs` files); no consumer was found that breaks on them.
+- **`compile_to_uaal` runs the checker first**, so typed programs stop at these codes; the
+  emitter's own every-path guard became unreachable and is removed. Its other guards still
+  cover untyped functions.
+
+**The `.hsplus` bridge (fragment mode)**
+
+- The context, through the new export `validate_detailed_in_context`, is
+  `{"functions":[{"name","arity"}],"names":[...]}`: the document's functions, structs, enums and
+  imports. It is read from `.hsplus` tokens, including words that lexer types as keywords
+  (`state`, `transition`, `match`, `none`, ...), with parameters counted by top-level commas.
+  Import forms: `{ A, B }`, `* as NS`, `"p" as X`, and `"p"` alone (the file's name);
+  `@import(...)` binds nothing.
+- `parseIncremental` collects the context once per pass and caches a chunk that holds a
+  function under its text plus that context, so an edit elsewhere re-checks it.
+- **Decision (agent, under the gate rule):** typed `.hsplus` functions follow the `.hs` name
+  rules. They may not call the JavaScript runtime's helpers (`log`, `emit`, `play_sound`, ...)
+  by bare name, because no native target has them and typed `.hsplus` must not run through
+  JavaScript (G14, G19). Measured: no tracked `.hsplus` file does. Declaring host functions for
+  typed code is future work.
+
+**Where the refusals show up**
+
+- The MCP `validate_holoscript` tool and every `validateCanonicalSource` caller carry the code
+  (`HS-NAME-001`, ...) instead of `E999`, and the geometry typo hint no longer rewrites names
+  such as `console` to "cone".
+- The mcp-server and absorb-service image smokes require `return y` to be `HS-NAME-001`, so a
+  stale checker fails the image build; the studio image follows in its own commit.
+- `check-hs-conformance` (pre-commit) holds a floor: the 68 tracked `.hs` files that are valid
+  stay valid, and they keep at least 256 typed functions. Deleting types would clear every
+  refusal while the pass count stayed green; the typed count makes that visible.
+- The drift gate checks the pkg-node receipt against the WASM (digest, size, a full source
+  commit this branch contains).
+
+**Size.** Node WASM 541,496 → 555,148 bytes. A derived deserializer for the context cost 42 KB;
+reading it through `serde_json::Value`, which the crate already ships, cost about 4 KB.
+
+**Gate evidence.** (1) Measured breakage against the pre-G11 checker, on every tracked file: 68
+of 68 valid `.hs` files stay valid, 69 refused keep the same first message, 25 of 25
+conformance programs valid, `compile_to_uaal` identical bytecode on the 15 it compiles and
+identical refusal on 122; all 2,474 tracked `.hsplus` files give the same error list. (2)
+`check-spec-corpus.mjs --strict`: 53/53, exactly the eight named cases flipped on purpose; a
+differential test runs each through the checker, `holoscriptc` and `compile_to_uaal`. (3)
+Switch-off run: 26 of 26 checker switches and 11 of 11 `.hsplus` switches each fail a test; the
+floor, receipt and MCP checks were fed real faults and went red. (4) Review by another seat and
+family: required before merge.
+
+**Merge order:** #428, then #401, then this change. Build note: pkg-node here is built with
+rustc 1.91.0; main's artifact used 1.98.1. A rebuild on 1.98.1 at merge time must update the
+receipt, which the drift gate now checks.
 
 ## What remains after this proposal
 
-- The `??` rule, through the `@unknown` decision.
-- Types for untyped values: unknown evidence stays admissible.
-- G12 (contextual keywords) and G15 (an empty tool allowlist) need their own proposals.
+- The `??` rule on plain values (corpus `g11-coalesce-plain-008`), through the `@unknown` change.
+- Undeclared type names (`g11-unknown-types-006`), open question 1.
+- "Valid" still does not mean "runs" for untyped functions (by design) or for operations a
+  backend lacks (UAAL refuses integer `/`, `%`, unary `-` and `!`; native refuses `var` and
+  loops in some machine contracts).
+- Other builds of the checker are older: the browser build `packages/compiler-wasm/pkg/`
+  (2026-08-04, the package's default export), the distribution and release builds, and npm 6.2.0
+  and 7.0.0. They all report `version()` 3.0.0. A version bump and a browser rebuild are their
+  own change.
+- Built-in argument counts and imported functions' argument counts are not checked (the
+  backends refuse with their own messages; an import carries no signature).
+- The incremental parser still drops a refused chunk without reporting an error; its result has
+  no error field.
+- G12 (contextual keywords) and G15 (an empty tool allowlist) have their own proposals.

@@ -909,7 +909,7 @@ Joseph's review stays reserved for the four protected classes: spend and custody
 
 Changes made under these gates:
 
-- **2026-09-28, G11** ([proposal](../../proposals/HS_Checker_Names_Calls_Returns_v1.md)): inside typed functions, `validate_detailed` refuses unknown names and functions, the wrong argument count, a missing return and a hidden name. Measured on the build: 0 of 68 valid `.hs` files and 0 of 2,474 `.hsplus` files changed verdict. Gate 4 (review) is recorded on its pull request.
+- **2026-09-28, G11** ([proposal](../../proposals/HS_Checker_Names_Calls_Returns_v1.md)): inside typed functions, `validate_detailed` refuses unknown names and functions, the wrong argument count, a missing return and a hidden name. Measured on the build: 0 of 68 valid `.hs` files and 0 of 2,474 `.hsplus` files changed verdict. Gate 4, a review by another seat and family, is required before merge and is recorded on the pull request.
 
 Deprecation is announced in a later revision of this spec, with the date, the old form, the replacement, and the version in which the old form will stop parsing. The old form keeps parsing for at least one 0.x patch after that announcement. Removing it passes the same four gates. A banner on an older document is a pointer. It is not, by itself, a removal.
 
