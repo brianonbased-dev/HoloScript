@@ -56,11 +56,9 @@ const FLOOR_DEFINITION =
   'hs-valid-floor-v1: tracked .hs files validate_detailed accepts; typed = a `function` with a parameter or return type';
 const updateFloor = process.argv.includes('--update-floor');
 
-// Rejections that stay open on purpose. Nothing else belongs here.
-const ALLOW_REJECTION = new Set([
-  // pending language decision on the official @unknown fallback form
-  'examples/native/uncertain-steward-honesty-gate-exit-five.hs',
-]);
+// Rejections that stay open on purpose. Nothing else belongs here. An entry the checker now
+// accepts fails the gate, so the list cannot keep stale exceptions.
+const ALLOW_REJECTION = new Set([]);
 
 function toPosix(path) {
   return path.split(sep).join('/');
@@ -242,7 +240,12 @@ function main() {
       rejected.push(`${file} | checker produced no result`);
       continue;
     }
-    if (detail.valid === true) continue;
+    if (detail.valid === true) {
+      if (ALLOW_REJECTION.has(file)) {
+        rejected.push(`${file} | accepted now: remove it from ALLOW_REJECTION`);
+      }
+      continue;
+    }
     const message =
       (detail.errors && detail.errors[0] && detail.errors[0].message) || 'rejected with no message';
     if (ALLOW_REJECTION.has(file)) {
@@ -265,7 +268,7 @@ function main() {
 
   if (rejected.length > 0) {
     console.error(
-      `[hs-conformance] FAIL — ${rejected.length} of ${files.length} .hs file(s) rejected by validate_detailed:`
+      `[hs-conformance] FAIL — ${rejected.length} of ${files.length} checked .hs file(s) need attention (rejected by validate_detailed, or a stale allow-list entry):`
     );
     for (const line of rejected) console.error(`  ${line}`);
     process.exit(1);

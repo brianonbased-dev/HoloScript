@@ -1,6 +1,6 @@
 {
   "definition": "hs-valid-floor-v1: tracked .hs files validate_detailed accepts; typed = a `function` with a parameter or return type",
-  "typedFunctions": 256,
+  "typedFunctions": 258,
   "validFiles": [
     "distributions/systems/conformance/affine-aggregate-transfer-exit-five.hs",
     "distributions/systems/conformance/aggregate-borrowed-return-exit-five.hs",
@@ -58,6 +58,7 @@
     "examples/native/slice-subrange-return-exit-five.hs",
     "examples/native/stack-slot-exit-five.hs",
     "examples/native/typed-exit-five.hs",
+    "examples/native/uncertain-steward-honesty-gate-exit-five.hs",
     "examples/scientific/energy-discovery-lab/energy-ledger.hs",
     "examples/scientific/experiment-quest/experiment-quest.hs",
     "examples/three-surface-agent/policy.hs",
