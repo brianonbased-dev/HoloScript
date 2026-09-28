@@ -16,6 +16,9 @@ const graphStore = new Map<string, {
   shallow: boolean;
   topology: any;
   fileCount: number;
+  // Account that created this graph (the signed-in user uuid). Null when the
+  // scan had no account. Missing or null is an ownerless row: visible to nobody.
+  userId: string | null;
 }>();
 
 const ScanRequestSchema = z.object({
@@ -155,6 +158,7 @@ router.post('/scan', async (req: Request, res: Response) => {
       shallow: body.shallow,
       topology,
       fileCount: scanResult.files?.length ?? 0,
+      userId: userUuid(req),
     });
 
     res.json({
@@ -180,8 +184,11 @@ router.post('/query', async (req: Request, res: Response) => {
   try {
     const body = QueryRequestSchema.parse(req.body);
     const entry = graphStore.get(body.graphId);
+    const callerId = userUuid(req);
 
-    if (!entry) {
+    // Same status and body as a missing graphId. A different answer would show
+    // that this id exists. An ownerless row and a caller with no account miss too.
+    if (!entry || !callerId || entry.userId !== callerId) {
       res.status(404).json({ error: 'Graph not found', graphId: body.graphId });
       return;
     }
@@ -362,14 +369,19 @@ router.get('/projects/:id', async (req: Request, res: Response) => {
     }
 
     const { absorbProjects } = await import('@holoscript/absorb-service/schema');
-    const { eq } = await import('drizzle-orm');
+    const { and, eq } = await import('drizzle-orm');
+    const userId = userUuid(req);
+    if (!userId) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
 
     const [project] = await db
       .select()
       // @ts-ignore - Automatic remediation for TS2345
       .from(absorbProjects)
       // @ts-ignore - Automatic remediation for TS18046
-      .where(eq(absorbProjects.id, req.params.id))
+      .where(and(eq(absorbProjects.id, req.params.id), eq(absorbProjects.userId, userId)))
       .limit(1);
 
     if (!project) {
@@ -394,13 +406,18 @@ router.delete('/projects/:id', async (req: Request, res: Response) => {
     }
 
     const { absorbProjects } = await import('@holoscript/absorb-service/schema');
-    const { eq } = await import('drizzle-orm');
+    const { and, eq } = await import('drizzle-orm');
+    const userId = userUuid(req);
+    if (!userId) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
 
     const deleteResult = await db
       // @ts-ignore - Automatic remediation for TS2345
       .delete(absorbProjects)
       // @ts-ignore - Automatic remediation for TS18046
-      .where(eq(absorbProjects.id, req.params.id))
+      .where(and(eq(absorbProjects.id, req.params.id), eq(absorbProjects.userId, userId)))
       .returning();
 
     if (!Array.isArray(deleteResult) || deleteResult.length === 0) {
@@ -416,12 +433,17 @@ router.delete('/projects/:id', async (req: Request, res: Response) => {
 });
 
 // GET /graphs — List active graphs in memory
-router.get('/graphs', (_req: Request, res: Response) => {
-  const graphs = Array.from(graphStore.entries()).map(([id, entry]) => ({
-    graphId: id,
-    stats: entry.stats,
-    createdAt: entry.createdAt,
-  }));
+router.get('/graphs', (req: Request, res: Response) => {
+  const callerId = userUuid(req);
+  const graphs = callerId
+    ? Array.from(graphStore.entries())
+        .filter(([, entry]) => entry.userId === callerId)
+        .map(([id, entry]) => ({
+          graphId: id,
+          stats: entry.stats,
+          createdAt: entry.createdAt,
+        }))
+    : [];
   res.json({ graphs });
 });
 
