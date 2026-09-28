@@ -32,7 +32,11 @@ describe('PublishModal QR (the phone -> headset handoff, publish screen)', () =>
 
   beforeEach(() => {
     toDataURL.mockReset();
-    toDataURL.mockResolvedValue('data:image/png;base64,qr-code' as never);
+    // The stand-in's "PNG" carries the text it was asked to encode, so a drawn QR can be
+    // read back.
+    toDataURL.mockImplementation(
+      (async (text: string) => `data:image/png;base64,ENCODES[${text}]`) as never
+    );
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
@@ -46,10 +50,22 @@ describe('PublishModal QR (the phone -> headset handoff, publish screen)', () =>
     render(<PublishModal onClose={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /publish now/i }));
 
-    await waitFor(() => expect(toDataURL).toHaveBeenCalled());
+    // Wait until every QR on the screen has finished drawing: QRCodeImage encodes after an
+    // async import, so checking the calls any earlier could miss a later QR.
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('local-qr-code-loading')).toHaveLength(0);
+      expect(toDataURL).toHaveBeenCalled();
+    });
     const encoded = String(toDataURL.mock.calls[0]?.[0]);
     expect(encoded).toContain('/shared/abc123');
     expect(encoded).not.toContain('/w/');
+    // Every QR on the screen is that one /shared/ encode, and nothing else. A second QR
+    // drawn after the good one (claude3's re-read of #315, mutant M28) fails here even
+    // when its encode never reaches the stand-in: counting encode calls alone missed it.
+    const drawn = screen.getAllByTestId('local-qr-code').map((img) => img.getAttribute('src'));
+    expect(drawn).toEqual([
+      `data:image/png;base64,ENCODES[${window.location.origin}/shared/abc123]`,
+    ]);
     // The copyable link keeps the short form.
     expect(screen.getByText(`${window.location.origin}/w/abc123`)).toBeInTheDocument();
   });
