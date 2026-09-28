@@ -179,6 +179,33 @@ describe('HoloScript Spec v0.1 fenced examples', () => {
     expect(kept.success).toBe(true);
     expect(kept.ast?.zones[0]?.name).toBe('SafeArea');
   });
+
+  it('refuses the spatial_container .holo fence in one sentence and keeps a light inside a scene', () => {
+    const container = fences.find(
+      (fence) =>
+        fence.lang === 'holo' && fence.reject && fence.source.includes('spatial_container "Shelf"')
+    );
+    const sceneLight = fences.find(
+      (fence) => fence.lang === 'holo' && !fence.reject && fence.source.includes('scene "Main"')
+    );
+    expect(container).toBeDefined();
+    expect(sceneLight).toBeDefined();
+
+    const refused = parseHolo(container!.source);
+    expect(refused.success).toBe(false);
+    expect(refused.errors).toHaveLength(1);
+    expect(refused.errors[0]?.message).toBe(
+      '"spatial_container" is not part of .holo. Use spatial_group to group objects instead (in composition)'
+    );
+    expect(refused.errors[0]?.loc).toEqual({ line: 2, column: 3 });
+    // The sentence the spec quotes is the sentence the reader prints.
+    expect(markdown).toContain(`Message: \`${refused.errors[0]?.message}\``);
+
+    const kept = parseHolo(sceneLight!.source);
+    expect(kept.success).toBe(true);
+    expect(kept.ast?.scenes?.[0]?.lights?.map((light) => light.name)).toEqual(['Sun']);
+    expect(kept.ast?.lights).toEqual([]);
+  });
 });
 
 describe('fence extractor rejects bad markdown', () => {

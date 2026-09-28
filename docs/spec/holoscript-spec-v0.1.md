@@ -547,6 +547,18 @@ pipeline "CustomerJourney" {
 }
 ```
 
+A `light` block inside a `scene` is kept on that scene, in the scene's `lights` list. It is not copied to the composition's `lights`. Other blocks inside a scene are not all kept (see Known gaps).
+
+```holo
+composition "Scene" {
+  scene "Main" {
+    light "Sun" {
+      type: "directional"
+    }
+  }
+}
+```
+
 ### Forms it rejects
 
 A bare composition name. Message: `Expected string, got SCENE (in composition)`. The same error also says: `Strings must be enclosed in double or single quotes`.
@@ -583,6 +595,18 @@ A quest property written as a quoted string where the reader wants a bare word. 
 composition "Scene" {
   quest "FindKey" {
     title: "Find the key"
+  }
+}
+```
+
+`spatial_container` is in the reader's keyword list, but it is not part of `.holo`. Inside a composition, and inside a `spatial_group`, the reader reports one error at the word and keeps nothing from its block. Use `spatial_group` to group objects. Message: `"spatial_container" is not part of .holo. Use spatial_group to group objects instead (in composition)`.
+
+```holo reject
+composition "Scene" {
+  spatial_container "Shelf" {
+    object "Cube" {
+      geometry: "cube"
+    }
   }
 }
 ```
@@ -790,6 +814,8 @@ These are bugs and disagreements measured on this checkout. This spec records th
 
 6. **Godot has no golden-output file** in `packages/core/src/compiler/__tests__/golden-output/golden.test.ts` (that file names Unity, WebGPU, URDF, SDF, and WASM). Godot is covered by its own compiler tests and by `ExportTargets.e2e.test.ts`. That is a test gap, not a license to drop the target.
 
+7. **A scene keeps only its environment, its objects, and its `light` blocks.** Anything else written inside `scene "Name" { ... }` is skipped with no error (`parseScene` in `HoloCompositionParser.ts`). Measured examples: `camera`, `post_processing`, `template`, `spatial_group`, `npc`, an `on "event" { }` handler, a primitive such as `cube "Box" { }`, and a light shorthand such as `point_light { }`. The file still parses. The webgpu and godot compilers do not read scenes at all, so an object or a light inside a scene does not reach their output; the same object or light at the top of the composition does. `spatial_container` is refused inside a composition and inside a `spatial_group`, but at the root of a file and inside an object the word is skipped and the objects inside it are read as if it were not there, and inside a scene the whole block is skipped.
+
 ## Traits
 
 The one name list this spec treats as canonical is **`VR_TRAITS`** in `packages/core/src/traits/constants/index.ts` (the array starts at line 209).
@@ -822,6 +848,7 @@ No error codes. `error()` (`HoloCompositionParser.ts` line 3978) stores a senten
 - `Unexpected token: LBRACE. Expected one of: environment, state, logic, template, object, spatial_group, import, light, norm, metanorm, identifier/property, or } (in composition)`
 - `Expected identifier, got STRING (in composition > Quest "FindKey")`
 - `Expected LBRACE, got STRING (in composition)` (a quoted name after `theme` or `sim_contract`)
+- `"spatial_container" is not part of .holo. Use spatial_group to group objects instead (in composition)`
 
 ### `.hsplus`
 

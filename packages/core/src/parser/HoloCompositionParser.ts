@@ -839,7 +839,7 @@ export class HoloCompositionParser {
         } else if (this.check('SPATIAL_AGENT')) {
           composition.objects.push(this.parseSpatialObject('spatial_agent'));
         } else if (this.check('SPATIAL_CONTAINER')) {
-          composition.spatialGroups.push(this.parseSpatialGroup());
+          this.refuseSpatialContainer();
         } else if (this.current().type.startsWith('UI_')) {
           composition.objects.push(this.parseSpatialObject(this.current().value.toLowerCase()));
         } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
@@ -1261,7 +1261,7 @@ export class HoloCompositionParser {
   }
 
   // ===========================================================================
-  // SCENE (container for environment + objects)
+  // SCENE (container for environment + objects + lights)
   // ===========================================================================
 
   private parseScene(): HoloScene {
@@ -1282,6 +1282,7 @@ export class HoloCompositionParser {
 
     let environment: HoloEnvironment | undefined;
     const objects: HoloObjectDecl[] = [];
+    const lights: HoloLight[] = [];
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipBlockMemberSeparators();
@@ -1291,6 +1292,13 @@ export class HoloCompositionParser {
         environment = this.parseEnvironment();
       } else if (this.check('OBJECT')) {
         objects.push(this.parseObject());
+      } else if (this.check('LIGHT') && this.peek(1).type !== 'COLON') {
+        // A light block belongs to its scene. It used to fall into the skip below with no
+        // error, so a scene holding only a light read as empty. A `light: value` property
+        // is not a light block and still takes the old path. Shorthands such as
+        // `point_light { }` also still take it: their reader rejects `@trait` lines that the
+        // skip accepts today, so reading them here would fail files that pass now.
+        lights.push(this.parseLight());
       } else if (this.check('LBRACE')) {
         // Nested block (unknown keyword body already consumed) — depth-track to avoid early exit
         this.skipBlock();
@@ -1304,13 +1312,16 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return {
+    const scene: HoloScene = {
       loc: { start: startLoc, end: this.currentLocation() },
       type: 'Scene',
       name,
       environment,
       objects,
     };
+    // Only a scene that holds a light gains the field, so every other scene keeps its shape.
+    if (lights.length > 0) scene.lights = lights;
+    return scene;
   }
 
   private parseParticleSystem(): HoloParticleSystem {
@@ -2562,6 +2573,40 @@ export class HoloCompositionParser {
   // SPATIAL GROUP
   // ===========================================================================
 
+  /**
+   * `spatial_container` is in the keyword table (composition/tokens.ts) but means nothing in
+   * .holo. It came in with 333bfe280 (2026-01-27) wired to parseSpatialGroup, which expects the
+   * word `spatial_group`, so it never parsed: the author got a pile of unrelated errors and a
+   * group named "unknown". No doc, example, spec entry, test or other grammar uses it.
+   *
+   * Refuse it with one plain sentence at the word, then step over the whole block (name, `at`
+   * shorthand, traits, body) and keep nothing from it, so the rest of the file still reads.
+   * Giving the word a meaning would be new syntax, which spec v0.1 keeps behind a proposal.
+   */
+  private refuseSpatialContainer(): void {
+    this.error(
+      '"spatial_container" is not part of .holo. Use spatial_group to group objects instead'
+    );
+    this.advance(); // spatial_container
+    // Header: everything up to the body on the same line (name, at [x, y, z], @traits, args).
+    while (
+      !this.isAtEnd() &&
+      !this.check('LBRACE') &&
+      !this.check('RBRACE') &&
+      !this.check('NEWLINE')
+    ) {
+      if (this.check('LPAREN')) this.skipParens();
+      else this.advance();
+    }
+    // A body that opens on the next line is stepped over too: one error, not a cascade.
+    let next = this.pos;
+    while (this.tokens[next]?.type === 'NEWLINE') next++;
+    if (this.tokens[next]?.type === 'LBRACE') {
+      this.skipNewlines();
+      this.skipBlock();
+    }
+  }
+
   private parseSpatialGroup(): HoloSpatialGroup {
     const startLoc = this.currentLocation();
     this.expect('SPATIAL_GROUP');
@@ -2604,6 +2649,9 @@ export class HoloCompositionParser {
         lights.push(this.parseLight());
       } else if (this.check('SPATIAL_GROUP')) {
         groups.push(this.parseSpatialGroup());
+      } else if (this.check('SPATIAL_CONTAINER') && this.peek(1).type !== 'COLON') {
+        // A nested block; `spatial_container: value` stays a group property as before.
+        this.refuseSpatialContainer();
       } else if (this.check('TEMPLATE')) {
         // Template defined inside spatial_group — parse and discard
         this.advance(); // consume TEMPLATE

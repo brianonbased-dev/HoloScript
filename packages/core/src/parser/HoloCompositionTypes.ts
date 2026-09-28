@@ -195,6 +195,11 @@ export interface HoloScene extends HoloNode {
   name: string;
   environment?: HoloEnvironment;
   objects: HoloObjectDecl[];
+  /**
+   * `light` blocks written inside this scene, in source order. They stay on the scene and are
+   * not copied to the composition's `lights`. Absent when the scene has no light block.
+   */
+  lights?: HoloLight[];
 }
 
 export interface HoloEnvironmentProperty extends HoloNode {

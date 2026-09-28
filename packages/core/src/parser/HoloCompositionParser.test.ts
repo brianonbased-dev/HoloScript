@@ -561,6 +561,164 @@ describe('HoloCompositionParser', () => {
       expect(result.errors).toEqual([]);
       expect(result.ast?.spatialGroups[0].lights?.[0].name).toBe('KeyLight_Sun');
     });
+
+    describe('spatial_container is refused in one sentence', () => {
+      // `spatial_container` is in the keyword table but means nothing in .holo. It used to be
+      // handed to the spatial_group reader, which wants the word `spatial_group`, so every use
+      // failed with a pile of unrelated errors and left a group named "unknown" behind.
+      const REFUSAL =
+        '"spatial_container" is not part of .holo. Use spatial_group to group objects instead (in composition)';
+
+      it.each([
+        ['a quoted name', 'spatial_container "Box" {'],
+        ['a bare name', 'spatial_container Box {'],
+        ['the at shorthand', 'spatial_container "Box" at [0, 1, 2] {'],
+        ['a header trait', 'spatial_container "Box" @grabbable {'],
+        ['a platform prefix', '@platform(quest)\n  spatial_container "Box" {'],
+      ])('refuses it with %s and still reads the rest of the file', (_label, header) => {
+        const source = `composition "Shop" {
+  ${header}
+    object "Crate" { geometry: "cube" }
+  }
+  object "Counter" { geometry: "cube" }
+}`;
+        const result = parseHolo(source);
+        expect(result.success).toBe(false);
+        expect(result.errors.map((error) => error.message)).toEqual([REFUSAL]);
+        expect(result.ast?.spatialGroups).toEqual([]);
+        expect(result.ast?.objects.map((object) => object.name)).toEqual(['Counter']);
+      });
+
+      it('points at the word that was written', () => {
+        const result = parseHolo('composition "Shop" {\n  spatial_container "Box" {\n  }\n}');
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0]?.loc).toEqual({ line: 2, column: 3 });
+      });
+
+      it('refuses it inside a spatial_group and keeps the group', () => {
+        const source = `composition "Shop" {
+  spatial_group "Aisle" {
+    spatial_container "Box" {
+      object "Crate" { geometry: "cube" }
+    }
+    object "Shelf" { geometry: "cube" }
+  }
+}`;
+        const result = parseHolo(source);
+        expect(result.errors.map((error) => error.message)).toEqual([REFUSAL]);
+        const aisle = result.ast?.spatialGroups[0];
+        expect(aisle?.name).toBe('Aisle');
+        expect(aisle?.objects.map((object) => object.name)).toEqual(['Shelf']);
+        expect(aisle?.properties).toEqual([]);
+        expect(aisle?.body).toBeUndefined();
+      });
+
+      it('throws the same sentence in strict mode', () => {
+        expect(() =>
+          parseHoloStrict('composition "Shop" {\n  spatial_container "Box" {\n  }\n}')
+        ).toThrow('"spatial_container" is not part of .holo');
+      });
+
+      it('still reads spatial_container as a property name inside a group', () => {
+        const source = `composition "Shop" {
+  spatial_group "Aisle" {
+    spatial_container: "yes"
+  }
+}`;
+        const result = parseHolo(source);
+        expect(result.success).toBe(true);
+        expect(result.ast?.spatialGroups[0].properties).toContainEqual({
+          type: 'GroupProperty',
+          key: 'spatial_container',
+          value: 'yes',
+        });
+      });
+    });
+  });
+
+  describe('Scenes', () => {
+    // A scene used to keep only its environment and its objects. Everything else was skipped
+    // with no error, so a light written in a scene vanished and a scene holding only a light
+    // read as empty.
+    it('keeps a light written inside a scene', () => {
+      const source = `composition "Gallery" {
+  scene "Main" {
+    light "Sun" directional {
+      intensity: 1.5
+    }
+  }
+}`;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      const scene = result.ast?.scenes?.[0];
+      expect(scene?.objects).toEqual([]);
+      expect(scene?.lights).toHaveLength(1);
+      expect(scene?.lights?.[0]).toMatchObject({
+        type: 'Light',
+        name: 'Sun',
+        lightType: 'directional',
+        properties: [{ type: 'LightProperty', key: 'intensity', value: 1.5 }],
+      });
+      // The light stays on its scene. It is not moved up to the composition.
+      expect(result.ast?.lights).toEqual([]);
+    });
+
+    it('keeps objects and several lights side by side, in order', () => {
+      const source = `composition "Gallery" {
+  scene "Main" {
+    light "Key" { type: "spot" }
+    object "Statue" { geometry: "sphere" }
+    light "Fill" @light_estimation {
+      intensity: 0.4
+    }
+  }
+}`;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      const scene = result.ast?.scenes?.[0];
+      expect(scene?.objects.map((object) => object.name)).toEqual(['Statue']);
+      expect(scene?.lights?.map((light) => [light.name, light.lightType])).toEqual([
+        ['Key', 'spot'],
+        ['Fill', 'directional'],
+      ]);
+    });
+
+    it('keeps a light in a scene written at the top of the file', () => {
+      const result = parseHolo('scene "Main" {\n  light "Sun" {\n    intensity: 1\n  }\n}');
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.scenes?.[0].lights?.map((light) => light.name)).toEqual(['Sun']);
+    });
+
+    it('leaves a scene with no light shaped exactly as before', () => {
+      const result = parseHolo(`composition "Gallery" {
+  scene "Main" {
+    object "Statue" { geometry: "sphere" }
+  }
+}`);
+      expect(result.success).toBe(true);
+      expect(Object.keys(result.ast?.scenes?.[0] ?? {}).sort()).toEqual([
+        'environment',
+        'loc',
+        'name',
+        'objects',
+        'type',
+      ]);
+    });
+
+    it('still reads a light: property in a scene without an error', () => {
+      const result = parseHolo(`composition "Gallery" {
+  scene "Main" {
+    light: "none"
+    object "Statue" { geometry: "sphere" }
+  }
+}`);
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.scenes?.[0].objects.map((object) => object.name)).toEqual(['Statue']);
+    });
   });
 
   describe('Logic', () => {
