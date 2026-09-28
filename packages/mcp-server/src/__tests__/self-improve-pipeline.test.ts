@@ -12,6 +12,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { execFileSync } from 'child_process';
 import * as absorbMcp from '@holoscript/absorb-service/mcp';
 
 // We test the persistence functions by importing the module and calling the
@@ -244,4 +245,73 @@ describe('Codebase Tools - Graph Status', () => {
     expect(names).toContain('holo_detect_changes');
     expect(names).toContain('holo_graph_status');
   }, 60_000);
+});
+
+// holo_git_commit used `git commit --no-verify` through a shell, so an automated commit
+// skipped the repo's secret scan (task_1790208375334_2rkg), and a quote or $(...) in the
+// message reached the shell. A throwaway repo stands in for the real hook: its pre-commit
+// records the daemon flag it saw and refuses a staged marker line, the way the real
+// secret scan refuses a key.
+describe('holo_git_commit runs the repo pre-commit', () => {
+  function makeRepo(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holo-git-commit-'));
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, stdio: 'pipe' });
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.invalid');
+    git('config', 'user.name', 'test');
+    git('config', 'commit.gpgsign', 'false');
+    fs.mkdirSync(path.join(dir, 'hooks'));
+    const hook = path.join(dir, 'hooks', 'pre-commit');
+    fs.writeFileSync(
+      hook,
+      '#!/bin/sh\n' +
+        'printf "%s" "$HOLODAEMON_ACTIVE" > .git/hook-saw-daemon-flag\n' +
+        'if git diff --cached | grep -q STAGED-REFUSAL-MARKER; then exit 1; fi\n' +
+        'exit 0\n'
+    );
+    fs.chmodSync(hook, 0o755);
+    git('config', 'core.hooksPath', 'hooks');
+    return dir;
+  }
+
+  it('a commit the hook refuses is refused, and the hook saw the daemon flag', async () => {
+    const dir = makeRepo();
+    try {
+      fs.writeFileSync(path.join(dir, 'a.txt'), 'STAGED-REFUSAL-MARKER\n');
+      const { handleSelfImproveTool } = await import('../self-improve-tools.js');
+      const result = (await handleSelfImproveTool('holo_git_commit', {
+        rootDir: dir,
+        files: ['a.txt'],
+        message: 'plant',
+      })) as { success?: boolean; error?: string };
+      expect(result.success).toBeUndefined();
+      expect(result.error).toMatch(/Git commit failed/);
+      expect(fs.readFileSync(path.join(dir, '.git', 'hook-saw-daemon-flag'), 'utf8')).toBe('1');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('a clean commit lands with its message exactly as given', async () => {
+    const dir = makeRepo();
+    try {
+      fs.writeFileSync(path.join(dir, 'b.txt'), 'ordinary\n');
+      const message = 'fix: keep "quotes", $(echo not-run) and `ticks` as text';
+      const { handleSelfImproveTool } = await import('../self-improve-tools.js');
+      const result = (await handleSelfImproveTool('holo_git_commit', {
+        rootDir: dir,
+        files: ['b.txt'],
+        message,
+      })) as { success?: boolean; error?: string };
+      expect(result.error).toBeUndefined();
+      expect(result.success).toBe(true);
+      const logged = execFileSync('git', ['log', '-1', '--format=%B'], {
+        cwd: dir,
+        encoding: 'utf8',
+      }).trim();
+      expect(logged).toBe(message);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
 });

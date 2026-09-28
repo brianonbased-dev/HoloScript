@@ -14,7 +14,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,6 +30,7 @@ function errMsg(err: unknown): string {
 }
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -488,17 +489,25 @@ async function handleGitCommit(args: Record<string, unknown>): Promise<unknown> 
     };
   }
 
+  // No --no-verify: the repo's pre-commit runs, so its secret scan runs. HOLODAEMON_ACTIVE=1
+  // is the pre-commit's own marker for automated commits; it skips the slow gates only after
+  // the secret scan (task_1790208375334_2rkg). Git gets the paths and message as arguments,
+  // not through a shell, so a quote, $(...) or a backtick in them stays text.
+  const gitOpts = {
+    cwd: rootDir,
+    timeout: 30_000,
+    env: { ...process.env, HOLODAEMON_ACTIVE: '1' },
+  };
   try {
     // Stage only the explicitly specified files
     for (const f of files) {
-      await execAsync(`git add "${f}"`, { cwd: rootDir, timeout: 30_000 });
+      await execFileAsync('git', ['add', '--', f], gitOpts);
     }
 
-    // Commit
-    const commitMsg = message.replace(/"/g, '\\"');
-    const { stdout } = await execAsync(
-      `git commit --no-verify -m "${commitMsg}" --author="HoloScript Daemon <daemon@holoscript.dev>"`,
-      { cwd: rootDir, timeout: 30_000 }
+    const { stdout } = await execFileAsync(
+      'git',
+      ['commit', '-m', message, '--author=HoloScript Daemon <daemon@holoscript.dev>'],
+      gitOpts
     );
 
     return {
