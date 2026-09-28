@@ -100,6 +100,11 @@ export class WebGPUCompiler extends CompilerBase {
     // ─── Agent Identity Verification ───────────────────────────────────────
     this.validateCompilerAccess(agentToken, outputPath);
     // ───────────────────────────────────────────────────────────────────────
+    // Objects (and an environment) written inside `scene` blocks go through the
+    // same passes as top-level ones: water, camera framing, emission, manifest,
+    // compute and draw calls all read the composition returned here.
+    const { composition: world, unappliedSceneEnvironments } = this.flattenScenes(composition);
+    composition = world;
     this.lines = [];
     this.indentLevel = 0;
     this.objectIndex = 0;
@@ -125,6 +130,11 @@ export class WebGPUCompiler extends CompilerBase {
     this.emitDeviceInit();
     this.emitGeometryHelpers();
     this.emitShaderSources();
+    for (const scene of unappliedSceneEnvironments) {
+      this.emit(
+        `// WARNING: the environment in scene "${this.escapeStringValue(scene, 'TypeScript')}" is not applied: this output is one world with one environment, and an earlier environment already applies.`
+      );
+    }
     this.emitEnvironment(
       composition.environment ?? ({ type: 'Environment', properties: [] } as HoloEnvironment)
     );

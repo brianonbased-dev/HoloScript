@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GodotCompiler } from '../GodotCompiler';
+import { parseHolo } from '../../parser/HoloCompositionParser';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -12,6 +13,14 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
+}
+
+/** Parse .holo source that must read without an error. */
+function parseClean(source: string): HoloComposition {
+  const result = parseHolo(source);
+  expect(result.errors).toEqual([]);
+  expect(result.ast).toBeDefined();
+  return result.ast as HoloComposition;
 }
 
 describe('GodotCompiler', () => {
@@ -185,5 +194,78 @@ describe('GodotCompiler', () => {
     const gd = compiler.compile(comp, 'test-token');
     expect(gd).toContain('my scene!');
     // At least the objects/vars use sanitized names
+  });
+
+  // =========== Scene blocks ===========
+  // The parser keeps a scene's contents on composition.scenes, not composition.objects.
+
+  const crate = `object "SceneCrate" {
+      mesh: "sphere"
+      position: [1.5, 2.5, -3.5]
+    }`;
+
+  it('compiles an object written only inside a scene like the same object at the top level', () => {
+    const inScene = parseClean(`composition "Scenes" {\n  scene "Main" {\n    ${crate}\n  }\n}`);
+    const atTop = parseClean(`composition "Scenes" {\n  ${crate}\n}`);
+    expect(inScene.objects).toEqual([]);
+
+    const gd = compiler.compile(inScene, 'test-token');
+    expect(gd).toContain('var SceneCrate = MeshInstance3D.new()');
+    expect(gd).toContain('SceneCrate.mesh = SphereMesh.new()');
+    expect(gd).toContain('SceneCrate.position = Vector3(1.5, 2.5, -3.5)');
+    expect(gd).toContain('self.add_child(SceneCrate)');
+    expect(gd).toBe(compiler.compile(atTop, 'test-token'));
+  });
+
+  it("emits top-level objects first, then each scene's objects in scene order", () => {
+    const gd = compiler.compile(
+      parseClean(`composition "Scenes" {
+  scene "First" {
+    object "InFirst" { mesh: "cube" }
+  }
+  object "AtTop" { mesh: "cube" }
+  scene "Second" {
+    object "InSecond" { mesh: "cube" }
+  }
+}`),
+      'test-token'
+    );
+    const order = ['AtTop', 'InFirst', 'InSecond'].map((n) => gd.indexOf(`# Object: ${n}`));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    for (const n of ['AtTop', 'InFirst', 'InSecond']) {
+      expect(gd).toContain(`self.add_child(${n})`);
+    }
+  });
+
+  it('uses the environment written inside a scene when the composition has none', () => {
+    const gd = compiler.compile(
+      parseClean(`composition "Scenes" {
+  scene "Main" {
+    environment { skybox: "sunset" }
+  }
+}`),
+      'test-token'
+    );
+    expect(gd).toContain('var env = WorldEnvironment.new()');
+    expect(gd).toContain('env.environment.background_mode = Environment.BG_SKY');
+    expect(gd).not.toContain('WARNING: the environment in scene');
+  });
+
+  it('names a scene environment it does not apply, and keeps the earlier one', () => {
+    const gd = compiler.compile(
+      parseClean(`composition "Scenes" {
+  environment { ambient_light: 0.3 }
+  scene "Night" {
+    environment { ambient_light: 0.9 }
+  }
+}`),
+      'test-token'
+    );
+    expect(gd).toContain('# Ambient light intensity: 0.3');
+    expect(gd).not.toContain('# Ambient light intensity: 0.9');
+    expect(gd).toContain(
+      '# WARNING: the environment in scene "Night" is not applied: this output is one world with one environment, and an earlier environment already applies.'
+    );
   });
 });

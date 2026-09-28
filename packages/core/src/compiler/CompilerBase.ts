@@ -195,6 +195,17 @@ export interface CompilationResult {
   documentation?: TripleOutputResult;
 }
 
+/** What {@link CompilerBase.flattenScenes} hands a compiler that builds one world. */
+export interface FlattenedScenes {
+  /** The composition to compile: the input itself when no scene adds anything. */
+  composition: HoloComposition;
+  /**
+   * Names of the scenes whose `environment` is not applied, because an earlier
+   * environment already applies. The compiler reports each one in its output.
+   */
+  unappliedSceneEnvironments: string[];
+}
+
 /**
  * Compiler interface with agent identity enforcement
  */
@@ -526,6 +537,49 @@ export abstract class CompilerBase implements ICompiler {
    */
   protected defaultOutputFileName(): string {
     return 'output.txt';
+  }
+
+  /**
+   * Read `scene` blocks the way a compiler that builds ONE world reads the rest of
+   * the composition.
+   *
+   * The parser keeps what a `scene "X" { ... }` block holds on `composition.scenes`,
+   * not on `composition.objects`. A compiler that reads only `composition.objects`
+   * therefore leaves every object written inside a scene out of its output, and
+   * says nothing. Such a compiler calls this at the start of `compile()` and then
+   * compiles the composition it returns: each scene's objects follow the top-level
+   * objects, scene by scene, and go through the compiler's own object path. A scene
+   * has no transform, so each object keeps its own position.
+   *
+   * A scene's `environment` is used when no environment comes before it (the
+   * composition declares none, and no earlier scene does). One world has one
+   * environment, so any later one is not applied; its scene is named in
+   * `unappliedSceneEnvironments` for the compiler to report in its output.
+   *
+   * When no scene holds an object or an environment that is used, the input itself
+   * is returned, so a composition without scenes compiles exactly as before.
+   */
+  protected flattenScenes(composition: HoloComposition): FlattenedScenes {
+    const scenes = composition.scenes ?? [];
+    const sceneObjects = scenes.flatMap((scene) => scene.objects ?? []);
+    let environment = composition.environment;
+    const unappliedSceneEnvironments: string[] = [];
+    for (const scene of scenes) {
+      if (!scene.environment) continue;
+      if (environment) unappliedSceneEnvironments.push(scene.name);
+      else environment = scene.environment;
+    }
+    if (sceneObjects.length === 0 && environment === composition.environment) {
+      return { composition, unappliedSceneEnvironments };
+    }
+    return {
+      composition: {
+        ...composition,
+        objects: [...(composition.objects ?? []), ...sceneObjects],
+        ...(environment ? { environment } : {}),
+      },
+      unappliedSceneEnvironments,
+    };
   }
 
   // =========================================================================

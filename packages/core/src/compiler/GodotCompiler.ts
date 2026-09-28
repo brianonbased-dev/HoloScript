@@ -110,6 +110,10 @@ export class GodotCompiler extends CompilerBase {
     // ─── Agent Identity Verification ───────────────────────────────────────
     this.validateCompilerAccess(agentToken, outputPath);
     // ───────────────────────────────────────────────────────────────────────
+    // Objects (and an environment) written inside `scene` blocks are built the
+    // same way as top-level ones, as children of this node.
+    const { composition: world, unappliedSceneEnvironments } = this.flattenScenes(composition);
+    composition = world;
     this.lines = [];
     this.indentLevel = 0;
 
@@ -142,6 +146,11 @@ export class GodotCompiler extends CompilerBase {
     this.indentLevel++;
 
     // Environment
+    for (const scene of unappliedSceneEnvironments) {
+      this.emit(
+        `# WARNING: the environment in scene "${this.escapeStringValue(scene, 'GDScript')}" is not applied: this output is one world with one environment, and an earlier environment already applies.`
+      );
+    }
     if (composition.environment) {
       this.compileEnvironment(composition.environment);
     }

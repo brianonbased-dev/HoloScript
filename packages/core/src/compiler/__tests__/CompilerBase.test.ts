@@ -51,6 +51,10 @@ class TestCompiler extends CompilerBase {
   public exposeValidateCompilerAccess(token: string, outputPath?: string): void {
     this.validateCompilerAccess(token, outputPath);
   }
+
+  public exposeFlattenScenes(composition: HoloComposition) {
+    return this.flattenScenes(composition);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -539,6 +543,63 @@ describe('CompilerBase', () => {
     it('TestCompiler satisfies ICompiler interface', () => {
       // Structural check: compile method exists and is callable
       expect(typeof compiler.compile).toBe('function');
+    });
+  });
+
+  // ===================================================================
+  // flattenScenes — scene blocks read by a compiler that builds one world
+  // ===================================================================
+  describe('flattenScenes', () => {
+    const obj = (name: string) => ({ type: 'Object', name, properties: [], traits: [] });
+    const env = (background: string) => ({
+      type: 'Environment',
+      properties: [{ type: 'EnvironmentProperty', key: 'background', value: background }],
+    });
+    const scene = (name: string, objects: string[], environment?: string) => ({
+      type: 'Scene',
+      name,
+      objects: objects.map(obj),
+      ...(environment ? { environment: env(environment) } : {}),
+    });
+    const composition = (fields: Record<string, unknown>) =>
+      ({ type: 'Composition', name: 'C', objects: [], ...fields }) as unknown as HoloComposition;
+
+    it('returns the input itself when no scene adds an object or an environment', () => {
+      for (const input of [
+        composition({ objects: [obj('Top')] }),
+        composition({ scenes: [scene('Empty', [])] }),
+        composition({ environment: env('#000000'), scenes: [scene('Night', [], '#ff0000')] }),
+      ]) {
+        expect(compiler.exposeFlattenScenes(input).composition).toBe(input);
+      }
+    });
+
+    it("appends each scene's objects after the top-level ones, without changing the input", () => {
+      const input = composition({
+        objects: [obj('Top')],
+        scenes: [scene('A', ['InA1', 'InA2']), scene('B', ['InB'])],
+      });
+      const before = JSON.stringify(input);
+      const flat = compiler.exposeFlattenScenes(input);
+      expect(flat.composition.objects.map((o) => o.name)).toEqual(['Top', 'InA1', 'InA2', 'InB']);
+      expect(flat.unappliedSceneEnvironments).toEqual([]);
+      expect(JSON.stringify(input)).toBe(before);
+      // Flattening again yields the same list: nothing was appended to the input.
+      expect(compiler.exposeFlattenScenes(input).composition.objects).toHaveLength(4);
+    });
+
+    it('uses the first environment and names every scene environment it does not apply', () => {
+      const lifted = compiler.exposeFlattenScenes(
+        composition({ scenes: [scene('Day', [], '#ffffff'), scene('Night', [], '#000033')] })
+      );
+      expect(lifted.composition.environment).toEqual(env('#ffffff'));
+      expect(lifted.unappliedSceneEnvironments).toEqual(['Night']);
+
+      const own = compiler.exposeFlattenScenes(
+        composition({ environment: env('#123456'), scenes: [scene('Day', ['X'], '#ffffff')] })
+      );
+      expect(own.composition.environment).toEqual(env('#123456'));
+      expect(own.unappliedSceneEnvironments).toEqual(['Day']);
     });
   });
 });
