@@ -108,6 +108,16 @@ function startReq(profile: string | undefined, userId: unknown): Request {
   } as unknown as Request;
 }
 
+function stopReq(userId: unknown): Request {
+  return {
+    body: { action: 'stop' },
+    query: {},
+    headers: {},
+    params: {},
+    userId,
+  } as unknown as Request;
+}
+
 function mockRes(): MockRes {
   const res: MockRes = {
     _status: 200,
@@ -227,5 +237,53 @@ describe('POST /api/holodaemon start with too few credits', () => {
     expect(res._json).toEqual(creditError);
     expect(mocks.createDaemonJob).not.toHaveBeenCalled();
     expect(mocks.deductCredits).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * task_1790202743696_9u34: 'stop' took no job id and found the one globally running
+ * job (listDaemonJobs().find(status === 'running')) with no check on who started it,
+ * so any signed-in caller could halt a job someone else was already charged for
+ * (deductCredits ran upfront at 'start'; a stopped job is never refunded).
+ */
+describe('POST /api/holodaemon stop', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each(REFUSED)('refuses %s: 403, and the job store is never touched', async (_label, id) => {
+    const res = mockRes();
+    await handle(stopReq(id), res as unknown as Response);
+    expect(res._status).toBe(403);
+    expect(res._json).toMatchObject({ error: 'User identity required' });
+    expect(mocks.listDaemonJobs).not.toHaveBeenCalled();
+  });
+
+  it('answers normally when no job is running, for any signed-in caller', async () => {
+    mocks.listDaemonJobs.mockReturnValueOnce([]);
+    const res = mockRes();
+    await handle(stopReq(USER), res as unknown as Response);
+    expect(res._status).toBe(200);
+    expect(res._json).toMatchObject({ message: 'No daemon job is currently running.' });
+  });
+
+  it("refuses to stop another user's running job: 403, and it keeps running", async () => {
+    const job = { id: 'job-1', status: 'running', userId: USER };
+    mocks.listDaemonJobs.mockReturnValueOnce([job]);
+    const res = mockRes();
+    await handle(stopReq(LETTERED), res as unknown as Response);
+    expect(res._status).toBe(403);
+    expect(res._json).toMatchObject({ error: 'Not authorized' });
+    expect(job.status).toBe('running');
+  });
+
+  it('stops the caller\'s own running job', async () => {
+    const job = { id: 'job-1', status: 'running', userId: USER };
+    mocks.listDaemonJobs.mockReturnValueOnce([job]);
+    const res = mockRes();
+    await handle(stopReq(USER), res as unknown as Response);
+    expect(res._status).toBe(200);
+    expect(res._json).toMatchObject({ stoppedJobId: 'job-1' });
+    expect(job.status).toBe('completed');
   });
 });
