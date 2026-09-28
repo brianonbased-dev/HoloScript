@@ -41,6 +41,7 @@ import {
   FLEET_DEFAULT_MODEL,
   LOCAL_DEFAULT_MODEL,
   gateFrontierFallback,
+  checkHostedOllama,
   type ILLMProvider,
 } from '@holoscript/llm-provider';
 
@@ -198,6 +199,13 @@ function resolveCloud(baseURL: string | undefined): ResolvedBrittneyProvider {
 
 function resolveOllama(host: string | undefined): ResolvedBrittneyProvider {
   const baseURL = host || OLLAMA_DEFAULT_BASE_URL;
+  // "Sovereign local" is only true of an Ollama on the owner's machine or LAN, with a
+  // non-cloud model. ollama.com (or a cloud-tagged model) is refused unless opted in.
+  const hosted = checkHostedOllama(baseURL, {
+    model: process.env.BRITTNEY_MODEL || OLLAMA_DEFAULT_MODEL,
+    caller: 'studio brittney provider',
+  });
+  if (hosted.refused) throw hosted.refused;
   const provider = new LocalLLMAdapter({
     baseURL,
     model: process.env.BRITTNEY_MODEL || OLLAMA_DEFAULT_MODEL,
@@ -408,6 +416,12 @@ async function upgradeOllamaByDiscovery(
     `[brittney] ollama discovery picked model=${picked.model} source=${picked.source} verified=${picked.toolCallVerified}`
   );
   if (picked.model === resolved.model) return resolved;
+  // Discovery skips cloud-tagged models; re-check anyway, as resolveOllama does.
+  const hosted = checkHostedOllama(baseURL, {
+    model: picked.model,
+    caller: 'studio brittney ollama discovery',
+  });
+  if (hosted.refused) throw hosted.refused;
   // Known-Ollama site — pin the native protocol (see resolveOllama above).
   const provider = new LocalLLMAdapter({
     baseURL,
