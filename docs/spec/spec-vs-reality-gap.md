@@ -92,11 +92,15 @@ JavaScript and no promised target compiles it), G20 (the three-surface links are
 gate script).
 
 **For the route decision** (2026-09-27 route study, pending with the founder): the measurements
-support one grammar and one checker (route C), because the Rust crate is the only reader that
+support one grammar (route C's reader half), because the Rust crate is the only reader that
 parses code bodies at all, and the TypeScript `.hsplus` reader would have to be rebuilt to become
-one. They also show that "the Rust checker is the only judge of meaning" is not yet true of the
-checker: its first step is G11, then G10 and G12, before `.hsplus` content moves onto the Rust
-grammar. The route study's corpus counts need re-measuring on hand-written files; see the
+one. That half was already ratified on 2026-07-17 (`language-architecture.md` §5). Route C's
+other half — "the Rust checker is the only judge of meaning" — conflicts with the ratified §3:
+meaning is one IR, HoloMeaning (seeded by HSI-IR, `packages/meaning`), that every surface lowers
+into and every engine runs from. The one demand app whose rules truly reach a native target, The
+Mending Box, does exactly that (`.holo` rules → HSI-IR → Kotlin). The checker's job is to reject
+source that cannot lower faithfully: G11 first, then G10 and G12, before `.hsplus` content moves
+onto the Rust grammar. The route study's corpus counts need re-measuring on hand-written files; see the
 facade census below.
 
 **Facade census.** 2,232 `.hsplus` files are facade twins: a
