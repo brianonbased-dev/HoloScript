@@ -791,7 +791,7 @@ composition "CulturalEvolution" {
   // HUD -- Cultural status panels
   // ========================================================================
 
-  panel "CulturalHUD" {
+  template "CulturalHUD" {
     position: "top-left"
 
     text "CoopStatus" {
@@ -808,7 +808,7 @@ composition "CulturalEvolution" {
     }
   }
 
-  panel "NormStatus" {
+  template "NormStatus" {
     position: "top-right"
 
     text "ActiveNorms" {
@@ -825,7 +825,7 @@ composition "CulturalEvolution" {
     }
   }
 
-  panel "MemoryStatus" {
+  template "MemoryStatus" {
     position: "bottom-right"
 
     text "Episodes" {

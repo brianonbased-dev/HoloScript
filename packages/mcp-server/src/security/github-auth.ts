@@ -24,6 +24,18 @@ const CACHE_TTL_MS = parseInt(process.env.GITHUB_TOKEN_CACHE_TTL_MS || '300000',
 const CACHE_MAX = 500;
 const cache = new Map<string, CachedIdentity>();
 
+/**
+ * Scopes any GitHub account that is not in ADMIN_GITHUB_USERNAMES receives.
+ * Exported so the Gate 2 tests check host-reaching tools against the grant
+ * this file actually makes.
+ */
+export const GITHUB_MEMBER_SCOPES: readonly string[] = [
+  'tools:read',
+  'tools:write',
+  'tools:codebase',
+  'scenes:read',
+];
+
 const ADMIN_USERNAMES = new Set(
   (process.env.ADMIN_GITHUB_USERNAMES || 'brianonbased-dev')
     .split(',')
@@ -79,7 +91,7 @@ export async function resolveGitHubTokenForMcp(token: string): Promise<TokenIntr
           'scenes:read',
           'scenes:write',
         ]
-      : ['tools:read', 'tools:write', 'tools:codebase', 'scenes:read'],
+      : [...GITHUB_MEMBER_SCOPES],
   };
 
   // Cache

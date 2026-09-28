@@ -69,7 +69,7 @@ composition "HoloShellNativeTerminalEventStream" {
     receiptRequired: true
   }
 
-  policy "EventLedgerBeforeTerminalUi" {
+  template "EventLedgerBeforeTerminalUi" {
     appliesTo: ["native_terminal", "operator_terminal", "service_supervisor", "browser_run_cards"]
     appendOnlyLedgerRequired: true
     eventKindsRequired: [
@@ -87,7 +87,7 @@ composition "HoloShellNativeTerminalEventStream" {
     receiptRequired: true
   }
 
-  policy "TerminalEventReadIsReadOnly" {
+  template "TerminalEventReadIsReadOnly" {
     appliesTo: ["GET /api/operator-terminal/events", "terminal_event_read", "browser_projection"]
     requiredCapabilityLane: "terminal_event_read"
     endpointExecutesCommand: false
@@ -98,7 +98,7 @@ composition "HoloShellNativeTerminalEventStream" {
     receiptRequired: true
   }
 
-  policy "ReadOnlyAdapterLifecycleCapture" {
+  template "ReadOnlyAdapterLifecycleCapture" {
     appliesTo: ["operator_terminal_readonly_adapter_execution", "server_allowlisted_read_only_adapter"]
     runnerAdapter: "Hololand:scripts/holoshell-terminal-runner.mjs"
     allowedEventOrder: ["run.started", "stdout.chunk", "stderr.chunk", "run.exited", "receipt.written"]
@@ -112,7 +112,7 @@ composition "HoloShellNativeTerminalEventStream" {
     receiptWrittenEventRequired: true
   }
 
-  policy "ServiceRunsEmitTerminalEvents" {
+  template "ServiceRunsEmitTerminalEvents" {
     appliesTo: ["service_status", "guarded_service_ensure", "registered_holo_services"]
     statusLane: "service_status"
     ensureLane: "guarded_service_ensure"

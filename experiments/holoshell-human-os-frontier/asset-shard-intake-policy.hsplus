@@ -72,22 +72,22 @@ composition "HoloShellAssetShardIntakePolicy" {
     ]
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["folder_snapshot", "hash_receipts", "preview_validation", "local_replay"]
   }
 
-  role "HoloLandProduct" {
+  template "HoloLandProduct" {
     laneId: "hololand-product"
     owns: ["creator_room", "brittney_operator_prompt", "import_visualization"]
   }
 
-  role "BrowserVision" {
+  template "BrowserVision" {
     laneId: "browser-vision"
     owns: ["preview_surface_witness", "screenshot_receipt", "canvas_witness"]
   }
 
-  role "HoloMesh" {
+  template "HoloMesh" {
     laneId: "holomesh"
     owns: ["gap_task_cards", "agent_handoff", "duplicate_warning"]
   }

@@ -104,12 +104,32 @@ export type HSPlusStructField =
       defaultSource?: never;
     };
 
+/**
+ * Marks on one field, copied from the `.hs` `PropertyNode`
+ * (`packages/compiler-wasm/src/ast.rs`): `optional` and `default_value`.
+ *
+ * `optional` is present only when the field was written `name: Type?`.
+ * `default_value` is present only when the field was written `name: Type = expr`,
+ * and it may be `null` when the expression is `null`.
+ * A field with neither mark has no entry.
+ */
+export interface HSPlusFieldMark {
+  optional?: true;
+  default_value?: unknown;
+}
+
 export interface HSPlusNode extends ASTNode {
   name?: string;
   /** Whether a declaration name was authored or supplied by parser fallback. */
   nameOrigin?: 'explicit' | 'synthetic';
   children?: HSPlusNode[];
   properties?: Record<string, unknown>;
+  /**
+   * Optional and default marks for fields stored in `properties`.
+   * Keys are property names. Omitted when no field carries `?` or `=`.
+   * Unmarked property values stay exactly the value the reader stored before.
+   */
+  fieldMarks?: Record<string, HSPlusFieldMark>;
   directives?: HSPlusDirective[];
   args?: unknown;
   body?: unknown;
@@ -118,6 +138,19 @@ export interface HSPlusNode extends ASTNode {
    * backward-compatible consumers.
    */
   fields?: HSPlusStructField[];
+  /**
+   * Parameter names of a `function` that has a type written on it.
+   * Untyped functions omit this and keep the raw-block shape.
+   */
+  params?: string[];
+  /**
+   * Parameter types aligned with `params`. Null is an untyped parameter
+   * next to a typed one. Omitted when no parameter carries a type.
+   * Spellings match the Rust `.hs` reader (`i32`, `[i32; 4]`, `&'a Packet`).
+   */
+  paramTypes?: Array<string | null>;
+  /** Return type, when the function declares one. */
+  returnType?: string;
   /** Scene-graph rotation set by spatial traits at runtime (euler or quaternion). */
   rotation?: Vector3 | Quaternion;
   /** Scene-graph scale set by spatial traits at runtime. */

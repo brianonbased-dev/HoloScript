@@ -21,7 +21,7 @@ composition "MolecularDynamicsLJ" {
     recording: true
   }
 
-  simulation "md" {
+  template "md" {
     @molecular_dynamics {
       particle_count: $state.particleCount
       box_size: [$state.boxSize, $state.boxSize, $state.boxSize]
@@ -49,7 +49,7 @@ composition "MolecularDynamicsLJ" {
   }
 
   // Live stats
-  hud "stats" {
+  template "stats" {
     @text_overlay {
       content: "T = {$md.temperature:.2f} | E = {$md.totalEnergy:.4f} | P = {$md.pressure:.3f}"
       position: top_left

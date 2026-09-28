@@ -47,7 +47,7 @@ object "XRRig" @openxr_hal(
 
 ```hsplus
 logic {
-  on_ready() {
+  on_start() {
     emit "request_xr_session" { mode: "immersive-vr" }
   }
 

@@ -2,12 +2,14 @@
  * Local LLM Adapter
  *
  * Connects to any local OpenAI-compatible inference server:
- * llama.cpp, Ollama, LM Studio, or similar.
+ * HoloLlama / llama.cpp, HoloServe, Ollama, LM Studio, or similar.
  * No API key required — the server runs locally.
  *
  * Supported runtimes:
- *   llama.cpp:  llama-server -m model.gguf --port 8080 --ctx-size 4096
- *   Ollama:     ollama serve  (default port 11434)
+ *   HoloLlama:  llama-server -m model.gguf --port 18080  (the owned machines' server, D.117)
+ *   HoloServe:  the HOLO-family native lane (D.118), OpenAI-compatible
+ *   Ollama:     ollama serve  (default port 11434) — only when named explicitly; the sovereign
+ *               resolver labels it foreign-local and never picks it on its own
  *   LM Studio:  Start server in UI  (default port 1234)
  *
  * The server must expose: POST http://localhost:PORT/v1/chat/completions
@@ -27,7 +29,12 @@ import type {
   ToolUseBlock,
   AssistantContentBlock,
 } from '../types';
-import { LLMProviderError, filterGenericTools, messageContentAsString } from '../types';
+import {
+  LLMProviderError,
+  filterGenericTools,
+  messageContentAsString,
+  redactEndpointUrl,
+} from '../types';
 import {
   INFERENCE_PROXY_AUTH_REJECTED_MESSAGE,
   resolveInferenceProxyKey,
@@ -87,6 +94,17 @@ type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
 // model-policy.ts; refresh both together. Removed qwen2.5-7b-instruct (blacklisted
 // family — lies about tool-calling) 2026-06-16; refreshed to current open weights.
 // =============================================================================
+
+/**
+ * The context window (num_ctx, in tokens) sent to a local server. Anything that sizes
+ * work against that window (the agent's context ledger) must read it here, so both
+ * sides agree on values such as `"8192 # jetson"`.
+ */
+export function resolveLocalNumCtx(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.HOLOSCRIPT_LLM_NUM_CTX ?? env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
+  const n = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : 16384;
+}
 
 export const LOCAL_LLM_MODELS = [
   'qwen3-4b-instruct-2507',
@@ -192,6 +210,18 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     this.useNativeOllamaApi = config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
     this.callerId = resolveCallerId(config.callerId);
     this.inferenceProxy = config.inferenceProxy;
+  }
+
+  /**
+   * What to tell someone whose local server did not answer (D.117: HoloLlama replaced Ollama).
+   * The URL is redacted: userinfo, query and fragment can carry credentials.
+   */
+  private unreachableHint(): string {
+    const lead = `Cannot reach local LLM server at ${redactEndpointUrl(this.localBaseURL)}.`;
+    return this.useNativeOllamaApi
+      ? `${lead} This is an Ollama address; start it with: ollama serve`
+      : `${lead} Check that HoloLlama or HoloServe is running there, or point ` +
+          `HOLOLLAMA_URL / HOLOSERVE_URL at the right address.`;
   }
 
   /** Port 18080, or an explicit `inferenceProxy` flag, is the holo-inference-proxy. */
@@ -367,12 +397,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         //   32768 ctx → ~3 GB KV → ~5.5 GB total — safe headroom for longer tasks.
         //   Old default 3072 caused tick-errors once knowledge injection added ~1K tok.
         // Override via HOLOSCRIPT_LLM_NUM_CTX or HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX.
-        ...((): { num_ctx: number } => {
-          const raw =
-            process.env.HOLOSCRIPT_LLM_NUM_CTX ?? process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
-          const n = raw ? parseInt(raw, 10) : NaN;
-          return { num_ctx: Number.isFinite(n) && n > 0 ? n : 16384 };
-        })(),
+        num_ctx: resolveLocalNumCtx(),
         // Release model weights from RAM after each request. Ollama's default
         // keep_alive (5 min) holds 2.5 GB pinned between ticks — on an 8 GB
         // device sharing RAM with OS + monitor + agent this is fatal across
@@ -504,8 +529,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       const msg = scrubSecretFromText(err instanceof Error ? err.message : String(err), secret);
       const isTimeout = msg.includes('aborted') || msg.includes('timeout');
       const hint = isTimeout
-        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
-        : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
+        ? `Request timed out. Is the local LLM server running at ${redactEndpointUrl(this.localBaseURL)}?`
+        : this.unreachableHint();
       throw new LLMProviderError(scrubSecretFromText(hint, secret), 'local-llm', undefined, false);
     }
   }
@@ -679,8 +704,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       const msg = scrubSecretFromText(err instanceof Error ? err.message : String(err), secret);
       const isTimeout = msg.includes('aborted') || msg.includes('timeout');
       const hint = isTimeout
-        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
-        : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
+        ? `Request timed out. Is the local LLM server running at ${redactEndpointUrl(this.localBaseURL)}?`
+        : this.unreachableHint();
       throw new LLMProviderError(scrubSecretFromText(hint, secret), 'local-llm', undefined, false);
     }
   }

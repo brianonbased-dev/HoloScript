@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import type { Tier } from '@/lib/absorb/pricing';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
+import { creditBalanceFrom } from '@/lib/purchase-return';
 import { logger } from '@/lib/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -166,7 +167,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             const res = await absorbFetch('/api/absorb/credits');
             if (!res.ok) return;
             const data = await res.json();
-            set({ creditBalance: data.balance, tier: data.tier });
+            set({ creditBalance: creditBalanceFrom(data), tier: data.tier });
           } catch (err) {
             logger.warn('[absorbServiceStore] fetchCredits failed:', err);
           }

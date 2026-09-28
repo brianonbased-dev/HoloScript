@@ -18,9 +18,9 @@ cp .env.local.example .env.local
 # 3. Edit .env.local with your API key
 # Choose ONE of:
 #   - ANTHROPIC_API_KEY (recommended)
-#   - XAI_API_KEY
+#   - OPENROUTER_API_KEY
 #   - OPENAI_API_KEY
-#   - Or leave blank to use local Ollama
+#   - Or leave blank and set HOLOLLAMA_URL to use our local HoloLlama server
 ```
 
 ### Option 1: Use Existing Root .env (Automatic Sync)
@@ -88,14 +88,20 @@ Expected output:
 
 ## LLM Provider Priority
 
-The pipeline tries providers in order:
+The generate, material and autocomplete routes try each configured provider in this order, and
+move on to the next when one fails or answers nothing:
 
-1. **Anthropic** (`ANTHROPIC_API_KEY`)
-2. **xAI** (`XAI_API_KEY`)
+1. **OpenRouter** (`OPENROUTER_API_KEY`)
+2. **Anthropic** (`ANTHROPIC_API_KEY`)
 3. **OpenAI** (`OPENAI_API_KEY`)
-4. **Ollama** (local, `OLLAMA_URL`, no key needed)
+4. **Our local model server** (`HOLOSERVE_URL` for HoloServe, else `HOLOLLAMA_URL` for
+   HoloLlama; no key needed). It must be this machine or its LAN. It is the only local step
+   of the generate, material and autocomplete routes: they have no Ollama path. Ollama is no
+   longer picked on its own (D.117); `BRITTNEY_PROVIDER=ollama` brings your own Ollama back
+   for Brittney's chat only.
 
-Only the first available provider is used.
+When none of them answers, generate returns a template, material answers 503, and autocomplete
+returns an empty suggestion. Brittney's chat has its own order; see `src/lib/brittney/provider.ts`.
 
 ## Troubleshooting
 
@@ -105,7 +111,7 @@ Only the first available provider is used.
 - Restart dev server after editing `.env.local`
 - Verify file is not `.env.local.example`
 
-### "Ollama selected but I have API keys"
+### "Local model selected but I have API keys"
 
 - Environment variables not loading
 - Check file path: must be `packages/studio/.env.local`

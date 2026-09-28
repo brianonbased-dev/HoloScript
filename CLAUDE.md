@@ -13,6 +13,34 @@
 
 ---
 
+## ∞ Cloud sessions (claude.ai/code)
+
+Applies only when `CLAUDE_CODE_REMOTE=true`: a fresh Ubuntu VM holding a clone of GitHub `main`, not the laptop. Work from the laptop that was never pushed is invisible here. Where this section conflicts with the rest of the file, this section wins in the cloud.
+
+- **Missing here:** the local MCP on 7411, the GOLD drive, `/room` and HoloMesh credentials, `~/.claude` (Joseph's personal rules), and `~/.ai-ecosystem`. The `C:/Users/Josep/...` hooks in `.claude/settings.json` fail harmlessly. Do not add wirings to "fix" them.
+  - One repo hook does run here: `.claude/hooks/validate-edit.mjs`, after every Edit or Write. It is repo-relative, and it exits 2 when an edited `.ts`, `.js`, `.json` or HoloScript file no longer parses. The edit has already been applied by then, so treat that as a real error and fix the file.
+- **Use instead:** for codebase questions, `npx tsx packages/cli/src/cli.ts query|absorb|parse`, after building the CLI's dependencies (see Setup). The "MCP unavailable, ask the user to start it" steps do not apply here: take the CLI fallback and keep going. Anything meant for the board or the room goes in the PR body, and a local seat relays it.
+- **Setup each session:** run `corepack enable && corepack prepare pnpm@9.15.9 --activate`, then `pnpm install --frozen-lockfile`, then `pnpm hooks:install`.
+  - On `main`, `.githooks/pre-commit` and `.githooks/commit-msg` are committed as `100644`, and git on Linux skips a hook that is not executable. Without this step pre-commit's lint, type and secret checks never run. `hooks:install` sets `core.hooksPath` and makes `pre-commit` and `pre-push` executable, but not `commit-msg`, so also run `chmod +x .githooks/commit-msg`. Do not commit the mode change, because the fix on `main` is filed separately. Run both again after any checkout or merge that rewrites those files.
+  - `.npmrc` asks for a 16 GB heap, which is the whole VM, so set `npm_config_node_options=--max-old-space-size=8192` and test one package at a time.
+  - Before running core tests, build core together with its dependencies, one package at a time as the root `build` does: `corepack pnpm --workspace-concurrency=1 --filter "@holoscript/core..." run build`.
+  - The CLI loads its workspace dependencies from their gitignored `dist/`, including `@holoscript/formatter` and `@holoscript/absorb-service`. The core build does not produce them, so even `parse` fails with `Cannot find module …/@holoscript/formatter/dist/index.js`. Build the CLI's dependencies before using it: `corepack pnpm --workspace-concurrency=1 --filter "@holoscript/cli..." run build`, which takes about four minutes after the core build.
+- **Hold (2026-08-18):** add no new hook files, script files or hook wirings, and that includes `.claude/settings.json`. Editing or deleting existing ones is fine. Environment setup belongs in the environment's setup script on claude.ai, not in the repo.
+- **Gates:** when a pre-push gate refuses, read why and report it in the PR. Never use `--no-verify`, and never push by another route. Since PR #325, the doctrine-slot check (`scripts/check-doctrine-slots.mjs`) passes on a machine where nothing marks a HoloCI dispatch lane: no `~/.ai-ecosystem`, and none of `AI_ECOSYSTEM_ROOT`, `HOLOMESH_ROOT`, `AI_ECOSYSTEM_DIR`, `HOLOCI_WORKLOAD_PATH` or `HOLO_CI_WORKLOAD_PATH` set.
+  - Never set `HOLOCI_ALLOW_MISSING_WORKLOAD`, even though the check's own refusal message suggests it. The fleet's HoloCI runs this check with `HOLOCI_ALLOW_MISSING_WORKLOAD=1` (ai-ecosystem `scripts/holo-ci/gates.mjs`). There it passes whenever no workload breadcrumb exists, and it still enforces the slots when one does. A refusal here is a finding to report, not a reason to copy that setting.
+  - Test runs can create `~/.ai-ecosystem` by accident: mcp-server's holoshell download tools make `~/.ai-ecosystem/holoshell/downloads` unless `HOLOSHELL_DOWNLOAD_SHELF` is set. Set it to a temp directory before running tests.
+  - If the check finds `~/.ai-ecosystem` on a cloud VM, find out what created it first. An empty tree of test litter can go with `cd ~ && rmdir -p .ai-ecosystem/holoshell/downloads`. Use that relative path: with an absolute one, `-p` climbs on to your home directory and exits 1. Anything else, stop and report.
+- **Fleet probe:** this lane is the reference that HoloCI's Jetson and Vast machines must match. A wall that blocks you (a laptop-only file, a skip, a memory limit, a missing rule) probably blocks the fleet as well, so name it in the PR body. Every receipt states the exact SHA, the Node and pnpm versions, and the exact command sequence.
+- **Push often:** the VM is reclaimed after inactivity, and anything unpushed is lost.
+- **Output:** one draft PR per coherent change, from a fresh `claude/<topic>` branch, with a title starting `[provider-cloud]`. Never merge, and never push to `main` or to another agent's branch.
+  - Before any change: prove the problem exists on `origin/main`, search every branch for an existing fix (`git log --remotes --grep=<task id>`), and stay out of files an open integration PR changes.
+  - Evidence includes a red leg: revert the fix and watch the test fail.
+  - Write "canon not checked" in the PR. The laptop line has commits GitHub lacks.
+  - End the body with the `board_handoff` JSON that the laptop's provider-cloud local verifier reads. It must be one flat object whose `evidence_mode` is `board_handoff`, with `agent_lane`, `task_id`, `goal`, `files_or_sources_read`, `decision`, `incentive_provenance`, `validation_state`, `next_owner_lane` and `first_next_command` (see #330). The verifier refuses a nested `{"board_handoff": {…}}`.
+- **Talking to Joseph:** use short, plain sentences, with no code or paths. Make technical decisions yourself and say why. Only four kinds of decision go to him: spending and custody, the physical world, public statements in his name, and governance.
+
+---
+
 ## ∞ PHASE 0 — SESSION INITIALIZATION (MANDATORY)
 
 On every session start, execute this sequence IN ORDER:
@@ -198,7 +226,7 @@ Step 2: holo_absorb_repo({ rootDir: "<pkg-path>" })        → Omit force; reads
 Step 3: holo_query_codebase({ query: "<question>" })       → Auto-loads disk cache if needed
          holo_impact_analysis({ symbol: "<name>" })        → Blast radius (auto-loads cache)
          holo_detect_changes({ before: "ref", after: "ref" }) → Always fresh, compares two states
-Step 4: holo_semantic_search / holo_ask_codebase           → Embeddings: HoloEmbed (keyless, offline — no Ollama). ask_codebase answer LLM: cloud-first; Ollama = last-resort local fallback only (retiring per D.117)
+Step 4: holo_semantic_search / holo_ask_codebase           → Embeddings: HoloEmbed (keyless, offline — no Ollama). ask_codebase answer LLM: our own HoloLlama by default (HOLOLLAMA_ENDPOINT / HOLOLLAMA_URL); cloud or Ollama only when llmProvider names one (D.117 retired Ollama from automatic choice)
 ```
 
 **Rules:**

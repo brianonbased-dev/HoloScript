@@ -1,13 +1,15 @@
 /**
- * Inbox POST endpoint tests — slice B verification.
+ * Inbox push tests — slice B verification.
  *
  * Covers:
- * 1. buildInboxPayload — pure validation + content construction
+ * 1. buildInboxPayload — pure validation + content construction (the push shape
+ *    agents send straight to the team feed)
  * 2. Round-trip property: a pushed entry (built by buildInboxPayload) is
  *    accepted by parseFounderInboxEntries (FAILING-IF-BROKEN gate).
  * 3. Tampered / absent founderInbox marker must NOT render to the founder.
+ * 4. The Studio route takes no writes (its old POST was removed 2026-09-28).
  *
- * These tests are pure — no network calls, no Next.js runtime.
+ * No network calls. Only item 4 loads the route module.
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -142,5 +144,18 @@ describe('inbox push → parse round-trip (FAILING-IF-BROKEN)', () => {
     expect(extractFeedArray({ entries: [4] })).toEqual([4]);
     expect(extractFeedArray([5])).toEqual([5]);
     expect(extractFeedArray(null)).toEqual([]);
+  });
+});
+
+// ── The Studio route takes no writes (task_1790602604837_whpw, item 10) ────
+
+describe('founder inbox route: Studio takes no writes', () => {
+  it('exports GET and no write verb, so a signed-in user cannot push into the founder inbox under our key', async () => {
+    const route = await import('./route');
+    expect(typeof route.GET).toBe('function');
+    const writeVerbs = Object.keys(route).filter((name) =>
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(name)
+    );
+    expect(writeVerbs).toEqual([]);
   });
 });
