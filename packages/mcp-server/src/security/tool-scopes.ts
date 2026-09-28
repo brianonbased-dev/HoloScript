@@ -150,6 +150,16 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // === Self-improve (admin) ===
   holo_self_diagnose: ['tools:admin'],
   holo_validate_quality: ['tools:admin'],
+  // These three touch the server's own disk or start a process at a path the
+  // caller names, so a read login must never reach them. holo_read_file reads
+  // any absolute path (env files, /proc/self/environ); holo_verify_before_commit
+  // runs `npx tsc` in the caller's rootDir; holo_quality_trend parses a file
+  // under the caller's rootDir. They sat in tools:read, which made an OAuth
+  // "read-only" login able to read server secrets. Gate 3's allowedPaths only
+  // annotates absolute paths, it does not refuse them, so this map is the gate.
+  holo_read_file: ['tools:admin'],
+  holo_verify_before_commit: ['tools:admin'],
+  holo_quality_trend: ['tools:admin'],
 
   // === Compiler tools ===
   compile_holoscript: ['tools:write'],
@@ -498,13 +508,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_premortem: ['tools:read'],
   holo_protocol_lookup: ['tools:read'],
   holo_protocol_revenue: ['tools:read'],
-  holo_quality_trend: ['tools:read'],
-  holo_read_file: ['tools:read'],
   holo_reconstruct_anchor: ['tools:read'],
   holo_semantic_scene_graph: ['tools:read'],
   holo_task_kolmogorov_score: ['tools:read'],
   holo_tunnel_status: ['tools:read'],
-  holo_verify_before_commit: ['tools:read'],
   hololand_get_agent: ['tools:read'],
   hololand_get_creator: ['tools:read'],
   hololand_get_geo_anchor: ['tools:read'],

@@ -33,6 +33,7 @@ import {
   __resetKnownToolsForTest,
 } from '../security/tool-scopes';
 import { ALL_AVAILABLE_TOOLS } from '../index';
+import { expandScopes, OAUTH2_PUBLIC_SCOPE_NAMES } from '../auth/oauth2-provider';
 import {
   gate1ValidateRequest,
   gate3EnforcePolicy,
@@ -779,6 +780,60 @@ describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
       expect(authorizeToolCall('parse_hs', ['tools:read']).authorized).toBe(true);
       expect(authorizeToolCall(' parse_hs ', ['admin:*']).authorized).toBe(false);
     });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3c. Gate 2: a read-only OAuth login never reaches the server's own host
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('Gate 2: a read-only OAuth login cannot touch the server host', () => {
+  // Tools whose handlers read the server's filesystem or start a process at a
+  // path the caller names. A login that reaches one can read server secrets
+  // (env files, /proc/self/environ), so they are admin-only. Add to this list
+  // whenever another one is found; never remove an entry to get green.
+  const HOST_REACH_TOOLS = ['holo_read_file', 'holo_verify_before_commit', 'holo_quality_trend'];
+  const registryNames = [...new Set(ALL_AVAILABLE_TOOLS.map((t) => t.name))];
+
+  // The live server knows its registry, so authorize against it the same way.
+  beforeEach(() => {
+    __resetKnownToolsForTest();
+    registerKnownTools(registryNames);
+  });
+  afterEach(() => {
+    __resetKnownToolsForTest();
+  });
+
+  it('every pinned tool is still registered (a rename cannot empty this check)', () => {
+    for (const t of HOST_REACH_TOOLS) {
+      expect(isRegisteredTool(t), `${t} must still be a registered tool`).toBe(true);
+    }
+  });
+
+  it('a login granted only tools:read is refused', () => {
+    const readLogin = expandScopes(['tools:read']);
+    for (const t of HOST_REACH_TOOLS) {
+      const result = authorizeToolCall(t, readLogin);
+      expect(result.authorized, `${t} must be refused for a read login`).toBe(false);
+      expect(result.reason).toContain('Insufficient scope');
+    }
+  });
+
+  it('the widest grant a self-registered client can hold is refused too', () => {
+    const widestPublicLogin = expandScopes([...OAUTH2_PUBLIC_SCOPE_NAMES]);
+    for (const t of HOST_REACH_TOOLS) {
+      expect(
+        authorizeToolCall(t, widestPublicLogin).authorized,
+        `${t} must be refused for [${widestPublicLogin.join(', ')}]`
+      ).toBe(false);
+    }
+  });
+
+  it('an admin login still reaches them (the refusal is scope, not a missing tool)', () => {
+    const adminLogin = expandScopes(['admin']);
+    for (const t of HOST_REACH_TOOLS) {
+      expect(authorizeToolCall(t, adminLogin).authorized, `${t} via admin`).toBe(true);
+    }
   });
 });
 
