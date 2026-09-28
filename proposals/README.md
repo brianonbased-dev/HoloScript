@@ -4,11 +4,12 @@ This folder tracks RFC-style proposals for new language, trait, compiler, and ec
 
 ## Active Proposals
 
-| Proposal                                                       | Status   | Focus Area                               |
-| -------------------------------------------------------------- | -------- | ---------------------------------------- |
-| [DAO Governance v1](./DAO_Governance_v1.md)                    | Proposed | On-chain spatial governance primitives   |
-| [Geospatial Climate Twin v1](./Geospatial_Climate_Twin_RFC.md) | Proposed | City-scale GIS and climate digital twins |
-| [Culture Keyword Extension](./culture-keyword-extension.md)    | Proposal | Compile-time cultural norm declarations  |
+| Proposal                                                                       | Status                                                           | Focus Area                               |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------- |
+| [DAO Governance v1](./DAO_Governance_v1.md)                                    | Proposed                                                         | On-chain spatial governance primitives   |
+| [Geospatial Climate Twin v1](./Geospatial_Climate_Twin_RFC.md)                 | Proposed                                                         | City-scale GIS and climate digital twins |
+| [Culture Keyword Extension](./culture-keyword-extension.md)                    | Proposal                                                         | Compile-time cultural norm declarations  |
+| [`.hs` checker: names, calls, returns](./HS_Checker_Names_Calls_Returns_v1.md) | Proposed — awaiting founder approval (Spec v0.1 no-break policy) | "Valid `.hs`" means it runs (gap G11)    |
 
 ## How to Use This Folder
 

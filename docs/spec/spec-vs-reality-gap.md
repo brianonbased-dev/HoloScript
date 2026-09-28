@@ -362,7 +362,11 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
 - **Scope/blast:** move name, arity, return-path and scope checks into the shared checker; the
   backends keep only capability refusals. Route C in the 2026-09-27 route study would make this
   checker "the only judge of meaning", so this is the first step of that route, not a side task.
-- **STATUS — OPEN.**
+- **STATUS — OPEN; proposal written, awaiting founder approval (2026-09-28):**
+  [`proposals/HS_Checker_Names_Calls_Returns_v1.md`](../../proposals/HS_Checker_Names_Calls_Returns_v1.md).
+  Measured impact: 0 of 68 valid `.hs` files (256 typed functions) and 0 of 13 typed `.hsplus`
+  functions would break, given the proposed fragment mode for the `.hsplus` bridge. The cases are
+  recorded as `g11-*` honest gaps in the spec corpus.
 
 ## G12 — Domain words are reserved keywords in the systems grammar
 
