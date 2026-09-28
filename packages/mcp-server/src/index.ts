@@ -91,6 +91,7 @@ import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { assertReentrantToolAuthorized, registerKnownTools } from './security/tool-scopes';
+import { assertNoHostPathArgs } from './security/host-path-args';
 import {
   gateToolCall,
   classifyMcpEnvelopeResult,
@@ -279,7 +280,7 @@ export async function executeSingleTool(
       }>;
       const results: unknown[] = [];
       for (const req of requests) {
-        assertBatchInnerToolAuthorized(String(req.name || ''), signingCtx);
+        assertBatchInnerToolAuthorized(String(req.name || ''), signingCtx, req.arguments || {});
         const res = await executeSingleTool(
           String(req.name || ''),
           req.arguments || {},
@@ -298,7 +299,7 @@ export async function executeSingleTool(
 
     if (name === 'batch_tool_call') {
       const batchResult = await handleBatchToolCall(args || {}, async (toolName, toolArgs) => {
-        assertBatchInnerToolAuthorized(toolName, signingCtx);
+        assertBatchInnerToolAuthorized(toolName, signingCtx, toolArgs || {});
         const res = await executeSingleTool(toolName, toolArgs || {}, signingCtx);
 
         if ((res as { isError?: boolean }).isError) {
@@ -337,8 +338,17 @@ export async function executeSingleTool(
  * Re-check every child against the original request scopes before dispatch.
  * An absent context is the trusted local stdio path, which has no OAuth token.
  */
-function assertBatchInnerToolAuthorized(toolName: string, signingCtx?: SigningContext): void {
+function assertBatchInnerToolAuthorized(
+  toolName: string,
+  signingCtx?: SigningContext,
+  args?: Record<string, unknown>
+): void {
   assertReentrantToolAuthorized(toolName, signingCtx, 'Batch inner tool');
+  if (!signingCtx) return;
+
+  // Gate 3's host-path rule is not re-run for children, so the batch would be a way round it:
+  // apply the same check to the child's own arguments (task_1790214096204_56rj).
+  assertNoHostPathArgs(toolName, args, signingCtx.scopes ?? []);
 }
 
 // Handle tool calls.
@@ -523,7 +533,7 @@ async function executeBatchInnerTool(
   toolArgs: Record<string, unknown>,
   signingCtx?: SigningContext
 ): Promise<unknown> {
-  assertBatchInnerToolAuthorized(toolName, signingCtx);
+  assertBatchInnerToolAuthorized(toolName, signingCtx, toolArgs || {});
   return executeReentrantTool(toolName, toolArgs, signingCtx);
 }
 
@@ -568,6 +578,10 @@ export async function _handleSingleToolLogic(
     // tool, and whatever re-enters next. Each of those once reached a tool Gate 2 never saw,
     // because Gate 2 checks only the outer name. No context is the trusted stdio path.
     assertReentrantToolAuthorized(name, signingCtx, 'Tool');
+    // 0b. A caller without admin scope names no location on the server's disk. Gate 3 checks this at
+    // the HTTP entry, but only for the outer call. A tool re-entered from inside the server (a batch
+    // child, a mesh-invoked tool, a workflow step) arrives here with the caller's context (#396).
+    if (signingCtx) assertNoHostPathArgs(name, args, signingCtx.scopes);
 
     // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
     if (name.startsWith('uaa2_') || name.startsWith('hs_plugin_')) {

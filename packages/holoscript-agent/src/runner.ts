@@ -21,6 +21,7 @@ import {
   isProductiveToolUse,
 } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
+import { ContextLedger, contextWindowCharsFor, messageChars } from './context-ledger.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import { evaluateReflectGate, type ReflectGateResult } from './reflect-evaluator.js';
 import {
@@ -615,6 +616,16 @@ export class AgentRunner {
       declared: declaredTools,
       ...(droppedTools.length ? { droppedUnknown: droppedTools } : {}),
     });
+    // Every call resends this whole history, so a repeated identical tool result is
+    // sent once and later copies become a pointer to it (context-ledger.ts). A local
+    // model's window also holds the system prompt, the tool schemas and the 8192-token
+    // output reserve the calls below ask for.
+    const ledger = new ContextLedger({
+      windowChars: contextWindowCharsFor(identity.llmProvider, {
+        maxTokens: 8192,
+        fixedChars: messageChars(messages[0]) + JSON.stringify(activeTools).length,
+      }),
+    });
     while (true) {
       iters++;
       if (iters > MAX_TOOL_ITERS) {
@@ -689,7 +700,7 @@ export class AgentRunner {
         }
         messages.push({
           role: 'user',
-          content: toolResults as never,
+          content: ledger.admit(messages, resp.toolUses, toolResults) as never,
         });
         continue;
       }
@@ -745,7 +756,10 @@ export class AgentRunner {
             })
           )
         );
-        messages.push({ role: 'user', content: reResults as never });
+        messages.push({
+          role: 'user',
+          content: ledger.admit(messages, reResp.toolUses, reResults) as never,
+        });
       }
       finalText = reResp.content;
       // Reprompt fired and model called a write tool — content is '' (finishReason=tool_use).
@@ -806,7 +820,10 @@ export class AgentRunner {
             })
           )
         );
-        messages.push({ role: 'user', content: vwResults as never });
+        messages.push({
+          role: 'user',
+          content: ledger.admit(messages, vwResp.toolUses, vwResults) as never,
+        });
       } else if (lastVisionCaption && ![...toolsCalled].some((n) => WRITE_NAMES.has(n))) {
         // Auto-commit (W.780/W.781): qwen3:4b cannot chain vision_analyze → write_file even
         // with two targeted re-prompts. Write the Fara-7B caption directly from the runner
@@ -862,6 +879,7 @@ export class AgentRunner {
       lastResponse = vwResp;
     }
     const durationMs = Date.now() - start;
+    if (ledger.stats.elided > 0) log({ ev: 'context-ledger', taskId: target.id, ...ledger.stats });
 
     // Artifact-grounding gate (W.107 — fleet event-firing rate is not a productivity
     // metric; only side-effecting tool calls produce real artifacts; 2026-04-26
@@ -1389,6 +1407,12 @@ export class AgentRunner {
           'compile_holoscript / validate_holoscript. Do NOT just describe — act. End with a one-line summary.',
       },
     ];
+    const ledger = new ContextLedger({
+      windowChars: contextWindowCharsFor(identity.llmProvider, {
+        maxTokens: 8192,
+        fixedChars: messageChars(messages[0]) + JSON.stringify(activeTools).length,
+      }),
+    });
     let finalText = '';
     let iters = 0;
     let productiveCallCount = 0;
@@ -1416,7 +1440,10 @@ export class AgentRunner {
             })
           )
         );
-        messages.push({ role: 'user', content: toolResults as never });
+        messages.push({
+          role: 'user',
+          content: ledger.admit(messages, resp.toolUses, toolResults) as never,
+        });
         continue;
       }
       finalText = resp.content;
@@ -1458,11 +1485,15 @@ export class AgentRunner {
             })
           )
         );
-        messages.push({ role: 'user', content: reResults as never });
+        messages.push({
+          role: 'user',
+          content: ledger.admit(messages, reResp.toolUses, reResults) as never,
+        });
       }
       finalText = reResp.content || finalText;
       log({ ev: 'idle-reprompt-done', productiveCallCount });
     }
+    if (ledger.stats.elided > 0) log({ ev: 'context-ledger', idle: true, ...ledger.stats });
 
     // 3. ARTIFACT GATE (W.107.b) — no productive tool call ⇒ no real work happened. Refuse
     //    to record/file anything; idle work must never fabricate a deliverable.

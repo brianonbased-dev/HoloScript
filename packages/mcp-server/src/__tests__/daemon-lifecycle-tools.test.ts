@@ -49,8 +49,10 @@ const {
   rehydrateDaemon,
   clearDaemonRehydration,
   processDaemonTurn,
+  emergentDaemonId,
+  _daemonExistsForTest,
 } = await import('../daemon-lifecycle-tools');
-const { _corpusPathForTest } = await import('../daemon-emergence-store');
+const { _corpusPathForTest, readEmergenceRecords } = await import('../daemon-emergence-store');
 
 afterAll(() => {
   if (PREVIOUS_DATA_DIR === undefined) delete process.env.HOLOMESH_DATA_DIR;
@@ -1187,6 +1189,285 @@ describe('callerId is bound to the transport principal when one is present', () 
       const got = await readMemory({ callerId: OWNER }, binding);
       expect(got.rehydrationContext?.aggregatedPreferences).toMatchObject(REMEMBERED);
     }
+  });
+});
+
+// ─── The four writes that named no principal (task_1790214096204_56rj) ────────
+//
+// Two custody reviews of #322 found that the binding covered 4 of the 8 daimōn tools:
+// holo_observe_soul wrote into ANY soul (the planted line then reaches the model as real
+// remembered context and lands in the training corpus), holo_update_daemon_ritual rewrote any
+// daimōn's rituals, holo_export_emergence_corpus wrote the whole corpus to a caller-chosen
+// path, and holo_create_daemon took its ownerId unchecked — including the reserved emergent
+// id `daemon-<soul>`, so a stranger could squat a victim soul's own daemon before the real
+// owner ever created it. On the production server registration is open and a public client may
+// self-assign tools:execute (which bridges to tools:write), so a stranger reached all four.
+// The argument gate lets every absolute path through (only a double `../` is refused).
+
+describe('soul writes, ritual writes and the corpus path are bound to the transport principal', () => {
+  const OWNER = 'soulbound-owner';
+  const STRANGER = 'stranger-7';
+  const soulRows = (soul: string) => readEmergenceRecords().filter((r) => r.ownerId === soul);
+  const observe = (
+    ownerId: string | undefined,
+    binding?: unknown,
+    delta: Record<string, unknown> = { updatedPreferences: { theme: 'dark' }, significanceScore: 0.9 }
+  ) =>
+    handleDaemonLifecycleTool(
+      'holo_observe_soul',
+      { ...(ownerId === undefined ? {} : { ownerId }), contextDelta: delta },
+      binding as Parameters<typeof handleDaemonLifecycleTool>[2]
+    );
+
+  describe('holo_observe_soul', () => {
+    it('refuses a principal writing into another soul, and writes nothing', async () => {
+      const soul = 'soulbound-victim-1';
+      await expect(observe(soul, { signer: STRANGER })).rejects.toThrow(
+        /ownerId "soulbound-victim-1" is not bound to the authenticated principal/
+      );
+      expect(soulRows(soul)).toHaveLength(0);
+    });
+
+    it('is exact: a principal that only starts with, or differs in case from, the soul is refused', async () => {
+      for (const [soul, principal] of [
+        ['soulbound-exact-a2', 'soulbound-exact-a'],
+        ['soulbound-exact-a', 'soulbound-exact-a2'],
+        ['Soulbound-Exact-B', 'soulbound-exact-b'],
+      ]) {
+        await expect(observe(soul, { signer: principal })).rejects.toThrow(
+          /not bound to the authenticated principal/
+        );
+        expect(soulRows(soul)).toHaveLength(0);
+      }
+    });
+
+    it('lets the soul itself observe, which is what HoloShell does with its owner-bound token', async () => {
+      const soul = 'soulbound-self-1';
+      const got = (await observe(soul, { signer: soul })) as { observed: boolean; ownerId: string };
+      expect(got.observed).toBe(true);
+      expect(got.ownerId).toBe(soul);
+      expect(soulRows(soul).length).toBeGreaterThan(0);
+    });
+
+    it('lets a wallet signer observe only through the signer-to-soul mapping', async () => {
+      const wallet = '0x00000000000000000000000000000000000000cd';
+      const soul = 'soulbound-wallet-1';
+      const ok = (await observe(soul, {
+        signer: wallet,
+        signerMapsToCaller: (s: string, c: string) => s === wallet && c === soul,
+      })) as { observed: boolean };
+      expect(ok.observed).toBe(true);
+      await expect(
+        observe('soulbound-wallet-2', { signer: wallet, signerMapsToCaller: () => false })
+      ).rejects.toThrow(/not bound to the authenticated principal/);
+      await expect(observe('soulbound-wallet-3', { signer: wallet })).rejects.toThrow(
+        /not bound to the authenticated principal/
+      );
+      expect(soulRows('soulbound-wallet-2')).toHaveLength(0);
+      expect(soulRows('soulbound-wallet-3')).toHaveLength(0);
+    });
+
+    it('keeps ownerId required, and self-declared without a verified principal', async () => {
+      await expect(observe(undefined, { signer: STRANGER })).rejects.toThrow(/ownerId is required/);
+      let n = 0;
+      for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+        const soul = `soulbound-local-${n++}`;
+        const got = (await observe(soul, binding)) as { observed: boolean };
+        expect(got.observed).toBe(true);
+        expect(soulRows(soul).length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('holo_create_daemon', () => {
+    const create = (
+      ownerId: string | undefined,
+      daemonId: string | undefined,
+      binding?: unknown
+    ) =>
+      handleDaemonLifecycleTool(
+        'holo_create_daemon',
+        { ...(ownerId === undefined ? {} : { ownerId }), ...(daemonId === undefined ? {} : { daemonId }) },
+        binding as Parameters<typeof handleDaemonLifecycleTool>[2]
+      ) as Promise<{ daemon: { daemonId: string; ownerId: string } }>;
+
+    it('refuses a principal creating a daemon claimed for another owner, and creates nothing', async () => {
+      const victim = 'create-bound-victim-1';
+      const id = 'create-bound-plain-1';
+      await expect(create(victim, id, { signer: STRANGER })).rejects.toThrow(
+        /ownerId "create-bound-victim-1" is not bound to the authenticated principal/
+      );
+      expect(_daemonExistsForTest(id)).toBe(false);
+    });
+
+    it('blocks the emergent-id squat: a stranger cannot pre-create a victim soul\'s own daemon-<soul> id', async () => {
+      const victimSoul = 'create-bound-victim-soul';
+      const reservedId = emergentDaemonId(victimSoul);
+      await expect(create(victimSoul, reservedId, { signer: STRANGER })).rejects.toThrow(
+        /not bound to the authenticated principal/
+      );
+      expect(_daemonExistsForTest(reservedId)).toBe(false);
+      // The real owner can still take the reserved id afterwards — nothing squatted it.
+      const got = await create(victimSoul, reservedId, { signer: victimSoul });
+      expect(got.daemon.ownerId).toBe(victimSoul);
+    });
+
+    it('lets an authenticated principal create a daemon for itself', async () => {
+      const owner = 'create-bound-self-1';
+      const id = 'create-bound-self-daemon-1';
+      const got = await create(owner, id, { signer: owner });
+      expect(got.daemon.ownerId).toBe(owner);
+      expect(_daemonExistsForTest(id)).toBe(true);
+    });
+
+    it('lets a wallet signer create only through the signer-to-owner mapping', async () => {
+      const wallet = '0x00000000000000000000000000000000000000ab';
+      const owner = 'create-bound-wallet-owner-1';
+      const id = 'create-bound-wallet-daemon-1';
+      const got = await create(owner, id, {
+        signer: wallet,
+        signerMapsToCaller: (s: string, c: string) => s === wallet && c === owner,
+      });
+      expect(got.daemon.ownerId).toBe(owner);
+      await expect(
+        create('create-bound-wallet-owner-2', 'create-bound-wallet-daemon-2', {
+          signer: wallet,
+          signerMapsToCaller: () => false,
+        })
+      ).rejects.toThrow(/not bound to the authenticated principal/);
+    });
+
+    it('keeps local trust: no verified principal may still name any ownerId', async () => {
+      let n = 0;
+      for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+        const owner = `create-bound-local-owner-${n}`;
+        const id = `create-bound-local-daemon-${n++}`;
+        const got = await create(owner, id, binding);
+        expect(got.daemon.ownerId).toBe(owner);
+      }
+    });
+  });
+
+  describe('holo_update_daemon_ritual', () => {
+    const ritual = (name: string): DaemonRitual => ({
+      name,
+      trigger: `keyword:${name}`,
+      description: `ritual ${name}`,
+      enabled: true,
+    });
+    const update = (
+      profileId: string,
+      rituals: DaemonRitual[],
+      extra: Record<string, unknown> = {},
+      binding?: unknown
+    ) =>
+      handleDaemonLifecycleTool(
+        'holo_update_daemon_ritual',
+        { profileId, operation: 'add', rituals, ...extra },
+        binding as Parameters<typeof handleDaemonLifecycleTool>[2]
+      ) as Promise<{ profile: DaemonCustomizationProfile }>;
+
+    it("refuses a principal rewriting another owner's rituals, leaving them untouched", async () => {
+      const id = 'ritual-bound-1';
+      await handleDaemonLifecycleTool('holo_create_daemon', { ownerId: OWNER, daemonId: id });
+      await expect(update(id, [ritual('planted')], {}, { signer: STRANGER })).rejects.toThrow(
+        /Unauthorized daemon access/
+      );
+      await expect(
+        update(id, [ritual('planted')], { callerId: OWNER }, { signer: STRANGER })
+      ).rejects.toThrow(/not bound to the authenticated principal/);
+      const after = await update(id, [ritual('mine')], {}, { signer: OWNER });
+      expect(after.profile.style.rituals.map((r: DaemonRitual) => r.name)).toEqual(['mine']);
+    });
+
+    it('lets the owner update, with or without typing callerId', async () => {
+      const id = 'ritual-bound-2';
+      await handleDaemonLifecycleTool('holo_create_daemon', { ownerId: OWNER, daemonId: id });
+      const implied = await update(id, [ritual('a')], {}, { signer: OWNER });
+      const typed = await update(id, [ritual('b')], { callerId: OWNER }, { signer: OWNER });
+      expect(implied.profile.style.rituals.map((r: DaemonRitual) => r.name)).toEqual(['a']);
+      expect(typed.profile.style.rituals.map((r: DaemonRitual) => r.name)).toEqual(['a', 'b']);
+    });
+
+    it('lets a wallet signer update only through the signer-to-owner mapping', async () => {
+      const wallet = '0x00000000000000000000000000000000000000ef';
+      const id = 'ritual-bound-3';
+      await handleDaemonLifecycleTool('holo_create_daemon', { ownerId: OWNER, daemonId: id });
+      const viaMap = {
+        signer: wallet,
+        signerMapsToCaller: (s: string, c: string) => s === wallet && c === OWNER,
+      };
+      const mapped = await update(id, [ritual('w')], { callerId: OWNER }, viaMap);
+      expect(mapped.profile.style.rituals.map((r: DaemonRitual) => r.name)).toEqual(['w']);
+      // An implied callerId is the wallet itself, which is not the owner.
+      await expect(update(id, [ritual('x')], {}, viaMap)).rejects.toThrow(
+        /Unauthorized daemon access/
+      );
+      await expect(
+        update(id, [ritual('x')], { callerId: OWNER }, { signer: wallet, signerMapsToCaller: () => false })
+      ).rejects.toThrow(/not bound to the authenticated principal/);
+      await expect(update(id, [ritual('x')], { callerId: OWNER }, { signer: wallet })).rejects.toThrow(
+        /not bound to the authenticated principal/
+      );
+    });
+
+    it('keeps local trust: no principal and no callerId still updates; a wrong callerId is refused', async () => {
+      const id = 'ritual-bound-4';
+      await handleDaemonLifecycleTool('holo_create_daemon', { ownerId: OWNER, daemonId: id });
+      let n = 0;
+      for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+        n += 1;
+        const r = await update(id, [ritual(`local${n}`)], {}, binding);
+        expect(r.profile.style.rituals).toHaveLength(n);
+      }
+      await expect(update(id, [ritual('x')], { callerId: STRANGER })).rejects.toThrow(
+        /Unauthorized daemon access/
+      );
+    });
+  });
+
+  describe('holo_export_emergence_corpus', () => {
+    const exportTo = (outPath?: string, binding?: unknown) =>
+      handleDaemonLifecycleTool(
+        'holo_export_emergence_corpus',
+        outPath === undefined ? {} : { outPath },
+        binding as Parameters<typeof handleDaemonLifecycleTool>[2]
+      ) as Promise<{ path: string; rows: number }>;
+
+    it('refuses a caller-chosen path from a verified principal, absolute or relative, and writes nothing', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'export-bound-'));
+      try {
+        for (const target of [join(dir, 'planted.jsonl'), `planted-relative-${Date.now()}.jsonl`]) {
+          await expect(exportTo(target, { signer: STRANGER })).rejects.toThrow(
+            /outPath is not accepted from an authenticated principal/
+          );
+          expect(existsSync(target)).toBe(false);
+        }
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('still exports to the default path for a principal that names no path', async () => {
+      const got = await exportTo(undefined, { signer: STRANGER });
+      expect(got.path).toBe(join(TEMP_DATA_DIR, 'emergence', 'emergence-corpus.normalized.jsonl'));
+      expect(existsSync(got.path)).toBe(true);
+    });
+
+    it('keeps local trust: no verified principal may still name the path', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'export-local-'));
+      try {
+        let n = 0;
+        for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+          const target = join(dir, `out-${(n += 1)}.jsonl`);
+          const got = await exportTo(target, binding);
+          expect(got.path).toBe(target);
+          expect(existsSync(target)).toBe(true);
+        }
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
   });
 });
 

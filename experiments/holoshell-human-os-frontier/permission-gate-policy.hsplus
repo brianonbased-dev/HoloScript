@@ -103,7 +103,7 @@ composition "HoloShellPermissionGatePolicy" {
     ]
   }
 
-  state_machine "PermissionGateWorkflow" {
+  template "PermissionGateWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -126,27 +126,27 @@ composition "HoloShellPermissionGatePolicy" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["local_permission_probe", "browser_profile_detection", "os_prompt_witness", "device_permission_probe"]
   }
 
-  role "HoloShellPolicyAgent" {
+  template "HoloShellPolicyAgent" {
     laneId: "holoshell-policy"
     owns: ["minimum_scope_calculation", "never_scope_blocker", "approval_gate", "revoke_path"]
   }
 
-  role "HoloScriptSubstrateAgent" {
+  template "HoloScriptSubstrateAgent" {
     laneId: "holoscript-substrate"
     owns: ["receipt_schema", "receipt_validator", "receipt_capability_registry", "stdlib_policy_gap"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["permission_room", "scope_chips", "revoke_lever", "world_tool_unlock"]
   }
 
-  role "ProviderAccountAgent" {
+  template "ProviderAccountAgent" {
     laneId: "provider-account"
     owns: ["provider_consent_screen", "scope_tokeninfo_probe", "provider_settings_witness"]
   }
