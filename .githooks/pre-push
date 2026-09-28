@@ -78,7 +78,12 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     if [ -z "$base" ]; then
       base=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
     fi
-    if [ -n "$base" ]; then range="$base..$local_sha"; else force_check=1; continue; fi
+    # Three dots, not two: `git diff A..B` compares the two trees, so when main has moved
+    # since this branch forked, main's newer files count as "changed" by this push and a
+    # branch that touches no core file is charged the core receipt. `A...B` diffs from the
+    # fork point, which is what this push adds. Measured 2026-09-28: #420 (mcp-server only)
+    # was blocked because #378's core parser files landed on main after it branched.
+    if [ -n "$base" ]; then range="$base...$local_sha"; else force_check=1; continue; fi
   else
     range="$remote_sha..$local_sha"
   fi
