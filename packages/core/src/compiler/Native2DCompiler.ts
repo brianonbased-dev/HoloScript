@@ -638,6 +638,8 @@ export default ${safeName}Component;${contractExport}
     if (traits.image?.src) props += ` src="${traits.image.src}"`;
     if (traits.image?.alt) props += ` alt="${traits.image.alt}"`;
     if (traits.link?.href) props += ` href="${traits.link.href}"`;
+    // @link { target: "_blank" } opens a new tab; only that literal value is emitted.
+    if (traits.link?.target === '_blank') props += ` target="_blank" rel="noopener noreferrer"`;
     if (traits.input?.placeholder) props += ` placeholder="${traits.input.placeholder}"`;
     if (traits.input?.type) props += ` type="${traits.input.type}"`;
     if (traits.input?.required) props += ` required`;
@@ -929,8 +931,23 @@ export default ${safeName}Component;${contractExport}
       (function () {
         function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
         function interp(s, item) { return s.replace(/\{\{([^}]+)\}\}/g, function (_, k) { var v = getPath(item, k.trim()); return v == null ? '' : String(v); }); }
+        /* Fetched values are data, never code (task 3m36): an event-handler attribute or srcdoc
+           keeps the template's own text, and a link or source keeps a filled value only when the
+           browser's URL parser reads it as http, https or mailto. */
+        var URL_ATTRS = { href: 1, src: 1, action: 1, formaction: 1, poster: 1 };
+        function safeUrl(v) {
+          var probe = document.createElement('a'); probe.href = v;
+          return /^(https?|mailto):$/.test(probe.protocol) ? v : '';
+        }
         function fill(node, item) {
-          if (node.attributes) { for (var i = 0; i < node.attributes.length; i++) { var a = node.attributes[i]; if (a.value.indexOf('{{') >= 0) a.value = interp(a.value, item); } }
+          if (node.attributes) {
+            for (var i = 0; i < node.attributes.length; i++) {
+              var a = node.attributes[i], n = a.name.toLowerCase();
+              if (a.value.indexOf('{{') < 0 || n.indexOf('on') === 0 || n === 'srcdoc') continue;
+              var v = interp(a.value, item);
+              a.value = URL_ATTRS[n] ? safeUrl(v) : v;
+            }
+          }
           (node.childNodes || []).forEach(function (c) {
             if (c.nodeType === 3) { if (c.nodeValue.indexOf('{{') >= 0) c.nodeValue = interp(c.nodeValue, item); }
             else if (c.nodeType === 1) fill(c, item);
@@ -1251,6 +1268,8 @@ export default ${safeName}Component;${contractExport}
     if (traits.image?.src) props += ` src="${traits.image.src}"`;
     if (traits.image?.alt) props += ` alt="${traits.image.alt}"`;
     if (traits.link?.href) props += ` href="${traits.link.href}"`;
+    // @link { target: "_blank" } opens a new tab; only that literal value is emitted.
+    if (traits.link?.target === '_blank') props += ` target="_blank" rel="noopener noreferrer"`;
     if (traits.input?.placeholder) props += ` placeholder="${traits.input.placeholder}"`;
     if (traits.input?.type) props += ` type="${traits.input.type}"`;
     if (traits.input?.required) props += ` required`;

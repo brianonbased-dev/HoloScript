@@ -45,8 +45,9 @@ const FOUNDER_CONSOLE_HOLO = `composition "FounderConsole" {
         object "Label" { @text { variant: "h3", content: "{{label}}" } }
         object "Badge" { @text { content: "{{vetting.glance}}" } @theme { style: "color:#16a34a; font-size:13px; display:block; margin:6px 0" } }
         object "Approve" {
-          @button { content: "Approve", onClick: "window.open('{{url}}')" }
-          @theme { className: "glow-btn", style: "background:#16a34a; color:#fff; border:none; border-radius:8px; padding:8px 18px; cursor:pointer" }
+          // A link, not a click handler: the inbox url is data and stays data (task 3m36).
+          @link { content: "Approve", href: "{{url}}", target: "_blank" }
+          @theme { className: "glow-btn", style: "display:inline-block; background:#16a34a; color:#fff; border:none; border-radius:8px; padding:8px 18px; cursor:pointer; text-decoration:none" }
         }
       }
     }
@@ -96,7 +97,9 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     expect(html).toContain('{{label}}');
     expect(html).toContain('{{vetting.glance}}');
     expect(html).toContain("querySelectorAll('[data-holo-fetch]')"); // the vanilla runtime
-    expect(html).toMatch(/onclick=/i);
+    // Approve is a link to the item's url in a new tab, not a click handler (task 3m36).
+    expect(html).toContain('href="{{url}}"');
+    expect(html).toContain('target="_blank" rel="noopener noreferrer"');
 
     const out = 'C:/tmp/founder-console-native/console.html';
     mkdirSync(dirname(out), { recursive: true });
@@ -170,13 +173,62 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     // live counter updated to the item count (hydration-free)
     const pendingCount = doc.querySelector('[data-holo-count-for="items"]');
     expect(pendingCount?.textContent).toBe(String(SAMPLE_ITEMS.length));
-    // the approve handler interpolated the per-item url
-    expect(dom.serialize()).toContain("window.open('https://holoscript.studio/t/abc/decide?t=1')");
+    // each rendered Approve link carries its own item's url
+    const approveLinks = Array.from(rendered).map((row) => row.querySelector('a[target="_blank"]'));
+    expect(approveLinks.map((a) => a?.getAttribute('href'))).toEqual(
+      SAMPLE_ITEMS.map((item) => item.url)
+    );
 
     // Emit a visibly-populated snapshot (F.099 show-don't-reference).
     const preview = 'C:/tmp/founder-console-native/console-live-preview.html';
     writeFileSync(preview, dom.serialize(), 'utf8');
     // eslint-disable-next-line no-console
     console.log(`[artifact] live-rendered snapshot (2 sample items) -> ${preview}`);
+  }, 120_000);
+
+  // task 3m36: the list runtime fills fetched values into text and web links only. An event
+  // handler keeps the template's own text, and a link in any other scheme is cleared. This runs
+  // for real (no skip): a guard that can pass without running proves nothing.
+  it('fetched values fill text and web links, never an event handler or another scheme', async () => {
+    const { JSDOM } = await import('jsdom');
+    const source = `composition "FillProbe" {
+  object "List" {
+    @panel { tag: "section" }
+    @fetch { into: "items", endpoint: "/api/probe", method: "GET" }
+    object "Row" {
+      @panel { tag: "article" }
+      object "Name" { @text { content: "{{label}}" } }
+      object "Legacy" { @button { content: "Open", onClick: "window.open('{{url}}')" } }
+      object "Web" { @link { content: "Web", href: "{{url}}" } }
+      object "Other" { @link { content: "Other", href: "{{other}}" } }
+    }
+  }
+}`;
+    const html = new Native2DCompiler().compile(parseHoloStrict(source), '', undefined, {
+      format: 'html',
+    }) as string;
+    const items = [
+      {
+        label: 'First item',
+        url: 'https://holoscript.studio/t/abc/decide?t=1',
+        other: 'ftp://files.example.com/a.txt',
+      },
+    ];
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      beforeParse(window) {
+        (window as unknown as { fetch: unknown }).fetch = () =>
+          Promise.resolve({ json: () => Promise.resolve({ items }) });
+      },
+    });
+    await new Promise((r) => setTimeout(r, 30));
+
+    const row = dom.window.document.querySelector(
+      '[data-holo-fetch] > *:not([data-holo-template])'
+    );
+    expect(row?.textContent).toContain('First item');
+    expect(row?.querySelector('button')?.getAttribute('onclick')).toBe("window.open('{{url}}')");
+    const links = Array.from(row?.querySelectorAll('a') ?? []).map((a) => a.getAttribute('href'));
+    expect(links).toEqual([items[0].url, '']);
   }, 120_000);
 });
