@@ -34,6 +34,8 @@ import {
 } from '../security/tool-scopes';
 import { ALL_AVAILABLE_TOOLS } from '../index';
 import { expandScopes, OAUTH2_PUBLIC_SCOPE_NAMES } from '../auth/oauth2-provider';
+import { GITHUB_MEMBER_SCOPES } from '../security/github-auth';
+import { selfImproveTools } from '../self-improve-tools';
 import {
   gate1ValidateRequest,
   gate3EnforcePolicy,
@@ -784,16 +786,32 @@ describe('Gate 2: v2g4 scope-map completeness + fail-closed', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 3c. Gate 2: a read-only OAuth login never reaches the server's own host
+// 3c. Gate 2: no login below admin reaches the server's own disk or processes
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe('Gate 2: a read-only OAuth login cannot touch the server host', () => {
-  // Tools whose handlers read the server's filesystem or start a process at a
-  // path the caller names. A login that reaches one can read server secrets
-  // (env files, /proc/self/environ), so they are admin-only. Add to this list
-  // whenever another one is found; never remove an entry to get green.
-  const HOST_REACH_TOOLS = ['holo_read_file', 'holo_verify_before_commit', 'holo_quality_trend'];
+describe('Gate 2: no login below admin reaches the server host', () => {
+  // Every self-improve tool, taken from the registry export so a new one is
+  // covered the day it is added, plus the other tools found reading the
+  // server's files at a caller-named path. A login that reaches one can read
+  // server secrets (env files, /proc/self/environ) or write the server's disk,
+  // so they are admin-only. Add to OTHER_HOST_REACH whenever another one is
+  // found; never remove an entry to get green.
+  const OTHER_HOST_REACH = [
+    'holo_critic',
+    'holo_premortem',
+    'holo_founder',
+    'hs_scan_project',
+    'serve_preview',
+    'get_dev_dashboard_state',
+  ];
+  const HOST_REACH_TOOLS = [...selfImproveTools.map((t) => t.name), ...OTHER_HOST_REACH];
   const registryNames = [...new Set(ALL_AVAILABLE_TOOLS.map((t) => t.name))];
+
+  it('covers the whole self-improve group (the registry export is not empty)', () => {
+    expect(selfImproveTools.length).toBeGreaterThanOrEqual(12);
+    expect(HOST_REACH_TOOLS).toContain('holo_write_file');
+    expect(HOST_REACH_TOOLS).toContain('holo_run_related_tests');
+  });
 
   // The live server knows its registry, so authorize against it the same way.
   beforeEach(() => {
@@ -825,6 +843,17 @@ describe('Gate 2: a read-only OAuth login cannot touch the server host', () => {
       expect(
         authorizeToolCall(t, widestPublicLogin).authorized,
         `${t} must be refused for [${widestPublicLogin.join(', ')}]`
+      ).toBe(false);
+    }
+  });
+
+  it('a GitHub login that is not an admin account is refused', () => {
+    const githubMember = [...GITHUB_MEMBER_SCOPES];
+    expect(githubMember).toContain('tools:write');
+    for (const t of HOST_REACH_TOOLS) {
+      expect(
+        authorizeToolCall(t, githubMember).authorized,
+        `${t} must be refused for a GitHub member login [${githubMember.join(', ')}]`
       ).toBe(false);
     }
   });
