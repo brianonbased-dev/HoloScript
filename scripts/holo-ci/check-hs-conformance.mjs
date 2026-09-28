@@ -11,15 +11,37 @@
  *
  * A rejection fails the gate. The allow-list below is the only exception.
  *
+ * Exit codes: 0 pass, 1 a file was rejected (or the gate's own inputs are
+ * wrong), 2 the checker could not run at all (no Rust toolchain, or it failed
+ * to build). The pre-commit hook words 1 and 2 differently, so a missing
+ * toolchain is never reported as a rejected file.
+ *
  *   node scripts/holo-ci/check-hs-conformance.mjs
  *   pnpm check:hs-conformance
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+const EXIT_COULD_NOT_RUN = 2;
+
+/** The checker could not run; distinct from a file being rejected. */
+class CouldNotRun extends Error {}
+
+/**
+ * cargo from CARGO, else PATH, else rustup's default install. A shell that
+ * never loaded rustup's PATH line (Git Bash on Windows, hook runners) still
+ * finds the toolchain rustup installed.
+ */
+function cargoCandidates() {
+  if (process.env.CARGO) return [process.env.CARGO];
+  const rustup = join(homedir(), '.cargo', 'bin', process.platform === 'win32' ? 'cargo.exe' : 'cargo');
+  return existsSync(rustup) ? ['cargo', rustup] : ['cargo'];
+}
 
 const ROOTS = ['examples/native', 'distributions/systems/conformance'];
 
@@ -56,25 +78,30 @@ function collectHsFiles(rootRel) {
 }
 
 function runChecker(files) {
-  const cargo = process.env.CARGO || 'cargo';
-  const result = spawnSync(
-    cargo,
-    ['run', '-q', '--locked', '-p', 'holoscript-wasm', '--example', 'validate_hs', '--', ...files],
-    {
+  const args = ['run', '-q', '--locked', '-p', 'holoscript-wasm', '--example', 'validate_hs', '--', ...files];
+  const tried = [];
+  let cargo;
+  let result;
+  for (cargo of cargoCandidates()) {
+    result = spawnSync(cargo, args, {
       cwd: repoRoot,
       encoding: 'utf8',
       maxBuffer: 32 * 1024 * 1024,
       windowsHide: true,
-    }
-  );
+    });
+    if (!(result.error && result.error.code === 'ENOENT')) break;
+    tried.push(cargo);
+  }
   if (result.error) {
-    throw new Error(
-      `could not run ${cargo}: ${result.error.message}. This gate needs a Rust toolchain that can build packages/compiler-wasm.`
+    throw new CouldNotRun(
+      `could not run cargo (tried ${tried.length ? tried.join(', ') : cargo}): ${result.error.message}. ` +
+        'This gate needs a Rust toolchain that can build packages/compiler-wasm. ' +
+        'Install it with rustup, or set CARGO to the cargo binary.'
     );
   }
   if (result.status !== 0) {
     const detail = `${result.stderr || ''}${result.stdout || ''}`.trim();
-    throw new Error(`Rust checker failed to run (exit ${result.status}).\n${detail}`);
+    throw new CouldNotRun(`Rust checker failed to run (exit ${result.status}).\n${detail}`);
   }
   const byPath = new Map();
   for (const line of String(result.stdout || '').split(/\r?\n/)) {
@@ -113,6 +140,10 @@ function main() {
   try {
     results = runChecker(files);
   } catch (error) {
+    if (error instanceof CouldNotRun) {
+      console.error(`[hs-conformance] COULD NOT RUN — ${error.message}`);
+      process.exit(EXIT_COULD_NOT_RUN);
+    }
     console.error(`[hs-conformance] FAIL — ${error.message}`);
     process.exit(1);
   }
