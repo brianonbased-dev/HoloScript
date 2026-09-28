@@ -85,3 +85,40 @@ describe('holomesh_invoke_tool runs the target tool as the real caller', () => {
     expect(existsSync(target)).toBe(true);
   });
 });
+
+// claude2 (distinct seat, reviewing this exact vector) confirmed against production that
+// gateSecretsBrokerTool's own "no signingCtx -> legacy ungated" branch also matches the
+// synthetic stdio-local bridge context handleTool used to fabricate here, so a tools:write
+// caller could reach holo_secrets_resolve (tools:admin, risk critical) the same way. Since
+// this fix's authorization check runs generically off tool-scopes.ts -- the same map that
+// already lists holo_secrets_resolve/grant/revoke at tools:admin -- it is refused before
+// handleTool, defaultLocalInvoker's re-authorization, or gateSecretsBrokerTool's own gate
+// ever see it, not because of anything secrets-specific.
+describe('the same fix also covers the secrets broker (holo_secrets_resolve, critical risk)', () => {
+  beforeEach(() => clearMeshToolRegistry());
+
+  function publishLocalSecretsResolveManifest() {
+    return publishMeshToolManifest(
+      buildMeshToolManifest(
+        {
+          tool_name: 'holo_secrets_resolve',
+          description: 'test manifest for holo_secrets_resolve',
+          capability_tags: ['secrets', 'resolve'],
+          allow_transitive_invocation: true,
+        },
+        publisher
+      )
+    );
+  }
+
+  it('a tools:write-only caller cannot reach holo_secrets_resolve through it', async () => {
+    const manifest = publishLocalSecretsResolveManifest();
+    const res = (await _handleSingleToolLogic(
+      'holomesh_invoke_tool',
+      { mesh_tool_id: manifest.id, args: { grantId: 'g1' }, allow_high_risk: true },
+      TOOLS_WRITE_ONLY as never
+    )) as { content?: Array<{ text?: string }>; isError?: boolean };
+    const text = res.content?.[0]?.text ?? '';
+    expect(text).toMatch(/authorization denied|insufficient scope/i);
+  });
+});
