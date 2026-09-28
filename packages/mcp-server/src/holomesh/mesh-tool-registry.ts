@@ -1,7 +1,12 @@
 import axios from 'axios';
 import * as crypto from 'crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getToolRiskLevel, getToolScopes, type ToolRiskLevel } from '../security/tool-scopes';
+import {
+  authorizeToolCall,
+  getToolRiskLevel,
+  getToolScopes,
+  type ToolRiskLevel,
+} from '../security/tool-scopes';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
 
 const TOOL_MANIFEST_PROTOCOL = 'holomesh.tool_manifest.v1';
@@ -528,6 +533,18 @@ export function meshToolManifestFromKnowledgeContent(content: string): MeshToolM
   }
 }
 
+/**
+ * handleTool (handlers.ts) does not check scope itself -- Gate 2 normally runs once,
+ * at the HTTP layer, on the OUTER tool name before dispatch. holomesh_invoke_tool
+ * only ever presents that outer gate with its own name (tools:write is enough to
+ * reach it); the real target tool named inside `args` is invisible to it. Without
+ * this check, any tools:write caller could reach any locally-published tool
+ * (including one needing tools:admin) at full trust (task_1790204588326_myvj) --
+ * the same class of gap batch_tool_call's children are already re-checked for
+ * (index.ts assertBatchInnerToolAuthorized). An absent signingCtx is the trusted
+ * local stdio path, which never reaches here with a caller-supplied tool name it
+ * didn't already trust.
+ */
 async function defaultLocalInvoker(
   toolName: string,
   args: Record<string, unknown>,
@@ -536,8 +553,20 @@ async function defaultLocalInvoker(
   if (toolName === 'holomesh_invoke_tool') {
     throw new Error('holomesh_invoke_tool cannot recursively invoke itself');
   }
-  const { handleTool } = await import('../handlers');
-  return handleTool(toolName, args, signingCtx);
+  if (signingCtx) {
+    const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
+    if (!authorization.authorized) {
+      throw new Error(
+        `Mesh-invoked tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
+      );
+    }
+  }
+  // index.ts's own dispatch registry (categories like selfImproveTools) sits in front of
+  // handlers.ts's handleTool and covers tools handleTool alone does not recognize;
+  // _handleSingleToolLogic falls back to handleTool itself for everything else, so this
+  // reaches the same tools handleTool did plus the ones only index.ts's registry knows.
+  const { _handleSingleToolLogic } = await import('../index');
+  return _handleSingleToolLogic(toolName, args, signingCtx);
 }
 
 export async function invokePublishedMeshTool(
