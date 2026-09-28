@@ -66,7 +66,7 @@ export class ChunkBasedIncrementalParser {
 
       if (toParseIds.has(chunk.id)) {
         // Re-parse this chunk
-        const chunkNode = this.parseChunk(chunk);
+        const chunkNode = this.parseChunk(chunk, source);
         if (chunkNode) {
           chunkNodes.set(chunk.id, chunkNode);
           this.cache.set(chunk.id, hash, chunkNode);
@@ -80,7 +80,7 @@ export class ChunkBasedIncrementalParser {
           cached++;
         } else {
           // Cache miss - re-parse anyway
-          const chunkNode = this.parseChunk(chunk);
+          const chunkNode = this.parseChunk(chunk, source);
           if (chunkNode) {
             chunkNodes.set(chunk.id, chunkNode);
             this.cache.set(chunk.id, hash, chunkNode);
@@ -218,15 +218,16 @@ export class ChunkBasedIncrementalParser {
   }
 
   /**
-   * Parses a single chunk
+   * Parses a single chunk. `documentSource` is the whole document, so a typed function in this
+   * chunk may call a function another chunk declares.
    */
-  private parseChunk(chunk: SourceChunk): HSPlusNode | null {
+  private parseChunk(chunk: SourceChunk, documentSource: string): HSPlusNode | null {
     try {
       // Wrap chunk content in a valid document if needed
       const content = this.wrapChunkForParsing(chunk);
 
       // Use the full parser on the chunk
-      const result = this.parser.parse(content);
+      const result = this.parser.parse(content, { documentSource });
 
       if (result.success && result.ast) {
         return result.ast as HSPlusNode;
