@@ -16,7 +16,11 @@ import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC
 import { WorkflowStep } from './identity/AgentIdentity';
 import type { CulturalProfileMetadata } from './identity';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
-import type { HoloComposition } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloSpatialGroup,
+} from '../parser/HoloCompositionTypes';
 import type {
   GLTFExportResult,
   ARCompilationResult,
@@ -200,10 +204,16 @@ export interface FlattenedScenes {
   /** The composition to compile: the input itself when no scene adds anything. */
   composition: HoloComposition;
   /**
-   * Names of the scenes whose `environment` is not applied, because an earlier
-   * environment already applies. The compiler reports each one in its output.
+   * Scene environments that are not applied. `appliedFrom` names the scene whose
+   * environment applies instead, or is `null` when the composition's own does.
    */
-  unappliedSceneEnvironments: string[];
+  unappliedEnvironments: Array<{ scene: string; appliedFrom: string | null }>;
+  /**
+   * Scene objects that are not built, because `takenName` (the object's own name,
+   * or the name of an object inside it) gives the same identifier as an object
+   * already in the output. Only filled when the compiler passes `identifierOf`.
+   */
+  leftOutObjects: Array<{ scene: string; object: string; takenName: string }>;
 }
 
 /**
@@ -551,26 +561,84 @@ export abstract class CompilerBase implements ICompiler {
    * objects, scene by scene, and go through the compiler's own object path. A scene
    * has no transform, so each object keeps its own position.
    *
-   * A scene's `environment` is used when no environment comes before it (the
-   * composition declares none, and no earlier scene does). One world has one
-   * environment, so any later one is not applied; its scene is named in
-   * `unappliedSceneEnvironments` for the compiler to report in its output.
+   * Environment: the composition's own `environment` applies when it has one;
+   * otherwise the first scene that declares one supplies it. One world has one
+   * environment, so every other scene environment is listed in
+   * `unappliedEnvironments`, with the one that applies instead.
    *
-   * When no scene holds an object or an environment that is used, the input itself
-   * is returned, so a composition without scenes compiles exactly as before.
+   * Names: scenes are separate in the source but become one world here. A compiler
+   * that turns object names into identifiers passes `identifierOf`. A scene object
+   * is then not built when it, or an object inside it, would get an identifier that
+   * an object already in the output has (two scenes that each have a "Ground", or
+   * a scene reusing a top-level name); it is listed in `leftOutObjects` instead of
+   * producing output that cannot load. Clashes among the composition's own objects
+   * are left alone, so their output stays exactly as before.
+   *
+   * The compiler writes {@link CompilerBase.sceneWarnings} into its output, so
+   * nothing is left out without being named. When no scene adds anything, the
+   * input itself is returned, so a composition without scenes compiles exactly as
+   * before. The input is never changed.
    */
-  protected flattenScenes(composition: HoloComposition): FlattenedScenes {
+  protected flattenScenes(
+    composition: HoloComposition,
+    identifierOf?: (name: string) => string
+  ): FlattenedScenes {
     const scenes = composition.scenes ?? [];
-    const sceneObjects = scenes.flatMap((scene) => scene.objects ?? []);
+    const unappliedEnvironments: FlattenedScenes['unappliedEnvironments'] = [];
+    const leftOutObjects: FlattenedScenes['leftOutObjects'] = [];
+
     let environment = composition.environment;
-    const unappliedSceneEnvironments: string[] = [];
+    let appliedFrom: string | null = null;
     for (const scene of scenes) {
       if (!scene.environment) continue;
-      if (environment) unappliedSceneEnvironments.push(scene.name);
-      else environment = scene.environment;
+      if (environment) {
+        unappliedEnvironments.push({ scene: scene.name, appliedFrom });
+      } else {
+        environment = scene.environment;
+        appliedFrom = scene.name;
+      }
     }
+
+    // Every name in these objects and in the objects inside them.
+    const namesIn = (objects: HoloObjectDecl[] | undefined, into: string[]): string[] => {
+      for (const obj of objects ?? []) {
+        into.push(String(obj.name ?? ''));
+        namesIn(obj.children, into);
+      }
+      return into;
+    };
+    const groupNames = (groups: HoloSpatialGroup[] | undefined, into: string[]): string[] => {
+      for (const group of groups ?? []) {
+        namesIn(group.objects, into);
+        groupNames(group.groups, into);
+      }
+      return into;
+    };
+    const taken = new Set<string>();
+    if (identifierOf && scenes.some((scene) => (scene.objects ?? []).length > 0)) {
+      for (const name of namesIn(composition.objects, groupNames(composition.spatialGroups, []))) {
+        taken.add(identifierOf(name));
+      }
+    }
+
+    const sceneObjects: HoloObjectDecl[] = [];
+    for (const scene of scenes) {
+      for (const obj of scene.objects ?? []) {
+        if (identifierOf) {
+          const names = namesIn([obj], []);
+          const takenName = names.find((name) => taken.has(identifierOf(name)));
+          if (takenName !== undefined) {
+            leftOutObjects.push({ scene: scene.name, object: String(obj.name ?? ''), takenName });
+            continue;
+          }
+          for (const name of names) taken.add(identifierOf(name));
+        }
+        sceneObjects.push(obj);
+      }
+    }
+
     if (sceneObjects.length === 0 && environment === composition.environment) {
-      return { composition, unappliedSceneEnvironments };
+      return { composition, unappliedEnvironments, leftOutObjects };
     }
     return {
       composition: {
@@ -578,8 +646,32 @@ export abstract class CompilerBase implements ICompiler {
         objects: [...(composition.objects ?? []), ...sceneObjects],
         ...(environment ? { environment } : {}),
       },
-      unappliedSceneEnvironments,
+      unappliedEnvironments,
+      leftOutObjects,
     };
+  }
+
+  /**
+   * One plain sentence for each piece of scene content {@link CompilerBase.flattenScenes}
+   * left out, with names escaped for `target` and kept on one line. The compiler
+   * writes each sentence into its output as a WARNING comment.
+   */
+  protected sceneWarnings(flattened: FlattenedScenes, target: EscapeTarget): string[] {
+    const quote = (name: string) =>
+      `"${this.escapeStringValue(name.replace(/[\r\n\u2028\u2029]+/g, ' '), target)}"`;
+    return [
+      ...flattened.unappliedEnvironments.map(({ scene, appliedFrom }) => {
+        const applied =
+          appliedFrom === null
+            ? "the composition's own environment"
+            : `the environment in scene ${quote(appliedFrom)}`;
+        return `the environment in scene ${quote(scene)} is not applied: this output is one world with one environment, and ${applied} applies.`;
+      }),
+      ...flattened.leftOutObjects.map(
+        ({ scene, object, takenName }) =>
+          `object ${quote(object)} in scene ${quote(scene)} is not built: this output is one world, and another object in it already uses the name ${quote(takenName)}.`
+      ),
+    ];
   }
 
   // =========================================================================

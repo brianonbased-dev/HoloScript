@@ -52,8 +52,18 @@ class TestCompiler extends CompilerBase {
     this.validateCompilerAccess(token, outputPath);
   }
 
-  public exposeFlattenScenes(composition: HoloComposition) {
-    return this.flattenScenes(composition);
+  public exposeFlattenScenes(
+    composition: HoloComposition,
+    identifierOf?: (name: string) => string
+  ) {
+    return this.flattenScenes(composition, identifierOf);
+  }
+
+  public exposeSceneWarnings(composition: HoloComposition) {
+    return this.sceneWarnings(
+      this.flattenScenes(composition, (name) => name.replace(/[^a-zA-Z0-9_]/g, '_')),
+      'TypeScript'
+    );
   }
 }
 
@@ -550,56 +560,119 @@ describe('CompilerBase', () => {
   // flattenScenes — scene blocks read by a compiler that builds one world
   // ===================================================================
   describe('flattenScenes', () => {
-    const obj = (name: string) => ({ type: 'Object', name, properties: [], traits: [] });
+    type TestObject = {
+      type: string;
+      name: string;
+      properties: [];
+      traits: [];
+      children?: TestObject[];
+    };
+    const obj = (name: string, children: string[] = []): TestObject => ({
+      type: 'Object',
+      name,
+      properties: [],
+      traits: [],
+      ...(children.length > 0 ? { children: children.map((child) => obj(child)) } : {}),
+    });
     const env = (background: string) => ({
       type: 'Environment',
       properties: [{ type: 'EnvironmentProperty', key: 'background', value: background }],
     });
-    const scene = (name: string, objects: string[], environment?: string) => ({
+    const scene = (name: string, objects: Array<string | TestObject>, environment?: string) => ({
       type: 'Scene',
       name,
-      objects: objects.map(obj),
+      objects: objects.map((o) => (typeof o === 'string' ? obj(o) : o)),
       ...(environment ? { environment: env(environment) } : {}),
     });
     const composition = (fields: Record<string, unknown>) =>
       ({ type: 'Composition', name: 'C', objects: [], ...fields }) as unknown as HoloComposition;
+    const identifier = (name: string) => name.replace(/[^a-zA-Z0-9_]/g, '_');
 
     it('returns the input itself when no scene adds an object or an environment', () => {
       for (const input of [
         composition({ objects: [obj('Top')] }),
+        composition({ objects: undefined }),
+        composition({ scenes: [] }),
         composition({ scenes: [scene('Empty', [])] }),
         composition({ environment: env('#000000'), scenes: [scene('Night', [], '#ff0000')] }),
+        composition({ objects: [obj('Ground')], scenes: [scene('Night', ['Ground'])] }),
       ]) {
-        expect(compiler.exposeFlattenScenes(input).composition).toBe(input);
+        expect(compiler.exposeFlattenScenes(input, identifier).composition).toBe(input);
       }
     });
 
-    it("appends each scene's objects after the top-level ones, without changing the input", () => {
+    it("appends each scene's objects after the top-level ones, and never changes the input", () => {
       const input = composition({
         objects: [obj('Top')],
-        scenes: [scene('A', ['InA1', 'InA2']), scene('B', ['InB'])],
+        scenes: [scene('A', ['InA1', 'InA2']), scene('B', ['InB'], '#ffffff')],
       });
       const before = JSON.stringify(input);
       const flat = compiler.exposeFlattenScenes(input);
       expect(flat.composition.objects.map((o) => o.name)).toEqual(['Top', 'InA1', 'InA2', 'InB']);
-      expect(flat.unappliedSceneEnvironments).toEqual([]);
+      expect(flat.composition.environment).toEqual(env('#ffffff'));
+      expect(flat.unappliedEnvironments).toEqual([]);
+      expect(flat.leftOutObjects).toEqual([]);
+      // Neither the objects nor the lifted environment were written back onto the input.
       expect(JSON.stringify(input)).toBe(before);
-      // Flattening again yields the same list: nothing was appended to the input.
+      expect(input.environment).toBeUndefined();
       expect(compiler.exposeFlattenScenes(input).composition.objects).toHaveLength(4);
     });
 
-    it('uses the first environment and names every scene environment it does not apply', () => {
+    it("uses the composition's own environment, else the first scene's, and lists the rest", () => {
       const lifted = compiler.exposeFlattenScenes(
         composition({ scenes: [scene('Day', [], '#ffffff'), scene('Night', [], '#000033')] })
       );
       expect(lifted.composition.environment).toEqual(env('#ffffff'));
-      expect(lifted.unappliedSceneEnvironments).toEqual(['Night']);
+      expect(lifted.unappliedEnvironments).toEqual([{ scene: 'Night', appliedFrom: 'Day' }]);
 
       const own = compiler.exposeFlattenScenes(
         composition({ environment: env('#123456'), scenes: [scene('Day', ['X'], '#ffffff')] })
       );
       expect(own.composition.environment).toEqual(env('#123456'));
-      expect(own.unappliedSceneEnvironments).toEqual(['Day']);
+      expect(own.unappliedEnvironments).toEqual([{ scene: 'Day', appliedFrom: null }]);
+    });
+
+    it('leaves out a scene object when a name in it gives an identifier already in use', () => {
+      const input = composition({
+        objects: [obj('Floor', ['Leg'])],
+        spatialGroups: [
+          { type: 'SpatialGroup', name: 'G', properties: [], objects: [obj('Lamp')] },
+        ],
+        scenes: [
+          scene('Day', ['Ground', 'Floor', obj('Table', ['Leg']), 'Lamp', 'Sun']),
+          scene('Night', ['Ground', 'Ground_A', 'Ground A']),
+        ],
+      });
+      const flat = compiler.exposeFlattenScenes(input, identifier);
+      expect(flat.composition.objects.map((o) => o.name)).toEqual([
+        'Floor',
+        'Ground',
+        'Sun',
+        'Ground_A',
+      ]);
+      expect(flat.leftOutObjects).toEqual([
+        { scene: 'Day', object: 'Floor', takenName: 'Floor' },
+        { scene: 'Day', object: 'Table', takenName: 'Leg' },
+        { scene: 'Day', object: 'Lamp', takenName: 'Lamp' },
+        { scene: 'Night', object: 'Ground', takenName: 'Ground' },
+        { scene: 'Night', object: 'Ground A', takenName: 'Ground A' },
+      ]);
+      // A compiler that passes no identifierOf gets every scene object.
+      expect(compiler.exposeFlattenScenes(input).leftOutObjects).toEqual([]);
+    });
+
+    it('writes one plain, one-line sentence per piece of scene content left out', () => {
+      const lineBreakName = `Night${String.fromCharCode(0x2028)}x`;
+      expect(
+        compiler.exposeSceneWarnings(
+          composition({
+            scenes: [scene('Day', ['Ground'], '#ffffff'), scene(lineBreakName, ['Ground'], '#000')],
+          })
+        )
+      ).toEqual([
+        'the environment in scene "Night x" is not applied: this output is one world with one environment, and the environment in scene "Day" applies.',
+        'object "Ground" in scene "Night x" is not built: this output is one world, and another object in it already uses the name "Ground".',
+      ]);
     });
   });
 });

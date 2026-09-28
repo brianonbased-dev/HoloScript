@@ -252,20 +252,42 @@ describe('GodotCompiler', () => {
     expect(gd).not.toContain('WARNING: the environment in scene');
   });
 
-  it('names a scene environment it does not apply, and keeps the earlier one', () => {
+  it("names a scene environment it does not apply, and says the composition's own applies", () => {
+    // The composition's own environment is written after the scene; it still wins.
     const gd = compiler.compile(
       parseClean(`composition "Scenes" {
-  environment { ambient_light: 0.3 }
   scene "Night" {
     environment { ambient_light: 0.9 }
   }
+  environment { ambient_light: 0.3 }
 }`),
       'test-token'
     );
     expect(gd).toContain('# Ambient light intensity: 0.3');
     expect(gd).not.toContain('# Ambient light intensity: 0.9');
     expect(gd).toContain(
-      '# WARNING: the environment in scene "Night" is not applied: this output is one world with one environment, and an earlier environment already applies.'
+      `# WARNING: the environment in scene "Night" is not applied: this output is one world with one environment, and the composition's own environment applies.`
+    );
+  });
+
+  it('leaves out a scene object whose name is already taken, and names it', () => {
+    const gd = compiler.compile(
+      parseClean(`composition "Scenes" {
+  scene "Day" {
+    object "Ground" { mesh: "plane" }
+  }
+  scene "Night" {
+    object "Ground" { mesh: "plane" }
+    object "Moon" { mesh: "sphere" }
+  }
+}`),
+      'test-token'
+    );
+    // One _ready() has one `var Ground`: a second one would not parse.
+    expect(gd.match(/var Ground = /g)).toHaveLength(1);
+    expect(gd).toContain('var Moon = MeshInstance3D.new()');
+    expect(gd).toContain(
+      '# WARNING: object "Ground" in scene "Night" is not built: this output is one world, and another object in it already uses the name "Ground".'
     );
   });
 });

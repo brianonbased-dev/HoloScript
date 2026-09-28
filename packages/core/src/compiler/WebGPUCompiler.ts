@@ -102,9 +102,11 @@ export class WebGPUCompiler extends CompilerBase {
     // ───────────────────────────────────────────────────────────────────────
     // Objects (and an environment) written inside `scene` blocks go through the
     // same passes as top-level ones: water, camera framing, emission, manifest,
-    // compute and draw calls all read the composition returned here.
-    const { composition: world, unappliedSceneEnvironments } = this.flattenScenes(composition);
-    composition = world;
+    // compute and draw calls all read the composition returned here. Object names
+    // become module-scope identifiers, so a scene object whose name is taken is
+    // left out and named in a WARNING below.
+    const scenes = this.flattenScenes(composition, (name) => this.sanitizeName(name));
+    composition = scenes.composition;
     this.lines = [];
     this.indentLevel = 0;
     this.objectIndex = 0;
@@ -126,15 +128,13 @@ export class WebGPUCompiler extends CompilerBase {
     if (this.options.provenanceHash) {
       this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
     }
+    for (const warning of this.sceneWarnings(scenes, 'TypeScript')) {
+      this.emit(`// WARNING: ${warning}`);
+    }
     this.emit('');
     this.emitDeviceInit();
     this.emitGeometryHelpers();
     this.emitShaderSources();
-    for (const scene of unappliedSceneEnvironments) {
-      this.emit(
-        `// WARNING: the environment in scene "${this.escapeStringValue(scene, 'TypeScript')}" is not applied: this output is one world with one environment, and an earlier environment already applies.`
-      );
-    }
     this.emitEnvironment(
       composition.environment ?? ({ type: 'Environment', properties: [] } as HoloEnvironment)
     );

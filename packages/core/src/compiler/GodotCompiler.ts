@@ -111,9 +111,11 @@ export class GodotCompiler extends CompilerBase {
     this.validateCompilerAccess(agentToken, outputPath);
     // ───────────────────────────────────────────────────────────────────────
     // Objects (and an environment) written inside `scene` blocks are built the
-    // same way as top-level ones, as children of this node.
-    const { composition: world, unappliedSceneEnvironments } = this.flattenScenes(composition);
-    composition = world;
+    // same way as top-level ones, as children of this node. Object names become
+    // variables in _ready(), so a scene object whose name is taken is left out and
+    // named in a WARNING below.
+    const scenes = this.flattenScenes(composition, (name) => this.sanitizeName(name));
+    composition = scenes.composition;
     this.lines = [];
     this.indentLevel = 0;
 
@@ -125,6 +127,9 @@ export class GodotCompiler extends CompilerBase {
     this.emit(`# Do not edit manually — regenerate from .holo source`);
     if (this.options.provenanceHash) {
       this.emit(`# Provenance Hash: ${this.options.provenanceHash}`);
+    }
+    for (const warning of this.sceneWarnings(scenes, 'GDScript')) {
+      this.emit(`# WARNING: ${warning}`);
     }
     this.emit('');
     this.emit('extends Node3D');
@@ -146,11 +151,6 @@ export class GodotCompiler extends CompilerBase {
     this.indentLevel++;
 
     // Environment
-    for (const scene of unappliedSceneEnvironments) {
-      this.emit(
-        `# WARNING: the environment in scene "${this.escapeStringValue(scene, 'GDScript')}" is not applied: this output is one world with one environment, and an earlier environment already applies.`
-      );
-    }
     if (composition.environment) {
       this.compileEnvironment(composition.environment);
     }
