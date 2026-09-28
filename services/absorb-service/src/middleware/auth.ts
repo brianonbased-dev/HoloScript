@@ -43,6 +43,9 @@ const PUBLIC_PATHS = ['/health', '/.well-known/mcp', '/.well-known/mcp.json'];
 // SERVICE's own disk, so the tier let any stranger map the server's filesystem.
 const userRateLimitMap = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+// The pricing page shows this as TIER_LIMITS.free.hourlyRequestLimit, and shows
+// every other tier as having no hourly limit; packages/absorb-service's pricing
+// test fails if this number and that table disagree.
 const FREE_USER_SCAN_LIMIT = 10;
 const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -195,9 +198,12 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
           if (limited) {
             res.status(429).json({
               error: 'Rate limit exceeded',
-              message: `Free GitHub tier limited to ${FREE_USER_SCAN_LIMIT} requests per hour. Purchase credits for unlimited access.`,
+              // Buying credits never changes a tier, so this used to promise something a
+              // purchase could not deliver. Studio Pro is what lifts the limit.
+              message: `Free accounts can make ${FREE_USER_SCAN_LIMIT} requests an hour. Studio Pro removes this limit.`,
               retryAfterMs: RATE_LIMIT_WINDOW_MS,
               remaining: 0,
+              upgradeUrl: '/settings?tab=credits',
               purchaseUrl: '/absorb?tab=credits',
             });
             return;

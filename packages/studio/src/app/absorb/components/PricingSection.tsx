@@ -1,7 +1,32 @@
 'use client';
 
 import React from 'react';
-import { CREDIT_PACKAGES, OPERATION_COSTS, TIER_LIMITS } from '@/lib/absorb/pricing';
+import {
+  CREDIT_PACKAGES,
+  LLM_MARKUP,
+  OPERATION_COSTS,
+  SUBSCRIPTION_PRICING,
+  TIER_LIMITS,
+} from '@/lib/absorb/pricing';
+import type { StudioProState } from '@/lib/purchase-return';
+
+/**
+ * The margin on model tokens, from the constant that meters it (1.15 -> "15%").
+ * This tab said "15%" in one paragraph and "30%" in another until 2026-09-28.
+ */
+const MARKUP_PERCENT = `${Math.round((LLM_MARKUP - 1) * 100)}%`;
+
+const STUDIO_PRO = SUBSCRIPTION_PRICING.studioPro;
+
+/** Whole dollars without cents ("$15"), otherwise two places ("$12.50"). */
+function dollars(cents: number): string {
+  return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+}
+
+/** "10 an hour", or "No limit" for a tier the service never limits. */
+function hourly(limit: number | null): string {
+  return limit === null ? 'No limit' : `${limit} an hour`;
+}
 
 export function CreditPackageCard({
   pkg,
@@ -75,60 +100,146 @@ export function OperationCostTable() {
   );
 }
 
+/**
+ * Free against Studio Pro, and only the differences the service enforces.
+ *
+ * This used to print every TIER_LIMITS row for Free, Pro and Enterprise:
+ * active projects, absorb depth, recursive pipeline. None of the three is
+ * enforced anywhere (checked 2026-09-28), so the table told free users about
+ * limits they did not have, and would have sold Studio Pro on features every
+ * account already gets. There is no Enterprise plan to buy, so that column is
+ * gone too.
+ */
 export function TierComparisonTable() {
-  const tiers = Object.entries(TIER_LIMITS) as [string, typeof TIER_LIMITS.free][];
+  const rows: Array<[feature: string, free: string, pro: string]> = [
+    ['Price', 'Free', `${dollars(STUDIO_PRO.priceCentsMonthly)} a month`],
+    [
+      'Credits included',
+      `${TIER_LIMITS.free.freeCredits.toLocaleString()} once, when you sign up`,
+      `${STUDIO_PRO.includedCredits.toLocaleString()} every paid month`,
+    ],
+    [
+      'Requests from your own tools (MCP, scripts)',
+      hourly(TIER_LIMITS.free.hourlyRequestLimit),
+      hourly(TIER_LIMITS.pro.hourlyRequestLimit),
+    ],
+  ];
   return (
-    <div className="overflow-hidden rounded-xl border border-studio-border">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-studio-border bg-[#0d0d14]">
-            <th className="px-4 py-3 text-left font-medium text-studio-muted">Feature</th>
-            {tiers.map(([name]) => (
-              <th
-                key={name}
-                className="px-4 py-3 text-center font-medium text-studio-muted capitalize"
-              >
-                {name}
+    <div>
+      <div className="overflow-x-auto rounded-xl border border-studio-border">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-studio-border bg-[#0d0d14]">
+              <th className="px-4 py-3 text-left font-medium text-studio-muted">Feature</th>
+              <th className="px-4 py-3 text-center font-medium text-studio-muted">Free</th>
+              <th className="px-4 py-3 text-center font-medium text-studio-muted">
+                {STUDIO_PRO.label}
               </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([feature, free, pro]) => (
+              <tr key={feature} className="border-b border-studio-border/50 last:border-0">
+                <td className="px-4 py-2.5 text-studio-text">{feature}</td>
+                <td className="px-4 py-2.5 text-center text-studio-muted">{free}</td>
+                <td className="px-4 py-2.5 text-center text-studio-muted">{pro}</td>
+              </tr>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-b border-studio-border/50">
-            <td className="px-4 py-2.5 text-studio-text">Free credits</td>
-            {tiers.map(([name, t]) => (
-              <td key={name} className="px-4 py-2.5 text-center text-studio-muted">
-                {t.freeCredits > 0 ? `$${(t.freeCredits / 100).toFixed(2)}` : '\u2014'}
-              </td>
-            ))}
-          </tr>
-          <tr className="border-b border-studio-border/50">
-            <td className="px-4 py-2.5 text-studio-text">Active projects</td>
-            {tiers.map(([name, t]) => (
-              <td key={name} className="px-4 py-2.5 text-center text-studio-muted">
-                {t.maxProjectsActive}
-              </td>
-            ))}
-          </tr>
-          <tr className="border-b border-studio-border/50">
-            <td className="px-4 py-2.5 text-studio-text">Absorb depth</td>
-            {tiers.map(([name, t]) => (
-              <td key={name} className="px-4 py-2.5 text-center text-studio-muted capitalize">
-                {t.maxAbsorbDepth}
-              </td>
-            ))}
-          </tr>
-          <tr className="border-b border-studio-border/50 last:border-0">
-            <td className="px-4 py-2.5 text-studio-text">Recursive pipeline</td>
-            {tiers.map(([name, t]) => (
-              <td key={name} className="px-4 py-2.5 text-center text-studio-muted">
-                {t.pipelineEnabled ? 'Yes' : '\u2014'}
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-center text-xs text-studio-muted">
+        Using the Studio website is not limited by the hour on either plan. Unused credits carry
+        over.
+      </p>
     </div>
+  );
+}
+
+/** What the Studio Pro card needs from the page that shows it. */
+export interface StudioProControls {
+  /** From the balance answer; null until it has loaded. */
+  state: StudioProState | null;
+  /** True while a checkout or the billing page is being opened. */
+  busy: boolean;
+  onSubscribe: () => void;
+  onManage: () => void;
+}
+
+function longDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/** Subscribe to Studio Pro, or see and manage the subscription you have. */
+export function StudioProCard({ state, busy, onSubscribe, onManage }: StudioProControls) {
+  const isPro = state?.isPro === true;
+  const end = state?.periodEnd ? longDate(state.periodEnd) : null;
+  let status: string | null = null;
+  if (isPro && state?.ending) {
+    status = `Your Studio Pro ends ${end ? `on ${end}` : 'when this paid month ends'}. Your credits stay.`;
+  } else if (isPro) {
+    status = end ? `You're on Studio Pro. It renews on ${end}.` : "You're on Studio Pro.";
+  }
+  const manageLabel = !isPro
+    ? 'Past invoices'
+    : state?.ending
+      ? 'Manage subscription'
+      : 'Manage or cancel';
+  return (
+    <section
+      aria-labelledby="studio-pro-title"
+      className="rounded-xl border border-studio-accent/40 bg-studio-accent/5 p-6"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 id="studio-pro-title" className="text-lg font-bold text-studio-text">
+          {STUDIO_PRO.label}
+        </h3>
+        <div className="text-2xl font-bold text-studio-text">
+          {dollars(STUDIO_PRO.priceCentsMonthly)}
+          <span className="text-sm font-normal text-studio-muted"> a month</span>
+        </div>
+      </div>
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-studio-muted">
+        <li>
+          {STUDIO_PRO.includedCredits.toLocaleString()} credits every paid month. Unused credits
+          carry over.
+        </li>
+        <li>
+          No hourly limit on requests from your own tools (MCP, scripts). Free accounts get{' '}
+          {hourly(TIER_LIMITS.free.hourlyRequestLimit)}.
+        </li>
+        <li>Cancel any time. Studio Pro lasts to the end of the month you paid for.</li>
+      </ul>
+      {status && (
+        <p role="status" className="mt-4 text-sm font-medium text-studio-text">
+          {status}
+        </p>
+      )}
+      <div className="mt-4 flex flex-wrap gap-3">
+        {!isPro && (
+          <button
+            type="button"
+            onClick={onSubscribe}
+            disabled={busy}
+            className="rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-studio-accent/80 disabled:opacity-60"
+          >
+            {busy
+              ? 'Opening Stripe\u2026'
+              : `Subscribe for ${dollars(STUDIO_PRO.priceCentsMonthly)} a month`}
+          </button>
+        )}
+        {state?.canManage && (
+          <button
+            type="button"
+            onClick={onManage}
+            disabled={busy}
+            className="rounded-lg bg-studio-panel px-4 py-2.5 text-sm font-medium text-studio-text transition-colors hover:bg-studio-accent/20 disabled:opacity-60"
+          >
+            {manageLabel}
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -153,8 +264,8 @@ export function PricingTab({ onPurchase }: { onPurchase: (pkgId: string) => void
         <h3 className="mb-4 text-lg font-semibold text-studio-text text-center">Operation Costs</h3>
         <OperationCostTable />
         <p className="mt-4 text-center text-xs text-studio-muted">
-          LLM token usage is metered on top of base costs with a transparent 15% markup over
-          provider pricing.
+          LLM token usage is metered on top of base costs with a transparent {MARKUP_PERCENT} markup
+          over provider pricing.
         </p>
       </div>
 
@@ -185,8 +296,8 @@ export function PricingTab({ onPurchase }: { onPurchase: (pkgId: string) => void
           ))}
         </div>
         <p className="mt-4 text-[10px] text-studio-muted">
-          We automatically select the best available provider. Prices shown are base provider costs
-          -- our 30% markup is applied transparently.
+          We automatically select the best available provider. Prices shown are base provider costs;
+          our {MARKUP_PERCENT} markup is added on top.
         </p>
       </div>
     </div>

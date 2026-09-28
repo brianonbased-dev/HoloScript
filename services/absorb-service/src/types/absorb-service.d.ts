@@ -208,6 +208,42 @@ declare module '@holoscript/absorb-service/credits' {
     opts?: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> }
   ) => Promise<{ balanceCents: number } | null>;
   export const getUsageHistory: (userId: string, limit?: number) => Promise<unknown[]>;
+  // Studio Pro. Typed for the same reason as the functions above: the subscribe
+  // route charges priceCentsMonthly and the webhook grants includedCredits.
+  export const SUBSCRIPTION_PRICING: {
+    readonly studioPro: {
+      readonly priceCentsMonthly: number;
+      readonly includedCredits: number;
+      readonly label: string;
+    };
+  };
+  export interface CreditSubscription {
+    userId: string;
+    plan: string;
+    stripeCustomerId: string;
+    stripeSubscriptionId: string;
+    status: string;
+    currentPeriodEnd: Date | null;
+    cancelAtPeriodEnd: boolean;
+  }
+  export const tierForSubscriptionStatus: (
+    status: string | null | undefined
+  ) => 'free' | 'pro' | 'enterprise';
+  export const getSubscription: (userId: string) => Promise<CreditSubscription | null>;
+  export const findSubscriptionUser: (ref: {
+    stripeSubscriptionId?: string | null;
+    stripeCustomerId?: string | null;
+  }) => Promise<string | null>;
+  export const recordSubscription: (
+    userId: string,
+    sub: Omit<CreditSubscription, 'userId'>
+  ) => Promise<{ tier: 'free' | 'pro' | 'enterprise' } | null>;
+  export const grantSubscriptionCredits: (
+    userId: string,
+    invoiceId: string,
+    credits: number,
+    metadata?: Record<string, unknown>
+  ) => Promise<{ balanceCents: number } | null>;
   export const MeteredLLMProvider: unknown;
   export const requireCredits: unknown;
   export const isCreditError: unknown;
@@ -220,6 +256,7 @@ declare module '@holoscript/absorb-service/credits' {
 declare module '@holoscript/absorb-service/schema' {
   export const creditAccounts: unknown;
   export const creditTransactions: unknown;
+  export const creditSubscriptions: unknown;
   export const absorbProjects: unknown;
 }
 

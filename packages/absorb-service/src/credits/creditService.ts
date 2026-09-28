@@ -10,7 +10,7 @@
  */
 
 import { eq, desc, sql } from 'drizzle-orm';
-import { creditAccounts, creditTransactions } from '../schema';
+import { creditAccounts, creditSubscriptions, creditTransactions } from '../schema';
 import { TIER_LIMITS, type Tier } from './pricing';
 
 // ─── DB Client Injection ────────────────────────────────────────────────────
@@ -299,6 +299,136 @@ export async function addCredits(
   }
 
   return await db.transaction(apply);
+}
+
+// ─── Studio Pro Subscription ─────────────────────────────────────────────────
+
+export interface CreditSubscription {
+  userId: string;
+  plan: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  status: string;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+/**
+ * The tier a Stripe subscription status earns. Pro while Stripe still treats the
+ * subscription as live: active, trialing, or past_due while it retries a failed
+ * card (dropping a customer on one declined charge would punish a bank hiccup;
+ * Stripe moves the subscription on to unpaid or canceled if the retries fail).
+ * Everything else, and anything unrecognised, is free: nothing unproven counts
+ * as paid.
+ */
+export function tierForSubscriptionStatus(status: string | null | undefined): Tier {
+  return status === 'active' || status === 'trialing' || status === 'past_due' ? 'pro' : 'free';
+}
+
+function toSubscription(row: Record<string, unknown>): CreditSubscription {
+  return {
+    userId: row.userId as string,
+    plan: row.plan as string,
+    stripeCustomerId: row.stripeCustomerId as string,
+    stripeSubscriptionId: row.stripeSubscriptionId as string,
+    status: row.status as string,
+    currentPeriodEnd: (row.currentPeriodEnd as Date | null) ?? null,
+    cancelAtPeriodEnd: Boolean(row.cancelAtPeriodEnd),
+  };
+}
+
+export async function getSubscription(userId: string): Promise<CreditSubscription | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select()
+    .from(creditSubscriptions)
+    .where(eq(creditSubscriptions.userId, userId))
+    .limit(1);
+  return row ? toSubscription(row) : null;
+}
+
+/**
+ * Whose subscription a Stripe object belongs to, when its metadata does not say:
+ * by the subscription id first, then the customer id. Null when neither is known.
+ */
+export async function findSubscriptionUser(ref: {
+  stripeSubscriptionId?: string | null;
+  stripeCustomerId?: string | null;
+}): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  for (const [column, value] of [
+    [creditSubscriptions.stripeSubscriptionId, ref.stripeSubscriptionId],
+    [creditSubscriptions.stripeCustomerId, ref.stripeCustomerId],
+  ] as const) {
+    if (!value) continue;
+    const [row] = await db
+      .select({ userId: creditSubscriptions.userId })
+      .from(creditSubscriptions)
+      .where(eq(column, value))
+      .limit(1);
+    if (row?.userId) return row.userId as string;
+  }
+  return null;
+}
+
+/**
+ * Record what Stripe says about a user's subscription and set their tier from it,
+ * in one transaction, so the row and the tier can never disagree. Upsert by user:
+ * subscribing again after cancelling replaces the old subscription on the same row.
+ */
+export async function recordSubscription(
+  userId: string,
+  sub: Omit<CreditSubscription, 'userId'>
+): Promise<{ tier: Tier } | null> {
+  const db = getDb();
+  if (!db) {
+    console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
+    return null;
+  }
+  await getOrCreateAccount(userId);
+  const tier = tierForSubscriptionStatus(sub.status);
+  const now = new Date();
+  const apply = async (tx: DbClient): Promise<{ tier: Tier }> => {
+    await tx
+      .insert(creditSubscriptions)
+      .values({ userId, ...sub, updatedAt: now })
+      .onConflictDoUpdate({ target: creditSubscriptions.userId, set: { ...sub, updatedAt: now } });
+    await tx
+      .update(creditAccounts)
+      .set({ tier, updatedAt: now })
+      .where(eq(creditAccounts.userId, userId));
+    return { tier };
+  };
+  // Same rule as addCredits: without a transaction the row and the tier could
+  // land apart, so refuse rather than write half.
+  if (typeof db.transaction !== 'function') {
+    console.error(
+      '[creditService] REFUSED: the database client exposes no transaction(). ' +
+        'recordSubscription will not write a subscription and a tier separately.'
+    );
+    return null;
+  }
+  return await db.transaction(apply);
+}
+
+/**
+ * Grant one paid invoice's Studio Pro credits, once. The invoice id goes in the
+ * ledger's stripe_session_id, so the unique index that stops a redelivered
+ * checkout crediting twice does the same for a redelivered invoice.paid.
+ */
+export async function grantSubscriptionCredits(
+  userId: string,
+  invoiceId: string,
+  credits: number,
+  metadata: Record<string, unknown> = {}
+): Promise<{ balanceCents: number } | null> {
+  return addCredits(userId, credits, 'Studio Pro monthly credits', {
+    type: 'subscription',
+    stripeSessionId: invoiceId,
+    metadata: { ...metadata, invoiceId },
+  });
 }
 
 // ─── Usage History ───────────────────────────────────────────────────────────

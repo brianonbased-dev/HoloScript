@@ -10,8 +10,18 @@ export {
   deductCredits,
   addCredits,
   getUsageHistory,
+  tierForSubscriptionStatus,
+  getSubscription,
+  findSubscriptionUser,
+  recordSubscription,
+  grantSubscriptionCredits,
 } from './creditService.js';
-export type { CreditAccount, CreditTransaction, BalanceCheck } from './creditService.js';
+export type {
+  CreditAccount,
+  CreditTransaction,
+  BalanceCheck,
+  CreditSubscription,
+} from './creditService.js';
 export { MeteredLLMProvider } from './meteredLLMProvider.js';
 export { requireCredits, isCreditError } from './requireCredits.js';
 export type { CreditGateResult, CreditError } from './requireCredits.js';

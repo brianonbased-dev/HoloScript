@@ -61,6 +61,7 @@ async function useDb(db: unknown): Promise<void> {
 
 interface StripeSession {
   id: string;
+  mode?: string;
   payment_status: string;
   amount_total?: number | null;
   metadata: Record<string, string> | null;
@@ -91,6 +92,17 @@ vi.mock('stripe', () => ({
     constructor(_key: string) {}
   },
 }));
+
+// The Studio Pro branch has its own tests (subscriptionWebhook.test.ts). Here it is
+// a seam: a subscription-mode session is answered by it, anything else passes.
+const subMocks = vi.hoisted(() => ({
+  handle: vi.fn(async (event: { data: { object: { mode?: string } } }) =>
+    event.data.object.mode === 'subscription'
+      ? { status: 200, body: { received: true, recorded: true } }
+      : null
+  ),
+}));
+vi.mock('./subscriptionWebhook.js', () => ({ handleSubscriptionEvent: subMocks.handle }));
 
 vi.mock('./credits.js', async () => {
   const actual = await vi.importActual<typeof import('./credits.js')>('./credits.js');
@@ -309,6 +321,45 @@ describe('Stripe webhook — money becomes credits exactly once, or loudly not a
 
     await (await handler())(req(), res() as unknown as Response);
 
+    expect(db.__ledger.at(-1)?.stripeSessionId).toBe('cs_test_A');
+  });
+});
+
+describe('Stripe webhook — Studio Pro events go to their own handler', () => {
+  beforeEach(() => {
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+    stripeMocks.constructEvent.mockClear();
+    subMocks.handle.mockClear();
+  });
+
+  afterEach(() => {
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+  });
+
+  it('a subscription checkout is answered by the subscription handler and never becomes a zero-credit purchase', async () => {
+    // Without the routing, a paid subscription checkout (it has metadata too)
+    // reached the one-time branch and wrote a 0-credit Stripe purchase row.
+    paidSession({ id: 'cs_sub', mode: 'subscription', metadata: { userId: USER, plan: 'studio_pro' } });
+    const db = makeDb();
+    await useDb(db);
+
+    const r = res();
+    await (await handler())(req(), r as unknown as Response);
+
+    expect(subMocks.handle).toHaveBeenCalledTimes(1);
+    expect(r._status).toBe(200);
+    expect(r._json).toMatchObject({ recorded: true });
+    expect(db.__ledger).toHaveLength(0);
+  });
+
+  it('a one-time purchase still reaches the ledger after the subscription handler passes on it', async () => {
+    paidSession();
+    const db = makeDb();
+    await useDb(db);
+
+    await (await handler())(req(), res() as unknown as Response);
+
+    expect(subMocks.handle).toHaveBeenCalledTimes(1);
     expect(db.__ledger.at(-1)?.stripeSessionId).toBe('cs_test_A');
   });
 });

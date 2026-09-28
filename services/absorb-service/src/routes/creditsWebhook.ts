@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import type Stripe from 'stripe';
 import { configuredStripeKey } from './credits.js';
+import { handleSubscriptionEvent, type SubscriptionStripe } from './subscriptionWebhook.js';
 
 const router = Router();
 
@@ -31,6 +32,21 @@ router.post('/stripe', async (req: Request, res: Response) => {
   }
 
   try {
+    // Studio Pro first. A subscription checkout is also a paid
+    // `checkout.session.completed` with metadata, so the one-time branch below
+    // would otherwise record it as a zero-credit purchase. Everything that is
+    // not a Studio Pro event comes back null and is handled as before.
+    const credits = await import('@holoscript/absorb-service/credits');
+    const subscriptionReply = await handleSubscriptionEvent(
+      event,
+      stripe as unknown as SubscriptionStripe,
+      credits
+    );
+    if (subscriptionReply) {
+      res.status(subscriptionReply.status).json(subscriptionReply.body);
+      return;
+    }
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       

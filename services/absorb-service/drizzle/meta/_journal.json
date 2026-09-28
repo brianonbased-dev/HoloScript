@@ -15,6 +15,13 @@
       "when": 1790051325125,
       "tag": "0001_dedupe_stripe_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790590000000,
+      "tag": "0002_credit_subscriptions",
+      "breakpoints": true
     }
   ]
 }

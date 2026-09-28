@@ -211,7 +211,8 @@ export function classifyIndexState(rows: ReadonlyArray<{ valid: boolean | null }
   return rows[0].valid === true ? 'valid' : 'invalid';
 }
 
-function createClient(databaseUrl: string): Client {
+/** A one-off client for boot-time schema checks. Also used by ensureSubscriptionTable. */
+export function createClient(databaseUrl: string): Client {
   const isPrivate = !databaseUrl.includes('.railway.app');
   return new Client({
     connectionString: databaseUrl,

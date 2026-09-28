@@ -92,7 +92,7 @@ function PricingComponent() {
 <div className="flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4">
 
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
-      {`Pro`}
+      {`Scale`}
 
     </h3>
 <p className="text-xs text-studio-muted">
@@ -103,7 +103,7 @@ function PricingComponent() {
 <div className="flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4">
 
       <h3 className="text-xl font-semibold text-sm font-semibold text-studio-text">
-      {`Enterprise`}
+      {`Bulk`}
 
     </h3>
 <p className="text-xs text-studio-muted">
@@ -112,6 +112,26 @@ function PricingComponent() {
     </p>
     </div>
     </section>
+<h2 className="text-3xl font-bold mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted">
+      {`Studio Pro`}
+
+    </h2>
+<p className="mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted">
+      {`\$15 a month for 500 credits every paid month. Unused credits carry over, and the credit packs above stay on sale to subscribers.`}
+
+    </p>
+<p className="mt-2 max-w-2xl text-sm leading-relaxed text-studio-muted">
+      {`It also lifts the hourly limit on requests your own tools send to our API, such as MCP clients and scripts: free accounts get 10 an hour, and Studio Pro has no hourly limit. Using the Studio website is not limited by the hour on either plan.`}
+
+    </p>
+<p className="mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted">
+      {`Cancel any time from Settings. Studio Pro lasts to the end of the month you paid for, and the credits you have stay yours.`}
+
+    </p>
+<a className="mt-3 inline-block text-sm font-semibold text-studio-text" href="/settings?tab=credits">
+      {`Subscribe in Settings →`}
+
+    </a>
 <h2 className="text-3xl font-bold mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted">
       {`Model tokens`}
 
