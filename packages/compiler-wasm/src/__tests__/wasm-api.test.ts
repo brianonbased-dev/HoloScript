@@ -67,6 +67,13 @@ function createMockWasm(overrides?: Partial<HoloScriptWasmModule>): HoloScriptWa
   };
 }
 
+interface SpecCorpusRow {
+  id: string;
+  source: string;
+  tags: string[];
+  expect: { valid: boolean; diagnostic_includes?: string };
+}
+
 const VALID_UAAL_BYTECODE: UAALWasmBytecode = {
   version: 1,
   instructions: [{ opCode: 0x01, operands: [42] }, { opCode: 0xff }],
@@ -160,6 +167,32 @@ function executeHsNativeViaRust(source: string, executionTimeoutMs = 30000): num
       throw new Error('native decision kernel did not report an exit status');
     }
     return execution.status;
+  } finally {
+    rmSync(scratchDir, { recursive: true, force: true });
+  }
+}
+
+/** `validate_detailed` from the current Rust source, through the `validate_hs` example. */
+function validateHsViaRust(source: string): { valid: boolean; errors: Array<{ message: string }> } {
+  const scratchDir = mkdtempSync(join(tmpdir(), 'holoscript-validate-'));
+  const sourcePath = join(scratchDir, 'case.hs');
+  try {
+    writeFileSync(sourcePath, source, 'utf8');
+    const stdout = execFileSync(
+      resolveCargoCommand(),
+      [
+        'run',
+        '--quiet',
+        '--manifest-path',
+        COMPILER_WASM_MANIFEST,
+        '--example',
+        'validate_hs',
+        '--',
+        sourcePath,
+      ],
+      { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 1024 * 1024 }
+    );
+    return JSON.parse(stdout.trim().split('\t').slice(1).join('\t'));
   } finally {
     rmSync(scratchDir, { recursive: true, force: true });
   }
@@ -904,6 +937,54 @@ function main(): i32 {
 }`)
     ).toThrow('HS-RETURN-002');
   }, 60000);
+
+  it('refuses every G11 corpus case in the checker, the native compiler and compile_to_uaal', () => {
+    const corpus = readFileSync(
+      resolve(REPO_ROOT, 'packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl'),
+      'utf8'
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as SpecCorpusRow)
+      .filter((row) => row.tags.includes('g11') && row.expect.valid === false);
+
+    // The reason native gives for each case. Native stops at the `var` counter of the `break`
+    // case before it reaches `break`; the loop below isolates `break` itself.
+    const nativeReason: Record<string, RegExp> = {
+      'g11-unknown-local-001': /references unknown local `y`/,
+      'g11-unknown-function-002': /calls unknown function `g`/,
+      'g11-arity-003': /call to `add` expects 2 arguments, found 1/,
+      'g11-missing-return-004': /function `f` has no return statement/,
+      'g11-return-one-path-005': /function `f` has no return statement/,
+      'g11-break-identifier-007': /local `i` must be immutable/,
+      'g11-use-after-block-009': /references unknown local `t`/,
+      'g11-hidden-name-010': /redeclares binding `x`/,
+    };
+    expect(corpus.map((row) => row.id).sort()).toEqual(Object.keys(nativeReason).sort());
+
+    for (const row of corpus) {
+      const code = row.expect.diagnostic_includes!;
+      const checker = validateHsViaRust(row.source);
+      expect(checker.valid, row.id).toBe(false);
+      expect(checker.errors[0]?.message, row.id).toContain(code);
+
+      // A native executable needs `main`; the case's own function is still compiled.
+      const program = /function main\s*\(/.test(row.source)
+        ? row.source
+        : `${row.source}\n\nfunction main(): i32 {\n  return 0\n}\n`;
+      expect(() => executeHsNativeViaRust(program), row.id).toThrow(nativeReason[row.id]);
+      expect(() => compileHsToUaalViaRust(program), row.id).toThrow(code);
+    }
+
+    // `break` alone: native compiles the loop without it and refuses the loop with it.
+    const loop = (body: string) =>
+      `function main(): i32 {\n  let i: i32 = 3\n  while (i > 5) {\n${body}  }\n  return i\n}\n`;
+    expect(executeHsNativeViaRust(loop('    return 1\n'))).toBe(3);
+    expect(() => executeHsNativeViaRust(loop('    break\n'))).toThrow(
+      /supports only typed immutable locals/
+    );
+    expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
+  }, 600000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {
     const source = readFileSync(THREE_SURFACE_POLICY_PATH, 'utf8');
