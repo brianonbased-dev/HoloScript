@@ -432,7 +432,11 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   puts it in the backlog.
 - **Scope/blast:** distinguish an omitted field from an explicit empty list; warn first. Existing
   brains may rely on today's meaning, so it needs a written proposal.
-- **STATUS — OPEN.**
+- **STATUS — OPEN; proposal written, awaiting founder approval (2026-09-28):**
+  [`proposals/Agent_Frame_Tool_Allowlist_v1.md`](../../proposals/Agent_Frame_Tool_Allowlist_v1.md)
+  — `["*"]` for every tool, `[]` for none, omitted unchanged. Measured: one file writes `[]`
+  (`compositions/frame-declaration-example.hsplus`, deliberately meaning "every tool"; it migrates
+  to `["*"]`), four list tools, every other brain omits the field; none in ai-ecosystem declare it.
 
 ## G16 — The Spec v0.1 fence test counts success, not what was kept
 
