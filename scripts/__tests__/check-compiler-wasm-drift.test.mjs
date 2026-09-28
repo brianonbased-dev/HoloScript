@@ -196,6 +196,25 @@ test('compiler-wasm drift gate fails when the rebuild receipt names a different 
   }
 });
 
+test('compiler-wasm drift gate fails when a committed wasm has no receipt', () => {
+  const root = createFixtureRepo();
+  try {
+    write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\n');
+    write(join(root, 'pkg-node/artifact.cjs'), 'exports.parse = function parse() {};\n');
+    writeFileSync(
+      join(root, 'pkg-node/holoscript_wasm_bg.wasm'),
+      Buffer.from([0, 97, 115, 109, 1])
+    );
+    git(root, ['add', 'src/lib.rs', 'pkg-node', 'package.json']);
+    git(root, ['commit', '-m', 'source and artifact without a receipt']);
+    const missing = runGate(root);
+    assert.equal(missing.status, 1, `${missing.stdout}\n${missing.stderr}`);
+    assert.match(missing.stderr, /has no pkg-node\/rebuild-receipt\.json/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('compiler-wasm drift gate passes and says so when the receipt matches the wasm', () => {
   const root = createFixtureRepo();
   try {

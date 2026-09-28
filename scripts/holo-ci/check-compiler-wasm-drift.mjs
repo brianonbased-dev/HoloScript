@@ -161,12 +161,18 @@ function checkExports(root, srcRel, artifactJsRel, expectedExports, noExportScan
  * The rebuild receipt inside the artifact path vouches for one WASM file, and committing it
  * advances freshness (see the stale message below). So what it records must be what is on disk.
  * Before 2026-09-28 only the publish script compared them: a receipt one character short of the
- * real digest passed every gate. Returns the verified digest, or null when there is no receipt.
+ * real digest passed every gate. A WASM with no receipt fails too. Returns the verified digest,
+ * or null when the artifact path holds no WASM.
  */
 function checkReceipt(root, artifactRel) {
   const receiptRel = `${artifactRel}/rebuild-receipt.json`;
   const wasmRel = `${artifactRel}/holoscript_wasm_bg.wasm`;
-  if (!existsSync(join(root, receiptRel)) || !existsSync(join(root, wasmRel))) return null;
+  if (!existsSync(join(root, wasmRel))) return null;
+  if (!existsSync(join(root, receiptRel))) {
+    throw new Error(
+      `${wasmRel} has no ${receiptRel}; a committed WASM needs a receipt naming its sha256 and size.`
+    );
+  }
   let receipt;
   try {
     receipt = JSON.parse(readFileSync(join(root, receiptRel), 'utf8'));
@@ -256,7 +262,9 @@ async function main() {
     )}${stagedArtifactRefresh ? '+staged-refresh' : ''} (${exports.length} function export${
       exports.length === 1 ? '' : 's'
     } checked; ${
-      receiptDigest ? `receipt matches wasm sha256 ${receiptDigest.slice(0, 12)}` : 'no rebuild receipt'
+      receiptDigest
+        ? `receipt matches wasm sha256 ${receiptDigest.slice(0, 12)}`
+        : 'no wasm in artifact path'
     })`
   );
 }
