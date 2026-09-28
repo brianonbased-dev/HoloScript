@@ -92,6 +92,82 @@ describe('/api/absorb/credits route', () => {
     expect(sent['X-User-Authorization']).toBe('Bearer ghp_user_token');
   });
 
+  describe('where Stripe sends the buyer afterwards', () => {
+    const envSnapshot = { ...process.env };
+    const checkoutOk = () =>
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ checkoutUrl: 'https://pay.example/xyz' }), { status: 200 })
+      );
+    const sentBody = (fetchMock: ReturnType<typeof vi.fn>) =>
+      (fetchMock.mock.calls[0][1] as RequestInit).body as string;
+
+    beforeEach(() => {
+      process.env = { ...envSnapshot };
+      delete process.env.NEXT_PUBLIC_STUDIO_URL;
+      delete process.env.NEXT_PUBLIC_URL;
+      process.env.NEXTAUTH_URL = 'https://holoscript.studio';
+    });
+    afterEach(() => {
+      process.env = { ...envSnapshot };
+    });
+
+    it("POST tells absorb to return the buyer to this Studio's Settings, Credits tab", async () => {
+      // Without these, absorb fell back to localhost:3005 (PUBLIC_URL unset) and
+      // its own /api/credits/success sits behind auth: a paid buyer hit a dead page.
+      const fetchSpy = checkoutOk();
+      vi.stubGlobal('fetch', fetchSpy);
+
+      const res = await POST(purchaseReq({ Authorization: 'Bearer ghp_user_token' }));
+      expect(res.status).toBe(200);
+
+      const sent = JSON.parse(sentBody(fetchSpy));
+      expect(sent.packageId).toBe('starter');
+      expect(sent.successUrl).toBe(
+        'https://holoscript.studio/settings?tab=credits&purchase=success&session_id={CHECKOUT_SESSION_ID}'
+      );
+      expect(sent.cancelUrl).toBe('https://holoscript.studio/settings?tab=credits&purchase=cancelled');
+    });
+
+    it('POST overwrites return URLs the client sent, so checkout cannot be aimed elsewhere', async () => {
+      const fetchSpy = checkoutOk();
+      vi.stubGlobal('fetch', fetchSpy);
+
+      await POST(
+        new NextRequest('http://localhost/api/absorb/credits', {
+          method: 'POST',
+          body: JSON.stringify({
+            packageId: 'starter',
+            successUrl: 'https://evil.example/phish',
+            cancelUrl: 'https://evil.example/phish',
+          }),
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ghp_user_token' },
+        })
+      );
+
+      const sent = JSON.parse(sentBody(fetchSpy));
+      expect(sent.successUrl.startsWith('https://holoscript.studio/settings?')).toBe(true);
+      expect(sent.cancelUrl.startsWith('https://holoscript.studio/settings?')).toBe(true);
+      expect(JSON.stringify(sent)).not.toContain('evil.example');
+    });
+
+    it('POST passes a body that is not a JSON object through untouched, for absorb to report', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: 'Validation error' }), { status: 400 })
+      );
+      vi.stubGlobal('fetch', fetchSpy);
+
+      const res = await POST(
+        new NextRequest('http://localhost/api/absorb/credits', {
+          method: 'POST',
+          body: 'not json',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ghp_user_token' },
+        })
+      );
+      expect(res.status).toBe(400);
+      expect(sentBody(fetchSpy)).toBe('not json');
+    });
+  });
+
   it('POST returns 503 when absorb service is unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('timeout')));
 

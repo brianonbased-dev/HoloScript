@@ -100,3 +100,25 @@ export function resolveReachableStudioOrigin(
   const port = origin.port ? `:${origin.port}` : '';
   return `${origin.protocol}//${lanHost}${port}`;
 }
+
+/**
+ * The origin to send a signed-in user's BROWSER back to, e.g. after a Stripe
+ * checkout. Two differences from resolveReachableStudioOrigin, both on purpose:
+ *
+ * - It never swaps a loopback host for a LAN address. A browser sent back to the
+ *   LAN address arrives without its session cookie, which belongs to the host
+ *   the user signed in on.
+ * - After an explicit public Studio URL it prefers NEXTAUTH_URL, because that is
+ *   where the session lives. The request's own origin is the last resort: on
+ *   Railway `request.nextUrl.origin` was the container's bind origin
+ *   (https://0.0.0.0:8080), a dead address for a real user (see app/gold-game).
+ */
+export function resolvePublicStudioOrigin(
+  request: OriginRequest,
+  options: { env?: NodeJS.ProcessEnv } = {}
+): string {
+  const env = options.env ?? process.env;
+  const configured =
+    parseOrigin(env.NEXT_PUBLIC_STUDIO_URL ?? env.NEXT_PUBLIC_URL) ?? parseOrigin(env.NEXTAUTH_URL);
+  return (configured ?? originFromRequest(request)).origin;
+}
