@@ -174,6 +174,8 @@ function add(left: i32, right: i64): i64 {
 }
 ```
 
+Function parameters have no default values in v0.1 (a default written with `=` is only allowed on a field).
+
 `export` wraps another top-level form. This one type-checks:
 
 ```hs
