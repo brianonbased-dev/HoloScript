@@ -28,7 +28,7 @@ These other numbers are software versions. They are not the language version:
 
 **Confirmed by Joseph on 2026-09-27.**
 
-**(a)** A `.hs` file means whatever the Rust/WASM parser in `packages/compiler-wasm` accepts, as named by `docs/spec/holoscript-grammar-ssot.md`. "Accepts" for `.hs` means `validate_detailed` returns `"valid": true`. That call parses the file and then checks types (`packages/compiler-wasm/src/lib.rs` lines 164–176).
+**(a)** A `.hs` file means whatever the Rust/WASM parser in `packages/compiler-wasm` accepts, as named by `docs/spec/holoscript-grammar-ssot.md`. "Accepts" for `.hs` means `validate_detailed` returns `"valid": true`. That call parses the file and then checks types (`validate_detailed` in `packages/compiler-wasm/src/lib.rs`).
 
 **(b)** **webgpu**, **godot**, and **urdf** are the only promised v0.1 compile targets. **webgpu** is sovereign: our code generation, and it runs on the browser's WebGPU API. No test in this repo runs the generated output yet. **godot** and **urdf** are labeled bridges. Every other `ExportTarget` member stays in the code and is listed below as unproven, not in v0.1. Nothing was deleted.
 
@@ -328,6 +328,24 @@ A function whose return type does not match the value it returns. The grammar sh
 ```hs reject
 export function add(left: i32, right: i64): i64 {
   return left
+}
+```
+
+Inside a function that states a parameter or return type, every name must be declared: a parameter, a local declared earlier in the same or an enclosing block, a top-level function, struct, enum or import, or a built-in. Message: ``[HS-NAME-001] unknown name `y` in function `f`; …``. (Added 2026-09-28 under the gate rule below; `proposals/HS_Checker_Names_Calls_Returns_v1.md`.)
+
+```hs reject
+function f(): i32 {
+  return y
+}
+```
+
+A function that states a return type must return a value on every path. Message: ``[HS-RETURN-002] function `f` declares `i32` but can finish without returning a value; …``.
+
+```hs reject
+function f(x: i32): i32 {
+  if (x > 0) {
+    return 1
+  }
 }
 ```
 
@@ -804,12 +822,22 @@ Other catalogs also name traits. The trait count is being reconciled across thos
 
 The grammar reader has one numbered code. `packages/compiler-wasm/src/parser.rs` lines 60–64 emit `HS010: Security violation: blocked lexical capability \`...\`` when the lexer sees a blocked word (`packages/compiler-wasm/src/lexer.rs` lines 5–18). This spec does not include a sample of those words.
 
-The type check that `validate_detailed` runs adds these codes (`packages/compiler-wasm/src/semantic_types.rs` lines 13–16):
+The type check that `validate_detailed` runs adds these codes (the constants at the top of `packages/compiler-wasm/src/semantic_types.rs`):
 
 - `HS-TYPE-RETURN-001`
 - `HS-TYPE-ASSIGN-001`
 - `HS-TYPE-ARG-001`
 - `HS-TYPE-LOGICAL-001`
+
+Inside a function that states a parameter or return type it also refuses, since 2026-09-28 (G11):
+
+- `HS-NAME-001` — a name that is not declared (`break` and `continue` included: they are not statements)
+- `HS-NAME-002` — a call to a name that is not a function, struct, import or built-in
+- `HS-ARITY-001` — the wrong number of arguments to a function of the same program
+- `HS-RETURN-002` — a declared return type with a path that returns no value
+- `HS-SCOPE-001` — a declaration that reuses a name still visible from its own or an enclosing block
+
+These errors carry the line and column of the name, call, declaration or function. `validate_detailed_in_context` runs the same check on one function lifted out of a larger document, given the document's functions and names; the `.hsplus` reader uses it for typed functions.
 
 Everything else the grammar prints is a sentence with no code. Measured sentences include `Expected identifier`, `Expected LBrace, got Identifier`, `Unexpected identifier: zone`, `Unexpected identifier: pipeline`, `Unexpected identifier: spatial`, and `Unexpected identifier: brain`.
 
@@ -878,6 +906,10 @@ Any new syntax, or any change to what the readers accept today, needs a written 
 4. A reviewer from a different seat and a different family than the author approves the pull request.
 
 Joseph's review stays reserved for the four protected classes: spend and custody, physical-world commitments, public commitments under his name, and governance.
+
+Changes made under these gates:
+
+- **2026-09-28, G11** ([proposal](../../proposals/HS_Checker_Names_Calls_Returns_v1.md)): inside typed functions, `validate_detailed` refuses unknown names and functions, the wrong argument count, a missing return and a hidden name. Measured on the build: 0 of 68 valid `.hs` files and 0 of 2,474 `.hsplus` files changed verdict. Gate 4 (review) is recorded on its pull request.
 
 Deprecation is announced in a later revision of this spec, with the date, the old form, the replacement, and the version in which the old form will stop parsing. The old form keeps parsing for at least one 0.x patch after that announcement. Removing it passes the same four gates. A banner on an older document is a pointer. It is not, by itself, a removal.
 

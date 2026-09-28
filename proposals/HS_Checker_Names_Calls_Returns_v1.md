@@ -1,6 +1,6 @@
 # `.hs` checker: names, calls and returns (G11) — v1
 
-**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28). Implementation in progress. Originally proposed under the Spec v0.1 no-break policy
+**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28). Implemented on branch `claude/hs-checker-names-g11` (gates 1–3 recorded below; gate 4, a reviewer from another seat and family, pending). Originally proposed under the Spec v0.1 no-break policy
 (`docs/spec/holoscript-spec-v0.1.md`, "Any new syntax, or any change to syntax the readers accept
 today, needs a written proposal before it is built").
 **Gap:** G11 in [`docs/spec/spec-vs-reality-gap.md`](../docs/spec/spec-vs-reality-gap.md).
@@ -120,6 +120,43 @@ prototype of these rules (scratch, not product code), cross-checked against both
    stay admissible until the type system names every type? This proposal leaves annotations as
    today; only names used as values are resolved.
 2. Should untyped legacy functions ever get these rules? Not proposed; it would change old files.
+
+## As built (2026-09-28)
+
+Where the build differs from the text above, the build is right and this section says why.
+
+- **The built-in list was incomplete.** Rule 1 now also accepts `unknownReason` (the native
+  backend lowers it by name next to `isKnown`) and the Kotlin backend's math built-ins `abs`,
+  `floor`, `max`, `min`, `pow` and `sqrt`, read from that backend's own table
+  (`kotlin_emit::is_kotlin_builtin`), so the two lists cannot drift. Without them the checker
+  would refuse typed functions a backend runs. The switch-off run found the gap: making every
+  function strict broke the Kotlin `sqrt` tests.
+- **Fragment mode carries more than functions.** The context is
+  `{"functions":[{"name","arity"}],"names":[...]}` through a new export,
+  `validate_detailed_in_context`. `names` are the document's structs, enums and imports. A
+  function whose parameters have a default, an optional mark or a spread, or that is declared twice
+  with different counts, is sent without an arity. Both `.hsplus` paths use it: `parse`, and
+  `parseIncremental`, which checks each `logic`/`orb`/`template` block alone and now passes the
+  whole document; without that a typed function calling a function in another block would be
+  refused and its block dropped.
+- **Positions.** Names, calls, `let`/`var`/`const`, `slot`, `return`, assignments and `for` loops
+  now carry their line and column in the AST, so the older `HS-TYPE-*` errors on those nodes gained
+  positions too. A `for (v in …)` loop variable counts as a declaration for rule 5.
+- **One return rule.** Rule 4 and `compile_to_uaal` share `definitely_returns_value`
+  (`semantic_types.rs`), which also counts a trailing `scope { … return … }` block, as native does.
+  A bare `return` in a typed function keeps its `HS-TYPE-RETURN-001` message.
+- **`compile_to_uaal` runs the checker first**, so for typed functions these programs are now
+  refused with the checker's codes; its own guards still cover untyped functions.
+- **Size.** The Node WASM grew from 541,496 to 552,730 bytes. A first draft read the context with
+  a derived deserializer and cost 42 KB; the build reads it through `serde_json::Value`, which the
+  crate already ships.
+
+**Gate evidence.** (1) Measured breakage, re-run on the build: 68 of 68 valid `.hs` files stay
+valid and 69 refused files keep the same first message; 25 of 25 conformance programs valid; all
+2,474 tracked `.hsplus` files give the same error list as before; `compile_to_uaal` gives the same
+bytecode for all 15 files it compiles and the same refusal for the other 122. (2)
+`check-spec-corpus.mjs --strict`: 53/53, with exactly the eight named cases flipped on purpose.
+(3) Switch-off run: each of the 15 checker switches and 5 `.hsplus` bridge switches fails a test.
 
 ## What remains after this proposal
 
