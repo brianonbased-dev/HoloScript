@@ -85,12 +85,34 @@ const stableFailures = new Set(manifest.stableFailures?.tests ?? []);
 // report dirty for every legitimate run and the receipt would never validate.
 // The question the receipt answers is "was the tree clean when testing STARTED",
 // i.e. did this run exercise what HEAD contains.
+//
+// The holotorch parity harness also APPENDS, by design (2026-09-24 audit: prior
+// receipts are never deleted), to two untracked paths: receipts/history/ and
+// receipts/parity-history.ndjson. They are outputs of an earlier run, never inputs to
+// this one, so an untracked entry at exactly those paths does not make a start dirty.
+// Counting them refused every second baseline in a worktree as "dirty". Any other
+// untracked or modified path still does.
+const SUITE_APPEND_ONLY_OUTPUTS = [
+  'src/reconstruction/holotorch/receipts/history/',
+  'src/reconstruction/holotorch/receipts/parity-history.ndjson',
+];
 const startedDirty = (() => {
   const r = spawnSync('git', ['status', '--porcelain', '--', '.'], {
     cwd: coreRoot,
     encoding: 'utf8',
   });
-  return r.status === 0 ? r.stdout.trim().length > 0 : true;
+  if (r.status !== 0) return true;
+  // Porcelain paths are relative to the repository root; the outputs above are
+  // relative to packages/core.
+  const prefix = spawnSync('git', ['rev-parse', '--show-prefix'], {
+    cwd: coreRoot,
+    encoding: 'utf8',
+  }).stdout?.trim();
+  const appendOnly = new Set(SUITE_APPEND_ONLY_OUTPUTS.map((p) => `${prefix ?? ''}${p}`));
+  return r.stdout
+    .split('\n')
+    .filter((line) => line.trim().length > 0)
+    .some((line) => !(line.startsWith('?? ') && appendOnly.has(line.slice(3))));
 })();
 
 // Obtain the run output: either read a completed run's log, or produce one.
