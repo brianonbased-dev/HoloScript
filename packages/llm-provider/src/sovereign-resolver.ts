@@ -343,20 +343,33 @@ export function classifyServiceHost(url: string): ServiceHostClass {
 }
 
 function classifyIpv4OrNameHost(host: string): ServiceHostClass {
-  if (host === 'localhost' || /^127\./u.test(host)) return 'loopback';
+  // Address ranges apply only to an IPv4 LITERAL. The WHATWG URL parser rewrites every IPv4
+  // spelling (0x7f.1, 2130706433, 10.1) to a dotted quad, so anything else is a NAME: a
+  // public domain like `127.0.0.1.evil.com` or `10.example.com` must not pass as local.
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/u.test(host)) return classifyIpv4Literal(host);
+  if (host === 'localhost') return 'loopback';
   if (
-    /^10\./u.test(host) ||
-    /^192\.168\./u.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./u.test(host) ||
-    /^169\.254\./u.test(host) ||
-    // RFC 6598 shared space (Tailscale addresses its tailnet here): not publicly routable.
-    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./u.test(host) ||
     host.endsWith('.local') ||
     host.endsWith('.lan') ||
     // `.internal` is reserved for private networks (host.docker.internal, *.railway.internal).
     host.endsWith('.internal') ||
     // A bare single-label name (`box`, `holojetson`) only resolves on a local network.
     !host.includes('.')
+  )
+    return 'lan';
+  return 'public';
+}
+
+function classifyIpv4Literal(ip: string): ServiceHostClass {
+  const [a, b] = ip.split('.').map(Number);
+  if (a === 127) return 'loopback';
+  if (
+    a === 10 ||
+    (a === 192 && b === 168) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 169 && b === 254) ||
+    // RFC 6598 shared space (Tailscale addresses its tailnet here): not publicly routable.
+    (a === 100 && b >= 64 && b <= 127)
   )
     return 'lan';
   return 'public';
@@ -561,7 +574,10 @@ export interface HostedOllamaVerdict {
 
 // Per-request callers (autocomplete runs per keystroke) would repeat the same line on every
 // call, drowning it. The verdict is still returned every time; only its log line is deduped.
+// The key leaves the model out, because a model name can come from a request body: a stream
+// of invented `x:cloud` names must not grow this set or the log. The cap is a backstop.
 const hostedOllamaLogged = new Set<string>();
+const HOSTED_OLLAMA_LOG_KEYS_MAX = 256;
 
 /** Test hook: forget which hosted-Ollama lines were already logged in this process. */
 export function __resetHostedOllamaWarnings(): void {
@@ -593,8 +609,10 @@ export function checkHostedOllama(
   const detail =
     `${shown} (host class: ${hostClass}${model ? `, model ${quoteForLog(model)}` : ''}; ` +
     `reason: ${reason})`;
-  const logKey = `${allowed ? 'active' : 'refused'}|${opts.caller}|${detail}`;
-  const firstTime = !hostedOllamaLogged.has(logKey);
+  // No model in the key (it can be request-supplied); caller, URL and reason are code/env.
+  const logKey = `${allowed ? 'active' : 'refused'}|${opts.caller}|${shown}|${reason}`;
+  const firstTime =
+    !hostedOllamaLogged.has(logKey) && hostedOllamaLogged.size < HOSTED_OLLAMA_LOG_KEYS_MAX;
   if (firstTime) hostedOllamaLogged.add(logKey);
   if (allowed) {
     if (firstTime)

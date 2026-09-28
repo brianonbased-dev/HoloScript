@@ -1081,6 +1081,17 @@ describe('hosted-Ollama gate (2026-09-24 audit follow-up: ollama.com is not nati
     ['lan', 'http://[fe80::1]:11434'],
     ['lan', 'http://[::ffff:192.168.0.5]:11434'],
     ['loopback', 'http://[::ffff:127.0.0.1]:11434'],
+    // A NAME that merely starts like a private address is a public domain (review P1).
+    ['public', 'http://127.0.0.1.evil.com:11434'],
+    ['public', 'http://10.example.com'],
+    ['public', 'http://192.168.1.1.attacker.net'],
+    ['public', 'http://100.64.0.1.evil.com'],
+    ['public', 'http://localhost.evil.com'],
+    ['public', 'http://172.15.0.1'],
+    ['lan', 'http://172.31.255.1'],
+    // Other IPv4 spellings are normalized to the dotted quad by the URL parser first.
+    ['loopback', 'http://0x7f.1:11434'],
+    ['loopback', 'http://2130706433:11434'],
     ['public', 'https://ollama.com'],
     ['public', 'https://ollama.com/v1'],
     ['public', 'api.ollama.com:443'],
@@ -1304,6 +1315,18 @@ describe('hosted-Ollama gate (2026-09-24 audit follow-up: ollama.com is not nati
     expect(r.model).toBe('gpt-oss:120b-cloud');
     expect(r.step).toBe('hosted-ollama');
     expect(r.hostedOllama).toBe(true);
+  });
+
+  it('a stream of invented cloud model names logs once and grows nothing (review P2)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (let i = 0; i < 100; i++) {
+      const verdict = checkHostedOllama('http://127.0.0.1:11434', {
+        model: `invented-${i}:cloud`,
+        caller: 'material route',
+      });
+      expect(verdict.refused?.reason).toBe('cloud-model');
+    }
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it('logs each distinct verdict once per process, but refuses every time', () => {
