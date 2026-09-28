@@ -1754,7 +1754,14 @@ function toAIFriendlyError(
   return aiError;
 }
 
-function extractErrorCode(message: string): string {
+/**
+ * The error code carried by a diagnostic message. The Rust checker writes its codes in brackets
+ * at the start of the message (`[HS-NAME-001] unknown name ...`).
+ */
+export function extractErrorCode(message: string): string {
+  const checker = message.match(/\[(HS-[A-Z0-9]+(?:-[A-Z0-9]+)*)\]/);
+  if (checker) return checker[1];
+
   const canonical = message.match(/\b(HS(?:P)?\d{3})\b/);
   if (canonical) return canonical[1];
 
@@ -1770,7 +1777,7 @@ function extractErrorCode(message: string): string {
   return 'E999';
 }
 
-function generateSuggestion(
+export function generateSuggestion(
   message: string
 ): { message: string; fix?: AIFriendlyError['fix'] } | null {
   // Unknown trait
@@ -1786,8 +1793,10 @@ function generateSuggestion(
     }
   }
 
-  // Typo in geometry
-  const geoMatch = message.match(/(spher|cub|cylinder|con|plan)/i);
+  // Typo in geometry: a whole word, and never in a checker refusal, whose message quotes the
+  // author's own names (`console`, a local named `con`) rather than a geometry value.
+  const checkerRefusal = /\[HS-[A-Z0-9-]+\]/.test(message);
+  const geoMatch = checkerRefusal ? null : message.match(/\b(sper|spher|cub|con|plan)\b/i);
   if (geoMatch) {
     const corrections: Record<string, string> = {
       sper: 'sphere',

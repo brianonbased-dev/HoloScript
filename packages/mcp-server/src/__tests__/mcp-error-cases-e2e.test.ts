@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { handleTool } from '../handlers';
+import { extractErrorCode, generateSuggestion, handleTool } from '../handlers';
 import { coreTools } from '../tools';
 import { getCompilerWasmBuildIdentity } from '../parserBuildIdentity';
 
@@ -84,6 +84,41 @@ describe('MCP Tool Error Cases', () => {
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.validator).toBe('rust-wasm');
+  });
+
+  it('validate_holoscript reports a checker refusal by its HS code, with no geometry "fix" for a name', async () => {
+    // A typed function naming something the language does not know (G11). The checker's code is
+    // in the message as `[HS-NAME-001]`; the geometry typo rule used to read "con" inside
+    // "console" and offer to rewrite it to "cone".
+    const result = (await handleTool('validate_holoscript', {
+      code: 'function f(x: i32): i32 {\n  console.log(x)\n  return x\n}',
+      format: 'hs',
+    })) as {
+      valid: boolean;
+      errors: Array<{
+        code: string;
+        message: string;
+        line: number;
+        suggestion?: string;
+        fix?: unknown;
+      }>;
+    };
+
+    expect(result.valid).toBe(false);
+    expect(result.errors[0]).toMatchObject({ code: 'HS-NAME-001', line: 2 });
+    expect(result.errors[0].message).toContain('unknown name `console`');
+    expect(result.errors[0].suggestion ?? '').not.toContain('cone');
+    expect(result.errors[0].fix).toBeUndefined();
+  });
+
+  it('reads a checker code from a message, and keeps geometry typo fixes to geometry words', () => {
+    expect(extractErrorCode('[HS-ARITY-001] `add` expects 2 arguments, got 1')).toBe(
+      'HS-ARITY-001'
+    );
+    expect(extractErrorCode('HSP001: "zone" is not part of .hsplus.')).toBe('HSP001');
+    expect(generateSuggestion('[HS-NAME-001] unknown name `con` in function `f`')).toBeNull();
+    expect(generateSuggestion('unknown name `console`')).toBeNull();
+    expect(generateSuggestion("Unknown geometry 'spher'")?.message).toBe("Did you mean 'sphere'?");
   });
 
   it('validate_holoscript ties validator=rust-wasm to a resolvable compiler-wasm build identity (task_1784330208777_288f)', async () => {
