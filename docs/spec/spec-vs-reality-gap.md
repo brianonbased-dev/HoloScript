@@ -15,28 +15,28 @@
 
 ## Summary table
 
-| #   | Spec claim                                                  | Reality                                                                                                                                                                                                              | Status                     |
-| --- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| G1  | `.holo → bytecode → VM → render`                            | `HolobCompiler` + `holo-vm`, e2e-tested to pixels                                                                                                                                                                    | ✅                         |
-| G2  | `@holoscript/uaal` cognitive VM + compiler                  | `packages/uaal` alive, consumed by agent-protocol/engine/studio                                                                                                                                                      | ✅ (runtime)               |
-| G3  | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode`             | `.holo` behavior bridge active; canonical `.hs` Rust/WASM path now lowers a conservative typed function subset directly to UAAL; whole-document `.hsplus` lowering remains                                           | ✅⚠️ **partial**           |
-| G4  | `holo compile … --target uaal` (per `agents/uaal-vm.md`)    | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end                                                                                                  | ✅                         |
-| G5  | cognitive ⇄ spatial via `SceneSnapshot`                     | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both)  | ✅⚠️ **partial**           |
-| G6  | `.hs` imperative logic is a real compiled language          | Rust/WASM grammar plus shared body-type pass; a conservative typed `i32`/`bool` control subset, including lazy `&&`/`\|\|`, compiles to UAAL and to a native executable; broader inference/data/ABI coverage remains | ✅⚠️ **bounded subset**    |
-| G7  | native-authoring coverage is tracked + rising               | **shipped**: `check:native-coverage` ratchet gate; live baseline is computed by the checker, must rise/hold, and replaces the unverified paper figure                                                                | ✅                         |
-| G8  | the spec is the language's source of truth                  | spec lived only in the Gemini knowledge silo until 2026-06-22                                                                                                                                                        | ✅ (reclaimed by this dir) |
-| G9  | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending                                              | ✅⚠️ **partial**           |
-| G10 | `.hs` runs the same on native and UAAL                      | UAAL keeps one slot per function, so recursion returns wrong values with `HALTED`: `fib(10)` = -80 (native 55)                                                                                                       | ❌                         |
-| G11 | "valid `.hs`" is the definition of meaning (Spec v0.1 (a))  | the checker passes unknown names, unknown functions, wrong arity and missing returns; each backend refuses them its own way                                                                                          | ❌                         |
-| G12 | general-purpose names                                       | `action`, `object`, `move`, `quest`, `dialogue`, `ability` are reserved and cannot be identifiers                                                                                                                    | ❌                         |
-| G13 | `.holo` keeps what it accepts                               | `on_click` bodies, misspelled keywords, garbage functions and `world` names are dropped with `valid: true` and no warning                                                                                            | ❌                         |
-| G14 | `.hsplus` has its own types and checker                     | untyped bodies are raw text (JavaScript and garbage accepted); only typed-function bodies are checked; `@trait` is an "Unknown directive"                                                                            | ❌                         |
-| G15 | agent frames bound tool use                                 | `allowed_tools: []` permits every tool (TS and Rust)                                                                                                                                                                 | ❌                         |
-| G16 | Spec v0.1 examples are machine-checked                      | all 94 fences match their verdicts, but the test checks success only, not what was kept                                                                                                                              | ⚠️                         |
-| G17 | the teaching docs work                                      | 232 of 889 HoloScript examples fail or keep nothing; Holoschool lessons 07–10 mostly fail                                                                                                                            | ❌                         |
-| G18 | one file ending, one reader                                 | true for `holoscript validate` only; `parse`, `compile`, `build`, `diff` and `run` read `.hs` with other readers and accept what `validate` refuses                                                                  | ❌                         |
-| G19 | `.hsplus` compiles to targets, never through JavaScript     | bodies run via `new Function`; webgpu, godot and urdf compile no behavior; webgpu emits a TypeScript host                                                                                                            | ❌                         |
-| G20 | the three-surface tracer is a language property             | the gate script rewrites `.hs` source and branches in TypeScript; imports are inert; an import from a missing file passes                                                                                            | ⚠️ **harness**             |
+| #   | Spec claim                                                  | Reality                                                                                                                                                                                                                    | Status                     |
+| --- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| G1  | `.holo → bytecode → VM → render`                            | `HolobCompiler` + `holo-vm`, e2e-tested to pixels                                                                                                                                                                          | ✅                         |
+| G2  | `@holoscript/uaal` cognitive VM + compiler                  | `packages/uaal` alive, consumed by agent-protocol/engine/studio                                                                                                                                                            | ✅ (runtime)               |
+| G3  | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode`             | `.holo` behavior bridge active; canonical `.hs` Rust/WASM path now lowers a conservative typed function subset directly to UAAL; whole-document `.hsplus` lowering remains                                                 | ✅⚠️ **partial**           |
+| G4  | `holo compile … --target uaal` (per `agents/uaal-vm.md`)    | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end                                                                                                        | ✅                         |
+| G5  | cognitive ⇄ spatial via `SceneSnapshot`                     | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both)        | ✅⚠️ **partial**           |
+| G6  | `.hs` imperative logic is a real compiled language          | Rust/WASM grammar plus shared body-type pass; a conservative typed `i32`/`bool` control subset, including lazy `&&`/`\|\|`, compiles to UAAL and to a native executable; broader inference/data/ABI coverage remains       | ✅⚠️ **bounded subset**    |
+| G7  | native-authoring coverage is tracked + rising               | **shipped**: `check:native-coverage` ratchet gate; live baseline is computed by the checker, must rise/hold, and replaces the unverified paper figure. **2026-09-28:** 2,232 facade twins are counted; 71.84% without them | ⚠️ **counts facades**      |
+| G8  | the spec is the language's source of truth                  | spec lived only in the Gemini knowledge silo until 2026-06-22                                                                                                                                                              | ✅ (reclaimed by this dir) |
+| G9  | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending                                                    | ✅⚠️ **partial**           |
+| G10 | `.hs` runs the same on native and UAAL                      | UAAL keeps one slot per function, so recursion returns wrong values with `HALTED`: `fib(10)` = -80 (native 55)                                                                                                             | ❌                         |
+| G11 | "valid `.hs`" is the definition of meaning (Spec v0.1 (a))  | the checker passes unknown names, unknown functions, wrong arity and missing returns; each backend refuses them its own way                                                                                                | ❌                         |
+| G12 | general-purpose names                                       | `action`, `object`, `move`, `quest`, `dialogue`, `ability` are reserved and cannot be identifiers                                                                                                                          | ❌                         |
+| G13 | `.holo` keeps what it accepts                               | `on_click` bodies, misspelled keywords, garbage functions and `world` names are dropped with `valid: true` and no warning                                                                                                  | ❌                         |
+| G14 | `.hsplus` has its own types and checker                     | untyped bodies are raw text (JavaScript and garbage accepted); only typed-function bodies are checked; `@trait` is an "Unknown directive"                                                                                  | ❌                         |
+| G15 | agent frames bound tool use                                 | `allowed_tools: []` permits every tool (TS and Rust)                                                                                                                                                                       | ❌                         |
+| G16 | Spec v0.1 examples are machine-checked                      | all 94 fences match their verdicts, but the test checks success only, not what was kept                                                                                                                                    | ⚠️                         |
+| G17 | the teaching docs work                                      | 232 of 889 HoloScript examples fail or keep nothing; Holoschool lessons 07–10 mostly fail                                                                                                                                  | ❌                         |
+| G18 | one file ending, one reader                                 | true for `holoscript validate` only; `parse`, `compile`, `build`, `diff` and `run` read `.hs` with other readers and accept what `validate` refuses                                                                        | ❌                         |
+| G19 | `.hsplus` compiles to targets, never through JavaScript     | bodies run via `new Function`; webgpu, godot and urdf compile no behavior; webgpu emits a TypeScript host                                                                                                                  | ❌                         |
+| G20 | the three-surface tracer is a language property             | the gate script rewrites `.hs` source and branches in TypeScript; imports are inert; an import from a missing file passes                                                                                                  | ⚠️ **harness**             |
 
 ---
 
@@ -98,6 +98,38 @@ one. They also show that "the Rust checker is the only judge of meaning" is not 
 checker: its first step is G11, then G10 and G12, before `.hsplus` content moves onto the Rust
 grammar. The route study's corpus counts need re-measuring on hand-written files; see the
 facade census below.
+
+**Facade census.** 2,232 `.hsplus` files are facade twins: a
+`// Native .hsplus surface for <file>.ts` header and one `@trait` block with `capability_tags`,
+an `@receipt` block and a median of two handlers (2,249 files carry the header). On 2026-06-25
+between 05:51 and 17:36, 117 commits added 2,266 `.hsplus` files, 2,217 of them facades; 116 of
+those commits are titled "D.104 … wave" and each also rewrote `native-coverage-baseline.json`,
+which went from 162 native files (22.6%, 2026-06-22) to 3,719 (86.2%). No generator was
+committed. Their handlers call 2,666 distinct functions, and 2,655 of
+them are defined nowhere (no HoloScript definition, no builtin table). Nothing loads them except
+`packages/std/src/math.hsplus` and `collections.hsplus`. They are counted by
+`check:native-coverage` (G7), used as corpus by the HoloCI `hsplus-shadow-parity-gate` (2,226 of
+its 2,298 baseline rows; the 71 non-facade rows pass the Rust reader 36 times), indexed by
+Absorb, and present in ai-ecosystem evaluation data (177 of the 385 rows of
+`holoscript-format-heldout-pool-v1.jsonl`). Two files already call the form "aspirational
+native-surface documentation, not live grammar"
+(`packages/mcp-server/src/policy/policy-pack.holo.hsplus`,
+`packages/agent-protocol/src/agentcore_adapter_contract.hsplus`). The route study's own per-file
+results, split by this census:
+
+| Route-study figure                  | All           | Facades       | Not facades |
+| ----------------------------------- | ------------- | ------------- | ----------- |
+| Rust reader accepts (UTF-8 .hsplus) | 2,264 / 2,470 | 2,223 / 2,232 | 41 / 238    |
+| TypeScript reader accepts           | 2,246         | 2,103         | 143         |
+| Both accept                         | 2,116         | 2,103         | 13          |
+| "Different meaning" among both      | 1,684         | 1,682         | 2           |
+| Accepted by the TypeScript only     | 130           | 0             | 130         |
+
+Of the 202 hand-written `.hsplus` files, the Rust reader accepts 9 and the TypeScript reader 130. For `.holo`, 971 of the 1,001 files the Rust reader accepts are 20-line trait schema cards;
+of the 586 compositions and other `.holo` files, the Rust reader accepts 30 and the composition
+reader 511. The case for one grammar therefore rests on design (one grammar, one checker, bodies
+parsed), not on corpus acceptance: on hand-written code the Rust grammar reads far less than the
+TypeScript readers today, and that difference is the size of the port.
 
 ---
 
@@ -239,6 +271,14 @@ The gate replaces it with a real number from the tree.
   count or ratio drops — coverage can only rise or hold. **Pre-commit Gate wiring** (a
   `.githooks/pre-commit` block like Gate 5e) is an optional follow-up; the `check:*` entry is the
   CI hook.
+- **CORRECTION 2026-09-28 — the ratio counts facades.** 2,232 facade `.hsplus` twins (facade
+  census in the 2026-09-28 audit above) raised it from 22.6% to 86.2% on 2026-06-25; nothing
+  runs them and their handlers call functions that do not exist. As enforced: 86.31%. Without
+  the facades: 71.84%. Also without 192 `.holo` trait cards nothing consumes: 68.75%. The ratchet
+  (`check-native-coverage.mjs` 222–231) would fail if the facades were deleted, so today it
+  rewards keeping them; its comment at line 82 ("six bulk commits") undercounts the 116
+  baseline-rewriting commits of 2026-06-25.
+  Status: ⚠️ — it counts files that exist, not behavior that runs.
 
 ## G9 — Fleet agents communicate as uAAL peers _(Jetson / laptop / Vast)_
 
