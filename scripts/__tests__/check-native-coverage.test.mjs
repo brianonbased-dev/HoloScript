@@ -13,10 +13,11 @@
  * Run via: `node scripts/__tests__/check-native-coverage.test.mjs`
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computeCoverage } from '../holo-ci/check-native-coverage.mjs';
+import { computeCoverage, DEFINITION } from '../holo-ci/check-native-coverage.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -59,8 +60,54 @@ try {
   writeFileSync(BASELINE, JSON.stringify(inflated, null, 2) + '\n');
   const drop = spawnSync(process.execPath, [SCRIPT], { cwd: REPO_ROOT, encoding: 'utf-8' });
   check(drop.status === 1, 'gate exits 1 on a simulated native-count regression');
+
+  const otherDefinition = { ...baseline, definition: 'native-authoring-v1' };
+  writeFileSync(BASELINE, JSON.stringify(otherDefinition, null, 2) + '\n');
+  const mismatch = spawnSync(process.execPath, [SCRIPT], { cwd: REPO_ROOT, encoding: 'utf-8' });
+  check(
+    mismatch.status === 1 && mismatch.stderr.includes('different definition'),
+    'gate refuses a baseline computed under another definition'
+  );
 } finally {
   writeFileSync(BASELINE, saved); // always restore the real baseline
+}
+
+// 5. A descriptor twin is not native authoring; a header file its package names is, and so is
+//    any HoloScript file without the header. Headers that omit `src/` still find their twin.
+check(baseline.definition === DEFINITION, 'committed baseline uses the current definition');
+const fixture = mkdtempSync(join(tmpdir(), 'native-coverage-'));
+try {
+  const pkg = join(fixture, 'packages', 'demo');
+  mkdirSync(join(pkg, 'src', 'parser'), { recursive: true });
+  writeFileSync(
+    join(pkg, 'package.json'),
+    JSON.stringify({ name: 'demo', exports: { './native/shipped.hsplus': './src/shipped.hsplus' } })
+  );
+  writeFileSync(join(pkg, 'src', 'parser', 'Parser.ts'), 'export {};\n');
+  writeFileSync(join(pkg, 'src', 'Shipped.ts'), 'export {};\n');
+  writeFileSync(
+    join(pkg, 'src', 'parser_twin.hsplus'),
+    '// @parser_twin\n// Native .hsplus surface for demo/parser/Parser.ts.\n@trait parser_twin {}\n'
+  );
+  writeFileSync(
+    join(pkg, 'src', 'shipped.hsplus'),
+    '// @shipped\n// Native .hsplus surface for demo/Shipped.ts.\n@trait shipped {}\n'
+  );
+  writeFileSync(join(pkg, 'src', 'program.hsplus'), 'object Cube {\n  geometry: "cube"\n}\n');
+  writeFileSync(join(pkg, 'src', 'ExampleTrait.ts'), 'export {};\n');
+
+  const f = computeCoverage(join(fixture, 'packages'));
+  check(f.descriptors === 1, 'an unshipped "Native .hsplus surface for" file is a descriptor');
+  check(f.descriptorTwinsLive === 1, 'a header that omits src/ still resolves its TypeScript twin');
+  check(f.shippedWithHeader === 1, 'a header file its package.json names counts as a real source');
+  check(
+    f.native === 2 && f.byExt['.hsplus'] === 2,
+    'native counts the shipped file and the program, not the twin'
+  );
+  check(f.filesByExtension === 3, 'the by-extension count still sees all three files');
+  check(f.handTsTraits === 1, 'hand-written TS traits are still counted');
+} finally {
+  rmSync(fixture, { recursive: true, force: true });
 }
 
 console.log(`\n[native-coverage] ${run - failed}/${run} passed.`);
