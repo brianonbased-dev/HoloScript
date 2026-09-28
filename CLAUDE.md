@@ -198,7 +198,7 @@ Step 2: holo_absorb_repo({ rootDir: "<pkg-path>" })        → Omit force; reads
 Step 3: holo_query_codebase({ query: "<question>" })       → Auto-loads disk cache if needed
          holo_impact_analysis({ symbol: "<name>" })        → Blast radius (auto-loads cache)
          holo_detect_changes({ before: "ref", after: "ref" }) → Always fresh, compares two states
-Step 4: holo_semantic_search / holo_ask_codebase           → Embeddings: HoloEmbed (keyless, offline — no Ollama). ask_codebase answer LLM: cloud-first; Ollama = last-resort local fallback only (retiring per D.117)
+Step 4: holo_semantic_search / holo_ask_codebase           → Embeddings: HoloEmbed (keyless, offline — no Ollama). ask_codebase answer LLM: our own HoloLlama by default (HOLOLLAMA_ENDPOINT / HOLOLLAMA_URL); cloud or Ollama only when llmProvider names one (D.117 retired Ollama from automatic choice)
 ```
 
 **Rules:**
