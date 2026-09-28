@@ -41,7 +41,7 @@ describe('generatedOutputGate', () => {
       'Generated HoloScript parsed but produced no core scene/world primitives'
     );
     expect(validation.warnings).toContain(
-      '"hero" is not a HoloScript element, so its block does not count as scene content'
+      `"hero" parsed as a 'custom' block, which does not count as scene content`
     );
   });
 
@@ -72,7 +72,7 @@ describe('generatedOutputGate', () => {
     expect(validation.corePrimitives.objects).toBe(1);
     expect(validation.corePrimitives.domainBlocks).toBe(0);
     expect(validation.warnings).toContain(
-      '"hero" is not a HoloScript element, so its block does not count as scene content'
+      `"hero" parsed as a 'custom' block, which does not count as scene content`
     );
   });
 });
