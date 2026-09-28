@@ -153,7 +153,8 @@ try {
       category: f.category,
       status: 'unaudited',
       linkPolicy: 'unaudited',
-      reason: 'Present in the examples tree; the health matrix has not reviewed it yet. Usable as a reference, not certified.',
+      reason:
+        'Present in the examples tree; the health matrix has not reviewed it yet. Usable as a reference, not certified.',
       priority: false,
     }));
 

@@ -56,7 +56,9 @@ describe('CircuitBreaker', () => {
     breaker = new CircuitBreaker(target, {
       failureThreshold: 3,
       failureWindow: 1000,
-      halfOpenTimeout: 100,
+      // Keep OPEN long enough that slow shard scheduling cannot auto-promote
+      // to HALF_OPEN before the assertion that just opened the circuit.
+      halfOpenTimeout: 5000,
       successThreshold: 2,
       enableFallback: true,
     });
@@ -213,8 +215,8 @@ describe('CircuitBreaker', () => {
 
       expect(breaker.getState()).toBe(CircuitState.OPEN);
 
-      // Wait for half-open timeout (100ms)
-      await sleep(150);
+      // Wait for half-open timeout (must exceed halfOpenTimeout: 5000)
+      await sleep(5100);
 
       // Check state - should auto-transition to half-open
       expect(breaker.getState()).toBe(CircuitState.HALF_OPEN);
@@ -229,8 +231,8 @@ describe('CircuitBreaker', () => {
         await breaker.execute(failingOp, fallback);
       }
 
-      // Wait for half-open
-      await sleep(150);
+      // Wait for half-open (must exceed halfOpenTimeout: 5000)
+      await sleep(5100);
       expect(breaker.getState()).toBe(CircuitState.HALF_OPEN);
 
       // Execute 2 successful operations (success threshold = 2)
@@ -250,8 +252,8 @@ describe('CircuitBreaker', () => {
         await breaker.execute(failingOp, fallback);
       }
 
-      // Wait for half-open
-      await sleep(150);
+      // Wait for half-open (must exceed halfOpenTimeout: 5000)
+      await sleep(5100);
 
       // Trigger the HALF_OPEN transition via getState()
       expect(breaker.getState()).toBe(CircuitState.HALF_OPEN);
@@ -323,17 +325,21 @@ describe('CircuitBreaker', () => {
       const successOp = createMockOperation(true);
       const fallback = createMockFallback();
 
+      const beforeFail = Date.now();
       await breaker.execute(failOp, fallback);
-      const failTime = Date.now();
+      const afterFail = Date.now();
 
       await sleep(50);
 
+      const beforeSuccess = Date.now();
       await breaker.execute(successOp);
-      const successTime = Date.now();
+      const afterSuccess = Date.now();
 
       const metrics = breaker.getMetrics();
-      expect(metrics.lastFailureTime).toBeGreaterThanOrEqual(failTime - 50);
-      expect(metrics.lastSuccessTime).toBeGreaterThanOrEqual(successTime - 50);
+      expect(metrics.lastFailureTime).toBeGreaterThanOrEqual(beforeFail);
+      expect(metrics.lastFailureTime).toBeLessThanOrEqual(afterFail);
+      expect(metrics.lastSuccessTime).toBeGreaterThanOrEqual(beforeSuccess);
+      expect(metrics.lastSuccessTime).toBeLessThanOrEqual(afterSuccess);
     });
 
     it('should track last error message', async () => {

@@ -9,14 +9,7 @@ import { corsHeaders } from '../_lib/cors';
  */
 
 export type ParticleType =
-  | 'fire'
-  | 'snow'
-  | 'sparks'
-  | 'rain'
-  | 'smoke'
-  | 'magic'
-  | 'bubbles'
-  | 'leaves';
+  'fire' | 'snow' | 'sparks' | 'rain' | 'smoke' | 'magic' | 'bubbles' | 'leaves';
 
 export interface ParticlePreset {
   id: string;

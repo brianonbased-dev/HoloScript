@@ -1584,8 +1584,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   ): Promise<void> {
     try {
       const apiCall = (this.builtins as Record<string, unknown>)['api_call'] as
-        | ((url: string, method: string) => Promise<unknown>)
-        | undefined;
+        ((url: string, method: string) => Promise<unknown>) | undefined;
       const data = apiCall
         ? await apiCall(String(directive.url), String(directive.method || 'GET'))
         : undefined;

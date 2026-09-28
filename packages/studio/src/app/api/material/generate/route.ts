@@ -6,13 +6,8 @@ import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../../_lib/cors';
-import {
-  AnthropicAdapter,
-  OpenAIAdapter,
-  OpenRouterAdapter,
-  LocalLLMAdapter,
-  LOCAL_DEFAULT_MODEL,
-} from '@holoscript/llm-provider';
+import { completeWithRouteLocalModel, resolveRouteLocalModel } from '../../_lib/ownedLocalFallback';
+import { AnthropicAdapter, OpenAIAdapter, OpenRouterAdapter } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
 // SEC-T03: cap untrusted prompt length before any LLM spend.
@@ -22,7 +17,10 @@ const MAX_PROMPT_CHARS = 4000;
  *  Body: { prompt: string; baseColor?: string; model?: string }
  *  Returns: { glsl: string; traits: string; error?: string }
  *
- *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then Ollama as optional fallback.
+ *  Cloud-first: tries OpenRouter, Anthropic, OpenAI, then our own local model server
+ *  (HOLOSERVE_URL, else HOLOLLAMA_URL) as an optional fallback. `model` is still accepted but
+ *  no longer picks anything: it used to name the Ollama model, and Ollama is retired (D.117).
+ *  The local server uses its own model.
  */
 export async function POST(req: NextRequest) {
   // SEC-T03: require authenticated session before any paid-LLM call.
@@ -88,16 +86,15 @@ void main() {
 
   const userPrompt = `${systemPrompt}\n\nUser request: ${prompt}`;
 
-  // Try cloud providers in order, then Ollama as optional fallback
+  // Try cloud providers in order, then our own local model server as optional fallback
   const raw =
-    (await tryCloudProviders(systemPrompt, prompt)) ??
-    (await tryOllamaFallback(userPrompt, body.model));
+    (await tryCloudProviders(systemPrompt, prompt)) ?? (await tryLocalFallback(userPrompt));
 
   if (!raw) {
     return NextResponse.json(
       {
         error:
-          'No AI provider available. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
+          'No AI provider available. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env, or HOLOLLAMA_URL for a local model',
       },
       { status: 503 }
     );
@@ -196,24 +193,22 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   return null;
 }
 
-async function tryOllamaFallback(fullPrompt: string, model?: string): Promise<string | null> {
-  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
-  if (!ollamaUrl) return null;
-  try {
-    const adapter = new LocalLLMAdapter({
-      baseURL: ollamaUrl,
-      defaultModel: model || LOCAL_DEFAULT_MODEL,
-      timeoutMs: 30_000,
-    });
-    const result = await adapter.complete({
-      messages: [{ role: 'user', content: fullPrompt }],
-      maxTokens: 512,
-      temperature: 0.7,
-    });
-    return result.content || null;
-  } catch {
-    return null;
-  }
+/**
+ * Local fallback: our own model server (D.117 retired Ollama), HoloServe when HOLOSERVE_URL is
+ * set, else HoloLlama when HOLOLLAMA_URL is set. One attempt, with any failure logged on the
+ * server only (../../_lib/ownedLocalFallback); nothing configured, a refused URL or a failed
+ * call all return null. The helper picks the model: the request body's `model` is not passed,
+ * since HoloLlama serves one model and HoloServe refuses names it does not know.
+ */
+async function tryLocalFallback(fullPrompt: string): Promise<string | null> {
+  const caller = 'studio /api/material/generate';
+  const local = resolveRouteLocalModel(caller, 30_000);
+  if (!local) return null;
+  return completeWithRouteLocalModel(local, caller, {
+    messages: [{ role: 'user', content: fullPrompt }],
+    maxTokens: Math.min(512, local.maxTokens),
+    temperature: 0.7,
+  });
 }
 
 export function OPTIONS(request: Request) {

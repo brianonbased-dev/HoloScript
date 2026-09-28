@@ -6,12 +6,7 @@ import * as path from 'path';
 import picomatch from 'picomatch';
 
 export type ExistingWorkspaceArtifactCategory =
-  | 'knowledge'
-  | 'agents'
-  | 'ecosystem'
-  | 'docs'
-  | 'research'
-  | 'tasks';
+  'knowledge' | 'agents' | 'ecosystem' | 'docs' | 'research' | 'tasks';
 
 export interface ExistingWorkspaceImportProfile {
   version?: number;

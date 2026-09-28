@@ -8,13 +8,7 @@
 export type Vec2 = { x: number; y: number };
 
 export type RideType =
-  | 'coaster'
-  | 'flat'
-  | 'dark-ride'
-  | 'water'
-  | 'drop-tower'
-  | 'spinner'
-  | 'simulator';
+  'coaster' | 'flat' | 'dark-ride' | 'water' | 'drop-tower' | 'spinner' | 'simulator';
 export type ThrillLevel = 'family' | 'moderate' | 'thrill' | 'extreme';
 export type QueueStatus = 'open' | 'closed' | 'delayed' | 'full';
 

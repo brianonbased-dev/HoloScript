@@ -22,7 +22,13 @@ import { spawn } from 'child_process';
 import { createHash, randomUUID } from 'crypto';
 import type { ActionHandler } from '@holoscript/engine/runtime';
 import type { HSPlusAST } from '../types/AdvancedTypeSystem';
-import { resolveDaemonModel, shouldReclaimDaemonLock } from './daemon-model-and-lock';
+import {
+  type DaemonProviderName,
+  parseProvider,
+  parseRotationProviders,
+  resolveDaemonModel,
+  shouldReclaimDaemonLock,
+} from './daemon-model-and-lock';
 
 // The engine package re-exports its own copy of HSPlusAST/HeadlessRuntime via the
 // dist barrel. Structurally identical to the src types but TS treats them as
@@ -85,7 +91,7 @@ export interface CLIOptions {
   cycles: number;
   commit: boolean;
   trial?: number;
-  provider: 'sovereign' | 'anthropic' | 'xai' | 'openai' | 'ollama';
+  provider: DaemonProviderName;
   toolProfile: 'claude-hsplus' | 'grok-hsplus' | 'standard';
   model: string;
   timeout: number; // per-cycle timeout in minutes
@@ -163,22 +169,6 @@ function defaultToolProfileForProvider(
   }
 }
 
-function parseProvider(value: string | undefined): CLIOptions['provider'] | undefined {
-  const normalized = value?.toLowerCase();
-  if (normalized === 'sovereign' || normalized === 'auto') {
-    return 'sovereign';
-  }
-  if (
-    normalized === 'anthropic' ||
-    normalized === 'xai' ||
-    normalized === 'openai' ||
-    normalized === 'ollama'
-  ) {
-    return normalized;
-  }
-  return undefined;
-}
-
 function parseToolProfile(value: string | undefined): CLIOptions['toolProfile'] | undefined {
   const normalized = value?.toLowerCase();
   if (normalized === 'claude-hsplus' || normalized === 'grok-hsplus' || normalized === 'standard') {
@@ -193,9 +183,10 @@ function daemonEnvDefaults(): {
   model: string;
 } {
   // Sovereign-first default (founder 2026-06-10): the daemon resolves its LLM
-  // the same way Brittney and the fleet do — sovereign serving (fleet → cloud
-  // → ollama) before any BYOK frontier key. HOLODAEMON_PROVIDER pins a
-  // specific backend (anthropic/xai/openai/ollama) when explicitly set.
+  // the same way Brittney and the fleet do — our own serving (HoloServe, the
+  // owned fleet, HoloLlama) before any BYOK frontier key; D.117 retired Ollama
+  // from that automatic choice. HOLODAEMON_PROVIDER pins a specific backend
+  // (anthropic/xai/openai/ollama) when explicitly set.
   const provider = parseProvider(process.env.HOLODAEMON_PROVIDER) || 'sovereign';
   const toolProfile =
     parseToolProfile(process.env.HOLODAEMON_TOOL_PROFILE) ||
@@ -395,13 +386,15 @@ async function createDaemonLLMProvider(
     XAIAdapter,
     OpenAIAdapter,
     LocalLLMAdapter,
+    checkHostedOllama,
     resolveSovereignProviderAsync,
   } = await import('@holoscript/llm-provider');
 
   if (opts.provider === 'sovereign') {
-    // Universal sovereign-first resolution (founder 2026-06-10): serving fleet
-    // → cloud → local Ollama → BYOK frontier keys — the same canonical policy
-    // Brittney and the fleet use (@holoscript/llm-provider sovereign-resolver).
+    // Universal sovereign-first resolution (founder 2026-06-10): our own serving
+    // (HoloServe, the owned fleet, HoloLlama) → gated BYOK frontier keys — the
+    // same canonical policy Brittney and the fleet use (@holoscript/llm-provider
+    // sovereign-resolver). Ollama is not part of it (D.117).
     const resolved = await resolveSovereignProviderAsync(
       opts.model && opts.model !== SOVEREIGN_AUTO_MODEL ? { model: opts.model } : {}
     );
@@ -504,7 +497,15 @@ async function createDaemonLLMProvider(
     };
   }
 
-  // ollama (optional local fallback — requires OLLAMA_BASE_URL or OLLAMA_URL)
+  // ollama: only when named with --provider ollama (D.117 retired it from automatic choice;
+  // --provider sovereign picks HoloServe/HoloLlama). Requires OLLAMA_BASE_URL or OLLAMA_URL.
+  // Any other name is refused here rather than falling through to Ollama.
+  if (opts.provider !== 'ollama') {
+    throw new Error(
+      `Unknown provider ${JSON.stringify(opts.provider)}. ` +
+        'Use sovereign, anthropic, xai, openai or ollama.'
+    );
+  }
   const ollamaUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_URL;
   if (!ollamaUrl) {
     throw new Error(
@@ -512,6 +513,12 @@ async function createDaemonLLMProvider(
         'Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env'
     );
   }
+  // A public Ollama host (ollama.com) or a cloud-tagged model is not local inference.
+  const hostedOllama = checkHostedOllama(ollamaUrl, {
+    model: opts.model,
+    caller: 'holoscript daemon --provider ollama',
+  });
+  if (hostedOllama.refused) throw hostedOllama.refused;
   const adapter = new LocalLLMAdapter({
     baseURL: ollamaUrl,
     model: opts.model,
@@ -2188,9 +2195,13 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   const providerRotationEnabled =
     (getASTBlackboardValue(compositionAST, 'provider_rotation_enabled') as boolean | undefined) ??
     opts.providerRotation;
-  const rotationProviders = (getASTBlackboardValue(compositionAST, 'provider_rotation') as
-    | string[]
-    | undefined) ?? ['anthropic', 'xai'];
+  // Checked only when rotation is on, so a composition that declares a list it never uses
+  // keeps starting; an unknown name stops the daemon instead of silently meaning Ollama.
+  const rotationProviders = providerRotationEnabled
+    ? parseRotationProviders(
+        getASTBlackboardValue(compositionAST, 'provider_rotation') ?? ['anthropic', 'xai']
+      )
+    : [];
   const quarantineThreshold =
     (getASTBlackboardValue(compositionAST, 'quarantine_threshold') as number | undefined) ?? 3;
 
@@ -2443,8 +2454,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
             resolved = true;
             clearTimeout(timeout);
             const p = payload as
-              | { status?: string; blackboard?: Record<string, unknown> }
-              | undefined;
+              { status?: string; blackboard?: Record<string, unknown> } | undefined;
             resolve({
               status: p?.status || 'unknown',
               blackboard: p?.blackboard || {},

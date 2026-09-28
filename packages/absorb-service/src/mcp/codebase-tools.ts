@@ -201,6 +201,28 @@ interface AbsorbCancellationState {
   completedAt?: number;
 }
 
+const ABSORB_SPILL_RECEIPT_SCHEMA = 'holoscript.absorb-spill-receipt.v1' as const;
+const ABSORB_SPILL_SCAN_BATCH_SIZE = 100;
+
+interface AbsorbSpillReceipt {
+  schemaVersion: typeof ABSORB_SPILL_RECEIPT_SCHEMA;
+  kind: 'AbsorbSpillReceipt';
+  host: string;
+  clonePath: string;
+  planned: boolean;
+  resume: 'never-planned' | 'resume-token';
+  resumeToken: string | null;
+  nextTool: 'holo_absorb_repo';
+  nextArgs: {
+    rootDir: string;
+    async: true;
+    scanBatchSize: number;
+    resumeToken?: string;
+  };
+  serveHint: 'jetson-serves';
+  ingestHint: 'clone-host-or-spend-gated-fleet';
+}
+
 interface AbsorbPhaseMetric extends AbsorbMemorySnapshot {
   phase: string;
   durationMs: number;
@@ -807,6 +829,7 @@ interface AbsorbWriterReceiptRecord {
     requestedAt: string;
     completedAt?: string;
   };
+  spill?: AbsorbSpillReceipt;
   error?: string;
 }
 
@@ -868,6 +891,7 @@ function releaseAbsorbWriterLease(job: AbsorbJob): void {
           completedAt: new Date(job.cancellation.completedAt).toISOString(),
         }),
       },
+      spill: buildAbsorbSpillReceipt(job),
     }),
     ...(job.error && { error: job.error }),
   };
@@ -1625,8 +1649,7 @@ function settleCommittedAbsorbJobAfterCancellation(
   const cancellation =
     job.cancellation ??
     ({
-      reason:
-        (sourceResult.reason as AbsorbCancellationReason | undefined) ?? 'cancel_requested',
+      reason: (sourceResult.reason as AbsorbCancellationReason | undefined) ?? 'cancel_requested',
       message:
         typeof sourceResult.message === 'string'
           ? sourceResult.message
@@ -1635,9 +1658,7 @@ function settleCommittedAbsorbJobAfterCancellation(
             : 'Cancellation arrived after cache commit',
       requestedAt: Number.isFinite(sourceRequestedAt) ? sourceRequestedAt : completedAt,
       phaseAtRequest:
-        typeof sourceResult.phaseAtRequest === 'string'
-          ? sourceResult.phaseAtRequest
-          : job.phase,
+        typeof sourceResult.phaseAtRequest === 'string' ? sourceResult.phaseAtRequest : job.phase,
     } satisfies AbsorbCancellationState);
   cancellation.completedAt = completedAt;
   job.cancellation = cancellation;
@@ -1647,8 +1668,7 @@ function settleCommittedAbsorbJobAfterCancellation(
   job.phase = 'Complete (cache committed; resource caveat recorded)';
   job.completedAt = completedAt;
   const sourceRefresh =
-    sourceResult.refreshProgressReceipt &&
-    typeof sourceResult.refreshProgressReceipt === 'object'
+    sourceResult.refreshProgressReceipt && typeof sourceResult.refreshProgressReceipt === 'object'
       ? (sourceResult.refreshProgressReceipt as AbsorbRefreshProgressReceipt)
       : job.refreshProgressReceipt;
   const refreshProgressReceipt = completeRefreshReceiptAfterCommit(sourceRefresh);
@@ -1681,6 +1701,34 @@ function settleCommittedAbsorbJobAfterCancellation(
   job.result = receipt;
   releaseAbsorbWriterLease(job);
   return receipt;
+}
+
+function buildAbsorbSpillReceipt(job: AbsorbJob): AbsorbSpillReceipt {
+  const clonePath = path.resolve(job.rootDir);
+  const resumeToken =
+    typeof job.refreshProgressReceipt?.resumeToken === 'string' &&
+    job.refreshProgressReceipt.resumeToken.trim().length > 0
+      ? job.refreshProgressReceipt.resumeToken
+      : null;
+  const planned = resumeToken !== null;
+  return {
+    schemaVersion: ABSORB_SPILL_RECEIPT_SCHEMA,
+    kind: 'AbsorbSpillReceipt',
+    host: os.hostname(),
+    clonePath,
+    planned,
+    resume: planned ? 'resume-token' : 'never-planned',
+    resumeToken,
+    nextTool: 'holo_absorb_repo',
+    nextArgs: {
+      rootDir: clonePath,
+      async: true,
+      scanBatchSize: ABSORB_SPILL_SCAN_BATCH_SIZE,
+      ...(resumeToken ? { resumeToken } : {}),
+    },
+    serveHint: 'jetson-serves',
+    ingestHint: 'clone-host-or-spend-gated-fleet',
+  };
 }
 
 function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, unknown> {
@@ -1725,6 +1773,7 @@ function settleCancelledAbsorbJob(jobId: string, err?: unknown): Record<string, 
       refreshProgressReceipt: compactAbsorbRefreshProgressReceipt(job.refreshProgressReceipt),
       resumeToken: job.refreshProgressReceipt.resumeToken,
     }),
+    spill: buildAbsorbSpillReceipt(job),
     memoryBudget: { ...job.memoryBudget },
     sourceDriftRetry: { ...job.sourceDriftRetry },
   };
@@ -2607,9 +2656,7 @@ interface GraphCacheEnvelope {
 }
 
 interface CodebaseCacheGenerationManifest {
-  schemaVersion:
-    | 'holoscript.absorb-cache-generation.v1'
-    | 'holoscript.absorb-cache-generation.v2';
+  schemaVersion: 'holoscript.absorb-cache-generation.v1' | 'holoscript.absorb-cache-generation.v2';
   kind: 'AbsorbCacheGeneration';
   generationId: string;
   workspaceRoot: string;
@@ -2807,9 +2854,7 @@ interface GraphRepoAuthorityStatus {
 }
 
 type LocalCodebaseSnapshotAuthorityReason =
-  | 'receipt_sourcefiles_verified'
-  | 'receipt_cache_stale'
-  | 'receipt_graph_incomplete';
+  'receipt_sourcefiles_verified' | 'receipt_cache_stale' | 'receipt_graph_incomplete';
 
 interface LocalCodebaseSnapshotAuthority {
   authoritative: boolean;
@@ -2989,6 +3034,31 @@ function rootMatchesCurrentRepo(
   return normalizeRootForComparison(rootDir) === normalizeRootForComparison(currentRepoRoot);
 }
 
+/**
+ * True when `childRoot` lives strictly inside `parentRoot` (a package folder
+ * of a monorepo), not when it is the parent or a sibling repo.
+ */
+function isDescendantRoot(childRoot: string, parentRoot: string): boolean {
+  const child = normalizeRootForComparison(childRoot);
+  const parent = normalizeRootForComparison(parentRoot);
+  if (child === parent) return false;
+  const relative = path.relative(parent, child);
+  return relative.length > 0 && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+/**
+ * A cache whose declared roots are all nested folders of the workspace is a
+ * package slice, not the workspace language graph. Sibling-repo caches (HoloScript
+ * vs ai-ecosystem) stay eligible for cross-root authority.
+ */
+function isNestedWorkspaceSlice(workspaceRoot: string, declaredRoots: string[]): boolean {
+  const roots = declaredRoots.filter((root) => typeof root === 'string' && root.trim().length > 0);
+  if (roots.length === 0) return false;
+  return roots.every(
+    (root) => !rootMatchesCurrentRepo(root, workspaceRoot) && isDescendantRoot(root, workspaceRoot)
+  );
+}
+
 function normalizeStringList(values: unknown): string[] | undefined {
   if (values === undefined) return undefined;
   if (!Array.isArray(values)) return undefined;
@@ -3143,7 +3213,9 @@ export function resolveLanguageFilter(
   let everyRequestNarrowed = true;
 
   for (const raw of languages) {
-    const id = String(raw || '').trim().toLowerCase();
+    const id = String(raw || '')
+      .trim()
+      .toLowerCase();
     if (!id) continue;
     const alias = LANGUAGE_ID_ALIASES[id];
     if (alias) {
@@ -3174,8 +3246,8 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
     // Fail closed. An unrecognised id used to filter every file away and then
     // report vacuous complete coverage, which is worse than an error.
     throw new Error(
-      `unknown scan language id(s): ${resolvedLanguages.unknown.join(', ')}. `
-        + `supported: ${[...getSupportedLanguages(), ...Object.keys(LANGUAGE_ID_ALIASES)].sort().join(', ')}`
+      `unknown scan language id(s): ${resolvedLanguages.unknown.join(', ')}. ` +
+        `supported: ${[...getSupportedLanguages(), ...Object.keys(LANGUAGE_ID_ALIASES)].sort().join(', ')}`
     );
   }
   if (resolvedLanguages && resolvedLanguages.canonical.size === 0) {
@@ -3222,10 +3294,7 @@ function buildCoveragePolicy(policy?: GraphScanPolicy | null): NormalizedCoverag
   };
 }
 
-type CoveragePathExclusionReason =
-  | 'pathPolicy'
-  | 'nonAbsorbableExtension'
-  | 'languageFilter';
+type CoveragePathExclusionReason = 'pathPolicy' | 'nonAbsorbableExtension' | 'languageFilter';
 
 function coveragePathExclusionReason(
   filePath: string,
@@ -3532,9 +3601,7 @@ function buildGraphCoverageStatusForRoots(
     }
     trackedGitVisibleFileCount += trackedForRoot.gitVisibleFileCount;
     workspaceGitVisibleFileCount += workspaceForRoot.gitVisibleFileCount;
-    for (const key of Object.keys(trackedExclusions) as Array<
-      keyof GraphCoverageExclusionCounts
-    >) {
+    for (const key of Object.keys(trackedExclusions) as Array<keyof GraphCoverageExclusionCounts>) {
       trackedExclusions[key] += trackedForRoot.exclusions[key];
       workspaceExclusions[key] += workspaceForRoot.exclusions[key];
     }
@@ -5798,8 +5865,7 @@ function resolveLocalCodebaseSnapshotReceiptForAbsorb(
   receiptRaw: unknown,
   providedSourceFilesRaw: unknown
 ):
-  | { valid: true; resolution: LocalCodebaseReceiptResolution }
-  | { valid: false; errors: string[] } {
+  { valid: true; resolution: LocalCodebaseReceiptResolution } | { valid: false; errors: string[] } {
   if (receiptRaw === undefined) {
     return { valid: true, resolution: {} };
   }
@@ -6311,11 +6377,8 @@ let cachedGraph: any = null;
 let cachedRootDir = '';
 let cacheAutoLoaded = false;
 let cacheProvenance:
-  | 'fresh-scan'
-  | 'disk-cache'
-  | 'incremental-patch'
-  | 'local-codebase-snapshot-receipt'
-  | null = null;
+  'fresh-scan' | 'disk-cache' | 'incremental-patch' | 'local-codebase-snapshot-receipt' | null =
+  null;
 let cacheTimestamp = 0;
 const DEFAULT_GRAPH_STATUS_SNAPSHOT_TTL_MS = 5_000;
 const MAX_GRAPH_STATUS_SNAPSHOT_TTL_MS = 30_000;
@@ -6593,6 +6656,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
 }> {
   if (cachedGraph) {
     const memoryRootDir = cachedRootDir || resolveWorkspaceRoot();
+    const workspaceRoot = resolveWorkspaceRoot();
     const memoryGraph = cachedGraph as {
       gitCommitHash?: string;
       fileHashes?: Record<string, string>;
@@ -6604,6 +6668,28 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       rootAuthorityPins?: GraphRootAuthorityPin[];
       localCodebaseSnapshotReceipt?: LocalCodebaseSnapshotReceiptSummary;
     };
+    const declaredMemoryRoots =
+      Array.isArray(memoryGraph.rootDirs) && memoryGraph.rootDirs.length > 0
+        ? memoryGraph.rootDirs
+        : [memoryRootDir];
+    if (isNestedWorkspaceSlice(workspaceRoot, declaredMemoryRoots)) {
+      cachedGraph = null;
+      cachedRootDir = '';
+      cacheProvenance = null;
+      cacheTimestamp = 0;
+      resetGraphRAGState();
+      return {
+        loaded: false,
+        source: 'none',
+        rootDir: workspaceRoot,
+        stale: true,
+        graphUnavailableReceipt: buildGraphUnavailableReceipt({
+          reason: 'cache_root_mismatch',
+          requestedPath: workspaceRoot,
+          runtimePath: path.resolve(workspaceRoot),
+        }),
+      };
+    }
     const memoryFileHashes = memoryGraph.fileHashes;
     const memoryGitCommitHash = memoryGraph.gitCommitHash;
     const memoryScanPolicy = normalizeScanPolicy(memoryGraph.scanPolicy);
@@ -6747,6 +6833,23 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
   const currentCwd = resolveWorkspaceRoot();
   const envelope = loadGraphCache(currentCwd);
   if (envelope) {
+    const declaredDiskRoots =
+      Array.isArray(envelope.rootDirs) && envelope.rootDirs.length > 0
+        ? envelope.rootDirs
+        : [envelope.rootDir];
+    if (isNestedWorkspaceSlice(currentCwd, declaredDiskRoots)) {
+      resetGraphRAGState();
+      return {
+        loaded: false,
+        source: 'none',
+        rootDir: currentCwd,
+        graphUnavailableReceipt: buildGraphUnavailableReceipt({
+          reason: 'cache_root_mismatch',
+          requestedPath: currentCwd,
+          runtimePath: path.resolve(currentCwd),
+        }),
+      };
+    }
     try {
       const ageMs = Date.now() - envelope.timestamp;
       const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
@@ -6886,6 +6989,28 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     }
   }
   return { loaded: false, source: 'none' };
+}
+
+/**
+ * Semantic tools skip ensureCachedGraph when GraphRAG is already warm.
+ * Call this first so a nested package-slice index cannot answer as the
+ * workspace language graph.
+ */
+export async function refuseNestedWorkspaceSliceForSemanticTools(): Promise<{
+  error: string;
+  hint: string;
+  graphUnavailableReceipt: GraphUnavailableReceipt;
+} | null> {
+  const state = await ensureCachedGraph({ warmGraphRAG: false });
+  if (state.graphUnavailableReceipt?.reason !== 'cache_root_mismatch') {
+    return null;
+  }
+  resetGraphRAGState();
+  return {
+    error: ABSORB_CODEBASE_LOAD_ERROR,
+    hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+    graphUnavailableReceipt: state.graphUnavailableReceipt,
+  };
 }
 
 /**
@@ -7888,18 +8013,14 @@ function buildIncrementalFileDeltaReceipt(
   );
   const added = afterFiles.filter((filePath) => !before.has(filePath));
   const removed = beforeFiles.filter((filePath) => !after.has(filePath));
-  const modified = afterFiles.filter(
-    (filePath) => before.has(filePath) && rescanned.has(filePath)
-  );
+  const modified = afterFiles.filter((filePath) => before.has(filePath) && rescanned.has(filePath));
   const deleted = removed.filter((filePath) => gitDeleted.has(filePath));
   const evicted = removed.filter((filePath) => !gitDeleted.has(filePath));
   const changed = added.length + modified.length;
   const afterFromDelta = before.size + added.length - deleted.length - evicted.length;
 
   if (changed !== added.length + modified.length || afterFromDelta !== after.size) {
-    throw new Error(
-      'Incremental file delta accounting violated its add/modify/delete invariants'
-    );
+    throw new Error('Incremental file delta accounting violated its add/modify/delete invariants');
   }
 
   return {
@@ -8007,25 +8128,16 @@ async function runIncrementalPatch(
   const selectedCandidateIdentities = selectedCandidateCensus?.files;
   const candidateFileIsSelected = (filePath: string): boolean =>
     !selectedCandidateIdentities ||
-    selectedCandidateIdentities.has(
-      normalizeRootForComparison(path.resolve(rootDir, filePath))
-    );
+    selectedCandidateIdentities.has(normalizeRootForComparison(path.resolve(rootDir, filePath)));
   const graphFilesOutsideSelection = selectedCandidateIdentities
-    ? normalizedCachedFiles.filter(
-        (filePath) => !candidateFileIsSelected(filePath)
-      )
+    ? normalizedCachedFiles.filter((filePath) => !candidateFileIsSelected(filePath))
     : [];
   const filesToRemove = Array.from(
-    new Set([
-      ...changes.deleted,
-      ...modifiedFiltered.trulyChanged,
-      ...graphFilesOutsideSelection,
-    ])
+    new Set([...changes.deleted, ...modifiedFiltered.trulyChanged, ...graphFilesOutsideSelection])
   );
   const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged].filter(
     (filePath) =>
-      !isCoverageExcludedPath(filePath, coveragePolicy) &&
-      candidateFileIsSelected(filePath)
+      !isCoverageExcludedPath(filePath, coveragePolicy) && candidateFileIsSelected(filePath)
   );
 
   if (jobId) trackAbsorbProgress(jobId, `Rescanning ${filesToRescan.length} changed files`, 30);
@@ -10848,6 +10960,33 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   // different directory (e.g. a temp absorb scratch dir) is NOT authoritative
   // for the workspace the agent is actually working in.
   const cacheRootDir = cachedRootDir || cache.rootDir || null;
+  const declaredAuthorityRoots =
+    cache.rootDirs && cache.rootDirs.length > 0
+      ? cache.rootDirs
+      : activeRootDirs.length > 0
+        ? activeRootDirs
+        : cacheRootDir
+          ? [cacheRootDir]
+          : [];
+  const nestedWorkspaceSlice = isNestedWorkspaceSlice(currentCwd, declaredAuthorityRoots);
+  const workspaceSlice = nestedWorkspaceSlice
+    ? {
+        kind: 'nested-package-slice' as const,
+        coversWorkspaceRoot: false,
+        cacheRootDir: cacheRootDir,
+        workspaceRoot: currentCwd,
+        declaredRoots: declaredAuthorityRoots,
+        warning: 'This cache is a nested package slice. It is not the workspace language graph.',
+      }
+    : {
+        kind: 'workspace-or-sibling' as const,
+        coversWorkspaceRoot: declaredAuthorityRoots.some((root) =>
+          rootMatchesCurrentRepo(root, currentCwd)
+        ),
+        cacheRootDir,
+        workspaceRoot: currentCwd,
+        declaredRoots: declaredAuthorityRoots,
+      };
   const cacheMatchesCwd = rootMatchesCurrentRepo(cacheRootDir, currentCwd);
   const diskCacheMatchesCwd = rootMatchesCurrentRepo(cache.rootDir, currentCwd);
   const workspaceGitCommitHash =
@@ -11078,32 +11217,36 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
         (activeGitMatchesHead || activeFileHashFreshForHeadMismatch))) &&
     localGraphCoverageComplete;
 
-  const graphAuthoritative = activeRootSetAuthority
-    ? (cachedGraph !== null || cache.exists) &&
-      activeFreshByAge &&
-      activeCoverageComplete &&
-      activeRootSetAuthority.authoritative
-    : (cacheMatchesCwd &&
-        (cachedGraph !== null || cache.exists) &&
+  const graphAuthoritative =
+    !nestedWorkspaceSlice &&
+    (activeRootSetAuthority
+      ? (cachedGraph !== null || cache.exists) &&
         activeFreshByAge &&
-        activeFileHashFreshness.fresh &&
-        (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
-        activeCoverageComplete) ||
-      activeCrossRootAuthority.ok ||
-      localGraphLive;
+        activeCoverageComplete &&
+        activeRootSetAuthority.authoritative
+      : (cacheMatchesCwd &&
+          (cachedGraph !== null || cache.exists) &&
+          activeFreshByAge &&
+          activeFileHashFreshness.fresh &&
+          (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
+          activeCoverageComplete) ||
+        activeCrossRootAuthority.ok ||
+        localGraphLive);
 
   const freshForCurrentRepo = graphAuthoritative;
-  const diskCacheFreshForCurrentRepo = activeRootSetAuthority
-    ? cache.exists &&
-      diskCacheFreshByAge &&
-      diskCoverageComplete &&
-      activeRootSetAuthority.authoritative
-    : (diskCacheMatchesCwd &&
+  const diskCacheFreshForCurrentRepo =
+    !nestedWorkspaceSlice &&
+    (activeRootSetAuthority
+      ? cache.exists &&
         diskCacheFreshByAge &&
-        diskFileHashFreshness.fresh &&
-        (diskCacheGitMatchesHead || diskFileHashFreshForHeadMismatch) &&
-        diskCoverageComplete) ||
-      diskCrossRootAuthority.ok;
+        diskCoverageComplete &&
+        activeRootSetAuthority.authoritative
+      : (diskCacheMatchesCwd &&
+          diskCacheFreshByAge &&
+          diskFileHashFreshness.fresh &&
+          (diskCacheGitMatchesHead || diskFileHashFreshForHeadMismatch) &&
+          diskCoverageComplete) ||
+        diskCrossRootAuthority.ok);
   const diskEmbeddingProviderMatchesPolicy =
     embeddingsCacheExists &&
     (embeddingsCacheModel === null || embeddingsCacheModel === embeddingPolicy.provider);
@@ -11296,6 +11439,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     },
     graphAuthoritative,
     freshForCurrentRepo,
+    workspaceSlice,
     authorityCaveats: activeAuthorityCaveats,
     fileHashFreshness: activeFileHashFreshness,
     fileHashFreshForHeadMismatch: activeFileHashFreshForHeadMismatch,
@@ -11342,11 +11486,13 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
           localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
           localCodebaseSnapshot: diskLocalCodebaseSnapshot,
           hint: !diskCacheMatchesCwd
-            ? diskCrossRootAuthority.ok
-              ? diskCrossRootAuthority.fileHashFreshForHeadMismatch
-                ? `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}); its HEAD changed, but cached file hashes still match that repo with complete coverage and remain authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
-                : `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}) but matches that repo's live HEAD with complete coverage and remains authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
-              : `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
+            ? nestedWorkspaceSlice
+              ? `Cache is a nested package slice of ${currentCwd}; it covers ${declaredAuthorityRoots.join(', ')} and is not the workspace language graph. Queries answer only about that slice.`
+              : diskCrossRootAuthority.ok
+                ? diskCrossRootAuthority.fileHashFreshForHeadMismatch
+                  ? `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}); its HEAD changed, but cached file hashes still match that repo with complete coverage and remain authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
+                  : `Cache rootDir (${cache.rootDir}) differs from the workspace root (${currentCwd}) but matches that repo's live HEAD with complete coverage and remains authoritative for ${cache.rootDir}. Queries answer about ${cache.rootDir}.`
+                : `Cache rootDir (${cache.rootDir}) does not match current working directory (${currentCwd}). Call holo_absorb_repo for this workspace.`
             : !diskCoverageComplete
               ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
               : !diskCacheGitMatchesHead && !diskFileHashFreshForHeadMismatch

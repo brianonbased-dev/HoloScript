@@ -47,8 +47,7 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
   ): void {
     if (config.auto_interval_ms <= 0) return;
     const state = node.__healthcheckState as
-      | { checks: Map<string, HealthCheck>; lastRun: number }
-      | undefined;
+      { checks: Map<string, HealthCheck>; lastRun: number } | undefined;
     if (!state) return;
     const now = Date.now();
     if (now - state.lastRun >= config.auto_interval_ms) {
@@ -64,8 +63,7 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__healthcheckState as
-      | { checks: Map<string, HealthCheck>; lastRun: number }
-      | undefined;
+      { checks: Map<string, HealthCheck>; lastRun: number } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 

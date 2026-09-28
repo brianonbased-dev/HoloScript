@@ -153,12 +153,12 @@ The existing `Shard`, `Zone`, `Encounter`, `Quest`, `Item`, `Skill`, `LootTable`
 
 ### 6.2 Primitives — Extensions Needed
 
-| Extension                 | Primitive        | Field                                               | Why                                   |
+| Extension | Primitive | Field | Why |
 | ------------------------- | ---------------- | --------------------------------------------------- | ------------------------------------- | -------- | -------------------- |
-| Cross-shard encounter ref | `QuestStep`      | `crossShardEncounterRef?: { shardId, encounterId }` | Vertical slice (§4.2)                 |
-| Zone capacity cap         | `Zone`           | `maxAgents?: number`                                | Hard boundary for hot-zone mitigation |
-| Shard tier tag            | `Shard`          | `tier: 'free'                                       | 'premium'                             | 'ultra'` | Orchestrator routing |
-| Transfer cooldown         | `Shard` metadata | `agentTransferCooldownMs?: number`                  | Prevent shard-hopping spam            |
+| Cross-shard encounter ref | `QuestStep` | `crossShardEncounterRef?: { shardId, encounterId }` | Vertical slice (§4.2) |
+| Zone capacity cap | `Zone` | `maxAgents?: number` | Hard boundary for hot-zone mitigation |
+| Shard tier tag | `Shard` | `tier: 'free'                                       | 'premium'                             | 'ultra'` | Orchestrator routing |
+| Transfer cooldown | `Shard` metadata | `agentTransferCooldownMs?: number` | Prevent shard-hopping spam |
 
 ### 6.3 Runtime — New Components
 

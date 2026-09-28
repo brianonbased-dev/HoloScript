@@ -2,14 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  utimesSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -150,9 +143,7 @@ test('commit change routing rebuilds only affected packages unless a global inpu
     ['absorb-service']
   );
   assert.deepEqual(
-    buildGroupsForChangedFiles(['packages/mcp-server/src/http-server.ts']).map(
-      (group) => group.id
-    ),
+    buildGroupsForChangedFiles(['packages/mcp-server/src/http-server.ts']).map((group) => group.id),
     ['mcp-server']
   );
   assert.ok(absorb);

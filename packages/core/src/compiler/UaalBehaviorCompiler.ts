@@ -68,12 +68,7 @@ const HOLO_STATE_REFERENCE_ABI = 'holo.behavior.state-ref.v1';
 
 /** Structural mirror of `@holoscript/uaal`'s UAALOperand (no dependency edge). */
 export type UaalOperand =
-  | string
-  | number
-  | boolean
-  | { [key: string]: unknown }
-  | UaalOperand[]
-  | null;
+  string | number | boolean | { [key: string]: unknown } | UaalOperand[] | null;
 
 export interface UaalBehaviorStateReference {
   abi: typeof HOLO_STATE_REFERENCE_ABI;

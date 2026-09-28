@@ -69,12 +69,7 @@ export interface XRFrameData {
 }
 
 export type XREventType =
-  | 'sessionstart'
-  | 'sessionend'
-  | 'selectstart'
-  | 'selectend'
-  | 'squeezestart'
-  | 'squeezeend';
+  'sessionstart' | 'sessionend' | 'selectstart' | 'selectend' | 'squeezestart' | 'squeezeend';
 export type XREventCallback = (data: {
   type: XREventType;
   inputSource?: string;

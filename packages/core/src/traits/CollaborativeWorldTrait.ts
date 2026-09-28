@@ -10,10 +10,7 @@ import type { TraitContext, TraitEvent, TraitHandler, HSPlusNode } from './Trait
 
 export type CollaborativeTransformField = 'position' | 'rotation' | 'scale';
 export type CollaborativeConflictResolution =
-  | 'lock_required'
-  | 'lamport_merge'
-  | 'last_write_wins'
-  | 'reject_remote';
+  'lock_required' | 'lamport_merge' | 'last_write_wins' | 'reject_remote';
 export type CollaborativeLockMode = 'selection' | 'transform' | 'exclusive';
 export type CollaborativeCursorFrame = 'world' | 'viewport';
 

@@ -55,8 +55,59 @@ export function HonestChartComponent() {
               <circle cx="1.5" cy="1.5" r="0.6" className="fill-studio-accent" />
             </pattern>
           </defs>
+          {((__a) => {
+            const __d = __a ?? [];
+            const __v = __d.map((d) => Math.max(0, Number(d?.value) || 0));
+            const __nm = ((__vv, __n) => {
+              const __rm = Math.max(1, ...__vv);
+              const __raw = __rm / __n;
+              const __e = Math.pow(10, Math.floor(Math.log10(__raw)));
+              const __f = __raw / __e;
+              return (
+                (__f <= 1
+                  ? 1
+                  : __f <= 2
+                    ? 2
+                    : __f <= 2.5
+                      ? 2.5
+                      : __f <= 4
+                        ? 4
+                        : __f <= 5
+                          ? 5
+                          : 10) *
+                __e *
+                __n
+              );
+            })(__v, 3);
+            return Array.from({ length: 4 }, (_, i) => {
+              const __t = (__nm * i) / 3;
+              const __y = 104 - (__t / __nm) * 96;
+              return (
+                <g key={'yt' + i}>
+                  <line
+                    x1={26}
+                    y1={__y}
+                    x2={274}
+                    y2={__y}
+                    className="stroke-studio-border"
+                    strokeWidth="0.25"
+                    opacity="0.45"
+                  />
+                  <text
+                    x={23}
+                    y={__y + 2}
+                    textAnchor="end"
+                    className="fill-studio-muted"
+                    fontSize="6"
+                  >
+                    {String(Math.round(__t * 100) / 100)}
+                  </text>
+                </g>
+              );
+            });
+          })(readings)}
           <line
-            x1="6"
+            x1="26"
             y1="104"
             x2="274"
             y2="104"
@@ -66,13 +117,33 @@ export function HonestChartComponent() {
           {((__a) => {
             const __d = __a ?? [];
             const __v = __d.map((d) => Number(d?.value) || 0);
-            const __max = Math.max(1, ...__v);
+            const __max = ((__vv, __n) => {
+              const __rm = Math.max(1, ...__vv);
+              const __raw = __rm / __n;
+              const __e = Math.pow(10, Math.floor(Math.log10(__raw)));
+              const __f = __raw / __e;
+              return (
+                (__f <= 1
+                  ? 1
+                  : __f <= 2
+                    ? 2
+                    : __f <= 2.5
+                      ? 2.5
+                      : __f <= 4
+                        ? 4
+                        : __f <= 5
+                          ? 5
+                          : 10) *
+                __e *
+                __n
+              );
+            })(__v, 3);
             const __n = __d.length || 1;
-            const __slot = 268 / __n;
+            const __slot = 248 / __n;
             const __bw = Math.max(1, Math.min(__slot * 0.62, __slot - 1));
             return __d.map((d, i) => {
               const __h = (Math.max(0, Number(d?.value) || 0) / __max) * 96;
-              const __x = 6 + i * __slot + (__slot - __bw) / 2;
+              const __x = 26 + i * __slot + (__slot - __bw) / 2;
               const __y = 104 - __h;
               return (
                 <g key={i}>

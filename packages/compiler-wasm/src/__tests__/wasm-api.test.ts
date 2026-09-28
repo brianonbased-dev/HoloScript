@@ -606,11 +606,15 @@ function main() {
 
     expect(bytecode.version).toBe(1);
     expect(
-      bytecode.instructions.some((instruction: BytecodeInstruction) => instruction.opCode === UAALOpCode.CALL)
+      bytecode.instructions.some(
+        (instruction: BytecodeInstruction) => instruction.opCode === UAALOpCode.CALL
+      )
     ).toBe(true);
-    expect(bytecode.instructions.some((instruction: BytecodeInstruction) => instruction.opCode === UAALOpCode.RET)).toBe(
-      true
-    );
+    expect(
+      bytecode.instructions.some(
+        (instruction: BytecodeInstruction) => instruction.opCode === UAALOpCode.RET
+      )
+    ).toBe(true);
 
     const vm = new UAALVirtualMachine();
     const result = await vm.execute(bytecode);
@@ -633,7 +637,9 @@ function main() {
   return countdown(true)
 }`);
 
-    const opCodes = bytecode.instructions.map((instruction: BytecodeInstruction) => instruction.opCode);
+    const opCodes = bytecode.instructions.map(
+      (instruction: BytecodeInstruction) => instruction.opCode
+    );
     expect(opCodes).toContain(UAALOpCode.OP_STATE_SET);
     expect(opCodes).toContain(UAALOpCode.OP_STATE_GET);
     expect(opCodes).toContain(UAALOpCode.JUMP_IF);
@@ -653,7 +659,9 @@ function main() {
 
     const nativeExitCode = executeHsNativeViaRust(source);
     const bytecode = compileHsToUaalViaRust(source);
-    const opCodes = bytecode.instructions.map((instruction: BytecodeInstruction) => instruction.opCode);
+    const opCodes = bytecode.instructions.map(
+      (instruction: BytecodeInstruction) => instruction.opCode
+    );
 
     expect(nativeExitCode).toBe(1);
     expect(opCodes).toContain(UAALOpCode.EXEC);
@@ -669,7 +677,9 @@ function main() {
     expect(result.stackTop).toBe(nativeExitCode);
     expect(result.state.callStack).toEqual([]);
     expect(
-      executionLog.steps.filter((step: LoggedStep) => step.opcode === UAALOpCode.EXEC && step.injected)
+      executionLog.steps.filter(
+        (step: LoggedStep) => step.opcode === UAALOpCode.EXEC && step.injected
+      )
     ).toHaveLength(1);
   }, 120000);
 
@@ -697,7 +707,9 @@ function main(): i32 {
     expect(result.stackTop).toBe(nativeExitCode);
     expect(result.state.callStack).toEqual([]);
     expect(
-      executionLog.steps.filter((step: LoggedStep) => step.opcode === UAALOpCode.EXEC && step.injected)
+      executionLog.steps.filter(
+        (step: LoggedStep) => step.opcode === UAALOpCode.EXEC && step.injected
+      )
     ).toHaveLength(2);
   }, 120000);
 
@@ -730,7 +742,10 @@ function main(): i32 {
     expect(result.state.callStack).toEqual([]);
     type IndexedInstruction = { instruction: BytecodeInstruction; pc: number };
     const staticCallPcs = bytecode.instructions
-      .map((instruction: BytecodeInstruction, pc: number): IndexedInstruction => ({ instruction, pc }))
+      .map((instruction: BytecodeInstruction, pc: number): IndexedInstruction => ({
+        instruction,
+        pc,
+      }))
       .filter(({ instruction }: IndexedInstruction) => instruction.opCode === UAALOpCode.CALL)
       .map(({ pc }: IndexedInstruction) => pc);
     const executedCallPcs = executionLog.steps
@@ -739,7 +754,9 @@ function main(): i32 {
     expect(staticCallPcs).toHaveLength(3);
     expect(executedCallPcs).toEqual([0]);
 
-    for (const step of executionLog.steps.filter((entry: LoggedStep) => entry.opcode === UAALOpCode.JUMP_IF)) {
+    for (const step of executionLog.steps.filter(
+      (entry: LoggedStep) => entry.opcode === UAALOpCode.JUMP_IF
+    )) {
       expect(step.stackAfter.depth).toBe(step.stackBefore.depth - 1);
     }
   }, 120000);

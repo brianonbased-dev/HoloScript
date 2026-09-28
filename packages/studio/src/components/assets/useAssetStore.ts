@@ -11,13 +11,7 @@ import { devtools } from 'zustand/middleware';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AssetCategory =
-  | 'splat'
-  | 'pointCloud'
-  | 'model'
-  | 'texture'
-  | 'audio'
-  | 'hdri'
-  | 'script';
+  'splat' | 'pointCloud' | 'model' | 'texture' | 'audio' | 'hdri' | 'script';
 
 export interface Asset {
   id: string;

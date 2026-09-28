@@ -422,8 +422,7 @@ async function runLineage(args) {
       inputAlias = [options.portfolio, options.reconciliation]
         .filter(Boolean)
         .find(
-          (path) =>
-            comparablePath(path) === outputPath || sameExistingFile(path, options.output)
+          (path) => comparablePath(path) === outputPath || sameExistingFile(path, options.output)
         );
     } catch (error) {
       die(`Cannot verify lineage output identity: ${error.message}`, {
@@ -505,8 +504,7 @@ function runFarm(args) {
     try {
       const outputPath = comparablePath(options.output);
       inputAlias = [options.catalog, options.portfolio, options.lineage].find(
-        (path) =>
-          comparablePath(path) === outputPath || sameExistingFile(path, options.output)
+        (path) => comparablePath(path) === outputPath || sameExistingFile(path, options.output)
       );
     } catch (error) {
       die(`Cannot verify proposal-only farm output identity: ${error.message}`, {

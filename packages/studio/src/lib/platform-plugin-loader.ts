@@ -375,8 +375,7 @@ export class PlatformPluginLoader {
       targets: manifest.targets,
       compileToPlatform(astJson: string, target: PlatformTarget): CompileResult {
         const fn = exports['compile_for_platform'] as
-          | ((ast: string, target: string) => unknown)
-          | undefined;
+          ((ast: string, target: string) => unknown) | undefined;
         if (!fn) {
           return {
             type: 'error',

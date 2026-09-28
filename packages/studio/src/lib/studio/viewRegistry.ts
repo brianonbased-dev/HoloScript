@@ -31,20 +31,11 @@ export type StudioViewCategory =
   | 'workspace';
 
 export type StudioViewPlacement =
-  | 'bottom-panel'
-  | 'floating-overlay'
-  | 'left-panel'
-  | 'modal'
-  | 'right-rail'
-  | 'top-overlay';
+  'bottom-panel' | 'floating-overlay' | 'left-panel' | 'modal' | 'right-rail' | 'top-overlay';
 
 export type StudioWorkspaceScope = 'global' | 'workspace' | 'project' | 'scene';
 export type StudioViewAvailabilityGate =
-  | 'always'
-  | 'expert'
-  | 'experimental'
-  | 'project'
-  | 'workspace';
+  'always' | 'expert' | 'experimental' | 'project' | 'workspace';
 
 /** Canonical view id literal union — sourced from the .holo id tuple. */
 export type StudioViewId = (typeof GENERATED_VIEW_IDS)[number];

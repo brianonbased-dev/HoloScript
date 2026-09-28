@@ -1,11 +1,6 @@
 export type PointCloudFormat = 'ply' | 'las' | 'laz' | 'xyz' | 'pcd' | 'e57' | string;
 export type PointCloudColorMode =
-  | 'rgb'
-  | 'intensity'
-  | 'height'
-  | 'classification'
-  | 'normal'
-  | string;
+  'rgb' | 'intensity' | 'height' | 'classification' | 'normal' | string;
 
 export const POINT_CLOUD_TRAIT_EVENTS = [
   'point_cloud_load',

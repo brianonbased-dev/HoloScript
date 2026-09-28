@@ -6,14 +6,10 @@ import type {
 } from '../botanical-material-extractor.js';
 
 export type BotanicalExtractionInput =
-  | BotanicalMaterialExtraction
-  | BotanicalMaterialExtractionResult;
+  BotanicalMaterialExtraction | BotanicalMaterialExtractionResult;
 
 export type CanonicalBotanicalExtractionStatus =
-  | 'signed'
-  | 'hashed'
-  | 'unsigned'
-  | 'pending_anchor';
+  'signed' | 'hashed' | 'unsigned' | 'pending_anchor';
 
 export interface CanonicalBotanicalMaterial {
   subsurface_scattering: number;

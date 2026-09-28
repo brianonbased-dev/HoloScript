@@ -19,11 +19,7 @@
 // ---------------------------------------------------------------------------
 
 export type MotionCategory =
-  | 'locomotion'
-  | 'gesture'
-  | 'interaction'
-  | 'acrobatics'
-  | 'micro-gesture';
+  'locomotion' | 'gesture' | 'interaction' | 'acrobatics' | 'micro-gesture';
 
 /** A single bone pose in one frame, using plain arrays for determinism. */
 export interface MotionBonePose {

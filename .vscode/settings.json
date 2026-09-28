@@ -1,6 +1,24 @@
 {
     "vitest.disableWorkspaceWarning": true,
     "task.allowAutomaticTasks": "on",
+
+    "files.watcherExclude": {
+        "**/.holorepo/**": true,
+        "**/.claude/worktrees/**": true,
+        "**/node_modules/**": true,
+        "**/.git/objects/**": true,
+        "**/.scratch/**": true,
+        "**/dist/**": true,
+        "**/.turbo/**": true
+    },
+    "search.exclude": {
+        "**/.holorepo/**": true,
+        "**/.claude/worktrees/**": true,
+        "**/node_modules/**": true,
+        "**/.scratch/**": true,
+        "**/dist/**": true,
+        "**/.turbo/**": true
+    },
     "eslint.workingDirectories": [
         { "mode": "auto" }
     ],

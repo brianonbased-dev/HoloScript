@@ -121,11 +121,7 @@ export interface ComputeIssuerAttestation {
 }
 
 export type ComputeBudgetEvidenceStatus =
-  | 'authorized'
-  | 'held'
-  | 'released'
-  | 'settled'
-  | 'rejected';
+  'authorized' | 'held' | 'released' | 'settled' | 'rejected';
 
 export interface ComputeBudgetAccountProjection {
   readonly heldAmountMinorUnits: number;

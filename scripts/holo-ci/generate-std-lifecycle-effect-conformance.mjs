@@ -12,10 +12,8 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..', '..');
-const descriptorRel =
-  'packages/std/conformance/lifecycle/std-lifecycle-effect-abi.v0.json';
-const vectorsRel =
-  'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
+const descriptorRel = 'packages/std/conformance/lifecycle/std-lifecycle-effect-abi.v0.json';
+const vectorsRel = 'packages/std/conformance/generated/std-lifecycle-effects.v0.json';
 const manifestRel = 'packages/std/conformance/generated/manifest.json';
 const stdPackageRel = 'packages/std/package.json';
 

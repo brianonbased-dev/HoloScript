@@ -754,9 +754,7 @@ async function executeNode() {
   const collectionDigest = collectionOriginalSum + collectionWeighted;
   const collectionIndexedValues = [0, 1, 2].map((index) => collectionOriginal.get(index));
   const collectionIndexDigest =
-    collectionIndexedValues[0] +
-    collectionIndexedValues[1] * 2 +
-    collectionIndexedValues[2] * 3;
+    collectionIndexedValues[0] + collectionIndexedValues[1] * 2 + collectionIndexedValues[2] * 3;
   const collectionBoundsFailureProbes = [
     {
       id: 'list3-index-out-of-bounds',
@@ -996,9 +994,7 @@ const browserWasm = await executeBrowserWasm(executableSource);
 const ownedMetal = {
   ...executeOwnedMetal(executableSource),
   nonFiniteFailureProbes: nonFiniteFailureProbes.map(executeOwnedMetalFailureProbe),
-  collectionBoundsFailureProbes: collectionBoundsFailureProbes.map(
-    executeOwnedMetalFailureProbe
-  ),
+  collectionBoundsFailureProbes: collectionBoundsFailureProbes.map(executeOwnedMetalFailureProbe),
 };
 const results = [node.result, browserWasm.result, ownedMetal.result];
 if (!results.every((value) => value === expectedDigest)) {
@@ -1123,17 +1119,17 @@ console.log(
         collectionLayout: 'StdList3I32{first:i32,second:i32,third:i32}',
         collectionOperations: [
           'construct',
-            'sum',
-            'bounds-checked runtime get',
-            'persistent replace second',
+          'sum',
+          'bounds-checked runtime get',
+          'persistent replace second',
           'reverse',
           'digest',
         ],
-          collectionLimits: [
-            'fixed size of three i32 values',
-            'read-only runtime indexing over homogeneous scalar fields',
-            'no indexed mutation',
-            'no variable-length allocation',
+        collectionLimits: [
+          'fixed size of three i32 values',
+          'read-only runtime indexing over homogeneous scalar fields',
+          'no indexed mutation',
+          'no variable-length allocation',
           'no iteration ABI',
           'no general List, Map, or Set parity',
         ],

@@ -851,8 +851,7 @@ export const CoLocatedTrait: TraitHandler = {
 
     // Read peer transforms deposited by the networking layer
     const peerTransforms = sceneUD?.coLocationPeers as
-      | Record<string, { x: number; y: number; z: number }>
-      | undefined;
+      Record<string, { x: number; y: number; z: number }> | undefined;
     if (!peerTransforms || Object.keys(peerTransforms).length === 0) return;
 
     context.data.peerTransforms = peerTransforms;

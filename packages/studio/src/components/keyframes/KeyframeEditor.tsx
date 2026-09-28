@@ -8,12 +8,7 @@ import { useState, useCallback } from 'react';
 import { Play, Pause, SkipBack, Repeat, Plus, Trash2, Copy, Diamond, Clock } from 'lucide-react';
 
 export type EasingType =
-  | 'linear'
-  | 'ease-in'
-  | 'ease-out'
-  | 'ease-in-out'
-  | 'bounce-out'
-  | 'elastic-out';
+  'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce-out' | 'elastic-out';
 export type AnimProperty =
   | 'position.x'
   | 'position.y'

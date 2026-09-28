@@ -215,12 +215,7 @@ export interface PluginRegisterMessage extends SandboxMessageBase {
   payload: {
     /** What is being registered */
     kind:
-      | 'panel'
-      | 'toolbar-button'
-      | 'menu-item'
-      | 'keyboard-shortcut'
-      | 'node-type'
-      | 'content-type';
+      'panel' | 'toolbar-button' | 'menu-item' | 'keyboard-shortcut' | 'node-type' | 'content-type';
     /** Registration descriptor (serializable subset of the full type) */
     descriptor: Record<string, unknown>;
   };
@@ -308,10 +303,7 @@ export interface PluginErrorMessage extends SandboxMessageBase {
  * Messages sent FROM host TO plugin iframe (responses and push events).
  */
 export type HostToPluginMessage =
-  | HostInitMessage
-  | HostResponseMessage
-  | HostEventMessage
-  | HostShutdownMessage;
+  HostInitMessage | HostResponseMessage | HostEventMessage | HostShutdownMessage;
 
 /**
  * Host sends initialization data to the plugin after it signals ready.

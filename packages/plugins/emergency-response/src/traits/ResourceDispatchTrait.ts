@@ -35,12 +35,7 @@ import type {
 // =============================================================================
 
 export type DispatchStatus =
-  | 'available'
-  | 'dispatched'
-  | 'en_route'
-  | 'on_scene'
-  | 'returning'
-  | 'out_of_service';
+  'available' | 'dispatched' | 'en_route' | 'on_scene' | 'returning' | 'out_of_service';
 
 export interface ResourceDispatchConfig {
   /** Type of response unit */

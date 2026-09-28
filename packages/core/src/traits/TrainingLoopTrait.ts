@@ -25,8 +25,7 @@ export const trainingLoopHandler: TraitHandler<TrainingLoopConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__trainState as
-      | { epoch: number; loss: number; running: boolean }
-      | undefined;
+      { epoch: number; loss: number; running: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

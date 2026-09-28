@@ -29,7 +29,7 @@ import { createHash } from 'node:crypto';
 import { readFile, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { isAbsolute, join, relative, resolve as resolvePath, sep } from 'node:path';
-import { isBlacklistedModel } from './model-policy';
+import { isBlacklistedModel, isOllamaCloudModel } from './model-policy';
 import { DEFAULT_FLEET_PLACEMENT_POLICY, planFleetPlacement } from './fleet-placement';
 import type {
   FleetPlacementManifest,
@@ -174,7 +174,7 @@ export function admitHoloServeHealth(
   if (
     health.status !== 'ok' ||
     health.backend !== 'pytorch-holo' ||
-    health.sovereign !== true ||
+    !isRecord(health.sovereignty) || health.sovereignty.weights !== 'sovereign' ||
     health.llama_cpp !== false ||
     health.gguf !== false
   )
@@ -735,7 +735,7 @@ export async function discoverLlamaCppNode(
  * scripts/holoserve.py in ai-ecosystem). Same `/health` + `/props` + `/slots`
  * surface while its exact health registry may advertise multiple resident models, so it
  * shares {@link discoverLlamaCppNode}'s discovery body — with one addition: the
- * `/health` body must MACHINE-CHECKABLY assert sovereignty (`sovereign: true` and
+ * `/health` body must MACHINE-CHECKABLY assert sovereignty (`sovereignty.weights === 'sovereign'` and
  * not `llama_cpp: true`). A node declared `backend: "pytorch-holo"` whose health
  * doesn't carry that claim (e.g. someone pointed the handle at a llama-server) is
  * dropped rather than routed as sovereign.
@@ -898,8 +898,12 @@ export async function pickFleetModel(
   opts: FleetRouteOptions = {}
 ): Promise<FleetRoute | null> {
   const extraBlacklist = spec.blacklist.map((s) => s.toLowerCase());
+  // A cloud-tagged Ollama model on an owned node still runs on ollama.com, and every fleet
+  // route is labeled native, so the fleet never routes to one or probes it, flag or not.
   const isBlocked = (name: string): boolean =>
-    isBlacklistedModel(name) || extraBlacklist.some((b) => name.toLowerCase().includes(b));
+    isBlacklistedModel(name) ||
+    isOllamaCloudModel(name) ||
+    extraBlacklist.some((b) => name.toLowerCase().includes(b));
 
   // A denied explicit request is a policy decision, not a fallback hint. Reject it
   // before resolving or probing endpoints so another model cannot mask the denial.

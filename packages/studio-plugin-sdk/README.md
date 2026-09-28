@@ -203,9 +203,7 @@ interface HoloScriptPlugin {
 import { createPlugin } from '@holoscript/studio-plugin-sdk';
 
 export const myPlugin = createPlugin({
-  metadata: {
-    /* ... */
-  },
+  metadata: {/* ... */},
   onLoad: () => {
     /* ... */
   },

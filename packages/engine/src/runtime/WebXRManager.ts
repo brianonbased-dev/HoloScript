@@ -212,10 +212,9 @@ export class WebXRManager {
       // We check for global constructor existence
       const g = globalThis as unknown as Record<string, unknown>;
       if (typeof g.XRWebGPUBinding !== 'undefined') {
-        this.glBinding = new (g.XRWebGPUBinding as new (
-          session: XRSession,
-          device: GPUDevice
-        ) => XRWebGPUBindingLike)(this.session!, this.context.device) as XRWebGPUBindingLike;
+        this.glBinding = new (
+          g.XRWebGPUBinding as new (session: XRSession, device: GPUDevice) => XRWebGPUBindingLike
+        )(this.session!, this.context.device) as XRWebGPUBindingLike;
       } else {
         console.warn('XRWebGPUBinding not found. Rendering may fail.');
       }

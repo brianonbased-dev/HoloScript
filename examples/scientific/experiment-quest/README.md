@@ -32,12 +32,12 @@ ledger, and the next experiment in spatial form.
 
 `experiment-quest.hs` deliberately rewards method more than spectacle:
 
-| Run result | Base Evidence XP |
-| --- | ---: |
-| Invalid | 0 |
-| Accounted or null | 20 |
-| Anomaly | 30 |
-| Replicated candidate | 40 |
+| Run result           | Base Evidence XP |
+| -------------------- | ---------------: |
+| Invalid              |                0 |
+| Accounted or null    |               20 |
+| Anomaly              |               30 |
+| Replicated candidate |               40 |
 
 Calibration and raw capture add 5 XP each. Up to two independent meters add
 3 XP each. A safety incident subtracts 20 XP, with a floor of zero. Duplicate
@@ -45,12 +45,12 @@ runs award zero so replaying a receipt cannot inflate the campaign.
 
 Ranks also require process milestones:
 
-| Rank | Minimum gates |
-| --- | --- |
-| Calibrator | 20 XP, 1 run, 1 calibrated run |
-| Investigator | 75 XP, 3 runs, 2 calibrated runs |
-| Replicator | 180 XP, 8 runs, 4 calibrated runs, 1 replicated hypothesis |
-| Lab Steward | 400 XP, 20 runs, 8 calibrated runs, 3 replicated hypotheses |
+| Rank         | Minimum gates                                               |
+| ------------ | ----------------------------------------------------------- |
+| Calibrator   | 20 XP, 1 run, 1 calibrated run                              |
+| Investigator | 75 XP, 3 runs, 2 calibrated runs                            |
+| Replicator   | 180 XP, 8 runs, 4 calibrated runs, 1 replicated hypothesis  |
+| Lab Steward  | 400 XP, 20 runs, 8 calibrated runs, 3 replicated hypotheses |
 
 This is a closed progression economy: no result can purchase rank, and points
 alone cannot bypass real experimental practice.

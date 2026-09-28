@@ -13,7 +13,8 @@
     "test": "vitest run",
     "lint": "eslint src/",
     "clean": "rimraf dist",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

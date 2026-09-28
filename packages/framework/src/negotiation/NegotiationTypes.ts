@@ -48,12 +48,7 @@ export type VotingMechanism =
  * Proposal status
  */
 export type ProposalStatus =
-  | 'pending'
-  | 'submitted'
-  | 'under_review'
-  | 'accepted'
-  | 'rejected'
-  | 'withdrawn';
+  'pending' | 'submitted' | 'under_review' | 'accepted' | 'rejected' | 'withdrawn';
 
 /**
  * Resolution outcome

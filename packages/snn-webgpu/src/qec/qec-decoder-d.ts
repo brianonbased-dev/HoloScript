@@ -420,7 +420,8 @@ export class QECDecoderD {
       samplesUs.push(Number(process.hrtime.bigint() - t0) / 1e3);
     }
     samplesUs.sort((a, b) => a - b);
-    const pick = (q: number) => samplesUs[Math.min(samplesUs.length - 1, Math.floor(q * samplesUs.length))];
+    const pick = (q: number) =>
+      samplesUs[Math.min(samplesUs.length - 1, Math.floor(q * samplesUs.length))];
     const mean = samplesUs.reduce((a, b) => a + b, 0) / samplesUs.length;
     return {
       reps,

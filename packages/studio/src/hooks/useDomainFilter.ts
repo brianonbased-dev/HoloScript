@@ -10,15 +10,7 @@ import type { PanelTab } from '../types/panels';
 import { logger } from '@/lib/logger';
 
 export type DomainProfile =
-  | 'all'
-  | 'game'
-  | 'vr'
-  | 'iot'
-  | 'film'
-  | 'science'
-  | 'robotics'
-  | 'creator'
-  | 'hologram';
+  'all' | 'game' | 'vr' | 'iot' | 'film' | 'science' | 'robotics' | 'creator' | 'hologram';
 
 const STORAGE_KEY = 'holoscript-studio-favorites';
 

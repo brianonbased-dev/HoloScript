@@ -42,7 +42,7 @@ const npmCacheRootArg = valueAfterFlag('--npm-cache-root');
 const installTimeoutArg = valueAfterFlag('--install-timeout-ms');
 const probeTimeoutArg = valueAfterFlag('--probe-timeout-ms');
 const SCRATCH_ROOT = resolve(
-  scratchRootArg || process.env.HOLOSCRIPT_CANARY_SCRATCH_ROOT || tmpdir(),
+  scratchRootArg || process.env.HOLOSCRIPT_CANARY_SCRATCH_ROOT || tmpdir()
 );
 const NPM_CACHE_ROOT = npmCacheRootArg ? resolve(npmCacheRootArg) : null;
 const MIN_FREE_BYTES = minFreeBytesArg === null ? 0 : Number(minFreeBytesArg);
@@ -1218,9 +1218,10 @@ function main() {
       finalDisposition: 'repo_less_scratch_preflight_failed',
       failure: {
         reason: scratchCapacity.reason,
-        detail: scratchCapacity.detail ||
+        detail:
+          scratchCapacity.detail ||
           `scratch root ${SCRATCH_ROOT} has ${scratchCapacity.freeBytes ?? 'unknown'} free bytes; ` +
-          `${MIN_FREE_BYTES} required`,
+            `${MIN_FREE_BYTES} required`,
       },
     };
     emit(receipt);

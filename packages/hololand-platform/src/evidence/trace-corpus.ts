@@ -13,18 +13,10 @@ export const HOLOLAND_TRACE_EXPORTER = '@hololand/platform-services/evidence' as
 export const HOLOLAND_TRACE_GENESIS_HASH = 'sha256:genesis' as const;
 
 export type HololandTraceEventType =
-  | 'interaction'
-  | 'task_completion'
-  | 'preference_ab'
-  | 'composition_trace';
+  'interaction' | 'task_completion' | 'preference_ab' | 'composition_trace';
 
 export type ReviewerSafeJSON =
-  | string
-  | number
-  | boolean
-  | null
-  | ReviewerSafeJSON[]
-  | { [key: string]: ReviewerSafeJSON };
+  string | number | boolean | null | ReviewerSafeJSON[] | { [key: string]: ReviewerSafeJSON };
 
 export interface HololandTraceProvenanceInput {
   studyId?: string;

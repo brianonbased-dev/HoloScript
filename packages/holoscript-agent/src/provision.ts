@@ -36,8 +36,7 @@ export interface ProvisionExecuted {
   agentId?: string;
   envVarLines: string[];
   joinedTeam?:
-    | { teamId: string; role: string; members: number }
-    | { teamId: string; error: string };
+    { teamId: string; role: string; members: number } | { teamId: string; error: string };
 }
 
 export type ProvisionResult = ProvisionDryRun | ProvisionExecuted;

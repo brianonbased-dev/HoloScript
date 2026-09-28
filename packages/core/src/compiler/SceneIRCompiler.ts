@@ -2497,8 +2497,7 @@ export class SceneIRCompiler {
     const sourceMesh =
       proc.sourceMesh ||
       ((scatterNode?.source_mesh || scatterNode?.sourceMesh || scatterNode?.mesh) as
-        | string
-        | undefined) ||
+        string | undefined) ||
       'box';
 
     // hsType: a loaded GLB can't be instanced yet (v1) → box placeholder.
@@ -2514,8 +2513,7 @@ export class SceneIRCompiler {
 
     const minDistance = (() => {
       const md = (props.min_distance ?? props.minDistance ?? scatterNode?.min_distance) as
-        | number
-        | undefined;
+        number | undefined;
       return typeof md === 'number' && md > 0 ? md : 0;
     })();
 
@@ -2526,8 +2524,7 @@ export class SceneIRCompiler {
 
     const randomRotation = (() => {
       const rr = (props.random_rotation ?? props.randomRotation ?? scatterNode?.random_rotation) as
-        | boolean
-        | undefined;
+        boolean | undefined;
       return rr === true;
     })();
 

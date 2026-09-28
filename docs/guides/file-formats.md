@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # File Formats
 
 HoloScript is one general-purpose semantic systems programming language with three source
@@ -311,7 +313,7 @@ composition "Dispensary" {
 | ---------------- | -------------------- | -------------------------- | -------------------------- |
 | Mental model     | Logic and processes  | Typed behavior and effects | Whole-system composition   |
 | Root block       | `pipeline "Name" {}` | (none)                     | `composition "Name" {}`    |
-| Objects          | `object Cube {}`      | `composition name {}`      | `object "name" {}`         |
+| Objects          | `object Cube {}`     | `composition name {}`      | `object "name" {}`         |
 | Data source/sink | ✅                   | ❌                         | ✅ (inline pipeline)       |
 | VR Traits        | ❌                   | `@grabbable`               | `@grabbable`               |
 | Reactive State   | ❌                   | `@state {}`                | `state {}`                 |

@@ -6,6 +6,7 @@ export default defineConfig({
   entry: [
     'src/index.ts',
     'src/rendering/index.ts',
+    'src/materials/index.ts',
     'src/physics/index.ts',
     'src/runtime/index.ts',
     'src/audio/index.ts',

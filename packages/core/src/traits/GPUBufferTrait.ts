@@ -16,13 +16,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type BufferUsage =
-  | 'storage'
-  | 'uniform'
-  | 'vertex'
-  | 'index'
-  | 'indirect'
-  | 'copy_src'
-  | 'copy_dst';
+  'storage' | 'uniform' | 'vertex' | 'index' | 'indirect' | 'copy_src' | 'copy_dst';
 
 interface GPUBufferState {
   isAllocated: boolean;

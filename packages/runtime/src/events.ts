@@ -5,8 +5,16 @@
  * Supports both internal events and window CustomEvents for cross-context messaging.
  */
 
+import { getSharedEventBus } from '@holoscript/core';
+
 export type EventCallback<T = unknown> = (data: T) => void;
 export type UnsubscribeFn = () => void;
+
+/** The shape this bridge needs from core's bus: a wildcard subscribe, and an id-based off. */
+export interface CoreBusLike {
+  on(event: string, callback: (data: unknown) => void, priority?: number): number;
+  off(listenerId: number): void;
+}
 
 /**
  * Event Bus class for pub/sub messaging
@@ -121,6 +129,40 @@ export const on = eventBus.on.bind(eventBus);
 export const once = eventBus.once.bind(eventBus);
 export const emit = eventBus.emit.bind(eventBus);
 export const off = eventBus.off.bind(eventBus);
+
+/**
+ * Forward every event emitted on core's shared bus onto this one.
+ *
+ * Traits emit through core's bus (getSharedEventBus().emit). Compositions and BrowserRuntime
+ * listen on the bus in this file. The two classes are not interchangeable: core's `on` returns
+ * a numeric listener id and `off` takes that id; this one returns an unsubscribe function.
+ * setSharedEventBus is exported and was never the production join.
+ *
+ * Direction is one-way, core -> runtime, so the bridge cannot loop. The guard is per event
+ * name, not a global flag: a global flag would drop an unrelated event emitted while another
+ * was being forwarded. This only stops an event from re-forwarding itself.
+ *
+ * Lives in runtime because runtime depends on @holoscript/core and not the reverse.
+ */
+export function bridgeCoreEventBus(
+  coreBus: CoreBusLike = getSharedEventBus() as unknown as CoreBusLike,
+  target: EventBus = eventBus
+): UnsubscribeFn {
+  const inFlight = new Set<string>();
+  // Core supports a '*' wildcard listener that receives {event, data}, so one subscription
+  // covers every event name rather than one per name.
+  const listenerId = coreBus.on('*', (payload: unknown) => {
+    const { event, data } = (payload ?? {}) as { event?: string; data?: unknown };
+    if (typeof event !== 'string' || inFlight.has(event)) return;
+    inFlight.add(event);
+    try {
+      target.emit(event, data);
+    } finally {
+      inFlight.delete(event);
+    }
+  });
+  return () => coreBus.off(listenerId);
+}
 
 /**
  * Listen to window CustomEvents from HoloScript

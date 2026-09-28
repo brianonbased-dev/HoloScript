@@ -1,0 +1,80 @@
+{
+  "schema": "holoscript.framework-6.1.7-workspace-leak-repair/v1",
+  "taskId": "task_1788582673490_s8cw",
+  "generatedAt": "2026-09-06T18:52:00.000Z",
+  "problem": "Cold npm install of @holoscript/systems@0.1.0 failed with EUNSUPPORTEDPROTOCOL because published @holoscript/framework@6.1.6 still carried workspace:^ on @holoscript/core and @holoscript/llm-provider. systems@0.1.0 itself was already clean.",
+  "immutable": {
+    "systemsVersion": "0.1.0",
+    "systemsDistTagsUnchanged": {
+      "latest": "0.1.0",
+      "preview": "0.1.0",
+      "next": "0.2.0"
+    }
+  },
+  "repair": {
+    "package": "@holoscript/framework",
+    "from": "6.1.6",
+    "to": "6.1.7",
+    "method": "Repack the published 6.1.6 tarball; rewrite only package.json dependencies to the proven 6.1.5 line; do not rebuild dist from this checkout.",
+    "jsUnchangedVs": "@holoscript/framework@6.1.6",
+    "dependencies": {
+      "@holoscript/core": "^8.0.17",
+      "@holoscript/llm-provider": "^1.5.0",
+      "zod": "^4.3.6"
+    },
+    "deprecated": "@holoscript/framework@6.1.6",
+    "publisher": "scripts/holo-ci/publish-npm-package.mjs --tarball --same-files-as --inspect-only then --publish"
+  },
+  "watchedFail": {
+    "red": {
+      "command": "node scripts/audit-published-install-tree.mjs @holoscript/systems@0.1.0 --json",
+      "ok": false,
+      "leaks": [
+        "@holoscript/framework@6.1.6 dependencies.@holoscript/core=workspace:^",
+        "@holoscript/framework@6.1.6 dependencies.@holoscript/llm-provider=workspace:^"
+      ]
+    },
+    "green": {
+      "command": "node scripts/audit-published-install-tree.mjs @holoscript/systems@0.1.0 --json",
+      "leaks": [],
+      "note": "ok remains false because of pre-existing multi-major core 6+8 and agent-protocol 6+8 via cli@8.0.11 -> sdk@^6.1.1. That is out of scope for s8cw. Workspace protocol leaks are gone."
+    }
+  },
+  "followOnRepairs": [
+    {
+      "package": "@holoscript/snn-webgpu",
+      "from": "8.7.2",
+      "to": "8.7.3",
+      "reason": "After framework 6.1.7, cold install still failed with ETARGET @holoscript/core@^8.8.0 from snn-webgpu@8.7.2 optional peer. 8.7.3 keeps 8.7.2 JS and pins the peer to ^8.7.0."
+    }
+  ],
+  "coldInstall": {
+    "command": "npm install @holoscript/systems@0.1.0 --prefer-online --no-package-lock",
+    "ok": true,
+    "addedPackages": 651,
+    "elapsed": "11m",
+    "installed": {
+      "@holoscript/systems": "0.1.0",
+      "@holoscript/framework": "6.1.7",
+      "@holoscript/core": "8.0.17"
+    }
+  },
+  "canary": {
+    "command": "node scripts/holo-ci/check-systems-preview-public-canary.mjs --json",
+    "ok": true,
+    "generatedAt": "2026-09-06T19:43:04.411Z",
+    "receipt": "artifacts/releases/0.1.0/systems-preview-public-canary-after-framework-6.1.7.json",
+    "coldConsumer": {
+      "ok": true,
+      "installedVersion": "0.1.0",
+      "finalDisposition": "repo_less_systems_toolchain_passed",
+      "wasmPrograms": 25,
+      "nativePrograms": 25
+    },
+    "systemsDistTags": {
+      "latest": "0.1.0",
+      "preview": "0.1.0",
+      "next": "0.2.0"
+    }
+  }
+}

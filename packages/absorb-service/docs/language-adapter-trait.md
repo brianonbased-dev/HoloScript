@@ -65,7 +65,7 @@ This is the `map_data` / `map_csv` universal-bridge pattern (data → `.holo` �
 | ✅ 2 | `TreeSitterTraitAdapter` + `RUBY_TRAIT` — **Ruby added as data, zero bespoke code**          | additive, shipped (`bd0f4f993`); 4/4 deterministic tests |
 | ✅ 3 | Generate `language-registry.json` from the trait set                                         | additive, guarded by the existing drift gate             |
 | 4    | Port one _existing_ language (Go is smallest) to a trait; keep the class until parity proven | reversible, parity-gated                                 |
-| ✅ 5    | Land the 6 stranded `declared` languages as `@language_adapter` `.holo` traits               | same TreeSitterTraitAdapter path as python/go/rust       |
+| ✅ 5 | Land the 6 stranded `declared` languages as `@language_adapter` `.holo` traits               | same TreeSitterTraitAdapter path as python/go/rust       |
 
 ### Adding a language: cover the member call, not just the bare call
 
@@ -73,11 +73,11 @@ Every grammar spells `helper()` roughly the same way and `obj.method()` differen
 trait that only handles the bare form looks finished and emits a call graph with almost no
 edges. The six languages above each needed a distinct shape:
 
-| Form                          | Grammars                | Trait key                            |
-| ----------------------------- | ----------------------- | ------------------------------------ |
-| callee under a field          | Go, Python, TS, C++, C# | `functionField` + `selector`          |
-| callee/receiver are fields    | Ruby, Java, PHP         | `methodField` + `receiverField`       |
-| no fields at all — positional | Swift, Kotlin           | `bareChildType` + `childSelector`     |
+| Form                          | Grammars                | Trait key                         |
+| ----------------------------- | ----------------------- | --------------------------------- |
+| callee under a field          | Go, Python, TS, C++, C# | `functionField` + `selector`      |
+| callee/receiver are fields    | Ruby, Java, PHP         | `methodField` + `receiverField`   |
+| no fields at all — positional | Swift, Kotlin           | `bareChildType` + `childSelector` |
 
 PHP needs three rules, not one: `function_call_expression` (`helper()`),
 `member_call_expression` (`$this->x()`), and `scoped_call_expression` (`Klass::stat()`) are

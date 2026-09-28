@@ -12,12 +12,7 @@ export const HOLOWEB_NETWORK_REALITY_SCHEMA_VERSION =
 export type HoloWebNetworkRealitySchemaVersion = typeof HOLOWEB_NETWORK_REALITY_SCHEMA_VERSION;
 
 export type HoloWebJsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | HoloWebJsonValue[]
-  | { [key: string]: HoloWebJsonValue };
+  string | number | boolean | null | HoloWebJsonValue[] | { [key: string]: HoloWebJsonValue };
 
 export const HOLOWEB_NODE_ROLES = [
   'holoweb-local-reality-node',

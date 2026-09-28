@@ -289,8 +289,7 @@ export const phyllotaxisHandler: TraitHandler<PhyllotaxisConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__phyllotaxisState as
-      | PhyllotaxisState
-      | undefined;
+      PhyllotaxisState | undefined;
     if (!state) return;
 
     if (event.type === 'phyllotaxis_query') {

@@ -100,8 +100,9 @@ describe('board Definition-of-Done discipline', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.task?.completedBy).toBe('grok1-x402');
-    expect(result.doneEntry?.completedBy).toBe('grok1-x402');
+    // Registry key, not the surface label beside it. agentName stays on the envelope.
+    expect(result.task?.completedBy).toBe('agent_grok');
+    expect(result.doneEntry?.completedBy).toBe('agent_grok');
     expect(result.doneEntry?.completedIdentity?.signer?.agentName).toBe('grok1-x402');
   });
 });

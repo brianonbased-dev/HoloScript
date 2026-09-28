@@ -97,6 +97,17 @@ export interface HotBufferEntry {
   sourcePeerDid: string;
   retentionState: MemoryRetentionState;
   memoryReceipt?: MemoryReceipt;
+  /**
+   * Store price when this row came from a priced knowledge entry.
+   * Snapshots written before the field existed have none, so review treats
+   * them as free text.
+   */
+  price?: number;
+  /**
+   * Original knowledge entry id. A purchase record is keyed by that id, not
+   * by the hot-buffer id.
+   */
+  knowledgeEntryId?: string;
 }
 
 export interface MemorySourceHash {

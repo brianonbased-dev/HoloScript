@@ -35,10 +35,7 @@ export interface HoloAbsorbCapability {
 }
 
 export type HoloAbsorbAliasDisposition =
-  | 'compatibility-alias'
-  | 'legacy-alias'
-  | 'substrate-lane'
-  | 'deployment-slug';
+  'compatibility-alias' | 'legacy-alias' | 'substrate-lane' | 'deployment-slug';
 
 export interface HoloAbsorbAlias {
   kind: 'product' | 'package' | 'service' | 'spine' | 'subsystem' | 'tool' | 'provider' | 'cli';
@@ -394,7 +391,7 @@ const PAPERS: readonly HoloAbsorbPaperEvidence[] = [
   {
     id: 'paper-5-graphrag',
     title: 'Graph-Augmented Retrieval for Codebase Intelligence',
-    sourcePath: 'ai-ecosystem/research/paper-5-graphrag-icse.tex',
+    sourcePath: 'papers/paper-5-graphrag-icse.tex',
     benchmarkCommands: [
       'node packages/absorb-service/scripts/verify-paper-5-dataset.mjs',
       'node packages/absorb-service/scripts/bench-paper-5-accuracy.mjs',
@@ -410,7 +407,7 @@ const PAPERS: readonly HoloAbsorbPaperEvidence[] = [
   {
     id: 'paper-26-holograph',
     title: 'HoloGraph Structural Event Retrieval and HoloEmbed Recall',
-    sourcePath: 'ai-ecosystem/research/paper-26-main.tex',
+    sourcePath: 'papers/paper-26-main.tex',
     benchmarkCommands: [
       'pnpm --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Benchmark.test.ts',
       'pnpm --filter @holoscript/absorb-service exec vitest run src/engine/__tests__/Paper26Table2NLRecall.test.ts',

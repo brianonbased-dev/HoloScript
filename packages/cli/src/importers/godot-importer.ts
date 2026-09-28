@@ -516,8 +516,7 @@ function generateNodeCode(
 
   // Transform
   const transform = node.properties.transform as
-    | { origin: { x: number; y: number; z: number } }
-    | undefined;
+    { origin: { x: number; y: number; z: number } } | undefined;
   if (transform?.origin) {
     const pos = transform.origin;
     lines.push(`${indent}  position: [${pos.x}, ${pos.y}, ${pos.z}]`);
@@ -686,8 +685,7 @@ function shouldSkipNode(type: string): boolean {
 
 function getTransformPosition(node: GodotNode): { x: number; y: number; z: number } {
   const transform = node.properties.transform as
-    | { origin: { x: number; y: number; z: number } }
-    | undefined;
+    { origin: { x: number; y: number; z: number } } | undefined;
   if (transform?.origin) {
     return transform.origin;
   }
@@ -760,8 +758,7 @@ function extractColor(node: GodotNode, scene: ParsedGodotScene): string | null {
     const subRes = scene.subResources.get(matRef.resourceRef);
     if (subRes) {
       const albedo = subRes.properties.albedo_color as
-        | { r: number; g: number; b: number }
-        | undefined;
+        { r: number; g: number; b: number } | undefined;
       if (albedo) {
         return rgbToHex(albedo.r, albedo.g, albedo.b);
       }

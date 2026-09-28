@@ -32,11 +32,7 @@ export interface RateLimitQuotaConfig {
  * Supported quota operation types.
  */
 export type QuotaOperation =
-  | 'parseOperations'
-  | 'compileOperations'
-  | 'generateOperations'
-  | 'totalBytes'
-  | 'apiCalls';
+  'parseOperations' | 'compileOperations' | 'generateOperations' | 'totalBytes' | 'apiCalls';
 
 /**
  * Result of a quota check.

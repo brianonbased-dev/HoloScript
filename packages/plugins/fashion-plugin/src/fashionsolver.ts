@@ -58,11 +58,7 @@ export interface FabricWasteResult {
 }
 
 export type ColorHarmony =
-  | 'complementary'
-  | 'analogous'
-  | 'triadic'
-  | 'split-complementary'
-  | 'neutral';
+  'complementary' | 'analogous' | 'triadic' | 'split-complementary' | 'neutral';
 
 export interface ColorHarmonyResult {
   harmony: ColorHarmony;

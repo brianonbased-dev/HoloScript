@@ -9,13 +9,8 @@ import { requireAuth } from '@/lib/api-auth';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
-import {
-  AnthropicAdapter,
-  OpenAIAdapter,
-  OpenRouterAdapter,
-  LocalLLMAdapter,
-  LOCAL_DEFAULT_MODEL,
-} from '@holoscript/llm-provider';
+import { completeWithRouteLocalModel, resolveRouteLocalModel } from '../_lib/ownedLocalFallback';
+import { AnthropicAdapter, OpenAIAdapter, OpenRouterAdapter } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
 // SEC-T03: cap untrusted prompt length before any LLM spend.
@@ -159,10 +154,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Cloud-first provider rotation: OpenRouter → Anthropic → OpenAI.
-    // Optional local fallback: Ollama (if configured).
-    const generated =
-      (await tryCloudProviders(GENERATE_SYSTEM, userPrompt)) ??
-      (await tryOllamaFallback(userPrompt));
+    // Optional local fallback: our own HoloServe / HoloLlama server (if configured).
+    const cloudCode = await tryCloudProviders(GENERATE_SYSTEM, userPrompt);
+    const generated = cloudCode ?? (await tryLocalFallback(GENERATE_SYSTEM, userPrompt));
+    // Say which lane wrote the code: a local model's answer is not a cloud answer.
+    const source = cloudCode ? 'cloud' : 'local';
 
     const rawCode = generated?.trim();
 
@@ -175,7 +171,7 @@ export async function POST(request: NextRequest) {
           code: MOCK_SCENE_TEMPLATE,
           source: 'mock',
           warning:
-            'Using template fallback (cloud AI unavailable). Configure OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for live generation.',
+            'Using template fallback (cloud AI unavailable). Configure OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for live generation, or HOLOLLAMA_URL for a local model.',
         },
         { headers }
       );
@@ -191,7 +187,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           code: '',
-          source: 'cloud',
+          source,
           error: 'Generated HoloScript failed core validation',
           validationErrors: validation.errors,
           ...(validation.warnings.length > 0 && { validationWarnings: validation.warnings }),
@@ -207,7 +203,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         code,
-        source: 'cloud',
+        source,
         generatedOutputValidation: {
           valid: true,
           corePrimitives: validation.corePrimitives,
@@ -306,25 +302,25 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   return null;
 }
 
-async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
-  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
-  if (!ollamaUrl) return null;
-
-  try {
-    const adapter = new LocalLLMAdapter({
-      baseURL: ollamaUrl,
-      defaultModel: process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL,
-      timeoutMs: 30_000,
-    });
-    const result = await adapter.complete({
-      messages: [{ role: 'user', content: fullPrompt }],
-      maxTokens: 2048,
-      temperature: 0.7,
-    });
-    return result.content || null;
-  } catch {
-    return null;
-  }
+/**
+ * Local fallback: our own model server (D.117 retired Ollama), HoloServe when HOLOSERVE_URL is
+ * set, else HoloLlama when HOLOLLAMA_URL is set. One attempt, with any failure logged on the
+ * server only (../_lib/ownedLocalFallback). Nothing configured, a refused URL or a failed call
+ * all return null, and the caller falls to the template. The helper picks the model; nothing
+ * from the request names it.
+ */
+async function tryLocalFallback(systemPrompt: string, prompt: string): Promise<string | null> {
+  const caller = 'studio /api/generate';
+  const local = resolveRouteLocalModel(caller, 30_000);
+  if (!local) return null;
+  return completeWithRouteLocalModel(local, caller, {
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt },
+    ],
+    maxTokens: Math.min(2048, local.maxTokens),
+    temperature: 0.7,
+  });
 }
 
 export function OPTIONS(request: Request) {

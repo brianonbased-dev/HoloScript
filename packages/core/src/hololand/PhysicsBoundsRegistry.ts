@@ -118,12 +118,7 @@ export interface BoundsViolation {
   kind: 'clamped' | 'rejected';
   /** Which physics op tripped the gate. */
   operation:
-    | 'applyForce'
-    | 'applyImpulse'
-    | 'setVelocity'
-    | 'setGravity'
-    | 'setPosition'
-    | 'setRotation';
+    'applyForce' | 'applyImpulse' | 'setVelocity' | 'setGravity' | 'setPosition' | 'setRotation';
   /** Magnitude of the original input (L2 norm). */
   requestedMagnitude: number;
   /** Envelope cap for this op. */

@@ -12,23 +12,11 @@ export interface Vec3 {
 }
 
 export type BrainRegion =
-  | 'frontal'
-  | 'parietal'
-  | 'temporal'
-  | 'occipital'
-  | 'cerebellum'
-  | 'brainstem'
-  | 'limbic';
+  'frontal' | 'parietal' | 'temporal' | 'occipital' | 'cerebellum' | 'brainstem' | 'limbic';
 export type Hemisphere = 'left' | 'right' | 'bilateral';
 export type EEGBand = 'delta' | 'theta' | 'alpha' | 'beta' | 'gamma';
 export type CognitiveState =
-  | 'deep-sleep'
-  | 'light-sleep'
-  | 'relaxed'
-  | 'focused'
-  | 'stressed'
-  | 'flow'
-  | 'meditative';
+  'deep-sleep' | 'light-sleep' | 'relaxed' | 'focused' | 'stressed' | 'flow' | 'meditative';
 
 export interface BrainArea {
   id: string;

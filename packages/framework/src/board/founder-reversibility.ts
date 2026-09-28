@@ -21,10 +21,7 @@ export type FounderAuthorityRoute =
   | 'prohibited-replan';
 
 export type JosephReviewClass =
-  | 'spend-or-custody'
-  | 'physical-presence'
-  | 'public-identity'
-  | 'governance';
+  'spend-or-custody' | 'physical-presence' | 'public-identity' | 'governance';
 
 export interface FounderAuthorityContext {
   projectedSpendUsd?: number;

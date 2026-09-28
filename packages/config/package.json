@@ -32,7 +32,7 @@
     "build": "tsup",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests",
-    "prepublishOnly": "pnpm run test && pnpm run build"
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs && pnpm run test && pnpm run build"
   },
   "author": "Brian X Base Team",
   "license": "MIT",

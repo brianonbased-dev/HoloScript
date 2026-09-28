@@ -80,14 +80,7 @@ export interface IngestExtractedChunk {
   id: string;
   text: string;
   kind:
-    | 'text'
-    | 'metadata'
-    | 'table'
-    | 'image'
-    | 'geometry'
-    | 'timeseries'
-    | 'code'
-    | 'binary-summary';
+    'text' | 'metadata' | 'table' | 'image' | 'geometry' | 'timeseries' | 'code' | 'binary-summary';
   metadata: Record<string, unknown>;
   provenance: IngestProvenance;
 }

@@ -37,12 +37,7 @@ import type { ReidFeature } from './ReidEmbeddingTrait';
 export type Vec3 = [number, number, number];
 
 export type TrackingModality =
-  | 'spatial'
-  | 'voice'
-  | 'dm_stream'
-  | 'intent'
-  | 'multimodal'
-  | 'custom';
+  'spatial' | 'voice' | 'dm_stream' | 'intent' | 'multimodal' | 'custom';
 
 /** A detection or non-spatial observation seen in a single frame. */
 export interface Detection {

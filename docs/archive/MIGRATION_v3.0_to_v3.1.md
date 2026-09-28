@@ -257,9 +257,7 @@ describe('My Agent Tests', () => {
   });
 
   it('should register and discover', async () => {
-    await registry.register({
-      /* ... */
-    });
+    await registry.register({/* ... */});
     const found = await registry.discover({ domain: 'vision' });
     expect(found).toHaveLength(1);
   });

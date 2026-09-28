@@ -30,13 +30,7 @@ import { DependencyResolver, type PluginEntry, type ResolutionResult } from './D
 // =============================================================================
 
 export type PluginLifecycleState =
-  | 'uninstalled'
-  | 'installed'
-  | 'verified'
-  | 'sandboxed'
-  | 'enabled'
-  | 'disabled'
-  | 'error';
+  'uninstalled' | 'installed' | 'verified' | 'sandboxed' | 'enabled' | 'disabled' | 'error';
 
 /**
  * Managed plugin with lifecycle state.

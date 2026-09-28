@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # HoloScript Language Identity
 
 > **Authority:** canonical language-positioning contract. Founder direction confirmed

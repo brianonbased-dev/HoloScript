@@ -4,7 +4,9 @@
  * The dependency-sovereignty ladder (D.128) admitted HoloTorch-inference as a
  * rebuild after the founder promoted the D.118 consistency debt to a forcing
  * function (2026-07-17): torch-at-inference is retired PER MODEL only when an
- * op-by-op logit-parity receipt proves the sovereign WGSL runtime matches torch.
+ * op-by-op logit-parity receipt proves the WGSL runtime matches torch. NOTE (2026-09-24):
+ * this file compares against HoloTorch's own f64 CPU reference, not torch; only
+ * holotorch-e2e-parity.test.ts compares against real torch goldens.
  *
  * This is the first, most load-bearing op: the general dense f32 GEMM
  * (packages/core/src/reconstruction/gemmKernel.ts) — every Linear (fused QKV,
@@ -19,10 +21,8 @@
  * receipt is a later slice and wants the discrete GPU explicitly.
  */
 import { describe, it, expect } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createGemmKernel } from '../gemmKernel';
+import { writeParityReceipt } from './holotorchParityHarness';
 
 interface AdapterInfo {
   vendor?: string;
@@ -100,15 +100,16 @@ function rng(seed: number): () => number {
   };
 }
 
-describe('HoloTorch GEMM parity (WGSL vs f64 CPU reference)', () => {
-  it('matches within fp32 tolerance across holo-arch shapes and emits a parity receipt', async () => {
+describe('HoloTorch GEMM f64-reference parity (WGSL vs own f64 CPU reference, NOT torch)', () => {
+  it('f64-reference parity: matches within fp32 tolerance across holo-arch shapes and emits a parity receipt', async (ctx) => {
     const device = await getDevice();
     if (!device) {
       // Honest skip: no adapter means nothing to prove parity against.
       console.warn(
         '[holotorch-parity] no WebGPU adapter — skipping (GPU-less env; receipt not emitted)'
       );
-      return;
+      // Reported as SKIPPED, never as a pass (2026-09-24 native-inference audit, fix 6).
+      return ctx.skip();
     }
 
     const gemm = createGemmKernel(device);
@@ -197,13 +198,7 @@ describe('HoloTorch GEMM parity (WGSL vs f64 CPU reference)', () => {
       note: 'Ran on the discrete GPU (adapter nvidia/ampere = RTX 3060) via powerPreference:high-performance. Correctness parity is device-independent (IEEE fp32). D.128/D.129 forcing function: the WGSL backend may serve a model only when op-by-op parity is proven.',
     };
 
-    const here = dirname(fileURLToPath(import.meta.url));
-    const outDir = join(here, '..', 'holotorch', 'receipts');
-    mkdirSync(outDir, { recursive: true });
-    writeFileSync(
-      join(outDir, 'gemm-parity.receipt.json'),
-      `${JSON.stringify(receipt, null, 2)}\n`
-    );
+    writeParityReceipt('gemm', receipt);
 
     console.warn(
       `[holotorch-parity] op=gemm verdict=${verdict} worstRelToScale=${worstRelToScale.toExponential(2)} worstAbs=${worstAbs.toExponential(2)} adapter=${capturedAdapterInfo.vendor ?? '?'}/${capturedAdapterInfo.architecture ?? '?'}`

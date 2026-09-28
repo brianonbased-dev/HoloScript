@@ -75,13 +75,14 @@ orb "ComplexViz" {
 > 'data-visualization' triggers a structured reading mode."
 
 Context values:
-| Context | How it's read |
-|---|---|
-| `"image"` | Short description |
-| `"data-visualization"` | Structured data reading |
-| `"artwork"` | Art description with artist intent |
-| `"navigation"` | Directional guidance |
-| `"decorative"` | Skipped entirely |
+
+| Context                | How it's read                      |
+| ---------------------- | ---------------------------------- |
+| `"image"`              | Short description                  |
+| `"data-visualization"` | Structured data reading            |
+| `"artwork"`            | Art description with artist intent |
+| `"navigation"`         | Directional guidance               |
+| `"decorative"`         | Skipped entirely                   |
 
 ---
 

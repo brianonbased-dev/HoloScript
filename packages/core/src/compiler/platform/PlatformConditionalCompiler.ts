@@ -129,9 +129,7 @@ export class PlatformConditionalCompiler {
     if (!match) throw new Error(`Invalid @platform() annotation: ${annotation}`);
     const negated = match[1] === '!';
     const platforms = match[2].split(',').map((p) => p.trim()) as (
-      | PlatformTarget
-      | PlatformCategory
-      | '*'
+      PlatformTarget | PlatformCategory | '*'
     )[];
     return { platforms, negated };
   }

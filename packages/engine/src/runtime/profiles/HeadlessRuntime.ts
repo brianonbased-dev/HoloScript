@@ -684,8 +684,7 @@ export class HeadlessRuntime {
           if (!bucket) {
             // Initialize from trait config (max_tokens default: 10)
             const rlConfig = this.rootInstance.node.traits?.get('rate_limiter') as
-              | { max_tokens?: number }
-              | undefined;
+              { max_tokens?: number } | undefined;
             bucket = { tokens: rlConfig?.max_tokens ?? 10, lastRefillAt: Date.now() };
             rlState.buckets.set(key, bucket);
           }
@@ -713,8 +712,7 @@ export class HeadlessRuntime {
           };
           if (cbState.state === 'open') {
             const cbConfig = this.rootInstance.node.traits?.get('circuit_breaker') as
-              | { reset_timeout_ms?: number }
-              | undefined;
+              { reset_timeout_ms?: number } | undefined;
             const remainingMs = Math.max(
               0,
               (cbConfig?.reset_timeout_ms ?? 60000) - (Date.now() - cbState.openedAt)

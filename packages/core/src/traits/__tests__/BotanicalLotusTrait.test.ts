@@ -173,8 +173,7 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     attachTrait(botanicalLotusHandler, node, {}, ctx);
 
     const evt = getLastEvent(ctx, 'botanical_lotus_attached') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.anchorStatus).toBe('pending_media_ingest');
     expect(evt?.walletSigned).toBe(false);
@@ -198,8 +197,7 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'botanical_lotus_response') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.queryId).toBe('q-lotus');
     const profile = evt?.profile as { petal_count: number; anchor_status: string };
@@ -220,8 +218,7 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'botanical_lotus_reference_updated') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.anchorId).toBe('lotus-reference-2026-05-06-01');
     expect(evt?.anchorStatus).toBe('pending_media_ingest');
@@ -244,14 +241,12 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'botanical_lotus_surface_bound') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.surfaceAnchorId).toBe('surface-table-01');
 
     const responseEvt = getLastEvent(ctx, 'botanical_lotus_response') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (responseEvt) {
       const profile = responseEvt.profile as { surface_anchor_id: string };
       expect(profile.surface_anchor_id).toBe('surface-table-01');
@@ -275,8 +270,7 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'botanical_lotus_lighting_updated') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.referenceId).toBe('lighting-living-room-01');
     expect(evt?.estimatedLux).toBe(320);
@@ -306,8 +300,7 @@ describe('BotanicalLotusTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'botanical_lotus_anchor_drift') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.surfaceAnchorId).toBe('surface-table-01');
     expect(evt?.anchorFrameIndex).toBe(120);

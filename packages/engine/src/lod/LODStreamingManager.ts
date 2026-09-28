@@ -98,11 +98,7 @@ export interface StreamingMetrics {
 }
 
 export type StreamEventType =
-  | 'loadStart'
-  | 'loadComplete'
-  | 'loadError'
-  | 'budgetExceeded'
-  | 'prefetchStart';
+  'loadStart' | 'loadComplete' | 'loadError' | 'budgetExceeded' | 'prefetchStart';
 
 export interface StreamEvent {
   type: StreamEventType;

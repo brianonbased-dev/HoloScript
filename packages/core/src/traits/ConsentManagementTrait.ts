@@ -23,8 +23,7 @@ export const consentManagementHandler: TraitHandler<ConsentManagementConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__consentState as
-      | { consents: Map<string, Map<string, boolean>> }
-      | undefined;
+      { consents: Map<string, Map<string, boolean>> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

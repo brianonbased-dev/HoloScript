@@ -368,12 +368,7 @@ export function solventAccessibleSurface(atoms: Atom[], probeRadius: number = 1.
 // ═══════════════════════════════════════════════════════════════════
 
 export type PharmacophoreType =
-  | 'h-bond-donor'
-  | 'h-bond-acceptor'
-  | 'hydrophobic'
-  | 'positive'
-  | 'negative'
-  | 'aromatic';
+  'h-bond-donor' | 'h-bond-acceptor' | 'hydrophobic' | 'positive' | 'negative' | 'aromatic';
 
 export interface PharmacophoreFeature {
   type: PharmacophoreType;

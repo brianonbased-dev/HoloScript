@@ -221,8 +221,7 @@ function recomputeAffectedNormals(
     let x = accumulated[p] / length;
     let y = accumulated[p + 1] / length;
     let z = accumulated[p + 2] / length;
-    const neutralDot =
-      x * baseNormals[p] + y * baseNormals[p + 1] + z * baseNormals[p + 2];
+    const neutralDot = x * baseNormals[p] + y * baseNormals[p + 1] + z * baseNormals[p + 2];
     if (neutralDot < 0) {
       x = -x;
       y = -y;
@@ -261,12 +260,7 @@ export function applyNativeFacialMorph(
   const channelWeights = new Map<NativeFacialMorphTarget, number>();
   const ignoredTargets: string[] = [];
   const changedVertices = new Set<number>();
-  const writeChanged = (
-    vertexIndex: number,
-    x: number,
-    y: number,
-    z: number
-  ): boolean => {
+  const writeChanged = (vertexIndex: number, x: number, y: number, z: number): boolean => {
     const didChange = changed(output, vertexIndex, x, y, z);
     if (didChange) changedVertices.add(vertexIndex);
     return didChange;
@@ -424,14 +418,11 @@ export function applyNativeFacialMorph(
     positions: output,
     ...(recomputed ? { normals: recomputed.normals } : {}),
     receipt: {
-      schemaVersion:
-        recomputed
-          ? 'holoscript.native-facial-morph.v3'
-          : orbital ||
-              channelWeights.has('brow_raise_left') ||
-              channelWeights.has('brow_raise_right')
-            ? 'holoscript.native-facial-morph.v2'
-            : 'holoscript.native-facial-morph.v1',
+      schemaVersion: recomputed
+        ? 'holoscript.native-facial-morph.v3'
+        : orbital || channelWeights.has('brow_raise_left') || channelWeights.has('brow_raise_right')
+          ? 'holoscript.native-facial-morph.v2'
+          : 'holoscript.native-facial-morph.v1',
       topology: geometry.topology ?? 'procedural-head-v1',
       appliedTargets,
       ignoredTargets: [...new Set(ignoredTargets)].sort(),

@@ -50,7 +50,17 @@
  *       it pnpm's strict layout hides undeclared-but-hoisted type deps and core's
  *       public-subpath dts emit fails TS2307 (the .npmrc layer, 2026-07-10).
  *
- * All four checks are ratcheted against a baseline
+ *   (5) WASM-SHIP  [ratcheted]  — a runtime stage that ships @holoscript/core
+ *       (a COPY of packages/core, a wholesale /app/packages copy, or a Next
+ *       standalone app) must also ship @holoscript/wasm/node. The parser loads
+ *       that package through a specifier joined at runtime, so a green image
+ *       build does not prove the checker is present. The recipe needs the
+ *       pkg-node tree, a node_modules/@holoscript/wasm link, and a fail-fast
+ *       that loads the wasm and expects HS-TYPE-RETURN-001. Marketplace and
+ *       export-api still omit this; they stay in the baseline until a change
+ *       is allowed to touch them.
+ *
+ * All five checks are ratcheted against a baseline
  * (scripts/holo-ci/docker-drift-baseline.json): the CURRENT set of gaps is blessed
  * and a NEW gap (a fresh one-sided import / omitted COPY) fails. This mirrors the
  * repo's other ratchets (check-verified-view.mjs, boundary-ratchet.mjs) and lets the
@@ -558,7 +568,77 @@ function analyze(workspace, dirToName) {
     externalsGaps: uniqSort(externalsGaps),
     copyGaps: uniqSort(copyGaps),
     npmrcGaps: uniqSort(npmrcGaps),
+    wasmShipGaps: collectWasmShipGaps(readWasmShipDockerfiles()),
   };
+}
+
+const WASM_SHIP_GAP =
+  'runtime ships @holoscript/core without @holoscript/wasm/node (pkg-node + package link + HS-TYPE-RETURN-001 load check)';
+
+function lastStageBody(text) {
+  const lines = text.split(/\r?\n/);
+  let start = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*FROM\s+/i.test(lines[i])) start = i;
+  }
+  return lines.slice(start).join('\n');
+}
+
+function shipsCoreAtRuntime(text) {
+  const last = lastStageBody(text);
+  // Flags such as --chown sit between COPY and the source path.
+  if (/\bCOPY\b/.test(last) && /packages\/core(\/|\s)/.test(last)) return true;
+  if (/\/app\/packages\s+packages\b/.test(last)) return true;
+  if (/\.next\/standalone\b/.test(last)) return true;
+  return false;
+}
+
+function runtimeShipsWasmChecker(file) {
+  const last = lastStageBody(file.text);
+  const loads = /HS-TYPE-RETURN-001/.test(last) && /validate_detailed/.test(last);
+  const linked = /@holoscript\/wasm/.test(last);
+  if (file.rel === 'packages/studio/Dockerfile') {
+    const cfg = file.nextConfig || '';
+    const external = /serverExternalPackages\s*:\s*\[[\s\S]*?'@holoscript\/wasm'/.test(cfg);
+    const includes = /outputFileTracingIncludes[\s\S]*?(?:compiler-wasm\/pkg-node|@holoscript\/wasm\/pkg-node)/.test(
+      cfg
+    );
+    const bytes = /holoscript_wasm_bg\.wasm/.test(last);
+    const standaloneLink = /ln -sfn \.\.\/\.\.\/packages\/compiler-wasm\b/.test(file.text);
+    return loads && linked && external && includes && bytes && standaloneLink;
+  }
+  const builderCopiedWasm = /COPY\s+packages\/compiler-wasm\/\s+packages\/compiler-wasm\//.test(file.text);
+  const runtimeHasPkg =
+    /compiler-wasm\/pkg-node/.test(last) ||
+    (/\/app\/packages\s+packages\b/.test(last) && builderCopiedWasm);
+  return loads && linked && builderCopiedWasm && runtimeHasPkg;
+}
+
+/**
+ * Dockerfiles whose runtime ships @holoscript/core but not the Rust wasm checker.
+ * @param {Array<{ rel: string, text: string, nextConfig?: string }>} dockerfiles
+ * @returns {string[]}
+ */
+export function collectWasmShipGaps(dockerfiles) {
+  const gaps = [];
+  for (const file of dockerfiles) {
+    if (!shipsCoreAtRuntime(file.text)) continue;
+    if (runtimeShipsWasmChecker(file)) continue;
+    gaps.push(`${file.rel} :: ${WASM_SHIP_GAP}`);
+  }
+  return [...new Set(gaps)].sort();
+}
+
+function readWasmShipDockerfiles() {
+  return DOCKERFILES.map((rel) => {
+    const text = fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8');
+    let nextConfig = '';
+    if (rel === 'packages/studio/Dockerfile') {
+      const cfgPath = path.join(REPO_ROOT, 'packages/studio/next.config.js');
+      if (fs.existsSync(cfgPath)) nextConfig = fs.readFileSync(cfgPath, 'utf8');
+    }
+    return { rel, text, nextConfig };
+  });
 }
 
 // ── baseline + reporting ────────────────────────────────────────────────────
@@ -591,6 +671,11 @@ const CLASSES = [
     'a Dockerfile stage now runs `pnpm install` without .npmrc (shamefully-hoist) available first',
     "COPY .npmrc into the stage before `pnpm install` (missing hoist breaks core's dts emit with TS2307)",
   ],
+  [
+    'wasmShipGaps',
+    'a runtime image that ships @holoscript/core does not also ship @holoscript/wasm/node (pkg-node, the package link, and an HS-TYPE-RETURN-001 load check)',
+    'COPY packages/compiler-wasm into the builder, link node_modules/@holoscript/wasm in the runtime, and fail the image build by loading the checker. Marketplace is parked — do not edit it to clear this gap',
+  ],
 ];
 
 function main() {
@@ -620,6 +705,7 @@ function main() {
         'externalsGaps = core value-imports a dep neither declared in core/package.json nor externalized. ' +
         'copyGaps = a package built without its source copied into the stage. ' +
         'npmrcGaps = a pnpm-install stage without .npmrc (shamefully-hoist). ' +
+        'wasmShipGaps = a runtime that ships @holoscript/core without @holoscript/wasm/node. ' +
         'Wire the Docker recipe to match, then reseed with --update-baseline.',
       updatedAtIso: new Date().toISOString(),
     };

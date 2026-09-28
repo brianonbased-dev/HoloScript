@@ -13,12 +13,7 @@ import type { WorldDefinition } from './WorldDefinitionSchema';
 // ============================================================================
 
 export type ConnectionState =
-  | 'disconnected'
-  | 'connecting'
-  | 'authenticating'
-  | 'connected'
-  | 'reconnecting'
-  | 'error';
+  'disconnected' | 'connecting' | 'authenticating' | 'connected' | 'reconnecting' | 'error';
 
 export interface ConnectionInfo {
   /** Current connection state */

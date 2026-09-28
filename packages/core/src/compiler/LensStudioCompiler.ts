@@ -103,9 +103,7 @@ export interface LensStudioCompileResult {
 }
 
 export type LensStudioDroppedStatementContext =
-  | 'logic-handler'
-  | 'logic-action'
-  | 'composition-event';
+  'logic-handler' | 'logic-action' | 'composition-event';
 
 export interface LensStudioDroppedStatement {
   index: number;

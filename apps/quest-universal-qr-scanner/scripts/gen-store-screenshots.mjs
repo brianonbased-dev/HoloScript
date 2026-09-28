@@ -58,9 +58,7 @@ function scanningHudSvg() {
 }
 
 async function coverCrop(sourcePath) {
-  return sharp(sourcePath)
-    .resize(WIDTH, HEIGHT, { fit: 'cover', position: 'centre' })
-    .toBuffer();
+  return sharp(sourcePath).resize(WIDTH, HEIGHT, { fit: 'cover', position: 'centre' }).toBuffer();
 }
 
 async function toStoreScreenshot(sourcePath) {
@@ -122,5 +120,10 @@ const receipt = {
   note: '04-scanning.png composites the 1.0.3 ScanningHud onto a Quest compositor passthrough still; recapture on-headset when a Quest is connected.',
   artifacts,
 };
-writeFileSync(join(outDir, 'store-screenshot-receipt.json'), `${JSON.stringify(receipt, null, 2)}\n`);
-console.log(`gen-store-screenshots: wrote ${artifacts.length} screenshot(s) → store-assets/screenshots/`);
+writeFileSync(
+  join(outDir, 'store-screenshot-receipt.json'),
+  `${JSON.stringify(receipt, null, 2)}\n`
+);
+console.log(
+  `gen-store-screenshots: wrote ${artifacts.length} screenshot(s) → store-assets/screenshots/`
+);

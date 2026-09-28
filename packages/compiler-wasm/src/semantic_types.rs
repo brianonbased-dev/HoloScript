@@ -346,7 +346,7 @@ impl TypeChecker {
                     let Some(expected) = expected.as_deref() else {
                         continue;
                     };
-                    if !is_assignable(expected, argument) {
+                    if !is_assignable_at(expected, argument, TypeBoundary::CallArgument) {
                         return Err(diagnostic(
                             format!(
                                 "[{ARGUMENT_MISMATCH}] argument {} to `{}` has incompatible type: expected `{expected}`, found `{}`",
@@ -475,7 +475,19 @@ fn normalize_type(annotation: &str) -> String {
     }
 }
 
+/// Where two types are being compared. Call arguments additionally allow a
+/// mutable reference to satisfy a shared reference (read-only downgrade).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TypeBoundary {
+    Assignment,
+    CallArgument,
+}
+
 fn is_assignable(expected: &str, actual: &TypeEvidence) -> bool {
+    is_assignable_at(expected, actual, TypeBoundary::Assignment)
+}
+
+fn is_assignable_at(expected: &str, actual: &TypeEvidence, boundary: TypeBoundary) -> bool {
     let expected = normalize_type(expected);
     if matches!(expected.as_str(), "any" | "unknown") {
         return true;
@@ -497,6 +509,7 @@ fn is_assignable(expected: &str, actual: &TypeEvidence) -> bool {
                 || actual == "unknown"
                 || expected == actual
                 || (expected == "number" && is_numeric_type(&actual))
+                || references_assignable(&expected, &actual, boundary)
         }
         TypeEvidence::IntegerLiteral(value) => match expected.as_str() {
             "i8" => *value >= i8::MIN as f64 && *value <= i8::MAX as f64,
@@ -514,6 +527,95 @@ fn is_assignable(expected: &str, actual: &TypeEvidence) -> bool {
             matches!(expected.as_str(), "f32" | "f64" | "number")
         }
     }
+}
+
+/// A reference as the checker stores it: `&[T]`, `&mut T`, `&'a T`, `&'a mut [T]`.
+/// Lifetimes are not a separate lattice. They exist only inside this string, so two
+/// different names are never unified.
+struct ReferenceShape {
+    lifetime: Option<String>,
+    mutable: bool,
+    pointee: String,
+}
+
+fn parse_reference_type(annotation: &str) -> Option<ReferenceShape> {
+    let rest = annotation.strip_prefix('&')?;
+    if let Some(after_tick) = rest.strip_prefix('\'') {
+        let (lifetime, after_lifetime) = after_tick.split_once(' ')?;
+        if lifetime.is_empty()
+            || !lifetime
+                .chars()
+                .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+        {
+            return None;
+        }
+        if let Some(pointee) = after_lifetime.strip_prefix("mut ") {
+            if pointee.is_empty() {
+                return None;
+            }
+            return Some(ReferenceShape {
+                lifetime: Some(lifetime.to_string()),
+                mutable: true,
+                pointee: pointee.to_string(),
+            });
+        }
+        if after_lifetime.is_empty() {
+            return None;
+        }
+        return Some(ReferenceShape {
+            lifetime: Some(lifetime.to_string()),
+            mutable: false,
+            pointee: after_lifetime.to_string(),
+        });
+    }
+    if let Some(pointee) = rest.strip_prefix("mut ") {
+        if pointee.is_empty() {
+            return None;
+        }
+        return Some(ReferenceShape {
+            lifetime: None,
+            mutable: true,
+            pointee: pointee.to_string(),
+        });
+    }
+    if rest.is_empty() {
+        return None;
+    }
+    Some(ReferenceShape {
+        lifetime: None,
+        mutable: false,
+        pointee: rest.to_string(),
+    })
+}
+
+/// An unwritten lifetime matches the same reference written with one named lifetime.
+/// `'a` does not match `'b`.
+fn lifetimes_compatible(expected: &Option<String>, actual: &Option<String>) -> bool {
+    match (expected, actual) {
+        (Some(expected_name), Some(actual_name)) => expected_name == actual_name,
+        _ => true,
+    }
+}
+
+fn references_assignable(expected: &str, actual: &str, boundary: TypeBoundary) -> bool {
+    let Some(expected_ref) = parse_reference_type(expected) else {
+        return false;
+    };
+    let Some(actual_ref) = parse_reference_type(actual) else {
+        return false;
+    };
+    if expected_ref.pointee != actual_ref.pointee {
+        return false;
+    }
+    if !lifetimes_compatible(&expected_ref.lifetime, &actual_ref.lifetime) {
+        return false;
+    }
+    if expected_ref.mutable == actual_ref.mutable {
+        return true;
+    }
+    // Read-only downgrade is a call-argument rule only. `&mut T` may be passed
+    // where `&T` is expected. The reverse stays a mismatch, including on `let`.
+    boundary == TypeBoundary::CallArgument && !expected_ref.mutable && actual_ref.mutable
 }
 
 fn numeric_result_evidence(left: &TypeEvidence, right: &TypeEvidence) -> TypeEvidence {
@@ -593,5 +695,169 @@ fn diagnostic(message: String, loc: &Option<Location>) -> SemanticDiagnostic {
         message,
         line,
         column,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ARGUMENT_MISMATCH;
+    use super::ASSIGNMENT_MISMATCH;
+    use crate::kotlin_emit::check_semantics;
+    use crate::parse_ast;
+
+    fn admit(source: &str) {
+        let ast = parse_ast(source).expect("fixture should parse");
+        check_semantics(&ast)
+            .unwrap_or_else(|error| panic!("expected admission, got {}", error.message));
+    }
+
+    fn reject(source: &str) -> String {
+        let ast = parse_ast(source).expect("fixture should parse");
+        check_semantics(&ast)
+            .expect_err("expected a checker rejection")
+            .message
+    }
+
+    #[test]
+    fn elided_lifetime_reference_matches_named_lifetime_on_let() {
+        admit(
+            r#"function borrow<'a>(packet: &'a Packet): &'a Packet { return packet }
+function main(): i32 {
+  slot packet: Packet = Packet(1)
+  let view: &Packet = borrow(&packet)
+  return 1
+}"#,
+        );
+    }
+
+    #[test]
+    fn elided_lifetime_slice_reference_matches_named_lifetime_on_let() {
+        admit(
+            r#"function borrow<'a>(values: &'a [i32]): &'a [i32] { return values }
+function main(): i32 {
+  slot values: [i32; 4] = [1, 2, 3, 4]
+  let view: &[i32] = borrow(&values[1..4])
+  return 1
+}"#,
+        );
+    }
+
+    #[test]
+    fn elided_lifetime_mut_reference_matches_named_lifetime_on_let() {
+        admit(
+            r#"function borrow_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return values }
+function main(): i32 {
+  slot values: [i32; 4] = [1, 2, 3, 4]
+  let writer: &mut [i32] = borrow_mut(&mut values[1..4])
+  return 1
+}"#,
+        );
+    }
+
+    #[test]
+    fn elided_lifetime_matches_named_lifetime_on_later_assignment() {
+        admit(
+            r#"function borrow<'a>(values: &'a [i32]): &'a [i32] { return values }
+function main(): i32 {
+  slot values: [i32; 4] = [1, 2, 3, 4]
+  var view: &[i32] = borrow(&values[1..4])
+  view = borrow(&values[1..4])
+  return 1
+}"#,
+        );
+    }
+
+    #[test]
+    fn call_argument_accepts_mut_reference_where_shared_is_expected() {
+        admit(
+            r#"function read(packet: &Packet): i32 { return 1 }
+function main(): i32 {
+  slot packet: Packet = Packet(1)
+  let writer: &mut Packet = &mut packet
+  let downgraded: i32 = read(writer)
+  return downgraded
+}"#,
+        );
+    }
+
+    #[test]
+    fn call_argument_accepts_named_mut_reference_where_elided_shared_is_expected() {
+        admit(
+            r#"function read(values: &[i32]): i32 { return 1 }
+function borrow_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return values }
+function main(): i32 {
+  slot values: [i32; 4] = [1, 2, 3, 4]
+  let writer: &'a mut [i32] = borrow_mut(&mut values[1..4])
+  return read(writer)
+}"#,
+        );
+    }
+
+    #[test]
+    fn call_argument_rejects_shared_reference_where_mut_is_expected() {
+        let message = reject(
+            r#"function write(packet: &mut Packet): i32 { return 1 }
+function main(): i32 {
+  slot packet: Packet = Packet(1)
+  let view: &Packet = &packet
+  return write(view)
+}"#,
+        );
+        assert!(message.contains(ARGUMENT_MISMATCH), "{message}");
+        assert!(
+            message.contains("expected `&mut Packet`, found `&Packet`"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn let_rejects_shared_named_lifetime_where_mut_reference_is_expected() {
+        let message = reject(
+            r#"function borrow<'a>(value: &'a i32): &'a i32 { return value }
+function main(): i32 {
+  slot value: i32 = 1
+  let writer: &mut i32 = borrow(&value)
+  return 1
+}"#,
+        );
+        assert!(message.contains(ASSIGNMENT_MISMATCH), "{message}");
+        assert!(
+            message.contains("expected `&mut i32`, found `&'a i32`"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn let_rejects_named_mut_reference_where_elided_shared_is_expected() {
+        let message = reject(
+            r#"function borrow_mut<'a>(values: &'a mut [i32]): &'a mut [i32] { return values }
+function main(): i32 {
+  slot values: [i32; 4] = [1, 2, 3, 4]
+  let view: &[i32] = borrow_mut(&mut values[1..4])
+  return 1
+}"#,
+        );
+        assert!(message.contains(ASSIGNMENT_MISMATCH), "{message}");
+        assert!(
+            message.contains("expected `&[i32]`, found `&'a mut [i32]`"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn distinct_named_lifetimes_are_not_unified() {
+        let message = reject(
+            r#"function give<'a>(value: &'a i32): &'a i32 { return value }
+function main(): i32 {
+  slot value: i32 = 1
+  let view: &'b i32 = give(&value)
+  return 1
+}"#,
+        );
+        assert!(message.contains(ASSIGNMENT_MISMATCH), "{message}");
+        assert!(
+            message.contains("expected `&'b i32`, found `&'a i32`"),
+            "{message}"
+        );
     }
 }

@@ -14,12 +14,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type WalletProvider =
-  | 'metamask'
-  | 'walletconnect'
-  | 'coinbase'
-  | 'phantom'
-  | 'rainbow'
-  | 'injected';
+  'metamask' | 'walletconnect' | 'coinbase' | 'phantom' | 'rainbow' | 'injected';
 type Network = 'mainnet' | 'goerli' | 'sepolia' | 'polygon' | 'arbitrum' | 'optimism' | 'base';
 
 interface WalletState {

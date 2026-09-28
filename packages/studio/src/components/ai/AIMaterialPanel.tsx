@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * AIMaterialPanel — prompts Ollama to generate a GLSL fragment shader + @material trait.
+ * AIMaterialPanel — asks /api/material/generate (cloud first, then our local model server)
+ * for a GLSL fragment shader + @material trait.
  * Opens as a right-side drawer or bottom panel inside the Studio.
  */
 

@@ -4,7 +4,8 @@ Status: active guardrail, established 2026-07-03 for LANG 4/6.
 
 This file is the router for accepted HoloScript grammar truth. It does not
 replace the parsers; it defines which artifacts are allowed to describe syntax
-as accepted by the tools.
+as accepted by the tools. The versioned description of what those readers accept
+today is [HoloScript Spec v0.1](./holoscript-spec-v0.1.md).
 
 ## Accepted Grammar Sources
 

@@ -7,14 +7,7 @@ import { devtools } from 'zustand/middleware';
 
 export type BuilderMode = 'place' | 'break' | 'select';
 export type GeometryType =
-  | 'cube'
-  | 'sphere'
-  | 'cylinder'
-  | 'cone'
-  | 'torus'
-  | 'capsule'
-  | 'plane'
-  | 'ring';
+  'cube' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'capsule' | 'plane' | 'ring';
 
 export interface HotbarSlot {
   geometry: GeometryType;

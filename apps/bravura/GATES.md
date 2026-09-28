@@ -107,18 +107,18 @@ how to maestro." The skills a real conducting education covers, mapped to
 gates. Each lesson must pass the house rule: the room teaches by responding
 honestly, never by feeling like homework.
 
-| Skill | What the room measures | Gate |
-|---|---|---|
-| Steady hand | interval evenness (wobble) | **4 (this gate)** |
-| Landing the beat | signed hand-vs-grid offset (early/late) | **4 (this gate)** |
-| Louder & softer | stroke size → strike strength; contrast + control | **4 (this gate)** |
-| Clean tempo changes | the gate-2 step trials, reframed as a lesson | 5 |
-| Beat patterns (4/4, 3/4, 2/4 shapes) | stroke direction path vs pattern template | 5+ |
-| The preparation & downbeat (starting) | upbeat→downbeat gesture pair from silence | 5+ |
-| Cueing (bringing a section in) | point/look at a section on its entrance | needs sections (6+) |
-| Holds & releases (fermata) | sustain gesture, clean cutoff | 6+ |
-| Subdivision (slow music in 8) | double-time hand over half-time grid | later |
-| Expression → remix | the earned Maestro tier from the research report | later |
+| Skill                                 | What the room measures                            | Gate                |
+| ------------------------------------- | ------------------------------------------------- | ------------------- |
+| Steady hand                           | interval evenness (wobble)                        | **4 (this gate)**   |
+| Landing the beat                      | signed hand-vs-grid offset (early/late)           | **4 (this gate)**   |
+| Louder & softer                       | stroke size → strike strength; contrast + control | **4 (this gate)**   |
+| Clean tempo changes                   | the gate-2 step trials, reframed as a lesson      | 5                   |
+| Beat patterns (4/4, 3/4, 2/4 shapes)  | stroke direction path vs pattern template         | 5+                  |
+| The preparation & downbeat (starting) | upbeat→downbeat gesture pair from silence         | 5+                  |
+| Cueing (bringing a section in)        | point/look at a section on its entrance           | needs sections (6+) |
+| Holds & releases (fermata)            | sustain gesture, clean cutoff                     | 6+                  |
+| Subdivision (slow music in 8)         | double-time hand over half-time grid              | later               |
+| Expression → remix                    | the earned Maestro tier from the research report  | later               |
 
 ## Gate 4 — Scoring: the room starts teaching (opened 2026-08-13)
 
@@ -631,7 +631,7 @@ poisoned the lateral stats.
 The podium hand is sticky — the incumbent keeps it unless it goes still while
 the other hand clearly bounces (~1.5 s), so left-handed conductors take over
 naturally and a raised cue hand cannot steal the beat. A briefly-lost wrist
-feeds *nothing* (a gap is honest; a spike is not); controllers carry the beat
+feeds _nothing_ (a gap is honest; a spike is not); controllers carry the beat
 only when no hand is tracked at all.
 
 ### Defect 2 — "Teach me" + mode switch froze the counter at 0/18 (`main.ts`)
@@ -714,12 +714,12 @@ Instruments installed live: a rolling hand-sample recorder wrapping
 
 4000 gaze frames, his real head at **1.41 m** (the room assumed ~1.6 m):
 
-| where he looked | share of frames |
-|---|---|
-| instruction panel (yaw 28.8° right) | **59.0%** |
-| chimes (yaw 38.5°) | 51.1% |
-| guide ball (yaw 0°) | 12.8% |
-| **the drum (yaw 0°)** | **8.7%** |
+| where he looked                     | share of frames |
+| ----------------------------------- | --------------- |
+| instruction panel (yaw 28.8° right) | **59.0%**       |
+| chimes (yaw 38.5°)                  | 51.1%           |
+| guide ball (yaw 0°)                 | 12.8%           |
+| **the drum (yaw 0°)**               | **8.7%**        |
 
 The words were 29° off-axis from the teaching. To read them he had to turn away
 from the drum, his hands, and the guide ball demonstrating the motion — so he
@@ -772,7 +772,7 @@ model it implies:
 - **Every section is an independent player** with its own state (silent,
   following, soloing, held), not a fixed pair wired to a fixed pair of hands.
 - **Addressing must scale past the number of hands.** Two hands cannot select
-  among 100 sections; *attention* can. Gaze is the conductor's real selector —
+  among 100 sections; _attention_ can. Gaze is the conductor's real selector —
   you look at the section you are bringing in. The gaze plumbing proven above
   is exactly the mechanism.
 - **The same gesture means different things depending on WHO is addressed** —
@@ -845,12 +845,12 @@ Instrumented his session while he wore the headset and conducted.
 Same measurement as field report 2, after the fix (4820 frames, he was standing
 this time — head at 1.70 m, and the panel followed him there):
 
-| gaze dwell (20° cone) | before | after |
-|---|---|---|
-| the words | 59.0% (yaw 28.8°) | **82.5% (yaw 0°)** |
-| the guide ball | 12.8% | **28.2%** |
-| the drum | 8.7% | **15.1%** |
-| median gaze yaw | 21.9° | **−2.4°** |
+| gaze dwell (20° cone) | before            | after              |
+| --------------------- | ----------------- | ------------------ |
+| the words             | 59.0% (yaw 28.8°) | **82.5% (yaw 0°)** |
+| the guide ball        | 12.8%             | **28.2%**          |
+| the drum              | 8.7%              | **15.1%**          |
+| median gaze yaw       | 21.9°             | **−2.4°**          |
 
 He is looking straight ahead now, where the drum, the ball, his hands and the
 words all are. The head-turn away from the teaching is gone.
@@ -888,6 +888,7 @@ its own recent range (0.6 → **0.82**); and **a bar of real conducting (4 beats
 must precede it**, so a pause moments after a restart is a pause.
 
 **Receipts (final build):**
+
 - Casual mid-range pause after 9 beats → **0 holds**, ensemble rests normally
   (finishes the bar and waits). Before this change the same shape froze it.
 - Deliberate fermata (hand at the top, held ~2 s) → hold fires, transport
@@ -930,6 +931,7 @@ same session request, same `local-floor` fallback, same `getJointPose` loop,
 same `renderState.baseLayer` viewports.
 
 Built for this gate specifically, because Bravura's own field reports named them:
+
 - `loseTracking(hand, frames)` / `restoreTracking` — Quest drops joints exactly
   during fast motion, which is when a conducting app is reading them.
 - `useHands()` / `useControllers()` — switchable mid-session, because apps
@@ -1031,7 +1033,7 @@ and each has a test that fails if it stops being true.
    conductor glancing at the score has not stopped addressing the section.
 3. **The same gesture means different things depending on who is addressed.**
    There is no solo gesture and there must never be one. One lift aimed at one
-   section raises it and the rest yield under it — that *is* a solo. The
+   section raises it and the rest yield under it — that _is_ a solo. The
    identical lift aimed at everyone swells everyone and nobody solos. Solo
    versus tutti is a property of the ADDRESS.
 
@@ -1055,7 +1057,7 @@ every rule above testable without a headset, a GPU, or a person.
    twice, each restored to green:**
    - `gazeFromView` made to read a view matrix at indices 8/9/10 as if it were a
      model matrix: **6 tests red**, and — the point — it addressed a
-     *plausible-looking wrong section* (s37 for s62, s58 for s41). That is the
+     _plausible-looking wrong section_ (s37 for s62, s58 for s41). That is the
      failure this test exists for; it would have silently addressed the wrong
      desk forever.
    - `swell` made to ignore the address: **4 tests red**, including the room
@@ -1100,7 +1102,7 @@ instrument, which under this architecture costs one `add()` call.
 
 **The addressing was never a gesture problem.** Two hands looked like the
 constraint, so the room had two instruments. The constraint was never the hands
-— it was that nothing carried *who you were talking to*. Once the address is a
+— it was that nothing carried _who you were talking to_. Once the address is a
 value, a hundred sections cost no more than two, and the gesture vocabulary gets
 smaller rather than larger: no solo gesture, no tutti gesture, one lift that
 means whichever the conductor was looking at.

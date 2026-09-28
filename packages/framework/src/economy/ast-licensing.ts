@@ -391,9 +391,7 @@ export async function createLicensedASTAsset(
     );
   }
   const astAny = compileResult.ast as
-    | { root?: HSPlusNode; body?: HSPlusNode[] }
-    | HSPlusNode
-    | undefined;
+    { root?: HSPlusNode; body?: HSPlusNode[] } | HSPlusNode | undefined;
   const astRoot: HSPlusNode | undefined =
     (astAny as { root?: HSPlusNode } | undefined)?.root ??
     ((astAny as { body?: HSPlusNode[] } | undefined)?.body?.[0] as HSPlusNode | undefined) ??

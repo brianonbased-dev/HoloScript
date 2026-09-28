@@ -154,15 +154,7 @@ export type Quaternion = [number, number, number, number];
  * unions, intersections, generics).
  */
 export type HSPlusType =
-  | 'float'
-  | 'int'
-  | 'bool'
-  | 'string'
-  | 'vec2'
-  | 'vec3'
-  | 'vec4'
-  | 'color'
-  | 'unknown';
+  'float' | 'int' | 'bool' | 'string' | 'vec2' | 'vec3' | 'vec4' | 'color' | 'unknown';
 
 /**
  * Minimal HoloScript+ scene node shape used by downstream packages that need
@@ -285,13 +277,7 @@ export interface FunctionType {
 }
 
 export type HoloScriptType =
-  | PrimitiveType
-  | ArrayType
-  | UnionType
-  | IntersectionType
-  | GenericType
-  | LiteralType
-  | CustomType;
+  PrimitiveType | ArrayType | UnionType | IntersectionType | GenericType | LiteralType | CustomType;
 
 // ============================================================================
 // AST Program

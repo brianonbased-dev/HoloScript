@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TRAIT_UI_AFFORDANCES } from '../derived-trait-ui.generated';
-import {
-  DERIVED_TRAIT_SCHEMAS,
-  DERIVED_TRAIT_CONFLICTS,
-} from '../derived-trait-schemas.generated';
+import { DERIVED_TRAIT_SCHEMAS, DERIVED_TRAIT_CONFLICTS } from '../derived-trait-schemas.generated';
 
 /**
  * Guards the generated editor artifact — the half of the chain that runs at build time

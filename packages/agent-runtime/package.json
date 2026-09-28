@@ -56,7 +56,7 @@
     "build": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs && node --check src/provider-planner.mjs && node --check src/frozen-provider-evaluation.mjs && node --check src/capability-work.mjs",
     "test": "node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs test/provider-planner.test.mjs test/frozen-provider-evaluation.test.mjs test/capability-work.test.mjs",
     "check": "node --check src/index.mjs && node --check src/memory-package.mjs && node --check src/agent-profiles.mjs && node --check src/sovereign-seed.mjs && node --check src/second-brain-runtime.mjs && node --check src/provider-planner.mjs && node --check src/frozen-provider-evaluation.mjs && node --check src/capability-work.mjs && node --test test/agent-runtime.test.mjs test/second-brain-runtime.test.mjs test/provider-planner.test.mjs test/frozen-provider-evaluation.test.mjs test/capability-work.test.mjs",
-    "prepublishOnly": "pnpm run check"
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs && pnpm run check"
   },
   "holorepo": {
     "consumptionCanon": "docs/handbooks/v0-v1-release-standard.md#consumption-targets",

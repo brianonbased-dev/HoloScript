@@ -34,7 +34,12 @@ import {
   ABSORB_GRAPH_RAG_ENGINE_ERROR,
   ABSORB_HOLO_ABSORB_REPO_HINT,
 } from './graph-rag-prerequisite';
-import { resolveConfigSecret } from '@holoscript/config';
+import {
+  INFERENCE_PROXY_AUTH_REJECTED_MESSAGE,
+  resolveConfigSecret,
+  resolveInferenceProxyKey,
+  scrubSecretFromText,
+} from '@holoscript/config';
 
 export const HOLOLLAMA_SYNTHESIS_RECEIPT_SCHEMA = 'holoscript.absorb.holollama-synthesis.v1';
 
@@ -65,6 +70,7 @@ export interface HoloLlamaSynthesisReceipt {
 
 export interface HoloLlamaSynthesisProvider extends LLMProvider {
   receipt: HoloLlamaSynthesisReceipt;
+  listModels(): Promise<unknown>;
 }
 
 export interface HoloLlamaSynthesisProviderOptions {
@@ -288,6 +294,12 @@ export async function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
+  const { refuseNestedWorkspaceSliceForSemanticTools } = await import('./codebase-tools');
+  const nestedSliceRefuse = await refuseNestedWorkspaceSliceForSemanticTools();
+  if (nestedSliceRefuse) {
+    return nestedSliceRefuse;
+  }
+
   if (name === 'holo_visual_graph_context' && !cachedVisualGraph) {
     await hydrateCachedVisualGraphStateFromCodebaseTools();
   } else if (
@@ -437,28 +449,77 @@ export async function createHoloLlamaSynthesisProvider(
     model,
   });
 
+  const modelsUrl = holoLlamaModelsUrl(endpoint);
+
   return {
     receipt,
-    async complete(request, modelOverride) {
-      const response = await fetchImpl(chatCompletionsUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: modelOverride ?? model,
-          messages: request.messages,
-          stream: false,
-        }),
-      });
-
+    async listModels() {
+      const secret = await resolveInferenceProxyKey();
+      const response = await fetchProxy(
+        fetchImpl,
+        modelsUrl,
+        {
+          method: 'GET',
+          ...(secret ? { headers: { Authorization: `Bearer ${secret}` } } : {}),
+        },
+        secret
+      );
+      if (response.status === 401) {
+        throw new Error(INFERENCE_PROXY_AUTH_REJECTED_MESSAGE);
+      }
       if (!response.ok) {
         throw new Error(
-          `HoloLlama chat completions error: ${response.status} ${response.statusText}`
+          `HoloLlama models error: ${response.status} ${scrubSecretFromText(response.statusText, secret)}`
+        );
+      }
+      return response.json();
+    },
+    async complete(request, modelOverride) {
+      const secret = await resolveInferenceProxyKey();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (secret) headers.Authorization = `Bearer ${secret}`;
+      const response = await fetchProxy(
+        fetchImpl,
+        chatCompletionsUrl,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: modelOverride ?? model,
+            messages: request.messages,
+            stream: false,
+          }),
+        },
+        secret
+      );
+
+      if (response.status === 401) {
+        throw new Error(INFERENCE_PROXY_AUTH_REJECTED_MESSAGE);
+      }
+      if (!response.ok) {
+        throw new Error(
+          `HoloLlama chat completions error: ${response.status} ${scrubSecretFromText(response.statusText, secret)}`
         );
       }
 
       return { content: extractChatCompletionContent(await response.json()) };
     },
   };
+}
+
+async function fetchProxy(
+  fetchImpl: FetchLike,
+  url: string,
+  init: RequestInit,
+  secret: string
+): Promise<Response> {
+  try {
+    return await fetchImpl(url, init);
+  } catch (err) {
+    if (!secret) throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(scrubSecretFromText(msg, secret));
+  }
 }
 
 async function resolveHoloLlamaConfigSecret(name: string): Promise<string | undefined> {
@@ -481,6 +542,19 @@ function resolveHoloLlamaProfile(value: unknown, configuredProfile?: string): Ho
     return candidate as HoloLlamaProfile;
   }
   throw new Error(`Unknown HoloLlama profile: ${candidate}`);
+}
+
+export function holoLlamaModelsUrl(endpoint: string): string {
+  const normalized = trimTrailingSlashes(endpoint);
+  if (/\/v1\/models$/i.test(normalized)) return normalized;
+  if (/\/v1\/chat\/completions$/i.test(normalized)) {
+    return normalized.replace(/\/chat\/completions$/i, '/models');
+  }
+  if (/\/chat\/completions$/i.test(normalized)) {
+    return normalized.replace(/\/chat\/completions$/i, '/models');
+  }
+  if (/\/v1$/i.test(normalized)) return `${normalized}/models`;
+  return `${normalized}/v1/models`;
 }
 
 export function normalizeHoloLlamaChatCompletionsUrl(endpoint: string): string {

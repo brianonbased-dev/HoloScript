@@ -80,10 +80,7 @@ export interface PerformanceMetricMessage {
  * Union type for all real-time messages
  */
 export type RealTimeMessage =
-  | PositionSyncMessage
-  | FrameBudgetMessage
-  | SpatialConflictMessage
-  | PerformanceMetricMessage;
+  PositionSyncMessage | FrameBudgetMessage | SpatialConflictMessage | PerformanceMetricMessage;
 
 /**
  * Real-time message body — strips auto-generated fields for the `send()` method.

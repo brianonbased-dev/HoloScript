@@ -25,16 +25,17 @@ consumption surface.
 295 traits · ~664 MCP tools · 50 receipt types · thermal/structural/fairness solvers · CAEL provenance.
 
 **Paper → HoloShell capability anchor (the load-bearing set):**
-| Paper | Capability | How HoloShell uses it |
-|---|---|---|
-| 12 (HoloLand) | intent→approval→receipt ladder | the operate doctrine itself (= Phase A) |
-| 1 (MCP Trust) | origin verification | trust every tool/trait/component before it plugs |
-| 4 (Sandbox) | capability containment | restrict every trait/service to declared capabilities |
-| 8 / TVCG (SimContract) | verified prediction | verify a sim/behavior before acting on it |
-| 0c (CAEL) | causal audit trail | every operation leaves a causal receipt |
-| 13 (DumbGlass) | perceptual provenance | anchor a perception/decision to a provenance chain |
-| 11 (HSPlus) | trait composition | compose verified traits with semantic constraints |
-| 22 (Mechanized SimContract, Lean) | formal proof | machine-verify the highest-assurance operations |
+
+| Paper                             | Capability                     | How HoloShell uses it                                 |
+| --------------------------------- | ------------------------------ | ----------------------------------------------------- |
+| 12 (HoloLand)                     | intent→approval→receipt ladder | the operate doctrine itself (= Phase A)               |
+| 1 (MCP Trust)                     | origin verification            | trust every tool/trait/component before it plugs      |
+| 4 (Sandbox)                       | capability containment         | restrict every trait/service to declared capabilities |
+| 8 / TVCG (SimContract)            | verified prediction            | verify a sim/behavior before acting on it             |
+| 0c (CAEL)                         | causal audit trail             | every operation leaves a causal receipt               |
+| 13 (DumbGlass)                    | perceptual provenance          | anchor a perception/decision to a provenance chain    |
+| 11 (HSPlus)                       | trait composition              | compose verified traits with semantic constraints     |
+| 22 (Mechanized SimContract, Lean) | formal proof                   | machine-verify the highest-assurance operations       |
 
 **Re-anchored phases (same work, paper-spined, built in `Hololand/packages/holoshell/`):**
 

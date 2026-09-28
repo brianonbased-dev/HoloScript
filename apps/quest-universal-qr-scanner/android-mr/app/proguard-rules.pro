@@ -23,3 +23,11 @@
 # Meta ISDK also resolves Toolkit and ISDK component types by class name.
 -keep class com.meta.spatial.toolkit.** { *; }
 -keep class com.meta.spatial.isdk.** { *; }
+
+# Native Scene/ISDK constructs these types from JNI on every frame. R8 dropping the
+# constructors SIGABRTs onSceneTick and Quest dumps the user back to Home.
+-keep class com.meta.spatial.core.** { *; }
+-keep class com.meta.spatial.runtime.** { *; }
+
+# ZXing uses DecodeHintType as map keys. R8 renaming those enums makes every QR read return null.
+-keep class com.google.zxing.** { *; }

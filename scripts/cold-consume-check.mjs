@@ -53,6 +53,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
+import { rewriteWorkspaceRefs } from './holo-ci/rewrite-workspace-deps.mjs';
 
 const args = process.argv.slice(2);
 const JSON_OUT = args.includes('--json');
@@ -96,6 +97,27 @@ const PROBES = [
     skipCjs: true,
   },
   { name: '@holoscript/ui', dir: 'ui', barrelSym: null, runtime: false },
+  // 2026-09-05: absorb-service@6.1.3 shipped unresolved workspace ranges.
+  // snn-webgpu@8.7.1 then blocked the 6.1.4 holoembed cut: optional peer
+  // @holoscript/core=workspace:^ still crashes npm install (EUNSUPPORTEDPROTOCOL).
+  {
+    name: '@holoscript/holoembed',
+    dir: 'holoembed',
+    barrelSym: 'HoloEmbedEncoder',
+    runtime: false,
+  },
+  {
+    name: '@holoscript/snn-webgpu',
+    dir: 'snn-webgpu',
+    barrelSym: 'LIFSimulator',
+    runtime: false,
+  },
+  {
+    name: '@holoscript/absorb-service',
+    dir: 'absorb-service',
+    barrelSym: 'CodebaseGraph',
+    runtime: false,
+  },
 ];
 
 /** Package name of a bare import specifier ('ws/lib/x' -> 'ws', '@s/p/sub' -> '@s/p'). */
@@ -135,24 +157,19 @@ function log(...m) {
 }
 
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 function run(cmd, cmdArgs, opts = {}) {
-  const isNpm = cmd === 'npm';
-  return execFileSync(isNpm ? NPM_BIN : cmd, cmdArgs, {
+  const bin = cmd === 'pnpm' ? PNPM_BIN : cmd === 'npm' ? NPM_BIN : cmd;
+  return execFileSync(bin, cmdArgs, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: isNpm && process.platform === 'win32',
-    ...opts,
-  });
-}
-function tar(tarArgs, opts = {}) {
-  return execFileSync('tar', tarArgs, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: (cmd === 'npm' || cmd === 'pnpm') && process.platform === 'win32',
+    timeout: opts.timeout || 180_000,
     ...opts,
   });
 }
 
-// --- workspace: spec rewrite (mirrors cold-repro-onramp.mjs / pnpm publish) ---
+// --- workspace: spec rewrite (mirrors publish-npm-package / rewrite-workspace-deps.mjs) ---
 function repoRoot(start) {
   let root = start;
   while (root !== dirname(root) && !existsSync(join(root, 'pnpm-workspace.yaml'))) {
@@ -182,34 +199,6 @@ function buildVersionMap(root) {
   }
   return map;
 }
-function resolveSpec(name, spec, versionMap) {
-  const rest = spec.slice('workspace:'.length);
-  const v = versionMap.get(name);
-  if (!v) return 'latest';
-  if (rest === '*' || rest === '') return v;
-  if (rest === '^') return `^${v}`;
-  if (rest === '~') return `~${v}`;
-  return rest;
-}
-function rewriteWorkspace(manifest, versionMap) {
-  let n = 0;
-  for (const field of [
-    'dependencies',
-    'optionalDependencies',
-    'peerDependencies',
-    'devDependencies',
-  ]) {
-    const block = manifest[field];
-    if (!block) continue;
-    for (const [dep, spec] of Object.entries(block)) {
-      if (typeof spec === 'string' && spec.startsWith('workspace:')) {
-        block[dep] = resolveSpec(dep, spec, versionMap);
-        n += 1;
-      }
-    }
-  }
-  return n;
-}
 
 function readManifest(pkgDir) {
   return JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8'));
@@ -236,28 +225,20 @@ function makeTarball(pkgDir) {
   if (!existsSync(join(pkgDir, 'dist'))) {
     return { error: `no dist/ at ${pkgDir} — build first (this gate tests the BUILT artifact).` };
   }
+  const manifestPath = join(pkgDir, 'package.json');
+  const backup = readFileSync(manifestPath, 'utf8');
   const out = mkdtempSync(join(tmpdir(), 'hs-pack-'));
-  run('npm', ['pack', '--pack-destination', out], { cwd: pkgDir });
-  const tgz = readdirSync(out).find((f) => f.endsWith('.tgz'));
-  if (!tgz) return { error: 'npm pack produced no tarball' };
-  const tgzPath = join(out, tgz);
-  const versionMap = buildVersionMap(repoRoot(pkgDir));
-  const extractDir = mkdtempSync(join(tmpdir(), 'hs-unpack-'));
-  const tgzDir = dirname(tgzPath);
-  const tgzName = basename(tgzPath);
   try {
-    tar(['-xzf', tgzName, '-C', extractDir], { cwd: tgzDir });
-    const mp = join(extractDir, 'package', 'package.json');
-    if (!existsSync(mp)) return { error: 'packed tarball has no package/package.json' };
-    const manifest = JSON.parse(readFileSync(mp, 'utf8'));
-    rewriteWorkspace(manifest, versionMap);
-    writeFileSync(mp, JSON.stringify(manifest, null, 2) + '\n');
-    rmSync(tgzPath, { force: true });
-    tar(['-czf', tgzName, '-C', extractDir, 'package'], { cwd: tgzDir });
+    const manifest = JSON.parse(backup);
+    rewriteWorkspaceRefs(manifest, buildVersionMap(repoRoot(pkgDir)));
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    run('pnpm', ['pack', '--pack-destination', out], { cwd: pkgDir, timeout: 180_000 });
   } finally {
-    rmSync(extractDir, { recursive: true, force: true });
+    writeFileSync(manifestPath, backup);
   }
-  return { tgzPath };
+  const tgz = readdirSync(out).find((f) => f.endsWith('.tgz'));
+  if (!tgz) return { error: 'pnpm pack produced no tarball' };
+  return { tgzPath: join(out, tgz) };
 }
 
 function barrelProbeBody(name, sym, isCjs) {

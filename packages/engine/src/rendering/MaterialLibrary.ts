@@ -19,13 +19,7 @@ export type CullMode = 'none' | 'front' | 'back';
  * Maps to high-level rendering strategies.
  */
 export type MaterialType =
-  | 'standard'
-  | 'physical'
-  | 'basic'
-  | 'emissive'
-  | 'toon'
-  | 'glass'
-  | 'metal';
+  'standard' | 'physical' | 'basic' | 'emissive' | 'toon' | 'glass' | 'metal';
 
 export interface TextureSlot {
   textureId: string;

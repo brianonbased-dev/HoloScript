@@ -149,8 +149,7 @@ describe('PillarJEPA', () => {
     });
 
     const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as
-      | { conservationLoss: number }
-      | undefined;
+      { conservationLoss: number } | undefined;
     expect(loss?.conservationLoss).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(loss?.conservationLoss)).toBe(true);
   });
@@ -168,8 +167,7 @@ describe('PillarJEPA', () => {
     });
 
     const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as
-      | { conservationLoss: number }
-      | undefined;
+      { conservationLoss: number } | undefined;
     expect(loss?.conservationLoss).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(loss?.conservationLoss)).toBe(true);
   });
@@ -178,8 +176,7 @@ describe('PillarJEPA', () => {
     step(node, DEFAULT_CONFIG, ctx);
 
     const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as
-      | { symmetryLoss: number }
-      | undefined;
+      { symmetryLoss: number } | undefined;
     expect(loss?.symmetryLoss).toBeGreaterThanOrEqual(0);
   });
 

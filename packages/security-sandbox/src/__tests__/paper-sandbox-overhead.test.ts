@@ -74,11 +74,7 @@ import { HoloScriptSandbox, type SandboxOptions, type SandboxResult } from '../i
 // ─────────────────────────────────────────────────────────────────────────────
 
 type VariantId =
-  | 'full'
-  | 'no-capability'
-  | 'no-resource-limit'
-  | 'no-syscall-filter'
-  | 'unsandboxed';
+  'full' | 'no-capability' | 'no-resource-limit' | 'no-syscall-filter' | 'unsandboxed';
 
 interface VariantSpec {
   id: VariantId;
@@ -149,10 +145,7 @@ const VARIANTS: ReadonlyArray<VariantSpec> = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 type AttackCategory =
-  | 'sandbox-escape'
-  | 'incorrect-physics'
-  | 'non-determinism'
-  | 'post-hoc-tampering';
+  'sandbox-escape' | 'incorrect-physics' | 'non-determinism' | 'post-hoc-tampering';
 
 interface AttackScenario {
   id: string;

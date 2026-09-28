@@ -27,8 +27,7 @@ export const invoiceHandler: TraitHandler<InvoiceConfig> = {
 
   onEvent(node: HSPlusNode, config: InvoiceConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__invoiceState as
-      | { invoices: Map<string, any>; counter: number }
-      | undefined;
+      { invoices: Map<string, any>; counter: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 

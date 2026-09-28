@@ -26,7 +26,8 @@ const dir = mkdtempSync(join(tmpdir(), 'holokey-proof-'));
 const storePath = join(dir, 'vault.json');
 const SECRET = `phase0-canary-${randomBytes(8).toString('hex')}`;
 const OWNER = 'infra://mcp-server';
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 const check = (name, ok, detail = '') => {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
   ok ? pass++ : fail++;
@@ -35,7 +36,7 @@ const check = (name, ok, detail = '') => {
 try {
   // 1 — no KEK at all: this is exactly what the laptop looks like today.
   const off = createHoloKeyVault({ env: { HOLOKEY_STORE_PATH: storePath } });
-  check('no KEK configured -> vault OFF (today\'s laptop state)', off === null);
+  check("no KEK configured -> vault OFF (today's laptop state)", off === null);
 
   // 2 — production-grade KEK (the scoped HOLOKEY_PROD_* keyring): vault comes up.
   const kek = randomBytes(32).toString('base64');
@@ -56,7 +57,11 @@ try {
     HOLOKEY_STORE_PATH: join(dir, 'vault-dev.json'),
   };
   const vault = createHoloKeyVault({ env: prodEnv });
-  check('KEK configured -> vault ON', vault !== null, vault ? `kekGrade=${vault.kekGrade}, backend=${vault.backend}` : 'null');
+  check(
+    'KEK configured -> vault ON',
+    vault !== null,
+    vault ? `kekGrade=${vault.kekGrade}, backend=${vault.backend}` : 'null'
+  );
   if (!vault) throw new Error('vault did not come up; remaining assertions are moot');
 
   // 3 — a real store: put then resolve returns the same bytes.
@@ -71,37 +76,56 @@ try {
 
   // 4 — the whole point: the value must not be readable on disk.
   const onDisk = existsSync(storePath) ? readFileSync(storePath, 'utf8') : '';
-  check('secret is NOT stored in plaintext on disk', onDisk.length > 0 && !onDisk.includes(SECRET),
-        `store ${onDisk.length} bytes, plaintext hit=${onDisk.includes(SECRET)}`);
+  check(
+    'secret is NOT stored in plaintext on disk',
+    onDisk.length > 0 && !onDisk.includes(SECRET),
+    `store ${onDisk.length} bytes, plaintext hit=${onDisk.includes(SECRET)}`
+  );
 
   // 5 — fail-closed: no authenticated owner must be a denial, never a value.
-  let denied = false, leaked = false;
+  let denied = false,
+    leaked = false;
   try {
     const r = await vault.resolver.resolve({ ref: 'vault:PHASE0_CANARY', purpose: 'no-owner' });
     leaked = (typeof r === 'string' ? r : r?.value) === SECRET;
-  } catch { denied = true; }
-  check('resolve without an owner is DENIED (fail-closed)', denied && !leaked,
-        leaked ? 'LEAKED THE VALUE' : 'threw as required');
+  } catch {
+    denied = true;
+  }
+  check(
+    'resolve without an owner is DENIED (fail-closed)',
+    denied && !leaked,
+    leaked ? 'LEAKED THE VALUE' : 'threw as required'
+  );
 
   // 6a — the control must be able to succeed: a dev-only KEK OUTSIDE production works.
   const devVault = createHoloKeyVault({ env: devOnlyEnv });
-  check('dev-only KEK, NODE_ENV=development -> vault ON at dev grade',
-        devVault !== null && devVault.kekGrade === 'dev',
-        devVault ? `kekGrade=${devVault.kekGrade}` : 'null (control cannot fire)');
+  check(
+    'dev-only KEK, NODE_ENV=development -> vault ON at dev grade',
+    devVault !== null && devVault.kekGrade === 'dev',
+    devVault ? `kekGrade=${devVault.kekGrade}` : 'null (control cannot fire)'
+  );
 
   // 6b — and the gate must refuse that exact KEK once NODE_ENV says production.
   const prodWithDevKek = createHoloKeyVault({ env: { ...devOnlyEnv, NODE_ENV: 'production' } });
-  check('SAME dev KEK + NODE_ENV=production -> REFUSED (prod gate has teeth)',
-        prodWithDevKek === null,
-        prodWithDevKek ? `LEAK: vault came up at kekGrade=${prodWithDevKek.kekGrade}` : 'vault OFF as required');
+  check(
+    'SAME dev KEK + NODE_ENV=production -> REFUSED (prod gate has teeth)',
+    prodWithDevKek === null,
+    prodWithDevKek
+      ? `LEAK: vault came up at kekGrade=${prodWithDevKek.kekGrade}`
+      : 'vault OFF as required'
+  );
 
   // Bonus: the audit chain should have sealed both the allow and the deny.
   const chain = vault.receipts?.chain?.() ?? [];
   const verified = vault.receipts?.verify?.();
-  console.log(`\n  audit chain: ${chain.length} sealed receipt(s), verify()=${JSON.stringify(verified)}`);
+  console.log(
+    `\n  audit chain: ${chain.length} sealed receipt(s), verify()=${JSON.stringify(verified)}`
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log(`\n${fail === 0 ? 'PHASE 0 VERIFIED' : 'PHASE 0 HAS A HOLE'} — ${pass} passed, ${fail} failed`);
+console.log(
+  `\n${fail === 0 ? 'PHASE 0 VERIFIED' : 'PHASE 0 HAS A HOLE'} — ${pass} passed, ${fail} failed`
+);
 process.exit(fail === 0 ? 0 : 1);

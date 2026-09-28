@@ -30,7 +30,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs && npm run build"
   },
   "peerDependencies": {
     "react": "^19.2.0",

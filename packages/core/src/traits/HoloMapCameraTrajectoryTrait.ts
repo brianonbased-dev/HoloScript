@@ -50,8 +50,7 @@ export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajector
   onEvent(node, config, context, event) {
     if (event.type !== 'holomap:step_result') return;
     const state = (node as unknown as Record<string, unknown>).__holomapTrajectoryState as
-      | HoloMapCameraTrajectoryState
-      | undefined;
+      HoloMapCameraTrajectoryState | undefined;
     if (!state) return;
 
     const payload = event.payload ?? {};

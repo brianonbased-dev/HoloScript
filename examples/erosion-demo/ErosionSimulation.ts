@@ -48,14 +48,7 @@ export interface CombinedStatistics {
 }
 
 export type SimulationPreset =
-  | 'canyon'
-  | 'mountain'
-  | 'valley'
-  | 'plateau'
-  | 'hills'
-  | 'flat'
-  | 'island'
-  | 'ridge';
+  'canyon' | 'mountain' | 'valley' | 'plateau' | 'hills' | 'flat' | 'island' | 'ridge';
 
 /**
  * Complete erosion simulation system

@@ -68,6 +68,8 @@ describe('tool tiers', () => {
   });
 
   it('sovereign backends get core; frontier BYOK gets full', () => {
+    expect(tierForProvider('holollama')).toBe('core');
+    expect(tierForProvider('holoserve')).toBe('core');
     expect(tierForProvider('ollama')).toBe('core');
     expect(tierForProvider('fleet')).toBe('core');
     expect(tierForProvider('cloud')).toBe('core');

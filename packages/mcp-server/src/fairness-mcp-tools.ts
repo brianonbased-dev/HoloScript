@@ -240,8 +240,7 @@ async function handleExplainFairnessReceipt(args: Record<string, unknown>): Prom
 async function handleCompileToBiasAuditReport(args: Record<string, unknown>): Promise<unknown> {
   const Sim = await getSimulation();
   const receipt = args.receipt as
-    | import('@holoscript/engine').Simulation.FairnessReceipt
-    | undefined;
+    import('@holoscript/engine').Simulation.FairnessReceipt | undefined;
   if (!receipt || typeof receipt !== 'object' || receipt.kind !== 'fairness.receipt.v1') {
     throw new Error("compile_to_bias_audit_report: 'receipt' must be a FairnessReceipt object.");
   }

@@ -51,10 +51,15 @@ async function wearAndEnterSession(
   };
 
   openXRHALHandler.onAttach!(n, config, c.context as never);
-  openXRHALHandler.onEvent!(n, config, c.context as never, {
-    type: 'request_xr_session',
-    payload: { mode: 'immersive-vr' },
-  } as never);
+  openXRHALHandler.onEvent!(
+    n,
+    config,
+    c.context as never,
+    {
+      type: 'request_xr_session',
+      payload: { mode: 'immersive-vr' },
+    } as never
+  );
 
   // The HAL opens the session, probes features, and walks the reference-space
   // fallback chain across several promise turns. Let all of it settle.
@@ -269,7 +274,11 @@ describe('SyntheticHeadset — the device refuses to flatter the build', () => {
 
     try {
       const nav = (globalThis as Record<string, unknown>).navigator as {
-        xr: { requestSession: (m: string) => Promise<{ end: () => Promise<void>; inputSources: unknown[] }> };
+        xr: {
+          requestSession: (
+            m: string
+          ) => Promise<{ end: () => Promise<void>; inputSources: unknown[] }>;
+        };
       };
       const session = await nav.xr.requestSession('immersive-vr');
       expect(session.inputSources.length).toBe(2);
@@ -437,10 +446,15 @@ describe('witness receipt — what a human is handed', () => {
     try {
       const { n, c, config } = await wearAndEnterSession(headset);
 
-      openXRHALHandler.onEvent!(n, config, c.context as never, {
-        type: 'trigger_haptic',
-        payload: { hand: 'right', intensity: 0.8, duration: 40 },
-      } as never);
+      openXRHALHandler.onEvent!(
+        n,
+        config,
+        c.context as never,
+        {
+          type: 'trigger_haptic',
+          payload: { hand: 'right', intensity: 0.8, duration: 40 },
+        } as never
+      );
 
       const felt = headset.hapticsFelt('right');
       expect(felt.length).toBe(1);
@@ -459,7 +473,11 @@ describe('the wearer moves like a person', () => {
 
     try {
       const nav = (globalThis as Record<string, unknown>).navigator as {
-        xr: { requestSession: (m: string) => Promise<{ requestAnimationFrame: (cb: (t: number, f: unknown) => void) => number }> };
+        xr: {
+          requestSession: (
+            m: string
+          ) => Promise<{ requestAnimationFrame: (cb: (t: number, f: unknown) => void) => number }>;
+        };
       };
       const session = await nav.xr.requestSession('immersive-vr');
 

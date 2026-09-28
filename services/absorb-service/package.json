@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/absorb-service-host",
-  "version": "6.1.3",
+  "version": "6.1.5",
   "description": "HTTP/MCP host service for @holoscript/absorb-service (engine logic lives in package)",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "npx drizzle-kit push && node dist/server.js",
+    "start": "node dist/server.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",

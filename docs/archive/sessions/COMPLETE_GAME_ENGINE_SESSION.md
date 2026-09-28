@@ -351,20 +351,21 @@ composition "Untitled" {
 ```
 
 **Material Presets**:
-| Preset | Metalness | Roughness | Color | Use Case |
-|--------|-----------|-----------|-------|----------|
-| **Concrete** | 0.0 | 0.9 | #808080 | Buildings |
-| **Metal** | 1.0 | 0.2 | #888888 | Machinery |
-| **Gold** | 1.0 | 0.15 | #ffd700 | Jewelry |
-| **Copper** | 1.0 | 0.25 | #b87333 | Pipes |
-| **Chrome** | 1.0 | 0.05 | #cccccc | Mirrors |
-| **Wood** | 0.0 | 0.7 | #8b6f47 | Furniture |
-| **Plastic** | 0.0 | 0.4 | #ff6b6b | Toys |
-| **Glass** | 0.0 | 0.0 | #ffffff | Windows |
-| **Rubber** | 0.0 | 0.8 | #333333 | Tires |
-| **Ceramic** | 0.0 | 0.3 | #f0f0f0 | Pottery |
-| **Neon** | - | - | #00ff00 | Signs (emissive) |
-| **Glow** | - | - | #60a5fa | Lights (emissive) |
+
+| Preset       | Metalness | Roughness | Color   | Use Case          |
+| ------------ | --------- | --------- | ------- | ----------------- |
+| **Concrete** | 0.0       | 0.9       | #808080 | Buildings         |
+| **Metal**    | 1.0       | 0.2       | #888888 | Machinery         |
+| **Gold**     | 1.0       | 0.15      | #ffd700 | Jewelry           |
+| **Copper**   | 1.0       | 0.25      | #b87333 | Pipes             |
+| **Chrome**   | 1.0       | 0.05      | #cccccc | Mirrors           |
+| **Wood**     | 0.0       | 0.7       | #8b6f47 | Furniture         |
+| **Plastic**  | 0.0       | 0.4       | #ff6b6b | Toys              |
+| **Glass**    | 0.0       | 0.0       | #ffffff | Windows           |
+| **Rubber**   | 0.0       | 0.8       | #333333 | Tires             |
+| **Ceramic**  | 0.0       | 0.3       | #f0f0f0 | Pottery           |
+| **Neon**     | -         | -         | #00ff00 | Signs (emissive)  |
+| **Glow**     | -         | -         | #60a5fa | Lights (emissive) |
 
 **API Example**:
 

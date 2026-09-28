@@ -325,9 +325,16 @@ describe('AICopilot', () => {
       await copilot.chat('turn 1');
       await copilot.chat('turn 2');
       expect(adapter.chat).toHaveBeenCalledTimes(2);
-      const secondCall = (adapter.chat as any).mock.calls[1];
-      // Third arg is chat history
-      expect(secondCall[2].length).toBeGreaterThan(0);
+      const secondCall = (adapter.chat as ReturnType<typeof vi.fn>).mock.calls[1];
+      // Third arg is prior turns only. adapter.chat appends the newest
+      // user message itself, so that text must not already be in history.
+      const prior = secondCall[2] as Array<{ role: string; content: string }>;
+      expect(prior.map((m) => m.content)).toEqual([
+        'turn 1',
+        'HoloScript is a spatial programming language.',
+      ]);
+      expect(prior.some((m) => m.content === 'turn 2')).toBe(false);
+      expect(secondCall[0]).toBe('turn 2');
     });
 
     it('returns error on adapter throw', async () => {

@@ -1077,8 +1077,7 @@ export class ExportManager {
     const analyzer = new GaussianBudgetAnalyzer({
       platforms,
       budgetOverrides: options.gaussianBudgetOverrides as
-        | Partial<Record<GaussianPlatform, number>>
-        | undefined,
+        Partial<Record<GaussianPlatform, number>> | undefined,
       includeInfoMessages: false,
     });
 

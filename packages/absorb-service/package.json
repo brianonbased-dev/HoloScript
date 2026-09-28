@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/absorb-service",
-  "version": "6.1.2",
+  "version": "6.1.5",
   "description": "Codebase intelligence, recursive self-improvement pipeline, and daemon system for HoloScript",
   "type": "module",
   "main": "./dist/index.js",
@@ -72,7 +72,8 @@
       "types": "./dist/bridge.d.ts",
       "import": "./dist/bridge.js",
       "require": "./dist/bridge.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "start": "node --max-old-space-size=8192 dist/index.js",
@@ -96,7 +97,8 @@
     "generate:language-traits": "tsx scripts/gen-language-traits.mjs",
     "check:language-traits": "tsx scripts/gen-language-traits.mjs --check",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --passWithNoTests --maxWorkers=4"
+    "test:coverage": "vitest run --coverage --passWithNoTests --maxWorkers=4",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

@@ -33,10 +33,7 @@ export const HUMAN_LIKE_AGENT_ATTRIBUTE_CLAIMS = [
 export type AgentAttributeClaimAttribute = (typeof AGENT_ATTRIBUTE_CLAIM_ATTRIBUTES)[number];
 export type HumanLikeAgentAttributeClaim = (typeof HUMAN_LIKE_AGENT_ATTRIBUTE_CLAIMS)[number];
 export type AgentAttributeClaimPersistence =
-  | 'single_event'
-  | 'session'
-  | 'cross_session'
-  | 'durable';
+  'single_event' | 'session' | 'cross_session' | 'durable';
 
 export interface AgentAttributeClaim {
   attribute: AgentAttributeClaimAttribute;

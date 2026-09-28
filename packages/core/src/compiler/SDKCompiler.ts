@@ -1227,11 +1227,7 @@ export class SDKCompiler extends CompilerBase {
     if (contract.service.license) {
       lines.push(`license = { text = ${JSON.stringify(contract.service.license)} }`);
     }
-    lines.push(
-      'requires-python = ">=3.11"',
-      'dependencies = []',
-      ''
-    );
+    lines.push('requires-python = ">=3.11"', 'dependencies = []', '');
     if (contract.service.homepage || contract.service.repository) {
       lines.push('[project.urls]');
       if (contract.service.homepage) {
@@ -1371,8 +1367,7 @@ export class SDKCompiler extends CompilerBase {
           license: contract.service.license,
           repository: contract.service.repository,
           homepage: contract.service.homepage,
-          manifest:
-            this.options.target === 'sdk:python' ? 'pyproject.toml' : 'package.json',
+          manifest: this.options.target === 'sdk:python' ? 'pyproject.toml' : 'package.json',
         },
         schemaCount: contract.schemas.length,
         endpointCount: contract.endpoints.length,

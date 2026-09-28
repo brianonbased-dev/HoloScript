@@ -8,11 +8,12 @@ export const runtime = 'nodejs';
  * from @holoscript/llm-provider (D.025 Phase 3). Supports tool use for
  * scene manipulation (add_trait, create_object, etc.).
  *
- * Provider routing (BRITTNEY_PROVIDER env gate):
- *   - anthropic (default when ANTHROPIC_API_KEY set) → Claude via AnthropicAdapter
- *   - ollama (when OLLAMA_HOST set or BRITTNEY_PROVIDER=ollama) → local model
- *     via LocalLLMAdapter (Ollama-compatible OpenAI endpoint)
- *   - Error if neither is configured (downloaded apps must set OLLAMA_HOST)
+ * Provider routing (BRITTNEY_PROVIDER env gate; full order in lib/brittney/provider.ts):
+ *   - anthropic (explicit, or auto only with HOLO_ALLOW_FRONTIER_FALLBACK=1) → Claude
+ *   - holoserve / holollama (HOLOSERVE_URL / HOLOLLAMA_URL, or named explicitly) → our own
+ *     local model server via LocalLLMAdapter (OpenAI-compatible endpoint)
+ *   - ollama (only when BRITTNEY_PROVIDER=ollama; D.117 retired it from auto) → own Ollama
+ *   - Error if nothing is configured (set HOLOLLAMA_URL for a local model)
  *
  * The stream yields LLMStreamChunk events which the route translates to the
  * same SSE format the client already consumes — identical bytes for the
@@ -56,7 +57,7 @@ import { executeMCPTool } from '@/lib/brittney/MCPToolExecutor';
 import { EMBODIED_TOOLS, EMBODIED_TOOL_NAMES } from '@/lib/brittney/EmbodiedTools';
 import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
-import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
+import { buildContextualPromptParts } from '@/lib/brittney/systemPrompt';
 import { parseTextToolCall } from '@/lib/brittney/textToolCallRescue';
 import {
   createOutputScreener,
@@ -416,9 +417,17 @@ export async function POST(request: NextRequest) {
         : [];
 
     __phase = 'system-prompt';
-    const systemPrompt =
-      bodySystemPrompt ??
-      buildContextualPrompt(
+    // Fixed instructions and the per-turn suffix are separate cache material.
+    // A client override replaces the whole assembly and is its own instruction
+    // set (no suffix to split off). Ollama and the hosted bridge still receive
+    // one concatenated system string; only Anthropic is told where the prefix ends.
+    let systemPrompt: string;
+    let fixedInstructionCacheChars: number | undefined;
+    if (typeof bodySystemPrompt === 'string') {
+      systemPrompt = bodySystemPrompt;
+      fixedInstructionCacheChars = undefined;
+    } else {
+      const promptParts = buildContextualPromptParts(
         sceneContext,
         null,
         true,
@@ -430,6 +439,12 @@ export async function POST(request: NextRequest) {
         allowFounderWorkspace,
         pastThreads
       );
+      systemPrompt = promptParts.fixedInstructions + promptParts.dynamicContext;
+      fixedInstructionCacheChars =
+        resolved?.providerName === 'anthropic' && promptParts.dynamicContext.length > 0
+          ? promptParts.fixedInstructions.length
+          : undefined;
+    }
     const baseUrl = getBaseUrl(request);
 
     __phase = 'holoshell-operator';
@@ -777,17 +792,22 @@ export async function POST(request: NextRequest) {
                   (t as { function: { name: string } }).function.name === 'apply_code')
             );
 
+            const anthropicRequest: NonNullable<
+              NonNullable<LLMCompletionRequest['provider']>['anthropic']
+            > = {};
+            if (typeof fixedInstructionCacheChars === 'number') {
+              anthropicRequest.systemCachePrefixChars = fixedInstructionCacheChars;
+            }
+            if (isSceneCreation && hasApplyCode) {
+              anthropicRequest.toolChoice = { type: 'tool' as const, name: 'apply_code' };
+            }
             const request: LLMCompletionRequest = {
               messages: roundMessages,
               maxTokens,
               tools: tools.length > 0 ? tools : undefined,
               stream: true,
-              ...(isSceneCreation && hasApplyCode
-                ? {
-                    provider: {
-                      anthropic: { toolChoice: { type: 'tool' as const, name: 'apply_code' } },
-                    },
-                  }
+              ...(Object.keys(anthropicRequest).length > 0
+                ? { provider: { anthropic: anthropicRequest } }
                 : {}),
             };
 
@@ -1481,7 +1501,7 @@ function hintForPhase(phase: BrittneyPhase): string {
     case 'rate-limit':
       return 'Rate limiter store unavailable. Check Redis or in-memory store connectivity.';
     case 'provider':
-      return 'Set BRITTNEY_PROVIDER + corresponding key (ANTHROPIC_API_KEY or OLLAMA_HOST). See lib/brittney/provider.ts.';
+      return 'Set HOLOLLAMA_URL (or HOLOSERVE_URL) for a local model, or BRITTNEY_PROVIDER + its key (e.g. anthropic + ANTHROPIC_API_KEY). See lib/brittney/provider.ts.';
     case 'parse':
       return 'Body parsing failed unexpectedly. Likely a content-length or framework-level issue.';
     case 'credit':

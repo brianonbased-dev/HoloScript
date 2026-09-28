@@ -97,8 +97,7 @@ describe('government-civic -> HoloScript runtime integration (civic_decision)', 
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['civic_decision:civic'] as
-      | { winner?: string; candidateCount?: number }
-      | undefined;
+      { winner?: string; candidateCount?: number } | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.winner).toBe('A');
     expect(persisted?.candidateCount).toBe(2);

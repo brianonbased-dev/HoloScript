@@ -349,8 +349,7 @@ function consolidateTransformMutations(mutations: ASTMutation[], objectName: str
         type: 'updateScale',
         objectName,
         scale: (Array.isArray(val) ? val : typeof val === 'number' ? val : 1) as
-          | [number, number, number]
-          | number,
+          [number, number, number] | number,
         timestamp: now,
         source: src,
       } as UpdateScaleMutation;

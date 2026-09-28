@@ -10,22 +10,14 @@ import type { TrustPermissionEnvelope, TrustSyncState } from './TrustReceipt';
 export type DeviceAdapterPriority = 1 | 2 | 3;
 
 export type DeviceAdapterMode =
-  | 'read_only_telemetry'
-  | 'guarded_bidirectional'
-  | 'display_projection'
-  | 'voice_command_bridge';
+  'read_only_telemetry' | 'guarded_bidirectional' | 'display_projection' | 'voice_command_bridge';
 
 export type DeviceAdapterMutationClass = 'none' | 'guarded' | 'break_glass';
 
 export type DeviceAdapterReadiness = 'ready_for_contract' | 'blocked_on_health_trust_spine';
 
 export type DeviceAdapterDomain =
-  | 'home'
-  | 'vehicle'
-  | 'voice'
-  | 'display'
-  | 'health'
-  | 'manufacturing';
+  'home' | 'vehicle' | 'voice' | 'display' | 'health' | 'manufacturing';
 
 export interface DeviceAdapterGate {
   digitalTwinPromotion: 'satisfied';

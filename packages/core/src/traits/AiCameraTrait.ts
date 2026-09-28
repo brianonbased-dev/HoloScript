@@ -24,8 +24,7 @@ export const aiCameraHandler: TraitHandler<AiCameraConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__camState as
-      | { mode: string; target: string | null; shots: number }
-      | undefined;
+      { mode: string; target: string | null; shots: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

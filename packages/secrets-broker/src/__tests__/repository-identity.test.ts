@@ -940,20 +940,23 @@ describe('HoloKey repository identity authority', () => {
       issuesIdentity: false,
       mutatesIdentity: false,
     });
-    expect(() => projectHoloKeyIdentityEvidence({ ...evidence, identity: { ...initial, state: 'active' } }))
-      .toThrowError();
+    expect(() =>
+      projectHoloKeyIdentityEvidence({ ...evidence, identity: { ...initial, state: 'active' } })
+    ).toThrowError();
   });
 
   it('rejects a caller-asserted durable readback without an HoloKey root receipt', () => {
     const clock = new MutableClock();
     const initial = provisional(clock);
-    expect(() => verifyHoloKeyIdentityEvidence({
-      schema: HOLOKEY_REPOSITORY_IDENTITY_EVIDENCE_SCHEMA,
-      authority: 'HoloKey',
-      authorityEvidence: 'authenticated-durable-readback',
-      authenticatedDurableReadback: true,
-      identity: initial,
-    })).toThrowError(/durable readback/);
+    expect(() =>
+      verifyHoloKeyIdentityEvidence({
+        schema: HOLOKEY_REPOSITORY_IDENTITY_EVIDENCE_SCHEMA,
+        authority: 'HoloKey',
+        authorityEvidence: 'authenticated-durable-readback',
+        authenticatedDurableReadback: true,
+        identity: initial,
+      })
+    ).toThrowError(/durable readback/);
   });
 
   it('exposes the reviewed complete 15-bit transition-table mask', () => {
@@ -975,7 +978,9 @@ describe('HoloKey repository identity authority', () => {
   it('publishes a source-authored bounded authority-state canonicalizer', () => {
     const source = readFileSync(new URL('../repository_identity.hsplus', import.meta.url), 'utf8');
     expect(source.match(/^export function /gmu)).toHaveLength(6);
-    expect(source).toContain('export function repository_identity_canonical_authority_state_sha256_byte');
+    expect(source).toContain(
+      'export function repository_identity_canonical_authority_state_sha256_byte'
+    );
     expect(source).toContain('authority: &[u8]');
   });
 });

@@ -211,11 +211,9 @@ export class STLExportCompiler extends CompilerBase {
     const trait = obj.traits.find((t) => String(t.name).replace(/^@/, '') === cleanName);
     if (!trait) return fallback;
     const cfg = (trait as unknown as Record<string, unknown>)['config'] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const params = (trait as unknown as Record<string, unknown>)['params'] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const source = cfg ?? params ?? {};
     return this.toNumber(source[paramKey] as HoloValue | undefined, fallback);
   }

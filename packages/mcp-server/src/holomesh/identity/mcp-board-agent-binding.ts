@@ -28,8 +28,7 @@ const AUTH_PRINCIPAL_ARG = '__authAgentId';
 const str = (v: unknown): string => (typeof v === 'string' && v.trim() ? v.trim() : '');
 
 export type McpBoardAgent =
-  | { ok: true; agentId: string; agentName: string }
-  | { ok: false; status: number; error: string };
+  { ok: true; agentId: string; agentName: string } | { ok: false; status: number; error: string };
 
 /** Read the authoritative principal stamped by handleTool (never caller-supplied). */
 export function authPrincipal(args: Record<string, unknown>): string {

@@ -691,5 +691,4 @@ export interface SpatialConstraintResolvedEvent {
  * Union of all spatial constraint events.
  */
 export type SpatialConstraintEvent =
-  | SpatialConstraintViolationEvent
-  | SpatialConstraintResolvedEvent;
+  SpatialConstraintViolationEvent | SpatialConstraintResolvedEvent;

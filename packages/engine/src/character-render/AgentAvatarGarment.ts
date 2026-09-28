@@ -57,15 +57,11 @@ export interface AgentAvatarGarmentGeometryReceipt {
   radialSegments: number;
   faceCoverage: 'closed-hood-visor' | 'open-v-collar' | 'open-lapel-collar';
   fitProfile:
-    | 'legacy-shell-v1'
-    | 'coherent-upper-body-clearance-v1'
-    | 'constructed-panel-clearance-v2';
+    'legacy-shell-v1' | 'coherent-upper-body-clearance-v1' | 'constructed-panel-clearance-v2';
   collarProfile: 'legacy-hood-collar-v1' | 'tailored-open-v-collar-v1' | 'tailored-lapel-v2';
   /** Present only when separately indexed sewn-panel topology is emitted. */
   constructionProfile?:
-    | 'four-panel-fieldcoat-v1'
-    | 'structured-fieldcoat-shell-v2'
-    | 'portrait-full-fieldcoat-v3';
+    'four-panel-fieldcoat-v1' | 'structured-fieldcoat-shell-v2' | 'portrait-full-fieldcoat-v3';
   /** Independently indexed torso panels, excluding placket, lapels, yokes, and sleeves. */
   constructedPanelCount?: number;
   /** Topological panel boundaries intentionally left un-welded as garment seams. */

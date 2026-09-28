@@ -191,8 +191,7 @@ describe('LotusGardenerTrait — handler lifecycle', () => {
     });
 
     const evt = getLastEvent(ctx, 'lotus_gardener_schedule_changed') as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(evt).toBeDefined();
     expect(evt?.bloomState).toBe('full');
     const schedule = evt?.schedule as { interval_mult: number };

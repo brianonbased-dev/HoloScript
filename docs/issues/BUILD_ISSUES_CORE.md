@@ -162,15 +162,16 @@ const graph = new ShaderGraph((json as ShaderGraphJSON).name, (json as ShaderGra
 - Methods return sync values but interface expects `Promise<T>`
 
 **Misaligned Methods:**
-| Method | Interface | Implementation |
-|--------|-----------|----------------|
-| `createSession` | `Promise<string>` | `IHiveSession` |
-| `join` | `Promise<void>` | `void` |
-| `leave` | `Promise<void>` | `void` |
-| `contribute` | `Promise<void>` | `IHiveContribution` |
-| `vote` | 3 params | 4 params |
-| `synthesize` | `Promise<unknown>` | `SynthesisResult` |
-| `resolve` | `Promise<void>` | `void` |
+
+| Method          | Interface          | Implementation      |
+| --------------- | ------------------ | ------------------- |
+| `createSession` | `Promise<string>`  | `IHiveSession`      |
+| `join`          | `Promise<void>`    | `void`              |
+| `leave`         | `Promise<void>`    | `void`              |
+| `contribute`    | `Promise<void>`    | `IHiveContribution` |
+| `vote`          | 3 params           | 4 params            |
+| `synthesize`    | `Promise<unknown>` | `SynthesisResult`   |
+| `resolve`       | `Promise<void>`    | `void`              |
 
 **Suggested Fix:**
 Either update interface to match implementation or wrap returns in `Promise.resolve()`.

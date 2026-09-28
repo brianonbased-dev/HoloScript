@@ -58,15 +58,7 @@ function quat(q: QuatLike): { x: number; y: number; z: number; w: number } {
 }
 
 export type GeometryKind =
-  | 'cube'
-  | 'sphere'
-  | 'cylinder'
-  | 'plane'
-  | 'cone'
-  | 'torus'
-  | 'capsule'
-  | 'mesh'
-  | 'unknown';
+  'cube' | 'sphere' | 'cylinder' | 'plane' | 'cone' | 'torus' | 'capsule' | 'mesh' | 'unknown';
 
 /** Pure-data reference to a texture map — either the ENCODED image bytes (e.g. PNG/JPEG, as
  *  embedded in a glTF image bufferView) + MIME type, or an external URI. No decoded pixels and
@@ -181,11 +173,7 @@ export interface CharacterDrawSpec {
 
 /** Which fragment shading model a material group renders with. */
 export type ShadingModel =
-  | 'lambert'
-  | 'skin-sss'
-  | 'marschner-hair'
-  | 'refractive-eye'
-  | 'woven-cloth';
+  'lambert' | 'skin-sss' | 'marschner-hair' | 'refractive-eye' | 'woven-cloth';
 
 /** Flat two-sided half-Lambert (the Phase-0 base; the single-material fallback). */
 export interface BaseMaterialSpec extends MaterialSpec {

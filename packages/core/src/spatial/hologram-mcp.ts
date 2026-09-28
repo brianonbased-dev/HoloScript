@@ -105,9 +105,7 @@ export interface HologramBundleHoloCodeRef {
 }
 
 export type HologramBundleRef =
-  | HologramBundleHashRef
-  | HologramBundleUrlRef
-  | HologramBundleHoloCodeRef;
+  HologramBundleHashRef | HologramBundleUrlRef | HologramBundleHoloCodeRef;
 
 // =============================================================================
 // TARGETING / CLIENT HINTS

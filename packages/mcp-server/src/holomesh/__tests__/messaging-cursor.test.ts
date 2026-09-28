@@ -58,7 +58,12 @@ function seedMessagingTeam() {
     ownerId: ALICE.id,
     ownerName: ALICE.name,
     members: [
-      { agentId: ALICE.id, agentName: ALICE.name, role: 'owner', joinedAt: new Date().toISOString() },
+      {
+        agentId: ALICE.id,
+        agentName: ALICE.name,
+        role: 'owner',
+        joinedAt: new Date().toISOString(),
+      },
       { agentId: BOB.id, agentName: BOB.name, role: 'member', joinedAt: new Date().toISOString() },
     ],
     maxSlots: 5,

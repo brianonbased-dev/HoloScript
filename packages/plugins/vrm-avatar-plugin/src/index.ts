@@ -29,16 +29,7 @@ export type VrmHumanoidBone =
   | 'rightFoot';
 
 export type VrmExpressionPreset =
-  | 'happy'
-  | 'angry'
-  | 'sad'
-  | 'relaxed'
-  | 'surprised'
-  | 'neutral'
-  | 'blink'
-  | 'aa'
-  | 'ih'
-  | 'ou';
+  'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised' | 'neutral' | 'blink' | 'aa' | 'ih' | 'ou';
 
 export interface VrmAvatar {
   name: string;

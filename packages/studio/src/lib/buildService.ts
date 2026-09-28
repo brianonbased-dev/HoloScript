@@ -24,13 +24,7 @@
 export type BuildTarget = 'web' | 'embed' | 'pwa' | 'urdf' | 'gltf' | 'json';
 
 export type BuildStatus =
-  | 'idle'
-  | 'parsing'
-  | 'validating'
-  | 'compiling'
-  | 'bundling'
-  | 'done'
-  | 'error';
+  'idle' | 'parsing' | 'validating' | 'compiling' | 'bundling' | 'done' | 'error';
 
 export interface BuildConfig {
   target: BuildTarget;

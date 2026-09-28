@@ -9,11 +9,7 @@ export type DifficultyTier =
 
 /** The five benchmark dimensions of the Fable-5 Ultracode reference bar. */
 export type Fable5Dimension =
-  | 'orchestration'
-  | 'capability-mindset'
-  | 'physics'
-  | 'reality'
-  | 'game-feel';
+  'orchestration' | 'capability-mindset' | 'physics' | 'reality' | 'game-feel';
 
 export type ConfigName =
   | 'brittney-prod'

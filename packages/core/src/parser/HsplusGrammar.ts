@@ -2,10 +2,7 @@ import { HoloScriptPlusParser } from './HoloScriptPlusParser';
 import type { HSPlusCompileResult, HSPlusParserOptions } from './HoloScriptPlusParser';
 
 export type HsplusGrammarSource =
-  | 'rust-wasm-node'
-  | 'rust-wasm-browser'
-  | 'typescript-fallback'
-  | 'custom';
+  'rust-wasm-node' | 'rust-wasm-browser' | 'typescript-fallback' | 'custom';
 
 export interface HsplusGrammarError {
   message: string;

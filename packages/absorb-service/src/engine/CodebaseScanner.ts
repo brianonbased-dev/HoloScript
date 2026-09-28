@@ -866,15 +866,13 @@ export class CodebaseScanner {
             sizeBytes: item.sizeBytes,
           })
           .then(toScanWorkerPayload)
-          .catch(
-            (e: unknown): ScanWorkerPayload => ({
-              error: {
-                file: relPath,
-                error: e instanceof Error ? e.message : String(e),
-                phase: 'parse',
-              },
-            })
-          )
+          .catch((e: unknown): ScanWorkerPayload => ({
+            error: {
+              file: relPath,
+              error: e instanceof Error ? e.message : String(e),
+              phase: 'parse',
+            },
+          }))
       );
     }
 

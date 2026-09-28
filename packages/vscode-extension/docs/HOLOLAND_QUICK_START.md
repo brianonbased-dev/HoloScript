@@ -315,9 +315,7 @@ Set VSCode settings for default configurations:
 
 ```typescript
 // Create paid quest
-const questId = await questService.createQuest({
-  /* ... */
-});
+const questId = await questService.createQuest({/* ... */});
 
 // Require payment before quest start
 await paymentService.requestPayment(

@@ -23,8 +23,7 @@ export const dataLineageHandler: TraitHandler<DataLineageConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__lineageState as
-      | { graph: Map<string, { source: string; transforms: string[] }> }
-      | undefined;
+      { graph: Map<string, { source: string; transforms: string[] }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

@@ -173,11 +173,11 @@ const platformKey = `${process.platform}-${process.arch}`;
 const compilerName = process.platform === 'win32' ? 'holoscriptc.exe' : 'holoscriptc';
 const compilerPath = resolve(systemsRoot, 'native', platformKey, compilerName);
 const TRUSTED_RELEASE_MANIFEST_SHA256 =
-    'sha256:5469cf10b6278415f0ed2361750d02befa34c2b238fd000181df080a17c405da';
+  'sha256:5469cf10b6278415f0ed2361750d02befa34c2b238fd000181df080a17c405da';
 const TRUSTED_SHA256_SUMS_SHA256 =
-    'sha256:0fcc1c065b4058dfe3c7d7bb835a3a1a73a35c88f497c5ed7b16c2a380995cb2';
+  'sha256:0fcc1c065b4058dfe3c7d7bb835a3a1a73a35c88f497c5ed7b16c2a380995cb2';
 const TRUSTED_COMPILER_SHA256 =
-    'sha256:11e2af81a33cf3f678cf8236793ccbbacc43dd1a76cc89b2a6daaa7c54577508';
+  'sha256:11e2af81a33cf3f678cf8236793ccbbacc43dd1a76cc89b2a6daaa7c54577508';
 const TRUSTED_SOURCE_COMMIT = 'a5b2072fcce24946f7ea476e5bc72c3f6f22a7cb';
 const TRUSTED_RELEASE_MACHINE_CONTRACT = 'hs-machine-v32';
 const EXPECTED_ROW_MACHINE_CONTRACT = 'hs-machine-v45';
@@ -199,8 +199,7 @@ const NATIVE_CANONICAL_AUTHORITY_STATE_CASES = [
     authorityText: 'HoloKey',
     state: 0,
     fixtureUtf8: '{"authority":"HoloKey","state":0}',
-    expectedDigestHex:
-      'e5f1ae3abbd49d7d5c8337f48b4e4977e1cc4b2af1b060c34aca98f3adf0f955',
+    expectedDigestHex: 'e5f1ae3abbd49d7d5c8337f48b4e4977e1cc4b2af1b060c34aca98f3adf0f955',
   },
   {
     authorityText: 'HoloKey',
@@ -212,15 +211,13 @@ const NATIVE_CANONICAL_AUTHORITY_STATE_CASES = [
     authorityText: 'HoloKey',
     state: 2,
     fixtureUtf8: '{"authority":"HoloKey","state":2}',
-    expectedDigestHex:
-      '8ba60913f757e36944088292678619be55947828227270e2e5d4bc676d25cf0c',
+    expectedDigestHex: '8ba60913f757e36944088292678619be55947828227270e2e5d4bc676d25cf0c',
   },
   {
     authorityText: 'Jetson-1',
     state: 2,
     fixtureUtf8: '{"authority":"Jetson-1","state":2}',
-    expectedDigestHex:
-      'a2aff97e82e3bda37a1eb4fcc4b9ddd66c55dc007b4bbc5432f32a8e8c24ea82',
+    expectedDigestHex: 'a2aff97e82e3bda37a1eb4fcc4b9ddd66c55dc007b4bbc5432f32a8e8c24ea82',
   },
 ];
 const MODULE_PROBE_SCHEMA = 'holokey.repository-identity-module-probe.v1';
@@ -459,14 +456,16 @@ function exactEsmPublicDescriptor(descriptor) {
 }
 
 function exactCjsPublicDescriptor(descriptor) {
-  if (descriptor === undefined || descriptor.enumerable !== true || descriptor.configurable !== false) {
+  if (
+    descriptor === undefined ||
+    descriptor.enumerable !== true ||
+    descriptor.configurable !== false
+  ) {
     return false;
   }
   if (OBJECT_HAS_OWN(descriptor, 'value')) {
     return (
-      descriptor.writable === false &&
-      descriptor.get === undefined &&
-      descriptor.set === undefined
+      descriptor.writable === false && descriptor.get === undefined && descriptor.set === undefined
     );
   }
   return typeof descriptor.get === 'function' && descriptor.set === undefined;
@@ -600,8 +599,7 @@ function namespaceReceipt(value, expectedKeys, format) {
     const extensible = OBJECT_IS_EXTENSIBLE(value);
     const extensibilityVerified = format === 'esm' ? !extensible : extensible;
     const publicKeysExact = sha256 === reviewedSha256 && keys.length === reviewedKeys.length;
-    const ownStringKeysExact =
-      exactJsonEqual(ownStringKeys, reviewedOwnStringKeys);
+    const ownStringKeysExact = exactJsonEqual(ownStringKeys, reviewedOwnStringKeys);
     const ownSymbolKeysExact =
       format === 'esm'
         ? ownSymbols.length === 1 && ownSymbols[0] === Symbol.toStringTag
@@ -655,7 +653,9 @@ function namespaceReceipt(value, expectedKeys, format) {
 
 function syntheticNamespace(format, { hidden = false, straySymbol = false } = {}) {
   const value = format === 'esm' ? Object.create(null) : {};
-  OBJECT_DEFINE_PROPERTY(value, 'safe',
+  OBJECT_DEFINE_PROPERTY(
+    value,
+    'safe',
     format === 'esm'
       ? { value: () => true, writable: true, enumerable: true, configurable: false }
       : { get: () => true, enumerable: true, configurable: false }
@@ -1692,7 +1692,7 @@ const receipt = hardenForJson({
 WRITE_FILE_SYNC(1, json(receipt) + '\n', 'utf8');
 `;
 
-const EARLY_EXIT_PROBE_SOURCE = "process.exit(0);\n";
+const EARLY_EXIT_PROBE_SOURCE = 'process.exit(0);\n';
 const FORGED_RECEIPT_IMPORT_SOURCE = String.raw`import { readFileSync, writeFileSync } from 'node:fs';
 const stdinAfterTrustedProbeRead = readFileSync(0, 'utf8');
 writeFileSync(1, JSON.stringify({
@@ -1788,9 +1788,7 @@ function validateModuleNamespaceReceipt(receipt, expectedKeys, format) {
     format === 'cjs' ? sortedCopy([...reviewedKeys, '__esModule'], stringCompare) : reviewedKeys;
   const reviewedOwnSymbolKeys = format === 'esm' ? ['Symbol.toStringTag'] : [];
   const expectedDescriptorKeys =
-    format === 'esm'
-      ? [...reviewedOwnStringKeys, 'Symbol.toStringTag']
-      : reviewedOwnStringKeys;
+    format === 'esm' ? [...reviewedOwnStringKeys, 'Symbol.toStringTag'] : reviewedOwnStringKeys;
   let exact =
     strictObjectKeys(receipt, [
       'proxyDetected',
@@ -1938,12 +1936,7 @@ function validateModuleProbeReceipt(receipt, expectedChallenge) {
     !strictObjectKeys(receipt, ['schema', 'challenge', 'namespaces', 'contract', 'custody']) ||
     receipt.schema !== MODULE_PROBE_SCHEMA ||
     receipt.challenge !== expectedChallenge ||
-    !strictObjectKeys(receipt.namespaces, [
-      'esmAuthority',
-      'cjsAuthority',
-      'esmRoot',
-      'cjsRoot',
-    ]) ||
+    !strictObjectKeys(receipt.namespaces, ['esmAuthority', 'cjsAuthority', 'esmRoot', 'cjsRoot']) ||
     !strictObjectKeys(receipt.contract, [
       'dedicatedContractCallable',
       'esmSelfProjection',
@@ -1969,8 +1962,16 @@ function validateModuleProbeReceipt(receipt, expectedChallenge) {
       EXPECTED_AUTHORITY_EXPORTS,
       'cjs'
     ),
-    esmRoot: validateModuleNamespaceReceipt(receipt.namespaces.esmRoot, EXPECTED_ROOT_EXPORTS, 'esm'),
-    cjsRoot: validateModuleNamespaceReceipt(receipt.namespaces.cjsRoot, EXPECTED_ROOT_EXPORTS, 'cjs'),
+    esmRoot: validateModuleNamespaceReceipt(
+      receipt.namespaces.esmRoot,
+      EXPECTED_ROOT_EXPORTS,
+      'esm'
+    ),
+    cjsRoot: validateModuleNamespaceReceipt(
+      receipt.namespaces.cjsRoot,
+      EXPECTED_ROOT_EXPORTS,
+      'cjs'
+    ),
   };
   const contractValid =
     receipt.contract.dedicatedContractCallable === true &&
@@ -2247,7 +2248,8 @@ try {
   if (!ownedRegularFile(manifestPath, packageRoot)) {
     report.blockers.push({
       code: 'HOLOKEY_PACKAGE_MANIFEST_MISSING_OR_UNOWNED',
-      message: 'packages/secrets-broker/package.json is missing or is not a regular package-owned file.',
+      message:
+        'packages/secrets-broker/package.json is missing or is not a regular package-owned file.',
     });
     throw new Error('package-manifest-unavailable');
   }
@@ -2255,7 +2257,7 @@ try {
   const publicationIdentity = assertPublicationVersionIdentity(publicationManifest);
   report.publicationIdentity.version = publicationManifest.version || null;
   report.publicationIdentity.repositoryIdentityExport = Boolean(
-    publicationManifest.exports?.['./repository-identity'],
+    publicationManifest.exports?.['./repository-identity']
   );
   report.publicationIdentity.passed = publicationIdentity.ok === true;
   if (!publicationIdentity.ok) {
@@ -2390,11 +2392,11 @@ try {
   }
   const sourceText = sourceBytes.toString('utf8');
   const exportDeclarations = sourceText.match(/^export function /gmu) ?? [];
-    if (exportDeclarations.length !== 6 || /(?:^|\n)function main\s*\(/u.test(sourceText)) {
-      report.blockers.push({
-        code: 'HOLOKEY_NATIVE_SOURCE_DERIVATION_UNSAFE',
-        message:
-          'The reviewed source no longer matches the bounded six-export/no-entry derivation contract.',
+  if (exportDeclarations.length !== 6 || /(?:^|\n)function main\s*\(/u.test(sourceText)) {
+    report.blockers.push({
+      code: 'HOLOKEY_NATIVE_SOURCE_DERIVATION_UNSAFE',
+      message:
+        'The reviewed source no longer matches the bounded six-export/no-entry derivation contract.',
     });
     throw new Error('source-derivation-unsafe');
   }
@@ -2653,8 +2655,7 @@ try {
   const nativeRowsMatchReviewedExpected =
     report.equivalence.nativeRowMasks.every(
       (rowMask, state) => rowMask === EXPECTED_ROW_MASKS[state]
-    ) &&
-    report.equivalence.nativeTransitionTableBitmask === EXPECTED_TRANSITION_TABLE_BITMASK;
+    ) && report.equivalence.nativeTransitionTableBitmask === EXPECTED_TRANSITION_TABLE_BITMASK;
   if (!nativeRowsMatchReviewedExpected) {
     report.blockers.push({
       code: 'HOLOKEY_NATIVE_TRANSITION_TABLE_DRIFT',
@@ -3026,7 +3027,9 @@ try {
       objectSha256: `sha256:${compileReceipt.object_sha256}`,
     });
   }
-  report.nativeCanonicalFixture.actualDigestHex = Buffer.from(canonicalActualDigestBytes).toString('hex');
+  report.nativeCanonicalFixture.actualDigestHex = Buffer.from(canonicalActualDigestBytes).toString(
+    'hex'
+  );
   report.nativeCanonicalFixture.passed =
     report.nativeCanonicalFixture.fixtureSha256 === `sha256:${NATIVE_SHA256_EXPECTED_HEX}` &&
     report.nativeCanonicalFixture.actualDigestHex === NATIVE_SHA256_EXPECTED_HEX &&
@@ -3036,14 +3039,16 @@ try {
   if (!report.anchorCustody.afterNativeCanonicalFixture.verified) {
     report.blockers.push({
       code: 'HOLOKEY_NATIVE_ANCHOR_CUSTODY_DRIFT',
-      message: 'A source or toolchain anchor drifted after source-authored canonical fixture binding.',
+      message:
+        'A source or toolchain anchor drifted after source-authored canonical fixture binding.',
     });
     throw new Error('native-canonical-fixture-anchor-custody-drift');
   }
   if (!report.nativeCanonicalFixture.passed) {
     report.blockers.push({
       code: 'HOLOKEY_NATIVE_CANONICAL_FIXTURE_BINDING_FAILED',
-      message: 'The compiler-native source-authored canonical identity fixture did not reproduce the reviewed digest.',
+      message:
+        'The compiler-native source-authored canonical identity fixture did not reproduce the reviewed digest.',
     });
     throw new Error('native-canonical-fixture-binding-failed');
   }
@@ -3088,7 +3093,9 @@ try {
           byteIndex,
           phase: 'before-spawn',
         });
-        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-before-spawn-custody-drift`);
+        throw new Error(
+          `native-canonical-authority-state-${caseIndex}-${byteIndex}-before-spawn-custody-drift`
+        );
       }
       const compile = spawnSync(
         compilerSnapshotPath,
@@ -3122,7 +3129,9 @@ try {
           byteIndex,
           phase: 'after-spawn',
         });
-        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-after-spawn-custody-drift`);
+        throw new Error(
+          `native-canonical-authority-state-${caseIndex}-${byteIndex}-after-spawn-custody-drift`
+        );
       }
       const compileReceipt = safeJson(compile.stdout ?? '');
       if (
@@ -3156,7 +3165,9 @@ try {
           compilerStdout: boundedOutput(compile.stdout),
           compilerStderr: boundedOutput(compile.stderr),
         });
-        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-materialization-failed`);
+        throw new Error(
+          `native-canonical-authority-state-${caseIndex}-${byteIndex}-materialization-failed`
+        );
       }
       report.compiler.machineContracts.push(compileReceipt.machine_contract);
       fixtureReport.machineContract = compileReceipt.machine_contract;
@@ -3207,7 +3218,9 @@ try {
           state: fixture.state,
           byteIndex,
         });
-        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-execution-custody-drift`);
+        throw new Error(
+          `native-canonical-authority-state-${caseIndex}-${byteIndex}-execution-custody-drift`
+        );
       }
       if (
         native.error ||
@@ -3227,7 +3240,9 @@ try {
           nativeExitCode: native.status,
           nativeSignal: native.signal,
         });
-        throw new Error(`native-canonical-authority-state-${caseIndex}-${byteIndex}-binding-failed`);
+        throw new Error(
+          `native-canonical-authority-state-${caseIndex}-${byteIndex}-binding-failed`
+        );
       }
       actualDigestBytes.push(native.status);
       fixtureReport.implementations.push({
@@ -3255,24 +3270,26 @@ try {
     }
   }
   report.nativeCanonicalAuthorityState.passed =
-    report.nativeCanonicalAuthorityState.cases.length === NATIVE_CANONICAL_AUTHORITY_STATE_CASES.length &&
+    report.nativeCanonicalAuthorityState.cases.length ===
+      NATIVE_CANONICAL_AUTHORITY_STATE_CASES.length &&
     report.nativeCanonicalAuthorityState.cases.every((fixture) => fixture.passed) &&
     report.compiler.nativeCanonicalAuthorityStatePhases.length ===
       NATIVE_CANONICAL_AUTHORITY_STATE_CASES.length * 32;
-  report.anchorCustody.afterNativeCanonicalAuthorityState = captureFileAnchors(
-    coreAnchorSpecifications
-  );
+  report.anchorCustody.afterNativeCanonicalAuthorityState =
+    captureFileAnchors(coreAnchorSpecifications);
   if (!report.anchorCustody.afterNativeCanonicalAuthorityState.verified) {
     report.blockers.push({
       code: 'HOLOKEY_NATIVE_ANCHOR_CUSTODY_DRIFT',
-      message: 'A source or toolchain anchor drifted after bounded authority-state canonicalization.',
+      message:
+        'A source or toolchain anchor drifted after bounded authority-state canonicalization.',
     });
     throw new Error('native-canonical-authority-state-anchor-custody-drift');
   }
   if (!report.nativeCanonicalAuthorityState.passed) {
     report.blockers.push({
       code: 'HOLOKEY_NATIVE_CANONICAL_AUTHORITY_STATE_BINDING_FAILED',
-      message: 'The compiler-native bounded authority-state canonicalizer did not reproduce all reviewed fixture digests.',
+      message:
+        'The compiler-native bounded authority-state canonicalizer did not reproduce all reviewed fixture digests.',
     });
     throw new Error('native-canonical-authority-state-binding-failed');
   }
@@ -3322,10 +3339,10 @@ try {
   writeFileSync(earlyExitProbePath, EARLY_EXIT_PROBE_SOURCE, 'utf8');
   writeFileSync(forgedReceiptImportPath, FORGED_RECEIPT_IMPORT_SOURCE, 'utf8');
   report.moduleBoundary.probe.nodeSha256 = sha256File(process.execPath);
-  report.moduleBoundary.probe.scriptRelativePath = relative(scratchRoot, moduleProbePath).replaceAll(
-    '\\',
-    '/'
-  );
+  report.moduleBoundary.probe.scriptRelativePath = relative(
+    scratchRoot,
+    moduleProbePath
+  ).replaceAll('\\', '/');
   report.moduleBoundary.probe.scriptSha256 = sha256File(moduleProbePath);
 
   const moduleAnchorSpecifications = {
@@ -3413,9 +3430,7 @@ try {
     throw new Error('module-probe-early-exit-self-test-failed');
   }
 
-  report.anchorCustody.afterEarlyExitSelfTest = captureFileAnchors(
-    moduleAnchorSpecifications
-  );
+  report.anchorCustody.afterEarlyExitSelfTest = captureFileAnchors(moduleAnchorSpecifications);
   if (!report.anchorCustody.afterEarlyExitSelfTest.verified) {
     report.blockers.push({
       code: 'HOLOKEY_MODULE_PROBE_ANCHOR_DRIFT',
@@ -3443,14 +3458,7 @@ try {
     }
     const execution = spawnSync(
       process.execPath,
-      [
-        moduleProbePath,
-        distEsmPath,
-        distCjsPath,
-        rootDistEsmPath,
-        rootDistCjsPath,
-        'normal',
-      ],
+      [moduleProbePath, distEsmPath, distCjsPath, rootDistEsmPath, rootDistCjsPath, 'normal'],
       {
         cwd: scratchRoot,
         encoding: 'utf8',
@@ -3511,9 +3519,7 @@ try {
   });
 
   const forgedReceiptChallenge = randomBytes(32).toString('hex');
-  report.anchorCustody.beforeForgedReceiptFixture = captureFileAnchors(
-    moduleAnchorSpecifications
-  );
+  report.anchorCustody.beforeForgedReceiptFixture = captureFileAnchors(moduleAnchorSpecifications);
   if (!report.anchorCustody.beforeForgedReceiptFixture.verified) {
     report.blockers.push({
       code: 'HOLOKEY_MODULE_PROBE_ANCHOR_DRIFT',
@@ -3546,9 +3552,7 @@ try {
     forgedReceiptExit,
     forgedReceiptChallenge
   );
-  report.anchorCustody.afterForgedReceiptFixture = captureFileAnchors(
-    moduleAnchorSpecifications
-  );
+  report.anchorCustody.afterForgedReceiptFixture = captureFileAnchors(moduleAnchorSpecifications);
   if (!report.anchorCustody.afterForgedReceiptFixture.verified) {
     report.blockers.push({
       code: 'HOLOKEY_MODULE_PROBE_ANCHOR_DRIFT',
@@ -3591,14 +3595,7 @@ try {
   const primaryChallenge = randomBytes(32).toString('hex');
   const primaryProbe = spawnSync(
     process.execPath,
-    [
-      moduleProbePath,
-      distEsmPath,
-      distCjsPath,
-      rootDistEsmPath,
-      rootDistCjsPath,
-      'normal',
-    ],
+    [moduleProbePath, distEsmPath, distCjsPath, rootDistEsmPath, rootDistCjsPath, 'normal'],
     {
       cwd: scratchRoot,
       encoding: 'utf8',
@@ -3722,9 +3719,7 @@ try {
       !intrinsicPoisonOutcome.receiptValidated &&
       !intrinsicPoisonOutcome.accepted,
   };
-  report.anchorCustody.afterIntrinsicPoisonFixture = captureFileAnchors(
-    moduleAnchorSpecifications
-  );
+  report.anchorCustody.afterIntrinsicPoisonFixture = captureFileAnchors(moduleAnchorSpecifications);
   if (!report.anchorCustody.afterIntrinsicPoisonFixture.verified) {
     report.blockers.push({
       code: 'HOLOKEY_MODULE_PROBE_ANCHOR_DRIFT',
@@ -3792,10 +3787,7 @@ try {
   const lateProjectionValidation = lateProjectionPoisonOutcome.validation;
   const candidateMaterialMatchesPrimary =
     lateProjectionValidation !== null &&
-    exactJsonEqual(
-      lateProjectionValidation.namespaces,
-      primaryOutcome.validation.namespaces
-    ) &&
+    exactJsonEqual(lateProjectionValidation.namespaces, primaryOutcome.validation.namespaces) &&
     exactJsonEqual(lateProjectionValidation.contract, primaryOutcome.validation.contract);
   report.moduleBoundary.probe.lateProjectionPoisonSelfTest = {
     ...lateProjectionPoisonOutcome,
@@ -3804,8 +3796,8 @@ try {
     afterImportsCustodyValid: lateProjectionValidation?.custody?.afterImportsValid === true,
     finalCustodyRejected: lateProjectionValidation?.custody?.afterCallsValid === false,
     finalObjectPrototypeIdentityRejected:
-      lateProjectionValidation?.custody?.receipt?.afterCalls?.objectPrototype
-        ?.identityVerified === false,
+      lateProjectionValidation?.custody?.receipt?.afterCalls?.objectPrototype?.identityVerified ===
+      false,
     rejected:
       lateProjectionPoisonOutcome.transportVerified &&
       lateProjectionPoisonOutcome.exactSingleJsonReceipt &&
@@ -3813,8 +3805,8 @@ try {
       candidateMaterialMatchesPrimary &&
       lateProjectionValidation?.custody?.afterImportsValid === true &&
       lateProjectionValidation?.custody?.afterCallsValid === false &&
-      lateProjectionValidation?.custody?.receipt?.afterCalls?.objectPrototype
-        ?.identityVerified === false &&
+      lateProjectionValidation?.custody?.receipt?.afterCalls?.objectPrototype?.identityVerified ===
+        false &&
       !lateProjectionPoisonOutcome.receiptValidated &&
       !lateProjectionPoisonOutcome.accepted,
   };
@@ -3882,14 +3874,10 @@ try {
       globalNumberAccessorValidation.namespaces,
       primaryOutcome.validation.namespaces
     ) &&
-    exactJsonEqual(
-      globalNumberAccessorValidation.contract,
-      primaryOutcome.validation.contract
-    );
+    exactJsonEqual(globalNumberAccessorValidation.contract, primaryOutcome.validation.contract);
   const globalNumberAccessorFinalCustody =
     globalNumberAccessorValidation?.custody?.receipt?.afterCalls ?? null;
-  const globalNumberAccessorIntrinsics =
-    globalNumberAccessorFinalCustody?.intrinsics ?? null;
+  const globalNumberAccessorIntrinsics = globalNumberAccessorFinalCustody?.intrinsics ?? null;
   const onlyGlobalNumberDescriptorRejected =
     strictObjectKeys(globalNumberAccessorIntrinsics, EXPECTED_INTRINSIC_CUSTODY_KEYS) &&
     globalNumberAccessorIntrinsics.globalNumber === false &&
@@ -3910,8 +3898,7 @@ try {
     poisonTrigger:
       'global-Number-accessor-returns-original-and-poisons-Object-prototype-on-any-read',
     candidateMaterialMatchesPrimary: globalNumberAccessorCandidateMaterialMatchesPrimary,
-    afterImportsCustodyValid:
-      globalNumberAccessorValidation?.custody?.afterImportsValid === true,
+    afterImportsCustodyValid: globalNumberAccessorValidation?.custody?.afterImportsValid === true,
     onlyGlobalNumberDescriptorRejected,
     accessorNotInvokedBeforeOrDuringSerialization: globalNumberGetterNotInvoked,
     rejected:
@@ -3985,8 +3972,7 @@ try {
   report.moduleBoundary.objectPrototypeCustody = {
     expected: PRISTINE_OBJECT_PROTOTYPE_SNAPSHOT.receipt,
     actual: moduleValidation.custody.receipt.afterCalls.objectPrototype.actual,
-    identityVerified:
-      moduleValidation.custody.receipt.afterCalls.objectPrototype.identityVerified,
+    identityVerified: moduleValidation.custody.receipt.afterCalls.objectPrototype.identityVerified,
     afterImportsVerified: moduleValidation.custody.afterImportsValid,
     afterCallsVerified: moduleValidation.custody.afterCallsValid,
     verified:

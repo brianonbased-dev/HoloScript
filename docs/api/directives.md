@@ -44,15 +44,16 @@ Defines scene metadata for packaging and discovery.
 ```
 
 **Properties:**
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `title` | string | Yes | Scene display name |
-| `version` | string | Yes | Semantic version |
-| `author` | string | No | Creator name |
-| `description` | string | No | Scene description |
-| `tags` | array | No | Discovery tags |
-| `thumbnail` | string | No | Preview image path |
-| `license` | string | No | License identifier |
+
+| Property      | Type   | Required | Description        |
+| ------------- | ------ | -------- | ------------------ |
+| `title`       | string | Yes      | Scene display name |
+| `version`     | string | Yes      | Semantic version   |
+| `author`      | string | No       | Creator name       |
+| `description` | string | No       | Scene description  |
+| `tags`        | array  | No       | Discovery tags     |
+| `thumbnail`   | string | No       | Preview image path |
+| `license`     | string | No       | License identifier |
 
 ---
 
@@ -71,13 +72,14 @@ Provides semantic annotations for AI understanding and accessibility.
 ```
 
 **Properties:**
-| Property | Type | Description |
-|----------|------|-------------|
-| `scene_type` | string | Category: game, simulation, visualization, etc. |
-| `primary_purpose` | string | Main use case |
-| `audience` | string | Target audience |
-| `content_rating` | string | Age rating (E, T, M) |
-| `language` | string | Primary language code |
+
+| Property          | Type   | Description                                     |
+| ----------------- | ------ | ----------------------------------------------- |
+| `scene_type`      | string | Category: game, simulation, visualization, etc. |
+| `primary_purpose` | string | Main use case                                   |
+| `audience`        | string | Target audience                                 |
+| `content_rating`  | string | Age rating (E, T, M)                            |
+| `language`        | string | Primary language code                           |
 
 ---
 
@@ -96,13 +98,14 @@ Global world settings and atmosphere.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `theme` | string | `"default"` | Visual theme |
-| `mood` | string | `"neutral"` | Atmosphere mood |
-| `time_of_day` | string | `"noon"` | Time: dawn, noon, dusk, night, etc. |
-| `weather` | string | `"clear"` | Weather condition |
-| `season` | string | `"summer"` | Season for environmental effects |
+
+| Property      | Type   | Default     | Description                         |
+| ------------- | ------ | ----------- | ----------------------------------- |
+| `theme`       | string | `"default"` | Visual theme                        |
+| `mood`        | string | `"neutral"` | Atmosphere mood                     |
+| `time_of_day` | string | `"noon"`    | Time: dawn, noon, dusk, night, etc. |
+| `weather`     | string | `"clear"`   | Weather condition                   |
+| `season`      | string | `"summer"`  | Season for environmental effects    |
 
 ---
 
@@ -131,13 +134,14 @@ Defines named spatial zones with specific purposes.
 ```
 
 **Zone Properties:**
-| Property | Type | Description |
-|----------|------|-------------|
-| `bounds` | array | [[min_x, min_y, min_z], [max_x, max_y, max_z]] |
-| `purpose` | string | Zone function |
-| `max_occupancy` | number | Player limit |
-| `audio_profile` | string | Zone audio preset |
-| `ambient_volume` | number | Volume multiplier (0-1) |
+
+| Property         | Type   | Description                                    |
+| ---------------- | ------ | ---------------------------------------------- |
+| `bounds`         | array  | [[min_x, min_y, min_z], [max_x, max_y, max_z]] |
+| `purpose`        | string | Zone function                                  |
+| `max_occupancy`  | number | Player limit                                   |
+| `audio_profile`  | string | Zone audio preset                              |
+| `ambient_volume` | number | Volume multiplier (0-1)                        |
 
 **Events:** `on_zone_enter`, `on_zone_exit`, `on_zone_occupancy_change`
 
@@ -165,13 +169,14 @@ Defines player spawn locations.
 ```
 
 **Spawn Point Properties:**
-| Property | Type | Description |
-|----------|------|-------------|
-| `position` | array | [x, y, z] world position |
-| `rotation` | array | [x, y, z] euler angles |
-| `priority` | number | Selection priority (higher = preferred) |
-| `condition` | string | Spawn condition expression |
-| `capacity` | number | Max simultaneous spawns |
+
+| Property    | Type   | Description                             |
+| ----------- | ------ | --------------------------------------- |
+| `position`  | array  | [x, y, z] world position                |
+| `rotation`  | array  | [x, y, z] euler angles                  |
+| `priority`  | number | Selection priority (higher = preferred) |
+| `condition` | string | Spawn condition expression              |
+| `capacity`  | number | Max simultaneous spawns                 |
 
 ---
 
@@ -192,14 +197,15 @@ Configures the scene skybox.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `preset` | string | `"day"` | Preset: day, night, sunset, space, custom |
-| `time` | number | `12.0` | Time of day (0-24) |
-| `clouds` | boolean | `true` | Enable clouds |
-| `cloud_density` | number | `0.5` | Cloud coverage (0-1) |
-| `sun_size` | number | `1.0` | Sun disc size multiplier |
-| `cubemap` | string | `null` | Custom cubemap path |
+
+| Property        | Type    | Default | Description                               |
+| --------------- | ------- | ------- | ----------------------------------------- |
+| `preset`        | string  | `"day"` | Preset: day, night, sunset, space, custom |
+| `time`          | number  | `12.0`  | Time of day (0-24)                        |
+| `clouds`        | boolean | `true`  | Enable clouds                             |
+| `cloud_density` | number  | `0.5`   | Cloud coverage (0-1)                      |
+| `sun_size`      | number  | `1.0`   | Sun disc size multiplier                  |
+| `cubemap`       | string  | `null`  | Custom cubemap path                       |
 
 ---
 
@@ -217,12 +223,13 @@ Global ambient lighting settings.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `color` | string | `"#ffffff"` | Ambient light color |
-| `intensity` | number | `0.5` | Light intensity |
-| `ground_color` | string | `null` | Ground hemisphere color |
-| `sky_color` | string | `null` | Sky hemisphere color |
+
+| Property       | Type   | Default     | Description             |
+| -------------- | ------ | ----------- | ----------------------- |
+| `color`        | string | `"#ffffff"` | Ambient light color     |
+| `intensity`    | number | `0.5`       | Light intensity         |
+| `ground_color` | string | `null`      | Ground hemisphere color |
+| `sky_color`    | string | `null`      | Sky hemisphere color    |
 
 ---
 
@@ -242,15 +249,16 @@ Sun/moon directional light configuration.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `color` | string | `"#ffffff"` | Light color |
-| `intensity` | number | `1.0` | Light intensity |
-| `direction` | array | `[0, -1, 0]` | Light direction vector |
-| `cast_shadows` | boolean | `true` | Enable shadow casting |
-| `shadow_resolution` | number | `1024` | Shadow map resolution |
-| `shadow_distance` | number | `50` | Maximum shadow distance |
-| `shadow_bias` | number | `0.0001` | Shadow bias to prevent artifacts |
+
+| Property            | Type    | Default      | Description                      |
+| ------------------- | ------- | ------------ | -------------------------------- |
+| `color`             | string  | `"#ffffff"`  | Light color                      |
+| `intensity`         | number  | `1.0`        | Light intensity                  |
+| `direction`         | array   | `[0, -1, 0]` | Light direction vector           |
+| `cast_shadows`      | boolean | `true`       | Enable shadow casting            |
+| `shadow_resolution` | number  | `1024`       | Shadow map resolution            |
+| `shadow_distance`   | number  | `50`         | Maximum shadow distance          |
+| `shadow_bias`       | number  | `0.0001`     | Shadow bias to prevent artifacts |
 
 ---
 
@@ -270,14 +278,15 @@ Volumetric fog settings.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable fog |
-| `color` | string | `"#ffffff"` | Fog color |
-| `density` | number | `0.01` | Fog density |
-| `near` | number | `1` | Fog start distance |
-| `far` | number | `100` | Full fog distance |
-| `height_falloff` | number | `0` | Vertical fog falloff |
+
+| Property         | Type    | Default     | Description          |
+| ---------------- | ------- | ----------- | -------------------- |
+| `enabled`        | boolean | `false`     | Enable fog           |
+| `color`          | string  | `"#ffffff"` | Fog color            |
+| `density`        | number  | `0.01`      | Fog density          |
+| `near`           | number  | `1`         | Fog start distance   |
+| `far`            | number  | `100`       | Full fog distance    |
+| `height_falloff` | number  | `0`         | Vertical fog falloff |
 
 ---
 
@@ -308,14 +317,15 @@ Post-processing effect stack.
 ```
 
 **Effect Properties:**
-| Effect | Properties |
-|--------|------------|
-| `bloom` | `enabled`, `intensity`, `threshold`, `radius` |
-| `vignette` | `enabled`, `intensity`, `smoothness`, `color` |
-| `color_grading` | `enabled`, `saturation`, `contrast`, `temperature`, `tint` |
-| `depth_of_field` | `enabled`, `focus_distance`, `aperture`, `blur_amount` |
-| `motion_blur` | `enabled`, `intensity`, `samples` |
-| `ambient_occlusion` | `enabled`, `intensity`, `radius` |
+
+| Effect              | Properties                                                 |
+| ------------------- | ---------------------------------------------------------- |
+| `bloom`             | `enabled`, `intensity`, `threshold`, `radius`              |
+| `vignette`          | `enabled`, `intensity`, `smoothness`, `color`              |
+| `color_grading`     | `enabled`, `saturation`, `contrast`, `temperature`, `tint` |
+| `depth_of_field`    | `enabled`, `focus_distance`, `aperture`, `blur_amount`     |
+| `motion_blur`       | `enabled`, `intensity`, `samples`                          |
+| `ambient_occlusion` | `enabled`, `intensity`, `radius`                           |
 
 ---
 
@@ -343,13 +353,14 @@ Post-processing effect stack.
 ```
 
 **Properties:**
-| Property | Type | Description |
-|----------|------|-------------|
-| `bounds` | array | Zone bounding box |
-| `reverb` | string | Reverb preset |
-| `reverb_amount` | number | Reverb intensity (0-1) |
-| `lowpass` | number | Low-pass filter frequency (0 = off) |
-| `volume_multiplier` | number | Zone volume scale |
+
+| Property            | Type   | Description                         |
+| ------------------- | ------ | ----------------------------------- |
+| `bounds`            | array  | Zone bounding box                   |
+| `reverb`            | string | Reverb preset                       |
+| `reverb_amount`     | number | Reverb intensity (0-1)              |
+| `lowpass`           | number | Low-pass filter frequency (0 = off) |
+| `volume_multiplier` | number | Zone volume scale                   |
 
 ---
 
@@ -371,14 +382,15 @@ NavMesh and pathfinding configuration.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable navigation |
-| `agent_radius` | number | `0.5` | Agent collision radius |
-| `agent_height` | number | `2.0` | Agent height |
-| `step_height` | number | `0.3` | Max step height |
-| `slope_limit` | number | `45` | Max walkable slope (degrees) |
-| `auto_generate` | boolean | `true` | Auto-generate NavMesh |
+
+| Property        | Type    | Default | Description                  |
+| --------------- | ------- | ------- | ---------------------------- |
+| `enabled`       | boolean | `true`  | Enable navigation            |
+| `agent_radius`  | number  | `0.5`   | Agent collision radius       |
+| `agent_height`  | number  | `2.0`   | Agent height                 |
+| `step_height`   | number  | `0.3`   | Max step height              |
+| `slope_limit`   | number  | `45`    | Max walkable slope (degrees) |
+| `auto_generate` | boolean | `true`  | Auto-generate NavMesh        |
 
 ---
 
@@ -397,14 +409,15 @@ Physics simulation settings.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `gravity` | array | `[0, -9.81, 0]` | Gravity vector |
-| `time_step` | number | `0.016` | Physics timestep |
-| `substeps` | number | `4` | Substeps per frame |
-| `solver_iterations` | number | `10` | Constraint solver iterations |
-| `enable_ccd` | boolean | `true` | Continuous collision detection |
-| `broadphase` | string | `"dbvt"` | Broadphase algorithm |
+
+| Property            | Type    | Default         | Description                    |
+| ------------------- | ------- | --------------- | ------------------------------ |
+| `gravity`           | array   | `[0, -9.81, 0]` | Gravity vector                 |
+| `time_step`         | number  | `0.016`         | Physics timestep               |
+| `substeps`          | number  | `4`             | Substeps per frame             |
+| `solver_iterations` | number  | `10`            | Constraint solver iterations   |
+| `enable_ccd`        | boolean | `true`          | Continuous collision detection |
+| `broadphase`        | string  | `"dbvt"`        | Broadphase algorithm           |
 
 ---
 
@@ -424,14 +437,15 @@ Multiplayer networking settings.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `max_players` | number | `8` | Maximum concurrent players |
-| `tick_rate` | number | `20` | Network tick rate (Hz) |
-| `interpolation` | boolean | `true` | Enable position interpolation |
-| `client_prediction` | boolean | `true` | Enable client-side prediction |
-| `authority` | string | `"server"` | Authority model: server, owner, hybrid |
-| `voice_chat` | boolean | `false` | Enable voice chat |
+
+| Property            | Type    | Default    | Description                            |
+| ------------------- | ------- | ---------- | -------------------------------------- |
+| `max_players`       | number  | `8`        | Maximum concurrent players             |
+| `tick_rate`         | number  | `20`       | Network tick rate (Hz)                 |
+| `interpolation`     | boolean | `true`     | Enable position interpolation          |
+| `client_prediction` | boolean | `true`     | Enable client-side prediction          |
+| `authority`         | string  | `"server"` | Authority model: server, owner, hybrid |
+| `voice_chat`        | boolean | `false`    | Enable voice chat                      |
 
 ---
 
@@ -451,14 +465,15 @@ Performance optimization hints.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `lod_bias` | number | `1.0` | LOD distance multiplier |
-| `culling_distance` | number | `500` | Object culling distance |
-| `shadow_distance` | number | `100` | Shadow rendering distance |
-| `max_lights` | number | `8` | Maximum dynamic lights |
-| `texture_quality` | string | `"high"` | Texture quality: low, medium, high |
-| `target_fps` | number | `60` | Target frame rate |
+
+| Property           | Type   | Default  | Description                        |
+| ------------------ | ------ | -------- | ---------------------------------- |
+| `lod_bias`         | number | `1.0`    | LOD distance multiplier            |
+| `culling_distance` | number | `500`    | Object culling distance            |
+| `shadow_distance`  | number | `100`    | Shadow rendering distance          |
+| `max_lights`       | number | `8`      | Maximum dynamic lights             |
+| `texture_quality`  | string | `"high"` | Texture quality: low, medium, high |
+| `target_fps`       | number | `60`     | Target frame rate                  |
 
 ---
 
@@ -478,14 +493,15 @@ Accessibility configuration.
 ```
 
 **Properties:**
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `subtitles` | boolean | `true` | Enable subtitles |
-| `subtitle_size` | string | `"medium"` | Size: small, medium, large |
-| `high_contrast` | boolean | `false` | High contrast mode |
-| `motion_sensitivity` | string | `"normal"` | Motion: reduced, normal, full |
-| `colorblind_mode` | string | `"none"` | Mode: none, deuteranopia, protanopia, tritanopia |
-| `screen_reader` | boolean | `false` | Screen reader support |
+
+| Property             | Type    | Default    | Description                                      |
+| -------------------- | ------- | ---------- | ------------------------------------------------ |
+| `subtitles`          | boolean | `true`     | Enable subtitles                                 |
+| `subtitle_size`      | string  | `"medium"` | Size: small, medium, large                       |
+| `high_contrast`      | boolean | `false`    | High contrast mode                               |
+| `motion_sensitivity` | string  | `"normal"` | Motion: reduced, normal, full                    |
+| `colorblind_mode`    | string  | `"none"`   | Mode: none, deuteranopia, protanopia, tritanopia |
+| `screen_reader`      | boolean | `false`    | Screen reader support                            |
 
 ---
 
@@ -531,12 +547,13 @@ composition game_manager {
 ```
 
 **Built-in Events:**
-| Event | Trigger |
-|-------|---------|
-| `on_scene_load` | Scene initialization complete |
-| `on_tick` | Every frame update |
-| `on_player_join` | Player connects |
-| `on_player_leave` | Player disconnects |
+
+| Event             | Trigger                       |
+| ----------------- | ----------------------------- |
+| `on_scene_load`   | Scene initialization complete |
+| `on_tick`         | Every frame update            |
+| `on_player_join`  | Player connects               |
+| `on_player_leave` | Player disconnects            |
 
 ---
 

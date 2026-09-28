@@ -96,7 +96,7 @@ describe('workspace-scoped codebase cache storage', () => {
     expect(paths.graphFile).toBe(path.join(cacheDir, 'graph-cache.json'));
     expect(paths.embeddingsFile).toBe(path.join(cacheDir, 'embeddings-cache.bin'));
   });
-it('gives one physical tree one identity, however it is spelled', (ctx) => {
+  it('gives one physical tree one identity, however it is spelled', (ctx) => {
     // The exact fault this guards: C:\Users\josep\.ai-ecosystem is a symlink to
     // C:\holo-dev\ai-ecosystem. Absorbing via one spelling wrote a graph that the
     // query side -- resolving the other -- could not see, so absorb reported

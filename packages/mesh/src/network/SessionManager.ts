@@ -5,12 +5,7 @@
  */
 
 export type SessionState =
-  | 'idle'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'disconnected'
-  | 'ended';
+  'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'ended';
 
 export interface SessionPlayer {
   id: string;

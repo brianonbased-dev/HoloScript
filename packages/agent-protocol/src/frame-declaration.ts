@@ -19,8 +19,4 @@ export interface FrameDeclarationContract {
 
 /** Violation categories emitted by frame boundary enforcement. */
 export type FrameViolationTypeContract =
-  | 'tool_not_allowed'
-  | 'domain_denied'
-  | 'horizon_exceeded'
-  | 'tier_exceeded'
-  | 'undeclared_frame';
+  'tool_not_allowed' | 'domain_denied' | 'horizon_exceeded' | 'tier_exceeded' | 'undeclared_frame';

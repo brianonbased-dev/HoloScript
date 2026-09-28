@@ -65,6 +65,7 @@ import {
   taskToResponse,
   handleJsonRpcRequest,
   parseJsonRpcRequest,
+  A2A_LIST_REQUIRES_ADMIN,
   type SendTaskRequest,
   type TaskMessage,
   type TaskState,
@@ -137,7 +138,11 @@ import {
   teamPresenceStore,
   reloadTeam,
 } from './holomesh/state';
-import { agentBindingForRegistration, resolveProvenAgentId } from './security/proven-agent-id';
+import {
+  agentBindingForRegistration,
+  loopbackRegistrantMayBindUnproven,
+  resolveProvenAgentId,
+} from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
@@ -151,7 +156,7 @@ import {
 } from './ops/railway-autoscale-loop.js';
 import { maybeStartPredictiveCloudflareLbLoop } from './ops/predictive-cloudflare-lb.js';
 import { maybeStartKeepAliveLoop, getKeepAliveStatus } from './ops/keep-alive.js';
-import { isTrustedLoopbackMcpPeer, resolveMcpBindHost } from './http-bind-host';
+import { isLoopbackAddress, isTrustedLoopbackMcpPeer, resolveMcpBindHost } from './http-bind-host';
 
 // Initialize native agent compositions
 loadNativeAgentCompositions();
@@ -655,6 +660,20 @@ function isFounderRequest(req: http.IncomingMessage): boolean {
 }
 
 /**
+ * Read an on/off environment flag. `1`, `true`, `yes` and `on` (any case,
+ * surrounding whitespace ignored) are on; everything else — unset, empty, `0`,
+ * `false`, `no`, `off` — is off. OAUTH_ALLOW_REMOTE_REGISTRATION reads
+ * through this so an operator who writes `=0` to close a door does not open it.
+ */
+function isTruthyEnvFlag(value: string | undefined): boolean {
+  return ['1', 'true', 'yes', 'on'].includes(
+    String(value ?? '')
+      .trim()
+      .toLowerCase()
+  );
+}
+
+/**
  * Get client IP from request (for audit logging)
  */
 function getClientIP(req: http.IncomingMessage): string {
@@ -1056,29 +1075,64 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
 }
 
 /**
- * Unified tool handler for A2A task execution.
- * Routes through triple-gate security, plugins, then the main handler pipeline.
+ * Tool handler for one A2A request, bound to the caller's own credentials.
+ * Routes through triple-gate security, plugins, then the main handler
+ * pipeline with the caller's scopes and never more. It used to hard-code
+ * admin:* on the belief that the HTTP layer had already authenticated the
+ * caller, but the /a2a routes never did, so a caller with no credentials
+ * ran any registered tool as admin.
  */
-async function handleToolForA2A(name: string, args: Record<string, unknown>): Promise<unknown> {
-  // A2A tasks get admin scope (they're already authenticated at the HTTP layer)
-  const auth: TokenIntrospection = {
-    active: true,
-    scopes: ['admin:*'],
-    agentId: 'a2a-task-executor',
+function a2aToolHandlerFor(auth: TokenIntrospection) {
+  return async (name: string, args: Record<string, unknown>): Promise<unknown> => {
+    const { result, isError } = await securedToolExecution(name, args, auth, {
+      requestPath: '/a2a/tasks',
+      requestMethod: 'POST',
+    });
+
+    if (isError) {
+      const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
+      throw new Error(
+        `[A2A task dispatch] Tool execution failed: ${detail}. Check the tool handler and input parameters.`
+      );
+    }
+    return result;
   };
+}
 
-  const { result, isError } = await securedToolExecution(name, args, auth, {
-    requestPath: '/a2a/tasks',
-    requestMethod: 'POST',
+const A2A_LIST_NEEDS_ADMIN_MESSAGE =
+  'Listing A2A tasks returns every caller\'s results, so it needs admin. Fetch your own task by its id.';
+
+/**
+ * The /a2a task routes run tools and hand back their results, so they need
+ * the same credentials as /mcp. Returns the caller, or answers 401 and
+ * returns null. The agent card (GET /a2a) stays public.
+ */
+async function requireA2ACaller(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  clientIP: string
+): Promise<TokenIntrospection | null> {
+  const auth = await authenticateRequest(req);
+  if (auth.active) return auth;
+
+  auditLog.logAuthEvent({
+    event: 'auth_failure',
+    ip: clientIP,
+    reason: 'A2A endpoint - invalid credentials',
   });
-
-  if (isError) {
-    const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
-    throw new Error(
-      `[A2A task dispatch] Tool execution failed: ${detail}. Check the tool handler and input parameters.`
-    );
-  }
-  return result;
+  res.writeHead(401, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
+  });
+  res.end(
+    JSON.stringify({
+      error: 'Unauthorized',
+      message: 'Valid OAuth 2.1 token or API key required',
+      token_endpoint: '/oauth/token',
+      registration_endpoint: '/oauth/register',
+    })
+  );
+  return null;
 }
 
 // ── HTTP Server ──────────────────────────────────────────────────────────────
@@ -1587,7 +1641,9 @@ const httpServer = http.createServer(async (req, res) => {
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
       : `http://localhost:${PORT}`;
 
-    const card = buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
+    // Every /a2a task route requires credentials (requireA2ACaller), with or
+    // without a legacy key configured, so the card always says how to present them.
+    const card = buildAgentCard(allTools, baseUrl, true);
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
@@ -1729,8 +1785,11 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /a2a — A2A JSON-RPC 2.0 transport (per A2A specification)
+  // POST /a2a — A2A JSON-RPC 2.0 transport (per A2A specification).
+  // Sending a message runs a tool, so this needs credentials like /mcp.
   if (url === '/a2a' && req.method === 'POST') {
+    const a2aCaller = await requireA2ACaller(req, res, clientIP);
+    if (!a2aCaller) return;
     try {
       const body = await parseJsonBody(req);
 
@@ -1742,19 +1801,31 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      if (parsed.request.method === 'a2a.listTasks' && !a2aCaller.scopes?.includes('admin:*')) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: parsed.request.id ?? null,
+            error: { code: A2A_LIST_REQUIRES_ADMIN, message: A2A_LIST_NEEDS_ADMIN_MESSAGE },
+          })
+        );
+        return;
+      }
+
       // Build agent card builder for a2a.getExtendedAgentCard
       const agentCardBuilder = (): AgentCard => {
         const allTools = [...tools, ...PluginManager.getTools()];
         const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
           ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
           : `http://localhost:${PORT}`;
-        return buildAgentCard(allTools, baseUrl, !!HOLOSCRIPT_API_KEY);
+        return buildAgentCard(allTools, baseUrl, true);
       };
 
-      // Handle the JSON-RPC request
+      // Handle the JSON-RPC request with the caller's own scopes
       const response = await handleJsonRpcRequest(
         parsed.request,
-        handleToolForA2A,
+        a2aToolHandlerFor(a2aCaller),
         agentCardBuilder
       );
 
@@ -1961,6 +2032,37 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /oauth/register — Dynamic client registration (dual-register to both providers)
   if (url === '/oauth/register' && req.method === 'POST') {
+    // Registration takes no credentials and mints a client that may hold any
+    // public scope, tools:execute included. On an anchor bound to 0.0.0.0 that
+    // let every device on the LAN register a client and call tools, founder
+    // daimon context included — demonstrated from another machine on
+    // 2026-09-22 (board task_1790062507560_px5q). Local callers (HoloShell, the
+    // desktop MCP config) register over 127.0.0.1 and are unaffected. The
+    // decision is on the TCP peer, never on a header: x-forwarded-for is
+    // caller-supplied, so getClientIP() above serves the audit log only. A
+    // deployment that must take remote registrations — the cloud anchor, whose
+    // callers are never loopback — says so with OAUTH_ALLOW_REMOTE_REGISTRATION=1,
+    // read per request so the door can be opened or closed without a restart.
+    const registrar = req.socket.remoteAddress;
+    if (
+      !isLoopbackAddress(registrar) &&
+      !isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION)
+    ) {
+      auditLog.logAuthEvent({
+        event: 'auth_failure',
+        ip: registrar,
+        reason: 'client registration refused: remote peer, OAUTH_ALLOW_REMOTE_REGISTRATION unset',
+      });
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'access_denied',
+          error_description:
+            'client registration is loopback-only on this server; set OAUTH_ALLOW_REMOTE_REGISTRATION=1 to allow remote registration',
+        })
+      );
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const clientName = String(body.client_name || 'unnamed-client')
@@ -1998,8 +2100,7 @@ const httpServer = http.createServer(async (req, res) => {
         throw new Error(`Unsupported token_endpoint_auth_method: ${tokenEndpointAuthMethod}`);
       }
       const clientType = (tokenEndpointAuthMethod === 'none' ? 'public' : 'confidential') as
-        | 'confidential'
-        | 'public';
+        'confidential' | 'public';
       const grantTypes = Array.isArray(body.grant_types)
         ? body.grant_types.filter((grantType): grantType is string => typeof grantType === 'string')
         : clientType === 'public'
@@ -2017,18 +2118,30 @@ const httpServer = http.createServer(async (req, res) => {
       }
       const rateLimit = (body.rate_limit as number) || 60;
 
-      // Bind this client to an agent only when the registering request PROVES
-      // that agent's identity — its own per-agent key, or a platform-signed
-      // manifest naming it. Registration is open to anyone, so an unproven
-      // agent_id in the body must never become a durable identity binding.
+      // Bind this client to an agent when the registering request PROVES that
+      // agent's identity — its own per-agent key, or a platform-signed manifest
+      // naming it — or, the one exception, when the registrar is a loopback
+      // TCP peer and this server's registration is loopback-only: processes
+      // on this host already hold the anchor's disk, so a self-declared id
+      // adds no reach, and HoloShell registers exactly this way to speak to
+      // the daimon as its owner. The moment OAUTH_ALLOW_REMOTE_REGISTRATION
+      // opens the door, proof is required of loopback peers too — behind a
+      // reverse proxy in the same container every remote peer looks like
+      // loopback. Reserved ids are refused on every path. `registrar` is the
+      // same socket address the door above was decided on, never a header.
       // The decision lives in `agentBindingForRegistration` so it can be tested
       // without booting this server: inline, it stayed green when deleted.
       const agentBinding = agentBindingForRegistration({
         requestedAgentId: body.agent_id,
         registrarAgentId: resolveProvenAgentId(req.headers),
+        unprovenBindingAllowed: loopbackRegistrantMayBindUnproven({
+          registrarIsLoopback: isLoopbackAddress(registrar),
+          remoteRegistrationAllowed: isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION),
+        }),
       });
       if (!agentBinding.ok) throw new Error(agentBinding.reason);
-      // Records the registry's spelling, never the caller's.
+      // The registry's spelling for a proven binding; the request's, trimmed,
+      // for a loopback-unproven one.
       const boundAgentId = agentBinding.boundAgentId;
 
       // Register with legacy provider (backwards compat)
@@ -2772,6 +2885,8 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /a2a/tasks — Send/create a task (A2A tasks/send)
   if (url === '/a2a/tasks' && req.method === 'POST') {
+    const a2aCaller = await requireA2ACaller(req, res, clientIP);
+    if (!a2aCaller) return;
     try {
       const body = await parseJsonBody(req);
 
@@ -2796,7 +2911,7 @@ const httpServer = http.createServer(async (req, res) => {
       };
 
       const task = createTask(request);
-      const executed = await executeTask(task, handleToolForA2A);
+      const executed = await executeTask(task, a2aToolHandlerFor(a2aCaller));
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(taskToResponse(executed), null, 2));
@@ -2808,8 +2923,16 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /a2a/tasks — List tasks
+  // GET /a2a/tasks — List tasks. This returns every caller's results, so it
+  // needs admin until tasks record who created them.
   if (url === '/a2a/tasks' && req.method === 'GET') {
+    const a2aCaller = await requireA2ACaller(req, res, clientIP);
+    if (!a2aCaller) return;
+    if (!a2aCaller.scopes?.includes('admin:*')) {
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'Forbidden', message: A2A_LIST_NEEDS_ADMIN_MESSAGE }));
+      return;
+    }
     const queryString = req.url?.split('?')[1] || '';
     const params = new URLSearchParams(queryString);
     const filters: {
@@ -2844,6 +2967,7 @@ const httpServer = http.createServer(async (req, res) => {
   // GET /a2a/tasks/:id — Get a specific task
   const taskGetMatch = url?.match(/^\/a2a\/tasks\/([a-f0-9-]+)$/);
   if (taskGetMatch && req.method === 'GET') {
+    if (!(await requireA2ACaller(req, res, clientIP))) return;
     const task = getTask(taskGetMatch[1]);
     if (!task) {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -2858,6 +2982,7 @@ const httpServer = http.createServer(async (req, res) => {
   // DELETE /a2a/tasks/:id — Cancel a task
   const taskDeleteMatch = url?.match(/^\/a2a\/tasks\/([a-f0-9-]+)$/);
   if (taskDeleteMatch && req.method === 'DELETE') {
+    if (!(await requireA2ACaller(req, res, clientIP))) return;
     const task = cancelTask(taskDeleteMatch[1]);
     if (!task) {
       res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -3116,7 +3241,20 @@ const httpServer = http.createServer(async (req, res) => {
   // HOLOMESH API ROUTES (delegated to separate module)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  if (url?.startsWith('/api/holomesh/')) {
+  // `/webhook/` is here because the HoloMesh dispatcher owns the Railway webhook
+  // handler, and that handler matches the path `/webhook/railway` — which can
+  // never satisfy a `/api/holomesh/` prefix. So the route existed, was fully
+  // implemented for every Railway event type, was documented in
+  // webhook-routes.ts as the URL to paste into the Railway dashboard, and was
+  // unreachable: every crash, OOM and failed-deploy alert Railway sent us was
+  // answered by the 404 at the bottom of this function. Nobody noticed, because
+  // a dropped alert and a healthy deploy look identical from here.
+  //
+  // Found 2026-09-11 while hunting documentation gaps. Verified by reading the
+  // chain rather than inferring: webhook-routes.ts:160 matches
+  // `/webhook/railway`, it is only invoked from http-routes.ts:355, and that
+  // function was only ever entered from the condition below.
+  if (url?.startsWith('/api/holomesh/') || url?.startsWith('/webhook/')) {
     const { handleHoloMeshRoute } = await import('./holomesh/http-routes');
     const handled = await handleHoloMeshRoute(req, res, fullUrl);
     if (handled) return;
@@ -4784,7 +4922,13 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(`     GET  /.well-known/mcp              - MCP discovery (public)`);
     console.info(`     GET  /.well-known/openid-configuration - OAuth 2.1 discovery (public)`);
     console.info(`     GET  /.well-known/agent-card.json  - A2A Agent Card (public)`);
-    console.info(`     POST /oauth/register               - Client registration`);
+    console.info(
+      `     POST /oauth/register               - Client registration (${
+        isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION)
+          ? 'remote allowed by OAUTH_ALLOW_REMOTE_REGISTRATION'
+          : 'loopback-only; OAUTH_ALLOW_REMOTE_REGISTRATION=1 allows remote'
+      })`
+    );
     console.info(`     GET  /oauth/authorize               - Authorization request (PKCE)`);
     console.info(`     POST /oauth/authorize              - Authorization code (PKCE)`);
     console.info(`     POST /oauth/token                  - Token exchange`);

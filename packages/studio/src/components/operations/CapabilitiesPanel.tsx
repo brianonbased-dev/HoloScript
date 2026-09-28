@@ -26,11 +26,7 @@ import React, { useCallback, useEffect, useState } from 'react';
  */
 
 type CapabilitySurface =
-  | 'live'
-  | 'orphaned-cli'
-  | 'orphaned-tool'
-  | 'orphaned-route'
-  | 'admin-only';
+  'live' | 'orphaned-cli' | 'orphaned-tool' | 'orphaned-route' | 'admin-only';
 type CapabilityGate = 'safe' | 'spend' | 'admin';
 
 interface CapabilityEntry {

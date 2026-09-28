@@ -16,13 +16,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -89,35 +83,17 @@ const stdPackage = JSON.parse(
 );
 
 const files = new Map([
-  [
-    'std-abi-owned-metal-runner.mjs',
-    'scripts/holo-ci/std-abi-owned-metal-runner.mjs',
-  ],
-  [
-    'pkg-node/holoscript_wasm.js',
-    'packages/compiler-wasm/pkg-node/holoscript_wasm.js',
-  ],
-  [
-    'pkg-node/holoscript_wasm_bg.wasm',
-    'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm',
-  ],
+  ['std-abi-owned-metal-runner.mjs', 'scripts/holo-ci/std-abi-owned-metal-runner.mjs'],
+  ['pkg-node/holoscript_wasm.js', 'packages/compiler-wasm/pkg-node/holoscript_wasm.js'],
+  ['pkg-node/holoscript_wasm_bg.wasm', 'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm'],
   ['pkg-node/package.json', 'packages/compiler-wasm/pkg-node/package.json'],
   [
     'std-abi-conformance.trait.hsplus',
     'packages/std/conformance/generated/std-abi-conformance.trait.hsplus',
   ],
-  [
-    'std-abi-vectors.v0.jsonl',
-    'packages/std/conformance/generated/std-abi-vectors.v0.jsonl',
-  ],
-  [
-    'std-host-binding.mjs',
-    'packages/std/conformance/host-abi/std-host-binding.mjs',
-  ],
-  [
-    'std-host-abi.v0.json',
-    'packages/std/conformance/host-abi/std-host-abi.v0.json',
-  ],
+  ['std-abi-vectors.v0.jsonl', 'packages/std/conformance/generated/std-abi-vectors.v0.jsonl'],
+  ['std-host-binding.mjs', 'packages/std/conformance/host-abi/std-host-binding.mjs'],
+  ['std-host-abi.v0.json', 'packages/std/conformance/host-abi/std-host-abi.v0.json'],
 ]);
 
 const packagedSources = {};
@@ -143,7 +119,9 @@ for (const [bundleName, repoRelative] of files) {
     fail(`${repoRelative} is not present in source commit ${sourceCommit}`);
   }
   if (!worktreeBytes.equals(commitBytes)) {
-    fail(`${repoRelative} differs from source commit ${sourceCommit}; commit the exact bundle input first`);
+    fail(
+      `${repoRelative} differs from source commit ${sourceCommit}; commit the exact bundle input first`
+    );
   }
   const outputPath = join(outDir, ...bundleName.split('/'));
   mkdirSync(dirname(outputPath), { recursive: true });

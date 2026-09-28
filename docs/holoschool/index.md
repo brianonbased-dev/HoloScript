@@ -8,8 +8,8 @@ Learn HoloScript from the ground up through guided, progressive lessons.
 
 10 lessons covering the core concepts. No prior experience required.
 
-| #   | Lesson                                                                      | Topics                   |
-| --- | --------------------------------------------------------------------------- | ------------------------ |
+| #   | Lesson                                                                         | Topics                   |
+| --- | ------------------------------------------------------------------------------ | ------------------------ |
 | 1   | [What is HoloScript?](/holoschool/level-1-fundamentals/01-what-is-holoscript)  | Overview, use cases      |
 | 2   | [Installation](/holoschool/level-1-fundamentals/02-installation)               | Setup, VS Code extension |
 | 3   | [First Scene](/holoschool/level-1-fundamentals/03-first-scene)                 | Composition, objects     |
@@ -25,8 +25,8 @@ Learn HoloScript from the ground up through guided, progressive lessons.
 
 Advanced topics for experienced HoloScript developers.
 
-| #   | Lesson                                                                       | Topics                   |
-| --- | ---------------------------------------------------------------------------- | ------------------------ |
+| #   | Lesson                                                                          | Topics                   |
+| --- | ------------------------------------------------------------------------------- | ------------------------ |
 | 1   | [Advanced Traits](/holoschool/level-2-intermediate/01-advanced-traits)          | Trait composition        |
 | 2   | [Physics Deep Dive](/holoschool/level-2-intermediate/02-physics)                | Rigidbody, cloth, fluid  |
 | 7   | [Networking](/holoschool/level-2-intermediate/07-networking)                    | @networked, multiplayer  |
@@ -41,8 +41,8 @@ Advanced topics for experienced HoloScript developers.
 
 Expert topics: custom traits, procedural generation, agent systems.
 
-| #   | Lesson                                                                  | Topics                   |
-| --- | ----------------------------------------------------------------------- | ------------------------ |
+| #   | Lesson                                                                     | Topics                   |
+| --- | -------------------------------------------------------------------------- | ------------------------ |
 | 1   | [Custom Traits](/holoschool/level-3-advanced/01-custom-traits)             | TraitHandler API         |
 | 4   | [Procedural Generation](/holoschool/level-3-advanced/04-procedural)        | @procedural trait        |
 | 5   | [Agent Choreography](/holoschool/level-3-advanced/05-agent-choreography)   | Multi-agent scenes       |
@@ -54,8 +54,8 @@ Expert topics: custom traits, procedural generation, agent systems.
 
 Bleeding-edge topics covering the new V43 Swarm and Mesh capabilities.
 
-| #   | Lesson                                                                    | Topics                         |
-| --- | ------------------------------------------------------------------------- | ------------------------------ |
+| #   | Lesson                                                                       | Topics                         |
+| --- | ---------------------------------------------------------------------------- | ------------------------------ |
 | 1   | [V43 Local Inference](/holoschool/level-4-autonomous/01-v43-local-inference) | Running Brittney locally, GGUF |
 | 2   | [Authoritative Mesh](/holoschool/level-4-autonomous/02-authoritative-mesh)   | WebSockets, CRDTs, Sync        |
 | 3   | [MCP Studio Integration](/holoschool/level-4-autonomous/03-mcp-integration)  | JSON-RPC, Scene Generation     |

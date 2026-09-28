@@ -300,8 +300,7 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
       max: Vector3;
     }
     const nodeBounds = (node as unknown as Record<string, unknown>).bounds as
-      | (SphereBounds | BoxBounds)
-      | undefined;
+      (SphereBounds | BoxBounds) | undefined;
     if (!nodeBounds) return;
 
     const nodePos = node.position || [0, 0, 0];
@@ -312,8 +311,7 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
 
     for (const containedId of state.containedEntities) {
       const containedPos = context.getState()[`entity_pos_${containedId}`] as
-        | [number, number, number]
-        | undefined;
+        [number, number, number] | undefined;
       if (!containedPos) continue;
 
       let isInside = false;
@@ -470,8 +468,7 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
 
     const nodePos = node.position || [0, 0, 0];
     const targetPos = context.getState()[`reachable_target_${config.target}`] as
-      | [number, number, number]
-      | undefined;
+      [number, number, number] | undefined;
     if (!targetPos) return;
 
     // Simple line-of-sight check (default algorithm)

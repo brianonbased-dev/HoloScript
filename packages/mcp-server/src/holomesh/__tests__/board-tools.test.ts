@@ -331,6 +331,54 @@ describe('handleBoardTool with in-memory store', () => {
     expect(result.board_totals).toEqual({ open: 12, claimed: 0, blocked: 0 });
   });
 
+  it('holomesh_board_list keeps board_totals board-wide when status filters the view', async () => {
+    seedTeam('team-filter', {
+      taskBoard: [
+        {
+          id: 'open-1',
+          title: 'Open',
+          description: 'd',
+          status: 'open' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'claimed-1',
+          title: 'Claimed',
+          description: 'd',
+          status: 'claimed' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          claimedBy: 'agent-1',
+          claimedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'blocked-1',
+          title: 'Blocked',
+          description: 'd',
+          status: 'blocked' as const,
+          priority: 5,
+          prioritySortKey: 5,
+          blockedReason: 'waiting',
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+    const result = (await handleBoardTool('holomesh_board_list', {
+      team_id: 'team-filter',
+      status: 'claimed',
+    })) as {
+      board: { open: unknown[]; claimed: unknown[]; blocked: unknown[] };
+      board_totals: { open: number; claimed: number; blocked: number };
+    };
+    expect(result.board.open).toHaveLength(0);
+    expect(result.board.blocked).toHaveLength(0);
+    expect(result.board.claimed).toHaveLength(1);
+    expect(result.board_totals).toEqual({ open: 1, claimed: 1, blocked: 1 });
+  });
+
   it('holomesh_board_list pages each status bucket independently when limit is passed', async () => {
     seedTeam('team-big', {
       taskBoard: [

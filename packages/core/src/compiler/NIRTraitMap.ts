@@ -81,11 +81,7 @@ export type NIRTraitImplementationLevel =
  * Hardware platform compatibility for neuromorphic targets.
  */
 export type NeuromorphicPlatform =
-  | 'loihi2'
-  | 'spinnaker2'
-  | 'synsense_speck'
-  | 'synsense_xylo'
-  | 'brainscales2';
+  'loihi2' | 'spinnaker2' | 'synsense_speck' | 'synsense_xylo' | 'brainscales2';
 
 // =============================================================================
 // NIR NODE PARAMETER TYPES

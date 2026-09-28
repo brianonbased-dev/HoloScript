@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
-import { HOLOMESH_PAGE_EXTRACT_KIND, OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES } from '../observed-page-extract';
+import {
+  HOLOMESH_PAGE_EXTRACT_KIND,
+  OBSERVED_PAGE_EXTRACT_SCHEMA_PROPERTIES,
+} from '../observed-page-extract';
 import {
   contributeObservedPageExtract,
   createMemoryPageExtractFeed,

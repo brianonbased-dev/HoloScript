@@ -407,8 +407,7 @@ export async function handleNegotiationTool(
       const responderAgentId = String(args.responderAgentId ?? '');
       const responderAgentName = String(args.responderAgentName ?? '');
       const request = args.request as
-        | { toolName?: string; capabilityQuery?: string; args?: Record<string, unknown> }
-        | undefined;
+        { toolName?: string; capabilityQuery?: string; args?: Record<string, unknown> } | undefined;
       if (!teamId) return { ok: false, error: 'teamId required' };
       if (!initiatorAgentId || !responderAgentId) {
         return { ok: false, error: 'initiatorAgentId and responderAgentId required' };

@@ -2427,8 +2427,7 @@ export function createDaemonActions(
       // This lets the LLM understand what the tests expect and produce a fix
       // that satisfies BOTH type safety AND test assertions.
       const testCtx = bb.testFailureContext as
-        | { testFile: string; testContent: string; failOutput: string }
-        | undefined;
+        { testFile: string; testContent: string; failOutput: string } | undefined;
       if (testCtx) {
         promptParts.push(
           '',

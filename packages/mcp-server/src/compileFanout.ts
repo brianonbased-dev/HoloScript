@@ -168,8 +168,7 @@ export async function runCompileFanout({
 
   const okCount = settled.filter((t) => t.status === 'ok').length;
   const totalKb = settled.reduce((sum, t) => sum + t.sizeKb, 0);
-  const status: CompileFanoutResult['status'] =
-    okCount === settled.length ? 'complete' : 'partial';
+  const status: CompileFanoutResult['status'] = okCount === settled.length ? 'complete' : 'partial';
 
   writes.push(
     await pushDelta(entityId, {

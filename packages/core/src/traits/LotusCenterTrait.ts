@@ -171,8 +171,7 @@ export const lotusCenterHandler: TraitHandler<LotusCenterConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__lotusCenterState as
-      | LotusCenterState
-      | undefined;
+      LotusCenterState | undefined;
     if (!state) return;
 
     let recompute = false;

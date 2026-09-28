@@ -1,10 +1,7 @@
 export type BrainCachingScope = 'team-board' | 'agent-role' | 'scene-local';
 
 export type BrainCacheCapability =
-  | 'provider-prompt-cache'
-  | 'service-managed-cache'
-  | 'local-prefix-cache'
-  | 'none';
+  'provider-prompt-cache' | 'service-managed-cache' | 'local-prefix-cache' | 'none';
 
 export type BrainCacheUsage = 'shared-prefix' | 'role-overlay' | 'scene-turn';
 
@@ -106,7 +103,13 @@ export function inferBrainCacheCapability(
 
   if (provider === 'anthropic') return 'provider-prompt-cache';
   if (provider === 'cloud') return 'service-managed-cache';
-  if (provider === 'ollama' || modelName.includes('local') || modelName.includes('qwen')) {
+  // holollama is llama-server, which keeps a prompt-prefix cache (as Ollama does).
+  if (
+    provider === 'holollama' ||
+    provider === 'ollama' ||
+    modelName.includes('local') ||
+    modelName.includes('qwen')
+  ) {
     return 'local-prefix-cache';
   }
   return 'none';

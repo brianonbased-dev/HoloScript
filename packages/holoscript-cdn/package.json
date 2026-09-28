@@ -21,7 +21,8 @@
     "build": "tsup",
     "test": "vitest run",
     "dev": "tsup --watch",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

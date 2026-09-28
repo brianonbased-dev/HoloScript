@@ -18,14 +18,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type ReverbPreset =
-  | 'room'
-  | 'hall'
-  | 'cathedral'
-  | 'cave'
-  | 'outdoor'
-  | 'bathroom'
-  | 'studio'
-  | 'custom';
+  'room' | 'hall' | 'cathedral' | 'cave' | 'outdoor' | 'bathroom' | 'studio' | 'custom';
 type ZoneShape = 'box' | 'sphere' | 'convex';
 
 interface ReverbZoneState {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T04:27:28.131Z",
+  "generatedAt": "2026-09-24T19:37:44.017Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-inventory.test.ts",
   "categoryFileCount": 121,
   "categoryFiles": [
@@ -126,14 +126,14 @@
     "xr-platform.ts"
   ],
   "exportedTraitArraysCount": 170,
-  "totalTraitDefinitions": 6298,
-  "vrTraitsCount": 2780,
-  "uniqueVRTraitsCount": 2713,
+  "totalTraitDefinitions": 6300,
+  "vrTraitsCount": 2781,
+  "uniqueVRTraitsCount": 2714,
   "duplicateCountInVRTraits": 67,
   "topExportsByCount": [
     {
       "exportName": "VR_TRAITS",
-      "count": 2780
+      "count": 2781
     },
     {
       "exportName": "ROBOTICS_INDUSTRIAL_TRAITS",
@@ -145,7 +145,7 @@
     },
     {
       "exportName": "SECURITY_CRYPTO_TRAITS",
-      "count": 78
+      "count": 79
     },
     {
       "exportName": "FACIAL_EXPRESSION_TRAITS",
@@ -711,7 +711,7 @@
     },
     {
       "exportName": "SECURITY_CRYPTO_TRAITS",
-      "count": 78
+      "count": 79
     },
     {
       "exportName": "SHAPE_FORM_TRAITS",
@@ -867,7 +867,7 @@
     },
     {
       "exportName": "VR_TRAITS",
-      "count": 2780
+      "count": 2781
     },
     {
       "exportName": "WATER_FLUID_TRAITS",
