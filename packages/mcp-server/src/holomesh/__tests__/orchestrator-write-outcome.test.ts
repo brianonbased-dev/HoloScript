@@ -78,7 +78,11 @@ async function closedPort(): Promise<number> {
 }
 
 function realClient(orchestratorUrl = standIn.baseUrl): HoloMeshOrchestratorClient {
-  return new HoloMeshOrchestratorClient({ ...DEFAULT_MESH_CONFIG, orchestratorUrl, apiKey: 'dummy' });
+  return new HoloMeshOrchestratorClient({
+    ...DEFAULT_MESH_CONFIG,
+    orchestratorUrl,
+    apiKey: 'dummy',
+  });
 }
 
 // ── Route driver (real handler, in-process request/response objects) ──
@@ -162,7 +166,10 @@ beforeAll(async () => {
       if (standIn.mode === 'refuse') return jsonReply(403, { error: leakText });
       // A 500 whose body also carries a row: a post() that returned a failure's body would surface it.
       if (standIn.mode === 'fail500') {
-        return jsonReply(500, { error: leakText, results: [{ id: 'row-from-a-500', content: leakText }] });
+        return jsonReply(500, {
+          error: leakText,
+          results: [{ id: 'row-from-a-500', content: leakText }],
+        });
       }
       if (standIn.mode === 'html') {
         res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -177,15 +184,25 @@ beforeAll(async () => {
       if (standIn.mode === 'refuse-sync') {
         if (req.url === '/knowledge/query') {
           return jsonReply(200, {
-            results: [{ id: PROMOTE_ID, type: 'wisdom', content: 'A private lesson', workspace_id: 'private:x' }],
+            results: [
+              {
+                id: PROMOTE_ID,
+                type: 'wisdom',
+                content: 'A private lesson',
+                workspace_id: 'private:x',
+              },
+            ],
           });
         }
         return jsonReply(403, { error: leakText });
       }
-      if (standIn.mode === 'success-false') return jsonReply(200, { success: false, error: leakText });
+      if (standIn.mode === 'success-false')
+        return jsonReply(200, { success: false, error: leakText });
       if (standIn.mode === 'bom') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(String.fromCharCode(0xfeff) + JSON.stringify({ success: true, synced: sent }));
+        return res.end(
+          String.fromCharCode(0xfeff) + JSON.stringify({ success: true, synced: sent })
+        );
       }
       if (standIn.mode === 'big') {
         return jsonReply(200, { success: true, synced: sent, padding: 'x'.repeat(70 * 1024) });
@@ -221,7 +238,12 @@ describe('the orchestrator client over real HTTP', () => {
   it('names a refusal by status only: the orchestrator text never reaches the caller', async () => {
     standIn.mode = 'refuse';
     const outcome = await realClient().contributeKnowledgeDetailed([entry]);
-    expect(outcome).toEqual({ synced: 0, accepted: false, status: 403, reason: 'refused (HTTP 403)' });
+    expect(outcome).toEqual({
+      synced: 0,
+      accepted: false,
+      status: 403,
+      reason: 'refused (HTTP 403)',
+    });
     expectNoLeak(outcome);
   });
 
@@ -244,14 +266,24 @@ describe('the orchestrator client over real HTTP', () => {
 
   it('a count larger than what was sent is clamped to what was sent', async () => {
     standIn.mode = 'huge';
-    expect(await realClient().contributeKnowledgeDetailed([entry])).toMatchObject({ synced: 1, accepted: true });
+    expect(await realClient().contributeKnowledgeDetailed([entry])).toMatchObject({
+      synced: 1,
+      accepted: true,
+    });
   });
 
   it('a refused connection is named by its code, as real fetch reports it', async () => {
     // A port that was free a moment ago refuses the connection. (Port 1 would not do:
     // fetch refuses the standard's "bad ports" before connecting, with no code at all.)
-    const outcome = await realClient(`http://127.0.0.1:${await closedPort()}`).contributeKnowledgeDetailed([entry]);
-    expect(outcome).toEqual({ synced: 0, accepted: false, status: null, reason: 'unreachable (ECONNREFUSED)' });
+    const outcome = await realClient(
+      `http://127.0.0.1:${await closedPort()}`
+    ).contributeKnowledgeDetailed([entry]);
+    expect(outcome).toEqual({
+      synced: 0,
+      accepted: false,
+      status: null,
+      reason: 'unreachable (ECONNREFUSED)',
+    });
   });
 
   it('credentials written into the orchestrator URL never appear in a reason', async () => {
@@ -320,13 +352,21 @@ describe('the orchestrator client over real HTTP', () => {
   it('a 200 whose JSON says success:false is not acceptance, though it names no count', async () => {
     standIn.mode = 'success-false';
     const outcome = await realClient().contributeKnowledgeDetailed([entry]);
-    expect(outcome).toEqual({ synced: 0, accepted: false, status: 200, reason: 'answered success:false' });
+    expect(outcome).toEqual({
+      synced: 0,
+      accepted: false,
+      status: 200,
+      reason: 'answered success:false',
+    });
     expectNoLeak(outcome);
   });
 
   it('an answer that starts with a byte-order mark is still read', async () => {
     standIn.mode = 'bom';
-    expect(await realClient().contributeKnowledgeDetailed([entry])).toMatchObject({ synced: 1, accepted: true });
+    expect(await realClient().contributeKnowledgeDetailed([entry])).toMatchObject({
+      synced: 1,
+      accepted: true,
+    });
   });
 
   it('an answer too large to read is named as that, not as a missing JSON body', async () => {
@@ -359,7 +399,12 @@ describe('POST /api/holomesh/knowledge over real HTTP', () => {
 
   it('answers 201 with an entryId and an audit when the orchestrator accepts the write', async () => {
     const apiKey = await registerCaller();
-    const reply = await call('POST', '/api/holomesh/knowledge', { content }, { authorization: `Bearer ${apiKey}` });
+    const reply = await call(
+      'POST',
+      '/api/holomesh/knowledge',
+      { content },
+      { authorization: `Bearer ${apiKey}` }
+    );
     expect(reply.status).toBe(201);
     expect(reply.body).toMatchObject({ success: true, synced: 1 });
     expect(typeof reply.body.entryId).toBe('string');
@@ -369,7 +414,12 @@ describe('POST /api/holomesh/knowledge over real HTTP', () => {
   it('answers 502 with no entryId and no audit when the orchestrator refuses: nothing was stored', async () => {
     const apiKey = await registerCaller();
     standIn.mode = 'refuse';
-    const reply = await call('POST', '/api/holomesh/knowledge', { content }, { authorization: `Bearer ${apiKey}` });
+    const reply = await call(
+      'POST',
+      '/api/holomesh/knowledge',
+      { content },
+      { authorization: `Bearer ${apiKey}` }
+    );
     expect(reply.status).toBe(502);
     expect(reply.body).toEqual({
       success: false,
@@ -382,7 +432,12 @@ describe('POST /api/holomesh/knowledge over real HTTP', () => {
   it('answers 503 when the orchestrator cannot be reached in time', async () => {
     const apiKey = await registerCaller();
     standIn.mode = 'stall';
-    const reply = await call('POST', '/api/holomesh/knowledge', { content }, { authorization: `Bearer ${apiKey}` });
+    const reply = await call(
+      'POST',
+      '/api/holomesh/knowledge',
+      { content },
+      { authorization: `Bearer ${apiKey}` }
+    );
     expect(reply.status).toBe(503);
     expect(reply.body).toMatchObject({ success: false, error: 'orchestrator_unreachable' });
     expect(reply.body).not.toHaveProperty('entryId');
@@ -397,7 +452,12 @@ describe('the other knowledge writes say what the orchestrator did', () => {
 
   it('the team route writes its mirror before it waits on the orchestrator', async () => {
     const auth = bearer(await registerCaller());
-    const team = await call('POST', '/api/holomesh/team', { name: `write-order-${Date.now()}` }, auth);
+    const team = await call(
+      'POST',
+      '/api/holomesh/team',
+      { name: `write-order-${Date.now()}` },
+      auth
+    );
     expect(team.status).toBe(201);
     const tid = (team.body.team as { id: string }).id;
     standIn.mode = 'silent-sync';
@@ -409,10 +469,12 @@ describe('the other knowledge writes say what the orchestrator did', () => {
       content: `Team row ${n}`,
       domain: 'compilation',
     }));
-    const post = call('POST', `/api/holomesh/team/${tid}/knowledge`, { entries: rows }, auth).then((r) => {
-      posted = true;
-      return r;
-    });
+    const post = call('POST', `/api/holomesh/team/${tid}/knowledge`, { entries: rows }, auth).then(
+      (r) => {
+        posted = true;
+        return r;
+      }
+    );
     // The POST's handler reads its body at 200 ms, writes the mirror, then waits 400 ms on the silent
     // write. A GET reads no body, so it is served when it is sent: at 350 ms, after the mirror and
     // before the orchestrator gives up.
@@ -422,7 +484,10 @@ describe('the other knowledge writes say what the orchestrator did', () => {
     expect(mirror.body.count).toBe(2);
     const reply = await post;
     expect(reply.status).toBe(201);
-    expect(reply.body.orchestrator).toMatchObject({ accepted: false, reason: 'unreachable (TIMEOUT)' });
+    expect(reply.body.orchestrator).toMatchObject({
+      accepted: false,
+      reason: 'unreachable (TIMEOUT)',
+    });
     // An operator sees why the rows are only in the mirror: one line, no orchestrator text.
     const lines = warn.mock.calls.map((args) => String(args[0]));
     warn.mockRestore();
@@ -445,20 +510,36 @@ describe('the other knowledge writes say what the orchestrator did', () => {
 
   it('POST /knowledge/private answers 502 on a refusal and 503 when the orchestrator is out of reach', async () => {
     const auth = bearer(await registerCaller());
-    const entries = [{ id: `W.priv.write-outcome.${Date.now()}`, type: 'wisdom', content: lesson, domain: 'compilation' }];
-    expect((await call('POST', '/api/holomesh/knowledge/private', { entries }, auth)).status).toBe(201);
+    const entries = [
+      {
+        id: `W.priv.write-outcome.${Date.now()}`,
+        type: 'wisdom',
+        content: lesson,
+        domain: 'compilation',
+      },
+    ];
+    expect((await call('POST', '/api/holomesh/knowledge/private', { entries }, auth)).status).toBe(
+      201
+    );
     standIn.mode = 'refuse';
     const refused = await call('POST', '/api/holomesh/knowledge/private', { entries }, auth);
     expect(refused.status).toBe(502);
     expect(refused.body).not.toHaveProperty('entries');
     standIn.mode = 'stall';
-    expect((await call('POST', '/api/holomesh/knowledge/private', { entries }, auth)).status).toBe(503);
+    expect((await call('POST', '/api/holomesh/knowledge/private', { entries }, auth)).status).toBe(
+      503
+    );
   });
 
   it('POST /knowledge/promote answers 502 when the orchestrator refuses the public copy', async () => {
     const auth = bearer(await registerCaller());
     standIn.mode = 'refuse-sync';
-    const reply = await call('POST', '/api/holomesh/knowledge/promote', { entry_id: PROMOTE_ID }, auth);
+    const reply = await call(
+      'POST',
+      '/api/holomesh/knowledge/promote',
+      { entry_id: PROMOTE_ID },
+      auth
+    );
     expect(reply.status).toBe(502);
     expect(reply.body).not.toHaveProperty('promoted');
     expectNoLeak(reply.body);
@@ -466,9 +547,16 @@ describe('the other knowledge writes say what the orchestrator did', () => {
 
   it('DELETE /knowledge/private/:id answers 502 when the orchestrator refuses the tombstone', async () => {
     const auth = bearer(await registerCaller());
-    expect((await call('DELETE', '/api/holomesh/knowledge/private/W.priv.gone', undefined, auth)).status).toBe(200);
+    expect(
+      (await call('DELETE', '/api/holomesh/knowledge/private/W.priv.gone', undefined, auth)).status
+    ).toBe(200);
     standIn.mode = 'refuse';
-    const refused = await call('DELETE', '/api/holomesh/knowledge/private/W.priv.gone', undefined, auth);
+    const refused = await call(
+      'DELETE',
+      '/api/holomesh/knowledge/private/W.priv.gone',
+      undefined,
+      auth
+    );
     expect(refused.status).toBe(502);
     expect(refused.body).not.toHaveProperty('deleted');
   });
@@ -477,7 +565,10 @@ describe('the other knowledge writes say what the orchestrator did', () => {
     _resetHoloMeshClientForTests();
     const args = { type: 'wisdom', content: lesson, domain: 'compilation' };
     // An accepted write first, which also registers the tool's client while the stand-in says yes.
-    expect(await handleHoloMeshTool('holomesh_contribute', args)).toMatchObject({ success: true, synced: 1 });
+    expect(await handleHoloMeshTool('holomesh_contribute', args)).toMatchObject({
+      success: true,
+      synced: 1,
+    });
     standIn.mode = 'refuse';
     const refused = await handleHoloMeshTool('holomesh_contribute', args);
     expect(refused).toMatchObject({
