@@ -196,6 +196,22 @@ function checkReceipt(root, artifactRel) {
       `${receiptRel} records wasmBytes ${recordedBytes}, but ${wasmRel} is ${wasm.length} bytes.`
     );
   }
+  // The build identity the MCP server reports is this commit id; it must be a full one, and
+  // one this branch actually contains.
+  const sourceCommit = receipt?.sourceCommit;
+  if (typeof sourceCommit !== 'string' || !/^[0-9a-f]{40}$/.test(sourceCommit)) {
+    throw new Error(
+      `${receiptRel} sourceCommit must be a full 40-character commit id; found ${JSON.stringify(
+        sourceCommit
+      )}.`
+    );
+  }
+  const known = runGit(root, ['merge-base', '--is-ancestor', sourceCommit, 'HEAD'], {
+    allowFailure: true,
+  });
+  if (known.status !== 0) {
+    throw new Error(`${receiptRel} sourceCommit ${sourceCommit} is not in this branch's history.`);
+  }
   return actual;
 }
 

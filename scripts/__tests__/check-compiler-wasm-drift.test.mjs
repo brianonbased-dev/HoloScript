@@ -154,15 +154,18 @@ test('compiler-wasm drift gate admits a staged artifact refresh during pre-commi
   }
 });
 
-function commitArtifactWithReceipt(root, receiptResult) {
+function commitArtifactWithReceipt(root, receiptResult, sourceCommit) {
+  git(root, ['add', 'package.json']);
+  git(root, ['commit', '-m', 'init']);
+  const head = git(root, ['rev-parse', 'HEAD']).stdout.trim();
   write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\n');
   write(join(root, 'pkg-node/artifact.cjs'), 'exports.parse = function parse() {};\n');
   writeFileSync(join(root, 'pkg-node/holoscript_wasm_bg.wasm'), Buffer.from([0, 97, 115, 109, 1]));
   write(
     join(root, 'pkg-node/rebuild-receipt.json'),
-    `${JSON.stringify({ result: receiptResult }, null, 2)}\n`
+    `${JSON.stringify({ sourceCommit: sourceCommit ?? head, result: receiptResult }, null, 2)}\n`
   );
-  git(root, ['add', 'src/lib.rs', 'pkg-node', 'package.json']);
+  git(root, ['add', 'src/lib.rs', 'pkg-node']);
   git(root, ['commit', '-m', 'source, artifact and receipt']);
 }
 
@@ -212,6 +215,23 @@ test('compiler-wasm drift gate fails when a committed wasm has no receipt', () =
     assert.match(missing.stderr, /has no pkg-node\/rebuild-receipt\.json/);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate fails when the receipt names a short or unknown source commit', () => {
+  for (const [sourceCommit, pattern] of [
+    ['36bd409ca', /must be a full 40-character commit id; found "36bd409ca"/],
+    ['0'.repeat(40), /is not in this branch's history/],
+  ]) {
+    const root = createFixtureRepo();
+    try {
+      commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 }, sourceCommit);
+      const wrong = runGate(root);
+      assert.equal(wrong.status, 1, `${wrong.stdout}\n${wrong.stderr}`);
+      assert.match(wrong.stderr, pattern);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   }
 });
 
