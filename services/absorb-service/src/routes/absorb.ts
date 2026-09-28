@@ -14,6 +14,9 @@ const graphStore = new Map<string, {
   createdAt: Date;
   path: string;
   shallow: boolean;
+  // Account that paid for this scan. Null when nobody was charged.
+  // A later scan is reused only for this same account.
+  ownerId: string | null;
   topology: any;
   fileCount: number;
 }>();
@@ -44,25 +47,32 @@ router.post('/scan', async (req: Request, res: Response) => {
   try {
     const body = ScanRequestSchema.parse(req.body);
 
-    // --- CACHE CHECK ---
+    // A saved scan is reused only for the account that paid for it.
+    // The id is the same one the charge uses (a user uuid). Matching on
+    // the folder alone handed that scan to anyone, free, for 5 minutes,
+    // including someone who had just been refused.
+    //
+    // Someone with no account id is not charged, and their scan is not
+    // saved for reuse. A paid scan is never given to them.
     const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
     const now = new Date();
-    for (const [id, entry] of graphStore.entries()) {
-      if (entry.path === body.path && entry.shallow === body.shallow) {
-        if (now.getTime() - entry.createdAt.getTime() < CACHE_TTL_MS) {
-          // Return cached
-          return res.json({
-            graphId: id,
-            stats: entry.stats,
-            fileCount: entry.fileCount,
-            cost: 0, // Free if cached
-            cached: true,
-            topology: entry.topology
-          });
+    const callerId = userUuid(req);
+    if (callerId) {
+      for (const [id, entry] of graphStore.entries()) {
+        if (entry.ownerId === callerId && entry.path === body.path && entry.shallow === body.shallow) {
+          if (now.getTime() - entry.createdAt.getTime() < CACHE_TTL_MS) {
+            return res.json({
+              graphId: id,
+              stats: entry.stats,
+              fileCount: entry.fileCount,
+              cost: 0, // Already paid by this caller. Not charged again.
+              cached: true,
+              topology: entry.topology
+            });
+          }
         }
       }
     }
-    // -------------------
 
     // Lazy import to avoid loading heavy modules at startup
     const engineModule = await import('@holoscript/absorb-service/engine');
@@ -109,6 +119,9 @@ router.post('/scan', async (req: Request, res: Response) => {
     // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
     // projectId told the client it had been billed when nothing was taken.
     let chargedCents = 0;
+    // Set only after the charge lands, so a refused scan is not saved
+    // for a free replay, and an unpaid scan is not saved under an account.
+    let cacheOwnerId: string | null = null;
     // userUuid(), not a truthiness test. middleware/auth.ts sets
     // userId = `orchestrator:${key}` for an orchestrator caller: authenticated,
     // truthy, and not a uuid. It would flow into requireCredits -> checkBalance
@@ -137,10 +150,11 @@ router.post('/scan', async (req: Request, res: Response) => {
       // reporting cost, would bill the customer for a charge that never
       // happened.
       //
-      // The charge stays after the scan. The ledger can add credits back
-      // only by recording a purchase, which would say the customer bought
-      // money they did not buy. A scan that fails therefore costs nothing,
-      // and a charge that comes back empty is not delivered.
+      // The scan above has already run. The charge comes after it. The
+      // ledger can add credits back only by recording a purchase, which
+      // would say the customer bought money they did not buy. A scan that
+      // fails therefore costs nothing, and a charge that comes back empty
+      // is not delivered. A refused scan has still used the machine.
       const debit = await deductCredits(
         userId,
         creditCheck.costCents,
@@ -152,6 +166,7 @@ router.post('/scan', async (req: Request, res: Response) => {
         return;
       }
       chargedCents = creditCheck.costCents;
+      cacheOwnerId = userId;
     }
 
     const topology = {
@@ -168,6 +183,7 @@ router.post('/scan', async (req: Request, res: Response) => {
       createdAt: new Date(),
       path: body.path,
       shallow: body.shallow,
+      ownerId: cacheOwnerId,
       topology,
       fileCount: scanResult.files?.length ?? 0,
     });

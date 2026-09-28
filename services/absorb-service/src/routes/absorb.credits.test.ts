@@ -22,40 +22,62 @@ const SHALLOW_CENTS = 10;
 const ledger = vi.hoisted(() => {
   const state: {
     balance: number;
+    byUser: Map<string, number>;
     debited: number;
     wentNegative: boolean;
     forceEmptyDebit: boolean;
     hold: null | (() => Promise<void>);
   } = {
     balance: 0,
+    byUser: new Map(),
     debited: 0,
     wentNegative: false,
     forceEmptyDebit: false,
     hold: null,
   };
 
+  function readBalance(userId: string): number {
+    return state.byUser.has(userId) ? state.byUser.get(userId)! : state.balance;
+  }
+
+  function writeBalance(userId: string, next: number): void {
+    if (state.byUser.has(userId)) state.byUser.set(userId, next);
+    else state.balance = next;
+    if (next < 0) state.wentNegative = true;
+  }
+
+  async function requireCreditsImpl(userId: string, opType: string) {
+    const costCents = opType === 'absorb_shallow' ? SHALLOW_CENTS : opType === 'query_with_llm' ? 0 : 0;
+    const balance = readBalance(userId);
+    if (balance < costCents) {
+      return {
+        error: 'Insufficient credits',
+        status: 402,
+        required: costCents,
+        balance,
+      };
+    }
+    return { userId, costCents, operationType: opType };
+  }
+
+  const requireCredits = vi.fn(requireCreditsImpl);
+
   return {
     state,
-    requireCredits: vi.fn(async (userId: string, opType: string) => {
-      const costCents = opType === 'absorb_shallow' ? SHALLOW_CENTS : opType === 'query_with_llm' ? 0 : 0;
-      if (state.balance < costCents) {
-        return {
-          error: 'Insufficient credits',
-          status: 402,
-          required: costCents,
-          balance: state.balance,
-        };
-      }
-      return { userId, costCents, operationType: opType };
-    }),
-    deductCredits: vi.fn(async (_userId: string, cents: number) => {
+    readBalance,
+    restoreRequireCredits() {
+      requireCredits.mockImplementation(requireCreditsImpl);
+    },
+    requireCredits,
+    deductCredits: vi.fn(async (userId: string, cents: number) => {
       if (state.hold) await state.hold();
       if (state.forceEmptyDebit) return null;
-      if (state.balance < cents) return null;
-      state.balance -= cents;
-      if (state.balance < 0) state.wentNegative = true;
+      const balance = readBalance(userId);
+      if (balance < cents) return null;
+      const next = balance - cents;
+      writeBalance(userId, next);
       state.debited += cents;
-      return { balanceCents: state.balance };
+      return { balanceCents: next };
     }),
   };
 });
@@ -114,6 +136,7 @@ vi.mock('@holoscript/absorb-service/engine', () => {
 vi.mock('../db/client.js', () => ({ getDb: vi.fn(() => null) }));
 
 const USER = '11111111-2222-4333-8444-555555555555';
+const USER_B = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
 const PROJECT = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
 type Handler = (req: Request, res: Response) => Promise<unknown>;
@@ -170,21 +193,23 @@ function mockRes(): MockRes {
   return res;
 }
 
-function scanReq(path: string): Request {
+function scanReq(path: string, userId: string = USER): Request {
   return {
     body: { path, shallow: true, projectId: PROJECT },
     authenticated: true,
-    userId: USER,
+    userId,
   } as unknown as Request;
 }
 
 beforeEach(() => {
   ledger.state.balance = 0;
+  ledger.state.byUser.clear();
   ledger.state.debited = 0;
   ledger.state.wentNegative = false;
   ledger.state.forceEmptyDebit = false;
   ledger.state.hold = null;
   vi.clearAllMocks();
+  ledger.restoreRequireCredits();
 });
 
 describe('POST /scan when two scans share a balance that covers one', () => {
@@ -248,6 +273,80 @@ describe('POST /scan when two scans share a balance that covers one', () => {
     expect(ledger.state.balance).toBe(0);
     expect(ledger.state.wentNegative).toBe(false);
     expect(ledger.state.balance).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('POST /scan saved result is only for the account that paid', () => {
+  it('a caller with no credits does not receive another caller\'s saved scan', async () => {
+    const path = '/repo/paid-by-a';
+    ledger.state.byUser.set(USER, SHALLOW_CENTS);
+    ledger.state.byUser.set(USER_B, 0);
+    // B is allowed past the balance look so the empty charge is what
+    // refuses them. The saved scan must not skip that charge.
+    ledger.requireCredits.mockImplementation(async (userId: string, opType: string) => ({
+      userId,
+      costCents: opType === 'absorb_shallow' ? SHALLOW_CENTS : 0,
+      operationType: opType,
+    }));
+
+    const paid = mockRes();
+    await scan(scanReq(path, USER), paid as unknown as Response);
+    expect(paid._status).toBe(200);
+    expect(paid._json).toMatchObject({ cost: SHALLOW_CENTS, cached: false });
+    const paidGraph = paid._json?.graphId;
+    expect(typeof paidGraph).toBe('string');
+
+    const refused = mockRes();
+    await scan(scanReq(path, USER_B), refused as unknown as Response);
+    expect(refused._status).toBe(402);
+    expect(refused._json).toEqual({ error: 'Not enough credits for this scan.' });
+    expect(refused._json).not.toHaveProperty('cost');
+    expect(refused._json).not.toHaveProperty('graphId');
+    expect(refused._json).not.toEqual(expect.objectContaining({ graphId: paidGraph }));
+    expect(ledger.readBalance(USER_B)).toBe(0);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+  });
+
+  it('the caller who paid can repeat that scan within 5 minutes and is not charged again', async () => {
+    const path = '/repo/repeat-paid';
+    ledger.state.byUser.set(USER, SHALLOW_CENTS);
+
+    const first = mockRes();
+    await scan(scanReq(path, USER), first as unknown as Response);
+    expect(first._status).toBe(200);
+    expect(first._json).toMatchObject({ cost: SHALLOW_CENTS, cached: false });
+
+    const again = mockRes();
+    await scan(scanReq(path, USER), again as unknown as Response);
+    expect(again._status).toBe(200);
+    expect(again._json).toMatchObject({
+      graphId: first._json?.graphId,
+      cost: 0,
+      cached: true,
+    });
+    expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    expect(ledger.readBalance(USER)).toBe(0);
+  });
+
+  it('a caller with no account is not given a scan someone else paid for', async () => {
+    const path = '/repo/not-for-strangers';
+    ledger.state.byUser.set(USER, SHALLOW_CENTS);
+
+    const paid = mockRes();
+    await scan(scanReq(path, USER), paid as unknown as Response);
+    expect(paid._status).toBe(200);
+    const paidGraph = paid._json?.graphId;
+
+    const stranger = mockRes();
+    await scan(
+      { body: { path, shallow: true } } as unknown as Request,
+      stranger as unknown as Response
+    );
+    expect(stranger._status).toBe(200);
+    expect(stranger._json).toMatchObject({ cost: 0, cached: false });
+    expect(stranger._json?.graphId).not.toBe(paidGraph);
+    expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
   });
 });
 
