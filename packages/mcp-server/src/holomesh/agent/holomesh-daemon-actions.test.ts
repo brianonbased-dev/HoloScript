@@ -376,6 +376,23 @@ describe('mesh_contribute_knowledge', () => {
     expect(bb.contributed_this_cycle).toBe(3);
   });
 
+  it('does not mark a refused batch contributed, so the next cycle offers it again', async () => {
+    // task xzgt: the batch used to be marked contributed whatever the orchestrator answered, so a
+    // refused entry was never sent again.
+    const entries = [makeEntry('W.101'), makeEntry('W.102')];
+    client.contributeKnowledge.mockResolvedValueOnce(0).mockResolvedValueOnce(2);
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({ localKnowledge: entries })
+    );
+
+    expect(await actions.mesh_contribute_knowledge({}, emptyBB(), {})).toBe(false);
+    const bb = emptyBB();
+    expect(await actions.mesh_contribute_knowledge({}, bb, {})).toBe(true);
+    expect(client.contributeKnowledge).toHaveBeenNthCalledWith(2, entries);
+    expect(bb.contributed_this_cycle).toBe(2);
+  });
+
   it('returns false when no new entries to contribute', async () => {
     const { actions } = createHoloMeshDaemonActions(
       client,
