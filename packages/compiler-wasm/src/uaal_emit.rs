@@ -15,6 +15,7 @@ use crate::ast::{
     StructDeclarationNode,
 };
 use crate::kotlin_emit::{check_semantics, SemanticDiagnostic};
+use crate::semantic_types::definitely_returns_value;
 
 const OP_PUSH: u16 = 0x01;
 const OP_POP: u16 = 0x02;
@@ -642,45 +643,6 @@ fn reentrant_callees(
         result.insert(caller.clone(), reentrant);
     }
     result
-}
-
-/// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
-fn definitely_returns_value(body: &[AstNode]) -> bool {
-    ends_in_value_return(body) && every_return_has_value(body)
-}
-
-/// The end of `body` is unreachable except through `return <value>`. Trailing comments are ignored.
-fn ends_in_value_return(body: &[AstNode]) -> bool {
-    match body
-        .iter()
-        .rev()
-        .find(|node| !matches!(node, AstNode::Comment(_)))
-    {
-        Some(AstNode::Return(ret)) => ret.argument.is_some(),
-        Some(AstNode::If(if_node)) => {
-            ends_in_value_return(&if_node.consequent)
-                && if_node
-                    .alternate
-                    .as_deref()
-                    .is_some_and(ends_in_value_return)
-        }
-        _ => false,
-    }
-}
-
-fn every_return_has_value(body: &[AstNode]) -> bool {
-    body.iter().all(|node| match node {
-        AstNode::Return(ret) => ret.argument.is_some(),
-        AstNode::If(if_node) => {
-            every_return_has_value(&if_node.consequent)
-                && if_node
-                    .alternate
-                    .as_deref()
-                    .map_or(true, every_return_has_value)
-        }
-        AstNode::While(while_node) => every_return_has_value(&while_node.body),
-        _ => true,
-    })
 }
 
 fn has_value_return(body: &[AstNode]) -> bool {
@@ -4145,6 +4107,7 @@ function main(): i32 {
 
     #[test]
     fn block_locals_cannot_hide_an_outer_name_or_outlive_their_block() {
+        // In a typed function the checker refuses both first.
         let hidden = compile_source_to_uaal(
             r#"function main(): i32 {
   let x: i32 = 1
@@ -4155,11 +4118,7 @@ function main(): i32 {
 }"#,
         )
         .expect_err("an inner binding would overwrite the outer slot");
-        assert!(
-            hidden.message.contains("redeclares binding `x`"),
-            "{}",
-            hidden.message
-        );
+        assert!(hidden.message.contains("HS-SCOPE-001"), "{}", hidden.message);
 
         let escaped = compile_source_to_uaal(
             r#"function main(): i32 {
@@ -4170,10 +4129,38 @@ function main(): i32 {
 }"#,
         )
         .expect_err("a block-local name is not visible after its block");
+        assert!(escaped.message.contains("HS-NAME-001"), "{}", escaped.message);
+
+        // The checker leaves untyped functions alone; the emitter's own guard still refuses.
+        let hidden_untyped = compile_source_to_uaal(
+            r#"function main() {
+  let x = 1
+  if (true) {
+    let x = 2
+  }
+  return x
+}"#,
+        )
+        .expect_err("an inner binding would overwrite the outer slot");
         assert!(
-            escaped.message.contains("unresolved slot `t`"),
+            hidden_untyped.message.contains("redeclares binding `x`"),
             "{}",
-            escaped.message
+            hidden_untyped.message
+        );
+
+        let escaped_untyped = compile_source_to_uaal(
+            r#"function main() {
+  if (true) {
+    let t = 7
+  }
+  return t
+}"#,
+        )
+        .expect_err("a block-local name is not visible after its block");
+        assert!(
+            escaped_untyped.message.contains("unresolved slot `t`"),
+            "{}",
+            escaped_untyped.message
         );
 
         compile(

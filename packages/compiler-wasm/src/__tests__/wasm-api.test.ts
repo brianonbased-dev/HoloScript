@@ -871,6 +871,8 @@ function main(): i32 {
 }`)
     ).toThrow('never returns a value');
 
+    // compile_to_uaal runs the checker first. In typed functions the checker now refuses these
+    // three itself (G11), with its codes, before the emitter's own guards are reached.
     expect(() =>
       compileHsToUaalViaRust(`function main(): i32 {
   let x: i32 = 1
@@ -879,7 +881,7 @@ function main(): i32 {
   }
   return x
 }`)
-    ).toThrow('redeclares binding `x`');
+    ).toThrow('HS-SCOPE-001');
 
     expect(() =>
       compileHsToUaalViaRust(`function main(): i32 {
@@ -888,7 +890,7 @@ function main(): i32 {
   }
   return t
 }`)
-    ).toThrow('unresolved slot `t`');
+    ).toThrow('HS-NAME-001');
 
     expect(() =>
       compileHsToUaalViaRust(`function f(x: i32): i32 {
@@ -900,7 +902,7 @@ function main(): i32 {
 function main(): i32 {
   return f(0)
 }`)
-    ).toThrow('can finish without returning a value');
+    ).toThrow('HS-RETURN-002');
   }, 60000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {

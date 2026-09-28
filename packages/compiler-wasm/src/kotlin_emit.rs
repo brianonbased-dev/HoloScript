@@ -551,11 +551,23 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
 }
 
 pub(crate) fn check_semantics(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+    check_semantics_with(
+        ast,
+        &crate::semantic_types::ExternalDeclarations::default(),
+    )
+}
+
+/// [`check_semantics`] for a piece of a larger document: `external` names the functions the
+/// surrounding document declares, so a call to one of them resolves.
+pub(crate) fn check_semantics_with(
+    ast: &Ast,
+    external: &crate::semantic_types::ExternalDeclarations,
+) -> Result<(), SemanticDiagnostic> {
     check_top_level_declaration_collisions(ast)?;
     check_unknown_field_guards(ast)?;
     check_unknown_struct_field_guards(ast)?;
     check_assignment_mutability(ast)?;
-    crate::semantic_types::check_explicit_type_contracts(ast)
+    crate::semantic_types::check_explicit_type_contracts_with(ast, external)
 }
 
 fn top_level_declaration_site(node: &AstNode) -> Option<DeclarationSite> {
@@ -908,6 +920,12 @@ const KOTLIN_BUILTINS: &[KotlinBuiltin] = &[
 
 fn kotlin_builtin(name: &str) -> Option<&'static KotlinBuiltin> {
     KOTLIN_BUILTINS.iter().find(|builtin| builtin.name == name)
+}
+
+/// A math built-in this backend lowers by name (`sqrt`, `pow`, ...). The checker reads this table
+/// so a typed function may call one.
+pub(crate) fn is_kotlin_builtin(name: &str) -> bool {
+    kotlin_builtin(name).is_some()
 }
 
 fn is_numeric_builtin_call(name: &str) -> bool {
