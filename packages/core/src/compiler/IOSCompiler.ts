@@ -157,18 +157,29 @@ export class IOSCompiler extends CompilerBase {
     return result.charAt(0).toUpperCase() + result.slice(1);
   }
 
-  public getSceneKitGeometry(meshType: string): string {
+  /**
+   * SceneKit geometry for a shape, sized in meters. `size` is the object's scale read as its
+   * size along x, y, z: the rule Quest (quest-world-emit.ts), the web and Android follow, so a
+   * sphere of size s is s across (radius s/2) and a cylinder s across and y tall. With no size,
+   * each kind keeps its default: 0.1 m across, a plane 0.2 m.
+   */
+  public getSceneKitGeometry(meshType: string, size?: [number, number, number]): string {
+    const fallback: [number, number, number] = meshType === 'plane' ? [0.2, 0.2, 0.2] : [0.1, 0.1, 0.1];
+    const [x, y, z] = size ?? fallback;
+    // Round to the micrometer so 0.1 / 5 prints 0.02, not 0.020000000000000004.
+    const m = (n: number): string => String(Math.round(n * 1e6) / 1e6);
+    const box = `SCNBox(width: ${m(x)}, height: ${m(y)}, length: ${m(z)}, chamferRadius: 0)`;
     const geometries: Record<string, string> = {
-      cube: 'SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0)',
-      box: 'SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0)',
-      sphere: 'SCNSphere(radius: 0.05)',
-      cylinder: 'SCNCylinder(radius: 0.05, height: 0.1)',
-      cone: 'SCNCone(topRadius: 0, bottomRadius: 0.05, height: 0.1)',
-      capsule: 'SCNCapsule(capRadius: 0.025, height: 0.1)',
-      plane: 'SCNPlane(width: 0.2, height: 0.2)',
-      torus: 'SCNTorus(ringRadius: 0.05, pipeRadius: 0.02)',
+      cube: box,
+      box,
+      sphere: `SCNSphere(radius: ${m(x / 2)})`,
+      cylinder: `SCNCylinder(radius: ${m(x / 2)}, height: ${m(y)})`,
+      cone: `SCNCone(topRadius: 0, bottomRadius: ${m(x / 2)}, height: ${m(y)})`,
+      capsule: `SCNCapsule(capRadius: ${m(x / 4)}, height: ${m(y)})`,
+      plane: `SCNPlane(width: ${m(x)}, height: ${m(y)})`,
+      torus: `SCNTorus(ringRadius: ${m(x / 2)}, pipeRadius: ${m(x / 5)})`,
     };
-    return geometries[meshType] || 'SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0)';
+    return Object.prototype.hasOwnProperty.call(geometries, meshType) ? geometries[meshType] : box;
   }
 
   public findObjProp(obj: HoloObjectDecl, key: string): HoloValue | undefined {
