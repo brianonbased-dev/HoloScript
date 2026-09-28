@@ -9,7 +9,10 @@ world. The canonical path is:
 3. Open the returned `/w/:id` URL. Studio rewrites it to `/shared/:id`, where the
    HoloScript source is rendered by the shared WebXR viewer.
 4. Use `qrCode.dataUrl` or `share.url` to open the same world on a phone,
-   desktop browser, or headset browser without an app install.
+   desktop browser, or headset browser without an app install. The QR encodes
+   `qrCode.payload`, which is `/shared/:id`, not the `/w/:id` short link: the
+   headset's QR scanner (HoloQR) reads a `/w/` link as a world portal that must
+   carry a signed manifest, and refuses it unsigned.
 5. Use `customDomain.receiptId` when a requested domain is ready for DNS
    verification.
 
