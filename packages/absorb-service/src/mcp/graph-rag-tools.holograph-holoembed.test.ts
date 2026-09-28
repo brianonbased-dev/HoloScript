@@ -261,6 +261,77 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
   });
 });
 
+// Both schemas mark their text argument required. A bare call used to reach the
+// index anyway: on a workstation with a bound HoloEmbed generation that meant the
+// HoloDistill encoder ran on `undefined` for 30-90 s and answered with a Python
+// traceback (seen through mcp-server's dispatch-health.test.ts, which timed out).
+// Ready fakes stand in for the graph so a regression lands on them, not on a
+// real cache or a model: the tests fail if either fake is ever called.
+describe('semantic tools name a missing required argument before searching', () => {
+  afterEach(() => {
+    resetGraphRAGStateForTests();
+  });
+
+  function installReadyFakes(): { searched: unknown[]; asked: unknown[] } {
+    const searched: unknown[] = [];
+    const asked: unknown[] = [];
+    const search = async (query: unknown) => {
+      searched.push(query);
+      return [];
+    };
+    const index = {
+      search,
+      searchHybrid: search,
+      searchWithFilters: search,
+      searchHybridWithFilters: search,
+    } as unknown as SymbolSearchIndex;
+    const engine = {
+      graph: {},
+      queryWithLLM: async (question: unknown) => {
+        asked.push(question);
+        return { answer: '', citations: [] };
+      },
+    } as unknown as GraphRAGEngine;
+    setGraphRAGState(index, engine);
+    return { searched, asked };
+  }
+
+  it('holo_semantic_search without a usable query answers "query is required"', async () => {
+    const fakes = installReadyFakes();
+    for (const args of [{}, { query: '' }, { query: '   ' }, { query: 42 }]) {
+      const result = (await handleGraphRagTool('holo_semantic_search', {
+        ...args,
+        useCachedAbsorbIndex: true,
+      })) as { error?: string };
+      expect(result.error, JSON.stringify(args)).toBe('query is required');
+    }
+    expect(fakes.searched).toEqual([]);
+  });
+
+  it('holo_ask_codebase without a usable question answers "question is required"', async () => {
+    const fakes = installReadyFakes();
+    for (const args of [{}, { question: '' }, { question: '   ' }]) {
+      const result = (await handleGraphRagTool('holo_ask_codebase', {
+        ...args,
+        llmProvider: 'ollama',
+      })) as { error?: string };
+      expect(result.error, JSON.stringify(args)).toBe('question is required');
+    }
+    expect(fakes.asked).toEqual([]);
+  });
+
+  it('a real query still reaches the index (control)', async () => {
+    const fakes = installReadyFakes();
+    const result = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'cached target',
+      useCachedAbsorbIndex: true,
+    })) as { error?: string; count?: number };
+    expect(result.error).toBeUndefined();
+    expect(result.count).toBe(0);
+    expect(fakes.searched).toEqual(['cached target']);
+  });
+});
+
 function writeFloat32Npy(filePath: string, rows: number[][]): void {
   const rowCount = rows.length;
   const dim = rows[0]?.length ?? 0;
