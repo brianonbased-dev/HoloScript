@@ -904,7 +904,7 @@ composition "SecureAgentHandshake" {
   // HUD -- Security and session monitoring panels
   // ========================================================================
 
-  panel "AuthStatusHUD" {
+  template "AuthStatusHUD" {
     position: "top-left"
 
     text "AlphaAuth" {
@@ -921,7 +921,7 @@ composition "SecureAgentHandshake" {
     }
   }
 
-  panel "SessionHUD" {
+  template "SessionHUD" {
     position: "top-right"
 
     text "ActiveSessions" {
@@ -938,7 +938,7 @@ composition "SecureAgentHandshake" {
     }
   }
 
-  panel "CryptoHUD" {
+  template "CryptoHUD" {
     position: "bottom-left"
 
     text "AlphaRotation" {

@@ -1808,7 +1808,18 @@ export class HoloScriptPlusParser {
       } else {
         templateName = this.expect('STRING', 'Expected template name').value;
       }
+      // `template "Name" using "Parent" { ... }` keeps the same body record as
+      // `template "Name" { ... }`. `using` is still the template reference.
+      let templateRef: string | undefined;
+      if (this.usingClauseOpensBodyAt(0)) {
+        this.advance(); // using
+        templateRef = this.expect('STRING', 'Expected template name after using').value;
+        this.skipNewlines();
+      }
       const templateBody = this.parseBlockContent();
+      if (templateRef) {
+        templateBody.__templateRef = templateRef;
+      }
 
       let version: number | undefined;
       const migrations: Array<{ type: string; fromVersion: number; body: string }> = [];
@@ -4903,7 +4914,10 @@ export class HoloScriptPlusParser {
           (next.type === 'STRING' ||
             next.type === 'NUMBER' ||
             next.type === 'BOOLEAN' ||
-            next.type === 'NULL')
+            next.type === 'NULL') &&
+          // `policy "Name" using "Parent" { ... }` is a node, not two properties.
+          // The body is stored by parseNode, the same path a brace body already uses.
+          !this.quotedNameUsingClauseOpensBody()
         ) {
           const key = this.advance().value;
           result.properties[key] = this.parseValue();
@@ -4995,7 +5009,23 @@ export class HoloScriptPlusParser {
           this.advance();
         }
       } else if (this.check('LBRACE')) {
-        // Skip balanced block at composition level (e.g., spawn_group "name" { ... })
+        // A bare brace block is not a node. Report it, then skip the block
+        // so a later named child can still be read.
+        // `health: ${state.health}` is not that case: `$` is an identifier and
+        // `{` is a separate brace. `${ }` is only kept inside a quoted string.
+        const brace = this.current();
+        const before = this.previous();
+        const bareDollarBrace =
+          before.type === 'IDENTIFIER' &&
+          before.value === '$' &&
+          before.line === brace.line &&
+          brace.column === before.column + before.value.length;
+        this.error(
+          bareDollarBrace
+            ? '"${ }" only works inside a quoted string here. Put the value in quotes.'
+            : 'A block here needs a name. Write the name, then the brace block.',
+          'HSP101'
+        );
         let depth = 1;
         this.advance(); // consume {
         while (depth > 0 && !this.check('EOF')) {
@@ -5018,6 +5048,38 @@ export class HoloScriptPlusParser {
 
     this.expect('RBRACE', 'Expected }');
     return result;
+  }
+
+  /**
+   * True when peek(from) is `using "Name"` and a `{` block follows.
+   * Blank lines between the name and the brace are allowed.
+   */
+  private usingClauseOpensBodyAt(from: number): boolean {
+    const using = this.peek(from);
+    if (!(using.type === 'IDENTIFIER' && using.value === 'using')) return false;
+    if (this.peek(from + 1).type !== 'STRING') return false;
+    return this.peek(this.offsetAfterLineBreaks(from + 2)).type === 'LBRACE';
+  }
+
+  /**
+   * True when the cursor is `keyword "name" using "Parent" {`.
+   * That shape is a named node with a template reference, not a bare property.
+   */
+  private quotedNameUsingClauseOpensBody(): boolean {
+    if (this.peek(1).type !== 'STRING') return false;
+    return this.usingClauseOpensBodyAt(this.offsetAfterLineBreaks(2));
+  }
+
+  private offsetAfterLineBreaks(from: number): number {
+    let i = from;
+    while (true) {
+      const kind = this.peek(i).type;
+      if (kind === 'NEWLINE' || kind === 'INDENT' || kind === 'DEDENT') {
+        i++;
+        continue;
+      }
+      return i;
+    }
   }
 
   /**

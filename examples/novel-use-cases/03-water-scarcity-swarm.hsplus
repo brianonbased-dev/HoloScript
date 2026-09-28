@@ -322,7 +322,7 @@ composition "WaterScarcitySwarm" {
   // HUD
   // ========================================================================
 
-  panel "WaterStatus" {
+  module "WaterStatus" {
     position: "top-right"
     text "Fusions" {
       bind: "Sensor fusions: " + Object.keys(SensorFusion.state.fused_state).length

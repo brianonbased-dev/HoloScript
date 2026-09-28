@@ -129,7 +129,7 @@ composition "DisasterRoboticsSwarm" {
   object "Trainer_Search" using "RescueTrainer" { position: [-8, 1, 8]; geometry: "capsule"; color: "#ff3300"; state { agent_id: "search_001" } }
   object "Trainer_Extract" using "RescueTrainer" { position: [8, 1, 8]; geometry: "capsule"; color: "#ff6600"; state { agent_id: "extract_001" } }
 
-  panel "DisasterDashboard" {
+  template "DisasterDashboard" {
     position: "top-right"
     text "Episodes" { bind: "Episodes: " + SwarmCurriculum.state.total_episodes; style: "info" }
     text "Trades" { bind: "Skill trades: " + SkillMarket.state.total_trades; style: "info" }

@@ -79,7 +79,7 @@ composition "HoloShellProcessOwnerLaneRestartPolicy" {
     ]
   }
 
-  policy "VerifiedPidOnly" {
+  template "VerifiedPidOnly" {
     exactPidRequired: true
     stopOnlyVerifiedManagedPid: true
     unverifiedPidStopRefused: true
@@ -89,7 +89,7 @@ composition "HoloShellProcessOwnerLaneRestartPolicy" {
     receiptRequired: true
   }
 
-  state_machine "RestartWorkflow" {
+  template "RestartWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -114,22 +114,22 @@ composition "HoloShellProcessOwnerLaneRestartPolicy" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["process_scan", "service_status", "self_test", "source_validation", "evidence_pack"]
   }
 
-  role "HoloShellCustodian" {
+  template "HoloShellCustodian" {
     laneId: "holoshell-custodian"
     owns: ["owner_lane_classification", "restart_plan", "approval_packet", "after_action_receipt"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["non_developer_room", "brittney_explanation", "world_build_ready_loop"]
   }
 
-  role "OwnerLaneAgent" {
+  template "OwnerLaneAgent" {
     laneId: "owner-lane"
     owns: ["acknowledge_owned_process", "extend_run", "close_run", "justify_service_dependency"]
   }

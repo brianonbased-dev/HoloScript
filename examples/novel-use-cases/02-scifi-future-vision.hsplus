@@ -307,7 +307,7 @@ composition "SciFiFutureVision" {
   // HUD
   // ========================================================================
 
-  panel "StoryStatus" {
+  template "StoryStatus" {
     position: "top-right"
     text "Lore" {
       bind: "Lore entries: " + NarrativeEngine.state.total_entries

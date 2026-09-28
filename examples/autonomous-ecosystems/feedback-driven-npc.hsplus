@@ -671,7 +671,7 @@ composition "FeedbackDrivenNPC" {
   // HUD -- Real-time performance monitoring panels
   // ========================================================================
 
-  panel "PerformanceHUD" {
+  module "PerformanceHUD" {
     position: "top-left"
 
     text "NPCState" {
@@ -696,7 +696,7 @@ composition "FeedbackDrivenNPC" {
     }
   }
 
-  panel "TunerHUD" {
+  template "TunerHUD" {
     position: "top-right"
 
     text "Adjustments" {
@@ -717,7 +717,7 @@ composition "FeedbackDrivenNPC" {
     }
   }
 
-  panel "FeedbackPanel" {
+  module "FeedbackPanel" {
     position: "bottom-left"
 
     text "Ratings" {

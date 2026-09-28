@@ -201,7 +201,7 @@ composition "RobotTrainingMetaverse" {
   object "Trainer_A" using "TrainerAgent" { position: [-5, 1, 0]; geometry: "capsule"; color: "#ff6600"; state { agent_id: "trainer_alpha" } }
   object "Trainer_B" using "TrainerAgent" { position: [5, 1, 0]; geometry: "capsule"; color: "#0066ff"; state { agent_id: "trainer_beta" } }
 
-  panel "TrainingStatus" {
+  template "TrainingStatus" {
     position: "top-right"
     text "Episodes" { bind: "Episodes: " + CurriculumEngine.state.total_episodes; style: "info" }
     text "Level" { bind: "Level: " + CurriculumEngine.state.current_level; color: "#ffd700" }

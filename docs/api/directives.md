@@ -529,19 +529,21 @@ Built-in lifecycle and interaction handlers.
 
 ```hsplus
 composition game_manager {
-  on_scene_load: {
-    initialize_game()
-    spawn_players()
-  }
+  logic {
+    on_scene_load {
+      initialize_game()
+      spawn_players()
+    }
 
-  on_tick: {
-    update_timer()
-    check_win_condition()
-  }
+    on_tick {
+      update_timer()
+      check_win_condition()
+    }
 
-  on_player_join: (player) {
-    assign_team(player)
-    spawn_at_base(player)
+    on player_join(player) {
+      assign_team(player)
+      spawn_at_base(player)
+    }
   }
 }
 ```
