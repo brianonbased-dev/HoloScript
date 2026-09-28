@@ -6,13 +6,8 @@ import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../_lib/cors';
-import {
-  AnthropicAdapter,
-  OpenAIAdapter,
-  OpenRouterAdapter,
-  LocalLLMAdapter,
-  checkHostedOllama,
-} from '@holoscript/llm-provider';
+import { completeWithRouteLocalModel, resolveRouteLocalModel } from '../_lib/ownedLocalFallback';
+import { AnthropicAdapter, OpenAIAdapter, OpenRouterAdapter } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 30;
 // SEC-T03: cap untrusted prefix/suffix length before any LLM spend.
@@ -25,18 +20,14 @@ const MAX_PROMPT_CHARS = 4000;
  * Returns: { completion: string }
  *
  * Cloud-first autocomplete. Tries OpenRouter, Anthropic, OpenAI in order.
- * Falls back to Ollama if configured, then returns empty completion gracefully.
- * Studio pays — uses server-side env keys only.
+ * Falls back to our own local model server (HOLOSERVE_URL, else HOLOLLAMA_URL) if configured,
+ * then returns empty completion gracefully. Studio pays — uses server-side env keys only.
  */
 
 interface CompletionRequest {
   prefix?: string;
   suffix?: string;
   maxTokens?: number;
-}
-
-function buildFIMPrompt(prefix: string, suffix: string) {
-  return `<PRE>${prefix}<SUF>${suffix}<MID>`;
 }
 
 function buildChatPrompt(prefix: string, suffix: string) {
@@ -104,29 +95,23 @@ async function getProviders(): Promise<Provider[]> {
     });
   }
 
-  // Ollama as optional local fallback — now via @holoscript/llm-provider LocalLLMAdapter.
-  // A hosted Ollama (public host or cloud-tagged model) is not local; it is left out.
-  const ollamaBase = process.env.OLLAMA_URL;
-  const ollamaModel = process.env.OLLAMA_AUTOCOMPLETE_MODEL ?? 'codellama:7b-code';
-  if (
-    ollamaBase &&
-    !checkHostedOllama(ollamaBase, { model: ollamaModel, caller: 'studio /api/autocomplete' })
-      .refused
-  ) {
-    const adapter = new LocalLLMAdapter({
-      baseURL: ollamaBase,
-      defaultModel: ollamaModel,
-      timeoutMs: 4000,
-    });
+  // Optional local fallback: our own model server (D.117 retired Ollama), HoloServe when
+  // HOLOSERVE_URL is set, else HoloLlama when HOLOLLAMA_URL is set; nothing configured or a
+  // refused URL means no local step. One attempt within the 4 s budget of a keystroke, with any
+  // failure logged on the server only (../_lib/ownedLocalFallback). It is a chat model, so it
+  // gets the same chat prompt as the cloud providers, not a code model's fill-in prompt.
+  const localCaller = 'studio /api/autocomplete';
+  const local = resolveRouteLocalModel(localCaller, 4000);
+  if (local) {
     providers.push({
-      name: 'ollama',
+      name: 'local',
       call: async (prefix, suffix, maxTokens) => {
-        const result = await adapter.complete({
-          messages: [{ role: 'user', content: buildFIMPrompt(prefix, suffix) }],
-          maxTokens,
+        const text = await completeWithRouteLocalModel(local, localCaller, {
+          messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+          maxTokens: Math.min(maxTokens, local.maxTokens),
           temperature: 0.1,
         });
-        return result.content?.trimEnd() || null;
+        return text?.trimEnd() || null;
       },
     });
   }
@@ -203,7 +188,7 @@ export async function POST(request: NextRequest) {
     {
       completion: '',
       warning:
-        'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env',
+        'No AI provider configured. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in .env, or HOLOLLAMA_URL for a local model',
     },
     {
       headers: {

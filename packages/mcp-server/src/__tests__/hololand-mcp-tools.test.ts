@@ -1214,11 +1214,13 @@ describe('hololand-mcp-tools', () => {
     expect(result.success).toBe(true);
     expect(result.role).toBe('companion');
     expect(result.modelProvider).toBe('local');
-    // RATCHET: the note is honest CONFIG-ONLY — local mode references Ollama but
-    // makes clear no inference loop has actually been started (no overclaim).
+    // RATCHET: the note is honest CONFIG-ONLY — local mode names our own local model
+    // server (Ollama was retired, D.117) but makes clear no inference loop has actually
+    // been started (no overclaim).
     expect(result.note).toContain('CONFIG-ONLY');
     expect(result.note).toContain('local mode');
-    expect(result.note).toContain('Ollama');
+    expect(result.note).toContain('HoloLlama');
+    expect(result.note).not.toContain('Ollama');
   });
 
   // ---------------------------------------------------------------------------

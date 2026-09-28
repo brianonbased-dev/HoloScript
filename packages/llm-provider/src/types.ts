@@ -431,6 +431,21 @@ export type LLMStreamChunk =
  * Native tool-capable surfaces (Anthropic, OpenAI Responses) should pass
  * structured blocks through unchanged.
  */
+/**
+ * Log/error-safe endpoint URL. Accepts a bare `host:port` as Ollama clients do; drops
+ * userinfo, query and fragment (they can carry tokens).
+ */
+export function redactEndpointUrl(url: string): string {
+  const trimmed = url.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//iu.test(trimmed) ? trimmed : `http://${trimmed}`;
+  try {
+    const u = new URL(withScheme);
+    return `${u.protocol}//${u.host}${u.pathname === '/' ? '' : u.pathname}`;
+  } catch {
+    return '<unparseable URL>';
+  }
+}
+
 export function messageContentAsString(content: LLMMessage['content']): string {
   if (typeof content === 'string') return content;
   return content

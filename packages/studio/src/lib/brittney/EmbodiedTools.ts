@@ -247,7 +247,7 @@ async function fetchHealthFallback(baseUrl: string): Promise<Record<string, unkn
       glyph: aiConnected ? '✅' : '⚠',
       summary: aiConnected
         ? `${h.ai?.provider ?? 'unknown'} connected`
-        : 'no AI provider configured (ANTHROPIC_API_KEY / OLLAMA_HOST unset)',
+        : 'no AI provider configured (set a cloud key, or HOLOLLAMA_URL / HOLOSERVE_URL)',
       urgency: aiConnected ? 0 : 3,
     });
 

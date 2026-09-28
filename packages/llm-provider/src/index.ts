@@ -246,6 +246,11 @@ export {
   isOllamaCloudModel,
   HostedOllamaRefusedError,
   HOSTED_OLLAMA_FLAG,
+  // D.117: Ollama retired from auto-resolution. The "local fallback" of cloud-first
+  // surfaces is our own HoloServe / HoloLlama, or nothing when neither is configured.
+  resolveOwnedLocalProvider,
+  ownedLocalDefaultModel,
+  OWNED_LOCAL_MAX_TOKENS,
 } from './sovereign-resolver';
 export type {
   ResolvedSovereignProvider,
