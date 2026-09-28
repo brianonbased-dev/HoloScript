@@ -20,6 +20,7 @@ import {
   classifyOllamaHost,
   classifyServiceHost,
   isOllamaCloudModel,
+  ownedLocalDefaultModel,
   redactServiceUrl,
   resolveOwnedLocalProvider,
   resolveSovereignProvider,
@@ -1497,6 +1498,97 @@ describe('Ollama retired from auto-resolution (D.117: HoloLlama replaced it on 2
         r!.provider.complete({ messages: [{ role: 'user', content: 'hi' }] }, r!.model)
       ).rejects.toThrow();
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('passes the time budget through: a 4 s fallback gives up at 4 s, not the 300 s default', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.stubEnv('HOLOLLAMA_URL', 'http://192.168.0.119:18080');
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(
+            (_url: unknown, init?: { signal?: AbortSignal }) =>
+              new Promise((_resolve, reject) => {
+                init?.signal?.addEventListener('abort', () =>
+                  reject(new Error('This operation was aborted'))
+                );
+              })
+          )
+        );
+        const r = resolveOwnedLocalProvider({ caller: 'autocomplete', timeoutMs: 4000 });
+        let outcome: unknown = 'pending';
+        void r!.provider.complete({ messages: [{ role: 'user', content: 'hi' }] }, r!.model).then(
+          () => (outcome = 'resolved'),
+          (err: Error) => (outcome = err.message)
+        );
+        await vi.advanceTimersByTimeAsync(3999);
+        expect(outcome).toBe('pending');
+        await vi.advanceTimersByTimeAsync(1);
+        expect(String(outcome)).toMatch(/timed out/u);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("never takes the cloud lane's token budget", () => {
+      vi.stubEnv('BRITTNEY_MAX_TOKENS', '32000');
+      vi.stubEnv('HOLO_LLM_MAX_TOKENS', '32000');
+      vi.stubEnv('HOLOLLAMA_URL', 'http://192.168.0.119:18080');
+      expect(resolveOwnedLocalProvider({ caller: 'fallback' })?.maxTokens).toBe(4096);
+      expect(resolveOwnedLocalProvider({ caller: 'fallback', maxTokens: 512 })?.maxTokens).toBe(
+        512
+      );
+    });
+
+    it('uses only our own machines: a public or unparseable URL is refused, not labeled native', () => {
+      vi.stubEnv('HOLOLLAMA_URL', 'https://ollama.com');
+      expect(() => resolveOwnedLocalProvider({ caller: 'autocomplete' })).toThrow(
+        /REFUSING HOLOLLAMA_URL for caller autocomplete: .*a public address/u
+      );
+      vi.stubEnv('HOLOSERVE_URL', 'http://user:s3cret@8.8.8.8:8099/?token=abc');
+      let message = '';
+      try {
+        resolveOwnedLocalProvider({ caller: 'autocomplete' });
+      } catch (err) {
+        message = (err as Error).message;
+      }
+      expect(message).toMatch(/REFUSING HOLOSERVE_URL/u);
+      expect(message).toContain('8.8.8.8:8099');
+      expect(message).not.toMatch(/s3cret|token=abc/u);
+      vi.stubEnv('HOLOSERVE_URL', 'http://exa mple:8099');
+      expect(() => resolveOwnedLocalProvider({ caller: 'autocomplete' })).toThrow(
+        /not a valid URL/u
+      );
+      vi.stubEnv('HOLOSERVE_URL', 'http://100.64.1.2:8099'); // Tailscale: owned
+      expect(resolveOwnedLocalProvider({ caller: 'autocomplete' })?.providerName).toBe('holoserve');
+    });
+
+    it('the "cannot reach" message shows the server but hides credentials in its URL', async () => {
+      vi.stubEnv('HOLOLLAMA_URL', 'http://user:s3cret@192.168.0.5:18080/?token=abc');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new TypeError('fetch failed');
+        })
+      );
+      const r = resolveOwnedLocalProvider({ caller: 'fallback', maxRetries: 0 });
+      const err = await r!.provider
+        .complete({ messages: [{ role: 'user', content: 'hi' }] }, r!.model)
+        .then(
+          () => null,
+          (e: Error) => e
+        );
+      expect(err?.message).toContain('192.168.0.5:18080');
+      expect(err?.message).toMatch(/HoloLlama or HoloServe/u);
+      expect(err?.message).not.toMatch(/s3cret|token=abc|ollama serve/u);
+    });
+
+    it("ownedLocalDefaultModel is the lane's own model, never the cloud lane's", () => {
+      vi.stubEnv('BRITTNEY_MODEL', 'claude-opus-4-7');
+      expect(ownedLocalDefaultModel('holollama')).toBe(LOCAL_DEFAULT_MODEL);
+      expect(ownedLocalDefaultModel('holoserve')).toBe('holorunner-s0');
+      vi.stubEnv('HOLOSERVE_MODEL', 'holorunner-s1');
+      expect(ownedLocalDefaultModel('holoserve')).toBe('holorunner-s1');
     });
   });
 });

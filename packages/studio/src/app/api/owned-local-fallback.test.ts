@@ -2,8 +2,10 @@
  * Studio's local fallback is our own model server (D.117: HoloLlama replaced Ollama on the
  * owned machines). With no cloud key, /api/generate, /api/material/generate and
  * /api/autocomplete fall back to HoloServe (HOLOSERVE_URL) or HoloLlama (HOLOLLAMA_URL), and
- * /api/health reports that server. A leftover OLLAMA_URL reaches nothing. fetch is stubbed:
- * no test here calls a live server.
+ * /api/health reports that server. A leftover OLLAMA_URL reaches nothing, a public
+ * HOLOLLAMA_URL is refused without a call, each route makes one attempt, and a failure's text
+ * (it names the LAN host) goes to the server log, never into a response. fetch is stubbed: no
+ * test here calls a live server.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
@@ -28,8 +30,10 @@ import { POST as postGenerate } from './generate/route';
 import { POST as postMaterial } from './material/generate/route';
 import { POST as postAutocomplete } from './autocomplete/route';
 import { GET as getHealth } from './health/route';
+import { __resetRouteLocalFailureLog } from './_lib/ownedLocalFallback';
 
 const JETSON_HOLOLLAMA = 'http://192.168.0.119:18080';
+const JETSON_HOST = '192.168.0.119';
 const LAPTOP_HOLOSERVE = 'http://127.0.0.1:8099';
 
 const LOCAL_ENV = [
@@ -76,8 +80,25 @@ function stubLocalServer(content: string) {
   return fetchMock;
 }
 
+/** A local server that answers every request with an HTTP error (a 5xx counts as retryable). */
+function stubFailingServer(status: number) {
+  const fetchMock = vi.fn(async (_url: string, _init?: { body?: string }) => ({
+    ok: false,
+    status,
+    json: async () => ({}),
+    text: async () => 'model busy',
+  }));
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
 function sentBody(fetchMock: ReturnType<typeof stubLocalServer>): ChatBody {
   return JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as ChatBody;
+}
+
+/** Everything this test wrote to the server log (console.warn is stubbed in beforeEach). */
+function warnLines(): string[] {
+  return vi.mocked(console.warn).mock.calls.map((call) => String(call[0]));
 }
 
 function post(path: string, body: unknown): NextRequest {
@@ -94,7 +115,8 @@ describe('Studio local fallback = our own model server', () => {
   beforeEach(() => {
     process.env = { ...origEnv };
     for (const k of LOCAL_ENV) delete process.env[k];
-    // The retirement notice is llm-provider's; keep it out of the test output.
+    __resetRouteLocalFailureLog();
+    // Failure details and llm-provider's notices go to console.warn; tests read them from here.
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
@@ -146,6 +168,19 @@ describe('Studio local fallback = our own model server', () => {
       const data = await res.json();
       expect(res.status).toBe(200);
       expect(data.source).toBe('mock');
+      // The failure names the Jetson: server log only.
+      expect(JSON.stringify(data)).not.toContain(JETSON_HOST);
+      const logged = warnLines().filter((line) => line.startsWith('[studio /api/generate]'));
+      expect(logged).toHaveLength(1);
+      expect(logged[0]).toContain(JETSON_HOST);
+    });
+
+    it('makes one attempt: a 5xx from the local server is not retried', async () => {
+      process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+      const fetchMock = stubFailingServer(503);
+      const res = await postGenerate(post('/api/generate', { prompt: 'a glowing beacon' }));
+      expect((await res.json()).source).toBe('mock');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -180,6 +215,16 @@ describe('Studio local fallback = our own model server', () => {
       expect(data.error).toContain('HOLOLLAMA_URL');
       expect(fetchMock).not.toHaveBeenCalled();
     });
+
+    it('makes one attempt: a local 5xx is not retried, and the answer names no host', async () => {
+      process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+      const fetchMock = stubFailingServer(503);
+      const res = await postMaterial(post('/api/material/generate', { prompt: 'lava' }));
+      const data = await res.json();
+      expect(res.status).toBe(503);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(data)).not.toContain(JETSON_HOST);
+    });
   });
 
   describe('/api/autocomplete', () => {
@@ -206,6 +251,16 @@ describe('Studio local fallback = our own model server', () => {
       expect(res.headers.get('x-llm-provider')).toBe('none');
       expect(fetchMock).not.toHaveBeenCalled();
     });
+
+    it('makes one attempt: a local 5xx is not retried, and the answer names no host', async () => {
+      process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+      const fetchMock = stubFailingServer(503);
+      const res = await postAutocomplete(post('/api/autocomplete', { prefix: 'object "Cube" {' }));
+      const data = await res.json();
+      expect(data.completion).toBe('');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(data)).not.toContain(JETSON_HOST);
+    });
   });
 
   describe('/api/health', () => {
@@ -230,6 +285,58 @@ describe('Studio local fallback = our own model server', () => {
       expect(data.ai).toEqual({ provider: 'none', connected: false });
       expect(data.ollama).toBe(false);
       expect(data.models).toEqual([]);
+    });
+  });
+
+  describe('a public HOLOLLAMA_URL is refused: no call, same answer as nothing configured', () => {
+    const PUBLIC_URL = 'https://ollama.com';
+    const refusals = (route: string) =>
+      warnLines().filter((line) =>
+        line.includes(`REFUSING HOLOLLAMA_URL for caller studio ${route}`)
+      );
+
+    it('/api/generate returns the template', async () => {
+      process.env.HOLOLLAMA_URL = PUBLIC_URL;
+      const fetchMock = stubLocalServer(VALID_SCENE);
+      const res = await postGenerate(post('/api/generate', { prompt: 'a glowing beacon' }));
+      const data = await res.json();
+      expect(res.status).toBe(200);
+      expect(data.source).toBe('mock');
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(JSON.stringify(data)).not.toContain('ollama.com');
+      expect(refusals('/api/generate')).toHaveLength(1);
+    });
+
+    it('/api/material/generate answers 503', async () => {
+      process.env.HOLOLLAMA_URL = PUBLIC_URL;
+      const fetchMock = stubLocalServer('never');
+      const res = await postMaterial(post('/api/material/generate', { prompt: 'lava' }));
+      expect(res.status).toBe(503);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(JSON.stringify(await res.json())).not.toContain('ollama.com');
+      expect(refusals('/api/material/generate')).toHaveLength(1);
+    });
+
+    it('/api/autocomplete returns an empty completion, logging the refusal once, not per keystroke', async () => {
+      process.env.HOLOLLAMA_URL = PUBLIC_URL;
+      const fetchMock = stubLocalServer('never');
+      for (let keystroke = 0; keystroke < 3; keystroke += 1) {
+        const res = await postAutocomplete(
+          post('/api/autocomplete', { prefix: 'object "Cube" {' })
+        );
+        expect(await res.json()).toMatchObject({ completion: '' });
+        expect(res.headers.get('x-llm-provider')).toBe('none');
+      }
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(refusals('/api/autocomplete')).toHaveLength(1);
+    });
+
+    it('/api/health reports none', async () => {
+      process.env.HOLOLLAMA_URL = PUBLIC_URL;
+      const data = await (await getHealth()).json();
+      expect(data.ai).toEqual({ provider: 'none', connected: false });
+      expect(JSON.stringify(data)).not.toContain('ollama.com');
+      expect(refusals('/api/health')).toHaveLength(1);
     });
   });
 });

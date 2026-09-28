@@ -1,5 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { resolveDaemonModel, shouldReclaimDaemonLock, isPidAlive } from '../daemon-model-and-lock';
+import {
+  parseProvider,
+  parseRotationProviders,
+  resolveDaemonModel,
+  shouldReclaimDaemonLock,
+  isPidAlive,
+} from '../daemon-model-and-lock';
+
+describe('daemon provider names', () => {
+  it('accepts the providers the daemon knows, case-insensitively; auto means sovereign', () => {
+    expect(parseProvider('Anthropic')).toBe('anthropic');
+    expect(parseProvider('auto')).toBe('sovereign');
+    expect(parseProvider('grok')).toBeUndefined();
+    expect(parseRotationProviders(['Anthropic', 'xai', 'auto', 'ollama'])).toEqual([
+      'anthropic',
+      'xai',
+      'sovereign',
+      'ollama',
+    ]);
+  });
+
+  it('an unknown provider_rotation name stops the daemon instead of silently meaning Ollama', () => {
+    expect(() => parseRotationProviders(['anthropic', 'grok'])).toThrow(/unknown provider "grok"/u);
+    expect(() => parseRotationProviders(['anthropic', 42])).toThrow(/unknown provider 42/u);
+    expect(() => parseRotationProviders([])).toThrow(/non-empty list/u);
+    expect(() => parseRotationProviders('anthropic')).toThrow(/non-empty list/u);
+  });
+});
 
 describe('resolveDaemonModel', () => {
   it('keeps an explicit --model and does not rewrite it to the provider default', () => {

@@ -6,12 +6,8 @@ import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../../_lib/cors';
-import {
-  AnthropicAdapter,
-  OpenAIAdapter,
-  OpenRouterAdapter,
-  resolveOwnedLocalProvider,
-} from '@holoscript/llm-provider';
+import { completeWithRouteLocalModel, resolveRouteLocalModel } from '../../_lib/ownedLocalFallback';
+import { AnthropicAdapter, OpenAIAdapter, OpenRouterAdapter } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
 // SEC-T03: cap untrusted prompt length before any LLM spend.
@@ -198,31 +194,21 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
 }
 
 /**
- * Local fallback: our own model server (D.117 retired Ollama). HoloServe when HOLOSERVE_URL is
- * set, else HoloLlama when HOLOLLAMA_URL is set; neither means no local step. A leftover
- * OLLAMA_* is ignored (the helper logs one notice). The helper picks the model: the request
- * body's `model` is not passed, since HoloLlama serves one model and HoloServe refuses names
- * it does not know.
+ * Local fallback: our own model server (D.117 retired Ollama), HoloServe when HOLOSERVE_URL is
+ * set, else HoloLlama when HOLOLLAMA_URL is set. One attempt, with any failure logged on the
+ * server only (../../_lib/ownedLocalFallback); nothing configured, a refused URL or a failed
+ * call all return null. The helper picks the model: the request body's `model` is not passed,
+ * since HoloLlama serves one model and HoloServe refuses names it does not know.
  */
 async function tryLocalFallback(fullPrompt: string): Promise<string | null> {
-  try {
-    const local = resolveOwnedLocalProvider({
-      caller: 'studio /api/material/generate',
-      timeoutMs: 30_000,
-    });
-    if (!local) return null;
-    const result = await local.provider.complete(
-      {
-        messages: [{ role: 'user', content: fullPrompt }],
-        maxTokens: Math.min(512, local.maxTokens),
-        temperature: 0.7,
-      },
-      local.model
-    );
-    return result.content || null;
-  } catch {
-    return null;
-  }
+  const caller = 'studio /api/material/generate';
+  const local = resolveRouteLocalModel(caller, 30_000);
+  if (!local) return null;
+  return completeWithRouteLocalModel(local, caller, {
+    messages: [{ role: 'user', content: fullPrompt }],
+    maxTokens: Math.min(512, local.maxTokens),
+    temperature: 0.7,
+  });
 }
 
 export function OPTIONS(request: Request) {

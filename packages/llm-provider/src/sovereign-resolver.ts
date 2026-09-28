@@ -24,7 +24,10 @@
  *                   backup chain had nothing to try (empty config), not after a failed native/proxy
  *   - ollama     — RETIRED from auto-resolution (D.117: HoloLlama replaced Ollama on the owned
  *                   machines 2026-07-05). OLLAMA_* is ignored here (one notice per process); an
- *                   explicit provider=ollama still works, labeled step 'foreign-local', never native
+ *                   explicit provider=ollama still works, labeled step 'foreign-local'. One path
+ *                   still speaks Ollama: local-fleet (a declared HOLO_LLM_FLEET_BRAIN) talks to a
+ *                   node whose backend is 'ollama' or unset over Ollama's API, labeled native as
+ *                   an owned device of that fleet file
  *   - cloud / anthropic / xai / openai — step 3 only, gated as above
  *
  * resolveOwnedLocalProvider() is the "local fallback" for surfaces that call a cloud model
@@ -68,6 +71,7 @@
 
 import { readFileSync } from 'node:fs';
 import type { ILLMProvider } from './types';
+import { redactEndpointUrl } from './types';
 import { OLLAMA_DEFAULT_BASE_URL, pickLocalModel } from './local-model-picker';
 import {
   FLEET_DEFAULT_MODEL,
@@ -570,21 +574,6 @@ function hostedOllamaReason(
   return isOllamaCloudModel(model) ? 'cloud-model' : null;
 }
 
-/**
- * Log/error-safe endpoint URL. Accepts a bare `host:port` as Ollama clients do; drops
- * userinfo, query and fragment (they can carry tokens).
- */
-function redactEndpointUrl(url: string): string {
-  const trimmed = url.trim();
-  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//iu.test(trimmed) ? trimmed : `http://${trimmed}`;
-  try {
-    const u = new URL(withScheme);
-    return `${u.protocol}//${u.host}${u.pathname === '/' ? '' : u.pathname}`;
-  } catch {
-    return '<unparseable URL>';
-  }
-}
-
 /** A model name can come from a request body: quote it, so a newline cannot forge a log line. */
 function quoteForLog(model: string | undefined): string {
   return JSON.stringify((model ?? '').slice(0, 120));
@@ -713,26 +702,64 @@ export function __resetRetiredOllamaNotice(): void {
  *
  * Unlike the sync chain's D.117 terminal default, this does not fall back to HoloLlama's
  * default port: a web route should not try a server it was never told about.
+ *
+ * It uses only our own machines: a URL that is not loopback or LAN (a public host, or one
+ * that does not parse) throws instead of being labeled native. Its model and token budget
+ * come from the caller or the local lane itself, never from HOLO_LLM_MODEL / BRITTNEY_MODEL /
+ * HOLO_LLM_MAX_TOKENS / BRITTNEY_MAX_TOKENS: those describe the caller's cloud lane.
  */
 export function resolveOwnedLocalProvider(
   opts: SovereignResolveOptions & { caller: string }
 ): ResolvedSovereignProvider | null {
   noteRetiredOllamaEnv(env('OLLAMA_HOST', 'OLLAMA_BASE_URL', 'OLLAMA_URL'), opts.caller);
-  // HOLO_LLM_MODEL / BRITTNEY_MODEL name the caller's PRIMARY model (Studio keeps a Claude
-  // name there for its cloud lane). This fallback is a different lane, so it takes a model
-  // only from the caller or from the local server's own setting: HoloServe refuses a Claude
-  // name, and HoloLlama would at best ignore it.
+  // HOLO_LLM_MODEL / BRITTNEY_MODEL (and the *_MAX_TOKENS pair) describe the caller's PRIMARY
+  // lane (Studio keeps a Claude name and a 32k budget there). This fallback is a different
+  // lane: HoloServe refuses a Claude name, and HoloLlama would at best ignore it.
+  const maxTokens = opts.maxTokens || OWNED_LOCAL_MAX_TOKENS;
   const holoServeUrl = env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT');
   if (holoServeUrl) {
-    const model = opts.model || env('HOLOSERVE_MODEL') || HOLOSERVE_DEFAULT_MODEL;
-    return withNativeStep(resolveHoloServe(holoServeUrl, { ...opts, model }, false));
+    assertOwnedLocalHost(holoServeUrl, 'HOLOSERVE_URL', opts.caller);
+    const model = opts.model || ownedLocalDefaultModel('holoserve');
+    return withNativeStep(resolveHoloServe(holoServeUrl, { ...opts, model, maxTokens }, false));
   }
   const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
   if (holoLlamaUrl) {
-    const model = opts.model || OLLAMA_DEFAULT_MODEL;
-    return withNativeStep(resolveHoloLlama(holoLlamaUrl, { ...opts, model }, false));
+    assertOwnedLocalHost(holoLlamaUrl, 'HOLOLLAMA_URL', opts.caller);
+    const model = opts.model || ownedLocalDefaultModel('holollama');
+    return withNativeStep(resolveHoloLlama(holoLlamaUrl, { ...opts, model, maxTokens }, false));
   }
   return null;
+}
+
+/**
+ * The owned local lanes' token budget when the caller names none. Exported so an explicit
+ * holoserve/holollama choice can pass the same budget instead of the cloud lane's.
+ */
+export const OWNED_LOCAL_MAX_TOKENS = 4096;
+
+/**
+ * The model an owned local lane runs when the caller names none: HOLOSERVE_MODEL or
+ * HoloServe's default, or HoloLlama's default. Never the cloud lane's HOLO_LLM_MODEL /
+ * BRITTNEY_MODEL. Exported so an explicit holoserve/holollama choice can use the same rule.
+ */
+export function ownedLocalDefaultModel(lane: 'holoserve' | 'holollama'): string {
+  return lane === 'holoserve'
+    ? env('HOLOSERVE_MODEL') || HOLOSERVE_DEFAULT_MODEL
+    : OLLAMA_DEFAULT_MODEL;
+}
+
+/** The local fallback reaches only this machine or its LAN; anything else is refused loudly. */
+function assertOwnedLocalHost(url: string, setting: string, caller: string): void {
+  const trimmed = url.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//iu.test(trimmed) ? trimmed : `http://${trimmed}`;
+  const hostClass = classifyServiceHost(withScheme);
+  if (hostClass === 'loopback' || hostClass === 'lan') return;
+  throw new Error(
+    `REFUSING ${setting} for caller ${caller}: ${redactEndpointUrl(url)} is ` +
+      `${hostClass === 'invalid' ? 'not a valid URL' : 'a public address'}, not this machine ` +
+      `or its LAN. The local fallback only uses our own machines; point ${setting} at a ` +
+      `loopback or LAN address.`
+  );
 }
 
 // ── Joseph coding-backup chain (2026-09-24): native → vast-oss-coding → gated hosted ──
@@ -877,7 +904,7 @@ function maxTokensOverride(opts: SovereignResolveOptions): number | undefined {
 }
 
 /**
- * Synchronous sovereign-first resolution: cloud → holoserve → holollama → ollama →
+ * Synchronous sovereign-first resolution: cloud → holoserve → holollama →
  * [anthropic → xai → openai ONLY with HOLO_ALLOW_FRONTIER_FALLBACK=1, else refuse] →
  * holollama terminal default. Fleet (dynamic-resolve) needs a network round-trip — use
  * `resolveSovereignProviderAsync` to include it.

@@ -2,14 +2,16 @@
  * studio-api's model routes run on our own local model server (D.117: HoloLlama replaced
  * Ollama): HoloServe when HOLOSERVE_URL is set, else HoloLlama when HOLOLLAMA_URL is set.
  * A leftover OLLAMA_* selects nothing. fetch is mocked: no case reaches a real server.
+ *
+ * The hosts are `.lan` names: the resolver refuses a public host, and `.test` is public.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST as materialPOST } from './material/generate/route';
 import { POST as autocompletePOST } from './autocomplete/route';
 import { GET as healthGET } from './health/route';
 
-const HOLOLLAMA = 'http://holollama.test:18080';
-const HOLOSERVE = 'http://holoserve.test:8099';
+const HOLOLLAMA = 'http://holollama.lan:18080';
+const HOLOSERVE = 'http://holoserve.lan:8099';
 /** A parity pin for HoloServe's default model: the sync resolver refuses to hand it out. */
 const PINNED = `holorunner-s0@sha256:${'a'.repeat(64)}`;
 
@@ -57,6 +59,13 @@ function noFetch() {
   return vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('no network in tests'));
 }
 
+/** A server that is up but answers 503 to every request, e.g. llama-server loading a model. */
+function busyServer() {
+  return vi
+    .spyOn(globalThis, 'fetch')
+    .mockImplementation(async () => new Response('loading model', { status: 503 }));
+}
+
 function sentBody(fetchMock: { mock: { calls: unknown[][] } }, call = 0) {
   const init = fetchMock.mock.calls[call][1] as RequestInit | undefined;
   return JSON.parse(String(init?.body)) as {
@@ -65,6 +74,14 @@ function sentBody(fetchMock: { mock: { calls: unknown[][] } }, call = 0) {
     stop?: string[];
     messages?: Array<{ role: string; content: string }>;
   };
+}
+
+/** Everything console.warn was given in this test, as one string. */
+function logged(): string {
+  return vi
+    .mocked(console.warn)
+    .mock.calls.map((call) => call.map(String).join(' '))
+    .join('\n');
 }
 
 beforeEach(() => {
@@ -121,7 +138,17 @@ describe('POST /api/material/generate', () => {
     const res = await materialPOST(post('/api/material/generate', { prompt: 'lava' }));
 
     expect(res.status).toBe(502);
-    expect((await res.json()).error).toContain('holollama');
+    expect((await res.json()).error).toBe('The local model server (holollama) did not answer.');
+  });
+
+  it('makes one attempt: a 503 from the server is not retried', async () => {
+    stubEnv({ HOLOLLAMA_URL: HOLOLLAMA });
+    const fetchMock = busyServer();
+
+    const res = await materialPOST(post('/api/material/generate', { prompt: 'lava' }));
+
+    expect(res.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('answers 503 when the configured model is parity-pinned and cannot be used here', async () => {
@@ -132,6 +159,7 @@ describe('POST /api/material/generate', () => {
 
     expect(res.status).toBe(503);
     expect((await res.json()).error).toContain('cannot be used here');
+    expect(logged()).toContain('artifact-pinned');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -185,7 +213,19 @@ describe('POST /api/autocomplete', () => {
 
     expect(res.status).toBe(200);
     expect(json.completion).toBe('');
-    expect(json.warning).toContain('Autocomplete unavailable');
+    expect(json.warning).toBe(
+      'Autocomplete unavailable: the local model server (holollama) did not answer.'
+    );
+  });
+
+  it('makes one attempt: a 503 from the server is not retried', async () => {
+    stubEnv({ HOLOLLAMA_URL: HOLOLLAMA });
+    const fetchMock = busyServer();
+
+    const res = await autocompletePOST(post('/api/autocomplete', { prefix: 'object "A" {' }));
+
+    expect((await res.json()).completion).toBe('');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -231,11 +271,12 @@ describe('GET /api/health', () => {
 
     const json = await (await healthGET()).json();
 
-    expect(json.local).toMatchObject({
+    expect(json.local).toEqual({
       provider: 'holoserve',
       reachable: false,
-      error: expect.stringContaining('artifact-pinned'),
+      error: 'configured but cannot be used here; the server log says why',
     });
+    expect(logged()).toContain('artifact-pinned');
   });
 
   it('reports HoloLlama unreachable when it does not answer', async () => {
@@ -245,5 +286,58 @@ describe('GET /api/health', () => {
     const json = await (await healthGET()).json();
 
     expect(json.local).toEqual({ provider: 'holollama', reachable: false });
+  });
+});
+
+describe('what the server said stays in the server log (the routes have no auth)', () => {
+  const LAN_WITH_PASSWORD = 'http://user:s3cret@192.168.0.5:18080';
+  const PUBLIC_WITH_PASSWORD = 'http://user:s3cret@8.8.8.8:18080';
+
+  const routes = {
+    material: () => materialPOST(post('/api/material/generate', { prompt: 'lava' })),
+    autocomplete: () => autocompletePOST(post('/api/autocomplete', { prefix: 'object "A" {' })),
+    health: () => healthGET(),
+  };
+
+  it.each([
+    ['material', LAN_WITH_PASSWORD, '192.168.0.5'],
+    ['autocomplete', LAN_WITH_PASSWORD, '192.168.0.5'],
+    ['health', LAN_WITH_PASSWORD, '192.168.0.5'],
+    ['material', PUBLIC_WITH_PASSWORD, '8.8.8.8'],
+    ['autocomplete', PUBLIC_WITH_PASSWORD, '8.8.8.8'],
+    ['health', PUBLIC_WITH_PASSWORD, '8.8.8.8'],
+  ] as const)(
+    '%s, HOLOLLAMA_URL %s: the answer has no password and no host',
+    async (route, url, host) => {
+      stubEnv({ HOLOLLAMA_URL: url });
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
+
+      const text = await (await routes[route]()).text();
+
+      expect(text).not.toContain('s3cret');
+      expect(text).not.toContain(host);
+    }
+  );
+
+  it('the server log gets the detail: host named, password redacted', async () => {
+    // A host no other case uses, so the once-a-minute repeat filter cannot hide the line.
+    stubEnv({ HOLOLLAMA_URL: 'http://user:s3cret@192.168.0.77:18080' });
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
+
+    await materialPOST(post('/api/material/generate', { prompt: 'lava' }));
+
+    expect(logged()).toContain('192.168.0.77');
+    expect(logged()).not.toContain('s3cret');
+  });
+
+  it('a public HOLOLLAMA_URL is refused before anything is sent to it', async () => {
+    stubEnv({ HOLOLLAMA_URL: 'http://8.8.4.4:18080' });
+    const fetchMock = noFetch();
+
+    const res = await materialPOST(post('/api/material/generate', { prompt: 'lava' }));
+
+    expect(res.status).toBe(503);
+    expect(logged()).toContain('REFUSING HOLOLLAMA_URL');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

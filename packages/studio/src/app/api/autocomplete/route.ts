@@ -6,12 +6,8 @@ import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../_lib/cors';
-import {
-  AnthropicAdapter,
-  OpenAIAdapter,
-  OpenRouterAdapter,
-  resolveOwnedLocalProvider,
-} from '@holoscript/llm-provider';
+import { completeWithRouteLocalModel, resolveRouteLocalModel } from '../_lib/ownedLocalFallback';
+import { AnthropicAdapter, OpenAIAdapter, OpenRouterAdapter } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 30;
 // SEC-T03: cap untrusted prefix/suffix length before any LLM spend.
@@ -100,34 +96,22 @@ async function getProviders(): Promise<Provider[]> {
   }
 
   // Optional local fallback: our own model server (D.117 retired Ollama), HoloServe when
-  // HOLOSERVE_URL is set, else HoloLlama when HOLOLLAMA_URL is set; neither means no local
-  // step. A leftover OLLAMA_* is ignored (the helper logs one notice). It is a chat model, so
-  // it gets the same chat prompt as the cloud providers, not a code model's fill-in prompt.
-  let local: ReturnType<typeof resolveOwnedLocalProvider> = null;
-  try {
-    // One attempt: a retry after a 5xx would outlive the 4 s budget of a keystroke.
-    local = resolveOwnedLocalProvider({
-      caller: 'studio /api/autocomplete',
-      timeoutMs: 4000,
-      maxRetries: 0,
-    });
-  } catch {
-    local = null; // it throws only for a model that needs async verification: skip local
-  }
+  // HOLOSERVE_URL is set, else HoloLlama when HOLOLLAMA_URL is set; nothing configured or a
+  // refused URL means no local step. One attempt within the 4 s budget of a keystroke, with any
+  // failure logged on the server only (../_lib/ownedLocalFallback). It is a chat model, so it
+  // gets the same chat prompt as the cloud providers, not a code model's fill-in prompt.
+  const localCaller = 'studio /api/autocomplete';
+  const local = resolveRouteLocalModel(localCaller, 4000);
   if (local) {
-    const { provider, model, maxTokens: localMaxTokens } = local;
     providers.push({
       name: 'local',
       call: async (prefix, suffix, maxTokens) => {
-        const result = await provider.complete(
-          {
-            messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
-            maxTokens: Math.min(maxTokens, localMaxTokens),
-            temperature: 0.1,
-          },
-          model
-        );
-        return result.content?.trimEnd() || null;
+        const text = await completeWithRouteLocalModel(local, localCaller, {
+          messages: [{ role: 'user', content: buildChatPrompt(prefix, suffix) }],
+          maxTokens: Math.min(maxTokens, local.maxTokens),
+          temperature: 0.1,
+        });
+        return text?.trimEnd() || null;
       },
     });
   }

@@ -455,9 +455,10 @@ export class SovereignGeneratorAdapter {
 
   /**
    * Whether the local step may run, and how its result is labeled. The endpoint comes from
-   * BRITTNEY_LOCAL_ENDPOINT / OLLAMA_HOST, which can name a hosted Ollama. A public host or a
-   * cloud-tagged model is skipped (the call falls to cloud Brittney or the keyword
-   * fallback); with HOLO_ALLOW_HOSTED_OLLAMA=1 it runs, labeled 'hosted-ollama'.
+   * BRITTNEY_LOCAL_ENDPOINT or HOLOLLAMA_URL (see defaultLocalEndpoint), and either can name
+   * a server that is not ours. #384's hosted-Ollama check applies to it whatever it is: a
+   * public host or a cloud-tagged model is skipped (the call falls to cloud Brittney or the
+   * keyword fallback); with HOLO_ALLOW_HOSTED_OLLAMA=1 it runs, labeled 'hosted-ollama'.
    */
   private localStepSource(): 'sovereign-local' | 'hosted-ollama' | null {
     const verdict = checkHostedOllama(this.localEndpoint, {

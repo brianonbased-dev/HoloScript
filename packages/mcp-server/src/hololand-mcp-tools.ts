@@ -1061,7 +1061,8 @@ export const hololandMcpTools: Tool[] = [
     name: 'hololand_create_npc',
     description:
       'Create a sovereign NPC inside a HoloLand Shard or World. ' +
-      'Supports local BYOK model routing (our own HoloServe / HoloLlama) and cloud Brittney. ' +
+      'Supports local BYOK model routing (our own HoloServe / HoloLlama; Ollama when ' +
+      'LLM_PROVIDER names it, including the gemma edge of hybrid-gemma) and cloud Brittney. ' +
       'NPCs can have behavior trees, dialogue trees, and spatial positions.',
     inputSchema: {
       type: 'object',
@@ -3565,8 +3566,8 @@ async function handleHololandNPCGenerateDialogue(args: Record<string, unknown>):
 async function handleHololandNPCBYOKStatus(): Promise<unknown> {
   const localAvailable = await isOllamaAvailable();
   const activeProvider = getActiveProvider();
-  // Our own HoloServe / HoloLlama (D.117 retired Ollama; it appears here only when
-  // LLM_PROVIDER=ollama names it). It also serves the hybrid-gemma edge half.
+  // Our own HoloServe / HoloLlama (D.117 retired Ollama). Ollama appears here only when
+  // LLM_PROVIDER names it: 'ollama', or 'hybrid-gemma', whose edge half is Ollama.
   const localModel = describeLocalModel();
   const [openrouterKey, anthropicKey, openaiKey] = await Promise.all([
     resolveServiceSecret('OPENROUTER_API_KEY'),
@@ -3579,9 +3580,7 @@ async function handleHololandNPCBYOKStatus(): Promise<unknown> {
     activeProvider,
     localAvailable,
     localModels:
-      localAvailable && localModel
-        ? [{ ...localModel, purpose: 'NPC dialogue / behavior (and the hybrid-gemma edge half)' }]
-        : [],
+      localAvailable && localModel ? [{ ...localModel, purpose: 'NPC dialogue / behavior' }] : [],
     cloudProviders: {
       openrouter: Boolean(openrouterKey),
       anthropic: Boolean(anthropicKey),
@@ -3590,7 +3589,7 @@ async function handleHololandNPCBYOKStatus(): Promise<unknown> {
     sovereignMode: true,
     note:
       'BYOK status reflects HoloKey service-secret resolution. Local model availability ' +
-      '(our own HoloServe / HoloLlama) is runtime-probed.',
+      '(our own HoloServe / HoloLlama, or an Ollama that LLM_PROVIDER names) is runtime-probed.',
   };
 }
 

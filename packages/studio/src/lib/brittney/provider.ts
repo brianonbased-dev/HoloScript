@@ -50,6 +50,8 @@ import {
   LOCAL_DEFAULT_MODEL,
   gateFrontierFallback,
   checkHostedOllama,
+  OWNED_LOCAL_MAX_TOKENS,
+  ownedLocalDefaultModel,
   resolveOwnedLocalProvider,
   resolveSovereignProvider,
   type ILLMProvider,
@@ -163,19 +165,6 @@ export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittn
   );
 }
 
-/**
- * Options for our own local servers. BRITTNEY_MAX_TOKENS is honored. No model is passed from
- * here: BRITTNEY_MODEL is often a Claude or Ollama name, and HoloServe refuses names it does not
- * know. (llm-provider's resolver still reads HOLO_LLM_MODEL / BRITTNEY_MODEL itself as its
- * model override, so a Claude name set there reaches the local server too.)
- */
-function ownedLocalOptions(): { caller: string; maxTokens?: number } {
-  const maxTokens = Number(process.env.BRITTNEY_MAX_TOKENS);
-  return Number.isFinite(maxTokens) && maxTokens > 0
-    ? { caller: OWNED_LOCAL_CALLER, maxTokens }
-    : { caller: OWNED_LOCAL_CALLER };
-}
-
 /** Map an llm-provider resolution of our own local server into Brittney's shape. */
 function fromOwnedLocal(local: ResolvedSovereignProvider): ResolvedBrittneyProvider {
   if (local.providerName !== 'holollama' && local.providerName !== 'holoserve') {
@@ -194,19 +183,37 @@ function fromOwnedLocal(local: ResolvedSovereignProvider): ResolvedBrittneyProvi
 /**
  * Our own local model server for the auto path and the cold-fleet fallback: HoloServe when
  * HOLOSERVE_URL is set, else HoloLlama when HOLOLLAMA_URL is set, else null (nothing local is
- * configured). Never Ollama: a leftover OLLAMA_* only gets llm-provider's one-time notice.
+ * configured). Never Ollama: a leftover OLLAMA_* only gets llm-provider's one-time notice. A
+ * URL that is not this machine or its LAN throws (REFUSING ...), and that error is Brittney's
+ * answer: a misconfigured local server is said out loud, not skipped.
  */
 function resolveOwnedLocal(): ResolvedBrittneyProvider | null {
-  const local = resolveOwnedLocalProvider(ownedLocalOptions());
+  const local = resolveOwnedLocalProvider({ caller: OWNED_LOCAL_CALLER });
   return local ? fromOwnedLocal(local) : null;
 }
 
 /**
  * Explicit BRITTNEY_PROVIDER=holollama|holoserve, through the canonical llm-provider resolver.
  * It reads HOLOLLAMA_URL / HOLOSERVE_URL, and uses that server's default local port when unset.
+ *
+ * Our own servers run the lane's own model and token budget, never BRITTNEY_MODEL /
+ * BRITTNEY_MAX_TOKENS (nor HOLO_LLM_MODEL / HOLO_LLM_MAX_TOKENS). Those are set for Brittney's
+ * other lanes: BRITTNEY_MODEL is usually a Claude name, which HoloServe refuses on every turn,
+ * and BRITTNEY_MAX_TOKENS sizes the fleet, serverless and your-own-Ollama lanes (llm-provider
+ * also reads it as the primary lane's budget), which a 4096-token context has no room for.
+ * resolveOwnedLocalProvider (the auto path) already ignores all four; resolveSovereignProvider
+ * reads them from env, so it is handed the lane's model (ownedLocalDefaultModel) and
+ * llm-provider's OWNED_LOCAL_MAX_TOKENS outright.
  */
-function resolveOwnedExplicit(name: 'holollama' | 'holoserve'): ResolvedBrittneyProvider {
-  return fromOwnedLocal(resolveSovereignProvider({ ...ownedLocalOptions(), explicit: name }));
+function resolveOwnedExplicit(lane: 'holollama' | 'holoserve'): ResolvedBrittneyProvider {
+  return fromOwnedLocal(
+    resolveSovereignProvider({
+      explicit: lane,
+      caller: OWNED_LOCAL_CALLER,
+      model: ownedLocalDefaultModel(lane),
+      maxTokens: OWNED_LOCAL_MAX_TOKENS,
+    })
+  );
 }
 
 function resolveAnthropic(apiKey: string | undefined): ResolvedBrittneyProvider {

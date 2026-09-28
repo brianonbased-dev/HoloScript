@@ -16,7 +16,8 @@
  * no-key default no longer reads OLLAMA_URL; a leftover OLLAMA_* only gets a one-line
  * notice from the resolver. LLM_PROVIDER=ollama still reaches OLLAMA_URL, because naming it
  * is a deliberate foreign choice, and a hosted Ollama or a cloud-tagged model is still
- * refused there unless HOLO_ALLOW_HOSTED_OLLAMA=1.
+ * refused there unless HOLO_ALLOW_HOSTED_OLLAMA=1. LLM_PROVIDER=hybrid-gemma is the same
+ * kind of choice: its edge half is Gemma on local Ollama by definition (see queryOllama).
  *
  * Migrated (B1c) from inline fetch() calls to @holoscript/llm-provider
  * adapters which inherit withRetry from BaseLLMAdapter — exponential
@@ -72,17 +73,19 @@ const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 // ── OpenAI config ────────────────────────────────────────────────────────────
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-// ── Ollama config (explicit LLM_PROVIDER=ollama only) ────────────────────────
+// ── Ollama config (explicit LLM_PROVIDER=ollama, and hybrid-gemma's edge half) ──
 const OLLAMA_URL = process.env.OLLAMA_URL || ''; // empty means disabled
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL;
 const OLLAMA_CALLER = 'mcp-server ollama-client';
 
-// ── Owned local model config (the no-key default + the hybrid-gemma edge half) ──
+// ── Owned local model config (the no-key default) ─────────────────────────────
 const LOCAL_CALLER = 'mcp-server local fallback';
 
 // ── Gemma 4 Hybrid Routing config ────────────────────────────────────────────
-// The edge half runs on the owned local model with no model override: HoloLlama serves
-// the model it loaded, and HoloServe refuses names it does not serve.
+// hybrid-gemma stays Ollama-edge by definition: naming it is an explicit Ollama choice, so
+// its edge half uses OLLAMA_URL behind #384's hosted check, never our own HoloServe /
+// HoloLlama. (Neither GEMMA_*_MODEL reaches the wire yet: task_1790566904265_avh4.)
+const GEMMA_EDGE_MODEL = process.env.GEMMA_EDGE_MODEL || 'gemma4:e4b';
 const GEMMA_CLOUD_MODEL = process.env.GEMMA_CLOUD_MODEL || 'google/gemma-4-31b';
 
 const LLM_TIMEOUT = 60_000; // 60s for generation
@@ -160,6 +163,24 @@ function getOllamaAdapter(): LocalLLMAdapter | null {
   return _ollamaAdapter;
 }
 
+/**
+ * Every Ollama model name that can go out on the explicit Ollama path. The adapter sends
+ * its construction-time OLLAMA_MODEL: an override placed in the request object never
+ * reaches it (task_1790566904265_avh4). So hybrid-gemma's GEMMA_EDGE_MODEL alone would let
+ * a cloud-tagged OLLAMA_MODEL past #384's check; both names are checked.
+ */
+function ollamaModelsSent(modelOverride?: string): string[] {
+  return modelOverride && modelOverride !== OLLAMA_MODEL
+    ? [OLLAMA_MODEL, modelOverride]
+    : [OLLAMA_MODEL];
+}
+
+/** #384's hosted-Ollama check for one model on OLLAMA_URL (a missing URL counts as refused). */
+function isRefusedOllama(model: string): boolean {
+  if (!OLLAMA_URL) return true;
+  return Boolean(checkHostedOllama(OLLAMA_URL, { model, caller: OLLAMA_CALLER }).refused);
+}
+
 let _localResolveWarned = false;
 
 /**
@@ -171,12 +192,15 @@ let _localResolveWarned = false;
  * stateless adapter: no network, no vault lookup, so caching would save nothing. Resolving
  * each time means a changed HOLOSERVE_URL / HOLOLLAMA_URL, or a newly landed parity pin,
  * takes effect on the next call without a restart.
+ *
+ * When the resolver refuses the configuration (a public or unparseable HOLOSERVE_URL /
+ * HOLOLLAMA_URL, or a model parity-pinned to HoloServe) that counts as no local model:
+ * null, one warning per process, and nothing is sent anywhere.
  */
 function resolveLocalProvider(): ResolvedSovereignProvider | null {
   try {
     return resolveOwnedLocalProvider({ caller: LOCAL_CALLER, timeoutMs: LLM_TIMEOUT });
   } catch (err) {
-    // e.g. the configured model is parity-pinned to HoloServe and needs the async resolver.
     if (!_localResolveWarned) {
       _localResolveWarned = true;
       console.warn(
@@ -248,14 +272,17 @@ async function queryOpenAIProvider(prompt: string, system: string): Promise<stri
   }
 }
 
-/** Explicit LLM_PROVIDER=ollama only. */
-async function queryOllamaProvider(prompt: string, system: string): Promise<string | null> {
+/** Explicit Ollama: LLM_PROVIDER=ollama, and hybrid-gemma's edge half. */
+async function queryOllamaProvider(
+  prompt: string,
+  system: string,
+  modelOverride?: string
+): Promise<string | null> {
   const adapter = getOllamaAdapter();
   if (!adapter) return null;
   // A deliberate foreign choice is still not a hosted one: a hosted Ollama URL, or a
   // cloud-tagged model, is refused unless HOLO_ALLOW_HOSTED_OLLAMA=1.
-  const hosted = checkHostedOllama(OLLAMA_URL, { model: OLLAMA_MODEL, caller: OLLAMA_CALLER });
-  if (hosted.refused) return null;
+  if (ollamaModelsSent(modelOverride).some((model) => isRefusedOllama(model))) return null;
   try {
     const result = await adapter.complete({
       messages: [
@@ -263,6 +290,7 @@ async function queryOllamaProvider(prompt: string, system: string): Promise<stri
         { role: 'user', content: prompt },
       ],
       maxTokens: 4096,
+      ...(modelOverride && { model: modelOverride }),
     });
     return result.content || null;
   } catch {
@@ -270,7 +298,7 @@ async function queryOllamaProvider(prompt: string, system: string): Promise<stri
   }
 }
 
-/** Our own local model (the no-key default and the hybrid-gemma edge half). */
+/** Our own local model (the no-key default). */
 async function queryLocalProvider(prompt: string, system: string): Promise<string | null> {
   const local = resolveLocalProvider();
   if (!local) return null;
@@ -328,11 +356,13 @@ export async function queryOllama(
   try {
     const activeProvider = LLM_PROVIDER;
 
-    // Apply Gemma 4 Edge-to-Cloud Routing
+    // Apply Gemma 4 Edge-to-Cloud Routing. hybrid-gemma stays Ollama-edge by definition:
+    // naming it chose Gemma on local Ollama for the edge half, so it never moves to our own
+    // HoloServe / HoloLlama.
     if (activeProvider === 'hybrid-gemma') {
       const needsEdge = options?.requiresAudio || !options?.requiresDeepReasoning;
       __result = needsEdge
-        ? await queryLocalProvider(prompt, sysPrompt) // Edge: our own local model
+        ? await queryOllamaProvider(prompt, sysPrompt, GEMMA_EDGE_MODEL) // Edge (Gemma 4 E4B) via local Ollama
         : await queryOpenRouterProvider(prompt, sysPrompt, GEMMA_CLOUD_MODEL); // Cloud (Gemma 4 26B/31B) via OpenRouter
       return __result;
     }
@@ -379,8 +409,9 @@ export async function queryOllama(
 
 /**
  * Check if the configured LLM provider is available. The name is kept for its importers:
- * for the no-key default (and the hybrid-gemma edge half) it means our own local model
- * (HoloServe / HoloLlama) is configured and answers its health check.
+ * for the no-key default it means our own local model (HoloServe / HoloLlama) is configured
+ * and answers its health check; for LLM_PROVIDER=ollama and hybrid-gemma, that OLLAMA_URL
+ * is an owned Ollama that answers.
  */
 export async function isOllamaAvailable(): Promise<boolean> {
   try {
@@ -391,12 +422,13 @@ export async function isOllamaAvailable(): Promise<boolean> {
         return Boolean(await resolveServiceSecret('ANTHROPIC_API_KEY'));
       case 'openai':
         return Boolean(await resolveServiceSecret('OPENAI_API_KEY'));
-      case 'ollama': {
+      case 'ollama':
+      case 'hybrid-gemma': {
         // Use the adapter's healthCheck for Ollama (pings /health or /v1/models).
         // A hosted Ollama that queryOllamaProvider would refuse is not "available".
         if (!OLLAMA_URL) return false;
-        if (checkHostedOllama(OLLAMA_URL, { model: OLLAMA_MODEL, caller: OLLAMA_CALLER }).refused)
-          return false;
+        const override = LLM_PROVIDER === 'hybrid-gemma' ? GEMMA_EDGE_MODEL : undefined;
+        if (ollamaModelsSent(override).some((model) => isRefusedOllama(model))) return false;
         const adapter = getOllamaAdapter();
         if (!adapter) return false;
         const health = await adapter.healthCheck();
@@ -417,7 +449,8 @@ export async function isOllamaAvailable(): Promise<boolean> {
 
 /**
  * Get the active LLM provider name (for health endpoints): 'local' for the no-key default
- * (our own HoloServe / HoloLlama), 'ollama' only when LLM_PROVIDER=ollama.
+ * (our own HoloServe / HoloLlama); 'ollama' and 'hybrid-gemma' only when LLM_PROVIDER names
+ * them.
  */
 export function getActiveProvider(): string {
   return LLM_PROVIDER;
@@ -425,12 +458,14 @@ export function getActiveProvider(): string {
 
 /**
  * The local model queryOllama runs on when it runs locally, for status payloads. It does
- * not contact the server. `ollama` + OLLAMA_MODEL when LLM_PROVIDER=ollama; otherwise our
- * own `holoserve` / `holollama` and the model name sent to it (HoloLlama answers with the
- * model it loaded, whatever the name). null when nothing local is configured.
+ * not contact the server. `ollama` + OLLAMA_MODEL for LLM_PROVIDER=ollama and hybrid-gemma
+ * (the model the adapter sends: GEMMA_EDGE_MODEL does not reach the wire yet,
+ * task_1790566904265_avh4); otherwise our own `holoserve` / `holollama` and the model name
+ * sent to it (HoloLlama answers with the model it loaded, whatever the name). null when
+ * nothing local is configured.
  */
 export function describeLocalModel(): { source: string; model: string } | null {
-  if (LLM_PROVIDER === 'ollama') {
+  if (LLM_PROVIDER === 'ollama' || LLM_PROVIDER === 'hybrid-gemma') {
     return OLLAMA_URL ? { source: 'ollama', model: OLLAMA_MODEL } : null;
   }
   const local = resolveLocalProvider();

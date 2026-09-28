@@ -29,7 +29,12 @@ import type {
   ToolUseBlock,
   AssistantContentBlock,
 } from '../types';
-import { LLMProviderError, filterGenericTools, messageContentAsString } from '../types';
+import {
+  LLMProviderError,
+  filterGenericTools,
+  messageContentAsString,
+  redactEndpointUrl,
+} from '../types';
 import {
   INFERENCE_PROXY_AUTH_REJECTED_MESSAGE,
   resolveInferenceProxyKey,
@@ -196,16 +201,19 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     this.inferenceProxy = config.inferenceProxy;
   }
 
-  /** Port 18080, or an explicit `inferenceProxy` flag, is the holo-inference-proxy. */
-  /** What to tell someone whose local server did not answer (D.117: HoloLlama replaced Ollama). */
+  /**
+   * What to tell someone whose local server did not answer (D.117: HoloLlama replaced Ollama).
+   * The URL is redacted: userinfo, query and fragment can carry credentials.
+   */
   private unreachableHint(): string {
-    const lead = `Cannot reach local LLM server at ${this.localBaseURL}.`;
+    const lead = `Cannot reach local LLM server at ${redactEndpointUrl(this.localBaseURL)}.`;
     return this.useNativeOllamaApi
       ? `${lead} This is an Ollama address; start it with: ollama serve`
       : `${lead} Check that HoloLlama or HoloServe is running there, or point ` +
           `HOLOLLAMA_URL / HOLOSERVE_URL at the right address.`;
   }
 
+  /** Port 18080, or an explicit `inferenceProxy` flag, is the holo-inference-proxy. */
   private isInferenceProxyTarget(): boolean {
     if (this.inferenceProxy === true) return true;
     if (this.inferenceProxy === false) return false;
@@ -515,7 +523,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       const msg = scrubSecretFromText(err instanceof Error ? err.message : String(err), secret);
       const isTimeout = msg.includes('aborted') || msg.includes('timeout');
       const hint = isTimeout
-        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
+        ? `Request timed out. Is the local LLM server running at ${redactEndpointUrl(this.localBaseURL)}?`
         : this.unreachableHint();
       throw new LLMProviderError(scrubSecretFromText(hint, secret), 'local-llm', undefined, false);
     }
@@ -690,7 +698,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       const msg = scrubSecretFromText(err instanceof Error ? err.message : String(err), secret);
       const isTimeout = msg.includes('aborted') || msg.includes('timeout');
       const hint = isTimeout
-        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
+        ? `Request timed out. Is the local LLM server running at ${redactEndpointUrl(this.localBaseURL)}?`
         : this.unreachableHint();
       throw new LLMProviderError(scrubSecretFromText(hint, secret), 'local-llm', undefined, false);
     }

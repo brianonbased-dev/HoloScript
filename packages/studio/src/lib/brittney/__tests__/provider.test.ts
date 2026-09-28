@@ -46,7 +46,7 @@ const LAPTOP_HOLOSERVE = 'http://127.0.0.1:8099';
 
 /** Stub fetch with a chat reply in both the OpenAI-compat and the Ollama /api/chat shape. */
 function stubChatFetch() {
-  const fetchMock = vi.fn(async (_url: string, _init?: unknown) => ({
+  const fetchMock = vi.fn(async (_url: string, _init?: { body?: string }) => ({
     ok: true,
     status: 200,
     json: async () => ({
@@ -57,6 +57,11 @@ function stubChatFetch() {
   }));
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
+}
+
+/** The model name the first stubbed request actually sent to the server. */
+function sentModel(fetchMock: ReturnType<typeof stubChatFetch>): unknown {
+  return (JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as { model?: unknown }).model;
 }
 
 describe('resolveBrittneyProvider', () => {
@@ -220,10 +225,63 @@ describe('resolveBrittneyProvider', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`${JETSON_HOLOLLAMA}/v1/chat/completions`);
   });
 
-  it('honors BRITTNEY_MAX_TOKENS on our own local server', () => {
+  it('keeps the local lane budget: BRITTNEY_MAX_TOKENS does not reach our own server', () => {
+    // It sizes Brittney's other lanes (Claude-sized, e.g. 32000); a 4096-token context has no room.
+    process.env.BRITTNEY_MAX_TOKENS = '32000';
+    process.env.HOLO_LLM_MAX_TOKENS = '32000';
     process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
-    process.env.BRITTNEY_MAX_TOKENS = '2048';
-    expect(resolveBrittneyProvider().maxTokens).toBe(2048);
+    expect(resolveBrittneyProvider().maxTokens).toBe(4096);
+    for (const lane of ['holollama', 'holoserve']) {
+      process.env.BRITTNEY_PROVIDER = lane;
+      expect(resolveBrittneyProvider().maxTokens).toBe(4096);
+    }
+    // Your own Ollama still takes it, as before.
+    process.env.BRITTNEY_PROVIDER = 'ollama';
+    expect(resolveBrittneyProvider().maxTokens).toBe(32000);
+  });
+
+  it('explicit holoserve sends holorunner-s0 even when BRITTNEY_MODEL names Claude', async () => {
+    // Studio's usual BRITTNEY_MODEL is a Claude name, and HoloServe refuses names it does not know.
+    process.env.BRITTNEY_PROVIDER = 'holoserve';
+    process.env.BRITTNEY_MODEL = 'claude-opus-4-7';
+    process.env.HOLO_LLM_MODEL = 'claude-opus-4-7';
+    const fetchMock = stubChatFetch();
+    const result = resolveBrittneyProvider();
+    expect(result.model).toBe('holorunner-s0');
+    await result.provider.complete({ messages: [{ role: 'user', content: 'hi' }] }, result.model);
+    expect(sentModel(fetchMock)).toBe('holorunner-s0');
+  });
+
+  it('explicit holoserve uses HOLOSERVE_MODEL when set, never the Claude name', () => {
+    process.env.BRITTNEY_PROVIDER = 'holoserve';
+    process.env.BRITTNEY_MODEL = 'claude-opus-4-7';
+    process.env.HOLOSERVE_MODEL = 'holorunner-s1';
+    expect(resolveBrittneyProvider().model).toBe('holorunner-s1');
+  });
+
+  it('explicit holollama runs its own default model even when BRITTNEY_MODEL names Claude', () => {
+    process.env.BRITTNEY_PROVIDER = 'holollama';
+    process.env.BRITTNEY_MODEL = 'claude-opus-4-7';
+    process.env.HOLO_LLM_MODEL = 'claude-opus-4-7';
+    expect(resolveBrittneyProvider().model).toBe('qwen3:4b-instruct-2507');
+  });
+
+  it('the auto path ignores a Claude BRITTNEY_MODEL for our own servers too', () => {
+    process.env.BRITTNEY_MODEL = 'claude-opus-4-7';
+    process.env.HOLOSERVE_URL = LAPTOP_HOLOSERVE;
+    expect(resolveBrittneyProvider().model).toBe('holorunner-s0');
+    delete process.env.HOLOSERVE_URL;
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    expect(resolveBrittneyProvider().model).toBe('qwen3:4b-instruct-2507');
+  });
+
+  it('refuses a public HOLOLLAMA_URL out loud instead of calling it', () => {
+    process.env.HOLOLLAMA_URL = 'https://ollama.com';
+    const fetchMock = stubChatFetch();
+    expect(() => resolveBrittneyProvider()).toThrow(
+      /REFUSING HOLOLLAMA_URL for caller studio brittney provider/
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('prefers HOLOSERVE_URL over HOLOLLAMA_URL when both are set (auto-detect)', () => {

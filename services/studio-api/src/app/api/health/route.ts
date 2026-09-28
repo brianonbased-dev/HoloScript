@@ -4,6 +4,7 @@ import {
   type ResolvedSovereignProvider,
 } from '@holoscript/llm-provider';
 import { getStudioPersistenceProbe } from '../../../lib/studio-dev-persistence';
+import { logLocalModelFailure } from '../../../lib/local-model-failure';
 
 const CALLER = 'studio-api /api/health';
 
@@ -16,6 +17,9 @@ const CALLER = 'studio-api /api/health';
  *                    neither is set.
  *   local.reachable  true when that server answers its health check.
  *   local.models     ids from its /v1/models; left out when that list cannot be read.
+ *   local.error      only when the configured server cannot be used here (a public
+ *                    address, or a parity-pinned model). Generic text: the resolver's own
+ *                    message goes to the server log, since it can name the host.
  *
  * D.117: HoloLlama replaced Ollama, so the old `ollama` and `models` fields are gone.
  * Nothing read them: Studio's client (packages/studio/src/lib/api.ts) reads Studio's own
@@ -28,11 +32,15 @@ export async function GET() {
   try {
     local = resolveOwnedLocalProvider({ caller: CALLER });
   } catch (err) {
-    // Configured but unusable, e.g. the model is parity-pinned to HoloServe and needs the
-    // async resolver. The routes refuse it too, so it is not reachable for them.
-    const error = err instanceof Error ? err.message : String(err);
+    // Configured but unusable, e.g. a public HOLOLLAMA_URL, or a model parity-pinned to
+    // HoloServe. The routes refuse it too, so it is not reachable for them.
+    logLocalModelFailure(CALLER, err);
     return NextResponse.json({
-      local: { provider: configuredProvider(), reachable: false, error },
+      local: {
+        provider: configuredProvider(),
+        reachable: false,
+        error: 'configured but cannot be used here; the server log says why',
+      },
       persistence,
     });
   }

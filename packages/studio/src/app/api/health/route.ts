@@ -4,14 +4,16 @@ import { NextResponse } from 'next/server';
 import { getDb } from '../../../db/client';
 import { holomeshBoardTasks } from '../../../db/schema';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
-import { resolveOwnedLocalProvider } from '@holoscript/llm-provider';
+import { resolveRouteLocalModel } from '../_lib/ownedLocalFallback';
 import { sql } from 'drizzle-orm';
 
 /**
- * Cloud-first AI detection. The optional local fallback is our own model server, the same one
- * the generate routes use: HoloServe (HOLOSERVE_URL), else HoloLlama (HOLOLLAMA_URL). Ollama is
- * retired (D.117), so OLLAMA_URL no longer counts as a provider. Like the key checks, this
- * reports what is configured; it does not call the server.
+ * Cloud-first AI detection. The optional local fallback is our own model server, resolved the
+ * same way the generate routes resolve it: HoloServe (HOLOSERVE_URL), else HoloLlama
+ * (HOLOLLAMA_URL). Ollama is retired (D.117), so OLLAMA_URL no longer counts as a provider. A
+ * URL the routes refuse (not this machine or its LAN) counts as none here too; why goes to the
+ * server log, not into this response. Like the key checks, this reports what is configured; it
+ * does not call the server.
  */
 async function detectAIProvider(): Promise<{
   provider: string;
@@ -26,12 +28,8 @@ async function detectAIProvider(): Promise<{
   if (await resolveStudioServiceSecret('OPENAI_API_KEY')) {
     return { provider: 'openai', connected: true };
   }
-  try {
-    const local = resolveOwnedLocalProvider({ caller: 'studio /api/health' });
-    if (local) return { provider: local.providerName, connected: true };
-  } catch {
-    // It throws only for a model that needs async verification; the routes skip it too.
-  }
+  const local = resolveRouteLocalModel('studio /api/health');
+  if (local) return { provider: local.providerName, connected: true };
   return { provider: 'none', connected: false };
 }
 

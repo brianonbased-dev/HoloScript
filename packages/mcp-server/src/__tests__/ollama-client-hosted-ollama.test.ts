@@ -2,15 +2,17 @@
  * The MCP server's local fallback is our own model server (D.117: HoloLlama replaced Ollama
  * on the owned machines 2026-07-05): HoloServe when HOLOSERVE_URL is set, else HoloLlama
  * when HOLOLLAMA_URL is set, else nothing. A leftover OLLAMA_URL selects nothing; it only
- * gets a one-line notice.
+ * gets a one-line notice. A public HOLOLLAMA_URL / HOLOSERVE_URL is refused.
  *
- * LLM_PROVIDER=ollama still reaches OLLAMA_URL, as a deliberate foreign choice. There a
- * hosted Ollama URL (ollama.com) or a cloud-tagged model is not local, so nothing is sent
- * to it and it does not report as available — unless HOLO_ALLOW_HOSTED_OLLAMA=1
- * (2026-09-24 native-inference audit follow-up).
+ * LLM_PROVIDER=ollama still reaches OLLAMA_URL, as a deliberate foreign choice, and so does
+ * hybrid-gemma's edge half: that mode is Gemma on local Ollama by definition. There a hosted
+ * Ollama URL (ollama.com) or a cloud-tagged model is not local, so nothing is sent to it and
+ * it does not report as available — unless HOLO_ALLOW_HOSTED_OLLAMA=1 (2026-09-24
+ * native-inference audit follow-up).
  *
  * ollama-client reads its env at import time, so each case stubs env, resets the
  * module registry, and imports it fresh. fetch is mocked: no case reaches a real server.
+ * The owned hosts are `.lan` names: the resolver refuses a public host, and `.test` is one.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,8 +41,9 @@ const ENV_NAMES = [
   'GEMMA_EDGE_MODEL',
 ];
 
-const HOLOLLAMA = 'http://holollama.test:18080';
-const HOLOSERVE = 'http://holoserve.test:8099';
+const HOLOLLAMA = 'http://holollama.lan:18080';
+const HOLOSERVE = 'http://holoserve.lan:8099';
+const OWNED_OLLAMA = 'http://127.0.0.1:11434';
 
 async function loadClient(env: Record<string, string>) {
   vi.resetModules();
@@ -57,19 +60,24 @@ function okCompletion(content = 'ok') {
   });
 }
 
+/** /health answers ok; Ollama's /api/chat answers in its own shape; anything else, OpenAI's. */
 function mockFetch() {
-  return vi
-    .spyOn(globalThis, 'fetch')
-    .mockImplementation(async (input) =>
-      String(input).endsWith('/health')
-        ? new Response(JSON.stringify({ status: 'ok' }), { status: 200 })
-        : okCompletion('object "Cube" {}')
-    );
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.endsWith('/health')) return new Response(JSON.stringify({ status: 'ok' }));
+    if (url.endsWith('/api/chat')) {
+      return new Response(
+        JSON.stringify({ message: { role: 'assistant', content: 'object "Edge" {}' }, done: true })
+      );
+    }
+    return okCompletion('object "Cube" {}');
+  });
 }
 
 function requestBody(fetchMock: ReturnType<typeof mockFetch>, call = 0) {
   return JSON.parse(String(fetchMock.mock.calls[call][1]?.body)) as {
     model?: string;
+    max_tokens?: number;
     messages?: Array<{ role: string; content: string }>;
   };
 }
@@ -95,6 +103,18 @@ describe('mcp-server ollama-client: the no-key default is our own local model', 
     ]);
   });
 
+  it.each(['BRITTNEY_MAX_TOKENS', 'HOLO_LLM_MAX_TOKENS'])(
+    'sends a 4096-token budget even with %s=32000 (that is the cloud lane budget)',
+    async (name) => {
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+      const fetchMock = mockFetch();
+      const client = await loadClient({ HOLOLLAMA_URL: HOLOLLAMA, [name]: '32000' });
+
+      await client.queryOllama('hello');
+      expect(requestBody(fetchMock).max_tokens).toBe(4096);
+    }
+  );
+
   it('prefers HoloServe, and sends it its own model name rather than an Ollama tag', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {});
     const fetchMock = mockFetch();
@@ -114,7 +134,7 @@ describe('mcp-server ollama-client: the no-key default is our own local model', 
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'info').mockImplementation(() => {});
     const fetchMock = mockFetch();
-    const client = await loadClient({ OLLAMA_URL: 'http://127.0.0.1:11434' });
+    const client = await loadClient({ OLLAMA_URL: OWNED_OLLAMA });
 
     expect(client.getActiveProvider()).toBe('local');
     expect(await client.queryOllama('hello')).toBeNull();
@@ -124,6 +144,21 @@ describe('mcp-server ollama-client: the no-key default is our own local model', 
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('OLLAMA RETIRED (caller mcp-server local fallback)')
     );
+  });
+
+  it('treats a public HOLOLLAMA_URL as no local model: one warning, nothing sent', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({ HOLOLLAMA_URL: 'https://holollama.example.com:18080' });
+
+    expect(await client.queryOllama('hello')).toBeNull();
+    expect(await client.queryOllama('hello again')).toBeNull();
+    expect(await client.isOllamaAvailable()).toBe(false);
+    expect(client.describeLocalModel()).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+    const refusals = warn.mock.calls.filter((c) => String(c[0]).includes('REFUSING HOLOLLAMA_URL'));
+    expect(refusals).toHaveLength(1);
   });
 
   it('isOllamaAvailable follows the owned local model', async () => {
@@ -141,19 +176,67 @@ describe('mcp-server ollama-client: the no-key default is our own local model', 
     client = await loadClient({ HOLOLLAMA_URL: HOLOLLAMA });
     expect(await client.isOllamaAvailable()).toBe(false);
   });
+});
 
-  it('runs the hybrid-gemma edge half on the owned local model, without a gemma override', async () => {
+describe('mcp-server ollama-client: hybrid-gemma stays Ollama-edge by definition', () => {
+  it('runs the edge half on OLLAMA_URL, not on our own HoloServe / HoloLlama', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => {});
     const fetchMock = mockFetch();
     const client = await loadClient({
       LLM_PROVIDER: 'hybrid-gemma',
+      OLLAMA_URL: OWNED_OLLAMA,
+      HOLOSERVE_URL: HOLOSERVE,
       HOLOLLAMA_URL: HOLOLLAMA,
-      GEMMA_EDGE_MODEL: 'gemma4:e4b',
     });
 
-    expect(await client.queryOllama('hello')).toBe('object "Cube" {}');
-    expect(String(fetchMock.mock.calls[0][0])).toBe(`${HOLOLLAMA}/v1/chat/completions`);
-    expect(requestBody(fetchMock).model).not.toBe('gemma4:e4b');
+    expect(client.getActiveProvider()).toBe('hybrid-gemma');
+    expect(await client.queryOllama('hello')).toBe('object "Edge" {}');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0][0])).toBe(`${OWNED_OLLAMA}/api/chat`);
+
+    expect(await client.isOllamaAvailable()).toBe(true);
+    expect(String(fetchMock.mock.calls[1][0])).toBe(`${OWNED_OLLAMA}/health`);
+    expect(client.describeLocalModel()).toMatchObject({ source: 'ollama' });
+  });
+
+  it('does not fall back to our own model when OLLAMA_URL is unset', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({ LLM_PROVIDER: 'hybrid-gemma', HOLOLLAMA_URL: HOLOLLAMA });
+
+    expect(await client.queryOllama('hello')).toBeNull();
+    expect(await client.isOllamaAvailable()).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps #384's hosted refusal on the edge half", async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({
+      LLM_PROVIDER: 'hybrid-gemma',
+      OLLAMA_URL: 'https://ollama.com',
+    });
+
+    expect(await client.queryOllama('hello')).toBeNull();
+    expect(await client.isOllamaAvailable()).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('HOSTED OLLAMA REFUSED'));
+  });
+
+  it('refuses a cloud-tagged OLLAMA_MODEL too: that is the name the edge half really sends', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = mockFetch();
+    const client = await loadClient({
+      LLM_PROVIDER: 'hybrid-gemma',
+      OLLAMA_URL: OWNED_OLLAMA,
+      OLLAMA_MODEL: 'gpt-oss:120b-cloud',
+    });
+
+    expect(await client.queryOllama('hello')).toBeNull();
+    expect(await client.isOllamaAvailable()).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -177,7 +260,7 @@ describe('mcp-server ollama-client: explicit LLM_PROVIDER=ollama never means hos
     const fetchMock = mockFetch();
     const client = await loadClient({
       LLM_PROVIDER: 'ollama',
-      OLLAMA_URL: 'http://127.0.0.1:11434',
+      OLLAMA_URL: OWNED_OLLAMA,
       OLLAMA_MODEL: 'glm-4.6:cloud',
     });
 
@@ -190,13 +273,13 @@ describe('mcp-server ollama-client: explicit LLM_PROVIDER=ollama never means hos
     const fetchMock = mockFetch();
     const client = await loadClient({
       LLM_PROVIDER: 'ollama',
-      OLLAMA_URL: 'http://127.0.0.1:11434',
+      OLLAMA_URL: OWNED_OLLAMA,
       HOLOLLAMA_URL: HOLOLLAMA,
     });
 
     await client.queryOllama('hello');
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0][0])).toContain('127.0.0.1:11434');
+    expect(String(fetchMock.mock.calls[0][0])).toBe(`${OWNED_OLLAMA}/api/chat`);
     expect(client.describeLocalModel()).toEqual({ source: 'ollama', model: expect.any(String) });
   });
 });

@@ -3,6 +3,7 @@ import {
   resolveOwnedLocalProvider,
   type ResolvedSovereignProvider,
 } from '@holoscript/llm-provider';
+import { logLocalModelFailure } from '../../../lib/local-model-failure';
 
 /**
  * POST /api/autocomplete
@@ -15,7 +16,8 @@ import {
  * Ollama; OLLAMA_* is ignored here). Both speak chat, so the prompt is a chat request with
  * the code before and after the cursor, not a fill-in-the-middle template. With neither
  * set, or when the server fails or takes longer than 4 s, the completion is empty and the
- * editor carries on without a suggestion.
+ * editor carries on without a suggestion. The warning is generic; the server's own message
+ * goes to the server log, since it can name the host.
  */
 
 const CALLER = 'studio-api /api/autocomplete';
@@ -54,12 +56,10 @@ function cleanCompletion(text: string): string {
     .trimEnd();
 }
 
-function unavailable(err: unknown) {
-  const msg = err instanceof Error ? err.message : String(err);
-  return NextResponse.json({
-    completion: '',
-    warning: `Autocomplete unavailable: ${msg.slice(0, 200)}`,
-  });
+/** An empty completion with a generic warning; the detail goes to the server log. */
+function unavailable(err: unknown, warning: string) {
+  logLocalModelFailure(CALLER, err);
+  return NextResponse.json({ completion: '', warning });
 }
 
 export async function POST(request: Request) {
@@ -85,7 +85,12 @@ export async function POST(request: Request) {
     // One attempt: a retry after a 5xx would outlive the 4 s budget of a keystroke.
     local = resolveOwnedLocalProvider({ caller: CALLER, timeoutMs: 4000, maxRetries: 0 });
   } catch (err) {
-    return unavailable(err);
+    // e.g. a public HOLOLLAMA_URL, or a model parity-pinned to HoloServe.
+    return unavailable(
+      err,
+      'Autocomplete is off: the local model server is configured but cannot be used here. ' +
+        'The server log says why.'
+    );
   }
   if (!local) {
     return NextResponse.json({
@@ -109,6 +114,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ completion: cleanCompletion(result.content ?? '') });
   } catch (err) {
     // Local model unavailable — return empty completion (editor degrades gracefully)
-    return unavailable(err);
+    return unavailable(
+      err,
+      `Autocomplete unavailable: the local model server (${local.providerName}) did not answer.`
+    );
   }
 }
