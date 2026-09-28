@@ -4,18 +4,20 @@ import { NextResponse } from 'next/server';
 import { getDb } from '../../../db/client';
 import { holomeshBoardTasks } from '../../../db/schema';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
-import { checkHostedOllama } from '@holoscript/llm-provider';
+import { resolveRouteLocalModel } from '../_lib/ownedLocalFallback';
 import { sql } from 'drizzle-orm';
 
 /**
- * Cloud-first AI detection. Ollama is an optional local fallback — never required.
- * A hosted OLLAMA_URL (ollama.com) is reported as not connected, because the generate
- * routes refuse it (unless HOLO_ALLOW_HOSTED_OLLAMA=1).
+ * Cloud-first AI detection. The optional local fallback is our own model server, resolved the
+ * same way the generate routes resolve it: HoloServe (HOLOSERVE_URL), else HoloLlama
+ * (HOLOLLAMA_URL). Ollama is retired (D.117), so OLLAMA_URL no longer counts as a provider. A
+ * URL the routes refuse (not this machine or its LAN) counts as none here too; why goes to the
+ * server log, not into this response. Like the key checks, this reports what is configured; it
+ * does not call the server.
  */
 async function detectAIProvider(): Promise<{
   provider: string;
   connected: boolean;
-  refused?: string;
 }> {
   if (await resolveStudioServiceSecret('OPENROUTER_API_KEY')) {
     return { provider: 'openrouter', connected: true };
@@ -26,13 +28,8 @@ async function detectAIProvider(): Promise<{
   if (await resolveStudioServiceSecret('OPENAI_API_KEY')) {
     return { provider: 'openai', connected: true };
   }
-  if (process.env.OLLAMA_URL) {
-    const hosted = checkHostedOllama(process.env.OLLAMA_URL, { caller: 'studio /api/health' });
-    if (hosted.refused) {
-      return { provider: 'ollama', connected: false, refused: hosted.refused.reason };
-    }
-    return { provider: 'ollama', connected: true };
-  }
+  const local = resolveRouteLocalModel('studio /api/health');
+  if (local) return { provider: local.providerName, connected: true };
   return { provider: 'none', connected: false };
 }
 
@@ -88,7 +85,7 @@ export async function GET() {
     };
   }
 
-  // Detect AI provider (cloud-first, Ollama optional fallback)
+  // Detect AI provider (cloud-first, our own local model server as optional fallback)
   const ai = await detectAIProvider();
 
   const degraded = taskBoard.degraded;

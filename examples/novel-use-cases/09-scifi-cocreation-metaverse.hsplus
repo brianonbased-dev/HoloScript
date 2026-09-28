@@ -103,7 +103,7 @@ composition "SciFiCoCreation" {
   object "Guild_A" using "FactionCitizen" { position: [6, 1, 4]; geometry: "humanoid"; color: "#0088ff"; state { agent_id: "guild_001"; faction: "Guild" } }
   object "Terra_A" using "FactionCitizen" { position: [0, 1, -6]; geometry: "humanoid"; color: "#00cc66"; state { agent_id: "terra_001"; faction: "Terraform" } }
 
-  panel "CoCreation" {
+  template "CoCreation" {
     position: "top-right"
     text "Lore" { bind: "Lore: " + LoreGraph.state.total; style: "info" }
     text "Coherence" { bind: "Coherence: " + LoreGraph.state.coherence; color: "#00ff88" }

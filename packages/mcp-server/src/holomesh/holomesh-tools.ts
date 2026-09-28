@@ -39,6 +39,7 @@ import {
 import { z } from 'zod';
 import { messagingTools, handleMessagingTool } from './messaging';
 import { resolveSecretWithLease, VaultLeaseError } from './identity/vault-lease-registry';
+import type { SigningContext } from './identity/signing-middleware';
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
@@ -650,7 +651,8 @@ export function _resetHoloMeshClientForTests(): void {
 
 export async function handleHoloMeshTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
 ): Promise<unknown | null> {
   if (!name.startsWith('holomesh_')) return null;
 
@@ -676,7 +678,7 @@ export async function handleHoloMeshTool(
     return handlePublishTool(hasHoloMeshKey() ? getOrCreateClient() : null, args);
   }
   if (name === 'holomesh_invoke_tool') {
-    return handleInvokeTool(hasHoloMeshKey() ? getOrCreateClient() : null, args);
+    return handleInvokeTool(hasHoloMeshKey() ? getOrCreateClient() : null, args, signingCtx);
   }
 
   const sovereignResult = name.startsWith('holomesh_sovereign_')
@@ -888,7 +890,8 @@ async function handleLocalToolDiscovery(args: Record<string, unknown>) {
 
 async function handleInvokeTool(
   client: HoloMeshOrchestratorClient | null,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
 ) {
   try {
     const query = args.mesh_tool_id || args.tool_name || args.capability_query;
@@ -933,6 +936,16 @@ async function handleInvokeTool(
     const result = await invokePublishedMeshTool(selected, toolArgs, {
       dryRun: args.dry_run === true,
       allowHighRisk: args.allow_high_risk === true,
+      // Without this, a locally-transported target tool falls back to
+      // defaultLocalInvoker -> handleTool(name, args, undefined), which
+      // synthesizes the stdio-local admin:* bridge meant only for a genuine
+      // trusted local process -- an HTTP caller with only tools:write (enough
+      // to reach holomesh_invoke_tool) could reach any published local tool
+      // with full admin rights (task_1790204588326_myvj). Forwarding the
+      // real caller's signingCtx makes the target tool's own gates (scope,
+      // host-path, daemon owner-binding) run against who actually called,
+      // exactly as a direct call to that tool would.
+      signingCtx,
     });
     const hop = createMeshToolInvocationHop(selected, toolArgs, {
       callerAgentId:

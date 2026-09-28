@@ -129,6 +129,8 @@ export function tierForProvider(providerName: string | undefined): ToolTier {
   const override = process.env.BRITTNEY_TOOL_TIER;
   if (override === 'full' || override === 'core') return override;
   switch (providerName) {
+    case 'holollama':
+    case 'holoserve':
     case 'ollama':
     case 'fleet':
     case 'cloud':

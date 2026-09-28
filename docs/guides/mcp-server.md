@@ -515,7 +515,7 @@ Semantic similarity search over the absorbed graph. The default embedding provid
 
 ### holo_ask_codebase
 
-Ask a natural language question about the codebase. Answer generation auto-detects an LLM provider from environment API keys (cloud keys first), with local Ollama only as a last-resort legacy fallback — Ollama is not a prerequisite.
+Ask a natural language question about the codebase. Answer synthesis defaults to sovereign HoloLlama (point `HOLOLLAMA_ENDPOINT` at it, or pass `holoLlamaEndpoint`). Cloud providers, and Ollama, are used only when named explicitly (`llmProvider`, or `ABSORB_GRAPH_RAG_LLM_PROVIDER`). Ollama is not a prerequisite: HoloLlama replaced it on the owned machines on 2026-07-05 (D.117).
 
 **Input:**
 

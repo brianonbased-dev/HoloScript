@@ -13,6 +13,7 @@ import {
   asStringArray,
   normalizeAgent,
   reputationTier,
+  spliceCompositionState,
 } from '../../../../../lib/holomesh-normalize';
 
 import { corsHeaders } from '../../../_lib/cors';
@@ -50,23 +51,6 @@ function resolveCompositionsDir(): string {
   return path.join(process.cwd(), 'compositions', 'studio');
 }
 
-function replaceState(
-  code: string,
-  key: string,
-  value: string | number | boolean | string[]
-): string {
-  const rendered = Array.isArray(value)
-    ? JSON.stringify(value)
-    : typeof value === 'string'
-      ? JSON.stringify(value)
-      : String(value);
-  const pattern = new RegExp(
-    `(^\\s*${key}:\\s*)(?:\"[^\"]*\"|\\[[^\\]]*\\]|true|false|-?\\d+(?:\\.\\d+)?)`,
-    'm'
-  );
-  return code.replace(pattern, `$1${rendered}`);
-}
-
 async function injectSelfProfile(code: string, req: NextRequest): Promise<string> {
   const [me, profile, agentsPayload] = await Promise.all([
     fetchHoloMeshJson<MePayload>('/api/holomesh/me', req),
@@ -89,26 +73,26 @@ async function injectSelfProfile(code: string, req: NextRequest): Promise<string
   const score = asNumber(agent.reputation);
 
   let next = code;
-  next = replaceState(next, 'agentName', asString(agent.name, 'unknown-agent'));
-  next = replaceState(next, 'agentId', asString(agent.id));
-  next = replaceState(next, 'agentDid', asString(agent.walletAddress));
-  next = replaceState(next, 'reputation', score);
-  next = replaceState(next, 'reputationTier', reputationTier(score));
-  next = replaceState(next, 'contributionCount', asNumber(agent.contributionCount));
-  next = replaceState(next, 'peerCount', Math.max(agents.length - 1, 0));
-  next = replaceState(next, 'queriesAnswered', asNumber(agent.queryCount));
-  next = replaceState(next, 'themeColor', asString(custom.themeColor, '#6366f1'));
-  next = replaceState(next, 'themeAccent', asString(custom.themeAccent, '#a78bfa'));
-  next = replaceState(next, 'themeParticles', asString(custom.particles, 'none'));
-  next = replaceState(
+  next = spliceCompositionState(next, 'agentName', asString(agent.name, 'unknown-agent'));
+  next = spliceCompositionState(next, 'agentId', asString(agent.id));
+  next = spliceCompositionState(next, 'agentDid', asString(agent.walletAddress));
+  next = spliceCompositionState(next, 'reputation', score);
+  next = spliceCompositionState(next, 'reputationTier', reputationTier(score));
+  next = spliceCompositionState(next, 'contributionCount', asNumber(agent.contributionCount));
+  next = spliceCompositionState(next, 'peerCount', Math.max(agents.length - 1, 0));
+  next = spliceCompositionState(next, 'queriesAnswered', asNumber(agent.queryCount));
+  next = spliceCompositionState(next, 'themeColor', asString(custom.themeColor, '#6366f1'));
+  next = spliceCompositionState(next, 'themeAccent', asString(custom.themeAccent, '#a78bfa'));
+  next = spliceCompositionState(next, 'themeParticles', asString(custom.particles, 'none'));
+  next = spliceCompositionState(
     next,
     'customBio',
     asString(custom.bio, 'A knowledge agent on the HoloMesh network.')
   );
-  next = replaceState(next, 'customTitle', asString(custom.customTitle));
-  next = replaceState(next, 'statusText', asString(custom.statusText));
-  next = replaceState(next, 'isOnline', asBoolean(agent.online, true));
-  next = replaceState(next, 'topTraits', asStringArray(agent.traits));
+  next = spliceCompositionState(next, 'customTitle', asString(custom.customTitle));
+  next = spliceCompositionState(next, 'statusText', asString(custom.statusText));
+  next = spliceCompositionState(next, 'isOnline', asBoolean(agent.online, true));
+  next = spliceCompositionState(next, 'topTraits', asStringArray(agent.traits));
   return next;
 }
 

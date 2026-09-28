@@ -84,7 +84,7 @@ composition configuredObject {
 }
 
 composition player {
-  health: ${state.health}
+  health: "${state.health}"
 
   @on_damage => state.health -= 10
 }

@@ -7,7 +7,7 @@
  * surface a phone can reach produced a copyable link and no scannable code at
  * all. And every QR the studio DID emit encoded /w/<id>, which HoloQR
  * pattern-matches as a world-portal link (WorldPortal.kt:21) and refuses,
- * because its trusted-key list ships empty (WorldTrust.kt:29) -- the headset
+ * because its trusted-key list ships empty (WorldTrust.kt:31) -- the headset
  * shows "World blocked: signed-parameter-cardinality".
  *
  * These tests assert the PROPERTY, not its silhouette: not "does the file
@@ -40,7 +40,7 @@ vi.mock('@/hooks/useSceneShare', () => ({
   useSceneShare: () => shareState,
 }));
 
-// SharePanel selects two fields: s.code and s.metadata (SharePanel.tsx:29-30).
+// SharePanel selects two fields: s.code and s.metadata (SharePanel.tsx:30-31).
 // The first draft of this stub supplied only `code`, and all four cases failed on
 // `sceneMetadata.name` — a fixture fault, not a product fault. Noted because a
 // red test whose cause is the harness is the mirror image of a false zero.

@@ -197,6 +197,40 @@ describe('ProtocolAgent', () => {
     expect(data.output).toContain('authentication');
   });
 
+  it('execute phase works from the plan reflect produced', async () => {
+    // REFLECT pays for a plan; before this, EXECUTE read only the context and the plan
+    // was thrown away.
+    fetchSpy.mockResolvedValue(mockFetchResponse('Fixed it'));
+
+    const agent = new ProtocolAgent(testAgent);
+    await agent.execute({
+      plan: 'Write a failing test for the expired-token path first',
+      context: { task: 'Fix auth bug' },
+    });
+
+    const callBody = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    const sent = JSON.stringify(callBody.messages);
+    expect(sent).toContain('Write a failing test for the expired-token path first');
+    expect(sent).toContain('Fix auth bug');
+  });
+
+  it('evolve phase gives the model the patterns grow found', async () => {
+    // EVOLVE's prompt asks for improvements "based on patterns found"; before this it
+    // never received GROW's patterns.
+    fetchSpy.mockResolvedValue(mockFetchResponse('Add a retry budget'));
+
+    const agent = new ProtocolAgent(testAgent);
+    await agent.evolve({
+      patterns: 'Flaky tests share one unmocked clock',
+      validated: [
+        { type: 'pattern', content: 'Mock the clock', domain: 'typescript', confidence: 0.8 },
+      ] as never,
+    });
+
+    const callBody = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(JSON.stringify(callBody.messages)).toContain('Flaky tests share one unmocked clock');
+  });
+
   it('compress phase extracts knowledge items', async () => {
     fetchSpy.mockResolvedValue(
       mockFetchResponse(

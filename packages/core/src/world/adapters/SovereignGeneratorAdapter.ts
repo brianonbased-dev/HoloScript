@@ -70,7 +70,10 @@ export interface SceneGenerationResult {
 
 /** Configuration for the SovereignGeneratorAdapter */
 export interface SovereignGeneratorAdapterOptions {
-  /** Local Brittney inference endpoint (default: env BRITTNEY_LOCAL_ENDPOINT or http://localhost:11434) */
+  /**
+   * Local Brittney inference endpoint, OpenAI /v1/chat/completions. Default: env
+   * BRITTNEY_LOCAL_ENDPOINT, else HOLOLLAMA_URL, else HoloLlama's port http://127.0.0.1:18080.
+   */
   localEndpoint?: string;
   /** Cloud Brittney endpoint (default: env BRITTNEY_SERVICE_URL) */
   cloudEndpoint?: string;
@@ -96,10 +99,20 @@ export interface SovereignGeneratorAdapterOptions {
 // CONSTANTS
 // =============================================================================
 
-const DEFAULT_LOCAL_ENDPOINT =
-  (typeof process !== 'undefined' && process.env.BRITTNEY_LOCAL_ENDPOINT) ||
-  (typeof process !== 'undefined' && process.env.OLLAMA_HOST) ||
-  'http://localhost:11434';
+/**
+ * The local step's default server: HoloLlama (D.117 — it replaced Ollama on the owned
+ * machines on 2026-07-05, and Ollama's :11434 answers nowhere now). Read when an adapter is
+ * built, not at module load, so a changed env is seen. OLLAMA_HOST is no longer read.
+ */
+function defaultLocalEndpoint(): string {
+  const env = typeof process !== 'undefined' ? process.env : undefined;
+  return (
+    env?.BRITTNEY_LOCAL_ENDPOINT ||
+    env?.HOLOLLAMA_URL ||
+    env?.HOLOLLAMA_ENDPOINT ||
+    'http://127.0.0.1:18080'
+  );
+}
 
 /**
  * Default Ollama model for sovereign Brittney inference.
@@ -256,7 +269,7 @@ export class SovereignGeneratorAdapter {
   private readonly mockLatencyMs: number;
 
   constructor(options: SovereignGeneratorAdapterOptions = {}) {
-    this.localEndpoint = (options.localEndpoint ?? DEFAULT_LOCAL_ENDPOINT).replace(/\/$/, '');
+    this.localEndpoint = (options.localEndpoint ?? defaultLocalEndpoint()).replace(/\/$/, '');
     this.cloudEndpoint = (options.cloudEndpoint ?? DEFAULT_CLOUD_ENDPOINT).replace(/\/$/, '');
     this.cloudApiKey = options.cloudApiKey ?? DEFAULT_CLOUD_API_KEY;
     this.localModel = options.localModel ?? DEFAULT_LOCAL_MODEL;
@@ -276,7 +289,7 @@ export class SovereignGeneratorAdapter {
    * Suggest HoloScript traits for a natural language description.
    *
    * Resolution order:
-   *   1. Local Brittney (Ollama/WebLLM) — sovereign, offline-capable
+   *   1. Local Brittney (HoloLlama/WebLLM) — sovereign, offline-capable
    *   2. Cloud Brittney — if online and not offlineOnly
    *   3. Keyword fallback — deterministic, no LLM needed
    */
@@ -437,14 +450,15 @@ export class SovereignGeneratorAdapter {
   }
 
   // ---------------------------------------------------------------------------
-  // LOCAL BRITTNEY (Ollama / WebLLM)
+  // LOCAL BRITTNEY (HoloLlama / WebLLM)
   // ---------------------------------------------------------------------------
 
   /**
    * Whether the local step may run, and how its result is labeled. The endpoint comes from
-   * BRITTNEY_LOCAL_ENDPOINT / OLLAMA_HOST, which can name a hosted Ollama. A public host or a
-   * cloud-tagged model is skipped (the call falls to cloud Brittney or the keyword
-   * fallback); with HOLO_ALLOW_HOSTED_OLLAMA=1 it runs, labeled 'hosted-ollama'.
+   * BRITTNEY_LOCAL_ENDPOINT or HOLOLLAMA_URL (see defaultLocalEndpoint), and either can name
+   * a server that is not ours. #384's hosted-Ollama check applies to it whatever it is: a
+   * public host or a cloud-tagged model is skipped (the call falls to cloud Brittney or the
+   * keyword fallback); with HOLO_ALLOW_HOSTED_OLLAMA=1 it runs, labeled 'hosted-ollama'.
    */
   private localStepSource(): 'sovereign-local' | 'hosted-ollama' | null {
     const verdict = checkHostedOllama(this.localEndpoint, {
@@ -470,7 +484,7 @@ export class SovereignGeneratorAdapter {
         { role: 'user', content: prompt },
       ],
       stream: false,
-      options: { num_predict: 512 },
+      max_tokens: 512,
     };
 
     const controller = new AbortController();
@@ -515,7 +529,7 @@ export class SovereignGeneratorAdapter {
         { role: 'user', content: prompt },
       ],
       stream: false,
-      options: { num_predict: this.maxTokens },
+      max_tokens: this.maxTokens,
     };
 
     const controller = new AbortController();

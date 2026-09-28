@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NetworkInterfaceInfo } from 'node:os';
-import { resolveReachableStudioOrigin } from '../reachable-origin';
+import { resolvePublicStudioOrigin, resolveReachableStudioOrigin } from '../reachable-origin';
 
 function request(url: string): { headers: Headers; url: string } {
   return { headers: new Headers(), url };
@@ -74,6 +74,43 @@ describe('resolveReachableStudioOrigin', () => {
 
     expect(resolveReachableStudioOrigin(req, { env: {}, interfaces })).toBe(
       'https://studio.example.test'
+    );
+  });
+});
+
+describe('resolvePublicStudioOrigin (where a browser is sent back to)', () => {
+  const at = (url: string) => request(url);
+
+  it('prefers the explicit public Studio URL', () => {
+    expect(
+      resolvePublicStudioOrigin(at('https://0.0.0.0:8080/api/absorb/credits'), {
+        env: { NEXT_PUBLIC_STUDIO_URL: 'https://holoscript.studio/', NEXTAUTH_URL: 'https://auth.example.test' },
+      })
+    ).toBe('https://holoscript.studio');
+  });
+
+  it('then the sign-in URL, where the session cookie lives (production sets only this)', () => {
+    expect(
+      resolvePublicStudioOrigin(at('https://0.0.0.0:8080/api/absorb/credits'), {
+        env: { NEXTAUTH_URL: 'https://holoscript.studio' },
+      })
+    ).toBe('https://holoscript.studio');
+  });
+
+  it('then the forwarded public host, never the container bind address', () => {
+    const req = at('https://0.0.0.0:8080/api/absorb/credits');
+    req.headers.set('x-forwarded-host', 'studio.example.test');
+    req.headers.set('x-forwarded-proto', 'https');
+    expect(resolvePublicStudioOrigin(req, { env: {} })).toBe('https://studio.example.test');
+  });
+
+  it('keeps localhost as localhost: a LAN address would arrive without the session cookie', () => {
+    // resolveReachableStudioOrigin would answer http://192.168.0.23:3112 here.
+    expect(
+      resolveReachableStudioOrigin(at('http://localhost:3112/settings'), { env: {}, interfaces })
+    ).toBe('http://192.168.0.23:3112');
+    expect(resolvePublicStudioOrigin(at('http://localhost:3112/settings'), { env: {} })).toBe(
+      'http://localhost:3112'
     );
   });
 });

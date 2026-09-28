@@ -16,6 +16,7 @@
 import type { TokenIntrospection } from './oauth21';
 import type { ToolRiskLevel } from './tool-scopes';
 import { getToolRiskLevel, authorizeToolCall } from './tool-scopes';
+import { callerMayNameHostPaths, findHostPathViolation } from './host-path-args';
 
 /**
  * StdlibPolicy interface (mirrored from @holoscript/core to avoid
@@ -419,6 +420,22 @@ export function gate3EnforcePolicy(
   auth: TokenIntrospection,
   config?: Partial<Gate3Config>
 ): Gate3Result {
+  // A caller without admin scope may not name a location on the server's own disk, for ANY tool
+  // (task_1790214096204_56rj). This runs before the DOWNSTREAM_TOOLS skip on purpose: the tools
+  // measured writing and reading an attacker-chosen absolute path were not in that set, and the path
+  // check below only ever recorded an advisory string. See security/host-path-args.ts.
+  if (!callerMayNameHostPaths(auth.scopes)) {
+    const violation = findHostPathViolation(args);
+    if (violation) {
+      return {
+        passed: false,
+        reason:
+          `Host path argument refused for "${toolName}": "${violation.key}" ${violation.reason}. ` +
+          'Callers without admin scope may only name plain relative paths.',
+      };
+    }
+  }
+
   // Skip enforcement for tools that don't access downstream resources
   const enforcedTools = config?.enforcedTools || DOWNSTREAM_TOOLS;
   if (!enforcedTools.has(toolName)) {

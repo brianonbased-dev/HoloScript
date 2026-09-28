@@ -118,7 +118,7 @@ function commandLineLength(argv) {
  * Run the real helper the hook sources. A recorder script copies the
  * --files-from list (the helper deletes it afterwards) and writes process.argv.
  */
-function measureHelper(paths, { exitCode = 0, abruptExit = false } = {}) {
+function measureHelper(paths, { exitCode = 0, abruptExit = false, env = {} } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'files-from-helper-'));
   const listCopy = join(dir, 'list-copy.txt');
   const argvOut = join(dir, 'argv.json');
@@ -163,6 +163,7 @@ run_node_with_files_from 30 "$RECORD_SCRIPT" "$staged"
         LIST_COPY: listCopy,
         ARGV_OUT: argvOut,
         EXIT_CODE: String(exitCode),
+        ...env,
       },
     }
   );
@@ -448,6 +449,61 @@ for (const gate of legacyLens) {
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(listDir, { recursive: true, force: true });
+  }
+}
+
+{
+  // 2026-09-28: with MSYS_NO_PATHCONV=1 exported, Git Bash passed node the MSYS form of the
+  // temp list path. node could not open it, and every gate using this helper exited 2. The
+  // hook then printed each gate's violation headline ("Third-party QR-service literal in
+  // staged source") for a violation that did not exist. The list must reach node either way.
+  const small = ['packages/a/src/one.ts', 'packages/b/src/with space.ts'];
+  const run = measureHelper(small, { env: { MSYS_NO_PATHCONV: '1' } });
+  assertEq(run.result.status, 0, 'helper: node reads the list with MSYS_NO_PATHCONV=1 set');
+  assertEq(
+    run.list,
+    `${small.join('\n')}\n`,
+    'helper: the list node read with MSYS_NO_PATHCONV=1 set is complete'
+  );
+  rmSync(run.dir, { recursive: true, force: true });
+}
+
+{
+  // Each --files-from gate exits 2 when it never judged a file (read-scoped-files could not
+  // read the list, or the gate could not see the tree) and 1 for a finding. The hook used to
+  // print the finding headline for both. This runs each gate's real block from the hook
+  // against a stubbed helper and checks which headline comes out.
+  const hookSource = readFileSync(HOOK, 'utf8');
+  const blockGates = ['LEGACY_BRIDGE', 'RENDER', 'CHOKE', 'STATS', 'QR'];
+  for (const v of blockGates) {
+    const start = hookSource.indexOf(`    ${v}_OUT=$(run_node_with_files_from `);
+    const end = start >= 0 ? hookSource.indexOf('\n    fi\n', start) : -1;
+    assertTrue(start >= 0 && end > start, `${v}: gate block found in the hook`);
+    if (start < 0 || end < 0) continue;
+    const block = hookSource.slice(start, end + '\n    fi\n'.length);
+    for (const stubStatus of [2, 1]) {
+      const run = spawnSync(
+        'sh',
+        [
+          '-c',
+          `RED=''; GREEN=''; NC=''; FAILED=0
+STAGED_COMPILER_SURFACE=x; STAGED_RENDER_TSX=x; STAGED_ALL=x; STAGED_MD=x; STAGED_SRC=x
+run_node_with_files_from() { echo '[stub] gate output'; return ${stubStatus}; }
+${block}
+echo "FAILED=$FAILED"
+`,
+        ],
+        { cwd: REPO, encoding: 'utf8' }
+      );
+      const out = run.stdout || '';
+      const saysCouldNotRun = out.includes('could not run, so no file was judged');
+      assertEq(
+        saysCouldNotRun,
+        stubStatus === 2,
+        `${v}: exit ${stubStatus} ${stubStatus === 2 ? 'says could not run' : 'reports a finding'}`
+      );
+      assertTrue(out.includes('FAILED=1'), `${v}: exit ${stubStatus} still fails the commit`, out);
+    }
   }
 }
 
