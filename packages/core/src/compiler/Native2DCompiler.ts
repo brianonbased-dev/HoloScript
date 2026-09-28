@@ -930,7 +930,14 @@ export default ${safeName}Component;${contractExport}
          supported) into text + attributes. Plain DOM — no framework, no hydration. */
       (function () {
         function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
-        function interp(s, item) { return s.replace(/\{\{([^}]+)\}\}/g, function (_, k) { var v = getPath(item, k.trim()); return v == null ? '' : String(v); }); }
+        /* {{field|host}} shows only the host a URL really goes to, read by the browser's URL
+           parser (task eajf): a look-alike name shows in full, and a look-alike letter shows
+           in its xn-- form. An unknown filter leaves the value as it is. */
+        function applyFilter(v, f) {
+          if (f === 'host') { try { return new URL(String(v)).host; } catch (e) { return ''; } }
+          return v;
+        }
+        function interp(s, item) { return s.replace(/\{\{([^}]+)\}\}/g, function (_, k) { var parts = k.split('|'); var v = getPath(item, parts[0].trim()); if (parts.length > 1) v = applyFilter(v, parts[1].trim()); return v == null ? '' : String(v); }); }
         /* Fetched values are data, never code (task 3m36): an event-handler attribute or srcdoc
            keeps the template's own text, and a link or source keeps a filled value only when the
            browser's URL parser reads it as http, https or mailto with no user name or password

@@ -31,6 +31,9 @@ composition "FounderConsole" {
           @link { content: "Approve", href: "{{url}}", target: "_blank" }
           @theme { className: "glow-btn", style: "display:inline-block; background:#16a34a; color:#fff; border:none; border-radius:8px; padding:8px 18px; cursor:pointer; text-decoration:none" }
         }
+        // Where Approve really goes, read by the browser's URL parser (task eajf): a
+        // look-alike site shows its whole name, and a look-alike letter its xn-- form.
+        object "Destination" { @text { content: "goes to {{url|host}}" } @theme { style: "color:#374151; font-size:14px; margin-left:12px" } }
       }
     }
   }

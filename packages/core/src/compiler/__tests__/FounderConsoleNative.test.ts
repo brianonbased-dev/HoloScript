@@ -153,6 +153,10 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     expect(approveLinks.map((a) => a?.getAttribute('href'))).toEqual(
       SAMPLE_ITEMS.map((item) => item.url)
     );
+    // and each row says where Approve goes (task eajf)
+    expect(Array.from(rendered).map((row) => row.textContent)).toEqual(
+      SAMPLE_ITEMS.map(() => expect.stringContaining('goes to holoscript.studio'))
+    );
 
     // Emit a visibly-populated snapshot (F.099 show-don't-reference).
     const preview = 'C:/tmp/founder-console-native/console-live-preview.html';
@@ -289,5 +293,51 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     // Every handler name, not only onclick, and srcdoc keep the template's own text.
     expect(attr('handler', 'onmouseover')).toBe("go('{{url}}')");
     expect(attr('srcdoc', 'srcdoc')).toBe('{{label}}');
+  }, 120_000);
+
+  // task eajf (claude3's #411 review): a plain link to a look-alike host still fills, so the
+  // console must SHOW where Approve goes. {{url|host}} is read by the browser's URL parser:
+  // a look-alike name shows in full, and a look-alike letter shows in its xn-- form.
+  it('the real console shows the host each Approve goes to, including look-alikes', async () => {
+    const { JSDOM } = await import('jsdom');
+    const html = compileHtml();
+    // A Cyrillic "o" in place of the Latin one: looks the same, is a different site.
+    const cyrillicO = String.fromCodePoint(0x43e);
+    const items = [
+      {
+        label: 'Plain',
+        url: 'https://holoscript.studio/t/abc/decide?t=1',
+        vetting: { glance: 'ok' },
+      },
+      {
+        label: 'Look-alike name',
+        url: 'https://holoscript.studio.example.net/t/abc/decide',
+        vetting: { glance: 'ok' },
+      },
+      {
+        label: 'Look-alike letter',
+        url: `https://h${cyrillicO}loscript.studio/t/abc/decide`,
+        vetting: { glance: 'ok' },
+      },
+      { label: 'Not a URL', url: 'decide later', vetting: { glance: 'ok' } },
+    ];
+    const dom = new JSDOM(html, {
+      url: 'https://holoscript.studio/quest-proof/native',
+      runScripts: 'dangerously',
+      beforeParse(window) {
+        (window as unknown as { fetch: unknown }).fetch = () =>
+          Promise.resolve({ json: () => Promise.resolve({ items }) });
+      },
+    });
+    await new Promise((r) => setTimeout(r, 30));
+
+    const rows = Array.from(
+      dom.window.document.querySelectorAll('[data-holo-fetch] > *:not([data-holo-template])')
+    );
+    const goesTo = rows.map((row) => (row.textContent ?? '').match(/goes to (\S*)/)?.[1] ?? null);
+    expect(goesTo[0]).toBe('holoscript.studio');
+    expect(goesTo[1]).toBe('holoscript.studio.example.net');
+    expect(goesTo[2]).toMatch(/^xn--/);
+    expect(goesTo[3]).toBe('');
   }, 120_000);
 });
