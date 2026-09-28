@@ -933,11 +933,19 @@ export default ${safeName}Component;${contractExport}
         function interp(s, item) { return s.replace(/\{\{([^}]+)\}\}/g, function (_, k) { var v = getPath(item, k.trim()); return v == null ? '' : String(v); }); }
         /* Fetched values are data, never code (task 3m36): an event-handler attribute or srcdoc
            keeps the template's own text, and a link or source keeps a filled value only when the
-           browser's URL parser reads it as http, https or mailto. */
+           browser's URL parser reads it as http, https or mailto with no user name or password
+           (a user part puts the real host after the at-sign, where a glance misses it). A value
+           without its own scheme (a path, or a //host or backslash form) is kept only when it
+           resolves to this page's own site. */
         var URL_ATTRS = { href: 1, src: 1, action: 1, formaction: 1, poster: 1 };
         function safeUrl(v) {
-          var probe = document.createElement('a'); probe.href = v;
-          return /^(https?|mailto):$/.test(probe.protocol) ? v : '';
+          var own = null, u = null;
+          try { own = new URL(v); } catch (e) { own = null; }
+          try { u = own || new URL(v, location.href); } catch (e) { return ''; }
+          if (u.username || u.password) return '';
+          if (!/^(https?|mailto):$/.test(u.protocol)) return '';
+          if (!own && u.origin !== location.origin) return '';
+          return v;
         }
         function fill(node, item) {
           if (node.attributes) {
