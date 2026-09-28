@@ -5,24 +5,32 @@
  * @holoscript/llm-provider `resolveSovereignProviderAsync` (sovereign-resolver.ts),
  * shared by the HoloClaw daemon and the fleet supervisor. This file predates it
  * and keeps Brittney-specific extras (per-user BYOK vault keys, tier/lane);
- * converge it onto the shared resolver when touching this surface next.
+ * converge it onto the shared resolver when touching this surface next. The owned local
+ * lane (HoloServe / HoloLlama) already delegates to it.
  *
  * Founder directive (2026-06-05): Brittney's LLM deps are NATIVE by default. The
- * ecosystem's own AI runs on sovereign local serving — a local Ollama or the owned
- * fleet — NOT a third-party frontier API. BRITTNEY_SERVICE_URL (and the llm-provider
- * alias HOLO_LLM_SERVICE_URL) is a hosted bridge: the Brittney llm-service forwards
- * brittney-standard to Fireworks, with Together as fallback. It is not sovereign.
+ * ecosystem's own AI runs on sovereign local serving — our own model servers (HoloServe,
+ * HoloLlama) or the owned fleet — NOT a third-party frontier API. BRITTNEY_SERVICE_URL (and
+ * the llm-provider alias HOLO_LLM_SERVICE_URL) is a hosted bridge: the Brittney llm-service
+ * forwards brittney-standard to Fireworks, with Together as fallback. It is not sovereign.
  * A frontier API (Anthropic) is BYOK: explicit provider name, or the auto path only
  * when HOLO_ALLOW_FRONTIER_FALLBACK=1. Other agent families bring their own keys.
  * Extends P.009 (sovereign embeddings) to the chat LLM.
  *
+ * D.117: HoloLlama replaced Ollama on the owned machines (2026-07-05), so OLLAMA_HOST no
+ * longer selects anything on its own. The local step is @holoscript/llm-provider's
+ * resolveOwnedLocalProvider, which logs one notice per process when a leftover OLLAMA_* is set.
+ *
  * Auto-detect priority (no explicit BRITTNEY_PROVIDER):
- *   1. BRITTNEY_SERVICE_URL present → cloud   (hosted bridge — Fireworks/Together, NOT sovereign)
- *   2. OLLAMA_HOST present          → ollama  (sovereign local — Quest 3 / downloaded apps)
+ *   1. BRITTNEY_SERVICE_URL present → cloud      (hosted bridge — Fireworks/Together, NOT sovereign)
+ *   2. HOLOSERVE_URL present        → holoserve  (our native PyTorch server, sovereign local)
+ *      else HOLOLLAMA_URL present   → holollama  (our llama-server, sovereign local)
  *   3. ANTHROPIC_API_KEY present    → anthropic only if HOLO_ALLOW_FRONTIER_FALLBACK=1, else refuse
  *   4. Error
  *
- * Explicit BRITTNEY_PROVIDER=anthropic|ollama|cloud always wins (BYOK / pinned override).
+ * Explicit BRITTNEY_PROVIDER=anthropic|holollama|holoserve|ollama|cloud always wins (BYOK /
+ * pinned override). ollama is for someone who still runs their own Ollama: it is never picked
+ * automatically.
  *
  * The resolved provider exposes `streamCompletion()` from
  * @holoscript/llm-provider — a provider-agnostic async iterable of
@@ -42,10 +50,14 @@ import {
   LOCAL_DEFAULT_MODEL,
   gateFrontierFallback,
   checkHostedOllama,
+  resolveOwnedLocalProvider,
+  resolveSovereignProvider,
   type ILLMProvider,
+  type ResolvedSovereignProvider,
 } from '@holoscript/llm-provider';
 
-export type BrittneyProviderName = 'anthropic' | 'ollama' | 'cloud' | 'fleet' | 'serverless';
+export type BrittneyProviderName =
+  'anthropic' | 'holollama' | 'holoserve' | 'ollama' | 'cloud' | 'fleet' | 'serverless';
 
 /**
  * Per-user BYOK keys resolved server-side from the HoloKey vault (F.112). When present,
@@ -59,11 +71,11 @@ export interface BrittneyByokKeys {
 }
 
 export interface ResolvedBrittneyProvider {
-  /** The unified provider (Anthropic, Ollama, or Brittney Cloud). */
+  /** The unified provider (Anthropic, HoloLlama/HoloServe, Ollama, or Brittney Cloud). */
   provider: ILLMProvider;
   /** The model string to pass to streamCompletion(). */
   model: string;
-  /** Max tokens for this provider. Anthropic = 16K, Ollama = 4-8K, Cloud = 8K. */
+  /** Max tokens for this provider. Anthropic = 16K, local = 4K, Cloud = 8K. */
   maxTokens: number;
   /** Which provider was resolved (for logging/response headers). */
   providerName: BrittneyProviderName;
@@ -75,7 +87,8 @@ export interface ResolvedBrittneyProvider {
 }
 
 /**
- * Default Ollama model for Brittney. qwen3.5 replaces qwen2.5-coder
+ * Default model for the explicit BRITTNEY_PROVIDER=ollama lane only (our own servers pick
+ * their own model). qwen3.5 replaces qwen2.5-coder
  * (2026-06-10, founder): the older family cannot emit NATIVE tool calls via
  * Ollama — it writes the call JSON as text (the tend_garden stall and the
  * zero-objects fable5 benchmark cells). Matches BRITTNEY_SOVEREIGN_DEFAULT_MODEL
@@ -83,20 +96,21 @@ export interface ResolvedBrittneyProvider {
  */
 const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || LOCAL_DEFAULT_MODEL;
 
+/** Caller label for the owned local lane (shows in the llm-provider OLLAMA RETIRED notice). */
+const OWNED_LOCAL_CALLER = 'studio brittney provider';
+
 /**
  * Resolve Brittney's LLM provider from environment variables.
  *
  * Priority (native-default — see file header for the founder directive):
- *   1. BRITTNEY_PROVIDER=anthropic|ollama|cloud (explicit override / BYOK)
- *   2. BRITTNEY_SERVICE_URL present → cloud   (hosted bridge — Fireworks/Together, not sovereign)
- *   3. OLLAMA_HOST present → ollama           (sovereign on-device)
- *   4. ANTHROPIC_API_KEY present → anthropic  (only with HOLO_ALLOW_FRONTIER_FALLBACK=1)
+ *   1. BRITTNEY_PROVIDER=anthropic|holollama|holoserve|ollama|cloud (explicit override / BYOK)
+ *   2. BRITTNEY_SERVICE_URL present → cloud     (hosted bridge — Fireworks/Together, not sovereign)
+ *   3. HOLOSERVE_URL, else HOLOLLAMA_URL → holoserve / holollama (our own servers, sovereign)
+ *   4. ANTHROPIC_API_KEY present → anthropic    (only with HOLO_ALLOW_FRONTIER_FALLBACK=1)
  *   5. Error — no provider configured
  *
- * Ollama host defaults:
- *   - OLLAMA_HOST env (full URL, e.g. http://host.docker.internal:11434)
- *   - OLLAMA_BASE_URL env (alternative key)
- *   - the Ollama default port (resolved inside resolveOllama)
+ * OLLAMA_HOST / OLLAMA_BASE_URL are read only for explicit BRITTNEY_PROVIDER=ollama
+ * (full URL, e.g. http://host.docker.internal:11434; the Ollama default port when unset).
  */
 export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittneyProvider {
   const explicit = process.env.BRITTNEY_PROVIDER as BrittneyProviderName | undefined;
@@ -110,6 +124,9 @@ export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittn
   if (explicit === 'ollama') {
     return resolveOllama(ollamaHost);
   }
+  if (explicit === 'holollama' || explicit === 'holoserve') {
+    return resolveOwnedExplicit(explicit);
+  }
   if (explicit === 'anthropic') {
     return resolveAnthropic(anthropicKey);
   }
@@ -117,14 +134,15 @@ export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittn
     return resolveCloud(cloudUrl);
   }
 
-  // Auto-detect: hosted bridge (cloud) and sovereign local (ollama) before frontier.
+  // Auto-detect: hosted bridge (cloud) and our own local server before frontier.
   // Anthropic on this path is refused unless HOLO_ALLOW_FRONTIER_FALLBACK=1.
   // Explicit BRITTNEY_PROVIDER=anthropic above is the opt-in and is not gated.
   if (cloudUrl) {
     return resolveCloud(cloudUrl);
   }
-  if (ollamaHost) {
-    return resolveOllama(ollamaHost);
+  const local = resolveOwnedLocal();
+  if (local) {
+    return local;
   }
   if (anthropicKey) {
     return gateFrontierFallback('anthropic', { caller: 'resolveBrittneyProvider' }, () =>
@@ -134,21 +152,68 @@ export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittn
 
   throw new Error(
     'No Brittney provider configured. Brittney runs native by default — set ' +
-      'BRITTNEY_PROVIDER=ollama (with OLLAMA_HOST) for sovereign local inference, or ' +
-      'BRITTNEY_PROVIDER=cloud (with BRITTNEY_SERVICE_URL). That URL is a hosted bridge: ' +
-      'it forwards to Fireworks/Together and is not sovereign (same family as ' +
+      'HOLOLLAMA_URL (our HoloLlama server) or HOLOSERVE_URL (HoloServe) for sovereign local ' +
+      'inference, or BRITTNEY_PROVIDER=cloud (with BRITTNEY_SERVICE_URL). That URL is a ' +
+      'hosted bridge: it forwards to Fireworks/Together and is not sovereign (same family as ' +
       'HOLO_LLM_SERVICE_URL). For a BYOK frontier provider, set ' +
       'BRITTNEY_PROVIDER=anthropic (with ANTHROPIC_API_KEY). The auto path will not use ' +
-      'Anthropic unless HOLO_ALLOW_FRONTIER_FALLBACK=1. Downloaded apps configure ' +
-      'OLLAMA_HOST to the on-device Brittney model.'
+      'Anthropic unless HOLO_ALLOW_FRONTIER_FALLBACK=1. OLLAMA_HOST alone no longer selects ' +
+      'a local model (Ollama was retired, D.117); to use your own Ollama, set ' +
+      'BRITTNEY_PROVIDER=ollama.'
   );
+}
+
+/**
+ * Options for our own local servers. BRITTNEY_MAX_TOKENS is honored. No model is passed from
+ * here: BRITTNEY_MODEL is often a Claude or Ollama name, and HoloServe refuses names it does not
+ * know. (llm-provider's resolver still reads HOLO_LLM_MODEL / BRITTNEY_MODEL itself as its
+ * model override, so a Claude name set there reaches the local server too.)
+ */
+function ownedLocalOptions(): { caller: string; maxTokens?: number } {
+  const maxTokens = Number(process.env.BRITTNEY_MAX_TOKENS);
+  return Number.isFinite(maxTokens) && maxTokens > 0
+    ? { caller: OWNED_LOCAL_CALLER, maxTokens }
+    : { caller: OWNED_LOCAL_CALLER };
+}
+
+/** Map an llm-provider resolution of our own local server into Brittney's shape. */
+function fromOwnedLocal(local: ResolvedSovereignProvider): ResolvedBrittneyProvider {
+  if (local.providerName !== 'holollama' && local.providerName !== 'holoserve') {
+    throw new Error(
+      `Expected our own local model server (holollama or holoserve), got "${local.providerName}".`
+    );
+  }
+  return {
+    provider: local.provider,
+    model: local.model,
+    maxTokens: local.maxTokens,
+    providerName: local.providerName,
+  };
+}
+
+/**
+ * Our own local model server for the auto path and the cold-fleet fallback: HoloServe when
+ * HOLOSERVE_URL is set, else HoloLlama when HOLOLLAMA_URL is set, else null (nothing local is
+ * configured). Never Ollama: a leftover OLLAMA_* only gets llm-provider's one-time notice.
+ */
+function resolveOwnedLocal(): ResolvedBrittneyProvider | null {
+  const local = resolveOwnedLocalProvider(ownedLocalOptions());
+  return local ? fromOwnedLocal(local) : null;
+}
+
+/**
+ * Explicit BRITTNEY_PROVIDER=holollama|holoserve, through the canonical llm-provider resolver.
+ * It reads HOLOLLAMA_URL / HOLOSERVE_URL, and uses that server's default local port when unset.
+ */
+function resolveOwnedExplicit(name: 'holollama' | 'holoserve'): ResolvedBrittneyProvider {
+  return fromOwnedLocal(resolveSovereignProvider({ ...ownedLocalOptions(), explicit: name }));
 }
 
 function resolveAnthropic(apiKey: string | undefined): ResolvedBrittneyProvider {
   if (!apiKey) {
     throw new Error(
       'BRITTNEY_PROVIDER=anthropic requires ANTHROPIC_API_KEY. ' +
-        'Set ANTHROPIC_API_KEY or switch to BRITTNEY_PROVIDER=cloud or BRITTNEY_PROVIDER=ollama.'
+        'Set ANTHROPIC_API_KEY or switch to BRITTNEY_PROVIDER=cloud or BRITTNEY_PROVIDER=holollama.'
     );
   }
   const provider = new AnthropicAdapter({
@@ -237,8 +302,8 @@ const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.
  *
  * On COLD (scale-to-zero idle, the normal first-request state): the resolve has already
  * bumped demand so a box warms for next time; this call throws, and
- * `resolveBrittneyProviderAsync` falls back to a sync provider (BYOK Anthropic / local
- * Ollama) for THIS request — so scale-to-zero never 502s.
+ * `resolveBrittneyProviderAsync` falls back to a non-frontier provider (the hosted bridge or
+ * our own local server) for THIS request — so scale-to-zero never 502s.
  *
  * Env: BRITTNEY_FLEET_ORCH_URL (or MCP_ORCHESTRATOR_URL), BRITTNEY_FLEET_MODEL,
  * FLEET_INFERENCE_KEY (= the box's SERVE_API_KEY), BRITTNEY_FLEET_RESOLVE_KEY (or
@@ -271,7 +336,8 @@ async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
     throw new Error(
       `Brittney fleet endpoint is cold for model "${model}". The resolve bumped demand; the ` +
         `serving autoscaler will warm a box shortly. Falling back to a configured provider for ` +
-        `this request (set ANTHROPIC_API_KEY for a BYOK fallback, or OLLAMA_HOST for local).`
+        `this request (set HOLOLLAMA_URL or HOLOSERVE_URL for local, or ANTHROPIC_API_KEY with ` +
+        `BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 for a BYOK fallback).`
     );
   }
 
@@ -289,18 +355,17 @@ async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
 }
 
 /**
- * Non-frontier fallback for a cold fleet: local Ollama (OLLAMA_HOST) is sovereign.
- * BRITTNEY_SERVICE_URL is a hosted bridge (forwards to Fireworks/Together), not
- * sovereign serving — it is still preferred here when set, as an already-configured
- * endpoint, and it is never a silent Anthropic bill. Returns null when neither is
- * configured. (Founder 2026-06-14: a cold lane ≠ an Anthropic bill.)
+ * Non-frontier fallback for a cold fleet: our own local server (HOLOSERVE_URL, else
+ * HOLOLLAMA_URL) is sovereign. BRITTNEY_SERVICE_URL is a hosted bridge (forwards to
+ * Fireworks/Together), not sovereign serving — it is still preferred here when set, as an
+ * already-configured endpoint, and it is never a silent Anthropic bill. Returns null when
+ * neither is configured; OLLAMA_* does not count (D.117). (Founder 2026-06-14: a cold lane ≠
+ * an Anthropic bill.)
  */
 function resolveSovereignFallback(): ResolvedBrittneyProvider | null {
   const cloudUrl = process.env.BRITTNEY_SERVICE_URL;
   if (cloudUrl) return resolveCloud(cloudUrl);
-  const ollamaHost = process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL;
-  if (ollamaHost) return resolveOllama(ollamaHost);
-  return null;
+  return resolveOwnedLocal();
 }
 
 /**
@@ -329,7 +394,7 @@ function resolveServerless(): ResolvedBrittneyProvider | null {
 
 /**
  * Async provider resolution — prefers the sovereign serving fleet (dynamic-resolve).
- * When the fleet is cold/unreachable it falls back to local Ollama or, if set, the
+ * When the fleet is cold/unreachable it falls back to our own local server or, if set, the
  * BRITTNEY_SERVICE_URL hosted bridge (Fireworks/Together — not sovereign). It does
  * NOT silently use a paid frontier API (founder policy 2026-06-14). With neither
  * configured it throws SOVEREIGN_WARMING so the caller surfaces an honest
@@ -366,13 +431,15 @@ export async function resolveBrittneyProviderAsync(
       // Cold/unreachable fleet. The /serve/resolve call already bumped demand, so a
       // serving box is warming. Founder policy 2026-06-14 ("im not recharging
       // anthropic ... use the fleet"): a cold fleet lane must NEVER silently
-      // fall back to a paid frontier API. Local Ollama is the sovereign fallback;
-      // BRITTNEY_SERVICE_URL is a hosted bridge (not sovereign) and is used only
-      // when already configured. Otherwise surface an honest "warming, retry"
-      // so a cold start is a brief wait — not an Anthropic bill. The escape hatch
+      // fall back to a paid frontier API. Our own local server (HoloServe /
+      // HoloLlama) is the sovereign fallback; BRITTNEY_SERVICE_URL is a hosted
+      // bridge (not sovereign) and is used only when already configured.
+      // Otherwise surface an honest "warming, retry" so a cold start is a brief
+      // wait — not an Anthropic bill. The escape hatch
       // BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 opts in to the BYOK-frontier behavior.
+      // (No Ollama discovery here: this fallback never resolves to Ollama.)
       const sovereign = resolveSovereignFallback();
-      if (sovereign) return upgradeOllamaByDiscovery(sovereign);
+      if (sovereign) return sovereign;
       if (process.env.BRITTNEY_ALLOW_FRONTIER_FALLBACK === '1') {
         // Explicit Studio opt-in (not the silent auto path). Call Anthropic directly
         // so this does not depend on HOLO_ALLOW_FRONTIER_FALLBACK, and say so out loud.
@@ -399,7 +466,8 @@ export async function resolveBrittneyProviderAsync(
 
 /**
  * Discovery over hardcodes (founder 2026-06-10): when Brittney lands on local
- * Ollama with NO explicit BRITTNEY_MODEL pin, enumerate installed models and
+ * Ollama (explicit BRITTNEY_PROVIDER=ollama is now the only way there) with NO
+ * explicit BRITTNEY_MODEL pin, enumerate installed models and
  * pick the best behaviorally-verified tool-caller (capability flags lie:
  * qwen2.5-coder reports `tools` yet emits call JSON as text — the tend_garden
  * stall). Pull a better model and Brittney upgrades automatically.

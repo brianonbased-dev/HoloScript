@@ -18,7 +18,8 @@ export async function generateScene(req: GenerateRequest): Promise<GenerateRespo
 /**
  * Check if any AI provider is available (cloud-first).
  * The health endpoint detects OPENROUTER_API_KEY, ANTHROPIC_API_KEY,
- * OPENAI_API_KEY, or OLLAMA_URL and reports connectivity.
+ * OPENAI_API_KEY, or our local model server (HOLOSERVE_URL / HOLOLLAMA_URL) and reports
+ * connectivity. The name is historical: Ollama itself is retired (D.117).
  */
 export async function checkOllamaHealth(): Promise<boolean> {
   try {

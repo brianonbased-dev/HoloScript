@@ -26,6 +26,9 @@ describe('Brittney brain caching guidance', () => {
     expect(inferBrainCacheCapability('ollama', 'brittney-qwen-v23:latest')).toBe(
       'local-prefix-cache'
     );
+    // llama-server keeps a prefix cache whatever the model is called; HoloServe claims none.
+    expect(inferBrainCacheCapability('holollama', 'claude-opus-4-7')).toBe('local-prefix-cache');
+    expect(inferBrainCacheCapability('holoserve', 'holorunner-s0')).toBe('none');
     expect(inferBrainCacheCapability('unknown', 'mystery')).toBe('none');
   });
 

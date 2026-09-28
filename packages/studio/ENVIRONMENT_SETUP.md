@@ -20,7 +20,7 @@ cp .env.local.example .env.local
 #   - ANTHROPIC_API_KEY (recommended)
 #   - XAI_API_KEY
 #   - OPENAI_API_KEY
-#   - Or leave blank to use local Ollama
+#   - Or leave blank and set HOLOLLAMA_URL to use our local HoloLlama server
 ```
 
 ### Option 1: Use Existing Root .env (Automatic Sync)
@@ -93,7 +93,9 @@ The pipeline tries providers in order:
 1. **Anthropic** (`ANTHROPIC_API_KEY`)
 2. **xAI** (`XAI_API_KEY`)
 3. **OpenAI** (`OPENAI_API_KEY`)
-4. **Ollama** (local, `OLLAMA_URL`, no key needed)
+4. **Our local model server** (`HOLOSERVE_URL` for HoloServe, else `HOLOLLAMA_URL` for
+   HoloLlama; no key needed). Ollama is no longer picked on its own (D.117); to use one,
+   name it with `BRITTNEY_PROVIDER=ollama`.
 
 Only the first available provider is used.
 
@@ -105,7 +107,7 @@ Only the first available provider is used.
 - Restart dev server after editing `.env.local`
 - Verify file is not `.env.local.example`
 
-### "Ollama selected but I have API keys"
+### "Local model selected but I have API keys"
 
 - Environment variables not loading
 - Check file path: must be `packages/studio/.env.local`

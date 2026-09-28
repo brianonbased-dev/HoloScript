@@ -13,9 +13,7 @@ import {
   AnthropicAdapter,
   OpenAIAdapter,
   OpenRouterAdapter,
-  LocalLLMAdapter,
-  LOCAL_DEFAULT_MODEL,
-  checkHostedOllama,
+  resolveOwnedLocalProvider,
 } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
@@ -160,10 +158,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Cloud-first provider rotation: OpenRouter → Anthropic → OpenAI.
-    // Optional local fallback: Ollama (if configured).
-    const generated =
-      (await tryCloudProviders(GENERATE_SYSTEM, userPrompt)) ??
-      (await tryOllamaFallback(userPrompt));
+    // Optional local fallback: our own HoloServe / HoloLlama server (if configured).
+    const cloudCode = await tryCloudProviders(GENERATE_SYSTEM, userPrompt);
+    const generated = cloudCode ?? (await tryLocalFallback(GENERATE_SYSTEM, userPrompt));
+    // Say which lane wrote the code: a local model's answer is not a cloud answer.
+    const source = cloudCode ? 'cloud' : 'local';
 
     const rawCode = generated?.trim();
 
@@ -176,7 +175,7 @@ export async function POST(request: NextRequest) {
           code: MOCK_SCENE_TEMPLATE,
           source: 'mock',
           warning:
-            'Using template fallback (cloud AI unavailable). Configure OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for live generation.',
+            'Using template fallback (cloud AI unavailable). Configure OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY for live generation, or HOLOLLAMA_URL for a local model.',
         },
         { headers }
       );
@@ -192,7 +191,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           code: '',
-          source: 'cloud',
+          source,
           error: 'Generated HoloScript failed core validation',
           validationErrors: validation.errors,
           ...(validation.warnings.length > 0 && { validationWarnings: validation.warnings }),
@@ -208,7 +207,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         code,
-        source: 'cloud',
+        source,
         generatedOutputValidation: {
           valid: true,
           corePrimitives: validation.corePrimitives,
@@ -307,24 +306,27 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   return null;
 }
 
-async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
-  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
-  if (!ollamaUrl) return null;
-  const model = process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL;
-  // The "local" fallback must not quietly be Ollama's cloud; a refusal falls to the template.
-  if (checkHostedOllama(ollamaUrl, { model, caller: 'studio /api/generate' }).refused) return null;
-
+/**
+ * Local fallback: our own model server (D.117 retired Ollama). HoloServe when HOLOSERVE_URL is
+ * set, else HoloLlama when HOLOLLAMA_URL is set; neither means no local step, and the caller
+ * falls to the template. A leftover OLLAMA_* is ignored (the helper logs one notice). The
+ * helper picks the model; nothing from the request names it.
+ */
+async function tryLocalFallback(systemPrompt: string, prompt: string): Promise<string | null> {
   try {
-    const adapter = new LocalLLMAdapter({
-      baseURL: ollamaUrl,
-      defaultModel: model,
-      timeoutMs: 30_000,
-    });
-    const result = await adapter.complete({
-      messages: [{ role: 'user', content: fullPrompt }],
-      maxTokens: 2048,
-      temperature: 0.7,
-    });
+    const local = resolveOwnedLocalProvider({ caller: 'studio /api/generate', timeoutMs: 30_000 });
+    if (!local) return null;
+    const result = await local.provider.complete(
+      {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: Math.min(2048, local.maxTokens),
+        temperature: 0.7,
+      },
+      local.model
+    );
     return result.content || null;
   } catch {
     return null;

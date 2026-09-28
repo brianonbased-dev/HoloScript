@@ -269,6 +269,63 @@ describe('SovereignGeneratorAdapter', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Default local server: HoloLlama (D.117 retired Ollama on 2026-07-05)
+  // ---------------------------------------------------------------------------
+
+  describe('default local server is HoloLlama, not Ollama', () => {
+    const reply = () => ({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: JSON.stringify({ traits: ['@grabbable'] }) } }],
+        }),
+    });
+
+    beforeEach(() => {
+      for (const name of [
+        'BRITTNEY_LOCAL_ENDPOINT',
+        'HOLOLLAMA_URL',
+        'HOLOLLAMA_ENDPOINT',
+        'OLLAMA_HOST',
+        'HOLO_ALLOW_HOSTED_OLLAMA',
+      ]) {
+        vi.stubEnv(name, '');
+      }
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    });
+
+    it.each([
+      ['HOLOLLAMA_URL', {}, 'http://192.168.0.119:18080'],
+      ['nothing set (HoloLlama port)', {}, 'http://127.0.0.1:18080'],
+      [
+        'BRITTNEY_LOCAL_ENDPOINT over HOLOLLAMA_URL',
+        { BRITTNEY_LOCAL_ENDPOINT: 'http://holojetson.local:18080' },
+        'http://holojetson.local:18080',
+      ],
+    ] as const)('uses %s, and ignores a leftover OLLAMA_HOST', async (label, extra, expected) => {
+      vi.stubEnv('OLLAMA_HOST', 'http://127.0.0.1:11434');
+      if (label.startsWith('HOLOLLAMA_URL') || label.startsWith('BRITTNEY')) {
+        vi.stubEnv('HOLOLLAMA_URL', 'http://192.168.0.119:18080');
+      }
+      for (const [k, v] of Object.entries(extra)) vi.stubEnv(k, v);
+      const fetchMock = vi.fn().mockResolvedValue(reply());
+      vi.stubGlobal('fetch', fetchMock);
+      const adapter = new SovereignGeneratorAdapter({ offlineOnly: true });
+      await adapter.suggestTraits('a ball you can grab');
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(String(url)).toBe(`${expected}/v1/chat/completions`);
+      const body = JSON.parse(String((init as RequestInit).body));
+      // OpenAI /v1 servers (HoloLlama, HoloServe) read max_tokens; Ollama's `options` is gone.
+      expect(body.max_tokens).toBe(512);
+      expect(body.options).toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Edge cases
   // ---------------------------------------------------------------------------
 

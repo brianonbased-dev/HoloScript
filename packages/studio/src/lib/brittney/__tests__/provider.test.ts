@@ -2,10 +2,12 @@
  * Brittney provider resolution tests — D.025 Phase 3
  *
  * Pins the BRITTNEY_PROVIDER env gate behavior (native-default, gated BYOK —
- * founder directive 2026-06-05, native-inference audit 2026-09-24):
+ * founder directive 2026-06-05, native-inference audit 2026-09-24, D.117 Ollama retired):
  *   - explicit anthropic → AnthropicAdapter with correct model/maxTokens
- *   - explicit ollama → LocalLLMAdapter with Ollama host
- *   - auto-detect order: cloud (hosted bridge) → ollama (sovereign local) → anthropic (gated)
+ *   - explicit ollama → LocalLLMAdapter with Ollama host (someone's own Ollama still works)
+ *   - explicit holollama / holoserve → our own servers via the llm-provider resolver
+ *   - auto-detect order: cloud (hosted bridge) → holoserve → holollama → anthropic (gated)
+ *   - OLLAMA_HOST alone selects nothing; llm-provider says so once per process
  *   - auto-detect: only ANTHROPIC_API_KEY present → refuse unless HOLO_ALLOW_FRONTIER_FALLBACK=1
  *   - neither configured → clear error
  */
@@ -14,35 +16,97 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { FrontierFallbackRefusedError, HostedOllamaRefusedError } from '@holoscript/llm-provider';
 import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '../provider';
 
+/** Every env name the resolution reads, so a developer's shell cannot leak into a test. */
+const PROVIDER_ENV = [
+  'BRITTNEY_PROVIDER',
+  'BRITTNEY_MODEL',
+  'BRITTNEY_MAX_TOKENS',
+  'ANTHROPIC_API_KEY',
+  'OLLAMA_HOST',
+  'OLLAMA_BASE_URL',
+  'OLLAMA_URL',
+  'HOLOLLAMA_URL',
+  'HOLOLLAMA_ENDPOINT',
+  'HOLOSERVE_URL',
+  'HOLOSERVE_ENDPOINT',
+  'HOLOSERVE_MODEL',
+  'HOLOSERVE_PARITY_PINS',
+  'HOLOSERVE_PARITY_REGISTRY',
+  'HOLO_LLM_PROVIDER',
+  'HOLO_LLM_MODEL',
+  'HOLO_LLM_MAX_TOKENS',
+  'HOLO_INFERENCE_PROXY_KEY_NAME',
+  'BRITTNEY_SERVICE_URL',
+  'HOLO_ALLOW_FRONTIER_FALLBACK',
+  'HOLO_ALLOW_HOSTED_OLLAMA',
+];
+
+const JETSON_HOLOLLAMA = 'http://192.168.0.119:18080';
+const LAPTOP_HOLOSERVE = 'http://127.0.0.1:8099';
+
+/** Stub fetch with a chat reply in both the OpenAI-compat and the Ollama /api/chat shape. */
+function stubChatFetch() {
+  const fetchMock = vi.fn(async (_url: string, _init?: unknown) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }],
+      message: { content: 'ok' },
+    }),
+    text: async () => '',
+  }));
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
 describe('resolveBrittneyProvider', () => {
   const origEnv = { ...process.env };
 
   beforeEach(() => {
     process.env = { ...origEnv };
-    delete process.env.BRITTNEY_PROVIDER;
-    delete process.env.BRITTNEY_MODEL;
-    delete process.env.BRITTNEY_MAX_TOKENS;
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.OLLAMA_HOST;
-    delete process.env.OLLAMA_BASE_URL;
-    delete process.env.BRITTNEY_SERVICE_URL;
-    delete process.env.HOLO_ALLOW_FRONTIER_FALLBACK;
-    delete process.env.HOLO_ALLOW_HOSTED_OLLAMA;
+    for (const k of PROVIDER_ENV) delete process.env[k];
   });
 
   afterEach(() => {
     process.env = { ...origEnv };
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('refuses a hosted Ollama (ollama.com) as "sovereign local", auto or explicit', () => {
+  // llm-provider logs the retirement notice once per process. vi.resetModules() re-evaluates
+  // it (a workspace package, so vitest inlines it; checked), so this test's position is free.
+  it('OLLAMA_HOST alone no longer auto-selects a local model, and the notice says so once', async () => {
+    vi.resetModules();
+    const fresh = await import('../provider');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.OLLAMA_HOST = 'http://192.168.1.100:11434';
+    expect(() => fresh.resolveBrittneyProvider()).toThrow(/No Brittney provider configured/);
+    const retired = () =>
+      warn.mock.calls.map((c) => String(c[0])).filter((line) => line.includes('OLLAMA RETIRED'));
+    expect(retired()).toHaveLength(1);
+    expect(retired()[0]).toContain('OLLAMA RETIRED (caller studio brittney provider)');
+    expect(retired()[0]).toContain('HOLOLLAMA_URL');
+
+    // OLLAMA_BASE_URL alone selects nothing either, and the notice is not repeated.
+    delete process.env.OLLAMA_HOST;
+    process.env.OLLAMA_BASE_URL = 'http://custom-host:11434';
+    expect(() => fresh.resolveBrittneyProvider()).toThrow(/No Brittney provider configured/);
+    expect(retired()).toHaveLength(1);
+  }, 30_000);
+
+  it('explicit ollama refuses a hosted Ollama (ollama.com); auto ignores OLLAMA_HOST', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     process.env.OLLAMA_HOST = 'https://ollama.com';
-    expect(() => resolveBrittneyProvider()).toThrow(HostedOllamaRefusedError);
+    // Auto never looks at Ollama any more, so it neither uses nor refuses the hosted one.
+    expect(() => resolveBrittneyProvider()).toThrow(/No Brittney provider configured/);
+    const lines = () => warn.mock.calls.map((c) => String(c[0]));
+    expect(lines().some((line) => line.includes('HOSTED OLLAMA'))).toBe(false);
+
     process.env.BRITTNEY_PROVIDER = 'ollama';
     expect(() => resolveBrittneyProvider()).toThrow(HostedOllamaRefusedError);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('HOSTED OLLAMA REFUSED'));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('studio brittney provider'));
+    const refused = lines().find((line) => line.includes('HOSTED OLLAMA REFUSED'));
+    expect(refused).toBeDefined();
+    expect(refused).toContain('studio brittney provider');
   });
 
   it('refuses a cloud-tagged BRITTNEY_MODEL even on a local Ollama', () => {
@@ -53,8 +117,9 @@ describe('resolveBrittneyProvider', () => {
     expect(() => resolveBrittneyProvider()).toThrow(/cloud model/);
   });
 
-  it('uses a hosted Ollama only with HOLO_ALLOW_HOSTED_OLLAMA=1, and says so', () => {
+  it('explicit ollama uses a hosted Ollama only with HOLO_ALLOW_HOSTED_OLLAMA=1, and says so', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.BRITTNEY_PROVIDER = 'ollama';
     process.env.OLLAMA_HOST = 'https://ollama.com';
     process.env.HOLO_ALLOW_HOSTED_OLLAMA = '1';
     expect(resolveBrittneyProvider().providerName).toBe('ollama');
@@ -133,14 +198,80 @@ describe('resolveBrittneyProvider', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('resolveBrittneyProvider'));
   });
 
-  it('auto-detects ollama when only OLLAMA_HOST present', () => {
-    process.env.OLLAMA_HOST = 'http://192.168.1.100:11434';
+  it('auto-detects holollama when only HOLOLLAMA_URL is present', () => {
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
     const result = resolveBrittneyProvider();
-    expect(result.providerName).toBe('ollama');
+    expect(result.providerName).toBe('holollama');
+    expect(result.provider.name).toBe('local-llm');
+    expect(result.model).toBe('qwen3:4b-instruct-2507');
+    expect(result.maxTokens).toBe(4096);
+  });
+
+  it('talks to HoloLlama over its OpenAI-compatible chat path, not Ollama /api/chat', async () => {
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    const fetchMock = stubChatFetch();
+    const result = resolveBrittneyProvider();
+    const reply = await result.provider.complete(
+      { messages: [{ role: 'user', content: 'hi' }] },
+      result.model
+    );
+    expect(reply.content).toBe('ok');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${JETSON_HOLOLLAMA}/v1/chat/completions`);
+  });
+
+  it('honors BRITTNEY_MAX_TOKENS on our own local server', () => {
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    process.env.BRITTNEY_MAX_TOKENS = '2048';
+    expect(resolveBrittneyProvider().maxTokens).toBe(2048);
+  });
+
+  it('prefers HOLOSERVE_URL over HOLOLLAMA_URL when both are set (auto-detect)', () => {
+    process.env.HOLOSERVE_URL = LAPTOP_HOLOSERVE;
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    const result = resolveBrittneyProvider();
+    expect(result.providerName).toBe('holoserve');
+    expect(result.provider.name).toBe('local-llm');
+    expect(result.model).toBe('holorunner-s0');
+  });
+
+  it('explicit BRITTNEY_PROVIDER=holollama resolves HoloLlama, even with HoloServe and a key set', () => {
+    process.env.BRITTNEY_PROVIDER = 'holollama';
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    process.env.HOLOSERVE_URL = LAPTOP_HOLOSERVE;
+    process.env.ANTHROPIC_API_KEY = 'sk-still-present';
+    const result = resolveBrittneyProvider();
+    expect(result.providerName).toBe('holollama');
+    expect(result.model).toBe('qwen3:4b-instruct-2507');
+    expect(result.maxTokens).toBe(4096);
+  });
+
+  it('explicit BRITTNEY_PROVIDER=holoserve resolves HoloServe, even with HOLOLLAMA_URL set', () => {
+    process.env.BRITTNEY_PROVIDER = 'holoserve';
+    process.env.HOLOSERVE_URL = LAPTOP_HOLOSERVE;
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    const result = resolveBrittneyProvider();
+    expect(result.providerName).toBe('holoserve');
+    expect(result.model).toBe('holorunner-s0');
+  });
+
+  it('explicit holoserve without HOLOSERVE_URL uses the default local HoloServe port', async () => {
+    process.env.BRITTNEY_PROVIDER = 'holoserve';
+    const fetchMock = stubChatFetch();
+    const result = resolveBrittneyProvider();
+    expect(result.providerName).toBe('holoserve');
+    await result.provider.complete({ messages: [{ role: 'user', content: 'hi' }] }, result.model);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://127.0.0.1:8099/v1/chat/completions');
+  });
+
+  it('explicit holollama without HOLOLLAMA_URL still resolves HoloLlama', () => {
+    process.env.BRITTNEY_PROVIDER = 'holollama';
+    expect(resolveBrittneyProvider().providerName).toBe('holollama');
   });
 
   it('throws clear error when no provider is configured', () => {
     expect(() => resolveBrittneyProvider()).toThrow(/No Brittney provider configured/);
+    expect(() => resolveBrittneyProvider()).toThrow(/HOLOLLAMA_URL/);
   });
 
   it('throws clear error when BRITTNEY_PROVIDER=anthropic but no API key', () => {
@@ -148,12 +279,12 @@ describe('resolveBrittneyProvider', () => {
     expect(() => resolveBrittneyProvider()).toThrow(/ANTHROPIC_API_KEY/);
   });
 
-  it('prefers ollama (sovereign) over anthropic (BYOK) when both configured (auto-detect)', () => {
+  it('prefers holollama (sovereign) over anthropic (BYOK) when both configured (auto-detect)', () => {
     // Native-default: a sovereign backend wins over the BYOK frontier fallback.
     process.env.ANTHROPIC_API_KEY = 'sk-test';
-    process.env.OLLAMA_HOST = 'http://host.docker.internal:11434';
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
     const result = resolveBrittneyProvider();
-    expect(result.providerName).toBe('ollama');
+    expect(result.providerName).toBe('holollama');
   });
 
   it('prefers cloud (hosted bridge, not sovereign) over anthropic when both configured (auto-detect)', () => {
@@ -163,9 +294,9 @@ describe('resolveBrittneyProvider', () => {
     expect(result.providerName).toBe('cloud');
   });
 
-  it('prefers cloud (hosted bridge) over ollama (sovereign local) when both configured (auto-detect)', () => {
+  it('prefers cloud (hosted bridge) over holollama (sovereign local) when both configured (auto-detect)', () => {
     process.env.BRITTNEY_SERVICE_URL = 'https://brittney.holoscript.net';
-    process.env.OLLAMA_HOST = 'http://host.docker.internal:11434';
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
     const result = resolveBrittneyProvider();
     expect(result.providerName).toBe('cloud');
   });
@@ -178,10 +309,14 @@ describe('resolveBrittneyProvider', () => {
     expect(result.providerName).toBe('ollama');
   });
 
-  it('recognizes OLLAMA_BASE_URL as alternative to OLLAMA_HOST', () => {
+  it('explicit ollama reads OLLAMA_BASE_URL as an alternative to OLLAMA_HOST', async () => {
+    process.env.BRITTNEY_PROVIDER = 'ollama';
     process.env.OLLAMA_BASE_URL = 'http://custom-host:11434';
+    const fetchMock = stubChatFetch();
     const result = resolveBrittneyProvider();
     expect(result.providerName).toBe('ollama');
+    await result.provider.complete({ messages: [{ role: 'user', content: 'hi' }] }, result.model);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://custom-host:11434/api/chat');
   });
 });
 
@@ -191,19 +326,16 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
   beforeEach(() => {
     process.env = { ...origEnv };
     for (const k of [
-      'BRITTNEY_PROVIDER',
-      'BRITTNEY_MODEL',
-      'BRITTNEY_MAX_TOKENS',
-      'ANTHROPIC_API_KEY',
-      'OLLAMA_HOST',
-      'OLLAMA_BASE_URL',
-      'BRITTNEY_SERVICE_URL',
-      'HOLO_ALLOW_FRONTIER_FALLBACK',
+      ...PROVIDER_ENV,
+      'BRITTNEY_ALLOW_FRONTIER_FALLBACK',
       'BRITTNEY_FLEET_MODEL',
       'FLEET_INFERENCE_KEY',
       'BRITTNEY_FLEET_ORCH_URL',
       'BRITTNEY_FLEET_RESOLVE_KEY',
       'HOLOSCRIPT_API_KEY',
+      'FLEET_SERVERLESS_ENDPOINT',
+      'VAST_QWEN_ENDPOINT_NAME',
+      'VAST_API_KEY',
     ])
       delete process.env[k];
   });
@@ -236,6 +368,24 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/warming/i);
   });
 
+  it('a cold fleet falls back to our own HoloLlama server, not the Anthropic key', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    process.env.ANTHROPIC_API_KEY = 'sk-byok-fallback';
+    stubResolve({ status: 'cold' });
+    const result = await resolveBrittneyProviderAsync();
+    expect(result.providerName).toBe('holollama');
+    expect(result.model).toBe('qwen3:4b-instruct-2507');
+  });
+
+  it('a cold fleet no longer lands on Ollama: OLLAMA_HOST alone still means warming', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    process.env.OLLAMA_HOST = 'http://localhost:11434';
+    stubResolve({ status: 'cold' });
+    await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/warming/i);
+  });
+
   it('restores the frontier fallback when BRITTNEY_ALLOW_FRONTIER_FALLBACK=1', async () => {
     process.env.BRITTNEY_PROVIDER = 'fleet';
     process.env.ANTHROPIC_API_KEY = 'sk-byok-fallback';
@@ -257,6 +407,17 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     stubResolve({ status: 'warm', url: 'http://1.2.3.4:40188' });
     const result = await resolveBrittneyProviderAsync();
     expect(result.providerName).toBe('fleet');
+  });
+
+  it('lands on HoloLlama without any network call (no Ollama model discovery)', async () => {
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    const fetchMock = vi.fn(async () => {
+      throw new Error('no network call expected while resolving');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await resolveBrittneyProviderAsync();
+    expect(result.providerName).toBe('holollama');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('delegates to sync resolution and refuses a silent anthropic fallback', async () => {

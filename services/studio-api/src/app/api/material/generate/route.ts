@@ -1,15 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { checkHostedOllama } from '@holoscript/llm-provider';
+import { NextResponse } from 'next/server';
+import {
+  resolveOwnedLocalProvider,
+  type ResolvedSovereignProvider,
+} from '@holoscript/llm-provider';
 
-const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
-// default model: see @holoscript/llm-provider model-policy SSOT
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'qwen3.5:4b';
+const CALLER = 'studio-api /api/material/generate';
+
+const NO_LOCAL_MODEL =
+  'Material generation runs on our own local model server, and none is configured here. ' +
+  'Set HOLOLLAMA_URL (HoloLlama) or HOLOSERVE_URL (HoloServe).';
 
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }
- *  Returns: { glsl: string; traits: string; error?: string }
+ *  Returns: { glsl: string; traits: string; raw: string; error?: string }
+ *
+ *  Runs on our own local model server: HoloServe when HOLOSERVE_URL is set, else HoloLlama
+ *  when HOLOLLAMA_URL is set (D.117: HoloLlama replaced Ollama; OLLAMA_* is ignored here).
+ *  With neither set it answers 503; when the server fails or does not answer in 30 s, 502.
+ *  `body.model` is still accepted but no longer selects the model: HoloLlama answers with
+ *  the model it loaded, and HoloServe refuses names it does not serve.
  */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   let body: { prompt?: string; baseColor?: string; model?: string };
 
   try {
@@ -18,8 +29,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { prompt, baseColor = '#ffffff', model = DEFAULT_MODEL } = body;
-  if (!prompt) {
+  const { prompt, baseColor = '#ffffff' } = body;
+  if (typeof prompt !== 'string' || !prompt) {
     return NextResponse.json({ error: '`prompt` is required' }, { status: 400 });
   }
 
@@ -47,57 +58,51 @@ void main() {
 ---TRAITS---
 @material emissive:"#ff6600" emissiveIntensity:0.8 metalness:0.0 roughness:0.5`;
 
-  // `model` comes from the request body, so a cloud-tagged name is refused as well as a
-  // public host. This route has no other provider to fall back to.
-  const hostedOllama = checkHostedOllama(OLLAMA_BASE, {
-    model,
-    caller: 'studio-api /api/material/generate',
-  });
-  if (hostedOllama.refused) {
+  let local: ResolvedSovereignProvider | null;
+  try {
+    local = resolveOwnedLocalProvider({ caller: CALLER, timeoutMs: 30_000 });
+  } catch (err) {
+    // e.g. the configured model is parity-pinned to HoloServe and needs the async resolver.
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      {
-        error:
-          'Material generation runs only on a local or LAN Ollama. This server points at a ' +
-          'hosted one (or the model is an Ollama cloud model), and hosted Ollama is off ' +
-          '(HOLO_ALLOW_HOSTED_OLLAMA is not 1).',
-        code: hostedOllama.refused.code,
-      },
+      { error: `The local model server is configured but cannot be used here: ${message}` },
       { status: 503 }
     );
   }
+  if (!local) {
+    return NextResponse.json({ error: NO_LOCAL_MODEL }, { status: 503 });
+  }
 
+  let raw: string;
   try {
-    const ollamaRes = await fetch(`${OLLAMA_BASE}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        prompt: `${systemPrompt}\n\nUser request: ${prompt}`,
-        stream: false,
-        options: { temperature: 0.7, num_predict: 512 },
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
-
-    if (!ollamaRes.ok) {
-      return NextResponse.json({ error: `Ollama returned ${ollamaRes.status}` }, { status: 502 });
-    }
-
-    const data = (await ollamaRes.json()) as { response?: string; error?: string };
-    const raw = data.response ?? '';
-
-    // Split on the separator
-    const parts = raw.split('---TRAITS---');
-    const glsl = (parts[0] ?? '').trim();
-    const traits = (parts[1] ?? '').trim();
-
-    if (!glsl.includes('void main')) {
-      return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
-    }
-
-    return NextResponse.json({ glsl, traits, raw });
+    const result = await local.provider.complete(
+      {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: 512,
+        temperature: 0.7,
+      },
+      local.model
+    );
+    raw = result.content ?? '';
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: `The local model server (${local.providerName}) did not answer: ${message}` },
+      { status: 502 }
+    );
   }
+
+  // Split on the separator
+  const parts = raw.split('---TRAITS---');
+  const glsl = (parts[0] ?? '').trim();
+  const traits = (parts[1] ?? '').trim();
+
+  if (!glsl.includes('void main')) {
+    return NextResponse.json({ error: 'Model did not return valid GLSL', raw }, { status: 422 });
+  }
+
+  return NextResponse.json({ glsl, traits, raw });
 }

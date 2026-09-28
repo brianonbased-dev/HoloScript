@@ -505,7 +505,8 @@ async function createDaemonLLMProvider(
     };
   }
 
-  // ollama (optional local fallback — requires OLLAMA_BASE_URL or OLLAMA_URL)
+  // ollama: only when named with --provider ollama (D.117 retired it from automatic choice;
+  // --provider sovereign picks HoloServe/HoloLlama). Requires OLLAMA_BASE_URL or OLLAMA_URL.
   const ollamaUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_URL;
   if (!ollamaUrl) {
     throw new Error(

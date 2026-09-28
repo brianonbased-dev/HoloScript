@@ -103,7 +103,13 @@ export function inferBrainCacheCapability(
 
   if (provider === 'anthropic') return 'provider-prompt-cache';
   if (provider === 'cloud') return 'service-managed-cache';
-  if (provider === 'ollama' || modelName.includes('local') || modelName.includes('qwen')) {
+  // holollama is llama-server, which keeps a prompt-prefix cache (as Ollama does).
+  if (
+    provider === 'holollama' ||
+    provider === 'ollama' ||
+    modelName.includes('local') ||
+    modelName.includes('qwen')
+  ) {
     return 'local-prefix-cache';
   }
   return 'none';
