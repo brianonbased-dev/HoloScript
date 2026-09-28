@@ -1219,6 +1219,18 @@ impl<'a> UaalEmitter<'a> {
             }
             return self.emit_aggregate_move(call);
         }
+        if matches!(
+            callee.as_str(),
+            "isKnown" | "unknownReason" | "known" | "unknown"
+        ) {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-008",
+                "uaal.uncertain.v1",
+                format!(
+                    "`{callee}(...)` needs an uncertainty tag the UAAL VM does not carry yet; the native backend runs it"
+                ),
+            ));
+        }
         if callee == "buffer" {
             return Err(Self::target_capability_error(
                 "HS-UAAL-CAP-004",
@@ -4093,6 +4105,22 @@ function main(): i32 {
         .expect_err("a recursive call whose result slot cannot be restored must fail closed");
 
         assert!(error.message.contains("HS-UAAL-CAP-007"), "{}", error.message);
+    }
+
+    #[test]
+    fn uncertainty_operations_are_a_named_capability_refusal() {
+        let error = compile_source_to_uaal(
+            r#"struct Snapshot { @unknown count: i32 }
+function gate(snapshot: &Snapshot): i32 {
+  if (isKnown(snapshot.count)) {
+    return load(snapshot.count) ?? 0
+  }
+  return 1
+}"#,
+        )
+        .expect_err("UAAL carries no uncertainty tag yet");
+        assert!(error.message.contains("HS-UAAL-CAP-008"), "{}", error.message);
+        assert!(error.message.contains("uaal.uncertain.v1"), "{}", error.message);
     }
 
     #[test]

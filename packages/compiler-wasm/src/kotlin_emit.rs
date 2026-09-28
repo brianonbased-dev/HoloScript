@@ -173,27 +173,57 @@ fn check_unknown_struct_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic
             continue;
         };
         for statement in &function.body {
-            if let Some((field, loc)) =
+            if let Some((kind, field, loc)) =
                 first_unguarded_unknown_struct_field_read(statement, &unknown_fields, false)
             {
-                return Err(semantic_error(
-                    format!(
-                        "function `{}` reads `@unknown` struct field `{}` without a fallback — write `.{} ?? <default>`. `Uncertain<T>` is not assignable to `T`, so a bare read cannot become a raw value.",
-                        function.name, field, field
+                let message = match kind {
+                    UnknownRead::Bare => format!(
+                        "[{}] function `{}` reads `@unknown` struct field `{}` without a fallback — write `load(record.{}) ?? <fallback>`, or ask `isKnown(record.{})` first. `Uncertain<T>` is not assignable to `T`, so a bare read cannot become a raw value.",
+                        crate::semantic_types::UNKNOWN_BARE_READ,
+                        function.name,
+                        field,
+                        field,
+                        field
                     ),
-                    loc,
-                ));
+                    UnknownRead::BareFallback => format!(
+                        "[{}] function `{}` supplies a fallback for `@unknown` struct field `{}` without `load` — write `load(record.{}) ?? <fallback>`, the one written form (the native backend refuses the bare form).",
+                        crate::semantic_types::UNKNOWN_FALLBACK_FORM,
+                        function.name,
+                        field,
+                        field
+                    ),
+                };
+                return Err(semantic_error(message, loc));
             }
         }
     }
     Ok(())
 }
 
+/// How an `@unknown` struct field was read without its guard.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UnknownRead {
+    /// `record.field` used as a value.
+    Bare,
+    /// `record.field ?? fallback`: guarded, but not in the one written form `load(record.field)`.
+    BareFallback,
+}
+
+/// `isKnown(record.field)` and `unknownReason(record.field)` read the tag and the reason code,
+/// never the value, so their argument is not an unguarded read.
+fn is_tag_read(call: &crate::ast::CallExpression) -> bool {
+    matches!(
+        call.callee.as_ref(),
+        AstNode::Identifier(callee) if matches!(callee.name.as_str(), "isKnown" | "unknownReason")
+    ) && call.arguments.len() == 1
+        && matches!(call.arguments[0], AstNode::MemberExpression(_))
+}
+
 fn first_unguarded_unknown_struct_field_read<'a>(
     node: &'a AstNode,
     unknown_fields: &HashSet<&str>,
     guarded: bool,
-) -> Option<(String, &'a Option<crate::ast::Location>)> {
+) -> Option<(UnknownRead, String, &'a Option<crate::ast::Location>)> {
     match node {
         AstNode::MemberExpression(member) => {
             let direct_read = if !guarded && !member.computed {
@@ -201,7 +231,11 @@ fn first_unguarded_unknown_struct_field_read<'a>(
                     AstNode::Identifier(identifier)
                         if unknown_fields.contains(identifier.name.as_str()) =>
                     {
-                        Some((identifier.name.clone(), &member.loc))
+                        Some((
+                            UnknownRead::Bare,
+                            identifier.name.clone(),
+                            crate::semantic_types::first_location(&member.object),
+                        ))
                     }
                     _ => None,
                 }
@@ -227,6 +261,19 @@ fn first_unguarded_unknown_struct_field_read<'a>(
                 })
         }
         AstNode::BinaryExpression(binary) => {
+            if binary.operator == "??" {
+                if let AstNode::MemberExpression(member) = binary.left.as_ref() {
+                    if let AstNode::Identifier(identifier) = member.property.as_ref() {
+                        if !member.computed && unknown_fields.contains(identifier.name.as_str()) {
+                            return Some((
+                                UnknownRead::BareFallback,
+                                identifier.name.clone(),
+                                crate::semantic_types::first_location(&member.object),
+                            ));
+                        }
+                    }
+                }
+            }
             let left_guarded = guarded || binary.operator == "??";
             first_unguarded_unknown_struct_field_read(&binary.left, unknown_fields, left_guarded)
                 .or_else(|| {
@@ -240,6 +287,7 @@ fn first_unguarded_unknown_struct_field_read<'a>(
         AstNode::UnaryExpression(unary) => {
             first_unguarded_unknown_struct_field_read(&unary.argument, unknown_fields, guarded)
         }
+        AstNode::CallExpression(call) if is_tag_read(call) => None,
         AstNode::CallExpression(call) => {
             first_unguarded_unknown_struct_field_read(&call.callee, unknown_fields, guarded)
                 .or_else(|| {
@@ -2808,7 +2856,18 @@ fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, Kotlin
                         "binary operator `??` requires an `@unknown` field on its left in the thin Kotlin bridge",
                     ));
                 };
-                let left = emit_expr(&b.left, context)?;
+                // `load(record.field)` is the carrier itself in Kotlin: the field already holds an
+                // `Uncertain<T>`, so the one written form lowers to the same `orElse`.
+                let left_node = match b.left.as_ref() {
+                    AstNode::CallExpression(call)
+                        if matches!(call.callee.as_ref(), AstNode::Identifier(id) if id.name == "load")
+                            && call.arguments.len() == 1 =>
+                    {
+                        &call.arguments[0]
+                    }
+                    other => other,
+                };
+                let left = emit_expr(left_node, context)?;
                 let fallback = emit_unknown_fallback(&b.right, scalar, context)?;
                 return Ok(format!("({left}).orElse {{ {fallback} }}"));
             }
@@ -2872,6 +2931,14 @@ fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, Kotlin
                         .map(|arg| emit_expr(arg, context))
                         .collect::<Result<Vec<_>, _>>()?
                 };
+                if id.name == "isKnown" && args.len() == 1 {
+                    return Ok(format!("(({}) is Uncertain.Known)", args[0]));
+                }
+                if id.name == "unknownReason" {
+                    return Err(KotlinEmitError::new(
+                        "`unknownReason(...)` has no Kotlin bridge yet: the native reason is an i32 code, while the Kotlin `Uncertain.Unknown` carries a text reason; refusing to guess the mapping",
+                    ));
+                }
                 if let Some(builtin) = kotlin_builtin(&id.name) {
                     return emit_builtin_call(builtin, &args);
                 }
@@ -4054,10 +4121,10 @@ function mk() {
 }
 function resolve() {
   let evidence = Evidence(unknown("missing"), known(true), known(7), known(9))
-  let ready = evidence.ready ?? false
-  let count = evidence.count ?? 0
-  let epoch = evidence.epoch ?? 0
-  return evidence.payload ?? "fallback"
+  let ready = load(evidence.ready) ?? false
+  let count = load(evidence.count) ?? 0
+  let epoch = load(evidence.epoch) ?? 0
+  return load(evidence.payload) ?? "fallback"
 }"#;
         let out = kotlin(src);
         assert!(out.contains("sealed interface Uncertain<out T>"), "{out}");
@@ -4080,7 +4147,7 @@ function resolve() {
     fn explicit_struct_parameter_preserves_unknown_carrier_owner_type() {
         let src = r#"struct ClassifiedIntent { @unknown inferred: string }
 function resolveIntent(intent: ClassifiedIntent): string {
-  return intent.inferred ?? "deny"
+  return load(intent.inferred) ?? "deny"
 }"#;
         let out = kotlin(src);
         assert!(
@@ -4137,7 +4204,7 @@ function unsafeConstruct() {
 }
 function unsafeFallback() {
   let scan = Scan(unknown("primary_missing"), unknown("secondary_missing"))
-  return scan.primary ?? scan.secondary
+  return load(scan.primary) ?? scan.secondary
 }"#;
         let error = compile_source_to_kotlin(src, "  ")
             .expect_err("an unknown value cannot launder itself through the fallback branch");
@@ -4145,6 +4212,68 @@ function unsafeFallback() {
             error
                 .to_string()
                 .contains("reads `@unknown` struct field `secondary`"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn tag_reads_of_unknown_struct_fields_are_accepted() {
+        // `isKnown` and `unknownReason` read the tag and the reason code, never the value: the
+        // native backend runs this program (exit 5 in examples/native).
+        let src = r#"struct Snapshot { @unknown count: i32 }
+struct Receipt { reason: i32 }
+function gate(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
+  if (isKnown(snapshot.count)) {
+    return load(snapshot.count) ?? 0
+  }
+  store(receipt.reason, unknownReason(snapshot.count))
+  return 0
+}"#;
+        let ast = crate::parse_ast(src).expect("fixture should parse");
+        check_semantics(&ast).unwrap_or_else(|error| panic!("{}", error.message));
+    }
+
+    #[test]
+    fn a_bare_fallback_on_an_unknown_struct_field_names_the_load_form() {
+        let src = "struct Scan { @unknown payload: string }\nfunction read(scan: Scan): string {\n  return scan.payload ?? \"none\"\n}";
+        let ast = crate::parse_ast(src).expect("fixture should parse");
+        let error = check_semantics(&ast).expect_err("the bare form is refused");
+        assert!(error.message.contains("HS-UNKNOWN-002"), "{}", error.message);
+        assert!(
+            error.message.contains("write `load(record.payload) ?? <fallback>`"),
+            "{}",
+            error.message
+        );
+        assert_eq!((error.line, error.column), (3, 10), "{}", error.message);
+
+        let bare = crate::parse_ast(
+            "struct Scan { @unknown payload: string }\nfunction read(scan: Scan): string {\n  return scan.payload\n}",
+        )
+        .expect("fixture should parse");
+        let error = check_semantics(&bare).expect_err("a bare read is refused");
+        assert!(error.message.contains("HS-UNKNOWN-001"), "{}", error.message);
+        assert_eq!((error.line, error.column), (3, 10), "{}", error.message);
+    }
+
+    #[test]
+    fn is_known_lowers_to_a_type_test_and_unknown_reason_is_refused_on_kotlin() {
+        let src = r#"struct Evidence { @unknown ready: bool }
+function resolve() {
+  let evidence = Evidence(known(true))
+  return isKnown(evidence.ready)
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("((evidence.ready) is Uncertain.Known)"), "{out}");
+
+        let reason = r#"struct Evidence { @unknown ready: bool }
+function resolve() {
+  let evidence = Evidence(unknown("missing"))
+  return unknownReason(evidence.ready)
+}"#;
+        let error = compile_source_to_kotlin(reason, "  ")
+            .expect_err("the reason code has no Kotlin mapping yet");
+        assert!(
+            error.to_string().contains("`unknownReason(...)` has no Kotlin bridge yet"),
             "{error}"
         );
     }
