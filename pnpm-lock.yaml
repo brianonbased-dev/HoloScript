@@ -840,6 +840,9 @@ importers:
       '@holoscript/platform':
         specifier: workspace:^
         version: link:../platform
+      '@holoscript/wasm':
+        specifier: workspace:^
+        version: link:../compiler-wasm
       '@mediapipe/tasks-vision':
         specifier: 0.10.17
         version: 0.10.17
@@ -4345,6 +4348,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@holoscript/llm-provider':
+        specifier: workspace:*
+        version: link:../../packages/llm-provider
       '@holoscript/mcp-server':
         specifier: workspace:*
         version: link:../../packages/mcp-server

@@ -139,6 +139,46 @@ describe('HoloScript Spec v0.1 fenced examples', () => {
     expect(fences.length, 'the spec must contain fenced examples').toBeGreaterThan(0);
     expect(failures, failures.join('\n\n')).toEqual([]);
   });
+
+  it('rejects the zone and spatial .hsplus fences and keeps a zone inside a .holo composition', () => {
+    const zone = fences.find(
+      (fence) => fence.lang === 'hsplus' && fence.reject && fence.source.includes('zone SafeArea')
+    );
+    const spatial = fences.find(
+      (fence) =>
+        fence.lang === 'hsplus' && fence.reject && fence.source.includes('spatial ComponentName')
+    );
+    const compositionZone = fences.find(
+      (fence) => fence.lang === 'holo' && !fence.reject && fence.source.includes('zone "SafeArea"')
+    );
+    expect(zone).toBeDefined();
+    expect(spatial).toBeDefined();
+    expect(compositionZone).toBeDefined();
+
+    const zoneResult = parseHsplus(zone!.source);
+    expect(zoneResult.success).toBe(false);
+    expect(zoneResult.errors).toHaveLength(1);
+    expect(zoneResult.errors[0]?.code).toBe('HSP001');
+    expect(zoneResult.errors[0]?.message).toBe(
+      'HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.'
+    );
+    expect(zoneResult.errors[0]?.line).toBe(1);
+    expect(zoneResult.errors[0]?.column).toBe(1);
+
+    const spatialResult = parseHsplus(spatial!.source);
+    expect(spatialResult.success).toBe(false);
+    expect(spatialResult.errors).toHaveLength(1);
+    expect(spatialResult.errors[0]?.code).toBe('HSP001');
+    expect(spatialResult.errors[0]?.message).toBe(
+      'HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.'
+    );
+    expect(spatialResult.errors[0]?.line).toBe(1);
+    expect(spatialResult.errors[0]?.column).toBe(1);
+
+    const kept = parseHolo(compositionZone!.source);
+    expect(kept.success).toBe(true);
+    expect(kept.ast?.zones[0]?.name).toBe('SafeArea');
+  });
 });
 
 describe('fence extractor rejects bad markdown', () => {
@@ -165,6 +205,24 @@ describe('fence extractor rejects bad markdown', () => {
     expect(
       extraErrors.some((error) => error.includes('line 2') && error.includes('"holo reject extra"'))
     ).toBe(true);
+  });
+
+  it('names the Rust return-type error for the typed hsplus reject fence', () => {
+    const markdown = readFileSync(specPath, 'utf8');
+    const fence = extractFences(markdown).fences.find(
+      (candidate) =>
+        candidate.lang === 'hsplus' &&
+        candidate.reject &&
+        candidate.source.includes('function add(left: i32, right: i64): i64') &&
+        candidate.source.includes('return left')
+    );
+    expect(fence).toBeDefined();
+    const result = parseHsplus(fence?.source ?? '');
+    expect(result.success).toBe(false);
+    const message = result.errors.map((error) => error.message).join('\n');
+    expect(message).toContain('HS-TYPE-RETURN-001');
+    expect(message).toContain('expected `i64`, found `i32`');
+    expect(message).not.toContain('Unexpected token COLON');
   });
 
   it('accepts a well-formed fence', () => {

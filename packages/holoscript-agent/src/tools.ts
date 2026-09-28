@@ -29,7 +29,12 @@ import { readFile, writeFile, readdir, mkdir, stat } from 'node:fs/promises';
 import { resolve, dirname, delimiter, isAbsolute, sep } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import type { ToolSpec, ToolUseBlock, ToolResultBlock } from '@holoscript/llm-provider';
+import {
+  checkHostedOllama,
+  type ToolSpec,
+  type ToolUseBlock,
+  type ToolResultBlock,
+} from '@holoscript/llm-provider';
 
 // ---------------------------------------------------------------------------
 // Sandbox roots — keep narrow. Add only when a task needs more.
@@ -863,6 +868,15 @@ export async function runTool(
           use.id,
           'vision_analyze: HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL is not set — configure it to point to your local Ollama instance'
         );
+      }
+      // The model name comes from the tool call: a `:cloud` one would send these local image
+      // bytes to ollama.com through the local server. Same for a hosted base URL.
+      const hostedOllama = checkHostedOllama(ollamaBase, {
+        model,
+        caller: 'holoscript-agent vision_analyze',
+      });
+      if (hostedOllama.refused) {
+        return errResult(use.id, `vision_analyze: ${hostedOllama.refused.message}`);
       }
       const MAX_IMAGE_BYTES = 512_000; // ~512KB — larger images must be downscaled before passing to vision_analyze
       const TIMEOUT_MS = 120_000;

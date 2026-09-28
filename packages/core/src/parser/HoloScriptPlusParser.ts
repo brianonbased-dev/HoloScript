@@ -20,7 +20,7 @@ import type {
   HSPlusTraitDirective,
   HSPlusTraitSumDirective,
 } from '../types/AdvancedTypeSystem';
-import type { HSPlusNode, HSPlusStructField } from '../types/HoloScriptPlus';
+import type { HSPlusFieldMark, HSPlusNode, HSPlusStructField } from '../types/HoloScriptPlus';
 import type { VRTraitName } from '../types';
 import {
   isCognitiveVerb,
@@ -38,6 +38,7 @@ import type { ReactionCategory } from '../types/base';
 
 export type {
   ASTProgram,
+  HSPlusFieldMark,
   HSPlusNode,
   HSPlusStructField,
   HSPlusDirective,
@@ -333,6 +334,7 @@ type TokenType =
   | 'LESS_EQUAL'
   | 'GREATER_EQUAL'
   | 'OPTIONAL_DOT'
+  | 'LIFETIME'
   | 'EOF';
 
 interface Token {
@@ -348,6 +350,8 @@ interface Token {
 // =============================================================================
 
 import { VR_TRAITS, LIFECYCLE_HOOKS, STRUCTURAL_DIRECTIVES } from '../constants';
+import { analyzeFunctionRegion, scanHsType } from './hsTypeAnnotation';
+import { checkTypedHsFunction, type RustFunctionDiagnostic } from './hsplusRustTypeCheck';
 import { RUNTIME_DIRECTIVE_TRAITS } from '../traits/knownTraitSet';
 import { ChunkDetector } from './ChunkDetector';
 import { ParseCache, globalParseCache } from './ParseCache';
@@ -357,6 +361,7 @@ import {
   createRichError,
   createTraitError,
   findSimilarKeyword,
+  getSourceContext,
   type ErrorCode as RichErrorCode,
 } from './RichErrors';
 import {
@@ -656,6 +661,13 @@ class Lexer {
         }
         this.advance();
         this.tokens.push(this.createToken('PIPE', '|'));
+        continue;
+      }
+
+      // Lifetimes (`'a`) only where the Rust `.hs` lexer accepts them.
+      // A normal quoted string stays a string.
+      if (char === "'" && this.isHsLifetimeStart()) {
+        this.tokens.push(this.readHsLifetime());
         continue;
       }
 
@@ -1083,6 +1095,47 @@ class Lexer {
   private isIdentifierPart(char: string): boolean {
     return this.isIdentifierStart(char) || this.isDigit(char) || char === '-';
   }
+
+  /**
+   * Rust `is_lifetime_start`: an apostrophe after `&`, or inside `<...>`
+   * when the name is followed by `>`.
+   */
+  private isHsLifetimeStart(): boolean {
+    const previous = this.pos > 0 ? this.source[this.pos - 1] : '';
+    if (previous !== '&' && previous !== '<') return false;
+    const next = this.peek(1);
+    if (!this.isLifetimeStartChar(next)) return false;
+    if (previous === '&') return true;
+    let offset = 2;
+    while (this.isLifetimePartChar(this.peek(offset))) offset++;
+    return this.peek(offset) === '>';
+  }
+
+  private isLifetimeStartChar(char: string): boolean {
+    return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char === '_';
+  }
+
+  private isLifetimePartChar(char: string): boolean {
+    return this.isLifetimeStartChar(char) || (char >= '0' && char <= '9');
+  }
+
+  private readHsLifetime(): Token {
+    const startLine = this.line;
+    const startColumn = this.column;
+    const startOffset = this.pos;
+    this.advance(); // apostrophe; the stored name matches the Rust token
+    let value = '';
+    while (this.isLifetimePartChar(this.peek())) {
+      value += this.advance();
+    }
+    return {
+      type: 'LIFETIME',
+      value,
+      line: startLine,
+      column: startColumn,
+      offset: startOffset,
+    };
+  }
 }
 
 // =============================================================================
@@ -1090,6 +1143,17 @@ class Lexer {
 // =============================================================================
 
 export class HoloScriptPlusParser {
+  /**
+   * Plain sentence for one rejected block word. HSP001 is the existing
+   * unexpected-token code. The check runs in parseNode, so it fires at any
+   * depth in a .hsplus file, not only at the top.
+   */
+  private static rejectedBlockMessage(word: 'zone' | 'spatial' | 'layer'): string {
+    if (word === 'zone') {
+      return '"zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.';
+    }
+    return `"${word}" is not part of .hsplus. Use a composition in a .holo file instead.`;
+  }
   private tokens: Token[] = [];
   private pos: number = 0;
   private options: HSPlusParserOptions;
@@ -1596,27 +1660,29 @@ export class HoloScriptPlusParser {
             topLevelNodes.push(brainNode as unknown as HSPlusNode);
           } else {
             const node = this.parseNode();
-            // Attach preceding directives to this node
-            const existingDirectives = node.directives || [];
-            node.directives = [...currentDirectives, ...existingDirectives];
+            if (node) {
+              // Attach preceding directives to this node
+              const existingDirectives = node.directives || [];
+              node.directives = [...currentDirectives, ...existingDirectives];
 
-            // Extract @version and @migrate directives into template properties
-            if (node.type === 'template') {
-              for (const d of currentDirectives) {
-                if (d.type === 'version') {
-                  node.version = d.version;
-                } else if (d.type === 'migrate') {
-                  if (!node.migrations) node.migrations = [];
-                  node.migrations.push({
-                    type: 'Migration',
-                    fromVersion: d.fromVersion,
-                    body: d.body,
-                  });
+              // Extract @version and @migrate directives into template properties
+              if (node.type === 'template') {
+                for (const d of currentDirectives) {
+                  if (d.type === 'version') {
+                    node.version = d.version;
+                  } else if (d.type === 'migrate') {
+                    if (!node.migrations) node.migrations = [];
+                    node.migrations.push({
+                      type: 'Migration',
+                      fromVersion: d.fromVersion,
+                      body: d.body,
+                    });
+                  }
                 }
               }
-            }
 
-            topLevelNodes.push(node);
+              topLevelNodes.push(node);
+            }
           }
         } else {
           // If directives with no node, handle as global or fragment
@@ -1684,7 +1750,7 @@ export class HoloScriptPlusParser {
     } as unknown as HSPlusNode;
   }
 
-  private parseNode(): HSPlusNode {
+  private parseNode(): HSPlusNode | null {
     const startToken = this.current();
 
     const typeToken =
@@ -1698,6 +1764,30 @@ export class HoloScriptPlusParser {
         'ON_EXIT',
       ]) || this.expect('IDENTIFIER', 'Expected element type');
     const type = typeToken.value;
+
+    // zone, spatial, and layer are not part of .hsplus at any depth. parseNode
+    // is also how a nested block is read, so a zone inside an object, a
+    // template, or a .hsplus composition fails here too. A property named
+    // layer (layer: 2) never reaches this check.
+    if (type === 'zone' || type === 'spatial' || type === 'layer') {
+      this.errorAt(startToken, HoloScriptPlusParser.rejectedBlockMessage(type), 'HSP001');
+      this.skipZoneSpatialLayerTail();
+      return null;
+    }
+
+    // `export function` with a type is the same function the Rust checker
+    // accepts. Untyped `export function` stays on the path it uses today.
+    if (type === 'export' && this.check('IDENTIFIER') && this.current().value === 'function') {
+      const functionToken = this.current();
+      if (analyzeFunctionRegion(this.source, functionToken.offset).typed) {
+        this.advance();
+        return this.parseTypedFunction(functionToken);
+      }
+    }
+
+    if (type === 'function' && analyzeFunctionRegion(this.source, startToken.offset).typed) {
+      return this.parseTypedFunction(startToken);
+    }
 
     // =========================================================================
     // Special handling for logic blocks
@@ -2061,6 +2151,7 @@ export class HoloScriptPlusParser {
     }
 
     const properties: Record<string, unknown> = {};
+    const fieldMarks: Record<string, HSPlusFieldMark> = {};
     const children: HSPlusNode[] = [];
     const directives: HSPlusDirective[] = [];
     const traits = new Map<VRTraitName, unknown>();
@@ -2131,7 +2222,9 @@ export class HoloScriptPlusParser {
 
           if (this.check('COLON')) {
             this.advance();
-            value = this.parseValue();
+            const field = this.parseFieldValue();
+            value = field.value;
+            if (field.mark) fieldMarks[key] = field.mark;
           }
 
           properties[key] = value;
@@ -2358,17 +2451,21 @@ export class HoloScriptPlusParser {
                   // YAML-style block scalar: template: | ... (indented lines)
                   properties[name] = this.parseBlockScalar(this.tokens[saved]);
                 } else {
-                  properties[name] = this.parseValue();
+                  const field = this.parseFieldValue();
+                  properties[name] = field.value;
+                  if (field.mark) fieldMarks[name] = field.mark;
                 }
               } else if (
                 childNodeKeywords.includes(name) &&
                 (this.check('LBRACE') || this.check('STRING'))
               ) {
                 this.pos = saved;
-                children.push(this.parseNode());
+                const childNode = this.parseNode();
+                if (childNode) children.push(childNode);
               } else if (this.current().type === 'IDENTIFIER') {
                 this.pos = saved;
-                children.push(this.parseNode());
+                const childNode = this.parseNode();
+                if (childNode) children.push(childNode);
               } else {
                 properties[name] = true;
                 // Skip function call, member access chain, or block body following the name:
@@ -2408,6 +2505,7 @@ export class HoloScriptPlusParser {
       name: id, // Mapping id to name for runtime compatibility
       id,
       properties,
+      ...(Object.keys(fieldMarks).length > 0 ? { fieldMarks } : {}),
       directives,
       children,
       traits,
@@ -4317,7 +4415,8 @@ export class HoloScriptPlusParser {
 
         // Anything else (nested node keyword, statement) → generic node parse.
         if (token.type === 'IDENTIFIER' || token.type === 'STRING') {
-          children.push(this.parseNode());
+          const childNode = this.parseNode();
+          if (childNode) children.push(childNode);
           if (this.check('COMMA')) this.advance();
           this.skipNewlines();
           continue;
@@ -4460,9 +4559,11 @@ export class HoloScriptPlusParser {
         } else if (next.type === 'STRING' || next.type === 'LBRACE' || next.type === 'IDENTIFIER') {
           // Nested node (e.g. object "Name" { ... }, or action name(params) { ... })
           const node = this.parseNode();
-          const type = node.type;
-          const name = node.name || `unnamed_${type}_${Object.keys(content).length}`;
-          content[name] = node;
+          if (node) {
+            const type = node.type;
+            const name = node.name || `unnamed_${type}_${Object.keys(content).length}`;
+            content[name] = node;
+          }
         } else {
           // Bare key
           const key = this.advance().value;
@@ -4783,14 +4884,16 @@ export class HoloScriptPlusParser {
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])];
+          if (node) {
+            node.directives = [...currentDirectives, ...(node.directives || [])];
 
-          if (keyword === 'system' || node.type === 'system') {
-            result.systems.push(node);
-          } else if (keyword === 'core_config' || node.type === 'core_config') {
-            result.configs.push(node);
-          } else {
-            result.children.push(node);
+            if (keyword === 'system' || node.type === 'system') {
+              result.systems.push(node);
+            } else if (keyword === 'core_config' || node.type === 'core_config') {
+              result.configs.push(node);
+            } else {
+              result.children.push(node);
+            }
           }
         }
         // Property with value but no colon (e.g. prop1 "value1")
@@ -4814,14 +4917,16 @@ export class HoloScriptPlusParser {
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])];
+          if (node) {
+            node.directives = [...currentDirectives, ...(node.directives || [])];
 
-          if (keyword === 'system' || node.type === 'system') {
-            result.systems.push(node);
-          } else if (keyword === 'core_config' || node.type === 'core_config') {
-            result.configs.push(node);
-          } else {
-            result.children.push(node);
+            if (keyword === 'system' || node.type === 'system') {
+              result.systems.push(node);
+            } else if (keyword === 'core_config' || node.type === 'core_config') {
+              result.configs.push(node);
+            } else {
+              result.children.push(node);
+            }
           }
         }
         // Inline method parsing
@@ -4947,30 +5052,50 @@ export class HoloScriptPlusParser {
 
         // Parse function definition
         if (keyword === 'function') {
-          this.advance(); // function
-          const funcName = this.expect('IDENTIFIER', 'Expected function name').value;
-          const params: string[] = [];
-
-          if (this.check('LPAREN')) {
+          const functionToken = this.current();
+          if (analyzeFunctionRegion(this.source, functionToken.offset).typed) {
             this.advance();
-            while (!this.check('RPAREN') && !this.check('EOF')) {
-              params.push(this.expect('IDENTIFIER', 'Expected parameter').value);
-              if (this.check('COLON')) {
-                this.advance();
-                this.expect('IDENTIFIER', 'Expected type');
+            const typed = this.parseTypedFunction(functionToken);
+            const entry: {
+              name: string;
+              params: string[];
+              body: string;
+              paramTypes?: Array<string | null>;
+              returnType?: string;
+            } = {
+              name: typed.name ?? 'anonymous',
+              params: typed.params ?? [],
+              body: typeof typed.body === 'string' ? typed.body : '',
+            };
+            if (typed.paramTypes) entry.paramTypes = typed.paramTypes;
+            if (typed.returnType) entry.returnType = typed.returnType;
+            result.functions.push(entry);
+          } else {
+            this.advance(); // function
+            const funcName = this.expect('IDENTIFIER', 'Expected function name').value;
+            const params: string[] = [];
+
+            if (this.check('LPAREN')) {
+              this.advance();
+              while (!this.check('RPAREN') && !this.check('EOF')) {
+                params.push(this.expect('IDENTIFIER', 'Expected parameter').value);
+                if (this.check('COLON')) {
+                  this.advance();
+                  this.expect('IDENTIFIER', 'Expected type');
+                }
+                if (this.check('COMMA')) this.advance();
               }
-              if (this.check('COMMA')) this.advance();
+              this.expect('RPAREN', 'Expected )');
             }
-            this.expect('RPAREN', 'Expected )');
-          }
 
-          if (this.check('COLON')) {
-            this.advance();
-            this.expect('IDENTIFIER', 'Expected return type');
-          }
+            if (this.check('COLON')) {
+              this.advance();
+              this.expect('IDENTIFIER', 'Expected return type');
+            }
 
-          const body = this.parseCodeBlock();
-          result.functions.push({ name: funcName, params, body });
+            const body = this.parseCodeBlock();
+            result.functions.push({ name: funcName, params, body });
+          }
         }
         // Parse HoloScript action block: action name(args) { ... }
         else if (keyword === 'action') {
@@ -5753,7 +5878,8 @@ export class HoloScriptPlusParser {
             }
           }
         } else if (this.check('IDENTIFIER')) {
-          nodes.push(this.parseNode());
+          const childNode = this.parseNode();
+          if (childNode) nodes.push(childNode);
         } else {
           // Skip unexpected tokens to prevent infinite loops
           this.advance();
@@ -5798,8 +5924,8 @@ export class HoloScriptPlusParser {
    * Much lower precedence than ternary/null-coalesce
    * Example: x ??= value  →  x = x ?? value
    */
-  private parseAssignment(): unknown {
-    const expr = this.parseExpression();
+  private parseAssignment(stopBeforeFieldOptional = false): unknown {
+    const expr = this.parseExpression(stopBeforeFieldOptional);
 
     // Check for null coalescing assignment
     if (this.check('NULL_COALESCE_ASSIGN')) {
@@ -5832,19 +5958,148 @@ export class HoloScriptPlusParser {
    * Parse expression (Entry Point for operators)
    * Handles Ternary Operators: cond ? true : false
    */
-  private parseExpression(): unknown {
+  private parseExpression(stopBeforeFieldOptional = false): unknown {
     const condition = this.parseNullCoalesce();
 
     if (this.check('QUESTION')) {
+      // A single `?` at the end of a field (`provider: String?`, or before
+      // `= default`) is the optional mark the .hs reader stores. It is not a
+      // ternary. `??` is a different token, and `?.` is optional chaining.
+      // A `?` followed by a real branch stays a ternary, including when the
+      // branch is wrapped onto the next line.
+      if (stopBeforeFieldOptional && this.isFieldOptionalMark()) {
+        return condition;
+      }
+      const wrappedBranch = stopBeforeFieldOptional && this.nextLineContinuesTernary();
       this.advance(); // ?
-      const trueValue = this.parseExpression(); // Right-associative recursion
+      if (wrappedBranch) this.skipNewlines();
+      const trueValue = this.parseExpression(stopBeforeFieldOptional); // Right-associative recursion
+      if (wrappedBranch) this.skipNewlines();
       this.expect('COLON', 'Expected : in ternary operator');
-      const falseValue = this.parseExpression();
+      if (wrappedBranch) this.skipNewlines();
+      const falseValue = this.parseExpression(stopBeforeFieldOptional);
 
       return { type: 'ternary', condition, trueValue, falseValue };
     }
 
     return condition;
+  }
+
+  /**
+   * True when the current `?` closes a field instead of opening a ternary.
+   * The .hs reader (`parser.rs` parse_trait_property) always takes a single
+   * `?` after the field expression as `optional`. This reader already has
+   * ternary, so the mark is only the `?` that sits on a field boundary:
+   * end of line, `}`, `,`, `=`, or end of file.
+   * A newline is not that boundary when the next non-blank line is indented
+   * deeper and continues the expression (`cond ?` / `a : b`). A following
+   * field at the same indent (`String?` / `required: String`) stays optional.
+   */
+  private isFieldOptionalMark(): boolean {
+    if (!this.check('QUESTION')) return false;
+    const next = this.peek(1).type;
+    const boundary =
+      next === 'NEWLINE' ||
+      next === 'RBRACE' ||
+      next === 'COMMA' ||
+      next === 'EQUALS' ||
+      next === 'EOF' ||
+      next === 'DEDENT' ||
+      next === 'INDENT';
+    if (!boundary) return false;
+    const lineBreak = next === 'NEWLINE' || next === 'INDENT' || next === 'DEDENT';
+    if (lineBreak && this.nextLineContinuesTernary()) return false;
+    return true;
+  }
+
+  /** Leading spaces, with a tab counted the same way the lexer counts one. */
+  private lineIndent(line: string): number {
+    let indent = 0;
+    for (const char of line) {
+      if (char === ' ') indent += 1;
+      else if (char === '\t') indent += 4;
+      else break;
+    }
+    return indent;
+  }
+
+  private lineStartsWithOperand(trimmed: string): boolean {
+    return /^(?:true\b|false\b|null\b|[A-Za-z_][A-Za-z0-9_]*|\d|"|'|`|\(|\[|\{|!|-|\+)/.test(
+      trimmed
+    );
+  }
+
+  /** A `:` in code, not inside a string and not after `//`. */
+  private lineHasCodeColon(line: string): boolean {
+    let i = 0;
+    while (i < line.length) {
+      const char = line[i];
+      if (char === '/' && line[i + 1] === '/') return false;
+      if (char === '"' || char === "'" || char === '`') {
+        const quote = char;
+        i++;
+        while (i < line.length && line[i] !== quote) {
+          if (line[i] === '\\') i++;
+          i++;
+        }
+        i++;
+        continue;
+      }
+      if (char === ':') return true;
+      i++;
+    }
+    return false;
+  }
+
+  /**
+   * The next non-blank line continues a ternary when it is indented deeper
+   * than the `?` line, starts with an operand, and a `:` appears before the
+   * indent returns. `provider: String?` followed by `required: String` at the
+   * same indent does not.
+   */
+  private nextLineContinuesTernary(): boolean {
+    const lines = this.source.split(/\r?\n/);
+    const questionLine = lines[this.current().line - 1] ?? '';
+    const questionIndent = this.lineIndent(questionLine);
+    for (let i = this.current().line; i < lines.length; i++) {
+      const line = lines[i] ?? '';
+      const trimmed = line.trim();
+      if (trimmed === '' || trimmed.startsWith('//')) continue;
+      if (this.lineIndent(line) <= questionIndent) return false;
+      if (!this.lineStartsWithOperand(trimmed)) return false;
+      if (this.lineHasCodeColon(line)) return true;
+      for (let j = i + 1; j < lines.length; j++) {
+        const later = lines[j] ?? '';
+        const laterTrim = later.trim();
+        if (laterTrim === '' || laterTrim.startsWith('//')) continue;
+        if (this.lineIndent(later) <= questionIndent) return false;
+        if (this.lineHasCodeColon(later)) return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Field value plus the two marks `.hs` stores on `PropertyNode`:
+   * `optional` from `Type?`, and `default_value` from `Type = expr`.
+   * Both may appear (`Type? = expr`). The value itself is unchanged.
+   */
+  private parseFieldValue(): { value: unknown; mark?: HSPlusFieldMark } {
+    const value = this.parseAssignment(true);
+    const mark: HSPlusFieldMark = {};
+    let marked = false;
+    if (this.isFieldOptionalMark()) {
+      this.advance();
+      mark.optional = true;
+      marked = true;
+    }
+    if (this.check('EQUALS')) {
+      this.advance();
+      mark.default_value = this.parseValue();
+      marked = true;
+    }
+    return marked ? { value, mark } : { value };
   }
 
   /**
@@ -6674,6 +6929,66 @@ export class HoloScriptPlusParser {
     while (this.check('NEWLINE') || this.check('INDENT') || this.check('DEDENT')) {
       this.advance();
     }
+  }
+
+  /**
+   * Drop the tail of a rejected zone, spatial, or layer block: its name,
+   * parentheses, traits, and brace body. The next statement stays in place.
+   */
+  private skipZoneSpatialLayerTail(): void {
+    if (this.check('HASH')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+    }
+
+    if (this.isZoneSpatialLayerName()) {
+      this.advance();
+    }
+
+    if (this.check('LPAREN')) this.skipParens();
+
+    if (this.check('IDENTIFIER') && this.current().value === 'using') {
+      this.advance();
+      if (this.check('STRING')) this.advance();
+    }
+
+    if (this.check('COLON')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+      if (this.check('LBRACKET')) {
+        this.advance();
+        if (this.check('RBRACKET')) this.advance();
+      }
+    }
+
+    this.skipNewlines();
+    while (this.check('AT')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+      if (this.check('LPAREN')) this.skipParens();
+      this.skipNewlines();
+    }
+
+    if (this.check('LBRACE')) this.skipBraces();
+  }
+
+  private isZoneSpatialLayerName(): boolean {
+    if (this.check('STRING')) return true;
+    if (!this.check('IDENTIFIER') || this.current().value === 'using') return false;
+    if (this.current().line === this.previous().line) return true;
+
+    let offset = 1;
+    let next = this.peek(offset);
+    while (next.type === 'NEWLINE') {
+      offset += 1;
+      next = this.peek(offset);
+    }
+    return (
+      next.type === 'LPAREN' ||
+      next.type === 'LBRACE' ||
+      next.type === 'AT' ||
+      next.type === 'COLON'
+    );
   }
 
   /** Skip a balanced parenthesised list ( ... ) including nested parens */
@@ -7705,6 +8020,152 @@ export class HoloScriptPlusParser {
       else if (token.type === 'RPAREN' && parenDepth > 0) parenDepth--;
       lastConsumedToken = token;
       this.advance();
+    }
+  }
+
+  /**
+   * A `function` that has at least one type written on it.
+   * The signature is stored, then the original text is handed to the Rust
+   * checker. The body stays source text. It is not evaluated.
+   */
+  private parseTypedFunction(startToken: Token): HSPlusNode {
+    const region = analyzeFunctionRegion(this.source, startToken.offset);
+    let name = 'anonymous';
+    this.skipNewlines();
+    if (this.check('IDENTIFIER') || this.check('STRING')) {
+      name = this.advance().value;
+    }
+
+    this.skipNewlines();
+    if (
+      this.check('LESS_THAN') &&
+      this.peek(1).type === 'LIFETIME' &&
+      this.peek(2).type === 'GREATER_THAN'
+    ) {
+      this.advance();
+      this.advance();
+      this.advance();
+    }
+
+    const params: string[] = [];
+    const paramTypes: Array<string | null> = [];
+    let malformed = false;
+
+    this.skipNewlines();
+    if (this.check('LPAREN')) {
+      this.advance();
+      this.skipNewlines();
+      while (!this.check('RPAREN') && !this.check('EOF') && !malformed) {
+        this.skipNewlines();
+        if (this.check('RPAREN')) break;
+        if (!this.check('IDENTIFIER')) {
+          malformed = true;
+          break;
+        }
+        params.push(this.advance().value);
+        this.skipNewlines();
+        let paramType: string | null = null;
+        if (this.check('COLON')) {
+          this.advance();
+          paramType = this.consumeHsType();
+          if (paramType === null) {
+            malformed = true;
+            break;
+          }
+        }
+        paramTypes.push(paramType);
+        this.skipNewlines();
+        if (this.check('COMMA')) {
+          this.advance();
+          continue;
+        }
+        if (!this.check('RPAREN')) {
+          malformed = true;
+          break;
+        }
+      }
+      if (!malformed) {
+        if (!this.check('RPAREN')) malformed = true;
+        else this.advance();
+      }
+    }
+
+    let returnType: string | undefined;
+    this.skipNewlines();
+    if (!malformed && this.check('COLON')) {
+      this.advance();
+      const scanned = this.consumeHsType();
+      if (scanned === null) malformed = true;
+      else returnType = scanned;
+    }
+
+    let body = '';
+    this.skipNewlines();
+    if (!malformed && this.check('LBRACE')) {
+      body = this.parseRawBlock();
+    } else {
+      malformed = true;
+    }
+
+    const sliceEnd = !malformed && this.previous().type === 'RBRACE'
+      ? this.previous().offset + this.previous().value.length
+      : (region.bodyEnd ?? region.signatureEnd);
+    if (malformed) this.advanceTokensTo(sliceEnd);
+
+    const anyParamType = paramTypes.some((entry) => entry !== null);
+    const functionSource = this.source.slice(startToken.offset, sliceEnd);
+    this.reportRustFunctionDiagnostics(
+      checkTypedHsFunction(functionSource, {
+        line: startToken.line,
+        column: startToken.column,
+      })
+    );
+
+    const node: HSPlusNode = {
+      type: 'function',
+      name,
+      id: name,
+      properties: {},
+      directives: [],
+      children: [],
+      traits: new Map(),
+      body,
+      params,
+      loc: {
+        start: { line: startToken.line, column: startToken.column },
+        end: { line: this.current().line, column: this.current().column },
+      },
+    };
+    if (anyParamType) node.paramTypes = paramTypes;
+    if (returnType !== undefined) node.returnType = returnType;
+    return node;
+  }
+
+  /** Read the type that follows a colon the caller already consumed. */
+  private consumeHsType(): string | null {
+    const colon = this.previous();
+    const scanned = scanHsType(this.source, colon.offset + colon.value.length);
+    if (!scanned) return null;
+    this.advanceTokensTo(scanned.end);
+    return scanned.type;
+  }
+
+  private advanceTokensTo(endOffset: number): void {
+    while (!this.check('EOF') && this.current().offset < endOffset) {
+      this.advance();
+    }
+  }
+
+  private reportRustFunctionDiagnostics(diagnostics: RustFunctionDiagnostic[]): void {
+    for (const diagnostic of diagnostics) {
+      this.errors.push({
+        code: diagnostic.code,
+        message: diagnostic.message,
+        line: diagnostic.line,
+        column: diagnostic.column,
+        severity: 'error',
+        context: getSourceContext(this.source, diagnostic.line, diagnostic.column),
+      });
     }
   }
 

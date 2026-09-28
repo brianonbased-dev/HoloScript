@@ -1413,7 +1413,7 @@ async function handleGetExamples(args: Record<string, unknown>) {
         format: s.entry.format,
         status: s.entry.status,
       })),
-      hint: 'These are repo example paths. Open via holo_read_file / the repo, or refine the query.',
+      hint: 'These are repo example paths. Open them in the repo, or refine the query.',
     };
   }
 

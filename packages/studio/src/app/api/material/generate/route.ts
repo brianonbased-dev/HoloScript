@@ -12,6 +12,7 @@ import {
   OpenRouterAdapter,
   LocalLLMAdapter,
   LOCAL_DEFAULT_MODEL,
+  checkHostedOllama,
 } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
@@ -199,10 +200,17 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
 async function tryOllamaFallback(fullPrompt: string, model?: string): Promise<string | null> {
   const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL;
   if (!ollamaUrl) return null;
+  const pickedModel = model || LOCAL_DEFAULT_MODEL;
+  // `model` comes from the request body, so a cloud-tagged name is refused here too.
+  const gate = checkHostedOllama(ollamaUrl, {
+    model: pickedModel,
+    caller: 'studio /api/material/generate',
+  });
+  if (gate.refused) return null;
   try {
     const adapter = new LocalLLMAdapter({
       baseURL: ollamaUrl,
-      defaultModel: model || LOCAL_DEFAULT_MODEL,
+      defaultModel: pickedModel,
       timeoutMs: 30_000,
     });
     const result = await adapter.complete({

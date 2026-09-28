@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { FrontierFallbackRefusedError } from '@holoscript/llm-provider';
+import { FrontierFallbackRefusedError, HostedOllamaRefusedError } from '@holoscript/llm-provider';
 import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '../provider';
 
 describe('resolveBrittneyProvider', () => {
@@ -27,10 +27,38 @@ describe('resolveBrittneyProvider', () => {
     delete process.env.OLLAMA_BASE_URL;
     delete process.env.BRITTNEY_SERVICE_URL;
     delete process.env.HOLO_ALLOW_FRONTIER_FALLBACK;
+    delete process.env.HOLO_ALLOW_HOSTED_OLLAMA;
   });
 
   afterEach(() => {
     process.env = { ...origEnv };
+    vi.restoreAllMocks();
+  });
+
+  it('refuses a hosted Ollama (ollama.com) as "sovereign local", auto or explicit', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.OLLAMA_HOST = 'https://ollama.com';
+    expect(() => resolveBrittneyProvider()).toThrow(HostedOllamaRefusedError);
+    process.env.BRITTNEY_PROVIDER = 'ollama';
+    expect(() => resolveBrittneyProvider()).toThrow(HostedOllamaRefusedError);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('HOSTED OLLAMA REFUSED'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('studio brittney provider'));
+  });
+
+  it('refuses a cloud-tagged BRITTNEY_MODEL even on a local Ollama', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.BRITTNEY_PROVIDER = 'ollama';
+    process.env.OLLAMA_HOST = 'http://localhost:11434';
+    process.env.BRITTNEY_MODEL = 'gpt-oss:120b-cloud';
+    expect(() => resolveBrittneyProvider()).toThrow(/cloud model/);
+  });
+
+  it('uses a hosted Ollama only with HOLO_ALLOW_HOSTED_OLLAMA=1, and says so', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.OLLAMA_HOST = 'https://ollama.com';
+    process.env.HOLO_ALLOW_HOSTED_OLLAMA = '1';
+    expect(resolveBrittneyProvider().providerName).toBe('ollama');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('HOSTED OLLAMA ACTIVE'));
   });
 
   it('resolves anthropic when BRITTNEY_PROVIDER=anthropic and ANTHROPIC_API_KEY set', () => {

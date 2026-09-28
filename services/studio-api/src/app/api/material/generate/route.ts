@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkHostedOllama } from '@holoscript/llm-provider';
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
-// default model: see @holoscript/llm-provider model-policy SSOT (no dep here)
+// default model: see @holoscript/llm-provider model-policy SSOT
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'qwen3.5:4b';
 
 /** POST /api/material/generate
@@ -45,6 +46,25 @@ void main() {
 }
 ---TRAITS---
 @material emissive:"#ff6600" emissiveIntensity:0.8 metalness:0.0 roughness:0.5`;
+
+  // `model` comes from the request body, so a cloud-tagged name is refused as well as a
+  // public host. This route has no other provider to fall back to.
+  const hostedOllama = checkHostedOllama(OLLAMA_BASE, {
+    model,
+    caller: 'studio-api /api/material/generate',
+  });
+  if (hostedOllama.refused) {
+    return NextResponse.json(
+      {
+        error:
+          'Material generation runs only on a local or LAN Ollama. This server points at a ' +
+          'hosted one (or the model is an Ollama cloud model), and hosted Ollama is off ' +
+          '(HOLO_ALLOW_HOSTED_OLLAMA is not 1).',
+        code: hostedOllama.refused.code,
+      },
+      { status: 503 }
+    );
+  }
 
   try {
     const ollamaRes = await fetch(`${OLLAMA_BASE}/api/generate`, {

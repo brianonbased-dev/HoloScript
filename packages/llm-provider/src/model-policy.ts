@@ -281,6 +281,43 @@ export function isBlacklistedModel(name: string | undefined | null): boolean {
   return MODEL_BLACKLIST.some((b) => n.includes(b));
 }
 
+// =============================================================================
+// OLLAMA CLOUD MODELS — hosted, even through a local server (2026-09-24 audit)
+// =============================================================================
+
+/**
+ * '1' (exact) lets a hosted Ollama endpoint or a named cloud-tagged model be used;
+ * anything else refuses it. Read by sovereign-resolver's checkHostedOllama.
+ */
+export const HOSTED_OLLAMA_FLAG = 'HOLO_ALLOW_HOSTED_OLLAMA';
+
+export function hostedOllamaAllowed(): boolean {
+  // Browser-safe: some callers (core's world adapters) also run where `process` is absent.
+  return typeof process !== 'undefined' && process.env?.[HOSTED_OLLAMA_FLAG] === '1';
+}
+
+/**
+ * True for an Ollama cloud model: tag `cloud` or `<size>-cloud` (`glm-4.6:cloud`,
+ * `gpt-oss:120b-cloud`). A local Ollama forwards these to ollama.com, so they are not
+ * local inference whatever the URL says. Model discovery (the local picker, the owned
+ * fleet) never picks or probes one, with or without HOLO_ALLOW_HOSTED_OLLAMA: probing
+ * already sends the probe prompt to ollama.com, and the owned fleet labels every route
+ * native. The flag only lets a caller that NAMES a cloud model use it.
+ *
+ * Name-based: a cloud model copied to a local-looking name (`ollama cp`, a Modelfile
+ * `FROM x:cloud`) is not detected.
+ */
+export function isOllamaCloudModel(name: unknown): boolean {
+  if (typeof name !== 'string' || !name) return false;
+  const tagAt = name.lastIndexOf(':');
+  if (tagAt < 0) return false;
+  const tag = name
+    .slice(tagAt + 1)
+    .trim()
+    .toLowerCase();
+  return tag === 'cloud' || tag.endsWith('-cloud');
+}
+
 /**
  * Resolve a requested model against policy: returns it unless it is blacklisted,
  * in which case `fallback` (default: the safe local default) is returned. Use at

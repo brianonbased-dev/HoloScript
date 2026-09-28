@@ -238,6 +238,14 @@ export {
   VAST_CODING_MODEL_ENV,
   classifyServiceHost,
   redactServiceUrl,
+  // An Ollama URL on a public host (e.g. ollama.com), or a cloud-tagged model, is GATED
+  // behind HOLO_ALLOW_HOSTED_OLLAMA=1 everywhere an Ollama URL is read (2026-09-24 audit
+  // follow-up). Loopback and LAN Ollama pass.
+  checkHostedOllama,
+  classifyOllamaHost,
+  isOllamaCloudModel,
+  HostedOllamaRefusedError,
+  HOSTED_OLLAMA_FLAG,
 } from './sovereign-resolver';
 export type {
   ResolvedSovereignProvider,
@@ -246,6 +254,8 @@ export type {
   SovereignResolveStep,
   FrontierProviderName,
   ServiceHostClass,
+  HostedOllamaReason,
+  HostedOllamaVerdict,
 } from './sovereign-resolver';
 
 // Model policy — THE single source of truth for tier defaults + the blacklist

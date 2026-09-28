@@ -116,10 +116,10 @@ document the exact caveat instead of repeating the completion label.
 ```bash
 pnpm install                              # Install dependencies
 pnpm build                                # Build (core first, then rest — order matters)
-pnpm --filter @holoscript/core build      # Build specific package
+pnpm --filter "@holoscript/core..." run build  # Build one package AND its workspace deps, in order
 pnpm --filter @holoscript/net-service run build  # Authoritative holoscript.net service build
 pnpm test                                 # Run all tests (vitest)
-pnpm --filter @holoscript/core test       # Test specific package
+pnpm --filter @holoscript/core test       # Test specific package (its deps must be built first)
 pnpm lint                                 # ESLint
 pnpm format                               # Prettier
 pnpm bench                                # Benchmarks
@@ -127,6 +127,15 @@ pnpm run health:deps                      # Bounded pnpm audit; emits JSON pass/
 ```
 
 Build order matters: `@holoscript/core` must build before any downstream package.
+
+In a fresh clone or worktree nothing is built yet, so building one package without its
+dependencies fails on the first unbuilt one (measured 2026-09-27:
+`pnpm --filter @holoscript/config run build` exits 1 with TS2307 on
+`@holoscript/secrets-broker`), and that package's tests fail to load
+(`Cannot find package '@holoscript/core/policy'`). That is the tree, not your change. The
+trailing `...` builds the workspace dependencies first: `pnpm --filter "@holoscript/<pkg>..." run build`,
+or `"@holoscript/<pkg>^..."` for the dependencies only. `@holoscript/core...` took under
+two minutes on this laptop.
 
 ## Package Structure
 

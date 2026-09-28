@@ -16,7 +16,7 @@
  * and skips discovery entirely.
  */
 
-import { SAFE_LOCAL_FALLBACK, isBlacklistedModel } from './model-policy';
+import { SAFE_LOCAL_FALLBACK, isBlacklistedModel, isOllamaCloudModel } from './model-policy';
 
 /**
  * Canonical default endpoint for the LOCAL Ollama tier. Single source for the
@@ -209,8 +209,11 @@ export async function pickLocalModel(
     opts.maxParamsB ?? (Number(process.env.HOLO_LLM_LOCAL_MAX_PARAMS_B || '') || 15);
 
   const tags = await fetchJson<{ models?: TagsModel[] }>(`${key}/api/tags`, undefined, timeoutMs);
-  // Drop blacklisted models before ranking — they never get probed or picked.
-  const installed = (tags?.models ?? []).filter((m) => !isBlacklistedModel(m.name));
+  // Drop blacklisted models before ranking — they never get probed or picked. Cloud-tagged
+  // models go too, always: even the probe would run on ollama.com (see isOllamaCloudModel).
+  const installed = (tags?.models ?? []).filter(
+    (m) => !isBlacklistedModel(m.name) && !isOllamaCloudModel(m.name)
+  );
 
   // Rank: tools-capable only → modern capability sets first (thinking is the
   // 2026-family marker) → larger params first within the cap.

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { checkHostedOllama } from '@holoscript/llm-provider';
 
 /**
  * POST /api/autocomplete
@@ -37,6 +38,20 @@ export async function POST(request: Request) {
 
   if (!prefix.trim()) {
     return NextResponse.json({ completion: '' });
+  }
+
+  // Editor text is sent here on every keystroke; it must not go to a hosted Ollama unasked.
+  const hostedOllama = checkHostedOllama(OLLAMA_BASE, {
+    model: MODEL,
+    caller: 'studio-api /api/autocomplete',
+  });
+  if (hostedOllama.refused) {
+    return NextResponse.json({
+      completion: '',
+      warning:
+        'Autocomplete is off: OLLAMA_URL is a hosted Ollama (or the model is an Ollama cloud ' +
+        'model), and HOLO_ALLOW_HOSTED_OLLAMA is not 1.',
+    });
   }
 
   try {

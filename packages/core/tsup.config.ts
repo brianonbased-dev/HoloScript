@@ -206,6 +206,11 @@ export default defineConfig({
     '@holoscript/holo-vm',
     /^@holoscript\/holo-vm\//,
     '@holoscript/agent-protocol',
+    // Node wasm glue reads holoscript_wasm_bg.wasm from its own directory
+    // (pkg-node). Bundling it would break that read. The .hsplus checker
+    // loads it at runtime through the "./node" export.
+    '@holoscript/wasm',
+    /^@holoscript\/wasm\//,
     '@holoscript/mesh',
     /^@holoscript\/mesh\//,
     '@holoscript/platform',

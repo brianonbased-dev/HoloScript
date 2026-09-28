@@ -2,9 +2,9 @@
 // File type: .hs (Logic Layer)
 
 function calculateScore(hits, time, accuracy) {
-  base_score = hits * 10
-  time_bonus = max(0, 100 - time)
-  accuracy_multiplier = accuracy / 100
+  let base_score = hits * 10
+  let time_bonus = max(0, 100 - time)
+  let accuracy_multiplier = accuracy / 100
 
   return (base_score + time_bonus) * accuracy_multiplier
 }
