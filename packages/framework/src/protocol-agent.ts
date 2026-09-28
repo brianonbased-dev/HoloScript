@@ -135,7 +135,7 @@ export class ProtocolAgent extends BaseAgent {
   }
 
   async execute(plan: unknown): Promise<PhaseResult> {
-    const { context } = plan as { plan: string; context: Record<string, unknown> };
+    const { plan: approach, context } = plan as { plan: string; context: Record<string, unknown> };
     const agent = this.agentConfig;
 
     const systemPrompt =
@@ -145,12 +145,14 @@ export class ProtocolAgent extends BaseAgent {
     const knowledgeContext = this.teamKnowledge
       ? `\n\nRelevant team knowledge:\n${this.teamKnowledge}`
       : '';
+    // REFLECT already paid for this plan; the task is done from it, not from scratch.
+    const planContext = approach ? `\n\nYour plan for this task:\n${approach}` : '';
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
       {
         role: 'user',
-        content: `Task: ${context.task}\n${(context as Record<string, unknown>).description ?? ''}${knowledgeContext}\n\nComplete this task. Provide a clear summary of what you did.`,
+        content: `Task: ${context.task}\n${(context as Record<string, unknown>).description ?? ''}${knowledgeContext}${planContext}\n\nComplete this task. Provide a clear summary of what you did.`,
       },
     ];
 
@@ -267,7 +269,10 @@ export class ProtocolAgent extends BaseAgent {
   }
 
   async evolve(adaptations: unknown): Promise<PhaseResult> {
-    const { validated } = adaptations as { patterns: string; validated: KnowledgeInsight[] };
+    const { patterns, validated } = adaptations as {
+      patterns: string;
+      validated: KnowledgeInsight[];
+    };
 
     if (validated.length === 0) {
       return {
@@ -283,7 +288,7 @@ export class ProtocolAgent extends BaseAgent {
       { role: 'system', content: PHASE_PROMPTS[ProtocolPhase.EVOLVE] },
       {
         role: 'user',
-        content: `Based on patterns found, suggest improvements for future tasks in domain "${this.identity.domain}".`,
+        content: `Patterns found:\n${patterns || '(none)'}\n\nBased on these patterns, suggest improvements for future tasks in domain "${this.identity.domain}".`,
       },
     ];
 
