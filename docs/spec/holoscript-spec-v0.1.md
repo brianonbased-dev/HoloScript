@@ -732,7 +732,7 @@ orb Sword @grabbable {
 }
 ```
 
-A typed function. The colon is refused at the top level. A function node is still emitted, and success is false. Message: `HSP001: Unexpected token COLON ":" at top level. Expected: composition, object, world, template, logic, or @directive`.
+A typed function that returns an `i32` where `i64` was declared. The Rust checker refuses it before success. A function node is still emitted, and success is false. Message: `[HS-TYPE-RETURN-001] return type mismatch in function `add`: expected `i64`, found `i32``.
 
 ```hsplus reject
 function add(left: i32, right: i64): i64 {
@@ -756,7 +756,7 @@ These are bugs and disagreements measured on this checkout. This spec records th
 
 | Text                                                                                                         | WASM `.hs`                        | `.hsplus` reader                | Composition reader                                                                              |
 | ------------------------------------------------------------------------------------------------------------ | --------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Typed `function add(left: i32, right: i64): i64` with `return result` after `let result: i64 = left + right` | valid                             | rejected, `HSP001` on the colon | At the root: success and nothing stored. Inside a composition: error `Unexpected token: LBRACE` |
+| Typed `function add(left: i32, right: i64): i64` with `return result` after `let result: i64 = left + right` | valid                             | success; parameter and return types stored | At the root: success and nothing stored. Inside a composition: error `Unexpected token: LBRACE` |
 | `zone SafeArea(x: 0, y: 0, z: 5, width: 100)`                                                                | `Unexpected identifier: zone`     | success, root type `zone`       | success, nothing stored                                                                         |
 | `spatial ComponentName(width: number, height: number) { layer background { } }`                              | `Unexpected identifier: spatial`  | success, root type `spatial`    | success; `spatial` itself is not stored (see gap 1)                                             |
 | `pipeline "CustomerJourney" { source Ledger { kind: "table" } sink Report { kind: "log" } }`                 | `Unexpected identifier: pipeline` | success, root type `pipeline`   | success, kept as a pipeline domain block                                                        |

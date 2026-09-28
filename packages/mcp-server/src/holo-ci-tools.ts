@@ -241,7 +241,7 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
   'spec-v0.1': {
     description:
       'HoloScript Spec v0.1: every fenced example in docs/spec/holoscript-spec-v0.1.md parses with the reader the grammar router names for that fence tag; fences marked reject must fail',
-    step: 'pnpm --filter @holoscript/core exec vitest run src/parser/__tests__/holoscript-spec-v0.1.test.ts',
+    step: 'pnpm --filter @holoscript/core exec vitest run src/parser/__tests__/holoscript-spec-v0.1.test.ts src/parser/HoloScriptPlusParser.test.ts',
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
