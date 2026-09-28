@@ -15,15 +15,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 export type ControlNetModel =
-  | 'canny'
-  | 'depth'
-  | 'pose'
-  | 'normal'
-  | 'hed'
-  | 'seg'
-  | 'scribble'
-  | 'softedge'
-  | 'lineart';
+  'canny' | 'depth' | 'pose' | 'normal' | 'hed' | 'seg' | 'scribble' | 'softedge' | 'lineart';
 
 export interface ControlNetConfig {
   model_type: ControlNetModel;

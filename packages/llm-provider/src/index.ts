@@ -219,11 +219,48 @@ export type { ProviderManagerConfig } from './provider-manager';
 // Universal sovereign-first provider resolution (founder 2026-06-10):
 // one policy for HoloClaw, the fleet, and Brittney — sovereign serving
 // (fleet/cloud/ollama) by default, BYOK frontier keys as fallback (F.112).
-export { resolveSovereignProvider, resolveSovereignProviderAsync } from './sovereign-resolver';
+// BYOK frontier fallback from the sovereign/auto path is GATED behind
+// HOLO_ALLOW_FRONTIER_FALLBACK=1 (2026-09-24 native-inference audit, fix 7).
+export {
+  resolveSovereignProvider,
+  resolveSovereignProviderAsync,
+  FrontierFallbackRefusedError,
+  FRONTIER_FALLBACK_FLAG,
+  gateFrontierFallback,
+  // Auto-mode cloud (brittney-standard -> hosted Fireworks/Together) route is GATED behind
+  // HOLO_ALLOW_HOSTED_BRIDGE=1 (2026-09-24 audit follow-up).
+  HostedBridgeRefusedError,
+  HOSTED_BRIDGE_FLAG,
+  BackupChainExhaustedError,
+  VAST_OSS_CODING_DEFAULT_URL,
+  VAST_OSS_CODING_DEFAULT_MODEL,
+  VAST_CODING_URL_ENV,
+  VAST_CODING_MODEL_ENV,
+  classifyServiceHost,
+  redactServiceUrl,
+  // An Ollama URL on a public host (e.g. ollama.com), or a cloud-tagged model, is GATED
+  // behind HOLO_ALLOW_HOSTED_OLLAMA=1 everywhere an Ollama URL is read (2026-09-24 audit
+  // follow-up). Loopback and LAN Ollama pass.
+  checkHostedOllama,
+  classifyOllamaHost,
+  isOllamaCloudModel,
+  HostedOllamaRefusedError,
+  HOSTED_OLLAMA_FLAG,
+  // D.117: Ollama retired from auto-resolution. The "local fallback" of cloud-first
+  // surfaces is our own HoloServe / HoloLlama, or nothing when neither is configured.
+  resolveOwnedLocalProvider,
+  ownedLocalDefaultModel,
+  OWNED_LOCAL_MAX_TOKENS,
+} from './sovereign-resolver';
 export type {
   ResolvedSovereignProvider,
   SovereignProviderName,
   SovereignResolveOptions,
+  SovereignResolveStep,
+  FrontierProviderName,
+  ServiceHostClass,
+  HostedOllamaReason,
+  HostedOllamaVerdict,
 } from './sovereign-resolver';
 
 // Model policy — THE single source of truth for tier defaults + the blacklist

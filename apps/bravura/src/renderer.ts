@@ -149,9 +149,22 @@ export class Renderer {
     this.lit = compile(gl, LIT_VS, LIT_FS);
     this.hud = compile(gl, HUD_VS, HUD_FS);
     for (const n of [
-      'uProj', 'uView', 'uModel', 'uColor', 'uMetal', 'uShiny', 'uEmissive', 'uCamPos',
-      'uSpotPos', 'uSpotDir', 'uSpotColor', 'uSpotCosInner', 'uSpotCosOuter',
-      'uAmbUp', 'uAmbDown', 'uFog',
+      'uProj',
+      'uView',
+      'uModel',
+      'uColor',
+      'uMetal',
+      'uShiny',
+      'uEmissive',
+      'uCamPos',
+      'uSpotPos',
+      'uSpotDir',
+      'uSpotColor',
+      'uSpotCosInner',
+      'uSpotCosOuter',
+      'uAmbUp',
+      'uAmbDown',
+      'uFog',
     ]) {
       this.uLit[n] = gl.getUniformLocation(this.lit, n);
     }

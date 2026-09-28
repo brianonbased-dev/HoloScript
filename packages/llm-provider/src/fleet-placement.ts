@@ -110,10 +110,7 @@ export interface FleetPlacementOptions {
 export type FleetPlacementStatus = 'placed' | 'unplaced' | 'invalid';
 
 export type FleetPlacementOutcomeCode =
-  | 'PLACED'
-  | 'NO_CANDIDATES'
-  | 'NO_ELIGIBLE_CANDIDATE'
-  | 'INVALID_INPUT';
+  'PLACED' | 'NO_CANDIDATES' | 'NO_ELIGIBLE_CANDIDATE' | 'INVALID_INPUT';
 
 export type FleetPlacementRejectionCode =
   | 'WORKER_NOT_READY'

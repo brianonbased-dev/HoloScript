@@ -34,8 +34,15 @@ node scripts/audit-published-install-tree.mjs @holoscript/cli@latest
 `corepack pnpm` is intentional on local Codex seats because this repo pins
 `pnpm@9.15.9`; a newer global pnpm can try to rewrite or purge the install tree.
 
-Use `corepack pnpm release:publish` only after those checks are green. The root
-`publish` script stays blocked so raw `pnpm publish` cannot bypass the gates.
+Use `corepack pnpm release:publish` only after those checks are green. That
+command is the only legal npm ship: it runs stewardship, the release-closure
+build, npm-v1 readiness, release-guard, and the cold-repro/audit gates, then
+`changeset publish`. The root `publish` and `changeset:publish` scripts stay
+blocked so raw `pnpm publish` / bare `changeset publish` cannot bypass the gates.
+
+To ship one package through that same chain, set `RELEASE_PUBLISH_ALLOWLIST`
+(see [npm and PyPI push plan](./npm-pypi-push-plan.md)). Unset, the command
+still publishes the full unpublished set.
 
 ## Current Candidate Lane
 

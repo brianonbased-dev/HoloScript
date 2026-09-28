@@ -100,11 +100,7 @@ export interface CacheMetrics {
 }
 
 export type CacheEventType =
-  | 'entryAdded'
-  | 'entryEvicted'
-  | 'entryAccessed'
-  | 'budgetExceeded'
-  | 'compressionComplete';
+  'entryAdded' | 'entryEvicted' | 'entryAccessed' | 'budgetExceeded' | 'compressionComplete';
 
 export interface CacheEvent {
   type: CacheEventType;

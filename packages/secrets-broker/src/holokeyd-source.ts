@@ -100,8 +100,10 @@ export function createHoloKeydSource(
   let unreachable = false;
 
   const args = [
-    '-o', 'BatchMode=yes',
-    '-o', `ConnectTimeout=${Number.isFinite(connectTimeoutS) ? connectTimeoutS : 5}`,
+    '-o',
+    'BatchMode=yes',
+    '-o',
+    `ConnectTimeout=${Number.isFinite(connectTimeoutS) ? connectTimeoutS : 5}`,
     ...(identity ? ['-i', identity] : []),
     host,
     client,
@@ -117,7 +119,11 @@ export function createHoloKeydSource(
       const hit = cache.get(name);
       if (hit !== undefined) return hit;
       try {
-        const out = await run(args, `${name}\n`, Number.isFinite(callTimeoutMs) ? callTimeoutMs : 20000);
+        const out = await run(
+          args,
+          `${name}\n`,
+          Number.isFinite(callTimeoutMs) ? callTimeoutMs : 20000
+        );
         const value = (out || '').trim();
         if (!value) return undefined; // reachable, simply does not hold this name
         cache.set(name, value);
@@ -151,7 +157,11 @@ export function createHoloKeydSource(
  */
 export function hydrateFromHoloKeydSync(
   names: readonly string[],
-  opts: { env?: Env; target?: Env; runSync?: (args: readonly string[], input: string, timeoutMs: number) => string } = {}
+  opts: {
+    env?: Env;
+    target?: Env;
+    runSync?: (args: readonly string[], input: string, timeoutMs: number) => string;
+  } = {}
 ): { enabled: boolean; hydrated: string[]; missing: string[] } {
   const env = opts.env ?? (process.env as Env);
   const target = opts.target ?? (process.env as Env);
@@ -168,8 +178,10 @@ export function hydrateFromHoloKeydSync(
   const connectTimeoutS = Number(env.HOLOKEYD_CONNECT_TIMEOUT_S ?? 5);
   const timeoutMs = Number(env.HOLOKEYD_TIMEOUT_MS ?? 20000);
   const args = [
-    '-o', 'BatchMode=yes',
-    '-o', `ConnectTimeout=${Number.isFinite(connectTimeoutS) ? connectTimeoutS : 5}`,
+    '-o',
+    'BatchMode=yes',
+    '-o',
+    `ConnectTimeout=${Number.isFinite(connectTimeoutS) ? connectTimeoutS : 5}`,
     ...(identity ? ['-i', identity] : []),
     host,
     client,
@@ -194,7 +206,9 @@ export function hydrateFromHoloKeydSync(
       continue;
     }
     try {
-      const value = (runSync(args, `${name}\n`, Number.isFinite(timeoutMs) ? timeoutMs : 20000) || '').trim();
+      const value = (
+        runSync(args, `${name}\n`, Number.isFinite(timeoutMs) ? timeoutMs : 20000) || ''
+      ).trim();
       if (value) {
         target[name] = value;
         hydrated.push(name);

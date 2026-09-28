@@ -178,5 +178,5 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     writeFileSync(preview, dom.serialize(), 'utf8');
     // eslint-disable-next-line no-console
     console.log(`[artifact] live-rendered snapshot (2 sample items) -> ${preview}`);
-  });
+  }, 120_000);
 });

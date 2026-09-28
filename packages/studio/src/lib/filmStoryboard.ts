@@ -6,28 +6,11 @@
  */
 
 export type ShotSize =
-  | 'extreme-wide'
-  | 'wide'
-  | 'medium'
-  | 'close-up'
-  | 'extreme-close-up'
-  | 'over-shoulder';
+  'extreme-wide' | 'wide' | 'medium' | 'close-up' | 'extreme-close-up' | 'over-shoulder';
 export type CameraMovement =
-  | 'static'
-  | 'pan'
-  | 'tilt'
-  | 'dolly'
-  | 'crane'
-  | 'handheld'
-  | 'steadicam'
-  | 'drone';
+  'static' | 'pan' | 'tilt' | 'dolly' | 'crane' | 'handheld' | 'steadicam' | 'drone';
 export type LightingSetup =
-  | 'three-point'
-  | 'natural'
-  | 'high-key'
-  | 'low-key'
-  | 'chiaroscuro'
-  | 'silhouette';
+  'three-point' | 'natural' | 'high-key' | 'low-key' | 'chiaroscuro' | 'silhouette';
 export type NarrativeAct = 'setup' | 'confrontation' | 'resolution';
 
 export interface StoryboardPanel {

@@ -3,12 +3,7 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types
 
 export type CheckoutStep = 'shipping' | 'payment' | 'review' | 'confirm' | 'complete';
 export type PaymentMethod =
-  | 'credit_card'
-  | 'debit_card'
-  | 'paypal'
-  | 'crypto'
-  | 'bank_transfer'
-  | 'apple_pay';
+  'credit_card' | 'debit_card' | 'paypal' | 'crypto' | 'bank_transfer' | 'apple_pay';
 export interface Address {
   line1: string;
   line2?: string;

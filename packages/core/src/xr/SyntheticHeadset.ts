@@ -183,11 +183,7 @@ function projectionOf(fovYDegrees: number, aspect: number, near = 0.1, far = 100
 // =============================================================================
 
 export type HeadsetModel =
-  | 'meta_quest_3'
-  | 'meta_quest_pro'
-  | 'apple_vision_pro'
-  | 'valve_index'
-  | 'pico_4';
+  'meta_quest_3' | 'meta_quest_pro' | 'apple_vision_pro' | 'valve_index' | 'pico_4';
 
 export interface DeviceDescriptor {
   /** Human-facing device name, as a person would say it out loud. */
@@ -782,7 +778,10 @@ export class SyntheticHeadset {
       },
       updateRenderState: (next: { baseLayer?: unknown }): void => {
         if (next?.baseLayer !== undefined) {
-          self.renderState = { ...self.renderState, baseLayer: next.baseLayer ?? self.defaultLayer };
+          self.renderState = {
+            ...self.renderState,
+            baseLayer: next.baseLayer ?? self.defaultLayer,
+          };
         }
       },
       depthUsage: undefined,
@@ -890,7 +889,11 @@ export class SyntheticHeadset {
     // Returning its last known pose instead is the bug this models: the app
     // reads stillness while the real hand is moving.
     const side = space.hand ?? 'right';
-    if (space.kind !== 'viewer' && space.kind !== 'reference' && this.trackingLostFrames[side] > 0) {
+    if (
+      space.kind !== 'viewer' &&
+      space.kind !== 'reference' &&
+      this.trackingLostFrames[side] > 0
+    ) {
       return null;
     }
 
@@ -1123,11 +1126,7 @@ export class SyntheticHeadset {
 
   /** Stand somewhere. The head rises to eye height above the floor position. */
   standAt(floorPosition: Vec3): this {
-    this.head.position = vec3(
-      floorPosition.x,
-      floorPosition.y + this.eyeHeight,
-      floorPosition.z
-    );
+    this.head.position = vec3(floorPosition.x, floorPosition.y + this.eyeHeight, floorPosition.z);
     this.record('took up a position in the room', floorPosition);
     return this;
   }

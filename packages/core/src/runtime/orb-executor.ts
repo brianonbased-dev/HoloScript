@@ -210,8 +210,7 @@ export async function executeOrb(node: OrbNode, ctx: OrbExecutorContext): Promis
   if (isUpdate && node.template) {
     const tpl = ctx.getTemplate(node.template);
     const oldTpl = (existingOrb as Record<string, unknown>)?._templateRef as
-      | TemplateNode
-      | undefined;
+      TemplateNode | undefined;
 
     if (tpl && oldTpl && tpl.version !== undefined && oldTpl.version !== undefined) {
       if (Number(tpl.version) > Number(oldTpl.version)) {

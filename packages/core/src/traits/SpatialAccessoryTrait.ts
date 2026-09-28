@@ -14,23 +14,10 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type DeviceType =
-  | 'controller'
-  | 'tracker'
-  | 'stylus'
-  | 'haptic_vest'
-  | 'haptic_gloves'
-  | 'eye_tracker'
-  | 'custom';
+  'controller' | 'tracker' | 'stylus' | 'haptic_vest' | 'haptic_gloves' | 'eye_tracker' | 'custom';
 type TrackingMode = 'full_6dof' | 'rotation_only' | 'position_only' | 'optical' | 'hybrid';
 type AttachPoint =
-  | 'left_hand'
-  | 'right_hand'
-  | 'head'
-  | 'waist'
-  | 'left_foot'
-  | 'right_foot'
-  | 'chest'
-  | 'custom';
+  'left_hand' | 'right_hand' | 'head' | 'waist' | 'left_foot' | 'right_foot' | 'chest' | 'custom';
 
 interface SpatialAccessoryState {
   isConnected: boolean;

@@ -92,14 +92,7 @@ export interface UICurvedTrait {
 export interface UIDockedTrait {
   /** Dock position */
   position:
-    | 'top'
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top-left'
-    | 'top-right'
-    | 'bottom-left'
-    | 'bottom-right';
+    'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   /** Padding from edge */
   padding?: number;
   /** Auto-hide when not interacting */

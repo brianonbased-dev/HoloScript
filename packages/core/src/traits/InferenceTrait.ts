@@ -68,9 +68,7 @@ export interface InferenceErrorPayload {
 }
 
 export type InferenceAdapterCollection =
-  | readonly InferenceAdapter[]
-  | Record<string, InferenceAdapter>
-  | Map<string, InferenceAdapter>;
+  readonly InferenceAdapter[] | Record<string, InferenceAdapter> | Map<string, InferenceAdapter>;
 
 export interface InferenceAdapterRegistry {
   adapters?: InferenceAdapterCollection;

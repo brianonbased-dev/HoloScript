@@ -687,8 +687,7 @@ export interface CognitiveVMSnapshot {
 
 export function getCognitiveVMSnapshot(node: HSPlusNode): CognitiveVMSnapshot | null {
   const state = (node as unknown as Record<string, unknown>).__cognitiveVMState as
-    | CognitiveVMState
-    | undefined;
+    CognitiveVMState | undefined;
   if (!state) return null;
   return {
     inner_tick: state.inner_tick,

@@ -29,8 +29,7 @@ export function isInsidePath(parent: string, child: string): boolean {
 }
 
 export type WorkspaceFsResolution =
-  | { ok: true; resolved: string }
-  | { ok: false; error: string; status: number };
+  { ok: true; resolved: string } | { ok: false; error: string; status: number };
 
 /**
  * Validate an absolute workspace path: must resolve inside the workspaces
@@ -93,8 +92,7 @@ export function validateWorkspaceRelativePath(
 }
 
 export type InsideWorkspaceResolution =
-  | { ok: true; absolute: string }
-  | { ok: false; error: string };
+  { ok: true; absolute: string } | { ok: false; error: string };
 
 /**
  * Resolve a validated relative path to an absolute path, then defeat

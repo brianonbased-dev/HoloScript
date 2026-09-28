@@ -196,11 +196,7 @@ describe('tooling discovery and batch dispatch', () => {
       { includeInputSchema: false, includeOutputSchema: false }
     );
 
-    const result = suggestToolsForGoal(
-      'stranger compile one scene to two backends',
-      manifest,
-      8
-    );
+    const result = suggestToolsForGoal('stranger compile one scene to two backends', manifest, 8);
     expect(result.kit).toBe('house-special');
     const names = result.suggestions.map((s) => s.name);
     expect(names).toContain('compile_to_webgpu');
@@ -755,21 +751,50 @@ describe('get_tool_health probes tools the way a customer calls them', () => {
    */
   it('still refuses every destructive tool after the guard was narrowed', () => {
     const mustRefuse = [
-      'delete_world', 'delete_shard', 'delete_zone', 'absorb_delete_project',
-      'update_world', 'update_zone', 'update_place', 'create_world', 'create_share_link',
-      'hololand_revoke_player', 'hololand_revoke_creator', 'twin_earth_revoke_identity',
-      'twin_earth_grant_permission', 'holo_secrets_grant', 'twin_earth_robot_actuate',
-      'hololand_publish_zone', 'holo_protocol_publish', 'holomesh_publish_agent_template',
-      'holo_git_commit', 'holo_write_file', 'holo_edit_file', 'workflow_memory_write',
-      'install_plugin', 'install_domain_plugin', 'holomesh_send_message',
-      'holo_hologram_send', 'settle_creator_payout', 'holotune_promote',
-      'holotune_launch', 'holo_memory_store', 'holo_memory_graduate', 'train_rom',
-      'holomesh_board_claim', 'holomesh_slot_assign', 'holomesh_mode_set',
-      'absorb_run_absorb', 'absorb_create_project', 'holoshell_download_recovery_quarantine',
+      'delete_world',
+      'delete_shard',
+      'delete_zone',
+      'absorb_delete_project',
+      'update_world',
+      'update_zone',
+      'update_place',
+      'create_world',
+      'create_share_link',
+      'hololand_revoke_player',
+      'hololand_revoke_creator',
+      'twin_earth_revoke_identity',
+      'twin_earth_grant_permission',
+      'holo_secrets_grant',
+      'twin_earth_robot_actuate',
+      'hololand_publish_zone',
+      'holo_protocol_publish',
+      'holomesh_publish_agent_template',
+      'holo_git_commit',
+      'holo_write_file',
+      'holo_edit_file',
+      'workflow_memory_write',
+      'install_plugin',
+      'install_domain_plugin',
+      'holomesh_send_message',
+      'holo_hologram_send',
+      'settle_creator_payout',
+      'holotune_promote',
+      'holotune_launch',
+      'holo_memory_store',
+      'holo_memory_graduate',
+      'train_rom',
+      'holomesh_board_claim',
+      'holomesh_slot_assign',
+      'holomesh_mode_set',
+      'absorb_run_absorb',
+      'absorb_create_project',
+      'holoshell_download_recovery_quarantine',
       // Found only by auditing what was still unprobed: these form a team, admit an
       // artifact and resume a download. All three change something; none of their
       // verbs was in the original list, so all three were sitting in the probeable pile.
-      'holomesh_team_form', 'conformance_admit_artifact', 'holoshell_download_recovery_resume',
+      'holomesh_team_form',
+      'conformance_admit_artifact',
+      'holoshell_download_recovery_resume',
     ];
     const leaked = mustRefuse.filter((t) => !mayMutate(t));
     expect(leaked).toEqual([]);
@@ -883,7 +908,12 @@ describe('get_tool_manifest stays inside a context budget', () => {
   };
 
   const callManifest = (args: Record<string, unknown>) =>
-    handleToolingDiscoveryTool('get_tool_manifest', { ...manifestArgs, ...args }, bigSurface, dispatch);
+    handleToolingDiscoveryTool(
+      'get_tool_manifest',
+      { ...manifestArgs, ...args },
+      bigSurface,
+      dispatch
+    );
 
   it('would blow the budget if every tool were returned — the fixture is honest', async () => {
     const all = (await callManifest({ all: true })) as { tools: unknown[] };

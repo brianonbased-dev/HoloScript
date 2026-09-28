@@ -18,22 +18,7 @@ export type EncryptionMode = 'none' | 'aes-256' | 'e2e';
  * Message priority levels (numeric 0-10 or named priorities)
  */
 export type MessagePriority =
-  | 0
-  | 1
-  | 2
-  | 3
-  | 4
-  | 5
-  | 6
-  | 7
-  | 8
-  | 9
-  | 10
-  | 'low'
-  | 'normal'
-  | 'high'
-  | 'urgent'
-  | 'critical';
+  0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 'low' | 'normal' | 'high' | 'urgent' | 'critical';
 
 /**
  * JSON Schema type (simplified for demonstration)
@@ -149,12 +134,7 @@ export interface ChannelMember {
  * Message delivery status
  */
 export type MessageStatus =
-  | 'pending'
-  | 'sent'
-  | 'delivered'
-  | 'acknowledged'
-  | 'failed'
-  | 'expired';
+  'pending' | 'sent' | 'delivered' | 'acknowledged' | 'failed' | 'expired';
 
 /**
  * Base message structure

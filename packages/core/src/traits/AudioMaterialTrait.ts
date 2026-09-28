@@ -16,14 +16,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type MaterialPreset =
-  | 'concrete'
-  | 'wood'
-  | 'glass'
-  | 'metal'
-  | 'fabric'
-  | 'carpet'
-  | 'tile'
-  | 'custom';
+  'concrete' | 'wood' | 'glass' | 'metal' | 'fabric' | 'carpet' | 'tile' | 'custom';
 
 interface FrequencyBands {
   125: number;

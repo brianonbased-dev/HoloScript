@@ -222,8 +222,7 @@ export class XRCharacterRenderer {
       optionalFeatures: ['hand-tracking', 'layers', 'bounded-floor'],
     });
     const Ctor = (globalThis as Record<string, unknown>).XRWebGPUBinding as unknown as
-      | XRWebGPUBindingCtor
-      | undefined;
+      XRWebGPUBindingCtor | undefined;
     if (!Ctor) throw new Error('XRWebGPUBinding unavailable on this device');
     this.binding = new Ctor(this.session, this.device);
     this.layer = this.binding.createProjectionLayer({
@@ -363,10 +362,7 @@ export class XRCharacterRenderer {
       tan: mk(mesh.tangents, BUF_VERTEX),
       uv: mk(mesh.uvs ?? new Float32Array(mesh.vertexCount * 2), BUF_VERTEX),
       secondaryJi: mk(mesh.secondaryJointIndices ?? mesh.jointIndices, BUF_VERTEX),
-      secondaryJw: mk(
-        mesh.secondaryJointWeights ?? new Float32Array(mesh.vertexCount),
-        BUF_VERTEX
-      ),
+      secondaryJw: mk(mesh.secondaryJointWeights ?? new Float32Array(mesh.vertexCount), BUF_VERTEX),
       idx: mk(mesh.indices, BUF_INDEX),
     };
     this.jointBuf = mk(spec.jointMatrices, BUF_STORAGE);

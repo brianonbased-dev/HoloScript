@@ -99,12 +99,7 @@ export interface MarketplacePackage {
 
 /** Submission status */
 export type SubmissionStatus =
-  | 'draft'
-  | 'verifying'
-  | 'verified'
-  | 'rejected'
-  | 'published'
-  | 'delisted';
+  'draft' | 'verifying' | 'verified' | 'rejected' | 'published' | 'delisted';
 
 /** A marketplace submission */
 export interface MarketplaceSubmission {

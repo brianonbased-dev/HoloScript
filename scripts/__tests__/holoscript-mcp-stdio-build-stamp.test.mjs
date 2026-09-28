@@ -86,7 +86,7 @@ describe('buildGroupInputDigest', () => {
     const { root } = workspace();
     assert.strictEqual(
       buildGroupInputDigest(GROUP, { root }),
-      buildGroupInputDigest(GROUP, { root }),
+      buildGroupInputDigest(GROUP, { root })
     );
   });
 
@@ -116,7 +116,7 @@ describe('buildGroupInputDigest', () => {
     // wobble; the old comparison was `<=` and would have passed regardless.
     assert.ok(
       Math.abs(statSync(file).mtimeMs - originalMtime) < 1,
-      `mtime moved by ${statSync(file).mtimeMs - originalMtime}ms`,
+      `mtime moved by ${statSync(file).mtimeMs - originalMtime}ms`
     );
     // ...but the content identity moved, so no stamp can still cover it.
     assert.notStrictEqual(buildGroupInputDigest(GROUP, { root }), before);
@@ -126,7 +126,7 @@ describe('buildGroupInputDigest', () => {
     const { root } = workspace();
     const digest = buildGroupInputDigest(
       { id: 'x', requiredFiles: ['no-output-marker.js'] },
-      { root },
+      { root }
     );
     assert.strictEqual(digest, null);
   });
@@ -170,7 +170,7 @@ describe('buildStampCoversInput fails closed', () => {
     };
     assert.strictEqual(
       buildStampCoversInput(freshness, stamp, 'sha256:but-disk-says-otherwise'),
-      false,
+      false
     );
   });
 });
@@ -202,7 +202,7 @@ describe('writeBuildStamp refuses a mid-build mutation instead of recording it',
     assert.strictEqual(stamp.inputDigestByGroup['fixture-pkg'], preBuild['fixture-pkg']);
     assert.strictEqual(
       JSON.parse(readFileSync(stampPath, 'utf8')).schemaVersion,
-      'holoscript.local-mcp-build-stamp.v1',
+      'holoscript.local-mcp-build-stamp.v1'
     );
   });
 
@@ -215,15 +215,16 @@ describe('writeBuildStamp refuses a mid-build mutation instead of recording it',
     writeFileSync(join(pkg, 'src', 'index.ts'), 'export const value = 3;\n', 'utf8');
 
     assert.throws(
-      () => writeBuildStamp({
-        root,
-        path: join(root, 'stamp.json'),
-        gitHead: 'a'.repeat(40),
-        builtGroups: ['fixture-pkg'],
-        groups: [GROUP],
-        verifiedInputDigestByGroup: preBuild,
-      }),
-      /build inputs changed during the build for fixture-pkg/u,
+      () =>
+        writeBuildStamp({
+          root,
+          path: join(root, 'stamp.json'),
+          gitHead: 'a'.repeat(40),
+          builtGroups: ['fixture-pkg'],
+          groups: [GROUP],
+          verifiedInputDigestByGroup: preBuild,
+        }),
+      /build inputs changed during the build for fixture-pkg/u
     );
   });
 
@@ -233,15 +234,16 @@ describe('writeBuildStamp refuses a mid-build mutation instead of recording it',
     editPreservingMtime(join(pkg, 'src', 'index.ts'), 'export const value = 4;\n');
 
     assert.throws(
-      () => writeBuildStamp({
-        root,
-        path: join(root, 'stamp.json'),
-        gitHead: 'a'.repeat(40),
-        builtGroups: ['fixture-pkg'],
-        groups: [GROUP],
-        verifiedInputDigestByGroup: preBuild,
-      }),
-      /build inputs changed during the build/u,
+      () =>
+        writeBuildStamp({
+          root,
+          path: join(root, 'stamp.json'),
+          gitHead: 'a'.repeat(40),
+          builtGroups: ['fixture-pkg'],
+          groups: [GROUP],
+          verifiedInputDigestByGroup: preBuild,
+        }),
+      /build inputs changed during the build/u
     );
   });
 
@@ -251,14 +253,16 @@ describe('writeBuildStamp refuses a mid-build mutation instead of recording it',
     const stampPath = join(root, 'stamp.json');
     writeFileSync(join(pkg, 'src', 'index.ts'), 'export const value = 5;\n', 'utf8');
 
-    assert.throws(() => writeBuildStamp({
-      root,
-      path: stampPath,
-      gitHead: 'a'.repeat(40),
-      builtGroups: ['fixture-pkg'],
-      groups: [GROUP],
-      verifiedInputDigestByGroup: preBuild,
-    }));
+    assert.throws(() =>
+      writeBuildStamp({
+        root,
+        path: stampPath,
+        gitHead: 'a'.repeat(40),
+        builtGroups: ['fixture-pkg'],
+        groups: [GROUP],
+        verifiedInputDigestByGroup: preBuild,
+      })
+    );
     // A refused stamp must leave nothing a later run could trust.
     assert.throws(() => readFileSync(stampPath, 'utf8'));
   });

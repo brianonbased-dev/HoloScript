@@ -27,7 +27,7 @@ composition "honestChart" {
       @theme { className: "text-[10px] text-studio-muted" }
     }
     object "Chart" {
-      @chart { kind: "bar", state: "readings", valueKey: "value", labelKey: "label", classKey: "prov", height: 120 }
+      @chart { kind: "bar", state: "readings", valueKey: "value", labelKey: "label", classKey: "prov", height: 120, yTicks: 3 }
       @theme { className: "w-full" }
       @projects { node: "readings" }
     }

@@ -68,11 +68,7 @@ export interface RiskStratificationResult {
 }
 
 export type StageOfChange =
-  | 'precontemplation'
-  | 'contemplation'
-  | 'preparation'
-  | 'action'
-  | 'maintenance';
+  'precontemplation' | 'contemplation' | 'preparation' | 'action' | 'maintenance';
 
 export interface TherapyReceiptOptions {
   runId?: string;

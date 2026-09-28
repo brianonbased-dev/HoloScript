@@ -10182,101 +10182,13 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > environment s
 exports[`Parser AST Visual Regression > Zone and Environment AST > zone definition AST 1`] = `
 {
   "ast": {
-    "body": [
-      {
-        "children": [],
-        "directives": [
-          {
-            "config": {},
-            "name": "plane_detection",
-            "type": "trait",
-          },
-        ],
-        "id": "Gallery",
-        "loc": {
-          "end": {
-            "column": 2,
-            "line": 7,
-          },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
-        },
-        "name": "Gallery",
-        "properties": {
-          "bounds": {
-            "center": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-            },
-            "size": {
-              "x": 10,
-              "y": 3,
-              "z": 10,
-            },
-          },
-        },
-        "traits": Map {
-          "plane_detection" => {},
-        },
-        "type": "zone",
-      },
-    ],
-    "children": [
-      {
-        "children": [],
-        "directives": [
-          {
-            "config": {},
-            "name": "plane_detection",
-            "type": "trait",
-          },
-        ],
-        "id": "Gallery",
-        "loc": {
-          "end": {
-            "column": 2,
-            "line": 7,
-          },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
-        },
-        "name": "Gallery",
-        "properties": {
-          "bounds": {
-            "center": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-            },
-            "size": {
-              "x": 10,
-              "y": 3,
-              "z": 10,
-            },
-          },
-        },
-        "traits": Map {
-          "plane_detection" => {},
-        },
-        "type": "zone",
-      },
-    ],
+    "body": [],
+    "children": [],
     "compositions": [],
-    "directives": [
-      {
-        "config": {},
-        "name": "plane_detection",
-        "type": "trait",
-      },
-    ],
+    "directives": [],
     "hasControlFlow": false,
     "hasState": false,
-    "hasVRTraits": true,
+    "hasVRTraits": false,
     "id": "root",
     "imports": [],
     "loc": {
@@ -10293,15 +10205,10 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > zone definiti
     "npcs": [],
     "properties": {},
     "root": {
+      "body": [],
       "children": [],
-      "directives": [
-        {
-          "config": {},
-          "name": "plane_detection",
-          "type": "trait",
-        },
-      ],
-      "id": "Gallery",
+      "directives": [],
+      "id": "root",
       "loc": {
         "end": {
           "column": 2,
@@ -10312,25 +10219,9 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > zone definiti
           "line": 1,
         },
       },
-      "name": "Gallery",
-      "properties": {
-        "bounds": {
-          "center": {
-            "x": 0,
-            "y": 0,
-            "z": 0,
-          },
-          "size": {
-            "x": 10,
-            "y": 3,
-            "z": 10,
-          },
-        },
-      },
-      "traits": Map {
-        "plane_detection" => {},
-      },
-      "type": "zone",
+      "properties": {},
+      "traits": Map {},
+      "type": "fragment",
     },
     "templates": [],
     "traits": Map {},
@@ -10339,16 +10230,31 @@ exports[`Parser AST Visual Regression > Zone and Environment AST > zone definiti
     "worlds": [],
   },
   "compiledExpressions": Map {},
-  "errors": [],
+  "errors": [
+    {
+      "code": "HSP001",
+      "column": 1,
+      "context": "> 1 | zone Gallery {
+     ^
+  2 |   bounds: {
+  3 |     center: { x: 0, y: 0, z: 0 },",
+      "endColumn": undefined,
+      "endLine": undefined,
+      "line": 1,
+      "message": "HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.",
+      "severity": "error",
+      "suggestion": undefined,
+    },
+  ],
   "features": {
     "conditionals": false,
     "lifecycleHooks": false,
     "loops": false,
     "state": false,
-    "vrTraits": true,
+    "vrTraits": false,
   },
   "requiredCompanions": [],
-  "success": true,
+  "success": false,
   "warnings": [],
 }
 `;

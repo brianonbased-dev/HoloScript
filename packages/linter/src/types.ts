@@ -25,12 +25,7 @@ export interface LintASTNode {
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
 export type RuleCategory =
-  | 'syntax'
-  | 'naming'
-  | 'best-practice'
-  | 'performance'
-  | 'style'
-  | 'type-safety';
+  'syntax' | 'naming' | 'best-practice' | 'performance' | 'style' | 'type-safety';
 
 export interface LintDiagnostic {
   ruleId: string;
@@ -71,11 +66,7 @@ export interface LinterConfig {
 }
 
 export type RuleConfig =
-  | 'off'
-  | 'warn'
-  | 'error'
-  | 'info'
-  | ['warn' | 'error' | 'info', Record<string, unknown>];
+  'off' | 'warn' | 'error' | 'info' | ['warn' | 'error' | 'info', Record<string, unknown>];
 
 export interface Rule {
   id: string;

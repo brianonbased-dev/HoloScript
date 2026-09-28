@@ -11,7 +11,7 @@
  * @see research/2026-05-21_apl_wit_trait-evaluation_gap_report.md Gap #4
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   SovereignGeneratorAdapter,
   type TraitSuggestionResult,
@@ -199,6 +199,129 @@ describe('SovereignGeneratorAdapter', () => {
       // covers the full flow. Here we verify the adapter constructs correctly.
       expect(adapter).toBeDefined();
       expect(adapter.id).toBe('sovereign-generator');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Hosted local endpoint (2026-09-24 native-inference audit follow-up)
+  // ---------------------------------------------------------------------------
+
+  describe('a hosted Ollama is never the sovereign local step', () => {
+    const traitsReply = () => ({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [
+            { message: { content: JSON.stringify({ traits: ['@grabbable'], confidence: 0.9 }) } },
+          ],
+        }),
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+      vi.restoreAllMocks();
+    });
+
+    it('sends nothing to ollama.com and falls back, for traits, objects and scenes', async () => {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '');
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fetchMock = vi.fn().mockResolvedValue(traitsReply());
+      vi.stubGlobal('fetch', fetchMock);
+      const adapter = new SovereignGeneratorAdapter({
+        localEndpoint: 'https://ollama.com',
+        offlineOnly: true,
+      });
+      expect((await adapter.suggestTraits('a ball you can grab')).metadata.source).toBe(
+        'keyword-fallback'
+      );
+      expect((await adapter.generateObject('a red cube')).metadata.source).toBe('keyword-fallback');
+      expect((await adapter.generateScene('a small room')).metadata.source).toBe(
+        'keyword-fallback'
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('still uses an owned endpoint, labeled sovereign-local', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(traitsReply());
+      vi.stubGlobal('fetch', fetchMock);
+      const adapter = new SovereignGeneratorAdapter({
+        localEndpoint: 'http://127.0.0.1:11434',
+        offlineOnly: true,
+      });
+      const result = await adapter.suggestTraits('a ball you can grab');
+      expect(result.metadata.source).toBe('sovereign-local');
+      expect(String(fetchMock.mock.calls[0][0])).toContain('127.0.0.1:11434');
+    });
+
+    it("with HOLO_ALLOW_HOSTED_OLLAMA=1 it runs, labeled 'hosted-ollama', not sovereign-local", async () => {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '1');
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(traitsReply()));
+      const adapter = new SovereignGeneratorAdapter({
+        localEndpoint: 'https://ollama.com',
+        offlineOnly: true,
+      });
+      expect((await adapter.suggestTraits('a ball you can grab')).metadata.source).toBe(
+        'hosted-ollama'
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Default local server: HoloLlama (D.117 retired Ollama on 2026-07-05)
+  // ---------------------------------------------------------------------------
+
+  describe('default local server is HoloLlama, not Ollama', () => {
+    const reply = () => ({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: JSON.stringify({ traits: ['@grabbable'] }) } }],
+        }),
+    });
+
+    beforeEach(() => {
+      for (const name of [
+        'BRITTNEY_LOCAL_ENDPOINT',
+        'HOLOLLAMA_URL',
+        'HOLOLLAMA_ENDPOINT',
+        'OLLAMA_HOST',
+        'HOLO_ALLOW_HOSTED_OLLAMA',
+      ]) {
+        vi.stubEnv(name, '');
+      }
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    });
+
+    it.each([
+      ['HOLOLLAMA_URL', {}, 'http://192.168.0.119:18080'],
+      ['nothing set (HoloLlama port)', {}, 'http://127.0.0.1:18080'],
+      [
+        'BRITTNEY_LOCAL_ENDPOINT over HOLOLLAMA_URL',
+        { BRITTNEY_LOCAL_ENDPOINT: 'http://holojetson.local:18080' },
+        'http://holojetson.local:18080',
+      ],
+    ] as const)('uses %s, and ignores a leftover OLLAMA_HOST', async (label, extra, expected) => {
+      vi.stubEnv('OLLAMA_HOST', 'http://127.0.0.1:11434');
+      if (label.startsWith('HOLOLLAMA_URL') || label.startsWith('BRITTNEY')) {
+        vi.stubEnv('HOLOLLAMA_URL', 'http://192.168.0.119:18080');
+      }
+      for (const [k, v] of Object.entries(extra)) vi.stubEnv(k, v);
+      const fetchMock = vi.fn().mockResolvedValue(reply());
+      vi.stubGlobal('fetch', fetchMock);
+      const adapter = new SovereignGeneratorAdapter({ offlineOnly: true });
+      await adapter.suggestTraits('a ball you can grab');
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(String(url)).toBe(`${expected}/v1/chat/completions`);
+      const body = JSON.parse(String((init as RequestInit).body));
+      // OpenAI /v1 servers (HoloLlama, HoloServe) read max_tokens; Ollama's `options` is gone.
+      expect(body.max_tokens).toBe(512);
+      expect(body.options).toBeUndefined();
     });
   });
 

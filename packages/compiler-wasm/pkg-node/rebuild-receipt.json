@@ -1,24 +1,24 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-08-04T19:33:19Z",
+  "generatedAt": "2026-09-27T23:29:33Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "580d91e32dfaff6162a51df20dfd79da737165e2",
+  "sourceCommit": "0da1021d92da8dd991cc4606c3b71a54161a28c2",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
   ],
   "toolchain": {
-    "rustc": "1.91.0",
-    "cargo": "1.91.0",
+    "rustc": "1.98.1",
+    "cargo": "1.98.1",
     "wasmPack": "0.14.0"
   },
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 526813,
-    "wasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
-    "previousWasmSha256": "2c2e9d8e410b2829a1a7c78e4a5a79d0a069013dfc15ca8c994c18cb648745e8",
+    "wasmBytes": 481843,
+    "wasmSha256": "905099d1b2f5dd8f70c4288f2e0ecd5af9c8f7f3e6412479507dd99f789c8d85",
+    "previousWasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
     "repeatBuildSha256Matched": null,
-    "note": "Regenerated from the merged compiler-artifact-refresh stack on current canon (merge of holoscript-native-compiler-artifact-refresh-v1-20260803 onto 7b00ee93d). Fresh release build with the receipted toolchain; digest pinned from the produced artifact."
+    "note": "Rebuilt pkg-node from the lifetime-elision and read-only-downgrade checker on this branch. Fresh release build with the receipted command. Digest pinned from the produced artifact. No version bump."
   }
 }

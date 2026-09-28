@@ -1,7 +1,9 @@
 /**
  * github-webhook-routes.ts — inbound GitHub webhook handler.
  *
- * POST /webhook/github  — push events on main → quick-profile HoloCI dispatch
+ * POST /webhook/github  — push on main/master, and push on agent branches
+ * (claude*, codex*, cursor*, hardware*), runs the quick-profile HoloCI dispatch.
+ * Non-push events stay skipped, so a fork pull request never enters this lane.
  *
  * Required Railway env vars on mcp-server:
  *   GITHUB_WEBHOOK_SECRET  — matches the secret set in GitHub repo Settings → Webhooks
@@ -11,9 +13,14 @@
  *
  * Setup:
  *   https://github.com/brianonbased-dev/HoloScript/settings/hooks
- *   URL:           https://mcp-holoscript-production.up.railway.app/webhook/github
+ *   URL:           https://mcp-server-production-7879.up.railway.app/webhook/github
+ *                  (not mcp-holoscript-production.up.railway.app: that host answers
+ *                  "Application not found", so a hook pointed there never arrives.
+ *                  mcp.holoscript.net is a historical vanity host and is not the
+ *                  configured receiver)
  *   Content-Type:  application/json
- *   Events:        Push events (just push — PRs trigger dispatch manually via holo_ci_dispatch)
+ *   Events:        Push events (just push — PRs from forks stay out because this
+ *                  receiver does not handle pull_request)
  *   Secret:        value of GITHUB_WEBHOOK_SECRET
  *
  * For Hololand: add a second webhook pointing to the same URL — the repo slug in
@@ -31,6 +38,7 @@ import {
 import { teamMessageStore } from '../state';
 import { broadcastToRoom } from '../team-room';
 import type { TeamMessage } from '../types';
+import { isGithubCiPushRef } from './github-webhook-dispatch';
 
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 
@@ -154,18 +162,14 @@ export async function handleGithubWebhookRoutes(
   const pusher = String(body.pusher?.name || 'unknown');
   const commitMsg = (body.head_commit?.message || '').split('\n')[0].slice(0, 72);
 
-  // Dispatch for pushes to the default branch AND to cloud-agent branches (claude/*, codex/*).
-  // Cloud sessions are push-gated off main (F.114), so their work lands on these branches and
-  // was previously NEVER validated (W.725) — the founder's Windows-only seat was the only thing
-  // that detected + cross-platform-validated them by hand. Validating on push closes that gap
-  // (the cross-platform-paths gate + type-check + lockfile catch the bugs that stranded them).
-  const isDefaultBranch = ref === 'refs/heads/main' || ref === 'refs/heads/master';
-  const isCloudBranch = /^refs\/heads\/(claude|codex)\//.test(ref);
-  if (!isDefaultBranch && !isCloudBranch) {
+  // main/master, plus same-repo agent prefixes. Fork pull requests never reach
+  // this branch: non-push events return above. Other repo slugs are refused
+  // later by the workload allowlist, so an outside copy is not checked out.
+  if (!isGithubCiPushRef(ref)) {
     json(res, 200, {
       ok: true,
       skipped: true,
-      reason: `ref "${ref}" is not main/master or a cloud-agent branch (claude/*, codex/*)`,
+      reason: `ref "${ref}" is not main/master or an agent branch (claude*/codex*/cursor*/hardware*)`,
     });
     return true;
   }

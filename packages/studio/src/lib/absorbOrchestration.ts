@@ -1,10 +1,5 @@
 export type AbsorbPhase =
-  | 'idle'
-  | 'graph_rag_query'
-  | 'compress_knowledge'
-  | 'board_claim'
-  | 'execute'
-  | 'contribute';
+  'idle' | 'graph_rag_query' | 'compress_knowledge' | 'board_claim' | 'execute' | 'contribute';
 
 export interface AbsorbTask {
   id: string;

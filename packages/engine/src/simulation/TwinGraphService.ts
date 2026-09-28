@@ -8,12 +8,7 @@ import {
 import { sha256Bytes, type HashMode } from './sha256';
 
 export type TwinPropertyValue =
-  | string
-  | number
-  | boolean
-  | null
-  | TwinPropertyValue[]
-  | { [key: string]: TwinPropertyValue };
+  string | number | boolean | null | TwinPropertyValue[] | { [key: string]: TwinPropertyValue };
 
 export interface TwinDtdlContent {
   '@type': string | readonly string[];

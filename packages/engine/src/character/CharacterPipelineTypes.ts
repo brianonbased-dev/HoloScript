@@ -52,10 +52,7 @@ export interface CharacterSculpt {
 // =============================================================================
 
 export type ExtractionAlgorithm =
-  | 'marching_cubes'
-  | 'dual_contouring'
-  | 'poisson_reconstruction'
-  | 'ball_pivoting';
+  'marching_cubes' | 'dual_contouring' | 'poisson_reconstruction' | 'ball_pivoting';
 
 export interface MeshExtractionOptions {
   preserveSharpEdges: boolean;
@@ -205,9 +202,7 @@ export interface MarschnerHairConfig {
 }
 
 export type CharacterMaterial =
-  | SubsurfaceMaterialConfig
-  | RefractiveEyeConfig
-  | MarschnerHairConfig;
+  SubsurfaceMaterialConfig | RefractiveEyeConfig | MarschnerHairConfig;
 
 export type ClothingType = 'baked' | 'layered_shell' | 'cloth_simulation';
 
@@ -315,13 +310,7 @@ export interface CharacterPipelineConfig {
  * Pipeline stage identifiers for progress tracking.
  */
 export type PipelineStage =
-  | 'sculpt'
-  | 'mesh_extraction'
-  | 'optimization'
-  | 'rigging'
-  | 'facial'
-  | 'dressing'
-  | 'deployment';
+  'sculpt' | 'mesh_extraction' | 'optimization' | 'rigging' | 'facial' | 'dressing' | 'deployment';
 
 export const PIPELINE_STAGES: PipelineStage[] = [
   'sculpt',

@@ -376,9 +376,19 @@ describe('loadBrain @posture', () => {
     [body, '', '#version 6.0.0', 'identity { domain: "x" }', ''].join('\n');
 
   it('substitutes the referenced posture in place, keeping surrounding lines', async () => {
-    writeFileSync(join(pdir, 'posture.md'), 'Open by finding what exists.\nClose by fixing what the session proved wrong.', 'utf8');
+    writeFileSync(
+      join(pdir, 'posture.md'),
+      'Open by finding what exists.\nClose by fixing what the session proved wrong.',
+      'utf8'
+    );
     const path = join(pdir, 'a.hsplus');
-    writeFileSync(path, brainWith(['You are an edge seat.', '@posture "./posture.md"', 'Never skip the board.'].join('\n')), 'utf8');
+    writeFileSync(
+      path,
+      brainWith(
+        ['You are an edge seat.', '@posture "./posture.md"', 'Never skip the board.'].join('\n')
+      ),
+      'utf8'
+    );
 
     const brain = await loadBrain(path);
     expect(brain.systemPrompt).toBe(
@@ -425,6 +435,26 @@ describe('loadBrain @posture', () => {
     writeFileSync(path, brainWith('@posture "/shared/posture.md"'), 'utf8');
 
     await expect(loadBrain(path)).rejects.toThrow(/must be a relative path/);
+  });
+
+  // The posture file's maintainer notes address whoever edits it, not the
+  // model. Shipping them was 26% of the payload, and included the note saying
+  // to keep such notes in a comment.
+  it('strips HTML comments from included posture so they never reach the prompt', async () => {
+    writeFileSync(
+      join(pdir, 'commented.md'),
+      ['REAL POSTURE LINE', '', '<!-- Maintainers: this note must never reach the model. -->'].join(
+        '\n'
+      ),
+      'utf8'
+    );
+    const path = join(pdir, 'commented.hsplus');
+    writeFileSync(path, brainWith('@posture "./commented.md"'), 'utf8');
+
+    const brain = await loadBrain(path);
+    expect(brain.systemPrompt).toContain('REAL POSTURE LINE');
+    expect(brain.systemPrompt).not.toContain('Maintainers:');
+    expect(brain.systemPrompt).not.toContain('<!--');
   });
 
   it('leaves a brain with no @posture directive byte-identical', async () => {

@@ -2,11 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type QuestionType =
-  | 'multiple_choice'
-  | 'true_false'
-  | 'short_answer'
-  | 'matching'
-  | 'fill_blank';
+  'multiple_choice' | 'true_false' | 'short_answer' | 'matching' | 'fill_blank';
 export interface QuizQuestion {
   id: string;
   type: QuestionType;

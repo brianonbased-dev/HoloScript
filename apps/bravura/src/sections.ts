@@ -59,13 +59,7 @@ export function gazeFromView(view: Mat4, camPos: Vec3): { origin: Vec3; dir: Vec
 // SECTIONS
 // =============================================================================
 
-export type SectionFamily =
-  | 'strings'
-  | 'woodwind'
-  | 'brass'
-  | 'percussion'
-  | 'keyboard'
-  | 'voice';
+export type SectionFamily = 'strings' | 'woodwind' | 'brass' | 'percussion' | 'keyboard' | 'voice';
 
 /**
  * What a section is doing right now.

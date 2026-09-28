@@ -161,11 +161,7 @@ export interface RewardToolRunner {
 
 /** Tool-execution options always resolve; term contexts stay caller-supplied. */
 type TermContextKeys =
-  | 'provenance'
-  | 'calibration'
-  | 'agentBenefit'
-  | 'humanBenefit'
-  | 'uaalResolution';
+  'provenance' | 'calibration' | 'agentBenefit' | 'humanBenefit' | 'uaalResolution';
 type ResolvedRewardOptions = Required<Omit<RewardFunctionOptions, TermContextKeys>> &
   Pick<RewardFunctionOptions, TermContextKeys>;
 

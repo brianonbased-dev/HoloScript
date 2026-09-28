@@ -45,8 +45,7 @@ export const migrateHandler: TraitHandler<MigrateConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__migrateState as
-      | { steps: MigrationStep[]; currentVersion: number }
-      | undefined;
+      { steps: MigrationStep[]; currentVersion: number } | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 

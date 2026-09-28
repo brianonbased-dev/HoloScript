@@ -25,8 +25,7 @@ export const rolloutHandler: TraitHandler<RolloutConfig> = {
     event: TraitEvent
   ): void {
     const state = node.__rolloutState as
-      | { features: Map<string, { percentage: number; enabled: Set<string> }> }
-      | undefined;
+      { features: Map<string, { percentage: number; enabled: Set<string> }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {

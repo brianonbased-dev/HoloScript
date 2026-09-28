@@ -6,6 +6,13 @@ import org.junit.Test
 
 class QrPayloadFactsTest {
   @Test
+  fun turnsBarePhoneFacebookQrIntoHttpsLink() {
+    org.junit.Assert.assertEquals("https://www.facebook.com", QrPayloadFacts.asWebUrl("www.facebook.com"))
+    org.junit.Assert.assertEquals("https://www.facebook.com", QrPayloadFacts.asWebUrl("https://www.facebook.com"))
+    org.junit.Assert.assertTrue(QrPayloadFacts.syntaxSafe("www.facebook.com"))
+  }
+
+  @Test
   fun rejectsMalformedOrAmbiguousWebAuthorities() {
     assertFalse(QrPayloadFacts.syntaxSafe("https://"))
     assertFalse(QrPayloadFacts.syntaxSafe("https:/example.com"))

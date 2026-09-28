@@ -78,12 +78,7 @@ export interface ConsensusNode {
  * Proposal status
  */
 export type ProposalStatus =
-  | 'pending'
-  | 'voting'
-  | 'accepted'
-  | 'rejected'
-  | 'timeout'
-  | 'cancelled';
+  'pending' | 'voting' | 'accepted' | 'rejected' | 'timeout' | 'cancelled';
 
 /**
  * A proposal for state change
@@ -278,12 +273,7 @@ export interface PartitionEvent extends ConsensusEventBase {
  * Union of all consensus events
  */
 export type ConsensusEvent =
-  | ProposalEvent
-  | VoteEvent
-  | LeaderEvent
-  | StateChangeEvent
-  | NodeEvent
-  | PartitionEvent;
+  ProposalEvent | VoteEvent | LeaderEvent | StateChangeEvent | NodeEvent | PartitionEvent;
 
 // =============================================================================
 // CONSENSUS PROTOCOL INTERFACE

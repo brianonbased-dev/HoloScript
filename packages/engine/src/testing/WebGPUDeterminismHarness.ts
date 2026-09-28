@@ -99,12 +99,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
 /** One of the vendor matrix rows from the protocol. */
 export type AdapterTag =
-  | 'intel-uhd'
-  | 'nvidia-rtx3060'
-  | 'apple-m'
-  | 'amd-rdna'
-  | 'qualcomm-adreno'
-  | 'swiftshader';
+  'intel-uhd' | 'nvidia-rtx3060' | 'apple-m' | 'amd-rdna' | 'qualcomm-adreno' | 'swiftshader';
 
 /** Serialized adapter identity as captured at run time (for the JSON artifact). */
 export interface AdapterIdentity {
@@ -722,11 +717,7 @@ export function compareAdapterArtifacts(
 
 export interface CrossAdapterVerdict {
   readonly verdict:
-    | 'H0_HOLDS'
-    | 'H0_REJECTED_H2_PENDING'
-    | 'H2_HOLDS'
-    | 'H2_REJECTED'
-    | 'HARNESS_BUG';
+    'H0_HOLDS' | 'H0_REJECTED_H2_PENDING' | 'H2_HOLDS' | 'H2_REJECTED' | 'HARNESS_BUG';
   readonly reason: string;
   readonly selfConsistencyFailures: ReadonlyArray<{ adapter: AdapterTag; scenario: string }>;
   readonly perScenarioH0: Readonly<Record<string, boolean>>;

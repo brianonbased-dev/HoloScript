@@ -46,17 +46,18 @@ pnpm test examples/composition/agentic-internet-demo.test.ts
 **Expected output**: 11 tests pass (1 happy-path full-cycle + 10 G.GOLD.013 false-case pairs)
 
 **False-case coverage**:
-| Happy-path assertion | Paired false-case |
-|---------------------|-------------------|
-| `validateSpatialContext(ctx).ok === true` | Non-unit gaze direction rejected |
-| `verifyMeshToolAttestation(manifest) === true` | Tampered `capabilityTags` fails |
-| `advanceNegotiation('accept', initiator).ok === true` | Responder accepting own quote → `wrong-actor` |
-| `issueLease(env:ALPHAFOLD_API_KEY).ok === true` | `env:HOLOMESH_WALLET_KEY` → `wallet_unleasable` |
-| `resolveSecret(in-scope-ref).resolved === true` | Out-of-scope ref → `lease_scope_violation` |
-| `detectHologramContent(envelope) !== null` | Plain text / null / random → `null` |
-| `verifyMeshToolInvocationChain([hop]).verified === true` | Tampered `argsHash` breaks chain |
-| Runtime fetch SHAPE matches AlphaFold schema | Upstream 404 surfaces correctly |
-| `settleNegotiationWithAnchor` succeeds | Signer failure → no finalization |
+
+| Happy-path assertion                                     | Paired false-case                               |
+| -------------------------------------------------------- | ----------------------------------------------- |
+| `validateSpatialContext(ctx).ok === true`                | Non-unit gaze direction rejected                |
+| `verifyMeshToolAttestation(manifest) === true`           | Tampered `capabilityTags` fails                 |
+| `advanceNegotiation('accept', initiator).ok === true`    | Responder accepting own quote → `wrong-actor`   |
+| `issueLease(env:ALPHAFOLD_API_KEY).ok === true`          | `env:HOLOMESH_WALLET_KEY` → `wallet_unleasable` |
+| `resolveSecret(in-scope-ref).resolved === true`          | Out-of-scope ref → `lease_scope_violation`      |
+| `detectHologramContent(envelope) !== null`               | Plain text / null / random → `null`             |
+| `verifyMeshToolInvocationChain([hop]).verified === true` | Tampered `argsHash` breaks chain                |
+| Runtime fetch SHAPE matches AlphaFold schema             | Upstream 404 surfaces correctly                 |
+| `settleNegotiationWithAnchor` succeeds                   | Signer failure → no finalization                |
 
 **Founder vision check**: "HoloScript = interface of internet+VR." This demo is the receipt that the five primitives shipped 2026-05-06 compose into one signed cycle.
 

@@ -18,13 +18,7 @@ export type ClaimGraphNodeKind =
   | 'region';
 
 export type ClaimProofStatus =
-  | 'proven'
-  | 'labeled'
-  | 'perceptual'
-  | 'captured'
-  | 'unverified'
-  | 'claimable'
-  | 'refuted';
+  'proven' | 'labeled' | 'perceptual' | 'captured' | 'unverified' | 'claimable' | 'refuted';
 
 export type ClaimGraphEdgeKind =
   | 'supports'
@@ -167,11 +161,7 @@ export type ClaimProver = (
 export type ClaimRouterStatus = 'proven' | 'labeled';
 
 export type ClaimRouterReason =
-  | 'discharged'
-  | 'no_solver_maps'
-  | 'prover_timeout'
-  | 'prover_rejected'
-  | 'prover_failed';
+  'discharged' | 'no_solver_maps' | 'prover_timeout' | 'prover_rejected' | 'prover_failed';
 
 export interface ClaimRouterAttempt {
   solverNodeId: string;

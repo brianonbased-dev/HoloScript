@@ -47,16 +47,10 @@ export const GENERATED_GEOMETRY_FAMILY_SUITE = 'generated-geometry-family' as co
 
 export type ConjectureRunnerV1SolverType = typeof CONJECTURE_RUNNER_V1;
 export type ConjectureRunnerSuite =
-  | typeof PROOF_CARRYING_GEOMETRY_SMOKE_SUITE
-  | typeof GENERATED_GEOMETRY_FAMILY_SUITE;
+  typeof PROOF_CARRYING_GEOMETRY_SMOKE_SUITE | typeof GENERATED_GEOMETRY_FAMILY_SUITE;
 export type ConjectureRunnerStatus = 'completed' | 'failed';
 export type ConjectureRunnerPhase =
-  | 'GENERATE'
-  | 'EXECUTE'
-  | 'FALSIFY'
-  | 'CLASSIFY'
-  | 'GRADUATE'
-  | 'RENDER';
+  'GENERATE' | 'EXECUTE' | 'FALSIFY' | 'CLASSIFY' | 'GRADUATE' | 'RENDER';
 export type ConjectureScenarioRole = 'survivor' | 'falsifier' | 'boundary';
 export type ConjectureGraduationTarget =
   | 'receipt-carrying.geometry'

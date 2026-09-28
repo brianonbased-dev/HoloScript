@@ -66,6 +66,9 @@ class PassthroughCameraController(
     /** Resume sensing. */
     fun resumeScanning() { paused = false; lastDecodeAttemptMs = 0 }
 
+    /** True while Camera2 still has a live capture session. Opening the Quest Browser kills this. */
+    fun hasLiveSession(): Boolean = device != null && session != null
+
     fun start() {
         try {
         thread = HandlerThread("qr-camera").also { it.start() }
@@ -134,10 +137,15 @@ class PassthroughCameraController(
                 createSession(camera)
             }
             override fun onDisconnected(camera: CameraDevice) {
+                Log.w(TAG, "camera disconnected")
+                try { session?.close() } catch (_: Exception) {}
+                session = null
                 camera.close(); device = null
             }
             override fun onError(camera: CameraDevice, error: Int) {
                 onError("Camera error: $error")
+                try { session?.close() } catch (_: Exception) {}
+                session = null
                 camera.close(); device = null
             }
         }, handler)

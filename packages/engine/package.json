@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/engine",
-  "version": "6.1.6",
+  "version": "6.1.8",
   "description": "Engine runtime extracted from @holoscript/core — rendering, physics, animation, ECS, and 20+ subsystems for spatial computing.",
   "type": "module",
   "main": "./dist/index.js",
@@ -809,7 +809,8 @@
     "build:n4-webgpu-parity": "node scripts/build-n4-webgpu-parity.mjs",
     "benchmark:n4:webgpu": "pnpm run build:n4-webgpu-parity && playwright test tests/n4-residual-webgpu-parity.spec.ts",
     "benchmark:p043:shared-sort": "node run-p043-shared-sort-capture.mjs",
-    "smoke:physics": "pnpm exec holoscript smoke ../../examples/physics --target threejs -o ../../.bench-logs/physics-smoke-receipt.json"
+    "smoke:physics": "pnpm exec holoscript smoke ../../examples/physics --target threejs -o ../../.bench-logs/physics-smoke-receipt.json",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",
@@ -844,7 +845,7 @@
   },
   "peerDependencies": {
     "@holoscript/uaal": "workspace:^",
-    "puppeteer": "^23.0.0",
+    "puppeteer": "^25.12.0",
     "webgpu": "^0.3.8"
   },
   "peerDependenciesMeta": {

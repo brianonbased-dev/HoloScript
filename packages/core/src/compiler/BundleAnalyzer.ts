@@ -41,14 +41,7 @@ export interface ModuleInfo {
  * Module types
  */
 export type ModuleType =
-  | 'holo'
-  | 'template'
-  | 'trait'
-  | 'runtime'
-  | 'external'
-  | 'asset'
-  | 'json'
-  | 'unknown';
+  'holo' | 'template' | 'trait' | 'runtime' | 'external' | 'asset' | 'json' | 'unknown';
 
 /**
  * Bundle chunk information

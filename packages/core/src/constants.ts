@@ -389,3 +389,73 @@ export const LIFECYCLE_HOOKS = [
 ] as const;
 
 export type LifecycleHookName = (typeof LIFECYCLE_HOOKS)[number];
+
+/**
+ * The prefix that marks a lifecycle HOOK DECLARATION, as opposed to the event it reacts to.
+ *
+ * You declare `on_memory_recalled` to react to the event `memory_recalled` — the same shape
+ * as declaring `onclick` for the `click` event. The bare name is the event; the prefixed
+ * name is how a composition asks to hear it.
+ *
+ * WHY THIS IS THE RULE, measured 2026-09-09 rather than chosen by taste:
+ *   - LIFECYCLE_HOOKS is uniformly `on_`-prefixed — the declaration vocabulary is already uniform.
+ *   - Emitters are not: many names are bare, and files that emit a prefixed name often also
+ *     emit bare ones, so traits are inconsistent with themselves.
+ * The uniform side is therefore the intended one, and the bare name is the event.
+ *
+ * These helpers exist because compilers each re-derived this relationship differently —
+ * ColyseusCompiler matched with `includes`, DTDLCompiler and A2AAgentCardCompiler stripped
+ * an unanchored `on_` — while the runtime resolved it nowhere, so a declared hook could
+ * parse, validate, and never run.
+ */
+export const HOOK_PREFIX = 'on_';
+
+/**
+ * The event a declared hook reacts to. Idempotent: an already-bare name is returned as-is,
+ * and the prefix alone is left intact rather than stripped to '' — a hook mapped onto the
+ * empty string would subscribe to a name nothing can emit, which fails silently.
+ */
+export function eventNameForHook(hook: string): string {
+  if (!hook.startsWith(HOOK_PREFIX)) return hook;
+  const bare = hook.slice(HOOK_PREFIX.length);
+  return bare.length > 0 ? bare : hook;
+}
+
+/**
+ * The hook declaration that reacts to an event. Idempotent, so emitters that already send
+ * `on_x` do not produce `on_on_x`.
+ */
+export function hookNameForEvent(event: string): string {
+  return event.startsWith(HOOK_PREFIX) ? event : `${HOOK_PREFIX}${event}`;
+}
+
+/**
+ * Every name a declared hook must listen on: the declaration itself, plus the bare event.
+ *
+ * KNOWN DUPLICATE: packages/runtime/src/browser/BrowserRuntime.ts carries handlerEventAliases,
+ * the same rule. Runtime typechecks @holoscript/core against its built dist, so it cannot
+ * import a helper that is newer than that build. Both sides assert the same cases.
+ *
+ * Both names are needed because emitters use both spellings. They are de-duplicated because
+ * a hook declared without the prefix would otherwise subscribe twice and run twice per emit.
+ */
+export function hookListenNames(hook: string): string[] {
+  const event = eventNameForHook(hook);
+  return event === hook ? [hook] : [hook, event];
+}
+
+/**
+ * Whether a name is written as a hook DECLARATION — i.e. carries the prefix.
+ *
+ * Distinct from isHookName: the catalog is not closed. The parser accepts hook blocks whose
+ * names are absent from LIFECYCLE_HOOKS, so a catalog-membership guard drops every hook an
+ * author invented. Use this for "is this shaped like a hook".
+ */
+export function hasHookPrefix(name: string): boolean {
+  return name.startsWith(HOOK_PREFIX) && name.length > HOOK_PREFIX.length;
+}
+
+/** Whether a name is a known lifecycle hook declaration from the catalog above. */
+export function isHookName(name: string): boolean {
+  return (LIFECYCLE_HOOKS as readonly string[]).includes(name);
+}

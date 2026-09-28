@@ -236,11 +236,12 @@ createCachePlugin({
 ```
 
 **Performance Impact**:
-| Operation | Cache Miss | Cache Hit | Improvement |
-|-----------|-----------|----------|-------------|
-| listTargets | ~5ms | ~0.5ms | **90% faster** |
-| parseHoloScript | ~50ms | ~0.5ms | **99% faster** |
-| getTargetInfo | ~2ms | ~0.3ms | **85% faster** |
+
+| Operation       | Cache Miss | Cache Hit | Improvement    |
+| --------------- | ---------- | --------- | -------------- |
+| listTargets     | ~5ms       | ~0.5ms    | **90% faster** |
+| parseHoloScript | ~50ms      | ~0.5ms    | **99% faster** |
+| getTargetInfo   | ~2ms       | ~0.3ms    | **85% faster** |
 
 **Cache Stats** (logged every 5 minutes):
 

@@ -52,6 +52,7 @@ import type {
   HoloImport,
 } from '../parser/HoloCompositionTypes.js';
 import type { HoloBrainDecl } from '../parser/HoloScriptPlusParser';
+import { eventNameForHook } from '../constants';
 import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
@@ -1100,9 +1101,10 @@ export class ColyseusCompiler extends CompilerBase {
 
   private findEventHandler(logic: HoloLogic, eventName: string): HoloEventHandler | null {
     return (
-      logic.handlers.find(
-        (h) => h.event === eventName || h.event === `on_${eventName}` || h.event.includes(eventName)
-      ) ?? null
+      // `h.event.includes(eventName)` matched any handler whose name merely CONTAINED the
+      // event: looking for 'sync' wired up 'on_resync_all'. Compare canonical names instead,
+      // which covers both spellings without the substring over-match.
+      logic.handlers.find((h) => eventNameForHook(h.event) === eventNameForHook(eventName)) ?? null
     );
   }
 

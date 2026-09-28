@@ -67,22 +67,10 @@ export const NEGOTIATION_PROTOCOL = 'holomesh.negotiation.v1';
 // ── State machine ──────────────────────────────────────────────────────
 
 export type NegotiationState =
-  | 'open'
-  | 'quoted'
-  | 'accepted'
-  | 'rejected'
-  | 'executed'
-  | 'settled'
-  | 'disputed';
+  'open' | 'quoted' | 'accepted' | 'rejected' | 'executed' | 'settled' | 'disputed';
 
 export type NegotiationAction =
-  | 'request_quote'
-  | 'quote'
-  | 'accept'
-  | 'reject'
-  | 'execute'
-  | 'settle'
-  | 'dispute';
+  'request_quote' | 'quote' | 'accept' | 'reject' | 'execute' | 'settle' | 'dispute';
 
 /** Which side of the negotiation an actor is on. */
 export type NegotiationRole = 'initiator' | 'responder';

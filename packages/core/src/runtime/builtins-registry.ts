@@ -338,9 +338,8 @@ export function createBuiltinsMap(
   builtins.set('add', (args): HoloScriptValue => Number(args[0]) + Number(args[1]));
   builtins.set('subtract', (args): HoloScriptValue => Number(args[0]) - Number(args[1]));
   builtins.set('multiply', (args): HoloScriptValue => Number(args[0]) * Number(args[1]));
-  builtins.set(
-    'divide',
-    (args): HoloScriptValue => (Number(args[1]) !== 0 ? Number(args[0]) / Number(args[1]) : 0)
+  builtins.set('divide', (args): HoloScriptValue =>
+    Number(args[1]) !== 0 ? Number(args[0]) / Number(args[1]) : 0
   );
   builtins.set('mod', (args): HoloScriptValue => Number(args[0]) % Number(args[1]));
   builtins.set('abs', (args): HoloScriptValue => Math.abs(Number(args[0])));
@@ -359,9 +358,8 @@ export function createBuiltinsMap(
     if (Array.isArray(val)) return val.length;
     return 0;
   });
-  builtins.set(
-    'substring',
-    (args): HoloScriptValue => String(args[0]).substring(Number(args[1]), Number(args[2]))
+  builtins.set('substring', (args): HoloScriptValue =>
+    String(args[0]).substring(Number(args[1]), Number(args[2]))
   );
 
   builtins.set('wait', async (args): Promise<HoloScriptValue> => {

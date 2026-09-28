@@ -27,14 +27,7 @@
 export type CompatibilityLevel = 'full' | 'partial' | 'unsupported' | 'degraded';
 
 export type MaterialPropertyCategory =
-  | 'base'
-  | 'pbr'
-  | 'advanced-pbr'
-  | 'texture'
-  | 'shader'
-  | 'transparency'
-  | 'emission'
-  | 'special';
+  'base' | 'pbr' | 'advanced-pbr' | 'texture' | 'shader' | 'transparency' | 'emission' | 'special';
 
 export interface MaterialProperty {
   name: string;

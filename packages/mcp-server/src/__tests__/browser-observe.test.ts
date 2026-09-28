@@ -97,7 +97,11 @@ describe('browser_session observe (real CDP)', () => {
         domTextLimit: 4000,
       });
 
-      expect(observed).toMatchObject({ success: true, operation: 'observe', permissionEnvelope: 'read_only' });
+      expect(observed).toMatchObject({
+        success: true,
+        operation: 'observe',
+        permissionEnvelope: 'read_only',
+      });
       expect(observed.receipt.details).toMatchObject({ cdpAttached: true, mutatesPage: false });
 
       // DOM: real page content, not a placeholder.
@@ -109,8 +113,14 @@ describe('browser_session observe (real CDP)', () => {
       // Console: the real console.log call from the page's own script, captured via CDP's
       // Runtime.consoleAPICalled — not injected or synthesized by the test.
       const consoleEntries = observed.console ?? [];
-      expect(consoleEntries.some((entry) => entry.text.includes('holo-observe-console-marker'))).toBe(true);
-      expect(consoleEntries.every((entry) => typeof entry.timestamp === 'string' && entry.timestamp.length > 0)).toBe(true);
+      expect(
+        consoleEntries.some((entry) => entry.text.includes('holo-observe-console-marker'))
+      ).toBe(true);
+      expect(
+        consoleEntries.every(
+          (entry) => typeof entry.timestamp === 'string' && entry.timestamp.length > 0
+        )
+      ).toBe(true);
 
       // Network: the real subresource fetch('/ping') the page issued, captured via CDP's
       // Network domain — proves this observes network traffic, not just JS console output.
@@ -164,13 +174,19 @@ describe('browser_session observe (real CDP)', () => {
         includeNetwork: false,
       });
 
-      expect(observed).toMatchObject({ success: true, operation: 'observe', permissionEnvelope: 'read_only' });
+      expect(observed).toMatchObject({
+        success: true,
+        operation: 'observe',
+        permissionEnvelope: 'read_only',
+      });
       expect(observed.dom?.title).toBe('observe-long-fixture');
       expect(observed.dom?.bodyText.length ?? 0).toBeGreaterThan(20_000);
       expect(observed.dom?.markdown).toContain('# observe-long-fixture');
       expect(observed.dom?.markdown).toContain('# observe-long-heading');
       expect(observed.dom?.markdown).toContain('- observe-long-list-item');
-      expect(observed.dom?.markdown).toContain('[observe-long-link](https://example.com/observe-long)');
+      expect(observed.dom?.markdown).toContain(
+        '[observe-long-link](https://example.com/observe-long)'
+      );
       expect(observed.dom?.markdown).toContain('usable page extract marker');
       expect(observed.receipt.details).toMatchObject({
         mutatesPage: false,

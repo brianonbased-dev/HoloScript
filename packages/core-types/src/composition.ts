@@ -1605,11 +1605,7 @@ export interface CompiledInput {
  * - compliance: Enforcement, violation detection, and sanction application
  */
 export type NormLifecyclePhase =
-  | 'creation'
-  | 'representation'
-  | 'spreading'
-  | 'evaluation'
-  | 'compliance';
+  'creation' | 'representation' | 'spreading' | 'evaluation' | 'compliance';
 
 /**
  * Status of a norm within its lifecycle

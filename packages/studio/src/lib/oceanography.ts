@@ -17,11 +17,7 @@ export interface Vec3 {
 
 export type CurrentType = 'surface' | 'deep' | 'thermohaline' | 'tidal' | 'wind-driven';
 export type MarineZone =
-  | 'epipelagic'
-  | 'mesopelagic'
-  | 'bathypelagic'
-  | 'abyssopelagic'
-  | 'hadopelagic';
+  'epipelagic' | 'mesopelagic' | 'bathypelagic' | 'abyssopelagic' | 'hadopelagic';
 export type TidePhase = 'high' | 'low' | 'rising' | 'falling';
 
 export interface OceanCurrent {

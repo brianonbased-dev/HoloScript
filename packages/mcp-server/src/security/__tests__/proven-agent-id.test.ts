@@ -24,7 +24,13 @@ process.env.HOLOMESH_DATA_DIR = mkdtempSync(join(tmpdir(), 'proven-agent-id-'));
 const { agentKeyStore, FOUNDER_AGENT_ID, keyRegistry, SEEDABLE_KEY_ENV_VARS } = await import(
   '../../holomesh/state'
 );
-const { agentBindingForRegistration, resolveProvenAgentId } = await import('../proven-agent-id');
+const {
+  AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR,
+  AGENT_ID_RESERVED_ERROR,
+  agentBindingForRegistration,
+  loopbackRegistrantMayBindUnproven,
+  resolveProvenAgentId,
+} = await import('../proven-agent-id');
 
 const LIVE_KEY = 'live-key-owned-by-one-agent';
 const EXPIRED_KEY = 'expired-key-value';
@@ -642,5 +648,162 @@ describe('identities nothing outside the key registry may claim', () => {
     expect(
       resolveProvenAgentId({ 'x-agent-key': 'hs_sk_record_claiming_the_reserved_id' })
     ).toBeUndefined();
+  });
+});
+
+/**
+ * The loopback exception, at the decision that carries it.
+ *
+ * HoloShell — the Jetson anchor's founder surface — registers over 127.0.0.1
+ * with no per-agent key and calls holo_daemon_turn as the daimon's owner. Once
+ * callerId is bound to the token's principal, a proof-only rule refuses the
+ * founder's own surface. Processes on the anchor's host already hold its disk,
+ * so a self-declared id adds no reach — but only while the registration door
+ * is closed to the LAN: behind a reverse proxy in the same container every
+ * remote peer looks like loopback, so the moment the door opens, proof is back.
+ */
+describe('loopbackRegistrantMayBindUnproven', () => {
+  it.each([
+    { registrarIsLoopback: true, remoteRegistrationAllowed: false, expected: true },
+    { registrarIsLoopback: true, remoteRegistrationAllowed: true, expected: false },
+    { registrarIsLoopback: false, remoteRegistrationAllowed: false, expected: false },
+    { registrarIsLoopback: false, remoteRegistrationAllowed: true, expected: false },
+  ])(
+    'loopback=$registrarIsLoopback remoteAllowed=$remoteRegistrationAllowed -> $expected',
+    ({ registrarIsLoopback, remoteRegistrationAllowed, expected }) => {
+      expect(
+        loopbackRegistrantMayBindUnproven({ registrarIsLoopback, remoteRegistrationAllowed })
+      ).toBe(expected);
+    }
+  );
+});
+
+describe('agentBindingForRegistration for a registrant that proved nothing', () => {
+  beforeEach(() => {
+    keyRegistry.clear();
+    agentKeyStore.clear();
+  });
+
+  /** What the route passes for each (peer, door) pair. */
+  const door = (registrarIsLoopback: boolean, remoteRegistrationAllowed: boolean) =>
+    loopbackRegistrantMayBindUnproven({ registrarIsLoopback, remoteRegistrationAllowed });
+
+  it('loopback peer, door closed: binds the requested id, trimmed, case kept', () => {
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: '  founder ',
+        registrarAgentId: undefined,
+        unprovenBindingAllowed: door(true, false),
+      })
+    ).toEqual({ ok: true, boundAgentId: 'founder' });
+
+    // No registry record exists to take a spelling from, and the daimon binder
+    // compares callerId to the token's agentId verbatim — so the caller's own
+    // case is what gets recorded.
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: 'HoloShell-Founder',
+        registrarAgentId: undefined,
+        unprovenBindingAllowed: door(true, false),
+      })
+    ).toEqual({ ok: true, boundAgentId: 'HoloShell-Founder' });
+  });
+
+  it('loopback peer, door open: refused — a proxy in the container makes remote look local', () => {
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: 'founder',
+        registrarAgentId: undefined,
+        unprovenBindingAllowed: door(true, true),
+      })
+    ).toEqual({ ok: false, reason: AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR });
+  });
+
+  it('remote peer: refused whether the door is closed or open', () => {
+    for (const remoteRegistrationAllowed of [false, true]) {
+      expect(
+        agentBindingForRegistration({
+          requestedAgentId: 'founder',
+          registrarAgentId: undefined,
+          unprovenBindingAllowed: door(false, remoteRegistrationAllowed),
+        })
+      ).toEqual({ ok: false, reason: AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR });
+    }
+  });
+
+  it('omitting the input keeps the proof-only rule', () => {
+    expect(
+      agentBindingForRegistration({ requestedAgentId: 'founder', registrarAgentId: undefined })
+    ).toEqual({ ok: false, reason: AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR });
+  });
+
+  it.each([
+    'agent_founder',
+    'Agent_Founder',
+    ' agent_founder ',
+    'agent_env_anything',
+    'AGENT_ENV_HOLOSCRIPT_API_KEY',
+  ])(
+    'a reserved id (%j) is refused on loopback with the door closed, naming the reservation',
+    (reserved) => {
+      const binding = agentBindingForRegistration({
+        requestedAgentId: reserved,
+        registrarAgentId: undefined,
+        unprovenBindingAllowed: door(true, false),
+      });
+      expect(binding).toEqual({ ok: false, reason: AGENT_ID_RESERVED_ERROR });
+      if (!binding.ok) {
+        expect(binding.reason).toMatch(/agent_founder/);
+        expect(binding.reason).toMatch(/agent_env_/);
+      }
+    }
+  );
+
+  it('binds nothing when nothing is requested, even on loopback with the door closed', () => {
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: '   ',
+        registrarAgentId: undefined,
+        unprovenBindingAllowed: door(true, false),
+      })
+    ).toEqual({ ok: true });
+  });
+
+  it('a proven registrar still records the registry spelling, whatever the door', () => {
+    // The comparison path is untouched: the new input only decides what
+    // happens when the request matches no proven identity.
+    seedKey(LIVE_KEY, 'agent_owner');
+    const registrarAgentId = resolveProvenAgentId({ 'x-agent-key': LIVE_KEY });
+    expect(registrarAgentId).toBe('agent_owner');
+
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: '  AGENT_Owner ',
+        registrarAgentId,
+        unprovenBindingAllowed: true,
+      })
+    ).toEqual({ ok: true, boundAgentId: 'agent_owner' });
+  });
+
+  it('a proven registrar asking for a DIFFERENT non-reserved id on loopback, door closed, gets it (refusing would reward stripping the proof)', () => {
+    // Refusing here would protect nothing: the same process can drop its key
+    // header and register the id unproven. The key never narrows what a
+    // loopback registrant may bind; it only fixes the spelling when it matches.
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: 'founder',
+        registrarAgentId: 'agent_owner',
+        unprovenBindingAllowed: door(true, false),
+      })
+    ).toEqual({ ok: true, boundAgentId: 'founder' });
+
+    // ...and still never a reserved one.
+    expect(
+      agentBindingForRegistration({
+        requestedAgentId: FOUNDER_AGENT_ID,
+        registrarAgentId: 'agent_owner',
+        unprovenBindingAllowed: door(true, false),
+      })
+    ).toEqual({ ok: false, reason: AGENT_ID_RESERVED_ERROR });
   });
 });

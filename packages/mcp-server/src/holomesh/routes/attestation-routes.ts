@@ -469,8 +469,7 @@ function isHexSignature(s: unknown): s is string {
 
 /** Result of resolving who is allowed to stand behind an envelope's `authorized_by`. */
 export type AttestationAuthorityResolution =
-  | { ok: true; kind: 'founder' | 'delegated' }
-  | { ok: false; reason: string };
+  { ok: true; kind: 'founder' | 'delegated' } | { ok: false; reason: string };
 
 /**
  * DELEGATED ATTESTATION AUTHORITY (founder directive 2026-07-10).

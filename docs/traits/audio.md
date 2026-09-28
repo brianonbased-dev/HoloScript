@@ -67,10 +67,10 @@ object Environment @ambisonics {
 
 ### @voice_proximity
 
-Proximity-based voice chat.
+Proximity-based voice chat. Shown on an object. A zone belongs inside a composition.
 
 ```hsplus
-zone VoiceArea @voice_proximity(falloff_start: 1, falloff_end: 10) {
+object VoiceArea @voice_proximity(falloff_start: 1, falloff_end: 10) {
   geometry: 'sphere'
   radius: 10
 }

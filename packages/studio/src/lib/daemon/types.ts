@@ -9,12 +9,7 @@ export type DaemonProjectKind =
   | 'unknown';
 
 export type DaemonPlanProfile =
-  | 'service'
-  | 'frontend'
-  | 'data'
-  | 'automation'
-  | 'agent-backend'
-  | 'spatial';
+  'service' | 'frontend' | 'data' | 'automation' | 'agent-backend' | 'spatial';
 
 // Current Studio job execution presets.
 export type DaemonProfile = 'quick' | 'balanced' | 'deep';

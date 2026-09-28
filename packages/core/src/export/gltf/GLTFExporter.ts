@@ -137,8 +137,7 @@ export class GLTFExporter {
     if (node.transform) this.applyTransform(gltfNode, node.transform);
 
     const meshComp = (node.components || []).find((c) => isMeshComponent(c)) as
-      | IMeshComponent
-      | undefined;
+      IMeshComponent | undefined;
     if (meshComp && meshComp.meshRef) {
       const meshIndex = this.meshIndexMap.get(meshComp.meshRef);
       if (meshIndex !== undefined) gltfNode.mesh = meshIndex;
@@ -146,8 +145,7 @@ export class GLTFExporter {
 
     if (this.options.includeCameras) {
       const cameraComp = (node.components || []).find((c) => isCameraComponent(c)) as
-        | ICameraComponent
-        | undefined;
+        ICameraComponent | undefined;
       if (cameraComp) gltfNode.camera = this.exportCamera(cameraComp);
     }
 

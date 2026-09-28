@@ -15,15 +15,13 @@
  * op set stabilizes (2 consumers now justify it).
  */
 import { describe, it, expect } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createLayerNormKernel } from '../layerNormKernel';
 import { createSoftmaxKernel } from '../softmaxKernel';
 import { createGeluKernel } from '../geluKernel';
 import { createFusedMHAKernel } from '../fusedMHAKernel';
 import { createBiasAddKernel } from '../biasAddKernel';
 import { createEmbeddingGatherKernel } from '../embeddingGatherKernel';
+import { writeParityReceipt } from './holotorchParityHarness';
 
 interface AdapterInfo {
   vendor?: string;
@@ -100,15 +98,6 @@ function compareAllClose(
   return { maxAbs, maxRefAbs, relToScale: maxAbs / Math.max(maxRefAbs, 1e-12), allClose };
 }
 
-function writeParityReceipt(op: string, payload: Record<string, unknown>): void {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const outDir = join(here, '..', 'holotorch', 'receipts');
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(
-    join(outDir, `${op}-parity.receipt.json`),
-    `${JSON.stringify({ schema: 'holotorch-inference-parity.v0', op, adapter: capturedAdapterInfo, ...payload }, null, 2)}\n`
-  );
-}
 
 function rng(seed: number): () => number {
   let s = seed >>> 0;
@@ -230,12 +219,12 @@ function refMHA(
   return out;
 }
 
-describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
-  it('layernorm matches f64 reference (holo n_embd=384)', async () => {
+describe('HoloTorch op f64-reference parity (WGSL vs own f64 reference, NOT torch; real GPU)', () => {
+  it('f64-reference parity: layernorm matches f64 reference (holo n_embd=384)', async (ctx) => {
     const device = await getDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping layernorm');
-      return;
+      return ctx.skip();
     }
     const ln = createLayerNormKernel(device);
     const rand = rng(7);
@@ -263,11 +252,11 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     expect(cmp.allClose).toBe(true);
   }, 120000);
 
-  it('softmax matches f64 reference and rows sum to 1 (attention + vocab widths)', async () => {
+  it('f64-reference parity: softmax matches f64 reference and rows sum to 1 (attention + vocab widths)', async (ctx) => {
     const device = await getDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping softmax');
-      return;
+      return ctx.skip();
     }
     const sm = createSoftmaxKernel(device);
     const rand = rng(11);
@@ -300,11 +289,11 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     }
   }, 120000);
 
-  it('gelu matches reference for both tanh and exact-erf forms', async () => {
+  it('f64-reference parity: gelu matches reference for both tanh and exact-erf forms', async (ctx) => {
     const device = await getDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping gelu');
-      return;
+      return ctx.skip();
     }
     const gelu = createGeluKernel(device);
     const rand = rng(13);
@@ -329,11 +318,11 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     }
   }, 120000);
 
-  it('fused-MHA causal + bidirectional parity, and the causal invariant (token 0 attends only to itself)', async () => {
+  it('f64-reference parity: fused-MHA causal + bidirectional parity, and the causal invariant (token 0 attends only to itself)', async (ctx) => {
     const device = await getDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping fused-mha');
-      return;
+      return ctx.skip();
     }
     const mha = createFusedMHAKernel(device);
     const rand = rng(17);
@@ -383,11 +372,11 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     }
   }, 120000);
 
-  it('bias-add (row-broadcast) matches reference to fp32-exact', async () => {
+  it('f64-reference parity: bias-add (row-broadcast) matches reference to fp32-exact', async (ctx) => {
     const device = await getDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping bias-add');
-      return;
+      return ctx.skip();
     }
     const kernel = createBiasAddKernel(device);
     const rand = rng(23);
@@ -414,11 +403,11 @@ describe('HoloTorch op parity (WGSL vs f64 reference, real GPU)', () => {
     expect(cmp.allClose).toBe(true);
   }, 120000);
 
-  it('embedding-gather (token + learned-positional) matches reference to fp32-exact', async () => {
+  it('f64-reference parity: embedding-gather (token + learned-positional) matches reference to fp32-exact', async (ctx) => {
     const device = await getDevice();
     if (!device) {
       console.warn('[holotorch-parity] no WebGPU adapter — skipping embed-gather');
-      return;
+      return ctx.skip();
     }
     const kernel = createEmbeddingGatherKernel(device);
     const rand = rng(29);

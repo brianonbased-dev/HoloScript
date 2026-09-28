@@ -127,16 +127,16 @@ composition myButton {
 
 ### VisualEditor Props
 
-| Prop               | Type              | Default      | Description               |
+| Prop | Type | Default | Description |
 | ------------------ | ----------------- | ------------ | ------------------------- | ------------- |
-| `initialGraph`     | `VisualGraph`     | `undefined`  | Graph to load initially   |
-| `objectName`       | `string`          | `"myObject"` | Name for generated code   |
-| `onChange`         | `(graph) => void` | `undefined`  | Called when graph changes |
-| `sidebarWidth`     | `number`          | `260`        | Sidebar width in pixels   |
-| `codePreviewWidth` | `number`          | `300`        | Code preview width        |
-| `showToolbar`      | `boolean`         | `true`       | Show the toolbar          |
-| `showCodePreview`  | `boolean`         | `true`       | Show code preview panel   |
-| `height`           | `string           | number`      | `"100vh"`                 | Editor height |
+| `initialGraph` | `VisualGraph` | `undefined` | Graph to load initially |
+| `objectName` | `string` | `"myObject"` | Name for generated code |
+| `onChange` | `(graph) => void` | `undefined` | Called when graph changes |
+| `sidebarWidth` | `number` | `260` | Sidebar width in pixels |
+| `codePreviewWidth` | `number` | `300` | Code preview width |
+| `showToolbar` | `boolean` | `true` | Show the toolbar |
+| `showCodePreview` | `boolean` | `true` | Show code preview panel |
+| `height` | `string           | number` | `"100vh"` | Editor height |
 
 ### Keyboard Shortcuts
 

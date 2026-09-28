@@ -174,8 +174,7 @@ interface SpeechRecognitionLike {
   continuous: boolean;
   interimResults: boolean;
   onresult:
-    | ((e: { results: ArrayLike<{ 0: { transcript: string; confidence: number } }> }) => void)
-    | null;
+    ((e: { results: ArrayLike<{ 0: { transcript: string; confidence: number } }> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   start(): void;
 }

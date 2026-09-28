@@ -608,8 +608,7 @@ export class MaterialEditor {
   private initializePreview(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const THREE = (globalThis as unknown as Record<string, unknown>).THREE as
-      | Record<string, any>
-      | undefined;
+      Record<string, any> | undefined;
     if (!this.previewCanvas || !THREE) return;
 
     // Scene

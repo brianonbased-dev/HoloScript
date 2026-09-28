@@ -11,13 +11,7 @@ export interface BrainRegionConfig {
   hemisphere: Hemisphere;
   brodmannArea?: number;
   cortexZone?:
-    | 'frontal'
-    | 'parietal'
-    | 'temporal'
-    | 'occipital'
-    | 'insular'
-    | 'limbic'
-    | 'cerebellar';
+    'frontal' | 'parietal' | 'temporal' | 'occipital' | 'insular' | 'limbic' | 'cerebellar';
   volumeMm3?: number;
   activationLevel: number;
   connections: string[];

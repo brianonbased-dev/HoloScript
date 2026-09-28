@@ -233,8 +233,7 @@ export interface UAALAgentSnapshot {
 
 export function getUAALAgentSnapshot(node: HSPlusNode): UAALAgentSnapshot | null {
   const state = (node as unknown as Record<string, unknown>).__uaalAgentState as
-    | UAALAgentState
-    | undefined;
+    UAALAgentState | undefined;
   if (!state) return null;
   return {
     cogvm: getCognitiveVMSnapshot(state.cogvmNode),

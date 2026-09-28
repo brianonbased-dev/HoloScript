@@ -86,8 +86,7 @@ export interface LocalLLMNativeTokenChunk {
 }
 
 export type LocalLLMNativeChatResponse =
-  | Promise<LocalLLMNativeChatResult>
-  | AsyncIterable<string | LocalLLMNativeTokenChunk>;
+  Promise<LocalLLMNativeChatResult> | AsyncIterable<string | LocalLLMNativeTokenChunk>;
 
 export interface LocalLLMNativeBridge {
   listModels(config: LocalLLMConfig, options: { signal: AbortSignal }): Promise<unknown[]>;

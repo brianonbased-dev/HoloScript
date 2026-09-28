@@ -4,10 +4,7 @@ import type { RunnableAttack } from './run-attack.js';
 import type { BaselineSummary, OverheadSummary } from './output-schema.js';
 
 export type Phase4DefenseId =
-  | 'exponential-decay'
-  | 'cross-mesh-anchoring'
-  | 'output-diversity'
-  | 'canary-probing';
+  'exponential-decay' | 'cross-mesh-anchoring' | 'output-diversity' | 'canary-probing';
 
 export interface DefenseObservation {
   attack: AttackId;

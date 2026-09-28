@@ -15,12 +15,7 @@ import type { EngineSystem } from '../SpatialEngine';
 // =============================================================================
 
 export type TextureFormat =
-  | 'rgba8unorm'
-  | 'rgba16float'
-  | 'depth24plus'
-  | 'depth32float'
-  | 'r32float'
-  | 'rg16float';
+  'rgba8unorm' | 'rgba16float' | 'depth24plus' | 'depth32float' | 'r32float' | 'rg16float';
 
 export interface RenderTarget {
   id: string;

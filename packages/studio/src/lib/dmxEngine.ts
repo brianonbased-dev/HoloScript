@@ -12,14 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 export type FixtureType =
-  | 'par'
-  | 'spot'
-  | 'wash'
-  | 'strobe'
-  | 'laser'
-  | 'led-bar'
-  | 'moving-head'
-  | 'fog';
+  'par' | 'spot' | 'wash' | 'strobe' | 'laser' | 'led-bar' | 'moving-head' | 'fog';
 
 export interface DMXChannel {
   address: number; // 1-512

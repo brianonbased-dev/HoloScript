@@ -556,8 +556,7 @@ describe('BioluminescentTrait — handler lifecycle', () => {
       queryId: 'q-1',
     });
     const resp = getLastEvent(ctx, 'bioluminescent_response') as
-      | (BioluminescentOutput & { queryId: string })
-      | undefined;
+      (BioluminescentOutput & { queryId: string }) | undefined;
     expect(resp).toBeDefined();
     expect(resp?.queryId).toBe('q-1');
     expect(resp?.color).toBe('#00ffcc');

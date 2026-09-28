@@ -16,6 +16,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { eventNameForHook, hasHookPrefix } from '../constants';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
@@ -54,11 +55,7 @@ export interface DTDLInterface {
 }
 
 export type DTDLContent =
-  | DTDLProperty
-  | DTDLTelemetry
-  | DTDLCommand
-  | DTDLRelationship
-  | DTDLComponent;
+  DTDLProperty | DTDLTelemetry | DTDLCommand | DTDLRelationship | DTDLComponent;
 
 export interface DTDLProperty {
   '@type': 'Property' | ['Property', ...string[]];
@@ -114,11 +111,7 @@ export interface DTDLComponent {
 }
 
 export type DTDLSchema =
-  | string
-  | DTDLMapSchema
-  | DTDLArraySchema
-  | DTDLEnumSchema
-  | DTDLObjectSchema;
+  string | DTDLMapSchema | DTDLArraySchema | DTDLEnumSchema | DTDLObjectSchema;
 
 export interface DTDLMapSchema {
   '@type': 'Map';
@@ -449,10 +442,13 @@ export class DTDLCompiler extends CompilerBase {
 
     for (const item of items) {
       const event = item.event;
-      if (event?.startsWith('on_')) {
+      // Canonical mapping rather than an unanchored replace(): the old form stripped the
+      // FIRST 'on_' anywhere in the string, which only happened to be the prefix because of
+      // the guard above it.
+      if (event && hasHookPrefix(event)) {
         commands.push({
           '@type': 'Command',
-          name: event.replace('on_', ''),
+          name: eventNameForHook(event),
           displayName: this.formatEventName(event),
           description: `Event handler for ${event}`,
         });
@@ -582,8 +578,7 @@ export class DTDLCompiler extends CompilerBase {
   }
 
   private formatEventName(event: string): string {
-    return event
-      .replace(/^on_/, '')
+    return eventNameForHook(event)
       .replace(/_/g, ' ')
       .replace(/^./, (s) => s.toUpperCase());
   }

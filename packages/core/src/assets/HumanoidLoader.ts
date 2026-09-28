@@ -569,8 +569,7 @@ export class HumanoidLoader {
       try {
         // Dynamic import THREE for AnimationMixer
         const threeLib = (globalThis as unknown as Record<string, unknown>).THREE as
-          | { AnimationMixer?: new (root: unknown) => unknown }
-          | undefined;
+          { AnimationMixer?: new (root: unknown) => unknown } | undefined;
         if (threeLib?.AnimationMixer) {
           mixer = new threeLib.AnimationMixer(scene);
         }

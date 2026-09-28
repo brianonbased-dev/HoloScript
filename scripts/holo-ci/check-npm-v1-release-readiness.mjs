@@ -68,10 +68,30 @@ function compareSemver(a, b) {
   return 0;
 }
 
+/**
+ * The HIGHEST published version, not the `latest` dist-tag and not the last
+ * element of the array.
+ *
+ * Both of those lie, in different ways. `npm view <pkg> version` returns
+ * whatever `latest` points at, and a tag can be moved backwards: on 2026-09-02
+ * @holoscript/engine had latest=6.1.7 while 8.0.0 was on the registry. And the
+ * `versions` array is PUBLISH ORDER, so `.at(-1)` is the most recently pushed,
+ * which is not the greatest once anything is backported.
+ *
+ * Either mistake makes this gate green-light a version that goes BACKWARDS —
+ * it would have approved engine at 6.2.0 while 8.0.0 was already published.
+ * Comparing against the max is the only reading that cannot regress a release.
+ */
 function versionFromNpmJson(parsed) {
   if (typeof parsed === 'string') return parsed;
-  if (Array.isArray(parsed) && typeof parsed.at(-1) === 'string') return parsed.at(-1);
-  return null;
+  if (!Array.isArray(parsed)) return null;
+  let max = null;
+  for (const candidate of parsed) {
+    if (typeof candidate !== 'string') continue;
+    if (!parseSemver(candidate)) continue; // ignore prereleases/garbage tags
+    if (max === null || compareSemver(candidate, max) === 1) max = candidate;
+  }
+  return max;
 }
 
 function discoverPackageJsons(dir, out = []) {
@@ -112,7 +132,9 @@ function npmViewVersion(name) {
   let lastError = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      const stdout = execFileSync(NPM_BIN, ['view', name, 'version', '--json'], {
+      // `versions` (plural), not `version`: the latter is the `latest` dist-tag,
+      // which can point below what is actually published. See versionFromNpmJson.
+      const stdout = execFileSync(NPM_BIN, ['view', name, 'versions', '--json'], {
         cwd: ROOT,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -121,7 +143,11 @@ function npmViewVersion(name) {
       const parsed = stdout ? JSON.parse(stdout) : null;
       const version = versionFromNpmJson(parsed);
       if (version) {
-        const result = { status: 'published', version };
+        const result = {
+          status: 'published',
+          version,
+          versions: Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [version],
+        };
         registryCache.set(name, result);
         return result;
       }
@@ -139,7 +165,13 @@ function npmViewVersion(name) {
           const parsed = JSON.parse(stdout);
           const version = versionFromNpmJson(parsed);
           if (version) {
-            const result = { status: 'published', version };
+            const result = {
+              status: 'published',
+              version,
+              versions: Array.isArray(parsed)
+                ? parsed.filter((v) => typeof v === 'string')
+                : [version],
+            };
             registryCache.set(name, result);
             return result;
           }
@@ -233,15 +265,50 @@ function checkRegistry(candidate, record) {
   const registry = npmViewVersion(pkg.name);
   let publishState = 'registry-skipped';
   if (registry.status === 'published') {
-    const cmp = compareSemver(pkg.version, registry.version);
+    // Compare against the highest published version ON THIS PACKAGE'S OWN MAJOR
+    // LINE, not the highest overall.
+    //
+    // A higher major can be ABANDONED, and every such case in this workspace
+    // traces to ONE DAY. On 2026-05-03 a 7.0.0 was published across at least six
+    // packages — core, cli, framework, engine, absorb-service, platform — and the
+    // project then walked away from that major. engine additionally took 8.0.0 on
+    // 2026-05-17. platform went on to ship 6.1.0 through 6.1.4 over the following
+    // three months; engine's 6.1.x series ran to 6.1.7 on 2026-08-13. For those,
+    // the live line is 6.1.x and the next release is 6.1.x+1.
+    //
+    // core and cli are the exception and must not be lumped in: they genuinely
+    // moved to major 8 from June onward (22 and 14 releases, newest 8.7.0 on
+    // 2026-08-13), so for them newest-by-date and highest-by-semver agree.
+    //
+    // The lesson the numbers alone cannot give you: read publish DATES, not
+    // version ordering. 8.0.0 looks newer than 6.1.7 and was three months older.
+    //
+    // Within a major, though, going backwards is always wrong, and that is the
+    // regression this gate exists to stop.
+    const localMajor = parseSemver(pkg.version)?.[0];
+    const sameMajor = (registry.versions || [])
+      .filter((v) => parseSemver(v)?.[0] === localMajor)
+      .sort((a, b) => compareSemver(a, b) ?? 0);
+    const lineMax = sameMajor.length ? sameMajor[sameMajor.length - 1] : null;
+    const compareTo = lineMax || registry.version;
+    const cmp = compareSemver(pkg.version, compareTo);
     if (cmp === null) {
-      fail(`${pkg.name}: cannot compare local ${pkg.version} to registry ${registry.version}`);
+      fail(`${pkg.name}: cannot compare local ${pkg.version} to registry ${compareTo}`);
     } else if (cmp < 0) {
-      fail(`${pkg.name}: local ${pkg.version} is older than npm ${registry.version}`);
+      fail(`${pkg.name}: local ${pkg.version} is older than npm ${compareTo}`);
     } else if (cmp === 0) {
       publishState = 'already-published';
     } else {
       publishState = 'publish-update';
+    }
+    // A higher major above the line is reported, never fatal: it may be a real
+    // future line, or an abandoned publish the project moved past. The gate
+    // cannot tell which, so it says so instead of guessing.
+    if (lineMax && compareSemver(registry.version, lineMax) === 1) {
+      warn(
+        `${pkg.name}: a higher major ${registry.version} exists on npm but the live line is ${lineMax}; ` +
+          `releasing ${pkg.version} continues that line and leaves ${registry.version} where it is`
+      );
     }
   } else if (registry.status === 'missing') {
     if (!candidate.allowFirstPublish) {

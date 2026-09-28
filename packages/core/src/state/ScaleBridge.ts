@@ -5,12 +5,7 @@ export const SCALE_BRIDGE_PROJECTION_SCHEMA = 'holoscript.scale-bridge.projectio
 export type ScaleBridgeProjectionSchema = typeof SCALE_BRIDGE_PROJECTION_SCHEMA;
 
 export type ScaleBridgeJson =
-  | string
-  | number
-  | boolean
-  | null
-  | ScaleBridgeJson[]
-  | { [key: string]: ScaleBridgeJson };
+  string | number | boolean | null | ScaleBridgeJson[] | { [key: string]: ScaleBridgeJson };
 
 export interface ScaleDescriptor {
   /** Stable identifier for the target scale, e.g. "room", "building", or "coarse-world". */

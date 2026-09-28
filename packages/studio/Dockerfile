@@ -83,12 +83,25 @@ RUN cd packages/agent-protocol && pnpm exec tsup --no-dts && pnpm exec tsc --emi
 RUN cd packages/core-types && pnpm exec tsup
 RUN cd packages/core && pnpm exec tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
+# secrets-broker MUST build before config: 7aee35c20 wired config auth through
+# HoloKey (config/src/auth.ts dynamically imports '@holoscript/secrets-broker'),
+# so config's dts emit needs secrets-broker's declarations on disk or it fails
+# TS2307 — broke every studio deploy from 7aee35c20 until 2026-07-10. The
+# original secrets-broker step further down predates that import (it was placed
+# for studio's next build only); zero workspace deps, safe to build here.
+# config MUST build before llm-provider: llm-provider depends on
+# @holoscript/config. Its tsup dts emit fails TS2307 "Cannot find module
+# '@holoscript/config'" without config's dist/*.d.ts (Release, PR #370).
+# Source for both is already on disk via the wholesale `COPY packages/` above.
+RUN cd packages/secrets-broker && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/config && pnpm exec tsup
 # llm-provider MUST build before framework: framework/src/ai/adapters.ts and
 # framework/src/llm/llm-adapter.ts import '@holoscript/llm-provider' (workspace
 # dep), so framework's `tsc -p tsconfig.build.json` step below needs
 # llm-provider's dist/*.d.ts on disk or it fails with TS2307 "Cannot find module
 # '@holoscript/llm-provider'" (broke 3 consecutive Studio deploys 2026-05-26).
-# llm-provider has no workspace deps, so it can build right after engine.
+# llm-provider depends on @holoscript/config (built immediately above, after
+# secrets-broker).
 RUN cd packages/llm-provider && pnpm exec tsup
 # Framework needs BOTH the tsup JS build AND a tsc declaration emit because
 # tsup.config.ts has dts: false (subpath dts via tsup is unreliable for this
@@ -125,18 +138,10 @@ RUN cd packages/crdt-spatial && pnpm exec tsup --no-dts && pnpm exec tsc --emitD
 # non-zero). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/std && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly
-# secrets-broker MUST build before config: 7aee35c20 wired config auth through
-# HoloKey (config/src/auth.ts dynamically imports '@holoscript/secrets-broker'),
-# so config's dts emit needs secrets-broker's declarations on disk or it fails
-# TS2307 — broke every studio deploy from 7aee35c20 until 2026-07-10. The
-# original secrets-broker step further down predates that import (it was placed
-# for studio's next build only); zero workspace deps, safe to build here.
-RUN cd packages/secrets-broker && pnpm exec tsup --no-dts && pnpm exec tsc --emitDeclarationOnly --outDir dist --skipLibCheck
-RUN cd packages/config && pnpm exec tsup
 # holoembed MUST build before absorb-service: absorb's HoloEmbedProvider.ts +
 # graph-rag-tools.ts import '@holoscript/holoembed' (sovereign-default embeddings,
 # W.GOLD.005), so absorb's tsc declaration emit fails TS2307 without holoembed's
-# dist. Deps (config just above, snn-webgpu near the top) are already built.
+# dist. Deps (config, built before llm-provider; snn-webgpu near the top) are already built.
 # The identical step further down (holoembed+holo-vm comment block) predates this
 # import and stays for docker layer-cache continuity — it is idempotent.
 # holoembed dts: tsup's rollup-plugin-dts fails; use tsc directly (pattern B).
@@ -223,6 +228,21 @@ ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 # V8 cap. NODE_OPTIONS is inherited by next's build workers. (2026-06-07 studio fix.)
 RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache-v2,target=/app/packages/studio/.next/cache cd packages/studio && NODE_OPTIONS=--max-old-space-size=8192 pnpm run build
 
+# Standalone tracing copies compiler-wasm (see next.config.js
+# outputFileTracingIncludes). The parser resolves the package name
+# @holoscript/wasm, which the tracer does not always materialize because the
+# specifier is joined at runtime. Link that name inside the standalone tree
+# before the runner copies it, and fail the build if the checker cannot load.
+RUN set -eu; \
+    root=/app/packages/studio/.next/standalone; \
+    if [ ! -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js" ]; then \
+      mkdir -p "$root/node_modules/@holoscript"; \
+      ln -sfn ../../packages/compiler-wasm "$root/node_modules/@holoscript/wasm"; \
+    fi; \
+    test -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js"; \
+    test -f "$root/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm_bg.wasm"; \
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/.next/standalone/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); }"
+
 # ─── Production runner ───────────────────────────────────────────────────────
 FROM base AS runner
 WORKDIR /app
@@ -274,6 +294,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/scripts/db-migrat
 RUN mkdir -p /tmp/rt && cd /tmp/rt && npm init -y >/dev/null 2>&1 && \
     npm install pg drizzle-orm --omit=dev --no-optional --no-audit --no-fund && \
     cp -R node_modules/. /app/node_modules/ && chown -R nextjs:nodejs /app/node_modules
+
+# The builder links @holoscript/wasm inside the standalone tree. Confirm the
+# runner image can load the checker (ill-typed function → HS-TYPE-RETURN-001).
+# A path-only resolve stays green when the wasm binary is missing.
+RUN test -f /app/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm.js && \
+    test -f /app/node_modules/@holoscript/wasm/pkg-node/holoscript_wasm_bg.wasm && \
+    node -e "const {createRequire}=require('module'); const r=createRequire('/app/packages/studio/server.js'); const wasm=r(r.resolve(['@holoscript','wasm','node'].join('/'))); const bad=JSON.parse(wasm.validate_detailed('function add(left: i32, right: i64): i64 { return left }')); if(bad.valid!==false) process.exit(1); const msg=(bad.errors&&bad.errors[0]&&bad.errors[0].message)||''; if(!msg.includes('HS-TYPE-RETURN-001')) { console.error(msg); process.exit(1); }"
 
 USER nextjs
 EXPOSE 3000

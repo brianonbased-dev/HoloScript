@@ -11,3 +11,11 @@
 -keep class com.meta.spatial.**.R$* { *; }
 -keep class com.meta.spatial.toolkit.** { *; }
 -keep class com.meta.spatial.isdk.** { *; }
+
+# Native Scene/ISDK constructs these types from JNI on every frame. R8 dropping the
+# constructors SIGABRTs onSceneTick and Quest dumps the user back to Home. Diagnosed on
+# the QR scanner (same SDK, same isMinifyEnabled) and carried here: this target drives a
+# Scene and onSceneTick too, so it strips the same constructors. No zxing keep — unlike
+# the scanner, this target does not decode barcodes.
+-keep class com.meta.spatial.core.** { *; }
+-keep class com.meta.spatial.runtime.** { *; }

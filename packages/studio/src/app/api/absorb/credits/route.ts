@@ -18,6 +18,8 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { purchaseReturnUrls } from '@/lib/purchase-return';
+import { resolvePublicStudioOrigin } from '@/lib/reachable-origin';
 import { getGitHubToken } from '../../github/_shared';
 
 import { corsHeaders } from '../../_lib/cors';
@@ -90,7 +92,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = await req.text();
+  // Stripe must send the buyer back HERE, to Settings, not to absorb's own
+  // default (localhost, or an auth-walled JSON route). See @/lib/purchase-return.
+  const body = withReturnUrls(await req.text(), resolvePublicStudioOrigin(req));
 
   // Purchase route on the deployed absorb-service host is /api/credits/purchase
   // (NOT /api/credits). See research/2026-06-05_brittney-capability-gaps.md §B2.
@@ -112,6 +116,22 @@ export async function POST(req: NextRequest) {
     },
     { status: 503 }
   );
+}
+
+/**
+ * The purchase body with the return URLs this Studio chooses, overwriting any the
+ * client sent. A body that is not a JSON object passes through untouched, so
+ * absorb reports it exactly as before.
+ */
+function withReturnUrls(raw: string, origin: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return raw;
+  return JSON.stringify({ ...(parsed as Record<string, unknown>), ...purchaseReturnUrls(origin) });
 }
 
 export function OPTIONS(request: Request) {

@@ -14,15 +14,7 @@ import type { TraitHandler } from './TraitTypes';
 // =============================================================================
 
 type ColorMap =
-  | 'viridis'
-  | 'plasma'
-  | 'inferno'
-  | 'magma'
-  | 'turbo'
-  | 'jet'
-  | 'hot'
-  | 'cool'
-  | 'rainbow';
+  'viridis' | 'plasma' | 'inferno' | 'magma' | 'turbo' | 'jet' | 'hot' | 'cool' | 'rainbow';
 type Interpolation = 'nearest' | 'linear' | 'cubic';
 
 interface DataPoint {

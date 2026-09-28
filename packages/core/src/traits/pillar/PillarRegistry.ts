@@ -100,10 +100,7 @@ export interface PillarSummary {
 
 /** Error codes for pillar:error events */
 export type PillarErrorCode =
-  | 'PILLAR_NOT_FOUND'
-  | 'REGISTRY_FULL'
-  | 'INVALID_AXIS'
-  | 'GENERATE_FAILED';
+  'PILLAR_NOT_FOUND' | 'REGISTRY_FULL' | 'INVALID_AXIS' | 'GENERATE_FAILED';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Trait config
@@ -810,8 +807,7 @@ export function getPillarSliceStats(node: HSPlusNode): {
   diversityRatio: number;
 } {
   const state = (node as any).__pillarRegistryState as
-    | { slice_count?: number; unique_fingerprints?: Set<string> }
-    | undefined;
+    { slice_count?: number; unique_fingerprints?: Set<string> } | undefined;
 
   if (!state) {
     return { totalSlices: 0, uniqueSlices: 0, diversityRatio: 0 };

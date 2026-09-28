@@ -62,10 +62,7 @@ export type LotusAggregateBloomState = 'sealed' | 'budding' | 'blooming' | 'full
  * Maps 1:1 to the three Root: <name> nodes in garden.seedable.holo.
  */
 export type LotusRootSubstrate =
-  | 'parser'
-  | 'multi_target_compiler'
-  | 'provenance_semiring'
-  | (string & {}); // open for future substrates
+  'parser' | 'multi_target_compiler' | 'provenance_semiring' | (string & {}); // open for future substrates
 
 interface LotusRootConfig {
   /** Which substrate this root represents (drives sub-emissive accent colour). */
@@ -212,8 +209,7 @@ export const lotusRootHandler: TraitHandler<LotusRootConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__lotusRootState as
-      | LotusRootState
-      | undefined;
+      LotusRootState | undefined;
     if (!state) return;
 
     if (event.type === 'lotus_bloom_state_changed') {

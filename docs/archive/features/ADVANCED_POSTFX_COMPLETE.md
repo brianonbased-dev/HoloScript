@@ -51,11 +51,12 @@ SSAO simulates how ambient light is occluded in small crevices, corners, and are
 - **After SSAO**: Depth in corners, realistic contact shadows, grounded objects
 
 **Performance**:
+
 | Resolution | SSAO Off | SSAO On | Impact |
-|------------|----------|---------|--------|
-| **1080p** | 60 FPS | 57 FPS | -5% |
-| **1440p** | 60 FPS | 55 FPS | -8% |
-| **4K** | 45 FPS | 38 FPS | -15% |
+| ---------- | -------- | ------- | ------ |
+| **1080p**  | 60 FPS   | 57 FPS  | -5%    |
+| **1440p**  | 60 FPS   | 55 FPS  | -8%    |
+| **4K**     | 45 FPS   | 38 FPS  | -15%   |
 
 **Best Use Cases**:
 
@@ -126,11 +127,12 @@ SSR creates realistic reflections on surfaces by ray-marching through screen-spa
 - **After SSR**: Moving objects reflected in real-time, shiny floors show scene
 
 **Performance**:
+
 | Resolution | SSR Off | SSR On | Impact |
-|------------|---------|--------|--------|
-| **1080p** | 60 FPS | 48 FPS | -20% |
-| **1440p** | 60 FPS | 42 FPS | -30% |
-| **4K** | 45 FPS | 28 FPS | -38% |
+| ---------- | ------- | ------ | ------ |
+| **1080p**  | 60 FPS  | 48 FPS | -20%   |
+| **1440p**  | 60 FPS  | 42 FPS | -30%   |
+| **4K**     | 45 FPS  | 28 FPS | -38%   |
 
 ⚠️ **Note**: SSR is GPU-intensive. Use selectively for hero surfaces (floors, water).
 
@@ -410,20 +412,22 @@ applyCinematicPreset(renderer);
 ### Resolution Scaling
 
 **SSAO Performance by Resolution**:
+
 | Resolution | FPS (SSAO On) | FPS (SSAO Off) | Impact |
-|------------|---------------|----------------|--------|
-| 720p | 60 | 60 | 0% |
-| 1080p | 57 | 60 | -5% |
-| 1440p | 55 | 60 | -8% |
-| 4K | 38 | 45 | -15% |
+| ---------- | ------------- | -------------- | ------ |
+| 720p       | 60            | 60             | 0%     |
+| 1080p      | 57            | 60             | -5%    |
+| 1440p      | 55            | 60             | -8%    |
+| 4K         | 38            | 45             | -15%   |
 
 **SSR Performance by Resolution**:
+
 | Resolution | FPS (SSR On) | FPS (SSR Off) | Impact |
-|------------|--------------|---------------|--------|
-| 720p | 55 | 60 | -8% |
-| 1080p | 48 | 60 | -20% |
-| 1440p | 42 | 60 | -30% |
-| 4K | 28 | 45 | -38% |
+| ---------- | ------------ | ------------- | ------ |
+| 720p       | 55           | 60            | -8%    |
+| 1080p      | 48           | 60            | -20%   |
+| 1440p      | 42           | 60            | -30%   |
+| 4K         | 28           | 45            | -38%   |
 
 ---
 

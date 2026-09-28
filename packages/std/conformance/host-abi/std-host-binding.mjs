@@ -305,18 +305,12 @@ function evaluateCallableExpression(expression, args, label) {
     case 'div': {
       const divisor = callableNumber(operands[1], `${label}.right`);
       if (divisor === 0) fail('division-by-zero', `${label}.div divisor must be nonzero`);
-      return finiteResult(
-        callableNumber(operands[0], `${label}.left`) / divisor,
-        `${label}.div`
-      );
+      return finiteResult(callableNumber(operands[0], `${label}.left`) / divisor, `${label}.div`);
     }
     case 'mod': {
       const divisor = callableNumber(operands[1], `${label}.right`);
       if (divisor === 0) fail('division-by-zero', `${label}.mod divisor must be nonzero`);
-      return finiteResult(
-        callableNumber(operands[0], `${label}.left`) % divisor,
-        `${label}.mod`
-      );
+      return finiteResult(callableNumber(operands[0], `${label}.left`) % divisor, `${label}.mod`);
     }
     case 'eq':
       return structuralEqual(operands[0], operands[1]);
@@ -327,12 +321,10 @@ function evaluateCallableExpression(expression, args, label) {
     case 'gt':
     case 'gte': {
       const [left, right] = operands;
-      if (
-        !(
-          (typeof left === 'number' && typeof right === 'number') ||
-          (typeof left === 'string' && typeof right === 'string')
-        )
-      ) {
+      if (!(
+        (typeof left === 'number' && typeof right === 'number') ||
+        (typeof left === 'string' && typeof right === 'string')
+      )) {
         fail('bad-callable-result', `${label}.${expression.op} requires matching scalar types`);
       }
       if (typeof left === 'number') {
@@ -483,7 +475,10 @@ const list_lib = {
     }
     if (iterable.kind === 'list') {
       checkExactKeys(iterable, 'iterable', ['schema', 'kind', 'values']);
-      const values = checkCollectionSize(checkArray(iterable.values, 'iterable.values'), 'iterable');
+      const values = checkCollectionSize(
+        checkArray(iterable.values, 'iterable.values'),
+        'iterable'
+      );
       checkStrictJson(values, 'iterable.values');
       return [...values];
     }
@@ -547,10 +542,7 @@ const list_lib = {
     return lst
       .map((value, index) => ({ value, index }))
       .sort((left, right) => {
-        const order = callableNumber(
-          callback(left.value, right.value),
-          'comparator result'
-        );
+        const order = callableNumber(callback(left.value, right.value), 'comparator result');
         return order === 0 ? left.index - right.index : order;
       })
       .map(({ value }) => value);
@@ -720,9 +712,7 @@ const map_lib = {
     return Object.fromEntries(
       Object.keys(m)
         .sort()
-        .filter((key) =>
-          callableBoolean(callback(m[key], key), `predicate result at key "${key}"`)
-        )
+        .filter((key) => callableBoolean(callback(m[key], key), `predicate result at key "${key}"`))
         .map((key) => [key, m[key]])
     );
   },

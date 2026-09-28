@@ -17,9 +17,7 @@ export const HEADLESS_EXPERIMENT_HASH_ALGORITHM = 'sha256-strict-canonical-json-
 
 export type HeadlessJsonPrimitive = null | boolean | number | string;
 export type HeadlessJsonValue =
-  | HeadlessJsonPrimitive
-  | HeadlessJsonValue[]
-  | { [key: string]: HeadlessJsonValue };
+  HeadlessJsonPrimitive | HeadlessJsonValue[] | { [key: string]: HeadlessJsonValue };
 export type HeadlessJsonObject = { [key: string]: HeadlessJsonValue };
 
 export interface HeadlessExperimentClockDeclaration {

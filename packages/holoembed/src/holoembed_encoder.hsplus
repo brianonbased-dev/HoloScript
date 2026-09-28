@@ -93,6 +93,20 @@ composition "HoloEmbedEncoderSurface" {
       };
     }
 
+    action describe_lane() {
+      return {
+        schema_version: "holoscript.holoembed.lane.v1",
+        kind: "HoloEmbedLane",
+        provider: "holoembed",
+        algorithm: "structural+char-trigram",
+        dim: this.state.embedding_dim,
+        neural_model: false,
+        weights: "none",
+        sentence: "HoloEmbed default vectors are structural features plus hashed character trigrams. They are not a downloaded neural model.",
+        forbidden_default_providers: ["xenova", "ollama", "openai"]
+      };
+    }
+
     action receipt() {
       return {
         type: "HoloEmbedEncoderReceipt",
@@ -107,6 +121,6 @@ composition "HoloEmbedEncoderSurface" {
       };
     }
 
-    exports { initialize, encode, encode_text, similarity, receipt, state }
+    exports { initialize, encode, encode_text, similarity, describe_lane, receipt, state }
   }
 }

@@ -34,10 +34,7 @@ export const ARM_LABEL: Record<Arm, string> = {
 };
 
 export type BenchDomain =
-  | 'trait-composition'
-  | 'holo-authoring'
-  | 'spatial-transform'
-  | 'contract-bounds';
+  'trait-composition' | 'holo-authoring' | 'spatial-transform' | 'contract-bounds';
 
 export interface BenchTask {
   id: string;

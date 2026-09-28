@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/framework",
-  "version": "6.1.5",
+  "version": "6.1.7",
   "description": "The framework where agents remember, learn, and earn. Knowledge-compounding team orchestration.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -84,7 +84,8 @@
     "build": "node scripts/build-framework.mjs",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --passWithNoTests"
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "keywords": [
     "holoscript",

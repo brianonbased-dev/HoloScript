@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holoembed",
-  "version": "6.1.2",
+  "version": "6.1.4",
   "description": "HoloEmbed: 768-dim NL→code embeddings via structural features + char-trigram subwords. Optional SNN-WebGPU population coding for GPU-accelerated batch encoding.",
   "type": "module",
   "main": "./dist/index.js",
@@ -26,7 +26,9 @@
     "test": "vitest run --config vitest.config.ts --passWithNoTests",
     "test:webgpu": "pnpm run build && vitest run --config vitest.config.ts src/__tests__/HoloEmbedEncoder.test.ts -t \"WebGPU path matches\"",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --passWithNoTests"
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "describe-lane": "node scripts/describe-holoembed-lane.mjs",
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
   },
   "dependencies": {
     "@holoscript/config": "workspace:*",

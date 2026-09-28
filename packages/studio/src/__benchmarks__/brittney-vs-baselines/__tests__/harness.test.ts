@@ -115,7 +115,10 @@ describe('cost-tracker', () => {
   it('prices current-generation models instead of falling back', () => {
     // Every one of these previously fell through to the `claude-opus-4-7`
     // entry at $15/$75 — Opus 5 was billed at 3x, Sonnet 5 at 5x.
-    expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-opus-5')).toBeCloseTo(5, 5);
+    expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-opus-5')).toBeCloseTo(
+      5,
+      5
+    );
     expect(costOf({ input_tokens: 1_000_000, output_tokens: 0 }, 'claude-opus-4-8')).toBeCloseTo(
       5,
       5

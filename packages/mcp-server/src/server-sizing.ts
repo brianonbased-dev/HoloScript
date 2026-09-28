@@ -1,13 +1,5 @@
 export type McpServerSize =
-  | 'tiny'
-  | 'small'
-  | 'standard'
-  | 'large'
-  | 'xlarge'
-  | 'laptop'
-  | 'jetson'
-  | 'vast'
-  | 'fleet';
+  'tiny' | 'small' | 'standard' | 'large' | 'xlarge' | 'laptop' | 'jetson' | 'vast' | 'fleet';
 
 export type McpServerTransportHint = 'stdio' | 'streamable-http' | 'streamable-http+sse';
 

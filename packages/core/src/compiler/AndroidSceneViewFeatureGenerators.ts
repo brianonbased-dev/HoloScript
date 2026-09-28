@@ -9,8 +9,7 @@ import { PORTAL_AR_TRAITS } from '../traits/constants/mobile/portal-ar';
 import { CAMERA_HAND_TRACKING_TRAITS } from '../traits/constants/mobile/camera-hand-tracking';
 
 type RuntimeTrait =
-  | string
-  | { name?: string; config?: Record<string, unknown>; params?: Record<string, unknown> };
+  string | { name?: string; config?: Record<string, unknown>; params?: Record<string, unknown> };
 
 const GEO_ANCHOR_TRAITS = [
   'geo_anchor',

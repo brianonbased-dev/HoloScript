@@ -323,6 +323,8 @@ export class HoloMeshConsolidationBridge {
           type: entry.type || 'wisdom',
           authorDid: entry.authorId || sourcePeerDid,
           tags: entry.tags || [],
+          price: entry.price,
+          knowledgeEntryId: entry.id,
         },
         sourcePeerDid
       );
@@ -340,6 +342,8 @@ export class HoloMeshConsolidationBridge {
           type: entry.type || 'wisdom',
           authorDid: entry.authorId || sourcePeerDid,
           tags: entry.tags || [],
+          price: entry.price,
+          knowledgeEntryId: entry.id,
         },
         sourcePeerDid
       );
@@ -354,6 +358,8 @@ export class HoloMeshConsolidationBridge {
         authorDid: entry.authorId || sourcePeerDid,
         tags: entry.tags || [],
         memoryReceipt: receipt,
+        price: entry.price,
+        knowledgeEntryId: entry.id,
       },
       sourcePeerDid
     );

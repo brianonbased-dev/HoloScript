@@ -948,8 +948,7 @@ export const DigitalTwinTrait: TraitHandler = {
 
     // Accept incoming twin state
     const incomingState = context.object.userData.twinIncomingState as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (incomingState) {
       if (incomingState.position) {
         const p = incomingState.position as [number, number, number];

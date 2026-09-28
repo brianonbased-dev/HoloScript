@@ -577,10 +577,9 @@ test('farm rejects missing, unknown, malformed, wrong-schema, and inconsistent i
 
     const originalCatalog = readFileSync(join(cwd, 'catalog.json'), 'utf8');
     for (const alias of ['catalog.json', './catalog.json']) {
-      const unsafeOutput = run(
-        [...base.slice(0, -1), '--output', alias, '--force', '--json'],
-        { cwd }
-      );
+      const unsafeOutput = run([...base.slice(0, -1), '--output', alias, '--force', '--json'], {
+        cwd,
+      });
       assert.equal(unsafeOutput.status, 2);
       assert.match(unsafeOutput.stderr, /must not alias farm input/u);
       assert.equal(readFileSync(join(cwd, 'catalog.json'), 'utf8'), originalCatalog);

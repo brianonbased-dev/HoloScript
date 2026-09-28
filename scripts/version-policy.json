@@ -124,6 +124,7 @@
       "targetMajor": 0,
       "packages": [
         "@hololand/react-agent-sdk",
+        "@holoscript/agent-managed",
         "@holoscript/agent-runtime",
         "@holoscript/aibrittney",
         "@holoscript/graphql-api",
@@ -131,6 +132,7 @@
         "@holoscript/holo-runtime",
         "@holoscript/holollama",
         "@holoscript/holosystem",
+        "@holoscript/meaning",
         "@holoscript/memory",
         "@holoscript/mcp-server-adversarial",
         "@holoscript/net-v2",

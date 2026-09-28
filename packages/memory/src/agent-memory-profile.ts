@@ -4,13 +4,7 @@ export const AGENT_MEMORY_PROFILE_SCHEMA = 'holoscript.memory.agent-profile.v1';
 export const HOLOSCRIPT_AGENT_RUNTIME_PACKAGE = '@holoscript/holoscript-agent';
 
 export type AgentMemoryFamily =
-  | 'anthropic'
-  | 'openai'
-  | 'google'
-  | 'xai'
-  | 'holoscript'
-  | 'edge'
-  | 'other';
+  'anthropic' | 'openai' | 'google' | 'xai' | 'holoscript' | 'edge' | 'other';
 
 export interface AgentMemoryProfileInput {
   agentId: string;

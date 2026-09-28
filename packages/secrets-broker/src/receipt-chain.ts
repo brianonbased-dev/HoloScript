@@ -36,8 +36,7 @@ export interface ChainAccessors<R> {
 
 /** Reasons a chain fails to verify. */
 export type ChainBreakReason =
-  | 'prev_hash linkage broken'
-  | 'payload hash mismatch (field tampered)';
+  'prev_hash linkage broken' | 'payload hash mismatch (field tampered)';
 
 /**
  * Verify a prevHash-linked SHA-256 receipt chain end-to-end by RECOMPUTING every hash from

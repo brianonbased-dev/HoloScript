@@ -258,7 +258,11 @@ describe('BrowserPool Chromium resolution', () => {
       networkLimit: 50,
       domTextLimit: 4000,
     });
-    expect(observed).toMatchObject({ success: true, operation: 'observe', permissionEnvelope: 'read_only' });
+    expect(observed).toMatchObject({
+      success: true,
+      operation: 'observe',
+      permissionEnvelope: 'read_only',
+    });
     // This suite mocks `playwright` entirely (no page.context()), so CDP attachment fails
     // closed by design: observation degrades to empty buffers instead of the session
     // failing to open. Real CDP capture is proven in browser-observe.test.ts against a

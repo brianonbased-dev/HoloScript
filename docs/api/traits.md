@@ -41,12 +41,13 @@ template "Item" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `snap_to_hand` | boolean | `false` | Object snaps to grip position |
-| `haptic_on_grab` | number | `0` | Haptic intensity (0-1) |
-| `two_handed` | boolean | `false` | Requires both hands |
-| `throw_on_release` | boolean | `true` | Enable throwing |
+
+| Parameter          | Type    | Default | Description                   |
+| ------------------ | ------- | ------- | ----------------------------- |
+| `snap_to_hand`     | boolean | `false` | Object snaps to grip position |
+| `haptic_on_grab`   | number  | `0`     | Haptic intensity (0-1)        |
+| `two_handed`       | boolean | `false` | Requires both hands           |
+| `throw_on_release` | boolean | `true`  | Enable throwing               |
 
 **Events:** `on_grab`, `on_release`, `on_grab_start`, `on_grab_end`
 
@@ -66,12 +67,13 @@ template "Ball" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `velocity_multiplier` | number | `1.0` | Throw force multiplier |
-| `bounce` | boolean | `false` | Enable bouncing |
-| `bounce_factor` | number | `0.5` | Bounce energy retention |
-| `max_velocity` | number | `50` | Maximum throw speed |
+
+| Parameter             | Type    | Default | Description             |
+| --------------------- | ------- | ------- | ----------------------- |
+| `velocity_multiplier` | number  | `1.0`   | Throw force multiplier  |
+| `bounce`              | boolean | `false` | Enable bouncing         |
+| `bounce_factor`       | number  | `0.5`   | Bounce energy retention |
+| `max_velocity`        | number  | `50`    | Maximum throw speed     |
 
 **Events:** `on_throw`, `on_land`, `on_bounce`
 
@@ -169,13 +171,14 @@ template "Crate" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default |
-|-----------|------|---------|
-| `mass` | number | `1.0` |
-| `drag` | number | `0` |
-| `angular_drag` | number | `0.05` |
-| `use_gravity` | boolean | `true` |
-| `is_kinematic` | boolean | `false` |
+
+| Parameter         | Type    | Default |
+| ----------------- | ------- | ------- |
+| `mass`            | number  | `1.0`   |
+| `drag`            | number  | `0`     |
+| `angular_drag`    | number  | `0.05`  |
+| `use_gravity`     | boolean | `true`  |
+| `is_kinematic`    | boolean | `false` |
 | `freeze_rotation` | boolean | `false` |
 
 ---
@@ -348,12 +351,13 @@ template "Spinner" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `speed` | number | `30` | Rotation speed (degrees/second) |
-| `axis` | string/array | `"y"` | Rotation axis: "x", "y", "z", or [x,y,z] |
-| `clockwise` | boolean | `true` | Rotation direction |
-| `paused` | boolean | `false` | Start paused |
+
+| Parameter   | Type         | Default | Description                              |
+| ----------- | ------------ | ------- | ---------------------------------------- |
+| `speed`     | number       | `30`    | Rotation speed (degrees/second)          |
+| `axis`      | string/array | `"y"`   | Rotation axis: "x", "y", "z", or [x,y,z] |
+| `clockwise` | boolean      | `true`  | Rotation direction                       |
+| `paused`    | boolean      | `false` | Start paused                             |
 
 **Events:** `on_rotation_start`, `on_rotation_pause`, `on_rotation_cycle`
 
@@ -373,12 +377,13 @@ template "InteractiveButton" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `modes` | array | `["click", "hover"]` | Enabled interaction modes |
-| `cursor` | string | `"default"` | Cursor style on hover |
-| `highlight` | boolean | `true` | Highlight on interaction |
-| `sound` | string | `null` | Interaction sound effect |
+
+| Parameter   | Type    | Default              | Description               |
+| ----------- | ------- | -------------------- | ------------------------- |
+| `modes`     | array   | `["click", "hover"]` | Enabled interaction modes |
+| `cursor`    | string  | `"default"`          | Cursor style on hover     |
+| `highlight` | boolean | `true`               | Highlight on interaction  |
+| `sound`     | string  | `null`               | Interaction sound effect  |
 
 **Events:** `on_interact`, `on_focus`, `on_blur`
 
@@ -398,13 +403,14 @@ template "ComplexModel" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `distances` | array | `[10, 25, 50]` | Switch distances in meters |
-| `levels` | array | `null` | Model files for each LOD |
-| `fade` | boolean | `true` | Fade between LOD levels |
-| `fade_duration` | number | `200` | Fade duration in ms |
-| `bias` | number | `0` | Distance bias adjustment |
+
+| Parameter       | Type    | Default        | Description                |
+| --------------- | ------- | -------------- | -------------------------- |
+| `distances`     | array   | `[10, 25, 50]` | Switch distances in meters |
+| `levels`        | array   | `null`         | Model files for each LOD   |
+| `fade`          | boolean | `true`         | Fade between LOD levels    |
+| `fade_duration` | number  | `200`          | Fade duration in ms        |
+| `bias`          | number  | `0`            | Distance bias adjustment   |
 
 **Events:** `on_lod_change`
 
@@ -425,11 +431,12 @@ template "SharedObject" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default |
-|-----------|------|---------|
-| `sync_rate` | frequency | `20hz` |
-| `interpolation` | boolean | `true` |
-| `authority` | string | `"server"` |
+
+| Parameter       | Type      | Default    |
+| --------------- | --------- | ---------- |
+| `sync_rate`     | frequency | `20hz`     |
+| `interpolation` | boolean   | `true`     |
+| `authority`     | string    | `"server"` |
 
 ---
 
@@ -635,16 +642,17 @@ template "GazeTarget" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `dwell_enabled` | boolean | `true` | Enable dwell-to-activate |
-| `dwell_time` | duration | `1000ms` | Time to dwell for activation |
-| `dwell_feedback` | boolean | `true` | Show progress indicator |
-| `gaze_highlight` | boolean | `true` | Highlight when gazed at |
-| `highlight_color` | string | `"#00ffff"` | Highlight color |
-| `gaze_scale` | number | `1.1` | Scale multiplier when gazed |
-| `foveated_priority` | string | `"medium"` | Rendering priority (low/medium/high) |
-| `smooth_pursuit` | boolean | `false` | Object follows gaze smoothly |
+
+| Parameter           | Type     | Default     | Description                          |
+| ------------------- | -------- | ----------- | ------------------------------------ |
+| `dwell_enabled`     | boolean  | `true`      | Enable dwell-to-activate             |
+| `dwell_time`        | duration | `1000ms`    | Time to dwell for activation         |
+| `dwell_feedback`    | boolean  | `true`      | Show progress indicator              |
+| `gaze_highlight`    | boolean  | `true`      | Highlight when gazed at              |
+| `highlight_color`   | string   | `"#00ffff"` | Highlight color                      |
+| `gaze_scale`        | number   | `1.1`       | Scale multiplier when gazed          |
+| `foveated_priority` | string   | `"medium"`  | Rendering priority (low/medium/high) |
+| `smooth_pursuit`    | boolean  | `false`     | Object follows gaze smoothly         |
 
 **Events:** `on_gaze_enter`, `on_gaze_exit`, `on_dwell_progress`, `on_dwell_activate`
 
@@ -664,14 +672,15 @@ template "SeatedPlayer" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `height_offset` | number | `0` | Height adjustment (meters) |
-| `max_reach` | number | `1.0` | Maximum forward reach |
-| `auto_calibrate` | boolean | `true` | Auto-calibrate seated height |
-| `comfort_vignette` | boolean | `true` | Vignette on rotation |
-| `snap_turn_angle` | number | `45` | Snap turn degrees (0 = smooth) |
-| `play_bounds` | array | `[1.5, 1.5]` | Play area [width, depth] |
+
+| Parameter          | Type    | Default      | Description                    |
+| ------------------ | ------- | ------------ | ------------------------------ |
+| `height_offset`    | number  | `0`          | Height adjustment (meters)     |
+| `max_reach`        | number  | `1.0`        | Maximum forward reach          |
+| `auto_calibrate`   | boolean | `true`       | Auto-calibrate seated height   |
+| `comfort_vignette` | boolean | `true`       | Vignette on rotation           |
+| `snap_turn_angle`  | number  | `45`         | Snap turn degrees (0 = smooth) |
+| `play_bounds`      | array   | `[1.5, 1.5]` | Play area [width, depth]       |
 
 **Events:** `on_seated_calibrated`, `on_turn_left`, `on_turn_right`
 
@@ -691,14 +700,15 @@ template "VibratingObject" {
 ```
 
 **Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `intensity` | number | `0.5` | Base haptic intensity (0-1) |
-| `proximity_enabled` | boolean | `false` | Enable proximity-based haptics |
-| `proximity_distance` | number | `0.5` | Distance for proximity haptics |
-| `collision_pattern` | string | `"soft"` | Pattern: soft/hard/metal/glass/custom |
-| `hands` | string | `"dominant"` | Which hands: both/left/right/dominant |
-| `duration` | number | `100` | Haptic pulse duration (ms) |
+
+| Parameter            | Type    | Default      | Description                           |
+| -------------------- | ------- | ------------ | ------------------------------------- |
+| `intensity`          | number  | `0.5`        | Base haptic intensity (0-1)           |
+| `proximity_enabled`  | boolean | `false`      | Enable proximity-based haptics        |
+| `proximity_distance` | number  | `0.5`        | Distance for proximity haptics        |
+| `collision_pattern`  | string  | `"soft"`     | Pattern: soft/hard/metal/glass/custom |
+| `hands`              | string  | `"dominant"` | Which hands: both/left/right/dominant |
+| `duration`           | number  | `100`        | Haptic pulse duration (ms)            |
 
 **Built-in Patterns:**
 

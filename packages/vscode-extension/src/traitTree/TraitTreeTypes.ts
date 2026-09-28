@@ -85,12 +85,7 @@ export interface DiamondWarning {
  * - `composition` : A composition expression (`@turret = @physics + @targeting`)
  */
 export type TraitTreeNodeKind =
-  | 'root'
-  | 'trait'
-  | 'property'
-  | 'category'
-  | 'warning'
-  | 'composition';
+  'root' | 'trait' | 'property' | 'category' | 'warning' | 'composition';
 
 /**
  * A single node in the trait composition tree.

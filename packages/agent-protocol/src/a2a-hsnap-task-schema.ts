@@ -19,12 +19,7 @@ import { z } from 'zod';
  * Status values for an A2A task lifecycle.
  */
 export type A2ATaskStatus =
-  | 'submitted'
-  | 'working'
-  | 'input-required'
-  | 'completed'
-  | 'failed'
-  | 'canceled';
+  'submitted' | 'working' | 'input-required' | 'completed' | 'failed' | 'canceled';
 
 /**
  * A single artifact produced by task execution.

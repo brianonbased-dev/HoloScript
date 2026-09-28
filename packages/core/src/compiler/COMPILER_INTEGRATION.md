@@ -394,9 +394,7 @@ try {
   if (error instanceof UnauthorizedCompilerAccessError) {
     if (error.decision.reason?.includes('expired')) {
       // Refresh token
-      const newToken = issuer.issueToken({
-        /* ... */
-      });
+      const newToken = issuer.issueToken({/* ... */});
       return compiler.compile(composition, newToken, outputPath);
     }
   }

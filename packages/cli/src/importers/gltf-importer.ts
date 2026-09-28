@@ -386,8 +386,7 @@ function inferTraits(node: GltfNode, gltf: GltfData): string[] {
 
   // KHR_rigid_bodies or similar physics extensions
   const rigidBody = (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) as
-    | KhrRigidBodyExt
-    | undefined;
+    KhrRigidBodyExt | undefined;
   if (rigidBody) {
     if (rigidBody.isKinematic) {
       traits.push('@kinematic');
@@ -562,8 +561,7 @@ function extractPhysicsParams(node: GltfNode): string[] {
 
   // KHR_rigid_bodies
   const rigid = (ext['KHR_rigid_bodies'] || ext['KHR_physics_rigid_bodies']) as
-    | KhrRigidBodyExt
-    | undefined;
+    KhrRigidBodyExt | undefined;
   if (rigid) {
     if (rigid.mass !== undefined) {
       params.push(`mass: ${rigid.mass}`);

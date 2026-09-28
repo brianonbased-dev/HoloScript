@@ -431,6 +431,21 @@ export type LLMStreamChunk =
  * Native tool-capable surfaces (Anthropic, OpenAI Responses) should pass
  * structured blocks through unchanged.
  */
+/**
+ * Log/error-safe endpoint URL. Accepts a bare `host:port` as Ollama clients do; drops
+ * userinfo, query and fragment (they can carry tokens).
+ */
+export function redactEndpointUrl(url: string): string {
+  const trimmed = url.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//iu.test(trimmed) ? trimmed : `http://${trimmed}`;
+  try {
+    const u = new URL(withScheme);
+    return `${u.protocol}//${u.host}${u.pathname === '/' ? '' : u.pathname}`;
+  } catch {
+    return '<unparseable URL>';
+  }
+}
+
 export function messageContentAsString(content: LLMMessage['content']): string {
   if (typeof content === 'string') return content;
   return content
@@ -875,6 +890,21 @@ export interface LocalLLMProviderConfig extends Omit<LLMProviderConfig, 'apiKey'
 
   /** Model name to send in requests. Default: 'mistral-7b-instruct' */
   model?: string;
+
+  /**
+   * Who is making the request. Sent as `X-Holo-Agent`; the HoloLlama inference proxy records
+   * it as the receipt's `caller` and writes 'unattributed' when it is missing. Falls back to
+   * HOLO_INFERENCE_CALLER, then HOLOMESH_HANDLE, then HOLOSCRIPT_AGENT_HANDLE. Omitted entirely
+   * when none is set, because a placeholder would look like attribution while identifying nobody.
+   */
+  callerId?: string;
+
+  /**
+   * Client of the holo-inference-proxy. `true` sends the optional bearer on
+   * every request when `HOLO_INFERENCE_PROXY_KEY_NAME` resolves. When omitted,
+   * port 18080 is treated as that proxy. `false` never sends the proxy bearer.
+   */
+  inferenceProxy?: boolean;
 }
 
 /**
@@ -1300,6 +1330,23 @@ export interface AnthropicProviderExtensions {
    * this one says why it didn't.
    */
   cacheDiagnostics?: { previousMessageId: string | null };
+  /**
+   * Split the system prompt into a cached fixed-instruction prefix and an
+   * uncached suffix.
+   *
+   * Anthropic's prompt cache keys the bytes up to each `cache_control`
+   * breakpoint. A single breakpoint on the whole system string makes every
+   * per-turn suffix (scene, profile, GitHub, past threads) a new cache entry,
+   * so the stable instructions are rewritten instead of read.
+   *
+   * When this is an integer strictly between 0 and the joined system length,
+   * the adapter emits two system text blocks: `system.slice(0, n)` with
+   * `cache_control`, and the remainder with none. The cache key is those
+   * prefix bytes. Identical instruction sets hit; a different prefix is a
+   * different entry. Values that do not cut a real suffix are ignored and
+   * the whole system stays one cached block.
+   */
+  systemCachePrefixChars?: number;
   /**
    * KVFlow-derived hints for cache-breakpoint placement.
    *

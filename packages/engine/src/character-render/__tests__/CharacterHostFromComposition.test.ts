@@ -2569,7 +2569,15 @@ describe('@hair(source_color_weight) — the authored chroma blend', () => {
   // fix: the new trait is honoured, and omitting it reproduces the historical blend exactly.
   const build = (hair: Record<string, unknown>) =>
     buildCharacterHostFromComposition({
-      objects: [{ name: 'A', traits: [{ name: 'body', config: {} }, { name: 'hair', config: hair }] }],
+      objects: [
+        {
+          name: 'A',
+          traits: [
+            { name: 'body', config: {} },
+            { name: 'hair', config: hair },
+          ],
+        },
+      ],
     });
 
   const hairMaterialOf = (r: ReturnType<typeof build>) => {
@@ -2600,8 +2608,14 @@ describe('@hair(source_color_weight) — the authored chroma blend', () => {
   });
 
   it('an out-of-range weight is clamped, never passed through', () => {
-    expect(hairMaterialOf(build({ style: 'short', color: '#563a30', source_color_weight: 4 }))?.sourceColorWeight).toBe(1);
-    expect(hairMaterialOf(build({ style: 'short', color: '#563a30', source_color_weight: -2 }))?.sourceColorWeight).toBe(0);
+    expect(
+      hairMaterialOf(build({ style: 'short', color: '#563a30', source_color_weight: 4 }))
+        ?.sourceColorWeight
+    ).toBe(1);
+    expect(
+      hairMaterialOf(build({ style: 'short', color: '#563a30', source_color_weight: -2 }))
+        ?.sourceColorWeight
+    ).toBe(0);
   });
 
   it('no authored colour at all still yields a zero blend, as it always did', () => {

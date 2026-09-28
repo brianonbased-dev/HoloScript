@@ -101,12 +101,7 @@ export interface ProgressBarWidget extends WidgetBase {
 // =============================================================================
 
 export type Widget =
-  | ButtonWidget
-  | SliderWidget
-  | ToggleWidget
-  | TextInputWidget
-  | DropdownWidget
-  | ProgressBarWidget;
+  ButtonWidget | SliderWidget | ToggleWidget | TextInputWidget | DropdownWidget | ProgressBarWidget;
 
 // =============================================================================
 // WIDGET FACTORY

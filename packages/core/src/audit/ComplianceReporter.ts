@@ -1,5 +1,9 @@
 /**
- * Compliance Reporter — Generates SOC2 and GDPR compliance reports
+ * Compliance Reporter — summarises audit events into SOC2/GDPR-shaped reports.
+ *
+ * These are summaries of self-reported events, not attestations: the underlying
+ * AuditLogger has no integrity protection, so a report says what the log says,
+ * and the log can be edited. Do not hand one to an auditor as evidence.
  *
  * Produces structured JSON reports from audit event data to support
  * compliance auditing and regulatory requirements.

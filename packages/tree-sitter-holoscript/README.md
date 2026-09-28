@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # tree-sitter-holoscript
 
 Tree-sitter grammar for [HoloScript](https://holoscript.net), a general-purpose semantic systems programming language with spatial computing as a first-class domain.

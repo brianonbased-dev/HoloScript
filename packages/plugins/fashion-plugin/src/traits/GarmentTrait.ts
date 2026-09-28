@@ -2,14 +2,7 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type GarmentCategory =
-  | 'top'
-  | 'bottom'
-  | 'dress'
-  | 'outerwear'
-  | 'footwear'
-  | 'accessory'
-  | 'swimwear'
-  | 'activewear';
+  'top' | 'bottom' | 'dress' | 'outerwear' | 'footwear' | 'accessory' | 'swimwear' | 'activewear';
 export interface GarmentConfig {
   name: string;
   category: GarmentCategory;

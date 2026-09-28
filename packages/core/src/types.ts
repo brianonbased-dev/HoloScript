@@ -310,10 +310,7 @@ export type AgentHook =
   | 'on_dialogue_end';
 
 export type SpatialAudioHook =
-  | 'on_reverb_enter'
-  | 'on_reverb_exit'
-  | 'on_audio_occluded'
-  | 'on_audio_portal_enter';
+  'on_reverb_enter' | 'on_reverb_exit' | 'on_audio_occluded' | 'on_audio_portal_enter';
 
 export type InteropHook = 'on_asset_loaded' | 'on_format_converted' | 'on_scene_composed';
 
@@ -326,10 +323,7 @@ export type CoPresenceHook =
   | 'on_avatar_sync';
 
 export type GeospatialHook =
-  | 'on_vps_localized'
-  | 'on_poi_proximity'
-  | 'on_terrain_resolved'
-  | 'on_rooftop_resolved';
+  'on_vps_localized' | 'on_poi_proximity' | 'on_terrain_resolved' | 'on_rooftop_resolved';
 
 export type Web3Hook =
   | 'on_wallet_connected'
@@ -1363,15 +1357,7 @@ export interface SceneNodeDescriptor {
   name: string;
   /** Node type classification */
   nodeType:
-    | 'object'
-    | 'group'
-    | 'light'
-    | 'camera'
-    | 'empty'
-    | 'agent'
-    | 'zone'
-    | 'anchor'
-    | 'prefab';
+    'object' | 'group' | 'light' | 'camera' | 'empty' | 'agent' | 'zone' | 'anchor' | 'prefab';
   /** Local transform relative to parent */
   transform: ASTTransform;
   /** Parent node ID (null for root) */

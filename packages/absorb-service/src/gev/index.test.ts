@@ -31,6 +31,12 @@ describe('Absorb GEV package surface', () => {
     expect(buildGraphRAGEmbeddingPolicyReceipt()).toMatchObject({
       provider: 'holoembed',
       externalFallbacksAllowed: false,
+      encoderLane: {
+        algorithm: 'structural+char-trigram',
+        dim: 768,
+        neuralModel: false,
+        weights: 'none',
+      },
     });
   });
 });

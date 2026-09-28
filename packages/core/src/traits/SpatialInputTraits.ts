@@ -118,13 +118,7 @@ export interface SpatialHandTrackingState {
 
 /** Gesture types recognizable by the hand tracking system */
 export type SpatialGestureType =
-  | 'pinch'
-  | 'grab'
-  | 'open_hand'
-  | 'point'
-  | 'fist'
-  | 'thumbs_up'
-  | 'custom';
+  'pinch' | 'grab' | 'open_hand' | 'point' | 'fist' | 'thumbs_up' | 'custom';
 
 export interface SpatialHandTrackingConfig {
   /** Target update rate in Hz. Default 90 to match VR refresh. */
@@ -347,8 +341,7 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
     if (event.type === 'spatial_hand_data') {
       const hand = (event as Record<string, unknown>).hand as 'left' | 'right';
       const jointData = (event as Record<string, unknown>).joints as
-        | Record<string, SpatialHandJointPose>
-        | undefined;
+        Record<string, SpatialHandJointPose> | undefined;
       const pinch = (event as Record<string, unknown>).pinchStrength as number | undefined;
       const grip = (event as Record<string, unknown>).gripStrength as number | undefined;
       const tracked = (event as Record<string, unknown>).tracked as boolean;
@@ -592,14 +585,7 @@ export const gazeTransientPointerHandler: TraitHandler<GazeTransientPointerConfi
 // =============================================================================
 
 export type SharedAnchorResolveState =
-  | 'unresolved'
-  | 'resolving'
-  | 'resolved'
-  | 'sharing'
-  | 'shared'
-  | 'joining'
-  | 'joined'
-  | 'failed';
+  'unresolved' | 'resolving' | 'resolved' | 'sharing' | 'shared' | 'joining' | 'joined' | 'failed';
 
 export interface SharedAnchorPeer {
   peerId: string;
@@ -1039,8 +1025,7 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
 
       // Update buttons
       const buttons = (event as Record<string, unknown>).buttons as
-        | Record<string, SpatialButtonState>
-        | undefined;
+        Record<string, SpatialButtonState> | undefined;
       if (buttons) {
         for (const [btnName, btnState] of Object.entries(buttons)) {
           const button = btnName as SpatialControllerButton;

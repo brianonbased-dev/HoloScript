@@ -15,14 +15,7 @@ export interface SceneNode {
   id: string;
   name: string;
   type:
-    | 'mesh'
-    | 'light'
-    | 'camera'
-    | 'audio'
-    | 'group'
-    | 'splat'
-    | 'gltfModel'
-    | 'holomapPointCloud';
+    'mesh' | 'light' | 'camera' | 'audio' | 'group' | 'splat' | 'gltfModel' | 'holomapPointCloud';
   parentId: string | null;
   traits: TraitConfig[];
   position: [number, number, number];

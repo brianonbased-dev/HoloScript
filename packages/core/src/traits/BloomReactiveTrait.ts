@@ -291,8 +291,7 @@ export const bloomReactiveHandler: TraitHandler<BloomReactiveConfig> = {
 
   onUpdate(node, config, context, delta) {
     const state = (node as unknown as Record<string, unknown>).__bloomReactiveState as
-      | BloomReactiveState
-      | undefined;
+      BloomReactiveState | undefined;
     if (!state) return;
 
     state.elapsedSeconds += delta;
@@ -313,8 +312,7 @@ export const bloomReactiveHandler: TraitHandler<BloomReactiveConfig> = {
 
   onEvent(node, config, context, event) {
     const state = (node as unknown as Record<string, unknown>).__bloomReactiveState as
-      | BloomReactiveState
-      | undefined;
+      BloomReactiveState | undefined;
     if (!state) return;
 
     if (event.type === 'lotus_bloom_state_changed') {

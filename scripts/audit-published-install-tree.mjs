@@ -331,7 +331,13 @@ function runSelfTest() {
 
   // ── multi-major detection ────────────────────────────────────────────────
   const oneMajor = new Map([
-    ['@holoscript/core', new Map([['8.0.20', ['root']], ['8.0.6', ['root', 'a']]])],
+    [
+      '@holoscript/core',
+      new Map([
+        ['8.0.20', ['root']],
+        ['8.0.6', ['root', 'a']],
+      ]),
+    ],
   ]);
   assertSelf(findMultiMajor(oneMajor).length === 0, 'two minors of one major are not a finding');
 
@@ -340,7 +346,10 @@ function runSelfTest() {
       '@holoscript/core',
       new Map([
         ['8.0.20', ['@holoscript/cli@8.0.18']],
-        ['6.1.4', ['@holoscript/cli@8.0.18', '@holoscript/sdk@6.1.1 dependencies.@holoscript/core=^6.1.2']],
+        [
+          '6.1.4',
+          ['@holoscript/cli@8.0.18', '@holoscript/sdk@6.1.1 dependencies.@holoscript/core=^6.1.2'],
+        ],
       ]),
     ],
   ]);
@@ -354,7 +363,15 @@ function runSelfTest() {
   assertSelf(found[0].majors[0].via.length === 2, 'finding carries the path that required it');
   assertSelf(found[0].majors[1].major === '8', 'the newer major is reported too');
 
-  const externalDupe = new Map([['three', new Map([['0.170.0', ['root']], ['0.150.0', ['root']]])]]);
+  const externalDupe = new Map([
+    [
+      'three',
+      new Map([
+        ['0.170.0', ['root']],
+        ['0.150.0', ['root']],
+      ]),
+    ],
+  ]);
   assertSelf(
     findMultiMajor(externalDupe).length === 0,
     'external packages are out of scope — we do not control their versioning'
@@ -466,9 +483,7 @@ async function main() {
       )
     );
   } else {
-    console.log(
-      `[audit-published-install-tree] roots=${rootLabel} scanned=${scanned} packages`
-    );
+    console.log(`[audit-published-install-tree] roots=${rootLabel} scanned=${scanned} packages`);
     if (leaks.length) {
       console.error(
         `\n  WORKSPACE LEAKS (${leaks.length}) — these cause EUNSUPPORTEDPROTOCOL on public install:`

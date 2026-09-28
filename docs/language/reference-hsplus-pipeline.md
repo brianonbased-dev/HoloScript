@@ -1,3 +1,5 @@
+> Superseded by HoloScript Spec v0.1 (docs/spec/holoscript-spec-v0.1.md) where they disagree.
+
 # Pipeline DSL Reference (`.hs` / `.hsplus`)
 
 The Pipeline DSL is a declarative data-flow sub-language embedded inside `.hs`

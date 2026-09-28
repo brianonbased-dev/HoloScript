@@ -37,13 +37,7 @@ export interface PoseData {
 }
 
 export type PoseCategory =
-  | 'standing'
-  | 'sitting'
-  | 'action'
-  | 'emote'
-  | 'combat'
-  | 'relaxed'
-  | 'custom';
+  'standing' | 'sitting' | 'action' | 'emote' | 'combat' | 'relaxed' | 'custom';
 
 // ═══════════════════════════════════════════════════════════════════
 // Built-in Poses

@@ -115,6 +115,21 @@ export function stableTrustStringify(value: unknown): string {
   return JSON.stringify(canonicalizeTrustValue(value)) ?? 'undefined';
 }
 
+/**
+ * SHA-256 of the canonical form, prefixed `sha256:`. Use this for anything that
+ * goes into `evidence.hashes` — that field is read downstream as opaque
+ * digests, so putting a readable value there leaks it into every consumer.
+ *
+ * WHAT THIS IS NOT: a digest of low-entropy personal data (a name, a national
+ * ID, a diagnosis drawn from a short list) is guessable by enumeration. Under
+ * GDPR that is pseudonymisation, not anonymisation, and the digest is still
+ * personal data. Hashing is the floor, not a licence to put personal data into
+ * receipt metadata in the first place.
+ */
+export function stableTrustHash(value: unknown): string {
+  return 'sha256:' + createHash('sha256').update(stableTrustStringify(value)).digest('hex');
+}
+
 function canonicalizeTrustValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((entry) => canonicalizeTrustValue(entry));

@@ -324,11 +324,9 @@ function renderNode(
   // vertical flow with gaps, rows need horizontal flow — neither is expressible
   // with absolute positioning alone, and every page body reuses both.
   const layoutVal = resolveValue(merged.display ?? merged.layout, state, computed) as
-    | string
-    | undefined;
+    string | undefined;
   const direction = resolveValue(merged.direction ?? merged.flexDirection, state, computed) as
-    | string
-    | undefined;
+    string | undefined;
   const dir = direction ?? (layoutVal === 'row' || layoutVal === 'column' ? layoutVal : undefined);
   if (layoutVal === 'flex' || dir) {
     style.display = 'flex';
@@ -339,12 +337,10 @@ function renderNode(
   const gap = resolveValue(merged.gap, state, computed) as number | undefined;
   if (gap !== undefined) style.gap = gap;
   const justify = resolveValue(merged.justify ?? merged.justifyContent, state, computed) as
-    | string
-    | undefined;
+    string | undefined;
   if (justify) style.justifyContent = justify;
   const align = resolveValue(merged.align ?? merged.alignItems, state, computed) as
-    | string
-    | undefined;
+    string | undefined;
   if (align) style.alignItems = align;
   const grow = resolveValue(merged.grow ?? merged.flexGrow, state, computed) as number | undefined;
   if (grow !== undefined) style.flexGrow = grow;

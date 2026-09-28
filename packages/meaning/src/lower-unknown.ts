@@ -104,8 +104,7 @@ export interface LowerableHSPlusOpaqueStructField {
 }
 
 export type LowerableHSPlusStructField =
-  | LowerableHSPlusTypedStructField
-  | LowerableHSPlusOpaqueStructField;
+  LowerableHSPlusTypedStructField | LowerableHSPlusOpaqueStructField;
 
 /**
  * Structural subset of a HoloScript+ struct node.

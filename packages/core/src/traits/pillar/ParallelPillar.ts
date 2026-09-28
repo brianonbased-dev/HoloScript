@@ -169,10 +169,7 @@ export interface ParallelPillarSummary {
 }
 
 export type ParallelPillarErrorCode =
-  | 'PARALLEL_NOT_FOUND'
-  | 'REGISTRY_FULL'
-  | 'GENERATE_FAILED'
-  | 'INVALID_PARALLEL';
+  'PARALLEL_NOT_FOUND' | 'REGISTRY_FULL' | 'GENERATE_FAILED' | 'INVALID_PARALLEL';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bounding-box computation

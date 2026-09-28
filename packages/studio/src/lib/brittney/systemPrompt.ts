@@ -10,6 +10,7 @@
 import { BRITTNEY_IDENTITY_MARK } from './brand';
 import { buildBrainCachingPromptBlock, type BrainCachingContext } from './caching';
 import type { PastThreadSnippet } from './pastThreads';
+import { SIMULATION_PROMPT_EXTENSION } from './SimulationTools';
 
 // D.053 relational memory budget: hard cap on the past-conversations block so
 // it stays safe on every provider lane (local Ollama's small num_ctx included).
@@ -106,10 +107,26 @@ Only if both checks return no relevant match may you proceed to a creation tool.
 - When asked to write, create, or build a scene: call \`apply_code\` with complete, valid HoloScript source — do NOT output code blocks or JSON in the chat. HoloScript syntax is: \`composition "Name" { environment { skybox: "night" } object "Name" { geometry: "sphere" position: [0, 1, 0] @emissive { color: "#ffff00", intensity: 2.0 } } }\` — NOT a JSON schema. Traits use @traitName syntax. Properties are key: value pairs (no commas). Call apply_code even for a first draft.`;
 
 /**
- * Build a contextual system prompt by appending optional scene state
- * and user profile information.
+ * Fixed instructions vs per-turn context.
+ *
+ * `fixedInstructions` is the cache key for Anthropic prompt caching. It
+ * changes only when the instruction set changes (founder mode, simulation
+ * guidance on/off). `dynamicContext` is scene, profile, GitHub, past threads,
+ * and the per-turn caching declaration — it must not share that cache entry.
+ *
+ * Concatenation is `fixedInstructions + dynamicContext`, the same bytes as
+ * `buildContextualPrompt`.
  */
-export function buildContextualPrompt(
+export interface BrittneySystemPromptParts {
+  fixedInstructions: string;
+  dynamicContext: string;
+}
+
+/**
+ * Split the Brittney system prompt into a stable instruction set and the
+ * per-turn suffix. See `BrittneySystemPromptParts`.
+ */
+export function buildContextualPromptParts(
   sceneContext?: string | null,
   userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
   enableSimulation = true,
@@ -125,22 +142,18 @@ export function buildContextualPrompt(
   } | null,
   isFounder = false,
   pastThreads?: PastThreadSnippet[] | null
-): string {
-  const parts: string[] = [SYSTEM_PROMPT, ECOSYSTEM_OPERATING_CONTEXT, HOLOSHELL_OPERATOR_CONTEXT];
+): BrittneySystemPromptParts {
+  const fixed: string[] = [SYSTEM_PROMPT, ECOSYSTEM_OPERATING_CONTEXT, HOLOSHELL_OPERATOR_CONTEXT];
 
   if (isFounder) {
-    parts.push(FOUNDER_MODE_CONTEXT);
+    fixed.push(FOUNDER_MODE_CONTEXT);
   }
 
   if (enableSimulation) {
-    // Lazy import to avoid bundling when not needed
-    try {
-      const { SIMULATION_PROMPT_EXTENSION } = require('./SimulationTools');
-      parts.push(SIMULATION_PROMPT_EXTENSION);
-    } catch {
-      /* SimulationTools not available */
-    }
+    fixed.push(SIMULATION_PROMPT_EXTENSION);
   }
+
+  const dynamic: string[] = [];
 
   if (userProfile) {
     const profileLines: string[] = ['\n\n--- User Profile ---'];
@@ -149,7 +162,7 @@ export function buildContextualPrompt(
     if (userProfile.preferredTargets?.length) {
       profileLines.push(`Preferred targets: ${userProfile.preferredTargets.join(', ')}`);
     }
-    parts.push(profileLines.join('\n'));
+    dynamic.push(profileLines.join('\n'));
   }
 
   if (githubContext?.username) {
@@ -181,20 +194,19 @@ export function buildContextualPrompt(
           `and offer to fetch/scan their repos rather than asking for a generic URL.)`
       );
     }
-    parts.push(gh.join('\n'));
+    dynamic.push(gh.join('\n'));
   }
 
   if (sceneContext) {
-    parts.push(`\n\n--- Current Scene ---\n${sceneContext}`);
+    dynamic.push(`\n\n--- Current Scene ---\n${sceneContext}`);
     if (isLotusGardenScene(sceneContext)) {
-      parts.push(LOTUS_GARDEN_CONTEXT);
+      dynamic.push(LOTUS_GARDEN_CONTEXT);
     }
   }
 
-  // D.053 relational memory: summaries of the user's OTHER threads in the same
-  // scope. Placed late (after the per-turn scene block) so the stable prompt
-  // prefix stays cacheable, and budget-capped so it is safe on every provider
-  // lane including small local models.
+  // D.053 relational memory. Budget-capped so it is safe on every provider
+  // lane including small local models. It lives in the dynamic suffix: the
+  // fixed-instruction cache key does not include it.
   if (pastThreads && pastThreads.length > 0) {
     const mem: string[] = [
       '\n\n--- Past Conversations (relational memory) ---',
@@ -217,17 +229,58 @@ export function buildContextualPrompt(
     mem.push(
       'Use these for continuity when the user references earlier discussions or asks what you worked on together; never invent details beyond these summaries.'
     );
-    parts.push(mem.join('\n'));
+    dynamic.push(mem.join('\n'));
   }
 
-  parts.push(
+  dynamic.push(
     buildBrainCachingPromptBlock({
       ...cachingContext,
       sceneContext: cachingContext.sceneContext ?? sceneContext,
     })
   );
 
-  return parts.join('');
+  return {
+    fixedInstructions: fixed.join(''),
+    dynamicContext: dynamic.join(''),
+  };
+}
+
+/**
+ * Build a contextual system prompt by appending optional scene state
+ * and user profile information.
+ *
+ * Byte-identical to `fixedInstructions + dynamicContext` from
+ * `buildContextualPromptParts`. Callers that need the cache split should
+ * use the parts helper and pass `fixedInstructions.length` as
+ * `provider.anthropic.systemCachePrefixChars`.
+ */
+export function buildContextualPrompt(
+  sceneContext?: string | null,
+  userProfile?: { name?: string; tier?: string; preferredTargets?: string[] } | null,
+  enableSimulation = true,
+  cachingContext: BrainCachingContext = {},
+  githubContext?: {
+    username: string;
+    repos?: Array<{
+      fullName: string;
+      description: string | null;
+      language: string | null;
+      isPrivate: boolean;
+    }>;
+  } | null,
+  isFounder = false,
+  pastThreads?: PastThreadSnippet[] | null
+): string {
+  const { fixedInstructions, dynamicContext } = buildContextualPromptParts(
+    sceneContext,
+    userProfile,
+    enableSimulation,
+    cachingContext,
+    githubContext,
+    isFounder,
+    pastThreads
+  );
+  return fixedInstructions + dynamicContext;
 }
 
 /**

@@ -95,8 +95,7 @@ describe('legal-document -> HoloScript runtime integration (deep-ratchet 2026-06
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['legal_analysis:legal'] as
-      | { converged?: boolean; riskScore?: number; riskCategory?: string }
-      | undefined;
+      { converged?: boolean; riskScore?: number; riskCategory?: string } | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.converged).toBe(true);
     expect(persisted?.riskScore).toBe(49);

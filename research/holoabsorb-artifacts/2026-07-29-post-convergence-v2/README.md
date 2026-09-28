@@ -55,12 +55,12 @@ drifts before publishing the newest authoritative graph.
 
 The 20-case duplicate-symbol study measured:
 
-| Arm                       |   MRR | Top-1 | Mean rank |
-| ------------------------- | ----: | ----: | --------: |
-| No selection              | 0.286 |    0% |      6.05 |
-| Correct resolved selection| 0.975 |   95% |      1.05 |
-| Stale unresolved selection| 0.286 |    0% |      6.05 |
-| Wrong resolved selection  | 0.310 |    0% |         - |
+| Arm                        |   MRR | Top-1 | Mean rank |
+| -------------------------- | ----: | ----: | --------: |
+| No selection               | 0.286 |    0% |      6.05 |
+| Correct resolved selection | 0.975 |   95% |      1.05 |
+| Stale unresolved selection | 0.286 |    0% |      6.05 |
+| Wrong resolved selection   | 0.310 |    0% |         - |
 
 Stale selection failed closed with a 100% exact ranking match to the baseline.
 Wrong resolved selections followed caller intent and produced a 5% harmful

@@ -15,13 +15,7 @@ import type { Vec3 } from './spatial.js';
 // =============================================================================
 
 export type ColliderShapeType =
-  | 'box'
-  | 'sphere'
-  | 'capsule'
-  | 'mesh'
-  | 'convex'
-  | 'cylinder'
-  | 'heightfield';
+  'box' | 'sphere' | 'capsule' | 'mesh' | 'convex' | 'cylinder' | 'heightfield';
 
 export interface ColliderConfig {
   shape: ColliderShapeType;

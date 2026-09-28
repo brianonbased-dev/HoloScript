@@ -12,14 +12,7 @@
 // =============================================================================
 
 export type AssetType =
-  | 'texture'
-  | 'model'
-  | 'audio'
-  | 'shader'
-  | 'script'
-  | 'animation'
-  | 'font'
-  | 'data';
+  'texture' | 'model' | 'audio' | 'shader' | 'script' | 'animation' | 'font' | 'data';
 
 export interface AssetEntry {
   id: string;

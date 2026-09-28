@@ -60,25 +60,110 @@ if [ -n "$SECRET_DIFF" ]; then
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Timeout wrapper — kills long-running gates after N seconds
+# Timeout wrapper — kills long-running gates after N seconds.
+# GNU timeout exits 124. The Git Bash fallback (no `timeout` binary) maps its
+# own kill to 124 as well, so every gate shares one message instead of an
+# empty ❌. The message is part of the gate's captured output.
 run_with_timeout() {
     local timeout_secs=$1
     shift
+    local status=0
     if command -v timeout &> /dev/null; then
-        timeout "$timeout_secs" "$@" 2>&1
+        timeout "$timeout_secs" "$@" 2>&1 || status=$?
     else
-        # Windows/Git Bash fallback: run with background job + wait
-        "$@" 2>&1 &
+        # Windows/Git Bash fallback: no GNU `timeout` binary. The gate runs
+        # in the background; a sleeper kills it when the limit is up.
+        #
+        # Callers capture this function with $(run_with_timeout ...). The
+        # sleeper must not inherit that pipe — `>/dev/null 2>&1` on the killer.
+        # If it does, the capture stays open until sleep exits, and a gate that
+        # finished immediately still waits out its full limit.
+        #
+        # kill of the sleeper's shell does not kill sleep; sleep is reparented
+        # and keeps the pipe open. set -m puts sleep in its own process group.
+        # The pid is recorded and that group is signaled when sleep leads it,
+        # so a fast gate does not leave an orphan sleep.
+        local out_file flag_file sleep_pid_file sleep_pid sleep_pgrp
+        out_file=$(mktemp 2>/dev/null) || out_file="${TMPDIR:-/tmp}/holo-gate-out-$$.txt"
+        flag_file="${out_file}.killed"
+        sleep_pid_file="${out_file}.sleep"
+        : > "$out_file"
+        rm -f "$flag_file" "$sleep_pid_file"
+        "$@" >"$out_file" 2>&1 &
         local pid=$!
-        ( sleep "$timeout_secs" && kill -9 $pid 2>/dev/null ) &
+        (
+            set -m || true
+            sleep "$timeout_secs" &
+            echo $! > "$sleep_pid_file"
+            wait $!
+            # Fast path removes this file before the sleeper can finish, so a
+            # late wake must not SIGKILL a gate pid that already exited.
+            if [ ! -f "$sleep_pid_file" ]; then
+                exit 0
+            fi
+            echo 1 > "$flag_file"
+            kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
+        ) >/dev/null 2>&1 &
         local killer=$!
+        local spins=0
+        while [ ! -s "$sleep_pid_file" ] && [ "$spins" -lt 50 ]; do
+            spins=$((spins + 1))
+            sleep 0.01 2>/dev/null || true
+        done
         wait $pid 2>/dev/null
-        local exit_code=$?
-        kill $killer 2>/dev/null
-        wait $killer 2>/dev/null
-        return $exit_code
+        status=$?
+        sleep_pid=""
+        if [ -s "$sleep_pid_file" ]; then
+            sleep_pid=$(cat "$sleep_pid_file" 2>/dev/null || true)
+        fi
+        case "$sleep_pid" in
+            ''|*[!0-9]*) sleep_pid="" ;;
+        esac
+        rm -f "$sleep_pid_file"
+        disown "$killer" 2>/dev/null || true
+        kill -9 "$killer" 2>/dev/null || true
+        if [ -n "$sleep_pid" ]; then
+            # /proc stat field 5 is the process group. Group-kill only when
+            # sleep is that group's leader, so this never signals the hook.
+            sleep_pgrp=$(stat=$(cat "/proc/$sleep_pid/stat" 2>/dev/null) || true; rest=${stat#*)}; set -- $rest; printf '%s' "$3")
+            if [ "$sleep_pgrp" = "$sleep_pid" ]; then
+                kill -9 -- -"$sleep_pid" 2>/dev/null || true
+            fi
+            kill -9 "$sleep_pid" 2>/dev/null || true
+        fi
+        wait "$killer" 2>/dev/null || true
+        cat "$out_file"
+        # A normal exit can race the sleeper. Only a killed child (status >= 128)
+        # plus the flag is a timeout.
+        if [ "$status" -ge 128 ] && [ -f "$flag_file" ]; then
+            status=124
+        fi
+        rm -f "$out_file" "$flag_file" "$sleep_pid_file"
     fi
+    if [ "$status" -eq 124 ]; then
+        local gate="$*"
+        local arg base
+        for arg in "$@"; do
+            case "$arg" in
+                *.mjs|*.js|*.mts|*.cjs|*.ts)
+                    base=${arg##*/}
+                    gate=${base%.*}
+                    break
+                    ;;
+            esac
+        done
+        echo "TIMED OUT: ${gate} timed out after ${timeout_secs}s."
+        echo "The gate was killed before it could print a result, so this commit is blocked."
+        echo "Raise the limit: edit this gate's timeout (seconds) in .githooks/pre-commit."
+        echo "Bypass once: git commit --no-verify"
+    fi
+    return "$status"
 }
+
+# Large merges pass the staged path list through a temp file. One --files
+# argument exceeds Windows' 32767-character command-line limit (a 975-path
+# merge died with "Argument list too long").
+. scripts/holo-ci/with-files-from.sh
 
 # Skip all gates for explicitly automated workflows.
 # --no-verify bypasses hooks already, but these guards prevent accidental
@@ -88,9 +173,14 @@ if [ "$SKIP_HOOKS" = "1" ] || [ "$HOLODAEMON_SKIP_HOOKS" = "1" ] || [ "$HOLODAEM
     exit 0
 fi
 
-# Multi-agent safety: warn when staged + unstaged changes coexist
-STAGED_COUNT=$(git diff --cached --name-only | wc -l)
-UNSTAGED_COUNT=$(git diff --name-only | wc -l)
+# Multi-agent safety: warn when staged + unstaged changes coexist.
+# core.quotepath=off on every path list in this hook: name-only diffs, the
+# tracked-shadow `git ls-files`, and the deletion `git diff --name-status`.
+# Git's default C-quotes a non-ASCII path ("caf\303\251-....md"). A gate that
+# filters on the literal suffix, or a ^packages/ grep, then reports "no files"
+# and the violation is committed.
+STAGED_COUNT=$(git -c core.quotepath=off diff --cached --name-only | wc -l)
+UNSTAGED_COUNT=$(git -c core.quotepath=off diff --name-only | wc -l)
 if [ "$STAGED_COUNT" -gt 0 ] && [ "$UNSTAGED_COUNT" -gt 0 ]; then
     echo -e "  ${YELLOW}⚠${NC}  Multi-agent: $STAGED_COUNT staged, $UNSTAGED_COUNT unstaged files coexist"
     echo "     Only staged files will be committed. Unstaged changes are from other contexts."
@@ -146,10 +236,10 @@ fi
 # remains live through SceneIR/R3FNode; production render .tsx is governed by the
 # render-surface native freeze below.
 echo "  ├─ Legacy bridge compiler surface floor..."
-STAGED_COMPILER_SURFACE=$(git diff --cached --name-only --diff-filter=ACM -- \
+STAGED_COMPILER_SURFACE=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- \
     'packages/**' 'services/**' 'apps/**' 'scripts/**' 2>/dev/null || true)
 if [ -n "$STAGED_COMPILER_SURFACE" ]; then
-    LEGACY_BRIDGE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-apex-poison-retired.mjs --files "$STAGED_COMPILER_SURFACE" 2>&1)
+    LEGACY_BRIDGE_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-apex-poison-retired.mjs "$STAGED_COMPILER_SURFACE" 2>&1)
     LEGACY_BRIDGE_STATUS=$?
     if [ "$LEGACY_BRIDGE_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Legacy bridge compiler import/subpath reopened${NC}"
@@ -190,7 +280,7 @@ echo "  ├─ Stale build-artifact check..."
 # hand-crafted declarations that stay as-is).
 # Knowledge store: grad-stale-js-shadow-debugging (confidence 0.9).
 ALL_SHADOWS=$(find packages/*/src -type f \( -name '*.js' -o -name '*.js.map' -o -name '*.d.ts' \) 2>/dev/null | sort)
-TRACKED_SHADOWS=$(git ls-files 2>/dev/null | grep -E '^packages/[^/]+/src/.*\.(js|js\.map|d\.ts)$' | sort || true)
+TRACKED_SHADOWS=$(git -c core.quotepath=off ls-files 2>/dev/null | grep -E '^packages/[^/]+/src/.*\.(js|js\.map|d\.ts)$' | sort || true)
 if [ -z "$ALL_SHADOWS" ]; then
     UNTRACKED_SHADOWS=""
 else
@@ -257,7 +347,7 @@ fi
 # If any package directories are being deleted, verify they are mapped
 # in the capability registry or the cross-language deletion ledger.
 echo "  ├─ Capability registry check..."
-STAGED_DELETED=$(git diff --cached --name-status --diff-filter=D 2>/dev/null | grep '^D\s*packages/' || true)
+STAGED_DELETED=$(git -c core.quotepath=off diff --cached --name-status --diff-filter=D 2>/dev/null | grep '^D\s*packages/' || true)
 if [ -n "$STAGED_DELETED" ]; then
     REG_OUT=$(run_with_timeout 30 node scripts/check-capability-registry.mjs --staged 2>&1)
     REG_STATUS=$?
@@ -280,11 +370,13 @@ fi
 # hand-authored render .tsx is blocked; existing hand-authored is grandfathered into
 # scripts/holo-ci/render-surface-native-allowlist.json. HoloCI's render-surface gate is the
 # authoritative layer (this hook bypasses for agent envs); this is the dev floor. Scopes to the
-# STAGED render files (--files) so a peer's unstaged WIP can't block your commit (multi-agent, D.077).
+# STAGED render files (--files-from) so a peer's unstaged WIP can't block your commit (multi-agent, D.077).
 echo "  ├─ Render-surface native freeze..."
-STAGED_RENDER_TSX=$(git diff --cached --name-only -- 'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx' 2>/dev/null || true)
+# `src/**` skips a file that sits directly in src/ (git requires another slash).
+# The `src/*` pathspecs are what feed that file to this gate.
+STAGED_RENDER_TSX=$(git -c core.quotepath=off diff --cached --name-only -- 'packages/r3f-renderer/src/*.tsx' 'packages/studio/src/*.tsx' 'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx' 2>/dev/null || true)
 if [ -n "$STAGED_RENDER_TSX" ]; then
-    RENDER_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-render-surface-native.mjs --files "$STAGED_RENDER_TSX" 2>&1)
+    RENDER_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-render-surface-native.mjs "$STAGED_RENDER_TSX" 2>&1)
     RENDER_STATUS=$?
     if [ "$RENDER_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Net-new hand-authored render .tsx (production surface must be HS-native)${NC}"
@@ -306,7 +398,9 @@ fi
 # source is staged so unrelated commits skip it. HoloCI's mcp-gate-coverage gate is the
 # authoritative layer; this is the dev floor.
 echo "  ├─ MCP gate coverage (gateToolCall)..."
-STAGED_MCP_SRC=$(git diff --cached --name-only -- 'packages/mcp-server/src/**/*.ts' 2>/dev/null || true)
+# `src/**` skips a file that sits directly in src/ (git requires another slash).
+# index.ts and http-server.ts live there; the `src/*` pathspec is what stages them.
+STAGED_MCP_SRC=$(git -c core.quotepath=off diff --cached --name-only -- 'packages/mcp-server/src/*.ts' 'packages/mcp-server/src/**/*.ts' 2>/dev/null || true)
 if [ -n "$STAGED_MCP_SRC" ]; then
     MCPGATE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-mcp-gate-coverage.mjs 2>&1)
     MCPGATE_STATUS=$?
@@ -326,13 +420,13 @@ fi
 # 2026-07-16). New files hardcoding the raw Railway orchestrator URL literal (outside
 # packages/connector-core and @holoscript/config) are blocked (CHOKEPOINT-GREW); route through the
 # typed ResilientOrchestratorFetch client (Jetson-first cascade) instead. Grandfathered debt lives in
-# scripts/holo-ci/orchestrator-fetch-canonical-baseline.json. Scoped to STAGED files (--files) so a
+# scripts/holo-ci/orchestrator-fetch-canonical-baseline.json. Scoped to STAGED files (--files-from) so a
 # peer's unstaged WIP can't block your commit (multi-agent, D.077). HoloCI's orchestrator-fetch gate
 # is the authoritative full-tree layer; this is the dev floor.
 echo "  ├─ Orchestrator-fetch chokepoint ratchet..."
-STAGED_ALL=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)
+STAGED_ALL=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)
 if [ -n "$STAGED_ALL" ]; then
-    CHOKE_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --files "$STAGED_ALL" 2>&1)
+    CHOKE_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-orchestrator-fetch-canonical.mjs "$STAGED_ALL" 2>&1)
     CHOKE_STATUS=$?
     if [ "$CHOKE_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ New raw orchestrator-URL literal (CHOKEPOINT-GREW)${NC}"
@@ -353,7 +447,7 @@ fi
 # generated Kotlin". Only runs when the scanner app or the gate is staged. (2D panel emit is guarded
 # by the vitest golden test QuestCompiler.golden.test.ts, run in `pnpm test`.)
 echo "  ├─ Quest MR emit golden-diff..."
-STAGED_QUEST=$(git diff --cached --name-only -- \
+STAGED_QUEST=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/quest-universal-qr-scanner/**' \
     'packages/core/src/compiler/quest-mr-emit.ts' \
     'packages/core/src/compiler/quest-mr-templates/**' \
@@ -379,7 +473,7 @@ fi
 # work toward a green `gradle assembleDebug` is drift-controlled (W.783). Only runs when the reference
 # app, the AndroidXR compiler, or the gate is staged. (CI twin: AndroidXRCompiler.golden.test.ts.)
 echo "  ├─ Android XR emit golden-diff..."
-STAGED_AXR=$(git diff --cached --name-only -- \
+STAGED_AXR=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/android-xr-reference/**' \
     'packages/core/src/compiler/AndroidXRCompiler.ts' \
     'packages/core/src/compiler/AndroidXRGenerators.ts' \
@@ -406,7 +500,7 @@ fi
 # correctness work toward a green `gradle assembleDebug` is drift-controlled (W.783). Only runs when the
 # reference app, the AndroidCompiler emit chain, or the gate is staged. (CI twin: AndroidCompiler.golden.test.ts.)
 echo "  ├─ Android emit golden-diff..."
-STAGED_AND=$(git diff --cached --name-only -- \
+STAGED_AND=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/android-reference/**' \
     'packages/core/src/compiler/AndroidCompiler.ts' \
     'packages/core/src/compiler/AndroidARGenerators.ts' \
@@ -436,7 +530,7 @@ fi
 # harness. A box with a JDK runs the real `gradle assembleDebug`. Only runs when the reference app, the
 # AndroidXR emit chain, the build-verify runner, or the gate is staged. (F.126: validation IS construction.)
 echo "  ├─ Android XR build-verify..."
-STAGED_AXR_BV=$(git diff --cached --name-only -- \
+STAGED_AXR_BV=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/android-xr-reference/**' \
     'packages/core/src/compiler/AndroidXRCompiler.ts' \
     'packages/core/src/compiler/AndroidXRGenerators.ts' \
@@ -462,7 +556,7 @@ fi
 # scanner app, the Quest emit chain, the build-verify runner, or the gate is staged. (W.810: build-verify
 # is the trust gate; golden-diff alone is blind to whether the output compiles.)
 echo "  ├─ Quest build-verify..."
-STAGED_QUEST_BV=$(git diff --cached --name-only -- \
+STAGED_QUEST_BV=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/quest-universal-qr-scanner/**' \
     'packages/core/src/compiler/QuestCompiler.ts' \
     'packages/core/src/compiler/quest-mr-emit.ts' \
@@ -487,7 +581,7 @@ fi
 # Only runs when R3FCompiler.ts or the trait runtime files are staged — avoids blocking
 # unrelated commits. The check is fast (~100ms, pure read — no install/network).
 echo "  ├─ Trait parity gate..."
-STAGED_PARITY=$(git diff --cached --name-only -- \
+STAGED_PARITY=$(git -c core.quotepath=off diff --cached --name-only -- \
     'packages/core/src/compiler/R3FCompiler.ts' \
     'packages/runtime/src/traits/*.ts' \
     'scripts/holo-ci/TRAIT_NOOP_MANIFEST.json' 2>/dev/null || true)
@@ -515,9 +609,9 @@ fi
 # violations only (staged scope, multi-agent-safe); the existing backlog is not retro-failed. Escape
 # a legit number with a NUMBERS.md reference, a verify/find/grep command, ~approx, or "as of <date>".
 echo "  ├─ Hardcoded-stats gate (NUMBERS.md SSOT)..."
-STAGED_MD=$(git diff --cached --name-only --diff-filter=ACM -- '*.md' 2>/dev/null || true)
+STAGED_MD=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- '*.md' 2>/dev/null || true)
 if [ -n "$STAGED_MD" ]; then
-    STATS_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs $STAGED_MD 2>&1)
+    STATS_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-hardcoded-stats.mjs "$STAGED_MD" 2>&1)
     STATS_STATUS=$?
     if [ "$STATS_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Hardcoded ecosystem count in a staged doc${NC}"
@@ -549,12 +643,15 @@ echo "  ├─ Language-strata gate (one meaning, defined once)..."
 # clipped a passing `--strict` run and printed the generic "Meaning-stratum mirror" banner with
 # empty output. Pass `--root` so the walk is bound to this worktree even if cwd drifts.
 STRATA_ROOT=$(git rev-parse --show-toplevel)
-STRATA_OUT=$(run_with_timeout 120 node scripts/holo-ci/check-language-strata.mjs --strict --root "$STRATA_ROOT" 2>&1)
+# Same seconds the wrapper receives. A hardcoded "budget 120s" stayed at 120
+# after this limit moved (30 -> 60 -> 120).
+STRATA_BUDGET_SECS=120
+STRATA_OUT=$(run_with_timeout "$STRATA_BUDGET_SECS" node scripts/holo-ci/check-language-strata.mjs --strict --root "$STRATA_ROOT" 2>&1)
 STRATA_STATUS=$?
 if [ "$STRATA_STATUS" -ne 0 ]; then
     echo "$STRATA_OUT"
     if [ "$STRATA_STATUS" -eq 124 ]; then
-        echo -e "  ${RED}❌ Language-strata gate timed out (budget 120s; walk is ~65s on this laptop)${NC}"
+        echo -e "  ${RED}❌ Language-strata gate timed out (budget ${STRATA_BUDGET_SECS}s; walk is ~65s on this laptop)${NC}"
         echo "     Re-run: node scripts/holo-ci/check-language-strata.mjs --strict --root \"$STRATA_ROOT\""
     else
         echo -e "  ${RED}❌ Meaning-stratum mirror (second definition outside @holoscript/meaning)${NC}"
@@ -619,7 +716,7 @@ fi
 # this repo's packages/ (green today; protects the reward terms from a verdict-fork regression).
 # The corpus builders live in ai-ecosystem; audit them there with --roots (report-only).
 echo "  ├─ Verifier-of-record gate (labels from the shipped resolver)..."
-VOR_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-verifier-of-record.mjs --strict 2>&1)
+VOR_OUT=$(run_with_timeout 90 node scripts/holo-ci/check-verifier-of-record.mjs --strict 2>&1)
 VOR_STATUS=$?
 if [ "$VOR_STATUS" -ne 0 ]; then
     echo -e "  ${RED}❌ Forked resolution verdict (labels not routed through gradeByResolver)${NC}"
@@ -664,15 +761,39 @@ else
     echo -e "  ${GREEN}✓${NC} Executable spec holds (every normative corpus verdict verified)"
 fi
 
+# Gate 5g6: Native .hs conformance. validate_detailed must accept every program the
+# repo publishes under examples/native and distributions/systems/conformance.
+# The only exception is the @unknown honesty-gate file, pending a language decision.
+echo "  ├─ .hs conformance (Rust validate_detailed)..."
+HS_CONF_OUT=$(run_with_timeout 300 node scripts/holo-ci/check-hs-conformance.mjs 2>&1)
+HS_CONF_STATUS=$?
+if [ "$HS_CONF_STATUS" -eq 2 ]; then
+    # Exit 2 means the checker never ran, so no file was judged.
+    echo -e "  ${RED}❌ The .hs conformance gate could not run the Rust checker${NC}"
+    echo "$HS_CONF_OUT"
+    echo "     Fix: install Rust with rustup (the gate also looks in ~/.cargo/bin), or set CARGO to the cargo binary."
+    FAILED=1
+elif [ "$HS_CONF_STATUS" -ne 0 ]; then
+    echo -e "  ${RED}❌ A published .hs conformance file was rejected by the Rust checker${NC}"
+    echo "$HS_CONF_OUT"
+    echo "     Fix: teach the checker the program's rule, or fix the .hs file. Do not widen the allow-list."
+    FAILED=1
+else
+    echo -e "  ${GREEN}✓${NC} Published .hs conformance files pass validate_detailed"
+fi
+
 # Gate 5h: No third-party QR-code service gate (F.106/F.117: generate QR codes LOCALLY).
 # Scans STAGED packages/*/src files for a hosted QR-service hostname (api.qrserver.com et al).
 # Regression history: api.qrserver.com leaked every published .holo share/scan URL via
 # encodeURIComponent(sceneUrl) in SocialTraits.ts + renderer.ts (fixed 2026-07-01). This gate
 # prevents a third regression. Excludes docs/archive/ (dead reference HTML, not live code).
 echo "  ├─ No-third-party-QR gate (F.106/F.117)..."
-STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs' 2>/dev/null || true)
+# `src/**` skips a file that sits directly in src/ (git requires another slash).
+# Default pathspec `*` matches across `/`, so `packages/*/src/*` also covers
+# `packages/<a>/<b>/src/<file>` (a `:(glob)` rewrite would drop those).
+STAGED_SRC=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- 'packages/*/src/*.ts' 'packages/*/src/*.tsx' 'packages/*/src/*.js' 'packages/*/src/*.mjs' 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs' 2>/dev/null || true)
 if [ -n "$STAGED_SRC" ]; then
-    QR_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-no-third-party-qr.mjs $STAGED_SRC 2>&1)
+    QR_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-no-third-party-qr.mjs "$STAGED_SRC" 2>&1)
     QR_STATUS=$?
     if [ "$QR_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Third-party QR-service literal in staged source${NC}"
@@ -699,7 +820,7 @@ echo -e "  ├─ Security audit... ${YELLOW}⚠ skipped (CI handles this)${NC}"
 # message (.git/COMMIT_EDITMSG / git log -1) — which false-blocked correctly-scoped
 # commits and could false-pass wrong-scoped ones. The commit-msg hook receives the
 # real message path as "$1". This is a non-blocking heads-up only.
-if git diff --cached --name-only -- 'compositions/*.hsplus' 2>/dev/null | grep -q .; then
+if git -c core.quotepath=off diff --cached --name-only -- 'compositions/*.hsplus' 2>/dev/null | grep -q .; then
     echo -e "  ├─ Brain (.hsplus) staged — scope enforced at commit-msg stage"
 fi
 

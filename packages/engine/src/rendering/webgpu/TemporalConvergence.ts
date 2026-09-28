@@ -10,11 +10,7 @@
 
 import type { PixelGrid } from '../../native-render/gpu-verify';
 import type { Mat4 } from '../../character-render/skin-math';
-import type {
-  DepthGrid,
-  MotionVectorGrid,
-  ReactiveMaskGrid,
-} from './TemporalInputs';
+import type { DepthGrid, MotionVectorGrid, ReactiveMaskGrid } from './TemporalInputs';
 
 const BUFFER_COPY_DST = 0x0008;
 const BUFFER_MAP_READ = 0x0001;
@@ -26,11 +22,7 @@ const TEXTURE_BINDING = 0x04;
 const TEXTURE_STORAGE_BINDING = 0x08;
 
 export type TemporalInvalidationReason =
-  | 'initial'
-  | 'camera-motion'
-  | 'resident-motion'
-  | 'lod-change'
-  | 'manual';
+  'initial' | 'camera-motion' | 'resident-motion' | 'lod-change' | 'manual';
 
 export interface TemporalConvergenceConfig {
   /** Number of jittered stable frames required for an admitted convergence window. */
@@ -133,15 +125,9 @@ function halton(index: number, base: number): number {
 }
 
 /** Deterministic centred base-2/base-3 Halton jitter. */
-export function temporalHaltonJitter(
-  sampleIndex: number,
-  scalePixels = 0.5
-): [number, number] {
+export function temporalHaltonJitter(sampleIndex: number, scalePixels = 0.5): [number, number] {
   const index = Math.max(0, Math.trunc(sampleIndex)) + 1;
-  return [
-    (halton(index, 2) - 0.5) * scalePixels,
-    (halton(index, 3) - 0.5) * scalePixels,
-  ];
+  return [(halton(index, 2) - 0.5) * scalePixels, (halton(index, 3) - 0.5) * scalePixels];
 }
 
 /**
@@ -218,10 +204,7 @@ export class TemporalConvergenceController {
     const sampleIndex = this.stableFrameCount % this.config.sampleCount;
     const feedback = invalidated
       ? 0
-      : Math.min(
-          this.config.feedbackCeiling,
-          this.stableFrameCount / (this.stableFrameCount + 1)
-        );
+      : Math.min(this.config.feedbackCeiling, this.stableFrameCount / (this.stableFrameCount + 1));
     this.stableFrameCount += 1;
     this.frameCount += 1;
     this.previous = { ...signals, forceReset: false };
@@ -402,12 +385,10 @@ function createRgba8Texture(device: GPUDevice, grid: PixelGrid): GPUTexture {
       row * bytesPerRow
     );
   }
-  device.queue.writeTexture(
-    { texture },
-    upload,
-    { bytesPerRow, rowsPerImage: grid.height },
-    [grid.width, grid.height]
-  );
+  device.queue.writeTexture({ texture }, upload, { bytesPerRow, rowsPerImage: grid.height }, [
+    grid.width,
+    grid.height,
+  ]);
   return texture;
 }
 
@@ -434,12 +415,10 @@ function createFloatTexture(
       row * floatsPerRow
     );
   }
-  device.queue.writeTexture(
-    { texture },
-    upload,
-    { bytesPerRow, rowsPerImage: height },
-    [width, height]
-  );
+  device.queue.writeTexture({ texture }, upload, { bytesPerRow, rowsPerImage: height }, [
+    width,
+    height,
+  ]);
   return texture;
 }
 
@@ -495,10 +474,8 @@ function analyzeHistoryRejection(
       if (
         currentDepth &&
         historyDepth &&
-        Math.abs(
-          currentDepth.data[pixel] -
-            historyDepth.data[previousY * width + previousX]
-        ) > depthThreshold
+        Math.abs(currentDepth.data[pixel] - historyDepth.data[previousY * width + previousX]) >
+          depthThreshold
       ) {
         disocclusionRejectedPixelCount += 1;
       }
@@ -614,9 +591,7 @@ function assertTextureResolveOptions(options: TemporalTextureResolveOptions): nu
 }
 
 /** Create the reusable compute pipeline used by texture-native temporal graphs. */
-export function createTemporalTextureResolvePipelineGPU(
-  device: GPUDevice
-): GPUComputePipeline {
+export function createTemporalTextureResolvePipelineGPU(device: GPUDevice): GPUComputePipeline {
   const module = device.createShaderModule({ code: TEMPORAL_RESOLVE_WGSL });
   return device.createComputePipeline({
     layout: 'auto',
@@ -748,13 +723,7 @@ export async function resolveTemporalFrameGPU(
     throw new RangeError('temporal resolve feedback must be in [0, 1)');
   }
   if (options.motionVectors) {
-    assertFloatGrid(
-      options.motionVectors,
-      'motion vectors',
-      2,
-      current.width,
-      current.height
-    );
+    assertFloatGrid(options.motionVectors, 'motion vectors', 2, current.width, current.height);
     if (options.motionVectors.space !== 'current-minus-previous-pixels') {
       throw new Error('temporal resolve motion-vector space is unsupported');
     }
@@ -899,10 +868,7 @@ export async function resolveTemporalFrameGPU(
   const unpaddedBytesPerRow = current.width * 4;
   for (let row = 0; row < current.height; row += 1) {
     data.set(
-      mapped.subarray(
-        row * paddedBytesPerRow,
-        row * paddedBytesPerRow + unpaddedBytesPerRow
-      ),
+      mapped.subarray(row * paddedBytesPerRow, row * paddedBytesPerRow + unpaddedBytesPerRow),
       row * unpaddedBytesPerRow
     );
   }
@@ -930,9 +896,7 @@ export async function resolveTemporalFrameGPU(
       historyValid: signalsConsumed,
       neighborhoodClamping: true,
       motionVectorsConsumed,
-      motionVectorSpace: motionVectorsConsumed
-        ? 'current-minus-previous-pixels'
-        : 'none',
+      motionVectorSpace: motionVectorsConsumed ? 'current-minus-previous-pixels' : 'none',
       reactiveMaskConsumed,
       disocclusionInputConsumed,
       disocclusionDepthThreshold,

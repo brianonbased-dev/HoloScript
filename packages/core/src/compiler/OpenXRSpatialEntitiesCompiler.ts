@@ -121,8 +121,7 @@ export interface MeshComponent {
 export interface PersistenceComponent {
   type: 'XR_SPATIAL_COMPONENT_TYPE_STORABLE';
   storageLocation:
-    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL'
-    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
+    'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL' | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
   persisted: boolean;
 }
 
@@ -233,8 +232,7 @@ export interface OpenXRSpatialEntitiesCompilerOptions {
    * @default 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL'
    */
   storageLocation?:
-    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL'
-    | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
+    'XR_SPATIAL_ENTITY_STORAGE_LOCATION_LOCAL' | 'XR_SPATIAL_ENTITY_STORAGE_LOCATION_CLOUD';
 
   /**
    * Whether to include geospatial metadata when objects have lat/lon/alt.

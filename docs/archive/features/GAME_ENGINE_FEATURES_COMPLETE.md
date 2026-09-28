@@ -48,13 +48,14 @@ instancedRenderer.addInstance(id, 'box', 'concrete', position, rotation, scale);
 ```
 
 **Performance Comparison**:
-| Scenario | Non-Instanced | Instanced | Improvement |
-|----------|---------------|-----------|-------------|
-| **1,000 fragments** | 1,000 draw calls | 1 draw call | **99.9%** fewer |
-| **10,000 fragments** | 10,000 draw calls | 10 draw calls | **99.9%** fewer |
-| **FPS (1K fragments)** | 35 FPS | 60 FPS | **+71%** |
-| **FPS (10K fragments)** | 8 FPS | 55 FPS | **+588%** |
-| **Memory (10K)** | 450 MB | 120 MB | **-73%** |
+
+| Scenario                | Non-Instanced     | Instanced     | Improvement     |
+| ----------------------- | ----------------- | ------------- | --------------- |
+| **1,000 fragments**     | 1,000 draw calls  | 1 draw call   | **99.9%** fewer |
+| **10,000 fragments**    | 10,000 draw calls | 10 draw calls | **99.9%** fewer |
+| **FPS (1K fragments)**  | 35 FPS            | 60 FPS        | **+71%**        |
+| **FPS (10K fragments)** | 8 FPS             | 55 FPS        | **+588%**       |
+| **Memory (10K)**        | 450 MB            | 120 MB        | **-73%**        |
 
 **Key Innovations**:
 

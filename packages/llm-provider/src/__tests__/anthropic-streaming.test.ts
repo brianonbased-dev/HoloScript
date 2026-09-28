@@ -37,8 +37,7 @@ type StreamEvent =
   | {
       type: 'content_block_delta';
       delta:
-        | { type: 'text_delta'; text: string }
-        | { type: 'input_json_delta'; partial_json: string };
+        { type: 'text_delta'; text: string } | { type: 'input_json_delta'; partial_json: string };
     }
   | { type: 'content_block_stop' }
   | { type: 'message_delta'; delta: { stop_reason: string | null } };

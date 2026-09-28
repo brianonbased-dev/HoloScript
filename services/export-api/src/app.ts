@@ -2,7 +2,13 @@
  * Express Application Setup
  *
  * Configures the Express app with the full middleware stack (8 layers)
- * and route handlers per the SOC 2 compliance design.
+ * and route handlers.
+ *
+ * ABOUT THE "SOC 2 CCx.y" COMMENTS in this service: each names the criterion a
+ * piece of middleware is meant to serve, so a reader can find the code behind a
+ * control. They are signposts, not evidence. None has been assessed, this
+ * service has never been audited, and a criterion is satisfied by an auditor
+ * examining an operating control over a period, never by a code comment.
  *
  * Middleware stack order (per research):
  * 1. Security headers (Helmet + custom)

@@ -161,10 +161,11 @@ pnpm update puppeteer ipfs-http-client
 - Multi-chain support (Base, Zora, Optimism, Arbitrum)
 
 **Economics** (100 VR worlds/month):
-| Scenario | Monthly Profit | Annual Projected |
-|----------|----------------|------------------|
-| Conservative (20% sell) | $1,050 | $12,600 |
-| Optimistic (50% sell) | $2,650 | $31,800 |
+
+| Scenario                | Monthly Profit | Annual Projected |
+| ----------------------- | -------------- | ---------------- |
+| Conservative (20% sell) | $1,050         | $12,600          |
+| Optimistic (50% sell)   | $2,650         | $31,800          |
 
 **Critical Correction**: "10-15% royalties" mentioned in autonomous report is incorrect. Royalties are creator-configurable, not platform-mandated.
 

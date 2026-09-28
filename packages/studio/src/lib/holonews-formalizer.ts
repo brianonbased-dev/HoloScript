@@ -163,8 +163,7 @@ function verifyCaelHashChain(
 function detectSensorPath(
   nc: NativeCameraScanEvidence
 ):
-  | { measured: false; reason: string }
-  | { measured: true; path: ProvenCaptureClaim['sensorPath'] } {
+  { measured: false; reason: string } | { measured: true; path: ProvenCaptureClaim['sensorPath'] } {
   const holomap = nc.holomap;
   if (!holomap || holomap.runtime !== 'finalized') {
     return { measured: false, reason: 'HoloMap runtime not finalized' };

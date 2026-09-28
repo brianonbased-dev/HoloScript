@@ -81,13 +81,14 @@ Per §6.2 (expensive-architecture gate), both ran on this plan after Phase A. Fi
 - **A.5 — ✅ RESOLVED (2026-06-02). Root cause = stress-EXTRACTION method, NOT the solver (F.110 vindicated).** The `StructuralSolverTET10` was computing correct stresses all along; `paper-nafems-le1.test.ts` sampled them with `extractCauchyComponentNearPoint(..., searchRadius=0.5)` — a fixed-radius element-centroid **ball average** around point D=(2,0). At a boundary stress _concentration_, that converges to the field's spatial average over the ball (~45 MPa), NOT the edge peak (92.7) — hence the flat ~51.5% mesh-converged error. **Fix: wired the codebase's already-present but unused Superconvergent Patch Recovery** (`verification/StressRecovery.ts` `recoverNodalStressSPR`, Zienkiewicz–Zhu — the solver already stored `gaussPointStress`/`gaussPointCoords` for exactly this) to recover σ*yy at node D. **Result: TET10 finest-mesh error 51.5% → 1.20%, monotonically converging (4.11→2.49→1.62→1.20%), GCI 156.8% → 1.83%, Richardson est. 92.44 MPa (0.28% off).** Replaced the relative-only assertion (line 405) with **5 absolute gates**: accuracy ≤5%, monotone convergence, GCI <5%, Richardson agreement, TET10≫TET4. **Correction to my own plan: the speculative "observed order ≥~1.8" sub-criterion was WRONG** — point-stress convergence \_at a concentration* is genuinely sub-quadratic (measured ~0.89) even with SPR; the right evidence is absolute error + monotone + low GCI, which the data provides. TET4 stays poor (~83%, expected: constant-strain tets can't resolve a concentration) and is the honest baseline. **FEM stress validation floor is now REAL — Phases C/D/E unblocked on the validation axis; NAFEMS LE1 may now be cited as validated (F.037).** (Historical measured table below, pre-fix:)
 
 - ~~**A.5 (NEW, BLOCKING — before Phase B). ⚠️ MEASURED THIS SESSION — the gap is SYSTEMATIC, not residual.**~~ Ran `paper-nafems-le1.test.ts`; σ_yy at point D (ref **92.7 MPa**), Roller BCs:
-  | mesh h | TET4 σ_yy / err | TET10 σ_yy / err |
-  |---|---|---|
-  | 0.2500 | 5.47 / 94.10% | 44.22 / 52.30% |
-  | 0.1250 | 11.37 / 87.73% | 45.25 / 51.18% |
-  | 0.0830 | 13.53 / 85.40% | 44.78 / 51.69% |
-  | 0.0625 | 16.27 / 82.45% | 44.93 / 51.53% |
-  | **GCI** | **789.82%** | **156.80%** |
+
+  | mesh h  | TET4 σ_yy / err | TET10 σ_yy / err |
+  | ------- | --------------- | ---------------- |
+  | 0.2500  | 5.47 / 94.10%   | 44.22 / 52.30%   |
+  | 0.1250  | 11.37 / 87.73%  | 45.25 / 51.18%   |
+  | 0.0830  | 13.53 / 85.40%  | 44.78 / 51.69%   |
+  | 0.0625  | 16.27 / 82.45%  | 44.93 / 51.53%   |
+  | **GCI** | **789.82%**     | **156.80%**      |
 
   **TET10 converges to ~45 MPa (~49% of reference) and refinement does NOT close the gap (error flat ~51.5%).** A mesh-converged answer wrong by half = a **systematic error** (stress extraction / symmetry-BC modeling / curved-boundary point-load approximation per `paper-nafems-le1.test.ts:283-285,304`), **not** discretization. The §0.5 "TET10 REAL (strongest)" verdict holds for the _linear-solve machinery_ but its _benchmark stress output_ is wrong by half. **A.5 is now a CORRECTNESS INVESTIGATION:** find the systematic source, fix it, then add the absolute-tolerance gate (finest-mesh TET10 σ_yy within ≤5% of 92.7 MPa). **Phases C/D/E DO NOT OPEN until green** — C2 morphoelasticity is built on this exact solver, so a ~50% stress bias would propagate into every residual-stress/buckling result. Suspect METHOD first (F.110). **No paper may cite NAFEMS LE1 as validated (F.037).**
 

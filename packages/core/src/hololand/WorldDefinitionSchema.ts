@@ -64,13 +64,7 @@ export interface WorldMetadata {
 }
 
 export type WorldPlatform =
-  | 'web'
-  | 'mobile'
-  | 'quest'
-  | 'visionos'
-  | 'androidxr'
-  | 'steamvr'
-  | 'desktop';
+  'web' | 'mobile' | 'quest' | 'visionos' | 'androidxr' | 'steamvr' | 'desktop';
 
 export type WorldCategory =
   | 'game'

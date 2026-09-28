@@ -475,8 +475,7 @@ function buildDEMConfig(cfg: Record<string, unknown>): DEMConfig {
   const rawRadii = cfg['radii'] as number[] | undefined;
   const rawMasses = cfg['masses'] as number[] | undefined;
   const boxRaw = cfg['boxBounds'] as
-    | [[number, number], [number, number], [number, number]]
-    | undefined;
+    [[number, number], [number, number], [number, number]] | undefined;
   const posRaw = cfg['initialPositions'] as number[] | undefined;
   const velRaw = cfg['initialVelocities'] as number[] | undefined;
 

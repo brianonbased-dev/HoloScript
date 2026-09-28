@@ -295,17 +295,26 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
    */
   protected async healthCheckLocalServer(
     baseURL: string,
-    formatError: (baseURL: string, message: string) => string
+    formatError: (baseURL: string, message: string) => string,
+    options?: { headers?: Record<string, string>; authRejectedMessage?: string }
   ): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
     const start = Date.now();
+    const headers = options?.headers;
+    const authRejectedMessage = options?.authRejectedMessage;
+    const init = (extra?: Record<string, string>) =>
+      extra && Object.keys(extra).length > 0
+        ? { signal: AbortSignal.timeout(5000), headers: extra }
+        : { signal: AbortSignal.timeout(5000) };
     try {
-      const response = await fetch(`${baseURL}/health`, {
-        signal: AbortSignal.timeout(5000),
-      });
+      const response = await fetch(`${baseURL}/health`, init(headers));
+      if (response.status === 401 && authRejectedMessage) {
+        throw new Error(authRejectedMessage);
+      }
       if (!response.ok) {
-        const modelsResponse = await fetch(`${baseURL}/v1/models`, {
-          signal: AbortSignal.timeout(5000),
-        });
+        const modelsResponse = await fetch(`${baseURL}/v1/models`, init(headers));
+        if (modelsResponse.status === 401 && authRejectedMessage) {
+          throw new Error(authRejectedMessage);
+        }
         if (!modelsResponse.ok) throw new Error(`Status ${modelsResponse.status}`);
       }
       return { ok: true, latencyMs: Date.now() - start };

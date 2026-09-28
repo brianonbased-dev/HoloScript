@@ -922,9 +922,7 @@ describe('DeterministicHsplusTraitRuntime v7 packaged traits', () => {
       result: null,
       dispatched: false,
     });
-    expect(() => runtime.invoke(traitObservation('on_spawn', {}))).toThrow(
-      /invokeLifecycle/
-    );
+    expect(() => runtime.invoke(traitObservation('on_spawn', {}))).toThrow(/invokeLifecycle/);
   });
 
   it('fails closed when on_spawn leaves the lifecycle-effect subset', () => {
@@ -933,11 +931,9 @@ describe('DeterministicHsplusTraitRuntime v7 packaged traits', () => {
     value = 1
   }
 }`;
-    const runtime = createDeterministicHsplusTraitRuntime(
-      unsupported,
-      'unsupported_spawn',
-      { hostBindings }
-    );
+    const runtime = createDeterministicHsplusTraitRuntime(unsupported, 'unsupported_spawn', {
+      hostBindings,
+    });
     expect(() => runtime.invokeLifecycle()).toThrow(/outside the lifecycle subset/);
   });
 

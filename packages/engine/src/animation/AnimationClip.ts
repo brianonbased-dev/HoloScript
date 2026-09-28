@@ -16,9 +16,7 @@ export type QuaternionInterpolationMode = 'nlerp';
 /** @deprecated Legacy label retained as a typed migration input. It sampled linearly. */
 export type LegacyInterpolationMode = 'slerp';
 export type InterpolationMode =
-  | ScalarInterpolationMode
-  | QuaternionInterpolationMode
-  | LegacyInterpolationMode;
+  ScalarInterpolationMode | QuaternionInterpolationMode | LegacyInterpolationMode;
 
 export type QuaternionValue = [number, number, number, number];
 export type ClipSampleValue = number | QuaternionValue;
@@ -110,11 +108,10 @@ function cloneTrack(track: PreparedClipTrack): PreparedClipTrack {
 
   return {
     ...track,
-    keyframes: track.keyframes.map(
-      (keyframe): ScalarTrackKeyframe =>
-        Array.isArray(keyframe.value)
-          ? { ...keyframe, value: [...keyframe.value] }
-          : { ...keyframe, value: keyframe.value }
+    keyframes: track.keyframes.map((keyframe): ScalarTrackKeyframe =>
+      Array.isArray(keyframe.value)
+        ? { ...keyframe, value: [...keyframe.value] }
+        : { ...keyframe, value: keyframe.value }
     ),
   };
 }

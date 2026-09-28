@@ -298,7 +298,9 @@ function unrecognisedStageMessage(content: string, keyword: 'source' | 'sink'): 
   const plural = `${keyword}s`;
   // The keyword appears at the start of a statement but extractBlock found nothing,
   // so whatever follows it is not `<Name> {`.
-  const nearMiss = new RegExp(`(?:^|\\n)\\s*${keyword}\\b(?!\\s+\\w+\\s*\\{)([^\\n]*)`).exec(content);
+  const nearMiss = new RegExp(`(?:^|\\n)\\s*${keyword}\\b(?!\\s+\\w+\\s*\\{)([^\\n]*)`).exec(
+    content
+  );
   if (!nearMiss) {
     return `Pipeline has no ${plural}`;
   }
@@ -788,8 +790,7 @@ function parsePipelineContent(
       method: p.method as string | undefined,
       auth: parseNestedBlock(block.content, 'auth') as unknown as PipelineAuth | undefined,
       pagination: parseNestedBlock(block.content, 'pagination') as unknown as
-        | PipelinePagination
-        | undefined,
+        PipelinePagination | undefined,
       properties: p,
     });
   }
@@ -911,8 +912,7 @@ function parsePipelineContent(
       auth: parseNestedBlock(block.content, 'auth') as unknown as PipelineAuth | undefined,
       batch: parseNestedBlock(block.content, 'batch') as unknown as PipelineBatch | undefined,
       onError: parseNestedBlock(block.content, 'on_error') as unknown as
-        | PipelineOnError
-        | undefined,
+        PipelineOnError | undefined,
       format: p.format as PipelineSink['format'],
       append: p.append as boolean | undefined,
       server: p.server as string | undefined,

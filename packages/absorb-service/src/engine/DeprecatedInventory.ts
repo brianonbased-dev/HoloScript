@@ -24,14 +24,7 @@ export interface DeprecatedSymbol {
   filePath: string;
   /** Type of export */
   exportType:
-    | 'function'
-    | 'class'
-    | 'interface'
-    | 'type'
-    | 'const'
-    | 'enum'
-    | 'default'
-    | 'unknown';
+    'function' | 'class' | 'interface' | 'type' | 'const' | 'enum' | 'default' | 'unknown';
   /** Classification based on usage analysis */
   classification: SymbolClassification;
   /** Number of files that import this symbol */
