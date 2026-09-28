@@ -562,16 +562,22 @@ describe('getErrorCodeDocumentation', () => {
     expect(expr.length).toBeGreaterThan(0);
   });
 
-  it('categorizes HSP400-499 as "Imports"', () => {
+  it('does not list deleted import codes HSP400, HSP401, or HSP402', () => {
     const docs = getErrorCodeDocumentation();
     const imports = docs.filter((d) => d.category === 'Imports');
-    expect(imports.length).toBeGreaterThan(0);
+    expect(imports).toEqual([]);
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP400');
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP401');
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP402');
   });
 
-  it('categorizes HSP900+ as "Limits"', () => {
+  it('does not list deleted limit codes HSP900, HSP901, or HSP902', () => {
     const docs = getErrorCodeDocumentation();
     const limits = docs.filter((d) => d.category === 'Limits');
-    expect(limits.length).toBeGreaterThan(0);
+    expect(limits).toEqual([]);
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP900');
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP901');
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP902');
   });
 });
 
@@ -597,16 +603,36 @@ describe('HSPLUS_ERROR_CODES', () => {
     expect(HSPLUS_ERROR_CODES.HSP200).toBe('Unknown trait');
   });
 
-  it('has HSP400 for "Invalid import statement"', () => {
-    expect(HSPLUS_ERROR_CODES.HSP400).toBe('Invalid import statement');
+  it('does not define unused HSP400', () => {
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP400');
   });
 
-  it('has HSP402 for "Circular import detected"', () => {
-    expect(HSPLUS_ERROR_CODES.HSP402).toBe('Circular import detected');
+  it('does not define unused HSP402', () => {
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP402');
   });
 
-  it('has HSP900 for maximum nesting depth', () => {
-    expect(HSPLUS_ERROR_CODES.HSP900).toContain('nesting depth');
+  it('does not define unused HSP900', () => {
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP900');
+  });
+
+  it('keeps the thirteen codes the parser can raise', () => {
+    expect(Object.keys(HSPLUS_ERROR_CODES).sort()).toEqual(
+      [
+        'HSP001',
+        'HSP002',
+        'HSP003',
+        'HSP004',
+        'HSP005',
+        'HSP006',
+        'HSP009',
+        'HSP100',
+        'HSP101',
+        'HSP109',
+        'HSP200',
+        'HSP201',
+        'HSP300',
+      ].sort()
+    );
   });
 
   it('all codes start with HSP', () => {

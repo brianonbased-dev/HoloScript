@@ -851,6 +851,51 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
   });
 });
 
+describe('HoloScriptPlusParser - plain error sentences', () => {
+  const parser = new HoloScriptPlusParser();
+
+  it('rewrites HSP001 when EQUALS appears in a node body', () => {
+    const result = parser.parse('object Cube {\n  = true\n}');
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'HSP001',
+          message:
+            'HSP001: This spot needs a colon, as in name: value. A default written with = is only allowed on a field.',
+        }),
+      ])
+    );
+  });
+
+  it('rewrites HSP001 when a colon is at the top of the file', () => {
+    const result = parser.parse(':\n');
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'HSP001',
+          message:
+            'HSP001: A colon is not allowed at the top of the file. Start with a block such as object, composition, or function.',
+        }),
+      ])
+    );
+  });
+
+  it('rewrites HSP300 when a pipe appears where a value was required', () => {
+    const result = parser.parse('object Box {\n  kind: |widget\n}');
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'HSP300',
+          message: 'HSP300: A value was required here, and a "|" was found instead.',
+        }),
+      ])
+    );
+  });
+});
+
 describe('HoloScriptPlusParser - silent skips are errors', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
 
