@@ -13,45 +13,21 @@
  * Design: research/2026-06-02_founder-prevetted-approval-gate-and-native-console.md (N1/N2)
  */
 import { describe, it, expect } from 'vitest';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { parseHoloStrict } from '../../parser/HoloCompositionParser';
 import { Native2DCompiler } from '../Native2DCompiler';
 import { ReferenceExporterRegistry } from '../ReferenceExporters';
 import type { ExportTarget } from '../CircuitBreaker';
 
-// The Founder Console authored in HoloScript — the real surface, not a toy.
-// The inbox is LIVE: @fetch binds it to the deployed /api/quest-proof/inbox, and the
-// first child ("Row") is the row template the runtime clones per item with {{field}}.
-const FOUNDER_CONSOLE_HOLO = `composition "FounderConsole" {
-  object "Root" {
-    @panel { tag: "main" }
-    @theme { style: "padding:24px; max-width:680px; margin:0 auto; font-family:system-ui,-apple-system,sans-serif" }
-
-    object "Header" {
-      @panel { tag: "header" }
-      @theme { style: "display:flex; gap:16px; align-items:baseline; margin-bottom:20px" }
-      object "Title" { @text { variant: "h1", content: "Founder Console" } }
-      object "PendingCount" { @text { content: "0" } @count_of { source: "items" } @theme { style: "color:#d97706; font-weight:700; font-size:20px" } }
-      object "PendingLabel" { @text { content: "pending vetting" } @theme { style: "color:#6b7280" } }
-    }
-
-    object "Inbox" {
-      @panel { tag: "section" }
-      @fetch { into: "items", endpoint: "/api/quest-proof/inbox", method: "GET" }
-      object "Row" {
-        @panel { tag: "article" }
-        @theme { className: "lift-card", style: "border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:12px" }
-        object "Label" { @text { variant: "h3", content: "{{label}}" } }
-        object "Badge" { @text { content: "{{vetting.glance}}" } @theme { style: "color:#16a34a; font-size:13px; display:block; margin:6px 0" } }
-        object "Approve" {
-          @button { content: "Approve", onClick: "window.open('{{url}}')" }
-          @theme { className: "glow-btn", style: "background:#16a34a; color:#fff; border:none; border-radius:8px; padding:8px 18px; cursor:pointer" }
-        }
-      }
-    }
-  }
-}`;
+// The Founder Console as shipped: the real studio file, not a copy, so this test cannot pass
+// against a console that has drifted from what /quest-proof/native compiles (#411 review).
+// The inbox is LIVE: @fetch binds it to /api/quest-proof/inbox, and the first child ("Row")
+// is the row template the runtime clones per item with {{field}}.
+const FOUNDER_CONSOLE_HOLO = readFileSync(
+  new URL('../../../../studio/src/app/quest-proof/native/founder-console.holo', import.meta.url),
+  'utf8'
+);
 
 const SAMPLE_ITEMS = [
   {
@@ -96,7 +72,9 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     expect(html).toContain('{{label}}');
     expect(html).toContain('{{vetting.glance}}');
     expect(html).toContain("querySelectorAll('[data-holo-fetch]')"); // the vanilla runtime
-    expect(html).toMatch(/onclick=/i);
+    // Approve is a link to the item's url in a new tab, not a click handler (task 3m36).
+    expect(html).toContain('href="{{url}}"');
+    expect(html).toContain('target="_blank" rel="noopener noreferrer"');
 
     const out = 'C:/tmp/founder-console-native/console.html';
     mkdirSync(dirname(out), { recursive: true });
@@ -170,13 +148,146 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     // live counter updated to the item count (hydration-free)
     const pendingCount = doc.querySelector('[data-holo-count-for="items"]');
     expect(pendingCount?.textContent).toBe(String(SAMPLE_ITEMS.length));
-    // the approve handler interpolated the per-item url
-    expect(dom.serialize()).toContain("window.open('https://holoscript.studio/t/abc/decide?t=1')");
+    // each rendered Approve link carries its own item's url
+    const approveLinks = Array.from(rendered).map((row) => row.querySelector('a[target="_blank"]'));
+    expect(approveLinks.map((a) => a?.getAttribute('href'))).toEqual(
+      SAMPLE_ITEMS.map((item) => item.url)
+    );
 
     // Emit a visibly-populated snapshot (F.099 show-don't-reference).
     const preview = 'C:/tmp/founder-console-native/console-live-preview.html';
     writeFileSync(preview, dom.serialize(), 'utf8');
     // eslint-disable-next-line no-console
     console.log(`[artifact] live-rendered snapshot (2 sample items) -> ${preview}`);
+  }, 120_000);
+
+  // task 3m36: the list runtime fills fetched values into text and web links only. An event
+  // handler keeps the template's own text, and a link in any other scheme is cleared. This runs
+  // for real (no skip): a guard that can pass without running proves nothing.
+  it('fetched values fill text and web links, never an event handler or another scheme', async () => {
+    const { JSDOM } = await import('jsdom');
+    const source = `composition "FillProbe" {
+  object "List" {
+    @panel { tag: "section" }
+    @fetch { into: "items", endpoint: "/api/probe", method: "GET" }
+    object "Row" {
+      @panel { tag: "article" }
+      object "Name" { @text { content: "{{label}}" } }
+      object "Legacy" { @button { content: "Open", onClick: "window.open('{{url}}')" } }
+      object "Web" { @link { content: "Web", href: "{{url}}" } }
+      object "Other" { @link { content: "Other", href: "{{other}}" } }
+    }
+  }
+}`;
+    const html = new Native2DCompiler().compile(parseHoloStrict(source), '', undefined, {
+      format: 'html',
+    }) as string;
+    const items = [
+      {
+        label: 'First item',
+        url: 'https://holoscript.studio/t/abc/decide?t=1',
+        other: 'ftp://files.example.com/a.txt',
+      },
+    ];
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      beforeParse(window) {
+        (window as unknown as { fetch: unknown }).fetch = () =>
+          Promise.resolve({ json: () => Promise.resolve({ items }) });
+      },
+    });
+    await new Promise((r) => setTimeout(r, 30));
+
+    const row = dom.window.document.querySelector(
+      '[data-holo-fetch] > *:not([data-holo-template])'
+    );
+    expect(row?.textContent).toContain('First item');
+    expect(row?.querySelector('button')?.getAttribute('onclick')).toBe("window.open('{{url}}')");
+    const links = Array.from(row?.querySelectorAll('a') ?? []).map((a) => a.getAttribute('href'));
+    expect(links).toEqual([items[0].url, '']);
+  }, 120_000);
+
+  // #411 review (claude3): every URL attribute the runtime gates, every handler name, srcdoc,
+  // and the links whose real host hides from a glance. The trait vocabulary cannot emit most of
+  // these attributes yet, so they go into the compiled row template directly: the runtime under
+  // test is the real one the compiler emits. Ordinary values only.
+  it('the list runtime gates every URL attribute, every handler and srcdoc, and hidden-host links', async () => {
+    const { JSDOM } = await import('jsdom');
+    const source = `composition "FillProbe" {
+  object "List" {
+    @panel { tag: "section" }
+    @fetch { into: "items", endpoint: "/api/probe", method: "GET" }
+    object "Row" {
+      @panel { tag: "article" }
+      object "Name" { @text { content: "{{label}}" } }
+    }
+  }
+}`;
+    const compiled = new Native2DCompiler().compile(parseHoloStrict(source), '', undefined, {
+      format: 'html',
+    }) as string;
+    const staging = new JSDOM(compiled);
+    const template = staging.window.document.querySelector('[data-holo-template]');
+    expect(template).not.toBeNull();
+    template!.insertAdjacentHTML(
+      'beforeend',
+      [
+        '<img data-probe="src-web" src="{{url}}">',
+        '<img data-probe="src-other" src="{{other}}">',
+        '<form data-probe="action-other" action="{{other}}"><button data-probe="formaction-other" formaction="{{other}}">f</button></form>',
+        '<video data-probe="poster-other" poster="{{other}}"></video>',
+        '<a data-probe="userinfo" href="{{userinfo}}">u</a>',
+        '<a data-probe="protocol-relative" href="{{protorel}}">p</a>',
+        '<a data-probe="backslash" href="{{backslash}}">b</a>',
+        '<a data-probe="same-site-path" href="{{path}}">s</a>',
+        '<a data-probe="other-site" href="{{elsewhere}}">e</a>',
+        '<div data-probe="handler" onmouseover="go(\'{{url}}\')">h</div>',
+        '<iframe data-probe="srcdoc" srcdoc="{{label}}"></iframe>',
+      ].join('')
+    );
+    const items = [
+      {
+        label: 'First item',
+        url: 'https://holoscript.studio/t/abc/decide?t=1',
+        other: 'ftp://files.example.com/a.txt',
+        userinfo: 'https://holoscript.studio@example.com/x',
+        protorel: '//example.com/x',
+        backslash: '\\\\example.com/x',
+        path: '/quest-proof/native/next',
+        elsewhere: 'https://github.com/brianonbased-dev/HoloScript/pull/411',
+      },
+    ];
+    const dom = new JSDOM(staging.serialize(), {
+      url: 'https://holoscript.studio/quest-proof/native',
+      runScripts: 'dangerously',
+      beforeParse(window) {
+        (window as unknown as { fetch: unknown }).fetch = () =>
+          Promise.resolve({ json: () => Promise.resolve({ items }) });
+      },
+    });
+    await new Promise((r) => setTimeout(r, 30));
+
+    const row = dom.window.document.querySelector(
+      '[data-holo-fetch] > *:not([data-holo-template])'
+    );
+    expect(row?.textContent).toContain('First item');
+    const attr = (probe: string, name: string) =>
+      row?.querySelector(`[data-probe="${probe}"]`)?.getAttribute(name);
+    // A web link fills; any other scheme is cleared, on every attribute the runtime gates.
+    expect(attr('src-web', 'src')).toBe(items[0].url);
+    expect(attr('src-other', 'src')).toBe('');
+    expect(attr('action-other', 'action')).toBe('');
+    expect(attr('formaction-other', 'formaction')).toBe('');
+    expect(attr('poster-other', 'poster')).toBe('');
+    // A user part, a //host form or a backslash form points somewhere a glance does not read.
+    expect(attr('userinfo', 'href')).toBe('');
+    expect(attr('protocol-relative', 'href')).toBe('');
+    expect(attr('backslash', 'href')).toBe('');
+    // A path on this site stays; a plain link to another site stays (hosts are not gated here).
+    expect(attr('same-site-path', 'href')).toBe('/quest-proof/native/next');
+    expect(attr('other-site', 'href')).toBe(items[0].elsewhere);
+    // Every handler name, not only onclick, and srcdoc keep the template's own text.
+    expect(attr('handler', 'onmouseover')).toBe("go('{{url}}')");
+    expect(attr('srcdoc', 'srcdoc')).toBe('{{label}}');
   }, 120_000);
 });

@@ -27,8 +27,9 @@ composition "FounderConsole" {
         object "Label" { @text { variant: "h3", content: "{{label}}" } }
         object "Badge" { @text { content: "{{vetting.glance}}" } @theme { style: "color:#16a34a; font-size:13px; display:block; margin:6px 0" } }
         object "Approve" {
-          @button { content: "Approve", onClick: "window.open('{{url}}')" }
-          @theme { className: "glow-btn", style: "background:#16a34a; color:#fff; border:none; border-radius:8px; padding:8px 18px; cursor:pointer" }
+          // A link, not a click handler: the inbox url is data and stays data (task 3m36).
+          @link { content: "Approve", href: "{{url}}", target: "_blank" }
+          @theme { className: "glow-btn", style: "display:inline-block; background:#16a34a; color:#fff; border:none; border-radius:8px; padding:8px 18px; cursor:pointer; text-decoration:none" }
         }
       }
     }
