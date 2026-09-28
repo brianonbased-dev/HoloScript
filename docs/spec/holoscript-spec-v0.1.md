@@ -547,7 +547,7 @@ pipeline "CustomerJourney" {
 }
 ```
 
-A `light` block inside a `scene` is kept on that scene, in the scene's `lights` list. It is not copied to the composition's `lights`. Other blocks inside a scene are not all kept (see Known gaps).
+A `light` block inside a `scene` is kept on that scene, in the scene's `lights` list, when the light reader can read it. It is not copied to the composition's `lights`. A light the reader cannot read, and most other blocks inside a scene, are skipped as before (see Known gaps).
 
 ```holo
 composition "Scene" {
@@ -814,7 +814,7 @@ These are bugs and disagreements measured on this checkout. This spec records th
 
 6. **Godot has no golden-output file** in `packages/core/src/compiler/__tests__/golden-output/golden.test.ts` (that file names Unity, WebGPU, URDF, SDF, and WASM). Godot is covered by its own compiler tests and by `ExportTargets.e2e.test.ts`. That is a test gap, not a license to drop the target.
 
-7. **A scene keeps only its environment, its objects, and its `light` blocks.** Anything else written inside `scene "Name" { ... }` is skipped with no error (`parseScene` in `HoloCompositionParser.ts`). Measured examples: `camera`, `post_processing`, `template`, `spatial_group`, `npc`, an `on "event" { }` handler, a primitive such as `cube "Box" { }`, and a light shorthand such as `point_light { }`. The file still parses. The webgpu and godot compilers do not read scenes at all, so an object or a light inside a scene does not reach their output; the same object or light at the top of the composition does. `spatial_container` is refused inside a composition and inside a `spatial_group`, but at the root of a file and inside an object the word is skipped and the objects inside it are read as if it were not there, and inside a scene the whole block is skipped.
+7. **A scene keeps only its environment, its objects, and its `light` blocks.** Anything else written inside `scene "Name" { ... }` is skipped with no error (`parseScene` in `HoloCompositionParser.ts`). Measured examples: `camera`, `post_processing`, `template`, `spatial_group`, `npc`, an `on "event" { }` handler, a primitive such as `cube "Box" { }`, and a light shorthand such as `point_light { }`. A `light` block the light reader cannot read is skipped the same way, for example `light Sun { }` with a bare name, which Studio's quickstart scene writes. The file still parses. `@platform(...)` written before an object or a light inside a scene is dropped, and the object or light is kept without it. The webgpu and godot compilers do not read scenes at all, so an object or a light inside a scene does not reach their output; the same object or light at the top of the composition does. `spatial_container` is refused inside a composition and inside a `spatial_group`, but at the root of a file and inside an object the word is skipped and the objects inside it are read as if it were not there, and inside a scene the whole block is skipped.
 
 ## Traits
 

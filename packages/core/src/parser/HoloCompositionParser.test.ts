@@ -573,6 +573,10 @@ describe('HoloCompositionParser', () => {
         ['a quoted name', 'spatial_container "Box" {'],
         ['a bare name', 'spatial_container Box {'],
         ['the at shorthand', 'spatial_container "Box" at [0, 1, 2] {'],
+        [
+          'an at shorthand across lines',
+          'spatial_container "Box" at [\n    0,\n    1,\n    2\n  ] {',
+        ],
         ['a header trait', 'spatial_container "Box" @grabbable {'],
         ['a platform prefix', '@platform(quest)\n  spatial_container "Box" {'],
       ])('refuses it with %s and still reads the rest of the file', (_label, header) => {
@@ -708,16 +712,34 @@ describe('HoloCompositionParser', () => {
       ]);
     });
 
-    it('still reads a light: property in a scene without an error', () => {
-      const result = parseHolo(`composition "Gallery" {
+    // A scene used to skip anything after the word `light`, so all of these parse today. A
+    // light the light reader cannot read is still skipped as before, never turned into an
+    // error, and the rest of the scene and the composition read exactly as they did.
+    it.each([
+      ['a light: property', 'light: "none"'],
+      [
+        'a bare light name, as Studio quickstart writes it',
+        'light Sun {\n      intensity: 1\n    }',
+      ],
+      ['a light body that opens on the next line', 'light "Sun"\n    {\n      intensity: 1\n    }'],
+      ['a nested block inside the light', 'light "Sun" {\n      shadow { mapSize: 2048 }\n    }'],
+      ['light as a property value', 'mode: light'],
+      ['light inside a list', 'themes: [light, dark]'],
+      ['light as a trait name', '@light(x: 1)'],
+    ])('still parses %s inside a scene, as before', (_label, member) => {
+      const source = `composition "Gallery" {
   scene "Main" {
-    light: "none"
+    ${member}
     object "Statue" { geometry: "sphere" }
   }
-}`);
-      expect(result.success).toBe(true);
+  object "Outside" { geometry: "cube" }
+}`;
+      const result = parseHolo(source);
       expect(result.errors).toEqual([]);
+      expect(result.success).toBe(true);
       expect(result.ast?.scenes?.[0].objects.map((object) => object.name)).toEqual(['Statue']);
+      expect(result.ast?.objects.map((object) => object.name)).toEqual(['Outside']);
+      expect(() => parseHoloStrict(source)).not.toThrow();
     });
   });
 
