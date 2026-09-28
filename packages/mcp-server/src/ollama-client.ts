@@ -23,6 +23,7 @@ import {
   OpenRouterAdapter,
   LocalLLMAdapter,
   LOCAL_DEFAULT_MODEL,
+  checkHostedOllama,
   type ILLMProvider,
   type LLMCompletionRequest,
 } from '@holoscript/llm-provider';
@@ -208,6 +209,12 @@ async function queryOllamaProvider(
 ): Promise<string | null> {
   const adapter = getOllamaAdapter();
   if (!adapter) return null;
+  // "Local fallback only": a hosted Ollama URL, or a cloud-tagged model, is not local.
+  const hosted = checkHostedOllama(OLLAMA_URL, {
+    model: modelOverride || OLLAMA_MODEL,
+    caller: 'mcp-server ollama-client',
+  });
+  if (hosted.refused) return null;
   try {
     const result = await adapter.complete({
       messages: [
@@ -320,8 +327,14 @@ export async function isOllamaAvailable(): Promise<boolean> {
         return Boolean(await resolveServiceSecret('OPENAI_API_KEY'));
       case 'ollama':
       default:
-        // Use the adapter's healthCheck for Ollama (pings /health or /v1/models)
+        // Use the adapter's healthCheck for Ollama (pings /health or /v1/models).
+        // A hosted Ollama that queryOllamaProvider would refuse is not "available".
         if (!OLLAMA_URL) return false;
+        if (
+          checkHostedOllama(OLLAMA_URL, { model: OLLAMA_MODEL, caller: 'mcp-server ollama-client' })
+            .refused
+        )
+          return false;
         const adapter = getOllamaAdapter();
         if (!adapter) return false;
         const health = await adapter.healthCheck();

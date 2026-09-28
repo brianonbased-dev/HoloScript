@@ -8,6 +8,8 @@ const nextConfig = {
     'tree-sitter',
     'web-tree-sitter',
     '@holoscript/core',
+    // Node-only (reads node:fs); resolved at runtime like core, not bundled into routes.
+    '@holoscript/llm-provider',
   ],
   turbopack: {
     root: path.join(__dirname, '..', '..'),

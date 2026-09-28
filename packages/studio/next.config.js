@@ -204,7 +204,19 @@ const nextConfig = {
   // examples/ and the page hits its error fallback in production. Paths are
   // relative to this config; outputFileTracingRoot (repo root) anchors the copy.
   outputFileTracingIncludes: {
-    '/**': ['../../examples/**/*.holo', '../../examples/**/*.hs', '../../examples/**/*.hsplus'],
+    '/**': [
+      '../../examples/**/*.holo',
+      '../../examples/**/*.hs',
+      '../../examples/**/*.hsplus',
+      // Typed .hsplus checks load @holoscript/wasm/node through a specifier
+      // joined at runtime, so the file tracer never sees the package. Copy
+      // the exports map, the node glue, and the wasm binary into standalone.
+      // Paths are relative to this config; outputFileTracingRoot is the repo.
+      '../../packages/compiler-wasm/package.json',
+      '../../packages/compiler-wasm/pkg-node/**/*',
+      '../../node_modules/@holoscript/wasm/package.json',
+      '../../node_modules/@holoscript/wasm/pkg-node/**/*',
+    ],
   },
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx', 'holo'],
   serverExternalPackages: [
@@ -216,6 +228,12 @@ const nextConfig = {
     // the CommonJS `nodejs/` target at runtime, which loads the wasm via fs.readFileSync(__dirname)
     // from node_modules where it sits beside the JS (and outputFileTracing copies it standalone).
     'loro-crdt',
+    // @holoscript/wasm is the same wasm-bindgen shape: the node glue loads
+    // holoscript_wasm_bg.wasm with readFileSync(__dirname). Bundling that glue
+    // drops the binary. The core parser builds the specifier at runtime, so
+    // this entry plus outputFileTracingIncludes above is what puts pkg-node
+    // in the standalone tree.
+    '@holoscript/wasm',
     'tree-sitter',
     'tree-sitter-javascript',
     'tree-sitter-typescript',

@@ -1,4 +1,5 @@
 import type { ToolCall } from './ollama-chat.js';
+import { mintToolCallId } from './tool-call-id.js';
 
 /**
  * Text-based tool-call fallback parser.
@@ -43,9 +44,10 @@ export function extractTextToolCalls(content: string): ToolCall[] {
   }
 
   const calls: ToolCall[] = [];
+  const seen = new Set<string>();
   for (const candidate of candidates) {
     for (const obj of asArray(candidate)) {
-      const call = toToolCall(obj, calls.length);
+      const call = toToolCall(obj, seen);
       if (call) calls.push(call);
     }
   }
@@ -69,9 +71,14 @@ function asArray(value: unknown): unknown[] {
 /**
  * Normalize one parsed object to a ToolCall, unwrapping the common envelopes
  * models use: `{tool_call: {...}}`, `{function: {...}}`, or the call inline.
- * Returns null when the object isn't a recognizable tool call.
+ * Returns null when the object isn't a recognizable tool call. A call without
+ * an id gets a minted one — never a per-message position, which repeated every
+ * turn and let a later tool result answer to an earlier call. A model-supplied
+ * id is kept once per message (`seen`): models do repeat "call_1", and two
+ * results answering to one id is the same wrong attribution, so the duplicate
+ * gets a minted id instead.
  */
-function toToolCall(value: unknown, index: number): ToolCall | null {
+function toToolCall(value: unknown, seen: Set<string>): ToolCall | null {
   if (typeof value !== 'object' || value === null) return null;
   const obj = value as Record<string, unknown>;
 
@@ -94,10 +101,10 @@ function toToolCall(value: unknown, index: number): ToolCall | null {
       ? (rawArgs as Record<string, unknown> | string)
       : {};
 
-  return {
-    id: typeof obj.id === 'string' ? obj.id : `fallback-${index}`,
-    function: { name, arguments: args },
-  };
+  const supplied = typeof obj.id === 'string' && obj.id && !seen.has(obj.id) ? obj.id : undefined;
+  const id = supplied ?? mintToolCallId();
+  seen.add(id);
+  return { id, function: { name, arguments: args } };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

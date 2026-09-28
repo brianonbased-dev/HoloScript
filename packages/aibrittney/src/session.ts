@@ -3,7 +3,8 @@ export interface ChatMessage {
   content: string;
   /** Present on assistant turns that requested tool calls. */
   tool_calls?: Array<{
-    id?: string;
+    /** Always present — the server's id, or one minted where the call was created (tool-call-id.ts). */
+    id: string;
     function: { name: string; arguments: Record<string, unknown> | string };
   }>;
   /** Set on role=tool messages so the model can match the result to its call. */

@@ -11,7 +11,7 @@
  * @see research/2026-05-21_apl_wit_trait-evaluation_gap_report.md Gap #4
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   SovereignGeneratorAdapter,
   type TraitSuggestionResult,
@@ -199,6 +199,72 @@ describe('SovereignGeneratorAdapter', () => {
       // covers the full flow. Here we verify the adapter constructs correctly.
       expect(adapter).toBeDefined();
       expect(adapter.id).toBe('sovereign-generator');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Hosted local endpoint (2026-09-24 native-inference audit follow-up)
+  // ---------------------------------------------------------------------------
+
+  describe('a hosted Ollama is never the sovereign local step', () => {
+    const traitsReply = () => ({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [
+            { message: { content: JSON.stringify({ traits: ['@grabbable'], confidence: 0.9 }) } },
+          ],
+        }),
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+      vi.restoreAllMocks();
+    });
+
+    it('sends nothing to ollama.com and falls back, for traits, objects and scenes', async () => {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '');
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fetchMock = vi.fn().mockResolvedValue(traitsReply());
+      vi.stubGlobal('fetch', fetchMock);
+      const adapter = new SovereignGeneratorAdapter({
+        localEndpoint: 'https://ollama.com',
+        offlineOnly: true,
+      });
+      expect((await adapter.suggestTraits('a ball you can grab')).metadata.source).toBe(
+        'keyword-fallback'
+      );
+      expect((await adapter.generateObject('a red cube')).metadata.source).toBe('keyword-fallback');
+      expect((await adapter.generateScene('a small room')).metadata.source).toBe(
+        'keyword-fallback'
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('still uses an owned endpoint, labeled sovereign-local', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(traitsReply());
+      vi.stubGlobal('fetch', fetchMock);
+      const adapter = new SovereignGeneratorAdapter({
+        localEndpoint: 'http://127.0.0.1:11434',
+        offlineOnly: true,
+      });
+      const result = await adapter.suggestTraits('a ball you can grab');
+      expect(result.metadata.source).toBe('sovereign-local');
+      expect(String(fetchMock.mock.calls[0][0])).toContain('127.0.0.1:11434');
+    });
+
+    it("with HOLO_ALLOW_HOSTED_OLLAMA=1 it runs, labeled 'hosted-ollama', not sovereign-local", async () => {
+      vi.stubEnv('HOLO_ALLOW_HOSTED_OLLAMA', '1');
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(traitsReply()));
+      const adapter = new SovereignGeneratorAdapter({
+        localEndpoint: 'https://ollama.com',
+        offlineOnly: true,
+      });
+      expect((await adapter.suggestTraits('a ball you can grab')).metadata.source).toBe(
+        'hosted-ollama'
+      );
     });
   });
 

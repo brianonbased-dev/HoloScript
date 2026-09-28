@@ -6,8 +6,8 @@
  * are resolved at module load, so the env must be stubbed BEFORE importing
  * tools.ts — hence the dynamic import below.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { mkdtempSync } from 'node:fs';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, delimiter } from 'node:path';
 
@@ -55,5 +55,33 @@ describe('sandbox roots — env override', () => {
     });
     expect(res.is_error).toBe(true);
     expect(String(res.content)).toContain('write denied');
+  });
+});
+
+describe('vision_analyze — local image bytes never go to a hosted Ollama', () => {
+  it.each([
+    ['a cloud-tagged model from the tool call', 'http://127.0.0.1:11434', 'qwen3-vl:235b-cloud'],
+    ['a hosted base URL', 'https://ollama.com', 'fara:7b'],
+  ])('refuses %s before reading or sending the image', async (_label, baseUrl, model) => {
+    const image = join(localRoot, 'frame.png');
+    writeFileSync(image, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL = baseUrl;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const res = await runTool({
+        type: 'tool_use',
+        id: 'v1',
+        name: 'vision_analyze',
+        input: { image_path: image, model },
+      });
+      expect(res.is_error).toBe(true);
+      expect(String(res.content)).toContain('REFUSING hosted Ollama');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL;
+      fetchSpy.mockRestore();
+      warn.mockRestore();
+    }
   });
 });

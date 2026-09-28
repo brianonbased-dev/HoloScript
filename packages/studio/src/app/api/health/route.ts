@@ -4,12 +4,19 @@ import { NextResponse } from 'next/server';
 import { getDb } from '../../../db/client';
 import { holomeshBoardTasks } from '../../../db/schema';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
+import { checkHostedOllama } from '@holoscript/llm-provider';
 import { sql } from 'drizzle-orm';
 
 /**
  * Cloud-first AI detection. Ollama is an optional local fallback — never required.
+ * A hosted OLLAMA_URL (ollama.com) is reported as not connected, because the generate
+ * routes refuse it (unless HOLO_ALLOW_HOSTED_OLLAMA=1).
  */
-async function detectAIProvider(): Promise<{ provider: string; connected: boolean }> {
+async function detectAIProvider(): Promise<{
+  provider: string;
+  connected: boolean;
+  refused?: string;
+}> {
   if (await resolveStudioServiceSecret('OPENROUTER_API_KEY')) {
     return { provider: 'openrouter', connected: true };
   }
@@ -19,7 +26,13 @@ async function detectAIProvider(): Promise<{ provider: string; connected: boolea
   if (await resolveStudioServiceSecret('OPENAI_API_KEY')) {
     return { provider: 'openai', connected: true };
   }
-  if (process.env.OLLAMA_URL) return { provider: 'ollama', connected: true };
+  if (process.env.OLLAMA_URL) {
+    const hosted = checkHostedOllama(process.env.OLLAMA_URL, { caller: 'studio /api/health' });
+    if (hosted.refused) {
+      return { provider: 'ollama', connected: false, refused: hosted.refused.reason };
+    }
+    return { provider: 'ollama', connected: true };
+  }
   return { provider: 'none', connected: false };
 }
 

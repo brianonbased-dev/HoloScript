@@ -44,7 +44,7 @@ function score_experiment_run(
     return 0
   }
 
-  let evidence_xp = 20
+  var evidence_xp = 20
   if (classification == 2) {
     evidence_xp = 30
   }
@@ -59,7 +59,7 @@ function score_experiment_run(
     evidence_xp = evidence_xp + 5
   }
 
-  let meter_bonus = independent_meters * 3
+  var meter_bonus = independent_meters * 3
   if (meter_bonus > 6) {
     meter_bonus = 6
   }
@@ -89,7 +89,7 @@ function experiment_rank(
     return -1
   }
 
-  let rank = 0
+  var rank = 0
 
   if (
     total_evidence_xp >= 20 &&
