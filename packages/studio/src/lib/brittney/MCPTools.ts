@@ -185,8 +185,10 @@ const holoCompile: StudioToolDefinition = {
         },
         target: {
           type: 'string',
+          // Every example here must be a target compile_holoscript accepts;
+          // MCPToolNames.test.ts checks them against the server's list.
           description:
-            'Compilation target, e.g. "r3f", "threejs", "unity", "unreal", "godot", "visionos", "gltf", "urdf", "webgpu", "node-service"',
+            'Compilation target, e.g. "r3f" (web, Three.js), "unity", "unreal", "godot", "visionos", "webgpu", "urdf", "usdz", "node-service"',
         },
       },
       required: ['code', 'target'],
@@ -320,21 +322,29 @@ const absorbQueryGraph: StudioToolDefinition = {
   },
 };
 
-const absorbCodeHealth: StudioToolDefinition = {
+const holoCodeHealth: StudioToolDefinition = {
   type: 'function',
   function: {
-    name: 'absorb_code_health',
+    // Was absorb_code_health: it sent a projectId to the absorb server, which has
+    // no health tool, so it failed on every call (found 2026-09-28 by
+    // MCPToolNames.test.ts). The HoloScript server's holoscript_code_health scores
+    // a piece of code instead, which is what Brittney can use on her own scenes.
+    name: 'holo_code_health',
     description:
-      'Get a code health score (0-10) for an absorbed codebase. Evaluates complexity, test coverage, type safety, documentation, and maintainability. Use to assess code quality.',
+      'Score the health of a piece of HoloScript (.hs, .hsplus, .holo) or TypeScript code: 0-10 with a grade (A+ to F), across complexity, trait coherence, documentation, test presence and issue density. Use it on a scene you wrote before handing it over.',
     parameters: {
       type: 'object',
       properties: {
-        projectId: {
+        code: {
           type: 'string',
-          description: 'Project ID to check health for',
+          description: 'The source code to score',
+        },
+        filePath: {
+          type: 'string',
+          description: 'Optional file name, which helps detect the format',
         },
       },
-      required: ['projectId'],
+      required: ['code'],
     },
   },
 };
@@ -631,7 +641,7 @@ export const MCP_TOOLS: StudioToolDefinition[] = [
   // Absorb MCP
   absorbRun,
   absorbQueryGraph,
-  absorbCodeHealth,
+  holoCodeHealth,
   absorbSuggest,
   // Ecosystem self-knowledge
   listPackages,

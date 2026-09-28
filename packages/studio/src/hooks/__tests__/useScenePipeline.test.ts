@@ -16,7 +16,7 @@ vi.mock('@holoscript/core', () => ({
   HoloCompositionParser: vi.fn().mockImplementation(function () {
     return { parse: mockParse };
   }),
-  R3FCompiler: vi.fn().mockImplementation(function () {
+  SceneIRCompiler: vi.fn().mockImplementation(function () {
     return { compile: mockCompile, compileComposition: mockCompileComposition };
   }),
 }));

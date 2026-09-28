@@ -18,7 +18,7 @@
  *
  * Nothing here reaches the network: the middleware decides from the request.
  */
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,6 +28,7 @@ import { encode } from 'next-auth/jwt';
 import { config, proxy } from '../proxy';
 import {
   CALLER_CREDENTIAL_API_PATHS,
+  callerCredentialRuleFor,
   PUBLIC_API_PATHS,
   classifyApiPath,
   type ApiPathRule,
@@ -640,5 +641,51 @@ describe('a signed-in visitor is admitted — the check nothing else in this fil
     });
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('a refusal names something this path accepts', () => {
+  // Until 2026-09-28 every refusal offered "x-mcp-api-key". A session-only path
+  // accepts no key at all, and /api/brittney reads only its own bk_ keys, so a
+  // caller who followed the advice was refused again.
+  async function refusalText(path: string, method: string): Promise<string> {
+    const response = await anonymous(path, method);
+    expect(response.status).toBe(401);
+    return ((await response.json()) as { error: string }).error;
+  }
+
+  it('offers no key where only a session works', async () => {
+    const text = await refusalText('/api/zzz-not-a-route-9182', 'GET');
+
+    expect(text).toMatch(/signed in/);
+    expect(text).not.toMatch(/key/i);
+  });
+
+  it('names the Brittney key on the Brittney routes', async () => {
+    for (const path of ['/api/brittney', '/api/brittney/conversations']) {
+      const text = await refusalText(path, 'POST');
+
+      expect(text, path).toContain('Authorization: Bearer bk_');
+      expect(text, path).not.toContain('x-mcp-api-key');
+    }
+  });
+
+  it('still offers a mesh key on the routes that take one', async () => {
+    expect(await refusalText('/api/knowledge/query', 'POST')).toContain('x-mcp-api-key');
+  });
+
+  it('every route that reads Brittney keys sits on a rule that names them', () => {
+    const offenders: string[] = [];
+    for (const path of routePaths()) {
+      const file = join(API_DIR, ...path.split('/').slice(2), 'route.ts');
+      if (!readFileSync(file, 'utf8').includes('requireAuthOrApiKey')) continue;
+
+      const rule = ['GET', 'POST', 'PATCH', 'DELETE']
+        .map((method) => callerCredentialRuleFor(concrete(path), method))
+        .find(Boolean);
+      if (!rule?.credential?.includes('bk_')) offenders.push(path);
+    }
+
+    expect(offenders).toEqual([]);
   });
 });

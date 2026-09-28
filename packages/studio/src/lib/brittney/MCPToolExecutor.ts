@@ -36,11 +36,14 @@ interface OrchestratorRouteConfig {
   buildQuery?: (args: Record<string, unknown>) => Record<string, string>;
 }
 
-interface DirectMCPConfig {
+export interface DirectMCPConfig {
   /** Base URL of the MCP server */
   baseUrl: string;
-  /** JSON-RPC method name on the MCP server */
-  method: string;
+  /**
+   * The tool name registered on the MCP server, or a function choosing one from
+   * the call's arguments (holo_parse picks the parser by format).
+   */
+  method: string | ((args: Record<string, unknown>) => string);
   /** Transform Brittney tool args → MCP tool args */
   buildArgs: (args: Record<string, unknown>) => Record<string, unknown>;
 }
@@ -61,11 +64,11 @@ function getOrchestratorUrl(): string {
   );
 }
 
-function getHoloScriptMCPUrl(): string {
+export function getHoloScriptMCPUrl(): string {
   return process.env['HOLOSCRIPT_MCP'] ?? 'https://mcp.holoscript.net';
 }
 
-function getAbsorbMCPUrl(): string {
+export function getAbsorbMCPUrl(): string {
   return process.env['ABSORB_MCP'] ?? 'https://absorb.holoscript.net';
 }
 
@@ -162,41 +165,69 @@ const ORCHESTRATOR_ROUTES: Record<string, OrchestratorRouteConfig> = {
 
 // ─── Direct MCP tool registry ───────────────────────────────────────────────
 
-function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
+/** The registered MCP tool name a direct config calls for these arguments. */
+export function directMCPMethod(config: DirectMCPConfig, args: Record<string, unknown>): string {
+  return typeof config.method === 'function' ? config.method(args) : config.method;
+}
+
+/** True for a .holo composition, which only parse_holo reads. */
+function isHoloComposition(code: unknown): boolean {
+  return typeof code === 'string' && code.trimStart().startsWith('composition');
+}
+
+/**
+ * Brittney has long asked for "threejs"; the compiler's name for that output is
+ * "r3f" (React Three Fiber, i.e. Three.js). Any other target passes through,
+ * and an unknown one gets the server's own list of targets back.
+ */
+function compileTargetAlias(target: unknown): unknown {
+  return target === 'threejs' || target === 'three' ? 'r3f' : target;
+}
+
+export function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
   const holoUrl = getHoloScriptMCPUrl();
   const absorbUrl = getAbsorbMCPUrl();
 
   return {
-    // HoloScript MCP
+    // HoloScript MCP. Each `method` is the name the mcp-server REGISTERS: it looks
+    // names up exactly and answers "Unknown tool" otherwise. Five of these once
+    // called names that never existed (holo_suggest_traits, holo_list_traits,
+    // holo_explain_trait, holo_generate_scene, compile_to_target), so they failed on
+    // every call; MCPToolNames.test.ts now checks every name against the server.
     holo_parse: {
       baseUrl: holoUrl,
-      method: 'parse_hs',
+      // parse_hs reads .hs/.hsplus only; a .holo composition needs parse_holo.
+      method: (args) => (isHoloComposition(args['code']) ? 'parse_holo' : 'parse_hs'),
       buildArgs: (args) => ({ code: args['code'] }),
     },
     holo_compile: {
       baseUrl: holoUrl,
-      method: 'compile_to_target',
-      buildArgs: (args) => ({ code: args['code'], target: args['target'] }),
+      method: 'compile_holoscript',
+      buildArgs: (args) => ({
+        code: args['code'],
+        target: compileTargetAlias(args['target']),
+      }),
     },
     holo_suggest_traits: {
       baseUrl: holoUrl,
-      method: 'holo_suggest_traits',
+      method: 'suggest_traits',
       buildArgs: (args) => ({ description: args['description'] }),
     },
     holo_generate_scene: {
       baseUrl: holoUrl,
-      method: 'holo_generate_scene',
+      method: 'generate_scene',
       buildArgs: (args) => ({ description: args['description'] }),
     },
     holo_list_traits: {
       baseUrl: holoUrl,
-      method: 'holo_list_traits',
+      method: 'list_traits',
       buildArgs: (args) => (args['category'] ? { category: args['category'] } : {}),
     },
     holo_explain_trait: {
       baseUrl: holoUrl,
-      method: 'holo_explain_trait',
-      buildArgs: (args) => ({ trait_name: args['trait_name'] }),
+      method: 'explain_trait',
+      // The server names the argument `trait`; Brittney's tool calls it trait_name.
+      buildArgs: (args) => ({ trait: args['trait_name'] ?? args['trait'] }),
     },
     // HoloScript-as-IDE authoring (GOLD->Brittney follow-on, (A)-slim, verified live 2026-06-09).
     hs_diagnostics: {
@@ -332,10 +363,13 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
         ...(args['projectId'] ? { projectId: args['projectId'] } : {}),
       }),
     },
-    absorb_code_health: {
-      baseUrl: absorbUrl,
+    holo_code_health: {
+      baseUrl: holoUrl,
       method: 'holoscript_code_health',
-      buildArgs: (args) => ({ projectId: args['projectId'] }),
+      buildArgs: (args) => ({
+        code: args['code'],
+        ...(args['filePath'] ? { filePath: args['filePath'] } : {}),
+      }),
     },
     absorb_suggest: {
       baseUrl: absorbUrl,
@@ -450,7 +484,7 @@ async function executeDirectMCPTool(
     id: nextRpcId(),
     method: 'tools/call',
     params: {
-      name: config.method,
+      name: directMCPMethod(config, args),
       arguments: config.buildArgs(args),
     },
   };

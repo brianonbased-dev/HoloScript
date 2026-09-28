@@ -47,6 +47,7 @@ import {
   type SimContractCheckResult,
 } from '@/lib/brittney/SimContractGate';
 import { recordComputeTrace } from '@/lib/brittney/computeTraceRecorder';
+import { checkAppliedCode, repairNotice, repairRequest } from '@/lib/brittney/appliedCodeCheck';
 import {
   LOTUS_TOOLS,
   LOTUS_TOOL_NAMES,
@@ -728,6 +729,15 @@ export async function POST(request: NextRequest) {
               input: Record<string, unknown>;
               check: SimContractCheckResult;
             }> = [];
+            // apply_code whose HoloScript the Studio cannot draw: not sent to the
+            // browser. The errors go back to the model in the same turn, the
+            // same way a contract rejection does, so she repairs her own code.
+            const unrenderableCode: Array<{
+              id: string;
+              name: string;
+              input: Record<string, unknown>;
+              errors: string[];
+            }> = [];
             // CAEL per-round accumulators.
             let roundText = '';
             const roundToolCalls: Array<{ name: string; input: unknown; result?: unknown }> = [];
@@ -925,6 +935,31 @@ export async function POST(request: NextRequest) {
                         check,
                       });
                     }
+                  } else if (toolName === 'apply_code') {
+                    // Self-check: run her code through the viewport's own pipeline
+                    // before it reaches the editor (lib/brittney/appliedCodeCheck).
+                    const drawn = checkAppliedCode(parsedArgs);
+                    if (drawn.ok) {
+                      send({
+                        type: 'tool_call',
+                        payload: { name: toolName, arguments: parsedArgs },
+                      });
+                    } else {
+                      unrenderableCode.push({
+                        id: chunk.id,
+                        name: toolName,
+                        input: parsedArgs,
+                        errors: drawn.errors,
+                      });
+                      send({
+                        type: 'tool_result',
+                        payload: {
+                          name: toolName,
+                          success: false,
+                          error: repairNotice(drawn.errors),
+                        },
+                      });
+                    }
                   } else {
                     // BRITTNEY read-only tool or SIMULATION_TOOLS — pass through.
                     send({
@@ -964,6 +999,7 @@ export async function POST(request: NextRequest) {
               stopReason !== 'tool_use' &&
               pendingToolCalls.length === 0 &&
               rejectedMutations.length === 0 &&
+              unrenderableCode.length === 0 &&
               !textRescueUsed &&
               round < MAX_TOOL_ROUNDS
             ) {
@@ -1005,7 +1041,9 @@ export async function POST(request: NextRequest) {
             // run another round.
             if (
               stopReason === 'tool_use' &&
-              (pendingToolCalls.length > 0 || rejectedMutations.length > 0)
+              (pendingToolCalls.length > 0 ||
+                rejectedMutations.length > 0 ||
+                unrenderableCode.length > 0)
             ) {
               // Execute server-side tools in parallel.
               const results =
@@ -1121,6 +1159,12 @@ export async function POST(request: NextRequest) {
                   };
                 }
               }
+              for (const uc of unrenderableCode) {
+                const recorded = allToolCalls.find((t) => t.id === uc.id);
+                if (recorded) {
+                  recorded.result = { success: false, error: repairRequest(uc.errors) };
+                }
+              }
 
               // Build the assistant message with tool_use blocks + tool results
               // in LLMMessage format (provider-agnostic).
@@ -1138,6 +1182,12 @@ export async function POST(request: NextRequest) {
                   name: rm.name,
                   input: rm.input,
                 })),
+                ...unrenderableCode.map((uc) => ({
+                  type: 'tool_use' as const,
+                  id: uc.id,
+                  name: uc.name,
+                  input: uc.input,
+                })),
               ];
 
               const toolResultContent: ToolResultBlock[] = [
@@ -1152,6 +1202,12 @@ export async function POST(request: NextRequest) {
                   type: 'tool_result' as const,
                   tool_use_id: rm.id,
                   content: `SimulationContract grounding rejected this mutation: ${rm.check.reason ?? 'contract violation'} (contractId: ${rm.check.contractId})`,
+                  is_error: true as const,
+                })),
+                ...unrenderableCode.map((uc) => ({
+                  type: 'tool_result' as const,
+                  tool_use_id: uc.id,
+                  content: repairRequest(uc.errors),
                   is_error: true as const,
                 })),
               ];

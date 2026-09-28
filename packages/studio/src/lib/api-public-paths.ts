@@ -43,6 +43,13 @@ export interface ApiPathRule {
   except?: readonly string[];
   /** Why this is reachable this way. Required — an entry with no reason is a guess. */
   why: string;
+  /**
+   * Caller-credential rules only: what to send instead of signing in, exactly
+   * as the edge's refusal names it. Omitted = a HoloMesh key as
+   * `x-mcp-api-key`. A route that accepts only one kind of key must say which,
+   * or its refusal sends callers to a header the route ignores.
+   */
+  credential?: string;
 }
 
 /**
@@ -424,6 +431,10 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/brittney/**',
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    // requireAuthOrApiKey reads only `Authorization: Bearer bk_…`. An
+    // `x-mcp-api-key` clears this door and is then refused by the route.
+    credential:
+      'your Brittney API key as "Authorization: Bearer bk_<your key>" (make one in Studio under Settings, API Keys)',
     why: "Verb audit 2026-09-16: these four are exactly what the tree exports — POST (route.ts), GET+POST (conversations), POST (conversations/[id]/messages), GET+PATCH+DELETE (conversations/[id]). The write verbs are admissible because the caller is REALLY authenticated here, not merely header-bearing: requireAuthOrApiKey validates the bk_ key against the database and builds the session from the owning user row, so a write lands as that customer. The keys Studio SELLS for exactly this. components/settings/BrittneyAPIKeysPanel.tsx:119-126 tells the customer 'no browser session required' and to send `Authorization: Bearer bk_…`, and the routes honour it: requireAuthOrApiKey (lib/api-auth.ts:138) validates the key against the database and builds a session from the owning user row. Without this entry the edge refused the key before the route that understands it ever ran, so the advertised contract answered 401 — the worst lockout in this file, because our customers are agents. The bare path matters as much as the sub-paths: `**` covers `/api/brittney` itself (patternToRegExp), which is the endpoint the product's own client calls.",
   },
   {

@@ -107,12 +107,8 @@ import {
   type StudioPublishToolName,
 } from '@/core-ui/UXCommandPalette';
 import { runPaletteMcpToolRequest } from './paletteMcpTool';
-import { runStudioCommand } from '@/lib/studio/commandRegistry';
-import {
-  STUDIO_VIEW_IDS,
-  type StudioViewCommandId,
-  type StudioViewId,
-} from '@/lib/studio/viewRegistry';
+import { openArrivalView, runStudioCommand } from '@/lib/studio/commandRegistry';
+import { type StudioViewCommandId } from '@/lib/studio/viewRegistry';
 import { useCreateModeStore, type CreateMode } from '@/components/create/createModeStore';
 import { DescribeItFirstRunPanel } from '@/components/create/DescribeItFirstRunPanel';
 import {
@@ -1160,10 +1156,10 @@ export default function CreatePage() {
       setSplatWizardOpen(true);
     }
 
-    const viewParam = searchParams.get('view');
-    if (viewParam && STUDIO_VIEW_IDS.includes(viewParam as StudioViewId)) {
-      runViewCommand(`studio.view.${viewParam}.toggle` as StudioViewCommandId);
-    }
+    // ── Arrival panels — viewer-first (Brittney's dock closed), then the one
+    //    view a link names with ?view=<id>. "Chat with Brittney" on the home
+    //    page is ?view=chat, so it lands with her open.
+    openArrivalView(searchParams.get('view'));
 
     // ── 3. sessionStorage landing prompt ──────────────────────────────────
     // Written by the home page / onboarding flow before redirecting to /create.
@@ -1179,9 +1175,8 @@ export default function CreatePage() {
       // sessionStorage may be unavailable (SSR, private browsing limits) — silent
     }
 
-    // ── 4. Brittney is on the left rail in this layout; close the right-rail
-    //       instance if the store defaulted it open. ─────────────────────────
-    setChatOpen(false);
+    // ── 4. Brittney's dock was already set by openArrivalView above: closing
+    //       it again here is what used to undo ?view=chat. ─────────────────
 
     // ── 5. Part mode — auto-open parametric sliders + printability report. ──
     const resolvedMode =

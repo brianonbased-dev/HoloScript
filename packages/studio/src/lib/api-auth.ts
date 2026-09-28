@@ -220,7 +220,20 @@ export async function requireAuthOrApiKey(request: Request) {
       },
     };
   }
-  return requireAuth(request);
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) {
+    // Name the one key this guard reads. A caller who sent an x-mcp-api-key or
+    // a non-bk_ bearer token got through the edge (proxy.ts accepts any key
+    // there) and then only heard "Authentication required".
+    return NextResponse.json(
+      {
+        error:
+          'Authentication required: sign in to HoloScript Studio, or send your Brittney API key as "Authorization: Bearer bk_<your key>".',
+      },
+      { status: auth.status }
+    );
+  }
+  return auth;
 }
 
 /**

@@ -216,6 +216,49 @@ describe('our own links go somewhere', () => {
 
     expect(broken).toEqual([]);
   });
+
+  // "Resolves" is not "goes somewhere". Until 2026-09-28 the front page's "Chat
+  // with Brittney" pointed at /start, a real page whose whole body is
+  // redirect('/'): the check above passed while the link took a visitor back to
+  // the page they clicked it on.
+  it('never sends a visitor back to the front page it came from', () => {
+    const frontPage = readFileSync(join(appDir, 'page.tsx'), 'utf8');
+    const hrefs = [...new Set([...frontPage.matchAll(/href="(\/[^"#?]*)"/g)].map((m) => m[1]))];
+
+    const loops = hrefs.filter((href) => {
+      if (href === '/') return false;
+      const wanted = href.split('/').filter(Boolean);
+      const route = pageRoutes.find((r) => !isRootLevelDynamic(r) && routeMatches(r, wanted));
+      if (!route) return false;
+      const source = readFileSync(join(studioRoot, route.file), 'utf8');
+      return /redirect\(\s*['"]\/['"]\s*\)/.test(source);
+    });
+
+    expect(loops).toEqual([]);
+  });
+
+  it('opens Brittney’s chat from "Chat with Brittney"', () => {
+    const frontPage = readFileSync(join(appDir, 'page.tsx'), 'utf8');
+    const link = /href="([^"]+)"[^>]*>\s*Chat with Brittney/.exec(frontPage);
+
+    // /create lands viewer-first with her dock closed; ?view=chat is what opens
+    // it on arrival (openArrivalView, tested in lib/studio/__tests__).
+    expect(link?.[1]).toBe('/create?view=chat');
+  });
+
+  it('and the Studio does not close her again once she is open', () => {
+    const createPage = readFileSync(join(appDir, 'create', 'page.tsx'), 'utf8');
+
+    // What a link opens is decided in one place...
+    expect(createPage).toContain("openArrivalView(searchParams.get('view'))");
+    // ...and the only other way the page closes her dock is the person's own
+    // click on "Collapse Brittney". A mount-time setChatOpen(false) after the
+    // arrival is exactly what used to undo ?view=chat.
+    const closes = createPage.match(/setChatOpen\(false\)/g) ?? [];
+    const clicks = createPage.match(/onClick=\{\(\) => setChatOpen\(false\)\}/g) ?? [];
+    expect(clicks.length).toBeGreaterThan(0);
+    expect(closes.length).toBe(clicks.length);
+  });
 });
 
 describe('crawlers are told the truth', () => {

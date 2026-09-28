@@ -101,6 +101,13 @@ export default defineConfig({
         find: '@holoscript/core/traits/webcam-gaze',
         replacement: path.resolve(__dirname, '../core/src/traits/WebcamGazeTrait.ts'),
       },
+      // Without this, the '@holoscript/core/traits' prefix below rewrites the
+      // subpath to traits/index.ts/botanical-lotus, and every test that renders
+      // CompiledLotusMeshNode fails to load.
+      {
+        find: '@holoscript/core/traits/botanical-lotus',
+        replacement: path.resolve(__dirname, '../core/src/traits/BotanicalLotusTrait.ts'),
+      },
       {
         find: '@holoscript/core/traits',
         replacement: path.resolve(__dirname, '../core/src/traits/index.ts'),

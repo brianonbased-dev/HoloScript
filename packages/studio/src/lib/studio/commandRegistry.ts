@@ -2,6 +2,7 @@
 
 import {
   getStudioView,
+  STUDIO_VIEW_IDS,
   STUDIO_VIEW_REGISTRY,
   type StudioViewCommandId,
   type StudioViewId,
@@ -59,4 +60,30 @@ export function runStudioCommand(
   if (typeof toggle !== 'function') return false;
   toggle();
   return true;
+}
+
+/**
+ * The panels a person sees on arriving at /create from a link.
+ *
+ * The Studio opens viewer-first, with Brittney's chat dock closed. A link can
+ * name one view to open with `?view=<id>`; the home page's "Chat with Brittney"
+ * is `/create?view=chat`. Opening is idempotent: a view that is already open
+ * stays open, where a toggle would have closed it.
+ *
+ * Until 2026-09-28 the page toggled the named view and then closed the chat
+ * dock, so `?view=chat` always arrived with Brittney closed.
+ *
+ * Returns whether the named view is open afterwards (false when none was named
+ * or the name is not a Studio view).
+ */
+export function openArrivalView(viewParam: string | null): boolean {
+  usePanelVisibilityStore.getState().setChatOpen(false);
+  if (!viewParam || !STUDIO_VIEW_IDS.includes(viewParam as StudioViewId)) return false;
+
+  const view = getStudioView(viewParam as StudioViewId);
+  const openField = `${view.id}Open` as keyof PanelVisibilityState;
+  if (usePanelVisibilityStore.getState()[openField] !== true) {
+    runStudioCommand(view.activationCommand);
+  }
+  return usePanelVisibilityStore.getState()[openField] === true;
 }

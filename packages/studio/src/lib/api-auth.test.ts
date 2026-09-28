@@ -383,4 +383,23 @@ describe('requireAuthOrApiKey', () => {
     expect(auth.user.isFounder).toBe(true);
     expect(validateApiKeyStub).not.toHaveBeenCalled();
   });
+
+  // The edge lets any key through to /api/brittney; this guard reads only bk_
+  // keys. A caller holding the wrong kind must be told which kind, not just
+  // "Authentication required".
+  it.each([
+    ['a HoloMesh key', { 'x-mcp-api-key': 'mesh-key' }],
+    ['a bearer token that is not a Brittney key', { authorization: 'Bearer not-a-bk-key' }],
+  ])('tells a caller holding %s which key it reads', async (_label, headers) => {
+    const auth = await requireAuthOrApiKey(
+      new Request('https://studio.test/api/brittney', { method: 'POST', headers })
+    );
+
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(401);
+    const body = (await (auth as NextResponse).json()) as { error: string };
+    expect(body.error).toMatch(/^Authentication required/);
+    expect(body.error).toContain('Authorization: Bearer bk_');
+    expect(validateApiKeyStub).not.toHaveBeenCalled();
+  });
 });
