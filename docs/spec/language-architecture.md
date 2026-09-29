@@ -204,6 +204,15 @@ the 2,303-file `.hsplus` corpus (TS **92.49%**; newline-drift 0/0; baseline
 `scripts/lang-audit/shadow-compare-results-2026-07-17.json`). The remaining misses are
 _conformance bugs against the growing authority_, not a missing spec.
 
+> **Correction, 2026-09-28 (measured).** That corpus is mostly facade twins: 2,232 `.hsplus`
+> files that only describe TypeScript files, added on 2026-06-25 (facade census in
+> [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md)). On the 202 hand-written `.hsplus`
+> files, the Rust authority accepts 9 and the TypeScript parser 130; on the 586 `.holo`
+> compositions and other non-card files, 30 and 511. The direction of this decision stands; its
+> present coverage is about 1 in 20 real `.hsplus` files, not 98%. Grammar authority (①) and
+> meaning (②, HoloMeaning) remain separate decisions: a checker attached to the grammar checks
+> source, and HoloMeaning stays the one definition of meaning (§3).
+
 ---
 
 ## 6. The anti-drift gate — `check:language-strata` (the consumer that makes this real)
