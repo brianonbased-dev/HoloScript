@@ -35,7 +35,11 @@ import {
   type CompilePlatformTarget,
 } from './PlatformConditionalCompilerMixin';
 import { getRBAC, ResourceType } from './identity/AgentRBAC';
-import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
+import {
+  UnauthorizedCompilerAccessError,
+  escapeStringValue,
+  flattenCompositionScenes,
+} from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
 import {
@@ -2823,6 +2827,22 @@ export class SceneIRCompiler {
     outputPath?: string
   ): R3FNode {
     this.validateCompilerAccess(agentToken, outputPath);
+
+    // What a `scene "X" { ... }` block holds sits on composition.scenes, which
+    // nothing below reads. Studio's viewport, its Preview tab and the share viewer
+    // all build their tree here, so a composition whose objects sit in a scene
+    // rendered empty. Flatten first, so each scene's objects (and a scene's
+    // environment when the composition has none) go through the same path as
+    // top-level ones, including the @platform() filter below. Without scenes this
+    // is the input itself, so the tree is exactly as before.
+    //
+    // No identifierOf: an object's node id here is its own name, and top-level
+    // objects that share a name are already all rendered, so scene objects are
+    // treated the same way and none is left out. A scene environment that is not
+    // applied (one world has one environment) is not reported: this compiler
+    // returns a tree and has no warnings channel, and this call does not invent
+    // one. The list is on the result's `unappliedEnvironments` for when it does.
+    composition = flattenCompositionScenes(composition).composition;
 
     // Apply @platform() conditional filtering (second compiler slice for
     // Adaptive Platform Layers seed 75 + @platform() RFC implementation).

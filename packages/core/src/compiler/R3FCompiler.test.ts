@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { HoloComposition, HoloWorld } from '../parser/HoloCompositionTypes';
+import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 import { SceneIRCompiler as R3FCompiler, type R3FNode } from './SceneIRCompiler';
 
 function minimalComposition(overrides: Partial<HoloComposition>): HoloComposition {
@@ -248,5 +249,175 @@ describe('R3FCompiler.compileComposition — world blocks', () => {
     expect(a).toBeDefined();
     expect(b).toBeDefined();
     expect(a).toEqual(b);
+  });
+});
+
+/** Parse .holo source the way Studio's useScenePipeline does; it must read without an error. */
+function parseClean(source: string): HoloComposition {
+  const result = new HoloCompositionParser().parse(source);
+  expect(result.errors).toEqual([]);
+  expect(result.ast).toBeDefined();
+  return result.ast as HoloComposition;
+}
+
+/** The whole tree as text. Plain JSON.stringify writes a Map as {}, so traits are spelled out. */
+function treeText(node: R3FNode): string {
+  return JSON.stringify(node, (_key, value: unknown) =>
+    value instanceof Map ? { map: [...value.entries()] } : value
+  );
+}
+
+describe('R3FCompiler.compileComposition — scene blocks', () => {
+  // The parser keeps what a `scene "X" { ... }` block holds on composition.scenes,
+  // not composition.objects. Studio's viewport builds its tree here, so a
+  // composition whose objects sat in a scene rendered empty.
+  const compiler = new R3FCompiler({});
+  const orb = `object "SceneOrb" {
+      geometry: "sphere"
+      position: [1.5, 2.5, -3.5]
+      color: "#ff0000"
+    }`;
+  const presets = (root: R3FNode) =>
+    (root.children ?? []).filter((n) => n.type === 'Environment').map((n) => n.props.preset);
+
+  it('renders an object written only inside a scene, like the same object at the top level', () => {
+    const inScene = parseClean(`composition "Scenes" {\n  scene "Main" {\n    ${orb}\n  }\n}`);
+    const atTop = parseClean(`composition "Scenes" {\n  ${orb}\n}`);
+    expect(inScene.objects).toEqual([]);
+
+    const root = compiler.compileComposition(inScene);
+    const node = root.children?.find((n) => n.id === 'SceneOrb');
+    expect(node?.type).toBe('mesh');
+    expect(node?.props.hsType).toBe('sphere');
+    expect(node?.props.position).toEqual([1.5, 2.5, -3.5]);
+    expect(treeText(root)).toBe(treeText(compiler.compileComposition(atTop)));
+  });
+
+  it("renders top-level objects first, then each scene's objects in scene order", () => {
+    const root = compiler.compileComposition(
+      parseClean(`composition "Scenes" {
+  scene "First" {
+    object "InFirst" { geometry: "cube" }
+  }
+  object "AtTop" { geometry: "cube" }
+  scene "Second" {
+    object "InSecond" { geometry: "torus" }
+  }
+}`)
+    );
+    const meshes = (root.children ?? []).filter((n) => n.type === 'mesh');
+    expect(meshes.map((n) => [n.id, n.props.hsType])).toEqual([
+      ['AtTop', 'cube'],
+      ['InFirst', 'cube'],
+      ['InSecond', 'torus'],
+    ]);
+  });
+
+  it('uses the environment written inside a scene when the composition has none', () => {
+    const root = compiler.compileComposition(
+      parseClean(`composition "Scenes" {
+  scene "Main" {
+    environment { preset: "scene_sky" }
+    ${orb}
+  }
+}`)
+    );
+    expect(presets(root)).toEqual(['scene_sky']);
+    expect(root.children?.some((n) => n.id === 'SceneOrb')).toBe(true);
+  });
+
+  it("keeps the composition's own environment over a scene's, even one written after it", () => {
+    const root = compiler.compileComposition(
+      parseClean(`composition "Scenes" {
+  scene "Night" {
+    environment { preset: "night_sky" }
+  }
+  environment { preset: "own_sky" }
+}`)
+    );
+    expect(presets(root)).toEqual(['own_sky']);
+  });
+
+  it('leaves no scene object out, even one whose name another object already uses', () => {
+    // Node ids are object names, and top-level objects that share a name are all
+    // rendered. Scene objects get the same treatment rather than one being dropped
+    // without a word: this compiler has no warnings channel to name it in.
+    const grounds = (source: string) =>
+      compiler
+        .compileComposition(parseClean(source))
+        .children?.filter((n) => n.id === 'Ground' && n.type === 'mesh').length;
+    expect(
+      grounds(`composition "C" {
+  object "Ground" { geometry: "plane" }
+  object "Ground" { geometry: "plane" }
+}`)
+    ).toBe(2);
+    expect(
+      grounds(`composition "C" {
+  scene "Day" {
+    object "Ground" { geometry: "plane" }
+  }
+  scene "Night" {
+    object "Ground" { geometry: "plane" }
+  }
+}`)
+    ).toBe(2);
+  });
+
+  it('leaves no scene object out when a light or a sound has its name, as at the top level', () => {
+    // A node id here is not an identifier in any language, so a light and a sound
+    // named "Ground" take nothing from a scene object "Ground" (unlike in Godot).
+    const parts = `light "Ground" point { intensity: 1 }
+  audio "Ground" { src: "wind.ogg" }`;
+    const ground = `object "Ground" { geometry: "plane" }`;
+    const inScene = compiler.compileComposition(
+      parseClean(`composition "C" {\n  ${parts}\n  scene "Day" {\n    ${ground}\n  }\n}`)
+    );
+    const atTop = compiler.compileComposition(
+      parseClean(`composition "C" {\n  ${parts}\n  ${ground}\n}`)
+    );
+    expect(
+      (inScene.children ?? []).filter((n) => n.type === 'mesh' && n.id === 'Ground')
+    ).toHaveLength(1);
+    expect(treeText(inScene)).toBe(treeText(atTop));
+  });
+
+  it('filters scene objects by @platform() the same way as top-level ones', () => {
+    const root = new R3FCompiler({ platformTarget: 'androidxr' }).compileComposition(
+      parseClean(`composition "Scenes" {
+  scene "Main" {
+    object "AndroidPanel" @platform(androidxr) { geometry: "cube" }
+    object "VisionPanel" @platform(visionos) { geometry: "cube" }
+    object "SharedPanel" { geometry: "cube" }
+  }
+}`)
+    );
+    expect((root.children ?? []).filter((n) => n.type === 'mesh').map((n) => n.id)).toEqual([
+      'AndroidPanel',
+      'SharedPanel',
+    ]);
+  });
+
+  it('compiles a composition without scene content exactly as before', () => {
+    const body = `  environment { preset: "own_sky" }
+  template "Crate" { geometry: "cube" }
+  object "Box" using "Crate" { position: [0, 1, 0] }
+  object "Ball" { geometry: "sphere" position: [2, 1, 0] }`;
+    const plain = compiler.compileComposition(parseClean(`composition "C" {\n${body}\n}`));
+    // The tree origin/main's compiler gives this composition, top level.
+    expect((plain.children ?? []).map((n) => [n.type, n.id ?? null])).toEqual([
+      ['ambientLight', null],
+      ['directionalLight', null],
+      ['Environment', null],
+      ['mesh', 'Box'],
+      ['mesh', 'Ball'],
+    ]);
+    // A scene that adds nothing (empty, or an environment the composition's own
+    // outranks) leaves the tree exactly as it is without it.
+    for (const scene of ['scene "Empty" {}', 'scene "Night" { environment { preset: "night" } }']) {
+      const withScene = parseClean(`composition "C" {\n${body}\n  ${scene}\n}`);
+      expect(withScene.scenes).toHaveLength(1);
+      expect(treeText(compiler.compileComposition(withScene))).toBe(treeText(plain));
+    }
   });
 });
