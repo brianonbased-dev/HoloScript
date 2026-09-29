@@ -564,8 +564,11 @@ export function flattenCompositionScenes(
  * its objects inside it, each keeping its own position relative to the group.
  * The groups follow the composition's own spatial groups, in source order, and
  * the blocks leave `domainBlocks`, so nothing reads them twice. A compiler calls
- * this before it compiles and then compiles the composition it returns, after
- * {@link flattenCompositionScenes} if it calls that too.
+ * this before it compiles and then compiles the composition it returns. If it
+ * also calls {@link flattenCompositionScenes}, it calls this first: flattening
+ * then counts the objects inside these groups among the names already in use, so
+ * with `identifierOf` a scene object that would clash with one of them is left
+ * out and listed, rather than built twice under one identifier.
  *
  * Not carried over, because a spatial group has no place for them: the block's
  * `@trait` names (each trait's settings stay among the properties) and its

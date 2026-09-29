@@ -741,5 +741,15 @@ describe('CompilerBase', () => {
       expect(read.domainBlocks).toEqual([block('custom', 'widget', 'W')]);
       expect(JSON.stringify(input)).toBe(before);
     });
+
+    it('read before scenes are flattened, its objects count as names already in use', () => {
+      const input = composition({
+        domainBlocks: [block('custom', 'group', 'Shelf', {}, ['Lamp'])],
+        scenes: [{ type: 'Scene', name: 'Night', objects: [obj('Lamp'), obj('Desk')] }],
+      });
+      const flat = compiler.exposeFlattenScenes(readGroupBlocksAsSpatialGroups(input), (n) => n);
+      expect(flat.composition.objects.map((o) => o.name)).toEqual(['Desk']);
+      expect(flat.leftOutObjects).toEqual([{ scene: 'Night', object: 'Lamp', takenName: 'Lamp' }]);
+    });
   });
 });

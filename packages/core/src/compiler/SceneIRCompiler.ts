@@ -2847,6 +2847,18 @@ export class SceneIRCompiler {
   ): R3FNode {
     this.validateCompilerAccess(agentToken, outputPath);
 
+    // A `group "X" { ... }` block sits on composition.domainBlocks, which nothing
+    // below reads except for procedural blocks, so the objects inside one were
+    // left out, while the .hsplus reading of the same text drew them inside their
+    // group. Read each one as the spatial group it describes, so it goes through
+    // compileSpatialGroup (a `group` node with the block's position, rotation and
+    // scale around its objects) and through the @platform() filter below. Without
+    // group blocks this is the input itself, so the tree is exactly as before.
+    // This runs before scenes are flattened, the order a compiler that passes
+    // identifierOf needs (see readGroupBlocksAsSpatialGroups); without
+    // identifierOf, as here, the order changes nothing.
+    composition = readGroupBlocksAsSpatialGroups(composition);
+
     // What a `scene "X" { ... }` block holds sits on composition.scenes, which
     // nothing below reads. Studio's viewport, its Preview tab and the share viewer
     // all build their tree here, so a composition whose objects sit in a scene
@@ -2862,15 +2874,6 @@ export class SceneIRCompiler {
     // returns a tree and has no warnings channel, and this call does not invent
     // one. The list is on the result's `unappliedEnvironments` for when it does.
     composition = flattenCompositionScenes(composition).composition;
-
-    // A `group "X" { ... }` block sits on composition.domainBlocks, which nothing
-    // below reads except for procedural blocks, so the objects inside one were
-    // left out, while the .hsplus reading of the same text drew them inside their
-    // group. Read each one as the spatial group it describes, so it goes through
-    // compileSpatialGroup (a `group` node with the block's position, rotation and
-    // scale around its objects) and through the @platform() filter below. Without
-    // group blocks this is the input itself, so the tree is exactly as before.
-    composition = readGroupBlocksAsSpatialGroups(composition);
 
     // Apply @platform() conditional filtering (second compiler slice for
     // Adaptive Platform Layers seed 75 + @platform() RFC implementation).
