@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 import { questProofGuardReason } from './lib/questProofGuards';
-import { classifyApiPath } from './lib/api-public-paths';
+import { callerCredentialRuleFor, classifyApiPath } from './lib/api-public-paths';
 import { SESSION_COOKIE_NAMES } from './lib/session-cookie-names';
 
 /** The header the mesh reads a caller key from. */
@@ -16,11 +16,17 @@ const MESH_KEY_HEADER = 'x-mcp-api-key';
  * here, without the upstream that issued it. It answers one question: did
  * somebody arrive claiming to be someone, or did nobody arrive at all. The
  * route the request is heading for does the judging.
+ *
+ * An entry may name further headers its own route judges (`credentialHeaders`,
+ * e.g. the fleet tick's `x-fleet-service-token`); those count on that entry
+ * only, so a header one route checks never opens a route that ignores it.
  */
-function hasCallerCredential(request: NextRequest): boolean {
+function hasCallerCredential(request: NextRequest, pathname: string, method: string): boolean {
   if (request.headers.get(MESH_KEY_HEADER)?.trim()) return true;
   const authorization = request.headers.get('authorization')?.trim() ?? '';
-  return /^Bearer\s+\S+$/i.test(authorization);
+  if (/^Bearer\s+\S+$/i.test(authorization)) return true;
+  const extra = callerCredentialRuleFor(pathname, method)?.credentialHeaders ?? [];
+  return extra.some((header) => Boolean(request.headers.get(header)?.trim()));
 }
 
 /**
@@ -131,7 +137,7 @@ async function apiGate(request: NextRequest): Promise<NextResponse | null> {
 
   const access = classifyApiPath(pathname, method);
   if (access === 'public') return null;
-  if (access === 'caller-credential' && hasCallerCredential(request)) return null;
+  if (access === 'caller-credential' && hasCallerCredential(request, pathname, method)) return null;
   if (isBenchmarkRunner(request, pathname)) return null;
   if (await hasStudioSession(request)) return null;
 
