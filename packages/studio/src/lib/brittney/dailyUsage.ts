@@ -11,13 +11,28 @@
  * what a paid-model ceiling reads and what a "what did Brittney do today" page
  * can show.
  */
-import { sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 import { getDb } from '@/db/client';
 import { brittneyDailyUsage } from '@/db/schema';
 
 /** Free Brittney messages per person per UTC day. */
 export const FREE_DAILY_MESSAGES = 40;
+
+/**
+ * The most Brittney's paid fallback may cost in one UTC day, for everyone
+ * together (founder sheet line "answers-always": a paid model when our
+ * machines are asleep). A tenth of the $100/day purchased-compute rail that
+ * paid-LLM tokens count against (SPEND.md).
+ */
+export const PAID_DAILY_CEILING_USD = 10;
+
+/**
+ * What a paid round is counted as when the provider reports no cost: high on
+ * purpose, so an endpoint that stops reporting runs into the ceiling sooner
+ * rather than never.
+ */
+export const UNREPORTED_ROUND_COST_USD = 0.05;
 
 /** The scope under which the day's total for everyone is kept. */
 export const EVERYONE = '*';
@@ -86,6 +101,66 @@ export async function countBrittneyMessage(
     console.error("[brittney/daily-usage] could not add to the day's total:", error);
   }
   return { used, limit, allowed: used <= limit, resetsAt: nextUtcMidnight(now) };
+}
+
+/**
+ * May the paid fallback answer right now? Yes while the day's paid cost for
+ * everyone is under the ceiling. No database, or a read that fails, is a no:
+ * nothing is spent that cannot be counted.
+ *
+ * Checked before the call and paid for after it, so answers already in flight
+ * when the ceiling is reached can take the day a little past it; each is one
+ * answer's cost.
+ */
+export async function paidFallbackOpen(
+  now: Date = new Date(),
+  ceilingUsd: number = PAID_DAILY_CEILING_USD
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    const [row] = await db
+      .select({ cost: brittneyDailyUsage.paidCostMicroUsd })
+      .from(brittneyDailyUsage)
+      .where(and(eq(brittneyDailyUsage.scope, EVERYONE), eq(brittneyDailyUsage.day, utcDay(now))))
+      .limit(1);
+    return (row?.cost ?? 0) < Math.round(ceilingUsd * 1_000_000);
+  } catch (error) {
+    console.error('[brittney/daily-usage] could not read the paid total; no paid answers:', error);
+    return false;
+  }
+}
+
+/**
+ * Add one paid answer and what it cost to the person's row and the day's total.
+ * A write that fails is logged: the answer has already been given.
+ */
+export async function recordPaidAnswer(
+  userId: string,
+  costUsd: number,
+  now: Date = new Date()
+): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const day = utcDay(now);
+  const micro = Math.max(0, Math.round(costUsd * 1_000_000));
+  for (const scope of [userId, EVERYONE]) {
+    try {
+      await db
+        .insert(brittneyDailyUsage)
+        .values({ scope, day, paidMessages: 1, paidCostMicroUsd: micro, updatedAt: now })
+        .onConflictDoUpdate({
+          target: [brittneyDailyUsage.scope, brittneyDailyUsage.day],
+          set: {
+            paidMessages: sql`${brittneyDailyUsage.paidMessages} + 1`,
+            paidCostMicroUsd: sql`${brittneyDailyUsage.paidCostMicroUsd} + ${micro}`,
+            updatedAt: now,
+          },
+        });
+    } catch (error) {
+      console.error(`[brittney/daily-usage] could not record a paid answer for ${scope}:`, error);
+    }
+  }
 }
 
 /** What the person reads when they reach the limit. */

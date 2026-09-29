@@ -626,6 +626,14 @@ export interface TokenUsage {
 
   /** False when compatibility zeroes are present because the provider omitted usage. */
   reported?: boolean;
+
+  /**
+   * What the provider billed for this call, in US dollars, when it says so
+   * itself (xAI: `usage.cost_in_usd_ticks` ÷ 10^10, after cache discounts).
+   * Undefined when the provider reports no cost: price it from the token
+   * counts, never read undefined as free.
+   */
+  costUsd?: number;
 }
 
 /** Per-call transport controls that must reach the underlying provider request. */

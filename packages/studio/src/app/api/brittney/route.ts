@@ -48,7 +48,13 @@ import {
 } from '@/lib/brittney/SimContractGate';
 import { recordComputeTrace } from '@/lib/brittney/computeTraceRecorder';
 import { checkAppliedCode, repairNotice, repairRequest } from '@/lib/brittney/appliedCodeCheck';
-import { countBrittneyMessage, dailyLimitMessage } from '@/lib/brittney/dailyUsage';
+import {
+  UNREPORTED_ROUND_COST_USD,
+  countBrittneyMessage,
+  dailyLimitMessage,
+  paidFallbackOpen,
+  recordPaidAnswer,
+} from '@/lib/brittney/dailyUsage';
 import {
   LOTUS_TOOLS,
   LOTUS_TOOL_NAMES,
@@ -259,8 +265,12 @@ export async function POST(request: NextRequest) {
       try {
         // Async: prefers the sovereign serving fleet (dynamic-resolve), falling back to
         // the sync providers (cloud/ollama/anthropic-BYOK) when the fleet is cold (P.008).
+        // A paid model may answer a cold fleet only while today's paid ceiling
+        // has room (founder sheet line "answers-always"; lib/brittney/dailyUsage.ts).
+        const paidFallback = process.env.BRITTNEY_PAID_FALLBACK ? await paidFallbackOpen() : false;
         resolved = await resolveBrittneyProviderAsync(
-          byokAnthropicKey ? { anthropicKey: byokAnthropicKey } : undefined
+          byokAnthropicKey ? { anthropicKey: byokAnthropicKey } : undefined,
+          { paidFallback }
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -538,6 +548,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { provider, model, maxTokens, providerName } = resolved;
+    // Every paid round's billed cost is added up and written to the day's
+    // paid total when the turn ends, however it ends.
+    const paidAnswer = resolved.paid === true;
+    let paidRounds = 0;
+    let paidCostUsd = 0;
 
     // Forward auth-related headers so Studio API calls inherit the session
     const forwardHeaders: Record<string, string> = {};
@@ -1001,6 +1016,13 @@ export async function POST(request: NextRequest) {
 
                 case 'message_stop': {
                   stopReason = chunk.finishReason;
+                  if (paidAnswer) {
+                    paidRounds += 1;
+                    paidCostUsd +=
+                      typeof chunk.usage?.costUsd === 'number'
+                        ? chunk.usage.costUsd
+                        : UNREPORTED_ROUND_COST_USD;
+                  }
                   break;
                 }
               }
@@ -1293,6 +1315,9 @@ export async function POST(request: NextRequest) {
           // AND client abort (the crash-mid-stream case this feature exists
           // for). No-ops when the turn was already persisted above.
           await persistAssistantTurn(true);
+          if (paidRounds > 0) {
+            await recordPaidAnswer(dailyUserId || 'unknown', paidCostUsd);
+          }
           endBrittneyMetric(__metric, {
             source: 'studio-chat',
             provider: providerName,

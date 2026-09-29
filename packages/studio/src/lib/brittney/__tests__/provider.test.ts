@@ -14,7 +14,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { FrontierFallbackRefusedError, HostedOllamaRefusedError } from '@holoscript/llm-provider';
-import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '../provider';
+import {
+  resolveBrittneyProvider,
+  resolveBrittneyProviderAsync,
+  resolvePaidFallback,
+} from '../provider';
 
 /** Every env name the resolution reads, so a developer's shell cannot leak into a test. */
 const PROVIDER_ENV = [
@@ -493,5 +497,142 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     expect(result.providerName).toBe('anthropic');
     expect(result.frontierFallback).toBe(true);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('FRONTIER FALLBACK ACTIVE'));
+  });
+});
+
+// Founder sheet line "answers-always" (2026-09-28): when our machines are
+// asleep, Brittney answers with a paid model instead of "warming up", but only
+// when the caller says today's paid ceiling has room (paidFallback).
+describe('resolveBrittneyProviderAsync — the paid fallback for a cold fleet', () => {
+  const origEnv = { ...process.env };
+
+  beforeEach(() => {
+    process.env = { ...origEnv };
+    for (const k of [
+      ...PROVIDER_ENV,
+      'BRITTNEY_ALLOW_FRONTIER_FALLBACK',
+      'BRITTNEY_FLEET_MODEL',
+      'FLEET_INFERENCE_KEY',
+      'BRITTNEY_FLEET_ORCH_URL',
+      'BRITTNEY_FLEET_RESOLVE_KEY',
+      'HOLOSCRIPT_API_KEY',
+      'FLEET_SERVERLESS_ENDPOINT',
+      'VAST_QWEN_ENDPOINT_NAME',
+      'VAST_API_KEY',
+      'BRITTNEY_PAID_FALLBACK',
+      'BRITTNEY_PAID_FALLBACK_MODEL',
+      'XAI_API_KEY',
+      'OPENAI_API_KEY',
+    ])
+      delete process.env[k];
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    process.env = { ...origEnv };
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const coldFleet = () =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => ({ status: 'cold' }) }))
+    );
+
+  it('answers a cold fleet with Grok when the ceiling has room', async () => {
+    process.env.BRITTNEY_PAID_FALLBACK = 'xai';
+    process.env.XAI_API_KEY = 'xai-test-key';
+    coldFleet();
+    const result = await resolveBrittneyProviderAsync(undefined, { paidFallback: true });
+    expect(result).toMatchObject({ providerName: 'xai', model: 'grok-4.6', paid: true });
+  });
+
+  it('never spends without the caller’s go-ahead: a closed ceiling still means warming', async () => {
+    process.env.BRITTNEY_PAID_FALLBACK = 'xai';
+    process.env.XAI_API_KEY = 'xai-test-key';
+    coldFleet();
+    await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/warming/i);
+    await expect(resolveBrittneyProviderAsync(undefined, { paidFallback: false })).rejects.toThrow(
+      /warming/i
+    );
+  });
+
+  it('means warming when the paid fallback is named but its key is missing', async () => {
+    process.env.BRITTNEY_PAID_FALLBACK = 'xai';
+    coldFleet();
+    await expect(resolveBrittneyProviderAsync(undefined, { paidFallback: true })).rejects.toThrow(
+      /warming/i
+    );
+    expect(resolvePaidFallback()).toBeNull();
+  });
+
+  it('prefers our own server to a paid one, and a warm fleet to both', async () => {
+    process.env.BRITTNEY_PAID_FALLBACK = 'xai';
+    process.env.XAI_API_KEY = 'xai-test-key';
+    process.env.HOLOLLAMA_URL = JETSON_HOLOLLAMA;
+    coldFleet();
+    expect(
+      (await resolveBrittneyProviderAsync(undefined, { paidFallback: true })).providerName
+    ).toBe('holollama');
+
+    delete process.env.HOLOLLAMA_URL;
+    process.env.FLEET_INFERENCE_KEY = 'serve-key';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ status: 'warm', url: 'http://1.2.3.4:40188' }),
+      }))
+    );
+    expect(
+      (await resolveBrittneyProviderAsync(undefined, { paidFallback: true })).providerName
+    ).toBe('fleet');
+  });
+
+  it('can be pinned to another model, or to OpenAI', () => {
+    process.env.BRITTNEY_PAID_FALLBACK = 'xai';
+    process.env.XAI_API_KEY = 'xai-test-key';
+    process.env.BRITTNEY_PAID_FALLBACK_MODEL = 'grok-4.20-0309-non-reasoning';
+    expect(resolvePaidFallback()?.model).toBe('grok-4.20-0309-non-reasoning');
+
+    process.env.BRITTNEY_PAID_FALLBACK = 'openai';
+    delete process.env.BRITTNEY_PAID_FALLBACK_MODEL;
+    process.env.OPENAI_API_KEY = 'sk-openai-test';
+    expect(resolvePaidFallback()).toMatchObject({
+      providerName: 'openai',
+      model: 'gpt-4.1-mini',
+      paid: true,
+    });
+
+    process.env.BRITTNEY_PAID_FALLBACK = 'anthropic';
+    expect(resolvePaidFallback()).toBeNull();
+  });
+
+  it('asks the paid endpoint for usage, so every answer’s cost can be counted', async () => {
+    process.env.BRITTNEY_PAID_FALLBACK = 'xai';
+    process.env.XAI_API_KEY = 'xai-test-key';
+    const bodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: { body?: string }) => {
+        bodies.push({
+          url,
+          ...(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>),
+        });
+        return new Response('data: [DONE]\n\n', { status: 200 });
+      })
+    );
+    const paid = resolvePaidFallback();
+    for await (const _chunk of paid!.provider.streamCompletion({
+      messages: [{ role: 'user', content: 'hi' }],
+    })) {
+      // drain
+    }
+    expect(bodies[0]).toMatchObject({
+      url: 'https://api.x.ai/v1/chat/completions',
+      model: 'grok-4.6',
+      stream_options: { include_usage: true },
+    });
   });
 });
