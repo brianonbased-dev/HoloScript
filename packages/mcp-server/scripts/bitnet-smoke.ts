@@ -41,6 +41,11 @@ async function main() {
   // Force local-llm selection for deterministic smoke behavior.
   // To test real bitnet.cpp, set HOLOSCRIPT_BITNET_URL and HOLOSCRIPT_MCP_AI_PROVIDER=bitnet
   process.env.HOLOSCRIPT_MCP_AI_PROVIDER = 'local-llm';
+  // This script calls handleTool in-process as the local user, the way the stdio server does.
+  // A call with no caller is trusted as that user only on the stdio transport (task x5ku), so
+  // say so; otherwise the fork gate refuses generate_scene (a sensitive tool) as it would for
+  // a caller that lost its context on the hosted server.
+  process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
 
   const handlersModule = (await import('../src/handlers')) as HandlerModuleShape;
   const handleTool = handlersModule.handleTool ?? handlersModule.default?.handleTool;
