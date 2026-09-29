@@ -464,13 +464,34 @@ fi
 # the real HoloCompositionParser + trait-dispatch (NO regex). Enforces "edit the spec, not the
 # generated Kotlin". Only runs when the scanner app or the gate is staged. (2D panel emit is guarded
 # by the vitest golden test QuestCompiler.golden.test.ts, run in `pnpm test`.)
+# The emitter injects the app's .hs logic from the COMMITTED quest-mr-templates.generated.ts, so the
+# golden-diff alone cannot see a change to the .logic.hs files or to the Kotlin bridge that compiles
+# them (the checker build in packages/compiler-wasm/pkg-node). `gen-quest-mr-templates.mjs --check`
+# first proves the committed file is what those inputs produce now.
 echo "  ├─ Quest MR emit golden-diff..."
 STAGED_QUEST=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/quest-universal-qr-scanner/**' \
     'packages/core/src/compiler/quest-mr-emit.ts' \
     'packages/core/src/compiler/quest-mr-templates/**' \
+    'packages/core/src/compiler/quest-mr-logic/**' \
+    'packages/core/src/compiler/quest-mr-templates.generated.ts' \
+    'packages/core/scripts/gen-quest-mr-templates.mjs' \
+    'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm' \
     'scripts/holo-ci/check-quest-mr-emit-matches-reference.mts' 2>/dev/null || true)
 if [ -n "$STAGED_QUEST" ]; then
+    QUEST_LOGIC_OUT=$(run_with_timeout 60 node packages/core/scripts/gen-quest-mr-templates.mjs --check 2>&1)
+    if [ $? -ne 0 ]; then
+        echo -e "  ${RED}❌ The Quest app's compiled .hs logic is stale${NC}"
+        echo "$QUEST_LOGIC_OUT"
+        FAILED=1
+    fi
+    # --check reads the working copy; a regenerated file left unstaged would pass it while the
+    # commit carries the old one.
+    if ! git diff --quiet -- packages/core/src/compiler/quest-mr-templates.generated.ts; then
+        echo -e "  ${RED}❌ quest-mr-templates.generated.ts has unstaged changes${NC}"
+        echo "     Fix: git add packages/core/src/compiler/quest-mr-templates.generated.ts (or restore it)."
+        FAILED=1
+    fi
     QUEST_MR_OUT=$(run_with_timeout 60 npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts 2>&1)
     QUEST_MR_STATUS=$?
     if [ "$QUEST_MR_STATUS" -ne 0 ]; then
