@@ -882,6 +882,28 @@ export function isTrustedLocalCaller(signingCtx: unknown): boolean {
   );
 }
 
+/** The principal of a caller that has none, off the stdio server. It owns nothing. */
+export const NO_CALLER_PRINCIPAL = 'holoscript-mcp:no-caller';
+
+/**
+ * Who to bind a call to, for board agent ids, daemon owners and spend buckets. It is the
+ * caller's signer when it has one. It is `undefined` ("local trust") only for the local user of
+ * the stdio server: no context there, or handleTool's 'stdio-local' bridge, which exists only on
+ * stdio. Everyone else without a signer, a context-less call on the hosted server or a context
+ * whose signer is empty, is NO_CALLER_PRINCIPAL. So a binding refuses to act for a named agent
+ * or owner on its behalf (task mplw).
+ */
+export function callerPrincipal(
+  signingCtx: { signer?: string | null } | undefined | null
+): string | undefined {
+  const signer = signingCtx?.signer;
+  if (signer === 'stdio-local') {
+    return process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio' ? undefined : NO_CALLER_PRINCIPAL;
+  }
+  if (typeof signer === 'string' && signer !== '') return signer;
+  return isTrustedLocalCaller(signingCtx) ? undefined : NO_CALLER_PRINCIPAL;
+}
+
 /**
  * Gate 2: Authorize a tool invocation against the authenticated token's scopes.
  *

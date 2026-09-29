@@ -68,7 +68,7 @@ import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-code
 import { traitTools, handleTraitTool } from './trait-tools';
 import { daemonLifecycleTools, handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
 import { computeTraceTools, handleComputeTraceTool } from './compute-trace-tools';
-import { holoCiTools, handleHoloCiTool, holoCiSpendCaller } from './holo-ci-tools';
+import { holoCiTools, handleHoloCiTool } from './holo-ci-tools';
 import { fromScratchToolDefinitions, handleFromScratchTool } from './from-scratch-mcp-tools';
 import { worldRenderTools, handleWorldRenderTool } from './world-render-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
@@ -92,6 +92,7 @@ import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import {
   authorizeToolCall,
+  callerPrincipal,
   isTrustedLocalCaller,
   registerKnownTools,
 } from './security/tool-scopes';
@@ -438,10 +439,10 @@ function registerCategory(toolArray: Tool[], handler: ToolHandler) {
 
 // 1. Explicitly mapped domains
 registerCategory(compilerTools, (name, args, _signingCtx) => handleCompilerTool(name, args));
-// Thread the caller's identity into per-caller spend authorisation (holoCiSpendCaller:
-// a context-less call off the stdio server gets the restricted stand-in, task mplw).
+// Thread the caller's identity into per-caller spend authorisation (callerPrincipal:
+// a hosted call with no caller gets the restricted stand-in, task mplw).
 registerCategory(holoCiTools, (name, args, signingCtx) =>
-  handleHoloCiTool(name, args, holoCiSpendCaller(signingCtx))
+  handleHoloCiTool(name, args, callerPrincipal(signingCtx))
 );
 // From-scratch pretraining lane: dispatches the ai-ecosystem CLI. Thread the
 // complete signing context because an applied launch fails closed unless the
@@ -509,11 +510,13 @@ registerCategory(negotiationToolDefinitions, (name, args, _signingCtx) =>
 // task_1790062507560_px5q: the daimōn tools bind the self-declared callerId to the
 // transport's verified principal (bearer agentId / clientId on HTTP, or an envelope
 // signer that walletToAgent maps to the caller). stdio passes no signingCtx ->
-// local trust, callerId stays self-declared.
+// local trust, callerId stays self-declared. A hosted call with no caller (no
+// context, or a context with no signer) is bound to NO_CALLER_PRINCIPAL, which
+// owns no one's daimōn (callerPrincipal, task mplw).
 registerCategory(daemonLifecycleTools, async (name, args, signingCtx) => {
   const { defaultSignerMapsToCaller } = await import('./holomesh/identity/board-signer-binding');
   return handleDaemonLifecycleTool(name, args, {
-    signer: signingCtx?.signer,
+    signer: callerPrincipal(signingCtx),
     signerMapsToCaller: defaultSignerMapsToCaller,
   });
 });

@@ -1,13 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildWorkload,
-  CONTEXTLESS_CALLER_SPEND_TOKEN,
   handleHoloCiTool,
-  holoCiSpendCaller,
   holoCiTools,
   resetSubmitLedger,
   submitWorkload,
 } from '../holo-ci-tools';
+import { callerPrincipal, NO_CALLER_PRINCIPAL } from '../security/tool-scopes';
 
 const SHA = 'a'.repeat(40);
 const ORCHESTRATOR_ENV_KEYS = [
@@ -505,9 +504,10 @@ describe('holo_ci_dispatch spend authorisation', () => {
 });
 
 // task mplw: "no callerToken = unconditionally trusted" is right only for the local stdio user. A
-// call that arrives with NO context off the stdio server lost its caller inside the server, so the
-// spend check gets a fixed stand-in identity: the restricted tier, never unlimited GPU spend.
-describe('holoCiSpendCaller: no caller is the local user only on the stdio server', () => {
+// hosted call with no caller (no context, or a context with no signer) gets a fixed stand-in
+// identity from callerPrincipal: the restricted tier, never unlimited GPU spend. The registry path
+// is driven end to end in no-caller-principal.test.ts.
+describe('the CI spend identity: no caller is the local user only on the stdio server', () => {
   const savedTransport = process.env.HOLOSCRIPT_MCP_TRANSPORT;
   afterEach(() => {
     if (savedTransport === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
@@ -516,15 +516,16 @@ describe('holoCiSpendCaller: no caller is the local user only on the stdio serve
 
   it('names the stand-in off the stdio server, nobody-trusted on it, and keeps a real caller', () => {
     process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
-    expect(holoCiSpendCaller(undefined)).toBe(CONTEXTLESS_CALLER_SPEND_TOKEN);
+    expect(callerPrincipal(undefined)).toBe(NO_CALLER_PRINCIPAL);
     delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
-    expect(holoCiSpendCaller(undefined)).toBe(CONTEXTLESS_CALLER_SPEND_TOKEN);
+    expect(callerPrincipal(undefined)).toBe(NO_CALLER_PRINCIPAL);
     process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
-    expect(holoCiSpendCaller(undefined)).toBeUndefined();
-    // A caller WITH a context is unchanged, on any transport.
+    expect(callerPrincipal(undefined)).toBeUndefined();
+    // A caller with a signer keeps it, on any transport. A context with NO signer is nobody:
+    // before round 2 it read as unconditionally trusted.
     process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
-    expect(holoCiSpendCaller({ signer: '0xabc' })).toBe('0xabc');
-    expect(holoCiSpendCaller({ signer: null })).toBeUndefined();
+    expect(callerPrincipal({ signer: '0xabc' })).toBe('0xabc');
+    expect(callerPrincipal({ signer: null })).toBe(NO_CALLER_PRINCIPAL);
   });
 
   it('over HTTP, a context-less full-profile submit meets the restricted tier and is refused', async () => {
@@ -535,7 +536,7 @@ describe('holoCiSpendCaller: no caller is the local user only on the stdio serve
       const res = (await handleHoloCiTool(
         'holo_ci_dispatch',
         { sha: SHA, profile: 'full', dryRun: false },
-        holoCiSpendCaller(undefined)
+        callerPrincipal(undefined)
       )) as { ok: boolean; tierDenied?: boolean };
       expect(res.ok).toBe(false);
       expect(res.tierDenied).toBe(true);
@@ -546,7 +547,7 @@ describe('holoCiSpendCaller: no caller is the local user only on the stdio serve
       const local = (await handleHoloCiTool(
         'holo_ci_dispatch',
         { sha: SHA, profile: 'full', dryRun: false },
-        holoCiSpendCaller(undefined)
+        callerPrincipal(undefined)
       )) as { ok: boolean; tierDenied?: boolean; error?: string };
       expect(local.tierDenied).toBeUndefined();
       expect(local.error).toMatch(/not provisioned/i);

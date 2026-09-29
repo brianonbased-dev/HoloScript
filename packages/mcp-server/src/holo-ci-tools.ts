@@ -38,7 +38,6 @@
 import { createHash } from 'node:crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { resolveServiceSecret } from './holokey-resolver';
-import { isTrustedLocalCaller } from './security/tool-scopes';
 
 // ─── Gate catalog (port of gates.mjs) ───────────────────────────────────────
 type Profile = 'quick' | 'full';
@@ -977,24 +976,6 @@ export const holoCiTools: Tool[] = [
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
-/** The spend identity of a call that arrived with no caller at all, off the stdio server. */
-export const CONTEXTLESS_CALLER_SPEND_TOKEN = 'holoscript-mcp:contextless-caller';
-
-/**
- * The callerToken for a dispatch: the caller's signer address when it has one. `undefined`
- * ("unconditionally trusted") is right only for the local stdio user (isTrustedLocalCaller). A
- * call with NO context off the stdio server lost its caller inside the server, so it gets a fixed
- * stand-in identity instead: the restricted tier and its daily cap, never unlimited (task mplw).
- * A caller that HAS a context keeps today's behavior: over HTTP its signer is always its agent or
- * client id (the legacy key is 'legacy-api-key'), so its own spend check already applied.
- */
-export function holoCiSpendCaller(
-  signingCtx: { signer?: string | null } | undefined
-): string | undefined {
-  if (signingCtx) return signingCtx.signer ?? undefined;
-  return isTrustedLocalCaller(signingCtx) ? undefined : CONTEXTLESS_CALLER_SPEND_TOKEN;
-}
-
 /**
  * Handle `holo_ci_dispatch` tool calls.
  *
@@ -1004,7 +985,10 @@ export function holoCiSpendCaller(
  *                     Used only for per-caller spend authorisation — hashed
  *                     before any use, never stored or logged in the clear.
  *                     Pass `undefined` for stdio (local) callers that are
- *                     unconditionally trusted.
+ *                     unconditionally trusted. The registry passes
+ *                     callerPrincipal(signingCtx), which is `undefined` only for
+ *                     that local user; a hosted call with no caller gets
+ *                     NO_CALLER_PRINCIPAL, the restricted tier (task mplw).
  */
 export async function handleHoloCiTool(
   name: string,
