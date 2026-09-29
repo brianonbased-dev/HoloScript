@@ -188,11 +188,31 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
   }
 
   if (body.action === 'stop') {
+    // Same identity resolution as 'start' (task_1790202743696_9u34): 'stop' took no job id
+    // and found the one globally running job regardless of who started it, so any signed-in
+    // caller could halt a job someone else was paying for. A stopped job is never refunded
+    // (deductCredits already ran, upfront, at 'start'), so this was a way to waste another
+    // user's charge, not just an annoyance.
+    const userId = userUuid(req);
+    if (!userId) {
+      return res.status(403).json({
+        error: 'User identity required',
+        message: 'A daemon run is stopped by the signed-in user who owns it. Sign in with GitHub first.',
+      });
+    }
+
     const jobs = listDaemonJobs();
     const running = jobs.find((j: any) => j.status === 'running');
 
     if (!running) {
       return res.json({ message: 'No daemon job is currently running.' });
+    }
+
+    if (running.userId !== userId) {
+      return res.status(403).json({
+        error: 'Not authorized',
+        message: 'This daemon job belongs to a different user.',
+      });
     }
 
     // @ts-ignore - Automatic remediation for TS2339
