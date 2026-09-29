@@ -1,15 +1,11 @@
 'use client';
 
-import { useMemo, Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-three/drei';
-import {
-  HoloScriptPlusParser,
-  HoloCompositionParser,
-  SceneIRCompiler,
-  MATERIAL_PRESETS,
-} from '@holoscript/core';
+import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
+import { useScenePipeline } from '@/hooks/useScenePipeline';
 import {
   HolomapPointCloudViewer,
   WebSurfaceRenderer,
@@ -328,47 +324,6 @@ function SceneContent({
   );
 }
 
-// ─── Parse pipeline ─────────────────────────────────────────────────────────
-
-function usePipeline(code: string) {
-  return useMemo(() => {
-    if (!code.trim()) return { r3fTree: null, errors: [] as Array<{ message: string }> };
-    try {
-      const compiler = new SceneIRCompiler();
-      const trimmed = code.trimStart();
-      if (trimmed.startsWith('composition')) {
-        const parser = new HoloCompositionParser();
-        const result = parser.parse(code);
-        if (result.errors && result.errors.length > 0) {
-          return {
-            r3fTree: null,
-            errors: result.errors.map((e: string | { message: string }) => ({
-              message: typeof e === 'string' ? e : e.message || String(e),
-            })),
-          };
-        }
-        return { r3fTree: compiler.compileComposition(result.ast ?? result), errors: [] };
-      }
-      const parser = new HoloScriptPlusParser();
-      const result = parser.parse(code);
-      if (result.errors && result.errors.length > 0) {
-        return {
-          r3fTree: null,
-          errors: result.errors.map((e: string | { message?: string }) => ({
-            message: typeof e === 'string' ? e : e.message || String(e),
-          })),
-        };
-      }
-      return { r3fTree: compiler.compile(result.ast ?? result), errors: [] };
-    } catch (err) {
-      return {
-        r3fTree: null,
-        errors: [{ message: err instanceof Error ? err.message : String(err) }],
-      };
-    }
-  }, [code]);
-}
-
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export interface SceneViewerProps {
@@ -411,7 +366,9 @@ export function SceneViewer({
   onObjectSelect,
   onErrors,
 }: SceneViewerProps) {
-  const { r3fTree, errors } = usePipeline(code);
+  // The same parse-and-build step the /create viewport uses, so a scene that
+  // renders there renders here too (it used to be a separate copy that drifted).
+  const { r3fTree, errors } = useScenePipeline(code);
 
   // Report errors upstream
   if (onErrors && errors.length > 0) {
