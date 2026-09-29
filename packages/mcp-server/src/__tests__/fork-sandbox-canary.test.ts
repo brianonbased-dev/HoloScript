@@ -493,7 +493,8 @@ describe('canary: a context-less call is trusted to declare its tier only on std
       // then reads the RAW context's scopes, empty here, and refuses on permissions: a separate,
       // older gap, not this check.)
       const onStdio = await withTransport('stdio', () => handleTool('compile_pipeline', args));
-      const checks = (onStdio as { checks?: Array<{ name: string; passed: boolean }> }).checks ?? [];
+      const checks =
+        (onStdio as { checks?: Array<{ name: string; passed: boolean }> }).checks ?? [];
       expect(checks.find((c) => c.name === 'capability_manifest')?.passed).toBe(true);
     } finally {
       if (savedKey === undefined) delete process.env.HOLOSCRIPT_API_KEY;
