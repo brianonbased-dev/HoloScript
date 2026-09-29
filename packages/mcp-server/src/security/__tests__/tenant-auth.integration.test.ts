@@ -61,7 +61,11 @@ describe('tenant-auth validateTenantKey', () => {
 
   // task jch1: an enterprise key used to carry admin:* and tools:admin, which reach the host's
   // files, git, secrets and install_plugin's in-process code on the server every tenant shares.
-  it('an enterprise key carries no operator scope and cannot reach an operator tool', async () => {
+  // This proves the key's own scopes and what the scope gate makes of them on a direct call. A
+  // tool the key may run that runs OTHER tools (execute_workflow, batch_tool_call) must re-check
+  // each inner tool against these same scopes. That is #407 (tasks myvj, 1q9t), and "cannot reach
+  // an operator tool" on every route holds only with it merged.
+  it('an enterprise key carries no operator scope, so the scope gate refuses it every operator tool', async () => {
     delete process.env.DATABASE_URL;
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
