@@ -199,7 +199,7 @@ export interface CompilationResult {
   documentation?: TripleOutputResult;
 }
 
-/** What {@link CompilerBase.flattenScenes} hands a compiler that builds one world. */
+/** What {@link flattenCompositionScenes} hands a compiler that builds one world. */
 export interface FlattenedScenes {
   /** The composition to compile: the input itself when no scene adds anything. */
   composition: HoloComposition;
@@ -441,6 +441,110 @@ export function escapeStringValue(value: string, target: EscapeTarget): string {
   }
 }
 
+/**
+ * Read `scene` blocks the way a compiler that builds ONE world reads the rest of
+ * the composition.
+ *
+ * The parser keeps what a `scene "X" { ... }` block holds on `composition.scenes`,
+ * not on `composition.objects`. A compiler that reads only `composition.objects`
+ * therefore leaves every object written inside a scene out of its output, and
+ * says nothing. Such a compiler calls this before it compiles and then compiles
+ * the composition it returns: each scene's objects follow the top-level objects,
+ * scene by scene, and go through the compiler's own object path. A scene has no
+ * transform, so each object keeps its own position. Compilers that extend
+ * {@link CompilerBase} call it through {@link CompilerBase.flattenScenes};
+ * SceneIRCompiler, which does not extend it, calls it directly.
+ *
+ * Environment: the composition's own `environment` applies when it has one;
+ * otherwise the first scene that declares one supplies it. One world has one
+ * environment, so every other scene environment is listed in
+ * `unappliedEnvironments`, with the one that applies instead.
+ *
+ * Names: scenes are separate in the source but become one world here. A compiler
+ * that turns object names into identifiers passes `identifierOf`. A scene object
+ * is then not built when it, or an object inside it, would get an identifier that
+ * an object already in the output has (two scenes that each have a "Ground", or
+ * a scene reusing a top-level name); it is listed in `leftOutObjects` instead of
+ * producing output that cannot load. Clashes among the composition's own objects
+ * are left alone, so their output stays exactly as before.
+ *
+ * A compiler that has somewhere to report writes {@link CompilerBase.sceneWarnings}
+ * into its output, so nothing is left out without being named. When no scene adds
+ * anything, the input itself is returned, so a composition without scenes compiles
+ * exactly as before. The input is never changed.
+ */
+export function flattenCompositionScenes(
+  composition: HoloComposition,
+  identifierOf?: (name: string) => string
+): FlattenedScenes {
+  const scenes = composition.scenes ?? [];
+  const unappliedEnvironments: FlattenedScenes['unappliedEnvironments'] = [];
+  const leftOutObjects: FlattenedScenes['leftOutObjects'] = [];
+
+  let environment = composition.environment;
+  let appliedFrom: string | null = null;
+  for (const scene of scenes) {
+    if (!scene.environment) continue;
+    if (environment) {
+      unappliedEnvironments.push({ scene: scene.name, appliedFrom });
+    } else {
+      environment = scene.environment;
+      appliedFrom = scene.name;
+    }
+  }
+
+  // Every name in these objects and in the objects inside them.
+  const namesIn = (objects: HoloObjectDecl[] | undefined, into: string[]): string[] => {
+    for (const obj of objects ?? []) {
+      into.push(String(obj.name ?? ''));
+      namesIn(obj.children, into);
+    }
+    return into;
+  };
+  const groupNames = (groups: HoloSpatialGroup[] | undefined, into: string[]): string[] => {
+    for (const group of groups ?? []) {
+      namesIn(group.objects, into);
+      groupNames(group.groups, into);
+    }
+    return into;
+  };
+  const taken = new Set<string>();
+  if (identifierOf && scenes.some((scene) => (scene.objects ?? []).length > 0)) {
+    for (const name of namesIn(composition.objects, groupNames(composition.spatialGroups, []))) {
+      taken.add(identifierOf(name));
+    }
+  }
+
+  const sceneObjects: HoloObjectDecl[] = [];
+  for (const scene of scenes) {
+    for (const obj of scene.objects ?? []) {
+      if (identifierOf) {
+        const names = namesIn([obj], []);
+        const takenName = names.find((name) => taken.has(identifierOf(name)));
+        if (takenName !== undefined) {
+          leftOutObjects.push({ scene: scene.name, object: String(obj.name ?? ''), takenName });
+          continue;
+        }
+        for (const name of names) taken.add(identifierOf(name));
+      }
+      sceneObjects.push(obj);
+    }
+  }
+
+  if (sceneObjects.length === 0 && environment === composition.environment) {
+    return { composition, unappliedEnvironments, leftOutObjects };
+  }
+  return {
+    composition: {
+      ...composition,
+      objects: [...(composition.objects ?? []), ...sceneObjects],
+      ...(environment ? { environment } : {}),
+    },
+    unappliedEnvironments,
+    leftOutObjects,
+  };
+}
+
 export abstract class CompilerBase implements ICompiler {
   protected rbac = getRBAC();
 
@@ -550,105 +654,15 @@ export abstract class CompilerBase implements ICompiler {
   }
 
   /**
-   * Read `scene` blocks the way a compiler that builds ONE world reads the rest of
-   * the composition.
-   *
-   * The parser keeps what a `scene "X" { ... }` block holds on `composition.scenes`,
-   * not on `composition.objects`. A compiler that reads only `composition.objects`
-   * therefore leaves every object written inside a scene out of its output, and
-   * says nothing. Such a compiler calls this at the start of `compile()` and then
-   * compiles the composition it returns: each scene's objects follow the top-level
-   * objects, scene by scene, and go through the compiler's own object path. A scene
-   * has no transform, so each object keeps its own position.
-   *
-   * Environment: the composition's own `environment` applies when it has one;
-   * otherwise the first scene that declares one supplies it. One world has one
-   * environment, so every other scene environment is listed in
-   * `unappliedEnvironments`, with the one that applies instead.
-   *
-   * Names: scenes are separate in the source but become one world here. A compiler
-   * that turns object names into identifiers passes `identifierOf`. A scene object
-   * is then not built when it, or an object inside it, would get an identifier that
-   * an object already in the output has (two scenes that each have a "Ground", or
-   * a scene reusing a top-level name); it is listed in `leftOutObjects` instead of
-   * producing output that cannot load. Clashes among the composition's own objects
-   * are left alone, so their output stays exactly as before.
-   *
-   * The compiler writes {@link CompilerBase.sceneWarnings} into its output, so
-   * nothing is left out without being named. When no scene adds anything, the
-   * input itself is returned, so a composition without scenes compiles exactly as
-   * before. The input is never changed.
+   * {@link flattenCompositionScenes}, for a compiler that extends this base. It
+   * calls this at the start of `compile()`, compiles the composition it returns,
+   * and writes {@link CompilerBase.sceneWarnings} into its output.
    */
   protected flattenScenes(
     composition: HoloComposition,
     identifierOf?: (name: string) => string
   ): FlattenedScenes {
-    const scenes = composition.scenes ?? [];
-    const unappliedEnvironments: FlattenedScenes['unappliedEnvironments'] = [];
-    const leftOutObjects: FlattenedScenes['leftOutObjects'] = [];
-
-    let environment = composition.environment;
-    let appliedFrom: string | null = null;
-    for (const scene of scenes) {
-      if (!scene.environment) continue;
-      if (environment) {
-        unappliedEnvironments.push({ scene: scene.name, appliedFrom });
-      } else {
-        environment = scene.environment;
-        appliedFrom = scene.name;
-      }
-    }
-
-    // Every name in these objects and in the objects inside them.
-    const namesIn = (objects: HoloObjectDecl[] | undefined, into: string[]): string[] => {
-      for (const obj of objects ?? []) {
-        into.push(String(obj.name ?? ''));
-        namesIn(obj.children, into);
-      }
-      return into;
-    };
-    const groupNames = (groups: HoloSpatialGroup[] | undefined, into: string[]): string[] => {
-      for (const group of groups ?? []) {
-        namesIn(group.objects, into);
-        groupNames(group.groups, into);
-      }
-      return into;
-    };
-    const taken = new Set<string>();
-    if (identifierOf && scenes.some((scene) => (scene.objects ?? []).length > 0)) {
-      for (const name of namesIn(composition.objects, groupNames(composition.spatialGroups, []))) {
-        taken.add(identifierOf(name));
-      }
-    }
-
-    const sceneObjects: HoloObjectDecl[] = [];
-    for (const scene of scenes) {
-      for (const obj of scene.objects ?? []) {
-        if (identifierOf) {
-          const names = namesIn([obj], []);
-          const takenName = names.find((name) => taken.has(identifierOf(name)));
-          if (takenName !== undefined) {
-            leftOutObjects.push({ scene: scene.name, object: String(obj.name ?? ''), takenName });
-            continue;
-          }
-          for (const name of names) taken.add(identifierOf(name));
-        }
-        sceneObjects.push(obj);
-      }
-    }
-
-    if (sceneObjects.length === 0 && environment === composition.environment) {
-      return { composition, unappliedEnvironments, leftOutObjects };
-    }
-    return {
-      composition: {
-        ...composition,
-        objects: [...(composition.objects ?? []), ...sceneObjects],
-        ...(environment ? { environment } : {}),
-      },
-      unappliedEnvironments,
-      leftOutObjects,
-    };
+    return flattenCompositionScenes(composition, identifierOf);
   }
 
   /**
