@@ -2,14 +2,14 @@
  * Pure parsing for the Founder Console Inbox (slice B). No Next/runtime imports
  * so it is unit-testable standalone. route.ts consumes this.
  *
- * Agents push via scripts/push-to-founder-console.mjs → POST /api/quest-proof/inbox
- * → the Studio route proxies it to the team feed as kind:"intelligence" with a
- * `founderInbox: true` marker. GET /api/quest-proof/inbox reads the feed back and
- * filters on that marker. No local file storage — the team feed IS the store
- * (server-side + Quest-reachable).
+ * Agents push with ai-ecosystem scripts/push-to-founder-console.mjs straight to the
+ * team feed, signed with their own seat key, as kind:"intelligence" with a
+ * `founderInbox: true` marker. Studio takes no writes (route.ts says why). GET
+ * /api/quest-proof/inbox reads the feed back and filters on that marker. No local
+ * file storage — the team feed IS the store (server-side + Quest-reachable).
  *
- * buildInboxPayload() is the pure constructor for a push; parseFounderInboxEntries()
- * is the pure parser for the GET side.
+ * buildInboxPayload() is the pure constructor for that push shape, which the script
+ * mirrors; parseFounderInboxEntries() is the pure parser for the GET side.
  */
 
 const ARTIFACT_KINDS = new Set(['proof', 'preview', 'action', 'artifact', 'world', 'report']);

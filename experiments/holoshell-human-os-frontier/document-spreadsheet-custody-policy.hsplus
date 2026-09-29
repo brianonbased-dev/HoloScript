@@ -70,7 +70,7 @@ composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
     ]
   }
 
-  state_machine "CustodyWorkflow" {
+  template "CustodyWorkflow" {
     initial: "idle"
     states: ["idle", "snapshotted", "parsed", "previewed", "authorized", "exported", "verified", "filed", "blocked"]
     transition "select" { from: "idle", to: "snapshotted" }
@@ -83,27 +83,27 @@ composition "HoloShellDocumentSpreadsheetCustodyPolicy" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["local_file_snapshot", "hashing", "parser_adapter_probe", "receipt_pack"]
   }
 
-  role "DocumentParserAgent" {
+  template "DocumentParserAgent" {
     laneId: "document-parser"
     owns: ["docx_parse", "redline_preview", "pdf_export_witness"]
   }
 
-  role "SpreadsheetFormulaAgent" {
+  template "SpreadsheetFormulaAgent" {
     laneId: "spreadsheet-formula"
     owns: ["xlsx_parse", "formula_inventory", "cell_diff", "csv_export_witness"]
   }
 
-  role "BrowserAccountWitness" {
+  template "BrowserAccountWitness" {
     laneId: "browser-account"
     owns: ["google_microsoft_boundary", "share_upload_authorization", "screenshot_witness"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["room_embodiment", "brittney_operator_brief", "hololand_work_card"]
   }

@@ -81,22 +81,22 @@ composition "HoloShellLegacyAppReconstructionPolicy" {
     ]
   }
 
-  role "ClaudeCode" {
+  template "ClaudeCode" {
     laneId: "claude-code"
     owns: ["accessibility_parse", "ocr_cross_reference", "grouping", "confidence", "witness_attach", "reconstruction_assembly"]
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["source_capture", "hash_verification", "hardware_evidence"]
   }
 
-  role "BrowserVision" {
+  template "BrowserVision" {
     laneId: "browser-vision"
     owns: ["screenshot_capture", "ocr_extraction", "bounding_box_overlay"]
   }
 
-  role "HoloMesh" {
+  template "HoloMesh" {
     laneId: "holomesh"
     owns: ["task_seeding", "gap_tracking", "reconstruction_diff"]
   }

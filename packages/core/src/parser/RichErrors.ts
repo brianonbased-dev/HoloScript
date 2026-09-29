@@ -47,48 +47,19 @@ export const HSPLUS_ERROR_CODES = {
   HSP004: 'Unclosed brace - missing }',
   HSP005: 'Unclosed bracket - missing ]',
   HSP006: 'Unclosed parenthesis - missing )',
-  HSP007: 'Unclosed string literal',
-  HSP008: 'Invalid number format',
   HSP009: 'Missing colon after property name',
-  HSP010: 'Missing value after colon',
 
   // Structure Errors (HSP100-HSP199)
   HSP100: 'Invalid composition structure',
   HSP101: 'Invalid object definition',
-  HSP102: 'Invalid template definition',
-  HSP103: 'Invalid spatial_group definition',
-  HSP104: 'Invalid environment block',
-  HSP105: 'Invalid state block',
-  HSP106: 'Invalid logic block',
-  HSP107: 'Duplicate identifier',
-  HSP108: 'Missing required property',
   HSP109: 'Unsupported brain action',
 
   // Trait Errors (HSP200-HSP299)
   HSP200: 'Unknown trait',
   HSP201: 'Invalid trait syntax',
-  HSP202: 'Missing trait argument',
-  HSP203: 'Invalid trait argument type',
-  HSP204: 'Trait not allowed in this context',
-  HSP205: 'Duplicate trait',
 
   // Expression Errors (HSP300-HSP399)
   HSP300: 'Invalid expression',
-  HSP301: 'Undefined variable',
-  HSP302: 'Invalid operator',
-  HSP303: 'Type mismatch',
-  HSP304: 'Invalid function call',
-  HSP305: 'Missing function argument',
-
-  // Import/Module Errors (HSP400-HSP499)
-  HSP400: 'Invalid import statement',
-  HSP401: 'Module not found',
-  HSP402: 'Circular import detected',
-
-  // Limit Errors (HSP900-HSP999)
-  HSP900: 'Maximum nesting depth exceeded',
-  HSP901: 'Maximum array length exceeded',
-  HSP902: 'Maximum string length exceeded',
 } as const;
 
 export type ErrorCode = keyof typeof HSPLUS_ERROR_CODES;

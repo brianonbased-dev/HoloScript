@@ -55,14 +55,17 @@ describe('buildNoAppWebxrPublishReceipt', () => {
       noAppInstall: true,
       runtime: 'studio-webxr-viewer',
     });
+    // The QR encodes /shared/<id> (HoloQR refuses /w/); the human link stays /w/.
+    const qrText = receipt.url.replace('/w/', '/shared/');
+    expect(receipt.url).toContain('/w/');
     expect(receipt.qrCode).toMatchObject({
       format: 'png-data-url',
-      payload: receipt.url,
+      payload: qrText,
       dataUrl: 'data:image/png;base64,local-qr',
       errorCorrectionLevel: 'M',
     });
     expect(toDataURL).toHaveBeenCalledWith(
-      receipt.url,
+      qrText,
       expect.objectContaining({ width: 256, margin: 2, errorCorrectionLevel: 'M' })
     );
     expect(receipt.share).toEqual({

@@ -843,7 +843,7 @@ composition "EnterpriseTenantLifecycle" {
   // HUD -- Enterprise management panels
   // ========================================================================
 
-  panel "TenantHUD" {
+  template "TenantHUD" {
     position: "top-left"
 
     text "TenantState" {
@@ -860,7 +860,7 @@ composition "EnterpriseTenantLifecycle" {
     }
   }
 
-  panel "RBACHUD" {
+  module "RBACHUD" {
     position: "top-right"
 
     text "RBACState" {
@@ -877,7 +877,7 @@ composition "EnterpriseTenantLifecycle" {
     }
   }
 
-  panel "AuditHUD" {
+  template "AuditHUD" {
     position: "bottom-left"
 
     text "AuditCount" {

@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { worldQrUrl } from '../worldQrUrl';
 
 export interface ProtocolPublishResult {
   contentHash: string;
@@ -146,8 +147,12 @@ export async function buildNoAppWebxrPublishReceipt(input: {
   const customDomainReceiptId = customDomain
     ? receiptId('domain', contentHash, id, customDomain)
     : null;
+  // The QR encodes /shared/<id>, the one spelling HoloQR admits (it refuses /w/ as an
+  // unsigned world portal link; see lib/worldQrUrl). Every human-facing link below
+  // stays the /w/ short link (claude3's review of #315: this screen still drew /w/).
+  const qrPayload = worldQrUrl(webxrUrl);
   const qr = await import('qrcode');
-  const qrDataUrl = await qr.toDataURL(webxrUrl, {
+  const qrDataUrl = await qr.toDataURL(qrPayload, {
     width: 256,
     margin: 2,
     errorCorrectionLevel: 'M',
@@ -176,7 +181,7 @@ export async function buildNoAppWebxrPublishReceipt(input: {
     },
     qrCode: {
       format: 'png-data-url',
-      payload: webxrUrl,
+      payload: qrPayload,
       dataUrl: qrDataUrl,
       errorCorrectionLevel: 'M',
       receiptId: receiptId('qr', contentHash, id),

@@ -25,26 +25,41 @@ import path from 'path';
 import crypto from 'crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
-const SHELF_DIR =
-  process.env.HOLOSHELL_DOWNLOAD_SHELF ||
-  path.join(
-    process.env.HOME || process.env.USERPROFILE || '.',
-    '.ai-ecosystem',
-    'holoshell',
-    'downloads'
+/**
+ * The shelf directory, read when a tool runs (not when this module loads), so a caller
+ * or test can point HOLOSHELL_DOWNLOAD_SHELF elsewhere at any time.
+ */
+function shelfDir(): string {
+  return (
+    process.env.HOLOSHELL_DOWNLOAD_SHELF ||
+    path.join(
+      process.env.HOME || process.env.USERPROFILE || '.',
+      '.ai-ecosystem',
+      'holoshell',
+      'downloads'
+    )
   );
-
-function ensureShelf() {
-  if (!fs.existsSync(SHELF_DIR)) fs.mkdirSync(SHELF_DIR, { recursive: true });
 }
 
+function ensureShelf(): string {
+  const dir = shelfDir();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/**
+ * Reading never creates the shelf: a missing shelf holds no receipts. Creating
+ * ~/.ai-ecosystem on a read marked any machine that merely listed downloads (or
+ * ran mcp-server's tests) as a HoloCI dispatch lane for the doctrine-slot gate.
+ */
 function loadReceipts(filterStatus?: string[]) {
-  ensureShelf();
-  const files = fs.readdirSync(SHELF_DIR).filter((f) => f.endsWith('.json'));
+  const dir = shelfDir();
+  if (!fs.existsSync(dir)) return [];
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
   return files
     .map((f) => {
       try {
-        const data = JSON.parse(fs.readFileSync(path.join(SHELF_DIR, f), 'utf8'));
+        const data = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
         return { ...data, _file: f };
       } catch {
         return null;
@@ -55,9 +70,9 @@ function loadReceipts(filterStatus?: string[]) {
 }
 
 function writeReceipt(receipt: any) {
-  ensureShelf();
+  const dir = ensureShelf();
   const id = receipt.id || `rec-${Date.now()}`;
-  const file = path.join(SHELF_DIR, `${id}.json`);
+  const file = path.join(dir, `${id}.json`);
   fs.writeFileSync(
     file,
     JSON.stringify({ ...receipt, id, updatedAt: new Date().toISOString() }, null, 2)
@@ -88,7 +103,7 @@ export const holoshellDownloadRecoveryList = {
       success: true,
       count: receipts.length,
       receipts,
-      shelfPath: SHELF_DIR,
+      shelfPath: shelfDir(),
     };
   },
 };
@@ -174,7 +189,7 @@ export const holoshellDownloadRecoveryForensicExport = {
     const rec = receipts.find((r: any) => r.id === input.id || r._file?.includes(input.id));
     if (!rec) throw new Error('Receipt not found');
 
-    const exportDir = path.join(SHELF_DIR, 'forensic-exports');
+    const exportDir = path.join(shelfDir(), 'forensic-exports');
     if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
 
     const bundleName = `forensic-${rec.id}-${Date.now()}.json`;
