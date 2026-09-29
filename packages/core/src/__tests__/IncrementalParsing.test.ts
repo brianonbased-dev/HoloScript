@@ -151,3 +151,64 @@ orb "OrbB" {
     // This verifies the per-cache parser map works correctly
   });
 });
+
+// Task 9a7o: parseIncremental fails the way a full parse does when a chunk is refused, and puts
+// every block at its document line on every pass (before 2026-09-29 a block at line 5 read 13
+// on the first pass and 25 on the second).
+const WITH_REFUSED_CHUNK = `orb "Before" {
+  color: "blue"
+}
+
+orb "Lamp" {
+  color: "red"
+  function glow(): i32 {
+    return missing(1)
+  }
+}
+
+orb "After" {
+  color: "green"
+}
+`;
+
+describe('parseIncremental - refused chunks and document lines (task 9a7o)', () => {
+  it('fails with the refused chunk error, at the position a full parse gives', () => {
+    const full = new HoloScriptPlusParser({ enableVRTraits: true }).parse(WITH_REFUSED_CHUNK);
+    const incremental = new HoloScriptPlusParser({ enableVRTraits: true }).parseIncremental(
+      WITH_REFUSED_CHUNK,
+      new ParseCache()
+    );
+    expect(incremental.success).toBe(false);
+    expect(incremental.errors.map((error) => [error.line, error.column, error.code])).toEqual(
+      full.errors.map((error) => [error.line, error.column, error.code])
+    );
+    expect(incremental.errors[0]).toMatchObject({ line: 8, column: 12, code: 'HS-NAME-002' });
+  });
+
+  it('keeps every block at its document line, on every pass and after a refused block', () => {
+    const clean = `orb "Before" {
+  color: "blue"
+}
+
+orb "Middle" {
+  color: "red"
+}
+
+orb "After" {
+  color: "green"
+}
+`;
+    const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+    const cache = new ParseCache();
+    const lines = (source: string, parseCache: ParseCache) =>
+      (parser.parseIncremental(source, parseCache).ast.children ?? []).map(
+        (child) => child.loc?.start.line
+      );
+    expect(lines(clean, cache)).toEqual([1, 5, 9]);
+    expect(lines(clean, cache)).toEqual([1, 5, 9]);
+    expect(lines(WITH_REFUSED_CHUNK, new ParseCache())).toEqual([1, 12]);
+    // Two lines inserted above: the unchanged blocks come from the cache and must move by two,
+    // not by their old shift plus the new one.
+    expect(lines(`\n\n${clean}`, cache)).toEqual([3, 7, 11]);
+  });
+});

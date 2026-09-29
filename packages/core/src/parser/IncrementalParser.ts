@@ -14,6 +14,15 @@ import { ParseCache, globalParseCache } from './ParseCache';
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
 import type { HsDocumentContext } from './hsplusRustTypeCheck';
 import type { HSPlusNode } from './ParseCache';
+/** An error in a chunk the parser refused, placed in the whole document (1-indexed lines). */
+export interface IncrementalChunkError {
+  chunkId: string;
+  line: number;
+  column: number;
+  /** The parser's code (HSP001, HS-NAME-002, ...) when the error carries one. */
+  code?: string;
+  message: string;
+}
 
 export interface IncrementalParseResult {
   ast: HSPlusNode;
@@ -21,6 +30,14 @@ export interface IncrementalParseResult {
   parsed: number; // Number of chunks parsed fresh
   duration: number; // Parse time in ms
   changedChunks: string[];
+  /**
+   * The errors of every chunk refused this pass. A refused chunk is left out of `ast`; until
+   * 2026-09-29 it vanished with no error, so watch mode printed "Built" and the feed parser lost
+   * the block (a typed function the checker refuses is one such chunk).
+   */
+  errors: IncrementalChunkError[];
+  /** The chunk each child of `ast` came from, in order; refused chunks are absent. */
+  chunkIds: string[];
 }
 
 export class ChunkBasedIncrementalParser {
@@ -46,6 +63,7 @@ export class ChunkBasedIncrementalParser {
     let cached = 0;
     let parsed = 0;
     const changedChunks: string[] = [];
+    const errors: IncrementalChunkError[] = [];
 
     // Step 1: Detect chunks in current source
     const currentChunks = this.detectChunks(source);
@@ -79,7 +97,8 @@ export class ChunkBasedIncrementalParser {
 
       if (toParseIds.has(chunk.id)) {
         // Re-parse this chunk
-        const chunkNode = this.parseChunk(chunk, documentContext);
+        const { node: chunkNode, errors: chunkErrors } = this.parseChunk(chunk, documentContext);
+        errors.push(...chunkErrors);
         if (chunkNode) {
           chunkNodes.set(chunk.id, chunkNode);
           this.cache.set(chunk.id, hash, chunkNode);
@@ -92,8 +111,10 @@ export class ChunkBasedIncrementalParser {
           chunkNodes.set(chunk.id, cached_node);
           cached++;
         } else {
-          // Cache miss - re-parse anyway
-          const chunkNode = this.parseChunk(chunk, documentContext);
+          // Cache miss - re-parse anyway. A refused chunk is never cached, so it is read, and
+          // reported, again on every pass until it parses.
+          const { node: chunkNode, errors: chunkErrors } = this.parseChunk(chunk, documentContext);
+          errors.push(...chunkErrors);
           if (chunkNode) {
             chunkNodes.set(chunk.id, chunkNode);
             this.cache.set(chunk.id, hash, chunkNode);
@@ -104,7 +125,7 @@ export class ChunkBasedIncrementalParser {
     }
 
     // Step 5: Assemble final AST
-    const ast = this.assembleAST(chunkNodes, currentChunks);
+    const { ast, chunkIds } = this.assembleAST(chunkNodes, currentChunks);
 
     // Step 6: Update state for next parse
     this.lastSource = source;
@@ -118,6 +139,8 @@ export class ChunkBasedIncrementalParser {
       parsed,
       duration,
       changedChunks,
+      errors,
+      chunkIds,
     };
   }
 
@@ -234,7 +257,12 @@ export class ChunkBasedIncrementalParser {
    * Parses a single chunk. `documentContext` is what the whole document declares, so a typed
    * function in this chunk may call a function another chunk declares.
    */
-  private parseChunk(chunk: SourceChunk, documentContext?: HsDocumentContext): HSPlusNode | null {
+  private parseChunk(
+    chunk: SourceChunk,
+    documentContext?: HsDocumentContext
+  ): { node: HSPlusNode | null; errors: IncrementalChunkError[] } {
+    // The chunk is parsed on its own, so its lines start at 1; the document's are further down.
+    const offset = chunk.startLine - 1;
     try {
       // Wrap chunk content in a valid document if needed
       const content = this.wrapChunkForParsing(chunk);
@@ -243,13 +271,46 @@ export class ChunkBasedIncrementalParser {
       const result = this.parser.parse(content, { documentContext });
 
       if (result.success && result.ast) {
-        return result.ast as HSPlusNode;
+        return { node: result.ast as HSPlusNode, errors: [] };
       }
 
-      return null;
+      const errors: IncrementalChunkError[] = (result.errors ?? []).map((error) => ({
+        chunkId: chunk.id,
+        line: (error.line ?? 1) + offset,
+        column: error.column ?? 1,
+        ...('code' in error && typeof error.code === 'string' ? { code: error.code } : {}),
+        message: error.message,
+      }));
+      return {
+        node: null,
+        errors: errors.length
+          ? errors
+          : [
+              {
+                chunkId: chunk.id,
+                code: 'HSP000',
+                message: `chunk ${chunk.id} did not parse and gave no error`,
+                line: chunk.startLine,
+                column: 1,
+              },
+            ],
+      };
     } catch (error) {
-      console.warn(`Failed to parse chunk ${chunk.id}:`, error);
-      return null;
+      // No parser error code fits a parser that threw; HSP000 marks it.
+      return {
+        node: null,
+        errors: [
+          {
+            chunkId: chunk.id,
+            code: 'HSP000',
+            message: `the parser threw on chunk ${chunk.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            line: chunk.startLine,
+            column: 1,
+          },
+        ],
+      };
     }
   }
 
@@ -265,30 +326,38 @@ export class ChunkBasedIncrementalParser {
   /**
    * Assembles final AST from parsed chunks
    */
-  private assembleAST(chunkNodes: Map<string, HSPlusNode>, chunks: SourceChunk[]): HSPlusNode {
+  private assembleAST(
+    chunkNodes: Map<string, HSPlusNode>,
+    chunks: SourceChunk[]
+  ): { ast: HSPlusNode; chunkIds: string[] } {
     // Create fragment node containing all chunks
     const children: HSPlusNode[] = [];
+    const chunkIds: string[] = [];
 
     for (const chunk of chunks) {
       const node = chunkNodes.get(chunk.id);
       if (node) {
         children.push(node);
+        chunkIds.push(chunk.id);
       }
     }
 
     // Return fragment or single node
     if (children.length === 1) {
-      return children[0];
+      return { ast: children[0], chunkIds };
     }
 
     return {
-      type: 'fragment',
-      children,
-      properties: {},
-      directives: [],
-      traits: new Map(),
-      loc: { start: { line: 1, column: 0 }, end: { line: 1, column: 0 } },
-    } as unknown as HSPlusNode;
+      ast: {
+        type: 'fragment',
+        children,
+        properties: {},
+        directives: [],
+        traits: new Map(),
+        loc: { start: { line: 1, column: 0 }, end: { line: 1, column: 0 } },
+      } as unknown as HSPlusNode,
+      chunkIds,
+    };
   }
 
   /**

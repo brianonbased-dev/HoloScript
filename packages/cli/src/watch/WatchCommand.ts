@@ -54,6 +54,19 @@ export async function runWatchMode(options: WatchOptions): Promise<() => Promise
         const result = parser.parse(source);
         const durationMs = Date.now() - start;
 
+        // A refused chunk is left out of the result; say so instead of reporting a build.
+        if (result.errors.length > 0) {
+          reporter.errors({
+            file: change.filePath,
+            durationMs,
+            incremental: result.cached > 0,
+            errors: result.errors.map(
+              (error) => `${error.line}:${error.column} ${error.code ?? ''} ${error.message}`
+            ),
+          });
+          continue;
+        }
+
         reporter.built({
           file: change.filePath,
           durationMs,
