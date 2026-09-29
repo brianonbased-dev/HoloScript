@@ -37,6 +37,7 @@ import {
 } from '@/lib/adaptive-platform-layers';
 import { logger } from '@/lib/logger';
 import { detectPlatform } from '@/lib/platform-detect';
+import { resolveEnvironmentPreset } from '@/lib/scene/environmentPreset';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -328,7 +329,10 @@ function EmbedNodeRenderer({
       );
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
     case 'fog':
       return null;
