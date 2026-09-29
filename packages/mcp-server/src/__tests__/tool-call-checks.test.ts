@@ -16,7 +16,7 @@
  *      without dispatching.
  */
 
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -235,5 +235,119 @@ describe('founderGateX402ToolCallCheck', () => {
       violationType: 'tool_not_allowed',
       tool: 'compile_holoscript',
     });
+  });
+});
+
+// task 6fef: POST /mcp and POST /tools/call now run this check through the gate. Until the
+// deployment sets HOLOSCRIPT_STATELESS_TOOL_GATE=enforce they OBSERVE: record and log what they
+// would refuse, and let the call through. These pin both modes with the real check.
+describe('the gate observes, then enforces, as the stateless routes run it', () => {
+  const FRAME = {
+    domain: 'holoscript-language',
+    horizon: '2026-07',
+    capability_tier: 2 as const,
+    trust_tier: 2 as const,
+    allowed_tools: ['parse_hs'],
+    denied_domains: [],
+  };
+  const receiptPath = () => process.env.HOLOSCRIPT_TOOL_CALL_RECEIPT_PATH!;
+  const receipts = () =>
+    fs
+      .readFileSync(receiptPath(), 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+
+  beforeEach(() => {
+    __resetKnownToolsForTest();
+    registerKnownTools(['parse_hs', 'compile_holoscript']);
+    fs.rmSync(receiptPath(), { force: true });
+  });
+
+  async function run(
+    name: string,
+    ctx: ToolCallGateContext,
+    enforcement: 'enforce' | 'observe'
+  ): Promise<{ outcome: string; dispatched: boolean; receipt: Record<string, unknown> }> {
+    let dispatched = false;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const outcome = await gateToolCall(
+      { name, args: {} },
+      ctx,
+      async () => {
+        dispatched = true;
+        return { ok: true };
+      },
+      { check: founderGateX402ToolCallCheck, enforcement }
+    ).then(
+      () => 'ran',
+      (e: unknown) => (e instanceof ToolCallGateDeniedError ? 'refused' : 'threw')
+    );
+    warn.mockRestore();
+    const all = receipts();
+    expect(all).toHaveLength(1);
+    fs.rmSync(receiptPath(), { force: true });
+    return { outcome, dispatched, receipt: all[0] };
+  }
+
+  it('a tool outside the caller frame: enforce refuses before dispatch; observe runs it and records the refusal', async () => {
+    const ctx = { ...httpCtx(['tools:read', 'tools:write']), frameDeclaration: FRAME };
+
+    const enforced = await run('compile_holoscript', ctx, 'enforce');
+    expect(enforced).toMatchObject({ outcome: 'refused', dispatched: false });
+    expect(enforced.receipt).toMatchObject({
+      status: 'error',
+      deniedBy: FRAME_DECLARATION_CHECK_ID,
+    });
+
+    const observed = await run('compile_holoscript', ctx, 'observe');
+    expect(observed).toMatchObject({ outcome: 'ran', dispatched: true });
+    expect(observed.receipt).toMatchObject({
+      status: 'ok',
+      observedDeniedBy: FRAME_DECLARATION_CHECK_ID,
+      frameViolation: { violationType: 'tool_not_allowed', tool: 'compile_holoscript' },
+    });
+    expect(observed.receipt.deniedBy).toBeUndefined();
+  });
+
+  it('a custody-class tool name: enforce refuses; observe records the founder gate', async () => {
+    const ctx = httpCtx(['admin:*']);
+    const enforced = await run('transfer_custody_authority', ctx, 'enforce');
+    expect(enforced).toMatchObject({ outcome: 'refused', dispatched: false });
+    expect(enforced.receipt.deniedBy).toBe(FOUNDER_GATE_CHECK_ID);
+
+    const observed = await run('transfer_custody_authority', ctx, 'observe');
+    expect(observed).toMatchObject({ outcome: 'ran', dispatched: true });
+    expect(observed.receipt.observedDeniedBy).toBe(FOUNDER_GATE_CHECK_ID);
+  });
+
+  it('a tool inside the frame, and a call with no frame at all, run in both modes with nothing refused', async () => {
+    for (const enforcement of ['enforce', 'observe'] as const) {
+      for (const ctx of [
+        { ...httpCtx(['tools:read', 'tools:write']), frameDeclaration: FRAME },
+        httpCtx(['tools:read', 'tools:write']),
+      ]) {
+        const r = await run('parse_hs', ctx, enforcement);
+        expect(r).toMatchObject({ outcome: 'ran', dispatched: true });
+        expect(r.receipt).toMatchObject({ status: 'ok' });
+        expect(r.receipt.observedDeniedBy).toBeUndefined();
+        expect(r.receipt.deniedBy).toBeUndefined();
+      }
+    }
+  });
+
+  it('observe logs the refusal it did not make, so a rollout can read it from the service log', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await gateToolCall(
+      { name: 'compile_holoscript', args: {} },
+      { ...httpCtx(['tools:write']), frameDeclaration: FRAME },
+      async () => ({}),
+      { check: founderGateX402ToolCallCheck, enforcement: 'observe' }
+    );
+    const logged = warn.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(logged).toContain(
+      '[ToolCallGate] observe: would deny "compile_holoscript" for agent-test on http (check: frame-declaration)'
+    );
+    warn.mockRestore();
   });
 });

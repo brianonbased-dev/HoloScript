@@ -138,6 +138,11 @@ export interface ToolCallReceipt {
   readonly errorClass?: string;
   /** The check that denied the call, when denial (not dispatch) produced the error. */
   readonly deniedBy?: string;
+  /**
+   * The check that WOULD have denied the call, when the gate ran in `observe` mode and let it
+   * through. A rollout reads these before switching a transport to `enforce`.
+   */
+  readonly observedDeniedBy?: string;
   /** Structured frame boundary event when frame enforcement denied the call. */
   readonly frameViolation?: FrameViolationReceipt;
 }
@@ -296,6 +301,13 @@ export interface ToolCallGateOptions<T> {
   readonly check?: ToolCallCheck;
   /** Maps the dispatch result onto ok|error for the receipt. Default: always ok. */
   readonly classifyResult?: ToolCallResultClassifier<T>;
+  /**
+   * `enforce` (the default): a denial throws and nothing is dispatched. `observe`: a denial is
+   * logged and written to the receipt as `observedDeniedBy` (with its frame violation), and the
+   * call proceeds. For turning the gate on at a transport that never ran it: first see which
+   * callers it would refuse, then enforce.
+   */
+  readonly enforcement?: 'enforce' | 'observe';
 }
 
 function errorClassOf(error: unknown): string {
@@ -333,11 +345,15 @@ export async function gateToolCall<T>(
     startedAt: new Date(startedAtMs).toISOString(),
   };
 
+  // Set in observe mode when the check would have refused: carried into the one receipt.
+  let observed: { observedDeniedBy: string; frameViolation?: FrameViolationReceipt } | undefined;
+
   const finishReceipt = (
     status: 'ok' | 'error',
     extra?: { errorClass?: string; deniedBy?: string; frameViolation?: FrameViolationReceipt }
   ): void => {
     const endedAtMs = Date.now();
+    const frameViolation = extra?.frameViolation ?? observed?.frameViolation;
     writeToolCallReceipt({
       ...base,
       endedAt: new Date(endedAtMs).toISOString(),
@@ -345,18 +361,30 @@ export async function gateToolCall<T>(
       status,
       ...(extra?.errorClass !== undefined ? { errorClass: extra.errorClass } : {}),
       ...(extra?.deniedBy !== undefined ? { deniedBy: extra.deniedBy } : {}),
-      ...(extra?.frameViolation !== undefined ? { frameViolation: extra.frameViolation } : {}),
+      ...(observed !== undefined ? { observedDeniedBy: observed.observedDeniedBy } : {}),
+      ...(frameViolation !== undefined ? { frameViolation } : {}),
     });
   };
 
   const decision = await check(envelope, ctx);
   if (!decision.allowed) {
-    finishReceipt('error', {
-      errorClass: 'ToolCallGateDeniedError',
-      deniedBy: decision.check,
-      ...(decision.violation !== undefined ? { frameViolation: decision.violation } : {}),
-    });
-    throw new ToolCallGateDeniedError(envelope.name, decision.check, decision.reason);
+    if (options?.enforcement === 'observe') {
+      observed = {
+        observedDeniedBy: decision.check,
+        ...(decision.violation !== undefined ? { frameViolation: decision.violation } : {}),
+      };
+      console.warn(
+        `[ToolCallGate] observe: would deny "${envelope.name}" for ${ctx.callerId ?? 'an unnamed caller'} ` +
+          `on ${ctx.transport} (check: ${decision.check})${decision.reason ? `: ${decision.reason}` : ''}`
+      );
+    } else {
+      finishReceipt('error', {
+        errorClass: 'ToolCallGateDeniedError',
+        deniedBy: decision.check,
+        ...(decision.violation !== undefined ? { frameViolation: decision.violation } : {}),
+      });
+      throw new ToolCallGateDeniedError(envelope.name, decision.check, decision.reason);
+    }
   }
 
   try {
