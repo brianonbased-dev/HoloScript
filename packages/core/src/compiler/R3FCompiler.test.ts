@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import type { HoloComposition, HoloWorld } from '../parser/HoloCompositionTypes';
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
+import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
 import { SceneIRCompiler as R3FCompiler, type R3FNode } from './SceneIRCompiler';
 
 function minimalComposition(overrides: Partial<HoloComposition>): HoloComposition {
@@ -419,5 +420,161 @@ describe('R3FCompiler.compileComposition — scene blocks', () => {
       expect(withScene.scenes).toHaveLength(1);
       expect(treeText(compiler.compileComposition(withScene))).toBe(treeText(plain));
     }
+  });
+});
+
+describe('R3FCompiler.compileComposition — post_processing, environment and group blocks', () => {
+  // Studio's viewport draws a composition through compileComposition. Text it
+  // used to read with the .hsplus parser went through compile() instead, which
+  // drew three things compileComposition dropped: the bloom of a post_processing
+  // block, the Environment node of an environment block without a skybox (which
+  // sets the viewport's lighting preset), and the objects inside a group block.
+  const compiler = new R3FCompiler({});
+  const compose = (source: string) => compiler.compileComposition(parseClean(source));
+  /** The same text read the old way: the .hsplus parser, then compile(). */
+  const hsplusReading = (source: string) => {
+    const result = new HoloScriptPlusParser().parse(source);
+    expect(result.errors).toEqual([]);
+    return compiler.compile(result.ast);
+  };
+  const composers = (root: R3FNode) =>
+    (root.children ?? []).filter((n) => n.type === 'EffectComposer');
+  /** Each effect in the tree's EffectComposer, as [node type, settings]. */
+  const effects = (root: R3FNode) =>
+    composers(root).flatMap((c) => (c.children ?? []).map((e) => [e.type, e.props]));
+  const environments = (root: R3FNode) =>
+    (root.children ?? []).filter((n) => n.type === 'Environment');
+
+  it('draws the bloom of a post_processing block, as the .hsplus reading of the same text does', () => {
+    const source = `composition "Glow" {
+  object "Orb" { geometry: "sphere" }
+  post_processing {
+    bloom: { intensity: 0.4, threshold: 0.7 }
+  }
+}`;
+    const root = compose(source);
+    expect(composers(root)).toHaveLength(1);
+    expect(effects(root)).toEqual([['Bloom', { intensity: 0.4, threshold: 0.7 }]]);
+    expect(effects(root)).toEqual(effects(hsplusReading(source)));
+  });
+
+  it('reads a post_processing block the way it reads an effects block, leaving out what is not an effect', () => {
+    const root = compose(`composition "Look" {
+  post_processing {
+    bloom { intensity: 0.3 }
+    vignette: { darkness: 0.5 }
+    tone_mapping: { mode: "aces" }
+    ssao: { enabled: false, radius: 0.4 }
+    chromatic_aberration: 0.002
+    exposure: 1.2
+    color_grading: { saturation: 1.1 }
+  }
+}`);
+    // Switched off (enabled: false), not settings (a bare number), block-wide
+    // settings (exposure) and effects no node renders (color_grading) stay out.
+    expect(effects(root)).toEqual([
+      ['Bloom', { intensity: 0.3 }],
+      ['Vignette', { darkness: 0.5 }],
+      ['ToneMapping', { mode: 'aces' }],
+    ]);
+    const viaEffectsBlock = compose(`composition "Look" {
+  effects {
+    bloom { intensity: 0.3 }
+    vignette { darkness: 0.5 }
+    tone_mapping { mode: "aces" }
+  }
+}`);
+    expect(treeText(root)).toBe(treeText(viaEffectsBlock));
+  });
+
+  it("puts a post_processing block's effects after an effects block's, in one EffectComposer", () => {
+    const root = compose(`composition "Look" {
+  effects {
+    vignette { darkness: 0.5 }
+  }
+  post_processing {
+    bloom: { intensity: 0.3 }
+  }
+}`);
+    expect(composers(root)).toHaveLength(1);
+    expect(effects(root)).toEqual([
+      ['Vignette', { darkness: 0.5 }],
+      ['Bloom', { intensity: 0.3 }],
+    ]);
+  });
+
+  it('gives an environment block without a skybox the Environment node the .hsplus reading gives it', () => {
+    const source = `composition "Room" {
+  environment {
+    backgroundColor: "#101010"
+    shadows: true
+  }
+  object "Floor" { geometry: "plane" }
+}`;
+    const root = compose(source);
+    const oldReading = hsplusReading(source);
+    expect(environments(root)).toHaveLength(1);
+    expect(environments(oldReading)).toHaveLength(1);
+    // Studio renders an Environment node as <Environment preset={envPreset || 'studio'}
+    // background={background ?? false} />: both readings give it the same two.
+    const renderedAs = (tree: R3FNode) =>
+      environments(tree).map((n) => [n.props.envPreset ?? 'studio', n.props.background ?? false]);
+    expect(renderedAs(root)).toEqual([['studio', false]]);
+    expect(renderedAs(root)).toEqual(renderedAs(oldReading));
+
+    // Without an environment block there is still no Environment node, so the
+    // viewport keeps its own fallback lighting, as it does for the .hsplus reading.
+    const bare = `composition "Room" {\n  object "Floor" { geometry: "plane" }\n}`;
+    expect(environments(compose(bare))).toEqual([]);
+    expect(environments(hsplusReading(bare))).toEqual([]);
+  });
+
+  it("builds the objects of a group block inside a group node that carries the group's transform", () => {
+    const body = `"Shelf" {
+    position: [0, 1, 0]
+    rotation: [0, 45, 0]
+    scale: 2
+    object "BookA" { geometry: "cube" position: [0.5, 0, 0] }
+    object "BookB" { geometry: "cube" position: [-0.5, 0, 0] }
+  }`;
+    const source = `composition "Study" {\n  group ${body}\n}`;
+    const root = compose(source);
+    const shelf = root.children?.find((n) => n.id === 'Shelf');
+    expect(shelf?.type).toBe('group');
+    expect(shelf?.props).toEqual({ position: [0, 1, 0], rotation: [0, 45, 0], scale: [2, 2, 2] });
+    // Each object keeps its own position, which is relative to the group.
+    expect(shelf?.children?.map((n) => [n.id, n.type, n.props.hsType, n.props.position])).toEqual([
+      ['BookA', 'mesh', 'cube', [0.5, 0, 0]],
+      ['BookB', 'mesh', 'cube', [-0.5, 0, 0]],
+    ]);
+    // The .hsplus reading nests the same objects under the same transform.
+    const oldShelf = hsplusReading(source).children?.find((n) => n.id === 'Shelf');
+    expect(oldShelf?.children?.map((n) => [n.id, n.props.position])).toEqual([
+      ['BookA', [0.5, 0, 0]],
+      ['BookB', [-0.5, 0, 0]],
+    ]);
+    expect([oldShelf?.props.position, oldShelf?.props.rotation]).toEqual([
+      [0, 1, 0],
+      [0, 45, 0],
+    ]);
+    // And it compiles exactly as the .holo spelling, spatial_group, does.
+    expect(treeText(root)).toBe(
+      treeText(compose(`composition "Study" {\n  spatial_group ${body}\n}`))
+    );
+  });
+
+  it('leaves a composition without such content exactly as it is without those blocks', () => {
+    // A render pipeline's shader settings are not effects, and a block that is not
+    // a group is still not drawn: neither adds a node.
+    const withBlocks = compose(`composition "Gpu" {
+  object "Orb" { geometry: "sphere" }
+  render_pipeline "ParticleRender" {
+    vertex_shader: "void main() {}"
+    exposure: 1.2
+  }
+  widget "Panel" { size: 2 }
+}`);
+    const without = compose(`composition "Gpu" {\n  object "Orb" { geometry: "sphere" }\n}`);
+    expect(treeText(withBlocks)).toBe(treeText(without));
   });
 });

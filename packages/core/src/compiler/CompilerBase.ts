@@ -18,6 +18,7 @@ import type { CulturalProfileMetadata } from './identity';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
 import type {
   HoloComposition,
+  HoloDomainBlock,
   HoloObjectDecl,
   HoloSpatialGroup,
 } from '../parser/HoloCompositionTypes';
@@ -595,6 +596,70 @@ export function flattenCompositionScenes(
     },
     unappliedEnvironments,
     leftOutObjects,
+  };
+}
+
+/**
+ * Read `group "X" { ... }` blocks as the spatial groups they describe.
+ *
+ * The `.holo` spelling of a group is `spatial_group`, and `group` is not a
+ * keyword. The parser still accepts `group "X" { ... }`, the way it accepts any
+ * block it does not know: it keeps it on `composition.domainBlocks` as a custom
+ * domain block, with the objects written inside it on `children` and its other
+ * lines (`position: [...]`, ...) on `properties`. A compiler that builds objects
+ * from `composition.objects` and `composition.spatialGroups` therefore leaves
+ * every object inside such a block out of its output, and says nothing, while
+ * the `.hsplus` reading of the same text draws them inside their group.
+ *
+ * This returns a composition in which each such block is a spatial group
+ * instead: the same name, its lines as the group's properties (so `position`,
+ * `rotation` and `scale` move the group the way they move a `spatial_group`), and
+ * its objects inside it, each keeping its own position relative to the group.
+ * The groups follow the composition's own spatial groups, in source order, and
+ * the blocks leave `domainBlocks`, so nothing reads them twice. A compiler calls
+ * this before it compiles and then compiles the composition it returns. If it
+ * also calls {@link flattenCompositionScenes}, it calls this first: flattening
+ * then counts the objects inside these groups among the names already in use, so
+ * with `identifierOf` a scene object that would clash with one of them is left
+ * out and listed, rather than built twice under one identifier.
+ *
+ * Not carried over, because a spatial group has no place for them: the block's
+ * `@trait` names (each trait's settings stay among the properties) and its
+ * `on...` handlers. A `group` written inside a group block is read by the parser
+ * as one of that block's properties, not as a block, so it is not read either.
+ *
+ * Without group blocks the input itself is returned, so such a composition
+ * compiles exactly as before. The input is never changed.
+ */
+export function readGroupBlocksAsSpatialGroups(composition: HoloComposition): HoloComposition {
+  const blocks = composition.domainBlocks ?? [];
+  const isGroupBlock = (block: HoloDomainBlock) =>
+    block.domain === 'custom' && String(block.keyword ?? '').toLowerCase() === 'group';
+  if (!blocks.some(isGroupBlock)) return composition;
+
+  const groups: HoloSpatialGroup[] = [];
+  const otherBlocks: HoloDomainBlock[] = [];
+  for (const block of blocks) {
+    if (!isGroupBlock(block)) {
+      otherBlocks.push(block);
+      continue;
+    }
+    groups.push({
+      type: 'SpatialGroup',
+      name: block.name,
+      properties: Object.entries(block.properties ?? {}).map(([key, value]) => ({
+        type: 'GroupProperty' as const,
+        key,
+        value,
+      })),
+      objects: block.children ?? [],
+      ...(block.loc ? { loc: block.loc } : {}),
+    });
+  }
+  return {
+    ...composition,
+    domainBlocks: otherBlocks,
+    spatialGroups: [...(composition.spatialGroups ?? []), ...groups],
   };
 }
 
