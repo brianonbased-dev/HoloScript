@@ -2106,11 +2106,18 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       fs.writeFileSync(resolved, c, 'utf-8');
     },
     exists: (p: string) => fs.existsSync(path.resolve(repoRoot, p)),
-    exec: (cmd: string, args: string[] = [], execOpts: { cwd?: string; timeoutMs?: number } = {}) =>
+    exec: (
+      cmd: string,
+      args: string[] = [],
+      execOpts: { cwd?: string; timeoutMs?: number; env?: Record<string, string> } = {}
+    ) =>
       new Promise<import('@holoscript/absorb-service/daemon').DaemonExecResult>(
         (resolve, reject) => {
           const child = spawn(cmd, args, {
             cwd: execOpts.cwd ?? repoRoot,
+            // The daemon's commit passes HOLODAEMON_ACTIVE=1 this way, so the repo
+            // pre-commit runs its secret scan and skips only the slow gates.
+            env: { ...process.env, ...(execOpts.env ?? {}) },
             shell: true,
             stdio: ['ignore', 'pipe', 'pipe'],
           });
