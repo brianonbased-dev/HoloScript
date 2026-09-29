@@ -48,6 +48,7 @@ import {
 } from '@/lib/brittney/SimContractGate';
 import { recordComputeTrace } from '@/lib/brittney/computeTraceRecorder';
 import { checkAppliedCode, repairNotice, repairRequest } from '@/lib/brittney/appliedCodeCheck';
+import { countBrittneyMessage, dailyLimitMessage } from '@/lib/brittney/dailyUsage';
 import {
   LOTUS_TOOLS,
   LOTUS_TOOL_NAMES,
@@ -211,6 +212,32 @@ export async function POST(request: NextRequest) {
     );
     if (!limit.ok) {
       return limit.response;
+    }
+
+    // Free chat has a daily limit per person, so strangers cannot run up our
+    // bill (founder sheet line "daily-limit"). Counted before any model call.
+    // The founder and the benchmark runner are not limited. With no database
+    // the count is null and Brittney carries on: on our own machines a message
+    // costs us close to nothing, and a paid path must make its own check.
+    __phase = 'daily-limit';
+    const dailyUserId = (auth as { user?: { id?: string } }).user?.id ?? '';
+    if (dailyUserId && dailyUserId !== 'benchmark' && !allowFounderWorkspace) {
+      const daily = await countBrittneyMessage(dailyUserId);
+      if (daily && !daily.allowed) {
+        const retryAfter = Math.max(1, Math.ceil((daily.resetsAt.getTime() - Date.now()) / 1000));
+        return NextResponse.json(
+          {
+            error: 'Daily limit reached',
+            code: 'daily_limit',
+            // For people, shown as Brittney's reply (BrittneySession readRefusalNotice).
+            notice: dailyLimitMessage(daily),
+            limit: daily.limit,
+            used: daily.used,
+            resetsAt: daily.resetsAt.toISOString(),
+          },
+          { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+        );
+      }
     }
 
     __phase = 'holoshell-operator';
@@ -1312,6 +1339,7 @@ function sseHeaders(): HeadersInit {
 type BrittneyPhase =
   | 'auth'
   | 'rate-limit'
+  | 'daily-limit'
   | 'parse'
   | 'credit'
   | 'persistence'
@@ -1556,6 +1584,8 @@ function hintForPhase(phase: BrittneyPhase): string {
       return 'Auth gate threw before returning a response. Check session provider env (NextAuth/supabase) and DB connectivity.';
     case 'rate-limit':
       return 'Rate limiter store unavailable. Check Redis or in-memory store connectivity.';
+    case 'daily-limit':
+      return 'The daily message count threw unexpectedly (it is designed fail-soft). Check brittney_daily_usage and DATABASE_URL.';
     case 'provider':
       return 'Set HOLOLLAMA_URL (or HOLOSERVE_URL) for a local model, or BRITTNEY_PROVIDER + its key (e.g. anthropic + ANTHROPIC_API_KEY). See lib/brittney/provider.ts.';
     case 'parse':

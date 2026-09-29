@@ -138,6 +138,20 @@ export function buildRichContext(
 // ─── Stream consumer ──────────────────────────────────────────────────────────
 
 /**
+ * The sentence a refusing /api/brittney wrote for people (`notice`), if it wrote
+ * one. `message` is not read: the route's 503 diagnostic puts technical text
+ * there, which must not be shown as if Brittney had said it.
+ */
+async function readRefusalNotice(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { notice?: unknown };
+    return typeof body.notice === 'string' && body.notice.trim() ? body.notice.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Calls POST /api/brittney and yields parsed SSE events.
  */
 export async function* streamAssistant(
@@ -167,7 +181,16 @@ export async function* streamAssistant(
   });
 
   if (!response.ok || !response.body) {
-    yield { type: 'error', payload: `API error ${response.status}: ${response.statusText}` };
+    // A refusal that explains itself to people (a `notice`, as the daily limit
+    // sends) is shown as Brittney's reply, in its own words. It used to reach
+    // the person as "API error 429: Too Many Requests", with the server's
+    // explanation thrown away.
+    const explained = response.ok ? null : await readRefusalNotice(response);
+    if (explained) {
+      yield { type: 'text', payload: explained };
+    } else {
+      yield { type: 'error', payload: `API error ${response.status}: ${response.statusText}` };
+    }
     yield { type: 'done', payload: null };
     return;
   }

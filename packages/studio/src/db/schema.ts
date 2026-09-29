@@ -625,6 +625,26 @@ export const brittneyMessages = pgTable(
   (t) => [uniqueIndex('idx_brittney_msgs_convo_seq').on(t.conversationId, t.seq)]
 );
 
+// Brittney's daily usage: how many messages each person sent today, and what
+// paid-model answers cost. One row per (scope, UTC day). `scope` is a user id,
+// or '*' for everyone together (the day's total, which the paid-model ceiling
+// reads). Counts are incremented in place, so concurrent requests cannot lose
+// a message the way a read-then-write would. The daily limit exists so free
+// chat cannot run up a bill (founder sheet line "daily-limit", 2026-09-28).
+export const brittneyDailyUsage = pgTable(
+  'brittney_daily_usage',
+  {
+    scope: text('scope').notNull(),
+    day: varchar('day', { length: 10 }).notNull(), // UTC, YYYY-MM-DD
+    messages: integer('messages').default(0).notNull(),
+    paidMessages: integer('paid_messages').default(0).notNull(),
+    // Paid-model cost in millionths of a US dollar, as the provider reported it.
+    paidCostMicroUsd: integer('paid_cost_micro_usd').default(0).notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.scope, t.day] })]
+);
+
 // =============================================================================
 // USER API KEYS (programmatic Brittney access)
 // =============================================================================
