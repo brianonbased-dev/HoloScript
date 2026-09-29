@@ -119,6 +119,8 @@ const BRAIN: RuntimeBrainConfig = {
   requires: [],
   prefers: [],
   avoids: [],
+  claimRoles: [],
+  refuseTags: [],
 };
 
 function freshGuard() {

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { loadIdentity, identityForLog } from '../identity.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { loadIdentity, identityForLog, VALID_PROVIDERS } from '../identity.js';
 
 const VALID_ENV: NodeJS.ProcessEnv = {
   HOLOSCRIPT_AGENT_HANDLE: 'security-auditor',
@@ -42,6 +44,18 @@ describe('loadIdentity', () => {
     ).toBe('openrouter');
   });
 
+  it('accepts sovereign (README + deploy example both use it, and buildProvider wires it)', () => {
+    expect(
+      loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_PROVIDER: 'sovereign' }).llmProvider
+    ).toBe('sovereign');
+  });
+
+  it('rejects bitnet (nothing in this package wires it — it would pass validation and then throw "not yet wired" at boot)', () => {
+    expect(() =>
+      loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_PROVIDER: 'bitnet' })
+    ).toThrowError(/HOLOSCRIPT_AGENT_PROVIDER/);
+  });
+
   it('rejects malformed wallets (W.087 vertex B identity discipline)', () => {
     expect(() =>
       loadIdentity({ ...VALID_ENV, HOLOSCRIPT_AGENT_WALLET: 'not-a-wallet' })
@@ -68,5 +82,63 @@ describe('loadIdentity', () => {
     const log = identityForLog(id);
     expect(String(log.bearer)).not.toContain(VALID_ENV.HOLOSCRIPT_AGENT_X402_BEARER);
     expect(String(log.wallet)).toContain('…');
+  });
+});
+
+/**
+ * Drift guard: VALID_PROVIDERS (this file) is the single source of truth
+ * supervisor-config.ts imports instead of keeping its own copy. That fixed
+ * one drift (both sets had 'bitnet', which neither switch wired) but does
+ * nothing to stop a NEW one — someone could add a provider to VALID_PROVIDERS
+ * without ever adding the case index.ts's two factories need to actually
+ * construct it. This test reads index.ts as text and fails loudly if that
+ * ever happens again, instead of a config validating fine and then throwing
+ * "not yet wired" at boot (exactly what happened with 'bitnet').
+ *
+ * Textual scan rather than invoking the real factories: `buildProvider`'s and
+ * `supervisorProviderFactory`'s 'sovereign' case calls
+ * resolveSovereignProviderAsync(), which does real fleet/cloud/Ollama probing
+ * — invoking it from a unit test would be slow and network-dependent. Scanning
+ * source text for the `case '<provider>':` a switch must have is a direct,
+ * side-effect-free check of the same fact.
+ */
+describe('VALID_PROVIDERS / provider-switch parity (index.ts)', () => {
+  function sliceFunctionBody(src: string, functionNamePattern: RegExp): string {
+    const m = functionNamePattern.exec(src);
+    if (!m) {
+      throw new Error(`could not find a function matching ${functionNamePattern} in index.ts`);
+    }
+    const braceStart = src.indexOf('{', m.index + m[0].length);
+    let depth = 1;
+    for (let i = braceStart + 1; i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') {
+        depth--;
+        if (depth === 0) return src.slice(braceStart + 1, i);
+      }
+    }
+    throw new Error(`unbalanced braces scanning ${functionNamePattern} in index.ts`);
+  }
+
+  it('every provider in VALID_PROVIDERS has a case in both buildProvider (CLI) and supervisorProviderFactory (supervise)', () => {
+    const indexSrc = readFileSync(resolve(import.meta.dirname, '../index.ts'), 'utf8');
+    const buildProviderBody = sliceFunctionBody(indexSrc, /function buildProvider\(/);
+    const supervisorFactoryBody = sliceFunctionBody(indexSrc, /function supervisorProviderFactory\(/);
+
+    for (const provider of VALID_PROVIDERS) {
+      expect(buildProviderBody, `buildProvider has no case for "${provider}"`).toMatch(
+        new RegExp(`case '${provider}':`)
+      );
+      expect(
+        supervisorFactoryBody,
+        `supervisorProviderFactory has no case for "${provider}"`
+      ).toMatch(new RegExp(`case '${provider}':`));
+    }
+  });
+
+  it('the shared set is exactly the 8 providers this runtime wires today (sovereign in, bitnet out)', () => {
+    expect([...VALID_PROVIDERS].sort()).toEqual(
+      ['anthropic', 'gemini', 'local-llm', 'mock', 'openai', 'openrouter', 'sovereign', 'xai'].sort()
+    );
   });
 });

@@ -67,6 +67,107 @@ describe('pickClaimableTask', () => {
   });
 });
 
+// ── Brain-declared claim filter (roles / refuseTags) ──────────────────────────
+// A brain tagged "review" used to be able to claim ANY task whose title merely
+// contained the word "review" via the tag/text scoring above — including a fix
+// task titled "[FIX IN PR #N, needs distinct-seat review]", or a login/key/
+// money/security review that must stay with a human-grade seat. `roles` and
+// `refuseTags` are enforced BEFORE scoring, closing that gap. Omitting the
+// third argument entirely (the describe block above) must keep behaving
+// exactly as before — that is the regression floor this feature sits on.
+describe('pickClaimableTask — brain-declared claim filter (roles / refuseTags)', () => {
+  const reviewTasks: BoardTask[] = [
+    {
+      id: 'r1',
+      title: 'code review: paper-21 threat model',
+      description: 'review the write-up',
+      priority: 'high',
+      tags: ['review', 'studio'],
+      status: 'open',
+      role: 'reviewer',
+    },
+    {
+      id: 'r2',
+      title: '[FIX IN PR #42, needs distinct-seat review]',
+      description: 'apply the reviewer-requested fix',
+      priority: 'high',
+      tags: ['review'],
+      status: 'open',
+      role: 'fixer',
+    },
+    {
+      id: 'r3',
+      title: 'review the login flow',
+      description: 'security-sensitive review',
+      priority: 'high',
+      tags: ['review', 'auth'],
+      status: 'open',
+      role: 'reviewer',
+    },
+    {
+      id: 'r4',
+      title: '[review][auth] rotate signing keys',
+      description: 'no auth tag, but the title says otherwise',
+      priority: 'high',
+      tags: ['review'],
+      status: 'open',
+      role: 'reviewer',
+    },
+  ];
+
+  it('roles=["reviewer"] ignores a non-reviewer task even though its title contains "review"', () => {
+    const picked = pickClaimableTask([reviewTasks[1]], ['review'], { roles: ['reviewer'] });
+    expect(picked).toBeUndefined();
+  });
+
+  it('refuseTags refuses a reviewer task tagged "auth"', () => {
+    const picked = pickClaimableTask([reviewTasks[2]], ['review'], {
+      roles: ['reviewer'],
+      refuseTags: ['auth'],
+    });
+    expect(picked).toBeUndefined();
+  });
+
+  it('refuseTags refuses a task titled with a bracketed "[auth]" token even when it carries no auth tag', () => {
+    const picked = pickClaimableTask([reviewTasks[3]], ['review'], {
+      roles: ['reviewer'],
+      refuseTags: ['auth'],
+    });
+    expect(picked).toBeUndefined();
+  });
+
+  it('a plain reviewer task tagged [review, studio] is picked (roles + refuseTags both satisfied)', () => {
+    const picked = pickClaimableTask(reviewTasks, ['review', 'studio'], {
+      roles: ['reviewer'],
+      refuseTags: ['auth', 'security'],
+    });
+    expect(picked?.id).toBe('r1');
+  });
+
+  it('two-argument calls are unaffected (backward compatibility)', () => {
+    const plain: BoardTask[] = [
+      {
+        id: 'p1',
+        title: 'unrelated UI tweak',
+        description: '',
+        priority: 'low',
+        tags: ['ui'],
+        status: 'open',
+      },
+      {
+        id: 'p2',
+        title: 'security memo',
+        description: 'threat model follow-up',
+        priority: 'high',
+        tags: ['security'],
+        status: 'open',
+      },
+    ];
+    // No third argument at all — must score/select exactly as before this feature existed.
+    expect(pickClaimableTask(plain, ['security'])?.id).toBe('p2');
+  });
+});
+
 describe('HolomeshClient', () => {
   it('sends bearer + content-type on every request and parses JSON', async () => {
     const calls: Array<{ url: string; init: RequestInit }> = [];

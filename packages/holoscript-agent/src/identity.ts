@@ -1,15 +1,26 @@
 import type { LLMProviderName } from '@holoscript/llm-provider';
 import type { AgentIdentity } from './types.js';
 
-const VALID_PROVIDERS: ReadonlySet<LLMProviderName> = new Set([
+/**
+ * Single source of truth for the providers this runtime actually wires — both
+ * `buildProvider` (index.ts, the CLI `run`/`tick` path) and
+ * `supervisorProviderFactory` (index.ts, the `supervise` path) switch on
+ * exactly this set. supervisor-config.ts imports this instead of keeping its
+ * own copy (they drifted before: this set had 'bitnet', which neither switch
+ * wired — a config validated fine and then threw "not yet wired" at boot).
+ * A provider belongs here IFF a switch case exists for it; add the case
+ * first, then add it here. See identity.test.ts's provider/switch parity
+ * test, which fails if the two are ever out of sync again.
+ */
+export const VALID_PROVIDERS: ReadonlySet<LLMProviderName> = new Set([
   'anthropic',
   'openai',
   'gemini',
   'xai',
   'openrouter',
   'mock',
-  'bitnet',
   'local-llm',
+  'sovereign',
 ]);
 
 export function loadIdentity(env: NodeJS.ProcessEnv = process.env): AgentIdentity {

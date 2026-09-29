@@ -269,6 +269,62 @@ composition "RoutingAware" {
     expect(brain.avoids).toEqual([]);
   });
 
+  // ─── Brain-declared claim filter (claim_roles / refuse_tags) ──────────────
+  // Parsed with the same strings() helper as capability_tags/requires/prefers/
+  // avoids. Backward-compat: a brain without these fields gets [] (no
+  // restriction) — asserted above by every pre-existing loadBrain test that
+  // never checks claimRoles/refuseTags at all.
+
+  it('extracts claim_roles/refuse_tags when declared in identity block', async () => {
+    const BRAIN_WITH_CLAIM_FILTER = `
+composition "RoleScoped" {
+  identity {
+    domain: "review"
+    capability_tags: ["review", "code-review"]
+    claim_roles: ["reviewer"]
+    refuse_tags: ["auth", "security", "custody"]
+  }
+
+  decision_loop { priority_1: "review the change" }
+}
+`;
+    const path = join(dir, 'claim-filter.hsplus');
+    writeFileSync(path, BRAIN_WITH_CLAIM_FILTER, 'utf8');
+    const brain = await loadBrain(path);
+    expect(brain.claimRoles).toEqual(['reviewer']);
+    expect(brain.refuseTags).toEqual(['auth', 'security', 'custody']);
+  });
+
+  it('defaults claim_roles/refuse_tags to empty arrays for backward-compat', async () => {
+    const path = join(dir, 'no-claim-filter.hsplus');
+    writeFileSync(path, MINI_BRAIN, 'utf8');
+    const brain = await loadBrain(path);
+    expect(brain.claimRoles).toEqual([]);
+    expect(brain.refuseTags).toEqual([]);
+  });
+
+  // The real PR-reviewer brain (founder-approved native reviewer agent,
+  // compositions/pr-reviewer-brain.hsplus at the repo root — same convention
+  // as security-auditor-brain.hsplus / lean-theorist-brain.hsplus). Loaded
+  // through the identical runtime projection as every other production brain.
+  it('loads the real PR-reviewer brain (compositions/pr-reviewer-brain.hsplus) with its claim filter and llm_call tools', async () => {
+    const brainPath = resolve(import.meta.dirname, '../../../../compositions/pr-reviewer-brain.hsplus');
+    const brain = await loadBrain(brainPath);
+
+    expect(brain.domain).toBe('review');
+    expect(brain.capabilityTags).toEqual(['review', 'code-review', 'pr-review']);
+    expect(brain.claimRoles).toEqual(['reviewer']);
+    expect(brain.refuseTags).toEqual(
+      expect.arrayContaining(['auth', 'security', 'custody', 'wallet', 'money'])
+    );
+    expect(brain.onTaskActions?.map((a) => a.verb)).toEqual(['llm_call', 'reflect']);
+    const llmCall = brain.onTaskActions?.find((a) => a.verb === 'llm_call');
+    expect(llmCall?.config.tools).toEqual(['http_request', 'write_file', 'read_file']);
+    expect(brain.reflect?.escalateOnFail).toBe(true);
+    expect(brain.systemPrompt).toContain('HoloScript PR reviewer');
+    expect(brain.systemPrompt).not.toContain('#version');
+  });
+
   it('supports routing fields under the colon-form identity block', async () => {
     // identity: { ... } variant must also extract routing fields, mirroring
     // the capability_tags fix that closed the silent claim-blackhole.

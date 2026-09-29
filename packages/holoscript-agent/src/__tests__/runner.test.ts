@@ -166,6 +166,8 @@ const BRAIN: RuntimeBrainConfig = {
   requires: [],
   prefers: [],
   avoids: [],
+  claimRoles: [],
+  refuseTags: [],
 };
 
 describe('AgentRunner.tick', () => {

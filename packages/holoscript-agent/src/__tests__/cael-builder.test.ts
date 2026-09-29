@@ -26,6 +26,8 @@ const brain: RuntimeBrainConfig = {
   requires: [],
   prefers: [],
   avoids: [],
+  claimRoles: [],
+  refuseTags: [],
 };
 
 const task: BoardTask = {
