@@ -492,3 +492,79 @@ test('compiler-wasm drift gate accepts a receipt naming the source being committ
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('compiler-wasm drift gate lets a new export be committed before the rebuild, then asks for the rebuild', () => {
+  const root = createFixtureRepo();
+  try {
+    commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 });
+    // The Rust change adds an export and is staged, as in pre-commit; the build is not redone.
+    write(
+      join(root, 'src/lib.rs'),
+      '#[wasm_bindgen]\npub fn parse() {}\n#[wasm_bindgen]\npub fn holo_modules_json() {}\n'
+    );
+    git(root, ['add', 'src/lib.rs']);
+    const pending = runGate(root);
+    // Exports are read from the source the receipt names, which has `parse` only.
+    assert.equal(pending.status, 0, `${pending.stdout}\n${pending.stderr}`);
+    git(root, ['commit', '-m', 'the Rust change adds an export']);
+    const after = runGate(root);
+    assert.equal(after.status, 1, `${after.stdout}\n${after.stderr}`);
+    assert.match(after.stderr, /WASM artifact is stale|Rust build input\(s\) changed/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate counts a file the WASM embeds outside tests as a build input', () => {
+  const root = createFixtureRepo();
+  try {
+    mkdirSync(join(root, 'decl'), { recursive: true });
+    write(join(root, 'decl/absorb.hs'), 'export function f(): bool {\n  return true\n}\n');
+    write(join(root, 'decl/fixture.hs'), 'function t() {}\n');
+    write(
+      join(root, 'src/lib.rs'),
+      [
+        '#[wasm_bindgen]',
+        'pub fn parse() {}',
+        'const DECLARATIONS: &str = include_str!("../decl/absorb.hs");',
+        '#[cfg(test)]',
+        'mod tests {',
+        '    const FIXTURE: &str = include_str!("../decl/fixture.hs");',
+        '}',
+        '',
+      ].join('\n')
+    );
+    git(root, ['add', 'package.json', 'src/lib.rs', 'decl']);
+    git(root, ['commit', '-m', 'source with an embedded declaration file']);
+    const head = git(root, ['rev-parse', 'HEAD']).stdout.trim();
+    write(join(root, 'pkg-node/artifact.cjs'), 'exports.parse = function parse() {};\n');
+    writeFileSync(
+      join(root, 'pkg-node/holoscript_wasm_bg.wasm'),
+      Buffer.from([0, 97, 115, 109, 1])
+    );
+    write(
+      join(root, 'pkg-node/rebuild-receipt.json'),
+      `${JSON.stringify({ sourceCommit: head, result: { wasmSha256: WASM_SHA, wasmBytes: 5 } }, null, 2)}\n`
+    );
+    git(root, ['add', 'pkg-node']);
+    git(root, ['commit', '-m', 'the build']);
+    assert.equal(runGate(root).status, 0);
+
+    // A file only test code includes is not a build input.
+    write(join(root, 'decl/fixture.hs'), 'function t() {}\nfunction u() {}\n');
+    git(root, ['add', 'decl/fixture.hs']);
+    git(root, ['commit', '-m', 'a test fixture changes']);
+    const testOnly = runGate(root);
+    assert.equal(testOnly.status, 0, `${testOnly.stdout}\n${testOnly.stderr}`);
+
+    // The embedded declaration file is: changing it changes the checker.
+    write(join(root, 'decl/absorb.hs'), 'export function g(): bool {\n  return true\n}\n');
+    git(root, ['add', 'decl/absorb.hs']);
+    git(root, ['commit', '-m', 'the declaration changes']);
+    const stale = runGate(root);
+    assert.equal(stale.status, 1, `${stale.stdout}\n${stale.stderr}`);
+    assert.match(stale.stderr, /WASM artifact is stale|Rust build input\(s\) changed/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

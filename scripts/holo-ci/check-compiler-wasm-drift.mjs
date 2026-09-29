@@ -21,7 +21,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { isAbsolute, join, posix, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, join, posix, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const args = process.argv.slice(2);
@@ -98,10 +98,38 @@ function runGit(root, gitArgs, { allowFailure = false } = {}) {
  * The files the WASM is built from: the crate's Rust sources and its Cargo manifest and lock.
  * Tests written in TypeScript live under src/ too, and are not among them.
  */
-function rustBuildInputs(srcRel) {
+function rustBuildInputs(root, srcRel) {
   const crate = posix.dirname(srcRel);
   const inCrate = (name) => (crate === '.' ? name : `${crate}/${name}`);
-  return [`:(glob)${srcRel}/**/*.rs`, inCrate('Cargo.toml'), inCrate('Cargo.lock')];
+  return [
+    `:(glob)${srcRel}/**/*.rs`,
+    inCrate('Cargo.toml'),
+    inCrate('Cargo.lock'),
+    ...embeddedInputs(root, srcRel),
+  ];
+}
+
+/**
+ * Files the WASM embeds with include_str! or include_bytes! outside test code are build inputs
+ * too: G21's Holo module declarations (packages/std/src/holo/*.hs) are compiled into the checker,
+ * so changing one changes what `holo:` means. Code after a file's first `#[cfg(test)]` line is
+ * test code in this crate (eval.rs's std sources are test-only and do not count).
+ */
+function embeddedInputs(root, srcRel) {
+  const listed = runGit(root, ['ls-files', '--', `:(glob)${srcRel}/**/*.rs`]);
+  const inputs = new Set();
+  for (const file of String(listed.stdout || '')
+    .split(/\r?\n/)
+    .filter(Boolean)) {
+    const text = readFileSync(join(root, file), 'utf8');
+    const cut = text.search(/^#\[cfg\(test\)\]/m);
+    const code = cut === -1 ? text : text.slice(0, cut);
+    for (const match of code.matchAll(/include_(?:str|bytes)!\(\s*"([^"]+)"\s*\)/g)) {
+      const target = toPosixPath(relative(root, resolve(root, dirname(file), match[1])));
+      if (!target.startsWith('../') && target !== '..') inputs.add(target);
+    }
+  }
+  return [...inputs].sort();
 }
 
 function latestCommit(root, pathspecs, label) {
@@ -143,10 +171,25 @@ function short(hash) {
   return String(hash || '').slice(0, 10);
 }
 
-function scanWasmBindgenExports(root, srcRel) {
-  const libPath = join(root, srcRel, 'lib.rs');
-  if (!existsSync(libPath)) return [];
-  const source = readFileSync(libPath, 'utf8');
+/**
+ * The `#[wasm_bindgen]` functions of lib.rs as `sourceCommit` holds it, the source the build came
+ * from; the working tree only when no receipt names one. Reading the working tree made adding an
+ * export impossible under the receipt rule: the export needed the rebuilt artifact in the same
+ * commit, and that artifact's receipt had no commit yet that held the new source.
+ */
+function scanWasmBindgenExports(root, srcRel, sourceCommit) {
+  let source;
+  if (sourceCommit) {
+    const shown = runGit(root, ['show', `${sourceCommit}:${srcRel}/lib.rs`], {
+      allowFailure: true,
+    });
+    if (shown.status !== 0) return [];
+    source = String(shown.stdout || '');
+  } else {
+    const libPath = join(root, srcRel, 'lib.rs');
+    if (!existsSync(libPath)) return [];
+    source = readFileSync(libPath, 'utf8');
+  }
   const exports = new Set();
   const matcher =
     /#\[wasm_bindgen(?:\([^\]]*\))?\]([\s\S]{0,700}?)(?:pub\s+fn\s+)([A-Za-z_][A-Za-z0-9_]*)/g;
@@ -175,7 +218,7 @@ function exportedFunctionNames(root, artifactJs) {
   return new Set(Object.keys(artifact).filter((name) => typeof artifact[name] === 'function'));
 }
 
-function checkExports(root, srcRel, artifactJsRel, expectedExports, noExportScan) {
+function checkExports(root, srcRel, artifactJsRel, expectedExports, noExportScan, sourceCommit) {
   const artifactJs = join(root, artifactJsRel);
   if (!existsSync(artifactJs)) {
     throw new Error(`artifact JS entry is missing: ${artifactJsRel}`);
@@ -183,7 +226,7 @@ function checkExports(root, srcRel, artifactJsRel, expectedExports, noExportScan
 
   const requiredExports = new Set(expectedExports);
   if (!noExportScan) {
-    for (const name of scanWasmBindgenExports(root, srcRel)) {
+    for (const name of scanWasmBindgenExports(root, srcRel, sourceCommit)) {
       requiredExports.add(name);
     }
   }
@@ -286,7 +329,7 @@ function checkReceipt(root, artifactRel, inputs) {
         `change, then run \`${REBUILD_COMMAND}\` and commit both builds.`
     );
   }
-  return actual;
+  return { digest: actual, sourceCommit };
 }
 
 function checkArtifact(root, srcRel, inputs, srcCommit, artifactRel, artifactJsRel, options) {
@@ -316,14 +359,16 @@ function checkArtifact(root, srcRel, inputs, srcCommit, artifactRel, artifactJsR
     throw error;
   }
 
+  const receipt = checkReceipt(root, artifactRel, inputs);
+  const receiptDigest = receipt?.digest ?? null;
   const exports = checkExports(
     root,
     srcRel,
     artifactJsRel,
     options.expectedExports,
-    options.noExportScan
+    options.noExportScan,
+    receipt?.sourceCommit
   );
-  const receiptDigest = checkReceipt(root, artifactRel, inputs);
 
   console.log(
     `[compiler-wasm-drift] PASS ${srcRel}@${short(srcCommit.hash)} <= ${artifactRel}@${short(
@@ -355,7 +400,7 @@ async function main() {
     noExportScan: args.includes('--no-export-scan'),
   };
 
-  const inputs = rustBuildInputs(srcRel);
+  const inputs = rustBuildInputs(root, srcRel);
   const srcCommit = latestCommit(root, inputs, `the Rust build inputs under ${srcRel}`);
 
   const digests = new Map();

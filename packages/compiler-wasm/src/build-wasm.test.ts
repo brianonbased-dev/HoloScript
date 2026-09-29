@@ -168,6 +168,40 @@ describe('portable compiler-wasm build', () => {
     );
   });
 
+  it('refuses to rebuild while a file the WASM embeds has uncommitted changes', () => {
+    const fs = memoryFs({
+      [join(CRATE, 'src', 'lib.rs')]: [
+        'pub fn parse() {}',
+        'const DECLARATIONS: &str = include_str!("../../std/src/holo/absorb.hs");',
+        '#[cfg(test)]',
+        'mod tests {',
+        '    const FIXTURE: &str = include_str!("../../std/src/math.hsplus");',
+        '}',
+      ].join('\n'),
+    });
+    const statusArgs: string[][] = [];
+    const spawn = vi.fn((command: string, args: string[]) => {
+      if (args[0] === '--version') return { status: 0, stdout: `${command} 1.0.0\n` };
+      if (command === 'git' && args[0] === 'ls-files') return { status: 0, stdout: 'src/lib.rs\n' };
+      if (command === 'git' && args[0] === 'status') {
+        statusArgs.push(args);
+        return {
+          status: 0,
+          stdout: args.includes('../std/src/holo/absorb.hs')
+            ? ' M ../std/src/holo/absorb.hs\n'
+            : '',
+        };
+      }
+      return { status: 127 };
+    });
+    const { status, error } = rebuildWith(fs, spawn as unknown as ReturnType<typeof toolchain>);
+
+    expect(status).toBe(1);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('../std/src/holo/absorb.hs'));
+    // A file only test code includes is not a build input.
+    expect(statusArgs[0]).not.toContain('../std/src/math.hsplus');
+  });
+
   it('rebuilds both targets and writes each receipt from the file it describes', () => {
     const fs = memoryFs({
       [join(CRATE, 'pkg', 'package.json')]: '{"name":"committed-web"}\n',

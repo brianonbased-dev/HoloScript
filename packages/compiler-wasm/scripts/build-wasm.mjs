@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { delimiter, dirname, join, resolve } from 'node:path';
+import { delimiter, dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,6 +28,31 @@ export const BUILD_TARGETS = [
 
 /** What the WASM is built from, relative to the crate. */
 export const RUST_BUILD_INPUTS = [':(glob)src/**/*.rs', 'Cargo.toml', 'Cargo.lock'];
+
+/**
+ * Files the WASM embeds with include_str! or include_bytes! outside test code, relative to the
+ * crate: build inputs as much as the Rust sources (G21's Holo module declarations). Code after a
+ * file's first `#[cfg(test)]` line is test code in this crate. The drift gate reads the same rule.
+ */
+export function embeddedBuildInputs({ spawn, cwd, fs, gitOptions }) {
+  const listed = captured(spawn, 'git', ['ls-files', '--', ':(glob)src/**/*.rs'], gitOptions);
+  if (listed.status !== 0) return [];
+  const inputs = new Set();
+  for (const file of listed.stdout.split(/\r?\n/).filter(Boolean)) {
+    let text;
+    try {
+      text = String(fs.readFileSync(join(cwd, file), 'utf8'));
+    } catch {
+      continue;
+    }
+    const cut = text.search(/^#\[cfg\(test\)\]/m);
+    const code = cut === -1 ? text : text.slice(0, cut);
+    for (const match of code.matchAll(/include_(?:str|bytes)!\(\s*"([^"]+)"\s*\)/g)) {
+      inputs.add(posix.normalize(posix.join(posix.dirname(file.replace(/\\/g, '/')), match[1])));
+    }
+  }
+  return [...inputs].sort();
+}
 
 export function wasmPackCandidates({
   env = process.env,
@@ -117,7 +142,14 @@ function rebuild({ env, home, platform, spawn, cwd, log, error, fs, now, note })
   const status = captured(
     spawn,
     'git',
-    ['status', '--porcelain', '--untracked-files=all', '--', ...RUST_BUILD_INPUTS],
+    [
+      'status',
+      '--porcelain',
+      '--untracked-files=all',
+      '--',
+      ...RUST_BUILD_INPUTS,
+      ...embeddedBuildInputs({ spawn, cwd, fs, gitOptions }),
+    ],
     gitOptions
   );
   if (status.status !== 0) {
