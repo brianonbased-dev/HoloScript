@@ -32,6 +32,86 @@ export const DEFAULT_TTL: TokenStoreTTL = {
   authCodeTTL: 300, // 5 minutes
 };
 
+// ── Client retention ─────────────────────────────────────────────────────────
+
+/**
+ * How many clients the store holds before a registration must first retire an
+ * idle one.
+ *
+ * This was 1000 with nothing ever retired, so the production store filled on
+ * 2026-06-28 and refused every registration after it (board
+ * task_1790545471449_w6yi). Retirement below is the fix; the higher cap is only
+ * the bridge across its first idle window. Clients stored before usage was
+ * recorded start their idle clock when recording starts, so none of them can be
+ * shown idle for a full window until one has passed. Without room in the
+ * meantime the store would stay shut for that whole window.
+ */
+export const DEFAULT_MAX_CLIENTS = 5000;
+
+/**
+ * A client can be retired only after going this long without being issued a
+ * token.
+ *
+ * 30 days: longer than any token this server issues (refresh tokens last at
+ * most 30 days, and the legacy issuer's last 24 hours), so a retired client
+ * holds nothing that could still be redeemed; and long enough that a weekly or
+ * monthly caller keeps its client. A retired client that comes back has to be
+ * registered again, the way it was the first time; where remote registration
+ * is closed, that means an operator registering it over loopback, which is why
+ * retirement waits for the cap and for a full idle window.
+ * TokenStore never goes below the refresh-token lifetime, whatever is passed.
+ */
+export const DEFAULT_CLIENT_IDLE_RETIREMENT_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Thrown when a registration finds the client store full and nothing in it is
+ * provably idle.
+ *
+ * The message keeps its old prefix, so callers that match on it still do. The
+ * type exists so a caller can tell "the store is full" apart from "the request
+ * was malformed" and answer each honestly, instead of catching everything the
+ * same way (which is how `/oauth/register` came to hand out clients the store
+ * had refused).
+ */
+export class ClientStoreFullError extends Error {
+  readonly store: 'durable' | 'memory';
+  readonly count: number;
+  readonly maxClients: number;
+  /** Idle clients deleted by this attempt before it still came up short. */
+  readonly retiredClientIds: string[];
+
+  constructor(params: {
+    store: 'durable' | 'memory';
+    count: number;
+    maxClients: number;
+    idleMs?: number;
+    retiredClientIds?: string[];
+  }) {
+    const days = params.idleMs ? Math.round(params.idleMs / 86_400_000) : undefined;
+    super(
+      params.store === 'durable'
+        ? `Maximum client registration limit reached: the client store holds ${params.count} ` +
+            `of ${params.maxClients} clients, and none has gone ${days ?? '?'} days without a ` +
+            `token while holding no live token, so none could be retired to make room.`
+        : `Maximum client registration limit reached: the in-memory client registry holds ` +
+            `${params.count} of ${params.maxClients} clients.`
+    );
+    this.name = 'ClientStoreFullError';
+    this.store = params.store;
+    this.count = params.count;
+    this.maxClients = params.maxClients;
+    this.retiredClientIds = params.retiredClientIds ?? [];
+  }
+}
+
+/** True for a ClientStoreFullError, including one from another copy of this module. */
+export function isClientStoreFullError(err: unknown): err is ClientStoreFullError {
+  return (
+    err instanceof ClientStoreFullError ||
+    (err instanceof Error && err.name === 'ClientStoreFullError')
+  );
+}
+
 // ── Token Types ──────────────────────────────────────────────────────────────
 
 export interface StoredAccessToken {
@@ -95,6 +175,14 @@ export interface StoredClient {
    * that silently expires at deploy time is not a binding.
    */
   agentId?: string;
+  /**
+   * Last time this client was registered or issued a token (ms). This is the
+   * only record of use: token rows are deleted within a minute of expiring, so
+   * their absence proves nothing past a day. A backend that is handed a client
+   * without it stamps the write time, so the idle clock starts then and never
+   * earlier.
+   */
+  lastUsedAt?: number;
 }
 
 // ── Backend Interface ────────────────────────────────────────────────────────
@@ -165,6 +253,26 @@ export interface TokenStoreBackend {
   setClient(client: StoredClient): Promise<void>;
   deleteClient(clientId: string): Promise<boolean>;
   countClients(): Promise<number>;
+
+  /**
+   * Record that `clientId` was just issued a token, moving `lastUsedAt` forward
+   * (never back). Resolves false when the store holds no such client.
+   *
+   * Optional, like `retireIdleClients`: a backend that records no use cannot
+   * prove any client idle, so TokenStore never retires from it and a full store
+   * simply refuses.
+   */
+  touchClient?(clientId: string, at: number): Promise<boolean>;
+
+  /**
+   * Delete at most `limit` clients that are provably idle, longest-idle first,
+   * and resolve the ids actually deleted. A client qualifies only when ALL hold:
+   *   - no access-token row and no refresh-token row, in any state;
+   *   - `lastUsedAt` before `idleBefore`;
+   *   - registered before `idleBefore`.
+   * Anything that cannot be shown to meet all three stays.
+   */
+  retireIdleClients?(params: { idleBefore: number; limit: number }): Promise<string[]>;
 
   // ── Revoked Chains ────────────────────────────────────────────────────
   isChainRevoked(chainId: string): Promise<boolean>;
@@ -307,7 +415,14 @@ export class InMemoryTokenStore implements TokenStoreBackend {
   }
 
   async setClient(client: StoredClient): Promise<void> {
-    this.clients.set(client.clientId, client);
+    // Same rule as the Postgres backend: a missing lastUsedAt starts the idle
+    // clock at the write, and a rewrite never moves the clock back.
+    const previous = this.clients.get(client.clientId)?.lastUsedAt;
+    const written = client.lastUsedAt ?? Date.now();
+    this.clients.set(client.clientId, {
+      ...client,
+      lastUsedAt: previous !== undefined ? Math.max(previous, written) : written,
+    });
   }
 
   async deleteClient(clientId: string): Promise<boolean> {
@@ -316,6 +431,39 @@ export class InMemoryTokenStore implements TokenStoreBackend {
 
   async countClients(): Promise<number> {
     return this.clients.size;
+  }
+
+  async touchClient(clientId: string, at: number): Promise<boolean> {
+    const client = this.clients.get(clientId);
+    if (!client) return false;
+    client.lastUsedAt = Math.max(client.lastUsedAt ?? at, at);
+    return true;
+  }
+
+  async retireIdleClients(params: { idleBefore: number; limit: number }): Promise<string[]> {
+    if (params.limit <= 0) return [];
+    // Any token row at all, live or not yet swept, keeps its client.
+    const holdsTokens = new Set<string>();
+    for (const token of this.accessTokens.values()) holdsTokens.add(token.clientId);
+    for (const token of this.refreshTokens.values()) holdsTokens.add(token.clientId);
+
+    const idle = [...this.clients.values()]
+      .filter(
+        (client) =>
+          client.lastUsedAt !== undefined &&
+          client.lastUsedAt < params.idleBefore &&
+          client.createdAt < params.idleBefore &&
+          !holdsTokens.has(client.clientId)
+      )
+      .sort(
+        (a, b) =>
+          (a.lastUsedAt as number) - (b.lastUsedAt as number) ||
+          a.clientId.localeCompare(b.clientId)
+      )
+      .slice(0, params.limit);
+
+    for (const client of idle) this.clients.delete(client.clientId);
+    return idle.map((client) => client.clientId);
   }
 
   // ── Revoked Chains ────────────────────────────────────────────────────
@@ -452,6 +600,7 @@ export class TokenStore {
     dpopThumbprint?: string;
   }): Promise<StoredAccessToken> {
     const now = Date.now();
+    await this.recordClientUse(params.clientId, now);
     const token: StoredAccessToken = {
       token: this.generateToken(),
       clientId: params.clientId,
@@ -507,8 +656,12 @@ export class TokenStore {
   /**
    * Write-through an externally-issued access token (legacy oauth21 registry
    * parity) so Bearers survive redeploys of the in-memory registry.
+   *
+   * This is the path every production grant takes, so it is also where the
+   * client's use is recorded.
    */
   async importAccessToken(token: StoredAccessToken): Promise<void> {
+    await this.recordClientUse(token.clientId, token.issuedAt);
     await this.backend.setAccessToken(token);
   }
 
@@ -592,6 +745,22 @@ export class TokenStore {
 
   // ── Client CRUD ───────────────────────────────────────────────────────
 
+  /**
+   * Register a client, making room first if the store is full.
+   *
+   * Room is made only by retiring clients that are provably idle (see
+   * `TokenStoreBackend.retireIdleClients`), longest-idle first, exactly as many
+   * as this one registration needs. Below the cap nothing is retired, so an
+   * idle client stays on record until its slot is actually wanted. When nothing
+   * qualifies, this throws ClientStoreFullError; it never quietly stores less.
+   *
+   * No de-duplication by caller identity. A registration carries no identity a
+   * caller cannot copy except a proven agent_id, and one agent can have several
+   * live sessions at once (concurrent sessions share a seat). Replacing "that
+   * agent's client" would cut off a sibling session that is using it right now.
+   * The one in-place case is a clientId this store already holds (import mode):
+   * that row is rewritten and takes no new slot, so the cap does not refuse it.
+   */
   async registerClient(params: {
     clientName: string;
     redirectUris: string[];
@@ -599,6 +768,13 @@ export class TokenStore {
     clientType?: 'confidential' | 'public';
     rateLimit?: number;
     maxClients?: number;
+    /**
+     * Minimum time without a token before a client may be retired. Default
+     * DEFAULT_CLIENT_IDLE_RETIREMENT_MS; never less than the refresh-token
+     * lifetime, so no client is retired while a refresh token it holds could
+     * still be redeemed.
+     */
+    clientIdleRetirementMs?: number;
     /**
      * Import mode: reuse an externally-issued identity so parallel registries
      * (legacy in-memory oauth21 + this durable store) share ONE client_id.
@@ -613,29 +789,121 @@ export class TokenStore {
      * registry.
      */
     agentId?: string;
-  }): Promise<{ clientId: string; clientSecret: string }> {
-    const maxClients = params.maxClients || 1000;
-    const count = await this.backend.countClients();
-    if (count >= maxClients) {
-      throw new Error('Maximum client registration limit reached');
+  }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
+    const maxClients = params.maxClients || DEFAULT_MAX_CLIENTS;
+    const now = Date.now();
+    let retiredClientIds: string[] = [];
+
+    const rewritesStoredClient =
+      params.clientId !== undefined &&
+      (await this.backend.getClient(params.clientId)) !== undefined;
+
+    if (!rewritesStoredClient) {
+      const count = await this.backend.countClients();
+      if (count >= maxClients) {
+        const idleMs = this.clientIdleRetirementMs(params.clientIdleRetirementMs);
+        if (this.backend.retireIdleClients) {
+          retiredClientIds = await this.backend.retireIdleClients({
+            idleBefore: now - idleMs,
+            limit: count - maxClients + 1,
+          });
+        }
+        if (retiredClientIds.length > 0) {
+          console.warn(
+            `[auth] retired ${retiredClientIds.length} OAuth client(s) idle for ` +
+              `${Math.round(idleMs / 86_400_000)}+ days with no live token, to make room: ` +
+              retiredClientIds.join(', ')
+          );
+        }
+        if (count - retiredClientIds.length >= maxClients) {
+          throw new ClientStoreFullError({
+            store: 'durable',
+            count: count - retiredClientIds.length,
+            maxClients,
+            idleMs,
+            retiredClientIds,
+          });
+        }
+      }
     }
 
     const clientId = params.clientId ?? this.generateClientId();
     const clientSecret = params.clientSecret ?? this.generateToken();
 
-    await this.backend.setClient({
-      clientId,
-      clientSecretHash: this.hashSecret(clientSecret),
-      clientName: params.clientName,
-      redirectUris: params.redirectUris,
-      scopes: params.scopes,
-      createdAt: Date.now(),
-      clientType: params.clientType || 'confidential',
-      rateLimit: params.rateLimit || 60,
-      ...(params.agentId ? { agentId: params.agentId } : {}),
-    });
+    try {
+      await this.backend.setClient({
+        clientId,
+        clientSecretHash: this.hashSecret(clientSecret),
+        clientName: params.clientName,
+        redirectUris: params.redirectUris,
+        scopes: params.scopes,
+        createdAt: now,
+        clientType: params.clientType || 'confidential',
+        rateLimit: params.rateLimit || 60,
+        lastUsedAt: now,
+        ...(params.agentId ? { agentId: params.agentId } : {}),
+      });
+    } catch (err) {
+      // Any clients retired above are already gone. Say which, so the caller
+      // can still drop them from memory and record them.
+      if (retiredClientIds.length > 0 && err instanceof Error) {
+        (err as Error & { retiredClientIds?: string[] }).retiredClientIds = retiredClientIds;
+      }
+      throw err;
+    }
 
-    return { clientId, clientSecret };
+    return { clientId, clientSecret, retiredClientIds };
+  }
+
+  /** The idle window actually applied: never shorter than a refresh token's life. */
+  private clientIdleRetirementMs(requested?: number): number {
+    return Math.max(
+      requested ?? DEFAULT_CLIENT_IDLE_RETIREMENT_MS,
+      this.ttl.refreshTokenTTL * 1000
+    );
+  }
+
+  /**
+   * Record that `clientId` is being used right now.
+   *
+   * Resolves true when recorded, false when the store holds no such client
+   * (retired, or never stored), and undefined when nothing could be recorded:
+   * the backend keeps no usage record, or the write failed. Never throws.
+   * Only false is evidence that the client is gone; undefined is not.
+   *
+   * The sign-in routes call this (through OAuth2Provider) BEFORE any code or
+   * token is issued. A retirement racing that request then either sees the new
+   * lastUsedAt and skips the client, or has already deleted it, and the request
+   * is refused before anything is issued.
+   */
+  async noteClientUse(clientId: string, at: number = Date.now()): Promise<boolean | undefined> {
+    if (!this.backend.touchClient) return undefined;
+    try {
+      return await this.backend.touchClient(clientId, at);
+    } catch (err) {
+      console.error(
+        `[auth] could not record use of OAuth client ${clientId}: ` +
+          (err instanceof Error ? err.message : String(err))
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * Record use again as a token is written. The sign-in routes already
+   * recorded it before issuing; this keeps the record right for tokens written
+   * any other way. Runs before the token row is written, for the same reason.
+   * Never throws: a failed record must not cost the caller the token write that
+   * follows it (the refresh-token write-through comes after this one).
+   */
+  private async recordClientUse(clientId: string, at: number): Promise<void> {
+    const known = await this.noteClientUse(clientId, at);
+    if (known === false) {
+      console.warn(
+        `[auth] token issued to OAuth client ${clientId}, which the client store does not ` +
+          `hold. It will not survive a restart; the caller must register again then.`
+      );
+    }
   }
 
   async getClient(clientId: string): Promise<StoredClient | undefined> {

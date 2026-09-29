@@ -98,6 +98,8 @@ import {
   OAUTH2_PUBLIC_SCOPES,
   OAUTH2_PUBLIC_SCOPE_NAMES,
   OAUTH2_SCOPES,
+  prepareClientForUse,
+  registerClientDurably,
 } from './auth/oauth2-provider';
 import {
   acceptsHtml,
@@ -184,7 +186,12 @@ function readMoltbookApiKeyForRoute(): string {
 }
 
 import { resolveStoreRoot } from './hologram-renderer';
-import { isHologramMcpResponse, wrapHologramMcpEnvelope, parseHolo } from '@holoscript/core';
+import {
+  getPrometheusMetrics,
+  isHologramMcpResponse,
+  wrapHologramMcpEnvelope,
+  parseHolo,
+} from '@holoscript/core';
 import { buildContentPolicyConfig, evaluateContentPolicySync } from '@holoscript/core/policy';
 import { promises as fsPromises } from 'fs';
 import { join as pathJoin, extname as pathExtname, basename as pathBasename } from 'path';
@@ -324,34 +331,14 @@ oauth.setDurableIntrospector(async (token) => {
   };
 });
 
-/** Rehydrate a client from the durable registry into the legacy in-memory one. */
+/**
+ * Before an authorize or token request consults the in-memory registry: record
+ * the client's use in the durable store (so a retirement cannot take it in the
+ * middle of its sign-in), drop a copy the durable store no longer holds, and
+ * rehydrate it after a deploy wiped the in-memory map. See prepareClientForUse.
+ */
 async function ensureClientHydrated(clientId: string | null | undefined): Promise<void> {
-  if (!clientId || oauth.getClient(clientId)) return;
-  try {
-    const durable = await oauth2.getClient(clientId);
-    if (durable) {
-      oauth.importClient({
-        clientId: durable.clientId,
-        clientSecret: durable.clientSecretHash,
-        clientName: durable.clientName,
-        redirectUris: durable.redirectUris,
-        scopes: durable.scopes as OAuthScope[],
-        createdAt: durable.createdAt,
-        clientType: durable.clientType,
-        rateLimit: durable.rateLimit,
-        // Carry the agent binding across the deploy that wiped the in-memory
-        // map. Dropping it here refused the client's own agent_id on the very
-        // next token request, with nothing in the response saying the binding
-        // had been forgotten rather than never granted.
-        ...(durable.agentId ? { agentId: durable.agentId } : {}),
-      });
-    }
-  } catch (err) {
-    console.warn(
-      '[auth] durable client hydration failed:',
-      err instanceof Error ? err.message : err
-    );
-  }
+  await prepareClientForUse({ memory: oauth, durable: oauth2 }, clientId);
 }
 
 /** Rehydrate a refresh token from the durable registry before a refresh grant. */
@@ -1100,7 +1087,7 @@ function a2aToolHandlerFor(auth: TokenIntrospection) {
 }
 
 const A2A_LIST_NEEDS_ADMIN_MESSAGE =
-  'Listing A2A tasks returns every caller\'s results, so it needs admin. Fetch your own task by its id.';
+  "Listing A2A tasks returns every caller's results, so it needs admin. Fetch your own task by its id.";
 
 /**
  * The /a2a task routes run tools and hand back their results, so they need
@@ -2144,40 +2131,55 @@ const httpServer = http.createServer(async (req, res) => {
       // for a loopback-unproven one.
       const boundAgentId = agentBinding.boundAgentId;
 
-      // Register with legacy provider (backwards compat)
-      const { clientId, clientSecret } = oauth.registerClient({
-        clientName,
-        redirectUris,
-        scopes,
-        clientType,
-        rateLimit,
-        ...(boundAgentId ? { agentId: boundAgentId } : {}),
-      });
-
-      // Also register with the new OAuth2Provider (token-store backed) using
-      // the SAME identity, so the durable copy is reachable by the credentials
-      // the caller holds. The previous divergent dual-write (separate generated
-      // ids) made the Postgres copy useless for rehydration after deploys.
-      try {
-        await oauth2.registerClient({
+      // One identity in both registries, or none. The durable copy is what
+      // survives a deploy, so a client the durable store refused is not handed
+      // out: the in-memory half is undone and the caller is told (503). This
+      // used to log a warning and answer 201 with a memory-only client, which
+      // is how a full store went unnoticed from 2026-06-28 (board
+      // task_1790545471449_w6yi). The agent binding goes into the durable copy
+      // too: a binding that quietly stops existing at deploy refuses a caller
+      // that did everything right.
+      const registration = await registerClientDurably(
+        { memory: oauth, durable: oauth2 },
+        {
           clientName,
           redirectUris,
           scopes,
           clientType,
           rateLimit,
-          clientId,
-          clientSecret,
-          // The binding belongs in the durable copy too: the in-memory one is
-          // gone on the next deploy, and a binding that quietly stops existing
-          // refuses a caller that did everything right.
           ...(boundAgentId ? { agentId: boundAgentId } : {}),
+        },
+        { metrics: getPrometheusMetrics('holoscript') }
+      );
+
+      for (const retiredClientId of registration.retiredClientIds) {
+        auditLog.logAuthEvent({
+          event: 'client_revoked',
+          clientId: retiredClientId,
+          reason: 'retired to make room: idle past the retirement window with no live token',
         });
-      } catch (oauth2Err) {
-        console.warn(
-          '[auth] OAuth2Provider registration failed; legacy registry succeeded:',
-          oauth2Err instanceof Error ? oauth2Err.message : oauth2Err
-        );
       }
+
+      if (!registration.ok) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          ip: clientIP,
+          reason: `client registration refused: ${registration.reason}`,
+        });
+        res.writeHead(503, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'temporarily_unavailable',
+            error_description: registration.message,
+          })
+        );
+        return;
+      }
+
+      const { clientId, clientSecret } = registration;
 
       auditLog.logAuthEvent({
         event: 'client_registered',

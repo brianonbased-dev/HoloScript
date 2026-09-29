@@ -78,12 +78,20 @@ CREATE TABLE IF NOT EXISTS oauth_clients (
   created_at         BIGINT NOT NULL,
   client_type        TEXT NOT NULL DEFAULT 'public',
   rate_limit         INTEGER NOT NULL DEFAULT 100,
-  agent_id           TEXT
+  agent_id           TEXT,
+  last_used_at       BIGINT NOT NULL DEFAULT ((extract(epoch FROM now()) * 1000)::bigint)
 );
 -- Same reason as the refresh-token column above: CREATE TABLE IF NOT EXISTS
 -- never alters a table that already exists, and every already-deployed
 -- database has this one. Idempotent.
 ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS agent_id TEXT;
+-- Last registration or token issuance, in ms. Rows that predate this column
+-- get the moment it was added: their use was never recorded, so their idle
+-- clock can only start now. That keeps every one of them from being retired
+-- until a full idle window has been watched. Idempotent: runs once, then the
+-- IF NOT EXISTS makes it a no-op.
+ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS last_used_at BIGINT NOT NULL
+  DEFAULT ((extract(epoch FROM now()) * 1000)::bigint);
 
 CREATE TABLE IF NOT EXISTS oauth_revoked_chains (
   chain_id   TEXT PRIMARY KEY,
@@ -103,9 +111,20 @@ export class PostgresTokenStore implements TokenStoreBackend {
 
   private ensureSchema(): Promise<void> {
     if (!this.schemaReady) {
-      this.schemaReady = this.pool.query(SCHEMA_SQL).then(() => {
-        // schema ensured
-      });
+      this.schemaReady = this.pool.query(SCHEMA_SQL).then(
+        () => {
+          // schema ensured
+        },
+        (err: unknown) => {
+          // Forget the failure so the next call tries again. Cached, one
+          // database blip at boot failed every store call until a restart.
+          // Registration now refuses when the store fails, rather than handing
+          // out a client that dies at the next deploy, so a sticky failure
+          // would have turned that blip into a registration outage.
+          this.schemaReady = null;
+          throw err;
+        }
+      );
     }
     return this.schemaReady;
   }
@@ -310,7 +329,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id
+      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at
        FROM oauth_clients WHERE client_id = $1`,
       [clientId]
     );
@@ -326,19 +345,21 @@ export class PostgresTokenStore implements TokenStoreBackend {
       clientType: r.client_type as 'confidential' | 'public',
       rateLimit: r.rate_limit,
       ...(r.agent_id ? { agentId: r.agent_id as string } : {}),
+      lastUsedAt: Number(r.last_used_at),
     };
   }
 
   async setClient(client: StoredClient): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (client_id) DO UPDATE SET
          client_secret_hash = EXCLUDED.client_secret_hash, client_name = EXCLUDED.client_name,
          redirect_uris = EXCLUDED.redirect_uris, scopes = EXCLUDED.scopes,
          created_at = EXCLUDED.created_at, client_type = EXCLUDED.client_type,
-         rate_limit = EXCLUDED.rate_limit, agent_id = EXCLUDED.agent_id`,
+         rate_limit = EXCLUDED.rate_limit, agent_id = EXCLUDED.agent_id,
+         last_used_at = GREATEST(oauth_clients.last_used_at, EXCLUDED.last_used_at)`,
       [
         client.clientId,
         client.clientSecretHash,
@@ -349,6 +370,8 @@ export class PostgresTokenStore implements TokenStoreBackend {
         client.clientType,
         client.rateLimit,
         client.agentId ?? null,
+        // A client handed over without a last use starts its idle clock now.
+        client.lastUsedAt ?? Date.now(),
       ]
     );
   }
@@ -365,6 +388,49 @@ export class PostgresTokenStore implements TokenStoreBackend {
     await this.ensureSchema();
     const { rows } = await this.pool.query('SELECT COUNT(*)::int AS count FROM oauth_clients');
     return rows[0].count;
+  }
+
+  async touchClient(clientId: string, at: number): Promise<boolean> {
+    await this.ensureSchema();
+    const { rowCount } = await this.pool.query(
+      'UPDATE oauth_clients SET last_used_at = GREATEST(last_used_at, $2) WHERE client_id = $1',
+      [clientId, at]
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  /**
+   * One statement, so the choice and the delete cannot drift apart.
+   *
+   * `FOR UPDATE SKIP LOCKED` covers a grant racing this retirement: a client
+   * whose row a grant is touching right now is skipped, and a touch that
+   * commits after this statement began is re-checked against the row's newest
+   * version, whose recent last_used_at disqualifies it. The outer
+   * `last_used_at` test repeats that check at delete time. Any token row, in
+   * any state, disqualifies a client; the sweep deletes expired rows within a
+   * minute, so this holds a client for at most that long past its last token.
+   */
+  async retireIdleClients(params: { idleBefore: number; limit: number }): Promise<string[]> {
+    if (params.limit <= 0) return [];
+    await this.ensureSchema();
+    const { rows } = await this.pool.query(
+      `DELETE FROM oauth_clients AS c
+        WHERE c.client_id IN (
+                SELECT i.client_id
+                  FROM oauth_clients AS i
+                 WHERE i.last_used_at < $1
+                   AND i.created_at < $1
+                   AND NOT EXISTS (SELECT 1 FROM oauth_access_tokens a WHERE a.client_id = i.client_id)
+                   AND NOT EXISTS (SELECT 1 FROM oauth_refresh_tokens r WHERE r.client_id = i.client_id)
+                 ORDER BY i.last_used_at ASC, i.client_id ASC
+                 LIMIT $2
+                   FOR UPDATE SKIP LOCKED
+              )
+          AND c.last_used_at < $1
+      RETURNING c.client_id`,
+      [params.idleBefore, params.limit]
+    );
+    return rows.map((row: { client_id: string }) => row.client_id);
   }
 
   // ── Revoked Chains ────────────────────────────────────────────────────

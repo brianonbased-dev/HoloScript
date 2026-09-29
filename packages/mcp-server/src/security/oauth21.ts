@@ -26,6 +26,7 @@ import {
   openDevModeAllowed,
   OAUTH2_PUBLIC_SCOPE_NAMES,
 } from '../auth/oauth2-provider';
+import { ClientStoreFullError, DEFAULT_MAX_CLIENTS } from '../auth/token-store';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -44,7 +45,11 @@ export interface OAuth21Config {
   migrationMode: 'strict' | 'permissive';
   /** Legacy API key (for backwards compat during migration) */
   legacyApiKey?: string;
-  /** Max clients that can be registered. Default: 1000 */
+  /**
+   * Max clients this in-memory registry holds. Default: DEFAULT_MAX_CLIENTS,
+   * the same cap as the durable store it fronts, so this cache never refuses a
+   * registration the store has room for.
+   */
   maxClients: number;
   /** Require DPoP proof-of-possession. Default: false (recommended: true in prod) */
   requireDPoP: boolean;
@@ -58,7 +63,7 @@ export const DEFAULT_OAUTH_CONFIG: OAuth21Config = {
   tokenSecret: process.env.OAUTH_TOKEN_SECRET || '',
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
   legacyApiKey: process.env.HOLOSCRIPT_API_KEY || '',
-  maxClients: 1000,
+  maxClients: DEFAULT_MAX_CLIENTS,
   requireDPoP: process.env.OAUTH_REQUIRE_DPOP === 'true',
 };
 
@@ -262,7 +267,11 @@ export class OAuth21Service {
     agentId?: string;
   }): { clientId: string; clientSecret: string } {
     if (clients.size >= this.config.maxClients) {
-      throw new Error('Maximum client registration limit reached');
+      throw new ClientStoreFullError({
+        store: 'memory',
+        count: clients.size,
+        maxClients: this.config.maxClients,
+      });
     }
 
     const clientId = `hsc_${randomUUID().replace(/-/g, '')}`;
