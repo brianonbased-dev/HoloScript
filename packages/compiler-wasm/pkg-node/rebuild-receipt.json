@@ -1,11 +1,11 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T03:36:58Z",
+  "generatedAt": "2026-09-29T04:10:41Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "8912375a82a31120a57f7ac32bde1182f6505f1f",
+  "sourceCommit": "c0aa7a6b06ff246bb18de31391f46624218dba9e",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --target nodejs --out-dir pkg-node --release"
+    "node scripts/build-wasm.mjs --rebuild (wasm-pack build --target nodejs --out-dir pkg-node --release)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -14,11 +14,11 @@
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": true,
+    "artifactBytesChanged": false,
     "wasmBytes": 557782,
     "wasmSha256": "d6d77e3ef40d84f691d156142dfd59366c8c9789dbf63ff8f49e0843ccc1215a",
-    "previousWasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
+    "previousWasmSha256": "d6d77e3ef40d84f691d156142dfd59366c8c9789dbf63ff8f49e0843ccc1215a",
     "repeatBuildSha256Matched": null,
-    "note": "Rebuilt pkg-node for the duplicate-declaration fix (8912375a8): an exported declaration collides with a same-named one, as native reports. Written from the files by a script."
+    "note": "Written by build-wasm.mjs --rebuild from commit c0aa7a6b06ff246bb18de31391f46624218dba9e, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM. Rebuilt both builds while merging PR #448 into the G21 phase-1 branch: pkg-node held the duplicate-declaration fix (8912375a8), pkg/ held #444's source; both now come from this branch's source."
   }
 }

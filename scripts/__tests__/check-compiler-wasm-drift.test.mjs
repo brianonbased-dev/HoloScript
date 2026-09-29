@@ -154,19 +154,22 @@ test('compiler-wasm drift gate admits a staged artifact refresh during pre-commi
   }
 });
 
+// The order a rebuild takes: the Rust source is committed first, then the build, whose receipt
+// names that commit.
 function commitArtifactWithReceipt(root, receiptResult, sourceCommit) {
-  git(root, ['add', 'package.json']);
-  git(root, ['commit', '-m', 'init']);
-  const head = git(root, ['rev-parse', 'HEAD']).stdout.trim();
   write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\n');
+  git(root, ['add', 'package.json', 'src/lib.rs']);
+  git(root, ['commit', '-m', 'source']);
+  const head = git(root, ['rev-parse', 'HEAD']).stdout.trim();
   write(join(root, 'pkg-node/artifact.cjs'), 'exports.parse = function parse() {};\n');
   writeFileSync(join(root, 'pkg-node/holoscript_wasm_bg.wasm'), Buffer.from([0, 97, 115, 109, 1]));
   write(
     join(root, 'pkg-node/rebuild-receipt.json'),
     `${JSON.stringify({ sourceCommit: sourceCommit ?? head, result: receiptResult }, null, 2)}\n`
   );
-  git(root, ['add', 'src/lib.rs', 'pkg-node']);
-  git(root, ['commit', '-m', 'source, artifact and receipt']);
+  git(root, ['add', 'pkg-node']);
+  git(root, ['commit', '-m', 'artifact and receipt']);
+  return head;
 }
 
 const WASM_SHA = createHash('sha256')
@@ -242,6 +245,325 @@ test('compiler-wasm drift gate passes and says so when the receipt matches the w
     const ok = runGate(root);
     assert.equal(ok.status, 0, `${ok.stdout}\n${ok.stderr}`);
     assert.match(ok.stdout, new RegExp(`receipt matches wasm sha256 ${WASM_SHA.slice(0, 12)}`));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function runGateArgs(root, extra) {
+  return spawnSync(process.execPath, [SCRIPT, '--root', root, '--src', 'src', ...extra], {
+    cwd: resolve('.'),
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+}
+
+test('compiler-wasm drift gate counts only Rust build inputs: a TypeScript test change leaves the build fresh', () => {
+  for (const input of ['src/lib.rs', 'Cargo.toml', 'Cargo.lock']) {
+    const root = createFixtureRepo();
+    try {
+      commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 });
+      mkdirSync(join(root, 'src/__tests__'), { recursive: true });
+      write(join(root, 'src/__tests__/api.test.ts'), 'export {};\n');
+      git(root, ['add', 'src/__tests__/api.test.ts']);
+      git(root, ['commit', '-m', 'a TypeScript test under src']);
+      const fresh = runGate(root);
+      assert.equal(fresh.status, 0, `${fresh.stdout}\n${fresh.stderr}`);
+
+      write(join(root, input), '// a build input changes\n');
+      git(root, ['add', input]);
+      git(root, ['commit', '-m', `change ${input}`]);
+      const stale = runGate(root);
+      assert.equal(stale.status, 1, `${input}\n${stale.stdout}\n${stale.stderr}`);
+      assert.match(stale.stderr, /pkg-node WASM artifact is stale/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('compiler-wasm drift gate fails when the receipt names a commit whose Rust source is not the current one', () => {
+  const root = createFixtureRepo();
+  try {
+    const source = commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 });
+    write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\nfn helper() {}\n');
+    git(root, ['add', 'src/lib.rs']);
+    git(root, ['commit', '-m', 'the Rust source changes']);
+    // A receipt-only commit advances the artifact path without a rebuild.
+    write(
+      join(root, 'pkg-node/rebuild-receipt.json'),
+      `${JSON.stringify({ sourceCommit: source, result: { wasmSha256: WASM_SHA, wasmBytes: 5 }, note: 'touched' }, null, 2)}\n`
+    );
+    git(root, ['add', 'pkg-node/rebuild-receipt.json']);
+    git(root, ['commit', '-m', 'the receipt is touched, not rebuilt']);
+    const stale = runGate(root);
+    assert.equal(stale.status, 1, `${stale.stdout}\n${stale.stderr}`);
+    assert.match(
+      stale.stderr,
+      /says the WASM was built from [0-9a-f]{10}, but 1 Rust build input\(s\) changed since then \(src\/lib\.rs\)/
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+const WEB_GLUE =
+  'export function parse() {}\nexport function initSync() {}\nconst url = new URL("holoscript_wasm_bg.wasm", import.meta.url);\n';
+
+function commitTwoBuilds(root, nodeBytes, webBytes, webGlue = WEB_GLUE) {
+  write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\n');
+  git(root, ['add', 'package.json', 'src/lib.rs']);
+  git(root, ['commit', '-m', 'source']);
+  const head = git(root, ['rev-parse', 'HEAD']).stdout.trim();
+  mkdirSync(join(root, 'pkg'), { recursive: true });
+  write(join(root, 'pkg-node/holoscript_wasm.js'), 'exports.parse = function parse() {};\n');
+  write(join(root, 'pkg/holoscript_wasm.js'), webGlue);
+  for (const [dir, bytes] of [
+    ['pkg-node', nodeBytes],
+    ['pkg', webBytes],
+  ]) {
+    const wasm = Buffer.from(bytes);
+    writeFileSync(join(root, dir, 'holoscript_wasm_bg.wasm'), wasm);
+    const wasmSha256 = createHash('sha256').update(wasm).digest('hex');
+    write(
+      join(root, dir, 'rebuild-receipt.json'),
+      `${JSON.stringify({ sourceCommit: head, result: { wasmSha256, wasmBytes: wasm.length } }, null, 2)}\n`
+    );
+  }
+  git(root, ['add', 'pkg-node', 'pkg']);
+  git(root, ['commit', '-m', 'both builds']);
+}
+
+const BOTH = ['--artifact', 'pkg-node', '--artifact', 'pkg'];
+
+test('compiler-wasm drift gate passes when both builds hold the same WASM, reading the web build as an ES module', () => {
+  const root = createFixtureRepo();
+  try {
+    commitTwoBuilds(root, [0, 97, 115, 109, 1], [0, 97, 115, 109, 1]);
+    const ok = runGateArgs(root, BOTH);
+    assert.equal(ok.status, 0, `${ok.stdout}\n${ok.stderr}`);
+    assert.match(ok.stdout, /PASS src@[0-9a-f]{10} <= pkg@/);
+    assert.match(
+      ok.stdout,
+      new RegExp(`2 builds hold the same WASM \\(sha256 ${WASM_SHA.slice(0, 12)}\\)`)
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate fails when the two builds hold different WASM', () => {
+  const root = createFixtureRepo();
+  try {
+    commitTwoBuilds(root, [0, 97, 115, 109, 1], [0, 97, 115, 109, 2]);
+    const wrong = runGateArgs(root, BOTH);
+    assert.equal(wrong.status, 1, `${wrong.stdout}\n${wrong.stderr}`);
+    assert.match(
+      wrong.stderr,
+      /the builds hold different WASM \(pkg-node [0-9a-f]{12}, pkg [0-9a-f]{12}\)/
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate fails when the web build does not export a #[wasm_bindgen] function', () => {
+  const root = createFixtureRepo();
+  try {
+    commitTwoBuilds(
+      root,
+      [0, 97, 115, 109, 1],
+      [0, 97, 115, 109, 1],
+      'export function initSync() {}\nconst url = new URL("holoscript_wasm_bg.wasm", import.meta.url);\n'
+    );
+    const wrong = runGateArgs(root, BOTH);
+    assert.equal(wrong.status, 1, `${wrong.stdout}\n${wrong.stderr}`);
+    assert.match(wrong.stderr, /pkg\/holoscript_wasm\.js is missing function export\(s\): parse/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate refuses --artifact-js with more than one artifact', () => {
+  const root = createFixtureRepo();
+  try {
+    const refused = runGateArgs(root, [...BOTH, '--artifact-js', 'pkg/holoscript_wasm.js']);
+    assert.equal(refused.status, 2, `${refused.stdout}\n${refused.stderr}`);
+    assert.match(refused.stderr, /--artifact-js needs exactly one --artifact/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate checks both builds by default and names the stale one', () => {
+  const root = createFixtureRepo();
+  const crate = join(root, 'packages/compiler-wasm');
+  try {
+    mkdirSync(join(crate, 'src'), { recursive: true });
+    mkdirSync(join(crate, 'pkg-node'), { recursive: true });
+    mkdirSync(join(crate, 'pkg'), { recursive: true });
+    write(join(crate, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\n');
+    git(root, ['add', 'package.json', 'packages/compiler-wasm/src/lib.rs']);
+    git(root, ['commit', '-m', 'source']);
+    const first = git(root, ['rev-parse', 'HEAD']).stdout.trim();
+    const wasm = Buffer.from([0, 97, 115, 109, 1]);
+    const receipt = (sourceCommit) =>
+      `${JSON.stringify({ sourceCommit, result: { wasmSha256: WASM_SHA, wasmBytes: 5 } }, null, 2)}\n`;
+    write(join(crate, 'pkg-node/holoscript_wasm.js'), 'exports.parse = function parse() {};\n');
+    write(join(crate, 'pkg/holoscript_wasm.js'), WEB_GLUE);
+    for (const dir of ['pkg-node', 'pkg']) {
+      writeFileSync(join(crate, dir, 'holoscript_wasm_bg.wasm'), wasm);
+      write(join(crate, dir, 'rebuild-receipt.json'), receipt(first));
+    }
+    git(root, ['add', 'packages/compiler-wasm/pkg-node', 'packages/compiler-wasm/pkg']);
+    git(root, ['commit', '-m', 'both builds']);
+    const both = spawnSync(process.execPath, [SCRIPT, '--root', root], {
+      cwd: resolve('.'),
+      encoding: 'utf8',
+      windowsHide: true,
+    });
+    assert.equal(both.status, 0, `${both.stdout}\n${both.stderr}`);
+    assert.match(both.stdout, /packages\/compiler-wasm\/pkg-node@/);
+    assert.match(both.stdout, /packages\/compiler-wasm\/pkg@/);
+
+    // The Rust source changes and only the Node build is redone: the web build is stale.
+    write(join(crate, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\nfn helper() {}\n');
+    git(root, ['add', 'packages/compiler-wasm/src/lib.rs']);
+    git(root, ['commit', '-m', 'the Rust source changes']);
+    const second = git(root, ['rev-parse', 'HEAD']).stdout.trim();
+    write(join(crate, 'pkg-node/rebuild-receipt.json'), receipt(second));
+    git(root, ['add', 'packages/compiler-wasm/pkg-node/rebuild-receipt.json']);
+    git(root, ['commit', '-m', 'only the Node build is redone']);
+    const stale = spawnSync(process.execPath, [SCRIPT, '--root', root], {
+      cwd: resolve('.'),
+      encoding: 'utf8',
+      windowsHide: true,
+    });
+    assert.equal(stale.status, 1, `${stale.stdout}\n${stale.stderr}`);
+    assert.match(stale.stderr, /packages\/compiler-wasm\/pkg WASM artifact is stale/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate accepts a receipt naming the source being committed, and only that', () => {
+  const root = createFixtureRepo();
+  try {
+    const first = commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 });
+    // A side branch changes the Rust source; its build would name that commit.
+    git(root, ['checkout', '-q', '-b', 'side']);
+    write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\nfn helper() {}\n');
+    git(root, ['add', 'src/lib.rs']);
+    git(root, ['commit', '-m', 'the Rust source changes on a side branch']);
+    const side = git(root, ['rev-parse', 'HEAD']).stdout.trim();
+    git(root, ['checkout', '-q', 'main']);
+    const receiptFor = (sourceCommit) =>
+      `${JSON.stringify({ sourceCommit, result: { wasmSha256: WASM_SHA, wasmBytes: 5 } }, null, 2)}\n`;
+
+    // No merge in progress: a receipt naming the side commit names a commit this branch does
+    // not contain, and fails.
+    write(join(root, 'pkg-node/rebuild-receipt.json'), receiptFor(side));
+    const outside = runGate(root);
+    assert.equal(outside.status, 1, `${outside.stdout}\n${outside.stderr}`);
+    assert.match(outside.stderr, /is not in this branch's history/);
+    git(root, ['checkout', '--', 'pkg-node/rebuild-receipt.json']);
+
+    // A merge in progress stages the side's Rust, and the build names the side commit: it
+    // describes the commit being made, so it passes.
+    git(root, ['merge', '--no-commit', '--no-ff', 'side']);
+    write(join(root, 'pkg-node/rebuild-receipt.json'), receiptFor(side));
+    git(root, ['add', 'pkg-node/rebuild-receipt.json']);
+    const merging = runGate(root);
+    assert.equal(merging.status, 0, `${merging.stdout}\n${merging.stderr}`);
+
+    // The same merge with the build still naming the old source: it describes HEAD, so the
+    // merge commit may be made, and the gate fails after it until the build is redone.
+    write(join(root, 'pkg-node/rebuild-receipt.json'), receiptFor(first));
+    git(root, ['add', 'pkg-node/rebuild-receipt.json']);
+    const oldSource = runGate(root);
+    assert.equal(oldSource.status, 0, `${oldSource.stdout}\n${oldSource.stderr}`);
+    git(root, ['commit', '-q', '-m', 'merge side']);
+    const after = runGate(root);
+    assert.equal(after.status, 1, `${after.stdout}\n${after.stderr}`);
+    // Either rule may refuse first: the build path predates the Rust change, and the receipt
+    // names the old source.
+    assert.match(after.stderr, /WASM artifact is stale|Rust build input\(s\) changed/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate lets a new export be committed before the rebuild, then asks for the rebuild', () => {
+  const root = createFixtureRepo();
+  try {
+    commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 });
+    // The Rust change adds an export and is staged, as in pre-commit; the build is not redone.
+    write(
+      join(root, 'src/lib.rs'),
+      '#[wasm_bindgen]\npub fn parse() {}\n#[wasm_bindgen]\npub fn holo_modules_json() {}\n'
+    );
+    git(root, ['add', 'src/lib.rs']);
+    const pending = runGate(root);
+    // Exports are read from the source the receipt names, which has `parse` only.
+    assert.equal(pending.status, 0, `${pending.stdout}\n${pending.stderr}`);
+    git(root, ['commit', '-m', 'the Rust change adds an export']);
+    const after = runGate(root);
+    assert.equal(after.status, 1, `${after.stdout}\n${after.stderr}`);
+    assert.match(after.stderr, /WASM artifact is stale|Rust build input\(s\) changed/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('compiler-wasm drift gate counts a file the WASM embeds outside tests as a build input', () => {
+  const root = createFixtureRepo();
+  try {
+    mkdirSync(join(root, 'decl'), { recursive: true });
+    write(join(root, 'decl/absorb.hs'), 'export function f(): bool {\n  return true\n}\n');
+    write(join(root, 'decl/fixture.hs'), 'function t() {}\n');
+    write(
+      join(root, 'src/lib.rs'),
+      [
+        '#[wasm_bindgen]',
+        'pub fn parse() {}',
+        'const DECLARATIONS: &str = include_str!("../decl/absorb.hs");',
+        '#[cfg(test)]',
+        'mod tests {',
+        '    const FIXTURE: &str = include_str!("../decl/fixture.hs");',
+        '}',
+        '',
+      ].join('\n')
+    );
+    git(root, ['add', 'package.json', 'src/lib.rs', 'decl']);
+    git(root, ['commit', '-m', 'source with an embedded declaration file']);
+    const head = git(root, ['rev-parse', 'HEAD']).stdout.trim();
+    write(join(root, 'pkg-node/artifact.cjs'), 'exports.parse = function parse() {};\n');
+    writeFileSync(
+      join(root, 'pkg-node/holoscript_wasm_bg.wasm'),
+      Buffer.from([0, 97, 115, 109, 1])
+    );
+    write(
+      join(root, 'pkg-node/rebuild-receipt.json'),
+      `${JSON.stringify({ sourceCommit: head, result: { wasmSha256: WASM_SHA, wasmBytes: 5 } }, null, 2)}\n`
+    );
+    git(root, ['add', 'pkg-node']);
+    git(root, ['commit', '-m', 'the build']);
+    assert.equal(runGate(root).status, 0);
+
+    // A file only test code includes is not a build input.
+    write(join(root, 'decl/fixture.hs'), 'function t() {}\nfunction u() {}\n');
+    git(root, ['add', 'decl/fixture.hs']);
+    git(root, ['commit', '-m', 'a test fixture changes']);
+    const testOnly = runGate(root);
+    assert.equal(testOnly.status, 0, `${testOnly.stdout}\n${testOnly.stderr}`);
+
+    // The embedded declaration file is: changing it changes the checker.
+    write(join(root, 'decl/absorb.hs'), 'export function g(): bool {\n  return true\n}\n');
+    git(root, ['add', 'decl/absorb.hs']);
+    git(root, ['commit', '-m', 'the declaration changes']);
+    const stale = runGate(root);
+    assert.equal(stale.status, 1, `${stale.stdout}\n${stale.stderr}`);
+    assert.match(stale.stderr, /WASM artifact is stale|Rust build input\(s\) changed/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

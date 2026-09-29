@@ -1,8 +1,11 @@
 # Rust build
 target/
 
-# WASM build output. The browser package is committed so clean consumers and
-# portable workspace builds do not require wasm-pack; other targets remain local.
+# WASM build output. Two builds are committed, the web build pkg/ and the Node build
+# pkg-node/, so clean consumers and portable workspace builds do not require wasm-pack
+# (`npm run rebuild` rewrites both). Everything else wasm-pack writes stays local.
+# pkg-node/ was ignored whole while its files were tracked, so `git add` on them
+# exited 1 even as it staged them (hit twice on 2026-09-28).
 pkg/*
 !pkg/
 !pkg/.npmignore
@@ -12,7 +15,15 @@ pkg/*
 !pkg/holoscript_wasm_bg.wasm.d.ts
 !pkg/package.json
 !pkg/rebuild-receipt.json
-pkg-node/
+pkg-node/*
+!pkg-node/
+!pkg-node/.npmignore
+!pkg-node/holoscript_wasm.js
+!pkg-node/holoscript_wasm.d.ts
+!pkg-node/holoscript_wasm_bg.wasm
+!pkg-node/holoscript_wasm_bg.wasm.d.ts
+!pkg-node/package.json
+!pkg-node/rebuild-receipt.json
 pkg-bundler/
 
 # IDE
