@@ -1,5 +1,6 @@
 import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName } from '../types';
 import type { HoloComposition, CompositionChild } from '../types/index';
+import type { HoloDomainBlock, HoloEffect, HoloValue } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { ProvenanceSemiring, type ProvenanceContext } from './traits/ProvenanceSemiring';
 import {
@@ -39,6 +40,7 @@ import {
   UnauthorizedCompilerAccessError,
   escapeStringValue,
   flattenCompositionScenes,
+  readGroupBlocksAsSpatialGroups,
 } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
@@ -1817,6 +1819,23 @@ const MESH_TYPES = new Set([
 ]);
 
 /**
+ * The post-processing node each effect name becomes inside an `EffectComposer`:
+ * the kinds Studio's PostProcessingNode renders. An effects block's entry with
+ * any other name keeps that name as its node type. A `post_processing` block's
+ * entries become effects only when their name is listed here (see
+ * `postProcessingBlockEffects`).
+ */
+const POST_EFFECT_NODE_TYPES: Record<string, string> = {
+  bloom: 'Bloom',
+  ssao: 'SSAO',
+  vignette: 'Vignette',
+  dof: 'DepthOfField',
+  chromatic_aberration: 'ChromaticAberration',
+  tone_mapping: 'ToneMapping',
+  noise: 'Noise',
+};
+
+/**
  * UI Component presets for @react-three/uikit mapping.
  * Maps HoloScript UI components to uikit component configurations.
  */
@@ -2844,6 +2863,15 @@ export class SceneIRCompiler {
     // one. The list is on the result's `unappliedEnvironments` for when it does.
     composition = flattenCompositionScenes(composition).composition;
 
+    // A `group "X" { ... }` block sits on composition.domainBlocks, which nothing
+    // below reads except for procedural blocks, so the objects inside one were
+    // left out, while the .hsplus reading of the same text drew them inside their
+    // group. Read each one as the spatial group it describes, so it goes through
+    // compileSpatialGroup (a `group` node with the block's position, rotation and
+    // scale around its objects) and through the @platform() filter below. Without
+    // group blocks this is the input itself, so the tree is exactly as before.
+    composition = readGroupBlocksAsSpatialGroups(composition);
+
     // Apply @platform() conditional filtering (second compiler slice for
     // Adaptive Platform Layers seed 75 + @platform() RFC implementation).
     if (this._platformTarget) {
@@ -2984,8 +3012,26 @@ export class SceneIRCompiler {
       );
     }
 
-    // Compile first-class effects block OR auto-detect post-processing
-    if (composition.effects) {
+    // Compile first-class effects block OR auto-detect post-processing.
+    //
+    // A `post_processing` block (or `post_fx`, `render_pipeline`: the parser's
+    // postfx domain) declares effects the way an effects block does, but the
+    // parser keeps it on composition.domainBlocks, which this compiler read only
+    // for procedural blocks. So its bloom never reached Studio's viewport, while
+    // the .hsplus reading of the same text drew it. Its effects now go through
+    // compileEffectsBlock as well, after the effects block's own, in the one
+    // EffectComposer; like an effects block, it takes the place of
+    // auto-detection. A composition without such effects takes the same branch
+    // as before, so its tree is exactly as before.
+    const blockEffects = this.postProcessingBlockEffects(composition.domainBlocks);
+    if (blockEffects.length > 0) {
+      const declared = composition.effects?.effects;
+      root.children!.unshift(
+        this.compileEffectsBlock({
+          effects: [...(Array.isArray(declared) ? declared : []), ...blockEffects],
+        })
+      );
+    } else if (composition.effects) {
       root.children!.unshift(
         this.compileEffectsBlock(composition.effects as unknown as Record<string, unknown>)
       );
@@ -3000,8 +3046,9 @@ export class SceneIRCompiler {
     // Compile procedural domain blocks (scatter/procedural/generate/distribute/
     // pcg_graph) into instanced `scatter` nodes. Before this, compileComposition
     // never read composition.domainBlocks, so ALL domain blocks were dropped for
-    // `.holo` — scoped here to procedural ONLY (other domains are a separate
-    // concern handled on the `.hsplus` path).
+    // `.holo` — scoped here to procedural ONLY. Post-processing blocks are read
+    // with the effects block above and group blocks as spatial groups; the other
+    // domains are a separate concern handled on the `.hsplus` path.
     const domainBlocks = (composition.domainBlocks ?? []) as Array<
       import('../parser/HoloCompositionTypes').HoloDomainBlock
     >;
@@ -3089,17 +3136,8 @@ export class SceneIRCompiler {
     const children: R3FNode[] = [];
     if (Array.isArray(effects.effects)) {
       for (const effect of effects.effects as Record<string, unknown>[]) {
-        const effectMapping: Record<string, string> = {
-          bloom: 'Bloom',
-          ssao: 'SSAO',
-          vignette: 'Vignette',
-          dof: 'DepthOfField',
-          chromatic_aberration: 'ChromaticAberration',
-          tone_mapping: 'ToneMapping',
-          noise: 'Noise',
-        };
         const effectType = effect.effectType as string;
-        const type = effectMapping[effectType] || effectType;
+        const type = POST_EFFECT_NODE_TYPES[effectType] || effectType;
         children.push(
           this.createNode(type, { ...((effect.properties as Record<string, unknown>) || {}) })
         );
@@ -3108,6 +3146,46 @@ export class SceneIRCompiler {
     const composer = this.createNode('EffectComposer', {});
     composer.children = children;
     return composer;
+  }
+
+  /**
+   * The effects that `post_processing` blocks declare, as effects-block entries
+   * for {@link compileEffectsBlock}.
+   *
+   * The parser keeps such a block (keyword `post_processing`, `post_fx` or
+   * `render_pipeline`, domain `postfx`) with each effect as one of its
+   * properties: `bloom: { intensity: 0.4 }`, or `bloom { intensity: 0.4 }`, which
+   * it reads the same way. An entry is an effect when its name is in
+   * {@link POST_EFFECT_NODE_TYPES} and its value is a settings object, or `true`
+   * (on, with default settings). Left out: an entry switched off with
+   * `enabled: false` (or written `false`), a value that is not settings (such as
+   * `tone_mapping: "aces"`), and every other property: block-wide settings such as
+   * `exposure`, effects no node renders, and a render pipeline's shader code.
+   * Blocks are read in source order and entries in the order they are written.
+   */
+  private postProcessingBlockEffects(blocks: HoloDomainBlock[] | undefined): HoloEffect[] {
+    const effects: HoloEffect[] = [];
+    for (const block of blocks ?? []) {
+      if (block.domain !== 'postfx') continue;
+      for (const [effectType, value] of Object.entries(block.properties ?? {})) {
+        if (!Object.prototype.hasOwnProperty.call(POST_EFFECT_NODE_TYPES, effectType)) continue;
+        if (value === true) {
+          effects.push({ type: 'Effect', effectType, properties: {} });
+        } else if (
+          typeof value === 'object' &&
+          value !== null &&
+          !Array.isArray(value) &&
+          (value as Record<string, unknown>).enabled !== false
+        ) {
+          effects.push({
+            type: 'Effect',
+            effectType,
+            properties: value as Record<string, HoloValue>,
+          });
+        }
+      }
+    }
+    return effects;
   }
 
   private compileCameraBlock(camera: Record<string, unknown>): R3FNode {
@@ -3215,6 +3293,14 @@ export class SceneIRCompiler {
       } else {
         nodes.push(this.createNode('Environment', { background: true, preset: presetName }));
       }
+    } else {
+      // No skybox or preset: the block still sets the scene's lighting. The
+      // .hsplus reading of the same text gives every environment block an
+      // Environment node, without an envPreset, and Studio's viewport renders such
+      // a node with its default HDRI preset ("studio"), where a tree without one
+      // gets the viewport's own fallback ("apartment") instead. Emit the same
+      // node, so both readings light the scene the same way.
+      nodes.push(this.createNode('Environment', {}));
     }
 
     // Explicit ambient_light

@@ -3,6 +3,7 @@ import {
   CompilerBase,
   UnauthorizedCompilerAccessError,
   createTestCompilerToken,
+  readGroupBlocksAsSpatialGroups,
   type ICompiler,
 } from '../CompilerBase';
 import { ResourceType, type AccessDecision } from '../identity/AgentRBAC';
@@ -673,6 +674,72 @@ describe('CompilerBase', () => {
         'the environment in scene "Night x" is not applied: this output is one world with one environment, and the environment in scene "Day" applies.',
         'object "Ground" in scene "Night x" is not built: this output is one world, and another object in it already uses the name "Ground".',
       ]);
+    });
+  });
+
+  // ===================================================================
+  // readGroupBlocksAsSpatialGroups — `group "X" { }` read as spatial_group
+  // ===================================================================
+  describe('readGroupBlocksAsSpatialGroups', () => {
+    const obj = (name: string) => ({ type: 'Object', name, properties: [], traits: [] });
+    const block = (
+      domain: string,
+      keyword: string,
+      name: string,
+      properties: Record<string, unknown> = {},
+      children?: string[]
+    ) => ({
+      type: 'DomainBlock',
+      domain,
+      keyword,
+      name,
+      traits: [],
+      properties,
+      ...(children ? { children: children.map(obj) } : {}),
+    });
+    const composition = (fields: Record<string, unknown>) =>
+      ({ type: 'Composition', name: 'C', objects: [], ...fields }) as unknown as HoloComposition;
+
+    it('returns the input itself when it has no group block', () => {
+      for (const input of [
+        composition({}),
+        composition({ domainBlocks: [] }),
+        composition({ domainBlocks: [block('custom', 'widget', 'W', {}, ['A'])] }),
+        composition({ domainBlocks: [block('postfx', 'post_processing', 'unnamed')] }),
+      ]) {
+        expect(readGroupBlocksAsSpatialGroups(input)).toBe(input);
+      }
+    });
+
+    it('turns each group block into a spatial group after the existing ones, and never changes the input', () => {
+      const existing = { type: 'SpatialGroup', name: 'Own', properties: [], objects: [obj('O')] };
+      const input = composition({
+        spatialGroups: [existing],
+        domainBlocks: [
+          block('custom', 'group', 'Shelf', { position: [0, 1, 0], scale: 2 }, ['BookA', 'BookB']),
+          block('custom', 'widget', 'W'),
+          block('custom', 'Group', 'Empty'),
+        ],
+      });
+      const before = JSON.stringify(input);
+      const read = readGroupBlocksAsSpatialGroups(input);
+
+      expect(read.spatialGroups).toEqual([
+        existing,
+        {
+          type: 'SpatialGroup',
+          name: 'Shelf',
+          properties: [
+            { type: 'GroupProperty', key: 'position', value: [0, 1, 0] },
+            { type: 'GroupProperty', key: 'scale', value: 2 },
+          ],
+          objects: [obj('BookA'), obj('BookB')],
+        },
+        { type: 'SpatialGroup', name: 'Empty', properties: [], objects: [] },
+      ]);
+      // Other blocks stay, in order; the group blocks leave, so none is read twice.
+      expect(read.domainBlocks).toEqual([block('custom', 'widget', 'W')]);
+      expect(JSON.stringify(input)).toBe(before);
     });
   });
 });
