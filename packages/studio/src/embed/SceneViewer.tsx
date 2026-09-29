@@ -15,6 +15,7 @@ import {
   WebSurfaceRenderer,
   resolveWebSurfaceConfig,
 } from '@holoscript/r3f-renderer';
+import { resolveEnvironmentPreset } from '@/lib/scene/environmentPreset';
 
 // VR edit session — lazy loaded to avoid SSR issues
 const VREditSession = lazy(() =>
@@ -278,7 +279,10 @@ function EmbedNodeRenderer({
       );
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
     case 'fog':
       return null;

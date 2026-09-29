@@ -37,6 +37,7 @@ import {
 } from '@/lib/adaptive-platform-layers';
 import { logger } from '@/lib/logger';
 import { detectPlatform } from '@/lib/platform-detect';
+import { resolveEnvironmentPreset } from '@/lib/scene/environmentPreset';
 
 // ═══════════════════════════════════════════════════════════════════
 // Geometry + Material mappers (mirrors WebXRViewer's EmbedNodeRenderer)
@@ -229,7 +230,10 @@ function DesktopNodeRenderer({
       );
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
     default:
       return (

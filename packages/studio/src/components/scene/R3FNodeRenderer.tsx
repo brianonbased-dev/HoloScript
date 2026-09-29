@@ -22,6 +22,7 @@ import {
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
+import { resolveEnvironmentPreset } from '@/lib/scene/environmentPreset';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
 import { CompiledLotusMeshNode } from './CompiledLotusMeshNode';
@@ -400,7 +401,10 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
 
     case 'fog':
