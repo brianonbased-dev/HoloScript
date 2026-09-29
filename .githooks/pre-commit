@@ -485,6 +485,13 @@ if [ -n "$STAGED_QUEST" ]; then
         echo "$QUEST_LOGIC_OUT"
         FAILED=1
     fi
+    # --check reads the working copy; a regenerated file left unstaged would pass it while the
+    # commit carries the old one.
+    if ! git diff --quiet -- packages/core/src/compiler/quest-mr-templates.generated.ts; then
+        echo -e "  ${RED}❌ quest-mr-templates.generated.ts has unstaged changes${NC}"
+        echo "     Fix: git add packages/core/src/compiler/quest-mr-templates.generated.ts (or restore it)."
+        FAILED=1
+    fi
     QUEST_MR_OUT=$(run_with_timeout 60 npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts 2>&1)
     QUEST_MR_STATUS=$?
     if [ "$QUEST_MR_STATUS" -ne 0 ]; then
