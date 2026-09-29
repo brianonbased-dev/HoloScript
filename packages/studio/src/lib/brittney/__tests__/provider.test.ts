@@ -18,6 +18,8 @@ import {
   resolveBrittneyProvider,
   resolveBrittneyProviderAsync,
   resolvePaidFallback,
+  WARMING_MINUTES,
+  WARMING_NOTICE,
 } from '../provider';
 
 /** Every env name the resolution reads, so a developer's shell cannot leak into a test. */
@@ -428,6 +430,20 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     // Sovereign-only: even with an Anthropic key present, a cold fleet surfaces a
     // warming error — never a silent Anthropic bill.
     await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/warming/i);
+  });
+
+  it('the cold-fleet refusal carries a plain notice for the person, with a true wait', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    stubResolve({ status: 'cold', model: 'qwen3:14b' });
+    const err = (await resolveBrittneyProviderAsync().catch((e: unknown) => e)) as Error & {
+      notice?: string;
+    };
+    expect(err.message).toMatch(/^SOVEREIGN_WARMING:/);
+    expect(err.notice).toBe(WARMING_NOTICE);
+    expect(WARMING_NOTICE).toContain(`about ${WARMING_MINUTES} minutes`);
+    // The old text promised ~1 minute; a cold start has never been that fast.
+    expect(WARMING_MINUTES).toBeGreaterThanOrEqual(10);
+    expect(WARMING_NOTICE).not.toMatch(/SOVEREIGN|fleet|demand|~1 minute|serving box/i);
   });
 
   it('a cold fleet falls back to our own HoloLlama server, not the Anthropic key', async () => {

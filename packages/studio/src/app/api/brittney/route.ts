@@ -274,8 +274,14 @@ export async function POST(request: NextRequest) {
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        // A refusal that explains itself to people (the cold-fleet one does:
+        // provider.ts warmingError) is Brittney's reply, in its own words. It
+        // used to reach the chat as "Sorry, I hit an error: SOVEREIGN_WARMING: ...".
+        const notice = (err as { notice?: unknown } | null)?.notice;
         return sseResponse([
-          { type: 'error', payload: msg },
+          typeof notice === 'string' && notice
+            ? { type: 'text', payload: notice }
+            : { type: 'error', payload: msg },
           { type: 'done', payload: null },
         ]);
       }
