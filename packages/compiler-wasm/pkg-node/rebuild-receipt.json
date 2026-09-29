@@ -1,24 +1,26 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-27T23:29:33Z",
+  "generatedAt": "2026-09-29T01:16:53Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "0da1021d92da8dd991cc4606c3b71a54161a28c2",
+  "sourceCommit": "35c83b36c58ea2bc3c1fe75b6b98b82087cdd95e",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --target nodejs --out-dir pkg-node --release"
+    "wasm-pack build --target nodejs --out-dir <temp>/g15-pkg-node-r2 --release",
+    "wasm-pack build --target nodejs --out-dir <temp>/g15-pkg-node-r2b --release (fresh CARGO_TARGET_DIR)",
+    "compare both builds with the committed pkg-node files (byte-identical; nothing copied)"
   ],
   "toolchain": {
-    "rustc": "1.98.1",
-    "cargo": "1.98.1",
+    "rustc": "1.91.0",
+    "cargo": "1.91.0",
     "wasmPack": "0.14.0"
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": true,
-    "wasmBytes": 481843,
-    "wasmSha256": "905099d1b2f5dd8f70c4288f2e0ecd5af9c8f7f3e6412479507dd99f789c8d85",
-    "previousWasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
-    "repeatBuildSha256Matched": null,
-    "note": "Rebuilt pkg-node from the lifetime-elision and read-only-downgrade checker on this branch. Fresh release build with the receipted command. Digest pinned from the produced artifact. No version bump."
+    "artifactBytesChanged": false,
+    "wasmBytes": 527897,
+    "wasmSha256": "2f0522fa80bc04d9bc4c0da8b0222f697380b1b56fe32a71d4357bb4b7ef1a14",
+    "previousWasmSha256": "2f0522fa80bc04d9bc4c0da8b0222f697380b1b56fe32a71d4357bb4b7ef1a14",
+    "repeatBuildSha256Matched": true,
+    "note": "Re-verified pkg-node against 35c83b36c, whose compiler-wasm change is a test module only (the shared G15 frame cases). Two release builds, the second in a fresh CARGO_TARGET_DIR, reproduced the committed artifact byte for byte, so the wasm is not re-committed and only this receipt moves. The artifact is the G15 build from c1c4c7699 (d721b1b33): an omitted allowed_tools parses to [\"*\"], a written [] stays empty, a written non-list parses to []. Its previous artifact, 905099d1b2f5dd8f70c4288f2e0ecd5af9c8f7f3e6412479507dd99f789c8d85 (481,843 bytes), was built with rustc 1.98.1; the unchanged parent source built here with rustc 1.91.0 is 527,786 bytes, so G15 adds 111 bytes and the rest is the toolchain. rustc 1.91.0. The browser build in pkg/ was not rebuilt. No version bump."
   }
 }

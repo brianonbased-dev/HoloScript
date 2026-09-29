@@ -1,7 +1,7 @@
 @trait {
   name: "@frame_declaration",
   category: "agent",
-  description: "Agent frame declaration — declares the trust and capability tier of a brain node. domain is the domain scope (* = all, or a specific domain; default: *). horizon is the planning time horizon (default: empty — no limit). capability_tier is the agent capability level [0-3] (default: 2). trust_tier is the trust level [0-3] (default: 2). allowed_tools is the tool allowlist (empty = inherit from tier). Port of FrameDeclarationTrait.ts (handler name: frame_declaration).",
+  description: "Agent frame declaration — declares the trust and capability tier of a brain node. domain is the domain scope (* = all, or a specific domain; default: *). horizon is the planning time horizon (default: empty — no limit). capability_tier is the agent capability level [0-3] (default: 2). trust_tier is the trust level [0-3] (default: 2). allowed_tools is the tool allowlist (a list holding * = every tool, an empty list = no tool, omitted = every tool). Port of FrameDeclarationTrait.ts (handler name: frame_declaration).",
   props: {
     domain: string = "*",
     horizon: string = "",

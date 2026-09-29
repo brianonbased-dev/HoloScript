@@ -1,0 +1,172 @@
+{
+  "schema": "holoscript.frame-allowlist-cases.v1",
+  "about": "G15 (proposals/Agent_Frame_Tool_Allowlist_v1.md). Each case is the body of one @frame_declaration block and the allowed_tools every reader that reads it must produce. The readers: the canonical .hsplus parser (packages/core, via coerceFrameDeclarationConfig), the Rust grammar authority (packages/compiler-wasm ast.rs), and the agent loader (packages/holoscript-agent brain.ts), whose frame is what an agent sends to the MCP gate. \"core\" or \"rust\": \"rejects\" marks a body that reader refuses to parse. The agent loader never rejects: it reads the frame or narrows it to no tool.",
+  "wrap": {
+    "braces": "@frame_declaration {\n<body>\n}",
+    "parens": "@frame_declaration(<body>)"
+  },
+  "cases": [
+    {
+      "id": "omitted",
+      "body": "domain: \"holoscript-language\"",
+      "allowed_tools": [
+        "*"
+      ]
+    },
+    {
+      "id": "empty",
+      "body": "allowed_tools: []",
+      "allowed_tools": []
+    },
+    {
+      "id": "star",
+      "body": "allowed_tools: [\"*\"]",
+      "allowed_tools": [
+        "*"
+      ]
+    },
+    {
+      "id": "named",
+      "body": "allowed_tools: [\"read\"]",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "star-with-names",
+      "body": "allowed_tools: [\"*\", \"read\"]",
+      "allowed_tools": [
+        "*",
+        "read"
+      ]
+    },
+    {
+      "id": "not-a-list",
+      "body": "allowed_tools: \"read\"",
+      "allowed_tools": []
+    },
+    {
+      "id": "equals-separator",
+      "body": "allowed_tools = []",
+      "allowed_tools": [],
+      "rust": "rejects"
+    },
+    {
+      "id": "quoted-key",
+      "body": "\"allowed_tools\": []",
+      "allowed_tools": []
+    },
+    {
+      "id": "bare-key",
+      "body": "allowed_tools",
+      "allowed_tools": [],
+      "rust": "rejects"
+    },
+    {
+      "id": "later-key-wins",
+      "body": "allowed_tools: [\"*\"]\nallowed_tools: []",
+      "allowed_tools": []
+    },
+    {
+      "id": "comment-with-brace",
+      "body": "// locked down (G15: [] now means none}\nallowed_tools: []",
+      "allowed_tools": []
+    },
+    {
+      "id": "key-inside-a-string",
+      "body": "domain: \"legacy allowed_tools: ['*']\"\nallowed_tools: []",
+      "allowed_tools": []
+    },
+    {
+      "id": "comment-mentions-star",
+      "body": "// allowed_tools: [\"*\"] would allow every tool\nallowed_tools: [\"read\"]",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "block-comment",
+      "body": "/* allowed_tools: [\"*\"] */\nallowed_tools: []",
+      "allowed_tools": []
+    },
+    {
+      "id": "unquoted-entries",
+      "body": "allowed_tools: [read]",
+      "allowed_tools": []
+    },
+    {
+      "id": "unquoted-star",
+      "body": "allowed_tools: [*]",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": "rejects"
+    },
+    {
+      "id": "number-entries",
+      "body": "allowed_tools: [42]",
+      "allowed_tools": []
+    },
+    {
+      "id": "comma-less-list",
+      "body": "allowed_tools: [\n  \"read\"\n  \"write\"\n]",
+      "allowed_tools": [
+        "read",
+        "write"
+      ],
+      "rust": "rejects"
+    },
+    {
+      "id": "single-quoted",
+      "body": "allowed_tools: ['read', \"write\"]",
+      "allowed_tools": [
+        "read",
+        "write"
+      ]
+    },
+    {
+      "id": "space-before-colon",
+      "body": "allowed_tools : [\"read\"]",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "same-line",
+      "body": "domain: \"x\" allowed_tools: []",
+      "allowed_tools": []
+    },
+    {
+      "id": "value-on-next-line",
+      "body": "allowed_tools:\n  [\"read\"]",
+      "allowed_tools": [
+        "read"
+      ],
+      "core": "rejects"
+    },
+    {
+      "id": "parens-empty",
+      "form": "parens",
+      "body": "allowed_tools: []",
+      "allowed_tools": [],
+      "rust": "rejects"
+    },
+    {
+      "id": "parens-named",
+      "form": "parens",
+      "body": "allowed_tools: [\"read\"]",
+      "allowed_tools": [
+        "read"
+      ],
+      "rust": "rejects"
+    },
+    {
+      "id": "parens-omitted",
+      "form": "parens",
+      "body": "domain: \"x\"",
+      "allowed_tools": [
+        "*"
+      ],
+      "rust": "rejects"
+    }
+  ]
+}

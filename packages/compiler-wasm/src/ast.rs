@@ -816,7 +816,8 @@ pub struct Directive {
 ///
 /// The Rust parser materialises the declaration from a generic `Directive` whose
 /// `name == "frame_declaration"` by calling `FrameDeclarationNode::try_from_directive`.
-/// All fields default to the permissive baseline when absent from the source block.
+/// All fields default to the permissive baseline when absent from the source block;
+/// a field that is written means what it says (an empty `allowed_tools` is no tool).
 ///
 /// Serialises to JSON with snake_case keys so the TS wasm-api layer can read it
 /// directly without a naming translation step.
@@ -840,8 +841,11 @@ pub struct FrameDeclarationNode {
     #[serde(default = "frame_tier_default")]
     pub trust_tier: u8,
 
-    /// Explicit tool allowlist. Empty vec = all tools permitted.
-    #[serde(default)]
+    /// Tool allowlist (G15). `["*"]` permits every tool, an empty vec permits
+    /// no tool, and any other entries permit exactly the named tools. An omitted
+    /// `allowed_tools` defaults to `["*"]`, so leaving it out means every tool; a
+    /// written value that is not a list is read as an empty vec (no tool).
+    #[serde(default = "frame_allowed_tools_default")]
     pub allowed_tools: Vec<String>,
 
     /// Domains this agent must not act on.
@@ -859,6 +863,12 @@ fn frame_domain_default() -> String {
 
 fn frame_tier_default() -> u8 {
     2
+}
+
+/// The allowlist an omitted `allowed_tools` stands for: `["*"]`, every tool —
+/// the same `"*"` the frame's `domain` uses for "any domain" (G15).
+fn frame_allowed_tools_default() -> Vec<String> {
+    vec!["*".to_string()]
 }
 
 impl FrameDeclarationNode {
@@ -879,7 +889,7 @@ impl FrameDeclarationNode {
                 horizon: String::new(),
                 capability_tier: frame_tier_default(),
                 trust_tier: frame_tier_default(),
-                allowed_tools: Vec::new(),
+                allowed_tools: frame_allowed_tools_default(),
                 denied_domains: Vec::new(),
                 loc,
             });
@@ -892,7 +902,7 @@ impl FrameDeclarationNode {
                 horizon: String::new(),
                 capability_tier: frame_tier_default(),
                 trust_tier: frame_tier_default(),
-                allowed_tools: Vec::new(),
+                allowed_tools: frame_allowed_tools_default(),
                 denied_domains: Vec::new(),
                 loc,
             });
@@ -902,7 +912,7 @@ impl FrameDeclarationNode {
         let mut horizon = String::new();
         let mut capability_tier = frame_tier_default();
         let mut trust_tier = frame_tier_default();
-        let mut allowed_tools: Vec<String> = Vec::new();
+        let mut allowed_tools: Vec<String> = frame_allowed_tools_default();
         let mut denied_domains: Vec<String> = Vec::new();
 
         for prop in &obj.properties {
@@ -936,6 +946,10 @@ impl FrameDeclarationNode {
                     }
                 }
                 "allowed_tools" => {
+                    // A written list replaces the omitted-field default and means
+                    // exactly what it names, so `[]` is no tool. A written value
+                    // that is not a list fails closed to no tool (G15).
+                    allowed_tools = Vec::new();
                     if let AstNode::Array(arr) = prop.value.as_ref() {
                         for elem in &arr.elements {
                             if let AstNode::String(s) = elem {
@@ -966,5 +980,175 @@ impl FrameDeclarationNode {
             denied_domains,
             loc,
         })
+    }
+}
+
+#[cfg(test)]
+mod frame_allowlist_tests {
+    //! G15 (proposals/Agent_Frame_Tool_Allowlist_v1.md). The Rust reader only
+    //! parses frames; `checkToolAllowed` in @holoscript/core enforces them. So
+    //! these tests pin the parsed allowlist the enforcer receives: an omitted
+    //! list is `["*"]` (every tool), a written `[]` stays empty (no tool), and
+    //! the two can no longer be confused.
+    use super::{AstNode, FrameDeclarationNode};
+    use crate::parser::Parser;
+
+    fn frame_of(source: &str) -> FrameDeclarationNode {
+        let mut parser = Parser::new(source);
+        let ast = parser.parse().expect("the frame declaration should parse");
+        ast.body
+            .into_iter()
+            .find_map(|node| match node {
+                AstNode::FrameDeclaration(frame) => Some(frame),
+                _ => None,
+            })
+            .expect("a top-level @frame_declaration becomes a FrameDeclaration node")
+    }
+
+    fn tools(names: &[&str]) -> Vec<String> {
+        names.iter().map(|name| name.to_string()).collect()
+    }
+
+    #[test]
+    fn written_empty_allowlist_is_no_tool_and_differs_from_omitted() {
+        let written_empty = frame_of("@frame_declaration {\n  allowed_tools: []\n}");
+        let omitted = frame_of("@frame_declaration {\n  domain: \"holoscript-language\"\n}");
+        assert!(
+            written_empty.allowed_tools.is_empty(),
+            "a written [] must stay empty, meaning no tool"
+        );
+        assert_eq!(
+            omitted.allowed_tools,
+            tools(&["*"]),
+            "an omitted allowed_tools must default to [\"*\"], meaning every tool"
+        );
+        assert_ne!(
+            written_empty.allowed_tools, omitted.allowed_tools,
+            "a written [] and an omitted list must not parse to the same allowlist"
+        );
+    }
+
+    #[test]
+    fn star_allowlist_is_every_tool() {
+        let frame = frame_of("@frame_declaration {\n  allowed_tools: [\"*\"]\n}");
+        assert_eq!(frame.allowed_tools, tools(&["*"]));
+    }
+
+    #[test]
+    fn named_allowlist_is_exactly_those_tools() {
+        let frame = frame_of("@frame_declaration {\n  allowed_tools: [\"read\"]\n}");
+        assert_eq!(frame.allowed_tools, tools(&["read"]));
+    }
+
+    #[test]
+    fn frame_without_a_config_block_defaults_to_every_tool() {
+        let frame = frame_of("@frame_declaration");
+        assert_eq!(frame.allowed_tools, tools(&["*"]));
+    }
+
+    #[test]
+    fn written_value_that_is_not_a_list_fails_closed_to_no_tool() {
+        let frame = frame_of("@frame_declaration {\n  allowed_tools: \"read\"\n}");
+        assert!(
+            frame.allowed_tools.is_empty(),
+            "a written allowed_tools that is not a list must not widen to every tool"
+        );
+    }
+
+    #[test]
+    fn a_later_allowed_tools_entry_replaces_an_earlier_one() {
+        let frame = frame_of(
+            "@frame_declaration {\n  allowed_tools: [\"*\"]\n  allowed_tools: [\"read\"]\n}",
+        );
+        assert_eq!(frame.allowed_tools, tools(&["read"]));
+    }
+
+    #[test]
+    fn denied_domains_are_carried_beside_the_allowlist() {
+        let frame = frame_of(
+            "@frame_declaration {\n  allowed_tools: [\"*\"]\n  denied_domains: [\"finance\"]\n}",
+        );
+        assert_eq!(frame.allowed_tools, tools(&["*"]));
+        assert_eq!(frame.denied_domains, tools(&["finance"]));
+    }
+
+    #[test]
+    fn serde_default_for_a_missing_allowlist_is_every_tool() {
+        let omitted: FrameDeclarationNode =
+            serde_json::from_str("{}").expect("an empty frame object should deserialize");
+        assert_eq!(omitted.allowed_tools, tools(&["*"]));
+        let written_empty: FrameDeclarationNode = serde_json::from_str(r#"{"allowed_tools":[]}"#)
+            .expect("a frame with an empty allowlist should deserialize");
+        assert!(written_empty.allowed_tools.is_empty());
+    }
+
+    /// The frame cases every reader must read the same way; the canonical
+    /// .hsplus parser (packages/core) and the agent loader (packages/holoscript-agent)
+    /// test the same file. A case marked `"rust": "rejects"` must fail to parse here.
+    #[test]
+    fn shared_frame_cases_read_as_every_reader_must() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json"
+        ))
+        .expect("the shared frame cases are valid JSON");
+        let cases = fixture["cases"].as_array().expect("cases is a list");
+        assert!(!cases.is_empty(), "the shared frame cases are empty");
+        for case in cases {
+            let id = case["id"].as_str().expect("every case has an id");
+            let body = case["body"].as_str().expect("every case has a body");
+            let source = if case["form"].as_str() == Some("parens") {
+                format!("@frame_declaration({body})")
+            } else {
+                format!("@frame_declaration {{\n{body}\n}}")
+            };
+            let parsed = Parser::new(&source).parse();
+            if case["rust"].as_str() == Some("rejects") {
+                assert!(
+                    parsed.is_err(),
+                    "{id}: the Rust reader should reject this frame"
+                );
+                continue;
+            }
+            let ast = parsed.unwrap_or_else(|errors| panic!("{id}: should parse, got {errors:?}"));
+            let frame = ast
+                .body
+                .into_iter()
+                .find_map(|node| match node {
+                    AstNode::FrameDeclaration(frame) => Some(frame),
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("{id}: no FrameDeclaration node"));
+            let expected: Vec<String> = case["allowed_tools"]
+                .as_array()
+                .expect("every case has allowed_tools")
+                .iter()
+                .map(|tool| tool.as_str().expect("tool names are strings").to_string())
+                .collect();
+            assert_eq!(frame.allowed_tools, expected, "{id}");
+        }
+    }
+
+    #[test]
+    fn trusted_analyst_example_frame_is_every_tool() {
+        // The Rust reader has no `brain` syntax, so the TrustedAnalyst frame
+        // block is cut out of the real example file and parsed on its own.
+        let example = include_str!("../../../compositions/frame-declaration-example.hsplus");
+        let brain_at = example
+            .find("brain TrustedAnalyst")
+            .expect("the example declares TrustedAnalyst");
+        let block_at = brain_at
+            + example[brain_at..]
+                .find("@frame_declaration {")
+                .expect("TrustedAnalyst has a frame block");
+        let block_len = example[block_at..]
+            .find('}')
+            .expect("the frame block closes")
+            + 1;
+        let frame = frame_of(&example[block_at..block_at + block_len]);
+        assert_eq!(
+            frame.allowed_tools,
+            tools(&["*"]),
+            "TrustedAnalyst is the example's every-tool agent; after G15 it must say [\"*\"]"
+        );
     }
 }

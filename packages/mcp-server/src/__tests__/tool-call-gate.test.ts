@@ -202,4 +202,26 @@ describe('gateToolCall', () => {
       })
     ).toBeNull();
   });
+
+  it('G15: a written empty allowlist is a valid frame (no tool); a missing one is malformed', () => {
+    const declaration = {
+      domain: 'holoscript-language',
+      horizon: '2026-07',
+      capability_tier: 2,
+      trust_tier: 2,
+      allowed_tools: [] as string[],
+      denied_domains: [] as string[],
+    };
+    expect(
+      frameDeclarationFromMcpMeta({ 'holoscript.dev/frame-declaration': declaration })
+    ).toEqual(declaration);
+
+    // "Omitted means every tool" is a source rule: brains send ["*"]. On the
+    // wire the list is required, so a frame without one fails closed as invalid.
+    const withoutAllowlist: Record<string, unknown> = { ...declaration };
+    delete withoutAllowlist.allowed_tools;
+    expect(
+      frameDeclarationFromMcpMeta({ 'holoscript.dev/frame-declaration': withoutAllowlist })
+    ).toBeNull();
+  });
 });

@@ -1,6 +1,12 @@
 /** MCP metadata key carrying an active HoloScript brain frame declaration. */
 export const FRAME_DECLARATION_MCP_META_KEY = 'holoscript.dev/frame-declaration' as const;
 
+/**
+ * The `allowed_tools` entry that permits every tool — the same mark a frame's
+ * `domain` uses for "any domain". Proposal G15 (proposals/Agent_Frame_Tool_Allowlist_v1.md).
+ */
+export const FRAME_ALLOW_ALL_TOOLS = '*' as const;
+
 /** Sovereign-seat capability and trust tiers. */
 export type FrameTier = 0 | 1 | 2 | 3;
 
@@ -13,6 +19,13 @@ export interface FrameDeclarationContract {
   horizon: string;
   capability_tier: FrameTier;
   trust_tier: FrameTier;
+  /**
+   * MCP tools this agent may call through the MCP server's gate (G15). `["*"]`
+   * permits every tool; `[]` permits no tool; any other list permits exactly the
+   * tools it names. A brain that omits the field is sent as `["*"]`, so leaving
+   * it out still means every tool. The agent's own local tools are not bounded
+   * by this list.
+   */
   allowed_tools: string[];
   denied_domains: string[];
 }

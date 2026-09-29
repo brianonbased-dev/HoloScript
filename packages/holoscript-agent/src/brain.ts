@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
+import { FRAME_ALLOW_ALL_TOOLS } from '@holoscript/agent-protocol';
 import type { FrameDeclarationContract, FrameTier } from '@holoscript/agent-protocol';
 import type { OnTaskAction, RuntimeBrainConfig } from './types.js';
 
@@ -162,23 +163,227 @@ function adaptRuntimeBrainDocument(brain: string): RuntimeBrainDocument {
   };
 }
 
-/** Parse an authored frame into the transport-safe protocol contract. */
-function extractFrameDeclaration(brain: string): FrameDeclarationContract | undefined {
-  const block = sliceNamedBlock(brain, 'frame_declaration');
-  if (block === undefined) return undefined;
+// ─── Frame reader (G15, proposals/Agent_Frame_Tool_Allowlist_v1.md) ──────────
+//
+// The frame this reader builds is what the agent sends with every MCP tool
+// call, and this package is core-free, so it cannot call the canonical parser. It tokenizes
+// just enough .hsplus to find the block, its keys and its list entries in code
+// (never in comments or strings), and it must read what the canonical parser
+// reads. Where it cannot tell what the author wrote, it narrows the frame and
+// never widens it. The cases every reader must agree on are shared in
+// packages/agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json.
 
+/** `frame_declaration` opening a block: `{` or `(`, optionally after a colon. */
+const FRAME_HEADER = /\bframe_declaration\s*:?\s*[{(]/g;
+
+/** A token of the frame reader: enough .hsplus to find keys and list entries. */
+type FrameToken = { kind: 'word' | 'string' | 'punct'; text: string } | { kind: 'newline' };
+
+/** A top-level value in a frame block. */
+type FrameValue = { list: string[] } | { scalar: string } | { other: true };
+
+const OPENERS = new Set(['{', '(', '[']);
+const CLOSER_OF: Record<string, string> = { '{': '}', '(': ')', '[': ']' };
+
+/**
+ * Parse the brain's `@frame_declaration` into the transport-safe protocol
+ * contract. An omitted `allowed_tools` is sent as `["*"]` (every tool); a
+ * written list means exactly what it names, so `[]` is no tool; a written value
+ * that is not a list, or a block this reader cannot read, permits no tool. When
+ * the file names more than one frame, the agent gets only the tools every one
+ * of them permits.
+ */
+function extractFrameDeclaration(brain: string): FrameDeclarationContract | undefined {
+  const frames: FrameDeclarationContract[] = [];
+  for (const header of brain.matchAll(FRAME_HEADER)) {
+    const at = header.index ?? 0;
+    if (inLineCommentOrString(brain, at)) continue;
+    frames.push(frameFromBlock(tokenizeFrameBlock(brain, at + header[0].length - 1)));
+  }
+  return frames.length === 0 ? undefined : frames.reduce(narrowFrames);
+}
+
+/** True when `src[at]` sits after `//`, or inside a quoted string, on its own line. */
+function inLineCommentOrString(src: string, at: number): boolean {
+  let quote: string | null = null;
+  for (let i = src.lastIndexOf('\n', at - 1) + 1; i < at; i++) {
+    const ch = src[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '/' && src[i + 1] === '/') {
+      return true;
+    }
+  }
+  return quote !== null;
+}
+
+/**
+ * Tokenize the bracketed block that opens at `src[open]`, through its matching
+ * close. Comments are skipped and strings decoded, so brackets, keys and
+ * entries are only ever read from code. Returns undefined when the block never
+ * closes, its brackets do not match, or a string or block comment never ends.
+ */
+function tokenizeFrameBlock(src: string, open: number): FrameToken[] | undefined {
+  const tokens: FrameToken[] = [];
+  const closers: string[] = [];
+  const word = /[\w$.-]+/y;
+  let i = open;
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === '\n') {
+      tokens.push({ kind: 'newline' });
+      i++;
+    } else if (/\s/.test(ch)) {
+      i++;
+    } else if (ch === '/' && src[i + 1] === '/') {
+      const eol = src.indexOf('\n', i);
+      i = eol < 0 ? src.length : eol;
+    } else if (ch === '/' && src[i + 1] === '*') {
+      const end = src.indexOf('*/', i + 2);
+      if (end < 0) return undefined;
+      i = end + 2;
+    } else if (ch === '"' || ch === "'") {
+      let text = '';
+      let j = i + 1;
+      while (j < src.length && src[j] !== ch && src[j] !== '\n') {
+        if (src[j] === '\\' && j + 1 < src.length) j++;
+        text += src[j];
+        j++;
+      }
+      if (src[j] !== ch) return undefined;
+      tokens.push({ kind: 'string', text });
+      i = j + 1;
+    } else if (OPENERS.has(ch)) {
+      closers.push(CLOSER_OF[ch]);
+      tokens.push({ kind: 'punct', text: ch });
+      i++;
+    } else if (ch === '}' || ch === ')' || ch === ']') {
+      if (closers.pop() !== ch) return undefined;
+      tokens.push({ kind: 'punct', text: ch });
+      i++;
+      if (closers.length === 0) return tokens;
+    } else {
+      word.lastIndex = i;
+      const match = word.exec(src);
+      const text = match ? match[0] : ch;
+      tokens.push({ kind: match ? 'word' : 'punct', text });
+      i += text.length;
+    }
+  }
+  return undefined;
+}
+
+/** Index just past the value at `tokens[i]`: a whole bracketed group, or one token. */
+function skipFrameValue(tokens: FrameToken[], i: number): number {
+  const first = tokens[i];
+  if (first.kind !== 'punct' || !OPENERS.has(first.text)) return i + 1;
+  let depth = 0;
+  for (let k = i; k < tokens.length; k++) {
+    const t = tokens[k];
+    if (t.kind !== 'punct') continue;
+    if (OPENERS.has(t.text)) depth++;
+    else if (t.text === '}' || t.text === ')' || t.text === ']') {
+      depth--;
+      if (depth === 0) return k + 1;
+    }
+  }
+  return tokens.length;
+}
+
+/**
+ * Read a frame block's top-level `key: value` (or `key = value`) entries. A
+ * later key wins, as in the canonical parser; a key written with no value holds
+ * no list. Only string entries count in a list: `[read]` and `[*]` name no tool.
+ */
+function readFrameEntries(tokens: FrameToken[]): Map<string, FrameValue> {
+  const entries = new Map<string, FrameValue>();
+  const close = tokens.length - 1; // tokens[0] opens the block, tokens[close] closes it
+  let i = 1;
+  while (i < close) {
+    const key = tokens[i];
+    if (key.kind !== 'word' && key.kind !== 'string') {
+      i = skipFrameValue(tokens, i);
+      continue;
+    }
+    const sep = tokens[i + 1];
+    if (sep.kind !== 'punct' || (sep.text !== ':' && sep.text !== '=')) {
+      entries.set(key.text, { other: true });
+      i += 1;
+      continue;
+    }
+    let j = i + 2;
+    while (j < close && tokens[j].kind === 'newline') j++;
+    const value = tokens[j];
+    const next = skipFrameValue(tokens, j);
+    if (value.kind === 'punct' && value.text === '[') {
+      const list: string[] = [];
+      let depth = 0;
+      for (let k = j; k < next; k++) {
+        const t = tokens[k];
+        if (t.kind === 'punct' && OPENERS.has(t.text)) depth++;
+        else if (t.kind === 'punct' && (t.text === '}' || t.text === ')' || t.text === ']'))
+          depth--;
+        else if (t.kind === 'string' && depth === 1) list.push(t.text);
+      }
+      entries.set(key.text, { list });
+    } else if (value.kind === 'string' || value.kind === 'word') {
+      entries.set(key.text, { scalar: value.text });
+    } else {
+      entries.set(key.text, { other: true });
+    }
+    i = next;
+  }
+  return entries;
+}
+
+/** The frame a tokenized block declares; a block this reader could not read permits no tool. */
+function frameFromBlock(tokens: FrameToken[] | undefined): FrameDeclarationContract {
+  const entries = tokens ? readFrameEntries(tokens) : new Map<string, FrameValue>();
+  const scalar = (key: string): string | undefined => {
+    const value = entries.get(key);
+    return value && 'scalar' in value ? value.scalar : undefined;
+  };
   const tier = (key: string): FrameTier => {
-    const parsed = Number((scalarField(block, key) ?? '2').split(',')[0].trim());
+    const parsed = Number(scalar(key));
     return parsed === 0 || parsed === 1 || parsed === 2 || parsed === 3 ? parsed : 2;
   };
-
+  const allowed = entries.get('allowed_tools');
+  const denied = entries.get('denied_domains');
   return {
-    domain: scalarField(block, 'domain') ?? '*',
-    horizon: scalarField(block, 'horizon') ?? '',
+    domain: scalar('domain') ?? '*',
+    horizon: scalar('horizon') ?? '',
     capability_tier: tier('capability_tier'),
     trust_tier: tier('trust_tier'),
-    allowed_tools: listField(block, 'allowed_tools') ?? [],
-    denied_domains: listField(block, 'denied_domains') ?? [],
+    allowed_tools:
+      tokens === undefined
+        ? []
+        : allowed === undefined
+          ? [FRAME_ALLOW_ALL_TOOLS]
+          : 'list' in allowed
+            ? allowed.list
+            : [],
+    denied_domains: denied && 'list' in denied ? denied.list : [],
+  };
+}
+
+/** Two frames combined so the result permits only what both permit; the rest comes from the first. */
+function narrowFrames(
+  a: FrameDeclarationContract,
+  b: FrameDeclarationContract
+): FrameDeclarationContract {
+  const everyTool = (tools: string[]): boolean => tools.includes(FRAME_ALLOW_ALL_TOOLS);
+  const allowed_tools = everyTool(a.allowed_tools)
+    ? [...b.allowed_tools]
+    : everyTool(b.allowed_tools)
+      ? [...a.allowed_tools]
+      : a.allowed_tools.filter((tool) => b.allowed_tools.includes(tool));
+  return {
+    ...a,
+    allowed_tools,
+    denied_domains: [...new Set([...a.denied_domains, ...b.denied_domains])],
   };
 }
 
@@ -373,29 +578,4 @@ function scalarField(block: string, key: string): string | undefined {
   }
   const eol = after.indexOf('\n');
   return after.slice(0, eol < 0 ? undefined : eol).trim();
-}
-
-function listField(block: string, key: string): string[] | undefined {
-  const idx = block.indexOf(`${key}:`);
-  if (idx < 0) return undefined;
-  const after = block.slice(idx + key.length + 1).trimStart();
-  if (!after.startsWith('[')) return undefined;
-  let depth = 0;
-  let end = -1;
-  for (let i = 0; i < after.length; i++) {
-    if (after[i] === '[') depth++;
-    else if (after[i] === ']') {
-      depth--;
-      if (depth === 0) {
-        end = i;
-        break;
-      }
-    }
-  }
-  if (end < 0) return undefined;
-  const inner = after.slice(1, end);
-  return inner
-    .split(',')
-    .map((s) => s.trim().replace(/^["']|["']$/g, ''))
-    .filter((s) => s.length > 0);
 }

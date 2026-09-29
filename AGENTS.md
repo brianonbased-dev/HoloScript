@@ -86,7 +86,7 @@ Mechanism-design target: skills should be laid out like a payoff matrix where th
 
 Tracking source map: before trusting board exports, root JSON files, IDE session stores, backup clones, or worktree folders as current state, classify them with `C:/Users/josep/.ai-ecosystem/docs/handbooks/agent-tracking-source-map.md`. Live board, git status, and the knowledge store win.
 
-Explicit-frame architecture: before authoring a `.hsplus` brain that needs to declare its epistemic scope, allowed tools, or temporal horizon, read `C:/Users/josep/.ai-ecosystem/docs/handbooks/explicit-frame-architecture.md`. The `@frame_declaration` trait (`packages/core/src/traits/FrameDeclarationTrait.ts`) is the language primitive; the handbook documents all four pillars and the frame-crossing cost model.
+Explicit-frame architecture: before authoring a `.hsplus` brain that needs to declare its epistemic scope, allowed tools, or temporal horizon, read `C:/Users/josep/.ai-ecosystem/docs/handbooks/explicit-frame-architecture.md`. The `@frame_declaration` trait (`packages/core/src/traits/FrameDeclarationTrait.ts`) is the language primitive; the handbook documents all four pillars and the frame-crossing cost model. Since G15 (`proposals/Agent_Frame_Tool_Allowlist_v1.md`), `allowed_tools: []` means no tool and `["*"]` means every tool; leaving the list out still means every tool. Where the handbook says an empty list is unrestricted, it predates G15.
 
 ## DONE Claim Revalidation
 

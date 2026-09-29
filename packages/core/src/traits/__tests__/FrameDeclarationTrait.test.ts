@@ -11,9 +11,13 @@
  *  - API: checkHorizon (unit)
  *  - API: checkTier (unit)
  *  - Coercer: coerceFrameDeclarationConfig defaults
+ *  - G15: [] = no tool, ["*"] = every tool, omitted = every tool
+ *    (proposals/Agent_Frame_Tool_Allowlist_v1.md), and the migrated example file
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   frameDeclarationHandler,
   checkToolAllowed,
@@ -22,6 +26,7 @@ import {
   coerceFrameDeclarationConfig,
   type FrameDeclaration,
 } from '../FrameDeclarationTrait';
+import { HoloScriptPlusParser, type HoloBrainDecl } from '../../parser/HoloScriptPlusParser';
 import type { HSPlusNode } from '../TraitTypes';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -55,7 +60,7 @@ const OPEN_FRAME: FrameDeclaration = {
   horizon: '',
   capability_tier: 0,
   trust_tier: 0,
-  allowed_tools: [],
+  allowed_tools: ['*'],
   denied_domains: [],
 };
 
@@ -68,7 +73,7 @@ describe('coerceFrameDeclarationConfig', () => {
     expect(frame.horizon).toBe('');
     expect(frame.capability_tier).toBe(2);
     expect(frame.trust_tier).toBe(2);
-    expect(frame.allowed_tools).toEqual([]);
+    expect(frame.allowed_tools).toEqual(['*']);
     expect(frame.denied_domains).toEqual([]);
   });
 
@@ -117,7 +122,7 @@ describe('checkToolAllowed', () => {
     expect(result.detail).toContain('compile_to_unity');
   });
 
-  it('allows any tool when allowlist is empty', () => {
+  it('allows any tool when allowlist is ["*"]', () => {
     const result = checkToolAllowed(OPEN_FRAME, 'compile_to_anything');
     expect(result.allowed).toBe(true);
   });
@@ -144,6 +149,216 @@ describe('checkToolAllowed', () => {
   it('allows tool with a non-denied domain tag', () => {
     const result = checkToolAllowed(RESTRICTED_FRAME, 'holo_query_codebase', 'holoscript-language');
     expect(result.allowed).toBe(true);
+  });
+});
+
+// ─── G15: [] = no tool, ["*"] = every tool, omitted = every tool ─────────────
+//
+// proposals/Agent_Frame_Tool_Allowlist_v1.md. The first test is the one the
+// switch-off run flips: put back "empty = every tool" and it fails.
+
+describe('G15 — an empty tool allowlist means no tool; ["*"] means every tool', () => {
+  const frameWith = (allowed_tools: string[]): FrameDeclaration => ({
+    ...OPEN_FRAME,
+    allowed_tools,
+  });
+  const SAMPLE_TOOLS = ['holo_query_codebase', 'compile_to_unity', 'Bash', 'read', '*'];
+
+  it('a frame with allowed_tools: [] denies every tool', () => {
+    for (const tool of SAMPLE_TOOLS) {
+      const result = checkToolAllowed(frameWith([]), tool);
+      expect(result.allowed, tool).toBe(false);
+      expect(result.violation_type, tool).toBe('tool_not_allowed');
+      expect(result.detail, tool).toContain('permits no tool');
+    }
+  });
+
+  it('a frame with allowed_tools: ["*"] allows every tool', () => {
+    for (const tool of SAMPLE_TOOLS) {
+      expect(checkToolAllowed(frameWith(['*']), tool).allowed, tool).toBe(true);
+    }
+  });
+
+  it('a frame that omits allowed_tools allows every tool', () => {
+    const frame = coerceFrameDeclarationConfig({ domain: 'holoscript-language' });
+    expect(frame.allowed_tools).toEqual(['*']);
+    for (const tool of SAMPLE_TOOLS) {
+      expect(checkToolAllowed(frame, tool).allowed, tool).toBe(true);
+    }
+  });
+
+  it('a frame with allowed_tools: ["read"] allows only read', () => {
+    const frame = frameWith(['read']);
+    expect(checkToolAllowed(frame, 'read').allowed).toBe(true);
+    for (const tool of ['write', 'Bash', 'compile_to_unity', '*', 'READ', 'read ']) {
+      const result = checkToolAllowed(frame, tool);
+      expect(result.allowed, tool).toBe(false);
+      expect(result.violation_type, tool).toBe('tool_not_allowed');
+    }
+  });
+
+  it('denied_domains still wins over ["*"] and over a named tool', () => {
+    const star: FrameDeclaration = { ...frameWith(['*']), denied_domains: ['finance'] };
+    const named: FrameDeclaration = { ...frameWith(['read']), denied_domains: ['finance'] };
+    for (const frame of [star, named]) {
+      const result = checkToolAllowed(frame, 'read', 'finance');
+      expect(result.allowed).toBe(false);
+      expect(result.violation_type).toBe('domain_denied');
+    }
+    expect(checkToolAllowed(star, 'read', 'holoscript-language').allowed).toBe(true);
+  });
+
+  it('the coercer keeps a written [] empty instead of widening it', () => {
+    const frame = coerceFrameDeclarationConfig({ allowed_tools: [] });
+    expect(frame.allowed_tools).toEqual([]);
+    expect(checkToolAllowed(frame, 'holo_query_codebase').allowed).toBe(false);
+  });
+
+  it('a written value that is not a list fails closed to no tool', () => {
+    for (const written of ['holo_query_codebase', '*', null, 42, { tool: '*' }]) {
+      const frame = coerceFrameDeclarationConfig({ allowed_tools: written });
+      expect(frame.allowed_tools, JSON.stringify(written)).toEqual([]);
+      expect(checkToolAllowed(frame, 'holo_query_codebase').allowed, JSON.stringify(written)).toBe(
+        false
+      );
+    }
+  });
+
+  it('a list with no string entries fails closed to no tool', () => {
+    const frame = coerceFrameDeclarationConfig({ allowed_tools: [42, null, { tool: '*' }] });
+    expect(frame.allowed_tools).toEqual([]);
+    expect(checkToolAllowed(frame, 'anything').allowed).toBe(false);
+  });
+
+  it('a frame object whose allowed_tools is not an array denies (untyped caller)', () => {
+    const frame = { ...OPEN_FRAME, allowed_tools: undefined } as unknown as FrameDeclaration;
+    expect(checkToolAllowed(frame, 'holo_query_codebase').allowed).toBe(false);
+  });
+
+  it('the handler blocks a tool for [] and lets it through when the list is omitted', () => {
+    const emptyNode = makeNode();
+    const emptyCtx = makeCtx();
+    frameDeclarationHandler.onAttach(emptyNode, { allowed_tools: [] }, emptyCtx);
+    expect(emptyCtx.events[0].data.summary).toContain('tools=none');
+    emptyCtx.events.length = 0;
+    frameDeclarationHandler.onEvent(emptyNode, {}, emptyCtx, {
+      type: 'frame_check_tool',
+      payload: { tool: 'holo_query_codebase' },
+    });
+    expect(emptyCtx.events.map((e) => e.event)).toEqual(['frame_tool_blocked', 'frame_violation']);
+
+    const omittedNode = makeNode();
+    const omittedCtx = makeCtx();
+    frameDeclarationHandler.onAttach(omittedNode, {}, omittedCtx);
+    expect(omittedCtx.events[0].data.summary).toContain('tools=*');
+    omittedCtx.events.length = 0;
+    frameDeclarationHandler.onEvent(omittedNode, {}, omittedCtx, {
+      type: 'frame_check_tool',
+      payload: { tool: 'holo_query_codebase' },
+    });
+    expect(omittedCtx.events).toHaveLength(0);
+  });
+
+  it('the handler default config is ["*"], every tool', () => {
+    expect(frameDeclarationHandler.defaultConfig.allowed_tools).toEqual(['*']);
+  });
+});
+
+// ─── The migrated example: compositions/frame-declaration-example.hsplus ─────
+//
+// Neither reader parses the whole example file today (the Rust reader has no
+// `brain` syntax; this reader refuses its `#version` header and its
+// `transition … @when` lines), so each brain's frame block is cut out of the
+// real file and read by the canonical .hsplus parser inside a minimal brain.
+
+describe('frame-declaration-example.hsplus after the G15 migration', () => {
+  const example = readFileSync(
+    resolve(import.meta.dirname, '../../../../../compositions/frame-declaration-example.hsplus'),
+    'utf8'
+  );
+
+  function frameOf(brainName: string): FrameDeclaration {
+    const brainAt = example.indexOf(`brain ${brainName}`);
+    expect(brainAt, brainName).toBeGreaterThanOrEqual(0);
+    const blockAt = example.indexOf('@frame_declaration {', brainAt);
+    const block = example.slice(blockAt, example.indexOf('}', blockAt) + 1);
+    const result = new HoloScriptPlusParser({ enableVRTraits: true }).parse(
+      `brain ${brainName} : @behavior_tree {\n  ${block}\n}`
+    );
+    expect(result.success, brainName).toBe(true);
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.frameDeclaration, brainName).toBeDefined();
+    return brain.frameDeclaration as FrameDeclaration;
+  }
+
+  it('TrustedAnalyst still allows every tool', () => {
+    const frame = frameOf('TrustedAnalyst');
+    expect(frame.allowed_tools).toEqual(['*']);
+    for (const tool of ['holo_query_codebase', 'compile_to_unity', 'Bash', 'hs_ai_fix_code']) {
+      expect(checkToolAllowed(frame, tool).allowed, tool).toBe(true);
+    }
+  });
+
+  it('HoloScriptSpecialist and JetsonEdgeAgent keep exactly their named tools', () => {
+    const specialist = frameOf('HoloScriptSpecialist');
+    expect(specialist.allowed_tools).toHaveLength(7);
+    expect(checkToolAllowed(specialist, 'holo_query_codebase').allowed).toBe(true);
+    expect(checkToolAllowed(specialist, 'compile_to_unity').allowed).toBe(false);
+
+    const edge = frameOf('JetsonEdgeAgent');
+    expect(edge.allowed_tools).toEqual([
+      'holo_memory_recall',
+      'holo_memory_store',
+      'hs_diagnostics',
+    ]);
+    expect(checkToolAllowed(edge, 'hs_diagnostics').allowed).toBe(true);
+    expect(checkToolAllowed(edge, 'holo_query_codebase').allowed).toBe(false);
+  });
+});
+
+// ─── The shared frame cases: every reader must read the same tool list ───────
+//
+// packages/agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json is
+// also read by the agent loader's tests (brain.test.ts) and the Rust reader's
+// tests (compiler-wasm ast.rs). A reader that reads a case must produce its
+// allowed_tools; a case marked `core: "rejects"` must fail to parse here.
+
+interface SharedFrameCase {
+  id: string;
+  form?: 'parens';
+  body: string;
+  allowed_tools: string[];
+  core?: 'rejects';
+}
+
+describe('the shared frame cases, read by the canonical .hsplus parser', () => {
+  const { cases } = JSON.parse(
+    readFileSync(
+      resolve(
+        import.meta.dirname,
+        '../../../../agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json'
+      ),
+      'utf8'
+    )
+  ) as { cases: SharedFrameCase[] };
+
+  it('has cases to read', () => {
+    expect(cases.length).toBeGreaterThan(0);
+  });
+
+  it.each(cases.map((c) => [c.id, c] as const))('%s', (_id, c) => {
+    const frame =
+      c.form === 'parens' ? `@frame_declaration(${c.body})` : `@frame_declaration {\n${c.body}\n}`;
+    const result = new HoloScriptPlusParser({ enableVRTraits: true }).parse(
+      `brain SharedCase : @behavior_tree {\n  ${frame}\n}`
+    );
+    if (c.core === 'rejects') {
+      expect(result.success).toBe(false);
+      return;
+    }
+    expect(result.success).toBe(true);
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.frameDeclaration?.allowed_tools).toEqual(c.allowed_tools);
   });
 });
 

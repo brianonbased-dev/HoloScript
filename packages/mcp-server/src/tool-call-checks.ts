@@ -102,7 +102,10 @@ function founderGateDenial(toolName: string): ToolCallCheckDecision | undefined 
 
 /**
  * The real FounderGate/frame/x402 pre-dispatch check — wired as the `check` option
- * at both `gateToolCall` fold points (index.ts stdio, http-server.ts HTTP).
+ * at both `gateToolCall` fold points (index.ts stdio, the http-server.ts SDK
+ * handler). The stateless `POST /mcp` and `POST /tools/call` routes in
+ * http-server.ts call securedToolExecution directly and do not run it yet, so a
+ * frame sent on those routes is not enforced.
  */
 export const founderGateX402ToolCallCheck: ToolCallCheck = (envelope, ctx) => {
   // 1) FounderGate — exact-four / prohibited-operation authority routing.
