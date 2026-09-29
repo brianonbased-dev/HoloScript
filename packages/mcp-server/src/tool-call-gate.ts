@@ -310,6 +310,18 @@ export interface ToolCallGateOptions<T> {
   readonly enforcement?: 'enforce' | 'observe';
 }
 
+const OBSERVE_WORDS = new Set(['', 'observe', 'off', 'false', '0', 'no', 'disable', 'disabled']);
+
+/**
+ * An `enforcement` value from a switch someone types into a deploy's settings. Trimmed and
+ * lowercased, and anything that is not an "off" word enforces: the switch exists to turn
+ * enforcement on, so "Enforce", "enforce " or "1" must not quietly leave the gate observing
+ * (#463 pre-review). Unset stays observe.
+ */
+export function toolGateEnforcementFrom(raw: string | undefined): 'enforce' | 'observe' {
+  return OBSERVE_WORDS.has((raw ?? '').trim().toLowerCase()) ? 'observe' : 'enforce';
+}
+
 function errorClassOf(error: unknown): string {
   if (error instanceof Error) {
     return error.constructor.name || error.name || 'Error';

@@ -125,9 +125,10 @@ import {
 import {
   frameDeclarationFromMcpMeta,
   gateToolCall,
+  toolGateEnforcementFrom,
   ToolCallGateDeniedError,
 } from './tool-call-gate';
-import { founderGateX402ToolCallCheck } from './tool-call-checks';
+import { founderGateFrameToolCallCheck, founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import { creditRouteWithoutLedger } from './security/consumer-spend-guard';
 import {
@@ -812,18 +813,20 @@ async function securedToolExecution(
  * not enforced where agents actually call (task 6fef). Enforcing every frame at once could
  * refuse tools agents use today, so the gate first OBSERVES here: it writes the receipt and logs
  * "[ToolCallGate] observe: would deny ..." and lets the call through. Once those lines have been
- * read, HOLOSCRIPT_STATELESS_TOOL_GATE=enforce makes it refuse. Scope is enforced downstream by
+ * read, HOLOSCRIPT_STATELESS_TOOL_GATE=enforce makes it refuse (toolGateEnforcementFrom reads
+ * the value; the server states the effective mode at startup). Scope is enforced downstream by
  * securedToolExecution's triple gate in either mode.
  */
 function statelessToolGateMode(): 'enforce' | 'observe' {
-  return process.env.HOLOSCRIPT_STATELESS_TOOL_GATE === 'enforce' ? 'enforce' : 'observe';
+  return toolGateEnforcementFrom(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE);
 }
 
 /**
- * POST /mcp (tools/call) and POST /tools/call go through the same gate as the SDK transport:
- * the founder authority routing on the tool name, the caller's active frame from `_meta`, the
- * Gate-2 scope check, and one receipt per call. A refusal (enforce mode) throws
- * ToolCallGateDeniedError before anything is dispatched; each route answers it itself.
+ * POST /mcp (tools/call) and POST /tools/call run the founder authority routing on the tool name
+ * and the caller's active frame from `_meta`, with one receipt per call. Scope is not checked
+ * here: securedToolExecution's triple gate checks it, answers a shortfall in its own shape and
+ * writes it to the audit log, exactly as before this gate existed. A refusal (enforce mode)
+ * throws ToolCallGateDeniedError before anything is dispatched; each route answers it itself.
  */
 async function gatedStatelessToolExecution(
   toolName: string,
@@ -843,7 +846,7 @@ async function gatedStatelessToolExecution(
     },
     (env) => securedToolExecution(env.name, env.args, auth, options),
     {
-      check: founderGateX402ToolCallCheck,
+      check: founderGateFrameToolCallCheck,
       enforcement: statelessToolGateMode(),
       classifyResult: (r) =>
         r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
@@ -4987,6 +4990,11 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     );
     console.info(`   Bind: ${BIND_HOST}:${PORT}`);
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+    // Once, so a deploy's log says which way the switch actually landed (#463 pre-review).
+    console.info(
+      `   Tool-call gate on POST /mcp and POST /tools/call: ${statelessToolGateMode()} ` +
+        `(HOLOSCRIPT_STATELESS_TOOL_GATE=${JSON.stringify(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE ?? '')})`
+    );
     console.info(
       `   Sizing: ${SERVER_SIZING.profile} (${SERVER_SIZING.recommendedConsumer}, body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, tools=${SERVER_SIZING.maxConcurrentToolCalls}, timeout=${SERVER_SIZING.toolTimeoutMs}ms, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`
     );

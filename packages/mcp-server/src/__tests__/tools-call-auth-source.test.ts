@@ -46,12 +46,13 @@ describe('the stateless tool routes go through the tool-call gate', () => {
     expect(route).not.toMatch(/await securedToolExecution\(/);
   });
 
-  it('the shared helper runs the real check, reads the frame, and takes its mode from the env', () => {
+  it('the shared helper runs the founder-and-frame check, reads the frame, and takes its mode from the env', () => {
     const helper = block('async function gatedStatelessToolExecution(', '\n}\n');
     expect(helper).toContain('frameDeclarationFromMcpMeta(meta)');
-    expect(helper).toContain('check: founderGateX402ToolCallCheck');
+    // Scope stays with securedToolExecution's triple gate (#463 pre-review).
+    expect(helper).toContain('check: founderGateFrameToolCallCheck');
     expect(helper).toContain('enforcement: statelessToolGateMode()');
     const mode = block('function statelessToolGateMode()', '\n}\n');
-    expect(mode).toContain("process.env.HOLOSCRIPT_STATELESS_TOOL_GATE === 'enforce'");
+    expect(mode).toContain('toolGateEnforcementFrom(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE)');
   });
 });
