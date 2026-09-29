@@ -68,7 +68,7 @@ import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-code
 import { traitTools, handleTraitTool } from './trait-tools';
 import { daemonLifecycleTools, handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
 import { computeTraceTools, handleComputeTraceTool } from './compute-trace-tools';
-import { holoCiTools, handleHoloCiTool } from './holo-ci-tools';
+import { holoCiTools, handleHoloCiTool, holoCiSpendCaller } from './holo-ci-tools';
 import { fromScratchToolDefinitions, handleFromScratchTool } from './from-scratch-mcp-tools';
 import { worldRenderTools, handleWorldRenderTool } from './world-render-tools';
 import { alphafoldTools, handleFetchStructure } from './alphafold-tools';
@@ -90,7 +90,11 @@ import {
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
-import { authorizeToolCall, registerKnownTools } from './security/tool-scopes';
+import {
+  authorizeToolCall,
+  isTrustedLocalCaller,
+  registerKnownTools,
+} from './security/tool-scopes';
 import { assertNoHostPathArgs } from './security/host-path-args';
 import {
   gateToolCall,
@@ -336,16 +340,18 @@ export async function executeSingleTool(
  * Batch meta-tools are authorized at the outer transport boundary, but their
  * children are distinct tool invocations with potentially stronger scopes.
  * Re-check every child against the original request scopes before dispatch.
- * An absent context is the trusted local stdio path, which has no OAuth token.
+ * An absent context is the trusted local user only on the stdio server, which
+ * has no OAuth token (isTrustedLocalCaller). On the hosted server it is a call
+ * that lost its caller, so its children are checked against no scopes (task mplw).
  */
 function assertBatchInnerToolAuthorized(
   toolName: string,
   signingCtx?: SigningContext,
   args?: Record<string, unknown>
 ): void {
-  if (!signingCtx) return;
+  if (isTrustedLocalCaller(signingCtx)) return;
 
-  const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
+  const authorization = authorizeToolCall(toolName, signingCtx?.scopes ?? []);
   if (!authorization.authorized) {
     throw new Error(
       `Batch inner tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
@@ -354,7 +360,7 @@ function assertBatchInnerToolAuthorized(
 
   // Gate 3's host-path rule is not re-run for children, so the batch would be a way round it:
   // apply the same check to the child's own arguments (task_1790214096204_56rj).
-  assertNoHostPathArgs(toolName, args, signingCtx.scopes ?? []);
+  assertNoHostPathArgs(toolName, args, signingCtx?.scopes ?? []);
 }
 
 // Handle tool calls.
@@ -432,11 +438,10 @@ function registerCategory(toolArray: Tool[], handler: ToolHandler) {
 
 // 1. Explicitly mapped domains
 registerCategory(compilerTools, (name, args, _signingCtx) => handleCompilerTool(name, args));
-// Thread the caller signer address (from signed envelopes) as the token identity
-// for per-caller spend authorisation. For unsigned / stdio callers signingCtx is
-// undefined and callerToken is undefined → those callers are unconditionally trusted.
+// Thread the caller's identity into per-caller spend authorisation (holoCiSpendCaller:
+// a context-less call off the stdio server gets the restricted stand-in, task mplw).
 registerCategory(holoCiTools, (name, args, signingCtx) =>
-  handleHoloCiTool(name, args, signingCtx?.signer ?? undefined)
+  handleHoloCiTool(name, args, holoCiSpendCaller(signingCtx))
 );
 // From-scratch pretraining lane: dispatches the ai-ecosystem CLI. Thread the
 // complete signing context because an applied launch fails closed unless the

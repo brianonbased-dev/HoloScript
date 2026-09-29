@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildWorkload,
+  CONTEXTLESS_CALLER_SPEND_TOKEN,
   handleHoloCiTool,
+  holoCiSpendCaller,
   holoCiTools,
   resetSubmitLedger,
   submitWorkload,
@@ -497,6 +499,58 @@ describe('holo_ci_dispatch spend authorisation', () => {
       else delete process.env.HOLOCI_SPEND_ALLOWANCES;
       if (prevCap !== undefined) process.env.HOLOCI_DAILY_SUBMIT_CAP = prevCap;
       else delete process.env.HOLOCI_DAILY_SUBMIT_CAP;
+      restoreOrchestratorEnv(env);
+    }
+  });
+});
+
+// task mplw: "no callerToken = unconditionally trusted" is right only for the local stdio user. A
+// call that arrives with NO context off the stdio server lost its caller inside the server, so the
+// spend check gets a fixed stand-in identity: the restricted tier, never unlimited GPU spend.
+describe('holoCiSpendCaller: no caller is the local user only on the stdio server', () => {
+  const savedTransport = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  afterEach(() => {
+    if (savedTransport === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = savedTransport;
+  });
+
+  it('names the stand-in off the stdio server, nobody-trusted on it, and keeps a real caller', () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    expect(holoCiSpendCaller(undefined)).toBe(CONTEXTLESS_CALLER_SPEND_TOKEN);
+    delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    expect(holoCiSpendCaller(undefined)).toBe(CONTEXTLESS_CALLER_SPEND_TOKEN);
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+    expect(holoCiSpendCaller(undefined)).toBeUndefined();
+    // A caller WITH a context is unchanged, on any transport.
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    expect(holoCiSpendCaller({ signer: '0xabc' })).toBe('0xabc');
+    expect(holoCiSpendCaller({ signer: null })).toBeUndefined();
+  });
+
+  it('over HTTP, a context-less full-profile submit meets the restricted tier and is refused', async () => {
+    const env = snapshotOrchestratorEnv();
+    clearOrchestratorEnv(); // no key: nothing could be submitted even if authz passed
+    try {
+      process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+      const res = (await handleHoloCiTool(
+        'holo_ci_dispatch',
+        { sha: SHA, profile: 'full', dryRun: false },
+        holoCiSpendCaller(undefined)
+      )) as { ok: boolean; tierDenied?: boolean };
+      expect(res.ok).toBe(false);
+      expect(res.tierDenied).toBe(true);
+
+      // Control: the local stdio user is still trusted, so the same call passes the spend check
+      // and stops only at the missing key.
+      process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+      const local = (await handleHoloCiTool(
+        'holo_ci_dispatch',
+        { sha: SHA, profile: 'full', dryRun: false },
+        holoCiSpendCaller(undefined)
+      )) as { ok: boolean; tierDenied?: boolean; error?: string };
+      expect(local.tierDenied).toBeUndefined();
+      expect(local.error).toMatch(/not provisioned/i);
+    } finally {
       restoreOrchestratorEnv(env);
     }
   });

@@ -869,6 +869,20 @@ export interface AuthorizationResult {
 }
 
 /**
+ * Is a caller with NO signing context the local user? Only when this process IS the stdio server
+ * (index.ts main() sets HOLOSCRIPT_MCP_TRANSPORT = 'stdio'): stdio never carries HTTP auth, so its
+ * one caller is the person who launched it. On the hosted server a missing context means a call
+ * lost its caller inside the server (a workflow step, a batch child, a probe), and that caller is
+ * nobody. Every "no context" branch asks this, rather than assuming (tasks x5ku, mplw).
+ */
+export function isTrustedLocalCaller(signingCtx: unknown): boolean {
+  return (
+    (signingCtx === undefined || signingCtx === null) &&
+    process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio'
+  );
+}
+
+/**
  * Gate 2: Authorize a tool invocation against the authenticated token's scopes.
  *
  * @param toolName - The MCP tool being invoked
