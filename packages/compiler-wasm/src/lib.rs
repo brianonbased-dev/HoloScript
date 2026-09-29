@@ -34,6 +34,7 @@
 
 pub mod ast;
 pub mod eval;
+mod holo_modules;
 mod kotlin_emit;
 mod lexer;
 mod parser;
@@ -173,6 +174,19 @@ pub fn validate_detailed(source: &str) -> String {
 /// A context that is not that JSON is refused rather than ignored.
 #[wasm_bindgen]
 pub fn validate_detailed_in_context(source: &str, context_json: &str) -> String {
+    validate_detailed_in_context_inner(source, context_json)
+}
+
+/// The Holo modules this checker knows (G21), as JSON: for each module its functions, with
+/// parameter and result types, the authority a caller needs, the ABI version and the ABI name a
+/// call lowers to. Tools read this instead of keeping their own list; a module whose
+/// declarations are broken is listed with its reason.
+#[wasm_bindgen]
+pub fn holo_modules_json() -> String {
+    holo_modules::modules_json()
+}
+
+fn validate_detailed_in_context_inner(source: &str, context_json: &str) -> String {
     match parse_check_context(context_json) {
         Ok(external) => validate_detailed_with(source, &external),
         Err(message) => serde_json::to_string(&serde_json::json!({
@@ -188,7 +202,7 @@ pub fn validate_detailed_in_context(source: &str, context_json: &str) -> String 
 fn parse_check_context(
     context_json: &str,
 ) -> Result<semantic_types::ExternalDeclarations, String> {
-    const SHAPE: &str = r#"validate_detailed_in_context: the context must be {"functions":[{"name":"...","arity":N}],"names":["..."]}"#;
+    const SHAPE: &str = r#"validate_detailed_in_context: the context must be {"functions":[{"name":"...","arity":N}],"names":["..."],"imports":[{"source":"holo:...","specifiers":[{"imported":"...","local":"..."}]}]}"#;
     let value: serde_json::Value =
         serde_json::from_str(context_json).map_err(|error| format!("{SHAPE} ({error})"))?;
     let object = value.as_object().ok_or_else(|| SHAPE.to_string())?;
@@ -197,6 +211,42 @@ fn parse_check_context(
         for name in names.as_array().ok_or_else(|| SHAPE.to_string())? {
             let name = name.as_str().ok_or_else(|| SHAPE.to_string())?;
             external.names.insert(name.to_string());
+        }
+    }
+    // `holo:` imports travel as imports, not as names, so the checker resolves them against
+    // the embedded declarations (G21). An older checker, which does not read this key, refuses
+    // a call to them as an unknown function instead of accepting it unchecked.
+    if let Some(imports) = object.get("imports") {
+        for import in imports.as_array().ok_or_else(|| SHAPE.to_string())? {
+            let source = import
+                .get("source")
+                .and_then(serde_json::Value::as_str)
+                .ok_or_else(|| SHAPE.to_string())?;
+            let mut specifiers = Vec::new();
+            for specifier in import
+                .get("specifiers")
+                .and_then(serde_json::Value::as_array)
+                .ok_or_else(|| SHAPE.to_string())?
+            {
+                let imported = specifier
+                    .get("imported")
+                    .and_then(serde_json::Value::as_str)
+                    .ok_or_else(|| SHAPE.to_string())?;
+                let local = match specifier.get("local") {
+                    None | Some(serde_json::Value::Null) => imported,
+                    Some(local) => local.as_str().ok_or_else(|| SHAPE.to_string())?,
+                };
+                specifiers.push(ast::ImportSpecifier {
+                    imported: imported.to_string(),
+                    local: local.to_string(),
+                    loc: None,
+                });
+            }
+            external.imports.push(ast::ImportNode {
+                specifiers,
+                source: source.to_string(),
+                loc: None,
+            });
         }
     }
     let Some(functions) = object.get("functions") else {

@@ -162,6 +162,14 @@ export function evaluate_trait_handler_v6(source: string, trait_name: string, ha
  */
 export function evaluate_trait_spawn_v1(source: string, trait_name: string, host_bindings: any): string;
 
+/**
+ * The Holo modules this checker knows (G21), as JSON: for each module its functions, with
+ * parameter and result types, the authority a caller needs, the ABI version and the ABI name a
+ * call lowers to. Tools read this instead of keeping their own list; a module whose
+ * declarations are broken is listed with its reason.
+ */
+export function holo_modules_json(): string;
+
 export function init(): void;
 
 /**

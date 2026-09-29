@@ -21,11 +21,16 @@ const UNKNOWN_NAME: &str = "HS-NAME-001";
 const UNKNOWN_FUNCTION: &str = "HS-NAME-002";
 const ARITY_MISMATCH: &str = "HS-ARITY-001";
 const MISSING_RETURN: &str = "HS-RETURN-002";
-const HIDDEN_NAME: &str = "HS-SCOPE-001";
+pub(crate) const HIDDEN_NAME: &str = "HS-SCOPE-001";
 
 // Reading an `@unknown` field (proposals/Unknown_Field_Reads_v1.md). The one written form for the
 // value is `load(record.field) ?? fallback`; `isKnown(record.field)` and
 // `unknownReason(record.field)` read the tag and the reason code, never the value.
+/// G21: a `holo:` import names a module and a function the checker's embedded declarations
+/// know, and only a function that states its types calls it.
+pub(crate) const HOST_UNKNOWN_MODULE: &str = "HS-HOST-001";
+pub(crate) const HOST_UNKNOWN_FUNCTION: &str = "HS-HOST-002";
+pub(crate) const HOST_UNCHECKED_USE: &str = "HS-HOST-003";
 pub(crate) const UNKNOWN_BARE_READ: &str = "HS-UNKNOWN-001";
 pub(crate) const UNKNOWN_FALLBACK_FORM: &str = "HS-UNKNOWN-002";
 
@@ -54,6 +59,8 @@ pub(crate) struct ExternalDeclarations {
     pub(crate) functions: HashMap<String, Option<usize>>,
     /// Other names the document declares: structs, enums and imports.
     pub(crate) names: HashSet<String>,
+    /// The document's `holo:` imports, resolved here like an `import` in the fragment (G21).
+    pub(crate) imports: Vec<crate::ast::ImportNode>,
 }
 
 /// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
@@ -150,6 +157,8 @@ struct TypeChecker {
     strict: Cell<bool>,
     /// The function being checked, for messages.
     function_name: RefCell<String>,
+    /// Local names bound by `holo:` imports -> `holo:<module>/<function>`, for HS-HOST-003.
+    host_names: HashMap<String, String>,
 }
 
 pub(crate) fn check_explicit_type_contracts_with(
@@ -163,6 +172,7 @@ pub(crate) fn check_explicit_type_contracts_with(
         .cloned()
         .collect::<HashSet<_>>();
     let mut struct_fields = HashMap::new();
+    let mut host_bindings: HashMap<String, (String, FunctionSignature)> = HashMap::new();
     let mut arities = external
         .functions
         .iter()
@@ -186,12 +196,13 @@ pub(crate) fn check_explicit_type_contracts_with(
                 values.insert(enumeration.name.clone());
             }
             AstNode::Import(import) => {
-                for specifier in &import.specifiers {
-                    values.insert(specifier.local.clone());
-                }
+                bind_import(import, &mut values, &mut arities, &mut host_bindings)?;
             }
             _ => {}
         }
+    }
+    for import in &external.imports {
+        bind_import(import, &mut values, &mut arities, &mut host_bindings)?;
     }
 
     let mut functions = HashMap::new();
@@ -225,6 +236,11 @@ pub(crate) fn check_explicit_type_contracts_with(
         );
     }
 
+    let mut host_names = HashMap::new();
+    for (local, (capability, signature)) in host_bindings {
+        functions.insert(local.clone(), signature);
+        host_names.insert(local, capability);
+    }
     let checker = TypeChecker {
         functions,
         values,
@@ -232,6 +248,7 @@ pub(crate) fn check_explicit_type_contracts_with(
         struct_fields,
         strict: Cell::new(false),
         function_name: RefCell::new(String::new()),
+        host_names,
     };
     for node in &ast.body {
         match node {
@@ -531,6 +548,16 @@ impl TypeChecker {
                 if let Some(binding) = lookup_binding(scopes, &identifier.name) {
                     return Ok(binding.observed_type.clone());
                 }
+                // A call names its callee directly (the call arm), so a name that reaches here is
+                // a value. A capability is only called: as a value it could be handed to code
+                // that calls it with nothing checked.
+                if let Some(capability) = self.host_names.get(&identifier.name) {
+                    return Err(if self.strict.get() {
+                        self.host_value_use(capability, &identifier.loc)
+                    } else {
+                        self.untyped_host_use(capability, &identifier.loc)
+                    });
+                }
                 if self.strict.get() && !self.is_program_name(&identifier.name) {
                     return Err(self.unknown_name(&identifier.name, &identifier.loc));
                 }
@@ -551,6 +578,11 @@ impl TypeChecker {
                     return Ok(TypeEvidence::Unknown);
                 };
                 let binding = lookup_binding(scopes, &callee.name);
+                if !self.strict.get() && binding.is_none() {
+                    if let Some(capability) = self.host_names.get(&callee.name) {
+                        return Err(self.untyped_host_use(capability, &call.loc));
+                    }
+                }
                 let callable_local = binding.is_some_and(|binding| binding.callable);
                 if self.strict.get() && !callable_local {
                     if !self.is_program_name(&callee.name) {
@@ -728,6 +760,26 @@ impl TypeChecker {
 
     /// A top-level function, struct, enum or import of this program (or of the surrounding
     /// document), or a built-in.
+    fn untyped_host_use(&self, capability: &str, loc: &Option<Location>) -> SemanticDiagnostic {
+        diagnostic(
+            format!(
+                "[{HOST_UNCHECKED_USE}] function `{}` uses `{capability}` but states no types; a Holo capability is called only from a function that states its parameter and result types, where its arguments and result are checked",
+                self.function_name.borrow()
+            ),
+            loc,
+        )
+    }
+
+    fn host_value_use(&self, capability: &str, loc: &Option<Location>) -> SemanticDiagnostic {
+        diagnostic(
+            format!(
+                "[{HOST_UNCHECKED_USE}] function `{}` uses `{capability}` as a value; a Holo capability is only called by name, where its arguments and result are checked, so it cannot be stored or passed on",
+                self.function_name.borrow()
+            ),
+            loc,
+        )
+    }
+
     fn is_program_name(&self, name: &str) -> bool {
         self.values.contains(name)
             || BUILTINS.contains(&name)
@@ -1051,6 +1103,96 @@ fn lookup_binding_mut<'a>(
         .iter_mut()
         .rev()
         .find_map(|scope| scope.get_mut(name))
+}
+
+/// Bind an import's names. A file import binds each local name, unchecked (G11: imports bind
+/// the name only). A `holo:` import binds each name to its declared signature, so arity and
+/// types are checked like a local function's, keyed by the local name (an alias is checked
+/// too); an unknown module or function is refused with its position (G21).
+fn bind_import(
+    import: &crate::ast::ImportNode,
+    values: &mut HashSet<String>,
+    arities: &mut HashMap<String, usize>,
+    host_bindings: &mut HashMap<String, (String, FunctionSignature)>,
+) -> Result<(), SemanticDiagnostic> {
+    use crate::holo_modules::{closest_function, module_names, resolve_host_source, HostSource};
+    match resolve_host_source(&import.source) {
+        HostSource::NotHost => {
+            for specifier in &import.specifiers {
+                values.insert(specifier.local.clone());
+            }
+            Ok(())
+        }
+        HostSource::ForeignScheme(scheme) => Err(diagnostic(
+            format!(
+                "[{HOST_UNKNOWN_MODULE}] `{}` is not an import source HoloScript reads: `{scheme}:` is not a scheme it knows. A Holo module is `holo:<name>` in lower case, and a file import has no scheme",
+                import.source
+            ),
+            &import.loc,
+        )),
+        HostSource::Malformed => Err(diagnostic(
+            format!(
+                "[{HOST_UNKNOWN_MODULE}] `{}` is not a Holo module: write `holo:` and one lowercase name, such as `holo:absorb`",
+                import.source
+            ),
+            &import.loc,
+        )),
+        HostSource::Unknown(name) => Err(diagnostic(
+            format!(
+                "[{HOST_UNKNOWN_MODULE}] there is no Holo module `holo:{name}`; the modules this checker knows are {}",
+                module_names()
+                    .iter()
+                    .map(|known| format!("`holo:{known}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            &import.loc,
+        )),
+        HostSource::Broken(name, reason) => Err(diagnostic(
+            format!(
+                "[{HOST_UNKNOWN_MODULE}] the declarations of `holo:{name}` are broken, so the checker will not guess what it means: {reason}"
+            ),
+            &import.loc,
+        )),
+        HostSource::Module(name, module) => {
+            for specifier in &import.specifiers {
+                let Some(function) = module.functions.get(&specifier.imported) else {
+                    let hint = closest_function(module, &specifier.imported)
+                        .map(|closest| format!("; did you mean `{closest}`?"))
+                        .unwrap_or_default();
+                    let at = if specifier.loc.is_some() {
+                        &specifier.loc
+                    } else {
+                        &import.loc
+                    };
+                    return Err(diagnostic(
+                        format!(
+                            "[{HOST_UNKNOWN_FUNCTION}] `holo:{name}` declares no `{}`{hint}",
+                            specifier.imported
+                        ),
+                        at,
+                    ));
+                };
+                values.insert(specifier.local.clone());
+                arities.insert(specifier.local.clone(), function.param_types.len());
+                host_bindings.insert(
+                    specifier.local.clone(),
+                    (
+                        format!("holo:{name}/{}", specifier.imported),
+                        FunctionSignature {
+                            param_types: function
+                                .param_types
+                                .iter()
+                                .map(|annotation| annotation.as_deref().map(normalize_type))
+                                .collect(),
+                            return_type: function.return_type.as_deref().map(normalize_type),
+                        },
+                    ),
+                );
+            }
+            Ok(())
+        }
+    }
 }
 
 fn diagnostic(message: String, loc: &Option<Location>) -> SemanticDiagnostic {

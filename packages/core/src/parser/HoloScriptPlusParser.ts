@@ -354,6 +354,7 @@ import { analyzeFunctionRegion, scanHsType } from './hsTypeAnnotation';
 import {
   checkTypedHsFunction,
   collectHsDocumentContext,
+  checkHoloImports,
   type HsDocumentContext,
   type RustFunctionDiagnostic,
 } from './hsplusRustTypeCheck';
@@ -1167,6 +1168,11 @@ export class HoloScriptPlusParser {
   private documentSource: string | null = null;
   /** What the document declares: given by the caller, or collected at the first typed function. */
   private documentContext: HsDocumentContext | null = null;
+  /**
+   * True when `source` is the whole document (no piece options): its `holo:` imports are then
+   * checked once, at the imports, and a typed function's own check leaves them out (G21).
+   */
+  private wholeDocument = true;
   private errors: RichParseError[] = [];
   private warnings: RichParseError[] = [];
   private blockConfigDirectives: WeakSet<object> = new WeakSet();
@@ -1260,6 +1266,8 @@ export class HoloScriptPlusParser {
     this.source = source;
     this.documentSource = options.documentSource ?? null;
     this.documentContext = options.documentContext ?? null;
+    this.wholeDocument =
+      options.documentSource === undefined && options.documentContext === undefined;
     this.errors = [];
     this.warnings = [];
     this.blockConfigDirectives = new WeakSet();
@@ -1278,6 +1286,12 @@ export class HoloScriptPlusParser {
 
     // Parse root node
     const root = this.parseDocument();
+
+    // A document's `holo:` imports are checked once, even when no typed function reaches the
+    // Rust checker (G21). A piece of a larger document leaves that to the whole document.
+    if (this.wholeDocument && source.includes('import')) {
+      this.reportRustFunctionDiagnostics(checkHoloImports(this.hsDocumentContext()));
+    }
 
     // Desugar composite primitives (e.g. @safe_daemon → the 5 safety traits)
     this.desugarSafeDaemon(root);
@@ -8194,22 +8208,30 @@ export class HoloScriptPlusParser {
       malformed = true;
     }
 
-    const sliceEnd = !malformed && this.previous().type === 'RBRACE'
-      ? this.previous().offset + this.previous().value.length
-      : (region.bodyEnd ?? region.signatureEnd);
+    const sliceEnd =
+      !malformed && this.previous().type === 'RBRACE'
+        ? this.previous().offset + this.previous().value.length
+        : (region.bodyEnd ?? region.signatureEnd);
     if (malformed) this.advanceTokensTo(sliceEnd);
 
     const anyParamType = paramTypes.some((entry) => entry !== null);
     const functionSource = this.source.slice(startToken.offset, sliceEnd);
+    const functionDiagnostics = checkTypedHsFunction(
+      functionSource,
+      {
+        line: startToken.line,
+        column: startToken.column,
+      },
+      this.hsDocumentContext()
+    );
+    // In a whole document an import-level refusal (an unknown Holo module or capability) is
+    // reported once, at the import, by checkHoloImports; a piece reports it here.
     this.reportRustFunctionDiagnostics(
-      checkTypedHsFunction(
-        functionSource,
-        {
-          line: startToken.line,
-          column: startToken.column,
-        },
-        this.hsDocumentContext()
-      )
+      this.wholeDocument
+        ? functionDiagnostics.filter(
+            (diagnostic) => diagnostic.code !== 'HS-HOST-001' && diagnostic.code !== 'HS-HOST-002'
+          )
+        : functionDiagnostics
     );
 
     const node: HSPlusNode = {

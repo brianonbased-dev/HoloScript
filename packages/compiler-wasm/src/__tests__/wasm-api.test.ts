@@ -105,10 +105,55 @@ function resolveCargoCommand(): string {
   return candidates.find((candidate) => existsSync(candidate)) ?? 'cargo';
 }
 
-function compileHsToUaalViaRust(source: string): UAALBytecode {
+const builtExecutables = new Map<string, string>();
+
+/**
+ * Build a Rust binary or example once per test run and return the executable cargo reports.
+ * `cargo run` per call re-checked the whole crate graph every time: on Windows that cost 15-50 s
+ * a call, and the file took over 25 minutes (measured 2026-09-29).
+ */
+function cargoExecutable(manifest: string, kind: '--bin' | '--example', name: string): string {
+  const key = `${manifest}|${kind}|${name}`;
+  const built = builtExecutables.get(key);
+  if (built) return built;
   const stdout = execFileSync(
     resolveCargoCommand(),
-    ['run', '--quiet', '--manifest-path', COMPILER_WASM_MANIFEST, '--bin', 'compile_to_uaal'],
+    [
+      'build',
+      '--quiet',
+      '--manifest-path',
+      manifest,
+      kind,
+      name,
+      '--message-format=json-render-diagnostics',
+    ],
+    { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+  );
+  const executable = stdout
+    .split('\n')
+    .filter((line) => line.startsWith('{'))
+    .map(
+      (line) =>
+        JSON.parse(line) as {
+          reason?: string;
+          executable?: string | null;
+          target?: { name?: string };
+        }
+    )
+    .find(
+      (message) => message.reason === 'compiler-artifact' && message.target?.name === name
+    )?.executable;
+  if (!executable) {
+    throw new Error(`cargo build ${kind} ${name} reported no executable`);
+  }
+  builtExecutables.set(key, executable);
+  return executable;
+}
+
+function compileHsToUaalViaRust(source: string): UAALBytecode {
+  const stdout = execFileSync(
+    cargoExecutable(COMPILER_WASM_MANIFEST, '--bin', 'compile_to_uaal'),
+    [],
     {
       cwd: REPO_ROOT,
       input: source,
@@ -134,19 +179,8 @@ function executeHsNativeViaRust(source: string, executionTimeoutMs = 30000): num
   try {
     writeFileSync(sourcePath, source, 'utf8');
     execFileSync(
-      resolveCargoCommand(),
-      [
-        'run',
-        '--quiet',
-        '--manifest-path',
-        COMPILER_NATIVE_MANIFEST,
-        '--bin',
-        'holoscriptc',
-        '--',
-        sourcePath,
-        '-o',
-        executablePath,
-      ],
+      cargoExecutable(COMPILER_NATIVE_MANIFEST, '--bin', 'holoscriptc'),
+      [sourcePath, '-o', executablePath],
       {
         cwd: REPO_ROOT,
         encoding: 'utf8',
@@ -179,17 +213,8 @@ function validateHsViaRust(source: string): { valid: boolean; errors: Array<{ me
   try {
     writeFileSync(sourcePath, source, 'utf8');
     const stdout = execFileSync(
-      resolveCargoCommand(),
-      [
-        'run',
-        '--quiet',
-        '--manifest-path',
-        COMPILER_WASM_MANIFEST,
-        '--example',
-        'validate_hs',
-        '--',
-        sourcePath,
-      ],
+      cargoExecutable(COMPILER_WASM_MANIFEST, '--example', 'validate_hs'),
+      [sourcePath],
       { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 1024 * 1024 }
     );
     return JSON.parse(stdout.trim().split('\t').slice(1).join('\t'));
@@ -988,6 +1013,45 @@ function main(): i32 {
     expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
   }, 600000);
 
+  it('G21: the checker reads holo: imports, and no engine runs one before phase 2', () => {
+    const corpus = readFileSync(
+      resolve(REPO_ROOT, 'packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl'),
+      'utf8'
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as SpecCorpusRow)
+      .filter((row) => row.tags.includes('g21'));
+    expect(corpus.length).toBe(14);
+    // Native refuses every `holo:` import at the import, before any check of its own; a blocked
+    // name (`exec`) its lexer refuses first, with the checker's code at the same place.
+    const nativeRefusal = /must be an explicit relative `\.hs` path/;
+    const nativeLexer = /1:\d+: HS010: Security violation: blocked lexical capability `exec`/;
+
+    for (const row of corpus.filter((candidate) => candidate.expect.valid === false)) {
+      const code = row.expect.diagnostic_includes!;
+      const checker = validateHsViaRust(row.source);
+      expect(checker.valid, row.id).toBe(false);
+      expect(checker.errors[0]?.message, row.id).toContain(code);
+      // compile_to_uaal runs the same check first.
+      expect(() => compileHsToUaalViaRust(row.source), row.id).toThrow(code);
+      const program = /function main\s*\(/.test(row.source)
+        ? row.source
+        : `${row.source}\n\nfunction main(): i32 {\n  return 0\n}\n`;
+      expect(() => executeHsNativeViaRust(program), row.id).toThrow(
+        code === 'HS010' ? nativeLexer : nativeRefusal
+      );
+    }
+
+    // The demo is valid to the checker; each engine refuses it by name until it binds the call.
+    const demo = corpus.find((row) => row.id === 'g21-001')!;
+    expect(validateHsViaRust(demo.source).valid).toBe(true);
+    expect(() => compileHsToUaalViaRust(demo.source)).toThrow(
+      /\[HS-HOST-004\] `holo:absorb\/manifest_audit_passes` has no binding on UAAL yet/
+    );
+    expect(() => executeHsNativeViaRust(demo.source)).toThrow(nativeRefusal);
+  }, 600000);
+
   it('reads @unknown struct fields the way the native backend does', () => {
     // The steward gate uses all three honesty operations (isKnown, load(...) ?? fallback,
     // unknownReason); native runs it to exit 5, and the checker now accepts it unchanged.
@@ -1037,7 +1101,9 @@ function main(): i32 {
     expect(refused.valid).toBe(false);
     expect(refused.errors[0]?.message).toContain('HS-UNKNOWN-002');
     expect(refused.errors[0]?.message).toContain('load(record.count) ?? <fallback>');
-    expect(() => executeHsNativeViaRust(bare)).toThrow(/requires `load\(@unknownField\) \?\? fallback`/);
+    expect(() => executeHsNativeViaRust(bare)).toThrow(
+      /requires `load\(@unknownField\) \?\? fallback`/
+    );
 
     // `export` exempts nothing: a bare read in an exported function of an exported struct is
     // refused by both (the checker accepted it until 2026-09-29).
