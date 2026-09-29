@@ -58,6 +58,17 @@ pub(crate) struct ExternalDeclarations {
 
 /// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
 /// The checker and the UAAL emitter share this one definition.
+/// A function "states a type" when any parameter or its result is annotated. Such a function
+/// is read strictly (G11), and the Kotlin bridge lowers it by its declarations; an untyped
+/// function keeps the legacy reading in both.
+pub(crate) fn states_a_type(function: &FunctionNode) -> bool {
+    function.return_type.is_some()
+        || function
+            .param_types
+            .iter()
+            .any(|annotation| annotation.is_some())
+}
+
 pub(crate) fn definitely_returns_value(body: &[AstNode]) -> bool {
     ends_in_value_return(body) && every_return_has_value(body)
 }
@@ -251,8 +262,7 @@ impl TypeChecker {
     fn check_function(&self, function: &FunctionNode) -> Result<(), SemanticDiagnostic> {
         // Names, calls, arity, hiding and every-path return are checked only in functions that
         // state a type. Untyped legacy functions keep their earlier reading.
-        let strict = function.return_type.is_some()
-            || function.param_types.iter().any(|annotation| annotation.is_some());
+        let strict = states_a_type(function);
         self.strict.set(strict);
         *self.function_name.borrow_mut() = function.name.clone();
         if strict {

@@ -40,10 +40,12 @@
 //! nodes) is skipped at the top level and reported via [`KotlinEmitError`] for function-body
 //! constructs, so an unhandled node fails loud instead of silently emitting wrong Kotlin.
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
-    Ast, AstNode, EnumDeclarationNode, ImportNode, PropertyNode, StructDeclarationNode,
+    Ast, AstNode, EnumDeclarationNode, FunctionNode, ImportNode, NumberLiteral, PropertyNode,
+    StructDeclarationNode, VariableDeclarationNode,
 };
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
@@ -781,6 +783,10 @@ enum ValType {
     Int,
     /// A 64-bit integer carried by an explicitly typed `i64` unknown field.
     Long,
+    /// A 64-bit float: an `f64` that a function stating its types declares.
+    Double,
+    /// No value: a function declared `: void`, `: unit` or `: ()`.
+    Unit,
     /// A declared `.hs` enum (sum-type), carrying its Kotlin type name (e.g. `Route`).
     Enum(String),
     /// A declared `.hs` struct (record), carrying its Kotlin type name (e.g. `Vec3`).
@@ -800,6 +806,8 @@ impl ValType {
             ValType::Float => "Float".to_string(),
             ValType::Int => "Int".to_string(),
             ValType::Long => "Long".to_string(),
+            ValType::Double => "Double".to_string(),
+            ValType::Unit => "Unit".to_string(),
             ValType::Enum(name) => name.clone(),
             ValType::Struct(name) => name.clone(),
             ValType::List(inner) => format!("List<{}>", inner.kotlin()),
@@ -927,6 +935,28 @@ impl KotlinUnknownFields {
 struct EmitContext<'a> {
     int_locals: &'a [String],
     unknown_fields: &'a KotlinUnknownFields,
+    declared_types: &'a KotlinDeclaredTypes<'a>,
+    /// Every top-level function's declared types, so a call passes each argument as its
+    /// parameter's type.
+    signatures: &'a HashMap<String, KotlinSignature>,
+    /// Present while lowering a function that states its types.
+    typed: Option<&'a TypedScope>,
+}
+
+/// A top-level function's declared Kotlin types (None where it declares none).
+#[derive(Debug, Clone)]
+struct KotlinSignature {
+    params: Vec<Option<ValType>>,
+    ret: Option<ValType>,
+}
+
+/// The types in force while lowering a function that states its types: its parameters, the
+/// locals it declares, and its result. A number takes the type of what it meets, as the checker
+/// reads it (an integer literal fits any numeric type, a decimal literal f32 or f64), instead of
+/// the bridge's untyped Float default.
+struct TypedScope {
+    locals: RefCell<HashMap<String, ValType>>,
+    return_type: ValType,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1038,9 +1068,7 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
     // First pass: collect the declared enum names so return-type inference can recognize an
     // `Enum.Member` reference as that enum's value (and so a stray member name can't be read
     // as a plain identifier). `.hs` enums are data-only — name + bare member list.
-    let enums: Vec<&EnumDeclarationNode> = ast
-        .body
-        .iter()
+    let enums: Vec<&EnumDeclarationNode> = top_level_declarations(ast)
         .filter_map(|n| match n {
             AstNode::EnumDeclaration(e) => Some(e),
             _ => None,
@@ -1050,9 +1078,7 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
 
     // Collect declared struct (record) names so return-type inference can recognize a
     // `Name(...)` constructor call as that struct's value. `.hs` structs are data-only.
-    let structs: Vec<&StructDeclarationNode> = ast
-        .body
-        .iter()
+    let structs: Vec<&StructDeclarationNode> = top_level_declarations(ast)
         .filter_map(|n| match n {
             AstNode::StructDeclaration(s) => Some(s),
             _ => None,
@@ -1083,14 +1109,13 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
     // Collect every top-level `function` name too, so an imported *function* specifier (the
     // common case — `import { helper } from "./file.hs"`) can be resolved. Enums/structs are
     // already named above; a specifier may legitimately name any of the three declaration kinds.
-    let function_names: Vec<String> = ast
-        .body
-        .iter()
+    let functions: Vec<&FunctionNode> = top_level_declarations(ast)
         .filter_map(|n| match n {
-            AstNode::Function(f) => Some(f.name.clone()),
+            AstNode::Function(f) => Some(f),
             _ => None,
         })
         .collect();
+    let function_names: Vec<String> = functions.iter().map(|f| f.name.clone()).collect();
 
     // Fail loudly on any `import` whose specifiers don't resolve within this compilation unit,
     // instead of the previous behavior of silently discarding the Import node entirely (the
@@ -1126,18 +1151,32 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         enums: &enum_names,
         structs: &struct_names,
     };
-    for node in &ast.body {
-        if let AstNode::Function(func) = node {
-            blocks.push(emit_function(
-                &func.name,
-                &func.params,
-                &func.param_types,
-                &func.body,
-                indent,
-                &declared_types,
-                &unknown_fields,
-            )?);
-        }
+    let signatures: HashMap<String, KotlinSignature> = functions
+        .iter()
+        .map(|f| {
+            let declared = |annotation: &str| kotlin_declared_type(annotation, &declared_types);
+            let signature = KotlinSignature {
+                params: (0..f.params.len())
+                    .map(|index| {
+                        f.param_types
+                            .get(index)
+                            .and_then(|annotation| annotation.as_deref())
+                            .and_then(declared)
+                    })
+                    .collect(),
+                ret: f.return_type.as_deref().and_then(declared),
+            };
+            (f.name.clone(), signature)
+        })
+        .collect();
+    for func in &functions {
+        blocks.push(emit_function(
+            func,
+            indent,
+            &declared_types,
+            &unknown_fields,
+            &signatures,
+        )?);
     }
     Ok(blocks.join("\n\n"))
 }
@@ -1407,47 +1446,107 @@ struct KotlinDeclaredTypes<'a> {
 }
 
 fn emit_function(
-    name: &str,
-    params: &[String],
-    param_types: &[Option<String>],
-    body: &[AstNode],
+    func: &FunctionNode,
     indent: &str,
     declared_types: &KotlinDeclaredTypes<'_>,
     unknown_fields: &KotlinUnknownFields,
+    signatures: &HashMap<String, KotlinSignature>,
 ) -> Result<String, KotlinEmitError> {
-    let ret = infer_return_type(
-        body,
-        declared_types.enums,
-        declared_types.structs,
-        unknown_fields,
-    )?;
+    let name = func.name.as_str();
+    let params = &func.params;
+    let body = &func.body;
     let int_locals = collect_index_local_bindings(body);
-    let context = EmitContext {
+    let mut context = EmitContext {
         int_locals: &int_locals,
         unknown_fields,
+        declared_types,
+        signatures,
+        typed: None,
     };
-    let param_list = params
+
+    // A function that states its types is lowered by them (G11's "states a type"). Before
+    // 2026-09-29 the bridge guessed every return type and wrote every number as a Float, so
+    // `function add(a: i32, b: i32): i32` became `fun add(a: Int, b: Int): Float`, which does
+    // not compile. An untyped function keeps the inferred lowering, byte for byte.
+    let typed = crate::semantic_types::states_a_type(func);
+    let mut param_types: Vec<ValType> = Vec::with_capacity(params.len());
+    for (index, p) in params.iter().enumerate() {
+        let annotation = func
+            .param_types
+            .get(index)
+            .and_then(|annotation| annotation.as_deref());
+        let ty = match annotation {
+            Some(annotation) => match kotlin_declared_type(annotation, declared_types) {
+                Some(ValType::Unit) | None => {
+                    return Err(KotlinEmitError::new(format!(
+                        "parameter `{p}` of function `{name}` is declared `{annotation}`, which the Kotlin bridge cannot lower; refusing rather than guessing a type"
+                    )))
+                }
+                Some(ty) => ty,
+            },
+            None => infer_param_type(p, body, &int_locals),
+        };
+        param_types.push(ty);
+    }
+
+    let seed: HashMap<String, ValType> = params
         .iter()
-        .enumerate()
-        .map(|(index, p)| {
-            let explicit = param_types
-                .get(index)
-                .and_then(|annotation| annotation.as_deref())
-                .and_then(|annotation| {
-                    explicit_kotlin_param_type(
-                        annotation,
+        .cloned()
+        .zip(param_types.iter().cloned())
+        .collect();
+    let ret = if typed {
+        match func.return_type.as_deref() {
+            Some(annotation) => kotlin_declared_type(annotation, declared_types).ok_or_else(|| {
+                KotlinEmitError::new(format!(
+                    "function `{name}` declares return type `{annotation}`, which the Kotlin bridge cannot lower; refusing rather than guessing a type"
+                ))
+            })?,
+            // Typed by its parameters only: the first return value whose type is known names
+            // the result; with no value return it is Unit.
+            None => {
+                let probe = TypedScope {
+                    locals: RefCell::new(seed.clone()),
+                    return_type: ValType::Unit,
+                };
+                let probe_context = EmitContext {
+                    int_locals: &int_locals,
+                    unknown_fields,
+                    declared_types,
+                    signatures,
+                    typed: Some(&probe),
+                };
+                match typed_return_type(body, &probe_context) {
+                    TypedReturn::Known(ty) => ty,
+                    TypedReturn::NoValue => ValType::Unit,
+                    TypedReturn::Unknown => infer_return_type(
+                        body,
                         declared_types.enums,
                         declared_types.structs,
-                    )
-                });
-            format!(
-                "{}: {}",
-                p,
-                explicit
-                    .unwrap_or_else(|| infer_param_type(p, body, &int_locals))
-                    .kotlin()
-            )
-        })
+                        unknown_fields,
+                    )?,
+                }
+            }
+        }
+    } else {
+        infer_return_type(
+            body,
+            declared_types.enums,
+            declared_types.structs,
+            unknown_fields,
+        )?
+    };
+    let scope = TypedScope {
+        locals: RefCell::new(seed),
+        return_type: ret.clone(),
+    };
+    if typed {
+        context.typed = Some(&scope);
+    }
+
+    let param_list = params
+        .iter()
+        .zip(param_types.iter())
+        .map(|(p, ty)| format!("{}: {}", p, ty.kotlin()))
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -1473,25 +1572,320 @@ fn emit_function(
     Ok(out)
 }
 
-fn explicit_kotlin_param_type(
-    annotation: &str,
-    enum_names: &[String],
-    struct_names: &[String],
-) -> Option<ValType> {
+/// The Kotlin type for a declared `.hs` type, or None when the bridge cannot express it (the
+/// caller refuses then; it never guesses). `f64` is `Double` (it was `Float`, losing precision,
+/// before 2026-09-29); `number` stays `Float`, the bridge's historical reading, since the native
+/// machine gives it no meaning.
+fn kotlin_declared_type(annotation: &str, declared: &KotlinDeclaredTypes<'_>) -> Option<ValType> {
     match annotation {
         "string" | "String" | "str" => Some(ValType::Str),
         "bool" | "Boolean" => Some(ValType::Bool),
         "i32" => Some(ValType::Int),
         "i64" => Some(ValType::Long),
-        "f32" | "f64" | "float" | "number" => Some(ValType::Float),
-        name if struct_names.iter().any(|candidate| candidate == name) => {
+        "f32" | "float" | "number" => Some(ValType::Float),
+        "f64" => Some(ValType::Double),
+        "void" | "unit" | "()" => Some(ValType::Unit),
+        name if declared.structs.iter().any(|candidate| candidate == name) => {
             Some(ValType::Struct(name.to_string()))
         }
-        name if enum_names.iter().any(|candidate| candidate == name) => {
+        name if declared.enums.iter().any(|candidate| candidate == name) => {
             Some(ValType::Enum(name.to_string()))
         }
         _ => None,
     }
+}
+
+/// What a typed function without a declared result returns.
+enum TypedReturn {
+    Known(ValType),
+    NoValue,
+    Unknown,
+}
+
+/// Scan a typed function's body in order, binding its locals as lowering will, and report the
+/// type of its first value return whose type is known.
+fn typed_return_type(body: &[AstNode], context: &EmitContext<'_>) -> TypedReturn {
+    let mut saw_value = false;
+    if let Some(ty) = scan_returns(body, context, &mut saw_value) {
+        return TypedReturn::Known(ty);
+    }
+    if saw_value {
+        TypedReturn::Unknown
+    } else {
+        TypedReturn::NoValue
+    }
+}
+
+fn scan_returns(
+    body: &[AstNode],
+    context: &EmitContext<'_>,
+    saw_value: &mut bool,
+) -> Option<ValType> {
+    for node in body {
+        match node {
+            AstNode::VariableDeclaration(v) => {
+                if let (Some(scope), Some(ty)) = (context.typed, local_type(v, context)) {
+                    scope.locals.borrow_mut().insert(v.name.clone(), ty);
+                }
+            }
+            AstNode::Return(r) => {
+                if let Some(argument) = &r.argument {
+                    *saw_value = true;
+                    if let Some(ty) =
+                        static_type(argument, context).or_else(|| literal_type(argument))
+                    {
+                        return Some(ty);
+                    }
+                }
+            }
+            AstNode::If(if_node) => {
+                if let Some(ty) = scan_returns(&if_node.consequent, context, saw_value) {
+                    return Some(ty);
+                }
+                if let Some(alternate) = &if_node.alternate {
+                    if let Some(ty) = scan_returns(alternate, context, saw_value) {
+                        return Some(ty);
+                    }
+                }
+            }
+            AstNode::While(w) => {
+                if let Some(ty) = scan_returns(&w.body, context, saw_value) {
+                    return Some(ty);
+                }
+            }
+            AstNode::ForOf(f) => {
+                if let Some(ty) = scan_returns(&f.body, context, saw_value) {
+                    return Some(ty);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The type a typed function's local takes: its annotation, else what its value is.
+fn local_type(v: &VariableDeclarationNode, context: &EmitContext<'_>) -> Option<ValType> {
+    match v.type_annotation.as_deref() {
+        Some(annotation) => kotlin_declared_type(annotation, context.declared_types),
+        None => static_type(&v.value, context).or_else(|| literal_type(&v.value)),
+    }
+}
+
+/// A literal on its own: an integer literal is an `Int`, a decimal one a `Double`, as Kotlin
+/// reads them and as the checker's integer literal defaults.
+fn literal_type(node: &AstNode) -> Option<ValType> {
+    match node {
+        AstNode::Number(number) if is_decimal_literal(&number.raw) => Some(ValType::Double),
+        AstNode::Number(_) => Some(ValType::Int),
+        AstNode::UnaryExpression(u) if u.operator == "-" => literal_type(&u.argument),
+        _ => None,
+    }
+}
+
+fn is_decimal_literal(raw: &str) -> bool {
+    raw.contains('.') || raw.contains('e') || raw.contains('E')
+}
+
+fn is_arithmetic(operator: &str) -> bool {
+    matches!(operator, "+" | "-" | "*" | "/" | "%")
+}
+
+fn is_comparison(operator: &str) -> bool {
+    matches!(operator, "==" | "!=" | "<" | ">" | "<=" | ">=")
+}
+
+/// The type an expression has in a typed function, where it can be read without guessing:
+/// literals of text and truth, typed locals, calls to declared functions, and arithmetic over
+/// them. A number literal has no type of its own here; it takes its context's.
+fn static_type(node: &AstNode, context: &EmitContext<'_>) -> Option<ValType> {
+    match node {
+        AstNode::String(_) => Some(ValType::Str),
+        AstNode::Boolean(_) => Some(ValType::Bool),
+        AstNode::Identifier(identifier) => context
+            .typed
+            .and_then(|scope| scope.locals.borrow().get(&identifier.name).cloned()),
+        AstNode::CallExpression(call) => match call.callee.as_ref() {
+            AstNode::Identifier(identifier) => context
+                .signatures
+                .get(&identifier.name)
+                .and_then(|signature| signature.ret.clone()),
+            _ => None,
+        },
+        AstNode::BinaryExpression(binary)
+            if is_comparison(&binary.operator)
+                || binary.operator == "&&"
+                || binary.operator == "||" =>
+        {
+            Some(ValType::Bool)
+        }
+        AstNode::BinaryExpression(binary) if is_arithmetic(&binary.operator) => {
+            static_type(&binary.left, context).or_else(|| static_type(&binary.right, context))
+        }
+        AstNode::UnaryExpression(unary) if unary.operator == "!" => Some(ValType::Bool),
+        AstNode::UnaryExpression(unary) if unary.operator == "-" => {
+            static_type(&unary.argument, context)
+        }
+        _ => None,
+    }
+}
+
+/// A number literal written as the given Kotlin type: `5` for Int, `5L` for Long, `5f` for
+/// Float, `5.0` for Double. With no expected type it keeps Kotlin's own reading (Int, or Double
+/// for a decimal).
+fn emit_number_as(number: &NumberLiteral, expected: Option<&ValType>) -> String {
+    let raw = number.raw.as_str();
+    match expected {
+        Some(ValType::Int) => emit_int_literal(raw),
+        Some(ValType::Long) => emit_long_literal(raw),
+        Some(ValType::Float) => emit_float_literal(raw),
+        Some(ValType::Double) if !is_decimal_literal(raw) => format!("{raw}.0"),
+        _ => raw.to_string(),
+    }
+}
+
+/// Lower an expression expecting a type. Inside a typed function the numeric nodes take it; in
+/// an untyped one only a number literal does (a literal passed to a declared parameter), and
+/// everything else is the untyped lowering.
+fn emit_expr_expecting(
+    node: &AstNode,
+    expected: Option<&ValType>,
+    context: &EmitContext<'_>,
+) -> Result<String, KotlinEmitError> {
+    if context.typed.is_some() {
+        if let Some(emitted) = emit_typed_expr(node, expected, context)? {
+            return Ok(emitted);
+        }
+    } else if let (AstNode::Number(number), Some(expected)) = (node, expected) {
+        return Ok(emit_number_as(number, Some(expected)));
+    }
+    emit_expr(node, context)
+}
+
+/// Typed lowering for the nodes whose Kotlin depends on a number's type. None hands the node
+/// back to the untyped emitter.
+fn emit_typed_expr(
+    node: &AstNode,
+    expected: Option<&ValType>,
+    context: &EmitContext<'_>,
+) -> Result<Option<String>, KotlinEmitError> {
+    match node {
+        AstNode::Number(number) => Ok(Some(emit_number_as(number, expected))),
+        AstNode::BinaryExpression(binary)
+            if is_arithmetic(&binary.operator) || is_comparison(&binary.operator) =>
+        {
+            let operand = static_type(&binary.left, context)
+                .or_else(|| static_type(&binary.right, context))
+                .or_else(|| {
+                    if is_arithmetic(&binary.operator) {
+                        expected.cloned()
+                    } else {
+                        None
+                    }
+                });
+            if matches!(operand, Some(ValType::Str)) {
+                return Ok(None);
+            }
+            let parent = precedence(&binary.operator);
+            let op = map_binary_operator(&binary.operator)?;
+            let left = emit_typed_operand(&binary.left, parent, false, operand.as_ref(), context)?;
+            let right = emit_typed_operand(&binary.right, parent, true, operand.as_ref(), context)?;
+            Ok(Some(format!("{} {} {}", left, op, right)))
+        }
+        AstNode::UnaryExpression(unary) if unary.operator == "-" => {
+            let argument = emit_expr_expecting(&unary.argument, expected, context)?;
+            Ok(Some(match unary.argument.as_ref() {
+                AstNode::BinaryExpression(_) => format!("-({})", argument),
+                _ => format!("-{}", argument),
+            }))
+        }
+        AstNode::CallExpression(call) => {
+            let AstNode::Identifier(identifier) = call.callee.as_ref() else {
+                return Ok(None);
+            };
+            let Some(signature) = context.signatures.get(&identifier.name) else {
+                return Ok(None);
+            };
+            let arguments = call
+                .arguments
+                .iter()
+                .enumerate()
+                .map(|(index, argument)| {
+                    emit_expr_expecting(
+                        argument,
+                        signature.params.get(index).and_then(|ty| ty.as_ref()),
+                        context,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(Some(format!(
+                "{}({})",
+                identifier.name,
+                arguments.join(", ")
+            )))
+        }
+        _ => Ok(None),
+    }
+}
+
+fn emit_typed_operand(
+    node: &AstNode,
+    parent: u8,
+    is_right: bool,
+    expected: Option<&ValType>,
+    context: &EmitContext<'_>,
+) -> Result<String, KotlinEmitError> {
+    let emitted = emit_expr_expecting(node, expected, context)?;
+    if let AstNode::BinaryExpression(b) = node {
+        let child = precedence(&b.operator);
+        if child < parent || (is_right && child == parent) {
+            return Ok(format!("({})", emitted));
+        }
+    }
+    Ok(emitted)
+}
+
+/// `let`/`var` in a typed function: the declared type (or the value's) is written out and the
+/// local joins the scope.
+fn emit_typed_declaration(
+    v: &VariableDeclarationNode,
+    indent: &str,
+    lines: &mut Vec<String>,
+    context: &EmitContext<'_>,
+    scope: &TypedScope,
+) -> Result<(), KotlinEmitError> {
+    let declared = match v.type_annotation.as_deref() {
+        Some(annotation) => Some(kotlin_declared_type(annotation, context.declared_types).ok_or_else(
+            || {
+                KotlinEmitError::new(format!(
+                    "local `{}` is declared `{annotation}`, which the Kotlin bridge cannot lower; refusing rather than guessing a type",
+                    v.name
+                ))
+            },
+        )?),
+        None => None,
+    };
+    let ty = declared
+        .clone()
+        .or_else(|| static_type(&v.value, context))
+        .or_else(|| literal_type(&v.value));
+    let value = emit_expr_expecting(&v.value, ty.as_ref(), context)?;
+    let kw = if v.mutable { "var" } else { "val" };
+    match &declared {
+        Some(declared) => lines.push(format!(
+            "{}{} {}: {} = {}",
+            indent,
+            kw,
+            v.name,
+            declared.kotlin(),
+            value
+        )),
+        None => lines.push(format!("{}{} {} = {}", indent, kw, v.name, value)),
+    }
+    if let Some(ty) = ty {
+        scope.locals.borrow_mut().insert(v.name.clone(), ty);
+    }
+    Ok(())
 }
 
 /// Infer the Kotlin return type from the function's `return` expressions:
@@ -1901,7 +2295,7 @@ fn infer_struct_field_types(
 ) -> HashMap<String, Vec<Option<ValType>>> {
     // struct name → per-field-index list of the literal signals gathered across all ctor sites.
     let mut acc: HashMap<String, Vec<Vec<ValType>>> = HashMap::new();
-    for node in &ast.body {
+    for node in top_level_declarations(ast) {
         if let AstNode::Function(func) = node {
             collect_ctor_calls(&func.body, enum_names, struct_names, &mut acc);
         }
@@ -2672,6 +3066,13 @@ fn emit_statement(
 ) -> Result<(), KotlinEmitError> {
     match node {
         // `let`/`const x = expr` → immutable `val`; `var x = expr` → mutable `var`.
+        AstNode::VariableDeclaration(v)
+            if context.typed.is_some()
+                && !matches!(v.value.as_ref(), AstNode::LambdaExpression(_)) =>
+        {
+            let scope = context.typed.expect("guarded by the match arm");
+            emit_typed_declaration(v, indent, lines, context, scope)
+        }
         AstNode::VariableDeclaration(v) => {
             let value = if context.int_locals.iter().any(|n| n == &v.name) {
                 emit_int_expr(&v.value, context)?
@@ -2697,7 +3098,8 @@ fn emit_statement(
         // `x = expr` / `acc += expr` reassignment of a LOCAL `var`.
         AstNode::Assignment(a) => {
             let target = emit_expr(&a.target, context)?;
-            let value = emit_expr(&a.value, context)?;
+            let expected = static_type(&a.target, context);
+            let value = emit_expr_expecting(&a.value, expected.as_ref(), context)?;
             lines.push(format!("{}{} {} {}", indent, target, a.operator, value));
             Ok(())
         }
@@ -2732,7 +3134,14 @@ fn emit_statement(
         }
         AstNode::Return(r) => {
             match &r.argument {
-                Some(arg) => lines.push(format!("{}return {}", indent, emit_expr(arg, context)?)),
+                Some(arg) => {
+                    let expected = context.typed.map(|scope| scope.return_type.clone());
+                    lines.push(format!(
+                        "{}return {}",
+                        indent,
+                        emit_expr_expecting(arg, expected.as_ref(), context)?
+                    ))
+                }
                 None => lines.push(format!("{}return", indent)),
             }
             Ok(())
@@ -2844,6 +3253,11 @@ fn emit_unknown_constructor_argument(
 }
 
 fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, KotlinEmitError> {
+    if context.typed.is_some() {
+        if let Some(emitted) = emit_typed_expr(node, None, context)? {
+            return Ok(emitted);
+        }
+    }
     match node {
         AstNode::String(s) => Ok(emit_string_literal(&s.value)),
         AstNode::Number(n) => Ok(emit_float_literal(&n.raw)),
@@ -2933,6 +3347,20 @@ fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, Kotlin
                                 None => emit_expr(argument, context),
                             },
                         )
+                        .collect::<Result<Vec<_>, _>>()?
+                } else if let Some(signature) = context.signatures.get(&id.name) {
+                    // A literal passed to a declared parameter takes its type (`f(2)` for
+                    // `fun f(x: Int)`), even from an untyped caller.
+                    c.arguments
+                        .iter()
+                        .enumerate()
+                        .map(|(index, arg)| {
+                            emit_expr_expecting(
+                                arg,
+                                signature.params.get(index).and_then(|ty| ty.as_ref()),
+                                context,
+                            )
+                        })
                         .collect::<Result<Vec<_>, _>>()?
                 } else {
                     c.arguments
@@ -5248,5 +5676,99 @@ function main(x) {
         let out = kotlin(combined);
         assert!(out.contains("fun helper(x: String): String {"), "{out}");
         assert!(out.contains("fun main(x: String): String {"), "{out}");
+    }
+
+    // Task 5kf8: a function that states its types is lowered by them (compile_source_to_kotlin
+    // with no indent, so the expected text is exact).
+    fn kotlin_flat(source: &str) -> String {
+        compile_source_to_kotlin(source, "").expect("emit ok")
+    }
+
+    #[test]
+    fn typed_functions_lower_to_their_declared_types() {
+        let out = kotlin_flat(
+            "function add(left: i32, right: i32): i32 {\n  return left + right\n}\n\nfunction main(): i32 {\n  let result: i32 = add(2, 3)\n  return result\n}\n",
+        );
+        assert_eq!(
+            out,
+            "fun add(left: Int, right: Int): Int {\n  return left + right\n}\n\nfun main(): Int {\n  val result: Int = add(2, 3)\n  return result\n}"
+        );
+    }
+
+    #[test]
+    fn numbers_take_the_type_they_meet_in_a_typed_function() {
+        let out = kotlin_flat(
+            "function big(): i64 {\n  return 5\n}\nfunction scale(x: f32): f32 {\n  return x * 2\n}\nfunction half(x: f64): f64 {\n  return x / 2\n}\nfunction ratio(x: f64): f64 {\n  let y: f64 = 1.5\n  return x * y\n}\nfunction negative(): i32 {\n  return -4\n}\nfunction positive(x: i32): bool {\n  return x > 0\n}\nfunction label(x: i32): string {\n  return \"n\"\n}\n",
+        );
+        for expected in [
+            "fun big(): Long {\n  return 5L\n}",
+            "fun scale(x: Float): Float {\n  return x * 2f\n}",
+            "fun half(x: Double): Double {\n  return x / 2.0\n}",
+            "fun ratio(x: Double): Double {\n  val y: Double = 1.5\n  return x * y\n}",
+            "fun negative(): Int {\n  return -4\n}",
+            "fun positive(x: Int): Boolean {\n  return x > 0\n}",
+            "fun label(x: Int): String {\n  return \"n\"\n}",
+        ] {
+            assert!(out.contains(expected), "missing:\n{expected}\nin:\n{out}");
+        }
+    }
+
+    #[test]
+    fn exported_functions_are_emitted() {
+        let out = kotlin_flat(
+            "export function one(): i32 {\n  return 1\n}\n\nfunction two(): i32 {\n  return one() + 1\n}\n",
+        );
+        assert!(out.contains("fun one(): Int {\n  return 1\n}"), "{out}");
+        assert!(
+            out.contains("fun two(): Int {\n  return one() + 1\n}"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn a_declared_type_the_bridge_cannot_express_is_refused() {
+        for (source, named) in [
+            (
+                "function f(a: u8): i32 {\n  return 1\n}\n",
+                "parameter `a` of function `f` is declared `u8`",
+            ),
+            (
+                "function f(): u8 {\n  return 1\n}\n",
+                "function `f` declares return type `u8`",
+            ),
+            (
+                "function f(): i32 {\n  let b: u16 = 1\n  return 1\n}\n",
+                "local `b` is declared `u16`",
+            ),
+        ] {
+            let error = compile_source_to_kotlin(source, "").expect_err(source);
+            assert!(error.message.contains(named), "{source}: {}", error.message);
+            assert!(
+                error.message.contains("refusing rather than guessing"),
+                "{}",
+                error.message
+            );
+        }
+    }
+
+    #[test]
+    fn a_function_declared_to_return_nothing_is_unit() {
+        let out = kotlin_flat("function note(a: i32): void {\n  let b: i32 = a\n}\n");
+        assert_eq!(out, "fun note(a: Int): Unit {\n  val b: Int = a\n}");
+    }
+
+    #[test]
+    fn a_function_typed_by_its_parameters_takes_its_result_from_its_returns() {
+        let out = kotlin_flat("function next(a: i32) {\n  return a + 1\n}\n");
+        assert_eq!(out, "fun next(a: Int): Int {\n  return a + 1\n}");
+    }
+
+    #[test]
+    fn an_untyped_caller_passes_a_literal_as_the_declared_parameter_type() {
+        let out = kotlin_flat(
+            "function twice(x: i32): i32 {\n  return x * 2\n}\n\nfunction caller() {\n  return twice(21)\n}\n",
+        );
+        assert!(out.contains("return twice(21)"), "{out}");
+        assert!(!out.contains("twice(21f)"), "{out}");
     }
 }
