@@ -111,10 +111,16 @@ export class GodotCompiler extends CompilerBase {
     this.validateCompilerAccess(agentToken, outputPath);
     // ───────────────────────────────────────────────────────────────────────
     // Objects (and an environment) written inside `scene` blocks are built the
-    // same way as top-level ones, as children of this node. Object names become
-    // variables in _ready(), so a scene object whose name is taken is left out and
-    // named in a WARNING below.
-    const scenes = this.flattenScenes(composition, (name) => this.sanitizeName(name));
+    // same way as top-level ones, as children of this node. Everything _ready()
+    // builds is a variable in that one function: objects, and also lights, groups,
+    // sounds, zones, the camera, the environment and the UI, plus the variables
+    // an object derives from its name (`X_mat`, `X_shape`, ...). A scene object
+    // that would declare a variable already declared there is left out and named
+    // in a WARNING below; the variables are read off what _ready() writes.
+    const scenes = this.flattenScenes(composition, (name) => this.sanitizeName(name), {
+      reserved: (content) => this.readyVariables(content),
+      of: (obj) => this.variablesDeclaredBy(() => this.compileObject(obj, 'self')),
+    });
     composition = scenes.composition;
     this.lines = [];
     this.indentLevel = 0;
@@ -149,66 +155,7 @@ export class GodotCompiler extends CompilerBase {
     // Ready function
     this.emit('func _ready():');
     this.indentLevel++;
-
-    // Environment
-    if (composition.environment) {
-      this.compileEnvironment(composition.environment);
-    }
-
-    // Lights
-    if (composition.lights) {
-      for (const light of composition.lights) {
-        this.compileLight(light);
-      }
-    }
-
-    // Camera
-    if (composition.camera) {
-      this.compileCamera(composition.camera);
-    }
-
-    // Objects
-    if (composition.objects) {
-      for (const obj of composition.objects) {
-        this.compileObject(obj, 'self');
-      }
-    }
-
-    // Spatial groups
-    if (composition.spatialGroups) {
-      for (const group of composition.spatialGroups) {
-        this.compileSpatialGroup(group, 'self');
-      }
-    }
-
-    // Audio
-    if (composition.audio) {
-      for (const audio of composition.audio) {
-        this.compileAudio(audio);
-      }
-    }
-
-    // Zones
-    if (composition.zones) {
-      for (const zone of composition.zones) {
-        this.compileZone(zone);
-      }
-    }
-
-    // Timelines
-    if (composition.timelines) {
-      for (const tl of composition.timelines) {
-        if (tl.autoplay) {
-          this.emit(`_play_${this.sanitizeName(tl.name)}()`);
-        }
-      }
-    }
-
-    // UI
-    if (composition.ui) {
-      this.compileUI(composition.ui);
-    }
-
+    this.compileReady(composition);
     this.indentLevel--;
     this.emit('');
 
@@ -235,6 +182,110 @@ export class GodotCompiler extends CompilerBase {
     this.compileGodotDomainBlocks(composition);
 
     return this.lines.join('\n');
+  }
+
+  /**
+   * The body of _ready(), part by part; every variable a part declares lives in
+   * that one function. compile() writes each part. readyVariables() passes a
+   * `part` that reads what each one declares instead, so the parts are listed
+   * here only, and a part added later is counted too.
+   */
+  private compileReady(
+    composition: HoloComposition,
+    part: (by: string, compile: () => void) => void = (_by, compile) => compile()
+  ): void {
+    // Environment
+    const environment = composition.environment;
+    if (environment) {
+      part('the environment', () => this.compileEnvironment(environment));
+    }
+
+    // Lights
+    if (composition.lights) {
+      for (const light of composition.lights) {
+        part('a light', () => this.compileLight(light));
+      }
+    }
+
+    // Camera
+    const camera = composition.camera;
+    if (camera) {
+      part('the camera', () => this.compileCamera(camera));
+    }
+
+    // Objects
+    if (composition.objects) {
+      for (const obj of composition.objects) {
+        part('another object', () => this.compileObject(obj, 'self'));
+      }
+    }
+
+    // Spatial groups
+    if (composition.spatialGroups) {
+      for (const group of composition.spatialGroups) {
+        part('a group', () => this.compileSpatialGroup(group, 'self'));
+      }
+    }
+
+    // Audio
+    if (composition.audio) {
+      for (const audio of composition.audio) {
+        part('a sound', () => this.compileAudio(audio));
+      }
+    }
+
+    // Zones
+    if (composition.zones) {
+      for (const zone of composition.zones) {
+        part('a zone', () => this.compileZone(zone));
+      }
+    }
+
+    // Timelines
+    if (composition.timelines) {
+      for (const tl of composition.timelines) {
+        if (tl.autoplay) {
+          part('a timeline', () => this.emit(`_play_${this.sanitizeName(tl.name)}()`));
+        }
+      }
+    }
+
+    // UI
+    const ui = composition.ui;
+    if (ui) {
+      part('the UI overlay', () => this.compileUI(ui));
+    }
+  }
+
+  /**
+   * Every variable _ready() declares for `content`, each with plain words for the
+   * part that declares it. Read off what each part writes, so a variable a part
+   * derives from a name (`X_mat`, `X_shape`, `X_acoustic_bus_idx`) counts as well
+   * as the name's own. State variables, timelines and transitions belong to the
+   * class, not to _ready(): a variable there with the same name only shadows one,
+   * which GDScript warns about but loads.
+   */
+  private readyVariables(content: HoloComposition): Map<string, string> {
+    const variables = new Map<string, string>();
+    this.compileReady(content, (by, compile) => {
+      for (const name of this.variablesDeclaredBy(compile)) {
+        if (!variables.has(name)) variables.set(name, by);
+      }
+    });
+    return variables;
+  }
+
+  /** The variables `compile` declares, read off the lines it writes; those lines are dropped. */
+  private variablesDeclaredBy(compile: () => void): string[] {
+    const { lines, indentLevel } = this;
+    this.lines = [];
+    try {
+      compile();
+      return this.lines.flatMap((line) => /^\s*var\s+(\w+)/.exec(line)?.[1] ?? []);
+    } finally {
+      this.lines = lines;
+      this.indentLevel = indentLevel;
+    }
   }
 
   private compileGodotDomainBlocks(composition: HoloComposition): void {

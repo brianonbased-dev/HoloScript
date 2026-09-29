@@ -104,7 +104,10 @@ export class WebGPUCompiler extends CompilerBase {
     // same passes as top-level ones: water, camera framing, emission, manifest,
     // compute and draw calls all read the composition returned here. Object names
     // become module-scope identifiers, so a scene object whose name is taken is
-    // left out and named in a WARNING below.
+    // left out and named in a WARNING below. Only object names do here: a light is
+    // an entry in one array, a group's identifier ends in `GroupXform`, which no
+    // object's does, and sounds, zones, UI, timelines and transitions are not
+    // compiled here, so there is nothing else to reserve.
     const scenes = this.flattenScenes(composition, (name) => this.sanitizeName(name));
     composition = scenes.composition;
     this.lines = [];

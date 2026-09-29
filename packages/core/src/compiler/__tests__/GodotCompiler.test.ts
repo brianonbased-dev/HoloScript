@@ -290,4 +290,139 @@ describe('GodotCompiler', () => {
       '# WARNING: object "Ground" in scene "Night" is not built: this output is one world, and another object in it already uses the name "Ground".'
     );
   });
+
+  // Objects are not the only variables in _ready(): every part below declares the
+  // variable named beside it there. A scene object that would declare it again is
+  // left out the same way as for an object, and the WARNING says what has it.
+  const declarations = (gd: string, name: string) =>
+    gd.match(new RegExp(`\\bvar ${name} = `, 'g')) ?? [];
+
+  it.each([
+    ['a light', 'light "Ground" point { intensity: 1 }', 'Ground'],
+    ['a group', 'spatial_group "Ground" {\n    object "Lamp" { mesh: "sphere" }\n  }', 'Ground'],
+    ['a sound', 'audio "Ground" { src: "wind.ogg" }', 'Ground'],
+    ['a zone', 'zone "Ground" { shape: "box" }', 'Ground'],
+    ['the UI overlay', 'ui {\n    element "Ground" { type: "text" }\n  }', 'Ground'],
+    ['the camera', 'camera { position: [0, 2, 5] }', 'cam'],
+    ['the environment', 'environment { skybox: "sunset" }', 'env'],
+  ])('leaves out a scene object whose variable %s already declares', (by, part, name) => {
+    const gd = compiler.compile(
+      parseClean(`composition "Parts" {
+  ${part}
+  scene "Level" {
+    object "${name}" { mesh: "cube" }
+    object "Crate" { mesh: "cube" }
+  }
+}`),
+      'test-token'
+    );
+    expect(declarations(gd, name)).toHaveLength(1);
+    expect(gd).toContain('var Crate = MeshInstance3D.new()');
+    expect(gd).toContain(
+      `# WARNING: object "${name}" in scene "Level" is not built: this output is one world, and ${by} in it already uses the name "${name}".`
+    );
+  });
+
+  it('counts the environment a scene supplies when that is the one that applies', () => {
+    const gd = compiler.compile(
+      parseClean(`composition "Parts" {
+  scene "Level" {
+    environment { skybox: "sunset" }
+    object "env" { mesh: "cube" }
+  }
+}`),
+      'test-token'
+    );
+    expect(declarations(gd, 'env')).toHaveLength(1);
+    expect(gd).toContain('var env = WorldEnvironment.new()');
+    expect(gd).toContain(
+      '# WARNING: object "env" in scene "Level" is not built: this output is one world, and the environment in it already uses the name "env".'
+    );
+  });
+
+  it('counts the variables a part derives from its name, both ways round', () => {
+    const gd = compiler.compile(
+      parseClean(`composition "Derived" {
+  object "Floor" {
+    mesh: "box"
+    material: { color: "#888888" }
+  }
+  zone "Pad" { shape: "box" }
+  light "Crate_mat" point { intensity: 1 }
+  scene "Level" {
+    object "Floor_mat" { mesh: "cube" }
+    object "Pad_shape" { mesh: "cube" }
+    object "Crate" {
+      mesh: "box"
+      material: { color: "#aa5500" }
+    }
+  }
+}`),
+      'test-token'
+    );
+    // Floor's material is the variable `Floor_mat`, and the zone's shape `Pad_shape`.
+    expect(declarations(gd, 'Floor_mat')).toHaveLength(1);
+    expect(declarations(gd, 'Pad_shape')).toHaveLength(1);
+    expect(gd).toContain(
+      '# WARNING: object "Floor_mat" in scene "Level" is not built: this output is one world, and another object in it already uses the name "Floor_mat".'
+    );
+    expect(gd).toContain(
+      '# WARNING: object "Pad_shape" in scene "Level" is not built: this output is one world, and a zone in it already uses the name "Pad_shape".'
+    );
+    // Building Crate would declare `Crate_mat` for its material, and the light has it.
+    expect(declarations(gd, 'Crate_mat')).toHaveLength(1);
+    expect(declarations(gd, 'Crate')).toHaveLength(0);
+    expect(gd).toContain(
+      '# WARNING: object "Crate" in scene "Level" is not built: this output is one world, and a light in it already uses the name "Crate_mat".'
+    );
+  });
+
+  it('compares names as GDScript spells them, where "My Box" and "My_Box" are one', () => {
+    const gd = compiler.compile(
+      parseClean(`composition "Spelled" {
+  light "My Box" point { intensity: 1 }
+  scene "Level" {
+    object "My_Box" { mesh: "cube" }
+  }
+}`),
+      'test-token'
+    );
+    expect(declarations(gd, 'My_Box')).toHaveLength(1);
+    expect(gd).toContain(
+      '# WARNING: object "My_Box" in scene "Level" is not built: this output is one world, and a light in it already uses the name "My_Box".'
+    );
+  });
+
+  it('builds a scene object that clashes with nothing exactly as if it were written at the top level', () => {
+    const parts = `light "Sun" directional { intensity: 1 }
+  camera { position: [0, 2, 5] }
+  environment { skybox: "sunset" }
+  object "Floor" {
+    mesh: "box"
+    material: { color: "#888888" }
+  }
+  spatial_group "Props" {
+    object "Lamp" { mesh: "sphere" }
+  }
+  audio "Wind" { src: "wind.ogg" }
+  zone "Pad" { shape: "box" }
+  ui {
+    element "Score" { type: "text" }
+  }`;
+    const crate = `object "Crate" {
+    mesh: "box"
+    material: { color: "#aa5500" }
+  }`;
+    const inScene = compiler.compile(
+      parseClean(`composition "C" {\n  ${parts}\n  scene "Level" {\n    ${crate}\n  }\n}`),
+      'test-token'
+    );
+    const atTop = compiler.compile(
+      parseClean(`composition "C" {\n  ${parts}\n  ${crate}\n}`),
+      'test-token'
+    );
+    expect(inScene).not.toContain('WARNING');
+    expect(inScene).toContain('var Crate_mat = StandardMaterial3D.new()');
+    expect(inScene).toBe(atTop);
+  });
 });
