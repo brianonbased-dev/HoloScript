@@ -1,9 +1,19 @@
 # Holo features in the language: host capabilities as typed imports (G21) — v1
 
 **Status:** Proposed 2026-09-28 under the Spec v0.1 gate rule (the four gates in
-`docs/spec/holoscript-spec-v0.1.md` 901–906, not a person). This document is gate 1 (a written
-proposal with measured breakage); nothing is built. Drafted by a research agent of the linguist
-seat and reviewed by that seat, whose edits are marked "Review".
+`docs/spec/holoscript-spec-v0.1.md` §No-break policy, not a person). This document is gate 1 (a
+written proposal with measured breakage). Drafted by a research agent of the linguist seat and
+reviewed by that seat, whose edits are marked "Review".
+**Built:** phase 1 (the checker), 2026-09-29, branch `claude/holo-imports-checker`, with five
+changes from a premortem of this plan: the stand-in rule (`HS-SCOPE-001`) sits in the check every
+engine runs first; `@host` keys are strict (`authorty` makes the module unusable); a lookalike
+scheme (`HOLO:absorb`) is refused, not read as a file path; the drift gate hashes the declaration
+file as a build input; `.hsplus` holo imports are checked once per document, with or without typed
+functions. The corpus has 13 cases: the ten below (numbered differently), plus a lookalike scheme
+(`g21-009`), an alias's argument count (`g21-010`) and a blocked name as an alias (`g21-013`); the
+nine that were honest gaps flipped on purpose. Engines refuse a valid Holo call by name
+(`HS-HOST-004`; native refuses any `holo:` import earlier, as a non-relative path) until phase 2
+binds it. Phases 2–5 are not built.
 **Gap:** new **G21** (suggested: next free id after G20, `docs/spec/spec-vs-reality-gap.md` 20–39).
 **Board:** task_1790634920187_chz8; found while drafting: task_1790642739557_5kf8 (Kotlin
 bridge), task_1790642739558_so3q (UAAL VM). **Builds on:** G11 (PR #438); phase 3 needs G15 built.

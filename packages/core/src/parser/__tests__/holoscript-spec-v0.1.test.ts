@@ -225,6 +225,29 @@ describe('fence extractor rejects bad markdown', () => {
     expect(message).not.toContain('Unexpected token COLON');
   });
 
+  it('prints the checker message the spec states for the holo: import reject fence', () => {
+    const markdown = readFileSync(specPath, 'utf8');
+    const holoFences = extractFences(markdown).fences.filter(
+      (candidate) => candidate.lang === 'hs' && candidate.source.includes('from "holo:absorb"')
+    );
+    const accepted = holoFences.find((candidate) => !candidate.reject);
+    const refused = holoFences.find((candidate) => candidate.reject);
+    expect(accepted).toBeDefined();
+    expect(refused).toBeDefined();
+    expect(JSON.parse(wasm.validate_detailed(accepted?.source ?? ''))).toEqual({
+      valid: true,
+      errors: [],
+    });
+    const stated = markdown.match(/Message:\n``(\[HS-HOST-002\][^`]*`[^\n]*?)``\n/)?.[1];
+    expect(stated).toBeDefined();
+    const result = JSON.parse(wasm.validate_detailed(refused?.source ?? '')) as {
+      valid: boolean;
+      errors: Array<{ message: string; line: number; column: number }>;
+    };
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([{ message: stated, line: 1, column: 10 }]);
+  });
+
   it('accepts a well-formed fence', () => {
     const markdown = 'intro\n```hs\nobject Cube {\n  geometry: "cube"\n}\n```\n';
     const { fences, errors } = extractFences(markdown);

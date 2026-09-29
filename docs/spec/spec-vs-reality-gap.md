@@ -596,7 +596,10 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   codes `HS-HOST-001`–`005`; a call lowers to a UAAL `EXEC` bound per service; permission by
   import list, a run switch and the agent's frame (after G15). First proof: HoloAbsorb's manifest
   audit, with no network. Measured breakage: none (no tracked file imports from `holo:`).
-- **STATUS — PROPOSED (gate 1 of 4, 2026-09-28; board task chz8).** Nothing is built.
+- **STATUS — PHASE 1 BUILT, in review (2026-09-29; board task chz8).** The checker reads
+  `holo:` imports against the embedded `holo:absorb` declarations (`HS-HOST-001`–`004`, and
+  `HS-SCOPE-001` for a local stand-in); `.hsplus` documents send their holo imports and each
+  document's are checked once. Engines refuse a Holo call by name; phase 2 binds it on UAAL.
 
 ---
 
