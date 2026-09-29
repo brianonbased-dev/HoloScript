@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.hsplus-spec-corpus.manifest.v0",
   "corpus": "packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl",
-  "corpus_sha256": "sha256:c6d47616c9d47697cb35e12d73b8e814afdb1fb6865be48839bf6049449f0c80",
-  "cases": 58,
+  "corpus_sha256": "sha256:c975a9a6e528693cd878a4f2b4345607b42d2bdcca0e4944b12d4731df6d97cc",
+  "cases": 59,
   "sections": {
     "first-class-ignorance-rfc §Stage 2": 2,
     "language-architecture.md §6 / FIELD_MODIFIER_ANNOTATIONS": 1,
@@ -29,7 +29,7 @@
     "spec-vs-reality-gap.md G11 — the checker refuses what no backend runs (closed 2026-09-28)": 9,
     "spec-vs-reality-gap.md G11 — the checker accepts what no backend runs, ON RECORD": 1,
     "spec-vs-reality-gap.md G12 — domain words cannot be names, ON RECORD": 2,
-    "proposals/Unknown_Field_Reads_v1.md — reading an @unknown struct field": 5
+    "proposals/Unknown_Field_Reads_v1.md — reading an @unknown struct field": 6
   },
   "verifier_of_record": "packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)",
   "authority": {
