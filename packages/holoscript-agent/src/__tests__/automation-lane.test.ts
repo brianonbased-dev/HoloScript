@@ -294,6 +294,8 @@ const BRAIN: RuntimeBrainConfig = {
   requires: [],
   prefers: [],
   avoids: [],
+  claimRoles: [],
+  refuseTags: [],
 };
 
 function freshGuard(): CostGuard {
@@ -305,11 +307,12 @@ function makeRunner(opts: {
   tasks: BoardTask[];
   provider?: ILLMProvider;
   events?: Array<Record<string, unknown>>;
+  brain?: RuntimeBrainConfig;
 }) {
   const mesh = mockMesh(opts.tasks);
   const runner = new AgentRunner({
     identity: IDENTITY,
-    brain: BRAIN,
+    brain: opts.brain ?? BRAIN,
     provider: opts.provider ?? mockProvider({}),
     costGuard: freshGuard(),
     mesh: mesh as never,
@@ -473,5 +476,76 @@ describe('AgentRunner automation lane (board-compass Phase 3)', () => {
     const { runner, mesh } = makeRunner({ tasks: [capabilityTask], provider });
     await expect(runner.tick()).rejects.toThrow(/provider exploded/);
     expect(mesh.blockTask).not.toHaveBeenCalled();
+  });
+});
+
+// ── Brain-declared claim filter (claimRoles) skips the automation lane ────────
+// A brain that declares claimRoles (e.g. the PR-reviewer brain, role:
+// "reviewer" only) has told the runner exactly which board-task role it
+// claims. The automation lane exists to drain UNDECLARED idle capacity on a
+// generalist runner — a role-scoped brain must never fall into it, even with
+// LANE+APPLY both on and an eligible automation task sitting on the board.
+describe('AgentRunner — brain-declared claim filter (claimRoles) and the automation lane', () => {
+  afterEach(() => {
+    delete process.env[LANE];
+    delete process.env[APPLY];
+  });
+
+  const reviewerBrain: RuntimeBrainConfig = {
+    ...BRAIN,
+    capabilityTags: ['review', 'code-review'],
+    claimRoles: ['reviewer'],
+    refuseTags: ['auth', 'security'],
+  };
+
+  it('never claims a capability-matching task whose role is not in claimRoles, and does not fall into the automation lane even with LANE+APPLY on', async () => {
+    process.env[LANE] = '1';
+    process.env[APPLY] = '1';
+    const events: Array<Record<string, unknown>> = [];
+    // Scores highly against reviewerBrain's capability tags/text, but its role
+    // is "fixer", not "reviewer" — the loose tag/substring match this closes.
+    const wrongRoleTask: BoardTask = {
+      id: 'task_wrong_role',
+      title: '[FIX IN PR #42, needs distinct-seat review]',
+      description: 'code-review fix needed here',
+      priority: 'high',
+      tags: ['review', 'code-review'],
+      status: 'open',
+      role: 'fixer',
+    };
+    const { runner, mesh } = makeRunner({
+      tasks: [wrongRoleTask, automationTask()],
+      brain: reviewerBrain,
+      events,
+    });
+
+    const result = await runner.tick();
+
+    expect(mesh.claim).not.toHaveBeenCalled();
+    expect(result.action).toBe('no-claimable-task');
+    // Not just "found nothing eligible" — the lane must be skipped outright,
+    // so no selection receipt is ever logged for this tick.
+    expect(events.find((e) => e.ev === 'automation-lane-receipt')).toBeUndefined();
+    const skip = events.find((e) => e.ev === 'automation-lane-skipped-role-declared');
+    expect(skip).toBeDefined();
+    expect(skip?.claimRoles).toEqual(['reviewer']);
+  });
+
+  it('a matching-role task is still claimed normally (the filter restricts, it does not disable, claiming)', async () => {
+    const reviewerTask: BoardTask = {
+      id: 'task_right_role',
+      title: 'code review: paper-21 threat model',
+      description: 'review the write-up',
+      priority: 'high',
+      tags: ['review', 'code-review'],
+      status: 'open',
+      role: 'reviewer',
+    };
+    const { runner, mesh } = makeRunner({ tasks: [reviewerTask], brain: reviewerBrain });
+
+    const result = await runner.tick();
+
+    expect(mesh.claim).toHaveBeenCalledWith('task_right_role');
+    expect(result.action).toBe('executed');
   });
 });

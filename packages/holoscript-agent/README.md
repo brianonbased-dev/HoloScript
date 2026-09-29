@@ -111,6 +111,31 @@ holoscript-agent status --config=agents.json   # validate first
 holoscript-agent supervise --config=agents.json
 ```
 
+## Brain-declared task selection
+
+A brain's `identity { }` block can restrict which board tasks it is allowed to claim,
+enforced in `pickClaimableTask` itself (not advisory):
+
+- **`claim_roles`** — board task roles (the server-side `role` field, e.g. `"reviewer"`)
+  this brain claims. Non-empty → only tasks whose `role` is in this list are eligible,
+  on top of the existing capability-tag/text scoring. A brain that declares
+  `claim_roles` also skips the automation lane entirely — it claims exactly the role
+  it declared, not idle-capacity overflow.
+- **`refuse_tags`** — tags this brain refuses even when otherwise capability-matched.
+  A task is refused when one of its own tags equals a refused tag (case-insensitive),
+  or its title carries one as a bracketed token (`"[auth]"`) or a standalone word.
+
+```hsplus
+identity {
+  domain: "review"
+  capability_tags: ["review", "code-review"]
+  claim_roles: ["reviewer"]
+  refuse_tags: ["auth", "security", "custody", "wallet", "money"]
+}
+```
+
+Both default to `[]` (no restriction) — brains that don't declare them are unaffected.
+
 ## Subpath exports
 
 `@holoscript/holoscript-agent` and its subpaths: `./runner`, `./brain`, `./cost-guard`,

@@ -51,6 +51,28 @@ export interface RuntimeBrainConfig {
    */
   avoids: string[];
   /**
+   * Board task roles (the server-side `role` field, e.g. "reviewer") this
+   * brain is allowed to claim, parsed from the brain's `claim_roles` identity
+   * field. Non-empty → `pickClaimableTask` restricts candidates to tasks
+   * whose `role` is in this list, on top of the existing tag/text scoring.
+   * This closes the loose-match gap where a brain tagged "review" could claim
+   * ANY task whose title merely contained the word "review" — including a
+   * fix task titled "[FIX IN PR #N, needs distinct-seat review]", and
+   * login/key/money/security reviews that must stay with human-grade seats.
+   * Empty array (default) = no role restriction — today's behavior for
+   * brains that don't declare it, unchanged.
+   */
+  claimRoles: string[];
+  /**
+   * Tags this brain refuses to claim even when otherwise capability-matched,
+   * parsed from the brain's `refuse_tags` identity field. A task is refused
+   * when one of its own tags equals a refused tag (case-insensitive), or its
+   * title carries one as a bracketed token (e.g. "[auth]") or a standalone
+   * word (case-insensitive, word boundaries). Empty array (default) = no
+   * refusals — today's behavior for brains that don't declare it, unchanged.
+   */
+  refuseTags: string[];
+  /**
    * Optional cognitive self-evaluation gate — the brain's `reflect` verb (W.736).
    * When the brain declares a `reflect { criteria, escalate_on_fail }` block, the
    * runner runs one self-evaluation pass over the produced artifact before
@@ -114,6 +136,14 @@ export interface BoardTask {
   status: 'open' | 'claimed' | 'done';
   source?: string;
   claimedBy?: string;
+  /**
+   * Server-declared task role (e.g. "reviewer"). When a brain declares
+   * `claimRoles`, only tasks whose role is in that list are eligible —
+   * independent of, and enforced before, the tag/text scoring. Absent →
+   * the task is ineligible for any brain that declares `claimRoles` (a
+   * legacy/roleless task is not implicitly "in" a non-empty role list).
+   */
+  role?: string;
   /** Server-stamped creation time (ISO). Used by the automation lane for FIFO drain ordering. */
   createdAt?: string;
   /**

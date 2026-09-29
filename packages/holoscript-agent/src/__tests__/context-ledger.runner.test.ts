@@ -135,6 +135,8 @@ function runner(provider: ILLMProvider, llmProvider = 'anthropic', opts: { idle?
       requires: [],
       prefers: [],
       avoids: [],
+      claimRoles: [],
+      refuseTags: [],
       ...(opts.idle
         ? { idle: { directive: 'Improve one small thing.', fileBoard: false, maxTools: 8 } }
         : {}),

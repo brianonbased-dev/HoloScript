@@ -640,17 +640,63 @@ export function deriveSurface(seatName: string | undefined): string {
   return 'unknown';
 }
 
+/**
+ * Brain-declared claim filter, applied BEFORE scoring (board-compass —
+ * PR-reviewer brain gap). Without `roles`/`refuseTags` this is exactly the
+ * old two-argument behavior (existing callers are unaffected).
+ */
+export interface ClaimFilter {
+  /** Non-empty → only tasks whose `role` is one of these are eligible. */
+  roles?: string[];
+  /** Non-empty → a task matching any of these (tag or title) is refused. */
+  refuseTags?: string[];
+}
+
 export function pickClaimableTask(
   tasks: BoardTask[],
-  brainCapabilityTags: string[]
+  brainCapabilityTags: string[],
+  filter: ClaimFilter = {}
 ): BoardTask | undefined {
   const wanted = new Set(brainCapabilityTags.map((t) => t.toLowerCase()));
-  const open = tasks.filter((t) => t.status === 'open' && !t.claimedBy);
+  const roles = (filter.roles ?? []).map((r) => r.toLowerCase());
+  const refuseTags = (filter.refuseTags ?? []).map((t) => t.toLowerCase());
+
+  let open = tasks.filter((t) => t.status === 'open' && !t.claimedBy);
+  // A brain that declares claim_roles claims EXACTLY that role — a task with
+  // no role, or a different role, is not a loose-match candidate the way
+  // tag/text scoring alone would allow (that looseness is exactly what let a
+  // "review"-tagged brain claim a "[FIX IN PR #N, needs distinct-seat
+  // review]" task, or a login/security review meant for a human-grade seat).
+  if (roles.length > 0) {
+    open = open.filter((t) => t.role !== undefined && roles.includes(t.role.toLowerCase()));
+  }
+  if (refuseTags.length > 0) {
+    open = open.filter((t) => !isRefusedTask(t, refuseTags));
+  }
+
   const scored = open
     .map((t) => ({ task: t, score: scoreTask(t, wanted) }))
     .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score || priority(a.task) - priority(b.task));
   return scored[0]?.task;
+}
+
+/**
+ * True when `task` matches one of `refuseTags` (already lowercased) — either
+ * one of the task's own tags equals a refused tag, or the title carries the
+ * refused tag as a bracketed token (e.g. "[auth]") or a standalone word.
+ * Both checks are case-insensitive; the title check uses word boundaries so
+ * "authorization" does not false-positive on a refused tag "auth".
+ */
+function isRefusedTask(task: BoardTask, refuseTags: string[]): boolean {
+  const tags = (task.tags ?? []).map((t) => t.toLowerCase());
+  const title = task.title ?? '';
+  for (const refused of refuseTags) {
+    if (tags.includes(refused)) return true;
+    const escaped = refused.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`\\[${escaped}\\]|\\b${escaped}\\b`, 'i').test(title)) return true;
+  }
+  return false;
 }
 
 function scoreTask(task: BoardTask, wanted: Set<string>): number {

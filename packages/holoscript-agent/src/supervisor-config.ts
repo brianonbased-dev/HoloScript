@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { LLMProviderName } from '@holoscript/llm-provider';
+import { VALID_PROVIDERS } from './identity.js';
 
 export interface AgentSpec {
   handle: string;
@@ -22,20 +23,6 @@ export interface SupervisorConfig {
   globalBudgetUsdPerDay?: number;
   defaultTickIntervalMs?: number;
 }
-
-// Mirror of VALID_PROVIDERS in identity.ts. Deduplication is a separate
-// task — both Sets must stay in sync until then. Single-source-of-truth
-// via LLMProviderName-derived runtime Set is the clean fix (W.GOLD.006).
-const VALID_PROVIDERS: ReadonlySet<LLMProviderName> = new Set([
-  'anthropic',
-  'openai',
-  'gemini',
-  'xai',
-  'openrouter',
-  'mock',
-  'bitnet',
-  'local-llm',
-]);
 
 const VALID_TIERS: ReadonlySet<string> = new Set(['cold', 'warm', 'hot']);
 const HANDLE_PATTERN = /^[a-z0-9_-]{1,64}$/i;

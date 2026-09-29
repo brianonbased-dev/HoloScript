@@ -116,6 +116,8 @@ export async function loadBrain(
     requires: document.identity.requires,
     prefers: document.identity.prefers,
     avoids: document.identity.avoids,
+    claimRoles: document.identity.claimRoles,
+    refuseTags: document.identity.refuseTags,
     reflect: extractReflect(raw),
     onTaskActions: document.onTaskActions,
     idle: extractIdleDirective(raw),
@@ -129,6 +131,8 @@ interface RuntimeBrainDocument {
     requires: string[];
     prefers: string[];
     avoids: string[];
+    claimRoles: string[];
+    refuseTags: string[];
   };
   onTaskActions: OnTaskAction[];
 }
@@ -157,6 +161,8 @@ function adaptRuntimeBrainDocument(brain: string): RuntimeBrainDocument {
       requires: strings('requires'),
       prefers: strings('prefers'),
       avoids: strings('avoids'),
+      claimRoles: strings('claim_roles'),
+      refuseTags: strings('refuse_tags'),
     },
     onTaskActions: parseOnTaskActions(sliceNamedBlock(brain, 'on_task') ?? ''),
   };

@@ -266,7 +266,10 @@ export class AgentRunner {
     const now = Date.now();
     const claimable = tasks.filter((t) => !this.isCoolingDown(t.id, now));
     const skippedForCooldown = tasks.length - claimable.length;
-    let target = pickClaimableTask(claimable, brain.capabilityTags);
+    let target = pickClaimableTask(claimable, brain.capabilityTags, {
+      roles: brain.claimRoles,
+      refuseTags: brain.refuseTags,
+    });
     let lane: TaskLane = 'capability';
 
     // ── Automation lane (board-compass Phase 3, task_1783917146937_bt29) ──────
@@ -284,7 +287,16 @@ export class AgentRunner {
     // trust floor on this lane exactly as on the capability lane.
     if (!target) {
       const laneConfig = resolveAutomationLaneConfig(process.env);
-      if (laneConfig.enabled) {
+      // A brain that declares claimRoles has told the runner exactly which
+      // board-task role it claims (e.g. a PR-reviewer brain claims only
+      // role:"reviewer"). The automation lane exists to drain UNDECLARED idle
+      // capacity on a generalist runner — handing it to a role-scoped brain
+      // would let that brain pick up automation-feeder prompt tasks its
+      // claimRoles never opted into. Skip the lane entirely rather than try
+      // to reconcile the two selection paths.
+      if (laneConfig.enabled && brain.claimRoles.length > 0) {
+        log({ ev: 'automation-lane-skipped-role-declared', claimRoles: brain.claimRoles });
+      } else if (laneConfig.enabled) {
         const decision = selectAutomationTask(claimable, brain.capabilityTags);
         if (decision.scanned > 0) {
           // Selection receipt: exactly which task WOULD be (or is being) claimed

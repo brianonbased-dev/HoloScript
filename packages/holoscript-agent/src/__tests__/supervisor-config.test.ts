@@ -81,6 +81,18 @@ describe('parseSupervisorConfig', () => {
     expect(cfg.agents.map((agent) => agent.provider)).toEqual(['xai', 'openrouter']);
   });
 
+  it('accepts sovereign (README + deploy example both use it, and supervisorProviderFactory wires it)', () => {
+    const cfg = parseSupervisorConfig(
+      JSON.stringify({ agents: [{ ...VALID.agents[0], provider: 'sovereign' }] })
+    );
+    expect(cfg.agents[0].provider).toBe('sovereign');
+  });
+
+  it('rejects bitnet (nothing in this package wires it — it would pass validation and then throw "not yet wired" at boot)', () => {
+    const bad = { agents: [{ ...VALID.agents[0], provider: 'bitnet' }] };
+    expect(() => parseSupervisorConfig(JSON.stringify(bad))).toThrowError(/provider/);
+  });
+
   it('rejects sub-5s tick intervals (mesh-friendly floor)', () => {
     const fast = { ...VALID, defaultTickIntervalMs: 1000 };
     expect(() => parseSupervisorConfig(JSON.stringify(fast))).toThrowError(/>= 5000/);
