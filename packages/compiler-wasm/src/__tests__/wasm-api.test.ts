@@ -959,6 +959,8 @@ function main(): i32 {
       'g11-break-identifier-007': /local `i` must be immutable/,
       'g11-use-after-block-009': /references unknown local `t`/,
       'g11-hidden-name-010': /redeclares binding `x`/,
+      // Closed by the @unknown reads (proposals/Unknown_Field_Reads_v1.md).
+      'g11-coalesce-plain-008': /`\?\?` requires `load\(@unknownField\) \?\? fallback`/,
     };
     expect(corpus.map((row) => row.id).sort()).toEqual(Object.keys(nativeReason).sort());
 
@@ -984,6 +986,77 @@ function main(): i32 {
       /supports only typed immutable locals/
     );
     expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
+  }, 600000);
+
+  it('reads @unknown struct fields the way the native backend does', () => {
+    // The steward gate uses all three honesty operations (isKnown, load(...) ?? fallback,
+    // unknownReason); native runs it to exit 5, and the checker now accepts it unchanged.
+    const steward = readFileSync(
+      resolve(REPO_ROOT, 'examples/native/uncertain-steward-honesty-gate-exit-five.hs'),
+      'utf8'
+    );
+    expect(validateHsViaRust(steward).valid).toBe(true);
+    expect(executeHsNativeViaRust(steward)).toBe(5);
+
+    const snapshot = (body: string) => `struct Snapshot {
+  @unknown count: i32
+}
+
+struct Receipt {
+  reason: i32
+}
+
+function read(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
+${body}
+}
+
+function main(): i32 {
+  slot missing: Snapshot = Snapshot(unknown("missing_precondition"))
+  slot receipt: Receipt = Receipt(0)
+  return read(&missing, &mut receipt)
+}
+`;
+
+    // The one written form for the value: both accept, native falls back to 7.
+    const loadForm = snapshot('  return load(snapshot.count) ?? 7');
+    expect(validateHsViaRust(loadForm).valid).toBe(true);
+    expect(executeHsNativeViaRust(loadForm)).toBe(7);
+
+    // Tag reads: both accept; native returns the reason code.
+    const tagReads = snapshot(`  if (isKnown(snapshot.count)) {
+    return 1
+  }
+  store(receipt.reason, unknownReason(snapshot.count))
+  return load(receipt.reason)`);
+    expect(validateHsViaRust(tagReads).valid).toBe(true);
+    expect(executeHsNativeViaRust(tagReads)).toBe(4);
+
+    // The bare fallback form: both refuse, and the checker names the load form.
+    const bare = snapshot('  return snapshot.count ?? 7');
+    const refused = validateHsViaRust(bare);
+    expect(refused.valid).toBe(false);
+    expect(refused.errors[0]?.message).toContain('HS-UNKNOWN-002');
+    expect(refused.errors[0]?.message).toContain('load(record.count) ?? <fallback>');
+    expect(() => executeHsNativeViaRust(bare)).toThrow(/requires `load\(@unknownField\) \?\? fallback`/);
+
+    // `export` exempts nothing: a bare read in an exported function of an exported struct is
+    // refused by both (the checker accepted it until 2026-09-29).
+    const exported = `export struct Snapshot {
+  @unknown count: i32
+}
+
+export function read(snapshot: &Snapshot): i32 {
+  return snapshot.count
+}
+
+function main(): i32 {
+  return 5
+}
+`;
+    const exportedVerdict = validateHsViaRust(exported);
+    expect(exportedVerdict.valid).toBe(false);
+    expect(exportedVerdict.errors[0]?.message).toContain('HS-UNKNOWN-001');
+    expect(() => executeHsNativeViaRust(exported)).toThrow();
   }, 600000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {

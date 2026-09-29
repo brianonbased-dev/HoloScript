@@ -22,13 +22,14 @@ enum Route { EnterWorld, PendingWorld, OpenUrl, ShowResult, Deny }
 
 // The decoded bytes are known, but their inferred semantic intent begins epistemically unknown.
 // The Quest adapter may construct this field only with known(...) or unknown(...), and every read
-// must supply a fail-closed fallback. Kotlin preserves this as Uncertain<String>.
+// must supply a fail-closed fallback, written `load(record.field) ?? fallback` (the one form every
+// backend reads). Kotlin preserves this as Uncertain<String>.
 struct ClassifiedIntent {
   @unknown inferred: string,
 }
 
 function resolveIntent(intent: ClassifiedIntent): string {
-  return intent.inferred ?? "deny"
+  return load(intent.inferred) ?? "deny"
 }
 
 // Payload admission belongs to the language decision core. The Quest adapter computes only facts

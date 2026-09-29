@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.hsplus-spec-corpus.manifest.v0",
   "corpus": "packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl",
-  "corpus_sha256": "sha256:1c47637a394d57fd98b49424dc4af647a6f049ee2573e464b111e60459d46aa9",
-  "cases": 53,
+  "corpus_sha256": "sha256:c975a9a6e528693cd878a4f2b4345607b42d2bdcca0e4944b12d4731df6d97cc",
+  "cases": 59,
   "sections": {
     "first-class-ignorance-rfc §Stage 2": 2,
     "language-architecture.md §6 / FIELD_MODIFIER_ANNOTATIONS": 1,
@@ -26,14 +26,15 @@
     "grammar — top-level structural keywords keep their declaration role": 1,
     "native-machine-v34.md §Source contract": 2,
     "three-surface-semantic-closure.md / typed lazy logic": 2,
-    "spec-vs-reality-gap.md G11 — the checker refuses what no backend runs (closed 2026-09-28)": 8,
-    "spec-vs-reality-gap.md G11 — the checker accepts what no backend runs, ON RECORD": 2,
-    "spec-vs-reality-gap.md G12 — domain words cannot be names, ON RECORD": 2
+    "spec-vs-reality-gap.md G11 — the checker refuses what no backend runs (closed 2026-09-28)": 9,
+    "spec-vs-reality-gap.md G11 — the checker accepts what no backend runs, ON RECORD": 1,
+    "spec-vs-reality-gap.md G12 — domain words cannot be names, ON RECORD": 2,
+    "proposals/Unknown_Field_Reads_v1.md — reading an @unknown struct field": 6
   },
   "verifier_of_record": "packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)",
   "authority": {
     "artifact": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
-    "wasmSha256": "sha256:b23ffa3a29cf6c81eec9a4327745e4b0767cbba9e2217166146d266970bb5d27",
+    "wasmSha256": "sha256:ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
     "rebuild_receipt": "packages/compiler-wasm/pkg-node/rebuild-receipt.json",
     "note": "The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved."
   }

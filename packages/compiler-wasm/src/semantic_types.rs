@@ -23,6 +23,12 @@ const ARITY_MISMATCH: &str = "HS-ARITY-001";
 const MISSING_RETURN: &str = "HS-RETURN-002";
 const HIDDEN_NAME: &str = "HS-SCOPE-001";
 
+// Reading an `@unknown` field (proposals/Unknown_Field_Reads_v1.md). The one written form for the
+// value is `load(record.field) ?? fallback`; `isKnown(record.field)` and
+// `unknownReason(record.field)` read the tag and the reason code, never the value.
+pub(crate) const UNKNOWN_BARE_READ: &str = "HS-UNKNOWN-001";
+pub(crate) const UNKNOWN_FALLBACK_FORM: &str = "HS-UNKNOWN-002";
+
 /// Built-in functions the native backend lowers by name (the UAAL backend lowers the memory ones).
 /// The Kotlin backend's math built-ins come from its own table (`kotlin_emit::is_kotlin_builtin`).
 const BUILTINS: &[&str] = &[
@@ -626,6 +632,15 @@ impl TypeChecker {
             AstNode::BinaryExpression(binary) => {
                 let left = self.infer_expression(&binary.left, scopes)?;
                 let right = self.infer_expression(&binary.right, scopes)?;
+                if binary.operator == "??" && self.strict.get() && !is_load_of_field(&binary.left) {
+                    return Err(diagnostic(
+                        format!(
+                            "[{UNKNOWN_FALLBACK_FORM}] `??` in function `{}` supplies a fallback only for an `@unknown` field read; write `load(record.field) ?? fallback`",
+                            self.function_name.borrow()
+                        ),
+                        first_location(&binary.left),
+                    ));
+                }
                 let evidence = match binary.operator.as_str() {
                     "&&" | "||" => {
                         self.require_logical_operand("left", &binary.operator, &left, &binary.loc)?;
@@ -996,6 +1011,29 @@ fn is_numeric_type(annotation: &str) -> bool {
 
 fn is_string_evidence(evidence: &TypeEvidence) -> bool {
     matches!(evidence, TypeEvidence::Known(name) if name == "string")
+}
+
+/// `load(record.field)`: the one written form a fallback applies to.
+fn is_load_of_field(node: &AstNode) -> bool {
+    let AstNode::CallExpression(call) = node else {
+        return false;
+    };
+    matches!(call.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "load")
+        && call.arguments.len() == 1
+        && matches!(call.arguments[0], AstNode::MemberExpression(_))
+}
+
+/// The first position recorded inside an expression, for diagnostics on nodes that carry none.
+pub(crate) fn first_location(node: &AstNode) -> &Option<Location> {
+    const NONE: &Option<Location> = &None;
+    match node {
+        AstNode::Identifier(identifier) if identifier.loc.is_some() => &identifier.loc,
+        AstNode::CallExpression(call) if call.loc.is_some() => &call.loc,
+        AstNode::MemberExpression(member) => first_location(&member.object),
+        AstNode::BinaryExpression(binary) => first_location(&binary.left),
+        AstNode::UnaryExpression(unary) => first_location(&unary.argument),
+        _ => NONE,
+    }
 }
 
 fn lookup_binding<'a>(
@@ -1519,6 +1557,23 @@ function main(): i32 {
                 );
             }
         }
+    }
+
+    #[test]
+    fn a_fallback_applies_only_to_a_load_of_a_field_in_typed_functions() {
+        let (message, line, column) =
+            reject_at("function main(): i32 {\n  let a: i32 = 5\n  return a ?? 3\n}");
+        assert!(message.contains(super::UNKNOWN_FALLBACK_FORM), "{message}");
+        assert!(message.contains("write `load(record.field) ?? fallback`"), "{message}");
+        assert_eq!((line, column), (3, 10), "{message}");
+
+        let (message, _, _) = reject_at(
+            "struct Packet { code: i32 }\nfunction read(packet: &Packet): i32 {\n  return packet.code ?? 1\n}",
+        );
+        assert!(message.contains(super::UNKNOWN_FALLBACK_FORM), "{message}");
+
+        // Untyped legacy functions keep their earlier reading.
+        admit("function legacy(a) {\n  return a ?? 3\n}");
     }
 
     #[test]

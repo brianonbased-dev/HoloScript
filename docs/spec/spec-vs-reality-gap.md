@@ -27,7 +27,7 @@
 | G8  | the spec is the language's source of truth                  | spec lived only in the Gemini knowledge silo until 2026-06-22                                                                                                                                                                                      | ✅ (reclaimed by this dir)              |
 | G9  | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending                                                                            | ✅⚠️ **partial**                        |
 | G10 | `.hs` runs the same on native and UAAL                      | UAAL keeps one slot per function, so recursion returns wrong values with `HALTED`: `fib(10)` = -80 (native 55). Fix in review: PR #428                                                                                                             | ❌ → fix in review                      |
-| G11 | "valid `.hs`" is the definition of meaning (Spec v0.1 (a))  | typed functions: fix in review, PR #438 (unknown names and functions, arity, hiding and missing returns refused, with positions). Untyped functions keep the old reading by design                                                                 | ⚠️ fix in review (typed functions only) |
+| G11 | "valid `.hs`" is the definition of meaning (Spec v0.1 (a))  | typed functions: fix in review, PR #438 (unknown names and functions, arity, hiding and missing returns refused, with positions); the `@unknown` reads, PR #444, close case 008. Untyped functions keep the old reading by design                  | ⚠️ fix in review (typed functions only) |
 | G12 | general-purpose names                                       | `action`, `object`, `move`, `quest`, `dialogue`, `ability` are reserved and cannot be identifiers                                                                                                                                                  | ❌                                      |
 | G13 | `.holo` keeps what it accepts                               | `on_click` bodies, misspelled keywords, garbage functions and `world` names are dropped with `valid: true` and no warning                                                                                                                          | ❌                                      |
 | G14 | `.hsplus` has its own types and checker                     | untyped bodies are raw text (JavaScript and garbage accepted); only typed-function bodies are checked; `@trait` is an "Unknown directive"                                                                                                          | ❌                                      |
@@ -372,8 +372,11 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
   struct constructors), hidden names and missing returns, each with its position; the eight
   covered `g11-*` corpus cases flipped. Measured on the build: 0 of 68 valid `.hs` files and 0
   of 2,474 `.hsplus` files changed verdict; `check-hs-conformance` now holds that floor (68 files,
-  256 typed functions). Still open: untyped functions (by design), `g11-unknown-types-006`,
-  `g11-coalesce-plain-008` (the `@unknown` change), operations a backend lacks (UAAL refuses
+  256 typed functions). `g11-coalesce-plain-008` closes with the `@unknown` reads (PR #444,
+  stacked on #438; proposal [`Unknown_Field_Reads_v1.md`](../../proposals/Unknown_Field_Reads_v1.md)):
+  inside a typed function `??` needs `load(record.field)` on its left, and the floor becomes 69
+  files and 258 typed functions because the steward example turns valid. Still open: untyped
+  functions (by design), `g11-unknown-types-006`, operations a backend lacks (UAAL refuses
   integer `/`, `%`, unary `-` and `!`), and older checker builds (the browser build `pkg/` is from
   2026-08-04).
 
