@@ -275,3 +275,49 @@ export async function fetchPublicHttp(
   }
   throw new Error(`refused: more than ${maxRedirects} redirects`);
 }
+
+/**
+ * Who may point a server-side request at a non-public address: an operator (admin:* or
+ * tools:admin), or, with no signing context at all, the stdio process the local user launched
+ * (HOLOSCRIPT_MCP_TRANSPORT === 'stdio', which index.ts main() sets and http-server sets to
+ * 'http'). A missing context alone proves nothing: on the hosted server a tool re-entered from
+ * inside the server can arrive with none. `externalLane` marks a context-less call that came in
+ * through a public lane (handleTool's subjectSourceOverride), which is never local.
+ *
+ * The 'stdio-local' signer counts as no context. handleTool fills a missing context with
+ * {signer:'stdio-local', scopes:['admin:*']} whenever HOLOSCRIPT_API_KEY is set, on the hosted
+ * server as well, so an execute_workflow step whose batch child lost its caller arrived here
+ * looking like an operator and reached internal addresses (#457 pre-review). That identity says
+ * only that nobody is known, so it gets the no-context answer: trusted on stdio, not over HTTP.
+ */
+export function callerMayReachPrivateNetwork(
+  signingCtx: { scopes?: readonly string[]; signer?: string | null } | undefined,
+  opts: { externalLane?: boolean } = {}
+): boolean {
+  if (!signingCtx || signingCtx.signer === 'stdio-local') {
+    return !opts.externalLane && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio';
+  }
+  return (signingCtx.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin');
+}
+
+/**
+ * A response body as text, refused once it passes maxBytes: a caller-chosen server must not be
+ * able to make this one buffer without limit.
+ */
+export async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
+  if (!res.body) return '';
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new Error(`refused: the response is larger than ${maxBytes} bytes`);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}

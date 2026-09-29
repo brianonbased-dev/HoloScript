@@ -82,6 +82,7 @@ import {
 } from './trait-categories-from-core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { runForkSandboxGate, gateHoloScriptCode } from './security/fork-sandbox-gate';
+import { callerMayReachPrivateNetwork } from './security/outbound-url-guard';
 import type { CapabilityManifest } from './security/sandbox-policy';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
@@ -316,10 +317,8 @@ function isTrustedCaller(
   signingCtx: SigningContext | undefined,
   subjectSourceOverride: unknown
 ): boolean {
-  return (
-    (!signingCtx && !subjectSourceOverride && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio') ||
-    (signingCtx?.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin')
-  );
+  // The rule lives beside the guard, so the mesh invoke (task cixd) applies the same one.
+  return callerMayReachPrivateNetwork(signingCtx, { externalLane: !!subjectSourceOverride });
 }
 
 export async function handleTool(
