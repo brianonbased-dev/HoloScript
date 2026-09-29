@@ -38,6 +38,9 @@ import {
   TokenStore,
   InMemoryTokenStore,
   DEFAULT_TTL,
+  DEFAULT_MAX_CLIENTS,
+  DEFAULT_CLIENT_IDLE_RETIREMENT_MS,
+  isClientStoreFullError,
   type TokenStoreTTL,
   type TokenStoreBackend,
   type StoredAccessToken,
@@ -58,8 +61,13 @@ export interface OAuth2ProviderConfig {
   migrationMode: 'strict' | 'permissive';
   /** Legacy API key for backwards compatibility */
   legacyApiKey?: string;
-  /** Max clients. Default: 1000 */
+  /** Max clients before registration must retire an idle one. Default: DEFAULT_MAX_CLIENTS */
   maxClients: number;
+  /**
+   * Minimum time without a token before a client may be retired to make room.
+   * Default: DEFAULT_CLIENT_IDLE_RETIREMENT_MS (30 days).
+   */
+  clientIdleRetirementMs: number;
   /** Require DPoP proof-of-possession. Default: false */
   requireDPoP: boolean;
 }
@@ -103,7 +111,8 @@ export const DEFAULT_PROVIDER_CONFIG: OAuth2ProviderConfig = {
   },
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
   legacyApiKey: process.env.HOLOSCRIPT_API_KEY || '',
-  maxClients: 1000,
+  maxClients: DEFAULT_MAX_CLIENTS,
+  clientIdleRetirementMs: DEFAULT_CLIENT_IDLE_RETIREMENT_MS,
   requireDPoP: process.env.OAUTH_REQUIRE_DPOP === 'true',
 };
 
@@ -259,6 +268,279 @@ export function canonicalAgentIdFor(params: {
   return undefined;
 }
 
+// ── Registration across both registries ──────────────────────────────────────
+
+/** Prometheus counter: `/oauth/register` refused a client, labelled by reason. */
+export const CLIENT_REGISTRATION_REFUSED_METRIC = 'oauth_client_registration_refused_total';
+/** Prometheus counter: idle clients retired to make room for a registration. */
+export const CLIENTS_RETIRED_METRIC = 'oauth_clients_retired_total';
+
+/** The slice of the server's metrics registry used here (PrometheusMetricsRegistry fits it). */
+export interface RegistrationMetrics {
+  registerCounter(name: string, help: string): void;
+  incCounter(name: string, labels?: Record<string, string>, value?: number): void;
+}
+
+/**
+ * Why a registration was refused:
+ *   store_full  — durable store at its cap, and no client in it provably idle;
+ *   store_error — durable store failed (e.g. database unreachable);
+ *   memory_full — the in-memory registry in front of it is at its cap.
+ */
+export type ClientRegistrationRefusal = 'store_full' | 'store_error' | 'memory_full';
+
+export type DurableRegistrationOutcome =
+  | { ok: true; clientId: string; clientSecret: string; retiredClientIds: string[] }
+  | {
+      ok: false;
+      reason: ClientRegistrationRefusal;
+      /** Plain-words explanation for the caller. Carries no store internals. */
+      message: string;
+      /** Idle clients retired by this attempt before it still came up short. */
+      retiredClientIds: string[];
+    };
+
+const REFUSAL_MESSAGES: Record<ClientRegistrationRefusal, string> = {
+  store_full:
+    'The server could not register this client: its client store is full and no client in it ' +
+    'has been idle long enough to retire. Nothing was created. Try again later.',
+  store_error:
+    'The server could not register this client: saving it to the durable client store failed. ' +
+    'Nothing was created. Try again later.',
+  memory_full:
+    'The server could not register this client: its in-memory client registry is full. ' +
+    'Nothing was created. Try again later.',
+};
+
+/**
+ * Register one client under one identity in the in-memory registry AND the
+ * durable store, or refuse. It never returns credentials the durable store did
+ * not record.
+ *
+ * `/oauth/register` used to catch the durable store's refusal, log a warning,
+ * and still answer 201 with a client held only in memory, which every deploy
+ * wipes. From 2026-06-28 (store full at 1000) that was every registration: the
+ * caller could not tell, the client died at the next deploy, and the store
+ * stopped recording who had registered (board task_1790545471449_w6yi).
+ *
+ * Now a refusal undoes the in-memory half, logs an error, counts it on
+ * `observe.metrics`, and comes back as `ok: false` for the route to answer 503.
+ * Idle clients the durable store retired to make room are dropped from memory
+ * too, so a retired client fails the same way in every process instead of
+ * working here until the next restart.
+ *
+ * Kept out of http-server.ts so it can be tested without booting a server.
+ */
+export async function registerClientDurably(
+  registries: {
+    memory: {
+      registerClient(params: {
+        clientName: string;
+        redirectUris: string[];
+        scopes: string[];
+        clientType?: 'confidential' | 'public';
+        rateLimit?: number;
+        agentId?: string;
+      }): { clientId: string; clientSecret: string };
+      revokeClient(clientId: string): boolean;
+    };
+    durable: Pick<OAuth2Provider, 'registerClient'>;
+  },
+  params: {
+    clientName: string;
+    redirectUris: string[];
+    scopes: string[];
+    clientType: 'confidential' | 'public';
+    rateLimit: number;
+    agentId?: string;
+  },
+  observe: { metrics: RegistrationMetrics; logError?: (line: string) => void }
+): Promise<DurableRegistrationOutcome> {
+  const logError = observe.logError ?? ((line: string) => console.error(line));
+
+  const dropRetired = (retiredClientIds: string[]): void => {
+    if (retiredClientIds.length === 0) return;
+    for (const clientId of retiredClientIds) registries.memory.revokeClient(clientId);
+    observe.metrics.registerCounter(
+      CLIENTS_RETIRED_METRIC,
+      'OAuth clients retired to make room: idle past the retirement window with no live token'
+    );
+    observe.metrics.incCounter(CLIENTS_RETIRED_METRIC, {}, retiredClientIds.length);
+  };
+
+  const refuse = (
+    reason: ClientRegistrationRefusal,
+    err: unknown,
+    retiredClientIds: string[] = []
+  ): DurableRegistrationOutcome => {
+    logError(
+      `[auth] OAuth client registration REFUSED (${reason}): ` +
+        `${err instanceof Error ? err.message : String(err)} ` +
+        `No client was created; the caller was answered 503.`
+    );
+    observe.metrics.registerCounter(
+      CLIENT_REGISTRATION_REFUSED_METRIC,
+      'OAuth client registrations refused because the client could not be stored durably'
+    );
+    observe.metrics.incCounter(CLIENT_REGISTRATION_REFUSED_METRIC, { reason });
+    return { ok: false, reason, message: REFUSAL_MESSAGES[reason], retiredClientIds };
+  };
+
+  let minted: { clientId: string; clientSecret: string };
+  try {
+    minted = registries.memory.registerClient(params);
+  } catch (err) {
+    if (isClientStoreFullError(err)) return refuse('memory_full', err);
+    throw err;
+  }
+
+  try {
+    const stored = await registries.durable.registerClient({
+      ...params,
+      // Same identity in both registries, so the durable copy answers to the
+      // credentials the caller will hold.
+      clientId: minted.clientId,
+      clientSecret: minted.clientSecret,
+    });
+    dropRetired(stored.retiredClientIds);
+    return {
+      ok: true,
+      clientId: minted.clientId,
+      clientSecret: minted.clientSecret,
+      retiredClientIds: stored.retiredClientIds,
+    };
+  } catch (err) {
+    // Undo the in-memory half: no credential may exist that the durable store
+    // did not record.
+    registries.memory.revokeClient(minted.clientId);
+    // Clients retired before the failure are gone either way (a full store
+    // after a partial retirement, or an insert that failed after one).
+    const carried = (err as { retiredClientIds?: unknown } | null)?.retiredClientIds;
+    const retired = Array.isArray(carried) ? (carried as string[]) : [];
+    dropRetired(retired);
+    return refuse(isClientStoreFullError(err) ? 'store_full' : 'store_error', err, retired);
+  }
+}
+
+/** How long a sign-in waits for the durable store to record use before going on without it. */
+export const CLIENT_USE_RECORD_TIMEOUT_MS = 2_000;
+
+/**
+ * What prepareClientForUse found:
+ *   recorded   — the durable store recorded the use; the client is in memory;
+ *   unknown    — the durable store holds no such client; any in-memory copy was
+ *                dropped, so the request is refused as an unknown client;
+ *   unrecorded — the store could not answer (down, slow, or keeps no usage
+ *                record); the request goes on with the in-memory copy;
+ *   none       — no client_id was given.
+ */
+export type ClientPreparation = 'recorded' | 'unknown' | 'unrecorded' | 'none';
+
+/**
+ * Get a client ready for an authorize or token request: record the use in the
+ * durable store FIRST, then load the client into the in-memory registry if it
+ * is not there yet.
+ *
+ * Why first: use recorded only after a token is issued left a window in which
+ * a registration could retire a client in the middle of its own sign-in (after
+ * the authorize step, or between the grant and the record). Recorded here, a
+ * retirement racing this request either sees the new last-use time and skips
+ * the client, or has already deleted it, in which case the client is dropped
+ * from memory and the request is refused as unknown. No code or token is issued
+ * to a client the durable store no longer holds.
+ *
+ * Recorded for any request that names the client, before its credentials are
+ * checked. Someone who knows a client_id can therefore keep that client from
+ * being retired. They cannot create a client, sign in as one, or retire one,
+ * and the worst case is a store that stays full and says so (503).
+ *
+ * When the store cannot answer within CLIENT_USE_RECORD_TIMEOUT_MS (database
+ * down or slow; the pool sets no connect timeout), the request goes on with
+ * the in-memory copy, as before this change. A database outage must not
+ * become a sign-in outage.
+ *
+ * Kept out of http-server.ts so it can be tested without booting a server.
+ */
+export async function prepareClientForUse(
+  registries: {
+    memory: {
+      getClient(clientId: string): unknown;
+      importClient(client: {
+        clientId: string;
+        clientSecret: string;
+        clientName: string;
+        redirectUris: string[];
+        scopes: string[];
+        createdAt: number;
+        clientType: 'confidential' | 'public';
+        rateLimit: number;
+        agentId?: string;
+      }): void;
+      revokeClient(clientId: string): boolean;
+    };
+    durable: Pick<OAuth2Provider, 'noteClientUse' | 'getClient'>;
+  },
+  clientId: string | null | undefined,
+  options: { recordTimeoutMs?: number; logWarn?: (line: string) => void } = {}
+): Promise<ClientPreparation> {
+  if (!clientId) return 'none';
+  const logWarn = options.logWarn ?? ((line: string) => console.warn(line));
+  const timeoutMs = options.recordTimeoutMs ?? CLIENT_USE_RECORD_TIMEOUT_MS;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = Symbol('timed out');
+  const held = await Promise.race([
+    registries.durable.noteClientUse(clientId),
+    new Promise<typeof timedOut>((resolve) => {
+      timer = setTimeout(() => resolve(timedOut), timeoutMs);
+    }),
+  ]);
+  if (timer) clearTimeout(timer);
+  if (held === timedOut) {
+    logWarn(
+      `[auth] recording use of OAuth client ${clientId} took over ${timeoutMs}ms; ` +
+        `going on without it.`
+    );
+  }
+
+  if (held === false) {
+    // Retired, or never stored. A copy left in memory would still be served
+    // tokens that nothing durable backs, so drop it and let the request fail
+    // as an unknown client.
+    registries.memory.revokeClient(clientId);
+    return 'unknown';
+  }
+
+  if (!registries.memory.getClient(clientId)) {
+    try {
+      const durable = await registries.durable.getClient(clientId);
+      if (durable) {
+        registries.memory.importClient({
+          clientId: durable.clientId,
+          clientSecret: durable.clientSecretHash,
+          clientName: durable.clientName,
+          redirectUris: durable.redirectUris,
+          scopes: durable.scopes,
+          createdAt: durable.createdAt,
+          clientType: durable.clientType,
+          rateLimit: durable.rateLimit,
+          // Carry the agent binding across the deploy that wiped the in-memory
+          // map. Dropping it here refused the client's own agent_id on the very
+          // next token request, with nothing in the response saying the binding
+          // had been forgotten rather than never granted.
+          ...(durable.agentId ? { agentId: durable.agentId } : {}),
+        });
+      }
+    } catch (err) {
+      logWarn(
+        `[auth] durable client hydration failed: ${err instanceof Error ? err.message : err}`
+      );
+    }
+  }
+
+  return held === true ? 'recorded' : 'unrecorded';
+}
+
 // ── Token Introspection Result ───────────────────────────────────────────────
 
 export interface TokenIntrospectionResult {
@@ -310,15 +592,21 @@ export class OAuth2Provider {
     clientSecret?: string;
     /** Agent binding proved at registration; persisted so it survives a deploy. */
     agentId?: string;
-  }): Promise<{ clientId: string; clientSecret: string }> {
+  }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     return this.store.registerClient({
       ...params,
       maxClients: this.config.maxClients,
+      clientIdleRetirementMs: this.config.clientIdleRetirementMs,
     });
   }
 
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     return this.store.getClient(clientId);
+  }
+
+  /** Record that a client is in use right now. See TokenStore.noteClientUse. */
+  async noteClientUse(clientId: string): Promise<boolean | undefined> {
+    return this.store.noteClientUse(clientId);
   }
 
   async revokeClient(clientId: string): Promise<boolean> {
