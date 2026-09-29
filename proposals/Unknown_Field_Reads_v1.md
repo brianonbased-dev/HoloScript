@@ -3,7 +3,7 @@
 **Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person;
 founder direction 2026-09-28). The decision "`load(record.field) ?? fallback` is the one written
 form" was taken the same day, after Grok's language notes (`checker-35-of-137/unknown-proposal.md`)
-recommended it. Implemented on branch `claude/unknown-reads` (stacked on PR #438); gate 4, a
+recommended it. Implemented in PR #444 (branch `claude/unknown-reads`, stacked on PR #438); gate 4, a
 reviewer from another seat and family, pending.
 **Gaps:** the `@unknown` half of G11 (corpus case `g11-coalesce-plain-008`) and the three-way
 disagreement recorded in Grok's notes.
