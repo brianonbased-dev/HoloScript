@@ -563,6 +563,54 @@ const NO_TRANSACTION =
 export type SubscriptionRead = () => Promise<Omit<CreditSubscription, 'userId'>>;
 
 /**
+ * Studio Pro calls Stripe INSIDE a transaction, holding the user's row lock
+ * (recordSubscription, ensureSubscriptionCustomer), so a slow Stripe holds the
+ * lock and a pool connection with it. The Stripe client's own default wait is 80
+ * seconds per attempt, and Stripe redelivers its backlog of webhooks right after
+ * an outage. So each Stripe call gets a deadline: past it the call is abandoned,
+ * the transaction rolls back and the lock is released. The webhook answers 500
+ * and Stripe redelivers; a checkout click can be tried again.
+ *
+ * A second delivery waiting for that lock gives up after lockWaitMs (SET LOCAL
+ * lock_timeout, this transaction only) instead of queueing behind a stuck one;
+ * it fails, and Stripe sends it again.
+ *
+ * Deliberately NOT idle_in_transaction_session_timeout as a database-side
+ * backstop: PostgreSQL ends such a session between statements, and node-postgres
+ * then raises 'error' on a client drizzle has checked out, with no listener. On
+ * real PostgreSQL 17 (2026-09-28) that crashed the process; in the service,
+ * server.ts shuts down on an uncaught exception. A slow Stripe must not become
+ * a restart. The deadline above fires from a timer, whatever Stripe does.
+ */
+export interface StripeCallBounds {
+  deadlineMs?: number;
+  lockWaitMs?: number;
+}
+
+export const STRIPE_CALL_BOUNDS: Required<StripeCallBounds> = {
+  deadlineMs: 10_000,
+  lockWaitMs: 15_000,
+};
+
+/** Rejects when `work` has not settled within `ms`; `what` names the call in the error. */
+export function withDeadline<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} did not answer within ${ms}ms`)), ms);
+  });
+  return Promise.race([work, deadline]).finally(() => clearTimeout(timer));
+}
+
+/** A ceiling on the wait for the row lock, for this transaction only; see above. */
+async function boundStripeTransaction(
+  tx: DbClient,
+  bounds: Required<StripeCallBounds>
+): Promise<void> {
+  const ms = Math.max(1, Math.floor(bounds.lockWaitMs));
+  await tx.execute(sql.raw(`SET LOCAL lock_timeout = '${ms}ms'`));
+}
+
+/**
  * Record what Stripe says about a user's subscription and set their tier from it,
  * in one transaction, so the row and the tier can never disagree.
  *
@@ -577,8 +625,10 @@ export type SubscriptionRead = () => Promise<Omit<CreditSubscription, 'userId'>>
  */
 export async function recordSubscription(
   userId: string,
-  read: SubscriptionRead
+  read: SubscriptionRead,
+  boundsIn: StripeCallBounds = {}
 ): Promise<SubscriptionRecordResult | null> {
+  const bounds = { ...STRIPE_CALL_BOUNDS, ...boundsIn };
   const db = getDb();
   if (!db) {
     console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
@@ -593,14 +643,15 @@ export async function recordSubscription(
   }
   const now = new Date();
   return await db.transaction(async (tx: DbClient): Promise<SubscriptionRecordResult> => {
+    await boundStripeTransaction(tx, bounds);
     const [account] = await tx
       .select({ tier: creditAccounts.tier })
       .from(creditAccounts)
       .where(eq(creditAccounts.userId, userId))
       .for('update');
     // Stripe is read here, holding the lock, never before it (see above). The
-    // lock is held for the length of one Stripe call; this is one user's row.
-    const sub = await read();
+    // lock is held for at most one bounded Stripe call (STRIPE_CALL_BOUNDS).
+    const sub = await withDeadline(read(), bounds.deadlineMs, 'Stripe subscription read');
     const current = (account?.tier as string | undefined) ?? 'free';
     const [row] = await tx
       .select()
@@ -643,13 +694,18 @@ export async function recordSubscription(
  * the account row, so two clicks at once still make one customer.
  *
  * `createCustomer` runs inside the transaction, holding that one row lock for
- * the length of one Stripe call; this path is one click per user.
+ * at most one bounded Stripe call (STRIPE_CALL_BOUNDS); this path is one click
+ * per user. A create abandoned at the deadline may still have happened at
+ * Stripe, so the caller must send an idempotency key: the retry then gets that
+ * same customer back instead of making a second one.
  */
 export async function ensureSubscriptionCustomer(
   userId: string,
   opts: { plan: string; livemode: boolean | null },
-  createCustomer: () => Promise<string>
+  createCustomer: () => Promise<string>,
+  boundsIn: StripeCallBounds = {}
 ): Promise<string | null> {
+  const bounds = { ...STRIPE_CALL_BOUNDS, ...boundsIn };
   const db = getDb();
   if (!db) {
     console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
@@ -661,6 +717,7 @@ export async function ensureSubscriptionCustomer(
     return null;
   }
   return await db.transaction(async (tx: DbClient): Promise<string> => {
+    await boundStripeTransaction(tx, bounds);
     const [account] = await tx
       .select({ tier: creditAccounts.tier })
       .from(creditAccounts)
@@ -674,7 +731,11 @@ export async function ensureSubscriptionCustomer(
     const stored = row ? toSubscription(row) : null;
     const usable = subscriptionInMode(stored, opts.livemode);
     if (usable) return usable.stripeCustomerId;
-    const customerId = await createCustomer();
+    const customerId = await withDeadline(
+      createCustomer(),
+      bounds.deadlineMs,
+      'Stripe customer create'
+    );
     const now = new Date();
     const fresh = {
       plan: opts.plan,

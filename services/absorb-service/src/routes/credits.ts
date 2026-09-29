@@ -491,11 +491,19 @@ router.post('/subscribe', async (req: Request, res: Response) => {
     const stripe = new Stripe(stripeKey);
 
     // One Stripe customer per user, saved before the first checkout, so a second
-    // click cannot open a second subscription on a second customer.
+    // click cannot open a second subscription on a second customer. The create is
+    // abandoned if Stripe is slow (STRIPE_CALL_BOUNDS) but may still land there; the
+    // idempotency key makes the next click get that same customer, not a second.
     const customer = await ensureSubscriptionCustomer(
       userId,
       { plan: STUDIO_PRO_PLAN, livemode },
-      async () => (await stripe.customers.create({ metadata: { userId } })).id
+      async () =>
+        (
+          await stripe.customers.create(
+            { metadata: { userId } },
+            { idempotencyKey: `studio-pro-customer:${userId}` }
+          )
+        ).id
     );
     if (!customer) {
       res.status(503).json({

@@ -34,7 +34,9 @@ const mocks = vi.hoisted(() => ({
   portalCreate: vi.fn(async (_p: Record<string, unknown>) => ({ url: 'https://billing.example/p_1' })),
   configList: vi.fn(async (_p: Record<string, unknown>) => ({ data: [] as Array<{ id: string; metadata?: Record<string, string> }> })),
   configCreate: vi.fn(async (_p: Record<string, unknown>) => ({ id: 'bpc_new' })),
-  customersCreate: vi.fn(async (_p: Record<string, unknown>) => ({ id: 'cus_new' })),
+  customersCreate: vi.fn(async (_p: Record<string, unknown>, _o?: Record<string, unknown>) => ({
+    id: 'cus_new',
+  })),
   subscriptionsList: vi.fn(async (_p: Record<string, unknown>) => ({
     data: [] as Array<Record<string, unknown>>,
   })),
@@ -472,7 +474,12 @@ describe('POST /api/credits/subscribe — Studio Pro', () => {
       { plan: 'studio_pro', livemode: false },
       expect.any(Function)
     );
-    expect(mocks.customersCreate).toHaveBeenCalledWith({ metadata: { userId: USER } });
+    // Idempotent per user: a create abandoned at the Stripe deadline but made at Stripe
+    // comes back as the same customer on the next click.
+    expect(mocks.customersCreate).toHaveBeenCalledWith(
+      { metadata: { userId: USER } },
+      { idempotencyKey: `studio-pro-customer:${USER}` }
+    );
     expect(checkoutParams().customer).toBe('cus_new');
   });
 

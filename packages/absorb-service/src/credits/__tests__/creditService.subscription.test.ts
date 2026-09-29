@@ -71,8 +71,10 @@ function makeDb(opts: {
     balance: 100,
     transactions: 0,
     locks: 0,
-    /** lock, read and write, in the order they happened. */
+    /** bound, lock, read and write, in the order they happened. */
     order: [] as string[],
+    /** The SQL each tx.execute ran (the SET LOCAL ceilings). */
+    sql: [] as string[],
   };
   const account = {
     userId: USER,
@@ -83,6 +85,11 @@ function makeDb(opts: {
     freeCreditsUsedCents: 0,
   };
   const db: Record<string, unknown> = {
+    execute(query: unknown) {
+      state.sql.push(collectStrings(query).join(' '));
+      state.order.push('bound');
+      return Promise.resolve();
+    },
     select(_cols?: unknown) {
       let table: unknown = null;
       let strings: string[] = [];
@@ -241,10 +248,45 @@ describe('Studio Pro in the credit service', () => {
       db._state.order.push('read');
       return { ...SUB, status: 'unpaid' };
     });
-    expect(db._state.order).toEqual(['lock', 'read', 'write']);
+    expect(db._state.order).toEqual(['bound', 'lock', 'read', 'write']);
     // A read taken under the lock is written whichever way it moves: active to
     // unpaid is what a renewal whose retries all failed really does.
     expect(result).toEqual({ tier: 'free', recorded: true });
+  });
+
+  // P1 from review round 2 (claude3, 2026-09-28): the Stripe call runs holding the row lock,
+  // and nothing bounded it. The Stripe client waits 80s per attempt by default.
+  it('caps the wait for the row lock before taking it, so a second delivery cannot queue without end', async () => {
+    const db = makeDb({ withTransaction: true });
+    setDbProvider(() => db);
+    await recordSubscription(USER, read(SUB));
+    expect(db._state.order.slice(0, 2)).toEqual(['bound', 'lock']);
+    expect(db._state.sql).toEqual([expect.stringMatching(/SET LOCAL lock_timeout = '15000ms'/)]);
+  });
+
+  it('a Stripe read that never answers is abandoned at the deadline, and nothing is written', async () => {
+    const db = makeDb({ withTransaction: true, tier: 'pro', stored: storedRow() });
+    setDbProvider(() => db);
+    const hangs = () => new Promise<Omit<CreditSubscription, 'userId'>>(() => {});
+    const started = Date.now();
+    await expect(recordSubscription(USER, hangs, { deadlineMs: 50 })).rejects.toThrow(
+      /Stripe subscription read did not answer within 50ms/
+    );
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(db._state.writes).toEqual([]);
+  });
+
+  it('a Stripe customer create that never answers is abandoned at the deadline, and nothing is written', async () => {
+    const db = makeDb({ withTransaction: true });
+    setDbProvider(() => db);
+    const hangs = () => new Promise<string>(() => {});
+    await expect(
+      ensureSubscriptionCustomer(USER, { plan: 'studio_pro', livemode: true }, hangs, {
+        deadlineMs: 50,
+      })
+    ).rejects.toThrow(/Stripe customer create did not answer within 50ms/);
+    expect(db._state.writes).toEqual([]);
+    expect(db._state.order.slice(0, 2)).toEqual(['bound', 'lock']);
   });
 
   it('a Stripe read that fails writes nothing, so the delivery fails and is sent again', async () => {
