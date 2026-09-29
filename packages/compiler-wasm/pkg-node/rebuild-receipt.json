@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T01:05:43Z",
+  "generatedAt": "2026-09-29T02:02:36Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "bbd7486fdfe286b316e9e9aa0479318774a793da",
+  "sourceCommit": "d3b8dbfe74d965b1aee48e1b2e00c0c47ca3099a",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 557771,
-    "wasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
-    "previousWasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
+    "wasmBytes": 572088,
+    "wasmSha256": "fc51681d307871d61d28c905fdb6df652b62f1e7cf036a334f9453a4033dfafc",
+    "previousWasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
     "repeatBuildSha256Matched": null,
-    "note": "Rebuilt pkg-node for the exported-declaration fix to the @unknown read rule (bbd7486fd): exported structs and functions are held to HS-UNKNOWN-001/002. Written from the files by a script; the browser build pkg/ is not rebuilt on this branch (PR #448 does both)."
+    "note": "Rebuilt pkg-node for the Kotlin bridge's typed lowering (d3b8dbfe7, board task 5kf8): a typed .hs function lowers by its declared types, exported declarations are emitted, inexpressible declared types are refused. Written from the files by a script; the browser build pkg/ is rebuilt with both builds once PR #448 is merged below this."
   }
 }
