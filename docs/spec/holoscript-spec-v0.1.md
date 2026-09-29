@@ -270,6 +270,26 @@ composition Scene {
 }
 ```
 
+A field marked `@unknown` may hold no known value. There are three ways to touch it: `isKnown(record.field)` reads whether it is known, `unknownReason(record.field)` reads the reason code, and `load(record.field) ?? fallback` reads the value with a fallback. That last one is the one written form for the value (2026-09-28; `proposals/Unknown_Field_Reads_v1.md`).
+
+```hs
+struct Snapshot {
+  @unknown count: i32
+}
+
+struct Receipt {
+  reason: i32
+}
+
+function gate(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
+  if (isKnown(snapshot.count)) {
+    return load(snapshot.count) ?? 0
+  }
+  store(receipt.reason, unknownReason(snapshot.count))
+  return 0
+}
+```
+
 ### Forms it rejects
 
 Quoted object name. Message: `Expected identifier`.
@@ -346,6 +366,18 @@ function f(x: i32): i32 {
   if (x > 0) {
     return 1
   }
+}
+```
+
+A fallback on a bare `@unknown` struct field. The one written form is `load(record.field) ?? fallback`, and the native backend refuses the bare form too. Message: ``[HS-UNKNOWN-002] function `read` supplies a fallback for `@unknown` struct field `count` without `load` — …``.
+
+```hs reject
+struct Snapshot {
+  @unknown count: i32
+}
+
+function read(snapshot: &Snapshot): i32 {
+  return snapshot.count ?? 7
 }
 ```
 
@@ -837,6 +869,11 @@ Inside a function that states a parameter or return type it also refuses, since 
 - `HS-RETURN-002` — a declared return type with a path that returns no value
 - `HS-SCOPE-001` — a declaration that reuses a name still visible from its own or an enclosing block
 
+Reading an `@unknown` struct field (in every function), and `??` (in functions that state a type):
+
+- `HS-UNKNOWN-001` — the field read as a value, or `load(record.field)` without a fallback
+- `HS-UNKNOWN-002` — a fallback on anything but `load(record.field)`: a bare `record.field ?? d`, or `??` on a plain value
+
 These errors carry the line and column of the name, call, declaration or function. `validate_detailed_in_context` runs the same check on one function lifted out of a larger document, given the document's functions and names; the `.hsplus` reader uses it for typed functions.
 
 Everything else the grammar prints is a sentence with no code. Measured sentences include `Expected identifier`, `Expected LBrace, got Identifier`, `Unexpected identifier: zone`, `Unexpected identifier: pipeline`, `Unexpected identifier: spatial`, and `Unexpected identifier: brain`.
@@ -909,6 +946,7 @@ Joseph's review stays reserved for the four protected classes: spend and custody
 
 Changes made under these gates:
 
+- **2026-09-28, `@unknown` reads** ([proposal](../../proposals/Unknown_Field_Reads_v1.md)): `isKnown` and `unknownReason` are accepted as tag reads; `load(record.field) ?? fallback` is the one written form for the value; the bare fallback form and `??` on a plain value in typed functions are refused. One tracked file used the bare form (`Routing.logic.hs`) and migrates in the same change with byte-identical Kotlin; the steward example becomes valid. Gate 4 is required before merge and is recorded on the pull request.
 - **2026-09-28, G11** ([proposal](../../proposals/HS_Checker_Names_Calls_Returns_v1.md)): inside typed functions, `validate_detailed` refuses unknown names and functions, the wrong argument count, a missing return and a hidden name. Measured on the build: 0 of 68 valid `.hs` files and 0 of 2,474 `.hsplus` files changed verdict. Gate 4, a review by another seat and family, is required before merge and is recorded on the pull request.
 
 Deprecation is announced in a later revision of this spec, with the date, the old form, the replacement, and the version in which the old form will stop parsing. The old form keeps parsing for at least one 0.x patch after that announcement. Removing it passes the same four gates. A banner on an older document is a pointer. It is not, by itself, a removal.
