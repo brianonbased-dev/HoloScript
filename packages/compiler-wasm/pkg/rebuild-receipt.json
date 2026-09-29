@@ -1,11 +1,11 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-08-04T19:33:19Z",
+  "generatedAt": "2026-09-29T01:16:04Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "580d91e32dfaff6162a51df20dfd79da737165e2",
+  "sourceCommit": "65658d4a6f314d1e29c856e2f70ed368bf0eb98d",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
-    "node scripts/build-wasm.mjs (wasm-pack build --target web --out-dir pkg --release)"
+    "node scripts/build-wasm.mjs --rebuild (wasm-pack build --target web --out-dir pkg --release)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 526813,
-    "wasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
-    "previousWasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
+    "wasmBytes": 557771,
+    "wasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
+    "previousWasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
     "repeatBuildSha256Matched": null,
-    "note": "Regenerated from the merged compiler-artifact-refresh stack on current canon (merge of holoscript-native-compiler-artifact-refresh-v1-20260803 onto 7b00ee93d). Fresh release build with the receipted toolchain; digest pinned from the produced artifact."
+    "note": "Written by build-wasm.mjs --rebuild from commit 65658d4a6f314d1e29c856e2f70ed368bf0eb98d, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM. Rebuilds both builds after merging the exported-declaration fix to the @unknown read rule (bbd7486fd, PR #444)."
   }
 }

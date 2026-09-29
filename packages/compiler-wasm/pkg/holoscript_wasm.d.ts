@@ -194,6 +194,16 @@ export function validate(source: string): boolean;
 export function validate_detailed(source: string): string;
 
 /**
+ * [`validate_detailed`] for source lifted out of a larger document, the way the `.hsplus` reader
+ * checks each typed function on its own. `context_json` names what the document declares, so a
+ * use of it resolves: `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"]}`.
+ * `functions` are the document's functions; one listed without `arity` resolves by name and its
+ * argument count is not checked. `names` are its structs, enums and imports. Both are optional.
+ * A context that is not that JSON is refused rather than ignored.
+ */
+export function validate_detailed_in_context(source: string, context_json: string): string;
+
+/**
  * Get the version of the WASM compiler.
  */
 export function version(): string;
@@ -215,6 +225,7 @@ export interface InitOutput {
     readonly parse_pretty: (a: number, b: number, c: number) => void;
     readonly validate: (a: number, b: number) => number;
     readonly validate_detailed: (a: number, b: number, c: number) => void;
+    readonly validate_detailed_in_context: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly version: (a: number) => void;
     readonly evaluate_trait_handler_v3: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
     readonly __wbindgen_export: (a: number, b: number) => number;

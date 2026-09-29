@@ -763,7 +763,8 @@ fi
 
 # Gate 5g6: Native .hs conformance. validate_detailed must accept every program the
 # repo publishes under examples/native and distributions/systems/conformance.
-# The only exception is the @unknown honesty-gate file, pending a language decision.
+# There are no exceptions since the @unknown reads (PR #444); an allow-listed file the
+# checker accepts fails the gate, so the allow-list cannot go stale.
 echo "  ├─ .hs conformance (Rust validate_detailed)..."
 HS_CONF_OUT=$(run_with_timeout 300 node scripts/holo-ci/check-hs-conformance.mjs 2>&1)
 HS_CONF_STATUS=$?
