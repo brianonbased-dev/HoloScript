@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T01:05:43Z",
+  "generatedAt": "2026-09-29T03:36:58Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "bbd7486fdfe286b316e9e9aa0479318774a793da",
+  "sourceCommit": "8912375a82a31120a57f7ac32bde1182f6505f1f",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 557771,
-    "wasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
-    "previousWasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
+    "wasmBytes": 557782,
+    "wasmSha256": "d6d77e3ef40d84f691d156142dfd59366c8c9789dbf63ff8f49e0843ccc1215a",
+    "previousWasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
     "repeatBuildSha256Matched": null,
-    "note": "Rebuilt pkg-node for the exported-declaration fix to the @unknown read rule (bbd7486fd): exported structs and functions are held to HS-UNKNOWN-001/002. Written from the files by a script; the browser build pkg/ is not rebuilt on this branch (PR #448 does both)."
+    "note": "Rebuilt pkg-node for the duplicate-declaration fix (8912375a8): an exported declaration collides with a same-named one, as native reports. Written from the files by a script."
   }
 }
