@@ -308,8 +308,11 @@ function codeOf(abs: string): string {
   let code = codeCache.get(abs);
   if (code === undefined) {
     const text = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : '';
-    // Parse only files the reads could match at all: most scanned files never do.
-    code = Object.values(READS).some(({ re }) => text.match(re))
+    // Parse only files the reads could match at all: most scanned files never do. A block
+    // comment can sit INSIDE a read (`queryKnowledge/* why */(q)`), so the raw text alone would
+    // hide it; removing block comments only decides whether to parse, never what counts.
+    const withoutBlocks = text.replace(/\/\*[\s\S]*?\*\//g, '');
+    code = Object.values(READS).some(({ re }) => text.match(re) || withoutBlocks.match(re))
       ? withoutComments(abs, text)
       : text;
     codeCache.set(abs, code);
@@ -442,6 +445,24 @@ describe('the census reads code, not comments (task v7c1)', () => {
     expect(lines[3]).toContain('queryKnowledge(q)');
   });
 
+  it('code after a JSDoc tag on the same line still counts', () => {
+    // After a {@link}, a JSDoc text node starts just before the `//`. Scanning comment trivia
+    // from there would blank the real call after the comment's close (#470 pre-review).
+    const text = '/** Uses {@link Y} // note */ const g = () => queryKnowledge(x);\n';
+    expect(reads('a.ts', text)).toBe(1);
+  });
+
+  it('a block comment inside a read does not hide the read from the parse filter', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'premium-census-'));
+    try {
+      const file = path.join(dir, 'site.ts');
+      fs.writeFileSync(file, 'export const q = async (q: string) => queryKnowledge/* why */(q);\n');
+      expect(codeOf(file).match(READS['orchestrator-query'].re) ?? []).toHaveLength(1);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('a gate named only in a comment, or inside a longer name, is not named', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'premium-census-'));
     try {
@@ -450,6 +471,8 @@ describe('the census reads code, not comments (task v7c1)', () => {
         file,
         '// every row goes through premiumTeaser\nconst premiumTeaserCache = 1;\n'
       );
+      expect(namesSymbol(file, 'premiumTeaser')).toBe(false);
+      fs.writeFileSync(file, 'const text = old_premiumTeaser(row.content);\n');
       expect(namesSymbol(file, 'premiumTeaser')).toBe(false);
       fs.writeFileSync(file, 'const text = premiumTeaser(row.content);\n');
       expect(namesSymbol(file, 'premiumTeaser')).toBe(true);
