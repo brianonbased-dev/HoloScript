@@ -532,6 +532,9 @@ pub struct ImportNode {
 pub struct ImportSpecifier {
     pub imported: String,
     pub local: String,
+    /// Where the imported name is written, so a refusal can point at it (G21).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
 }
 
 /// Export statement

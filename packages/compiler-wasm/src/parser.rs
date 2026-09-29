@@ -947,6 +947,7 @@ impl Parser {
         if self.check(TokenType::LBrace) {
             self.advance();
             while !self.check(TokenType::RBrace) && !self.is_at_end() {
+                let specifier_start = self.current_location();
                 let imported = self.expect_identifier()?;
                 let local = if self.check(TokenType::As) {
                     self.advance();
@@ -954,7 +955,11 @@ impl Parser {
                 } else {
                     imported.clone()
                 };
-                specifiers.push(ImportSpecifier { imported, local });
+                specifiers.push(ImportSpecifier {
+                    imported,
+                    local,
+                    loc: Some(self.location_from(specifier_start)),
+                });
 
                 if !self.check(TokenType::RBrace) {
                     self.expect(TokenType::Comma)?;

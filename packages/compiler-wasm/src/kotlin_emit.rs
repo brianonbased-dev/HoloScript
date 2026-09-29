@@ -581,12 +581,57 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
 
     // `export function f` declares `f` too: until 2026-09-29 it was left out here, so an exported
     // and a plain `f` were valid while native refused the module ("declares `f` more than once").
+    // A `holo:` import declares its names as well (G21): a file may not define a function a Holo
+    // import names, since every engine resolves an import by name, not by source, and a local
+    // `manifest_audit_passes(): bool { return true }` would stand in for HoloAbsorb.
+    let mut sites: Vec<DeclarationSite> = Vec::new();
     for node in top_level_declarations(ast) {
-        let Some(site) = top_level_declaration_site(node) else {
+        if let AstNode::Import(import) = node {
+            if let crate::holo_modules::HostSource::Module(..) =
+                crate::holo_modules::resolve_host_source(&import.source)
+            {
+                for specifier in &import.specifiers {
+                    let loc = if specifier.loc.is_some() {
+                        &specifier.loc
+                    } else {
+                        &import.loc
+                    };
+                    sites.push(DeclarationSite::from_loc(
+                        &specifier.local,
+                        HOLO_IMPORT,
+                        loc,
+                    ));
+                }
+            }
             continue;
-        };
-
+        }
+        if let Some(site) = top_level_declaration_site(node) {
+            sites.push(site);
+        }
+    }
+    for site in sites {
         if let Some(first) = declarations.get(&site.name) {
+            if first.kind == HOLO_IMPORT || site.kind == HOLO_IMPORT {
+                let (import, other) = if first.kind == HOLO_IMPORT {
+                    (first, &site)
+                } else {
+                    (&site, first)
+                };
+                return Err(SemanticDiagnostic {
+                    message: format!(
+                        "[{}] `{}` is imported from a Holo module (line {}, column {}) and also declared as a {} (line {}, column {}); a Holo capability cannot be defined in the file that imports it",
+                        crate::semantic_types::HIDDEN_NAME,
+                        site.name,
+                        import.line,
+                        import.column,
+                        other.kind,
+                        other.line,
+                        other.column
+                    ),
+                    line: site.line,
+                    column: site.column,
+                });
+            }
             return Err(SemanticDiagnostic {
                 message: format!(
                     "duplicate top-level declaration `{}` after caller-side import inlining: {} at line {}, column {} collides with {} at line {}, column {}",
@@ -628,6 +673,9 @@ pub(crate) fn check_semantics_with(
     check_assignment_mutability(ast)?;
     crate::semantic_types::check_explicit_type_contracts_with(ast, external)
 }
+
+/// The site kind of a name a `holo:` import declares.
+const HOLO_IMPORT: &str = "holo: import";
 
 fn top_level_declaration_site(node: &AstNode) -> Option<DeclarationSite> {
     match node {
@@ -1303,6 +1351,20 @@ fn check_imports_resolved(
         .collect();
 
     for import in imports {
+        // A `holo:` import is a Holo capability the checker accepts (G21); this bridge has no
+        // binding for it yet, so it refuses by name instead of reporting a missing file.
+        if let crate::holo_modules::HostSource::Module(module, _) =
+            crate::holo_modules::resolve_host_source(&import.source)
+        {
+            let name = import
+                .specifiers
+                .first()
+                .map(|spec| spec.imported.as_str())
+                .unwrap_or_default();
+            return Err(KotlinEmitError::new(format!(
+                "[HS-HOST-004] `holo:{module}/{name}` has no binding on the Kotlin (Quest) bridge yet; the checker accepts the call and this engine refuses it by name (G21 phase 2)"
+            )));
+        }
         for spec in &import.specifiers {
             let resolved = function_names.iter().any(|n| n == &spec.imported)
                 || struct_names.iter().any(|n| n == &spec.imported)

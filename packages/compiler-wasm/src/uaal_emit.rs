@@ -534,6 +534,21 @@ fn validate_imports_resolved(
 ) -> Result<(), UaalEmitError> {
     for node in &ast.body {
         if let AstNode::Import(import) = node {
+            // A `holo:` import is a Holo capability the checker accepts (G21). Phase 2 lowers a
+            // call to `EXEC holo.<module>.<function>.v<N>`; until then UAAL refuses it by name.
+            if let crate::holo_modules::HostSource::Module(module, declarations) =
+                crate::holo_modules::resolve_host_source(&import.source)
+            {
+                let specifier = import.specifiers.first();
+                let name = specifier.map(|s| s.imported.as_str()).unwrap_or_default();
+                let version = specifier
+                    .and_then(|s| declarations.functions.get(&s.imported))
+                    .map(|function| function.version)
+                    .unwrap_or(1);
+                return Err(UaalEmitError::new(format!(
+                    "[HS-HOST-004] `holo:{module}/{name}` has no binding on UAAL yet (G21 phase 2 lowers it to EXEC `holo.{module}.{name}.v{version}`); the checker accepts the call and this engine refuses it by name"
+                )));
+            }
             for specifier in &import.specifiers {
                 if !function_names.contains(&specifier.imported) {
                     return Err(UaalEmitError::new(format!(
