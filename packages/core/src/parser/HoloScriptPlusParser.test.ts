@@ -912,8 +912,7 @@ describe('HoloScriptPlusParser - silent skips are errors', () => {
         code: 'HSP101',
         line: 2,
         column: 12,
-        message:
-          'HSP101: "${ }" only works inside a quoted string here. Put the value in quotes.',
+        message: 'HSP101: "${ }" only works inside a quoted string here. Put the value in quotes.',
       }),
     ]);
 
@@ -1216,7 +1215,9 @@ describe('typed functions checked by the Rust checker', () => {
   }
 
   function messages(source: string): string {
-    return rootOf(source).errors.map((error) => error.message).join('\n');
+    return rootOf(source)
+      .errors.map((error) => error.message)
+      .join('\n');
   }
 
   it('leaves an untyped function unchanged and does not load the Rust checker', () => {
@@ -1859,5 +1860,53 @@ describe('zone, spatial, and layer are rejected in .hsplus', () => {
     expect(result.errors).toEqual([]);
     expect(result.ast?.zones).toHaveLength(1);
     expect(result.ast?.zones[0]?.name).toBe('SafeArea');
+  });
+});
+
+describe('HoloScriptPlusParser - holo: imports (G21)', () => {
+  const parse = (source: string) =>
+    new HoloScriptPlusParser({ enableVRTraits: true }).parse(source);
+  const summary = (source: string) =>
+    parse(source).errors.map((error) => `${error.line}:${error.column} ${error.code}`);
+  const orb = '\n\norb Lamp {\n  color: "red"\n}\n';
+
+  it('routes holo: imports to the checker as imports, and file imports as names', () => {
+    expect(collectHsDocumentContext([]).imports).toBeUndefined();
+    const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+    const collected = parser.collectDocumentContext(
+      '@import { manifest_audit_passes as audit } from "holo:absorb"\n@import { helper } from "./helpers.hsplus"\n'
+    );
+    expect(collected.names).toEqual(['helper']);
+    expect(collected.imports).toEqual([
+      {
+        source: 'holo:absorb',
+        specifiers: [{ imported: 'manifest_audit_passes', local: 'audit', line: 1, column: 11 }],
+        line: 1,
+        column: 2,
+        form: 'named',
+      },
+    ]);
+  });
+
+  it('checks a document whose code is all untyped, once, at the import', () => {
+    // The 70 absorb-service files that motivated G21 have no typed function.
+    expect(summary(`@import { manifest_audit_pases } from "holo:absorb"${orb}`)).toEqual([
+      '1:11 HS-HOST-002',
+    ]);
+    expect(summary(`@import { manifest_audit_passes } from "holo:no_such"${orb}`)).toEqual([
+      '1:2 HS-HOST-001',
+    ]);
+    expect(summary(`@import * as Absorb from "holo:absorb"${orb}`)).toEqual(['1:2 HS-HOST-001']);
+    expect(parse(`@import { manifest_audit_passes } from "holo:absorb"${orb}`).errors).toEqual([]);
+    expect(parse(`@import { helper } from "./helpers.hsplus"${orb}`).errors).toEqual([]);
+  });
+
+  it('checks a typed function against the declaration, and reports a bad import once', () => {
+    const typed = (imported: string, call: string) =>
+      `@import { ${imported} as audit } from "holo:absorb"\n\nfunction check(): bool {\n  return ${call}\n}\n`;
+    expect(summary(typed('manifest_audit_passes', 'audit()'))).toEqual([]);
+    expect(summary(typed('manifest_audit_passes', 'audit(1)'))).toEqual(['4:10 HS-ARITY-001']);
+    // The misspelled import is reported at the import, not again at the function.
+    expect(summary(typed('manifest_audit_pases', 'audit()'))).toEqual(['1:11 HS-HOST-002']);
   });
 });

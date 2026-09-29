@@ -30,15 +30,36 @@ interface WasmValidate {
 export interface HsDocumentContext {
   /** Every `function` in the document. `arity` is left out when it is not a plain count. */
   functions: Array<{ name: string; arity?: number }>;
-  /** Structs, enums and imported names. */
+  /** Structs, enums and names imported from files. */
   names: string[];
+  /**
+   * Imports whose source has a scheme (`holo:absorb`): the checker resolves them against its
+   * embedded Holo modules instead of taking the names on trust (G21). An older checker, which
+   * does not read `imports`, refuses a call to them as an unknown function.
+   */
+  imports?: HsDocumentImport[];
+}
+
+/** An import the checker resolves itself. `line`, `column` and `form` stay on this side. */
+export interface HsDocumentImport {
+  source: string;
+  specifiers: Array<{ imported: string; local: string; line?: number; column?: number }>;
+  line?: number;
+  column?: number;
+  /** `named` is `{ a, b as c } from "..."`; no other form imports a Holo module. */
+  form: 'named' | 'other';
 }
 
 /** The fields of a `.hsplus` token that {@link collectHsDocumentContext} reads. */
 export interface HsContextToken {
   type: string;
   value: string;
+  line?: number;
+  column?: number;
 }
+
+/** A source with a scheme of two or more characters (`holo:`, `https:`); `C:` is a drive. */
+const SCHEME_SOURCE = /^[A-Za-z][A-Za-z0-9+.-]+:/;
 
 /** The closer each opener waits for. `<` counts only while its `>` comes before the next closer. */
 const CLOSER_OF: Record<string, string> = {
@@ -129,16 +150,39 @@ function parameterCount(list: ReadonlyArray<HsContextToken>, open: number): numb
  * `X`; `"p"` alone binds the file's name without its extension; `X from "p"` binds `X`.
  * `@import(...)` is a directive with parameters and binds nothing.
  */
-function importedNames(list: ReadonlyArray<HsContextToken>, at: number, names: Set<string>): void {
+function importedNames(
+  list: ReadonlyArray<HsContextToken>,
+  at: number,
+  names: Set<string>,
+  imports: HsDocumentImport[]
+): void {
   let j = at + 1;
   const first = list[j];
   if (!first || first.type === 'LPAREN' || first.type === 'NEWLINE') return;
+  const written = { line: list[at].line, column: list[at].column };
   if (first.type === 'LBRACE') {
+    const specifiers: HsDocumentImport['specifiers'] = [];
     for (j += 1; j < list.length && list[j].type !== 'RBRACE'; j++) {
       const part = list[j];
       if (!isName(part) || part.value === 'as' || part.value === 'type') continue;
-      if (list[j + 1]?.value === 'as') continue; // `a as b` binds `b`
-      names.add(part.value);
+      const alias = list[j + 1]?.value === 'as' && isName(list[j + 2]) ? list[j + 2] : undefined;
+      specifiers.push({
+        imported: part.value,
+        local: alias ? alias.value : part.value, // `a as b` binds `b`
+        line: part.line,
+        column: part.column,
+      });
+      if (alias) j += 2;
+    }
+    let k = j + 1;
+    while (list[k]?.type === 'NEWLINE') k++;
+    if (list[k]?.value === 'from') k++;
+    while (list[k]?.type === 'NEWLINE') k++;
+    const source = list[k]?.type === 'STRING' ? list[k].value : undefined;
+    if (source !== undefined && SCHEME_SOURCE.test(source)) {
+      imports.push({ source, specifiers, ...written, form: 'named' });
+    } else {
+      for (const specifier of specifiers) names.add(specifier.local);
     }
     return;
   }
@@ -164,6 +208,10 @@ function importedNames(list: ReadonlyArray<HsContextToken>, at: number, names: S
     ?.replace(/\.[^.]+$/, '');
   const bound = alias ?? leading ?? fromPath;
   if (bound) names.add(bound);
+  // `* as NS from "holo:x"` or `"holo:x"`: only named imports reach a Holo module.
+  if (path !== undefined && SCHEME_SOURCE.test(path)) {
+    imports.push({ source: path, specifiers: [], ...written, form: 'other' });
+  }
 }
 
 /**
@@ -176,6 +224,7 @@ export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>):
   const list = tokens.filter((token) => !SKIPPED.has(token.type));
   const arities = new Map<string, number | undefined>();
   const names = new Set<string>();
+  const imports: HsDocumentImport[] = [];
   const nextIndex = (index: number): number => {
     let j = index + 1;
     while (list[j]?.type === 'NEWLINE') j++;
@@ -198,7 +247,7 @@ export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>):
       continue;
     }
     if (token.value === 'import') {
-      importedNames(list, i, names);
+      importedNames(list, i, names, imports);
       continue;
     }
     if (token.value !== 'function') continue;
@@ -226,6 +275,7 @@ export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>):
       arity === undefined ? { name } : { name, arity }
     ),
     names: [...names],
+    ...(imports.length > 0 ? { imports } : {}),
   };
 }
 
@@ -298,6 +348,70 @@ function codeOf(message: string): string {
   if (coded?.[1]) return coded[1];
   if (message.includes('HS010')) return 'HS010';
   return 'HS-CHECK';
+}
+
+/**
+ * Check a document's scheme imports once (G21), whether or not a typed function reaches the
+ * checker. Each named import is validated on its own, so a refusal lands on the name it is
+ * about; an unknown module is reported once at the import. A form other than `{ ... } from` is
+ * refused here, since `.hs` has no other form for a Holo module. With a checker older than the
+ * Holo modules, a `holo:` import validates and nothing is reported.
+ */
+export function checkHoloImports(context: HsDocumentContext): RustFunctionDiagnostic[] {
+  const imports = context.imports ?? [];
+  if (imports.length === 0) return [];
+  const wasm = loadChecker();
+  if (!wasm) {
+    const detail = loadError ? `: ${loadError}` : '';
+    return [
+      {
+        code: 'HS-CHECK',
+        message: `The Rust type checker could not be loaded${detail}`,
+        line: imports[0].line ?? 1,
+        column: imports[0].column ?? 1,
+      },
+    ];
+  }
+  const diagnostics: RustFunctionDiagnostic[] = [];
+  for (const entry of imports) {
+    const at = { line: entry.line ?? 1, column: entry.column ?? 1 };
+    if (entry.form !== 'named') {
+      diagnostics.push({
+        code: 'HS-HOST-001',
+        message: `[HS-HOST-001] \`${entry.source}\` is imported by name only: write \`@import { name } from "${entry.source}"\`, so the file lists every capability it uses`,
+        ...at,
+      });
+      continue;
+    }
+    for (const specifier of entry.specifiers) {
+      const alias = specifier.local !== specifier.imported ? ` as ${specifier.local}` : '';
+      const probe = `import { ${specifier.imported}${alias} } from ${JSON.stringify(entry.source)}\n`;
+      let parsed: ValidateJson;
+      try {
+        parsed = JSON.parse(wasm.validate_detailed(probe)) as ValidateJson;
+      } catch {
+        diagnostics.push({
+          code: 'HS-CHECK',
+          message: 'The Rust type checker returned a result that was not JSON',
+          ...at,
+        });
+        break;
+      }
+      if (parsed.valid === true) continue;
+      const message = parsed.errors?.[0]?.message ?? 'The Rust checker refused this import';
+      const code = codeOf(message);
+      const onName = code === 'HS-HOST-002' && specifier.line !== undefined;
+      diagnostics.push({
+        code,
+        message,
+        line: onName ? (specifier.line as number) : at.line,
+        column: onName ? (specifier.column ?? at.column) : at.column,
+      });
+      // The module itself is refused: one message for it, not one per name.
+      if (code !== 'HS-HOST-002') break;
+    }
+  }
+  return diagnostics;
 }
 
 /**
