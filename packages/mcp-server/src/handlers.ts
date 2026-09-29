@@ -381,10 +381,13 @@ export async function handleTool(
   // For tools that ingest HoloScript code, additionally gate the code payload
   const codePayload = args.code ?? args.content ?? args.holoscript ?? args.source;
   if (typeof codePayload === 'string' && codePayload.length > 0) {
+    // The same caller as the tool gate above: the local stdio user's bridge counts here too. It
+    // read the raw context until task wrn7, so the local user passed the tool gate and was then
+    // refused its own code. The bridge exists only on the stdio server (x5ku).
     const codeGate = await gateHoloScriptCode(codePayload, {
       source: 'unknown',
       toolName: name,
-      grantedScopes: signingCtx?.scopes ?? [],
+      grantedScopes: effectiveSigningCtx?.scopes ?? [],
       manifest: capabilityManifest,
       declaredAttestationTrusted,
     });

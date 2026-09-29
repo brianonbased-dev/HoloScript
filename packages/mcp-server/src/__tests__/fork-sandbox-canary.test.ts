@@ -538,4 +538,46 @@ describe('canary: with no caller context, only the stdio server is trusted as ad
       "'unverified' is below required"
     );
   });
+
+  // task wrn7: the code-payload gate read the RAW context's scopes while the tool gate above it
+  // read the bridge's, so the local stdio user passed the tool gate and was then refused its own
+  // code ("Required one of [tools:write]. Granted []"). Both gates now read the same caller. That
+  // is safe only because the bridge exists only on stdio (x5ku): X009 and X010 hold it.
+  const PIPELINE_WITH_CODE = {
+    code: BENIGN_HOLO,
+    target: 'node',
+    capabilityManifest: {
+      protocol: 'holoscript.capability.v1',
+      declaredCapabilities: ['compile:pipeline'],
+      attestation: {
+        manifestHash: 'abc',
+        signer: 'local',
+        trustTier: 'verified',
+        attestedAt: new Date().toISOString(),
+      },
+    },
+  };
+
+  it('CANARY-X008: the local stdio user can compile code, not only pass the tool gate', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+    const result = await handleTool('compile_pipeline', PIPELINE_WITH_CODE);
+    expect(JSON.stringify(result)).not.toContain('ForkSandboxGate denied');
+  });
+
+  it('CANARY-X009: over HTTP, the same context-less call is still refused', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const result = await handleTool('compile_pipeline', PIPELINE_WITH_CODE);
+    expect(JSON.stringify(result)).toContain('ForkSandboxGate denied');
+  });
+
+  it('CANARY-X010: over HTTP, a tools:read caller is still refused', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const result = await handleTool('compile_pipeline', PIPELINE_WITH_CODE, {
+      signedRequest: false,
+      signingValid: true,
+      signer: 'reader-agent',
+      scopes: ['tools:read'],
+    });
+    expect(JSON.stringify(result)).toContain('ForkSandboxGate denied');
+  });
 });
