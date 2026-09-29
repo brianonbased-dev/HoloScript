@@ -45,43 +45,54 @@ if [ -f scripts/check-doctrine-slots.mjs ]; then
   fi
 fi
 
-# Collect the files changed across every ref being pushed. The pre-push protocol
-# feeds lines "<local_ref> <local_sha> <remote_ref> <remote_sha>" on stdin.
+# Collect the files the push changes. The pre-push protocol feeds lines
+# "<local_ref> <local_sha> <remote_ref> <remote_sha>" on stdin.
+#
+# THE QUESTION IS WHAT THIS BRANCH CHANGES RELATIVE TO THE TRUNK IT LANDS ON,
+# so the range starts at the merge base with that trunk: `trunk...local`, three
+# dots. Two measurements made this the rule:
+#
+#   2026-08-16 (task_1786942099138_9ad3): the base was `origin/main`, the
+#   GitHub federation mirror, which runs behind HoloRepo canon. The range swept
+#   in 6 already-landed commits carrying 4 packages/core files, the pushed
+#   commit carried none, and the ~15-minute core-baseline receipt was demanded.
+#   Fixed then by reading the TARGET remote's main.
+#
+#   2026-09-28: the base was right and the range was still wrong. `git diff A..B`
+#   is a tree comparison, not "the commits in B": with main 17 commits past the
+#   branch point, `main..branch` listed the 5 packages/core files main had
+#   changed since, while the branch changed 22 studio files and no core file
+#   (three dots: 0 core files, exactly the 22). An existing branch that merges
+#   main hit the same wall through `remote_sha..local_sha`, which lists every
+#   file the merge brought in.
+#
+# git hands pre-push the remote name as $1 and its URL as $2, so the trunk of
+# the real target is one ls-remote away. Order: the target's main, then
+# origin/main, then (for an existing branch) the old per-push range, then fail
+# closed. An ls-remote answer can name a commit that is not here; `git diff`
+# against a sha we do not have would print an empty list, which reads exactly
+# like "nothing to check", so it is verified before it is trusted.
+trunk=$(git ls-remote "${2:-$1}" refs/heads/main 2>/dev/null | cut -f1)
+if [ -n "$trunk" ] && ! git cat-file -e "${trunk}^{commit}" 2>/dev/null; then
+  trunk=''
+fi
+if [ -z "$trunk" ]; then
+  trunk=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
+fi
 changed=''
 force_check=0
 while read -r local_ref local_sha remote_ref remote_sha; do
   # Branch deletion — nothing to validate.
   [ "$local_sha" = "$ZERO" ] && continue
-  if [ "$remote_sha" = "$ZERO" ]; then
-    # New branch on the remote — every HoloRepo candidate push is this shape.
-    #
-    # The base has to be the trunk of the remote we are ACTUALLY pushing to.
-    # This used to read `origin/main` unconditionally, which is the GitHub
-    # federation mirror, not HoloRepo canon. Canon runs ahead of that mirror, so
-    # the range swept in peers' already-landed commits and charged this author
-    # for them. Measured 2026-08-16 on candidate
-    # language-registry-runtime-truth-20260816: origin/main was 6 commits
-    # behind, those six carried 4 packages/core files, and the pushed commit
-    # carried none — yet the ~15-minute core-baseline receipt was demanded.
-    # (task_1786942099138_9ad3.)
-    #
-    # git hands pre-push the remote name as $1 and its URL as $2, so the trunk
-    # of the real target is one ls-remote away. Order: the target's main, then
-    # origin/main, then fail closed.
-    base=$(git ls-remote "${2:-$1}" refs/heads/main 2>/dev/null | cut -f1)
-    # An ls-remote answer names a commit that may not exist locally; `git diff`
-    # against a sha we do not have would silently produce an empty file list,
-    # which reads exactly like "nothing to check". Verify before trusting it.
-    if [ -n "$base" ] && ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
-      base=''
-    fi
-    if [ -z "$base" ]; then
-      base=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
-    fi
-    if [ -n "$base" ]; then range="$base..$local_sha"; else force_check=1; continue; fi
-  else
+  if [ -n "$trunk" ]; then
+    range="$trunk...$local_sha"
+  elif [ "$remote_sha" != "$ZERO" ]; then
     range="$remote_sha..$local_sha"
+  else
+    force_check=1
+    continue
   fi
+  # No merge base (unrelated history) makes the diff fail: judge everything.
   files=$(git diff --name-only "$range" 2>/dev/null) || force_check=1
   changed="$changed
 $files"
