@@ -579,7 +579,9 @@ fn first_unguarded_unknown_read(node: &AstNode, unknown: &[&str], guarded: bool)
 pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     let mut declarations: HashMap<String, DeclarationSite> = HashMap::new();
 
-    for node in &ast.body {
+    // `export function f` declares `f` too: until 2026-09-29 it was left out here, so an exported
+    // and a plain `f` were valid while native refused the module ("declares `f` more than once").
+    for node in top_level_declarations(ast) {
         let Some(site) = top_level_declaration_site(node) else {
             continue;
         };
@@ -4262,6 +4264,24 @@ function gate(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
         let error = check_semantics(&bare).expect_err("a bare read is refused");
         assert!(error.message.contains("HS-UNKNOWN-001"), "{}", error.message);
         assert_eq!((error.line, error.column), (3, 10), "{}", error.message);
+    }
+
+    #[test]
+    fn an_exported_declaration_collides_like_a_plain_one() {
+        // Native refuses a module that declares a name twice, exported or not.
+        for source in [
+            "export function f(): i32 {\n  return 1\n}\nfunction f(): i32 {\n  return 2\n}",
+            "function f(): i32 {\n  return 1\n}\nexport function f(): i32 {\n  return 2\n}",
+            "export struct S { a: i32 }\nexport enum S { A }",
+        ] {
+            let ast = crate::parse_ast(source).expect("fixture should parse");
+            let error = check_semantics(&ast).expect_err(source);
+            assert!(
+                error.message.contains("duplicate top-level declaration"),
+                "{source}: {}",
+                error.message
+            );
+        }
     }
 
     #[test]
