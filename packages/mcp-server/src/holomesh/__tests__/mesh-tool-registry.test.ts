@@ -8,17 +8,24 @@ import {
   handleMeshToolRegistryTool,
   invokePublishedMeshTool,
   MESH_INVOKE_MAX_RESPONSE_BYTES,
+  MESH_SWEEP_MAX_RESPONSE_BYTES,
   meshToolManifestFromKnowledgeContent,
   meshToolManifestToKnowledgeContent,
   publishMeshToolManifest,
+  sweepMeshToolRegistry,
   verifyMeshToolAttestation,
   verifyMeshToolInvocationChain,
   type MeshToolInvocationHop,
   type MeshToolManifest,
 } from '../mesh-tool-registry';
-import { handleHoloMeshTool, moltbookProxyRefusal } from '../holomesh-tools';
+import {
+  _resetHoloMeshClientForTests,
+  handleHoloMeshTool,
+  moltbookProxyRefusal,
+} from '../holomesh-tools';
 
 const publisher = { agentId: 'agent_test', name: 'test-agent' };
+const stranger = { agentId: 'agent_stranger', name: 'stranger' };
 
 describe('mesh tool registry', () => {
   beforeEach(() => {
@@ -300,12 +307,12 @@ describe('an mcp-http mesh tool reaches only the public internet unless the call
   });
 
   async function standIn(
-    respond: () => { status: number; headers?: Record<string, string>; body?: string }
+    respond: (path: string) => { status: number; headers?: Record<string, string>; body?: string }
   ): Promise<{ base: string; hits: () => number }> {
     let hits = 0;
-    const server = createServer((_req, res) => {
+    const server = createServer((req, res) => {
       hits += 1;
-      const out = respond();
+      const out = respond(req.url ?? '/');
       res.writeHead(out.status, out.headers ?? {});
       res.end(out.body ?? '');
     });
@@ -315,15 +322,16 @@ describe('an mcp-http mesh tool reaches only the public internet unless the call
     return { base: `http://127.0.0.1:${port}`, hits: () => hits };
   }
 
-  function httpTool(url: string) {
+  function httpTool(url: string, opts: { id?: string; by?: typeof publisher } = {}) {
     return buildMeshToolManifest(
       {
+        ...(opts.id ? { id: opts.id } : {}),
         tool_name: 'parse_hs',
         description: 'A tool served over HTTP.',
         endpoint: { transport: 'mcp-http', url, toolName: 'parse_hs' },
         allow_transitive_invocation: true,
       },
-      publisher
+      opts.by ?? publisher
     );
   }
 
@@ -335,15 +343,54 @@ describe('an mcp-http mesh tool reaches only the public internet unless the call
     expect(server.hits()).toBe(0);
   });
 
-  it('control: an operator still reaches it and reads the answer', async () => {
+  it('control: an operator still reaches a tool published here and reads the answer', async () => {
     const server = await standIn(() => ({ status: 200, body: '{"ok":1}' }));
-    const res = await invokePublishedMeshTool(
-      httpTool(`${server.base}/mcp`),
-      {},
-      { signingCtx: ADMIN }
-    );
+    const manifest = publishMeshToolManifest(httpTool(`${server.base}/mcp`));
+    const res = await invokePublishedMeshTool(manifest, {}, { signingCtx: ADMIN });
     expect(server.hits()).toBe(1);
     expect(res).toMatchObject({ success: true, result: { ok: 1 } });
+  });
+
+  it('an operator invoking a manifest NOT published here (as read from the knowledge store) goes through the guard', async () => {
+    const server = await standIn(() => ({ status: 200, body: '{"answer":"internal-only"}' }));
+    await expect(
+      invokePublishedMeshTool(httpTool(`${server.base}/mcp`), {}, { signingCtx: ADMIN })
+    ).rejects.toThrow(/is not a public internet address/);
+    expect(server.hits()).toBe(0);
+  });
+
+  it('an operator invoking a tool published here does not follow a redirect either', async () => {
+    const target = await standIn(() => ({ status: 200, body: 'internal' }));
+    const first = await standIn(() => ({
+      status: 307,
+      headers: { location: `${target.base}/secret` },
+    }));
+    const manifest = publishMeshToolManifest(httpTool(`${first.base}/mcp`));
+    await expect(invokePublishedMeshTool(manifest, {}, { signingCtx: ADMIN })).rejects.toThrow();
+    expect(first.hits()).toBe(1);
+    expect(target.hits()).toBe(0);
+  });
+
+  it('the health sweep follows no redirect and reads a bounded answer', async () => {
+    const target = await standIn(() => ({ status: 200, body: 'ok' }));
+    const redirecting = await standIn(() => ({
+      status: 307,
+      headers: { location: `${target.base}/health` },
+    }));
+    const oversized = await standIn(() => ({
+      status: 200,
+      body: 'x'.repeat(MESH_SWEEP_MAX_RESPONSE_BYTES + 1),
+    }));
+    publishMeshToolManifest(httpTool(`${redirecting.base}/mcp`, { id: 'parse_hs-redirecting' }));
+    publishMeshToolManifest(
+      httpTool(`${oversized.base}/mcp`, { id: 'parse_hs-oversized', by: stranger })
+    );
+    const result = await sweepMeshToolRegistry();
+    expect(result.probed).toBe(2);
+    expect(redirecting.hits()).toBe(1);
+    expect(target.hits()).toBe(0); // the redirect is an answer, not a place to go
+    expect(oversized.hits()).toBe(1);
+    expect(result.healthy).toBe(1); // the redirect counts; the oversized answer is refused
   });
 
   it('a public endpoint that redirects is not followed, so it cannot bounce the call inside', async () => {
@@ -391,5 +438,100 @@ describe('an mcp-http mesh tool reaches only the public internet unless the call
 
     const allowed = await handleHoloMeshTool('holomesh_publish_tool', args, ADMIN as never);
     expect(allowed).toMatchObject({ success: true });
+  });
+
+  // Through the handlers, the way a request reaches them. HOLOSCRIPT_API_KEY switches on the
+  // HoloMesh client, which asks the shared knowledge store for manifests: a stand-in answers for
+  // the store, so nothing here leaves this machine.
+  describe('through the handlers', () => {
+    const saved = {
+      key: process.env.HOLOSCRIPT_API_KEY,
+      transport: process.env.HOLOSCRIPT_MCP_TRANSPORT,
+      orchestrator: process.env.MCP_ORCHESTRATOR_URL,
+    };
+    let storeRows: Array<Record<string, unknown>> = [];
+    let store: { base: string; hits: () => number };
+
+    const json = { 'content-type': 'application/json' };
+    const storeHolds = (manifest: MeshToolManifest) =>
+      storeRows.push({
+        id: `k-${manifest.id}`,
+        type: 'pattern',
+        content: meshToolManifestToKnowledgeContent(manifest),
+        metadata: {},
+      });
+
+    beforeEach(async () => {
+      storeRows = [];
+      store = await standIn((path) =>
+        path === '/knowledge/query'
+          ? { status: 200, headers: json, body: JSON.stringify({ results: storeRows }) }
+          : { status: 200, headers: json, body: '{}' }
+      );
+      process.env.HOLOSCRIPT_API_KEY = 'test-tool-client-key';
+      process.env.MCP_ORCHESTRATOR_URL = store.base;
+      _resetHoloMeshClientForTests();
+    });
+
+    afterEach(() => {
+      for (const [name, value] of [
+        ['HOLOSCRIPT_API_KEY', saved.key],
+        ['HOLOSCRIPT_MCP_TRANSPORT', saved.transport],
+        ['MCP_ORCHESTRATOR_URL', saved.orchestrator],
+      ] as const) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+      _resetHoloMeshClientForTests();
+    });
+
+    it("a call that lost its caller (an execute_workflow step's batch child) is no operator over HTTP", async () => {
+      // handleTool fills a missing context with {signer:'stdio-local', scopes:['admin:*']} when
+      // HOLOSCRIPT_API_KEY is set, on the hosted server too (#457 pre-review). That must not open
+      // this host's network: only the stdio process the local user launched may.
+      const tool = await standIn(() => ({ status: 200, body: '{"answer":"internal-only"}' }));
+      const manifest = publishMeshToolManifest(httpTool(`${tool.base}/mcp`));
+      const { handleTool } = await import('../../handlers');
+
+      process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+      const refused = await handleTool('holomesh_invoke_tool', { mesh_tool_id: manifest.id });
+      expect(JSON.stringify(refused)).toMatch(/is not a public internet address/);
+      expect(tool.hits()).toBe(0);
+      expect(store.hits()).toBeGreaterThan(0); // the store asked was the stand-in
+
+      // Control, same call on stdio: the local user may reach their own network.
+      process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+      const local = await handleTool('holomesh_invoke_tool', { mesh_tool_id: manifest.id });
+      expect(tool.hits()).toBe(1);
+      expect(local).toMatchObject({ invocation: { result: { answer: 'internal-only' } } });
+    });
+
+    it('an operator invoking a knowledge-store manifest reaches no internal address', async () => {
+      const tool = await standIn(() => ({ status: 200, body: '{"answer":"internal-only"}' }));
+      const remote = httpTool(`${tool.base}/mcp`, { id: 'parse_hs-stranger', by: stranger });
+      storeHolds(remote);
+      const res = await handleHoloMeshTool(
+        'holomesh_invoke_tool',
+        { mesh_tool_id: remote.id },
+        ADMIN as never
+      );
+      expect(JSON.stringify(res)).toMatch(/is not a public internet address/);
+      expect(tool.hits()).toBe(0);
+    });
+
+    it('a knowledge-store entry cannot take over the id of a tool published here', async () => {
+      const ours = await standIn(() => ({ status: 200, body: '{"from":"ours"}' }));
+      const theirs = await standIn(() => ({ status: 200, body: '{"from":"theirs"}' }));
+      publishMeshToolManifest(httpTool(`${ours.base}/mcp`, { id: 'parse_hs-shared' }));
+      storeHolds(httpTool(`${theirs.base}/mcp`, { id: 'parse_hs-shared', by: stranger }));
+      const res = await handleHoloMeshTool(
+        'holomesh_invoke_tool',
+        { mesh_tool_id: 'parse_hs-shared' },
+        ADMIN as never
+      );
+      expect(theirs.hits()).toBe(0);
+      expect(ours.hits()).toBe(1);
+      expect(res).toMatchObject({ invocation: { result: { from: 'ours' } } });
+    });
   });
 });

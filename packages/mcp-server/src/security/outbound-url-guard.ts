@@ -283,12 +283,18 @@ export async function fetchPublicHttp(
  * 'http'). A missing context alone proves nothing: on the hosted server a tool re-entered from
  * inside the server can arrive with none. `externalLane` marks a context-less call that came in
  * through a public lane (handleTool's subjectSourceOverride), which is never local.
+ *
+ * The 'stdio-local' signer counts as no context. handleTool fills a missing context with
+ * {signer:'stdio-local', scopes:['admin:*']} whenever HOLOSCRIPT_API_KEY is set, on the hosted
+ * server as well, so an execute_workflow step whose batch child lost its caller arrived here
+ * looking like an operator and reached internal addresses (#457 pre-review). That identity says
+ * only that nobody is known, so it gets the no-context answer: trusted on stdio, not over HTTP.
  */
 export function callerMayReachPrivateNetwork(
-  signingCtx: { scopes?: readonly string[] } | undefined,
+  signingCtx: { scopes?: readonly string[]; signer?: string | null } | undefined,
   opts: { externalLane?: boolean } = {}
 ): boolean {
-  if (!signingCtx) {
+  if (!signingCtx || signingCtx.signer === 'stdio-local') {
     return !opts.externalLane && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio';
   }
   return (signingCtx.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin');

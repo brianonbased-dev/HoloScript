@@ -27,6 +27,7 @@ import {
   buildMeshToolManifest,
   createMeshToolInvocationHop,
   discoverMeshTools,
+  hasPublishedMeshTool,
   invokePublishedMeshTool,
   meshToolManifestFromKnowledgeContent,
   meshToolManifestToKnowledgeContent,
@@ -879,6 +880,9 @@ async function discoverPublishedTools(
     merged.set(manifest.id, manifest);
   }
   for (const manifest of await remoteToolManifests(client, query, limit)) {
+    // An id is publisher-chosen, so a knowledge-store entry can claim a tool published here. The
+    // tool published here keeps its id; the claimant is dropped, not merged over it.
+    if (hasPublishedMeshTool(manifest.id)) continue;
     if (scoreMeshToolManifest(query, manifest) > 0) merged.set(manifest.id, manifest);
   }
 

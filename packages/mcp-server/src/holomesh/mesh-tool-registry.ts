@@ -162,7 +162,15 @@ export async function sweepMeshToolRegistry(
     options.probe ??
     (async (url: string): Promise<boolean> => {
       try {
-        const response = await axios.get(url, { timeout: 10_000, validateStatus: () => true });
+        // The probe needs a status, nothing more. It follows no redirect (publish checked only
+        // the first hop, so a public address could send it inward every sweep) and reads at most
+        // MESH_SWEEP_MAX_RESPONSE_BYTES (#457 pre-review). A redirect still counts as an answer.
+        const response = await axios.get(url, {
+          timeout: 10_000,
+          validateStatus: () => true,
+          maxRedirects: 0,
+          maxContentLength: MESH_SWEEP_MAX_RESPONSE_BYTES,
+        });
         return response.status >= 200 && response.status < 500;
       } catch {
         return false;
@@ -473,6 +481,21 @@ export function discoverMeshTools(query: unknown, limit = 20): MeshToolManifest[
     .map(({ manifest }) => manifest);
 }
 
+/** Does this server hold a manifest it published under this id? */
+export function hasPublishedMeshTool(id: string): boolean {
+  return registry.has(id);
+}
+
+/**
+ * Was this exact manifest published on this server: same id AND same content hash? A manifest
+ * read from the shared knowledge store can claim any id (the id is publisher-chosen), so only a
+ * hash match makes it ours.
+ */
+function isPublishedHere(manifest: MeshToolManifest): boolean {
+  const local = registry.get(manifest.id);
+  return !!local && local.attestation.manifestHash === manifest.attestation.manifestHash;
+}
+
 export function clearMeshToolRegistry(): void {
   registry.clear();
   lastHealthyAt.clear();
@@ -641,10 +664,12 @@ export async function invokePublishedMeshTool(
   // (a remote manifest's "attestation" is a hash of its own content, not a vouch for the address),
   // and its answer comes back to the caller whole. So it was a full-read request forgery: a
   // tools:write caller published a tool at an internal address, invoked it, and read the body
-  // (task cixd). Only an operator or the local stdio process may send it to a non-public address.
-  // Everyone else goes through the outbound guard, which checks the address, connects only where
-  // it checked, follows no redirects, and caps the answer.
-  if (!callerMayReachPrivateNetwork(options.signingCtx)) {
+  // (task cixd). Only an operator or the local stdio process may send it to a non-public address,
+  // and only for a tool published on THIS server: a knowledge-store manifest carries a stranger's
+  // address and headers whoever invokes it (#457 pre-review). Everything else goes through the
+  // outbound guard, which checks the address, connects only where it checked, follows no
+  // redirects, and caps the answer.
+  if (!isPublishedHere(manifest) || !callerMayReachPrivateNetwork(options.signingCtx)) {
     const res = await fetchPublicHttp(
       manifest.endpoint.url,
       {
@@ -665,12 +690,21 @@ export async function invokePublishedMeshTool(
     }
     return { success: true, route, result };
   }
-  const response = await axios.post(manifest.endpoint.url, body, { headers, timeout: 30000 });
+  // No redirects here either: a tool a non-operator published at a public address could otherwise
+  // bounce an operator's POST, body and all, to an internal one (a 307 keeps both).
+  const response = await axios.post(manifest.endpoint.url, body, {
+    headers,
+    timeout: 30000,
+    maxRedirects: 0,
+  });
   return { success: true, route, result: response.data };
 }
 
 /** The most an mcp-http mesh tool's answer may hold for a caller who is not an operator. */
 export const MESH_INVOKE_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+
+/** The most the health sweep reads from one tool's /health answer. */
+export const MESH_SWEEP_MAX_RESPONSE_BYTES = 64 * 1024;
 
 export async function handleMeshToolRegistryTool(
   name: string,
