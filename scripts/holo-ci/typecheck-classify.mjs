@@ -37,12 +37,54 @@ export function countTsDiagnostics(out) {
  *   errors         — number of parseable `error TS####` diagnostics
  *   toolingFailure — tsc could not run at all (report the raw output, never "0 errors")
  */
-export function classifyTypecheckResult(code, out) {
+export function classifyTypecheckResult(code, out, { timedOut = false } = {}) {
   const errors = countTsDiagnostics(out);
   return {
-    ok: code === 0,
+    ok: code === 0 && !timedOut,
     errors,
-    // Non-zero exit with zero parseable diagnostics == the check never executed.
-    toolingFailure: code !== 0 && errors === 0,
+    // Non-zero exit with zero parseable diagnostics == the check never executed. A run the
+    // gate stopped at its time limit never finished, whatever it printed first.
+    toolingFailure: timedOut || (code !== 0 && errors === 0),
+    timedOut,
   };
+}
+
+/**
+ * How long one package's tsc may run before the gate stops it. The limit exists to catch a hung
+ * tsc, not a slow machine. It was a fixed 180s: on 2026-09-29, with the laptop at 100% CPU from
+ * other sessions' test runs, a cold `tsc --noEmit -p packages/studio` took 4m49s alone, so every
+ * merge from main that touched studio was blocked as "tsc could not run". The default is now 600s,
+ * and HOLO_TYPECHECK_TIMEOUT_SECONDS (a positive whole number) overrides it.
+ */
+export const DEFAULT_TYPECHECK_TIMEOUT_SECONDS = 600;
+
+export function resolveTypecheckTimeoutMs(env = process.env) {
+  const raw = String(env?.HOLO_TYPECHECK_TIMEOUT_SECONDS ?? '').trim();
+  const seconds = /^\d+$/.test(raw) ? Number(raw) : NaN;
+  return (seconds > 0 ? seconds : DEFAULT_TYPECHECK_TIMEOUT_SECONDS) * 1000;
+}
+
+/**
+ * The repair to print for packages whose tsc never finished. A timeout and a missing tsc are
+ * different faults with different fixes; the gate used to answer both with "pnpm install
+ * --force", which does nothing for a machine that is merely busy.
+ */
+export function toolingRemedy(results) {
+  const lines = [];
+  const timedOut = results.filter((r) => r.timedOut).map((r) => r.pkg);
+  const other = results.filter((r) => !r.timedOut).map((r) => r.pkg);
+  if (timedOut.length) {
+    lines.push(
+      `Timed out (${timedOut.join(', ')}): tsc was still running at the limit, which is a slow or busy machine, not a broken install. ` +
+        'Run the same tsc once by hand (packages with "incremental" in tsconfig, studio among them, then re-check fast), retry the commit, ' +
+        'or raise HOLO_TYPECHECK_TIMEOUT_SECONDS.'
+    );
+  }
+  if (other.length) {
+    lines.push(
+      `Could not start (${other.join(', ')}): likely a missing or broken node_modules/typescript. ` +
+        'Fix: pnpm install --force (recreates missing node_modules/.bin shims), then re-run.'
+    );
+  }
+  return lines;
 }

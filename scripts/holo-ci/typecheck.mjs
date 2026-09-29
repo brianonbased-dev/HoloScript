@@ -26,13 +26,19 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { classifyTypecheckResult } from './typecheck-classify.mjs';
+import {
+  classifyTypecheckResult,
+  resolveTypecheckTimeoutMs,
+  toolingRemedy,
+} from './typecheck-classify.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 const TSC = path.join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
 const TAG = '[typecheck]';
 const CONCURRENCY = 6;
+// Per package. No longer a fixed 180s: see resolveTypecheckTimeoutMs.
+const TIMEOUT_MS = resolveTypecheckTimeoutMs(process.env);
 
 // Packages whose src MUST type-check clean (`tsc --noEmit -p <pkg>/tsconfig.json` passes today,
 // 2026-07-12 sweep). A tsc error in ANY of these fails the gate.
@@ -145,11 +151,13 @@ function typecheck(pkg) {
     }
     let out = '';
     let settled = false;
+    let timedOut = false;
     const timer = setTimeout(() => {
       if (settled) return;
-      out += '\n[typecheck] tsc timed out after 180s and was killed.';
+      timedOut = true;
+      out += `\n[typecheck] tsc was still running after ${TIMEOUT_MS / 1000}s and was stopped.`;
       child.kill();
-    }, 180000);
+    }, TIMEOUT_MS);
     const finish = (result) => {
       if (settled) return;
       settled = true;
@@ -168,6 +176,7 @@ function typecheck(pkg) {
         ok: false,
         errors: 0,
         toolingFailure: true,
+        timedOut,
         out: `${out}\n${err?.stack || err}`.trim(),
       });
     });
@@ -175,7 +184,7 @@ function typecheck(pkg) {
       // tsc exited non-zero but produced no parseable diagnostics -> it never actually ran
       // (MODULE_NOT_FOUND, crashed, killed) rather than ran-and-found-nothing. Classification
       // lives in ./typecheck-classify.mjs so it is unit-testable without running this gate.
-      finish({ pkg, ...classifyTypecheckResult(code, out), out });
+      finish({ pkg, ...classifyTypecheckResult(code, out, { timedOut }), out });
     });
   });
 }
@@ -204,18 +213,16 @@ async function runMany(pkgs) {
 // "(0 errors)") plus the likely repair. Returns nothing; caller still exits non-zero.
 function reportToolingFailures(toolingFailed) {
   console.error(
-    `\n${TAG} ❌ TYPECHECK COULD NOT RUN (tooling error) — ${toolingFailed.length} package(s) failed to invoke tsc at all. This is NOT "0 errors"; the check never executed:`
+    `\n${TAG} ❌ TYPECHECK COULD NOT RUN (tooling error) — ${toolingFailed.length} package(s) did not complete a tsc run. This is NOT "0 errors"; the check never finished:`
   );
   for (const r of toolingFailed) {
     console.error(`\n${TAG} ── ${r.pkg} (tooling failure, not a type error) ──`);
     console.error(r.out.trim().split(/\r?\n/).slice(0, 20).join('\n'));
   }
   console.error(
-    `\n${TAG} tsc itself failed to run (missing/broken node_modules/typescript, MODULE_NOT_FOUND, crash, or timeout) — it did not report zero errors, it never checked anything.`
+    `\n${TAG} tsc did not finish (it was stopped at the time limit, or it could not start: missing/broken node_modules/typescript, MODULE_NOT_FOUND, a crash) — it did not report zero errors, it never checked anything.`
   );
-  console.error(
-    `${TAG} Likely fix: pnpm install --force (recreates missing node_modules/.bin shims), then re-run.`
-  );
+  for (const line of toolingRemedy(toolingFailed)) console.error(`${TAG} ${line}`);
 }
 
 /**

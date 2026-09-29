@@ -13,7 +13,13 @@
  * Run: node scripts/__tests__/holo-ci-typecheck-classify.test.mjs
  */
 import assert from 'node:assert/strict';
-import { classifyTypecheckResult, countTsDiagnostics } from '../holo-ci/typecheck-classify.mjs';
+import {
+  classifyTypecheckResult,
+  countTsDiagnostics,
+  DEFAULT_TYPECHECK_TIMEOUT_SECONDS,
+  resolveTypecheckTimeoutMs,
+  toolingRemedy,
+} from '../holo-ci/typecheck-classify.mjs';
 
 let run = 0;
 let failed = 0;
@@ -85,6 +91,52 @@ test('tsc config error is a real diagnostic (TS5083), not a tooling failure', ()
   const r = classifyTypecheckResult(1, "error TS5083: Cannot read file 'tsconfig.json'.");
   assert.equal(r.errors, 1);
   assert.equal(r.toolingFailure, false);
+});
+
+// 2026-09-29: a merge from main staged 7 packages; with the laptop at 100% CPU from other
+// sessions' tests, studio's tsc was stopped at the fixed 180s (alone it took 4m49s) and the gate
+// told the author to run "pnpm install --force", which fixes nothing for a busy machine.
+test('a run stopped at the time limit is a timeout, even if it printed diagnostics first', () => {
+  const partial = `${REAL_TYPE_ERROR_OUT}\n[typecheck] tsc was still running after 600s and was stopped.`;
+  const r = classifyTypecheckResult(null, partial, { timedOut: true });
+  assert.equal(r.ok, false);
+  assert.equal(r.timedOut, true);
+  assert.equal(r.toolingFailure, true, 'an unfinished run is not "2 errors": it never finished');
+});
+
+test('a finished run is never marked timed out', () => {
+  assert.equal(classifyTypecheckResult(0, '').timedOut, false);
+  assert.equal(classifyTypecheckResult(1, REAL_TYPE_ERROR_OUT).timedOut, false);
+});
+
+test('the time limit defaults to 600s and HOLO_TYPECHECK_TIMEOUT_SECONDS overrides it', () => {
+  assert.equal(DEFAULT_TYPECHECK_TIMEOUT_SECONDS, 600);
+  assert.equal(resolveTypecheckTimeoutMs({}), 600_000);
+  assert.equal(resolveTypecheckTimeoutMs({ HOLO_TYPECHECK_TIMEOUT_SECONDS: '900' }), 900_000);
+  for (const bad of ['', 'abc', '0', '-5', '1.5', ' ']) {
+    assert.equal(
+      resolveTypecheckTimeoutMs({ HOLO_TYPECHECK_TIMEOUT_SECONDS: bad }),
+      600_000,
+      `"${bad}" is not a positive whole number of seconds`
+    );
+  }
+});
+
+test('the remedy for a timeout is not "reinstall"; the remedy for a missing tsc still is', () => {
+  const slow = toolingRemedy([{ pkg: 'studio', timedOut: true }]);
+  assert.equal(slow.length, 1);
+  assert.match(slow[0], /Timed out \(studio\)/);
+  assert.match(slow[0], /HOLO_TYPECHECK_TIMEOUT_SECONDS/);
+  assert.doesNotMatch(slow[0], /pnpm install/);
+
+  const missing = toolingRemedy([{ pkg: 'core', timedOut: false }]);
+  assert.match(missing.join('\n'), /pnpm install --force/);
+
+  const both = toolingRemedy([
+    { pkg: 'studio', timedOut: true },
+    { pkg: 'core', timedOut: false },
+  ]);
+  assert.equal(both.length, 2);
 });
 
 test('countTsDiagnostics tolerates empty/undefined output', () => {
