@@ -8,6 +8,7 @@ import {
   messageAddressedTo,
   normalizeAgentRef,
   messageAddressedToAny,
+  resolveMessageRecipient,
   visibleTeamMessagesFor,
 } from '../message-addressing';
 
@@ -49,6 +50,27 @@ describe('message addressing (task_1785839509015_lreq)', () => {
       true
     );
     expect(firstMention('@jetson and @claude6')).toBe('jetson');
+  });
+
+  it('reads a handle only where a handle can stand (2026-09-29)', () => {
+    // An npm scope, an email address and a code span are not readers. Each of these once
+    // addressed a room-wide review request to one member, or to no one.
+    expect(extractMentions('rebuild: pnpm --filter @holoscript/wasm run rebuild')).toEqual([]);
+    expect(extractMentions('write to josep@example.com')).toEqual([]);
+    expect(extractMentions('the `@unknown` read rule')).toEqual([]);
+    expect(extractMentions('```hs\n@trait Config { }\n```')).toEqual([]);
+    // Handles still count, at the end of a sentence, in parentheses, after a code span.
+    expect(extractMentions('thanks @claude6-x402.')).toEqual(['claude6']);
+    expect(extractMentions('(ask @grok1-x402)')).toEqual(['grok1']);
+    expect(firstMention('see `@unknown`, then @jetson')).toBe('jetson');
+    // A room-wide request that only names code stays room-wide.
+    expect(
+      resolveMessageRecipient({
+        members: [{ agentId: 'agent_hs', agentName: 'holoscript' }],
+        content: 'review: the `@unknown` rule; pnpm --filter @holoscript/wasm run rebuild',
+        messageType: 'review-request',
+      })
+    ).toEqual({});
   });
 
   it('finds a team member by handle with or without the seat suffix', () => {
