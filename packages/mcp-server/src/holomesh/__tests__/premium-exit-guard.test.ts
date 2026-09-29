@@ -23,10 +23,15 @@
  *
  * PREMIUM_EXIT_GUARD_ROOT points the scan at another checkout (used to prove
  * the guard goes red on a planted ungated read in a scratch copy).
+ *
+ * Comments are not counted, and a gate named only in a comment is not a gate
+ * (task v7c1): see withoutComments below.
  */
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
+import ts from 'typescript';
 
 const ROOT = process.env.PREMIUM_EXIT_GUARD_ROOT
   ? path.resolve(process.env.PREMIUM_EXIT_GUARD_ROOT)
@@ -120,7 +125,7 @@ const SITES: Site[] = [
   // ── HoloMesh (mcp-server) ──
   { file: `${M}absorb-provenance-tools.ts`, read: 'orchestrator-query', count: 1, gate: { noText: 'hashes ids, provenance hashes and dates into a snapshot id; no text leaves' } },
   { file: `${M}audit-tools.ts`, read: 'knowledge-table', count: 1, gate: { noText: 'reads an entry count from a status payload' } },
-  { file: `${M}founder-handler.ts`, read: 'orchestrator-query', count: 2, gate: { symbol: 'hidePremiumTextIfPremium' } },
+  { file: `${M}founder-handler.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'hidePremiumTextIfPremium' } },
   { file: `${M}holomesh/agent/holomesh-daemon-actions.ts`, read: 'orchestrator-query', count: 2, gate: { symbol: 'entitledSearchRows' } },
   { file: `${M}holomesh/agent/team-coordinator.ts`, read: 'knowledge-mirror', count: 2, gate: { noText: 'insights the team agents produced this cycle, not store rows' } },
   { file: `${M}holomesh/agent/team-coordinator.ts`, read: 'knowledge-table', count: 4, gate: { noText: 'insights the team agents produced this cycle, not store rows' } },
@@ -142,13 +147,13 @@ const SITES: Site[] = [
   { file: `${M}holomesh/routes/knowledge-routes.ts`, read: 'orchestrator-query', count: 7, gate: { symbol: 'entriesForViewer' } },
   { file: `${M}holomesh/routes/knowledge-routes.ts`, read: 'marketplace-listing', count: 2, gate: { symbol: 'premiumTeaserText' } },
   { file: `${M}holomesh/routes/knowledge-routes.ts`, read: 'entry-lookup', count: 4, gate: { symbol: 'premiumEntryAccess' } },
-  { file: `${M}holomesh/routes/team-routes.ts`, read: 'orchestrator-query', count: 4, gate: { symbol: 'entriesForViewer' } },
+  { file: `${M}holomesh/routes/team-routes.ts`, read: 'orchestrator-query', count: 3, gate: { symbol: 'entriesForViewer' } },
   { file: `${M}holomesh/routes/team-routes.ts`, read: 'knowledge-mirror', count: 1, gate: { symbol: 'entriesForViewer' } },
   { file: `${M}holomesh/routes/team-routes.ts`, read: 'entry-lookup', count: 1, gate: { symbol: 'entriesForViewer' } },
   { file: `${M}holomesh/search.ts`, read: 'entry-provider', count: 2, gate: { symbol: 'entitledSearchRows' } },
   { file: `${M}holomesh/team-agent-tools.ts`, read: 'knowledge-table', count: 4, gate: { noText: 'counts insights' } },
   { file: `${M}http-server.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'entitledSearchRows', via: `${M}holomesh/search.ts` } },
-  { file: `${M}oracle-handler.ts`, read: 'orchestrator-query', count: 2, gate: { symbol: 'entitledSearchRows' } },
+  { file: `${M}oracle-handler.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'entitledSearchRows' } },
   { file: `${M}oracle-mcp-tools.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'premiumTeaser' } },
   { file: `${M}oracle-mcp-tools.ts`, read: 'knowledge-mirror', count: 1, gate: { symbol: 'premiumTeaser' } },
   { file: `${M}oracle-mcp-tools.ts`, read: 'knowledge-table', count: 9, gate: { symbol: 'premiumTeaser' } },
@@ -159,7 +164,7 @@ const SITES: Site[] = [
   { file: `${S}app/api/holomesh/agent/[id]/route.ts`, read: 'holomesh-relay', count: 3, gate: viaProxy },
   { file: `${S}app/api/holomesh/agent/[id]/storefront/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/agent/[id]/storefront/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
-  { file: `${S}app/api/holomesh/agent/self/contributions/route.ts`, read: 'holomesh-knowledge-http', count: 2, gate: viaProxy },
+  { file: `${S}app/api/holomesh/agent/self/contributions/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/agent/self/contributions/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/agent/self/knowledge/route.ts`, read: 'holomesh-knowledge-http', count: 2, gate: viaProxy },
   { file: `${S}app/api/holomesh/agent/self/knowledge/route.ts`, read: 'holomesh-relay', count: 3, gate: viaProxy },
@@ -168,20 +173,18 @@ const SITES: Site[] = [
   { file: `${S}app/api/holomesh/dashboard/earnings/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/dashboard/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/domains/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
-  { file: `${S}app/api/holomesh/entry/[id]/purchase/route.ts`, read: 'holomesh-knowledge-http', count: 2, gate: { symbol: 'hidePremiumRowsDeep' } },
-  { file: `${S}app/api/holomesh/entry/[id]/route.ts`, read: 'holomesh-knowledge-http', count: 3, gate: { symbol: 'hidePremiumRowsDeep' } },
+  { file: `${S}app/api/holomesh/entry/[id]/purchase/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { symbol: 'hidePremiumRowsDeep' } },
+  { file: `${S}app/api/holomesh/entry/[id]/route.ts`, read: 'holomesh-knowledge-http', count: 2, gate: { symbol: 'hidePremiumRowsDeep' } },
   { file: `${S}app/api/holomesh/entry/[id]/route.ts`, read: 'knowledge-table', count: 3, gate: { symbol: 'hidePremiumRowsDeep' } },
   { file: `${S}app/api/holomesh/feed/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/feed/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
-  { file: `${S}app/api/holomesh/knowledge/catalog/route.ts`, read: 'holomesh-knowledge-http', count: 2, gate: { symbol: 'hidePremiumRowsDeep' } },
+  { file: `${S}app/api/holomesh/knowledge/catalog/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { symbol: 'hidePremiumRowsDeep' } },
   { file: `${S}app/api/holomesh/knowledge/catalog/route.ts`, read: 'knowledge-table', count: 7, gate: { symbol: 'hidePremiumRowsDeep' } },
-  { file: `${S}app/api/holomesh/marketplace/[entryId]/rate/route.ts`, read: 'holomesh-knowledge-http', count: 2, gate: { noText: 'star ratings only; the path appears in comments' } },
-  { file: `${S}app/api/holomesh/marketplace/[entryId]/ratings/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { noText: 'star ratings only; the path appears in comments' } },
   { file: `${S}app/api/holomesh/marketplace/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/marketplace/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
-  { file: `${S}app/api/holomesh/marketplace/sync/route.ts`, read: 'holomesh-knowledge-http', count: 3, gate: { symbol: 'premiumTeaser' } },
+  { file: `${S}app/api/holomesh/marketplace/sync/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { symbol: 'premiumTeaser' } },
   { file: `${S}app/api/holomesh/marketplace/sync/route.ts`, read: 'knowledge-table', count: 3, gate: { symbol: 'premiumTeaser' } },
-  { file: `${S}app/api/holomesh/marketplace/trending/route.ts`, read: 'holomesh-knowledge-http', count: 2, gate: { symbol: 'hidePremiumRowsDeep' } },
+  { file: `${S}app/api/holomesh/marketplace/trending/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { symbol: 'hidePremiumRowsDeep' } },
   { file: `${S}app/api/holomesh/search/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/search/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/surface/[...path]/route.ts`, read: 'holomesh-relay', count: 3, gate: viaProxy },
@@ -203,23 +206,19 @@ const SITES: Site[] = [
   { file: `${S}app/api/holomesh/team/discover/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/teams/leaderboard/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
   { file: `${S}app/api/holomesh/transactions/route.ts`, read: 'holomesh-relay', count: 1, gate: viaProxy },
-  { file: `${S}app/api/knowledge/query/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { symbol: 'hidePremiumRowsDeep' } },
-  { file: `${S}app/api/knowledge/query/route.ts`, read: 'orchestrator-query', count: 2, gate: { symbol: 'hidePremiumRowsDeep' } },
-  { file: `${S}app/api/knowledge/sync/route.ts`, read: 'orchestrator-query', count: 1, gate: { noText: 'the path appears in a comment' } },
+  { file: `${S}app/api/knowledge/query/route.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'hidePremiumRowsDeep' } },
   { file: `${S}app/api/operations/service-health/route.ts`, read: 'holomesh-relay', count: 2, gate: viaProxy },
   { file: `${S}app/api/portable-mind/[agentId]/route.ts`, read: 'mind-memory', count: 1, gate: { symbol: 'premiumTeaser' } },
-  { file: `${S}app/api/studio/quickstart/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { noText: 'the path appears in a comment' } },
   { file: `${S}app/api/workspace/paper-opt-in/route.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { noText: 'writes two entries and reads back only their ids' } },
   { file: `${S}app/holomesh/entry/[id]/page.tsx`, read: 'holomesh-knowledge-http', count: 9, gate: browser },
   { file: `${S}app/holomesh/marketplace/page.tsx`, read: 'holomesh-knowledge-http', count: 1, gate: browser },
   { file: `${S}app/holomesh/page.tsx`, read: 'holomesh-knowledge-http', count: 2, gate: browser },
   { file: `${S}components/holomesh/ProfileFeed.tsx`, read: 'holomesh-knowledge-http', count: 1, gate: browser },
-  { file: `${S}components/knowledge/WPGEntryForm.tsx`, read: 'orchestrator-query', count: 2, gate: browser },
-  { file: `${S}components/panels/KnowledgePanel.tsx`, read: 'orchestrator-query', count: 4, gate: browser },
-  { file: `${S}db/schema.ts`, read: 'holomesh-knowledge-http', count: 1, gate: { noText: 'table definition' } },
+  { file: `${S}components/knowledge/WPGEntryForm.tsx`, read: 'orchestrator-query', count: 1, gate: browser },
+  { file: `${S}components/panels/KnowledgePanel.tsx`, read: 'orchestrator-query', count: 2, gate: browser },
   { file: `${S}db/schema.ts`, read: 'knowledge-table', count: 1, gate: { noText: 'table definition' } },
-  { file: `${S}lib/api-public-paths.ts`, read: 'orchestrator-query', count: 2, gate: { noText: 'route patterns and comments in the public-path config; no call' } },
-  { file: `${S}lib/api-public-paths.ts`, read: 'holomesh-knowledge-http', count: 13, gate: { noText: 'route patterns and comments in the public-path config; no call' } },
+  { file: `${S}lib/api-public-paths.ts`, read: 'orchestrator-query', count: 1, gate: { noText: 'route patterns and why-strings in the public-path config; no call' } },
+  { file: `${S}lib/api-public-paths.ts`, read: 'holomesh-knowledge-http', count: 10, gate: { noText: 'route patterns and why-strings in the public-path config; no call' } },
   { file: `${S}lib/brittney/MCPToolExecutor.ts`, read: 'knowledge-tool', count: 1, gate: { symbol: 'hidePremiumRowsDeep' } },
   { file: `${S}lib/brittney/MCPToolExecutor.ts`, read: 'orchestrator-query', count: 1, gate: { symbol: 'hidePremiumRowsDeep' } },
   { file: `${S}lib/brittney/MCPTools.ts`, read: 'knowledge-tool', count: 1, gate: { noText: 'tool declaration' } },
@@ -258,18 +257,73 @@ function sourceFiles(tree: string): string[] {
   return out;
 }
 
+/**
+ * The file's text with every comment blanked to spaces, line breaks kept so line numbers hold
+ * (task v7c1). The census counted TEXT, so a comment quoting a call shape counted as a read. A
+ * new comment raised a false alarm, and worse, swapping a quoting comment for a real ungated read
+ * left the count unchanged and the census green. A gate named only in a comment also passed
+ * "every listed gate is really there". Comments are found by the TypeScript parser, so a string
+ * or a regex holding // or /* is never mistaken for one.
+ */
+function withoutComments(file: string, text: string): string {
+  const kind = /\.[jt]sx$/.test(file)
+    ? ts.ScriptKind.TSX
+    : /\.m?js$/.test(file)
+      ? ts.ScriptKind.JS
+      : ts.ScriptKind.TS;
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
+  // JSX text is what a page shows, not code or a comment, so a '//' in it opens nothing. A child
+  // list can start where the text starts, so comment ranges beginning inside it are ignored.
+  const jsxText: Array<[number, number]> = [];
+  const collect = (node: ts.Node) => {
+    if (node.kind === ts.SyntaxKind.JsxText) jsxText.push([node.getFullStart(), node.getEnd()]);
+    node.forEachChild(collect);
+  };
+  collect(source);
+  const chars = text.split('');
+  const blank = (range: ts.CommentRange) => {
+    if (jsxText.some(([start, end]) => range.pos >= start && range.pos < end)) return;
+    for (let i = range.pos; i < range.end; i++) {
+      if (chars[i] !== '\n' && chars[i] !== '\r') chars[i] = ' ';
+    }
+  };
+  const visit = (node: ts.Node) => {
+    // A JSDoc node lies inside a comment already.
+    if (node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode) {
+      return;
+    }
+    const at = node.getFullStart();
+    // Same-line comments after the previous token, then those on the lines before this one.
+    for (const range of ts.getTrailingCommentRanges(text, at) ?? []) blank(range);
+    for (const range of ts.getLeadingCommentRanges(text, at) ?? []) blank(range);
+    for (const child of node.getChildren(source)) visit(child);
+  };
+  visit(source);
+  return chars.join('');
+}
+
+const codeCache = new Map<string, string>();
+/** A file's code with its comments blanked (withoutComments), read once. */
+function codeOf(abs: string): string {
+  let code = codeCache.get(abs);
+  if (code === undefined) {
+    const text = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : '';
+    // Parse only files the reads could match at all: most scanned files never do.
+    code = Object.values(READS).some(({ re }) => text.match(re))
+      ? withoutComments(abs, text)
+      : text;
+    codeCache.set(abs, code);
+  }
+  return code;
+}
+
 function scan(): Map<string, { count: number; lines: string[] }> {
   const found = new Map<string, { count: number; lines: string[] }>();
-  const cache = new Map<string, string[]>();
   for (const [read, { re, trees }] of Object.entries(READS)) {
     for (const tree of trees) {
       for (const abs of sourceFiles(tree)) {
         const rel = path.relative(ROOT, abs).split(path.sep).join('/');
-        let lines = cache.get(abs);
-        if (!lines) {
-          lines = fs.readFileSync(abs, 'utf8').split('\n');
-          cache.set(abs, lines);
-        }
+        const lines = codeOf(abs).split('\n');
         let count = 0;
         const hitLines: string[] = [];
         lines.forEach((line, i) => {
@@ -284,6 +338,12 @@ function scan(): Map<string, { count: number; lines: string[] }> {
     }
   }
   return found;
+}
+
+/** Is `symbol` named in the code (not a comment) as a whole identifier, not inside a longer one? */
+function namesSymbol(abs: string, symbol: string): boolean {
+  const code = fs.existsSync(abs) ? withoutComments(abs, fs.readFileSync(abs, 'utf8')) : '';
+  return new RegExp(`(?<![\\w$])${symbol.replace(/[$]/g, '\\$')}(?![\\w$])`).test(code);
 }
 
 describe('premium exit guard: every knowledge-row read is on the reviewed, gated list', () => {
@@ -330,9 +390,7 @@ describe('premium exit guard: every knowledge-row read is on the reviewed, gated
         continue;
       }
       const where = site.gate.via ?? site.file;
-      const abs = path.join(ROOT, where);
-      const text = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : '';
-      if (!text.includes(site.gate.symbol)) {
+      if (!namesSymbol(path.join(ROOT, where), site.gate.symbol)) {
         missing.push(`${site.file} (${site.read}): gate '${site.gate.symbol}' not found in ${where}`);
       }
     }
@@ -340,9 +398,64 @@ describe('premium exit guard: every knowledge-row read is on the reviewed, gated
   });
 
   it("Studio's relay cuts premium text whenever its server key stood in for the visitor", () => {
-    const proxy = fs.readFileSync(path.join(ROOT, PROXY), 'utf8');
+    const proxyPath = path.join(ROOT, PROXY);
+    const proxy = withoutComments(proxyPath, fs.readFileSync(proxyPath, 'utf8'));
     expect(proxy).toMatch(/usesServerKeyFor\(req\)\)\s*data = hidePremiumRowsDeep\(data\)/);
     expect(proxy).toMatch(/if \(usesServerKeyFor\(req\) && contentType\.includes\('json'\)\)/);
+  });
+});
+
+describe('the census reads code, not comments (task v7c1)', () => {
+  const reads = (file: string, text: string) =>
+    (withoutComments(file, text).match(READS['orchestrator-query'].re) || []).length;
+
+  it('a comment that quotes a read is not a read', () => {
+    const text =
+      '// queryKnowledge(q) and POST /knowledge/query\n/* queryKnowledge( */\nconst x = 1;\n';
+    expect(reads('a.ts', text)).toBe(0);
+  });
+
+  it('a read in code still counts, beside a comment and inside strings that hold //', () => {
+    const text =
+      "const u = 'https://host/knowledge/query'; // queryKnowledge(\n" +
+      'const t = `https://${host}/knowledge/query`;\n' +
+      'await queryKnowledge(q);\n';
+    expect(reads('a.ts', text)).toBe(3);
+  });
+
+  it('a regex holding // and on-screen JSX text stay code', () => {
+    // If the // inside the regex opened a comment, the rest of the line would vanish with it.
+    expect(reads('a.tsx', 'const r = /\\/\\//; const v = <p>see /knowledge/query</p>;\n')).toBe(1);
+    // JSX text that starts with // is what the page shows, not a comment.
+    expect(reads('a.tsx', 'const v = <p>// POST /knowledge/query</p>;\n')).toBe(1);
+    // A real comment inside JSX braces is still a comment.
+    expect(reads('a.tsx', 'const v = <p>{/* queryKnowledge( */}</p>;\n')).toBe(0);
+  });
+
+  it('line numbers survive, so a failure still points at the right line', () => {
+    const lines = withoutComments(
+      'a.ts',
+      '/**\n * queryKnowledge(\n */\nqueryKnowledge(q);\n'
+    ).split('\n');
+    expect(lines).toHaveLength(5);
+    expect(lines[1].trim()).toBe('');
+    expect(lines[3]).toContain('queryKnowledge(q)');
+  });
+
+  it('a gate named only in a comment, or inside a longer name, is not named', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'premium-census-'));
+    try {
+      const file = path.join(dir, 'site.ts');
+      fs.writeFileSync(
+        file,
+        '// every row goes through premiumTeaser\nconst premiumTeaserCache = 1;\n'
+      );
+      expect(namesSymbol(file, 'premiumTeaser')).toBe(false);
+      fs.writeFileSync(file, 'const text = premiumTeaser(row.content);\n');
+      expect(namesSymbol(file, 'premiumTeaser')).toBe(true);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
