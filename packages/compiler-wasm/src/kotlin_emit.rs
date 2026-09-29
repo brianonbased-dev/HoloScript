@@ -132,6 +132,17 @@ fn check_unknown_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
     Ok(())
 }
 
+/// The file's top-level declarations with `export` unwrapped: `export function f` and
+/// `export struct S` declare `f` and `S` exactly as the unexported forms do. A rule that walks
+/// `ast.body` for `Function` or `StructDeclaration` nodes alone skips every exported one (before
+/// 2026-09-29 the `@unknown` read rule did, and accepted a bare read that native refuses).
+fn top_level_declarations(ast: &Ast) -> impl Iterator<Item = &AstNode> {
+    ast.body.iter().map(|node| match node {
+        AstNode::Export(export) => export.declaration.as_ref(),
+        other => other,
+    })
+}
+
 /// Reject reading an `@unknown` struct field without an explicit `??` fallback.
 ///
 /// Struct annotations are a native-machine surface, while this module is only a Kotlin bridge.
@@ -142,9 +153,7 @@ fn check_unknown_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
 /// cannot erase ignorance. A future typed member-resolution pass may narrow that conservative
 /// boundary without weakening it.
 fn check_unknown_struct_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
-    let unknown_fields: HashSet<&str> = ast
-        .body
-        .iter()
+    let unknown_fields: HashSet<&str> = top_level_declarations(ast)
         .filter_map(|node| match node {
             AstNode::StructDeclaration(structure) => Some(structure),
             _ => None,
@@ -168,7 +177,7 @@ fn check_unknown_struct_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic
         return Ok(());
     }
 
-    for node in &ast.body {
+    for node in top_level_declarations(ast) {
         let AstNode::Function(function) = node else {
             continue;
         };
@@ -4253,6 +4262,37 @@ function gate(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
         let error = check_semantics(&bare).expect_err("a bare read is refused");
         assert!(error.message.contains("HS-UNKNOWN-001"), "{}", error.message);
         assert_eq!((error.line, error.column), (3, 10), "{}", error.message);
+    }
+
+    #[test]
+    fn exported_structs_and_functions_are_held_to_the_unknown_read_rule() {
+        // `export` declares the same struct and function. Until 2026-09-29 the rule walked only
+        // unexported ones, so each of these was valid while native refused it. The functions are
+        // untyped, so the struct rule itself, not the typed `??` rule, must catch the fallback.
+        for (source, code) in [
+            (
+                "struct S { @unknown count: i32 }\nexport function f(s) {\n  return s.count\n}",
+                "HS-UNKNOWN-001",
+            ),
+            (
+                "export struct S { @unknown count: i32 }\nfunction f(s) {\n  return s.count\n}",
+                "HS-UNKNOWN-001",
+            ),
+            (
+                "export struct S { @unknown count: i32 }\nexport function f(s) {\n  return s.count ?? 7\n}",
+                "HS-UNKNOWN-002",
+            ),
+        ] {
+            let ast = crate::parse_ast(source).expect("fixture should parse");
+            let error = check_semantics(&ast).expect_err(source);
+            assert!(error.message.contains(code), "{source}: {}", error.message);
+            assert_eq!((error.line, error.column), (3, 10), "{source}: {}", error.message);
+        }
+        let guarded = crate::parse_ast(
+            "export struct S { @unknown count: i32 }\nexport function f(s) {\n  return load(s.count) ?? 7\n}",
+        )
+        .expect("fixture should parse");
+        check_semantics(&guarded).expect("the load form is accepted in exported declarations");
     }
 
     #[test]

@@ -1038,6 +1038,25 @@ function main(): i32 {
     expect(refused.errors[0]?.message).toContain('HS-UNKNOWN-002');
     expect(refused.errors[0]?.message).toContain('load(record.count) ?? <fallback>');
     expect(() => executeHsNativeViaRust(bare)).toThrow(/requires `load\(@unknownField\) \?\? fallback`/);
+
+    // `export` exempts nothing: a bare read in an exported function of an exported struct is
+    // refused by both (the checker accepted it until 2026-09-29).
+    const exported = `export struct Snapshot {
+  @unknown count: i32
+}
+
+export function read(snapshot: &Snapshot): i32 {
+  return snapshot.count
+}
+
+function main(): i32 {
+  return 5
+}
+`;
+    const exportedVerdict = validateHsViaRust(exported);
+    expect(exportedVerdict.valid).toBe(false);
+    expect(exportedVerdict.errors[0]?.message).toContain('HS-UNKNOWN-001');
+    expect(() => executeHsNativeViaRust(exported)).toThrow();
   }, 600000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {
