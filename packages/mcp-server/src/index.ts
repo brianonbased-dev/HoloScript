@@ -566,6 +566,16 @@ export async function executeReentrantTool(
   }
 }
 
+/** A handler's own MCP tool result that reports failure: { content: [...], isError: true }. */
+function isMcpErrorEnvelope(value: unknown): value is { content: unknown[]; isError: true } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as { isError?: unknown }).isError === true &&
+    Array.isArray((value as { content?: unknown }).content)
+  );
+}
+
 // Implementation of executeSingleTool logic previously bound above
 export async function _handleSingleToolLogic(
   name: string,
@@ -614,6 +624,13 @@ export async function _handleSingleToolLogic(
     // Tools that returned null failed to match inside their specialized handler (should be rare with Map)
     if (result === null) {
       throw new Error(`Handler for '${name}' returned null (tool not processed).`);
+    }
+
+    // A handler that answers with its own MCP error envelope has failed. Wrapped as text inside a
+    // success envelope, that failure read as success to every caller: the HTTP reply, a workflow
+    // step, a mesh invoke (browser_execute with a missing session did). Pass it through as is.
+    if (isMcpErrorEnvelope(result)) {
+      return result;
     }
 
     // Hologram MCP envelope detection (task_1778114362909_zp7u). Tools that

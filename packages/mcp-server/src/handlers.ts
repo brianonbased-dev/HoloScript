@@ -483,15 +483,16 @@ export async function handleTool(
       // absent. Falls back to this switch only when nothing has been installed.
       const { getToolHealthDispatcher } = await import('./tooling-discovery-tools');
       const installed = getToolHealthDispatcher();
-      // batch_tool_call runs tools the CALLER names, with arguments the caller chose, so its children
-      // run as the caller. The installed dispatcher passes no context, and here that meant
-      // stdio-local admin:* for every child. It stays right for get_tool_health, whose probes pick
-      // their own schema-derived arguments and refuse any tool that could change state or cost money.
-      const dispatch =
-        name === 'batch_tool_call'
-          ? (toolName: string, toolArgs: Record<string, unknown>) =>
-              runReentrantTool('Batch inner tool', toolName, toolArgs, effectiveSigningCtx)
-          : (installed ?? ((toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx)));
+      // batch_tool_call and get_tool_health run tools the CALLER names, so each runs as the caller.
+      // The installed dispatcher passes no context, and here that meant stdio-local admin:* for every
+      // one: a tools:read caller's health probe ran holo_read_file and holo_secrets_resolve (#407
+      // pre-review). A probe of a tool this caller may not run reports "not permitted", not a fault.
+      const runsCallerNamedTools = name === 'batch_tool_call' || name === 'get_tool_health';
+      const via = name === 'batch_tool_call' ? 'Batch inner tool' : 'Health probe';
+      const dispatch = runsCallerNamedTools
+        ? (toolName: string, toolArgs: Record<string, unknown>) =>
+            runReentrantTool(via, toolName, toolArgs, effectiveSigningCtx)
+        : (installed ?? ((toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx)));
       const result = await handleToolingDiscoveryTool(name, args, allTools, dispatch);
       if (result !== null) return result;
       break;

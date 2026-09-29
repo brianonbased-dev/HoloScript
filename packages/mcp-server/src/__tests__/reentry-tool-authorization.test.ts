@@ -10,7 +10,10 @@
  * child with NO signing context, and handleTool turns a missing context into stdio-local
  * admin:* whenever HOLOSCRIPT_API_KEY is set, as it is on the hosted server.
  *
- * The observable is a real file written by holo_write_file (tools:admin), not an error string.
+ * Two observables. get_dev_dashboard_state needs tools:admin and takes no path, so only the
+ * scope check can stop it, and its real answer (a `dashboard`) either reaches the caller or
+ * does not. holo_write_file writes a real file, but since #396 the host-path rule also refuses
+ * a non-admin's absolute path, so for it the error text is what shows WHICH check refused.
  */
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -20,8 +23,10 @@ import { join } from 'node:path';
 const WORK = mkdtempSync(join(tmpdir(), 'reentry-authz-'));
 afterAll(() => rmSync(WORK, { recursive: true, force: true }));
 
-const { _handleSingleToolLogic } = await import('../index');
+const { _handleSingleToolLogic, executeReentrantTool } = await import('../index');
 const { handleTool } = await import('../handlers');
+const { buildMeshToolManifest, clearMeshToolRegistry, publishMeshToolManifest } =
+  await import('../holomesh/mesh-tool-registry');
 
 // A client registered for ordinary work: it may read and write, never administer.
 const READ_WRITE = {
@@ -67,6 +72,13 @@ function batchStep(target: string) {
       calls: [{ name: 'holo_write_file', args: { filePath: target, content: 'PLANTED' } }],
     },
   };
+}
+
+const DASHBOARD = { name: 'get_dev_dashboard_state', args: { sections: ['api'] } };
+
+/** True when get_dev_dashboard_state's own answer reached the caller. */
+function dashboardLeaked(text: string): boolean {
+  return /"dashboard"\s*:/.test(text);
 }
 
 describe('a re-entered tool runs as the real caller', () => {
@@ -119,6 +131,149 @@ describe('a re-entered tool runs as the real caller', () => {
   });
 });
 
+describe('the scope check alone stops a path-free admin tool on every way in', () => {
+  it('a workflow step', async () => {
+    const text = await call(
+      'execute_workflow',
+      { name: 'probe', steps: [{ id: 's1', skillId: DASHBOARD.name, inputs: DASHBOARD.args }] },
+      READ_WRITE
+    );
+    expect(dashboardLeaked(text)).toBe(false);
+    expect(text).toMatch(/authorization denied/i);
+  });
+
+  it('a workflow step that is a batch', async () => {
+    const text = await call(
+      'execute_workflow',
+      {
+        name: 'probe',
+        steps: [{ id: 's1', skillId: 'batch_tool_call', inputs: { calls: [DASHBOARD] } }],
+      },
+      READ_WRITE
+    );
+    expect(dashboardLeaked(text)).toBe(false);
+    expect(text).toMatch(/authorization denied/i);
+  });
+
+  it('a batch whose child is a workflow (the batch passes the caller on)', async () => {
+    const text = await call(
+      'batch_tool_call',
+      {
+        calls: [
+          {
+            name: 'execute_workflow',
+            args: {
+              name: 'probe',
+              steps: [{ id: 's1', skillId: DASHBOARD.name, inputs: DASHBOARD.args }],
+            },
+          },
+        ],
+      },
+      READ_WRITE
+    );
+    expect(dashboardLeaked(text)).toBe(false);
+    expect(text).toMatch(/authorization denied/i);
+  });
+
+  it('a direct call', async () => {
+    const text = await call(DASHBOARD.name, DASHBOARD.args, READ_WRITE);
+    expect(dashboardLeaked(text)).toBe(false);
+    expect(text).toMatch(/authorization denied/i);
+  });
+
+  it('control: an admin caller gets the dashboard through the same workflow', async () => {
+    const text = await call(
+      'execute_workflow',
+      { name: 'probe', steps: [{ id: 's1', skillId: DASHBOARD.name, inputs: DASHBOARD.args }] },
+      ADMIN
+    );
+    expect(dashboardLeaked(text)).toBe(true);
+  });
+});
+
+describe('get_tool_health probes the tools a caller names as that caller', () => {
+  type Health = {
+    tools?: Array<{ name?: string; tool?: string; status?: string; reason?: string }>;
+  };
+  function probeOf(result: unknown, tool: string) {
+    const list = (result as Health).tools ?? [];
+    return list.find((t) => (t.name ?? t.tool) === tool);
+  }
+
+  it('a read/write caller is told it may not run an admin tool, and the tool does not run', async () => {
+    const result = await handleTool(
+      'get_tool_health',
+      { tools: [DASHBOARD.name] },
+      READ_WRITE as never
+    );
+    const probe = probeOf(result, DASHBOARD.name);
+    expect(probe?.status).toBe('unprobed');
+    expect(probe?.reason).toMatch(/not permitted/i);
+  });
+
+  it('control: an admin caller gets it probed', async () => {
+    const result = await handleTool('get_tool_health', { tools: [DASHBOARD.name] }, ADMIN as never);
+    expect(probeOf(result, DASHBOARD.name)?.status).toBe('live');
+  });
+});
+
+describe('a tool that fails, fails on every way in', () => {
+  // browser_execute answers a missing session with its own MCP error envelope, isError: true.
+  const FAILING = { name: 'browser_execute', args: { sessionId: 'no-such-session', script: '1' } };
+
+  it('the dispatcher keeps the handler envelope an error', async () => {
+    const res = (await _handleSingleToolLogic(
+      FAILING.name,
+      FAILING.args,
+      ADMIN as never
+    )) as Envelope;
+    expect(res.isError).toBe(true);
+    expect(res.content?.[0]?.text ?? '').toContain('Session not found');
+  });
+
+  it('a re-entered call throws', async () => {
+    await expect(executeReentrantTool(FAILING.name, FAILING.args, ADMIN as never)).rejects.toThrow(
+      /Session not found/
+    );
+  });
+
+  it('a workflow step reports failed, not completed', async () => {
+    const text = await call(
+      'execute_workflow',
+      { name: 'probe', steps: [{ id: 's1', skillId: FAILING.name, inputs: FAILING.args }] },
+      ADMIN
+    );
+    expect(text).not.toMatch(/"status"\s*:\s*"completed"/);
+    expect(text).toContain('Session not found');
+  });
+
+  it('a mesh invoke does not report success', async () => {
+    clearMeshToolRegistry();
+    const manifest = publishMeshToolManifest(
+      buildMeshToolManifest(
+        {
+          tool_name: FAILING.name,
+          description: 'test manifest for a tool that fails',
+          capability_tags: ['browser'],
+          allow_transitive_invocation: true,
+        },
+        { agentId: 'agent_test_publisher', name: 'test-publisher' }
+      )
+    );
+    const res = (await _handleSingleToolLogic(
+      'holomesh_invoke_tool',
+      { mesh_tool_id: manifest.id, args: FAILING.args, allow_high_risk: true },
+      ADMIN as never
+    )) as Envelope;
+    const text = res.content?.[0]?.text ?? '';
+    // Before: {"success": true, ..., "result": {..., "isError": true}}. Now the invoke answers
+    // with the failure: {"error": "Tool invocation failed: ... Session not found ..."}.
+    expect(text).not.toMatch(/"success"\s*:\s*true/);
+    expect(res.isError === true || /"error"\s*:/.test(text)).toBe(true);
+    expect(text).toContain('Session not found');
+  });
+});
+
 describe('what must keep working', () => {
   it('an admin caller still runs it as a workflow step', async () => {
     const target = join(WORK, 'admin-step.txt');
@@ -150,5 +305,29 @@ describe('what must keep working', () => {
 
     expect(text).not.toMatch(/authorization denied/i);
     expect(JSON.parse(text).steps[0].status).toBe('completed');
+  });
+
+  it('a signed call is dispatched with the scopes Gate 2 judged, not the ones captured before auth was upgraded', async () => {
+    // /mcp unwraps a signed body, THEN upgrades auth (the anonymous free tier gets tools:read,
+    // sovereign loopback tools:codebase). The context captured at unwrap has none of those.
+    const captured = {
+      signedRequest: true,
+      signingValid: true,
+      signer: `0x${'1'.repeat(40)}`,
+      signingProtocol: 'classical',
+      scopes: [] as string[],
+    };
+    const refused = await call('parse_holo', { code: 'composition "C" {}' }, captured);
+    expect(refused).toMatch(/authorization denied/i);
+
+    const withGate2Scopes = { ...captured, scopes: ['tools:read'] };
+    const allowed = await call('parse_holo', { code: 'composition "C" {}' }, withGate2Scopes);
+    expect(allowed).not.toMatch(/authorization denied/i);
+
+    // And http-server.ts builds the dispatch context that way.
+    const source = readFileSync(new URL('../http-server.ts', import.meta.url), 'utf8');
+    const start = source.indexOf('async function securedToolExecutionInner(');
+    const block = source.slice(start, source.indexOf('_handleSingleToolLogic(toolName', start));
+    expect(block).toContain('mergeSigningContextScopes(options.signingCtx, auth)');
   });
 });
