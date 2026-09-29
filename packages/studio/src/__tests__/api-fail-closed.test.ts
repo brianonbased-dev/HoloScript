@@ -514,6 +514,15 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
     header: { 'x-mcp-api-key': 'an-operators-own-key' },
     callSite: 'Operations console telemetry, app/api/orchestrator/[...path]/route.ts:37-40',
   },
+  {
+    method: 'POST',
+    path: '/api/agents/fleet/scheduler-tick',
+    credential:
+      'the autonomous hourly tick (board automation A-035); the real spend gate is downstream',
+    header: { authorization: 'Bearer a-fleet-ticks-own-mesh-key' },
+    callSite:
+      'app/api/agents/fleet/dispatch/route.ts:257-265 fleetServiceTokenOk (x-fleet-service-token, timing-safe, fail-closed) — scheduler-tick/route.ts:61 reaches it with an in-process call, never a second HTTP hop',
+  },
 ];
 
 describe('the callers who arrive with their own credential, checked against a hand-written list', () => {
