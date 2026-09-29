@@ -1,8 +1,25 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadBrain } from '../brain.js';
+
+/**
+ * G15: the frame cases every reader must read the same way (the canonical
+ * parser and the Rust reader test the same file). The agent loader never
+ * rejects a case: it reads the frame or narrows it to no tool.
+ */
+const SHARED_FRAME_CASES = (
+  JSON.parse(
+    readFileSync(
+      resolve(
+        import.meta.dirname,
+        '../../../agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json'
+      ),
+      'utf8'
+    )
+  ) as { cases: Array<{ id: string; form?: 'parens'; body: string; allowed_tools: string[] }> }
+).cases;
 
 const MINI_BRAIN = `
 composition "MiniBrain" {
@@ -283,6 +300,76 @@ ${frameBody}
       await allowedToolsFor('    /* old: allowed_tools: ["*"]\n    allowed_tools: ["parse_hs"]')
     ).toEqual([]);
     expect(await allowedToolsFor('    domain: "holoscript\n    allowed_tools: ["*"]')).toEqual([]);
+  });
+
+  async function frameFromSource(source: string) {
+    const path = join(dir, `g15-frame-${frameCount++}.hsplus`);
+    writeFileSync(path, source, 'utf8');
+    return (await loadBrain(path)).frameDeclaration;
+  }
+
+  it.each(SHARED_FRAME_CASES.map((c) => [c.id, c] as const))(
+    'G15: shared frame case %s reads as every reader must',
+    async (_id, c) => {
+      const frame =
+        c.form === 'parens'
+          ? `@frame_declaration(${c.body})`
+          : `@frame_declaration {\n${c.body}\n}`;
+      const declared = await frameFromSource(
+        `#version 6.0.0\nbrain FramedAgent : @behavior_tree {\n  ${frame}\n  identity { domain: "holoscript-language" }\n}\n`
+      );
+      expect(declared?.allowed_tools).toEqual(c.allowed_tools);
+    }
+  );
+
+  it('G15: a frame header inside a line comment or a string is not the frame', async () => {
+    const commented = await frameFromSource(`#version 6.0.0
+brain FramedAgent : @behavior_tree {
+  // unlike TrustedAnalyst's @frame_declaration { allowed_tools: ["*"] }
+  @frame_declaration {
+    allowed_tools: []
+  }
+}
+`);
+    expect(commented?.allowed_tools).toEqual([]);
+
+    const quoted = await frameFromSource(`#version 6.0.0
+brain FramedAgent : @behavior_tree {
+  description: "copy @frame_declaration { allowed_tools: [\\"*\\"] } from the docs"
+  @frame_declaration {
+    allowed_tools: ["parse_hs"]
+  }
+}
+`);
+    expect(quoted?.allowed_tools).toEqual(['parse_hs']);
+  });
+
+  it('G15: when a file names more than one frame, the agent gets only what every one permits', async () => {
+    const frame =
+      await frameFromSource(`Use @frame_declaration { allowed_tools: ["*"] } to open every tool.
+#version 6.0.0
+brain FramedAgent : @behavior_tree {
+  @frame_declaration {
+    allowed_tools: ["parse_hs", "validate_holoscript"]
+    denied_domains: ["finance"]
+  }
+  @frame_declaration {
+    allowed_tools: ["parse_hs", "compile_holoscript"]
+    denied_domains: ["medical-advice"]
+  }
+}
+`);
+    expect(frame?.allowed_tools).toEqual(['parse_hs']);
+    expect(frame?.denied_domains).toEqual(['finance', 'medical-advice']);
+  });
+
+  it('G15: a frame block that never closes permits no tool', async () => {
+    const frame = await frameFromSource(`#version 6.0.0
+brain FramedAgent : @behavior_tree {
+  @frame_declaration {
+    allowed_tools: ["parse_hs"]
+`);
+    expect(frame?.allowed_tools).toEqual([]);
   });
 
   // ─── Universal+segregated routing fields (founder ruling 2026-05-06) ─────

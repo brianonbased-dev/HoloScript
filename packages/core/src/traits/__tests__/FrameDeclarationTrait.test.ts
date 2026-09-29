@@ -316,6 +316,52 @@ describe('frame-declaration-example.hsplus after the G15 migration', () => {
   });
 });
 
+// ─── The shared frame cases: every reader must read the same tool list ───────
+//
+// packages/agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json is
+// also read by the agent loader's tests (brain.test.ts) and the Rust reader's
+// tests (compiler-wasm ast.rs). A reader that reads a case must produce its
+// allowed_tools; a case marked `core: "rejects"` must fail to parse here.
+
+interface SharedFrameCase {
+  id: string;
+  form?: 'parens';
+  body: string;
+  allowed_tools: string[];
+  core?: 'rejects';
+}
+
+describe('the shared frame cases, read by the canonical .hsplus parser', () => {
+  const { cases } = JSON.parse(
+    readFileSync(
+      resolve(
+        import.meta.dirname,
+        '../../../../agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json'
+      ),
+      'utf8'
+    )
+  ) as { cases: SharedFrameCase[] };
+
+  it('has cases to read', () => {
+    expect(cases.length).toBeGreaterThan(0);
+  });
+
+  it.each(cases.map((c) => [c.id, c] as const))('%s', (_id, c) => {
+    const frame =
+      c.form === 'parens' ? `@frame_declaration(${c.body})` : `@frame_declaration {\n${c.body}\n}`;
+    const result = new HoloScriptPlusParser({ enableVRTraits: true }).parse(
+      `brain SharedCase : @behavior_tree {\n  ${frame}\n}`
+    );
+    if (c.core === 'rejects') {
+      expect(result.success).toBe(false);
+      return;
+    }
+    expect(result.success).toBe(true);
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.frameDeclaration?.allowed_tools).toEqual(c.allowed_tools);
+  });
+});
+
 // ─── checkHorizon ─────────────────────────────────────────────────────────────
 
 describe('checkHorizon', () => {

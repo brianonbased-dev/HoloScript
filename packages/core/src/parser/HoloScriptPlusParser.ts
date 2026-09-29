@@ -3584,9 +3584,13 @@ export class HoloScriptPlusParser {
           // enforce boundary violations: a tool call outside the declared frame
           // emits 'frame_violation' instead of hallucinating through the edge.
           // All fields are optional; coerceFrameDeclarationConfig applies defaults.
+          // The parenthesised form is read like any other brain trait's config:
+          // skipping it fell back to the default frame and so granted every tool.
           const cfg = this.check('LBRACE')
             ? (this.parseBlockContent() as Record<string, unknown>)
-            : {};
+            : this.check('LPAREN')
+              ? this.parseTraitConfig()
+              : {};
           brain.frameDeclaration = coerceFrameDeclarationConfig(cfg);
         } else if (dirName === 'behavior_tree') {
           // @behavior_tree { ... } block inside the brain body

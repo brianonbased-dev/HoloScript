@@ -1082,6 +1082,52 @@ mod frame_allowlist_tests {
         assert!(written_empty.allowed_tools.is_empty());
     }
 
+    /// The frame cases every reader must read the same way; the canonical
+    /// .hsplus parser (packages/core) and the agent loader (packages/holoscript-agent)
+    /// test the same file. A case marked `"rust": "rejects"` must fail to parse here.
+    #[test]
+    fn shared_frame_cases_read_as_every_reader_must() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json"
+        ))
+        .expect("the shared frame cases are valid JSON");
+        let cases = fixture["cases"].as_array().expect("cases is a list");
+        assert!(!cases.is_empty(), "the shared frame cases are empty");
+        for case in cases {
+            let id = case["id"].as_str().expect("every case has an id");
+            let body = case["body"].as_str().expect("every case has a body");
+            let source = if case["form"].as_str() == Some("parens") {
+                format!("@frame_declaration({body})")
+            } else {
+                format!("@frame_declaration {{\n{body}\n}}")
+            };
+            let parsed = Parser::new(&source).parse();
+            if case["rust"].as_str() == Some("rejects") {
+                assert!(
+                    parsed.is_err(),
+                    "{id}: the Rust reader should reject this frame"
+                );
+                continue;
+            }
+            let ast = parsed.unwrap_or_else(|errors| panic!("{id}: should parse, got {errors:?}"));
+            let frame = ast
+                .body
+                .into_iter()
+                .find_map(|node| match node {
+                    AstNode::FrameDeclaration(frame) => Some(frame),
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("{id}: no FrameDeclaration node"));
+            let expected: Vec<String> = case["allowed_tools"]
+                .as_array()
+                .expect("every case has allowed_tools")
+                .iter()
+                .map(|tool| tool.as_str().expect("tool names are strings").to_string())
+                .collect();
+            assert_eq!(frame.allowed_tools, expected, "{id}");
+        }
+    }
+
     #[test]
     fn trusted_analyst_example_frame_is_every_tool() {
         // The Rust reader has no `brain` syntax, so the TrustedAnalyst frame

@@ -20,9 +20,11 @@ export interface FrameDeclarationContract {
   capability_tier: FrameTier;
   trust_tier: FrameTier;
   /**
-   * Tools this agent may call (G15). `["*"]` permits every tool; `[]` permits
-   * no tool; any other list permits exactly the tools it names. A brain that
-   * omits the field is sent as `["*"]`, so leaving it out still means every tool.
+   * MCP tools this agent may call through the MCP server's gate (G15). `["*"]`
+   * permits every tool; `[]` permits no tool; any other list permits exactly the
+   * tools it names. A brain that omits the field is sent as `["*"]`, so leaving
+   * it out still means every tool. The agent's own local tools are not bounded
+   * by this list.
    */
   allowed_tools: string[];
   denied_domains: string[];
