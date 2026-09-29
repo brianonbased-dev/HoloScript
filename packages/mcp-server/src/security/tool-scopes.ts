@@ -925,6 +925,27 @@ export function authorizeToolCall(
 }
 
 /**
+ * Authorize a tool dispatched from INSIDE another tool -- a batch child, a workflow step, a
+ * mesh-invoked tool -- against the ORIGINAL caller's scopes. Gate 2 checked only the outer tool's
+ * name, and the inner one may need more: execute_workflow needs tools:write, and its steps may name
+ * a tools:admin tool. No context is the trusted local stdio path, which has no OAuth token.
+ * Throws, naming the tool and the scopes it needs (task_1790204588326_myvj).
+ */
+export function assertReentrantToolAuthorized(
+  toolName: string,
+  signingCtx: { scopes?: readonly string[] } | undefined,
+  via = 'Inner tool'
+): void {
+  if (!signingCtx) return;
+  const authorization = authorizeToolCall(toolName, [...(signingCtx.scopes ?? [])]);
+  if (!authorization.authorized) {
+    throw new Error(
+      `${via} authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
+    );
+  }
+}
+
+/**
  * Get the risk level for a tool.
  */
 export function getToolRiskLevel(toolName: string): ToolRiskLevel {
