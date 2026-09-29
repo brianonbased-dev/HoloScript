@@ -1094,7 +1094,9 @@ export class WebGPUCompiler extends CompilerBase {
     const src = trait?.config?.src || 'scene.ply';
     const max = trait?.config?.max_splats || 500000;
     const sorted = trait?.config?.sorted !== false; // default: true
-    this.emit(`// Gaussian Splat — source: ${src} (${sorted ? 'radix-sorted' : 'unsorted'})`);
+    this.emit(
+      `// Gaussian Splat — source: ${this.quoteName(src)} (${sorted ? 'radix-sorted' : 'unsorted'})`
+    );
 
     if (sorted) {
       // Wait-free hierarchical radix sort pipeline (W.035)
@@ -1482,13 +1484,22 @@ export class WebGPUCompiler extends CompilerBase {
         );
       }
       if (traits.some((t) => t.name === 'compute')) {
-        const ct = traits.find((t) => t.name === 'compute');
-        const entry = String(ct?.config?.shader || 'custom_compute');
-        const wg = this.workgroupCounts(obj.name, ct?.config?.workgroups);
+        // A custom compute pass needs its WGSL source and the bind groups that source
+        // declares. This output has neither: `shader` names a file the compiler does
+        // not read, and nothing says what to bind to it. The pipeline used to refer to
+        // a WGSL_CUSTOM_<NAME> constant that nothing defines, which stopped the whole
+        // module on load. So the pass is left out, and the output says so twice: here
+        // in the source, and in the browser console when the module runs.
+        const shader = traits.find((t) => t.name === 'compute')?.config?.shader;
+        const named = shader === undefined || shader === null || shader === '' ? null : shader;
+        const sentence = (quote: (text: unknown) => string): string =>
+          named === null
+            ? `the @compute block of ${quote(obj.name)} names no shader, so its compute pass is not built.`
+            : `the @compute block of ${quote(obj.name)} names the shader ${quote(named)}, which this output does not contain, so its compute pass is not built.`;
+        this.emit(`// WARNING: ${sentence((text) => this.quoteName(text))}`);
         this.emit(
-          `const ${v}CustomCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_CUSTOM_${v.toUpperCase()} }), entryPoint: ${this.json(entry)} } });`
+          `console.warn(${this.json(`WARNING: ${sentence((text) => `"${String(text ?? '')}"`)}`)});`
         );
-        this.emit(`const ${v}Workgroups = [${wg.join(',')}];`);
       }
     }
     this.emit('');
@@ -1847,11 +1858,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('hsRenderLabels();');
     this.emit('const enc = device.createCommandEncoder();');
 
-    // Compute pass
+    // Compute pass (a custom @compute pass is not built; see emitComputeShaders)
     const gpuObjs = (composition.objects || []).filter((o) =>
-      o.traits?.some(
-        (t) => isGpuParticleTraitName(t.name) || t.name === 'gpu_physics' || t.name === 'compute'
-      )
+      o.traits?.some((t) => isGpuParticleTraitName(t.name) || t.name === 'gpu_physics')
     );
     if (gpuObjs.length > 0 && this.options.enableCompute) {
       this.emit('const cp = enc.beginComputePass();');
@@ -1864,9 +1873,6 @@ export class WebGPUCompiler extends CompilerBase {
         }
         if (obj.traits?.some((t) => t.name === 'gpu_physics')) {
           this.emit(`cp.setPipeline(${v}PhysicsCompute); cp.dispatchWorkgroups(16);`);
-        }
-        if (obj.traits?.some((t) => t.name === 'compute')) {
-          this.emit(`cp.setPipeline(${v}CustomCompute); cp.dispatchWorkgroups(...${v}Workgroups);`);
         }
       }
       this.emit('cp.end();');
@@ -2045,32 +2051,6 @@ export class WebGPUCompiler extends CompilerBase {
       );
     }
     return values;
-  }
-
-  /**
-   * Three whole numbers for `dispatchWorkgroups`. A lone number is x; a missing y
-   * or z is 1, as `dispatchWorkgroups` itself takes it. Any other part that is not
-   * a whole number gets the default (64, 1, 1) and a WARNING line.
-   */
-  private workgroupCounts(owner: unknown, value: unknown): [number, number, number] {
-    const defaults: [number, number, number] = [64, 1, 1];
-    if (value === undefined || value === null) return defaults;
-    const parts = Array.isArray(value) ? value : [value];
-    let replaced = false;
-    const part = (i: number): number => {
-      if (i > 0 && parts[i] === undefined) return 1;
-      const n = this.finiteNumber(parts[i]);
-      if (n !== undefined && Number.isInteger(n) && n >= 0) return n;
-      replaced = true;
-      return defaults[i];
-    };
-    const counts: [number, number, number] = [part(0), part(1), part(2)];
-    if (replaced) {
-      this.emit(
-        `// WARNING: the workgroups of ${this.quoteName(owner)} are not whole numbers; each part that is not one uses the default (64, 1, 1).`
-      );
-    }
-    return counts;
   }
 
   /** A finite number, or text that reads as one ("2"); anything else is undefined. */

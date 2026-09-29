@@ -1,8 +1,9 @@
 /**
  * Values the WebGPU compiler writes into the module it emits: a model's path, a
- * compute shader's entry point and workgroups, and positions and scales. Each must
+ * compute shader's name, a splat's source, and positions and scales. Each must
  * reach the module as the value that was written, or as a number, and never as
- * source text pasted in (task_1790602604837_whpw, item 6). These use ordinary
+ * source text pasted in (task_1790602604837_whpw, item 6; task_1790661750956_nedf).
+ * And a scene with a @compute object must still load (nedf). These use ordinary
  * values an author may write, not crafted ones.
  */
 import { describe, it, expect, vi } from 'vitest';
@@ -80,43 +81,29 @@ describe('WebGPUCompiler writes values, not source text', () => {
     expect(syntaxErrors(code)).toEqual([]);
   });
 
-  it('names the compute entry point with the exact text given', () => {
+  it('names the compute shader with the exact text given', () => {
     const code = compile(String.raw`composition "Sim" {
   object "Field" {
     geometry: "cube"
     @compute { shader: "shaders\\particles.wgsl" }
   }
 }`);
-    const pipeline = lineWith(code, 'const FieldCustomCompute = ');
-    expect(evaluate(between(pipeline, 'entryPoint: ', ' } });'))).toBe(
-      String.raw`shaders\particles.wgsl`
+    expect(evaluate(between(code, 'console.warn(', ');\n'))).toBe(
+      String.raw`WARNING: the @compute block of "Field" names the shader "shaders\particles.wgsl", which this output does not contain, so its compute pass is not built.`
     );
     expect(syntaxErrors(code)).toEqual([]);
   });
 
-  it('dispatches three whole-number workgroup counts', () => {
-    const code = compile(`composition "Sim" {
-  object "Grid" {
-    geometry: "cube"
-    @compute { shader: "main", workgroups: [8, 8] }
-  }
-  object "Rows" {
-    geometry: "cube"
-    @compute { shader: "main", workgroups: [16, rows, 1] }
-  }
-  object "Line" {
-    geometry: "cube"
-    @compute { shader: "main", workgroups: 128 }
+  it('keeps the splat comment on one line when its source holds a line break', () => {
+    const code = compile(`composition "Scan" {
+  object "Lobby" {
+    @gaussian_splat { src: "scans/lobby\nfloor 2.ply" }
   }
 }`);
-    // A missing y or z is 1, as dispatchWorkgroups takes it.
-    expect(numberItems(between(code, 'const GridWorkgroups = [', '];'))).toEqual([8, 8, 1]);
-    // A name is not a count: it gets the default, and the output says so.
-    expect(numberItems(between(code, 'const RowsWorkgroups = [', '];'))).toEqual([16, 1, 1]);
-    expect(code).toContain(
-      '// WARNING: the workgroups of "Rows" are not whole numbers; each part that is not one uses the default (64, 1, 1).'
+    expect(lineWith(code, '// Gaussian Splat — source:')).toContain(
+      '// Gaussian Splat — source: "scans/lobby floor 2.ply" (radix-sorted)'
     );
-    expect(numberItems(between(code, 'const LineWorkgroups = [', '];'))).toEqual([128, 1, 1]);
+    expect(syntaxErrors(code)).toEqual([]);
   });
 
   it('writes a position or scale that is not three numbers as numbers, and says so', () => {
@@ -164,20 +151,89 @@ describe('WebGPUCompiler writes values, not source text', () => {
     expect(code).toContain('// WARNING: the position of "Shelf" is not three numbers');
   });
 
-  it('writes positions, scales and counts that are numbers exactly as before', () => {
+  it('writes positions and scales that are numbers exactly as before', () => {
     const code = compile(`composition "Room" {
   object "Crate" {
     geometry: "cube"
     position: [1.5, -2, 0.25]
     scale: 3
-    @compute { shader: "main", workgroups: [64, 1, 1] }
   }
 }`);
     expect(code).toContain(
       'const CrateModel = createBuffer(device, new Float32Array([3,0,0,0, 0,3,0,0, 0,0,3,0, 1.5,-2,0.25,1]), GPUBufferUsage.UNIFORM);'
     );
-    expect(code).toContain('entryPoint: "main" } });');
-    expect(code).toContain('const CrateWorkgroups = [64,1,1];');
     expect(code).not.toContain('WARNING');
+  });
+});
+
+/**
+ * Any value, read as anything: every property is another stub, every call and
+ * `new` returns one, it is not a promise, it iterates as empty and it reads as 1.
+ * The emitted module drives a WebGPU device, a canvas and the DOM; these stand in
+ * for all of them, so what the module itself defines is what is tested.
+ */
+function stub(): unknown {
+  return new Proxy(function () {}, {
+    get(_target, prop) {
+      if (prop === 'then') return undefined;
+      if (prop === Symbol.toPrimitive) return () => 1;
+      if (prop === Symbol.iterator) return function* () {};
+      return stub();
+    },
+    apply: () => stub(),
+    construct: () => stub() as object,
+  });
+}
+
+/** The browser names the emitted module reads. Any other name must be its own. */
+const BROWSER = [
+  'navigator',
+  'document',
+  'window',
+  'location',
+  'performance',
+  'requestAnimationFrame',
+  'fetch',
+  'createImageBitmap',
+  'GPUBufferUsage',
+  'GPUTextureUsage',
+];
+
+/** Run the emitted module to the end of its top level, as a page would load it. */
+async function load(code: string): Promise<{ warnings: string[] }> {
+  const js = ts.transpileModule(code, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+  }).outputText;
+  const warnings: string[] = [];
+  const context: Record<string, unknown> = {
+    console: { ...console, warn: (message: unknown) => warnings.push(String(message)) },
+  };
+  for (const name of BROWSER) context[name] = stub();
+  // The module awaits at its top level; a script cannot, an async function can.
+  await runInNewContext(`(async () => {\n${js}\n})()`, context);
+  return { warnings };
+}
+
+describe('WebGPUCompiler output loads', () => {
+  it('loads a scene without compute, so the check below is not the stand-ins failing', async () => {
+    await expect(
+      load(compile(`composition "Room" {\n  object "Crate" { geometry: "cube" }\n}`))
+    ).resolves.toEqual({ warnings: [] });
+  });
+
+  it('loads a scene with a @compute object, and says its compute pass is not built', async () => {
+    const code = compile(`composition "Sim" {
+  object "Field" {
+    geometry: "cube"
+    @compute { shader: "shaders/particles.wgsl", workgroups: [8, 8, 1] }
+  }
+}`);
+    const { warnings } = await load(code);
+    expect(warnings).toEqual([
+      'WARNING: the @compute block of "Field" names the shader "shaders/particles.wgsl", which this output does not contain, so its compute pass is not built.',
+    ]);
+    expect(code).toContain(
+      '// WARNING: the @compute block of "Field" names the shader "shaders/particles.wgsl", which this output does not contain, so its compute pass is not built.'
+    );
   });
 });
