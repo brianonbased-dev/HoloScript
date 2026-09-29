@@ -4,6 +4,7 @@ import { writeHealthResponse } from './health.js';
 import { hydrateServiceSecrets } from './boot-secrets.js';
 import { ensureMoltbookSchema } from './db/ensureMoltbookSchema.js';
 import { ensureCreditLedgerIndex } from './db/ensureCreditLedgerIndex.js';
+import { ensureSubscriptionTable } from './db/ensureSubscriptionTable.js';
 import { getDb, closeDb } from './db/client.js';
 import { authMiddleware } from './middleware/auth.js';
 import { touchedByMiddleware } from './middleware/touched-by.js';
@@ -277,6 +278,8 @@ async function start(): Promise<void> {
   // a redelivered Stripe webhook can credit an account twice. Logs its presence
   // either way, so the boot log answers whether the backstop is actually there.
   await ensureCreditLedgerIndex();
+  // Studio Pro: same reason as the index above (no migrations run in production).
+  await ensureSubscriptionTable();
   await backgroundHealthProbe();
   startBackgroundHealthProbes();
   await initializeCreditSystem();

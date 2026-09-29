@@ -117,8 +117,8 @@ export type OperationType = keyof typeof OPERATION_COSTS;
 export const CREDIT_PACKAGES = [
   { id: 'starter', label: 'Starter', credits: 500, priceCents: 500, popular: false },
   { id: 'builder', label: 'Builder', credits: 2500, priceCents: 2000, popular: true },
-  { id: 'pro', label: 'Pro', credits: 10000, priceCents: 7500, popular: false },
-  { id: 'enterprise', label: 'Enterprise', credits: 50000, priceCents: 35000, popular: false },
+  { id: 'pro', label: 'Scale', credits: 10000, priceCents: 7500, popular: false },
+  { id: 'enterprise', label: 'Bulk', credits: 50000, priceCents: 35000, popular: false },
 ] as const;
 
 export type CreditPackageId = (typeof CREDIT_PACKAGES)[number]['id'];
@@ -134,6 +134,13 @@ export const TIER_LIMITS: Record<
     maxProjectsActive: number;
     maxAbsorbDepth: 'shallow' | 'deep';
     pipelineEnabled: boolean;
+    // Requests an hour an account may send straight to the absorb API with its
+    // own GitHub token (MCP tools, scripts); null means no hourly limit. What the
+    // Studio website sends for a signed-in user is not counted. This is the number
+    // services/absorb-service/src/middleware/auth.ts enforces, and a test holds
+    // the two together. maxProjectsActive, maxAbsorbDepth and pipelineEnabled are
+    // enforced nowhere (checked 2026-09-28), so the Tier Comparison leaves them out.
+    hourlyRequestLimit: number | null;
   }
 > = {
   free: {
@@ -152,29 +159,40 @@ export const TIER_LIMITS: Record<
     maxProjectsActive: 3,
     maxAbsorbDepth: 'shallow',
     pipelineEnabled: false,
+    hourlyRequestLimit: 10,
   },
   pro: {
     freeCredits: 0,
     maxProjectsActive: 100,
     maxAbsorbDepth: 'deep',
     pipelineEnabled: true,
+    hourlyRequestLimit: null,
   },
   enterprise: {
     freeCredits: 0,
     maxProjectsActive: 1000,
     maxAbsorbDepth: 'deep',
     pipelineEnabled: true,
+    hourlyRequestLimit: null,
   },
 };
 
 // ─── Subscription + per-lane pricing (resource-shape model, D.086) ────────────
-// SSOT for the researched numbers (2026-06-06). The monthly subscription + fleet-seat +
-// per-receipt BILLING (recurring Stripe, seat metering) is founder business-infra and not
-// yet wired — these are the ratified figures it will charge. Flagged numbers need cold
-// validation: fleet seat assumes a warm-hour budget then credit draw (never unlimited-warm
-// top-card at $25); Diamond launches invite-only; per-receipt needs a design-partner.
+// SSOT for the researched numbers (2026-06-06). Studio Pro is wired (2026-09-28):
+// a monthly Stripe subscription whose paid invoices each grant includedCredits.
+// The fleet-seat, vault and per-receipt billing are not wired yet; these are the
+// ratified figures they will charge. Flagged numbers need cold validation: fleet seat
+// assumes a warm-hour budget then credit draw (never unlimited-warm top-card at $25);
+// Diamond launches invite-only; per-receipt needs a design-partner.
+// Studio Pro grants 2000 credits a month, not the 500 of the 2026-06-06 figures
+// (changed 2026-09-28). The hourly limit Pro lifts binds only callers using their
+// own GitHub token (MCP, scripts); the Studio website is never rate-limited. So for
+// a website user, 500 credits at $15 was three times what the Starter pack charges
+// for the same 500 credits, against the founder rule of 2026-09-16: "for pricing i
+// dont want to rob people". At 2000, a subscriber pays the Scale pack's rate
+// ($0.0075 a credit) without buying $75 at once.
 export const SUBSCRIPTION_PRICING = {
-  studioPro: { priceCentsMonthly: 1500, includedCredits: 500, label: 'Studio Pro' },
+  studioPro: { priceCentsMonthly: 1500, includedCredits: 2000, label: 'Studio Pro' },
   fleetSeat: {
     priceCentsMonthly: 2500,
     volumePriceCents5Plus: 2000,

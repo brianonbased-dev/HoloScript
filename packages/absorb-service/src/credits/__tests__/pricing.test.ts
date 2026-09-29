@@ -34,6 +34,9 @@ const SHARED_EXPORTS: ReadonlyArray<readonly [name: string, endsWith: string]> =
   ['LLM_COSTS_PER_MTOK', '};'],
   ['TIER_LIMITS', '};'],
   ['LLM_MARKUP', ';'],
+  // Studio Pro's price and monthly credits: the subscribe route charges it and the
+  // webhook grants it, so the Studio's displayed copy must not drift from it.
+  ['SUBSCRIPTION_PRICING', '} as const;'],
 ];
 
 /** One named export's literal, exactly as written, from either copy. */
@@ -205,6 +208,37 @@ describe('pricing - the shadow copy Studio shows matches the one the server char
       unpinned,
       `these exports exist in both copies but nothing compares them: ${unpinned.join(', ')}`
     ).toEqual([]);
+  });
+});
+
+/**
+ * The hourly limit a customer is shown is the one the service applies.
+ *
+ * TIER_LIMITS.hourlyRequestLimit is what the Tier Comparison and the Studio Pro
+ * card print; auth.ts enforces its own FREE_USER_SCAN_LIMIT, and only for the
+ * free tier. Studio Pro is sold on lifting that limit, so a free limit that
+ * differs from the printed one, or a paid tier printed with a limit the service
+ * never applies, is a false statement about what the customer is buying.
+ */
+describe('pricing - the hourly limit shown is the one enforced', () => {
+  const AUTH = join(REPO_ROOT, 'services', 'absorb-service', 'src', 'middleware', 'auth.ts');
+
+  it('the free limit is FREE_USER_SCAN_LIMIT in auth.ts', async () => {
+    const { TIER_LIMITS } = await import('../pricing');
+    const enforced = /const FREE_USER_SCAN_LIMIT = (\d+);/.exec(readFileSync(AUTH, 'utf-8'));
+
+    expect(enforced, 'FREE_USER_SCAN_LIMIT is no longer declared in auth.ts').not.toBeNull();
+    expect(TIER_LIMITS.free.hourlyRequestLimit).toBe(Number(enforced![1]));
+  });
+
+  it('every paid tier shows no hourly limit, because auth.ts limits only the free tier', async () => {
+    const { TIER_LIMITS } = await import('../pricing');
+    expect(readFileSync(AUTH, 'utf-8')).toContain("if (tier === 'free') {");
+
+    const limited = Object.entries(TIER_LIMITS)
+      .filter(([tier, limits]) => tier !== 'free' && limits.hourlyRequestLimit !== null)
+      .map(([tier]) => tier);
+    expect(limited).toEqual([]);
   });
 });
 

@@ -26,13 +26,23 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PURCHASE_RETURN_PARAM, creditBalanceFrom, purchaseReturnNotice } from '@/lib/purchase-return';
+import {
+  PURCHASE_RETURN_PARAM,
+  creditBalanceFrom,
+  purchaseReturnNotice,
+  stripeRedirect,
+  studioProFailure,
+  studioProRedirect,
+  studioProStateFrom,
+  type StudioProAction,
+  type StudioProState,
+} from '@/lib/purchase-return';
 import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import BrittneyAPIKeysPanel from './BrittneyAPIKeysPanel';
 import { IntegrationsView } from '@/components/integrations/IntegrationsView';
-import { CreditBalanceCard, PricingTab } from '@/app/absorb/components';
+import { CreditBalanceCard, PricingTab, StudioProCard } from '@/app/absorb/components';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
 
 // ── Types (kept host-side; not exposed to composition) ─────────────────────────
@@ -78,6 +88,12 @@ export function SettingsView() {
   const [creditsLoading, setCreditsLoading] = useState(false);
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
   const [purchaseTone, setPurchaseTone] = useState<'error' | 'ok' | 'info'>('error');
+  const [studioPro, setStudioPro] = useState<StudioProState | null>(null);
+  const [studioProBusy, setStudioProBusy] = useState(false);
+  // True from a Studio Pro checkout return until the webhook's Pro shows up (or a
+  // minute passes): Subscribe stays hidden, so a slow webhook cannot invite a
+  // second checkout.
+  const [studioProConfirming, setStudioProConfirming] = useState(false);
 
   // ── Profile form state (React-controlled; kept in host) ────────────────────
   const [displayName, setDisplayName] = useState('');
@@ -135,6 +151,7 @@ export function SettingsView() {
       .then((data) => {
         setCreditBalance(creditBalanceFrom(data));
         setCreditTier((data.tier as string) ?? 'free');
+        setStudioPro(studioProStateFrom(data));
       })
       .catch(() => {})
       .finally(() => setCreditsLoading(false));
@@ -160,11 +177,13 @@ export function SettingsView() {
       .finally(() => setOracleLoading(false));
   }, [session?.user?.id]);
 
-  // ── Back from Stripe checkout (?purchase=success|cancelled, written by the
-  // purchase route): say what happened, re-read the balance for a minute while
-  // the webhook adds the credits, and drop the parameters so a reload does not
-  // repeat the message. Read once, at the first render.
+  // ── Back from Stripe checkout (?purchase=success|subscribed|cancelled, written
+  // by the purchase route): say what happened, re-read the balance for a minute
+  // while the webhook adds the credits (and, for Studio Pro, the tier), and drop
+  // the parameters so a reload does not repeat the message. Read once, at the
+  // first render.
   const purchaseReturn = useRef(purchaseReturnNotice(searchParams.get(PURCHASE_RETURN_PARAM)));
+  const returnedFromSubscribing = useRef(searchParams.get(PURCHASE_RETURN_PARAM) === 'subscribed');
   useEffect(() => {
     const notice = purchaseReturn.current;
     if (!notice) return;
@@ -172,14 +191,24 @@ export function SettingsView() {
     setPurchaseMessage(notice.text);
     window.history.replaceState(null, '', '/settings?tab=credits');
     if (!notice.refreshBalance) return;
+    if (returnedFromSubscribing.current) setStudioProConfirming(true);
     let reads = 0;
     const timer = window.setInterval(() => {
       reads += 1;
       fetch('/api/absorb/credits')
         .then((r) => r.json())
-        .then((data) => setCreditBalance(creditBalanceFrom(data)))
+        .then((data) => {
+          setCreditBalance(creditBalanceFrom(data));
+          setCreditTier((data.tier as string) ?? 'free');
+          const pro = studioProStateFrom(data);
+          setStudioPro(pro);
+          if (pro.isPro) setStudioProConfirming(false);
+        })
         .catch(() => {});
-      if (reads >= 12) window.clearInterval(timer);
+      if (reads >= 12) {
+        window.clearInterval(timer);
+        setStudioProConfirming(false);
+      }
     }, 5000);
     return () => window.clearInterval(timer);
   }, []);
@@ -247,8 +276,9 @@ export function SettingsView() {
     try {
       const res = await fetch('/api/stripe/connect', { method: 'POST' });
       const data = await res.json();
-      if (data.onboardingUrl) {
-        window.location.href = data.onboardingUrl;
+      const onboarding = stripeRedirect(res.ok, data.onboardingUrl);
+      if (onboarding) {
+        window.location.href = onboarding;
       } else if (data.status === 'complete') {
         setStripeStatus('complete');
       }
@@ -271,8 +301,9 @@ export function SettingsView() {
         body: JSON.stringify({ packageId: pkgId }),
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-      if (res.ok && typeof data.checkoutUrl === 'string') {
-        window.location.href = data.checkoutUrl;
+      const checkout = stripeRedirect(res.ok, data.checkoutUrl);
+      if (checkout) {
+        window.location.href = checkout;
         return;
       }
       const reason =
@@ -282,6 +313,35 @@ export function SettingsView() {
       setPurchaseMessage(`${reason} You were not charged.`);
     } catch {
       setPurchaseMessage('The purchase could not be started. You were not charged.');
+    }
+  }
+
+  /**
+   * Studio Pro: `subscribe` opens a Stripe checkout for the monthly plan, `portal`
+   * opens Stripe's billing page (cancel, card, invoices). The Studio route writes
+   * the return addresses itself; the page only names the action.
+   */
+  async function studioProAction(action: StudioProAction) {
+    setPurchaseMessage(null);
+    setPurchaseTone('error');
+    setStudioProBusy(true);
+    try {
+      const res = await absorbFetch('/api/absorb/credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data: unknown = await res.json().catch(() => ({}));
+      const next = studioProRedirect(action, res.ok, data);
+      if (next) {
+        window.location.href = next;
+        return;
+      }
+      setPurchaseMessage(studioProFailure(action, data));
+    } catch {
+      setPurchaseMessage(studioProFailure(action));
+    } finally {
+      setStudioProBusy(false);
     }
   }
 
@@ -503,7 +563,11 @@ export function SettingsView() {
                   style={{
                     padding: 12,
                     color:
-                      purchaseTone === 'error' ? '#f87171' : purchaseTone === 'ok' ? '#4ade80' : '#a1a1aa',
+                      purchaseTone === 'error'
+                        ? '#f87171'
+                        : purchaseTone === 'ok'
+                          ? '#4ade80'
+                          : '#a1a1aa',
                     fontFamily: 'system-ui',
                     fontSize: 14,
                   }}
@@ -511,6 +575,13 @@ export function SettingsView() {
                   {purchaseMessage}
                 </div>
               )}
+              <StudioProCard
+                state={studioPro}
+                busy={studioProBusy}
+                confirming={studioProConfirming}
+                onSubscribe={() => void studioProAction('subscribe')}
+                onManage={() => void studioProAction('portal')}
+              />
               <PricingTab onPurchase={(pkgId) => void purchaseCredits(pkgId)} />
             </div>
           )}

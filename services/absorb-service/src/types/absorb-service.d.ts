@@ -206,8 +206,68 @@ declare module '@holoscript/absorb-service/credits' {
     amountCents: number,
     description: string,
     opts?: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> }
-  ) => Promise<{ balanceCents: number } | null>;
+  ) => Promise<{ balanceCents: number; applied: boolean } | null>;
   export const getUsageHistory: (userId: string, limit?: number) => Promise<unknown[]>;
+  // Studio Pro. Typed for the same reason as the functions above: the subscribe
+  // route charges priceCentsMonthly and the webhook grants includedCredits.
+  export const SUBSCRIPTION_PRICING: {
+    readonly studioPro: {
+      readonly priceCentsMonthly: number;
+      readonly includedCredits: number;
+      readonly label: string;
+    };
+  };
+  export interface CreditSubscription {
+    userId: string;
+    plan: string;
+    stripeCustomerId: string;
+    stripeSubscriptionId: string | null;
+    status: string;
+    livemode: boolean | null;
+    currentPeriodEnd: Date | null;
+    cancelAtPeriodEnd: boolean;
+  }
+  export interface SubscriptionRecordResult {
+    tier: string;
+    recorded: boolean;
+    reason?: string;
+    duplicate?: boolean;
+  }
+  export const tierForSubscriptionStatus: (
+    status: string | null | undefined
+  ) => 'free' | 'pro' | 'enterprise';
+  export const isEndedSubscriptionStatus: (status: string | null | undefined) => boolean;
+  export const stripeKeyLivemode: (key: string | null | undefined) => boolean | null;
+  export const subscriptionInMode: (
+    sub: CreditSubscription | null,
+    livemode: boolean | null
+  ) => CreditSubscription | null;
+  export const tierInMode: (
+    accountTier: string,
+    sub: CreditSubscription | null,
+    livemode: boolean | null
+  ) => string;
+  export const getSubscription: (userId: string) => Promise<CreditSubscription | null>;
+  export const findSubscriptionUser: (ref: {
+    stripeSubscriptionId?: string | null;
+    stripeCustomerId?: string | null;
+  }) => Promise<string | null>;
+  /** `read` runs after the user's row is locked (creditService.recordSubscription). */
+  export const recordSubscription: (
+    userId: string,
+    read: () => Promise<Omit<CreditSubscription, 'userId'>>
+  ) => Promise<SubscriptionRecordResult | null>;
+  export const ensureSubscriptionCustomer: (
+    userId: string,
+    opts: { plan: string; livemode: boolean | null },
+    createCustomer: () => Promise<string>
+  ) => Promise<string | null>;
+  export const grantSubscriptionCredits: (
+    userId: string,
+    invoiceId: string,
+    credits: number,
+    metadata?: Record<string, unknown>
+  ) => Promise<{ balanceCents: number; applied: boolean } | null>;
   export const MeteredLLMProvider: unknown;
   export const requireCredits: unknown;
   export const isCreditError: unknown;
@@ -220,6 +280,7 @@ declare module '@holoscript/absorb-service/credits' {
 declare module '@holoscript/absorb-service/schema' {
   export const creditAccounts: unknown;
   export const creditTransactions: unknown;
+  export const creditSubscriptions: unknown;
   export const absorbProjects: unknown;
 }
 

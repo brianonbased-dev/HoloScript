@@ -405,14 +405,39 @@ describe('the pricing page agrees with the price table', () => {
     expect(wrong).toEqual([]);
   });
 
+  it('every credit package appears under its own name, and no pack is called Pro or Enterprise', async () => {
+    const { CREDIT_PACKAGES } = await import('@/lib/absorb/pricing');
+    const page = pricingPage();
+    const named = (label: string) => new RegExp(`[\`'"]${label}[\`'"]`, 'u').test(page);
+
+    expect(CREDIT_PACKAGES.filter((p) => !named(p.label)).map((p) => p.label)).toEqual([]);
+    // The two largest packs were "Pro" and "Enterprise" until Studio Pro went on
+    // sale; a one-time pack must not share a name with the monthly plan.
+    expect(['Pro', 'Enterprise'].filter(named)).toEqual([]);
+  });
+
+  it('Studio Pro appears at the price the subscribe route charges, and the limit it lifts', async () => {
+    const { SUBSCRIPTION_PRICING, TIER_LIMITS } = await import('@/lib/absorb/pricing');
+    const pro = SUBSCRIPTION_PRICING.studioPro;
+    const page = pricingPage();
+
+    expect(page).toContain(
+      `$${pro.priceCentsMonthly / 100} a month for ${pro.includedCredits} credits every paid month`
+    );
+    expect(page).toContain(`free accounts get ${TIER_LIMITS.free.hourlyRequestLimit} an hour`);
+    expect(TIER_LIMITS.pro.hourlyRequestLimit).toBeNull();
+    expect(page).toContain('Studio Pro has no hourly limit');
+  });
+
   it('the markup is stated once, and matches the constant', async () => {
     const { LLM_MARKUP } = await import('@/lib/absorb/pricing');
     const page = pricingPage();
     const percent = `${Math.round((LLM_MARKUP - 1) * 100)}%`;
 
     expect(page).toContain(percent);
-    // The settings panel says 15% in one paragraph and 30% in another while the
-    // constant is 1.15. Whatever this page says, it may not say the other one.
+    // The settings panel said 15% in one paragraph and 30% in another until
+    // 2026-09-28, while the constant is 1.15. Whatever this page says, it may
+    // not say the other one.
     const contradiction = percent === '15%' ? '30%' : '15%';
     expect(page).not.toContain(contradiction);
   });

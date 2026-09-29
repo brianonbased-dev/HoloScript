@@ -18,7 +18,7 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
-import { purchaseReturnUrls } from '@/lib/purchase-return';
+import { creditsSettingsUrl, purchaseReturnUrls } from '@/lib/purchase-return';
 import { resolvePublicStudioOrigin } from '@/lib/reachable-origin';
 import { getGitHubToken } from '../../github/_shared';
 
@@ -52,6 +52,10 @@ async function proxyToAbsorb(
       headers,
       body: body || undefined,
       signal: AbortSignal.timeout(10000),
+      // absorb answers directly; it never redirects. A redirect would carry the
+      // user's GitHub token (X-User-Authorization) to wherever it pointed, since
+      // fetch drops only Authorization on a cross-origin hop, so it is an error.
+      redirect: 'error',
     });
     const data = await res.json().catch(() => ({ error: 'Invalid response' }));
     return { ok: res.ok, status: res.status, data };
@@ -94,11 +98,22 @@ export async function POST(req: NextRequest) {
 
   // Stripe must send the buyer back HERE, to Settings, not to absorb's own
   // default (localhost, or an auth-walled JSON route). See @/lib/purchase-return.
-  const body = withReturnUrls(await req.text(), resolvePublicStudioOrigin(req));
+  const raw = await req.text();
+  const origin = resolvePublicStudioOrigin(req);
 
+  // One Studio endpoint for the three things a signed-in user asks of absorb's
+  // credits API. `action` picks one; a body without it is a credit purchase, as
+  // it always was. For Studio Pro the Studio writes the whole body itself.
   // Purchase route on the deployed absorb-service host is /api/credits/purchase
   // (NOT /api/credits). See research/2026-06-05_brittney-capability-gaps.md §B2.
-  const result = await proxyToAbsorb('/api/credits/purchase', 'POST', userAuth, body);
+  const action = actionOf(raw);
+  const [path, body] =
+    action === 'subscribe'
+      ? ['/api/credits/subscribe', JSON.stringify(purchaseReturnUrls(origin, 'subscription'))]
+      : action === 'portal'
+        ? ['/api/credits/portal', JSON.stringify({ returnUrl: creditsSettingsUrl(origin) })]
+        : ['/api/credits/purchase', withReturnUrls(raw, origin)];
+  const result = await proxyToAbsorb(path, 'POST', userAuth, body);
   if (result.ok) {
     return NextResponse.json(result.data);
   }
@@ -116,6 +131,16 @@ export async function POST(req: NextRequest) {
     },
     { status: 503 }
   );
+}
+
+/** 'subscribe' or 'portal' when the body asks for one; anything else is a purchase. */
+function actionOf(raw: string): 'subscribe' | 'portal' | 'purchase' {
+  try {
+    const action = (JSON.parse(raw) as { action?: unknown } | null)?.action;
+    return action === 'subscribe' || action === 'portal' ? action : 'purchase';
+  } catch {
+    return 'purchase';
+  }
 }
 
 /**

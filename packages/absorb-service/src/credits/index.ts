@@ -10,8 +10,28 @@ export {
   deductCredits,
   addCredits,
   getUsageHistory,
+  tierForSubscriptionStatus,
+  isEndedSubscriptionStatus,
+  stripeKeyLivemode,
+  subscriptionInMode,
+  tierInMode,
+  nextTier,
+  decideSubscriptionWrite,
+  getSubscription,
+  findSubscriptionUser,
+  recordSubscription,
+  ensureSubscriptionCustomer,
+  grantSubscriptionCredits,
 } from './creditService.js';
-export type { CreditAccount, CreditTransaction, BalanceCheck } from './creditService.js';
+export type {
+  CreditAccount,
+  CreditTransaction,
+  BalanceCheck,
+  CreditSubscription,
+  SubscriptionWrite,
+  SubscriptionRead,
+  SubscriptionRecordResult,
+} from './creditService.js';
 export { MeteredLLMProvider } from './meteredLLMProvider.js';
 export { requireCredits, isCreditError } from './requireCredits.js';
 export type { CreditGateResult, CreditError } from './requireCredits.js';

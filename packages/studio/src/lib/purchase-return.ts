@@ -15,6 +15,7 @@
  * The purchase route sets these URLs itself and overwrites any the client sent,
  * so it cannot be used to aim a checkout at somebody else's page.
  */
+import { SUBSCRIPTION_PRICING } from '@/lib/absorb/pricing';
 
 /** The query parameter the Settings page reads when a buyer comes back. */
 export const PURCHASE_RETURN_PARAM = 'purchase';
@@ -24,16 +25,25 @@ export interface PurchaseReturnUrls {
   cancelUrl: string;
 }
 
+/** The Settings page, Credits tab, where the Buy buttons and Studio Pro live. */
+export function creditsSettingsUrl(origin: string): string {
+  return `${origin.replace(/\/+$/u, '')}/settings?tab=credits`;
+}
+
 /**
- * Both return URLs for a checkout started from the Studio at `origin`: the
- * Settings page, on the Credits tab, where the Buy buttons are.
+ * Both return URLs for a checkout started from the Studio at `origin`: back to
+ * Settings, Credits tab. A credit purchase comes back as `success`, a Studio Pro
+ * subscription as `subscribed`, and either one abandoned as `cancelled`.
  */
-export function purchaseReturnUrls(origin: string): PurchaseReturnUrls {
-  const base = `${origin.replace(/\/+$/u, '')}/settings?tab=credits&${PURCHASE_RETURN_PARAM}=`;
+export function purchaseReturnUrls(
+  origin: string,
+  kind: 'purchase' | 'subscription' = 'purchase'
+): PurchaseReturnUrls {
+  const base = `${creditsSettingsUrl(origin)}&${PURCHASE_RETURN_PARAM}=`;
   return {
     // Stripe swaps {CHECKOUT_SESSION_ID} for the session id itself, so it must
     // reach Stripe exactly like this, unencoded.
-    successUrl: `${base}success&session_id={CHECKOUT_SESSION_ID}`,
+    successUrl: `${base}${kind === 'subscription' ? 'subscribed' : 'success'}&session_id={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${base}cancelled`,
   };
 }
@@ -59,7 +69,9 @@ export function creditBalanceFrom(data: unknown): number {
 }
 
 /** What to tell a buyer arriving with `?purchase=<value>`, or null when they are not returning from checkout. */
-export function purchaseReturnNotice(value: string | null | undefined): PurchaseReturnNotice | null {
+export function purchaseReturnNotice(
+  value: string | null | undefined
+): PurchaseReturnNotice | null {
   if (value === 'success') {
     return {
       tone: 'ok',
@@ -67,8 +79,104 @@ export function purchaseReturnNotice(value: string | null | undefined): Purchase
       refreshBalance: true,
     };
   }
+  if (value === 'subscribed') {
+    return {
+      tone: 'ok',
+      text: `Welcome to Studio Pro! Your first ${SUBSCRIPTION_PRICING.studioPro.includedCredits.toLocaleString()} monthly credits will show in the balance above within a minute.`,
+      refreshBalance: true,
+    };
+  }
   if (value === 'cancelled') {
-    return { tone: 'info', text: 'Payment cancelled. You were not charged.', refreshBalance: false };
+    return {
+      tone: 'info',
+      text: 'Payment cancelled. You were not charged.',
+      refreshBalance: false,
+    };
   }
   return null;
+}
+
+/** What the Studio Pro card shows, from the `/api/absorb/credits` answer. */
+export interface StudioProState {
+  isPro: boolean;
+  /** When the paid month ends, if Stripe told us. */
+  periodEnd: Date | null;
+  /** True when the subscriber has cancelled and Pro ends at periodEnd. */
+  ending: boolean;
+  /** True when there is a Stripe customer to manage (Pro now, or Pro before). */
+  canManage: boolean;
+}
+
+/** The Studio Pro actions the Settings page asks the Studio's credits route for. */
+export type StudioProAction = 'subscribe' | 'portal';
+
+/**
+ * Where to send the user after a Studio Pro action, or null when the answer
+ * gives nowhere to go. `subscribe` answers with Stripe's `checkoutUrl`, `portal`
+ * with the billing page's `url`; only a Stripe page is followed.
+ */
+export function studioProRedirect(
+  action: StudioProAction,
+  ok: boolean,
+  data: unknown
+): string | null {
+  const d = (data ?? {}) as { checkoutUrl?: unknown; url?: unknown };
+  return stripeRedirect(ok, action === 'subscribe' ? d.checkoutUrl : d.url);
+}
+
+/**
+ * True for a page Stripe itself serves over https: checkout.stripe.com,
+ * billing.stripe.com, connect.stripe.com. Every redirect the Credits tab makes
+ * after asking the server goes to one of these, so nothing else is followed:
+ * not another https site, and never a `javascript:` URL, which would run inside
+ * the Studio.
+ */
+export function isStripeHostedUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === 'https:' &&
+    !url.username &&
+    !url.password &&
+    (url.hostname === 'stripe.com' || url.hostname.endsWith('.stripe.com'))
+  );
+}
+
+/** The Stripe page a successful answer points at, or null. */
+export function stripeRedirect(ok: boolean, value: unknown): string | null {
+  return ok && isStripeHostedUrl(value) ? value : null;
+}
+
+/** What to tell the user when a Studio Pro action did not open a Stripe page. */
+export function studioProFailure(action: StudioProAction, data?: unknown): string {
+  const d = (data ?? {}) as { message?: unknown; error?: unknown };
+  const said =
+    (typeof d.message === 'string' && d.message.trim()) ||
+    (typeof d.error === 'string' && d.error.trim()) ||
+    (action === 'subscribe'
+      ? 'Studio Pro checkout could not be started.'
+      : 'The billing page could not be opened.');
+  // An `error` is a label ("Payments not configured"), not a sentence.
+  const reason = /[.!?]$/u.test(said) ? said : `${said}.`;
+  return action === 'subscribe' ? `${reason} You were not charged.` : reason;
+}
+
+export function studioProStateFrom(data: unknown): StudioProState {
+  const d = (data ?? {}) as {
+    tier?: unknown;
+    subscription?: { currentPeriodEnd?: unknown; cancelAtPeriodEnd?: unknown } | null;
+  };
+  const end = d.subscription?.currentPeriodEnd;
+  const periodEnd = typeof end === 'string' || end instanceof Date ? new Date(end) : null;
+  return {
+    isPro: d.tier === 'pro',
+    periodEnd: periodEnd && !Number.isNaN(periodEnd.getTime()) ? periodEnd : null,
+    ending: d.subscription?.cancelAtPeriodEnd === true,
+    canManage: Boolean(d.subscription),
+  };
 }

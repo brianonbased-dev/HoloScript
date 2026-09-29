@@ -16,9 +16,14 @@
 // differed between Studio's copy of the table and the server's, and in every
 // case Studio showed MORE than the server charged.
 //
-// ONE MARKUP NUMBER. The settings panel says "15%" in one paragraph and "30%"
-// in another; the constant is 1.15. This page states it once, and the test
-// reads the constant rather than trusting this prose.
+// ONE MARKUP NUMBER. The settings panel said "15%" in one paragraph and "30%"
+// in another until 2026-09-28; the constant is 1.15. This page states it once,
+// and the test reads the constant rather than trusting this prose.
+//
+// STUDIO PRO AND THE PACK NAMES. The two largest packs were called "Pro" and
+// "Enterprise" while a monthly plan called Studio Pro went on sale, so a buyer
+// could not tell a one-time pack from the plan. They are "Scale" and "Bulk"
+// now, and the test holds every name, price and the plan's figures to the table.
 composition "Pricing" {
   @page { route: "/pricing" }
   @metadata {
@@ -121,29 +126,54 @@ composition "Pricing" {
         }
       }
 
-      object "PkgPro" {
+      object "PkgScale" {
         @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
-        object "PkgProName" {
-          @text { content: "Pro", variant: "h3" }
+        object "PkgScaleName" {
+          @text { content: "Scale", variant: "h3" }
           @theme { className: "text-sm font-semibold text-studio-text" }
         }
-        object "PkgProPrice" {
+        object "PkgScalePrice" {
           @text { content: "$75 for 10000 credits" }
           @theme { className: "text-xs text-studio-muted" }
         }
       }
 
-      object "PkgEnterprise" {
+      object "PkgBulk" {
         @theme { className: "flex flex-col gap-1 rounded-xl border border-studio-border bg-studio-panel/60 p-4" }
-        object "PkgEnterpriseName" {
-          @text { content: "Enterprise", variant: "h3" }
+        object "PkgBulkName" {
+          @text { content: "Bulk", variant: "h3" }
           @theme { className: "text-sm font-semibold text-studio-text" }
         }
-        object "PkgEnterprisePrice" {
+        object "PkgBulkPrice" {
           @text { content: "$350 for 50000 credits" }
           @theme { className: "text-xs text-studio-muted" }
         }
       }
+    }
+
+    object "ProHeading" {
+      @text { content: "Studio Pro", variant: "h2" }
+      @theme { className: "mt-10 text-xs font-semibold uppercase tracking-wider text-studio-muted" }
+    }
+
+    object "ProBody" {
+      @text { content: "$15 a month for 2000 credits every paid month, the same rate per credit as the Scale pack. Unused credits carry over, and the credit packs above stay on sale to subscribers." }
+      @theme { className: "mt-3 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "ProLimit" {
+      @text { content: "It also lifts the hourly limit on requests your own tools send to our API, such as MCP clients and scripts: free accounts get 10 an hour, and Studio Pro has no hourly limit. Using the Studio website is not limited by the hour on either plan." }
+      @theme { className: "mt-2 max-w-2xl text-sm leading-relaxed text-studio-muted" }
+    }
+
+    object "ProCancel" {
+      @text { content: "Cancel any time from Settings. Studio Pro lasts to the end of the month you paid for, and the credits you have stay yours." }
+      @theme { className: "mt-2 max-w-2xl text-xs leading-relaxed text-studio-muted" }
+    }
+
+    object "ProLink" {
+      @link { href: "/settings?tab=credits", content: "Subscribe in Settings →" }
+      @theme { className: "mt-3 inline-block text-sm font-semibold text-studio-text" }
     }
 
     object "MarkupHeading" {

@@ -445,6 +445,7 @@ export const moltbookAgentEvents = pt(
 export {
   creditAccounts,
   creditTransactions,
+  creditSubscriptions,
   absorbProjects,
 } from '@holoscript/absorb-service/schema';
 

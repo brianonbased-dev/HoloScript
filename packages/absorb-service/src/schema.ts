@@ -66,6 +66,43 @@ export const creditTransactions = pgTable(
   ]
 );
 
+/**
+ * A user's Studio Pro subscription, one row per user, written only by the Stripe
+ * webhook. Its own table, not new columns on credit_accounts, on purpose: every
+ * credit read selects all of credit_accounts' columns, so a column added there
+ * breaks those reads on any database the boot step has not reached yet. A new
+ * table can only be read by the code that knows about it.
+ *
+ * credit_accounts.tier stays the one answer to "is this user Pro"; the webhook
+ * sets it from `status` here. The monthly credits are ordinary credit_transactions
+ * rows whose stripe_session_id holds the paying INVOICE id (in_...), so the same
+ * unique index that stops a checkout crediting twice stops a renewal doing so.
+ */
+export const creditSubscriptions = pgTable(
+  'credit_subscriptions',
+  {
+    userId: uuid('user_id').primaryKey(),
+    plan: varchar('plan', { length: 32 }).notNull(),
+    stripeCustomerId: text('stripe_customer_id').notNull(),
+    // Null while the row holds only the customer: /subscribe creates the Stripe
+    // customer and saves it here BEFORE the first checkout, so a second click
+    // cannot open a second subscription on a second customer.
+    stripeSubscriptionId: text('stripe_subscription_id'),
+    status: varchar('status', { length: 32 }).notNull(),
+    // The Stripe mode that wrote the row. Practice rows (a test key) must not
+    // count as Pro, or block a real subscription, once the service runs live.
+    livemode: boolean('livemode'),
+    currentPeriodEnd: timestamp('current_period_end', { mode: 'date' }),
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false).notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_credit_sub_customer').on(t.stripeCustomerId),
+    uniqueIndex('idx_credit_sub_subscription').on(t.stripeSubscriptionId),
+  ]
+);
+
 // =============================================================================
 // ABSORB PROJECTS
 // =============================================================================

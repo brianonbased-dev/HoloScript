@@ -90,14 +90,19 @@ describe('/api/absorb/credits route', () => {
     const sent = sentHeaders(fetchSpy);
     expect(sent['Authorization']).toBe('Bearer absorb-key-test');
     expect(sent['X-User-Authorization']).toBe('Bearer ghp_user_token');
+    // A redirect would carry X-User-Authorization (the user's GitHub token) to
+    // wherever it pointed, so absorb's answer is taken as it is or not at all.
+    expect((fetchSpy.mock.calls[0][1] as RequestInit).redirect).toBe('error');
   });
 
   describe('where Stripe sends the buyer afterwards', () => {
     const envSnapshot = { ...process.env };
     const checkoutOk = () =>
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ checkoutUrl: 'https://pay.example/xyz' }), { status: 200 })
-      );
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ checkoutUrl: 'https://pay.example/xyz' }), { status: 200 })
+        );
     const sentBody = (fetchMock: ReturnType<typeof vi.fn>) =>
       (fetchMock.mock.calls[0][1] as RequestInit).body as string;
 
@@ -125,7 +130,9 @@ describe('/api/absorb/credits route', () => {
       expect(sent.successUrl).toBe(
         'https://holoscript.studio/settings?tab=credits&purchase=success&session_id={CHECKOUT_SESSION_ID}'
       );
-      expect(sent.cancelUrl).toBe('https://holoscript.studio/settings?tab=credits&purchase=cancelled');
+      expect(sent.cancelUrl).toBe(
+        'https://holoscript.studio/settings?tab=credits&purchase=cancelled'
+      );
     });
 
     it('POST overwrites return URLs the client sent, so checkout cannot be aimed elsewhere', async () => {
@@ -151,9 +158,11 @@ describe('/api/absorb/credits route', () => {
     });
 
     it('POST passes a body that is not a JSON object through untouched, for absorb to report', async () => {
-      const fetchSpy = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ error: 'Validation error' }), { status: 400 })
-      );
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ error: 'Validation error' }), { status: 400 })
+        );
       vi.stubGlobal('fetch', fetchSpy);
 
       const res = await POST(
@@ -165,6 +174,100 @@ describe('/api/absorb/credits route', () => {
       );
       expect(res.status).toBe(400);
       expect(sentBody(fetchSpy)).toBe('not json');
+    });
+  });
+
+  describe('Studio Pro actions', () => {
+    const envSnapshot = { ...process.env };
+    const actionReq = (body: unknown) =>
+      new NextRequest('http://localhost/api/absorb/credits', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ghp_user_token' },
+      });
+    const answering = (payload: unknown, status = 200) =>
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status }));
+    const sentTo = (fetchMock: ReturnType<typeof vi.fn>) => ({
+      url: fetchMock.mock.calls[0][0] as string,
+      body: JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string) as unknown,
+    });
+
+    beforeEach(() => {
+      process.env = { ...envSnapshot };
+      delete process.env.NEXT_PUBLIC_STUDIO_URL;
+      delete process.env.NEXT_PUBLIC_URL;
+      process.env.NEXTAUTH_URL = 'https://holoscript.studio';
+    });
+    afterEach(() => {
+      process.env = { ...envSnapshot };
+    });
+
+    it('subscribe asks absorb for a Studio Pro checkout that returns to Settings', async () => {
+      const fetchSpy = answering({ checkoutUrl: 'https://checkout.stripe.com/c/pay/cs_1' });
+      vi.stubGlobal('fetch', fetchSpy);
+
+      const res = await POST(
+        actionReq({
+          action: 'subscribe',
+          successUrl: 'https://evil.example/phish',
+          packageId: 'bulk',
+        })
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).checkoutUrl).toBe('https://checkout.stripe.com/c/pay/cs_1');
+
+      // The Studio writes the whole body: nothing the page sent reaches absorb.
+      expect(sentTo(fetchSpy)).toEqual({
+        url: 'https://absorb.test/api/credits/subscribe',
+        body: {
+          successUrl:
+            'https://holoscript.studio/settings?tab=credits&purchase=subscribed&session_id={CHECKOUT_SESSION_ID}',
+          cancelUrl: 'https://holoscript.studio/settings?tab=credits&purchase=cancelled',
+        },
+      });
+      expect(sentHeaders(fetchSpy)['X-User-Authorization']).toBe('Bearer ghp_user_token');
+    });
+
+    it("portal asks absorb for Stripe's billing page, which returns to the Credits tab", async () => {
+      const fetchSpy = answering({ url: 'https://billing.stripe.com/p/session/1' });
+      vi.stubGlobal('fetch', fetchSpy);
+
+      const res = await POST(
+        actionReq({ action: 'portal', returnUrl: 'https://evil.example/phish' })
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).url).toBe('https://billing.stripe.com/p/session/1');
+      expect(sentTo(fetchSpy)).toEqual({
+        url: 'https://absorb.test/api/credits/portal',
+        body: { returnUrl: 'https://holoscript.studio/settings?tab=credits' },
+      });
+    });
+
+    it('any other action is a credit purchase, exactly as before', async () => {
+      const fetchSpy = answering({ checkoutUrl: 'https://checkout.stripe.com/c/pay/cs_2' });
+      vi.stubGlobal('fetch', fetchSpy);
+
+      await POST(actionReq({ action: 'refund', packageId: 'starter' }));
+      const { url, body } = sentTo(fetchSpy);
+      expect(url).toBe('https://absorb.test/api/credits/purchase');
+      expect((body as { successUrl: string }).successUrl).toContain('purchase=success');
+    });
+
+    it("passes absorb's refusal through, e.g. an account that already has Studio Pro", async () => {
+      vi.stubGlobal(
+        'fetch',
+        answering(
+          {
+            error: 'Already subscribed',
+            message: 'You already have Studio Pro. You can manage or cancel it from Settings.',
+          },
+          409
+        )
+      );
+
+      const res = await POST(actionReq({ action: 'subscribe' }));
+      expect(res.status).toBe(409);
+      expect((await res.json()).message).toMatch(/already have Studio Pro/);
     });
   });
 
