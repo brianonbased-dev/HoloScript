@@ -18,6 +18,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { handleTool } from '../handlers';
 import { PluginManager } from '../PluginManager';
 import { globalReceiptStore } from '../security/sandbox-policy';
+import { gateMcpTool } from '../security/fork-sandbox-gate';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
 
 const mockSigningCtx: SigningContext = {
@@ -118,14 +119,41 @@ describe('canary: benign fork samples pass the gate', () => {
     },
   };
 
-  it('CANARY-B003: benign HoloScript code through compile_pipeline WITH a verified manifest is allowed', async () => {
-    const result = await callTool('compile_pipeline', {
-      code: BENIGN_HOLO,
-      target: 'node',
-      capabilityManifest: COMPILE_PIPELINE_MANIFEST,
-    });
-    expectAllowed(result);
+  // Nothing signs a capability manifest yet, so its tier is whatever the sender wrote. It
+  // is believed only on the local stdio path; a caller with a context gets its declared
+  // tier read as 'unverified' (task_1790596867936_tyax). Before that fix, B003 passed by
+  // letting a tools:write caller declare its own manifest 'verified'.
+  it('CANARY-B003: a verified manifest is honoured where the declared tier is trusted (the local sender)', async () => {
+    const result = await gateMcpTool(
+      'compile_pipeline',
+      { code: BENIGN_HOLO, target: 'node' },
+      {
+        grantedScopes: ['tools:write'],
+        manifest: COMPILE_PIPELINE_MANIFEST,
+        declaredAttestationTrusted: true,
+      }
+    );
+    expect(result.allowed).toBe(true);
   });
+
+  it.each(['verified', 'gold', 'founder'] as const)(
+    "CANARY-B003-REMOTE: a caller with a context cannot declare its manifest '%s' through handleTool",
+    async (trustTier) => {
+      const result = await callTool('compile_pipeline', {
+        code: BENIGN_HOLO,
+        target: 'node',
+        capabilityManifest: {
+          ...COMPILE_PIPELINE_MANIFEST,
+          attestation: { ...COMPILE_PIPELINE_MANIFEST.attestation, trustTier },
+        },
+      });
+      expectBlocked(result, 'capability_manifest');
+      const checks = (result as { checks: Array<{ name: string; detail?: string }> }).checks;
+      expect(checks.find((c) => c.name === 'capability_manifest')?.detail).toContain(
+        "'unverified' is below required"
+      );
+    }
+  );
 
   it('CANARY-B003-NEG: the same call WITHOUT the manifest is denied at capability_manifest (negative)', async () => {
     const result = await callTool('compile_pipeline', { code: BENIGN_HOLO, target: 'node' });

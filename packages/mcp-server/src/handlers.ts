@@ -339,6 +339,10 @@ export async function handleTool(
       : undefined);
 
   const capabilityManifest = asCapabilityManifest(args.capabilityManifest ?? args.manifest);
+  // A manifest arrives in the caller's own arguments and nothing signs it yet, so its
+  // declared trust tier is believed only on the local stdio path: no caller context and
+  // no external lane (task_1790596867936_tyax). Everyone else's reads as 'unverified'.
+  const declaredAttestationTrusted = !signingCtx && !subjectSourceOverride;
   const gateResult = await runForkSandboxGate(
     {
       kind: 'mcp_tool',
@@ -350,6 +354,7 @@ export async function handleTool(
     {
       toolName: name,
       grantedScopes: effectiveSigningCtx?.scopes ?? [],
+      declaredAttestationTrusted,
     }
   );
   if (!gateResult.allowed) {
@@ -373,6 +378,7 @@ export async function handleTool(
       toolName: name,
       grantedScopes: signingCtx?.scopes ?? [],
       manifest: capabilityManifest,
+      declaredAttestationTrusted,
     });
     if (!codeGate.allowed) {
       return {
