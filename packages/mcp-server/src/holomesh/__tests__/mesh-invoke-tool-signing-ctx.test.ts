@@ -79,12 +79,36 @@ describe('holomesh_invoke_tool runs the target tool as the real caller', () => {
     const manifest = publishLocalWriteFileManifest();
     const target = join(WORK, 'stdio-wrote.txt');
 
-    const res = await invoke(manifest.id, target, undefined);
+    const res = await onTransport('stdio', () => invoke(manifest.id, target, undefined));
 
     expect(res.isError).toBeFalsy();
     expect(existsSync(target)).toBe(true);
   });
+
+  // task mplw: off the stdio server "no signingCtx" is a call that lost its caller inside the
+  // server, not the local user, so the target tool is checked against no scopes.
+  it('over HTTP, no signingCtx is nobody: holo_write_file is refused and nothing is written', async () => {
+    const manifest = publishLocalWriteFileManifest();
+    const target = join(WORK, 'http-nobody.txt');
+
+    const res = await onTransport('http', () => invoke(manifest.id, target, undefined));
+
+    expect(existsSync(target)).toBe(false);
+    expect(res.content?.[0]?.text ?? '').toMatch(/authorization denied|insufficient scope/i);
+  });
 });
+
+/** Run `body` with HOLOSCRIPT_MCP_TRANSPORT set to `transport`, then restore it. */
+async function onTransport<T>(transport: string, body: () => Promise<T>): Promise<T> {
+  const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  process.env.HOLOSCRIPT_MCP_TRANSPORT = transport;
+  try {
+    return await body();
+  } finally {
+    if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+  }
+}
 
 // claude2 (distinct seat, reviewing this exact vector) confirmed against production that
 // gateSecretsBrokerTool's own "no signingCtx -> legacy ungated" branch also matches the

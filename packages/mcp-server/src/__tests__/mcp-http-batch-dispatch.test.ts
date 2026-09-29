@@ -10,6 +10,24 @@ const READ_ONLY_SIGNING_CONTEXT: SigningContext = {
   scopes: ['tools:read'],
 };
 
+// A stateless HTTP caller always arrives with a context (securedToolExecution builds one).
+const READ_WRITE_SIGNING_CONTEXT: SigningContext = {
+  ...READ_ONLY_SIGNING_CONTEXT,
+  scopes: ['tools:read', 'tools:write'],
+};
+
+/** Run `body` with HOLOSCRIPT_MCP_TRANSPORT set to `transport`, then restore it. */
+async function onTransport<T>(transport: string, body: () => Promise<T>): Promise<T> {
+  const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  process.env.HOLOSCRIPT_MCP_TRANSPORT = transport;
+  try {
+    return await body();
+  } finally {
+    if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+  }
+}
+
 function parseBatchResponse(response: unknown): {
   results: Array<{ name: string; ok: boolean; result?: unknown; error?: string }>;
   summary: { total: number; succeeded: number; failed: number; stoppedEarly: boolean };
@@ -25,13 +43,17 @@ describe('stateless HTTP batch_tool_call dispatch parity', () => {
   it('routes parse, validate, and compile through the full advertised tool registry', async () => {
     const code = 'composition "BatchCanary" { object "Cube" { geometry: "cube" } }';
 
-    const response = await _handleSingleToolLogic('batch_tool_call', {
-      calls: [
-        { name: 'parse_hs', args: { code } },
-        { name: 'validate_holoscript', args: { code } },
-        { name: 'compile_holoscript', args: { code, target: 'webgpu' } },
-      ],
-    });
+    const response = await _handleSingleToolLogic(
+      'batch_tool_call',
+      {
+        calls: [
+          { name: 'parse_hs', args: { code } },
+          { name: 'validate_holoscript', args: { code } },
+          { name: 'compile_holoscript', args: { code, target: 'webgpu' } },
+        ],
+      },
+      READ_WRITE_SIGNING_CONTEXT
+    );
 
     expect((response as { isError?: boolean }).isError).not.toBe(true);
 
@@ -87,5 +109,26 @@ describe('stateless HTTP batch_tool_call dispatch parity', () => {
       stoppedEarly: false,
     });
     expect(payload.results[0]).toMatchObject({ name: 'parse_hs', ok: true });
+  });
+
+  // task mplw: a batch that arrives with NO context lost its caller inside the server (off the
+  // stdio server), so each child is checked against no scopes instead of being waved through.
+  it('with no caller context over HTTP, a batch child is refused', async () => {
+    const code = 'composition "NobodyBatch" { object "Cube" { geometry: "cube" } }';
+    const response = await onTransport('http', () =>
+      _handleSingleToolLogic('batch_tool_call', { calls: [{ name: 'parse_hs', args: { code } }] })
+    );
+    const payload = parseBatchResponse(response);
+    expect(payload.summary).toMatchObject({ total: 1, succeeded: 0, failed: 1 });
+    expect(payload.results[0].error).toContain('Batch inner tool authorization denied');
+  });
+
+  it('with no caller context on the stdio server, the batch is the local user and runs', async () => {
+    const code = 'composition "LocalBatch" { object "Cube" { geometry: "cube" } }';
+    const response = await onTransport('stdio', () =>
+      _handleSingleToolLogic('batch_tool_call', { calls: [{ name: 'parse_hs', args: { code } }] })
+    );
+    const payload = parseBatchResponse(response);
+    expect(payload.summary).toMatchObject({ total: 1, succeeded: 1, failed: 0 });
   });
 });

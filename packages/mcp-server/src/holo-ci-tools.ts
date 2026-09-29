@@ -985,7 +985,10 @@ export const holoCiTools: Tool[] = [
  *                     Used only for per-caller spend authorisation — hashed
  *                     before any use, never stored or logged in the clear.
  *                     Pass `undefined` for stdio (local) callers that are
- *                     unconditionally trusted.
+ *                     unconditionally trusted. The registry passes
+ *                     callerPrincipal(signingCtx), which is `undefined` only for
+ *                     that local user; a hosted call with no caller gets
+ *                     NO_CALLER_PRINCIPAL, the restricted tier (task mplw).
  */
 export async function handleHoloCiTool(
   name: string,

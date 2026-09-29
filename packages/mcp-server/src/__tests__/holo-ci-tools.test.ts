@@ -6,6 +6,7 @@ import {
   resetSubmitLedger,
   submitWorkload,
 } from '../holo-ci-tools';
+import { callerPrincipal, NO_CALLER_PRINCIPAL } from '../security/tool-scopes';
 
 const SHA = 'a'.repeat(40);
 const ORCHESTRATOR_ENV_KEYS = [
@@ -497,6 +498,60 @@ describe('holo_ci_dispatch spend authorisation', () => {
       else delete process.env.HOLOCI_SPEND_ALLOWANCES;
       if (prevCap !== undefined) process.env.HOLOCI_DAILY_SUBMIT_CAP = prevCap;
       else delete process.env.HOLOCI_DAILY_SUBMIT_CAP;
+      restoreOrchestratorEnv(env);
+    }
+  });
+});
+
+// task mplw: "no callerToken = unconditionally trusted" is right only for the local stdio user. A
+// hosted call with no caller (no context, or a context with no signer) gets a fixed stand-in
+// identity from callerPrincipal: the restricted tier, never unlimited GPU spend. The registry path
+// is driven end to end in no-caller-principal.test.ts.
+describe('the CI spend identity: no caller is the local user only on the stdio server', () => {
+  const savedTransport = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  afterEach(() => {
+    if (savedTransport === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = savedTransport;
+  });
+
+  it('names the stand-in off the stdio server, nobody-trusted on it, and keeps a real caller', () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    expect(callerPrincipal(undefined)).toBe(NO_CALLER_PRINCIPAL);
+    delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    expect(callerPrincipal(undefined)).toBe(NO_CALLER_PRINCIPAL);
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+    expect(callerPrincipal(undefined)).toBeUndefined();
+    // A caller with a signer keeps it, on any transport. A context with NO signer is nobody:
+    // before round 2 it read as unconditionally trusted.
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    expect(callerPrincipal({ signer: '0xabc' })).toBe('0xabc');
+    expect(callerPrincipal({ signer: null })).toBe(NO_CALLER_PRINCIPAL);
+  });
+
+  it('over HTTP, a context-less full-profile submit meets the restricted tier and is refused', async () => {
+    const env = snapshotOrchestratorEnv();
+    clearOrchestratorEnv(); // no key: nothing could be submitted even if authz passed
+    try {
+      process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+      const res = (await handleHoloCiTool(
+        'holo_ci_dispatch',
+        { sha: SHA, profile: 'full', dryRun: false },
+        callerPrincipal(undefined)
+      )) as { ok: boolean; tierDenied?: boolean };
+      expect(res.ok).toBe(false);
+      expect(res.tierDenied).toBe(true);
+
+      // Control: the local stdio user is still trusted, so the same call passes the spend check
+      // and stops only at the missing key.
+      process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+      const local = (await handleHoloCiTool(
+        'holo_ci_dispatch',
+        { sha: SHA, profile: 'full', dryRun: false },
+        callerPrincipal(undefined)
+      )) as { ok: boolean; tierDenied?: boolean; error?: string };
+      expect(local.tierDenied).toBeUndefined();
+      expect(local.error).toMatch(/not provisioned/i);
+    } finally {
       restoreOrchestratorEnv(env);
     }
   });
