@@ -13,6 +13,7 @@ import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
+import { fetchPublicHttp, type OutboundGuardOptions } from './security/outbound-url-guard';
 
 const DEFAULT_MAX_VIDEO_BYTES = 256 * 1024 * 1024;
 const DEFAULT_FETCH_TIMEOUT_MS = 120_000;
@@ -83,12 +84,30 @@ export function resolveFfmpegBinary(): string {
   return 'ffmpeg';
 }
 
-export async function fetchVideoToTempFile(videoUrl: string): Promise<{
+export interface FetchVideoOptions {
+  /**
+   * An operator (admin scope) or the local stdio process. Only a trusted caller may read a
+   * file: URL or fetch from this host's own network; everyone else gets public http(s) only,
+   * checked on every redirect (task_1790594666743_g1lo). Default false.
+   */
+  trustedCaller?: boolean;
+  /** Test seam for the outbound guard. */
+  guard?: OutboundGuardOptions;
+}
+
+export async function fetchVideoToTempFile(
+  videoUrl: string,
+  opts: FetchVideoOptions = {}
+): Promise<{
   path: string;
   bytes: number;
   sha256Hex: string;
   cleanup: () => Promise<void>;
 }> {
+  const trustedCaller = opts.trustedCaller === true;
+  if (!trustedCaller && videoUrl.trim().toLowerCase().startsWith('file:')) {
+    throw new Error('holo_reconstruct_from_video: refused: a file: URL needs an operator caller');
+  }
   const maxBytes = Number(process.env.HOLOMAP_MCP_MAX_VIDEO_BYTES ?? DEFAULT_MAX_VIDEO_BYTES);
   const timeoutMs = Number(
     process.env.HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS ?? DEFAULT_FETCH_TIMEOUT_MS
@@ -120,7 +139,9 @@ export async function fetchVideoToTempFile(videoUrl: string): Promise<{
   const timer = setTimeout(() => ac.abort(), timeoutMs);
   let res: Response;
   try {
-    res = await fetch(videoUrl, { signal: ac.signal });
+    res = trustedCaller
+      ? await fetch(videoUrl, { signal: ac.signal })
+      : await fetchPublicHttp(videoUrl, { signal: ac.signal }, opts.guard);
   } catch (e) {
     clearTimeout(timer);
     await cleanup();

@@ -113,7 +113,9 @@ describe('holomap mcp tools', () => {
     expect(result.ok).toBe(true);
     expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenLastCalledWith(
       'file:///tmp/public-room-consented.mp4',
-      { ingestVideo: false }
+      { ingestVideo: false },
+      // No caller context was given, so the call is not trusted (task g1lo).
+      { trustedCaller: false }
     );
   });
 
@@ -143,7 +145,8 @@ describe('holomap mcp tools', () => {
     expect(result.captureProfile).toBe('face');
     expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenLastCalledWith(
       'file:///tmp/face.mp4',
-      { ingestVideo: false, captureProfile: 'face' }
+      { ingestVideo: false, captureProfile: 'face' },
+      { trustedCaller: false }
     );
   });
 });
