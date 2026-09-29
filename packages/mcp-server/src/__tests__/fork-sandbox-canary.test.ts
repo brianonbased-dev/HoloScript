@@ -508,4 +508,34 @@ describe('canary: with no caller context, only the stdio server is trusted as ad
     first.scopes!.push('admin:*');
     expect(publicAnonymousContext().scopes).toEqual([]);
   });
+
+  // Why POST /api/public/tool passes this caller instead of none: with no context, a manifest's
+  // self-declared tier is believed (handlers.ts declaredAttestationTrusted; #449 narrows that to
+  // stdio). With the anonymous caller it is read as 'unverified', like any remote caller's.
+  it('CANARY-X007: the anonymous public caller cannot declare its own manifest verified', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const result = await handleTool(
+      'compile_pipeline',
+      {
+        code: BENIGN_HOLO,
+        target: 'node',
+        capabilityManifest: {
+          protocol: 'holoscript.capability.v1',
+          declaredCapabilities: ['compile:pipeline'],
+          attestation: {
+            manifestHash: 'abc',
+            signer: 'anyone',
+            trustTier: 'verified',
+            attestedAt: new Date().toISOString(),
+          },
+        },
+      },
+      publicAnonymousContext()
+    );
+    expectBlocked(result, 'capability_manifest');
+    const checks = (result as { checks: Array<{ name: string; detail?: string }> }).checks;
+    expect(checks.find((c) => c.name === 'capability_manifest')?.detail).toContain(
+      "'unverified' is below required"
+    );
+  });
 });
