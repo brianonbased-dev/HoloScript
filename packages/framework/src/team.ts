@@ -1510,8 +1510,12 @@ export class Team {
         ? relevantKnowledge.map((k) => `[${k.type}] ${k.content}`).join('\n')
         : '';
 
-    // Run the full 7-phase protocol cycle
-    const result = await runProtocolCycle(runtime.config, task, knowledgeContext);
+    // Run the protocol cycle. The team keeps only the summary and insights, so GROW and
+    // EVOLVE would be paid for and dropped (steward decision on #427). Turn them back on
+    // here if something starts using EVOLVE's suggestions.
+    const result = await runProtocolCycle(runtime.config, task, knowledgeContext, {
+      skipGrowAndEvolve: true,
+    });
     return { summary: result.summary, insights: result.insights };
   }
 

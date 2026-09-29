@@ -59,6 +59,15 @@ function lightModel(agentModel: ModelConfig): ModelConfig {
   };
 }
 
+/** Options for one protocol cycle. */
+export interface ProtocolCycleOptions {
+  /**
+   * Skip GROW and EVOLVE (they are recorded as `skipped`, with no model call). For a
+   * caller that keeps only the summary and insights, their answers would go unused.
+   */
+  skipGrowAndEvolve?: boolean;
+}
+
 /** Result of executing a full protocol cycle on a task. */
 export interface ProtocolTaskResult {
   summary: string;
@@ -73,12 +82,18 @@ export class ProtocolAgent extends BaseAgent {
   private agentConfig: AgentConfig;
   private teamKnowledge: string;
   private task: string;
+  private options: ProtocolCycleOptions;
 
-  constructor(agentConfig: AgentConfig, teamKnowledge: string = '') {
+  constructor(
+    agentConfig: AgentConfig,
+    teamKnowledge: string = '',
+    options: ProtocolCycleOptions = {}
+  ) {
     super();
     this.agentConfig = agentConfig;
     this.teamKnowledge = teamKnowledge;
     this.task = '';
+    this.options = options;
 
     this.identity = {
       id: `protocol_${agentConfig.name}`,
@@ -239,6 +254,16 @@ export class ProtocolAgent extends BaseAgent {
   async grow(learnings: unknown): Promise<PhaseResult> {
     const { validated } = learnings as { validated: KnowledgeInsight[]; rawOutput: string };
 
+    if (this.options.skipGrowAndEvolve) {
+      return {
+        phase: ProtocolPhase.GROW,
+        status: 'skipped',
+        data: { patterns: [], validated },
+        durationMs: 0,
+        timestamp: Date.now(),
+      };
+    }
+
     if (validated.length === 0) {
       return {
         phase: ProtocolPhase.GROW,
@@ -273,6 +298,16 @@ export class ProtocolAgent extends BaseAgent {
       patterns: string;
       validated: KnowledgeInsight[];
     };
+
+    if (this.options.skipGrowAndEvolve) {
+      return {
+        phase: ProtocolPhase.EVOLVE,
+        status: 'skipped',
+        data: { suggestions: '' },
+        durationMs: 0,
+        timestamp: Date.now(),
+      };
+    }
 
     if (validated.length === 0) {
       return {
@@ -335,9 +370,10 @@ function parseKnowledgeItems(content: string, domain: string, source: string): K
 export async function runProtocolCycle(
   agentConfig: AgentConfig,
   task: { title: string; description: string },
-  teamKnowledge: string
+  teamKnowledge: string,
+  options: ProtocolCycleOptions = {}
 ): Promise<ProtocolTaskResult> {
-  const agent = new ProtocolAgent(agentConfig, teamKnowledge);
+  const agent = new ProtocolAgent(agentConfig, teamKnowledge, options);
   const start = Date.now();
 
   const cycleResult = await agent.runCycle(task.title, {
