@@ -210,10 +210,33 @@ export interface FlattenedScenes {
   unappliedEnvironments: Array<{ scene: string; appliedFrom: string | null }>;
   /**
    * Scene objects that are not built, because `takenName` (the object's own name,
-   * or the name of an object inside it) gives the same identifier as an object
-   * already in the output. Only filled when the compiler passes `identifierOf`.
+   * the name of an object inside it, or an identifier building it would declare)
+   * gives an identifier something already in the output declares. `takenBy` is
+   * the compiler's plain words for that something ("a light", "the camera");
+   * without it, it is another object. Only filled when the compiler passes
+   * `identifierOf` or `declared`.
    */
-  leftOutObjects: Array<{ scene: string; object: string; takenName: string }>;
+  leftOutObjects: Array<{ scene: string; object: string; takenName: string; takenBy?: string }>;
+}
+
+/**
+ * The identifiers a compiler declares in the one scope it builds objects in,
+ * beyond the one each object's name gives. See {@link flattenCompositionScenes}.
+ */
+export interface DeclaredIdentifiers {
+  /**
+   * Every identifier the compiler declares in that scope when it compiles
+   * `content`, each mapped to plain words for the part that declares it ("a
+   * light", "the camera"). `content` is the composition as it will be compiled,
+   * without the objects scenes add. Called at most once, and only when a scene
+   * has objects to add.
+   */
+  reserved?(content: HoloComposition): ReadonlyMap<string, string>;
+  /**
+   * Every identifier building `obj` declares in that scope, with those of the
+   * objects inside it: its name's own, and any the compiler derives from it.
+   */
+  of?(obj: HoloObjectDecl): string[];
 }
 
 /**
@@ -465,8 +488,13 @@ export function escapeStringValue(value: string, target: EscapeTarget): string {
  * is then not built when it, or an object inside it, would get an identifier that
  * an object already in the output has (two scenes that each have a "Ground", or
  * a scene reusing a top-level name); it is listed in `leftOutObjects` instead of
- * producing output that cannot load. Clashes among the composition's own objects
- * are left alone, so their output stays exactly as before.
+ * producing output that cannot load. Objects are not the only things a compiler
+ * names: one that also declares identifiers for other parts (lights, sounds, the
+ * camera), or derives more than one from an object, passes `declared`, and a
+ * scene object is then also left out when building it would declare one already
+ * declared. Only the compiler knows what it names, so it says; this does not
+ * guess. Clashes among the composition's own content are left alone, so its
+ * output stays exactly as before.
  *
  * A compiler that has somewhere to report writes {@link CompilerBase.sceneWarnings}
  * into its output, so nothing is left out without being named. When no scene adds
@@ -475,7 +503,8 @@ export function escapeStringValue(value: string, target: EscapeTarget): string {
  */
 export function flattenCompositionScenes(
   composition: HoloComposition,
-  identifierOf?: (name: string) => string
+  identifierOf?: (name: string) => string,
+  declared?: DeclaredIdentifiers
 ): FlattenedScenes {
   const scenes = composition.scenes ?? [];
   const unappliedEnvironments: FlattenedScenes['unappliedEnvironments'] = [];
@@ -508,24 +537,48 @@ export function flattenCompositionScenes(
     }
     return into;
   };
-  const taken = new Set<string>();
-  if (identifierOf && scenes.some((scene) => (scene.objects ?? []).length > 0)) {
-    for (const name of namesIn(composition.objects, groupNames(composition.spatialGroups, []))) {
-      taken.add(identifierOf(name));
+  // Each identifier already declared, with the compiler's words for what declares
+  // it (undefined: another object). Filled only when a scene has objects to add.
+  const taken = new Map<string, string | undefined>();
+  const take = (identifier: string, by?: string) => {
+    if (!taken.has(identifier)) taken.set(identifier, by);
+  };
+  const checked = identifierOf !== undefined || declared !== undefined;
+  if (checked && scenes.some((scene) => (scene.objects ?? []).length > 0)) {
+    if (identifierOf) {
+      for (const name of namesIn(composition.objects, groupNames(composition.spatialGroups, []))) {
+        take(identifierOf(name));
+      }
     }
+    const content =
+      environment === composition.environment ? composition : { ...composition, environment };
+    for (const [identifier, by] of declared?.reserved?.(content) ?? []) take(identifier, by);
   }
 
   const sceneObjects: HoloObjectDecl[] = [];
   for (const scene of scenes) {
     for (const obj of scene.objects ?? []) {
-      if (identifierOf) {
-        const names = namesIn([obj], []);
-        const takenName = names.find((name) => taken.has(identifierOf(name)));
-        if (takenName !== undefined) {
-          leftOutObjects.push({ scene: scene.name, object: String(obj.name ?? ''), takenName });
+      if (checked) {
+        // [the name a warning quotes, the identifier it gives]: each name as the
+        // source spells it first, then what the compiler says building it declares.
+        const claims: Array<[string, string]> = [
+          ...(identifierOf
+            ? namesIn([obj], []).map((name): [string, string] => [name, identifierOf(name)])
+            : []),
+          ...(declared?.of?.(obj) ?? []).map((id): [string, string] => [id, id]),
+        ];
+        const clash = claims.find(([, identifier]) => taken.has(identifier));
+        if (clash) {
+          const takenBy = taken.get(clash[1]);
+          leftOutObjects.push({
+            scene: scene.name,
+            object: String(obj.name ?? ''),
+            takenName: clash[0],
+            ...(takenBy === undefined ? {} : { takenBy }),
+          });
           continue;
         }
-        for (const name of names) taken.add(identifierOf(name));
+        for (const [, identifier] of claims) take(identifier);
       }
       sceneObjects.push(obj);
     }
@@ -660,9 +713,10 @@ export abstract class CompilerBase implements ICompiler {
    */
   protected flattenScenes(
     composition: HoloComposition,
-    identifierOf?: (name: string) => string
+    identifierOf?: (name: string) => string,
+    declared?: DeclaredIdentifiers
   ): FlattenedScenes {
-    return flattenCompositionScenes(composition, identifierOf);
+    return flattenCompositionScenes(composition, identifierOf, declared);
   }
 
   /**
@@ -671,8 +725,8 @@ export abstract class CompilerBase implements ICompiler {
    * writes each sentence into its output as a WARNING comment.
    */
   protected sceneWarnings(flattened: FlattenedScenes, target: EscapeTarget): string[] {
-    const quote = (name: string) =>
-      `"${this.escapeStringValue(name.replace(/[\r\n\u2028\u2029]+/g, ' '), target)}"`;
+    const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]+/g, ' ');
+    const quote = (name: string) => `"${this.escapeStringValue(oneLine(name), target)}"`;
     return [
       ...flattened.unappliedEnvironments.map(({ scene, appliedFrom }) => {
         const applied =
@@ -682,8 +736,8 @@ export abstract class CompilerBase implements ICompiler {
         return `the environment in scene ${quote(scene)} is not applied: this output is one world with one environment, and ${applied} applies.`;
       }),
       ...flattened.leftOutObjects.map(
-        ({ scene, object, takenName }) =>
-          `object ${quote(object)} in scene ${quote(scene)} is not built: this output is one world, and another object in it already uses the name ${quote(takenName)}.`
+        ({ scene, object, takenName, takenBy = 'another object' }) =>
+          `object ${quote(object)} in scene ${quote(scene)} is not built: this output is one world, and ${oneLine(takenBy)} in it already uses the name ${quote(takenName)}.`
       ),
     ];
   }

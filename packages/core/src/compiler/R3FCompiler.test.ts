@@ -364,6 +364,24 @@ describe('R3FCompiler.compileComposition — scene blocks', () => {
     ).toBe(2);
   });
 
+  it('leaves no scene object out when a light or a sound has its name, as at the top level', () => {
+    // A node id here is not an identifier in any language, so a light and a sound
+    // named "Ground" take nothing from a scene object "Ground" (unlike in Godot).
+    const parts = `light "Ground" point { intensity: 1 }
+  audio "Ground" { src: "wind.ogg" }`;
+    const ground = `object "Ground" { geometry: "plane" }`;
+    const inScene = compiler.compileComposition(
+      parseClean(`composition "C" {\n  ${parts}\n  scene "Day" {\n    ${ground}\n  }\n}`)
+    );
+    const atTop = compiler.compileComposition(
+      parseClean(`composition "C" {\n  ${parts}\n  ${ground}\n}`)
+    );
+    expect(
+      (inScene.children ?? []).filter((n) => n.type === 'mesh' && n.id === 'Ground')
+    ).toHaveLength(1);
+    expect(treeText(inScene)).toBe(treeText(atTop));
+  });
+
   it('filters scene objects by @platform() the same way as top-level ones', () => {
     const root = new R3FCompiler({ platformTarget: 'androidxr' }).compileComposition(
       parseClean(`composition "Scenes" {

@@ -8,6 +8,7 @@ import {
 import { ResourceType, type AccessDecision } from '../identity/AgentRBAC';
 import { WorkflowStep } from '../identity/AgentIdentity';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+import type { DeclaredIdentifiers } from '../CompilerBase';
 
 // ---------------------------------------------------------------------------
 // Mock getRBAC so we can control checkAccess() per-test
@@ -54,14 +55,15 @@ class TestCompiler extends CompilerBase {
 
   public exposeFlattenScenes(
     composition: HoloComposition,
-    identifierOf?: (name: string) => string
+    identifierOf?: (name: string) => string,
+    declared?: DeclaredIdentifiers
   ) {
-    return this.flattenScenes(composition, identifierOf);
+    return this.flattenScenes(composition, identifierOf, declared);
   }
 
-  public exposeSceneWarnings(composition: HoloComposition) {
+  public exposeSceneWarnings(composition: HoloComposition, declared?: DeclaredIdentifiers) {
     return this.sceneWarnings(
-      this.flattenScenes(composition, (name) => name.replace(/[^a-zA-Z0-9_]/g, '_')),
+      this.flattenScenes(composition, (name) => name.replace(/[^a-zA-Z0-9_]/g, '_'), declared),
       'TypeScript'
     );
   }
@@ -659,6 +661,73 @@ describe('CompilerBase', () => {
       ]);
       // A compiler that passes no identifierOf gets every scene object.
       expect(compiler.exposeFlattenScenes(input).leftOutObjects).toEqual([]);
+    });
+
+    it('also leaves out a scene object that would declare an identifier the compiler says is declared', () => {
+      const input = composition({
+        objects: [obj('Floor')],
+        scenes: [
+          scene('Day', ['Sun', 'Floor_mat', 'Lamp', 'Crate'], '#ffffff'),
+          scene('Night', ['Crate_body']),
+        ],
+      });
+      const contents: HoloComposition[] = [];
+      const flat = compiler.exposeFlattenScenes(input, identifier, {
+        reserved: (content) => {
+          contents.push(content);
+          // A light "Sun", Floor's material, and a light "Lamp_mat".
+          return new Map([
+            ['Sun', 'a light'],
+            ['Floor_mat', 'another object'],
+            ['Lamp_mat', 'a light'],
+          ]);
+        },
+        // Building an object declares its name, and one more derived from it.
+        of: (o) => [o.name, `${o.name}_${o.name === 'Crate' ? 'body' : 'mat'}`],
+      });
+      expect(flat.composition.objects.map((o) => o.name)).toEqual(['Floor', 'Crate']);
+      expect(flat.leftOutObjects).toEqual([
+        { scene: 'Day', object: 'Sun', takenName: 'Sun', takenBy: 'a light' },
+        { scene: 'Day', object: 'Floor_mat', takenName: 'Floor_mat', takenBy: 'another object' },
+        { scene: 'Day', object: 'Lamp', takenName: 'Lamp_mat', takenBy: 'a light' },
+        { scene: 'Night', object: 'Crate_body', takenName: 'Crate_body' },
+      ]);
+      // Crate, a scene object, declared `Crate_body`: another object, so no words.
+      expect(flat.leftOutObjects[3]).not.toHaveProperty('takenBy');
+      // Asked once, about the composition as it will be compiled: its own objects
+      // and the environment that applies (here the first scene's), no scene objects.
+      expect(contents).toHaveLength(1);
+      expect(contents[0].objects.map((o) => o.name)).toEqual(['Floor']);
+      expect(contents[0].environment).toEqual(env('#ffffff'));
+      expect(input.environment).toBeUndefined();
+    });
+
+    it('never asks what the compiler declares when no scene adds an object', () => {
+      const reserved = vi.fn(() => new Map<string, string>());
+      const of = vi.fn(() => []);
+      for (const input of [
+        composition({ objects: [obj('Top')] }),
+        composition({ scenes: [scene('Night', [], '#000033')] }),
+      ]) {
+        compiler.exposeFlattenScenes(input, identifier, { reserved, of });
+      }
+      expect(reserved).not.toHaveBeenCalled();
+      expect(of).not.toHaveBeenCalled();
+    });
+
+    it("says what already uses the name in the compiler's words, on one line", () => {
+      expect(
+        compiler.exposeSceneWarnings(composition({ scenes: [scene('Day', ['Ground', 'cam'])] }), {
+          reserved: () =>
+            new Map([
+              ['Ground', 'a light'],
+              ['cam', `the${String.fromCharCode(10)}camera`],
+            ]),
+        })
+      ).toEqual([
+        'object "Ground" in scene "Day" is not built: this output is one world, and a light in it already uses the name "Ground".',
+        'object "cam" in scene "Day" is not built: this output is one world, and the camera in it already uses the name "cam".',
+      ]);
     });
 
     it('writes one plain, one-line sentence per piece of scene content left out', () => {

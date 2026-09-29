@@ -382,4 +382,25 @@ describe('WebGPUCompiler', () => {
       '// WARNING: object "Ground" in scene "Night" is not built: this output is one world, and another object in it already uses the name "Ground".'
     );
   });
+
+  it('builds a scene object that shares its name with a light or a group: only object names are identifiers here', () => {
+    // A light is an entry in one array, and a group's identifier ends in
+    // `GroupXform`, so neither takes the name from a scene object.
+    const code = compiler.compile(
+      parseClean(`composition "Parts" {
+  light "Ground" point { intensity: 1 }
+  spatial_group "Ground" {
+    object "Lamp" { geometry: "sphere" }
+  }
+  scene "Level" {
+    object "Ground" { geometry: "plane" }
+  }
+}`),
+      'test-token'
+    );
+    expect(code.match(/const GroundVertices =/g)).toHaveLength(1);
+    expect(code.match(/const GroundGroupXform =/g)).toHaveLength(1);
+    expect(code).toContain('rp.setPipeline(GroundPipeline)');
+    expect(code).not.toContain('WARNING');
+  });
 });
