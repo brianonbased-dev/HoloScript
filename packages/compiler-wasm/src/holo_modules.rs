@@ -334,6 +334,10 @@ mod tests {
                 "must state every parameter type and its result type",
             ),
             (
+                format!("{}export function f() {{\n  return true\n}}\n", block("f")),
+                "must state every parameter type and its result type",
+            ),
+            (
                 format!(
                     "@host {{ function: \"f\", authorty: \"tool\", version: 1 }}\n{}",
                     function("f")
@@ -492,6 +496,14 @@ mod tests {
         let wrong_type = "import { manifest_audit_passes } from \"holo:absorb\"\n\nfunction main(): i32 {\n  let n: i32 = manifest_audit_passes()\n  return n\n}\n";
         let (message, ..) = verdict(wrong_type).expect("refused");
         assert!(message.contains("HS-TYPE-ASSIGN-001"), "{message}");
+
+        // The declaration is bound to the name the file uses, so an alias's result is checked.
+        let aliased_type = "import { manifest_audit_passes as audit } from \"holo:absorb\"\n\nfunction main(): i32 {\n  let n: i32 = audit()\n  return n\n}\n";
+        let (message, ..) = verdict(aliased_type).expect("refused");
+        assert!(
+            message.contains("[HS-TYPE-ASSIGN-001] initializer type mismatch for binding `n`: expected `i32`, found `bool`"),
+            "{message}"
+        );
     }
 
     #[test]
@@ -500,6 +512,40 @@ mod tests {
         let (message, line, column) = verdict(untyped).expect("refused");
         assert!(message.contains("[HS-HOST-003] function `check` uses `holo:absorb/manifest_audit_passes` but states no types"), "{message}");
         assert_eq!((line, column), (4, 10), "{message}");
+
+        // Through an alias, and as a value, the same: the check follows the name the file uses.
+        for (source, at) in [
+            ("import { manifest_audit_passes as audit } from \"holo:absorb\"\n\nfunction check() {\n  return audit()\n}\n", (4, 10)),
+            ("import { manifest_audit_passes } from \"holo:absorb\"\n\nfunction check() {\n  let f = manifest_audit_passes\n  return f()\n}\n", (4, 11)),
+        ] {
+            let (message, line, column) = verdict(source).expect(source);
+            assert!(message.contains("[HS-HOST-003] function `check` uses `holo:absorb/manifest_audit_passes` but states no types"), "{message}");
+            assert_eq!((line, column), at, "{message}");
+        }
+
+        // A local of the same name is the local: the capability is not used.
+        assert_eq!(
+            verdict("import { manifest_audit_passes } from \"holo:absorb\"\n\nfunction check() {\n  let manifest_audit_passes = 1\n  return manifest_audit_passes\n}\n"),
+            None
+        );
+    }
+
+    #[test]
+    fn a_capability_is_called_by_name_never_passed_on_as_a_value() {
+        // As a value it could reach code that calls it with nothing checked: here an untyped
+        // function calling it with three arguments, or a parameter that expects a `bool`.
+        for (source, at) in [
+            ("import { manifest_audit_passes } from \"holo:absorb\"\n\nfunction main(): bool {\n  let f = manifest_audit_passes\n  return run(f)\n}\n\nfunction run(g) {\n  return g(1, 2, 3)\n}\n", (4, 11)),
+            ("import { manifest_audit_passes } from \"holo:absorb\"\n\nfunction main(): bool {\n  return keep(manifest_audit_passes)\n}\n\nfunction keep(x: bool): bool {\n  return x\n}\n", (4, 15)),
+            ("import { manifest_audit_passes as audit } from \"holo:absorb\"\n\nfunction main(): bool {\n  let f = audit\n  return true\n}\n", (4, 11)),
+        ] {
+            let (message, line, column) = verdict(source).expect(source);
+            assert!(
+                message.contains("[HS-HOST-003] function `main` uses `holo:absorb/manifest_audit_passes` as a value; a Holo capability is only called by name"),
+                "{message}"
+            );
+            assert_eq!((line, column), at, "{message}");
+        }
     }
 
     #[test]

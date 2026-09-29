@@ -30,7 +30,7 @@ pub(crate) const HIDDEN_NAME: &str = "HS-SCOPE-001";
 /// know, and only a function that states its types calls it.
 pub(crate) const HOST_UNKNOWN_MODULE: &str = "HS-HOST-001";
 pub(crate) const HOST_UNKNOWN_FUNCTION: &str = "HS-HOST-002";
-pub(crate) const HOST_UNTYPED_USE: &str = "HS-HOST-003";
+pub(crate) const HOST_UNCHECKED_USE: &str = "HS-HOST-003";
 pub(crate) const UNKNOWN_BARE_READ: &str = "HS-UNKNOWN-001";
 pub(crate) const UNKNOWN_FALLBACK_FORM: &str = "HS-UNKNOWN-002";
 
@@ -548,10 +548,15 @@ impl TypeChecker {
                 if let Some(binding) = lookup_binding(scopes, &identifier.name) {
                     return Ok(binding.observed_type.clone());
                 }
-                if !self.strict.get() {
-                    if let Some(capability) = self.host_names.get(&identifier.name) {
-                        return Err(self.untyped_host_use(capability, &identifier.loc));
-                    }
+                // A call names its callee directly (the call arm), so a name that reaches here is
+                // a value. A capability is only called: as a value it could be handed to code
+                // that calls it with nothing checked.
+                if let Some(capability) = self.host_names.get(&identifier.name) {
+                    return Err(if self.strict.get() {
+                        self.host_value_use(capability, &identifier.loc)
+                    } else {
+                        self.untyped_host_use(capability, &identifier.loc)
+                    });
                 }
                 if self.strict.get() && !self.is_program_name(&identifier.name) {
                     return Err(self.unknown_name(&identifier.name, &identifier.loc));
@@ -758,7 +763,17 @@ impl TypeChecker {
     fn untyped_host_use(&self, capability: &str, loc: &Option<Location>) -> SemanticDiagnostic {
         diagnostic(
             format!(
-                "[{HOST_UNTYPED_USE}] function `{}` uses `{capability}` but states no types; a Holo capability is called only from a function that states its parameter and result types, where its arguments and result are checked",
+                "[{HOST_UNCHECKED_USE}] function `{}` uses `{capability}` but states no types; a Holo capability is called only from a function that states its parameter and result types, where its arguments and result are checked",
+                self.function_name.borrow()
+            ),
+            loc,
+        )
+    }
+
+    fn host_value_use(&self, capability: &str, loc: &Option<Location>) -> SemanticDiagnostic {
+        diagnostic(
+            format!(
+                "[{HOST_UNCHECKED_USE}] function `{}` uses `{capability}` as a value; a Holo capability is only called by name, where its arguments and result are checked, so it cannot be stored or passed on",
                 self.function_name.borrow()
             ),
             loc,
