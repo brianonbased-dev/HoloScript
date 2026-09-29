@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 import { questProofGuardReason } from './lib/questProofGuards';
-import { classifyApiPath } from './lib/api-public-paths';
+import { callerCredentialRuleFor, classifyApiPath, type ApiAccess } from './lib/api-public-paths';
 import { SESSION_COOKIE_NAMES } from './lib/session-cookie-names';
 
 /** The header the mesh reads a caller key from. */
@@ -136,13 +136,25 @@ async function apiGate(request: NextRequest): Promise<NextResponse | null> {
   if (await hasStudioSession(request)) return null;
 
   return NextResponse.json(
-    {
-      error:
-        'This endpoint needs a caller. Sign in to HoloScript Studio, or send your own API key as "x-mcp-api-key: <your key>".',
-      signInRequired: true,
-    },
+    { error: refusalFor(pathname, method, access), signInRequired: true },
     { status: 401 }
   );
+}
+
+/**
+ * What the refusal tells the caller to do, which must be something this path
+ * accepts. Until 2026-09-28 every path offered `x-mcp-api-key`: a session-only
+ * path accepts no key at all, and /api/brittney reads only its own bk_ keys,
+ * so both sent callers to a header that could not work.
+ */
+function refusalFor(pathname: string, method: string, access: ApiAccess): string {
+  if (access !== 'caller-credential') {
+    return 'This endpoint needs you signed in to HoloScript Studio.';
+  }
+  const credential =
+    callerCredentialRuleFor(pathname, method)?.credential ??
+    'your own API key as "x-mcp-api-key: <your key>"';
+  return `This endpoint needs a caller. Sign in to HoloScript Studio, or send ${credential}.`;
 }
 
 function hasQuestProofIntent(request: NextRequest): boolean {

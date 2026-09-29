@@ -57,7 +57,7 @@ describe('MCP_TOOLS', () => {
     const names = MCP_TOOLS.map((t) => t.function.name);
     expect(names).toContain('absorb_run');
     expect(names).toContain('absorb_query_graph');
-    expect(names).toContain('absorb_code_health');
+    expect(names).toContain('holo_code_health');
     expect(names).toContain('absorb_suggest');
   });
 
@@ -289,8 +289,37 @@ describe('executeMCPTool', () => {
 
     const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const body = JSON.parse(call[1].body as string);
-    expect(body.params.name).toBe('compile_to_target');
+    // compile_holoscript is the name the mcp-server registers; compile_to_target
+    // never existed, and this test used to assert it, which kept the bug green.
+    expect(body.params.name).toBe('compile_holoscript');
     expect(body.params.arguments.target).toBe('r3f');
+  });
+
+  it('holo_compile turns the old "threejs" target into the compiler name "r3f"', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ jsonrpc: '2.0', id: 2, result: { code: '// compiled' } }),
+    });
+    await executeMCPTool('holo_compile', { code: 'composition "S" {}', target: 'threejs' });
+    const body = JSON.parse(
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body as string
+    );
+    expect(body.params.arguments.target).toBe('r3f');
+  });
+
+  it('holo_parse reads a .holo composition with parse_holo, and .hsplus with parse_hs', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ jsonrpc: '2.0', id: 1, result: { ast: {} } }),
+    });
+    await executeMCPTool('holo_parse', { code: '  composition "Garden" { object "Rose" {} }' });
+    await executeMCPTool('holo_parse', { code: 'object "Ball" {}' });
+    const names = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map(
+      (c) => JSON.parse(c[1].body as string).params.name
+    );
+    expect(names).toEqual(['parse_holo', 'parse_hs']);
   });
 
   it('routes absorb_run to Absorb MCP via JSON-RPC', async () => {
@@ -428,7 +457,7 @@ describe('isFounderReservedTool (W.697)', () => {
     expect(isFounderReservedTool('parse_hs')).toBe(false);
     expect(isFounderReservedTool('sim_quote')).toBe(false); // quote is read-only
     expect(isFounderReservedTool('holo_list_traits')).toBe(false);
-    expect(isFounderReservedTool('compile_to_target')).toBe(false);
+    expect(isFounderReservedTool('compile_holoscript')).toBe(false);
     expect(isFounderReservedTool('')).toBe(false);
   });
 });

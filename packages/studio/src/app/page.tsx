@@ -251,7 +251,7 @@ function PromptHero() {
       {/* Sub-CTA row */}
       <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
         <Link
-          href="/start"
+          href="/create?view=chat"
           className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"
         >
           Chat with Brittney

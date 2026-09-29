@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 
-import { STUDIO_COMMAND_REGISTRY, runStudioCommand } from '../commandRegistry';
+import { STUDIO_COMMAND_REGISTRY, openArrivalView, runStudioCommand } from '../commandRegistry';
 import {
   DEFAULT_OPEN_STUDIO_VIEW_IDS,
   STUDIO_VIEW_IDS,
@@ -81,5 +81,56 @@ describe('studio view registry', () => {
     for (const id of DEFAULT_OPEN_STUDIO_VIEW_IDS) {
       expect(STUDIO_VIEW_REGISTRY.find((view) => view.id === id)?.defaultOpen).toBe(true);
     }
+  });
+});
+
+describe('arriving at the Studio from a link', () => {
+  beforeEach(() => {
+    usePanelVisibilityStore.getState().closeAll();
+  });
+
+  // The store opens Brittney's chat by default, and the Studio's own mount
+  // closes it (viewer-first). Both starting states must end the same way.
+  it.each([true, false])(
+    'opens Brittney for ?view=chat whether chat started open (%s) or not',
+    (startedOpen) => {
+      usePanelVisibilityStore.getState().setChatOpen(startedOpen);
+
+      expect(openArrivalView('chat')).toBe(true);
+      expect(usePanelVisibilityStore.getState().chatOpen).toBe(true);
+    }
+  );
+
+  it('lands viewer-first, with the chat dock closed, when the link names no view', () => {
+    usePanelVisibilityStore.getState().setChatOpen(true);
+
+    expect(openArrivalView(null)).toBe(false);
+    expect(usePanelVisibilityStore.getState().chatOpen).toBe(false);
+  });
+
+  it('ignores a name that is not a Studio view', () => {
+    usePanelVisibilityStore.getState().setChatOpen(true);
+
+    expect(openArrivalView('not-a-view')).toBe(false);
+    const state = usePanelVisibilityStore.getState() as unknown as Record<string, boolean>;
+    expect(STUDIO_VIEW_IDS.filter((id) => state[`${id}Open`])).toEqual([]);
+  });
+
+  it('keeps an already-open view open instead of toggling it shut', () => {
+    const other = DEFAULT_OPEN_STUDIO_VIEW_IDS.find((id) => id !== 'chat');
+    expect(other).toBeDefined();
+    usePanelVisibilityStore.setState({ [`${other}Open`]: true });
+
+    expect(openArrivalView(other as string)).toBe(true);
+    expect(
+      (usePanelVisibilityStore.getState() as unknown as Record<string, boolean>)[`${other}Open`]
+    ).toBe(true);
+  });
+
+  it('still honours exclusivity for the view it opens', () => {
+    usePanelVisibilityStore.getState().setShaderEditorOpen(true);
+
+    expect(openArrivalView('timeline')).toBe(true);
+    expect(usePanelVisibilityStore.getState().shaderEditorOpen).toBe(false);
   });
 });
