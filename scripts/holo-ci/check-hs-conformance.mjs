@@ -11,6 +11,13 @@
  *
  * A rejection fails the gate. The allow-list below is the only exception.
  *
+ * It also holds a floor under every tracked `.hs` file (G11, proposals/
+ * HS_Checker_Names_Calls_Returns_v1.md, proof 3): each file listed in
+ * hs-valid-floor.json must stay valid, and the valid files must keep at least
+ * the recorded number of typed functions. Deleting a file's types dodges every
+ * rule that applies only to typed functions, so a drop in that count fails too.
+ * `--update-floor` rewrites the floor from the current tree; review the diff.
+ *
  * Exit codes: 0 pass, 1 a file was rejected (or the gate's own inputs are
  * wrong), 2 the checker could not run at all (no Rust toolchain, or it failed
  * to build). The pre-commit hook words 1 and 2 differently, so a missing
@@ -20,7 +27,7 @@
  *   pnpm check:hs-conformance
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,6 +51,10 @@ function cargoCandidates() {
 }
 
 const ROOTS = ['examples/native', 'distributions/systems/conformance'];
+const FLOOR_PATH = join(repoRoot, 'scripts', 'holo-ci', 'hs-valid-floor.json');
+const FLOOR_DEFINITION =
+  'hs-valid-floor-v1: tracked .hs files validate_detailed accepts; typed = a `function` with a parameter or return type';
+const updateFloor = process.argv.includes('--update-floor');
 
 // Rejections that stay open on purpose. Nothing else belongs here.
 const ALLOW_REJECTION = new Set([
@@ -75,6 +86,79 @@ function collectHsFiles(rootRel) {
   walk(abs);
   found.sort();
   return found;
+}
+
+function trackedHsFiles() {
+  const result = spawnSync('git', ['ls-files', '*.hs'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    throw new Error(`git ls-files failed: ${String(result.stderr || '').trim()}`);
+  }
+  return String(result.stdout).split(/\r?\n/).filter(Boolean).map(toPosix).sort();
+}
+
+/** `function name(...)` headers that state a parameter or return type. */
+function countTypedFunctions(source) {
+  const header = /\bfunction\s+[A-Za-z_]\w*\s*(?:<[^>{]*>)?\s*\(([^)]*)\)\s*(:\s*[^{\n]+)?\{/g;
+  let count = 0;
+  for (const match of source.matchAll(header)) {
+    if (match[1].includes(':') || match[2]) count += 1;
+  }
+  return count;
+}
+
+/**
+ * The floor: every recorded file stays valid, and the valid files keep at least the recorded
+ * number of typed functions. Returns the failures (empty when it holds).
+ */
+function checkFloor(tracked, results) {
+  const valid = tracked.filter((file) => results.get(file)?.valid === true);
+  const typed = valid.reduce(
+    (sum, file) => sum + countTypedFunctions(readFileSync(join(repoRoot, file), 'utf8')),
+    0
+  );
+  if (updateFloor) {
+    writeFileSync(
+      FLOOR_PATH,
+      `${JSON.stringify(
+        { definition: FLOOR_DEFINITION, typedFunctions: typed, validFiles: valid },
+        null,
+        2
+      )}\n`
+    );
+    console.log(
+      `[hs-conformance] floor written: ${valid.length} valid .hs files, ${typed} typed functions`
+    );
+    return [];
+  }
+  if (!existsSync(FLOOR_PATH)) return [`no floor at ${toPosix(relative(repoRoot, FLOOR_PATH))}`];
+  const floor = JSON.parse(readFileSync(FLOOR_PATH, 'utf8'));
+  if (floor.definition !== FLOOR_DEFINITION) {
+    return [`the floor was recorded under another definition (${floor.definition})`];
+  }
+  const failures = [];
+  const trackedSet = new Set(tracked);
+  for (const file of floor.validFiles) {
+    if (!trackedSet.has(file)) continue; // deleted or renamed: the typed count below still holds
+    if (results.get(file)?.valid !== true) {
+      const message = results.get(file)?.errors?.[0]?.message ?? 'rejected with no message';
+      failures.push(`${file} was valid and is now rejected | ${message}`);
+    }
+  }
+  if (typed < floor.typedFunctions) {
+    failures.push(
+      `valid .hs files hold ${typed} typed functions; the floor is ${floor.typedFunctions}. ` +
+        'Removing types dodges the typed-function rules; keep them, or lower the floor with --update-floor and say why'
+    );
+  }
+  console.log(
+    `[hs-conformance] floor ${failures.length ? 'FAILS' : 'holds'}: ${valid.length} valid tracked .hs files ` +
+      `(floor lists ${floor.validFiles.length}), ${typed} typed functions (floor ${floor.typedFunctions})`
+  );
+  return failures;
 }
 
 function runChecker(files) {
@@ -137,8 +221,10 @@ function main() {
   }
 
   let results;
+  let tracked;
   try {
-    results = runChecker(files);
+    tracked = trackedHsFiles();
+    results = runChecker([...new Set([...files, ...tracked])]);
   } catch (error) {
     if (error instanceof CouldNotRun) {
       console.error(`[hs-conformance] COULD NOT RUN — ${error.message}`);
@@ -168,6 +254,13 @@ function main() {
 
   for (const line of allowedRejections) {
     console.log(`[hs-conformance] allow ${line}`);
+  }
+
+  const floorFailures = checkFloor(tracked, results);
+  if (floorFailures.length > 0) {
+    console.error(`[hs-conformance] FAIL — the valid .hs floor does not hold:`);
+    for (const line of floorFailures) console.error(`  ${line}`);
+    process.exit(1);
   }
 
   if (rejected.length > 0) {

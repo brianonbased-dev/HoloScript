@@ -351,7 +351,12 @@ interface Token {
 
 import { VR_TRAITS, LIFECYCLE_HOOKS, STRUCTURAL_DIRECTIVES } from '../constants';
 import { analyzeFunctionRegion, scanHsType } from './hsTypeAnnotation';
-import { checkTypedHsFunction, type RustFunctionDiagnostic } from './hsplusRustTypeCheck';
+import {
+  checkTypedHsFunction,
+  collectHsDocumentContext,
+  type HsDocumentContext,
+  type RustFunctionDiagnostic,
+} from './hsplusRustTypeCheck';
 import { RUNTIME_DIRECTIVE_TRAITS } from '../traits/knownTraitSet';
 import { ChunkDetector } from './ChunkDetector';
 import { ParseCache, globalParseCache } from './ParseCache';
@@ -1158,6 +1163,10 @@ export class HoloScriptPlusParser {
   private pos: number = 0;
   private options: HSPlusParserOptions;
   private source: string = '';
+  /** The whole document when `source` is one piece of it (incremental parsing). */
+  private documentSource: string | null = null;
+  /** What the document declares: given by the caller, or collected at the first typed function. */
+  private documentContext: HsDocumentContext | null = null;
   private errors: RichParseError[] = [];
   private warnings: RichParseError[] = [];
   private blockConfigDirectives: WeakSet<object> = new WeakSet();
@@ -1238,9 +1247,19 @@ export class HoloScriptPlusParser {
     );
   }
 
-  parse(source: string): HSPlusParseResult {
+  /**
+   * Parse `source`. When `source` is one piece of a larger document, pass the whole document as
+   * `options.documentSource`, or what it declares as `options.documentContext` (see
+   * `collectDocumentContext`), so a typed function may call a function declared in another piece.
+   */
+  parse(
+    source: string,
+    options: { documentSource?: string; documentContext?: HsDocumentContext } = {}
+  ): HSPlusParseResult {
     // Reset state
     this.source = source;
+    this.documentSource = options.documentSource ?? null;
+    this.documentContext = options.documentContext ?? null;
     this.errors = [];
     this.warnings = [];
     this.blockConfigDirectives = new WeakSet();
@@ -8183,10 +8202,14 @@ export class HoloScriptPlusParser {
     const anyParamType = paramTypes.some((entry) => entry !== null);
     const functionSource = this.source.slice(startToken.offset, sliceEnd);
     this.reportRustFunctionDiagnostics(
-      checkTypedHsFunction(functionSource, {
-        line: startToken.line,
-        column: startToken.column,
-      })
+      checkTypedHsFunction(
+        functionSource,
+        {
+          line: startToken.line,
+          column: startToken.column,
+        },
+        this.hsDocumentContext()
+      )
     );
 
     const node: HSPlusNode = {
@@ -8207,6 +8230,26 @@ export class HoloScriptPlusParser {
     if (anyParamType) node.paramTypes = paramTypes;
     if (returnType !== undefined) node.returnType = returnType;
     return node;
+  }
+
+  /** What `source` declares, for `parse(piece, { documentContext })`. */
+  collectDocumentContext(source: string): HsDocumentContext {
+    return collectHsDocumentContext(new Lexer(source).tokenize());
+  }
+
+  /**
+   * What the document declares, so the Rust checker, which sees one typed function at a time,
+   * resolves calls to the document's other functions, structs, enums and imports.
+   */
+  private hsDocumentContext(): HsDocumentContext {
+    if (!this.documentContext) {
+      const tokens =
+        this.documentSource !== null && this.documentSource !== this.source
+          ? new Lexer(this.documentSource).tokenize()
+          : this.tokens;
+      this.documentContext = collectHsDocumentContext(tokens);
+    }
+    return this.documentContext;
   }
 
   /** Read the type that follows a colon the caller already consumed. */

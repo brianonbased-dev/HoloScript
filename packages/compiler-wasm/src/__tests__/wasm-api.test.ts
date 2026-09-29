@@ -67,6 +67,13 @@ function createMockWasm(overrides?: Partial<HoloScriptWasmModule>): HoloScriptWa
   };
 }
 
+interface SpecCorpusRow {
+  id: string;
+  source: string;
+  tags: string[];
+  expect: { valid: boolean; diagnostic_includes?: string };
+}
+
 const VALID_UAAL_BYTECODE: UAALWasmBytecode = {
   version: 1,
   instructions: [{ opCode: 0x01, operands: [42] }, { opCode: 0xff }],
@@ -160,6 +167,32 @@ function executeHsNativeViaRust(source: string, executionTimeoutMs = 30000): num
       throw new Error('native decision kernel did not report an exit status');
     }
     return execution.status;
+  } finally {
+    rmSync(scratchDir, { recursive: true, force: true });
+  }
+}
+
+/** `validate_detailed` from the current Rust source, through the `validate_hs` example. */
+function validateHsViaRust(source: string): { valid: boolean; errors: Array<{ message: string }> } {
+  const scratchDir = mkdtempSync(join(tmpdir(), 'holoscript-validate-'));
+  const sourcePath = join(scratchDir, 'case.hs');
+  try {
+    writeFileSync(sourcePath, source, 'utf8');
+    const stdout = execFileSync(
+      resolveCargoCommand(),
+      [
+        'run',
+        '--quiet',
+        '--manifest-path',
+        COMPILER_WASM_MANIFEST,
+        '--example',
+        'validate_hs',
+        '--',
+        sourcePath,
+      ],
+      { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 1024 * 1024 }
+    );
+    return JSON.parse(stdout.trim().split('\t').slice(1).join('\t'));
   } finally {
     rmSync(scratchDir, { recursive: true, force: true });
   }
@@ -653,6 +686,305 @@ function main() {
     expect(result.stackTop).toBe('done');
     expect(result.state.callStack).toEqual([]);
   }, 60000);
+
+  // `countdown` above never reads its parameter after the recursive call, so it cannot tell
+  // per-function slots from per-call frames. These programs do, and must agree with native.
+  it('keeps each recursive call in its own frame, with native parity', async () => {
+    const cases: Array<{ name: string; expected: number; source: string }> = [
+      {
+        name: 'fib(10) reads n after both recursive calls',
+        expected: 55,
+        source: `function fib(n: i32): i32 {
+  if (n < 2) {
+    return n
+  }
+  return fib(n - 1) + fib(n - 2)
+}
+
+function main(): i32 {
+  return fib(10)
+}`,
+      },
+      {
+        name: 'the recursive call runs before the parameter is read',
+        expected: 10,
+        source: `function sum_to(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return sum_to(n - 1) + n
+}
+
+function main(): i32 {
+  return sum_to(4)
+}`,
+      },
+      {
+        name: 'a local declared before the recursive call is read after it',
+        expected: 15,
+        source: `function tri(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  let here: i32 = n
+  let rest: i32 = tri(n - 1)
+  return here + rest
+}
+
+function main(): i32 {
+  return tri(5)
+}`,
+      },
+      {
+        name: 'mutual recursion',
+        expected: 1,
+        source: `function is_even(n: i32): i32 {
+  if (n == 0) {
+    return 1
+  }
+  return is_odd(n - 1)
+}
+
+function is_odd(n: i32): i32 {
+  if (n == 0) {
+    return 0
+  }
+  return is_even(n - 1)
+}
+
+function main(): i32 {
+  return is_even(10)
+}`,
+      },
+      {
+        name: 'three-way mutual recursion reading n after each call',
+        expected: 51,
+        source: `function a(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return b(n - 1) + n
+}
+
+function b(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return c(n - 1) + n * 2
+}
+
+function c(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return a(n - 1) + n * 3
+}
+
+function main(): i32 {
+  return a(7)
+}`,
+      },
+      {
+        name: 'a recursive call nested in the arguments of a returned one',
+        expected: 9,
+        source: `function ack(m: i32, n: i32): i32 {
+  if (m == 0) {
+    return n + 1
+  }
+  if (n == 0) {
+    return ack(m - 1, 1)
+  }
+  return ack(m - 1, ack(m, n - 1))
+}
+
+function main(): i32 {
+  return ack(2, 3)
+}`,
+      },
+      {
+        name: 'a 900-deep returned call keeps a flat operand stack',
+        expected: 242595150,
+        source: `function walk(i: i32, n: i32, acc: i32): i32 {
+  if (i >= n) {
+    return acc
+  }
+  let sq: i32 = i * i
+  let next: i32 = acc + sq
+  return walk(i + 1, n, next)
+}
+
+function main(): i32 {
+  return walk(0, 900, 0)
+}`,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const vm = new UAALVirtualMachine();
+      registerHsI32BinaryHandler(vm);
+      const result = await vm.execute(compileHsToUaalViaRust(testCase.source));
+
+      expect(result.taskStatus, testCase.name).toBe('HALTED');
+      expect(result.stackTop, testCase.name).toBe(testCase.expected);
+      expect(result.state.callStack, testCase.name).toEqual([]);
+      expect(executeHsNativeViaRust(testCase.source), testCase.name).toBe(testCase.expected);
+    }
+  }, 240000);
+
+  // Native refuses statement calls (hs-machine-v5), so these values are computed by hand.
+  it('discards the value of a statement call so recursive frames stay balanced', async () => {
+    const cases: Array<{ name: string; expected: number; source: string }> = [
+      {
+        name: 'a helper called as a statement before the recursive call',
+        expected: 6,
+        source: `function note(x: i32): i32 {
+  return x
+}
+
+function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  note(n)
+  return f(n - 1) + n
+}
+
+function main(): i32 {
+  return f(3)
+}`,
+      },
+      {
+        name: 'the recursive call itself used as a statement',
+        expected: 3,
+        source: `function f(n: i32): i32 {
+  if (n > 0) {
+    f(n - 1)
+  }
+  return n
+}
+
+function main(): i32 {
+  return f(3)
+}`,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const vm = new UAALVirtualMachine();
+      registerHsI32BinaryHandler(vm);
+      const result = await vm.execute(compileHsToUaalViaRust(testCase.source));
+
+      expect(result.taskStatus, testCase.name).toBe('HALTED');
+      expect(result.stackTop, testCase.name).toBe(testCase.expected);
+      expect(result.state.callStack, testCase.name).toEqual([]);
+    }
+  }, 120000);
+
+  it('refuses what native refuses instead of returning a different value', () => {
+    expect(() =>
+      compileHsToUaalViaRust(`function f(n: i32) {
+  if (n == 0) {
+    return
+  }
+  return f(n - 1)
+}
+
+function main() {
+  return f(3)
+}`)
+    ).toThrow('HS-UAAL-CAP-007');
+
+    expect(() =>
+      compileHsToUaalViaRust(`function g(n: i32) {
+  let x: i32 = n
+}
+
+function main(): i32 {
+  return g(1)
+}`)
+    ).toThrow('never returns a value');
+
+    // compile_to_uaal runs the checker first. In typed functions the checker now refuses these
+    // three itself (G11), with its codes, before the emitter's own guards are reached.
+    expect(() =>
+      compileHsToUaalViaRust(`function main(): i32 {
+  let x: i32 = 1
+  if (true) {
+    let x: i32 = 2
+  }
+  return x
+}`)
+    ).toThrow('HS-SCOPE-001');
+
+    expect(() =>
+      compileHsToUaalViaRust(`function main(): i32 {
+  if (true) {
+    let t: i32 = 7
+  }
+  return t
+}`)
+    ).toThrow('HS-NAME-001');
+
+    expect(() =>
+      compileHsToUaalViaRust(`function f(x: i32): i32 {
+  if (x > 0) {
+    return 1
+  }
+}
+
+function main(): i32 {
+  return f(0)
+}`)
+    ).toThrow('HS-RETURN-002');
+  }, 60000);
+
+  it('refuses every G11 corpus case in the checker, the native compiler and compile_to_uaal', () => {
+    const corpus = readFileSync(
+      resolve(REPO_ROOT, 'packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl'),
+      'utf8'
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as SpecCorpusRow)
+      .filter((row) => row.tags.includes('g11') && row.expect.valid === false);
+
+    // The reason native gives for each case. Native stops at the `var` counter of the `break`
+    // case before it reaches `break`; the loop below isolates `break` itself.
+    const nativeReason: Record<string, RegExp> = {
+      'g11-unknown-local-001': /references unknown local `y`/,
+      'g11-unknown-function-002': /calls unknown function `g`/,
+      'g11-arity-003': /call to `add` expects 2 arguments, found 1/,
+      'g11-missing-return-004': /function `f` has no return statement/,
+      'g11-return-one-path-005': /function `f` has no return statement/,
+      'g11-break-identifier-007': /local `i` must be immutable/,
+      'g11-use-after-block-009': /references unknown local `t`/,
+      'g11-hidden-name-010': /redeclares binding `x`/,
+    };
+    expect(corpus.map((row) => row.id).sort()).toEqual(Object.keys(nativeReason).sort());
+
+    for (const row of corpus) {
+      const code = row.expect.diagnostic_includes!;
+      const checker = validateHsViaRust(row.source);
+      expect(checker.valid, row.id).toBe(false);
+      expect(checker.errors[0]?.message, row.id).toContain(code);
+
+      // A native executable needs `main`; the case's own function is still compiled.
+      const program = /function main\s*\(/.test(row.source)
+        ? row.source
+        : `${row.source}\n\nfunction main(): i32 {\n  return 0\n}\n`;
+      expect(() => executeHsNativeViaRust(program), row.id).toThrow(nativeReason[row.id]);
+      expect(() => compileHsToUaalViaRust(program), row.id).toThrow(code);
+    }
+
+    // `break` alone: native compiles the loop without it and refuses the loop with it.
+    const loop = (body: string) =>
+      `function main(): i32 {\n  let i: i32 = 3\n  while (i > 5) {\n${body}  }\n  return i\n}\n`;
+    expect(executeHsNativeViaRust(loop('    return 1\n'))).toBe(3);
+    expect(() => executeHsNativeViaRust(loop('    break\n'))).toThrow(
+      /supports only typed immutable locals/
+    );
+    expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
+  }, 600000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {
     const source = readFileSync(THREE_SURFACE_POLICY_PATH, 'utf8');

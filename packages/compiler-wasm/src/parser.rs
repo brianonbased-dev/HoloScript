@@ -2175,6 +2175,7 @@ impl Parser {
     }
 
     fn parse_call_expression(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
         let mut expr = self.parse_member_expression()?;
 
         while self.check(TokenType::LParen) {
@@ -2193,7 +2194,7 @@ impl Parser {
             expr = AstNode::CallExpression(CallExpression {
                 callee: Box::new(expr),
                 arguments,
-                loc: None,
+                loc: Some(self.location_from(start_loc.clone())),
             });
         }
 
@@ -2266,10 +2267,11 @@ impl Parser {
                 Ok(AstNode::Null(NullLiteral { loc: None }))
             }
             TokenType::Identifier | TokenType::Move => {
+                let start_loc = self.current_location();
                 self.advance();
                 Ok(AstNode::Identifier(IdentifierNode {
                     name: token.value,
-                    loc: None,
+                    loc: Some(self.location_from(start_loc)),
                 }))
             }
             TokenType::LBracket => self.parse_array(),
@@ -2304,8 +2306,12 @@ impl Parser {
             | TokenType::Environment
                 if self.lenient_statements =>
             {
+                let start_loc = self.current_location();
                 let name = self.advance().value.clone();
-                Ok(AstNode::Identifier(IdentifierNode { name, loc: None }))
+                Ok(AstNode::Identifier(IdentifierNode {
+                    name,
+                    loc: Some(self.location_from(start_loc)),
+                }))
             }
             _ => Err(self.error(&format!("Unexpected token: {:?}", token.token_type))),
         }
@@ -2499,6 +2505,7 @@ impl Parser {
     /// mutable-counter ceremony, and keeps a pure loop pure (the loop variable is a fresh binding,
     /// per the functional-core doctrine in MEMORY W.815).
     fn parse_for_statement(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
         self.advance(); // consume 'for'
         self.expect(TokenType::LParen)?;
 
@@ -2519,7 +2526,7 @@ impl Parser {
             var_name,
             range: Box::new(range),
             body,
-            loc: None,
+            loc: Some(self.location_from(start_loc)),
         }))
     }
 
@@ -2544,6 +2551,7 @@ impl Parser {
     }
 
     fn parse_return_statement(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
         self.advance(); // consume 'return'
 
         let argument = if !self.check(TokenType::RBrace) && !self.is_at_end() {
@@ -2554,13 +2562,14 @@ impl Parser {
 
         Ok(AstNode::Return(ReturnNode {
             argument,
-            loc: None,
+            loc: Some(self.location_from(start_loc)),
         }))
     }
 
     fn parse_variable_declaration(&mut self) -> Result<AstNode, ParseError> {
         // `var` opts into LOCAL mutable state (functional-core: the mutation never escapes the
         // function — see MEMORY W.815); `let`/`const` are single-assignment (immutable `val`).
+        let start_loc = self.current_location();
         let mutable = self.check(TokenType::Var);
         self.advance(); // consume const/let/var
         let name = self.expect_identifier()?;
@@ -2588,11 +2597,12 @@ impl Parser {
             type_annotation,
             value: Box::new(value),
             mutable,
-            loc: None,
+            loc: Some(self.location_from(start_loc)),
         }))
     }
 
     fn parse_stack_slot_declaration(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
         self.advance(); // consume contextual `slot` keyword
         let name = self.expect_identifier()?;
         self.expect(TokenType::Colon)?;
@@ -2604,7 +2614,7 @@ impl Parser {
             name,
             type_annotation,
             value: Box::new(value),
-            loc: None,
+            loc: Some(self.location_from(start_loc)),
         }))
     }
 
@@ -2613,6 +2623,7 @@ impl Parser {
     /// statement (`x = expr`, `acc += 1`). Assignment to a previously-declared `var` is how the
     /// `.hs` logic subset expresses LOCAL mutable state (e.g. an accumulator inside a pure loop).
     fn parse_expression_statement(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
         let expr = self.parse_expression()?;
         let op = match self.peek().token_type {
             TokenType::Equals => Some("="),
@@ -2630,7 +2641,7 @@ impl Parser {
                 operator: op.to_string(),
                 target: Box::new(expr),
                 value: Box::new(value),
-                loc: None,
+                loc: Some(self.location_from(start_loc)),
             }));
         }
         Ok(expr)

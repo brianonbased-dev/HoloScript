@@ -69,8 +69,11 @@ compiler backends, policy-gated I/O, and provenance machinery. Coverage differs 
 target. A checked-in product tracer now executes one causal
 `.holo → .hsplus → .hs → .holo` path and returns a construct-level semantic-closure receipt;
 the `.hs` policy executes both natively and on the cognitive VM. This is a demonstrated bounded
-subset, not general language closure. Direct whole-document `.hsplus` lowering, recursive
-parameter-frame semantics, broader native/VM coverage, a stable memory/ABI model, and
+subset, not general language closure. As measured on 2026-09-28, the links between the three
+files in that tracer are made by the gate script rather than by `.holo` imports or any language
+construct ([G20](./spec-vs-reality-gap.md#g20--the-three-surface-closure-is-made-by-the-gate-not-the-language)).
+Direct whole-document `.hsplus` lowering, recursive parameter-frame semantics (including `.hs`
+recursion on the cognitive VM, G10), broader native/VM coverage, a stable memory/ABI model, and
 self-hosting are not yet closed.
 
 Therefore:

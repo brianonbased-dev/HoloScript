@@ -89,7 +89,8 @@ function normalizeDiagnostic(
     message,
     line: positiveNumber(value.line) ?? positiveNumber(location?.line),
     column: positiveNumber(value.column) ?? positiveNumber(location?.column),
-    code: optionalString(value.code),
+    // The Rust checker writes its code in brackets at the start of the message.
+    code: optionalString(value.code) ?? message.match(/\[(HS-[A-Z0-9]+(?:-[A-Z0-9]+)*)\]/)?.[1],
     suggestion: optionalString(value.suggestion),
   };
 }

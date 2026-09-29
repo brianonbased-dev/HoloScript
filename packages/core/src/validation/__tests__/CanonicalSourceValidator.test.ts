@@ -120,6 +120,22 @@ describe('canonical source diagnostic routing', () => {
     });
   });
 
+  it("carries the Rust checker's bracketed code as the diagnostic code", () => {
+    const result = validateCanonicalSource(
+      { fileName: 'logic.hs', source: 'function f(): i32 {\n  return y\n}' },
+      {
+        validateHsDetailed: () =>
+          JSON.stringify({
+            valid: false,
+            errors: [
+              { message: '[HS-NAME-001] unknown name `y` in function `f`', line: 2, column: 10 },
+            ],
+          }),
+      }
+    );
+    expect(result.errors[0]).toMatchObject({ code: 'HS-NAME-001', line: 2, column: 10 });
+  });
+
   it('fails closed when the .hs authority is missing or violates its contract', () => {
     const unavailable = validateCanonicalSource({
       fileName: 'logic.hs',

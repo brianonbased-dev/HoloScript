@@ -162,8 +162,71 @@ pub fn validate(source: &str) -> bool {
 /// Get detailed validation results as JSON.
 #[wasm_bindgen]
 pub fn validate_detailed(source: &str) -> String {
+    validate_detailed_with(source, &semantic_types::ExternalDeclarations::default())
+}
+
+/// [`validate_detailed`] for source lifted out of a larger document, the way the `.hsplus` reader
+/// checks each typed function on its own. `context_json` names what the document declares, so a
+/// use of it resolves: `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"]}`.
+/// `functions` are the document's functions; one listed without `arity` resolves by name and its
+/// argument count is not checked. `names` are its structs, enums and imports. Both are optional.
+/// A context that is not that JSON is refused rather than ignored.
+#[wasm_bindgen]
+pub fn validate_detailed_in_context(source: &str, context_json: &str) -> String {
+    match parse_check_context(context_json) {
+        Ok(external) => validate_detailed_with(source, &external),
+        Err(message) => serde_json::to_string(&serde_json::json!({
+            "valid": false,
+            "errors": [{ "message": message, "line": 0, "column": 0 }]
+        }))
+        .unwrap_or_else(|_| r#"{"valid": false, "errors": []}"#.to_string()),
+    }
+}
+
+/// Read the context through `serde_json::Value`, which the crate already ships, instead of a
+/// derived deserializer: a derived one added about 42 KB to the WASM for this one small shape.
+fn parse_check_context(
+    context_json: &str,
+) -> Result<semantic_types::ExternalDeclarations, String> {
+    const SHAPE: &str = r#"validate_detailed_in_context: the context must be {"functions":[{"name":"...","arity":N}],"names":["..."]}"#;
+    let value: serde_json::Value =
+        serde_json::from_str(context_json).map_err(|error| format!("{SHAPE} ({error})"))?;
+    let object = value.as_object().ok_or_else(|| SHAPE.to_string())?;
+    let mut external = semantic_types::ExternalDeclarations::default();
+    if let Some(names) = object.get("names") {
+        for name in names.as_array().ok_or_else(|| SHAPE.to_string())? {
+            let name = name.as_str().ok_or_else(|| SHAPE.to_string())?;
+            external.names.insert(name.to_string());
+        }
+    }
+    let Some(functions) = object.get("functions") else {
+        return Ok(external);
+    };
+    for function in functions.as_array().ok_or_else(|| SHAPE.to_string())? {
+        let name = function
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| SHAPE.to_string())?;
+        let arity = match function.get("arity") {
+            None | Some(serde_json::Value::Null) => None,
+            Some(arity) => Some(
+                arity
+                    .as_u64()
+                    .and_then(|count| usize::try_from(count).ok())
+                    .ok_or_else(|| SHAPE.to_string())?,
+            ),
+        };
+        external.functions.insert(name.to_string(), arity);
+    }
+    Ok(external)
+}
+
+fn validate_detailed_with(
+    source: &str,
+    external: &semantic_types::ExternalDeclarations,
+) -> String {
     match parser::Parser::new(source).parse() {
-        Ok(ast) => match kotlin_emit::check_semantics(&ast) {
+        Ok(ast) => match kotlin_emit::check_semantics_with(&ast, external) {
             Ok(()) => r#"{"valid": true, "errors": []}"#.to_string(),
             Err(error) => serde_json::to_string(&serde_json::json!({
                 "valid": false,
@@ -619,6 +682,56 @@ function main(): any { return identity(true) }"#;
         assert!(result.contains("[HS-TYPE-ASSIGN-001]"), "{result}");
         assert!(result.contains("binding `decision`"), "{result}");
         assert!(result.contains("expected `i32`, found `bool`"), "{result}");
+    }
+
+    #[test]
+    fn test_validate_detailed_in_context_resolves_document_functions() {
+        let fragment = "function outer(a: i32): i32 {\n  return sibling(a, 1)\n}";
+
+        // Alone, the sibling is an unknown function, reported where the call is.
+        let alone = validate_detailed(fragment);
+        assert!(alone.contains("[HS-NAME-002]"), "{alone}");
+        assert!(alone.contains("\"line\":2"), "{alone}");
+
+        let resolved = validate_detailed_in_context(
+            fragment,
+            r#"{"functions":[{"name":"sibling","arity":2}]}"#,
+        );
+        assert!(resolved.contains("\"valid\": true"), "{resolved}");
+
+        let arity = validate_detailed_in_context(
+            fragment,
+            r#"{"functions":[{"name":"sibling","arity":3}]}"#,
+        );
+        assert!(arity.contains("[HS-ARITY-001]"), "{arity}");
+
+        let unnumbered =
+            validate_detailed_in_context(fragment, r#"{"functions":[{"name":"sibling"}]}"#);
+        assert!(unnumbered.contains("\"valid\": true"), "{unnumbered}");
+
+        // Structs, enums and imports of the document resolve through `names`.
+        let constructs = "function make(): i32 {\n  slot packet: Packet = Packet(1)\n  return load(packet.code)\n}";
+        let unknown_struct = validate_detailed(constructs);
+        assert!(unknown_struct.contains("[HS-NAME-002]"), "{unknown_struct}");
+        let named = validate_detailed_in_context(constructs, r#"{"names":["Packet"]}"#);
+        assert!(named.contains("\"valid\": true"), "{named}");
+
+        for malformed in [
+            "",
+            "[]",
+            r#"{"functions":{}}"#,
+            r#"{"functions":[{"arity":2}]}"#,
+            r#"{"functions":[{"name":"sibling","arity":-1}]}"#,
+            r#"{"names":"Packet"}"#,
+            r#"{"names":[7]}"#,
+        ] {
+            let refused = validate_detailed_in_context(fragment, malformed);
+            assert!(refused.contains("\"valid\":false"), "{malformed} => {refused}");
+            assert!(
+                refused.contains("the context must be"),
+                "{malformed} => {refused}"
+            );
+        }
     }
 
     #[test]

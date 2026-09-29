@@ -9,7 +9,7 @@
 import { createRequire } from 'node:module';
 
 export interface RustFunctionDiagnostic {
-  /** `HS-TYPE-*` when the Rust checker emitted one; otherwise the Rust sentence. */
+  /** The `HS-*` code when the Rust checker emitted one (`HS-TYPE-RETURN-001`, `HS-NAME-001`, ...). */
   code: string;
   /** The Rust diagnostic sentence, unchanged. */
   message: string;
@@ -19,6 +19,214 @@ export interface RustFunctionDiagnostic {
 
 interface WasmValidate {
   validate_detailed(source: string): string;
+  /** Present from the build that added names, calls and returns (G11). */
+  validate_detailed_in_context?: (source: string, contextJson: string) => string;
+}
+
+/**
+ * What the document around a typed function declares. The Rust checker sees one function at a
+ * time, so without this a call to a sibling function would read as an unknown function.
+ */
+export interface HsDocumentContext {
+  /** Every `function` in the document. `arity` is left out when it is not a plain count. */
+  functions: Array<{ name: string; arity?: number }>;
+  /** Structs, enums and imported names. */
+  names: string[];
+}
+
+/** The fields of a `.hsplus` token that {@link collectHsDocumentContext} reads. */
+export interface HsContextToken {
+  type: string;
+  value: string;
+}
+
+/** The closer each opener waits for. `<` counts only while its `>` comes before the next closer. */
+const CLOSER_OF: Record<string, string> = {
+  LPAREN: 'RPAREN',
+  LBRACKET: 'RBRACKET',
+  LBRACE: 'RBRACE',
+  LESS_THAN: 'GREATER_THAN',
+};
+const SKIPPED = new Set(['COMMENT', 'INDENT', 'DEDENT']);
+const WORD = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const NOT_NAME_TYPES = new Set(['STRING', 'NUMBER', 'TEMPLATE_STRING']);
+/** Literal words to both readers. `none` is not one: the Rust reader takes it as a name. */
+const LITERAL_WORDS = new Set(['true', 'false', 'null']);
+
+/**
+ * A word the Rust reader takes as a name. The `.hsplus` lexer gives some words their own token
+ * type (`state`, `transition`, `match`, `assert`, `none`, ...); they are still names to the
+ * checker.
+ */
+function isName(token: HsContextToken | undefined): token is HsContextToken {
+  return (
+    !!token &&
+    !NOT_NAME_TYPES.has(token.type) &&
+    !LITERAL_WORDS.has(token.value) &&
+    WORD.test(token.value)
+  );
+}
+
+/**
+ * Parameter count of the list that opens at `list[open]` (an `LPAREN`), or `undefined` when it is
+ * not a plain count: a parameter has a default, an optional mark or a spread, or the list does
+ * not close cleanly. Counts top-level commas, so a parameter the lexer reads oddly (a keyword
+ * name, a dropped `&`) still counts once.
+ */
+function parameterCount(list: ReadonlyArray<HsContextToken>, open: number): number | undefined {
+  const waiting: string[] = [];
+  let commas = 0;
+  let sawParameter = false;
+  let endsWithComma = false;
+  let exact = true;
+  for (let j = open + 1; j < list.length; j++) {
+    const part = list[j];
+    if (part.type === 'NEWLINE') continue;
+    const closer = CLOSER_OF[part.type];
+    if (closer) {
+      waiting.push(closer);
+      sawParameter = true;
+      endsWithComma = false;
+      continue;
+    }
+    if (part.type === 'GREATER_THAN') {
+      // Closes a generic `<`; with no `<` waiting it is a comparison.
+      if (waiting[waiting.length - 1] === 'GREATER_THAN') waiting.pop();
+      continue;
+    }
+    if (part.type === 'RPAREN' || part.type === 'RBRACKET' || part.type === 'RBRACE') {
+      // A `<` still waiting at a closer was a comparison, not a generic.
+      while (waiting[waiting.length - 1] === 'GREATER_THAN') waiting.pop();
+      if (waiting.length === 0) {
+        if (part.type !== 'RPAREN') return undefined;
+        if (!exact) return undefined;
+        return sawParameter ? commas + (endsWithComma ? 0 : 1) : 0;
+      }
+      if (waiting[waiting.length - 1] !== part.type) return undefined;
+      waiting.pop();
+      continue;
+    }
+    if (waiting.length === 0 && part.type === 'COMMA') {
+      commas++;
+      endsWithComma = true;
+      continue;
+    }
+    sawParameter = true;
+    endsWithComma = false;
+    if (
+      waiting.length === 0 &&
+      (part.type === 'EQUALS' || part.type === 'QUESTION' || part.type === 'SPREAD')
+    ) {
+      exact = false;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Names an import binds, in the forms the `.hsplus` reader accepts after `@import` or `import`:
+ * `{ A, B as C } from "p"` binds `A` and `C`; `* as NS from "p"` binds `NS`; `"p" as X` binds
+ * `X`; `"p"` alone binds the file's name without its extension; `X from "p"` binds `X`.
+ * `@import(...)` is a directive with parameters and binds nothing.
+ */
+function importedNames(list: ReadonlyArray<HsContextToken>, at: number, names: Set<string>): void {
+  let j = at + 1;
+  const first = list[j];
+  if (!first || first.type === 'LPAREN' || first.type === 'NEWLINE') return;
+  if (first.type === 'LBRACE') {
+    for (j += 1; j < list.length && list[j].type !== 'RBRACE'; j++) {
+      const part = list[j];
+      if (!isName(part) || part.value === 'as' || part.value === 'type') continue;
+      if (list[j + 1]?.value === 'as') continue; // `a as b` binds `b`
+      names.add(part.value);
+    }
+    return;
+  }
+  let alias: string | undefined;
+  let leading: string | undefined;
+  let path: string | undefined;
+  for (; j < list.length && list[j].type !== 'NEWLINE'; j++) {
+    const part = list[j];
+    if (part.type === 'STRING') {
+      path = part.value;
+      continue;
+    }
+    if (!isName(part)) continue;
+    if (part.value === 'as') {
+      if (isName(list[j + 1])) alias = list[++j].value;
+      continue;
+    }
+    if (part.value !== 'from' && leading === undefined && path === undefined) leading = part.value;
+  }
+  const fromPath = path
+    ?.split('/')
+    .pop()
+    ?.replace(/\.[^.]+$/, '');
+  const bound = alias ?? leading ?? fromPath;
+  if (bound) names.add(bound);
+}
+
+/**
+ * Collect the document's functions (with their parameter counts), structs, enums and imported
+ * names from its tokens. Declarations anywhere in the document count, nested ones included. A
+ * function is listed without an arity when its count is not plain (see `parameterCount`) or it
+ * is declared twice with different counts.
+ */
+export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>): HsDocumentContext {
+  const list = tokens.filter((token) => !SKIPPED.has(token.type));
+  const arities = new Map<string, number | undefined>();
+  const names = new Set<string>();
+  const nextIndex = (index: number): number => {
+    let j = index + 1;
+    while (list[j]?.type === 'NEWLINE') j++;
+    return j;
+  };
+
+  for (let i = 0; i < list.length; i++) {
+    const token = list[i];
+    if (!isName(token)) continue;
+    let before = i - 1;
+    while (before >= 0 && list[before].type === 'NEWLINE') before--;
+    const previous = list[before];
+    // `x.function` is a member, not a declaration; after `@` only `@import` declares.
+    if (previous && (previous.type === 'DOT' || previous.type === 'OPTIONAL_DOT')) continue;
+    if (previous?.type === 'AT' && token.value !== 'import') continue;
+
+    if (token.value === 'struct' || token.value === 'enum') {
+      const nameToken = list[nextIndex(i)];
+      if (isName(nameToken)) names.add(nameToken.value);
+      continue;
+    }
+    if (token.value === 'import') {
+      importedNames(list, i, names);
+      continue;
+    }
+    if (token.value !== 'function') continue;
+
+    let j = nextIndex(i);
+    const nameToken = list[j];
+    if (!nameToken || !(nameToken.type === 'STRING' || isName(nameToken))) continue;
+    j = nextIndex(j);
+    if (
+      list[j]?.type === 'LESS_THAN' &&
+      list[nextIndex(j)]?.type === 'LIFETIME' &&
+      list[nextIndex(nextIndex(j))]?.type === 'GREATER_THAN'
+    ) {
+      j = nextIndex(nextIndex(nextIndex(j)));
+    }
+    if (list[j]?.type !== 'LPAREN') continue;
+
+    const name = nameToken.value;
+    const arity = parameterCount(list, j);
+    arities.set(name, arities.has(name) && arities.get(name) !== arity ? undefined : arity);
+  }
+
+  return {
+    functions: [...arities].map(([name, arity]) =>
+      arity === undefined ? { name } : { name, arity }
+    ),
+    names: [...names],
+  };
 }
 
 interface ValidateJson {
@@ -61,11 +269,21 @@ function loadChecker(): WasmValidate | null {
     // and that package publishes pkg-node behind the "./node" export.
     const require = createRequire(import.meta.url);
     const resolved = require.resolve(WASM_NODE_SPECIFIER);
-    const loaded = require(resolved) as { validate_detailed?: unknown };
+    const loaded = require(resolved) as {
+      validate_detailed?: unknown;
+      validate_detailed_in_context?: unknown;
+    };
     if (typeof loaded.validate_detailed === 'function') {
       checker = {
-        validate_detailed: loaded.validate_detailed.bind(loaded) as WasmValidate['validate_detailed'],
+        validate_detailed: loaded.validate_detailed.bind(
+          loaded
+        ) as WasmValidate['validate_detailed'],
       };
+      if (typeof loaded.validate_detailed_in_context === 'function') {
+        checker.validate_detailed_in_context = loaded.validate_detailed_in_context.bind(
+          loaded
+        ) as NonNullable<WasmValidate['validate_detailed_in_context']>;
+      }
       return checker;
     }
     loadError = 'validate_detailed is not exported';
@@ -76,8 +294,8 @@ function loadChecker(): WasmValidate | null {
 }
 
 function codeOf(message: string): string {
-  const typed = message.match(/\[(HS-TYPE-[A-Z0-9-]+)\]/);
-  if (typed?.[1]) return typed[1];
+  const coded = message.match(/\[(HS-[A-Z0-9-]+)\]/);
+  if (coded?.[1]) return coded[1];
   if (message.includes('HS010')) return 'HS010';
   return 'HS-CHECK';
 }
@@ -85,11 +303,14 @@ function codeOf(message: string): string {
 /**
  * Run the Rust checker on one function that already has a type written on it.
  * `origin` is the `function` keyword in the `.hsplus` file. Lines inside the
- * slice are shifted back onto that file.
+ * slice are shifted back onto that file. `context` is what the rest of the
+ * document declares (see {@link collectHsDocumentContext}); without it a call
+ * to a sibling function is refused as unknown.
  */
 export function checkTypedHsFunction(
   functionSource: string,
-  origin: { line: number; column: number }
+  origin: { line: number; column: number },
+  context?: HsDocumentContext
 ): RustFunctionDiagnostic[] {
   const wasm = loadChecker();
   if (!wasm) {
@@ -106,7 +327,11 @@ export function checkTypedHsFunction(
 
   let parsed: ValidateJson;
   try {
-    parsed = JSON.parse(wasm.validate_detailed(functionSource)) as ValidateJson;
+    const raw =
+      context && wasm.validate_detailed_in_context
+        ? wasm.validate_detailed_in_context(functionSource, JSON.stringify(context))
+        : wasm.validate_detailed(functionSource);
+    parsed = JSON.parse(raw) as ValidateJson;
   } catch {
     return [
       {

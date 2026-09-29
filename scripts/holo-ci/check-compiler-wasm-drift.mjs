@@ -3,8 +3,11 @@
  * Fails when the committed compiler-wasm source is newer than the committed
  * pkg-node WASM artifact. This catches the drift where Rust source changes land
  * but the ready-to-run Node WASM package still exposes an older API surface.
+ * Also fails when the artifact's rebuild receipt names a digest or size the WASM
+ * on disk does not have.
  */
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -154,6 +157,64 @@ function checkExports(root, srcRel, artifactJsRel, expectedExports, noExportScan
   return [...requiredExports].sort();
 }
 
+/**
+ * The rebuild receipt inside the artifact path vouches for one WASM file, and committing it
+ * advances freshness (see the stale message below). So what it records must be what is on disk.
+ * Before 2026-09-28 only the publish script compared them: a receipt one character short of the
+ * real digest passed every gate. A WASM with no receipt fails too. Returns the verified digest,
+ * or null when the artifact path holds no WASM.
+ */
+function checkReceipt(root, artifactRel) {
+  const receiptRel = `${artifactRel}/rebuild-receipt.json`;
+  const wasmRel = `${artifactRel}/holoscript_wasm_bg.wasm`;
+  if (!existsSync(join(root, wasmRel))) return null;
+  if (!existsSync(join(root, receiptRel))) {
+    throw new Error(
+      `${wasmRel} has no ${receiptRel}; a committed WASM needs a receipt naming its sha256 and size.`
+    );
+  }
+  let receipt;
+  try {
+    receipt = JSON.parse(readFileSync(join(root, receiptRel), 'utf8'));
+  } catch (error) {
+    throw new Error(`${receiptRel} is not JSON: ${error.message}`);
+  }
+  const wasm = readFileSync(join(root, wasmRel));
+  const actual = createHash('sha256').update(wasm).digest('hex');
+  const recorded = receipt?.result?.wasmSha256;
+  if (recorded !== actual) {
+    throw new Error(
+      `${receiptRel} records wasmSha256 ${
+        recorded === undefined ? '(none)' : JSON.stringify(recorded)
+      }, but ${wasmRel} hashes to ${actual}. The receipt must describe the committed WASM: ` +
+        'rebuild, or correct the receipt from the file.'
+    );
+  }
+  const recordedBytes = receipt?.result?.wasmBytes;
+  if (recordedBytes !== undefined && recordedBytes !== wasm.length) {
+    throw new Error(
+      `${receiptRel} records wasmBytes ${recordedBytes}, but ${wasmRel} is ${wasm.length} bytes.`
+    );
+  }
+  // The build identity the MCP server reports is this commit id; it must be a full one, and
+  // one this branch actually contains.
+  const sourceCommit = receipt?.sourceCommit;
+  if (typeof sourceCommit !== 'string' || !/^[0-9a-f]{40}$/.test(sourceCommit)) {
+    throw new Error(
+      `${receiptRel} sourceCommit must be a full 40-character commit id; found ${JSON.stringify(
+        sourceCommit
+      )}.`
+    );
+  }
+  const known = runGit(root, ['merge-base', '--is-ancestor', sourceCommit, 'HEAD'], {
+    allowFailure: true,
+  });
+  if (known.status !== 0) {
+    throw new Error(`${receiptRel} sourceCommit ${sourceCommit} is not in this branch's history.`);
+  }
+  return actual;
+}
+
 async function main() {
   const root = resolve(argValue('--root', process.cwd()));
   const srcRel = repoRelative(root, argValue('--src', 'packages/compiler-wasm/src'), '--src');
@@ -209,13 +270,18 @@ async function main() {
   }
 
   const exports = checkExports(root, srcRel, artifactJsRel, expectedExports, noExportScan);
+  const receiptDigest = checkReceipt(root, artifactRel);
 
   console.log(
     `[compiler-wasm-drift] PASS ${srcRel}@${short(srcCommit.hash)} <= ${artifactRel}@${short(
       artifactCommit.hash
     )}${stagedArtifactRefresh ? '+staged-refresh' : ''} (${exports.length} function export${
       exports.length === 1 ? '' : 's'
-    } checked)`
+    } checked; ${
+      receiptDigest
+        ? `receipt matches wasm sha256 ${receiptDigest.slice(0, 12)}`
+        : 'no wasm in artifact path'
+    })`
   );
 }
 
