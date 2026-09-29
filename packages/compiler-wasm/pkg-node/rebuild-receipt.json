@@ -1,11 +1,11 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-28T23:27:00Z",
+  "generatedAt": "2026-09-29T00:37:34Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "2de39fd25512d14b4f8391a1ff2e86731ffce483",
+  "sourceCommit": "e3195b70ad6012025906afafd2c2df5ae5fa5bc5",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --target nodejs --out-dir pkg-node --release"
+    "node scripts/build-wasm.mjs --rebuild (wasm-pack build --target nodejs --out-dir pkg-node --release)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -14,11 +14,11 @@
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": true,
+    "artifactBytesChanged": false,
     "wasmBytes": 557733,
     "wasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
-    "previousWasmSha256": "b23ffa3a29cf6c81eec9a4327745e4b0767cbba9e2217166146d266970bb5d27",
-    "repeatBuildSha256Matched": true,
-    "note": "Rebuilt pkg-node for the @unknown reads (proposals/Unknown_Field_Reads_v1.md): tag reads accepted, load(record.field) ?? fallback the one written form, HS-UNKNOWN-001/002, the Kotlin bridge lowering, and HS-UAAL-CAP-008 on UAAL. Two independent release builds produced the same digest. Only holoscript_wasm_bg.wasm changed; the generated .js and .d.ts are byte-identical and pkg-node/package.json was kept. rustc 1.91.0. +2,585 bytes over the G11 build (555,148). The browser build in pkg/ was not rebuilt. No version bump."
+    "previousWasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
+    "repeatBuildSha256Matched": null,
+    "note": "Written by build-wasm.mjs --rebuild from commit e3195b70ad6012025906afafd2c2df5ae5fa5bc5, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM. Rebuilds pkg/ (the web build, last built 2026-08-04 from 580d91e3) together with pkg-node/ from the @unknown reads source (PR #444). The web glue gains validate_detailed_in_context and is otherwise unchanged; pkg-node's files are byte-identical to its previous build. Board task y39k."
   }
 }
