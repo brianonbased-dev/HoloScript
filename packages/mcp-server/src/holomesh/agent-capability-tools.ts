@@ -413,6 +413,16 @@ export function resolveMarketplaceSearchUrl(value: unknown): string {
         `marketplace_url scheme not allowed: ${parsed.protocol} (only https: and http: are permitted)`
       );
     }
+    // A loopback override names THIS machine. That is the caller's own machine only when the
+    // local user launched this server over stdio (the marker index.ts main() sets; http-server
+    // sets 'http'). On the hosted server it is the server's container, and the search sends
+    // HOLOSCRIPT_API_KEY to whatever port and path the caller named (task uhom).
+    const loopback = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    if (loopback && process.env.HOLOSCRIPT_MCP_TRANSPORT !== 'stdio') {
+      throw new Error(
+        `marketplace_url may name ${parsed.hostname} only when this server runs on stdio, on the caller's own machine`
+      );
+    }
     // http: is only permitted for loopback hosts (localhost / 127.0.0.1).
     // Non-loopback hosts must use https: to prevent MITM on marketplace responses.
     if (
