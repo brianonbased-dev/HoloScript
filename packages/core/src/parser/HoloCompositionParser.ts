@@ -713,6 +713,20 @@ export class HoloCompositionParser {
     }
   }
 
+  /**
+   * Skip a bracketed list [ ... ] including nested brackets and the newlines inside it
+   */
+  private skipBrackets(): void {
+    if (!this.check('LBRACKET')) return;
+    this.advance(); // [
+    let depth = 1;
+    while (depth > 0 && !this.isAtEnd()) {
+      if (this.check('LBRACKET')) depth++;
+      if (this.check('RBRACKET')) depth--;
+      this.advance();
+    }
+  }
+
   // ===========================================================================
   // COMPOSITION
   // ===========================================================================
@@ -839,7 +853,7 @@ export class HoloCompositionParser {
         } else if (this.check('SPATIAL_AGENT')) {
           composition.objects.push(this.parseSpatialObject('spatial_agent'));
         } else if (this.check('SPATIAL_CONTAINER')) {
-          composition.spatialGroups.push(this.parseSpatialGroup());
+          this.refuseSpatialContainer();
         } else if (this.current().type.startsWith('UI_')) {
           composition.objects.push(this.parseSpatialObject(this.current().value.toLowerCase()));
         } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
@@ -1261,7 +1275,7 @@ export class HoloCompositionParser {
   }
 
   // ===========================================================================
-  // SCENE (container for environment + objects)
+  // SCENE (container for environment + objects + lights)
   // ===========================================================================
 
   private parseScene(): HoloScene {
@@ -1282,12 +1296,22 @@ export class HoloCompositionParser {
 
     let environment: HoloEnvironment | undefined;
     const objects: HoloObjectDecl[] = [];
+    const lights: HoloLight[] = [];
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
-      if (this.check('ENVIRONMENT')) {
+      // A light block belongs to its scene. It used to fall into the skip below with no error,
+      // so a scene holding only a light read as empty. That skip accepts any shape after the
+      // word `light` (`light Sun {`, `mode: light`, `@light(...)`), so only a light the light
+      // reader reads cleanly is kept; anything else is put back and skipped as before, and no
+      // file that parses today starts failing. Shorthands such as `point_light { }` still take
+      // the skip too: their reader rejects `@trait` lines that the skip accepts.
+      const light = this.check('LIGHT') ? this.tryParseLight() : undefined;
+      if (light) {
+        lights.push(light);
+      } else if (this.check('ENVIRONMENT')) {
         environment = this.parseEnvironment();
       } else if (this.check('OBJECT')) {
         objects.push(this.parseObject());
@@ -1304,13 +1328,16 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
-    return {
+    const scene: HoloScene = {
       loc: { start: startLoc, end: this.currentLocation() },
       type: 'Scene',
       name,
       environment,
       objects,
     };
+    // Only a scene that holds a light gains the field, so every other scene keeps its shape.
+    if (lights.length > 0) scene.lights = lights;
+    return scene;
   }
 
   private parseParticleSystem(): HoloParticleSystem {
@@ -1435,6 +1462,28 @@ export class HoloCompositionParser {
       lightType,
       properties,
     };
+  }
+
+  /**
+   * Read a `light` block only if parseLight reads it with no error. Otherwise put the position,
+   * the error list and the context stack back exactly as they were and return undefined, so the
+   * caller can take the path it took before. Strict mode records the error and then throws; that
+   * throw is caught here. A throw that recorded no error is a real fault and is rethrown.
+   */
+  private tryParseLight(): HoloLight | undefined {
+    const pos = this.pos;
+    const errorCount = this.errors.length;
+    const contextDepth = this.parseContext.length;
+    try {
+      const light = this.parseLight();
+      if (this.errors.length === errorCount) return light;
+    } catch (err) {
+      if (this.errors.length === errorCount) throw err;
+    }
+    this.pos = pos;
+    this.errors.length = errorCount;
+    this.parseContext.length = contextDepth;
+    return undefined;
   }
 
   private parseTraitAsLightProperty(requireBodyAfterBareBrace = false): HoloLightProperty {
@@ -2562,6 +2611,42 @@ export class HoloCompositionParser {
   // SPATIAL GROUP
   // ===========================================================================
 
+  /**
+   * `spatial_container` is in the keyword table (composition/tokens.ts) but means nothing in
+   * .holo. It came in with 333bfe280 (2026-01-27) wired to parseSpatialGroup, which expects the
+   * word `spatial_group`, so it never parsed: the author got a pile of unrelated errors and a
+   * group named "unknown". No doc, example, spec entry, test or other grammar uses it.
+   *
+   * Refuse it with one plain sentence at the word, then step over the whole block (name, `at`
+   * shorthand, traits, body) and keep nothing from it, so the rest of the file still reads.
+   * Giving the word a meaning would be new syntax, which spec v0.1 keeps behind a proposal.
+   */
+  private refuseSpatialContainer(): void {
+    this.error(
+      '"spatial_container" is not part of .holo. Use spatial_group to group objects instead'
+    );
+    this.advance(); // spatial_container
+    // Header: everything up to the body on the same line (name, at [x, y, z], @traits, args).
+    // A bracket or paren list is stepped over whole, even when it runs across lines.
+    while (
+      !this.isAtEnd() &&
+      !this.check('LBRACE') &&
+      !this.check('RBRACE') &&
+      !this.check('NEWLINE')
+    ) {
+      if (this.check('LPAREN')) this.skipParens();
+      else if (this.check('LBRACKET')) this.skipBrackets();
+      else this.advance();
+    }
+    // A body that opens on the next line is stepped over too: one error, not a cascade.
+    let next = this.pos;
+    while (this.tokens[next]?.type === 'NEWLINE') next++;
+    if (this.tokens[next]?.type === 'LBRACE') {
+      this.skipNewlines();
+      this.skipBlock();
+    }
+  }
+
   private parseSpatialGroup(): HoloSpatialGroup {
     const startLoc = this.currentLocation();
     this.expect('SPATIAL_GROUP');
@@ -2604,6 +2689,9 @@ export class HoloCompositionParser {
         lights.push(this.parseLight());
       } else if (this.check('SPATIAL_GROUP')) {
         groups.push(this.parseSpatialGroup());
+      } else if (this.check('SPATIAL_CONTAINER') && this.peek(1).type !== 'COLON') {
+        // A nested block; `spatial_container: value` stays a group property as before.
+        this.refuseSpatialContainer();
       } else if (this.check('TEMPLATE')) {
         // Template defined inside spatial_group — parse and discard
         this.advance(); // consume TEMPLATE
