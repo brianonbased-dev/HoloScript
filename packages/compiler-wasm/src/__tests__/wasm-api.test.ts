@@ -988,6 +988,41 @@ function main(): i32 {
     expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
   }, 600000);
 
+  it('G21: the checker reads holo: imports, and no engine runs one before phase 2', () => {
+    const corpus = readFileSync(
+      resolve(REPO_ROOT, 'packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl'),
+      'utf8'
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as SpecCorpusRow)
+      .filter((row) => row.tags.includes('g21'));
+    expect(corpus.length).toBe(11);
+    // Native refuses every `holo:` import at the import, before any check of its own.
+    const nativeRefusal = /must be an explicit relative `\.hs` path/;
+
+    for (const row of corpus.filter((candidate) => candidate.expect.valid === false)) {
+      const code = row.expect.diagnostic_includes!;
+      const checker = validateHsViaRust(row.source);
+      expect(checker.valid, row.id).toBe(false);
+      expect(checker.errors[0]?.message, row.id).toContain(code);
+      // compile_to_uaal runs the same check first.
+      expect(() => compileHsToUaalViaRust(row.source), row.id).toThrow(code);
+      const program = /function main\s*\(/.test(row.source)
+        ? row.source
+        : `${row.source}\n\nfunction main(): i32 {\n  return 0\n}\n`;
+      expect(() => executeHsNativeViaRust(program), row.id).toThrow(nativeRefusal);
+    }
+
+    // The demo is valid to the checker; each engine refuses it by name until it binds the call.
+    const demo = corpus.find((row) => row.id === 'g21-001')!;
+    expect(validateHsViaRust(demo.source).valid).toBe(true);
+    expect(() => compileHsToUaalViaRust(demo.source)).toThrow(
+      /\[HS-HOST-004\] `holo:absorb\/manifest_audit_passes` has no binding on UAAL yet/
+    );
+    expect(() => executeHsNativeViaRust(demo.source)).toThrow(nativeRefusal);
+  }, 600000);
+
   it('reads @unknown struct fields the way the native backend does', () => {
     // The steward gate uses all three honesty operations (isKnown, load(...) ?? fallback,
     // unknownReason); native runs it to exit 5, and the checker now accepts it unchanged.

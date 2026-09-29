@@ -396,6 +396,30 @@ export function evaluate_trait_spawn_v1(source, trait_name, host_bindings) {
     }
 }
 
+/**
+ * The Holo modules this checker knows (G21), as JSON: for each module its functions, with
+ * parameter and result types, the authority a caller needs, the ABI version and the ABI name a
+ * call lowers to. Tools read this instead of keeping their own list; a module whose
+ * declarations are broken is listed with its reason.
+ * @returns {string}
+ */
+export function holo_modules_json() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.holo_modules_json(retptr);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred1_0 = r0;
+        deferred1_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export4(deferred1_0, deferred1_1, 1);
+    }
+}
+
 export function init() {
     wasm.init();
 }

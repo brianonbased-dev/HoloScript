@@ -1,7 +1,7 @@
 {
   "schema": "holoscript.hsplus-spec-corpus.manifest.v0",
   "corpus": "packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl",
-  "corpus_sha256": "sha256:1c45ca41bebcabbcb79b2db37abe3b4c241b345a185fbe6b566070fc86b874c2",
+  "corpus_sha256": "sha256:506b7eaf4f48957f01c0ab2238f69f5cfcd6116478ab607370f39005db287d30",
   "cases": 71,
   "sections": {
     "first-class-ignorance-rfc §Stage 2": 2,
@@ -31,13 +31,12 @@
     "spec-vs-reality-gap.md G12 — domain words cannot be names, ON RECORD": 2,
     "proposals/Unknown_Field_Reads_v1.md — reading an @unknown struct field": 6,
     "docs/spec/holoscript-spec-v0.1.md — top-level declarations": 1,
-    "proposals/Host_Capability_Imports_v1.md — Holo tools as checked imports (G21)": 2,
-    "proposals/Host_Capability_Imports_v1.md — Holo tools as checked imports (G21), ON RECORD before phase 1": 9
+    "proposals/Host_Capability_Imports_v1.md — Holo tools as checked imports (G21)": 11
   },
   "verifier_of_record": "packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)",
   "authority": {
     "artifact": "packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm",
-    "wasmSha256": "sha256:d6d77e3ef40d84f691d156142dfd59366c8c9789dbf63ff8f49e0843ccc1215a",
+    "wasmSha256": "sha256:ca84d5782d1677cd93c55b9317b45003a9d68cc7b8f0f6ee5544d064949fa093",
     "rebuild_receipt": "packages/compiler-wasm/pkg-node/rebuild-receipt.json",
     "note": "The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved."
   }
