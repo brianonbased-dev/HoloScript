@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T04:15:15Z",
+  "generatedAt": "2026-09-29T05:05:40Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "61aecbd08b537661f54d75e6ebe52a1d9313bef3",
+  "sourceCommit": "2e524d56be9a935d8a0d3dea61cefcc9e3029eb5",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "node scripts/build-wasm.mjs --rebuild (wasm-pack build --target web --out-dir pkg --release)"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 590833,
-    "wasmSha256": "ca84d5782d1677cd93c55b9317b45003a9d68cc7b8f0f6ee5544d064949fa093",
-    "previousWasmSha256": "d6d77e3ef40d84f691d156142dfd59366c8c9789dbf63ff8f49e0843ccc1215a",
+    "wasmBytes": 591232,
+    "wasmSha256": "1460cbc69326fba85e9372605ef268acaf603eda41d308c355d82126ea09a40f",
+    "previousWasmSha256": "ca84d5782d1677cd93c55b9317b45003a9d68cc7b8f0f6ee5544d064949fa093",
     "repeatBuildSha256Matched": null,
-    "note": "Written by build-wasm.mjs --rebuild from commit 61aecbd08b537661f54d75e6ebe52a1d9313bef3, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM. G21 phase 1 (61aecbd08): the checker reads holo: imports against the embedded holo:absorb declarations; new export holo_modules_json."
+    "note": "Written by build-wasm.mjs --rebuild from commit 2e524d56be9a935d8a0d3dea61cefcc9e3029eb5, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM."
   }
 }
