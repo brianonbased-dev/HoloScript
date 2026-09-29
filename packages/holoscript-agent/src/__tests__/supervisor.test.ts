@@ -288,6 +288,48 @@ composition "LocalOnly" {
     expect(stopped?.count).toBe(1);
   });
 
+  // task_1786329027132_mt9u: the configured model is checked against the pricing tables when
+  // each agent boots, and each paid provider is billed from its own table.
+  it('names an agent whose model has no price when it boots (mt9u)', async () => {
+    const events: Array<Record<string, unknown>> = [];
+    const sup = new Supervisor({
+      config: { agents: [specForBrain(brainPath, { model: 'no-such-model-9' })] },
+      providerFactory: () => provider(),
+      teamId: 't',
+      stateDir: dir,
+      fetchImpl: buildFetch(),
+      logger: (e) => events.push(e),
+    });
+    await sup.start();
+    await sup.stop();
+    expect(events.find((e) => e.ev === 'unpriced-model')).toMatchObject({
+      agent: 'security-auditor',
+      provider: 'anthropic',
+      model: 'no-such-model-9',
+      table: 'ANTHROPIC_PRICING_USD_PER_MTOK',
+    });
+  });
+
+  it('with HOLOSCRIPT_AGENT_UNPRICED_MODEL=refuse, stops that agent before its provider is built (mt9u)', async () => {
+    vi.stubEnv('HOLOSCRIPT_AGENT_UNPRICED_MODEL', 'refuse');
+    try {
+      const factory = vi.fn(() => provider());
+      const sup = new Supervisor({
+        config: { agents: [specForBrain(brainPath, { model: 'no-such-model-9' })] },
+        providerFactory: factory,
+        teamId: 't',
+        stateDir: dir,
+        fetchImpl: buildFetch(),
+      });
+      await expect(sup.start()).rejects.toThrow(
+        /refusing to start agent "security-auditor".*ANTHROPIC_PRICING_USD_PER_MTOK/s
+      );
+      expect(factory).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   // claude2's review of #321 (2026-09-23): the supervisor left the pricer unset for every paid
   // provider, so an OpenAI agent was billed through the Anthropic pricer (and, once cache fields
   // arrive, at Claude's 0.1 cache-read discount).

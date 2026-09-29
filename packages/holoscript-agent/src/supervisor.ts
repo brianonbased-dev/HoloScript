@@ -3,7 +3,12 @@ import { join } from 'node:path';
 import type { ILLMProvider } from '@holoscript/llm-provider';
 import { AgentRunner } from './runner.js';
 import { makeIdleAccrual } from './idle-accrual.js';
-import { CostGuard, defaultPricerForProvider } from './cost-guard.js';
+import {
+  CostGuard,
+  checkConfiguredModelPricing,
+  defaultPricerForProvider,
+  unpricedModelPolicy,
+} from './cost-guard.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { loadBrain } from './brain.js';
 import { makeCommitHook } from './commit-hook.js';
@@ -125,19 +130,41 @@ export class Supervisor {
       });
     }
 
+    // mt9u: the same startup pricing check as the single-agent run, per agent,
+    // before its provider client is built. A refusal throws like any other
+    // agent config error (a missing bearer does the same).
+    const pricingCheck = checkConfiguredModelPricing(
+      effectiveSpec.provider,
+      effectiveSpec.model,
+      unpricedModelPolicy(process.env)
+    );
+    if (pricingCheck.action === 'refuse') {
+      throw new Error(
+        `[cost-guard] refusing to start agent "${effectiveSpec.handle}": ${pricingCheck.message}`
+      );
+    }
+    if (pricingCheck.action === 'warn') {
+      this.log({
+        ev: 'unpriced-model',
+        agent: effectiveSpec.handle,
+        provider: effectiveSpec.provider,
+        model: effectiveSpec.model,
+        table: pricingCheck.pricing.table,
+        message: pricingCheck.message,
+      });
+    }
+
     const provider = await this.opts.providerFactory(effectiveSpec, identity);
     const stateDir = this.opts.stateDir ?? join(homedir(), '.holoscript-agent', 'cost-state');
-    const isFree =
-      effectiveSpec.provider === 'mock' ||
-      effectiveSpec.provider === 'local-llm' ||
-      effectiveSpec.provider === 'bitnet';
+    // Each provider is billed from its own table and its own cache policy
+    // (OpenAI, xAI, OpenRouter; local, mock and bitnet at $0). Leaving the pricer
+    // unset billed every paid agent through the Anthropic pricer, so an OpenAI
+    // model fell to the Claude ceiling and Claude's 0.1 cache-read discount
+    // reached OpenAI and xAI traffic.
     const costGuard = new CostGuard({
       statePath: join(stateDir, `${effectiveSpec.handle}.json`),
       dailyBudgetUsd: identity.budgetUsdPerDay,
-      // Each paid provider is billed from its own table and its own cache policy.
-      // Leaving this unset billed every paid agent through the Anthropic pricer,
-      // so Claude's 0.1 cache-read discount reached OpenAI and xAI traffic.
-      pricer: isFree ? () => 0 : defaultPricerForProvider(effectiveSpec.provider),
+      pricer: defaultPricerForProvider(effectiveSpec.provider),
     });
     const mesh = new HolomeshClient({
       apiBase: identity.meshApiBase,
