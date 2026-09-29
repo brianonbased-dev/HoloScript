@@ -44,6 +44,10 @@ const SKIP_DIRS = new Set([
 const NATIVE_EXT = new Set(['.hsplus', '.holo', '.hs']);
 // Epsilon so float noise can't fail the gate; real regressions exceed it.
 const EPSILON = 1e-9;
+// What `native` counts. A baseline computed under another definition is not comparable; the gate
+// refuses it instead of reporting a false drop or a false rise.
+export const DEFINITION =
+  'native-authoring-v2 (2026-09-28): HoloScript-extension files under packages/, excluding descriptor twins';
 
 /** Recursively walk, calling onFile(absPath) for every file. */
 function walk(dir, onFile) {
@@ -72,45 +76,92 @@ function walk(dir, onFile) {
  * source the TypeScript is generated from?
  *
  * Measured 2026-09-16: 2,249 of 2,474 tracked `.hsplus` carry a header of the form
- * `Native .hsplus surface for <path>.ts`, and were added in six bulk commits MONTHS
- * after the `.ts` they name. Nothing compiles them — there is no `.hsplus` loader or
+ * `Native .hsplus surface for <path>.ts`. Re-measured 2026-09-28: 2,232 of them were
+ * added on 2026-06-25 in 116 "D.104 wave" commits that each also rewrote this gate's
+ * baseline, a median of 94 days after the `.ts` they name. Nothing compiles them — there is no `.hsplus` loader or
  * compiler in any repo. Canon's own source-of-truth test (docs/definitions/
  * 04-architecture-concepts.md) is "could you regenerate the artifact byte-identically
  * from a HoloScript source you own?", and a file written after, and about, its
  * counterpart inverts that: the projection claiming to be the source.
  *
- * WHAT THIS CANNOT SEE, stated because a detector that hides its blind spot is the
- * defect it exists to expose: `packages/std/src/math.hsplus` carries the SAME header
- * and IS genuinely shipped in the npm package and executed by the Rust engine. The
- * header alone proves nothing; a real verdict needs a consumer check this static
- * script does not perform. So this number is REPORTED, never enforced, and it is a
- * floor on the descriptor count rather than a precise one.
+ * The header alone does not decide it: `packages/std/src/math.hsplus` carries the SAME
+ * header and IS shipped in the npm package and executed by the Rust engine. The static
+ * consumer check that separates the two (census 2026-09-28, spec-vs-reality-gap.md): a
+ * header file is a real source when its package's package.json names that exact file
+ * (exports, files, entrypoint). std names math.hsplus and collections.hsplus that way;
+ * a package that ships a whole `src` folder names no single twin. Every other header
+ * file is a descriptor and is not counted as native authoring.
  */
-function descriptorState(abs) {
-  let head;
+const packageNamedFiles = new Map();
+
+/** Absolute HoloScript file paths a package.json names explicitly, anywhere in it. */
+function namedByPackage(pkgJsonPath) {
+  if (packageNamedFiles.has(pkgJsonPath)) return packageNamedFiles.get(pkgJsonPath);
+  const named = new Set();
   try {
-    head = fs.readFileSync(abs, 'utf-8').slice(0, 400);
+    const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+    const dir = path.dirname(pkgJsonPath);
+    const visit = (value) => {
+      if (typeof value === 'string') {
+        if (/\.(hsplus|holo|hs)$/.test(value)) named.add(path.resolve(dir, value));
+      } else if (Array.isArray(value)) {
+        value.forEach(visit);
+      } else if (value && typeof value === 'object') {
+        Object.values(value).forEach(visit);
+      }
+    };
+    visit(pkg);
   } catch {
-    return 'none';
+    // An unreadable package.json names nothing.
   }
-  const m = head.match(/Native \.hsplus surface for\s+([^\s,)]+)/);
-  if (!m) return 'none';
-  const named = m[1].replace(/[.,;]$/, '');
-  // Only count it when the TypeScript it names still exists: a descriptor of a
-  // deleted file is stale bookkeeping, not a shadow of living code.
+  packageNamedFiles.set(pkgJsonPath, named);
+  return named;
+}
+
+/** The nearest package.json above `abs`, not looking above `root`'s parent. */
+function owningPackageJson(abs, root) {
+  const stop = path.dirname(path.resolve(root));
+  let dir = path.dirname(abs);
+  while (dir.length > stop.length && dir.startsWith(stop)) {
+    const candidate = path.join(dir, 'package.json');
+    if (fs.existsSync(candidate)) return candidate;
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
+/** Does the TypeScript a header names still exist? Headers often omit the package's `src/`. */
+function twinExists(abs, named, root) {
+  const [pkg, ...rest] = named.split('/');
   const candidates = [
     path.resolve(path.dirname(abs), named),
     path.join(REPO_ROOT, named),
-    path.join(REPO_ROOT, 'packages', named),
+    path.join(root, named),
+    path.join(root, pkg, 'src', ...rest),
   ];
-  const resolved = candidates.some((c) => {
+  return candidates.some((candidate) => {
     try {
-      return fs.statSync(c).isFile();
+      return fs.statSync(candidate).isFile();
     } catch {
       return false;
     }
   });
-  return resolved ? 'resolved' : 'header-only';
+}
+
+/** 'none' (no header), 'shipped' (header, but its package names the file), or a descriptor. */
+function descriptorState(abs, root) {
+  let head;
+  try {
+    head = fs.readFileSync(abs, 'utf-8').slice(0, 400);
+  } catch {
+    return { kind: 'none' };
+  }
+  const m = head.match(/Native \.hsplus surface for\s+([^\s,)]+)/);
+  if (!m) return { kind: 'none' };
+  const pkgJson = owningPackageJson(abs, root);
+  if (pkgJson && namedByPackage(pkgJson).has(path.resolve(abs))) return { kind: 'shipped' };
+  const named = m[1].replace(/[.,;]$/, '');
+  return { kind: 'descriptor', twinLive: twinExists(abs, named, root) };
 }
 
 /**
@@ -124,20 +175,27 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
   let native = 0;
   let handTsTraits = 0;
   let descriptors = 0;
-  let descriptorHeaders = 0;
+  let descriptorTwinsLive = 0;
+  let shippedWithHeader = 0;
+  let filesByExtension = 0;
   const byExt = { '.hsplus': 0, '.holo': 0, '.hs': 0 };
 
   walk(root, (abs) => {
     const ext = path.extname(abs);
     const base = path.basename(abs);
     if (NATIVE_EXT.has(ext)) {
+      filesByExtension++;
+      if (ext === '.hsplus') {
+        const d = descriptorState(abs, root);
+        if (d.kind === 'descriptor') {
+          descriptors++;
+          if (d.twinLive) descriptorTwinsLive++;
+          return;
+        }
+        if (d.kind === 'shipped') shippedWithHeader++;
+      }
       native++;
       byExt[ext]++;
-      if (ext === '.hsplus') {
-        const d = descriptorState(abs);
-        if (d !== 'none') descriptorHeaders++;
-        if (d === 'resolved') descriptors++;
-      }
       return;
     }
     // hand-authored TS trait surface: *Trait.ts under a package src, excluding tests
@@ -153,20 +211,21 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
 
   const denom = native + handTsTraits;
   const ratio = denom === 0 ? 0 : native / denom;
-  // The same ratio with descriptors removed from the numerator. Reported, never
-  // enforced: the gate's verdict stays on `ratio` so this disclosure cannot
-  // silently fail a build, and so nobody is tempted to reseed against it.
-  const denomSansDesc = native - descriptors + handTsTraits;
-  const ratioSansDescriptors =
-    denomSansDesc <= 0 ? 0 : (native - descriptors) / denomSansDesc;
+  // What the pre-2026-09-28 definition enforced (every file with a HoloScript extension).
+  // Reported so the correction stays visible; never enforced.
+  const denomByExtension = filesByExtension + handTsTraits;
+  const ratioByExtension = denomByExtension === 0 ? 0 : filesByExtension / denomByExtension;
   return {
+    definition: DEFINITION,
     native,
     handTsTraits,
-    descriptors,
-    descriptorHeaders,
     byExt,
     ratio: Number(ratio.toFixed(6)),
-    ratioSansDescriptors: Number(ratioSansDescriptors.toFixed(6)),
+    descriptors,
+    descriptorTwinsLive,
+    shippedWithHeader,
+    filesByExtension,
+    ratioByExtension: Number(ratioByExtension.toFixed(6)),
   };
 }
 
@@ -206,15 +265,20 @@ function main() {
   );
   if (metrics.descriptors > 0) {
     console.log(
-      `  ↳ ${metrics.descriptorHeaders} of the ${metrics.byExt['.hsplus']} .hsplus declare themselves a "Native .hsplus surface for" ` +
-        `existing TypeScript — i.e. they DESCRIBE code rather than generate it. Of those, ${metrics.descriptors} name a file ` +
-        `this script could resolve, so the true count sits between ${metrics.descriptors} and ${metrics.descriptorHeaders}. ` +
-        `Ratio excluding the resolved ones: ${(metrics.ratioSansDescriptors * 100).toFixed(2)}%. ` +
-        `The ENFORCED number above counts by file extension only and cannot tell a source from a description.`
+      `  ↳ not counted: ${metrics.descriptors} descriptor twins ("Native .hsplus surface for" files their package does not ship; ` +
+        `${metrics.descriptorTwinsLive} still name a living TypeScript file). Counted: ${metrics.shippedWithHeader} header file(s) ` +
+        `their package names explicitly. By file extension alone the ratio would read ${(metrics.ratioByExtension * 100).toFixed(2)}%.`
     );
   }
   if (!baseline) {
     console.error('✗ no baseline found — run with --update to seed it.');
+    process.exit(1);
+  }
+  if (baseline.definition !== DEFINITION) {
+    console.error(
+      `✗ the baseline was computed under a different definition (${baseline.definition ?? 'native-authoring-v1: every HoloScript-extension file'}); ` +
+        'the numbers are not comparable. Review the change in what is counted, then reseed with --update.'
+    );
     process.exit(1);
   }
 
