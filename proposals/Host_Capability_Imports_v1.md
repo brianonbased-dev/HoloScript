@@ -9,9 +9,12 @@ changes from a premortem of this plan: the stand-in rule (`HS-SCOPE-001`) sits i
 engine runs first; `@host` keys are strict (`authorty` makes the module unusable); a lookalike
 scheme (`HOLO:absorb`) is refused, not read as a file path; the drift gate hashes the declaration
 file as a build input; `.hsplus` holo imports are checked once per document, with or without typed
-functions. The corpus has 13 cases: the ten below (numbered differently), plus a lookalike scheme
-(`g21-009`), an alias's argument count (`g21-010`) and a blocked name as an alias (`g21-013`); the
-nine that were honest gaps flipped on purpose. Engines refuse a valid Holo call by name
+functions. A sixth change came from the switch-off run: a capability is only called by name, never
+used as a value (`HS-HOST-003`), since `let f = manifest_audit_passes` let an untyped function
+call it unchecked. The corpus has 14 cases: the ten below (numbered differently), plus a lookalike
+scheme (`g21-009`), an alias's argument count (`g21-010`), a blocked name as an alias (`g21-013`)
+and a capability passed on as a value (`g21-014`); the ten that were honest gaps flipped on
+purpose. Engines refuse a valid Holo call by name
 (`HS-HOST-004`; native refuses any `holo:` import earlier, as a non-relative path) until phase 2
 binds it. Phases 2–5 are not built.
 **Gap:** new **G21** (suggested: next free id after G20, `docs/spec/spec-vs-reality-gap.md` 20–39).
@@ -123,6 +126,7 @@ For `import { a as b } from "holo:m"`, added to `check_semantics_with` (`kotlin_
 | `m` declares no `a`; the message names the closest declared name                                                        | `HS-HOST-002` (new)                                                                                  |
 | `b` is also a top-level function, struct or enum of the file                                                            | `HS-SCOPE-001`; `holo:` names join the site list (`kotlin_emit.rs` 573–580), relative imports do not |
 | `b` is used outside a function that states its types                                                                    | `HS-HOST-003` (new): untyped functions keep their unchecked reading (G11)                            |
+| `b` is used as a value (stored, passed or returned), not called (added in phase 1, found by its switch-off run)         | `HS-HOST-003`: as a value it could reach code that calls it with nothing checked                     |
 | wrong argument count, argument type or result type                                                                      | existing `HS-ARITY-001`, `HS-TYPE-ARG-001`, `HS-TYPE-ASSIGN-001`, `HS-TYPE-RETURN-001`               |
 | the file's own `@frame_declaration` does not allow `a`'s authority (phase 3)                                            | `HS-HOST-005` (new)                                                                                  |
 | a word on the HS010 list (`exec`, `process`, `fs`, …)                                                                   | `HS010`, unchanged (`lexer.rs` 5–18; measured on an import name)                                     |
