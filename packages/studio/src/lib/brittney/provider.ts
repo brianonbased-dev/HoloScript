@@ -59,7 +59,15 @@ import {
 } from '@holoscript/llm-provider';
 
 export type BrittneyProviderName =
-  'anthropic' | 'holollama' | 'holoserve' | 'ollama' | 'cloud' | 'fleet' | 'serverless';
+  | 'anthropic'
+  | 'holollama'
+  | 'holoserve'
+  | 'ollama'
+  | 'cloud'
+  | 'fleet'
+  | 'serverless'
+  | 'xai'
+  | 'openai';
 
 /**
  * Per-user BYOK keys resolved server-side from the HoloKey vault (F.112). When present,
@@ -86,6 +94,11 @@ export interface ResolvedBrittneyProvider {
    * Explicit BRITTNEY_PROVIDER=anthropic does not set this.
    */
   frontierFallback?: boolean;
+  /**
+   * True for the paid fallback (resolvePaidFallback): every answer costs money,
+   * and the route adds each one's billed cost to the day's paid total.
+   */
+  paid?: boolean;
 }
 
 /**
@@ -375,6 +388,53 @@ function resolveSovereignFallback(): ResolvedBrittneyProvider | null {
   return resolveOwnedLocal();
 }
 
+/** The paid models Brittney can answer with when our own machines are asleep. */
+const PAID_FALLBACKS = {
+  // grok-4.6 wrote the most valid new HoloScript of the models measured
+  // 2026-09-28 (5 of 14; the house models 0-2). It thinks before answering:
+  // about half a cent for a short HoloScript ask, measured the same day.
+  xai: { baseURL: 'https://api.x.ai/v1', keyEnv: 'XAI_API_KEY', defaultModel: 'grok-4.6' },
+  openai: {
+    baseURL: 'https://api.openai.com/v1',
+    keyEnv: 'OPENAI_API_KEY',
+    defaultModel: 'gpt-4.1-mini',
+  },
+} as const;
+
+/**
+ * The paid model Brittney answers with when the fleet is cold, instead of
+ * "warming up" (founder sheet line "answers-always", 2026-09-28: "When our own
+ * machines are asleep she uses a paid cloud model instead of saying warming
+ * up. That costs us money per message.").
+ *
+ * BRITTNEY_PAID_FALLBACK=xai|openai names it, BRITTNEY_PAID_FALLBACK_MODEL may
+ * pin the model, and it uses that provider's own key (XAI_API_KEY or
+ * OPENAI_API_KEY). Null when any of that is missing. Whether it may be used
+ * today is the caller's decision (the daily dollar ceiling in
+ * lib/brittney/dailyUsage.ts); this only says what it would be.
+ */
+export function resolvePaidFallback(): ResolvedBrittneyProvider | null {
+  const name = process.env.BRITTNEY_PAID_FALLBACK?.trim().toLowerCase();
+  if (name !== 'xai' && name !== 'openai') return null;
+  const spec = PAID_FALLBACKS[name];
+  const apiKey = process.env[spec.keyEnv]?.trim();
+  if (!apiKey) return null;
+  const model = process.env.BRITTNEY_PAID_FALLBACK_MODEL?.trim() || spec.defaultModel;
+  return {
+    // includeUsage: without it the stream reports no usage, so no cost.
+    provider: new OpenAICompatibleAdapter({
+      baseURL: spec.baseURL,
+      apiKey,
+      model,
+      includeUsage: true,
+    }),
+    model,
+    maxTokens: Number(process.env.BRITTNEY_MAX_TOKENS) || 8192,
+    providerName: name,
+    paid: true,
+  };
+}
+
 /**
  * Sovereign serving via the Vast SERVERLESS PyWorker endpoint — the DURABLE
  * foundation (founder 2026-06-14). Vast OWNS the autoscaling + a cold-worker pool
@@ -414,7 +474,13 @@ function resolveServerless(): ResolvedBrittneyProvider | null {
  * Everything else delegates to the sync `resolveBrittneyProvider`.
  */
 export async function resolveBrittneyProviderAsync(
-  byok?: BrittneyByokKeys
+  byok?: BrittneyByokKeys,
+  /**
+   * paidFallback: the caller has checked that today's paid ceiling still has
+   * room, so a cold fleet may be answered by resolvePaidFallback(). Off unless
+   * the caller says so.
+   */
+  opts: { paidFallback?: boolean } = {}
 ): Promise<ResolvedBrittneyProvider> {
   const explicit = process.env.BRITTNEY_PROVIDER as BrittneyProviderName | undefined;
 
@@ -447,6 +513,20 @@ export async function resolveBrittneyProviderAsync(
       // (No Ollama discovery here: this fallback never resolves to Ollama.)
       const sovereign = resolveSovereignFallback();
       if (sovereign) return sovereign;
+      // Founder 2026-09-28 (sheet line "answers-always") supersedes the
+      // 2026-06-14 "never a paid fallback" for this one case: when our
+      // machines are asleep, Brittney answers with a paid model rather than
+      // "warming up", inside a daily dollar ceiling the caller enforces.
+      if (opts.paidFallback) {
+        const paid = resolvePaidFallback();
+        if (paid) {
+          console.warn(
+            `[brittney] fleet cold: answering with the paid fallback ${paid.providerName}/${paid.model} ` +
+              '(the daily paid ceiling has room).'
+          );
+          return paid;
+        }
+      }
       if (process.env.BRITTNEY_ALLOW_FRONTIER_FALLBACK === '1') {
         // Explicit Studio opt-in (not the silent auto path). Call Anthropic directly
         // so this does not depend on HOLO_ALLOW_FRONTIER_FALLBACK, and say so out loud.

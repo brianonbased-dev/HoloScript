@@ -64,7 +64,40 @@ export type OpenAICompatibleAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & 
   apiKey?: string;
   /** Default model id sent in the request body. */
   model?: string;
+  /**
+   * Ask the endpoint to report token usage (and, where it does, cost) at the
+   * end of a stream: `stream_options: { include_usage: true }`. A paid endpoint
+   * must set this, or its streams carry no usage at all (measured on xAI
+   * 2026-09-28: the usage chunk arrives only when asked). Off by default, as
+   * not every OpenAI-compatible server accepts the field.
+   */
+  includeUsage?: boolean;
 };
+
+/** The usage object an OpenAI-compatible endpoint returns, as far as we read it. */
+interface OpenAIUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  /** xAI: the billed cost, where 1 USD = 10^10 ticks. */
+  cost_in_usd_ticks?: number;
+}
+
+/** 1 US dollar in xAI's cost ticks (docs.x.ai, cost tracking). */
+const USD_TICKS = 1e10;
+
+function usageFrom(raw: OpenAIUsage | undefined): TokenUsage {
+  const promptTokens = raw?.prompt_tokens ?? 0;
+  const completionTokens = raw?.completion_tokens ?? 0;
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens: raw?.total_tokens ?? promptTokens + completionTokens,
+    ...(typeof raw?.cost_in_usd_ticks === 'number' && Number.isFinite(raw.cost_in_usd_ticks)
+      ? { costUsd: raw.cost_in_usd_ticks / USD_TICKS }
+      : {}),
+  };
+}
 
 // =============================================================================
 // Capability manifest
@@ -113,11 +146,7 @@ interface OpenAIStreamChunk {
     finish_reason?: string | null;
   }>;
   model?: string;
-  usage?: {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    total_tokens?: number;
-  };
+  usage?: OpenAIUsage;
 }
 
 // =============================================================================
@@ -136,12 +165,14 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
 
   private readonly endpointBaseURL: string;
   private readonly bearerKey: string;
+  private readonly includeUsage: boolean;
 
   constructor(config: OpenAICompatibleAdapterConfig = {}) {
     super({ ...config, apiKey: config.apiKey ?? '' });
     // Strip a single trailing slash so `${baseURL}/chat/completions` is clean.
     this.endpointBaseURL = (config.baseURL ?? 'http://localhost:8080').replace(/\/$/, '');
     this.bearerKey = config.apiKey ?? '';
+    this.includeUsage = config.includeUsage === true;
     this.defaultHoloScriptModel = config.model ?? 'gpt-3.5-turbo';
     this.models = [this.defaultHoloScriptModel];
   }
@@ -256,7 +287,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
           message?: { content?: string; tool_calls?: OpenAIDeltaToolCall[] };
           finish_reason?: string;
         }>;
-        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+        usage?: OpenAIUsage;
         model?: string;
       };
 
@@ -287,11 +318,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
         model: data.model ?? model,
         provider: 'openrouter',
         finishReason: this.mapFinishReason(choice?.finish_reason, toolUses.length > 0),
-        usage: {
-          promptTokens: data.usage?.prompt_tokens ?? 0,
-          completionTokens: data.usage?.completion_tokens ?? 0,
-          totalTokens: data.usage?.total_tokens ?? 0,
-        },
+        usage: usageFrom(data.usage),
         ...(toolUses.length > 0
           ? {
               toolUses,
@@ -348,6 +375,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
       top_p: request.topP ?? 1,
       stop: request.stop,
       stream: true,
+      ...(this.includeUsage ? { stream_options: { include_usage: true } } : {}),
       ...(tools.length > 0 ? { tools: tools.map((t) => this.mapToolToOpenAI(t)) } : {}),
       ...(numCtx > 0 ? { options: { num_ctx: numCtx } } : {}),
     });
@@ -466,13 +494,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
 
           if (chunk.model) finalModel = chunk.model;
           if (chunk.usage) {
-            usage = {
-              promptTokens: chunk.usage.prompt_tokens ?? 0,
-              completionTokens: chunk.usage.completion_tokens ?? 0,
-              totalTokens:
-                chunk.usage.total_tokens ??
-                (chunk.usage.prompt_tokens ?? 0) + (chunk.usage.completion_tokens ?? 0),
-            };
+            usage = usageFrom(chunk.usage);
           }
           if (choice?.finish_reason) {
             finishReason = this.mapFinishReason(choice.finish_reason, hadToolCalls);
