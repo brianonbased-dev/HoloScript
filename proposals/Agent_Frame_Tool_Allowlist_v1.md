@@ -1,6 +1,6 @@
 # Agent frames: a way to say "no tools" (G15) — v1
 
-**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28); implemented in this PR, review pending.
+**Status:** Proposed 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28). Built in PR #456 with gates 1 to 3 (measured breakage, corpus, switch-off run); gate 4, a reviewer of another seat and family, pending, so not yet accepted. Enforcement is in TypeScript: core's frame trait, the agent loader and the MCP server's SDK transport. The Rust checker only parses frames. The server's stateless tool routes (POST /mcp, POST /tools/call) do not run the frame check yet: task_1790649717250_6fef.
 **Gap:** G15 in [`docs/spec/spec-vs-reality-gap.md`](../docs/spec/spec-vs-reality-gap.md).
 **Board:** task_1790587169083_1y5v.
 
