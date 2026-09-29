@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.package-consumption-matrix/v1",
-  "_comment": "Packages consumed by the owned laptop, Jetson, and Vast fleet lanes. The check script validates packaging metadata, platform compatibility, npm pack contents, and PyPI build artifacts.",
+  "_comment": "Packages consumed by the owned laptop, Jetson, and Vast fleet lanes. The check script validates packaging metadata, platform compatibility, npm pack contents, and PyPI build artifacts. The published consumption bar also requires live registry cold-start probes for core, cli, and mcp-server; metadata-only is not a pass.",
   "consumers": [
     {
       "id": "laptop-windows",
