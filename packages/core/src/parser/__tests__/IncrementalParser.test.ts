@@ -280,3 +280,47 @@ describe('IncrementalParser - Memory bounds via ParseCache LRU', () => {
     expect(stats.evictions).toBeGreaterThan(0);
   });
 });
+
+// Task 9a7o: a typed function the checker refuses (G11: a call to an undeclared function) makes
+// its chunk refused. The chunk is still left out of the AST, and the result says why.
+const WITH_REFUSED_CHUNK = `orb "Before" {
+  color: "blue"
+}
+
+orb "Lamp" {
+  color: "red"
+  function glow(): i32 {
+    return missing(1)
+  }
+}
+
+orb "After" {
+  color: "green"
+}
+`;
+
+describe('IncrementalParser - a refused chunk is reported (task 9a7o)', () => {
+  test('names the refused chunk, with the error at its document line', () => {
+    const parser = new ChunkBasedIncrementalParser(new ParseCache());
+    const result = parser.parse(WITH_REFUSED_CHUNK);
+    expect(result.chunkIds).toEqual(['orb:Before', 'orb:After']);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      chunkId: 'orb:Lamp',
+      line: 8,
+      column: 12,
+      code: 'HS-NAME-002',
+    });
+  });
+
+  test('reports it again on every pass until it parses', () => {
+    const parser = new ChunkBasedIncrementalParser(new ParseCache());
+    parser.parse(WITH_REFUSED_CHUNK);
+    expect(parser.parse(WITH_REFUSED_CHUNK).errors.map((error) => error.chunkId)).toEqual([
+      'orb:Lamp',
+    ]);
+    const fixed = parser.parse(WITH_REFUSED_CHUNK.replace('return missing(1)', 'return 1'));
+    expect(fixed.errors).toEqual([]);
+    expect(fixed.chunkIds).toEqual(['orb:Before', 'orb:Lamp', 'orb:After']);
+  });
+});

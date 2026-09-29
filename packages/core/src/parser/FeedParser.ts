@@ -1,4 +1,8 @@
-﻿import { IncrementalParseResult, ChunkBasedIncrementalParser } from './IncrementalParser';
+﻿import {
+  IncrementalParseResult,
+  ChunkBasedIncrementalParser,
+  type IncrementalChunkError,
+} from './IncrementalParser';
 import { ASTNode } from '../types/base';
 import type { VRTraitName } from '../types/base';
 import * as crypto from 'crypto';
@@ -23,6 +27,8 @@ export class FeedParser {
   private parser: ChunkBasedIncrementalParser;
   private version = 0;
   private lastParsedLength = 0;
+  /** The errors of the chunks the last update refused; their blocks are not in the feed. */
+  private lastErrors: IncrementalChunkError[] = [];
   private nodes: Map<string, ASTNode> = new Map();
 
   constructor() {
@@ -37,6 +43,7 @@ export class FeedParser {
 
     const parseResult = this.parser.parse(fullSource);
     this.lastParsedLength = fullSource.length;
+    this.lastErrors = parseResult.errors;
     this.version++;
 
     // Walk the AST fragment to extract orb/Insight nodes
@@ -60,6 +67,14 @@ export class FeedParser {
     }
 
     return [...this.nodes.values()];
+  }
+
+  /**
+   * Errors of the chunks the last update refused. A refused block is left out of the feed, so a
+   * caller that shows the feed should show these too.
+   */
+  public getErrors(): IncrementalChunkError[] {
+    return [...this.lastErrors];
   }
 
   /** Get all entities with spatial data ready for R3F */

@@ -52,6 +52,7 @@ export {
   ChunkBasedIncrementalParser,
   parseIncrementalChunks,
   type IncrementalParseResult,
+  type IncrementalChunkError,
 } from '../parser/IncrementalParser';
 export { globalParseCache, ParseCache } from '../parser/ParseCache';
 export type { CachedNode, ParseCacheStats } from '../parser/ParseCache';

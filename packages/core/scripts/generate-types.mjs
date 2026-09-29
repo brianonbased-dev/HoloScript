@@ -490,12 +490,25 @@ export interface ParseCache {
 
 export const globalParseCache: ParseCache;
 
+/** An error in a chunk the incremental parser refused, placed in the whole document. */
+export interface IncrementalChunkError {
+  chunkId: string;
+  line: number;
+  column: number;
+  code?: string;
+  message: string;
+}
+
 export interface IncrementalParseResult {
   ast: any;
   cached: number;
   parsed: number;
   duration: number;
   changedChunks: string[];
+  /** The errors of every chunk refused this pass; a refused chunk is left out of \`ast\`. */
+  errors: IncrementalChunkError[];
+  /** The chunk each child of \`ast\` came from, in order; refused chunks are absent. */
+  chunkIds: string[];
 }
 
 export class ChunkBasedIncrementalParser {

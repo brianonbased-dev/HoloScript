@@ -1196,6 +1196,14 @@ export class HoloScriptPlusParser {
    */
   private _incrementalParserCache: Map<ParseCache, ChunkBasedIncrementalParser> = new Map();
 
+  /**
+   * The document-line copy made of each cached chunk node, with the shift it received. A block
+   * that is unchanged and has not moved is handed back as the same object on every pass, so
+   * reuse stays visible by identity; a block that moved gets a fresh copy.
+   */
+  private _shiftedChunkNodes: WeakMap<HSPlusNode, { lineOffset: number; shifted: HSPlusNode }> =
+    new WeakMap();
+
   constructor(options: HSPlusParserOptions = {}) {
     this.options = {
       enableVRTraits: true,
@@ -1444,24 +1452,40 @@ export class HoloScriptPlusParser {
     // We need to offset line numbers in the AST to match the document position.
     // Detect chunks to get startLine offsets for each top-level block.
     const chunks = ChunkDetector.detect(source);
-    const children: HSPlusNode[] =
-      incrementalResult.ast.type === 'fragment'
-        ? (incrementalResult.ast as any).children || []
-        : [incrementalResult.ast as HSPlusNode];
+    // Each chunk's AST has line numbers starting from 1 relative to the chunk; shift them by
+    // (chunk.startLine - 1) to get document lines. Two rules, both measured 2026-09-29:
+    // - A refused chunk has no child, so children are matched to chunks by id. Pairing them by
+    //   index shifted every later block by the refused chunk's lines.
+    // - The chunk parser's nodes are its cache entries, so a copy is shifted, never them.
+    //   Shifting in place moved every cached block again on each later pass (a block at line 5
+    //   read 13 on the first pass and 25 on the second).
+    const chunkById = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+    // The chunk cache types nodes loosely; what it holds is this parser's nodes.
+    const incrementalRoot = incrementalResult.ast as unknown as HSPlusNode;
+    const children: HSPlusNode[] = (
+      incrementalRoot.type === 'fragment' ? incrementalRoot.children || [] : [incrementalRoot]
+    ).map((child, index) => {
+      const chunk = chunkById.get(incrementalResult.chunkIds[index]);
+      const lineOffset = chunk ? chunk.startLine - 1 : 0;
+      if (lineOffset <= 0) return child;
+      const remembered = this._shiftedChunkNodes.get(child);
+      if (remembered && remembered.lineOffset === lineOffset) return remembered.shifted;
+      const shifted = structuredClone(child);
+      this.offsetNodeLoc(shifted, lineOffset);
+      this._shiftedChunkNodes.set(child, { lineOffset, shifted });
+      return shifted;
+    });
 
-    // Apply line offsets so AST node positions match their document location.
-    // Each chunk's AST has line numbers starting from 1 relative to the chunk;
-    // we need to shift them by (chunk.startLine - 1) to get absolute positions.
-    for (let i = 0; i < children.length; i++) {
-      const chunk = chunks[i];
-      if (chunk && chunk.startLine > 1) {
-        this.offsetNodeLoc(children[i], chunk.startLine - 1);
-      }
-    }
-
-    // Reset parser state for metadata collection
+    // Reset parser state for metadata collection. A refused chunk's errors are this parse's
+    // errors, so `success` is false while any chunk is refused.
     this.source = source;
-    this.errors = [];
+    this.errors = incrementalResult.errors.map((error) => ({
+      code: error.code ?? 'HSP000',
+      message: error.message,
+      line: error.line,
+      column: error.column,
+      severity: 'error' as const,
+    }));
     this.warnings = [];
     this.imports = [];
     this.hasState = false;
@@ -1495,20 +1519,20 @@ export class HoloScriptPlusParser {
     // This preserves the full AST structure from ChunkBasedIncrementalParser
     // including proper fragment assembly and dependency tracking.
     const root: HSPlusNode =
-      incrementalResult.ast.type === 'fragment'
-        ? (incrementalResult.ast as HSPlusNode)
+      incrementalRoot.type === 'fragment'
+        ? { ...incrementalRoot, children }
         : ({
             type: 'fragment',
             id: 'root',
             properties: {},
             directives: [],
-            children: [incrementalResult.ast as HSPlusNode],
+            children: [children[0]],
             traits: new Map(),
-            loc: incrementalResult.ast.loc || {
+            loc: {
               start: { line: 1, column: 1 },
               end: { line: 1, column: 1 },
             },
-            body: [incrementalResult.ast as HSPlusNode],
+            body: [children[0]],
           } as unknown as HSPlusNode);
 
     // Fix fragment loc to span the full document
@@ -1602,16 +1626,29 @@ export class HoloScriptPlusParser {
     };
   }
 
-  private offsetNodeLoc(node: HSPlusNode, lineOffset: number) {
+  /**
+   * Shift a chunk's AST from chunk lines to document lines, each node and each position once.
+   * A Program's `children` and `body` are the same array, so walking both shifted every child
+   * twice, and more at each nesting level.
+   */
+  private offsetNodeLoc(node: HSPlusNode, lineOffset: number, seen: Set<object> = new Set()) {
+    if (!node || typeof node !== 'object' || seen.has(node)) return;
+    seen.add(node);
+    const shift = (position?: { line: number }) => {
+      if (position && !seen.has(position)) {
+        seen.add(position);
+        position.line += lineOffset;
+      }
+    };
     if (node.loc) {
-      if (node.loc.start) node.loc.start.line += lineOffset;
-      if (node.loc.end) node.loc.end.line += lineOffset;
+      shift(node.loc.start);
+      shift(node.loc.end);
     }
     if (node.children) {
-      node.children.forEach((child) => this.offsetNodeLoc(child, lineOffset));
+      node.children.forEach((child) => this.offsetNodeLoc(child, lineOffset, seen));
     }
     if (node.body && Array.isArray(node.body)) {
-      node.body.forEach((child) => this.offsetNodeLoc(child, lineOffset));
+      node.body.forEach((child) => this.offsetNodeLoc(child, lineOffset, seen));
     }
   }
 
@@ -8194,9 +8231,10 @@ export class HoloScriptPlusParser {
       malformed = true;
     }
 
-    const sliceEnd = !malformed && this.previous().type === 'RBRACE'
-      ? this.previous().offset + this.previous().value.length
-      : (region.bodyEnd ?? region.signatureEnd);
+    const sliceEnd =
+      !malformed && this.previous().type === 'RBRACE'
+        ? this.previous().offset + this.previous().value.length
+        : (region.bodyEnd ?? region.signatureEnd);
     if (malformed) this.advanceTokensTo(sliceEnd);
 
     const anyParamType = paramTypes.some((entry) => entry !== null);
