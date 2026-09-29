@@ -40,7 +40,7 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import { streamAssistant, buildRichContext, executeTool } from '@/lib/brittney';
+import { streamAssistant, buildRichContext, compactedMessagesFrom, executeTool } from '@/lib/brittney';
 import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
@@ -523,6 +523,10 @@ export function BrittneyBuildSurface() {
               conversationConfirmed = true;
               adoptConversation(convoId);
             }
+          } else if (event.type === 'history_compacted') {
+            // The older part was summed up to fit the request cap; keep the short history.
+            const shortened = compactedMessagesFrom(event);
+            if (shortened) setLlmHistory(shortened);
           } else if (event.type === 'persisted') {
             // Informational per-row ack — nothing to do client-side.
           } else if (event.type === 'text') {

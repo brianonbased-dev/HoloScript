@@ -3,6 +3,7 @@ export {
   streamBrittney,
   buildSceneContext,
   buildRichContext,
+  compactedMessagesFrom,
 } from './BrittneySession';
 export type {
   AssistantMessage,

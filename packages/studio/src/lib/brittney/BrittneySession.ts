@@ -6,6 +6,12 @@
  */
 
 import type { SceneNode } from '@/lib/stores';
+import {
+  compactedHistory,
+  droppedHistory,
+  planCompaction,
+  type CompactionPlan,
+} from './historyCompaction';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +32,10 @@ export interface AssistantStreamEvent {
     | 'operator_receipt'
     | 'conversation'
     | 'persisted'
+    // The older part of the chat was summed up to stay under the route's body cap.
+    // payload: { messages: AssistantMessage[]; summarized: number }. The caller keeps
+    // `messages` as its history, so the next turn does not sum up the same part again.
+    | 'history_compacted'
     | 'error'
     | 'done';
   payload: unknown;
@@ -151,6 +161,36 @@ async function readRefusalNotice(response: Response): Promise<string | null> {
   }
 }
 
+/** The shortened history a 'history_compacted' event carries, or null. */
+export function compactedMessagesFrom(event: AssistantStreamEvent): AssistantMessage[] | null {
+  if (event.type !== 'history_compacted') return null;
+  const messages = (event.payload as { messages?: unknown } | null)?.messages;
+  return Array.isArray(messages) ? (messages as AssistantMessage[]) : null;
+}
+
+/**
+ * Sums up `plan.older` with Brittney (POST /api/brittney/compact) and returns the
+ * history to send. When no summary can be written, the older part is left out with
+ * a plain note (an earlier summary is kept), so the chat goes on instead of failing
+ * on the size cap. A cancelled send stays cancelled.
+ */
+async function compactOlder(plan: CompactionPlan, signal?: AbortSignal): Promise<AssistantMessage[]> {
+  try {
+    const res = await fetch('/api/brittney/compact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal,
+      body: JSON.stringify({ messages: plan.older }),
+    });
+    const body = res.ok ? ((await res.json().catch(() => null)) as { summary?: unknown } | null) : null;
+    const summary = typeof body?.summary === 'string' ? body.summary.trim() : '';
+    if (summary) return compactedHistory(summary, plan.recent);
+  } catch (err) {
+    if ((err as { name?: string } | null)?.name === 'AbortError') throw err;
+  }
+  return droppedHistory(plan.older, plan.recent);
+}
+
 /**
  * Calls POST /api/brittney and yields parsed SSE events.
  */
@@ -161,12 +201,26 @@ export async function* streamAssistant(
   persist?: AssistantPersistOptions,
   workspacePath?: string | null
 ): AsyncGenerator<AssistantStreamEvent> {
+  // A long chat is summed up before it would pass the route's 32,000-byte body cap
+  // (lib/brittney/historyCompaction.ts); the person still sees every message.
+  let outgoing = messages;
+  const plan = planCompaction(
+    messages,
+    new TextEncoder().encode(
+      JSON.stringify({ messages: [], sceneContext, persist, workspacePath: workspacePath ?? null })
+    ).length
+  );
+  if (plan) {
+    outgoing = await compactOlder(plan, signal);
+    yield { type: 'history_compacted', payload: { messages: outgoing, summarized: plan.older.length } };
+  }
+
   const response = await fetch('/api/brittney', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal,
     body: JSON.stringify({
-      messages,
+      messages: outgoing,
       sceneContext,
       // Write-through qq65: only a truthy conversationId is forwarded — a
       // null/empty id with a scope must fall through to the server's
