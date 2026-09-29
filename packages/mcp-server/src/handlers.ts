@@ -340,9 +340,13 @@ export async function handleTool(
 
   const capabilityManifest = asCapabilityManifest(args.capabilityManifest ?? args.manifest);
   // A manifest arrives in the caller's own arguments and nothing signs it yet, so its
-  // declared trust tier is believed only on the local stdio path: no caller context and
-  // no external lane (task_1790596867936_tyax). Everyone else's reads as 'unverified'.
-  const declaredAttestationTrusted = !signingCtx && !subjectSourceOverride;
+  // declared trust tier is believed only on the local stdio path (task_1790596867936_tyax).
+  // Everyone else's reads as 'unverified'. A missing context alone does not prove that path:
+  // on the hosted server a workflow step that is a batch ran each child through the
+  // tool-health dispatcher, which passes none. So it also takes this process being the stdio
+  // server: the marker index.ts main() sets, get_workspace_info reads, http-server sets to 'http'.
+  const declaredAttestationTrusted =
+    !signingCtx && !subjectSourceOverride && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio';
   const gateResult = await runForkSandboxGate(
     {
       kind: 'mcp_tool',

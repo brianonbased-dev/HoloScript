@@ -421,3 +421,83 @@ describe('canary: denial receipts are complete and actionable', () => {
     expect(expired).toBeUndefined();
   });
 });
+
+// ── A missing context is the local sender only in the stdio process ────────────
+// On the hosted server a tool re-entered from inside the server can arrive with no context:
+// a workflow step that is a batch ran each child through the tool-health dispatcher, which
+// passes none. A declared tier must not be believed there (tyax follow-up; #420 round 2 found
+// the same route around the video fetch guard).
+
+describe('canary: a context-less call is trusted to declare its tier only on stdio', () => {
+  const FOUNDER_MANIFEST = {
+    protocol: 'holoscript.capability.v1' as const,
+    declaredCapabilities: ['compile:pipeline'],
+    attestation: {
+      manifestHash: 'abc',
+      signer: 'test',
+      trustTier: 'founder' as const,
+      attestedAt: new Date().toISOString(),
+    },
+  };
+  const args = { code: BENIGN_HOLO, target: 'node', capabilityManifest: FOUNDER_MANIFEST };
+  const READ_WRITE: SigningContext = {
+    signedRequest: false,
+    signingValid: true,
+    signer: 'client',
+    scopes: ['tools:read', 'tools:write'],
+  };
+
+  async function withTransport<T>(transport: string | undefined, run: () => Promise<T>) {
+    const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    if (transport === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = transport;
+    try {
+      return await run();
+    } finally {
+      if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+      else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+    }
+  }
+
+  it('on the HTTP server, a workflow step that is a batch cannot declare its child founder', async () => {
+    const { _handleSingleToolLogic } = await import('../index');
+    const workflow = {
+      name: 'probe',
+      steps: [
+        {
+          id: 's1',
+          skillId: 'batch_tool_call',
+          inputs: { calls: [{ name: 'compile_pipeline', args }] },
+        },
+      ],
+    };
+    const res = await withTransport('http', () =>
+      _handleSingleToolLogic('execute_workflow', workflow, READ_WRITE)
+    );
+    const text = JSON.stringify(res);
+    expect(text).toContain('ForkSandboxGate denied');
+    expect(text).toContain("'unverified' is below required");
+  }, 120_000);
+
+  it('a context-less call is the local sender only when this process is the stdio server', async () => {
+    // A server holding HOLOSCRIPT_API_KEY gives a context-less call operator scopes (the local
+    // admin bridge), so the scope checks pass and only the declared tier decides.
+    const savedKey = process.env.HOLOSCRIPT_API_KEY;
+    process.env.HOLOSCRIPT_API_KEY = 'test-operator-key';
+    try {
+      for (const transport of ['http', undefined]) {
+        const result = await withTransport(transport, () => handleTool('compile_pipeline', args));
+        expectBlocked(result, 'capability_manifest');
+      }
+      // On stdio the declared tier is believed: the manifest check passes. (The code-payload gate
+      // then reads the RAW context's scopes, empty here, and refuses on permissions: a separate,
+      // older gap, not this check.)
+      const onStdio = await withTransport('stdio', () => handleTool('compile_pipeline', args));
+      const checks = (onStdio as { checks?: Array<{ name: string; passed: boolean }> }).checks ?? [];
+      expect(checks.find((c) => c.name === 'capability_manifest')?.passed).toBe(true);
+    } finally {
+      if (savedKey === undefined) delete process.env.HOLOSCRIPT_API_KEY;
+      else process.env.HOLOSCRIPT_API_KEY = savedKey;
+    }
+  }, 120_000);
+});
