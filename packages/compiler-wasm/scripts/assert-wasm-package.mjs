@@ -13,6 +13,7 @@ const requiredFiles = [
   'pkg-node/holoscript_wasm.d.ts',
   'pkg-node/holoscript_wasm_bg.wasm',
   'pkg-node/package.json',
+  'pkg-node/rebuild-receipt.json',
   'README.md',
   'LICENSE',
 ];

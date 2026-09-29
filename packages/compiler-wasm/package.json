@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "build": "node scripts/build-wasm.mjs",
+    "rebuild": "node scripts/build-wasm.mjs --rebuild",
     "prepack": "node scripts/assert-wasm-package.mjs",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg-node",
     "build:bundler": "wasm-pack build --target bundler --out-dir pkg-bundler",

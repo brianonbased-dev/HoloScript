@@ -193,33 +193,43 @@ Get the version of the WASM module.
 ### Build
 
 ```bash
-# Build for web (ES modules)
+# Validate the committed builds (what a workspace build runs; it never rewrites them)
 npm run build
 
-# Build for Node.js
-npm run build:nodejs
+# Rebuild both committed builds, pkg/ (web) and pkg-node/ (Node), and their receipts
+npm run rebuild
 
-# Build for bundlers
+# Build for bundlers (pkg-bundler/, not committed)
 npm run build:bundler
 
 # Run tests
 npm run test
 ```
 
-The browser package under `pkg/` is committed and verified by `prepack`, so a
-clean workspace build remains consumable when `wasm-pack` is unavailable. When
-`wasm-pack` is installed (on `PATH`, under Cargo's bin directory, or provided as
-`WASM_PACK_BIN`), `npm run build` regenerates the release artifact. Without the
-tool, the build validates the committed JavaScript, declarations, WebAssembly
-binary, package metadata, and rebuild receipt instead of silently skipping the
-package.
+Two builds are committed: `pkg/` (the web build, the package's default export)
+and `pkg-node/` (the `./node` export, which the MCP server, CLI and LSP load).
+wasm-bindgen emits the same WebAssembly module for both targets, so the two
+hold one WASM file. Each carries a `rebuild-receipt.json` naming its sha256,
+size, toolchain and the commit it was built from.
 
-> **Note**: `npm run test` locally runs `cargo test || echo '...skipping'` — a
-> friendly no-op when cargo isn't installed, so `pnpm test` at the repo root
-> doesn't hard-fail for contributors without a Rust toolchain. CI does **not**
-> rely on this fallback: `.github/workflows/wasm-build.yml` installs a real
-> Rust toolchain (`dtolnay/rust-toolchain`) and invokes `cargo test` directly
-> in `packages/compiler-wasm`, so a genuine test failure fails the CI job.
+`npm run build` validates the committed builds and never rewrites them, so a
+workspace build leaves the tree clean whether or not `wasm-pack` is installed.
+`npm run rebuild` needs `wasm-pack` (on `PATH`, under Cargo's bin directory, or
+provided as `WASM_PACK_BIN`). It refuses while a Rust build input
+(`src/**/*.rs`, `Cargo.toml`, `Cargo.lock`) has uncommitted changes, because a
+receipt names the commit its build came from: commit the Rust change first,
+then rebuild and commit both builds. `scripts/holo-ci/check-compiler-wasm-drift.mjs`
+(run by the pre-commit spec-corpus gate and before publishing) fails when
+either build is older than the Rust source, when a receipt does not match its
+WASM or names a commit whose Rust source differs from the current one, or when
+the two builds hold different WASM.
+
+> **Note**: `npm run test` runs `cargo test || echo '...skipping'` — a friendly
+> no-op when cargo isn't installed, so `pnpm test` at the repo root doesn't
+> hard-fail for contributors without a Rust toolchain. The GitHub workflows that
+> ran `cargo test` directly are archived (`.github/workflows/_archived/`), so
+> today a Rust test failure is caught only where someone runs `cargo test` with
+> a real toolchain.
 
 ## Performance
 
