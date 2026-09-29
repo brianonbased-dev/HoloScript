@@ -541,14 +541,34 @@ export async function resolveBrittneyProviderAsync(
         }
         return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
       }
-      throw new Error(
-        'SOVEREIGN_WARMING: Brittney is warming up — the sovereign serving box was ' +
-          'scaled to zero and is spinning up now (your message bumped demand). Retry ' +
-          'in ~1 minute. Sovereign-only by founder policy.'
-      );
+      throw warmingError();
     }
   }
   return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
+}
+
+/**
+ * What a person reads when our serving box is asleep and nothing else may
+ * answer. It used to reach the chat as "Sorry, I hit an error:
+ * SOVEREIGN_WARMING: ... Retry in ~1 minute", and the minute was never true.
+ * Measured 2026-09-29, first message to first answer: the autoscaler rents a
+ * box on its next 5-minute tick, the box boots and loads the model, and the
+ * tick after that routes to it — WARMING_MINUTES in all.
+ */
+export const WARMING_MINUTES = 20;
+export const WARMING_NOTICE =
+  'My computer was switched off to save money, and your message just turned it on. ' +
+  `It takes about ${WARMING_MINUTES} minutes to start. Please send your message again then.`;
+
+/** The cold-fleet refusal: `message` is for logs, `notice` is for the person. */
+export function warmingError(): Error & { notice: string } {
+  return Object.assign(
+    new Error(
+      'SOVEREIGN_WARMING: the sovereign serving box was scaled to zero and is starting ' +
+        '(this message bumped demand). Sovereign-only by founder policy.'
+    ),
+    { notice: WARMING_NOTICE }
+  );
 }
 
 /**
