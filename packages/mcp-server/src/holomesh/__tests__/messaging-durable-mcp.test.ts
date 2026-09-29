@@ -85,6 +85,12 @@ function seedTeam() {
 
 describe('MCP messaging durable team-store delivery', () => {
   beforeEach(() => {
+    // resolveTeamId() falls back to HOLOMESH_TEAM_ID when team_id is omitted
+    // (by design). Agent shells export that variable, and then the "no team_id"
+    // case resolved to the shell's own team and never reached the refusal it
+    // checks. These tests define their own team, so the variable is removed for
+    // every case and restored afterwards.
+    vi.stubEnv('HOLOMESH_TEAM_ID', undefined);
     _resetMessageStore();
     teamMessageStore.delete(TEAM);
     teamStore.delete(TEAM);
@@ -96,6 +102,7 @@ describe('MCP messaging durable team-store delivery', () => {
     _resetMessageStore();
     teamMessageStore.delete(TEAM);
     teamStore.delete(TEAM);
+    vi.unstubAllEnvs();
   });
 
   it('refuses send when no injected identity is present', async () => {
@@ -117,6 +124,23 @@ describe('MCP messaging durable team-store delivery', () => {
       content: 'hello jetson',
     })) as { error?: string };
     expect(result.error).toMatch(/team_id is required/);
+    expect(getInbox(JETSON.id)).toHaveLength(0);
+  });
+
+  it('without team_id, falls back to HOLOMESH_TEAM_ID and still writes the durable team store', async () => {
+    vi.stubEnv('HOLOMESH_TEAM_ID', TEAM);
+    const result = (await handleMessagingTool('holomesh_send_message', {
+      __authAgentId: ALICE.id,
+      to: JETSON.id,
+      content: 'addressed through the env team',
+    })) as { success?: boolean; store?: string; message?: TeamMessage };
+    expect(result.success).toBe(true);
+    expect(result.store).toBe('team-durable');
+    expect(result.message?.teamId).toBe(TEAM);
+    expect(persistTeamDurable).toHaveBeenCalledWith(TEAM);
+    expect((teamMessageStore.get(TEAM) || []).map((msg) => msg.content)).toContain(
+      'addressed through the env team'
+    );
     expect(getInbox(JETSON.id)).toHaveLength(0);
   });
 

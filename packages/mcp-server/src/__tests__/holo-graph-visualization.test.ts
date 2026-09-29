@@ -355,6 +355,9 @@ describe('PluginManager', () => {
   });
 
   it('registerPlugin adds tools', async () => {
+    // 1e4d3a9698 dropped the `before`/`after` reads when it added reset(), but
+    // kept the assertion that used them, so this test threw ReferenceError.
+    const before = PluginManager.getTools().length;
     await PluginManager.registerPlugin(
       [
         {
@@ -365,7 +368,9 @@ describe('PluginManager', () => {
       ],
       async () => ({ result: 'ok' })
     );
-    expect(PluginManager.getTools().length).toBe(1);
+    const after = PluginManager.getTools().length;
+    expect(before).toBe(0); // beforeEach reset() leaves no plugin tools behind
+    expect(after).toBe(1);
     expect(after).toBe(before + 1);
   });
 

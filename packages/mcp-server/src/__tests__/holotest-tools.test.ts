@@ -13,21 +13,60 @@ import { handleHolotestTool, holotestTools } from '../holotest-tools';
 import * as llmProvider from '@holoscript/llm-provider';
 
 /**
+ * No test in this file reaches a live model. The judge tests used to call whichever
+ * provider the shell's keys (XAI / OpenRouter / OpenAI) or HOLOSCRIPT_LOCAL_LLM_URL
+ * reached: 2-6 s per call, billed, a different verdict per run, and when nothing
+ * answered they fell onto the no-provider path, whose verdict (UNGRADED since
+ * e4feac871) their verdict lists did not allow. The provider factory is replaced by
+ * a fixture judge that answers the graded path with fixed JSON; withNoProvider()
+ * swaps in an empty registry where the outage itself is the subject.
+ */
+const { fixtureProviderManager } = vi.hoisted(() => {
+  const fixtureJudge = {
+    complete: async () => ({
+      content: JSON.stringify({
+        verdict: 'PASS',
+        overall_score: 8,
+        scores: [{ dimension: 'correctness', score: 8, rationale: 'fixture judge' }],
+        summary: 'fixture judge: a fixed, graded answer',
+      }),
+    }),
+  };
+  return {
+    fixtureProviderManager: () => ({
+      getRegisteredProviders: () => ['fixture-judge'],
+      getProvider: (name: string) => (name === 'fixture-judge' ? fixtureJudge : undefined),
+    }),
+  };
+});
+
+vi.mock('@holoscript/llm-provider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@holoscript/llm-provider')>()),
+  createProviderManager: vi.fn(fixtureProviderManager),
+}));
+
+/**
  * Run `fn` with the LLM provider registry emptied, so the judge genuinely cannot run.
  *
- * This forces the outage instead of waiting for one. The registry is restored afterwards
- * even if the assertion throws, so the surrounding tests — which DO use a live provider —
- * are unaffected by ordering.
+ * This forces the outage instead of waiting for one. The fixture judge is put back
+ * afterwards even if the assertion throws, so the surrounding tests are unaffected
+ * by ordering.
  */
 async function withNoProvider<T>(fn: () => Promise<T>): Promise<T> {
-  const spy = vi.spyOn(llmProvider, 'createProviderManager').mockReturnValue({
-    getRegisteredProviders: () => [],
-    getProvider: () => undefined,
-  } as unknown as ReturnType<typeof llmProvider.createProviderManager>);
+  const factory = vi.mocked(llmProvider.createProviderManager);
+  factory.mockImplementation(
+    () =>
+      ({
+        getRegisteredProviders: () => [],
+        getProvider: () => undefined,
+      }) as unknown as ReturnType<typeof llmProvider.createProviderManager>
+  );
   try {
     return await fn();
   } finally {
-    spy.mockRestore();
+    factory.mockImplementation(
+      fixtureProviderManager as unknown as typeof llmProvider.createProviderManager
+    );
   }
 }
 
@@ -253,9 +292,11 @@ describe('execute_holotest — result structure', () => {
   });
 });
 
-// ── CG-086: LLM judge + execute_eval (no provider → graceful FAIL) ──────────
-// These tests do NOT require a live LLM. They verify the structural contract
-// of the llm_judge branch: schema wiring, result shape, fallback behavior.
+// ── CG-086: LLM judge + execute_eval (fixture judge; no provider → UNGRADED) ──
+// These tests do NOT use a live LLM. They verify the structural contract of the
+// llm_judge branch: schema wiring, result shape, fallback behavior. The graded path
+// runs against the fixture judge above; a no-provider case is forced with
+// withNoProvider(), and since e4feac871 its verdict is UNGRADED, never FAIL.
 
 describe('holotestTools — execute_eval registration (CG-086)', () => {
   it('exports execute_eval tool definition', () => {
@@ -289,19 +330,26 @@ describe('handleHolotestTool — execute_eval dispatch (CG-086)', () => {
     expect(result).not.toBeNull();
     expect(result!.tool_name).toBe('execute_eval');
     expect(['passed', 'failed', 'error']).toContain(result!.status);
+    // The judge that answered is the fixture, not whatever model the shell can reach.
+    expect(result!.judge_result!.provider).toBe('fixture-judge');
   });
 
   it('returns judge_result with required fields even when no provider is available', async () => {
-    const result = await handleHolotestTool('execute_eval', {
-      output: 'Some output text.',
-      rubric: 'Must be correct.',
-    });
+    const result = await withNoProvider(() =>
+      handleHolotestTool('execute_eval', {
+        output: 'Some output text.',
+        rubric: 'Must be correct.',
+      })
+    );
     expect(result!.judge_result).toBeDefined();
     const jr = result!.judge_result!;
     expect(typeof jr.overall_score).toBe('number');
     expect(jr.overall_score).toBeGreaterThanOrEqual(0);
     expect(jr.overall_score).toBeLessThanOrEqual(10);
-    expect(['PASS', 'FAIL', 'DEGRADED']).toContain(jr.verdict);
+    // Was ['PASS', 'FAIL', 'DEGRADED'], written when no provider meant FAIL. Since
+    // e4feac871 a judge that did not run reports UNGRADED, and this test only ever
+    // passed where some live provider happened to answer instead.
+    expect(jr.verdict).toBe('UNGRADED');
     expect(Array.isArray(jr.scores)).toBe(true);
     expect(typeof jr.summary).toBe('string');
     expect(typeof jr.rubric).toBe('string');

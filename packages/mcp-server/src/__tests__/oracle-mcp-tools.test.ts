@@ -12,21 +12,99 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { handleOracleMcpTool } from '../oracle-mcp-tools';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+
+type OracleHandler = typeof import('../oracle-mcp-tools').handleOracleMcpTool;
+
+/**
+ * The research archive these tests read is built here, not borrowed from the
+ * machine. oracle-mcp-tools reads RESEARCH_ROOT once, at load, from
+ * ORACLE_RESEARCH_ROOT or ~/.ai-ecosystem/research, and the tests used to take
+ * whatever that was. An agent shell that exports ORACLE_RESEARCH_ROOT as a whole
+ * ai-ecosystem checkout turned three tests red: a 199 s scan past the timeout,
+ * 5 "matches" for a nonsense topic (file names containing "here"), and no file
+ * at the relative path synthesize reads. A fixed archive makes each assertion
+ * about the tool, and fetch is fenced so no test reaches the live stores.
+ */
+const ORACLE_FILE = '2026-03-29_oracle-collision-compilation-as-gossip.md';
+
+function writeFixtureArchive(root: string): void {
+  fs.writeFileSync(
+    path.join(root, ORACLE_FILE),
+    [
+      '# Oracle collision: compilation as gossip',
+      '',
+      '**Finding**: Incremental compilation behaves like a gossip protocol — a changed module',
+      'tells only its direct dependents, and the rebuild converges when nobody has news left.',
+      '',
+      '**Key insight**: Treating invalidation as gossip bounds rebuild work by the reach of the',
+      'edit, not by the size of the project.',
+      '',
+    ].join('\n')
+  );
+  // Newer and also about compilation, but not an oracle collision: discover must
+  // still rank the oracle file first.
+  fs.writeFileSync(
+    path.join(root, '2026-05-01_compilation-cache-notes.md'),
+    '# Compilation cache notes\n\nPlain notes on cache keys for compilation units.\n'
+  );
+  fs.mkdirSync(path.join(root, 'trust'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'trust', '2026-04-10_thermodynamic-trust.md'),
+    [
+      '# Thermodynamic trust',
+      '',
+      ...Array.from(
+        { length: 24 },
+        (_, i) =>
+          `Paragraph ${i + 1}: trust decays like heat unless work is spent to keep it; ` +
+          'every attestation is that work, and silence lets the gradient flatten.'
+      ),
+      '',
+    ].join('\n')
+  );
+}
 
 describe('oracle-mcp-tools', () => {
   const originalEnv = process.env;
+  const previousResearchRoot = process.env.ORACLE_RESEARCH_ROOT;
+  let fixtureRoot = '';
+  let handleOracleMcpTool: OracleHandler;
+
+  beforeAll(async () => {
+    fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'oracle-fixture-archive-'));
+    writeFixtureArchive(fixtureRoot);
+    process.env.ORACLE_RESEARCH_ROOT = fixtureRoot;
+    vi.resetModules();
+    // The module pulls in the holomesh stores; a cold load takes ~30 s here.
+    ({ handleOracleMcpTool } = await import('../oracle-mcp-tools'));
+  }, 180_000);
+
+  afterAll(() => {
+    if (previousResearchRoot === undefined) delete process.env.ORACLE_RESEARCH_ROOT;
+    else process.env.ORACLE_RESEARCH_ROOT = previousResearchRoot;
+    vi.resetModules();
+    fs.rmSync(fixtureRoot, { recursive: true, force: true });
+  });
 
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     process.env = { ...originalEnv, HOLOSCRIPT_API_KEY: 'test-key' };
+    // Network fence: the knowledge-store clients swallow a failed fetch and
+    // return no entries. Tests that need entries stub fetch themselves.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown) => {
+        throw new Error(`oracle test network fence: refused ${String(input)}`);
+      })
+    );
   });
 
   afterEach(() => {
     vi.useRealTimers();
     process.env = originalEnv;
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('holo_oracle_discover', () => {
@@ -62,10 +140,17 @@ describe('oracle-mcp-tools', () => {
       const result = (await handleOracleMcpTool('holo_oracle_discover', {
         topic: 'thermodynamic trust',
         depth: 'deep',
-      })) as { report: string };
+      })) as { report: string; researchFilesFound: number };
+      const brief = (await handleOracleMcpTool('holo_oracle_discover', {
+        topic: 'thermodynamic trust',
+        depth: 'brief',
+      })) as { report: string; researchFilesFound: number };
 
       // Deep mode reads up to 4000 chars per file; brief only 300
+      expect(result.researchFilesFound).toBe(1);
+      expect(brief.researchFilesFound).toBe(1);
       expect(result.report.length).toBeGreaterThan(500);
+      expect(result.report.length).toBeGreaterThan(brief.report.length);
     });
 
     it('handles unknown topics gracefully', async () => {

@@ -29,9 +29,21 @@ import { createServer } from 'net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { OPERATION_COSTS } from '@holoscript/absorb-service/credits';
 
 // Accepted by the legacy-key path; not in the key registry, so not a founder.
 const TEST_KEY = 'credit-route-test-key-not-a-founder';
+
+// The operation the refusal tests ask to pay for. It was studio_generate until
+// c242bf761c made the five studio_* rows free by founder ruling: a free row
+// answers `required: 0`, which cannot show a PAID operation slipping through
+// without a ledger. So take a row the pricing table still charges for — the
+// same table http-server.ts reads — instead of naming one that can go free.
+const PRICED = Object.entries(OPERATION_COSTS as Record<string, { baseCostCents: number }>).find(
+  ([, cost]) => cost.baseCostCents > 0
+);
+const PRICED_OPERATION = PRICED?.[0] ?? '(none: every operation is free)';
+const PRICED_CENTS = PRICED?.[1].baseCostCents ?? 0;
 
 const KEEP_ENV = new Set(
   [
@@ -186,25 +198,32 @@ describe('credit routes with no credit ledger, in production (real http-server)'
     }
   });
 
+  it('the refusal tests ask for an operation the pricing table actually charges for', () => {
+    expect(PRICED, 'the pricing table has no priced operation left to test with').toBeDefined();
+    expect(PRICED_CENTS).toBeGreaterThan(0);
+  });
+
   it('POST /api/credits/check refuses with 503 instead of "ok, balance Infinity"', async () => {
     const r = await post('/api/credits/check', {
       userId: 'route-test-user',
-      operation: 'studio_generate',
+      operation: PRICED_OPERATION,
     });
     expect(r.status).toBe(503);
     expect(r.body.ok).toBe(false);
     expect(r.body.balance).toBeUndefined();
+    expect(r.body.required).toBe(PRICED_CENTS);
     expect(r.body.required).toBeGreaterThan(0);
   });
 
   it('POST /api/credits/deduct refuses with 503 instead of "ok, cost N" with nothing recorded', async () => {
     const r = await post('/api/credits/deduct', {
       userId: 'route-test-user',
-      operation: 'studio_generate',
+      operation: PRICED_OPERATION,
     });
     expect(r.status).toBe(503);
     expect(r.body.ok).toBe(false);
     expect(r.body.cost).toBeUndefined();
+    expect(r.body.required).toBe(PRICED_CENTS);
     expect(r.body.required).toBeGreaterThan(0);
   });
 

@@ -21,8 +21,12 @@ async function dispatchTool(name: string, args: Record<string, unknown>) {
   return handleTool(name, args, mockSigningCtx);
 }
 
-// Mock LLM provider (same pattern as generators.test.ts)
-vi.mock('@holoscript/llm-provider', () => ({
+// Mock the LLM provider factory only. The rest of the module stays real: other
+// modules loaded through handlers read its exports at import time (ollama-client
+// reads LOCAL_DEFAULT_MODEL since 8e43e5d4e4), and a factory that returns only
+// createProviderManager made this whole file fail to load.
+vi.mock('@holoscript/llm-provider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@holoscript/llm-provider')>()),
   createProviderManager: vi.fn(() => ({
     getRegisteredProviders: () => ['mock'],
     getProvider: () => ({

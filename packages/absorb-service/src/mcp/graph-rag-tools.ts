@@ -290,10 +290,29 @@ export function resetGraphRAGState(): void {
 
 export const resetGraphRAGStateForTests = resetGraphRAGState;
 
+/**
+ * The text argument each semantic tool's schema marks `required`. It is checked
+ * before any graph load or encoder start: a call without it used to run the
+ * HoloDistill encoder on `undefined` (30-90 s on a warm workstation) and answer
+ * with the encoder's Python traceback instead of naming the missing argument.
+ */
+const REQUIRED_TEXT_ARG = new Map<string, string>([
+  ['holo_semantic_search', 'query'],
+  ['holo_ask_codebase', 'question'],
+]);
+
 export async function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
+  const requiredArg = REQUIRED_TEXT_ARG.get(name);
+  if (requiredArg && !stringArg(args[requiredArg])) {
+    return {
+      error: `${requiredArg} is required`,
+      hint: `Pass "${requiredArg}" as a non-empty string.`,
+    };
+  }
+
   const { refuseNestedWorkspaceSliceForSemanticTools } = await import('./codebase-tools');
   const nestedSliceRefuse = await refuseNestedWorkspaceSliceForSemanticTools();
   if (nestedSliceRefuse) {

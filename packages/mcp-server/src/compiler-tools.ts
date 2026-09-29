@@ -2196,16 +2196,15 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'verify_cross_perceiver',
+    // Kept under the 500-character tool-description budget that
+    // dispatch-health.test.ts enforces; the perceiver roles live on `perceivers`.
     description:
-      'Falsification oracle for one .holo composition across structurally-different perceiver ' +
-      'compilers: webgpu (the human eye), agent-inference (the agent context), urdf (the robot ' +
-      'stack). Compiles the SAME source through each requested perceiver, independently ' +
-      're-derives world facts from each EMITTED ARTIFACT (never the shared input AST), and ' +
-      'diffs them into a PerceiverConsensusReceipt. Any perceiver that re-derives a different ' +
-      'fact flips the verdict to FALSIFIED with the concrete disagreement. ' +
-      'DESIGN CONSTRAINT — verdict FALSIFIED is LOAD-BEARING: consumers MUST treat FALSIFIED ' +
-      'as a hard failure (fail the pipeline / exit non-zero); it must NEVER be demoted to a ' +
-      'warning. Requires at least 2 perceivers (a single-perceiver receipt is circular).',
+      'Falsification oracle: compiles one .holo composition through 2+ structurally-different ' +
+      'perceivers (see perceivers), re-derives world facts from each EMITTED ARTIFACT (never ' +
+      'the shared AST) and diffs them into a PerceiverConsensusReceipt. Any disagreement flips ' +
+      'the verdict to FALSIFIED, naming it. FALSIFIED is LOAD-BEARING: treat it as a hard ' +
+      'failure (fail the pipeline / exit non-zero); it must NEVER be demoted to a warning. ' +
+      'A single perceiver is refused: its receipt would be circular.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2217,7 +2216,9 @@ export const compilerTools: Tool[] = [
           type: 'array',
           items: { type: 'string', enum: ['webgpu', 'agent-inference', 'urdf'] },
           description:
-            'Perceivers to fan the composition through (default: all three; minimum 2 distinct)',
+            'Perceivers to fan the composition through: webgpu (the human eye), ' +
+            'agent-inference (the agent context), urdf (the robot stack). ' +
+            'Default: all three; minimum 2 distinct.',
         },
         options: {
           type: 'object',
@@ -2237,23 +2238,27 @@ export const compilerTools: Tool[] = [
   },
   {
     name: 'verify_verified_view',
+    // Kept under the 500-character tool-description budget that
+    // dispatch-health.test.ts enforces; the violation kinds live on `code`.
     description:
       'Provenance oracle for an agent-authored 2D surface (.holo): does every data-bound ' +
-      'element prove what it renders? Re-derives the @verified_view contract that ' +
-      'Native2DCompiler enforces and returns EVERY violation at once (compiling would throw ' +
-      'on the first). Violations: mismatched-node (@projects names a different path than the ' +
-      'binding — "says sessions, wired revenue"), missing-projects (bound element with no ' +
-      'receipt), hallucinated-root (projects a state node that does not exist), ' +
-      'projects-without-binding (a receipt on an unbound element), no-verified-view (binds ' +
-      'data without opting into the gate). DESIGN CONSTRAINT — `complete: false` is ' +
-      'LOAD-BEARING: a surface that cannot prove its data source must be treated as a hard ' +
-      'failure, never demoted to a warning. Unverifiable input is an error, never a false clean.',
+      'element prove what it renders? Re-derives the @verified_view contract Native2DCompiler ' +
+      'enforces and returns EVERY violation at once (compiling throws on the first). ' +
+      '`complete: false` is LOAD-BEARING: a surface that cannot prove its data source must be ' +
+      'treated as a hard failure, never demoted to a warning. Unverifiable input is an error, ' +
+      'never a false clean. Violation kinds: see the code parameter.',
     inputSchema: {
       type: 'object',
       properties: {
         code: {
           type: 'string',
-          description: 'HoloScript 2D surface source (.holo) to check for provenance-completeness',
+          description:
+            'HoloScript 2D surface source (.holo) to check for provenance-completeness. ' +
+            'Violation kinds: mismatched-node (@projects names a different path than the ' +
+            'binding — "says sessions, wired revenue"), missing-projects (bound element with no ' +
+            'receipt), hallucinated-root (projects a state node that does not exist), ' +
+            'projects-without-binding (a receipt on an unbound element), no-verified-view (binds ' +
+            'data without opting into the gate).',
         },
       },
       required: ['code'],
