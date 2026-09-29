@@ -12,7 +12,7 @@
 //   horizon         — ISO-8601 temporal cutoff, e.g. "2026-06" or "2026-06-21"
 //   capability_tier — 0-3 matching D.051 hierarchy (T0 > T1 > T2 > T3); default 2
 //   trust_tier      — inbound trust level 0-3; actions requiring higher tier blocked
-//   allowed_tools   — MCP tool allowlist; absent/empty = all tools permitted
+//   allowed_tools   — MCP tool allowlist; ["*"] = every tool, [] = no tool, absent = every tool
 //   denied_domains  — topic tags this agent MUST NOT act on
 //
 // Runtime enforcement:
@@ -86,9 +86,10 @@ brain HoloScriptSpecialist : @behavior_tree {
 
 // ── Example 2: Tier-1 trusted agent with broad domain access ─────────────────
 //
-// A more privileged agent that can cross into any domain but is time-bounded to
-// the June 2026 knowledge horizon. Operates at trust_tier 1 — will block requests
-// that require tier-0 sovereign access.
+// A more privileged agent that can cross into any domain and call every tool
+// (["*"]; an empty list would mean no tool) but is time-bounded to the June 2026
+// knowledge horizon. Operates at trust_tier 1 — will block requests that require
+// tier-0 sovereign access.
 
 brain TrustedAnalyst : @behavior_tree {
   @frame_declaration {
@@ -96,7 +97,7 @@ brain TrustedAnalyst : @behavior_tree {
     horizon: "2026-06-21"
     capability_tier: 1
     trust_tier: 1
-    allowed_tools: []
+    allowed_tools: ["*"]
     denied_domains: []
   }
 

@@ -22,7 +22,8 @@
  *   horizon         — temporal knowledge cutoff (ISO-8601 prefix: YYYY-MM or YYYY-MM-DD)
  *   capability_tier — 0-3 matching D.051 sovereign-seat hierarchy (T0 > T1 > T2 > T3)
  *   trust_tier      — 0-3 trust level; actions requiring higher tiers are blocked
- *   allowed_tools   — explicit allowlist of MCP tool names; absent = all tools allowed
+ *   allowed_tools   — MCP tool names the agent may call; ["*"] = every tool, [] = no tool,
+ *                     absent = every tool (same as ["*"]); a value that is not a list = no tool
  *   denied_domains  — string tags an agent MUST NOT act on
  *
  * Events emitted:
@@ -37,6 +38,7 @@
  * @D101-compatible pure language work
  */
 
+import { FRAME_ALLOW_ALL_TOOLS } from '@holoscript/agent-protocol';
 import type { FrameDeclarationContract } from '@holoscript/agent-protocol';
 import type { HSPlusNode } from './TraitTypes';
 
@@ -70,8 +72,9 @@ export interface FrameDeclaration extends FrameDeclarationContract {
    */
   trust_tier: 0 | 1 | 2 | 3;
   /**
-   * Explicit allowlist of MCP tool names this agent may invoke.
-   * Empty array or absent means all tools are permitted.
+   * MCP tool names this agent may invoke (G15). `["*"]` permits every tool,
+   * `[]` permits no tool, any other list permits exactly the tools it names.
+   * An omitted field is coerced to `["*"]`, so leaving it out means every tool.
    */
   allowed_tools: string[];
   /**
@@ -105,7 +108,7 @@ const DEFAULT_FRAME: FrameDeclaration = {
   horizon: '',
   capability_tier: 2,
   trust_tier: 2,
-  allowed_tools: [],
+  allowed_tools: [FRAME_ALLOW_ALL_TOOLS],
   denied_domains: [],
 };
 
@@ -154,9 +157,15 @@ function coerceConfig(raw: Record<string, unknown>): FrameDeclaration {
     trust_tier = rawTT;
   }
 
-  const allowed_tools = Array.isArray(raw.allowed_tools)
-    ? (raw.allowed_tools as unknown[]).filter((t): t is string => typeof t === 'string')
-    : [];
+  // G15: an omitted list keeps its old meaning, every tool, as ["*"]. A written
+  // list means exactly what it names, so [] is no tool. A written value that is
+  // not a list fails closed to no tool instead of widening to every tool.
+  const allowed_tools =
+    raw.allowed_tools === undefined
+      ? [FRAME_ALLOW_ALL_TOOLS]
+      : Array.isArray(raw.allowed_tools)
+        ? (raw.allowed_tools as unknown[]).filter((t): t is string => typeof t === 'string')
+        : [];
 
   const denied_domains = Array.isArray(raw.denied_domains)
     ? (raw.denied_domains as unknown[]).filter((d): d is string => typeof d === 'string')
@@ -188,16 +197,23 @@ export function checkToolAllowed(
     };
   }
 
-  // Explicit allowlist check (empty = all allowed)
-  if (frame.allowed_tools.length > 0 && !frame.allowed_tools.includes(toolName)) {
-    return {
-      allowed: false,
-      violation_type: 'tool_not_allowed',
-      detail: `Tool '${toolName}' not in allowed_tools: [${frame.allowed_tools.join(', ')}]`,
-    };
+  // G15: the allowlist permits a tool only when it names that tool or "*".
+  // An empty list permits no tool; every tool is written ["*"]. A frame whose
+  // allowed_tools is not a list (an untyped caller) also permits no tool.
+  const allowedTools: readonly string[] = Array.isArray(frame.allowed_tools)
+    ? frame.allowed_tools
+    : [];
+  if (allowedTools.includes(FRAME_ALLOW_ALL_TOOLS) || allowedTools.includes(toolName)) {
+    return { allowed: true };
   }
-
-  return { allowed: true };
+  return {
+    allowed: false,
+    violation_type: 'tool_not_allowed',
+    detail:
+      allowedTools.length === 0
+        ? `Tool '${toolName}' denied: allowed_tools is empty, so this frame permits no tool (write ["*"] for every tool)`
+        : `Tool '${toolName}' not in allowed_tools: [${allowedTools.join(', ')}]`,
+  };
 }
 
 /**
@@ -255,7 +271,7 @@ export const frameDeclarationHandler = {
     ctx.emit('frame_declared', {
       node,
       frame,
-      summary: `domain=${frame.domain} horizon=${frame.horizon || 'none'} cap_tier=${frame.capability_tier} trust_tier=${frame.trust_tier} tools=${frame.allowed_tools.length === 0 ? '*' : frame.allowed_tools.join(',')} denied=${frame.denied_domains.join(',') || 'none'}`,
+      summary: `domain=${frame.domain} horizon=${frame.horizon || 'none'} cap_tier=${frame.capability_tier} trust_tier=${frame.trust_tier} tools=${frame.allowed_tools.length === 0 ? 'none' : frame.allowed_tools.join(',')} denied=${frame.denied_domains.join(',') || 'none'}`,
     });
   },
 

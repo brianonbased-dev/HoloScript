@@ -156,6 +156,47 @@ describe('founderGateX402ToolCallCheck', () => {
     expect(decision.check).toBe(FOUNDER_GATE_X402_CHECK_ID);
   });
 
+  // G15 (proposals/Agent_Frame_Tool_Allowlist_v1.md) at the enforcement point:
+  // an active frame with [] permits no tool; ["*"] permits every tool.
+  const g15Frame = (allowed_tools: string[]) => ({
+    domain: 'holoscript-language',
+    horizon: '2026-07',
+    capability_tier: 2 as const,
+    trust_tier: 2 as const,
+    allowed_tools,
+    denied_domains: [],
+  });
+
+  it('G15: an active frame with allowed_tools: [] denies every registered tool', async () => {
+    registerKnownTools(['parse_hs', 'compile_holoscript']);
+    for (const tool of ['parse_hs', 'compile_holoscript']) {
+      const decision = await runCheck(tool, {
+        ...httpCtx(['tools:read', 'tools:write']),
+        frameDeclaration: g15Frame([]),
+      });
+      expect(decision.allowed, tool).toBe(false);
+      expect(decision.check, tool).toBe(FRAME_DECLARATION_CHECK_ID);
+      expect(decision.reason, tool).toContain('permits no tool');
+      expect(decision.violation, tool).toMatchObject({
+        event: 'frame_violation',
+        violationType: 'tool_not_allowed',
+        tool,
+      });
+    }
+  });
+
+  it('G15: an active frame with allowed_tools: ["*"] denies no registered tool', async () => {
+    registerKnownTools(['parse_hs', 'compile_holoscript']);
+    for (const tool of ['parse_hs', 'compile_holoscript']) {
+      const decision = await runCheck(tool, {
+        ...httpCtx(['tools:read', 'tools:write']),
+        frameDeclaration: g15Frame(['*']),
+      });
+      expect(decision.allowed, tool).toBe(true);
+      expect(decision.check, tool).toBe(FOUNDER_GATE_X402_CHECK_ID);
+    }
+  });
+
   it('fails closed when frame metadata is present but malformed', async () => {
     registerKnownTools(['parse_hs']);
     const decision = await runCheck('parse_hs', {

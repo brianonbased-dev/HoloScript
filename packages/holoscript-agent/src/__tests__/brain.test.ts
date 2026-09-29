@@ -216,6 +216,75 @@ brain FramedAgent : @behavior_tree {
     expect((await loadBrain(path)).frameDeclaration).toBeUndefined();
   });
 
+  // ─── G15: omitted = every tool, [] = no tool (Agent_Frame_Tool_Allowlist_v1) ──
+  // This loader is the edge path to the MCP gate, which receives only a list:
+  // it must send ["*"] for an omitted list and [] for a written empty one,
+  // because the gate cannot tell the two apart afterwards.
+
+  let frameCount = 0;
+  async function allowedToolsFor(frameBody: string): Promise<string[] | undefined> {
+    const path = join(dir, `g15-frame-${frameCount++}.hsplus`);
+    writeFileSync(
+      path,
+      `#version 6.0.0
+brain FramedAgent : @behavior_tree {
+  @frame_declaration {
+${frameBody}
+  }
+  identity { domain: "holoscript-language" }
+}
+`,
+      'utf8'
+    );
+    return (await loadBrain(path)).frameDeclaration?.allowed_tools;
+  }
+
+  it('G15: a frame that omits allowed_tools is sent as ["*"], every tool', async () => {
+    expect(await allowedToolsFor('    domain: "holoscript-language"')).toEqual(['*']);
+  });
+
+  it('G15: a written allowed_tools: [] is sent as [], no tool', async () => {
+    expect(await allowedToolsFor('    allowed_tools: []')).toEqual([]);
+  });
+
+  it('G15: allowed_tools: ["*"] is sent as ["*"], and a named list as written', async () => {
+    expect(await allowedToolsFor('    allowed_tools: ["*"]')).toEqual(['*']);
+    expect(await allowedToolsFor('    allowed_tools: ["parse_hs"]')).toEqual(['parse_hs']);
+  });
+
+  it('G15: a written value this loader cannot read as a list fails closed to []', async () => {
+    expect(await allowedToolsFor('    allowed_tools: "parse_hs"')).toEqual([]);
+    expect(await allowedToolsFor('    allowed_tools: ["parse_hs"')).toEqual([]);
+  });
+
+  it('G15: a space before the colon is still a written list, not an omitted one', async () => {
+    expect(await allowedToolsFor('    allowed_tools : ["parse_hs"]')).toEqual(['parse_hs']);
+  });
+
+  it('G15: a comment inside the frame can neither widen nor stand in for the list', async () => {
+    expect(
+      await allowedToolsFor(
+        '    // allowed_tools: ["*"] would allow every tool\n    allowed_tools: ["parse_hs"]'
+      )
+    ).toEqual(['parse_hs']);
+    expect(await allowedToolsFor('    /* allowed_tools: ["*"] */\n    allowed_tools: []')).toEqual(
+      []
+    );
+    expect(
+      await allowedToolsFor('    // allowed_tools: []\n    domain: "holoscript-language"')
+    ).toEqual(['*']);
+    expect(await allowedToolsFor('    domain: "a//b"\n    allowed_tools: ["parse_hs"]')).toEqual([
+      'parse_hs',
+    ]);
+  });
+
+  it('G15: a frame whose comment or string never closes permits no tool', async () => {
+    expect(
+      await allowedToolsFor('    /* old: allowed_tools: ["*"]\n    allowed_tools: ["parse_hs"]')
+    ).toEqual([]);
+    expect(await allowedToolsFor('    domain: "holoscript\n    allowed_tools: ["*"]')).toEqual([]);
+  });
+
   // ─── Universal+segregated routing fields (founder ruling 2026-05-06) ─────
   // Brains may declare requires / prefers / avoids capability arrays in the
   // identity block; router uses them at session start to pick a provider.

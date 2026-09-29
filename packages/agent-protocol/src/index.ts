@@ -363,7 +363,7 @@ export type {
   HoloScriptArtifactProvenance,
 } from './hf-compatible-artifact-publisher';
 
-export { FRAME_DECLARATION_MCP_META_KEY } from './frame-declaration';
+export { FRAME_ALLOW_ALL_TOOLS, FRAME_DECLARATION_MCP_META_KEY } from './frame-declaration';
 export type {
   FrameDeclarationContract,
   FrameTier,

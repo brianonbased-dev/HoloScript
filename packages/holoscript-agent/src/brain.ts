@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
+import { FRAME_ALLOW_ALL_TOOLS } from '@holoscript/agent-protocol';
 import type { FrameDeclarationContract, FrameTier } from '@holoscript/agent-protocol';
 import type { OnTaskAction, RuntimeBrainConfig } from './types.js';
 
@@ -164,8 +165,13 @@ function adaptRuntimeBrainDocument(brain: string): RuntimeBrainDocument {
 
 /** Parse an authored frame into the transport-safe protocol contract. */
 function extractFrameDeclaration(brain: string): FrameDeclarationContract | undefined {
-  const block = sliceNamedBlock(brain, 'frame_declaration');
-  if (block === undefined) return undefined;
+  const rawBlock = sliceNamedBlock(brain, 'frame_declaration');
+  if (rawBlock === undefined) return undefined;
+  // Comments are notes for people, not fields: a comment that mentions
+  // `allowed_tools: ["*"]` must never widen the frame it sits in. A block whose
+  // string or block comment never closes cannot be read, so it permits no tool.
+  const stripped = stripComments(rawBlock);
+  const block = stripped ?? rawBlock;
 
   const tier = (key: string): FrameTier => {
     const parsed = Number((scalarField(block, key) ?? '2').split(',')[0].trim());
@@ -177,9 +183,55 @@ function extractFrameDeclaration(brain: string): FrameDeclarationContract | unde
     horizon: scalarField(block, 'horizon') ?? '',
     capability_tier: tier('capability_tier'),
     trust_tier: tier('trust_tier'),
-    allowed_tools: listField(block, 'allowed_tools') ?? [],
+    allowed_tools: stripped === undefined ? [] : frameAllowedTools(block),
     denied_domains: listField(block, 'denied_domains') ?? [],
   };
+}
+
+/**
+ * G15 (proposals/Agent_Frame_Tool_Allowlist_v1.md): an omitted `allowed_tools`
+ * keeps its old meaning, every tool, and is sent as `["*"]`; a written list
+ * means exactly what it names, so `[]` is no tool. A written value this reader
+ * cannot read as a list fails closed to `[]` instead of widening to every tool.
+ */
+function frameAllowedTools(block: string): string[] {
+  if (fieldValueStart(block, 'allowed_tools') < 0) return [FRAME_ALLOW_ALL_TOOLS];
+  return listField(block, 'allowed_tools') ?? [];
+}
+
+/**
+ * Remove `//` and `/* … *\/` comments, leaving quoted strings intact. Returns
+ * `undefined` when a string or block comment never closes: text this reader
+ * cannot split into fields and comments.
+ */
+function stripComments(src: string): string | undefined {
+  let out = '';
+  let quote: '"' | "'" | null = null;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quote) {
+      out += ch;
+      if (ch === '\\' && i + 1 < src.length) out += src[++i];
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += ch;
+    } else if (ch === '/' && src[i + 1] === '/') {
+      const eol = src.indexOf('\n', i);
+      if (eol < 0) break;
+      i = eol - 1; // the newline itself is kept on the next pass
+    } else if (ch === '/' && src[i + 1] === '*') {
+      const end = src.indexOf('*/', i + 2);
+      if (end < 0) return undefined;
+      out += ' ';
+      i = end + 1;
+    } else {
+      out += ch;
+    }
+  }
+  return quote === null ? out : undefined;
 }
 
 /**
@@ -375,10 +427,19 @@ function scalarField(block: string, key: string): string | undefined {
   return after.slice(0, eol < 0 ? undefined : eol).trim();
 }
 
+/**
+ * Index just past `key:` (whitespace allowed before the colon), or -1 when the
+ * key is not written. A frame field is "written" exactly when this finds it.
+ */
+function fieldValueStart(block: string, key: string): number {
+  const match = new RegExp(`\\b${key}\\s*:`).exec(block);
+  return match ? match.index + match[0].length : -1;
+}
+
 function listField(block: string, key: string): string[] | undefined {
-  const idx = block.indexOf(`${key}:`);
-  if (idx < 0) return undefined;
-  const after = block.slice(idx + key.length + 1).trimStart();
+  const start = fieldValueStart(block, key);
+  if (start < 0) return undefined;
+  const after = block.slice(start).trimStart();
   if (!after.startsWith('[')) return undefined;
   let depth = 0;
   let end = -1;
