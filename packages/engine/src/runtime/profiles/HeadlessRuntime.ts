@@ -19,12 +19,17 @@
 import type { HSPlusAST, HSPlusNode, StateDeclaration } from '@holoscript/core';
 import type { HoloScriptValue } from '@holoscript/core';
 import type { HSPlusDirective } from '@holoscript/core';
-import { ReactiveState, createState, ExpressionEvaluator } from '@holoscript/core';
+import { ReactiveState, createState } from '@holoscript/core';
 import type { HostCapabilities, TraitEvent } from '@holoscript/core';
 import { vrTraitRegistry, type TraitContext } from '@holoscript/core';
 import { eventBus } from '../EventBus';
 import type { RuntimeProfile } from './RuntimeProfile';
 import { HEADLESS_PROFILE } from './RuntimeProfile';
+import {
+  parseLifecycleBody,
+  runLifecycleBody,
+  type LifecycleBodyHost,
+} from './HeadlessLifecycleBody';
 
 // =============================================================================
 // TYPES
@@ -134,7 +139,7 @@ export class HeadlessRuntime {
   private profile: RuntimeProfile;
   private options: HeadlessRuntimeOptions;
   public state: ReactiveState<any>;
-  private evaluator: ExpressionEvaluator;
+  private lifecycleHost: LifecycleBodyHost;
   private rootInstance: HeadlessNodeInstance | null = null;
   private eventHandlers: Map<string, Set<(payload: unknown) => void>> = new Map();
   private updateInterval: ReturnType<typeof setInterval> | null = null;
@@ -169,9 +174,14 @@ export class HeadlessRuntime {
     // Initialize state
     this.state = createState({} as Record<string, unknown>);
 
-    // Initialize expression evaluator
+    // What a lifecycle body can reach: the builtins by name, state, and events
     this.builtins = this.createBuiltins();
-    this.evaluator = new ExpressionEvaluator(this.state.getSnapshot(), this.builtins);
+    this.lifecycleHost = {
+      functions: this.builtins,
+      readState: (key) => this.state.get(key),
+      writeState: (key, value) => this.state.set(key, value),
+      emit: (event, payload) => this.emit(event, payload),
+    };
 
     // Initialize state from AST
     this.initializeState();
@@ -448,7 +458,30 @@ export class HeadlessRuntime {
   ): void {
     const { hook, params, body } = directive;
 
+    // The body is parsed into typed statements once, here, and interpreted on each
+    // call; its text is never evaluated. A body that does not parse, or that uses
+    // a name or statement a lifecycle body may not, never runs; the first call
+    // reports why (it cannot change, so later calls stay quiet). See
+    // HeadlessLifecycleBody.
+    let parsed: { statements: ReturnType<typeof parseLifecycleBody> } | { error: unknown };
+    try {
+      parsed = {
+        statements: parseLifecycleBody(hook, params ?? [], body, Object.keys(this.builtins)),
+      };
+    } catch (error) {
+      parsed = { error };
+    }
+
+    let refusalReported = false;
+
     const handler = (...args: unknown[]) => {
+      if ('error' in parsed) {
+        if (!refusalReported) {
+          refusalReported = true;
+          console.error(`Error in lifecycle handler ${hook}:`, parsed.error);
+        }
+        return;
+      }
       const paramContext: Record<string, unknown> = {};
       if (params) {
         params.forEach((param: string, i: number) => {
@@ -456,30 +489,8 @@ export class HeadlessRuntime {
         });
       }
 
-      this.evaluator.updateContext({
-        ...this.state.getSnapshot(),
-        ...paramContext,
-        node: instance.node,
-        self: instance.node,
-      });
-
       try {
-        if (body.includes(';') || body.includes('{')) {
-          new Function(
-            ...Object.keys(this.builtins),
-            ...Object.keys(paramContext),
-            'state',
-            'node',
-            body
-          )(
-            ...Object.values(this.builtins),
-            ...Object.values(paramContext),
-            this.state,
-            instance.node
-          );
-        } else {
-          this.evaluator.evaluate(body);
-        }
+        runLifecycleBody(parsed.statements, this.lifecycleHost, paramContext, instance.node);
       } catch (error) {
         console.error(`Error in lifecycle handler ${hook}:`, error);
       }
