@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T00:37:34Z",
+  "generatedAt": "2026-09-29T01:16:04Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "e3195b70ad6012025906afafd2c2df5ae5fa5bc5",
+  "sourceCommit": "65658d4a6f314d1e29c856e2f70ed368bf0eb98d",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "node scripts/build-wasm.mjs --rebuild (wasm-pack build --target web --out-dir pkg --release)"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 557733,
-    "wasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
-    "previousWasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
+    "wasmBytes": 557771,
+    "wasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
+    "previousWasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
     "repeatBuildSha256Matched": null,
-    "note": "Written by build-wasm.mjs --rebuild from commit e3195b70ad6012025906afafd2c2df5ae5fa5bc5, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM. Rebuilds pkg/ (the web build, last built 2026-08-04 from 580d91e3) together with pkg-node/ from the @unknown reads source (PR #444). The web glue gains validate_detailed_in_context and is otherwise unchanged; pkg-node's files are byte-identical to its previous build. Board task y39k."
+    "note": "Written by build-wasm.mjs --rebuild from commit 65658d4a6f314d1e29c856e2f70ed368bf0eb98d, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM. Rebuilds both builds after merging the exported-declaration fix to the @unknown read rule (bbd7486fd, PR #444)."
   }
 }
