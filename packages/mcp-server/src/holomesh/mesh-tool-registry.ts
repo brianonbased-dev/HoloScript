@@ -8,6 +8,12 @@ import {
   type ToolRiskLevel,
 } from '../security/tool-scopes';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
+import {
+  callerMayReachPrivateNetwork,
+  fetchPublicHttp,
+  readBodyCapped,
+  type OutboundGuardOptions,
+} from '../security/outbound-url-guard';
 
 const TOOL_MANIFEST_PROTOCOL = 'holomesh.tool_manifest.v1';
 const TOOL_INVOCATION_PROTOCOL = 'holomesh.tool_invocation.v1';
@@ -58,6 +64,8 @@ export interface MeshToolInvokeOptions {
   allowHighRisk?: boolean;
   localInvoker?: (toolName: string, args: Record<string, unknown>) => Promise<unknown>;
   signingCtx?: SigningContext;
+  /** Test seam for the outbound guard an mcp-http invoke goes through (redirects stay off). */
+  outboundGuard?: OutboundGuardOptions;
 }
 
 export interface MeshToolInvocationHop {
@@ -623,20 +631,46 @@ export async function invokePublishedMeshTool(
     };
   }
 
-  const response = await axios.post(
-    manifest.endpoint.url,
-    { name: manifest.endpoint.toolName, arguments: args },
-    {
-      headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'x-holomesh-tool-manifest-hash': manifest.attestation.manifestHash,
-        ...(manifest.endpoint.headers ?? {}),
+  const body = { name: manifest.endpoint.toolName, arguments: args };
+  const headers = {
+    'content-type': 'application/json; charset=utf-8',
+    'x-holomesh-tool-manifest-hash': manifest.attestation.manifestHash,
+    ...(manifest.endpoint.headers ?? {}),
+  };
+  // An mcp-http endpoint is whatever URL a publisher wrote, here or in the shared knowledge store
+  // (a remote manifest's "attestation" is a hash of its own content, not a vouch for the address),
+  // and its answer comes back to the caller whole. So it was a full-read request forgery: a
+  // tools:write caller published a tool at an internal address, invoked it, and read the body
+  // (task cixd). Only an operator or the local stdio process may send it to a non-public address.
+  // Everyone else goes through the outbound guard, which checks the address, connects only where
+  // it checked, follows no redirects, and caps the answer.
+  if (!callerMayReachPrivateNetwork(options.signingCtx)) {
+    const res = await fetchPublicHttp(
+      manifest.endpoint.url,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30_000),
       },
-      timeout: 30000,
+      { ...options.outboundGuard, maxRedirects: 0 }
+    );
+    const text = await readBodyCapped(res, MESH_INVOKE_MAX_RESPONSE_BYTES);
+    if (!res.ok) throw new Error(`mcp-http endpoint answered ${res.status}`);
+    let result: unknown = text;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      // not JSON: hand back the text, as axios does
     }
-  );
+    return { success: true, route, result };
+  }
+  const response = await axios.post(manifest.endpoint.url, body, { headers, timeout: 30000 });
   return { success: true, route, result: response.data };
 }
+
+/** The most an mcp-http mesh tool's answer may hold for a caller who is not an operator. */
+export const MESH_INVOKE_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 
 export async function handleMeshToolRegistryTool(
   name: string,

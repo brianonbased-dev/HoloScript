@@ -275,3 +275,43 @@ export async function fetchPublicHttp(
   }
   throw new Error(`refused: more than ${maxRedirects} redirects`);
 }
+
+/**
+ * Who may point a server-side request at a non-public address: an operator (admin:* or
+ * tools:admin), or, with no signing context at all, the stdio process the local user launched
+ * (HOLOSCRIPT_MCP_TRANSPORT === 'stdio', which index.ts main() sets and http-server sets to
+ * 'http'). A missing context alone proves nothing: on the hosted server a tool re-entered from
+ * inside the server can arrive with none. `externalLane` marks a context-less call that came in
+ * through a public lane (handleTool's subjectSourceOverride), which is never local.
+ */
+export function callerMayReachPrivateNetwork(
+  signingCtx: { scopes?: readonly string[] } | undefined,
+  opts: { externalLane?: boolean } = {}
+): boolean {
+  if (!signingCtx) {
+    return !opts.externalLane && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio';
+  }
+  return (signingCtx.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin');
+}
+
+/**
+ * A response body as text, refused once it passes maxBytes: a caller-chosen server must not be
+ * able to make this one buffer without limit.
+ */
+export async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
+  if (!res.body) return '';
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new Error(`refused: the response is larger than ${maxBytes} bytes`);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}

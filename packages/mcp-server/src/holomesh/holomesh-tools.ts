@@ -40,6 +40,7 @@ import { z } from 'zod';
 import { messagingTools, handleMessagingTool } from './messaging';
 import { resolveSecretWithLease, VaultLeaseError } from './identity/vault-lease-registry';
 import type { SigningContext } from './identity/signing-middleware';
+import { assertPublicHttpUrl, callerMayReachPrivateNetwork } from '../security/outbound-url-guard';
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
@@ -675,7 +676,7 @@ export async function handleHoloMeshTool(
   if (agentCapabilityResult !== null) return agentCapabilityResult;
 
   if (name === 'holomesh_publish_tool') {
-    return handlePublishTool(hasHoloMeshKey() ? getOrCreateClient() : null, args);
+    return handlePublishTool(hasHoloMeshKey() ? getOrCreateClient() : null, args, signingCtx);
   }
   if (name === 'holomesh_invoke_tool') {
     return handleInvokeTool(hasHoloMeshKey() ? getOrCreateClient() : null, args, signingCtx);
@@ -798,16 +799,27 @@ function manifestKnowledgeEntry(
 
 async function handlePublishTool(
   client: HoloMeshOrchestratorClient | null,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
 ) {
   try {
+    const built = buildMeshToolManifest(args, resolvePublisher(client, args));
+    // An mcp-http tool's address is where this server will send invokes. Refuse a non-public one
+    // unless an operator (or the local stdio process) publishes it (task cixd). The invoke is
+    // guarded again at call time: a name can change what it resolves to, and remote manifests
+    // never pass through here.
+    if (
+      built.endpoint.transport === 'mcp-http' &&
+      built.endpoint.url &&
+      !callerMayReachPrivateNetwork(signingCtx)
+    ) {
+      await assertPublicHttpUrl(built.endpoint.url);
+    }
     if (client && !client.getAgentId()) {
       await client.registerAgent(['@knowledge-exchange', '@tool-publisher']);
     }
 
-    const manifest = publishMeshToolManifest(
-      buildMeshToolManifest(args, resolvePublisher(client, args))
-    );
+    const manifest = publishMeshToolManifest(built);
     let synced = 0;
     let remoteError: string | undefined;
 
