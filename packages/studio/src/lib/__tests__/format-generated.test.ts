@@ -16,6 +16,7 @@ import {
   emitGeneratedSet,
   formatGenerated,
   GeneratedOutputUnformattableError,
+  refreshFormatterConfig,
 } from '../../../scripts/lib/format-generated';
 
 // The generators' shared formatting and writing step. Everything here runs real
@@ -84,6 +85,21 @@ describe('formatGenerated: real prettier, the repo config, the right parser', ()
       expect(refusal.message).toContain(reason);
     }
   );
+
+  it('keeps prettier config cached for one-shot runs, and a watch rebuild reads it fresh', async () => {
+    // Prettier caches resolved config per process. A one-shot build or check should
+    // keep that cache (a cold resolve is ~400x slower: claude3-x402's review of #432).
+    // `holo:build --watch` lives through a .prettierrc edit, so it calls
+    // refreshFormatterConfig before each rebuild (the same reviewer's review of #316).
+    const dir = tempDir();
+    const target = join(dir, 'page.ts');
+    writeFileSync(join(dir, '.prettierrc'), JSON.stringify({ semi: true }));
+    expect(await formatGenerated(target, 'const a = 1')).toBe('const a = 1;\n');
+    writeFileSync(join(dir, '.prettierrc'), JSON.stringify({ semi: false }));
+    expect(await formatGenerated(target, 'const a = 1')).toBe('const a = 1;\n');
+    await refreshFormatterConfig();
+    expect(await formatGenerated(target, 'const a = 1')).toBe('const a = 1\n');
+  });
 });
 
 describe('emitGeneratedSet: every member formatted before any file is written', () => {
@@ -320,6 +336,48 @@ const WRITE_APIS = new Set([
 ]);
 
 describe('the generators emit only through emitGeneratedSet, and its refusal reaches the exit code', () => {
+  it('every script that loads the helper is type-checked by scripts/tsconfig.generators.json', () => {
+    // generators:typecheck runs tsc on that project, because studio's own tsconfig never
+    // covers scripts/ (claude3-x402's review of #316). A generator left off its file
+    // list would drop out of the check with no signal (the same reviewer on #432).
+    const config = ts.readConfigFile(resolve(SCRIPTS, 'tsconfig.generators.json'), ts.sys.readFile);
+    expect(config.error).toBeUndefined();
+    const covered = new Set(
+      ((config.config?.files ?? []) as string[]).map((file) => resolve(SCRIPTS, file))
+    );
+    const loadsHelper = scriptFiles(SCRIPTS).filter((file) =>
+      loadedModules(parse(file)).some((m) => /(^|\/)lib\/format-generated$/u.test(m))
+    );
+    // Positive control: the scan finds the three known generators.
+    for (const name of GENERATORS) expect(loadsHelper).toContain(resolve(SCRIPTS, name));
+    expect([HELPER, ...loadsHelper].filter((file) => !covered.has(file))).toEqual([]);
+  });
+
+  it('holo:build --watch reads the prettier config fresh before every rebuild', () => {
+    const source = parse(resolve(SCRIPTS, 'compile-holo-pages.ts'));
+    const handlers: Array<{ event: string; body: string }> = [];
+    visit(source, (node) => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.name.text === 'on' &&
+        node.arguments.length === 2 &&
+        ts.isStringLiteral(node.arguments[0])
+      ) {
+        handlers.push({ event: node.arguments[0].text, body: node.arguments[1].getText() });
+      }
+    });
+    expect(handlers.map((h) => h.event).sort()).toEqual(['add', 'change']);
+    for (const { event, body } of handlers) {
+      const refresh = body.indexOf('refreshFormatterConfig()');
+      const rebuild = Math.min(
+        ...['emitGeneratedSet(', 'build()'].map((s) => body.indexOf(s)).filter((i) => i >= 0)
+      );
+      expect(refresh, `the ${event} handler refreshes the config`).toBeGreaterThanOrEqual(0);
+      expect(refresh, `the ${event} handler refreshes before it rebuilds`).toBeLessThan(rebuild);
+    }
+  });
+
   it('no script under scripts/ loads prettier except the helper', () => {
     const files = scriptFiles(SCRIPTS);
     for (const name of GENERATORS) expect(files).toContain(resolve(SCRIPTS, name));

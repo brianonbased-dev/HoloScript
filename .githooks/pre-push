@@ -123,11 +123,20 @@ fi
 # Measured 2026-09-22: 6 seconds on a clean tree, exit 0. Fed a real drift (one
 # view id renamed in the generated output) it exits 1 and names the file.
 if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/studio/'; then
-  echo -e "${YELLOW}[pre-push] studio change — checking generator drift (~6s)...${NC}"
+  echo -e "${YELLOW}[pre-push] studio change — type-checking the generators, then checking drift (~8s)...${NC}"
+  # Two steps with two messages. The type check runs first; when it fails the fix is
+  # in a generator script, and the rebuild advice below would only succeed with no
+  # diff and leave the push blocked with no clue why (claude3-x402's review of #432).
+  if ! corepack pnpm --filter @holoscript/studio run generators:typecheck; then
+    echo -e "${RED}[pre-push] BLOCKED: a studio generator script does not type-check (errors above).${NC}"
+    echo -e "${YELLOW}  Fix the script tsc names, under packages/studio/scripts/. Nothing needs regenerating.${NC}"
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
   # Output is SHOWN, not swallowed. Sending it to /dev/null threw away the only
   # thing that tells the developer WHICH file drifted, leaving them to re-run the
   # check by hand to learn what the hook already knew.
-  if ! corepack pnpm --filter @holoscript/studio run generators:check; then
+  if ! corepack pnpm --filter @holoscript/studio run generators:drift; then
     echo -e "${RED}[pre-push] BLOCKED: a committed generated file no longer matches its generator.${NC}"
     # Three SEPARATE commands. `pnpm run a b c` runs script `a` with "b" and "c"
     # as argv -- it does not run three scripts. The one-line form printed here
