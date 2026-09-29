@@ -6757,6 +6757,7 @@ export class HoloScriptPlusParser {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
 
+      const beforePos = this.pos;
       const caseNode = this.parseMatchCase();
       if (caseNode) {
         cases.push(caseNode);
@@ -6768,6 +6769,16 @@ export class HoloScriptPlusParser {
         ) {
           hasWildcard = true;
         }
+      } else if (this.pos === beforePos) {
+        // parseMatchCase (via parseMatchPattern) already recorded a positioned
+        // error but could not recognize the current token as a pattern start
+        // (e.g. a boolean-guard idiom like `match true { !self.enabled => ... }`,
+        // where the case "pattern" is an arbitrary expression, not a literal,
+        // identifier, or `_`). Neither parseMatchPattern nor this loop's
+        // trailing comma/newline handling below consumes anything in that
+        // case, so without this guard the loop spins on the same token
+        // forever. Skip the offending token to guarantee progress.
+        this.advance();
       }
 
       // Handle comma or newline separators
@@ -7451,6 +7462,7 @@ export class HoloScriptPlusParser {
 
     this.skipStructWhitespace();
     while (!this.check('RBRACE') && !this.check('EOF')) {
+      const beforeFieldPos = this.pos;
       if (this.check('COMMA')) {
         this.error('Unexpected comma before struct field', 'HSP100');
         this.advance();
@@ -7764,6 +7776,22 @@ export class HoloScriptPlusParser {
 
       if (this.check('COMMA')) this.advance();
       this.skipStructWhitespace();
+
+      // Defense in depth, not the fix: every reachable stall above (bad
+      // field-name token, missing colon, malformed annotation) already
+      // calls recoverStructField(), which is now guaranteed to consume at
+      // least the offending token (see its own comment). If some future
+      // change still reaches here without moving `this.pos`, report a
+      // positioned error and force progress rather than spinning forever or
+      // silently dropping the rest of the struct body.
+      if (this.pos === beforeFieldPos) {
+        this.errorAt(
+          this.current(),
+          `Struct field parser made no progress at ${this.current().type} "${this.current().value}"`,
+          'HSP100'
+        );
+        this.advance();
+      }
     }
 
     const endOffset = this.current().offset;
@@ -8063,6 +8091,33 @@ export class HoloScriptPlusParser {
     let braceDepth = 0;
     let bracketDepth = 0;
     let parenDepth = 0;
+
+    // Every caller reaches this method only because `this.current()` is
+    // already an unexpected token at this position (an unsupported field
+    // start such as `[` for a TS-style index signature, a malformed `@`
+    // modifier, or a missing `:`). Consume it unconditionally before
+    // scanning for the next field boundary below.
+    //
+    // This used to seed `lastConsumedToken` from `this.previous()` instead,
+    // which is frequently the NEWLINE token the caller's skipStructWhitespace()
+    // just consumed after the prior field. A NEWLINE token's `.offset` points
+    // at the newline character itself, so
+    // findStructFieldBoundaryBetween(lastConsumedToken.offset, token.offset)
+    // rescans that same already-consumed newline and reports it as a boundary
+    // on the very first check, before this method advances past anything.
+    // The caller then loops (error -> recoverStructField -> skipStructWhitespace,
+    // none of which consumed a token) on the identical unexpected token
+    // forever. Guaranteeing progress here first closes that loop; skip only
+    // the boundary this method exists to skip past (RBRACE/EOF belong to the
+    // enclosing struct/caller and must stay unconsumed).
+    if (!this.check('RBRACE') && !this.check('EOF')) {
+      const bad = this.current();
+      if (bad.type === 'LBRACE') braceDepth++;
+      else if (bad.type === 'LBRACKET') bracketDepth++;
+      else if (bad.type === 'LPAREN') parenDepth++;
+      this.advance();
+    }
+
     let lastConsumedToken = this.previous();
 
     while (!this.check('EOF')) {
