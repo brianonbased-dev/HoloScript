@@ -144,7 +144,6 @@ import {
   resolveProvenAgentId,
 } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
-import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
@@ -4862,11 +4861,6 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
   } catch (e) {
     console.warn('[HoloMesh] durable attestation init failed (continuing empty):', e);
   }
-
-  // Drain ci-public lane on Railway's spare CPU (zero marginal cost co-location).
-  startCiPublicWorker().catch(() => {
-    /* non-fatal */
-  });
 
   // Rehydrate the daimōn emergence corpus (D.053) from durable storage so the
   // in-memory soul-observation / daemon Maps survive restart. Additive; never
