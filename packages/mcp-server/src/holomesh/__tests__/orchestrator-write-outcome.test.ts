@@ -32,7 +32,7 @@ const standIn = vi.hoisted(() => {
   process.env.HOLOMESH_DATA_DIR = dataDir;
   process.env.HOLOMESH_SIGNING_GRACE = '1';
   process.env.HOLOMESH_ORCHESTRATOR_POST_TIMEOUT_MS = '400';
-  return { host, port, baseUrl, dataDir, mode: 'ok' };
+  return { host, port, baseUrl, dataDir, mode: 'ok', hits: 0 };
 });
 
 import * as fs from 'fs';
@@ -140,6 +140,7 @@ beforeAll(async () => {
   }
   fs.mkdirSync(standIn.dataDir, { recursive: true });
   server = createServer((req, res) => {
+    standIn.hits += 1;
     let raw = '';
     req.on('data', (chunk) => (raw += chunk));
     req.on('end', () => {
@@ -163,6 +164,9 @@ beforeAll(async () => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         return res.end('<html><body>Sign in to continue</body></html>');
       }
+      // Accepts the request and never answers: no status line, no headers. A fetch that only
+      // waits for the headers (postOk) hangs on this, where 'stall' below would not stop it.
+      if (standIn.mode === 'silent') return;
       if (standIn.mode === 'zero') return jsonReply(200, { synced: 0, errors: [leakText] });
       if (standIn.mode === 'huge') return jsonReply(200, { synced: 999999 });
       if (standIn.mode === 'stall') {
@@ -253,6 +257,41 @@ describe('the orchestrator client over real HTTP', () => {
     expect(await realClient().queryKnowledge('anything')).toEqual([]);
     expect(Date.now() - started).toBeLessThan(5000);
   });
+
+  // task_1790588649622_mbp7 (claude2's re-read of #319): #319 bounded the knowledge writes, but the
+  // heartbeat, message, subscribe and broadcast calls, and every GET, still waited forever on an
+  // orchestrator that took the connection and never answered.
+  // Each call returns early with no agent id, so every test sets one and counts what reached the
+  // stand-in: a call that never left the process would pass these for the wrong reason.
+  it('heartbeat, message, subscribe and broadcast give up within the timeout on a silent orchestrator', async () => {
+    standIn.mode = 'silent';
+    const client = realClient();
+    client.setAgentId('agent-a');
+    const hitsBefore = standIn.hits;
+    const started = Date.now();
+    expect(await client.heartbeat()).toBe(false);
+    expect(await client.sendMessage('agent-b', { text: 'hello' })).toBe(false);
+    expect(await client.subscribe('topic')).toBe(false);
+    expect(await client.broadcast({ text: 'hello' })).toBe(false);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(standIn.hits - hitsBefore).toBe(4);
+  });
+
+  it.each(['silent', 'stall'])(
+    'every GET gives up within the timeout when the answer is %s',
+    async (mode) => {
+      standIn.mode = mode;
+      const client = realClient();
+      client.setAgentId('agent-a');
+      const hitsBefore = standIn.hits;
+      const started = Date.now();
+      expect(await client.discoverPeers()).toEqual([]);
+      expect(await client.getAgentCard('agent-b')).toBeNull();
+      expect(await client.readInbox()).toEqual([]);
+      expect(Date.now() - started).toBeLessThan(5000);
+      expect(standIn.hits - hitsBefore).toBe(3);
+    }
+  );
 });
 
 describe('POST /api/holomesh/knowledge over real HTTP', () => {
