@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import { Send, Loader2, CheckCircle2, XCircle, Mic, MicOff, ArrowRight } from 'lucide-react';
-import { streamAssistant, buildRichContext } from '@/lib/brittney';
+import { streamAssistant, buildRichContext, compactedMessagesFrom } from '@/lib/brittney';
 import type {
   AssistantMessage,
   ToolCallPayload,
@@ -409,6 +409,10 @@ export function BrittneyFullScreen() {
               conversationConfirmed = true;
               adoptConversation(convoId);
             }
+          } else if (event.type === 'history_compacted') {
+            // The older part was summed up to fit the request cap; keep the short history.
+            const shortened = compactedMessagesFrom(event);
+            if (shortened) setLlmHistory(shortened);
           } else if (event.type === 'persisted') {
             // Informational per-row ack — nothing to do client-side.
           } else if (event.type === 'text') {

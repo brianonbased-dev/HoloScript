@@ -25,6 +25,7 @@ import type { ConversationSummary } from '@/lib/brittney/conversationsClient';
 import {
   streamAssistant,
   buildRichContext,
+  compactedMessagesFrom,
   executeTool,
   SimulationToolExecutor,
 } from '@/lib/brittney';
@@ -856,6 +857,11 @@ export function BrittneyChatPanel() {
               conversationConfirmed = true;
               adoptConversation(convoId);
             }
+          } else if (event.type === 'history_compacted') {
+            // The older part of the chat was summed up to fit the request cap; keep
+            // the short history so the next turn does not sum it up again.
+            const shortened = compactedMessagesFrom(event);
+            if (shortened) setLlmHistory(shortened);
           } else if (event.type === 'persisted') {
             // Informational per-row ack — nothing to do client-side.
           } else if (event.type === 'text') {
