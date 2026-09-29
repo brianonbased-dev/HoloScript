@@ -250,20 +250,33 @@ function checkReceipt(root, artifactRel, inputs) {
       )}.`
     );
   }
-  const known = runGit(root, ['merge-base', '--is-ancestor', sourceCommit, 'HEAD'], {
+  // A merge in progress commits MERGE_HEAD's history too, so a build from the merged branch may
+  // name a commit reachable only from there.
+  const reachableFrom = (tip) =>
+    runGit(root, ['merge-base', '--is-ancestor', sourceCommit, tip], { allowFailure: true })
+      .status === 0;
+  const mergeHead = runGit(root, ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], {
     allowFailure: true,
   });
-  if (known.status !== 0) {
+  const merging = mergeHead.status === 0;
+  if (!reachableFrom('HEAD') && !(merging && reachableFrom('MERGE_HEAD'))) {
     throw new Error(`${receiptRel} sourceCommit ${sourceCommit} is not in this branch's history.`);
   }
-  // Built from that commit means built from its Rust inputs; HEAD must still hold the same ones.
-  const changed = String(
-    runGit(root, ['diff', '--name-only', sourceCommit, 'HEAD', '--', ...inputs]).stdout || ''
-  )
-    .trim()
-    .split(/\r?\n/)
-    .filter(Boolean);
-  if (changed.length) {
+  // Built from that commit means built from its Rust inputs. They must be the ones HEAD holds,
+  // or the ones being committed: during pre-commit the index is the source of the commit, and a
+  // merge that brings Rust changes together with builds rebuilt from them names a commit holding
+  // the index's Rust, not HEAD's. With nothing staged the index is HEAD, so this adds no leniency
+  // after a commit.
+  const changedFiles = (diffArgs) =>
+    String(runGit(root, diffArgs).stdout || '')
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean);
+  const changed = changedFiles(['diff', '--name-only', sourceCommit, 'HEAD', '--', ...inputs]);
+  if (
+    changed.length &&
+    changedFiles(['diff', '--cached', '--name-only', sourceCommit, '--', ...inputs]).length
+  ) {
     throw new Error(
       `${receiptRel} says the WASM was built from ${short(sourceCommit)}, but ${
         changed.length

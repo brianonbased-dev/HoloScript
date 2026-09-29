@@ -445,3 +445,50 @@ test('compiler-wasm drift gate checks both builds by default and names the stale
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('compiler-wasm drift gate accepts a receipt naming the source being committed, and only that', () => {
+  const root = createFixtureRepo();
+  try {
+    const first = commitArtifactWithReceipt(root, { wasmSha256: WASM_SHA, wasmBytes: 5 });
+    // A side branch changes the Rust source; its build would name that commit.
+    git(root, ['checkout', '-q', '-b', 'side']);
+    write(join(root, 'src/lib.rs'), '#[wasm_bindgen]\npub fn parse() {}\nfn helper() {}\n');
+    git(root, ['add', 'src/lib.rs']);
+    git(root, ['commit', '-m', 'the Rust source changes on a side branch']);
+    const side = git(root, ['rev-parse', 'HEAD']).stdout.trim();
+    git(root, ['checkout', '-q', 'main']);
+    const receiptFor = (sourceCommit) =>
+      `${JSON.stringify({ sourceCommit, result: { wasmSha256: WASM_SHA, wasmBytes: 5 } }, null, 2)}\n`;
+
+    // No merge in progress: a receipt naming the side commit names a commit this branch does
+    // not contain, and fails.
+    write(join(root, 'pkg-node/rebuild-receipt.json'), receiptFor(side));
+    const outside = runGate(root);
+    assert.equal(outside.status, 1, `${outside.stdout}\n${outside.stderr}`);
+    assert.match(outside.stderr, /is not in this branch's history/);
+    git(root, ['checkout', '--', 'pkg-node/rebuild-receipt.json']);
+
+    // A merge in progress stages the side's Rust, and the build names the side commit: it
+    // describes the commit being made, so it passes.
+    git(root, ['merge', '--no-commit', '--no-ff', 'side']);
+    write(join(root, 'pkg-node/rebuild-receipt.json'), receiptFor(side));
+    git(root, ['add', 'pkg-node/rebuild-receipt.json']);
+    const merging = runGate(root);
+    assert.equal(merging.status, 0, `${merging.stdout}\n${merging.stderr}`);
+
+    // The same merge with the build still naming the old source: it describes HEAD, so the
+    // merge commit may be made, and the gate fails after it until the build is redone.
+    write(join(root, 'pkg-node/rebuild-receipt.json'), receiptFor(first));
+    git(root, ['add', 'pkg-node/rebuild-receipt.json']);
+    const oldSource = runGate(root);
+    assert.equal(oldSource.status, 0, `${oldSource.stdout}\n${oldSource.stderr}`);
+    git(root, ['commit', '-q', '-m', 'merge side']);
+    const after = runGate(root);
+    assert.equal(after.status, 1, `${after.stdout}\n${after.stderr}`);
+    // Either rule may refuse first: the build path predates the Rust change, and the receipt
+    // names the old source.
+    assert.match(after.stderr, /WASM artifact is stale|Rust build input\(s\) changed/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
