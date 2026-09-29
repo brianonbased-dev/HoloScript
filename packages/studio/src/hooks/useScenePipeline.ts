@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { HoloScriptPlusParser, HoloCompositionParser, SceneIRCompiler } from '@holoscript/core';
 import type { PipelineResult, R3FNode } from '@/types';
+import { parseSceneSource } from '@/lib/holoCompositionSource';
 
 type ScenePipelineFormatHint = 'auto' | 'holo' | 'hsplus';
 
@@ -30,7 +31,8 @@ function applyDraftMaturity(node: R3FNode): void {
 
 /**
  * Parses HoloScript source code and compiles it to a scene-IR tree for rendering.
- * Detects format (.holo composition vs .hsplus) automatically.
+ * Detects format (.holo composition vs .hsplus) automatically: see
+ * parseSceneSource, which looks past leading comments and blank lines.
  */
 export function useScenePipeline(code: string, options: ScenePipelineOptions = {}): PipelineResult {
   return useMemo(() => {
@@ -40,15 +42,14 @@ export function useScenePipeline(code: string, options: ScenePipelineOptions = {
 
     try {
       const compiler = new SceneIRCompiler();
-      const trimmed = code.trimStart();
-      const formatHint = options.formatHint ?? 'auto';
-      const useCompositionParser =
-        formatHint === 'holo' || (formatHint === 'auto' && trimmed.startsWith('composition'));
+      const reading = parseSceneSource(code, options.formatHint ?? 'auto', {
+        composition: (text) => new HoloCompositionParser().parse(text),
+        hsplus: (text) => new HoloScriptPlusParser().parse(text),
+      });
 
-      // Detect .holo composition format
-      if (useCompositionParser) {
-        const parser = new HoloCompositionParser();
-        const result = parser.parse(code);
+      // .holo composition format
+      if (reading.form === 'composition') {
+        const result = reading.result;
 
         if (result.errors && result.errors.length > 0) {
           return {
@@ -66,8 +67,7 @@ export function useScenePipeline(code: string, options: ScenePipelineOptions = {
       }
 
       // Default: .hsplus format
-      const parser = new HoloScriptPlusParser();
-      const result = parser.parse(code);
+      const result = reading.result;
 
       if (result.errors && result.errors.length > 0) {
         return {

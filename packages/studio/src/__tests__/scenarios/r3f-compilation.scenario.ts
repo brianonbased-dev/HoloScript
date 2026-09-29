@@ -27,6 +27,7 @@ import {
   loadHoloExample,
   loadHsplusFixture,
 } from '../helpers/formatHelpers';
+import { isHoloCompositionSource, parseSceneSource } from '@/lib/holoCompositionSource';
 
 // ═══════════════════════════════════════════════════════════════════
 // 1. .holo → R3F Compilation (Composition Format)
@@ -78,7 +79,9 @@ composition "SimpleScene" {
   it('useScenePipeline detection: code starting with "composition" uses HoloCompositionParser', () => {
     // Verify the auto-detection logic used by useScenePipeline.ts
     const source = BASIC_HOLO;
-    expect(source.trimStart().startsWith('composition')).toBe(true);
+    expect(isHoloCompositionSource(source)).toBe(true);
+    // A leading comment does not change that (most .holo files open with one).
+    expect(isHoloCompositionSource(`// A basic scene\n${source}`)).toBe(true);
 
     // Manual version of pipeline detection
     const parser = new HoloCompositionParser();
@@ -104,7 +107,7 @@ describe('Scenario: R3F Compilation — HoloScript+ (.hsplus) → R3F', () => {
   it('useScenePipeline detection: .hsplus code NOT starting with "composition" uses HoloScriptPlusParser', () => {
     // Verify the fallback branch logic in useScenePipeline.ts
     const source = BASIC_HSPLUS;
-    expect(source.trimStart().startsWith('composition')).toBe(false);
+    expect(isHoloCompositionSource(source)).toBe(false);
 
     const parser = new HoloScriptPlusParser();
     (parser as any).enableVRTraits = true;
@@ -224,18 +227,18 @@ describe('Scenario: R3F Compilation — Full Pipeline Integration', () => {
     if (!code.trim()) return { r3fTree: null, errors: [] };
     try {
       const compiler = new R3FCompiler();
-      const trimmed = code.trimStart();
-      if (trimmed.startsWith('composition')) {
-        const parser = new HoloCompositionParser();
-        const result = parser.parse(code);
+      const reading = parseSceneSource(code, 'auto', {
+        composition: (text) => new HoloCompositionParser().parse(text),
+        hsplus: (text) => new HoloScriptPlusParser({ enableVRTraits: true }).parse(text),
+      });
+      if (reading.form === 'composition') {
+        const result = reading.result;
         if (result.errors?.length) {
           return { r3fTree: null, errors: result.errors };
         }
         return { r3fTree: compiler.compileComposition(result.ast ?? result), errors: [] };
       }
-      const parser = new HoloScriptPlusParser();
-      (parser as any).enableVRTraits = true;
-      const result = parser.parse(code);
+      const result = reading.result;
       if (result.errors?.length) {
         return { r3fTree: null, errors: result.errors };
       }
