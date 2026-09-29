@@ -305,16 +305,19 @@ const ALL_TRAITS: readonly string[] = VR_TRAITS;
  * Main handler dispatcher for all tools
  */
 /**
- * An operator (admin scope) or the local stdio process, which carries no signing context by the
- * same design as the admin bridge in handleTool. Only a trusted caller may point a server-side
- * fetch at a file: URL or at this host's own network (task_1790594666743_g1lo).
+ * An operator (admin scope), or the stdio process the local user launched. Only a trusted caller
+ * may point a server-side fetch at a file: URL or at this host's own network
+ * (task_1790594666743_g1lo). A missing signing context alone proves nothing: on the hosted server
+ * a tool re-entered from inside the server can arrive with none (a workflow step that is a batch
+ * ran each child through the tool-health dispatcher, which passes none). So a caller without one
+ * is trusted only when this process IS the stdio server, the marker get_workspace_info reads.
  */
 function isTrustedCaller(
   signingCtx: SigningContext | undefined,
   subjectSourceOverride: unknown
 ): boolean {
   return (
-    (!signingCtx && !subjectSourceOverride) ||
+    (!signingCtx && !subjectSourceOverride && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio') ||
     (signingCtx?.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin')
   );
 }

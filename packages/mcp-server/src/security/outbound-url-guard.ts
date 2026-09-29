@@ -10,18 +10,24 @@
  * The guard resolves the host and refuses when ANY resolved address is not public, and it
  * re-checks every redirect hop, because a public URL can answer 302 to a private one.
  *
- * Known limit: the check resolves the name, then fetch resolves it again to connect, so a
- * DNS server that answers public first and private second (DNS rebinding) can slip between
- * the two. Pinning the checked address into the connection would close that; this guard
- * does not.
+ * The connection is pinned to the check. Checking a name and then letting fetch() resolve it
+ * again to connect leaves a gap: a DNS server that answers public to the first lookup and
+ * private to the second (DNS rebinding) wins every time, with a zero TTL. So fetchPublicHttp
+ * connects through a lookup that applies the same rule to the addresses the socket is about
+ * to use, and refuses before connecting when any of them is not public.
  */
 import { lookup } from 'node:dns/promises';
-import { isIP } from 'node:net';
+import { lookup as lookupWithCallback, type LookupAddress } from 'node:dns';
+import { request as httpRequest, type IncomingMessage } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import { isIP, type LookupFunction } from 'node:net';
+import { Readable } from 'node:stream';
 
 /** Resolves a host name to every address it answers with. Injectable for tests. */
 export type LookupAll = (host: string) => Promise<string[]>;
 
 export interface OutboundGuardOptions {
+  /** Used for the check AND for the connection, so a test can make the two answers differ. */
   lookupAll?: LookupAll;
   /** Test seam: decides whether an address may be reached. Defaults to "public only". */
   isAllowedAddress?: (address: string, host: string) => boolean;
@@ -74,6 +80,11 @@ const NON_PUBLIC_V4: Array<[string, number]> = [
   ['240.0.0.0', 4], // reserved, broadcast
 ];
 
+/** The IPv4 address held in the last two groups. */
+function embeddedV4(g: number[]): string {
+  return `${g[6] >> 8}.${g[6] & 255}.${g[7] >> 8}.${g[7] & 255}`;
+}
+
 /** True when an IP literal is loopback, private, link-local or otherwise not on the public internet. */
 export function isNonPublicAddress(address: string): boolean {
   const ip = address.replace(/^\[|\]$/g, '').toLowerCase();
@@ -84,20 +95,38 @@ export function isNonPublicAddress(address: string): boolean {
   if (!g) return true;
   // ::/96 holds ::, ::1 and the old IPv4-compatible form (::7f00:1): none is a public host.
   if (g.slice(0, 6).every((x) => x === 0)) return true;
-  // An IPv4 address carried inside IPv6 is that IPv4 address: mapped ::ffff:0:0/96.
+  // An IPv4 address carried inside IPv6 is that IPv4 address: mapped ::ffff:0:0/96, and the
+  // translated form ::ffff:0:0:0/96 that SIIT translators route (::ffff:0:7f00:1 is loopback).
   if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff) {
-    return isNonPublicAddress(`${g[6] >> 8}.${g[6] & 255}.${g[7] >> 8}.${g[7] & 255}`);
+    return isNonPublicAddress(embeddedV4(g));
   }
-  // NAT64 (64:ff9b::/96) and 6to4 (2002::/16) route to an embedded IPv4 address: refuse both.
+  if (g.slice(0, 4).every((x) => x === 0) && g[4] === 0xffff && g[5] === 0) {
+    return isNonPublicAddress(embeddedV4(g));
+  }
+  // NAT64, well-known 64:ff9b::/96 and local-use 64:ff9b:1::/48 (RFC 8215), 6to4 (2002::/16)
+  // and Teredo (2001::/32) route to an embedded IPv4 address: refuse them all.
   if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0)) return true;
+  if (g[0] === 0x64 && g[1] === 0xff9b && g[2] === 1) return true;
   if (g[0] === 0x2002) return true;
+  if (g[0] === 0x2001 && g[1] === 0) return true;
   if ((g[0] & 0xfe00) === 0xfc00) return true; // fc00::/7 unique local
   if ((g[0] & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
+  if ((g[0] & 0xffc0) === 0xfec0) return true; // fec0::/10 site-local, the old private range
   if ((g[0] & 0xff00) === 0xff00) return true; // ff00::/8 multicast
   return false;
 }
 
 const NON_PUBLIC_NAME = /(^localhost$|\.localhost$|\.local$|\.internal$|\.home\.arpa$)/i;
+
+function refusal(host: string): Error {
+  // One message for every host refusal: saying "does not resolve" apart from "resolves to a
+  // private address" would itself tell a caller which internal names exist.
+  return new Error(`refused: ${host} is not a public internet address`);
+}
+
+function allowedAddress(opts: OutboundGuardOptions): (address: string, host: string) => boolean {
+  return opts.isAllowedAddress ?? ((address: string) => !isNonPublicAddress(address));
+}
 
 /**
  * Refuses a URL this server must not fetch for an ordinary caller: a scheme other than http or
@@ -118,13 +147,12 @@ export async function assertPublicHttpUrl(
     throw new Error(`refused: only http and https may be fetched, not ${url.protocol}`);
   }
   const host = url.hostname.replace(/^\[|\]$/g, '');
-  const allowed = opts.isAllowedAddress ?? ((address: string) => !isNonPublicAddress(address));
-  // One message for every host refusal: saying "does not resolve" apart from "resolves to a
-  // private address" would itself tell a caller which internal names exist.
+  const allowed = allowedAddress(opts);
   const refuse = (): never => {
-    throw new Error(`refused: ${host} is not a public internet address`);
+    throw refusal(host);
   };
-  if (!opts.isAllowedAddress && NON_PUBLIC_NAME.test(host)) refuse();
+  // "localhost." is localhost: a fully qualified name ends in a dot the rule must not trip on.
+  if (!opts.isAllowedAddress && NON_PUBLIC_NAME.test(host.replace(/\.+$/, ''))) refuse();
   let addresses: string[] = [];
   try {
     addresses = isIP(host) ? [host] : await (opts.lookupAll ?? defaultLookupAll)(host);
@@ -139,8 +167,93 @@ export async function assertPublicHttpUrl(
 }
 
 /**
- * fetch() for a caller-supplied URL: checks the destination, follows redirects by hand and
- * checks each hop the same way, so a public URL cannot bounce the server onto a private one.
+ * The lookup the socket itself connects through. It applies the check to the very addresses the
+ * connection will use, so an answer that changed since assertPublicHttpUrl cannot slip past it.
+ * An IP literal never reaches it: the socket connects to the literal assertPublicHttpUrl checked.
+ */
+function pinnedLookup(opts: OutboundGuardOptions): LookupFunction {
+  const allowed = allowedAddress(opts);
+  return (hostname, options, callback) => {
+    const resolved: Promise<LookupAddress[]> = opts.lookupAll
+      ? opts
+          .lookupAll(hostname)
+          .then((list) => list.map((address) => ({ address, family: isIP(address) })))
+      : new Promise((resolve, reject) =>
+          lookupWithCallback(hostname, { all: true, verbatim: true }, (err, list) =>
+            err ? reject(err) : resolve(list)
+          )
+        );
+    resolved.then(
+      (list) => {
+        if (list.length === 0 || list.some((entry) => !allowed(entry.address, hostname))) {
+          callback(refusal(hostname), '');
+        } else if (options.all) {
+          callback(null, list);
+        } else {
+          callback(null, list[0].address, list[0].family);
+        }
+      },
+      () => callback(refusal(hostname), '')
+    );
+  };
+}
+
+function toResponse(res: IncomingMessage, method: string): Response {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(res.headers)) {
+    if (Array.isArray(value)) for (const item of value) headers.append(name, item);
+    else if (value !== undefined) headers.set(name, value);
+  }
+  const status = res.statusCode ?? 0;
+  const bodyless = method === 'HEAD' || status === 204 || status === 205 || status === 304;
+  if (bodyless) res.resume();
+  const body = bodyless ? null : (Readable.toWeb(res) as unknown as ReadableStream<Uint8Array>);
+  return new Response(body, { status, statusText: res.statusMessage, headers });
+}
+
+/** One request, no redirects followed, connected through pinnedLookup. */
+function requestPinned(url: URL, init: RequestInit, opts: OutboundGuardOptions): Promise<Response> {
+  const method = (init.method ?? 'GET').toUpperCase();
+  const body = init.body;
+  if (body != null && typeof body !== 'string' && !(body instanceof Uint8Array)) {
+    return Promise.reject(new Error('fetchPublicHttp: a request body must be a string or bytes'));
+  }
+  const headers = new Headers(init.headers);
+  // fetch() would decompress a gzip body; this request does not, so ask for none.
+  if (!headers.has('accept-encoding')) headers.set('accept-encoding', 'identity');
+  const outgoing: Record<string, string> = {};
+  headers.forEach((value, name) => {
+    outgoing[name] = value;
+  });
+  return new Promise((resolve, reject) => {
+    const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
+    const req = send(
+      url,
+      {
+        method,
+        headers: outgoing,
+        lookup: pinnedLookup(opts),
+        agent: false,
+        signal: init.signal ?? undefined,
+      },
+      (res) => {
+        try {
+          resolve(toResponse(res, method));
+        } catch (e) {
+          res.destroy();
+          reject(e);
+        }
+      }
+    );
+    req.on('error', reject);
+    req.end(body ?? undefined);
+  });
+}
+
+/**
+ * fetch() for a caller-supplied URL: checks the destination, connects only to addresses that
+ * pass the same check, and follows redirects by hand, checking each hop the same way, so a
+ * public URL cannot bounce the server onto a private one.
  */
 export async function fetchPublicHttp(
   raw: string,
@@ -151,7 +264,7 @@ export async function fetchPublicHttp(
   let current = raw;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const url = await assertPublicHttpUrl(current, opts);
-    const res = await fetch(url, { ...init, redirect: 'manual' });
+    const res = await requestPinned(url, init, opts);
     const location = res.headers.get('location');
     if (res.status >= 300 && res.status < 400 && location) {
       await res.body?.cancel().catch(() => {});
