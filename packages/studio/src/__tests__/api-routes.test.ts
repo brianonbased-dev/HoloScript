@@ -266,4 +266,116 @@ describe('fleet dispatch auth guards (regression)', () => {
     const res = await POST(req);
     expect(res.status).toBe(403); // unset secret never opens the door
   });
+
+  it('refuses a wrong x-fleet-service-token when one is configured', async () => {
+    const { requireAuth, requireFounder } = await import('@/lib/api-auth');
+    vi.mocked(requireAuth).mockResolvedValue(
+      NextResponse.json({ error: 'Authentication required' }, { status: 401 }) as never
+    );
+    vi.mocked(requireFounder).mockResolvedValue(
+      NextResponse.json({ error: 'Founder access required' }, { status: 403 }) as never
+    );
+    process.env.FLEET_DISPATCH_SERVICE_TOKEN = 'svc-secret-123';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const { POST } = await import(ROUTE);
+      // One character off, one short, one long: none may pass for the token.
+      for (const presented of ['svc-secret-124', 'svc-secret-12', 'svc-secret-1234']) {
+        const req = new NextRequest('http://studio.test/api/agents/fleet/dispatch', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-fleet-service-token': presented },
+          body: JSON.stringify({ teamId: 'team_x', dryRun: false }),
+        });
+        const res = await POST(req);
+        // No session either, so the route's session floor answers first (401).
+        expect.soft([401, 403], presented).toContain(res.status);
+      }
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+// The /api gate admits POST /api/agents/fleet/scheduler-tick on the presence of
+// an x-fleet-service-token (lib/api-public-paths.ts), because this route hands
+// the header to the dispatch handler, which judges it. These pin that the tick
+// really does forward it to that judge rather than acting on it itself.
+describe('fleet scheduler tick hands its caller to the dispatch guard', () => {
+  const TICK = '../app/api/agents/fleet/scheduler-tick/route';
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    delete process.env.FLEET_DISPATCH_SERVICE_TOKEN;
+    const { requireAuth, requireFounder } = await import('@/lib/api-auth');
+    // No session of any kind: only the service token can get a tick through.
+    vi.mocked(requireAuth).mockResolvedValue(
+      NextResponse.json({ error: 'Authentication required' }, { status: 401 }) as never
+    );
+    vi.mocked(requireFounder).mockResolvedValue(
+      NextResponse.json({ error: 'Founder access required' }, { status: 403 }) as never
+    );
+  });
+
+  function tick(headers: Record<string, string>) {
+    return new NextRequest('http://studio.test/api/agents/fleet/scheduler-tick', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...headers },
+      body: JSON.stringify({ teamId: 'team_x', maxDispatches: 1 }),
+    });
+  }
+
+  it('is refused by the dispatch guard with a wrong token, a bare Bearer, or nothing', async () => {
+    process.env.FLEET_DISPATCH_SERVICE_TOKEN = 'svc-secret-123';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const { POST } = await import(TICK);
+      for (const headers of [
+        { 'x-fleet-service-token': 'not-the-token' },
+        { authorization: 'Bearer any-mesh-key' },
+        {},
+      ]) {
+        const res = await POST(tick(headers));
+        // Refused by the dispatch handler's own guards: its session floor (401)
+        // answers first, since no caller here has a session.
+        expect.soft([401, 403], JSON.stringify(headers)).toContain(res.status);
+      }
+      // Refused before the board was read or anything was claimed.
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('is refused with the right header when the service token is not configured', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const { POST } = await import(TICK);
+      const res = await POST(tick({ 'x-fleet-service-token': 'svc-secret-123' }));
+      expect([401, 403]).toContain(res.status);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('gets through with the configured service token', async () => {
+    process.env.FLEET_DISPATCH_SERVICE_TOKEN = 'svc-secret-123';
+    const fetchMock = vi.fn(
+      async () =>
+        new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const { POST } = await import(TICK);
+      const res = await POST(tick({ 'x-fleet-service-token': 'svc-secret-123' }));
+      expect(res.status).not.toBe(401);
+      expect(res.status).not.toBe(403);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

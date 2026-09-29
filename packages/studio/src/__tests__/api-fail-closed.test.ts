@@ -523,6 +523,15 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
     callSite:
       'app/api/agents/fleet/dispatch/route.ts:257-265 fleetServiceTokenOk (x-fleet-service-token, timing-safe, fail-closed) — scheduler-tick/route.ts:61 reaches it with an in-process call, never a second HTTP hop',
   },
+  {
+    method: 'POST',
+    path: '/api/agents/fleet/scheduler-tick',
+    credential: 'the fleet service token alone, judged by the dispatch handler (fleetServiceTokenOk, timing-safe against FLEET_DISPATCH_SERVICE_TOKEN, refused when unset)',
+    header: { 'x-fleet-service-token': 'the-fleets-own-service-token' },
+    // The same tick without its mesh key. The route accepts it on the token
+    // alone, so the gate in front must too (task uq6w).
+    callSite: 'ai-ecosystem scripts/fleet-dispatch-tick.mjs:141 — the token header, sent whether or not HOLOSCRIPT_MCP_API_KEY is set',
+  },
 ];
 
 describe('the callers who arrive with their own credential, checked against a hand-written list', () => {
@@ -558,6 +567,34 @@ describe('the callers who arrive with their own credential, checked against a ha
       const response = await anonymous('/api/knowledge/query', 'POST', header);
       expect.soft(response.status, JSON.stringify(header)).not.toBe(401);
     }
+  });
+
+  it('opens a route-judged header on the entry that declares it, and nowhere else', async () => {
+    const serviceToken = { 'x-fleet-service-token': 'the-fleets-own-service-token' };
+
+    // The fleet tick arrives with nothing but its service token.
+    const tick = await anonymous('/api/agents/fleet/scheduler-tick', 'POST', serviceToken);
+    expect(tick.status).not.toBe(401);
+
+    // The same header buys nothing where the route behind does not judge it:
+    // a caller-credential sibling, the dispatch route (still `session`), an
+    // unpinned verb on the tick itself, and an ordinary session path.
+    const elsewhere: Array<[string, string]> = [
+      ['/api/knowledge/query', 'POST'],
+      ['/api/agents/fleet/dispatch', 'POST'],
+      ['/api/agents/fleet/scheduler-tick', 'GET'],
+      ['/api/admin/probe', 'POST'],
+    ];
+    for (const [path, method] of elsewhere) {
+      const response = await anonymous(path, method, serviceToken);
+      expect.soft(response.status, `${method} ${path}`).toBe(401);
+    }
+
+    // A blank header is nobody arriving.
+    const blank = await anonymous('/api/agents/fleet/scheduler-tick', 'POST', {
+      'x-fleet-service-token': '   ',
+    });
+    expect(blank.status).toBe(401);
   });
 
   it('is written out literally, not derived from the tier it checks', () => {

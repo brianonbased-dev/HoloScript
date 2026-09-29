@@ -41,6 +41,14 @@ export interface ApiPathRule {
    * Checked before `pattern`, so the narrower statement wins.
    */
   except?: readonly string[];
+  /**
+   * Caller-credential tier only: request headers that also count as "a caller
+   * arrived" on THIS entry, beyond the two every entry takes (`x-mcp-api-key`,
+   * `Authorization: Bearer`). List a header only when the route behind the entry
+   * judges that header itself, and name that check in `why`. It opens this entry
+   * alone, never a sibling.
+   */
+  credentialHeaders?: readonly string[];
   /** Why this is reachable this way. Required — an entry with no reason is a guess. */
   why: string;
 }
@@ -440,7 +448,8 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/agents/fleet/scheduler-tick',
     methods: ['POST'],
-    why: "The autonomous hourly tick (board automation A-035, scripts/fleet-dispatch-tick.mjs) has no browser session and was never meant to need one: dispatch/route.ts's own requireFleetWrite gate (app/api/agents/fleet/dispatch/route.ts:247-279) already names two authorized callers, 'the founder via an authenticated Studio session, and the autonomous hourly tick (A-035) via the founder-provisioned service token FLEET_DISPATCH_SERVICE_TOKEN sent as x-fleet-service-token' -- a timing-safe, fail-closed comparison (fleetServiceTokenOk, :257-265) that is the REAL authorization for the spend/mutation it gates. But scheduler-tick/route.ts only forwards Authorization and x-fleet-service-token to that check via an in-process call (dispatchPOST(internalReq), :61 -- never a second HTTP request, so /api/agents/fleet/dispatch itself is not exercised by this entry and stays pinned to `session`); this edge middleware ran first and, with the path unlisted, classified it `session`, refusing every caller before the route's own already-correctly-designed service-token check ever ran. This entry does not grant new authority: it only lets a caller who already holds the founder-provisioned token reach the check built to accept them. hasCallerCredential's shape-only test (x-mcp-api-key or a well-formed Authorization: Bearer) is satisfied here because the script also sends its mesh key; the real gate stays downstream and fails closed if FLEET_DISPATCH_SERVICE_TOKEN is unset.",
+    credentialHeaders: ['x-fleet-service-token'],
+    why: "The autonomous hourly tick (board automation A-035, scripts/fleet-dispatch-tick.mjs) has no browser session and was never meant to need one: dispatch/route.ts's own requireFleetWrite gate (app/api/agents/fleet/dispatch/route.ts:247-279) already names two authorized callers, 'the founder via an authenticated Studio session, and the autonomous hourly tick (A-035) via the founder-provisioned service token FLEET_DISPATCH_SERVICE_TOKEN sent as x-fleet-service-token' -- a timing-safe, fail-closed comparison (fleetServiceTokenOk, :257-265) that is the REAL authorization for the spend/mutation it gates. But scheduler-tick/route.ts only forwards Authorization and x-fleet-service-token to that check via an in-process call (dispatchPOST(internalReq), :61 -- never a second HTTP request, so /api/agents/fleet/dispatch itself is not exercised by this entry and stays pinned to `session`); this edge middleware ran first and, with the path unlisted, classified it `session`, refusing every caller before the route's own already-correctly-designed service-token check ever ran (every A-035 run from 2026-09-16, task uq6w). This entry does not grant new authority: it only lets a caller who already holds the founder-provisioned token reach the check built to accept them. The token itself counts as 'a caller arrived' on this entry alone (credentialHeaders), so the tick is not refused when it arrives without its mesh key -- a door in front that is stricter than the door behind is a lockout. The real gate stays downstream and fails closed if FLEET_DISPATCH_SERVICE_TOKEN is unset.",
   },
   {
     pattern: '/api/mcp/call',
