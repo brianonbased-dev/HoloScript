@@ -122,8 +122,13 @@ import {
   extractAndVerifySigning,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
-import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
-import { founderGateX402ToolCallCheck } from './tool-call-checks';
+import {
+  frameDeclarationFromMcpMeta,
+  gateToolCall,
+  toolGateEnforcementFrom,
+  ToolCallGateDeniedError,
+} from './tool-call-gate';
+import { founderGateFrameToolCallCheck, founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import { creditRouteWithoutLedger } from './security/consumer-spend-guard';
 import {
@@ -800,6 +805,52 @@ async function securedToolExecution(
 ): Promise<{ result: unknown; isError: boolean }> {
   return withMcpToolExecutionSpan(toolName, auth, () =>
     securedToolExecutionInner(toolName, args, auth, options)
+  );
+}
+
+/**
+ * How the stateless routes run the tool-call gate. They never ran it, so an agent's frame was
+ * not enforced where agents actually call (task 6fef). Enforcing every frame at once could
+ * refuse tools agents use today, so the gate first OBSERVES here: it writes the receipt and logs
+ * "[ToolCallGate] observe: would deny ..." and lets the call through. Once those lines have been
+ * read, HOLOSCRIPT_STATELESS_TOOL_GATE=enforce makes it refuse (toolGateEnforcementFrom reads
+ * the value; the server states the effective mode at startup). Scope is enforced downstream by
+ * securedToolExecution's triple gate in either mode.
+ */
+function statelessToolGateMode(): 'enforce' | 'observe' {
+  return toolGateEnforcementFrom(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE);
+}
+
+/**
+ * POST /mcp (tools/call) and POST /tools/call run the founder authority routing on the tool name
+ * and the caller's active frame from `_meta`, with one receipt per call. Scope is not checked
+ * here: securedToolExecution's triple gate checks it, answers a shortfall in its own shape and
+ * writes it to the audit log, exactly as before this gate existed. A refusal (enforce mode)
+ * throws ToolCallGateDeniedError before anything is dispatched; each route answers it itself.
+ */
+async function gatedStatelessToolExecution(
+  toolName: string,
+  args: Record<string, unknown>,
+  auth: TokenIntrospection,
+  meta: unknown,
+  options: SecuredToolExecutionOptions
+): Promise<{ result: unknown; isError: boolean }> {
+  const frameDeclaration = frameDeclarationFromMcpMeta(meta);
+  return gateToolCall(
+    { name: toolName, args },
+    {
+      transport: 'http',
+      callerId: auth.agentId ?? auth.clientId ?? options.signingCtx?.signer ?? null,
+      scopes: auth.scopes,
+      ...(frameDeclaration !== undefined ? { frameDeclaration } : {}),
+    },
+    (env) => securedToolExecution(env.name, env.args, auth, options),
+    {
+      check: founderGateFrameToolCallCheck,
+      enforcement: statelessToolGateMode(),
+      classifyResult: (r) =>
+        r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+    }
   );
 }
 
@@ -3586,15 +3637,40 @@ const httpServer = http.createServer(async (req, res) => {
       if (method === 'tools/call') {
         const toolArgs = (params.arguments as Record<string, unknown>) || {};
         const tcpPeer = req.socket.remoteAddress?.replace(/^::ffff:/, '') || undefined;
-        const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
-          requestPath: '/mcp',
-          requestMethod: 'POST',
-          ip: clientIP,
-          tcpPeerIp: tcpPeer,
-          rawXForwardedFor: readXForwardedFor(req),
-          bearerToken: readBearerToken(req),
-          signingCtx: unwrapped.signingCtx,
-        });
+        let gated: { result: unknown; isError: boolean };
+        try {
+          gated = await gatedStatelessToolExecution(
+            name,
+            toolArgs || {},
+            auth,
+            (params as { _meta?: unknown })._meta,
+            {
+              requestPath: '/mcp',
+              requestMethod: 'POST',
+              ip: clientIP,
+              tcpPeerIp: tcpPeer,
+              rawXForwardedFor: readXForwardedFor(req),
+              bearerToken: readBearerToken(req),
+              signingCtx: unwrapped.signingCtx,
+            }
+          );
+        } catch (gateError) {
+          if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: body.id,
+              error: {
+                code: -32003,
+                message: gateError.message,
+                data: { deniedBy: gateError.check },
+              },
+            })
+          );
+          return;
+        }
+        const { result, isError } = gated;
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
@@ -3676,11 +3752,28 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const { result, isError } = await securedToolExecution(tool, args || {}, requestAuth, {
-        requestPath: '/tools/call',
-        requestMethod: 'POST',
-        signingCtx: unwrapped.signingCtx,
-      });
+      let gated: { result: unknown; isError: boolean };
+      try {
+        gated = await gatedStatelessToolExecution(
+          tool,
+          args || {},
+          requestAuth,
+          (body as { _meta?: unknown })._meta,
+          {
+            requestPath: '/tools/call',
+            requestMethod: 'POST',
+            signingCtx: unwrapped.signingCtx,
+          }
+        );
+      } catch (gateError) {
+        if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({ success: false, error: gateError.message, deniedBy: gateError.check })
+        );
+        return;
+      }
+      const { result, isError } = gated;
 
       res.writeHead(isError ? 500 : 200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: !isError, result }));
@@ -4897,6 +4990,11 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     );
     console.info(`   Bind: ${BIND_HOST}:${PORT}`);
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+    // Once, so a deploy's log says which way the switch actually landed (#463 pre-review).
+    console.info(
+      `   Tool-call gate on POST /mcp and POST /tools/call: ${statelessToolGateMode()} ` +
+        `(HOLOSCRIPT_STATELESS_TOOL_GATE=${JSON.stringify(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE ?? '')})`
+    );
     console.info(
       `   Sizing: ${SERVER_SIZING.profile} (${SERVER_SIZING.recommendedConsumer}, body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, tools=${SERVER_SIZING.maxConcurrentToolCalls}, timeout=${SERVER_SIZING.toolTimeoutMs}ms, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`
     );
