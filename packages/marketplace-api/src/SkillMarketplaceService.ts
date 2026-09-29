@@ -35,35 +35,6 @@ import type {
 import type { x402PaymentReceipt } from './x402PaymentService.js';
 
 // =============================================================================
-// HELPERS
-// =============================================================================
-
-/**
- * Extract author information from a bearer token.
- * Supports JWT-style tokens (base64 JSON payload) and plain bearer strings.
- */
-function extractAuthorFromToken(token: string): Author {
-  try {
-    // Try JWT-style: header.payload.signature
-    const parts = token.split('.');
-    if (parts.length === 3) {
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'));
-      return {
-        name: String(payload.name || payload.sub || payload.preferred_username || 'unknown'),
-        email: payload.email ? String(payload.email) : undefined,
-        verified: Boolean(payload.email_verified || payload.verified),
-      };
-    }
-  } catch {
-    // Not a valid JWT — fall through
-  }
-
-  // Fallback: use a hash of the token as an anonymous identifier
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex').slice(0, 8);
-  return { name: `creator-${tokenHash}`, verified: false };
-}
-
-// =============================================================================
 // DATABASE INTERFACE
 // =============================================================================
 
@@ -287,6 +258,17 @@ export class SkillMarketplacePaymentError extends Error {
   }
 }
 
+export class SkillAccessError extends Error {
+  constructor(
+    message: string,
+    public readonly status: 403 | 404,
+    public readonly code: 'FORBIDDEN' | 'NOT_FOUND'
+  ) {
+    super(message);
+    this.name = 'SkillAccessError';
+  }
+}
+
 // =============================================================================
 // SKILL MARKETPLACE SERVICE
 // =============================================================================
@@ -304,7 +286,16 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
 
   // ─── Publishing ──────────────────────────────────────────────────────────────
 
-  async publishSkill(request: SkillPublishRequest, token: string): Promise<SkillPublishResult> {
+  async publishSkill(request: SkillPublishRequest, author: Author): Promise<SkillPublishResult> {
+    if (
+      !author ||
+      typeof author !== 'object' ||
+      typeof author.name !== 'string' ||
+      author.name.trim() === ''
+    ) {
+      throw new Error('Authenticated author is required');
+    }
+
     // Generate unique ID
     const skillId = `skill-${crypto.randomBytes(8).toString('hex')}`;
 
@@ -319,7 +310,13 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
       name: request.name,
       version: request.version,
       description: request.description,
-      author: extractAuthorFromToken(token),
+      author: {
+        name: author.name,
+        email: author.email,
+        url: author.url,
+        verified: author.verified,
+        avatarUrl: author.avatarUrl,
+      },
       license: request.license,
       keywords: request.keywords,
       repository: request.repository,
@@ -358,7 +355,15 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     };
   }
 
-  async unpublishSkill(skillId: string, _token: string): Promise<void> {
+  async unpublishSkill(skillId: string, ownerId: string): Promise<void> {
+    const skill = await this.db.getSkill(skillId);
+    if (!skill) {
+      throw new SkillAccessError(`Skill not found: ${skillId}`, 404, 'NOT_FOUND');
+    }
+    // Owner field already stored on the skill is author.name (hs_skills.author_name).
+    if (skill.author.name !== ownerId) {
+      throw new SkillAccessError('Not the skill owner', 403, 'FORBIDDEN');
+    }
     await this.db.deleteSkill(skillId);
   }
 
