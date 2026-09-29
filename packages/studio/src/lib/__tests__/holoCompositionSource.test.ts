@@ -10,9 +10,10 @@
  * lexer's first token, and it may never answer "composition" where the lexer
  * does not.
  *
- * parseSceneSource is the choice built on it. .hsplus has composition blocks too,
- * so a composition the composition parser rejects but the .hsplus parser accepts
- * keeps its .hsplus reading.
+ * parseSceneSource is the choice built on it. Text that starts with `composition`
+ * is read exactly as before. .hsplus has composition blocks too, so a commented
+ * composition that the composition parser rejects but the .hsplus parser accepts
+ * keeps its old .hsplus reading.
  */
 import { describe, it, expect } from 'vitest';
 import { tokenizeHoloSource } from '../../../../core/src/parser/HoloCompositionParser';
@@ -268,6 +269,18 @@ describe('parseSceneSource', () => {
     const reading = parseSceneSource(COMMENTED_COMPOSITION, 'auto', parse);
     expect(reading).toEqual({ form: 'hsplus', result: accepted });
     expect(calls).toEqual(['composition', 'hsplus']);
+  });
+
+  it('reads text that starts with the keyword with the composition parser alone, as before', () => {
+    // No fallback here, so a typo keeps showing the composition parser's error.
+    for (const text of [COMPOSITION, `\n  ${COMPOSITION}`, 'compositionRoot {}']) {
+      const { calls, parse } = parsers(rejected, accepted);
+      expect(parseSceneSource(text, 'auto', parse)).toEqual({
+        form: 'composition',
+        result: rejected,
+      });
+      expect(calls).toEqual(['composition']);
+    }
   });
 
   it("reports the composition parser's errors when neither parser accepts the text", () => {

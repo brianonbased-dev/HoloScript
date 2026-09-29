@@ -5,9 +5,10 @@
  * composition parser only when it literally began with `composition`, so a
  * commented composition went to the .hsplus parser. That parser cannot read a
  * named `directional_light` block, so the viewport showed an error instead of the
- * scene. .hsplus has composition blocks too, so the last case checks that a
- * commented .hsplus composition still draws. These run the real hook on the real
- * core, with no mocks (useScenePipeline.test.ts mocks @holoscript/core).
+ * scene. .hsplus has composition blocks too, so a commented .hsplus composition
+ * must still draw, and text that starts with `composition` must read exactly as
+ * before. These run the real hook on the real core, with no mocks
+ * (useScenePipeline.test.ts mocks @holoscript/core).
  */
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
@@ -27,6 +28,18 @@ composition "CommentedRoom" {
   object "Lamp" {
     geometry: "sphere"
     position: [0, 2, 0]
+  }
+}
+`;
+
+/** .hsplus has composition blocks too; an arrow-function handler is .hsplus-only syntax. */
+const CLICK_LAMP = `composition "ClickLamp" {
+  object "Lamp" {
+    geometry: "sphere"
+    position: [0, 2, 0]
+    onClick: () => {
+      state.lit = true
+    }
   }
 }
 `;
@@ -80,23 +93,45 @@ orb lamp {
   });
 
   it('still draws a commented .hsplus composition that the composition parser cannot read', () => {
-    // .hsplus has composition blocks too; an arrow-function handler is .hsplus-only syntax.
     const { result } = renderHook(() =>
-      useScenePipeline(`// A lamp you can click. This is .hsplus, not .holo.
-composition "ClickLamp" {
-  object "Lamp" {
-    geometry: "sphere"
-    position: [0, 2, 0]
-    onClick: () => {
-      state.lit = true
-    }
-  }
-}
-`)
+      useScenePipeline(`// A lamp you can click. This is .hsplus, not .holo.\n${CLICK_LAMP}`)
     );
 
     expect(result.current.errors).toEqual([]);
     const meshes = (result.current.r3fTree?.children ?? []).filter((n) => n.type === 'mesh');
     expect(meshes.map((n) => n.id)).toEqual(['Lamp']);
+  });
+});
+
+describe('useScenePipeline — text that already starts with composition', () => {
+  it('still shows the composition parser error, with no .hsplus fallback', () => {
+    // Studio always read this text with the composition parser alone. Falling back
+    // to the .hsplus reading here would hide a real .holo typo behind another scene.
+    const hsplus = vi.spyOn(HoloScriptPlusParser.prototype, 'parse');
+
+    const { result } = renderHook(() => useScenePipeline(CLICK_LAMP));
+
+    expect(result.current.r3fTree).toBeNull();
+    expect(result.current.errors.length).toBeGreaterThan(0);
+    expect(hsplus).not.toHaveBeenCalled();
+  });
+
+  it('reads the same text with a comment on top in exactly the same way', () => {
+    // Known gap, pinned on purpose: the composition parser drops a block it does not
+    // know (`objekt`) without any error. Text without a comment always got that;
+    // commented text now gets the same, where the .hsplus parser used to report
+    // HSP101. The fix belongs in the composition parser.
+    const room = `composition "Room" {
+  objekt "Lamp" { geometry: "sphere" }
+  object "Floor" { geometry: "plane" }
+}
+`;
+    const plain = renderHook(() => useScenePipeline(room)).result.current;
+    const commented = renderHook(() => useScenePipeline(`// Room\n${room}`)).result.current;
+
+    expect(commented).toEqual(plain);
+    expect(plain.errors).toEqual([]);
+    const meshes = (plain.r3fTree?.children ?? []).filter((n) => n.type === 'mesh');
+    expect(meshes.map((n) => n.id)).toEqual(['Floor']);
   });
 });

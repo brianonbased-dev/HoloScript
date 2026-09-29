@@ -68,16 +68,28 @@ function hasErrors(outcome: ParseOutcome): boolean {
 }
 
 /**
+ * Studio's rule before it looked past comments. Text it sent to the composition
+ * parser still goes there alone, so a typo in such text keeps showing the
+ * composition parser's error instead of quietly getting another reading.
+ */
+function startsWithCompositionKeyword(code: string): boolean {
+  return code.trimStart().startsWith('composition');
+}
+
+/**
  * Read scene text with the right parser: the one choice Studio's viewport makes.
  *
- * With `auto`, text that opens as a composition (see isHoloCompositionSource) is
- * read by the composition parser. `.hsplus` has composition blocks too, with its
- * own syntax (arrow-function handlers, for one), and many `.hsplus` files open
- * with a comment. So when the composition parser rejects the text and the
- * `.hsplus` parser accepts it, the `.hsplus` reading is used, which is how
- * Studio read comment-led text before it looked past comments. When neither
- * accepts it, the composition parser's errors are the ones reported. Text that
- * does not open as a composition goes to the `.hsplus` parser, as before.
+ * With `auto`:
+ * - Text that starts with `composition` is read by the composition parser alone,
+ *   exactly as before.
+ * - Text that opens as a composition only after comments (see
+ *   isHoloCompositionSource) used to go to the `.hsplus` parser. It now goes to
+ *   the composition parser first. `.hsplus` has composition blocks too, with its
+ *   own syntax (arrow-function handlers, for one), and many `.hsplus` files open
+ *   with a comment, so when the composition parser rejects the text and the
+ *   `.hsplus` parser accepts it, the old `.hsplus` reading is kept. When neither
+ *   accepts it, the composition parser's errors are the ones reported.
+ * - Anything else goes to the `.hsplus` parser, as before.
  *
  * `holo` and `hsplus` force one parser, with no fallback.
  */
@@ -86,7 +98,9 @@ export function parseSceneSource<C extends ParseOutcome, H extends ParseOutcome>
   formatHint: SceneSourceFormatHint,
   parse: { composition: (code: string) => C; hsplus: (code: string) => H }
 ): SceneSourceReading<C, H> {
-  if (formatHint === 'holo') return { form: 'composition', result: parse.composition(code) };
+  if (formatHint === 'holo' || (formatHint === 'auto' && startsWithCompositionKeyword(code))) {
+    return { form: 'composition', result: parse.composition(code) };
+  }
   if (formatHint === 'hsplus' || !isHoloCompositionSource(code)) {
     return { form: 'hsplus', result: parse.hsplus(code) };
   }
