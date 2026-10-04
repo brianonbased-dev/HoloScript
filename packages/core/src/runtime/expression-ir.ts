@@ -121,7 +121,10 @@ export function evaluateExpressionIR(ir: ExpressionIR, context: Record<string, u
       return ir.value;
 
     case 'Identifier': {
-      if (!(ir.name in context)) {
+      // Own properties only, like MemberExpression below: `in` walks the prototype
+      // chain, so a hand-built IR naming `toString` or `constructor` read
+      // Object.prototype's functions instead of failing closed.
+      if (!Object.prototype.hasOwnProperty.call(context, ir.name)) {
         throw new ExpressionIRError(`ExpressionIR: unknown identifier "${ir.name}"`);
       }
       return context[ir.name];

@@ -133,6 +133,18 @@ describe('expression-ir: fail-closed security (the property this migration exist
     expect(() => evaluateExpressionIR(ir, { value: 1 })).toThrow(ExpressionIRError);
   });
 
+  it("resolves an identifier only from the context's own names, never its prototype", () => {
+    // A hand-built IR (no parser, so no allowedSlots check) naming a name every
+    // plain object inherits used to read Object.prototype's function.
+    const context = { speed: 3 };
+    expect(evaluateExpressionIR({ kind: 'Identifier', name: 'speed' }, context)).toBe(3);
+    for (const name of ['toString', 'valueOf', 'constructor', 'hasOwnProperty']) {
+      expect(() => evaluateExpressionIR({ kind: 'Identifier', name }, context), name).toThrow(
+        `ExpressionIR: unknown identifier "${name}"`
+      );
+    }
+  });
+
   it('rejects a CallExpression IR built with a non-allowlisted callee at eval time (defense in depth)', () => {
     const maliciousIR = {
       kind: 'CallExpression',
