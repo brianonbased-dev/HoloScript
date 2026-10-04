@@ -38,6 +38,7 @@
 import { createHash } from 'node:crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { resolveServiceSecret } from './holokey-resolver';
+import { NO_CALLER_PRINCIPAL } from './security/tool-scopes';
 
 // ─── Gate catalog (port of gates.mjs) ───────────────────────────────────────
 type Profile = 'quick' | 'full';
@@ -673,6 +674,23 @@ function checkSpendAuthz(
 ): null | Record<string, unknown> {
   // stdio / local process — no token, fully trusted (no network path).
   if (!callerToken) return null;
+
+  // A call with no caller spends nothing. It used to meet the restricted tier, so one quick
+  // submit a day stayed open, in ONE bucket every no-caller call shared: the spend belonged
+  // to no one (claude3's review of #474, 2026-10-04, reproduced against a stub orchestrator).
+  if (callerToken === NO_CALLER_PRINCIPAL) {
+    return {
+      ok: false,
+      capExceeded: false,
+      tierDenied: true,
+      noCaller: true,
+      tier: 'restricted',
+      error:
+        'A call with no caller cannot submit CI work. Sign in, or send your own API key, ' +
+        'or re-run with dryRun:true to preview the workload without spending.',
+      dryRunPreview: dryPreview,
+    };
+  }
 
   const fingerprint = tokenFingerprint(callerToken);
   const tier = resolveCallerTier(fingerprint);

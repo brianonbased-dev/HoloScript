@@ -531,6 +531,14 @@ describe('the CI spend identity: no caller is the local user only on the stdio s
   it('over HTTP, a context-less full-profile submit meets the restricted tier and is refused', async () => {
     const env = snapshotOrchestratorEnv();
     clearOrchestratorEnv(); // no key: nothing could be submitted even if authz passed
+    // And sealed: a key the vault still resolved could not spend from here either. Every fetch
+    // fails and is recorded (claude3's review of #474: the same pattern in
+    // no-caller-principal.test.ts reached a live submit attempt).
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', async (input: unknown) => {
+      calls.push(String(input));
+      throw new Error('the network is sealed in this test');
+    });
     try {
       process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
       const res = (await handleHoloCiTool(
@@ -551,6 +559,31 @@ describe('the CI spend identity: no caller is the local user only on the stdio s
       )) as { ok: boolean; tierDenied?: boolean; error?: string };
       expect(local.tierDenied).toBeUndefined();
       expect(local.error).toMatch(/not provisioned/i);
+      expect(calls.filter((url) => url.includes('/gpu/'))).toEqual([]);
+    } finally {
+      restoreOrchestratorEnv(env);
+    }
+  });
+
+  it('over HTTP, nobody cannot submit even the quick profile', async () => {
+    const env = snapshotOrchestratorEnv();
+    clearOrchestratorEnv();
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', async (input: unknown) => {
+      calls.push(String(input));
+      throw new Error('the network is sealed in this test');
+    });
+    try {
+      process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+      const res = (await handleHoloCiTool(
+        'holo_ci_dispatch',
+        { sha: SHA, profile: 'quick', dryRun: false },
+        NO_CALLER_PRINCIPAL
+      )) as { ok: boolean; noCaller?: boolean; dryRunPreview?: unknown };
+      expect(res.ok).toBe(false);
+      expect(res.noCaller).toBe(true);
+      expect(res.dryRunPreview).toBeTruthy();
+      expect(calls).toEqual([]);
     } finally {
       restoreOrchestratorEnv(env);
     }

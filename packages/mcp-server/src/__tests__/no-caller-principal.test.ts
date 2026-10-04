@@ -8,20 +8,14 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// daemon-emergence-store reads HOLOMESH_DATA_DIR once, at module load, so pin it before index.ts
-// (which loads the daimōn tools) is imported. Nothing here may write to the real corpus.
-const TEMP_DATA_DIR = mkdtempSync(join(tmpdir(), 'no-caller-principal-'));
-const PREVIOUS_DATA_DIR = process.env.HOLOMESH_DATA_DIR;
-process.env.HOLOMESH_DATA_DIR = TEMP_DATA_DIR;
-
-const { _handleSingleToolLogic } = await import('../index');
-const { handleTool } = await import('../handlers');
-const { callerPrincipal, NO_CALLER_PRINCIPAL } = await import('../security/tool-scopes');
-const { publicAnonymousContext } = await import('../holomesh/identity/signing-middleware');
-
-// Without an orchestrator key nothing can reach the GPU fleet, even if a spend check wrongly passed.
+// SEAL THE PROCESS BEFORE index.ts LOADS. Importing it runs utils/load-env.ts, which reads
+// ~/.ai-ecosystem/.env and, on the laptop, asks the vault host for keys over ssh. claude3's
+// review of #474 (2026-10-04) watched an unsealed run of this file resolve a real orchestrator
+// key and attempt a live full-profile submit from the stdio control; it failed only because a
+// host name did not resolve. Deleting the key variables AFTER the import (as this file did) was
+// too late. Nothing here may reach a .env, the vault, a database or the real orchestrator.
 const ORCHESTRATOR_ENV_KEYS = [
   'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
   'MCP_ORCHESTRATOR_API_KEY',
@@ -31,15 +25,52 @@ const ORCHESTRATOR_ENV_KEYS = [
   'HOLOSCRIPT_MCP_API_KEY',
   'HOLOMESH_API_KEY',
 ] as const;
+const SEALED: Record<string, string | undefined> = {
+  HOLOMESH_NO_DOTENV: '1', // load-env.ts reads no .env and hydrates nothing from the vault
+  HOLOKEYD_HOST: '', // and a resolver that ignored that flag would find no vault host
+  HOLOKEY_STORE_PATH: undefined,
+  DATABASE_URL: undefined,
+  // RFC 2606 reserves .invalid: it never resolves, so even an unmocked fetch reaches nothing.
+  MCP_ORCHESTRATOR_URL: 'https://orchestrator.invalid',
+  ...Object.fromEntries(ORCHESTRATOR_ENV_KEYS.map((key) => [key, undefined])),
+};
 const savedEnv: Record<string, string | undefined> = {};
 for (const key of [
-  ...ORCHESTRATOR_ENV_KEYS,
+  ...Object.keys(SEALED),
   'HOLOSCRIPT_MCP_TRANSPORT',
   'HOLOMESH_BOARD_BIND_SIGNER',
+  'HOLOMESH_DATA_DIR',
 ]) {
   savedEnv[key] = process.env[key];
 }
-for (const key of ORCHESTRATOR_ENV_KEYS) delete process.env[key];
+for (const [key, value] of Object.entries(SEALED)) {
+  if (value === undefined) delete process.env[key];
+  else process.env[key] = value;
+}
+
+// Every fetch fails here, and is recorded: a refused call must make no orchestrator call at all.
+const fetchCalls: string[] = [];
+vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+  fetchCalls.push(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+  throw new Error('the network is sealed in no-caller-principal.test.ts');
+});
+const orchestratorCalls = () => fetchCalls.filter((url) => url.includes('/gpu/'));
+
+// daemon-emergence-store reads HOLOMESH_DATA_DIR once, at module load, so pin it before index.ts
+// (which loads the daimōn tools) is imported. Nothing here may write to the real corpus.
+const TEMP_DATA_DIR = mkdtempSync(join(tmpdir(), 'no-caller-principal-'));
+process.env.HOLOMESH_DATA_DIR = TEMP_DATA_DIR;
+
+const { _handleSingleToolLogic } = await import('../index');
+const { handleTool } = await import('../handlers');
+const { callerPrincipal, NO_CALLER_PRINCIPAL } = await import('../security/tool-scopes');
+const { publicAnonymousContext } = await import('../holomesh/identity/signing-middleware');
+const { resetSubmitLedger } = await import('../holo-ci-tools');
+
+beforeEach(() => {
+  fetchCalls.length = 0;
+  resetSubmitLedger();
+});
 
 afterEach(() => {
   for (const key of ['HOLOSCRIPT_MCP_TRANSPORT', 'HOLOMESH_BOARD_BIND_SIGNER']) {
@@ -49,12 +80,11 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  for (const key of ORCHESTRATOR_ENV_KEYS) {
-    if (savedEnv[key] === undefined) delete process.env[key];
-    else process.env[key] = savedEnv[key];
+  vi.restoreAllMocks();
+  for (const [key, value] of Object.entries(savedEnv)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
   }
-  if (PREVIOUS_DATA_DIR === undefined) delete process.env.HOLOMESH_DATA_DIR;
-  else process.env.HOLOMESH_DATA_DIR = PREVIOUS_DATA_DIR;
   rmSync(TEMP_DATA_DIR, { recursive: true, force: true });
 });
 
@@ -99,6 +129,28 @@ describe('holo_ci_dispatch through the registry', () => {
     );
     expect(anonymous.ok).toBe(false);
     expect(anonymous.tierDenied).toBe(true);
+    expect(orchestratorCalls()).toEqual([]);
+  });
+
+  it('a hosted call with no caller cannot spend at all: not even the quick profile', async () => {
+    // The restricted tier left one quick submit a day, in ONE bucket every no-caller call
+    // shared, so the spend belonged to no one (claude3's review of #474).
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const quick = { sha: 'b'.repeat(40), profile: 'quick', dryRun: false };
+    for (const ctx of [undefined, publicAnonymousContext()]) {
+      const refused = payloadOf(await _handleSingleToolLogic('holo_ci_dispatch', quick, ctx));
+      expect(refused.ok).toBe(false);
+      expect(refused.noCaller).toBe(true);
+      expect(refused.dryRunPreview).toBeTruthy();
+    }
+    expect(orchestratorCalls()).toEqual([]);
+
+    // A preview still works for nobody, and spends nothing.
+    const preview = payloadOf(
+      await _handleSingleToolLogic('holo_ci_dispatch', { sha: 'b'.repeat(40), profile: 'quick' })
+    );
+    expect(preview.dryRun).toBe(true);
+    expect(orchestratorCalls()).toEqual([]);
   });
 
   it('the local stdio user still passes the spend check and stops only at the missing key', async () => {
@@ -106,6 +158,8 @@ describe('holo_ci_dispatch through the registry', () => {
     const local = payloadOf(await _handleSingleToolLogic('holo_ci_dispatch', fullSubmit()));
     expect(local.tierDenied).toBeUndefined();
     expect(String(local.error)).toMatch(/not provisioned/i);
+    // The sealed environment holds no key, so even the trusted path reached no orchestrator.
+    expect(orchestratorCalls()).toEqual([]);
   });
 });
 
@@ -141,14 +195,14 @@ describe("a daimōn's rituals, through the registry and through handleTool", () 
       update('mplw-ritual-registry')
     );
     expect((unnamed as { isError?: boolean }).isError).toBe(true);
-    expect(String(payloadOf(unnamed).error)).toMatch(/Unauthorized daemon access/);
+    expect(String(payloadOf(unnamed).error)).toMatch(/needs a caller/);
 
     const posing = await _handleSingleToolLogic(
       'holo_update_daemon_ritual',
       update('mplw-ritual-registry', 'owner-mplw')
     );
     expect((posing as { isError?: boolean }).isError).toBe(true);
-    expect(String(payloadOf(posing).error)).toMatch(/not bound to the authenticated principal/);
+    expect(String(payloadOf(posing).error)).toMatch(/needs a caller/);
 
     const anonymous = await _handleSingleToolLogic(
       'holo_update_daemon_ritual',
@@ -156,6 +210,30 @@ describe("a daimōn's rituals, through the registry and through handleTool", () 
       publicAnonymousContext()
     );
     expect((anonymous as { isError?: boolean }).isError).toBe(true);
+  });
+
+  it('nobody cannot create, feed or speak for a daimōn, even one "owned" by nobody', async () => {
+    // claude3's review of #474: one caller with no principal created a daimōn owned by
+    // holoscript-mcp:no-caller, and a different one then rewrote it. Nobody is no owner.
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const calls: Array<[string, Record<string, unknown>]> = [
+      ['holo_create_daemon', { ownerId: NO_CALLER_PRINCIPAL, daemonId: 'mplw-nobody' }],
+      ['holo_create_daemon', { ownerId: 'owner-mplw', daemonId: 'mplw-nobody-2' }],
+      ['holo_observe_soul', { ownerId: NO_CALLER_PRINCIPAL, delta: { kind: 'note', text: 'x' } }],
+      ['holo_update_daemon_ritual', update(`daemon-${NO_CALLER_PRINCIPAL}`)],
+      ['holo_daemon_turn', { daemonId: `daemon-${NO_CALLER_PRINCIPAL}`, message: 'hi' }],
+      ['holo_daemon_emergence_check', { ownerId: NO_CALLER_PRINCIPAL }],
+    ];
+    for (const [tool, args] of calls) {
+      for (const ctx of [undefined, publicAnonymousContext()]) {
+        const refused = await _handleSingleToolLogic(tool, { ...args }, ctx);
+        expect((refused as { isError?: boolean }).isError, tool).toBe(true);
+        expect(String(payloadOf(refused).error), tool).toMatch(/needs a caller/);
+      }
+    }
+    // Reads still bind as before: listing is not refused, and nobody owns nothing.
+    const listed = await _handleSingleToolLogic('holo_list_daemons', {});
+    expect((listed as { isError?: boolean }).isError).not.toBe(true);
   });
 
   it('handleTool has no daimōn path of its own, so it cannot skip the binding', async () => {
