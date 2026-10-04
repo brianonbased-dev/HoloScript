@@ -65,8 +65,14 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   workflow_memory_subscribe: ['tools:read'],
 
   // === Batch meta-tools (each inner call is re-authorized independently) ===
-  batch_tool_call: ['tools:read'],
-  holoscript_batch_execute: ['tools:read'],
+  // tools:codebase is accepted on the wrapper because every inner call is
+  // re-checked against the caller's own scopes (index.ts
+  // assertBatchInnerToolAuthorized). The sovereign loopback grants only
+  // tools:codebase, and its agent proxy lists batch_tool_call as the one way
+  // to reach holo_query_codebase / holo_ask_codebase; requiring tools:read
+  // here locked every local model out of the codebase brain.
+  batch_tool_call: ['tools:read', 'tools:codebase'],
+  holoscript_batch_execute: ['tools:read', 'tools:codebase'],
 
   // === Sovereign from-scratch training ===
   holo_from_scratch_status: ['tools:read'],
@@ -506,10 +512,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   get_metrics_prometheus: ['tools:read'],
   get_task_status: ['tools:read'],
   get_tool_health: ['tools:read'],
-  get_tool_manifest: ['tools:read'],
+  get_tool_manifest: ['tools:read', 'tools:codebase'],
   get_unified_budget_state: ['tools:read'],
   get_usage_summary: ['tools:read'],
-  get_workspace_info: ['tools:read'],
+  get_workspace_info: ['tools:read', 'tools:codebase'],
   holo_estimate_task_duration: ['tools:read'],
   holo_hologram_get_asset: ['tools:read'],
   holo_map_paper_ingest_probe: ['tools:read'],
@@ -573,7 +579,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   rig_match_skeleton: ['tools:read'],
   sim_fleet_status: ['tools:read'],
   sim_quote: ['tools:read'],
-  suggest_tools_for_goal: ['tools:read'],
+  suggest_tools_for_goal: ['tools:read', 'tools:codebase'],
   suggest_universal_traits: ['tools:read'],
   twin_earth_get_identity: ['tools:read'],
   twin_earth_get_safety_envelope: ['tools:read'],

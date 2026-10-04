@@ -28,7 +28,10 @@ import {
   resetGraphRAGStateForTests,
   setGraphRAGState,
 } from './graph-rag-tools';
-import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
+import {
+  ABSORB_HOLO_ABSORB_REPO_HINT,
+  describeGraphUnavailable,
+} from './graph-rag-prerequisite';
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
   coerceNativeGraphRAGProvider,
@@ -6695,11 +6698,24 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     const memoryScanPolicy = normalizeScanPolicy(memoryGraph.scanPolicy);
     const memoryTimestamp = cacheTimestamp;
     const ageMs = memoryTimestamp ? Date.now() - memoryTimestamp : undefined;
-    const freshByAge = ageMs === undefined || ageMs < CACHE_MAX_AGE_MS;
     const currentGitCommitHash = await getCurrentGitCommit(memoryRootDir);
     const currentWorktreeFingerprint = buildGitWorktreeFingerprint(memoryRootDir, memoryScanPolicy);
     const memoryRootDirs = memoryGraph.rootDirs ?? [memoryRootDir];
     let coverage = memoryGraph.coverageAtScan;
+    // Content proof outranks age: matching HEAD + dirty-worktree fingerprint
+    // over an exact, complete file set means the graph describes the bytes on
+    // disk however long ago it was built (see handleGraphStatus).
+    const contentProvenCurrent = Boolean(
+      memoryRootDirs.length === 1 &&
+        memoryGitCommitHash &&
+        currentGitCommitHash === memoryGitCommitHash &&
+        memoryGraph.worktreeFingerprint &&
+        currentWorktreeFingerprint === memoryGraph.worktreeFingerprint &&
+        coverage &&
+        coverage.exactFileSetChecked === true &&
+        graphCoverageIsComplete(coverage)
+    );
+    const freshByAge = ageMs === undefined || ageMs < CACHE_MAX_AGE_MS || contentProvenCurrent;
     const localCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
       receipt: memoryGraph.localCodebaseSnapshotReceipt,
       rootDir: memoryRootDir,
@@ -6855,7 +6871,6 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
       const cacheMatchesCwd = rootMatchesCurrentRepo(envelope.rootDir, currentCwd);
       const gitMatchesHead = cacheGitMatchesHead(envelope.gitCommitHash, currentGitCommitHash);
-      const freshByAge = ageMs < CACHE_MAX_AGE_MS;
       const coverage = buildGraphCoverageStatusForRoots(
         envelope.rootDirs ?? [cacheMatchesCwd ? currentCwd : envelope.rootDir],
         getEnvelopeGraphFileCount(envelope),
@@ -6863,9 +6878,26 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
         envelope.fileHashes ? Object.keys(envelope.fileHashes) : undefined
       );
       const coverageComplete = graphCoverageIsComplete(coverage);
+      // Content proof outranks age (see handleGraphStatus): a cache whose HEAD
+      // and dirty-worktree fingerprint still match, over an exact and complete
+      // file set, describes the current code no matter when it was built.
+      const contentProvenCurrent = Boolean(
+        cacheMatchesCwd &&
+          (envelope.rootDirs ?? [envelope.rootDir]).length === 1 &&
+          envelope.gitCommitHash &&
+          currentGitCommitHash === envelope.gitCommitHash &&
+          envelope.worktreeFingerprint &&
+          buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ===
+            envelope.worktreeFingerprint &&
+          coverageComplete &&
+          coverage.exactFileSetChecked === true
+      );
+      const freshByAge = ageMs < CACHE_MAX_AGE_MS || contentProvenCurrent;
       const cwdFileHashFreshness =
         cacheMatchesCwd && freshByAge && coverageComplete
-          ? buildGraphFileHashFreshnessStatus(envelope.rootDir, envelope.fileHashes)
+          ? contentProvenCurrent
+            ? buildWorktreeFingerprintFreshnessStatus(envelope.fileHashes)
+            : buildGraphFileHashFreshnessStatus(envelope.rootDir, envelope.fileHashes)
           : buildSkippedFileHashFreshnessStatus('not_checked', envelope.fileHashes);
       const cwdFileHashFreshForHeadMismatch =
         cacheMatchesCwd &&
@@ -6981,7 +7013,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
         source: 'disk-cache',
         ageMs,
         rootDir: envelope.rootDir,
-        stale: ageMs >= CACHE_MAX_AGE_MS,
+        stale: !freshByAge,
         coverage,
       };
     } catch {
@@ -7007,7 +7039,7 @@ export async function refuseNestedWorkspaceSliceForSemanticTools(): Promise<{
   }
   resetGraphRAGState();
   return {
-    error: ABSORB_CODEBASE_LOAD_ERROR,
+    error: describeGraphUnavailable(state.graphUnavailableReceipt),
     hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     graphUnavailableReceipt: state.graphUnavailableReceipt,
   };
@@ -8590,6 +8622,17 @@ function buildScanPolicyFromArgs(
 
   for (const result of [exclude, excludePathFragments, excludeNameFragments]) {
     if (result.error) errors.push(result.error);
+  }
+  // Scan options are top-level arguments. A nested scanPolicy object used to be
+  // accepted and ignored, so an absorb "succeeded" while excluding nothing.
+  if (args.scanPolicy !== undefined) {
+    const nestedKeys =
+      args.scanPolicy && typeof args.scanPolicy === 'object'
+        ? Object.keys(args.scanPolicy as Record<string, unknown>)
+        : [];
+    errors.push(
+      `scanPolicy is not an argument; pass ${nestedKeys.length > 0 ? nestedKeys.join(', ') : 'scan options'} at the top level of holo_absorb_repo instead.`
+    );
   }
   if (
     args.languages !== undefined &&
@@ -10376,11 +10419,23 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   return { ...(result as Record<string, unknown>), jobId };
 }
 
+const STRUCTURED_QUERY_TYPES: ReadonlySet<string> = new Set([
+  'callers',
+  'callees',
+  'imports',
+  'imported_by',
+  'symbols',
+  'find',
+  'trace',
+  'communities',
+  'stats',
+]);
+
 async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
     return {
-      error: ABSORB_CODEBASE_LOAD_ERROR,
+      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
       ...(graphState.graphUnavailableReceipt && {
         graphUnavailableReceipt: graphState.graphUnavailableReceipt,
@@ -10397,10 +10452,19 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
       }, rootDir: ${graphState.rootDir}]`
     : undefined;
 
-  const queryType = args.queryType as string | undefined;
+  // Models (and our own CLAUDE.md, until 2026-10-04) send
+  // { query: 'callers', symbol: 'X' }. That used to search for a symbol
+  // literally named "callers" and answer count:0, indistinguishable from
+  // "X has no callers". Read a bare query-type keyword as queryType and
+  // `symbol` as symbolName.
+  const bareQueryType =
+    typeof args.query === 'string' && STRUCTURED_QUERY_TYPES.has(args.query.trim())
+      ? args.query.trim()
+      : undefined;
+  const queryType = (args.queryType as string | undefined) ?? bareQueryType;
   const traceStrategy = args.traceStrategy as 'bfs' | 'tropical-min-plus' | undefined;
   const maxDepth = (args.maxDepth as number | undefined) ?? 10;
-  const symbolName = args.symbolName as string | undefined;
+  const symbolName = (args.symbolName ?? args.symbol) as string | undefined;
   const symbolOwner = args.symbolOwner as string | undefined;
   const filePath = args.filePath as string | undefined;
   const query = args.query as string;
@@ -10560,7 +10624,7 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
     return {
-      error: ABSORB_CODEBASE_LOAD_ERROR,
+      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
       ...(graphState.graphUnavailableReceipt && {
         graphUnavailableReceipt: graphState.graphUnavailableReceipt,
@@ -10743,7 +10807,10 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
 async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
-    return { error: ABSORB_CODEBASE_LOAD_ERROR, hint: ABSORB_HOLO_ABSORB_REPO_HINT };
+    return {
+      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
+      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+    };
   }
 
   const rootDir = args.rootDir as string;
@@ -10949,11 +11016,11 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     }
   }
   const cacheAgeMs = cache.ageMs;
-  const diskCacheFreshByAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
+  const diskCacheYoungerThanMaxAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
     cachedGraph !== null && cacheTimestamp ? Date.now() - cacheTimestamp : undefined;
   const activeAgeMs = inMemoryAgeMs ?? cacheAgeMs;
-  const activeFreshByAge =
+  const activeYoungerThanMaxAge =
     activeAgeMs === undefined ? cachedGraph !== null : activeAgeMs < CACHE_MAX_AGE_MS;
 
   // Scope freshness to the current repo root. A cache that was created for a
@@ -11069,6 +11136,24 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     diskHeadMatchesWorkspace &&
     Boolean(cache.worktreeFingerprint) &&
     currentWorktreeFingerprint === cache.worktreeFingerprint;
+  // Age is only a proxy for "the code may have moved since the scan". When HEAD
+  // and the persisted dirty-worktree fingerprint both match over an exact,
+  // complete file set, the graph provably describes the bytes on disk, so its
+  // age is no reason to refuse it. Without that proof, age still decides.
+  const activeContentProvenCurrent =
+    cacheMatchesCwd &&
+    activeRootDirs.length <= 1 &&
+    activeWorktreeFingerprintMatches &&
+    activeCoverageComplete &&
+    activeCoverage.exactFileSetChecked === true;
+  const diskContentProvenCurrent =
+    diskCacheMatchesCwd &&
+    activeRootDirs.length <= 1 &&
+    diskWorktreeFingerprintMatches &&
+    diskCoverageComplete &&
+    diskCoverage.exactFileSetChecked === true;
+  const activeFreshByAge = activeYoungerThanMaxAge || activeContentProvenCurrent;
+  const diskCacheFreshByAge = diskCacheYoungerThanMaxAge || diskContentProvenCurrent;
   const activeSameRootFileHashFreshness =
     cacheMatchesCwd && activeFreshByAge && activeCoverageComplete
       ? activeWorktreeFingerprintMatches
@@ -11116,7 +11201,10 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   const graphRAGState = getGraphRAGStateStatus();
   const graphRAGMatchesCwd = rootMatchesCurrentRepo(graphRAGState.rootDir, currentCwd);
   const graphRAGFreshByAge =
-    graphRAGState.ageMs === null ? graphRAGState.ready : graphRAGState.ageMs < CACHE_MAX_AGE_MS;
+    graphRAGState.ageMs === null
+      ? graphRAGState.ready
+      : graphRAGState.ageMs < CACHE_MAX_AGE_MS ||
+        (graphRAGState.ready && graphRAGMatchesCwd && activeContentProvenCurrent);
   const localGraphCoverageComplete =
     cachedGraph === null && !cache.exists ? true : activeCoverageComplete;
 
@@ -11469,6 +11557,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
           stale: !diskCacheFreshForCurrentRepo,
           freshByAge: diskCacheFreshByAge,
           staleByAge: !diskCacheFreshByAge,
+          olderThanMaxAgeButProvenCurrent: !diskCacheYoungerThanMaxAge && diskContentProvenCurrent,
           authoritative: diskCacheFreshForCurrentRepo,
           freshForCurrentRepo: diskCacheFreshForCurrentRepo,
           rootDir: cache.rootDir,
@@ -11497,12 +11586,14 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
               ? `Cache covers ${diskCoverage.graphFileCount}/${diskCoverage.expectedGraphFileCount ?? 'unknown'} expected files for this checkout. Refresh with holo_absorb_repo before trusting whole-repo queries.`
               : !diskCacheGitMatchesHead && !diskFileHashFreshForHeadMismatch
                 ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but current HEAD is ${shortGitHash(currentGitCommitHash)}. Call holo_absorb_repo with force:true to refresh.`
-                : !diskFileHashFreshness.fresh
+                : diskFileHashFreshness.checked && !diskFileHashFreshness.fresh
                   ? `Cache file hashes no longer match the live worktree (${diskFileHashFreshness.modifiedFileCount} modified, ${diskFileHashFreshness.deletedFileCount} deleted). Call holo_absorb_repo to refresh before trusting structural or semantic queries.`
                   : !diskCacheGitMatchesHead && diskFileHashFreshForHeadMismatch
                     ? `Cache was built at git ${shortGitHash(cache.gitCommitHash)} but all cached file hashes still match current HEAD ${shortGitHash(currentGitCommitHash)}. Structural tools may use it with the head-mismatch caveat.`
                     : diskCacheFreshByAge
-                      ? diskSemanticIndexHydratable
+                      ? !diskCacheYoungerThanMaxAge
+                        ? `Cache is ${formatCacheAge(cacheAgeMs)} old, but HEAD and the worktree fingerprint still match it over the exact file set, so it describes the current code; structural tools can auto-load it.`
+                        : diskSemanticIndexHydratable
                         ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
                         : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
                       : 'Cache is older than 24h — call holo_absorb_repo to refresh.',

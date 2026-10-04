@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { _handleSingleToolLogic } from '../index';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
+import { authorizeToolCall } from '../security/tool-scopes';
 
 const READ_ONLY_SIGNING_CONTEXT: SigningContext = {
   signedRequest: true,
@@ -70,6 +71,30 @@ describe('stateless HTTP batch_tool_call dispatch parity', () => {
     expect(payload.results[0].error).toContain('Batch inner tool authorization denied');
     expect(payload.results[0].error).toContain('tools:admin');
   });
+
+  it('admits a tools:codebase batch (sovereign loopback) and still re-checks each inner call', async () => {
+    const codebaseOnly: SigningContext = { ...READ_ONLY_SIGNING_CONTEXT, scopes: ['tools:codebase'] };
+    expect(authorizeToolCall('batch_tool_call', ['tools:codebase']).authorized).toBe(true);
+
+    const response = await _handleSingleToolLogic(
+      'batch_tool_call',
+      {
+        calls: [
+          { name: 'holo_graph_status', args: {} },
+          { name: 'holo_from_scratch_launch', args: { model: 'holorunner-s0' } },
+          { name: 'parse_hs', args: { code: 'composition "C" {}' } },
+        ],
+      },
+      codebaseOnly
+    );
+
+    const payload = parseBatchResponse(response);
+    expect(payload.results[0]).toMatchObject({ name: 'holo_graph_status', ok: true });
+    expect(payload.results[1]).toMatchObject({ name: 'holo_from_scratch_launch', ok: false });
+    expect(payload.results[1].error).toContain('Batch inner tool authorization denied');
+    expect(payload.results[2]).toMatchObject({ name: 'parse_hs', ok: false });
+    expect(payload.results[2].error).toContain('tools:read');
+  }, 60_000);
 
   it('preserves an allowed tools:read inner call under a tools:read batch', async () => {
     const code = 'composition "ReadBatch" { object "Cube" { geometry: "cube" } }';

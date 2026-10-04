@@ -220,7 +220,7 @@ Step 2: explain_trait({ name: "<trait name>" })
 ### Analyze Codebase (Cache-First — Most Efficient)
 
 ```text
-Step 1: holo_graph_status({})                               → Check cache freshness (<24h = use it)
+Step 1: holo_graph_status({})                               → Trust diskCache.authoritative (age alone no longer decides)
 Step 2: holo_absorb_repo({ rootDir: "<pkg-path>" })        → Omit force; reads cache if fresh (~21ms)
          holo_absorb_repo({ rootDir: ".", force: true })   → Only if cache is stale or rootDir changed
 Step 3: holo_query_codebase({ query: "<question>" })       → Auto-loads disk cache if needed
@@ -260,7 +260,8 @@ REPO        pnpm workspaces monorepo, packages/, TypeScript + vitest + tsup
 TRAITS      count: find packages/core/src/traits -name "*.ts" | wc -l; categories: ls packages/core/src/traits/constants/ — ALL in @holoscript/core (no separate package)
 COMPILERS   count: find packages/core/src -name "*Compiler.ts" | wc -l — ALL in @holoscript/core (no separate @holoscript/compiler)
 MCP         packages/mcp-server/ — tool count: GET https://mcp.holoscript.net/health → tools field — start with: npx tsx packages/mcp-server/src/index.ts
-CACHE       ~/.holoscript/graph-cache.json — 24h TTL — holo_absorb_repo force=false reads from cache (~21ms)
+CACHE       ~/.holoscript/workspaces/<id>/generations/ — fresh when <24h OR HEAD + worktree fingerprint still match (any age) — holo_absorb_repo force=false patches only what changed
+REACH       Claude's holoscript-local lists 6 tools; call holo_query_codebase / holo_ask_codebase / holo_absorb_repo THROUGH batch_tool_call (loopback scope tools:codebase; each inner call re-checked)
 BRITTNEY    ../Hololand/packages/brittney/mcp-server/ — runtime AI, optional
 TEST        pnpm test | pnpm test --filter @holoscript/core | createComposition() pattern
 BUILD       pnpm build | pre-commit: ESLint + tsc + tests (auto-runs)
@@ -392,7 +393,7 @@ Codebase intelligence for this repo runs on the **sovereign local MCP** (`http:/
 
 ## Always Start Here
 
-1. **Call `holo_graph_status({})`** — check cache freshness (<24h = use it)
+1. **Call `holo_graph_status({})`** — trust `diskCache.authoritative`; a cache older than 24h still counts when HEAD and the worktree fingerprint match
 2. **Match your task to a skill below** and **read that skill file**
 3. **Follow the skill's workflow and checklist**
 

@@ -2300,6 +2300,82 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt?.staleByMs).toBeGreaterThan(0);
   });
 
+  it('refuses scan options nested under scanPolicy instead of silently ignoring them', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-nested-scan-policy-repo-');
+    const result = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      scanPolicy: { exclude: ['receipts'] },
+    })) as { error?: string; message?: string };
+    expect(result.error).toBe('scan_policy_validation_failed');
+    expect(result.message).toContain('pass exclude at the top level');
+  });
+
+  it('trusts a cache older than 24h when HEAD and worktree fingerprint prove it current, and refuses it once a file changes', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-old-but-current-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-old-but-current-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: true,
+    })) as Record<string, unknown>;
+    expect(absorbed, JSON.stringify(absorbed, null, 2)).not.toHaveProperty('error');
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(Date.now() + 30 * 60 * 60 * 1000);
+      resetCodebaseToolStateForTests();
+      process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+
+      type Status = {
+        graphAuthoritative?: boolean;
+        graphUnavailableReceipt?: GraphUnavailableReceipt;
+        diskCache?: {
+          authoritative?: boolean;
+          olderThanMaxAgeButProvenCurrent?: boolean;
+          ageMs?: number;
+          hint?: string;
+        };
+      };
+      const current = (await handleCodebaseTool('holo_graph_status', {
+        forceRefresh: true,
+      })) as Status;
+      expect(current.diskCache?.ageMs).toBeGreaterThan(24 * 60 * 60 * 1000);
+      expect(current.diskCache?.authoritative).toBe(true);
+      expect(current.diskCache?.olderThanMaxAgeButProvenCurrent).toBe(true);
+      expect(current.diskCache?.hint).toContain('describes the current code');
+
+      // The shape models actually send: a bare query-type keyword plus `symbol`.
+      const query = (await handleCodebaseTool('holo_query_codebase', {
+        query: 'find',
+        symbol: 'alpha',
+      })) as { error?: string; count?: number };
+      expect(query.error, JSON.stringify(query, null, 2)).toBeUndefined();
+      expect(query.count, JSON.stringify(query, null, 2)).toBeGreaterThan(0);
+
+      // Fault: the same old cache after a real edit must be refused again.
+      fs.appendFileSync(path.join(repoDir, 'src', 'alpha.ts'), 'export const changed = 1;\n');
+      resetCodebaseToolStateForTests();
+      process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+      const edited = (await handleCodebaseTool('holo_graph_status', {
+        forceRefresh: true,
+      })) as Status;
+      expect(edited.diskCache?.authoritative).toBe(false);
+      expect(edited.diskCache?.olderThanMaxAgeButProvenCurrent).toBe(false);
+      expect(edited.graphUnavailableReceipt?.reason).toBe('cache_stale');
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 60_000);
+
   it('does not emit a graph unavailable receipt for a fresh disk cache matching cwd', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-fresh-graph-cache-'));
@@ -3031,7 +3107,7 @@ describe('holo_absorb_repo root validation', () => {
       query: 'stats',
       queryType: 'stats',
     })) as { error?: string; graphUnavailableReceipt?: GraphUnavailableReceipt };
-    expect(stagedQuery.error).toContain('No codebase graph loaded');
+    expect(stagedQuery.error).toContain('no longer provably matches the checkout');
     expect(stagedQuery.graphUnavailableReceipt).toMatchObject({
       kind: 'GraphUnavailableReceipt',
       reason: 'cache_stale',
@@ -3960,7 +4036,7 @@ describe('holo_absorb_repo root validation', () => {
       coverage?: { complete?: boolean; graphFileCount?: number };
     };
 
-    expect(result.error).toContain('No codebase graph loaded');
+    expect(result.error).toContain('covers only part of the checkout');
     expect(result.graphUnavailableReceipt).toMatchObject({
       kind: 'GraphUnavailableReceipt',
       reason: 'cache_incomplete',
@@ -6048,7 +6124,7 @@ describe('holo_absorb_repo root validation', () => {
       graphUnavailableReceipt?: GraphUnavailableReceipt;
     };
 
-    expect(result.error).toContain('No codebase graph loaded');
+    expect(result.error).toContain('not the workspace being asked about');
     expect(result.graphUnavailableReceipt).toMatchObject({
       kind: 'GraphUnavailableReceipt',
       reason: 'cache_root_mismatch',
