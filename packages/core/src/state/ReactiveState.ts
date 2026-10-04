@@ -14,6 +14,11 @@ import type { StateDeclaration, ReactiveState as IReactiveState } from '../types
 import { getSharedEventBus } from '../events/EventBus';
 import { CRDTStateManager, type CRDTOperation } from './CRDTStateManager';
 import { UndoManager } from './UndoManager';
+import {
+  RuntimeExpressionError,
+  evaluateRuntimeExpression,
+  parseRuntimeExpression,
+} from '../runtime/runtime-expression';
 
 // =============================================================================
 // TYPES
@@ -546,6 +551,11 @@ export class ExpressionEvaluator {
   private context: Record<string, unknown>;
   private builtins: Record<string, unknown>;
 
+  /**
+   * `builtins` are the functions an expression may call by name, on top of these
+   * pure defaults. Object, Array and Date are not among the defaults: with Object an
+   * expression could reach and rewrite Object.prototype (getPrototypeOf + assign).
+   */
   constructor(context: Record<string, unknown> = {}, builtins: Record<string, unknown> = {}) {
     this.context = context;
     this.builtins = {
@@ -555,54 +565,30 @@ export class ExpressionEvaluator {
       String,
       Number,
       Boolean,
-      Array,
-      Object,
       JSON,
-      Date,
       ...builtins,
     };
   }
 
+  /**
+   * Parsed by the HoloScript parser and interpreted (runtime/runtime-expression.ts);
+   * never evaluated as JavaScript. Anything it cannot read or refuses yields
+   * undefined, with the reason logged.
+   */
   evaluate(expression: string): unknown {
-    // Security: Block dangerous keywords
-    const dangerousPatterns = [
-      /\beval\s*\(/,
-      /\brequire\s*\(/,
-      /\bimport\s*\(/,
-      /\bprocess\s*\./,
-      /\bglobal\s*\./,
-      /\b__dirname\b/,
-      /\b__filename\b/,
-      /\bfs\s*\./,
-      /\bchild_process\s*\./,
-      /\bfs\.writeFileSync/,
-      /\bfs\.readFileSync/,
-    ];
-
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(expression)) {
-        console.warn(`Security: Blocked suspicious expression: ${expression}`);
-        return undefined;
-      }
-    }
-
-    // Security: Create safe evaluation context
-    const contextKeys = Object.keys(this.context);
-    const contextValues = Object.values(this.context);
-    const builtinKeys = Object.keys(this.builtins);
-    const builtinValues = Object.values(this.builtins);
-
+    if (typeof expression !== 'string') return expression;
     try {
-      // Create function with context variables as parameters
-      const fn = new Function(
-        ...contextKeys,
-        ...builtinKeys,
-        `"use strict"; return (${expression})`
+      return evaluateRuntimeExpression(
+        parseRuntimeExpression(expression),
+        this.context,
+        this.builtins
       );
-
-      return fn(...contextValues, ...builtinValues);
     } catch (error) {
-      console.error(`Error evaluating expression: ${expression}`, error);
+      if (error instanceof RuntimeExpressionError) {
+        console.warn(`Expression not evaluated (${error.reason}): ${expression}: ${error.message}`);
+      } else {
+        console.error(`Error evaluating expression: ${expression}`, error);
+      }
       return undefined;
     }
   }

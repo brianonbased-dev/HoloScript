@@ -3,6 +3,20 @@
  */
 
 import type { HoloScriptValue, ReactiveState as IReactiveState } from './types';
+import { evaluateExpressionText } from './runtime/runtime-expression';
+
+/** What an expression may call besides any function its context holds: pure built-ins only. */
+const ROOT_PROVIDED: Readonly<Record<string, unknown>> = Object.freeze({
+  Math,
+  Number,
+  String,
+  Boolean,
+  parseInt,
+  parseFloat,
+  isNaN,
+  isFinite,
+  JSON,
+});
 
 export class ReactiveState implements IReactiveState {
   private state: Record<string, HoloScriptValue>;
@@ -81,37 +95,6 @@ export class ExpressionEvaluator {
   evaluate(expression: string): unknown {
     if (typeof expression !== 'string') return expression;
 
-    // Security: Block dangerous patterns including prototype-chain escape vectors.
-    // This blocklist is defense-in-depth — for AI-generated expressions always use
-    // @holoscript/security-sandbox instead of evaluating inline.
-    const dangerousPatterns = [
-      /\beval\s*\(/,
-      /\brequire\s*\(/,
-      /\bimport\s*\(/,
-      /\bprocess\b/,
-      /\bglobalThis?\b/,
-      /\b__dirname\b/,
-      /\b__filename\b/,
-      /\bfs\b/,
-      /\bchild_process\b/,
-      // Prototype chain / constructor escape
-      /\bconstructor\b/,
-      /\b__proto__\b/,
-      /\bprototype\b/,
-      /\bObject\s*\.\s*(create|definePropert|getProto|assign|setProto)/,
-      /\bReflect\b/,
-      /\bProxy\b/,
-      /\bFunction\b/,
-      /\barguments\b/,
-    ];
-
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(expression)) {
-        // Security: blocked dangerous expression pattern
-        return undefined;
-      }
-    }
-
     // If it's a template string with ${}, we need to interpolate
     if (expression.includes('${')) {
       // Special case: if the whole string is just one interpolation, return raw value
@@ -124,16 +107,15 @@ export class ExpressionEvaluator {
       return this.interpolate(expression);
     }
 
-    const keys = Object.keys(this.context);
-    const values = Object.values(this.context);
-
+    // Parsed by the HoloScript parser and interpreted (runtime/runtime-expression.ts);
+    // never evaluated as JavaScript. Text that is not an expression, or that names
+    // something the context does not hold, comes back unchanged as a plain string
+    // value (as `.hs` config values such as "postgresql+pgvector" rely on); a host
+    // name or anything else refused yields undefined.
     try {
-      // "use strict" prevents `this` from resolving to the global object.
-      // .call(null, ...) binds an explicit null `this` to eliminate the global scope.
-      const fn = new Function(...keys, `"use strict"; return (${expression});`);
-      return fn.call(null, ...values);
+      return evaluateExpressionText(expression, this.context, ROOT_PROVIDED, 'text');
     } catch (_e) {
-      // Not an expression — return as a plain string value
+      // A provided function (JSON.parse, ...) threw: treat it as a plain string value.
       return expression;
     }
   }
