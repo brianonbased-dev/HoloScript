@@ -15,8 +15,12 @@
  * runs as `node`, `self` or `this`, and
  * call the functions the runtime provides, by name (`log`, `emit`, `setState`,
  * `Math.floor`, ...). Anything else is refused before the body runs, with an
- * error that names it. Only own properties are read, so nothing reaches a
- * prototype, and loops stop after a fixed number of steps.
+ * error that names it. A call is admitted only when the function it names is
+ * one the runtime provides, so nothing is refused halfway through a body. Values
+ * are read only through own data properties: nothing reaches a prototype, and a
+ * getter is refused, never run. The body's own loops stop after 100,000
+ * interpreter steps; work done inside a provided function (range, api_call, ...)
+ * is that function's own and is not counted.
  */
 import { parseHolo } from '@holoscript/core';
 import type { HoloExpression, HoloStatement } from '@holoscript/core/parser/HoloCompositionTypes';
@@ -59,7 +63,7 @@ export function parseLifecycleBody(
   hook: string,
   params: readonly string[],
   body: string,
-  functionNames: readonly string[]
+  functions: Readonly<Record<string, unknown>>
 ): readonly HoloStatement[] {
   for (const param of params) {
     if (!NAME.test(param)) refuse(`parameter "${param}" of ${hook} is not a plain name`);
@@ -86,7 +90,11 @@ export function parseLifecycleBody(
   const statements = actions[0].body ?? [];
   const locals = new Set<string>(params);
   collectLocals(statements, locals);
-  const known: KnownNames = { locals, functions: new Set(functionNames) };
+  const known: KnownNames = {
+    locals,
+    functions: new Set(Object.keys(functions)),
+    provided: functions,
+  };
   checkStatements(statements, known, hook);
   return statements;
 }
@@ -94,6 +102,8 @@ export function parseLifecycleBody(
 interface KnownNames {
   locals: ReadonlySet<string>;
   functions: ReadonlySet<string>;
+  /** The provided functions themselves, so a call is checked exactly as it will run. */
+  provided: Readonly<Record<string, unknown>>;
 }
 
 /** Every name a body declares, or assigns bare, anywhere in it. */
@@ -196,8 +206,9 @@ function checkName(name: string, known: KnownNames, hook: string): void {
 
 function checkCallee(object: string | undefined, method: string, known: KnownNames, hook: string) {
   checkKey(method, hook);
-  const name = object ?? method;
-  if (!known.functions.has(name) || known.locals.has(name)) {
+  // The same lookup callProvided makes, so a call admitted here is never refused
+  // when it is reached (which would leave the statements before it applied).
+  if (known.locals.has(object ?? method) || !providedFunction(known.provided, object, method)) {
     refuse(
       `${hook} calls "${object ? `${object}.${method}` : method}", which this runtime does not provide`
     );
@@ -403,25 +414,53 @@ function withPath(
     refuse(`cannot set "${path[0]}" on a value that is not an object`);
   }
   const [key, ...restPath] = path;
-  const copy: Record<string, unknown> = Array.isArray(current)
-    ? ([...current] as unknown as Record<string, unknown>)
-    : { ...(current as Record<string, unknown>) };
+  // Copied through readOwn, like every other read, so a getter is refused, never run.
+  const copy = (Array.isArray(current) ? [] : {}) as Record<string, unknown>;
+  for (const own of Object.keys(current)) copy[own] = readOwn(current, own);
   copy[key] = withPath(readOwn(current, key), restPath, operator, value);
   return copy;
 }
 
+/** The own property descriptor of `key`, or undefined; it never runs a getter. */
+function ownDescriptor(object: unknown, key: string): PropertyDescriptor | undefined {
+  if (object === null || object === undefined) return undefined;
+  return Object.getOwnPropertyDescriptor(Object(object), key);
+}
+
+/** The own data value of `key`, or undefined when there is none. A getter is refused, never run. */
 function readOwn(object: unknown, key: string): unknown {
   if (FORBIDDEN_KEYS.has(key)) refuse(`"${key}" cannot be read here`);
   if (object === null || object === undefined) refuse(`cannot read "${key}" of ${String(object)}`);
-  const boxed = Object(object) as Record<string, unknown>;
-  return Object.prototype.hasOwnProperty.call(boxed, key) ? boxed[key] : undefined;
+  const descriptor = ownDescriptor(object, key);
+  if (descriptor === undefined) return undefined;
+  if (!('value' in descriptor))
+    refuse(`"${key}" is read through a getter, which a lifecycle body cannot run`);
+  return descriptor.value;
+}
+
+/**
+ * The provided function a call names: `method` among the provided functions, or
+ * `object.method` where `object` is a provided object (such as Math). Own data
+ * properties only, so `log.call` or `Math.valueOf` is no provided function.
+ */
+function providedFunction(
+  provided: Readonly<Record<string, unknown>>,
+  object: string | undefined,
+  method: string
+): ((...args: unknown[]) => unknown) | undefined {
+  if (FORBIDDEN_KEYS.has(method) || (object !== undefined && FORBIDDEN_KEYS.has(object))) {
+    return undefined;
+  }
+  const owner = object === undefined ? provided : ownDescriptor(provided, object)?.value;
+  const fn = ownDescriptor(owner, method)?.value;
+  return typeof fn === 'function' ? (fn as (...args: unknown[]) => unknown) : undefined;
 }
 
 function lookup(name: string, run: Run): unknown {
   if (run.locals.has(name)) return run.locals.get(name);
   if (NODE_NAMES.has(name)) return run.node;
-  if (Object.prototype.hasOwnProperty.call(run.host.functions, name))
-    return run.host.functions[name];
+  const descriptor = ownDescriptor(run.host.functions, name);
+  if (descriptor && 'value' in descriptor) return descriptor.value;
   return refuse(`"${name}" is not defined here`);
 }
 
@@ -431,18 +470,15 @@ function callProvided(
   args: unknown[],
   run: Run
 ): unknown {
-  const name = object ?? method;
-  const provided = !run.locals.has(name);
-  const owner =
-    object === undefined ? undefined : provided ? readOwn(run.host.functions, object) : undefined;
-  const fn = provided
-    ? readOwn(object === undefined ? run.host.functions : owner, method)
-    : undefined;
-  if (typeof fn !== 'function') {
+  const fn = run.locals.has(object ?? method)
+    ? undefined
+    : providedFunction(run.host.functions, object, method);
+  if (!fn) {
     refuse(`"${object ? `${object}.${method}` : method}" is not a function this runtime provides`);
   }
   // A provided object's function is called on that object, as `object.method(...)` would be.
-  return Reflect.apply(fn as (...a: unknown[]) => unknown, owner, args);
+  const owner = object === undefined ? undefined : ownDescriptor(run.host.functions, object)?.value;
+  return Reflect.apply(fn, owner, args);
 }
 
 function evaluate(expression: HoloExpression, run: Run): unknown {

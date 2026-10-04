@@ -10,6 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HoloScriptPlusParser } from '@holoscript/core';
 import { createHeadlessRuntime } from '../HeadlessRuntime';
+import { LifecycleBodyError, parseLifecycleBody, runLifecycleBody } from '../HeadlessLifecycleBody';
 
 /** Start a runtime whose one object has these lifecycle directives; no timer runs. */
 function start(directives: string, initial: Record<string, unknown> = {}) {
@@ -90,6 +91,24 @@ describe('HeadlessRuntime lifecycle bodies', () => {
     expect(runtime.get('lamps')).toBe(3);
   });
 
+  it('refuses a call to a method its provided function does not own before any of the body runs', () => {
+    // `log` is provided, but `log.call` is Function.prototype's, not log's own. A check
+    // that only looked at `log` admitted the body, which then stopped at that line on
+    // every tick, after `ran_before` had already been written.
+    const { runtime, errors } = start(`    @on_update(dt) {
+      state.ran_before = 1;
+      log.call(node, 1);
+      state.ran_after = 1;
+    }`);
+    runtime.manualTick(0.1);
+    runtime.manualTick(0.1);
+    runtime.stop();
+    expect(runtime.getState()).not.toHaveProperty('ran_before');
+    expect(runtime.getState()).not.toHaveProperty('ran_after');
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('calls "log.call", which this runtime does not provide');
+  });
+
   it('refuses a body it cannot read, naming the hook, and says so once', () => {
     const { runtime, errors } = start(`    @on_update(dt) {
       for (lamp of lamps) { log(lamp) }
@@ -99,5 +118,33 @@ describe('HeadlessRuntime lifecycle bodies', () => {
     runtime.stop();
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('the on_update body does not parse');
+  });
+});
+
+describe('HeadlessLifecycleBody reads', () => {
+  it('refuses a value behind a getter instead of running it', () => {
+    const statements = parseLifecycleBody('on_mount', [], 'state.label = node.label', {});
+    let getterRan = false;
+    const node = {
+      get label() {
+        getterRan = true;
+        return 'computed';
+      },
+    };
+    const writes: Record<string, unknown> = {};
+    const host = {
+      functions: {},
+      readState: (key: string) => writes[key],
+      writeState: (key: string, value: unknown) => {
+        writes[key] = value;
+      },
+      emit: () => undefined,
+    };
+    expect(() => runLifecycleBody(statements, host, {}, node)).toThrow(LifecycleBodyError);
+    expect(() => runLifecycleBody(statements, host, {}, node)).toThrow(
+      '"label" is read through a getter'
+    );
+    expect(getterRan).toBe(false);
+    expect(writes).toEqual({});
   });
 });

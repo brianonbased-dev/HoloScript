@@ -466,7 +466,7 @@ export class HeadlessRuntime {
     let parsed: { statements: ReturnType<typeof parseLifecycleBody> } | { error: unknown };
     try {
       parsed = {
-        statements: parseLifecycleBody(hook, params ?? [], body, Object.keys(this.builtins)),
+        statements: parseLifecycleBody(hook, params ?? [], body, this.builtins),
       };
     } catch (error) {
       parsed = { error };
