@@ -356,6 +356,8 @@ describe('POST /query when the charge comes back empty', () => {
     await scan(
       {
         body: { path: '/repo/already-scanned', shallow: true },
+        authenticated: true,
+        userId: USER,
       } as unknown as Request,
       seeded as unknown as Response
     );
