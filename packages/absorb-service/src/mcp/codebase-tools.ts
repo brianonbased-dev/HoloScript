@@ -6794,6 +6794,14 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       cacheProvenance = null;
       cacheTimestamp = 0;
       resetGraphRAGState();
+      // A background absorb runs in an isolated worker and publishes to disk,
+      // leaving this process holding the superseded graph. Before 2026-10-04 the
+      // first query after that publication was refused as stale and only the
+      // next one read the new generation. Look at disk now (cachedGraph is null,
+      // so this cannot recurse into this branch again).
+      const fromDisk = await ensureCachedGraph(options);
+      if (fromDisk.loaded) return fromDisk;
+      if (fromDisk.graphUnavailableReceipt) return fromDisk;
       return {
         loaded: false,
         source: 'none',
@@ -10432,6 +10440,50 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
   return { ...(result as Record<string, unknown>), jobId };
 }
 
+/**
+ * When a structural query finds the workspace graph stale or partial, start
+ * one incremental background refresh instead of only telling the model to.
+ * Concurrent requests join the same writer (absorb writer lease), so a burst
+ * of queries starts one job. Only the server's own workspace root is
+ * refreshed, never a caller-named path. ABSORB_AUTO_REFRESH_ON_QUERY=0 turns
+ * it off.
+ */
+async function startWorkspaceRefreshForStaleGraph(
+  receipt: GraphUnavailableReceipt | undefined
+): Promise<{ jobId: string; coalesced: boolean; pollTool: string } | undefined> {
+  if (envFlagDisabled('ABSORB_AUTO_REFRESH_ON_QUERY')) return undefined;
+  if (!receipt || (receipt.reason !== 'cache_stale' && receipt.reason !== 'cache_incomplete')) {
+    return undefined;
+  }
+  const workspaceRoot = resolveWorkspaceRoot();
+  if (!rootMatchesCurrentRepo(receipt.requestedPath, workspaceRoot)) return undefined;
+  try {
+    const started = (await handleAbsorbWithPageExtract({
+      rootDir: workspaceRoot,
+      force: false,
+      outputFormat: 'graph',
+      async: true,
+    })) as { accepted?: boolean; jobId?: string; coalesced?: boolean; pollTool?: string };
+    if (!started?.accepted || !started.jobId) return undefined;
+    return {
+      jobId: started.jobId,
+      coalesced: started.coalesced === true,
+      pollTool: started.pollTool ?? 'holo_get_absorb_status',
+    };
+  } catch (err) {
+    console.warn(`[AbsorbAutoRefresh] stale-graph refresh not started: ${String(err)}`);
+    return undefined;
+  }
+}
+
+function staleGraphError(
+  receipt: GraphUnavailableReceipt | undefined,
+  refresh: { jobId: string; coalesced: boolean; pollTool: string } | undefined
+): string {
+  if (!refresh) return describeGraphUnavailable(receipt);
+  return `The codebase graph${receipt?.requestedPath ? ` for ${receipt.requestedPath}` : ''} was out of date, so a background refresh ${refresh.coalesced ? 'already running was joined' : 'has been started'} (job ${refresh.jobId}). Retry this call in about a minute; ${refresh.pollTool} shows progress. Do not start another absorb.`;
+}
+
 const STRUCTURED_QUERY_TYPES: ReadonlySet<string> = new Set([
   'callers',
   'callees',
@@ -10447,8 +10499,12 @@ const STRUCTURED_QUERY_TYPES: ReadonlySet<string> = new Set([
 async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
+    const autoRefresh = await startWorkspaceRefreshForStaleGraph(
+      graphState.graphUnavailableReceipt
+    );
     return {
-      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
+      error: staleGraphError(graphState.graphUnavailableReceipt, autoRefresh),
+      ...(autoRefresh && { autoRefresh }),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
       ...(graphState.graphUnavailableReceipt && {
         graphUnavailableReceipt: graphState.graphUnavailableReceipt,
@@ -10636,8 +10692,12 @@ function boundedImpactInteger(
 async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
+    const autoRefresh = await startWorkspaceRefreshForStaleGraph(
+      graphState.graphUnavailableReceipt
+    );
     return {
-      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
+      error: staleGraphError(graphState.graphUnavailableReceipt, autoRefresh),
+      ...(autoRefresh && { autoRefresh }),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
       ...(graphState.graphUnavailableReceipt && {
         graphUnavailableReceipt: graphState.graphUnavailableReceipt,
@@ -10820,8 +10880,12 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
 async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown> {
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
+    const autoRefresh = await startWorkspaceRefreshForStaleGraph(
+      graphState.graphUnavailableReceipt
+    );
     return {
-      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
+      error: staleGraphError(graphState.graphUnavailableReceipt, autoRefresh),
+      ...(autoRefresh && { autoRefresh }),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }

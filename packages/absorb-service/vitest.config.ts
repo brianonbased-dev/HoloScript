@@ -47,6 +47,10 @@ export default defineConfig({
     // EMBEDDING_PROVIDER=openai — tests always run against the native provider.
     env: {
       EMBEDDING_PROVIDER: 'holoembed',
+      // A query that finds the graph stale starts a background refresh in
+      // production; in tests that job would race the next test's own absorb.
+      // The auto-refresh test turns it back on for itself.
+      ABSORB_AUTO_REFRESH_ON_QUERY: '0',
     },
   },
 });

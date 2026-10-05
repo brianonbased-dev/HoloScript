@@ -5,7 +5,7 @@ import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import { EventEmitter } from 'events';
 import type { Worker } from 'worker_threads';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import {
   handleCodebaseTool,
   resolveIncrementalEmbeddingTimeoutMs,
@@ -2299,6 +2299,57 @@ describe('holo_absorb_repo root validation', () => {
     expect(status.graphUnavailableReceipt?.cacheAgeMs).toBeGreaterThan(24 * 60 * 60 * 1000);
     expect(status.graphUnavailableReceipt?.staleByMs).toBeGreaterThan(0);
   });
+
+  it('a stale workspace graph starts one background refresh, and the first query after it answers', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-auto-refresh-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-auto-refresh-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+    process.env.ABSORB_AUTO_REFRESH_ON_QUERY = '1';
+    onTestFinished(() => {
+      process.env.ABSORB_AUTO_REFRESH_ON_QUERY = '0';
+    });
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+    })) as Record<string, unknown>;
+    expect(absorbed, JSON.stringify(absorbed, null, 2)).not.toHaveProperty('error');
+    const before = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'find',
+      symbol: 'gamma',
+    })) as { error?: string; count?: number };
+    expect(before.count ?? 0).toBe(0);
+
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'alpha.ts'),
+      'export function gamma(): number { return 3; }\n'
+    );
+    const stale = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'find',
+      symbol: 'gamma',
+    })) as { error?: string; autoRefresh?: { jobId?: string } };
+    expect(stale.error).toContain('background refresh');
+    expect(stale.autoRefresh?.jobId).toBeTruthy();
+
+    const done = await waitForAbsorbTerminalStatus(stale.autoRefresh!.jobId!);
+    expect(done.status, JSON.stringify(done, null, 2)).toBe('complete');
+
+    // The in-memory graph is the superseded one; the first query must read the
+    // published generation instead of answering "stale" once more.
+    const after = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'find',
+      symbol: 'gamma',
+    })) as { error?: string; count?: number };
+    expect(after.error, JSON.stringify(after, null, 2)).toBeUndefined();
+    expect(after.count).toBeGreaterThan(0);
+  }, 120_000);
 
   it('refuses scan options nested under scanPolicy instead of silently ignoring them', async () => {
     resetCodebaseToolStateForTests();
