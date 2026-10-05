@@ -8,7 +8,10 @@
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{Ast, AstNode, FunctionNode, LambdaExpression, Location, MovementDestination};
+use crate::ast::{
+    Ast, AstNode, BinaryExpression, FunctionNode, LambdaExpression, Location, MemberExpression,
+    MovementDestination,
+};
 use crate::kotlin_emit::SemanticDiagnostic;
 
 const RETURN_MISMATCH: &str = "HS-TYPE-RETURN-001";
@@ -25,9 +28,11 @@ const HIDDEN_NAME: &str = "HS-SCOPE-001";
 
 // Reading an `@unknown` field (proposals/Unknown_Field_Reads_v1.md). The one written form for the
 // value is `load(record.field) ?? fallback`; `isKnown(record.field)` and
-// `unknownReason(record.field)` read the tag and the reason code, never the value.
+// `unknownReason(record.field)` read the tag and the reason code, never the value. All three apply
+// only to a field its record's struct declares `@unknown`.
 pub(crate) const UNKNOWN_BARE_READ: &str = "HS-UNKNOWN-001";
 pub(crate) const UNKNOWN_FALLBACK_FORM: &str = "HS-UNKNOWN-002";
+pub(crate) const UNKNOWN_TAG_READ: &str = "HS-UNKNOWN-003";
 
 /// Built-in functions the native backend lowers by name (the UAAL backend lowers the memory ones).
 /// The Kotlin backend's math built-ins come from its own table (`kotlin_emit::is_kotlin_builtin`).
@@ -57,6 +62,55 @@ pub(crate) struct ExternalDeclarations {
     /// Names that are read only through their members and never called: enums (`Route.A`) and
     /// `.hsplus` modules (`GameState.addScore(p)`).
     pub(crate) namespaces: HashSet<String>,
+    /// The document's structs with their fields, so the `@unknown` read rule resolves a field
+    /// through its record's struct in a lifted function exactly as it does in a whole `.hs` file.
+    pub(crate) structs: Vec<(String, Vec<RecordField>)>,
+}
+
+/// One field of a struct, as the `@unknown` read rule sees it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RecordField {
+    pub(crate) name: String,
+    /// The declared type, when the field states one (`count: i32`, `inner: Snapshot`).
+    pub(crate) ty: Option<String>,
+    /// Declared `@unknown`.
+    pub(crate) unknown: bool,
+}
+
+/// `record.field` or `record.inner.field`: a field reached through names only, with no index,
+/// call or literal on the way. The three forms that touch an `@unknown` field take exactly this,
+/// as native does ("requires a named aggregate field path").
+pub(crate) fn named_field(node: &AstNode) -> Option<&MemberExpression> {
+    let AstNode::MemberExpression(member) = node else {
+        return None;
+    };
+    let mut link = member;
+    loop {
+        if link.computed || !matches!(link.property.as_ref(), AstNode::Identifier(_)) {
+            return None;
+        }
+        match link.object.as_ref() {
+            AstNode::Identifier(_) => return Some(member),
+            AstNode::MemberExpression(inner) => link = inner,
+            _ => return None,
+        }
+    }
+}
+
+/// The left side of the one written fallback form, `load(record.field) ?? fallback`: a `load`
+/// call with exactly one argument, a named field. Returns that field. The `@unknown` read rule,
+/// the typed `??` rule and the UAAL refusal share this one definition.
+pub(crate) fn load_form_field(node: &AstNode) -> Option<&MemberExpression> {
+    let AstNode::CallExpression(call) = node else {
+        return None;
+    };
+    if !matches!(call.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "load") {
+        return None;
+    }
+    match call.arguments.as_slice() {
+        [argument] => named_field(argument),
+        _ => None,
+    }
 }
 
 /// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
@@ -164,6 +218,10 @@ struct TypeChecker {
     strict: Cell<bool>,
     /// The function being checked, for messages.
     function_name: RefCell<String>,
+    /// Where the function being checked, and the statement being checked, are written: a
+    /// diagnostic on an expression that carries no position of its own (`5 ?? 3`) points there.
+    function_loc: RefCell<Option<Location>>,
+    statement_loc: RefCell<Option<Location>>,
 }
 
 pub(crate) fn check_explicit_type_contracts_with(
@@ -256,6 +314,8 @@ pub(crate) fn check_explicit_type_contracts_with(
         struct_fields,
         strict: Cell::new(false),
         function_name: RefCell::new(String::new()),
+        function_loc: RefCell::new(None),
+        statement_loc: RefCell::new(None),
     };
     for node in &ast.body {
         match node {
@@ -279,6 +339,8 @@ impl TypeChecker {
             || function.param_types.iter().any(|annotation| annotation.is_some());
         self.strict.set(strict);
         *self.function_name.borrow_mut() = function.name.clone();
+        *self.function_loc.borrow_mut() = function.loc.clone();
+        *self.statement_loc.borrow_mut() = None;
         if strict {
             let mut seen = HashSet::new();
             for (index, parameter) in function.params.iter().enumerate() {
@@ -365,6 +427,7 @@ impl TypeChecker {
         expected_return: Option<&str>,
         scopes: &mut Vec<Frame>,
     ) -> Result<(), SemanticDiagnostic> {
+        self.enter_statement(node);
         match node {
             AstNode::Return(ret) => {
                 let actual = match &ret.argument {
@@ -659,14 +722,11 @@ impl TypeChecker {
             AstNode::BinaryExpression(binary) => {
                 let left = self.infer_expression(&binary.left, scopes)?;
                 let right = self.infer_expression(&binary.right, scopes)?;
-                if binary.operator == "??" && self.strict.get() && !is_load_of_field(&binary.left) {
-                    return Err(diagnostic(
-                        format!(
-                            "[{UNKNOWN_FALLBACK_FORM}] `??` in function `{}` supplies a fallback only for an `@unknown` field read; write `load(record.field) ?? fallback`",
-                            self.function_name.borrow()
-                        ),
-                        first_location(&binary.left),
-                    ));
+                if binary.operator == "??"
+                    && self.strict.get()
+                    && load_form_field(&binary.left).is_none()
+                {
+                    return Err(self.fallback_without_load(binary));
                 }
                 let evidence = match binary.operator.as_str() {
                     "&&" | "||" => {
@@ -774,6 +834,40 @@ impl TypeChecker {
         let body = self.infer_expression(&lambda.body, scopes);
         scopes.pop();
         body.map(|_| ())
+    }
+
+    /// Records where the statement about to be checked is written. Out of line, like
+    /// [`Self::not_callable`], so the frame of `check_statement`, which recurses once per nested
+    /// block, does not grow.
+    #[inline(never)]
+    fn enter_statement(&self, node: &AstNode) {
+        *self.statement_loc.borrow_mut() = statement_location(node).clone();
+    }
+
+    /// HS-UNKNOWN-002 for `left ?? right` in a typed function, where `left` is not
+    /// `load(record.field)`. A literal on the left carries no position, so the diagnostic falls
+    /// back to the statement that holds it, then the right side, then the function.
+    #[cold]
+    #[inline(never)]
+    fn fallback_without_load(&self, binary: &BinaryExpression) -> SemanticDiagnostic {
+        let statement = self.statement_loc.borrow();
+        let function = self.function_loc.borrow();
+        let at = [
+            first_location(&binary.left),
+            &*statement,
+            first_location(&binary.right),
+            &*function,
+        ]
+        .into_iter()
+        .find(|loc| loc.is_some())
+        .unwrap_or(&None);
+        diagnostic(
+            format!(
+                "[{UNKNOWN_FALLBACK_FORM}] `??` in function `{}` supplies a fallback only for an `@unknown` field read; write `load(record.field) ?? fallback`",
+                self.function_name.borrow()
+            ),
+            at,
+        )
     }
 
     /// HS-NAME-002 for a call to `name`, which may not be called here.
@@ -1099,14 +1193,19 @@ fn is_string_evidence(evidence: &TypeEvidence) -> bool {
     matches!(evidence, TypeEvidence::Known(name) if name == "string")
 }
 
-/// `load(record.field)`: the one written form a fallback applies to.
-fn is_load_of_field(node: &AstNode) -> bool {
-    let AstNode::CallExpression(call) = node else {
-        return false;
-    };
-    matches!(call.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "load")
-        && call.arguments.len() == 1
-        && matches!(call.arguments[0], AstNode::MemberExpression(_))
+/// Where a statement is written, for the statements whose node records it. `if` and `while`
+/// record none.
+fn statement_location(node: &AstNode) -> &Option<Location> {
+    const NONE: &Option<Location> = &None;
+    match node {
+        AstNode::Return(statement) => &statement.loc,
+        AstNode::VariableDeclaration(statement) => &statement.loc,
+        AstNode::StackSlotDeclaration(statement) => &statement.loc,
+        AstNode::Assignment(statement) => &statement.loc,
+        AstNode::ForOf(statement) => &statement.loc,
+        AstNode::CallExpression(statement) => &statement.loc,
+        _ => NONE,
+    }
 }
 
 /// The first position recorded inside an expression, for diagnostics on nodes that carry none.
@@ -1667,6 +1766,38 @@ function main(): i32 {
 
         // Untyped legacy functions keep their earlier reading.
         admit("function legacy(a) {\n  return a ?? 3\n}");
+    }
+
+    /// Review of PR #444 (claude3, P3): `5 ?? 3` and `true ?? false` were reported at 0:0, since a
+    /// literal records no position. The diagnostic falls back to the statement that holds the
+    /// `??`, then to the right side, then to the function.
+    #[test]
+    fn a_fallback_on_a_literal_is_reported_where_it_is_written() {
+        for (source, at) in [
+            ("function f(): i32 {\n  return 5 ?? 3\n}", (2, 3)),
+            ("function f(): bool {\n  return true ?? false\n}", (2, 3)),
+            (
+                "function f(): i32 {\n  let a: i32 = 5 ?? 3\n  return a\n}",
+                (2, 3),
+            ),
+            // `if` records no position: the right side does.
+            (
+                "function f(x: i32): i32 {\n  if (5 ?? x) {\n    return 1\n  }\n  return 0\n}",
+                (2, 12),
+            ),
+            // Nothing in it does: the function.
+            (
+                "function f(): i32 {\n  if (5 ?? 3) {\n    return 1\n  }\n  return 0\n}",
+                (1, 1),
+            ),
+        ] {
+            let (message, line, column) = reject_at(source);
+            assert!(message.contains(super::UNKNOWN_FALLBACK_FORM), "{message}");
+            assert_eq!((line, column), at, "{source}\n=> {message}");
+        }
+        // An operand that records a position still decides.
+        let (_, line, column) = reject_at("function f(a: i32): i32 {\n  return a ?? 3\n}");
+        assert_eq!((line, column), (2, 10));
     }
 
     #[test]
