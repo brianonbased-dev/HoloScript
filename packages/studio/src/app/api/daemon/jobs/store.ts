@@ -158,13 +158,33 @@ async function executeDaemonJob(jobId: string): Promise<void> {
         }
       : undefined;
 
+    const zeroDelta =
+      result.success &&
+      result.patches.length === 0 &&
+      result.qualityDelta === 0;
+    const emptyAbsorb =
+      result.success &&
+      (result.absorb == null || result.absorb.totalFiles === 0) &&
+      result.patches.length === 0;
+    const status = result.success ? 'completed' : 'failed';
+    const statusMessage = !result.success
+      ? result.error ?? result.summary
+      : emptyAbsorb
+        ? 'Blocked — Absorb empty'
+        : zeroDelta && result.filesAnalyzed === 0
+          ? 'Finished, nothing examined'
+          : zeroDelta
+            ? 'Finished, nothing to change'
+            : result.summary || 'Complete';
+
     setDaemonJob(jobId, {
       ...final,
-      status: 'completed',
-      progress: 100,
-      statusMessage: 'Complete',
+      status,
+      progress: result.success ? 100 : final.progress,
+      statusMessage,
       updatedAt: nowIso(),
       summary: result.summary,
+      error: result.success ? undefined : result.error ?? result.summary,
       metrics: {
         qualityDelta: result.qualityDelta,
         qualityBefore: result.qualityBefore,
@@ -180,7 +200,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
     });
 
     emitTelemetry({
-      eventType: 'job_completed',
+      eventType: result.success ? 'job_completed' : 'job_failed',
       jobId,
       timestamp: nowIso(),
       profile: job.profile,
@@ -188,6 +208,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       qualityDelta: result.qualityDelta,
       filesChanged: result.filesChanged,
       patchCount: result.patches.length,
+      error: result.success ? undefined : result.error ?? result.summary,
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
