@@ -104,6 +104,23 @@ export interface IndexedSymbol {
   embedding: Float32Array;
 }
 
+/** A text and the vector this provider produced for it: the unit a resumed build reuses. */
+export interface ReusableEmbedding {
+  text: string;
+  embedding: Float32Array;
+}
+
+export interface EmbeddingRefreshOptions {
+  /**
+   * Vectors from elsewhere (an interrupted build's journal, an earlier
+   * generation's index) offered for reuse by exact text, alongside this
+   * index's own entries. Verify them with verifyReusableEmbeddings first.
+   */
+  seed?: Iterable<ReusableEmbedding>;
+  /** Called after each batch with the vectors that batch had to compute. */
+  onEmbedded?: (entries: ReusableEmbedding[]) => void | Promise<void>;
+}
+
 export interface EmbeddingRefreshReceipt {
   kind: 'EmbeddingRefreshReceipt';
   previousSymbols: number;
@@ -384,18 +401,26 @@ export class EmbeddingIndex {
    */
   async refreshIndex(
     graph: CodebaseGraph,
-    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
+    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void,
+    options: EmbeddingRefreshOptions = {}
   ): Promise<EmbeddingRefreshReceipt> {
     const previousEntries = this.entries;
     const previousSymbols = previousEntries.length;
     // Exact embedding texts are overwhelmingly unique. Keep the common case as
     // one map value and allocate an array only for a real text collision.
-    const reusableByText = new Map<string, IndexedSymbol | IndexedSymbol[]>();
-    for (const entry of previousEntries) {
+    const reusableByText = new Map<string, ReusableEmbedding | ReusableEmbedding[]>();
+    const offer = (entry: ReusableEmbedding): void => {
       const reusable = reusableByText.get(entry.text);
       if (!reusable) reusableByText.set(entry.text, entry);
       else if (Array.isArray(reusable)) reusable.push(entry);
       else reusableByText.set(entry.text, [reusable, entry]);
+    };
+    for (const entry of previousEntries) offer(entry);
+    if (options.seed) {
+      const dimension = previousEntries[0]?.embedding.length;
+      for (const entry of options.seed) {
+        if (dimension === undefined || entry.embedding.length === dimension) offer(entry);
+      }
     }
 
     const symbols = this.getIndexableSymbols(graph);
@@ -450,6 +475,14 @@ export class EmbeddingIndex {
           };
         }
         embeddedSymbols += embeddings.length;
+        if (options.onEmbedded) {
+          await options.onEmbedded(
+            pendingIndexes.map((batchIndex) => ({
+              text: batchEntries[batchIndex]!.text,
+              embedding: batchEntries[batchIndex]!.embedding,
+            }))
+          );
+        }
       }
 
       nextEntries.push(...(batchEntries as IndexedSymbol[]));
@@ -1295,6 +1328,38 @@ export class EmbeddingIndex {
       .slice(0, maxLines)
       .join(' ')
       .slice(0, maxChars);
+  }
+
+  /**
+   * Prove that stored vectors came from the provider this index uses now, by
+   * re-embedding an evenly spread sample and comparing. Nothing records an
+   * encoder version, so this is the check that keeps a resumed build from
+   * mixing two embedding spaces. An empty input is trivially reusable.
+   */
+  async verifyReusableEmbeddings(
+    entries: readonly ReusableEmbedding[],
+    sampleSize = 32,
+    tolerance = 1e-4
+  ): Promise<boolean> {
+    if (entries.length === 0) return true;
+    const count = Math.min(sampleSize, entries.length);
+    const step = entries.length / count;
+    const sample = Array.from({ length: count }, (_, i) => entries[Math.floor(i * step)]);
+    const fresh = await this.getEmbeddings(sample.map((entry) => entry.text));
+    if (fresh.length !== sample.length) return false;
+    return sample.every((entry, i) => {
+      const vector = fresh[i];
+      if (!vector || vector.length !== entry.embedding.length) return false;
+      for (let d = 0; d < vector.length; d++) {
+        if (Math.abs(vector[d] - entry.embedding[d]) > tolerance) return false;
+      }
+      return true;
+    });
+  }
+
+  /** This index's vectors as reusable seed entries (for a later refresh elsewhere). */
+  reusableEmbeddings(): ReusableEmbedding[] {
+    return this.entries.map((entry) => ({ text: entry.text, embedding: entry.embedding }));
   }
 
   /** Delegate embedding to the configured provider. */

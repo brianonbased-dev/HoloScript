@@ -5581,6 +5581,63 @@ describe('holo_absorb_repo root validation', () => {
     expect(structuralQuery.result?.totalFiles).toBe(2);
   }, 30_000);
 
+  it('rebuilds a retired HoloEmbed index by reusing the previous generation, not from zero', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-reuse-prior-embed-repo-');
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-reuse-prior-embed-cache-'));
+    process.env.HOLOSCRIPT_CACHE_DIR = cacheDir;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+
+    const withIndex = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      force: true,
+      outputFormat: 'graph',
+    })) as { error?: string; semanticIndexReady?: boolean };
+    expect(withIndex.error).toBeUndefined();
+
+    fs.appendFileSync(
+      path.join(repoDir, 'src', 'alpha.ts'),
+      'export function epsilon(): number { return 5; }\n'
+    );
+    // The trap measured on 7411: a stats refresh retires the HoloEmbed index.
+    const statsOnly = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+    })) as { error?: string; embeddingSkipped?: boolean };
+    expect(statsOnly.embeddingSkipped).toBe(true);
+
+    const receipts: Array<{ totalSymbols: number; reusedSymbols: number; embeddedSymbols: number }> =
+      [];
+    const original = EmbeddingIndex.prototype.refreshIndex;
+    const spy = vi
+      .spyOn(EmbeddingIndex.prototype, 'refreshIndex')
+      .mockImplementation(async function (this: EmbeddingIndex, ...args) {
+        const receipt = await original.apply(this, args);
+        receipts.push(receipt);
+        return receipt;
+      });
+    try {
+      const rebuilt = (await handleCodebaseTool('holo_absorb_repo', {
+        rootDir: repoDir,
+        outputFormat: 'graph',
+      })) as { error?: string };
+      expect(rebuilt.error).toBeUndefined();
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(receipts.length).toBeGreaterThan(0);
+    const last = receipts.at(-1)!;
+    expect(last.totalSymbols).toBeGreaterThan(2);
+    // Only epsilon (and any symbol whose graph-context text changed) is new.
+    expect(last.reusedSymbols).toBeGreaterThan(0);
+    expect(last.embeddedSymbols).toBeLessThan(last.totalSymbols);
+    expect(fs.existsSync(path.join(cacheDir, 'embedding-journal.bin'))).toBe(false);
+  }, 120_000);
+
   it('builds missing HoloEmbed index when a zero-change graph request follows stats-only cache', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-zero-change-embed-cache-'));

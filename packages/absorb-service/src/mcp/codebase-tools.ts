@@ -33,6 +33,11 @@ import {
   describeGraphUnavailable,
 } from './graph-rag-prerequisite';
 import {
+  appendEmbeddingJournal,
+  readEmbeddingJournal,
+  removeEmbeddingJournal,
+} from '../engine/EmbeddingJournal';
+import {
   buildGraphRAGEmbeddingPolicyReceipt,
   coerceNativeGraphRAGProvider,
   NATIVE_GRAPH_RAG_PROVIDER,
@@ -5064,6 +5069,11 @@ function publishCacheGeneration(
       options.rootDirs
     );
     invalidateGraphStatusSnapshot();
+    // A published index is the next build's seed; the journal of an
+    // interrupted build has served its purpose (buildEmbeddingIndexResumably).
+    if (publishedEmbeddingsFile) {
+      removeEmbeddingJournal(path.join(paths.directory, 'embedding-journal.bin'));
+    }
     return {
       generationId,
       manifestFile: paths.generationManifestFile,
@@ -6487,6 +6497,114 @@ async function hydrateGraphRAGFromDiskEmbeddings(
   return true;
 }
 
+/**
+ * Build an embedding index so an interruption costs only the unfinished part.
+ *
+ * Before 2026-10-04 every full build started from zero: a warm cancelled by
+ * the host memory floor at batch 11,127 of 12,615 discarded every vector, and
+ * a stats-only refresh that retired the previous generation forced a rebuild
+ * of all ~400k symbols. Now a build:
+ *   1. seeds from the workspace embedding journal (vectors an interrupted
+ *      build already computed) and from the newest earlier generation's
+ *      embeddings-cache.bin in the same workspace;
+ *   2. trusts each seed only after re-embedding a sample and getting the same
+ *      vectors (nothing records an encoder version);
+ *   3. refreshes, reusing seeded vectors by exact text and appending every
+ *      newly computed batch to the journal.
+ * Call commit() once the index is published; it removes the journal.
+ */
+async function buildEmbeddingIndexResumably(
+  mod: any,
+  idx: any,
+  graph: any,
+  onProgress: (batchNumber: number, totalBatches: number, symbolsProcessed: number) => void,
+  cacheRoots: { rootDir: string; rootDirs?: string[] }
+): Promise<{
+  receipt: {
+    seededFromJournal: number;
+    seededFromPriorGeneration: number;
+    priorGenerationFile: string | null;
+    rejectedSeeds: string[];
+    refresh: unknown;
+  };
+  commit: () => void;
+}> {
+  const paths = resolveCachePathsForRoots(cacheRoots.rootDir, cacheRoots.rootDirs);
+  const journalFile = path.join(paths.directory, 'embedding-journal.bin');
+  const rejectedSeeds: string[] = [];
+  const seed: Array<{ text: string; embedding: Float32Array }> = [];
+
+  const journal = readEmbeddingJournal(journalFile);
+  let seededFromJournal = 0;
+  if (journal.length > 0) {
+    if (await idx.verifyReusableEmbeddings(journal)) {
+      seed.push(...journal);
+      seededFromJournal = journal.length;
+    } else {
+      rejectedSeeds.push('journal: sample vectors differ from the current provider');
+      removeEmbeddingJournal(journalFile);
+    }
+  }
+
+  let seededFromPriorGeneration = 0;
+  let priorGenerationFile: string | null = null;
+  const candidates: Array<{ file: string; mtimeMs: number }> = [];
+  for (const dir of [paths.directory, ...listGenerationDirs(paths.generationsDirectory)]) {
+    const file = path.join(dir, 'embeddings-cache.bin');
+    try {
+      candidates.push({ file, mtimeMs: fs.statSync(file).mtimeMs });
+    } catch {
+      /* no index in this generation */
+    }
+  }
+  candidates.sort((left, right) => right.mtimeMs - left.mtimeMs);
+  for (const candidate of candidates) {
+    try {
+      const prior = mod.EmbeddingIndex.deserializeBinary(fs.readFileSync(candidate.file), {
+        provider: (idx as { provider?: unknown }).provider,
+      });
+      const entries = prior.reusableEmbeddings();
+      if (await idx.verifyReusableEmbeddings(entries)) {
+        seed.push(...entries);
+        seededFromPriorGeneration = entries.length;
+        priorGenerationFile = candidate.file;
+      } else {
+        rejectedSeeds.push(`${candidate.file}: sample vectors differ from the current provider`);
+      }
+    } catch (err) {
+      rejectedSeeds.push(`${candidate.file}: ${errorMessage(err)}`);
+    }
+    break; // only the newest earlier index; older ones add memory, not coverage
+  }
+
+  const refresh = await idx.refreshIndex(graph, onProgress, {
+    seed,
+    onEmbedded: (entries: Array<{ text: string; embedding: Float32Array }>) =>
+      appendEmbeddingJournal(journalFile, entries),
+  });
+  return {
+    receipt: {
+      seededFromJournal,
+      seededFromPriorGeneration,
+      priorGenerationFile,
+      rejectedSeeds,
+      refresh,
+    },
+    commit: () => removeEmbeddingJournal(journalFile),
+  };
+}
+
+function listGenerationDirs(generationsDirectory: string): string[] {
+  try {
+    return fs
+      .readdirSync(generationsDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(generationsDirectory, entry.name));
+  } catch {
+    return [];
+  }
+}
+
 function startBackgroundGraphRAGWarm(
   mod: CodebaseModule,
   graph: unknown,
@@ -6566,8 +6684,10 @@ function startBackgroundGraphRAGWarm(
       enforceAbsorbPreflightResourceGuard(warmJobId);
       idx = await createDynamicEmbeddingIndex(mod);
       trackAbsorbProgress(warmJobId, 'Preparing missing cached embeddings', 80);
-      await withPhaseTimeout(
-        idx.buildIndex(
+      const resumable = await withPhaseTimeout(
+        buildEmbeddingIndexResumably(
+          mod,
+          idx,
           graph,
           (batchNumber: number, totalBatches: number, symbolsProcessed: number) => {
             const boundedTotal = Math.max(1, totalBatches);
@@ -6578,7 +6698,8 @@ function startBackgroundGraphRAGWarm(
               progress,
               symbolsProcessed
             );
-          }
+          },
+          { rootDir: rootForWarm, rootDirs: warmRootDirs }
         ),
         CACHE_WARM_GRAPH_RAG_TIMEOUT_MS,
         'disk-cache GraphRAG embedding rebuild (background)',
@@ -6611,6 +6732,7 @@ function startBackgroundGraphRAGWarm(
           cacheCommitted: true,
           generationId: published.generationId,
           embeddingCacheSha256: published.embeddingIdentity?.sha256 ?? null,
+          embeddingResume: resumable.receipt,
         };
       }
       setGraphRAGState(idx, new GraphRAGEngine(graph, idx), {
@@ -7805,19 +7927,21 @@ async function runFullScan(
       // Wire progress callback for granular embedding updates
       try {
         await withPhaseTimeout(
-          embeddingIndex.buildIndex(
+          buildEmbeddingIndexResumably(
+            mod,
+            embeddingIndex,
             graph,
-            jobId
-              ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
-                  // Map batch progress to 80-95% range (Phase 8 Extension)
-                  const embeddingProgress = 80 + Math.floor((batchNum / totalBatches) * 15);
-                  trackAbsorbProgress(
-                    jobId,
-                    `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
-                    embeddingProgress
-                  );
-                }
-              : undefined
+            (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+              if (!jobId) return;
+              // Map batch progress to 80-95% range (Phase 8 Extension)
+              const embeddingProgress = 80 + Math.floor((batchNum / totalBatches) * 15);
+              trackAbsorbProgress(
+                jobId,
+                `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
+                embeddingProgress
+              );
+            },
+            { rootDir: primaryRootDir, rootDirs }
           ),
           EMBEDDING_BUILD_TIMEOUT_MS,
           'holo_absorb_repo embedding build',
@@ -8456,7 +8580,10 @@ async function runIncrementalPatch(
             embeddingModel
           );
           await withPhaseTimeout(
-            index.buildIndex(graph),
+            buildEmbeddingIndexResumably(mod, index, graph, () => {}, {
+              rootDir,
+              rootDirs: [rootDir],
+            }),
             EMBEDDING_BUILD_TIMEOUT_MS,
             'holo_absorb_repo incremental fallback full embedding build',
             () => disposeEmbeddingIndex(index),
@@ -10294,19 +10421,21 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
           );
           try {
             await withPhaseTimeout(
-              rebuiltIndex.buildIndex(
+              buildEmbeddingIndexResumably(
+                mod,
+                rebuiltIndex,
                 cachedGraph,
-                jobId
-                  ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
-                      const embeddingProgress =
-                        80 + Math.floor((batchNum / Math.max(totalBatches, 1)) * 15);
-                      trackAbsorbProgress(
-                        jobId,
-                        `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
-                        embeddingProgress
-                      );
-                    }
-                  : undefined
+                (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+                  if (!jobId) return;
+                  const embeddingProgress =
+                    80 + Math.floor((batchNum / Math.max(totalBatches, 1)) * 15);
+                  trackAbsorbProgress(
+                    jobId,
+                    `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
+                    embeddingProgress
+                  );
+                },
+                { rootDir: cachedRootDir || resolveWorkspaceRoot() }
               ),
               EMBEDDING_BUILD_TIMEOUT_MS,
               'holo_absorb_repo zero-change embedding rebuild',
