@@ -88,6 +88,7 @@ import {
 import {
   AbsorbRefreshCheckpoint,
   compactAbsorbRefreshProgressReceipt,
+  findInterruptedAbsorbBuild,
   prepareAbsorbRefreshCheckpoint,
   type AbsorbRefreshProgressReceipt,
 } from './absorb-refresh-checkpoint';
@@ -12049,10 +12050,22 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
                         : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
                       : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
-      : {
-          exists: false,
-          hint: 'No disk cache found. Call holo_absorb_repo to create one.',
-        },
+      : describeMissingDiskCache(currentCwd),
+  };
+}
+
+function describeMissingDiskCache(rootDir: string): Record<string, unknown> {
+  const interrupted = findInterruptedAbsorbBuild(rootDir);
+  if (!interrupted) {
+    return { exists: false, hint: 'No disk cache found. Call holo_absorb_repo to create one.' };
+  }
+  return {
+    exists: false,
+    interruptedBuild: interrupted,
+    hint:
+      `No finished map yet, but a build stopped at ${interrupted.completedBatchCount}/${interrupted.totalBatches} ` +
+      `scan batches (${interrupted.progressPercent}%, last saved ${interrupted.updatedAt}). ` +
+      'Call holo_absorb_repo again: it resumes from the saved batches instead of starting over.',
   };
 }
 

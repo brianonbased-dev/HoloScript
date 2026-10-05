@@ -328,6 +328,58 @@ function checkpointPaths(
   };
 }
 
+/** What an interrupted, resumable build had finished, for a status answer. */
+export interface InterruptedAbsorbBuild {
+  resumeToken: string;
+  status: AbsorbRefreshStatus;
+  completedBatchCount: number;
+  totalBatches: number;
+  completedCandidateFiles: number;
+  totalCandidateFiles: number;
+  progressPercent: number;
+  updatedAt: string;
+}
+
+/**
+ * The most recently updated build for `rootDir` that saved scan batches but
+ * never published a map. A cold build cancelled at 45% (memory floor, tester
+ * agent 5, 2026-10-05) left 245 saved batches while graph status said only
+ * "No disk cache found", so the user could not tell progress was kept.
+ */
+export function findInterruptedAbsorbBuild(rootDir: string): InterruptedAbsorbBuild | null {
+  let directories: string[];
+  const refreshes = path.join(resolveCodebaseCachePaths(rootDir).directory, 'absorb-refreshes');
+  try {
+    directories = fs.readdirSync(refreshes);
+  } catch {
+    return null;
+  }
+  let latest: AbsorbRefreshProgressReceipt | null = null;
+  for (const name of directories) {
+    if (!RESUME_TOKEN_PATTERN.test(name)) continue;
+    let receipt: AbsorbRefreshProgressReceipt;
+    try {
+      receipt = readReceipt(path.join(refreshes, name, 'progress-receipt.json'));
+    } catch {
+      continue;
+    }
+    if (!receipt.resumable || receipt.cachePublished || receipt.completedBatchCount <= 0) continue;
+    if (!latest || receipt.updatedAt > latest.updatedAt) latest = receipt;
+  }
+  return latest
+    ? {
+        resumeToken: latest.resumeToken,
+        status: latest.status,
+        completedBatchCount: latest.completedBatchCount,
+        totalBatches: latest.totalBatches,
+        completedCandidateFiles: latest.completedCandidateFiles,
+        totalCandidateFiles: latest.totalCandidateFiles,
+        progressPercent: latest.progressPercent,
+        updatedAt: latest.updatedAt,
+      }
+    : null;
+}
+
 function readReceipt(receiptFile: string): AbsorbRefreshProgressReceipt {
   let parsed: unknown;
   try {

@@ -8,6 +8,7 @@ import {
   ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA,
   ABSORB_REFRESH_RETENTION_RECEIPT_SCHEMA,
   compactAbsorbRefreshProgressReceipt,
+  findInterruptedAbsorbBuild,
   prepareAbsorbRefreshCheckpoint,
   pruneAbsorbRefreshCheckpoints,
   replaceFileWithRetry,
@@ -660,6 +661,49 @@ describe('AbsorbRefreshCheckpoint', () => {
       completedBatchCount: 0,
       completedCandidateFiles: 0,
       remainingCandidateFiles: 1,
+    });
+  });
+});
+
+describe('findInterruptedAbsorbBuild', () => {
+  it('reports the latest resumable unpublished build, and ignores published or empty ones', () => {
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'interrupted-build-cache-'));
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'interrupted-build-root-'));
+    expect(findInterruptedAbsorbBuild(rootDir)).toBeNull();
+
+    const refreshes = path.join(resolveCodebaseCachePaths(rootDir).directory, 'absorb-refreshes');
+    const write = (token: string, fields: Record<string, unknown>) => {
+      fs.mkdirSync(path.join(refreshes, token), { recursive: true });
+      fs.writeFileSync(
+        path.join(refreshes, token, 'progress-receipt.json'),
+        JSON.stringify({
+          schemaVersion: ABSORB_REFRESH_PROGRESS_RECEIPT_SCHEMA,
+          kind: 'AbsorbRefreshProgressReceipt',
+          resumeToken: token,
+          status: 'scanning',
+          resumable: true,
+          cachePublished: false,
+          completedBatches: [],
+          completedBatchCount: 10,
+          totalBatches: 20,
+          completedCandidateFiles: 500,
+          totalCandidateFiles: 1000,
+          progressPercent: 50,
+          updatedAt: '2026-10-05T10:00:00.000Z',
+          ...fields,
+        })
+      );
+    };
+    write('a'.repeat(32), { updatedAt: '2026-10-05T09:00:00.000Z', completedBatchCount: 4 });
+    write('b'.repeat(32), { completedBatchCount: 245, totalBatches: 323, progressPercent: 75.85 });
+    write('c'.repeat(32), { updatedAt: '2026-10-05T11:00:00.000Z', cachePublished: true });
+    write('d'.repeat(32), { updatedAt: '2026-10-05T12:00:00.000Z', completedBatchCount: 0 });
+
+    expect(findInterruptedAbsorbBuild(rootDir)).toMatchObject({
+      resumeToken: 'b'.repeat(32),
+      completedBatchCount: 245,
+      totalBatches: 323,
+      progressPercent: 75.85,
     });
   });
 });
