@@ -155,7 +155,7 @@ export {
   protocolToFrameworkCycleResult,
   frameworkToProtocolCycleResult,
 } from './protocol-agent';
-export type { ProtocolTaskResult } from './protocol-agent';
+export type { ProtocolCycleOptions, ProtocolTaskResult } from './protocol-agent';
 
 // Protocol implementations (canonical home â€” absorbed from agent-protocol)
 export {

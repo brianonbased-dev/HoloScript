@@ -542,8 +542,8 @@ export function meshToolManifestFromKnowledgeContent(content: string): MeshToolM
  * (including one needing tools:admin) at full trust (task_1790204588326_myvj) --
  * the same class of gap batch_tool_call's children are already re-checked for
  * (index.ts assertBatchInnerToolAuthorized). An absent signingCtx is the trusted
- * local stdio path, which never reaches here with a caller-supplied tool name it
- * didn't already trust.
+ * local user only on the stdio server (isTrustedLocalCaller). On the hosted server
+ * it is a call that lost its caller, so it is checked against no scopes (task mplw).
  */
 async function defaultLocalInvoker(
   toolName: string,
@@ -553,6 +553,8 @@ async function defaultLocalInvoker(
   if (toolName === 'holomesh_invoke_tool') {
     throw new Error('holomesh_invoke_tool cannot recursively invoke itself');
   }
+  // The shared re-entry check (#407), which asks isTrustedLocalCaller (#474): no context is the
+  // local user only on the stdio server; on the hosted server it is nobody, checked against no scopes.
   assertReentrantToolAuthorized(toolName, signingCtx, 'Mesh-invoked tool');
   // index.ts's own dispatch registry (categories like selfImproveTools) sits in front of
   // handlers.ts's handleTool and covers tools handleTool alone does not recognize;

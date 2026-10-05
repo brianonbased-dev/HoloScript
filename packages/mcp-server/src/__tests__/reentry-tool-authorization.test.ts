@@ -289,11 +289,32 @@ describe('what must keep working', () => {
     expect(readFileSync(target, 'utf8')).toContain('PLANTED');
   });
 
+  // No context is the local user only on the stdio server (isTrustedLocalCaller, #474): this test
+  // says so, and its twin shows the same call on the hosted server is nobody (claude3's P2-2 on #407).
   it('genuine stdio (no context at all) keeps local trust', async () => {
-    const target = join(WORK, 'stdio-step.txt');
-    await call('execute_workflow', { name: 'probe', steps: [writeStep(target)] }, undefined);
+    const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+    try {
+      const target = join(WORK, 'stdio-step.txt');
+      await call('execute_workflow', { name: 'probe', steps: [writeStep(target)] }, undefined);
+      expect(readFileSync(target, 'utf8')).toContain('PLANTED');
+    } finally {
+      if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+      else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+    }
+  });
 
-    expect(readFileSync(target, 'utf8')).toContain('PLANTED');
+  it('no context on the hosted server is nobody: the step does not run', async () => {
+    const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    try {
+      const target = join(WORK, 'hosted-nobody-step.txt');
+      await call('execute_workflow', { name: 'probe', steps: [writeStep(target)] }, undefined);
+      expect(existsSync(target)).toBe(false);
+    } finally {
+      if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+      else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+    }
   });
 
   it('a read/write caller still runs a step its own scopes cover', async () => {

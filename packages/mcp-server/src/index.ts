@@ -90,7 +90,12 @@ import {
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
-import { assertReentrantToolAuthorized, registerKnownTools } from './security/tool-scopes';
+import {
+  assertReentrantToolAuthorized,
+  callerPrincipal,
+  isTrustedLocalCaller,
+  registerKnownTools,
+} from './security/tool-scopes';
 import { assertNoHostPathArgs } from './security/host-path-args';
 import {
   gateToolCall,
@@ -336,7 +341,9 @@ export async function executeSingleTool(
  * Batch meta-tools are authorized at the outer transport boundary, but their
  * children are distinct tool invocations with potentially stronger scopes.
  * Re-check every child against the original request scopes before dispatch.
- * An absent context is the trusted local stdio path, which has no OAuth token.
+ * An absent context is the trusted local user only on the stdio server, which
+ * has no OAuth token (isTrustedLocalCaller). On the hosted server it is a call
+ * that lost its caller, so its children are checked against no scopes (task mplw).
  */
 function assertBatchInnerToolAuthorized(
   toolName: string,
@@ -344,11 +351,14 @@ function assertBatchInnerToolAuthorized(
   args?: Record<string, unknown>
 ): void {
   assertReentrantToolAuthorized(toolName, signingCtx, 'Batch inner tool');
-  if (!signingCtx) return;
+  // Only the stdio server's local user skips the host-path rule below. A hosted call with no
+  // context is nobody, and its children are held to it too (claude3's P2-2 on #407: `!signingCtx`
+  // here let a context-less hosted batch child name a host path).
+  if (isTrustedLocalCaller(signingCtx)) return;
 
   // Gate 3's host-path rule is not re-run for children, so the batch would be a way round it:
   // apply the same check to the child's own arguments (task_1790214096204_56rj).
-  assertNoHostPathArgs(toolName, args, signingCtx.scopes ?? []);
+  assertNoHostPathArgs(toolName, args, signingCtx?.scopes ?? []);
 }
 
 // Handle tool calls.
@@ -426,11 +436,10 @@ function registerCategory(toolArray: Tool[], handler: ToolHandler) {
 
 // 1. Explicitly mapped domains
 registerCategory(compilerTools, (name, args, _signingCtx) => handleCompilerTool(name, args));
-// Thread the caller signer address (from signed envelopes) as the token identity
-// for per-caller spend authorisation. For unsigned / stdio callers signingCtx is
-// undefined and callerToken is undefined → those callers are unconditionally trusted.
+// Thread the caller's identity into per-caller spend authorisation (callerPrincipal:
+// a hosted call with no caller gets the restricted stand-in, task mplw).
 registerCategory(holoCiTools, (name, args, signingCtx) =>
-  handleHoloCiTool(name, args, signingCtx?.signer ?? undefined)
+  handleHoloCiTool(name, args, callerPrincipal(signingCtx))
 );
 // From-scratch pretraining lane: dispatches the ai-ecosystem CLI. Thread the
 // complete signing context because an applied launch fails closed unless the
@@ -498,11 +507,13 @@ registerCategory(negotiationToolDefinitions, (name, args, _signingCtx) =>
 // task_1790062507560_px5q: the daimōn tools bind the self-declared callerId to the
 // transport's verified principal (bearer agentId / clientId on HTTP, or an envelope
 // signer that walletToAgent maps to the caller). stdio passes no signingCtx ->
-// local trust, callerId stays self-declared.
+// local trust, callerId stays self-declared. A hosted call with no caller (no
+// context, or a context with no signer) is bound to NO_CALLER_PRINCIPAL, which
+// owns no one's daimōn (callerPrincipal, task mplw).
 registerCategory(daemonLifecycleTools, async (name, args, signingCtx) => {
   const { defaultSignerMapsToCaller } = await import('./holomesh/identity/board-signer-binding');
   return handleDaemonLifecycleTool(name, args, {
-    signer: signingCtx?.signer,
+    signer: callerPrincipal(signingCtx),
     signerMapsToCaller: defaultSignerMapsToCaller,
   });
 });

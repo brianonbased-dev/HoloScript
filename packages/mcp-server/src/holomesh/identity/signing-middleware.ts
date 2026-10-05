@@ -105,6 +105,28 @@ export interface SigningContext {
   scopes?: string[];
 }
 
+/**
+ * The caller of the anonymous public tier (POST /api/public/tool): unsigned, with no scopes.
+ * Passed explicitly so that route never rests on what handleTool does with a missing context
+ * (task x5ku: a missing context used to become the stdio-local admin:* bridge on the hosted
+ * server too). A fresh object per call: a shared one could have its scopes pushed to by any
+ * consumer and hand them to every later anonymous caller.
+ */
+export function publicAnonymousContext(): SigningContext {
+  return {
+    signedRequest: false,
+    signingValid: true,
+    signer: null,
+    signingReason: 'anonymous-public-tier',
+    signingProtocol: 'classical',
+    // tools:read, the scope every PUBLIC_ANON_TOOLS entry needs (http-server.ts). Dispatch now checks
+    // the caller's scopes for every tool (#407), and with none the anonymous tier would refuse its own
+    // tools (claude3's P1-2 on #407). A fresh array on every call, so one call cannot widen the next
+    // (CANARY-X006).
+    scopes: ['tools:read'],
+  };
+}
+
 export interface ExtractAndVerifyResult {
   /** The body the route handler should consume. Unwrapped when signed. */
   effectiveBody: unknown;

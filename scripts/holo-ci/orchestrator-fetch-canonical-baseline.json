@@ -1,7 +1,7 @@
 {
   "_comment": "CHOKEPOINT-CAPTURE baseline (dependency-sovereignty-ladder, 2026-07-16). Grandfathered files containing the raw 'mcp-orchestrator-production-45f9' orchestrator literal outside packages/connector-core and @holoscript/config. New raw-literal files are blocked (CHOKEPOINT-GREW); migrate call sites to ResilientOrchestratorFetch (packages/connector-core) or @holoscript/config ENDPOINTS, then shrink this list via --update. Regenerate with: node scripts/holo-ci/check-orchestrator-fetch-canonical.mjs --update",
   "literal": "mcp-orchestrator-production-45f9",
-  "count": 99,
+  "count": 98,
   "files": [
     ".antigravity/mcp.json",
     ".claude/skills/absorb/SKILL.md",
@@ -58,7 +58,6 @@
     "packages/mcp-server/src/__tests__/holo-tunnel-tools.test.ts",
     "packages/mcp-server/src/absorb-provenance-tools.ts",
     "packages/mcp-server/src/audit-tools.ts",
-    "packages/mcp-server/src/ci-public-worker.ts",
     "packages/mcp-server/src/founder-handler.ts",
     "packages/mcp-server/src/holo-ci-tools.ts",
     "packages/mcp-server/src/holomesh/__tests__/agent-capability-tools.test.ts",
