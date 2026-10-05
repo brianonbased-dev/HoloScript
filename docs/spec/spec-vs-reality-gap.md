@@ -611,7 +611,10 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   types; declarations hold to ABI v1, a u32 version and a lower-case ASCII name; sources with a
   space around them or non-ASCII are `HS-HOST-001`, and `crdt://` reads as before. Passing the
   checker is not permission to call the tool. 0 of 236 `.hs` and 0 of 2,982 readable `.hsplus`
-  files change verdict.
+  files change verdict. Not closed: an unchecked value still reaches a capability through a
+  declaration that accepted it (`let v: i32 = helper()`, a typed parameter fed by an untyped
+  caller, a typed result), which needs proof carried through declarations or a host-side
+  argument check.
 
 ---
 
