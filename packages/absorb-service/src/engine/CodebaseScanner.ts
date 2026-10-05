@@ -344,9 +344,8 @@ export class CodebaseScanner {
         for (const result of parseResults) {
           const relPath = result.file?.path || result.error?.file || '';
 
-          if (result.error) {
-            errors.push(result.error);
-          } else if (result.file) {
+          if (result.error) errors.push(result.error);
+          if (result.file) {
             files.push(result.file);
             filesByLanguage[result.file.language] =
               (filesByLanguage[result.file.language] ?? 0) + 1;
@@ -399,9 +398,8 @@ export class CodebaseScanner {
             language,
             sizeBytes
           );
-          if (payload.error) {
-            errors.push(payload.error);
-          } else if (payload.file) {
+          if (payload.error) errors.push(payload.error);
+          if (payload.file) {
             files.push(payload.file);
             filesByLanguage[payload.file.language] =
               (filesByLanguage[payload.file.language] ?? 0) + 1;
@@ -445,19 +443,18 @@ export class CodebaseScanner {
 
         try {
           tree = await this.adapterManager.parse(content, language);
-          if (!tree) {
-            errors.push({ file: filePath, error: `No parser for ${language}`, phase: 'parse' });
-            continue;
-          }
+          if (!tree) throw new Error(`No parser for ${language} (grammar unavailable on this host)`);
         } catch (e: unknown) {
-          if (!(options.includeBuildArtifacts ?? false)) {
-            errors.push({
-              file: filePath,
-              error: e instanceof Error ? e.message : String(e),
-              phase: 'parse',
-            });
-            continue;
-          }
+          // Keep the file in the graph without symbols and record why. Dropping
+          // it left coverage permanently incomplete: on a host without the
+          // Kotlin grammar, 53 .kt/.kts files went missing from every scan,
+          // so the map could never be "current" and every query re-triggered
+          // a refresh (foreign-user test, 2026-10-05).
+          errors.push({
+            file: filePath,
+            error: `${e instanceof Error ? e.message : String(e)}; file kept without symbols`,
+            phase: 'parse',
+          });
 
           // Dist-safe fallback for environments where parser bindings fail.
           const fallbackImports = this.extractLooseImports(content, relPath);
@@ -517,11 +514,26 @@ export class CodebaseScanner {
 
           onProgress?.(files.length, filePaths.length, relPath);
         } catch (e: unknown) {
+          // Keep the file without symbols (see the parse-failure rule above).
           errors.push({
             file: filePath,
-            error: e instanceof Error ? e.message : String(e),
+            error: `${e instanceof Error ? e.message : String(e)}; file kept without symbols`,
             phase: 'extract',
           });
+          const loc = content.split('\n').length;
+          files.push({
+            path: relPath,
+            language,
+            symbols: [],
+            imports: [],
+            calls: [],
+            loc,
+            sizeBytes,
+            docComment: undefined,
+          });
+          filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
+          totalLoc += loc;
+          onProgress?.(files.length, filePaths.length, relPath);
         }
       }
     }
@@ -723,9 +735,8 @@ export class CodebaseScanner {
     let totalCalls = 0;
     let totalLoc = 0;
     const accumulateResult = (result: ScanWorkerPayload): void => {
-      if (result.error) {
-        errors.push(result.error);
-      } else if (result.file) {
+      if (result.error) errors.push(result.error);
+      if (result.file) {
         files.push(result.file);
         filesByLanguage[result.file.language] = (filesByLanguage[result.file.language] ?? 0) + 1;
         totalSymbols += result.file.symbols.length;
@@ -932,26 +943,22 @@ export class CodebaseScanner {
     }
 
     let tree;
+    let parseFailure: ScanError | undefined;
     try {
       tree = await this.adapterManager.parse(content, language);
-      if (!tree) {
-        return { error: { file: filePath, error: `No parser for ${language}`, phase: 'parse' } };
-      }
+      if (!tree) throw new Error(`No parser for ${language} (grammar unavailable on this host)`);
     } catch (e: unknown) {
-      if (!includeBuildArtifacts) {
-        return {
-          error: {
-            file: filePath,
-            error: e instanceof Error ? e.message : String(e),
-            phase: 'parse',
-          },
-        };
-      }
-
+      // Same rule as the sequential path: keep the file, record the reason.
+      parseFailure = {
+        file: filePath,
+        error: `${e instanceof Error ? e.message : String(e)}; file kept without symbols`,
+        phase: 'parse',
+      };
       // Dist-safe fallback
       const fallbackImports = this.extractLooseImports(content, relPath);
       const loc = content.split('\n').length;
       return {
+        ...(parseFailure ? { error: parseFailure } : {}),
         file: {
           path: relPath,
           language,
@@ -977,11 +984,22 @@ export class CodebaseScanner {
         file: { path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment },
       };
     } catch (e: unknown) {
+      // Keep the file without symbols (see the parse-failure rule above).
       return {
         error: {
           file: filePath,
-          error: e instanceof Error ? e.message : String(e),
+          error: `${e instanceof Error ? e.message : String(e)}; file kept without symbols`,
           phase: 'extract',
+        },
+        file: {
+          path: relPath,
+          language,
+          symbols: [],
+          imports: [],
+          calls: [],
+          loc: content.split('\n').length,
+          sizeBytes,
+          docComment: undefined,
         },
       };
     }
@@ -1070,11 +1088,22 @@ export class CodebaseScanner {
         },
       };
     } catch (e: unknown) {
+      // Keep the file without symbols (see the parse-failure rule above).
       return {
         error: {
           file: filePath,
-          error: e instanceof Error ? e.message : String(e),
+          error: `${e instanceof Error ? e.message : String(e)}; file kept without symbols`,
           phase: 'extract',
+        },
+        file: {
+          path: relPath,
+          language,
+          symbols: [],
+          imports: [],
+          calls: [],
+          loc: content.split('\n').length,
+          sizeBytes,
+          docComment: undefined,
         },
       };
     }

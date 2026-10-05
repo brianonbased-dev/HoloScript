@@ -4069,6 +4069,43 @@ interface ReuseScanPolicyResolution {
  * the live Git-visible candidate count so the normal full-scan repair path can
  * restore whole-repository authority (and auto-background the work when large).
  */
+/** Upper bound for the automatic first-build raise of maxFiles. */
+const FIRST_BUILD_MAX_PROMOTED_FILES = 200_000;
+
+/**
+ * A first build of a git checkout larger than DEFAULT_SCAN_MAX_FILES used to
+ * stop at the cap, publish an incomplete map, and leave every query refusing
+ * it; only a second absorb (with a prior cache) promoted the cap
+ * (resolveReuseScanPolicy). Measured 2026-10-05: HoloScript has 20,595
+ * candidates, so a newcomer's first map covered 19,947/20,000 and was never
+ * "current". When the selection is git-visible (a finite, known list) and the
+ * caller did not pin maxFiles, raise the cap to the candidate count.
+ */
+export function promoteFirstBuildMaxFiles(
+  policy: GraphScanPolicy,
+  rootDirs: string[],
+  pinned: boolean
+): GraphScanPolicy {
+  if (pinned || rootDirs.length !== 1) return policy;
+  try {
+    const coverage = buildGraphCoverageStatus(rootDirs[0], 0, policy);
+    const candidates = Number(coverage.selectedCandidateCount);
+    if (
+      coverage.available &&
+      coverage.source !== 'unavailable' &&
+      coverage.cappedByMaxFiles === true &&
+      Number.isFinite(candidates) &&
+      candidates > (policy.maxFiles ?? DEFAULT_SCAN_MAX_FILES) &&
+      candidates <= FIRST_BUILD_MAX_PROMOTED_FILES
+    ) {
+      return normalizeScanPolicy({ ...policy, maxFiles: candidates });
+    }
+  } catch {
+    /* coverage unavailable: keep the requested policy */
+  }
+  return policy;
+}
+
 function resolveReuseScanPolicy(
   rootDir: string,
   graphFileCount: number,
@@ -9100,10 +9137,14 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       errors: scanPolicyResult.errors,
     };
   }
-  const scanPolicy = scanPolicyResult.policy;
+  const maxFilesExplicit = args.maxFiles !== undefined;
+  const scanPolicy = promoteFirstBuildMaxFiles(
+    scanPolicyResult.policy,
+    effectiveRootDirs,
+    fromSourceFiles || maxFilesExplicit
+  );
   const languages = scanPolicy.languages;
   const scanPolicyExplicit = scanPolicyArgsProvided(args);
-  const maxFilesExplicit = args.maxFiles !== undefined;
   const embeddingProvider = args.embeddingProvider as string | undefined;
   const embeddingApiKey = args.embeddingApiKey as string | undefined;
   const embeddingModel = args.embeddingModel as string | undefined;
@@ -10731,13 +10772,38 @@ async function executeAbsorbPlan(plan: AbsorbExecutionPlan): Promise<unknown> {
  */
 async function startWorkspaceRefreshForStaleGraph(
   receipt: GraphUnavailableReceipt | undefined
-): Promise<{ jobId: string; coalesced: boolean; pollTool: string } | undefined> {
+): Promise<
+  { jobId: string; coalesced: boolean; pollTool: string } | { skipped: string } | undefined
+> {
   if (envFlagDisabled('ABSORB_AUTO_REFRESH_ON_QUERY')) return undefined;
   if (!receipt || (receipt.reason !== 'cache_stale' && receipt.reason !== 'cache_incomplete')) {
     return undefined;
   }
   const workspaceRoot = resolveWorkspaceRoot();
   if (!rootMatchesCurrentRepo(receipt.requestedPath, workspaceRoot)) return undefined;
+  // A refresh that finished in the last 10 minutes and still left the map
+  // PARTIAL will not be fixed by another one: starting one per query looped
+  // forever on a gap no refresh closed (foreign-user test, 2026-10-05). A
+  // stale map (content changed since) still refreshes: that is a real change.
+  if (receipt.reason === 'cache_incomplete') {
+    const recentWindowMs = 10 * 60 * 1000;
+    const lastFinished = Array.from(absorbJobs.values())
+      .filter(
+        (job) =>
+          !job.jobId.startsWith('absorb-warm-') &&
+          (job.status === 'complete' || job.status === 'error') &&
+          typeof job.completedAt === 'number' &&
+          Date.now() - job.completedAt < recentWindowMs &&
+          rootMatchesCurrentRepo(job.rootDir, workspaceRoot)
+      )
+      .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))[0];
+    if (lastFinished) {
+      const minutes = Math.max(1, Math.round((Date.now() - (lastFinished.completedAt ?? 0)) / 60_000));
+      return {
+        skipped: `A refresh (job ${lastFinished.jobId}) finished ${minutes} min ago and the map is still partial, so another refresh would not help. holo_graph_status with detail:"full" lists the missing files under coverage.missingGraphFileSample.`,
+      };
+    }
+  }
   try {
     const started = (await handleAbsorbWithPageExtract({
       rootDir: workspaceRoot,
@@ -10759,9 +10825,10 @@ async function startWorkspaceRefreshForStaleGraph(
 
 function staleGraphError(
   receipt: GraphUnavailableReceipt | undefined,
-  refresh: { jobId: string; coalesced: boolean; pollTool: string } | undefined
+  refresh: { jobId: string; coalesced: boolean; pollTool: string } | { skipped: string } | undefined
 ): string {
   if (!refresh) return describeGraphUnavailable(receipt);
+  if ('skipped' in refresh) return refresh.skipped;
   return `The codebase graph${receipt?.requestedPath ? ` for ${receipt.requestedPath}` : ''} was out of date, so a background refresh ${refresh.coalesced ? 'already running was joined' : 'has been started'} (job ${refresh.jobId}). Retry this call in about a minute; ${refresh.pollTool} shows progress. Do not start another absorb.`;
 }
 
@@ -10785,7 +10852,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     );
     return {
       error: staleGraphError(graphState.graphUnavailableReceipt, autoRefresh),
-      ...(autoRefresh && { autoRefresh }),
+      ...(autoRefresh && !('skipped' in autoRefresh) && { autoRefresh }),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
       ...(graphState.graphUnavailableReceipt && {
         graphUnavailableReceipt: graphState.graphUnavailableReceipt,
@@ -10978,7 +11045,7 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
     );
     return {
       error: staleGraphError(graphState.graphUnavailableReceipt, autoRefresh),
-      ...(autoRefresh && { autoRefresh }),
+      ...(autoRefresh && !('skipped' in autoRefresh) && { autoRefresh }),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
       ...(graphState.graphUnavailableReceipt && {
         graphUnavailableReceipt: graphState.graphUnavailableReceipt,
@@ -11166,7 +11233,7 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
     );
     return {
       error: staleGraphError(graphState.graphUnavailableReceipt, autoRefresh),
-      ...(autoRefresh && { autoRefresh }),
+      ...(autoRefresh && !('skipped' in autoRefresh) && { autoRefresh }),
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }

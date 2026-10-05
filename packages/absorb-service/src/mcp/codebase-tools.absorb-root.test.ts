@@ -13,6 +13,7 @@ import {
   setCachePublicationFaultForTests,
   setIsolatedAbsorbWorkerFactoryForTests,
   simulateAbsorbProcessRestartForTests,
+  promoteFirstBuildMaxFiles,
 } from './codebase-tools';
 import {
   resolveCodebaseCachePaths,
@@ -2349,7 +2350,43 @@ describe('holo_absorb_repo root validation', () => {
     })) as { error?: string; count?: number };
     expect(after.error, JSON.stringify(after, null, 2)).toBeUndefined();
     expect(after.count).toBeGreaterThan(0);
+
   }, 120_000);
+
+  it('does not restart a refresh for a partial map the last refresh just left', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-partial-loop-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-partial-loop-cache-'));
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+    process.env.ABSORB_AUTO_REFRESH_ON_QUERY = '1';
+    onTestFinished(() => {
+      process.env.ABSORB_AUTO_REFRESH_ON_QUERY = '0';
+    });
+    // Pinning maxFiles below the file count leaves a gap no refresh closes.
+    const partial = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+      maxFiles: 1,
+    })) as { error?: string };
+    expect(partial.error, JSON.stringify(partial).slice(0, 300)).toBeUndefined();
+    const query = (await handleCodebaseTool('holo_query_codebase', { query: 'find', symbol: 'alpha' })) as {
+      error?: string;
+      autoRefresh?: unknown;
+    };
+    expect(query.autoRefresh).toBeUndefined();
+    expect(query.error).toContain('still partial');
+  }, 120_000);
+
+  it('raises maxFiles on a first build of a git checkout to its real candidate count', () => {
+    const repoDir = makeTinyGitRepo('holoscript-first-build-cap-repo-');
+    const capped = { maxFiles: 1 };
+    expect(promoteFirstBuildMaxFiles(capped, [repoDir], false).maxFiles).toBe(2);
+    expect(promoteFirstBuildMaxFiles(capped, [repoDir], true).maxFiles).toBe(1);
+  });
 
   it('refuses scan options nested under scanPolicy instead of silently ignoring them', async () => {
     resetCodebaseToolStateForTests();
