@@ -6518,7 +6518,8 @@ async function buildEmbeddingIndexResumably(
   idx: any,
   graph: any,
   onProgress: (batchNumber: number, totalBatches: number, symbolsProcessed: number) => void,
-  cacheRoots: { rootDir: string; rootDirs?: string[] }
+  cacheRoots: { rootDir: string; rootDirs?: string[] },
+  options: { seedFromPriorGeneration?: boolean } = {}
 ): Promise<{
   receipt: {
     seededFromJournal: number;
@@ -6549,7 +6550,12 @@ async function buildEmbeddingIndexResumably(
   let seededFromPriorGeneration = 0;
   let priorGenerationFile: string | null = null;
   const candidates: Array<{ file: string; mtimeMs: number }> = [];
-  for (const dir of [paths.directory, ...listGenerationDirs(paths.generationsDirectory)]) {
+  // A fallback after a failed reuse must not reuse the same prior index again.
+  const priorDirs =
+    options.seedFromPriorGeneration === false
+      ? []
+      : [paths.directory, ...listGenerationDirs(paths.generationsDirectory)];
+  for (const dir of priorDirs) {
     const file = path.join(dir, 'embeddings-cache.bin');
     try {
       candidates.push({ file, mtimeMs: fs.statSync(file).mtimeMs });
@@ -6577,11 +6583,14 @@ async function buildEmbeddingIndexResumably(
     break; // only the newest earlier index; older ones add memory, not coverage
   }
 
-  const refresh = await idx.refreshIndex(graph, onProgress, {
-    seed,
-    onEmbedded: (entries: Array<{ text: string; embedding: Float32Array }>) =>
-      appendEmbeddingJournal(journalFile, entries),
-  });
+  const onEmbedded = (entries: Array<{ text: string; embedding: Float32Array }>) =>
+    appendEmbeddingJournal(journalFile, entries);
+  // Nothing to resume from: the full build keeps its parallel worker path and
+  // only journals. Something to reuse: refresh embeds just the rest.
+  const refresh =
+    seed.length === 0
+      ? (await idx.buildIndex(graph, onProgress, { onEmbedded }), { kind: 'full-build' })
+      : await idx.refreshIndex(graph, onProgress, { seed, onEmbedded });
   return {
     receipt: {
       seededFromJournal,
@@ -8580,10 +8589,16 @@ async function runIncrementalPatch(
             embeddingModel
           );
           await withPhaseTimeout(
-            buildEmbeddingIndexResumably(mod, index, graph, () => {}, {
-              rootDir,
-              rootDirs: [rootDir],
-            }),
+            buildEmbeddingIndexResumably(
+              mod,
+              index,
+              graph,
+              () => {},
+              { rootDir, rootDirs: [rootDir] },
+              // No prior index at all: seed from older generations. A refresh of
+              // the loaded index just failed: rebuild clean, do not reuse it.
+              { seedFromPriorGeneration: !embeddingRefreshFallback }
+            ),
             EMBEDDING_BUILD_TIMEOUT_MS,
             'holo_absorb_repo incremental fallback full embedding build',
             () => disposeEmbeddingIndex(index),

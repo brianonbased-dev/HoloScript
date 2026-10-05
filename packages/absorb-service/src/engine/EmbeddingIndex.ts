@@ -372,7 +372,8 @@ export class EmbeddingIndex {
    */
   async buildIndex(
     graph: CodebaseGraph,
-    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void
+    onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void,
+    options: Pick<EmbeddingRefreshOptions, 'onEmbedded'> = {}
   ): Promise<void> {
     this.entries = [];
     this.lexicalIndex = undefined;
@@ -383,10 +384,10 @@ export class EmbeddingIndex {
 
     if (this.useWorkers && this.workerPool) {
       // PARALLEL PATH: Use worker threads for 4-8x speedup (Phase 9 Extension)
-      await this.buildIndexParallel(symbols, totalBatches, onProgress, graph);
+      await this.buildIndexParallel(symbols, totalBatches, onProgress, graph, options.onEmbedded);
     } else {
       // SEQUENTIAL PATH: Original implementation (fallback)
-      await this.buildIndexSequential(symbols, totalBatches, onProgress, graph);
+      await this.buildIndexSequential(symbols, totalBatches, onProgress, graph, options.onEmbedded);
     }
   }
 
@@ -528,7 +529,8 @@ export class EmbeddingIndex {
     symbols: ExternalSymbolDefinition[],
     totalBatches: number,
     onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void,
-    graph?: CodebaseGraph
+    graph?: CodebaseGraph,
+    onEmbedded?: EmbeddingRefreshOptions['onEmbedded']
   ): Promise<void> {
     const graphTextContext = this.createGraphTextContext(graph);
     for (let i = 0; i < symbols.length; i += this.batchSize) {
@@ -543,12 +545,20 @@ export class EmbeddingIndex {
 
       const embeddings = await this.getEmbeddings(batch);
 
+      const firstNew = this.entries.length;
       for (let j = 0; j < embeddings.length; j++) {
         this.entries.push({
           symbol: batchSymbols[j],
           text: batch[j],
           embedding: new Float32Array(embeddings[j]),
         });
+      }
+      if (onEmbedded) {
+        await onEmbedded(
+          this.entries
+            .slice(firstNew)
+            .map((entry) => ({ text: entry.text, embedding: entry.embedding }))
+        );
       }
 
       // Report progress (Phase 8 Extension) - more frequent for large batches
@@ -581,7 +591,8 @@ export class EmbeddingIndex {
     symbols: ExternalSymbolDefinition[],
     totalBatches: number,
     onProgress?: (batchNum: number, totalBatches: number, symbolsProcessed: number) => void,
-    graph?: CodebaseGraph
+    graph?: CodebaseGraph,
+    onEmbedded?: EmbeddingRefreshOptions['onEmbedded']
   ): Promise<void> {
     const graphTextContext = this.createGraphTextContext(graph);
     // Serialize provider config for workers
@@ -646,12 +657,20 @@ export class EmbeddingIndex {
       results.sort((a, b) => a.batchIndex - b.batchIndex);
 
       for (const { batchIndex, batchSymbols, batchTexts, embeddings } of results) {
+        const firstNew = this.entries.length;
         for (let k = 0; k < embeddings.length; k++) {
           this.entries.push({
             symbol: batchSymbols[k],
             text: batchTexts[k],
             embedding: new Float32Array(embeddings[k]),
           });
+        }
+        if (onEmbedded) {
+          await onEmbedded(
+            this.entries
+              .slice(firstNew)
+              .map((entry) => ({ text: entry.text, embedding: entry.embedding }))
+          );
         }
 
         // Report progress for this batch (Phase 8 Extension)
