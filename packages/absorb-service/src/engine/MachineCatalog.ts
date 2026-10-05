@@ -21,6 +21,8 @@ import path from 'node:path';
 
 export interface MachineCheckout {
   path: string;
+  /** Why git was not run on this checkout (e.g. its git pointer leads off-machine). */
+  skippedReason?: string;
   /** True when `.git` is a file (a linked worktree). */
   worktree: boolean;
   head: string | null;
@@ -93,18 +95,85 @@ const SKIP_NAMES = new Set(
 /** Path segments that mark a checkout as a working copy rather than the main one. */
 const COPY_MARKERS = ['.scratch', 'worktrees', '.holorepo-worktrees', 'clones', '_archive', '_archived', 'scratch', 'tmp', 'backups'];
 
+/**
+ * Run git on a checkout we did not create and must not trust. A repository's
+ * own .git/config is honored by every git command, and some settings run
+ * programs: review of #499 (fc9486, 2026-10-05) showed `git log` with
+ * log.showSignature=true plus gpg.program=<script> plus a signed HEAD runs the
+ * script. So: no `log`/`show` at all (dates come from `cat-file commit`), the
+ * known exec-on-read settings forced off on the command line (which outranks
+ * repo config), no prompts, no optional locks.
+ */
+const HARDENED_GIT_CONFIG = [
+  '-c', 'core.fsmonitor=false',
+  '-c', 'log.showSignature=false',
+  '-c', 'core.hooksPath=',
+  '-c', 'protocol.allow=never',
+];
+
 function git(args: string[], cwd?: string): string | null {
   try {
-    return execFileSync('git', args, {
+    return execFileSync('git', [...HARDENED_GIT_CONFIG, ...args], {
       cwd,
       encoding: 'utf-8',
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'ignore'],
       timeout: 15_000,
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: '0',
+        GIT_OPTIONAL_LOCKS: '0',
+        GIT_ASKPASS: '',
+        SSH_ASKPASS: '',
+      },
     }).trim();
   } catch {
     return null;
   }
+}
+
+/** A path that would make Windows open a network share (and offer credentials). */
+function isNetworkPath(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.startsWith('\\\\') || trimmed.startsWith('//') || /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed);
+}
+
+/**
+ * Why git must not be run on `dir`, or null. A `.git` FILE names its git dir
+ * ("gitdir: <path>"), and a git dir's `commondir` and `objects/info/alternates`
+ * name more paths; git follows all of them. A network path there would make
+ * the scan open an attacker's share. Checked with plain file reads first.
+ */
+function unsafeGitPointer(dir: string): string | null {
+  const dotGit = path.join(dir, '.git');
+  let gitDir = dotGit;
+  try {
+    if (fs.statSync(dotGit).isFile()) {
+      const pointer = /^gitdir:\s*(.+)$/m.exec(fs.readFileSync(dotGit, 'utf-8'))?.[1]?.trim() ?? '';
+      if (!pointer) return 'empty gitdir pointer';
+      if (isNetworkPath(pointer)) return `gitdir points off-machine (${pointer})`;
+      gitDir = path.resolve(dir, pointer);
+    }
+  } catch {
+    return 'unreadable .git';
+  }
+  for (const file of ['commondir', path.join('objects', 'info', 'alternates')]) {
+    try {
+      const lines = fs.readFileSync(path.join(gitDir, file), 'utf-8').split(/\r?\n/).filter(Boolean);
+      const remote = lines.find(isNetworkPath);
+      if (remote) return `${file} points off-machine (${remote.trim()})`;
+    } catch {
+      /* absent: fine */
+    }
+  }
+  return null;
+}
+
+/** Committer date of `commit` from the raw object; no log formatting, no signature checks. */
+function commitDate(cwdArgs: string[], commit: string): string | null {
+  const raw = git([...cwdArgs, 'cat-file', 'commit', commit]);
+  const match = raw ? /^committer .* (\d+) [+-]\d{4}$/m.exec(raw) : null;
+  return match ? new Date(Number(match[1]) * 1000).toISOString() : null;
 }
 
 /**
@@ -122,8 +191,12 @@ function rootIdentity(gitArgs: string[]): string | null {
 }
 
 function describeCheckout(dir: string, worktree: boolean): { checkout: MachineCheckout; identity: string | null } {
+  const unsafe = unsafeGitPointer(dir);
+  if (unsafe) {
+    return { checkout: { path: dir, worktree, head: null, headDate: null, skippedReason: unsafe }, identity: null };
+  }
   const head = git(['-C', dir, 'rev-parse', 'HEAD']);
-  const headDate = head ? git(['-C', dir, 'log', '-1', '--format=%cI', 'HEAD']) : null;
+  const headDate = head ? commitDate(['-C', dir], head) : null;
   return {
     checkout: { path: dir, worktree, head, headDate },
     identity: rootIdentity(['-C', dir]),
