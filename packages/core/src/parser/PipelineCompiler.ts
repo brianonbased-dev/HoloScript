@@ -17,6 +17,12 @@ import type {
   PipelineBranch,
   PipelineValidate,
 } from './PipelineParser';
+import {
+  CONFIGURED_MCP_SERVER_FORM,
+  DEFAULT_PIPELINE_MCP_SERVER,
+  DEFAULT_PIPELINE_MCP_URL,
+  checkPipelineServers,
+} from './PipelineServerPolicy';
 
 export interface CompileOptions {
   moduleName?: string;
@@ -115,6 +121,75 @@ function qualifyPipelineWhere(expr: string): string {
   return out;
 }
 
+/**
+ * Runtime half of the pipeline server policy (PipelineServerPolicy.ts), emitted
+ * once into every module that has an MCP stage. Whatever the compile-time check
+ * let through, the generated code reads only HOLOSCRIPT_MCP_URL from a server
+ * value, and attaches HOLOSCRIPT_API_KEY only to a request whose origin is the
+ * configured MCP server's origin, which is decided when the pipeline runs.
+ */
+function genMcpRuntime(): string {
+  return [
+    `const HOLOSCRIPT_DEFAULT_MCP_URL = ${JSON.stringify(DEFAULT_PIPELINE_MCP_URL)};`,
+    `const HOLOSCRIPT_MCP_SERVER_FORM = new RegExp(${JSON.stringify(CONFIGURED_MCP_SERVER_FORM.source)});`,
+    ``,
+    `// The MCP server the operator configured. A pipeline file cannot change it.`,
+    `function configuredMcpUrl() {`,
+    `  return process.env.HOLOSCRIPT_MCP_URL || HOLOSCRIPT_DEFAULT_MCP_URL;`,
+    `}`,
+    ``,
+    `// A server value reads no environment variable except HOLOSCRIPT_MCP_URL, and only`,
+    `// when the whole value is the configured-MCP form. Anything else is used as written.`,
+    `function resolveMcpBase(server) {`,
+    `  const configuredForm = HOLOSCRIPT_MCP_SERVER_FORM.exec(server);`,
+    `  if (configuredForm) {`,
+    `    return process.env.HOLOSCRIPT_MCP_URL || configuredForm[1] || HOLOSCRIPT_DEFAULT_MCP_URL;`,
+    `  }`,
+    `  return server || configuredMcpUrl();`,
+    `}`,
+    ``,
+    `function httpOrigin(url) {`,
+    `  try {`,
+    `    const parsed = new URL(url);`,
+    `    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.origin : null;`,
+    `  } catch {`,
+    `    return null;`,
+    `  }`,
+    `}`,
+    ``,
+    `// HOLOSCRIPT_API_KEY goes only to the configured MCP server, never to a server the file chose.`,
+    `function mcpHeaders(url) {`,
+    `  const headers = { 'Content-Type': 'application/json' };`,
+    `  const target = httpOrigin(url);`,
+    `  if (process.env.HOLOSCRIPT_API_KEY && target !== null && target === httpOrigin(configuredMcpUrl())) {`,
+    `    headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`,
+    `  }`,
+    `  return headers;`,
+    `}`,
+  ].join('\n');
+}
+
+/**
+ * The address and headers of one MCP stage. The server value is embedded as a
+ * JSON string literal, so nothing in it is evaluated as code or interpolated.
+ */
+function genMcpRequestSetup(stageName: string, server: unknown): string[] {
+  const value = String(server || DEFAULT_PIPELINE_MCP_SERVER);
+  return [
+    `const ${stageName}_base = resolveMcpBase(${JSON.stringify(value)});`,
+    `const ${stageName}_url = ${stageName}_base.replace(/\\/$/, '') + '/mcp';`,
+    `const ${stageName}_headers = mcpHeaders(${stageName}_url);`,
+  ];
+}
+
+function hasMcpStage(pipeline: Pipeline): boolean {
+  return (
+    pipeline.sources.some((s) => s.type === 'mcp') ||
+    pipeline.transforms.some((t) => t.type === 'mcp') ||
+    pipeline.sinks.some((s) => s.type === 'mcp')
+  );
+}
+
 function genSource(source: PipelineSource): string {
   const lines: string[] = [];
   lines.push(`// Source: ${source.name}`);
@@ -171,20 +246,10 @@ function genSource(source: PipelineSource): string {
     lines.push(`  await ${source.name}_client.end();`);
     lines.push(`}`);
   } else if (source.type === 'mcp') {
-    const mcpBase = String(
-      source.properties.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}'
-    );
     const toolName = String(source.properties.tool || source.name);
     const args = JSON.stringify(source.properties.args || {});
 
-    lines.push(
-      `const ${source.name}_base = interpolate(\`${mcpBase}\`) || process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net';`
-    );
-    lines.push(`const ${source.name}_url = ${source.name}_base.replace(/\\/$/, '') + '/mcp';`);
-    lines.push(`const ${source.name}_headers = { 'Content-Type': 'application/json' };`);
-    lines.push(`if (process.env.HOLOSCRIPT_API_KEY) {`);
-    lines.push(`  ${source.name}_headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`);
-    lines.push(`}`);
+    lines.push(...genMcpRequestSetup(source.name, source.properties.server));
     lines.push(`const ${source.name}_response = await fetch(${source.name}_url, {`);
     lines.push(`  method: 'POST',`);
     lines.push(`  headers: ${source.name}_headers,`);
@@ -286,22 +351,10 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`  return out;`);
     lines.push(`});`);
   } else if (transform.type === 'mcp') {
-    const mcpBase = String(
-      transform.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}'
-    );
     const toolName = String(transform.tool || transform.name);
     const args = JSON.stringify(transform.args || {});
 
-    lines.push(
-      `const ${transform.name}_base = interpolate(\`${mcpBase}\`) || process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net';`
-    );
-    lines.push(
-      `const ${transform.name}_url = ${transform.name}_base.replace(/\\/$/, '') + '/mcp';`
-    );
-    lines.push(`const ${transform.name}_headers = { 'Content-Type': 'application/json' };`);
-    lines.push(`if (process.env.HOLOSCRIPT_API_KEY) {`);
-    lines.push(`  ${transform.name}_headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`);
-    lines.push(`}`);
+    lines.push(...genMcpRequestSetup(transform.name, transform.server));
     lines.push(`const ${transform.name}_response = await fetch(${transform.name}_url, {`);
     lines.push(`  method: 'POST',`);
     lines.push(`  headers: ${transform.name}_headers,`);
@@ -536,19 +589,11 @@ function genSink(sink: PipelineSink): string {
     lines.push(`  await ${sink.name}_client.end();`);
     lines.push(`}`);
   } else if (sink.type === 'mcp') {
-    const mcpBase = String(sink.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}');
     const toolName = String(sink.tool || sink.name);
     const batchSize = sink.batch?.size || 0;
     const args = JSON.stringify(sink.args || {});
 
-    lines.push(
-      `const ${sink.name}_base = interpolate(\`${mcpBase}\`) || process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net';`
-    );
-    lines.push(`const ${sink.name}_url = ${sink.name}_base.replace(/\\/$/, '') + '/mcp';`);
-    lines.push(`const ${sink.name}_headers = { 'Content-Type': 'application/json' };`);
-    lines.push(`if (process.env.HOLOSCRIPT_API_KEY) {`);
-    lines.push(`  ${sink.name}_headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`);
-    lines.push(`}`);
+    lines.push(...genMcpRequestSetup(sink.name, sink.server));
 
     lines.push(`const ${sink.name}_invoke = async (payload) => {`);
     lines.push(`  const response = await fetch(${sink.name}_url, {`);
@@ -699,6 +744,11 @@ function compilePipeline(pipeline: Pipeline): string {
   lines.push(`}`);
   lines.push(``);
 
+  if (hasMcpStage(pipeline)) {
+    lines.push(genMcpRuntime());
+    lines.push(``);
+  }
+
   // Main function
   lines.push(`export async function run() {`);
   lines.push(`  const startTime = Date.now();`);
@@ -801,6 +851,15 @@ export function compilePipelineSourceToNode(
     return {
       success: false,
       errors: parseResult.errors.map((e) => e.message),
+    };
+  }
+
+  // Refuse MCP servers the pipeline file may not choose (PipelineServerPolicy.ts).
+  const refusals = checkPipelineServers(parseResult.pipeline);
+  if (refusals.length > 0) {
+    return {
+      success: false,
+      errors: refusals.map((e) => e.message),
     };
   }
 
