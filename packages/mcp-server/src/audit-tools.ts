@@ -12,6 +12,7 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { ENDPOINTS } from '@holoscript/config';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -57,7 +58,14 @@ interface AuditResult {
 // =============================================================================
 
 const HOLOSCRIPT_ROOT = path.resolve(__dirname, '../../..');
-const DEFAULT_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
+
+/**
+ * The orchestrator to count knowledge entries on: MCP_ORCHESTRATOR_URL as it is now, else the
+ * shared @holoscript/config address. Read per call, because ENDPOINTS is fixed when it loads.
+ */
+function orchestratorUrl(): string {
+  return process.env.MCP_ORCHESTRATOR_URL || ENDPOINTS.MCP_ORCHESTRATOR;
+}
 
 const METRICS: MetricDefinition[] = [
   {
@@ -77,7 +85,7 @@ const METRICS: MetricDefinition[] = [
   {
     id: 'knowledge_entries',
     name: 'Knowledge entries',
-    collect: () => fetchKnowledgeEntryCount(DEFAULT_ORCHESTRATOR_URL),
+    collect: () => fetchKnowledgeEntryCount(orchestratorUrl()),
     parser: (o) => o.trim(),
     searchPatterns: [/(\d+)\s*(?:knowledge\s*)?entries/gi],
   },

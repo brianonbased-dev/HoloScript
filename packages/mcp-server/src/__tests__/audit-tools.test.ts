@@ -1,9 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { countCompilerFiles, countTraitCategoryFiles } from '../audit-tools';
+import { ENDPOINTS } from '@holoscript/config';
+import { countCompilerFiles, countTraitCategoryFiles, handleAuditNumbers } from '../audit-tools';
 
 describe('audit-tools native metric collectors', () => {
   let root: string | undefined;
@@ -44,5 +45,51 @@ describe('audit-tools native metric collectors', () => {
     writeFileSync(join(constantsDir, 'nested', 'ignored.ts'), 'export {};\n');
 
     expect(countTraitCategoryFiles(repo)).toBe('2');
+  });
+});
+
+describe('audit-tools knowledge entry count', () => {
+  const saved = process.env.MCP_ORCHESTRATOR_URL;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    if (saved === undefined) delete process.env.MCP_ORCHESTRATOR_URL;
+    else process.env.MCP_ORCHESTRATOR_URL = saved;
+  });
+
+  // Answers every request with a health body carrying the count; nothing leaves the process.
+  function stubHealth(count: number) {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ status: 'ok', knowledge_entries: count }), { status: 200 })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  async function knowledgeLive(): Promise<unknown> {
+    const report = (await handleAuditNumbers({})) as {
+      metrics: Array<{ metric: string; live: string }>;
+    };
+    return report.metrics.find((m) => m.metric === 'Knowledge entries')?.live;
+  }
+
+  it('asks the orchestrator named by MCP_ORCHESTRATOR_URL, not production', async () => {
+    process.env.MCP_ORCHESTRATOR_URL = 'https://orchestrator.audit-test.example';
+    const fetchMock = stubHealth(4242);
+
+    expect(await knowledgeLive()).toBe('4242');
+    const asked = fetchMock.mock.calls.map((call) => String((call as unknown[])[0]));
+    expect(asked).toEqual(['https://orchestrator.audit-test.example/health']);
+  });
+
+  it('falls back to the shared @holoscript/config address when MCP_ORCHESTRATOR_URL is unset', async () => {
+    delete process.env.MCP_ORCHESTRATOR_URL;
+    const fetchMock = stubHealth(17);
+
+    expect(await knowledgeLive()).toBe('17');
+    const asked = fetchMock.mock.calls.map((call) => String((call as unknown[])[0]));
+    expect(asked).toEqual([`${ENDPOINTS.MCP_ORCHESTRATOR}/health`]);
+    expect(asked[0]).not.toContain('audit-test.example');
   });
 });
