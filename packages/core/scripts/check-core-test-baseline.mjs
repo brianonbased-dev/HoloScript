@@ -41,7 +41,7 @@
  * to have happened — this gate fails CLOSED rather than reporting a false green).
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -128,9 +128,17 @@ const startedDirty = (() => {
     .some((line) => {
       if (!line.startsWith('?? ')) return true;
       const path = line.slice(3);
-      return !(
-        path.startsWith(corePrefix) && SUITE_APPEND_ONLY_OUTPUT.test(path.slice(corePrefix.length))
-      );
+      const rel = path.startsWith(corePrefix) ? path.slice(corePrefix.length) : null;
+      if (rel === null || !SUITE_APPEND_ONLY_OUTPUT.test(rel)) return true;
+      // Only a regular file is forgiven. A directory symlink named *.receipt.json is one untracked
+      // entry to git whatever core.symlinks says, and vitest walks through it to any test file
+      // inside (fc9486's round-2 review). lstat does not follow the link; a junction never gets
+      // here, because git lists what is inside one.
+      try {
+        return !lstatSync(resolve(coreRoot, rel)).isFile();
+      } catch {
+        return true;
+      }
     });
 })();
 

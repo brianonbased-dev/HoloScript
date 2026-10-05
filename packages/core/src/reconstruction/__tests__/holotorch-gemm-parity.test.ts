@@ -361,6 +361,11 @@ describe('gemm parity receipts and the core baseline gate clean-start check', ()
 
     writeFileSync(join(s.history, 'evil.test.ts'), PLANTED_TEST);
     table['untracked history/evil.test.ts'] = s.startsDirty();
+    rmSync(join(s.history, 'evil.test.ts'));
+
+    // The pattern's end anchor (fc9486's round-2 note): a test file named after the log is dirty.
+    writeFileSync(join(s.receipts, 'parity-history.ndjson.test.ts'), PLANTED_TEST);
+    table['untracked parity-history.ndjson.test.ts'] = s.startsDirty();
 
     expect(table).toEqual({
       clean: false,
@@ -369,6 +374,7 @@ describe('gemm parity receipts and the core baseline gate clean-start check', ()
       'tip restored': false,
       'dirty src': true,
       'untracked history/evil.test.ts': true,
+      'untracked parity-history.ndjson.test.ts': true,
     });
   }, 60_000);
 
