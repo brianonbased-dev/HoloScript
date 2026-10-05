@@ -38,6 +38,7 @@ export {
   ChunkBasedIncrementalParser,
   parseIncrementalChunks,
   type IncrementalParseResult,
+  type IncrementalChunkError,
 } from './IncrementalParser';
 
 export { ParseCache, globalParseCache } from './ParseCache';

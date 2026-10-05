@@ -32,13 +32,26 @@ export interface IncrementalParseResult {
   changedChunks: string[];
   /**
    * The errors of every chunk refused this pass. A refused chunk is left out of `ast`; until
-   * 2026-09-29 it vanished with no error, so watch mode printed "Built" and the feed parser lost
-   * the block (a typed function the checker refuses is one such chunk).
+   * 2026-09-29 it vanished with no error, so a pass reported success without the block (a typed
+   * function the checker refuses is one such chunk). runWatchMode in the CLI, which no command
+   * calls today, would have printed "Built" for it.
    */
   errors: IncrementalChunkError[];
   /** The chunk each child of `ast` came from, in order; refused chunks are absent. */
   chunkIds: string[];
+  /**
+   * True when the document has top-level code that no chunk kind covers (a composition, object,
+   * struct, function, import, ...). This pass then parsed the whole document as one chunk, the
+   * same way a full parse does, instead of skipping that code: before 2026-10-05 it was skipped,
+   * and 166 tracked files reported success while missing 1,207 blocks.
+   */
+  wholeDocument: boolean;
+  /** The first such line, when `wholeDocument` is true. */
+  firstUncoveredLine: number | null;
 }
+
+/** The id of the one chunk a pass uses when it parses the whole document. */
+export const WHOLE_DOCUMENT_CHUNK_ID = 'document';
 
 export class ChunkBasedIncrementalParser {
   private lastSource: string = '';
@@ -66,7 +79,7 @@ export class ChunkBasedIncrementalParser {
     const errors: IncrementalChunkError[] = [];
 
     // Step 1: Detect chunks in current source
-    const currentChunks = this.detectChunks(source);
+    const { chunks: currentChunks, firstUncoveredLine } = this.detectChunks(source);
     const chunkMap = new Map(currentChunks.map((c) => [c.id, c]));
 
     // Step 2: Identify changed chunks by hash comparison
@@ -141,14 +154,34 @@ export class ChunkBasedIncrementalParser {
       changedChunks,
       errors,
       chunkIds,
+      wholeDocument: firstUncoveredLine !== null,
+      firstUncoveredLine,
     };
   }
 
   /**
-   * Detects top-level chunks in the source
+   * The chunks this pass parses. When top-level code falls outside every chunk kind the detector
+   * knows, the whole document is the one chunk, so that code is parsed (and its errors reported)
+   * rather than skipped, and no block is read out of the context that gives it meaning.
    */
-  private detectChunks(source: string): SourceChunk[] {
-    return ChunkDetector.detect(source);
+  private detectChunks(source: string): {
+    chunks: SourceChunk[];
+    firstUncoveredLine: number | null;
+  } {
+    const { chunks, uncoveredLines } = ChunkDetector.scan(source);
+    if (uncoveredLines.length === 0) return { chunks, firstUncoveredLine: null };
+    return {
+      chunks: [
+        {
+          id: WHOLE_DOCUMENT_CHUNK_ID,
+          type: 'unknown',
+          startLine: 1,
+          endLine: source.split(/\r?\n/).length,
+          content: source,
+        },
+      ],
+      firstUncoveredLine: uncoveredLines[0],
+    };
   }
 
   /**
@@ -173,10 +206,12 @@ export class ChunkBasedIncrementalParser {
       }
     }
 
-    // Also mark chunks that were removed (their dependents may need re-parse)
-    for (const [id, _lastChunk] of this.lastChunks.entries()) {
-      const currentChunk = this.detectChunks(this.lastSource).find((c) => c.id === id);
-      if (!currentChunk) {
+    // Also mark chunks that were removed (their dependents may need re-parse). This compared the
+    // previous source with itself, once per chunk, so it never found one and cost a full scan
+    // per chunk on every pass.
+    const currentIds = new Set(currentChunks.map((chunk) => chunk.id));
+    for (const id of this.lastChunks.keys()) {
+      if (!currentIds.has(id)) {
         // Chunk removed - its dependents are now orphaned
         changed.push(id);
       }
@@ -274,10 +309,12 @@ export class ChunkBasedIncrementalParser {
         return { node: result.ast as HSPlusNode, errors: [] };
       }
 
+      // An error on line 0 has no position: it keeps none, as in a full parse, instead of taking
+      // the chunk's offset (it read 4:0 for a chunk at line 5).
       const errors: IncrementalChunkError[] = (result.errors ?? []).map((error) => ({
         chunkId: chunk.id,
-        line: (error.line ?? 1) + offset,
-        column: error.column ?? 1,
+        line: error.line === 0 ? 0 : (error.line ?? 1) + offset,
+        column: error.line === 0 ? (error.column ?? 0) : (error.column ?? 1),
         ...('code' in error && typeof error.code === 'string' ? { code: error.code } : {}),
         message: error.message,
       }));

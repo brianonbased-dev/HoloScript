@@ -212,3 +212,116 @@ orb "After" {
     expect(lines(`\n\n${clean}`, cache)).toEqual([3, 7, 11]);
   });
 });
+
+// Review of PR #461 (claude3): parseIncremental must never report success while it leaves code
+// out, nor report an error a full parse does not. Measured before this: 166 tracked files
+// reported success while missing 1,207 blocks, and 8 valid files reported errors.
+describe('parseIncremental - nothing skipped, nothing invented (review of #461)', () => {
+  const full = (source: string) => new HoloScriptPlusParser({ enableVRTraits: true }).parse(source);
+  const incremental = (source: string) =>
+    new HoloScriptPlusParser({ enableVRTraits: true }).parseIncremental(source, new ParseCache());
+  /** Top-level blocks as [type, name, line], through the incremental tree's per-chunk wrappers. */
+  const blocks = (ast: { children?: unknown[] }) =>
+    (ast.children ?? [])
+      .flatMap((child) => {
+        const node = child as { type?: string; children?: unknown[] };
+        return node.type === 'Program' ? (node.children ?? []) : [child];
+      })
+      .map((child) => {
+        const node = child as {
+          type?: string;
+          name?: string;
+          id?: string;
+          loc?: { start?: { line?: number } };
+        };
+        return [node.type, node.name ?? node.id, node.loc?.start?.line];
+      });
+  const errorKeys = (errors: Array<{ line?: number; column?: number; code?: string }>) =>
+    errors.map((error) => [error.line, error.column, error.code]);
+
+  it('parses a document with a composition, struct or top-level function whole', () => {
+    const composition = `composition "Main" {
+  object "Cube" {
+    geometry: "cube"
+  }
+}
+
+orb "Lamp" {
+  color: "red"
+}
+`;
+    const result = incremental(composition);
+    expect(result.success).toBe(true);
+    expect(blocks(result.ast)).toEqual(blocks(full(composition).ast));
+    expect(blocks(result.ast).map((block) => block[0])).toContain('composition');
+    expect(
+      (result as unknown as { incrementalMetrics: Record<string, unknown> }).incrementalMetrics
+    ).toMatchObject({ wholeDocument: true, firstUncoveredLine: 1 });
+
+    // A top-level typed function the checker refuses: reported, as a full parse reports it.
+    const refused = 'function f(): i32 {\n  return missing(1)\n}\n';
+    const refusedResult = incremental(refused);
+    expect(refusedResult.success).toBe(false);
+    expect(errorKeys(refusedResult.errors)).toEqual(errorKeys(full(refused).errors));
+    expect(refusedResult.errors[0]).toMatchObject({ line: 2, column: 10, code: 'HS-NAME-002' });
+
+    // Orbs alone are still parsed chunk by chunk.
+    expect(
+      (
+        incremental('orb "A" {\n  color: "red"\n}\n') as unknown as {
+          incrementalMetrics: Record<string, unknown>;
+        }
+      ).incrementalMetrics
+    ).toMatchObject({ wholeDocument: false, firstUncoveredLine: null });
+  });
+
+  it('keeps a block whose string or comment holds a brace, with no error', () => {
+    for (const source of [
+      'orb "A" {\n  color: "}"\n}\n\norb "B" {\n  color: "red"\n}\n',
+      'orb "A" {\n  /* } */\n  color: "blue"\n}\n\norb "B" {\n  color: "red"\n}\n',
+    ]) {
+      const result = incremental(source);
+      expect(result.errors, source).toEqual([]);
+      expect(result.success, source).toBe(true);
+      expect(blocks(result.ast), source).toEqual(blocks(full(source).ast));
+    }
+  });
+
+  it('leaves an error with no position at 0:0, as a full parse does', () => {
+    // An unclosed function at the end of the second block: the parser gives one of its errors
+    // no line. It read 4:0, the chunk offset added to nothing.
+    const source = `orb "A" {
+  color: "red"
+}
+
+orb "B" {
+  function f(): i32 {
+`;
+    const fullErrors = errorKeys(full(source).errors);
+    expect(fullErrors).toContainEqual([0, 0, 'HSP004']);
+    expect(errorKeys(incremental(source).errors)).toEqual(fullErrors);
+  });
+
+  it('keeps both blocks when names share a first word, repeat, or are not ASCII', () => {
+    const source = `orb "My Lamp" {
+  color: "red"
+}
+
+orb "My Light" {
+  color: "blue"
+}
+
+orb "灯" {
+  color: "green"
+}
+
+orb "灯" {
+  color: "white"
+}
+`;
+    const result = incremental(source);
+    expect(result.success).toBe(true);
+    expect(blocks(result.ast)).toEqual(blocks(full(source).ast));
+    expect(blocks(result.ast).map((block) => block[2])).toEqual([1, 5, 9, 13]);
+  });
+});

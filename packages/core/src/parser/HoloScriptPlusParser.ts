@@ -1451,7 +1451,9 @@ export class HoloScriptPlusParser {
     // ChunkBasedIncrementalParser parses each chunk starting at line 1.
     // We need to offset line numbers in the AST to match the document position.
     // Detect chunks to get startLine offsets for each top-level block.
-    const chunks = ChunkDetector.detect(source);
+    // A pass that parsed the whole document as one chunk (top-level code no chunk kind covers)
+    // has document lines already.
+    const chunks = incrementalResult.wholeDocument ? [] : ChunkDetector.detect(source);
     // Each chunk's AST has line numbers starting from 1 relative to the chunk; shift them by
     // (chunk.startLine - 1) to get document lines. Two rules, both measured 2026-09-29:
     // - A refused chunk has no child, so children are matched to chunks by id. Pairing them by
@@ -1538,7 +1540,9 @@ export class HoloScriptPlusParser {
     // Fix fragment loc to span the full document
     if (root.type === 'fragment' && root.loc) {
       root.loc.start = { line: 1, column: 1 };
-      if (chunks.length > 0) {
+      if (incrementalResult.wholeDocument) {
+        root.loc.end = { line: source.split(/\r?\n/).length, column: 1 };
+      } else if (chunks.length > 0) {
         root.loc.end = { line: chunks[chunks.length - 1].endLine, column: 1 };
       }
     }
@@ -1553,6 +1557,8 @@ export class HoloScriptPlusParser {
       parsed: incrementalResult.parsed,
       duration: incrementalResult.duration,
       changedChunks: incrementalResult.changedChunks,
+      wholeDocument: incrementalResult.wholeDocument,
+      firstUncoveredLine: incrementalResult.firstUncoveredLine,
     };
 
     return result;

@@ -95,4 +95,77 @@ orb Test {
     expect(ChunkDetector.detect('')).toEqual([]);
     expect(ChunkDetector.detect('// just comments')).toEqual([]);
   });
+
+  // Review of PR #461 (claude3): braces were counted inside strings and comments, a line inside
+  // any block could start a chunk, other top-level code was skipped without a word, and ids
+  // collided. Each test below fails on the detector as it was.
+  it('counts braces the way the lexer reads them: not inside strings or comments', () => {
+    const source = [
+      'orb "A" {',
+      '  color: "}"',
+      "  note: '{'",
+      '  // }',
+      '  /* } { */',
+      '  label: `x}`',
+      '  text: "a string } that runs',
+      '  onto the next line {"',
+      '}',
+      'orb "B" {',
+      '  color: "red"',
+      '}',
+    ].join('\n');
+    const { chunks, uncoveredLines } = ChunkDetector.scan(source);
+    expect(chunks.map((chunk) => [chunk.id, chunk.startLine, chunk.endLine])).toEqual([
+      ['orb:A', 1, 9],
+      ['orb:B', 10, 12],
+    ]);
+    expect(uncoveredLines).toEqual([]);
+  });
+
+  it('starts no chunk inside another block, and lists the top-level code no chunk covers', () => {
+    const source = [
+      'struct Snapshot {',
+      '  @unknown count: i32',
+      '}',
+      'composition "Main" {',
+      '  orb "Inner" { }',
+      '}',
+      'function f(x: i32): i32 {',
+      '  return x',
+      '}',
+      '/* a comment',
+      '   over two lines */',
+      'orb "Lamp" {',
+      '  color: "red"',
+      '}',
+    ].join('\n');
+    const { chunks, uncoveredLines } = ChunkDetector.scan(source);
+    expect(chunks.map((chunk) => [chunk.id, chunk.startLine, chunk.endLine])).toEqual([
+      ['orb:Lamp', 12, 14],
+    ]);
+    expect(uncoveredLines).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('gives every chunk its own id: a quoted name keeps its spaces and script, a repeat is numbered', () => {
+    const source = [
+      'orb "My Lamp" { }',
+      'orb "My Light" { }',
+      'orb "灯" { }',
+      'orb "Café" { }',
+      'orb "Café Two" { }',
+      'orb "A" { }',
+      'orb "A" { }',
+      'orb Bare { }',
+    ].join('\n');
+    expect(ChunkDetector.detect(source).map((chunk) => chunk.id)).toEqual([
+      'orb:My Lamp',
+      'orb:My Light',
+      'orb:灯',
+      'orb:Café',
+      'orb:Café Two',
+      'orb:A',
+      'orb:A#2',
+      'orb:Bare',
+    ]);
+  });
 });

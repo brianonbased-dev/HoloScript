@@ -509,6 +509,10 @@ export interface IncrementalParseResult {
   errors: IncrementalChunkError[];
   /** The chunk each child of \`ast\` came from, in order; refused chunks are absent. */
   chunkIds: string[];
+  /** True when top-level code fell outside every chunk kind, so the whole document was one chunk. */
+  wholeDocument: boolean;
+  /** The first such line, when \`wholeDocument\` is true. */
+  firstUncoveredLine: number | null;
 }
 
 export class ChunkBasedIncrementalParser {

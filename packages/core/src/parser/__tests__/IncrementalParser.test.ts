@@ -324,3 +324,33 @@ describe('IncrementalParser - a refused chunk is reported (task 9a7o)', () => {
     expect(fixed.chunkIds).toEqual(['orb:Before', 'orb:Lamp', 'orb:After']);
   });
 });
+
+// Review of PR #461 (claude3): top-level code outside every chunk kind was skipped without a word,
+// and a removed chunk was never noticed (the check compared the previous source with itself).
+describe('IncrementalParser - whole documents and removed chunks (review of #461)', () => {
+  test('parses the whole document as one chunk when top-level code falls outside every chunk', () => {
+    const parser = new ChunkBasedIncrementalParser(new ParseCache());
+    const result = parser.parse(`composition "Main" {
+  orb "Inner" {
+    color: "red"
+  }
+}
+`);
+    expect(result.wholeDocument).toBe(true);
+    expect(result.firstUncoveredLine).toBe(1);
+    expect(result.chunkIds).toEqual(['document']);
+    expect(result.errors).toEqual([]);
+
+    const chunked = parser.parse(`orb "A" {\n  color: "red"\n}\n`);
+    expect(chunked.wholeDocument).toBe(false);
+    expect(chunked.firstUncoveredLine).toBeNull();
+    expect(chunked.chunkIds).toEqual(['orb:A']);
+  });
+
+  test('marks a removed chunk as changed', () => {
+    const parser = new ChunkBasedIncrementalParser(new ParseCache());
+    parser.parse(makeSource(ORB_A, ORB_B));
+    const result = parser.parse(makeSource(ORB_A));
+    expect(result.changedChunks).toContain('orb:OrbB');
+  });
+});
