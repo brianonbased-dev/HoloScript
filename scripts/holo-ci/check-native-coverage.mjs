@@ -6,8 +6,13 @@
  * (.hsplus / .holo / .hs); TS growing as TS is not language progress, TS
  * dissolving INTO native authoring is. This gate makes that measurable and
  * non-regressing: it counts native-authored sources vs hand-authored TS trait
- * files and fails CI if the native fraction (or the native count) drops below a
+ * files and exits 1 if the native fraction (or the native count) drops below a
  * committed baseline. Coverage must rise or hold, never fall.
+ *
+ * The number it enforces is an UPPER BOUND (see DEFINITION): a file counts because it
+ * exists, not because it is shown to parse or to be read by a build, loader or test.
+ * Narrower readings the gate can compute itself are printed beside it as information
+ * and never enforced.
  *
  * It replaces an UNVERIFIED paper figure ("1.32% native trait annotation") with
  * a real number computed from the tree — the anti-fabrication discipline the
@@ -17,6 +22,9 @@
  *   node scripts/holo-ci/check-native-coverage.mjs            # check (exit 1 on regression)
  *   node scripts/holo-ci/check-native-coverage.mjs --update   # reseed the baseline
  *   node scripts/holo-ci/check-native-coverage.mjs --json     # print metrics as JSON
+ *
+ * Nothing runs this automatically: no hook, workflow or HoloCI gate calls it. The entries
+ * a runner would call are `pnpm check:native-coverage` and `pnpm check:native-coverage-test`.
  *
  * Baseline: scripts/holo-ci/native-coverage-baseline.json
  */
@@ -46,8 +54,24 @@ const NATIVE_EXT = new Set(['.hsplus', '.holo', '.hs']);
 const EPSILON = 1e-9;
 // What `native` counts. A baseline computed under another definition is not comparable; the gate
 // refuses it instead of reporting a false drop or a false rise.
+//
+// It is an UPPER BOUND on native authoring. A file counts when it has a HoloScript extension
+// and is not a descriptor twin; nothing checks that it parses, or that a build, loader or test
+// reads it. Two narrower readings are known, and neither is enforced:
+//   - Without trait cards (isTraitCard). The gate computes and prints this one.
+//   - Without the cards nothing consumes. A census on 2026-09-28 found no consumer for 192 of
+//     the 1,230 cards, all of them outside packages/core/src/traits, the one folder
+//     scripts/gen-trait-schemas.ts reads; on that day's figures this read about 68.8%. The
+//     gate does not detect consumers, so it does not print this reading.
+//
+// KNOWN WEAKNESS: a twin is recognised only by the literal header phrase "Native .hsplus surface
+// for" (descriptorState). Reword one twin's header and it counts as native: +1, and the gate
+// stays green, because coverage may rise. The test's pin (the committed baseline must match the
+// tree) turns red on that drift, but only when someone runs the test. The real fix is a
+// definition that counts only files that parse and that a build, loader or test consumes
+// (native-authoring-v3).
 export const DEFINITION =
-  'native-authoring-v2 (2026-09-28): HoloScript-extension files under packages/, excluding descriptor twins';
+  'native-authoring-v2 (2026-09-28), an upper bound: HoloScript-extension files under packages/, excluding descriptor twins; none is checked to parse or to be read by a build, loader or test';
 
 /** Recursively walk, calling onFile(absPath) for every file. */
 function walk(dir, onFile) {
@@ -76,21 +100,25 @@ function walk(dir, onFile) {
  * source the TypeScript is generated from?
  *
  * Measured 2026-09-16: 2,249 of 2,474 tracked `.hsplus` carry a header of the form
- * `Native .hsplus surface for <path>.ts`. Re-measured 2026-09-28: 2,232 of them were
- * added on 2026-06-25 in 116 "D.104 wave" commits that each also rewrote this gate's
- * baseline, a median of 94 days after the `.ts` they name. Nothing compiles them — there is no `.hsplus` loader or
- * compiler in any repo. Canon's own source-of-truth test (docs/definitions/
+ * `Native .hsplus surface for <path>.ts`. Re-measured 2026-10-04: 2,232 of them were added
+ * on 2026-06-25 (all but std's two shipped files are descriptors, so 2,230), by 117
+ * commits of which 116 also rewrote this gate's baseline; on 2026-09-28 they were measured
+ * at a median of 94 days after the `.ts` they name. The census of 2026-09-28 found nothing
+ * that loads or runs them. Canon's own source-of-truth test (docs/definitions/
  * 04-architecture-concepts.md) is "could you regenerate the artifact byte-identically
  * from a HoloScript source you own?", and a file written after, and about, its
  * counterpart inverts that: the projection claiming to be the source.
  *
  * The header alone does not decide it: `packages/std/src/math.hsplus` carries the SAME
  * header and IS shipped in the npm package and executed by the Rust engine. The static
- * consumer check that separates the two (census 2026-09-28, spec-vs-reality-gap.md): a
- * header file is a real source when its package's package.json names that exact file
- * (exports, files, entrypoint). std names math.hsplus and collections.hsplus that way;
- * a package that ships a whole `src` folder names no single twin. Every other header
- * file is a descriptor and is not counted as native authoring.
+ * consumer check that separates the two: a header file is a real source when its
+ * package's package.json names that exact file (exports, files, entrypoint). std names
+ * math.hsplus and collections.hsplus that way; a package that ships a whole `src` folder
+ * names no single twin. Every other header file is a descriptor and is not counted as
+ * native authoring.
+ *
+ * The test is the literal header phrase. Rewording a twin's header moves it into the
+ * native count (see KNOWN WEAKNESS at DEFINITION).
  */
 const packageNamedFiles = new Map();
 
@@ -165,6 +193,71 @@ function descriptorState(abs, root) {
 }
 
 /**
+ * Is this `.holo` source a trait card: one top-level `@trait { ... }` block and nothing else?
+ *
+ * A card declares a trait's name, category, props, events and behaviors in about 20 lines
+ * (most say "Port of <X>Trait.ts"); on 2026-10-04 none of the 1,230 under packages/ held
+ * handler code. Cards are the shape scripts/gen-trait-schemas.ts reads (from
+ * packages/core/src/traits only) to generate trait schemas. They count as native files,
+ * because they are HoloScript files that are not twins; the reading without them is printed
+ * as information.
+ *
+ * Shape only, by a text scan rather than the HoloScript lexer, so the gate keeps running on
+ * plain node with no build. It skips `//` and block comments and quoted strings, as the
+ * `.holo` lexer does (`#` is a token there, not a comment). A block that never closes, or
+ * anything after the closing brace, means the file is not a card.
+ */
+export function isTraitCard(source) {
+  const start = skipTrivia(source, 0);
+  const open = /^@trait\s*\{/.exec(source.slice(start));
+  if (!open) return false;
+  const close = closingBrace(source, start + open[0].length - 1);
+  return close !== -1 && skipTrivia(source, close + 1) === source.length;
+}
+
+/** Index of the first character at or after `i` that is not whitespace, a BOM or a comment. */
+function skipTrivia(s, i) {
+  for (;;) {
+    while (i < s.length && (s[i] === '\uFEFF' || /\s/.test(s[i]))) i++;
+    if (s.startsWith('//', i)) {
+      const nl = s.indexOf('\n', i);
+      i = nl === -1 ? s.length : nl + 1;
+    } else if (s.startsWith('/*', i)) {
+      const end = s.indexOf('*/', i + 2);
+      i = end === -1 ? s.length : end + 2;
+    } else {
+      return i;
+    }
+  }
+}
+
+/** Index of the `}` that closes the `{` at `open`, skipping strings and comments; -1 if none. */
+function closingBrace(s, open) {
+  let depth = 0;
+  for (let i = open; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"' || c === "'") {
+      for (i++; i < s.length && s[i] !== c; i++) if (s[i] === '\\') i++;
+    } else if (s.startsWith('//', i) || s.startsWith('/*', i)) {
+      i = skipTrivia(s, i) - 1;
+    } else if (c === '{') {
+      depth++;
+    } else if (c === '}' && --depth === 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function isTraitCardFile(abs) {
+  try {
+    return isTraitCard(fs.readFileSync(abs, 'utf-8'));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Compute the coverage metrics over the shipped capability surface (`packages/`).
  * Examples, docs, and research are EXCLUDED on purpose: D.104 is about the TS
  * implementation dissolving into native authoring *as capability*, not about
@@ -178,6 +271,7 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
   let descriptorTwinsLive = 0;
   let shippedWithHeader = 0;
   let filesByExtension = 0;
+  let traitCards = 0;
   const byExt = { '.hsplus': 0, '.holo': 0, '.hs': 0 };
 
   walk(root, (abs) => {
@@ -194,6 +288,7 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
         }
         if (d.kind === 'shipped') shippedWithHeader++;
       }
+      if (ext === '.holo' && isTraitCardFile(abs)) traitCards++;
       native++;
       byExt[ext]++;
       return;
@@ -211,6 +306,11 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
 
   const denom = native + handTsTraits;
   const ratio = denom === 0 ? 0 : native / denom;
+  // The same count without trait cards: information, never enforced.
+  const nativeWithoutTraitCards = native - traitCards;
+  const denomWithoutTraitCards = nativeWithoutTraitCards + handTsTraits;
+  const ratioWithoutTraitCards =
+    denomWithoutTraitCards === 0 ? 0 : nativeWithoutTraitCards / denomWithoutTraitCards;
   // What the pre-2026-09-28 definition enforced (every file with a HoloScript extension).
   // Reported so the correction stays visible; never enforced.
   const denomByExtension = filesByExtension + handTsTraits;
@@ -221,6 +321,9 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
     handTsTraits,
     byExt,
     ratio: Number(ratio.toFixed(6)),
+    traitCards,
+    nativeWithoutTraitCards,
+    ratioWithoutTraitCards: Number(ratioWithoutTraitCards.toFixed(6)),
     descriptors,
     descriptorTwinsLive,
     shippedWithHeader,
@@ -249,7 +352,9 @@ function main() {
   if (args.includes('--update')) {
     const payload = {
       ...metrics,
-      note: 'D.104 native-authoring ratchet baseline. Coverage must rise or hold. Reseed only when it has GENUINELY risen (more native authoring), never to mask a regression.',
+      note:
+        'D.104 native-authoring ratchet baseline. The ratio is an upper bound: it counts HoloScript-extension files under packages/ except descriptor twins, and checks neither that they parse nor that a build, loader or test reads them. Only native and ratio are enforced; every other field is information. ' +
+        'Coverage must rise or hold. Reseed only when it has GENUINELY risen (more native authoring), never to mask a regression.',
       updatedAtIso: new Date().toISOString(),
     };
     fs.writeFileSync(BASELINE_PATH, JSON.stringify(payload, null, 2) + '\n');
@@ -261,7 +366,8 @@ function main() {
 
   const baseline = readBaseline();
   console.log(
-    `native-coverage: native=${metrics.native} (.hsplus ${metrics.byExt['.hsplus']} / .holo ${metrics.byExt['.holo']} / .hs ${metrics.byExt['.hs']}) · hand-TS traits=${metrics.handTsTraits} · ratio=${(metrics.ratio * 100).toFixed(2)}%`
+    `native-coverage: native=${metrics.native} (.hsplus ${metrics.byExt['.hsplus']} / .holo ${metrics.byExt['.holo']} / .hs ${metrics.byExt['.hs']}) · hand-TS traits=${metrics.handTsTraits} · ratio=${(metrics.ratio * 100).toFixed(2)}% ` +
+      '(upper bound: counts files that exist; none is checked to parse or to be used)'
   );
   if (metrics.descriptors > 0) {
     console.log(
@@ -270,6 +376,10 @@ function main() {
         `their package names explicitly. By file extension alone the ratio would read ${(metrics.ratioByExtension * 100).toFixed(2)}%.`
     );
   }
+  console.log(
+    `  ↳ information, not gated: ${metrics.traitCards} of the ${metrics.native} are trait cards (a .holo holding one @trait block and nothing else); ` +
+      `without them native=${metrics.nativeWithoutTraitCards}, ratio=${(metrics.ratioWithoutTraitCards * 100).toFixed(2)}%.`
+  );
   if (!baseline) {
     console.error('✗ no baseline found — run with --update to seed it.');
     process.exit(1);

@@ -1,5 +1,5 @@
 {
-  "definition": "native-authoring-v2 (2026-09-28): HoloScript-extension files under packages/, excluding descriptor twins",
+  "definition": "native-authoring-v2 (2026-09-28), an upper bound: HoloScript-extension files under packages/, excluding descriptor twins; none is checked to parse or to be read by a build, loader or test",
   "native": 1503,
   "handTsTraits": 595,
   "byExt": {
@@ -8,11 +8,14 @@
     ".hs": 11
   },
   "ratio": 0.716397,
+  "traitCards": 1230,
+  "nativeWithoutTraitCards": 273,
+  "ratioWithoutTraitCards": 0.314516,
   "descriptors": 2247,
   "descriptorTwinsLive": 2227,
   "shippedWithHeader": 2,
   "filesByExtension": 3750,
   "ratioByExtension": 0.863061,
-  "note": "D.104 native-authoring ratchet baseline. Coverage must rise or hold. Reseed only when it has GENUINELY risen (more native authoring), never to mask a regression. 2026-09-28: reseeded for native-authoring-v2 — descriptor twins (\"Native .hsplus surface for\" files their package does not ship) no longer count; under v1 this tree read 86.31%. See docs/spec/spec-vs-reality-gap.md (facade census, G7 correction).",
-  "updatedAtIso": "2026-09-28T19:07:16.575Z"
+  "note": "D.104 native-authoring ratchet baseline. The ratio is an upper bound: it counts HoloScript-extension files under packages/ except descriptor twins, and checks neither that they parse nor that a build, loader or test reads them. Only native and ratio are enforced; every other field is information. Coverage must rise or hold. Reseed only when it has GENUINELY risen (more native authoring), never to mask a regression. 2026-09-28: reseeded for native-authoring-v2. Descriptor twins (\"Native .hsplus surface for\" files their package does not ship) no longer count; 2,230 of the 2,247 were added on 2026-06-25 by 117 commits, 116 of which also rewrote this baseline, and a census on 2026-09-28 found nothing that loads or runs them. Under v1, which counted every HoloScript-extension file, this tree read 86.31%.",
+  "updatedAtIso": "2026-10-05T03:47:28.940Z"
 }
