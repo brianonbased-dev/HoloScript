@@ -8,7 +8,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{Ast, AstNode, FunctionNode, Location, MovementDestination};
+use crate::ast::{Ast, AstNode, FunctionNode, LambdaExpression, Location, MovementDestination};
 use crate::kotlin_emit::SemanticDiagnostic;
 
 const RETURN_MISMATCH: &str = "HS-TYPE-RETURN-001";
@@ -593,31 +593,7 @@ impl TypeChecker {
                 let callable_local = binding.is_some_and(|binding| binding.callable);
                 if self.strict.get() && !callable_local {
                     if !self.is_callable_name(&callee.name) {
-                        let what = if binding.is_some() {
-                            format!(
-                                "`{}` is a value, not a function, in function `{}`",
-                                callee.name,
-                                self.function_name.borrow()
-                            )
-                        } else if self.is_program_name(&callee.name) {
-                            format!(
-                                "`{}` is an enum or module, not a function, in function `{}`",
-                                callee.name,
-                                self.function_name.borrow()
-                            )
-                        } else {
-                            format!(
-                                "unknown function `{}` called in function `{}`",
-                                callee.name,
-                                self.function_name.borrow()
-                            )
-                        };
-                        return Err(diagnostic(
-                            format!(
-                                "[{UNKNOWN_FUNCTION}] {what}; a called name must be a function or struct of this program, an import, a built-in, or a local holding a lambda"
-                            ),
-                            &call.loc,
-                        ));
+                        return Err(self.not_callable(&callee.name, binding.is_some(), &call.loc));
                     }
                     let got = call.arguments.len();
                     if let Some(&expected) = self.arities.get(&callee.name) {
@@ -739,29 +715,7 @@ impl TypeChecker {
                 Ok(TypeEvidence::Unknown)
             }
             AstNode::LambdaExpression(lambda) if self.strict.get() => {
-                // The parameters get a frame on top of the shared stack for the body, which is
-                // one expression and declares nothing, then the frame comes off. The frames
-                // below are shared, not copied.
-                scopes.push(
-                    lambda
-                        .params
-                        .iter()
-                        .map(|parameter| {
-                            (
-                                parameter.clone(),
-                                BindingEvidence {
-                                    declared_type: None,
-                                    observed_type: TypeEvidence::Unknown,
-                                    mutable: false,
-                                    callable: false,
-                                },
-                            )
-                        })
-                        .collect(),
-                );
-                let body = self.infer_expression(&lambda.body, scopes);
-                scopes.pop();
-                body?;
+                self.check_lambda_body(lambda, scopes)?;
                 Ok(TypeEvidence::Unknown)
             }
             AstNode::SpreadElement(spread) if self.strict.get() => {
@@ -770,6 +724,61 @@ impl TypeChecker {
             }
             _ => Ok(TypeEvidence::Unknown),
         }
+    }
+
+    /// A lambda's body, with the lambda's parameters in a frame on top of the shared stack. The
+    /// body is one expression and declares nothing, so the frame comes off afterwards and the
+    /// frames below are shared, not copied.
+    ///
+    /// This and [`Self::not_callable`] stay out of line: `infer_expression` recurses once per
+    /// nested expression, so whatever its own frame holds, every level pays for, and the depth
+    /// at which the WASM runs out of stack falls (a known trap, not fixed here).
+    #[inline(never)]
+    fn check_lambda_body(
+        &self,
+        lambda: &LambdaExpression,
+        scopes: &mut Vec<Frame>,
+    ) -> Result<(), SemanticDiagnostic> {
+        scopes.push(
+            lambda
+                .params
+                .iter()
+                .map(|parameter| {
+                    (
+                        parameter.clone(),
+                        BindingEvidence {
+                            declared_type: None,
+                            observed_type: TypeEvidence::Unknown,
+                            mutable: false,
+                            callable: false,
+                        },
+                    )
+                })
+                .collect(),
+        );
+        let body = self.infer_expression(&lambda.body, scopes);
+        scopes.pop();
+        body.map(|_| ())
+    }
+
+    /// HS-NAME-002 for a call to `name`, which may not be called here.
+    #[cold]
+    #[inline(never)]
+    fn not_callable(&self, name: &str, is_local: bool, loc: &Option<Location>) -> SemanticDiagnostic {
+        let function = self.function_name.borrow();
+        let what = if is_local {
+            format!("`{name}` is a value, not a function, in function `{function}`")
+        } else if self.is_program_name(name) {
+            format!("`{name}` is an enum or module, not a function, in function `{function}`")
+        } else {
+            format!("unknown function `{name}` called in function `{function}`")
+        };
+        diagnostic(
+            format!(
+                "[{UNKNOWN_FUNCTION}] {what}; a called name must be a function or struct of this program, an import, a built-in, or a local holding a lambda"
+            ),
+            loc,
+        )
     }
 
     /// A top-level function, struct, enum or import of this program, a function, name or

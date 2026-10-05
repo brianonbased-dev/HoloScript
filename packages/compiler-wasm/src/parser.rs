@@ -1042,7 +1042,7 @@ impl Parser {
             name,
             lifetimes,
             params,
-            param_locs,
+            param_locs: Box::new(param_locs),
             param_types,
             return_type,
             body,
