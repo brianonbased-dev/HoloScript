@@ -4502,7 +4502,7 @@ function buildStatsOnlySemanticIndexReceipt(
     provider: NATIVE_GRAPH_RAG_PROVIDER,
     graphProvider: 'holograph',
     message:
-      'outputFormat "stats" updates the HoloGraph cache only; it does not build or validate the HoloEmbed semantic index for this absorb result.',
+      'outputFormat "stats" updates the HoloGraph cache only. It publishes a new cache generation without a HoloEmbed index, so the previous semantic index for this repo is retired: the next holo_semantic_search or holo_ask_codebase rebuilds it from scratch (many minutes on a large repo). outputFormat "graph" or "holo" updates both incrementally.',
     nextStep:
       'Run holo_absorb_repo with outputFormat "graph" or "holo" before relying on holo_semantic_search or holo_ask_codebase for this graph.',
     createdAt: new Date().toISOString(),
@@ -7056,13 +7056,26 @@ export async function ensureCachedGraphRAGStateFromCodebaseTools(): Promise<{
   loaded: boolean;
   graphRAGReady: boolean;
   warmJobId?: string;
+  warm?: { status: string; progress: number; phase: string; rootDir: string };
 }> {
   const state = await ensureCachedGraph({ warmGraphRAG: true });
+  const warmJobId = state.warmJobId ?? graphRAGWarmJobId ?? undefined;
+  const warmJob = warmJobId ? absorbJobs.get(warmJobId) : undefined;
   return {
     loaded: state.loaded,
     graphRAGReady: isGraphRAGReady(),
-    ...(state.warmJobId && { warmJobId: state.warmJobId }),
-    ...(!state.warmJobId && graphRAGWarmJobId && { warmJobId: graphRAGWarmJobId }),
+    ...(warmJobId && { warmJobId }),
+    // Semantic tools report a running warm job instead of telling the model to
+    // absorb again, which would only start a second job over the same index.
+    ...(warmJob &&
+      !['complete', 'error', 'cancelled'].includes(warmJob.status) && {
+        warm: {
+          status: warmJob.status,
+          progress: warmJob.progress,
+          phase: warmJob.phase,
+          rootDir: warmJob.rootDir,
+        },
+      }),
   };
 }
 

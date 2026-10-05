@@ -306,7 +306,16 @@ export async function handleGraphRagTool(
     (name === 'holo_semantic_search' || name === 'holo_ask_codebase') &&
     !isGraphRAGReady()
   ) {
-    await hydrateCachedGraphRAGStateFromCodebaseTools();
+    const hydration = await hydrateCachedGraphRAGStateFromCodebaseTools();
+    if (!isGraphRAGReady() && hydration?.warm) {
+      const { warm } = hydration;
+      return {
+        error: 'semantic_index_building',
+        message: `The semantic index for ${warm.rootDir} is being built right now (${warm.phase}). ${name} will work when it finishes; retry in a few minutes. Do not call holo_absorb_repo for this — that would only start a second build of the same index. holo_graph_status shows progress under cacheWarm.`,
+        warmJobId: hydration.warmJobId,
+        warm,
+      };
+    }
   }
 
   switch (name) {
@@ -323,14 +332,21 @@ export async function handleGraphRagTool(
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-async function hydrateCachedGraphRAGStateFromCodebaseTools(): Promise<void> {
-  if (isGraphRAGReady()) return;
+async function hydrateCachedGraphRAGStateFromCodebaseTools(): Promise<
+  | {
+      warmJobId?: string;
+      warm?: { status: string; progress: number; phase: string; rootDir: string };
+    }
+  | undefined
+> {
+  if (isGraphRAGReady()) return undefined;
 
   try {
     const { ensureCachedGraphRAGStateFromCodebaseTools } = await import('./codebase-tools');
-    await ensureCachedGraphRAGStateFromCodebaseTools();
+    return await ensureCachedGraphRAGStateFromCodebaseTools();
   } catch (err) {
     console.warn(`[GraphRAG] cached graph hydrate skipped: ${String(err)}`);
+    return undefined;
   }
 }
 
