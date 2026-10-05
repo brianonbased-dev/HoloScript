@@ -66,7 +66,7 @@ fi
 # Windows ignores the bit, so a hook added from Windows lands as 100644 and
 # never runs on the cloud lane or the fleet. That is how pre-commit and
 # commit-msg lost the secret scan above on every Linux clone.
-NONEXEC_HOOKS=$(git ls-files -s -- .githooks 2>/dev/null \
+NONEXEC_HOOKS=$(git -c core.quotepath=off ls-files -s -- .githooks 2>/dev/null \
     | awk -F'\t' '{ split($1, m, " "); if (m[1] != "100755" && $2 !~ /^\.githooks\/[^\/]+\//) print $2 }')
 if [ -n "$NONEXEC_HOOKS" ]; then
     echo -e "${RED}❌ COMMIT BLOCKED — git on Linux would skip these hooks, because they are not stored executable:${NC}"
