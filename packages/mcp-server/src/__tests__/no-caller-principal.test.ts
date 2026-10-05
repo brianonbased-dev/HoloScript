@@ -5,7 +5,7 @@
  * identity. These tests drive the real dispatch paths (the index.ts registry and handleTool), so
  * they fail if a path goes back to reading the raw signer.
  */
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,7 +15,11 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 // review of #474 (2026-10-04) watched an unsealed run of this file resolve a real orchestrator
 // key and attempt a live full-profile submit from the stdio control; it failed only because a
 // host name did not resolve. Deleting the key variables AFTER the import (as this file did) was
-// too late. Nothing here may reach a .env, the vault, a database or the real orchestrator.
+// too late. The package's vitest.setup.ts now seals every test file first; this file seals
+// again, and its first test shows the import read no .env and asked no vault.
+// What this file can claim is that it never SENDS: every fetch is mocked to fail. A key the
+// secrets broker finds in a store on disk could still be read (claude3's re-read of #474 did
+// that with a fake dev vault), so "never reaches a key" would be untrue.
 const ORCHESTRATOR_ENV_KEYS = [
   'HOLOSCRIPT_ORCHESTRATOR_API_KEY',
   'MCP_ORCHESTRATOR_API_KEY',
@@ -29,10 +33,18 @@ const SEALED: Record<string, string | undefined> = {
   HOLOMESH_NO_DOTENV: '1', // load-env.ts reads no .env and hydrates nothing from the vault
   HOLOKEYD_HOST: '', // and a resolver that ignored that flag would find no vault host
   HOLOKEY_STORE_PATH: undefined,
+  SECRETS_VAULT_STORE_PATH: undefined,
+  HOLOKEY_PROD_KEK_CURRENT: undefined,
   DATABASE_URL: undefined,
   // RFC 2606 reserves .invalid: it never resolves, so even an unmocked fetch reaches nothing.
   MCP_ORCHESTRATOR_URL: 'https://orchestrator.invalid',
   ...Object.fromEntries(ORCHESTRATOR_ENV_KEYS.map((key) => [key, undefined])),
+  // Every vault key-encryption key, whatever its id.
+  ...Object.fromEntries(
+    Object.keys(process.env)
+      .filter((key) => key.startsWith('SECRETS_VAULT_KEK_') || key.startsWith('HOLOKEY_PROD_KEK_'))
+      .map((key) => [key, undefined])
+  ),
 };
 const savedEnv: Record<string, string | undefined> = {};
 for (const key of [
@@ -62,6 +74,7 @@ const TEMP_DATA_DIR = mkdtempSync(join(tmpdir(), 'no-caller-principal-'));
 process.env.HOLOMESH_DATA_DIR = TEMP_DATA_DIR;
 
 const { _handleSingleToolLogic } = await import('../index');
+const { IMPORT_TIME_ENV_LOAD, IMPORT_TIME_VAULT_HYDRATE } = await import('../utils/load-env');
 const { handleTool } = await import('../handlers');
 const { callerPrincipal, NO_CALLER_PRINCIPAL } = await import('../security/tool-scopes');
 const { publicAnonymousContext } = await import('../holomesh/identity/signing-middleware');
@@ -92,6 +105,16 @@ function payloadOf(response: unknown): Record<string, unknown> {
   const text = (response as { content: Array<{ text: string }> }).content[0].text;
   return JSON.parse(text) as Record<string, unknown>;
 }
+
+describe('the seal', () => {
+  it('came before the import: load-env read no .env and asked no vault', () => {
+    // claude3's re-read of #474: with the seal moved below the import, or the import hoisted,
+    // every other test here stayed green while the .env was read at import.
+    expect(IMPORT_TIME_ENV_LOAD.skipped).toBe('HOLOMESH_NO_DOTENV');
+    expect(IMPORT_TIME_ENV_LOAD.injected).toEqual([]);
+    expect(IMPORT_TIME_VAULT_HYDRATE).toEqual({ hydrated: [], missing: [] });
+  });
+});
 
 describe('callerPrincipal', () => {
   it('is undefined only for the local stdio user', () => {
@@ -234,6 +257,31 @@ describe("a daimōn's rituals, through the registry and through handleTool", () 
     // Reads still bind as before: listing is not refused, and nobody owns nothing.
     const listed = await _handleSingleToolLogic('holo_list_daemons', {});
     expect((listed as { isError?: boolean }).isError).not.toBe(true);
+  });
+
+  it('nobody cannot export the corpus; the local user still can, into the data dir', async () => {
+    // claude3's re-read of #474: the export writes a file and reports on every daimōn's turns.
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const chosen = join(TEMP_DATA_DIR, 'nobody-chose.jsonl');
+    for (const [args, refusal] of [
+      [{}, /needs a caller/],
+      // A path nobody chose is refused one gate earlier, by the host-path guard (#474's R5).
+      [{ outPath: chosen }, /needs a caller|Host path argument refused/],
+    ] as const) {
+      for (const ctx of [undefined, publicAnonymousContext()]) {
+        const refused = await _handleSingleToolLogic('holo_export_emergence_corpus', { ...args }, ctx);
+        expect((refused as { isError?: boolean }).isError).toBe(true);
+        expect(String(payloadOf(refused).error)).toMatch(refusal);
+      }
+    }
+    expect(existsSync(chosen)).toBe(false);
+
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+    const local = await _handleSingleToolLogic('holo_export_emergence_corpus', {});
+    expect((local as { isError?: boolean }).isError).not.toBe(true);
+    const written = String(payloadOf(local).path);
+    expect(written.startsWith(TEMP_DATA_DIR)).toBe(true);
+    expect(existsSync(written)).toBe(true);
   });
 
   it('handleTool has no daimōn path of its own, so it cannot skip the binding', async () => {

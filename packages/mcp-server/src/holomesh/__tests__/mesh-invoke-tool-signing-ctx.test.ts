@@ -96,6 +96,36 @@ describe('holomesh_invoke_tool runs the target tool as the real caller', () => {
     expect(existsSync(target)).toBe(false);
     expect(res.content?.[0]?.text ?? '').toMatch(/authorization denied|insufficient scope/i);
   });
+
+  // claude3's re-read of #474 (fault O2): granting nobody tools:read and tools:write kept the case
+  // above green, because holo_write_file needs tools:admin. Nobody gets no scope at all, so a
+  // target that needs only read or write is refused too, while a caller holding that scope passes.
+  it('over HTTP, nobody is refused even a tool that needs only tools:read or tools:write', async () => {
+    for (const [tool, scope, args] of [
+      ['list_traits', 'tools:read', {}],
+      ['generate_object', 'tools:write', { description: 'a red cube' }],
+    ] as const) {
+      const manifest = publishMeshToolManifest(
+        buildMeshToolManifest(
+          { tool_name: tool, description: `test manifest for ${tool}`, capability_tags: ['test'], allow_transitive_invocation: true },
+          publisher
+        )
+      );
+      const call = (ctx: unknown) =>
+        _handleSingleToolLogic('holomesh_invoke_tool', { mesh_tool_id: manifest.id, args: { ...args } }, ctx as never) as Promise<{
+          content?: Array<{ text?: string }>;
+          isError?: boolean;
+        }>;
+
+      const nobody = await onTransport('http', () => call(undefined));
+      expect(nobody.content?.[0]?.text ?? '', tool).toMatch(/authorization denied|insufficient scope/i);
+
+      const scoped = await onTransport('http', () =>
+        call({ signedRequest: true, signingValid: true, signer: 'scoped-agent', scopes: [scope] })
+      );
+      expect(scoped.content?.[0]?.text ?? '', tool).not.toMatch(/authorization denied|insufficient scope/i);
+    }
+  });
 });
 
 /** Run `body` with HOLOSCRIPT_MCP_TRANSPORT set to `transport`, then restore it. */

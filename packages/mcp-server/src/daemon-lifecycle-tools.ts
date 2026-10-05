@@ -859,7 +859,9 @@ const OWNER_BOUND_TOOLS = new Set(['holo_observe_soul', 'holo_create_daemon']);
  * NO_CALLER_PRINCIPAL, and every such call carries the SAME one, so binding to it made
  * "nobody" a shared owner: claude3's review of #474 (2026-10-04) watched one caller create a
  * daimōn owned by holoscript-mcp:no-caller and a different caller rewrite it. Nobody may use
- * these at all; reads (holo_get_daemon, holo_list_daemons) still bind as before.
+ * these at all; reads (holo_get_daemon, holo_list_daemons) still bind as before. The corpus
+ * export is here too: it writes a file and reports on every daimōn's turns, and nobody is not a
+ * caller that may choose where, or ask (claude3's re-read of #474, 2026-10-05).
  */
 const NO_CALLER_REFUSED_TOOLS = new Set([
   'holo_create_daemon',
@@ -867,6 +869,7 @@ const NO_CALLER_REFUSED_TOOLS = new Set([
   'holo_update_daemon_ritual',
   'holo_daemon_turn',
   'holo_daemon_emergence_check',
+  'holo_export_emergence_corpus',
 ]);
 
 /** The transport's verified principal, or null when there is none (stdio, unsigned, stdio-local). */

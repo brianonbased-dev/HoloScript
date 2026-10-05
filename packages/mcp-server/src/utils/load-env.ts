@@ -242,7 +242,8 @@ export function hydrateFromVault(): { hydrated: string[]; missing: string[] } {
 // ── Side effect — call at import time ─────────────────────────────────────────
 // This ensures process.env is fully populated before any module-level
 // `const X = process.env.X || ''` constants are evaluated in the importing module.
-loadMcpEnv({ silent: true });
+// Kept, so a test can show its seal came first: the import read no .env and asked no vault.
+export const IMPORT_TIME_ENV_LOAD: LoadMcpEnvResult = loadMcpEnv({ silent: true });
 // Then fill anything .env no longer carries from the vault. Costs zero SSH calls
 // while every name is still in .env, because present names are skipped outright.
-hydrateFromVault();
+export const IMPORT_TIME_VAULT_HYDRATE = hydrateFromVault();

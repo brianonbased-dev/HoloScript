@@ -53,6 +53,8 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts', 'examples/**/*.test.ts'],
     exclude: ['**/dist/**', '**/node_modules/**'],
+    // No test reads a .env, asks the vault, or holds a real key (see the file).
+    setupFiles: ['./vitest.setup.ts'],
     passWithNoTests: true,
     testTimeout: 60_000,
     // HoloMesh route suites share in-memory registry/state singletons.
