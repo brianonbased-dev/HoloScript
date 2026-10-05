@@ -25,6 +25,7 @@ import {
   GeminiAdapter as LLMGeminiAdapter,
   LocalLLMAdapter as LLMOllamaAdapter,
   LOCAL_DEFAULT_MODEL,
+  checkHostedOllama,
 } from '@holoscript/llm-provider';
 /** Shape of API error responses from AI providers. */
 interface APIErrorResponse {
@@ -417,7 +418,18 @@ export class OllamaAdapter implements AIAdapter {
     this.model = config.model || LOCAL_DEFAULT_MODEL;
   }
 
+  /**
+   * "(Local)" is only true of an Ollama on the owner's machine or LAN, running a non-cloud
+   * model. A hosted one (ollama.com, a `:cloud` model) is refused unless
+   * HOLO_ALLOW_HOSTED_OLLAMA=1: it reports not ready, and every call throws the refusal.
+   */
+  private hostedRefusal(): Error | null {
+    return checkHostedOllama(this.baseUrl, { model: this.model, caller: 'framework OllamaAdapter' })
+      .refused;
+  }
+
   async isReady(): Promise<boolean> {
+    if (this.hostedRefusal()) return false;
     try {
       const response = await fetch(this.baseUrl + '/api/tags');
       return response.ok;
@@ -496,6 +508,8 @@ export class OllamaAdapter implements AIAdapter {
     // but Ollama's native /api/generate endpoint is different. Keep retry
     // delegation for the chat path (callAPI below) and leave this helper
     // for the non-chat paths that LocalLLMAdapter doesn't cover.
+    const refused = this.hostedRefusal();
+    if (refused) throw refused;
     const response = await fetch(this.baseUrl + apiPath, body);
 
     if (response.status === 429) {
@@ -517,6 +531,8 @@ export class OllamaAdapter implements AIAdapter {
   }
 
   private async callAPI(system: string, prompt: string): Promise<string> {
+    const refused = this.hostedRefusal();
+    if (refused) throw refused;
     // Delegate to @holoscript/llm-provider LocalLLMAdapter (withRetry on 429/5xx).
     const adapter = new LLMOllamaAdapter({
       baseURL: this.baseUrl,
@@ -535,6 +551,8 @@ export class OllamaAdapter implements AIAdapter {
   }
 
   async getEmbeddings(text: string | string[]): Promise<number[][]> {
+    const refused = this.hostedRefusal();
+    if (refused) throw refused;
     const inputs = Array.isArray(text) ? text : [text];
     const results: number[][] = [];
 

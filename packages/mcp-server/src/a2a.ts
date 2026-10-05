@@ -263,6 +263,12 @@ const _JSONRPC_INTERNAL_ERROR = -32603;
 // A2A-specific error codes (application layer: -32000 to -32099)
 const A2A_TASK_NOT_FOUND = -32001;
 const A2A_TASK_NOT_CANCELABLE = -32002;
+/**
+ * a2a.listTasks refused because the caller is not admin. Not an A2A spec code:
+ * the spec reserves -32001..-32007 (-32003 is PushNotificationNotSupported),
+ * so this sits clear of them. Listing returns every caller's results.
+ */
+export const A2A_LIST_REQUIRES_ADMIN = -32040;
 
 // =============================================================================
 // SKILL CATEGORY MAPPING
@@ -559,6 +565,7 @@ export function mcpToolToA2ASkill(tool: Tool): AgentSkill {
 export function buildAgentCard(
   allTools: Tool[],
   baseUrl: string,
+  /** True when the task routes require credentials; the card then advertises how to present them. */
   apiKeyConfigured: boolean
 ): AgentCard {
   const skills = allTools.map(mcpToolToA2ASkill);

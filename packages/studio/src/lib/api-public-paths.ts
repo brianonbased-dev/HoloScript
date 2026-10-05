@@ -41,6 +41,14 @@ export interface ApiPathRule {
    * Checked before `pattern`, so the narrower statement wins.
    */
   except?: readonly string[];
+  /**
+   * Caller-credential tier only: request headers that also count as "a caller
+   * arrived" on THIS entry, beyond the two every entry takes (`x-mcp-api-key`,
+   * `Authorization: Bearer`). List a header only when the route behind the entry
+   * judges that header itself, and name that check in `why`. It opens this entry
+   * alone, never a sibling.
+   */
+  credentialHeaders?: readonly string[];
   /** Why this is reachable this way. Required — an entry with no reason is a guess. */
   why: string;
 }
@@ -438,6 +446,12 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   },
 
   {
+    pattern: '/api/agents/fleet/scheduler-tick',
+    methods: ['POST'],
+    credentialHeaders: ['x-fleet-service-token'],
+    why: "The autonomous hourly tick (board automation A-035, scripts/fleet-dispatch-tick.mjs) has no browser session and was never meant to need one: dispatch/route.ts's own requireFleetWrite gate (app/api/agents/fleet/dispatch/route.ts:247-279) already names two authorized callers, 'the founder via an authenticated Studio session, and the autonomous hourly tick (A-035) via the founder-provisioned service token FLEET_DISPATCH_SERVICE_TOKEN sent as x-fleet-service-token' -- a timing-safe, fail-closed comparison (fleetServiceTokenOk, :257-265) that is the REAL authorization for the spend/mutation it gates. But scheduler-tick/route.ts only forwards Authorization and x-fleet-service-token to that check via an in-process call (dispatchPOST(internalReq), :61 -- never a second HTTP request, so /api/agents/fleet/dispatch itself is not exercised by this entry and stays pinned to `session`); this edge middleware ran first and, with the path unlisted, classified it `session`, refusing every caller before the route's own already-correctly-designed service-token check ever ran (every A-035 run from 2026-09-16, task uq6w). This entry does not grant new authority, and the tick enforces that rather than assuming it: it only lets a caller who already holds the founder-provisioned token reach the check built to accept them, and the tick forwards nothing but maxDispatches and dryRun (scheduler-tick/route.ts), so that caller cannot set its own daily spend cap, switch the executor on, or aim our mesh key at another team's board -- those stay with the operator (FLEET_DAILY_SPEND_CAP_USD, FLEET_EXECUTOR_ENABLED, HOLOMESH_TEAM_ID), and a founder who wants to override them posts to /api/agents/fleet/dispatch under a session (the Fleet panel does). The token itself counts as 'a caller arrived' on this entry alone (credentialHeaders), so the tick is not refused when it arrives without its mesh key -- a door in front that is stricter than the door behind is a lockout. The real gate stays downstream and fails closed if FLEET_DISPATCH_SERVICE_TOKEN is unset or empty. The entry answers only to the path as typed AND as decoded (proxy.ts spellingsAgree): Next matches a fixed segment on the typed spelling, so /api/agents/fleet/%73cheduler-tick is not this route -- Next serves the sibling [id] route -- and it does not borrow this entry.",
+  },
+  {
     pattern: '/api/mcp/call',
     methods: ['GET', 'POST'],
     why: "The caller's OWN mesh key runs the call, so this tier's rule holds here rather than being excused. callerMeshKey (app/api/mcp/call/route.ts) reads x-mcp-api-key, or Authorization: Bearer, and forwards exactly that in the single header the upstream reads; ours is never substituted for a caller who sent one. With no key at all the route requires a Studio session and then admits only the short list of tools Studio's own UI calls, under our key. A bk_ Studio key is refused in EITHER header rather than presented upstream, because that is a Studio credential and not a mesh one — one predicate covers both spellings, so the exclusion cannot guard the bearer habit while leaving open the header the refusal message itself names. This entry read 'NO GUARD … the caller's key is discarded' until #302 made that false, and the old wording recorded a real hole: the route built its headers from forwardAuthHeaders, which only ever sets Authorization, so the guard `!headers['x-mcp-api-key']` was ALWAYS true and HOLOSCRIPT_API_KEY was attached to every call — a one-header stranger could aim any tool name at the mesh under our identity. GET is here for the same reason and attaches our key to nothing.",
@@ -483,7 +497,7 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/quest-proof/inbox',
     methods: ['GET'],
-    why: "NO GUARD, and it spends ours: upstream calls carry HOLOMESH_API_KEY (route.ts:26) against a fixed HOLOMESH_TEAM_ID. The caller's key is never used. GET stays reachable for the scheduled sweep that reads the founder's inbox. POST is NOT in this tier and this is the entry's whole point: the route exports a POST (route.ts:70-117) with no session check of any kind, which pushes an arbitrary url and label into the founder's team feed UNDER OUR KEY, with no identity recorded. On 'any non-empty header' that is a stranger planting links in the founder's inbox while spending our credential — so it is pinned to `session` until the route authenticates its own caller, exactly as /api/quest-proof/next-actions already pins its POST for the same reason.",
+    why: "NO GUARD, and it spends ours: upstream calls carry HOLOMESH_API_KEY (route.ts:26) against a fixed HOLOMESH_TEAM_ID. The caller's key is never used. GET stays reachable for the scheduled sweep that reads the founder's inbox. The route exports no POST since 2026-09-28 (task whpw): the old one pushed any caller's url and label into the founder's team feed UNDER OUR KEY with no identity recorded, and nothing called it, because agents push to the feed directly, signed with their own seat key. Keep this entry pinned to GET so a POST added back later is not reachable on 'any non-empty header'.",
   },
   {
     pattern: '/api/quest-proof/next-actions',

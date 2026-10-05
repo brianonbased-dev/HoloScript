@@ -23,6 +23,7 @@
  * dispatches on.
  */
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
+import { describeLeftOutScenes, flattenCompositionScenes } from './CompilerBase';
 import { PKG } from './quest-mr-emit';
 
 type Vec3 = [number, number, number];
@@ -310,6 +311,18 @@ const ksafe = (s: string): string =>
 
 /** @generated World_<id>.kt — builds this world's Spatial SDK entities + animation descriptors. */
 export function emitWorldSceneKt(composition: HoloComposition, worldId: string): string {
+  // What a `scene "X" { ... }` block holds sits on composition.scenes, which nothing below
+  // reads: a world whose objects were written inside a scene came out as an empty skybox, and a
+  // scene's environment never reached the skybox. Flatten first, so each scene's objects follow
+  // the top-level ones and the first environment that applies sets the sky. An object here is
+  // an entity with no name in the Kotlin (an animated one is `o<index>`), so nothing can
+  // clash and no object is left out; a scene environment that is not applied is named in a
+  // WARNING comment, because one world has one sky.
+  const scenes = flattenCompositionScenes(composition);
+  composition = scenes.composition;
+  const warnings = describeLeftOutScenes(scenes, 'Kotlin')
+    .map((warning) => `// WARNING: ${warning}\n`)
+    .join('');
   const kid = worldKotlinId(worldId);
   const display = prettyName(composition, worldId);
   const sky = skyboxColor(composition);
@@ -391,7 +404,7 @@ import com.meta.spatial.toolkit.Transform
  * Authored in HoloScript, compiled to Meta Spatial SDK entities (geometry -> mesh, color -> Material,
  * position/rotation/scale -> Transform, behavior -> a per-frame WorldAnimated the WorldRenderer ticks).
  */
-${splatOptIn}object World_${kid} {
+${warnings}${splatOptIn}object World_${kid} {
   const val displayName = ${ksafe(display)}
 
   fun build(): WorldBuild {

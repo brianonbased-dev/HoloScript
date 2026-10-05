@@ -21,7 +21,7 @@ composition "AcousticRoom" {
     recording: true
   }
 
-  simulation "acoustic" {
+  template "acoustic" {
     @acoustic_simulation {
       grid_resolution: [80, 80, 3]
       domain_size: [5.0, 5.0, 0.1875]

@@ -26,8 +26,8 @@ AUTONOMIZE) are first-class language primitives, not library calls.
 
 - **Self-evolving** — programs can be inspected and rewritten by the agents that run them.
 - **AI-native** — designed to be generated and maintained by agents, not hand-typed.
-- **Legacy interop** — compiles to bytecode (`uaalb`/`.uaal`, `.holob`) or transpiles to
-  TypeScript/Python (and now Kotlin via the 2026-06-21 `.hs→Kotlin` emitter).
+- **Legacy interop** — compiles to bytecode (`uaalb`/`.uaal`, `.holob`). The `.hs`→Kotlin
+  output is a bridge (generated code for another runtime) from `packages/compiler-wasm/src/kotlin_emit.rs` (`compile_to_kotlin`). No generator emits TypeScript or Python from this language.
 - **Standardization** — covers the common agent-operations patterns (intake, reflection,
   execution, compression).
 

@@ -613,7 +613,9 @@ template Button {
 
 ```hsplus
 logic {
-  return 1
+  function ping() {
+    return 1
+  }
 }
 ```
 
@@ -681,21 +683,6 @@ world Room {
 }
 ```
 
-This `zone` line is accepted here. The WASM reader rejects it. See Known gaps.
-
-```hsplus
-zone SafeArea(x: 0, y: 0, z: 5, width: 100)
-```
-
-This `spatial` block is accepted here. The root type measured was `spatial`, with a child `layer`. The WASM reader rejects it.
-
-```hsplus
-spatial ComponentName(width: number, height: number) {
-  layer background {
-  }
-}
-```
-
 ```hsplus
 connect inventory.sync -> report.write
 ```
@@ -722,7 +709,41 @@ A lone trait, with no object, is accepted as an empty fragment (no error):
 @grabbable
 ```
 
+A field inside a brace block may carry the same two marks the `.hs` reader stores on a property. `?` after the value marks that field optional. `= <expression>` after the value stores a default and leaves the value as the type or expression written before the `=`. A plain field such as `reading: Temperature` or `maxHP: 100` is unchanged. `a ?? b` stays null-coalescing. `?.` stays optional chaining. Both marks may sit on one field. These three blocks are accepted:
+
+```hsplus
+@trait Config {
+  provider: String?
+  required: String
+}
+```
+
+```hsplus
+@trait Config {
+  auto_register: Bool = true
+}
+```
+
+```hsplus
+@trait Config {
+  llm_provider_id: String? = null
+}
+```
+
 ### Forms it rejects
+
+`zone`, `spatial`, and `layer` are rejected at any depth in a `.hsplus` file, not only at the top. The reader names the word that was written, reports one error, and stores no node. A `zone` block says `HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.` A `spatial` or `layer` block says `HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.` (the same sentence, with `"layer"` in place of `"spatial"`). The same zone, with a quoted name and a brace block, stays valid inside a `.holo` composition. A property named `layer`, as in `layer: 2`, is an ordinary property.
+
+```hsplus reject
+zone SafeArea(x: 0, y: 0, z: 5, width: 100)
+```
+
+```hsplus reject
+spatial ComponentName(width: number, height: number) {
+  layer background {
+  }
+}
+```
 
 A trait written as `@name { ... }` with no `()` swallows the following object body. Message: `HSP101: Trait @grabbable used a block that looks like an object body, but no object body follows. Use @grabbable(...) for trait config, or add a separate { ... } object body.`
 
@@ -757,8 +778,8 @@ These are bugs and disagreements measured on this checkout. This spec records th
 | Text                                                                                                         | WASM `.hs`                        | `.hsplus` reader                | Composition reader                                                                              |
 | ------------------------------------------------------------------------------------------------------------ | --------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Typed `function add(left: i32, right: i64): i64` with `return result` after `let result: i64 = left + right` | valid                             | success; parameter and return types stored | At the root: success and nothing stored. Inside a composition: error `Unexpected token: LBRACE` |
-| `zone SafeArea(x: 0, y: 0, z: 5, width: 100)`                                                                | `Unexpected identifier: zone`     | success, root type `zone`       | success, nothing stored                                                                         |
-| `spatial ComponentName(width: number, height: number) { layer background { } }`                              | `Unexpected identifier: spatial`  | success, root type `spatial`    | success; `spatial` itself is not stored (see gap 1)                                             |
+| `zone SafeArea(x: 0, y: 0, z: 5, width: 100)`                                                                | `Unexpected identifier: zone`     | rejected, `HSP001` (`"zone"` is not part of .hsplus) | success, nothing stored                                                                         |
+| `spatial ComponentName(width: number, height: number) { layer background { } }`                              | `Unexpected identifier: spatial`  | rejected, `HSP001` (`"spatial"` is not part of .hsplus) | success; `spatial` itself is not stored (see gap 1)                                             |
 | `pipeline "CustomerJourney" { source Ledger { kind: "table" } sink Report { kind: "log" } }`                 | `Unexpected identifier: pipeline` | success, root type `pipeline`   | success, kept as a pipeline domain block                                                        |
 
 3. **The trait count is being reconciled across sources.** The canonical name list is `VR_TRAITS` in `packages/core/src/traits/constants/index.ts`, named in the Traits section. This spec does not publish a number for how many traits exist.
@@ -804,13 +825,18 @@ No error codes. `error()` (`HoloCompositionParser.ts` line 3978) stores a senten
 
 ### `.hsplus`
 
-Codes are defined in `packages/core/src/parser/RichErrors.ts` lines 42–92 (`HSP001` through `HSP010`, `HSP100` through `HSP109`, `HSP200` through `HSP205`, `HSP300` through `HSP305`, `HSP400` through `HSP402`, `HSP900` through `HSP902`). The message text is `HSP###: ` plus the sentence (`createRichError`, lines 291–293).
+Codes are defined in `packages/core/src/parser/RichErrors.ts` lines 42–63 (`HSP001` through `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, and `HSP300`). The message text is `HSP###: ` plus the sentence (`createRichError`, line 266).
 
-Codes this reader actually passes into `error()` or `detectCommonMistake` in `HoloScriptPlusParser.ts` today: `HSP001`, `HSP002`, `HSP003`, `HSP004`, `HSP005`, `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, `HSP300`. The other codes in the RichErrors table are defined there. This search did not find them being raised by `HoloScriptPlusParser.ts`.
+Codes this reader passes into `error()` or `detectCommonMistake` in `HoloScriptPlusParser.ts`: `HSP001`, `HSP002`, `HSP003`, `HSP004`, `HSP005`, `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, `HSP300`.
 
 Measured messages:
 
-- `HSP001: Unexpected token COLON ":" at top level. Expected: composition, object, world, template, logic, or @directive`
+- `HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.`
+- `HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.`
+- `HSP001: "layer" is not part of .hsplus. Use a composition in a .holo file instead.`
+- `HSP001: This spot needs a colon, as in name: value. A default written with = is only allowed on a field.`
+- `HSP001: A colon is not allowed at the top of the file. Start with a block such as object, composition, or function.`
+- `HSP300: A value was required here, and a "|" was found instead.`
 - `HSP101: Trait @grabbable used a block that looks like an object body, but no object body follows. Use @grabbable(...) for trait config, or add a separate { ... } object body.`
 - `HSP201: Expected directive name, got AT. Directives start with @ followed by name (e.g., @grabbable)`
 

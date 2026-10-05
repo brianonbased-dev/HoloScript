@@ -20,7 +20,7 @@ import type {
   HSPlusTraitDirective,
   HSPlusTraitSumDirective,
 } from '../types/AdvancedTypeSystem';
-import type { HSPlusNode, HSPlusStructField } from '../types/HoloScriptPlus';
+import type { HSPlusFieldMark, HSPlusNode, HSPlusStructField } from '../types/HoloScriptPlus';
 import type { VRTraitName } from '../types';
 import {
   isCognitiveVerb,
@@ -38,6 +38,7 @@ import type { ReactionCategory } from '../types/base';
 
 export type {
   ASTProgram,
+  HSPlusFieldMark,
   HSPlusNode,
   HSPlusStructField,
   HSPlusDirective,
@@ -1142,6 +1143,17 @@ class Lexer {
 // =============================================================================
 
 export class HoloScriptPlusParser {
+  /**
+   * Plain sentence for one rejected block word. HSP001 is the existing
+   * unexpected-token code. The check runs in parseNode, so it fires at any
+   * depth in a .hsplus file, not only at the top.
+   */
+  private static rejectedBlockMessage(word: 'zone' | 'spatial' | 'layer'): string {
+    if (word === 'zone') {
+      return '"zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.';
+    }
+    return `"${word}" is not part of .hsplus. Use a composition in a .holo file instead.`;
+  }
   private tokens: Token[] = [];
   private pos: number = 0;
   private options: HSPlusParserOptions;
@@ -1648,27 +1660,29 @@ export class HoloScriptPlusParser {
             topLevelNodes.push(brainNode as unknown as HSPlusNode);
           } else {
             const node = this.parseNode();
-            // Attach preceding directives to this node
-            const existingDirectives = node.directives || [];
-            node.directives = [...currentDirectives, ...existingDirectives];
+            if (node) {
+              // Attach preceding directives to this node
+              const existingDirectives = node.directives || [];
+              node.directives = [...currentDirectives, ...existingDirectives];
 
-            // Extract @version and @migrate directives into template properties
-            if (node.type === 'template') {
-              for (const d of currentDirectives) {
-                if (d.type === 'version') {
-                  node.version = d.version;
-                } else if (d.type === 'migrate') {
-                  if (!node.migrations) node.migrations = [];
-                  node.migrations.push({
-                    type: 'Migration',
-                    fromVersion: d.fromVersion,
-                    body: d.body,
-                  });
+              // Extract @version and @migrate directives into template properties
+              if (node.type === 'template') {
+                for (const d of currentDirectives) {
+                  if (d.type === 'version') {
+                    node.version = d.version;
+                  } else if (d.type === 'migrate') {
+                    if (!node.migrations) node.migrations = [];
+                    node.migrations.push({
+                      type: 'Migration',
+                      fromVersion: d.fromVersion,
+                      body: d.body,
+                    });
+                  }
                 }
               }
-            }
 
-            topLevelNodes.push(node);
+              topLevelNodes.push(node);
+            }
           }
         } else {
           // If directives with no node, handle as global or fragment
@@ -1697,10 +1711,12 @@ export class HoloScriptPlusParser {
             }
           } else if (!this.check('EOF')) {
             // No directives, no node, but not EOF
-            this.error(
-              `Unexpected token ${this.current().type} "${this.current().value}" at top level. Expected: composition, object, world, template, logic, or @directive`,
-              'HSP001'
-            );
+            const token = this.current();
+            const message =
+              token.type === 'COLON'
+                ? 'A colon is not allowed at the top of the file. Start with a block such as object, composition, or function.'
+                : `Unexpected token ${token.type} "${token.value}" at top level. Expected: composition, object, world, template, logic, or @directive`;
+            this.error(message, 'HSP001');
             // error() pushes to array, but does NOT throw by default yet.
             // We need to throw to trigger recovery.
             throw new Error('ParseError');
@@ -1736,7 +1752,7 @@ export class HoloScriptPlusParser {
     } as unknown as HSPlusNode;
   }
 
-  private parseNode(): HSPlusNode {
+  private parseNode(): HSPlusNode | null {
     const startToken = this.current();
 
     const typeToken =
@@ -1750,6 +1766,16 @@ export class HoloScriptPlusParser {
         'ON_EXIT',
       ]) || this.expect('IDENTIFIER', 'Expected element type');
     const type = typeToken.value;
+
+    // zone, spatial, and layer are not part of .hsplus at any depth. parseNode
+    // is also how a nested block is read, so a zone inside an object, a
+    // template, or a .hsplus composition fails here too. A property named
+    // layer (layer: 2) never reaches this check.
+    if (type === 'zone' || type === 'spatial' || type === 'layer') {
+      this.errorAt(startToken, HoloScriptPlusParser.rejectedBlockMessage(type), 'HSP001');
+      this.skipZoneSpatialLayerTail();
+      return null;
+    }
 
     // `export function` with a type is the same function the Rust checker
     // accepts. Untyped `export function` stays on the path it uses today.
@@ -1784,7 +1810,18 @@ export class HoloScriptPlusParser {
       } else {
         templateName = this.expect('STRING', 'Expected template name').value;
       }
+      // `template "Name" using "Parent" { ... }` keeps the same body record as
+      // `template "Name" { ... }`. `using` is still the template reference.
+      let templateRef: string | undefined;
+      if (this.usingClauseOpensBodyAt(0)) {
+        this.advance(); // using
+        templateRef = this.expect('STRING', 'Expected template name after using').value;
+        this.skipNewlines();
+      }
       const templateBody = this.parseBlockContent();
+      if (templateRef) {
+        templateBody.__templateRef = templateRef;
+      }
 
       let version: number | undefined;
       const migrations: Array<{ type: string; fromVersion: number; body: string }> = [];
@@ -2127,6 +2164,7 @@ export class HoloScriptPlusParser {
     }
 
     const properties: Record<string, unknown> = {};
+    const fieldMarks: Record<string, HSPlusFieldMark> = {};
     const children: HSPlusNode[] = [];
     const directives: HSPlusDirective[] = [];
     const traits = new Map<VRTraitName, unknown>();
@@ -2197,7 +2235,9 @@ export class HoloScriptPlusParser {
 
           if (this.check('COLON')) {
             this.advance();
-            value = this.parseValue();
+            const field = this.parseFieldValue();
+            value = field.value;
+            if (field.mark) fieldMarks[key] = field.mark;
           }
 
           properties[key] = value;
@@ -2424,17 +2464,21 @@ export class HoloScriptPlusParser {
                   // YAML-style block scalar: template: | ... (indented lines)
                   properties[name] = this.parseBlockScalar(this.tokens[saved]);
                 } else {
-                  properties[name] = this.parseValue();
+                  const field = this.parseFieldValue();
+                  properties[name] = field.value;
+                  if (field.mark) fieldMarks[name] = field.mark;
                 }
               } else if (
                 childNodeKeywords.includes(name) &&
                 (this.check('LBRACE') || this.check('STRING'))
               ) {
                 this.pos = saved;
-                children.push(this.parseNode());
+                const childNode = this.parseNode();
+                if (childNode) children.push(childNode);
               } else if (this.current().type === 'IDENTIFIER') {
                 this.pos = saved;
-                children.push(this.parseNode());
+                const childNode = this.parseNode();
+                if (childNode) children.push(childNode);
               } else {
                 properties[name] = true;
                 // Skip function call, member access chain, or block body following the name:
@@ -2452,9 +2496,12 @@ export class HoloScriptPlusParser {
               // OPTIONAL COMMA SUPPORT
               this.advance();
             } else {
-              this.error(
-                `Unexpected token ${this.current().type} "${this.current().value}" in node body`
-              );
+              const token = this.current();
+              const message =
+                token.type === 'EQUALS'
+                  ? 'This spot needs a colon, as in name: value. A default written with = is only allowed on a field.'
+                  : `Unexpected token ${token.type} "${token.value}" in node body`;
+              this.error(message);
               this.synchronizeProperty();
             }
           }
@@ -2474,6 +2521,7 @@ export class HoloScriptPlusParser {
       name: id, // Mapping id to name for runtime compatibility
       id,
       properties,
+      ...(Object.keys(fieldMarks).length > 0 ? { fieldMarks } : {}),
       directives,
       children,
       traits,
@@ -4383,7 +4431,8 @@ export class HoloScriptPlusParser {
 
         // Anything else (nested node keyword, statement) → generic node parse.
         if (token.type === 'IDENTIFIER' || token.type === 'STRING') {
-          children.push(this.parseNode());
+          const childNode = this.parseNode();
+          if (childNode) children.push(childNode);
           if (this.check('COMMA')) this.advance();
           this.skipNewlines();
           continue;
@@ -4526,9 +4575,11 @@ export class HoloScriptPlusParser {
         } else if (next.type === 'STRING' || next.type === 'LBRACE' || next.type === 'IDENTIFIER') {
           // Nested node (e.g. object "Name" { ... }, or action name(params) { ... })
           const node = this.parseNode();
-          const type = node.type;
-          const name = node.name || `unnamed_${type}_${Object.keys(content).length}`;
-          content[name] = node;
+          if (node) {
+            const type = node.type;
+            const name = node.name || `unnamed_${type}_${Object.keys(content).length}`;
+            content[name] = node;
+          }
         } else {
           // Bare key
           const key = this.advance().value;
@@ -4849,14 +4900,16 @@ export class HoloScriptPlusParser {
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])];
+          if (node) {
+            node.directives = [...currentDirectives, ...(node.directives || [])];
 
-          if (keyword === 'system' || node.type === 'system') {
-            result.systems.push(node);
-          } else if (keyword === 'core_config' || node.type === 'core_config') {
-            result.configs.push(node);
-          } else {
-            result.children.push(node);
+            if (keyword === 'system' || node.type === 'system') {
+              result.systems.push(node);
+            } else if (keyword === 'core_config' || node.type === 'core_config') {
+              result.configs.push(node);
+            } else {
+              result.children.push(node);
+            }
           }
         }
         // Property with value but no colon (e.g. prop1 "value1")
@@ -4866,7 +4919,10 @@ export class HoloScriptPlusParser {
           (next.type === 'STRING' ||
             next.type === 'NUMBER' ||
             next.type === 'BOOLEAN' ||
-            next.type === 'NULL')
+            next.type === 'NULL') &&
+          // `policy "Name" using "Parent" { ... }` is a node, not two properties.
+          // The body is stored by parseNode, the same path a brace body already uses.
+          !this.quotedNameUsingClauseOpensBody()
         ) {
           const key = this.advance().value;
           result.properties[key] = this.parseValue();
@@ -4880,14 +4936,16 @@ export class HoloScriptPlusParser {
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])];
+          if (node) {
+            node.directives = [...currentDirectives, ...(node.directives || [])];
 
-          if (keyword === 'system' || node.type === 'system') {
-            result.systems.push(node);
-          } else if (keyword === 'core_config' || node.type === 'core_config') {
-            result.configs.push(node);
-          } else {
-            result.children.push(node);
+            if (keyword === 'system' || node.type === 'system') {
+              result.systems.push(node);
+            } else if (keyword === 'core_config' || node.type === 'core_config') {
+              result.configs.push(node);
+            } else {
+              result.children.push(node);
+            }
           }
         }
         // Inline method parsing
@@ -4956,7 +5014,23 @@ export class HoloScriptPlusParser {
           this.advance();
         }
       } else if (this.check('LBRACE')) {
-        // Skip balanced block at composition level (e.g., spawn_group "name" { ... })
+        // A bare brace block is not a node. Report it, then skip the block
+        // so a later named child can still be read.
+        // `health: ${state.health}` is not that case: `$` is an identifier and
+        // `{` is a separate brace. `${ }` is only kept inside a quoted string.
+        const brace = this.current();
+        const before = this.previous();
+        const bareDollarBrace =
+          before.type === 'IDENTIFIER' &&
+          before.value === '$' &&
+          before.line === brace.line &&
+          brace.column === before.column + before.value.length;
+        this.error(
+          bareDollarBrace
+            ? '"${ }" only works inside a quoted string here. Put the value in quotes.'
+            : 'A block here needs a name. Write the name, then the brace block.',
+          'HSP101'
+        );
         let depth = 1;
         this.advance(); // consume {
         while (depth > 0 && !this.check('EOF')) {
@@ -4979,6 +5053,38 @@ export class HoloScriptPlusParser {
 
     this.expect('RBRACE', 'Expected }');
     return result;
+  }
+
+  /**
+   * True when peek(from) is `using "Name"` and a `{` block follows.
+   * Blank lines between the name and the brace are allowed.
+   */
+  private usingClauseOpensBodyAt(from: number): boolean {
+    const using = this.peek(from);
+    if (!(using.type === 'IDENTIFIER' && using.value === 'using')) return false;
+    if (this.peek(from + 1).type !== 'STRING') return false;
+    return this.peek(this.offsetAfterLineBreaks(from + 2)).type === 'LBRACE';
+  }
+
+  /**
+   * True when the cursor is `keyword "name" using "Parent" {`.
+   * That shape is a named node with a template reference, not a bare property.
+   */
+  private quotedNameUsingClauseOpensBody(): boolean {
+    if (this.peek(1).type !== 'STRING') return false;
+    return this.usingClauseOpensBodyAt(this.offsetAfterLineBreaks(2));
+  }
+
+  private offsetAfterLineBreaks(from: number): number {
+    let i = from;
+    while (true) {
+      const kind = this.peek(i).type;
+      if (kind === 'NEWLINE' || kind === 'INDENT' || kind === 'DEDENT') {
+        i++;
+        continue;
+      }
+      return i;
+    }
   }
 
   /**
@@ -5185,13 +5291,13 @@ export class HoloScriptPlusParser {
           const body = this.parseCodeBlock();
           result.eventHandlers.push({ event: eventName, params, body });
         }
-        // Skip other identifiers (might be comments or unknown constructs)
+        // Any other word is not a logic form. Report it, then skip the
+        // rest of the line so a later known form can still be read.
         else {
-          // Skip past parens and braces to handle unknown function-like constructs
+          this.error(`"${keyword}" is not allowed inside logic.`, 'HSP001');
           this.advance();
           if (this.check('LPAREN')) this.skipParens();
           if (this.check('LBRACE')) this.skipBraces();
-          // Also skip to next newline for safety
           while (!this.check('RBRACE') && !this.check('EOF') && !this.check('NEWLINE')) {
             this.advance();
           }
@@ -5839,7 +5945,8 @@ export class HoloScriptPlusParser {
             }
           }
         } else if (this.check('IDENTIFIER')) {
-          nodes.push(this.parseNode());
+          const childNode = this.parseNode();
+          if (childNode) nodes.push(childNode);
         } else {
           // Skip unexpected tokens to prevent infinite loops
           this.advance();
@@ -5884,8 +5991,8 @@ export class HoloScriptPlusParser {
    * Much lower precedence than ternary/null-coalesce
    * Example: x ??= value  →  x = x ?? value
    */
-  private parseAssignment(): unknown {
-    const expr = this.parseExpression();
+  private parseAssignment(stopBeforeFieldOptional = false): unknown {
+    const expr = this.parseExpression(stopBeforeFieldOptional);
 
     // Check for null coalescing assignment
     if (this.check('NULL_COALESCE_ASSIGN')) {
@@ -5918,19 +6025,148 @@ export class HoloScriptPlusParser {
    * Parse expression (Entry Point for operators)
    * Handles Ternary Operators: cond ? true : false
    */
-  private parseExpression(): unknown {
+  private parseExpression(stopBeforeFieldOptional = false): unknown {
     const condition = this.parseNullCoalesce();
 
     if (this.check('QUESTION')) {
+      // A single `?` at the end of a field (`provider: String?`, or before
+      // `= default`) is the optional mark the .hs reader stores. It is not a
+      // ternary. `??` is a different token, and `?.` is optional chaining.
+      // A `?` followed by a real branch stays a ternary, including when the
+      // branch is wrapped onto the next line.
+      if (stopBeforeFieldOptional && this.isFieldOptionalMark()) {
+        return condition;
+      }
+      const wrappedBranch = stopBeforeFieldOptional && this.nextLineContinuesTernary();
       this.advance(); // ?
-      const trueValue = this.parseExpression(); // Right-associative recursion
+      if (wrappedBranch) this.skipNewlines();
+      const trueValue = this.parseExpression(stopBeforeFieldOptional); // Right-associative recursion
+      if (wrappedBranch) this.skipNewlines();
       this.expect('COLON', 'Expected : in ternary operator');
-      const falseValue = this.parseExpression();
+      if (wrappedBranch) this.skipNewlines();
+      const falseValue = this.parseExpression(stopBeforeFieldOptional);
 
       return { type: 'ternary', condition, trueValue, falseValue };
     }
 
     return condition;
+  }
+
+  /**
+   * True when the current `?` closes a field instead of opening a ternary.
+   * The .hs reader (`parser.rs` parse_trait_property) always takes a single
+   * `?` after the field expression as `optional`. This reader already has
+   * ternary, so the mark is only the `?` that sits on a field boundary:
+   * end of line, `}`, `,`, `=`, or end of file.
+   * A newline is not that boundary when the next non-blank line is indented
+   * deeper and continues the expression (`cond ?` / `a : b`). A following
+   * field at the same indent (`String?` / `required: String`) stays optional.
+   */
+  private isFieldOptionalMark(): boolean {
+    if (!this.check('QUESTION')) return false;
+    const next = this.peek(1).type;
+    const boundary =
+      next === 'NEWLINE' ||
+      next === 'RBRACE' ||
+      next === 'COMMA' ||
+      next === 'EQUALS' ||
+      next === 'EOF' ||
+      next === 'DEDENT' ||
+      next === 'INDENT';
+    if (!boundary) return false;
+    const lineBreak = next === 'NEWLINE' || next === 'INDENT' || next === 'DEDENT';
+    if (lineBreak && this.nextLineContinuesTernary()) return false;
+    return true;
+  }
+
+  /** Leading spaces, with a tab counted the same way the lexer counts one. */
+  private lineIndent(line: string): number {
+    let indent = 0;
+    for (const char of line) {
+      if (char === ' ') indent += 1;
+      else if (char === '\t') indent += 4;
+      else break;
+    }
+    return indent;
+  }
+
+  private lineStartsWithOperand(trimmed: string): boolean {
+    return /^(?:true\b|false\b|null\b|[A-Za-z_][A-Za-z0-9_]*|\d|"|'|`|\(|\[|\{|!|-|\+)/.test(
+      trimmed
+    );
+  }
+
+  /** A `:` in code, not inside a string and not after `//`. */
+  private lineHasCodeColon(line: string): boolean {
+    let i = 0;
+    while (i < line.length) {
+      const char = line[i];
+      if (char === '/' && line[i + 1] === '/') return false;
+      if (char === '"' || char === "'" || char === '`') {
+        const quote = char;
+        i++;
+        while (i < line.length && line[i] !== quote) {
+          if (line[i] === '\\') i++;
+          i++;
+        }
+        i++;
+        continue;
+      }
+      if (char === ':') return true;
+      i++;
+    }
+    return false;
+  }
+
+  /**
+   * The next non-blank line continues a ternary when it is indented deeper
+   * than the `?` line, starts with an operand, and a `:` appears before the
+   * indent returns. `provider: String?` followed by `required: String` at the
+   * same indent does not.
+   */
+  private nextLineContinuesTernary(): boolean {
+    const lines = this.source.split(/\r?\n/);
+    const questionLine = lines[this.current().line - 1] ?? '';
+    const questionIndent = this.lineIndent(questionLine);
+    for (let i = this.current().line; i < lines.length; i++) {
+      const line = lines[i] ?? '';
+      const trimmed = line.trim();
+      if (trimmed === '' || trimmed.startsWith('//')) continue;
+      if (this.lineIndent(line) <= questionIndent) return false;
+      if (!this.lineStartsWithOperand(trimmed)) return false;
+      if (this.lineHasCodeColon(line)) return true;
+      for (let j = i + 1; j < lines.length; j++) {
+        const later = lines[j] ?? '';
+        const laterTrim = later.trim();
+        if (laterTrim === '' || laterTrim.startsWith('//')) continue;
+        if (this.lineIndent(later) <= questionIndent) return false;
+        if (this.lineHasCodeColon(later)) return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Field value plus the two marks `.hs` stores on `PropertyNode`:
+   * `optional` from `Type?`, and `default_value` from `Type = expr`.
+   * Both may appear (`Type? = expr`). The value itself is unchanged.
+   */
+  private parseFieldValue(): { value: unknown; mark?: HSPlusFieldMark } {
+    const value = this.parseAssignment(true);
+    const mark: HSPlusFieldMark = {};
+    let marked = false;
+    if (this.isFieldOptionalMark()) {
+      this.advance();
+      mark.optional = true;
+      marked = true;
+    }
+    if (this.check('EQUALS')) {
+      this.advance();
+      mark.default_value = this.parseValue();
+      marked = true;
+    }
+    return marked ? { value, mark } : { value };
   }
 
   /**
@@ -6279,10 +6515,11 @@ export class HoloScriptPlusParser {
     }
 
     // CRITICAL: Advance to prevent infinite loop
-    this.error(
-      `Unexpected token in expression: ${token.type} "${token.value}". Expected value, identifier, or expression`,
-      'HSP300'
-    );
+    const message =
+      token.type === 'PIPE'
+        ? 'A value was required here, and a "|" was found instead.'
+        : `Unexpected token in expression: ${token.type} "${token.value}". Expected value, identifier, or expression`;
+    this.error(message, 'HSP300');
     const err = new Error('ParseError');
     err.message = 'ParseError';
     throw err;
@@ -6760,6 +6997,66 @@ export class HoloScriptPlusParser {
     while (this.check('NEWLINE') || this.check('INDENT') || this.check('DEDENT')) {
       this.advance();
     }
+  }
+
+  /**
+   * Drop the tail of a rejected zone, spatial, or layer block: its name,
+   * parentheses, traits, and brace body. The next statement stays in place.
+   */
+  private skipZoneSpatialLayerTail(): void {
+    if (this.check('HASH')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+    }
+
+    if (this.isZoneSpatialLayerName()) {
+      this.advance();
+    }
+
+    if (this.check('LPAREN')) this.skipParens();
+
+    if (this.check('IDENTIFIER') && this.current().value === 'using') {
+      this.advance();
+      if (this.check('STRING')) this.advance();
+    }
+
+    if (this.check('COLON')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+      if (this.check('LBRACKET')) {
+        this.advance();
+        if (this.check('RBRACKET')) this.advance();
+      }
+    }
+
+    this.skipNewlines();
+    while (this.check('AT')) {
+      this.advance();
+      if (this.check('IDENTIFIER')) this.advance();
+      if (this.check('LPAREN')) this.skipParens();
+      this.skipNewlines();
+    }
+
+    if (this.check('LBRACE')) this.skipBraces();
+  }
+
+  private isZoneSpatialLayerName(): boolean {
+    if (this.check('STRING')) return true;
+    if (!this.check('IDENTIFIER') || this.current().value === 'using') return false;
+    if (this.current().line === this.previous().line) return true;
+
+    let offset = 1;
+    let next = this.peek(offset);
+    while (next.type === 'NEWLINE') {
+      offset += 1;
+      next = this.peek(offset);
+    }
+    return (
+      next.type === 'LPAREN' ||
+      next.type === 'LBRACE' ||
+      next.type === 'AT' ||
+      next.type === 'COLON'
+    );
   }
 
   /** Skip a balanced parenthesised list ( ... ) including nested parens */

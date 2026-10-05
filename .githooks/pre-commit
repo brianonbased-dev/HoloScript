@@ -241,7 +241,13 @@ STAGED_COMPILER_SURFACE=$(git -c core.quotepath=off diff --cached --name-only --
 if [ -n "$STAGED_COMPILER_SURFACE" ]; then
     LEGACY_BRIDGE_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-apex-poison-retired.mjs "$STAGED_COMPILER_SURFACE" 2>&1)
     LEGACY_BRIDGE_STATUS=$?
-    if [ "$LEGACY_BRIDGE_STATUS" -ne 0 ]; then
+    if [ "$LEGACY_BRIDGE_STATUS" -eq 2 ]; then
+        # Exit 2: the gate never judged a file (it could not read the staged list or the
+        # tree). Printing the finding headline here reported violations that did not exist.
+        echo -e "  ${RED}❌ The legacy bridge compiler surface gate could not run, so no file was judged${NC}"
+        echo "$LEGACY_BRIDGE_OUT"
+        FAILED=1
+    elif [ "$LEGACY_BRIDGE_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Legacy bridge compiler import/subpath reopened${NC}"
         echo "$LEGACY_BRIDGE_OUT"
         echo "     Fix: use SceneIRCompiler/R3FNode or native targets; rebuild old bridge targets natively."
@@ -378,7 +384,13 @@ STAGED_RENDER_TSX=$(git -c core.quotepath=off diff --cached --name-only -- 'pack
 if [ -n "$STAGED_RENDER_TSX" ]; then
     RENDER_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-render-surface-native.mjs "$STAGED_RENDER_TSX" 2>&1)
     RENDER_STATUS=$?
-    if [ "$RENDER_STATUS" -ne 0 ]; then
+    if [ "$RENDER_STATUS" -eq 2 ]; then
+        # Exit 2: the gate never judged a file (it could not read the staged list or the
+        # tree). Printing the finding headline here reported violations that did not exist.
+        echo -e "  ${RED}❌ The render-surface native gate could not run, so no file was judged${NC}"
+        echo "$RENDER_OUT"
+        FAILED=1
+    elif [ "$RENDER_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Net-new hand-authored render .tsx (production surface must be HS-native)${NC}"
         echo "$RENDER_OUT"
         echo "     Fix: author it in .hs and compile it (header), make it a compiler example,"
@@ -428,7 +440,13 @@ STAGED_ALL=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=A
 if [ -n "$STAGED_ALL" ]; then
     CHOKE_OUT=$(run_node_with_files_from 30 scripts/holo-ci/check-orchestrator-fetch-canonical.mjs "$STAGED_ALL" 2>&1)
     CHOKE_STATUS=$?
-    if [ "$CHOKE_STATUS" -ne 0 ]; then
+    if [ "$CHOKE_STATUS" -eq 2 ]; then
+        # Exit 2: the gate never judged a file (it could not read the staged list or the
+        # tree). Printing the finding headline here reported violations that did not exist.
+        echo -e "  ${RED}❌ The orchestrator-fetch chokepoint gate could not run, so no file was judged${NC}"
+        echo "$CHOKE_OUT"
+        FAILED=1
+    elif [ "$CHOKE_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ New raw orchestrator-URL literal (CHOKEPOINT-GREW)${NC}"
         echo "$CHOKE_OUT"
         echo "     Fix: use ResilientOrchestratorFetch (packages/connector-core) or @holoscript/config ENDPOINTS,"
@@ -446,13 +464,34 @@ fi
 # the real HoloCompositionParser + trait-dispatch (NO regex). Enforces "edit the spec, not the
 # generated Kotlin". Only runs when the scanner app or the gate is staged. (2D panel emit is guarded
 # by the vitest golden test QuestCompiler.golden.test.ts, run in `pnpm test`.)
+# The emitter injects the app's .hs logic from the COMMITTED quest-mr-templates.generated.ts, so the
+# golden-diff alone cannot see a change to the .logic.hs files or to the Kotlin bridge that compiles
+# them (the checker build in packages/compiler-wasm/pkg-node). `gen-quest-mr-templates.mjs --check`
+# first proves the committed file is what those inputs produce now.
 echo "  ├─ Quest MR emit golden-diff..."
 STAGED_QUEST=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/quest-universal-qr-scanner/**' \
     'packages/core/src/compiler/quest-mr-emit.ts' \
     'packages/core/src/compiler/quest-mr-templates/**' \
+    'packages/core/src/compiler/quest-mr-logic/**' \
+    'packages/core/src/compiler/quest-mr-templates.generated.ts' \
+    'packages/core/scripts/gen-quest-mr-templates.mjs' \
+    'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm' \
     'scripts/holo-ci/check-quest-mr-emit-matches-reference.mts' 2>/dev/null || true)
 if [ -n "$STAGED_QUEST" ]; then
+    QUEST_LOGIC_OUT=$(run_with_timeout 60 node packages/core/scripts/gen-quest-mr-templates.mjs --check 2>&1)
+    if [ $? -ne 0 ]; then
+        echo -e "  ${RED}❌ The Quest app's compiled .hs logic is stale${NC}"
+        echo "$QUEST_LOGIC_OUT"
+        FAILED=1
+    fi
+    # --check reads the working copy; a regenerated file left unstaged would pass it while the
+    # commit carries the old one.
+    if ! git diff --quiet -- packages/core/src/compiler/quest-mr-templates.generated.ts; then
+        echo -e "  ${RED}❌ quest-mr-templates.generated.ts has unstaged changes${NC}"
+        echo "     Fix: git add packages/core/src/compiler/quest-mr-templates.generated.ts (or restore it)."
+        FAILED=1
+    fi
     QUEST_MR_OUT=$(run_with_timeout 60 npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts 2>&1)
     QUEST_MR_STATUS=$?
     if [ "$QUEST_MR_STATUS" -ne 0 ]; then
@@ -613,7 +652,13 @@ STAGED_MD=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=AC
 if [ -n "$STAGED_MD" ]; then
     STATS_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-hardcoded-stats.mjs "$STAGED_MD" 2>&1)
     STATS_STATUS=$?
-    if [ "$STATS_STATUS" -ne 0 ]; then
+    if [ "$STATS_STATUS" -eq 2 ]; then
+        # Exit 2: the gate never judged a file (it could not read the staged list or the
+        # tree). Printing the finding headline here reported violations that did not exist.
+        echo -e "  ${RED}❌ The hardcoded-stats gate could not run, so no file was judged${NC}"
+        echo "$STATS_OUT"
+        FAILED=1
+    elif [ "$STATS_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Hardcoded ecosystem count in a staged doc${NC}"
         echo "$STATS_OUT"
         echo "     Fix: reference docs/NUMBERS.md or the verification command instead of the literal count."
@@ -767,7 +812,13 @@ fi
 echo "  ├─ .hs conformance (Rust validate_detailed)..."
 HS_CONF_OUT=$(run_with_timeout 300 node scripts/holo-ci/check-hs-conformance.mjs 2>&1)
 HS_CONF_STATUS=$?
-if [ "$HS_CONF_STATUS" -ne 0 ]; then
+if [ "$HS_CONF_STATUS" -eq 2 ]; then
+    # Exit 2 means the checker never ran, so no file was judged.
+    echo -e "  ${RED}❌ The .hs conformance gate could not run the Rust checker${NC}"
+    echo "$HS_CONF_OUT"
+    echo "     Fix: install Rust with rustup (the gate also looks in ~/.cargo/bin), or set CARGO to the cargo binary."
+    FAILED=1
+elif [ "$HS_CONF_STATUS" -ne 0 ]; then
     echo -e "  ${RED}❌ A published .hs conformance file was rejected by the Rust checker${NC}"
     echo "$HS_CONF_OUT"
     echo "     Fix: teach the checker the program's rule, or fix the .hs file. Do not widen the allow-list."
@@ -789,7 +840,13 @@ STAGED_SRC=$(git -c core.quotepath=off diff --cached --name-only --diff-filter=A
 if [ -n "$STAGED_SRC" ]; then
     QR_OUT=$(run_node_with_files_from 20 scripts/holo-ci/check-no-third-party-qr.mjs "$STAGED_SRC" 2>&1)
     QR_STATUS=$?
-    if [ "$QR_STATUS" -ne 0 ]; then
+    if [ "$QR_STATUS" -eq 2 ]; then
+        # Exit 2: the gate never judged a file (it could not read the staged list or the
+        # tree). Printing the finding headline here reported violations that did not exist.
+        echo -e "  ${RED}❌ The no-third-party-QR gate could not run, so no file was judged${NC}"
+        echo "$QR_OUT"
+        FAILED=1
+    elif [ "$QR_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Third-party QR-service literal in staged source${NC}"
         echo "$QR_OUT"
         echo "     Fix: generate QR codes locally via the 'qrcode' npm package (data: URI), never a hosted API."

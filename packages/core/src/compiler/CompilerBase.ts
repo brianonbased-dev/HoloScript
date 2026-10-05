@@ -16,7 +16,12 @@ import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC
 import { WorkflowStep } from './identity/AgentIdentity';
 import type { CulturalProfileMetadata } from './identity';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
-import type { HoloComposition } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloDomainBlock,
+  HoloObjectDecl,
+  HoloSpatialGroup,
+} from '../parser/HoloCompositionTypes';
 import type {
   GLTFExportResult,
   ARCompilationResult,
@@ -193,6 +198,46 @@ export interface CompilationResult {
 
   /** Optional documentation bundle (if generateDocs enabled) */
   documentation?: TripleOutputResult;
+}
+
+/** What {@link flattenCompositionScenes} hands a compiler that builds one world. */
+export interface FlattenedScenes {
+  /** The composition to compile: the input itself when no scene adds anything. */
+  composition: HoloComposition;
+  /**
+   * Scene environments that are not applied. `appliedFrom` names the scene whose
+   * environment applies instead, or is `null` when the composition's own does.
+   */
+  unappliedEnvironments: Array<{ scene: string; appliedFrom: string | null }>;
+  /**
+   * Scene objects that are not built, because `takenName` (the object's own name,
+   * the name of an object inside it, or an identifier building it would declare)
+   * gives an identifier something already in the output declares. `takenBy` is
+   * the compiler's plain words for that something ("a light", "the camera");
+   * without it, it is another object. Only filled when the compiler passes
+   * `identifierOf` or `declared`.
+   */
+  leftOutObjects: Array<{ scene: string; object: string; takenName: string; takenBy?: string }>;
+}
+
+/**
+ * The identifiers a compiler declares in the one scope it builds objects in,
+ * beyond the one each object's name gives. See {@link flattenCompositionScenes}.
+ */
+export interface DeclaredIdentifiers {
+  /**
+   * Every identifier the compiler declares in that scope when it compiles
+   * `content`, each mapped to plain words for the part that declares it ("a
+   * light", "the camera"). `content` is the composition as it will be compiled,
+   * without the objects scenes add. Called at most once, and only when a scene
+   * has objects to add.
+   */
+  reserved?(content: HoloComposition): ReadonlyMap<string, string>;
+  /**
+   * Every identifier building `obj` declares in that scope, with those of the
+   * objects inside it: its name's own, and any the compiler derives from it.
+   */
+  of?(obj: HoloObjectDecl): string[];
 }
 
 /**
@@ -420,6 +465,229 @@ export function escapeStringValue(value: string, target: EscapeTarget): string {
   }
 }
 
+/**
+ * Read `scene` blocks the way a compiler that builds ONE world reads the rest of
+ * the composition.
+ *
+ * The parser keeps what a `scene "X" { ... }` block holds on `composition.scenes`,
+ * not on `composition.objects`. A compiler that reads only `composition.objects`
+ * therefore leaves every object written inside a scene out of its output, and
+ * says nothing. Such a compiler calls this before it compiles and then compiles
+ * the composition it returns: each scene's objects follow the top-level objects,
+ * scene by scene, and go through the compiler's own object path. A scene has no
+ * transform, so each object keeps its own position. Compilers that extend
+ * {@link CompilerBase} call it through {@link CompilerBase.flattenScenes};
+ * SceneIRCompiler and the Quest world emitter, which do not extend it, call it directly.
+ *
+ * Environment: the composition's own `environment` applies when it has one;
+ * otherwise the first scene that declares one supplies it. One world has one
+ * environment, so every other scene environment is listed in
+ * `unappliedEnvironments`, with the one that applies instead.
+ *
+ * Names: scenes are separate in the source but become one world here. A compiler
+ * that turns object names into identifiers passes `identifierOf`. A scene object
+ * is then not built when it, or an object inside it, would get an identifier that
+ * an object already in the output has (two scenes that each have a "Ground", or
+ * a scene reusing a top-level name); it is listed in `leftOutObjects` instead of
+ * producing output that cannot load. Objects are not the only things a compiler
+ * names: one that also declares identifiers for other parts (lights, sounds, the
+ * camera), or derives more than one from an object, passes `declared`, and a
+ * scene object is then also left out when building it would declare one already
+ * declared. Only the compiler knows what it names, so it says; this does not
+ * guess. Clashes among the composition's own content are left alone, so its
+ * output stays exactly as before.
+ *
+ * A compiler that has somewhere to report writes {@link CompilerBase.sceneWarnings}
+ * (an emitter that is not a compiler class, {@link describeLeftOutScenes}) into its
+ * output, so nothing is left out without being named. When no scene adds
+ * anything, the input itself is returned, so a composition without scenes compiles
+ * exactly as before. The input is never changed.
+ */
+export function flattenCompositionScenes(
+  composition: HoloComposition,
+  identifierOf?: (name: string) => string,
+  declared?: DeclaredIdentifiers
+): FlattenedScenes {
+  const scenes = composition.scenes ?? [];
+  const unappliedEnvironments: FlattenedScenes['unappliedEnvironments'] = [];
+  const leftOutObjects: FlattenedScenes['leftOutObjects'] = [];
+
+  let environment = composition.environment;
+  let appliedFrom: string | null = null;
+  for (const scene of scenes) {
+    if (!scene.environment) continue;
+    if (environment) {
+      unappliedEnvironments.push({ scene: scene.name, appliedFrom });
+    } else {
+      environment = scene.environment;
+      appliedFrom = scene.name;
+    }
+  }
+
+  // Every name in these objects and in the objects inside them.
+  const namesIn = (objects: HoloObjectDecl[] | undefined, into: string[]): string[] => {
+    for (const obj of objects ?? []) {
+      into.push(String(obj.name ?? ''));
+      namesIn(obj.children, into);
+    }
+    return into;
+  };
+  const groupNames = (groups: HoloSpatialGroup[] | undefined, into: string[]): string[] => {
+    for (const group of groups ?? []) {
+      namesIn(group.objects, into);
+      groupNames(group.groups, into);
+    }
+    return into;
+  };
+  // Each identifier already declared, with the compiler's words for what declares
+  // it (undefined: another object). Filled only when a scene has objects to add.
+  const taken = new Map<string, string | undefined>();
+  const take = (identifier: string, by?: string) => {
+    if (!taken.has(identifier)) taken.set(identifier, by);
+  };
+  const checked = identifierOf !== undefined || declared !== undefined;
+  if (checked && scenes.some((scene) => (scene.objects ?? []).length > 0)) {
+    if (identifierOf) {
+      for (const name of namesIn(composition.objects, groupNames(composition.spatialGroups, []))) {
+        take(identifierOf(name));
+      }
+    }
+    const content =
+      environment === composition.environment ? composition : { ...composition, environment };
+    for (const [identifier, by] of declared?.reserved?.(content) ?? []) take(identifier, by);
+  }
+
+  const sceneObjects: HoloObjectDecl[] = [];
+  for (const scene of scenes) {
+    for (const obj of scene.objects ?? []) {
+      if (checked) {
+        // [the name a warning quotes, the identifier it gives]: each name as the
+        // source spells it first, then what the compiler says building it declares.
+        const claims: Array<[string, string]> = [
+          ...(identifierOf
+            ? namesIn([obj], []).map((name): [string, string] => [name, identifierOf(name)])
+            : []),
+          ...(declared?.of?.(obj) ?? []).map((id): [string, string] => [id, id]),
+        ];
+        const clash = claims.find(([, identifier]) => taken.has(identifier));
+        if (clash) {
+          const takenBy = taken.get(clash[1]);
+          leftOutObjects.push({
+            scene: scene.name,
+            object: String(obj.name ?? ''),
+            takenName: clash[0],
+            ...(takenBy === undefined ? {} : { takenBy }),
+          });
+          continue;
+        }
+        for (const [, identifier] of claims) take(identifier);
+      }
+      sceneObjects.push(obj);
+    }
+  }
+
+  if (sceneObjects.length === 0 && environment === composition.environment) {
+    return { composition, unappliedEnvironments, leftOutObjects };
+  }
+  return {
+    composition: {
+      ...composition,
+      objects: [...(composition.objects ?? []), ...sceneObjects],
+      ...(environment ? { environment } : {}),
+    },
+    unappliedEnvironments,
+    leftOutObjects,
+  };
+}
+
+/**
+ * One plain sentence for each piece of scene content {@link flattenCompositionScenes} left out,
+ * with names escaped for `target` and kept on one line. A compiler that extends
+ * {@link CompilerBase} gets these from {@link CompilerBase.sceneWarnings}; an emitter that is a
+ * function of its own calls this, and writes each sentence into its output as a WARNING comment.
+ */
+export function describeLeftOutScenes(flattened: FlattenedScenes, target: EscapeTarget): string[] {
+  const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]+/g, ' ');
+  const quote = (name: string) => `"${escapeStringValue(oneLine(name), target)}"`;
+  return [
+    ...flattened.unappliedEnvironments.map(({ scene, appliedFrom }) => {
+      const applied =
+        appliedFrom === null
+          ? "the composition's own environment"
+          : `the environment in scene ${quote(appliedFrom)}`;
+      return `the environment in scene ${quote(scene)} is not applied: this output is one world with one environment, and ${applied} applies.`;
+    }),
+    ...flattened.leftOutObjects.map(
+      ({ scene, object, takenName, takenBy = 'another object' }) =>
+        `object ${quote(object)} in scene ${quote(scene)} is not built: this output is one world, and ${oneLine(takenBy)} in it already uses the name ${quote(takenName)}.`
+    ),
+  ];
+}
+
+/**
+ * Read `group "X" { ... }` blocks as the spatial groups they describe.
+ *
+ * The `.holo` spelling of a group is `spatial_group`, and `group` is not a
+ * keyword. The parser still accepts `group "X" { ... }`, the way it accepts any
+ * block it does not know: it keeps it on `composition.domainBlocks` as a custom
+ * domain block, with the objects written inside it on `children` and its other
+ * lines (`position: [...]`, ...) on `properties`. A compiler that builds objects
+ * from `composition.objects` and `composition.spatialGroups` therefore leaves
+ * every object inside such a block out of its output, and says nothing, while
+ * the `.hsplus` reading of the same text draws them inside their group.
+ *
+ * This returns a composition in which each such block is a spatial group
+ * instead: the same name, its lines as the group's properties (so `position`,
+ * `rotation` and `scale` move the group the way they move a `spatial_group`), and
+ * its objects inside it, each keeping its own position relative to the group.
+ * The groups follow the composition's own spatial groups, in source order, and
+ * the blocks leave `domainBlocks`, so nothing reads them twice. A compiler calls
+ * this before it compiles and then compiles the composition it returns. If it
+ * also calls {@link flattenCompositionScenes}, it calls this first: flattening
+ * then counts the objects inside these groups among the names already in use, so
+ * with `identifierOf` a scene object that would clash with one of them is left
+ * out and listed, rather than built twice under one identifier.
+ *
+ * Not carried over, because a spatial group has no place for them: the block's
+ * `@trait` names (each trait's settings stay among the properties) and its
+ * `on...` handlers. A `group` written inside a group block is read by the parser
+ * as one of that block's properties, not as a block, so it is not read either.
+ *
+ * Without group blocks the input itself is returned, so such a composition
+ * compiles exactly as before. The input is never changed.
+ */
+export function readGroupBlocksAsSpatialGroups(composition: HoloComposition): HoloComposition {
+  const blocks = composition.domainBlocks ?? [];
+  const isGroupBlock = (block: HoloDomainBlock) =>
+    block.domain === 'custom' && String(block.keyword ?? '').toLowerCase() === 'group';
+  if (!blocks.some(isGroupBlock)) return composition;
+
+  const groups: HoloSpatialGroup[] = [];
+  const otherBlocks: HoloDomainBlock[] = [];
+  for (const block of blocks) {
+    if (!isGroupBlock(block)) {
+      otherBlocks.push(block);
+      continue;
+    }
+    groups.push({
+      type: 'SpatialGroup',
+      name: block.name,
+      properties: Object.entries(block.properties ?? {}).map(([key, value]) => ({
+        type: 'GroupProperty' as const,
+        key,
+        value,
+      })),
+      objects: block.children ?? [],
+      ...(block.loc ? { loc: block.loc } : {}),
+    });
+  }
+  return {
+    ...composition,
+    domainBlocks: otherBlocks,
+    spatialGroups: [...(composition.spatialGroups ?? []), ...groups],
+  };
+}
+
 export abstract class CompilerBase implements ICompiler {
   protected rbac = getRBAC();
 
@@ -526,6 +794,28 @@ export abstract class CompilerBase implements ICompiler {
    */
   protected defaultOutputFileName(): string {
     return 'output.txt';
+  }
+
+  /**
+   * {@link flattenCompositionScenes}, for a compiler that extends this base. It
+   * calls this at the start of `compile()`, compiles the composition it returns,
+   * and writes {@link CompilerBase.sceneWarnings} into its output.
+   */
+  protected flattenScenes(
+    composition: HoloComposition,
+    identifierOf?: (name: string) => string,
+    declared?: DeclaredIdentifiers
+  ): FlattenedScenes {
+    return flattenCompositionScenes(composition, identifierOf, declared);
+  }
+
+  /**
+   * One plain sentence for each piece of scene content {@link CompilerBase.flattenScenes}
+   * left out, with names escaped for `target` and kept on one line. The compiler
+   * writes each sentence into its output as a WARNING comment.
+   */
+  protected sceneWarnings(flattened: FlattenedScenes, target: EscapeTarget): string[] {
+    return describeLeftOutScenes(flattened, target);
   }
 
   // =========================================================================

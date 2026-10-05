@@ -959,7 +959,7 @@ export function BrittneyChatPanel() {
           .syncState(useSceneGraphStore.getState().nodes, useSceneStore.getState().code ?? '');
       }
     } catch (err) {
-      accumulatedText = `Connection error — is Ollama running? (${String(err)})`;
+      accumulatedText = `Connection error — Brittney's model server did not answer. (${String(err)})`;
       const segments = buildChatSegments(accumulatedText, toolResults);
       setChatMessages((m) =>
         m.map((msg) =>

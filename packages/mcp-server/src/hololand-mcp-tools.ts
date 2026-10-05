@@ -45,9 +45,13 @@ import {
   getHololandClient,
   HololandClient,
 } from '@holoscript/core/hololand';
-import { queryOllama, isOllamaAvailable, getActiveProvider } from './ollama-client.js';
+import {
+  queryOllama,
+  isOllamaAvailable,
+  getActiveProvider,
+  describeLocalModel,
+} from './ollama-client.js';
 import { resolveServiceSecret } from './holokey-resolver';
-import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import {
   handleRobotAiMcpTool,
   clearRobotAiRegistries,
@@ -1057,7 +1061,8 @@ export const hololandMcpTools: Tool[] = [
     name: 'hololand_create_npc',
     description:
       'Create a sovereign NPC inside a HoloLand Shard or World. ' +
-      'Supports local BYOK model routing (ollama, gemma edge) and cloud Brittney. ' +
+      'Supports local BYOK model routing (our own HoloServe / HoloLlama; Ollama when ' +
+      'LLM_PROVIDER names it, including the gemma edge of hybrid-gemma) and cloud Brittney. ' +
       'NPCs can have behavior trees, dialogue trees, and spatial positions.',
     inputSchema: {
       type: 'object',
@@ -1095,7 +1100,7 @@ export const hololandMcpTools: Tool[] = [
           description:
             'Inference provider for NPC dialogue/behavior. ' +
             'cloud = remote API (OpenRouter/Anthropic). ' +
-            'local = Ollama on this machine. ' +
+            'local = our own local model server (HoloServe or HoloLlama). ' +
             'sovereign = deterministic rule-based (no LLM). ' +
             'Default: cloud.',
         },
@@ -3561,6 +3566,9 @@ async function handleHololandNPCGenerateDialogue(args: Record<string, unknown>):
 async function handleHololandNPCBYOKStatus(): Promise<unknown> {
   const localAvailable = await isOllamaAvailable();
   const activeProvider = getActiveProvider();
+  // Our own HoloServe / HoloLlama (D.117 retired Ollama). Ollama appears here only when
+  // LLM_PROVIDER names it: 'ollama', or 'hybrid-gemma', whose edge half is Ollama.
+  const localModel = describeLocalModel();
   const [openrouterKey, anthropicKey, openaiKey] = await Promise.all([
     resolveServiceSecret('OPENROUTER_API_KEY'),
     resolveServiceSecret('ANTHROPIC_API_KEY'),
@@ -3571,19 +3579,17 @@ async function handleHololandNPCBYOKStatus(): Promise<unknown> {
     success: true,
     activeProvider,
     localAvailable,
-    localModels: localAvailable
-      ? [
-          { model: LOCAL_DEFAULT_MODEL, source: 'ollama', purpose: 'NPC dialogue / behavior' },
-          { model: 'gemma4:e4b', source: 'ollama', purpose: 'Edge NPC inference' },
-        ]
-      : [],
+    localModels:
+      localAvailable && localModel ? [{ ...localModel, purpose: 'NPC dialogue / behavior' }] : [],
     cloudProviders: {
       openrouter: Boolean(openrouterKey),
       anthropic: Boolean(anthropicKey),
       openai: Boolean(openaiKey),
     },
     sovereignMode: true,
-    note: 'BYOK status reflects HoloKey service-secret resolution. Ollama availability is runtime-probed.',
+    note:
+      'BYOK status reflects HoloKey service-secret resolution. Local model availability ' +
+      '(our own HoloServe / HoloLlama, or an Ollama that LLM_PROVIDER names) is runtime-probed.',
   };
 }
 
@@ -3656,7 +3662,7 @@ async function handleHololandBrittneyNPCMode(args: Record<string, unknown>): Pro
       modelProvider === 'sovereign'
         ? 'CONFIG-ONLY: Brittney sovereign mode is configured, but no inference loop or spatial binding has been started. The NPC record is upserted in the in-memory registry only.'
         : modelProvider === 'local'
-          ? 'CONFIG-ONLY: Brittney local mode is configured, but no Ollama inference loop has been started. The NPC record is upserted in the in-memory registry only.'
+          ? 'CONFIG-ONLY: Brittney local mode is configured (our own HoloServe / HoloLlama), but no local inference loop has been started. The NPC record is upserted in the in-memory registry only.'
           : 'CONFIG-ONLY: Brittney cloud mode is configured, but no cloud inference loop has been started. The NPC record is upserted in the in-memory registry only.',
   };
 }

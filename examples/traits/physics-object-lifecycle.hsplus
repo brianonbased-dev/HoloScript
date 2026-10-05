@@ -758,7 +758,7 @@ composition "PhysicsObjectLifecycle" {
   // HUD -- Physics and scoring panels
   // ========================================================================
 
-  panel "ScoreHUD" {
+  template "ScoreHUD" {
     position: "top-left"
 
     text "Score" {
@@ -779,7 +779,7 @@ composition "PhysicsObjectLifecycle" {
     }
   }
 
-  panel "ObjectStates" {
+  template "ObjectStates" {
     position: "top-right"
 
     text "Vase" {
