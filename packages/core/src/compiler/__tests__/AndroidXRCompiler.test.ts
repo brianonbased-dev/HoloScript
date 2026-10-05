@@ -1,6 +1,8 @@
 import { createHash } from 'crypto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AndroidXRCompiler } from '../AndroidXRCompiler';
+import { parseHolo } from '../../parser/HoloCompositionParser';
+import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 function hashRecordStrings(obj: Record<string, unknown>): string {
   const parts: string[] = [];
@@ -36,6 +38,14 @@ function minimalComposition(overrides: any = {}) {
     zones: [],
     ...overrides,
   };
+}
+
+/** Parse .holo source that must read without an error. */
+function parseClean(source: string): HoloComposition {
+  const result = parseHolo(source);
+  expect(result.errors).toEqual([]);
+  expect(result.ast).toBeDefined();
+  return result.ast as HoloComposition;
 }
 
 describe('AndroidXRCompiler', () => {
@@ -734,5 +744,422 @@ describe('AndroidXRCompiler', () => {
   it('exports compileToAndroidXR convenience function', async () => {
     const mod = await import('../AndroidXRCompiler');
     expect(mod.compileToAndroidXR).toBeTypeOf('function');
+  });
+
+  // ─── Scene blocks ─────────────────────────────────────────────────
+  // The parser keeps a scene's contents on composition.scenes, not composition.objects.
+
+  describe('scene blocks', () => {
+    const crate = `object "SceneCrate" {
+      geometry: "sphere"
+      position: [1.5, 2.5, -3.5]
+    }`;
+    const glasses = () =>
+      new AndroidXRCompiler({
+        packageName: 'com.test.app',
+        activityName: 'TestActivity',
+        formFactor: 'glasses',
+      });
+
+    it('compiles an object written only inside a scene like the same object at the top level', () => {
+      const inScene = parseClean(`composition "Scenes" {\n  scene "Main" {\n    ${crate}\n  }\n}`);
+      const atTop = parseClean(`composition "Scenes" {\n  ${crate}\n}`);
+      expect(inScene.objects).toEqual([]);
+
+      const result = compiler.compile(inScene, 'test-token');
+      expect(result.activityFile).toContain(
+        'val SceneCrate = Entity.create(xrSession, "SceneCrate", Pose(Vector3(1.5f, 2.5f, -3.5f), Quaternion.Identity))'
+      );
+      expect(result.activityFile).toContain('// Geometry: IcoSphereShape');
+      expect(result.nodeFactoryFile).toContain(
+        'fun createSceneCrate(session: XRSession): Entity {'
+      );
+      expect(result).toEqual(compiler.compile(atTop, 'test-token'));
+    });
+
+    it('does the same on the glasses screen', () => {
+      const inScene = parseClean(`composition "Scenes" {\n  scene "Main" {\n    ${crate}\n  }\n}`);
+      const atTop = parseClean(`composition "Scenes" {\n  ${crate}\n}`);
+
+      const result = glasses().compile(inScene, 'test-token');
+      expect(result.activityFile).toContain('headlineContent = { Text("SceneCrate") }');
+      expect(result.nodeFactoryFile).toContain(
+        'fun createSceneCrate(session: XRSession): Entity {'
+      );
+      expect(result).toEqual(glasses().compile(atTop, 'test-token'));
+    });
+
+    it("emits top-level objects first, then each scene's objects in scene order", () => {
+      const result = compiler.compile(
+        parseClean(`composition "Scenes" {
+  scene "First" {
+    object "InFirst" { geometry: "cube" }
+  }
+  object "AtTop" { geometry: "cube" }
+  scene "Second" {
+    object "InSecond" { geometry: "cube" }
+  }
+}`),
+        'test-token'
+      );
+      const order = (text: string, prefix: string) =>
+        ['AtTop', 'InFirst', 'InSecond'].map((n) => text.indexOf(`${prefix}${n}`));
+      for (const [text, prefix] of [
+        [result.activityFile, '// Object: '],
+        [result.nodeFactoryFile, 'fun create'],
+      ]) {
+        const at = order(text, prefix);
+        expect(at.every((i) => i >= 0)).toBe(true);
+        expect([...at].sort((a, b) => a - b)).toEqual(at);
+      }
+    });
+
+    it('uses the environment written inside a scene when the composition has none', () => {
+      const result = compiler.compile(
+        parseClean(`composition "Scenes" {
+  scene "Main" {
+    environment { skybox: "sunset" }
+  }
+}`),
+        'test-token'
+      );
+      expect(result.activityFile).toContain('// Preset: "sunset"');
+      expect(result.activityFile).not.toContain('WARNING');
+    });
+
+    it("names a scene environment it does not apply, and says the composition's own applies", () => {
+      // The composition's own environment is written after the scene; it still wins.
+      const source = `composition "Scenes" {
+  scene "Night" {
+    environment { skybox: "night" }
+  }
+  environment { skybox: "sunset" }
+}`;
+      const result = compiler.compile(parseClean(source), 'test-token');
+      expect(result.activityFile).toContain('// Preset: "sunset"');
+      expect(result.activityFile).not.toContain('"night"');
+      expect(result.activityFile).toContain(
+        `// WARNING: the environment in scene "Night" is not applied: this output is one world with one environment, and the composition's own environment applies.`
+      );
+      // The glasses screen draws no environment, so there is none to say is not applied.
+      expect(glasses().compile(parseClean(source), 'test-token').activityFile).not.toContain(
+        'WARNING'
+      );
+    });
+
+    it('leaves out a scene object whose name is already taken, and names it', () => {
+      const result = compiler.compile(
+        parseClean(`composition "Scenes" {
+  scene "Day" {
+    object "Ground" { geometry: "plane" }
+  }
+  scene "Night" {
+    object "Ground" { geometry: "plane" }
+    object "Moon" { geometry: "sphere" }
+  }
+}`),
+        'test-token'
+      );
+      // One scope has one `val Ground`, and one factory one `createGround`.
+      expect(result.activityFile.match(/val Ground = /g)).toHaveLength(1);
+      expect(result.nodeFactoryFile.match(/fun createGround\(/g)).toHaveLength(1);
+      expect(result.activityFile).toContain('val Moon = Entity.create(');
+      expect(result.activityFile).toContain(
+        '// WARNING: object "Ground" in scene "Night" is not built: this output is one world, and another object in it already uses the name "Ground".'
+      );
+    });
+
+    // Objects are not the only names in the activity's Subspace: every part below declares the
+    // `val` named beside it there, and the activity has an `xrSession` of its own. A scene
+    // object that would declare one again is left out the same way, and the WARNING says what
+    // has it. A sound's `val` is derived from its name (`WindId`).
+    const declarations = (text: string, name: string) =>
+      text.match(new RegExp(`\\bval ${name} = `, 'g')) ?? [];
+
+    it.each([
+      ['a light', 'light "Ground" point { intensity: 1 }', 'Ground', 1],
+      [
+        'a group',
+        'spatial_group "Ground" {\n    object "Lamp" { mesh: "sphere" }\n  }',
+        'Ground',
+        1,
+      ],
+      ['a zone', 'zone "Ground" { shape: "box" }', 'Ground', 1],
+      ['a sound', 'audio "Wind" { src: "wind.ogg" }', 'WindId', 1],
+      ['the XR session', '', 'xrSession', 0],
+      ['the sound pool', 'audio "Wind" { src: "wind.ogg" }', 'soundPool', 0],
+    ])('leaves out a scene object whose val %s already declares', (by, part, name, declaredBy) => {
+      const result = compiler.compile(
+        parseClean(`composition "Parts" {
+  ${part}
+  scene "Level" {
+    object "${name}" { geometry: "cube" }
+    object "Crate" { geometry: "cube" }
+  }
+}`),
+        'test-token'
+      );
+      // `xrSession` and `soundPool` are properties of the activity, so there is no `val` to count.
+      expect(declarations(result.activityFile, name)).toHaveLength(declaredBy);
+      expect(result.activityFile).toContain('val Crate = Entity.create(');
+      expect(result.activityFile).toContain(
+        `// WARNING: object "${name}" in scene "Level" is not built: this output is one world, and ${by} in it already uses the name "${name}".`
+      );
+    });
+
+    it('counts the vals a part derives from its name, both ways round', () => {
+      const result = compiler.compile(
+        parseClean(`composition "Derived" {
+  object "Floor" {
+    geometry: "box"
+    material: { color: "#888888" }
+  }
+  light "CrateColor" point { intensity: 1 }
+  scene "Level" {
+    object "FloorColor" { geometry: "cube" }
+    object "Crate" {
+      geometry: "box"
+      material: { color: "#aa5500" }
+    }
+  }
+}`),
+        'test-token'
+      );
+      // Floor's material colour is the `val FloorColor`.
+      expect(declarations(result.activityFile, 'FloorColor')).toHaveLength(1);
+      expect(result.activityFile).toContain(
+        '// WARNING: object "FloorColor" in scene "Level" is not built: this output is one world, and another object in it already uses the name "FloorColor".'
+      );
+      // Building Crate would declare `CrateColor` for its material, and the light has `CrateColor`.
+      expect(declarations(result.activityFile, 'CrateColor')).toHaveLength(1);
+      expect(declarations(result.activityFile, 'Crate')).toHaveLength(0);
+      expect(result.activityFile).toContain(
+        '// WARNING: object "Crate" in scene "Level" is not built: this output is one world, and a light in it already uses the name "CrateColor".'
+      );
+    });
+
+    it('counts the objects inside an object and inside a spatial group: they are in the same scope', () => {
+      const result = compiler.compile(
+        parseClean(`composition "Nested" {
+  object "Leg" { geometry: "cylinder" }
+  spatial_group "Props" {
+    object "Lamp" { mesh: "sphere" }
+  }
+  scene "Level" {
+    object "Table" {
+      geometry: "box"
+      object "Leg" { geometry: "cylinder" }
+    }
+    object "Lamp" { geometry: "cube" }
+    object "Desk" {
+      geometry: "box"
+      object "Drawer" { geometry: "box" }
+    }
+    object "Chest" {
+      geometry: "box"
+      object "Drawer" { geometry: "box" }
+    }
+  }
+}`),
+        'test-token'
+      );
+      for (const name of ['Leg', 'Lamp', 'Drawer', 'Desk']) {
+        expect(declarations(result.activityFile, name)).toHaveLength(1);
+      }
+      // Desk is built with the Drawer inside it; the others would declare a second one.
+      for (const left of ['Table', 'Chest']) {
+        expect(declarations(result.activityFile, left)).toHaveLength(0);
+      }
+      for (const [object, taken] of [
+        ['Table', 'Leg'],
+        ['Lamp', 'Lamp'],
+        ['Chest', 'Drawer'],
+      ]) {
+        expect(result.activityFile).toContain(
+          `// WARNING: object "${object}" in scene "Level" is not built: this output is one world, and another object in it already uses the name "${taken}".`
+        );
+      }
+      expect(result.activityFile.match(/WARNING/g)).toHaveLength(3);
+    });
+
+    it('counts an object inside an object on the headset only: the glasses screen declares no val for it', () => {
+      // Children get a `val` in the Subspace but no method in the node factory, which has one per
+      // top-level object. So a scene object named like a child clashes on the headset, and on the
+      // glasses screen it does not.
+      const source = `composition "Nested" {
+  object "Parent" {
+    geometry: "box"
+    object "Kid" { geometry: "cube" }
+  }
+  scene "Level" {
+    object "Kid" { geometry: "cube" }
+  }
+}`;
+      const headset = compiler.compile(parseClean(source), 'test-token');
+      expect(declarations(headset.activityFile, 'Kid')).toHaveLength(1);
+      expect(headset.nodeFactoryFile).not.toContain('fun createKid(');
+      expect(headset.activityFile).toContain(
+        '// WARNING: object "Kid" in scene "Level" is not built: this output is one world, and another object in it already uses the name "Kid".'
+      );
+
+      const onGlasses = glasses().compile(parseClean(source), 'test-token');
+      expect(onGlasses.nodeFactoryFile.match(/fun createKid\(/g)).toHaveLength(1);
+      expect(onGlasses.activityFile.match(/Text\("Kid"\)/g)).toHaveLength(2);
+      expect(onGlasses.activityFile).not.toContain('WARNING');
+    });
+
+    it('builds a second object that has the same trait: the vals a trait derives from each name clash with nothing', () => {
+      const result = compiler.compile(
+        parseClean(`composition "Traits" {
+  object "Face1" {
+    @face_tracking
+    geometry: "cube"
+  }
+  scene "Level" {
+    object "Face2" {
+      @face_tracking
+      geometry: "cube"
+    }
+  }
+}`),
+        'test-token'
+      );
+      for (const name of ['Face1', 'Face2']) {
+        expect(declarations(result.activityFile, name)).toHaveLength(1);
+        expect(declarations(result.activityFile, `${name}Face`)).toHaveLength(1);
+      }
+      expect(result.activityFile).not.toContain('WARNING');
+    });
+
+    it('leaves out a scene object that would add a second method to the node factory', () => {
+      // Each object is `create` + its name with the first letter capitalized, so "crate" and
+      // "Crate" are one method, and the factory has a `createDefaultEntity` of its own.
+      const source = `composition "Factory" {
+  light "Sun" directional { intensity: 1 }
+  object "Crate" { geometry: "cube" }
+  scene "Level" {
+    object "crate" { geometry: "cube" }
+    object "DefaultEntity" { geometry: "cube" }
+    object "Barrel" { geometry: "cube" }
+  }
+}`;
+      for (const make of [() => compiler, glasses]) {
+        const result = make().compile(parseClean(source), 'test-token');
+        expect(result.nodeFactoryFile.match(/fun createCrate\(/g)).toHaveLength(1);
+        expect(result.nodeFactoryFile.match(/fun createDefaultEntity\(/g)).toHaveLength(1);
+        expect(result.nodeFactoryFile).toContain('fun createBarrel(session: XRSession): Entity {');
+        expect(result.activityFile).toContain(
+          '// WARNING: object "crate" in scene "Level" is not built: this output is one world, and another object in it already uses the name "createCrate".'
+        );
+        expect(result.activityFile).toContain(
+          '// WARNING: object "DefaultEntity" in scene "Level" is not built: this output is one world, and the node factory in it already uses the name "createDefaultEntity".'
+        );
+        expect(result.activityFile.match(/WARNING/g)).toHaveLength(2);
+      }
+    });
+
+    it('builds a scene object that shares its name with a light on the glasses screen: it declares no val there', () => {
+      const result = glasses().compile(
+        parseClean(`composition "Parts" {
+  light "Ground" point { intensity: 1 }
+  scene "Level" {
+    object "Ground" { geometry: "cube" }
+  }
+}`),
+        'test-token'
+      );
+      expect(result.activityFile).toContain('headlineContent = { Text("Ground") }');
+      expect(result.nodeFactoryFile).toContain('fun createGround(session: XRSession): Entity {');
+      expect(result.activityFile).not.toContain('WARNING');
+    });
+
+    it('reads the traits written on a scene object: they reach the manifest', () => {
+      const result = compiler.compile(
+        parseClean(`composition "Scenes" {
+  scene "Main" {
+    object "Hand" {
+      @hand_tracking
+      geometry: "cube"
+    }
+  }
+}`),
+        'test-token'
+      );
+      expect(result.manifestFile).toContain('android.permission.HAND_TRACKING');
+      expect(compiler.compile(minimalComposition(), 'test-token').manifestFile).not.toContain(
+        'android.permission.HAND_TRACKING'
+      );
+    });
+
+    it('builds only the scene objects this platform keeps, and only they take names', () => {
+      // The parser does not attach a @platform() written inside a scene, so it is set on the AST.
+      const comp = parseClean(`composition "Scenes" {
+  scene "Level" {
+    object "PhoneOnly" { geometry: "cube" }
+    object "Hero" { geometry: "sphere" }
+    object "Hero" { geometry: "box" }
+  }
+}`);
+      const [phoneOnly, heroForOthers, heroForAndroidXR] = comp.scenes![0].objects;
+      phoneOnly.platformConstraint = { include: ['ios'], exclude: [] };
+      heroForOthers.platformConstraint = { include: ['visionos'], exclude: [] };
+      heroForAndroidXR.platformConstraint = { include: ['android-xr'], exclude: [] };
+
+      for (const make of [() => compiler, glasses]) {
+        const result = make().compile(structuredClone(comp), 'test-token');
+        expect(result.activityFile).not.toContain('PhoneOnly');
+        expect(result.nodeFactoryFile).not.toContain('PhoneOnly');
+        expect(result.nodeFactoryFile.match(/fun createHero\(/g)).toHaveLength(1);
+        expect(result.activityFile).not.toContain('WARNING');
+      }
+      expect(compiler.compile(structuredClone(comp), 'test-token').activityFile).toContain(
+        '// Geometry: BoxShape'
+      );
+    });
+
+    it('lets a scene object use the name of a top-level object this platform excludes', () => {
+      const result = compiler.compile(
+        parseClean(`composition "Scenes" {
+  @platform(visionos) object "Hero" { geometry: "sphere" }
+  scene "Level" {
+    object "Hero" { geometry: "box" }
+  }
+}`),
+        'test-token'
+      );
+      expect(result.activityFile.match(/val Hero = /g)).toHaveLength(1);
+      expect(result.nodeFactoryFile.match(/fun createHero\(/g)).toHaveLength(1);
+      expect(result.activityFile).not.toContain('WARNING');
+    });
+
+    it('builds a scene object that clashes with nothing exactly as if it were written at the top level', () => {
+      const parts = `light "Sun" directional { intensity: 1 }
+  environment { skybox: "sunset" }
+  object "Floor" {
+    geometry: "box"
+    material: { color: "#888888" }
+  }
+  spatial_group "Props" {
+    object "Lamp" { mesh: "sphere" }
+  }
+  audio "Wind" { src: "wind.ogg" }
+  zone "Pad" { shape: "box" }`;
+      const barrel = `object "Barrel" {
+    geometry: "cylinder"
+    material: { color: "#aa5500" }
+  }`;
+      for (const make of [() => compiler, glasses]) {
+        const inScene = make().compile(
+          parseClean(`composition "C" {\n  ${parts}\n  scene "Level" {\n    ${barrel}\n  }\n}`),
+          'test-token'
+        );
+        const atTop = make().compile(
+          parseClean(`composition "C" {\n  ${parts}\n  ${barrel}\n}`),
+          'test-token'
+        );
+        expect(inScene.activityFile).not.toContain('WARNING');
+        expect(inScene).toEqual(atTop);
+      }
+    });
   });
 });
