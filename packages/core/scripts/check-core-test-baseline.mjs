@@ -86,33 +86,52 @@ const stableFailures = new Set(manifest.stableFailures?.tests ?? []);
 // The question the receipt answers is "was the tree clean when testing STARTED",
 // i.e. did this run exercise what HEAD contains.
 //
-// The holotorch parity harness also APPENDS, by design (2026-09-24 audit: prior
-// receipts are never deleted), to two untracked paths: receipts/history/ and
-// receipts/parity-history.ndjson. They are outputs of an earlier run, never inputs to
-// this one, so an untracked entry at exactly those paths does not make a start dirty.
-// Counting them refused every second baseline in a worktree as "dirty". Any other
-// untracked or modified path still does.
-const SUITE_APPEND_ONLY_OUTPUTS = [
-  'src/reconstruction/holotorch/receipts/history/',
-  'src/reconstruction/holotorch/receipts/parity-history.ndjson',
-];
+// The holotorch parity harness (writeParityReceipt) also APPENDS on every run, by
+// design (2026-09-24 audit: prior receipts are never deleted): one new file
+// receipts/history/<op>-parity.<stamp>.receipt.json and one line in
+// receipts/parity-history.ndjson. Both are untracked outputs of an earlier run, never
+// inputs to this one, so an UNTRACKED file of exactly those two shapes does not make
+// a start dirty. Counting them refused every second baseline in a worktree.
+//
+// Nothing else is forgiven, and three details keep it that narrow:
+//  - Untracked files are listed one by one (--untracked-files=all, passed explicitly
+//    so the user's status.showUntrackedFiles cannot change the answer). Left to the
+//    default, git folds a wholly untracked history/ into one "history/" line, and a
+//    test file planted there would hide behind the exemption while vitest's default
+//    include glob ran it.
+//  - Only a *.receipt.json directly inside history/, or the ndjson file itself, is
+//    forgiven. Any other file under history/ is dirty.
+//  - The tracked tips, receipts/<op>-parity.receipt.json, are NOT forgiven, although
+//    the same writeParityReceipt call rewrites them with a fresh recordedAt. Other
+//    tests read a tip as input (holotorch-shadow-execution.test.ts), so a modified tip
+//    means this run did not test what HEAD contains. Restore them (git restore) before
+//    the next run. That the harness rewrites a tip when only recordedAt changed is the
+//    root cause, tracked as board task task_1791175164083_i65f.
+const SUITE_APPEND_ONLY_OUTPUT =
+  /^src\/reconstruction\/holotorch\/receipts\/(?:history\/[^/]+\.receipt\.json|parity-history\.ndjson)$/;
 const startedDirty = (() => {
-  const r = spawnSync('git', ['status', '--porcelain', '--', '.'], {
+  const status = spawnSync('git', ['status', '--porcelain', '--untracked-files=all', '--', '.'], {
     cwd: coreRoot,
     encoding: 'utf8',
   });
-  if (r.status !== 0) return true;
-  // Porcelain paths are relative to the repository root; the outputs above are
+  // Porcelain paths are relative to the repository root; the pattern above is
   // relative to packages/core.
   const prefix = spawnSync('git', ['rev-parse', '--show-prefix'], {
     cwd: coreRoot,
     encoding: 'utf8',
-  }).stdout?.trim();
-  const appendOnly = new Set(SUITE_APPEND_ONLY_OUTPUTS.map((p) => `${prefix ?? ''}${p}`));
-  return r.stdout
+  });
+  if (status.status !== 0 || prefix.status !== 0) return true;
+  const corePrefix = prefix.stdout.trim();
+  return status.stdout
     .split('\n')
     .filter((line) => line.trim().length > 0)
-    .some((line) => !(line.startsWith('?? ') && appendOnly.has(line.slice(3))));
+    .some((line) => {
+      if (!line.startsWith('?? ')) return true;
+      const path = line.slice(3);
+      return !(
+        path.startsWith(corePrefix) && SUITE_APPEND_ONLY_OUTPUT.test(path.slice(corePrefix.length))
+      );
+    });
 })();
 
 // Obtain the run output: either read a completed run's log, or produce one.
