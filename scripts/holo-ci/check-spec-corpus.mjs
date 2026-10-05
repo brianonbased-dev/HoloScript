@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
  * The executable spec (I2, spec-as-corpus): every case in
- * packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl is a NORMATIVE claim about the
- * language — source text plus the verdict the grammar authority must reach (and, for invalid
- * cases, a substring the diagnostic must contain). This runner replays all of them against the
- * REAL pkg-node WASM artifact and fails on any drift.
+ * packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl is source text plus the verdict
+ * the grammar authority reaches today (and, for invalid cases, a substring the diagnostic must
+ * contain). Most are NORMATIVE claims about the language; a case tagged honest-gap records a
+ * verdict the language should not keep, until the fix that closes it flips the case. This runner
+ * replays all of them against the REAL pkg-node WASM artifact and fails on any drift.
  *
  * Why a corpus and not prose: prose specs exist because humans read them; agents need runnable
  * truth. The corpus is machine-verifiable (this runner), diffable (a grammar change that moves a
@@ -162,15 +163,20 @@ for (const testCase of cases) {
   }
 }
 
+// An honest-gap case records today's verdict for a program the language should judge differently.
+// It is checked like every other case: a verdict change on it is drift, so the fix that closes it
+// has to flip the case on purpose instead of passing unnoticed. Only the count is reported apart.
+const isHonestGap = (testCase) => (testCase.tags ?? []).includes('honest-gap');
+const driftIds = new Set(drifts.map((drift) => drift.id));
+const holding = (group) => group.filter((testCase) => !driftIds.has(testCase.id)).length;
+const normative = cases.filter((testCase) => !isHonestGap(testCase));
+const honestGaps = cases.filter(isHonestGap);
 console.log(
-  `[spec-corpus] ${cases.length - drifts.length}/${cases.length} normative cases hold against authority wasm ${artifactSha.slice(0, 12)}…`
+  `[spec-corpus] ${holding(normative)}/${normative.length} normative cases hold against authority wasm ${artifactSha.slice(0, 12)}…`
 );
-// An honest-gap case records today's verdict for a program the language should judge differently,
-// so the fix that closes it has to flip the case on purpose instead of passing unnoticed.
-const honestGaps = cases.filter((testCase) => (testCase.tags ?? []).includes('honest-gap')).length;
-if (honestGaps > 0) {
+if (honestGaps.length > 0) {
   console.log(
-    `[spec-corpus] ${honestGaps} of them are honest gaps on record (tag honest-gap): verdicts the checker gives today that the language should not keep`
+    `[spec-corpus] ${holding(honestGaps)}/${honestGaps.length} honest-gap cases still record today's verdict (tag honest-gap), which the language should not keep`
   );
 }
 
