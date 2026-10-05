@@ -121,7 +121,11 @@ export function publicAnonymousContext(): SigningContext {
     signer: null,
     signingReason: 'anonymous-public-tier',
     signingProtocol: 'classical',
-    scopes: [],
+    // tools:read, the scope every PUBLIC_ANON_TOOLS entry needs (http-server.ts). Dispatch now checks
+    // the caller's scopes for every tool (#407), and with none the anonymous tier would refuse its own
+    // tools (claude3's P1-2 on #407). A fresh array on every call, so one call cannot widen the next
+    // (CANARY-X006).
+    scopes: ['tools:read'],
   };
 }
 

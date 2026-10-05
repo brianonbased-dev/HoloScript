@@ -91,7 +91,7 @@ import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import {
-  authorizeToolCall,
+  assertReentrantToolAuthorized,
   callerPrincipal,
   isTrustedLocalCaller,
   registerKnownTools,
@@ -350,14 +350,11 @@ function assertBatchInnerToolAuthorized(
   signingCtx?: SigningContext,
   args?: Record<string, unknown>
 ): void {
+  assertReentrantToolAuthorized(toolName, signingCtx, 'Batch inner tool');
+  // Only the stdio server's local user skips the host-path rule below. A hosted call with no
+  // context is nobody, and its children are held to it too (claude3's P2-2 on #407: `!signingCtx`
+  // here let a context-less hosted batch child name a host path).
   if (isTrustedLocalCaller(signingCtx)) return;
-
-  const authorization = authorizeToolCall(toolName, signingCtx?.scopes ?? []);
-  if (!authorization.authorized) {
-    throw new Error(
-      `Batch inner tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
-    );
-  }
 
   // Gate 3's host-path rule is not re-run for children, so the batch would be a way round it:
   // apply the same check to the child's own arguments (task_1790214096204_56rj).
@@ -548,6 +545,21 @@ async function executeBatchInnerTool(
   signingCtx?: SigningContext
 ): Promise<unknown> {
   assertBatchInnerToolAuthorized(toolName, signingCtx, toolArgs || {});
+  return executeReentrantTool(toolName, toolArgs, signingCtx);
+}
+
+/**
+ * Run a tool on behalf of another tool through the canonical dispatcher, with the caller's own
+ * context, and hand back the tool's result the way a direct call returns it: a failure throws, a
+ * JSON payload comes back parsed. handlers.ts sends execute_workflow's steps and its own
+ * batch_tool_call children here, so they reach every registered tool, not only handleTool's switch,
+ * and _handleSingleToolLogic re-checks the caller's scopes for each one.
+ */
+export async function executeReentrantTool(
+  toolName: string,
+  toolArgs: Record<string, unknown>,
+  signingCtx?: SigningContext
+): Promise<unknown> {
   const res = await _handleSingleToolLogic(toolName, toolArgs || {}, signingCtx);
 
   if ((res as { isError?: boolean }).isError) {
@@ -565,6 +577,16 @@ async function executeBatchInnerTool(
   }
 }
 
+/** A handler's own MCP tool result that reports failure: { content: [...], isError: true }. */
+function isMcpErrorEnvelope(value: unknown): value is { content: unknown[]; isError: true } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as { isError?: unknown }).isError === true &&
+    Array.isArray((value as { content?: unknown }).content)
+  );
+}
+
 // Implementation of executeSingleTool logic previously bound above
 export async function _handleSingleToolLogic(
   name: string,
@@ -572,10 +594,14 @@ export async function _handleSingleToolLogic(
   signingCtx?: SigningContext
 ) {
   try {
-    // 0. A caller without admin scope names no location on the server's disk. Gate 3 checks this at the
-    // HTTP entry, but only for the outer call. A tool re-entered from inside the server (a batch child, a
-    // mesh-invoked tool, a workflow step) arrives here with the caller's context, and before this line the
-    // only other check was the batch one (claude3-x402's review of #398). No context is the stdio path.
+    // 0. The caller's scopes cover THIS tool. At the HTTP entry this repeats Gate 2 on the same
+    // scopes. Its purpose is every other way in: a batch child, a workflow step, a mesh-invoked
+    // tool, and whatever re-enters next. Each of those once reached a tool Gate 2 never saw,
+    // because Gate 2 checks only the outer name. No context is the trusted stdio path.
+    assertReentrantToolAuthorized(name, signingCtx, 'Tool');
+    // 0b. A caller without admin scope names no location on the server's disk. Gate 3 checks this at
+    // the HTTP entry, but only for the outer call. A tool re-entered from inside the server (a batch
+    // child, a mesh-invoked tool, a workflow step) arrives here with the caller's context (#396).
     if (signingCtx) assertNoHostPathArgs(name, args, signingCtx.scopes, signingCtx.localCustody);
 
     // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
@@ -609,6 +635,13 @@ export async function _handleSingleToolLogic(
     // Tools that returned null failed to match inside their specialized handler (should be rare with Map)
     if (result === null) {
       throw new Error(`Handler for '${name}' returned null (tool not processed).`);
+    }
+
+    // A handler that answers with its own MCP error envelope has failed. Wrapped as text inside a
+    // success envelope, that failure read as success to every caller: the HTTP reply, a workflow
+    // step, a mesh invoke (browser_execute with a missing session did). Pass it through as is.
+    if (isMcpErrorEnvelope(result)) {
+      return result;
     }
 
     // Hologram MCP envelope detection (task_1778114362909_zp7u). Tools that

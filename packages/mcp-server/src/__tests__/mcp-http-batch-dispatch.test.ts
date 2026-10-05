@@ -112,15 +112,17 @@ describe('stateless HTTP batch_tool_call dispatch parity', () => {
   });
 
   // task mplw: a batch that arrives with NO context lost its caller inside the server (off the
-  // stdio server), so each child is checked against no scopes instead of being waved through.
-  it('with no caller context over HTTP, a batch child is refused', async () => {
+  // stdio server). Since #407 dispatch checks the caller's scopes for the batch itself, so the
+  // batch is refused before any child runs; were it not, each child would be checked against no
+  // scopes (assertBatchInnerToolAuthorized).
+  it('with no caller context over HTTP, the batch is refused before any child runs', async () => {
     const code = 'composition "NobodyBatch" { object "Cube" { geometry: "cube" } }';
-    const response = await onTransport('http', () =>
+    const response = (await onTransport('http', () =>
       _handleSingleToolLogic('batch_tool_call', { calls: [{ name: 'parse_hs', args: { code } }] })
-    );
-    const payload = parseBatchResponse(response);
-    expect(payload.summary).toMatchObject({ total: 1, succeeded: 0, failed: 1 });
-    expect(payload.results[0].error).toContain('Batch inner tool authorization denied');
+    )) as { isError?: boolean; content?: Array<{ text?: string }> };
+    expect(response.isError).toBe(true);
+    expect(response.content?.[0]?.text ?? '').toContain('authorization denied');
+    expect(response.content?.[0]?.text ?? '').not.toContain('NobodyBatch');
   });
 
   it('with no caller context on the stdio server, the batch is the local user and runs', async () => {

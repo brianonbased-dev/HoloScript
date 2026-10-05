@@ -961,6 +961,29 @@ export function authorizeToolCall(
 }
 
 /**
+ * Authorize a tool dispatched from INSIDE another tool -- a batch child, a workflow step, a
+ * mesh-invoked tool -- against the ORIGINAL caller's scopes. Gate 2 checked only the outer tool's
+ * name, and the inner one may need more: execute_workflow needs tools:write, and its steps may name
+ * a tools:admin tool. No context is the local user only on the stdio server (isTrustedLocalCaller);
+ * on the hosted server a call with no context lost its caller and is checked against no scopes
+ * (task mplw, #474; claude3's P2-2 on #407). Throws, naming the tool and the scopes it needs
+ * (task_1790204588326_myvj).
+ */
+export function assertReentrantToolAuthorized(
+  toolName: string,
+  signingCtx: { scopes?: readonly string[] } | undefined | null,
+  via = 'Inner tool'
+): void {
+  if (isTrustedLocalCaller(signingCtx)) return;
+  const authorization = authorizeToolCall(toolName, [...(signingCtx?.scopes ?? [])]);
+  if (!authorization.authorized) {
+    throw new Error(
+      `${via} authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
+    );
+  }
+}
+
+/**
  * Get the risk level for a tool.
  */
 export function getToolRiskLevel(toolName: string): ToolRiskLevel {
