@@ -108,9 +108,10 @@ facade census below.
 `// Native .hsplus surface for <file>.ts` header and one `@trait` block with `capability_tags`,
 an `@receipt` block and a median of two handlers (2,249 files carry the header). On 2026-06-25
 between 05:30 and 17:36, 117 commits added 2,266 `.hsplus` files, 2,217 of them facades; 116 of
-those commits also rewrote `native-coverage-baseline.json` (70 are titled "D.104 … wave"). That
-day the baseline went from 1,847 native files (75.8%) to 4,114 (87.42%); it was 162 (22.6%) on
-2026-06-22 and was reseeded to 3,719 (86.2%) on 2026-07-17. No generator was
+those commits also rewrote `native-coverage-baseline.json` (70 are titled "D.104 … wave"). Those
+commits took the baseline from 1,847 native files (75.8%) to 4,114 (87.42%); the day had started at
+67.37%, after earlier reseeds of trait cards. It was 162 (22.6%) on 2026-06-22 and was reseeded to
+3,719 (86.2%) on 2026-07-17. No generator was
 committed. Their handlers call 2,666 distinct functions, and 2,655 of
 them are defined nowhere (no HoloScript definition, no builtin table). Nothing loads them except
 `packages/std/src/math.hsplus` and `collections.hsplus`. They are counted by
