@@ -1,13 +1,13 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-10-05T05:29:02Z",
+  "generatedAt": "2026-10-05T06:06:52Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "89608d3d2437cc483ba7ba9d0c682ea46ab4d4f7",
+  "sourceCommit": "e53ca62747408520a1b81ae5ae043e3ee87dbaa0",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --mode no-install --target nodejs --out-dir <scratch>/build1 --release",
-    "wasm-pack build --mode no-install --target nodejs --out-dir <scratch>/build2 --release",
-    "copy holoscript_wasm.js, holoscript_wasm.d.ts, holoscript_wasm_bg.wasm and holoscript_wasm_bg.wasm.d.ts from build1 into pkg-node"
+    "wasm-pack build --mode no-install --target nodejs --out-dir <scratch>/build-e1 --release",
+    "wasm-pack build --mode no-install --target nodejs --out-dir <scratch>/build-e2 --release",
+    "copy holoscript_wasm_bg.wasm from build-e1 into pkg-node (the generated .js, .d.ts and _bg.wasm.d.ts are byte-identical to the committed ones)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -17,10 +17,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 555513,
-    "wasmSha256": "96a6f4465d65a6438ef9db599b563aceb60007a317540cbb221892ec0f4124be",
-    "previousWasmSha256": "b23ffa3a29cf6c81eec9a4327745e4b0767cbba9e2217166146d266970bb5d27",
+    "wasmBytes": 556484,
+    "wasmSha256": "261f5eb31d19adadd07b95d3cc11546bf182dd36fb66e54e0223bc9dc371fe2d",
+    "previousWasmSha256": "96a6f4465d65a6438ef9db599b563aceb60007a317540cbb221892ec0f4124be",
     "repeatBuildSha256Matched": true,
-    "note": "Rebuilt pkg-node from the G11 checker after its second independent review (claude3, PR #438): a lambda shares the scope stack instead of copying it (checking cost now grows with the program, not with lambdas x visible names); an enum name is not callable; validate_detailed_in_context reads an optional `namespaces` list (enums and modules, readable, never called); a local stops being callable once it is given a value; object-literal fallback values and `move` statements resolve their names; columns count UTF-16 code units; a repeated parameter is reported where it is written. Two release builds, each with its own CARGO_TARGET_DIR, produced the same digest. wasm-bindgen 0.2.108 and wasm-opt from the wasm-pack cache (--mode no-install). The generated .js and .d.ts differ from the previous artifact only in the doc comment of validate_detailed_in_context; pkg-node/package.json was kept. +365 bytes over the previous G11 build (555,148). The browser build in pkg/ was not rebuilt (last rebuilt 2026-08-04). No version bump."
+    "note": "Rebuilt pkg-node from e53ca6274, which keeps the second-review G11 fixes (fd91496cf, digest 96a6f446...4124be) from lowering the nesting depth the WASM survives: FunctionNode.param_locs is boxed (AstNode 224 to 208 bytes) and the lambda frame push and the HS-NAME-002 text moved out of infer_expression. Measured with this build: nested parentheses 175 (f15be4b45: 175), nested if 1,031 (1,031), a + chain 5,947 terms (4,674); 6,000 locals plus 6,000 lambdas check in 0.17 s. Two release builds, each with its own CARGO_TARGET_DIR, produced the same digest; wasm-bindgen 0.2.108 and wasm-opt from the wasm-pack cache (--mode no-install). Only holoscript_wasm_bg.wasm changed; pkg-node/package.json was kept. +971 bytes over 96a6f446 (555,513); +1,336 over the f15be4b45 build (555,148). The browser build in pkg/ was not rebuilt (last rebuilt 2026-08-04). No version bump."
   }
 }
