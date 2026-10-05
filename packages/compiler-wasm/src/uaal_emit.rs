@@ -171,10 +171,22 @@ struct UaalBorrowedBuffer {
     forwardable_parameter: bool,
 }
 
+/// A Holo capability a file imports (G21 phase 2): its call lowers to the arguments, left to
+/// right, and `EXEC [abi, argc]`, and the host's handler pushes the one result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct UaalHostCall {
+    /// `holo.<module>.<function>.v<version>`, from the declaration, never the local alias.
+    abi: String,
+    param_types: Vec<Option<String>>,
+    return_type: Option<String>,
+}
+
 #[derive(Debug)]
 struct UaalEmitter<'a> {
     functions: Vec<&'a FunctionNode>,
     function_names: HashSet<String>,
+    /// Imported Holo capabilities, by the name the file calls them.
+    host_calls: HashMap<String, UaalHostCall>,
     function_params: HashMap<String, Vec<String>>,
     function_param_types: HashMap<String, Vec<Option<String>>>,
     function_return_types: HashMap<String, Option<String>>,
@@ -269,11 +281,12 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         .map(|function| function.name.clone())
         .collect::<HashSet<_>>();
 
-    validate_imports_resolved(ast, &function_names)?;
+    let host_calls = validate_imports_resolved(ast, &function_names)?;
 
     let mut emitter = UaalEmitter {
         functions,
         function_names,
+        host_calls,
         function_params,
         function_param_types,
         function_return_types,
@@ -528,26 +541,37 @@ fn resolve_aggregate_layout(
     Ok(layout)
 }
 
+/// Every import resolved: a file import to a function of this file, and a `holo:` import to the
+/// capability its module declares (G21 phase 2), returned by local name.
 fn validate_imports_resolved(
     ast: &Ast,
     function_names: &HashSet<String>,
-) -> Result<(), UaalEmitError> {
+) -> Result<HashMap<String, UaalHostCall>, UaalEmitError> {
+    let mut host_calls = HashMap::new();
     for node in &ast.body {
         if let AstNode::Import(import) = node {
-            // A `holo:` import is a Holo capability the checker accepts (G21). Phase 2 lowers a
-            // call to `EXEC holo.<module>.<function>.v<N>`; until then UAAL refuses it by name.
+            // The checker, which ran first, has refused unknown modules and names; this keeps
+            // the ABI the declaration states, so binding is by capability and version.
             if let crate::holo_modules::HostSource::Module(module, declarations) =
                 crate::holo_modules::resolve_host_source(&import.source)
             {
-                let specifier = import.specifiers.first();
-                let name = specifier.map(|s| s.imported.as_str()).unwrap_or_default();
-                let version = specifier
-                    .and_then(|s| declarations.functions.get(&s.imported))
-                    .map(|function| function.version)
-                    .unwrap_or(1);
-                return Err(UaalEmitError::new(format!(
-                    "[HS-HOST-004] `holo:{module}/{name}` has no binding on UAAL yet (G21 phase 2 lowers it to EXEC `holo.{module}.{name}.v{version}`); the checker accepts the call and this engine refuses it by name"
-                )));
+                for specifier in &import.specifiers {
+                    let declared = declarations.functions.get(&specifier.imported).ok_or_else(|| {
+                        UaalEmitError::new(format!(
+                            "[HS-HOST-002] `holo:{module}` declares no `{}`",
+                            specifier.imported
+                        ))
+                    })?;
+                    host_calls.insert(
+                        specifier.local.clone(),
+                        UaalHostCall {
+                            abi: format!("holo.{module}.{}.v{}", specifier.imported, declared.version),
+                            param_types: declared.param_types.clone(),
+                            return_type: declared.return_type.clone(),
+                        },
+                    );
+                }
+                continue;
             }
             for specifier in &import.specifiers {
                 if !function_names.contains(&specifier.imported) {
@@ -559,7 +583,7 @@ fn validate_imports_resolved(
             }
         }
     }
-    Ok(())
+    Ok(host_calls)
 }
 
 /// Calls to user functions anywhere in `node`. Covers every statement and expression form
@@ -1253,6 +1277,9 @@ impl<'a> UaalEmitter<'a> {
                 "`buffer(count, fill)` is valid only as the initializer of an explicitly typed owned-buffer `let` binding",
             ));
         }
+        if let Some(host) = self.host_calls.get(callee).cloned() {
+            return self.emit_host_capability_call(callee, &host, call);
+        }
         if !self.function_names.contains(callee) {
             return Err(UaalEmitError::new(format!(
                 "unresolved function call `{}` in compile_to_uaal",
@@ -1275,6 +1302,33 @@ impl<'a> UaalEmitter<'a> {
             ));
         }
         self.emit_user_function_call(callee, call)
+    }
+
+    /// A Holo capability call (G21 phase 2): each argument at its declared type, left to right,
+    /// then `EXEC [abi, argc]`. The host's handler pops the arguments and pushes one result, the
+    /// stack contract of the `hs.*.binary.v1` ABIs. A host with no binding refuses the call.
+    fn emit_host_capability_call(
+        &mut self,
+        callee: &str,
+        host: &UaalHostCall,
+        call: &CallExpression,
+    ) -> Result<(), UaalEmitError> {
+        if call.arguments.len() != host.param_types.len() {
+            return Err(UaalEmitError::new(format!(
+                "arity mismatch calling `{}` in compile_to_uaal: expected {}, got {}",
+                callee,
+                host.param_types.len(),
+                call.arguments.len()
+            )));
+        }
+        for (argument, param_type) in call.arguments.iter().zip(&host.param_types) {
+            self.emit_expression_with_expected(argument, param_type.as_deref())?;
+        }
+        self.emit_op(
+            OP_EXEC,
+            vec![Value::from(host.abi.clone()), Value::from(host.param_types.len())],
+        );
+        Ok(())
     }
 
     fn emit_owned_buffer_returning_call(
@@ -2928,9 +2982,7 @@ impl<'a> UaalEmitter<'a> {
                 let AstNode::Identifier(callee) = call.callee.as_ref() else {
                     return None;
                 };
-                self.function_return_types
-                    .get(&callee.name)
-                    .and_then(|annotation| annotation.as_deref())
+                self.call_return_annotation(&callee.name)
                     .and_then(annotation_type)
             }
             AstNode::BinaryExpression(binary)
@@ -2973,9 +3025,7 @@ impl<'a> UaalEmitter<'a> {
                 let AstNode::Identifier(callee) = call.callee.as_ref() else {
                     return false;
                 };
-                self.function_return_types
-                    .get(&callee.name)
-                    .and_then(|annotation| annotation.as_deref())
+                self.call_return_annotation(&callee.name)
                     == Some(expected)
             }
             AstNode::BinaryExpression(binary) => {
@@ -3007,9 +3057,7 @@ impl<'a> UaalEmitter<'a> {
                 let AstNode::Identifier(callee) = call.callee.as_ref() else {
                     return false;
                 };
-                self.function_return_types
-                    .get(&callee.name)
-                    .and_then(|annotation| annotation.as_deref())
+                self.call_return_annotation(&callee.name)
                     .is_some_and(is_bool_annotation)
             }
             AstNode::BinaryExpression(binary) => {
@@ -3043,6 +3091,15 @@ impl<'a> UaalEmitter<'a> {
         self.current_function
             .as_deref()
             .ok_or_else(|| UaalEmitError::new("internal compile_to_uaal error: no active function"))
+    }
+
+    /// The declared result type of a call: a function of this file, or an imported Holo
+    /// capability (G21 phase 2).
+    fn call_return_annotation(&self, name: &str) -> Option<&str> {
+        self.function_return_types
+            .get(name)
+            .and_then(|annotation| annotation.as_deref())
+            .or_else(|| self.host_calls.get(name).and_then(|host| host.return_type.as_deref()))
     }
 
     fn current_function_return_type(&self) -> Result<Option<&String>, UaalEmitError> {
@@ -3160,6 +3217,11 @@ impl<'a> UaalEmitter<'a> {
         let AstNode::Identifier(callee) = call.callee.as_ref() else {
             return Ok(());
         };
+        // A capability always pushes one result.
+        if self.host_calls.contains_key(&callee.name) {
+            self.emit_op(OP_POP, Vec::new());
+            return Ok(());
+        }
         if !self.function_names.contains(&callee.name) {
             return Ok(());
         }

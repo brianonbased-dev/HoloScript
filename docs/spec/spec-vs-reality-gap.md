@@ -38,7 +38,7 @@
 | G18 | one file ending, one reader                                                            | true for `holoscript validate` only; `parse`, `compile`, `build`, `diff` and `run` read `.hs` with other readers and accept what `validate` refuses                                                                                                                                | ❌                                      |
 | G19 | `.hsplus` compiles to targets, never through JavaScript                                | bodies run via `new Function`; webgpu, godot and urdf compile no behavior; webgpu emits a TypeScript host                                                                                                                                                                          | ❌                                      |
 | G20 | the three-surface tracer is a language property                                        | the gate script rewrites `.hs` source and branches in TypeScript; imports are inert; an import from a missing file passes                                                                                                                                                          | ⚠️ **harness**                          |
-| G21 | a program can use a Holo tool (HoloAbsorb, HoloCI, HoloMesh…) through a checked import | no checked way: host calls are action strings no checker reads; `import { f } from "holo:absorb"` is valid and means nothing (a misspelled name, a wrong argument count and a missing module all pass); MCP pipeline stages compile to a throw, a pass-through or a `console.warn` | ❌ proposal                             |
+| G21 | a program can use a Holo tool (HoloAbsorb, HoloCI, HoloMesh…) through a checked import | no checked way: host calls are action strings no checker reads; `import { f } from "holo:absorb"` is valid and means nothing (a misspelled name, a wrong argument count and a missing module all pass); MCP pipeline stages compile to a throw, a pass-through or a `console.warn` | ⚠️ phases 1–2 in review (checker, UAAL) |
 
 ---
 
@@ -600,6 +600,11 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   `holo:` imports against the embedded `holo:absorb` declarations (`HS-HOST-001`–`004`, and
   `HS-SCOPE-001` for a local stand-in); `.hsplus` documents send their holo imports and each
   document's are checked once. Engines refuse a Holo call by name; phase 2 binds it on UAAL.
+- **STATUS — PHASE 2 BUILT, in review (2026-10-04).** UAAL compiles a Holo call to its arguments
+  and `EXEC ["holo.<module>.<function>.v<N>", argc]`; a host binds the name or the run ends in
+  error. Declarations may pass only `i32`, `f32`, `f64` and `bool` (ABI v1). Native and the
+  Kotlin bridge still refuse by name. Not yet: a host that binds a capability, the `run` route
+  and its permission switch (phase 3, after G15).
 
 ---
 

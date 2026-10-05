@@ -293,8 +293,12 @@ function gate(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
 A Holo tool is imported by name from its module, `holo:<name>` (G21). The checker knows each
 module's declarations (`packages/std/src/holo/<name>.hs`), so a call is checked like a local
 function's: its argument count and types, and its result type. Only a function that states its
-types may call one, and only by name: a capability is not a value. No engine binds a Holo call
-yet; each refuses it by name (`HS-HOST-004`).
+types may call one, and only by name: a capability is not a value. A declaration states every
+parameter and result type, and each is `i32`, `f32`, `f64` or `bool`, the values capability ABI
+v1 carries. UAAL compiles a call to its arguments, left to right, and one host instruction,
+`EXEC ["holo.<module>.<function>.v<N>", argc]`, where `N` is the declared version; the host that
+runs it binds that name, or the run ends in error. Native and the Kotlin bridge refuse a Holo call
+by name (`HS-HOST-004`).
 
 ```hs
 import { manifest_audit_passes } from "holo:absorb"
@@ -903,10 +907,10 @@ Reading an `@unknown` struct field (in every function), and `??` (in functions t
 
 An import from a Holo module, `import { f } from "holo:<name>"` (G21, since 2026-09-29):
 
-- `HS-HOST-001` — a module the checker does not know, a malformed module source (`holo://x`, `holo:Absorb`, `holo:absorb/x`), or another scheme (`HOLO:absorb`, `https:`), which is not read as a file
+- `HS-HOST-001` — a module the checker does not know, a malformed module source (`holo://x`, `holo:Absorb`, `holo:absorb/x`), or another scheme (`HOLO:absorb`, `https:`), which is not read as a file; also a module whose declarations are broken (a capability with no `@host` block, an unstated type, or a type ABI v1 does not carry), with the reason
 - `HS-HOST-002` — a name the module does not declare, at the name, with the closest declared one
 - `HS-HOST-003` — a capability used where its call cannot be checked: in a function that states no types, or as a value (stored, passed or returned) instead of called by name
-- `HS-HOST-004` — a valid capability call on an engine that has no binding for it yet (UAAL and the Kotlin bridge; native refuses any `holo:` import as a non-relative path)
+- `HS-HOST-004` — a valid capability call on an engine that has no binding for it yet (the Kotlin bridge; native refuses any `holo:` import as a non-relative path). UAAL compiles the call (G21 phase 2, 2026-10-04); a UAAL host with no binding for its `EXEC` ends the run in error
 - `HS-SCOPE-001` — a function, struct or enum of the file that has the name of a Holo import (every engine resolves an import by name)
 
 These errors carry the line and column of the name, call, declaration or function. `validate_detailed_in_context` runs the same check on one function lifted out of a larger document, given the document's functions and names; the `.hsplus` reader uses it for typed functions.
@@ -981,6 +985,7 @@ Joseph's review stays reserved for the four protected classes: spend and custody
 
 Changes made under these gates:
 
+- **2026-10-04, G21 phase 2** ([proposal](../../proposals/Host_Capability_Imports_v1.md)): `compile_to_uaal` lowers a Holo call to its arguments, each at its declared type, and `EXEC ["holo.<module>.<function>.v<N>", argc]`, the `hs.*.binary.v1` stack contract (the host pops the arguments and pushes one result); a call made as a statement drops its result. A declaration may pass only `i32`, `f32`, `f64` and `bool` (capability ABI v1). Measured: the one declared capability, `holo:absorb` `manifest_audit_passes(): bool`, already fits, so no module and no program changes verdict; the demo now compiles for UAAL, returns the host's answer when a host binds it and ends the run in error when none does. Native and the Kotlin bridge still refuse.
 - **2026-09-29, G21 phase 1** ([proposal](../../proposals/Host_Capability_Imports_v1.md)): `import { f } from "holo:<name>"` is checked against the module declarations embedded in the checker (`holo:absorb` first); the codes above; a capability is only called by name, never used as a value; `.hsplus` documents send their holo imports to the checker and each document's imports are checked once. Measured in HoloScript, Hololand and ai-ecosystem: 0 of 236 tracked `.hs` files and 0 of 2,984 tracked `.hsplus` files change verdict; the ten G21 corpus cases recorded as honest gaps flip to refusals. Engines refuse a Holo call by name until phase 2 binds it.
 - **2026-09-28, `@unknown` reads** ([proposal](../../proposals/Unknown_Field_Reads_v1.md)): `isKnown` and `unknownReason` are accepted as tag reads; `load(record.field) ?? fallback` is the one written form for the value; the bare fallback form and `??` on a plain value in typed functions are refused. One tracked file used the bare form (`Routing.logic.hs`) and migrates in the same change with byte-identical Kotlin; the steward example becomes valid. Gate 4 is required before merge and is recorded on the pull request.
 - **2026-09-28, G11** ([proposal](../../proposals/HS_Checker_Names_Calls_Returns_v1.md)): inside typed functions, `validate_detailed` refuses unknown names and functions, the wrong argument count, a missing return and a hidden name. Measured on the build: 0 of 68 valid `.hs` files and 0 of 2,474 `.hsplus` files changed verdict. Gate 4, a review by another seat and family, is required before merge and is recorded on the pull request.

@@ -19,6 +19,10 @@ const MODULES: &[(&str, &str)] = &[("absorb", include_str!("../../std/src/holo/a
 /// The import source prefix that names a Holo module.
 pub(crate) const HOST_SCHEME: &str = "holo:";
 
+/// The value types capability ABI v1 passes between a program and its host, by value on the
+/// stack (proposal §Execution). A record, buffer or string needs a later ABI version.
+const ABI_V1_TYPES: &[&str] = &["i32", "f32", "f64", "bool"];
+
 /// One declared capability: its typed signature and the `@host` block that governs it.
 #[derive(Debug, Clone)]
 pub(crate) struct HostFunction {
@@ -132,12 +136,23 @@ fn modules() -> &'static HashMap<&'static str, Result<HostModule, String>> {
     static MODULE_TABLE: OnceLock<HashMap<&'static str, Result<HostModule, String>>> =
         OnceLock::new();
     MODULE_TABLE.get_or_init(|| {
-        MODULES
-            .iter()
+        let sources = MODULES.iter();
+        #[cfg(test)]
+        let sources = sources.chain(TEST_MODULES.iter());
+        sources
             .map(|(name, source)| (*name, load_module(source)))
             .collect()
     })
 }
+
+/// A module only tests can import: capabilities with parameters, two parameter types and a
+/// version above 1, which `holo:absorb` does not have. Not listed by `module_names` or
+/// `holo_modules_json`.
+#[cfg(test)]
+const TEST_MODULES: &[(&str, &str)] = &[(
+    "fixture",
+    "@host { function: \"add_one\", authority: \"test_fixture\", version: 2 }\nexport function add_one(x: i32): i32 {\n  return unknown(\"holo:fixture/add_one needs a host\")\n}\n\n@host { function: \"scale\", authority: \"test_fixture\", version: 1 }\nexport function scale(x: f32, factor: i32): f32 {\n  return unknown(\"holo:fixture/scale needs a host\")\n}\n",
+)];
 
 /// Parse one declaration file and pair its `@host` blocks with its exported functions, one to
 /// one. The pairing is by the block's `function` string, so it is checked, not assumed: a
@@ -183,6 +198,20 @@ pub(crate) fn load_module(source: &str) -> Result<HostModule, String> {
         {
             return Err(format!(
                 "`{name}` must state every parameter type and its result type"
+            ));
+        }
+        // Every engine passes a call's values on the stack, one result back; a type the ABI does
+        // not carry would let the checker accept a call no engine can make.
+        if let Some(uncarried) = function
+            .param_types
+            .iter()
+            .chain(std::iter::once(&function.return_type))
+            .flatten()
+            .find(|annotation| !ABI_V1_TYPES.contains(&annotation.trim()))
+        {
+            return Err(format!(
+                "`{name}` passes `{uncarried}` to or from its host; capability ABI v1 carries only {}",
+                ABI_V1_TYPES.join(", ")
             ));
         }
         paired.insert(
@@ -336,6 +365,20 @@ mod tests {
             (
                 format!("{}export function f() {{\n  return true\n}}\n", block("f")),
                 "must state every parameter type and its result type",
+            ),
+            (
+                format!(
+                    "{}export function f(path: string): bool {{\n  return true\n}}\n",
+                    block("f")
+                ),
+                "`f` passes `string` to or from its host; capability ABI v1 carries only i32, f32, f64, bool",
+            ),
+            (
+                format!(
+                    "struct Report {{\n  passed: bool\n}}\n{}export function f(): Report {{\n  return unknown(\"needs a host\")\n}}\n",
+                    block("f")
+                ),
+                "`f` passes `Report` to or from its host",
             ),
             (
                 format!(
@@ -578,25 +621,80 @@ mod tests {
         }
     }
 
+    /// The EXEC instructions of a compiled program, as (abi, argc).
+    fn exec_calls(source: &str) -> Vec<(String, u64)> {
+        let bytecode = crate::uaal_emit::compile_source_to_uaal(source).expect("compiles");
+        bytecode
+            .instructions
+            .iter()
+            .filter(|instruction| instruction.op_code == 0x20)
+            .map(|instruction| {
+                (
+                    instruction.operands[0].as_str().unwrap_or_default().to_string(),
+                    instruction.operands[1].as_u64().unwrap_or(u64::MAX),
+                )
+            })
+            .collect()
+    }
+
     #[test]
-    fn engines_refuse_a_capability_by_name_until_they_bind_it() {
-        // Valid to the checker; no engine binds it yet (phase 2), and each says so by name
-        // instead of reporting a file it cannot find.
-        let uaal =
-            crate::uaal_emit::compile_source_to_uaal(AUDIT).expect_err("UAAL has no binding yet");
-        assert!(
-            uaal.message.contains(
-                "[HS-HOST-004] `holo:absorb/manifest_audit_passes` has no binding on UAAL yet"
-            ),
-            "{}",
-            uaal.message
+    fn uaal_lowers_a_capability_call_to_its_arguments_and_one_exec() {
+        // G21 phase 2: the call becomes `EXEC [abi, argc]`; the ABI is the declared name and
+        // version, never the local alias.
+        assert_eq!(
+            exec_calls(AUDIT),
+            vec![("holo.absorb.manifest_audit_passes.v1".to_string(), 0)]
         );
-        assert!(
-            uaal.message
-                .contains("EXEC `holo.absorb.manifest_audit_passes.v1`"),
-            "{}",
-            uaal.message
+        let aliased = "import { add_one as inc } from \"holo:fixture\"\n\nfunction main(): i32 {\n  return inc(41)\n}\n";
+        assert_eq!(exec_calls(aliased), vec![("holo.fixture.add_one.v2".to_string(), 1)]);
+
+        // Arguments go first, left to right, each at its declared type, then the EXEC; the
+        // handler pops them and pushes the result. UAAL numbers are JSON numbers (a JS number on
+        // the VM), so an `f32` argument is the literal rounded to `f32`.
+        let scaled = "import { scale } from \"holo:fixture\"\n\nfunction main(): f32 {\n  return scale(0.1, 3)\n}\n";
+        assert_eq!(exec_calls(scaled), vec![("holo.fixture.scale.v1".to_string(), 2)]);
+        let bytecode = crate::uaal_emit::compile_source_to_uaal(scaled).expect("compiles");
+        let exec = bytecode
+            .instructions
+            .iter()
+            .position(|instruction| instruction.op_code == 0x20)
+            .expect("an EXEC");
+        let pushed: Vec<_> = bytecode.instructions[exec - 2..exec]
+            .iter()
+            .map(|instruction| (instruction.op_code, instruction.operands[0].as_f64()))
+            .collect();
+        assert_eq!(
+            pushed,
+            vec![(0x01, Some(f64::from(0.1_f32))), (0x01, Some(3.0))],
+            "PUSH x as f32, then PUSH factor, then the EXEC"
         );
+
+        // A capability called as a statement has its one result popped.
+        let statement = "import { add_one } from \"holo:fixture\"\n\nfunction main(): i32 {\n  add_one(1)\n  return 0\n}\n";
+        let bytecode = crate::uaal_emit::compile_source_to_uaal(statement).expect("compiles");
+        let exec = bytecode
+            .instructions
+            .iter()
+            .position(|instruction| instruction.op_code == 0x20)
+            .expect("an EXEC");
+        assert_eq!(bytecode.instructions[exec + 1].op_code, 0x02, "POP after the EXEC");
+
+        // Its declared result type is known: an i32 capability result is i32 arithmetic.
+        let arithmetic = "import { add_one } from \"holo:fixture\"\n\nfunction main(): i32 {\n  return add_one(1) + 2\n}\n";
+        assert_eq!(
+            exec_calls(arithmetic),
+            vec![
+                ("holo.fixture.add_one.v2".to_string(), 1),
+                ("hs.i32.binary.v1".to_string(), u64::MAX),
+            ]
+        );
+    }
+
+    #[test]
+    fn engines_without_a_binding_refuse_a_capability_by_name() {
+        // Valid to the checker. UAAL compiles it (phase 2) and the host refuses an unbound EXEC
+        // at run time; the Kotlin bridge has no binding and says so by name instead of reporting
+        // a file it cannot find.
         let kotlin = crate::kotlin_emit::compile_source_to_kotlin(AUDIT, "")
             .expect_err("the Kotlin bridge has no binding yet");
         assert!(

@@ -14,9 +14,13 @@ used as a value (`HS-HOST-003`), since `let f = manifest_audit_passes` let an un
 call it unchecked. The corpus has 14 cases: the ten below (numbered differently), plus a lookalike
 scheme (`g21-009`), an alias's argument count (`g21-010`), a blocked name as an alias (`g21-013`)
 and a capability passed on as a value (`g21-014`); the ten that were honest gaps flipped on
-purpose. Engines refuse a valid Holo call by name
-(`HS-HOST-004`; native refuses any `holo:` import earlier, as a non-relative path) until phase 2
-binds it. Phases 2–5 are not built.
+purpose.
+**Built:** phase 2 (UAAL), 2026-10-04, branch `claude/holo-imports-uaal-exec`: `compile_to_uaal`
+lowers a call to its arguments, each at its declared type, and `EXEC [abi, argc]`; a statement
+call drops its result. One rule from building it: a declaration may pass only the four ABI v1
+types (§Execution), so the checker never accepts a call no engine can carry. Native and Kotlin
+refuse by name (`HS-HOST-004`; native refuses any `holo:` import earlier, as a non-relative path).
+Phases 3–5 are not built.
 **Gap:** new **G21** (suggested: next free id after G20, `docs/spec/spec-vs-reality-gap.md` 20–39).
 **Board:** task_1790634920187_chz8; found while drafting: task_1790642739557_5kf8 (Kotlin
 bridge), task_1790642739558_so3q (UAAL VM). **Builds on:** G11 (PR #438); phase 3 needs G15 built.
@@ -152,7 +156,7 @@ contract (arguments left to right, one result pushed). `N` is the `@host` versio
 
 | Engine                  | In v1                                                                                                                                                                                                                                                             |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `compile_to_uaal`       | lowers a declared call to its arguments and the `EXEC` (today it refuses the import, `uaal_emit.rs` 531–547)                                                                                                                                                      |
+| `compile_to_uaal`       | lowers a declared call to its arguments and the `EXEC` (built, phase 2)                                                                                                                                                                                           |
 | UAAL host (TypeScript)  | `registerHoloScriptStdUaalExecHandler` (`uaal-abi.ts` 509–529) takes an optional table from ABI name to binding; a `holo.*` name not in it throws, as every unknown ABI does today (527)                                                                          |
 | `holoscript run`        | a `.hs` file with a `holo:` import goes `validate_detailed` → `compile_to_uaal` → UAAL VM with that handler (an import with no binding: `HS-HOST-004` before start); prints `main`'s value; writes the receipt. Other files keep today's route (runner 1126; G18) |
 | `.hsplus`, `.holo`      | refused at `run` admission with `HS-HOST-004`: their bodies run as JavaScript (`HeadlessRuntime.ts` 466–481; G19)                                                                                                                                                 |

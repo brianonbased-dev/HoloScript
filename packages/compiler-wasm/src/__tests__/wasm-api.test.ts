@@ -1013,7 +1013,7 @@ function main(): i32 {
     expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
   }, 600000);
 
-  it('G21: the checker reads holo: imports, and no engine runs one before phase 2', () => {
+  it('G21: the checker reads holo: imports; UAAL lowers a call to one EXEC, native refuses', async () => {
     const corpus = readFileSync(
       resolve(REPO_ROOT, 'packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl'),
       'utf8'
@@ -1043,13 +1043,57 @@ function main(): i32 {
       );
     }
 
-    // The demo is valid to the checker; each engine refuses it by name until it binds the call.
+    // The demo is valid to the checker. Native refuses any `holo:` import; UAAL lowers the call
+    // to one host instruction named by the declared capability and version (phase 2).
     const demo = corpus.find((row) => row.id === 'g21-001')!;
     expect(validateHsViaRust(demo.source).valid).toBe(true);
-    expect(() => compileHsToUaalViaRust(demo.source)).toThrow(
-      /\[HS-HOST-004\] `holo:absorb\/manifest_audit_passes` has no binding on UAAL yet/
-    );
     expect(() => executeHsNativeViaRust(demo.source)).toThrow(nativeRefusal);
+    const audit = 'holo.absorb.manifest_audit_passes.v1';
+    const demoBytecode = compileHsToUaalViaRust(demo.source);
+    expect(
+      demoBytecode.instructions
+        .filter((instruction: BytecodeInstruction) => instruction.opCode === UAALOpCode.EXEC)
+        .map((instruction: BytecodeInstruction) => instruction.operands)
+    ).toEqual([[audit, 0]]);
+
+    // The host binds that name or refuses it. A refusal ends the run in ERROR, never a made-up
+    // value; a binding's one result is the call's value.
+    const run = async (bytecode: UAALBytecode, bound?: UAALOperand) => {
+      const asked: string[] = [];
+      const vm = new UAALVirtualMachine();
+      vm.registerHandler(UAALOpCode.EXEC, (proxy: ExecProxy, operands: readonly UAALOperand[]) => {
+        asked.push(String(operands[0]));
+        if (bound === undefined || operands[0] !== audit || operands[1] !== 0) {
+          throw new Error(`no binding for ${String(operands[0])}`);
+        }
+        proxy.push(bound);
+      });
+      return { result: await vm.execute(bytecode), asked };
+    };
+    const unbound = await run(demoBytecode);
+    expect(unbound.result.taskStatus).toBe('ERROR');
+    expect(unbound.asked).toEqual([audit]);
+    const passes = await run(demoBytecode, true);
+    expect(passes.result.taskStatus).toBe('HALTED');
+    expect(passes.result.stackTop).toBe(true);
+
+    // The result is a `bool` to the code around the call.
+    const branch = compileHsToUaalViaRust(
+      'import { manifest_audit_passes } from "holo:absorb"\n\nfunction main(): i32 {\n  if (manifest_audit_passes()) {\n    return 1\n  }\n  return 0\n}\n'
+    );
+    expect((await run(branch, true)).result.stackTop).toBe(1);
+    expect((await run(branch, false)).result.stackTop).toBe(0);
+
+    // Called as a statement, its result is dropped and the stack stays clean.
+    const statement = await run(
+      compileHsToUaalViaRust(
+        'import { manifest_audit_passes } from "holo:absorb"\n\nfunction main(): i32 {\n  manifest_audit_passes()\n  return 7\n}\n'
+      ),
+      true
+    );
+    expect(statement.asked).toEqual([audit]);
+    expect(statement.result.taskStatus).toBe('HALTED');
+    expect(statement.result.state.stack).toEqual([7]);
   }, 600000);
 
   it('reads @unknown struct fields the way the native backend does', () => {
