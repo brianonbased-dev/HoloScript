@@ -19,8 +19,16 @@
  * prove parity against. On a WebGPU-capable box it runs and emits the receipt.
  * NOTE: correctness parity is device-independent (IEEE fp32); a *throughput*
  * receipt is a later slice and wants the discrete GPU explicitly.
+ *
+ * The second describe needs no GPU: it checks how the core baseline gate reads what
+ * writeParityReceipt leaves in the tree.
  */
-import { describe, it, expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createGemmKernel } from '../gemmKernel';
 import { writeParityReceipt } from './holotorchParityHarness';
 
@@ -206,4 +214,185 @@ describe('HoloTorch GEMM f64-reference parity (WGSL vs own f64 CPU reference, NO
     expect(verdict).toBe('pass');
     device.destroy?.();
   }, 120000);
+});
+
+/**
+ * What writeParityReceipt leaves behind, as the core baseline gate reads it.
+ *
+ * The gate (packages/core/scripts/check-core-test-baseline.mjs) writes a receipt that
+ * the pre-push hook honours only when packages/core was clean when testing STARTED.
+ * Every writeParityReceipt call leaves three things: a history file, an ndjson line,
+ * and a rewritten tracked tip. The gate must forgive the first two (outputs of an
+ * earlier run) and nothing else: not the tip, which other tests read as input, and
+ * not a test file planted under history/, which vitest would run.
+ *
+ * Each row runs the REAL gate script, copied into a scratch git repo so that its
+ * packages/core is the scratch one, on a stub vitest log, and reads
+ * capturedFromDirtyWorkingTree from the receipt it writes: true means "the start was
+ * dirty, the receipt will be refused".
+ *
+ * 'after writeParityReceipt' is true because the harness rewrites the tip when only
+ * recordedAt changed (board task task_1791175164083_i65f). Once that is fixed, this row flips
+ * to false for an unchanged payload; update it then.
+ */
+const BASELINE_GATE = fileURLToPath(
+  new URL('../../../scripts/check-core-test-baseline.mjs', import.meta.url)
+);
+const GEMM_TIP = 'packages/core/src/reconstruction/holotorch/receipts/gemm-parity.receipt.json';
+const GEMM_PAYLOAD = {
+  kernel: 'packages/core/src/reconstruction/gemmKernel.ts',
+  worstAbs: 0.00005,
+  verdict: 'pass',
+};
+const PLANTED_TEST = "import { it } from 'vitest';\nit('runs from history/', () => {});\n";
+
+/** A scratch git repo whose packages/core holds a copy of the real gate and one tracked gemm tip. */
+function scratchCore(root: string, showUntrackedFiles?: 'no' | 'all') {
+  const repo = join(root, 'repo');
+  const core = join(repo, 'packages', 'core');
+  const src = join(core, 'src', 'index.ts');
+  const receipts = join(core, 'src', 'reconstruction', 'holotorch', 'receipts');
+  const history = join(receipts, 'history');
+  const ndjson = join(receipts, 'parity-history.ndjson');
+  const gate = join(core, 'scripts', 'check-core-test-baseline.mjs');
+  const gateReceipt = join(core, '.test-baseline-receipt.json');
+  const stubLog = join(root, 'run.log');
+
+  // Hermetic git: no user or system config, and no GIT_* variable inherited from a
+  // hook that ran this suite (GIT_DIR or GIT_INDEX_FILE would aim the commands below
+  // at the real repository).
+  const globalConfig = join(root, 'gitconfig');
+  writeFileSync(globalConfig, '');
+  const env: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.toUpperCase().startsWith('GIT_')) env[key] = value;
+  }
+  env.GIT_CONFIG_GLOBAL = globalConfig;
+  env.GIT_CONFIG_NOSYSTEM = '1';
+  const git = (...args: string[]): void => {
+    const r = spawnSync('git', args, { cwd: repo, env, encoding: 'utf8' });
+    if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${r.stderr}`);
+  };
+
+  mkdirSync(join(core, 'scripts'), { recursive: true });
+  mkdirSync(receipts, { recursive: true });
+  copyFileSync(BASELINE_GATE, gate);
+  writeFileSync(
+    join(core, 'test-baseline.json'),
+    JSON.stringify({ flakyFiles: { files: [] }, stableFailures: { count: 0, tests: [] } })
+  );
+  writeFileSync(src, 'export const x = 1;\n');
+  writeFileSync(stubLog, ' Test Files  1 passed (1)\n      Tests  1 passed (1)\n');
+  // A tracked tip, as an earlier run of the real writer left it.
+  writeParityReceipt('gemm', GEMM_PAYLOAD, { outDir: receipts, stamp: '2026-10-01T00:00:00.000Z' });
+  rmSync(history, { recursive: true });
+  rmSync(ndjson);
+  git('init', '-q');
+  if (showUntrackedFiles) git('config', 'status.showUntrackedFiles', showUntrackedFiles);
+  git('add', '-A');
+  git(
+    '-c',
+    'user.name=core-baseline-test',
+    '-c',
+    'user.email=core-baseline-test@example.invalid',
+    'commit',
+    '-q',
+    '-m',
+    'seed'
+  );
+
+  return {
+    src,
+    receipts,
+    history,
+    git,
+    /** One earlier run's untracked outputs, written by hand: a history receipt and an ndjson line. */
+    writeHistoryAndNdjson(): void {
+      mkdirSync(history, { recursive: true });
+      writeFileSync(join(history, 'gemm-parity.2026-10-02T00-00-00-000Z.receipt.json'), '{}\n');
+      writeFileSync(ndjson, '{}\n');
+    },
+    /** Run the gate on the stub log; true when it recorded a dirty start. */
+    startsDirty(): boolean {
+      // Removed first, so a run that failed to write its receipt cannot be answered
+      // by the previous run's.
+      rmSync(gateReceipt, { force: true });
+      const r = spawnSync(process.execPath, [gate, '--from-log', stubLog], {
+        cwd: core,
+        env,
+        encoding: 'utf8',
+      });
+      expect(r.status, r.stderr).toBe(0);
+      return JSON.parse(readFileSync(gateReceipt, 'utf8')).capturedFromDirtyWorkingTree;
+    },
+  };
+}
+
+describe('gemm parity receipts and the core baseline gate clean-start check', () => {
+  let root: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'core-baseline-start-'));
+  });
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true, maxRetries: 3 });
+  });
+
+  it('forgives only the history receipts and the ndjson log, never the tip', () => {
+    const s = scratchCore(root);
+    const table: Record<string, boolean> = {};
+    table['clean'] = s.startsDirty();
+
+    s.writeHistoryAndNdjson();
+    table['history+ndjson'] = s.startsDirty();
+
+    // The same payload one run later: history and ndjson grow, and the tip is rewritten.
+    writeParityReceipt('gemm', GEMM_PAYLOAD, {
+      outDir: s.receipts,
+      stamp: '2026-10-03T00:00:00.000Z',
+    });
+    table['after writeParityReceipt'] = s.startsDirty();
+
+    s.git('restore', '--', GEMM_TIP);
+    table['tip restored'] = s.startsDirty();
+
+    writeFileSync(s.src, 'export const x = 2;\n');
+    table['dirty src'] = s.startsDirty();
+    s.git('restore', '--', 'packages/core/src/index.ts');
+
+    writeFileSync(join(s.history, 'evil.test.ts'), PLANTED_TEST);
+    table['untracked history/evil.test.ts'] = s.startsDirty();
+    rmSync(join(s.history, 'evil.test.ts'));
+
+    // The pattern's end anchor (fc9486's round-2 note): a test file named after the log is dirty.
+    writeFileSync(join(s.receipts, 'parity-history.ndjson.test.ts'), PLANTED_TEST);
+    table['untracked parity-history.ndjson.test.ts'] = s.startsDirty();
+
+    expect(table).toEqual({
+      clean: false,
+      'history+ndjson': false,
+      'after writeParityReceipt': true,
+      'tip restored': false,
+      'dirty src': true,
+      'untracked history/evil.test.ts': true,
+      'untracked parity-history.ndjson.test.ts': true,
+    });
+  }, 60_000);
+
+  // git folds a wholly untracked history/ into one line by default, hides untracked
+  // files under 'no', and lists each one under 'all'. The gate passes
+  // --untracked-files=all itself, so the user's setting must not change its answer.
+  it.each(['no', 'all'] as const)(
+    'gives the same answer for history/ when status.showUntrackedFiles=%s',
+    (setting) => {
+      const s = scratchCore(root, setting);
+      s.writeHistoryAndNdjson();
+      const historyAndNdjson = s.startsDirty();
+      writeFileSync(join(s.history, 'evil.test.ts'), PLANTED_TEST);
+      expect({
+        'history+ndjson': historyAndNdjson,
+        'untracked history/evil.test.ts': s.startsDirty(),
+      }).toEqual({ 'history+ndjson': false, 'untracked history/evil.test.ts': true });
+    },
+    60_000
+  );
 });

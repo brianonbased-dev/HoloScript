@@ -3,7 +3,9 @@ import type { AndroidXRCompiler } from './AndroidXRCompiler';
 
 export function generateGlassesActivityFile(
   compiler: AndroidXRCompiler,
-  composition: HoloComposition
+  composition: HoloComposition,
+  /** Plain sentences for scene content left out (see AndroidXRCompiler.compile); written as WARNING comments. */
+  warnings: readonly string[] = []
 ): string {
   compiler.lines = [];
   compiler.indentLevel = 0;
@@ -16,6 +18,9 @@ export function generateGlassesActivityFile(
   compiler.emit('// Do not edit manually -- regenerate from .holo source');
   if (compiler.options.provenanceHash) {
     compiler.emit(`// Provenance Hash: ${compiler.options.provenanceHash}`);
+  }
+  for (const warning of warnings) {
+    compiler.emit(`// WARNING: ${warning}`);
   }
   compiler.emit('');
   compiler.emit(`package ${compiler.options.packageName}`);

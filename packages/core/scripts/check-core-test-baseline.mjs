@@ -38,10 +38,12 @@
  *
  * Exit codes: 0 = no new failures, 1 = new failures (regressions), 2 = setup error
  * (including: the log carries no vitest summary, so the run cannot be confirmed
- * to have happened — this gate fails CLOSED rather than reporting a false green).
+ * to have happened — this gate fails CLOSED rather than reporting a false green;
+ * and: run-vitest.mjs refused because workspace packages core's tests load are not
+ * built — its reason and build command are printed, and no receipt is written).
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -85,12 +87,61 @@ const stableFailures = new Set(manifest.stableFailures?.tests ?? []);
 // report dirty for every legitimate run and the receipt would never validate.
 // The question the receipt answers is "was the tree clean when testing STARTED",
 // i.e. did this run exercise what HEAD contains.
+//
+// The holotorch parity harness (writeParityReceipt) also APPENDS on every run, by
+// design (2026-09-24 audit: prior receipts are never deleted): one new file
+// receipts/history/<op>-parity.<stamp>.receipt.json and one line in
+// receipts/parity-history.ndjson. Both are untracked outputs of an earlier run, never
+// inputs to this one, so an UNTRACKED file of exactly those two shapes does not make
+// a start dirty. Counting them refused every second baseline in a worktree.
+//
+// Nothing else is forgiven, and three details keep it that narrow:
+//  - Untracked files are listed one by one (--untracked-files=all, passed explicitly
+//    so the user's status.showUntrackedFiles cannot change the answer). Left to the
+//    default, git folds a wholly untracked history/ into one "history/" line, and a
+//    test file planted there would hide behind the exemption while vitest's default
+//    include glob ran it.
+//  - Only a *.receipt.json directly inside history/, or the ndjson file itself, is
+//    forgiven. Any other file under history/ is dirty.
+//  - The tracked tips, receipts/<op>-parity.receipt.json, are NOT forgiven, although
+//    the same writeParityReceipt call rewrites them with a fresh recordedAt. Other
+//    tests read a tip as input (holotorch-shadow-execution.test.ts), so a modified tip
+//    means this run did not test what HEAD contains. Restore them (git restore) before
+//    the next run. That the harness rewrites a tip when only recordedAt changed is the
+//    root cause, tracked as board task task_1791175164083_i65f.
+const SUITE_APPEND_ONLY_OUTPUT =
+  /^src\/reconstruction\/holotorch\/receipts\/(?:history\/[^/]+\.receipt\.json|parity-history\.ndjson)$/;
 const startedDirty = (() => {
-  const r = spawnSync('git', ['status', '--porcelain', '--', '.'], {
+  const status = spawnSync('git', ['status', '--porcelain', '--untracked-files=all', '--', '.'], {
     cwd: coreRoot,
     encoding: 'utf8',
   });
-  return r.status === 0 ? r.stdout.trim().length > 0 : true;
+  // Porcelain paths are relative to the repository root; the pattern above is
+  // relative to packages/core.
+  const prefix = spawnSync('git', ['rev-parse', '--show-prefix'], {
+    cwd: coreRoot,
+    encoding: 'utf8',
+  });
+  if (status.status !== 0 || prefix.status !== 0) return true;
+  const corePrefix = prefix.stdout.trim();
+  return status.stdout
+    .split('\n')
+    .filter((line) => line.trim().length > 0)
+    .some((line) => {
+      if (!line.startsWith('?? ')) return true;
+      const path = line.slice(3);
+      const rel = path.startsWith(corePrefix) ? path.slice(corePrefix.length) : null;
+      if (rel === null || !SUITE_APPEND_ONLY_OUTPUT.test(rel)) return true;
+      // Only a regular file is forgiven. A directory symlink named *.receipt.json is one untracked
+      // entry to git whatever core.symlinks says, and vitest walks through it to any test file
+      // inside (fc9486's round-2 review). lstat does not follow the link; a junction never gets
+      // here, because git lists what is inside one.
+      try {
+        return !lstatSync(resolve(coreRoot, rel)).isFile();
+      } catch {
+        return true;
+      }
+    });
 })();
 
 // Obtain the run output: either read a completed run's log, or produce one.
@@ -122,6 +173,16 @@ if (fromLog) {
     process.exit(2);
   }
   out = `${proc.stdout ?? ''}\n${proc.stderr ?? ''}`;
+  // run-vitest.mjs refuses (exit 2) a full run on a workspace missing builds that core's
+  // tests load, and names what to build (board task_1786984409320_7d3l). Its output is
+  // captured above, so pass that reason through instead of the bare "no vitest summary"
+  // below. No suite ran: there is nothing to classify and no receipt is written.
+  const runnerLines = out.split(/\r?\n/).filter((line) => line.startsWith('[run-vitest] '));
+  if (proc.status === 2 && runnerLines.some((line) => line.includes('workspace not built'))) {
+    for (const line of runnerLines) console.error(line);
+    console.error('[baseline-gate] setup error: no suite ran, so no receipt was written.');
+    process.exit(2);
+  }
 }
 
 // Fail closed on an unverifiable run — see SUITE_RAN above. Without this, an

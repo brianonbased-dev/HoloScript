@@ -11,7 +11,7 @@
  * - one audit-only call executes and records policy_id/decision/caller/action/resource/reason
  * - targeted tests prove the output behavior would fail if the interceptor were bypassed
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { handleSecretsBrokerTool } from '../secrets-broker-handler';
 import * as PolicyInterceptorModule from '../policy/PolicyInterceptor';
 import { __resetPolicyPackCacheForTests } from '../policy/PolicyInterceptor';
@@ -23,7 +23,17 @@ const baseArgs = {
 };
 
 describe('PolicyInterceptor gate on holo_secrets_grant (real handler seam)', () => {
-  beforeEach(() => __resetPolicyPackCacheForTests());
+  // These calls carry no signing context: the local stdio user, the one caller the capability
+  // gate lets through without one (task mplw). The interceptor is what they exercise.
+  const savedTransport = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  beforeEach(() => {
+    __resetPolicyPackCacheForTests();
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+  });
+  afterEach(() => {
+    if (savedTransport === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = savedTransport;
+  });
 
   it('DENY: denylisted agent is blocked before tool execution — no grant is created', async () => {
     const result = (await handleSecretsBrokerTool('holo_secrets_grant', {

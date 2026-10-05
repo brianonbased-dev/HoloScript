@@ -1,6 +1,9 @@
 ARG PNPM_VERSION=9.15.9
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat dumb-init chromium
+# git: the server runs it. Project import (app/api/workspace/import) runs `git clone`, and
+# workspace provisioning, the existing-workspace importer and daemon jobs run git too. Without it
+# every import on Railway failed at the first step (founder report, 2026-09-29).
+RUN apk add --no-cache libc6-compat dumb-init chromium git
 RUN if [ -x /usr/bin/chromium-browser ] && [ ! -e /usr/bin/chromium ]; then ln -s /usr/bin/chromium-browser /usr/bin/chromium; fi
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 ENV CHROMIUM_PATH=/usr/bin/chromium

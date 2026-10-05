@@ -113,6 +113,13 @@ export class AndroidCompiler extends CompilerBase {
     outputPath?: string
   ): AndroidCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
+    // Objects written inside `scene` blocks are built the same way as top-level ones: the
+    // activity, and every feature file the traits on them ask for, read the composition
+    // returned here. Nothing a scene adds can clash, so nothing is left out and there is
+    // nothing to warn about: an object is a SceneView node composable whose name is only a
+    // comment (the feature files quote it as a string), and no part of this target reads an
+    // environment, so a scene's environment has nothing to apply to either.
+    composition = this.flattenScenes(composition).composition;
     const result: AndroidCompileResult = {
       activityFile: generateActivityFile(this, composition),
       stateFile: generateStateFile(this, composition),
