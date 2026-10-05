@@ -117,7 +117,12 @@ export const graphRagTools: Tool[] = [
         holoGraphHoloEmbedManifest: {
           type: 'string',
           description:
-            'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. When omitted, search uses HOLOGRAPH_HOLOEMBED_MANIFEST or the promoted local ai-ecosystem HoloGraph/HoloEmbed release when present, then falls back to cached absorb state.',
+            'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. When omitted, search uses HOLOGRAPH_HOLOEMBED_MANIFEST, else the workspace absorb index.',
+        },
+        useReleaseManifest: {
+          type: 'boolean',
+          description:
+            'Search the promoted ai-ecosystem HoloGraph/HoloEmbed release instead of this workspace. That release is a research benchmark built on a DIFFERENT codebase (mcp-orchestrator), so it is never used unless this is true.',
         },
         useCachedAbsorbIndex: {
           type: 'boolean',
@@ -736,25 +741,29 @@ async function resolveSemanticSearchIndex(
     stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST);
 
   // A fresh in-session cached index (holo_absorb_repo of the CURRENT repo) is the ground
-  // truth for this query. The promoted DEFAULT manifest is a FIXED shared release that may
-  // be built on a DIFFERENT repo (it currently ships an mcp-orchestrator model) or lag the
-  // working tree — silently serving it returned confident wrong-repo results. Prefer the
-  // cached index; the default manifest is a last-resort fallback for sessions with no
-  // in-session absorb. An explicit manifest (arg or env) still wins over both.
+  // truth for this query. An explicit manifest (arg or env) still wins over it.
   if (!explicitManifestPath && cachedEmbeddingIndex) {
     return { index: cachedEmbeddingIndex, source: 'cached-embedding-index' };
   }
 
-  const defaultManifestPath = explicitManifestPath
-    ? undefined
-    : resolveDefaultHoloGraphHoloEmbedManifestPath();
+  // The promoted DEFAULT manifest is a fixed research release built on a DIFFERENT repo
+  // (a 2,300-node mcp-orchestrator benchmark). c31c134fe added a warning when it was served
+  // as a fallback; measured 2026-10-04 that still meant a HoloScript question came back
+  // with mcp-orchestrator files and a warning a model skims past. It is now opt-in only.
+  const defaultManifestPath =
+    explicitManifestPath || args.useReleaseManifest !== true
+      ? undefined
+      : resolveDefaultHoloGraphHoloEmbedManifestPath();
   const manifestPath = explicitManifestPath ?? defaultManifestPath;
   if (!manifestPath) {
     return cachedEmbeddingIndex
       ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }
       : {
           error: ABSORB_EMBEDDING_INDEX_ERROR,
-          hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+          hint:
+            `${ABSORB_HOLO_ABSORB_REPO_HINT} No release manifest was substituted: the promoted ` +
+            'HoloGraph/HoloEmbed release indexes a different codebase. Pass useReleaseManifest:true ' +
+            'only if that codebase is what you mean.',
         };
   }
 
