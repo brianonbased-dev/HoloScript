@@ -1,10 +1,10 @@
 # Reading an `@unknown` field: one written form, and the tag reads — v1
 
-**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person;
-founder direction 2026-09-28). The decision "`load(record.field) ?? fallback` is the one written
-form" was taken the same day, after Grok's language notes (`checker-35-of-137/unknown-proposal.md`)
-recommended it. Implemented in PR #444 (branch `claude/unknown-reads`, stacked on PR #438); gate 4, a
-reviewer from another seat and family, pending.
+**Status:** Proposed 2026-09-28 under the Spec v0.1 gate rule: language changes are approved by
+the gates, not by a person (founder, 2026-10-05). Built in PR #444 (stacked on #438) with gates 1
+to 3; gate 4, a reviewer of another seat in another session, pending, so not yet accepted. The
+written form `load(record.field) ?? fallback` follows Grok's language notes
+(`checker-35-of-137/unknown-proposal.md`).
 **Gaps:** the `@unknown` half of G11 (corpus case `g11-coalesce-plain-008`) and the three-way
 disagreement recorded in Grok's notes.
 
@@ -15,6 +15,10 @@ whether it is known, ask why it is not, or read it with a backup value. The nati
 three, and its own error messages taught them. The checker refused the first two and taught a
 fourth way the native engine refuses. Now the checker accepts the three safe ways, refuses the
 fourth, and its messages name the one way to read the value.
+
+After the second review, the checker also looks up which record a field belongs to. The three safe
+ways work only on a field that record really marks `@unknown`, and a field with the same name on
+another record is read like any other field, as the native engine does.
 
 ## What disagreed (measured 2026-09-28)
 
@@ -48,6 +52,19 @@ fallback` on an `@unknown` struct field is refused, `HS-UNKNOWN-002`, and the me
    `(record.field).orElse { d }` the bare form produced; `isKnown(record.field)` lowers to
    `((record.field) is Uncertain.Known)`; `unknownReason` is refused on Kotlin for now (the native
    reason is an `i32` code; the Kotlin carrier holds a text reason).
+6. **The three forms apply only to an `@unknown` field of the record's own struct** (second review,
+   2026-10-05). A field resolves through its record's declared struct type, as native resolves it:
+   typed parameters, slots, typed locals, locals built by a constructor or returned by a function
+   that states its type, and struct-typed fields on the way. Each form takes exactly one named field
+   (`record.a.b`), and the rest of its argument is read like any expression. A tag read of a plain
+   or missing field, of a value with no fields, with extra or no arguments, or of anything but a
+   named field is `HS-UNKNOWN-003`, naming the field; the load form on the same is `HS-UNKNOWN-002`.
+   A same-named plain field of another struct is read normally. When the record's type cannot be
+   seen (an untyped parameter, a struct from another file, an index or a call), the field's name
+   decides: a name some struct in view declares `@unknown` is held to the rule, any other is left to
+   the backends. A `.hsplus` typed function is checked with its document's structs. On Kotlin,
+   `isKnown` lowers only for an `@unknown` field and refuses anything else with a message; on UAAL,
+   `load(record.field) ?? d` is the uncertainty capability refusal, `HS-UAAL-CAP-008`.
 
 `@trait` fields (`reading ?? 20.0` in trait bodies) are unchanged: they are not struct fields and
 are not read through `load`.
@@ -68,11 +85,17 @@ Measured on every tracked file (numbers in "Gate evidence" below):
 
 - Rust: tag reads accepted; both codes with line and column; the Kotlin lowering of `load(...) ??`
   and `isKnown`; the `unknownReason` refusal on Kotlin; `a ?? 3` refused in a typed function and
-  accepted in an untyped one.
+  accepted in an untyped one. Second review: the owner rule both ways, the four programs that
+  were wrongly valid, plain and missing fields, argument counts and shapes, the Kotlin lowering
+  called directly, each UAAL uncertainty operation, positions, every expression position, and a
+  lifted function with its document's structs.
 - Differential (`wasm-api.test.ts`): the steward example valid and exit 5 natively; the load form
-  valid and exit 7; the tag reads valid and exit 4; the bare form refused by both.
-- Spec corpus: `g11-coalesce-plain-008` flips to refused; five `unknown-struct-*` cases pin the
+  valid and exit 7; the tag reads valid and exit 4; the bare form refused by both; nine refused
+  programs of the second review refused by both, and `load(tally.count) + 1` valid and exit 5.
+- Spec corpus: `g11-coalesce-plain-008` flips to refused; fifteen `unknown-struct-*` cases pin the
   forms.
+- `RoutingLogic.parity.test.ts` compiles today's `Routing.logic.hs` and holds the generated Kotlin
+  to it.
 - Switch-off run: each rule removed fails a test.
 
 ## Gate evidence
@@ -88,13 +111,22 @@ Measured on every tracked file (numbers in "Gate evidence" below):
 3. **Switch-off run**: 9 of 9 switches (tag reads, the bare fallback, the typed `??` rule, the
    Kotlin `load` lowering, `isKnown` and `unknownReason`, the UAAL capability, the bare-read code
    and its position) each fail a test. The allow-list rule was fed a stale entry and went red.
-4. **Review by another seat and family**: required before merge.
+4. **Review by a distinct seat in another session** (founder, 2026-10-04): claude3-x402 reviewed
+   `77939d364` and asked for the second-review changes (point 6); its re-read is pending.
+
+After the second review, against the `77939d364` build: (1) every tracked `.hs` file in
+HoloScript (137), Hololand (87) and ai-ecosystem (11) keeps its verdict, first message and first
+position, with identical `compile_to_uaal` and `parse()` output; 2,474 HoloScript and 400 Hololand
+`.hsplus` files give identical error lists. On claude3's 67 programs the checker now agrees with
+native except on six outside this rule (it was 26). (2) `--strict`: 68/68, nine cases added. (3)
+20 of 20 Rust faults (claude3's MF1 to MF5 among them) and 5 of 5 reader faults each turn a test
+red; the list is in the PR #444 body.
 
 ## Open questions
 
-1. Should `load(record.field) ?? d` be refused when `field` is not `@unknown`? Native refuses it;
-   the checker cannot always tell in `.hsplus` fragments, where the struct may be declared elsewhere
-   in the document. Left to the backends for now.
+1. ~~Should `load(record.field) ?? d` be refused when `field` is not `@unknown`?~~ Yes, answered by
+   the second review: refused when the record's struct is in view (a `.hsplus` typed function sees
+   its document's structs); left to the backends when the record's type cannot be seen.
 2. How should `unknownReason` map to Kotlin: an `i32` code on both sides, or a text reason on both?
 
 ## What remains after this proposal
@@ -103,3 +135,6 @@ Measured on every tracked file (numbers in "Gate evidence" below):
   (Grok's notes put it in the idea inbox).
 - `unknownReason` on the Kotlin bridge (open question 2).
 - The same forms on UAAL, which refuses `@unknown` aggregates today.
+- A struct imported from another file is not visible to the checker: reads of its fields go by the
+  field's name until the checker follows imports.
+- The browser build `pkg/` (2026-08-04) still gives the old verdicts; PR #448 rebuilds it.
