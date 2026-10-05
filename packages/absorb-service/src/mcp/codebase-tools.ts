@@ -12042,8 +12042,8 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
                     : diskCacheFreshByAge
                       ? !diskCacheYoungerThanMaxAge
                         ? `Cache is ${formatCacheAge(cacheAgeMs)} old, but HEAD and the worktree fingerprint still match it over the exact file set, so it describes the current code; structural tools can auto-load it.`
-                        : diskSemanticIndexHydratable
-                        ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
+                        : diskSemanticIndexHydratable || semanticIndexReady
+                        ? 'HoloGraph cache and HoloEmbed index are fresh; structural and semantic tools can answer without re-scanning.'
                         : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
                       : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
