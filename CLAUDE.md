@@ -176,7 +176,8 @@ MCP tools unavailable / tool call errors?
   → Step 5: FALLBACK → if this host cannot reattach, use transport-independent CLI equivalents:
        holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
        holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>" --dir <dir> --json
-       validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
+       validate_holoscript → npx tsx packages/cli/src/cli.ts validate <file>
+         (not `parse`: for .hs it runs a non-authoritative TS parser and passes code validate rejects)
        suggest_traits / generate_* → no CLI equivalent; skip or notify user
      The query fallback uses the canonical Absorb handlers and workspace cache, not a second scanner/index.
   → Step 6: REPORT   → distinguish service health from host-handle health
@@ -245,7 +246,7 @@ If any MCP tool call fails:
   4. CLI fallback map:
      holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
      holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>"
-     validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
+     validate_holoscript → npx tsx packages/cli/src/cli.ts validate <file>   (not `parse`, see above)
      suggest_traits      → no CLI equivalent (LLM-based)
      generate_object     → no CLI equivalent (LLM-based)
   5. Notify user: "MCP server is down. Run: node packages/mcp-server/dist/index.js"
