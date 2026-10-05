@@ -120,6 +120,7 @@ import { getClient as getHoloMeshOrchestratorClient } from './holomesh/orchestra
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import {
   extractAndVerifySigning,
+  publicAnonymousContext,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
 import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
@@ -4287,7 +4288,8 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const result = await _handleSingleToolLogic(tool, args);
+      // An explicit anonymous caller, never "no context" (task x5ku).
+      const result = await _handleSingleToolLogic(tool, args, publicAnonymousContext());
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result));
     } catch (err) {

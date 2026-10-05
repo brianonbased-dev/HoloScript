@@ -321,12 +321,20 @@ export async function handleTool(
   //
   // Stdio transport design (see index.ts comment at line ~284): the stdio MCP
   // transport is "trusted local process" and never carries HTTP auth headers,
-  // so signingCtx is always undefined there. Bridge: if the process has a
-  // valid HOLOSCRIPT_API_KEY in env (the same key that grants admin:* via the
-  // OAuth2 provider) synthesize admin:* scopes so the gate honours that trust.
-  // Explicit source overrides are externally-originated lanes and must not
-  // inherit the stdio-local admin bridge.
-  const allowLocalAdminBridge = !subjectSourceOverride && process.env['HOLOSCRIPT_API_KEY'];
+  // so signingCtx is always undefined there. Bridge: if this process IS the
+  // stdio server (index.ts main() sets HOLOSCRIPT_MCP_TRANSPORT to 'stdio') and
+  // has a valid HOLOSCRIPT_API_KEY in env (the same key that grants admin:* via
+  // the OAuth2 provider), synthesize admin:* scopes so the gate honours that
+  // trust. The key alone is not enough: the hosted server holds it too, and
+  // there a missing context means a call re-entered from inside the server lost
+  // its caller (a workflow step, a batch child, a health probe). That call ran
+  // as admin:* until task x5ku; it now carries no scopes, so every gate treats
+  // it as nobody. Explicit source overrides are externally-originated lanes and
+  // must not inherit the stdio-local admin bridge either.
+  const allowLocalAdminBridge =
+    !subjectSourceOverride &&
+    process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio' &&
+    process.env['HOLOSCRIPT_API_KEY'];
   const effectiveSigningCtx: SigningContext | undefined =
     signingCtx ??
     (allowLocalAdminBridge
@@ -373,10 +381,13 @@ export async function handleTool(
   // For tools that ingest HoloScript code, additionally gate the code payload
   const codePayload = args.code ?? args.content ?? args.holoscript ?? args.source;
   if (typeof codePayload === 'string' && codePayload.length > 0) {
+    // The same caller as the tool gate above: the local stdio user's bridge counts here too. It
+    // read the raw context until task wrn7, so the local user passed the tool gate and was then
+    // refused its own code. The bridge exists only on the stdio server (x5ku).
     const codeGate = await gateHoloScriptCode(codePayload, {
       source: 'unknown',
       toolName: name,
-      grantedScopes: signingCtx?.scopes ?? [],
+      grantedScopes: effectiveSigningCtx?.scopes ?? [],
       manifest: capabilityManifest,
       declaredAttestationTrusted,
     });
