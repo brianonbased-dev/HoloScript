@@ -165,9 +165,35 @@ function executeHsNativeViaRust(source: string, executionTimeoutMs = 30000): num
   }
 }
 
+/**
+ * The exit status a native kernel reports for an i32 result. Windows hands the parent all 32 bits;
+ * POSIX keeps only the low 8, so off Windows a parity check compares those.
+ */
+function nativeExitStatus(value: number): number {
+  return process.platform === 'win32' ? value >>> 0 : value & 0xff;
+}
+
+/**
+ * Also carries the flat aggregate ABI as @holoscript/std implements it: `construct` pops one
+ * value per field and pushes one record, `project` pops the record and pushes one field.
+ */
 function registerHsI32BinaryHandler(vm: UAALVirtualMachine): void {
   vm.registerHandler(UAALOpCode.EXEC, (proxy: ExecProxy, operands: readonly UAALOperand[]) => {
     const [abi, operator] = operands;
+    if (abi === 'hs.aggregate.value.v1' && operator === 'construct') {
+      const fieldNames = operands[3] as readonly UAALOperand[];
+      const fields = fieldNames.map(() => proxy.pop()).reverse();
+      proxy.push({ schema: operands[2], fields });
+      return;
+    }
+    if (abi === 'hs.aggregate.value.v1' && operator === 'project') {
+      const record = proxy.pop() as { fields?: UAALOperand[] } | null;
+      if (!record || !Array.isArray(record.fields)) {
+        throw new Error('hs.aggregate.value.v1 project requires a record');
+      }
+      proxy.push(record.fields[operands[4] as number]);
+      return;
+    }
     if (abi !== 'hs.i32.binary.v1' || typeof operator !== 'string') {
       throw new Error(`unsupported HoloScript EXEC ABI: ${String(abi)}`);
     }
@@ -621,6 +647,7 @@ function main() {
 
     expect(result.taskStatus).toBe('HALTED');
     expect(result.stackTop).toBe(42);
+    expect(result.state.stack).toEqual([42]);
     expect(result.state.callStack).toEqual([]);
   }, 60000);
 
@@ -651,17 +678,19 @@ function main() {
 
     expect(result.taskStatus).toBe('HALTED');
     expect(result.stackTop).toBe('done');
+    expect(result.state.stack).toEqual(['done']);
     expect(result.state.callStack).toEqual([]);
   }, 60000);
 
   // `countdown` above never reads its parameter after the recursive call, so it cannot tell
   // per-function slots from per-call frames. These programs do, and must agree with native.
-  it('keeps each recursive call in its own frame, with native parity', async () => {
-    const cases: Array<{ name: string; expected: number; source: string }> = [
-      {
-        name: 'fib(10) reads n after both recursive calls',
-        expected: 55,
-        source: `function fib(n: i32): i32 {
+  // Every run must also end with exactly one value on the operand stack: the answer. Each case
+  // is its own test because each runs cargo twice (UAAL, then native), 15-50 s a run here.
+  const frameCases: Array<{ name: string; expected: number; source: string }> = [
+    {
+      name: 'fib(10) reads n after both recursive calls',
+      expected: 55,
+      source: `function fib(n: i32): i32 {
   if (n < 2) {
     return n
   }
@@ -671,11 +700,11 @@ function main() {
 function main(): i32 {
   return fib(10)
 }`,
-      },
-      {
-        name: 'the recursive call runs before the parameter is read',
-        expected: 10,
-        source: `function sum_to(n: i32): i32 {
+    },
+    {
+      name: 'the recursive call runs before the parameter is read',
+      expected: 10,
+      source: `function sum_to(n: i32): i32 {
   if (n < 1) {
     return 0
   }
@@ -685,11 +714,11 @@ function main(): i32 {
 function main(): i32 {
   return sum_to(4)
 }`,
-      },
-      {
-        name: 'a local declared before the recursive call is read after it',
-        expected: 15,
-        source: `function tri(n: i32): i32 {
+    },
+    {
+      name: 'a local declared before the recursive call is read after it',
+      expected: 15,
+      source: `function tri(n: i32): i32 {
   if (n < 1) {
     return 0
   }
@@ -701,11 +730,11 @@ function main(): i32 {
 function main(): i32 {
   return tri(5)
 }`,
-      },
-      {
-        name: 'mutual recursion',
-        expected: 1,
-        source: `function is_even(n: i32): i32 {
+    },
+    {
+      name: 'mutual recursion',
+      expected: 1,
+      source: `function is_even(n: i32): i32 {
   if (n == 0) {
     return 1
   }
@@ -722,11 +751,11 @@ function is_odd(n: i32): i32 {
 function main(): i32 {
   return is_even(10)
 }`,
-      },
-      {
-        name: 'three-way mutual recursion reading n after each call',
-        expected: 51,
-        source: `function a(n: i32): i32 {
+    },
+    {
+      name: 'three-way mutual recursion reading n after each call',
+      expected: 51,
+      source: `function a(n: i32): i32 {
   if (n < 1) {
     return 0
   }
@@ -750,11 +779,11 @@ function c(n: i32): i32 {
 function main(): i32 {
   return a(7)
 }`,
-      },
-      {
-        name: 'a recursive call nested in the arguments of a returned one',
-        expected: 9,
-        source: `function ack(m: i32, n: i32): i32 {
+    },
+    {
+      name: 'a recursive call nested in the arguments of a returned one',
+      expected: 9,
+      source: `function ack(m: i32, n: i32): i32 {
   if (m == 0) {
     return n + 1
   }
@@ -767,11 +796,11 @@ function main(): i32 {
 function main(): i32 {
   return ack(2, 3)
 }`,
-      },
-      {
-        name: 'a 900-deep returned call keeps a flat operand stack',
-        expected: 242595150,
-        source: `function walk(i: i32, n: i32, acc: i32): i32 {
+    },
+    {
+      name: 'a 900-deep returned call keeps a flat operand stack',
+      expected: 242595150,
+      source: `function walk(i: i32, n: i32, acc: i32): i32 {
   if (i >= n) {
     return acc
   }
@@ -783,28 +812,137 @@ function main(): i32 {
 function main(): i32 {
   return walk(0, 900, 0)
 }`,
-      },
-    ];
+    },
+    {
+      // Restoring in save order, or into one shared slot, swaps or loses a and b (67 or 75).
+      name: 'two live bindings with different values go back to their own slots',
+      expected: 55,
+      source: `function g(a: i32, b: i32): i32 {
+  if (a < 1) {
+    return b
+  }
+  let r: i32 = g(a - 1, b + 2)
+  return r + a * 3 + b
+}
 
-    for (const testCase of cases) {
+function main(): i32 {
+  return g(4, 1)
+}`,
+    },
+    {
+      name: 'three live bindings with different values go back to their own slots',
+      expected: 31119,
+      source: `function g(a: i32, b: i32, c: i32): i32 {
+  if (a < 1) {
+    return b + c
+  }
+  let r: i32 = g(a - 1, b + 2, c * 3)
+  return r * 7 + a * 100 + b * 10 + c
+}
+
+function main(): i32 {
+  return g(3, 1, 2)
+}`,
+    },
+    {
+      // Saving all six bindings costs six of the 4096 operand-stack entries per level and ends
+      // in ERROR near depth 683; c, d and e are the only ones read after the call.
+      name: 'six bindings 700 deep save only the three read after the call',
+      expected: 1400,
+      source: `function wide(n: i32, a: i32, b: i32): i32 {
+  if (n < 1) {
+    return a + b
+  }
+  let c: i32 = a + 1
+  let d: i32 = b + 1
+  let e: i32 = c + d
+  let r: i32 = wide(n - 1, c, d)
+  return r + e - c - d
+}
+
+function main(): i32 {
+  return wide(700, 0, 0)
+}`,
+    },
+    {
+      // Nothing after a `return` runs in its frame, so the call saves nothing although the
+      // final return reads five slots: saving them would need 4500 entries at depth 900.
+      name: 'a returned call inside a branch saves nothing, 900 deep',
+      expected: 242596953,
+      source: `function walk(i: i32, n: i32, acc: i32, p: i32, q: i32): i32 {
+  if (i < n) {
+    let sq: i32 = i * i
+    let next: i32 = acc + sq
+    return walk(i + 1, n, next, p, q)
+  }
+  return acc + i + n + p + q
+}
+
+function main(): i32 {
+  return walk(0, 900, 0, 1, 2)
+}`,
+    },
+    {
+      // The call sits in the test; both branches read a and b after it returns.
+      name: 'a call in an if test keeps what the branches read',
+      expected: 31,
+      source: `function g(a: i32, b: i32): i32 {
+  if (a < 1) {
+    return b
+  }
+  if (g(a - 1, b + 1) > 100) {
+    return a
+  } else {
+    return a * 10 + b
+  }
+}
+
+function main(): i32 {
+  return g(3, 1)
+}`,
+    },
+  ];
+
+  for (const testCase of frameCases) {
+    it(`keeps each recursive call in its own frame, with native parity: ${testCase.name}`, async () => {
       const vm = new UAALVirtualMachine();
       registerHsI32BinaryHandler(vm);
       const result = await vm.execute(compileHsToUaalViaRust(testCase.source));
 
-      expect(result.taskStatus, testCase.name).toBe('HALTED');
-      expect(result.stackTop, testCase.name).toBe(testCase.expected);
-      expect(result.state.callStack, testCase.name).toEqual([]);
-      expect(executeHsNativeViaRust(testCase.source), testCase.name).toBe(testCase.expected);
-    }
-  }, 240000);
+      expect(result.taskStatus).toBe('HALTED');
+      expect(result.state.stack).toEqual([testCase.expected]);
+      expect(result.state.callStack).toEqual([]);
+      expect(executeHsNativeViaRust(testCase.source)).toBe(nativeExitStatus(testCase.expected));
+    }, 240000);
+  }
 
-  // Native refuses statement calls (hs-machine-v5), so these values are computed by hand.
-  it('discards the value of a statement call so recursive frames stay balanced', async () => {
-    const cases: Array<{ name: string; expected: number; source: string }> = [
-      {
-        name: 'a helper called as a statement before the recursive call',
-        expected: 6,
-        source: `function note(x: i32): i32 {
+  // The same computation as the statement-call programs below, in the form native accepts.
+  const statementFreeControl = `function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  let r: i32 = f(n - 1, k + 10)
+  return r + k
+}
+
+function main(): i32 {
+  return f(3, 1)
+}`;
+
+  // Every call leaves exactly one value (null from a function that returns none), and a statement
+  // drops it; `drop` and `store` leave none. Native refuses these programs (untyped functions,
+  // calls made as statements), so the value is checked another way: `control`, when given, is the
+  // same computation written as native accepts it, and native must return the same value for it.
+  const balanceCases: Array<{
+    name: string;
+    expected: UAALOperand;
+    source: string;
+    control?: string;
+  }> = [
+    {
+      name: 'a helper called as a statement before the recursive call',
+      expected: 6,
+      source: `function note(x: i32): i32 {
   return x
 }
 
@@ -819,11 +957,21 @@ function f(n: i32): i32 {
 function main(): i32 {
   return f(3)
 }`,
-      },
-      {
-        name: 'the recursive call itself used as a statement',
-        expected: 3,
-        source: `function f(n: i32): i32 {
+      control: `function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return f(n - 1) + n
+}
+
+function main(): i32 {
+  return f(3)
+}`,
+    },
+    {
+      name: 'the recursive call itself used as a statement',
+      expected: 3,
+      source: `function f(n: i32): i32 {
   if (n > 0) {
     f(n - 1)
   }
@@ -833,23 +981,175 @@ function main(): i32 {
 function main(): i32 {
   return f(3)
 }`,
-      },
-    ];
+    },
+    {
+      // maybe(2) falls off its end; without the null it leaves nothing and f's restored frame
+      // shifts by one value (63).
+      name: 'an untyped helper that falls off its end on some paths',
+      expected: 64,
+      source: `function maybe(x: i32) {
+  if (x != 2) {
+    return x
+  }
+}
 
-    for (const testCase of cases) {
-      const vm = new UAALVirtualMachine();
-      registerHsI32BinaryHandler(vm);
-      const result = await vm.execute(compileHsToUaalViaRust(testCase.source));
+function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  let a: i32 = 0
+  let m: i32 = maybe(n)
+  let r: i32 = f(n - 1, k + 10)
+  return r + k
+}
 
-      expect(result.taskStatus, testCase.name).toBe('HALTED');
-      expect(result.stackTop, testCase.name).toBe(testCase.expected);
-      expect(result.state.callStack, testCase.name).toEqual([]);
-    }
-  }, 120000);
+function main(): i32 {
+  return f(3, 1)
+}`,
+      control: `function maybe(x: i32): i32 {
+  if (x != 2) {
+    return x
+  }
+  return 0
+}
 
-  it('refuses what native refuses instead of returning a different value', () => {
-    expect(() =>
-      compileHsToUaalViaRust(`function f(n: i32) {
+function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  let a: i32 = 0
+  let m: i32 = maybe(n)
+  let r: i32 = f(n - 1, k + 10)
+  return r + k
+}
+
+function main(): i32 {
+  return f(3, 1)
+}`,
+    },
+    {
+      name: 'an untyped helper that takes a bare return on some paths',
+      expected: 64,
+      source: `function pick(x: i32) {
+  if (x == 2) {
+    return
+  }
+  return x
+}
+
+function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  let m: i32 = pick(n)
+  let r: i32 = f(n - 1, k + 10)
+  return r + k
+}
+
+function main(): i32 {
+  return f(3, 1)
+}`,
+      control: `function pick(x: i32): i32 {
+  if (x == 2) {
+    return 0
+  }
+  return x
+}
+
+function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  let m: i32 = pick(n)
+  let r: i32 = f(n - 1, k + 10)
+  return r + k
+}
+
+function main(): i32 {
+  return f(3, 1)
+}`,
+    },
+    {
+      name: 'a helper with a value on some paths only, called as a statement',
+      expected: 64,
+      source: `function maybe(x: i32) {
+  if (x != 2) {
+    return x
+  }
+}
+
+function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  maybe(n)
+  let r: i32 = f(n - 1, k + 10)
+  return r + k
+}
+
+function main(): i32 {
+  return f(3, 1)
+}`,
+      control: statementFreeControl,
+    },
+    {
+      // The record a statement constructor leaves must be dropped (65 and three stray values).
+      name: 'a struct constructor used as a statement',
+      expected: 64,
+      source: `struct Packet { code: i32 }
+
+function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  let r: i32 = f(n - 1, k + 10)
+  Packet(n)
+  return r + k
+}
+
+function main(): i32 {
+  return f(3, 1)
+}`,
+      control: statementFreeControl,
+    },
+    {
+      name: 'a field load used as a statement',
+      expected: 64,
+      source: `struct Packet { code: i32 }
+
+function f(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  let r: i32 = f(n - 1, k + 10)
+  slot p: Packet = Packet(n)
+  load(p.code)
+  return r + k
+}
+
+function main(): i32 {
+  return f(3, 1)
+}`,
+      control: statementFreeControl,
+    },
+    {
+      name: 'a recursive function without a value, called as a statement',
+      expected: 4,
+      source: `function spin(n: i32) {
+  if (n > 0) {
+    spin(n - 1)
+  }
+}
+
+function main(): i32 {
+  spin(3)
+  return 4
+}`,
+    },
+    {
+      name: 'a recursion ending in a bare return, handed back as the value of main',
+      expected: null,
+      source: `function f(n: i32) {
   if (n == 0) {
     return
   }
@@ -858,9 +1158,114 @@ function main(): i32 {
 
 function main() {
   return f(3)
-}`)
-    ).toThrow('HS-UAAL-CAP-007');
+}`,
+    },
+    {
+      name: 'main falls off its end after a statement call',
+      expected: null,
+      source: `function note(x: i32): i32 {
+  return x
+}
 
+function main() {
+  note(5)
+}`,
+    },
+    {
+      // n is read only before the call; the next iteration reads it again. f(0) = 0 and
+      // f(n) = 2n + 2 f(n - 1): f(1) = 2, f(2) = 8, f(3) = 22.
+      name: 'a loop reads a binding only in an earlier statement of its body',
+      expected: 22,
+      source: `function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  var i: i32 = 0
+  var acc: i32 = 0
+  while (i < 2) {
+    acc = acc + n
+    let r: i32 = f(n - 1)
+    acc = acc + r
+    i = i + 1
+  }
+  return acc
+}
+
+function main(): i32 {
+  return f(3)
+}`,
+    },
+    {
+      // n is read only by the call's own arguments in the loop test, which runs again. h(0, c) = c,
+      // h(1, k) = k + 19 (the loop runs while count + 1 < 20), h(2, k) = k (h(1, count + 2) is 21
+      // or more from the start), h(3, k) = k + 17 (while count + 3 < 20): h(3, 5) = 22.
+      name: 'a loop test passes a binding only to the recursive call',
+      expected: 22,
+      source: `function h(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  var count: i32 = 0
+  while (h(n - 1, count + n) < 20) {
+    count = count + 1
+  }
+  return count + k
+}
+
+function main(): i32 {
+  return h(3, 5)
+}`,
+    },
+    {
+      // The call sits in the else block; the return after the if reads a and b. g(0, b) = 2b and
+      // g(a, b) = g(a - 1, b + 2) + 3a + b: g(1, 5) = 22, g(2, 3) = 31, g(3, 1) = 41.
+      name: 'a call in an else block keeps what follows the if',
+      expected: 41,
+      source: `function g(a: i32, b: i32): i32 {
+  var r: i32 = 0
+  if (a < 1) {
+    r = b
+  } else {
+    r = g(a - 1, b + 2)
+  }
+  return r + a * 3 + b
+}
+
+function main(): i32 {
+  return g(3, 1)
+}`,
+      control: `function g(a: i32, b: i32): i32 {
+  if (a < 1) {
+    return b + a * 3 + b
+  }
+  let r: i32 = g(a - 1, b + 2)
+  return r + a * 3 + b
+}
+
+function main(): i32 {
+  return g(3, 1)
+}`,
+    },
+  ];
+
+  for (const testCase of balanceCases) {
+    it(`keeps the operand stack balanced: ${testCase.name}`, async () => {
+      const vm = new UAALVirtualMachine();
+      registerHsI32BinaryHandler(vm);
+      const result = await vm.execute(compileHsToUaalViaRust(testCase.source));
+
+      expect(result.taskStatus).toBe('HALTED');
+      expect(result.state.stack).toEqual([testCase.expected]);
+      expect(result.state.callStack).toEqual([]);
+      if (testCase.control !== undefined) {
+        expect(executeHsNativeViaRust(testCase.control)).toBe(
+          nativeExitStatus(testCase.expected as number)
+        );
+      }
+    }, 240000);
+  }
+
+  it('refuses what native refuses instead of returning a different value', () => {
     expect(() =>
       compileHsToUaalViaRust(`function g(n: i32) {
   let x: i32 = n
@@ -901,7 +1306,55 @@ function main(): i32 {
   return f(0)
 }`)
     ).toThrow('can finish without returning a value');
-  }, 60000);
+
+    // `drop` and `store` leave nothing on the stack, so nothing can be read from them; native
+    // refuses both too.
+    expect(() =>
+      compileHsToUaalViaRust(`function main(): i32 {
+  let b: [i32] = buffer(2, 5)
+  let x: i32 = drop(b)
+  return 1
+}`)
+    ).toThrow('`drop(...)` is a statement and leaves no value');
+
+    expect(() =>
+      compileHsToUaalViaRust(`function write(view: &mut [i32], index: i32, value: i32): i32 {
+  return store(view[index], value)
+}
+
+function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let changed: i32 = write(&mut values, 1, 9)
+  drop(values)
+  return changed
+}`)
+    ).toThrow('`store(...)` is a statement and leaves no value');
+
+    // An aggregate slot ends with its block, as in native: read after it (UAAL gave 7) or hidden
+    // by an inner slot of the same name (UAAL gave 2).
+    expect(() =>
+      compileHsToUaalViaRust(`struct Packet { code: i32 }
+
+function main(): i32 {
+  if (true) {
+    slot p: Packet = Packet(7)
+  }
+  return load(p.code)
+}`)
+    ).toThrow('unresolved slot `p`');
+
+    expect(() =>
+      compileHsToUaalViaRust(`struct Packet { code: i32 }
+
+function main(): i32 {
+  slot p: Packet = Packet(1)
+  if (true) {
+    slot p: Packet = Packet(2)
+  }
+  return load(p.code)
+}`)
+    ).toThrow('redeclares binding `p`');
+  }, 240000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {
     const source = readFileSync(THREE_SURFACE_POLICY_PATH, 'utf8');
@@ -924,6 +1377,7 @@ function main(): i32 {
 
     expect(result.taskStatus).toBe('HALTED');
     expect(result.stackTop).toBe(nativeExitCode);
+    expect(result.state.stack).toEqual([nativeExitCode]);
     expect(result.state.callStack).toEqual([]);
     expect(
       executionLog.steps.filter(
@@ -954,6 +1408,7 @@ function main(): i32 {
     expect(nativeExitCode).toBe(42);
     expect(result.taskStatus).toBe('HALTED');
     expect(result.stackTop).toBe(nativeExitCode);
+    expect(result.state.stack).toEqual([nativeExitCode]);
     expect(result.state.callStack).toEqual([]);
     expect(
       executionLog.steps.filter(
@@ -988,6 +1443,7 @@ function main(): i32 {
     expect(nativeExitCode).toBe(5);
     expect(result.taskStatus).toBe('HALTED');
     expect(result.stackTop).toBe(nativeExitCode);
+    expect(result.state.stack).toEqual([nativeExitCode]);
     expect(result.state.callStack).toEqual([]);
     type IndexedInstruction = { instruction: BytecodeInstruction; pc: number };
     const staticCallPcs = bytecode.instructions
