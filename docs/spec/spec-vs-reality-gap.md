@@ -214,6 +214,70 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
 
 ---
 
+## G10 — The three surfaces disagree about the same construct _(2026-10-05 drift study)_
+
+**Claim tested:** `.hs`, `.hsplus`, and `.holo` are "capability surfaces of one language"
+([`language-identity.md`](./language-identity.md)), so a construct that one surface accepts
+means the same thing, or is refused with a diagnostic, on the others.
+
+**Method:** about 80 small snippets, each fed to all four grammars (the `.hs` Rust/WASM
+authority, `HoloScriptPlusParser`, `HoloCompositionParser`, and the tree-sitter editor grammar)
+regardless of extension, on `origin/main` 257191940.
+
+**What the study found** (each item was reproduced by running a parser):
+
+| # | Mismatch | Effect on someone moving code |
+| --- | --- | --- |
+| 1 | `holoscript parse x.hs` runs the TypeScript `HoloScriptCodeParser`, not the Rust/WASM authority; `holoscript validate` runs the authority | `parse` passes code `validate` rejects (`let` reassignment, `let mut`, generics) |
+| 2 | Functions: real and type-checked in `.hs`; in `.hsplus` a return type is a parse error and the body is kept as unchecked text; in `.holo` `function` is consumed and dropped | A `.hs` function moved elsewhere fails or vanishes |
+| 3 | Loops: `for (i in 0..3)` is `.hs`-only; `for i in xs` and C-style loops are `.holo`-only; `for (x of xs)` is tree-sitter-only; `..` exists only in `.hs` | No loop form is portable |
+| 4 | `let`/`const` immutability is enforced only in `.hs`; `.holo` accepts reassigning a `const` and UAAL lowering drops the binding kind | Moving `.holo` logic to `.hs` turns working code into errors |
+| 5 | `@unknown` on a struct field: an epistemic field in `.hs`/`.hsplus`; in `.holo`, `struct Sensor` becomes an IoT domain block, and other structs vanish, leaving a composition trait named `unknown` | The ignorance marker changes meaning |
+| 6 | Names: `.hs` accepts only `object Ball`; tree-sitter accepts only `object "Ball"` | Every `.hs` scene shows red in a tree-sitter editor |
+| 7 | Trait definition is `@trait Name {}` in `.hs` and `trait Name {}` in `.hsplus`/tree-sitter; `.hs` rejects the `@physics(mass: 2)` paren form the docs use | Each surface misreads the other's spelling |
+| 8 | Imports have four spellings; in `.hsplus` a bare `import "x"` becomes an element node and never resolves | Imports silently fail to resolve |
+| 9 | Tree-sitter's `@effects(physics:force)` is not read by the effect checker (the function counts as pure); in `.holo`, `effects { }` means post-processing | The advertised effect syntax declares nothing |
+| 10 | `.holo` without a `composition` wrapper skipped every unknown top-level token: `zzz qqq 123 !!!` parsed to an empty composition with `success: true` | Content is lost with no signal |
+| 11 | `#` comments, semicolons, template literals, `else if`, and `on_click`/`onClick` are each rejected by at least one surface | Small paste failures |
+| 12 | `packages/tree-sitter-holoscript` runs `tree-sitter test \|\| exit 0`, and the committed `.wasm` predates later grammar commits | The editor grammar's checks cannot fail |
+
+**Fixed with this entry:**
+
+- **#10.** A wrapperless `.holo` now parses each member through the same routine as a
+  `composition { }` body (`parseCompositionMember`), so the two can no longer drift. Unknown
+  input is reported instead of skipped, and a sub-parser that throws keeps its message.
+  Before this, the file level used an older copy of the member list and silently dropped `ui`,
+  `zone`, `action`, `if`, `for`, `transition`, `effects`, `metadata`, `spatial_agent`, and
+  `spatial_container` blocks. An unknown word at file level is reported and skipped one token
+  at a time, so `foo { object "Cube" {} }` still yields `Cube` (inside a body, the generic
+  word-block rule still applies). Three narrow gaps that this exposed were also closed:
+  `particle_system` is now the `particles` synonym at file level; `@world "Name"` names the
+  composition; and the documented `nft marketplace "X" { }` form
+  ([`nft-marketplace-dsl.md`](../nft-marketplace-dsl.md)) now means the marketplace block with
+  the `nft` trait, where before `nft` was dropped silently.
+  Measured by parsing all 1,910 tracked `.holo` files with the old and new parser: 29 files
+  that used to report success now report errors, and 1 goes the other way
+  (`examples/stress-tests/sunken-archive-holomap-speech-2026-05-02.holo`). No file loses a
+  parsed object, template, or domain block. Of the 29:
+  - 25 are JSON with a `.holo` extension (`examples/v5.0-hardened/`, `examples/v6/`,
+    `packages/studio/holoscript-editor.holo`);
+  - 1 is TypeScript-style code (`examples/agents/distributed-npc-state.holo`);
+  - 2 are HoloScript using forms the `zone` and `ui` parsers refuse inside a composition too:
+    `zone "x" @trait {` in `examples/hololand/10-twin-earth-playable.holo:194` and
+    `ui "x" @trait {` in `examples/hololand/6-ar-webxr-adapter.holo:106`. Before, the file
+    level dropped those blocks unread (the zone's traits leaked onto the composition).
+- **The hang behind #1.** `HoloScriptCodeParser` looped forever on `action go(n: i32)`:
+  `expectIdentifier()` reported the `:` without consuming it. Six copies of the parameter loop
+  now share one `parseParamNames()` that always makes progress and skips a whole `: Type`,
+  including `Map<string, Array<i32>>`, `i32[]`, and `string | null`.
+
+**Still open:** #1 (routing), #2–#9, #11, #12; `zone` and `ui` taking a name plus traits.
+The JSON `.holo` files, and the two hololand examples, are also served by the MCP examples
+catalog (`packages/mcp-server/src/examples-catalog.ts`) as HoloScript examples (board task
+`task_1791229046894_rh9h`; tree-sitter #12 is `task_1791229046894_m209`).
+
+---
+
 ## What is explicitly NOT a gap
 
 - `.holo` spatial pipeline (G1) — built and tested; do not "rebuild."
