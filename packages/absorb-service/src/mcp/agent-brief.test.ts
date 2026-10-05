@@ -149,4 +149,28 @@ describe('briefForAgent', () => {
     ).toBe('a.ts:3 Svc.run (method) score 0.91');
     expect(resultLine({ name: 'parse', type: 'function', file: 'b.ts', line: 7 })).toBe('b.ts:7 parse (function)');
   });
+
+  it('suggests follow-ups with the parameter names the tools actually take', () => {
+    const out = brief(
+      'holo_query_codebase',
+      { query: 'find', symbolName: 'target' },
+      { results: [{ name: 'target', type: 'function', filePath: 'src/a.ts', line: 1 }] }
+    );
+    expect(out.followUps.slice(0, 2)).toEqual([
+      { tool: 'holo_query_codebase', args: { query: 'callers', symbolName: 'target' }, why: 'who calls target' },
+      { tool: 'holo_impact_analysis', args: { changedSymbol: 'target' }, why: 'what breaks if target changes' },
+    ]);
+  });
+
+  it('lists real code before tests and benches in an unranked list, and counts the tests', () => {
+    const mixed = [
+      ...Array.from({ length: 25 }, (_, i) => ({ callerId: `t${i}`, filePath: `src/__tests__/t${i}.test.ts`, line: 1 })),
+      { callerId: 'realCaller', filePath: 'src/server.ts', line: 9 },
+    ];
+    const out = brief('holo_query_codebase', { query: 'callers', symbolName: 'x' }, { results: mixed }) as Brief & {
+      resultsTestOrBench?: number;
+    };
+    expect(out.results?.[0]).toBe('src/server.ts:9 realCaller');
+    expect(out.resultsTestOrBench).toBe(25);
+  });
 });

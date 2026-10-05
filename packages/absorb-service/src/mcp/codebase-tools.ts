@@ -11063,7 +11063,9 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
       : undefined;
 
   const changedFiles = args.changedFiles as unknown[] | undefined;
-  const changedSymbol = args.changedSymbol as string | undefined;
+  // `symbol` / `symbolName` are accepted as shorthands, as holo_query_codebase
+  // accepts `symbol`: a first-time agent reached for them and got a refusal.
+  const changedSymbol = (args.changedSymbol ?? args.symbolName ?? args.symbol) as string | undefined;
   const symbolOwner = args.symbolOwner as string | undefined;
 
   if (changedFiles && changedFiles.length > 0) {
@@ -11145,12 +11147,23 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   }
 
   if (changedSymbol) {
+    const defined = cachedGraph.findSymbolsByName(changedSymbol).length > 0;
+    if (!defined) {
+      return {
+        changedSymbol,
+        affectedFiles: [],
+        affectedCount: 0,
+        blastRadius: `${changedSymbol} is not defined anywhere in this map, so its blast radius is unknown, not zero.`,
+        ...nearestSymbolNames(changedSymbol),
+        ...(cacheNote && { cacheNote }),
+      };
+    }
     const affected: Set<string> = cachedGraph.getSymbolImpact(changedSymbol, symbolOwner);
     return {
       changedSymbol: symbolOwner ? `${symbolOwner}.${changedSymbol}` : changedSymbol,
       affectedFiles: Array.from(affected),
       affectedCount: affected.size,
-      blastRadius: `${affected.size} files affected by changes to ${changedSymbol}`,
+      blastRadius: `${affected.size} files affected by changes to ${changedSymbol} (callers and importers, then their importers)`,
       ...(cacheNote && { cacheNote }),
     };
   }
@@ -11776,11 +11789,18 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     cache.embeddingCacheSha256 && !hasStatBoundEmbeddingGeneration
       ? readEmbeddingsCacheIdentity(activeCacheRoot, activeRootSetSelection)
       : null;
+  // A sharded index is a directory: its stat size is 0 on Windows and its
+  // mtime is not the publication time, so a stat comparison always failed and
+  // status said "not ready" for an index that was on disk. Its identity is the
+  // small shard manifest's hash, which is what publication records.
+  const shardedEmbeddings = embeddingsCacheStat?.isDirectory() === true;
   const diskEmbeddingGenerationMatchesGraph =
     cache.embeddingCacheSha256 === undefined
       ? true
       : typeof cache.embeddingCacheSha256 === 'string' &&
-        (hasStatBoundEmbeddingGeneration
+        (shardedEmbeddings
+          ? embeddingArtifactSha256(embeddingsFile) === cache.embeddingCacheSha256
+          : hasStatBoundEmbeddingGeneration
           ? embeddingsCacheStat?.size === cache.embeddingCacheBytes &&
             (embeddingsCacheStat?.mtimeMs === cache.embeddingCacheMtimeMs ||
               selectedGenerationManifestMatchesGraph)
@@ -11930,9 +11950,13 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       graphEmbeddingGeneration: cache.embeddingCacheSha256 ?? null,
       diskEmbeddingGenerationStat: embeddingsCacheStat
         ? {
-            bytes: embeddingsCacheStat.size,
+            bytes: shardedEmbeddings
+              ? (cache.embeddingCacheBytes ?? embeddingsCacheStat.size)
+              : embeddingsCacheStat.size,
             mtimeMs: embeddingsCacheStat.mtimeMs,
-            verification: selectedGenerationManifestMatchesGraph
+            verification: shardedEmbeddings
+              ? 'shard-manifest-sha256'
+              : selectedGenerationManifestMatchesGraph
               ? 'immutable-generation-manifest'
               : hasStatBoundEmbeddingGeneration
                 ? 'graph-bound-stat'
@@ -12278,15 +12302,41 @@ function extractSymbolFromQuery(query: string): string {
   const quoted = query.match(/"([^"]+)"/);
   if (quoted) return quoted[1];
 
-  const words = query.split(/\s+/);
-  // Return the last word that looks like a symbol
+  const backticked = query.match(/`([^`]+)`/);
+  if (backticked) return backticked[1];
+
+  // "where is briefForAgent defined" named the symbol "defined" (foreign-user
+  // test, 2026-10-05): a word shaped like code (camelCase, PascalCase, dotted,
+  // snake_case) wins over a trailing English word.
+  const words = query
+    .split(/\s+/)
+    .map((w) => w.replace(/^[^\w$.]+|[^\w$]+$/g, ''))
+    .filter(Boolean);
   for (let i = words.length - 1; i >= 0; i--) {
     const w = words[i];
-    if (/^[A-Z]/.test(w) || w.includes('.') || w.includes('_')) {
+    if (/[a-z][A-Z]/.test(w) || /^[A-Z]/.test(w) || w.includes('.') || w.includes('_')) {
       return w;
     }
   }
-  return words[words.length - 1];
+  return words[words.length - 1] ?? '';
+}
+
+/**
+ * When a named symbol is not in the map, say so and offer the closest names,
+ * so an empty answer is not read as "nothing uses it".
+ */
+function nearestSymbolNames(name: string): { notInGraph: true; nearestNames: string[] } {
+  const graph = cachedGraph;
+  const nearest = new Set<string>();
+  if (graph && name) {
+    const lower = name.toLowerCase();
+    for (const candidate of [lower.slice(0, Math.max(4, Math.ceil(lower.length / 2))), lower]) {
+      for (const sym of graph.searchSymbolsByName(candidate, { limit: 8 }).results) {
+        if (sym.name.toLowerCase() !== lower) nearest.add(`${sym.name} (${sym.filePath}:${sym.line})`);
+      }
+    }
+  }
+  return { notInGraph: true, nearestNames: Array.from(nearest).slice(0, 8) };
 }
 
 function extractFileFromQuery(query: string): string {

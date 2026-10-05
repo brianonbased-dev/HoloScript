@@ -82,6 +82,13 @@ describe('sharded HoloEmbed publication', () => {
 
     resetCodebaseToolStateForTests();
     resetGraphRAGStateForTests();
+    // After a restart, status must see the shard set on disk as ready. It used
+    // to compare the directory's stat (0 bytes on Windows) and say "not ready".
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as {
+      semanticIndex?: { diskHydratable?: boolean; diskEmbeddingGenerationMatchesGraph?: boolean };
+    };
+    expect(status.semanticIndex?.diskEmbeddingGenerationMatchesGraph, JSON.stringify(status.semanticIndex)).toBe(true);
+    expect(status.semanticIndex?.diskHydratable).toBe(true);
     const search = (await handleGraphRagTool('holo_semantic_search', {
       query: 'renderBetaScene',
       topK: 3,

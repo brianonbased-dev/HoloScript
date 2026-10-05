@@ -936,21 +936,65 @@ export class CodebaseGraph {
   }
 
   /**
-   * Compute the blast radius of changing a specific symbol:
-   * returns all files containing callers of that symbol, transitively.
+   * Files that import `symbolName` from the file defining it, directly or
+   * through one re-exporting file (a barrel such as index.ts). A re-exporter
+   * (some file imports the name from it) is a pass-through, not a user, so it
+   * is left out: seeding it would pull in everything that imports the barrel
+   * for any other name.
+   */
+  getSymbolImporters(symbolName: string, owner?: string): Set<string> {
+    const definingFiles = new Set(
+      this.findSymbolsByName(symbolName)
+        .filter((sym) => !owner || sym.owner === owner)
+        .map((sym) => sym.filePath)
+    );
+    const importsNameFrom = (importer: string, source: string): boolean =>
+      (this.importsByFile.get(importer) ?? []).some(
+        (imp) =>
+          (imp.resolvedPath ?? imp.toModule) === source &&
+          (imp.isWildcard === true ||
+            (imp.namedImports ?? []).includes(symbolName) ||
+            (imp.isDefault === true && definingFiles.has(source)))
+      );
+    const direct = new Set<string>();
+    for (const file of definingFiles) {
+      for (const importer of this.importedByFile.get(file) ?? []) {
+        if (!definingFiles.has(importer) && importsNameFrom(importer, file)) direct.add(importer);
+      }
+    }
+    const importers = new Set<string>();
+    for (const middle of direct) {
+      let reExports = false;
+      for (const importer of this.importedByFile.get(middle) ?? []) {
+        if (definingFiles.has(importer) || !importsNameFrom(importer, middle)) continue;
+        reExports = true;
+        importers.add(importer);
+      }
+      if (!reExports) importers.add(middle);
+    }
+    return importers;
+  }
+
+  /**
+   * Compute the blast radius of changing a specific symbol: files containing
+   * callers of it, and files importing it by name (a class built with `new`,
+   * a type, or a constant has importers but often no recorded call edges),
+   * then everything that imports those files, transitively.
    */
   getSymbolImpact(symbolName: string, owner?: string): Set<string> {
     const affectedFiles = new Set<string>();
     const visited = new Set<string>();
     const queue: string[] = [];
 
-    // Seed: direct callers
-    const callers = this.getCallersOf(symbolName, owner);
-    for (const call of callers) {
-      if (!visited.has(call.filePath)) {
-        visited.add(call.filePath);
-        affectedFiles.add(call.filePath);
-        queue.push(call.filePath);
+    const seeds = [
+      ...this.getCallersOf(symbolName, owner).map((call) => call.filePath),
+      ...(owner ? [] : this.getSymbolImporters(symbolName)),
+    ];
+    for (const file of seeds) {
+      if (!visited.has(file)) {
+        visited.add(file);
+        affectedFiles.add(file);
+        queue.push(file);
       }
     }
 

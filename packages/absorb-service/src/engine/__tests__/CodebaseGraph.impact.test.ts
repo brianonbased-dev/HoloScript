@@ -222,3 +222,40 @@ describe('CodebaseGraph bounded impact traversal', () => {
     expect(Date.now() - startedAt).toBeLessThan(5_000);
   });
 });
+
+describe('CodebaseGraph symbol impact counts importers', () => {
+  it('a class nobody "calls" still has a blast radius: its importers, through a barrel, then theirs', () => {
+    const scanner: ScannedFile = {
+      ...makeFile('src/engine/Scanner.ts'),
+      symbols: [
+        {
+          name: 'Scanner',
+          type: 'class',
+          filePath: 'src/engine/Scanner.ts',
+          line: 1,
+          column: 0,
+          language: 'typescript',
+          visibility: 'public',
+        } as ScannedFile['symbols'][number],
+      ],
+    };
+    const imp = (from: string, to: string, names: string[]) => ({
+      fromFile: from,
+      toModule: to,
+      resolvedPath: to,
+      namedImports: names,
+      line: 1,
+    });
+    const graph = buildGraph([
+      scanner,
+      makeFile('src/engine/index.ts', [imp('src/engine/index.ts', 'src/engine/Scanner.ts', ['Scanner'])]),
+      makeFile('src/direct.ts', [imp('src/direct.ts', 'src/engine/Scanner.ts', ['Scanner'])]),
+      makeFile('src/viaBarrel.ts', [imp('src/viaBarrel.ts', 'src/engine/index.ts', ['Scanner'])]),
+      makeFile('src/other.ts', [imp('src/other.ts', 'src/engine/index.ts', ['SomethingElse'])]),
+      makeFile('src/app.ts', [imp('src/app.ts', 'src/direct.ts', ['run'])]),
+    ]);
+    const affected = [...graph.getSymbolImpact('Scanner')].sort();
+    expect(affected).toEqual(['src/app.ts', 'src/direct.ts', 'src/viaBarrel.ts']);
+    expect(affected).not.toContain('src/other.ts');
+  });
+});

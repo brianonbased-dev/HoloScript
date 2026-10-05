@@ -124,6 +124,23 @@ function topName(item: unknown): string | undefined {
   return typeof name === 'string' ? name : undefined;
 }
 
+const TEST_PATH = /(^|[\\/])(__tests__|tests?|bench(marks?)?|fixtures?)[\\/]|\.(test|spec|bench)\.[cm]?[jt]sx?$/i;
+
+function itemPath(item: unknown): string {
+  if (typeof item === 'string') return item;
+  if (!isObj(item)) return '';
+  const sym = isObj(item.symbol) ? item.symbol : item;
+  return String(sym.filePath ?? sym.file ?? item.filePath ?? item.file ?? '');
+}
+
+function isTestItem(item: unknown): boolean {
+  return TEST_PATH.test(itemPath(item));
+}
+
+function productionFirst(items: unknown[]): unknown[] {
+  return [...items.filter((v) => !isTestItem(v)), ...items.filter(isTestItem)];
+}
+
 function compactLists(result: Obj, out: Obj, omitted: string[]): boolean {
   let cut = false;
   for (const [key, value] of Object.entries(result)) {
@@ -132,11 +149,18 @@ function compactLists(result: Obj, out: Obj, omitted: string[]): boolean {
       out[key] = [];
       continue;
     }
-    if (value.every((v) => typeof v === 'string')) {
-      out[key] = value.slice(0, LIST_LIMIT);
+    // An unranked list (callers, affected files) shows code before tests and
+    // benches: 262 callers whose first 20 were all tests hid every real one.
+    // A ranked list (items carry a score) keeps its order.
+    const ranked = value.some((v) => isObj(v) && typeof v.score === 'number');
+    const ordered = ranked ? value : productionFirst(value);
+    if (ordered.every((v) => typeof v === 'string')) {
+      out[key] = ordered.slice(0, LIST_LIMIT);
     } else {
-      out[key] = value.slice(0, LIST_LIMIT).map(resultLine);
+      out[key] = ordered.slice(0, LIST_LIMIT).map(resultLine);
     }
+    const tests = ordered.filter(isTestItem).length;
+    if (!ranked && tests > 0) out[`${key}TestOrBench`] = tests;
     out[`${key}Total`] = value.length;
     if (value.length > LIST_LIMIT) {
       cut = true;
@@ -233,8 +257,8 @@ export function briefForAgent(tool: string, args: Obj, result: unknown): unknown
   const top = firstList?.length ? topName(firstList[0]) : undefined;
   if (top && (tool === 'holo_query_codebase' || tool === 'holo_semantic_search' || tool === 'holo_ask_codebase')) {
     followUps.push(
-      { tool: 'holo_query_codebase', args: { query: 'callers', symbol: top }, why: `who calls ${top}` },
-      { tool: 'holo_impact_analysis', args: { symbol: top }, why: `what breaks if ${top} changes` }
+      { tool: 'holo_query_codebase', args: { query: 'callers', symbolName: top }, why: `who calls ${top}` },
+      { tool: 'holo_impact_analysis', args: { changedSymbol: top }, why: `what breaks if ${top} changes` }
     );
   }
   if (omitted.length > 0 || cut) {
