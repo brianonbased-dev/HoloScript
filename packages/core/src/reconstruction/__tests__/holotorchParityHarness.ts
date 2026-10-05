@@ -119,13 +119,17 @@ export function receiptsDir(): string {
 /**
  * Append a parity receipt. Tip file is updated for existing readers; history is
  * never overwritten. Stamp defaults to now (ISO, colon-safe for filenames).
+ * outDir defaults to the package's receipts dir; a test can aim it at a scratch tree
+ * so it exercises this writer without touching the tracked tips.
  */
 export function writeParityReceipt(
   op: string,
   payload: Record<string, unknown>,
-  { stamp = new Date().toISOString() }: { stamp?: string } = {}
+  {
+    stamp = new Date().toISOString(),
+    outDir = receiptsDir(),
+  }: { stamp?: string; outDir?: string } = {}
 ): { tipPath: string; historyPath: string; ndjsonPath: string } {
-  const outDir = receiptsDir();
   const historyDir = join(outDir, 'history');
   mkdirSync(historyDir, { recursive: true });
   const record = {

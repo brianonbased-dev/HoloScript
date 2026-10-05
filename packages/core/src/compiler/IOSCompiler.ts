@@ -97,9 +97,30 @@ export class IOSCompiler extends CompilerBase {
     outputPath?: string
   ): IOSCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
+    // Objects written inside `scene` blocks are built the same way as top-level ones: the scene
+    // file, the state file and every feature file the traits on them ask for read the
+    // composition returned here. Each object becomes `static func make<Name>()` in the one
+    // `<Class>Objects` enum, so a scene object whose name sanitizes to a name that enum already
+    // has (two scenes that each have a "Ground", or "crate" beside "Crate") is left out and named
+    // in a WARNING comment. Lights and sounds are in enums of their own, and no other part names
+    // an object, so only the objects built here (not the groups and children this target does
+    // not build) take a name.
+    const scenes = this.flattenScenes(composition, undefined, {
+      reserved: (content) =>
+        new Map(
+          (content.objects ?? []).map((obj): [string, string] => [
+            this.sanitizeName(obj.name),
+            'another object',
+          ])
+        ),
+      of: (obj) => [this.sanitizeName(obj.name)],
+    });
+    composition = scenes.composition;
+    // ARKit scenes here read no environment, so there is none to say is not applied.
+    const warnings = this.sceneWarnings({ ...scenes, unappliedEnvironments: [] }, 'Swift');
     const result: IOSCompileResult = {
       viewFile: generateViewFile(this, composition),
-      sceneFile: generateSceneFile(this, composition),
+      sceneFile: generateSceneFile(this, composition, warnings),
       stateFile: generateStateFile(this, composition),
       infoPlist: generateInfoPlist(this, composition),
     };

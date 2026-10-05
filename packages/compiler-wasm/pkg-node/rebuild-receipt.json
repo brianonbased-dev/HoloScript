@@ -1,24 +1,24 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-27T23:29:33Z",
+  "generatedAt": "2026-10-05T04:08:47Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "0da1021d92da8dd991cc4606c3b71a54161a28c2",
+  "sourceCommit": "ee3b5c634e34f6bad5236a3baf972ad530519194",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
   ],
   "toolchain": {
-    "rustc": "1.98.1",
-    "cargo": "1.98.1",
+    "rustc": "1.91.0",
+    "cargo": "1.91.0",
     "wasmPack": "0.14.0"
   },
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 481843,
-    "wasmSha256": "905099d1b2f5dd8f70c4288f2e0ecd5af9c8f7f3e6412479507dd99f789c8d85",
-    "previousWasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
-    "repeatBuildSha256Matched": null,
-    "note": "Rebuilt pkg-node from the lifetime-elision and read-only-downgrade checker on this branch. Fresh release build with the receipted command. Digest pinned from the produced artifact. No version bump."
+    "wasmBytes": 545447,
+    "wasmSha256": "a87f2ec34570d80662041c5481e3e21ac6c64a6e656139dfd9b1007649fd8c3f",
+    "previousWasmSha256": "f069da7892d1b3a731933e1c4d5edeacf9e2ecffd78cd38a19290330f58a5b0a",
+    "repeatBuildSha256Matched": true,
+    "note": "Rebuilt from the round-2 review fix of PR #428 (G10): every UAAL call leaves one value, a re-entrant call saves only slots read after it, aggregate slots end with their block. pkg/ (--target web) and pkg-node/ (--target nodejs) hold byte-identical WASM, and a third --target nodejs build into a scratch directory, with the crate recompiled after cargo clean of its wasm32 release artifacts, gave the same digest. Built with rustc 1.91.0, older than the 1.98.1 of the artifact on main, so about 46 KB of the growth over main is the toolchain. No version bump. The generated .js and .d.ts are byte-identical to the previous artifact and pkg-node/package.json was kept as committed."
   }
 }
