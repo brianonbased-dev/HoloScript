@@ -283,7 +283,8 @@ export interface CLIOptions {
   device?: string;
   /**
    * Environment variable names a pipeline run may read (repeatable --allow-env NAME).
-   * HOLOSCRIPT_MCP_URL is always readable. Board task task_1791176003202_obsc.
+   * No variable is readable without being named, HOLOSCRIPT_MCP_URL included.
+   * Board task task_1791176003202_obsc.
    */
   allowEnv?: string[];
 }
