@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
   compilePipelineSource,
   compilePipelineSourceToNode,
   compilePipelineSourceToPython,
 } from '../PipelineNodeCompiler';
+import { compilePipelineSourceToNode as compileWithParserTarget } from '../../parser/PipelineCompiler';
 
 const SOURCE = `
   pipeline "InventorySync" {
@@ -183,5 +184,134 @@ describe('PipelineNodeCompiler', () => {
       '[PipelineNodeCompiler] Unsupported pipeline sink type \\"holo\\" (step: Scene)'
     );
     expect(sinkResult.code).not.toContain('# sink Scene (holo) not implemented');
+  });
+});
+
+// Board task task_1791176003202_obsc: the same file gets the same verdict from both
+// pipeline compilers. This one is what `holoscript run` and `compile --target node` use.
+describe('PipelineNodeCompiler — MCP servers a pipeline file may choose', () => {
+  /** This machine, as the loopback address the local MCP service listens on. */
+  const LOCAL = '127.0.0.1';
+
+  function mcpPipeline(server: string): string {
+    return `
+      pipeline "McpServerPolicy" {
+        source Pull {
+          type: "mcp"
+          server: "${server}"
+          tool: "knowledge_query"
+        }
+        transform Enrich {
+          type: "mcp"
+          server: "${server}"
+          tool: "knowledge_enrich"
+        }
+        sink Push {
+          type: "mcp"
+          server: "${server}"
+          tool: "knowledge_write"
+        }
+      }
+    `;
+  }
+
+  const targets = {
+    node: (source: string) => compilePipelineSourceToNode(source),
+    python: (source: string) => compilePipelineSourceToPython(source),
+    'target-aware (default)': (source: string) => compilePipelineSource(source),
+  };
+
+  beforeEach(() => {
+    vi.stubEnv('HOLOSCRIPT_MCP_URL', '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each(Object.entries(targets))(
+    'refuses a server on another host at compile time (%s target)',
+    (_target, compile) => {
+      const result = compile(mcpPipeline('https://attacker.example'));
+      expect(result.success).toBe(false);
+      expect(result.code).toBeUndefined();
+      expect(result.errors).toHaveLength(3);
+      expect(result.errors?.[0]).toContain(
+        'Source "Pull" cannot use server "https://attacker.example"'
+      );
+      expect(result.errors?.[1]).toContain('Transform "Enrich" cannot use server');
+      expect(result.errors?.[2]).toContain('Sink "Push" cannot use server');
+      expect(result.errors?.[2]).toContain('HOLOSCRIPT_API_KEY');
+    }
+  );
+
+  it.each(Object.entries(targets))(
+    'refuses ${env.*} in a server (%s target)',
+    (_target, compile) => {
+      const result = compile(mcpPipeline('https://mcp.holoscript.net/${env.SOME_SECRET}'));
+      expect(result.success).toBe(false);
+      expect(result.errors?.[0]).toContain('a server may not contain ${...} placeholders');
+    }
+  );
+
+  it('gives the same verdict as the parser target', () => {
+    for (const server of [
+      'https://attacker.example',
+      'https://mcp.holoscript.net/${env.SOME_SECRET}',
+      '${env.HOLOSCRIPT_MCP_URL:-https://attacker.example}',
+      `http://${LOCAL}:7411`,
+      'mcp-orchestrator',
+      '',
+    ]) {
+      const source = mcpPipeline(server);
+      const cli = compilePipelineSourceToNode(source);
+      const parserTarget = compileWithParserTarget(source);
+      expect(cli.success, server).toBe(parserTarget.success);
+      expect(cli.errors, server).toEqual(parserTarget.errors);
+    }
+  });
+
+  it.each([
+    [''],
+    ['${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}'],
+    ['https://mcp.holoscript.net'],
+    ['mcp-orchestrator'],
+  ])('still compiles server %j on every target', (server) => {
+    for (const [target, compile] of Object.entries(targets)) {
+      const result = compile(mcpPipeline(server));
+      expect(result.errors, target).toBeUndefined();
+      expect(result.success, target).toBe(true);
+    }
+  });
+
+  it('still compiles the server the operator configured in HOLOSCRIPT_MCP_URL', () => {
+    vi.stubEnv('HOLOSCRIPT_MCP_URL', 'https://mcp.example.test');
+    expect(compilePipelineSourceToNode(mcpPipeline('https://mcp.example.test')).success).toBe(true);
+    expect(compilePipelineSourceToNode(mcpPipeline('https://attacker.example')).success).toBe(
+      false
+    );
+  });
+
+  // This machine is no exception: the local MCP service trusts any loopback caller, so a
+  // file may not pick a loopback address. Only the configured origin is accepted.
+  it.each([
+    [`http://${LOCAL}:7411`],
+    ['http://localhost:3000'],
+    ['http://[::1]:8080'],
+    [`\${env.HOLOSCRIPT_MCP_URL:-http://${LOCAL}:7411}`],
+  ])('refuses %j when nothing configured it, on every target', (server) => {
+    for (const [target, compile] of Object.entries(targets)) {
+      const result = compile(mcpPipeline(server));
+      expect(result.success, target).toBe(false);
+      expect(result.errors?.[0], target).toContain('a server on this machine is no exception');
+    }
+  });
+
+  it('accepts a server on this machine only when HOLOSCRIPT_MCP_URL names it, on every target', () => {
+    vi.stubEnv('HOLOSCRIPT_MCP_URL', `http://${LOCAL}:7411`);
+    for (const [target, compile] of Object.entries(targets)) {
+      expect(compile(mcpPipeline(`http://${LOCAL}:7411`)).success, target).toBe(true);
+      expect(compile(mcpPipeline(`http://${LOCAL}:7412`)).success, target).toBe(false);
+    }
   });
 });

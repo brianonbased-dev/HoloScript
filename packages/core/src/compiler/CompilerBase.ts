@@ -477,7 +477,7 @@ export function escapeStringValue(value: string, target: EscapeTarget): string {
  * scene by scene, and go through the compiler's own object path. A scene has no
  * transform, so each object keeps its own position. Compilers that extend
  * {@link CompilerBase} call it through {@link CompilerBase.flattenScenes};
- * SceneIRCompiler, which does not extend it, calls it directly.
+ * SceneIRCompiler and the Quest world emitter, which do not extend it, call it directly.
  *
  * Environment: the composition's own `environment` applies when it has one;
  * otherwise the first scene that declares one supplies it. One world has one
@@ -498,7 +498,8 @@ export function escapeStringValue(value: string, target: EscapeTarget): string {
  * output stays exactly as before.
  *
  * A compiler that has somewhere to report writes {@link CompilerBase.sceneWarnings}
- * into its output, so nothing is left out without being named. When no scene adds
+ * (an emitter that is not a compiler class, {@link describeLeftOutScenes}) into its
+ * output, so nothing is left out without being named. When no scene adds
  * anything, the input itself is returned, so a composition without scenes compiles
  * exactly as before. The input is never changed.
  */
@@ -597,6 +598,30 @@ export function flattenCompositionScenes(
     unappliedEnvironments,
     leftOutObjects,
   };
+}
+
+/**
+ * One plain sentence for each piece of scene content {@link flattenCompositionScenes} left out,
+ * with names escaped for `target` and kept on one line. A compiler that extends
+ * {@link CompilerBase} gets these from {@link CompilerBase.sceneWarnings}; an emitter that is a
+ * function of its own calls this, and writes each sentence into its output as a WARNING comment.
+ */
+export function describeLeftOutScenes(flattened: FlattenedScenes, target: EscapeTarget): string[] {
+  const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]+/g, ' ');
+  const quote = (name: string) => `"${escapeStringValue(oneLine(name), target)}"`;
+  return [
+    ...flattened.unappliedEnvironments.map(({ scene, appliedFrom }) => {
+      const applied =
+        appliedFrom === null
+          ? "the composition's own environment"
+          : `the environment in scene ${quote(appliedFrom)}`;
+      return `the environment in scene ${quote(scene)} is not applied: this output is one world with one environment, and ${applied} applies.`;
+    }),
+    ...flattened.leftOutObjects.map(
+      ({ scene, object, takenName, takenBy = 'another object' }) =>
+        `object ${quote(object)} in scene ${quote(scene)} is not built: this output is one world, and ${oneLine(takenBy)} in it already uses the name ${quote(takenName)}.`
+    ),
+  ];
 }
 
 /**
@@ -790,21 +815,7 @@ export abstract class CompilerBase implements ICompiler {
    * writes each sentence into its output as a WARNING comment.
    */
   protected sceneWarnings(flattened: FlattenedScenes, target: EscapeTarget): string[] {
-    const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]+/g, ' ');
-    const quote = (name: string) => `"${this.escapeStringValue(oneLine(name), target)}"`;
-    return [
-      ...flattened.unappliedEnvironments.map(({ scene, appliedFrom }) => {
-        const applied =
-          appliedFrom === null
-            ? "the composition's own environment"
-            : `the environment in scene ${quote(appliedFrom)}`;
-        return `the environment in scene ${quote(scene)} is not applied: this output is one world with one environment, and ${applied} applies.`;
-      }),
-      ...flattened.leftOutObjects.map(
-        ({ scene, object, takenName, takenBy = 'another object' }) =>
-          `object ${quote(object)} in scene ${quote(scene)} is not built: this output is one world, and ${oneLine(takenBy)} in it already uses the name ${quote(takenName)}.`
-      ),
-    ];
+    return describeLeftOutScenes(flattened, target);
   }
 
   // =========================================================================

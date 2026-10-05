@@ -129,7 +129,9 @@ export async function handleHoloMapPaperIngestProbe(
 
 export async function handleHoloMapTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  /** trustedCaller: an operator or the local stdio process; only they may fetch non-public URLs. */
+  ctx: { trustedCaller?: boolean } = {}
 ): Promise<unknown> {
   switch (name) {
     case 'holo_reconstruct_from_video': {
@@ -142,7 +144,9 @@ export async function handleHoloMapTool(
         surface: 'HoloMap',
         mediaKind: 'video',
       });
-      const started = await mcpStartReconstructFromVideo(videoUrl.trim(), args.config);
+      const started = await mcpStartReconstructFromVideo(videoUrl.trim(), args.config, {
+        trustedCaller: ctx.trustedCaller === true,
+      });
       return {
         ok: true,
         status: 'SESSION_OPEN',

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextResponse } from 'next/server';
 import * as path from 'path';
 import * as os from 'os';
@@ -24,9 +24,21 @@ vi.mock('./store', () => ({
 import { GET, POST } from './route';
 
 describe('/api/daemon/jobs route', () => {
+  let savedWorkspacesDir: string | undefined;
+
   beforeEach(() => {
     vi.clearAllMocks();
     requireAuthMock.mockResolvedValue({ user: { id: 'user-test-1' } });
+    savedWorkspacesDir = process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
+  });
+
+  afterEach(() => {
+    if (savedWorkspacesDir === undefined) {
+      delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    } else {
+      process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspacesDir;
+    }
   });
 
   it('returns 401 when requireAuth fails', async () => {
@@ -153,5 +165,53 @@ describe('/api/daemon/jobs route', () => {
         profile: 'balanced',
       })
     );
+  });
+
+  it('POST accepts projectPath under HOLOSCRIPT_WORKSPACES_DIR (volume root)', async () => {
+    createDaemonJobMock.mockReturnValue({ id: 'dj-volume', status: 'queued' });
+    const volumeRoot = path.resolve(path.join(os.tmpdir(), 'holoscript-volume', 'workspaces'));
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = volumeRoot;
+
+    const req = new Request('http://localhost/api/daemon/jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-1',
+        profile: 'balanced',
+        projectDna: { domain: 'general' },
+        projectPath: path.join(volumeRoot, 'ws-abc', 'HoloScript'),
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    expect(createDaemonJobMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('POST rejects legacy ~/.holoscript/workspaces path when HOLOSCRIPT_WORKSPACES_DIR points elsewhere', async () => {
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = path.resolve(
+      path.join(os.tmpdir(), 'holoscript-volume', 'workspaces')
+    );
+    const legacyPath = path.join(
+      process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(),
+      '.holoscript',
+      'workspaces',
+      'project-1'
+    );
+
+    const req = new Request('http://localhost/api/daemon/jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-1',
+        profile: 'balanced',
+        projectDna: { domain: 'general' },
+        projectPath: legacyPath,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(createDaemonJobMock).not.toHaveBeenCalled();
   });
 });

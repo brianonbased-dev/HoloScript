@@ -321,6 +321,24 @@ async function runReentrantTool(
 /**
  * Main handler dispatcher for all tools
  */
+/**
+ * An operator (admin scope), or the stdio process the local user launched. Only a trusted caller
+ * may point a server-side fetch at a file: URL or at this host's own network
+ * (task_1790594666743_g1lo). A missing signing context alone proves nothing: on the hosted server
+ * a tool re-entered from inside the server can arrive with none (a workflow step that is a batch
+ * ran each child through the tool-health dispatcher, which passes none). So a caller without one
+ * is trusted only when this process IS the stdio server, the marker get_workspace_info reads.
+ */
+function isTrustedCaller(
+  signingCtx: SigningContext | undefined,
+  subjectSourceOverride: unknown
+): boolean {
+  return (
+    (!signingCtx && !subjectSourceOverride && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio') ||
+    (signingCtx?.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin')
+  );
+}
+
 export async function handleTool(
   name: string,
   args: Record<string, unknown>,
@@ -613,7 +631,9 @@ export async function handleTool(
   // caller. handleTool's own daimōn branch sat below this line from 2026-05-18, never reached,
   // and was removed (task mplw).
   if (name.startsWith('holo_')) {
-    return handleGraphTool(name, args);
+    return handleGraphTool(name, args, {
+      trustedCaller: isTrustedCaller(signingCtx, subjectSourceOverride),
+    });
   }
 
   // IDE tools (migrated from legacy HoloLand IDE tooling)
@@ -913,7 +933,9 @@ export async function handleTool(
 
   // HoloMap reconstruction tools
   if (isHoloMapToolName(name)) {
-    return handleHoloMapTool(name, args);
+    return handleHoloMapTool(name, args, {
+      trustedCaller: isTrustedCaller(signingCtx, subjectSourceOverride),
+    });
   }
 
   // Spatial MCP - compile_to_spatial (v0.1, research/2026-05-07_spatial-mcp-spec.md)

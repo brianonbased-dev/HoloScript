@@ -18,6 +18,7 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { absorbRootRefusal } from '../engine/absorb-root-policy';
 import { holoFactory, generateHoloSource } from '@holoscript/core';
 import type { HoloObjectDecl, HoloStatement } from '@holoscript/core';
 
@@ -459,6 +460,8 @@ export async function handleAbsorbTypescriptTool(
         error: 'The "rootDir" parameter is required to analyze codebase files.',
       };
     }
+    const rootRefusal = absorbRootRefusal(rootDir);
+    if (rootRefusal) return { success: false, error: 'rootDir_not_allowed', message: rootRefusal };
     const maxFiles = args.maxFiles as number | undefined;
     return await suggestHoloTransforms(rootDir, maxFiles);
   }

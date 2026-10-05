@@ -76,6 +76,8 @@ export function resetAttestationRegistry(): void {
 // ── Per-request signing context ───────────────────────────────────────
 
 export interface SigningContext {
+  /** Copied from TokenIntrospection.localCustody by http-server; never read from a request. */
+  localCustody?: true;
   /** True when the request body was a {body, signature, ...} envelope. */
   signedRequest: boolean;
   /** True when signature verified AND registry check passed (or was skipped). */

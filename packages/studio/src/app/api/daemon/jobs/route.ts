@@ -2,11 +2,11 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import * as path from 'path';
-import * as os from 'os';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/api-auth';
 import { readJsonBody } from '../../_lib/body-size';
 import { corsHeaders } from '../../_lib/cors';
+import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
 import {
   createDaemonJob,
   listDaemonJobs,
@@ -17,12 +17,8 @@ import {
 // SEC-T02: Daemon jobs formerly accepted `projectPath` from any unauthenticated
 // caller and piped it into shell-invoked rsync/robocopy. This route now requires
 // an authenticated session, validates the payload with Zod, and constrains
-// projectPath to the workspaces root used by the rest of the git tooling.
-const WORKSPACE_ROOT = path.join(
-  process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(),
-  '.holoscript',
-  'workspaces'
-);
+// projectPath to the workspaces root used by the rest of the git tooling
+// (getWorkspacesRoot honors HOLOSCRIPT_WORKSPACES_DIR, e.g. /data/workspaces).
 
 const CreateJobSchema = z.object({
   projectId: z.string().min(1).max(256),
@@ -72,13 +68,16 @@ export async function POST(request: NextRequest) {
 
   const body = parsed.data;
 
-  // SEC-T02: projectPath must resolve inside WORKSPACE_ROOT. This is the same
-  // containment pattern used by /api/git/commit and /api/git/push.
+  // SEC-T02: projectPath must resolve inside the workspaces root. This is the
+  // same containment pattern used by /api/git/commit and /api/git/push.
   if (body.projectPath !== undefined) {
+    const workspacesRoot = getWorkspacesRoot();
     const resolved = path.resolve(body.projectPath);
-    if (!resolved.startsWith(WORKSPACE_ROOT + path.sep) && resolved !== WORKSPACE_ROOT) {
+    if (!isInsidePath(workspacesRoot, resolved)) {
       return NextResponse.json(
-        { error: 'projectPath must be inside ~/.holoscript/workspaces' },
+        {
+          error: `projectPath must be inside the workspaces root (${workspacesRoot}; set via HOLOSCRIPT_WORKSPACES_DIR)`,
+        },
         { status: 400 }
       );
     }
