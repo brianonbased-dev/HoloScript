@@ -32,6 +32,7 @@ import {
   ABSORB_HOLO_ABSORB_REPO_HINT,
   describeGraphUnavailable,
 } from './graph-rag-prerequisite';
+import type { EmbeddingProvider } from '../engine/providers/EmbeddingProvider';
 import {
   appendAll,
   appendEmbeddingJournal,
@@ -6678,11 +6679,11 @@ async function buildEmbeddingIndexResumably(
   candidates.sort((left, right) => right.mtimeMs - left.mtimeMs);
   for (const candidate of candidates) {
     try {
-      const priorProvider = (idx as { provider?: unknown }).provider;
+      const priorProvider = (idx as { provider?: EmbeddingProvider }).provider;
       const priorShards = readEmbeddingShardManifest(candidate.file);
       const prior = priorShards
         ? new ShardedEmbeddingIndex(candidate.file, priorShards, {
-            indexOptions: { provider: priorProvider as any },
+            indexOptions: { provider: priorProvider },
           }).materialize()
         : mod.EmbeddingIndex.deserializeBinary(fs.readFileSync(candidate.file), {
             provider: priorProvider,
