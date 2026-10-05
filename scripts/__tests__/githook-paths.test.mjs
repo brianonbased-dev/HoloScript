@@ -511,6 +511,28 @@ echo "FAILED=$FAILED"
   }
 }
 
+{
+  // A gate run by hand with `--files a.ts b.ts` read only a.ts and passed without judging b.ts
+  // (2026-10-05: an agent checked two files that way and was told OK). Every argument after --files,
+  // up to the next --flag, is part of the list; the comma form and a later --root still work.
+  const clean = 'packages/app/src/clean.ts';
+  const bad = 'packages/app/src/bad.ts';
+  const root = setupOrch({ [clean]: 'export const ok = 1;\n', [bad]: orchestratorViolation() });
+  const cases = [
+    ['two arguments', ['--root', root, '--files', clean, bad]],
+    ['one comma list', ['--root', root, '--files', `${clean},${bad}`]],
+    ['--root after the list', ['--files', clean, bad, '--root', root]],
+  ];
+  for (const [name, args] of cases) {
+    const run = runNode(ORCH, args);
+    assertEq(run.code, 1, `orchestrator-fetch --files (${name}): the second file is judged and refused`);
+    assertTrue(run.out.includes(bad), `orchestrator-fetch --files (${name}): the refusal names ${bad}`, run.out);
+  }
+  const onlyClean = runNode(ORCH, ['--root', root, '--files', clean]);
+  assertEq(onlyClean.code, 0, 'orchestrator-fetch --files: a clean file alone still passes');
+  rmSync(root, { recursive: true, force: true });
+}
+
 // ── PRE-PUSH: a push is judged by what its branch changes, not by main's news ──
 //
 // The pre-push gates (core baseline receipt, studio generator drift, lockfile

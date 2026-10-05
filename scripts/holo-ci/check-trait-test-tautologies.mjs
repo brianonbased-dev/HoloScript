@@ -15,6 +15,7 @@
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
+import { readScopedFileList } from './read-scoped-files.mjs';
 
 const DEFAULT_TRAIT_ROOTS = [
   'packages/core/src/traits',
@@ -72,13 +73,10 @@ const TRAIT_ROOTS = (rootsArg ? rootsArg.split(',') : DEFAULT_TRAIT_ROOTS)
   .map((entry) => entry.trim())
   .filter(Boolean);
 
-const filesArg = readArg('--files', '');
-const EXPLICIT_FILES = filesArg
-  ? filesArg
-      .split(/[,\n]/)
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-  : null;
+// The shared reader takes every path after --files (or a --files-from list). An empty list still
+// means the whole tree, as it did here before.
+const scopedFiles = readScopedFileList(process.argv.slice(2));
+const EXPLICIT_FILES = scopedFiles && scopedFiles.length > 0 ? scopedFiles : null;
 
 function toPosix(path) {
   return path.split(sep).join('/');

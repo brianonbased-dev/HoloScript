@@ -126,6 +126,17 @@ console.log('trait-test-tautology-canary.test.mjs');
   rmSync(root, { recursive: true, force: true });
 }
 
+{
+  // `--files a b` used to judge only a (2026-10-05). The echo test is listed second.
+  const root = makeWorkspace(TAUTOLOGICAL_TEST);
+  const dir = 'packages/core/src/traits/__tests__';
+  writeFileSync(join(root, ...dir.split('/'), 'Clean.test.ts'), FIXED_TEST, 'utf8');
+  const result = run(root, ['--files', `${dir}/Clean.test.ts`, `${dir}/EchoTrait.test.ts`]);
+  assertEq(result.status, 1, '--files with two paths judges the second one too');
+  assertIncludes(result.stdout, '"tautologies": 1', '--files with two paths reports the echo');
+  rmSync(root, { recursive: true, force: true });
+}
+
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);
   process.exit(1);

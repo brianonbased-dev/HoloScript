@@ -5,10 +5,12 @@
  *   Newline-separated repo-relative paths. This is what .githooks/pre-commit
  *   uses. The list stays off the command line so a large merge does not exceed
  *   Windows' 32,767-character CreateProcess limit.
- * --files <comma-or-newline list>
- *   Legacy single-argument form. Kept because tests and ad-hoc invocations
- *   still pass it. A path that itself contains a comma cannot survive this
- *   form; use --files-from for those.
+ * --files <list> [<list> ...]
+ *   Legacy form, kept because tests and ad-hoc invocations still pass it. Every
+ *   argument after --files up to the next --flag is read, and each may itself be
+ *   a comma- or newline-separated list, so `--files a.ts b.ts` judges both files
+ *   (it used to read only a.ts and pass without judging b.ts). A path that itself
+ *   contains a comma cannot survive this form; use --files-from for those.
  *
  * Returns null when neither flag is present (full-tree mode).
  * Returns an array (possibly empty) when a flag is present.
@@ -42,7 +44,12 @@ export function readScopedFileList(argv) {
 
   const filesIdx = argv.indexOf('--files');
   if (filesIdx >= 0) {
-    return (argv[filesIdx + 1] || '')
+    const lists = [];
+    for (let i = filesIdx + 1; i < argv.length && !argv[i].startsWith('--'); i += 1) {
+      lists.push(argv[i]);
+    }
+    return lists
+      .join('\n')
       .split(/[,\n]/)
       .map((line) => line.trim())
       .filter(Boolean);
