@@ -100,9 +100,40 @@ describe('briefForAgent', () => {
       tool: 'holo_absorb_repo',
       args: { rootDir: '/repo', force: false },
     });
+    // The served workspace needs no path at all (the host-path gate refuses absolute ones).
+    const prior = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = '/repo';
+    try {
+      const own = brief('holo_graph_status', {}, { rootDir: '/repo', graphAuthoritative: false });
+      expect(own.followUps[0].args).toEqual({ force: false, outputFormat: 'graph' });
+    } finally {
+      if (prior === undefined) delete process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+      else process.env.HOLOSCRIPT_WORKSPACE_ROOT = prior;
+    }
     expect(out.omitted).toEqual(
       expect.arrayContaining(['coverage', 'embeddingPolicy', 'diskCache', 'cacheWarm'])
     );
+  });
+
+  it('makes absorb-status polls tiny and turns a cancel into a resumable retry', () => {
+    const out = brief('holo_get_absorb_status', { jobId: 'j1' }, {
+      jobId: 'j1',
+      status: 'cancelled',
+      progress: 91,
+      phase: 'Cancelled',
+      rootDir: '/elsewhere',
+      cancellation: { reason: 'system_memory_reserve_exhausted', message: 'fell below the floor', requestedAt: 'x' },
+      embeddingPolicy: { policy: 'x'.repeat(800) },
+      memoryBudget: { a: 1 }, sourceDriftRetry: { b: 2 }, spill: { c: 3 }, phaseMetrics: [], writerKey: 'k', policyHash: 'h', startedAt: 's',
+    });
+    expect(out).toMatchObject({ jobId: 'j1', status: 'cancelled', progress: 91, rootDir: '/elsewhere' });
+    expect((out as unknown as { cancellation: unknown }).cancellation).toEqual({
+      reason: 'system_memory_reserve_exhausted',
+      message: 'fell below the floor',
+    });
+    expect(out.followUps[0]).toMatchObject({ tool: 'holo_absorb_repo', args: { rootDir: '/elsewhere', force: false } });
+    expect(out.omitted.length).toBeLessThanOrEqual(7);
+    expect(out.omitted.at(-1)).toMatch(/^\+\d+ more/);
   });
 
   it('returns the original object for detail:"full", other tools, and non-objects', () => {

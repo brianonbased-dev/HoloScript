@@ -25,9 +25,30 @@ export const AGENT_BRIEF_TOOLS: ReadonlySet<string> = new Set([
   'holo_absorb_repo',
   'holo_semantic_search',
   'holo_ask_codebase',
+  'holo_get_absorb_status',
 ]);
 
 const LIST_LIMIT = 20;
+const OMITTED_NAMES = 6;
+
+/** The workspace this server serves, so follow-ups can leave rootDir out for it. */
+function servedWorkspaceRoot(): string {
+  const pinned = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
+  return (pinned && pinned.trim() ? pinned : process.cwd()).replace(/[\\/]+$/, '');
+}
+
+function sameRoot(a: unknown, b: string): boolean {
+  if (typeof a !== 'string') return false;
+  const norm = (value: string) => value.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  return norm(a) === norm(b);
+}
+
+/** Absorb arguments that name `root` only when it is not the served workspace. */
+function absorbArgs(root: unknown, extra: Record<string, unknown>): Record<string, unknown> {
+  return sameRoot(root, servedWorkspaceRoot()) || typeof root !== 'string'
+    ? { ...extra }
+    : { rootDir: root, ...extra };
+}
 
 /** Fields copied verbatim whenever present: they decide what the agent does next. */
 const KEEP = [
@@ -39,6 +60,9 @@ const KEEP = [
   'accepted',
   'coalesced',
   'jobId',
+  'rootDir',
+  'progress',
+  'phase',
   'warmJobId',
   'autoRefresh',
   'warm',
@@ -143,7 +167,7 @@ function graphStatusAnswer(result: Obj): { answer: string; followUps: FollowUp[]
   if (!current || (!semantic && !building)) {
     followUps.push({
       tool: 'holo_absorb_repo',
-      args: { rootDir: root, force: false, outputFormat: 'graph' },
+      args: absorbArgs(root, { force: false, outputFormat: 'graph' }),
       why: current ? 'build the semantic index' : 'bring the map up to date (patches only what changed)',
     });
   }
@@ -184,11 +208,23 @@ export function briefForAgent(tool: string, args: Obj, result: unknown): unknown
   if (isObj(result.stats)) {
     out.stats = { totalFiles: result.stats.totalFiles, totalSymbols: result.stats.totalSymbols };
   }
+  if (isObj(result.cancellation)) {
+    out.cancellation = { reason: result.cancellation.reason, message: result.cancellation.message };
+  }
+  if (tool === 'holo_get_absorb_status' && result.status === 'cancelled') {
+    followUps.push({
+      tool: 'holo_absorb_repo',
+      args: absorbArgs(result.rootDir, { force: false, outputFormat: 'graph' }),
+      why: 'retry; completed scan batches and computed embeddings are reused',
+    });
+  }
 
   const cut = compactLists(result, out, omitted);
 
   for (const key of Object.keys(result)) {
-    if (!(key in out) && !(key === 'stats' || key === 'graphUnavailableReceipt')) omitted.push(key);
+    if (!(key in out) && !(key === 'stats' || key === 'graphUnavailableReceipt' || key === 'cancellation')) {
+      omitted.push(key);
+    }
   }
   if (isObj(result.stats)) omitted.push('stats breakdown by language and kind');
   if (isObj(result.graphUnavailableReceipt)) omitted.push('graphUnavailableReceipt (adapter, thresholds)');
@@ -209,7 +245,10 @@ export function briefForAgent(tool: string, args: Obj, result: unknown): unknown
     });
   }
 
-  out.omitted = omitted;
+  out.omitted =
+    omitted.length > OMITTED_NAMES
+      ? [...omitted.slice(0, OMITTED_NAMES), `+${omitted.length - OMITTED_NAMES} more (all in the detail:"full" answer)`]
+      : omitted;
   out.followUps = followUps;
   return out;
 }

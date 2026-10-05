@@ -165,7 +165,7 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
     })) as { error?: string; hint?: string; results?: unknown[] };
     expect(implicit.results).toBeUndefined();
     expect(implicit.error).toContain('No embedding index initialized');
-    expect(implicit.hint).toContain('useReleaseManifest:true');
+    expect(implicit.hint).toContain('no semantic index yet');
 
     const result = (await handleGraphRagTool('holo_semantic_search', {
       query: 'default target',

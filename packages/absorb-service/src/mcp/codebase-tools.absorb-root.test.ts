@@ -6687,19 +6687,32 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(result.message).toContain('empty');
   });
 
-  it('returns error when neither rootDir nor sourceFiles is provided', async () => {
+  it('absorbs the served workspace when no root is named, and resolves relative roots against it', async () => {
     resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-default-root-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-default-root-cache-'));
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
 
-    const result = (await handleCodebaseTool('holo_absorb_repo', {
-      outputFormat: 'stats',
-    })) as {
+    const unnamed = (await handleCodebaseTool('holo_absorb_repo', { outputFormat: 'stats' })) as {
       error?: string;
-      message?: string;
+      rootDir?: string;
     };
+    expect(unnamed.error, JSON.stringify(unnamed).slice(0, 300)).toBeUndefined();
+    expect(path.resolve(unnamed.rootDir!)).toBe(path.resolve(repoDir));
 
-    expect(result.error).toBe('rootDir_or_sourceFiles_required');
-    expect(result.message).toContain('rootDir');
-    expect(result.message).toContain('sourceFiles');
+    // "." is the served workspace, not this test process's cwd (foreign-user test, 2026-10-05).
+    resetCodebaseToolStateForTests();
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    const dot = (await handleCodebaseTool('holo_absorb_repo', { rootDir: '.', outputFormat: 'stats' })) as {
+      error?: string;
+      rootDir?: string;
+    };
+    expect(dot.error).toBeUndefined();
+    expect(path.resolve(dot.rootDir!), JSON.stringify(dot).slice(0, 700)).toBe(path.resolve(repoDir));
+    expect(path.resolve(repoDir)).not.toBe(path.resolve(process.cwd()));
   });
 
   it('absorbs a browser_session observe extract through the existing sourceFiles path', async () => {

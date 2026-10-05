@@ -1500,7 +1500,7 @@ function updateAbsorbMemoryBudget(job: AbsorbJob, phase: string): void {
       hardLimitExceeded
         ? `Absorb ${resource} memory budget exceeded during ${phase}`
         : systemReserveExhausted
-          ? `Absorb host memory reserve fell to ${system.freeMb} MiB during ${phase}, below the ${job.memoryBudget.minSystemFreeMb} MiB floor; preserving the prior authoritative cache`
+          ? `Absorb host memory reserve fell to ${system.freeMb} MiB during ${phase}, below the ${job.memoryBudget.minSystemFreeMb} MiB floor; preserving the prior authoritative cache. Retry the same holo_absorb_repo call when memory frees up: completed scan batches and computed embeddings are reused.`
           : `Absorb ${resource} cache-commit headroom exhausted during ${phase}; preserving the prior authoritative cache`
     );
   }
@@ -1522,7 +1522,7 @@ function enforceAbsorbPreflightResourceGuard(jobId: string): void {
   requestAbsorbCancellation(
     job,
     'system_memory_reserve_exhausted',
-    `Absorb host memory reserve is ${system.freeMb} MiB before planning, below the ${job.memoryBudget.minSystemFreeMb} MiB floor; preserving the prior authoritative cache`
+    `Absorb host memory reserve is ${system.freeMb} MiB before planning, below the ${job.memoryBudget.minSystemFreeMb} MiB floor; preserving the prior authoritative cache. Retry the same holo_absorb_repo call when memory frees up.`
   );
   const reason = job.abortController.signal.reason;
   if (reason instanceof Error) throw reason;
@@ -3033,8 +3033,14 @@ function normalizeRootSet(rootDirs: string[]): string[] {
 
 function canonicalizeRootSet(rootDirs: string[]): string[] {
   const rootsByIdentity = new Map<string, string>();
+  // A relative root names a folder inside the workspace this server serves.
+  // Resolving against process.cwd() mapped the server's own launch folder
+  // instead: a first-time tester's rootDir "." built a map of a different
+  // worktree, reported "Complete", and every query then found no map
+  // (foreign-user test, 2026-10-05).
+  const base = resolveWorkspaceRoot();
   for (const rootDir of rootDirs.filter(Boolean)) {
-    const resolvedRoot = path.resolve(rootDir);
+    const resolvedRoot = path.resolve(base, rootDir);
     const identity = normalizeRootForComparison(resolvedRoot);
     if (!rootsByIdentity.has(identity)) {
       rootsByIdentity.set(identity, resolvedRoot);
@@ -9030,7 +9036,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     const provenanceRoot =
       rootDir || (rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw[0] : undefined);
     if (provenanceRoot) {
-      primaryRootDir = path.resolve(provenanceRoot);
+      primaryRootDir = path.resolve(resolveWorkspaceRoot(), provenanceRoot);
       effectiveRootDirs = [primaryRootDir];
     } else {
       tempDir = writeSourceFilesToTemp(validation.files);
@@ -9039,8 +9045,14 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     }
     fromSourceFiles = true;
   } else {
+    // No root named: the workspace this server serves. Agents should not need
+    // to know (or be allowed to send) an absolute path to map their own repo.
     effectiveRootDirs = canonicalizeRootSet(
-      rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : rootDir ? [rootDir] : []
+      rootDirsRaw && rootDirsRaw.length > 0
+        ? rootDirsRaw
+        : rootDir
+          ? [rootDir]
+          : [resolveWorkspaceRoot()]
     );
     primaryRootDir = effectiveRootDirs[0];
   }
@@ -9264,7 +9276,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     mod,
     effectiveRootDirs,
     primaryRootDir,
-    rootDir,
+    // Downstream single-root paths (incremental patch, cached responses) use
+    // plan.rootDir directly; give them the resolved folder, never the raw
+    // argument ("." used to reach them unresolved and echo back as ".").
+    rootDir: rootDir ? primaryRootDir : rootDir,
     languages,
     maxFiles,
     maxFileSize,

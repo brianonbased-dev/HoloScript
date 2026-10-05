@@ -773,9 +773,9 @@ async function resolveSemanticSearchIndex(
       : {
           error: ABSORB_EMBEDDING_INDEX_ERROR,
           hint:
-            `${ABSORB_HOLO_ABSORB_REPO_HINT} No release manifest was substituted: the promoted ` +
-            'HoloGraph/HoloEmbed release indexes a different codebase. Pass useReleaseManifest:true ' +
-            'only if that codebase is what you mean.',
+            'This repo has no semantic index yet. Build it with holo_absorb_repo ' +
+            '{ outputFormat: "graph" } (no rootDir needed for the workspace this server serves), ' +
+            'then retry.',
         };
   }
 
