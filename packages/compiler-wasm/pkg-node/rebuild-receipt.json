@@ -1,11 +1,13 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T01:05:43Z",
+  "generatedAt": "2026-10-05T09:06:57Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "bbd7486fdfe286b316e9e9aa0479318774a793da",
+  "sourceCommit": "3a29e7fe47fd2ea87a6be9dd5fe3af2997d6a49f",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --target nodejs --out-dir pkg-node --release"
+    "wasm-pack build --mode no-install --target nodejs --out-dir <scratch>/build-rel-a --release",
+    "wasm-pack build --mode no-install --target nodejs --out-dir <scratch>/build-rel-b --release",
+    "copy holoscript_wasm_bg.wasm, holoscript_wasm.js and holoscript_wasm.d.ts from build-rel-a into pkg-node (holoscript_wasm_bg.wasm.d.ts is byte-identical; package.json kept)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -15,10 +17,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 557771,
-    "wasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
-    "previousWasmSha256": "4575dc801a6f25de20ad70046e998ebc5bec6f65c5dc5a60496368c2a43203cc",
-    "repeatBuildSha256Matched": null,
-    "note": "Rebuilt pkg-node for the exported-declaration fix to the @unknown read rule (bbd7486fd): exported structs and functions are held to HS-UNKNOWN-001/002. Written from the files by a script; the browser build pkg/ is not rebuilt on this branch (PR #448 does both)."
+    "wasmBytes": 572574,
+    "wasmSha256": "40cb5d498b32521589dd9bdd26995c3237420fdb342438074d18970104cd5ef6",
+    "previousWasmSha256": "ca77a569fc18c191938542e02746fced79170d27e573f9195bc1d3d2d67905bd",
+    "repeatBuildSha256Matched": true,
+    "note": "Rebuilt pkg-node from 3a29e7fe4 (the second-review fixes of #444, on #438's 735fcfdf3 merged in fff17cfab). Two release builds, each with its own fresh CARGO_TARGET_DIR, gave the same digest; wasm-bindgen 0.2.108 and wasm-opt from the wasm-pack cache (--mode no-install); CARGO_HOME left at its default. The .js and .d.ts differ from the previous artifact only in the doc comment of validate_detailed_in_context (the new structs key); package.json kept. Size: 572,574 bytes, +14,803 over ca77a569 (557,771) and +13,498 over the merged sources before the fixes (f2a805db, 559,076); the rewritten @unknown read rule accounts for 14,915 bytes, measured by building with its walk removed. Nesting depth this build survives, bisected with a fresh process per probe: parentheses 175, nested if 1,031, a + chain 5,943 terms (735fcfdf3's build: 175, 1,031, 5,941; the merged sources before the fixes: 5,453). The browser build pkg/ is not rebuilt on this branch; PR #448 rebuilds both. No version bump."
   }
 }
