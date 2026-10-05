@@ -169,6 +169,11 @@ export interface TokenIntrospection {
   agentId?: string;
   expiresAt?: number;
   issuedAt?: number;
+  /**
+   * Set only by http-server's trusted-loopback branch: the TCP peer is this machine. Never parsed
+   * from a token, header or body. Lets the local agent name its own disk (host-path-args.ts).
+   */
+  localCustody?: true;
 }
 
 // ── In-Memory Stores (production would use Redis/PostgreSQL) ─────────────────

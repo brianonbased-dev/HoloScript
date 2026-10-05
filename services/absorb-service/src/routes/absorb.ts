@@ -43,6 +43,13 @@ const CreateProjectSchema = z.object({
 router.post('/scan', async (req: Request, res: Response) => {
   try {
     const body = ScanRequestSchema.parse(req.body);
+    // The scan root must sit inside the folders this server may scan; before
+    // 2026-10-04 any authenticated caller could map any server directory here.
+    const { absorbRootRefusal } = await import('@holoscript/absorb-service/engine');
+    const rootRefusal = absorbRootRefusal(body.path);
+    if (rootRefusal) {
+      return res.status(403).json({ error: 'path_not_allowed', message: rootRefusal });
+    }
 
     // --- CACHE CHECK ---
     const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes

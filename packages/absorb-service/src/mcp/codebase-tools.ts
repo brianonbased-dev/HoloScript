@@ -29,6 +29,7 @@ import {
   setGraphRAGState,
 } from './graph-rag-tools';
 import { ABSORB_CODEBASE_LOAD_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
+import { absorbRootRefusal } from '../engine/absorb-root-policy';
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
   coerceNativeGraphRAGProvider,
@@ -8715,6 +8716,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : rootDir ? [rootDir] : []
     );
     primaryRootDir = effectiveRootDirs[0];
+    for (const candidate of effectiveRootDirs) {
+      const refusal = absorbRootRefusal(candidate);
+      if (refusal) return { error: 'rootDir_not_allowed', message: refusal };
+    }
   }
 
   if (!primaryRootDir) {
@@ -10747,6 +10752,8 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
   }
 
   const rootDir = args.rootDir as string;
+  const rootRefusal = typeof rootDir === 'string' ? absorbRootRefusal(rootDir) : null;
+  if (rootRefusal) return { error: 'rootDir_not_allowed', message: rootRefusal };
   const mod = await loadCodebaseModule();
   const { GitChangeDetector } = mod;
 
