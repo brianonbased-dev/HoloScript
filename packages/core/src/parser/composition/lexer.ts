@@ -366,7 +366,13 @@ class HoloLexer {
     while (this.isIdentifierPart(this.current())) {
       value += this.advance();
     }
-    const type = KEYWORDS[value.toLowerCase()] || 'IDENTIFIER';
+    // Own properties only: KEYWORDS is a plain object, so indexing it with a word
+    // such as `constructor` or `__proto__` returned an Object.prototype member, which
+    // then served as the token's type.
+    const word = value.toLowerCase();
+    const type = Object.prototype.hasOwnProperty.call(KEYWORDS, word)
+      ? KEYWORDS[word]
+      : 'IDENTIFIER';
     this.tokens.push({
       type,
       value: type === 'BOOLEAN' ? value.toLowerCase() : value,
