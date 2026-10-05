@@ -43,7 +43,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
-    Ast, AstNode, EnumDeclarationNode, ImportNode, PropertyNode, StructDeclarationNode,
+    Ast, AstNode, EnumDeclarationNode, ImportNode, MemberExpression, PropertyNode,
+    StructDeclarationNode,
 };
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
@@ -143,247 +144,784 @@ fn top_level_declarations(ast: &Ast) -> impl Iterator<Item = &AstNode> {
     })
 }
 
-/// Reject reading an `@unknown` struct field without an explicit `??` fallback.
+/// The `@unknown` struct-field read rule (proposals/Unknown_Field_Reads_v1.md), in every function,
+/// typed or not.
 ///
-/// Struct annotations are a native-machine surface, while this module is only a Kotlin bridge.
-/// The bridge nevertheless has to preserve the sovereign consumption rule: the carrier may cross
-/// the boundary, but a consumer may not silently obtain its payload. Field names are deliberately
-/// resolved conservatively here. If an annotated field name appears in a member read, that read
-/// must carry a fallback; this can reject an ambiguous same-named field from another record, but it
-/// cannot erase ignorance. A future typed member-resolution pass may narrow that conservative
-/// boundary without weakening it.
-fn check_unknown_struct_field_guards(ast: &Ast) -> Result<(), SemanticDiagnostic> {
-    let unknown_fields: HashSet<&str> = top_level_declarations(ast)
-        .filter_map(|node| match node {
-            AstNode::StructDeclaration(structure) => Some(structure),
-            _ => None,
-        })
-        .flat_map(|structure| {
-            structure
-                .fields
-                .iter()
-                .enumerate()
-                .filter_map(|(index, field)| {
-                    structure
-                        .field_annotations
-                        .get(index)
-                        .is_some_and(|annotations| annotations.iter().any(|a| a == "unknown"))
-                        .then_some(field.as_str())
-                })
-        })
-        .collect();
-
-    if unknown_fields.is_empty() {
-        return Ok(());
-    }
-
+/// A field declared `@unknown` may hold no known value, so it is touched in three ways only:
+/// `isKnown(record.field)` reads the tag, `unknownReason(record.field)` the reason code, and
+/// `load(record.field) ?? fallback` the value. Reading the field any other way is `HS-UNKNOWN-001`
+/// (a bare read) or `HS-UNKNOWN-002` (a fallback without `load`). The three forms take one named
+/// field that its record's struct declares `@unknown`: a tag read of anything else is
+/// `HS-UNKNOWN-003`, and the load form on anything else is `HS-UNKNOWN-002`, as native refuses
+/// both. Only the field itself is exempt; everything around it is walked like any expression.
+///
+/// A field resolves through its record's declared struct type, the way native resolves it: a
+/// parameter or local declared with a struct type (`s: &Snapshot`, `slot s: Snapshot`,
+/// `let s: Snapshot`), a local built by a constructor (`let s = Snapshot(...)`) or returned by a
+/// function that states its type, and fields of struct type on the way (`o.inner.count`). So
+/// `tally.count` is a plain read when `Tally` declares `count` plain, whatever another struct
+/// declares. When the record's type cannot be seen (an untyped parameter, a struct from another
+/// file, a value produced by an index or a call), the field's name decides: a name some struct in
+/// view declares `@unknown` is held to the rule, and any other name is left to the backends.
+///
+/// A lifted `.hsplus` function sees its document's structs through `external`. The walk keeps an
+/// explicit stack instead of recursing, so a deep expression costs heap, not WASM stack.
+fn check_unknown_struct_field_guards(
+    ast: &Ast,
+    external: &crate::semantic_types::ExternalDeclarations,
+) -> Result<(), SemanticDiagnostic> {
+    let rule = UnknownReadRule::new(ast, external);
     for node in top_level_declarations(ast) {
-        let AstNode::Function(function) = node else {
-            continue;
-        };
-        for statement in &function.body {
-            if let Some((kind, field, loc)) =
-                first_unguarded_unknown_struct_field_read(statement, &unknown_fields, false)
-            {
-                let message = match kind {
-                    UnknownRead::Bare => format!(
-                        "[{}] function `{}` reads `@unknown` struct field `{}` without a fallback — write `load(record.{}) ?? <fallback>`, or ask `isKnown(record.{})` first. `Uncertain<T>` is not assignable to `T`, so a bare read cannot become a raw value.",
-                        crate::semantic_types::UNKNOWN_BARE_READ,
-                        function.name,
-                        field,
-                        field,
-                        field
-                    ),
-                    UnknownRead::BareFallback => format!(
-                        "[{}] function `{}` supplies a fallback for `@unknown` struct field `{}` without `load` — write `load(record.{}) ?? <fallback>`, the one written form (the native backend refuses the bare form).",
-                        crate::semantic_types::UNKNOWN_FALLBACK_FORM,
-                        function.name,
-                        field,
-                        field
-                    ),
-                };
-                return Err(semantic_error(message, loc));
-            }
+        if let AstNode::Function(function) = node {
+            rule.check_function(function)?;
         }
     }
     Ok(())
 }
 
-/// How an `@unknown` struct field was read without its guard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum UnknownRead {
-    /// `record.field` used as a value.
-    Bare,
-    /// `record.field ?? fallback`: guarded, but not in the one written form `load(record.field)`.
-    BareFallback,
+/// The names visible in one block, each with its declared or inferred type when known. A list,
+/// not a map: blocks hold few names, and a map type of its own costs the WASM several KB.
+type ReadFrame<'a> = Vec<(&'a str, Option<&'a str>)>;
+
+enum ReadTask<'a> {
+    Visit(&'a AstNode),
+    Enter(ReadFrame<'a>),
+    Leave,
+    /// A local becomes visible after its initializer is walked.
+    Declare(&'a str, Option<&'a str>),
+    /// A refusal that waits until the expression before it has been walked, so a bare read
+    /// inside that expression is reported first.
+    Refuse(Box<SemanticDiagnostic>),
 }
 
-/// `isKnown(record.field)` and `unknownReason(record.field)` read the tag and the reason code,
-/// never the value, so their argument is not an unguarded read.
-fn is_tag_read(call: &crate::ast::CallExpression) -> bool {
-    matches!(
-        call.callee.as_ref(),
-        AstNode::Identifier(callee) if matches!(callee.name.as_str(), "isKnown" | "unknownReason")
-    ) && call.arguments.len() == 1
-        && matches!(call.arguments[0], AstNode::MemberExpression(_))
+/// What a value is, for the purpose of reading a field of it.
+#[derive(Clone, Copy)]
+enum Shape<'a> {
+    /// A struct in view.
+    Record(&'a str),
+    /// A value with no fields.
+    Fieldless(Fieldless<'a>),
+    /// A type the checker cannot see into.
+    Opaque,
 }
 
-fn first_unguarded_unknown_struct_field_read<'a>(
-    node: &'a AstNode,
-    unknown_fields: &HashSet<&str>,
-    guarded: bool,
-) -> Option<(UnknownRead, String, &'a Option<crate::ast::Location>)> {
-    match node {
-        AstNode::MemberExpression(member) => {
-            let direct_read = if !guarded && !member.computed {
-                match member.property.as_ref() {
-                    AstNode::Identifier(identifier)
-                        if unknown_fields.contains(identifier.name.as_str()) =>
-                    {
-                        Some((
-                            UnknownRead::Bare,
-                            identifier.name.clone(),
-                            crate::semantic_types::first_location(&member.object),
-                        ))
-                    }
-                    _ => None,
+/// A value with no fields, for messages.
+#[derive(Clone, Copy)]
+enum Fieldless<'a> {
+    /// A scalar, an array or an enum, of this type.
+    Type(&'a str),
+    /// An enum or module named directly.
+    EnumOrModule,
+    /// The carrier of an `@unknown` field of this payload type.
+    UnknownField(Option<&'a str>),
+}
+
+/// How the outermost link `object.field` of a member read resolves.
+#[derive(Clone, Copy)]
+enum FieldKind<'a> {
+    /// The record's own struct declares the field `@unknown`.
+    Unknown,
+    /// The record's type cannot be seen; `named_unknown` says whether a struct in view declares a
+    /// field of this name `@unknown`.
+    ByName { named_unknown: bool },
+    /// A plain field of `record`.
+    Plain { record: &'a str },
+    /// `record` has no field named by the link at index `link`.
+    Missing { record: &'a str, link: usize },
+    /// What the links before index `link` read has no fields.
+    NotRecord { link: usize, what: Fieldless<'a> },
+}
+
+impl FieldKind<'_> {
+    /// Held to the `@unknown` read rule.
+    fn is_unknown(self) -> bool {
+        matches!(
+            self,
+            FieldKind::Unknown
+                | FieldKind::ByName {
+                    named_unknown: true
                 }
-            } else {
-                None
-            };
-            direct_read
-                .or_else(|| {
-                    first_unguarded_unknown_struct_field_read(
-                        &member.object,
-                        unknown_fields,
-                        guarded,
-                    )
-                })
-                .or_else(|| {
-                    member.computed.then(|| {
-                        first_unguarded_unknown_struct_field_read(
-                            &member.property,
-                            unknown_fields,
-                            guarded,
-                        )
-                    })?
-                })
+        )
+    }
+
+    /// A tag read or the load form may take this field.
+    fn takes_the_forms(self) -> bool {
+        matches!(self, FieldKind::Unknown | FieldKind::ByName { .. })
+    }
+}
+
+/// A member read `base.a.b...z`, resolved from its base outwards.
+struct FieldChain<'a> {
+    /// What the first link reads from: a name, or an expression such as an index or a call.
+    base: &'a AstNode,
+    /// The link names, innermost first.
+    names: Vec<&'a str>,
+    /// The first link read as a bare `@unknown` value: reading through a field reads it too.
+    first_unknown: Option<usize>,
+    /// How the outermost link resolves.
+    outer: FieldKind<'a>,
+}
+
+impl<'a> FieldChain<'a> {
+    /// The first `@unknown` read among the first `links` links.
+    fn unknown_within(&self, links: usize) -> Option<&'a str> {
+        self.first_unknown
+            .filter(|index| *index < links)
+            .map(|index| self.names[index])
+    }
+
+    fn outer_name(&self) -> &'a str {
+        self.names[self.names.len() - 1]
+    }
+
+    /// Why a tag read or the load form does not take the outermost field.
+    #[cold]
+    #[inline(never)]
+    fn problem(&self) -> String {
+        match self.outer {
+            FieldKind::Plain { record } => format!(
+                "`{}` is a plain field of `{record}`, not an `@unknown` one",
+                self.path(self.names.len())
+            ),
+            FieldKind::Missing { record, link } => {
+                format!("`{record}` has no field `{}`", self.names[link])
+            }
+            FieldKind::NotRecord { link, what } => {
+                let what = match what {
+                    Fieldless::Type(ty) => format!("`{ty}`"),
+                    Fieldless::EnumOrModule => "an enum or module".to_string(),
+                    Fieldless::UnknownField(ty) => {
+                        format!("an `@unknown {}` field", ty.unwrap_or("value"))
+                    }
+                };
+                format!("`{}` is {what}, not a record", self.path(link))
+            }
+            FieldKind::Unknown | FieldKind::ByName { .. } => String::new(),
         }
-        AstNode::BinaryExpression(binary) => {
-            if binary.operator == "??" {
-                if let AstNode::MemberExpression(member) = binary.left.as_ref() {
-                    if let AstNode::Identifier(identifier) = member.property.as_ref() {
-                        if !member.computed && unknown_fields.contains(identifier.name.as_str()) {
-                            return Some((
-                                UnknownRead::BareFallback,
-                                identifier.name.clone(),
-                                crate::semantic_types::first_location(&member.object),
-                            ));
+    }
+
+    /// `base.a.b` over the first `links` links, for messages.
+    fn path(&self, links: usize) -> String {
+        let mut path = match self.base {
+            AstNode::Identifier(identifier) => identifier.name.clone(),
+            _ => "(...)".to_string(),
+        };
+        for name in &self.names[..links] {
+            path.push('.');
+            path.push_str(name);
+        }
+        path
+    }
+}
+
+/// One field of a struct in view, borrowed from the program or from the surrounding document.
+struct FieldInView<'a> {
+    name: &'a str,
+    ty: Option<&'a str>,
+    unknown: bool,
+}
+
+/// What the rule knows about the program. Lists, not maps: a program declares few structs, and a
+/// map type of its own costs the WASM several KB.
+struct UnknownReadRule<'a> {
+    /// Each struct in view with its fields: the surrounding document's first, then this program's
+    /// own, which win (lookups search from the end).
+    records: Vec<(&'a str, Vec<FieldInView<'a>>)>,
+    /// Field names some struct in view declares `@unknown`.
+    unknown_names: Vec<&'a str>,
+    /// Enum and module names: values with no fields.
+    enums: Vec<&'a str>,
+    /// Declared return types of this program's functions, for `let s = make()`.
+    return_types: Vec<(&'a str, &'a str)>,
+}
+
+impl<'a> UnknownReadRule<'a> {
+    fn new(ast: &'a Ast, external: &'a crate::semantic_types::ExternalDeclarations) -> Self {
+        let mut records: Vec<(&'a str, Vec<FieldInView<'a>>)> = external
+            .structs
+            .iter()
+            .map(|(name, fields)| {
+                let fields = fields
+                    .iter()
+                    .map(|field| FieldInView {
+                        name: &field.name,
+                        ty: field.ty.as_deref(),
+                        unknown: field.unknown,
+                    })
+                    .collect();
+                (name.as_str(), fields)
+            })
+            .collect();
+        let mut enums: Vec<&'a str> = external.namespaces.iter().map(String::as_str).collect();
+        let mut return_types = Vec::new();
+        for node in top_level_declarations(ast) {
+            match node {
+                AstNode::StructDeclaration(structure) => {
+                    let fields = structure
+                        .fields
+                        .iter()
+                        .enumerate()
+                        .map(|(index, name)| FieldInView {
+                            name,
+                            ty: structure
+                                .field_types
+                                .get(index)
+                                .and_then(|ty| ty.as_deref()),
+                            unknown: structure.field_annotations.get(index).is_some_and(
+                                |annotations| {
+                                    annotations.iter().any(|annotation| annotation == "unknown")
+                                },
+                            ),
+                        })
+                        .collect();
+                    records.push((structure.name.as_str(), fields));
+                }
+                AstNode::EnumDeclaration(enumeration) => enums.push(&enumeration.name),
+                AstNode::Function(function) => {
+                    if let Some(return_type) = function.return_type.as_deref() {
+                        return_types.push((function.name.as_str(), return_type));
+                    }
+                }
+                _ => {}
+            }
+        }
+        let unknown_names = records
+            .iter()
+            .flat_map(|(_, fields)| fields)
+            .filter(|field| field.unknown)
+            .map(|field| field.name)
+            .collect();
+        Self {
+            records,
+            unknown_names,
+            enums,
+            return_types,
+        }
+    }
+
+    fn check_function(
+        &self,
+        function: &'a crate::ast::FunctionNode,
+    ) -> Result<(), SemanticDiagnostic> {
+        let parameters: ReadFrame<'a> = function
+            .params
+            .iter()
+            .enumerate()
+            .map(|(index, name)| {
+                (
+                    name.as_str(),
+                    function.param_types.get(index).and_then(|ty| ty.as_deref()),
+                )
+            })
+            .collect();
+        let mut scopes = vec![parameters];
+        let mut tasks: Vec<ReadTask<'a>> =
+            function.body.iter().rev().map(ReadTask::Visit).collect();
+        while let Some(task) = tasks.pop() {
+            match task {
+                ReadTask::Visit(node) => self.visit(node, &function.name, &scopes, &mut tasks)?,
+                ReadTask::Enter(frame) => scopes.push(frame),
+                ReadTask::Leave => {
+                    scopes.pop();
+                }
+                ReadTask::Declare(name, ty) => {
+                    if let Some(scope) = scopes.last_mut() {
+                        scope.push((name, ty));
+                    }
+                }
+                ReadTask::Refuse(diagnostic) => return Err(*diagnostic),
+            }
+        }
+        Ok(())
+    }
+
+    fn visit(
+        &self,
+        node: &'a AstNode,
+        function: &str,
+        scopes: &[ReadFrame<'a>],
+        tasks: &mut Vec<ReadTask<'a>>,
+    ) -> Result<(), SemanticDiagnostic> {
+        match node {
+            AstNode::MemberExpression(member) if is_named_link(member) => {
+                let chain = self.resolve(member, scopes);
+                if let Some(field) = chain.unknown_within(chain.names.len()) {
+                    return Err(bare_read(function, field, chain.base));
+                }
+                tasks.push(ReadTask::Visit(chain.base));
+            }
+            AstNode::MemberExpression(member) => {
+                tasks.push(ReadTask::Visit(&member.property));
+                tasks.push(ReadTask::Visit(&member.object));
+            }
+            AstNode::BinaryExpression(binary) if binary.operator == "??" => {
+                self.visit_fallback(binary, function, scopes, tasks)?;
+            }
+            AstNode::BinaryExpression(binary) => {
+                tasks.push(ReadTask::Visit(&binary.right));
+                tasks.push(ReadTask::Visit(&binary.left));
+            }
+            AstNode::UnaryExpression(unary) => tasks.push(ReadTask::Visit(&unary.argument)),
+            AstNode::CallExpression(call) => match tag_read_operation(call) {
+                Some(operation) => self.visit_tag_read(call, operation, function, scopes, tasks)?,
+                None => {
+                    tasks.extend(call.arguments.iter().rev().map(ReadTask::Visit));
+                    tasks.push(ReadTask::Visit(&call.callee));
+                }
+            },
+            AstNode::LambdaExpression(lambda) => {
+                tasks.push(ReadTask::Leave);
+                tasks.push(ReadTask::Visit(&lambda.body));
+                tasks.push(ReadTask::Enter(
+                    lambda
+                        .params
+                        .iter()
+                        .map(|name| (name.as_str(), None))
+                        .collect(),
+                ));
+            }
+            AstNode::Array(array) => tasks.extend(array.elements.iter().rev().map(ReadTask::Visit)),
+            AstNode::ObjectLiteral(object) => {
+                for property in object.properties.iter().rev() {
+                    if let Some(default) = &property.default_value {
+                        tasks.push(ReadTask::Visit(default));
+                    }
+                    tasks.push(ReadTask::Visit(&property.value));
+                }
+            }
+            AstNode::SpreadElement(spread) => tasks.push(ReadTask::Visit(&spread.argument)),
+            AstNode::VariableDeclaration(declaration) => {
+                let ty = declaration
+                    .type_annotation
+                    .as_deref()
+                    .or_else(|| self.initializer_type(&declaration.value, scopes));
+                tasks.push(ReadTask::Declare(&declaration.name, ty));
+                tasks.push(ReadTask::Visit(&declaration.value));
+            }
+            AstNode::StackSlotDeclaration(slot) => {
+                tasks.push(ReadTask::Declare(&slot.name, Some(&slot.type_annotation)));
+                tasks.push(ReadTask::Visit(&slot.value));
+            }
+            // The target is not walked: `check_assignment_mutability` admits only a local name.
+            AstNode::Assignment(assignment) => tasks.push(ReadTask::Visit(&assignment.value)),
+            AstNode::Return(return_node) => {
+                if let Some(argument) = &return_node.argument {
+                    tasks.push(ReadTask::Visit(argument));
+                }
+            }
+            AstNode::If(if_node) => {
+                if let Some(alternate) = &if_node.alternate {
+                    push_block(tasks, alternate, ReadFrame::new());
+                }
+                push_block(tasks, &if_node.consequent, ReadFrame::new());
+                tasks.push(ReadTask::Visit(&if_node.test));
+            }
+            AstNode::While(while_node) => {
+                push_block(tasks, &while_node.body, ReadFrame::new());
+                tasks.push(ReadTask::Visit(&while_node.test));
+            }
+            AstNode::ForOf(for_node) => {
+                push_block(
+                    tasks,
+                    &for_node.body,
+                    vec![(for_node.var_name.as_str(), None)],
+                );
+                tasks.push(ReadTask::Visit(&for_node.range));
+            }
+            AstNode::For(for_node) => {
+                // `for (init; test; update) { body }`: one frame holds the init's local.
+                tasks.push(ReadTask::Leave);
+                tasks.extend(for_node.body.iter().rev().map(ReadTask::Visit));
+                for part in [&for_node.update, &for_node.test, &for_node.init]
+                    .into_iter()
+                    .flatten()
+                {
+                    tasks.push(ReadTask::Visit(part.as_ref()));
+                }
+                tasks.push(ReadTask::Enter(ReadFrame::new()));
+            }
+            AstNode::LexicalScope(scope) => push_block(tasks, &scope.body, ReadFrame::new()),
+            AstNode::EventHandler(handler) => push_block(tasks, &handler.body, ReadFrame::new()),
+            _ => {}
+        }
+        Ok(())
+    }
+
+    /// `left ?? right`. With `load(...)` on the left it must be the one written form on an
+    /// `@unknown` field; a bare `record.field` on the left is the refused bare fallback; any other
+    /// left side is an ordinary expression (the typed `??` rule refuses it in typed functions).
+    fn visit_fallback(
+        &self,
+        binary: &'a crate::ast::BinaryExpression,
+        function: &str,
+        scopes: &[ReadFrame<'a>],
+        tasks: &mut Vec<ReadTask<'a>>,
+    ) -> Result<(), SemanticDiagnostic> {
+        if let Some(field) = crate::semantic_types::load_form_field(&binary.left) {
+            let chain = self.resolve(field, scopes);
+            if let Some(inner) = chain.unknown_within(chain.names.len() - 1) {
+                return Err(bare_read(function, inner, chain.base));
+            }
+            if !chain.outer.takes_the_forms() {
+                return Err(load_form_error(function, &chain.problem(), &binary.left));
+            }
+            tasks.push(ReadTask::Visit(&binary.right));
+            return Ok(());
+        }
+        if let AstNode::CallExpression(load) = binary.left.as_ref() {
+            if matches!(load.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "load")
+            {
+                let [argument] = load.arguments.as_slice() else {
+                    let problem = format!(
+                        "`load` takes exactly one argument here, `record.field`, and was given {}",
+                        load.arguments.len()
+                    );
+                    return Err(load_form_error(function, &problem, &binary.left));
+                };
+                // Not a named field: walk it first, so a bare read inside it is what is reported.
+                tasks.push(ReadTask::Refuse(Box::new(load_form_error(
+                    function,
+                    "the argument of `load` is not a named field `record.field`",
+                    &binary.left,
+                ))));
+                tasks.push(ReadTask::Visit(argument));
+                return Ok(());
+            }
+        }
+        if let AstNode::MemberExpression(member) = binary.left.as_ref() {
+            if is_named_link(member) {
+                let chain = self.resolve(member, scopes);
+                if chain.outer.is_unknown() {
+                    return Err(bare_fallback(function, chain.outer_name(), chain.base));
+                }
+            }
+        }
+        tasks.push(ReadTask::Visit(&binary.right));
+        tasks.push(ReadTask::Visit(&binary.left));
+        Ok(())
+    }
+
+    /// `isKnown(...)` or `unknownReason(...)`: exactly one named field, declared `@unknown`.
+    fn visit_tag_read(
+        &self,
+        call: &'a crate::ast::CallExpression,
+        operation: &str,
+        function: &str,
+        scopes: &[ReadFrame<'a>],
+        tasks: &mut Vec<ReadTask<'a>>,
+    ) -> Result<(), SemanticDiagnostic> {
+        let [argument] = call.arguments.as_slice() else {
+            let problem = format!(
+                "it takes exactly one argument, and was given {}",
+                call.arguments.len()
+            );
+            return Err(tag_read_error(function, operation, &problem, &call.loc));
+        };
+        let Some(field) = crate::semantic_types::named_field(argument) else {
+            // Walk the argument first, so a bare read inside it is what is reported.
+            tasks.push(ReadTask::Refuse(Box::new(tag_read_error(
+                function,
+                operation,
+                "its argument is not a named field `record.field`",
+                &call.loc,
+            ))));
+            tasks.push(ReadTask::Visit(argument));
+            return Ok(());
+        };
+        let chain = self.resolve(field, scopes);
+        if let Some(inner) = chain.unknown_within(chain.names.len() - 1) {
+            return Err(bare_read(function, inner, chain.base));
+        }
+        if !chain.outer.takes_the_forms() {
+            return Err(tag_read_error(
+                function,
+                operation,
+                &chain.problem(),
+                &call.loc,
+            ));
+        }
+        Ok(())
+    }
+
+    /// The fields of the struct named `name`, the program's own declaration first.
+    fn record(&self, name: &str) -> Option<&[FieldInView<'a>]> {
+        self.records
+            .iter()
+            .rev()
+            .find(|(record, _)| *record == name)
+            .map(|(_, fields)| fields.as_slice())
+    }
+
+    /// Resolve the member read `member` link by link from its base outwards.
+    fn resolve(&self, member: &'a MemberExpression, scopes: &[ReadFrame<'a>]) -> FieldChain<'a> {
+        let mut names: Vec<&'a str> = Vec::new();
+        let mut link = member;
+        let base = loop {
+            if let AstNode::Identifier(name) = link.property.as_ref() {
+                names.push(&name.name);
+            }
+            match link.object.as_ref() {
+                AstNode::MemberExpression(inner) if is_named_link(inner) => link = inner,
+                other => break other,
+            }
+        };
+        names.reverse();
+
+        let mut shape = match base {
+            AstNode::Identifier(identifier) => {
+                match lookup_read_binding(scopes, &identifier.name) {
+                    Some(ty) => self.classify(ty),
+                    None if self.enums.contains(&identifier.name.as_str()) => {
+                        Shape::Fieldless(Fieldless::EnumOrModule)
+                    }
+                    None => Shape::Opaque,
+                }
+            }
+            _ => Shape::Opaque,
+        };
+        let mut first_unknown = None;
+        let mut outer = FieldKind::ByName {
+            named_unknown: false,
+        };
+        for (index, name) in names.iter().enumerate() {
+            outer = match shape {
+                Shape::Record(record) => {
+                    let field = self
+                        .record(record)
+                        .and_then(|fields| fields.iter().find(|field| field.name == *name));
+                    match field {
+                        Some(field) if field.unknown => {
+                            shape = Shape::Fieldless(Fieldless::UnknownField(field.ty));
+                            FieldKind::Unknown
+                        }
+                        Some(field) => {
+                            shape = self.classify(field.ty);
+                            FieldKind::Plain { record }
+                        }
+                        None => {
+                            outer = FieldKind::Missing {
+                                record,
+                                link: index,
+                            };
+                            break;
                         }
                     }
                 }
+                Shape::Fieldless(what) => {
+                    outer = FieldKind::NotRecord { link: index, what };
+                    break;
+                }
+                Shape::Opaque => FieldKind::ByName {
+                    named_unknown: self.unknown_names.contains(name),
+                },
+            };
+            if first_unknown.is_none() && outer.is_unknown() {
+                first_unknown = Some(index);
             }
-            let left_guarded = guarded || binary.operator == "??";
-            first_unguarded_unknown_struct_field_read(&binary.left, unknown_fields, left_guarded)
-                .or_else(|| {
-                    first_unguarded_unknown_struct_field_read(
-                        &binary.right,
-                        unknown_fields,
-                        guarded,
-                    )
-                })
         }
-        AstNode::UnaryExpression(unary) => {
-            first_unguarded_unknown_struct_field_read(&unary.argument, unknown_fields, guarded)
+        FieldChain {
+            base,
+            names,
+            first_unknown,
+            outer,
         }
-        AstNode::CallExpression(call) if is_tag_read(call) => None,
-        AstNode::CallExpression(call) => {
-            first_unguarded_unknown_struct_field_read(&call.callee, unknown_fields, guarded)
-                .or_else(|| {
-                    call.arguments.iter().find_map(|argument| {
-                        first_unguarded_unknown_struct_field_read(argument, unknown_fields, guarded)
-                    })
-                })
+    }
+
+    /// What a value of type `ty` is. A reference reads through to its pointee.
+    fn classify(&self, ty: Option<&'a str>) -> Shape<'a> {
+        let Some(ty) = ty else {
+            return Shape::Opaque;
+        };
+        let pointee = reference_pointee(ty);
+        if let Some((record, _)) = self
+            .records
+            .iter()
+            .rev()
+            .find(|(record, _)| *record == pointee)
+        {
+            Shape::Record(record)
+        } else if is_fieldless_type(pointee) || self.enums.contains(&pointee) {
+            Shape::Fieldless(Fieldless::Type(pointee))
+        } else {
+            Shape::Opaque
         }
-        AstNode::LambdaExpression(lambda) => {
-            first_unguarded_unknown_struct_field_read(&lambda.body, unknown_fields, guarded)
+    }
+
+    /// The type of an untyped `let`, when its initializer shows it: a constructor, a call to a
+    /// function that states its return type, another binding, or a reference to one.
+    fn initializer_type(&self, value: &'a AstNode, scopes: &[ReadFrame<'a>]) -> Option<&'a str> {
+        match value {
+            AstNode::CallExpression(call) => match call.callee.as_ref() {
+                AstNode::Identifier(callee) if self.record(&callee.name).is_some() => {
+                    Some(&callee.name)
+                }
+                AstNode::Identifier(callee) => self
+                    .return_types
+                    .iter()
+                    .find(|(name, _)| *name == callee.name)
+                    .map(|(_, ty)| *ty),
+                _ => None,
+            },
+            AstNode::Identifier(identifier) => {
+                lookup_read_binding(scopes, &identifier.name).flatten()
+            }
+            AstNode::UnaryExpression(unary) if matches!(unary.operator.as_str(), "&" | "&mut") => {
+                match unary.argument.as_ref() {
+                    AstNode::Identifier(identifier) => {
+                        lookup_read_binding(scopes, &identifier.name).flatten()
+                    }
+                    _ => None,
+                }
+            }
+            _ => None,
         }
-        AstNode::Array(array) => array.elements.iter().find_map(|element| {
-            first_unguarded_unknown_struct_field_read(element, unknown_fields, guarded)
-        }),
-        AstNode::ObjectLiteral(object) => object.properties.iter().find_map(|property| {
-            first_unguarded_unknown_struct_field_read(&property.value, unknown_fields, guarded)
-        }),
-        AstNode::SpreadElement(spread) => {
-            first_unguarded_unknown_struct_field_read(&spread.argument, unknown_fields, guarded)
+    }
+}
+
+fn push_block<'a>(tasks: &mut Vec<ReadTask<'a>>, body: &'a [AstNode], frame: ReadFrame<'a>) {
+    tasks.push(ReadTask::Leave);
+    tasks.extend(body.iter().rev().map(ReadTask::Visit));
+    tasks.push(ReadTask::Enter(frame));
+}
+
+/// The innermost binding of `name`, the latest within one block: `Some(type)` when it is bound.
+fn lookup_read_binding<'a>(scopes: &[ReadFrame<'a>], name: &str) -> Option<Option<&'a str>> {
+    scopes.iter().rev().find_map(|scope| {
+        scope
+            .iter()
+            .rev()
+            .find(|(bound, _)| *bound == name)
+            .map(|(_, ty)| *ty)
+    })
+}
+
+/// `object.field`: a link that names its field (the parser gives every `.` link a name).
+fn is_named_link(member: &MemberExpression) -> bool {
+    !member.computed && matches!(member.property.as_ref(), AstNode::Identifier(_))
+}
+
+/// `isKnown` and `unknownReason`: the two tag reads.
+fn tag_read_operation(call: &crate::ast::CallExpression) -> Option<&str> {
+    match call.callee.as_ref() {
+        AstNode::Identifier(callee)
+            if matches!(callee.name.as_str(), "isKnown" | "unknownReason") =>
+        {
+            Some(callee.name.as_str())
         }
-        AstNode::VariableDeclaration(declaration) => {
-            first_unguarded_unknown_struct_field_read(&declaration.value, unknown_fields, guarded)
-        }
-        AstNode::StackSlotDeclaration(declaration) => {
-            first_unguarded_unknown_struct_field_read(&declaration.value, unknown_fields, guarded)
-        }
-        AstNode::Assignment(assignment) => {
-            first_unguarded_unknown_struct_field_read(&assignment.value, unknown_fields, guarded)
-        }
-        AstNode::Return(return_node) => return_node.argument.as_ref().and_then(|argument| {
-            first_unguarded_unknown_struct_field_read(argument, unknown_fields, guarded)
-        }),
-        AstNode::If(if_node) => {
-            first_unguarded_unknown_struct_field_read(&if_node.test, unknown_fields, guarded)
-                .or_else(|| {
-                    if_node.consequent.iter().find_map(|statement| {
-                        first_unguarded_unknown_struct_field_read(
-                            statement,
-                            unknown_fields,
-                            guarded,
-                        )
-                    })
-                })
-                .or_else(|| {
-                    if_node.alternate.as_ref().and_then(|alternate| {
-                        alternate.iter().find_map(|statement| {
-                            first_unguarded_unknown_struct_field_read(
-                                statement,
-                                unknown_fields,
-                                guarded,
-                            )
-                        })
-                    })
-                })
-        }
-        AstNode::While(while_node) => {
-            first_unguarded_unknown_struct_field_read(&while_node.test, unknown_fields, guarded)
-                .or_else(|| {
-                    while_node.body.iter().find_map(|statement| {
-                        first_unguarded_unknown_struct_field_read(
-                            statement,
-                            unknown_fields,
-                            guarded,
-                        )
-                    })
-                })
-        }
-        AstNode::ForOf(for_node) => {
-            first_unguarded_unknown_struct_field_read(&for_node.range, unknown_fields, guarded)
-                .or_else(|| {
-                    for_node.body.iter().find_map(|statement| {
-                        first_unguarded_unknown_struct_field_read(
-                            statement,
-                            unknown_fields,
-                            guarded,
-                        )
-                    })
-                })
-        }
-        AstNode::LexicalScope(scope) => scope.body.iter().find_map(|statement| {
-            first_unguarded_unknown_struct_field_read(statement, unknown_fields, guarded)
-        }),
-        AstNode::EventHandler(handler) => handler.body.iter().find_map(|statement| {
-            first_unguarded_unknown_struct_field_read(statement, unknown_fields, guarded)
-        }),
         _ => None,
     }
+}
+
+/// `&T`, `&mut T`, `&'a T` and `&'a mut T` read through to `T`.
+fn reference_pointee(ty: &str) -> &str {
+    let ty = ty.trim();
+    let Some(rest) = ty.strip_prefix('&') else {
+        return ty;
+    };
+    let rest = match rest.strip_prefix('\'') {
+        Some(after_tick) => after_tick.split_once(' ').map_or("", |(_, rest)| rest),
+        None => rest,
+    };
+    rest.strip_prefix("mut ").unwrap_or(rest).trim()
+}
+
+/// Types whose values have no fields: scalars, text, and arrays or slices.
+fn is_fieldless_type(ty: &str) -> bool {
+    ty.starts_with('[')
+        || matches!(
+            ty,
+            "i8" | "i16"
+                | "i32"
+                | "i64"
+                | "isize"
+                | "u8"
+                | "u16"
+                | "u32"
+                | "u64"
+                | "usize"
+                | "f32"
+                | "f64"
+                | "number"
+                | "bool"
+                | "boolean"
+                | "Boolean"
+                | "string"
+                | "String"
+                | "str"
+                | "void"
+                | "unit"
+        )
+}
+
+#[cold]
+#[inline(never)]
+fn bare_read(function: &str, field: &str, base: &AstNode) -> SemanticDiagnostic {
+    semantic_error(
+        format!(
+            "[{}] function `{}` reads `@unknown` struct field `{}` without a fallback — write `load(record.{}) ?? <fallback>`, or ask `isKnown(record.{})` first. `Uncertain<T>` is not assignable to `T`, so a bare read cannot become a raw value.",
+            crate::semantic_types::UNKNOWN_BARE_READ,
+            function,
+            field,
+            field,
+            field
+        ),
+        crate::semantic_types::first_location(base),
+    )
+}
+
+#[cold]
+#[inline(never)]
+fn bare_fallback(function: &str, field: &str, base: &AstNode) -> SemanticDiagnostic {
+    semantic_error(
+        format!(
+            "[{}] function `{}` supplies a fallback for `@unknown` struct field `{}` without `load` — write `load(record.{}) ?? <fallback>`, the one written form (the native backend refuses the bare form).",
+            crate::semantic_types::UNKNOWN_FALLBACK_FORM,
+            function,
+            field,
+            field
+        ),
+        crate::semantic_types::first_location(base),
+    )
+}
+
+#[cold]
+#[inline(never)]
+fn load_form_error(function: &str, problem: &str, load: &AstNode) -> SemanticDiagnostic {
+    semantic_error(
+        format!(
+            "[{}] function `{}` writes `load(...) ?? fallback`, the form for an `@unknown` struct field, but {}; a fallback applies only to `load(record.field)` on an `@unknown` field (the native backend refuses any other).",
+            crate::semantic_types::UNKNOWN_FALLBACK_FORM,
+            function,
+            problem
+        ),
+        crate::semantic_types::first_location(load),
+    )
+}
+
+#[cold]
+#[inline(never)]
+fn tag_read_error(
+    function: &str,
+    operation: &str,
+    problem: &str,
+    loc: &Option<crate::ast::Location>,
+) -> SemanticDiagnostic {
+    semantic_error(
+        format!(
+            "[{}] function `{}` calls `{}`, which reads the {} of an `@unknown` struct field, written `{}(record.field)`; {} (the native backend refuses it).",
+            crate::semantic_types::UNKNOWN_TAG_READ,
+            function,
+            operation,
+            if operation == "unknownReason" {
+                "reason code"
+            } else {
+                "tag"
+            },
+            operation,
+            problem
+        ),
+        loc,
+    )
 }
 
 fn check_unknown_field_guards_in_node(node: &AstNode) -> Result<(), SemanticDiagnostic> {
@@ -576,7 +1114,12 @@ fn first_unguarded_unknown_read(node: &AstNode, unknown: &[&str], guarded: bool)
 }
 
 /// Reject top-level declaration names that would collide after caller-side import inlining.
-pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+/// `external` is the surrounding document of a lifted piece (`.hsplus`): a `holo:` import in the
+/// piece may not take the name of a function or struct the document declares either.
+pub(crate) fn check_top_level_declaration_collisions(
+    ast: &Ast,
+    external: &crate::semantic_types::ExternalDeclarations,
+) -> Result<(), SemanticDiagnostic> {
     let mut declarations: HashMap<String, DeclarationSite> = HashMap::new();
 
     // `export function f` declares `f` too: until 2026-09-29 it was left out here, so an exported
@@ -610,7 +1153,48 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
         }
     }
     for site in sites {
+        if site.kind == HOLO_IMPORT {
+            // The `.hsplus` reader checks each document's imports as a piece, with the document's
+            // functions and structs as context (G21): a stand-in elsewhere in the document is
+            // caught here, where the import is.
+            let declared = if external.functions.contains_key(&site.name) {
+                Some("function")
+            } else if external.structs.iter().any(|(name, _)| name == &site.name) {
+                Some("struct")
+            } else {
+                None
+            };
+            if let Some(kind) = declared {
+                return Err(SemanticDiagnostic {
+                    message: format!(
+                        "[{}] `{}` is imported from a Holo module (line {}, column {}) and the document also declares a {kind} named `{}`; a Holo capability cannot be defined in the file that imports it",
+                        crate::semantic_types::HIDDEN_NAME,
+                        site.name,
+                        site.line,
+                        site.column,
+                        site.name
+                    ),
+                    line: site.line,
+                    column: site.column,
+                });
+            }
+        }
         if let Some(first) = declarations.get(&site.name) {
+            if first.kind == HOLO_IMPORT && site.kind == HOLO_IMPORT {
+                return Err(SemanticDiagnostic {
+                    message: format!(
+                        "[{}] `{}` is imported twice, at line {}, column {} and at line {}, column {}; a file imports each name once",
+                        crate::semantic_types::HIDDEN_NAME,
+                        site.name,
+                        first.line,
+                        first.column,
+                        site.line,
+                        site.column
+                    ),
+                    line: site.line,
+                    column: site.column,
+                });
+            }
             if first.kind == HOLO_IMPORT || site.kind == HOLO_IMPORT {
                 let (import, other) = if first.kind == HOLO_IMPORT {
                     (first, &site)
@@ -667,9 +1251,9 @@ pub(crate) fn check_semantics_with(
     ast: &Ast,
     external: &crate::semantic_types::ExternalDeclarations,
 ) -> Result<(), SemanticDiagnostic> {
-    check_top_level_declaration_collisions(ast)?;
+    check_top_level_declaration_collisions(ast, external)?;
     check_unknown_field_guards(ast)?;
-    check_unknown_struct_field_guards(ast)?;
+    check_unknown_struct_field_guards(ast, external)?;
     check_assignment_mutability(ast)?;
     crate::semantic_types::check_explicit_type_contracts_with(ast, external)
 }
@@ -2871,6 +3455,44 @@ fn unknown_scalar_for_expr(
     }
 }
 
+/// `isKnown(record.field)` tests the field's `Uncertain` carrier. Only an `@unknown` field has a
+/// carrier, so any other call shape is refused here, never lowered to a type test that Kotlin
+/// would reject, and never indexed blind. The checker refuses the same shapes first
+/// (HS-UNKNOWN-003); this stands on its own for a caller that reaches the emitter directly.
+fn emit_is_known(
+    call: &crate::ast::CallExpression,
+    context: &EmitContext<'_>,
+) -> Result<String, KotlinEmitError> {
+    let [argument] = call.arguments.as_slice() else {
+        return Err(KotlinEmitError::new(format!(
+            "`isKnown(...)` takes exactly one `@unknown` field, `isKnown(record.field)`; it was given {} arguments",
+            call.arguments.len()
+        )));
+    };
+    let field = match argument {
+        AstNode::MemberExpression(member) if is_named_link(member) => {
+            match member.property.as_ref() {
+                AstNode::Identifier(field) => Some(field.name.as_str()),
+                _ => None,
+            }
+        }
+        _ => None,
+    };
+    let carrier = match field {
+        Some(field) => context.unknown_fields.field_type(field)?.is_some(),
+        None => false,
+    };
+    if !carrier {
+        return Err(KotlinEmitError::new(
+            "`isKnown(...)` lowers only for `isKnown(record.field)` on an `@unknown` field: Kotlin tests that field's `Uncertain` carrier, and any other value has none",
+        ));
+    }
+    Ok(format!(
+        "(({}) is Uncertain.Known)",
+        emit_expr(argument, context)?
+    ))
+}
+
 fn emit_unknown_fallback(
     node: &AstNode,
     scalar: KotlinUnknownScalar,
@@ -2984,6 +3606,9 @@ fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, Kotlin
             // Bare numeric builtins map through the shared table so emission and type inference
             // stay in lockstep. Member-call forms (e.g. `x.trim()`) pass through unchanged.
             if let AstNode::Identifier(id) = c.callee.as_ref() {
+                if id.name == "isKnown" {
+                    return emit_is_known(c, context);
+                }
                 let args = if let Some(field_types) = context.unknown_fields.by_struct.get(&id.name)
                 {
                     c.arguments
@@ -3004,9 +3629,6 @@ fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, Kotlin
                         .map(|arg| emit_expr(arg, context))
                         .collect::<Result<Vec<_>, _>>()?
                 };
-                if id.name == "isKnown" && args.len() == 1 {
-                    return Ok(format!("(({}) is Uncertain.Known)", args[0]));
-                }
                 if id.name == "unknownReason" {
                     return Err(KotlinEmitError::new(
                         "`unknownReason(...)` has no Kotlin bridge yet: the native reason is an i32 code, while the Kotlin `Uncertain.Unknown` carries a text reason; refusing to guess the mapping",
@@ -3391,6 +4013,7 @@ fn node_kind(node: &AstNode) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::semantic_types::{UNKNOWN_BARE_READ, UNKNOWN_FALLBACK_FORM, UNKNOWN_TAG_READ};
 
     fn kotlin(source: &str) -> String {
         compile_source_to_kotlin(source, "  ").expect("emit ok")
@@ -4398,6 +5021,341 @@ function resolve() {
             error.to_string().contains("`unknownReason(...)` has no Kotlin bridge yet"),
             "{error}"
         );
+    }
+
+    /// The differential shape of PR #444: a typed function over `&Snapshot` (`@unknown count`)
+    /// and `&mut Receipt` (plain `reason`). The body starts on line 10.
+    fn snapshot_program(body: &str) -> String {
+        format!(
+            "struct Snapshot {{\n  @unknown count: i32\n}}\n\nstruct Receipt {{\n  reason: i32\n}}\n\nfunction read(snapshot: &Snapshot, receipt: &mut Receipt): i32 {{\n{body}\n}}\n"
+        )
+    }
+
+    /// `isKnown(<argument>)` or `unknownReason(<argument>)` inside [`snapshot_program`].
+    fn tag_read_program(operation: &str, argument: &str, setup: &str) -> String {
+        snapshot_program(&match operation {
+            "isKnown" => format!(
+                "{setup}  if (isKnown({argument})) {{\n    return 1\n  }}\n  return 2"
+            ),
+            _ => format!(
+                "{setup}  store(receipt.reason, unknownReason({argument}))\n  return load(receipt.reason)"
+            ),
+        })
+    }
+
+    fn check(source: &str) -> Result<(), SemanticDiagnostic> {
+        let ast = crate::parse_ast(source).expect("fixture should parse");
+        check_semantics(&ast)
+    }
+
+    fn refused_with(source: &str, code: &str) -> SemanticDiagnostic {
+        let error = check(source).expect_err(source);
+        assert!(
+            error.message.contains(code),
+            "{source}\n=> {}",
+            error.message
+        );
+        error
+    }
+
+    /// Review of PR #444 (claude3, P2): a tag read exempts only a named field that its record's own
+    /// struct declares `@unknown`, and the rest of its argument is read like any expression. At
+    /// 77939d364 each refused program here was valid while native refused it, and Kotlin emitted
+    /// `((values[evidence.count]) is Uncertain.Known)`, which does not compile.
+    #[test]
+    fn a_tag_read_exempts_only_an_unknown_field_of_the_records_own_struct() {
+        for operation in ["isKnown", "unknownReason"] {
+            check(&tag_read_program(operation, "snapshot.count", ""))
+                .unwrap_or_else(|error| panic!("{operation}: {}", error.message));
+
+            // A bare read used as an index: HS-UNKNOWN-001 at `snapshot`, as everywhere else.
+            let index = refused_with(
+                &tag_read_program(
+                    operation,
+                    "values[snapshot.count]",
+                    "  slot values: [i32; 4] = [1, 2, 3, 4]\n",
+                ),
+                UNKNOWN_BARE_READ,
+            );
+            assert_eq!(index.line, 11, "{}", index.message);
+
+            // Reading through the field reads it.
+            refused_with(
+                &tag_read_program(operation, "snapshot.count.x", ""),
+                UNKNOWN_BARE_READ,
+            );
+
+            // `a` is an `i32`: its `count` is no `@unknown` field, whatever `Snapshot` declares.
+            let scalar = refused_with(
+                &tag_read_program(operation, "a.count", "  let a: i32 = 5\n"),
+                UNKNOWN_TAG_READ,
+            );
+            assert!(
+                scalar.message.contains("`a` is `i32`, not a record"),
+                "{}",
+                scalar.message
+            );
+
+            // A path through fields `Snapshot` does not have, at any depth.
+            for depth in [1, 2, 50] {
+                let argument = format!("snapshot{}.count", ".a".repeat(depth));
+                let missing = refused_with(
+                    &tag_read_program(operation, &argument, ""),
+                    UNKNOWN_TAG_READ,
+                );
+                assert!(
+                    missing.message.contains("`Snapshot` has no field `a`"),
+                    "{argument}: {}",
+                    missing.message
+                );
+            }
+        }
+    }
+
+    /// Review of PR #444 (claude3, P3): a field resolves through its record's struct, not through
+    /// its name. `Tally` declares its own plain `count`; `Snapshot` declares an `@unknown` one.
+    /// Native runs the typed programs here (`load(tally.count) + 1` exits 5); the checker refused
+    /// them at 77939d364.
+    #[test]
+    fn a_field_resolves_through_its_records_own_struct() {
+        let header = "struct Snapshot {\n  @unknown count: i32\n}\n\nstruct Tally {\n  count: i32\n}\n\nstruct Outer {\n  tally: Tally,\n  inner: Snapshot\n}\n\n";
+        for body in [
+            // A stack slot, a reference parameter of each kind, a nested plain struct.
+            "function main(): i32 {\n  slot tally: Tally = Tally(4)\n  return load(tally.count) + 1\n}",
+            "function bump(tally: &Tally): i32 {\n  return load(tally.count) + 1\n}",
+            "function bump(tally: &mut Tally): i32 {\n  return load(tally.count)\n}",
+            "function bump<'a>(tally: &'a Tally): i32 {\n  return load(tally.count)\n}",
+            "function main(): i32 {\n  slot outer: Outer = Outer(Tally(6), Snapshot(known(1)))\n  return load(outer.tally.count)\n}",
+            // Untyped locals whose initializer shows the struct.
+            "function legacy() {\n  let tally = Tally(4)\n  return tally.count\n}",
+            "function make(): Tally {\n  return Tally(4)\n}\nfunction legacy() {\n  let tally = make()\n  return tally.count\n}",
+            "function legacy(t: Tally) {\n  let tally = t\n  return tally.count\n}",
+            // A local of another struct hides an outer one in its own block only.
+            "function legacy() {\n  let s = Snapshot(known(1))\n  if (true) {\n    let s = Tally(1)\n    return s.count\n  }\n  return load(s.count) ?? 0\n}",
+        ] {
+            let source = format!("{header}{body}");
+            check(&source).unwrap_or_else(|error| panic!("{source}\n=> {}", error.message));
+        }
+
+        for body in [
+            "function main(): i32 {\n  slot snapshot: Snapshot = Snapshot(known(4))\n  return load(snapshot.count)\n}",
+            "function main(): i32 {\n  slot outer: Outer = Outer(Tally(6), Snapshot(known(1)))\n  return load(outer.inner.count)\n}",
+            "function legacy() {\n  let s = Snapshot(known(1))\n  if (true) {\n    let s = Tally(1)\n  }\n  return s.count\n}",
+            // When the record's type cannot be seen, the name still decides, as before.
+            "function legacy(s) {\n  return s.count\n}",
+        ] {
+            let source = format!("{header}{body}");
+            refused_with(&source, UNKNOWN_BARE_READ);
+        }
+    }
+
+    /// Review of PR #444 (claude3, P3): `isKnown`, `unknownReason` and `load(...) ?? d` apply
+    /// only to an `@unknown` field. On a plain or missing field, or a value with no fields, native
+    /// refuses them and so does the checker, naming the field.
+    #[test]
+    fn the_three_forms_apply_only_to_an_unknown_field() {
+        for (body, code, names) in [
+            (
+                "  if (isKnown(receipt.reason)) {\n    return 1\n  }\n  return 2",
+                UNKNOWN_TAG_READ,
+                "`receipt.reason` is a plain field of `Receipt`",
+            ),
+            (
+                "  store(receipt.reason, unknownReason(receipt.reason))\n  return 0",
+                UNKNOWN_TAG_READ,
+                "`receipt.reason` is a plain field of `Receipt`",
+            ),
+            (
+                "  return load(receipt.reason) ?? 7",
+                UNKNOWN_FALLBACK_FORM,
+                "`receipt.reason` is a plain field of `Receipt`",
+            ),
+            (
+                "  if (isKnown(snapshot.nosuch)) {\n    return 1\n  }\n  return 2",
+                UNKNOWN_TAG_READ,
+                "`Snapshot` has no field `nosuch`",
+            ),
+            (
+                "  return load(snapshot.nosuch) ?? 7",
+                UNKNOWN_FALLBACK_FORM,
+                "`Snapshot` has no field `nosuch`",
+            ),
+            (
+                "  let a: i32 = 5\n  return load(a.count) ?? 7",
+                UNKNOWN_FALLBACK_FORM,
+                "`a` is `i32`, not a record",
+            ),
+            (
+                "  slot values: [i32; 4] = [1, 2, 3, 4]\n  return load(values[1]) ?? 7",
+                UNKNOWN_FALLBACK_FORM,
+                "is not a named field",
+            ),
+            (
+                "  return load(snapshot.count.x) ?? 7",
+                UNKNOWN_BARE_READ,
+                "`@unknown` struct field `count`",
+            ),
+        ] {
+            let source = snapshot_program(body);
+            let error = refused_with(&source, code);
+            assert!(
+                error.message.contains(names),
+                "{source}\n=> {}",
+                error.message
+            );
+            assert_ne!((error.line, error.column), (0, 0), "{}", error.message);
+        }
+    }
+
+    /// Review of PR #444 (claude3, MF1 to MF3): faults that left every test green at 77939d364.
+    /// A tag read takes exactly one argument, a named field; so does `load` before `??`. Untyped
+    /// functions too, where the typed `??` rule does not run.
+    #[test]
+    fn tag_reads_and_the_load_form_take_exactly_one_named_field() {
+        // MF1: extra arguments, or none.
+        for (argument, given) in [
+            ("snapshot.count, snapshot.count", "given 2"),
+            ("", "given 0"),
+        ] {
+            for operation in ["isKnown", "unknownReason"] {
+                let error =
+                    refused_with(&tag_read_program(operation, argument, ""), UNKNOWN_TAG_READ);
+                assert!(error.message.contains(given), "{}", error.message);
+            }
+        }
+        // MF2: an argument that is not a named field is read like any expression.
+        for (argument, code) in [
+            ("load(snapshot.count)", UNKNOWN_BARE_READ),
+            ("snapshot.count ?? 1", UNKNOWN_FALLBACK_FORM),
+            ("values[1]", UNKNOWN_TAG_READ),
+            ("7", UNKNOWN_TAG_READ),
+        ] {
+            refused_with(
+                &tag_read_program(
+                    "isKnown",
+                    argument,
+                    "  slot values: [i32; 4] = [1, 2, 3, 4]\n",
+                ),
+                code,
+            );
+        }
+        // MF3: `load` with an extra argument is not the one written form.
+        let error = refused_with(
+            &snapshot_program("  return load(snapshot.count, 1) ?? 7"),
+            UNKNOWN_FALLBACK_FORM,
+        );
+        assert!(error.message.contains("given 2"), "{}", error.message);
+        let untyped = "struct S { @unknown count: i32 }\nfunction legacy(s) {\n  return load(s.count, 1) ?? 7\n}";
+        refused_with(untyped, UNKNOWN_FALLBACK_FORM);
+        check("struct S { @unknown count: i32 }\nfunction legacy(s) {\n  return load(s.count) ?? 7\n}")
+            .expect("the load form on an untyped record is still read by the field's name");
+    }
+
+    /// The rule reads every expression position of a function body: a bare read hidden in any of
+    /// them is refused, and the same positions holding the load form are not.
+    #[test]
+    fn a_bare_read_is_refused_in_every_expression_position() {
+        for (position, bare) in [
+            ("a lambda body", "  let f = (x) => x + s.count\n  return 0"),
+            ("an object value", "  let o = { k: s.count }\n  return 0"),
+            (
+                "an object fallback value",
+                "  let o = { k: 1 = s.count }\n  return 0",
+            ),
+            ("an array element", "  let a = [1, s.count]\n  return 0"),
+            ("a spread", "  let a = [...s.count]\n  return 0"),
+            (
+                "a loop range",
+                "  for (i in 0..s.count) {\n    let j = i\n  }\n  return 0",
+            ),
+            (
+                "a while test",
+                "  while (s.count > 0) {\n    let j = 1\n  }\n  return 0",
+            ),
+            ("a nested call", "  return f(g(s.count))"),
+        ] {
+            let source =
+                format!("struct S {{ @unknown count: i32 }}\nfunction legacy(s) {{\n{bare}\n}}");
+            refused_with(&source, UNKNOWN_BARE_READ);
+            let guarded = source.replace("s.count", "(load(s.count) ?? 0)");
+            check(&guarded).unwrap_or_else(|error| panic!("{position}: {}", error.message));
+        }
+    }
+
+    /// A fallback guards only the field it is written for. At 77939d364 the whole left side of a
+    /// `??` counted as guarded in untyped functions, so `s.count + 0 ?? 3` was valid; native and
+    /// the Kotlin bridge both refuse it.
+    #[test]
+    fn only_the_load_form_guards_the_left_side_of_a_fallback() {
+        for body in [
+            "  return s.count + 0 ?? 3",
+            "  return (load(s.count) + 1) ?? 3",
+        ] {
+            let source =
+                format!("struct S {{ @unknown count: i32 }}\nfunction legacy(s) {{\n{body}\n}}");
+            refused_with(&source, UNKNOWN_BARE_READ);
+        }
+    }
+
+    /// Review of PR #444 (claude3, MF4): the Kotlin `isKnown` lowering refuses, with a message,
+    /// any call it cannot lower, and never indexes an argument that is not there. Called directly,
+    /// as a caller that skips the checker would reach it.
+    #[test]
+    fn the_kotlin_is_known_lowering_refuses_what_it_cannot_lower() {
+        let declarations = crate::parse_ast("struct Evidence { @unknown count: i32 }")
+            .expect("fixture should parse");
+        let structs: Vec<&StructDeclarationNode> = declarations
+            .body
+            .iter()
+            .filter_map(|node| match node {
+                AstNode::StructDeclaration(structure) => Some(structure),
+                _ => None,
+            })
+            .collect();
+        let unknown_fields = KotlinUnknownFields::collect(&structs).expect("supported payload");
+        let context = EmitContext {
+            int_locals: &[],
+            unknown_fields: &unknown_fields,
+        };
+        let lower = |expression: &str| {
+            let ast = crate::parse_ast(&format!(
+                "function probe(evidence, values) {{\n  return {expression}\n}}"
+            ))
+            .expect("fixture should parse");
+            let AstNode::Function(function) = &ast.body[0] else {
+                panic!("a function");
+            };
+            let AstNode::Return(ret) = &function.body[0] else {
+                panic!("a return");
+            };
+            emit_expr(ret.argument.as_deref().expect("a value"), &context)
+        };
+
+        assert_eq!(
+            lower("isKnown(evidence.count)").expect("an @unknown field lowers"),
+            "((evidence.count) is Uncertain.Known)"
+        );
+        for expression in [
+            "isKnown()",
+            "isKnown(evidence.count, evidence.count)",
+            "isKnown(evidence.plain)",
+            "isKnown(values[evidence.count])",
+            "isKnown(7)",
+        ] {
+            let error = lower(expression).expect_err(expression);
+            assert!(
+                error.message.contains("`isKnown(...)`"),
+                "{expression}: {error}"
+            );
+        }
+
+        // Through the bridge's own entry point, the checker refuses first.
+        let error = compile_source_to_kotlin(
+            "struct Evidence { @unknown count: i32 }\nfunction probe() {\n  let evidence = Evidence(known(1))\n  return isKnown()\n}",
+            "  ",
+        )
+        .expect_err("no argument");
+        assert!(error.message.contains(UNKNOWN_TAG_READ), "{error}");
     }
 
     #[test]

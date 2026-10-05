@@ -1537,7 +1537,7 @@ logic {
     expect(logicFunctionNames(result.ast).sort()).toEqual(['inner', 'outer']);
   });
 
-  it('collects functions with their argument counts, and structs, enums and imports by name', () => {
+  it('collects functions with their argument counts, structs and imports by name, and enums and modules as namespaces', () => {
     const t = (type: string, value = '') => ({ type, value });
     const id = (value: string) => t('IDENTIFIER', value);
     const context = collectHsDocumentContext([
@@ -1562,6 +1562,20 @@ logic {
       id('Route'),
       t('LBRACE'),
       t('RBRACE'),
+      // module GameState { }   declares; module: other   and   import module from "./m"   do not
+      t('MODULE', 'module'),
+      id('GameState'),
+      t('LBRACE'),
+      t('RBRACE'),
+      id('module'),
+      t('COLON'),
+      id('other'),
+      t('NEWLINE'),
+      id('import'),
+      t('MODULE', 'module'),
+      id('from'),
+      t('STRING', './m'),
+      t('NEWLINE'),
       // function two(x: Map<string, i32>, y: [i32; 4]) { }
       id('function'),
       id('two'),
@@ -1616,7 +1630,46 @@ logic {
       { name: 'twice' },
       { name: 'none', arity: 0 },
     ]);
-    expect(context.names.sort()).toEqual(['Packet', 'Route', 'a', 'c']);
+    expect(context.names.sort()).toEqual(['Packet', 'a', 'c', 'module']);
+    expect(context.namespaces.sort()).toEqual(['GameState', 'Route']);
+  });
+
+  it('reads a module or enum through its members and refuses a call to it (review finding)', () => {
+    const hsCodes = (source: string) =>
+      parse(source)
+        .errors.map((error) => String(error.code))
+        .filter((code) => code.startsWith('HS-'));
+    const withModule = (call: string) => `composition "C" {
+  module GameState {
+    export function addScore(points) {
+      return points
+    }
+  }
+  logic {
+    function award(p: i32): i32 {
+      ${call}
+      return p
+    }
+  }
+}`;
+    expect(hsCodes(withModule('GameState.addScore(p)'))).toEqual([]);
+    expect(hsCodes(withModule('GameState(p)'))).toEqual(['HS-NAME-002']);
+
+    const withEnum = (call: string) =>
+      `enum Route { EnterWorld, Deny }\n\nfunction pick(p: i32): i32 {\n  ${call}\n  return p\n}`;
+    expect(hsCodes(withEnum('let r = Route.Deny'))).toEqual([]);
+    expect(hsCodes(withEnum('let r = Route(p)'))).toEqual(['HS-NAME-002']);
+  });
+
+  it('points at the offending name in UTF-16 columns, past emoji (review finding)', () => {
+    const line = '  let s: string = "😀😀" let t: i32 = zz';
+    const result = parse(`function f(): i32 {\n${line}\n  return 1\n}`);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HS-NAME-001',
+      line: 2,
+      column: line.indexOf('zz') + 1,
+    });
   });
   it('resolves names the .hsplus lexer gives their own token type (review finding)', () => {
     // `transition`, `assert`, `match`, `state`, `initial`, `on_error` and `none` are keywords to
@@ -1759,6 +1812,146 @@ logic {
       { name: 'compare' },
     ]);
     expect(context.names).toEqual(['state']);
+  });
+});
+
+describe('@unknown struct fields in typed .hsplus functions (review of PR #444)', () => {
+  const hsErrors = (source: string) =>
+    parse(source).errors.filter((error) => String(error.code).startsWith('HS-'));
+  const snapshot = (body: string) => `struct Snapshot {
+  @unknown count: i32
+  seen: bool
+}
+
+function read(snapshot: &Snapshot): i32 {
+${body}
+}`;
+
+  it('gives a typed function the verdicts a whole .hs file gets, through the document structs', () => {
+    // Before, the reader sent struct names only: a bare read was valid here while the guarded
+    // `snapshot.count ?? 7` was refused.
+    const bare = hsErrors(snapshot('  return snapshot.count'));
+    expect(bare).toHaveLength(1);
+    expect(bare[0]).toMatchObject({ code: 'HS-UNKNOWN-001', line: 7, column: 10 });
+    expect(hsErrors(snapshot('  return load(snapshot.count)'))[0]?.code).toBe('HS-UNKNOWN-001');
+    expect(hsErrors(snapshot('  return snapshot.count ?? 7'))[0]?.code).toBe('HS-UNKNOWN-002');
+    expect(hsErrors(snapshot('  return load(snapshot.seen) ?? 7'))[0]?.code).toBe('HS-UNKNOWN-002');
+    expect(
+      hsErrors(snapshot('  if (isKnown(snapshot.seen)) {\n    return 1\n  }\n  return 0'))[0]?.code
+    ).toBe('HS-UNKNOWN-003');
+    expect(hsErrors(snapshot('  return load(snapshot.count) ?? 7'))).toEqual([]);
+    expect(
+      hsErrors(snapshot('  if (isKnown(snapshot.count)) {\n    return 1\n  }\n  return 0'))
+    ).toEqual([]);
+  });
+
+  it('collects each struct with its fields, @unknown marks and types', () => {
+    const t = (type: string, value = '') => ({ type, value });
+    const id = (value: string) => t('IDENTIFIER', value);
+    const context = collectHsDocumentContext([
+      // struct Snapshot { @unknown count: i32, inner: Outer; view: &mut Tally }
+      // (the .hsplus lexer drops `;` and a single `&`)
+      id('struct'),
+      id('Snapshot'),
+      t('LBRACE'),
+      t('AT'),
+      id('unknown'),
+      id('count'),
+      t('COLON'),
+      id('i32'),
+      t('COMMA'),
+      id('inner'),
+      t('COLON'),
+      id('Outer'),
+      id('view'),
+      t('COLON'),
+      id('mut'),
+      id('Tally'),
+      t('RBRACE'),
+      t('NEWLINE'),
+      // struct Registry {
+      //   readings: Map<string, i32> = make(a, b)
+      //   @unknown
+      //   reading?: &'a Sensor
+      // }
+      id('struct'),
+      id('Registry'),
+      t('LBRACE'),
+      t('NEWLINE'),
+      id('readings'),
+      t('COLON'),
+      id('Map'),
+      t('LESS_THAN', '<'),
+      id('string'),
+      t('COMMA', ','),
+      id('i32'),
+      t('GREATER_THAN', '>'),
+      t('EQUALS'),
+      id('make'),
+      t('LPAREN'),
+      id('a'),
+      t('COMMA'),
+      id('b'),
+      t('RPAREN'),
+      t('NEWLINE'),
+      t('AT'),
+      id('unknown'),
+      t('NEWLINE'),
+      id('reading'),
+      t('QUESTION'),
+      t('COLON'),
+      t('LIFETIME', 'a'),
+      id('Sensor'),
+      t('NEWLINE'),
+      t('RBRACE'),
+      // struct Packet(seed: i32) { value: i32 }
+      id('struct'),
+      id('Packet'),
+      t('LPAREN'),
+      id('seed'),
+      t('COLON'),
+      id('i32'),
+      t('RPAREN'),
+      t('LBRACE'),
+      id('value'),
+      t('COLON'),
+      id('i32'),
+      t('RBRACE'),
+      // struct Twice { a: i32 }   struct Twice { b: i32 }   -> fields unknown, left out
+      id('struct'),
+      id('Twice'),
+      t('LBRACE'),
+      id('a'),
+      t('COLON'),
+      id('i32'),
+      t('RBRACE'),
+      id('struct'),
+      id('Twice'),
+      t('LBRACE'),
+      id('b'),
+      t('COLON'),
+      id('i32'),
+      t('RBRACE'),
+    ]);
+    expect(context.structs).toEqual([
+      {
+        name: 'Snapshot',
+        fields: [
+          { name: 'count', type: 'i32', unknown: true },
+          { name: 'inner', type: 'Outer' },
+          { name: 'view', type: '&mut Tally' },
+        ],
+      },
+      {
+        name: 'Registry',
+        fields: [
+          { name: 'readings', type: 'Map < string , i32 >' },
+          { name: 'reading', type: "&'a Sensor", unknown: true },
+        ],
+      },
+      { name: 'Packet', fields: [{ name: 'value', type: 'i32' }] },
+    ]);
+    expect(context.names.sort()).toEqual(['Packet', 'Registry', 'Snapshot', 'Twice']);
   });
 });
 
@@ -1908,5 +2101,65 @@ describe('HoloScriptPlusParser - holo: imports (G21)', () => {
     expect(summary(typed('manifest_audit_passes', 'audit(1)'))).toEqual(['4:10 HS-ARITY-001']);
     // The misspelled import is reported at the import, not again at the function.
     expect(summary(typed('manifest_audit_pases', 'audit()'))).toEqual(['1:11 HS-HOST-002']);
+  });
+
+  it('refuses a function or struct of the document that stands in for a holo import', () => {
+    // Each function is checked on its own, so the stand-in was never seen (claude3's #466
+    // review, P2). The document's functions and structs now travel with the import check.
+    const stub = (declaration: string) =>
+      `@import { manifest_audit_passes } from "holo:absorb"\n\n${declaration}\n\nfunction caller(): bool {\n  return manifest_audit_passes()\n}\n`;
+    expect(summary(stub('function manifest_audit_passes(): bool {\n  return true\n}'))).toEqual([
+      '1:11 HS-SCOPE-001',
+    ]);
+    expect(summary(stub('function manifest_audit_passes() {\n  return true\n}'))).toEqual([
+      '1:11 HS-SCOPE-001',
+    ]);
+    expect(summary(stub('struct manifest_audit_passes {\n  ok: bool\n}'))).toEqual([
+      '1:11 HS-SCOPE-001',
+    ]);
+    const [error] = parse(stub('function manifest_audit_passes() {\n  return true\n}')).errors;
+    expect(error.message).toContain(
+      'the document also declares a function named `manifest_audit_passes`'
+    );
+  });
+
+  it('refuses a built-in name for a holo import once, at the import', () => {
+    const source =
+      '@import { manifest_audit_passes as load } from "holo:absorb"\n\nfunction a(): bool {\n  return true\n}\n\nfunction b(): bool {\n  return true\n}\n';
+    expect(summary(source)).toEqual(['1:11 HS-SCOPE-001']);
+    expect(parse(source).errors[0].message).toContain('which is a built-in');
+  });
+
+  it('refuses a parameter named like a holo import in a typed function', () => {
+    expect(
+      summary(
+        '@import { manifest_audit_passes } from "holo:absorb"\n\nfunction main(manifest_audit_passes: i32): bool {\n  return true\n}\n'
+      )
+    ).toEqual(['3:15 HS-SCOPE-001']);
+  });
+
+  it('routes sources the way the .hs checker reads them', () => {
+    const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+    // The CRDT stream the import resolver reads stays a file-style import, as before G21.
+    const crdt = parser.collectDocumentContext('@import { feed } from "crdt://holomesh/feed"\n');
+    expect(crdt.names).toEqual(['feed']);
+    expect(crdt.imports).toBeUndefined();
+    expect(parse(`@import { feed } from "crdt://holomesh/feed"${orb}`).errors).toEqual([]);
+    // A space around a source, or a character outside ASCII, goes to the checker, which refuses
+    // it: a lookalike of holo: would otherwise pass as a file import.
+    for (const source of [
+      ' holo:absorb',
+      'holo:absorb ',
+      '\u{ff48}olo:absorb',
+      './donn\u{e9}es.hsplus',
+    ]) {
+      expect(summary(`@import { manifest_audit_passes } from "${source}"${orb}`)).toEqual([
+        '1:2 HS-HOST-001',
+      ]);
+    }
+    expect(summary(`@import * as Absorb from " holo:absorb"${orb}`)).toEqual(['1:2 HS-HOST-001']);
+    expect(parse(`@import * as Absorb from " holo:absorb"${orb}`).errors[0].message).toContain(
+      'a character outside ASCII'
+    );
   });
 });

@@ -241,14 +241,22 @@ function assertReleaseProvenance(record) {
     const nodeWasm = join(record.dir, 'pkg-node', 'holoscript_wasm_bg.wasm');
     const webReceipt = readJson(join(record.dir, 'pkg', 'rebuild-receipt.json'));
     const nodeReceipt = readJson(join(record.dir, 'pkg-node', 'rebuild-receipt.json'));
+    // One rebuild writes both receipts: the same source commit and the same hash of the Rust
+    // build inputs. The commit is information only (a squash or rebase merge drops it from
+    // history, and requiring it as an ancestor refused every publish after one); the drift gate
+    // run below recomputes the inputs hash from the tree, which is the check.
     const sourceCommit = String(webReceipt.sourceCommit || '');
-    if (!/^[0-9a-f]{40}$/u.test(sourceCommit) || nodeReceipt.sourceCommit !== sourceCommit) {
-      throw new Error('WASM rebuild receipts must name the same full sourceCommit');
-    }
-    try {
-      runGit(['merge-base', '--is-ancestor', sourceCommit, head]);
-    } catch {
-      throw new Error(`WASM receipt sourceCommit ${sourceCommit} is not an ancestor of ${head}`);
+    const inputsSha256 = String(webReceipt.inputs?.sha256 || '');
+    if (
+      !/^[0-9a-f]{40}$/u.test(sourceCommit) ||
+      nodeReceipt.sourceCommit !== sourceCommit ||
+      !/^[0-9a-f]{64}$/u.test(inputsSha256) ||
+      nodeReceipt.inputs?.sha256 !== inputsSha256
+    ) {
+      throw new Error(
+        'WASM rebuild receipts must come from one rebuild: v2 receipts naming the same full ' +
+          'sourceCommit and the same inputs sha256 (pnpm --filter @holoscript/wasm run rebuild)'
+      );
     }
     const webSha256 = sha256File(webWasm);
     const nodeSha256 = sha256File(nodeWasm);
@@ -273,7 +281,7 @@ function assertReleaseProvenance(record) {
       }
     );
     console.log(
-      `[publish-npm-package] provenance PASS ${record.name} source=${sourceCommit.slice(0, 12)} head=${head.slice(0, 12)} ${canonicalRef} wasm=${webSha256.slice(0, 12)}`
+      `[publish-npm-package] provenance PASS ${record.name} source=${sourceCommit.slice(0, 12)} inputs=${inputsSha256.slice(0, 12)} head=${head.slice(0, 12)} ${canonicalRef} wasm=${webSha256.slice(0, 12)}`
     );
     return;
   }

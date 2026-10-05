@@ -8,7 +8,10 @@
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{Ast, AstNode, FunctionNode, Location};
+use crate::ast::{
+    Ast, AstNode, BinaryExpression, CallExpression, FunctionNode, LambdaExpression, Location,
+    MemberExpression, MovementDestination, PropertyNode, TraitNode,
+};
 use crate::kotlin_emit::SemanticDiagnostic;
 
 const RETURN_MISMATCH: &str = "HS-TYPE-RETURN-001";
@@ -23,16 +26,19 @@ const ARITY_MISMATCH: &str = "HS-ARITY-001";
 const MISSING_RETURN: &str = "HS-RETURN-002";
 pub(crate) const HIDDEN_NAME: &str = "HS-SCOPE-001";
 
-// Reading an `@unknown` field (proposals/Unknown_Field_Reads_v1.md). The one written form for the
-// value is `load(record.field) ?? fallback`; `isKnown(record.field)` and
-// `unknownReason(record.field)` read the tag and the reason code, never the value.
 /// G21: a `holo:` import names a module and a function the checker's embedded declarations
 /// know, and only a function that states its types calls it.
 pub(crate) const HOST_UNKNOWN_MODULE: &str = "HS-HOST-001";
 pub(crate) const HOST_UNKNOWN_FUNCTION: &str = "HS-HOST-002";
 pub(crate) const HOST_UNCHECKED_USE: &str = "HS-HOST-003";
+
+// Reading an `@unknown` field (proposals/Unknown_Field_Reads_v1.md). The one written form for the
+// value is `load(record.field) ?? fallback`; `isKnown(record.field)` and
+// `unknownReason(record.field)` read the tag and the reason code, never the value. All three apply
+// only to a field its record's struct declares `@unknown`.
 pub(crate) const UNKNOWN_BARE_READ: &str = "HS-UNKNOWN-001";
 pub(crate) const UNKNOWN_FALLBACK_FORM: &str = "HS-UNKNOWN-002";
+pub(crate) const UNKNOWN_TAG_READ: &str = "HS-UNKNOWN-003";
 
 /// Built-in functions the native backend lowers by name (the UAAL backend lowers the memory ones).
 /// The Kotlin backend's math built-ins come from its own table (`kotlin_emit::is_kotlin_builtin`).
@@ -57,10 +63,62 @@ const BUILTINS: &[&str] = &[
 pub(crate) struct ExternalDeclarations {
     /// Function name -> number of parameters, or `None` when the document does not say.
     pub(crate) functions: HashMap<String, Option<usize>>,
-    /// Other names the document declares: structs, enums and imports.
+    /// Other names the document declares that may be called: structs and imports.
     pub(crate) names: HashSet<String>,
+    /// Names that are read only through their members and never called: enums (`Route.A`) and
+    /// `.hsplus` modules (`GameState.addScore(p)`).
+    pub(crate) namespaces: HashSet<String>,
+    /// The document's structs with their fields, so the `@unknown` read rule resolves a field
+    /// through its record's struct in a lifted function exactly as it does in a whole `.hs` file.
+    pub(crate) structs: Vec<(String, Vec<RecordField>)>,
     /// The document's `holo:` imports, resolved here like an `import` in the fragment (G21).
     pub(crate) imports: Vec<crate::ast::ImportNode>,
+}
+
+/// One field of a struct, as the `@unknown` read rule sees it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct RecordField {
+    pub(crate) name: String,
+    /// The declared type, when the field states one (`count: i32`, `inner: Snapshot`).
+    pub(crate) ty: Option<String>,
+    /// Declared `@unknown`.
+    pub(crate) unknown: bool,
+}
+
+/// `record.field` or `record.inner.field`: a field reached through names only, with no index,
+/// call or literal on the way. The three forms that touch an `@unknown` field take exactly this,
+/// as native does ("requires a named aggregate field path").
+pub(crate) fn named_field(node: &AstNode) -> Option<&MemberExpression> {
+    let AstNode::MemberExpression(member) = node else {
+        return None;
+    };
+    let mut link = member;
+    loop {
+        if link.computed || !matches!(link.property.as_ref(), AstNode::Identifier(_)) {
+            return None;
+        }
+        match link.object.as_ref() {
+            AstNode::Identifier(_) => return Some(member),
+            AstNode::MemberExpression(inner) => link = inner,
+            _ => return None,
+        }
+    }
+}
+
+/// The left side of the one written fallback form, `load(record.field) ?? fallback`: a `load`
+/// call with exactly one argument, a named field. Returns that field. The `@unknown` read rule,
+/// the typed `??` rule and the UAAL refusal share this one definition.
+pub(crate) fn load_form_field(node: &AstNode) -> Option<&MemberExpression> {
+    let AstNode::CallExpression(call) = node else {
+        return None;
+    };
+    if !matches!(call.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "load") {
+        return None;
+    }
+    match call.arguments.as_slice() {
+        [argument] => named_field(argument),
+        _ => None,
+    }
 }
 
 /// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
@@ -134,21 +192,32 @@ struct FunctionSignature {
     return_type: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+/// Not `Clone` on purpose: a lambda's body sees the frames around it on the one shared stack.
+/// Copying them for each lambda made checking time grow with lambdas x visible names (the second
+/// review of PR #438 measured 18 s for 6,000 of each, against 0.15 s before G11);
+/// `checking_cost_grows_linearly_with_lambdas_and_locals` bounds it.
+#[derive(Debug)]
 struct BindingEvidence {
     declared_type: Option<String>,
     observed_type: TypeEvidence,
     mutable: bool,
-    /// The binding holds a lambda, so it may be called. Parameters and other locals may not:
-    /// the backends resolve a called name to a function, never to a value.
+    /// Every value the binding has held is a lambda, so it may be called. Parameters and other
+    /// locals may not: the backends resolve a called name to a function, never to a value.
     callable: bool,
 }
+
+/// The names one block declares. A function's visible names are a stack of these, innermost
+/// last.
+type Frame = HashMap<String, BindingEvidence>;
 
 struct TypeChecker {
     functions: HashMap<String, FunctionSignature>,
     /// Top-level names a typed function may refer to: functions, structs, enums, imports, and the
-    /// surrounding document's functions.
+    /// surrounding document's functions, names and namespaces.
     values: HashSet<String>,
+    /// The names in `values` that may be called: everything but enums and namespaces, which are
+    /// read through their members.
+    callables: HashSet<String>,
     /// Parameter counts of functions declared in this program or its surrounding document.
     arities: HashMap<String, usize>,
     /// Field counts of structs declared in this program: a constructor takes one value per field.
@@ -157,22 +226,35 @@ struct TypeChecker {
     strict: Cell<bool>,
     /// The function being checked, for messages.
     function_name: RefCell<String>,
-    /// Local names bound by `holo:` imports -> `holo:<module>/<function>`, for HS-HOST-003.
+    /// Where the function being checked, and the statement being checked, are written: a
+    /// diagnostic on an expression that carries no position of its own (`5 ?? 3`) points there.
+    function_loc: RefCell<Option<Location>>,
+    statement_loc: RefCell<Option<Location>>,
+    /// Local names bound by `holo:` imports -> `holo:<module>/<function>` (G21). A call to one is
+    /// held to its declaration: each argument proven of its declared type.
     host_names: HashMap<String, String>,
+    /// The capability calls this checker checked, by address, so the use rule can confirm that
+    /// every call it admitted was checked (G21).
+    checked_host_calls: RefCell<HashSet<usize>>,
 }
 
 pub(crate) fn check_explicit_type_contracts_with(
     ast: &Ast,
     external: &ExternalDeclarations,
 ) -> Result<(), SemanticDiagnostic> {
-    let mut values = external
+    let mut callables = external
         .functions
         .keys()
         .chain(external.names.iter())
         .cloned()
         .collect::<HashSet<_>>();
+    let mut values = callables
+        .iter()
+        .chain(external.namespaces.iter())
+        .cloned()
+        .collect::<HashSet<_>>();
     let mut struct_fields = HashMap::new();
-    let mut host_bindings: HashMap<String, (String, FunctionSignature)> = HashMap::new();
+    let mut host_bindings: HashMap<String, HostBinding> = HashMap::new();
     let mut arities = external
         .functions
         .iter()
@@ -186,23 +268,38 @@ pub(crate) fn check_explicit_type_contracts_with(
         match declaration {
             AstNode::Function(function) => {
                 values.insert(function.name.clone());
+                callables.insert(function.name.clone());
                 arities.insert(function.name.clone(), function.params.len());
             }
             AstNode::StructDeclaration(structure) => {
                 values.insert(structure.name.clone());
+                callables.insert(structure.name.clone());
                 struct_fields.insert(structure.name.clone(), structure.fields.len());
             }
             AstNode::EnumDeclaration(enumeration) => {
+                // Read through its members (`Route.A`); neither backend calls an enum.
                 values.insert(enumeration.name.clone());
             }
             AstNode::Import(import) => {
-                bind_import(import, &mut values, &mut arities, &mut host_bindings)?;
+                bind_import(
+                    import,
+                    &mut values,
+                    &mut callables,
+                    &mut arities,
+                    &mut host_bindings,
+                )?;
             }
             _ => {}
         }
     }
     for import in &external.imports {
-        bind_import(import, &mut values, &mut arities, &mut host_bindings)?;
+        bind_import(
+            import,
+            &mut values,
+            &mut callables,
+            &mut arities,
+            &mut host_bindings,
+        )?;
     }
 
     let mut functions = HashMap::new();
@@ -236,19 +333,30 @@ pub(crate) fn check_explicit_type_contracts_with(
         );
     }
 
+    // G21: where a capability may appear is settled for the whole file before any function is
+    // checked (`check_capability_uses`); the checker then checks every call the rule admitted.
+    let admitted_calls = if host_bindings.is_empty() {
+        Vec::new()
+    } else {
+        check_capability_uses(&ast.body, &host_bindings)?
+    };
     let mut host_names = HashMap::new();
-    for (local, (capability, signature)) in host_bindings {
-        functions.insert(local.clone(), signature);
-        host_names.insert(local, capability);
+    for (local, binding) in host_bindings {
+        functions.insert(local.clone(), binding.signature);
+        host_names.insert(local, binding.capability);
     }
     let checker = TypeChecker {
         functions,
         values,
+        callables,
         arities,
         struct_fields,
         strict: Cell::new(false),
         function_name: RefCell::new(String::new()),
+        function_loc: RefCell::new(None),
+        statement_loc: RefCell::new(None),
         host_names,
+        checked_host_calls: RefCell::new(HashSet::new()),
     };
     for node in &ast.body {
         match node {
@@ -261,7 +369,11 @@ pub(crate) fn check_explicit_type_contracts_with(
             _ => {}
         }
     }
-    Ok(())
+    let checked = checker.checked_host_calls.into_inner();
+    match first_unchecked_capability_call(&admitted_calls, &checked) {
+        Some(unchecked) => Err(unchecked),
+        None => Ok(()),
+    }
 }
 
 impl TypeChecker {
@@ -272,21 +384,28 @@ impl TypeChecker {
             || function.param_types.iter().any(|annotation| annotation.is_some());
         self.strict.set(strict);
         *self.function_name.borrow_mut() = function.name.clone();
+        *self.function_loc.borrow_mut() = function.loc.clone();
+        *self.statement_loc.borrow_mut() = None;
         if strict {
             let mut seen = HashSet::new();
-            for parameter in &function.params {
+            for (index, parameter) in function.params.iter().enumerate() {
                 if !seen.insert(parameter.as_str()) {
+                    // At the second occurrence, where the name is written again.
+                    let at = match function.param_locs.get(index) {
+                        Some(loc) => Some(loc.clone()),
+                        None => function.loc.clone(),
+                    };
                     return Err(diagnostic(
                         format!(
                             "[{HIDDEN_NAME}] function `{}` names parameter `{parameter}` twice; each parameter needs its own name",
                             function.name
                         ),
-                        &function.loc,
+                        &at,
                     ));
                 }
             }
         }
-        let mut function_scope = HashMap::new();
+        let mut function_scope = Frame::new();
         for (index, parameter) in function.params.iter().enumerate() {
             let declared_type = function
                 .param_types
@@ -338,7 +457,7 @@ impl TypeChecker {
         body: &[AstNode],
         function_name: &str,
         expected_return: Option<&str>,
-        scopes: &mut Vec<HashMap<String, BindingEvidence>>,
+        scopes: &mut Vec<Frame>,
     ) -> Result<(), SemanticDiagnostic> {
         for node in body {
             self.check_statement(node, function_name, expected_return, scopes)?;
@@ -351,8 +470,9 @@ impl TypeChecker {
         node: &AstNode,
         function_name: &str,
         expected_return: Option<&str>,
-        scopes: &mut Vec<HashMap<String, BindingEvidence>>,
+        scopes: &mut Vec<Frame>,
     ) -> Result<(), SemanticDiagnostic> {
+        self.enter_statement(node);
         match node {
             AstNode::Return(ret) => {
                 let actual = match &ret.argument {
@@ -445,7 +565,21 @@ impl TypeChecker {
                             // An untyped mutable binding has no stable contract after a write.
                             binding.observed_type = TypeEvidence::Unknown;
                         }
+                        // After `g = 5` the local holds a value. The checker does not follow
+                        // branches, so a local stays callable only while every value it was
+                        // given is a lambda.
+                        binding.callable = binding.callable
+                            && matches!(assignment.value.as_ref(), AstNode::LambdaExpression(_));
                     }
+                }
+            }
+            AstNode::MovementStatement(movement) if self.strict.get() => {
+                // `move <target> to <entity>` names two things. A target left out is `self`.
+                if movement.target != "self" {
+                    self.require_name(&movement.target, scopes, &movement.loc)?;
+                }
+                if let MovementDestination::EntityId(entity) = &movement.destination {
+                    self.require_name(entity, scopes, &movement.loc)?;
                 }
             }
             AstNode::CallExpression(_) => {
@@ -528,10 +662,12 @@ impl TypeChecker {
         Ok(())
     }
 
+    /// `scopes` is mutable only so a lambda can put its parameters on top of it for its body;
+    /// the stack is as it was when this returns `Ok`.
     fn infer_expression(
         &self,
         node: &AstNode,
-        scopes: &[HashMap<String, BindingEvidence>],
+        scopes: &mut Vec<Frame>,
     ) -> Result<TypeEvidence, SemanticDiagnostic> {
         match node {
             AstNode::String(_) => Ok(TypeEvidence::Known("string".to_string())),
@@ -548,16 +684,8 @@ impl TypeChecker {
                 if let Some(binding) = lookup_binding(scopes, &identifier.name) {
                     return Ok(binding.observed_type.clone());
                 }
-                // A call names its callee directly (the call arm), so a name that reaches here is
-                // a value. A capability is only called: as a value it could be handed to code
-                // that calls it with nothing checked.
-                if let Some(capability) = self.host_names.get(&identifier.name) {
-                    return Err(if self.strict.get() {
-                        self.host_value_use(capability, &identifier.loc)
-                    } else {
-                        self.untyped_host_use(capability, &identifier.loc)
-                    });
-                }
+                // A capability's name never reaches here: `check_capability_uses` refuses every
+                // appearance but a direct call before any function is checked (G21).
                 if self.strict.get() && !self.is_program_name(&identifier.name) {
                     return Err(self.unknown_name(&identifier.name, &identifier.loc));
                 }
@@ -578,33 +706,22 @@ impl TypeChecker {
                     return Ok(TypeEvidence::Unknown);
                 };
                 let binding = lookup_binding(scopes, &callee.name);
-                if !self.strict.get() && binding.is_none() {
-                    if let Some(capability) = self.host_names.get(&callee.name) {
-                        return Err(self.untyped_host_use(capability, &call.loc));
-                    }
+                // A Holo capability call (G21). The use rule admitted it only in the body of a
+                // typed function, and no local may take a capability's name; the call is recorded
+                // so the rule can confirm it was checked here.
+                let capability = match binding {
+                    None => self.host_names.get(&callee.name),
+                    Some(_) => None,
+                };
+                if capability.is_some() && self.strict.get() {
+                    self.checked_host_calls
+                        .borrow_mut()
+                        .insert(call as *const CallExpression as usize);
                 }
                 let callable_local = binding.is_some_and(|binding| binding.callable);
                 if self.strict.get() && !callable_local {
-                    if !self.is_program_name(&callee.name) {
-                        let what = if binding.is_some() {
-                            format!(
-                                "`{}` is a value, not a function, in function `{}`",
-                                callee.name,
-                                self.function_name.borrow()
-                            )
-                        } else {
-                            format!(
-                                "unknown function `{}` called in function `{}`",
-                                callee.name,
-                                self.function_name.borrow()
-                            )
-                        };
-                        return Err(diagnostic(
-                            format!(
-                                "[{UNKNOWN_FUNCTION}] {what}; a called name must be a function or struct of this program, an import, a built-in, or a local holding a lambda"
-                            ),
-                            &call.loc,
-                        ));
+                    if !self.is_callable_name(&callee.name) {
+                        return Err(self.not_callable(&callee.name, binding.is_some(), &call.loc));
                     }
                     let got = call.arguments.len();
                     if let Some(&expected) = self.arities.get(&callee.name) {
@@ -654,6 +771,18 @@ impl TypeChecker {
                             &call.loc,
                         ));
                     }
+                    if let Some(capability) = capability {
+                        if !is_proven_capability_argument(expected, argument) {
+                            return Err(unproven_capability_argument(
+                                index,
+                                &callee.name,
+                                capability,
+                                expected,
+                                argument,
+                                &call.loc,
+                            ));
+                        }
+                    }
                 }
                 Ok(signature
                     .return_type
@@ -664,14 +793,11 @@ impl TypeChecker {
             AstNode::BinaryExpression(binary) => {
                 let left = self.infer_expression(&binary.left, scopes)?;
                 let right = self.infer_expression(&binary.right, scopes)?;
-                if binary.operator == "??" && self.strict.get() && !is_load_of_field(&binary.left) {
-                    return Err(diagnostic(
-                        format!(
-                            "[{UNKNOWN_FALLBACK_FORM}] `??` in function `{}` supplies a fallback only for an `@unknown` field read; write `load(record.field) ?? fallback`",
-                            self.function_name.borrow()
-                        ),
-                        first_location(&binary.left),
-                    ));
+                if binary.operator == "??"
+                    && self.strict.get()
+                    && load_form_field(&binary.left).is_none()
+                {
+                    return Err(self.fallback_without_load(binary));
                 }
                 let evidence = match binary.operator.as_str() {
                     "&&" | "||" => {
@@ -725,29 +851,17 @@ impl TypeChecker {
             AstNode::ObjectLiteral(object) => {
                 for property in &object.properties {
                     self.infer_expression(&property.value, scopes)?;
+                    if self.strict.get() {
+                        if let Some(default) = &property.default_value {
+                            // `{ k: 1 = fallback }`: the fallback is an expression too.
+                            self.infer_expression(default, scopes)?;
+                        }
+                    }
                 }
                 Ok(TypeEvidence::Unknown)
             }
             AstNode::LambdaExpression(lambda) if self.strict.get() => {
-                let mut inner = scopes.to_vec();
-                inner.push(
-                    lambda
-                        .params
-                        .iter()
-                        .map(|parameter| {
-                            (
-                                parameter.clone(),
-                                BindingEvidence {
-                                    declared_type: None,
-                                    observed_type: TypeEvidence::Unknown,
-                                    mutable: false,
-                                    callable: false,
-                                },
-                            )
-                        })
-                        .collect(),
-                );
-                self.infer_expression(&lambda.body, &inner)?;
+                self.check_lambda_body(lambda, scopes)?;
                 Ok(TypeEvidence::Unknown)
             }
             AstNode::SpreadElement(spread) if self.strict.get() => {
@@ -758,32 +872,117 @@ impl TypeChecker {
         }
     }
 
-    /// A top-level function, struct, enum or import of this program (or of the surrounding
-    /// document), or a built-in.
-    fn untyped_host_use(&self, capability: &str, loc: &Option<Location>) -> SemanticDiagnostic {
+    /// A lambda's body, with the lambda's parameters in a frame on top of the shared stack. The
+    /// body is one expression and declares nothing, so the frame comes off afterwards and the
+    /// frames below are shared, not copied.
+    ///
+    /// This and [`Self::not_callable`] stay out of line: `infer_expression` recurses once per
+    /// nested expression, so whatever its own frame holds, every level pays for, and the depth
+    /// at which the WASM runs out of stack falls (a known trap, not fixed here).
+    #[inline(never)]
+    fn check_lambda_body(
+        &self,
+        lambda: &LambdaExpression,
+        scopes: &mut Vec<Frame>,
+    ) -> Result<(), SemanticDiagnostic> {
+        scopes.push(
+            lambda
+                .params
+                .iter()
+                .map(|parameter| {
+                    (
+                        parameter.clone(),
+                        BindingEvidence {
+                            declared_type: None,
+                            observed_type: TypeEvidence::Unknown,
+                            mutable: false,
+                            callable: false,
+                        },
+                    )
+                })
+                .collect(),
+        );
+        let body = self.infer_expression(&lambda.body, scopes);
+        scopes.pop();
+        body.map(|_| ())
+    }
+
+    /// Records where the statement about to be checked is written. Out of line, like
+    /// [`Self::not_callable`], so the frame of `check_statement`, which recurses once per nested
+    /// block, does not grow.
+    #[inline(never)]
+    fn enter_statement(&self, node: &AstNode) {
+        *self.statement_loc.borrow_mut() = statement_location(node).clone();
+    }
+
+    /// HS-UNKNOWN-002 for `left ?? right` in a typed function, where `left` is not
+    /// `load(record.field)`. A literal on the left carries no position, so the diagnostic falls
+    /// back to the statement that holds it, then the right side, then the function.
+    #[cold]
+    #[inline(never)]
+    fn fallback_without_load(&self, binary: &BinaryExpression) -> SemanticDiagnostic {
+        let statement = self.statement_loc.borrow();
+        let function = self.function_loc.borrow();
+        let at = [
+            first_location(&binary.left),
+            &*statement,
+            first_location(&binary.right),
+            &*function,
+        ]
+        .into_iter()
+        .find(|loc| loc.is_some())
+        .unwrap_or(&None);
         diagnostic(
             format!(
-                "[{HOST_UNCHECKED_USE}] function `{}` uses `{capability}` but states no types; a Holo capability is called only from a function that states its parameter and result types, where its arguments and result are checked",
+                "[{UNKNOWN_FALLBACK_FORM}] `??` in function `{}` supplies a fallback only for an `@unknown` field read; write `load(record.field) ?? fallback`",
                 self.function_name.borrow()
+            ),
+            at,
+        )
+    }
+
+    /// HS-NAME-002 for a call to `name`, which may not be called here.
+    #[cold]
+    #[inline(never)]
+    fn not_callable(&self, name: &str, is_local: bool, loc: &Option<Location>) -> SemanticDiagnostic {
+        let function = self.function_name.borrow();
+        let what = if is_local {
+            format!("`{name}` is a value, not a function, in function `{function}`")
+        } else if self.is_program_name(name) {
+            format!("`{name}` is an enum or module, not a function, in function `{function}`")
+        } else {
+            format!("unknown function `{name}` called in function `{function}`")
+        };
+        diagnostic(
+            format!(
+                "[{UNKNOWN_FUNCTION}] {what}; a called name must be a function or struct of this program, an import, a built-in, or a local holding a lambda"
             ),
             loc,
         )
     }
 
-    fn host_value_use(&self, capability: &str, loc: &Option<Location>) -> SemanticDiagnostic {
-        diagnostic(
-            format!(
-                "[{HOST_UNCHECKED_USE}] function `{}` uses `{capability}` as a value; a Holo capability is only called by name, where its arguments and result are checked, so it cannot be stored or passed on",
-                self.function_name.borrow()
-            ),
-            loc,
-        )
-    }
-
+    /// A top-level function, struct, enum or import of this program, a function, name or
+    /// namespace of the surrounding document, or a built-in.
     fn is_program_name(&self, name: &str) -> bool {
-        self.values.contains(name)
-            || BUILTINS.contains(&name)
-            || crate::kotlin_emit::is_kotlin_builtin(name)
+        self.values.contains(name) || is_builtin(name)
+    }
+
+    /// A program name that may be called: not an enum or module.
+    fn is_callable_name(&self, name: &str) -> bool {
+        self.callables.contains(name) || is_builtin(name)
+    }
+
+    /// A bare name (not an expression node) must be visible: a `move` target or destination.
+    fn require_name(
+        &self,
+        name: &str,
+        scopes: &[Frame],
+        loc: &Option<Location>,
+    ) -> Result<(), SemanticDiagnostic> {
+        if lookup_binding(scopes, name).is_some() || self.is_program_name(name) {
+            return Ok(());
+        }
+        Err(self.unknown_name(name, loc))
     }
 
     fn unknown_name(&self, name: &str, loc: &Option<Location>) -> SemanticDiagnostic {
@@ -807,7 +1006,7 @@ impl TypeChecker {
     fn require_fresh_name(
         &self,
         name: &str,
-        scopes: &[HashMap<String, BindingEvidence>],
+        scopes: &[Frame],
         loc: &Option<Location>,
     ) -> Result<(), SemanticDiagnostic> {
         if !self.strict.get() || lookup_binding(scopes, name).is_none() {
@@ -1065,14 +1264,19 @@ fn is_string_evidence(evidence: &TypeEvidence) -> bool {
     matches!(evidence, TypeEvidence::Known(name) if name == "string")
 }
 
-/// `load(record.field)`: the one written form a fallback applies to.
-fn is_load_of_field(node: &AstNode) -> bool {
-    let AstNode::CallExpression(call) = node else {
-        return false;
-    };
-    matches!(call.callee.as_ref(), AstNode::Identifier(callee) if callee.name == "load")
-        && call.arguments.len() == 1
-        && matches!(call.arguments[0], AstNode::MemberExpression(_))
+/// Where a statement is written, for the statements whose node records it. `if` and `while`
+/// record none.
+fn statement_location(node: &AstNode) -> &Option<Location> {
+    const NONE: &Option<Location> = &None;
+    match node {
+        AstNode::Return(statement) => &statement.loc,
+        AstNode::VariableDeclaration(statement) => &statement.loc,
+        AstNode::StackSlotDeclaration(statement) => &statement.loc,
+        AstNode::Assignment(statement) => &statement.loc,
+        AstNode::ForOf(statement) => &statement.loc,
+        AstNode::CallExpression(statement) => &statement.loc,
+        _ => NONE,
+    }
 }
 
 /// The first position recorded inside an expression, for diagnostics on nodes that carry none.
@@ -1088,15 +1292,16 @@ pub(crate) fn first_location(node: &AstNode) -> &Option<Location> {
     }
 }
 
-fn lookup_binding<'a>(
-    scopes: &'a [HashMap<String, BindingEvidence>],
-    name: &str,
-) -> Option<&'a BindingEvidence> {
+fn is_builtin(name: &str) -> bool {
+    BUILTINS.contains(&name) || crate::kotlin_emit::is_kotlin_builtin(name)
+}
+
+fn lookup_binding<'a>(scopes: &'a [Frame], name: &str) -> Option<&'a BindingEvidence> {
     scopes.iter().rev().find_map(|scope| scope.get(name))
 }
 
 fn lookup_binding_mut<'a>(
-    scopes: &'a mut [HashMap<String, BindingEvidence>],
+    scopes: &'a mut [Frame],
     name: &str,
 ) -> Option<&'a mut BindingEvidence> {
     scopes
@@ -1105,24 +1310,42 @@ fn lookup_binding_mut<'a>(
         .find_map(|scope| scope.get_mut(name))
 }
 
+/// A `holo:` import as the checker binds it (G21): the capability it names, its declared
+/// signature, and where the imported name is written.
+struct HostBinding {
+    capability: String,
+    signature: FunctionSignature,
+    loc: Option<Location>,
+}
+
 /// Bind an import's names. A file import binds each local name, unchecked (G11: imports bind
 /// the name only). A `holo:` import binds each name to its declared signature, so arity and
 /// types are checked like a local function's, keyed by the local name (an alias is checked
-/// too); an unknown module or function is refused with its position (G21).
+/// too); an unknown module or function, or a name a built-in already has, is refused with its
+/// position (G21).
 fn bind_import(
     import: &crate::ast::ImportNode,
     values: &mut HashSet<String>,
+    callables: &mut HashSet<String>,
     arities: &mut HashMap<String, usize>,
-    host_bindings: &mut HashMap<String, (String, FunctionSignature)>,
+    host_bindings: &mut HashMap<String, HostBinding>,
 ) -> Result<(), SemanticDiagnostic> {
     use crate::holo_modules::{closest_function, module_names, resolve_host_source, HostSource};
     match resolve_host_source(&import.source) {
         HostSource::NotHost => {
             for specifier in &import.specifiers {
                 values.insert(specifier.local.clone());
+                callables.insert(specifier.local.clone());
             }
             Ok(())
         }
+        HostSource::Unreadable => Err(diagnostic(
+            format!(
+                "[{HOST_UNKNOWN_MODULE}] the import source {:?} is not one HoloScript reads: it has a space before or after it, or a character outside ASCII. Native trims a source, and a lookalike of `holo:` would pass as an unchecked file import, so write the source in ASCII with nothing around it",
+                import.source
+            ),
+            &import.loc,
+        )),
         HostSource::ForeignScheme(scheme) => Err(diagnostic(
             format!(
                 "[{HOST_UNKNOWN_MODULE}] `{}` is not an import source HoloScript reads: `{scheme}:` is not a scheme it knows. A Holo module is `holo:<name>` in lower case, and a file import has no scheme",
@@ -1173,13 +1396,31 @@ fn bind_import(
                         at,
                     ));
                 };
+                // Every engine reads a call to a built-in's name as the built-in (`load(r.f)` is a
+                // field read), so a capability under that name would be checked as one thing
+                // and run as another.
+                if is_builtin(&specifier.local) {
+                    let at = if specifier.loc.is_some() {
+                        &specifier.loc
+                    } else {
+                        &import.loc
+                    };
+                    return Err(diagnostic(
+                        format!(
+                            "[{HIDDEN_NAME}] the Holo import `holo:{name}/{}` takes the name `{}`, which is a built-in: every engine reads a call to `{}` as the built-in, never as the capability; import it under another name, `{} as <name>`",
+                            specifier.imported, specifier.local, specifier.local, specifier.imported
+                        ),
+                        at,
+                    ));
+                }
                 values.insert(specifier.local.clone());
+                callables.insert(specifier.local.clone());
                 arities.insert(specifier.local.clone(), function.param_types.len());
                 host_bindings.insert(
                     specifier.local.clone(),
-                    (
-                        format!("holo:{name}/{}", specifier.imported),
-                        FunctionSignature {
+                    HostBinding {
+                        capability: format!("holo:{name}/{}", specifier.imported),
+                        signature: FunctionSignature {
                             param_types: function
                                 .param_types
                                 .iter()
@@ -1187,12 +1428,684 @@ fn bind_import(
                                 .collect(),
                             return_type: function.return_type.as_deref().map(normalize_type),
                         },
-                    ),
+                        loc: specifier.loc.clone().or_else(|| import.loc.clone()),
+                    },
                 );
             }
             Ok(())
         }
     }
+}
+
+/// A capability call the use rule admits: a direct call in the body of a top-level function that
+/// states its types. The type checker must then check it against the declaration.
+struct AdmittedCapabilityCall {
+    /// The call's address, which the type checker records when it checks the call.
+    call: usize,
+    capability: String,
+    function: String,
+    loc: Option<Location>,
+}
+
+/// Where a capability's name is read, for the use rule.
+enum UseSite<'a> {
+    /// A statement at the top level of the file, outside every declaration.
+    TopLevel,
+    /// The body of a top-level function, lambdas in it included. `typed` when the function
+    /// states a parameter or result type: the type checker then checks every call in it.
+    Function { name: &'a str, typed: bool },
+    /// A declaration or block the type checker does not read as a function: a scene node, a
+    /// trait or its config, a handler, an `on` block, an action, or a function declared inside
+    /// another declaration.
+    Elsewhere(String),
+}
+
+impl UseSite<'_> {
+    fn describe(&self) -> String {
+        match self {
+            UseSite::TopLevel => "the top level of the file".to_string(),
+            UseSite::Function { name, .. } => format!("function `{name}`"),
+            UseSite::Elsewhere(label) => label.clone(),
+        }
+    }
+}
+
+const NO_LOCATION: &Option<Location> = &None;
+
+/// G21's use rule. A Holo import's name means the capability in the whole file, and the file may
+/// use it one way only: as the callee of a direct call in the body of a top-level function that
+/// states its types, where the type checker checks the arguments and the result against the
+/// declaration. Every other appearance is `HS-HOST-003`: anywhere in a function that states no
+/// types (a lambda, a member call, an array or object statement included), as a value, or outside
+/// the top-level functions (a scene node's handler, a trait, a trait's config, an `on` block, an
+/// action, a nested function). A parameter, local, loop variable, lambda parameter or nested
+/// function that takes the name is `HS-SCOPE-001`. The walk reaches every node of the file with
+/// an explicit stack, so deep nesting costs no native stack, and it runs only for a file with a
+/// Holo import. It returns the calls it admitted, which the type checker must then check.
+fn check_capability_uses<'a>(
+    body: &'a [AstNode],
+    hosts: &HashMap<String, HostBinding>,
+) -> Result<Vec<AdmittedCapabilityCall>, SemanticDiagnostic> {
+    // Each site, with a position for a node inside it that records none.
+    let mut sites: Vec<(UseSite<'a>, &'a Option<Location>)> =
+        vec![(UseSite::TopLevel, NO_LOCATION)];
+    let mut pending: Vec<(&'a AstNode, usize)> = body.iter().rev().map(|node| (node, 0)).collect();
+    let mut admitted = Vec::new();
+    while let Some((node, site)) = pending.pop() {
+        let fallback = sites[site].1;
+        let at = |loc: &'a Option<Location>| if loc.is_some() { loc } else { fallback };
+        match node {
+            AstNode::Identifier(identifier) => {
+                if let Some(host) = hosts.get(&identifier.name) {
+                    return Err(misplaced_capability(
+                        &sites[site].0,
+                        host,
+                        at(&identifier.loc),
+                    ));
+                }
+            }
+            AstNode::CallExpression(call) => {
+                push_all(&mut pending, &call.arguments, site);
+                match call.callee.as_ref() {
+                    AstNode::Identifier(callee) if hosts.contains_key(&callee.name) => {
+                        let host = &hosts[&callee.name];
+                        let loc = if call.loc.is_some() {
+                            &call.loc
+                        } else {
+                            at(&callee.loc)
+                        };
+                        match &sites[site].0 {
+                            UseSite::Function { name, typed: true } => {
+                                admitted.push(AdmittedCapabilityCall {
+                                    call: call as *const CallExpression as usize,
+                                    capability: host.capability.clone(),
+                                    function: (*name).to_string(),
+                                    loc: loc.clone(),
+                                });
+                            }
+                            other => return Err(misplaced_capability(other, host, loc)),
+                        }
+                    }
+                    callee => pending.push((callee, site)),
+                }
+            }
+            AstNode::MemberExpression(member) => {
+                // The name after `.` is a member, not the capability; `cap.call()` reads the
+                // capability itself as a value.
+                if member.computed {
+                    pending.push((&member.property, site));
+                }
+                pending.push((&member.object, site));
+            }
+            AstNode::BinaryExpression(binary) => {
+                pending.push((&binary.right, site));
+                pending.push((&binary.left, site));
+            }
+            AstNode::UnaryExpression(unary) => pending.push((&unary.argument, site)),
+            AstNode::SpreadElement(spread) => pending.push((&spread.argument, site)),
+            AstNode::LambdaExpression(lambda) => {
+                for parameter in &lambda.params {
+                    refuse_rebinding(
+                        parameter,
+                        "lambda parameter",
+                        &sites[site].0,
+                        hosts,
+                        at(&lambda.loc),
+                    )?;
+                }
+                pending.push((&lambda.body, site));
+            }
+            AstNode::Array(array) => push_all(&mut pending, &array.elements, site),
+            AstNode::ObjectLiteral(object) => {
+                push_properties(&mut pending, &object.properties, site)
+            }
+            AstNode::Property(property) => {
+                push_properties(&mut pending, std::slice::from_ref(property), site)
+            }
+            AstNode::Export(export) => pending.push((&export.declaration, site)),
+            AstNode::Function(function) => {
+                let inner = if matches!(sites[site].0, UseSite::TopLevel) {
+                    let typed = function.return_type.is_some()
+                        || function.param_types.iter().any(Option::is_some);
+                    UseSite::Function {
+                        name: &function.name,
+                        typed,
+                    }
+                } else {
+                    // The type checker reads only the file's top-level functions, so nothing in
+                    // a function declared inside another declaration is checked.
+                    refuse_rebinding(
+                        &function.name,
+                        "function",
+                        &sites[site].0,
+                        hosts,
+                        at(&function.loc),
+                    )?;
+                    UseSite::Elsewhere(format!(
+                        "function `{}` inside {}",
+                        function.name,
+                        sites[site].0.describe()
+                    ))
+                };
+                sites.push((inner, at(&function.loc)));
+                let inner = sites.len() - 1;
+                for (index, parameter) in function.params.iter().enumerate() {
+                    let loc = function
+                        .param_locs
+                        .get(index)
+                        .cloned()
+                        .or_else(|| sites[inner].1.clone());
+                    refuse_rebinding(parameter, "parameter", &sites[inner].0, hosts, &loc)?;
+                }
+                push_all(&mut pending, &function.body, inner);
+            }
+            AstNode::VariableDeclaration(variable) => {
+                refuse_rebinding(
+                    &variable.name,
+                    "local",
+                    &sites[site].0,
+                    hosts,
+                    at(&variable.loc),
+                )?;
+                pending.push((&variable.value, site));
+            }
+            AstNode::StackSlotDeclaration(slot) => {
+                refuse_rebinding(&slot.name, "local", &sites[site].0, hosts, at(&slot.loc))?;
+                pending.push((&slot.value, site));
+            }
+            AstNode::Assignment(assignment) => {
+                pending.push((&assignment.value, site));
+                pending.push((&assignment.target, site));
+            }
+            AstNode::Return(ret) => {
+                if let Some(argument) = &ret.argument {
+                    pending.push((argument, site));
+                }
+            }
+            AstNode::If(if_node) => {
+                if let Some(alternate) = &if_node.alternate {
+                    push_all(&mut pending, alternate, site);
+                }
+                push_all(&mut pending, &if_node.consequent, site);
+                pending.push((&if_node.test, site));
+            }
+            AstNode::While(while_node) => {
+                push_all(&mut pending, &while_node.body, site);
+                pending.push((&while_node.test, site));
+            }
+            AstNode::For(for_node) => {
+                push_all(&mut pending, &for_node.body, site);
+                for part in [&for_node.update, &for_node.test, &for_node.init]
+                    .into_iter()
+                    .flatten()
+                {
+                    pending.push((part.as_ref(), site));
+                }
+            }
+            AstNode::ForOf(for_node) => {
+                refuse_rebinding(
+                    &for_node.var_name,
+                    "loop variable",
+                    &sites[site].0,
+                    hosts,
+                    at(&for_node.loc),
+                )?;
+                push_all(&mut pending, &for_node.body, site);
+                pending.push((&for_node.range, site));
+            }
+            AstNode::LexicalScope(scope) => push_all(&mut pending, &scope.body, site),
+            AstNode::MovementStatement(movement) => {
+                // `move <target> to <entity>` names two things; neither may be a capability.
+                let destination = match &movement.destination {
+                    MovementDestination::EntityId(entity) => Some(entity),
+                    MovementDestination::Position(_) => None,
+                };
+                for name in std::iter::once(&movement.target).chain(destination) {
+                    if let Some(host) = hosts.get(name) {
+                        return Err(misplaced_capability(
+                            &sites[site].0,
+                            host,
+                            at(&movement.loc),
+                        ));
+                    }
+                }
+            }
+            AstNode::ActionDecl(action) => {
+                let owner = UseSite::Elsewhere(format!("action `{}`", action.name));
+                for parameter in &action.params {
+                    refuse_rebinding(parameter, "parameter", &owner, hosts, at(&action.loc))?;
+                }
+                // Its clauses are kept as text the statement grammar does not read; a capability
+                // named in one is still a use of it.
+                for clause in &action.clauses {
+                    if let Some(host) = first_capability_in_text(&clause.body, hosts) {
+                        return Err(misplaced_capability(&owner, host, at(&action.loc)));
+                    }
+                }
+            }
+            AstNode::GameEventBlock(block) => {
+                let owner = UseSite::Elsewhere(format!("`{}` block", block.name));
+                for parameter in &block.params {
+                    refuse_rebinding(parameter, "parameter", &owner, hosts, at(&block.loc))?;
+                }
+                match &block.parsed_body {
+                    Some(statements) => {
+                        sites.push((owner, at(&block.loc)));
+                        let inner = sites.len() - 1;
+                        push_all(&mut pending, statements, inner);
+                    }
+                    None => {
+                        // A body the statement grammar could not read is kept as text.
+                        if let Some(host) = first_capability_in_text(&block.body, hosts) {
+                            return Err(misplaced_capability(&owner, host, at(&block.loc)));
+                        }
+                    }
+                }
+            }
+            AstNode::EventHandler(handler) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("handler `{}`", handler.event),
+                    at(&handler.loc),
+                );
+                push_all(&mut pending, &handler.body, inner);
+            }
+            AstNode::Trait(trait_node) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("trait `@{}`", trait_node.name),
+                    at(&trait_node.loc),
+                );
+                push_trait(&mut pending, trait_node, inner);
+            }
+            AstNode::Composition(scene) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("composition `{}`", scene.name),
+                    at(&scene.loc),
+                );
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::World(scene) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("world `{}`", scene.name),
+                    at(&scene.loc),
+                );
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::Orb(scene) => {
+                let inner = enter(&mut sites, format!("orb `{}`", scene.name), at(&scene.loc));
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::Entity(scene) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("entity `{}`", scene.name),
+                    at(&scene.loc),
+                );
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::Object(scene) => {
+                let label = format!("{} `{}`", scene.object_type, scene.name);
+                let inner = enter(&mut sites, label, at(&scene.loc));
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::Template(scene) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("template `{}`", scene.name),
+                    at(&scene.loc),
+                );
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::Group(scene) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("group `{}`", scene.name),
+                    at(&scene.loc),
+                );
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::Timeline(scene) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("timeline `{}`", scene.name),
+                    at(&scene.loc),
+                );
+                push_scene(
+                    &mut pending,
+                    &scene.traits,
+                    &scene.properties,
+                    &scene.children,
+                    inner,
+                );
+            }
+            AstNode::Environment(environment) => {
+                let inner = enter(
+                    &mut sites,
+                    "the environment".to_string(),
+                    at(&environment.loc),
+                );
+                push_all(&mut pending, &environment.children, inner);
+                push_properties(&mut pending, &environment.properties, inner);
+            }
+            AstNode::Logic(logic) => {
+                let inner = enter(&mut sites, "a logic block".to_string(), at(&logic.loc));
+                push_all(&mut pending, &logic.body, inner);
+            }
+            AstNode::Track(track) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("track `{}`", track.target),
+                    at(&track.loc),
+                );
+                for keyframe in track.keyframes.iter().rev() {
+                    pending.push((&keyframe.value, inner));
+                }
+            }
+            AstNode::Npc(node) => {
+                let inner = enter(&mut sites, format!("npc `{}`", node.name), at(&node.loc));
+                push_properties(&mut pending, &node.properties, inner);
+            }
+            AstNode::Quest(node) => {
+                let inner = enter(&mut sites, format!("quest `{}`", node.name), at(&node.loc));
+                push_properties(&mut pending, &node.properties, inner);
+            }
+            AstNode::Ability(node) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("ability `{}`", node.name),
+                    at(&node.loc),
+                );
+                push_properties(&mut pending, &node.properties, inner);
+            }
+            AstNode::Dialogue(node) => {
+                let inner = enter(&mut sites, format!("dialogue `{}`", node.id), at(&node.loc));
+                push_properties(&mut pending, &node.properties, inner);
+            }
+            AstNode::Achievement(node) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("achievement `{}`", node.name),
+                    at(&node.loc),
+                );
+                push_properties(&mut pending, &node.properties, inner);
+            }
+            AstNode::StateMachine(machine) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("state machine `{}`", machine.name),
+                    at(&machine.loc),
+                );
+                for state in machine.states.iter().rev() {
+                    push_properties(&mut pending, &state.properties, inner);
+                }
+                push_properties(&mut pending, &machine.properties, inner);
+            }
+            AstNode::TalentTree(tree) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("talent tree `{}`", tree.name),
+                    at(&tree.loc),
+                );
+                for tier in tree.tiers.iter().rev() {
+                    for talent in tier.nodes.iter().rev() {
+                        push_properties(&mut pending, &talent.properties, inner);
+                    }
+                }
+                push_properties(&mut pending, &tree.properties, inner);
+            }
+            AstNode::Using(using) => {
+                let inner = enter(
+                    &mut sites,
+                    format!("using `{}`", using.template),
+                    at(&using.loc),
+                );
+                push_properties(&mut pending, &using.overrides, inner);
+            }
+            // Names that are declared here, not uses: the import itself (bound above), an enum's
+            // members, a struct's fields, a frame's tool names. Literals and comments hold none.
+            AstNode::Import(_)
+            | AstNode::EnumDeclaration(_)
+            | AstNode::StructDeclaration(_)
+            | AstNode::FrameDeclaration(_)
+            | AstNode::String(_)
+            | AstNode::Number(_)
+            | AstNode::Boolean(_)
+            | AstNode::Null(_)
+            | AstNode::Comment(_) => {}
+        }
+    }
+    Ok(admitted)
+}
+
+fn enter<'a>(
+    sites: &mut Vec<(UseSite<'a>, &'a Option<Location>)>,
+    label: String,
+    loc: &'a Option<Location>,
+) -> usize {
+    sites.push((UseSite::Elsewhere(label), loc));
+    sites.len() - 1
+}
+
+fn push_all<'a>(pending: &mut Vec<(&'a AstNode, usize)>, nodes: &'a [AstNode], site: usize) {
+    pending.extend(nodes.iter().rev().map(|node| (node, site)));
+}
+
+fn push_properties<'a>(
+    pending: &mut Vec<(&'a AstNode, usize)>,
+    properties: &'a [PropertyNode],
+    site: usize,
+) {
+    for property in properties.iter().rev() {
+        if let Some(default) = &property.default_value {
+            pending.push((default, site));
+        }
+        pending.push((&property.value, site));
+    }
+}
+
+fn push_trait<'a>(pending: &mut Vec<(&'a AstNode, usize)>, trait_node: &'a TraitNode, site: usize) {
+    push_all(pending, &trait_node.members, site);
+    if let Some(config) = &trait_node.config {
+        pending.push((config, site));
+    }
+}
+
+fn push_scene<'a>(
+    pending: &mut Vec<(&'a AstNode, usize)>,
+    traits: &'a [TraitNode],
+    properties: &'a [PropertyNode],
+    children: &'a [AstNode],
+    site: usize,
+) {
+    push_all(pending, children, site);
+    push_properties(pending, properties, site);
+    for trait_node in traits.iter().rev() {
+        push_trait(pending, trait_node, site);
+    }
+}
+
+/// A capability named in text the statement grammar keeps unread (an action's clause, an `on`
+/// block it could not parse): an identifier token with a capability's name that is not a member
+/// after `.`.
+fn first_capability_in_text<'h>(
+    text: &str,
+    hosts: &'h HashMap<String, HostBinding>,
+) -> Option<&'h HostBinding> {
+    use crate::token::TokenType;
+    let mut after_dot = false;
+    for token in crate::lexer::Lexer::new(text).tokenize() {
+        if token.token_type == TokenType::Identifier && !after_dot {
+            if let Some(host) = hosts.get(&token.value) {
+                return Some(host);
+            }
+        }
+        after_dot = token.token_type == TokenType::Dot;
+    }
+    None
+}
+
+fn refuse_rebinding(
+    name: &str,
+    what: &str,
+    owner: &UseSite<'_>,
+    hosts: &HashMap<String, HostBinding>,
+    loc: &Option<Location>,
+) -> Result<(), SemanticDiagnostic> {
+    match hosts.get(name) {
+        Some(host) => Err(capability_rebound(name, what, owner, host, loc)),
+        None => Ok(()),
+    }
+}
+
+/// HS-SCOPE-001: a binding takes a Holo import's name.
+#[cold]
+#[inline(never)]
+fn capability_rebound(
+    name: &str,
+    what: &str,
+    owner: &UseSite<'_>,
+    host: &HostBinding,
+    loc: &Option<Location>,
+) -> SemanticDiagnostic {
+    let written = host
+        .loc
+        .as_ref()
+        .map(|loc| format!(" (line {}, column {})", loc.start.line, loc.start.column))
+        .unwrap_or_default();
+    diagnostic(
+        format!(
+            "[{HIDDEN_NAME}] {} binds `{name}` as a {what}, but `{name}` is the Holo import `{}`{written}; a Holo import's name means the capability in the whole file, so no parameter, local, loop variable or function may take it",
+            owner.describe(),
+            host.capability
+        ),
+        loc,
+    )
+}
+
+/// HS-HOST-003: a capability used anywhere but a direct call in a typed top-level function.
+#[cold]
+#[inline(never)]
+fn misplaced_capability(
+    site: &UseSite<'_>,
+    host: &HostBinding,
+    loc: &Option<Location>,
+) -> SemanticDiagnostic {
+    let capability = &host.capability;
+    let message = match site {
+        UseSite::Function { name, typed: false } => format!(
+            "[{HOST_UNCHECKED_USE}] function `{name}` uses `{capability}` but states no types; a Holo capability is called only from a function that states its parameter and result types, where its arguments and result are checked"
+        ),
+        UseSite::Function { name, typed: true } => format!(
+            "[{HOST_UNCHECKED_USE}] function `{name}` uses `{capability}` as a value; a Holo capability is only called by name, where its arguments and result are checked, so it cannot be stored or passed on"
+        ),
+        UseSite::TopLevel => format!(
+            "[{HOST_UNCHECKED_USE}] `{capability}` is used at the top level of the file, outside every function; a Holo capability is called only from a top-level function that states its parameter and result types, where its arguments and result are checked"
+        ),
+        UseSite::Elsewhere(label) => format!(
+            "[{HOST_UNCHECKED_USE}] `{capability}` is used in {label}, which is not a top-level function; a Holo capability is called only from a top-level function that states its parameter and result types, where its arguments and result are checked"
+        ),
+    };
+    diagnostic(message, loc)
+}
+
+/// The use rule admits a capability call only where the type checker checks it; this holds the
+/// two to each other. A call it admitted that the checker did not reach is refused, never taken
+/// on trust.
+fn first_unchecked_capability_call(
+    admitted: &[AdmittedCapabilityCall],
+    checked: &HashSet<usize>,
+) -> Option<SemanticDiagnostic> {
+    admitted
+        .iter()
+        .find(|call| !checked.contains(&call.call))
+        .map(|call| {
+            diagnostic(
+                format!(
+                    "[{HOST_UNCHECKED_USE}] function `{}` calls `{}` where the type checker did not check the call, so its arguments and result would go unchecked; a Holo capability is called only where its call is checked",
+                    call.function, call.capability
+                ),
+                &call.loc,
+            )
+        })
+}
+
+/// An argument to a Holo capability must be proven of its declared type (G21): the host receives
+/// exactly the ABI v1 types, so a value the checker cannot type (`unknown`, `any`, a value from
+/// an untyped function or an untyped local) is refused here, where an ordinary call accepts it.
+fn is_proven_capability_argument(expected: &str, actual: &TypeEvidence) -> bool {
+    match actual {
+        TypeEvidence::Known(actual) => normalize_type(actual) == normalize_type(expected),
+        TypeEvidence::IntegerLiteral(_) | TypeEvidence::FloatLiteral => {
+            is_assignable_at(expected, actual, TypeBoundary::CallArgument)
+        }
+        TypeEvidence::Null | TypeEvidence::Unknown => false,
+    }
+}
+
+/// HS-TYPE-ARG-001 for a capability argument the checker cannot prove.
+#[cold]
+#[inline(never)]
+fn unproven_capability_argument(
+    index: usize,
+    callee: &str,
+    capability: &str,
+    expected: &str,
+    actual: &TypeEvidence,
+    loc: &Option<Location>,
+) -> SemanticDiagnostic {
+    diagnostic(
+        format!(
+            "[{ARGUMENT_MISMATCH}] argument {} to `{callee}` is not proven `{expected}` (found `{}`): `{capability}` is a Holo capability, and its host receives exactly the declared types, so an argument the checker cannot type is refused here",
+            index + 1,
+            actual.display_name()
+        ),
+        loc,
+    )
 }
 
 fn diagnostic(message: String, loc: &Option<Location>) -> SemanticDiagnostic {
@@ -1633,9 +2546,15 @@ function main(): i32 {
 
     #[test]
     fn a_parameter_name_may_not_repeat() {
-        let (message, _, _) = reject_at("function f(a: i32, a: i32): i32 {\n  return a\n}");
+        // Reported where the name is written the second time, not at the function.
+        let (message, line, column) =
+            reject_at("function f(a: i32, a: i32): i32 {\n  return a\n}");
         assert!(message.contains(HIDDEN_NAME), "{message}");
         assert!(message.contains("names parameter `a` twice"), "{message}");
+        assert_eq!((line, column), (1, 20), "{message}");
+        let (_, line, column) =
+            reject_at("function f(\n  a: i32,\n  b: i32,\n  a: i32\n): i32 {\n  return a\n}");
+        assert_eq!((line, column), (4, 3));
         // Untyped legacy functions keep their earlier reading.
         admit("function f(a, a) {\n  return a\n}");
     }
@@ -1718,9 +2637,381 @@ function main(): i32 {
         admit("function legacy(a) {\n  return a ?? 3\n}");
     }
 
+    /// Review of PR #444 (claude3, P3): `5 ?? 3` and `true ?? false` were reported at 0:0, since a
+    /// literal records no position. The diagnostic falls back to the statement that holds the
+    /// `??`, then to the right side, then to the function.
+    #[test]
+    fn a_fallback_on_a_literal_is_reported_where_it_is_written() {
+        for (source, at) in [
+            ("function f(): i32 {\n  return 5 ?? 3\n}", (2, 3)),
+            ("function f(): bool {\n  return true ?? false\n}", (2, 3)),
+            (
+                "function f(): i32 {\n  let a: i32 = 5 ?? 3\n  return a\n}",
+                (2, 3),
+            ),
+            // `if` records no position: the right side does.
+            (
+                "function f(x: i32): i32 {\n  if (5 ?? x) {\n    return 1\n  }\n  return 0\n}",
+                (2, 12),
+            ),
+            // Nothing in it does: the function.
+            (
+                "function f(): i32 {\n  if (5 ?? 3) {\n    return 1\n  }\n  return 0\n}",
+                (1, 1),
+            ),
+        ] {
+            let (message, line, column) = reject_at(source);
+            assert!(message.contains(super::UNKNOWN_FALLBACK_FORM), "{message}");
+            assert_eq!((line, column), at, "{source}\n=> {message}");
+        }
+        // An operand that records a position still decides.
+        let (_, line, column) = reject_at("function f(a: i32): i32 {\n  return a ?? 3\n}");
+        assert_eq!((line, column), (2, 10));
+    }
+
     #[test]
     fn unit_return_types_need_no_value() {
         admit("function f(x: i32): unit {\n  let y: i32 = x\n}");
         admit("function f(x: i32): void {\n  let y: i32 = x\n}");
+    }
+
+    // Findings of the second independent review (PR #438, claude3): four classes of fault that
+    // left every test green, one test each, then the smaller findings.
+
+    /// F2: a loop whose body returns, counted as returning. Its body may not run, and native never
+    /// counts a loop. `compile_to_uaal` has no every-path guard of its own any more, so the checker
+    /// is what keeps such a function out of UAAL bytecode.
+    #[test]
+    fn a_loop_at_the_end_never_counts_as_returning() {
+        for source in [
+            "function f(x: i32): i32 {\n  while (x > 0) {\n    return 1\n  }\n}",
+            "function f(x: i32): i32 {\n  for (i in 0..3) {\n    return i\n  }\n}",
+            "function f(x: i32): i32 {\n  if (x > 0) {\n    return 1\n  } else {\n    while (x < 0) {\n      return 2\n    }\n  }\n}",
+            "function f(x: i32): i32 {\n  scope {\n    while (x > 0) {\n      return 1\n    }\n  }\n}",
+        ] {
+            let (message, line, column) = reject_at(source);
+            assert!(message.contains(MISSING_RETURN), "{source}\n=> {message}");
+            assert_eq!((line, column), (1, 1), "{source}\n=> {message}");
+
+            let program = format!("{source}\n\nfunction main(): i32 {{\n  return f(1)\n}}");
+            let error = crate::uaal_emit::compile_source_to_uaal(&program)
+                .expect_err("compile_to_uaal must refuse a function that can end without a value");
+            assert!(
+                error.message.contains(MISSING_RETURN),
+                "{program}\n=> {}",
+                error.message
+            );
+        }
+    }
+
+    /// F3: a constructor takes exactly one value per field, too few as well as too many.
+    #[test]
+    fn a_struct_constructor_takes_exactly_one_value_per_field() {
+        let program = |values: &str| {
+            format!(
+                "struct V {{ x: i32, y: i32, z: i32 }}\n\nfunction f(): i32 {{\n  slot v: V = V({values})\n  return 1\n}}"
+            )
+        };
+        for (values, got) in [("1, 2", 2), ("", 0), ("1, 2, 3, 4", 4)] {
+            let (message, line, column) = reject_at(&program(values));
+            assert!(message.contains(ARITY_MISMATCH), "V({values})\n=> {message}");
+            assert!(
+                message.contains(&format!(
+                    "constructor `V` takes one value per field (3), got {got}"
+                )),
+                "V({values})\n=> {message}"
+            );
+            assert_eq!((line, column), (4, 15), "V({values})\n=> {message}");
+        }
+        admit(&program("1, 2, 3"));
+    }
+
+    /// F4: a name resolves wherever an expression uses it. The index in `a[nope]` was not walked.
+    #[test]
+    fn a_name_resolves_wherever_an_expression_uses_it() {
+        for statement in [
+            "return values[nope]",
+            "store(values[nope], 1)\n  return 1",
+            "return -nope",
+            "return 1 + nope",
+            "return x ?? nope",
+            "return id(nope)",
+            "return id(id(nope))",
+            "return nope.code",
+            "let xs = [1, nope]\n  return 1",
+            "let xs = [...nope]\n  return 1",
+            "let o = { k: nope }\n  return 1",
+            "let g = (a) => a + nope\n  return 1",
+            "let g = (a) => (b) => a + b + nope\n  return 1",
+            "if (nope > 0) {\n    return 1\n  }\n  return 2",
+            "while (nope) {\n  }\n  return 2",
+            "for (i in 0..nope) {\n  }\n  return 2",
+        ] {
+            let source = format!(
+                "function id(a: i32): i32 {{\n  return a\n}}\n\nfunction f(x: i32): i32 {{\n  slot values: [i32; 2] = [1, 2]\n  {statement}\n}}"
+            );
+            let (message, line, _) = reject_at(&source);
+            assert!(message.contains(UNKNOWN_NAME), "{statement}\n=> {message}");
+            assert!(
+                message.contains("unknown name `nope`"),
+                "{statement}\n=> {message}"
+            );
+            assert_eq!(line, 7, "{statement}\n=> {message}");
+        }
+    }
+
+    /// F5: a block's locals end with the block, for every kind of block. Without a frame of its
+    /// own, a `while` body's locals stayed visible after the loop.
+    #[test]
+    fn a_blocks_locals_end_with_the_block() {
+        for block in [
+            "while (n < 3) {\n    let t: i32 = n\n    n = n + 1\n  }",
+            "for (i in 0..3) {\n    let t: i32 = i\n  }",
+            "if (n > 0) {\n    let t: i32 = n\n  }",
+            "if (n > 0) {\n  } else {\n    let t: i32 = n\n  }",
+            "scope {\n    let t: i32 = n\n  }",
+        ] {
+            // Read after the block, the local is unknown.
+            let message = reject(&format!(
+                "function f(x: i32): i32 {{\n  var n: i32 = x\n  {block}\n  return t\n}}"
+            ));
+            assert!(message.contains(UNKNOWN_NAME), "{block}\n=> {message}");
+            assert!(message.contains("unknown name `t`"), "{block}\n=> {message}");
+            // Declared again after the block, it is a new local, not a hidden one.
+            admit(&format!(
+                "function f(x: i32): i32 {{\n  var n: i32 = x\n  {block}\n  let t: i32 = n\n  return t\n}}"
+            ));
+        }
+        // A loop variable ends with its loop.
+        let message = reject("function f(x: i32): i32 {\n  for (i in 0..3) {\n  }\n  return i\n}");
+        assert!(message.contains("unknown name `i`"), "{message}");
+    }
+
+    /// The spec's HS-NAME-002 covers a call to an enum: an enum, like a `.hsplus` module, is read
+    /// through its members and never called. Neither backend calls one.
+    #[test]
+    fn an_enum_or_module_is_read_through_its_members_and_never_called() {
+        let (message, line, column) =
+            reject_at("enum Route { A, B }\n\nfunction f(x: i32): i32 {\n  return Route(1)\n}");
+        assert!(message.contains(UNKNOWN_FUNCTION), "{message}");
+        assert!(
+            message.contains("`Route` is an enum or module, not a function"),
+            "{message}"
+        );
+        assert_eq!((line, column), (4, 10), "{message}");
+        admit("enum Route { A, B }\n\nfunction f(ok: bool): Route {\n  if (ok) {\n    return Route.A\n  }\n  return Route.B\n}");
+
+        // A `.hsplus` document's modules and enums arrive as namespaces.
+        let mut external = ExternalDeclarations::default();
+        external.namespaces.insert("GameState".to_string());
+        let reads =
+            parse_ast("function score(p: i32): i32 {\n  GameState.addScore(p)\n  return p\n}")
+                .expect("fixture should parse");
+        let alone = check_semantics(&reads).expect_err("alone, the module is unknown");
+        assert!(
+            alone.message.contains("unknown name `GameState`"),
+            "{}",
+            alone.message
+        );
+        check_semantics_with(&reads, &external)
+            .unwrap_or_else(|error| panic!("expected admission, got {}", error.message));
+        let calls = parse_ast("function score(p: i32): i32 {\n  return GameState(p)\n}")
+            .expect("fixture should parse");
+        let called = check_semantics_with(&calls, &external).expect_err("a module is not called");
+        assert!(
+            called
+                .message
+                .contains("`GameState` is an enum or module, not a function"),
+            "{}",
+            called.message
+        );
+    }
+
+    /// A local may be called only while every value it was given is a lambda. The checker does
+    /// not follow branches, so a value given in one branch is enough.
+    #[test]
+    fn a_local_stops_being_callable_once_it_is_given_a_value() {
+        admit("function f(a: i32): i32 {\n  var g = (x) => x + 1\n  g = (x) => x + 2\n  return g(1)\n}");
+        let (message, line, column) =
+            reject_at("function f(a: i32): i32 {\n  var g = (x) => x + 1\n  g = 5\n  return g(1)\n}");
+        assert!(message.contains(UNKNOWN_FUNCTION), "{message}");
+        assert!(message.contains("`g` is a value, not a function"), "{message}");
+        assert_eq!((line, column), (4, 10), "{message}");
+        for source in [
+            "function f(a: i32): i32 {\n  var g = (x) => x + 1\n  if (a > 0) {\n    g = 5\n  }\n  return g(1)\n}",
+            // The later lambda does not undo the value: either branch may have run.
+            "function f(a: i32): i32 {\n  var g = (x) => x + 1\n  if (a > 0) {\n    g = 5\n  } else {\n    g = (x) => x + 2\n  }\n  return g(1)\n}",
+            "function f(a: i32): i32 {\n  var g = 5\n  g = (x) => x + 2\n  return g(1)\n}",
+        ] {
+            let message = reject(source);
+            assert!(
+                message.contains("`g` is a value, not a function"),
+                "{source}\n=> {message}"
+            );
+        }
+    }
+
+    /// Names in an object literal's fallback values and in `move` statements resolve too.
+    #[test]
+    fn object_fallback_values_and_move_statements_resolve_their_names() {
+        for (body, name) in [
+            ("let o = { k: 1 = nowhere }\n  return 1", "nowhere"),
+            ("move nope to [1, 2, 3]\n  return 1", "nope"),
+            ("move to nope\n  return 1", "nope"),
+            ("move x to nope\n  return 1", "nope"),
+        ] {
+            let (message, line, _) =
+                reject_at(&format!("function f(x: i32): i32 {{\n  {body}\n}}"));
+            assert!(message.contains(UNKNOWN_NAME), "{body}\n=> {message}");
+            assert!(
+                message.contains(&format!("unknown name `{name}`")),
+                "{body}\n=> {message}"
+            );
+            assert_eq!(line, 2, "{body}\n=> {message}");
+        }
+        admit("function f(x: i32): i32 {\n  let o = { k: 1 = x }\n  return 1\n}");
+        admit("function f(x: i32, door: i32): i32 {\n  move x to door\n  move to [1, 2, 3]\n  return 1\n}");
+        // Untyped functions keep their earlier reading.
+        admit("function f(x) {\n  move nope to elsewhere\n  let o = { k: 1 = nowhere }\n  return 1\n}");
+    }
+
+    /// Columns count UTF-16 code units, the unit of a JavaScript string index and of an LSP
+    /// position: an emoji is two, a CJK character, an accented letter or a tab one.
+    #[test]
+    fn columns_count_utf16_code_units() {
+        for line in [
+            "  let s: string = \"abc\" let t: i32 = zz",
+            "  let s: string = \"日本語\" let t: i32 = zz",
+            "  let s: string = \"😀😀\" let t: i32 = zz",
+            "  let s: string = \"éé\" let t: i32 = zz",
+            "\tlet t: i32 = zz",
+        ] {
+            let at = line.find("zz").expect("fixture names zz");
+            let column = line[..at].encode_utf16().count() + 1;
+            for eol in ["\n", "\r\n"] {
+                let source = ["function f(): i32 {", line, "  return 1", "}"].join(eol);
+                let (message, actual_line, actual_column) = reject_at(&source);
+                assert!(message.contains("unknown name `zz`"), "{line:?}\n=> {message}");
+                assert_eq!(
+                    (actual_line, actual_column),
+                    (2, column),
+                    "{line:?} with {eol:?}"
+                );
+            }
+        }
+    }
+
+    /// Bytes this thread allocates, counted by the test binary's allocator, so a test can bound
+    /// the work a check does without timing it.
+    mod allocation {
+        use std::alloc::{GlobalAlloc, Layout, System};
+        use std::cell::Cell;
+
+        thread_local! {
+            static BYTES: Cell<u64> = const { Cell::new(0) };
+        }
+
+        struct Counting;
+
+        // SAFETY: every call is passed straight to `System`; the count is a side effect.
+        unsafe impl GlobalAlloc for Counting {
+            unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+                count(layout.size());
+                System.alloc(layout)
+            }
+
+            unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+                count(layout.size());
+                System.alloc_zeroed(layout)
+            }
+
+            unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+                System.dealloc(ptr, layout)
+            }
+
+            unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+                count(new_size);
+                System.realloc(ptr, layout, new_size)
+            }
+        }
+
+        fn count(bytes: usize) {
+            // An allocation while the thread's locals are being torn down is not counted.
+            let _ = BYTES.try_with(|total| total.set(total.get() + bytes as u64));
+        }
+
+        #[global_allocator]
+        static COUNTING: Counting = Counting;
+
+        pub(super) fn allocated() -> u64 {
+            BYTES.with(Cell::get)
+        }
+    }
+
+    /// The second review measured each lambda copying every binding in scope: 6,000 locals and
+    /// 6,000 lambdas took 18 s to check in the WASM build, against 0.15 s before G11. This bounds
+    /// the cost by counting the bytes a check allocates, not by timing it, so a loaded machine
+    /// cannot change the verdict: per declaration, a program sixteen times larger may cost at
+    /// most four times as much. Copying the scope for each lambda again costs sixteen times as
+    /// much per declaration here.
+    #[test]
+    fn checking_cost_grows_linearly_with_lambdas_and_locals() {
+        fn program(locals: usize) -> String {
+            let mut source = String::from("function f(x: i32): i32 {\n");
+            for i in 0..locals {
+                source.push_str(&format!("  let v{i}: i32 = x\n"));
+            }
+            for i in 0..locals {
+                source.push_str(&format!("  let g{i} = (a) => a + v{i}\n"));
+            }
+            source.push_str("  return x\n}\n");
+            source
+        }
+        fn bytes_per_declaration(locals: usize) -> f64 {
+            let ast = parse_ast(&program(locals)).expect("fixture should parse");
+            let before = allocation::allocated();
+            check_semantics(&ast)
+                .unwrap_or_else(|error| panic!("expected admission, got {}", error.message));
+            (allocation::allocated() - before) as f64 / (2 * locals) as f64
+        }
+        let small = bytes_per_declaration(250);
+        let large = bytes_per_declaration(4_000);
+        assert!(
+            large <= 4.0 * small,
+            "checking allocated {small:.0} bytes per declaration for 500 declarations and \
+             {large:.0} for 8,000: the cost grows faster than the program"
+        );
+    }
+
+    /// G21: the use rule admits a capability call only where the type checker checks it. No
+    /// source reaches this today (the rule mirrors where the checker reads), so the agreement is
+    /// held directly: a call the rule admitted that the checker did not record is refused.
+    #[test]
+    fn an_admitted_capability_call_the_checker_did_not_check_is_refused() {
+        use super::{first_unchecked_capability_call, AdmittedCapabilityCall};
+        let admitted = [
+            AdmittedCapabilityCall {
+                call: 1,
+                capability: "holo:absorb/manifest_audit_passes".to_string(),
+                function: "main".to_string(),
+                loc: None,
+            },
+            AdmittedCapabilityCall {
+                call: 2,
+                capability: "holo:fixture/add_one".to_string(),
+                function: "other".to_string(),
+                loc: None,
+            },
+        ];
+        let all = std::collections::HashSet::from([1, 2]);
+        assert!(first_unchecked_capability_call(&admitted, &all).is_none());
+        let refused =
+            first_unchecked_capability_call(&admitted, &std::collections::HashSet::from([1]))
+                .expect("call 2 was not checked");
+        assert!(
+            refused.message.contains("[HS-HOST-003] function `other` calls `holo:fixture/add_one` where the type checker did not check the call"),
+            "{}",
+            refused.message
+        );
     }
 }

@@ -1013,7 +1013,7 @@ function main(): i32 {
     expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
   }, 600000);
 
-  it('G21: the checker reads holo: imports; UAAL lowers a call to one EXEC, native refuses', async () => {
+  it('G21: the checker reads holo: imports; passing it is not permission; UAAL lowers a call to one EXEC, native refuses', async () => {
     const corpus = readFileSync(
       resolve(REPO_ROOT, 'packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl'),
       'utf8'
@@ -1022,7 +1022,9 @@ function main(): i32 {
       .filter(Boolean)
       .map((line) => JSON.parse(line) as SpecCorpusRow)
       .filter((row) => row.tags.includes('g21'));
-    expect(corpus.length).toBe(14);
+    // g21-015 to g21-027 are claude3's review cases: the escape forms, rebinding, a built-in's
+    // name, sources no reader takes as written, and the crdt:// stream left as before G21.
+    expect(corpus.length).toBe(27);
     // Native refuses every `holo:` import at the import, before any check of its own; a blocked
     // name (`exec`) its lexer refuses first, with the checker's code at the same place.
     const nativeRefusal = /must be an explicit relative `\.hs` path/;
@@ -1043,8 +1045,10 @@ function main(): i32 {
       );
     }
 
-    // The demo is valid to the checker. Native refuses any `holo:` import; UAAL lowers the call
-    // to one host instruction named by the declared capability and version (phase 2).
+    // The demo is valid to the checker, and that is not permission to call the tool: the checker
+    // grants nothing. Native refuses any `holo:` import; UAAL lowers the call to one host
+    // instruction named by the declared capability and version (phase 2), and the host decides:
+    // it binds the name or refuses it.
     const demo = corpus.find((row) => row.id === 'g21-001')!;
     expect(validateHsViaRust(demo.source).valid).toBe(true);
     expect(() => executeHsNativeViaRust(demo.source)).toThrow(nativeRefusal);
@@ -1167,6 +1171,62 @@ function main(): i32 {
     expect(exportedVerdict.valid).toBe(false);
     expect(exportedVerdict.errors[0]?.message).toContain('HS-UNKNOWN-001');
     expect(() => executeHsNativeViaRust(exported)).toThrow();
+  }, 600000);
+
+  it('applies the three @unknown forms only to an @unknown field of the record own struct', () => {
+    // Review of PR #444 (claude3): each refused program here was valid at 77939d364 (the tag-read
+    // exemption took any member, and a field was matched by name), while native refused it; the
+    // `Tally` program was refused while native runs it.
+    const snapshot = (body: string) => `struct Snapshot {
+  @unknown count: i32
+}
+
+struct Receipt {
+  reason: i32
+}
+
+struct Tally {
+  count: i32
+}
+
+function read(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
+${body}
+}
+
+function main(): i32 {
+  slot missing: Snapshot = Snapshot(unknown("missing_precondition"))
+  slot receipt: Receipt = Receipt(0)
+  return read(&missing, &mut receipt)
+}
+`;
+    const gate = (argument: string, setup = '') =>
+      `${setup}  if (isKnown(${argument})) {\n    return 1\n  }\n  return 2`;
+    const refusedByBoth: Array<[string, string]> = [
+      [
+        gate('values[snapshot.count]', '  slot values: [i32; 4] = [1, 2, 3, 4]\n'),
+        'HS-UNKNOWN-001',
+      ],
+      [gate('snapshot.count.x'), 'HS-UNKNOWN-001'],
+      [gate('a.count', '  let a: i32 = 5\n'), 'HS-UNKNOWN-003'],
+      [gate('snapshot.a.a.count'), 'HS-UNKNOWN-003'],
+      [gate('receipt.reason'), 'HS-UNKNOWN-003'],
+      [gate('snapshot.count, snapshot.count'), 'HS-UNKNOWN-003'],
+      ['  return load(receipt.reason) ?? 7', 'HS-UNKNOWN-002'],
+      ['  return load(snapshot.nosuch) ?? 7', 'HS-UNKNOWN-002'],
+      ['  return load(snapshot.count, 1) ?? 7', 'HS-UNKNOWN-002'],
+    ];
+    for (const [body, code] of refusedByBoth) {
+      const source = snapshot(body);
+      const verdict = validateHsViaRust(source);
+      expect(verdict.valid, body).toBe(false);
+      expect(verdict.errors[0]?.message, body).toContain(code);
+      expect(() => executeHsNativeViaRust(source), body).toThrow();
+    }
+
+    // A field resolves through its record's own struct: `Tally` declares its own plain `count`.
+    const tally = snapshot('  slot tally: Tally = Tally(4)\n  return load(tally.count) + 1');
+    expect(validateHsViaRust(tally).valid).toBe(true);
+    expect(executeHsNativeViaRust(tally)).toBe(5);
   }, 600000);
 
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {

@@ -2778,6 +2778,16 @@ impl<'a> UaalEmitter<'a> {
         if matches!(binary.operator.as_str(), "&&" | "||") {
             return self.emit_logical_expression(binary, expected_type);
         }
+        // The one written fallback form is an uncertainty operation, refused under the same
+        // capability as `isKnown`, `unknownReason`, `known` and `unknown`.
+        if binary.operator == "??" && crate::semantic_types::load_form_field(&binary.left).is_some()
+        {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-008",
+                "uaal.uncertain.v1",
+                "`load(record.field) ?? fallback` needs an uncertainty tag the UAAL VM does not carry yet; the native backend runs it",
+            ));
+        }
 
         let is_comparison = matches!(
             binary.operator.as_str(),
@@ -4198,6 +4208,47 @@ function gate(snapshot: &Snapshot): i32 {
         .expect_err("UAAL carries no uncertainty tag yet");
         assert!(error.message.contains("HS-UAAL-CAP-008"), "{}", error.message);
         assert!(error.message.contains("uaal.uncertain.v1"), "{}", error.message);
+    }
+
+    /// Review of PR #444 (claude3, MF5 and P3): each uncertainty operation alone gets the
+    /// uncertainty capability refusal: the two tag reads, the two constructors, and the load form.
+    /// Before, `load(snapshot.count) ?? 0` alone got HS-UAAL-CAP-001 ("operator `??` is
+    /// unavailable"), and dropping `known` or `unknown` from the list went back to "unresolved
+    /// function call" with every test green.
+    #[test]
+    fn each_uncertainty_operation_alone_is_the_uncertainty_capability_refusal() {
+        let header = "struct Snapshot { @unknown count: i32 }\nstruct Receipt { reason: i32 }\n";
+        for (operation, body) in [
+            (
+                "isKnown",
+                "function gate(snapshot: &Snapshot): i32 {\n  if (isKnown(snapshot.count)) {\n    return 1\n  }\n  return 0\n}",
+            ),
+            (
+                "unknownReason",
+                "function gate(snapshot: &Snapshot, receipt: &mut Receipt): i32 {\n  store(receipt.reason, unknownReason(snapshot.count))\n  return 0\n}",
+            ),
+            (
+                "load(record.field) ?? fallback",
+                "function gate(snapshot: &Snapshot): i32 {\n  return load(snapshot.count) ?? 0\n}",
+            ),
+            (
+                "known",
+                "function main(): i32 {\n  slot snapshot: Snapshot = Snapshot(known(5))\n  return 0\n}",
+            ),
+            (
+                "unknown",
+                "function main(): i32 {\n  slot snapshot: Snapshot = Snapshot(unknown(\"missing\"))\n  return 0\n}",
+            ),
+        ] {
+            let source = format!("{header}{body}");
+            let error = compile_source_to_uaal(&source).expect_err(operation);
+            assert!(
+                error.message.contains("HS-UAAL-CAP-008")
+                    && error.message.contains("uaal.uncertain.v1"),
+                "{operation}: {}",
+                error.message
+            );
+        }
     }
 
     #[test]

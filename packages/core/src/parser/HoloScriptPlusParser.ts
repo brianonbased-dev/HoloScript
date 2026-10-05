@@ -8224,13 +8224,12 @@ export class HoloScriptPlusParser {
       },
       this.hsDocumentContext()
     );
-    // In a whole document an import-level refusal (an unknown Holo module or capability) is
-    // reported once, at the import, by checkHoloImports; a piece reports it here.
+    // In a whole document an import-level refusal (an unknown Holo module or capability, a
+    // built-in's name) is reported once, at the import, by checkHoloImports; a piece reports it
+    // here.
     this.reportRustFunctionDiagnostics(
       this.wholeDocument
-        ? functionDiagnostics.filter(
-            (diagnostic) => diagnostic.code !== 'HS-HOST-001' && diagnostic.code !== 'HS-HOST-002'
-          )
+        ? functionDiagnostics.filter((diagnostic) => !diagnostic.importLevel)
         : functionDiagnostics
     );
 
@@ -8261,7 +8260,8 @@ export class HoloScriptPlusParser {
 
   /**
    * What the document declares, so the Rust checker, which sees one typed function at a time,
-   * resolves calls to the document's other functions, structs, enums and imports.
+   * resolves calls to the document's other functions, structs and imports, and reads of its
+   * enums and modules.
    */
   private hsDocumentContext(): HsDocumentContext {
     if (!this.documentContext) {
