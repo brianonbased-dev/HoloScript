@@ -32,12 +32,14 @@ export {
   UAAL_VM_EXECUTION_PROFILE_SCHEMA,
   UAAL_VM_IMPLEMENTATION_ID,
   UAALVirtualMachine,
+  UAALUnhandledOpcodeError,
   replayUAALLog,
   computeUAALBytecodeSha256,
 } from './vm';
 export type {
   VMState,
   VMResult,
+  VMRunError,
   VMProxy,
   OpcodeHandler,
   UAALVMOptions,

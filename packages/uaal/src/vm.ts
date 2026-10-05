@@ -45,6 +45,34 @@ export interface VMResult {
   taskStatus: 'RUNNING' | 'HALTED' | 'SUSPENDED' | 'ERROR' | 'IDLE';
   stackTop: UAALOperand;
   state: VMState;
+  /** Why the run ended in ERROR: the message and the program counter where it stopped. */
+  error?: VMRunError;
+}
+
+export interface VMRunError {
+  message: string;
+  pc: number;
+  /** The opcode's name when the error is about one (an unhandled opcode, for example). */
+  opcode?: string;
+}
+
+/**
+ * An opcode with no built-in behaviour and no handler registered by the host. Until 2026-10-04
+ * the VM pushed null and carried on, so a missing host capability (an EXEC nobody handles)
+ * ended the run as a success.
+ */
+export class UAALUnhandledOpcodeError extends Error {
+  constructor(
+    readonly opcode: string,
+    readonly pc: number,
+    operands: readonly UAALOperand[] = []
+  ) {
+    const target = opcode === 'EXEC' && typeof operands[0] === 'string' ? ` ${operands[0]}` : '';
+    super(
+      `[UAAL-UNHANDLED] ${opcode}${target} at PC=${pc} has no built-in behaviour and no registered handler`
+    );
+    this.name = 'UAALUnhandledOpcodeError';
+  }
 }
 
 // =============================================================================
@@ -447,7 +475,12 @@ export class UAALVirtualMachine {
       while (!this.state.isHalted && this.state.pc < bytecode.instructions.length) {
         if (instructionCount >= this.maxInstructions) {
           this.log('Max instructions reached — halting');
-          return this.finishRun(this.buildResult('ERROR'));
+          return this.finishRun(
+            this.buildResult('ERROR', {
+              message: `max instructions (${this.maxInstructions}) reached at PC=${this.state.pc}`,
+              pc: this.state.pc,
+            })
+          );
         }
 
         const instr = bytecode.instructions[this.state.pc];
@@ -468,7 +501,13 @@ export class UAALVirtualMachine {
       if (this.enableLogging) {
         this.log(`Execution error: ${err}`);
       }
-      return this.finishRun(this.buildResult('ERROR'));
+      return this.finishRun(
+        this.buildResult('ERROR', {
+          message: err instanceof Error ? err.message : String(err),
+          pc: this.state.pc,
+          ...(err instanceof UAALUnhandledOpcodeError ? { opcode: err.opcode } : {}),
+        })
+      );
     }
   }
 
@@ -875,13 +914,14 @@ export class UAALVirtualMachine {
         return false;
       }
 
-      // ── Default: unhandled opcodes push null ──────────────
+      // ── Default: an opcode nobody implements stops the run ──
+      // No built-in case and no registered handler: refuse, never invent a value. Pushing null
+      // let a missing host capability (an unhandled EXEC) end the run as a success.
       default:
         if (this.enableLogging) {
           this.log(`Unhandled opcode: ${getUAALOpcodeName(instr.opCode)}`);
         }
-        this.push(null);
-        return false;
+        throw new UAALUnhandledOpcodeError(getUAALOpcodeName(instr.opCode), this.state.pc, operands);
     }
   }
 
@@ -894,11 +934,12 @@ export class UAALVirtualMachine {
 
   // ── Utilities ─────────────────────────────────────────────────────────────
 
-  private buildResult(status: VMResult['taskStatus']): VMResult {
+  private buildResult(status: VMResult['taskStatus'], error?: VMRunError): VMResult {
     return {
       taskStatus: status,
       stackTop: this.state.stack.length > 0 ? this.state.stack[this.state.stack.length - 1] : null,
       state: this.getState(),
+      ...(error ? { error } : {}),
     };
   }
 

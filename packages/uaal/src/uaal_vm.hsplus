@@ -17,7 +17,10 @@
 //               PROVABLE, not asserted (uaal.execution-log.v0; 2026-07-10).
 //
 // VMState  { stack, pc, context, is_halted }
-// VMResult { task_status: RUNNING|HALTED|SUSPENDED|ERROR|IDLE, stack_top, state }
+// VMResult { task_status: RUNNING|HALTED|SUSPENDED|ERROR|IDLE, stack_top, state, error? }
+//   error { message, pc, opcode? } says why a run ended in ERROR. An opcode with no built-in
+//   behaviour and no registered handler stops the run there ([UAAL-UNHANDLED]); it never
+//   pushes an invented value (2026-10-04; before, it pushed null and the run succeeded).
 // VMProxy  { push, pop, peek, get_state }
 //
 // UAALVMOptions:

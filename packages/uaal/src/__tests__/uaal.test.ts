@@ -3,9 +3,11 @@ import {
   UAALVirtualMachine,
   UAALCompiler,
   UAALOpCode,
+  UAALUnhandledOpcodeError,
   getUAALOpcodeName,
   isCognitiveOp,
   isControlFlowOp,
+  replayUAALLog,
 } from '../index';
 import type { UAALBytecode, UAALOperand, VMProxy } from '../index';
 
@@ -764,12 +766,14 @@ describe('Brittney/Infinity Hybrid Loop Hooks (anti-regression for studio bindin
     expect(stackTop.arguments.iteration).toBe(2);
   });
 
-  it('OP_INVOKE_LLM without a registered handler is a non-fatal no-op (does not crash the VM)', async () => {
-    // Studio's Brittney binding registers its handler at chat-route boot. If the
-    // binding is missing in some context (e.g., bare uAAL test harness), the VM
-    // must NOT panic — the unhandled-opcode default at vm.ts:331 pushes null and
-    // continues. Brittney's binding therefore must always check for null before
-    // treating the stack top as a tool-call result.
+  it('OP_INVOKE_LLM without a registered handler ends the run in ERROR with a clear reason (does not crash the VM)', async () => {
+    // A binding registers the handler at boot. Where none is registered (e.g. a bare uAAL test
+    // harness), the VM must not throw out of execute(), and the host must be able to show a
+    // clear error. Until 2026-10-04 the VM pushed null and HALTED, and the contract was "a null
+    // stackTop after OP_INVOKE_LLM means no LLM configured". No binding read that null: on
+    // 2026-10-04 nothing in HoloScript (Studio, services, engine, mcp-server, framework,
+    // llm-provider), Hololand or ai-ecosystem used OP_INVOKE_LLM or ran this VM's results.
+    // The reason is now explicit on the result.
     const vm = new UAALVirtualMachine();
     const program: UAALBytecode = {
       version: 1,
@@ -781,11 +785,110 @@ describe('Brittney/Infinity Hybrid Loop Hooks (anti-regression for studio bindin
     };
 
     const result = await vm.execute(program);
+    expect(result.taskStatus).toBe('ERROR');
+    expect(result.error).toEqual({
+      message: '[UAAL-UNHANDLED] OP_INVOKE_LLM at PC=1 has no built-in behaviour and no registered handler',
+      pc: 1,
+      opcode: 'OP_INVOKE_LLM',
+    });
+    // Nothing is invented: the stack holds what the program pushed.
+    expect(result.state.stack).toEqual(['fallback']);
+  });
+});
+
+// =============================================================================
+// UNHANDLED OPCODES REFUSE (2026-10-04, board task so3q)
+// =============================================================================
+
+describe('an opcode with no behaviour and no handler stops the run', () => {
+  const run = (instructions: UAALBytecode['instructions'], vm = new UAALVirtualMachine()) =>
+    vm.execute({ version: 1, instructions });
+
+  it('an EXEC nobody handles is an error naming its capability, not a success', async () => {
+    // A missing host capability used to end the run HALTED with null on the stack.
+    const result = await run([
+      { opCode: UAALOpCode.PUSH, operands: ['input'] },
+      { opCode: UAALOpCode.EXEC, operands: ['holo.absorb.manifest_audit_passes.v1'] },
+      { opCode: UAALOpCode.HALT, operands: [] },
+    ]);
+    expect(result.taskStatus).toBe('ERROR');
+    expect(result.error?.message).toBe(
+      '[UAAL-UNHANDLED] EXEC holo.absorb.manifest_audit_passes.v1 at PC=1 has no built-in behaviour and no registered handler'
+    );
+    expect(result.error?.opcode).toBe('EXEC');
+    expect(result.state.stack).toEqual(['input']);
+    expect(result.state.pc).toBe(1);
+  });
+
+  it('a registered handler still runs the same opcode', async () => {
+    const vm = new UAALVirtualMachine();
+    vm.registerHandler(UAALOpCode.EXEC, (proxy) => {
+      proxy.push('handled');
+    });
+    const result = await run(
+      [
+        { opCode: UAALOpCode.EXEC, operands: ['holo.absorb.manifest_audit_passes.v1'] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+      vm
+    );
     expect(result.taskStatus).toBe('HALTED');
-    // Default behavior pushes null on top of the existing stack. Brittney's
-    // binding contract: a null stackTop after OP_INVOKE_LLM means "no LLM
-    // configured" and the host must surface a clear error to the user.
-    expect(result.stackTop).toBeNull();
-    expect(result.state.stack).toEqual(['fallback', null]);
+    expect(result.error).toBeUndefined();
+    expect(result.stackTop).toBe('handled');
+  });
+
+  it('every opcode with no built-in case refuses the same way', async () => {
+    for (const opCode of [UAALOpCode.OP_BECOME_SENTIENT, UAALOpCode.OP_GRAPH_START, UAALOpCode.OP_HS_BUFFER_ALLOC]) {
+      const result = await run([{ opCode, operands: [] }]);
+      expect(result.taskStatus, getUAALOpcodeName(opCode)).toBe('ERROR');
+      expect(result.error?.opcode).toBe(getUAALOpcodeName(opCode));
+    }
+  });
+
+  it('a failed run says why, for every error path', async () => {
+    const thrower = new UAALVirtualMachine();
+    thrower.registerHandler(UAALOpCode.EXEC, () => {
+      throw new Error('host refused the call');
+    });
+    const handlerError = await run([{ opCode: UAALOpCode.EXEC, operands: ['x'] }], thrower);
+    expect(handlerError.taskStatus).toBe('ERROR');
+    expect(handlerError.error).toEqual({ message: 'host refused the call', pc: 0 });
+
+    const looping = await run(
+      [{ opCode: UAALOpCode.JUMP, operands: [0] }],
+      new UAALVirtualMachine({ maxInstructions: 10 })
+    );
+    expect(looping.taskStatus).toBe('ERROR');
+    expect(looping.error?.message).toBe('max instructions (10) reached at PC=0');
+
+    const clean = await run([{ opCode: UAALOpCode.HALT, operands: [] }]);
+    expect(clean.taskStatus).toBe('HALTED');
+    expect(clean.error).toBeUndefined();
+  });
+
+  it('a recorded run refuses too, and its log replays as valid', async () => {
+    const program: UAALBytecode = {
+      version: 1,
+      instructions: [
+        { opCode: UAALOpCode.PUSH, operands: [1] },
+        { opCode: UAALOpCode.EXEC, operands: ['holo.absorb.manifest_audit_passes.v1'] },
+      ],
+    };
+    const vm = new UAALVirtualMachine({ recordLog: true });
+    const result = await vm.execute(program);
+    expect(result.taskStatus).toBe('ERROR');
+    expect(result.error?.opcode).toBe('EXEC');
+    const log = vm.exportLog();
+    expect(log.steps[1].threw).toBe(true);
+    const replayed = await replayUAALLog(program, log);
+    expect(replayed.valid).toBe(true);
+  });
+
+  it('the error type names the opcode and the program counter', () => {
+    const error = new UAALUnhandledOpcodeError('OP_TRANSCEND', 7);
+    expect(error.name).toBe('UAALUnhandledOpcodeError');
+    expect(error.message).toBe(
+      '[UAAL-UNHANDLED] OP_TRANSCEND at PC=7 has no built-in behaviour and no registered handler'
+    );
   });
 });
