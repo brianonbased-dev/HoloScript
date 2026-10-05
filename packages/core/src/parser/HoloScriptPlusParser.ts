@@ -7462,7 +7462,6 @@ export class HoloScriptPlusParser {
 
     this.skipStructWhitespace();
     while (!this.check('RBRACE') && !this.check('EOF')) {
-      const beforeFieldPos = this.pos;
       if (this.check('COMMA')) {
         this.error('Unexpected comma before struct field', 'HSP100');
         this.advance();
@@ -7541,7 +7540,9 @@ export class HoloScriptPlusParser {
           `Expected struct field name, got ${this.current().type} "${this.current().value}"`,
           'HSP100'
         );
-        this.recoverStructField();
+        // Nothing in this field is consumed yet, so recovery must step past
+        // the offending token itself (see recoverStructField).
+        this.recoverStructField(true);
         this.skipStructWhitespace();
         continue;
       }
@@ -7776,22 +7777,6 @@ export class HoloScriptPlusParser {
 
       if (this.check('COMMA')) this.advance();
       this.skipStructWhitespace();
-
-      // Defense in depth, not the fix: every reachable stall above (bad
-      // field-name token, missing colon, malformed annotation) already
-      // calls recoverStructField(), which is now guaranteed to consume at
-      // least the offending token (see its own comment). If some future
-      // change still reaches here without moving `this.pos`, report a
-      // positioned error and force progress rather than spinning forever or
-      // silently dropping the rest of the struct body.
-      if (this.pos === beforeFieldPos) {
-        this.errorAt(
-          this.current(),
-          `Struct field parser made no progress at ${this.current().type} "${this.current().value}"`,
-          'HSP100'
-        );
-        this.advance();
-      }
     }
 
     const endOffset = this.current().offset;
@@ -8086,36 +8071,43 @@ export class HoloScriptPlusParser {
   /**
    * Recover at the next top-level field separator without consuming the
    * enclosing struct's closing brace.
+   *
+   * `atFieldStart` is set only by the caller that has consumed nothing in the
+   * current field: a field that begins with a token no field name can be (`[`
+   * of a TS-style index signature, a number, a string). That token is consumed
+   * first. Without that, the separator scan below starts at the token BEFORE
+   * it, which is often the newline (or sits just after the `;`) that ended the
+   * previous field. The scan finds that old separator at once and returns with
+   * nothing consumed, and the field loop meets the same token again, forever.
+   *
+   * Layout, `,` and `@` are never consumed up front: the field loop moves past
+   * each of them by itself (skipStructWhitespace, the leading-comma check, the
+   * modifier loop), and consuming one here would swallow the field after it.
+   * The other callers have already consumed a field name or an `@`, so their
+   * field-loop pass makes progress without this.
    */
-  private recoverStructField(): void {
+  private recoverStructField(atFieldStart = false): void {
     let braceDepth = 0;
     let bracketDepth = 0;
     let parenDepth = 0;
 
-    // Every caller reaches this method only because `this.current()` is
-    // already an unexpected token at this position (an unsupported field
-    // start such as `[` for a TS-style index signature, a malformed `@`
-    // modifier, or a missing `:`). Consume it unconditionally before
-    // scanning for the next field boundary below.
-    //
-    // This used to seed `lastConsumedToken` from `this.previous()` instead,
-    // which is frequently the NEWLINE token the caller's skipStructWhitespace()
-    // just consumed after the prior field. A NEWLINE token's `.offset` points
-    // at the newline character itself, so
-    // findStructFieldBoundaryBetween(lastConsumedToken.offset, token.offset)
-    // rescans that same already-consumed newline and reports it as a boundary
-    // on the very first check, before this method advances past anything.
-    // The caller then loops (error -> recoverStructField -> skipStructWhitespace,
-    // none of which consumed a token) on the identical unexpected token
-    // forever. Guaranteeing progress here first closes that loop; skip only
-    // the boundary this method exists to skip past (RBRACE/EOF belong to the
-    // enclosing struct/caller and must stay unconsumed).
-    if (!this.check('RBRACE') && !this.check('EOF')) {
-      const bad = this.current();
-      if (bad.type === 'LBRACE') braceDepth++;
-      else if (bad.type === 'LBRACKET') bracketDepth++;
-      else if (bad.type === 'LPAREN') parenDepth++;
-      this.advance();
+    if (atFieldStart) {
+      const offending = this.current();
+      const fieldLoopMovesPastIt =
+        offending.type === 'NEWLINE' ||
+        offending.type === 'INDENT' ||
+        offending.type === 'DEDENT' ||
+        offending.type === 'COMMA' ||
+        offending.type === 'AT' ||
+        offending.type === 'RBRACE' ||
+        offending.type === 'EOF';
+      if (!fieldLoopMovesPastIt) {
+        // Same bookkeeping the scan below does for a token it consumes.
+        if (offending.type === 'LBRACE') braceDepth++;
+        else if (offending.type === 'LBRACKET') bracketDepth++;
+        else if (offending.type === 'LPAREN') parenDepth++;
+        this.advance();
+      }
     }
 
     let lastConsumedToken = this.previous();
