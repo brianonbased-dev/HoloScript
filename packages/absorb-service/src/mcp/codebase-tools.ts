@@ -38,6 +38,40 @@ import {
   removeEmbeddingJournal,
 } from '../engine/EmbeddingJournal';
 import {
+  EMBEDDING_SHARD_MANIFEST,
+  ShardedEmbeddingIndex,
+  readEmbeddingShardManifest,
+  writeEmbeddingShards,
+} from '../engine/ShardedEmbeddingIndex';
+
+/**
+ * Sharded HoloEmbed storage (engine/ShardedEmbeddingIndex.ts). Off by default
+ * until proven on a real workspace; ABSORB_EMBEDDING_SHARDS=1 turns it on for
+ * new publications. Readers accept both layouts regardless.
+ */
+function embeddingShardsEnabled(): boolean {
+  return process.env.ABSORB_EMBEDDING_SHARDS?.trim() === '1';
+}
+
+function embeddingShardMemoryBudgetBytes(): number {
+  const mb = Number(process.env.ABSORB_EMBEDDING_MEMORY_MB);
+  return (Number.isFinite(mb) && mb > 0 ? mb : 512) * 1024 * 1024;
+}
+
+/** Identity of a published embedding artifact: the file bytes, or a shard directory's manifest. */
+function embeddingArtifactSha256(artifact: string): string | null {
+  try {
+    if (fs.statSync(artifact).isDirectory()) {
+      return createHash('sha256')
+        .update(fs.readFileSync(path.join(artifact, EMBEDDING_SHARD_MANIFEST)))
+        .digest('hex');
+    }
+    return embeddingCacheSha256(fs.readFileSync(artifact));
+  } catch {
+    return null;
+  }
+}
+import {
   buildGraphRAGEmbeddingPolicyReceipt,
   coerceNativeGraphRAGProvider,
   NATIVE_GRAPH_RAG_PROVIDER,
@@ -2916,7 +2950,9 @@ function readCacheGenerationManifest(
       (manifest.embeddingsFile !== null && typeof manifest.embeddingsFile !== 'string') ||
       (typeof manifest.embeddingsFile === 'string' &&
         manifest.embeddingsFile.replace(/\\/g, '/') !==
-          `${manifest.generationId}/embeddings-cache.bin`) ||
+          `${manifest.generationId}/embeddings-cache.bin` &&
+        // Sharded HoloEmbed generations (ABSORB_EMBEDDING_SHARDS) publish a directory.
+        manifest.embeddingsFile.replace(/\\/g, '/') !== `${manifest.generationId}/embeddings`) ||
       (manifest.embeddingCacheSha256 !== null &&
         (typeof manifest.embeddingCacheSha256 !== 'string' ||
           !/^[a-f0-9]{64}$/.test(manifest.embeddingCacheSha256))) ||
@@ -4998,7 +5034,24 @@ function publishCacheGeneration(
 
   try {
     fs.mkdirSync(generationDirectory, { recursive: true });
-    if (options.embeddingIndex) {
+    const currentEmbeddingsArtifact = getEmbeddingsFile(options.rootDir, options.rootDirs);
+    const currentShardManifest = readEmbeddingShardManifest(currentEmbeddingsArtifact);
+    if (options.embeddingIndex && embeddingShardsEnabled()) {
+      const shardsDirectory = path.join(generationDirectory, 'embeddings');
+      const written = writeEmbeddingShards(
+        options.embeddingIndex,
+        shardsDirectory,
+        currentShardManifest
+          ? { directory: currentEmbeddingsArtifact, manifest: currentShardManifest }
+          : null
+      );
+      embeddingIdentity = {
+        sha256: written.sha256,
+        bytes: written.manifest.shards.reduce((sum, shard) => sum + shard.bytes, 0),
+        mtimeMs: Date.now(),
+      };
+      publishedEmbeddingsFile = shardsDirectory;
+    } else if (options.embeddingIndex) {
       embeddingIdentity = saveEmbeddingsCache(
         options.embeddingIndex,
         options.rootDir,
@@ -5008,8 +5061,23 @@ function publishCacheGeneration(
         throw new Error('Unable to serialize the prepared embedding generation');
       }
       publishedEmbeddingsFile = embeddingsFile;
+    } else if (options.reuseCurrentEmbeddings && currentShardManifest) {
+      // Carry the current shard set forward by hard links: no bytes copied.
+      const shardsDirectory = path.join(generationDirectory, 'embeddings');
+      fs.mkdirSync(shardsDirectory, { recursive: true });
+      for (const name of fs.readdirSync(currentEmbeddingsArtifact)) {
+        fs.linkSync(path.join(currentEmbeddingsArtifact, name), path.join(shardsDirectory, name));
+      }
+      const sha256 = embeddingArtifactSha256(shardsDirectory);
+      if (!sha256) throw new Error('Unable to carry the current embedding shards forward');
+      embeddingIdentity = {
+        sha256,
+        bytes: currentShardManifest.shards.reduce((sum, shard) => sum + shard.bytes, 0),
+        mtimeMs: Date.now(),
+      };
+      publishedEmbeddingsFile = shardsDirectory;
     } else if (options.reuseCurrentEmbeddings) {
-      const currentEmbeddingsFile = getEmbeddingsFile(options.rootDir, options.rootDirs);
+      const currentEmbeddingsFile = currentEmbeddingsArtifact;
       if (fs.existsSync(currentEmbeddingsFile)) {
         const buffer = fs.readFileSync(currentEmbeddingsFile);
         atomicWriteFileSync(embeddingsFile, buffer);
@@ -5157,7 +5225,8 @@ async function loadEmbeddingsCache(
   providerInstance: any,
   rootDir?: string | null,
   expectedSha256?: string | null,
-  rootDirs?: string[] | null
+  rootDirs?: string[] | null,
+  options: { serve?: boolean } = {}
 ): Promise<any | null> {
   try {
     // A current graph envelope that explicitly has no bound embedding
@@ -5165,6 +5234,22 @@ async function loadEmbeddingsCache(
     if (expectedSha256 === null) return null;
     const embeddingsFile = getEmbeddingsFile(rootDir, rootDirs);
     if (!fs.existsSync(embeddingsFile)) return null;
+    const shardManifest = readEmbeddingShardManifest(embeddingsFile);
+    if (shardManifest) {
+      if (expectedSha256 && embeddingArtifactSha256(embeddingsFile) !== expectedSha256) {
+        console.warn(
+          `[CacheDebug][codebase] embedding shards do not match graph cache — discarding to avoid mixed graph/vector state.`
+        );
+        return null;
+      }
+      if (providerInstance?.name && providerInstance.name !== shardManifest.provider) return null;
+      const sharded = new ShardedEmbeddingIndex(embeddingsFile, shardManifest, {
+        indexOptions: { provider: providerInstance },
+        memoryBudgetBytes: embeddingShardMemoryBudgetBytes(),
+      });
+      // Serving reads shards on demand; build-side callers (refresh) need it whole.
+      return options.serve ? sharded : sharded.materialize();
+    }
     const buffer = fs.readFileSync(embeddingsFile);
     if (expectedSha256 && embeddingCacheSha256(buffer) !== expectedSha256) {
       console.warn(
@@ -6486,7 +6571,8 @@ async function hydrateGraphRAGFromDiskEmbeddings(
     providerObj,
     rootDir,
     expectedEmbeddingSha256,
-    rootDirs
+    rootDirs,
+    { serve: true }
   );
   if (!cachedIndex) return false;
 
@@ -6556,19 +6642,26 @@ async function buildEmbeddingIndexResumably(
       ? []
       : [paths.directory, ...listGenerationDirs(paths.generationsDirectory)];
   for (const dir of priorDirs) {
-    const file = path.join(dir, 'embeddings-cache.bin');
-    try {
-      candidates.push({ file, mtimeMs: fs.statSync(file).mtimeMs });
-    } catch {
-      /* no index in this generation */
+    for (const file of [path.join(dir, 'embeddings-cache.bin'), path.join(dir, 'embeddings')]) {
+      try {
+        candidates.push({ file, mtimeMs: fs.statSync(file).mtimeMs });
+      } catch {
+        /* no index of this layout in this generation */
+      }
     }
   }
   candidates.sort((left, right) => right.mtimeMs - left.mtimeMs);
   for (const candidate of candidates) {
     try {
-      const prior = mod.EmbeddingIndex.deserializeBinary(fs.readFileSync(candidate.file), {
-        provider: (idx as { provider?: unknown }).provider,
-      });
+      const priorProvider = (idx as { provider?: unknown }).provider;
+      const priorShards = readEmbeddingShardManifest(candidate.file);
+      const prior = priorShards
+        ? new ShardedEmbeddingIndex(candidate.file, priorShards, {
+            indexOptions: { provider: priorProvider as any },
+          }).materialize()
+        : mod.EmbeddingIndex.deserializeBinary(fs.readFileSync(candidate.file), {
+            provider: priorProvider,
+          });
       const entries = prior.reusableEmbeddings();
       if (await idx.verifyReusableEmbeddings(entries)) {
         seed.push(...entries);

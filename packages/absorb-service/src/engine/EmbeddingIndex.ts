@@ -1376,6 +1376,50 @@ export class EmbeddingIndex {
     });
   }
 
+  /** Embedding dimension, or 0 for an empty index. */
+  get dimension(): number {
+    return this.entries[0]?.embedding.length ?? 0;
+  }
+
+  /** Name of the provider that produced (and must query) these vectors. */
+  get providerName(): string {
+    return this.provider.name;
+  }
+
+  /**
+   * Split into sub-indexes by a key derived from each symbol's file path, for
+   * sharded storage (ShardedEmbeddingIndex). Sub-indexes share this index's
+   * provider and run without a worker pool; vectors are shared, not copied.
+   */
+  partitionByFile(keyForPath: (filePath: string) => string): Map<string, EmbeddingIndex> {
+    const groups = new Map<string, IndexedSymbol[]>();
+    for (const entry of this.entries) {
+      const key = keyForPath(entry.symbol.filePath);
+      const group = groups.get(key);
+      if (group) group.push(entry);
+      else groups.set(key, [entry]);
+    }
+    const parts = new Map<string, EmbeddingIndex>();
+    for (const [key, entries] of groups) {
+      const part = new EmbeddingIndex({
+        provider: this.provider,
+        batchSize: this.batchSize,
+        useWorkers: false,
+        graphTextTerms: this.graphTextTerms,
+      });
+      part.entries = entries;
+      parts.set(key, part);
+    }
+    return parts;
+  }
+
+  /** One index holding every entry of `parts`, in order (inverse of partitionByFile). */
+  static merge(parts: EmbeddingIndex[], options: EmbeddingIndexOptions): EmbeddingIndex {
+    const merged = new EmbeddingIndex(options);
+    merged.entries = parts.flatMap((part) => part.entries);
+    return merged;
+  }
+
   /** This index's vectors as reusable seed entries (for a later refresh elsewhere). */
   reusableEmbeddings(): ReusableEmbedding[] {
     return this.entries.map((entry) => ({ text: entry.text, embedding: entry.embedding }));
