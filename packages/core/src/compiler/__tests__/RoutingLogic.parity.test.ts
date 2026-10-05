@@ -25,13 +25,29 @@
 import { describe, it, expect } from 'vitest';
 import { QuestCompiler } from '../QuestCompiler';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
+import { QUEST_MR_COMPILED_LOGIC } from '../quest-mr-templates.generated';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, '..', '..', '..', '..', '..');
 const specPath = join(repoRoot, 'apps', 'quest-universal-qr-scanner', 'scanner.holo');
+const routingSourcePath = join(testDir, '..', 'quest-mr-logic', 'Routing.logic.hs');
+
+/**
+ * Today's Routing.logic.hs compiled now, through the committed pkg-node WASM, exactly as
+ * scripts/gen-quest-mr-templates.mjs compiles it. Everything else in this file reads the Kotlin
+ * that script generated earlier, which a stale or reverted .hs file leaves untouched.
+ */
+function freshRoutingKotlin(): string {
+  const require = createRequire(import.meta.url);
+  const wasm = require('@holoscript/wasm/node') as {
+    compile_to_kotlin(source: string, indent: string): string;
+  };
+  return wasm.compile_to_kotlin(readFileSync(routingSourcePath, 'utf8'), '  ');
+}
 
 function emittedActivityKt(): string {
   const spec = readFileSync(specPath, 'utf8');
@@ -302,6 +318,22 @@ const TRUTH: TruthRow[] = [
 
 describe('Routing .hs → Kotlin emission', () => {
   const kt = emittedActivityKt();
+
+  it('injects a fresh compile of the Routing.logic.hs in this tree, not a stale one', () => {
+    // Review of PR #444 (claude3): the checks below read only the generated Kotlin, so they all
+    // passed with the pre-migration Routing.logic.hs (the bare `intent.inferred ?? "deny"`), which
+    // no longer compiles. This compiles the file now and holds the generated constant, and the
+    // activity, to that output.
+    const fresh = freshRoutingKotlin();
+    expect(fresh.trimStart().startsWith('{"error"'), fresh).toBe(false);
+    expect(QUEST_MR_COMPILED_LOGIC['Routing']).toBe(fresh);
+    const nested = fresh
+      .replace(/\n+$/, '')
+      .split('\n')
+      .map((line) => (line.length === 0 ? line : '  ' + line))
+      .join('\n');
+    expect(kt).toContain(nested);
+  });
 
   it('injects the .hs-compiled Routing decision (enum + decideRoute, not hand-Kotlin, not empty)', () => {
     expect(kt).toContain('@generated from logic/Routing.logic.hs (compile_to_kotlin)');
