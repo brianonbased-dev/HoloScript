@@ -6,53 +6,84 @@ dockerfilePath = "infrastructure/Dockerfile.mcp-server"
 # redeploys mcp.holoscript.net. absorb-service provides the holo_* codebase/graph tools.
 # HoloMeaning is uaal's runtime verifier dependency; both must trigger a rebuild
 # so the deployed grader cannot retain a stale resolution contract.
-# Broader set (engine/mesh/holomap/llm-provider/secrets-broker/config) is also
-# bundled — left unwatched for now to avoid rebuild storms; revisit as a deploy-cadence call.
-# framework/** added 2026-07-13 (trust-audit): board-task logic (claim TTL reaper,
-# fabricated-evidence gate, claim cap) lives in packages/framework/src/board — a
-# framework-only board fix must redeploy the board server, or the gate silently drifts.
-# hololand-platform/** + runtime/** added: the holo_tunnel_create MCP tool dynamically
+# framework/** : board-task logic (claim TTL reaper, fabricated-evidence gate,
+# claim cap) lives in packages/framework/src/board — a framework-only board fix
+# must redeploy the board server, or the gate silently drifts.
+# hololand-platform/** + runtime/** : the holo_tunnel_create MCP tool dynamically
 # imports @hololand/platform-services (which pulls @holoscript/runtime) at runtime —
 # a fix in either must redeploy, or the tunnel handler ships a stale/broken build.
-watchPatterns = ["packages/mcp-server/**", "packages/core/**", "packages/compiler-wasm/**", "packages/meaning/**", "packages/uaal/**", "packages/hololand-platform/**", "packages/runtime/**", "packages/absorb-service/**", "packages/framework/**", "infrastructure/Dockerfile.mcp-server", "scripts/docker/**"]
+# Includes are the builder COPY set in infrastructure/Dockerfile.mcp-server plus
+# root workspace manifests (pnpm-lock.yaml, pnpm-workspace.yaml, package.json).
+# mesh declares many plugin workspace deps; only the three plugins this Dockerfile
+# COPY's are watched, because the others never enter the image.
+# Negations are gitignore-style and must follow an include rule
+# (https://docs.railway.com/builds/build-configuration#configure-watch-paths).
+watchPatterns = [
+  "packages/mcp-server/**",
+  "packages/core/**",
+  "packages/core-types/**",
+  "packages/crdt/**",
+  "packages/crdt-spatial/**",
+  "packages/agent-protocol/**",
+  "packages/compiler-wasm/**",
+  "packages/meaning/**",
+  "packages/uaal/**",
+  "packages/hololand-platform/**",
+  "packages/runtime/**",
+  "packages/holomap/**",
+  "packages/snn-webgpu/**",
+  "packages/engine/**",
+  "packages/framework/**",
+  "packages/cli/**",
+  "packages/llm-provider/**",
+  "packages/config/**",
+  "packages/holoembed/**",
+  "packages/secrets-broker/**",
+  "packages/memory/**",
+  "packages/absorb-service/**",
+  "packages/platform/**",
+  "packages/marketplace-api/**",
+  "packages/mesh/**",
+  "packages/holo-vm/**",
+  "packages/security-sandbox/**",
+  "packages/plugins/energy-grid-plugin/**",
+  "packages/plugins/fitness-wellness-plugin/**",
+  "packages/plugins/travel-hospitality-plugin/**",
+  "scripts/docker/**",
+  "infrastructure/Dockerfile.mcp-server",
+  "packages/mcp-server/railway.toml",
+  "/package.json",
+  "/pnpm-lock.yaml",
+  "/pnpm-workspace.yaml",
+  "/.npmrc",
+  "/tsconfig.json",
+  "/tsconfig.base.json",
+  # Manifests stage copies every workspace package.json and tsconfig*.json
+  # under packages/, services/, and benchmarks/ (not their source).
+  "packages/**/package.json",
+  "services/**/package.json",
+  "benchmarks/**/package.json",
+  "packages/**/tsconfig*.json",
+  "services/**/tsconfig*.json",
+  "benchmarks/**/tsconfig*.json",
+  "!**/*.md",
+  "!docs/**",
+  "!research/**",
+]
 
 [deploy]
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+# Was 30s. The process does not listen until the entrypoint finishes its SQL
+# migration and http-server.ts finishes vault hydration (load-env import),
+# tool-module import, initStores, mesh-registry restore, and attestation
+# hydration. The in-file keep-alive note cites ~14s once the process is up;
+# 30s does not cover a slow Postgres round-trip plus that import. 120s is
+# above the 100s already used by infrastructure/railway.mcp-server.toml and
+# still under Railway's 300s platform default.
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
-[env]
-NODE_ENV = "production"
-PORT = "3000"
-MCP_SERVER_SIZE = "standard"
-# P.009 — keep container warm to prevent ~14s cold-start on first MCP initialize.
-# Railway sleeps containers after ~5 min idle; self-ping at 4.5 min keeps it live.
-MCP_KEEP_ALIVE_ENABLED = "true"
-MCP_KEEP_ALIVE_INTERVAL_MS = "270000"
-# W.101 / task_1777114501690_h56d — point HOLOMESH_DATA_DIR at the persistent
-# volume mounted at /data/holomesh (see [[volumes]] block below). Without the
-# volume + this env, the CAEL audit JSONL store at <HOLOMESH_DATA_DIR>/audit/
-# (state.ts:121-144) wipes on every Railway redeploy and Paper 25 gate-clock
-# resets to 0. The state.ts loadCaelAuditFromDisk() rehydrate path (line 150)
-# is already correct — only the persistent mount was missing.
-HOLOMESH_DATA_DIR = "/data/holomesh"
-# Lane B (SSE): shorten heartbeats if proxies drop idle streams (ms, 5000–55000).
-# HOLOMESH_SSE_HEARTBEAT_MS = "15000"
-# Classic MCP SSE on Railway needs one replica or sticky routing; default is streamable HTTP.
-# MCP_ENABLE_SSE = "true"
-
-# W.101 — persistent volume for HOLOMESH_DATA_DIR (CAEL audit + defense state).
-# Declarative volumes are honored by Railway's deployment pipeline when the
-# project's plan supports them. If the volume does not auto-provision on first
-# deploy after this change lands, the founder must create it manually in the
-# Railway dashboard:
-#   Project: HoloScript (45da3535-e14d-4022-a57e-1e5a96ee48d0) per W.GOLD.034
-#   Service: mcp-server (098119b1-7832-4788-9ab2-3ced6c1cd2ab)
-#   Mount path: /data/holomesh
-#   Size: 1 GB is plenty for now (CAEL JSONL grows ~few KB per CAEL record;
-#         10K records/agent ring buffer cap at state.ts:118 caps total per
-#         handle; with ~36 agents the long-term ceiling is well under 100 MB).
-[[volumes]]
-name = "holomesh-data"
-mountPath = "/data/holomesh"
+# HOLOMESH_DATA_DIR is a Railway dashboard variable, set to the image default
+# /app/.holoscript/holomesh (infrastructure/Dockerfile.mcp-server:242). This
+# file does not set it. Live volume is /app/.holoscript.
