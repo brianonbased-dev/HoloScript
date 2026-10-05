@@ -8727,7 +8727,10 @@ async function runIncrementalPatch(
   let interactiveScene: any = null;
 
   if (outputFormat === 'holo' || interactive) {
-    const { HoloEmitter, CodebaseSceneCompiler } = mod;
+    const { HoloEmitter, CodebaseSceneCompiler, BrainCoordNodeMapper } = mod;
+    // v3 graph caches do not persist node positions; start from the same
+    // brain-coordinate layout a full scan populates before emission.
+    if (graph.nodePositions.size === 0) new BrainCoordNodeMapper().populate(graph);
     const emitter = new HoloEmitter();
     holoSource = emitter.emit(graph, {
       name: rootDir.split(/[/\\]/).pop() ?? 'codebase',

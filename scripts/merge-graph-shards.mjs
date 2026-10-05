@@ -197,6 +197,13 @@ for (const shard of shards) {
   // --- graph files[] ---
   const env = JSON.parse(fs.readFileSync(graphPath, 'utf-8'));
   const g = JSON.parse(env.graphJson);
+  if (g.version === 3) {
+    // v3 graphs store files in CompactGraphCodec column form with a per-graph
+    // string table; concatenating them would corrupt every record. Fail loud.
+    throw new Error(
+      `shard ${graphPath} is a v3 compact graph; this merger only concatenates v1/v2 files. Use CodebaseGraph.deserialize/serialize.`
+    );
+  }
   const files = g.files ?? [];
   for (const f of files) {
     await writeFilesChunk((graphFileCount === 0 ? '' : ',') + JSON.stringify(f));

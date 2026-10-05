@@ -198,7 +198,8 @@ describe('CodebaseGraph - Incremental Patching', () => {
       const serialized = graph.serialize();
       const data = JSON.parse(serialized);
 
-      expect(data.version).toBe(2);
+      // v3 since 2026-10-05: files in CompactGraphCodec form (CompactGraphCodec.test.ts).
+      expect(data.version).toBe(3);
       expect(data.gitCommitHash).toBe('abc123def456');
       expect(data.fileHashes).toEqual({ 'src/foo.ts': 'hash1', 'src/bar.ts': 'hash2' });
     });

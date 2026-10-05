@@ -112,6 +112,11 @@ async function withPg(fn) {
 function loadSymbols(limit) {
   const g = JSON.parse(fs.readFileSync(os.homedir() + '/.holoscript/graph-cache.json', 'utf8'));
   const gj = typeof g.graphJson === 'string' ? JSON.parse(g.graphJson) : g.graphJson;
+  if (gj.version === 3) {
+    // CompactGraphCodec column form: f.symbols is not an array. Fail loud
+    // rather than silently embedding nothing.
+    throw new Error('graph-cache.json holds a v3 compact graph; read it with CodebaseGraph.deserialize');
+  }
   const rootDir = g.rootDir || gj.rootDir || REPO;
   const gitCommit = g.gitCommitHash || gj.gitCommitHash || 'unknown';
   const syms = [];

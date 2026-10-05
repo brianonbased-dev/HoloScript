@@ -311,7 +311,13 @@ function readGraphCache(cachePath, packages) {
     if (!pkg) continue;
     const row = packageCounts.get(pkg.name) || { graphFiles: 0, graphSymbols: 0 };
     row.graphFiles += 1;
-    row.graphSymbols += Array.isArray(file.symbols) ? file.symbols.length : 0;
+    // v3 graph caches (CompactGraphCodec) store each record list as a column
+    // table { t: { k, s, r } }; the path stays a plain string on the file.
+    row.graphSymbols += Array.isArray(file.symbols)
+      ? file.symbols.length
+      : Array.isArray(file.symbols?.t?.r)
+        ? file.symbols.t.r.length
+        : 0;
     packageCounts.set(pkg.name, row);
   }
 
