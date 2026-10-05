@@ -30,6 +30,12 @@ import {
 import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
 import { validateCitations, type Citation } from '../engine/ProvenanceIntegrityGuard';
 import {
+  createRoutedAnswerProvider,
+  type AnsweredBy,
+  type AnswerRouteAttempt,
+  type RoutedAnswerProvider,
+} from './answer-routing';
+import {
   ABSORB_EMBEDDING_INDEX_ERROR,
   ABSORB_GRAPH_RAG_ENGINE_ERROR,
   ABSORB_HOLO_ABSORB_REPO_HINT,
@@ -46,6 +52,8 @@ export const HOLOLLAMA_SYNTHESIS_RECEIPT_SCHEMA = 'holoscript.absorb.holollama-s
 const HOLOLLAMA_PROFILES: HoloLlamaProfile[] = ['jetson-orin', 'laptop-windows', 'vast-linux-gpu'];
 
 type LLMProviderName = 'openrouter' | 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'holollama';
+/** 'routed': no provider pinned — registered devices, then configured spend, then retrieval-only. */
+type SynthesisProviderName = LLMProviderName | 'routed';
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -153,7 +161,7 @@ export const graphRagTools: Tool[] = [
   {
     name: 'holo_ask_codebase',
     description:
-      'Ask a natural language question about an absorbed codebase. Uses Graph RAG: combines semantic search with knowledge graph traversal to generate an accurate, cited answer. Returns the answer, citations (file:line), and supporting graph data. Requires a prior holo_absorb_repo call.',
+      'Ask a natural language question about an absorbed codebase. Uses Graph RAG: combines semantic search with knowledge graph traversal to generate an accurate, cited answer. Returns the answer, citations (file:line), supporting graph data, and answeredBy (which device or provider wrote the answer, or that none did and the result is retrieval only). Requires a prior holo_absorb_repo call.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -184,7 +192,7 @@ export const graphRagTools: Tool[] = [
           type: 'string',
           enum: ['openrouter', 'anthropic', 'openai', 'gemini', 'ollama', 'holollama'],
           description:
-            'LLM provider for answer generation. Default is HoloLlama, resolved through the HoloKey-aware HoloLlama profile/endpoint bridge. Cloud providers are explicit opt-in only.',
+            'LLM provider for answer generation. Default is HoloLlama on the hardware you registered (Studio / HoloShell device registry): a device on this computer that is up, then one on your local network, then a paid route only if you configured one (VAST_API_KEY, or HOLO_ALLOW_HOSTED_BRIDGE / HOLO_ALLOW_FRONTIER_FALLBACK), else a retrieval-only result. Naming a provider here, or setting holoLlamaEndpoint / holoLlamaProfile, pins it instead.',
         },
         llmApiKey: {
           type: 'string',
@@ -205,7 +213,7 @@ export const graphRagTools: Tool[] = [
         holoLlamaEndpoint: {
           type: 'string',
           description:
-            'OpenAI-compatible HoloLlama endpoint override used when llmProvider is "holollama" (default: HoloKey-aware HOLOLLAMA_ENDPOINT/env or the selected profile registry endpoint). Accepts a base URL, /v1 URL, or /v1/chat/completions URL.',
+            'OpenAI-compatible HoloLlama endpoint to answer with. When given it wins over device routing (implies llmProvider "holollama"). Default: HoloKey-aware HOLOLLAMA_ENDPOINT/env, else the registered device routing described under llmProvider. Accepts a base URL, /v1 URL, or /v1/chat/completions URL.',
         },
       },
       required: ['question'],
@@ -356,19 +364,27 @@ async function hydrateCachedVisualGraphStateFromCodebaseTools(): Promise<void> {
  * Bare holo_ask_codebase calls use sovereign HoloLlama. Cloud providers remain
  * available only through explicit tool args or provider override config.
  */
-async function detectDefaultLLMProvider(): Promise<LLMProviderName> {
+async function detectDefaultLLMProvider(): Promise<SynthesisProviderName> {
   const configured = (
     (await resolveFirstConfigSecret(
       'ABSORB_GRAPH_RAG_LLM_PROVIDER',
       'HOLO_LLM_PROVIDER',
       'BRITTNEY_PROVIDER'
-    )) ?? 'holollama'
+    )) ?? ''
   ).toLowerCase();
 
   switch (configured) {
     case '':
     case 'auto':
     case 'sovereign':
+      // A pinned HoloLlama endpoint or profile is an explicit choice and keeps the
+      // single-endpoint lane; otherwise route across the registered hardware.
+      if (
+        await resolveFirstConfigSecret('HOLOLLAMA_ENDPOINT', 'HOLOLLAMA_URL', 'HOLOLLAMA_PROFILE')
+      ) {
+        return 'holollama';
+      }
+      return 'routed';
     case 'holollama':
       return 'holollama';
     case 'openrouter':
@@ -867,6 +883,7 @@ async function buildExtractiveCodebaseAnswer(options: {
   holoLlamaReceipt?: HoloLlamaSynthesisReceipt;
   visualFocus?: VisualGraphFocus;
   fallbackReason: string;
+  routing?: AnswerRouteAttempt[];
 }): Promise<Record<string, unknown>> {
   const {
     engine,
@@ -878,6 +895,7 @@ async function buildExtractiveCodebaseAnswer(options: {
     holoLlamaReceipt,
     visualFocus,
     fallbackReason,
+    routing,
   } = options;
   const ragResult = await engine.query(question, { topK, language, type, visualFocus });
   const context = ragResult.results.slice(0, 10);
@@ -950,9 +968,44 @@ async function buildExtractiveCodebaseAnswer(options: {
     context: contextPayload(context),
     ...(ragResult.visualFocus ? { visualGraphEvidence: ragResult.visualFocus } : {}),
     llmProvider: effectiveProvider ?? 'ollama',
+    answeredBy: {
+      kind: 'retrieval-only',
+      summary:
+        'No answer model was reachable, so this is retrieval only: the matching code locations, not a written answer.',
+    } satisfies AnsweredBy,
+    ...(routing ? { routing } : {}),
     ...(holoLlamaReceipt ? { holoLlamaReceipt } : {}),
     fallback: 'extractive-graphrag',
     fallbackReason,
+  };
+}
+
+/** answeredBy for a pinned (non-routed) provider: an explicit endpoint, profile, or named provider. */
+function pinnedAnsweredBy(
+  provider: SynthesisProviderName,
+  model: string | undefined,
+  receipt: HoloLlamaSynthesisReceipt | undefined
+): AnsweredBy {
+  if (provider === 'holollama' && receipt) {
+    let endpoint = receipt.endpoint;
+    try {
+      endpoint = new URL(receipt.endpoint).origin;
+    } catch {
+      /* keep as given */
+    }
+    return {
+      kind: 'explicit-endpoint',
+      provider: 'holollama',
+      endpoint,
+      model: receipt.model,
+      summary: `Answered by ${receipt.model} at the HoloLlama endpoint you pinned (${endpoint}).`,
+    };
+  }
+  return {
+    kind: 'explicit-provider',
+    provider,
+    ...(model ? { model } : {}),
+    summary: `Answered by the ${provider} provider you selected.`,
   };
 }
 
@@ -975,8 +1028,13 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
     cachedGraphRAGEngine.graph,
     readStringArray(args.visualNodeIds)
   );
-  const effectiveProvider = llmProvider ?? (await detectDefaultLLMProvider());
+  // An explicit HoloLlama endpoint or profile wins over device routing.
+  const explicitHoloLlama =
+    !llmProvider && Boolean(stringArg(args.holoLlamaEndpoint) || stringArg(args.holoLlamaProfile));
+  const effectiveProvider: SynthesisProviderName =
+    llmProvider ?? (explicitHoloLlama ? 'holollama' : await detectDefaultLLMProvider());
   let holoLlamaReceipt: HoloLlamaSynthesisReceipt | undefined;
+  let routedProvider: RoutedAnswerProvider | undefined;
 
   try {
     // If a custom LLM provider is specified, create a new engine with that provider
@@ -989,7 +1047,13 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         // at construction; runtime invariant intact. (Fix 2026-04-25 to
         // unblock deploy.)
         let llmAdapter: LLMProvider;
-        if (effectiveProvider === 'holollama') {
+        if (effectiveProvider === 'routed') {
+          routedProvider = await createRoutedAnswerProvider({
+            model: llmModel,
+            anthropicKey: stringArg(await resolveConfigSecret('ANTHROPIC_API_KEY')) ?? null,
+          });
+          llmAdapter = routedProvider;
+        } else if (effectiveProvider === 'holollama') {
           const provider = await createHoloLlamaSynthesisProvider({
             profile: args.holoLlamaProfile,
             endpoint: args.holoLlamaEndpoint,
@@ -1118,7 +1182,13 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         visualReasons: r.visualReasons,
       })),
       ...(answer.visualFocus ? { visualGraphEvidence: answer.visualFocus } : {}),
-      llmProvider: effectiveProvider ?? 'ollama',
+      llmProvider: routedProvider
+        ? (routedProvider.answeredBy()?.provider ?? 'routed')
+        : (effectiveProvider ?? 'ollama'),
+      answeredBy:
+        routedProvider?.answeredBy() ??
+        pinnedAnsweredBy(effectiveProvider, llmModel, holoLlamaReceipt),
+      ...(routedProvider ? { routing: routedProvider.attempts() } : {}),
       ...(holoLlamaReceipt ? { holoLlamaReceipt } : {}),
     };
   } catch (err: unknown) {
@@ -1242,6 +1312,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         holoLlamaReceipt,
         visualFocus,
         fallbackReason: failureReason,
+        ...(routedProvider ? { routing: routedProvider.attempts() } : {}),
       });
     } catch (fallbackErr: unknown) {
       return {

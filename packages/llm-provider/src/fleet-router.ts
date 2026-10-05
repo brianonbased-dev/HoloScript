@@ -512,6 +512,15 @@ export function planFleetModelPlacement(
 
 // ── Endpoint resolution (sovereign-devices registry) ───────────────────────────
 
+/**
+ * The sovereign-devices registry directory: an explicit override, else
+ * `SOVEREIGN_DEVICES_DIR`, else `~/.ai-ecosystem/config/sovereign-devices` — the
+ * folder Studio / HoloShell device registration writes `<handle>.json` into.
+ */
+export function resolveSovereignDevicesDir(override?: string): string {
+  return registryDirDefault(override);
+}
+
 function registryDirDefault(override?: string): string {
   return (
     override ||
