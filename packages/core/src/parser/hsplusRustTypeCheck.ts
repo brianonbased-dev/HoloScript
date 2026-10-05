@@ -30,8 +30,13 @@ interface WasmValidate {
 export interface HsDocumentContext {
   /** Every `function` in the document. `arity` is left out when it is not a plain count. */
   functions: Array<{ name: string; arity?: number }>;
-  /** Structs, enums and imported names. */
+  /** Structs and imported names: they may be called. */
   names: string[];
+  /**
+   * Enums and modules: read through their members (`Route.A`, `GameState.addScore(p)`), never
+   * called. A checker built before this field ignores it.
+   */
+  namespaces: string[];
 }
 
 /** The fields of a `.hsplus` token that {@link collectHsDocumentContext} reads. */
@@ -167,15 +172,16 @@ function importedNames(list: ReadonlyArray<HsContextToken>, at: number, names: S
 }
 
 /**
- * Collect the document's functions (with their parameter counts), structs, enums and imported
- * names from its tokens. Declarations anywhere in the document count, nested ones included. A
- * function is listed without an arity when its count is not plain (see `parameterCount`) or it
+ * Collect the document's functions (with their parameter counts), structs, imported names, enums
+ * and modules from its tokens. Declarations anywhere in the document count, nested ones included.
+ * A function is listed without an arity when its count is not plain (see `parameterCount`) or it
  * is declared twice with different counts.
  */
 export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>): HsDocumentContext {
   const list = tokens.filter((token) => !SKIPPED.has(token.type));
   const arities = new Map<string, number | undefined>();
   const names = new Set<string>();
+  const namespaces = new Set<string>();
   const nextIndex = (index: number): number => {
     let j = index + 1;
     while (list[j]?.type === 'NEWLINE') j++;
@@ -192,9 +198,18 @@ export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>):
     if (previous && (previous.type === 'DOT' || previous.type === 'OPTIONAL_DOT')) continue;
     if (previous?.type === 'AT' && token.value !== 'import') continue;
 
-    if (token.value === 'struct' || token.value === 'enum') {
+    if (token.value === 'struct') {
       const nameToken = list[nextIndex(i)];
       if (isName(nameToken)) names.add(nameToken.value);
+      continue;
+    }
+    if (token.value === 'enum' || token.value === 'module') {
+      // `module` declares only as `module Name {`; elsewhere it is an ordinary word.
+      const at = nextIndex(i);
+      const nameToken = list[at];
+      if (isName(nameToken) && (token.value === 'enum' || list[nextIndex(at)]?.type === 'LBRACE')) {
+        namespaces.add(nameToken.value);
+      }
       continue;
     }
     if (token.value === 'import') {
@@ -226,6 +241,7 @@ export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>):
       arity === undefined ? { name } : { name, arity }
     ),
     names: [...names],
+    namespaces: [...namespaces],
   };
 }
 

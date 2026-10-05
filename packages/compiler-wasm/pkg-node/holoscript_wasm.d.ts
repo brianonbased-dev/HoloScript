@@ -196,10 +196,13 @@ export function validate_detailed(source: string): string;
 /**
  * [`validate_detailed`] for source lifted out of a larger document, the way the `.hsplus` reader
  * checks each typed function on its own. `context_json` names what the document declares, so a
- * use of it resolves: `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"]}`.
+ * use of it resolves:
+ * `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"],"namespaces":["Route"]}`.
  * `functions` are the document's functions; one listed without `arity` resolves by name and its
- * argument count is not checked. `names` are its structs, enums and imports. Both are optional.
- * A context that is not that JSON is refused rather than ignored.
+ * argument count is not checked. `names` are its structs and imports, which may be called.
+ * `namespaces` are its enums and modules, which are read through their members
+ * (`GameState.addScore(p)`) and never called. All three are optional. A context that is not that
+ * JSON is refused rather than ignored.
  */
 export function validate_detailed_in_context(source: string, context_json: string): string;
 
