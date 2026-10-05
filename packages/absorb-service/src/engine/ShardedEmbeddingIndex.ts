@@ -10,17 +10,21 @@
  * content changed (unchanged shards are hard-linked from the previous
  * generation).
  *
- * Results equal the unsharded index: lexical scores are per-entry (no corpus
- * statistics), every file lives in exactly one shard, and the final pick is the
- * same "best per file first, then fill" rule applied to the union of each
- * shard's top-K.
+ * Results equal the unsharded index: word scores use the whole index's word
+ * frequencies (written once as lexical-stats.json beside the shards and given
+ * to every shard), every file lives in exactly one shard, and the final pick
+ * is the same "best per file first, then fill" rule applied to the union of
+ * each shard's top-K.
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { EmbeddingIndex, type EmbeddingIndexOptions, type SearchResult } from './EmbeddingIndex';
+import type { LexicalCorpusStats } from './HybridRetrieval';
 
 export const EMBEDDING_SHARD_MANIFEST = 'embedding-shards.json';
+/** Whole-index word frequencies, so each shard scores words like the full index. */
+export const EMBEDDING_SHARD_LEXICAL_STATS = 'lexical-stats.json';
 export const EMBEDDING_SHARD_SCHEMA = 'holoscript.embedding-shards.v1';
 
 export interface EmbeddingShardEntry {
@@ -112,6 +116,10 @@ export function writeEmbeddingShards(
     totalEntries: index.size,
     shards,
   };
+  fs.writeFileSync(
+    path.join(directory, EMBEDDING_SHARD_LEXICAL_STATS),
+    JSON.stringify(index.lexicalCorpusStats())
+  );
   const json = JSON.stringify(manifest);
   fs.writeFileSync(path.join(directory, EMBEDDING_SHARD_MANIFEST), json);
   return {
@@ -133,6 +141,7 @@ export class ShardedEmbeddingIndex {
   private readonly loaded = new Map<string, { index: EmbeddingIndex; bytes: number }>();
   private loadedBytes = 0;
   private readonly budget: number;
+  private readonly lexicalStats?: LexicalCorpusStats;
 
   constructor(
     private readonly directory: string,
@@ -140,6 +149,14 @@ export class ShardedEmbeddingIndex {
     private readonly options: ShardedEmbeddingIndexOptions
   ) {
     this.budget = options.memoryBudgetBytes ?? 512 * 1024 * 1024;
+    try {
+      this.lexicalStats = JSON.parse(
+        fs.readFileSync(path.join(directory, EMBEDDING_SHARD_LEXICAL_STATS), 'utf-8')
+      ) as LexicalCorpusStats;
+    } catch {
+      // Shards written before lexical-stats.json score words per shard.
+      this.lexicalStats = undefined;
+    }
     const providerName = options.indexOptions.provider?.name;
     if (providerName && providerName !== manifest.provider) {
       throw new Error(
@@ -228,6 +245,7 @@ export class ShardedEmbeddingIndex {
       ...this.options.indexOptions,
       useWorkers: false,
     });
+    index.setLexicalCorpusStats(this.lexicalStats);
     this.loaded.set(shard.key, { index, bytes: buffer.length });
     this.loadedBytes += buffer.length;
     return index;

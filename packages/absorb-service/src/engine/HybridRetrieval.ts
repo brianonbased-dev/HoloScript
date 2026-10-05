@@ -21,6 +21,17 @@ export interface LexicalDocument {
   textTokenSet: Set<string>;
 }
 
+/**
+ * Document frequencies over a whole corpus. An index built over one part of a
+ * corpus (an embedding shard) scores with the whole corpus's statistics, so a
+ * sharded search ranks exactly like the unsharded one.
+ */
+export interface LexicalCorpusStats {
+  total: number;
+  name: Record<string, number>;
+  path: Record<string, number>;
+}
+
 export interface HybridLexicalEntry {
   symbol: ExternalSymbolDefinition;
   text?: string;
@@ -41,8 +52,12 @@ export class HybridLexicalIndex {
   private readonly exactPhrases = new Map<string, number[]>();
   private readonly nameTokenCounts: Uint16Array;
   private readonly stemTokenCounts: Uint16Array;
+  private readonly entryCount: number;
+  private readonly corpus?: LexicalCorpusStats;
 
-  constructor(entries: HybridLexicalEntry[]) {
+  constructor(entries: HybridLexicalEntry[], corpus?: LexicalCorpusStats) {
+    this.entryCount = entries.length;
+    this.corpus = corpus;
     this.nameTokenCounts = new Uint16Array(entries.length);
     this.stemTokenCounts = new Uint16Array(entries.length);
 
@@ -69,9 +84,19 @@ export class HybridLexicalIndex {
     if (query.tokens.length === 0) return new Map();
 
     const uniqueQueryTokens = Array.from(query.tokenSet);
-    const nameMatches = collectMatches(uniqueQueryTokens, this.namePostings);
-    const stemMatches = collectMatches(uniqueQueryTokens, this.stemPostings);
-    const pathMatches = collectMatches(uniqueQueryTokens, this.pathPostings);
+    // A question's words are not equally informative: "code" names thousands
+    // of symbols, "fingerprint" a handful. Matches are weighted by inverse
+    // document frequency, so a one-word symbol named `code` no longer scores
+    // like a near-exact hit for "how does the codebase decide whether a cached
+    // code map is still current" (measured 2026-10-05: such names filled the
+    // top 12 and the real freshness code was outside the top 40).
+    const nameIdf = this.idfWeights(uniqueQueryTokens, this.namePostings, this.corpus?.name);
+    const pathIdf = this.idfWeights(uniqueQueryTokens, this.pathPostings, this.corpus?.path);
+    const nameMatches = collectMatches(uniqueQueryTokens, this.namePostings, nameIdf);
+    const stemMatches = collectMatches(uniqueQueryTokens, this.stemPostings, pathIdf);
+    const pathMatches = collectMatches(uniqueQueryTokens, this.pathPostings, pathIdf);
+    const nameQueryWeight = sumValues(nameIdf);
+    const pathQueryWeight = sumValues(pathIdf);
     const exactMatches = this.collectExactMatches(query.tokens);
     const candidates = new Set<number>([
       ...nameMatches.keys(),
@@ -82,21 +107,28 @@ export class HybridLexicalIndex {
     const scores = new Map<number, LexicalMatchScore>();
 
     for (const index of candidates) {
-      const nameMatched = nameMatches.get(index) ?? 0;
-      const stemMatched = stemMatches.get(index) ?? 0;
-      const pathMatched = pathMatches.get(index) ?? 0;
+      const name = nameMatches.get(index) ?? NO_MATCH;
+      const stem = stemMatches.get(index) ?? NO_MATCH;
+      const path = pathMatches.get(index) ?? NO_MATCH;
       const exactEvidence = exactMatches.get(index);
       const exactMatch = Boolean(exactEvidence);
       const nameCount = this.nameTokenCounts[index] || 1;
       const stemCount = this.stemTokenCounts[index] || 1;
-      const queryCount = uniqueQueryTokens.length;
       const exactIntent = exactEvidence
         ? 1 - (exactEvidence.start / Math.max(1, query.tokens.length - 1)) * 0.5
         : 0;
+      // How much of the candidate the question explains, tempered by how much
+      // of the question (by information, not word count) the candidate covers.
+      const nameQueryCoverage = name.weight / nameQueryWeight;
+      const stemQueryCoverage = stem.weight / pathQueryWeight;
       const nameScore =
-        0.65 * (nameMatched / nameCount) + 0.25 * (nameMatched / queryCount) + 0.1 * exactIntent;
+        0.65 * Math.sqrt((name.count / nameCount) * nameQueryCoverage) +
+        0.25 * nameQueryCoverage +
+        0.1 * exactIntent;
       const fileScore =
-        0.65 * (stemMatched / stemCount) + 0.25 * (pathMatched / queryCount) + 0.1 * exactIntent;
+        0.65 * Math.sqrt((stem.count / stemCount) * stemQueryCoverage) +
+        0.25 * (path.weight / pathQueryWeight) +
+        0.1 * exactIntent;
       const score = roundScore(Math.min(1, Math.max(nameScore, fileScore)));
       scores.set(index, {
         score,
@@ -106,6 +138,41 @@ export class HybridLexicalIndex {
     }
 
     return scores;
+  }
+
+  /**
+   * ln(1 + N / df) per query token; a token no symbol carries gets the
+   * maximum. N and df come from the whole corpus when one was supplied.
+   */
+  private idfWeights(
+    tokens: string[],
+    postings: Map<string, number[]>,
+    corpusFrequencies?: Record<string, number>
+  ): Map<string, number> {
+    const total = Math.max(1, this.corpus?.total ?? this.entryCount);
+    const weights = new Map<string, number>();
+    for (const token of tokens) {
+      const df = corpusFrequencies
+        ? (corpusFrequencies[token] ?? 0)
+        : (postings.get(token)?.length ?? 0);
+      weights.set(token, Math.log(1 + total / Math.max(1, df)));
+    }
+    return weights;
+  }
+
+  /** This index's own document frequencies (name and path tokens). */
+  corpusStats(): LexicalCorpusStats {
+    if (this.corpus) return this.corpus;
+    const frequencies = (postings: Map<string, number[]>): Record<string, number> => {
+      const out: Record<string, number> = {};
+      for (const [token, list] of postings) out[token] = list.length;
+      return out;
+    };
+    return {
+      total: this.entryCount,
+      name: frequencies(this.namePostings),
+      path: frequencies(this.pathPostings),
+    };
   }
 
   private collectExactMatches(
@@ -235,9 +302,20 @@ export function scoreLexicalDocument(
 }
 
 /**
- * Probabilistic-OR-style fusion: lexical evidence can lift a vector result but
- * never lowers a good semantic match. Exact symbol/file names receive a stable
- * floor so downstream graph centrality cannot bury the user's named target.
+ * Probabilistic-OR fusion, 1 - (1 - v)(1 - l): lexical evidence can lift a
+ * vector result but never lowers a good semantic match. Exact symbol/file
+ * names receive a stable floor so downstream graph centrality cannot bury the
+ * user's named target.
+ *
+ * Word evidence used to count at 45% (v + (1 - v) * 0.45 * l). HoloEmbed
+ * vectors are subword features with a compressed cosine range, so that capped
+ * lift could not separate candidates: measured 2026-10-05 on HoloScript (138k
+ * symbols), unrelated trait handlers at v=0.76, l=0 outranked
+ * buildWorktreeFingerprintFreshnessStatus at v=0.69, l=0.63 for "graph cache
+ * freshness worktree fingerprint". The full OR is absolute (no per-index
+ * statistics), so scores from separately searched embedding shards still
+ * merge correctly. Lexical scores are IDF-weighted (HybridLexicalIndex), so a
+ * full-weight lift goes to informative words, not to "code" or "current".
  */
 export function fuseHybridScore(
   vectorScore: number,
@@ -247,7 +325,7 @@ export function fuseHybridScore(
   const boundedVector = clamp(vectorScore, 0, 1);
   const boundedLexical = clamp(lexicalScore, 0, 1);
   let fused =
-    boundedLexical > 0 ? boundedVector + (1 - boundedVector) * 0.45 * boundedLexical : vectorScore;
+    boundedLexical > 0 ? boundedVector + (1 - boundedVector) * boundedLexical : vectorScore;
 
   if (exactMatch) {
     fused = Math.max(fused, 0.99 + 0.01 * boundedLexical);
@@ -290,19 +368,40 @@ function addPhrase(target: Map<string, number[]>, tokens: string[], index: numbe
   else target.set(phrase, [index]);
 }
 
+interface TokenMatch {
+  count: number;
+  weight: number;
+}
+
+const NO_MATCH: TokenMatch = { count: 0, weight: 0 };
+
 function collectMatches(
   queryTokens: string[],
-  postingsByToken: Map<string, number[]>
-): Map<number, number> {
-  const matches = new Map<number, number>();
+  postingsByToken: Map<string, number[]>,
+  weights: Map<string, number>
+): Map<number, TokenMatch> {
+  const matches = new Map<number, TokenMatch>();
   for (const token of queryTokens) {
     const postings = postingsByToken.get(token);
     if (!postings) continue;
+    const weight = weights.get(token) ?? 1;
     for (const index of postings) {
-      matches.set(index, (matches.get(index) ?? 0) + 1);
+      const previous = matches.get(index);
+      if (previous) {
+        previous.count += 1;
+        previous.weight += weight;
+      } else {
+        matches.set(index, { count: 1, weight });
+      }
     }
   }
   return matches;
+}
+
+function sumValues(values: Map<string, number>): number {
+  let total = 0;
+  for (const value of values.values()) total += value;
+  return total || 1;
 }
 
 function fileStem(filePath: string): string {

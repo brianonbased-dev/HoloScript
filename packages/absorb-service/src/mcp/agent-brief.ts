@@ -90,6 +90,8 @@ const KEEP = [
   'filesChanged',
   'durationMs',
   'note',
+  'excerpts',
+  'fallbackReason',
   'notInGraph',
   'nearestNames',
   'matchMode',

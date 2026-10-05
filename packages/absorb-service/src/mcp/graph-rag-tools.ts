@@ -9,6 +9,8 @@
  * - holo_ask_codebase: Natural language Q&A with graph-enriched context
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
@@ -894,6 +896,61 @@ function handleVisualGraphContext(args: Record<string, unknown>): Record<string,
   };
 }
 
+const EXCERPT_MAX_LINES = 20;
+const EXCERPT_MAX_LINE_CHARS = 160;
+const EXCERPT_COUNT = 3;
+
+/**
+ * A bounded excerpt of an absorbed file at a symbol: up to 20 lines from its
+ * definition, each cut to 160 characters. Read only inside the graph's own
+ * root (the files the graph was built from), never from an arbitrary path.
+ */
+export function readSymbolExcerpt(
+  rootDir: string,
+  file: string,
+  line: number,
+  lineCount?: number
+): string | undefined {
+  if (!rootDir || !file || !(line >= 1)) return undefined;
+  const root = path.resolve(rootDir);
+  const target = path.resolve(root, file);
+  const relative = path.relative(root, target);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return undefined;
+  try {
+    const stat = fs.statSync(target);
+    if (!stat.isFile() || stat.size > 2 * 1024 * 1024) return undefined;
+    const lines = fs.readFileSync(target, 'utf-8').split(/\r?\n/);
+    // Start at the comment block directly above the definition, if any: it is
+    // usually the one sentence that says what the code is for.
+    let start = line - 1;
+    while (start > 0 && line - 1 - start < 8 && /^\s*(\/\*\*?|\*|\/\/)/.test(lines[start - 1])) {
+      start--;
+    }
+    const span = Math.min(EXCERPT_MAX_LINES, line - 1 - start + Math.max(1, lineCount ?? EXCERPT_MAX_LINES));
+    return lines
+      .slice(start, start + span)
+      .map((text) =>
+        text.length > EXCERPT_MAX_LINE_CHARS ? `${text.slice(0, EXCERPT_MAX_LINE_CHARS)}...` : text
+      )
+      .join('\n');
+  } catch {
+    return undefined;
+  }
+}
+
+function firstDocLine(docComment: string | undefined): string | undefined {
+  const line = docComment
+    ?.split(/\r?\n/)
+    .map((text) => text.replace(/^\s*(\/\*\*?|\*\/|\*|\/\/+)\s?/, '').trim())
+    .find((text) => text.length > 0);
+  return line ? line.slice(0, 200) : undefined;
+}
+
+/** Why the answer model was not used, naming the address that was tried. */
+function describeSynthesisFailure(reason: string, receipt?: HoloLlamaSynthesisReceipt): string {
+  return receipt?.chatCompletionsUrl ? `${reason} at ${receipt.chatCompletionsUrl}` : reason;
+}
+
 async function buildExtractiveCodebaseAnswer(options: {
   engine: GraphRAGEngine;
   question: string;
@@ -940,8 +997,21 @@ async function buildExtractiveCodebaseAnswer(options: {
 
   const citedLines = context.slice(0, 5).map((r, index) => {
     const signature = r.symbol.signature ? ` ${r.symbol.signature}` : '';
-    return `${index + 1}. ${contextName(r)} (${r.symbol.type}) at ${r.file}:${r.symbol.line}.${signature}`;
+    const doc = firstDocLine(r.symbol.docComment);
+    return `${index + 1}. ${contextName(r)} (${r.symbol.type}) at ${r.file}:${r.symbol.line}.${signature}${doc ? ` - ${doc}` : ''}`;
   });
+  // Without a model, the asking agent does the synthesis: give it the code.
+  // Tester agents (2026-10-05) got names and line numbers but no way to read
+  // what the code does, so "how does X work" stayed unanswered.
+  // Quoted only when the citations resolved to real spans in the graph.
+  const rootDir = guard.passed ? engine.graph.getRootDir() : '';
+  const excerpts = (guard.passed ? context : [])
+    .slice(0, EXCERPT_COUNT)
+    .map((r) => {
+      const code = readSymbolExcerpt(rootDir, r.file, r.symbol.line, r.symbol.lineCount);
+      return code ? { name: contextName(r), file: r.file, line: r.symbol.line, code } : undefined;
+    })
+    .filter((excerpt): excerpt is NonNullable<typeof excerpt> => excerpt !== undefined);
 
   return {
     question,
@@ -958,6 +1028,9 @@ async function buildExtractiveCodebaseAnswer(options: {
           `LLM generation was unavailable (${fallbackReason}); returning an extractive GraphRAG answer from cited code context.`,
           '',
           ...citedLines,
+          ...(excerpts.length > 0
+            ? ['', `The first ${excerpts.length} are quoted in excerpts so you can read what they do.`]
+            : []),
         ].join('\n')
       : null,
     ...(guard.passed
@@ -985,6 +1058,7 @@ async function buildExtractiveCodebaseAnswer(options: {
         : {}),
     },
     context: contextPayload(context),
+    ...(excerpts.length > 0 ? { excerpts } : {}),
     ...(ragResult.visualFocus ? { visualGraphEvidence: ragResult.visualFocus } : {}),
     llmProvider: effectiveProvider ?? 'ollama',
     ...(holoLlamaReceipt ? { holoLlamaReceipt } : {}),
@@ -1267,7 +1341,10 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         }
       }
     }
-    const failureReason = err instanceof Error ? err.message : String(err);
+    const failureReason = describeSynthesisFailure(
+      err instanceof Error ? err.message : String(err),
+      holoLlamaReceipt
+    );
     try {
       return await buildExtractiveCodebaseAnswer({
         engine: cachedGraphRAGEngine,

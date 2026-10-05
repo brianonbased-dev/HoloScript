@@ -573,6 +573,11 @@ export class CodebaseGraph {
     return Array.from(this.importedByFile.get(filePath) ?? []);
   }
 
+  /** The directory the graph was absorbed from (relative file paths resolve against it). */
+  getRootDir(): string {
+    return this.rootDir;
+  }
+
   /**
    * Get a scanned file by path.
    */

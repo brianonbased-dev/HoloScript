@@ -82,4 +82,30 @@ describe('HoloAbsorb hybrid retrieval scoring', () => {
     expect(scores.get(0)?.score).toBeLessThanOrEqual(1);
     expect(scores.get(1)?.score).toBeLessThanOrEqual(1);
   });
+
+  it('weights words by how rare they are, so a one-word name like `code` is not a near-exact hit for prose', () => {
+    const ts = (name: string, filePath: string) =>
+      symbol({ name, type: 'function', language: 'typescript', filePath });
+    const entries = [
+      { symbol: ts('buildWorktreeFingerprintFreshnessStatus', 'src/mcp/tools.ts') },
+      // "code" is a common name: 40 components each hold a value named code.
+      ...Array.from({ length: 40 }, (_, i) => ({ symbol: ts('code', `src/ui/Panel${i}.tsx`) })),
+      ...Array.from({ length: 40 }, (_, i) => ({ symbol: ts(`render${i}`, `src/ui/View${i}.tsx`) })),
+    ];
+    const scores = new HybridLexicalIndex(entries).score(
+      'how does the code decide whether the worktree fingerprint freshness is current'
+    );
+    const freshness = scores.get(0)?.score ?? 0;
+    const commonName = scores.get(1)?.score ?? 0;
+    expect(freshness).toBeGreaterThan(2 * commonName);
+    expect(commonName).toBeLessThan(0.25);
+  });
+
+  it('fuses as a probabilistic OR, so strong word evidence beats a slightly higher flat vector score', () => {
+    // Measured on HoloScript 2026-10-05: an unrelated trait handler at v=0.76
+    // with no word evidence outranked the right function at v=0.69, l=0.63.
+    expect(fuseHybridScore(0.69, 0.63, false)).toBeGreaterThan(fuseHybridScore(0.76, 0, false));
+    expect(fuseHybridScore(0.69, 0.63, false)).toBeCloseTo(1 - 0.31 * 0.37, 4);
+    expect(fuseHybridScore(0.8, 0, false)).toBe(0.8);
+  });
 });

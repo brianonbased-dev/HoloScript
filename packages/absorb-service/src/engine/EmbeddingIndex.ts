@@ -10,7 +10,12 @@
 import type { ExternalSymbolDefinition } from './types';
 import type { CodebaseGraph } from './CodebaseGraph';
 import type { EmbeddingProvider } from './providers/EmbeddingProvider';
-import { fuseHybridScore, HybridLexicalIndex, type HybridMatchKind } from './HybridRetrieval';
+import {
+  fuseHybridScore,
+  HybridLexicalIndex,
+  type HybridMatchKind,
+  type LexicalCorpusStats,
+} from './HybridRetrieval';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -309,6 +314,7 @@ const DEFAULT_GRAPH_TEXT_TERMS: Record<GraphTextTerm, boolean> = {
 export class EmbeddingIndex {
   private entries: IndexedSymbol[] = [];
   private lexicalIndex?: HybridLexicalIndex;
+  private lexicalCorpus?: LexicalCorpusStats;
   private provider: EmbeddingProvider;
   private batchSize: number;
   private useWorkers: boolean;
@@ -990,9 +996,23 @@ export class EmbeddingIndex {
 
   private startTime = 0;
 
+  /**
+   * Score words with a whole corpus's frequencies instead of this index's own
+   * (an embedding shard scoring like the full index it was cut from).
+   */
+  setLexicalCorpusStats(stats: LexicalCorpusStats | undefined): void {
+    this.lexicalCorpus = stats;
+    this.lexicalIndex = undefined;
+  }
+
+  /** Word frequencies over this index's entries (or the corpus it was given). */
+  lexicalCorpusStats(): LexicalCorpusStats {
+    return this.getLexicalIndex().corpusStats();
+  }
+
   private getLexicalIndex(): HybridLexicalIndex {
     if (!this.lexicalIndex) {
-      this.lexicalIndex = new HybridLexicalIndex(this.entries);
+      this.lexicalIndex = new HybridLexicalIndex(this.entries, this.lexicalCorpus);
     }
     return this.lexicalIndex;
   }
