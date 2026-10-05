@@ -2388,8 +2388,15 @@ export class HoloScriptPlusParser {
                   } as unknown as HSPlusNode);
                   continue;
                 } else {
-                  // backtrack
+                  // Not the `transition "event" -> "target"` form. Step back
+                  // to just after the name, where every branch below starts
+                  // (so `transition "name" { ... }` is read like any other
+                  // child block), the same way the method backtrack below
+                  // re-consumes its name. Stepping back to before the name
+                  // left `transition` unconsumed with no branch to take it,
+                  // and this loop met it again forever.
                   this.pos = saved;
+                  this.advance(); // re-consume the name
                 }
               }
 
@@ -2939,11 +2946,30 @@ export class HoloScriptPlusParser {
       if (this.check('LBRACE')) {
         this.advance(); // {
         namedImports = [];
+        // Every pass consumes exactly one token, so this loop always ends.
+        // It used to skip only names and commas, and spun forever on anything
+        // else: a line break in a list written over several lines, a quoted
+        // name, `* as ns`.
         while (!this.check('RBRACE') && !this.check('EOF')) {
-          if (this.check('IDENTIFIER')) {
+          const token = this.current();
+          if (token.type === 'IDENTIFIER') {
             namedImports.push(this.advance().value);
+          } else if (
+            token.type === 'COMMA' ||
+            token.type === 'NEWLINE' ||
+            token.type === 'INDENT' ||
+            token.type === 'DEDENT'
+          ) {
+            // Separators and layout. A list may span lines, as a .holo
+            // import list already may.
+            this.advance();
+          } else {
+            this.error(
+              `Expected a name in the import list, got ${token.type} "${token.value}"`,
+              'HSP002'
+            );
+            this.advance();
           }
-          if (this.check('COMMA')) this.advance();
         }
         this.expect('RBRACE', 'Expected } in named import list');
         // consume 'from' keyword (appears as IDENTIFIER)
