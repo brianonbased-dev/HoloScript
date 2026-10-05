@@ -2,12 +2,13 @@
 //
 // Native .hsplus surface for mesh-transport.ts (uaal).
 //
-// The uAAL ISA ships peer opcodes as inert extension points:
+// The uAAL ISA ships peer opcodes with no behaviour of their own (a program that reaches
+// one with no handler registered stops with [UAAL-UNHANDLED]; it does not skip it):
 //   CALL_NODE (0x21): request/response to peer
 //   OP_OFFLOAD (0x23): fire-and-forget to peer
 //   OP_SYNC (0x24): broadcast to all peers
 //
-// This module registers handlers on a UAALVirtualMachine — turning inert opcodes
+// This module registers handlers on a UAALVirtualMachine — turning those unhandled opcodes
 // into real fleet mesh calls through any MeshTransport implementation.
 //
 // MeshTransport (mesh-transport.ts):

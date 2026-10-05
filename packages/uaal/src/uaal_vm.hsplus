@@ -21,6 +21,9 @@
 //   error { message, pc, opcode? } says why a run ended in ERROR. An opcode with no built-in
 //   behaviour and no registered handler stops the run there ([UAAL-UNHANDLED]); it never
 //   pushes an invented value (2026-10-04; before, it pushed null and the run succeeded).
+//   Bytecode text in the message (an EXEC target; a malformed opcode, shown as INVALID(...)) is
+//   cut at 120 characters and escaped. A log recorded before this change that holds such a step
+//   replays invalid: the old VM completed the step, this one stops there.
 // VMProxy  { push, pop, peek, get_state }
 //
 // UAALVMOptions:

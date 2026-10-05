@@ -2,8 +2,9 @@
  * uAAL Mesh Transport — make the peer/mesh opcodes real.
  *
  * The uAAL ISA ships peer opcodes — CALL_NODE (0x21, request/response),
- * OP_OFFLOAD (0x23, fire-and-forget), OP_SYNC (0x24, broadcast) — but they are
- * inert extension points until a host registers handlers. This module wires
+ * OP_OFFLOAD (0x23, fire-and-forget), OP_SYNC (0x24, broadcast) — but they have
+ * no behaviour until a host registers handlers (a program that reaches one with
+ * none registered stops with [UAAL-UNHANDLED]; it does not skip it). This module wires
  * them to a pluggable `MeshTransport`, so a uAAL program running on one fleet
  * node (Jetson / laptop / Vast) can call, offload to, or sync with another.
  * That is "fleet agents communicating with each other" at the language level.
@@ -45,7 +46,7 @@ export interface MeshTransport {
 
 /**
  * Register the mesh opcode handlers on a VM. Handlers are checked before the
- * VM's built-in switch, so this turns the inert mesh opcodes into real calls.
+ * VM's built-in switch, so this turns the otherwise-unhandled mesh opcodes into real calls.
  */
 export function registerMeshHandlers(vm: UAALVirtualMachine, transport: MeshTransport): void {
   vm.registerHandler(UAALOpCode.CALL_NODE, async (proxy, operands) => {

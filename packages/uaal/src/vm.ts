@@ -52,14 +52,88 @@ export interface VMResult {
 export interface VMRunError {
   message: string;
   pc: number;
-  /** The opcode's name when the error is about one (an unhandled opcode, for example). */
+  /**
+   * The opcode's name when the error is about one (an unhandled opcode, for example). An
+   * instruction whose opcode is not a whole number reads INVALID(<its text, cut and escaped>).
+   */
   opcode?: string;
+}
+
+/**
+ * The most bytecode-supplied text (an EXEC target, a malformed opcode) one message carries.
+ * Hosts show these messages and bytecode can come from outside (marketplace templates are
+ * JSON.parsed, not validated), so such text is cut and escaped, never copied in verbatim.
+ */
+const MAX_MESSAGE_TEXT_CHARS = 120;
+
+/**
+ * Make untrusted text safe to show. Cut at MAX_MESSAGE_TEXT_CHARS (the full length is noted),
+ * then escape quotes, backslashes, control characters (newline, the ANSI escape), `<`, `>`, `&`
+ * and every non-ASCII character as \uXXXX, so it cannot split a log line, drive a terminal or
+ * inject markup.
+ */
+function safeMessageText(text: string): string {
+  const clipped =
+    text.length > MAX_MESSAGE_TEXT_CHARS ? text.slice(0, MAX_MESSAGE_TEXT_CHARS) : text;
+  const escaped = JSON.stringify(clipped)
+    .slice(1, -1)
+    .replace(/[<>&\u007f-\uffff]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`);
+  return clipped.length < text.length ? `${escaped}...(${text.length} chars)` : escaped;
+}
+
+/**
+ * Name an instruction's opcode for a message or a log line. Bytecode can arrive as unvalidated
+ * JSON, so the field may not be a number at all: only a whole number is looked up in the opcode
+ * table (an unlisted one reads UNKNOWN_0x..), and anything else reads INVALID(<its text>).
+ */
+function describeOpCode(opCode: unknown): string {
+  if (typeof opCode === 'number' && Number.isInteger(opCode)) {
+    return getUAALOpcodeName(opCode);
+  }
+  if (typeof opCode === 'string') {
+    return `INVALID("${safeMessageText(opCode)}")`;
+  }
+  let shown: string;
+  try {
+    shown =
+      typeof opCode === 'number' ? String(opCode) : (JSON.stringify(opCode) ?? String(opCode));
+  } catch {
+    shown = Object.prototype.toString.call(opCode);
+  }
+  return `INVALID(${safeMessageText(shown)})`;
+}
+
+/**
+ * The text of whatever was thrown: an Error's message, a string as it is, any other value as
+ * JSON (so a handler that throws `{ code: 42 }` reads `{"code":42}`, never `[object Object]`).
+ * An Error from another realm (a vm context, a jsdom window) is not `instanceof Error` here but
+ * still carries its message, so any object with a string `message` reads as that message.
+ * Never throws itself, so execute() keeps its promise of returning rather than rejecting.
+ */
+function describeThrown(thrown: unknown): string {
+  try {
+    if (thrown instanceof Error) return thrown.message;
+    if (typeof thrown === 'string') return thrown;
+    if (typeof thrown === 'object' && thrown !== null) {
+      const message = (thrown as { message?: unknown }).message;
+      if (typeof message === 'string') return message;
+    }
+    return JSON.stringify(thrown) ?? String(thrown);
+  } catch {
+    // No JSON form (circular, BigInt) or a getter that throws: fall back to the type tag.
+    try {
+      return Object.prototype.toString.call(thrown);
+    } catch {
+      return '[unprintable thrown value]';
+    }
+  }
 }
 
 /**
  * An opcode with no built-in behaviour and no handler registered by the host. Until 2026-10-04
  * the VM pushed null and carried on, so a missing host capability (an EXEC nobody handles)
- * ended the run as a success.
+ * ended the run as a success. `opcode` is the mnemonic (see describeOpCode); an EXEC's target is
+ * shown after it, cut and escaped.
  */
 export class UAALUnhandledOpcodeError extends Error {
   constructor(
@@ -67,7 +141,10 @@ export class UAALUnhandledOpcodeError extends Error {
     readonly pc: number,
     operands: readonly UAALOperand[] = []
   ) {
-    const target = opcode === 'EXEC' && typeof operands[0] === 'string' ? ` ${operands[0]}` : '';
+    const target =
+      opcode === 'EXEC' && typeof operands[0] === 'string'
+        ? ` ${safeMessageText(operands[0])}`
+        : '';
     super(
       `[UAAL-UNHANDLED] ${opcode}${target} at PC=${pc} has no built-in behaviour and no registered handler`
     );
@@ -451,27 +528,29 @@ export class UAALVirtualMachine {
   ): Promise<VMResult> {
     this.state = this.createInitialState(initialContext);
 
-    if (this.recordLog) {
-      this.logSteps = [];
-      this.logResult = null;
-      this.logStartedAt = Date.now();
-      this.logFinishedAt = 0;
-      this.logBytecodeSha256 = computeUAALBytecodeSha256(bytecode);
-      this.logInitialContext = cloneJsonSafe(initialContext, LOG_VALUE_DEPTH) as Record<
-        string,
-        UAALOperand
-      >;
-    }
-
-    if (this.enableLogging) {
-      this.log(
-        `Executing bytecode v${bytecode.version} (${bytecode.instructions.length} instructions)`
-      );
-    }
-
-    let instructionCount = 0;
-
+    // The setup is inside the try on purpose: a bytecode object with no instructions array makes
+    // the hash and the log line throw, and execute() must still return, never reject.
     try {
+      if (this.recordLog) {
+        this.logSteps = [];
+        this.logResult = null;
+        this.logStartedAt = Date.now();
+        this.logFinishedAt = 0;
+        this.logBytecodeSha256 = computeUAALBytecodeSha256(bytecode);
+        this.logInitialContext = cloneJsonSafe(initialContext, LOG_VALUE_DEPTH) as Record<
+          string,
+          UAALOperand
+        >;
+      }
+
+      if (this.enableLogging) {
+        this.log(
+          `Executing bytecode v${bytecode.version} (${bytecode.instructions.length} instructions)`
+        );
+      }
+
+      let instructionCount = 0;
+
       while (!this.state.isHalted && this.state.pc < bytecode.instructions.length) {
         if (instructionCount >= this.maxInstructions) {
           this.log('Max instructions reached — halting');
@@ -499,11 +578,11 @@ export class UAALVirtualMachine {
       return this.finishRun(this.buildResult(this.state.isHalted ? 'HALTED' : 'HALTED'));
     } catch (err) {
       if (this.enableLogging) {
-        this.log(`Execution error: ${err}`);
+        this.log(`Execution error: ${describeThrown(err)}`);
       }
       return this.finishRun(
         this.buildResult('ERROR', {
-          message: err instanceof Error ? err.message : String(err),
+          message: describeThrown(err),
           pc: this.state.pc,
           ...(err instanceof UAALUnhandledOpcodeError ? { opcode: err.opcode } : {}),
         })
@@ -662,7 +741,7 @@ export class UAALVirtualMachine {
     const entry: UAALLogStep = {
       step: stepIndex,
       opcode: instr.opCode,
-      opcodeName: getUAALOpcodeName(instr.opCode),
+      opcodeName: describeOpCode(instr.opCode),
       operands: cloneJsonSafe(instr.operands ?? [], LOG_VALUE_DEPTH) as UAALOperand[],
       pc: pcBefore,
       stackBefore: boundedStackSnapshot(this.state.stack),
@@ -747,7 +826,7 @@ export class UAALVirtualMachine {
 
     if (this.enableLogging) {
       this.log(
-        `[PC=${this.state.pc}] ${getUAALOpcodeName(instr.opCode)} ${operands.length > 0 ? JSON.stringify(operands) : ''}`
+        `[PC=${this.state.pc}] ${describeOpCode(instr.opCode)} ${operands.length > 0 ? JSON.stringify(operands) : ''}`
       );
     }
 
@@ -917,11 +996,13 @@ export class UAALVirtualMachine {
       // ── Default: an opcode nobody implements stops the run ──
       // No built-in case and no registered handler: refuse, never invent a value. Pushing null
       // let a missing host capability (an unhandled EXEC) end the run as a success.
-      default:
+      default: {
+        const name = describeOpCode(instr.opCode);
         if (this.enableLogging) {
-          this.log(`Unhandled opcode: ${getUAALOpcodeName(instr.opCode)}`);
+          this.log(`Unhandled opcode: ${name}`);
         }
-        throw new UAALUnhandledOpcodeError(getUAALOpcodeName(instr.opCode), this.state.pc, operands);
+        throw new UAALUnhandledOpcodeError(name, this.state.pc, operands);
+      }
     }
   }
 
@@ -996,7 +1077,7 @@ export async function replayUAALLog(
     maxInstructions: log.limits?.maxInstructions,
     maxCallDepth: log.limits?.maxCallDepth,
   });
-  await vm.execute(bytecode, (log.initialContext ?? {}) as Record<string, UAALOperand>);
+  const run = await vm.execute(bytecode, (log.initialContext ?? {}) as Record<string, UAALOperand>);
   const replayed = vm.exportLog();
 
   const stepCount = Math.max(log.steps.length, replayed.steps.length);
@@ -1011,11 +1092,17 @@ export async function replayUAALLog(
       };
     }
     if (stableStringify(claimed) !== stableStringify(actual)) {
+      // A log recorded before an unhandled opcode stopped the run claims the step completed
+      // while the replay stops there; the two steps then read alike, so say what stopped it.
+      const stoppedHere =
+        actual.threw === true && claimed.threw !== true && run.error
+          ? `; the replay stopped here: ${run.error.message}`
+          : '';
       return {
         valid: false,
         reason:
           `divergence at step ${i}: claimed ${claimed.opcodeName} @ pc=${claimed.pc}, ` +
-          `replay produced ${actual.opcodeName} @ pc=${actual.pc}`,
+          `replay produced ${actual.opcodeName} @ pc=${actual.pc}${stoppedHere}`,
         divergenceStep: i,
       };
     }

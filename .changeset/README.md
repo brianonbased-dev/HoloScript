@@ -12,11 +12,9 @@ Follow the prompts to select the packages that changed and describe the changes.
 
 ## Version lanes
 
-Packages are grouped into lanes per `scripts/version-policy.json`:
+Which packages share a release line is defined in two files. Read them; a copy of the lists here goes stale (this section once named lanes and packages that no longer exist):
 
-- **platform-v5** (fixed): core, cli, agent-protocol, agent-sdk, holo-vm, snn-webgpu, uaal, vm-bridge
-- **tooling-v3** (linked): benchmark, formatter, fs, linter, lsp, mcp-server, registry, runtime, std, test, visual, wasm
-- **services-v1**: ai-validator, animation-presets, compiler, crdt, engine, intelligence, etc.
-- **experimental-v0**: studio, r3f-renderer, adapter-postgres, auth, graphql-api
+- `scripts/version-policy.json`: the lanes, each with its packages and target major.
+- `.changeset/config.json`: the `fixed` and `linked` groups, which decide what bumps together.
 
 Fixed groups always bump together. Linked groups bump together only when one has a major/minor change.

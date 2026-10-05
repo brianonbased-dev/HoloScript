@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { runInNewContext } from 'node:vm';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   UAALVirtualMachine,
   UAALCompiler,
@@ -9,7 +10,13 @@ import {
   isControlFlowOp,
   replayUAALLog,
 } from '../index';
-import type { UAALBytecode, UAALOperand, VMProxy } from '../index';
+import type {
+  UAALBytecode,
+  UAALExecutionLog,
+  UAALInstruction,
+  UAALOperand,
+  VMProxy,
+} from '../index';
 
 // =============================================================================
 // OPCODE TESTS
@@ -771,9 +778,9 @@ describe('Brittney/Infinity Hybrid Loop Hooks (anti-regression for studio bindin
     // harness), the VM must not throw out of execute(), and the host must be able to show a
     // clear error. Until 2026-10-04 the VM pushed null and HALTED, and the contract was "a null
     // stackTop after OP_INVOKE_LLM means no LLM configured". No binding read that null: on
-    // 2026-10-04 nothing in HoloScript (Studio, services, engine, mcp-server, framework,
-    // llm-provider), Hololand or ai-ecosystem used OP_INVOKE_LLM or ran this VM's results.
-    // The reason is now explicit on the result.
+    // 2026-10-04 no code in HoloScript (Studio, services, engine, mcp-server, framework,
+    // llm-provider), Hololand or ai-ecosystem used OP_INVOKE_LLM, and the one host that does,
+    // uaa2-service, registers its own handler for it. The reason is now explicit on the result.
     const vm = new UAALVirtualMachine();
     const program: UAALBytecode = {
       version: 1,
@@ -787,7 +794,8 @@ describe('Brittney/Infinity Hybrid Loop Hooks (anti-regression for studio bindin
     const result = await vm.execute(program);
     expect(result.taskStatus).toBe('ERROR');
     expect(result.error).toEqual({
-      message: '[UAAL-UNHANDLED] OP_INVOKE_LLM at PC=1 has no built-in behaviour and no registered handler',
+      message:
+        '[UAAL-UNHANDLED] OP_INVOKE_LLM at PC=1 has no built-in behaviour and no registered handler',
       pc: 1,
       opcode: 'OP_INVOKE_LLM',
     });
@@ -799,6 +807,39 @@ describe('Brittney/Infinity Hybrid Loop Hooks (anti-regression for studio bindin
 // =============================================================================
 // UNHANDLED OPCODES REFUSE (2026-10-04, board task so3q)
 // =============================================================================
+
+// The 23 opcodes vm.ts implements itself. Every other opcode in UAALOpCode has no behaviour of its
+// own: with no handler registered it stops the run. Adding a built-in case to vm.ts means listing
+// its opcode here (the test below says so); adding an opcode to the enum needs nothing, it refuses.
+const BUILT_IN_OPCODES: readonly UAALOpCode[] = [
+  UAALOpCode.PUSH,
+  UAALOpCode.POP,
+  UAALOpCode.PEEK,
+  UAALOpCode.INTAKE,
+  UAALOpCode.REFLECT,
+  UAALOpCode.COMPRESS,
+  UAALOpCode.EXECUTE,
+  UAALOpCode.REINTAKE,
+  UAALOpCode.GROW,
+  UAALOpCode.EVOLVE,
+  UAALOpCode.JUMP,
+  UAALOpCode.JUMP_IF,
+  UAALOpCode.CALL,
+  UAALOpCode.RET,
+  UAALOpCode.HALT,
+  UAALOpCode.OP_TIMESTAMP,
+  UAALOpCode.OP_TIME_DELTA,
+  UAALOpCode.OP_DELAY,
+  UAALOpCode.OP_STATE_SET,
+  UAALOpCode.OP_STATE_GET,
+  UAALOpCode.OP_CHECKPOINT,
+  UAALOpCode.OP_ERROR,
+  UAALOpCode.OP_ASSERT,
+];
+const ALL_OPCODES = Object.values(UAALOpCode).filter(
+  (value): value is UAALOpCode => typeof value === 'number'
+);
+const NO_BUILT_IN_OPCODES = ALL_OPCODES.filter((opCode) => !BUILT_IN_OPCODES.includes(opCode));
 
 describe('an opcode with no behaviour and no handler stops the run', () => {
   const run = (instructions: UAALBytecode['instructions'], vm = new UAALVirtualMachine()) =>
@@ -837,11 +878,194 @@ describe('an opcode with no behaviour and no handler stops the run', () => {
     expect(result.stackTop).toBe('handled');
   });
 
-  it('every opcode with no built-in case refuses the same way', async () => {
-    for (const opCode of [UAALOpCode.OP_BECOME_SENTIENT, UAALOpCode.OP_GRAPH_START, UAALOpCode.OP_HS_BUFFER_ALLOC]) {
+  it('all 72 opcodes with no built-in case refuse the same way, and the 23 built-ins still run', async () => {
+    // The census, pinned: 95 opcodes, 23 built in, 72 with no behaviour. A list of names in each
+    // assertion, so a failure shows every opcode that is wrong, not the first.
+    expect(ALL_OPCODES).toHaveLength(95);
+    expect(BUILT_IN_OPCODES).toHaveLength(23);
+    expect(NO_BUILT_IN_OPCODES).toHaveLength(72);
+
+    const notRefused: string[] = [];
+    const wrongReport: string[] = [];
+    for (const opCode of NO_BUILT_IN_OPCODES) {
+      const name = getUAALOpcodeName(opCode);
+      const result = await run([
+        { opCode: UAALOpCode.PUSH, operands: ['before'] },
+        { opCode, operands: [] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ]);
+      if (result.taskStatus !== 'ERROR') {
+        notRefused.push(name);
+        continue;
+      }
+      const report = JSON.stringify({
+        error: result.error,
+        stack: result.state.stack,
+        pc: result.state.pc,
+      });
+      const expected = JSON.stringify({
+        error: {
+          message: `[UAAL-UNHANDLED] ${name} at PC=1 has no built-in behaviour and no registered handler`,
+          pc: 1,
+          opcode: name,
+        },
+        stack: ['before'],
+        pc: 1,
+      });
+      if (report !== expected) wrongReport.push(name);
+    }
+    expect(notRefused, 'no built-in case, no handler, yet the run did not stop').toEqual([]);
+    expect(wrongReport, 'stopped, but with the wrong reason, pc or stack').toEqual([]);
+
+    // The other side: none of the 23 built-ins is caught by the refusal (OP_ERROR and OP_ASSERT
+    // fail on their own terms, never as [UAAL-UNHANDLED]). If this lists an opcode, it lost its
+    // case in vm.ts, or it is not built in and belongs in the 72.
+    const refusedBuiltIns: string[] = [];
+    for (const opCode of BUILT_IN_OPCODES) {
       const result = await run([{ opCode, operands: [] }]);
-      expect(result.taskStatus, getUAALOpcodeName(opCode)).toBe('ERROR');
-      expect(result.error?.opcode).toBe(getUAALOpcodeName(opCode));
+      if (result.error?.message.startsWith('[UAAL-UNHANDLED]')) {
+        refusedBuiltIns.push(getUAALOpcodeName(opCode));
+      }
+    }
+    expect(refusedBuiltIns, 'listed as built in, but the VM refuses it').toEqual([]);
+  });
+
+  it('a registered handler runs for every opcode: the refusal is only for opcodes nobody handles', async () => {
+    const notHandled: string[] = [];
+    for (const opCode of ALL_OPCODES) {
+      const vm = new UAALVirtualMachine();
+      vm.registerHandler(opCode, (proxy) => {
+        proxy.push('handled');
+      });
+      const result = await run([{ opCode, operands: [] }], vm);
+      if (
+        result.taskStatus !== 'HALTED' ||
+        result.error !== undefined ||
+        result.stackTop !== 'handled'
+      ) {
+        notHandled.push(getUAALOpcodeName(opCode));
+      }
+    }
+    expect(notHandled).toEqual([]);
+  });
+
+  it('the run stops at the unhandled opcode: what ran before it stays, nothing after it runs', async () => {
+    // A payment that follows a missing capability must not go through; an effect that already
+    // happened is not rolled back.
+    const vm = new UAALVirtualMachine();
+    const ran: string[] = [];
+    vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, () => {
+      ran.push('plan');
+    });
+    vm.registerHandler(UAALOpCode.OP_EXECUTE_PAYMENT, () => {
+      ran.push('payment');
+    });
+    const result = await run(
+      [
+        { opCode: UAALOpCode.OP_INVOKE_LLM, operands: ['plan'] },
+        { opCode: UAALOpCode.EXEC, operands: ['holo.absorb.manifest_audit_passes.v1'] },
+        { opCode: UAALOpCode.OP_EXECUTE_PAYMENT, operands: [5] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+      vm
+    );
+    expect(result.taskStatus).toBe('ERROR');
+    expect(result.error?.pc).toBe(1);
+    expect(ran).toEqual(['plan']);
+  });
+
+  it('reports the failing instruction even inside a callee, and the VM runs the next program clean', async () => {
+    const vm = new UAALVirtualMachine();
+    const result = await run(
+      [
+        { opCode: UAALOpCode.CALL, operands: [3] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+        { opCode: UAALOpCode.PUSH, operands: ['in callee'] },
+        { opCode: UAALOpCode.OP_TRANSCEND, operands: [] },
+      ],
+      vm
+    );
+    expect(result.taskStatus).toBe('ERROR');
+    expect(result.error).toMatchObject({ pc: 4, opcode: 'OP_TRANSCEND' });
+    expect(result.state.pc).toBe(4);
+    // The callee's frame is where the program stopped; the stack top is the last real value.
+    expect(result.state.callStack).toEqual([1]);
+    expect(result.stackTop).toBe('in callee');
+
+    const next = await run(
+      [
+        { opCode: UAALOpCode.PUSH, operands: ['next'] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+      vm
+    );
+    expect(next.taskStatus).toBe('HALTED');
+    expect(next.error).toBeUndefined();
+    expect(next.state.callStack).toEqual([]);
+    expect(next.state.stack).toEqual(['next']);
+  });
+
+  it('a malformed or unlisted opcode is refused under a readable name, never a TypeError', async () => {
+    // Marketplace bytecode is JSON.parsed with no validation, so the opCode field can hold anything.
+    const cases: Array<[unknown, string]> = [
+      [undefined, 'INVALID(undefined)'],
+      [null, 'INVALID(null)'],
+      ['EXEC', 'INVALID("EXEC")'],
+      ['constructor', 'INVALID("constructor")'],
+      [32.5, 'INVALID(32.5)'],
+      [Number.NaN, 'INVALID(NaN)'],
+      [{}, 'INVALID({})'],
+      [0x99, 'UNKNOWN_0x99'],
+    ];
+    for (const [opCode, name] of cases) {
+      const result = await run([{ opCode } as unknown as UAALInstruction]);
+      expect(result.taskStatus, name).toBe('ERROR');
+      expect(result.error, name).toEqual({
+        message: `[UAAL-UNHANDLED] ${name} at PC=0 has no built-in behaviour and no registered handler`,
+        pc: 0,
+        opcode: name,
+      });
+    }
+  });
+
+  it('a malformed opcode is named the same way in the debug log and in a recorded log', async () => {
+    const bad = { opCode: undefined } as unknown as UAALInstruction;
+
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const logged = await run([bad], new UAALVirtualMachine({ enableLogging: true }));
+      expect(logged.error?.opcode).toBe('INVALID(undefined)');
+      const lines = consoleLog.mock.calls.map((call) => String(call[0]));
+      expect(lines).toContain('[uAAL-VM] Unhandled opcode: INVALID(undefined)');
+    } finally {
+      consoleLog.mockRestore();
+    }
+
+    const recorder = new UAALVirtualMachine({ recordLog: true });
+    const recorded = await run([bad], recorder);
+    expect(recorded.error?.opcode).toBe('INVALID(undefined)');
+    const [step] = recorder.exportLog().steps;
+    expect(step.opcodeName).toBe('INVALID(undefined)');
+    expect(step.threw).toBe(true);
+  });
+
+  it('execute() returns, never rejects, even when the bytecode object itself is malformed', async () => {
+    // With recordLog or enableLogging on, the setup (the bytecode hash, the log line) used to run
+    // before the try block, so a bytecode with no instructions array rejected instead of ending ERROR.
+    const noInstructions = { version: 1 } as unknown as UAALBytecode;
+    const nullInstruction = { version: 1, instructions: [null] } as unknown as UAALBytecode;
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      for (const options of [{}, { recordLog: true }, { enableLogging: true }]) {
+        for (const bytecode of [noInstructions, nullInstruction]) {
+          const result = await new UAALVirtualMachine(options).execute(bytecode);
+          expect(result.taskStatus, JSON.stringify(options)).toBe('ERROR');
+          expect(result.error?.message, JSON.stringify(options)).toMatch(/\S/);
+        }
+      }
+    } finally {
+      consoleLog.mockRestore();
     }
   });
 
@@ -882,6 +1106,146 @@ describe('an opcode with no behaviour and no handler stops the run', () => {
     expect(log.steps[1].threw).toBe(true);
     const replayed = await replayUAALLog(program, log);
     expect(replayed.valid).toBe(true);
+  });
+
+  it('a log recorded before the refusal now replays invalid, and the reason says what stopped it', async () => {
+    // Recorded by origin/main's VM (2e355cb78), which replays it as valid: there the EXEC step
+    // pushed null and the run ended HALTED. Here the replay stops at the EXEC, so the claimed and
+    // the replayed step read alike and the reason has to carry the difference.
+    const program: UAALBytecode = {
+      version: 1,
+      instructions: [
+        { opCode: UAALOpCode.PUSH, operands: [1] },
+        { opCode: UAALOpCode.EXEC, operands: ['holo.absorb.manifest_audit_passes.v1'] },
+        { opCode: UAALOpCode.HALT, operands: [] },
+      ],
+    };
+    const oldLog: UAALExecutionLog = {
+      version: 'uaal.execution-log.v0',
+      bytecodeSha256: '54e2a2fa24657333521e3d7bc00de7db303ebd3e605467c14c494ed098bb9ac9',
+      initialContext: {},
+      limits: { maxStackSize: 4096, maxInstructions: 100000, maxCallDepth: 1000 },
+      steps: [
+        {
+          step: 0,
+          opcode: UAALOpCode.PUSH,
+          opcodeName: 'PUSH',
+          operands: [1],
+          pc: 0,
+          stackBefore: { depth: 0, top: [] },
+          stackAfter: { depth: 1, top: [1] },
+        },
+        {
+          step: 1,
+          opcode: UAALOpCode.EXEC,
+          opcodeName: 'EXEC',
+          operands: ['holo.absorb.manifest_audit_passes.v1'],
+          pc: 1,
+          stackBefore: { depth: 1, top: [1] },
+          stackAfter: { depth: 2, top: [1, null] },
+        },
+        {
+          step: 2,
+          opcode: UAALOpCode.HALT,
+          opcodeName: 'HALT',
+          operands: [],
+          pc: 2,
+          stackBefore: { depth: 2, top: [1, null] },
+          stackAfter: { depth: 2, top: [1, null] },
+        },
+      ],
+      result: { taskStatus: 'HALTED', stackTop: null },
+      startedAt: 0,
+      finishedAt: 0,
+    };
+    const verdict = await replayUAALLog(program, oldLog);
+    expect(verdict.valid).toBe(false);
+    expect(verdict.divergenceStep).toBe(1);
+    expect(verdict.reason).toBe(
+      'divergence at step 1: claimed EXEC @ pc=1, replay produced EXEC @ pc=1; ' +
+        'the replay stopped here: [UAAL-UNHANDLED] EXEC holo.absorb.manifest_audit_passes.v1 at PC=1 ' +
+        'has no built-in behaviour and no registered handler'
+    );
+  });
+
+  it('an EXEC target is cut and escaped in the message, however hostile', async () => {
+    // The target comes from bytecode, and a host will show the message (task dt3t).
+    const hostile =
+      'line one\nline two \u001b[31mred\u001b[0m <img src=x onerror=alert(1)> & "quoted" \\ ' +
+      'x'.repeat(200_000);
+    const result = await run([{ opCode: UAALOpCode.EXEC, operands: [hostile] }]);
+    expect(result.taskStatus).toBe('ERROR');
+    const message = result.error?.message ?? '';
+    // Cut: the fixed text is about 80 characters and the target is cut at 120, so this is short.
+    expect(message.length).toBeLessThan(320);
+    expect(message).toContain(`...(${hostile.length} chars)`);
+    // Escaped: nothing a terminal, a log line or an HTML page would act on is left raw.
+    expect(message).not.toMatch(/[\u0000-\u001f\u007f<>&]/);
+    expect(message).toContain('line one\\nline two \\u001b[31mred\\u001b[0m ');
+    expect(message).toContain(
+      '\\u003cimg src=x onerror=alert(1)\\u003e \\u0026 \\"quoted\\" \\\\ '
+    );
+  });
+
+  it('a handler that throws something other than an Error still gives a readable reason', async () => {
+    // An Error from another realm (a vm context, a jsdom window) is not `instanceof Error` here,
+    // but it still has its message.
+    const foreignError: unknown = runInNewContext('new Error("from another realm")');
+    expect(foreignError instanceof Error).toBe(false);
+    const thrown: Array<[unknown, string]> = [
+      [{ code: 42, why: 'quota' }, '{"code":42,"why":"quota"}'],
+      ['plain string', 'plain string'],
+      [foreignError, 'from another realm'],
+      [undefined, 'undefined'],
+      [null, 'null'],
+      [10n, '[object BigInt]'],
+    ];
+    for (const [value, text] of thrown) {
+      const vm = new UAALVirtualMachine();
+      vm.registerHandler(UAALOpCode.EXEC, () => {
+        throw value;
+      });
+      const result = await run([{ opCode: UAALOpCode.EXEC, operands: ['x'] }], vm);
+      expect(result.error, text).toEqual({ message: text, pc: 0 });
+    }
+
+    // A value with no JSON form, or a getter that throws, must not make execute() throw: it
+    // never throws.
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    const grumpy = {
+      get message(): string {
+        throw new Error('the getter throws');
+      },
+    };
+    for (const value of [circular, grumpy]) {
+      const vm = new UAALVirtualMachine();
+      vm.registerHandler(UAALOpCode.EXEC, () => {
+        throw value;
+      });
+      const result = await run([{ opCode: UAALOpCode.EXEC, operands: ['x'] }], vm);
+      expect(result.taskStatus).toBe('ERROR');
+      expect(result.error).toEqual({ message: '[object Object]', pc: 0 });
+    }
+
+    // The debug log line that reports the error must not throw either: here the thrown value's
+    // own toString throws, which a plain `${value}` in that line would turn into a rejection.
+    const nasty = {
+      toString(): string {
+        throw new Error('toString throws');
+      },
+    };
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const vm = new UAALVirtualMachine({ enableLogging: true });
+      vm.registerHandler(UAALOpCode.EXEC, () => {
+        throw nasty;
+      });
+      const result = await run([{ opCode: UAALOpCode.EXEC, operands: ['x'] }], vm);
+      expect(result.taskStatus).toBe('ERROR');
+    } finally {
+      consoleLog.mockRestore();
+    }
   });
 
   it('the error type names the opcode and the program counter', () => {

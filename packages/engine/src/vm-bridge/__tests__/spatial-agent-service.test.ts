@@ -200,3 +200,58 @@ describe('spawnConfigFromMarketplaceInstall — studio wiring bridge', () => {
     expect(results.get('tmpl_e2e')?.decided).toBe(true);
   });
 });
+
+describe('SpatialAgentService — a program that reaches an opcode nobody handles', () => {
+  // The bridge registers handlers for OP_SPATIAL_ANCHOR, OP_RENDER_HOLOGRAM, OP_VR_TELEPORT and
+  // OP_EXECUTE_HOLOSCRIPT (plus INTAKE and EXECUTE) and for nothing else. The UAAL VM now stops a
+  // run at an opcode that has neither a built-in case nor a handler (it used to push null and
+  // carry on), so a template that reaches any other such opcode stops there and everything after
+  // it never runs. The entity count is what a running agent leaves behind in the world.
+  interface CycleResult {
+    taskStatus: string;
+    error?: { message: string; pc: number; opcode?: string };
+  }
+
+  async function twoTicks(intent: string) {
+    const world = new ECSWorld();
+    const svc = new SpatialAgentService(world);
+    svc.spawnAgent({ id: 'agent', intent, cognitiveHz: 2 }); // adds one body entity
+    await svc.tickAll(0);
+    const second = await svc.tickAll(1000);
+    const tick = second.get('agent');
+    return { entities: world.entityCount, tick, cycle: tick?.cycleResult as CycleResult };
+  }
+
+  it('control: a program whose opcodes are all handled runs to the end on every tick', async () => {
+    const { entities, cycle } = await twoTicks('SPATIAL_ANCHOR');
+    expect(cycle.taskStatus).toBe('HALTED');
+    expect(cycle.error).toBeUndefined();
+    expect(entities).toBe(3); // the body, plus one anchor per tick
+  });
+
+  it.each([
+    ['INVOKE_LLM("plan")', 'OP_INVOKE_LLM'],
+    ['PAY(5)', 'OP_PAY'],
+  ])(
+    '%s then SPATIAL_ANCHOR: stops at the first, so no anchor is ever created',
+    async (first, opcode) => {
+      const { entities, tick, cycle } = await twoTicks(`${first}\nSPATIAL_ANCHOR`);
+      expect(entities).toBe(1);
+      expect(cycle.taskStatus).toBe('ERROR');
+      expect(cycle.error).toMatchObject({ opcode, pc: 1 });
+      // The tick itself still reports a decision; the failure is only on cycleResult.
+      expect(tick?.decided).toBe(true);
+    }
+  );
+
+  it('PARALLEL { ... } always stops at OP_SPAWN_PARALLEL, so its body never runs', async () => {
+    const { entities, cycle } = await twoTicks('PARALLEL {\nSPATIAL_ANCHOR\nSPATIAL_ANCHOR\n}');
+    expect(entities).toBe(1);
+    expect(cycle.error).toMatchObject({ opcode: 'OP_SPAWN_PARALLEL', pc: 0 });
+  });
+
+  it('a plain-English intent is compiled by keyword, so a word like "audit" stops it too', async () => {
+    const { cycle } = await twoTicks('audit the scene and anchor it');
+    expect(cycle.error).toMatchObject({ opcode: 'CLOCK_AUDIT', pc: 0 });
+  });
+});

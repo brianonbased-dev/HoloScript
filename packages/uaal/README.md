@@ -28,6 +28,14 @@ vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, async (proxy, operands) => {
 });
 ```
 
+Register a handler for every opcode your programs use. The VM implements 23 of the 95 opcodes itself; a program that reaches any other opcode with no handler registered stops there instead of skipping it. `execute()` still never throws: the result is `'ERROR'`, and `result.error` (`{ message, pc, opcode? }`) says which opcode and where:
+
+```ts
+const result = await vm.execute(bytecode);
+if (result.taskStatus === 'ERROR') console.error(result.error?.message);
+// [UAAL-UNHANDLED] EXEC holo.absorb.manifest_audit_passes.v1 at PC=1 has no built-in behaviour and no registered handler
+```
+
 ## Semantic Harness
 
 `@holoscript/uaal/semantic` exposes the pure structural gates used by the uAAL v2 corpus work. Agents can consume these functions without the private corpus generator or receipt CLI:
