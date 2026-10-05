@@ -32,6 +32,7 @@ run_node_with_files_from() {
     local script="$2"
     local paths="$3"
     local list_file=""
+    local node_list_file=""
     local status=0
 
     list_file=$(mktemp 2>/dev/null) || list_file=""
@@ -40,13 +41,24 @@ run_node_with_files_from() {
         : > "$list_file" || return 2
     fi
 
+    # node on Windows cannot open an MSYS path such as /tmp/tmp.X. Git Bash
+    # rewrites that argument for a native program only while MSYS_NO_PATHCONV
+    # is unset. With it exported, node got ENOENT, every gate using this helper
+    # exited 2, and the hook printed each gate's violation headline for a
+    # violation that did not exist (2026-09-28). cygpath exists only on
+    # MSYS/Cygwin, so other systems pass the path unchanged.
+    node_list_file="$list_file"
+    if command -v cygpath >/dev/null 2>&1; then
+        node_list_file=$(cygpath -m "$list_file" 2>/dev/null) || node_list_file="$list_file"
+    fi
+
     # EXIT covers an `exit` inside run_with_timeout. The explicit rm covers
     # the normal return. The trap is cleared before return so a caller that
     # sourced this file does not keep it after the gate finishes.
     trap 'rm -f "$list_file"' EXIT INT TERM
     printf '%s\n' "$paths" > "$list_file" || status=$?
     if [ "$status" -eq 0 ]; then
-        run_with_timeout "$timeout_secs" node "$script" --files-from "$list_file" || status=$?
+        run_with_timeout "$timeout_secs" node "$script" --files-from "$node_list_file" || status=$?
     fi
     rm -f "$list_file"
     trap - EXIT INT TERM

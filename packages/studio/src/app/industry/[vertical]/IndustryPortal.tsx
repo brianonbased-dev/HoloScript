@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
 import { ExportPipelinePanel } from '@/components/export/ExportPipelinePanel';
@@ -88,8 +87,11 @@ function ViewportSkeleton() {
 export function IndustryPortal({ vertical }: { vertical: IndustryVertical }) {
   const { slug, title, description } = vertical;
 
-  // Use a targeted composition if it exists, otherwise fallback to a generic industry header
-  const composition = useHoloComposition(`/api/surface/industry/${slug}`);
+  // No per-vertical composition is loaded here. This used to ask for
+  // `/api/surface/industry/<slug>`, which no route serves (the surface route is
+  // one segment, `api/surface/[slug]`), so every visit made a request that could
+  // only 404 and the slot never rendered. A vertical that gets a composition
+  // needs a route and a file for it first; surface-addresses.test.ts checks both.
 
   const [leftPanelW, setLeftPanelW] = useState(300);
   const [rightPanelW, setRightPanelW] = useState(300);
@@ -104,17 +106,6 @@ export function IndustryPortal({ vertical }: { vertical: IndustryVertical }) {
           <h2 className="text-sm font-semibold text-studio-accent">{title}</h2>
           <span className="text-xs text-studio-muted">{description}</span>
         </div>
-        {!composition.loading && !composition.error && (
-          <div className="h-full w-64">
-            <HoloSurfaceRenderer
-              nodes={composition.nodes}
-              state={composition.state}
-              computed={composition.computed}
-              templates={composition.templates}
-              onEmit={composition.emit}
-            />
-          </div>
-        )}
       </div>
 
       {/* ── Professional Workspace Matrix ── */}

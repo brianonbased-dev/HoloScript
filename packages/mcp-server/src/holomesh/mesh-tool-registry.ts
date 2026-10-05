@@ -5,6 +5,7 @@ import {
   authorizeToolCall,
   getToolRiskLevel,
   getToolScopes,
+  isTrustedLocalCaller,
   type ToolRiskLevel,
 } from '../security/tool-scopes';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
@@ -542,8 +543,8 @@ export function meshToolManifestFromKnowledgeContent(content: string): MeshToolM
  * (including one needing tools:admin) at full trust (task_1790204588326_myvj) --
  * the same class of gap batch_tool_call's children are already re-checked for
  * (index.ts assertBatchInnerToolAuthorized). An absent signingCtx is the trusted
- * local stdio path, which never reaches here with a caller-supplied tool name it
- * didn't already trust.
+ * local user only on the stdio server (isTrustedLocalCaller). On the hosted server
+ * it is a call that lost its caller, so it is checked against no scopes (task mplw).
  */
 async function defaultLocalInvoker(
   toolName: string,
@@ -553,8 +554,8 @@ async function defaultLocalInvoker(
   if (toolName === 'holomesh_invoke_tool') {
     throw new Error('holomesh_invoke_tool cannot recursively invoke itself');
   }
-  if (signingCtx) {
-    const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
+  if (!isTrustedLocalCaller(signingCtx)) {
+    const authorization = authorizeToolCall(toolName, signingCtx?.scopes ?? []);
     if (!authorization.authorized) {
       throw new Error(
         `Mesh-invoked tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`

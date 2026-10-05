@@ -45,43 +45,68 @@ if [ -f scripts/check-doctrine-slots.mjs ]; then
   fi
 fi
 
-# Collect the files changed across every ref being pushed. The pre-push protocol
-# feeds lines "<local_ref> <local_sha> <remote_ref> <remote_sha>" on stdin.
+# Collect the files the push changes. The pre-push protocol feeds lines
+# "<local_ref> <local_sha> <remote_ref> <remote_sha>" on stdin.
+#
+# THE QUESTION IS WHAT THIS BRANCH CHANGES RELATIVE TO THE TRUNK IT LANDS ON,
+# so the range starts at the merge base with that trunk: `trunk...local`, three
+# dots. Two measurements made this the rule:
+#
+#   2026-08-16 (task_1786942099138_9ad3): the base was `origin/main`, the
+#   GitHub federation mirror, which runs behind HoloRepo canon. The range swept
+#   in 6 already-landed commits carrying 4 packages/core files, the pushed
+#   commit carried none, and the ~15-minute core-baseline receipt was demanded.
+#   Fixed then by reading the TARGET remote's main.
+#
+#   2026-09-28: the base was right and the range was still wrong. `git diff A..B`
+#   is a tree comparison, not "the commits in B": with main 17 commits past the
+#   branch point, `main..branch` listed the 5 packages/core files main had
+#   changed since, while the branch changed 22 studio files and no core file
+#   (three dots: 0 core files, exactly the 22). An existing branch that merges
+#   main hit the same wall through `remote_sha..local_sha`, which lists every
+#   file the merge brought in.
+#
+# git hands pre-push the remote name as $1 and its URL as $2, so the trunk of
+# the real target is one ls-remote away. Order: the target's main, then
+# origin/main, then (for an existing branch) the old per-push range, then fail
+# closed. An ls-remote answer can name a commit that is not here. `git diff`
+# against it fails (exit 128, measured on git 2.51), and the `|| force_check=1`
+# below would then judge every push in full, a needless core run; so it is
+# verified first, and a missing commit falls back to origin/main.
+trunk=$(git ls-remote "${2:-$1}" refs/heads/main 2>/dev/null | cut -f1)
+if [ -n "$trunk" ] && ! git cat-file -e "${trunk}^{commit}" 2>/dev/null; then
+  trunk=''
+fi
+if [ -z "$trunk" ]; then
+  trunk=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
+fi
 changed=''
 force_check=0
 while read -r local_ref local_sha remote_ref remote_sha; do
   # Branch deletion — nothing to validate.
   [ "$local_sha" = "$ZERO" ] && continue
-  if [ "$remote_sha" = "$ZERO" ]; then
-    # New branch on the remote — every HoloRepo candidate push is this shape.
-    #
-    # The base has to be the trunk of the remote we are ACTUALLY pushing to.
-    # This used to read `origin/main` unconditionally, which is the GitHub
-    # federation mirror, not HoloRepo canon. Canon runs ahead of that mirror, so
-    # the range swept in peers' already-landed commits and charged this author
-    # for them. Measured 2026-08-16 on candidate
-    # language-registry-runtime-truth-20260816: origin/main was 6 commits
-    # behind, those six carried 4 packages/core files, and the pushed commit
-    # carried none — yet the ~15-minute core-baseline receipt was demanded.
-    # (task_1786942099138_9ad3.)
-    #
-    # git hands pre-push the remote name as $1 and its URL as $2, so the trunk
-    # of the real target is one ls-remote away. Order: the target's main, then
-    # origin/main, then fail closed.
-    base=$(git ls-remote "${2:-$1}" refs/heads/main 2>/dev/null | cut -f1)
-    # An ls-remote answer names a commit that may not exist locally; `git diff`
-    # against a sha we do not have would silently produce an empty file list,
-    # which reads exactly like "nothing to check". Verify before trusting it.
-    if [ -n "$base" ] && ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
-      base=''
+  if [ -n "$trunk" ]; then
+    # A trunk range shows what a push adds, never what it removes: a rewind of
+    # main lists nothing. So a push that is not a fast-forward is judged in full.
+    if [ "$remote_sha" != "$ZERO" ] && ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      force_check=1
+      continue
     fi
-    if [ -z "$base" ]; then
-      base=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
+    # Criss-cross merges leave two merge bases; `git diff` then warns, uses one,
+    # exits 0, and can list nothing while landing the branch changes a file.
+    if [ "$(git merge-base --all "$trunk" "$local_sha" 2>/dev/null | wc -l)" -gt 1 ]; then
+      force_check=1
+      continue
     fi
-    if [ -n "$base" ]; then range="$base..$local_sha"; else force_check=1; continue; fi
-  else
+    range="$trunk...$local_sha"
+  elif [ "$remote_sha" != "$ZERO" ]; then
+    # A tree comparison: unlike a trunk range, it shows what a rewind removes.
     range="$remote_sha..$local_sha"
+  else
+    force_check=1
+    continue
   fi
+  # No merge base (unrelated history) makes the diff fail: judge everything.
   files=$(git diff --name-only "$range" 2>/dev/null) || force_check=1
   changed="$changed
 $files"
@@ -105,6 +130,64 @@ if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/co
       exit 1
     fi
   fi
+fi
+
+# ── Studio generators: the drift check, actually run ────────────────────────
+#
+# Four generators emit committed files. Until 2026-09-21 each emitted RAW output
+# while the repo-wide format pass rewrote the committed copies, so every run
+# produced a phantom diff -- and a check that is always red is a check nobody
+# reads, which is how real drift hid. They format their own output now and
+# `check:studio-generators` compares committed output against a fresh run.
+#
+# That check existed and NOTHING INVOKED IT. `.github/workflows` holds only
+# `_archived/`, and the only mention of viewreg:check outside its own definition
+# was the comment admitting no caller existed. An honest check nobody runs is
+# still a check that cannot fail; this is the caller.
+#
+# Measured 2026-09-22: 6 seconds on a clean tree, exit 0. Fed a real drift (one
+# view id renamed in the generated output) it exits 1 and names the file.
+if [ "$force_check" = "1" ] || printf '%s\n' "$changed" | grep -qE '^packages/studio/'; then
+  echo -e "${YELLOW}[pre-push] studio change — checking generator drift (~6s)...${NC}"
+  # Output is SHOWN, not swallowed. Sending it to /dev/null threw away the only
+  # thing that tells the developer WHICH file drifted, leaving them to re-run the
+  # check by hand to learn what the hook already knew.
+  if ! corepack pnpm --filter @holoscript/studio run generators:check; then
+    echo -e "${RED}[pre-push] BLOCKED: a committed generated file no longer matches its generator.${NC}"
+    # Three SEPARATE commands. `pnpm run a b c` runs script `a` with "b" and "c"
+    # as argv -- it does not run three scripts. The one-line form printed here
+    # before ran holo:build only, so anyone blocked by vector or viewreg drift
+    # followed the instructions, saw exit 0, pushed, and was blocked again with
+    # the identical message.
+    echo -e "${YELLOW}  Fix: pnpm --filter @holoscript/studio run holo:build${NC}"
+    echo -e "${YELLOW}       pnpm --filter @holoscript/studio run vector:build${NC}"
+    echo -e "${YELLOW}       pnpm --filter @holoscript/studio run viewreg:build${NC}"
+    echo -e "${YELLOW}  then commit the regenerated files.${NC}"
+    echo -e "${YELLOW}  Never edit a @generated file directly — change the .holo source.${NC}"
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
+
+  # THE CHECK READS THE WORKING TREE, AND THE PUSH SENDS THE COMMIT.
+  #
+  # Every --check mode compares the generator against the files ON DISK. But
+  # `prebuild` and `predev` regenerate the tree, so a developer who commits stale
+  # generated output and then runs `pnpm build` has a clean working tree and a
+  # stale commit -- and the check above passes by construction while the push
+  # carries the drift.
+  #
+  # The check just proved disk == generator output. So all that is left is
+  # disk == HEAD for the generated artifacts, which git can answer directly.
+  gen_paths="packages/studio/.holo-manifest.json packages/studio/src/lib/studio/viewRegistry.generated.ts packages/studio/src/lib/studio/viewRegistry.components.tsx packages/studio/src/components/panels/native"
+  if ! git diff --quiet HEAD -- $gen_paths 2>/dev/null; then
+    echo -e "${RED}[pre-push] BLOCKED: generated studio files differ between your commit and your working tree.${NC}"
+    echo -e "${YELLOW}  The generators agree with your FILES, but you have not committed them, so the${NC}"
+    echo -e "${YELLOW}  push would carry the older output. Commit the regenerated files:${NC}"
+    git diff --name-only HEAD -- $gen_paths 2>/dev/null | sed 's/^/    /'
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}[pre-push] studio generators match their sources, and the commit matches the tree.${NC}"
 fi
 
 # Gate only when a manifest or the lockfile is part of the push.

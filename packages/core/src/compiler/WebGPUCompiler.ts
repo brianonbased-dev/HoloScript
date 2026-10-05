@@ -100,6 +100,16 @@ export class WebGPUCompiler extends CompilerBase {
     // ─── Agent Identity Verification ───────────────────────────────────────
     this.validateCompilerAccess(agentToken, outputPath);
     // ───────────────────────────────────────────────────────────────────────
+    // Objects (and an environment) written inside `scene` blocks go through the
+    // same passes as top-level ones: water, camera framing, emission, manifest,
+    // compute and draw calls all read the composition returned here. Object names
+    // become module-scope identifiers, so a scene object whose name is taken is
+    // left out and named in a WARNING below. Only object names do here: a light is
+    // an entry in one array, a group's identifier ends in `GroupXform`, which no
+    // object's does, and sounds, zones, UI, timelines and transitions are not
+    // compiled here, so there is nothing else to reserve.
+    const scenes = this.flattenScenes(composition, (name) => this.sanitizeName(name));
+    composition = scenes.composition;
     this.lines = [];
     this.indentLevel = 0;
     this.objectIndex = 0;
@@ -120,6 +130,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('// Do not edit manually — regenerate from .holo source');
     if (this.options.provenanceHash) {
       this.emit(`// Provenance Hash: ${this.options.provenanceHash}`);
+    }
+    for (const warning of this.sceneWarnings(scenes, 'TypeScript')) {
+      this.emit(`// WARNING: ${warning}`);
     }
     this.emit('');
     this.emitDeviceInit();
@@ -678,7 +691,7 @@ export class WebGPUCompiler extends CompilerBase {
     if (!role.visible) {
       const prim = resolveGeometry(meshType).kind;
       const pos = this.findObjProp(obj, 'position');
-      const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
+      const [px, py, pz] = this.vec3Prop(obj.name, 'position', pos, 0);
       this.emit(
         `// Functional geometry — purpose="${role.purpose}", not rendered; primitive="${prim}" is shared with physics/vfx/sim consumers.`
       );
@@ -711,7 +724,7 @@ export class WebGPUCompiler extends CompilerBase {
     const isGpuParticle = traits.some((t) => isGpuParticleTraitName(t.name));
 
     if (isModel && modelSrc) {
-      this.emit(`const ${v}Asset = await assetLoader.load("${modelSrc}");`);
+      this.emit(`const ${v}Asset = await assetLoader.load(${this.json(String(modelSrc))});`);
       this.emit(
         `// Model asset "${this.escapeStringValue(modelSrc, 'TypeScript')}" is tracked in ${v}Asset; fallback mesh keeps the render path defined.`
       );
@@ -801,12 +814,8 @@ export class WebGPUCompiler extends CompilerBase {
   private emitWaterObject(v: string, obj: HoloObjectDecl): void {
     const pos = this.findObjProp(obj, 'position');
     const scale = this.findObjProp(obj, 'scale') || this.findObjProp(obj, 'size');
-    const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
-    const [sx, sy, sz] = Array.isArray(scale)
-      ? (scale as number[])
-      : typeof scale === 'number'
-        ? [scale, scale, scale]
-        : [1, 1, 1];
+    const [px, py, pz] = this.vec3Prop(obj.name, 'position', pos, 0);
+    const [sx, sy, sz] = this.vec3Prop(obj.name, 'scale', scale, 1, true);
     // Deep tone from the object's color; shallow tone is a MODERATE teal derived
     // from it (not the object's neon emissive — that would wash the backdrop out to
     // a bright cyan wall). The shallow tone only shows on lit wave slopes.
@@ -1003,12 +1012,8 @@ export class WebGPUCompiler extends CompilerBase {
     // Model matrix
     const pos = this.findObjProp(obj, 'position');
     const scale = this.findObjProp(obj, 'scale') || this.findObjProp(obj, 'size');
-    const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
-    const [sx, sy, sz] = Array.isArray(scale)
-      ? (scale as number[])
-      : typeof scale === 'number'
-        ? [scale, scale, scale]
-        : [1, 1, 1];
+    const [px, py, pz] = this.vec3Prop(obj.name, 'position', pos, 0);
+    const [sx, sy, sz] = this.vec3Prop(obj.name, 'scale', scale, 1, true);
 
     this.emit(
       `const ${v}Model = createBuffer(device, new Float32Array([${sx},0,0,0, 0,${sy},0,0, 0,0,${sz},0, ${px},${py},${pz},1]), GPUBufferUsage.UNIFORM);`
@@ -1089,7 +1094,9 @@ export class WebGPUCompiler extends CompilerBase {
     const src = trait?.config?.src || 'scene.ply';
     const max = trait?.config?.max_splats || 500000;
     const sorted = trait?.config?.sorted !== false; // default: true
-    this.emit(`// Gaussian Splat — source: ${src} (${sorted ? 'radix-sorted' : 'unsorted'})`);
+    this.emit(
+      `// Gaussian Splat — source: ${this.quoteName(src)} (${sorted ? 'radix-sorted' : 'unsorted'})`
+    );
 
     if (sorted) {
       // Wait-free hierarchical radix sort pipeline (W.035)
@@ -1192,7 +1199,7 @@ export class WebGPUCompiler extends CompilerBase {
     const v = this.sanitizeName(group.name);
     this.emit(`// Spatial Group: ${this.escapeStringValue(group.name as string, 'TypeScript')}`);
     const pos = group.properties.find((p) => p.key === 'position')?.value;
-    const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
+    const [px, py, pz] = this.vec3Prop(group.name, 'position', pos, 0);
     this.emit(
       `const ${v}GroupXform = createBuffer(device, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, ${px},${py},${pz},1]), GPUBufferUsage.UNIFORM);`
     );
@@ -1316,18 +1323,14 @@ export class WebGPUCompiler extends CompilerBase {
     const addObj = (obj: HoloObjectDecl, offset: number[]) => {
       const pos = this.findObjProp(obj, 'position');
       const scale = this.findObjProp(obj, 'scale') || this.findObjProp(obj, 'size');
-      const [px, py, pz] = Array.isArray(pos) ? (pos as number[]) : [0, 0, 0];
-      const rawR = Array.isArray(scale)
-        ? Math.max(...(scale as number[]).map((n) => Math.abs(n)))
-        : typeof scale === 'number'
-          ? Math.abs(scale)
-          : 1;
+      const [px, py, pz] = this.vec3(pos, 0).values;
+      const rawR = Math.max(...this.vec3(scale, 1, true).values.map((n) => Math.abs(n)));
       pts.push({ p: [px + offset[0], py + offset[1], pz + offset[2]], r: Math.min(rawR, R_CAP) });
     };
     for (const obj of composition.objects ?? []) addObj(obj, [0, 0, 0]);
     const walkGroup = (g: HoloSpatialGroup, parent: number[]) => {
       const gp = g.properties?.find((p) => p.key === 'position')?.value;
-      const [gx, gy, gz] = Array.isArray(gp) ? (gp as number[]) : [0, 0, 0];
+      const [gx, gy, gz] = this.vec3(gp, 0).values;
       const off = [parent[0] + gx, parent[1] + gy, parent[2] + gz];
       for (const obj of g.objects ?? []) addObj(obj, off);
       for (const sub of g.groups ?? []) walkGroup(sub, off);
@@ -1481,13 +1484,22 @@ export class WebGPUCompiler extends CompilerBase {
         );
       }
       if (traits.some((t) => t.name === 'compute')) {
-        const ct = traits.find((t) => t.name === 'compute');
-        const entry = ct?.config?.shader || 'custom_compute';
-        const wg = ct?.config?.workgroups || [64, 1, 1];
+        // A custom compute pass needs its WGSL source and the bind groups that source
+        // declares. This output has neither: `shader` names a file the compiler does
+        // not read, and nothing says what to bind to it. The pipeline used to refer to
+        // a WGSL_CUSTOM_<NAME> constant that nothing defines, which stopped the whole
+        // module on load. So the pass is left out, and the output says so twice: here
+        // in the source, and in the browser console when the module runs.
+        const shader = traits.find((t) => t.name === 'compute')?.config?.shader;
+        const named = shader === undefined || shader === null || shader === '' ? null : shader;
+        const sentence = (quote: (text: unknown) => string): string =>
+          named === null
+            ? `the @compute block of ${quote(obj.name)} names no shader, so its compute pass is not built.`
+            : `the @compute block of ${quote(obj.name)} names the shader ${quote(named)}, which this output does not contain, so its compute pass is not built.`;
+        this.emit(`// WARNING: ${sentence((text) => this.quoteName(text))}`);
         this.emit(
-          `const ${v}CustomCompute = device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code: WGSL_CUSTOM_${v.toUpperCase()} }), entryPoint: "${entry}" } });`
+          `console.warn(${this.json(`WARNING: ${sentence((text) => `"${String(text ?? '')}"`)}`)});`
         );
-        this.emit(`const ${v}Workgroups = [${wg}];`);
       }
     }
     this.emit('');
@@ -1846,11 +1858,9 @@ export class WebGPUCompiler extends CompilerBase {
     this.emit('hsRenderLabels();');
     this.emit('const enc = device.createCommandEncoder();');
 
-    // Compute pass
+    // Compute pass (a custom @compute pass is not built; see emitComputeShaders)
     const gpuObjs = (composition.objects || []).filter((o) =>
-      o.traits?.some(
-        (t) => isGpuParticleTraitName(t.name) || t.name === 'gpu_physics' || t.name === 'compute'
-      )
+      o.traits?.some((t) => isGpuParticleTraitName(t.name) || t.name === 'gpu_physics')
     );
     if (gpuObjs.length > 0 && this.options.enableCompute) {
       this.emit('const cp = enc.beginComputePass();');
@@ -1863,9 +1873,6 @@ export class WebGPUCompiler extends CompilerBase {
         }
         if (obj.traits?.some((t) => t.name === 'gpu_physics')) {
           this.emit(`cp.setPipeline(${v}PhysicsCompute); cp.dispatchWorkgroups(16);`);
-        }
-        if (obj.traits?.some((t) => t.name === 'compute')) {
-          this.emit(`cp.setPipeline(${v}CustomCompute); cp.dispatchWorkgroups(...${v}Workgroups);`);
         }
       }
       this.emit('cp.end();');
@@ -2001,6 +2008,66 @@ export class WebGPUCompiler extends CompilerBase {
 
   private json(value: unknown): string {
     return JSON.stringify(value).replace(/</g, '\\u003c');
+  }
+
+  /**
+   * Three numbers for a position or scale, so the output holds only numeric
+   * literals where these values go. A part that is not a finite number (a name
+   * such as `height`, a missing third part) becomes `fallback`, and `replaced`
+   * says so. A lone number stands for all three parts only when `uniform` is set.
+   */
+  private vec3(
+    value: unknown,
+    fallback: number,
+    uniform = false
+  ): { values: [number, number, number]; replaced: boolean } {
+    const all: [number, number, number] = [fallback, fallback, fallback];
+    if (value === undefined || value === null) return { values: all, replaced: false };
+    if (uniform && typeof value === 'number' && Number.isFinite(value)) {
+      return { values: [value, value, value], replaced: false };
+    }
+    if (!Array.isArray(value)) return { values: all, replaced: true };
+    let replaced = false;
+    const part = (i: number): number => {
+      const n = this.finiteNumber(value[i]);
+      if (n === undefined) replaced = true;
+      return n ?? fallback;
+    };
+    return { values: [part(0), part(1), part(2)], replaced };
+  }
+
+  /** {@link vec3}, writing a WARNING line when a part was replaced. */
+  private vec3Prop(
+    owner: unknown,
+    what: string,
+    value: unknown,
+    fallback: number,
+    uniform = false
+  ): [number, number, number] {
+    const { values, replaced } = this.vec3(value, fallback, uniform);
+    if (replaced) {
+      this.emit(
+        `// WARNING: the ${what} of ${this.quoteName(owner)} is not three numbers; each part that is not a number is ${fallback}.`
+      );
+    }
+    return values;
+  }
+
+  /** A finite number, or text that reads as one ("2"); anything else is undefined. */
+  private finiteNumber(value: unknown): number | undefined {
+    const n =
+      typeof value === 'number'
+        ? value
+        : typeof value === 'string' && value.trim() !== ''
+          ? Number(value)
+          : NaN;
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  /** A name quoted and escaped for a `//` comment, kept on one line. */
+  private quoteName(name: unknown): string {
+    const oneLine = String(name ?? '').replace(/[\r\n\u2028\u2029]+/g, ' ');
+    return `"${this.escapeStringValue(oneLine, 'TypeScript')}"`;
   }
 
   private numberProp(block: HoloDomainBlock, keys: string[], fallback: number): number {

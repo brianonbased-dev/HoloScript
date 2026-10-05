@@ -144,9 +144,12 @@ describe('the /api default is closed', () => {
   });
 
   it('refuses agent "self" however the caller spells it', async () => {
-    // Next resolves routes on the DECODED path, so %73elf reaches the same
-    // handler as self. A carve-out compared against the raw spelling would
-    // miss, and the wildcard above it would answer with our key attached.
+    // A dynamic segment reaches its handler DECODED, so %73elf is the [id]
+    // handler asked about "self". A carve-out compared against the raw spelling
+    // would miss, and the wildcard above it would answer with our key attached.
+    // (A FIXED segment is matched on the spelling as typed, which is why the
+    // gate reads both spellings and refuses when they disagree — see the
+    // escaped-spelling tests further down.)
     for (const path of [
       '/api/holomesh/agent/%73elf/storefront',
       '/api/holomesh/agent/%73elf',
@@ -241,6 +244,26 @@ describe('the allowlist keeps the signed-out site working', () => {
 
     const wrongKey = await anonymous('/api/brittney', 'POST', { 'x-benchmark-key': 'not-the-key' });
     expect(wrongKey.status).toBe(401);
+  });
+
+  it('does NOT let a benchmark header open an escaped spelling of the benchmark path', async () => {
+    // The bypass is scoped by path prefix, so it is a declared admission like
+    // any rule and may not read one spelling while the route is picked on the
+    // other: `/api/%62rittney` decodes to the benchmark's path, but Next matches
+    // the fixed segment as typed and it is not that route.
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'configured-benchmark-key');
+    const header = { 'x-benchmark-key': 'configured-benchmark-key' };
+
+    // Control: the plain spelling is the one the runner really calls.
+    expect((await anonymous('/api/brittney', 'POST', header)).status).not.toBe(401);
+
+    for (const path of [
+      '/api/%62rittney',
+      '/api/%62rittney/conversations',
+      '/api/brittney%2Fconversations',
+    ]) {
+      expect.soft((await anonymous(path, 'POST', header)).status, path).toBe(401);
+    }
   });
 
   it('does NOT let a benchmark header open a path the benchmark never calls', async () => {
@@ -514,6 +537,24 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
     header: { 'x-mcp-api-key': 'an-operators-own-key' },
     callSite: 'Operations console telemetry, app/api/orchestrator/[...path]/route.ts:37-40',
   },
+  {
+    method: 'POST',
+    path: '/api/agents/fleet/scheduler-tick',
+    credential:
+      'the autonomous hourly tick (board automation A-035); the real spend gate is downstream',
+    header: { authorization: 'Bearer a-fleet-ticks-own-mesh-key' },
+    callSite:
+      'app/api/agents/fleet/dispatch/route.ts:257-265 fleetServiceTokenOk (x-fleet-service-token, timing-safe, fail-closed) — scheduler-tick/route.ts:61 reaches it with an in-process call, never a second HTTP hop',
+  },
+  {
+    method: 'POST',
+    path: '/api/agents/fleet/scheduler-tick',
+    credential: 'the fleet service token alone, judged by the dispatch handler (fleetServiceTokenOk, timing-safe against FLEET_DISPATCH_SERVICE_TOKEN, refused when unset)',
+    header: { 'x-fleet-service-token': 'the-fleets-own-service-token' },
+    // The same tick without its mesh key. The route accepts it on the token
+    // alone, so the gate in front must too (task uq6w).
+    callSite: 'ai-ecosystem scripts/fleet-dispatch-tick.mjs:141 — the token header, sent whether or not HOLOSCRIPT_MCP_API_KEY is set',
+  },
 ];
 
 describe('the callers who arrive with their own credential, checked against a hand-written list', () => {
@@ -549,6 +590,109 @@ describe('the callers who arrive with their own credential, checked against a ha
       const response = await anonymous('/api/knowledge/query', 'POST', header);
       expect.soft(response.status, JSON.stringify(header)).not.toBe(401);
     }
+  });
+
+  it('opens a route-judged header on the entry that declares it, and nowhere else', async () => {
+    const serviceToken = { 'x-fleet-service-token': 'the-fleets-own-service-token' };
+
+    // The fleet tick arrives with nothing but its service token.
+    const tick = await anonymous('/api/agents/fleet/scheduler-tick', 'POST', serviceToken);
+    expect(tick.status).not.toBe(401);
+
+    // The same header buys nothing where the route behind does not judge it:
+    // a caller-credential sibling, the dispatch route (still `session`), an
+    // unpinned verb on the tick itself, and an ordinary session path.
+    const elsewhere: Array<[string, string]> = [
+      ['/api/knowledge/query', 'POST'],
+      ['/api/agents/fleet/dispatch', 'POST'],
+      ['/api/agents/fleet/scheduler-tick', 'GET'],
+      ['/api/admin/probe', 'POST'],
+    ];
+    for (const [path, method] of elsewhere) {
+      const response = await anonymous(path, method, serviceToken);
+      expect.soft(response.status, `${method} ${path}`).toBe(401);
+    }
+
+    // A blank header is nobody arriving.
+    const blank = await anonymous('/api/agents/fleet/scheduler-tick', 'POST', {
+      'x-fleet-service-token': '   ',
+    });
+    expect(blank.status).toBe(401);
+  });
+
+  it('opens exactly one door in the whole route tree for the fleet service token', async () => {
+    // The test above names four doors. A rule written one segment too wide
+    // (`fleet/*`, `fleet/**`), a header counted on every entry, or a verb left
+    // off the tick's entry opens a door that sample never visits. So walk every
+    // real route file, under every verb that a handler could export, and list
+    // what the header ALONE changed from refused to answered.
+    const serviceToken = { 'x-fleet-service-token': 'the-fleets-own-service-token' };
+    const verbs = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
+    const paths = routePaths().map(concrete);
+
+    // A vacuous pass is the failure to guard against: an empty tree opens nothing.
+    expect(paths.length).toBeGreaterThan(100);
+    expect(paths).toContain('/api/agents/fleet/scheduler-tick');
+
+    const openedByTheToken: string[] = [];
+    for (const path of paths) {
+      for (const method of verbs) {
+        if ((await anonymous(path, method, serviceToken)).status === 401) continue;
+        // Answered with the token. Was it already answering a visitor with nothing?
+        if ((await anonymous(path, method)).status === 401)
+          openedByTheToken.push(`${method} ${path}`);
+      }
+    }
+
+    expect(openedByTheToken).toEqual(['POST /api/agents/fleet/scheduler-tick']);
+  }, 120_000);
+
+  it('does not let an escaped spelling borrow an entry it is not', async () => {
+    // Next matches a FIXED segment on the spelling as typed, so none of these is
+    // the tick's route: Next serves the sibling [id] route and hands it
+    // "scheduler-tick" decoded (reproduced on a real `next start` 16.3.3 in the
+    // review of PR #445). The gate used to read only the decoded path, and so
+    // admitted every one of them on any credential at all.
+    const credentials: Array<Record<string, string>> = [
+      { 'x-fleet-service-token': 'the-fleets-own-service-token' },
+      { authorization: 'Bearer any-mesh-key' },
+      { 'x-mcp-api-key': 'any-mesh-key' },
+    ];
+    const escaped = [
+      '/api/agents/fleet/%73cheduler-tick',
+      '/api/agents/fleet/scheduler%2Dtick',
+      '/api/agents/fleet/scheduler%2dtick',
+      '/api/agents/fleet/%73%63%68%65%64%75%6C%65%72%2D%74%69%63%6B',
+    ];
+    for (const path of escaped) {
+      for (const header of credentials) {
+        const response = await anonymous(path, 'POST', header);
+        expect.soft(response.status, `${path} ${JSON.stringify(header)}`).toBe(401);
+      }
+    }
+
+    // The plain spelling takes the same three credentials, so the fix narrows
+    // the spelling and not the entry.
+    for (const header of credentials) {
+      const response = await anonymous('/api/agents/fleet/scheduler-tick', 'POST', header);
+      expect.soft(response.status, JSON.stringify(header)).not.toBe(401);
+    }
+  });
+
+  it('still answers an escape that sits inside a dynamic segment', async () => {
+    // An escaped id is how ordinary clients send an id with a space or a hyphen
+    // in it. Both spellings land on the SAME rule there, so nothing changes.
+    const answered: Array<[string, Record<string, string>]> = [
+      ['/api/holomesh/agent/agent%2Dabc', {}],
+      ['/api/holomesh/agent/agent%2Dabc/storefront', {}],
+      ['/api/holomesh/team/team%2Dabc/export', { 'x-mcp-api-key': 'a-members-own-mesh-key' }],
+    ];
+    for (const [path, header] of answered) {
+      expect.soft((await anonymous(path, 'GET', header)).status, path).not.toBe(401);
+    }
+
+    // …and a caller-credential entry still wants its credential when escaped.
+    expect((await anonymous('/api/holomesh/team/team%2Dabc/export', 'GET')).status).toBe(401);
   });
 
   it('is written out literally, not derived from the tier it checks', () => {
