@@ -23,10 +23,19 @@
  */
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import {
+  BUILD_TARGETS,
+  buildRecipe,
+  collectBuildInputs,
+  gitSource,
+  inputsDigest,
+} from '../../packages/compiler-wasm/scripts/build-wasm.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SCRIPT = join(REPO_ROOT, 'scripts', 'holo-ci', 'publish-npm-package.mjs');
@@ -99,10 +108,10 @@ function buildSandbox() {
   return { root, canon, work, other };
 }
 
-function runProvenance(work, extra = []) {
+function runProvenance(work, extra = [], pkg = PKG) {
   const result = spawnSync(
     process.execPath,
-    [SCRIPT, '--root', work, '--package', PKG, '--provenance-only', ...extra],
+    [SCRIPT, '--root', work, '--package', pkg, '--provenance-only', ...extra],
     { encoding: 'utf8', timeout: 180_000 }
   );
   return { code: result.status, out: `${result.stdout || ''}${result.stderr || ''}` };
@@ -236,6 +245,144 @@ check('a dirty package path fails even at the canon tip', () => {
     const result = runProvenance(sandbox.work);
     assert.equal(result.code, 1, `a dirty package path must fail; got:\n${result.out}`);
     assert.match(result.out, /clean package path/, 'it names the dirty-path rule');
+  } finally {
+    rmSync(sandbox.root, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 7. @holoscript/wasm: the two rebuild receipts are checked by the hash of the
+//    Rust build inputs they record (the drift gate recomputes it from the tree),
+//    not by the ancestry of the commit they name. A squash or rebase merge
+//    drops that commit from history; before 2026-10-05 the provenance guard
+//    then refused every publish of @holoscript/wasm (PR #448 review, P2-3).
+// ---------------------------------------------------------------------------
+const WASM_BYTES = Buffer.from([0, 97, 115, 109, 1]);
+const SMOKE_ANSWERS = `source.includes('missing_name')
+    ? JSON.stringify({ valid: false, errors: [{ message: 'unknown name missing_name' }] })
+    : JSON.stringify({ valid: true, errors: [] })`;
+const NODE_GLUE = `exports.parse = function parse() {};
+exports.validate_detailed = function validate_detailed(source) {
+  return ${SMOKE_ANSWERS};
+};
+`;
+const WEB_GLUE = `let wasmBytes = 0;
+export function initSync(options) {
+  wasmBytes = options && options.module ? options.module.length : 0;
+}
+export function parse() {}
+export function validate_detailed(source) {
+  if (!wasmBytes) throw new Error('the WASM was never given to initSync');
+  return ${SMOKE_ANSWERS};
+}
+const url = new URL('holoscript_wasm_bg.wasm', import.meta.url);
+`;
+
+function sandboxWrite(work, rel, content) {
+  mkdirSync(dirname(join(work, rel)), { recursive: true });
+  writeFileSync(join(work, rel), content);
+}
+
+/**
+ * Adds @holoscript/wasm to the sandbox as this repository lays it out: the drift gate and the
+ * build script copied from the checkout, a workspace with the crate in packages/compiler-wasm,
+ * and both builds with v2 receipts that name `sourceCommit` (by default one absent from history,
+ * as after a squash merge). Lands everything on canon.
+ */
+function addWasmPackage(sandbox, { sourceCommit = '1'.repeat(40), nodeInputsSha256 } = {}) {
+  const { work } = sandbox;
+  for (const rel of [
+    'scripts/holo-ci/check-compiler-wasm-drift.mjs',
+    'packages/compiler-wasm/scripts/build-wasm.mjs',
+  ]) {
+    sandboxWrite(work, rel, readFileSync(join(REPO_ROOT, rel)));
+  }
+  sandboxWrite(work, 'Cargo.toml', '[workspace]\nmembers = ["packages/compiler-wasm"]\n');
+  sandboxWrite(work, 'Cargo.lock', '# the workspace lock\nversion = 4\n');
+  sandboxWrite(
+    work,
+    'packages/compiler-wasm/package.json',
+    `${JSON.stringify({ name: '@holoscript/wasm', version: '1.0.0', private: false }, null, 2)}\n`
+  );
+  sandboxWrite(work, 'packages/compiler-wasm/Cargo.toml', '[package]\nname = "holoscript-wasm"\n');
+  sandboxWrite(work, 'packages/compiler-wasm/src/lib.rs', '#[wasm_bindgen]\npub fn parse() {}\n');
+  git(work, ['add', '--all']);
+  git(work, ['commit', '-m', 'fixture: the wasm crate']);
+
+  const gitAt = (gitArgs, input) => {
+    const result = spawnSync('git', gitArgs, { cwd: work, input, maxBuffer: 1 << 26 });
+    return { status: result.status ?? 1, stdout: result.stdout, stderr: String(result.stderr) };
+  };
+  const digest = inputsDigest(
+    collectBuildInputs(gitSource(gitAt, 'HEAD'), 'packages/compiler-wasm').inputs
+  );
+  const wasmSha256 = createHash('sha256').update(WASM_BYTES).digest('hex');
+  for (const { target, outDir, schema } of BUILD_TARGETS) {
+    const dir = `packages/compiler-wasm/${outDir}`;
+    sandboxWrite(work, `${dir}/holoscript_wasm.js`, target === 'web' ? WEB_GLUE : NODE_GLUE);
+    if (target === 'web') sandboxWrite(work, `${dir}/package.json`, '{"type":"module"}\n');
+    sandboxWrite(work, `${dir}/holoscript_wasm_bg.wasm`, WASM_BYTES);
+    const inputsSha256 =
+      outDir === 'pkg-node' && nodeInputsSha256 ? nodeInputsSha256 : digest.sha256;
+    sandboxWrite(
+      work,
+      `${dir}/rebuild-receipt.json`,
+      `${JSON.stringify(
+        {
+          schema,
+          sourceCommit,
+          artifactPath: dir,
+          inputs: { sha256: inputsSha256, files: digest.files },
+          recipe: { ...buildRecipe(target, outDir), extraRustflags: [] },
+          result: {
+            wasmBytes: WASM_BYTES.length,
+            wasmSha256,
+            repeatBuildSha256Matched: true,
+            repeatBuildWasmSha256: wasmSha256,
+          },
+        },
+        null,
+        2
+      )}\n`
+    );
+  }
+  git(work, ['add', '--all']);
+  git(work, ['commit', '-m', 'fixture: both builds']);
+  git(work, ['push', 'canon', 'main']);
+  git(work, ['fetch', 'canon', 'main']);
+}
+
+check(
+  '@holoscript/wasm passes when its receipts name a commit missing from history but the inputs hash holds',
+  () => {
+    const sandbox = buildSandbox();
+    try {
+      addWasmPackage(sandbox);
+      const result = runProvenance(sandbox.work, [], '@holoscript/wasm');
+      assert.equal(result.code, 0, `expected pass, got:\n${result.out}`);
+      assert.match(
+        result.out,
+        /compiler-wasm-drift\] PASS 2 builds hold the same WASM/,
+        'the drift gate ran'
+      );
+      assert.match(
+        result.out,
+        /provenance PASS @holoscript\/wasm source=111111111111 inputs=[0-9a-f]{12}/
+      );
+    } finally {
+      rmSync(sandbox.root, { recursive: true, force: true });
+    }
+  }
+);
+
+check('@holoscript/wasm fails when its two receipts come from different rebuilds', () => {
+  const sandbox = buildSandbox();
+  try {
+    addWasmPackage(sandbox, { nodeInputsSha256: 'e'.repeat(64) });
+    const result = runProvenance(sandbox.work, [], '@holoscript/wasm');
+    assert.equal(result.code, 1, `different rebuilds must fail; got:\n${result.out}`);
+    assert.match(result.out, /must come from one rebuild/, 'it names the rule');
+    assert.doesNotMatch(result.out, /provenance PASS/);
   } finally {
     rmSync(sandbox.root, { recursive: true, force: true });
   }
