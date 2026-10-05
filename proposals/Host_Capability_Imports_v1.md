@@ -30,9 +30,13 @@ ASCII is `HS-HOST-001`, and `crdt://` reads as it did before G21. The corpus has
 **Built:** phase 2 (UAAL), 2026-10-04, branch `claude/holo-imports-uaal-exec`: `compile_to_uaal`
 lowers a call to its arguments, each at its declared type, and `EXEC [abi, argc]`; a statement
 call drops its result. One rule from building it: a declaration may pass only the four ABI v1
-types (§Execution), so the checker never accepts a call no engine can carry. Native and Kotlin
-refuse by name (`HS-HOST-004`; native refuses any `holo:` import earlier, as a non-relative path).
-Phases 3–5 are not built.
+types (§Execution), so no declaration names a type an engine cannot carry (that rule now loads
+with the declarations, phase 1). Kotlin refuses a call by name (`HS-HOST-004`); native refuses any
+`holo:` import as a non-relative path, before any check of its own. Whether a call runs is the
+host's: the run ends in `ERROR` where the host refuses an unbound name (the std handler), and a
+VM with no `EXEC` handler refuses only from PR #486 (until then it pushes `null`). After review
+(2026-10-05): the emitter never compiles a locally bound name as a capability, and checks the
+argument count itself. Phases 3–5 are not built.
 **Gap:** new **G21** (suggested: next free id after G20, `docs/spec/spec-vs-reality-gap.md` 20–39).
 **Board:** task_1790634920187_chz8; found while drafting: task_1790642739557_5kf8 (Kotlin
 bridge), task_1790642739558_so3q (UAAL VM). **Builds on:** G11 (PR #438); phase 3 needs G15 built.

@@ -614,12 +614,17 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   files change verdict. Not closed: an unchecked value still reaches a capability through a
   declaration that accepted it (`let v: i32 = helper()`, a typed parameter fed by an untyped
   caller, a typed result), which needs proof carried through declarations or a host-side
-  argument check.
+  argument check; and the fallback form `load(r.v) ?? 0` takes the fallback's type (UAAL refuses the
+  form today, so no EXEC carries it).
 - **STATUS — PHASE 2 BUILT, in review (2026-10-04).** UAAL compiles a Holo call to its arguments
-  and `EXEC ["holo.<module>.<function>.v<N>", argc]`; a host binds the name or the run ends in
-  error. Declarations may pass only `i32`, `f32`, `f64` and `bool` (ABI v1). Native and the
-  Kotlin bridge still refuse by name. Not yet: a host that binds a capability, the `run` route
-  and its permission switch (phase 3, after G15).
+  and `EXEC ["holo.<module>.<function>.v<N>", argc]`; a host binds the name or refuses it, and
+  the run ends in error only where the host refuses an unbound name (the std handler does; a VM
+  with no `EXEC` handler pushes `null` until PR #486, on hold for uaa2-service, task ugjw).
+  Declarations may pass only `i32`, `f32`, `f64` and `bool` (ABI v1). Native refuses the import as
+  a non-relative path, the Kotlin bridge by name. After review (2026-10-05): a locally bound name
+  never becomes an EXEC; a differential feeds every capability program of the review harnesses
+  to the checker and to `compile_to_uaal`. Not yet: a host that binds a capability and checks
+  its result's type, the `run` route and its permission switch (phase 3, after G15).
 
 ---
 
