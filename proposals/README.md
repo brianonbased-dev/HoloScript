@@ -12,7 +12,7 @@ This folder tracks RFC-style proposals for new language, trait, compiler, and ec
 | [`.hs` checker: names, calls, returns](./HS_Checker_Names_Calls_Returns_v1.md)         | Proposed; built in #438, gate 4 pending | "Valid `.hs`" means it runs (gap G11)                                 |
 | [Reading an `@unknown` field](./Unknown_Field_Reads_v1.md)                             | Proposed; built in #444, gate 4 pending | One written form `load(record.field) ?? fallback`; tag reads accepted |
 | [Agent frames: a way to say "no tools"](./Agent_Frame_Tool_Allowlist_v1.md)            | Proposed; built in #456, gate 4 pending | An empty tool allowlist stops meaning "every tool" (gap G15)          |
-| [Holo tools in the language: checked `holo:` imports](./Host_Capability_Imports_v1.md) | Proposed 2026-09-28 (gate 1 of 4)       | HoloAbsorb, HoloCI … as typed, permitted imports (gap G21)            |
+| [Holo tools in the language: checked `holo:` imports](./Host_Capability_Imports_v1.md) | Phase 1 built in #466, gate 4 pending   | HoloAbsorb, HoloCI … as typed, permitted imports (gap G21)            |
 
 ## How to Use This Folder
 

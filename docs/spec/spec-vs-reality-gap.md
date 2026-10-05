@@ -38,7 +38,7 @@
 | G18 | one file ending, one reader                                                            | true for `holoscript validate` only; `parse`, `compile`, `build`, `diff` and `run` read `.hs` with other readers and accept what `validate` refuses                                                                                                                                | ❌                                      |
 | G19 | `.hsplus` compiles to targets, never through JavaScript                                | bodies run via `new Function`; webgpu, godot and urdf compile no behavior; webgpu emits a TypeScript host                                                                                                                                                                          | ❌                                      |
 | G20 | the three-surface tracer is a language property                                        | the gate script rewrites `.hs` source and branches in TypeScript; imports are inert; an import from a missing file passes                                                                                                                                                          | ⚠️ **harness**                          |
-| G21 | a program can use a Holo tool (HoloAbsorb, HoloCI, HoloMesh…) through a checked import | no checked way: host calls are action strings no checker reads; `import { f } from "holo:absorb"` is valid and means nothing (a misspelled name, a wrong argument count and a missing module all pass); MCP pipeline stages compile to a throw, a pass-through or a `console.warn` | ❌ proposal                             |
+| G21 | a program can use a Holo tool (HoloAbsorb, HoloCI, HoloMesh…) through a checked import | the checker reads `holo:` imports against embedded declarations (PR #466): only a direct call in a typed function, its arguments proven; passing the checker grants no permission. No engine runs one yet; MCP stages still compile to a throw, a pass-through or a warning        | ⚠️ phase 1 in review                   |
 
 ---
 
@@ -593,15 +593,25 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
 - **Scope/blast:** proposal
   [`Host_Capability_Imports_v1.md`](../../proposals/Host_Capability_Imports_v1.md): `holo:<name>`
   names a capability module declared in `.hs` and embedded in the checker; named imports only;
-  codes `HS-HOST-001`–`007`; a call lowers to a UAAL `EXEC` bound per service; permission by
-  import list, the operator's run switch (each run's handler table is built from it) and both the
-  file's and the running agent's frame (after G15); until a gated route exists, only pure
-  capabilities run in-process. First proof: HoloAbsorb's manifest
+  codes `HS-HOST-001`–`007`; a call lowers to a UAAL `EXEC` bound per service. The import list
+  says what a file may call and the checker checks how; neither grants anything: permission is
+  the operator's run switch (each run's handler table is built from it) and both the file's and
+  the running agent's frame (after G15); until a gated route exists, only pure capabilities run
+  in-process. First proof: HoloAbsorb's manifest
   audit, with no network. Measured breakage: none (no tracked file imports from `holo:`).
 - **STATUS — PHASE 1 BUILT, in review (2026-09-29; board task chz8).** The checker reads
   `holo:` imports against the embedded `holo:absorb` declarations (`HS-HOST-001`–`004`, and
   `HS-SCOPE-001` for a local stand-in); `.hsplus` documents send their holo imports and each
-  document's are checked once. Engines refuse a Holo call by name; phase 2 binds it on UAAL.
+  document's are checked once. Engines refuse a Holo call by name (native refuses the import as a
+  non-relative path); phase 2 binds it on UAAL. **Review round (2026-10-05, claude3):** the
+  capability is admitted only as a direct call in a typed top-level function, every other use is
+  `HS-HOST-003` (lambdas, member calls, statements, handlers, trait configs); no parameter, local
+  or loop variable may take an import's name, nor an import a built-in's (`HS-SCOPE-001`, also
+  for a `.hsplus` document's stand-in); a capability's arguments must be proven of their declared
+  types; declarations hold to ABI v1, a u32 version and a lower-case ASCII name; sources with a
+  space around them or non-ASCII are `HS-HOST-001`, and `crdt://` reads as before. Passing the
+  checker is not permission to call the tool. 0 of 236 `.hs` and 0 of 2,982 readable `.hsplus`
+  files change verdict.
 
 ---
 

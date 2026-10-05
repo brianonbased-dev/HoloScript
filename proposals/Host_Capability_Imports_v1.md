@@ -18,7 +18,15 @@ scheme (`g21-009`), an alias's argument count (`g21-010`), a blocked name as an 
 and a capability passed on as a value (`g21-014`); the ten that were honest gaps flipped on
 purpose. Engines refuse a valid Holo call by name
 (`HS-HOST-004`; native refuses any `holo:` import earlier, as a non-relative path) until phase 2
-binds it. Phases 2–5 are not built.
+binds it. Phases 2–5 are not built. **Review round (claude3, 2026-10-05; the linguist's decisions
+the same day):** the checker admits a capability's name only as a direct call in the body of a
+typed top-level function, by one walk over the whole file, and refuses every other use
+(`HS-HOST-003`); a parameter, local, loop variable or lambda parameter that takes an import's
+name, and an import that takes a built-in's name, are `HS-SCOPE-001`; a capability's arguments
+must be proven of their declared types (`HS-TYPE-ARG-001`; an ordinary call accepts an unknown
+one); ABI v1 is enforced when a declaration loads (moved here from phase 2), with a version up to
+4294967295 and a lower-case ASCII name; a source with a space around it or a character outside
+ASCII is `HS-HOST-001`, and `crdt://` reads as it did before G21. The corpus has 27 G21 cases.
 **Gap:** new **G21** (suggested: next free id after G20, `docs/spec/spec-vs-reality-gap.md` 20–39).
 **Board:** task_1790634920187_chz8; found while drafting: task_1790642739557_5kf8 (Kotlin
 bridge), task_1790642739558_so3q (UAAL VM). **Builds on:** G11 (PR #438); phase 3 needs G15 built.
@@ -168,11 +176,12 @@ A call lowers to `EXEC ["holo.<module>.<function>.v<N>", argc]`, beside the `hs.
 (`uaal_emit.rs` 44–56, `packages/std/src/uaal-abi.ts` 8–14), with the `hs.i32.binary.v1` stack
 contract (arguments left to right, one result pushed). `N` is the `@host` version. v1 carries
 `i32`, `f32`, `f64`, `bool`; handlers may be async (`uaal-abi.ts` 33–36; awaited at `vm.ts` 726).
-Nothing enforces v1 at `a7facec17`: a `string` parameter in a declaration is valid, and a stale
+Nothing enforced v1 at `a7facec17`: a `string` parameter in a declaration was valid, and a stale
 binding that pushes `"pass"` for a `bool` ends `HALTED` with `"pass"` (one that pushes nothing ends
-with `null`). ABI v1 is enforced in phase 2 (#487): a declaration may use only the four v1 types,
-and a binding's result is checked against the declared type, so a wrong type or no result is an
-`ERROR`.
+with `null`). A declaration may use only the four v1 types, enforced when it loads since phase 1
+(#466, moved there from #487), so no declaration names a type an engine cannot carry. A
+binding's result is checked against the declared type by phase 3's binding table, so a wrong type
+or no result is an `ERROR`.
 
 **Versions.** A signature is fixed for its version. Changing a parameter's or the result's type, or
 the number of parameters, needs a new version (`version: 2`, ABI name `….v2`) declared beside the
