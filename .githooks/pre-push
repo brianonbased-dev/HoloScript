@@ -69,9 +69,10 @@ fi
 # git hands pre-push the remote name as $1 and its URL as $2, so the trunk of
 # the real target is one ls-remote away. Order: the target's main, then
 # origin/main, then (for an existing branch) the old per-push range, then fail
-# closed. An ls-remote answer can name a commit that is not here; `git diff`
-# against a sha we do not have would print an empty list, which reads exactly
-# like "nothing to check", so it is verified before it is trusted.
+# closed. An ls-remote answer can name a commit that is not here. `git diff`
+# against it fails (exit 128, measured on git 2.51), and the `|| force_check=1`
+# below would then judge every push in full, a needless core run; so it is
+# verified first, and a missing commit falls back to origin/main.
 trunk=$(git ls-remote "${2:-$1}" refs/heads/main 2>/dev/null | cut -f1)
 if [ -n "$trunk" ] && ! git cat-file -e "${trunk}^{commit}" 2>/dev/null; then
   trunk=''
