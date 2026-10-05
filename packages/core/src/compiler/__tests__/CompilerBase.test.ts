@@ -3,6 +3,8 @@ import {
   CompilerBase,
   UnauthorizedCompilerAccessError,
   createTestCompilerToken,
+  describeLeftOutScenes,
+  flattenCompositionScenes,
   readGroupBlocksAsSpatialGroups,
   type ICompiler,
 } from '../CompilerBase';
@@ -743,6 +745,24 @@ describe('CompilerBase', () => {
         'the environment in scene "Night x" is not applied: this output is one world with one environment, and the environment in scene "Day" applies.',
         'object "Ground" in scene "Night x" is not built: this output is one world, and another object in it already uses the name "Ground".',
       ]);
+    });
+
+    it('gives an emitter that is not a compiler the same sentences, from the function a compiler calls', () => {
+      const input = composition({
+        scenes: [
+          scene('Day', ['Ground'], '#ffffff'),
+          scene('Night', ['Ground', 'Moon'], '#000000'),
+        ],
+      });
+      const sentences = describeLeftOutScenes(
+        flattenCompositionScenes(input, identifier),
+        'TypeScript'
+      );
+      expect(sentences).toEqual([
+        'the environment in scene "Night" is not applied: this output is one world with one environment, and the environment in scene "Day" applies.',
+        'object "Ground" in scene "Night" is not built: this output is one world, and another object in it already uses the name "Ground".',
+      ]);
+      expect(sentences).toEqual(compiler.exposeSceneWarnings(input));
     });
   });
 
