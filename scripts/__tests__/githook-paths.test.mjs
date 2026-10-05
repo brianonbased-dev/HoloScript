@@ -594,6 +594,21 @@ console.log('githook-paths.test.mjs — pre-push');
     assertEq(r.force, '0', 'pre-push: a new branch behind main is not force-checked');
     assertEq(r.files.join(','), 'packages/studio/b.ts', "pre-push: a new branch behind main is judged by its own files, not main's core change");
 
+    // The commonest push: a branch already on the remote at f1 fast-forwards with more studio work
+    // after main moved on (fc9486's round-2 note). It is judged by its own files, and not in full:
+    // a rule that tested the trunk, rather than the remote commit, for ancestry would force it.
+    git(work, 'checkout', '-q', '-b', 'feat-ff', f1);
+    git(work, 'push', '-q', 'origin', 'feat-ff');
+    const ff2 = commitFile(work, 'packages/studio/e.ts', 'e\n', 'ff2');
+    r = judged(work, 'origin', bare, [`refs/heads/feat-ff ${ff2} refs/heads/feat-ff ${f1}`]);
+    assertEq(r.force, '0', 'pre-push: an existing branch that fast-forwards after main moved is not force-checked');
+    assertTrue(
+      r.files.length > 0 && r.files.every((f) => f.startsWith('packages/studio/')),
+      "pre-push: ...and it is judged by its own studio files, not main's core change",
+      r.files.join(','),
+    );
+    git(work, 'checkout', '-q', 'feat');
+
     const f2 = commitFile(work, 'packages/core/c.ts', 'c\n', 'f2');
     r = judged(work, 'origin', bare, [`refs/heads/feat ${f2} refs/heads/feat ${ZERO}`]);
     assertTrue(r.files.includes('packages/core/c.ts'), 'pre-push: a branch that changes core is still judged for it', r.files.join(','));
