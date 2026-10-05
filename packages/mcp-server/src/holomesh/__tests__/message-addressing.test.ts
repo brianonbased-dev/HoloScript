@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   chooseInboxBriefExclusive,
@@ -80,6 +83,80 @@ describe('message addressing (task_1785839509015_lreq)', () => {
     ];
     expect(findTeamMember(members, 'cursor-claude')?.agentId).toBe('agent_kmjr');
     expect(findTeamMember(members, 'cursor-claude-x402')?.agentId).toBe('agent_kmjr');
+  });
+});
+
+// The case table is shared with ai-ecosystem (hooks/lib/__tests__/mention-cases.json is a
+// byte-identical copy that its own copy of this rule runs), so a sender and this server cannot
+// disagree about who a message is for without one of the two suites going red. It holds all 74
+// rows of claude3's review table for #455 plus one row for each planted fault those rows missed.
+type MentionCase = { why: string; text: string; mentions: string[] };
+const MENTION_TABLE = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'mention-cases.json'), 'utf8')
+) as { cases: MentionCase[] };
+
+describe('which @name is a reader: the case table shared with ai-ecosystem', () => {
+  it('carries every row of the review table and says why each row is there', () => {
+    const rows = MENTION_TABLE.cases.map((row) => row.why);
+    for (let n = 1; n <= 74; n += 1) {
+      expect(rows.some((why) => why.startsWith(`claude3 row ${n}:`))).toBe(true);
+    }
+    expect(new Set(rows).size).toBe(rows.length);
+  });
+
+  it.each(MENTION_TABLE.cases)('$why', ({ text, mentions }) => {
+    expect(extractMentions(text)).toEqual(mentions);
+    expect(firstMention(text)).toBe(mentions[0] ?? '');
+  });
+});
+
+// claude3's review of #455, P2: real mentions lost their reader, or went to someone else. These
+// go through the functions the routes call (resolveMessageRecipient on POST, messageAddressedTo
+// for the inbox and ?for=), not only through extractMentions.
+describe('a real mention keeps its reader (claude3 review of #455)', () => {
+  const members = [
+    { agentId: 'agent_c2', agentName: 'claude2-x402' },
+    { agentId: 'agent_c3', agentName: 'claude3-x402' },
+    { agentId: 'agent_g1', agentName: 'grok1-x402' },
+  ];
+  const readerOf = (content: string) =>
+    resolveMessageRecipient({ members, content, messageType: 'review-request' });
+  const claude2 = { toAgentId: 'agent_c2', toAgentName: 'claude2-x402' };
+  const claude3 = { toAgentId: 'agent_c3', toAgentName: 'claude3-x402' };
+
+  it('reads a handle glued after a full stop, an ellipsis, a hyphen or a slash', () => {
+    for (const content of [
+      'Done.@claude3 look',
+      'wait...@claude3 look',
+      'one more thing--@claude3 can you look',
+      'see/@claude3',
+    ]) {
+      expect(readerOf(content)).toEqual(claude3);
+    }
+  });
+
+  it('gives "@a/@b and @c" to the first handle, and "@a/@b" to a rather than to the room', () => {
+    expect(readerOf('@claude2/@claude3 and @grok1')).toEqual(claude2);
+    expect(readerOf('@claude2/@claude3 please review')).toEqual(claude2);
+  });
+
+  it('does not let a lone backtick pair with a later code span', () => {
+    expect(readerOf('I use ` here, @claude3 please review `foo`')).toEqual(claude3);
+    expect(readerOf('don`t forget @claude3 to run `pnpm test`')).toEqual(claude3);
+    expect(readerOf('I use ` here, @claude3 please review (`foo`)')).toEqual(claude3);
+  });
+
+  it('still keeps a package, an email address and code out of the reader slot', () => {
+    expect(readerOf('pnpm --filter @holoscript/wasm run rebuild, then @claude3')).toEqual(claude3);
+    expect(readerOf('mail josep@example.com, then @claude3')).toEqual(claude3);
+    expect(readerOf('the `@unknown` rule, then @claude3')).toEqual(claude3);
+    expect(readerOf('pnpm --filter "@holoscript/*" build')).toEqual({});
+  });
+
+  it('keeps a legacy post with a glued mention in its reader inbox and ?for= slice', () => {
+    const legacy = { content: 'Done.@claude3 please land 2d8945e29' };
+    expect(messageAddressedTo(legacy, 'claude3-x402')).toBe(true);
+    expect(messageAddressedToAny(legacy, ['grok1'])).toBe(false);
   });
 });
 

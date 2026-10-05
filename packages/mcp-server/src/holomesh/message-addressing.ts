@@ -1,9 +1,11 @@
 /**
  * Directed-mail addressing for the durable team message store.
  *
- * Keep the handle rules in sync with ai-ecosystem `scripts/room-inbox.mjs`:
- * case-insensitive, strip a trailing `-x402`, and treat an `@name` in the
- * body as a legacy recipient only when the message has no `toAgent*` field.
+ * The handle rules (case-insensitive, strip a trailing `-x402`, and which `@name`
+ * in a body is a reader at all) are shared with ai-ecosystem
+ * `hooks/lib/holomesh-message-addressing.mjs`, which the sending and inbox scripts
+ * use; both run the same case table (see MENTION_RE below). Here a body `@name` is a
+ * legacy recipient only when the message has no `toAgent*` field.
  *
  * task_1785839509015_lreq: a directed message must remain retrievable by its
  * recipient after later broadcasts. Filtering on messageType alone cannot do
@@ -14,16 +16,39 @@ export const INBOX_MESSAGE_TYPES = ['dm', 'handoff', 'review-request'] as const;
 export const INBOX_MESSAGE_TYPE_SET = new Set<string>(INBOX_MESSAGE_TYPES);
 
 /**
- * An `@name` counts as a handle only where a handle can stand: not as an npm scope
- * (`@holoscript/wasm`), not inside an email address (`josep@example.com`), and not inside a code
- * span (`` `@unknown` `` is HoloScript, not a reader). Measured 2026-09-29: a room-wide review
- * request that named the `pnpm --filter @holoscript/wasm` command reached only the member
- * "holoscript", and one that wrote `@unknown` reached no one. A bare `@unknown` in prose still
- * reads as a handle (nothing tells it from one); ai-ecosystem `scripts/room-message.mjs` warns
- * about a body mention before sending.
+ * Which `@name` in a message body is a reader. Exactly three things are not, and nothing else
+ * is excluded:
+ *
+ * 1. An npm scope: `@holoscript/wasm`, `@holoscript/*`. An @name followed by "/" is a scope,
+ *    unless the "/" is followed by another "@": "@claude2/@claude3" names two readers.
+ * 2. An email address: `josep@example.com`. An "@" right after a letter, a digit, "_" or another
+ *    "@" is inside an address, not the start of a handle.
+ * 3. Code: a fenced block, or an inline code span. An inline span opens on a backtick followed by
+ *    a non-space and closes on a backtick preceded by a non-space, so a lone backtick ("the `
+ *    key", "don`t") never pairs with a later span and swallows the handle between them. A span is
+ *    replaced by a space, not removed, so "x`foo`@claude3" does not turn into an email address.
+ *
+ * The name is the whole run of name characters, never a prefix of it: "@claude-skills/heap" is
+ * not read as "claude", and a name longer than 64 characters is not read at all.
+ *
+ * Everything else that looks like a handle is one, including a handle glued after ".", "-" or
+ * "/" ("Done.@claude3", "wait...@claude3"). Losing a reader costs more than keeping one: a
+ * message whose mention is not read becomes a room post, and silently drops out of that reader's
+ * inbox (messaging.ts inboxForAgent) and out of `?for=` (board-routes.ts). The FIRST handle is the
+ * reader of an unaddressed inbox post, so "@claude2/@claude3 and @grok1" is for claude2.
+ *
+ * History. 2026-09-29: the old pattern read any @word, so a room-wide review request naming
+ * `pnpm --filter @holoscript/wasm` reached only the member "holoscript", and two that wrote
+ * `@unknown` reached no one (#455). 2026-10-05, claude3's review of #455 (a 74-row table): #455
+ * also dropped handles glued after ". - /", let a lone backtick pair with a later span, and sent
+ * "@claude2/@claude3 and @grok1" to grok1 alone. Those extras are gone.
+ *
+ * Every rule is pinned by `__tests__/mention-cases.json`; ai-ecosystem holds a byte-identical copy
+ * of that file for its own copy of this rule. Change the two files and the two rules together. A
+ * bare `@unknown` in prose still reads as a handle (nothing tells it from one).
  */
-const MENTION_RE = /(?<![A-Za-z0-9_.@/-])@([A-Za-z][A-Za-z0-9_-]{1,63})(?![A-Za-z0-9_/-])/g;
-const CODE_SPAN_RE = /```[\s\S]*?```|`[^`\n]*`/g;
+const MENTION_RE = /(?<![A-Za-z0-9_@])@([A-Za-z][A-Za-z0-9_-]{1,63})(?![A-Za-z0-9_-]|\/(?!@))/g;
+const CODE_SPAN_RE = /```[\s\S]*?```|`[^`\s](?:[^`\n]*[^`\s])?`/g;
 
 export function normalizeAgentRef(value: unknown): string {
   return String(value || '')
