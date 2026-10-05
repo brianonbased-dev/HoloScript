@@ -297,3 +297,16 @@ describe('CodebaseGraph callers of a method called through a variable', () => {
     expect([...graph.getSymbolImpact('getSymbolImpact')]).toEqual(['src/tools.ts']);
   });
 });
+
+describe('CodebaseGraph enclosing symbol', () => {
+  it('names the innermost function or method whose span holds a line', () => {
+    const sym = (name: string, type: string, line: number, lineCount: number, owner?: string) =>
+      ({ name, owner, type, filePath: 'src/a.ts', line, column: 0, lineCount, language: 'typescript', visibility: 'public' }) as ScannedFile['symbols'][number];
+    const graph = buildGraph([
+      { ...makeFile('src/a.ts'), symbols: [sym('Tools', 'class', 1, 40), sym('render', 'method', 10, 10, 'Tools'), sym('LIMIT', 'constant', 12, 1)] },
+    ]);
+    expect(graph.getEnclosingSymbol('src/a.ts', 14)?.name).toBe('render');
+    expect(graph.getEnclosingSymbol('src/a.ts', 30)?.name).toBe('Tools');
+    expect(graph.getEnclosingSymbol('src/a.ts', 99)).toBeUndefined();
+  });
+});

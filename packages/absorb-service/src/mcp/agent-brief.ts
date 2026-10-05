@@ -92,6 +92,7 @@ const KEEP = [
   'note',
   'excerpts',
   'sources',
+  'answerKind',
   'fallbackReason',
   'notInGraph',
   'nearestNames',
@@ -115,7 +116,8 @@ export function resultLine(item: unknown): string {
   const file = (sym.filePath ?? sym.file ?? item.filePath ?? item.file) as string | undefined;
   const line = (sym.line ?? item.line) as number | undefined;
   const owner = sym.owner ? `${String(sym.owner)}.` : '';
-  const name = (sym.name ?? item.callerId ?? item.calleeName ?? item.name) as string | undefined;
+  const base = (sym.name ?? item.callerId ?? item.calleeName ?? item.name) as string | undefined;
+  const name = typeof item.enclosing === 'string' && base ? `${base} (inside ${item.enclosing})` : base;
   const kind = (sym.type ?? item.type) as string | undefined;
   const score = typeof item.score === 'number' ? ` score ${item.score}` : '';
   const where = file ? `${file}${line !== undefined ? `:${line}` : ''}` : '';

@@ -74,6 +74,8 @@ describe('holo_ask_codebase without a reachable model', () => {
     };
     expect(answer.error, JSON.stringify(answer).slice(0, 400)).toBeUndefined();
     expect(answer.fallback).toBe('extractive-graphrag');
+    expect((answer as { answerKind?: string }).answerKind).toBe('retrieval-only');
+    expect(answer.answer).toContain('Retrieval only, not an answer');
     expect(answer.fallbackReason).toBe('fetch failed at http://127.0.0.1:9/v1/chat/completions');
     const excerpt = answer.excerpts?.find((e) => e.name === 'isCachedMapFresh');
     expect(excerpt?.code).toContain('return headMatches && fingerprintMatches;');

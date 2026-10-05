@@ -27,6 +27,7 @@ import {
   resetGraphRAGState,
   resetGraphRAGStateForTests,
   readSymbolExcerpt,
+  readSymbolLines,
   setGraphRAGState,
 } from './graph-rag-tools';
 import {
@@ -6370,7 +6371,12 @@ export const codebaseTools: Tool[] = [
             'source',
           ],
           description:
-            'Structured query type. source: the code of symbolName (comment block above it plus up to 120 lines, from the absorbed files only).',
+            'Structured query type. source: the code of symbolName (comment block above it plus up to 120 lines, from the absorbed files only); add match to get only the lines holding a word, numbered, with 3 lines of context.',
+        },
+        match: {
+          type: 'string',
+          description:
+            'For queryType "source": return only lines of the definition that contain this text (case-insensitive), with line numbers and context. Use it on long functions.',
         },
         traceStrategy: {
           type: 'string',
@@ -10897,7 +10903,17 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   switch (effectiveType) {
     case 'callers': {
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const callers = cachedGraph.getCallersOf(name, symbolOwner);
+      const graph = cachedGraph;
+      // An `<anonymous>` caller (arrow function, callback) is named by the
+      // function it sits inside (tester agent 7, 2026-10-05: two of four
+      // callers of getSymbolImpact were only "<anonymous>").
+      const callers = graph.getCallersOf(name, symbolOwner).map((call) => {
+        if (!call.callerId.includes('<anonymous>')) return call;
+        const enclosing = graph.getEnclosingSymbol(call.filePath, call.line);
+        return enclosing
+          ? { ...call, enclosing: enclosing.owner ? `${enclosing.owner}.${enclosing.name}` : enclosing.name }
+          : call;
+      });
       return {
         query: `callers of ${symbolOwner ? `${symbolOwner}.` : ''}${name}`,
         results: callers,
@@ -10961,6 +10977,36 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         .filter((sym) => !symbolOwner || sym.owner === symbolOwner)
         .slice(0, SOURCE_MAX_DEFINITIONS);
       const rootDir = cachedGraph.getRootDir();
+      // `match` reads the whole definition and returns only the lines holding
+      // a word, with context: tester 7 had to filter a 375-line body by hand.
+      const match = typeof args.match === 'string' ? args.match.trim().toLowerCase() : '';
+      if (match) {
+        const matched = definitions.flatMap((sym) => {
+          const read = readSymbolLines(rootDir, sym.filePath, sym.line, sym.lineCount, SOURCE_MATCH_MAX_SCAN);
+          if (!read) return [];
+          const keep = new Set<number>();
+          read.lines.forEach((text, i) => {
+            if (!text.toLowerCase().includes(match)) return;
+            for (let k = Math.max(0, i - SOURCE_MATCH_CONTEXT); k <= Math.min(read.lines.length - 1, i + SOURCE_MATCH_CONTEXT); k++) keep.add(k);
+          });
+          const indexes = [...keep].sort((a, b) => a - b).slice(0, SOURCE_MAX_LINES);
+          if (indexes.length === 0) return [];
+          const code = indexes
+            .map((i, n) => `${n > 0 && i !== indexes[n - 1] + 1 ? '...\n' : ''}${read.startLine + i}: ${read.lines[i]}`)
+            .join('\n');
+          return [{ name: sym.owner ? `${sym.owner}.${sym.name}` : sym.name, type: sym.type, file: sym.filePath, line: sym.line, match, code }];
+        });
+        return {
+          query: `source of ${name} matching "${match}"`,
+          sources: matched,
+          count: matched.length,
+          ...(matched.length === 0 &&
+            (definitions.length === 0
+              ? explainEmptySymbolAnswer(name, 'find')
+              : { note: `No line of ${name} contains "${match}". Drop match to read the code from the top.` })),
+          ...(cacheNote && { cacheNote }),
+        };
+      }
       const sources = definitions.flatMap((sym) => {
         const code = readSymbolExcerpt(rootDir, sym.filePath, sym.line, sym.lineCount, SOURCE_MAX_LINES);
         if (!code) return [];
@@ -12334,6 +12380,8 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
 
 const SOURCE_MAX_DEFINITIONS = 3;
 const SOURCE_MAX_LINES = 120;
+const SOURCE_MATCH_MAX_SCAN = 3000;
+const SOURCE_MATCH_CONTEXT = 3;
 
 function inferQueryType(query: string): string {
   const q = query.toLowerCase();

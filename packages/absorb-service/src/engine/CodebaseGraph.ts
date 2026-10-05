@@ -413,6 +413,21 @@ export class CodebaseGraph {
   /**
    * Get all symbols in a file.
    */
+  /**
+   * The innermost named function, method or class whose span holds `line`, so
+   * a call recorded as `<anonymous>` (an arrow function or callback) can be
+   * named by where it sits. Symbols without a known span are skipped.
+   */
+  getEnclosingSymbol(filePath: string, line: number): ExternalSymbolDefinition | undefined {
+    let best: ExternalSymbolDefinition | undefined;
+    for (const sym of this.getSymbolsInFile(filePath)) {
+      if (!sym.lineCount || !['function', 'method', 'class'].includes(sym.type)) continue;
+      if (line < sym.line || line > sym.line + sym.lineCount - 1) continue;
+      if (!best || (sym.lineCount ?? 0) < (best.lineCount ?? 0)) best = sym;
+    }
+    return best;
+  }
+
   getSymbolsInFile(filePath: string): ExternalSymbolDefinition[] {
     const ids = this.symbolsByFile.get(filePath) ?? [];
     return ids.map((id) => this.symbols.get(id)!).filter(Boolean);

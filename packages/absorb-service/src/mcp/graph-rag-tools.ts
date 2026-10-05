@@ -913,6 +913,20 @@ export function readSymbolExcerpt(
   lineCount?: number,
   maxLines = EXCERPT_MAX_LINES
 ): string | undefined {
+  return readSymbolLines(rootDir, file, line, lineCount, maxLines)?.lines.join('\n');
+}
+
+/**
+ * The lines readSymbolExcerpt returns, with the file line number the first one
+ * sits on, so a caller can number them or filter them by content.
+ */
+export function readSymbolLines(
+  rootDir: string,
+  file: string,
+  line: number,
+  lineCount?: number,
+  maxLines = EXCERPT_MAX_LINES
+): { startLine: number; lines: string[] } | undefined {
   if (!rootDir || !file || !(line >= 1)) return undefined;
   const root = path.resolve(rootDir);
   const target = path.resolve(root, file);
@@ -929,12 +943,14 @@ export function readSymbolExcerpt(
       start--;
     }
     const span = line - 1 - start + Math.min(maxLines, Math.max(1, lineCount ?? maxLines));
-    return lines
-      .slice(start, start + span)
-      .map((text) =>
-        text.length > EXCERPT_MAX_LINE_CHARS ? `${text.slice(0, EXCERPT_MAX_LINE_CHARS)}...` : text
-      )
-      .join('\n');
+    return {
+      startLine: start + 1,
+      lines: lines
+        .slice(start, start + span)
+        .map((text) =>
+          text.length > EXCERPT_MAX_LINE_CHARS ? `${text.slice(0, EXCERPT_MAX_LINE_CHARS)}...` : text
+        ),
+    };
   } catch {
     return undefined;
   }
@@ -1028,6 +1044,7 @@ async function buildExtractiveCodebaseAnswer(options: {
     answer: guard.passed
       ? [
           `LLM generation was unavailable (${fallbackReason}); returning an extractive GraphRAG answer from cited code context.`,
+          'Retrieval only, not an answer: the matches below are ranked by search and can be off-topic. Read the excerpts (or holo_query_codebase {query: "source"}) before relying on them.',
           '',
           ...citedLines,
           ...(excerpts.length > 0
@@ -1059,6 +1076,7 @@ async function buildExtractiveCodebaseAnswer(options: {
           }
         : {}),
     },
+    answerKind: 'retrieval-only',
     context: contextPayload(context),
     ...(excerpts.length > 0 ? { excerpts } : {}),
     ...(ragResult.visualFocus ? { visualGraphEvidence: ragResult.visualFocus } : {}),

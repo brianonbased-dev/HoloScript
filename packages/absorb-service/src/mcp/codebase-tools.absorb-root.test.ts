@@ -2397,6 +2397,20 @@ describe('holo_absorb_repo root validation', () => {
     })) as { count?: number; notInGraph?: boolean };
     expect(unknownSource.count).toBe(0);
     expect(unknownSource.notInGraph).toBe(true);
+    // match: only the lines holding a word, numbered by file line.
+    const matched = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'source',
+      symbolName: 'alpha',
+      match: 'RETURN',
+    })) as { sources?: Array<{ code: string }>; note?: string };
+    expect(matched.sources?.[0]?.code).toMatch(/^1: export function alpha/);
+    const noMatch = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'source',
+      symbolName: 'alpha',
+      match: 'zebra',
+    })) as { count?: number; note?: string };
+    expect(noMatch.count).toBe(0);
+    expect(noMatch.note).toContain('No line of alpha contains "zebra"');
   }, 120_000);
 
   it('does not restart a refresh for a partial map the last refresh just left', async () => {
