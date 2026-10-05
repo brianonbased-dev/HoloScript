@@ -22,6 +22,52 @@ import type { ReusableEmbedding } from './EmbeddingIndex';
 const MAGIC = Buffer.from('HEJ1', 'ascii');
 const HEADER_BYTES = 8;
 
+/**
+ * Append `source` onto `target` one element at a time. `target.push(...source)`
+ * passes every element as an argument and throws RangeError on Node 24 above
+ * roughly 125k elements (review of #492, 2026-10-05: 120k worked, 130k threw);
+ * HoloScript's index is 136k entries.
+ */
+export function appendAll<T>(target: T[], source: Iterable<T>): T[] {
+  for (const item of source) target.push(item);
+  return target;
+}
+
+/** Journals already checked for a torn tail in this process. */
+const repairedJournals = new Set<string>();
+
+/**
+ * Cut a journal back to its last whole record. Appending after a record torn
+ * by a crash used to splice new bytes onto the torn one, so the next read
+ * decoded garbage vectors and lost every record after it (review of #492:
+ * gamma read back as [3, 3, 4.6e-40, 6.7e22], delta and epsilon lost).
+ * Walks record headers with positioned reads; vectors are skipped, not read.
+ */
+function repairJournalTail(file: string, dimension: number): void {
+  const key = file.toLowerCase();
+  if (repairedJournals.has(key)) return;
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(file, 'r+');
+    const size = fs.fstatSync(fd).size;
+    const vectorBytes = dimension * 4;
+    const length = Buffer.alloc(4);
+    let offset = HEADER_BYTES;
+    while (offset + 4 <= size) {
+      if (fs.readSync(fd, length, 0, 4, offset) !== 4) break;
+      const end = offset + 4 + length.readUInt32LE(0) + vectorBytes;
+      if (end > size) break;
+      offset = end;
+    }
+    if (offset < size) fs.ftruncateSync(fd, offset);
+    repairedJournals.add(key);
+  } catch {
+    /* unreadable: the next append rewrites the header */
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
 export function appendEmbeddingJournal(file: string, entries: readonly ReusableEmbedding[]): void {
   if (entries.length === 0) return;
   const dimension = entries[0].embedding.length;
@@ -40,6 +86,7 @@ export function appendEmbeddingJournal(file: string, entries: readonly ReusableE
     existingDimension = null;
   }
   const chunks: Buffer[] = [];
+  if (existingDimension === dimension) repairJournalTail(file, dimension);
   if (existingDimension !== dimension) {
     // Absent, unreadable, or another dimension: start a fresh journal.
     const header = Buffer.alloc(HEADER_BYTES);
@@ -90,6 +137,7 @@ export function readEmbeddingJournal(file: string): ReusableEmbedding[] {
 }
 
 export function removeEmbeddingJournal(file: string): void {
+  repairedJournals.delete(file.toLowerCase());
   try {
     fs.rmSync(file, { force: true });
   } catch {
