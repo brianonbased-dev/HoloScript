@@ -1,3 +1,5 @@
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { compilePipelineSourceToNode } from '../PipelineCompiler';
 
@@ -61,7 +63,7 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.success).toBe(true);
     expect(result.code).toContain("const { Client } = await import('pg');");
     expect(result.code).toContain(
-      'await DbIn_client.query(interpolate(`SELECT id, stock FROM inventory`));'
+      'await DbIn_client.query(interpolate("SELECT id, stock FROM inventory"));'
     );
     expect(result.code).toContain('INSERT INTO inventory_events (payload) VALUES ($1)');
   });
@@ -194,7 +196,7 @@ describe('PipelineCompiler (parser target)', () => {
 
     const result = compilePipelineSourceToNode(source);
     expect(result.success).toBe(true);
-    expect(result.code).toContain('const Summarise_model = interpolate(`gpt-4o-mini`)');
+    expect(result.code).toContain('const Summarise_model = interpolate("gpt-4o-mini")');
     expect(result.code).toContain('const Summarise_apiKey = process.env.OPENAI_API_KEY');
     expect(result.code).toContain('/chat/completions');
     expect(result.code).toContain('"Summarize: {{input}}"');
@@ -227,7 +229,7 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.code).toContain('const Enrich_results = [];');
     expect(result.code).toContain('for (const r of records)');
     expect(result.code).toContain('ENRICH_API:-https://api.example.com/enrich');
-    expect(result.code).toContain("method: 'POST'");
+    expect(result.code).toContain('method: "POST"');
     expect(result.code).toContain('records = Enrich_results;');
     expect(result.code).not.toContain(
       `${GENERATED_TASK_COMMENT} http transform ${OLD_UNSUPPORTED_SUFFIX}`
@@ -540,5 +542,222 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
       vi.doUnmock('../PipelineServerPolicy');
       vi.resetModules();
     }
+  });
+});
+
+// Board task task_1791176003202_obsc — hardening added after the first push.
+// (a) A keyed MCP request must not follow a redirect to another host.
+// (b) Every value a pipeline file supplies is embedded as data, never spliced into a
+//     template literal, so no ${...} from the file is evaluated as code.
+describe('PipelineCompiler — redirects and template-literal injection', () => {
+  const FAKE_KEY = 'test-key-not-real';
+  const FAKE_SECRET = 'fake-secret-not-real';
+
+  /** Build run() from generated code without executing the module's auto-run line. */
+  function buildRun(
+    code: string,
+    env: Record<string, string>,
+    fetchImpl: (url: unknown, init?: { headers?: Record<string, string> }) => Promise<unknown>
+  ): () => Promise<unknown> {
+    const body = code
+      .replace('export async function run() {', 'async function run() {')
+      .replace('run().catch(console.error);', '');
+    const quiet = { log: () => {}, warn: () => {}, error: () => {} };
+    const make = new Function('process', 'fetch', 'console', `'use strict';\n${body}\nreturn run;`);
+    return make({ env }, fetchImpl, quiet) as () => Promise<unknown>;
+  }
+
+  type Rec = { url: string; headers: Record<string, string> };
+  async function runRec(code: string, env: Record<string, string>): Promise<Rec[]> {
+    const calls: Rec[] = [];
+    const run = buildRun(code, env, async (url, init = {}) => {
+      calls.push({ url: String(url), headers: { ...(init.headers ?? {}) } });
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({ result: { content: [] } }),
+      };
+    });
+    await run();
+    return calls;
+  }
+
+  // ---- (a) redirects -------------------------------------------------------
+
+  type Server = { url: string; hits: { keyed: boolean }[]; close: () => void };
+  function listen(onReq: (res: import('node:http').ServerResponse) => void): Promise<Server> {
+    const hits: { keyed: boolean }[] = [];
+    const server = createServer((req, res) => {
+      hits.push({ keyed: req.headers['x-mcp-api-key'] === FAKE_KEY });
+      req.resume();
+      onReq(res);
+    });
+    return new Promise((resolve) => {
+      server.listen(0, '127.0.0.1', () => {
+        const { port } = server.address() as AddressInfo;
+        resolve({ url: `http://127.0.0.1:${port}`, hits, close: () => server.close() });
+      });
+    });
+  }
+
+  function mcpSinkPipeline(server: string): string {
+    return `
+      pipeline "RedirectProbe" {
+        source Input { type: "list" items: [{ id: 1 }] }
+        sink ToolOut {
+          type: "mcp"
+          server: "${server}"
+          tool: "knowledge_write"
+        }
+      }
+    `;
+  }
+
+  it('refuses a redirect on a keyed MCP request; the other host receives nothing', async () => {
+    // Server A is the configured MCP server; it answers 307 to server B.
+    const b = await listen((res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ result: { content: [] } }));
+    });
+    const a = await listen((res) => {
+      res.writeHead(307, { location: `${b.url}/mcp` });
+      res.end();
+    });
+    try {
+      // Configured form, so the key is attached to the request to A.
+      const code = compilePipelineSourceToNode(mcpSinkPipeline('${env.HOLOSCRIPT_MCP_URL}')).code!;
+      const run = buildRun(
+        code,
+        { HOLOSCRIPT_API_KEY: FAKE_KEY, HOLOSCRIPT_MCP_URL: a.url },
+        fetch
+      );
+
+      await expect(run()).rejects.toThrow(/redirect/i);
+      expect(a.hits).toHaveLength(1);
+      expect(a.hits[0].keyed).toBe(true); // A is the configured server, so it got the key
+      expect(b.hits).toHaveLength(0); // the redirect was refused: B never saw the request or the key
+    } finally {
+      a.close();
+      b.close();
+    }
+  });
+
+  it('a non-redirecting configured server still works', async () => {
+    const a = await listen((res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ result: { content: [] } }));
+    });
+    try {
+      const code = compilePipelineSourceToNode(mcpSinkPipeline('${env.HOLOSCRIPT_MCP_URL}')).code!;
+      const run = buildRun(
+        code,
+        { HOLOSCRIPT_API_KEY: FAKE_KEY, HOLOSCRIPT_MCP_URL: a.url },
+        fetch
+      );
+      await expect(run()).resolves.not.toThrow();
+      expect(a.hits).toHaveLength(1);
+      expect(a.hits[0].keyed).toBe(true);
+    } finally {
+      a.close();
+    }
+  });
+
+  // ---- (b) template-literal injection -------------------------------------
+
+  function restSourcePipeline(endpoint: string): string {
+    return `
+      pipeline "EndpointProbe" {
+        source Feed {
+          type: "rest"
+          endpoint: "${endpoint}"
+        }
+        sink Out { type: "stdout" }
+      }
+    `;
+  }
+
+  it('a ${...} in an endpoint stays literal text and reads nothing from the environment', async () => {
+    const code = compilePipelineSourceToNode(
+      restSourcePipeline('https://api.test/${process.env.SOME_SECRET}/${1 + 1}')
+    ).code!;
+    const calls = await runRec(code, { SOME_SECRET: FAKE_SECRET });
+    expect(calls).toHaveLength(1);
+    // The ${...} is passed through as data: not executed, not read, not computed.
+    expect(calls[0].url).toBe('https://api.test/${process.env.SOME_SECRET}/${1 + 1}');
+    expect(calls[0].url).not.toContain(FAKE_SECRET);
+    expect(calls[0].url).not.toContain('/2');
+  });
+
+  it('${env.X} and ${env.X:-default} in an endpoint still resolve at run time', async () => {
+    const code = compilePipelineSourceToNode(
+      restSourcePipeline('${env.API_URL:-https://fallback.test}/items')
+    ).code!;
+    expect((await runRec(code, {}))[0].url).toBe('https://fallback.test/items');
+    expect((await runRec(code, { API_URL: 'https://configured.test' }))[0].url).toBe(
+      'https://configured.test/items'
+    );
+  });
+
+  it('a param with an ${env.X:-default} fallback compiles to a module that parses', () => {
+    const code = compilePipelineSourceToNode(`
+      pipeline "ParamEnv" {
+        params { target: "${'${env.TARGET_GENE:-EGFR}'}" }
+        source Input { type: "list" items: [{ id: 1 }] }
+        sink Out { type: "stdout" }
+      }
+    `).code!;
+    // Data form, not a template literal (the template-literal form did not parse).
+    expect(code).toContain('params["target"] = interpolate("${env.TARGET_GENE:-EGFR}")');
+    expect(code).not.toContain('interpolate(`');
+    // Parses: building run() throws a SyntaxError if the module body is invalid.
+    expect(() => buildRun(code, {}, async () => ({}))).not.toThrow();
+  });
+
+  it('a param resolves its env fallback at run time (routed through a holo-sink path is data)', async () => {
+    // params go through interpolate(); prove the env fallback resolves and a non-env
+    // ${...} in the SAME value is left literal.
+    const code = compilePipelineSourceToNode(`
+      pipeline "ParamResolve" {
+        params {
+          a: "${'${env.PRESENT:-def}'}"
+          b: "${'${process.env.SOME_SECRET}'}"
+        }
+        source Input { type: "list" items: [{ id: 1 }] }
+        sink Out { type: "stdout" }
+      }
+    `).code!;
+    expect(code).toContain('params["a"] = interpolate("${env.PRESENT:-def}")');
+    expect(code).toContain('params["b"] = interpolate("${process.env.SOME_SECRET}")');
+    // Running it reads PRESENT (allowed env form) but never SOME_SECRET.
+    await expect(
+      buildRun(code, { PRESENT: 'resolved', SOME_SECRET: FAKE_SECRET }, async () => ({
+        ok: true,
+        json: async () => [],
+      }))()
+    ).resolves.not.toThrow();
+  });
+
+  it('endpoints, paths, the database connection and query are embedded as data, not template literals', () => {
+    const code = compilePipelineSourceToNode(`
+      pipeline "DataEmbed" {
+        source DbIn {
+          type: "database"
+          connection: "${'${env.DATABASE_URL}'}"
+          query: "SELECT 1"
+        }
+        sink File {
+          type: "filesystem"
+          path: "out/${'${process.env.SOME_SECRET}'}.json"
+          format: "json"
+        }
+      }
+    `).code!;
+    // No file value is ever spliced into a generated template literal.
+    expect(code).not.toContain('interpolate(`');
+    expect(code).toContain('interpolate("${env.DATABASE_URL}")');
+    expect(code).toContain('interpolate("SELECT 1")');
+    // A non-env ${...} in a path is data (a JSON string), never executed.
+    expect(code).toContain('interpolate("out/${process.env.SOME_SECRET}.json")');
   });
 });

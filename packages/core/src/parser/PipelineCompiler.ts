@@ -122,6 +122,20 @@ function qualifyPipelineWhere(expr: string): string {
 }
 
 /**
+ * Emit a runtime expression that yields `value` with `${env.X}` / `${env.X:-default}`
+ * expanded by the generated `interpolate()` helper, and every other `${...}` left as
+ * literal text. The value is embedded as a JSON string literal — never spliced inside
+ * a template literal — so nothing a pipeline file wrote is evaluated as code or read
+ * into the generated module at build time. This is the single chokepoint for every
+ * file-supplied value that supports runtime interpolation (endpoints, paths, the
+ * database connection and query, auth tokens, the LLM model, params). (Board task
+ * task_1791176003202_obsc.)
+ */
+function emitInterpolated(value: string): string {
+  return `interpolate(${JSON.stringify(value)})`;
+}
+
+/**
  * Runtime half of the pipeline server policy (PipelineServerPolicy.ts), emitted
  * once into every module that has an MCP stage. Whatever the compile-time check
  * let through, the generated code reads only HOLOSCRIPT_MCP_URL from a server
@@ -166,6 +180,19 @@ function genMcpRuntime(): string {
     `  }`,
     `  return headers;`,
     `}`,
+    ``,
+    `// MCP requests carry HOLOSCRIPT_API_KEY, so they must not follow a redirect: a 3xx`,
+    `// Location could hand the key to another host. 'manual' makes fetch return the`,
+    `// redirect instead of following it; we refuse it with a named error.`,
+    `async function mcpFetch(url, init, stageLabel) {`,
+    `  const response = await fetch(url, { ...init, redirect: 'manual' });`,
+    `  if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {`,
+    `    throw new Error(stageLabel + ' refused: the MCP server at ' + url + ' answered with a '`,
+    `      + 'redirect, which is not followed because an MCP request carries HOLOSCRIPT_API_KEY — '`,
+    `      + 'a redirect could send the key to another host.');`,
+    `  }`,
+    `  return response;`,
+    `}`,
   ].join('\n');
 }
 
@@ -197,17 +224,17 @@ function genSource(source: PipelineSource): string {
   if (source.type === 'rest' || source.type === 'webhook') {
     const method = source.method || 'GET';
     lines.push(
-      `const ${source.name}_response = await fetch(interpolate(\`${source.endpoint || ''}\`), {`
+      `const ${source.name}_response = await fetch(${emitInterpolated(source.endpoint || '')}, {`
     );
-    lines.push(`  method: '${method}',`);
+    lines.push(`  method: ${JSON.stringify(method)},`);
     if (source.auth) {
       if (source.auth.type === 'bearer') {
         lines.push(
-          `  headers: { 'Authorization': \`Bearer \${interpolate('${source.auth.token || ''}')}\` },`
+          `  headers: { 'Authorization': 'Bearer ' + ${emitInterpolated(source.auth.token || '')} },`
         );
       } else if (source.auth.type === 'api_key') {
         lines.push(
-          `  headers: { '${source.auth.header || 'x-api-key'}': interpolate('${source.auth.key || source.auth.token || ''}') },`
+          `  headers: { [${JSON.stringify(source.auth.header || 'x-api-key')}]: ${emitInterpolated(source.auth.key || source.auth.token || '')} },`
         );
       }
     }
@@ -218,7 +245,7 @@ function genSource(source: PipelineSource): string {
   } else if (source.type === 'filesystem') {
     lines.push(`import { readdir, readFile } from 'node:fs/promises';`);
     lines.push(`import { join, resolve } from 'node:path';`);
-    lines.push(`const ${source.name}_dir = interpolate(\`${source.path || '.'}\`);`);
+    lines.push(`const ${source.name}_dir = ${emitInterpolated(source.path || '.')};`);
     lines.push(`const ${source.name}_files = await readdir(${source.name}_dir);`);
     if (source.pattern) {
       lines.push(`const ${source.name}_pattern = ${JSON.stringify(source.pattern)};`);
@@ -232,12 +259,12 @@ function genSource(source: PipelineSource): string {
     const query = String(source.properties.query || 'SELECT 1 as ok');
     lines.push(`const { Client } = await import('pg');`);
     lines.push(
-      `const ${source.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`
+      `const ${source.name}_client = new Client({ connectionString: ${emitInterpolated(connection)} || process.env.DATABASE_URL });`
     );
     lines.push(`await ${source.name}_client.connect();`);
     lines.push(`try {`);
     lines.push(
-      `  const ${source.name}_result = await ${source.name}_client.query(interpolate(\`${query}\`));`
+      `  const ${source.name}_result = await ${source.name}_client.query(${emitInterpolated(query)});`
     );
     lines.push(
       `  if (Array.isArray(${source.name}_result.rows)) records.push(...${source.name}_result.rows);`
@@ -250,7 +277,7 @@ function genSource(source: PipelineSource): string {
     const args = JSON.stringify(source.properties.args || {});
 
     lines.push(...genMcpRequestSetup(source.name, source.properties.server));
-    lines.push(`const ${source.name}_response = await fetch(${source.name}_url, {`);
+    lines.push(`const ${source.name}_response = await mcpFetch(${source.name}_url, {`);
     lines.push(`  method: 'POST',`);
     lines.push(`  headers: ${source.name}_headers,`);
     lines.push(`  body: JSON.stringify({`);
@@ -262,7 +289,7 @@ function genSource(source: PipelineSource): string {
     lines.push(`      arguments: ${args},`);
     lines.push(`    },`);
     lines.push(`  }),`);
-    lines.push(`});`);
+    lines.push(`}, ${JSON.stringify(`MCP source "${source.name}"`)});`);
     lines.push(`if (!${source.name}_response.ok) {`);
     lines.push(
       `  throw new Error(\`MCP source ${source.name} failed: \${${source.name}_response.status} \${${source.name}_response.statusText}\`);`
@@ -284,22 +311,27 @@ function genSource(source: PipelineSource): string {
   } else if (source.type === 'stream') {
     // SSE / NDJSON / chunked-JSON streaming endpoint
     const method = source.method || 'GET';
-    const streamHeaders: Record<string, string> = {
-      Accept: 'text/event-stream, application/x-ndjson, application/json',
-    };
+    // Build the headers object in generated code so the auth value is interpolated
+    // at run time; the Accept header is a constant.
+    lines.push(
+      `const ${source.name}_headers = ${JSON.stringify({ Accept: 'text/event-stream, application/x-ndjson, application/json' })};`
+    );
     if (source.auth) {
       if (source.auth.type === 'bearer') {
-        streamHeaders['Authorization'] = `Bearer \${interpolate('${source.auth.token || ''}')}`;
+        lines.push(
+          `${source.name}_headers['Authorization'] = 'Bearer ' + ${emitInterpolated(source.auth.token || '')};`
+        );
       } else if (source.auth.type === 'api_key') {
-        streamHeaders[source.auth.header || 'x-api-key'] =
-          `\${interpolate('${source.auth.key || source.auth.token || ''}')}`;
+        lines.push(
+          `${source.name}_headers[${JSON.stringify(source.auth.header || 'x-api-key')}] = ${emitInterpolated(source.auth.key || source.auth.token || '')};`
+        );
       }
     }
     lines.push(
-      `const ${source.name}_resp = await fetch(interpolate(\`${source.endpoint || ''}\`), {`
+      `const ${source.name}_resp = await fetch(${emitInterpolated(source.endpoint || '')}, {`
     );
-    lines.push(`  method: '${method}',`);
-    lines.push(`  headers: ${JSON.stringify(streamHeaders)},`);
+    lines.push(`  method: ${JSON.stringify(method)},`);
+    lines.push(`  headers: ${source.name}_headers,`);
     lines.push(`});`);
     lines.push(
       `if (!${source.name}_resp.ok) throw new Error(\`Stream source ${source.name} failed: \${${source.name}_resp.status} \${${source.name}_resp.statusText}\`);`
@@ -355,7 +387,7 @@ function genTransform(transform: PipelineTransform): string {
     const args = JSON.stringify(transform.args || {});
 
     lines.push(...genMcpRequestSetup(transform.name, transform.server));
-    lines.push(`const ${transform.name}_response = await fetch(${transform.name}_url, {`);
+    lines.push(`const ${transform.name}_response = await mcpFetch(${transform.name}_url, {`);
     lines.push(`  method: 'POST',`);
     lines.push(`  headers: ${transform.name}_headers,`);
     lines.push(`  body: JSON.stringify({`);
@@ -367,7 +399,7 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`      arguments: { ...${args}, records, output },`);
     lines.push(`    },`);
     lines.push(`  }),`);
-    lines.push(`});`);
+    lines.push(`}, ${JSON.stringify(`MCP transform "${transform.name}"`)});`);
     lines.push(`if (!${transform.name}_response.ok) {`);
     lines.push(
       `  throw new Error(\`MCP transform ${transform.name} failed: \${${transform.name}_response.status} \${${transform.name}_response.statusText}\`);`
@@ -392,7 +424,7 @@ function genTransform(transform: PipelineTransform): string {
     const outputField = typeof transform.output === 'string' ? transform.output : '_llm_result';
 
     lines.push(
-      `const ${transform.name}_model = interpolate(\`${model}\`) || process.env.LLM_MODEL || 'gpt-4o-mini';`
+      `const ${transform.name}_model = ${emitInterpolated(model)} || process.env.LLM_MODEL || 'gpt-4o-mini';`
     );
     lines.push(
       `const ${transform.name}_apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || '';`
@@ -442,10 +474,10 @@ function genTransform(transform: PipelineTransform): string {
 
     lines.push(`const ${transform.name}_results = [];`);
     lines.push(`for (const r of records) {`);
-    lines.push(`  const ${transform.name}_resp = await fetch(interpolate(\`${url}\`), {`);
-    lines.push(`    method: '${method}',`);
+    lines.push(`  const ${transform.name}_resp = await fetch(${emitInterpolated(url)}, {`);
+    lines.push(`    method: ${JSON.stringify(method)},`);
     lines.push(`    headers: { 'Content-Type': 'application/json' },`);
-    lines.push(`    body: '${method}' === 'GET' ? undefined : JSON.stringify(r),`);
+    lines.push(`    body: ${JSON.stringify(method)} === 'GET' ? undefined : JSON.stringify(r),`);
     lines.push(`  });`);
     lines.push(`  if (!${transform.name}_resp.ok) {`);
     lines.push(
@@ -542,15 +574,15 @@ function genSink(sink: PipelineSink): string {
     if (batchSize > 0) {
       lines.push(`for (let i = 0; i < records.length; i += ${batchSize}) {`);
       lines.push(`  const batch = records.slice(i, i + ${batchSize});`);
-      lines.push(`  await fetch(interpolate(\`${sink.endpoint || ''}\`), {`);
-      lines.push(`    method: '${method}',`);
+      lines.push(`  await fetch(${emitInterpolated(sink.endpoint || '')}, {`);
+      lines.push(`    method: ${JSON.stringify(method)},`);
       lines.push(`    headers: { 'Content-Type': 'application/json' },`);
       lines.push(`    body: JSON.stringify(batch),`);
       lines.push(`  });`);
       lines.push(`}`);
     } else {
-      lines.push(`await fetch(interpolate(\`${sink.endpoint || ''}\`), {`);
-      lines.push(`  method: '${method}',`);
+      lines.push(`await fetch(${emitInterpolated(sink.endpoint || '')}, {`);
+      lines.push(`  method: ${JSON.stringify(method)},`);
       lines.push(`  headers: { 'Content-Type': 'application/json' },`);
       lines.push(`  body: JSON.stringify(records),`);
       lines.push(`});`);
@@ -563,11 +595,11 @@ function genSink(sink: PipelineSink): string {
         `const ${sink.name}_lines = records.map((r) => JSON.stringify(r)).join('\\n') + '\\n';`
       );
       lines.push(
-        `await ${sink.append ? 'appendFile' : 'writeFile'}(interpolate(\`${sink.path || ''}\`), ${sink.name}_lines);`
+        `await ${sink.append ? 'appendFile' : 'writeFile'}(${emitInterpolated(sink.path || '')}, ${sink.name}_lines);`
       );
     } else {
       lines.push(
-        `await writeFile(interpolate(\`${sink.path || ''}\`), JSON.stringify(records, null, 2));`
+        `await writeFile(${emitInterpolated(sink.path || '')}, JSON.stringify(records, null, 2));`
       );
     }
   } else if (sink.type === 'database') {
@@ -576,7 +608,7 @@ function genSink(sink: PipelineSink): string {
     const table = tableRaw.replace(/[^a-zA-Z0-9_]/g, '_');
     lines.push(`const { Client } = await import('pg');`);
     lines.push(
-      `const ${sink.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`
+      `const ${sink.name}_client = new Client({ connectionString: ${emitInterpolated(connection)} || process.env.DATABASE_URL });`
     );
     lines.push(`await ${sink.name}_client.connect();`);
     lines.push(`try {`);
@@ -596,7 +628,7 @@ function genSink(sink: PipelineSink): string {
     lines.push(...genMcpRequestSetup(sink.name, sink.server));
 
     lines.push(`const ${sink.name}_invoke = async (payload) => {`);
-    lines.push(`  const response = await fetch(${sink.name}_url, {`);
+    lines.push(`  const response = await mcpFetch(${sink.name}_url, {`);
     lines.push(`    method: 'POST',`);
     lines.push(`    headers: ${sink.name}_headers,`);
     lines.push(`    body: JSON.stringify({`);
@@ -608,7 +640,7 @@ function genSink(sink: PipelineSink): string {
     lines.push(`        arguments: { ...${args}, records: payload, output },`);
     lines.push(`      },`);
     lines.push(`    }),`);
-    lines.push(`  });`);
+    lines.push(`  }, ${JSON.stringify(`MCP sink "${sink.name}"`)});`);
     lines.push(`  if (!response.ok) {`);
     lines.push(
       `    throw new Error(\`MCP sink ${sink.name} failed: \${response.status} \${response.statusText}\`);`
@@ -666,7 +698,7 @@ function genSink(sink: PipelineSink): string {
     lines.push(`      return value == null ? match : String(value);`);
     lines.push(`    }`);
     lines.push(`  );`);
-    lines.push(`  const ${sink.name}_path = interpolate(\`${sink.path || ''}\`);`);
+    lines.push(`  const ${sink.name}_path = ${emitInterpolated(sink.path || '')};`);
     lines.push(`  await mkdir(${sink.name}_dirname(${sink.name}_path), { recursive: true });`);
     lines.push(`  await writeFile(${sink.name}_path, ${sink.name}_holo);`);
     lines.push(
@@ -762,9 +794,9 @@ function compilePipeline(pipeline: Pipeline): string {
   if (pipeline.params && Object.keys(pipeline.params).length > 0) {
     lines.push(`  const params = {};`);
     for (const [key, rawValue] of Object.entries(pipeline.params)) {
-      // Escape the raw template literal so it survives transport to generated code
-      const escaped = String(rawValue).replace(/\\/g, '\\\\').replace(/`/g, '\\`');
-      lines.push(`  params[${JSON.stringify(key)}] = interpolate(\`${escaped}\`);`);
+      // The value is embedded as a JSON string and interpolated at run time, so a
+      // ${env.X:-default} fallback resolves correctly and no ${...} is ever code.
+      lines.push(`  params[${JSON.stringify(key)}] = ${emitInterpolated(String(rawValue))};`);
     }
   } else {
     lines.push(`  const params = {};`);
