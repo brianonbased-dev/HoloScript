@@ -6643,3 +6643,225 @@ describe('holo_absorb_repo sourceFiles upload', () => {
     expect(result.pageExtract?.sha256).toHaveLength(64);
   }, 15_000);
 });
+
+// Task 9e88: holo_query_codebase and holo_impact_analysis answer from the tree the caller names. Before
+// this, absorbing repo A and then querying it while the server's workspace was repo B silently answered
+// from B. These tests absorb two small git repos, point the server's workspace at B, and ask about A.
+describe('a query that names its root answers from that root (task 9e88)', () => {
+  const saved: Record<string, string | undefined> = {};
+  const KEYS = ['HOLOSCRIPT_CACHE_LAYOUT', 'HOLOSCRIPT_CACHE_DIR', 'HOLOSCRIPT_WORKSPACE_ROOT', 'HOLOSCRIPT_EXPLICIT_GRAPH_SLOTS'];
+  beforeEach(() => {
+    for (const k of KEYS) saved[k] = process.env[k];
+    // Per-root cache lanes. The file-wide 'flat' layout gives every root one shared cache file.
+    delete process.env.HOLOSCRIPT_CACHE_LAYOUT;
+    // As elsewhere in this file, where host memory is not what is tested: tiny repos, no reserve guard.
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-9e88-cache-'));
+    resetCodebaseToolStateForTests();
+  });
+  afterEach(() => {
+    for (const k of KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+    vi.restoreAllMocks();
+    resetCodebaseToolStateForTests(false);
+  });
+
+  const real = (p: string) => fs.realpathSync(p);
+  function repoWith(prefix: string, symbol: string): string {
+    const dir = makeTinyGitRepo(prefix);
+    fs.writeFileSync(path.join(dir, 'src', `${symbol}.ts`), `export function ${symbol}(): number { return 1; }\n`, 'utf-8');
+    execFileSync('git', ['add', `src/${symbol}.ts`], { cwd: dir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', `add ${symbol}`], { cwd: dir, windowsHide: true });
+    return dir;
+  }
+  async function absorb(rootDir: string) {
+    const result = (await handleCodebaseTool('holo_absorb_repo', { rootDir, force: true, outputFormat: 'stats' })) as {
+      error?: string;
+      status?: string;
+    };
+    expect(result.error).toBeUndefined();
+  }
+  type Answer = {
+    error?: string;
+    rootDir?: string;
+    count?: number;
+    results?: Array<{ name?: string }>;
+    answeredFrom?: { rootDir: string; rootSetId: string; source: string };
+    affectedCount?: number;
+    affectedFiles?: string[];
+  };
+  const find = (symbol: string, extra: Record<string, unknown> = {}) =>
+    handleCodebaseTool('holo_query_codebase', { query: `find ${symbol}`, queryType: 'find', symbolName: symbol, ...extra }) as Promise<Answer>;
+  const has = (answer: Answer, symbol: string) => (answer.results ?? []).some((r) => r.name === symbol);
+
+  it('answers from the named tree while the workspace is another, and leaves the workspace graph alone', async () => {
+    const repoA = repoWith('holoscript-9e88-a-', 'onlyInA');
+    const repoB = repoWith('holoscript-9e88-b-', 'onlyInB');
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoB;
+    await absorb(repoA);
+    await absorb(repoB); // B last: the server's in-memory workspace graph is B
+
+    const fromA = await find('onlyInA', { rootDir: repoA });
+    expect(fromA.error).toBeUndefined();
+    expect(has(fromA, 'onlyInA')).toBe(true);
+    expect(real(fromA.answeredFrom!.rootDir)).toBe(real(repoA));
+    expect(fromA.answeredFrom!.source).toBe('explicit-disk-cache');
+
+    // Asking again reuses A's slot.
+    expect((await find('onlyInA', { rootDir: repoA })).answeredFrom!.source).toBe('explicit-memory');
+
+    // A call that names no root still answers from the workspace, B, which never learned onlyInA.
+    const fromWorkspace = await find('onlyInA');
+    expect(has(fromWorkspace, 'onlyInA')).toBe(false);
+    expect(real(fromWorkspace.answeredFrom!.rootDir)).toBe(real(repoB));
+    expect(has(await find('onlyInB'), 'onlyInB')).toBe(true);
+    const status = (await handleCodebaseTool('holo_graph_status', {})) as { rootDir?: string | null };
+    expect(real(String(status.rootDir))).toBe(real(repoB));
+  }, 120_000);
+
+  it('naming the workspace itself takes the ordinary workspace path', async () => {
+    const repoB = repoWith('holoscript-9e88-b-', 'onlyInB');
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoB;
+    await absorb(repoB);
+    const answer = await find('onlyInB', { rootDirs: [repoB] });
+    expect(has(answer, 'onlyInB')).toBe(true);
+    expect(answer.answeredFrom!.source).not.toMatch(/^explicit-/);
+  }, 120_000);
+
+  it('impact analysis answers from the named tree too', async () => {
+    const repoA = repoWith('holoscript-9e88-a-', 'onlyInA');
+    // A caller of onlyInA, so a change to it has something to reach.
+    fs.writeFileSync(
+      path.join(repoA, 'src', 'usesA.ts'),
+      "import { onlyInA } from './onlyInA';\nexport function usesA(): number { return onlyInA() + 1; }\n",
+      'utf-8'
+    );
+    execFileSync('git', ['add', 'src/usesA.ts'], { cwd: repoA, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'add a caller'], { cwd: repoA, windowsHide: true });
+    const repoB = repoWith('holoscript-9e88-b-', 'onlyInB');
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoB;
+    await absorb(repoA);
+    await absorb(repoB);
+    const fromA = (await handleCodebaseTool('holo_impact_analysis', { changedSymbol: 'onlyInA', rootDir: repoA })) as Answer;
+    expect(fromA.error).toBeUndefined();
+    expect(real(fromA.answeredFrom!.rootDir)).toBe(real(repoA));
+    expect(fromA.affectedCount).toBeGreaterThan(0);
+    // The same call without rootDir answers from the workspace, which has no onlyInA at all.
+    const fromWorkspace = (await handleCodebaseTool('holo_impact_analysis', { changedSymbol: 'onlyInA' })) as Answer;
+    expect(fromWorkspace.affectedCount).toBe(0);
+  }, 120_000);
+
+  it('refuses a named tree that has no graph of its own, instead of answering from the workspace', async () => {
+    const repoB = repoWith('holoscript-9e88-b-', 'onlyInB');
+    const repoC = repoWith('holoscript-9e88-c-', 'onlyInC');
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoB;
+    await absorb(repoB);
+    const answer = await find('onlyInB', { rootDir: repoC });
+    expect(answer.error).toBeTruthy();
+    expect(answer.results).toBeUndefined();
+    expect(real(String(answer.rootDir))).toBe(real(repoC));
+  }, 120_000);
+
+  it('refuses bad or several roots by name', async () => {
+    expect((await find('x', { rootDirs: ['a', 'b'] })).error).toBe('multi_root_query_not_supported');
+    expect((await find('x', { rootDir: '' })).error).toBe('rootDir_validation_failed');
+    expect((await find('x', { rootDirs: [] })).error).toBe('rootDirs_validation_failed');
+  });
+
+  it('keeps at most HOLOSCRIPT_EXPLICIT_GRAPH_SLOTS named graphs, and answers right after an eviction', async () => {
+    process.env.HOLOSCRIPT_EXPLICIT_GRAPH_SLOTS = '1';
+    const repoA = repoWith('holoscript-9e88-a-', 'onlyInA');
+    const repoC = repoWith('holoscript-9e88-c-', 'onlyInC');
+    const repoB = repoWith('holoscript-9e88-b-', 'onlyInB');
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoB;
+    await absorb(repoA);
+    await absorb(repoC);
+    await absorb(repoB);
+    expect(has(await find('onlyInA', { rootDir: repoA }), 'onlyInA')).toBe(true);
+    expect(has(await find('onlyInC', { rootDir: repoC }), 'onlyInC')).toBe(true); // evicts A's slot
+    const againA = await find('onlyInA', { rootDir: repoA });
+    expect(has(againA, 'onlyInA')).toBe(true);
+    expect(againA.answeredFrom!.source).toBe('explicit-disk-cache'); // reloaded, not served from a stale slot
+  }, 180_000);
+});
+
+describe('a named root is held to the same proof as the workspace graph (task 9e88)', () => {
+  const saved: Record<string, string | undefined> = {};
+  const KEYS = ['HOLOSCRIPT_CACHE_LAYOUT', 'HOLOSCRIPT_CACHE_DIR', 'HOLOSCRIPT_WORKSPACE_ROOT'];
+  beforeEach(() => {
+    for (const k of KEYS) saved[k] = process.env[k];
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-9e88-proof-'));
+    resetCodebaseToolStateForTests();
+  });
+  afterEach(() => {
+    for (const k of KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+    vi.restoreAllMocks();
+    resetCodebaseToolStateForTests(false);
+  });
+  function repoWith(prefix: string, symbol: string): string {
+    const dir = makeTinyGitRepo(prefix);
+    fs.writeFileSync(path.join(dir, 'src', `${symbol}.ts`), `export function ${symbol}(): number { return 1; }\n`, 'utf-8');
+    execFileSync('git', ['add', `src/${symbol}.ts`], { cwd: dir, windowsHide: true });
+    execFileSync('git', ['commit', '-m', `add ${symbol}`], { cwd: dir, windowsHide: true });
+    return dir;
+  }
+  const find = (symbol: string, extra: Record<string, unknown> = {}) =>
+    handleCodebaseTool('holo_query_codebase', { query: `find ${symbol}`, queryType: 'find', symbolName: symbol, ...extra }) as Promise<{
+      error?: string;
+      results?: Array<{ name?: string }>;
+      answeredFrom?: { rootDir: string };
+    }>;
+
+  it('in the flat layout, where every root shares one cache file, never answers a named root from another repo', async () => {
+    process.env.HOLOSCRIPT_CACHE_LAYOUT = 'flat';
+    const repoA = makeTinyGitRepo('holoscript-9e88-a-');
+    const repoB = makeTinyGitRepo('holoscript-9e88-b-');
+    const workspace = makeTinyGitRepo('holoscript-9e88-w-');
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = workspace;
+    // The one flat cache file holds B, with the file hashes and HEAD that make the cross-root rule vouch for
+    // B as a current repo (as in "auto-loads a root-mismatched cache..."). A was never absorbed.
+    writeGraphCacheWithFileHashes(
+      String(process.env.HOLOSCRIPT_CACHE_DIR),
+      repoB,
+      Date.now() - 5 * 60 * 1000,
+      getHeadCommit(repoB),
+      hashRepoFiles(repoB, ['src/alpha.ts', 'src/beta.ts'])
+    );
+    const answer = (await handleCodebaseTool('holo_query_codebase', { query: 'stats', queryType: 'stats', rootDir: repoA })) as {
+      error?: string;
+      result?: unknown;
+    };
+    expect(answer.error).toBeTruthy();
+    expect(answer.result).toBeUndefined();
+  }, 120_000);
+
+  it('refuses a named root that changed since its absorb, until it is absorbed again', async () => {
+    delete process.env.HOLOSCRIPT_CACHE_LAYOUT;
+    const repoA = repoWith('holoscript-9e88-a-', 'onlyInA');
+    const repoB = repoWith('holoscript-9e88-b-', 'onlyInB');
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoB;
+    await handleCodebaseTool('holo_absorb_repo', { rootDir: repoA, force: true, outputFormat: 'stats' });
+    await handleCodebaseTool('holo_absorb_repo', { rootDir: repoB, force: true, outputFormat: 'stats' });
+    expect((await find('onlyInA', { rootDir: repoA })).error).toBeUndefined();
+    // A moves on: a new commit with a new symbol. A's graph no longer describes A.
+    fs.writeFileSync(path.join(repoA, 'src', 'later.ts'), 'export function later(): number { return 2; }\n', 'utf-8');
+    execFileSync('git', ['add', 'src/later.ts'], { cwd: repoA, windowsHide: true });
+    execFileSync('git', ['commit', '-m', 'later'], { cwd: repoA, windowsHide: true });
+    const stale = await find('onlyInA', { rootDir: repoA });
+    expect(stale.error).toBeTruthy();
+    expect(stale.results).toBeUndefined();
+    await handleCodebaseTool('holo_absorb_repo', { rootDir: repoA, force: true, outputFormat: 'stats' });
+    // Absorbing A replaced the workspace slot; put B back so the next question about A goes through A's own
+    // slot, which still holds the graph from before the change. It must be reloaded, not reused.
+    await handleCodebaseTool('holo_absorb_repo', { rootDir: repoB, force: true, outputFormat: 'stats' });
+    const fresh = await find('later', { rootDir: repoA });
+    expect(fresh.results?.some((r) => r.name === 'later')).toBe(true);
+    expect((fresh as { answeredFrom?: { source?: string } }).answeredFrom?.source).toBe('explicit-disk-cache');
+  }, 180_000);
+});

@@ -52,7 +52,7 @@ import {
 } from './absorb-refresh-checkpoint';
 import type { EmbeddingProviderName } from '../engine/providers/EmbeddingProvider';
 import type { EmbeddingRefreshReceipt } from '../engine/EmbeddingIndex';
-import type { CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
+import type { CodebaseGraph, CommunityAwareImpactReceipt } from '../engine/CodebaseGraph';
 import type { ScanPlan } from '../engine/CodebaseScanner';
 import type { ScanResult } from '../engine/types';
 import { detectLanguage, getSupportedLanguages } from '../engine/adapters';
@@ -6226,6 +6226,16 @@ export const codebaseTools: Tool[] = [
           type: 'number',
           description: 'Maximum call-chain traversal depth for queryType="trace" (default: 10).',
         },
+        rootDir: {
+          type: 'string',
+          description:
+            "The repo to answer from, when it is not the server's workspace. That repo's own absorbed graph answers (run holo_absorb_repo with this rootDir first), and the server's workspace graph is left as it is. Every answer names the repo it came from in answeredFrom.",
+        },
+        rootDirs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The same as rootDir, as a one-entry array. Several roots in one query are refused.',
+        },
       },
       required: ['query'],
     },
@@ -6270,6 +6280,16 @@ export const codebaseTools: Tool[] = [
           maximum: 25000,
           description:
             'Cooperative traversal deadline in milliseconds (default: 20000, capped at 25000).',
+        },
+        rootDir: {
+          type: 'string',
+          description:
+            "The repo whose graph to analyze, when it is not the server's workspace (absorb it first). The answer names the repo in answeredFrom.",
+        },
+        rootDirs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The same as rootDir, as a one-entry array. Several roots at once are refused.',
         },
       },
     },
@@ -6440,6 +6460,7 @@ export function resetCodebaseToolStateForTests(skipDiskAutoload = true): void {
   }
   absorbJobs.clear();
   externalAbsorbJobLeases.clear();
+  explicitGraphSlots.clear();
   cachePublicationFaultForTests = null;
   resetGraphRAGStateForTests();
 }
@@ -6647,6 +6668,309 @@ function startBackgroundGraphRAGWarm(
  *   2. Disk cache (if younger than 24 h)
  *   3. Nothing available → returns loaded=false
  */
+type GraphEnvelopeAuthority =
+  | {
+      ok: true;
+      ageMs: number;
+      freshByAge: boolean;
+      coverage: GraphCoverageStatus;
+      currentGitCommitHash: string | null;
+      fileHashFreshForHeadMismatch: boolean;
+    }
+  | {
+      ok: false;
+      ageMs: number;
+      freshByAge: boolean;
+      coverage: GraphCoverageStatus;
+      reason: GraphUnavailableReason;
+    };
+
+/**
+ * May this disk graph answer for `requestedRoot`? This is the one judgment that both the workspace load in
+ * ensureCachedGraph and a query that names its own root (ensureExplicitRootGraph) use. So a query aimed at
+ * another project is held to exactly the same proof as the server's own workspace graph: content proof
+ * (HEAD plus worktree fingerprint over an exact file set) or fresh file hashes, else the cross-root rule in
+ * cacheDescribesRealCurrentRepo.
+ */
+async function assessGraphEnvelopeAuthority(
+  envelope: GraphCacheEnvelope,
+  requestedRoot: string
+): Promise<GraphEnvelopeAuthority> {
+  const currentCwd = requestedRoot;
+  const ageMs = Date.now() - envelope.timestamp;
+  const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
+  const cacheMatchesCwd = rootMatchesCurrentRepo(envelope.rootDir, currentCwd);
+  const gitMatchesHead = cacheGitMatchesHead(envelope.gitCommitHash, currentGitCommitHash);
+  const coverage = buildGraphCoverageStatusForRoots(
+    envelope.rootDirs ?? [cacheMatchesCwd ? currentCwd : envelope.rootDir],
+    getEnvelopeGraphFileCount(envelope),
+    envelope.scanPolicy,
+    envelope.fileHashes ? Object.keys(envelope.fileHashes) : undefined
+  );
+  const coverageComplete = graphCoverageIsComplete(coverage);
+  // Content proof outranks age (see handleGraphStatus): a cache whose HEAD
+  // and dirty-worktree fingerprint still match, over an exact and complete
+  // file set, describes the current code no matter when it was built.
+  const contentProvenCurrent = Boolean(
+    cacheMatchesCwd &&
+      (envelope.rootDirs ?? [envelope.rootDir]).length === 1 &&
+      envelope.gitCommitHash &&
+      currentGitCommitHash === envelope.gitCommitHash &&
+      envelope.worktreeFingerprint &&
+      buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ===
+        envelope.worktreeFingerprint &&
+      coverageComplete &&
+      coverage.exactFileSetChecked === true
+  );
+  const freshByAge = ageMs < CACHE_MAX_AGE_MS || contentProvenCurrent;
+  const cwdFileHashFreshness =
+    cacheMatchesCwd && freshByAge && coverageComplete
+      ? contentProvenCurrent
+        ? buildWorktreeFingerprintFreshnessStatus(envelope.fileHashes)
+        : buildGraphFileHashFreshnessStatus(envelope.rootDir, envelope.fileHashes)
+      : buildSkippedFileHashFreshnessStatus('not_checked', envelope.fileHashes);
+  const cwdFileHashFreshForHeadMismatch =
+    cacheMatchesCwd &&
+    fileHashesBridgeHeadMismatch({
+      cacheGitCommitHash: envelope.gitCommitHash,
+      currentGitCommitHash,
+      fileHashFreshness: cwdFileHashFreshness,
+    });
+  const cwdLocalCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
+    receipt: envelope.localCodebaseSnapshotReceipt,
+    rootDir: envelope.rootDir,
+    graphFileCount: getEnvelopeGraphFileCount(envelope),
+    freshByAge,
+  });
+
+  // A cache built for a different directory is still authoritative for its
+  // own repo when it positively describes that repo's live HEAD with complete
+  // coverage (see cacheDescribesRealCurrentRepo). This unblocks a fixed-cwd
+  // sovereign MCP serving multiple repos, without trusting scratch absorbs.
+  const crossRootAuthority = cacheMatchesCwd
+    ? {
+        ok: false,
+        currentGitCommitHash,
+        gitMatchesHead,
+        fileHashFreshForHeadMismatch: cwdFileHashFreshForHeadMismatch,
+        fileHashFreshness: cwdFileHashFreshness,
+      }
+    : await cacheDescribesRealCurrentRepo({
+        rootDir: envelope.rootDir,
+        cacheGitCommitHash: envelope.gitCommitHash,
+        fileHashes: envelope.fileHashes,
+        freshByAge,
+        coverage,
+      });
+  const cwdAuthoritative =
+    cacheMatchesCwd &&
+    freshByAge &&
+    (cwdLocalCodebaseSnapshot?.authoritative === true ||
+      (coverageComplete &&
+        cwdFileHashFreshness.fresh &&
+        (gitMatchesHead || cwdFileHashFreshForHeadMismatch)));
+
+  if (!cwdAuthoritative && !crossRootAuthority.ok) {
+    const reason: GraphUnavailableReason = !cacheMatchesCwd
+      ? 'cache_root_mismatch'
+      : !coverageComplete
+        ? 'cache_incomplete'
+        : !cwdFileHashFreshness.fresh ||
+            (!gitMatchesHead && !cwdFileHashFreshForHeadMismatch) ||
+            !freshByAge
+          ? 'cache_stale'
+          : 'cache_incomplete';
+    return { ok: false, ageMs, freshByAge, coverage, reason };
+  }
+  return {
+    ok: true,
+    ageMs,
+    freshByAge,
+    coverage,
+    currentGitCommitHash,
+    fileHashFreshForHeadMismatch: cwdFileHashFreshForHeadMismatch,
+  };
+}
+
+/** Deserialize a disk graph that assessGraphEnvelopeAuthority accepted, with the metadata a live graph carries. */
+async function deserializeAuthoritativeEnvelope(
+  envelope: GraphCacheEnvelope,
+  authority: Extract<GraphEnvelopeAuthority, { ok: true }>
+): Promise<{ mod: Awaited<ReturnType<typeof loadCodebaseModule>>; graph: CodebaseGraph }> {
+  const mod = await loadCodebaseModule();
+  const graph = mod.CodebaseGraph.deserialize(envelope.graphJson);
+  attachGraphCacheMetadata(graph, envelope);
+  (graph as { worktreeFingerprint?: string }).worktreeFingerprint =
+    envelope.worktreeFingerprint ??
+    buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ??
+    undefined;
+  (graph as { coverageAtScan?: GraphCoverageStatus }).coverageAtScan =
+    envelope.coverageAtScan ?? authority.coverage;
+  if (authority.fileHashFreshForHeadMismatch && authority.currentGitCommitHash) {
+    (graph as { gitCommitHash?: string }).gitCommitHash = authority.currentGitCommitHash;
+  }
+  return { mod, graph };
+}
+
+// ── Explicit-root graphs (task_1787315259531_9e88) ──────────────────────────
+// A query or impact call may name the tree it is about (rootDir, or a one-entry rootDirs). Before this, the
+// call answered from the server's workspace graph whatever tree the caller meant: absorbing repo A and then
+// querying it, while the server ran in repo B, silently answered from B. Now that tree answers from its OWN
+// disk cache lane, loaded into its own slot here, judged by the same assessGraphEnvelopeAuthority as the
+// workspace load. Naming another project never replaces cachedGraph, which every other session's queries
+// answer from. A slot keeps the envelope timestamp it was loaded from, so a newer absorb of that root is
+// picked up on the next call; authority is re-judged on every call. LRU, HOLOSCRIPT_EXPLICIT_GRAPH_SLOTS
+// (default 2): the HoloScript graph alone peaked near 4.3 GB RSS.
+type ExplicitGraphSlot = { graph: CodebaseGraph; rootDir: string; rootSetId: string; timestamp: number };
+const explicitGraphSlots = new Map<string, ExplicitGraphSlot>();
+
+export function explicitGraphSlotLimit(env: NodeJS.ProcessEnv = process.env): number {
+  const n = Number(env.HOLOSCRIPT_EXPLICIT_GRAPH_SLOTS);
+  return Number.isInteger(n) && n >= 1 ? n : 2;
+}
+
+/**
+ * The tree a call names, or null when it names none. A one-entry rootDirs is the same as rootDir. Several
+ * roots at once (a multi-root authority set) are refused for now, by name, rather than answered from the
+ * first root alone.
+ */
+export function requestedGraphRoots(
+  args: Record<string, unknown>
+): { roots: string[] } | { error: string; message: string } | null {
+  const single = args.rootDir;
+  const many = args.rootDirs;
+  if (single === undefined && many === undefined) return null;
+  if (single !== undefined && (typeof single !== 'string' || !single.trim())) {
+    return { error: 'rootDir_validation_failed', message: 'rootDir must be a non-empty path string.' };
+  }
+  if (
+    many !== undefined &&
+    (!Array.isArray(many) || many.length === 0 || !many.every((r) => typeof r === 'string' && r.trim()))
+  ) {
+    return { error: 'rootDirs_validation_failed', message: 'rootDirs must be a non-empty array of path strings.' };
+  }
+  const roots = (many as string[] | undefined) ?? [single as string];
+  if (roots.length > 1) {
+    return {
+      error: 'multi_root_query_not_supported',
+      message: 'A query names one root at a time. Query each root separately.',
+    };
+  }
+  const resolved = path.resolve(roots[0]);
+  if (typeof single === 'string' && !rootMatchesCurrentRepo(path.resolve(single), resolved)) {
+    return { error: 'rootDir_conflict', message: 'rootDir and rootDirs name different trees.' };
+  }
+  return { roots: [resolved] };
+}
+
+type ExplicitRootGraphResult =
+  | { loaded: true; graph: CodebaseGraph; rootDir: string; rootSetId: string; source: 'explicit-memory' | 'explicit-disk-cache'; ageMs: number }
+  | { loaded: false; rootDir: string; graphUnavailableReceipt: ReturnType<typeof buildGraphUnavailableReceipt> };
+
+async function ensureExplicitRootGraph(rootDir: string): Promise<ExplicitRootGraphResult> {
+  const rootSetId = buildRootSetId([rootDir]);
+  const unavailable = (reason: GraphUnavailableReason, cacheAgeMs?: number): ExplicitRootGraphResult => ({
+    loaded: false,
+    rootDir,
+    graphUnavailableReceipt: buildGraphUnavailableReceipt({
+      reason,
+      requestedPath: rootDir,
+      runtimePath: path.resolve(rootDir),
+      ...(cacheAgeMs !== undefined && { cacheAgeMs }),
+    }),
+  });
+  const envelope = loadGraphCache(rootDir);
+  // The envelope must describe the tree that was asked about. In the flat cache layout every root shares one
+  // file, and the cross-root rule in assessGraphEnvelopeAuthority would otherwise vouch for another repo.
+  if (!envelope || !rootMatchesCurrentRepo(envelope.rootDir, rootDir)) return unavailable('cache_root_mismatch');
+  const authority = await assessGraphEnvelopeAuthority(envelope, rootDir);
+  if (!authority.ok) return unavailable(authority.reason, authority.ageMs);
+  const held = explicitGraphSlots.get(rootSetId);
+  explicitGraphSlots.delete(rootSetId); // re-inserted below: Map order is the LRU order
+  if (held && held.timestamp === envelope.timestamp) {
+    explicitGraphSlots.set(rootSetId, held);
+    return { loaded: true, graph: held.graph, rootDir: held.rootDir, rootSetId, source: 'explicit-memory', ageMs: authority.ageMs };
+  }
+  const { graph } = await deserializeAuthoritativeEnvelope(envelope, authority);
+  explicitGraphSlots.set(rootSetId, { graph, rootDir: envelope.rootDir, rootSetId, timestamp: envelope.timestamp });
+  while (explicitGraphSlots.size > explicitGraphSlotLimit()) {
+    const oldest = explicitGraphSlots.keys().next().value as string;
+    explicitGraphSlots.delete(oldest);
+  }
+  return { loaded: true, graph, rootDir: envelope.rootDir, rootSetId, source: 'explicit-disk-cache', ageMs: authority.ageMs };
+}
+
+type AnsweringGraph =
+  | {
+      ok: true;
+      graph: CodebaseGraph;
+      source: string;
+      ageMs?: number;
+      rootDir: string;
+      answeredFrom: { rootDir: string; rootSetId: string; source: string };
+    }
+  | { ok: false; response: Record<string, unknown> };
+
+/**
+ * Which graph answers this call: the tree the caller named, or the server's workspace graph. Query and
+ * impact both go through here, so they cannot disagree about it, and every answer says which tree it came
+ * from (answeredFrom). A named tree that is the workspace itself takes the ordinary workspace path.
+ */
+async function resolveAnsweringGraph(args: Record<string, unknown>): Promise<AnsweringGraph> {
+  const requested = requestedGraphRoots(args);
+  if (requested && 'error' in requested) return { ok: false, response: requested };
+  const named = requested?.roots[0];
+  const isWorkspace =
+    !named ||
+    rootMatchesCurrentRepo(resolveWorkspaceRoot(), named) ||
+    (Boolean(cachedGraph) && rootMatchesCurrentRepo(cachedRootDir, named));
+  if (named && !isWorkspace) {
+    const explicit = await ensureExplicitRootGraph(named);
+    if (!explicit.loaded) {
+      return {
+        ok: false,
+        response: {
+          error: describeGraphUnavailable(explicit.graphUnavailableReceipt),
+          rootDir: explicit.rootDir,
+          hint: `Run holo_absorb_repo with rootDir "${explicit.rootDir}" and outputFormat "graph", then ask again.`,
+          graphUnavailableReceipt: explicit.graphUnavailableReceipt,
+        },
+      };
+    }
+    return {
+      ok: true,
+      graph: explicit.graph,
+      source: explicit.source,
+      ageMs: explicit.ageMs,
+      rootDir: explicit.rootDir,
+      answeredFrom: { rootDir: explicit.rootDir, rootSetId: explicit.rootSetId, source: explicit.source },
+    };
+  }
+  const graphState = await ensureCachedGraph();
+  if (!graphState.loaded) {
+    return {
+      ok: false,
+      response: {
+        error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
+        hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+        ...(graphState.graphUnavailableReceipt && {
+          graphUnavailableReceipt: graphState.graphUnavailableReceipt,
+        }),
+        ...(graphState.coverage && { coverage: graphState.coverage }),
+      },
+    };
+  }
+  const rootDir = graphState.rootDir ?? cachedRootDir;
+  return {
+    ok: true,
+    graph: cachedGraph,
+    source: graphState.source,
+    ageMs: graphState.ageMs,
+    rootDir,
+    answeredFrom: { rootDir, rootSetId: buildRootSetId([rootDir]), source: graphState.source },
+  };
+}
+
 async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Promise<{
   loaded: boolean;
   source: 'memory' | 'disk-cache' | 'none';
@@ -6867,89 +7191,9 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       };
     }
     try {
-      const ageMs = Date.now() - envelope.timestamp;
-      const currentGitCommitHash = await getCurrentGitCommit(envelope.rootDir);
-      const cacheMatchesCwd = rootMatchesCurrentRepo(envelope.rootDir, currentCwd);
-      const gitMatchesHead = cacheGitMatchesHead(envelope.gitCommitHash, currentGitCommitHash);
-      const coverage = buildGraphCoverageStatusForRoots(
-        envelope.rootDirs ?? [cacheMatchesCwd ? currentCwd : envelope.rootDir],
-        getEnvelopeGraphFileCount(envelope),
-        envelope.scanPolicy,
-        envelope.fileHashes ? Object.keys(envelope.fileHashes) : undefined
-      );
-      const coverageComplete = graphCoverageIsComplete(coverage);
-      // Content proof outranks age (see handleGraphStatus): a cache whose HEAD
-      // and dirty-worktree fingerprint still match, over an exact and complete
-      // file set, describes the current code no matter when it was built.
-      const contentProvenCurrent = Boolean(
-        cacheMatchesCwd &&
-          (envelope.rootDirs ?? [envelope.rootDir]).length === 1 &&
-          envelope.gitCommitHash &&
-          currentGitCommitHash === envelope.gitCommitHash &&
-          envelope.worktreeFingerprint &&
-          buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ===
-            envelope.worktreeFingerprint &&
-          coverageComplete &&
-          coverage.exactFileSetChecked === true
-      );
-      const freshByAge = ageMs < CACHE_MAX_AGE_MS || contentProvenCurrent;
-      const cwdFileHashFreshness =
-        cacheMatchesCwd && freshByAge && coverageComplete
-          ? contentProvenCurrent
-            ? buildWorktreeFingerprintFreshnessStatus(envelope.fileHashes)
-            : buildGraphFileHashFreshnessStatus(envelope.rootDir, envelope.fileHashes)
-          : buildSkippedFileHashFreshnessStatus('not_checked', envelope.fileHashes);
-      const cwdFileHashFreshForHeadMismatch =
-        cacheMatchesCwd &&
-        fileHashesBridgeHeadMismatch({
-          cacheGitCommitHash: envelope.gitCommitHash,
-          currentGitCommitHash,
-          fileHashFreshness: cwdFileHashFreshness,
-        });
-      const cwdLocalCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
-        receipt: envelope.localCodebaseSnapshotReceipt,
-        rootDir: envelope.rootDir,
-        graphFileCount: getEnvelopeGraphFileCount(envelope),
-        freshByAge,
-      });
-
-      // A cache built for a different directory is still authoritative for its
-      // own repo when it positively describes that repo's live HEAD with complete
-      // coverage (see cacheDescribesRealCurrentRepo). This unblocks a fixed-cwd
-      // sovereign MCP serving multiple repos, without trusting scratch absorbs.
-      const crossRootAuthority = cacheMatchesCwd
-        ? {
-            ok: false,
-            currentGitCommitHash,
-            gitMatchesHead,
-            fileHashFreshForHeadMismatch: cwdFileHashFreshForHeadMismatch,
-            fileHashFreshness: cwdFileHashFreshness,
-          }
-        : await cacheDescribesRealCurrentRepo({
-            rootDir: envelope.rootDir,
-            cacheGitCommitHash: envelope.gitCommitHash,
-            fileHashes: envelope.fileHashes,
-            freshByAge,
-            coverage,
-          });
-      const cwdAuthoritative =
-        cacheMatchesCwd &&
-        freshByAge &&
-        (cwdLocalCodebaseSnapshot?.authoritative === true ||
-          (coverageComplete &&
-            cwdFileHashFreshness.fresh &&
-            (gitMatchesHead || cwdFileHashFreshForHeadMismatch)));
-
-      if (!cwdAuthoritative && !crossRootAuthority.ok) {
-        const reason: GraphUnavailableReason = !cacheMatchesCwd
-          ? 'cache_root_mismatch'
-          : !coverageComplete
-            ? 'cache_incomplete'
-            : !cwdFileHashFreshness.fresh ||
-                (!gitMatchesHead && !cwdFileHashFreshForHeadMismatch) ||
-                !freshByAge
-              ? 'cache_stale'
-              : 'cache_incomplete';
+      const authority = await assessGraphEnvelopeAuthority(envelope, currentCwd);
+      const { ageMs, coverage, freshByAge } = authority;
+      if (!authority.ok) {
         return {
           loaded: false,
           source: 'none',
@@ -6958,26 +7202,15 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
           stale: true,
           coverage,
           graphUnavailableReceipt: buildGraphUnavailableReceipt({
-            reason,
+            reason: authority.reason,
             requestedPath: envelope.rootDir,
             runtimePath: path.resolve(envelope.rootDir),
             cacheAgeMs: ageMs,
           }),
         };
       }
-      const mod = await loadCodebaseModule();
-      const { CodebaseGraph, GraphRAGEngine } = mod;
-      cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
-      attachGraphCacheMetadata(cachedGraph, envelope);
-      (cachedGraph as { worktreeFingerprint?: string }).worktreeFingerprint =
-        envelope.worktreeFingerprint ??
-        buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ??
-        undefined;
-      (cachedGraph as { coverageAtScan?: GraphCoverageStatus }).coverageAtScan =
-        envelope.coverageAtScan ?? coverage;
-      if (cwdFileHashFreshForHeadMismatch && currentGitCommitHash) {
-        (cachedGraph as { gitCommitHash?: string }).gitCommitHash = currentGitCommitHash;
-      }
+      const { mod, graph } = await deserializeAuthoritativeEnvelope(envelope, authority);
+      cachedGraph = graph;
       cachedRootDir = envelope.rootDir;
       cacheProvenance = 'disk-cache';
       cacheTimestamp = envelope.timestamp;
@@ -10432,25 +10665,24 @@ const STRUCTURED_QUERY_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
-  const graphState = await ensureCachedGraph();
-  if (!graphState.loaded) {
-    return {
-      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
-      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
-      ...(graphState.graphUnavailableReceipt && {
-        graphUnavailableReceipt: graphState.graphUnavailableReceipt,
-      }),
-      ...(graphState.coverage && { coverage: graphState.coverage }),
-    };
-  }
-  const fromCache = graphState.source === 'disk-cache';
+  const answering = await resolveAnsweringGraph(args);
+  if (!answering.ok) return answering.response;
+  const fromCache = answering.source === 'disk-cache' || answering.source === 'explicit-disk-cache';
   const cacheNote = fromCache
     ? `[auto-loaded from disk cache, ${
-        graphState.ageMs! < 3600000
-          ? `${Math.round(graphState.ageMs! / 60000)}m old`
-          : `${(graphState.ageMs! / 3600000).toFixed(1)}h old`
-      }, rootDir: ${graphState.rootDir}]`
+        answering.ageMs! < 3600000
+          ? `${Math.round(answering.ageMs! / 60000)}m old`
+          : `${(answering.ageMs! / 3600000).toFixed(1)}h old`
+      }, rootDir: ${answering.rootDir}]`
     : undefined;
+  return { ...answerGraphQuery(answering.graph, args, cacheNote), answeredFrom: answering.answeredFrom };
+}
+
+function answerGraphQuery(
+  graph: CodebaseGraph,
+  args: Record<string, unknown>,
+  cacheNote: string | undefined
+): Record<string, unknown> {
 
   // Models (and our own CLAUDE.md, until 2026-10-04) send
   // { query: 'callers', symbol: 'X' }. That used to search for a symbol
@@ -10475,7 +10707,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   switch (effectiveType) {
     case 'callers': {
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const callers = cachedGraph.getCallersOf(name, symbolOwner);
+      const callers = graph.getCallersOf(name, symbolOwner);
       return {
         query: `callers of ${symbolOwner ? `${symbolOwner}.` : ''}${name}`,
         results: callers,
@@ -10486,7 +10718,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'callees': {
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const callees = cachedGraph.getCalleesOf(name);
+      const callees = graph.getCalleesOf(name);
       return {
         query: `callees of ${name}`,
         results: callees,
@@ -10497,7 +10729,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'imports': {
       const file = filePath ?? extractFileFromQuery(query);
-      const imports = cachedGraph.getImportsOf(file);
+      const imports = graph.getImportsOf(file);
       return {
         query: `imports of ${file}`,
         results: imports,
@@ -10508,7 +10740,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'imported_by': {
       const file = filePath ?? extractFileFromQuery(query);
-      const importedBy = cachedGraph.getImportedBy(file);
+      const importedBy = graph.getImportedBy(file);
       return {
         query: `files that import ${file}`,
         results: importedBy,
@@ -10519,7 +10751,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'symbols': {
       const file = filePath ?? extractFileFromQuery(query);
-      const symbols = cachedGraph.getSymbolsInFile(file);
+      const symbols = graph.getSymbolsInFile(file);
       return {
         query: `symbols in ${file}`,
         results: symbols,
@@ -10534,7 +10766,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         matchMode,
         truncated,
         results: found,
-      } = cachedGraph.searchSymbolsByName(name, {
+      } = graph.searchSymbolsByName(name, {
         limit: 50,
       });
       return {
@@ -10557,7 +10789,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
           ? 'tropical-min-plus'
           : 'bfs';
         const strategy = traceStrategy ?? inferredStrategy;
-        const chain = cachedGraph.traceCallChain(parts[1], parts[2], maxDepth, {
+        const chain = graph.traceCallChain(parts[1], parts[2], maxDepth, {
           algorithm: strategy,
         });
         return {
@@ -10572,7 +10804,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     }
 
     case 'communities': {
-      const communities: Map<string, string[]> = cachedGraph.detectCommunities();
+      const communities: Map<string, string[]> = graph.detectCommunities();
       // Cap output: only show file counts + top 10 files per community to prevent token overflow
       const MAX_FILES_PER_COMMUNITY = 10;
       return {
@@ -10594,7 +10826,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     case 'stats':
       return {
         query: 'stats',
-        result: cachedGraph.getStats(),
+        result: graph.getStats(),
         ...(cacheNote && { cacheNote }),
       };
 
@@ -10621,25 +10853,25 @@ function boundedImpactInteger(
 }
 
 async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
-  const graphState = await ensureCachedGraph();
-  if (!graphState.loaded) {
-    return {
-      error: describeGraphUnavailable(graphState.graphUnavailableReceipt),
-      hint: ABSORB_HOLO_ABSORB_REPO_HINT,
-      ...(graphState.graphUnavailableReceipt && {
-        graphUnavailableReceipt: graphState.graphUnavailableReceipt,
-      }),
-      ...(graphState.coverage && { coverage: graphState.coverage }),
-    };
-  }
+  const answering = await resolveAnsweringGraph(args);
+  if (!answering.ok) return answering.response;
   const cacheNote =
-    graphState.source === 'disk-cache'
+    answering.source === 'disk-cache' || answering.source === 'explicit-disk-cache'
       ? `auto-loaded from disk cache (${
-          graphState.ageMs! < 3600000
-            ? `${Math.round(graphState.ageMs! / 60000)}m old`
-            : `${(graphState.ageMs! / 3600000).toFixed(1)}h old`
+          answering.ageMs! < 3600000
+            ? `${Math.round(answering.ageMs! / 60000)}m old`
+            : `${(answering.ageMs! / 3600000).toFixed(1)}h old`
         })`
       : undefined;
+  const result = answerImpact(answering.graph, args, cacheNote);
+  return 'error' in result ? result : { ...result, answeredFrom: answering.answeredFrom };
+}
+
+function answerImpact(
+  graph: CodebaseGraph,
+  args: Record<string, unknown>,
+  cacheNote: string | undefined
+): Record<string, unknown> {
 
   const changedFiles = args.changedFiles as unknown[] | undefined;
   const changedSymbol = args.changedSymbol as string | undefined;
@@ -10669,7 +10901,7 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
     const maxDepth = boundedImpactInteger(args.maxDepth, IMPACT_DEFAULT_MAX_DEPTH, 0, 256);
     const deadlineMs = boundedImpactInteger(args.deadlineMs, IMPACT_DEFAULT_DEADLINE_MS, 1, 25_000);
     const startedAt = Date.now();
-    const impact = cachedGraph.getCommunityAwareImpactTraversal(changedFiles, {
+    const impact = graph.getCommunityAwareImpactTraversal(changedFiles, {
       maxAffectedFiles,
       maxDepth,
       deadlineMs,
@@ -10724,7 +10956,7 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   }
 
   if (changedSymbol) {
-    const affected: Set<string> = cachedGraph.getSymbolImpact(changedSymbol, symbolOwner);
+    const affected: Set<string> = graph.getSymbolImpact(changedSymbol, symbolOwner);
     return {
       changedSymbol: symbolOwner ? `${symbolOwner}.${changedSymbol}` : changedSymbol,
       affectedFiles: Array.from(affected),
