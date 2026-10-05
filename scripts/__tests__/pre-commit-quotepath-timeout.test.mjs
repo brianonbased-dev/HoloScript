@@ -28,10 +28,26 @@
  *
  * 3. The language-strata banner must print the seconds passed to
  *    run_with_timeout, not a hardcoded "budget 120s".
+ *
+ * 4. Gate 5e (Quest golden check) must run gen-quest-mr-templates.mjs --check,
+ *    and the check must judge the index, which is what gets committed, not the
+ *    working copy (claude3's review of #469). Its lines run in a scratch repo
+ *    with real git: a staged logic change without the regenerated file fails;
+ *    staged-good plus unstaged-bad passes; staged-bad plus unstaged-good fails;
+ *    a bystander's unstaged edit does not block an unrelated commit. Remove the
+ *    --check, or point it back at the working copy, and this section goes red.
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -418,6 +434,171 @@ ${banner}
   }
 }
 
+{
+  // 4. Gate 5e runs gen-quest-mr-templates.mjs --check, and the check judges the INDEX, which is
+  //    what gets committed, not the working copy (claude3's review of #469). The gate's own lines
+  //    run in a scratch repo that holds the generator and its real inputs. Only the golden-diff
+  //    that follows the check is stubbed: it needs the whole core source tree.
+  const GEN = 'packages/core/scripts/gen-quest-mr-templates.mjs';
+  const TEMPLATES = 'packages/core/src/compiler/quest-mr-templates';
+  const LOGIC_DIR = 'packages/core/src/compiler/quest-mr-logic';
+  const LOGIC = `${LOGIC_DIR}/Locomotion.logic.hs`;
+  const OUT = 'packages/core/src/compiler/quest-mr-templates.generated.ts';
+  const LIFECYCLE = 'apps/quest-universal-qr-scanner/scanner-lifecycle.hsplus';
+  const PKG_NODE = 'packages/compiler-wasm/pkg-node';
+  const GOLDEN =
+    'QUEST_MR_OUT=$(run_with_timeout 60 npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts 2>&1)';
+
+  const gateStart = hook.indexOf('# Gate 5e: Quest MR emit golden-diff');
+  const gateEnd = hook.indexOf('# Gate 5e-axr:');
+  const fnStart = hook.indexOf('run_with_timeout() {');
+  const fnEnd = hook.indexOf('\n# Large merges');
+  assertTrue(gateStart >= 0 && gateEnd > gateStart, 'pre-commit has Gate 5e before Gate 5e-axr');
+  const gate = gateStart >= 0 && gateEnd > gateStart ? hook.slice(gateStart, gateEnd) : '';
+  assertTrue(
+    /run_with_timeout\s+\d+\s+node\s+"?[^\s"]*gen-quest-mr-templates\.mjs"?\s+--check/.test(gate),
+    'Gate 5e runs gen-quest-mr-templates.mjs --check under run_with_timeout'
+  );
+  assertEq(
+    gate.split(GOLDEN).length - 1,
+    1,
+    'Gate 5e golden-diff command is where this test stubs it'
+  );
+  const stubbed = gate.replace(GOLDEN, "QUEST_MR_OUT='golden-diff stub'");
+  const fn = fnStart >= 0 && fnEnd > fnStart ? hook.slice(fnStart, fnEnd) : '';
+
+  const root = mkdtempSync(join(tmpdir(), 'quest-gate-index-'));
+  const noHooks = mkdtempSync(join(tmpdir(), 'quest-gate-nohooks-'));
+  const read = (rel) => readFileSync(join(root, rel), 'utf8');
+  const write = (rel, text) => writeFileSync(join(root, rel), text);
+  const swap = (rel, from, to) => {
+    const text = read(rel);
+    if (!text.includes(from)) throw new Error(`${rel} no longer contains ${from}`);
+    write(rel, text.replace(from, to));
+  };
+  // Two independent edits that change the compiled Kotlin (a comment or whitespace edit would not).
+  const editA = () =>
+    swap(LOGIC, 'return yaw + turn * turnSpeed * dt', 'return yaw - turn * turnSpeed * dt');
+  const editB = () => swap(LOGIC, 'return component / len', 'return component * len');
+  const regenerate = () => {
+    const made = spawnSync(process.execPath, [join(root, GEN)], { cwd: root, encoding: 'utf8' });
+    if (made.status !== 0) throw new Error(`regenerate failed: ${made.stdout}${made.stderr}`);
+  };
+  const runGate = () => {
+    const ran = spawnSync(
+      'bash',
+      ['-c', `RED=''; GREEN=''; NC=''; FAILED=0\n${fn}\n${stubbed}\necho "GATE-FAILED=$FAILED"\n`],
+      { cwd: root, encoding: 'utf8' }
+    );
+    const out = `${ran.stdout || ''}${ran.stderr || ''}`;
+    const verdict = (out.match(/GATE-FAILED=(\d)/) || [])[1];
+    return { failed: verdict === '1', ran: verdict !== undefined, out };
+  };
+  try {
+    const copied = [GEN, TEMPLATES, LOGIC_DIR, OUT, LIFECYCLE, PKG_NODE, '.gitattributes'];
+    for (const rel of copied) {
+      cpSync(join(REPO, rel), join(root, rel), { recursive: true });
+    }
+    git(root, ['init', '-q']);
+    git(root, ['config', 'core.autocrlf', 'false']);
+    git(root, ['config', 'core.hooksPath', noHooks]);
+    git(root, ['config', 'commit.gpgsign', 'false']);
+    git(root, ['config', 'user.name', 'quest gate test']);
+    git(root, ['config', 'user.email', 'quest-gate-test@example.invalid']);
+    git(root, ['add', '--', ...copied]);
+    git(root, ['commit', '-q', '-m', 'base']);
+    const reset = () => git(root, ['reset', '-q', '--hard', 'HEAD']);
+
+    // Control: the committed inputs agree; staging a comment in the generator runs the gate.
+    write(GEN, `${read(GEN)}// test-only comment\n`);
+    git(root, ['add', '--', GEN]);
+    let gateRun = runGate();
+    assertTrue(gateRun.ran, 'Gate 5e ran in the scratch repo', gateRun.out);
+    assertEq(gateRun.failed, false, 'clean staged state passes Gate 5e', gateRun.out);
+    reset();
+
+    // #469: a staged logic change without the regenerated file fails.
+    editA();
+    git(root, ['add', '--', LOGIC]);
+    gateRun = runGate();
+    assertEq(
+      gateRun.failed,
+      true,
+      'staged .logic.hs change without the regenerated file fails',
+      gateRun.out
+    );
+    assertTrue(
+      gateRun.out.includes('compiled logic Locomotion'),
+      'the failure names the stale logic block',
+      gateRun.out
+    );
+    reset();
+
+    // A staged logic change with its regenerated file passes.
+    editA();
+    regenerate();
+    git(root, ['add', '--', LOGIC, OUT]);
+    gateRun = runGate();
+    assertEq(
+      gateRun.failed,
+      false,
+      'staged .logic.hs change with its regenerated file passes',
+      gateRun.out
+    );
+    reset();
+
+    // Staged-good, unstaged-bad: the commit is consistent; a later edit is left unstaged and not
+    // regenerated. Reading the working copy blocked this commit.
+    editA();
+    regenerate();
+    git(root, ['add', '--', LOGIC, OUT]);
+    editB();
+    gateRun = runGate();
+    assertEq(
+      gateRun.failed,
+      false,
+      'staged-good plus unstaged-bad passes (the index is judged)',
+      gateRun.out
+    );
+    reset();
+
+    // Staged-bad, unstaged-good (claude3's case): the regenerated file is staged but the logic edit
+    // it came from is not, so the commit pairs new compiled logic with old source. Reading the
+    // working copy passed this commit.
+    editA();
+    regenerate();
+    git(root, ['add', '--', OUT]);
+    gateRun = runGate();
+    assertEq(
+      gateRun.failed,
+      true,
+      'staged-bad plus unstaged-good fails (the index is judged)',
+      gateRun.out
+    );
+    assertTrue(
+      gateRun.out.includes(LOGIC),
+      'the failure lists the input with unstaged changes',
+      gateRun.out
+    );
+    reset();
+
+    // A bystander's unstaged logic edit does not block an unrelated staged change.
+    editA();
+    write(GEN, `${read(GEN)}// test-only comment\n`);
+    git(root, ['add', '--', GEN]);
+    gateRun = runGate();
+    assertEq(
+      gateRun.failed,
+      false,
+      "a bystander's unstaged .logic.hs edit does not block an unrelated commit",
+      gateRun.out
+    );
+    reset();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(noHooks, { recursive: true, force: true });
+  }
+}
 const testsPassed = testsRun - testsFailed - testsSkipped;
 if (testsFailed > 0) {
   console.error(`\n${testsPassed} passed, ${testsSkipped} skipped, ${testsFailed} failed (${testsRun} run)`);

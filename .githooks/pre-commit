@@ -467,7 +467,8 @@ fi
 # The emitter injects the app's .hs logic from the COMMITTED quest-mr-templates.generated.ts, so the
 # golden-diff alone cannot see a change to the .logic.hs files or to the Kotlin bridge that compiles
 # them (the checker build in packages/compiler-wasm/pkg-node). `gen-quest-mr-templates.mjs --check`
-# first proves the committed file is what those inputs produce now.
+# first proves the staged file is what the staged inputs produce. (The golden-diff after it still
+# reads the working copy.)
 echo "  ├─ Quest MR emit golden-diff..."
 STAGED_QUEST=$(git -c core.quotepath=off diff --cached --name-only -- \
     'apps/quest-universal-qr-scanner/**' \
@@ -479,17 +480,35 @@ STAGED_QUEST=$(git -c core.quotepath=off diff --cached --name-only -- \
     'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm' \
     'scripts/holo-ci/check-quest-mr-emit-matches-reference.mts' 2>/dev/null || true)
 if [ -n "$STAGED_QUEST" ]; then
-    QUEST_LOGIC_OUT=$(run_with_timeout 60 node packages/core/scripts/gen-quest-mr-templates.mjs --check 2>&1)
-    if [ $? -ne 0 ]; then
-        echo -e "  ${RED}❌ The Quest app's compiled .hs logic is stale${NC}"
+    # --check judges what is being COMMITTED, so it reads the index, not the working copy. The
+    # generator and every file it reads (templates, .logic.hs files, the committed output, the
+    # lifecycle source, the pkg-node bridge) are checked out of the index into a scratch tree and
+    # the staged generator runs there; it reads every path relative to itself. An unstaged edit,
+    # yours or a bystander's, can then neither hide a stale staged file nor block a consistent
+    # one. Reading the working copy did both (claude3's review of #469).
+    QUEST_INPUTS=(
+        'packages/core/scripts/gen-quest-mr-templates.mjs'
+        'packages/core/src/compiler/quest-mr-templates'
+        'packages/core/src/compiler/quest-mr-logic'
+        'packages/core/src/compiler/quest-mr-templates.generated.ts'
+        'apps/quest-universal-qr-scanner/scanner-lifecycle.hsplus'
+        'packages/compiler-wasm/pkg-node'
+    )
+    QUEST_INDEX_DIR=$(mktemp -d 2>/dev/null) || QUEST_INDEX_DIR="${TMPDIR:-/tmp}/holo-quest-index-$$"
+    mkdir -p "$QUEST_INDEX_DIR"
+    git -c core.quotepath=off ls-files -z -- "${QUEST_INPUTS[@]}" \
+        | git checkout-index -z --stdin --prefix="$QUEST_INDEX_DIR/"
+    QUEST_LOGIC_OUT=$(run_with_timeout 60 node "$QUEST_INDEX_DIR/packages/core/scripts/gen-quest-mr-templates.mjs" --check 2>&1)
+    QUEST_LOGIC_STATUS=$?
+    rm -rf "$QUEST_INDEX_DIR"
+    if [ "$QUEST_LOGIC_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ The Quest app's compiled .hs logic is stale in what you are committing${NC}"
         echo "$QUEST_LOGIC_OUT"
-        FAILED=1
-    fi
-    # --check reads the working copy; a regenerated file left unstaged would pass it while the
-    # commit carries the old one.
-    if ! git diff --quiet -- packages/core/src/compiler/quest-mr-templates.generated.ts; then
-        echo -e "  ${RED}❌ quest-mr-templates.generated.ts has unstaged changes${NC}"
-        echo "     Fix: git add packages/core/src/compiler/quest-mr-templates.generated.ts (or restore it)."
+        QUEST_UNSTAGED=$(git -c core.quotepath=off diff --name-only -- "${QUEST_INPUTS[@]}" 2>/dev/null)
+        if [ -n "$QUEST_UNSTAGED" ]; then
+            echo "     The check read the staged files. These inputs also have unstaged changes:"
+            echo "$QUEST_UNSTAGED" | sed 's/^/       /'
+        fi
         FAILED=1
     fi
     QUEST_MR_OUT=$(run_with_timeout 60 npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts 2>&1)
