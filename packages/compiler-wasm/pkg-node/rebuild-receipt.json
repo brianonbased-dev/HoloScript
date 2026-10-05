@@ -1,11 +1,50 @@
 {
-  "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T05:05:40Z",
+  "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v2",
+  "generatedAt": "2026-10-05T12:15:26Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "2e524d56be9a935d8a0d3dea61cefcc9e3029eb5",
+  "sourceCommit": "73719b446278f9ecc294e733f3e47c0c45f485bc",
   "artifactPath": "packages/compiler-wasm/pkg-node",
+  "inputs": {
+    "sha256": "5ca341959bad277a4bfec4e63ab300c9fa7a6a7ee5be0025aab1da8f8fda5098",
+    "rule": "sha256 over one line per file, \"<sha256 of its bytes>  <path>\" and a newline, in path order. The files are the ones cargo reads to build the crate: src/**/*.rs, the crate Cargo.toml, the workspace Cargo.toml and Cargo.lock, any .cargo/config(.toml) or rust-toolchain(.toml) from the crate up to the repository root, and every file the build code embeds with include!, include_str! or include_bytes! (code in #[cfg(test)] items excluded).",
+    "files": {
+      "Cargo.lock": "d4ab9321b3c2a1e921db98527c4bd1d22bc6ad420f6be104c6268f0e4c8cb342",
+      "Cargo.toml": "6872cd3e2f9fdff961fdbe1f6b604f4e85a258350292eefdd07a0504af7e5c75",
+      "packages/compiler-wasm/Cargo.toml": "4a1be46d4a718981b0e60fbf8e55ba00559432759d785187cd6e8777fb22bf13",
+      "packages/compiler-wasm/src/ast.rs": "e76a9b1d59a21d3cae185266601eb34684aa2fc34ec2d969141ad62967dfba10",
+      "packages/compiler-wasm/src/bin/compile_to_uaal.rs": "2867dd9005acf055527186011e75356e2ad43bb983a9d032d808fc3ad349cf6e",
+      "packages/compiler-wasm/src/bin/parser_bench.rs": "b3883def0a3a954efbe6789c1d6acceb902d47d2f7a13857d9f1c493822221bd",
+      "packages/compiler-wasm/src/eval.rs": "92098031a121f6225bbb9a30833490d5491e832f240859c7edee3ceb688ff283",
+      "packages/compiler-wasm/src/holo_modules.rs": "b7d7c2c130f18c7f083797884cbc9958260390f8d65ac5ea62a45f71c3f5b40c",
+      "packages/compiler-wasm/src/kotlin_emit.rs": "d0d36e7df8dfbb5fddc4654362120f9f60f4b7dfce3238dba6a1384c9261dfef",
+      "packages/compiler-wasm/src/lexer.rs": "4d01d25c92329c52163ed977793895a81f7c43e3e8bb6755666405309bd72d98",
+      "packages/compiler-wasm/src/lib.rs": "9064ad0991cb6056933cff3a0b860ae540da60395fb552fc4bf0770e8f00063b",
+      "packages/compiler-wasm/src/parser.rs": "a4645785f07bdd7a3f900e5f665ee783d490b774285bd4f02d0ceda6bc4a3aa3",
+      "packages/compiler-wasm/src/semantic_types.rs": "6d73a5b65c3a8de8c18e9a9034127ad1a9f2d75260f3d6de9176efaaeba4b773",
+      "packages/compiler-wasm/src/token.rs": "b36fba5c146195d6a30edaf66e72e1bccbac4bfddc4111f21ec7f0625092b696",
+      "packages/compiler-wasm/src/types.rs": "a999d31f90bc4afc3818b58e3a07c6e9f6747decd267700f65dbdbe661e82353",
+      "packages/compiler-wasm/src/uaal_emit.rs": "a748fbe4d1062fc7b0ccd2fbb46382448cc63020f4c89f8b853cc8c8673c4f95",
+      "packages/std/src/holo/absorb.hs": "c22733312e0cd48da899ed0b3ad08c8a9bc4b973bdaa222dd29d3d6d565b80c4"
+    }
+  },
+  "recipe": {
+    "wasmPackArgs": [
+      "build",
+      "--target",
+      "nodejs",
+      "--out-dir",
+      "pkg-node",
+      "--release"
+    ],
+    "rustflags": [
+      "--remap-path-prefix=<cargo home>=/cargo-home",
+      "--remap-path-prefix=<rustup home>=/rustup-home",
+      "--remap-path-prefix=<workspace root>=/workspace"
+    ],
+    "extraRustflags": []
+  },
   "commands": [
-    "node scripts/build-wasm.mjs --rebuild (wasm-pack build --target nodejs --out-dir pkg-node --release)"
+    "node scripts/build-wasm.mjs --rebuild (wasm-pack build --target nodejs --out-dir pkg-node --release, then again in a fresh target directory)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -15,10 +54,11 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 591232,
-    "wasmSha256": "1460cbc69326fba85e9372605ef268acaf603eda41d308c355d82126ea09a40f",
-    "previousWasmSha256": "ca84d5782d1677cd93c55b9317b45003a9d68cc7b8f0f6ee5544d064949fa093",
-    "repeatBuildSha256Matched": null,
-    "note": "Written by build-wasm.mjs --rebuild from commit 2e524d56be9a935d8a0d3dea61cefcc9e3029eb5, with no uncommitted Rust build inputs; 2 targets (pkg, pkg-node) hold this WASM."
+    "wasmBytes": 605429,
+    "wasmSha256": "2fdd20cdf0adfc2d719cb06e3847bd4b5462e0c186b59a9d45432828c39f53d9",
+    "previousWasmSha256": "b1b94af4cc06a71b62a1a45e516be34663fe99649189defaaae0f284fd639e88",
+    "repeatBuildSha256Matched": true,
+    "repeatBuildWasmSha256": "2fdd20cdf0adfc2d719cb06e3847bd4b5462e0c186b59a9d45432828c39f53d9",
+    "note": "Written by build-wasm.mjs --rebuild at commit 73719b446278f9ecc294e733f3e47c0c45f485bc, which holds the 17 Rust build inputs it hashes; built twice, the second time in a fresh target directory, with the same WASM; 2 targets (pkg, pkg-node) hold this WASM. Built for the merge of #448 (5cccfd99c) into #466 (28403446c) from a build-only snapshot commit holding exactly that merge's Rust build inputs."
   }
 }

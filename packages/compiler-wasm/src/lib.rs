@@ -168,10 +168,18 @@ pub fn validate_detailed(source: &str) -> String {
 
 /// [`validate_detailed`] for source lifted out of a larger document, the way the `.hsplus` reader
 /// checks each typed function on its own. `context_json` names what the document declares, so a
-/// use of it resolves: `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"]}`.
+/// use of it resolves:
+/// `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"],"namespaces":["Route"],
+/// "structs":[{"name":"Snapshot","fields":[{"name":"count","type":"i32","unknown":true}]}]}`.
 /// `functions` are the document's functions; one listed without `arity` resolves by name and its
-/// argument count is not checked. `names` are its structs, enums and imports. Both are optional.
-/// A context that is not that JSON is refused rather than ignored.
+/// argument count is not checked. `names` are its structs and imports, which may be called.
+/// `namespaces` are its enums and modules, which are read through their members
+/// (`GameState.addScore(p)`) and never called. `structs` are its structs with their fields, each
+/// with an optional `type` and an `unknown` mark, so the `@unknown` read rule judges the lifted
+/// function as it would the whole document. `imports` are its `holo:` imports,
+/// `[{"source":"holo:absorb","specifiers":[{"imported":"f","local":"g"}]}]`, which the
+/// checker resolves against its embedded Holo modules (G21). All five are optional. A context
+/// that is not that JSON is refused rather than ignored.
 #[wasm_bindgen]
 pub fn validate_detailed_in_context(source: &str, context_json: &str) -> String {
     validate_detailed_in_context_inner(source, context_json)
@@ -202,15 +210,54 @@ fn validate_detailed_in_context_inner(source: &str, context_json: &str) -> Strin
 fn parse_check_context(
     context_json: &str,
 ) -> Result<semantic_types::ExternalDeclarations, String> {
-    const SHAPE: &str = r#"validate_detailed_in_context: the context must be {"functions":[{"name":"...","arity":N}],"names":["..."],"imports":[{"source":"holo:...","specifiers":[{"imported":"...","local":"..."}]}]}"#;
+    const SHAPE: &str = r#"validate_detailed_in_context: the context must be {"functions":[{"name":"...","arity":N}],"names":["..."],"namespaces":["..."],"structs":[{"name":"...","fields":[{"name":"...","type":"...","unknown":true}]}],"imports":[{"source":"holo:...","specifiers":[{"imported":"...","local":"..."}]}]}"#;
     let value: serde_json::Value =
         serde_json::from_str(context_json).map_err(|error| format!("{SHAPE} ({error})"))?;
     let object = value.as_object().ok_or_else(|| SHAPE.to_string())?;
     let mut external = semantic_types::ExternalDeclarations::default();
-    if let Some(names) = object.get("names") {
+    for (key, set) in [
+        ("names", &mut external.names),
+        ("namespaces", &mut external.namespaces),
+    ] {
+        let Some(names) = object.get(key) else {
+            continue;
+        };
         for name in names.as_array().ok_or_else(|| SHAPE.to_string())? {
             let name = name.as_str().ok_or_else(|| SHAPE.to_string())?;
-            external.names.insert(name.to_string());
+            set.insert(name.to_string());
+        }
+    }
+    if let Some(structs) = object.get("structs") {
+        for structure in structs.as_array().ok_or_else(|| SHAPE.to_string())? {
+            let name = structure
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .ok_or_else(|| SHAPE.to_string())?;
+            let mut fields = Vec::new();
+            for field in structure
+                .get("fields")
+                .and_then(serde_json::Value::as_array)
+                .ok_or_else(|| SHAPE.to_string())?
+            {
+                let field_name = field
+                    .get("name")
+                    .and_then(serde_json::Value::as_str)
+                    .ok_or_else(|| SHAPE.to_string())?;
+                let ty = match field.get("type") {
+                    None | Some(serde_json::Value::Null) => None,
+                    Some(ty) => Some(ty.as_str().ok_or_else(|| SHAPE.to_string())?.to_string()),
+                };
+                let unknown = match field.get("unknown") {
+                    None | Some(serde_json::Value::Null) => false,
+                    Some(unknown) => unknown.as_bool().ok_or_else(|| SHAPE.to_string())?,
+                };
+                fields.push(semantic_types::RecordField {
+                    name: field_name.to_string(),
+                    ty,
+                    unknown,
+                });
+            }
+            external.structs.push((name.to_string(), fields));
         }
     }
     // `holo:` imports travel as imports, not as names, so the checker resolves them against
@@ -766,6 +813,19 @@ function main(): any { return identity(true) }"#;
         let named = validate_detailed_in_context(constructs, r#"{"names":["Packet"]}"#);
         assert!(named.contains("\"valid\": true"), "{named}");
 
+        // Enums and modules of the document resolve through `namespaces`: read, never called.
+        let module_call = "function score(p: i32): i32 {\n  GameState.addScore(p)\n  return p\n}";
+        let unknown_module = validate_detailed(module_call);
+        assert!(unknown_module.contains("[HS-NAME-001]"), "{unknown_module}");
+        let module =
+            validate_detailed_in_context(module_call, r#"{"namespaces":["GameState"]}"#);
+        assert!(module.contains("\"valid\": true"), "{module}");
+        let called = validate_detailed_in_context(
+            "function score(p: i32): i32 {\n  return GameState(p)\n}",
+            r#"{"namespaces":["GameState"]}"#,
+        );
+        assert!(called.contains("[HS-NAME-002]"), "{called}");
+
         for malformed in [
             "",
             "[]",
@@ -774,9 +834,64 @@ function main(): any { return identity(true) }"#;
             r#"{"functions":[{"name":"sibling","arity":-1}]}"#,
             r#"{"names":"Packet"}"#,
             r#"{"names":[7]}"#,
+            r#"{"namespaces":"GameState"}"#,
+            r#"{"namespaces":[7]}"#,
         ] {
             let refused = validate_detailed_in_context(fragment, malformed);
             assert!(refused.contains("\"valid\":false"), "{malformed} => {refused}");
+            assert!(
+                refused.contains("the context must be"),
+                "{malformed} => {refused}"
+            );
+        }
+    }
+
+    /// Review of PR #444 (claude3, P3): the `.hsplus` reader sends one typed function at a time,
+    /// and before `structs` it sent no struct fields, so a bare read of an `@unknown` field was
+    /// valid there while the guarded `snapshot.count ?? 7` was refused. With the document's
+    /// structs, the lifted function gets the verdicts the whole `.hs` file gets.
+    #[test]
+    fn test_validate_detailed_in_context_reads_document_structs_for_unknown_fields() {
+        let context = r#"{"names":["Snapshot"],"structs":[{"name":"Snapshot","fields":[{"name":"count","type":"i32","unknown":true},{"name":"seen","type":"bool"}]}]}"#;
+        let read = |body: &str| {
+            validate_detailed_in_context(
+                &format!("function read(snapshot: &Snapshot): i32 {{\n{body}\n}}"),
+                context,
+            )
+        };
+
+        let bare = read("  return snapshot.count");
+        assert!(bare.contains("[HS-UNKNOWN-001]"), "{bare}");
+        assert!(bare.contains("\"line\":2"), "{bare}");
+        assert!(read("  return load(snapshot.count)").contains("[HS-UNKNOWN-001]"));
+        assert!(read("  return snapshot.count ?? 7").contains("[HS-UNKNOWN-002]"));
+        assert!(read("  return load(snapshot.seen) ?? 7").contains("[HS-UNKNOWN-002]"));
+        assert!(
+            read("  if (isKnown(snapshot.seen)) {\n    return 1\n  }\n  return 0")
+                .contains("[HS-UNKNOWN-003]")
+        );
+        let guarded = read("  return load(snapshot.count) ?? 7");
+        assert!(guarded.contains("\"valid\": true"), "{guarded}");
+        let tag = read("  if (isKnown(snapshot.count)) {\n    return 1\n  }\n  return 0");
+        assert!(tag.contains("\"valid\": true"), "{tag}");
+
+        // Without the structs the lifted function cannot see the field (the earlier reader).
+        let blind = validate_detailed_in_context(
+            "function read(snapshot: &Snapshot): i32 {\n  return snapshot.count\n}",
+            r#"{"names":["Snapshot"]}"#,
+        );
+        assert!(blind.contains("\"valid\": true"), "{blind}");
+
+        for malformed in [
+            r#"{"structs":{}}"#,
+            r#"{"structs":[{"fields":[]}]}"#,
+            r#"{"structs":[{"name":"S"}]}"#,
+            r#"{"structs":[{"name":"S","fields":[{"type":"i32"}]}]}"#,
+            r#"{"structs":[{"name":"S","fields":[{"name":"f","type":7}]}]}"#,
+            r#"{"structs":[{"name":"S","fields":[{"name":"f","unknown":"yes"}]}]}"#,
+        ] {
+            let refused =
+                validate_detailed_in_context("function f(): i32 {\n  return 1\n}", malformed);
             assert!(
                 refused.contains("the context must be"),
                 "{malformed} => {refused}"

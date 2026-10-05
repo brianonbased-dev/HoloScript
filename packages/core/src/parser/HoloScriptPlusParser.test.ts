@@ -1537,7 +1537,7 @@ logic {
     expect(logicFunctionNames(result.ast).sort()).toEqual(['inner', 'outer']);
   });
 
-  it('collects functions with their argument counts, and structs, enums and imports by name', () => {
+  it('collects functions with their argument counts, structs and imports by name, and enums and modules as namespaces', () => {
     const t = (type: string, value = '') => ({ type, value });
     const id = (value: string) => t('IDENTIFIER', value);
     const context = collectHsDocumentContext([
@@ -1562,6 +1562,20 @@ logic {
       id('Route'),
       t('LBRACE'),
       t('RBRACE'),
+      // module GameState { }   declares; module: other   and   import module from "./m"   do not
+      t('MODULE', 'module'),
+      id('GameState'),
+      t('LBRACE'),
+      t('RBRACE'),
+      id('module'),
+      t('COLON'),
+      id('other'),
+      t('NEWLINE'),
+      id('import'),
+      t('MODULE', 'module'),
+      id('from'),
+      t('STRING', './m'),
+      t('NEWLINE'),
       // function two(x: Map<string, i32>, y: [i32; 4]) { }
       id('function'),
       id('two'),
@@ -1616,7 +1630,46 @@ logic {
       { name: 'twice' },
       { name: 'none', arity: 0 },
     ]);
-    expect(context.names.sort()).toEqual(['Packet', 'Route', 'a', 'c']);
+    expect(context.names.sort()).toEqual(['Packet', 'a', 'c', 'module']);
+    expect(context.namespaces.sort()).toEqual(['GameState', 'Route']);
+  });
+
+  it('reads a module or enum through its members and refuses a call to it (review finding)', () => {
+    const hsCodes = (source: string) =>
+      parse(source)
+        .errors.map((error) => String(error.code))
+        .filter((code) => code.startsWith('HS-'));
+    const withModule = (call: string) => `composition "C" {
+  module GameState {
+    export function addScore(points) {
+      return points
+    }
+  }
+  logic {
+    function award(p: i32): i32 {
+      ${call}
+      return p
+    }
+  }
+}`;
+    expect(hsCodes(withModule('GameState.addScore(p)'))).toEqual([]);
+    expect(hsCodes(withModule('GameState(p)'))).toEqual(['HS-NAME-002']);
+
+    const withEnum = (call: string) =>
+      `enum Route { EnterWorld, Deny }\n\nfunction pick(p: i32): i32 {\n  ${call}\n  return p\n}`;
+    expect(hsCodes(withEnum('let r = Route.Deny'))).toEqual([]);
+    expect(hsCodes(withEnum('let r = Route(p)'))).toEqual(['HS-NAME-002']);
+  });
+
+  it('points at the offending name in UTF-16 columns, past emoji (review finding)', () => {
+    const line = '  let s: string = "😀😀" let t: i32 = zz';
+    const result = parse(`function f(): i32 {\n${line}\n  return 1\n}`);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HS-NAME-001',
+      line: 2,
+      column: line.indexOf('zz') + 1,
+    });
   });
   it('resolves names the .hsplus lexer gives their own token type (review finding)', () => {
     // `transition`, `assert`, `match`, `state`, `initial`, `on_error` and `none` are keywords to
@@ -1759,6 +1812,146 @@ logic {
       { name: 'compare' },
     ]);
     expect(context.names).toEqual(['state']);
+  });
+});
+
+describe('@unknown struct fields in typed .hsplus functions (review of PR #444)', () => {
+  const hsErrors = (source: string) =>
+    parse(source).errors.filter((error) => String(error.code).startsWith('HS-'));
+  const snapshot = (body: string) => `struct Snapshot {
+  @unknown count: i32
+  seen: bool
+}
+
+function read(snapshot: &Snapshot): i32 {
+${body}
+}`;
+
+  it('gives a typed function the verdicts a whole .hs file gets, through the document structs', () => {
+    // Before, the reader sent struct names only: a bare read was valid here while the guarded
+    // `snapshot.count ?? 7` was refused.
+    const bare = hsErrors(snapshot('  return snapshot.count'));
+    expect(bare).toHaveLength(1);
+    expect(bare[0]).toMatchObject({ code: 'HS-UNKNOWN-001', line: 7, column: 10 });
+    expect(hsErrors(snapshot('  return load(snapshot.count)'))[0]?.code).toBe('HS-UNKNOWN-001');
+    expect(hsErrors(snapshot('  return snapshot.count ?? 7'))[0]?.code).toBe('HS-UNKNOWN-002');
+    expect(hsErrors(snapshot('  return load(snapshot.seen) ?? 7'))[0]?.code).toBe('HS-UNKNOWN-002');
+    expect(
+      hsErrors(snapshot('  if (isKnown(snapshot.seen)) {\n    return 1\n  }\n  return 0'))[0]?.code
+    ).toBe('HS-UNKNOWN-003');
+    expect(hsErrors(snapshot('  return load(snapshot.count) ?? 7'))).toEqual([]);
+    expect(
+      hsErrors(snapshot('  if (isKnown(snapshot.count)) {\n    return 1\n  }\n  return 0'))
+    ).toEqual([]);
+  });
+
+  it('collects each struct with its fields, @unknown marks and types', () => {
+    const t = (type: string, value = '') => ({ type, value });
+    const id = (value: string) => t('IDENTIFIER', value);
+    const context = collectHsDocumentContext([
+      // struct Snapshot { @unknown count: i32, inner: Outer; view: &mut Tally }
+      // (the .hsplus lexer drops `;` and a single `&`)
+      id('struct'),
+      id('Snapshot'),
+      t('LBRACE'),
+      t('AT'),
+      id('unknown'),
+      id('count'),
+      t('COLON'),
+      id('i32'),
+      t('COMMA'),
+      id('inner'),
+      t('COLON'),
+      id('Outer'),
+      id('view'),
+      t('COLON'),
+      id('mut'),
+      id('Tally'),
+      t('RBRACE'),
+      t('NEWLINE'),
+      // struct Registry {
+      //   readings: Map<string, i32> = make(a, b)
+      //   @unknown
+      //   reading?: &'a Sensor
+      // }
+      id('struct'),
+      id('Registry'),
+      t('LBRACE'),
+      t('NEWLINE'),
+      id('readings'),
+      t('COLON'),
+      id('Map'),
+      t('LESS_THAN', '<'),
+      id('string'),
+      t('COMMA', ','),
+      id('i32'),
+      t('GREATER_THAN', '>'),
+      t('EQUALS'),
+      id('make'),
+      t('LPAREN'),
+      id('a'),
+      t('COMMA'),
+      id('b'),
+      t('RPAREN'),
+      t('NEWLINE'),
+      t('AT'),
+      id('unknown'),
+      t('NEWLINE'),
+      id('reading'),
+      t('QUESTION'),
+      t('COLON'),
+      t('LIFETIME', 'a'),
+      id('Sensor'),
+      t('NEWLINE'),
+      t('RBRACE'),
+      // struct Packet(seed: i32) { value: i32 }
+      id('struct'),
+      id('Packet'),
+      t('LPAREN'),
+      id('seed'),
+      t('COLON'),
+      id('i32'),
+      t('RPAREN'),
+      t('LBRACE'),
+      id('value'),
+      t('COLON'),
+      id('i32'),
+      t('RBRACE'),
+      // struct Twice { a: i32 }   struct Twice { b: i32 }   -> fields unknown, left out
+      id('struct'),
+      id('Twice'),
+      t('LBRACE'),
+      id('a'),
+      t('COLON'),
+      id('i32'),
+      t('RBRACE'),
+      id('struct'),
+      id('Twice'),
+      t('LBRACE'),
+      id('b'),
+      t('COLON'),
+      id('i32'),
+      t('RBRACE'),
+    ]);
+    expect(context.structs).toEqual([
+      {
+        name: 'Snapshot',
+        fields: [
+          { name: 'count', type: 'i32', unknown: true },
+          { name: 'inner', type: 'Outer' },
+          { name: 'view', type: '&mut Tally' },
+        ],
+      },
+      {
+        name: 'Registry',
+        fields: [
+          { name: 'readings', type: 'Map < string , i32 >' },
+          { name: 'reading', type: "&'a Sensor", unknown: true },
+        ],
+      },
+      { name: 'Packet', fields: [{ name: 'value', type: 'i32' }] },
+    ]);
+    expect(context.names.sort()).toEqual(['Packet', 'Registry', 'Snapshot', 'Twice']);
   });
 });
 

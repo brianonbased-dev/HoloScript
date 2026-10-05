@@ -41,7 +41,10 @@ if (missing.length > 0 || empty.length > 0) {
   if (empty.length > 0) {
     console.error(`Invalid empty WASM package files: ${empty.join(', ')}`);
   }
-  console.error('Run `pnpm --filter @holoscript/wasm run build` before packing or publishing.');
+  // `build` only re-runs this check; `rebuild` writes both builds and their receipts.
+  console.error(
+    'Run `pnpm --filter @holoscript/wasm run rebuild` (it needs wasm-pack) before packing or publishing.'
+  );
   process.exit(1);
 }
 

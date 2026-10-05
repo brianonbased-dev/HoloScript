@@ -270,7 +270,7 @@ composition Scene {
 }
 ```
 
-A field marked `@unknown` may hold no known value. There are three ways to touch it: `isKnown(record.field)` reads whether it is known, `unknownReason(record.field)` reads the reason code, and `load(record.field) ?? fallback` reads the value with a fallback. That last one is the one written form for the value (2026-09-28; `proposals/Unknown_Field_Reads_v1.md`).
+A field marked `@unknown` may hold no known value. There are three ways to touch it: `isKnown(record.field)` reads whether it is known, `unknownReason(record.field)` reads the reason code, and `load(record.field) ?? fallback` reads the value with a fallback. That last one is the one written form for the value (2026-09-28; `proposals/Unknown_Field_Reads_v1.md`). The three forms take exactly one named field, and only a field that its record's own struct declares `@unknown`: the checker finds the struct through the record's declared type, as native does, so a field with the same name on another struct is an ordinary field.
 
 ```hs
 struct Snapshot {
@@ -392,6 +392,18 @@ struct Snapshot {
 
 function read(snapshot: &Snapshot): i32 {
   return snapshot.count ?? 7
+}
+```
+
+A tag read of a field its struct does not declare `@unknown`. Native refuses it too. Message: ``[HS-UNKNOWN-003] function `seen` calls `isKnown`, which reads the tag of an `@unknown` struct field, written `isKnown(record.field)`; `receipt.reason` is a plain field of `Receipt`, not an `@unknown` one …``.
+
+```hs reject
+struct Receipt {
+  reason: i32
+}
+
+function seen(receipt: &Receipt): bool {
+  return isKnown(receipt.reason)
 }
 ```
 
@@ -896,10 +908,13 @@ Inside a function that states a parameter or return type it also refuses, since 
 - `HS-RETURN-002` — a declared return type with a path that returns no value
 - `HS-SCOPE-001` — a declaration that reuses a name still visible from its own or an enclosing block
 
-Reading an `@unknown` struct field (in every function), and `??` (in functions that state a type):
+Reading an `@unknown` struct field (in every `.hs` function, typed or not, and in every `.hsplus` function that states a type, the only ones the `.hsplus` reader checks), and `??` (in functions that state a type):
 
 - `HS-UNKNOWN-001` — the field read as a value, or `load(record.field)` without a fallback
-- `HS-UNKNOWN-002` — a fallback on anything but `load(record.field)`: a bare `record.field ?? d`, or `??` on a plain value
+- `HS-UNKNOWN-002` — a fallback on anything but `load(record.field)` on an `@unknown` field: a bare `record.field ?? d`, `??` on a plain value, or the load form on a plain or missing field
+- `HS-UNKNOWN-003` — `isKnown` or `unknownReason` on anything but one named field its struct declares `@unknown`
+
+A field resolves through its record's declared struct type. When that type cannot be seen (an untyped parameter, a struct from another file), the field's name decides: a name some struct in view declares `@unknown` is held to these rules.
 
 An import from a Holo module, `import { f } from "holo:<name>"` (G21, since 2026-09-29):
 
@@ -909,7 +924,7 @@ An import from a Holo module, `import { f } from "holo:<name>"` (G21, since 2026
 - `HS-HOST-004` — a valid capability call on an engine that has no binding for it yet (UAAL and the Kotlin bridge; native refuses any `holo:` import as a non-relative path)
 - `HS-SCOPE-001` — a function, struct or enum of the file that has the name of a Holo import (every engine resolves an import by name)
 
-These errors carry the line and column of the name, call, declaration or function. `validate_detailed_in_context` runs the same check on one function lifted out of a larger document, given the document's functions and names; the `.hsplus` reader uses it for typed functions.
+These errors carry the line and column of the name, call, declaration, statement or function. `validate_detailed_in_context` runs the same check on one function lifted out of a larger document, given the document's functions, names, namespaces, structs (with their fields and `@unknown` marks) and `holo:` imports; the `.hsplus` reader uses it for typed functions.
 
 Everything else the grammar prints is a sentence with no code. Measured sentences include `Expected identifier`, `Expected LBrace, got Identifier`, `Unexpected identifier: zone`, `Unexpected identifier: pipeline`, `Unexpected identifier: spatial`, and `Unexpected identifier: brain`.
 
@@ -982,7 +997,7 @@ Joseph's review stays reserved for the four protected classes: spend and custody
 Changes made under these gates:
 
 - **2026-09-29, G21 phase 1** ([proposal](../../proposals/Host_Capability_Imports_v1.md)): `import { f } from "holo:<name>"` is checked against the module declarations embedded in the checker (`holo:absorb` first); the codes above; a capability is only called by name, never used as a value; `.hsplus` documents send their holo imports to the checker and each document's imports are checked once. Measured in HoloScript, Hololand and ai-ecosystem: 0 of 236 tracked `.hs` files and 0 of 2,984 tracked `.hsplus` files change verdict; the ten G21 corpus cases recorded as honest gaps flip to refusals. Engines refuse a Holo call by name until phase 2 binds it.
-- **2026-09-28, `@unknown` reads** ([proposal](../../proposals/Unknown_Field_Reads_v1.md)): `isKnown` and `unknownReason` are accepted as tag reads; `load(record.field) ?? fallback` is the one written form for the value; the bare fallback form and `??` on a plain value in typed functions are refused. One tracked file used the bare form (`Routing.logic.hs`) and migrates in the same change with byte-identical Kotlin; the steward example becomes valid. Gate 4 is required before merge and is recorded on the pull request.
+- **2026-09-28, `@unknown` reads** ([proposal](../../proposals/Unknown_Field_Reads_v1.md)): `isKnown` and `unknownReason` are accepted as tag reads; `load(record.field) ?? fallback` is the one written form for the value; the bare fallback form and `??` on a plain value in typed functions are refused. One tracked file used the bare form (`Routing.logic.hs`) and migrates in the same change with byte-identical Kotlin; the steward example becomes valid. After the second review (2026-10-05), the three forms apply only to one named field its record's own struct declares `@unknown` (`HS-UNKNOWN-003` for the tag reads), and typed `.hsplus` functions are checked with their document's structs; no tracked `.hs` or `.hsplus` file changed verdict. Gate 4 is required before merge and is recorded on the pull request.
 - **2026-09-28, G11** ([proposal](../../proposals/HS_Checker_Names_Calls_Returns_v1.md)): inside typed functions, `validate_detailed` refuses unknown names and functions, the wrong argument count, a missing return and a hidden name. Measured on the build: 0 of 68 valid `.hs` files and 0 of 2,474 `.hsplus` files changed verdict. Gate 4, a review by another seat and family, is required before merge and is recorded on the pull request.
 
 Deprecation is announced in a later revision of this spec, with the date, the old form, the replacement, and the version in which the old form will stop parsing. The old form keeps parsing for at least one 0.x patch after that announcement. Removing it passes the same four gates. A banner on an older document is a pointer. It is not, by itself, a removal.

@@ -1125,6 +1125,62 @@ function main(): i32 {
     expect(() => executeHsNativeViaRust(exported)).toThrow();
   }, 600000);
 
+  it('applies the three @unknown forms only to an @unknown field of the record own struct', () => {
+    // Review of PR #444 (claude3): each refused program here was valid at 77939d364 (the tag-read
+    // exemption took any member, and a field was matched by name), while native refused it; the
+    // `Tally` program was refused while native runs it.
+    const snapshot = (body: string) => `struct Snapshot {
+  @unknown count: i32
+}
+
+struct Receipt {
+  reason: i32
+}
+
+struct Tally {
+  count: i32
+}
+
+function read(snapshot: &Snapshot, receipt: &mut Receipt): i32 {
+${body}
+}
+
+function main(): i32 {
+  slot missing: Snapshot = Snapshot(unknown("missing_precondition"))
+  slot receipt: Receipt = Receipt(0)
+  return read(&missing, &mut receipt)
+}
+`;
+    const gate = (argument: string, setup = '') =>
+      `${setup}  if (isKnown(${argument})) {\n    return 1\n  }\n  return 2`;
+    const refusedByBoth: Array<[string, string]> = [
+      [
+        gate('values[snapshot.count]', '  slot values: [i32; 4] = [1, 2, 3, 4]\n'),
+        'HS-UNKNOWN-001',
+      ],
+      [gate('snapshot.count.x'), 'HS-UNKNOWN-001'],
+      [gate('a.count', '  let a: i32 = 5\n'), 'HS-UNKNOWN-003'],
+      [gate('snapshot.a.a.count'), 'HS-UNKNOWN-003'],
+      [gate('receipt.reason'), 'HS-UNKNOWN-003'],
+      [gate('snapshot.count, snapshot.count'), 'HS-UNKNOWN-003'],
+      ['  return load(receipt.reason) ?? 7', 'HS-UNKNOWN-002'],
+      ['  return load(snapshot.nosuch) ?? 7', 'HS-UNKNOWN-002'],
+      ['  return load(snapshot.count, 1) ?? 7', 'HS-UNKNOWN-002'],
+    ];
+    for (const [body, code] of refusedByBoth) {
+      const source = snapshot(body);
+      const verdict = validateHsViaRust(source);
+      expect(verdict.valid, body).toBe(false);
+      expect(verdict.errors[0]?.message, body).toContain(code);
+      expect(() => executeHsNativeViaRust(source), body).toThrow();
+    }
+
+    // A field resolves through its record's own struct: `Tally` declares its own plain `count`.
+    const tally = snapshot('  slot tally: Tally = Tally(4)\n  return load(tally.count) + 1');
+    expect(validateHsViaRust(tally).valid).toBe(true);
+    expect(executeHsNativeViaRust(tally)).toBe(5);
+  }, 600000);
+
   it('executes the canonical three-surface policy identically on native and cognitive VMs', async () => {
     const source = readFileSync(THREE_SURFACE_POLICY_PATH, 'utf8');
 

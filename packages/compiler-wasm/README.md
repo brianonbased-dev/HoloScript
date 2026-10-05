@@ -209,20 +209,34 @@ npm run test
 Two builds are committed: `pkg/` (the web build, the package's default export)
 and `pkg-node/` (the `./node` export, which the MCP server, CLI and LSP load).
 wasm-bindgen emits the same WebAssembly module for both targets, so the two
-hold one WASM file. Each carries a `rebuild-receipt.json` naming its sha256,
-size, toolchain and the commit it was built from.
+hold one WASM file. Each carries a `rebuild-receipt.json` naming its sha256 and
+size, a sha256 of the Rust build inputs it was built from (with each input's
+sha256), the build recipe, the toolchain, and the commit that held those inputs.
 
 `npm run build` validates the committed builds and never rewrites them, so a
 workspace build leaves the tree clean whether or not `wasm-pack` is installed.
 `npm run rebuild` needs `wasm-pack` (on `PATH`, under Cargo's bin directory, or
-provided as `WASM_PACK_BIN`). It refuses while a Rust build input
-(`src/**/*.rs`, `Cargo.toml`, `Cargo.lock`) has uncommitted changes, because a
-receipt names the commit its build came from: commit the Rust change first,
-then rebuild and commit both builds. `scripts/holo-ci/check-compiler-wasm-drift.mjs`
-(run by the pre-commit spec-corpus gate and before publishing) fails when
-either build is older than the Rust source, when a receipt does not match its
-WASM or names a commit whose Rust source differs from the current one, or when
-the two builds hold different WASM.
+provided as `WASM_PACK_BIN`). It refuses while a Rust build input has
+uncommitted changes, because a receipt hashes the inputs HEAD holds: commit the
+Rust change first, then rebuild and commit both builds. The build inputs are the
+files cargo reads: `src/**/*.rs`, this crate's `Cargo.toml`, the workspace
+`Cargo.toml` and `Cargo.lock` at the repository root (cargo never reads this
+crate's own `Cargo.lock`), any `.cargo/config(.toml)` or `rust-toolchain(.toml)`
+from here up to the root, and every file the build code embeds with `include!`,
+`include_str!` or `include_bytes!` (code under `#[cfg(test)]` excluded).
+`rebuild` maps the cargo home, the rustup home and the workspace root to fixed
+names (`--remap-path-prefix`), so the WASM does not depend on where it is built,
+and it builds twice, the second time in a fresh target directory, writing the
+receipts only when both builds give the same WASM.
+
+`scripts/holo-ci/check-compiler-wasm-drift.mjs` (run by the pre-commit
+spec-corpus gate and before publishing) recomputes the inputs hash from what git
+holds and fails, naming the files that changed, when a receipt was built from
+other inputs. It also fails when a receipt does not match its WASM, records
+another build recipe or no matching repeat build; when a build is missing its
+JavaScript or its WASM, does not load, or misjudges two small programs; and when
+the two builds hold different WASM. The commit a receipt names is information
+only, so a squash or rebase merge keeps the builds green.
 
 > **Note**: `npm run test` runs `cargo test || echo '...skipping'` — a friendly
 > no-op when cargo isn't installed, so `pnpm test` at the repo root doesn't

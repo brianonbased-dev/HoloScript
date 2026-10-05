@@ -30,8 +30,19 @@ interface WasmValidate {
 export interface HsDocumentContext {
   /** Every `function` in the document. `arity` is left out when it is not a plain count. */
   functions: Array<{ name: string; arity?: number }>;
-  /** Structs, enums and names imported from files. */
+  /** Structs and names imported from files: they may be called. */
   names: string[];
+  /**
+   * Enums and modules: read through their members (`Route.A`, `GameState.addScore(p)`), never
+   * called. A checker built before this field ignores it.
+   */
+  namespaces: string[];
+  /**
+   * Structs with their fields, so the checker resolves `record.field` through the record's struct
+   * and holds a lifted function to the `@unknown` read rule exactly as a whole `.hs` file
+   * (`HS-UNKNOWN-001` to `003`). A checker built before this field ignores it.
+   */
+  structs: HsContextStruct[];
   /**
    * Imports whose source has a scheme (`holo:absorb`): the checker resolves them against its
    * embedded Holo modules instead of taking the names on trust (G21). An older checker, which
@@ -48,6 +59,12 @@ export interface HsDocumentImport {
   column?: number;
   /** `named` is `{ a, b as c } from "..."`; no other form imports a Holo module. */
   form: 'named' | 'other';
+}
+
+/** One struct of the document, as the checker's `@unknown` read rule reads it. */
+export interface HsContextStruct {
+  name: string;
+  fields: Array<{ name: string; type?: string; unknown?: true }>;
 }
 
 /** The fields of a `.hsplus` token that {@link collectHsDocumentContext} reads. */
@@ -215,15 +232,121 @@ function importedNames(
 }
 
 /**
- * Collect the document's functions (with their parameter counts), structs, enums and imported
- * names from its tokens. Declarations anywhere in the document count, nested ones included. A
- * function is listed without an arity when its count is not plain (see `parameterCount`) or it
- * is declared twice with different counts.
+ * `[@unknown] name[?]:` at `list[at]`, the head of one struct field: its name, whether it is
+ * marked `@unknown`, and where its type starts. A newline may sit between a modifier and the name,
+ * as the struct reader allows.
+ */
+function structFieldHead(
+  list: ReadonlyArray<HsContextToken>,
+  at: number
+): { name: string; unknown: boolean; typeStart: number } | undefined {
+  let j = at;
+  let unknown = false;
+  while (list[j]?.type === 'AT' && isName(list[j + 1])) {
+    if (list[j + 1].value === 'unknown') unknown = true;
+    j += 2;
+    while (list[j]?.type === 'NEWLINE') j++;
+  }
+  const name = list[j];
+  if (!isName(name)) return undefined;
+  j++;
+  if (list[j]?.type === 'QUESTION') j++;
+  if (list[j]?.type !== 'COLON') return undefined;
+  return { name: name.value, unknown, typeStart: j + 1 };
+}
+
+/**
+ * A field's type as the checker reads it. The `.hsplus` lexer drops a single `&`, so a lifetime or
+ * `mut` at the start of the type is a reference whose `&` was dropped; it is written back. Any
+ * other type is its token text, which the checker uses only to tell a struct name from the rest.
+ */
+function fieldTypeText(tokens: ReadonlyArray<HsContextToken>): string | undefined {
+  let k = 0;
+  const lifetime = tokens[k]?.type === 'LIFETIME' ? tokens[k++].value : undefined;
+  const mutable = tokens[k]?.value === 'mut' && tokens.length > k + 1;
+  if (mutable) k++;
+  const rest = tokens
+    .slice(k)
+    .map((token) => token.value)
+    .join(' ');
+  if (rest.length === 0) return undefined;
+  if (lifetime === undefined && !mutable) return rest;
+  return `&${lifetime === undefined ? '' : `'${lifetime} `}${mutable ? 'mut ' : ''}${rest}`;
+}
+
+/**
+ * The fields of the struct body that opens at `list[open]` (an `LBRACE`). Fields end at a comma,
+ * a newline, the next field head (a `;` the lexer drops), or the closing brace; a default after
+ * `=` is not part of the type. Returns `undefined` when the body does not close.
+ */
+function structFields(
+  list: ReadonlyArray<HsContextToken>,
+  open: number
+): HsContextStruct['fields'] | undefined {
+  const fields: HsContextStruct['fields'] = [];
+  let current:
+    { name: string; unknown: boolean; type: HsContextToken[]; initializer: boolean } | undefined;
+  const finish = (): void => {
+    if (!current) return;
+    const type = fieldTypeText(current.type);
+    fields.push({
+      name: current.name,
+      ...(type === undefined ? {} : { type }),
+      ...(current.unknown ? { unknown: true as const } : {}),
+    });
+    current = undefined;
+  };
+  let depth = 0;
+  // `<` nests only inside a type (`Map<string, i32>`); in a default it is a comparison.
+  let angle = 0;
+  for (let j = open + 1; j < list.length; j++) {
+    const token = list[j];
+    if (depth === 0 && token.type === 'RBRACE') {
+      finish();
+      return fields;
+    }
+    if (depth === 0 && angle === 0) {
+      if (token.type === 'COMMA' || token.type === 'NEWLINE') {
+        finish();
+        continue;
+      }
+      const head = structFieldHead(list, j);
+      if (head) {
+        finish();
+        current = { name: head.name, unknown: head.unknown, type: [], initializer: false };
+        j = head.typeStart - 1;
+        continue;
+      }
+      if (token.type === 'EQUALS' && current) {
+        current.initializer = true;
+        continue;
+      }
+    }
+    if (token.type === 'LBRACE' || token.type === 'LBRACKET' || token.type === 'LPAREN') depth++;
+    if (token.type === 'RBRACE' || token.type === 'RBRACKET' || token.type === 'RPAREN') depth--;
+    if (current && !current.initializer) {
+      if (token.type === 'LESS_THAN') angle++;
+      if (token.type === 'GREATER_THAN' && angle > 0) angle--;
+      current.type.push(token);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Collect the document's functions (with their parameter counts), structs (with their fields),
+ * imported names, enums and modules from its tokens. Declarations anywhere in the document count,
+ * nested ones included. A function is listed without an arity when its count is not plain (see
+ * `parameterCount`) or it is declared twice with different counts; a struct declared twice with
+ * different fields is left out of `structs`, so the checker reads its fields by name only.
  */
 export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>): HsDocumentContext {
   const list = tokens.filter((token) => !SKIPPED.has(token.type));
   const arities = new Map<string, number | undefined>();
   const names = new Set<string>();
+  const namespaces = new Set<string>();
+  /** Struct name -> its fields, or `null` once two declarations disagree. */
+  const structs = new Map<string, HsContextStruct['fields'] | null>();
   const imports: HsDocumentImport[] = [];
   const nextIndex = (index: number): number => {
     let j = index + 1;
@@ -241,9 +364,41 @@ export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>):
     if (previous && (previous.type === 'DOT' || previous.type === 'OPTIONAL_DOT')) continue;
     if (previous?.type === 'AT' && token.value !== 'import') continue;
 
-    if (token.value === 'struct' || token.value === 'enum') {
-      const nameToken = list[nextIndex(i)];
-      if (isName(nameToken)) names.add(nameToken.value);
+    if (token.value === 'struct') {
+      const at = nextIndex(i);
+      const nameToken = list[at];
+      if (isName(nameToken)) {
+        names.add(nameToken.value);
+        // `struct Name {`, `struct Name(params) {`: the reader tolerates a parameter list.
+        let brace = nextIndex(at);
+        if (list[brace]?.type === 'LPAREN') {
+          let open = 0;
+          for (; brace < list.length; brace++) {
+            if (list[brace].type === 'LPAREN') open++;
+            if (list[brace].type === 'RPAREN' && --open === 0) break;
+          }
+          brace = nextIndex(brace);
+        }
+        const fields = list[brace]?.type === 'LBRACE' ? structFields(list, brace) : undefined;
+        if (fields) {
+          const earlier = structs.get(nameToken.value);
+          structs.set(
+            nameToken.value,
+            earlier === undefined || JSON.stringify(earlier) === JSON.stringify(fields)
+              ? fields
+              : null
+          );
+        }
+      }
+      continue;
+    }
+    if (token.value === 'enum' || token.value === 'module') {
+      // `module` declares only as `module Name {`; elsewhere it is an ordinary word.
+      const at = nextIndex(i);
+      const nameToken = list[at];
+      if (isName(nameToken) && (token.value === 'enum' || list[nextIndex(at)]?.type === 'LBRACE')) {
+        namespaces.add(nameToken.value);
+      }
       continue;
     }
     if (token.value === 'import') {
@@ -275,6 +430,10 @@ export function collectHsDocumentContext(tokens: ReadonlyArray<HsContextToken>):
       arity === undefined ? { name } : { name, arity }
     ),
     names: [...names],
+    namespaces: [...namespaces],
+    structs: [...structs]
+      .filter((entry): entry is [string, HsContextStruct['fields']] => entry[1] !== null)
+      .map(([name, fields]) => ({ name, fields })),
     ...(imports.length > 0 ? { imports } : {}),
   };
 }
