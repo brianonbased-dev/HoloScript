@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-08-04T19:33:19Z",
+  "generatedAt": "2026-10-05T04:08:12Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "580d91e32dfaff6162a51df20dfd79da737165e2",
+  "sourceCommit": "ee3b5c634e34f6bad5236a3baf972ad530519194",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "node scripts/build-wasm.mjs (wasm-pack build --target web --out-dir pkg --release)"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 526813,
-    "wasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
-    "previousWasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
-    "repeatBuildSha256Matched": null,
-    "note": "Regenerated from the merged compiler-artifact-refresh stack on current canon (merge of holoscript-native-compiler-artifact-refresh-v1-20260803 onto 7b00ee93d). Fresh release build with the receipted toolchain; digest pinned from the produced artifact."
+    "wasmBytes": 545447,
+    "wasmSha256": "a87f2ec34570d80662041c5481e3e21ac6c64a6e656139dfd9b1007649fd8c3f",
+    "previousWasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
+    "repeatBuildSha256Matched": true,
+    "note": "Rebuilt from the round-2 review fix of PR #428 (G10): every UAAL call leaves one value, a re-entrant call saves only slots read after it, aggregate slots end with their block. pkg/ (--target web) and pkg-node/ (--target nodejs) hold byte-identical WASM, and a third --target nodejs build into a scratch directory, with the crate recompiled after cargo clean of its wasm32 release artifacts, gave the same digest. Built with rustc 1.91.0, older than the 1.98.1 of the artifact on main, so about 46 KB of the growth over main is the toolchain. No version bump. The previous pkg/ was built on 2026-08-04 from 580d91e32 and still gave fib(10) = -80."
   }
 }
