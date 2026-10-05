@@ -1536,7 +1536,7 @@ logic {
     expect(logicFunctionNames(result.ast).sort()).toEqual(['inner', 'outer']);
   });
 
-  it('collects functions with their argument counts, and structs, enums and imports by name', () => {
+  it('collects functions with their argument counts, structs and imports by name, and enums and modules as namespaces', () => {
     const t = (type: string, value = '') => ({ type, value });
     const id = (value: string) => t('IDENTIFIER', value);
     const context = collectHsDocumentContext([
@@ -1561,6 +1561,20 @@ logic {
       id('Route'),
       t('LBRACE'),
       t('RBRACE'),
+      // module GameState { }   declares; module: other   and   import module from "./m"   do not
+      t('MODULE', 'module'),
+      id('GameState'),
+      t('LBRACE'),
+      t('RBRACE'),
+      id('module'),
+      t('COLON'),
+      id('other'),
+      t('NEWLINE'),
+      id('import'),
+      t('MODULE', 'module'),
+      id('from'),
+      t('STRING', './m'),
+      t('NEWLINE'),
       // function two(x: Map<string, i32>, y: [i32; 4]) { }
       id('function'),
       id('two'),
@@ -1615,7 +1629,46 @@ logic {
       { name: 'twice' },
       { name: 'none', arity: 0 },
     ]);
-    expect(context.names.sort()).toEqual(['Packet', 'Route', 'a', 'c']);
+    expect(context.names.sort()).toEqual(['Packet', 'a', 'c', 'module']);
+    expect(context.namespaces.sort()).toEqual(['GameState', 'Route']);
+  });
+
+  it('reads a module or enum through its members and refuses a call to it (review finding)', () => {
+    const hsCodes = (source: string) =>
+      parse(source)
+        .errors.map((error) => String(error.code))
+        .filter((code) => code.startsWith('HS-'));
+    const withModule = (call: string) => `composition "C" {
+  module GameState {
+    export function addScore(points) {
+      return points
+    }
+  }
+  logic {
+    function award(p: i32): i32 {
+      ${call}
+      return p
+    }
+  }
+}`;
+    expect(hsCodes(withModule('GameState.addScore(p)'))).toEqual([]);
+    expect(hsCodes(withModule('GameState(p)'))).toEqual(['HS-NAME-002']);
+
+    const withEnum = (call: string) =>
+      `enum Route { EnterWorld, Deny }\n\nfunction pick(p: i32): i32 {\n  ${call}\n  return p\n}`;
+    expect(hsCodes(withEnum('let r = Route.Deny'))).toEqual([]);
+    expect(hsCodes(withEnum('let r = Route(p)'))).toEqual(['HS-NAME-002']);
+  });
+
+  it('points at the offending name in UTF-16 columns, past emoji (review finding)', () => {
+    const line = '  let s: string = "😀😀" let t: i32 = zz';
+    const result = parse(`function f(): i32 {\n${line}\n  return 1\n}`);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      code: 'HS-NAME-001',
+      line: 2,
+      column: line.indexOf('zz') + 1,
+    });
   });
   it('resolves names the .hsplus lexer gives their own token type (review finding)', () => {
     // `transition`, `assert`, `match`, `state`, `initial`, `on_error` and `none` are keywords to
