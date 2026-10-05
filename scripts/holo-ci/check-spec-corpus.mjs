@@ -57,185 +57,207 @@ const selfTest = process.argv.includes('--self-test');
 const skipDrift = process.argv.includes('--skip-drift');
 const sha256 = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
 
+/** Thrown by the stop helpers below; the bottom of the file turns it into process.exitCode. */
+class StopRun extends Error {
+  constructor(code) {
+    super(`stop with exit code ${code}`);
+    this.code = code;
+  }
+}
+
 function fail(message) {
   console.error(`[spec-corpus] FAIL — ${message}`);
-  process.exit(1);
+  throw new StopRun(1);
 }
 
 /** Misconfiguration (missing files, bad JSON) exits 2 — distinct from a conformance failure (1). */
 function misconfigured(message) {
   console.error(`[spec-corpus] MISCONFIGURED — ${message}`);
-  process.exit(2);
+  throw new StopRun(2);
 }
 
-if (!fs.existsSync(corpusPath)) misconfigured(`corpus not found at ${corpusPath}`);
-if (!fs.existsSync(artifactJs) || !fs.existsSync(artifactWasm)) {
-  misconfigured(
-    'grammar-authority artifact (pkg-node) not found — build it before running the executable spec'
-  );
-}
-
-// Prerequisite: never verify normative verdicts against a STALE authority. Same chain the
-// grammar-authority gate uses; --skip-drift exists for the self-test path only.
-if (!skipDrift) {
-  const drift = spawnSync(process.execPath, [path.join(here, 'check-compiler-wasm-drift.mjs')], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    windowsHide: true,
-  });
-  if (drift.status !== 0) {
-    console.error(
-      '[spec-corpus] authority freshness prerequisite failed (check-compiler-wasm-drift):'
-    );
-    console.error(String(drift.stderr || drift.stdout || '').trim());
-    process.exit(1);
-  }
-}
-
-// --self-test: prove this gate can go RED (the W.783 invariant every golden gate carries). Runs a
-// deliberately wrong case through the same verdict logic; a gate that cannot fail is decoration.
-if (selfTest) {
-  const requireForSelfTest = createRequire(import.meta.url);
-  const wasmForSelfTest = requireForSelfTest(artifactJs);
-  const wrongCase = {
-    id: 'self-test-000',
-    expect: { valid: true }, // deliberately wrong: this source is invalid (unguarded @unknown read)
-    source: '@trait S {\n  @unknown\n  reading: Temperature\n  display: reading\n}',
-  };
-  const result = JSON.parse(wasmForSelfTest.validate_detailed(wrongCase.source));
-  if (result.valid === wrongCase.expect.valid) {
+// Exit codes are set, never forced: main() returns one, a stop helper throws one, and the
+// process ends on its own. On Windows with Node 24.15, process.exit() after the wasm has run
+// intermittently ended the process with status 127 (a libuv assertion) instead of the real
+// code (claude3, review of HoloScript #469).
+async function main() {
+  if (!fs.existsSync(corpusPath)) misconfigured(`corpus not found at ${corpusPath}`);
+  if (!fs.existsSync(artifactJs) || !fs.existsSync(artifactWasm)) {
     misconfigured(
-      'self-test could not construct a failing case — the authority accepted a known-invalid source'
+      'grammar-authority artifact (pkg-node) not found — build it before running the executable spec'
     );
   }
-  console.log(
-    '[spec-corpus] self-test OK — a deliberately wrong verdict IS detected as drift (the gate can go red)'
-  );
-  process.exit(0);
-}
 
-const requireCjs = createRequire(import.meta.url);
-const wasm = requireCjs(artifactJs);
-const corpusBytes = fs.readFileSync(corpusPath);
-const corpusSha = sha256(corpusBytes);
-const artifactSha = sha256(fs.readFileSync(artifactWasm));
-
-const cases = corpusBytes
-  .toString('utf8')
-  .trim()
-  .split('\n')
-  .map((line, index) => {
-    try {
-      return JSON.parse(line);
-    } catch (error) {
-      fail(`corpus line ${index + 1} is not valid JSON: ${error.message}`);
-      return null;
-    }
-  });
-
-const seen = new Set();
-const drifts = [];
-const sectionCounts = {};
-for (const testCase of cases) {
-  if (seen.has(testCase.id)) fail(`duplicate case id: ${testCase.id}`);
-  seen.add(testCase.id);
-  sectionCounts[testCase.section] = (sectionCounts[testCase.section] ?? 0) + 1;
-
-  const result = JSON.parse(wasm.validate_detailed(testCase.source));
-  const verdictOk = result.valid === testCase.expect.valid;
-  const diagnosticOk =
-    !testCase.expect.diagnostic_includes ||
-    (result.errors ?? []).some((error) =>
-      String(error.message).includes(testCase.expect.diagnostic_includes)
-    );
-
-  if (!verdictOk || !diagnosticOk) {
-    drifts.push({
-      id: testCase.id,
-      title: testCase.title,
-      expected: testCase.expect,
-      got: {
-        valid: result.valid,
-        errors: (result.errors ?? []).map((e) => String(e.message).slice(0, 120)),
-      },
+  // Prerequisite: never verify normative verdicts against a STALE authority. Same chain the
+  // grammar-authority gate uses; --skip-drift exists for the self-test path only.
+  if (!skipDrift) {
+    const drift = spawnSync(process.execPath, [path.join(here, 'check-compiler-wasm-drift.mjs')], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      windowsHide: true,
     });
+    if (drift.status !== 0) {
+      console.error(
+        '[spec-corpus] authority freshness prerequisite failed (check-compiler-wasm-drift):'
+      );
+      console.error(String(drift.stderr || drift.stdout || '').trim());
+      return 1;
+    }
   }
-}
 
-console.log(
-  `[spec-corpus] ${cases.length - drifts.length}/${cases.length} normative cases hold against authority wasm ${artifactSha.slice(0, 12)}…`
-);
+  // --self-test: prove this gate can go RED (the W.783 invariant every golden gate carries). Runs a
+  // deliberately wrong case through the same verdict logic; a gate that cannot fail is decoration.
+  if (selfTest) {
+    const requireForSelfTest = createRequire(import.meta.url);
+    const wasmForSelfTest = requireForSelfTest(artifactJs);
+    const wrongCase = {
+      id: 'self-test-000',
+      expect: { valid: true }, // deliberately wrong: this source is invalid (unguarded @unknown read)
+      source: '@trait S {\n  @unknown\n  reading: Temperature\n  display: reading\n}',
+    };
+    const result = JSON.parse(wasmForSelfTest.validate_detailed(wrongCase.source));
+    if (result.valid === wrongCase.expect.valid) {
+      misconfigured(
+        'self-test could not construct a failing case — the authority accepted a known-invalid source'
+      );
+    }
+    console.log(
+      '[spec-corpus] self-test OK — a deliberately wrong verdict IS detected as drift (the gate can go red)'
+    );
+    return 0;
+  }
 
-if (drifts.length > 0) {
-  console.error(
-    `[spec-corpus] ${drifts.length} case(s) DRIFTED — the language no longer means what the spec says:`
+  const requireCjs = createRequire(import.meta.url);
+  const wasm = requireCjs(artifactJs);
+  const corpusBytes = fs.readFileSync(corpusPath);
+  const corpusSha = sha256(corpusBytes);
+  const artifactSha = sha256(fs.readFileSync(artifactWasm));
+
+  const cases = corpusBytes
+    .toString('utf8')
+    .trim()
+    .split('\n')
+    .map((line, index) => {
+      try {
+        return JSON.parse(line);
+      } catch (error) {
+        fail(`corpus line ${index + 1} is not valid JSON: ${error.message}`);
+        return null;
+      }
+    });
+
+  const seen = new Set();
+  const drifts = [];
+  const sectionCounts = {};
+  for (const testCase of cases) {
+    if (seen.has(testCase.id)) fail(`duplicate case id: ${testCase.id}`);
+    seen.add(testCase.id);
+    sectionCounts[testCase.section] = (sectionCounts[testCase.section] ?? 0) + 1;
+
+    const result = JSON.parse(wasm.validate_detailed(testCase.source));
+    const verdictOk = result.valid === testCase.expect.valid;
+    const diagnosticOk =
+      !testCase.expect.diagnostic_includes ||
+      (result.errors ?? []).some((error) =>
+        String(error.message).includes(testCase.expect.diagnostic_includes)
+      );
+
+    if (!verdictOk || !diagnosticOk) {
+      drifts.push({
+        id: testCase.id,
+        title: testCase.title,
+        expected: testCase.expect,
+        got: {
+          valid: result.valid,
+          errors: (result.errors ?? []).map((e) => String(e.message).slice(0, 120)),
+        },
+      });
+    }
+  }
+
+  console.log(
+    `[spec-corpus] ${cases.length - drifts.length}/${cases.length} normative cases hold against authority wasm ${artifactSha.slice(0, 12)}…`
   );
-  for (const drift of drifts) {
-    console.error(`  ✗ ${drift.id} — ${drift.title}`);
+
+  if (drifts.length > 0) {
     console.error(
-      `    expected ${JSON.stringify(drift.expected)} got ${JSON.stringify(drift.got)}`
+      `[spec-corpus] ${drifts.length} case(s) DRIFTED — the language no longer means what the spec says:`
+    );
+    for (const drift of drifts) {
+      console.error(`  ✗ ${drift.id} — ${drift.title}`);
+      console.error(
+        `    expected ${JSON.stringify(drift.expected)} got ${JSON.stringify(drift.got)}`
+      );
+    }
+    console.error(
+      '[spec-corpus] Either the grammar change is wrong, or the SPEC changed — if intended, update the'
+    );
+    console.error(
+      '[spec-corpus] corpus case in the same commit so the meaning change is reviewable, then re-pin'
+    );
+    console.error(
+      '[spec-corpus] with --update-manifest. Never let verdict drift ride along silently.'
+    );
+    return 1;
+  }
+
+  if (updateManifest) {
+    const manifest = {
+      schema: 'holoscript.hsplus-spec-corpus.manifest.v0',
+      corpus: path.relative(repoRoot, corpusPath).split(path.sep).join('/'),
+      corpus_sha256: `sha256:${corpusSha}`,
+      cases: cases.length,
+      sections: sectionCounts,
+      verifier_of_record:
+        'packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)',
+      authority: {
+        artifact: 'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm',
+        wasmSha256: `sha256:${artifactSha}`,
+        rebuild_receipt: 'packages/compiler-wasm/pkg-node/rebuild-receipt.json',
+        note: 'The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved.',
+      },
+    };
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    console.log(
+      `[spec-corpus] manifest pinned: ${cases.length} cases, corpus sha256:${corpusSha.slice(0, 12)}…`
+    );
+    return 0;
+  }
+
+  if (!fs.existsSync(manifestPath)) {
+    const message =
+      'manifest missing — run with --update-manifest after a verified run to pin the release';
+    if (strict) fail(message);
+    console.warn(`[spec-corpus] WARN — ${message}`);
+    return 0;
+  }
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const corpusPinOk = manifest.corpus_sha256 === `sha256:${corpusSha}`;
+  const authorityPinOk = manifest.authority?.wasmSha256 === `sha256:${artifactSha}`;
+  if (!corpusPinOk) {
+    const message =
+      'corpus bytes do not match the manifest pin — corpus edited without re-pinning (--update-manifest)';
+    if (strict) fail(message);
+    console.warn(`[spec-corpus] WARN — ${message}`);
+  }
+  if (!authorityPinOk) {
+    const message =
+      'authority artifact differs from the manifest pin; verdicts all hold, so the spec is stable under this build — re-pin with --update-manifest to record it';
+    if (strict) fail(message);
+    console.warn(`[spec-corpus] WARN — ${message}`);
+  }
+  if (corpusPinOk && authorityPinOk) {
+    console.log(
+      '[spec-corpus] OK — corpus and authority pins verified. The spec is executable, and it passed. (I2)'
     );
   }
-  console.error(
-    '[spec-corpus] Either the grammar change is wrong, or the SPEC changed — if intended, update the'
-  );
-  console.error(
-    '[spec-corpus] corpus case in the same commit so the meaning change is reviewable, then re-pin'
-  );
-  console.error(
-    '[spec-corpus] with --update-manifest. Never let verdict drift ride along silently.'
-  );
-  process.exit(1);
+  return 0;
 }
 
-if (updateManifest) {
-  const manifest = {
-    schema: 'holoscript.hsplus-spec-corpus.manifest.v0',
-    corpus: path.relative(repoRoot, corpusPath).split(path.sep).join('/'),
-    corpus_sha256: `sha256:${corpusSha}`,
-    cases: cases.length,
-    sections: sectionCounts,
-    verifier_of_record:
-      'packages/compiler-wasm pkg-node validate_detailed (committed ready-to-run WASM authority artifact)',
-    authority: {
-      artifact: 'packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm',
-      wasmSha256: `sha256:${artifactSha}`,
-      rebuild_receipt: 'packages/compiler-wasm/pkg-node/rebuild-receipt.json',
-      note: 'The authority build every verdict in this corpus release was verified against. If the artifact hash no longer matches, rerun this script: all-verdicts-hold means the spec is stable under the new build (re-pin with --update-manifest); any drift means the language moved.',
-    },
-  };
-  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log(
-    `[spec-corpus] manifest pinned: ${cases.length} cases, corpus sha256:${corpusSha.slice(0, 12)}…`
-  );
-  process.exit(0);
-}
-
-if (!fs.existsSync(manifestPath)) {
-  const message =
-    'manifest missing — run with --update-manifest after a verified run to pin the release';
-  if (strict) fail(message);
-  console.warn(`[spec-corpus] WARN — ${message}`);
-  process.exit(0);
-}
-
-const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-const corpusPinOk = manifest.corpus_sha256 === `sha256:${corpusSha}`;
-const authorityPinOk = manifest.authority?.wasmSha256 === `sha256:${artifactSha}`;
-if (!corpusPinOk) {
-  const message =
-    'corpus bytes do not match the manifest pin — corpus edited without re-pinning (--update-manifest)';
-  if (strict) fail(message);
-  console.warn(`[spec-corpus] WARN — ${message}`);
-}
-if (!authorityPinOk) {
-  const message =
-    'authority artifact differs from the manifest pin; verdicts all hold, so the spec is stable under this build — re-pin with --update-manifest to record it';
-  if (strict) fail(message);
-  console.warn(`[spec-corpus] WARN — ${message}`);
-}
-if (corpusPinOk && authorityPinOk) {
-  console.log(
-    '[spec-corpus] OK — corpus and authority pins verified. The spec is executable, and it passed. (I2)'
-  );
+try {
+  process.exitCode = await main();
+} catch (error) {
+  if (!(error instanceof StopRun)) throw error;
+  process.exitCode = error.code;
 }

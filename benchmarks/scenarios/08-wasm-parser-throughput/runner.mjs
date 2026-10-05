@@ -191,5 +191,7 @@ async function main() {
 
 main().catch((err) => {
   console.error('[08-wasm-parser-throughput] fatal:', err);
-  process.exit(2);
+  // Set, not forced: process.exit() after the wasm has run intermittently ended with status 127
+  // on Windows with Node 24.15 instead of this code (claude3, review of HoloScript #469).
+  process.exitCode = 2;
 });

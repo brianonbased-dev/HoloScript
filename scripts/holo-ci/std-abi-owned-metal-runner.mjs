@@ -39,244 +39,266 @@ function sha256(buffer) {
   return `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
 }
 
+/** Thrown by the stop helpers below; the bottom of the file turns it into process.exitCode. */
+class StopRun extends Error {
+  constructor(code) {
+    super(`stop with exit code ${code}`);
+    this.code = code;
+  }
+}
+
 function fail(message) {
   console.error(`[std-abi-owned-metal] FAIL: ${message}`);
-  process.exit(1);
+  throw new StopRun(1);
 }
 
-// --- Verify bundle pins ------------------------------------------------------
+// Exit codes are set, never forced: main() returns one, a stop helper throws one, and the
+// process ends on its own. On Windows with Node 24.15, process.exit() after the wasm has run
+// intermittently ended the process with status 127 (a libuv assertion) instead of the real
+// code (claude3, review of HoloScript #469).
+async function main() {
+  // --- Verify bundle pins ------------------------------------------------------
 
-const manifest = JSON.parse(readFileSync(join(bundleDir, 'bundle-manifest.json'), 'utf8'));
-if (!/^[0-9a-f]{40}$/.test(manifest.sourceCommit || '')) {
-  fail('bundle manifest must pin a full 40-character HoloScript source commit');
-}
-if (!manifest.files?.['std-abi-owned-metal-runner.mjs']?.sha256) {
-  fail('bundle manifest must pin the owned-metal runner itself');
-}
-for (const [name, pin] of Object.entries(manifest.files)) {
-  const actual = sha256(readFileSync(join(bundleDir, ...name.split('/'))));
-  if (actual !== pin.sha256) {
-    fail(`bundle pin mismatch for ${name}: pinned ${pin.sha256}, actual ${actual}`);
+  const manifest = JSON.parse(readFileSync(join(bundleDir, 'bundle-manifest.json'), 'utf8'));
+  if (!/^[0-9a-f]{40}$/.test(manifest.sourceCommit || '')) {
+    fail('bundle manifest must pin a full 40-character HoloScript source commit');
   }
-}
-
-const traitSource = readFileSync(join(bundleDir, 'std-abi-conformance.trait.hsplus'), 'utf8');
-const vectors = readFileSync(join(bundleDir, 'std-abi-vectors.v0.jsonl'), 'utf8')
-  .split('\n')
-  .filter((line) => line.trim().length > 0)
-  .map((line) => JSON.parse(line));
-
-const wasm = require(join(bundleDir, 'pkg-node', 'holoscript_wasm.js'));
-const evaluatorExport =
-  typeof wasm.evaluate_trait_handler_v6 === 'function'
-    ? 'evaluate_trait_handler_v6'
-    : typeof wasm.evaluate_trait_handler_v4 === 'function'
-      ? 'evaluate_trait_handler_v4'
-      : typeof wasm.evaluate_trait_handler_v3 === 'function'
-        ? 'evaluate_trait_handler_v3'
-        : typeof wasm.evaluate_trait_handler_v2 === 'function'
-          ? 'evaluate_trait_handler_v2'
-          : 'evaluate_trait_handler';
-if (typeof wasm[evaluatorExport] !== 'function') {
-  fail('pkg-node artifact has no trait-handler evaluator export');
-}
-const packagedEvaluatorExport =
-  typeof wasm.evaluate_trait_handler_v6 === 'function'
-    ? 'evaluate_trait_handler_v6'
-    : typeof wasm.evaluate_trait_handler_v5 === 'function'
-      ? 'evaluate_trait_handler_v5'
-      : null;
-let hostBindings = null;
-if (
-  evaluatorExport === 'evaluate_trait_handler_v6' ||
-  evaluatorExport === 'evaluate_trait_handler_v4' ||
-  packagedEvaluatorExport
-) {
-  const { createStdHostBindings } = await import(
-    pathToFileURL(join(bundleDir, 'std-host-binding.mjs')).href
-  );
-  hostBindings = createStdHostBindings();
-}
-const packagedSources = {};
-if (packagedEvaluatorExport && manifest.packagedSources) {
-  for (const [trait, bundleName] of Object.entries(manifest.packagedSources)) {
-    packagedSources[trait] = readFileSync(join(bundleDir, bundleName), 'utf8');
+  if (!manifest.files?.['std-abi-owned-metal-runner.mjs']?.sha256) {
+    fail('bundle manifest must pin the owned-metal runner itself');
   }
-}
-const packagedReady = Object.keys(packagedSources).length > 0;
-const traitName = manifest.conformanceTrait || 'std_math_conformance';
-
-// --- Comparison --------------------------------------------------------------
-
-function compareValues(actual, expected, tolerance, path, mismatches) {
-  if (typeof actual !== typeof expected) {
-    mismatches.push(`${path}: type ${typeof actual} vs ${typeof expected}`);
-    return;
+  for (const [name, pin] of Object.entries(manifest.files)) {
+    const actual = sha256(readFileSync(join(bundleDir, ...name.split('/'))));
+    if (actual !== pin.sha256) {
+      fail(`bundle pin mismatch for ${name}: pinned ${pin.sha256}, actual ${actual}`);
+    }
   }
-  if (expected !== null && typeof expected === 'object') {
-    const actualKeys = Object.keys(actual).sort();
-    const expectedKeys = Object.keys(expected).sort();
-    if (actualKeys.join(',') !== expectedKeys.join(',')) {
-      mismatches.push(`${path}: keys [${actualKeys}] vs [${expectedKeys}]`);
+
+  const traitSource = readFileSync(join(bundleDir, 'std-abi-conformance.trait.hsplus'), 'utf8');
+  const vectors = readFileSync(join(bundleDir, 'std-abi-vectors.v0.jsonl'), 'utf8')
+    .split('\n')
+    .filter((line) => line.trim().length > 0)
+    .map((line) => JSON.parse(line));
+
+  const wasm = require(join(bundleDir, 'pkg-node', 'holoscript_wasm.js'));
+  const evaluatorExport =
+    typeof wasm.evaluate_trait_handler_v6 === 'function'
+      ? 'evaluate_trait_handler_v6'
+      : typeof wasm.evaluate_trait_handler_v4 === 'function'
+        ? 'evaluate_trait_handler_v4'
+        : typeof wasm.evaluate_trait_handler_v3 === 'function'
+          ? 'evaluate_trait_handler_v3'
+          : typeof wasm.evaluate_trait_handler_v2 === 'function'
+            ? 'evaluate_trait_handler_v2'
+            : 'evaluate_trait_handler';
+  if (typeof wasm[evaluatorExport] !== 'function') {
+    fail('pkg-node artifact has no trait-handler evaluator export');
+  }
+  const packagedEvaluatorExport =
+    typeof wasm.evaluate_trait_handler_v6 === 'function'
+      ? 'evaluate_trait_handler_v6'
+      : typeof wasm.evaluate_trait_handler_v5 === 'function'
+        ? 'evaluate_trait_handler_v5'
+        : null;
+  let hostBindings = null;
+  if (
+    evaluatorExport === 'evaluate_trait_handler_v6' ||
+    evaluatorExport === 'evaluate_trait_handler_v4' ||
+    packagedEvaluatorExport
+  ) {
+    const { createStdHostBindings } = await import(
+      pathToFileURL(join(bundleDir, 'std-host-binding.mjs')).href
+    );
+    hostBindings = createStdHostBindings();
+  }
+  const packagedSources = {};
+  if (packagedEvaluatorExport && manifest.packagedSources) {
+    for (const [trait, bundleName] of Object.entries(manifest.packagedSources)) {
+      packagedSources[trait] = readFileSync(join(bundleDir, bundleName), 'utf8');
+    }
+  }
+  const packagedReady = Object.keys(packagedSources).length > 0;
+  const traitName = manifest.conformanceTrait || 'std_math_conformance';
+
+  // --- Comparison --------------------------------------------------------------
+
+  function compareValues(actual, expected, tolerance, path, mismatches) {
+    if (typeof actual !== typeof expected) {
+      mismatches.push(`${path}: type ${typeof actual} vs ${typeof expected}`);
       return;
     }
-    for (const key of expectedKeys) {
-      compareValues(actual[key], expected[key], tolerance, `${path}.${key}`, mismatches);
+    if (expected !== null && typeof expected === 'object') {
+      const actualKeys = Object.keys(actual).sort();
+      const expectedKeys = Object.keys(expected).sort();
+      if (actualKeys.join(',') !== expectedKeys.join(',')) {
+        mismatches.push(`${path}: keys [${actualKeys}] vs [${expectedKeys}]`);
+        return;
+      }
+      for (const key of expectedKeys) {
+        compareValues(actual[key], expected[key], tolerance, `${path}.${key}`, mismatches);
+      }
+      return;
     }
-    return;
-  }
-  if (typeof expected === 'number' && tolerance > 0) {
-    if (Math.abs(actual - expected) > tolerance) {
-      mismatches.push(`${path}: |${actual} - ${expected}| > ${tolerance}`);
+    if (typeof expected === 'number' && tolerance > 0) {
+      if (Math.abs(actual - expected) > tolerance) {
+        mismatches.push(`${path}: |${actual} - ${expected}| > ${tolerance}`);
+      }
+      return;
     }
-    return;
+    if (!Object.is(actual, expected)) {
+      mismatches.push(`${path}: ${JSON.stringify(actual)} vs ${JSON.stringify(expected)}`);
+    }
   }
-  if (!Object.is(actual, expected)) {
-    mismatches.push(`${path}: ${JSON.stringify(actual)} vs ${JSON.stringify(expected)}`);
+
+  // --- Execute -----------------------------------------------------------------
+
+  const results = [];
+  const runnable = vectors.filter((vector) => !vector.packaged || packagedReady);
+  const packagedSkipped = vectors.length - runnable.length;
+  for (const vector of runnable) {
+    const outcome = {
+      id: vector.id,
+      op: vector.op,
+      pass: false,
+      ...(vector.packaged ? { packaged: true, trait: vector.trait } : {}),
+    };
+    let parsed;
+    try {
+      let raw;
+      if (vector.packaged) {
+        raw = wasm[packagedEvaluatorExport](
+          packagedSources[vector.trait],
+          vector.trait,
+          vector.op,
+          JSON.stringify(vector.args),
+          hostBindings
+        );
+      } else if (
+        evaluatorExport === 'evaluate_trait_handler_v6' ||
+        evaluatorExport === 'evaluate_trait_handler_v4'
+      ) {
+        raw = wasm[evaluatorExport](
+          traitSource,
+          traitName,
+          vector.op,
+          JSON.stringify(vector.args),
+          hostBindings
+        );
+      } else {
+        raw = wasm[evaluatorExport](traitSource, traitName, vector.op, JSON.stringify(vector.args));
+      }
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      outcome.error = String((error && error.message) || error);
+      results.push(outcome);
+      continue;
+    }
+    if (!parsed.ok) {
+      outcome.error = JSON.stringify(parsed.error);
+      results.push(outcome);
+      continue;
+    }
+    const mismatches = [];
+    compareValues(parsed.value, vector.expected, vector.tolerance, 'value', mismatches);
+    outcome.pass = mismatches.length === 0;
+    outcome.actual = parsed.value;
+    if (!outcome.pass) outcome.mismatches = mismatches;
+    results.push(outcome);
   }
-}
 
-// --- Execute -----------------------------------------------------------------
+  const failed = results.filter((result) => !result.pass);
 
-const results = [];
-const runnable = vectors.filter((vector) => !vector.packaged || packagedReady);
-const packagedSkipped = vectors.length - runnable.length;
-for (const vector of runnable) {
-  const outcome = {
-    id: vector.id,
-    op: vector.op,
-    pass: false,
-    ...(vector.packaged ? { packaged: true, trait: vector.trait } : {}),
+  const receipt = {
+    schema: 'holoscript.std-abi-conformance.owned-metal.v0',
+    generatedAtISO: new Date().toISOString(),
+    target: 'owned-metal',
+    executionRuntime: {
+      engine: `compiler-wasm ${evaluatorExport} (WebAssembly)`,
+      evaluatorExport,
+      executedProjection: 'std-abi-conformance.trait.hsplus (bundle copy, pin-verified)',
+      wasmArtifactSha256: manifest.files['pkg-node/holoscript_wasm_bg.wasm']?.sha256 || 'unpinned',
+      sourceCommit: manifest.sourceCommit,
+    },
+    sources: {
+      'packages/std/conformance/generated/std-abi-vectors.v0.jsonl': {
+        sha256: manifest.files['std-abi-vectors.v0.jsonl'].sha256,
+      },
+      'packages/std/conformance/generated/std-abi-conformance.trait.hsplus': {
+        sha256: manifest.files['std-abi-conformance.trait.hsplus'].sha256,
+      },
+    },
+    ...(hostBindings
+      ? {
+          hostAbi: {
+            schema: 'holoscript.std-host-abi.v0',
+            bindingModuleSha256: manifest.files['std-host-binding.mjs']?.sha256,
+            descriptorSha256: manifest.files['std-host-abi.v0.json']?.sha256,
+            claim:
+              'host-binding vectors cross the wasm guest/host boundary into the bundled canonical JS binding on this hardware',
+          },
+        }
+      : {}),
+    environment: {
+      node: process.version,
+      arch: process.arch,
+      platform: process.platform,
+      hostLabel,
+      hostname: os.hostname(),
+      cpus: os.cpus()[0]?.model || 'unknown',
+    },
+    summary: {
+      vectors: runnable.length,
+      passed: results.length - failed.length,
+      failed: failed.length,
+      packagedVectors: results.filter((result) => result.packaged).length,
+      packagedSkipped,
+    },
+    ...(packagedReady
+      ? {
+          packagedExecution: {
+            evaluatorExport: packagedEvaluatorExport,
+            subsetId:
+              packagedEvaluatorExport === 'evaluate_trait_handler_v6'
+                ? 'holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing'
+                : 'holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories',
+            sources: Object.fromEntries(
+              Object.entries(manifest.packagedSources).map(([trait, bundleName]) => [
+                trait,
+                { bundleFile: bundleName, sha256: manifest.files[bundleName]?.sha256 },
+              ])
+            ),
+            claim: `packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via ${packagedEvaluatorExport}`,
+          },
+        }
+      : {}),
+    results,
+    claimBoundary: {
+      provesOwnedMetalWasmExecution: true,
+      provesNodeDeterministicSubsetExecution: false,
+      note: `Executed the self-pinned runner and generated trait projection from HoloScript ${manifest.sourceCommit} through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts.`,
+    },
   };
-  let parsed;
-  try {
-    let raw;
-    if (vector.packaged) {
-      raw = wasm[packagedEvaluatorExport](
-        packagedSources[vector.trait],
-        vector.trait,
-        vector.op,
-        JSON.stringify(vector.args),
-        hostBindings
-      );
-    } else if (
-      evaluatorExport === 'evaluate_trait_handler_v6' ||
-      evaluatorExport === 'evaluate_trait_handler_v4'
-    ) {
-      raw = wasm[evaluatorExport](
-        traitSource,
-        traitName,
-        vector.op,
-        JSON.stringify(vector.args),
-        hostBindings
-      );
-    } else {
-      raw = wasm[evaluatorExport](traitSource, traitName, vector.op, JSON.stringify(vector.args));
-    }
-    parsed = JSON.parse(raw);
-  } catch (error) {
-    outcome.error = String((error && error.message) || error);
-    results.push(outcome);
-    continue;
+
+  const receiptForHash = { ...receipt };
+  delete receiptForHash.receiptHash;
+  receipt.receiptHash = sha256(Buffer.from(JSON.stringify(receiptForHash)));
+
+  writeFileSync(outPath, `${JSON.stringify(receipt, null, 2)}\n`);
+
+  if (failed.length > 0) {
+    console.error(
+      `[std-abi-owned-metal] FAIL: ${failed.length}/${vectors.length} vectors failed; receipt at ${outPath}`
+    );
+    return 1;
   }
-  if (!parsed.ok) {
-    outcome.error = JSON.stringify(parsed.error);
-    results.push(outcome);
-    continue;
-  }
-  const mismatches = [];
-  compareValues(parsed.value, vector.expected, vector.tolerance, 'value', mismatches);
-  outcome.pass = mismatches.length === 0;
-  outcome.actual = parsed.value;
-  if (!outcome.pass) outcome.mismatches = mismatches;
-  results.push(outcome);
-}
-
-const failed = results.filter((result) => !result.pass);
-
-const receipt = {
-  schema: 'holoscript.std-abi-conformance.owned-metal.v0',
-  generatedAtISO: new Date().toISOString(),
-  target: 'owned-metal',
-  executionRuntime: {
-    engine: `compiler-wasm ${evaluatorExport} (WebAssembly)`,
-    evaluatorExport,
-    executedProjection: 'std-abi-conformance.trait.hsplus (bundle copy, pin-verified)',
-    wasmArtifactSha256: manifest.files['pkg-node/holoscript_wasm_bg.wasm']?.sha256 || 'unpinned',
-    sourceCommit: manifest.sourceCommit,
-  },
-  sources: {
-    'packages/std/conformance/generated/std-abi-vectors.v0.jsonl': {
-      sha256: manifest.files['std-abi-vectors.v0.jsonl'].sha256,
-    },
-    'packages/std/conformance/generated/std-abi-conformance.trait.hsplus': {
-      sha256: manifest.files['std-abi-conformance.trait.hsplus'].sha256,
-    },
-  },
-  ...(hostBindings
-    ? {
-        hostAbi: {
-          schema: 'holoscript.std-host-abi.v0',
-          bindingModuleSha256: manifest.files['std-host-binding.mjs']?.sha256,
-          descriptorSha256: manifest.files['std-host-abi.v0.json']?.sha256,
-          claim:
-            'host-binding vectors cross the wasm guest/host boundary into the bundled canonical JS binding on this hardware',
-        },
-      }
-    : {}),
-  environment: {
-    node: process.version,
-    arch: process.arch,
-    platform: process.platform,
-    hostLabel,
-    hostname: os.hostname(),
-    cpus: os.cpus()[0]?.model || 'unknown',
-  },
-  summary: {
-    vectors: runnable.length,
-    passed: results.length - failed.length,
-    failed: failed.length,
-    packagedVectors: results.filter((result) => result.packaged).length,
-    packagedSkipped,
-  },
-  ...(packagedReady
-    ? {
-        packagedExecution: {
-          evaluatorExport: packagedEvaluatorExport,
-          subsetId:
-            packagedEvaluatorExport === 'evaluate_trait_handler_v6'
-              ? 'holoscript-engine-hsplus-deterministic-action-subset-v6-null-coalescing'
-              : 'holoscript-engine-hsplus-deterministic-action-subset-v5-packaged-factories',
-          sources: Object.fromEntries(
-            Object.entries(manifest.packagedSources).map(([trait, bundleName]) => [
-              trait,
-              { bundleFile: bundleName, sha256: manifest.files[bundleName]?.sha256 },
-            ])
-          ),
-          claim: `packaged-handler vectors executed the shipped @trait source bytes (bundle-pinned) on this hardware via ${packagedEvaluatorExport}`,
-        },
-      }
-    : {}),
-  results,
-  claimBoundary: {
-    provesOwnedMetalWasmExecution: true,
-    provesNodeDeterministicSubsetExecution: false,
-    note: `Executed the self-pinned runner and generated trait projection from HoloScript ${manifest.sourceCommit} through the compiler-wasm evaluator inside this host WebAssembly runtime on owned hardware. Cross-target equality is claimed only by the cross-target checker over sibling receipts.`,
-  },
-};
-
-const receiptForHash = { ...receipt };
-delete receiptForHash.receiptHash;
-receipt.receiptHash = sha256(Buffer.from(JSON.stringify(receiptForHash)));
-
-writeFileSync(outPath, `${JSON.stringify(receipt, null, 2)}\n`);
-
-if (failed.length > 0) {
-  console.error(
-    `[std-abi-owned-metal] FAIL: ${failed.length}/${vectors.length} vectors failed; receipt at ${outPath}`
+  console.log(
+    `[std-abi-owned-metal] OK: ${results.length}/${vectors.length} vectors passed on ${hostLabel} node ${process.version} (${process.arch}); receipt at ${outPath}`
   );
-  process.exit(1);
+  return 0;
 }
-console.log(
-  `[std-abi-owned-metal] OK: ${results.length}/${vectors.length} vectors passed on ${hostLabel} node ${process.version} (${process.arch}); receipt at ${outPath}`
-);
+
+try {
+  process.exitCode = await main();
+} catch (error) {
+  if (!(error instanceof StopRun)) throw error;
+  process.exitCode = error.code;
+}

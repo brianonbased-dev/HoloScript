@@ -80,9 +80,12 @@ let status = 'PASS';
 let error  = null;
 
 try {
+  // The child loads the wasm and then ends on its own. A process.exit(0) right after the load
+  // intermittently ended with status 127 on Windows with Node 24.15 (a libuv assertion), which
+  // this smoke would have reported as "compiler-wasm no longer loads" (claude3, review of #469).
   execFileSync(
     process.execPath,
-    ['-e', `require(${JSON.stringify(WASM_JS)}); process.exit(0);`],
+    ['-e', `require(${JSON.stringify(WASM_JS)});`],
     { timeout: 8000, windowsHide: true, stdio: 'pipe' }
   );
 } catch (err) {

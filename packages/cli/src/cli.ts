@@ -1079,20 +1079,23 @@ async function main(): Promise<void> {
           } else {
             console.log(`\x1b[32m✓ Validation successful!\x1b[0m\n`);
           }
-          process.exit(0);
+          process.exitCode = 0;
         } else {
           console.error(`\x1b[31mValidation failed with ${errorList.length} errors:\x1b[0m`);
           errorList.forEach((err) => {
             console.error(`  Line ${err.line}:${err.column}: ${err.message}`);
           });
-          process.exit(1);
+          process.exitCode = 1;
         }
       } catch (err: unknown) {
         console.error(
           `\x1b[31mUnexpected error during validation: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
         );
-        process.exit(1);
+        process.exitCode = 1;
       }
+      // The code is set, not forced: a .hs validate runs the checker wasm, and process.exit()
+      // after the wasm has run intermittently ended with status 127 on Windows with Node 24.15
+      // instead of this code (claude3, review of #469). main() returns and the process ends.
       break;
     }
 
