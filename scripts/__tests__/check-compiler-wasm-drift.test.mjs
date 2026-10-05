@@ -214,7 +214,7 @@ test('passes when both builds were built from the inputs this commit holds, load
     }
     assert.match(
       ok.stdout,
-      /PASS 2 builds hold the same WASM \(sha256 [0-9a-f]{12}\), were built from the same inputs/
+      /PASS 2 builds hold the same WASM \(sha256 [0-9a-f]{12}\), were built from the same inputs, give the same verdicts, and answer all 2 shared functions alike/
     );
   });
 });
@@ -559,6 +559,23 @@ test('fails when a build exports every name but its checker throws inside (P3-1)
       wrong.stderr,
       /FAIL packages\/compiler-wasm\/pkg: packages\/compiler-wasm\/pkg throws on a valid function: glue is broken/
     );
+  });
+});
+
+test("fails when one build's glue throws inside a function the smoke programs never call (A12)", () => {
+  withRepo(WORKSPACE, (root) => {
+    // Both builds export validate_detailed_in_context; the web glue's is broken inside, as in
+    // the review's A12. The smoke programs pass in both builds.
+    const nodeGlue = `${NODE_GLUE}exports.validate_detailed_in_context = function validate_detailed_in_context(source, context) {\n  return JSON.stringify({ valid: true, errors: [], context: context.length });\n};\n`;
+    const webGlue = `${WEB_GLUE}export function validate_detailed_in_context(source, context) {\n  throw new Error('glue is broken');\n}\n`;
+    commitBuilds(root, CRATE, { 'pkg-node': { glue: nodeGlue }, pkg: { glue: webGlue } });
+    const wrong = runGate(root);
+    assert.equal(wrong.status, 1, shown(wrong));
+    assert.match(
+      wrong.stderr,
+      /FAIL the builds answer the same call differently, so one build's glue is not what wasm-bindgen wrote for this WASM: validate_detailed_in_context: packages\/compiler-wasm\/pkg-node returned .* \| packages\/compiler-wasm\/pkg threw glue is broken/
+    );
+    assert.match(wrong.stdout, /PASS packages\/compiler-wasm\/pkg: /, 'the web build alone passes');
   });
 });
 

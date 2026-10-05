@@ -16,7 +16,9 @@
  *   - the build loads (the web build as an ES module given its WASM bytes through initSync, the
  *     Node build through require), exports every #[wasm_bindgen] function of src/lib.rs, and gives
  *     the checker's verdicts on two small programs, one valid and one not.
- * Across builds: one WASM, one inputs hash, and the same verdict text.
+ * Across builds: one WASM, one inputs hash, the same verdict text, and the same answer from every
+ * function both export when each is called with the same arguments (one build's glue broken inside
+ * a function the smoke programs do not call answers differently from the other's).
  *
  * During pre-commit the index is the commit being made. A receipt that hashes the index passes. One
  * that hashes HEAD passes with a warning: a Rust change is committed before its rebuild (a rebuild
@@ -363,6 +365,7 @@ async function checkBuild(context, artifactRel, artifactJsRel) {
     fail(`${artifactRel} does not load: ${error.message}`);
     return result;
   }
+  result.module = module;
   const functions = new Set(
     Object.keys(module).filter((name) => typeof module[name] === 'function')
   );
@@ -380,6 +383,58 @@ async function checkBuild(context, artifactRel, artifactJsRel) {
     }
   }
   return result;
+}
+
+/** The web build's loaders, which the Node build does not have. */
+const NOT_COMPARED = new Set(['default', 'initSync', '__wbg_init']);
+
+/** What one call did: a key to compare (a digest of the whole answer) and a short preview. */
+function outcomeOf(fn, callArgs) {
+  try {
+    const value = fn(...callArgs);
+    const text = typeof value === 'string' ? value : (JSON.stringify(value) ?? String(value));
+    return {
+      key: `returned ${sha256(String(text))}`,
+      preview: `returned ${String(text).slice(0, 80)}`,
+    };
+  } catch (error) {
+    const message = String(error?.message ?? error);
+    return { key: `threw ${message}`, preview: `threw ${message.slice(0, 80)}` };
+  }
+}
+
+/**
+ * Every function the loaded builds share, called in each with the same arguments (the valid
+ * smoke program for every parameter). The builds hold one WASM, so they must answer alike: glue
+ * broken inside a function the smoke programs never call answers differently from the other
+ * build's (the review's A12, where the web glue's validate_detailed_in_context threw).
+ */
+function compareExports(results) {
+  const loaded = results.filter((result) => result.module);
+  if (loaded.length < 2) return { differences: [], count: 0 };
+  const shared = Object.keys(loaded[0].module)
+    .filter(
+      (name) =>
+        !NOT_COMPARED.has(name) &&
+        loaded.every((result) => typeof result.module[name] === 'function')
+    )
+    .sort();
+  const differences = [];
+  for (const name of shared) {
+    const callArgs = Array.from(
+      { length: loaded[0].module[name].length },
+      () => SMOKE_PROGRAMS[0].source
+    );
+    const outcomes = loaded.map((result) => outcomeOf(result.module[name], callArgs));
+    if (new Set(outcomes.map((outcome) => outcome.key)).size > 1) {
+      differences.push(
+        `${name}: ${loaded
+          .map((result, index) => `${result.artifactRel} ${outcomes[index].preview}`)
+          .join(' | ')}`
+      );
+    }
+  }
+  return { differences, count: shared.length };
 }
 
 async function main() {
@@ -468,10 +523,21 @@ async function main() {
         .join('; ')})`
     );
   }
+  const compared = compareExports(results);
+  if (compared.differences.length) {
+    failed = true;
+    for (const difference of compared.differences) {
+      console.error(
+        `${TAG} FAIL the builds answer the same call differently, so one build's glue is not ` +
+          `what wasm-bindgen wrote for this WASM: ${difference}`
+      );
+    }
+  }
   if (!failed && results.length > 1) {
     console.log(
       `${TAG} PASS ${results.length} builds hold the same WASM (sha256 ${results[0].digest.slice(0, 12)}), ` +
-        'were built from the same inputs, and give the same verdicts'
+        `were built from the same inputs, give the same verdicts, and answer all ${compared.count} ` +
+        'shared functions alike'
     );
   }
   process.exit(failed ? 1 : 0);
