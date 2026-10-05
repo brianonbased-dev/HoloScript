@@ -29,6 +29,10 @@ pub struct Lexer<'a> {
     source: &'a str,
     chars: std::iter::Peekable<std::str::CharIndices<'a>>,
     line: usize,
+    /// 1-based, in UTF-16 code units: the unit of a JavaScript string index and of an LSP
+    /// position, which is where every line and column this crate reports ends up (the LSP, the
+    /// MCP validate tool, the `.hsplus` reader). A character outside the Basic Multilingual Plane,
+    /// such as an emoji, is two units. `position` stays a UTF-8 byte offset into `source`.
     column: usize,
     position: usize,
 }
@@ -380,7 +384,7 @@ impl<'a> Lexer<'a> {
     fn advance(&mut self) -> Option<(usize, char)> {
         if let Some((pos, ch)) = self.chars.next() {
             self.position = pos + ch.len_utf8();
-            self.column += 1;
+            self.column += ch.len_utf16();
             Some((pos, ch))
         } else {
             None

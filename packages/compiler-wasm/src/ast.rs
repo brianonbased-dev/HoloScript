@@ -550,6 +550,14 @@ pub struct FunctionNode {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lifetimes: Vec<String>,
     pub params: Vec<String>,
+    /// Where each parameter's name is written, aligned 1:1 with `params`, so a diagnostic about
+    /// one parameter points at it. Not serialized: `parse()` output keeps its shape. Boxed because
+    /// this is the largest `AstNode` variant: an unboxed `Vec` made every node 24 bytes larger
+    /// (200 to 224), and with them the parser's frames, so nesting trapped the WASM a few levels
+    /// sooner.
+    #[serde(skip)]
+    #[allow(clippy::box_collection)]
+    pub param_locs: Box<Vec<Location>>,
     /// Optional machine-level type for each parameter. Empty for legacy untyped functions so
     /// their serialized AST shape remains unchanged; otherwise aligned 1:1 with `params`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
