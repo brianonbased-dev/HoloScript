@@ -7259,6 +7259,181 @@ export declare class DeterminismHarness {
   static compareResults(results: ProbeResult[]): DivergenceReport;
 }
 export declare function describeEnvironment(env: EnvironmentInfo): string;
+
+// ── Twin (differential) testing — src/testing/TwinTestHarness.ts ──
+export interface TwinImplementation<I, O> {
+  name: string;
+  run: (input: I) => O | Promise<O>;
+}
+export interface TwinTestSpec<I, O, S = O> {
+  name: string;
+  implementations: {
+    a: TwinImplementation<I, O>;
+    b: TwinImplementation<I, O>;
+  };
+  generate: (seed: number, iteration: number) => I;
+  oracle?: (output: O) => S;
+  equivalent?: (a: S, b: S) => boolean;
+  shrink?: (input: I) => I[];
+  iterations?: number;
+  seed?: number;
+  maxShrinkSteps?: number;
+  perIterationTimeoutMs?: number;
+  stopOnFirstDivergence?: boolean;
+}
+export type TwinDivergenceReason = 'syndrome-mismatch' | 'a-threw' | 'b-threw' | 'timeout';
+export interface TwinTestDivergence<I, O, S> {
+  iteration: number;
+  input: I;
+  outputA: O | { error: string };
+  outputB: O | { error: string };
+  syndromeA: S | { error: string };
+  syndromeB: S | { error: string };
+  shrunk: boolean;
+  shrinkSteps: number;
+  reason: TwinDivergenceReason;
+  originalInput?: I;
+}
+export interface TwinTestResult<I, O, S> {
+  passed: boolean;
+  spec: { name: string; implA: string; implB: string };
+  iterationsRun: number;
+  iterationsTotal: number;
+  durationMs: number;
+  divergences: TwinTestDivergence<I, O, S>[];
+  counts: {
+    syndromeMismatches: number;
+    aThrew: number;
+    bThrew: number;
+    timeouts: number;
+  };
+}
+export declare function defaultEquivalent<S>(a: S, b: S): boolean;
+export declare function runTwinTest<I, O, S = O>(
+  spec: TwinTestSpec<I, O, S>
+): Promise<TwinTestResult<I, O, S>>;
+export declare function expectTwinEquivalent<I, O, S = O>(
+  spec: TwinTestSpec<I, O, S>
+): Promise<void>;
+
+// ── Back-translation proof — src/testing/backtranslation/ ──
+export interface ChecklistLine {
+  n: number;
+  text: string;
+}
+export interface BehaviourChecklist {
+  behaviourId: string;
+  sourcePath: string;
+  author: string;
+  lines: ChecklistLine[];
+}
+export interface ModelExchange {
+  round: number;
+  kind: 'rebuild' | 'repair';
+  provider: string;
+  model: string;
+  reportedModel: string | null;
+  prompt: { system: string; user: string };
+  response: string;
+  extractedSource: string;
+  validation: { valid: boolean; errors: string[] };
+  usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
+  at: string;
+}
+export type DivergenceClass = 'real-fault' | 'checklist-ambiguity' | 'b-error';
+export interface ClassifiedDivergence {
+  iteration: number;
+  reason: string;
+  difference: string;
+  classification: DivergenceClass;
+  rationale: string;
+}
+export interface MutantOutcome {
+  id: string;
+  operator: string;
+  description: string;
+  change: string;
+  situations: number;
+  divergentSituations: number;
+  caught: boolean;
+  firstDivergence?: { iteration: number; reason: string; detail: string };
+}
+export interface BackTranslationReceipt {
+  schema: 'holoscript.back-translation-proof.v1';
+  behaviourId: string;
+  generatedAt: string;
+  runSurface: {
+    branch: string;
+    commit: string;
+    note: string;
+  };
+  checklist: BehaviourChecklist;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    model: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    rounds: number;
+    validated: boolean;
+    exchangesDir: string;
+    rebuiltSourcePath: string;
+    recordedNotLive: boolean;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    situations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  originalVsRebuild: {
+    passed: boolean;
+    divergentSituations: number;
+    divergences: ClassifiedDivergence[];
+    falseAlarms: number;
+  };
+  originalVsSelf: { passed: boolean; divergentSituations: number };
+  faults: {
+    planted: number;
+    caught: number;
+    mutants: MutantOutcome[];
+  };
+  verdict: string;
+  weakestLink: string;
+}
+export type MutationOperator =
+  | 'arith-flip'
+  | 'comparison-flip'
+  | 'constant-change'
+  | 'boolean-flip'
+  | 'drop-statement'
+  | 'event-rename';
+export declare const MUTATION_OPERATORS: readonly MutationOperator[];
+export interface SourceMutant {
+  id: string;
+  operator: MutationOperator;
+  site: number;
+  line: number;
+  before: string;
+  after: string;
+  description: string;
+  source: string;
+}
+export type SpanKind = 'code' | 'string' | 'comment';
+export interface Span {
+  kind: SpanKind;
+  start: number;
+  end: number;
+}
+export declare function lexSpans(source: string): Span[];
+export declare function enumerateMutants(source: string): SourceMutant[];
+export declare function selectMutants(source: string, max?: number): SourceMutant[];
+export declare function renderChecklist(checklist: BehaviourChecklist): string;
+export declare function extractFencedSource(response: string): string;
+export declare function stableReceiptJson(receipt: BackTranslationReceipt): string;
+export declare function renderPlainSummary(receipt: BackTranslationReceipt): string;
 `;
 
 // HoloLand sovereign trait handlers (runtime bridge)
