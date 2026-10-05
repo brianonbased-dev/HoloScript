@@ -361,7 +361,7 @@ function assertBatchInnerToolAuthorized(
 
   // Gate 3's host-path rule is not re-run for children, so the batch would be a way round it:
   // apply the same check to the child's own arguments (task_1790214096204_56rj).
-  assertNoHostPathArgs(toolName, args, signingCtx?.scopes ?? []);
+  assertNoHostPathArgs(toolName, args, signingCtx?.scopes ?? [], signingCtx?.localCustody);
 }
 
 // Handle tool calls.
@@ -576,7 +576,7 @@ export async function _handleSingleToolLogic(
     // HTTP entry, but only for the outer call. A tool re-entered from inside the server (a batch child, a
     // mesh-invoked tool, a workflow step) arrives here with the caller's context, and before this line the
     // only other check was the batch one (claude3-x402's review of #398). No context is the stdio path.
-    if (signingCtx) assertNoHostPathArgs(name, args, signingCtx.scopes);
+    if (signingCtx) assertNoHostPathArgs(name, args, signingCtx.scopes, signingCtx.localCustody);
 
     // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
     if (name.startsWith('uaa2_') || name.startsWith('hs_plugin_')) {

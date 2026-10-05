@@ -2,6 +2,8 @@
 // TODO: shrink these as the host consumes generated absorb-service declarations.
 
 declare module '@holoscript/absorb-service/engine' {
+  export function absorbAllowedRoots(env?: NodeJS.ProcessEnv): string[];
+  export function absorbRootRefusal(requested: string, env?: NodeJS.ProcessEnv): string | null;
   export const CodebaseScanner: unknown;
   export const CodebaseGraph: unknown;
   export const CommunityDetector: unknown;

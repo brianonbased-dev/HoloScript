@@ -424,7 +424,7 @@ export function gate3EnforcePolicy(
   // (task_1790214096204_56rj). This runs before the DOWNSTREAM_TOOLS skip on purpose: the tools
   // measured writing and reading an attacker-chosen absolute path were not in that set, and the path
   // check below only ever recorded an advisory string. See security/host-path-args.ts.
-  if (!callerMayNameHostPaths(auth.scopes)) {
+  if (!callerMayNameHostPaths(auth.scopes, auth.localCustody)) {
     const violation = findHostPathViolation(args);
     if (violation) {
       return {
