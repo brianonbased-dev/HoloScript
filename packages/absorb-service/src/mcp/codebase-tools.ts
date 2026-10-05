@@ -7344,6 +7344,20 @@ export async function refuseNestedWorkspaceSliceForSemanticTools(): Promise<{
   hint: string;
   graphUnavailableReceipt: GraphUnavailableReceipt;
 } | null> {
+  // Ask only the nested-slice question. The full in-memory authority check in
+  // ensureCachedGraph evicts any graph that does not cover its rootDir's Git
+  // file set (an inline sourceFiles upload never does) and resets GraphRAG
+  // state as a side effect, so the semantic tool that called this lost the
+  // engine it was about to use. Staleness stays the semantic tool's concern.
+  if (cachedGraph) {
+    const workspaceRoot = resolveWorkspaceRoot();
+    const memoryRootDirs = (cachedGraph as { rootDirs?: string[] }).rootDirs;
+    const declaredRoots =
+      Array.isArray(memoryRootDirs) && memoryRootDirs.length > 0
+        ? memoryRootDirs
+        : [cachedRootDir || workspaceRoot];
+    if (!isNestedWorkspaceSlice(workspaceRoot, declaredRoots)) return null;
+  }
   const state = await ensureCachedGraph({ warmGraphRAG: false });
   if (state.graphUnavailableReceipt?.reason !== 'cache_root_mismatch') {
     return null;

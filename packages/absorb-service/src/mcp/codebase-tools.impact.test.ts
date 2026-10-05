@@ -134,9 +134,10 @@ describe('holo_impact_analysis traversal budgets', () => {
       truncationReasons: [],
       resolvedChangedFiles: ['src/f0.ts'],
       unresolvedChangedFiles: [],
-      // Parser-light file nodes now warm graph context during index hydration,
-      // so the authoritative cache already owns a deterministic community map.
-      communityGrouping: 'cached',
+      // Structural tools load HoloGraph only and never warm HoloEmbed
+      // (0d801cefc), so a first impact call groups by directory instead of
+      // running the unbounded community detector.
+      communityGrouping: 'directory-fallback',
       communityGroupingComplete: true,
       ungroupedAffectedFiles: 0,
       traversal: {
